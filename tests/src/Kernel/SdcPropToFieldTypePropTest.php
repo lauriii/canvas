@@ -71,11 +71,23 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
 
         // From least to most restrictive matchmaking of structured data sources
         // to flow into component props:
-        // 1. storage representation must match.
+        // 1. storage representation must match
         $storage_candidates = $matcher->findFieldTypeStorageCandidates($primitive_type, $is_required);
-        // 2. format must match.
+        // 2. format must match
+        //    👉 UX need: when the builder is creating a content type's template
+        //       and they declare the intent to not statically assign a value to
+        //       a component prop, then these are the available choices to
+        //       create a new field!
+        //    🎉 Component placement at a structural level (content
+        //       template) encourages EXPANDING the data model IF needs are met!
         $format_candidates = $matcher->findFieldTypeFormatCandidates($primitive_type, $is_required, $schema);
         // 3. a field instance of this type must exist.
+        //    👉 UX need: when the builder is creating a content type's template
+        //       OR the creator is placing a component in a slot, and they
+        //       declare the intent to not statically assign a value to a
+        //       component prop, then these are the available choices
+        //    🎉 Component placement at a structural level (content
+        //       template) encourages USING the data model IF needs are not met!
         // @todo Load all `FieldConfig` instances (optionally limited by entity type + bundle), to find actually viable choices. Next up:
         $instance_candidates = [];
         // 4. adapters.
