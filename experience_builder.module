@@ -2,68 +2,19 @@
 
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\Display\EntityViewDisplayInterface;
-use Drupal\Core\Field\FieldTypePluginManagerInterface;
 use Drupal\Core\Template\Attribute;
-use Drupal\Core\TypedData\Plugin\DataType\BooleanData;
-use Drupal\Core\TypedData\Plugin\DataType\FloatData;
-use Drupal\Core\TypedData\Plugin\DataType\IntegerData;
-use Drupal\Core\TypedData\Plugin\DataType\StringData;
-use Drupal\Core\TypedData\PrimitiveInterface;
-use Drupal\Core\TypedData\Type\UriInterface;
-use Drupal\Core\TypedData\TypedDataManagerInterface;
+use Drupal\experience_builder\ComponentPropExpression;
+use Drupal\experience_builder\FieldPropExpression;
+use Drupal\experience_builder\FieldTypePropExpression;
+use Drupal\experience_builder\SdcPropToFieldTypePropMatcher;
 use Drupal\sdc\ComponentPluginManager;
-
-// @todo Question for Ben/Jesse/Harumi: does react also use JSON schema for restricting/defining its props? I.e.: identical set of primitives or not?
-enum SdcPropJsonSchemaType : string {
-  case STRING = 'string';
-  case NUMBER = 'number';
-  case INTEGER = 'integer';
-  case OBJECT = 'object';
-  case ARRAY = 'array';
-  case BOOLEAN = 'boolean';
-}
-
-final class FtpNeedle {
-  public function __construct(
-    public readonly string $constraint,
-    public readonly array $constraintOptions,
-    // Restricting by interface makes sense in combination with \Drupal\Core\Validation\Plugin\Validation\Constraint\PrimitiveTypeConstraintValidator.
-    public readonly ?string $interface = NULL
-  ) {
-    if ($this->constraint === 'PrimitiveType' && $interface === NULL) {
-      throw new \DomainException('The `PrimitiveType` constraint is meaningless without an interface restriction.');
-    }
-    if ($this->interface !== NULL && $this->constraint !== 'PrimitiveType') {
-      throw new \DomainException('An interface restriction only makes sense when the `PrimitiveType` constraint is used.');
-    }
-  }
-}
 
 /**
  * Implements hook_entity_view_alter().
  *
  * To PoC storing SDCs + fixed values + mapped values
- *
- * Architectural Decision Record
- *
- * Internal representation of references to field types, field instances, fields
- * aka field item lists, field deltas aka field items, field item properties:
- * - `␟` is the field item VS property name separator, because a field property
- *   is the smallest unit
- * - `␞` then is the field item list vs field item separator
- * @see https://github.com/SixArm/usv
  */
 function experience_builder_entity_view_alter(&$build, EntityInterface $entity, EntityViewDisplayInterface $display) {
-  $build['#attributes']['data-media-embed-test-active-theme'] = \Drupal::theme()->getActiveTheme()->getName();
-  $build['#attributes']['data-media-embed-test-view-mode'] = $display->getMode();
-
-  $sdc_manager = \Drupal::service('plugin.manager.sdc');
-  assert($sdc_manager instanceof ComponentPluginManager);
-
-  $field_type_manager = \Drupal::service(FieldTypePluginManagerInterface::class);
-  $typed_data_manager = \Drupal::service(TypedDataManagerInterface::class);
-  $grouped_definition = $field_type_manager->getGroupedDefinitions();
-
   // Direction 1: Structured data -> components
   //
   // For every @FieldType:
@@ -74,8 +25,12 @@ function experience_builder_entity_view_alter(&$build, EntityInterface $entity, 
   // - narrow down further based on `format`, `pattern` etc. in JSON schema, match this with corresponding restrictions on Drupal @DataType side
 
   // Direction 2: Single Directory Components -> Field Type Properties
-  $sdc_to_ftp_storage_mapping = [];
-  $sdc_to_ftp_format_mapping = [];
+  $sdc_manager = \Drupal::service('plugin.manager.sdc');
+  assert($sdc_manager instanceof ComponentPluginManager);
+
+  $matcher = \Drupal::service(SdcPropToFieldTypePropMatcher::class);
+  assert($matcher instanceof SdcPropToFieldTypePropMatcher);
+
   foreach ($sdc_manager->getAllComponents() as $component) {
     $component_name = $component->getPluginId();
 
@@ -85,6 +40,7 @@ function experience_builder_entity_view_alter(&$build, EntityInterface $entity, 
     // @see \Drupal\sdc\Component\ComponentMetadata::parseSchemaInfo
     $prop_names = array_keys($component->metadata->schema['properties'] ?? []);
     foreach ($prop_names as $prop_name) {
+      $cpe = new ComponentPropExpression($component_name, $prop_name);
       $schema = $component->metadata->schema['properties'][$prop_name];
 
       // TRICKY: `attributes` is a special case — it is kind of a reserved prop.
@@ -94,30 +50,40 @@ function experience_builder_entity_view_alter(&$build, EntityInterface $entity, 
         continue;
       }
 
-      $primitive_type = SdcPropJsonSchemaType::from($schema['type'][0]);
+      $primitive_type = \Drupal\experience_builder\SdcPropJsonSchemaType::from(
       // TRICKY: SDC always allowed `object` for Twig integration reasons.
       // @see \Drupal\sdc\Component\ComponentMetadata::parseSchemaInfo()
-      assert($schema['type'][1] === 'object');
-      assert(count($schema['type']) === 2);
+        is_array($schema['type']) ? $schema['type'][0] : $schema['type']
+      );
 
       // @see https://json-schema.org/understanding-json-schema/reference/object#required
       // @see https://json-schema.org/learn/getting-started-step-by-step#required
       $is_required = in_array($prop_name, $component->metadata->schema['required'] ?? [], TRUE);
 
-      // Phase 1: storage representation must match.
-      $storage_candidate_ftps = _experience_builder_find_field_type_storage_candidates($primitive_type, $is_required);
-      $sdc_to_ftp_storage_mapping[sprintf("%s␟%s", $component_name, $prop_name)] = $storage_candidate_ftps;
+      // From least to most restrictive matchmaking of structured data sources
+      // to flow into component props:
+      // 1. storage representation must match.
+      $storage_candidates = $matcher->findFieldTypeStorageCandidates($primitive_type, $is_required);
+      // 2. format must match.
+      $format_candidates = $matcher->findFieldTypeFormatCandidates($primitive_type, $is_required, $schema);
+      // 3. a field instance of this type must exist.
+      // @todo Load all `FieldConfig` instances (optionally limited by entity type + bundle), to find actually viable choices. Next up:
+      $instance_candidates = [];
+      // 4. adapters.
+      // @todo Make adapters a reality; but how to not overwhelm? 🤔 Probably we should only generate these for SDC props with a `format` that otherwise has zero matches? Because we could cast any `int` to a `string`, but that'd just result in terrible UX.
+      //$adapted_candidates = [];
 
-      // Phase 2: format must match.
-      $format_candidate_ftps = _experience_builder_find_field_type_format_candidates($primitive_type, $schema, $storage_candidate_ftps);
-      $sdc_to_ftp_format_mapping[sprintf("%s␟%s", $component_name, $prop_name)] = $format_candidate_ftps;
+      // For each component prop ($cpe), store the string representations of
+      // the discovered
+      $matches[(string) $cpe]['storage'] = array_map(fn(FieldTypePropExpression $e): string => (string) $e, $storage_candidates);
+      $matches[(string) $cpe]['format'] = array_map(fn(FieldTypePropExpression $e): string => (string) $e, $format_candidates);
+      $matches[(string) $cpe]['instance'] = array_map(fn(FieldPropExpression $e): string => (string) $e, $instance_candidates);
     }
   }
-
-  // @todo Research `field_item:entity_reference`, restricted to a specific target entity type
   print '<style>details[data-count="0"] { color: red; }</style>';
   print "<h1>SDC prop to Field Type Property mapping, primitive type+requiredness</h1>";
-  foreach ($sdc_to_ftp_storage_mapping as $k => $v) {
+  foreach ($matches as $k => $d) {
+    $v = $d['storage'];
     $c = count($v);
     print "<details data-count='$c'><summary><code>$k</code> ($c)</summary><ol><li><code>";
     print implode("</code></li><li><code>", $v);
@@ -127,7 +93,8 @@ function experience_builder_entity_view_alter(&$build, EntityInterface $entity, 
   flush();
 
   print "<h1>SDC prop to Field Type Property mapping, primitive type+requiredness+format</h1>";
-  foreach ($sdc_to_ftp_format_mapping as $k => $v) {
+  foreach ($matches as $k => $d) {
+    $v = $d['format'];
     $c = count($v);
     print "<details data-count='$c'><summary><code>$k</code> ($c)</summary><ol><li><code>";
     print implode("</code></li><li><code>", $v);
@@ -138,168 +105,3 @@ function experience_builder_entity_view_alter(&$build, EntityInterface $entity, 
 
   exit;
 }
-
-// @see https://json-schema.org/understanding-json-schema/reference/type
-// @todo Add caching at the appropriate layer: this is guaranteed to return the same within the same request; it depends only on code in enabled modules, not configuration
-// TRICKY: relying on \Drupal\Core\TypedData\Type\*Interface is not possible
-// because that interface conveys semantics, not storage mechanism. For
-// example: DurationInterface has 2 implementations in Drupal core:
-// - \Drupal\Core\TypedData\Plugin\DataType\TimeSpan, which is an integer
-// - \Drupal\Core\TypedData\Plugin\DataType\DurationIso8601, which is a string
-function _experience_builder_find_field_type_storage_candidates(SdcPropJsonSchemaType $json_schema_primitive_type, bool $is_required_in_json_schema) : array {
-  $field_type_manager = \Drupal::service(FieldTypePluginManagerInterface::class);
-  $typed_data_manager = \Drupal::service(TypedDataManagerInterface::class);
-
-  $candidates = [];
-
-  $field_types = $field_type_manager->getDefinitions();
-  foreach (array_keys($field_types) as $field_type) {
-    // Rather than instantiating a field type using the field type plugin
-    // manager, which assumes a field definition etc exist, bypass that and go
-    // directly to the DataType-associated-with-FieldType level.
-    // @see \Drupal\Core\Field\FieldTypePluginManager::createInstance()
-    $field_item_definition = $typed_data_manager->createDataDefinition("field_item:$field_type");
-    $property_definitions = $field_item_definition->getPropertyDefinitions();
-
-    foreach ($property_definitions as $property_name => $property_definition) {
-      $data_type_class = $property_definition->getClass();
-
-      // Note: these are all the base-level PrimitiveInterface implementations.
-      assert(is_a($data_type_class, PrimitiveInterface::class, TRUE));
-
-      $field_primitive_types = match (TRUE) {
-        is_a($data_type_class, StringData::class, TRUE) => [SdcPropJsonSchemaType::STRING],
-        // TRICKY: a SDC prop that accepts number, can accept both an integer and a
-        // float, but an SDC prop that accepts integer, can accept only integer.
-        is_a($data_type_class, IntegerData::class, TRUE) => [SdcPropJsonSchemaType::INTEGER, SdcPropJsonSchemaType::NUMBER],
-        is_a($data_type_class, FloatData::class, TRUE) => [SdcPropJsonSchemaType::NUMBER],
-        is_a($data_type_class, BooleanData::class, TRUE) => [SdcPropJsonSchemaType::BOOLEAN],
-        // @todo object + array
-        TRUE => [],
-      };
-
-      // If the primitive type does not match, this is not a candidate.
-      if (!in_array($json_schema_primitive_type, $field_primitive_types)) {
-        continue;
-      }
-
-      // If it is required in SDC's JSON schema, it must be required in Drupal's
-      // Typed Data too; otherwise there is a risk of violating SDC's schema.
-      if ($is_required_in_json_schema && !$property_definition->isRequired()) {
-        continue;
-      }
-      $candidates[] = sprintf("%s␟%s", $field_type, $property_name);
-    }
-  }
-
-  return $candidates;
-}
-
-function _json_schema_to_drupal_data_type(SdcPropJsonSchemaType $primitive_type, array $schema): FtpNeedle|true {
-  // Generic restrictions: https://json-schema.org/understanding-json-schema/reference/enum
-  // TRICKY: generic restrictions also allow mixing different types, this is not supported on the Drupal side.
-  return match ($primitive_type) {
-    // There cannot possibly be any additional validation for booleans.
-    SdcPropJsonSchemaType::BOOLEAN => TRUE,
-
-    // The `string` JSON schema type
-    // - `minLength` and `maxLength`: https://json-schema.org/understanding-json-schema/reference/string#length
-    // - `pattern`: https://json-schema.org/understanding-json-schema/reference/string#regexp
-    // - `format`: https://json-schema.org/understanding-json-schema/reference/string#format and https://json-schema.org/understanding-json-schema/reference/string#built-in-formats
-    // For example, `format: uri` in JSON schema maps 1:1 to
-    // \Drupal\Core\TypedData\Type\UriInterface, because both use RFC3986.
-    // @see https://json-schema.org/understanding-json-schema/reference/string#resource-identifiers
-    // @see \Drupal\Core\Validation\Plugin\Validation\Constraint\PrimitiveTypeConstraintValidator
-    SdcPropJsonSchemaType::STRING => match (TRUE) {
-      array_key_exists('enum', $schema) => new FtpNeedle('Choice', [
-        'choices' => $schema['enum'],
-      ], NULL),
-
-      // @todo Do we need to support both `format` *and* `pattern` simultaneously; for example to only allow URLs from a certain domain?
-      array_key_exists('pattern', $schema) => new FtpNeedle('Regex', ['pattern' => $schema['pattern']]),
-
-      array_key_exists('format', $schema) => match ($schema['format']) {
-        // @see https://json-schema.org/understanding-json-schema/reference/string#dates-and-times
-        //              'date-time', 'time', 'date', 'duration'
-
-        // @see https://json-schema.org/understanding-json-schema/reference/string#resource-identifiers
-        'uuid' => new FtpNeedle('Uuid', []),
-        // TRICKY: Drupal core does not support RFC3987 aka IRIs, but it's a superset of RFC3986.
-        'uri', 'iri' => new FtpNeedle('PrimitiveType', [], UriInterface::class),
-        // Specify an invalid constraint name because neither of these
-        // formats are supported by Drupal core.
-        // @todo Add missing validation constraint and then use it for \Drupal\path\Plugin\Field\FieldType\PathItem's `alias` property.
-        'uri-reference', 'iri-reference' => new FtpNeedle('NOT YET SUPPORTED', []),
-
-        // @see https://json-schema.org/understanding-json-schema/reference/string#uri-template
-        'uri-template' => new FtpNeedle('NOT YET SUPPORTED', []),
-
-        // @see https://json-schema.org/understanding-json-schema/reference/string#json-pointer
-        'json-pointer', 'relative-json-pointer' => new FtpNeedle('NOT YET SUPPORTED', []),
-
-        // @see https://json-schema.org/understanding-json-schema/reference/string#regular-expressions
-        'regex' => new FtpNeedle('NOT YET SUPPORTED', []),
-      },
-      // Otherwise, it's an unrestricted string.
-      TRUE => TRUE,
-    },
-
-    SdcPropJsonSchemaType::INTEGER, SdcPropJsonSchemaType::NUMBER => match (TRUE) {
-      array_key_exists('enum', $schema) => new FtpNeedle('Choice', [
-        'choices' => $schema['enum'],
-      ], NULL),
-
-      // @todo 'minimum', 'maximum', etc.
-      array_key_exists('minimum', $schema) => new FtpNeedle('Range', ['min' => $schema['minimum']], NULL),
-      // @todo https://json-schema.org/understanding-json-schema/reference/numeric#multiples
-      // @todo https://json-schema.org/understanding-json-schema/reference/numeric#range
-      // Otherwise, it's an unrestricted integer.
-      TRUE => TRUE,
-    },
-    // @todo
-    SdcPropJsonSchemaType::OBJECT, SdcPropJsonSchemaType::ARRAY => new FtpNeedle('NOT YET SUPPORTED', [], NULL),
-  };
-}
-
-// Expands
-function _experience_builder_find_field_type_format_candidates(SdcPropJsonSchemaType $primitive_type, array $schema, array $storage_candidate_ftps) {
-  $typed_data_manager = \Drupal::service(TypedDataManagerInterface::class);
-  $ftp_needle = _json_schema_to_drupal_data_type($primitive_type, $schema);
-  return array_filter($storage_candidate_ftps, function (string $ftp) use ($typed_data_manager, $ftp_needle) {
-    // One of SdcPropJsonSchemaType, with no additional requirements.
-    if ($ftp_needle === TRUE) {
-      return TRUE;
-    }
-
-    if ($ftp_needle === NULL) {
-      return FALSE;
-    }
-    if ($ftp_needle->constraint === 'NOT YET SUPPORTED') {
-      return FALSE;
-    }
-    [$field_type, $prop_name] = explode('␟', $ftp);
-    $field_item = $typed_data_manager->createInstance("field_item:$field_type", [
-      'data_definition' => $typed_data_manager->createDataDefinition("field_item:$field_type"),
-    ]);
-
-    // Now that the foundation is matching, the shape must now be validated.
-    $property_level_constraints = $field_item->getProperties()[$prop_name]->getConstraints();
-    $field_item_level_constraints = $field_item->getConstraints()[$prop_name] ?? [];
-    // @todo Verify that property-level constraints indeed overrule field item-level constraints.
-    $constraints = $property_level_constraints + $field_item_level_constraints;
-
-    // Does the FTP needle match?
-    // 1. Constraint.
-    $constraint_manager = \Drupal::service('validation.constraint');
-    assert($constraint_manager instanceof \Drupal\Core\Validation\ConstraintManager);
-    $constraint_found = in_array(
-      $constraint_manager->create($ftp_needle->constraint, $ftp_needle->constraintOptions),
-      $constraints
-    );
-    // 2. Optionally: the interface
-    $interface_found = $ftp_needle->interface === NULL
-      || is_a($field_item->get($prop_name)->getDataDefinition()->getClass(), $ftp_needle->interface, TRUE);
-    return $constraint_found && $interface_found;
-  });
-}
-
