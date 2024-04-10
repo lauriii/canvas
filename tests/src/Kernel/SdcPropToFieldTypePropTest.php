@@ -26,11 +26,16 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
     'experience_builder',
     // The dependent modules.
     'sdc',
-    // The modules providing sample SDCs.
-    'cl_editorial',
-    'sdc_test',
-    'sdc_examples',
   ];
+
+  /**
+   * {@inheritdoc}
+   */
+  protected function setUp(): void {
+    parent::setUp();
+    // Necessary for uninstalling modules.
+    $this->installSchema('user', ['users_data']);
+  }
 
   /**
    * @dataProvider provider
@@ -109,15 +114,49 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
     }
 
     $this->assertSame($expected, $matches);
+
+    $module_installer->uninstall($modules);
   }
 
   public function provider() {
-    yield 'real-world SDCs' => [
+    $all_string_storage_props  = [
+      'ℹ︎comment␟last_comment_name',
+      'ℹ︎datetime␟value',
+      'ℹ︎daterange␟value',
+      'ℹ︎daterange␟end_value',
+      'ℹ︎file_uri␟value',
+      'ℹ︎file␟description',
+      'ℹ︎image␟alt',
+      'ℹ︎image␟title',
+      'ℹ︎link␟uri',
+      'ℹ︎link␟title',
+      'ℹ︎list_string␟value',
+      'ℹ︎path␟alias',
+      'ℹ︎path␟langcode',
+      'ℹ︎telephone␟value',
+      'ℹ︎text_with_summary␟value',
+      'ℹ︎text_with_summary␟format',
+      'ℹ︎text_with_summary␟summary',
+      'ℹ︎text␟value',
+      'ℹ︎text␟format',
+      'ℹ︎text_long␟value',
+      'ℹ︎text_long␟format',
+      'ℹ︎uri␟value',
+      'ℹ︎uuid␟value',
+      'ℹ︎email␟value',
+      'ℹ︎string␟value',
+      'ℹ︎language␟value',
+      'ℹ︎string_long␟value',
+      'ℹ︎password␟value',
+      'ℹ︎password␟existing',
+      'ℹ︎decimal␟value',
+    ];
+    yield 'real-world SDCs, using only always-provided field types' => [
       'modules' => [
         // The modules providing sample SDCs.
         'cl_editorial',
-        'sdc_test',
         'sdc_examples',
+        'sdc_test',
       ],
       'expected matches' => [
         '⿲cl_editorial:component-card␟name' => [
@@ -235,204 +274,6 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
           ],
         ],
         '⿲cl_editorial:component-card␟group' => [
-          'storage' => [
-            'ℹ︎uri␟value',
-            'ℹ︎uuid␟value',
-            'ℹ︎email␟value',
-            'ℹ︎string␟value',
-            'ℹ︎language␟value',
-            'ℹ︎string_long␟value',
-            'ℹ︎password␟value',
-            'ℹ︎password␟existing',
-            'ℹ︎decimal␟value',
-          ],
-          'format' => [
-            'ℹ︎uri␟value',
-            'ℹ︎uuid␟value',
-            'ℹ︎email␟value',
-            'ℹ︎string␟value',
-            'ℹ︎language␟value',
-            'ℹ︎string_long␟value',
-            'ℹ︎password␟value',
-            'ℹ︎password␟existing',
-            'ℹ︎decimal␟value',
-          ],
-        ],
-        '⿲sdc_test:my-cta␟text' => [
-          'storage' => [
-            'ℹ︎uri␟value',
-            'ℹ︎uuid␟value',
-            'ℹ︎email␟value',
-            'ℹ︎string␟value',
-            'ℹ︎language␟value',
-            'ℹ︎string_long␟value',
-            'ℹ︎decimal␟value',
-          ],
-          'format' => [
-            'ℹ︎uri␟value',
-            'ℹ︎uuid␟value',
-            'ℹ︎email␟value',
-            'ℹ︎string␟value',
-            'ℹ︎language␟value',
-            'ℹ︎string_long␟value',
-            'ℹ︎decimal␟value',
-          ],
-        ],
-        '⿲sdc_test:my-cta␟href' => [
-          'storage' => [
-            'ℹ︎uri␟value',
-            'ℹ︎uuid␟value',
-            'ℹ︎email␟value',
-            'ℹ︎string␟value',
-            'ℹ︎language␟value',
-            'ℹ︎string_long␟value',
-            'ℹ︎password␟value',
-            'ℹ︎password␟existing',
-            'ℹ︎decimal␟value',
-          ],
-          'format' => [
-            'ℹ︎uri␟value',
-          ],
-        ],
-        '⿲sdc_test:my-cta␟target' => [
-          'storage' => [
-            'ℹ︎uri␟value',
-            'ℹ︎uuid␟value',
-            'ℹ︎email␟value',
-            'ℹ︎string␟value',
-            'ℹ︎language␟value',
-            'ℹ︎string_long␟value',
-            'ℹ︎password␟value',
-            'ℹ︎password␟existing',
-            'ℹ︎decimal␟value',
-          ],
-          'format' => [],
-        ],
-        '⿲sdc_test:array-to-object␟testProp' => [
-          'storage' => [],
-          'format' => [],
-        ],
-        '⿲sdc_test:my-button␟text' => [
-          'storage' => [
-            'ℹ︎uri␟value',
-            'ℹ︎uuid␟value',
-            'ℹ︎email␟value',
-            'ℹ︎string␟value',
-            'ℹ︎language␟value',
-            'ℹ︎string_long␟value',
-            'ℹ︎decimal␟value',
-          ],
-          'format' => [
-            'ℹ︎uri␟value',
-            'ℹ︎uuid␟value',
-            'ℹ︎email␟value',
-            'ℹ︎string␟value',
-            'ℹ︎language␟value',
-            'ℹ︎string_long␟value',
-            'ℹ︎decimal␟value',
-          ],
-        ],
-        '⿲sdc_test:my-button␟iconType' => [
-          'storage' => [
-            'ℹ︎uri␟value',
-            'ℹ︎uuid␟value',
-            'ℹ︎email␟value',
-            'ℹ︎string␟value',
-            'ℹ︎language␟value',
-            'ℹ︎string_long␟value',
-            'ℹ︎password␟value',
-            'ℹ︎password␟existing',
-            'ℹ︎decimal␟value',
-          ],
-          'format' => [],
-        ],
-        '⿲sdc_test:my-banner␟heading' => [
-          'storage' => [
-            'ℹ︎uri␟value',
-            'ℹ︎uuid␟value',
-            'ℹ︎email␟value',
-            'ℹ︎string␟value',
-            'ℹ︎language␟value',
-            'ℹ︎string_long␟value',
-            'ℹ︎password␟value',
-            'ℹ︎password␟existing',
-            'ℹ︎decimal␟value',
-          ],
-          'format' => [
-            'ℹ︎uri␟value',
-            'ℹ︎uuid␟value',
-            'ℹ︎email␟value',
-            'ℹ︎string␟value',
-            'ℹ︎language␟value',
-            'ℹ︎string_long␟value',
-            'ℹ︎password␟value',
-            'ℹ︎password␟existing',
-            'ℹ︎decimal␟value',
-          ],
-        ],
-        '⿲sdc_test:my-banner␟ctaText' => [
-          'storage' => [
-            'ℹ︎uri␟value',
-            'ℹ︎uuid␟value',
-            'ℹ︎email␟value',
-            'ℹ︎string␟value',
-            'ℹ︎language␟value',
-            'ℹ︎string_long␟value',
-            'ℹ︎password␟value',
-            'ℹ︎password␟existing',
-            'ℹ︎decimal␟value',
-          ],
-          'format' => [
-            'ℹ︎uri␟value',
-            'ℹ︎uuid␟value',
-            'ℹ︎email␟value',
-            'ℹ︎string␟value',
-            'ℹ︎language␟value',
-            'ℹ︎string_long␟value',
-            'ℹ︎password␟value',
-            'ℹ︎password␟existing',
-            'ℹ︎decimal␟value',
-          ],
-        ],
-        '⿲sdc_test:my-banner␟ctaHref' => [
-          'storage' => [
-            'ℹ︎uri␟value',
-            'ℹ︎uuid␟value',
-            'ℹ︎email␟value',
-            'ℹ︎string␟value',
-            'ℹ︎language␟value',
-            'ℹ︎string_long␟value',
-            'ℹ︎password␟value',
-            'ℹ︎password␟existing',
-            'ℹ︎decimal␟value',
-          ],
-          'format' => [
-            'ℹ︎uri␟value',
-            'ℹ︎uuid␟value',
-            'ℹ︎email␟value',
-            'ℹ︎string␟value',
-            'ℹ︎language␟value',
-            'ℹ︎string_long␟value',
-            'ℹ︎password␟value',
-            'ℹ︎password␟existing',
-            'ℹ︎decimal␟value',
-          ],
-        ],
-        '⿲sdc_test:my-banner␟ctaTarget' => [
-          'storage' => [
-            'ℹ︎uri␟value',
-            'ℹ︎uuid␟value',
-            'ℹ︎email␟value',
-            'ℹ︎string␟value',
-            'ℹ︎language␟value',
-            'ℹ︎string_long␟value',
-            'ℹ︎password␟value',
-            'ℹ︎password␟existing',
-            'ℹ︎decimal␟value',
-          ],
-          'format' => [],
-        ],
-        '⿲sdc_test:my-banner␟image' => [
           'storage' => [
             'ℹ︎uri␟value',
             'ℹ︎uuid␟value',
@@ -919,6 +760,255 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
             'ℹ︎string_long␟value',
             'ℹ︎decimal␟value',
           ],
+        ],
+        '⿲sdc_test:my-cta␟text' => [
+          'storage' => [
+            'ℹ︎uri␟value',
+            'ℹ︎uuid␟value',
+            'ℹ︎email␟value',
+            'ℹ︎string␟value',
+            'ℹ︎language␟value',
+            'ℹ︎string_long␟value',
+            'ℹ︎decimal␟value',
+          ],
+          'format' => [
+            'ℹ︎uri␟value',
+            'ℹ︎uuid␟value',
+            'ℹ︎email␟value',
+            'ℹ︎string␟value',
+            'ℹ︎language␟value',
+            'ℹ︎string_long␟value',
+            'ℹ︎decimal␟value',
+          ],
+        ],
+        '⿲sdc_test:my-cta␟href' => [
+          'storage' => [
+            'ℹ︎uri␟value',
+            'ℹ︎uuid␟value',
+            'ℹ︎email␟value',
+            'ℹ︎string␟value',
+            'ℹ︎language␟value',
+            'ℹ︎string_long␟value',
+            'ℹ︎password␟value',
+            'ℹ︎password␟existing',
+            'ℹ︎decimal␟value',
+          ],
+          'format' => [
+            'ℹ︎uri␟value',
+          ],
+        ],
+        '⿲sdc_test:my-cta␟target' => [
+          'storage' => [
+            'ℹ︎uri␟value',
+            'ℹ︎uuid␟value',
+            'ℹ︎email␟value',
+            'ℹ︎string␟value',
+            'ℹ︎language␟value',
+            'ℹ︎string_long␟value',
+            'ℹ︎password␟value',
+            'ℹ︎password␟existing',
+            'ℹ︎decimal␟value',
+          ],
+          'format' => [],
+        ],
+        '⿲sdc_test:array-to-object␟testProp' => [
+          'storage' => [],
+          'format' => [],
+        ],
+        '⿲sdc_test:my-button␟text' => [
+          'storage' => [
+            'ℹ︎uri␟value',
+            'ℹ︎uuid␟value',
+            'ℹ︎email␟value',
+            'ℹ︎string␟value',
+            'ℹ︎language␟value',
+            'ℹ︎string_long␟value',
+            'ℹ︎decimal␟value',
+          ],
+          'format' => [
+            'ℹ︎uri␟value',
+            'ℹ︎uuid␟value',
+            'ℹ︎email␟value',
+            'ℹ︎string␟value',
+            'ℹ︎language␟value',
+            'ℹ︎string_long␟value',
+            'ℹ︎decimal␟value',
+          ],
+        ],
+        '⿲sdc_test:my-button␟iconType' => [
+          'storage' => [
+            'ℹ︎uri␟value',
+            'ℹ︎uuid␟value',
+            'ℹ︎email␟value',
+            'ℹ︎string␟value',
+            'ℹ︎language␟value',
+            'ℹ︎string_long␟value',
+            'ℹ︎password␟value',
+            'ℹ︎password␟existing',
+            'ℹ︎decimal␟value',
+          ],
+          'format' => [],
+        ],
+        '⿲sdc_test:my-banner␟heading' => [
+          'storage' => [
+            'ℹ︎uri␟value',
+            'ℹ︎uuid␟value',
+            'ℹ︎email␟value',
+            'ℹ︎string␟value',
+            'ℹ︎language␟value',
+            'ℹ︎string_long␟value',
+            'ℹ︎password␟value',
+            'ℹ︎password␟existing',
+            'ℹ︎decimal␟value',
+          ],
+          'format' => [
+            'ℹ︎uri␟value',
+            'ℹ︎uuid␟value',
+            'ℹ︎email␟value',
+            'ℹ︎string␟value',
+            'ℹ︎language␟value',
+            'ℹ︎string_long␟value',
+            'ℹ︎password␟value',
+            'ℹ︎password␟existing',
+            'ℹ︎decimal␟value',
+          ],
+        ],
+        '⿲sdc_test:my-banner␟ctaText' => [
+          'storage' => [
+            'ℹ︎uri␟value',
+            'ℹ︎uuid␟value',
+            'ℹ︎email␟value',
+            'ℹ︎string␟value',
+            'ℹ︎language␟value',
+            'ℹ︎string_long␟value',
+            'ℹ︎password␟value',
+            'ℹ︎password␟existing',
+            'ℹ︎decimal␟value',
+          ],
+          'format' => [
+            'ℹ︎uri␟value',
+            'ℹ︎uuid␟value',
+            'ℹ︎email␟value',
+            'ℹ︎string␟value',
+            'ℹ︎language␟value',
+            'ℹ︎string_long␟value',
+            'ℹ︎password␟value',
+            'ℹ︎password␟existing',
+            'ℹ︎decimal␟value',
+          ],
+        ],
+        '⿲sdc_test:my-banner␟ctaHref' => [
+          'storage' => [
+            'ℹ︎uri␟value',
+            'ℹ︎uuid␟value',
+            'ℹ︎email␟value',
+            'ℹ︎string␟value',
+            'ℹ︎language␟value',
+            'ℹ︎string_long␟value',
+            'ℹ︎password␟value',
+            'ℹ︎password␟existing',
+            'ℹ︎decimal␟value',
+          ],
+          'format' => [
+            'ℹ︎uri␟value',
+            'ℹ︎uuid␟value',
+            'ℹ︎email␟value',
+            'ℹ︎string␟value',
+            'ℹ︎language␟value',
+            'ℹ︎string_long␟value',
+            'ℹ︎password␟value',
+            'ℹ︎password␟existing',
+            'ℹ︎decimal␟value',
+          ],
+        ],
+        '⿲sdc_test:my-banner␟ctaTarget' => [
+          'storage' => [
+            'ℹ︎uri␟value',
+            'ℹ︎uuid␟value',
+            'ℹ︎email␟value',
+            'ℹ︎string␟value',
+            'ℹ︎language␟value',
+            'ℹ︎string_long␟value',
+            'ℹ︎password␟value',
+            'ℹ︎password␟existing',
+            'ℹ︎decimal␟value',
+          ],
+          'format' => [],
+        ],
+        '⿲sdc_test:my-banner␟image' => [
+          'storage' => [
+            'ℹ︎uri␟value',
+            'ℹ︎uuid␟value',
+            'ℹ︎email␟value',
+            'ℹ︎string␟value',
+            'ℹ︎language␟value',
+            'ℹ︎string_long␟value',
+            'ℹ︎password␟value',
+            'ℹ︎password␟existing',
+            'ℹ︎decimal␟value',
+          ],
+          'format' => [
+            'ℹ︎uri␟value',
+            'ℹ︎uuid␟value',
+            'ℹ︎email␟value',
+            'ℹ︎string␟value',
+            'ℹ︎language␟value',
+            'ℹ︎string_long␟value',
+            'ℹ︎password␟value',
+            'ℹ︎password␟existing',
+            'ℹ︎decimal␟value',
+          ],
+        ],
+      ],
+    ];
+
+    yield 'real-world SDCs, using ALL core-provided field types' => [
+      'modules' => [
+        // The modules providing sample SDCs.
+        'cl_editorial',
+        // @todo Expand test coverage with these.
+//        'sdc_test',
+//        'sdc_examples',
+        // All other core modules providing field types.
+        'comment',
+        'datetime',
+        'datetime_range',
+        'file',
+        'image',
+        'link',
+        'options',
+        'path',
+        'telephone',
+        'text',
+      ],
+      'expected matches' => [
+        '⿲cl_editorial:component-card␟name' => [
+          'storage' => $all_string_storage_props,
+          'format' => $all_string_storage_props,
+        ],
+        '⿲cl_editorial:component-card␟machineName' => [
+          'storage' => $all_string_storage_props,
+          'format' => [],
+        ],
+        '⿲cl_editorial:component-card␟id' => [
+          'storage' => $all_string_storage_props,
+          'format' => [],
+        ],
+        '⿲cl_editorial:component-card␟description' => [
+          'storage' => $all_string_storage_props,
+          'format' => $all_string_storage_props,
+        ],
+        '⿲cl_editorial:component-card␟status' => [
+          'storage' => $all_string_storage_props,
+          'format' => [],
+        ],
+        '⿲cl_editorial:component-card␟thumbnailHref' => [
+          'storage' => $all_string_storage_props,
+          'format' => $all_string_storage_props,
+        ],
+        '⿲cl_editorial:component-card␟group' => [
+          'storage' => $all_string_storage_props,
+          'format' => $all_string_storage_props,
         ],
       ],
     ];
