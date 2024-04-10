@@ -1,13 +1,59 @@
 <?php
 
+use Drupal\Core\Entity\EntityFieldManagerInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\Display\EntityViewDisplayInterface;
 use Drupal\Core\Template\Attribute;
 use Drupal\experience_builder\ComponentPropExpression;
 use Drupal\experience_builder\FieldPropExpression;
 use Drupal\experience_builder\FieldTypePropExpression;
+use Drupal\experience_builder\Plugin\Field\FieldType\PathItemOverride;
+use Drupal\experience_builder\Plugin\Field\FieldType\UuidItemOverride;
 use Drupal\experience_builder\SdcPropToFieldTypePropMatcher;
 use Drupal\sdc\ComponentPluginManager;
+use Symfony\Component\Validator\Constraints\Hostname;
+use Symfony\Component\Validator\Constraints\Ip;
+
+/**
+ * Implements hook_validation_constraint_alter().
+ */
+function experience_builder_validation_constraint_alter(array &$definitions) {
+  // Add the Symfony validation constraints that Drupal core does not add in
+  // \Drupal\Core\Validation\ConstraintManager::registerDefinitions() for
+  // unknown reasons. Do it defensively, to not break when this changes.
+  if (!isset($definitions['Hostname'])) {
+    // @see \Drupal\experience_builder\JsonSchemaInterpreter\JsonSchemaStringFormat::HOSTNAME
+    // @see \Drupal\experience_builder\JsonSchemaInterpreter\JsonSchemaStringFormat::IDN_HOSTNAME
+    $definitions['Hostname'] = [
+      'label' => 'Hostname',
+      'class' => Hostname::class,
+      'type' => 'string',
+      'provider' => 'core',
+      'id' => 'Hostname',
+    ];
+    // @see \Drupal\experience_builder\JsonSchemaInterpreter\JsonSchemaStringFormat::IPV4
+    // @see \Drupal\experience_builder\JsonSchemaInterpreter\JsonSchemaStringFormat::IPV6
+    $definitions['Ip'] = [
+      'label' => 'IP address',
+      'class' => Ip::class,
+      'type' => 'string',
+      'provider' => 'core',
+      'id' => 'Ip',
+    ];
+  }
+}
+
+/**
+ * Implements hook_field_info_alter().
+ */
+function experience_builder_field_info_alter(&$info) {
+  if (!empty($info['path'])) {
+    $info['path']['class'] = PathItemOverride::class;
+  }
+  if (!empty($info['uuid'])) {
+    $info['uuid']['class'] = UuidItemOverride::class;
+  }
+}
 
 /**
  * Implements hook_entity_view_alter().
@@ -37,7 +83,7 @@ function experience_builder_entity_view_alter(&$build, EntityInterface $entity, 
     // SDCs are forbidden from having additional properties beyond the
     // explicitly listed ones.
     // @see \Drupal\sdc\Component\ComponentValidator::validateProps()
-    // @see \Drupal\sdc\Component\ComponentMetadata::parseSchemaInfo
+    // @see \Drupal\sdc\Component\ComponentMetadata::parseSchemaInfo()
     $prop_names = array_keys($component->metadata->schema['properties'] ?? []);
     foreach ($prop_names as $prop_name) {
       $cpe = new ComponentPropExpression($component_name, $prop_name);

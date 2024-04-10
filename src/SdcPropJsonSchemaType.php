@@ -36,36 +36,10 @@ enum SdcPropJsonSchemaType : string {
         array_key_exists('enum', $schema) => new DataTypeShapeRequirements('Choice', [
           'choices' => $schema['enum'],
         ], NULL),
-
+        // @todo `minLength` and `maxLength`
         // @todo Do we need to support both `format` *and* `pattern` simultaneously; for example to only allow URLs from a certain domain?
         array_key_exists('pattern', $schema) => new DataTypeShapeRequirements('Regex', ['pattern' => $schema['pattern']]),
-
-        array_key_exists('format', $schema) => match ($schema['format']) {
-          // @see https://json-schema.org/understanding-json-schema/reference/string#dates-and-times
-          // @todo finish moving this all to JsonSchemaStringFormat
-          JsonSchemaStringFormat::DATE_TIME->value => JsonSchemaStringFormat::DATE_TIME->toDataTypeShapeRequirements(),
-          JsonSchemaStringFormat::DATE->value => JsonSchemaStringFormat::DATE->toDataTypeShapeRequirements(),
-          JsonSchemaStringFormat::TIME->value => JsonSchemaStringFormat::TIME->toDataTypeShapeRequirements(),
-          JsonSchemaStringFormat::DURATION->value => JsonSchemaStringFormat::DURATION->toDataTypeShapeRequirements(),
-
-          // @see https://json-schema.org/understanding-json-schema/reference/string#resource-identifiers
-          'uuid' => new DataTypeShapeRequirements('Uuid', []),
-          // TRICKY: Drupal core does not support RFC3987 aka IRIs, but it's a superset of RFC3986.
-          'uri', 'iri' => new DataTypeShapeRequirements('PrimitiveType', [], UriInterface::class),
-          // Specify an invalid constraint name because neither of these
-          // formats are supported by Drupal core.
-          // @todo Add missing validation constraint and then use it for \Drupal\path\Plugin\Field\FieldType\PathItem's `alias` property.
-          'uri-reference', 'iri-reference' => new DataTypeShapeRequirements('NOT YET SUPPORTED', []),
-
-          // @see https://json-schema.org/understanding-json-schema/reference/string#uri-template
-          'uri-template' => new DataTypeShapeRequirements('NOT YET SUPPORTED', []),
-
-          // @see https://json-schema.org/understanding-json-schema/reference/string#json-pointer
-          'json-pointer', 'relative-json-pointer' => new DataTypeShapeRequirements('NOT YET SUPPORTED', []),
-
-          // @see https://json-schema.org/understanding-json-schema/reference/string#regular-expressions
-          'regex' => new DataTypeShapeRequirements('NOT YET SUPPORTED', []),
-        },
+        array_key_exists('format', $schema) => JsonSchemaStringFormat::tryFrom($schema['format'])->toDataTypeShapeRequirements(),
         // Otherwise, it's an unrestricted string.
         TRUE => FALSE,
       },

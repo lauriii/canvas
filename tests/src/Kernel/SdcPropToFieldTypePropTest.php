@@ -8,6 +8,7 @@ use Drupal\Core\Extension\ModuleInstallerInterface;
 use Drupal\Core\Template\Attribute;
 use Drupal\experience_builder\ComponentPropExpression;
 use Drupal\experience_builder\FieldTypePropExpression;
+use Drupal\experience_builder\JsonSchemaInterpreter\JsonSchemaStringFormat;
 use Drupal\experience_builder\SdcPropJsonSchemaType;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\sdc\ComponentPluginManager;
@@ -57,7 +58,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
       // SDCs are forbidden from having additional properties beyond the
       // explicitly listed ones.
       // @see \Drupal\sdc\Component\ComponentValidator::validateProps()
-      // @see \Drupal\sdc\Component\ComponentMetadata::parseSchemaInfo
+      // @see \Drupal\sdc\Component\ComponentMetadata::parseSchemaInfo()
       $prop_names = array_keys($component->metadata->schema['properties'] ?? []);
       foreach ($prop_names as $prop_name) {
         $cpe = new ComponentPropExpression($component_name, $prop_name);
@@ -177,8 +178,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
           'storage' => $all_string_storage_props,
           'format' => [],
         ],
-        // @see \Drupal\experience_builder\JsonSchemaFormatsString::DATE_TIME
-        '⿲sdc_test_all_props:all-props␟test-string-format-date-time' => [
+        '⿲sdc_test_all_props:all-props␟test-string-format-' . JsonSchemaStringFormat::DATE_TIME->value => [
           'storage' => $all_string_storage_props,
           'format' => [
             'ℹ︎datetime␟value',
@@ -186,8 +186,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
             'ℹ︎daterange␟end_value',
           ],
         ],
-        // @see \Drupal\experience_builder\JsonSchemaFormatsString::DATE
-        '⿲sdc_test_all_props:all-props␟test-string-format-date' => [
+        '⿲sdc_test_all_props:all-props␟test-string-format-' . JsonSchemaStringFormat::DATE->value => [
           'storage' => $all_string_storage_props,
           'format' => [
             'ℹ︎datetime␟value',
@@ -195,20 +194,65 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
             'ℹ︎daterange␟end_value',
           ],
         ],
-        // @see \Drupal\experience_builder\JsonSchemaFormatsString::TIME
-        '⿲sdc_test_all_props:all-props␟test-string-format-time' => [
-          'storage' => $all_string_storage_props,
-          'format' => [],
-        ],
-        // @see \Drupal\experience_builder\JsonSchemaFormatsString::DURATION
-        '⿲sdc_test_all_props:all-props␟test-string-format-duration' => [
+        '⿲sdc_test_all_props:all-props␟test-string-format-' . JsonSchemaStringFormat::TIME->value => [
           'storage' => $all_string_storage_props,
           'format' => [
+            // @todo
           ],
         ],
-
-        // @see \Drupal\experience_builder\JsonSchemaFormatsString::URI
-        '⿲sdc_test_all_props:all-props␟test-string-format-uri' => [
+        '⿲sdc_test_all_props:all-props␟test-string-format-' . JsonSchemaStringFormat::DURATION->value => [
+          'storage' => $all_string_storage_props,
+          'format' => [
+            // @todo
+          ],
+        ],
+        '⿲sdc_test_all_props:all-props␟test-string-format-' . JsonSchemaStringFormat::EMAIL->value => [
+          'storage' => $all_string_storage_props,
+          'format' => [
+            'ℹ︎email␟value',
+          ],
+        ],
+        '⿲sdc_test_all_props:all-props␟test-string-format-' . JsonSchemaStringFormat::IDN_EMAIL->value => [
+          'storage' => $all_string_storage_props,
+          'format' => [
+            'ℹ︎email␟value',
+          ],
+        ],
+        '⿲sdc_test_all_props:all-props␟test-string-format-' . JsonSchemaStringFormat::HOSTNAME->value => [
+          'storage' => $all_string_storage_props,
+          'format' => [
+            // @todo adapter from `type: string, format=uri`?
+          ],
+        ],
+        '⿲sdc_test_all_props:all-props␟test-string-format-' . JsonSchemaStringFormat::IDN_HOSTNAME->value => [
+          'storage' => $all_string_storage_props,
+          'format' => [
+            // @todo adapter from `type: string, format=uri`?
+            // @todo To generate a match for this JSON schema type:
+            // - generate an adapter?! -> but we cannot just adapt arbitrary data to generate a IP
+            // - follow entity references in the actual data model, i.e. this will find matches at the instance level? -> but does not allow the BUILDER persona to create instances
+            // - create an instance with the necessary requirement?! => `@FieldType=string` + `Ip` constraint … but no field type allows configuring this?
+          ],
+        ],
+        '⿲sdc_test_all_props:all-props␟test-string-format-' . JsonSchemaStringFormat::IPV4->value => [
+          'storage' => $all_string_storage_props,
+          'format' => [
+            // @todo Update \Drupal\sdc\Component\ComponentValidator to disallow this — does not make sense for presenting information?
+          ],
+        ],
+        '⿲sdc_test_all_props:all-props␟test-string-format-' . JsonSchemaStringFormat::IPV6->value => [
+          'storage' => $all_string_storage_props,
+          'format' => [
+            // @todo Update \Drupal\sdc\Component\ComponentValidator to disallow this — does not make sense for presenting information?
+          ],
+        ],
+        '⿲sdc_test_all_props:all-props␟test-string-format-' . JsonSchemaStringFormat::UUID->value => [
+          'storage' => $all_string_storage_props,
+          'format' => [
+            'ℹ︎uuid␟value',
+          ],
+        ],
+        '⿲sdc_test_all_props:all-props␟test-string-format-' . JsonSchemaStringFormat::URI->value => [
           'storage' => $all_string_storage_props,
           'format' => [
             'ℹ︎file_uri␟value',
@@ -216,8 +260,13 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
             'ℹ︎uri␟value',
           ],
         ],
-        // @see \Drupal\experience_builder\JsonSchemaFormatsString::IRI
-        '⿲sdc_test_all_props:all-props␟test-string-format-iri' => [
+        '⿲sdc_test_all_props:all-props␟test-string-format-' . JsonSchemaStringFormat::URI_REFERENCE->value => [
+          'storage' => $all_string_storage_props,
+          'format' => [
+            'ℹ︎path␟alias',
+          ],
+        ],
+        '⿲sdc_test_all_props:all-props␟test-string-format-' . JsonSchemaStringFormat::IRI->value => [
           'storage' => $all_string_storage_props,
           'format' => [
             'ℹ︎file_uri␟value',
@@ -225,14 +274,35 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
             'ℹ︎uri␟value',
           ],
         ],
-        '⿲sdc_test_all_props:all-props␟test-string-format-uuid' => [
+        '⿲sdc_test_all_props:all-props␟test-string-format-' . JsonSchemaStringFormat::IRI_REFERENCE->value => [
           'storage' => $all_string_storage_props,
           'format' => [
+            'ℹ︎path␟alias',
           ],
-          // @todo To generate a match for this JSON schema type:
-          // - generate an adapter?! -> but we cannot just adapt arbitrary data to a UUID
-          // - follow entity references in the actual data model, i.e. this will find matches at the instance level? -> but does not allow the BUILDER persona to create instances
-          // - create an instance with the necessary requirement?! => `@FieldType=string` + `Uuid` constraint.
+        ],
+        '⿲sdc_test_all_props:all-props␟test-string-format-' . JsonSchemaStringFormat::URI_TEMPLATE->value => [
+          'storage' => $all_string_storage_props,
+          'format' => [
+            // @todo Update \Drupal\sdc\Component\ComponentValidator to disallow this — does not make sense for presenting information?
+          ],
+        ],
+        '⿲sdc_test_all_props:all-props␟test-string-format-' . JsonSchemaStringFormat::JSON_POINTER->value => [
+          'storage' => $all_string_storage_props,
+          'format' => [
+            // @todo Update \Drupal\sdc\Component\ComponentValidator to disallow this — does not make sense for presenting information?
+          ],
+        ],
+        '⿲sdc_test_all_props:all-props␟test-string-format-' . JsonSchemaStringFormat::RELATIVE_JSON_POINTER->value => [
+          'storage' => $all_string_storage_props,
+          'format' => [
+            // @todo Update \Drupal\sdc\Component\ComponentValidator to disallow this — does not make sense for presenting information?
+          ],
+        ],
+        '⿲sdc_test_all_props:all-props␟test-string-format-' . JsonSchemaStringFormat::REGEX->value => [
+          'storage' => $all_string_storage_props,
+          'format' => [
+            // @todo Update \Drupal\sdc\Component\ComponentValidator to disallow this — does not make sense for presenting information?
+          ],
         ],
       ],
     ];

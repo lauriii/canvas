@@ -26,17 +26,65 @@ props:
     test-string-format-duration:
       type: string
       format: duration
-    # @todo finish adding test coverage for all other formats.
+    # Built-in formats: email addresses.
+    # @see https://json-schema.org/understanding-json-schema/reference/string#email-addresses
+    test-string-format-email:
+      type: string
+      format: email
+    test-string-format-idn-email:
+      type: string
+      format: idn-email
+    # Built-in formats: hostnames.
+    # @see https://json-schema.org/understanding-json-schema/reference/string#hostnames
+    test-string-format-hostname:
+      type: string
+      format: hostname
+    test-string-format-idn-hostname:
+      type: string
+      format: idn-hostname
+    # Built-in formats: IP addresses.
+    # @see https://json-schema.org/understanding-json-schema/reference/string#ip-addresses
+    test-string-format-ipv4:
+      type: string
+      format: ipv4
+    test-string-format-ipv6:
+      type: string
+      format: ipv6
+    # Built-in formats: resource identifiers.
+    # @see https://json-schema.org/understanding-json-schema/reference/string#resource-identifiers
+    test-string-format-uuid:
+      type: string
+      format: uuid
     test-string-format-uri:
       title: 'String, format=uri'
       type: string
       format: uri
+    test-string-format-uri-reference:
+      type: string
+      format: uri-reference
     test-string-format-iri:
-      title: 'String, format=iri'
       type: string
       format: iri
-    test-string-format-uuid:
-      title: 'String, format=uuid'
+    test-string-format-iri-reference:
       type: string
-      format: uuid
+      format: iri-reference
+    # Built-in formats: URI template.
+    # @see https://json-schema.org/understanding-json-schema/reference/string#uri-template
+    test-string-format-uri-template:
+      type: string
+      format: uri-template
+    # Built-in formats: JSON Pointer.
+    # @see https://json-schema.org/understanding-json-schema/reference/string#json-pointer
+    test-string-format-json-pointer:
+      type: string
+      format: json-pointer
+    test-string-format-relative-json-pointer:
+      type: string
+      format: relative-json-pointer
+    # Built-in formats: Regular expressions.
+    # @see https://json-schema.org/understanding-json-schema/reference/string#regular-expressions
+    test-string-format-regex:
+      type: string
+      format: regex
     # @todo finish adding all other types + formats
+    # @todo Complex "list of tuples, for example <uri, alt> for image gallery component" test: https://stackoverflow.com/questions/40750340/how-to-define-json-schema-for-mapstring-integer
