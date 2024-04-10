@@ -151,6 +151,92 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
       'ℹ︎password␟existing',
       'ℹ︎decimal␟value',
     ];
+
+    yield 'test SDC, using ALL core-provided field types' => [
+      'modules' => [
+        // The module providing the sample SDC to test all JSON schema types.
+        'sdc_test_all_props',
+        // All other core modules providing field types.
+        'comment',
+        'datetime',
+        'datetime_range',
+        'file',
+        'image',
+        'link',
+        'options',
+        'path',
+        'telephone',
+        'text',
+      ],
+      'expected matches' => [
+        '⿲sdc_test_all_props:all-props␟test-string' => [
+          'storage' => $all_string_storage_props,
+          'format' => $all_string_storage_props,
+        ],
+        '⿲sdc_test_all_props:all-props␟test-string-enum' => [
+          'storage' => $all_string_storage_props,
+          'format' => [],
+        ],
+        // @see \Drupal\experience_builder\JsonSchemaFormatsString::DATE_TIME
+        '⿲sdc_test_all_props:all-props␟test-string-format-date-time' => [
+          'storage' => $all_string_storage_props,
+          'format' => [
+            'ℹ︎datetime␟value',
+            'ℹ︎daterange␟value',
+            'ℹ︎daterange␟end_value',
+          ],
+        ],
+        // @see \Drupal\experience_builder\JsonSchemaFormatsString::DATE
+        '⿲sdc_test_all_props:all-props␟test-string-format-date' => [
+          'storage' => $all_string_storage_props,
+          'format' => [
+            'ℹ︎datetime␟value',
+            'ℹ︎daterange␟value',
+            'ℹ︎daterange␟end_value',
+          ],
+        ],
+        // @see \Drupal\experience_builder\JsonSchemaFormatsString::TIME
+        '⿲sdc_test_all_props:all-props␟test-string-format-time' => [
+          'storage' => $all_string_storage_props,
+          'format' => [],
+        ],
+        // @see \Drupal\experience_builder\JsonSchemaFormatsString::DURATION
+        '⿲sdc_test_all_props:all-props␟test-string-format-duration' => [
+          'storage' => $all_string_storage_props,
+          'format' => [
+          ],
+        ],
+
+        // @see \Drupal\experience_builder\JsonSchemaFormatsString::URI
+        '⿲sdc_test_all_props:all-props␟test-string-format-uri' => [
+          'storage' => $all_string_storage_props,
+          'format' => [
+            'ℹ︎file_uri␟value',
+            'ℹ︎link␟uri',
+            'ℹ︎uri␟value',
+          ],
+        ],
+        // @see \Drupal\experience_builder\JsonSchemaFormatsString::IRI
+        '⿲sdc_test_all_props:all-props␟test-string-format-iri' => [
+          'storage' => $all_string_storage_props,
+          'format' => [
+            'ℹ︎file_uri␟value',
+            'ℹ︎link␟uri',
+            'ℹ︎uri␟value',
+          ],
+        ],
+        '⿲sdc_test_all_props:all-props␟test-string-format-uuid' => [
+          'storage' => $all_string_storage_props,
+          'format' => [
+          ],
+          // @todo To generate a match for this JSON schema type:
+          // - generate an adapter?! -> but we cannot just adapt arbitrary data to a UUID
+          // - follow entity references in the actual data model, i.e. this will find matches at the instance level? -> but does not allow the BUILDER persona to create instances
+          // - create an instance with the necessary requirement?! => `@FieldType=string` + `Uuid` constraint.
+        ],
+      ],
+    ];
+
     yield 'real-world SDCs, using only always-provided field types' => [
       'modules' => [
         // The modules providing sample SDCs.

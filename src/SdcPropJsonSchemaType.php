@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace Drupal\experience_builder;
 
 // @todo Question for Ben/Jesse/Harumi: does react also use JSON schema for restricting/defining its props? I.e.: identical set of primitives or not?
+// @todo Use `justinrainbow/json-schema`'s \JsonSchema\Constraints\FormatConstraint to ensure data flowing from Drupal entity is guaranteed to match with JSON schema constraint; log errors in production, throw errors in dev?
 use Drupal\Core\TypedData\Type\UriInterface;
+use Drupal\experience_builder\JsonSchemaInterpreter\JsonSchemaStringFormat;
 
 enum SdcPropJsonSchemaType : string {
   case STRING = 'string';
@@ -40,7 +42,11 @@ enum SdcPropJsonSchemaType : string {
 
         array_key_exists('format', $schema) => match ($schema['format']) {
           // @see https://json-schema.org/understanding-json-schema/reference/string#dates-and-times
-          //              'date-time', 'time', 'date', 'duration'
+          // @todo finish moving this all to JsonSchemaStringFormat
+          JsonSchemaStringFormat::DATE_TIME->value => JsonSchemaStringFormat::DATE_TIME->toDataTypeShapeRequirements(),
+          JsonSchemaStringFormat::DATE->value => JsonSchemaStringFormat::DATE->toDataTypeShapeRequirements(),
+          JsonSchemaStringFormat::TIME->value => JsonSchemaStringFormat::TIME->toDataTypeShapeRequirements(),
+          JsonSchemaStringFormat::DURATION->value => JsonSchemaStringFormat::DURATION->toDataTypeShapeRequirements(),
 
           // @see https://json-schema.org/understanding-json-schema/reference/string#resource-identifiers
           'uuid' => new DataTypeShapeRequirements('Uuid', []),

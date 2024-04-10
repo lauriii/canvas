@@ -1,0 +1,5 @@
+name: 'Component Props Test'
+type: module
+dependencies:
+  - sdc:sdc
+package: Testing

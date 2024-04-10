@@ -1,0 +1,42 @@
+$schema: https://git.drupalcode.org/project/sdc/-/raw/1.x/src/metadata.schema.json
+name: All props
+props:
+  type: object
+  properties:
+    test-string:
+      title: 'String'
+      type: string
+    test-string-enum:
+      title: 'String'
+      type: string
+      enum:
+        - foo
+        - bar
+    # Built-in formats: dates and times
+    # @see https://json-schema.org/understanding-json-schema/reference/string#dates-and-times
+    test-string-format-date-time:
+      type: string
+      format: date-time
+    test-string-format-date:
+      type: string
+      format: date
+    test-string-format-time:
+      type: string
+      format: time
+    test-string-format-duration:
+      type: string
+      format: duration
+    # @todo finish adding test coverage for all other formats.
+    test-string-format-uri:
+      title: 'String, format=uri'
+      type: string
+      format: uri
+    test-string-format-iri:
+      title: 'String, format=iri'
+      type: string
+      format: iri
+    test-string-format-uuid:
+      title: 'String, format=uuid'
+      type: string
+      format: uuid
+    # @todo finish adding all other types + formats

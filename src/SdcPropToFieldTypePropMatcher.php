@@ -94,7 +94,7 @@ final class SdcPropToFieldTypePropMatcher {
     assert(Inspector::assertAll(fn ($e) => $e instanceof FieldTypePropExpression, $storage_candidate_ftps));
 
     $required_shape = $primitive_type->toDataTypeShapeRequirements($schema);
-    return array_filter($storage_candidate_ftps, function ($ftp) use ($required_shape) {
+    return array_values(array_filter($storage_candidate_ftps, function ($ftp) use ($required_shape) {
       // One of SdcPropJsonSchemaType, with no additional requirements.
       if ($required_shape === FALSE) {
         return TRUE;
@@ -124,7 +124,7 @@ final class SdcPropToFieldTypePropMatcher {
       $interface_found = $required_shape->interface === NULL
         || is_a($field_item->get($ftp->propName)->getDataDefinition()->getClass(), $required_shape->interface, TRUE);
       return $constraint_found && $interface_found;
-    });
+    }));
   }
 
 
