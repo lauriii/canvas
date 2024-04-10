@@ -2,8 +2,13 @@ $schema: https://git.drupalcode.org/project/sdc/-/raw/1.x/src/metadata.schema.js
 name: All props
 props:
   type: object
+  required:
+    - test-REQUIRED-string
   properties:
     test-string:
+      title: 'String'
+      type: string
+    test-REQUIRED-string:
       title: 'String'
       type: string
     test-string-enum:
@@ -86,5 +91,17 @@ props:
     test-string-format-regex:
       type: string
       format: regex
-    # @todo finish adding all other types + formats
-    # @todo Complex "list of tuples, for example <uri, alt> for image gallery component" test: https://stackoverflow.com/questions/40750340/how-to-define-json-schema-for-mapstring-integer
+
+    test-integer:
+      type: integer
+    test-integer-range-minimum:
+      type: integer
+      minimum: 0
+    test-integer-range-minimum-maximum-timestamps:
+      type: integer
+      minimum: -2147483648
+      maximum: 2147483648
+
+    #
+    # @todo finish adding all other types + formats supported by JSON schema
+    #

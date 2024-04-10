@@ -15,6 +15,7 @@ use Drupal\Core\TypedData\Plugin\DataType\StringData;
 use Drupal\Core\TypedData\PrimitiveInterface;
 use Drupal\Core\TypedData\TypedDataManagerInterface;
 use Drupal\Core\Validation\ConstraintManager;
+use Drupal\Core\Validation\Plugin\Validation\Constraint\ComplexDataConstraint;
 
 final class SdcPropToFieldTypePropMatcher {
 
@@ -94,12 +95,13 @@ final class SdcPropToFieldTypePropMatcher {
     assert(Inspector::assertAll(fn ($e) => $e instanceof FieldTypePropExpression, $storage_candidate_ftps));
 
     $required_shape = $primitive_type->toDataTypeShapeRequirements($schema);
-    return array_values(array_filter($storage_candidate_ftps, function ($ftp) use ($required_shape) {
+    return array_values(array_filter($storage_candidate_ftps, function ($ftp) use ($primitive_type, $required_shape, $schema) {
       // One of SdcPropJsonSchemaType, with no additional requirements.
       if ($required_shape === FALSE) {
         return TRUE;
       }
       if ($required_shape->constraint === 'NOT YET SUPPORTED') {
+        @trigger_error(sprintf("NOT YET SUPPORTED: a `%s` Drupal field data type that matche the JSON schema %s.", $primitive_type->value, json_encode($schema)), E_USER_DEPRECATED);
         return FALSE;
       }
       $field_item = $this->typedDataManager->createInstance("field_item:{$ftp->fieldType}", [
@@ -110,9 +112,20 @@ final class SdcPropToFieldTypePropMatcher {
 
       // Gather all constraints that apply to this field item property.
       $property_level_constraints = $field_item->getProperties()[$ftp->propName]->getConstraints();
-      $field_item_level_constraints = $field_item->getConstraints()[$ftp->propName] ?? [];
+      $complex_data_constraint = array_filter(
+        $field_item->getConstraints(),
+        fn ($c) => $c instanceof ComplexDataConstraint
+      );
+      if (!empty($complex_data_constraint)) {
+        $field_item_level_constraints_indirect = reset($complex_data_constraint)
+          ->properties[$ftp->propName] ?? [];
+      }
+      else {
+        $field_item_level_constraints_indirect = [];
+      }
+      $field_item_level_constraints_direct = $field_item->getConstraints()[$ftp->propName] ?? [];
       // @todo Verify that property-level constraints indeed overrule field item-level constraints.
-      $constraints = $property_level_constraints + $field_item_level_constraints;
+      $constraints = $property_level_constraints + $field_item_level_constraints_indirect + $field_item_level_constraints_direct;
 
       // Is the data shape requirement met?
       // 1. Constraint.

@@ -86,15 +86,17 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
         // 1. storage representation must match
         $storage_candidates = $matcher->findFieldTypeStorageCandidates($primitive_type, $is_required);
         // 2. format must match
-        //    👉 UX need: when the builder is creating a content type's template
+        //    👉 UX need: when the BUILDER is creating a content type's template
         //       and they declare the intent to not statically assign a value to
         //       a component prop, then these are the available choices to
         //       create a new field!
         //    🎉 Component placement at a structural level (content
         //       template) encourages EXPANDING the data model IF needs are met!
+        //    ❓ UX need: when the CREATOR is placing a component and they want
+        //       to statically assign a value.
         $format_candidates = $matcher->findFieldTypeFormatCandidates($primitive_type, $is_required, $schema);
         // 3. a field instance of this type must exist.
-        //    👉 UX need: when the builder is creating a content type's template
+        //    👉 UX need: when the BUILDER is creating a content type's template
         //       OR the creator is placing a component in a slot, and they
         //       declare the intent to not statically assign a value to a
         //       component prop, then these are the available choices
@@ -152,6 +154,42 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
       'ℹ︎password␟existing',
       'ℹ︎decimal␟value',
     ];
+    $all_string_required_storage_props  = [
+      'ℹ︎datetime␟value',
+      'ℹ︎daterange␟value',
+      'ℹ︎daterange␟end_value',
+      'ℹ︎file_uri␟value',
+      'ℹ︎list_string␟value',
+      'ℹ︎telephone␟value',
+      'ℹ︎text_with_summary␟value',
+      'ℹ︎text␟value',
+      'ℹ︎text_long␟value',
+      'ℹ︎uri␟value',
+      'ℹ︎uuid␟value',
+      'ℹ︎email␟value',
+      'ℹ︎string␟value',
+      'ℹ︎language␟value',
+      'ℹ︎string_long␟value',
+      'ℹ︎decimal␟value',
+    ];
+    $all_integer_storage_props  = [
+      'ℹ︎comment␟status',
+      'ℹ︎comment␟cid',
+      'ℹ︎comment␟last_comment_timestamp',
+      'ℹ︎comment␟last_comment_uid',
+      'ℹ︎comment␟comment_count',
+      'ℹ︎file␟target_id',
+      'ℹ︎image␟target_id',
+      'ℹ︎image␟width',
+      'ℹ︎image␟height',
+      'ℹ︎list_integer␟value',
+      'ℹ︎path␟pid',
+      'ℹ︎integer␟value',
+      'ℹ︎entity_reference␟target_id',
+      'ℹ︎timestamp␟value',
+      'ℹ︎created␟value',
+      'ℹ︎changed␟value',
+    ];
 
     yield 'test SDC, using ALL core-provided field types' => [
       'modules' => [
@@ -174,9 +212,15 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
           'storage' => $all_string_storage_props,
           'format' => $all_string_storage_props,
         ],
+        '⿲sdc_test_all_props:all-props␟test-REQUIRED-string' => [
+          'storage' => $all_string_required_storage_props,
+          'format' => $all_string_required_storage_props,
+        ],
         '⿲sdc_test_all_props:all-props␟test-string-enum' => [
           'storage' => $all_string_storage_props,
-          'format' => [],
+          'format' => [
+            // @todo
+          ],
         ],
         '⿲sdc_test_all_props:all-props␟test-string-format-' . JsonSchemaStringFormat::DATE_TIME->value => [
           'storage' => $all_string_storage_props,
@@ -197,13 +241,13 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
         '⿲sdc_test_all_props:all-props␟test-string-format-' . JsonSchemaStringFormat::TIME->value => [
           'storage' => $all_string_storage_props,
           'format' => [
-            // @todo
+            // @todo Adapter for @FieldType=timestamp -> `type:string,format=time`, @FieldType=datetime -> `type:string,format=time`
           ],
         ],
         '⿲sdc_test_all_props:all-props␟test-string-format-' . JsonSchemaStringFormat::DURATION->value => [
           'storage' => $all_string_storage_props,
           'format' => [
-            // @todo
+            // @todo No field type in Drupal core uses \Drupal\Core\TypedData\Plugin\DataType\DurationIso8601.
           ],
         ],
         '⿲sdc_test_all_props:all-props␟test-string-format-' . JsonSchemaStringFormat::EMAIL->value => [
@@ -302,6 +346,22 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
           'storage' => $all_string_storage_props,
           'format' => [
             // @todo Update \Drupal\sdc\Component\ComponentValidator to disallow this — does not make sense for presenting information?
+          ],
+        ],
+
+        // Integers.
+        '⿲sdc_test_all_props:all-props␟test-integer' => [
+          'storage' => $all_integer_storage_props,
+          'format' => $all_integer_storage_props,
+        ],
+        '⿲sdc_test_all_props:all-props␟test-integer-range-minimum' => [
+          'storage' => $all_integer_storage_props,
+          'format' => [],
+        ],
+        '⿲sdc_test_all_props:all-props␟test-integer-range-minimum-maximum-timestamps' => [
+          'storage' => $all_integer_storage_props,
+          'format' => [
+            'ℹ︎timestamp␟value',
           ],
         ],
       ],
