@@ -142,6 +142,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
       'ℹ︎text_with_summary␟summary',
       'ℹ︎text␟value',
       'ℹ︎text␟format',
+      'ℹ︎text␟processed',
       'ℹ︎text_long␟value',
       'ℹ︎text_long␟format',
       'ℹ︎uri␟value',

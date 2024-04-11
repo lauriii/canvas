@@ -8,6 +8,7 @@ use Drupal\experience_builder\ComponentPropExpression;
 use Drupal\experience_builder\FieldPropExpression;
 use Drupal\experience_builder\FieldTypePropExpression;
 use Drupal\experience_builder\Plugin\Field\FieldType\PathItemOverride;
+use Drupal\experience_builder\Plugin\Field\FieldType\TextItemOverride;
 use Drupal\experience_builder\Plugin\Field\FieldType\UuidItemOverride;
 use Drupal\experience_builder\SdcPropToFieldTypePropMatcher;
 use Drupal\sdc\ComponentPluginManager;
@@ -49,6 +50,9 @@ function experience_builder_validation_constraint_alter(array &$definitions) {
 function experience_builder_field_info_alter(&$info) {
   if (!empty($info['path'])) {
     $info['path']['class'] = PathItemOverride::class;
+  }
+  if (!empty($info['text'])) {
+    $info['text']['class'] = TextItemOverride::class;
   }
   if (!empty($info['uuid'])) {
     $info['uuid']['class'] = UuidItemOverride::class;

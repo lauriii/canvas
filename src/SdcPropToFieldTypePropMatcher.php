@@ -111,7 +111,7 @@ final class SdcPropToFieldTypePropMatcher {
       ]);
 
       // Gather all constraints that apply to this field item property.
-      $property_level_constraints = $field_item->getProperties()[$ftp->propName]->getConstraints();
+      $property_level_constraints = $field_item->getProperties(TRUE)[$ftp->propName]->getConstraints();
       $complex_data_constraint = array_filter(
         $field_item->getConstraints(),
         fn ($c) => $c instanceof ComplexDataConstraint

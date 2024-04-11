@@ -23,6 +23,7 @@ use Drupal\experience_builder\JsonSchemaInterpreter\JsonSchemaStringFormat;
  *
  * Upstream changes needed, but high confidence that it is possible:
  * @see \Drupal\experience_builder\Plugin\Field\FieldType\PathItemOverride
+ * @see \Drupal\experience_builder\Plugin\Field\FieldType\TextItemOverride
  * @see \Drupal\experience_builder\Plugin\Field\FieldType\UuidItemOverride
  * @todo Disallow JSON schema string formats that do not make sense/are obscure enough — these should be disallowed in \Drupal\sdc\Component\ComponentValidator::validateProps()
  *
