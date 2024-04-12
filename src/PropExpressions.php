@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 namespace Drupal\experience_builder;
 
+use Drupal\Core\Entity\TypedData\EntityDataDefinition;
+use Drupal\Core\Entity\TypedData\EntityDataDefinitionInterface;
+use Drupal\Core\Field\FieldTypePluginManagerInterface;
+
 /**
  * Architectural Decision Record
  *
@@ -77,7 +81,7 @@ final class ComponentPropExpression implements ComponentPropExpressionInterface 
 }
 
 // For pointing to a prop in a field type (not considering any delta).
-final class FieldTypePropExpression implements StructuredDataPropExpressionInterface {
+class FieldTypePropExpression implements StructuredDataPropExpressionInterface {
   public function __construct(
     public readonly string $fieldType,
     public readonly string $propName,
@@ -94,26 +98,43 @@ final class FieldTypePropExpression implements StructuredDataPropExpressionInter
 
 }
 
-// For pointing to a prop in a concrete field.
-final class FieldPropExpression implements StructuredDataPropExpressionInterface {
-  // @todo Should this also store the field type — would that have certain benefits?
+// For pointing to a prop in a field type (not considering any delta).
+final class ReferenceFieldTypePropExpression extends FieldTypePropExpression {
   public function __construct(
-    // An content entity field item prop is always required.
+    public readonly string $fieldType,
     public readonly string $propName,
-    // A content entity field item delta is optional.
-    // @todo Should this allow expressing "all deltas"? Should that be represented using `NULL`, `TRUE`, `*` or `∀`? For now assuming NULL.
-    public readonly int|null $delta,
-    // A content entity field item is always required.
-    public readonly string $fieldName,
+    public readonly FieldPropExpression $referenced,
   ) {}
 
   public function __toString(): string {
-    return sprintf(static::PREFIX . "%s␞%s␟%s", $this->fieldName, $this->delta ?? '', $this->propName);
+    return sprintf(static::PREFIX . "%s␜%s", mb_substr(parent::__toString(), 1), mb_substr((string) $this->referenced, 1));
   }
 
   public static function fromString(string $representation): static {
-    $parts = explode('␟', mb_substr($representation, 1));
-    return new static(...$parts);
+    throw \Exception('todo');
   }
 
 }
+
+// For pointing to a prop in a concrete field.
+final class FieldPropExpression implements StructuredDataPropExpressionInterface {
+  public function __construct(
+    // @todo will this break down once we support config entities? It must, because top-level config entity props ~= content entity fields, but deeper than that it is different.
+    public readonly EntityDataDefinition $entityType,
+    public readonly string $fieldName,
+    // A content entity field item delta is optional.
+    // @todo Should this allow expressing "all deltas"? Should that be represented using `NULL`, `TRUE`, `*` or `∀`? For now assuming NULL.
+    public readonly int|null $delta,
+    public readonly string $propName,
+  ) {}
+
+  public function __toString(): string {
+    return sprintf(static::PREFIX . "␜%s␝%s␞%s␟%s", $this->entityType->getDataType(), $this->fieldName, $this->delta ?? '', $this->propName);
+  }
+
+  public static function fromString(string $representation): static {
+    throw \Exception('todo');
+  }
+
+}
+

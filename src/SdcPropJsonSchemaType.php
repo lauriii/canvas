@@ -10,7 +10,6 @@ use Drupal\experience_builder\JsonSchemaInterpreter\JsonSchemaStringFormat;
  * KNOWN UNKNOWNS
  *
  * ⚠️ CONFIDENCE UNDERMINING, HIGHEST IMPACT FIRST ⚠️
- * @todo Question: do we want to allow following entity references — for example to fetch the profile picture of the author?
  * @todo Question: Does React also use JSON schema for restricting/defining its props? I.e.: identical set of primitives or not?
  * @todo expand test coverage for testing each known type as being REQUIRED too
  * @todo enums are widely used — auto-generating e.g. FieldConfig using @FieldType=list_string + settings would solve the 90% use case
