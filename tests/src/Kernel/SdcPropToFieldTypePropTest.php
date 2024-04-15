@@ -7,8 +7,10 @@ namespace Drupal\Tests\experience_builder\Kernel;
 use Drupal\Core\Extension\ModuleInstallerInterface;
 use Drupal\Core\Template\Attribute;
 use Drupal\experience_builder\ComponentPropExpression;
+use Drupal\experience_builder\FieldPropExpression;
 use Drupal\experience_builder\FieldTypePropExpression;
 use Drupal\experience_builder\JsonSchemaInterpreter\JsonSchemaStringFormat;
+use Drupal\experience_builder\ReferenceFieldPropExpression;
 use Drupal\experience_builder\SdcPropJsonSchemaType;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\sdc\ComponentPluginManager;
@@ -102,8 +104,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
         //       component prop, then these are the available choices
         //    🎉 Component placement at a structural level (content
         //       template) encourages USING the data model IF needs are not met!
-        // @todo Load all `FieldConfig` instances (optionally limited by entity type + bundle), to find actually viable choices. Next up:
-        $instance_candidates = [];
+        $instance_candidates = $matcher->findFieldInstanceFormatMatches($primitive_type, $is_required, $schema);
         // 4. adapters.
         // @todo Make adapters a reality; but how to not overwhelm? 🤔 Probably we should only generate these for SDC props with a `format` that otherwise has zero matches? Because we could cast any `int` to a `string`, but that'd just result in terrible UX.
         //$adapted_candidates = [];
@@ -112,7 +113,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
         // the discovered
         $matches[(string) $cpe]['storage'] = array_map(fn (FieldTypePropExpression $e): string => (string) $e, $storage_candidates);
         $matches[(string) $cpe]['format'] = array_map(fn (FieldTypePropExpression $e): string => (string) $e, $format_candidates);
-        //$matches[(string) $cpe]['instance'] = array_map(fn (FieldPropExpression $e): string => (string) $e, $instance_candidates);
+        $matches[(string) $cpe]['instances'] = array_map(fn (FieldPropExpression|ReferenceFieldPropExpression $e): string => (string) $e, $instance_candidates);
       }
     }
 
@@ -249,6 +250,10 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
             'ℹ︎string␟value',
             'ℹ︎string_long␟value',
           ],
+          'instances' => [
+            'ℹ︎␜entity:path_alias␝path␞␟value',
+            'ℹ︎␜entity:path_alias␝alias␞␟value',
+          ],
         ],
         '⿲sdc_test_all_props:all-props␟test-REQUIRED-string' => [
           'storage' => $all_string_required_storage_props,
@@ -256,12 +261,17 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
             'ℹ︎string␟value',
             'ℹ︎string_long␟value',
           ],
+          'instances' => [
+            'ℹ︎␜entity:path_alias␝path␞␟value',
+            'ℹ︎␜entity:path_alias␝alias␞␟value',
+          ],
         ],
         '⿲sdc_test_all_props:all-props␟test-string-enum' => [
           'storage' => $all_string_storage_props,
           'format' => [
             // @todo
           ],
+          'instances' => [],
         ],
         '⿲sdc_test_all_props:all-props␟test-string-format-' . JsonSchemaStringFormat::DATE_TIME->value => [
           'storage' => $all_string_storage_props,
@@ -270,6 +280,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
             'ℹ︎daterange␟value',
             'ℹ︎daterange␟end_value',
           ],
+          'instances' => [],
         ],
         '⿲sdc_test_all_props:all-props␟test-string-format-' . JsonSchemaStringFormat::DATE->value => [
           'storage' => $all_string_storage_props,
@@ -278,23 +289,32 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
             'ℹ︎daterange␟value',
             'ℹ︎daterange␟end_value',
           ],
+          'instances' => [],
         ],
         '⿲sdc_test_all_props:all-props␟test-string-format-' . JsonSchemaStringFormat::TIME->value => [
           'storage' => $all_string_storage_props,
           'format' => [
             // @todo Adapter for @FieldType=timestamp -> `type:string,format=time`, @FieldType=datetime -> `type:string,format=time`
           ],
+          'instances' => [],
         ],
         '⿲sdc_test_all_props:all-props␟test-string-format-' . JsonSchemaStringFormat::DURATION->value => [
           'storage' => $all_string_storage_props,
           'format' => [
             // @todo No field type in Drupal core uses \Drupal\Core\TypedData\Plugin\DataType\DurationIso8601.
           ],
+          'instances' => [],
         ],
         '⿲sdc_test_all_props:all-props␟test-string-format-' . JsonSchemaStringFormat::EMAIL->value => [
           'storage' => $all_string_storage_props,
           'format' => [
             'ℹ︎email␟value',
+          ],
+          'instances' => [
+            'ℹ︎︎␜entity:file␝uid␞␟entity␜︎␜entity:user␝mail␞␟value',
+            'ℹ︎︎␜entity:file␝uid␞␟entity␜︎␜entity:user␝init␞␟value',
+            'ℹ︎␜entity:user␝mail␞␟value',
+            'ℹ︎␜entity:user␝init␞␟value',
           ],
         ],
         '⿲sdc_test_all_props:all-props␟test-string-format-' . JsonSchemaStringFormat::IDN_EMAIL->value => [
@@ -302,12 +322,19 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
           'format' => [
             'ℹ︎email␟value',
           ],
+          'instances' => [
+            'ℹ︎︎␜entity:file␝uid␞␟entity␜︎␜entity:user␝mail␞␟value',
+            'ℹ︎︎␜entity:file␝uid␞␟entity␜︎␜entity:user␝init␞␟value',
+            'ℹ︎␜entity:user␝mail␞␟value',
+            'ℹ︎␜entity:user␝init␞␟value',
+          ],
         ],
         '⿲sdc_test_all_props:all-props␟test-string-format-' . JsonSchemaStringFormat::HOSTNAME->value => [
           'storage' => $all_string_storage_props,
           'format' => [
             // @todo adapter from `type: string, format=uri`?
           ],
+          'instances' => [],
         ],
         '⿲sdc_test_all_props:all-props␟test-string-format-' . JsonSchemaStringFormat::IDN_HOSTNAME->value => [
           'storage' => $all_string_storage_props,
@@ -318,18 +345,21 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
             // - follow entity references in the actual data model, i.e. this will find matches at the instance level? -> but does not allow the BUILDER persona to create instances
             // - create an instance with the necessary requirement?! => `@FieldType=string` + `Ip` constraint … but no field type allows configuring this?
           ],
+          'instances' => [],
         ],
         '⿲sdc_test_all_props:all-props␟test-string-format-' . JsonSchemaStringFormat::IPV4->value => [
           'storage' => $all_string_storage_props,
           'format' => [
             // @todo Update \Drupal\sdc\Component\ComponentValidator to disallow this — does not make sense for presenting information?
           ],
+          'instances' => [],
         ],
         '⿲sdc_test_all_props:all-props␟test-string-format-' . JsonSchemaStringFormat::IPV6->value => [
           'storage' => $all_string_storage_props,
           'format' => [
             // @todo Update \Drupal\sdc\Component\ComponentValidator to disallow this — does not make sense for presenting information?
           ],
+          'instances' => [],
         ],
         '⿲sdc_test_all_props:all-props␟test-string-format-' . JsonSchemaStringFormat::UUID->value => [
           'storage' => $all_string_storage_props,
@@ -337,6 +367,12 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
             'ℹ︎︎file␟entity␜︎␜entity:file␝uuid␞0␟value',
             'ℹ︎︎image␟entity␜︎␜entity:file␝uuid␞0␟value',
             'ℹ︎uuid␟value',
+          ],
+          'instances' => [
+            'ℹ︎␜entity:file␝uuid␞␟value',
+            'ℹ︎︎␜entity:file␝uid␞␟entity␜︎␜entity:user␝uuid␞␟value',
+            'ℹ︎␜entity:path_alias␝uuid␞␟value',
+            'ℹ︎␜entity:user␝uuid␞␟value',
           ],
         ],
         '⿲sdc_test_all_props:all-props␟test-string-format-' . JsonSchemaStringFormat::URI->value => [
@@ -348,11 +384,17 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
             'ℹ︎link␟uri',
             'ℹ︎uri␟value',
           ],
+          'instances' => [
+            'ℹ︎␜entity:file␝uri␞␟value',
+          ],
         ],
         '⿲sdc_test_all_props:all-props␟test-string-format-' . JsonSchemaStringFormat::URI_REFERENCE->value => [
           'storage' => $all_string_storage_props,
           'format' => [
             'ℹ︎path␟alias',
+          ],
+          'instances' => [
+            'ℹ︎␜entity:path_alias␝path␞␟value',
           ],
         ],
         '⿲sdc_test_all_props:all-props␟test-string-format-' . JsonSchemaStringFormat::IRI->value => [
@@ -364,11 +406,17 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
             'ℹ︎link␟uri',
             'ℹ︎uri␟value',
           ],
+          'instances' => [
+            'ℹ︎␜entity:file␝uri␞␟value',
+          ],
         ],
         '⿲sdc_test_all_props:all-props␟test-string-format-' . JsonSchemaStringFormat::IRI_REFERENCE->value => [
           'storage' => $all_string_storage_props,
           'format' => [
             'ℹ︎path␟alias',
+          ],
+          'instances' => [
+            'ℹ︎␜entity:path_alias␝path␞␟value',
           ],
         ],
         '⿲sdc_test_all_props:all-props␟test-string-format-' . JsonSchemaStringFormat::URI_TEMPLATE->value => [
@@ -376,39 +424,69 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
           'format' => [
             // @todo Update \Drupal\sdc\Component\ComponentValidator to disallow this — does not make sense for presenting information?
           ],
+          'instances' => [],
         ],
         '⿲sdc_test_all_props:all-props␟test-string-format-' . JsonSchemaStringFormat::JSON_POINTER->value => [
           'storage' => $all_string_storage_props,
           'format' => [
             // @todo Update \Drupal\sdc\Component\ComponentValidator to disallow this — does not make sense for presenting information?
           ],
+          'instances' => [],
         ],
         '⿲sdc_test_all_props:all-props␟test-string-format-' . JsonSchemaStringFormat::RELATIVE_JSON_POINTER->value => [
           'storage' => $all_string_storage_props,
           'format' => [
             // @todo Update \Drupal\sdc\Component\ComponentValidator to disallow this — does not make sense for presenting information?
           ],
+          'instances' => [],
         ],
         '⿲sdc_test_all_props:all-props␟test-string-format-' . JsonSchemaStringFormat::REGEX->value => [
           'storage' => $all_string_storage_props,
           'format' => [
             // @todo Update \Drupal\sdc\Component\ComponentValidator to disallow this — does not make sense for presenting information?
           ],
+          'instances' => [],
         ],
 
         // Integers.
         '⿲sdc_test_all_props:all-props␟test-integer' => [
           'storage' => $all_integer_storage_props,
           'format' => $all_integer_storage_props,
+          'instances' => [
+            'ℹ︎␜entity:file␝fid␞␟value',
+            'ℹ︎␜entity:file␝uid␞␟target_id',
+            'ℹ︎︎␜entity:file␝uid␞␟entity␜︎␜entity:user␝uid␞␟value',
+            'ℹ︎︎␜entity:file␝uid␞␟entity␜︎␜entity:user␝created␞␟value',
+            'ℹ︎︎␜entity:file␝uid␞␟entity␜︎␜entity:user␝changed␞␟value',
+            'ℹ︎︎␜entity:file␝uid␞␟entity␜︎␜entity:user␝access␞␟value',
+            'ℹ︎︎␜entity:file␝uid␞␟entity␜︎␜entity:user␝login␞␟value',
+            'ℹ︎␜entity:file␝filesize␞␟value',
+            'ℹ︎␜entity:file␝created␞␟value',
+            'ℹ︎␜entity:file␝changed␞␟value',
+            'ℹ︎␜entity:path_alias␝id␞␟value',
+            'ℹ︎␜entity:path_alias␝revision_id␞␟value',
+            'ℹ︎␜entity:user␝uid␞␟value',
+            'ℹ︎␜entity:user␝created␞␟value',
+            'ℹ︎␜entity:user␝changed␞␟value',
+            'ℹ︎␜entity:user␝access␞␟value',
+            'ℹ︎␜entity:user␝login␞␟value',
+          ],
         ],
         '⿲sdc_test_all_props:all-props␟test-integer-range-minimum' => [
           'storage' => $all_integer_storage_props,
           'format' => [],
+          'instances' => [],
         ],
         '⿲sdc_test_all_props:all-props␟test-integer-range-minimum-maximum-timestamps' => [
           'storage' => $all_integer_storage_props,
           'format' => [
             'ℹ︎timestamp␟value',
+          ],
+          'instances' => [
+            'ℹ︎︎␜entity:file␝uid␞␟entity␜︎␜entity:user␝access␞␟value',
+            'ℹ︎︎␜entity:file␝uid␞␟entity␜︎␜entity:user␝login␞␟value',
+            'ℹ︎␜entity:user␝access␞␟value',
+            'ℹ︎␜entity:user␝login␞␟value',
           ],
         ],
       ],

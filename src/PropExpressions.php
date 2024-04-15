@@ -138,3 +138,19 @@ final class FieldPropExpression implements StructuredDataPropExpressionInterface
 
 }
 
+final class ReferenceFieldPropExpression implements StructuredDataPropExpressionInterface {
+
+  public function __construct(
+    public readonly FieldPropExpression $referencer,
+    public readonly ReferenceFieldPropExpression|FieldPropExpression $referenced,
+  ) {}
+
+  public function __toString(): string {
+    return sprintf(static::PREFIX . "%s␜%s", mb_substr((string)$this->referencer, 1), mb_substr((string) $this->referenced, 1));
+  }
+
+  public static function fromString(string $representation): static {
+    throw \Exception('todo');
+  }
+
+}

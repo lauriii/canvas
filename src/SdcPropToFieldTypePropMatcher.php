@@ -8,14 +8,19 @@ require_once 'PropExpressions.php';
 
 use Drupal\Component\Assertion\Inspector;
 use Drupal\Core\Entity\EntityFieldManagerInterface;
+use Drupal\Core\Entity\EntityTypeBundleInfoInterface;
+use Drupal\Core\Entity\Plugin\DataType\ConfigEntityAdapter;
+use Drupal\Core\Entity\Plugin\DataType\EntityAdapter;
+use Drupal\Core\Entity\Plugin\DataType\EntityReference;
 use Drupal\Core\Entity\TypedData\EntityDataDefinition;
 use Drupal\Core\Entity\TypedData\EntityDataDefinitionInterface;
+use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Field\FieldItemInterface;
 use Drupal\Core\Field\FieldTypePluginManagerInterface;
-use Drupal\Core\Field\TypedData\FieldItemDataDefinitionInterface;
 use Drupal\Core\TypedData\ComplexDataDefinitionInterface;
 use Drupal\Core\TypedData\DataDefinitionInterface;
 use Drupal\Core\TypedData\DataReferenceDefinitionInterface;
+use Drupal\Core\TypedData\DataReferenceInterface;
 use Drupal\Core\TypedData\DataReferenceTargetDefinition;
 use Drupal\Core\TypedData\ListDataDefinitionInterface;
 use Drupal\Core\TypedData\Plugin\DataType\BooleanData;
@@ -23,6 +28,7 @@ use Drupal\Core\TypedData\Plugin\DataType\FloatData;
 use Drupal\Core\TypedData\Plugin\DataType\IntegerData;
 use Drupal\Core\TypedData\Plugin\DataType\StringData;
 use Drupal\Core\TypedData\PrimitiveInterface;
+use Drupal\Core\TypedData\TypedDataInterface;
 use Drupal\Core\TypedData\TypedDataManagerInterface;
 use Drupal\Core\Validation\ConstraintManager;
 use Drupal\Core\Validation\Plugin\Validation\Constraint\ComplexDataConstraint;
@@ -34,6 +40,7 @@ final class SdcPropToFieldTypePropMatcher {
     private readonly FieldTypePluginManagerInterface $fieldTypePluginManager,
     private readonly TypedDataManagerInterface $typedDataManager,
     private readonly ConstraintManager $constraintManager,
+    private readonly EntityTypeBundleInfoInterface $entityTypeBundleInfo,
     private readonly EntityFieldManagerInterface $entityFieldManager,
   ) {}
 
@@ -87,16 +94,7 @@ final class SdcPropToFieldTypePropMatcher {
           if ($field_item_definition->getFieldDefinition()->getType() ===  'entity_reference' && $field_item_definition->getFieldDefinition()->getTargetEntityTypeId() === NULL) {
             continue;
           }
-          // If a target specifies no bundles or multiple bundles,
-          // consider the base fields. Otherwise (if a single bundle is
-          // specified), consider all fields.
-          if ($target->getBundles() !== NULL && count($target->getBundles()) === 1) {
-            $available_field_definitions = $this->entityFieldManager->getFieldDefinitions($target->getEntityTypeId(), $target->getBundles()[0]);
-          }
-          else {
-            $available_field_definitions = $this->entityFieldManager->getBaseFieldDefinitions($target->getEntityTypeId());
-          }
-          foreach ($available_field_definitions as $referenceable_field_definition) {
+          foreach ($this->recurseDataDefinitionInterface($target) as $referenceable_field_definition) {
             // Only support single-cardinality indirect
             if ($referenceable_field_definition->getCardinality() !== 1) {
               continue;
@@ -148,7 +146,7 @@ final class SdcPropToFieldTypePropMatcher {
       return [];
     }
 
-    return array_values(array_filter($storage_candidate_ftps, function ($ftp) use ($required_shape) {
+    return array_values(array_filter($storage_candidate_ftps, function ($ftp) use ($primitive_type, $required_shape, $is_required_in_json_schema, $schema) {
       if ($ftp instanceof ReferenceFieldTypePropExpression) {
         $field_property_expression = $ftp->referenced;
         if (!$field_property_expression instanceof FieldPropExpression) {
@@ -181,8 +179,65 @@ final class SdcPropToFieldTypePropMatcher {
         'data_definition' => $field_item_data_definition,
       ]);
       assert($field_item instanceof FieldItemInterface);
-      return $this->fieldItemPropertyMatchesShape($field_item, $field_property_expression, $required_shape);
+      $property = $this->recurseTypedDataInterface($field_item)[$field_property_expression->propName];
+      return $this->dataLeafMatchesFormat($property, $primitive_type, $is_required_in_json_schema, $schema);
     }));
+  }
+
+  function matchEntityProps(EntityDataDefinition $entity_data_definition, int $levels_to_recurse, SdcPropJsonSchemaType $primitive_type, bool $is_required_in_json_schema, array $schema): array {
+    $matches = [];
+    $field_definitions = $this->recurseDataDefinitionInterface($entity_data_definition);
+    foreach ($field_definitions as $field_definition) {
+      assert($field_definition instanceof FieldDefinitionInterface);
+      $properties = $this->recurseDataDefinitionInterface($field_definition);
+      foreach ($properties as $property) {
+        $is_reference = $this->dataLeafIsReference($property);
+        if ($is_reference === NULL) {
+          // Neither a reference nor a primitive.
+          continue;
+        }
+        $current_entity_field_prop = new FieldPropExpression(
+          $entity_data_definition,
+          $field_definition->getName(),
+          NULL,
+          $property->getName(),
+        );
+        if ($is_reference) {
+          if ($levels_to_recurse === 0) {
+            continue;
+          }
+          // Only follow entity references, as deep as specified.
+          // @see ::findFieldTypeStorageCandidates()
+          if ($property instanceof EntityReference) {
+            $referenced_matches = $this->matchEntityProps($property->getTargetDefinition(), $levels_to_recurse - 1, $primitive_type, $is_required_in_json_schema, $schema);
+            foreach ($referenced_matches as $referenced_match) {
+              $matches[] = new ReferenceFieldPropExpression($current_entity_field_prop, $referenced_match);
+            }
+          }
+        }
+        else {
+          if ($this->dataLeafMatchesFormat($property, $primitive_type, $is_required_in_json_schema, $schema)) {
+            $matches[] = $current_entity_field_prop;
+          }
+        }
+      }
+    }
+    return $matches;
+  }
+
+  function findFieldInstanceFormatMatches(SdcPropJsonSchemaType $primitive_type, bool $is_required_in_json_schema, array $schema): array {
+    $entity_type_bundles = $this->entityTypeBundleInfo->getAllBundleInfo();
+    $matches = [];
+    foreach ($entity_type_bundles as $entity_type_id => $bundles) {
+      foreach (array_keys($bundles) as $bundle) {
+        $entity_data_definition = EntityDataDefinition::createFromDataType("entity:$entity_type_id:$bundle");
+        $matches = [
+          ...$matches,
+          ...$this->matchEntityProps($entity_data_definition, 1, $primitive_type, $is_required_in_json_schema, $schema),
+        ];
+      }
+    }
+    return $matches;
   }
 
   private function dataDefinitionMatchesPrimitiveType(DataDefinitionInterface $data_definition, SdcPropJsonSchemaType $json_schema_primitive_type, bool $is_required_in_json_schema): bool {
@@ -222,24 +277,43 @@ final class SdcPropToFieldTypePropMatcher {
     return TRUE;
   }
 
-  // The data definition alone does not define the final shape, each field item class can implement a ::getConstraints() method.
-  // For the final shape, we need the TypedData object.
-  // @see \Drupal\Core\TypedData\TypedDataInterface::getConstraints()
-  private function fieldItemPropertyMatchesShape(FieldItemInterface $field_item, FieldTypePropExpression|FieldPropExpression $ftp, DataTypeShapeRequirements $required_shape): bool {
+  private function dataLeafMatchesFormat(TypedDataInterface $data, SdcPropJsonSchemaType $json_schema_primitive_type, bool $is_required_in_json_schema, array $schema): bool {
+    if (!$data->getParent()) {
+      throw new \LogicException('must be a property with a field item as context for format checking');
+    }
+    $property_data_definition = $data->getDataDefinition();
+    if (!$this->dataDefinitionMatchesPrimitiveType($property_data_definition, $json_schema_primitive_type, $is_required_in_json_schema)) {
+      return FALSE;
+    }
+    $required_shape = $json_schema_primitive_type->toDataTypeShapeRequirements($schema);
+
+    // One of SdcPropJsonSchemaType, with no additional requirements.
+    if ($required_shape === FALSE) {
+      return TRUE;
+    }
+    if ($required_shape->constraint === 'NOT YET SUPPORTED') {
+      @trigger_error(sprintf("NOT YET SUPPORTED: a `%s` Drupal field data type that matches the JSON schema %s.", $json_schema_primitive_type->value, json_encode($schema)), E_USER_DEPRECATED);
+      return FALSE;
+    }
+
+    $field_item = $data->getParent();
+    assert($field_item instanceof FieldItemInterface);
+    $field_property_name = $data->getName();
+
     // Gather all constraints that apply to this field item property.
-    $property_level_constraints = $field_item->getProperties(TRUE)[$ftp->propName]->getConstraints();
+    $property_level_constraints = $field_item->getProperties(TRUE)[$field_property_name]->getConstraints();
     $complex_data_constraint = array_filter(
       $field_item->getConstraints(),
       fn ($c) => $c instanceof ComplexDataConstraint
     );
     if (!empty($complex_data_constraint)) {
       $field_item_level_constraints_indirect = reset($complex_data_constraint)
-        ->properties[$ftp->propName] ?? [];
+        ->properties[$field_property_name] ?? [];
     }
     else {
       $field_item_level_constraints_indirect = [];
     }
-    $field_item_level_constraints_direct = $field_item->getConstraints()[$ftp->propName] ?? [];
+    $field_item_level_constraints_direct = $field_item->getConstraints()[$field_property_name] ?? [];
     // @todo Field item-level indirect vs direct constraints should not override each other. Investigate in Drupal core, this seems to be an oversight?
     // Field item-level constraints override property-level constraints.
     // TRICKY: to correctly merge these, these arrays must be rekeyed to allow
@@ -265,8 +339,65 @@ final class SdcPropToFieldTypePropMatcher {
     );
     // 2. Optionally: the interface.
     $interface_found = $required_shape->interface === NULL
-      || is_a($field_item->get($ftp->propName)->getDataDefinition()->getClass(), $required_shape->interface, TRUE);
+      || is_a($property_data_definition->getClass(), $required_shape->interface, TRUE);
     return $constraint_found && $interface_found;
+  }
+
+  private function recurseDataDefinitionInterface(DataDefinitionInterface $dd): array {
+    return match (TRUE) {
+      // Entity level.
+      $dd instanceof EntityDataDefinitionInterface => (function ($dd) {
+        if ($dd->getClass() === ConfigEntityAdapter::class) {
+          // @todo load config entity type, look at export properties?
+          return [];
+        }
+        assert($dd->getClass() === EntityAdapter::class);
+        $entity_type_id = $dd->getEntityTypeId();
+        // If no bundles or multiple bundles are specified, inspect the base fields.
+        // Otherwise (if a single bundle is specified), inspect all fields.
+        if ($dd->getBundles() !== NULL && count($dd->getBundles()) === 1) {
+          return $this->entityFieldManager->getFieldDefinitions($entity_type_id, $dd->getBundles()[0]);
+        }
+        return $this->entityFieldManager->getBaseFieldDefinitions($entity_type_id);
+      })($dd),
+      // Field level.
+      $dd instanceof FieldDefinitionInterface => $this->recurseTypedDataInterface($this->typedDataManager->createInstance(
+        $dd->getDataType(),
+        [
+          'name' => $dd->getName(),
+          'parent' => NULL,
+          'data_definition' => $dd->getItemDefinition(),
+        ]
+      )),
+      // Anything else is not supported: fall back to logging.
+      TRUE => function() {
+        @trigger_error(sprintf("Unhandled data type class: `%s` Drupal field type contains `%s` data type that is not yet supported", 'tbd', $dd->getClass()), E_USER_DEPRECATED);
+      },
+    };
+  }
+
+  private function recurseTypedDataInterface(TypedDataInterface $td): array|bool {
+    return match (TRUE) {
+      $td instanceof FieldItemInterface => $td->getProperties(TRUE),
+      // Anything else is not supported: fall back to logging.
+      TRUE => function () {
+        @trigger_error(sprintf("Unhandled data type class: `%s` Drupal field type contains `%s` data type that is not yet supported", 'tbd', $dd->getClass()), E_USER_DEPRECATED);
+      },
+    };
+  }
+
+  private function dataLeafIsReference(TypedDataInterface $td): ?bool {
+    if (!$td->getParent() instanceof FieldItemInterface) {
+      throw new \LogicException(__METHOD__ . ' was given a non-leaf.');
+    }
+    return match(TRUE) {
+      $td instanceof DataReferenceInterface => TRUE,
+      $td instanceof PrimitiveInterface => FALSE,
+      TRUE => (function ($td) {
+        @trigger_error(sprintf("Unhandled data type class: `%s` Drupal field type `%s` property uses `%s` data type class that is not yet supported", $td->getParent()->getDataDefinition()->getFieldDefinition()->getType(), $td->getName(), $td->getDataDefinition()->getClass()), E_USER_DEPRECATED);
+        return NULL;
+      })($td),
+    };
   }
 
 }
