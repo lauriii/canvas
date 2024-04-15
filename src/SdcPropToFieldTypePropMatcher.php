@@ -26,6 +26,7 @@ use Drupal\Core\TypedData\PrimitiveInterface;
 use Drupal\Core\TypedData\TypedDataManagerInterface;
 use Drupal\Core\Validation\ConstraintManager;
 use Drupal\Core\Validation\Plugin\Validation\Constraint\ComplexDataConstraint;
+use Symfony\Component\Validator\Constraint;
 
 final class SdcPropToFieldTypePropMatcher {
 
@@ -239,8 +240,22 @@ final class SdcPropToFieldTypePropMatcher {
       $field_item_level_constraints_indirect = [];
     }
     $field_item_level_constraints_direct = $field_item->getConstraints()[$ftp->propName] ?? [];
-    // @todo Verify that property-level constraints indeed overrule field item-level constraints.
-    $constraints = $property_level_constraints + $field_item_level_constraints_indirect + $field_item_level_constraints_direct;
+    // @todo Field item-level indirect vs direct constraints should not override each other. Investigate in Drupal core, this seems to be an oversight?
+    // Field item-level constraints override property-level constraints.
+    // TRICKY: to correctly merge these, these arrays must be rekeyed to allow
+    // overriding of default property-level constraints.
+    $rekey = function (array $constraints) {
+      return array_combine(
+        array_map(
+          fn (Constraint $c): string => get_class($c),
+          $constraints,
+        ),
+        $constraints
+      );
+    };
+    $constraints = $rekey($field_item_level_constraints_indirect)
+      + $rekey($field_item_level_constraints_direct)
+      + $rekey($property_level_constraints);
 
     // Is the data shape requirement met?
     // 1. Constraint.

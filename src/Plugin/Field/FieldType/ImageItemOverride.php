@@ -5,23 +5,21 @@ declare(strict_types=1);
 namespace Drupal\experience_builder\Plugin\Field\FieldType;
 
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
-use Drupal\experience_builder\Plugin\DataType\TextProcessedOverride;
 use Drupal\experience_builder\Plugin\Validation\Constraint\StringSemanticsConstraint;
-use Drupal\text\Plugin\Field\FieldType\TextItem;
+use Drupal\image\Plugin\Field\FieldType\ImageItem;
 
 /**
  * @todo Fix upstream.
  */
-class TextItemOverride extends TextItem {
+class ImageItemOverride extends ImageItem {
 
   /**
    * {@inheritdoc}
    */
   public static function propertyDefinitions(FieldStorageDefinitionInterface $field_definition) {
     $properties = parent::propertyDefinitions($field_definition);
-    $properties['processed']
-      ->setClass(TextProcessedOverride::class)
-      ->addConstraint('StringSemantics', StringSemanticsConstraint::MARKUP);
+    $properties['alt']->addConstraint('StringSemantics', StringSemanticsConstraint::PROSE);
+    $properties['title']->addConstraint('StringSemantics', StringSemanticsConstraint::PROSE);
     return $properties;
   }
 

@@ -241,11 +241,21 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
       'expected matches' => [
         '⿲sdc_test_all_props:all-props␟test-string' => [
           'storage' => $all_string_storage_props,
-          'format' => $all_string_storage_props,
+          'format' => [
+            'ℹ︎file␟description',
+            'ℹ︎image␟alt',
+            'ℹ︎image␟title',
+            'ℹ︎link␟title',
+            'ℹ︎string␟value',
+            'ℹ︎string_long␟value',
+          ],
         ],
         '⿲sdc_test_all_props:all-props␟test-REQUIRED-string' => [
           'storage' => $all_string_required_storage_props,
-          'format' => $all_string_required_storage_props,
+          'format' => [
+            'ℹ︎string␟value',
+            'ℹ︎string_long␟value',
+          ],
         ],
         '⿲sdc_test_all_props:all-props␟test-string-enum' => [
           'storage' => $all_string_storage_props,
