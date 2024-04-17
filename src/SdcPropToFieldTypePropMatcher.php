@@ -132,7 +132,9 @@ final class SdcPropToFieldTypePropMatcher {
       }
     }
 
-    return $candidates;
+    $keyed_by_string = array_combine(array_map(fn ($e) => (string)$e, $candidates), $candidates);
+    ksort($keyed_by_string);
+    return array_values($keyed_by_string);
   }
 
   function matchEntityProps(EntityDataDefinition $entity_data_definition, int $levels_to_recurse, SdcPropJsonSchemaType $primitive_type, bool $is_required_in_json_schema, ?array $schema): array {
@@ -188,6 +190,7 @@ final class SdcPropToFieldTypePropMatcher {
         ];
       }
     }
+    sort($matches);
     return $matches;
   }
 
