@@ -369,10 +369,7 @@ final class SdcPropToFieldTypePropMatcher {
           'data_definition' => $dd->getItemDefinition(),
         ]
       )),
-      // Anything else is not supported: fall back to logging.
-      TRUE => function() {
-        @trigger_error(sprintf("Unhandled data type class: `%s` Drupal field type contains `%s` data type that is not yet supported", 'tbd', $dd->getClass()), E_USER_DEPRECATED);
-      },
+      $dd instanceof FieldItemDataDefinitionInterface => $dd->getPropertyDefinitions(),
     };
   }
 
