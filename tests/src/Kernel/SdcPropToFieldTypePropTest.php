@@ -12,10 +12,13 @@ use Drupal\experience_builder\FieldTypePropExpression;
 use Drupal\experience_builder\JsonSchemaInterpreter\JsonSchemaStringFormat;
 use Drupal\experience_builder\ReferenceFieldPropExpression;
 use Drupal\experience_builder\SdcPropJsonSchemaType;
+use Drupal\experience_builder\SdcPropToFieldTypePropMatcher;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\sdc\ComponentPluginManager;
-use Drupal\experience_builder\SdcPropToFieldTypePropMatcher;
 
+/**
+ * Tests matching SDC props against field type + field instance props.
+ */
 class SdcPropToFieldTypePropTest extends KernelTestBase {
 
   /**
@@ -41,6 +44,8 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
   }
 
   /**
+   * Tests matches for component props.
+   *
    * @dataProvider provider
    */
   public function test(array $modules, array $expected) {
@@ -72,7 +77,8 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
         $cpe = new ComponentPropExpression($component_name, $prop_name);
         $schema = $component->metadata->schema['properties'][$prop_name];
 
-        // TRICKY: `attributes` is a special case — it is kind of a reserved prop.
+        // TRICKY: `attributes` is a special case — it is kind of a reserved
+        // prop.
         // @see \Drupal\sdc\Twig\TwigExtension::mergeAdditionalRenderContext()
         if ($prop_name === 'attributes') {
           assert($schema['type'][0] === Attribute::class);
@@ -89,6 +95,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
         // @see https://json-schema.org/learn/getting-started-step-by-step#required
         $is_required = in_array($prop_name, $component->metadata->schema['required'] ?? [], TRUE);
 
+        // phpcs:disable
         // From least to most restrictive matchmaking of structured data sources
         // to flow into component props:
         // 1. storage representation must match
@@ -114,9 +121,10 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
         // 4. adapters.
         // @todo Make adapters a reality; but how to not overwhelm? 🤔 Probably we should only generate these for SDC props with a `format` that otherwise has zero matches? Because we could cast any `int` to a `string`, but that'd just result in terrible UX.
         //$adapted_candidates = [];
+        // phpcs:enable
 
         // For each component prop ($cpe), store the string representations of
-        // the discovered
+        // the discovered matches to compare against.
         $matches[(string) $cpe]['storage'] = array_map(fn (FieldTypePropExpression $e): string => (string) $e, $storage_candidates);
         $matches[(string) $cpe]['format'] = array_map(fn (FieldTypePropExpression $e): string => (string) $e, $format_candidates);
         $matches[(string) $cpe]['instances'] = array_map(fn (FieldPropExpression|ReferenceFieldPropExpression $e): string => (string) $e, $instance_candidates);
@@ -128,8 +136,11 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
     $module_installer->uninstall($modules);
   }
 
+  /**
+   * @return \Generator
+   */
   public function provider() {
-    $all_string_storage_props  = [
+    $all_string_storage_props = [
       'ℹ︎comment␟last_comment_name',
       'ℹ︎daterange␟end_value',
       'ℹ︎daterange␟value',
@@ -275,7 +286,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
         '⿲sdc_test_all_props:all-props␟test-string-enum' => [
           'storage' => $all_string_storage_props,
           'format' => [
-            // @todo
+            // @todo Make this work using the `list_string` field type
           ],
           'instances' => [],
         ],
@@ -345,11 +356,13 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
         '⿲sdc_test_all_props:all-props␟test-string-format-' . JsonSchemaStringFormat::IDN_HOSTNAME->value => [
           'storage' => $all_string_storage_props,
           'format' => [
+            // phpcs:disable
             // @todo adapter from `type: string, format=uri`?
             // @todo To generate a match for this JSON schema type:
             // - generate an adapter?! -> but we cannot just adapt arbitrary data to generate a IP
             // - follow entity references in the actual data model, i.e. this will find matches at the instance level? -> but does not allow the BUILDER persona to create instances
             // - create an instance with the necessary requirement?! => `@FieldType=string` + `Ip` constraint … but no field type allows configuring this?
+            // phpcs:enable
           ],
           'instances' => [],
         ],
@@ -854,9 +867,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
       'modules' => [
         // The modules providing sample SDCs.
         'cl_editorial',
-        // @todo Expand test coverage with these.
-//        'sdc_test',
-//        'sdc_examples',
+        // @todo Expand test coverage with `sdc_test` and `sdc_examples`?
         // All other core modules providing field types.
         'comment',
         'datetime',
@@ -950,4 +961,5 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
       ],
     ];
   }
+
 }

@@ -111,7 +111,7 @@ final class ReferenceFieldTypePropExpression extends FieldTypePropExpression {
   }
 
   public static function fromString(string $representation): static {
-    throw \Exception('todo');
+    throw new \Exception('todo');
   }
 
 }
@@ -142,7 +142,7 @@ final class FieldPropExpression implements StructuredDataPropExpressionInterface
   }
 
   public static function fromString(string $representation): static {
-    throw \Exception('todo');
+    throw new \Exception('todo');
   }
 
 }
@@ -159,7 +159,7 @@ final class ReferenceFieldPropExpression implements StructuredDataPropExpression
   }
 
   public static function fromString(string $representation): static {
-    throw \Exception('todo');
+    throw new \Exception('todo');
   }
 
 }

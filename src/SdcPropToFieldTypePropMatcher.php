@@ -6,7 +6,6 @@ namespace Drupal\experience_builder;
 
 require_once 'PropExpressions.php';
 
-use Drupal\Component\Assertion\Inspector;
 use Drupal\Core\Entity\EntityFieldManagerInterface;
 use Drupal\Core\Entity\EntityTypeBundleInfoInterface;
 use Drupal\Core\Entity\Plugin\DataType\ConfigEntityAdapter;
@@ -18,12 +17,8 @@ use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Field\FieldItemInterface;
 use Drupal\Core\Field\FieldTypePluginManagerInterface;
 use Drupal\Core\Field\TypedData\FieldItemDataDefinitionInterface;
-use Drupal\Core\TypedData\ComplexDataDefinitionInterface;
 use Drupal\Core\TypedData\DataDefinitionInterface;
 use Drupal\Core\TypedData\DataReferenceDefinitionInterface;
-use Drupal\Core\TypedData\DataReferenceInterface;
-use Drupal\Core\TypedData\DataReferenceTargetDefinition;
-use Drupal\Core\TypedData\ListDataDefinitionInterface;
 use Drupal\Core\TypedData\Plugin\DataType\BooleanData;
 use Drupal\Core\TypedData\Plugin\DataType\FloatData;
 use Drupal\Core\TypedData\Plugin\DataType\IntegerData;
@@ -35,6 +30,8 @@ use Drupal\Core\Validation\ConstraintManager;
 use Drupal\Core\Validation\Plugin\Validation\Constraint\ComplexDataConstraint;
 use Symfony\Component\Validator\Constraint;
 
+// phpcs:disable Drupal.Commenting.FunctionComment.Missing
+// phpcs:disable Drupal.Semantics.FunctionTriggerError.TriggerErrorTextLayoutRelaxed
 final class SdcPropToFieldTypePropMatcher {
 
   public function __construct(
@@ -314,8 +311,9 @@ final class SdcPropToFieldTypePropMatcher {
         }
         assert($dd->getClass() === EntityAdapter::class);
         $entity_type_id = $dd->getEntityTypeId();
-        // If no bundles or multiple bundles are specified, inspect the base fields.
-        // Otherwise (if a single bundle is specified), inspect all fields.
+        // If no bundles or multiple bundles are specified, inspect the base
+        // fields. Otherwise (if a single bundle is specified), inspect all
+        // fields.
         if ($dd->getBundles() !== NULL && count($dd->getBundles()) === 1) {
           return $this->entityFieldManager->getFieldDefinitions($entity_type_id, $dd->getBundles()[0]);
         }
@@ -339,7 +337,7 @@ final class SdcPropToFieldTypePropMatcher {
       $td instanceof FieldItemInterface => $td->getProperties(TRUE),
       // Anything else is not supported: fall back to logging.
       TRUE => function () {
-        @trigger_error(sprintf("Unhandled data type class: `%s` Drupal field type contains `%s` data type that is not yet supported", 'tbd', $dd->getClass()), E_USER_DEPRECATED);
+        @trigger_error(sprintf("Unhandled TypedData class: `%s`.", get_class($td)), E_USER_DEPRECATED);
       },
     };
   }
