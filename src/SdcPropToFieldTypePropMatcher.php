@@ -139,6 +139,9 @@ final class SdcPropToFieldTypePropMatcher {
     $field_definitions = $this->recurseDataDefinitionInterface($entity_data_definition);
     foreach ($field_definitions as $field_definition) {
       assert($field_definition instanceof FieldDefinitionInterface);
+      if ($is_required_in_json_schema && !$field_definition->isRequired()) {
+        continue;
+      }
       $properties = $this->recurseDataDefinitionInterface($field_definition);
       foreach ($properties as $property) {
         $is_reference = $this->dataLeafIsReference($property);
