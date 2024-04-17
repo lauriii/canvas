@@ -1,6 +1,7 @@
 <?php
 
-use Drupal\Core\Entity\EntityFieldManagerInterface;
+require_once 'src/PropExpressions.php';
+
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\Display\EntityViewDisplayInterface;
 use Drupal\Core\Template\Attribute;
@@ -16,6 +17,7 @@ use Drupal\experience_builder\Plugin\Field\FieldType\StringLongItemOverride;
 use Drupal\experience_builder\Plugin\Field\FieldType\TextItemOverride;
 use Drupal\experience_builder\Plugin\Field\FieldType\UuidItemOverride;
 use Drupal\experience_builder\Plugin\Validation\Constraint\StringSemanticsConstraint;
+use Drupal\experience_builder\SdcPropJsonSchemaType;
 use Drupal\experience_builder\SdcPropToFieldTypePropMatcher;
 use Drupal\sdc\ComponentPluginManager;
 use Symfony\Component\Validator\Constraints\Hostname;
@@ -92,6 +94,9 @@ function experience_builder_entity_base_field_info_alter(&$fields, \Drupal\Core\
     $fields['filename']->addPropertyConstraints('value', ['StringSemantics' => StringSemanticsConstraint::STRUCTURED]);
     $fields['filemime']->addPropertyConstraints('value', ['StringSemantics' => StringSemanticsConstraint::STRUCTURED]);
   }
+  if ($entity_type->id() === 'taxonomy_term') {
+    $fields['name']->addPropertyConstraints('value', ['StringSemantics' => StringSemanticsConstraint::PROSE]);
+  }
 }
 
 /**
@@ -100,93 +105,105 @@ function experience_builder_entity_base_field_info_alter(&$fields, \Drupal\Core\
  * To PoC storing SDCs + fixed values + mapped values
  */
 function experience_builder_entity_view_alter(&$build, EntityInterface $entity, EntityViewDisplayInterface $display) {
-  // Direction 1: Structured data -> components
-  //
-  // For every @FieldType:
-  // - get main property name
-  // - get @DataType for this property
-  // - determine the primitive: string/int/float/boolean
-  // - find the corresponding JSON schema type primitive: string/number/boolean
-  // - narrow down further based on `format`, `pattern` etc. in JSON schema, match this with corresponding restrictions on Drupal @DataType side
-
-  // Direction 2: Single Directory Components -> Field Type Properties
   $sdc_manager = \Drupal::service('plugin.manager.sdc');
   assert($sdc_manager instanceof ComponentPluginManager);
-
   $matcher = \Drupal::service(SdcPropToFieldTypePropMatcher::class);
   assert($matcher instanceof SdcPropToFieldTypePropMatcher);
 
-  foreach ($sdc_manager->getAllComponents() as $component) {
-    $component_name = $component->getPluginId();
+  // Demonstrate the SdcPropToFieldTypePropMatcher infrastructure using a single
+  // component but for any entity type.
+  $component = $sdc_manager->find('sdc_test:my-cta');
+  $prop_names = array_keys($component->metadata->schema['properties'] ?? []);
+  $props = [];
+  foreach ($prop_names as $prop_name) {
+    $schema = $component->metadata->schema['properties'][$prop_name];
 
-    // SDCs are forbidden from having additional properties beyond the
-    // explicitly listed ones.
-    // @see \Drupal\sdc\Component\ComponentValidator::validateProps()
+    // TRICKY: `attributes` is a special case — it is kind of a reserved
+    // prop.
+    // @see \Drupal\sdc\Twig\TwigExtension::mergeAdditionalRenderContext()
+    if ($prop_name === 'attributes') {
+      assert($schema['type'][0] === Attribute::class);
+      continue;
+    }
+
+    $primitive_type = SdcPropJsonSchemaType::from(
+    // TRICKY: SDC always allowed `object` for Twig integration reasons.
     // @see \Drupal\sdc\Component\ComponentMetadata::parseSchemaInfo()
-    $prop_names = array_keys($component->metadata->schema['properties'] ?? []);
-    foreach ($prop_names as $prop_name) {
-      $cpe = new ComponentPropExpression($component_name, $prop_name);
-      $schema = $component->metadata->schema['properties'][$prop_name];
+      is_array($schema['type']) ? $schema['type'][0] : $schema['type']
+    );
 
-      // TRICKY: `attributes` is a special case — it is kind of a reserved prop.
-      // @see \Drupal\sdc\Twig\TwigExtension::mergeAdditionalRenderContext()
-      if ($prop_name === 'attributes') {
-        assert($schema['type'][0] === Attribute::class);
-        continue;
+    // @see https://json-schema.org/understanding-json-schema/reference/object#required
+    // @see https://json-schema.org/learn/getting-started-step-by-step#required
+    $is_required = in_array($prop_name, $component->metadata->schema['required'] ?? [], TRUE);
+
+    $props[$prop_name] = array_filter(
+      $matcher->findFieldInstanceFormatMatches($primitive_type, $is_required, $schema),
+      function (FieldPropExpression|\Drupal\experience_builder\ReferenceFieldPropExpression $expr) use ($entity) {
+        $et = $expr instanceof \Drupal\experience_builder\ReferenceFieldPropExpression
+          ? $expr->referencer->entityType
+          : $expr->entityType;
+        return $et->getEntityTypeId() === $entity->getEntityTypeId() && $et->getBundles() === [$entity->bundle()];
       }
+    );
+  }
 
-      $primitive_type = \Drupal\experience_builder\SdcPropJsonSchemaType::from(
-      // TRICKY: SDC always allowed `object` for Twig integration reasons.
-      // @see \Drupal\sdc\Component\ComponentMetadata::parseSchemaInfo()
-        is_array($schema['type']) ? $schema['type'][0] : $schema['type']
-      );
+  // Generate all possible permutations.
+  $build['experience_builder_sdc_random_prop_expressions_overview'] = [
+    '#type' => 'container',
+    '#weight' => -100,
+    '#prefix' => sprintf('<h1>Available matches for <code>%s</code> on <code>%s:%s</code> %d</h1>', $component->getPluginId(), $entity->getEntityTypeId(), $entity->bundle(), $entity->id()),
+  ];
+  foreach ($props as $prop_name => $matches) {
+    $build['experience_builder_sdc_random_prop_expressions_overview'][$prop_name] = [
+      '#theme' => 'item_list',
+      '#title' => \Drupal\Core\Render\Markup::create("Component prop: <code>$prop_name</code>"),
+      '#items' => array_map(fn (\Drupal\experience_builder\StructuredDataPropExpressionInterface $e) => (string) $e, $matches),
+      '#empty' => 'No matches found',
+    ];
+  }
 
-      // @see https://json-schema.org/understanding-json-schema/reference/object#required
-      // @see https://json-schema.org/learn/getting-started-step-by-step#required
-      $is_required = in_array($prop_name, $component->metadata->schema['required'] ?? [], TRUE);
+  $permutations = [];
+  $first_prop_name = array_keys($props)[0];
+  foreach ($props[$first_prop_name] as $expr) {
+    $permutation = [$first_prop_name => $expr];
+    // Get the first match (if any) for all other props.
+    foreach (array_keys(array_diff_key($props, array_flip([$first_prop_name]))) as $other_prop_name) {
+      $permutation[$other_prop_name] = !empty($props[$other_prop_name])
+        ? reset($props[$other_prop_name])
+        : NULL;
+    }
+    $permutations[(string) $expr] = $permutation;
+  }
 
-      // From least to most restrictive matchmaking of structured data sources
-      // to flow into component props:
-      // 1. storage representation must match.
-      $storage_candidates = $matcher->findFieldTypeStorageCandidates($primitive_type, $is_required);
-      // 2. format must match.
-      $format_candidates = $matcher->findFieldTypeFormatCandidates($primitive_type, $is_required, $schema);
-      // 3. a field instance of this type must exist.
-      // @todo Load all `FieldConfig` instances (optionally limited by entity type + bundle), to find actually viable choices. Next up:
-      $instance_candidates = [];
-      // 4. adapters.
-      // @todo Make adapters a reality; but how to not overwhelm? 🤔 Probably we should only generate these for SDC props with a `format` that otherwise has zero matches? Because we could cast any `int` to a `string`, but that'd just result in terrible UX.
-      //$adapted_candidates = [];
-
-      // For each component prop ($cpe), store the string representations of
-      // the discovered
-      $matches[(string) $cpe]['storage'] = array_map(fn(FieldTypePropExpression $e): string => (string) $e, $storage_candidates);
-      $matches[(string) $cpe]['format'] = array_map(fn(FieldTypePropExpression $e): string => (string) $e, $format_candidates);
-      $matches[(string) $cpe]['instance'] = array_map(fn(FieldPropExpression $e): string => (string) $e, $instance_candidates);
+  $permutation_id = 0;
+  foreach ($permutations as $label => $prop_exprs) {
+    $permutation_id++;
+    $evaluated_prop_exprs = array_map(
+      fn(FieldPropExpression|\Drupal\experience_builder\ReferenceFieldPropExpression $e) => \Drupal\experience_builder\PropExpressionEvaluator::evaluate($entity, $e),
+      array_filter($prop_exprs)
+    );
+    $build['experience_builder_sdc_random_prop_expressions']['preview' . $permutation_id] = [
+      '#weight' => -100,
+      '#prefix' => \Drupal\Core\Render\Markup::create('<h3>Permutation #' . $permutation_id . '</h3><p>👉 <code>' . $label . '</code></p><div style="border: 1px solid black; padding: 2em">'),
+      '#suffix' => '</div><hr>',
+    ];
+    if ($evaluated_prop_exprs[$first_prop_name] === NULL) {
+      $build['experience_builder_sdc_random_prop_expressions']['preview' . $permutation_id] += [
+        '#markup' => sprintf(
+          '<p>❌ FAILURE: the <code>%s</code> prop resolved to NULL because field requiredness is not yet taken into account.</p>',
+          $first_prop_name,
+        ),
+      ];
+    }
+    else {
+      $build['experience_builder_sdc_random_prop_expressions']['preview' . $permutation_id] += [
+        'component' => [
+          '#type' => 'component',
+          '#component' => $component->getPluginId(),
+          '#props' => ['href' => 'https://drupal.org'] + $evaluated_prop_exprs,
+          '#slots' => [],
+        ],
+      ];
     }
   }
-  print '<style>details[data-count="0"] { color: red; }</style>';
-  print "<h1>SDC prop to Field Type Property mapping, primitive type+requiredness</h1>";
-  foreach ($matches as $k => $d) {
-    $v = $d['storage'];
-    $c = count($v);
-    print "<details data-count='$c'><summary><code>$k</code> ($c)</summary><ol><li><code>";
-    print implode("</code></li><li><code>", $v);
-    print "</code></li></ol></details>";
-  }
-  ob_flush();
-  flush();
-
-  print "<h1>SDC prop to Field Type Property mapping, primitive type+requiredness+format</h1>";
-  foreach ($matches as $k => $d) {
-    $v = $d['format'];
-    $c = count($v);
-    print "<details data-count='$c'><summary><code>$k</code> ($c)</summary><ol><li><code>";
-    print implode("</code></li><li><code>", $v);
-    print "</code></li></ol></details>";
-  }
-  ob_flush();
-  flush();
-
-  exit;
 }

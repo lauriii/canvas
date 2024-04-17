@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\experience_builder;
 
+use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\TypedData\EntityDataDefinition;
 use Drupal\Core\Entity\TypedData\EntityDataDefinitionInterface;
 use Drupal\Core\Field\FieldTypePluginManagerInterface;
@@ -160,6 +161,23 @@ final class ReferenceFieldPropExpression implements StructuredDataPropExpression
 
   public static function fromString(string $representation): static {
     throw new \Exception('todo');
+  }
+
+}
+
+final class PropExpressionEvaluator {
+
+  public static function evaluate(?EntityInterface $entity, FieldPropExpression|ReferenceFieldPropExpression $expr): mixed {
+    if ($entity === NULL) {
+      return NULL;
+    }
+    return match (get_class($expr)) {
+      FieldPropExpression::class => $entity->get($expr->fieldName)[$expr->delta ?? 0]?->get($expr->propName)->getValue(),
+      ReferenceFieldPropExpression::class => self::evaluate(
+        self::evaluate($entity, $expr->referencer),
+        $expr->referenced
+      ),
+    };
   }
 
 }
