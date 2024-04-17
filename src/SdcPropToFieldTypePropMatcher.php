@@ -17,6 +17,7 @@ use Drupal\Core\Entity\TypedData\EntityDataDefinitionInterface;
 use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Field\FieldItemInterface;
 use Drupal\Core\Field\FieldTypePluginManagerInterface;
+use Drupal\Core\Field\TypedData\FieldItemDataDefinitionInterface;
 use Drupal\Core\TypedData\ComplexDataDefinitionInterface;
 use Drupal\Core\TypedData\DataDefinitionInterface;
 use Drupal\Core\TypedData\DataReferenceDefinitionInterface;
@@ -59,6 +60,14 @@ final class SdcPropToFieldTypePropMatcher {
    *   A list of field type props.
    */
   function findFieldTypeStorageCandidates(SdcPropJsonSchemaType $json_schema_primitive_type, bool $is_required_in_json_schema) : array {
+    return $this->findFieldTypeProps($json_schema_primitive_type, $is_required_in_json_schema, NULL);
+  }
+
+  function findFieldTypeFormatCandidates(SdcPropJsonSchemaType $json_schema_primitive_type, bool $is_required_in_json_schema, array $schema) {
+    return $this->findFieldTypeProps($json_schema_primitive_type, $is_required_in_json_schema, $schema);
+  }
+
+  function findFieldTypeProps(SdcPropJsonSchemaType $json_schema_primitive_type, bool $is_required_in_json_schema, ?array $schema) : array {
     $candidates = [];
 
     $field_types = $this->fieldTypePluginManager->getDefinitions();
@@ -68,63 +77,57 @@ final class SdcPropToFieldTypePropMatcher {
       // directly to the DataType-associated-with-FieldType level.
       // @see \Drupal\Core\Field\FieldTypePluginManager::createInstance()
       $field_item_definition = $this->typedDataManager->createDataDefinition("field_item:$field_type");
-      $property_definitions = $field_item_definition->getPropertyDefinitions();
+      $property_definitions = $this->recurseDataDefinitionInterface($field_item_definition);
 
       foreach ($property_definitions as $property_name => $property_definition) {
-        // References must be followed.
-        if ($property_definition instanceof DataReferenceDefinitionInterface) {
-          $target = $property_definition->getTargetDefinition();
-          // Only entity targets are supported.
-          if (!$target instanceof EntityDataDefinitionInterface) {
-            @trigger_error(sprintf("Unhandled data type class: `%s` Drupal field type contains REFERENCEABLE `%s` data type that is not yet supported", $field_type, $target->getClass()), E_USER_DEPRECATED);
-            continue;
-          }
-          // … but only "simple" entity targets, so not entity revisions or
-          // anything else.
-          if (!$target instanceof EntityDataDefinition) {
-            continue;
-          }
-          // Finally, avoid interpreting the configurable `entity_reference`
-          // field type's default settings as the definitive settings. Only an
-          // *instance* of such a field (i.e. attached to an entity type) will
-          // have its definitive settings.
-          // @see \Drupal\Core\Field\TypedData\FieldItemDataDefinition::createFromDataType()
-          // @see \Drupal\Core\Field\Plugin\Field\FieldType\EntityReferenceItem::defaultStorageSettings()
-          // @todo allow this to be detected automatically by expanding core infrastructure?
-          if ($field_item_definition->getFieldDefinition()->getType() ===  'entity_reference' && $field_item_definition->getFieldDefinition()->getTargetEntityTypeId() === NULL) {
-            continue;
-          }
-          foreach ($this->recurseDataDefinitionInterface($target) as $referenceable_field_definition) {
-            // Only support single-cardinality indirect
-            if ($referenceable_field_definition->getCardinality() !== 1) {
+        $is_reference = $this->dataLeafIsReference($property_definition);
+        if ($is_reference === NULL) {
+          // Neither a reference nor a primitive.
+          continue;
+        }
+        if ($is_reference) {
+          // Only follow entity references, as deep as specified.
+          // @see ::findFieldTypeStorageCandidates()
+          if ($property_definition instanceof DataReferenceDefinitionInterface) {
+            $target = $property_definition->getTargetDefinition();
+            // Only entity targets are supported.
+            if (!$target instanceof EntityDataDefinitionInterface) {
+              @trigger_error(sprintf("Unhandled data type class: `%s` Drupal field type contains REFERENCEABLE `%s` data type that is not yet supported", $field_type, $target->getClass()), E_USER_DEPRECATED);
               continue;
             }
-            $id = $referenceable_field_definition->getItemDefinition();
-            $field_item = $this->typedDataManager->createInstance($id->getDataType(), [
-              'name' => $referenceable_field_definition->getName(),
-              'parent' => NULL,
-              'data_definition' => $id,
-            ]);
-            assert($field_item instanceof FieldItemInterface);
-            $property_definitions_sub = $id->getPropertyDefinitions();
-            foreach ($property_definitions_sub as $sub_prop_name => $sub_prop_definition) {
-              if (is_a($sub_prop_definition->getClass(), PrimitiveInterface::class, TRUE)) {
-                if ($this->dataDefinitionMatchesPrimitiveType($sub_prop_definition, $json_schema_primitive_type, $is_required_in_json_schema)) {
-                  $candidates[] = new ReferenceFieldTypePropExpression($field_type, $property_name, new FieldPropExpression($target, $referenceable_field_definition->getName(), 0, $sub_prop_name));
-                }
-              }
+            // … but only "simple" entity targets, so not entity revisions or
+            // anything else.
+            if (!$target instanceof EntityDataDefinition) {
+              continue;
+            }
+            // Finally, avoid interpreting the configurable `entity_reference`
+            // field type's default settings as the definitive settings. Only an
+            // *instance* of such a field (i.e. attached to an entity type) will
+            // have its definitive settings.
+            // @see \Drupal\Core\Field\TypedData\FieldItemDataDefinition::createFromDataType()
+            // @see \Drupal\Core\Field\Plugin\Field\FieldType\EntityReferenceItem::defaultStorageSettings()
+            // @todo allow this to be detected automatically by expanding core infrastructure?
+            if ($field_item_definition->getFieldDefinition()->getType() === 'entity_reference' && $field_item_definition->getFieldDefinition()->getTargetEntityTypeId() === NULL) {
+              continue;
+            }
+            $referenced_matches = $this->matchEntityProps($target, 0, $json_schema_primitive_type, $is_required_in_json_schema, $schema);
+            foreach ($referenced_matches as $referenced_match) {
+              $candidates[] = new ReferenceFieldTypePropExpression($field_type, $property_name, $referenced_match->withDelta(0));
             }
           }
         }
-        // Primitives may match.
-        elseif (is_a($property_definition->getClass(), PrimitiveInterface::class, TRUE)) {
-          if ($this->dataDefinitionMatchesPrimitiveType($property_definition, $json_schema_primitive_type, $is_required_in_json_schema)) {
+        else {
+          assert(is_a($property_definition->getClass(), PrimitiveInterface::class, TRUE));
+          $field_item = $this->typedDataManager->createInstance("field_item:$field_type", [
+            'name' => NULL,
+            'parent' => NULL,
+            'data_definition' => $field_item_definition,
+          ]);
+          assert($field_item instanceof FieldItemInterface);
+          $property = $this->recurseTypedDataInterface($field_item)[$property_name];
+          if ($this->dataLeafMatchesFormat($property, $json_schema_primitive_type, $is_required_in_json_schema, $schema)) {
             $candidates[] = new FieldTypePropExpression($field_type, $property_name);
           }
-        }
-        // Anything else cannot be handled and merits logging.
-        else {
-          @trigger_error(sprintf("Unhandled data type class: `%s` Drupal field type `%s` property uses `%s` data type class that is not yet supported", $field_type, $property_name, $property_definition->getClass()), E_USER_DEPRECATED);
         }
       }
     }
@@ -132,59 +135,7 @@ final class SdcPropToFieldTypePropMatcher {
     return $candidates;
   }
 
-  function findFieldTypeFormatCandidates(SdcPropJsonSchemaType $primitive_type, bool $is_required_in_json_schema, array $schema) {
-    $storage_candidate_ftps = $this->findFieldTypeStorageCandidates($primitive_type, $is_required_in_json_schema);
-    assert(Inspector::assertAll(fn ($e) => $e instanceof FieldTypePropExpression, $storage_candidate_ftps));
-
-    $required_shape = $primitive_type->toDataTypeShapeRequirements($schema);
-    // One of SdcPropJsonSchemaType, with no additional requirements.
-    if ($required_shape === FALSE) {
-      return $storage_candidate_ftps;
-    }
-    if ($required_shape->constraint === 'NOT YET SUPPORTED') {
-      @trigger_error(sprintf("NOT YET SUPPORTED: a `%s` Drupal field data type that matches the JSON schema %s.", $primitive_type->value, json_encode($schema)), E_USER_DEPRECATED);
-      return [];
-    }
-
-    return array_values(array_filter($storage_candidate_ftps, function ($ftp) use ($primitive_type, $required_shape, $is_required_in_json_schema, $schema) {
-      if ($ftp instanceof ReferenceFieldTypePropExpression) {
-        $field_property_expression = $ftp->referenced;
-        if (!$field_property_expression instanceof FieldPropExpression) {
-          throw new \LogicException('Multiple levels of indirection are not (yet) supported.');
-        }
-        // load the field item for the entiy type
-        $bundle = $ftp->referenced->entityType->getBundles();
-        if (is_array($bundle)) {
-          if (count($bundle) > 1) {
-            throw new \LogicException('This should not be possible due to earlier validation');
-          }
-          $bundle = reset($bundle);
-        }
-        assert($ftp->referenced->entityType->getBundles() === NULL || count($ftp->referenced->entityType->getBundles()) === 1);
-        $field_item_data_definition = \Drupal::service(EntityFieldManagerInterface::class)
-          ->getFieldDefinitions($ftp->referenced->entityType->getEntityTypeId(), $bundle)[$ftp->referenced->fieldName]
-          ->getItemDefinition();
-      }
-      else {
-        $field_property_expression = $ftp;
-        $field_item_data_definition = $this->typedDataManager->createDataDefinition("field_item:{$ftp->fieldType}");
-      }
-      $field_item = $this->typedDataManager->createInstance("field_item:{$ftp->fieldType}", [
-        'name' => $ftp instanceof ReferenceFieldTypePropExpression
-          // Use the referenced entity type field name.
-          ? $ftp->referenced->fieldName
-          // Otherwise: this is an unnamed, uninstantiated field type.
-          : NULL,
-        'parent' => NULL,
-        'data_definition' => $field_item_data_definition,
-      ]);
-      assert($field_item instanceof FieldItemInterface);
-      $property = $this->recurseTypedDataInterface($field_item)[$field_property_expression->propName];
-      return $this->dataLeafMatchesFormat($property, $primitive_type, $is_required_in_json_schema, $schema);
-    }));
-  }
-
-  function matchEntityProps(EntityDataDefinition $entity_data_definition, int $levels_to_recurse, SdcPropJsonSchemaType $primitive_type, bool $is_required_in_json_schema, array $schema): array {
+  function matchEntityProps(EntityDataDefinition $entity_data_definition, int $levels_to_recurse, SdcPropJsonSchemaType $primitive_type, bool $is_required_in_json_schema, ?array $schema): array {
     $matches = [];
     $field_definitions = $this->recurseDataDefinitionInterface($entity_data_definition);
     foreach ($field_definitions as $field_definition) {
@@ -277,7 +228,7 @@ final class SdcPropToFieldTypePropMatcher {
     return TRUE;
   }
 
-  private function dataLeafMatchesFormat(TypedDataInterface $data, SdcPropJsonSchemaType $json_schema_primitive_type, bool $is_required_in_json_schema, array $schema): bool {
+  private function dataLeafMatchesFormat(TypedDataInterface $data, SdcPropJsonSchemaType $json_schema_primitive_type, bool $is_required_in_json_schema, ?array $schema): bool {
     if (!$data->getParent()) {
       throw new \LogicException('must be a property with a field item as context for format checking');
     }
@@ -285,6 +236,13 @@ final class SdcPropToFieldTypePropMatcher {
     if (!$this->dataDefinitionMatchesPrimitiveType($property_data_definition, $json_schema_primitive_type, $is_required_in_json_schema)) {
       return FALSE;
     }
+
+    // If the precise JSON schema is not specified, this only needs to match the
+    // primitive type.
+    if ($schema === NULL) {
+      return TRUE;
+    }
+
     $required_shape = $json_schema_primitive_type->toDataTypeShapeRequirements($schema);
 
     // One of SdcPropJsonSchemaType, with no additional requirements.
@@ -383,17 +341,23 @@ final class SdcPropToFieldTypePropMatcher {
     };
   }
 
-  private function dataLeafIsReference(TypedDataInterface $td): ?bool {
-    if (!$td->getParent() instanceof FieldItemInterface) {
+  private function dataLeafIsReference(TypedDataInterface|DataDefinitionInterface $td_or_dd): ?bool {
+    if ($td_or_dd instanceof TypedDataInterface && !$td_or_dd->getParent() instanceof FieldItemInterface) {
       throw new \LogicException(__METHOD__ . ' was given a non-leaf.');
     }
+    $dd = $td_or_dd instanceof TypedDataInterface
+      ? $td_or_dd->getDataDefinition()
+      : $td_or_dd;
     return match(TRUE) {
-      $td instanceof DataReferenceInterface => TRUE,
-      $td instanceof PrimitiveInterface => FALSE,
-      TRUE => (function ($td) {
-        @trigger_error(sprintf("Unhandled data type class: `%s` Drupal field type `%s` property uses `%s` data type class that is not yet supported", $td->getParent()->getDataDefinition()->getFieldDefinition()->getType(), $td->getName(), $td->getDataDefinition()->getClass()), E_USER_DEPRECATED);
-        return NULL;
-      })($td),
+      $dd instanceof DataReferenceDefinitionInterface => TRUE,
+      is_a($dd->getClass(), PrimitiveInterface::class, TRUE) => FALSE,
+      // Anything else cannot be handled and merits logging.
+      TRUE => (function ($td_or_dd) {
+        match (TRUE) {
+          $td_or_dd instanceof TypedDataInterface => @trigger_error(sprintf("Unhandled data type class: `%s` Drupal field type `%s` property uses `%s` data type class that is not yet supported", $td_or_dd->getParent()->getDataDefinition()->getFieldDefinition()->getType(), $td_or_dd->getName(), $td_or_dd->getDataDefinition()->getClass()), E_USER_DEPRECATED),
+          $td_or_dd instanceof DataDefinitionInterface => @trigger_error(sprintf("Unhandled data type class: `%s` data type class that is not yet supported", $td_or_dd->getClass()), E_USER_DEPRECATED),
+        };
+      })($td_or_dd),
     };
   }
 

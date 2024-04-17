@@ -132,6 +132,15 @@ final class FieldPropExpression implements StructuredDataPropExpressionInterface
     return sprintf(static::PREFIX . "␜%s␝%s␞%s␟%s", $this->entityType->getDataType(), $this->fieldName, $this->delta ?? '', $this->propName);
   }
 
+  public function withDelta(int $delta): static {
+    return new static(
+      $this->entityType,
+      $this->fieldName,
+      $delta,
+      $this->propName,
+    );
+  }
+
   public static function fromString(string $representation): static {
     throw \Exception('todo');
   }
