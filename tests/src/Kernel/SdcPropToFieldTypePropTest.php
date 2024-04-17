@@ -513,16 +513,10 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
             'ℹ︎decimal␟value',
           ],
           'format' => [
-            'ℹ︎uri␟value',
-            'ℹ︎uuid␟value',
-            'ℹ︎email␟value',
             'ℹ︎string␟value',
-            'ℹ︎language␟value',
             'ℹ︎string_long␟value',
-            'ℹ︎password␟value',
-            'ℹ︎password␟existing',
-            'ℹ︎decimal␟value',
           ],
+          'instances' => [],
         ],
         '⿲cl_editorial:component-card␟machineName' => [
           'storage' => [
@@ -537,6 +531,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
             'ℹ︎decimal␟value',
           ],
           'format' => [],
+          'instances' => [],
         ],
         '⿲cl_editorial:component-card␟id' => [
           'storage' => [
@@ -551,6 +546,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
             'ℹ︎decimal␟value',
           ],
           'format' => [],
+          'instances' => [],
         ],
         '⿲cl_editorial:component-card␟description' => [
           'storage' => [
@@ -565,16 +561,10 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
             'ℹ︎decimal␟value',
           ],
           'format' => [
-            'ℹ︎uri␟value',
-            'ℹ︎uuid␟value',
-            'ℹ︎email␟value',
             'ℹ︎string␟value',
-            'ℹ︎language␟value',
             'ℹ︎string_long␟value',
-            'ℹ︎password␟value',
-            'ℹ︎password␟existing',
-            'ℹ︎decimal␟value',
           ],
+          'instances' => [],
         ],
         '⿲cl_editorial:component-card␟status' => [
           'storage' => [
@@ -589,6 +579,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
             'ℹ︎decimal␟value',
           ],
           'format' => [],
+          'instances' => [],
         ],
         '⿲cl_editorial:component-card␟thumbnailHref' => [
           'storage' => [
@@ -603,16 +594,11 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
             'ℹ︎decimal␟value',
           ],
           'format' => [
-            'ℹ︎uri␟value',
-            'ℹ︎uuid␟value',
-            'ℹ︎email␟value',
+            // @todo wrong matches because wrong SDC prop type definition
             'ℹ︎string␟value',
-            'ℹ︎language␟value',
             'ℹ︎string_long␟value',
-            'ℹ︎password␟value',
-            'ℹ︎password␟existing',
-            'ℹ︎decimal␟value',
           ],
+          'instances' => [],
         ],
         '⿲cl_editorial:component-card␟group' => [
           'storage' => [
@@ -627,16 +613,10 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
             'ℹ︎decimal␟value',
           ],
           'format' => [
-            'ℹ︎uri␟value',
-            'ℹ︎uuid␟value',
-            'ℹ︎email␟value',
             'ℹ︎string␟value',
-            'ℹ︎language␟value',
             'ℹ︎string_long␟value',
-            'ℹ︎password␟value',
-            'ℹ︎password␟existing',
-            'ℹ︎decimal␟value',
           ],
+          'instances' => [],
         ],
         '⿲sdc_examples:my-cta␟text' => [
           'storage' => [
@@ -649,14 +629,10 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
             'ℹ︎decimal␟value',
           ],
           'format' => [
-            'ℹ︎uri␟value',
-            'ℹ︎uuid␟value',
-            'ℹ︎email␟value',
             'ℹ︎string␟value',
-            'ℹ︎language␟value',
             'ℹ︎string_long␟value',
-            'ℹ︎decimal␟value',
           ],
+          'instances' => [],
         ],
         '⿲sdc_examples:my-cta␟href' => [
           'storage' => [
@@ -673,6 +649,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
           'format' => [
             'ℹ︎uri␟value',
           ],
+          'instances' => [],
         ],
         '⿲sdc_examples:my-cta␟target' => [
           'storage' => [
@@ -687,6 +664,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
             'ℹ︎decimal␟value',
           ],
           'format' => [],
+          'instances' => [],
         ],
         '⿲sdc_examples:my-button--primary␟text' => [
           'storage' => [
@@ -699,14 +677,10 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
             'ℹ︎decimal␟value',
           ],
           'format' => [
-            'ℹ︎uri␟value',
-            'ℹ︎uuid␟value',
-            'ℹ︎email␟value',
             'ℹ︎string␟value',
-            'ℹ︎language␟value',
             'ℹ︎string_long␟value',
-            'ℹ︎decimal␟value',
           ],
+          'instances' => [],
         ],
         '⿲sdc_examples:my-button--primary␟iconType' => [
           'storage' => [
@@ -721,6 +695,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
             'ℹ︎decimal␟value',
           ],
           'format' => [],
+          'instances' => [],
         ],
         '⿲sdc_examples:my-button␟text' => [
           'storage' => [
@@ -733,14 +708,10 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
             'ℹ︎decimal␟value',
           ],
           'format' => [
-            'ℹ︎uri␟value',
-            'ℹ︎uuid␟value',
-            'ℹ︎email␟value',
             'ℹ︎string␟value',
-            'ℹ︎language␟value',
             'ℹ︎string_long␟value',
-            'ℹ︎decimal␟value',
           ],
+          'instances' => [],
         ],
         '⿲sdc_examples:my-button␟iconType' => [
           'storage' => [
@@ -755,6 +726,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
             'ℹ︎decimal␟value',
           ],
           'format' => [],
+          'instances' => [],
         ],
         '⿲sdc_examples:my-marquee␟text' => [
           'storage' => [
@@ -767,20 +739,15 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
             'ℹ︎decimal␟value',
           ],
           'format' => [
-            'ℹ︎uri␟value',
-            'ℹ︎uuid␟value',
-            'ℹ︎email␟value',
             'ℹ︎string␟value',
-            'ℹ︎language␟value',
             'ℹ︎string_long␟value',
-            'ℹ︎decimal␟value',
           ],
+          'instances' => [],
         ],
         '⿲sdc_examples:my-marquee␟scrollAmount' => [
           'storage' => [
             'ℹ︎integer␟value',
             'ℹ︎entity_reference␟target_id',
-            'ℹ︎︎entity_reference␟entity␝︎value␞0␟uid',
             'ℹ︎float␟value',
             'ℹ︎timestamp␟value',
             'ℹ︎created␟value',
@@ -789,11 +756,17 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
           'format' => [
             'ℹ︎integer␟value',
             'ℹ︎entity_reference␟target_id',
-            'ℹ︎︎entity_reference␟entity␝︎value␞0␟uid',
             'ℹ︎float␟value',
             'ℹ︎timestamp␟value',
             'ℹ︎created␟value',
             'ℹ︎changed␟value',
+          ],
+          'instances' => [
+            'ℹ︎␜entity:user␝uid␞␟value',
+            'ℹ︎␜entity:user␝created␞␟value',
+            'ℹ︎␜entity:user␝changed␞␟value',
+            'ℹ︎␜entity:user␝access␞␟value',
+            'ℹ︎␜entity:user␝login␞␟value',
           ],
         ],
         '⿲sdc_examples:my-banner␟heading' => [
@@ -809,16 +782,10 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
             'ℹ︎decimal␟value',
           ],
           'format' => [
-            'ℹ︎uri␟value',
-            'ℹ︎uuid␟value',
-            'ℹ︎email␟value',
             'ℹ︎string␟value',
-            'ℹ︎language␟value',
             'ℹ︎string_long␟value',
-            'ℹ︎password␟value',
-            'ℹ︎password␟existing',
-            'ℹ︎decimal␟value',
           ],
+          'instances' => [],
         ],
         '⿲sdc_examples:my-banner␟ctaText' => [
           'storage' => [
@@ -833,16 +800,10 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
             'ℹ︎decimal␟value',
           ],
           'format' => [
-            'ℹ︎uri␟value',
-            'ℹ︎uuid␟value',
-            'ℹ︎email␟value',
             'ℹ︎string␟value',
-            'ℹ︎language␟value',
             'ℹ︎string_long␟value',
-            'ℹ︎password␟value',
-            'ℹ︎password␟existing',
-            'ℹ︎decimal␟value',
           ],
+          'instances' => [],
         ],
         '⿲sdc_examples:my-banner␟ctaHref' => [
           'storage' => [
@@ -857,16 +818,11 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
             'ℹ︎decimal␟value',
           ],
           'format' => [
-            'ℹ︎uri␟value',
-            'ℹ︎uuid␟value',
-            'ℹ︎email␟value',
+            // @todo wrong matches because wrong SDC prop type definition
             'ℹ︎string␟value',
-            'ℹ︎language␟value',
             'ℹ︎string_long␟value',
-            'ℹ︎password␟value',
-            'ℹ︎password␟existing',
-            'ℹ︎decimal␟value',
           ],
+          'instances' => [],
         ],
         '⿲sdc_examples:my-banner␟ctaTarget' => [
           'storage' => [
@@ -881,6 +837,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
             'ℹ︎decimal␟value',
           ],
           'format' => [],
+          'instances' => [],
         ],
         '⿲sdc_examples:my-banner␟image' => [
           'storage' => [
@@ -895,16 +852,11 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
             'ℹ︎decimal␟value',
           ],
           'format' => [
-            'ℹ︎uri␟value',
-            'ℹ︎uuid␟value',
-            'ℹ︎email␟value',
+            // @todo wrong matches because wrong SDC prop type definition
             'ℹ︎string␟value',
-            'ℹ︎language␟value',
             'ℹ︎string_long␟value',
-            'ℹ︎password␟value',
-            'ℹ︎password␟existing',
-            'ℹ︎decimal␟value',
           ],
+          'instances' => [],
         ],
         '⿲sdc_examples:my-linked-media␟image' => [
           'storage' => [
@@ -919,16 +871,11 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
             'ℹ︎decimal␟value',
           ],
           'format' => [
-            'ℹ︎uri␟value',
-            'ℹ︎uuid␟value',
-            'ℹ︎email␟value',
+            // @todo wrong matches because wrong SDC prop type definition
             'ℹ︎string␟value',
-            'ℹ︎language␟value',
             'ℹ︎string_long␟value',
-            'ℹ︎password␟value',
-            'ℹ︎password␟existing',
-            'ℹ︎decimal␟value',
           ],
+          'instances' => [],
         ],
         '⿲sdc_examples:my-linked-media␟href' => [
           'storage' => [
@@ -943,16 +890,11 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
             'ℹ︎decimal␟value',
           ],
           'format' => [
-            'ℹ︎uri␟value',
-            'ℹ︎uuid␟value',
-            'ℹ︎email␟value',
+            // @todo wrong matches because wrong SDC prop type definition
             'ℹ︎string␟value',
-            'ℹ︎language␟value',
             'ℹ︎string_long␟value',
-            'ℹ︎password␟value',
-            'ℹ︎password␟existing',
-            'ℹ︎decimal␟value',
           ],
+          'instances' => [],
         ],
         '⿲sdc_examples:my-banner--tall␟heading' => [
           'storage' => [
@@ -967,16 +909,11 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
             'ℹ︎decimal␟value',
           ],
           'format' => [
-            'ℹ︎uri␟value',
-            'ℹ︎uuid␟value',
-            'ℹ︎email␟value',
+            // @todo wrong matches because wrong SDC prop type definition
             'ℹ︎string␟value',
-            'ℹ︎language␟value',
             'ℹ︎string_long␟value',
-            'ℹ︎password␟value',
-            'ℹ︎password␟existing',
-            'ℹ︎decimal␟value',
           ],
+          'instances' => [],
         ],
         '⿲sdc_examples:my-banner--tall␟ctaText' => [
           'storage' => [
@@ -991,16 +928,11 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
             'ℹ︎decimal␟value',
           ],
           'format' => [
-            'ℹ︎uri␟value',
-            'ℹ︎uuid␟value',
-            'ℹ︎email␟value',
+            // @todo wrong matches because wrong SDC prop type definition
             'ℹ︎string␟value',
-            'ℹ︎language␟value',
             'ℹ︎string_long␟value',
-            'ℹ︎password␟value',
-            'ℹ︎password␟existing',
-            'ℹ︎decimal␟value',
           ],
+          'instances' => [],
         ],
         '⿲sdc_examples:my-banner--tall␟ctaHref' => [
           'storage' => [
@@ -1015,16 +947,11 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
             'ℹ︎decimal␟value',
           ],
           'format' => [
-            'ℹ︎uri␟value',
-            'ℹ︎uuid␟value',
-            'ℹ︎email␟value',
+            // @todo wrong matches because wrong SDC prop type definition
             'ℹ︎string␟value',
-            'ℹ︎language␟value',
             'ℹ︎string_long␟value',
-            'ℹ︎password␟value',
-            'ℹ︎password␟existing',
-            'ℹ︎decimal␟value',
           ],
+          'instances' => [],
         ],
         '⿲sdc_examples:my-banner--tall␟ctaTarget' => [
           'storage' => [
@@ -1039,6 +966,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
             'ℹ︎decimal␟value',
           ],
           'format' => [],
+          'instances' => [],
         ],
         '⿲sdc_examples:my-banner--tall␟image' => [
           'storage' => [
@@ -1053,16 +981,11 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
             'ℹ︎decimal␟value',
           ],
           'format' => [
-            'ℹ︎uri␟value',
-            'ℹ︎uuid␟value',
-            'ℹ︎email␟value',
+            // @todo wrong matches because wrong SDC prop type definition
             'ℹ︎string␟value',
-            'ℹ︎language␟value',
             'ℹ︎string_long␟value',
-            'ℹ︎password␟value',
-            'ℹ︎password␟existing',
-            'ℹ︎decimal␟value',
           ],
+          'instances' => [],
         ],
         '⿲sdc_examples:my-card--light␟header' => [
           'storage' => [
@@ -1075,14 +998,11 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
             'ℹ︎decimal␟value',
           ],
           'format' => [
-            'ℹ︎uri␟value',
-            'ℹ︎uuid␟value',
-            'ℹ︎email␟value',
+            // @todo wrong matches because wrong SDC prop type definition
             'ℹ︎string␟value',
-            'ℹ︎language␟value',
             'ℹ︎string_long␟value',
-            'ℹ︎decimal␟value',
           ],
+          'instances' => [],
         ],
         '⿲sdc_examples:my-card␟header' => [
           'storage' => [
@@ -1095,14 +1015,11 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
             'ℹ︎decimal␟value',
           ],
           'format' => [
-            'ℹ︎uri␟value',
-            'ℹ︎uuid␟value',
-            'ℹ︎email␟value',
+            // @todo wrong matches because wrong SDC prop type definition
             'ℹ︎string␟value',
-            'ℹ︎language␟value',
             'ℹ︎string_long␟value',
-            'ℹ︎decimal␟value',
           ],
+          'instances' => [],
         ],
         '⿲sdc_test:my-cta␟text' => [
           'storage' => [
@@ -1115,14 +1032,11 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
             'ℹ︎decimal␟value',
           ],
           'format' => [
-            'ℹ︎uri␟value',
-            'ℹ︎uuid␟value',
-            'ℹ︎email␟value',
+            // @todo wrong matches because wrong SDC prop type definition
             'ℹ︎string␟value',
-            'ℹ︎language␟value',
             'ℹ︎string_long␟value',
-            'ℹ︎decimal␟value',
           ],
+          'instances' => [],
         ],
         '⿲sdc_test:my-cta␟href' => [
           'storage' => [
@@ -1139,6 +1053,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
           'format' => [
             'ℹ︎uri␟value',
           ],
+          'instances' => [],
         ],
         '⿲sdc_test:my-cta␟target' => [
           'storage' => [
@@ -1153,10 +1068,12 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
             'ℹ︎decimal␟value',
           ],
           'format' => [],
+          'instances' => [],
         ],
         '⿲sdc_test:array-to-object␟testProp' => [
           'storage' => [],
           'format' => [],
+          'instances' => [],
         ],
         '⿲sdc_test:my-button␟text' => [
           'storage' => [
@@ -1169,14 +1086,10 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
             'ℹ︎decimal␟value',
           ],
           'format' => [
-            'ℹ︎uri␟value',
-            'ℹ︎uuid␟value',
-            'ℹ︎email␟value',
             'ℹ︎string␟value',
-            'ℹ︎language␟value',
             'ℹ︎string_long␟value',
-            'ℹ︎decimal␟value',
           ],
+          'instances' => [],
         ],
         '⿲sdc_test:my-button␟iconType' => [
           'storage' => [
@@ -1191,6 +1104,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
             'ℹ︎decimal␟value',
           ],
           'format' => [],
+          'instances' => [],
         ],
         '⿲sdc_test:my-banner␟heading' => [
           'storage' => [
@@ -1205,16 +1119,10 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
             'ℹ︎decimal␟value',
           ],
           'format' => [
-            'ℹ︎uri␟value',
-            'ℹ︎uuid␟value',
-            'ℹ︎email␟value',
             'ℹ︎string␟value',
-            'ℹ︎language␟value',
             'ℹ︎string_long␟value',
-            'ℹ︎password␟value',
-            'ℹ︎password␟existing',
-            'ℹ︎decimal␟value',
           ],
+          'instances' => [],
         ],
         '⿲sdc_test:my-banner␟ctaText' => [
           'storage' => [
@@ -1229,16 +1137,10 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
             'ℹ︎decimal␟value',
           ],
           'format' => [
-            'ℹ︎uri␟value',
-            'ℹ︎uuid␟value',
-            'ℹ︎email␟value',
             'ℹ︎string␟value',
-            'ℹ︎language␟value',
             'ℹ︎string_long␟value',
-            'ℹ︎password␟value',
-            'ℹ︎password␟existing',
-            'ℹ︎decimal␟value',
           ],
+          'instances' => [],
         ],
         '⿲sdc_test:my-banner␟ctaHref' => [
           'storage' => [
@@ -1253,16 +1155,11 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
             'ℹ︎decimal␟value',
           ],
           'format' => [
-            'ℹ︎uri␟value',
-            'ℹ︎uuid␟value',
-            'ℹ︎email␟value',
+            // @todo wrong matches because wrong SDC prop type definition
             'ℹ︎string␟value',
-            'ℹ︎language␟value',
             'ℹ︎string_long␟value',
-            'ℹ︎password␟value',
-            'ℹ︎password␟existing',
-            'ℹ︎decimal␟value',
           ],
+          'instances' => [],
         ],
         '⿲sdc_test:my-banner␟ctaTarget' => [
           'storage' => [
@@ -1277,6 +1174,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
             'ℹ︎decimal␟value',
           ],
           'format' => [],
+          'instances' => [],
         ],
         '⿲sdc_test:my-banner␟image' => [
           'storage' => [
@@ -1291,16 +1189,11 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
             'ℹ︎decimal␟value',
           ],
           'format' => [
-            'ℹ︎uri␟value',
-            'ℹ︎uuid␟value',
-            'ℹ︎email␟value',
+            // @todo wrong matches because wrong SDC prop type definition
             'ℹ︎string␟value',
-            'ℹ︎language␟value',
             'ℹ︎string_long␟value',
-            'ℹ︎password␟value',
-            'ℹ︎password␟existing',
-            'ℹ︎decimal␟value',
           ],
+          'instances' => [],
         ],
       ],
     ];
@@ -1327,31 +1220,80 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
       'expected matches' => [
         '⿲cl_editorial:component-card␟name' => [
           'storage' => $all_string_storage_props,
-          'format' => $all_string_storage_props,
+          'format' => [
+            'ℹ︎file␟description',
+            'ℹ︎image␟alt',
+            'ℹ︎image␟title',
+            'ℹ︎link␟title',
+            'ℹ︎string␟value',
+            'ℹ︎string_long␟value',
+          ],
+          'instances' => [
+            'ℹ︎␜entity:path_alias␝path␞␟value',
+            'ℹ︎␜entity:path_alias␝alias␞␟value',
+          ],
         ],
         '⿲cl_editorial:component-card␟machineName' => [
           'storage' => $all_string_storage_props,
           'format' => [],
+          'instances' => [],
         ],
         '⿲cl_editorial:component-card␟id' => [
           'storage' => $all_string_storage_props,
           'format' => [],
+          'instances' => [],
         ],
         '⿲cl_editorial:component-card␟description' => [
           'storage' => $all_string_storage_props,
-          'format' => $all_string_storage_props,
+          'format' => [
+            'ℹ︎file␟description',
+            'ℹ︎image␟alt',
+            'ℹ︎image␟title',
+            'ℹ︎link␟title',
+            'ℹ︎string␟value',
+            'ℹ︎string_long␟value',
+          ],
+          'instances' => [
+            'ℹ︎␜entity:path_alias␝path␞␟value',
+            'ℹ︎␜entity:path_alias␝alias␞␟value',
+          ],
         ],
         '⿲cl_editorial:component-card␟status' => [
           'storage' => $all_string_storage_props,
           'format' => [],
+          'instances' => [],
         ],
         '⿲cl_editorial:component-card␟thumbnailHref' => [
           'storage' => $all_string_storage_props,
-          'format' => $all_string_storage_props,
+          'format' => [
+            // @todo wrong matches because wrong SDC prop type definition
+            'ℹ︎file␟description',
+            'ℹ︎image␟alt',
+            'ℹ︎image␟title',
+            'ℹ︎link␟title',
+            'ℹ︎string␟value',
+            'ℹ︎string_long␟value',
+          ],
+          'instances' => [
+            // @todo wrong matches because wrong SDC prop type definition
+            'ℹ︎␜entity:path_alias␝path␞␟value',
+            'ℹ︎␜entity:path_alias␝alias␞␟value',
+          ],
         ],
         '⿲cl_editorial:component-card␟group' => [
           'storage' => $all_string_storage_props,
-          'format' => $all_string_storage_props,
+          'format' => [
+            'ℹ︎file␟description',
+            'ℹ︎image␟alt',
+            'ℹ︎image␟title',
+            'ℹ︎link␟title',
+            'ℹ︎string␟value',
+            'ℹ︎string_long␟value',
+          ],
+          'instances' => [
+            'ℹ︎␜entity:path_alias␝path␞␟value',
+            'ℹ︎␜entity:path_alias␝alias␞␟value',
+          ],
         ],
       ],
     ];
