@@ -346,8 +346,8 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
           ],
           'instances' => [
             'ℹ︎␜entity:user␝init␞␟value',
-            'ℹ︎︎␜entity:file␝uid␞␟entity␜︎␜entity:user␝init␞␟value',
             'ℹ︎␜entity:user␝mail␞␟value',
+            'ℹ︎︎␜entity:file␝uid␞␟entity␜︎␜entity:user␝init␞␟value',
             'ℹ︎︎␜entity:file␝uid␞␟entity␜︎␜entity:user␝mail␞␟value',
           ],
         ],
@@ -358,8 +358,8 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
           ],
           'instances' => [
             'ℹ︎␜entity:user␝init␞␟value',
-            'ℹ︎︎␜entity:file␝uid␞␟entity␜︎␜entity:user␝init␞␟value',
             'ℹ︎␜entity:user␝mail␞␟value',
+            'ℹ︎︎␜entity:file␝uid␞␟entity␜︎␜entity:user␝init␞␟value',
             'ℹ︎︎␜entity:file␝uid␞␟entity␜︎␜entity:user␝mail␞␟value',
           ],
         ],
@@ -405,10 +405,10 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
             'ℹ︎︎image␟entity␜︎␜entity:file␝uuid␞0␟value',
           ],
           'instances' => [
-            'ℹ︎︎␜entity:file␝uid␞␟entity␜︎␜entity:user␝uuid␞␟value',
             'ℹ︎␜entity:file␝uuid␞␟value',
             'ℹ︎␜entity:path_alias␝uuid␞␟value',
             'ℹ︎␜entity:user␝uuid␞␟value',
+            'ℹ︎︎␜entity:file␝uid␞␟entity␜︎␜entity:user␝uuid␞␟value',
           ],
         ],
         '⿲sdc_test_all_props:all-props␟test-string-format-' . JsonSchemaStringFormat::URI->value => [
@@ -489,11 +489,6 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
           'storage' => $all_integer_storage_props,
           'format' => $all_integer_storage_props,
           'instances' => [
-            'ℹ︎︎␜entity:file␝uid␞␟entity␜︎␜entity:user␝access␞␟value',
-            'ℹ︎︎␜entity:file␝uid␞␟entity␜︎␜entity:user␝changed␞␟value',
-            'ℹ︎︎␜entity:file␝uid␞␟entity␜︎␜entity:user␝created␞␟value',
-            'ℹ︎︎␜entity:file␝uid␞␟entity␜︎␜entity:user␝login␞␟value',
-            'ℹ︎︎␜entity:file␝uid␞␟entity␜︎␜entity:user␝uid␞␟value',
             'ℹ︎␜entity:file␝changed␞␟value',
             'ℹ︎␜entity:file␝created␞␟value',
             'ℹ︎␜entity:file␝fid␞␟value',
@@ -506,6 +501,11 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
             'ℹ︎␜entity:user␝created␞␟value',
             'ℹ︎␜entity:user␝login␞␟value',
             'ℹ︎␜entity:user␝uid␞␟value',
+            'ℹ︎︎␜entity:file␝uid␞␟entity␜︎␜entity:user␝access␞␟value',
+            'ℹ︎︎␜entity:file␝uid␞␟entity␜︎␜entity:user␝changed␞␟value',
+            'ℹ︎︎␜entity:file␝uid␞␟entity␜︎␜entity:user␝created␞␟value',
+            'ℹ︎︎␜entity:file␝uid␞␟entity␜︎␜entity:user␝login␞␟value',
+            'ℹ︎︎␜entity:file␝uid␞␟entity␜︎␜entity:user␝uid␞␟value',
           ],
         ],
         '⿲sdc_test_all_props:all-props␟test-integer-range-minimum' => [

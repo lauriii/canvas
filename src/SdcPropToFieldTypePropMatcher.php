@@ -190,8 +190,9 @@ final class SdcPropToFieldTypePropMatcher {
         ];
       }
     }
-    sort($matches);
-    return $matches;
+    $keyed_by_string = array_combine(array_map(fn ($e) => (string)$e, $matches), $matches);
+    ksort($keyed_by_string);
+    return array_values($keyed_by_string);
   }
 
   private function dataDefinitionMatchesPrimitiveType(DataDefinitionInterface $data_definition, SdcPropJsonSchemaType $json_schema_primitive_type, bool $is_required_in_json_schema): bool {
