@@ -43,7 +43,7 @@ enum SdcPropJsonSchemaType : string {
   case ARRAY = 'array';
   case BOOLEAN = 'boolean';
 
-  public function toDataTypeShapeRequirements(array $schema): DataTypeShapeRequirements|false {
+  public function toDataTypeShapeRequirements(array $schema): DataTypeShapeRequirement|DataTypeShapeRequirements|false {
     return match ($this) {
       // There cannot possibly be any additional validation for booleans.
       SdcPropJsonSchemaType::BOOLEAN => FALSE,
@@ -54,16 +54,20 @@ enum SdcPropJsonSchemaType : string {
       // - `pattern`: https://json-schema.org/understanding-json-schema/reference/string#regexp
       // - `format`: https://json-schema.org/understanding-json-schema/reference/string#format and https://json-schema.org/understanding-json-schema/reference/string#built-in-formats
       SdcPropJsonSchemaType::STRING => match (TRUE) {
-        array_key_exists('enum', $schema) => new DataTypeShapeRequirements('Choice', [
+        array_key_exists('enum', $schema) => new DataTypeShapeRequirement('Choice', [
           'choices' => $schema['enum'],
         ], NULL),
-        array_key_exists('pattern', $schema) => new DataTypeShapeRequirements('Regex', ['pattern' => $schema['pattern']]),
+        array_key_exists('pattern', $schema) && array_key_exists('format', $schema) => new DataTypeShapeRequirements([
+          JsonSchemaStringFormat::from($schema['format'])->toDataTypeShapeRequirements(),
+          new DataTypeShapeRequirement('Regex', ['pattern' => $schema['pattern']]),
+        ]),
+        array_key_exists('pattern', $schema) => new DataTypeShapeRequirement('Regex', ['pattern' => $schema['pattern']]),
         array_key_exists('format', $schema) => JsonSchemaStringFormat::from($schema['format'])->toDataTypeShapeRequirements(),
         // Otherwise, it's an unrestricted string. Simply surfacing all
         // structured data containing strings would be meaningless though. To
         // ensure a good UX, Drupal interprets this as meaning "prose".
         // @see \Drupal\experience_builder\Plugin\Validation\Constraint\StringSemanticsConstraint::PROSE
-        TRUE => new DataTypeShapeRequirements('StringSemantics', ['semantic' => StringSemanticsConstraint::PROSE]),
+        TRUE => new DataTypeShapeRequirement('StringSemantics', ['semantic' => StringSemanticsConstraint::PROSE]),
       },
 
       // The `integer` and `number` JSON schema types.
@@ -71,23 +75,23 @@ enum SdcPropJsonSchemaType : string {
       // - `multipleOf`: https://json-schema.org/understanding-json-schema/reference/numeric#multiples
       // - `minimum`, `exclusiveMinimum`, `maximum` and `exclusiveMaximum`: https://json-schema.org/understanding-json-schema/reference/numeric#range
       SdcPropJsonSchemaType::INTEGER, SdcPropJsonSchemaType::NUMBER => match (TRUE) {
-        array_key_exists('enum', $schema) => new DataTypeShapeRequirements('Choice', [
+        array_key_exists('enum', $schema) => new DataTypeShapeRequirement('Choice', [
           'choices' => $schema['enum'],
         ], NULL),
         // Both min & max.
-        array_key_exists('minimum', $schema) && array_key_exists('maximum', $schema) => new DataTypeShapeRequirements('Range', [
+        array_key_exists('minimum', $schema) && array_key_exists('maximum', $schema) => new DataTypeShapeRequirement('Range', [
           'min' => $schema['minimum'],
           'max' => $schema['maximum'],
         ], NULL),
         // Either min or max.
-        array_key_exists('minimum', $schema) => new DataTypeShapeRequirements('Range', ['min' => $schema['minimum']], NULL),
-        array_key_exists('maximum', $schema) => new DataTypeShapeRequirements('Range', ['min' => $schema['minimum']], NULL),
-        !empty(array_intersect(['multipleOf', 'maximum', 'exclusiveMinimum', 'exclusiveMaximum'], array_keys($schema))) => new DataTypeShapeRequirements('NOT YET SUPPORTED', []),
+        array_key_exists('minimum', $schema) => new DataTypeShapeRequirement('Range', ['min' => $schema['minimum']], NULL),
+        array_key_exists('maximum', $schema) => new DataTypeShapeRequirement('Range', ['min' => $schema['minimum']], NULL),
+        !empty(array_intersect(['multipleOf', 'maximum', 'exclusiveMinimum', 'exclusiveMaximum'], array_keys($schema))) => new DataTypeShapeRequirement('NOT YET SUPPORTED', []),
         // Otherwise, it's an unrestricted integer or number.
         TRUE => FALSE,
       },
 
-      SdcPropJsonSchemaType::OBJECT, SdcPropJsonSchemaType::ARRAY => new DataTypeShapeRequirements('NOT YET SUPPORTED', [], NULL),
+      SdcPropJsonSchemaType::OBJECT, SdcPropJsonSchemaType::ARRAY => new DataTypeShapeRequirement('NOT YET SUPPORTED', [], NULL),
     };
   }
 }

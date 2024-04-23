@@ -13,7 +13,10 @@ use Drupal\experience_builder\JsonSchemaInterpreter\JsonSchemaStringFormat;
 use Drupal\experience_builder\ReferenceFieldPropExpression;
 use Drupal\experience_builder\SdcPropJsonSchemaType;
 use Drupal\experience_builder\SdcPropToFieldTypePropMatcher;
+use Drupal\field\Entity\FieldConfig;
+use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\KernelTests\KernelTestBase;
+use Drupal\node\Entity\NodeType;
 use Drupal\sdc\ComponentPluginManager;
 
 /**
@@ -58,6 +61,29 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
     $module_installer = \Drupal::service('module_installer');
     assert($module_installer instanceof ModuleInstallerInterface);
     $module_installer->install($modules);
+
+    // Create configurable fields for certain combinations of modules.
+    if (empty(array_diff(['node', 'field', 'image'], $modules))) {
+      $this->installEntitySchema('node');
+      $this->installEntitySchema('field_storage_config');
+      $this->installEntitySchema('field_config');
+      // Create a "Foo" node type.
+      NodeType::create([
+        'name' => 'Foo',
+        'type' => 'foo',
+      ])->save();
+      // Create a "silly image" field on the "Foo" node type.
+      FieldStorageConfig::create([
+        'entity_type' => 'node',
+        'field_name' => 'field_silly_image',
+        'type' => 'image',
+      ])->save();
+      FieldConfig::create([
+        'entity_type' => 'node',
+        'field_name' => 'field_silly_image',
+        'bundle' => 'foo',
+      ])->save();
+    }
 
     $sdc_manager = \Drupal::service('plugin.manager.sdc');
     assert($sdc_manager instanceof ComponentPluginManager);
@@ -255,6 +281,9 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
         'path',
         'telephone',
         'text',
+        // Create sample configurable fields on the `node` entity type.
+        'node',
+        'field',
       ],
       'expected matches' => [
         '⿲sdc_test_all_props:all-props␟test-string' => [
@@ -268,6 +297,10 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
             'ℹ︎string␟value',
           ],
           'instances' => [
+            'ℹ︎␜entity:node:foo␝field_silly_image␞␟alt',
+            'ℹ︎␜entity:node:foo␝field_silly_image␞␟title',
+            'ℹ︎␜entity:node:foo␝revision_log␞␟value',
+            'ℹ︎␜entity:node:foo␝title␞␟value',
             'ℹ︎␜entity:path_alias␝alias␞␟value',
             'ℹ︎␜entity:path_alias␝path␞␟value',
           ],
@@ -296,6 +329,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
             'ℹ︎string␟value',
           ],
           'instances' => [
+            'ℹ︎␜entity:node:foo␝title␞␟value',
             'ℹ︎␜entity:path_alias␝alias␞␟value',
             'ℹ︎␜entity:path_alias␝path␞␟value',
           ],
@@ -349,6 +383,10 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
             'ℹ︎␜entity:user␝mail␞␟value',
             'ℹ︎︎␜entity:file␝uid␞␟entity␜︎␜entity:user␝init␞␟value',
             'ℹ︎︎␜entity:file␝uid␞␟entity␜︎␜entity:user␝mail␞␟value',
+            'ℹ︎︎␜entity:node:foo␝revision_uid␞␟entity␜︎␜entity:user␝init␞␟value',
+            'ℹ︎︎␜entity:node:foo␝revision_uid␞␟entity␜︎␜entity:user␝mail␞␟value',
+            'ℹ︎︎␜entity:node:foo␝uid␞␟entity␜︎␜entity:user␝init␞␟value',
+            'ℹ︎︎␜entity:node:foo␝uid␞␟entity␜︎␜entity:user␝mail␞␟value',
           ],
         ],
         '⿲sdc_test_all_props:all-props␟test-string-format-' . JsonSchemaStringFormat::IDN_EMAIL->value => [
@@ -361,6 +399,10 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
             'ℹ︎␜entity:user␝mail␞␟value',
             'ℹ︎︎␜entity:file␝uid␞␟entity␜︎␜entity:user␝init␞␟value',
             'ℹ︎︎␜entity:file␝uid␞␟entity␜︎␜entity:user␝mail␞␟value',
+            'ℹ︎︎␜entity:node:foo␝revision_uid␞␟entity␜︎␜entity:user␝init␞␟value',
+            'ℹ︎︎␜entity:node:foo␝revision_uid␞␟entity␜︎␜entity:user␝mail␞␟value',
+            'ℹ︎︎␜entity:node:foo␝uid␞␟entity␜︎␜entity:user␝init␞␟value',
+            'ℹ︎︎␜entity:node:foo␝uid␞␟entity␜︎␜entity:user␝mail␞␟value',
           ],
         ],
         '⿲sdc_test_all_props:all-props␟test-string-format-' . JsonSchemaStringFormat::HOSTNAME->value => [
@@ -406,9 +448,13 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
           ],
           'instances' => [
             'ℹ︎␜entity:file␝uuid␞␟value',
+            'ℹ︎␜entity:node:foo␝uuid␞␟value',
             'ℹ︎␜entity:path_alias␝uuid␞␟value',
             'ℹ︎␜entity:user␝uuid␞␟value',
             'ℹ︎︎␜entity:file␝uid␞␟entity␜︎␜entity:user␝uuid␞␟value',
+            'ℹ︎︎␜entity:node:foo␝field_silly_image␞␟entity␜︎␜entity:file␝uuid␞␟value',
+            'ℹ︎︎␜entity:node:foo␝revision_uid␞␟entity␜︎␜entity:user␝uuid␞␟value',
+            'ℹ︎︎␜entity:node:foo␝uid␞␟entity␜︎␜entity:user␝uuid␞␟value',
           ],
         ],
         '⿲sdc_test_all_props:all-props␟test-string-format-' . JsonSchemaStringFormat::URI->value => [
@@ -422,6 +468,16 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
           ],
           'instances' => [
             'ℹ︎␜entity:file␝uri␞␟value',
+            'ℹ︎︎␜entity:node:foo␝field_silly_image␞␟entity␜︎␜entity:file␝uri␞␟value',
+          ],
+        ],
+        '⿲sdc_test_all_props:all-props␟test-string-format-' . JsonSchemaStringFormat::URI->value . '-image' => [
+          'storage' => $all_string_storage_props,
+          'format' => [
+            'ℹ︎︎image␟entity␜︎␜entity:file␝uri␞0␟value',
+          ],
+          'instances' => [
+            'ℹ︎︎␜entity:node:foo␝field_silly_image␞␟entity␜︎␜entity:file␝uri␞␟value',
           ],
         ],
         '⿲sdc_test_all_props:all-props␟test-string-format-' . JsonSchemaStringFormat::URI_REFERENCE->value => [
@@ -430,6 +486,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
             'ℹ︎path␟alias',
           ],
           'instances' => [
+            'ℹ︎␜entity:node:foo␝path␞␟alias',
             'ℹ︎␜entity:path_alias␝path␞␟value',
           ],
         ],
@@ -444,6 +501,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
           ],
           'instances' => [
             'ℹ︎␜entity:file␝uri␞␟value',
+            'ℹ︎︎␜entity:node:foo␝field_silly_image␞␟entity␜︎␜entity:file␝uri␞␟value',
           ],
         ],
         '⿲sdc_test_all_props:all-props␟test-string-format-' . JsonSchemaStringFormat::IRI_REFERENCE->value => [
@@ -452,6 +510,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
             'ℹ︎path␟alias',
           ],
           'instances' => [
+            'ℹ︎␜entity:node:foo␝path␞␟alias',
             'ℹ︎␜entity:path_alias␝path␞␟value',
           ],
         ],
@@ -494,6 +553,17 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
             'ℹ︎␜entity:file␝fid␞␟value',
             'ℹ︎␜entity:file␝filesize␞␟value',
             'ℹ︎␜entity:file␝uid␞␟target_id',
+            'ℹ︎␜entity:node:foo␝changed␞␟value',
+            'ℹ︎␜entity:node:foo␝created␞␟value',
+            'ℹ︎␜entity:node:foo␝field_silly_image␞␟height',
+            'ℹ︎␜entity:node:foo␝field_silly_image␞␟target_id',
+            'ℹ︎␜entity:node:foo␝field_silly_image␞␟width',
+            'ℹ︎␜entity:node:foo␝nid␞␟value',
+            'ℹ︎␜entity:node:foo␝path␞␟pid',
+            'ℹ︎␜entity:node:foo␝revision_timestamp␞␟value',
+            'ℹ︎␜entity:node:foo␝revision_uid␞␟target_id',
+            'ℹ︎␜entity:node:foo␝uid␞␟target_id',
+            'ℹ︎␜entity:node:foo␝vid␞␟value',
             'ℹ︎␜entity:path_alias␝id␞␟value',
             'ℹ︎␜entity:path_alias␝revision_id␞␟value',
             'ℹ︎␜entity:user␝access␞␟value',
@@ -506,6 +576,21 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
             'ℹ︎︎␜entity:file␝uid␞␟entity␜︎␜entity:user␝created␞␟value',
             'ℹ︎︎␜entity:file␝uid␞␟entity␜︎␜entity:user␝login␞␟value',
             'ℹ︎︎␜entity:file␝uid␞␟entity␜︎␜entity:user␝uid␞␟value',
+            'ℹ︎︎␜entity:node:foo␝field_silly_image␞␟entity␜︎␜entity:file␝changed␞␟value',
+            'ℹ︎︎␜entity:node:foo␝field_silly_image␞␟entity␜︎␜entity:file␝created␞␟value',
+            'ℹ︎︎␜entity:node:foo␝field_silly_image␞␟entity␜︎␜entity:file␝fid␞␟value',
+            'ℹ︎︎␜entity:node:foo␝field_silly_image␞␟entity␜︎␜entity:file␝filesize␞␟value',
+            'ℹ︎︎␜entity:node:foo␝field_silly_image␞␟entity␜︎␜entity:file␝uid␞␟target_id',
+            'ℹ︎︎␜entity:node:foo␝revision_uid␞␟entity␜︎␜entity:user␝access␞␟value',
+            'ℹ︎︎␜entity:node:foo␝revision_uid␞␟entity␜︎␜entity:user␝changed␞␟value',
+            'ℹ︎︎␜entity:node:foo␝revision_uid␞␟entity␜︎␜entity:user␝created␞␟value',
+            'ℹ︎︎␜entity:node:foo␝revision_uid␞␟entity␜︎␜entity:user␝login␞␟value',
+            'ℹ︎︎␜entity:node:foo␝revision_uid␞␟entity␜︎␜entity:user␝uid␞␟value',
+            'ℹ︎︎␜entity:node:foo␝uid␞␟entity␜︎␜entity:user␝access␞␟value',
+            'ℹ︎︎␜entity:node:foo␝uid␞␟entity␜︎␜entity:user␝changed␞␟value',
+            'ℹ︎︎␜entity:node:foo␝uid␞␟entity␜︎␜entity:user␝created␞␟value',
+            'ℹ︎︎␜entity:node:foo␝uid␞␟entity␜︎␜entity:user␝login␞␟value',
+            'ℹ︎︎␜entity:node:foo␝uid␞␟entity␜︎␜entity:user␝uid␞␟value',
           ],
         ],
         '⿲sdc_test_all_props:all-props␟test-integer-range-minimum' => [
@@ -523,6 +608,10 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
             'ℹ︎␜entity:user␝login␞␟value',
             'ℹ︎︎␜entity:file␝uid␞␟entity␜︎␜entity:user␝access␞␟value',
             'ℹ︎︎␜entity:file␝uid␞␟entity␜︎␜entity:user␝login␞␟value',
+            'ℹ︎︎␜entity:node:foo␝revision_uid␞␟entity␜︎␜entity:user␝access␞␟value',
+            'ℹ︎︎␜entity:node:foo␝revision_uid␞␟entity␜︎␜entity:user␝login␞␟value',
+            'ℹ︎︎␜entity:node:foo␝uid␞␟entity␜︎␜entity:user␝access␞␟value',
+            'ℹ︎︎␜entity:node:foo␝uid␞␟entity␜︎␜entity:user␝login␞␟value',
           ],
         ],
       ],
@@ -879,7 +968,6 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
         ],
       ],
     ];
-
     yield 'real-world SDCs, using ALL core-provided field types' => [
       'modules' => [
         // The modules providing sample SDCs.

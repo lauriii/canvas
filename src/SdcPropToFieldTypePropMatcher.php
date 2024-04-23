@@ -28,6 +28,8 @@ use Drupal\Core\TypedData\TypedDataInterface;
 use Drupal\Core\TypedData\TypedDataManagerInterface;
 use Drupal\Core\Validation\ConstraintManager;
 use Drupal\Core\Validation\Plugin\Validation\Constraint\ComplexDataConstraint;
+use Drupal\file\Plugin\Field\FieldType\FileItem;
+use Drupal\file\Plugin\Field\FieldType\FileUriItem;
 use Symfony\Component\Validator\Constraint;
 
 // phpcs:disable Drupal.Commenting.FunctionComment.Missing
@@ -107,6 +109,13 @@ final class SdcPropToFieldTypePropMatcher {
             if ($field_item_definition->getFieldDefinition()->getType() === 'entity_reference' && $field_item_definition->getFieldDefinition()->getTargetEntityTypeId() === NULL) {
               continue;
             }
+            // When referencing an entity, enrich the EntityDataDefinition with
+            // constraints that are imposed by the entity reference field, to
+            // narrow the matching.
+            // @todo Generalize this so it works for all entity reference field types that do not allow *any* entity of the target entity type to be selected
+            if ($field_item instanceof FileItem) {
+              $target->addConstraint('FileExtension', $field_item->getUploadValidators()['FileExtension']);
+            }
             $referenced_matches = $this->matchEntityProps($target, 0, $json_schema_primitive_type, $is_required_in_json_schema, $schema);
             foreach ($referenced_matches as $referenced_match) {
               $candidates[] = new ReferenceFieldTypePropExpression($field_type, $property_name, $referenced_match->withDelta(0));
@@ -162,13 +171,54 @@ final class SdcPropToFieldTypePropMatcher {
           // Only follow entity references, as deep as specified.
           // @see ::findFieldTypeStorageCandidates()
           if ($property instanceof EntityReference) {
-            $referenced_matches = $this->matchEntityProps($property->getTargetDefinition(), $levels_to_recurse - 1, $primitive_type, $is_required_in_json_schema, $schema);
+            $target = $property->getTargetDefinition();
+            // When referencing an entity, enrich the EntityDataDefinition with
+            // constraints that are imposed by the entity reference field, to
+            // narrow the matching.
+            // @todo Generalize this so it works for all entity reference field types that do not allow *any* entity of the target entity type to be selected
+            if (is_a($field_definition->getItemDefinition()->getClass(), FileItem::class, TRUE)) {
+              $field_item = $this->typedDataManager->createInstance("field_item:" . $field_definition->getType(), [
+                'name' => $field_definition->getName(),
+                'parent' => NULL,
+                'data_definition' => $field_definition->getItemDefinition(),
+              ]);
+              assert($field_item instanceof FieldItemInterface);
+              $target->addConstraint('FileExtension', $field_item->getUploadValidators()['FileExtension']);
+            }
+            $referenced_matches = $this->matchEntityProps($target, $levels_to_recurse - 1, $primitive_type, $is_required_in_json_schema, $schema);
             foreach ($referenced_matches as $referenced_match) {
               $matches[] = new ReferenceFieldPropExpression($current_entity_field_prop, $referenced_match);
             }
           }
         }
         else {
+          $transformed_property_data_definition = FALSE;
+          $entity_constraints = $entity_data_definition->getConstraints();
+          if (!empty($entity_constraints)) {
+            // Transform an entity-level `FileExtension` constraint to
+            // corresponding property-level constraint.
+            // @see \Drupal\file\Plugin\Validation\Constraint\FileExtensionConstraintValidator
+            if (array_key_exists('FileExtension', $entity_data_definition->getConstraints()) && $property->getParent() instanceof FileUriItem) {
+              // Clone to avoid polluting any static caches.
+              // @todo verify if truly necessary?
+              $transformed_property_data_definition = clone $property->getDataDefinition();
+              // @todo JSON schema does not support case-insensitive matching!!!! https://json-schema.org/understanding-json-schema/reference/regular_expressions
+              $transformed_property_data_definition->addConstraint('Regex', [
+                'pattern' => '\.(' . preg_replace('/ +/', '|', preg_quote($entity_constraints['FileExtension']['extensions'])) . ')$',
+              ]);
+            }
+            // Recreate the property instance if the data definition
+            // transformed, to ensure ::dataLeafMatchesFormat() evaluates it
+            // using the transformed property data definition.
+            if ($transformed_property_data_definition) {
+              $property = $this->typedDataManager->create(
+                $transformed_property_data_definition,
+                $property->getValue(),
+                $property->getName(),
+                $property->getParent(),
+              );
+            }
+          }
           if ($this->dataLeafMatchesFormat($property, $primitive_type, $is_required_in_json_schema, $schema)) {
             $matches[] = $current_entity_field_prop;
           }
@@ -253,17 +303,13 @@ final class SdcPropToFieldTypePropMatcher {
     if ($required_shape === FALSE) {
       return TRUE;
     }
-    if ($required_shape->constraint === 'NOT YET SUPPORTED') {
-      @trigger_error(sprintf("NOT YET SUPPORTED: a `%s` Drupal field data type that matches the JSON schema %s.", $json_schema_primitive_type->value, json_encode($schema)), E_USER_DEPRECATED);
-      return FALSE;
-    }
 
     $field_item = $data->getParent();
     assert($field_item instanceof FieldItemInterface);
     $field_property_name = $data->getName();
 
     // Gather all constraints that apply to this field item property.
-    $property_level_constraints = $field_item->getProperties(TRUE)[$field_property_name]->getConstraints();
+    $property_level_constraints = $data->getConstraints();
     $complex_data_constraint = array_filter(
       $field_item->getConstraints(),
       fn ($c) => $c instanceof ComplexDataConstraint
@@ -292,6 +338,33 @@ final class SdcPropToFieldTypePropMatcher {
     $constraints = $rekey($field_item_level_constraints_indirect)
       + $rekey($field_item_level_constraints_direct)
       + $rekey($property_level_constraints);
+
+    if ($required_shape instanceof DataTypeShapeRequirement) {
+      return $this->dataTypeShapeRequirementMatchesFinalConstraintSet($required_shape, $property_data_definition, $constraints);
+    }
+    else {
+      // If there's >1 requirement, they must all be met.
+      foreach ($required_shape->requirements as $r) {
+        if (!$this->dataTypeShapeRequirementMatchesFinalConstraintSet($r, $property_data_definition, $constraints)) {
+          return FALSE;
+        }
+      }
+      return TRUE;
+    }
+  }
+
+  private function dataTypeShapeRequirementMatchesFinalConstraintSet(DataTypeShapeRequirement $required_shape, DataDefinitionInterface $property_data_definition, array $constraints): mixed {
+    // Any data type that is more complex than a primitive is not accepted.
+    // For example: `entity_reference`, `language_reference`, etc.
+    // @see \Drupal\Core\Entity\Plugin\DataType\EntityReference
+    if (!is_a($property_data_definition->getClass(), PrimitiveInterface::class, TRUE)) {
+      throw new \LogicException();
+    }
+
+    if ($required_shape->constraint === 'NOT YET SUPPORTED') {
+      @trigger_error(sprintf("NOT YET SUPPORTED: a `%s` Drupal field data type that matches the JSON schema %s.", $json_schema_primitive_type->value, json_encode($schema)), E_USER_DEPRECATED);
+      return FALSE;
+    }
 
     // Is the data shape requirement met?
     // 1. Constraint.
