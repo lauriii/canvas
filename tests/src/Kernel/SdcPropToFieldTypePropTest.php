@@ -129,13 +129,18 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
         // 2. format must match
         //    👉 UX need: when the BUILDER is creating a content type's template
         //       and they declare the intent to not statically assign a value to
-        //       a component prop, then these are the available choices to
-        //       create a new field!
+        //       a component prop, then the "main" property of a field type must
+        //       match semantically. These are the available choices to create a
+        //       new field!
         //    🎉 Component placement at a structural level (content
         //       template) encourages EXPANDING the data model IF needs are met!
         //    ❓ UX need: when the CREATOR is placing a component and they want
-        //       to statically assign a value.
-        $format_candidates = $matcher->findFieldTypeFormatCandidates($primitive_type, $is_required, $schema);
+        //       to statically assign a value; then it's also preferable to use
+        //       a field type's "main" property (for the best semantical match),
+        //       but using a non-main property is fine too, especially when
+        //       reusing structured data.
+        $format_candidates_main_prop = $matcher->findFieldTypeFormatCandidates($primitive_type, $is_required, $schema, TRUE);
+        $format_candidates_any_prop = $matcher->findFieldTypeFormatCandidates($primitive_type, $is_required, $schema, FALSE);
         // 3. a field instance of this type must exist.
         //    👉 UX need: when the BUILDER is creating a content type's template
         //       OR the creator is placing a component in a slot, and they
@@ -152,7 +157,8 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
         // For each component prop ($cpe), store the string representations of
         // the discovered matches to compare against.
         $matches[(string) $cpe]['storage'] = array_map(fn (FieldTypePropExpression $e): string => (string) $e, $storage_candidates);
-        $matches[(string) $cpe]['format'] = array_map(fn (FieldTypePropExpression $e): string => (string) $e, $format_candidates);
+        $matches[(string) $cpe]['format_any_prop'] = array_map(fn (FieldTypePropExpression $e): string => (string) $e, $format_candidates_any_prop);
+        $matches[(string) $cpe]['format_main_prop'] = array_map(fn (FieldTypePropExpression $e): string => (string) $e, $format_candidates_main_prop);
         $matches[(string) $cpe]['instances'] = array_map(fn (FieldPropExpression|ReferenceFieldPropExpression $e): string => (string) $e, $instance_candidates);
       }
     }
@@ -288,11 +294,15 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
       'expected matches' => [
         '⿲sdc_test_all_props:all-props␟test-string' => [
           'storage' => $all_string_storage_props,
-          'format' => [
+          'format_any_prop' => [
             'ℹ︎file␟description',
             'ℹ︎image␟alt',
             'ℹ︎image␟title',
             'ℹ︎link␟title',
+            'ℹ︎string_long␟value',
+            'ℹ︎string␟value',
+          ],
+          'format_main_prop' => [
             'ℹ︎string_long␟value',
             'ℹ︎string␟value',
           ],
@@ -324,7 +334,11 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
             'ℹ︎uri␟value',
             'ℹ︎uuid␟value',
           ],
-          'format' => [
+          'format_any_prop' => [
+            'ℹ︎string_long␟value',
+            'ℹ︎string␟value',
+          ],
+          'format_main_prop' => [
             'ℹ︎string_long␟value',
             'ℹ︎string␟value',
           ],
@@ -336,15 +350,20 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
         ],
         '⿲sdc_test_all_props:all-props␟test-string-enum' => [
           'storage' => $all_string_storage_props,
-          'format' => [
+          'format_any_prop' => [
             // @todo Make this work using the `list_string` field type
           ],
+          'format_main_prop' => [],
           'instances' => [],
         ],
         '⿲sdc_test_all_props:all-props␟test-string-format-' . JsonSchemaStringFormat::DATE_TIME->value => [
           'storage' => $all_string_storage_props,
-          'format' => [
+          'format_any_prop' => [
             'ℹ︎daterange␟end_value',
+            'ℹ︎daterange␟value',
+            'ℹ︎datetime␟value',
+          ],
+          'format_main_prop' => [
             'ℹ︎daterange␟value',
             'ℹ︎datetime␟value',
           ],
@@ -352,8 +371,12 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
         ],
         '⿲sdc_test_all_props:all-props␟test-string-format-' . JsonSchemaStringFormat::DATE->value => [
           'storage' => $all_string_storage_props,
-          'format' => [
+          'format_any_prop' => [
             'ℹ︎daterange␟end_value',
+            'ℹ︎daterange␟value',
+            'ℹ︎datetime␟value',
+          ],
+          'format_main_prop' => [
             'ℹ︎daterange␟value',
             'ℹ︎datetime␟value',
           ],
@@ -361,21 +384,26 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
         ],
         '⿲sdc_test_all_props:all-props␟test-string-format-' . JsonSchemaStringFormat::TIME->value => [
           'storage' => $all_string_storage_props,
-          'format' => [
+          'format_any_prop' => [
             // @todo Adapter for @FieldType=timestamp -> `type:string,format=time`, @FieldType=datetime -> `type:string,format=time`
           ],
+          'format_main_prop' => [],
           'instances' => [],
         ],
         '⿲sdc_test_all_props:all-props␟test-string-format-' . JsonSchemaStringFormat::DURATION->value => [
           'storage' => $all_string_storage_props,
-          'format' => [
+          'format_any_prop' => [
             // @todo No field type in Drupal core uses \Drupal\Core\TypedData\Plugin\DataType\DurationIso8601.
           ],
+          'format_main_prop' => [],
           'instances' => [],
         ],
         '⿲sdc_test_all_props:all-props␟test-string-format-' . JsonSchemaStringFormat::EMAIL->value => [
           'storage' => $all_string_storage_props,
-          'format' => [
+          'format_any_prop' => [
+            'ℹ︎email␟value',
+          ],
+          'format_main_prop' => [
             'ℹ︎email␟value',
           ],
           'instances' => [
@@ -391,7 +419,10 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
         ],
         '⿲sdc_test_all_props:all-props␟test-string-format-' . JsonSchemaStringFormat::IDN_EMAIL->value => [
           'storage' => $all_string_storage_props,
-          'format' => [
+          'format_any_prop' => [
+            'ℹ︎email␟value',
+          ],
+          'format_main_prop' => [
             'ℹ︎email␟value',
           ],
           'instances' => [
@@ -407,14 +438,15 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
         ],
         '⿲sdc_test_all_props:all-props␟test-string-format-' . JsonSchemaStringFormat::HOSTNAME->value => [
           'storage' => $all_string_storage_props,
-          'format' => [
+          'format_any_prop' => [
             // @todo adapter from `type: string, format=uri`?
           ],
+          'format_main_prop' => [],
           'instances' => [],
         ],
         '⿲sdc_test_all_props:all-props␟test-string-format-' . JsonSchemaStringFormat::IDN_HOSTNAME->value => [
           'storage' => $all_string_storage_props,
-          'format' => [
+          'format_any_prop' => [
             // phpcs:disable
             // @todo adapter from `type: string, format=uri`?
             // @todo To generate a match for this JSON schema type:
@@ -423,25 +455,33 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
             // - create an instance with the necessary requirement?! => `@FieldType=string` + `Ip` constraint … but no field type allows configuring this?
             // phpcs:enable
           ],
+          'format_main_prop' => [],
           'instances' => [],
         ],
         '⿲sdc_test_all_props:all-props␟test-string-format-' . JsonSchemaStringFormat::IPV4->value => [
           'storage' => $all_string_storage_props,
-          'format' => [
+          'format_any_prop' => [
             // @todo Update \Drupal\sdc\Component\ComponentValidator to disallow this — does not make sense for presenting information?
           ],
+          'format_main_prop' => [],
           'instances' => [],
         ],
         '⿲sdc_test_all_props:all-props␟test-string-format-' . JsonSchemaStringFormat::IPV6->value => [
           'storage' => $all_string_storage_props,
-          'format' => [
+          'format_any_prop' => [
             // @todo Update \Drupal\sdc\Component\ComponentValidator to disallow this — does not make sense for presenting information?
           ],
+          'format_main_prop' => [],
           'instances' => [],
         ],
         '⿲sdc_test_all_props:all-props␟test-string-format-' . JsonSchemaStringFormat::UUID->value => [
           'storage' => $all_string_storage_props,
-          'format' => [
+          'format_any_prop' => [
+            'ℹ︎uuid␟value',
+            'ℹ︎︎file␟entity␜︎␜entity:file␝uuid␞0␟value',
+            'ℹ︎︎image␟entity␜︎␜entity:file␝uuid␞0␟value',
+          ],
+          'format_main_prop' => [
             'ℹ︎uuid␟value',
             'ℹ︎︎file␟entity␜︎␜entity:file␝uuid␞0␟value',
             'ℹ︎︎image␟entity␜︎␜entity:file␝uuid␞0␟value',
@@ -459,7 +499,14 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
         ],
         '⿲sdc_test_all_props:all-props␟test-string-format-' . JsonSchemaStringFormat::URI->value => [
           'storage' => $all_string_storage_props,
-          'format' => [
+          'format_any_prop' => [
+            'ℹ︎file_uri␟value',
+            'ℹ︎link␟uri',
+            'ℹ︎uri␟value',
+            'ℹ︎︎file␟entity␜︎␜entity:file␝uri␞0␟value',
+            'ℹ︎︎image␟entity␜︎␜entity:file␝uri␞0␟value',
+          ],
+          'format_main_prop' => [
             'ℹ︎file_uri␟value',
             'ℹ︎link␟uri',
             'ℹ︎uri␟value',
@@ -473,7 +520,10 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
         ],
         '⿲sdc_test_all_props:all-props␟test-string-format-' . JsonSchemaStringFormat::URI->value . '-image' => [
           'storage' => $all_string_storage_props,
-          'format' => [
+          'format_any_prop' => [
+            'ℹ︎︎image␟entity␜︎␜entity:file␝uri␞0␟value',
+          ],
+          'format_main_prop' => [
             'ℹ︎︎image␟entity␜︎␜entity:file␝uri␞0␟value',
           ],
           'instances' => [
@@ -482,7 +532,10 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
         ],
         '⿲sdc_test_all_props:all-props␟test-string-format-' . JsonSchemaStringFormat::URI_REFERENCE->value => [
           'storage' => $all_string_storage_props,
-          'format' => [
+          'format_any_prop' => [
+            'ℹ︎path␟alias',
+          ],
+          'format_main_prop' => [
             'ℹ︎path␟alias',
           ],
           'instances' => [
@@ -492,7 +545,14 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
         ],
         '⿲sdc_test_all_props:all-props␟test-string-format-' . JsonSchemaStringFormat::IRI->value => [
           'storage' => $all_string_storage_props,
-          'format' => [
+          'format_any_prop' => [
+            'ℹ︎file_uri␟value',
+            'ℹ︎link␟uri',
+            'ℹ︎uri␟value',
+            'ℹ︎︎file␟entity␜︎␜entity:file␝uri␞0␟value',
+            'ℹ︎︎image␟entity␜︎␜entity:file␝uri␞0␟value',
+          ],
+          'format_main_prop' => [
             'ℹ︎file_uri␟value',
             'ℹ︎link␟uri',
             'ℹ︎uri␟value',
@@ -506,7 +566,10 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
         ],
         '⿲sdc_test_all_props:all-props␟test-string-format-' . JsonSchemaStringFormat::IRI_REFERENCE->value => [
           'storage' => $all_string_storage_props,
-          'format' => [
+          'format_any_prop' => [
+            'ℹ︎path␟alias',
+          ],
+          'format_main_prop' => [
             'ℹ︎path␟alias',
           ],
           'instances' => [
@@ -516,37 +579,62 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
         ],
         '⿲sdc_test_all_props:all-props␟test-string-format-' . JsonSchemaStringFormat::URI_TEMPLATE->value => [
           'storage' => $all_string_storage_props,
-          'format' => [
+          'format_any_prop' => [
             // @todo Update \Drupal\sdc\Component\ComponentValidator to disallow this — does not make sense for presenting information?
           ],
+          'format_main_prop' => [],
           'instances' => [],
         ],
         '⿲sdc_test_all_props:all-props␟test-string-format-' . JsonSchemaStringFormat::JSON_POINTER->value => [
           'storage' => $all_string_storage_props,
-          'format' => [
+          'format_any_prop' => [
             // @todo Update \Drupal\sdc\Component\ComponentValidator to disallow this — does not make sense for presenting information?
           ],
+          'format_main_prop' => [],
           'instances' => [],
         ],
         '⿲sdc_test_all_props:all-props␟test-string-format-' . JsonSchemaStringFormat::RELATIVE_JSON_POINTER->value => [
           'storage' => $all_string_storage_props,
-          'format' => [
+          'format_any_prop' => [
             // @todo Update \Drupal\sdc\Component\ComponentValidator to disallow this — does not make sense for presenting information?
           ],
+          'format_main_prop' => [],
           'instances' => [],
         ],
         '⿲sdc_test_all_props:all-props␟test-string-format-' . JsonSchemaStringFormat::REGEX->value => [
           'storage' => $all_string_storage_props,
-          'format' => [
+          'format_any_prop' => [
             // @todo Update \Drupal\sdc\Component\ComponentValidator to disallow this — does not make sense for presenting information?
           ],
+          'format_main_prop' => [],
           'instances' => [],
         ],
 
         // Integers.
         '⿲sdc_test_all_props:all-props␟test-integer' => [
           'storage' => $all_integer_storage_props,
-          'format' => $all_integer_storage_props,
+          'format_any_prop' => $all_integer_storage_props,
+          'format_main_prop' => [
+            'ℹ︎changed␟value',
+            'ℹ︎comment␟status',
+            'ℹ︎created␟value',
+            'ℹ︎entity_reference␟target_id',
+            'ℹ︎file␟target_id',
+            'ℹ︎image␟target_id',
+            'ℹ︎integer␟value',
+            'ℹ︎list_integer␟value',
+            'ℹ︎timestamp␟value',
+            'ℹ︎︎file␟entity␜︎␜entity:file␝changed␞0␟value',
+            'ℹ︎︎file␟entity␜︎␜entity:file␝created␞0␟value',
+            'ℹ︎︎file␟entity␜︎␜entity:file␝fid␞0␟value',
+            'ℹ︎︎file␟entity␜︎␜entity:file␝filesize␞0␟value',
+            'ℹ︎︎file␟entity␜︎␜entity:file␝uid␞0␟target_id',
+            'ℹ︎︎image␟entity␜︎␜entity:file␝changed␞0␟value',
+            'ℹ︎︎image␟entity␜︎␜entity:file␝created␞0␟value',
+            'ℹ︎︎image␟entity␜︎␜entity:file␝fid␞0␟value',
+            'ℹ︎︎image␟entity␜︎␜entity:file␝filesize␞0␟value',
+            'ℹ︎︎image␟entity␜︎␜entity:file␝uid␞0␟target_id',
+          ],
           'instances' => [
             'ℹ︎␜entity:file␝changed␞␟value',
             'ℹ︎␜entity:file␝created␞␟value',
@@ -595,12 +683,16 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
         ],
         '⿲sdc_test_all_props:all-props␟test-integer-range-minimum' => [
           'storage' => $all_integer_storage_props,
-          'format' => [],
+          'format_any_prop' => [],
+          'format_main_prop' => [],
           'instances' => [],
         ],
         '⿲sdc_test_all_props:all-props␟test-integer-range-minimum-maximum-timestamps' => [
           'storage' => $all_integer_storage_props,
-          'format' => [
+          'format_any_prop' => [
+            'ℹ︎timestamp␟value',
+          ],
+          'format_main_prop' => [
             'ℹ︎timestamp␟value',
           ],
           'instances' => [
@@ -647,7 +739,11 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
       'expected matches' => [
         '⿲cl_editorial:component-card␟name' => [
           'storage' => $core_only_string_storage_props,
-          'format' => [
+          'format_any_prop' => [
+            'ℹ︎string_long␟value',
+            'ℹ︎string␟value',
+          ],
+          'format_main_prop' => [
             'ℹ︎string_long␟value',
             'ℹ︎string␟value',
           ],
@@ -655,17 +751,23 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
         ],
         '⿲cl_editorial:component-card␟machineName' => [
           'storage' => $core_only_string_storage_props,
-          'format' => [],
+          'format_any_prop' => [],
+          'format_main_prop' => [],
           'instances' => [],
         ],
         '⿲cl_editorial:component-card␟id' => [
           'storage' => $core_only_string_storage_props,
-          'format' => [],
+          'format_any_prop' => [],
+          'format_main_prop' => [],
           'instances' => [],
         ],
         '⿲cl_editorial:component-card␟description' => [
           'storage' => $core_only_string_storage_props,
-          'format' => [
+          'format_any_prop' => [
+            'ℹ︎string_long␟value',
+            'ℹ︎string␟value',
+          ],
+          'format_main_prop' => [
             'ℹ︎string_long␟value',
             'ℹ︎string␟value',
           ],
@@ -673,13 +775,18 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
         ],
         '⿲cl_editorial:component-card␟status' => [
           'storage' => $core_only_string_storage_props,
-          'format' => [],
+          'format_any_prop' => [],
+          'format_main_prop' => [],
           'instances' => [],
         ],
         '⿲cl_editorial:component-card␟thumbnailHref' => [
           'storage' => $core_only_string_storage_props,
-          'format' => [
+          'format_any_prop' => [
             // @todo wrong matches because wrong SDC prop type definition
+            'ℹ︎string_long␟value',
+            'ℹ︎string␟value',
+          ],
+          'format_main_prop' => [
             'ℹ︎string_long␟value',
             'ℹ︎string␟value',
           ],
@@ -687,7 +794,11 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
         ],
         '⿲cl_editorial:component-card␟group' => [
           'storage' => $core_only_string_storage_props,
-          'format' => [
+          'format_any_prop' => [
+            'ℹ︎string_long␟value',
+            'ℹ︎string␟value',
+          ],
+          'format_main_prop' => [
             'ℹ︎string_long␟value',
             'ℹ︎string␟value',
           ],
@@ -695,7 +806,11 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
         ],
         '⿲sdc_examples:my-cta␟text' => [
           'storage' => $core_only_string_storage_props_without_password_for_tbd_reason,
-          'format' => [
+          'format_any_prop' => [
+            'ℹ︎string_long␟value',
+            'ℹ︎string␟value',
+          ],
+          'format_main_prop' => [
             'ℹ︎string_long␟value',
             'ℹ︎string␟value',
           ],
@@ -703,19 +818,27 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
         ],
         '⿲sdc_examples:my-cta␟href' => [
           'storage' => $core_only_string_storage_props,
-          'format' => [
+          'format_any_prop' => [
+            'ℹ︎uri␟value',
+          ],
+          'format_main_prop' => [
             'ℹ︎uri␟value',
           ],
           'instances' => [],
         ],
         '⿲sdc_examples:my-cta␟target' => [
           'storage' => $core_only_string_storage_props,
-          'format' => [],
+          'format_any_prop' => [],
+          'format_main_prop' => [],
           'instances' => [],
         ],
         '⿲sdc_examples:my-button--primary␟text' => [
           'storage' => $core_only_string_storage_props_without_password_for_tbd_reason,
-          'format' => [
+          'format_any_prop' => [
+            'ℹ︎string_long␟value',
+            'ℹ︎string␟value',
+          ],
+          'format_main_prop' => [
             'ℹ︎string_long␟value',
             'ℹ︎string␟value',
           ],
@@ -723,12 +846,17 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
         ],
         '⿲sdc_examples:my-button--primary␟iconType' => [
           'storage' => $core_only_string_storage_props,
-          'format' => [],
+          'format_any_prop' => [],
+          'format_main_prop' => [],
           'instances' => [],
         ],
         '⿲sdc_examples:my-button␟text' => [
           'storage' => $core_only_string_storage_props_without_password_for_tbd_reason,
-          'format' => [
+          'format_any_prop' => [
+            'ℹ︎string_long␟value',
+            'ℹ︎string␟value',
+          ],
+          'format_main_prop' => [
             'ℹ︎string_long␟value',
             'ℹ︎string␟value',
           ],
@@ -736,12 +864,17 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
         ],
         '⿲sdc_examples:my-button␟iconType' => [
           'storage' => $core_only_string_storage_props,
-          'format' => [],
+          'format_any_prop' => [],
+          'format_main_prop' => [],
           'instances' => [],
         ],
         '⿲sdc_examples:my-marquee␟text' => [
           'storage' => $core_only_string_storage_props_without_password_for_tbd_reason,
-          'format' => [
+          'format_any_prop' => [
+            'ℹ︎string_long␟value',
+            'ℹ︎string␟value',
+          ],
+          'format_main_prop' => [
             'ℹ︎string_long␟value',
             'ℹ︎string␟value',
           ],
@@ -756,7 +889,15 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
             'ℹ︎integer␟value',
             'ℹ︎timestamp␟value',
           ],
-          'format' => [
+          'format_any_prop' => [
+            'ℹ︎changed␟value',
+            'ℹ︎created␟value',
+            'ℹ︎entity_reference␟target_id',
+            'ℹ︎float␟value',
+            'ℹ︎integer␟value',
+            'ℹ︎timestamp␟value',
+          ],
+          'format_main_prop' => [
             'ℹ︎changed␟value',
             'ℹ︎created␟value',
             'ℹ︎entity_reference␟target_id',
@@ -774,7 +915,11 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
         ],
         '⿲sdc_examples:my-banner␟heading' => [
           'storage' => $core_only_string_storage_props,
-          'format' => [
+          'format_any_prop' => [
+            'ℹ︎string_long␟value',
+            'ℹ︎string␟value',
+          ],
+          'format_main_prop' => [
             'ℹ︎string_long␟value',
             'ℹ︎string␟value',
           ],
@@ -782,7 +927,11 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
         ],
         '⿲sdc_examples:my-banner␟ctaText' => [
           'storage' => $core_only_string_storage_props,
-          'format' => [
+          'format_any_prop' => [
+            'ℹ︎string_long␟value',
+            'ℹ︎string␟value',
+          ],
+          'format_main_prop' => [
             'ℹ︎string_long␟value',
             'ℹ︎string␟value',
           ],
@@ -790,8 +939,12 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
         ],
         '⿲sdc_examples:my-banner␟ctaHref' => [
           'storage' => $core_only_string_storage_props,
-          'format' => [
+          'format_any_prop' => [
             // @todo wrong matches because wrong SDC prop type definition
+            'ℹ︎string_long␟value',
+            'ℹ︎string␟value',
+          ],
+          'format_main_prop' => [
             'ℹ︎string_long␟value',
             'ℹ︎string␟value',
           ],
@@ -799,13 +952,18 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
         ],
         '⿲sdc_examples:my-banner␟ctaTarget' => [
           'storage' => $core_only_string_storage_props,
-          'format' => [],
+          'format_any_prop' => [],
+          'format_main_prop' => [],
           'instances' => [],
         ],
         '⿲sdc_examples:my-banner␟image' => [
           'storage' => $core_only_string_storage_props,
-          'format' => [
+          'format_any_prop' => [
             // @todo wrong matches because wrong SDC prop type definition
+            'ℹ︎string_long␟value',
+            'ℹ︎string␟value',
+          ],
+          'format_main_prop' => [
             'ℹ︎string_long␟value',
             'ℹ︎string␟value',
           ],
@@ -813,8 +971,12 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
         ],
         '⿲sdc_examples:my-linked-media␟image' => [
           'storage' => $core_only_string_storage_props,
-          'format' => [
+          'format_any_prop' => [
             // @todo wrong matches because wrong SDC prop type definition
+            'ℹ︎string_long␟value',
+            'ℹ︎string␟value',
+          ],
+          'format_main_prop' => [
             'ℹ︎string_long␟value',
             'ℹ︎string␟value',
           ],
@@ -822,8 +984,12 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
         ],
         '⿲sdc_examples:my-linked-media␟href' => [
           'storage' => $core_only_string_storage_props,
-          'format' => [
+          'format_any_prop' => [
             // @todo wrong matches because wrong SDC prop type definition
+            'ℹ︎string_long␟value',
+            'ℹ︎string␟value',
+          ],
+          'format_main_prop' => [
             'ℹ︎string_long␟value',
             'ℹ︎string␟value',
           ],
@@ -831,8 +997,12 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
         ],
         '⿲sdc_examples:my-banner--tall␟heading' => [
           'storage' => $core_only_string_storage_props,
-          'format' => [
+          'format_any_prop' => [
             // @todo wrong matches because wrong SDC prop type definition
+            'ℹ︎string_long␟value',
+            'ℹ︎string␟value',
+          ],
+          'format_main_prop' => [
             'ℹ︎string_long␟value',
             'ℹ︎string␟value',
           ],
@@ -840,8 +1010,12 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
         ],
         '⿲sdc_examples:my-banner--tall␟ctaText' => [
           'storage' => $core_only_string_storage_props,
-          'format' => [
+          'format_any_prop' => [
             // @todo wrong matches because wrong SDC prop type definition
+            'ℹ︎string_long␟value',
+            'ℹ︎string␟value',
+          ],
+          'format_main_prop' => [
             'ℹ︎string_long␟value',
             'ℹ︎string␟value',
           ],
@@ -849,8 +1023,12 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
         ],
         '⿲sdc_examples:my-banner--tall␟ctaHref' => [
           'storage' => $core_only_string_storage_props,
-          'format' => [
+          'format_any_prop' => [
             // @todo wrong matches because wrong SDC prop type definition
+            'ℹ︎string_long␟value',
+            'ℹ︎string␟value',
+          ],
+          'format_main_prop' => [
             'ℹ︎string_long␟value',
             'ℹ︎string␟value',
           ],
@@ -858,13 +1036,18 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
         ],
         '⿲sdc_examples:my-banner--tall␟ctaTarget' => [
           'storage' => $core_only_string_storage_props,
-          'format' => [],
+          'format_any_prop' => [],
+          'format_main_prop' => [],
           'instances' => [],
         ],
         '⿲sdc_examples:my-banner--tall␟image' => [
           'storage' => $core_only_string_storage_props,
-          'format' => [
+          'format_any_prop' => [
             // @todo wrong matches because wrong SDC prop type definition
+            'ℹ︎string_long␟value',
+            'ℹ︎string␟value',
+          ],
+          'format_main_prop' => [
             'ℹ︎string_long␟value',
             'ℹ︎string␟value',
           ],
@@ -872,8 +1055,12 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
         ],
         '⿲sdc_examples:my-card--light␟header' => [
           'storage' => $core_only_string_storage_props_without_password_for_tbd_reason,
-          'format' => [
+          'format_any_prop' => [
             // @todo wrong matches because wrong SDC prop type definition
+            'ℹ︎string_long␟value',
+            'ℹ︎string␟value',
+          ],
+          'format_main_prop' => [
             'ℹ︎string_long␟value',
             'ℹ︎string␟value',
           ],
@@ -881,8 +1068,12 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
         ],
         '⿲sdc_examples:my-card␟header' => [
           'storage' => $core_only_string_storage_props_without_password_for_tbd_reason,
-          'format' => [
+          'format_any_prop' => [
             // @todo wrong matches because wrong SDC prop type definition
+            'ℹ︎string_long␟value',
+            'ℹ︎string␟value',
+          ],
+          'format_main_prop' => [
             'ℹ︎string_long␟value',
             'ℹ︎string␟value',
           ],
@@ -890,8 +1081,12 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
         ],
         '⿲sdc_test:my-cta␟text' => [
           'storage' => $core_only_string_storage_props_without_password_for_tbd_reason,
-          'format' => [
+          'format_any_prop' => [
             // @todo wrong matches because wrong SDC prop type definition
+            'ℹ︎string_long␟value',
+            'ℹ︎string␟value',
+          ],
+          'format_main_prop' => [
             'ℹ︎string_long␟value',
             'ℹ︎string␟value',
           ],
@@ -899,24 +1094,33 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
         ],
         '⿲sdc_test:my-cta␟href' => [
           'storage' => $core_only_string_storage_props,
-          'format' => [
+          'format_any_prop' => [
+            'ℹ︎uri␟value',
+          ],
+          'format_main_prop' => [
             'ℹ︎uri␟value',
           ],
           'instances' => [],
         ],
         '⿲sdc_test:my-cta␟target' => [
           'storage' => $core_only_string_storage_props,
-          'format' => [],
+          'format_any_prop' => [],
+          'format_main_prop' => [],
           'instances' => [],
         ],
         '⿲sdc_test:array-to-object␟testProp' => [
           'storage' => [],
-          'format' => [],
+          'format_any_prop' => [],
+          'format_main_prop' => [],
           'instances' => [],
         ],
         '⿲sdc_test:my-button␟text' => [
           'storage' => $core_only_string_storage_props_without_password_for_tbd_reason,
-          'format' => [
+          'format_any_prop' => [
+            'ℹ︎string_long␟value',
+            'ℹ︎string␟value',
+          ],
+          'format_main_prop' => [
             'ℹ︎string_long␟value',
             'ℹ︎string␟value',
           ],
@@ -924,12 +1128,17 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
         ],
         '⿲sdc_test:my-button␟iconType' => [
           'storage' => $core_only_string_storage_props,
-          'format' => [],
+          'format_any_prop' => [],
+          'format_main_prop' => [],
           'instances' => [],
         ],
         '⿲sdc_test:my-banner␟heading' => [
           'storage' => $core_only_string_storage_props,
-          'format' => [
+          'format_any_prop' => [
+            'ℹ︎string_long␟value',
+            'ℹ︎string␟value',
+          ],
+          'format_main_prop' => [
             'ℹ︎string_long␟value',
             'ℹ︎string␟value',
           ],
@@ -937,7 +1146,11 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
         ],
         '⿲sdc_test:my-banner␟ctaText' => [
           'storage' => $core_only_string_storage_props,
-          'format' => [
+          'format_any_prop' => [
+            'ℹ︎string_long␟value',
+            'ℹ︎string␟value',
+          ],
+          'format_main_prop' => [
             'ℹ︎string_long␟value',
             'ℹ︎string␟value',
           ],
@@ -945,8 +1158,12 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
         ],
         '⿲sdc_test:my-banner␟ctaHref' => [
           'storage' => $core_only_string_storage_props,
-          'format' => [
+          'format_any_prop' => [
             // @todo wrong matches because wrong SDC prop type definition
+            'ℹ︎string_long␟value',
+            'ℹ︎string␟value',
+          ],
+          'format_main_prop' => [
             'ℹ︎string_long␟value',
             'ℹ︎string␟value',
           ],
@@ -954,13 +1171,18 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
         ],
         '⿲sdc_test:my-banner␟ctaTarget' => [
           'storage' => $core_only_string_storage_props,
-          'format' => [],
+          'format_any_prop' => [],
+          'format_main_prop' => [],
           'instances' => [],
         ],
         '⿲sdc_test:my-banner␟image' => [
           'storage' => $core_only_string_storage_props,
-          'format' => [
+          'format_any_prop' => [
             // @todo wrong matches because wrong SDC prop type definition
+            'ℹ︎string_long␟value',
+            'ℹ︎string␟value',
+          ],
+          'format_main_prop' => [
             'ℹ︎string_long␟value',
             'ℹ︎string␟value',
           ],
@@ -988,11 +1210,15 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
       'expected matches' => [
         '⿲cl_editorial:component-card␟name' => [
           'storage' => $all_string_storage_props,
-          'format' => [
+          'format_any_prop' => [
             'ℹ︎file␟description',
             'ℹ︎image␟alt',
             'ℹ︎image␟title',
             'ℹ︎link␟title',
+            'ℹ︎string_long␟value',
+            'ℹ︎string␟value',
+          ],
+          'format_main_prop' => [
             'ℹ︎string_long␟value',
             'ℹ︎string␟value',
           ],
@@ -1003,21 +1229,27 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
         ],
         '⿲cl_editorial:component-card␟machineName' => [
           'storage' => $all_string_storage_props,
-          'format' => [],
+          'format_any_prop' => [],
+          'format_main_prop' => [],
           'instances' => [],
         ],
         '⿲cl_editorial:component-card␟id' => [
           'storage' => $all_string_storage_props,
-          'format' => [],
+          'format_any_prop' => [],
+          'format_main_prop' => [],
           'instances' => [],
         ],
         '⿲cl_editorial:component-card␟description' => [
           'storage' => $all_string_storage_props,
-          'format' => [
+          'format_any_prop' => [
             'ℹ︎file␟description',
             'ℹ︎image␟alt',
             'ℹ︎image␟title',
             'ℹ︎link␟title',
+            'ℹ︎string_long␟value',
+            'ℹ︎string␟value',
+          ],
+          'format_main_prop' => [
             'ℹ︎string_long␟value',
             'ℹ︎string␟value',
           ],
@@ -1028,17 +1260,22 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
         ],
         '⿲cl_editorial:component-card␟status' => [
           'storage' => $all_string_storage_props,
-          'format' => [],
+          'format_any_prop' => [],
+          'format_main_prop' => [],
           'instances' => [],
         ],
         '⿲cl_editorial:component-card␟thumbnailHref' => [
           'storage' => $all_string_storage_props,
-          'format' => [
+          'format_any_prop' => [
             // @todo wrong matches because wrong SDC prop type definition
             'ℹ︎file␟description',
             'ℹ︎image␟alt',
             'ℹ︎image␟title',
             'ℹ︎link␟title',
+            'ℹ︎string_long␟value',
+            'ℹ︎string␟value',
+          ],
+          'format_main_prop' => [
             'ℹ︎string_long␟value',
             'ℹ︎string␟value',
           ],
@@ -1050,11 +1287,15 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
         ],
         '⿲cl_editorial:component-card␟group' => [
           'storage' => $all_string_storage_props,
-          'format' => [
+          'format_any_prop' => [
             'ℹ︎file␟description',
             'ℹ︎image␟alt',
             'ℹ︎image␟title',
             'ℹ︎link␟title',
+            'ℹ︎string_long␟value',
+            'ℹ︎string␟value',
+          ],
+          'format_main_prop' => [
             'ℹ︎string_long␟value',
             'ℹ︎string␟value',
           ],

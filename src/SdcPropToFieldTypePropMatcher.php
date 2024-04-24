@@ -59,14 +59,14 @@ final class SdcPropToFieldTypePropMatcher {
    *   A list of field type props.
    */
   function findFieldTypeStorageCandidates(SdcPropJsonSchemaType $json_schema_primitive_type, bool $is_required_in_json_schema) : array {
-    return $this->findFieldTypeProps($json_schema_primitive_type, $is_required_in_json_schema, NULL);
+    return $this->findFieldTypeProps($json_schema_primitive_type, $is_required_in_json_schema, NULL, FALSE);
   }
 
-  function findFieldTypeFormatCandidates(SdcPropJsonSchemaType $json_schema_primitive_type, bool $is_required_in_json_schema, array $schema) {
-    return $this->findFieldTypeProps($json_schema_primitive_type, $is_required_in_json_schema, $schema);
+  function findFieldTypeFormatCandidates(SdcPropJsonSchemaType $json_schema_primitive_type, bool $is_required_in_json_schema, array $schema, bool $main_property_only) {
+    return $this->findFieldTypeProps($json_schema_primitive_type, $is_required_in_json_schema, $schema, $main_property_only);
   }
 
-  function findFieldTypeProps(SdcPropJsonSchemaType $json_schema_primitive_type, bool $is_required_in_json_schema, ?array $schema) : array {
+  function findFieldTypeProps(SdcPropJsonSchemaType $json_schema_primitive_type, bool $is_required_in_json_schema, ?array $schema, bool $main_property_only) : array {
     $candidates = [];
 
     $field_types = $this->fieldTypePluginManager->getDefinitions();
@@ -123,6 +123,12 @@ final class SdcPropToFieldTypePropMatcher {
           }
         }
         else {
+          // For non-reference fields, only allow the main property if that is
+          // requested.
+          if ($main_property_only && $property_name !== $field_item_definition->getMainPropertyName()) {
+            continue;
+          }
+
           assert(is_a($property_definition->getClass(), PrimitiveInterface::class, TRUE));
           $field_item = $this->typedDataManager->createInstance("field_item:$field_type", [
             'name' => NULL,
