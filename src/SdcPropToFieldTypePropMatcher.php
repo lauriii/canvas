@@ -32,7 +32,12 @@ use Drupal\file\Plugin\Field\FieldType\FileItem;
 use Drupal\file\Plugin\Field\FieldType\FileUriItem;
 use Symfony\Component\Validator\Constraint;
 
+// phpcs:disable Drupal.Arrays.Array.LongLineDeclaration
+// phpcs:disable Drupal.Commenting.ClassComment.Missing
+// phpcs:disable Drupal.Commenting.DocComment.MissingShort
 // phpcs:disable Drupal.Commenting.FunctionComment.Missing
+// phpcs:disable Drupal.Commenting.FunctionComment.MissingParamComment
+// phpcs:disable Drupal.Files.LineLength.TooLong
 // phpcs:disable Drupal.Semantics.FunctionTriggerError.TriggerErrorTextLayoutRelaxed
 final class SdcPropToFieldTypePropMatcher {
 
@@ -58,15 +63,15 @@ final class SdcPropToFieldTypePropMatcher {
    * @return \Drupal\experience_builder\FieldTypePropExpression[]
    *   A list of field type props.
    */
-  function findFieldTypeStorageCandidates(SdcPropJsonSchemaType $json_schema_primitive_type, bool $is_required_in_json_schema) : array {
+  public function findFieldTypeStorageCandidates(SdcPropJsonSchemaType $json_schema_primitive_type, bool $is_required_in_json_schema) : array {
     return $this->findFieldTypeProps($json_schema_primitive_type, $is_required_in_json_schema, NULL, FALSE);
   }
 
-  function findFieldTypeFormatCandidates(SdcPropJsonSchemaType $json_schema_primitive_type, bool $is_required_in_json_schema, array $schema, bool $main_property_only) {
+  public function findFieldTypeFormatCandidates(SdcPropJsonSchemaType $json_schema_primitive_type, bool $is_required_in_json_schema, array $schema, bool $main_property_only) {
     return $this->findFieldTypeProps($json_schema_primitive_type, $is_required_in_json_schema, $schema, $main_property_only);
   }
 
-  function findFieldTypeProps(SdcPropJsonSchemaType $json_schema_primitive_type, bool $is_required_in_json_schema, ?array $schema, bool $main_property_only) : array {
+  public function findFieldTypeProps(SdcPropJsonSchemaType $json_schema_primitive_type, bool $is_required_in_json_schema, ?array $schema, bool $main_property_only) : array {
     $candidates = [];
 
     $field_types = $this->fieldTypePluginManager->getDefinitions();
@@ -144,7 +149,7 @@ final class SdcPropToFieldTypePropMatcher {
       }
     }
 
-    $keyed_by_string = array_combine(array_map(fn ($e) => (string)$e, $candidates), $candidates);
+    $keyed_by_string = array_combine(array_map(fn ($e) => (string) $e, $candidates), $candidates);
     ksort($keyed_by_string);
     return array_values($keyed_by_string);
   }
@@ -246,7 +251,7 @@ final class SdcPropToFieldTypePropMatcher {
         ];
       }
     }
-    $keyed_by_string = array_combine(array_map(fn ($e) => (string)$e, $matches), $matches);
+    $keyed_by_string = array_combine(array_map(fn ($e) => (string) $e, $matches), $matches);
     ksort($keyed_by_string);
     return array_values($keyed_by_string);
   }
@@ -346,12 +351,21 @@ final class SdcPropToFieldTypePropMatcher {
       + $rekey($property_level_constraints);
 
     if ($required_shape instanceof DataTypeShapeRequirement) {
+      if ($required_shape->constraint === 'NOT YET SUPPORTED') {
+        @trigger_error(sprintf("NOT YET SUPPORTED: a `%s` Drupal field data type that matches the JSON schema %s.", $json_schema_primitive_type->value, json_encode($schema)), E_USER_DEPRECATED);
+        return FALSE;
+      }
+
       return $this->dataTypeShapeRequirementMatchesFinalConstraintSet($required_shape, $property_data_definition, $constraints);
     }
     else {
       // If there's >1 requirement, they must all be met.
       foreach ($required_shape->requirements as $r) {
         if (!$this->dataTypeShapeRequirementMatchesFinalConstraintSet($r, $property_data_definition, $constraints)) {
+          if ($r->constraint === 'NOT YET SUPPORTED') {
+            @trigger_error(sprintf("NOT YET SUPPORTED: a `%s` Drupal field data type that matches the JSON schema %s.", $json_schema_primitive_type->value, json_encode($schema)), E_USER_DEPRECATED);
+            return FALSE;
+          }
           return FALSE;
         }
       }
@@ -365,11 +379,6 @@ final class SdcPropToFieldTypePropMatcher {
     // @see \Drupal\Core\Entity\Plugin\DataType\EntityReference
     if (!is_a($property_data_definition->getClass(), PrimitiveInterface::class, TRUE)) {
       throw new \LogicException();
-    }
-
-    if ($required_shape->constraint === 'NOT YET SUPPORTED') {
-      @trigger_error(sprintf("NOT YET SUPPORTED: a `%s` Drupal field data type that matches the JSON schema %s.", $json_schema_primitive_type->value, json_encode($schema)), E_USER_DEPRECATED);
-      return FALSE;
     }
 
     // Is the data shape requirement met?
@@ -419,7 +428,7 @@ final class SdcPropToFieldTypePropMatcher {
     return match (TRUE) {
       $td instanceof FieldItemInterface => $td->getProperties(TRUE),
       // Anything else is not supported: fall back to logging.
-      TRUE => function () {
+      TRUE => function () use ($td) {
         @trigger_error(sprintf("Unhandled TypedData class: `%s`.", get_class($td)), E_USER_DEPRECATED);
       },
     };
