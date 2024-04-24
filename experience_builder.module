@@ -93,6 +93,7 @@ function experience_builder_entity_base_field_info_alter(&$fields, \Drupal\Core\
   if ($entity_type->id() === 'file') {
     $fields['filename']->addPropertyConstraints('value', ['StringSemantics' => StringSemanticsConstraint::STRUCTURED]);
     $fields['filemime']->addPropertyConstraints('value', ['StringSemantics' => StringSemanticsConstraint::STRUCTURED]);
+    $fields['uri']->setRequired(TRUE);
   }
   if ($entity_type->id() === 'taxonomy_term') {
     $fields['name']->addPropertyConstraints('value', ['StringSemantics' => StringSemanticsConstraint::PROSE]);

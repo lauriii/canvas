@@ -8,6 +8,7 @@ use Drupal\Core\Extension\ModuleInstallerInterface;
 use Drupal\Core\Template\Attribute;
 use Drupal\experience_builder\ComponentPropExpression;
 use Drupal\experience_builder\FieldPropExpression;
+use Drupal\experience_builder\FieldTypeObjectPropsExpression;
 use Drupal\experience_builder\FieldTypePropExpression;
 use Drupal\experience_builder\JsonSchemaInterpreter\JsonSchemaStringFormat;
 use Drupal\experience_builder\ReferenceFieldPropExpression;
@@ -125,7 +126,8 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
         // From least to most restrictive matchmaking of structured data sources
         // to flow into component props:
         // 1. storage representation must match
-        $storage_candidates = $matcher->findFieldTypeStorageCandidates($primitive_type, $is_required);
+        $subschema = $primitive_type->isScalar() ? NULL : $schema;
+        $storage_candidates = $matcher->findFieldTypeStorageCandidates($primitive_type, $is_required, $subschema);
         // 2. format must match
         //    👉 UX need: when the BUILDER is creating a content type's template
         //       and they declare the intent to not statically assign a value to
@@ -156,10 +158,10 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
 
         // For each component prop ($cpe), store the string representations of
         // the discovered matches to compare against.
-        $matches[(string) $cpe]['storage'] = array_map(fn (FieldTypePropExpression $e): string => (string) $e, $storage_candidates);
-        $matches[(string) $cpe]['format_any_prop'] = array_map(fn (FieldTypePropExpression $e): string => (string) $e, $format_candidates_any_prop);
-        $matches[(string) $cpe]['format_main_prop'] = array_map(fn (FieldTypePropExpression $e): string => (string) $e, $format_candidates_main_prop);
-        $matches[(string) $cpe]['instances'] = array_map(fn (FieldPropExpression|ReferenceFieldPropExpression $e): string => (string) $e, $instance_candidates);
+        $matches[(string) $cpe]['storage'] = array_map(fn (FieldTypePropExpression|FieldTypeObjectPropsExpression $e): string => (string) $e, $storage_candidates);
+        $matches[(string) $cpe]['format_any_prop'] = array_map(fn (FieldTypePropExpression|FieldTypeObjectPropsExpression $e): string => (string) $e, $format_candidates_any_prop);
+        $matches[(string) $cpe]['format_main_prop'] = array_map(fn (FieldTypePropExpression|FieldTypeObjectPropsExpression $e): string => (string) $e, $format_candidates_main_prop);
+        $matches[(string) $cpe]['instances'] = array_map(fn (FieldPropExpression|ReferenceFieldPropExpression|FieldTypeObjectPropsExpression $e): string => (string) $e, $instance_candidates);
       }
     }
 
@@ -333,6 +335,8 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
             'ℹ︎text␟value',
             'ℹ︎uri␟value',
             'ℹ︎uuid␟value',
+            'ℹ︎︎file␟entity␜︎␜entity:file␝uri␞0␟value',
+            'ℹ︎︎image␟entity␜︎␜entity:file␝uri␞0␟value',
           ],
           'format_any_prop' => [
             'ℹ︎string_long␟value',
@@ -705,6 +709,18 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
             'ℹ︎︎␜entity:node:foo␝uid␞␟entity␜︎␜entity:user␝access␞␟value',
             'ℹ︎︎␜entity:node:foo␝uid␞␟entity␜︎␜entity:user␝login␞␟value',
           ],
+        ],
+        '⿲sdc_test_all_props:all-props␟test-object-drupal-image' => [
+          'storage' => [
+            'ℹ︎image␟{src↝ℹ︎␜entity:file␝uri␞0␟value},{alt↠title},{width↝ℹ︎␜entity:file␝uid␞0␟target_id},{height↝ℹ︎␜entity:file␝uid␞0␟target_id}',
+          ],
+          'format_any_prop' => [
+            'ℹ︎image␟{src↝ℹ︎␜entity:file␝uri␞0␟value},{alt↠title},{width↝ℹ︎␜entity:file␝uid␞0␟target_id},{height↝ℹ︎␜entity:file␝uid␞0␟target_id}',
+          ],
+          'format_main_prop' => [
+            'ℹ︎image␟{src↝ℹ︎␜entity:file␝uri␞0␟value},{alt↠title},{width↝ℹ︎␜entity:file␝uid␞0␟target_id},{height↝ℹ︎␜entity:file␝uid␞0␟target_id}',
+          ],
+          'instances' => [],
         ],
       ],
     ];

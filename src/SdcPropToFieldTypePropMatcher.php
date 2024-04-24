@@ -56,22 +56,98 @@ final class SdcPropToFieldTypePropMatcher {
   // example: DurationInterface has 2 implementations in Drupal core:
   // - \Drupal\Core\TypedData\Plugin\DataType\TimeSpan, which is an integer
   // - \Drupal\Core\TypedData\Plugin\DataType\DurationIso8601, which is a string
-  /**
-   * @param \Drupal\experience_builder\SdcPropJsonSchemaType $json_schema_primitive_type
-   * @param bool $is_required_in_json_schema
-   *
-   * @return \Drupal\experience_builder\FieldTypePropExpression[]
-   *   A list of field type props.
-   */
-  public function findFieldTypeStorageCandidates(SdcPropJsonSchemaType $json_schema_primitive_type, bool $is_required_in_json_schema) : array {
-    return $this->findFieldTypeProps($json_schema_primitive_type, $is_required_in_json_schema, NULL, FALSE);
+  public function findFieldTypeStorageCandidates(SdcPropJsonSchemaType $json_schema_primitive_type, bool $is_required_in_json_schema, ?array $subschema) : array {
+    return $this->findFieldTypeProps($json_schema_primitive_type, $is_required_in_json_schema, $subschema, FALSE);
   }
 
   public function findFieldTypeFormatCandidates(SdcPropJsonSchemaType $json_schema_primitive_type, bool $is_required_in_json_schema, array $schema, bool $main_property_only) {
     return $this->findFieldTypeProps($json_schema_primitive_type, $is_required_in_json_schema, $schema, $main_property_only);
   }
 
+  public function iterateJsonSchema(array $schema): \Generator {
+    $primitive_type = SdcPropJsonSchemaType::from(
+    // TRICKY: SDC always allowed `object` for Twig integration reasons.
+    // @see \Drupal\sdc\Component\ComponentMetadata::parseSchemaInfo()
+      is_array($schema['type']) ? $schema['type'][0] : $schema['type']
+    );
+
+    if (!$primitive_type->isIterable()) {
+      throw new \LogicException('Can only iterate iterable JSON schema types: array or object.');
+    }
+
+    if ($primitive_type === SdcPropJsonSchemaType::OBJECT) {
+      foreach ($schema['properties'] ?? [] as $prop_name => $prop_schema) {
+        yield $prop_name => [
+          // @see https://json-schema.org/understanding-json-schema/reference/object#required
+          // @see https://json-schema.org/learn/getting-started-step-by-step#required
+          'required' =>  in_array($prop_name, $schema['required'] ?? [], TRUE),
+          'schema' => $prop_schema,
+        ];
+      }
+    }
+    else {
+      throw new \LogicException('Support for "array" props is not yet implemented.');
+    }
+  }
+
   public function findFieldTypeProps(SdcPropJsonSchemaType $json_schema_primitive_type, bool $is_required_in_json_schema, ?array $schema, bool $main_property_only) : array {
+    return match ($json_schema_primitive_type->isScalar()) {
+      TRUE => $this->findFieldTypePropsForScalar($json_schema_primitive_type, $is_required_in_json_schema, $schema, $main_property_only),
+      FALSE => $this->findFieldTypePropsForIterable($json_schema_primitive_type, $schema),
+    };
+  }
+
+  public function findFieldTypePropsForIterable(SdcPropJsonSchemaType $json_schema_primitive_type, ?array $schema) : array {
+    if (!$json_schema_primitive_type->isIterable()) {
+      throw new \LogicException();
+    }
+    $required_object_props = [];
+    $all_object_props = [];
+    $object_prop_matches = [];
+    foreach ($this->iterateJsonSchema($schema) as $name => ['required' => $sub_required, 'schema' => $sub_schema]) {
+      $all_object_props[] = $name;
+      if ($sub_required) {
+        $required_object_props[] = $name;
+      }
+      $object_prop_matches[$name] = $this->findFieldTypeProps(SdcPropJsonSchemaType::from($sub_schema['type']), $sub_required, $sub_schema, FALSE);
+    }
+
+    // invert $field_types_per_prop to determine different match types
+    $inverted = [];
+    foreach (array_keys($object_prop_matches) as $object_prop_name) {
+      foreach ($object_prop_matches[$object_prop_name] as $field_type_prop_expr) {
+        assert($field_type_prop_expr instanceof FieldTypePropExpression || $field_type_prop_expr instanceof ReferenceFieldTypePropExpression);
+        $inverted[$field_type_prop_expr->fieldType][$object_prop_name] = $field_type_prop_expr;
+      }
+    }
+
+    // The minimal match: all required object props are present.
+    $matches_minimal = array_filter(
+      $inverted,
+      fn ($supported_object_props) => empty(array_diff($required_object_props, array_keys($supported_object_props)))
+    );
+    ksort($matches_minimal);
+
+    // The complete match: the complete set of object props is present.
+    $matches_complete = array_filter(
+      $inverted,
+      fn ($supported_object_props) => array_keys($supported_object_props) == $all_object_props
+    );
+    ksort($matches_complete);
+
+    $matches = [];
+    // Prefer complete matches: list complete matches before minimal matches.
+    foreach ($matches_complete + $matches_minimal as $field_type => $mapping) {
+      $matches[] = new FieldTypeObjectPropsExpression($field_type, $mapping);
+    }
+    return $matches;
+  }
+
+  public function findFieldTypePropsForScalar(SdcPropJsonSchemaType $json_schema_primitive_type, bool $is_required_in_json_schema, ?array $schema, bool $main_property_only) : array {
+    if (!$json_schema_primitive_type->isScalar()) {
+      throw new \LogicException();
+    }
+
     $candidates = [];
 
     $field_types = $this->fieldTypePluginManager->getDefinitions();
@@ -154,7 +230,7 @@ final class SdcPropToFieldTypePropMatcher {
     return array_values($keyed_by_string);
   }
 
-  function matchEntityProps(EntityDataDefinition $entity_data_definition, int $levels_to_recurse, SdcPropJsonSchemaType $primitive_type, bool $is_required_in_json_schema, ?array $schema): array {
+  private function matchEntityProps(EntityDataDefinition $entity_data_definition, int $levels_to_recurse, SdcPropJsonSchemaType $primitive_type, bool $is_required_in_json_schema, ?array $schema): array {
     $matches = [];
     $field_definitions = $this->recurseDataDefinitionInterface($entity_data_definition);
     foreach ($field_definitions as $field_definition) {
@@ -239,7 +315,7 @@ final class SdcPropToFieldTypePropMatcher {
     return $matches;
   }
 
-  function findFieldInstanceFormatMatches(SdcPropJsonSchemaType $primitive_type, bool $is_required_in_json_schema, array $schema): array {
+  public function findFieldInstanceFormatMatches(SdcPropJsonSchemaType $primitive_type, bool $is_required_in_json_schema, array $schema): array {
     $entity_type_bundles = $this->entityTypeBundleInfo->getAllBundleInfo();
     $matches = [];
     foreach ($entity_type_bundles as $entity_type_id => $bundles) {

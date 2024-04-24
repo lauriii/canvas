@@ -15,7 +15,7 @@ use Drupal\experience_builder\Plugin\Validation\Constraint\StringSemanticsConstr
  * @todo expand test coverage for testing each known type as being REQUIRED too
  * @todo enums are widely used — auto-generating e.g. FieldConfig using @FieldType=list_string + settings would solve the 90% use case
  * @todo adapters for transforming @FieldType=timestamp -> `type:string,format=time`, @FieldType=datetime -> `type:string,format=time`, a StringSemanticsConstraint::MARKUP string could be adapted to StringSemanticsConstraint::PROSE
- * @todo the `array` and `object` types — in particular arrays of tuples, for example an array of "(image uri, alt)" pairs for an image gallery component, see https://stackoverflow.com/questions/40750340/how-to-define-json-schema-for-mapstring-integer
+ * @todo the `array` type — in particular arrays of tuples/objects, for example an array of "(image uri, alt)" pairs for an image gallery component, see https://stackoverflow.com/questions/40750340/how-to-define-json-schema-for-mapstring-integer
  * @todo `exclusiveMinimum` and `exclusiveMaximum` work differently in JSON schema draft 4 (which SDC uses) than other versions. This is a future BC nightmare.
  * @todo for `string` + `format=duration`, Drupal core has \Drupal\Core\TypedData\Plugin\DataType\DurationIso8601, but nothing uses it!
  * @todo strings with the StringSemanticsConstraint::MARKUP semantic should be usable in slots.
@@ -42,6 +42,35 @@ enum SdcPropJsonSchemaType : string {
   case OBJECT = 'object';
   case ARRAY = 'array';
   case BOOLEAN = 'boolean';
+
+  public function isScalar(): bool {
+    return match ($this) {
+      // A subset of the "primitive types" in JSON schema are:
+      // - "scalar values" in PHP terminology
+      // - "primitives" in Drupal Typed data terminology
+      // @see https://www.php.net/manual/en/function.is-scalar.php
+      // @see \Drupal\Core\TypedData\PrimitiveInterface
+      self::STRING, self::NUMBER, self::INTEGER, self::BOOLEAN => TRUE,
+      // Another subset of the "primitive types" in JSON schema are:
+      // - "non-scalar values" in PHP terminology, specifically "iterable"
+      // - "traversable" in Drupal Typed Data terminology, specifically "lists"
+      //   ("sequences" in config schema) or "complex data" ("mappings" in
+      //   config schema)
+      // @see https://www.php.net/manual/en/function.is-iterable.php
+      // @see \Drupal\Core\TypedData\ListInterface
+      // @see \Drupal\Core\TypedData\ComplexDataInterface
+      // @see \Drupal\Core\TypedData\TraversableTypedDataInterface
+      self::ARRAY, self::OBJECT => FALSE,
+    };
+  }
+
+  public function isIterable(): bool {
+    return !$this->isScalar();
+  }
+
+  public function isTraversable(): bool {
+    return !$this->isScalar();
+  }
 
   public function toDataTypeShapeRequirements(array $schema): DataTypeShapeRequirement|DataTypeShapeRequirements|false {
     return match ($this) {
@@ -91,7 +120,9 @@ enum SdcPropJsonSchemaType : string {
         TRUE => FALSE,
       },
 
-      SdcPropJsonSchemaType::OBJECT, SdcPropJsonSchemaType::ARRAY => new DataTypeShapeRequirement('NOT YET SUPPORTED', [], NULL),
+      SdcPropJsonSchemaType::OBJECT, SdcPropJsonSchemaType::ARRAY => (function() {
+        throw new \LogicException('@see ::findFieldTypeProps() and ::recurseJsonSchema()');
+      })(),
     };
   }
 }

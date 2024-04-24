@@ -108,6 +108,30 @@ props:
       minimum: -2147483648
       maximum: 2147483648
 
+    # The "drupal-image" predefined object format.
+    test-object-drupal-image:
+      type: object
+      required:
+        - src
+      properties:
+        src:
+          title: 'Image URL'
+          type: string
+          format: uri
+          # @see \Drupal\image\Plugin\Field\FieldType\ImageItem::defaultFieldSettings()
+          pattern: '\.(png|gif|jpg|jpeg|webp)$'
+        alt:
+          title: 'Alternative text'
+          type: string
+        width:
+          title: 'Image width'
+          type: integer
+          #minimum: 0
+        height:
+          title: 'Image height'
+          type: integer
+          #minimum: 0
+
     #
     # @todo finish adding all other types + formats supported by JSON schema
     #

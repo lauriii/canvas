@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\experience_builder;
 
+use Drupal\Component\Assertion\Inspector;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\TypedData\EntityDataDefinition;
 use Drupal\Core\Entity\TypedData\EntityDataDefinitionInterface;
@@ -95,6 +96,36 @@ class FieldTypePropExpression implements StructuredDataPropExpressionInterface {
   public static function fromString(string $representation): static {
     $parts = explode('␟', mb_substr($representation, 1));
     return new static(...$parts);
+  }
+
+}
+
+// For pointing to a prop in a field type (not considering any delta).
+class FieldTypeObjectPropsExpression implements StructuredDataPropExpressionInterface {
+  public function __construct(
+    public readonly string $fieldType,
+    public readonly array $objectPropsToFieldTypeProps,
+  ) {
+    assert(Inspector::assertAllStrings(array_keys($this->objectPropsToFieldTypeProps)));
+    assert(Inspector::assertAll(function ($expr) {
+      return $expr instanceof FieldTypePropExpression || $expr instanceof ReferenceFieldTypePropExpression;
+    }, $this->objectPropsToFieldTypeProps));
+  }
+
+  public function __toString(): string {
+    return sprintf(static::PREFIX . "%s␟%s", $this->fieldType, implode(',', array_map(
+      fn (string $obj_prop_name, FieldTypePropExpression|ReferenceFieldTypePropExpression $expr) => sprintf('{%s%s%s}',
+        $obj_prop_name,
+        $expr instanceof ReferenceFieldTypePropExpression ? '↝' : '↠',
+        $expr instanceof ReferenceFieldTypePropExpression ? (string) $expr->referenced : $expr->propName,
+      ),
+      array_keys($this->objectPropsToFieldTypeProps),
+      array_values($this->objectPropsToFieldTypeProps),
+    )));
+  }
+
+  public static function fromString(string $representation): static {
+    throw new \Exception('todo');
   }
 
 }
