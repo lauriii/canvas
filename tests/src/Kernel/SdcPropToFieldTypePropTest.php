@@ -705,15 +705,18 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
         ],
         '⿲sdc_test_all_props:all-props␟test-object-drupal-image' => [
           'storage' => [
-            'ℹ︎image␟{src↝ℹ︎␜entity:file␝uri␞0␟value},{alt↠title},{width↝ℹ︎␜entity:file␝uid␞0␟target_id},{height↝ℹ︎␜entity:file␝uid␞0␟target_id}',
+            'ℹ︎image␟{src↝entity␜ℹ︎␜entity:file␝uri␞0␟value, alt↠alt, width↠height, height↠height}',
           ],
           'format_any_prop' => [
-            'ℹ︎image␟{src↝ℹ︎␜entity:file␝uri␞0␟value},{alt↠title},{width↝ℹ︎␜entity:file␝uid␞0␟target_id},{height↝ℹ︎␜entity:file␝uid␞0␟target_id}',
+            'ℹ︎image␟{src↝entity␜ℹ︎␜entity:file␝uri␞0␟value, alt↠alt, width↠height, height↠height}',
           ],
           'format_main_prop' => [
-            'ℹ︎image␟{src↝ℹ︎␜entity:file␝uri␞0␟value},{alt↠title},{width↝ℹ︎␜entity:file␝uid␞0␟target_id},{height↝ℹ︎␜entity:file␝uid␞0␟target_id}',
+            // @todo Update \Drupal\experience_builder\SdcPropToFieldTypePropMatcher::findFieldTypePropsForIterable() to not pick the same Field Type Property twice.
+            'ℹ︎image␟{src↝entity␜ℹ︎␜entity:file␝uri␞0␟value, alt↠alt, width↠height, height↠height}',
           ],
-          'instances' => [],
+          'instances' => [
+            // @todo
+          ],
         ],
       ],
     ];

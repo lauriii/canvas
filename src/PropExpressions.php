@@ -113,11 +113,11 @@ class FieldTypeObjectPropsExpression implements StructuredDataPropExpressionInte
   }
 
   public function __toString(): string {
-    return sprintf(static::PREFIX . "%s␟%s", $this->fieldType, implode(',', array_map(
-      fn (string $obj_prop_name, FieldTypePropExpression|ReferenceFieldTypePropExpression $expr) => sprintf('{%s%s%s}',
+    return sprintf(static::PREFIX . "%s␟{%s}", $this->fieldType, implode(', ', array_map(
+      fn (string $obj_prop_name, FieldTypePropExpression|ReferenceFieldTypePropExpression $expr) => sprintf('%s%s%s',
         $obj_prop_name,
         $expr instanceof ReferenceFieldTypePropExpression ? '↝' : '↠',
-        $expr instanceof ReferenceFieldTypePropExpression ? (string) $expr->referenced : $expr->propName,
+        $expr instanceof ReferenceFieldTypePropExpression ? $expr->propName . '␜' . (string) $expr->referenced : $expr->propName,
       ),
       array_keys($this->objectPropsToFieldTypeProps),
       array_values($this->objectPropsToFieldTypeProps),

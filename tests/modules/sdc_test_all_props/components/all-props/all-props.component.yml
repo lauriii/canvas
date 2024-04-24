@@ -109,6 +109,7 @@ props:
       maximum: 2147483648
 
     # The "drupal-image" predefined object format.
+    # @todo https://www.drupal.org/project/drupal/issues/3352063#comment-15491033
     test-object-drupal-image:
       type: object
       required:

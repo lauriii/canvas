@@ -117,7 +117,21 @@ final class SdcPropToFieldTypePropMatcher {
     foreach (array_keys($object_prop_matches) as $object_prop_name) {
       foreach ($object_prop_matches[$object_prop_name] as $field_type_prop_expr) {
         assert($field_type_prop_expr instanceof FieldTypePropExpression || $field_type_prop_expr instanceof ReferenceFieldTypePropExpression);
-        $inverted[$field_type_prop_expr->fieldType][$object_prop_name] = $field_type_prop_expr;
+        // Pick the first match, except:
+        if (isset($inverted[$field_type_prop_expr->fieldType][$object_prop_name])) {
+          // 1. prefer non-reference matches on the field type.
+          if ($inverted[$field_type_prop_expr->fieldType][$object_prop_name] instanceof ReferenceFieldTypePropExpression && $field_type_prop_expr instanceof FieldTypePropExpression) {
+            $inverted[$field_type_prop_expr->fieldType][$object_prop_name] = $field_type_prop_expr;
+          }
+          // 2. prefer a precise match between the SDC object prop name and the
+          //    the field type prop name
+          elseif ($object_prop_name === $field_type_prop_expr->propName) {
+            $inverted[$field_type_prop_expr->fieldType][$object_prop_name] = $field_type_prop_expr;
+          }
+        }
+        else {
+          $inverted[$field_type_prop_expr->fieldType][$object_prop_name] = $field_type_prop_expr;
+        }
       }
     }
 
