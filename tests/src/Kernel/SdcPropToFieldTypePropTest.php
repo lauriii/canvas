@@ -95,14 +95,11 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
     foreach ($sdc_manager->getAllComponents() as $component) {
       $component_name = $component->getPluginId();
 
-      // SDCs are forbidden from having additional properties beyond the
-      // explicitly listed ones.
+      // Retrieve the full JSON schema definition from the SDC's metadata.
       // @see \Drupal\sdc\Component\ComponentValidator::validateProps()
       // @see \Drupal\sdc\Component\ComponentMetadata::parseSchemaInfo()
-      $prop_names = array_keys($component->metadata->schema['properties'] ?? []);
-      foreach ($prop_names as $prop_name) {
+      foreach ($matcher->iterateJsonSchema($component->metadata->schema) as $prop_name => ['required' => $is_required, 'schema' => $schema]) {
         $cpe = new ComponentPropExpression($component_name, $prop_name);
-        $schema = $component->metadata->schema['properties'][$prop_name];
 
         // TRICKY: `attributes` is a special case — it is kind of a reserved
         // prop.
@@ -117,10 +114,6 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
           // @see \Drupal\sdc\Component\ComponentMetadata::parseSchemaInfo()
           is_array($schema['type']) ? $schema['type'][0] : $schema['type']
         );
-
-        // @see https://json-schema.org/understanding-json-schema/reference/object#required
-        // @see https://json-schema.org/learn/getting-started-step-by-step#required
-        $is_required = in_array($prop_name, $component->metadata->schema['required'] ?? [], TRUE);
 
         // phpcs:disable
         // From least to most restrictive matchmaking of structured data sources
