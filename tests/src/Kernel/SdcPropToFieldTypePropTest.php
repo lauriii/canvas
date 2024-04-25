@@ -705,14 +705,14 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
         ],
         '⿲sdc_test_all_props:all-props␟test-object-drupal-image' => [
           'storage' => [
-            'ℹ︎image␟{src↝entity␜ℹ︎␜entity:file␝uri␞0␟value, alt↠alt, width↠height, height↠height}',
+            'ℹ︎image␟{src↝entity␜ℹ︎␜entity:file␝uri␞0␟value, alt↠alt, width↠width, height↠height}',
           ],
           'format_any_prop' => [
-            'ℹ︎image␟{src↝entity␜ℹ︎␜entity:file␝uri␞0␟value, alt↠alt, width↠height, height↠height}',
+            'ℹ︎image␟{src↝entity␜ℹ︎␜entity:file␝uri␞0␟value, alt↠alt, width↠width, height↠height}',
           ],
           'format_main_prop' => [
             // @todo Update \Drupal\experience_builder\SdcPropToFieldTypePropMatcher::findFieldTypePropsForIterable() to not pick the same Field Type Property twice.
-            'ℹ︎image␟{src↝entity␜ℹ︎␜entity:file␝uri␞0␟value, alt↠alt, width↠height, height↠height}',
+            'ℹ︎image␟{src↝entity␜ℹ︎␜entity:file␝uri␞0␟value, alt↠alt, width↠width, height↠height}',
           ],
           'instances' => [
             // @todo
