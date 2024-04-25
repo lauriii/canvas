@@ -8,6 +8,7 @@ use Drupal\Component\Assertion\Inspector;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\TypedData\EntityDataDefinition;
 use Drupal\Core\Entity\TypedData\EntityDataDefinitionInterface;
+use Drupal\Core\Field\FieldItemInterface;
 use Drupal\Core\Field\FieldTypePluginManagerInterface;
 
 /**
@@ -94,7 +95,7 @@ class FieldTypePropExpression implements StructuredDataPropExpressionInterface {
   }
 
   public static function fromString(string $representation): static {
-    $parts = explode('␟', mb_substr($representation, 1));
+    $parts = explode('␟', mb_substr($representation, 2));
     return new static(...$parts);
   }
 
@@ -174,7 +175,16 @@ final class FieldPropExpression implements StructuredDataPropExpressionInterface
   }
 
   public static function fromString(string $representation): static {
-    throw new \Exception('todo');
+    [$entity_part, $remainder] = explode('␝', $representation);
+    $entity_data_definition = EntityDataDefinition::createFromDataType(mb_substr($entity_part, 3));
+    [$field_name, $remainder] = explode('␞', $remainder, 2);
+    [$delta, $prop_name] = explode('␟', $remainder, 2);
+    return new static(
+      $entity_data_definition,
+      $field_name,
+      $delta === '' ? NULL : (int) $delta,
+      $prop_name,
+    );
   }
 
 }
@@ -191,7 +201,10 @@ final class ReferenceFieldPropExpression implements StructuredDataPropExpression
   }
 
   public static function fromString(string $representation): static {
-    throw new \Exception('todo');
+    $parts = explode('␜', $representation);
+    $referencer = FieldPropExpression::fromString($parts[0] . '␜' . $parts[1]);
+    $referenced = FieldPropExpression::fromString(static::PREFIX . '␜' . $parts[3]);
+    return new static($referencer, $referenced);
   }
 
 }
@@ -233,16 +246,34 @@ class FieldObjectPropsExpression implements StructuredDataPropExpressionInterfac
 
 final class PropExpressionEvaluator {
 
-  public static function evaluate(?EntityInterface $entity, FieldPropExpression|ReferenceFieldPropExpression $expr): mixed {
-    if ($entity === NULL) {
-      return NULL;
+  public static function evaluate(null|EntityInterface|FieldItemInterface $entity_or_field, StructuredDataPropExpressionInterface $expr): mixed {
+    if ($entity_or_field === NULL) {
+      // Entity is optional for reference fields: the reference may point to something or not.
+      if ($expr instanceof ReferenceFieldPropExpression) {
+        return NULL;
+      }
+      throw new \LogicException('No data provided to evaluate expression ' . (string)$expr);
     }
+
+    // Assert shape.
+    if ($expr instanceof FieldPropExpression || $expr instanceof ReferenceFieldPropExpression) {
+      // @todo
+    }
+    if ($expr instanceof FieldTypePropExpression) {
+      $actual_field_type = $entity_or_field->getFieldDefinition()->getType();
+      if ($actual_field_type !== $expr->fieldType) {
+        throw new \DomainException(sprintf("`%s` is an expression for field type `%s`, but the provided field item is of type `%s`.", (string)$expr, $expr->fieldType, $actual_field_type));
+      }
+    }
+
     return match (get_class($expr)) {
-      FieldPropExpression::class => $entity->get($expr->fieldName)[$expr->delta ?? 0]?->get($expr->propName)->getValue(),
+      FieldPropExpression::class => $entity_or_field->get($expr->fieldName)[$expr->delta ?? 0]?->get($expr->propName)->getValue(),
       ReferenceFieldPropExpression::class => self::evaluate(
-        self::evaluate($entity, $expr->referencer),
+        self::evaluate($entity_or_field, $expr->referencer),
         $expr->referenced
       ),
+      FieldTypePropExpression::class => $entity_or_field->get($expr->propName)->getValue(),
+      // @todo obj
     };
   }
 

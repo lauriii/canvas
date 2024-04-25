@@ -4,6 +4,7 @@ require_once 'src/PropExpressions.php';
 
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\Display\EntityViewDisplayInterface;
+use Drupal\Core\Field\FieldItemInterface;
 use Drupal\Core\Template\Attribute;
 use Drupal\experience_builder\ComponentPropExpression;
 use Drupal\experience_builder\FieldPropExpression;
@@ -100,6 +101,72 @@ function experience_builder_entity_base_field_info_alter(&$fields, \Drupal\Core\
   }
 }
 
+function _eb_resolve_sdc_prop_value(\Drupal\Core\Entity\ContentEntityInterface $host_entity, array $sdc_prop_source) {
+  // @todo convert this to a value object?
+  $missing = array_diff(['sourceType', 'expression'], array_keys($sdc_prop_source));
+  if (!empty($missing)) {
+    throw new \LogicException(sprintf('Missing the keys %s.', implode(',', $missing)));
+  }
+
+  $typed_data_manager = \Drupal::service(\Drupal\Core\TypedData\TypedDataManagerInterface::class);
+  assert($typed_data_manager instanceof \Drupal\Core\TypedData\TypedDataManagerInterface);
+
+  if (str_starts_with($sdc_prop_source['sourceType'], 'static:')) {
+    // `sourceType = static` requires a value to be specified.
+    $missing = array_diff(['value'], array_keys($sdc_prop_source));
+    if (!empty($missing)) {
+      throw new \LogicException(sprintf('Missing the keys %s.', implode(',', $missing)));
+    }
+
+    // First: conjure the expected FieldItem instance.
+    [,$data_type] = explode(':', $sdc_prop_source['sourceType'], 2);
+    $field_item_definition = $typed_data_manager->createDataDefinition($data_type);
+    $field_item = $typed_data_manager->createInstance($data_type, [
+      'name' => NULL,
+      'parent' => NULL,
+      'data_definition' => $field_item_definition,
+    ]);
+    assert($field_item instanceof FieldItemInterface);
+    $field_item->setValue($sdc_prop_source['value']);
+
+    // @todo Remove this when this logic is moved into a field type and it actually gets saved and has test coverage.
+    // @todo This won't work for fields whose props are objects (ComplexData)/lists (ListInterface), but core does not use that AFAIK, so fine for now.
+    $expected_to_be_stored = $field_item->toArray();
+    match (count($field_item_definition->getPropertyDefinitions())) {
+      1 => (function() use ($expected_to_be_stored, $sdc_prop_source, $field_item) {
+        if ($expected_to_be_stored[$field_item::mainPropertyName()] !== $sdc_prop_source['value']) {
+          throw new \LogicException(sprintf('Unexpected static prop value: %s should be %s', json_encode($sdc_prop_source['value']), json_encode($expected_to_be_stored[$field_item::mainPropertyName()])));
+        }
+      })(),
+      default => (function() use ($expected_to_be_stored, $sdc_prop_source) {
+        if ($expected_to_be_stored !== $sdc_prop_source['value']) {
+          throw new \LogicException(sprintf('Unexpected static prop value: %s should be %s', json_encode($sdc_prop_source['value']), json_encode($expected_to_be_stored)));
+        }
+      })(),
+    };
+
+    // Second: construct an expression object from the expression string.
+    $expression = FieldTypePropExpression::fromString($sdc_prop_source['expression']);
+
+    // Finally: evaluate expression using the field item.
+    $value = \Drupal\experience_builder\PropExpressionEvaluator::evaluate($field_item, $expression);
+  }
+
+  if ($sdc_prop_source['sourceType'] === 'dynamic') {
+    // First: construct an expression object from the expression string.
+    if (str_contains($sdc_prop_source['expression'], 'entity␜︎␜entity:')) {
+      $expression = \Drupal\experience_builder\ReferenceFieldPropExpression::fromString($sdc_prop_source['expression']);
+    }
+    else {
+      $expression = FieldPropExpression::fromString($sdc_prop_source['expression']);
+    }
+    // Second: evaluate expression using the field item.
+    $value = \Drupal\experience_builder\PropExpressionEvaluator::evaluate($host_entity, $expression);
+  }
+
+  return $value;
+}
+
 /**
  * Implements hook_entity_view_alter().
  *
@@ -147,6 +214,79 @@ function experience_builder_entity_view_alter(&$build, EntityInterface $entity, 
       }
     );
   }
+
+  $build['experience_builder_sdc_data_storage_test'] = [
+    '#type' => 'container',
+    '#weight' => -100,
+    '#prefix' => '<h1>A complex SDC rendered from multiple sources</h1>',
+  ];
+
+
+
+  $experience_builder_layout_field = json_decode(json_encode([
+    'static-static-card1ab' => ['type' => $component->getPluginId()],
+    'dynamic-static-card2df' => ['type' => $component->getPluginId()],
+    'dynamic-dynamic-card3rr' => ['type' => $component->getPluginId()],
+  ]), TRUE);
+
+
+  $experience_builder_values_field = json_decode(json_encode([
+    'dynamic-static-card2df' => [
+      'text' => [
+        'sourceType' => 'dynamic',
+//        'expression' => 'ℹ︎␜entity:node:foo␝title␞␟value',
+        'expression' => 'ℹ︎␜entity:node:foo␝field_call_to_action␞␟value',
+      ],
+      'href' => [
+        'sourceType' => 'static:field_item:link',
+        'value' => ['uri' => 'https://drupal.org', 'title' => NULL, 'options' => []],
+        'expression' => 'ℹ︎link␟uri',
+      ],
+    ],
+    'static-static-card1ab' => [
+      'text' => [
+        'sourceType' => 'static:field_item:string',
+        'value' =>'hello, world!',
+        'expression' => 'ℹ︎string␟value',
+      ],
+      'href' => [
+        'sourceType' => 'static:field_item:link',
+        'value' => ['uri' => 'https://drupal.org', 'title' => NULL, 'options' => []],
+        'expression' => 'ℹ︎link␟uri',
+      ],
+    ],
+    'dynamic-dynamic-card3rr' => [
+      'text' => [
+        'sourceType' => 'dynamic',
+        'expression' => 'ℹ︎␜entity:node:foo␝title␞␟value',
+      ],
+
+      'href' => [
+        'sourceType' => 'dynamic',
+        'expression' => 'ℹ︎␜entity:node:foo␝field_image␞␟entity␜︎␜entity:file␝uri␞␟value',
+      ],
+    ],
+  ]), TRUE);
+
+  foreach ($experience_builder_layout_field as $uuid => $assigned_sdc) {
+    $sdc_component_id = $assigned_sdc['type'];
+
+    $props = [];
+    foreach ($experience_builder_values_field[$uuid] as $prop_name => $prop_value_source) {
+      $props[$prop_name] = _eb_resolve_sdc_prop_value($entity, $prop_value_source);
+    }
+    $build['experience_builder_sdc_data_storage_test'][$uuid] = [
+      '#prefix' => "<h2>$uuid</h2>",
+      'component' => [
+        '#type' => 'component',
+        '#component' => $sdc_component_id,
+        '#props' => $props,
+        '#slots' => [],
+      ],
+      '#suffix' => '<hr>',
+    ];
+  }
+  return $build;
 
   // Generate all possible permutations.
   $build['experience_builder_sdc_random_prop_expressions_overview'] = [
