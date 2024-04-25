@@ -117,6 +117,11 @@ final class SdcPropToFieldTypePropMatcher {
     foreach (array_keys($object_prop_matches) as $object_prop_name) {
       foreach ($object_prop_matches[$object_prop_name] as $field_type_prop_expr) {
         assert($field_type_prop_expr instanceof FieldTypePropExpression || $field_type_prop_expr instanceof ReferenceFieldTypePropExpression);
+        // The same field type prop should never be used multiple times; best
+        // match is selected in object prop order.
+        if (in_array($field_type_prop_expr, $inverted[$field_type_prop_expr->fieldType] ?? [], FALSE)) {
+          continue;
+        }
         // Pick the first match, except:
         if (isset($inverted[$field_type_prop_expr->fieldType][$object_prop_name])) {
           // 1. prefer non-reference matches on the field type.
@@ -275,6 +280,11 @@ final class SdcPropToFieldTypePropMatcher {
           FieldPropExpression::class => $field_prop_expr->fieldName,
           ReferenceFieldPropExpression::class => $field_prop_expr->referencer->fieldName,
         };
+        // The same field name prop should never be used multiple times; best
+        // match is selected in object prop order.
+        if (in_array($field_prop_expr, $inverted[$field_name] ?? [], FALSE)) {
+          continue;
+        }
         // Pick the first match, except:
         if (isset($inverted[$field_name][$object_prop_name])) {
           // 1. prefer non-reference matches on the field.

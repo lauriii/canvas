@@ -86,6 +86,18 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
         'bundle' => 'foo',
         'required' => TRUE,
       ])->save();
+      // Create a "event duration" field on the "Foo" node type.
+      FieldStorageConfig::create([
+        'entity_type' => 'node',
+        'field_name' => 'field_event_duration',
+        'type' => 'daterange',
+      ])->save();
+      FieldConfig::create([
+        'entity_type' => 'node',
+        'field_name' => 'field_event_duration',
+        'bundle' => 'foo',
+        'required' => TRUE,
+      ])->save();
     }
 
     $sdc_manager = \Drupal::service('plugin.manager.sdc');
@@ -367,7 +379,10 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
             'ℹ︎daterange␟value',
             'ℹ︎datetime␟value',
           ],
-          'instances' => [],
+          'instances' => [
+            'ℹ︎␜entity:node:foo␝field_event_duration␞␟end_value',
+            'ℹ︎␜entity:node:foo␝field_event_duration␞␟value',
+          ],
         ],
         '⿲sdc_test_all_props:all-props␟test-string-format-' . JsonSchemaStringFormat::DATE->value => [
           'storage' => $all_string_storage_props,
@@ -380,7 +395,10 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
             'ℹ︎daterange␟value',
             'ℹ︎datetime␟value',
           ],
-          'instances' => [],
+          'instances' => [
+            'ℹ︎␜entity:node:foo␝field_event_duration␞␟end_value',
+            'ℹ︎␜entity:node:foo␝field_event_duration␞␟value',
+          ],
         ],
         '⿲sdc_test_all_props:all-props␟test-string-format-' . JsonSchemaStringFormat::TIME->value => [
           'storage' => $all_string_storage_props,
@@ -714,11 +732,24 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
             'ℹ︎image␟{src↝entity␜ℹ︎␜entity:file␝uri␞0␟value, alt↠alt, width↠width, height↠height}',
           ],
           'format_main_prop' => [
-            // @todo Update \Drupal\experience_builder\SdcPropToFieldTypePropMatcher::findFieldTypePropsForIterable() to not pick the same Field Type Property twice.
             'ℹ︎image␟{src↝entity␜ℹ︎␜entity:file␝uri␞0␟value, alt↠alt, width↠width, height↠height}',
           ],
           'instances' => [
             'ℹ︎␜entity:node:foo␝field_silly_image␞␟{src↝entity␜ℹ︎␜entity:file␝uri␞␟value, alt↠alt, width↠width, height↠height}',
+          ],
+        ],
+        '⿲sdc_test_all_props:all-props␟test-object-drupal-date-range' => [
+          'storage' => [
+            'ℹ︎daterange␟{from↠end_value, to↠value}',
+          ],
+          'format_any_prop' => [
+            'ℹ︎daterange␟{from↠end_value, to↠value}',
+          ],
+          'format_main_prop' => [
+            'ℹ︎daterange␟{from↠end_value, to↠value}',
+          ],
+          'instances' => [
+            'ℹ︎␜entity:node:foo␝field_event_duration␞␟{from↠value, to↠end_value}',
           ],
         ],
       ],

@@ -135,6 +135,23 @@ props:
           type: integer
           #minimum: 0
 
+    # The "drupal-date-range" predefined object format.
+    # @todo Convert to use `$ref`, see https://www.drupal.org/project/drupal/issues/3352063#comment-15491033
+    test-object-drupal-date-range:
+      type: object
+      required:
+        - from
+        - to
+      properties:
+        from:
+          title: 'Start date'
+          type: string
+          format: date
+        to:
+          title: 'End date'
+          type: string
+          format: date
+
     #
     # @todo finish adding all other types + formats supported by JSON schema
     #
