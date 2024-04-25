@@ -7,6 +7,7 @@ namespace Drupal\Tests\experience_builder\Kernel;
 use Drupal\Core\Extension\ModuleInstallerInterface;
 use Drupal\Core\Template\Attribute;
 use Drupal\experience_builder\ComponentPropExpression;
+use Drupal\experience_builder\FieldObjectPropsExpression;
 use Drupal\experience_builder\FieldPropExpression;
 use Drupal\experience_builder\FieldTypeObjectPropsExpression;
 use Drupal\experience_builder\FieldTypePropExpression;
@@ -83,6 +84,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
         'entity_type' => 'node',
         'field_name' => 'field_silly_image',
         'bundle' => 'foo',
+        'required' => TRUE,
       ])->save();
     }
 
@@ -104,6 +106,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
         // TRICKY: `attributes` is a special case — it is kind of a reserved
         // prop.
         // @see \Drupal\sdc\Twig\TwigExtension::mergeAdditionalRenderContext()
+        // @see https://www.drupal.org/project/drupal/issues/3352063#comment-15277820
         if ($prop_name === 'attributes') {
           assert($schema['type'][0] === Attribute::class);
           continue;
@@ -154,7 +157,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
         $matches[(string) $cpe]['storage'] = array_map(fn (FieldTypePropExpression|FieldTypeObjectPropsExpression $e): string => (string) $e, $storage_candidates);
         $matches[(string) $cpe]['format_any_prop'] = array_map(fn (FieldTypePropExpression|FieldTypeObjectPropsExpression $e): string => (string) $e, $format_candidates_any_prop);
         $matches[(string) $cpe]['format_main_prop'] = array_map(fn (FieldTypePropExpression|FieldTypeObjectPropsExpression $e): string => (string) $e, $format_candidates_main_prop);
-        $matches[(string) $cpe]['instances'] = array_map(fn (FieldPropExpression|ReferenceFieldPropExpression|FieldTypeObjectPropsExpression $e): string => (string) $e, $instance_candidates);
+        $matches[(string) $cpe]['instances'] = array_map(fn (FieldPropExpression|ReferenceFieldPropExpression|FieldObjectPropsExpression $e): string => (string) $e, $instance_candidates);
       }
     }
 
@@ -715,7 +718,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
             'ℹ︎image␟{src↝entity␜ℹ︎␜entity:file␝uri␞0␟value, alt↠alt, width↠width, height↠height}',
           ],
           'instances' => [
-            // @todo
+            'ℹ︎␜entity:node:foo␝field_silly_image␞␟{src↝entity␜ℹ︎␜entity:file␝uri␞␟value, alt↠alt, width↠width, height↠height}',
           ],
         ],
       ],

@@ -196,6 +196,41 @@ final class ReferenceFieldPropExpression implements StructuredDataPropExpression
 
 }
 
+class FieldObjectPropsExpression implements StructuredDataPropExpressionInterface {
+  public function __construct(
+    // @todo will this break down once we support config entities? It must, because top-level config entity props ~= content entity fields, but deeper than that it is different.
+    public readonly EntityDataDefinition $entityType,
+    public readonly string $fieldName,
+    // A content entity field item delta is optional.
+    // @todo Should this allow expressing "all deltas"? Should that be represented using `NULL`, `TRUE`, `*` or `∀`? For now assuming NULL.
+    public readonly int|null $delta,
+    public readonly array $objectPropsToFieldProps,
+  ) {
+    assert(Inspector::assertAllStrings(array_keys($this->objectPropsToFieldProps)));
+    assert(Inspector::assertAll(function ($expr) {
+      return $expr instanceof FieldPropExpression || $expr instanceof ReferenceFieldPropExpression;
+    }, $this->objectPropsToFieldProps));
+  }
+
+  public function __toString(): string {
+    return sprintf(static::PREFIX . "␜%s␝%s␞%s␟{%s}", $this->entityType->getDataType(), $this->fieldName, $this->delta ?? '', implode(', ', array_map(
+
+      fn (string $obj_prop_name, FieldPropExpression|ReferenceFieldPropExpression $expr) => sprintf('%s%s%s',
+        $obj_prop_name,
+        $expr instanceof ReferenceFieldPropExpression ? '↝' : '↠',
+        $expr instanceof ReferenceFieldPropExpression ? $expr->referencer->propName . '␜' . (string) $expr->referenced : $expr->propName,
+      ),
+      array_keys($this->objectPropsToFieldProps),
+      array_values($this->objectPropsToFieldProps),
+    )));
+  }
+
+  public static function fromString(string $representation): static {
+    throw new \Exception('todo');
+  }
+
+}
+
 final class PropExpressionEvaluator {
 
   public static function evaluate(?EntityInterface $entity, FieldPropExpression|ReferenceFieldPropExpression $expr): mixed {

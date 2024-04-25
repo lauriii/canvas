@@ -112,7 +112,7 @@ final class SdcPropToFieldTypePropMatcher {
       $object_prop_matches[$name] = $this->findFieldTypeProps(SdcPropJsonSchemaType::from($sub_schema['type']), $sub_required, $sub_schema, FALSE);
     }
 
-    // invert $field_types_per_prop to determine different match types
+    // invert $object_prop_matches to determine different match types
     $inverted = [];
     foreach (array_keys($object_prop_matches) as $object_prop_name) {
       foreach ($object_prop_matches[$object_prop_name] as $field_type_prop_expr) {
@@ -245,6 +245,84 @@ final class SdcPropToFieldTypePropMatcher {
   }
 
   private function matchEntityProps(EntityDataDefinition $entity_data_definition, int $levels_to_recurse, SdcPropJsonSchemaType $primitive_type, bool $is_required_in_json_schema, ?array $schema): array {
+    return match ($primitive_type->isScalar()) {
+      TRUE => $this->matchEntityPropsForScalar($entity_data_definition, $levels_to_recurse, $primitive_type, $is_required_in_json_schema, $schema),
+      FALSE => $this->matchEntityPropsForIterable($entity_data_definition, $levels_to_recurse, $primitive_type, $is_required_in_json_schema, $schema),
+    };
+  }
+
+  private function matchEntityPropsForIterable(EntityDataDefinition $entity_data_definition, int $levels_to_recurse, SdcPropJsonSchemaType $primitive_type, bool $is_required_in_json_schema, ?array $schema): array {
+    if (!$primitive_type->isIterable()) {
+      throw new \LogicException();
+    }
+
+    $required_object_props = [];
+    $all_object_props = [];
+    $object_prop_matches = [];
+    foreach ($this->iterateJsonSchema($schema) as $name => ['required' => $sub_required, 'schema' => $sub_schema]) {
+      $all_object_props[] = $name;
+      if ($sub_required) {
+        $required_object_props[] = $name;
+      }
+      $object_prop_matches[$name] = $this->matchEntityProps($entity_data_definition, $levels_to_recurse, SdcPropJsonSchemaType::from($sub_schema['type']), $sub_required, $sub_schema);
+    }
+
+    // invert $object_prop_matches to determine different match types
+    $inverted = [];
+    foreach (array_keys($object_prop_matches) as $object_prop_name) {
+      foreach ($object_prop_matches[$object_prop_name] as $field_prop_expr) {
+        $field_name = match (get_class($field_prop_expr)) {
+          FieldPropExpression::class => $field_prop_expr->fieldName,
+          ReferenceFieldPropExpression::class => $field_prop_expr->referencer->fieldName,
+        };
+        // Pick the first match, except:
+        if (isset($inverted[$field_name][$object_prop_name])) {
+          // 1. prefer non-reference matches on the field.
+          if ($inverted[$field_name][$object_prop_name] instanceof ReferenceFieldPropExpression && $field_prop_expr instanceof FieldPropExpression) {
+            $inverted[$field_name][$object_prop_name] = $field_prop_expr;
+          }
+          // 2. prefer a precise match between the SDC object prop name and the
+          //    the field prop name
+          elseif ($field_prop_expr instanceof FieldPropExpression && $object_prop_name === $field_prop_expr->propName) {
+            $inverted[$field_name][$object_prop_name] = $field_prop_expr;
+          }
+          elseif ($field_prop_expr instanceof ReferenceFieldPropExpression && $object_prop_name === $field_prop_expr->referencer->propName) {
+            $inverted[$field_name][$object_prop_name] = $field_prop_expr;
+          }
+        }
+        else {
+          $inverted[$field_name][$object_prop_name] = $field_prop_expr;
+        }
+      }
+    }
+
+    // The minimal match: all required object props are present.
+    $matches_minimal = array_filter(
+      $inverted,
+      fn ($supported_object_props) => empty(array_diff($required_object_props, array_keys($supported_object_props)))
+    );
+    ksort($matches_minimal);
+
+    // The complete match: the complete set of object props is present.
+    $matches_complete = array_filter(
+      $inverted,
+      fn ($supported_object_props) => array_keys($supported_object_props) == $all_object_props
+    );
+    ksort($matches_complete);
+
+    $matches = [];
+    // Prefer complete matches: list complete matches before minimal matches.
+    foreach ($matches_complete + $matches_minimal as $field_name => $mapping) {
+      $matches[] = new FieldObjectPropsExpression($entity_data_definition, $field_name, NULL, $mapping);
+    }
+    return $matches;
+  }
+
+  private function matchEntityPropsForScalar(EntityDataDefinition $entity_data_definition, int $levels_to_recurse, SdcPropJsonSchemaType $primitive_type, bool $is_required_in_json_schema, ?array $schema): array {
+    if (!$primitive_type->isScalar()) {
+      throw new \LogicException();
+    }
+
     $matches = [];
     $field_definitions = $this->recurseDataDefinitionInterface($entity_data_definition);
     foreach ($field_definitions as $field_definition) {
