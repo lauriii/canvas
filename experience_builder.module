@@ -150,7 +150,12 @@ function _eb_resolve_sdc_prop_value(\Drupal\Core\Entity\ContentEntityInterface $
     };
 
     // Second: construct an expression object from the expression string.
-    $expression = FieldTypePropExpression::fromString($sdc_prop_source['expression']);
+    if (str_contains($sdc_prop_source['expression'], '{')) {
+      $expression = \Drupal\experience_builder\FieldTypeObjectPropsExpression::fromString($sdc_prop_source['expression']);
+    }
+    else {
+      $expression = FieldTypePropExpression::fromString($sdc_prop_source['expression']);
+    }
 
     // Finally: evaluate expression using the field item.
     $value = \Drupal\experience_builder\PropExpressionEvaluator::evaluate($field_item, $expression);
@@ -158,7 +163,10 @@ function _eb_resolve_sdc_prop_value(\Drupal\Core\Entity\ContentEntityInterface $
 
   if ($sdc_prop_source['sourceType'] === 'dynamic') {
     // First: construct an expression object from the expression string.
-    if (str_contains($sdc_prop_source['expression'], 'entity␜︎␜entity:')) {
+    if (str_contains($sdc_prop_source['expression'], '{')) {
+      $expression = \Drupal\experience_builder\FieldObjectPropsExpression::fromString($sdc_prop_source['expression']);
+    }
+    else if (str_contains($sdc_prop_source['expression'], 'entity␜︎␜entity:')) {
       $expression = \Drupal\experience_builder\ReferenceFieldPropExpression::fromString($sdc_prop_source['expression']);
     }
     else {
@@ -228,6 +236,8 @@ function experience_builder_entity_view_alter(&$build, EntityInterface $entity, 
 
 
   $experience_builder_layout_field = json_decode(json_encode([
+    'static-image-56r' => ['type' => 'experience_builder:image'],
+    'dynamic-image-udf7d' => ['type' => 'experience_builder:image'],
     'static-static-card1ab' => ['type' => $component->getPluginId()],
     'dynamic-static-card2df' => ['type' => $component->getPluginId()],
     'dynamic-dynamic-card3rr' => ['type' => $component->getPluginId()],
@@ -238,6 +248,7 @@ function experience_builder_entity_view_alter(&$build, EntityInterface $entity, 
     'dynamic-static-card2df' => [
       'text' => [
         'sourceType' => 'dynamic',
+        // Either expression works:
 //        'expression' => 'ℹ︎␜entity:node:foo␝title␞␟value',
         'expression' => 'ℹ︎␜entity:node:foo␝field_call_to_action␞␟value',
       ],
@@ -264,10 +275,24 @@ function experience_builder_entity_view_alter(&$build, EntityInterface $entity, 
         'sourceType' => 'dynamic',
         'expression' => 'ℹ︎␜entity:node:foo␝title␞␟value',
       ],
-
       'href' => [
         'sourceType' => 'dynamic',
         'expression' => 'ℹ︎␜entity:node:foo␝field_image␞␟entity␜︎␜entity:file␝uri␞␟value',
+      ],
+    ],
+    'static-image-56r' => [
+      'image' => [
+        'sourceType' => 'static:field_item:link',
+        'value' => ['uri' => 'https://www.drupal.org/files/cta_multiple/featured_image/drupal-evergreen-icon-250X230px_0.png', 'title' => NULL, 'options' => []],
+        // This expression would trigger the exception `Drupal\sdc\Exception\InvalidComponentException: [image] String value found, but an object is required`.
+//        'expression' => 'ℹ︎link␟uri',
+        'expression' => 'ℹ︎link␟{src↠uri}',
+      ],
+    ],
+    'dynamic-image-udf7d' => [
+      'image' => [
+        'sourceType' => 'dynamic',
+        'expression' => 'ℹ︎␜entity:node:foo␝field_image␞␟{src↝entity␜ℹ︎␜entity:file␝uri␞␟url, alt↠alt, width↠width, height↠height}',
       ],
     ],
   ]), TRUE);

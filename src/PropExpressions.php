@@ -126,7 +126,22 @@ class FieldTypeObjectPropsExpression implements StructuredDataPropExpressionInte
   }
 
   public static function fromString(string $representation): static {
-    throw new \Exception('todo');
+    [$field_type, $object_mapping] = explode('␟', mb_substr($representation, 2));
+    // Strip the surrounding curly braces.
+    $object_mapping = mb_substr($object_mapping, 1, -1);
+
+    $objectPropsToFieldTypeProps = [];
+    foreach (explode(',', $object_mapping) as $obj_prop_mapping) {
+      if (str_contains($obj_prop_mapping, '↠')) {
+        [$sdc_obj_prop_name, $field_type_prop_name] = explode('↠', $obj_prop_mapping);
+        $objectPropsToFieldTypeProps[$sdc_obj_prop_name] = new FieldTypePropExpression($field_type, $field_type_prop_name);
+      }
+      else {
+        throw new \LogicException('not yet implemented');
+      }
+    }
+
+    return new static($field_type, $objectPropsToFieldTypeProps);
   }
 
 }
@@ -239,7 +254,40 @@ class FieldObjectPropsExpression implements StructuredDataPropExpressionInterfac
   }
 
   public static function fromString(string $representation): static {
-    throw new \Exception('todo');
+    [$entity_part, $remainder] = explode('␝', $representation, 2);
+    $entity_data_definition = EntityDataDefinition::createFromDataType(mb_substr($entity_part, 3));
+    [$field_name, $remainder] = explode('␞', $remainder, 2);
+    [$delta, $object_mapping] = explode('␟', $remainder, 2);
+    // Strip the surrounding curly braces.
+    $object_mapping = mb_substr($object_mapping, 1, -1);
+
+    $objectPropsToFieldTypeProps = [];
+    foreach (explode(',', $object_mapping) as $obj_prop_mapping) {
+      if (str_contains($obj_prop_mapping, '↠')) {
+        [$sdc_obj_prop_name, $field_instance_prop_name] = explode('↠', $obj_prop_mapping);
+        $objectPropsToFieldTypeProps[$sdc_obj_prop_name] = new FieldPropExpression(
+          $entity_data_definition,
+          $field_name,
+          $delta === '' ? NULL : (int) $delta,
+          $field_instance_prop_name
+        );
+      }
+      else {
+        [$sdc_obj_prop_name, $obj_prop_mapping_remainder] = explode('↝', $obj_prop_mapping);
+        [$field_instance_prop_name, $field_prop_ref_expr] = explode('␜', $obj_prop_mapping_remainder, 2);
+        $objectPropsToFieldTypeProps[$sdc_obj_prop_name] = new ReferenceFieldPropExpression(
+          new FieldPropExpression($entity_data_definition, $field_name, NULL, $field_instance_prop_name),
+          FieldPropExpression::fromString($field_prop_ref_expr)
+        );
+      }
+    }
+
+    return new static(
+      $entity_data_definition,
+      $field_name,
+      $delta === '' ? NULL : (int) $delta,
+      $objectPropsToFieldTypeProps
+    );
   }
 
 }
@@ -273,7 +321,20 @@ final class PropExpressionEvaluator {
         $expr->referenced
       ),
       FieldTypePropExpression::class => $entity_or_field->get($expr->propName)->getValue(),
-      // @todo obj
+      FieldTypeObjectPropsExpression::class => array_combine(
+        array_keys($expr->objectPropsToFieldTypeProps),
+        array_map(
+          fn (FieldTypePropExpression $sub_expr) => self::evaluate($entity_or_field, $sub_expr),
+          $expr->objectPropsToFieldTypeProps
+        )
+      ),
+      FieldObjectPropsExpression::class => array_combine(
+        array_keys($expr->objectPropsToFieldProps),
+        array_map(
+          fn (FieldPropExpression|ReferenceFieldPropExpression $sub_expr) => self::evaluate($entity_or_field, $sub_expr),
+          $expr->objectPropsToFieldProps
+        )
+      ),
     };
   }
 

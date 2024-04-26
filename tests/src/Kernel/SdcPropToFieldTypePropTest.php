@@ -284,6 +284,20 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
         'field',
       ],
       'expected matches' => [
+        '⿲experience_builder:image␟image' => [
+          'storage' => [
+            'ℹ︎image␟{src↝entity␜ℹ︎␜entity:file␝uri␞0␟value, alt↠alt, width↠width, height↠height}',
+          ],
+          'format_any_prop' => [
+            'ℹ︎image␟{src↝entity␜ℹ︎␜entity:file␝uri␞0␟value, alt↠alt, width↠width, height↠height}',
+          ],
+          'format_main_prop' => [
+            'ℹ︎image␟{src↝entity␜ℹ︎␜entity:file␝uri␞0␟value, alt↠alt, width↠width, height↠height}',
+          ],
+          'instances' => [
+            'ℹ︎␜entity:node:foo␝field_silly_image␞␟{src↝entity␜ℹ︎␜entity:file␝uri␞␟value, alt↠alt, width↠width, height↠height}',
+          ],
+        ],
         '⿲sdc_test_all_props:all-props␟test-string' => [
           'storage' => $all_string_storage_props,
           'format_any_prop' => [
@@ -852,6 +866,12 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
           ],
           'instances' => [],
         ],
+        '⿲experience_builder:image␟image' => [
+          'storage' => [],
+          'format_any_prop' => [],
+          'format_main_prop' => [],
+          'instances' => [],
+        ],
         '⿲sdc_examples:my-cta␟text' => [
           'storage' => $core_only_string_storage_props_without_password_for_tbd_reason,
           'format_any_prop' => [
@@ -1351,6 +1371,18 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
             'ℹ︎␜entity:path_alias␝alias␞␟value',
             'ℹ︎␜entity:path_alias␝path␞␟value',
           ],
+        ],
+        '⿲experience_builder:image␟image' => [
+          'storage' => [
+            'ℹ︎image␟{src↝entity␜ℹ︎␜entity:file␝uri␞0␟value, alt↠alt, width↠width, height↠height}',
+          ],
+          'format_any_prop' => [
+            'ℹ︎image␟{src↝entity␜ℹ︎␜entity:file␝uri␞0␟value, alt↠alt, width↠width, height↠height}',
+          ],
+          'format_main_prop' => [
+            'ℹ︎image␟{src↝entity␜ℹ︎␜entity:file␝uri␞0␟value, alt↠alt, width↠width, height↠height}',
+          ],
+          'instances' => [],
         ],
       ],
     ];
