@@ -63,6 +63,9 @@ interface ComponentPropExpressionInterface extends PropExpressionInterface {
 interface StructuredDataPropExpressionInterface extends PropExpressionInterface {
   // Structured data contains information.
   const PREFIX = 'ℹ︎';
+
+  public function isSupported(EntityInterface|FieldItemInterface $entity_or_field): bool;
+
 }
 
 // For pointing to a prop in a component.
@@ -97,6 +100,15 @@ class FieldTypePropExpression implements StructuredDataPropExpressionInterface {
   public static function fromString(string $representation): static {
     $parts = explode('␟', mb_substr($representation, 2));
     return new static(...$parts);
+  }
+
+  public function isSupported(EntityInterface|FieldItemInterface $field_item): bool {
+    assert($field_item instanceof FieldItemInterface);
+    $actual_field_type = $field_item->getFieldDefinition()->getType();
+    if ($actual_field_type !== $this->fieldType) {
+      throw new \DomainException(sprintf("`%s` is an expression for field type `%s`, but the provided field item is of type `%s`.", (string) $this, $this->fieldType, $actual_field_type));
+    }
+    return TRUE;
   }
 
 }
@@ -144,6 +156,15 @@ class FieldTypeObjectPropsExpression implements StructuredDataPropExpressionInte
     return new static($field_type, $objectPropsToFieldTypeProps);
   }
 
+  public function isSupported(EntityInterface|FieldItemInterface $field_item): bool {
+    assert($field_item instanceof FieldItemInterface);
+    $actual_field_type = $field_item->getFieldDefinition()->getType();
+    if ($actual_field_type !== $this->fieldType) {
+      throw new \DomainException(sprintf("`%s` is an expression for field type `%s`, but the provided field item is of type `%s`.", (string) $this, $this->fieldType, $actual_field_type));
+    }
+    return TRUE;
+  }
+
 }
 
 // For pointing to a prop in a field type (not considering any delta).
@@ -160,6 +181,15 @@ final class ReferenceFieldTypePropExpression extends FieldTypePropExpression {
 
   public static function fromString(string $representation): static {
     throw new \Exception('todo');
+  }
+
+  public function isSupported(EntityInterface|FieldItemInterface $field_item): bool {
+    assert($field_item instanceof FieldItemInterface);
+    $actual_field_type = $field_item->getFieldDefinition()->getType();
+    if ($actual_field_type !== $this->fieldType) {
+      throw new \DomainException(sprintf("`%s` is an expression for field type `%s`, but the provided field item is of type `%s`.", (string) $this, $this->fieldType, $actual_field_type));
+    }
+    return TRUE;
   }
 
 }
@@ -202,6 +232,20 @@ final class FieldPropExpression implements StructuredDataPropExpressionInterface
     );
   }
 
+  public function isSupported(EntityInterface|FieldItemInterface $entity): bool {
+    assert($entity instanceof EntityInterface);
+    $expected_entity_type_id = $this->entityType->getEntityTypeId();
+    $expected_bundle = $this->entityType->getBundles()[0] ?? $expected_entity_type_id;
+    if ($entity->getEntityTypeId() !== $expected_entity_type_id) {
+      throw new \DomainException(sprintf("`%s` is an expression for entity type `%s`, but the provided entity is of type `%s`.", (string) $this, $expected_entity_type_id, $entity->getEntityTypeId()));
+    }
+    if ($entity->bundle() !== $expected_bundle) {
+      throw new \DomainException(sprintf("`%s` is an expression for entity type `%s`, bundle `%s`, but the provided entity is of the bundle `%s`.", (string) $this, $expected_entity_type_id, $expected_bundle, $entity->bundle()));
+    }
+    // @todo validate that the field exists?
+    return TRUE;
+  }
+
 }
 
 final class ReferenceFieldPropExpression implements StructuredDataPropExpressionInterface {
@@ -221,6 +265,21 @@ final class ReferenceFieldPropExpression implements StructuredDataPropExpression
     $referenced = FieldPropExpression::fromString(static::PREFIX . '␜' . $parts[3]);
     return new static($referencer, $referenced);
   }
+
+  public function isSupported(EntityInterface|FieldItemInterface $entity): bool {
+    assert($entity instanceof EntityInterface);
+    $expected_entity_type_id = $this->referencer->entityType->getEntityTypeId();
+    $expected_bundle = $this->referencer->entityType->getBundles()[0] ?? $expected_entity_type_id;
+    if ($entity->getEntityTypeId() !== $expected_entity_type_id) {
+      throw new \DomainException(sprintf("`%s` is an expression for entity type `%s`, but the provided entity is of type `%s`.", (string) $this, $expected_entity_type_id, $entity->getEntityTypeId()));
+    }
+    if ($entity->bundle() !== $expected_bundle) {
+      throw new \DomainException(sprintf("`%s` is an expression for entity type `%s`, bundle `%s`, but the provided entity is of the bundle `%s`.", (string) $this, $expected_entity_type_id, $expected_bundle, $entity->bundle()));
+    }
+    // @todo validate that the field exists?
+    return TRUE;
+  }
+
 
 }
 
@@ -290,6 +349,20 @@ class FieldObjectPropsExpression implements StructuredDataPropExpressionInterfac
     );
   }
 
+  public function isSupported(EntityInterface|FieldItemInterface $entity): bool {
+    assert($entity instanceof EntityInterface);
+    $expected_entity_type_id = $this->entityType->getEntityTypeId();
+    $expected_bundle = $this->entityType->getBundles()[0] ?? $expected_entity_type_id;
+    if ($entity->getEntityTypeId() !== $expected_entity_type_id) {
+      throw new \DomainException(sprintf("`%s` is an expression for entity type `%s`, but the provided entity is of type `%s`.", (string) $this, $expected_entity_type_id, $entity->getEntityTypeId()));
+    }
+    if ($entity->bundle() !== $expected_bundle) {
+      throw new \DomainException(sprintf("`%s` is an expression for entity type `%s`, bundle `%s`, but the provided entity is of the bundle `%s`.", (string) $this, $expected_entity_type_id, $expected_bundle, $entity->bundle()));
+    }
+    // @todo validate that the field exists?
+    return TRUE;
+  }
+
 }
 
 final class PropExpressionEvaluator {
@@ -305,25 +378,11 @@ final class PropExpressionEvaluator {
 
     // Assert that the received entity or field meets the needs of the
     // expression.
-    if ($expr instanceof FieldPropExpression || $expr instanceof ReferenceFieldPropExpression) {
-      $expected_entity_type_id = $expr instanceof FieldPropExpression
-        ? $expr->entityType->getEntityTypeId()
-        : $expr->referencer->entityType->getEntityTypeId();
-      $expected_bundle = $expr instanceof FieldPropExpression
-        ? $expr->entityType->getBundles()[0] ?? $expected_entity_type_id
-        : $expr->referencer->entityType->getBundles()[0] ?? $expected_entity_type_id;
-      if ($entity_or_field->getEntityTypeId() !== $expected_entity_type_id) {
-        throw new \DomainException(sprintf("`%s` is an expression for entity type `%s`, but the provided entity is of type `%s`.", (string)$expr, $expected_entity_type_id, $entity_or_field->getEntityTypeId()));
-      }
-      if ($entity_or_field->bundle() !== $expected_bundle) {
-        throw new \DomainException(sprintf("`%s` is an expression for entity type `%s`, bundle `%s`, but the provided entity is of the bundle `%s`.", (string)$expr, $expected_entity_type_id, $expected_bundle, $entity_or_field->bundle()));
-      }
+    try {
+      $expr->isSupported($entity_or_field);
     }
-    if ($expr instanceof FieldTypePropExpression) {
-      $actual_field_type = $entity_or_field->getFieldDefinition()->getType();
-      if ($actual_field_type !== $expr->fieldType) {
-        throw new \DomainException(sprintf("`%s` is an expression for field type `%s`, but the provided field item is of type `%s`.", (string)$expr, $expr->fieldType, $actual_field_type));
-      }
+    catch (\DomainException $e) {
+      throw $e;
     }
 
     return match (get_class($expr)) {
