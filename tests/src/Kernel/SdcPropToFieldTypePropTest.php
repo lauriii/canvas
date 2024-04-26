@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\Tests\experience_builder\Kernel;
 
 use Drupal\Core\Extension\ModuleInstallerInterface;
+use Drupal\Core\StreamWrapper\StreamWrapperManagerInterface;
 use Drupal\Core\Template\Attribute;
 use Drupal\experience_builder\ComponentPropExpression;
 use Drupal\experience_builder\FieldObjectPropsExpression;
@@ -122,6 +123,12 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
         if ($prop_name === 'attributes') {
           assert($schema['type'][0] === Attribute::class);
           continue;
+        }
+
+        if (isset($schema['$ref'])) {
+          // Prove a $ref URL can be transformed into a publicly accessible URL.
+          $public_ref_url = \Drupal::service(StreamWrapperManagerInterface::class)->getViaUri($schema['$ref'])->getExternalUrl();
+          $this->assertStringEndsWith('/experience_builder/schema.json#defs/' . basename($schema['$ref']), $public_ref_url);
         }
 
         $primitive_type = SdcPropJsonSchemaType::from(

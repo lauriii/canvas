@@ -65,6 +65,7 @@ final class SdcPropToFieldTypePropMatcher {
   }
 
   public function iterateJsonSchema(array $schema): \Generator {
+    $schema = self::resolveSchemaReferences($schema);
     $primitive_type = SdcPropJsonSchemaType::from(
     // TRICKY: SDC always allowed `object` for Twig integration reasons.
     // @see \Drupal\sdc\Component\ComponentMetadata::parseSchemaInfo()
@@ -81,13 +82,22 @@ final class SdcPropToFieldTypePropMatcher {
           // @see https://json-schema.org/understanding-json-schema/reference/object#required
           // @see https://json-schema.org/learn/getting-started-step-by-step#required
           'required' =>  in_array($prop_name, $schema['required'] ?? [], TRUE),
-          'schema' => $prop_schema,
+          'schema' => self::resolveSchemaReferences($prop_schema),
         ];
       }
     }
     else {
       throw new \LogicException('Support for "array" props is not yet implemented.');
     }
+  }
+
+  // @todo Make *recursive* references work in justinrainbow/schema, see https://git.drupalcode.org/project/ui_patterns/-/blob/28cf60dd776fb349d9520377afa510b0d85f3334/src/SchemaManager/ReferencesResolver.php
+  private static function resolveSchemaReferences(array $schema): array {
+    if (isset($schema['$ref'])) {
+      // Perform the same schema resolving as `justinrainbow/json-schema`.
+      $schema = json_decode(file_get_contents($schema['$ref']), TRUE);
+    }
+    return $schema;
   }
 
   public function findFieldTypeProps(SdcPropJsonSchemaType $json_schema_primitive_type, bool $is_required_in_json_schema, ?array $schema, bool $main_property_only) : array {

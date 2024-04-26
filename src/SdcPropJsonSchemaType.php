@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\experience_builder;
 
+use Drupal\Core\StreamWrapper\StreamWrapperManagerInterface;
 use Drupal\experience_builder\JsonSchemaInterpreter\JsonSchemaStringFormat;
 use Drupal\experience_builder\Plugin\Validation\Constraint\StringSemanticsConstraint;
 

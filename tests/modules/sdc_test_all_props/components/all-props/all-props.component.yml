@@ -66,10 +66,12 @@ props:
       format: uri
     test-string-format-uri-image:
       title: 'String, format=uri, images only'
-      type: string
-      format: uri
-      # @see \Drupal\image\Plugin\Field\FieldType\ImageItem::defaultFieldSettings()
-      pattern: '\.(png|gif|jpg|jpeg|webp)$'
+      $ref: "json-schema-definitions://experience_builder.module/image-uri"
+      # ⚠️ The reference above is equivalent to:
+#      type: string
+#      format: uri
+#      # @see \Drupal\image\Plugin\Field\FieldType\ImageItem::defaultFieldSettings()
+#      pattern: '\.(png|gif|jpg|jpeg|webp)$'
     test-string-format-uri-reference:
       type: string
       format: uri-reference
@@ -109,48 +111,12 @@ props:
       maximum: 2147483648
 
     # The "drupal-image" predefined object format.
-    # @todo Convert to use `$ref`, see https://www.drupal.org/project/drupal/issues/3352063#comment-15491033
     test-object-drupal-image:
-      type: object
-      required:
-        - src
-        #- alt
-      properties:
-        # @todo Adapter to be able to transform this to srcset
-        src:
-          title: 'Image URL'
-          type: string
-          format: uri
-          # @see \Drupal\image\Plugin\Field\FieldType\ImageItem::defaultFieldSettings()
-          pattern: '\.(png|gif|jpg|jpeg|webp)$'
-        alt:
-          title: 'Alternative text'
-          type: string
-        width:
-          title: 'Image width'
-          type: integer
-          #minimum: 0
-        height:
-          title: 'Image height'
-          type: integer
-          #minimum: 0
+      $ref: "json-schema-definitions://experience_builder.module/image"
 
     # The "drupal-date-range" predefined object format.
-    # @todo Convert to use `$ref`, see https://www.drupal.org/project/drupal/issues/3352063#comment-15491033
     test-object-drupal-date-range:
-      type: object
-      required:
-        - from
-        - to
-      properties:
-        from:
-          title: 'Start date'
-          type: string
-          format: date
-        to:
-          title: 'End date'
-          type: string
-          format: date
+      $ref: "json-schema-definitions://experience_builder.module/date-range"
 
     #
     # @todo finish adding all other types + formats supported by JSON schema

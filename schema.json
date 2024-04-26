@@ -1,0 +1,50 @@
+{
+  "$defs": {
+    "date-range": {
+      "title": "date range",
+      "type":  "object",
+      "required": ["from", "to"],
+      "properties": {
+        "from": {
+          "title": "Start date",
+          "type": "string",
+          "format": "date"
+        },
+        "to": {
+          "title": "End date",
+          "type": "string",
+          "format": "date"
+        }
+      }
+    },
+    "image-uri": {
+      "title": "Image URL",
+      "type": "string",
+      "format": "uri",
+      "pattern": "\\.(png|gif|jpg|jpeg|webp)$"
+    },
+    "image": {
+      "title": "image",
+      "type":  "object",
+      "required": ["src"],
+      "properties": {
+        "src": {
+          "title": "Image URL",
+          "$ref": "json-schema-definitions://experience_builder.module/image-uri"
+        },
+        "alt": {
+          "title": "Alternative text",
+          "type": "string"
+        },
+        "width": {
+          "title": "Image width",
+          "type": "integer"
+        },
+        "height": {
+          "title": "Image height",
+          "type": "integer"
+        }
+      }
+    }
+  }
+}
