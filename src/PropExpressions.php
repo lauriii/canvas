@@ -303,9 +303,21 @@ final class PropExpressionEvaluator {
       throw new \LogicException('No data provided to evaluate expression ' . (string)$expr);
     }
 
-    // Assert shape.
+    // Assert that the received entity or field meets the needs of the
+    // expression.
     if ($expr instanceof FieldPropExpression || $expr instanceof ReferenceFieldPropExpression) {
-      // @todo
+      $expected_entity_type_id = $expr instanceof FieldPropExpression
+        ? $expr->entityType->getEntityTypeId()
+        : $expr->referencer->entityType->getEntityTypeId();
+      $expected_bundle = $expr instanceof FieldPropExpression
+        ? $expr->entityType->getBundles()[0] ?? $expected_entity_type_id
+        : $expr->referencer->entityType->getBundles()[0] ?? $expected_entity_type_id;
+      if ($entity_or_field->getEntityTypeId() !== $expected_entity_type_id) {
+        throw new \DomainException(sprintf("`%s` is an expression for entity type `%s`, but the provided entity is of type `%s`.", (string)$expr, $expected_entity_type_id, $entity_or_field->getEntityTypeId()));
+      }
+      if ($entity_or_field->bundle() !== $expected_bundle) {
+        throw new \DomainException(sprintf("`%s` is an expression for entity type `%s`, bundle `%s`, but the provided entity is of the bundle `%s`.", (string)$expr, $expected_entity_type_id, $expected_bundle, $entity_or_field->bundle()));
+      }
     }
     if ($expr instanceof FieldTypePropExpression) {
       $actual_field_type = $entity_or_field->getFieldDefinition()->getType();

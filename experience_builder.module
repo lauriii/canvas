@@ -249,8 +249,8 @@ function experience_builder_entity_view_alter(&$build, EntityInterface $entity, 
       'text' => [
         'sourceType' => 'dynamic',
         // Either expression works:
-//        'expression' => 'ℹ︎␜entity:node:foo␝title␞␟value',
-        'expression' => 'ℹ︎␜entity:node:foo␝field_call_to_action␞␟value',
+        'expression' => 'ℹ︎␜entity:node:article␝title␞␟value',
+//        'expression' => 'ℹ︎␜entity:node:article␝field_call_to_action␞␟value',
       ],
       'href' => [
         'sourceType' => 'static:field_item:link',
@@ -273,11 +273,11 @@ function experience_builder_entity_view_alter(&$build, EntityInterface $entity, 
     'dynamic-dynamic-card3rr' => [
       'text' => [
         'sourceType' => 'dynamic',
-        'expression' => 'ℹ︎␜entity:node:foo␝title␞␟value',
+        'expression' => 'ℹ︎␜entity:node:article␝title␞␟value',
       ],
       'href' => [
         'sourceType' => 'dynamic',
-        'expression' => 'ℹ︎␜entity:node:foo␝field_image␞␟entity␜︎␜entity:file␝uri␞␟value',
+        'expression' => 'ℹ︎␜entity:node:article␝field_image␞␟entity␜︎␜entity:file␝uri␞␟value',
       ],
     ],
     'static-image-56r' => [
@@ -292,7 +292,7 @@ function experience_builder_entity_view_alter(&$build, EntityInterface $entity, 
     'dynamic-image-udf7d' => [
       'image' => [
         'sourceType' => 'dynamic',
-        'expression' => 'ℹ︎␜entity:node:foo␝field_image␞␟{src↝entity␜ℹ︎␜entity:file␝uri␞␟url, alt↠alt, width↠width, height↠height}',
+        'expression' => 'ℹ︎␜entity:node:article␝field_image␞␟{src↝entity␜ℹ︎␜entity:file␝uri␞␟url, alt↠alt, width↠width, height↠height}',
       ],
     ],
   ]), TRUE);
