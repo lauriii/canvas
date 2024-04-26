@@ -110,13 +110,14 @@ props:
       minimum: -2147483648
       maximum: 2147483648
 
-    # The "drupal-image" predefined object format.
+    # The "image" predefined object format.
+    # @todo Agree on one special case, for ecosystem-wide formats: `json-schema-definitions://drupal/<something>`, so `json-schema-definitions://drupal/image` here.
     test-object-drupal-image:
       $ref: "json-schema-definitions://experience_builder.module/image"
 
-    # The "drupal-date-range" predefined object format.
+    # The "date-range" object format for this module.
     test-object-drupal-date-range:
-      $ref: "json-schema-definitions://experience_builder.module/date-range"
+      $ref: "json-schema-definitions://sdc_test_all_props.module/date-range"
 
     #
     # @todo finish adding all other types + formats supported by JSON schema

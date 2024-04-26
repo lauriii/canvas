@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Drupal\experience_builder;
 
+use Drupal\Core\Extension\Exception\UnknownExtensionException;
+use Drupal\Core\Extension\Exception\UnknownExtensionTypeException;
 use Drupal\Core\Extension\ExtensionPathResolver;
 use Drupal\Core\StreamWrapper\LocalReadOnlyStream;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
@@ -24,8 +26,15 @@ class JsonSchemaDefinitionsStreamwrapper extends LocalReadOnlyStream {
    * {@inheritdoc}
    */
   public function stream_open($uri, $mode, $options, &$opened_path) {
-    [$extension_path, $definition_name] = self::parseUri($uri);
-    if (!file_exists($extension_path)) {
+    try {
+      [$extension_path, $definition_name] = self::parseUri($uri);
+    }
+    catch (UnknownExtensionException|UnknownExtensionTypeException $e) {
+      // @todo Re-throw with more precise exception message for better DX.
+      return FALSE;
+    }
+    if (!file_exists($extension_path . DIRECTORY_SEPARATOR . 'schema.json')) {
+      // @todo Logging/exception for better DX.
       return FALSE;
     }
 
