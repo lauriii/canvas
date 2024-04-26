@@ -402,6 +402,7 @@ final class SdcPropToFieldTypePropMatcher {
               // @todo verify if truly necessary?
               $transformed_property_data_definition = clone $property->getDataDefinition();
               // @todo JSON schema does not support case-insensitive matching!!!! https://json-schema.org/understanding-json-schema/reference/regular_expressions
+              // @todo the `value` prop should only get the suffix matching, but the `url` prop should also get prefix matching: `^(http(s)?:)?\/\//`
               $transformed_property_data_definition->addConstraint('Regex', [
                 'pattern' => '\.(' . preg_replace('/ +/', '|', preg_quote($entity_constraints['FileExtension']['extensions'])) . ')$',
               ]);

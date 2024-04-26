@@ -10,6 +10,7 @@ use Drupal\experience_builder\ComponentPropExpression;
 use Drupal\experience_builder\FieldPropExpression;
 use Drupal\experience_builder\FieldTypePropExpression;
 use Drupal\experience_builder\Plugin\Field\FieldType\FileItemOverride;
+use Drupal\experience_builder\Plugin\Field\FieldType\FileUriItemOverride;
 use Drupal\experience_builder\Plugin\Field\FieldType\ImageItemOverride;
 use Drupal\experience_builder\Plugin\Field\FieldType\LinkItemOverride;
 use Drupal\experience_builder\Plugin\Field\FieldType\PathItemOverride;
@@ -60,6 +61,9 @@ function experience_builder_field_info_alter(&$info) {
   if (!empty($info['file'])) {
     $info['file']['class'] = FileItemOverride::class;
   }
+  if (!empty($info['file_uri'])) {
+    $info['file_uri']['class'] = FileUriItemOverride::class;
+  }
   if (!empty($info['image'])) {
     $info['image']['class'] = ImageItemOverride::class;
   }
@@ -73,7 +77,7 @@ function experience_builder_field_info_alter(&$info) {
     $info['string']['class'] = StringItemOverride::class;
   }
   if (!empty($info['string_long'])) {
-    $info['string_long']['class'] = StringItemOverride::class;
+    $info['string_long']['class'] = StringLongItemOverride::class;
   }
   if (!empty($info['text'])) {
     $info['text']['class'] = TextItemOverride::class;
