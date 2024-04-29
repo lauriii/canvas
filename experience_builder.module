@@ -107,7 +107,7 @@ function experience_builder_entity_base_field_info_alter(&$fields, \Drupal\Core\
 
 function _eb_resolve_sdc_prop_value(\Drupal\Core\Entity\ContentEntityInterface $host_entity, array $sdc_prop_source) {
   // @todo convert this to a value object?
-  $missing = array_diff(['sourceType', 'expression'], array_keys($sdc_prop_source));
+  $missing = array_diff(['sourceType'], array_keys($sdc_prop_source));
   if (!empty($missing)) {
     throw new \LogicException(sprintf('Missing the keys %s.', implode(',', $missing)));
   }
@@ -116,8 +116,8 @@ function _eb_resolve_sdc_prop_value(\Drupal\Core\Entity\ContentEntityInterface $
   assert($typed_data_manager instanceof \Drupal\Core\TypedData\TypedDataManagerInterface);
 
   if (str_starts_with($sdc_prop_source['sourceType'], 'static:')) {
-    // `sourceType = static` requires a value to be specified.
-    $missing = array_diff(['value'], array_keys($sdc_prop_source));
+    // `sourceType = static` requires a value and an expression to be specified.
+    $missing = array_diff(['value', 'expression'], array_keys($sdc_prop_source));
     if (!empty($missing)) {
       throw new \LogicException(sprintf('Missing the keys %s.', implode(',', $missing)));
     }
@@ -162,6 +162,12 @@ function _eb_resolve_sdc_prop_value(\Drupal\Core\Entity\ContentEntityInterface $
   }
 
   if ($sdc_prop_source['sourceType'] === 'dynamic') {
+    // `sourceType = dynamic` requires an expression to be specified.
+    $missing = array_diff(['expression'], array_keys($sdc_prop_source));
+    if (!empty($missing)) {
+      throw new \LogicException(sprintf('Missing the keys %s.', implode(',', $missing)));
+    }
+
     // First: construct an expression object from the expression string.
     if (str_contains($sdc_prop_source['expression'], '{')) {
       $expression = \Drupal\experience_builder\FieldObjectPropsExpression::fromString($sdc_prop_source['expression']);
@@ -174,6 +180,16 @@ function _eb_resolve_sdc_prop_value(\Drupal\Core\Entity\ContentEntityInterface $
     }
     // Second: evaluate expression using the field item.
     $value = \Drupal\experience_builder\PropExpressionEvaluator::evaluate($host_entity, $expression);
+  }
+
+  if (str_starts_with($sdc_prop_source['sourceType'], 'adapter:')) {
+    // `sourceType = adapter` requires `adapterInputs` to be specified.
+    $missing = array_diff(['adapterInputs'], array_keys($sdc_prop_source));
+    if (!empty($missing)) {
+      throw new \LogicException(sprintf('Missing the keys %s.', implode(',', $missing)));
+    }
+    // @todo
+    $value = ['src' => '@todo.png'];
   }
 
   return $value;
@@ -241,6 +257,7 @@ function experience_builder_entity_view_alter(&$build, EntityInterface $entity, 
     'static-static-card1ab' => ['type' => $component->getPluginId()],
     'dynamic-static-card2df' => ['type' => $component->getPluginId()],
     'dynamic-dynamic-card3rr' => ['type' => $component->getPluginId()],
+    'dynamic-image-static-imageStyle-sdfdsfsdfsudf7d' => ['type' => 'experience_builder:image'],
   ]), TRUE);
 
 
@@ -283,7 +300,7 @@ function experience_builder_entity_view_alter(&$build, EntityInterface $entity, 
     'static-image-56r' => [
       'image' => [
         'sourceType' => 'static:field_item:link',
-        'value' => ['uri' => 'https://www.drupal.org/files/cta_multiple/featured_image/drupal-evergreen-icon-250X230px_0.png', 'title' => NULL, 'options' => []],
+        'value' => ['uri' => 'http://upload.wikimedia.org/wikipedia/commons/d/d4/Cat_March_2010-1a.jpg', 'title' => NULL, 'options' => []],
         // This expression would trigger the exception `Drupal\sdc\Exception\InvalidComponentException: [image] String value found, but an object is required`.
 //        'expression' => 'ℹ︎link␟uri',
         'expression' => 'ℹ︎link␟{src↠uri}',
@@ -293,6 +310,32 @@ function experience_builder_entity_view_alter(&$build, EntityInterface $entity, 
       'image' => [
         'sourceType' => 'dynamic',
         'expression' => 'ℹ︎␜entity:node:article␝field_image␞␟{src↝entity␜ℹ︎␜entity:file␝uri␞␟url, alt↠alt, width↠width, height↠height}',
+      ],
+    ],
+    'dynamic-image-static-imageStyle-sdfdsfsdfsudf7d' => [
+      'image' => [
+        // @todo an adapter must be:
+        // - a plugin, with a name aka plugin ID, here `imageAndStyle`
+        // - with defined inputs (name + JSON schema, here `image` and `imageStyle`)
+        // - with a defined output (JSON schema)
+        // All three of these are necessary to be able to suggest possible matches for the BUILDER/CREATOR persona, and enable these increasingly complex (in terms of infrastructure) workflows:
+        // - step 1: CREATOR chooses (places) a component and possible adapters are provided for each component prop: component prop JSON schema === adapter output JSON schema, if no such match exists, then no adapter is available
+        // - step 2: BUILDER chooses (places) a component and possible adapters are provided for each component prop etc. (same as above), but this time at the content type template level
+        // - step 3: BUILDER creates a COMPONENT VARIANT, this named variant such as `image--thumbnail` would e.g. always use the same image style: thumbnail. This requires a config entity to store the component variant, to depend on the module providing the adapter, depend on the chosen image style config entity. The CREATOR will not be able to choose a different image style, unless the BUILDER chose to expose the original `image` SDC, in which case the CREATOR could configure the adapter themselves.
+        // - step 4: BUILDER could also creates a COMPONENT VARIANT that does NOT restrict to a single image style, but restrict which choices are available to the CREATOR. For example, only "thumnail" and "large" image styles may be chosen. This requires the same config entity as above, but with more config dependencies. The CREATOR will be able to choose between 'thumbnail' and 'large' image styles. The BUILDER presumably chooses to not expose the original `image` SDC in this scenario, but Experience Builder won't prevent it.
+        'sourceType' => 'adapter:imageAndStyle',
+        'adapterInputs' => [
+          // @todo order of `adapterInputs` keys is insigificant, because all keys MUST be named to match the adapter's named inputs
+          'image' => [
+            'sourceType' => 'dynamic',
+            'expression' => 'ℹ︎␜entity:node:article␝field_image␞␟{src↝entity␜ℹ︎␜entity:file␝uri␞␟url, alt↠alt, width↠width, height↠height}',
+          ],
+          'imageStyle' => [
+            'sourceType' => 'static:field_item:string',
+            'value' => 'thumbnail',
+            'expression' => 'ℹ︎string␟value',
+          ],
+        ],
       ],
     ],
   ]), TRUE);
