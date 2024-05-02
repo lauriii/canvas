@@ -8,6 +8,7 @@ use Drupal\Core\Extension\Exception\UnknownExtensionException;
 use Drupal\Core\Extension\Exception\UnknownExtensionTypeException;
 use Drupal\Core\Extension\ExtensionPathResolver;
 use Drupal\Core\StreamWrapper\LocalReadOnlyStream;
+use Drupal\Core\StreamWrapper\StreamWrapperInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\Url;
 
@@ -21,6 +22,13 @@ use Drupal\Core\Url;
 class JsonSchemaDefinitionsStreamwrapper extends LocalReadOnlyStream {
 
   use StringTranslationTrait;
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function getType() {
+    return StreamWrapperInterface::LOCAL | StreamWrapperInterface::READ | StreamWrapperInterface::HIDDEN;
+  }
 
   /**
    * {@inheritdoc}
