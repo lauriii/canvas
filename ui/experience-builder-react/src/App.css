@@ -1,0 +1,32 @@
+:root {
+  --topbar-height: 2rem;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+.app-container {
+  padding-left: calc(200px);
+}
+
+.topbar {
+  height: var(--topbar-height);
+  display: flex;
+  text-align: center;
+  border-bottom: 1px solid #333;
+  background: #c2c2c2;
+  justify-content: center;
+  align-items: center;
+}
+
+.sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 100dvh;
+  width: 200px;
+  background: #333;
+  color: #fff;
+  padding: 0.5rem;
+}

@@ -1,0 +1,10 @@
+.xb-tree-child-toolbar {
+    display: flex;
+    div {
+        text-overflow: ellipsis;
+        text-wrap: nowrap;
+    }
+    button {
+        margin-left: auto;
+    }
+}

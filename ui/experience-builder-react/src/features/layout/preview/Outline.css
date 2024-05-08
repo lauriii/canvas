@@ -1,0 +1,19 @@
+.xb-component-outline {
+  position: fixed;
+  display: block;
+  outline: 2px dashed #02a376;
+  pointer-events: none;
+  top: 0;
+  left: 0;
+  will-change: top, left, width, height, transform;
+}
+.xb-component-toolbar {
+  position: fixed;
+  display: block;
+  top: 0;
+  left: 0;
+  will-change: top, left, transform;
+  button {
+    cursor: pointer !important;
+  }
+}

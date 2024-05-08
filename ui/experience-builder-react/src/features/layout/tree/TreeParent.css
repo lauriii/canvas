@@ -1,0 +1,49 @@
+.treeParent {
+  list-style-type: none;
+  margin: 0 0 1rem 0;
+  padding: 2px;
+  border: 1px solid #ccc;
+  &.list-empty {
+    border: none;
+  }
+  .list-dragging & {
+    &.list-empty {
+    }
+  }
+  li {
+    margin-bottom: 1rem;
+    .treeParent {
+      margin-top: 1rem;
+    }
+  }
+  .treeParent {
+    margin-left: 1rem;
+  }
+  .sortable-ghost {
+    opacity: 0.5;
+    height: 1rem;
+    max-height: 1rem;
+    width: 100%;
+    /*margin: 0 0 10px;*/
+    clear: none;
+    position: relative;
+    background: linear-gradient(
+        135deg,
+        #ddd 12.5%,
+        transparent 12.5%,
+        transparent 50%,
+        #ddd 50%,
+        #ddd 62.5%,
+        transparent 62.5%,
+        transparent 100%
+      )
+      center / 5.66px 5.66px;
+    outline: 1px solid #ccc;
+    box-shadow: none;
+    flex-grow: 1;
+    overflow: hidden;
+    & * {
+      visibility: hidden;
+    }
+  }
+}

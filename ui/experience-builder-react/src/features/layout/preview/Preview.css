@@ -1,0 +1,13 @@
+.preview {
+  width: 100%;
+  height: calc(100vh - var(--topbar-height));
+  display: block;
+  border: none;
+}
+
+.debug {
+  position: fixed;
+  bottom: 0;
+  right: 0;
+  display: flex;
+}
