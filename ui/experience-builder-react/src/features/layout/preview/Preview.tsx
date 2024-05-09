@@ -33,6 +33,12 @@ const styleContent = `
     }
   }
 }
+.slot-container {
+  display: flex;
+  > .sortable-item {
+    width: 100%;
+  }
+}
 .sortable-list:empty {
   min-height: 1.5rem;
   border: 2px dashed #ccc;
@@ -99,20 +105,19 @@ const Preview: React.FC<PreviewProps> = props => {
 
       // Check if the component has children to create a nested structure
 
-      // If no children, just create a header or paragraph based on the component name
-      if (component.name.includes("Component")) {
+      if (component.type === "component") {
         const header = document.createElement("h1");
         header.textContent = component.name;
         div.appendChild(header);
-      } else {
-        const paragraph = document.createElement("p");
-        paragraph.textContent = component.name;
-        div.appendChild(paragraph);
       }
       if (component.children) {
         const innerDiv = document.createElement("div");
-        innerDiv.className = "sortable-list";
-        innerDiv.setAttribute("data-xb-uuid", component.uuid);
+        if(component.type === 'slot') {
+          innerDiv.className = "sortable-list";
+          innerDiv.setAttribute("data-xb-uuid", component.uuid);
+        } else {
+          innerDiv.className = "slot-container";
+        }
         component.children.forEach((child: LayoutNode) => {
           innerDiv.appendChild(createComponent(child));
         });
@@ -192,7 +197,7 @@ const Preview: React.FC<PreviewProps> = props => {
         const newPath: number[] = [...receivingParentPath, ev.newDraggableIndex];
 
         if(ev.clone.dataset.isNew === 'true' && ev.clone.dataset.xbUuid) {
-          dispatch(insertNode({to: newPath, newNode: {uuid: ev.clone.dataset.xbUuid, children: [], name: `Component ${ev.clone.dataset.xbUuid}`}}))
+          dispatch(insertNode({to: newPath, newNode: {uuid: ev.clone.dataset.xbUuid, children: [], type: 'component', name: `Component ${ev.clone.dataset.xbUuid}`}}))
         } else {
           dispatch(moveNode({ uuid: ev.item.dataset.xbUuid, to: newPath }));
         }
@@ -218,7 +223,7 @@ const Preview: React.FC<PreviewProps> = props => {
               position: absolute;
               display: flex;
               justify-content: center;
-              top: -999px; // Position off-screen to avoid flickering
+              top: -9999px; // Position off-screen to avoid flickering
               cursor: grabbing;
               pointer-events: none;
             `;
@@ -246,7 +251,7 @@ const Preview: React.FC<PreviewProps> = props => {
   const initSortableList = (listEl: HTMLElement) => {
     // Initialize SortableJS on the elements inside the iframe
     Sortable.create(listEl, {
-      animation: 150,
+      animation: 0,
       invertSwap: true,
       group: {
         name: "layout",

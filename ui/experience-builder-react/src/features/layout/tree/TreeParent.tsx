@@ -57,7 +57,7 @@ const TreeParent: React.FC<TreeParentProps> = props => {
           // When dragging a new element into the tree from the list, the clone is actually dropped into the DOM and we need
           // to remove it here.
           ev.item.remove();
-          dispatch(insertNode({to: newPath, newNode: {uuid: ev.clone.dataset.xbUuid, children: [], name: `Component ${ev.clone.dataset.xbUuid}`}}))
+          dispatch(insertNode({to: newPath, newNode: {uuid: ev.clone.dataset.xbUuid, children: [], type: 'component', name: `Component ${ev.clone.dataset.xbUuid}`}}))
         } else {
           // When dragging, the element is actually moved in the DOM, after dragging we swap the original
           // item back so that React's Virtual DOM doesn't get out of sync when we update the data.
@@ -75,6 +75,7 @@ const TreeParent: React.FC<TreeParentProps> = props => {
     if (listElRef.current !== null) {
       sortableInstance.current = Sortable.create(listElRef.current, {
         dataIdAttr: "data-xb-uuid",
+        animation: 0,
         group: {
           name: "tree",
           put: ["tree", "list"],
@@ -86,13 +87,25 @@ const TreeParent: React.FC<TreeParentProps> = props => {
     }
   }, [layout]);
 
-  return (
-    <ul className={`treeParent ${children.length === 0 ? "list-empty" : ""}`} ref={listElRef} data-xb-uuid={node.uuid}>
-      {children.map(child => (
-        <TreeChild key={child.uuid} node={child} />
-      ))}
-    </ul>
-  );
+  if(node.type === 'slot' || node.type === 'root') {
+    return (
+      <ul className={`treeParent slot ${children.length === 0 ? "list-empty" : ""}`} ref={listElRef} data-xb-uuid={node.uuid}>
+        {children.map(child => (
+          <TreeChild key={child.uuid} node={child} />
+        ))}
+      </ul>
+    );
+  } else if (node.children.length) {
+    return (
+      <ul className={`treeParent ${children.length === 0 ? "list-empty" : ""}`}>
+        {children.map(child => (
+          <TreeChild key={child.uuid} node={child} />
+        ))}
+      </ul>
+    );
+  }
+
+
 };
 
 export default TreeParent;

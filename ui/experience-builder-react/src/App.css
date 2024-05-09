@@ -1,5 +1,7 @@
 :root {
   --topbar-height: 2rem;
+  --leftbar-width: 200px;
+  --rightbar-width: 200px;
 }
 
 * {
@@ -7,7 +9,8 @@
 }
 
 .app-container {
-  padding-left: calc(200px);
+  padding-left: var(--leftbar-width);
+  padding-right: var(--rightbar-width);
 }
 
 .topbar {
@@ -25,8 +28,14 @@
   top: 0;
   left: 0;
   height: 100dvh;
-  width: 200px;
+  width: var(--leftbar-width);
   background: #333;
   color: #fff;
   padding: 0.5rem;
+}
+
+.sidebar-right {
+  width: var(--rightbar-width);
+  right: 0;
+  left: auto;
 }

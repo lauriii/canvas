@@ -1,4 +1,5 @@
 import {useEffect, useRef, useState} from "react";
+import './List.css';
 import {selectDragging, setListDragging, setTreeDragging} from "../../features/ui/uiSlice";
 import Sortable from "sortablejs";
 import {useAppDispatch, useAppSelector} from "../../app/hooks";
@@ -37,12 +38,19 @@ const List = () => {
       sortableInstance.current = Sortable.create(listElRef.current, {
         dataIdAttr: "data-xb-uuid",
         sort: false,
+        // fallbackTolerance: 3,
+        // direction: 'horizontal',
+        // multiDrag: false,
+        // forceFallback: true,
         group: {
           name: "list",
           pull: 'clone',
           put: false,
           revertClone: true,
         },
+        animation: 0,
+        delay: 200,
+        delayOnTouchOnly: true,
         onAdd: handleDragAdd,
         onStart: handleDragStart,
         onEnd: handleDragEnd,
@@ -51,17 +59,40 @@ const List = () => {
     }
   }, []);
 
+
+  //       sort: false,
+  //       fallbackTolerance: 3,
+  //       multiDrag: false,
+  //       selectedClass: 'selected',
+  //       animation: 150,
+  //       forceFallback: true,
+  //       dataIdAttr: 'data-component-uuid',
+  //       fallbackOnBody: true,
+  //       filter: '.ssa-no-drag',
+  //       chosenClass: '',
+  //       fallbackClass: 'ssa-sortable-placeholder',
+  //       ghostClass: 'ssa-sortable-ghost',
+  //       scroll: true, // Enable the plugin. Can be HTMLElement.
+  //       scrollSensitivity: 150, // px, how near the mouse must be to an edge to start scrolling.
+  //       scrollSpeed: 15, // px, speed of the scrolling
+  //       bubbleScroll: false, // apply autoscroll to all parent elements, allowing for easier movement
+  //       onStart: handleDragStart,
+  //       onEnd: handleDragEnd,
+  //       onMove: handleDragMove,
+  //       delay: 200, // time in milliseconds to define when the sorting should start
+  //       delayOnTouchOnly: true, // only delay if user is using touch
+
   return (
     <div className={isDragging ? "list-dragging" : ""}>
       <h2>Components</h2>
+      <p><small>I'm not auto-generating unique uuid's so these start at 6 to not conflict with the components already present in the sample layout</small></p>
       <ul ref={listElRef}>
-        <li data-xb-uuid="1">Component 1</li>
-        <li data-xb-uuid="2">Component 2</li>
-        <li data-xb-uuid="3">Component 3</li>
-        <li data-xb-uuid="4">Component 4</li>
-        <li data-xb-uuid="5">Component 5</li>
         <li data-xb-uuid="6">Component 6</li>
         <li data-xb-uuid="7">Component 7</li>
+        <li data-xb-uuid="8">Component 8</li>
+        <li data-xb-uuid="9">Component 9</li>
+        <li data-xb-uuid="10">Component 10</li>
+        <li data-xb-uuid="11">Component 11</li>
       </ul>
     </div>
   );

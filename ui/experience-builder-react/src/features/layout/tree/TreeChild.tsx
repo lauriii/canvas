@@ -18,12 +18,14 @@ const TreeChild: React.FC<TreeChildProps> = props => {
 
   return (
     <li data-xb-uuid={node.uuid}>
-      <div className="xb-tree-child-toolbar">
-        <div>{node.name}</div>
-        <button type="button" onClick={handleDeleteClick}>
-          Del
-        </button>
-      </div>
+      {node.type !== 'slot' && (
+        <div className="xb-tree-child-toolbar">
+          <div>{node.name}</div>
+          <button type="button" onClick={handleDeleteClick}>
+            Del
+          </button>
+        </div>
+      )}
 
       {node.children && <TreeParent node={node} />}
     </li>

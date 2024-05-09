@@ -2,9 +2,9 @@
   list-style-type: none;
   margin: 0 0 1rem 0;
   padding: 2px;
-  border: 1px solid #ccc;
-  &.list-empty {
-    border: none;
+  &.slot {
+    border: 1px solid #ccc;
+    min-height: 2rem;
   }
   .list-dragging & {
     &.list-empty {
@@ -13,11 +13,11 @@
   li {
     margin-bottom: 1rem;
     .treeParent {
-      margin-top: 1rem;
+      margin-top: 0.5rem;
     }
   }
   .treeParent {
-    margin-left: 1rem;
+    margin-left: 0.5rem;
   }
   .sortable-ghost {
     opacity: 0.5;

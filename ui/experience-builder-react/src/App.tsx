@@ -10,15 +10,17 @@ const App = () => {
   return (
     <div className="App">
       <div className="app-container">
-        <div className="sidebar">
-          <List />
-          <h2>Layout</h2>
-          <TreeView />
+        <div className="sidebar sidebar-left">
+          <List/>
         </div>
         <div className="topbar">
           <div>Top bar</div>
         </div>
-        <Preview iframeRef={iframeRef} />
+        <Preview iframeRef={iframeRef}/>
+        <div className="sidebar sidebar-right">
+          <h2>Layout</h2>
+          <TreeView/>
+        </div>
       </div>
     </div>
   );

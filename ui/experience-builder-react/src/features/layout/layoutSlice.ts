@@ -1,58 +1,72 @@
-import type { PayloadAction } from "@reduxjs/toolkit";
-import { createSlice } from "@reduxjs/toolkit";
+import type {PayloadAction} from "@reduxjs/toolkit";
+import {createSlice} from "@reduxjs/toolkit";
 import _ from "lodash";
-import { findNodeByUuid, findNodePathByUuid, moveNodeToPath, insertNodeAtPath, removeNodeByUuid } from "./layoutUtils";
+import {findNodeByUuid, findNodePathByUuid, moveNodeToPath, insertNodeAtPath, removeNodeByUuid} from "./layoutUtils";
 
 export interface LayoutNode {
   uuid: string;
   name: string;
-  children: LayoutNode[];
-}
-
-export interface RootLayoutNode {
-  uuid: string;
-  name: string;
+  type: 'slot' | 'component' | 'root';
   children: LayoutNode[];
 }
 
 export interface LayoutSliceState {
-  layout: RootLayoutNode;
+  layout: LayoutNode;
 }
 
 const initialState: LayoutSliceState = {
   layout: {
     uuid: "root",
+    type: 'root',
     name: "root",
     children: [
       {
-        name: "Component 1",
+        name: "C1 (no slots)",
         uuid: "1",
         children: [],
+        type: "component"
       },
       {
-        name: "Component 2",
+        name: "C2 (1 slot)",
         uuid: "2",
-        children: [],
-      },
-      {
-        name: "Component 3",
-        uuid: "3",
+        type: "component",
         children: [
           {
-            name: "Component 4",
-            uuid: "4",
+            name: "Slot 1",
+            type: "slot",
+            uuid: "2-1",
+            children: [],
+          },
+        ],
+      },
+      {
+        name: "C3 (2 slots)",
+        uuid: "3",
+        type: "component",
+        children: [
+          {
+            name: "Slot 1",
+            type: "slot",
+            uuid: "3-1",
+            children: [{
+              name: "C5 (no slots)",
+              type: "component",
+              uuid: "5",
+              children: [],
+            },],
+          },
+          {
+            name: "Slot 2",
+            type: "slot",
+            uuid: "3-2",
             children: [
               {
-                name: "Component 6",
-                uuid: "6",
+                name: "C4 (no slots)",
+                type: "component",
+                uuid: "4",
                 children: [],
               },
             ],
-          },
-          {
-            name: "Component 5",
-            uuid: "5",
-            children: [],
           },
         ],
       },
@@ -86,7 +100,7 @@ export const layoutSlice = createSlice({
       state.layout = removeNodeByUuid(state.layout, action.payload);
     }),
     moveNode: create.reducer((state, action: PayloadAction<MoveNodePayload>) => {
-      const { uuid, to } = action.payload;
+      const {uuid, to} = action.payload;
       if (!uuid || !Array.isArray(to)) {
         console.error(`Cannot move ${uuid} to position ${to}. Check both uuid and to are defined/valid.`);
         return;
@@ -95,7 +109,7 @@ export const layoutSlice = createSlice({
       state.layout = moveNodeToPath(state.layout, uuid, to);
     }),
     insertNode: create.reducer((state, action: PayloadAction<InsertNodePayload>) => {
-      const { newNode, to } = action.payload;
+      const {newNode, to} = action.payload;
       if (!newNode || !Array.isArray(to)) {
         console.error(`Cannot move ${newNode} to position ${to}. Check both uuid and to are defined/valid.`);
         return;
@@ -104,7 +118,7 @@ export const layoutSlice = createSlice({
       state.layout = insertNodeAtPath(state.layout, to, newNode);
     }),
     sortNode: create.reducer((state, action: PayloadAction<SortNodePayload>) => {
-      const { uuid, to } = action.payload;
+      const {uuid, to} = action.payload;
       if (!uuid || to === undefined) {
         console.error(`Cannot sort ${uuid} to position ${to}. Check both uuid and to are defined/valid.`);
         return;
@@ -131,10 +145,10 @@ export const layoutSlice = createSlice({
 });
 
 // Action creators are generated for each case reducer function.
-export const { deleteNode, setNewLayout, moveNode, sortNode, insertNode } = layoutSlice.actions;
+export const {deleteNode, setNewLayout, moveNode, sortNode, insertNode} = layoutSlice.actions;
 
 // Selectors returned by `slice.selectors` take the root state as their first argument.
-export const { selectLayout } = layoutSlice.selectors;
+export const {selectLayout} = layoutSlice.selectors;
 
 // We can also write thunks by hand, which may contain both sync and async logic.
 // Here's an example of conditionally dispatching actions based on current state.
