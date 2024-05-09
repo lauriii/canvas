@@ -86,14 +86,14 @@ const List = () => {
     <div className={isDragging ? "list-dragging" : ""}>
       <h2>Components</h2>
       <p><small>I'm not auto-generating unique uuid's so these start at 6 to not conflict with the components already present in the sample layout</small></p>
-      <ul ref={listElRef}>
-        <li data-xb-uuid="6">Component 6</li>
-        <li data-xb-uuid="7">Component 7</li>
-        <li data-xb-uuid="8">Component 8</li>
-        <li data-xb-uuid="9">Component 9</li>
-        <li data-xb-uuid="10">Component 10</li>
-        <li data-xb-uuid="11">Component 11</li>
-      </ul>
+      <div ref={listElRef}>
+        <div data-xb-uuid="6">Component 6</div>
+        <div data-xb-uuid="7">Component 7</div>
+        <div data-xb-uuid="8">Component 8</div>
+        <div data-xb-uuid="9">Component 9</div>
+        <div data-xb-uuid="10">Component 10</div>
+        <div data-xb-uuid="11">Component 11</div>
+      </div>
     </div>
   );
 };

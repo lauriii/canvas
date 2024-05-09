@@ -3,6 +3,7 @@ import type React from "react";
 import { useRef, useEffect, useCallback, useState } from "react";
 import { deleteNode } from "../layoutSlice";
 import { useAppDispatch } from "../../../app/hooks";
+import {updateNodeModel} from "../../model/modelSlice";
 
 interface OutlineProps {
   hoveredElementId: string | undefined; // the data-xb-uuid value of the dom element that was hovered.
@@ -70,6 +71,11 @@ const Outline: React.FC<OutlineProps> = props => {
       dispatch(deleteNode(hoveredElementId));
     }
   }
+  function handleEditClick() {
+    if (hoveredElementId) {
+      dispatch(updateNodeModel({uuid: hoveredElementId, model: {name: 'FOO'}}))
+    }
+  }
 
   if (hoveredElementId === undefined) {
     return null;
@@ -79,7 +85,7 @@ const Outline: React.FC<OutlineProps> = props => {
     <>
       <div ref={outlineElRef} className="xb-component-outline" />
       <div ref={toolbarElRef} className="xb-component-toolbar">
-        <button type="button">Edit</button>
+        <button type="button" onClick={handleEditClick}>Edit</button>
         <button type="button" onClick={handleDeleteClick}>
           Delete
         </button>

@@ -3,13 +3,15 @@ import "./TreeChild.css";
 import TreeParent from "./TreeParent";
 import type { LayoutNode } from "../layoutSlice";
 import { deleteNode } from "../layoutSlice";
-import { useAppDispatch } from "../../../app/hooks";
+import {useAppDispatch, useAppSelector} from "../../../app/hooks";
+import {selectModel} from "../../model/modelSlice";
 
 interface TreeChildProps {
   node: LayoutNode;
 }
 const TreeChild: React.FC<TreeChildProps> = props => {
   const { node } = props;
+  const model = useAppSelector(selectModel);
   const dispatch = useAppDispatch();
 
   function handleDeleteClick() {
@@ -20,7 +22,7 @@ const TreeChild: React.FC<TreeChildProps> = props => {
     <li data-xb-uuid={node.uuid}>
       {node.type !== 'slot' && (
         <div className="xb-tree-child-toolbar">
-          <div>{node.name}</div>
+          <div>{model[node.uuid]?.name}</div>
           <button type="button" onClick={handleDeleteClick}>
             Del
           </button>

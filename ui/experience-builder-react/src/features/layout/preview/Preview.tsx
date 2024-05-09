@@ -5,6 +5,7 @@ import Sortable from "sortablejs";
 import Outline from "./Outline";
 import { useAppDispatch, useAppSelector } from "../../../app/hooks";
 import { selectDragging, setPreviewDragging } from "../../../features/ui/uiSlice";
+import {selectModel} from "../../model/modelSlice";
 import type { LayoutNode} from "../layoutSlice";
 import { moveNode, selectLayout, sortNode, insertNode } from "../layoutSlice";
 import {findNodePathByUuid, insertNodeAtPath} from "../layoutUtils";
@@ -92,6 +93,7 @@ const Preview: React.FC<PreviewProps> = props => {
   const layout = useAppSelector(selectLayout);
   const iframeDocumentRef = useRef<Document | null>(null);
   const { isDragging } = useAppSelector(selectDragging);
+  const model = useAppSelector(selectModel);
   const dispatch = useAppDispatch();
   const [hoveredElementId, setHoveredElementId] = useState<string | undefined>();
   const [frameSrcDoc, setFrameSrcDoc] = useState("");
@@ -107,7 +109,7 @@ const Preview: React.FC<PreviewProps> = props => {
 
       if (component.type === "component") {
         const header = document.createElement("h1");
-        header.textContent = component.name;
+        header.textContent = model[component.uuid]?.name || `debug: no name`;
         div.appendChild(header);
       }
       if (component.children) {
@@ -285,9 +287,9 @@ const Preview: React.FC<PreviewProps> = props => {
       };
       setFrameSrcDoc(debugCreateFullHtmlDocument(layout));
     }
-  }, [layout]);
+  }, [layout, model]);
 
-  useEffect(() => {}, []);
+  useEffect(() => {console.log('model:', model)}, [model]);
 
   return (
     <>

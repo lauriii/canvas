@@ -4,7 +4,8 @@ import { useRef, useEffect, useCallback, useState } from "react";
 import Sortable from "sortablejs";
 import TreeChild from "./TreeChild";
 import { useAppDispatch, useAppSelector } from "../../../app/hooks";
-import {insertNode, LayoutNode} from "../layoutSlice";
+import type { LayoutNode} from "../layoutSlice";
+import {insertNode} from "../layoutSlice";
 import { selectLayout } from "../layoutSlice";
 import { moveNode, sortNode, setNewLayout } from "../layoutSlice";
 import { setTreeDragging } from "../../ui/uiSlice";
@@ -19,6 +20,7 @@ const TreeParent: React.FC<TreeParentProps> = props => {
   const { node } = props;
   const { children } = node;
   const layout = useAppSelector(selectLayout);
+
   const listElRef = useRef<HTMLUListElement>(null);
   const sortableInstance = useRef<Sortable | null>(null);
 
