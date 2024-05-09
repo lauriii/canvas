@@ -4,10 +4,10 @@ import { useRef, useEffect, useCallback, useState } from "react";
 import Sortable from "sortablejs";
 import TreeChild from "./TreeChild";
 import { useAppDispatch, useAppSelector } from "../../../app/hooks";
-import type { LayoutNode } from "../layoutSlice";
+import {insertNode, LayoutNode} from "../layoutSlice";
 import { selectLayout } from "../layoutSlice";
 import { moveNode, sortNode, setNewLayout } from "../layoutSlice";
-import { setTreeDragging } from "../layoutUISlice";
+import { setTreeDragging } from "../../ui/uiSlice";
 import { findNodePathByUuid } from "../layoutUtils";
 
 interface TreeParentProps {
@@ -41,7 +41,7 @@ const TreeParent: React.FC<TreeParentProps> = props => {
   }
 
   function updateData(ev: Sortable.SortableEvent, sort: boolean) {
-    if (!ev.newDraggableIndex) {
+    if (typeof ev.newDraggableIndex !== 'number') {
       return;
     }
     if (sort) {
@@ -53,13 +53,20 @@ const TreeParent: React.FC<TreeParentProps> = props => {
       if (receivingParentPath) {
         const newPath: number[] = [...receivingParentPath, ev.newDraggableIndex];
 
-        // When dragging, the element is actually moved in the DOM, after dragging we swap the original
-        // item back so that React's Virtual DOM doesn't get out of sync when we update the data.
-        const itemEl = ev.item; // dragged HTMLElement
-        let origParent = ev.from;
-        origParent.appendChild(itemEl);
+        if(ev.clone.dataset.isNew === 'true' && ev.clone.dataset.xbUuid) {
+          // When dragging a new element into the tree from the list, the clone is actually dropped into the DOM and we need
+          // to remove it here.
+          ev.item.remove();
+          dispatch(insertNode({to: newPath, newNode: {uuid: ev.clone.dataset.xbUuid, children: [], name: `Component ${ev.clone.dataset.xbUuid}`}}))
+        } else {
+          // When dragging, the element is actually moved in the DOM, after dragging we swap the original
+          // item back so that React's Virtual DOM doesn't get out of sync when we update the data.
+          const itemEl = ev.item; // dragged HTMLElement
+          let origParent = ev.from;
+          origParent.appendChild(itemEl);
 
-        dispatch(moveNode({ uuid: ev.item.dataset.xbUuid, to: newPath }));
+          dispatch(moveNode({ uuid: ev.item.dataset.xbUuid, to: newPath }));
+        }
       }
     }
   }
@@ -70,7 +77,7 @@ const TreeParent: React.FC<TreeParentProps> = props => {
         dataIdAttr: "data-xb-uuid",
         group: {
           name: "tree",
-          put: ["tree"],
+          put: ["tree", "list"],
         },
         onAdd: handleDragAdd,
         onStart: handleDragStart,

@@ -1,7 +1,7 @@
 import TreeParent from "./TreeParent";
 import { useAppSelector } from "../../../app/hooks";
 import { selectLayout } from "../layoutSlice";
-import { selectDragging } from "../layoutUISlice";
+import { selectDragging } from "../../ui/uiSlice";
 
 const TreeView = () => {
   const layout = useAppSelector(selectLayout);

@@ -65,6 +65,11 @@ type MoveNodePayload = {
   to: number[] | undefined;
 };
 
+type InsertNodePayload = {
+  newNode: LayoutNode | undefined;
+  to: number[] | undefined;
+};
+
 type SortNodePayload = {
   uuid: string | undefined;
   to: number | undefined;
@@ -88,6 +93,15 @@ export const layoutSlice = createSlice({
       }
 
       state.layout = moveNodeToPath(state.layout, uuid, to);
+    }),
+    insertNode: create.reducer((state, action: PayloadAction<InsertNodePayload>) => {
+      const { newNode, to } = action.payload;
+      if (!newNode || !Array.isArray(to)) {
+        console.error(`Cannot move ${newNode} to position ${to}. Check both uuid and to are defined/valid.`);
+        return;
+      }
+
+      state.layout = insertNodeAtPath(state.layout, to, newNode);
     }),
     sortNode: create.reducer((state, action: PayloadAction<SortNodePayload>) => {
       const { uuid, to } = action.payload;
@@ -117,7 +131,7 @@ export const layoutSlice = createSlice({
 });
 
 // Action creators are generated for each case reducer function.
-export const { deleteNode, setNewLayout, moveNode, sortNode } = layoutSlice.actions;
+export const { deleteNode, setNewLayout, moveNode, sortNode, insertNode } = layoutSlice.actions;
 
 // Selectors returned by `slice.selectors` take the root state as their first argument.
 export const { selectLayout } = layoutSlice.selectors;

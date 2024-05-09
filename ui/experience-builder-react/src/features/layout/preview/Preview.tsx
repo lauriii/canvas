@@ -4,9 +4,10 @@ import { useRef, useEffect, useCallback, useState } from "react";
 import Sortable from "sortablejs";
 import Outline from "./Outline";
 import { useAppDispatch, useAppSelector } from "../../../app/hooks";
-import { selectDragging, setPreviewDragging, setTreeDragging } from "../layoutUISlice";
-import { LayoutNode, moveNode, selectLayout, sortNode } from "../layoutSlice";
-import { findNodePathByUuid } from "../layoutUtils";
+import { selectDragging, setPreviewDragging } from "../../../features/ui/uiSlice";
+import type { LayoutNode} from "../layoutSlice";
+import { moveNode, selectLayout, sortNode, insertNode } from "../layoutSlice";
+import {findNodePathByUuid, insertNodeAtPath} from "../layoutUtils";
 
 const styleContent = `
 .preview-dragging .sortable-list{
@@ -18,7 +19,7 @@ const styleContent = `
 .sortable-list {
   margin: 1rem;
   background: #DA924D;
-  
+
   .sortable-list {
     background: #E0B773;
     .sortable-list {
@@ -43,7 +44,7 @@ const styleContent = `
   right: 0;
   text-align: right;
   position: absolute;
-  
+
 }
 .sortable-item {
   cursor: grab;
@@ -51,7 +52,7 @@ const styleContent = `
   padding: 1rem;
 }
 .preview-dragging *,
-.preview-dragging {  
+.preview-dragging {
   cursor: grabbing;
 }
 
@@ -158,7 +159,7 @@ const Preview: React.FC<PreviewProps> = props => {
   const bindEvents = () => {};
 
   function handleDragStart(ev: Sortable.SortableEvent) {
-    dispatch(setTreeDragging(true));
+    dispatch(setPreviewDragging(true));
     iframeDocumentRef.current?.body.classList.add("preview-dragging");
   }
 
@@ -167,7 +168,7 @@ const Preview: React.FC<PreviewProps> = props => {
   }
 
   function handleDragEnd(ev: Sortable.SortableEvent) {
-    dispatch(setTreeDragging(false));
+    dispatch(setPreviewDragging(false));
     iframeDocumentRef.current?.body.classList.remove("preview-dragging");
 
     // Normally handle the data update in dragAdd unless the item is being dragged within the same container, in which
@@ -178,7 +179,7 @@ const Preview: React.FC<PreviewProps> = props => {
   }
 
   function updateData(ev: Sortable.SortableEvent, sort: boolean) {
-    if (!ev.newDraggableIndex) {
+    if (typeof ev.newDraggableIndex !== 'number') {
       return;
     }
     if (sort) {
@@ -186,17 +187,16 @@ const Preview: React.FC<PreviewProps> = props => {
       dispatch(sortNode({ uuid: ev.item.dataset.xbUuid, to: ev.newDraggableIndex }));
     } else {
       // Moving a node from one parent to another
-      const receivingParentPath = findNodePathByUuid(layout, ev.to.dataset.xbUuid as string);
+      const receivingParentPath = findNodePathByUuid(layout, ev.to.dataset.xbUuid);
       if (receivingParentPath) {
         const newPath: number[] = [...receivingParentPath, ev.newDraggableIndex];
 
-        // When dragging, the element is actually moved in the DOM, after dragging we swap the original
-        // item back so that React's Virtual DOM doesn't get out of sync when we update the data.
-        // const itemEl = ev.item; // dragged HTMLElement
-        // let origParent = ev.from;
-        // origParent.appendChild(itemEl);
+        if(ev.clone.dataset.isNew === 'true' && ev.clone.dataset.xbUuid) {
+          dispatch(insertNode({to: newPath, newNode: {uuid: ev.clone.dataset.xbUuid, children: [], name: `Component ${ev.clone.dataset.xbUuid}`}}))
+        } else {
+          dispatch(moveNode({ uuid: ev.item.dataset.xbUuid, to: newPath }));
+        }
 
-        dispatch(moveNode({ uuid: ev.item.dataset.xbUuid, to: newPath }));
       }
     }
   }
@@ -251,7 +251,7 @@ const Preview: React.FC<PreviewProps> = props => {
       group: {
         name: "layout",
         pull: true,
-        put: ["layout"],
+        put: ["layout", "list"],
         revertClone: false,
       },
       dataIdAttr: "data-xb-uuid",
