@@ -8,7 +8,7 @@ const List = () => {
   const dispatch = useAppDispatch();
   // const layout = useAppSelector(selectLayout);
   const sortableInstance = useRef<Sortable | null>(null)
-  const listElRef = useRef<HTMLUListElement>(null);
+  const listElRef = useRef<HTMLDivElement>(null);
   const { isDragging } = useAppSelector(selectDragging);
 
   function handleDragStart(ev: Sortable.SortableEvent) {

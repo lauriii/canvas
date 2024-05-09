@@ -1,0 +1,8 @@
+ui:
+  version: 1.0
+  js:
+    ui/experience-builder-react/dist/assets/index.js:
+      attributes: { type: module }
+  css:
+    theme:
+      ui/experience-builder-react/dist/assets/index.css: {}
