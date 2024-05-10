@@ -1,4 +1,4 @@
-ui:
+eb-ui:
   version: 1.0
   js:
     ui/experience-builder-react/dist/assets/index.js:

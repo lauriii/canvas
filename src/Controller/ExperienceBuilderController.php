@@ -10,7 +10,7 @@ class ExperienceBuilderController extends ControllerBase {
       '#markup' => '<div id="experience-builder" class="experience-builder-container">Loading react app...</div>',
       '#attached' => [
         'library' => [
-          'experience_builder/ui',
+          'experience_builder/eb-ui',
         ],
       ],
     ];

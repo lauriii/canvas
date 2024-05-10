@@ -18,7 +18,7 @@ const App = () => {
         </div>
         <Preview iframeRef={iframeRef}/>
         <div className="sidebar sidebar-right">
-          <h2>Layout</h2>
+          <h2>Layout blahhh</h2>
           <TreeView/>
         </div>
       </div>
