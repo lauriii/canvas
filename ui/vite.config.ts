@@ -15,6 +15,7 @@ export default defineConfig({
   },
   build: {
     rollupOptions: {
+      // external: ['react', 'react-dom', "redux", "@reduxjs/toolkit"],
       output: {
         entryFileNames: `assets/[name].js`,
         chunkFileNames: `assets/[name].js`,
