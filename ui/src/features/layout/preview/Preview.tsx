@@ -7,8 +7,8 @@ import { useAppDispatch, useAppSelector } from "../../../app/hooks";
 import { selectDragging, setPreviewDragging } from "../../../features/ui/uiSlice";
 import {selectModel} from "../../model/modelSlice";
 import type { LayoutNode} from "../layoutSlice";
-import { moveNode, selectLayout, sortNode, insertNode } from "../layoutSlice";
-import {findNodePathByUuid, insertNodeAtPath} from "../layoutUtils";
+import { moveNode, selectLayout, sortNode, addNewComponentToLayout } from "../layoutSlice";
+import {findNodePathByUuid} from "../layoutUtils";
 
 const styleContent = `
 .preview-dragging .sortable-list{
@@ -199,7 +199,7 @@ const Preview: React.FC<PreviewProps> = props => {
         const newPath: number[] = [...receivingParentPath, ev.newDraggableIndex];
 
         if(ev.clone.dataset.isNew === 'true' && ev.clone.dataset.xbUuid) {
-          dispatch(insertNode({to: newPath, newNode: {uuid: ev.clone.dataset.xbUuid, children: [], type: 'component', name: `Component ${ev.clone.dataset.xbUuid}`}}))
+          dispatch(addNewComponentToLayout({to: newPath, newNode: {uuid: 'tempUUID', children: [], type: 'component', name: ev.clone.dataset.xbName}}));
         } else {
           dispatch(moveNode({ uuid: ev.item.dataset.xbUuid, to: newPath }));
         }
@@ -208,6 +208,8 @@ const Preview: React.FC<PreviewProps> = props => {
     }
   }
 
+  // Takes each sortable item (component) and adds a dragstart event listener. This is so that we can implement a custom
+  // dragImage (the floating representation of what you are dragging that follows your cursor).
   const initSortableListItem = (listItemEl: HTMLElement) => {
     listItemEl.addEventListener("dragstart", function (event: DragEvent) {
       if (iframeDocumentRef.current && event.target) {
@@ -288,8 +290,6 @@ const Preview: React.FC<PreviewProps> = props => {
       setFrameSrcDoc(debugCreateFullHtmlDocument(layout));
     }
   }, [layout, model]);
-
-  useEffect(() => {console.log('model:', model)}, [model]);
 
   return (
     <>

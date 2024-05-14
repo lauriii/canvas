@@ -1,11 +1,16 @@
 import type {PayloadAction} from "@reduxjs/toolkit";
 import {createSlice} from "@reduxjs/toolkit";
 import _ from "lodash";
+import {createNewModel} from "../model/modelSlice";
 import {findNodeByUuid, findNodePathByUuid, moveNodeToPath, insertNodeAtPath, removeNodeByUuid} from "./layoutUtils";
+import type { AppThunk } from "../../app/store"
+import { v4 as uuidv4 } from 'uuid';
+import type {UUID} from "../../types/UUID";
+import type {AppDispatch} from "../../app/store";
 
 export interface LayoutNode {
-  uuid: string;
-  name: string;
+  name?: string;
+  uuid: UUID;
   type: 'slot' | 'component' | 'root';
   children: LayoutNode[];
 }
@@ -15,64 +20,13 @@ export interface LayoutSliceState {
 }
 
 const initialState: LayoutSliceState = {
-  layout: {
-    uuid: "root",
-    type: 'root',
-    name: "root",
-    children: [
-      {
-        name: "C1 (no slots)",
-        uuid: "1",
-        children: [],
-        type: "component"
-      },
-      {
-        name: "C2 (1 slot)",
-        uuid: "2",
-        type: "component",
-        children: [
-          {
-            name: "Slot 1",
-            type: "slot",
-            uuid: "2-1",
-            children: [],
-          },
-        ],
-      },
-      {
-        name: "C3 (2 slots)",
-        uuid: "3",
-        type: "component",
-        children: [
-          {
-            name: "Slot 1",
-            type: "slot",
-            uuid: "3-1",
-            children: [{
-              name: "C5 (no slots)",
-              type: "component",
-              uuid: "5",
-              children: [],
-            },],
-          },
-          {
-            name: "Slot 2",
-            type: "slot",
-            uuid: "3-2",
-            children: [
-              {
-                name: "C4 (no slots)",
-                type: "component",
-                uuid: "4",
-                children: [],
-              },
-            ],
-          },
-        ],
-      },
-    ],
-  },
-};
+  "layout": {
+    "uuid": "root",
+    "type": "root",
+    "name": "root",
+    "children": []
+  }
+}
 
 type MoveNodePayload = {
   uuid: string | undefined;
@@ -144,20 +98,20 @@ export const layoutSlice = createSlice({
   },
 });
 
+
+export const addNewComponentToLayout = (payload: InsertNodePayload) => (dispatch:AppDispatch) => {
+  if(payload.newNode && payload.to) {
+    payload.newNode.uuid = uuidv4();
+    const name = payload.newNode.name || 'Unknown component'
+    dispatch(insertNode(payload));
+
+    dispatch(createNewModel({ uuid: payload.newNode.uuid, initialData: {exampleData: 'testing', name: name} }));
+  }
+};
+
 // Action creators are generated for each case reducer function.
 export const {deleteNode, setNewLayout, moveNode, sortNode, insertNode} = layoutSlice.actions;
 
 // Selectors returned by `slice.selectors` take the root state as their first argument.
 export const {selectLayout} = layoutSlice.selectors;
 
-// We can also write thunks by hand, which may contain both sync and async logic.
-// Here's an example of conditionally dispatching actions based on current state.
-// export const incrementIfOdd =
-//   (amount: number): AppThunk =>
-//     (dispatch, getState) => {
-//       const currentValue = selectCount(getState())
-//
-//       if (currentValue % 2 === 1 || currentValue % 2 === -1) {
-//         dispatch(incrementByAmount(amount))
-//       }
-//     }

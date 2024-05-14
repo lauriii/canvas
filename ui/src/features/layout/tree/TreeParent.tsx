@@ -1,13 +1,11 @@
 import "./TreeParent.css";
 import type React from "react";
-import { useRef, useEffect, useCallback, useState } from "react";
+import { useRef, useEffect } from "react";
 import Sortable from "sortablejs";
 import TreeChild from "./TreeChild";
 import { useAppDispatch, useAppSelector } from "../../../app/hooks";
 import type { LayoutNode} from "../layoutSlice";
-import {insertNode} from "../layoutSlice";
-import { selectLayout } from "../layoutSlice";
-import { moveNode, sortNode, setNewLayout } from "../layoutSlice";
+import { selectLayout,addNewComponentToLayout, moveNode, sortNode } from "../layoutSlice";
 import { setTreeDragging } from "../../ui/uiSlice";
 import { findNodePathByUuid } from "../layoutUtils";
 
@@ -59,7 +57,7 @@ const TreeParent: React.FC<TreeParentProps> = props => {
           // When dragging a new element into the tree from the list, the clone is actually dropped into the DOM and we need
           // to remove it here.
           ev.item.remove();
-          dispatch(insertNode({to: newPath, newNode: {uuid: ev.clone.dataset.xbUuid, children: [], type: 'component', name: `Component ${ev.clone.dataset.xbUuid}`}}))
+          dispatch(addNewComponentToLayout({to: newPath, newNode: {uuid: 'tempUUID', children: [], type: 'component', name: ev.clone.dataset.xbName}}))
         } else {
           // When dragging, the element is actually moved in the DOM, after dragging we swap the original
           // item back so that React's Virtual DOM doesn't get out of sync when we update the data.

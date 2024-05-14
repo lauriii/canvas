@@ -4,6 +4,15 @@ import { Provider } from "react-redux";
 import App from "./App";
 import { store } from "./app/store";
 import "./index.css";
+import { makeServer } from "./server"
+
+// TODO how do we do this in Drupal?
+const ENV = "development"
+
+if (ENV === "development") {
+  makeServer({ environment: "development" })
+}
+
 
 const container = document.getElementById("experience-builder");
 

@@ -3,6 +3,7 @@ import { useRef, useState } from "react";
 import Preview from "./features/layout/preview/Preview";
 import TreeView from "./features/layout/tree/TreeView";
 import List from "./features/list/List";
+import Layout from "./features/layout/Layout";
 
 const App = () => {
   const iframeRef = useRef(null);
@@ -10,6 +11,7 @@ const App = () => {
   return (
     <div className="App">
       <div className="app-container">
+        <Layout />
         <div className="sidebar sidebar-left">
           <List/>
         </div>

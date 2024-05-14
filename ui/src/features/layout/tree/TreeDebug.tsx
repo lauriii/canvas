@@ -1,13 +1,18 @@
-import TreeParent from "./TreeParent";
 import { useAppSelector } from "../../../app/hooks";
 import { selectLayout } from "../layoutSlice";
 import { selectDragging } from "../../ui/uiSlice";
+import { selectModel } from "../../model/modelSlice";
+import {useEffect} from "react";
 
-const TreeView = () => {
+const TreeDebug = () => {
+  const model = useAppSelector(selectModel);
   const layout = useAppSelector(selectLayout);
-  const { isDragging } = useAppSelector(selectDragging);
+  const draggingStatus = useAppSelector(selectDragging);
 
-  return <pre style={{}}>{JSON.stringify(layout, null, 2)}</pre>;
+  useEffect(() => {console.log('Layout updated', layout)}, [layout]);
+  useEffect(() => {console.log('Model updated', model)}, [model]);
+
+  return <pre>{JSON.stringify(draggingStatus, null, 2)}</pre>;
 };
 
-export default TreeView;
+export default TreeDebug;

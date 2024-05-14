@@ -1,5 +1,4 @@
 import { createAppSlice } from "../../app/createAppSlice";
-import type { AppThunk } from "../../app/store";
 import type { PayloadAction } from "@reduxjs/toolkit";
 
 
@@ -63,14 +62,3 @@ export const { setPending, setTreeDragging, setPreviewDragging, setListDragging 
 // Selectors returned by `slice.selectors` take the root state as their first argument.
 export const { selectDragging } = uiSlice.selectors;
 
-// We can also write thunks by hand, which may contain both sync and async logic.
-// Here's an example of conditionally dispatching actions based on current state.
-// export const incrementIfOdd =
-//   (amount: number): AppThunk =>
-//     (dispatch, getState) => {
-//       const currentValue = selectCount(getState())
-//
-//       if (currentValue % 2 === 1 || currentValue % 2 === -1) {
-//         dispatch(incrementByAmount(amount))
-//       }
-//     }
