@@ -5,8 +5,8 @@ package: Preview
 core_version_requirement: ^10.1 || ^11
 configure: same_page_preview.settings_form
 # version: 2.1.2
-dependencies:
-  - drupal:sdc
+#dependencies:
+#  - drupal:sdc
 
 # Information added by Drupal.org packaging script on 2024-03-25
 version: '2.1.3'
