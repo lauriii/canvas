@@ -222,131 +222,140 @@
   // @ben added everything underneath here
 
 
-  // Add an outline class and scrll to an element with the name attribute
-  // matching `locator`
-  const outlineAndScroll = (locator) => {
-    const formField = document.querySelector(`[name="${locator}"]`);
-    if (formField) {
-      formField.classList.add('outline-in-form')
-      const y = formField.getBoundingClientRect().top + window.scrollY - 160;
-      window.scrollTo({top: y, behavior: 'smooth'});
+  const initIframeInteraction = () => {
+    // Add an outline class and scrll to an element with the name attribute
+    // matching `locator`
+    const outlineAndScroll = (locator) => {
+      const formField = document.querySelector(`[name="${locator}"]`);
+      if (formField) {
+        formField.classList.add('outline-in-form')
+        const y = formField.getBoundingClientRect().top + window.scrollY - 160;
+        window.scrollTo({top: y, behavior: 'smooth'});
+      }
     }
-  }
 
-  // Events sent from the iframe are handled here/
-  const managePreviewEvents = (e) =>  {
-    const previewWrapper = document.querySelector('#preview-iframe-wrapper');
-    const {type, original, additional} = e.detail;
+    // Events sent from the iframe are handled here/
+    const managePreviewEvents = (e) =>  {
+      const previewWrapper = document.querySelector('#preview-iframe-wrapper');
+      const {type, original, additional} = e.detail;
 
-    // When an item is hovered in the iframe, create an element in the primary
-    // DOM that is positioned over the iframe to outlines the hovered item.
-    if (type === 'itemHoverEnter') {
-      const locator = original.target.getAttribute('data-spp-field-locator');
-      if (!document.querySelector(`[data-hover-outline="${locator}"]`)) {
-        setTimeout(() => {
-          // Remove any existing hover outlines.
-          document.querySelectorAll('[data-hover-outline], .outline-in-form').forEach((outline) => {
-            outline.remove();
-          })
+      // When an item is hovered in the iframe, create an element in the primary
+      // DOM that is positioned over the iframe to outlines the hovered item.
+      if (type === 'itemHoverEnter') {
+        const locator = original.target.getAttribute('data-spp-field-locator');
+        if (!document.querySelector(`[data-hover-outline="${locator}"]`)) {
+          setTimeout(() => {
+            // Remove any existing hover outlines.
+            document.querySelectorAll('[data-hover-outline], .outline-in-form').forEach((outline) => {
+              outline.remove();
+            })
+            const div = document.createElement('div');
+            div.setAttribute('data-hover-outline', locator);
+
+            // Get position info from the iframe element to replicate the
+            // positioning of the overlaid div.
+            const {x, y} = original.target.getBoundingClientRect();
+            const {offsetHeight, offsetWidth} = original.target;
+            div.style.left = `${x}px`
+            div.style.top = `${y}px`
+            div.style.width = `${offsetWidth}px`;
+            div.style.height = `${offsetHeight}px`;
+            div.style.position = `absolute`;
+            div.style.outline = '2px solid #ff69ba';
+            previewWrapper.append(div);
+
+            // When the mouse is no longer over an outline. remove it from the DOM.
+            div.addEventListener('mouseleave', (e) => {
+              const input = document.querySelector(`[name="${locator}"]`)
+              setTimeout(() => {;
+                if(input) {
+                  input.classList.remove('outline-in-form')
+                }
+                div.remove();
+              }, 10)
+            })
+            // If the iframe scrolls. remove the outline to avoid it being in a position that
+            // no longer corresponds to the element it outlines.
+            previewWrapper.querySelector('iframe').contentDocument.addEventListener('scroll', () => {
+              document.querySelector(`[name="${locator}"]`)?.classList.remove('outline-in-form')
+              div.remove();
+            })
+
+            outlineAndScroll(locator);
+          }, 30)
+        }
+      }
+
+      // Given a NodeList of dropzones in the iframe, create DOM dropzones that are
+      // positioned directly above them.
+      if (type === 'bindZones') {
+        // Remove existing dropzones to avoid duplicates.
+        document.querySelectorAll('[data-zone-id]').forEach((dropZone) => {
+          dropZone.remove();
+        })
+
+        // Place a DOM drop zone directly above the iframe drop zone.
+        additional.zones.forEach((zone) => {
           const div = document.createElement('div');
-          div.setAttribute('data-hover-outline', locator);
+          div.setAttribute('data-dom-drop', zone.getAttribute('data-zone-id'));
+          const {x, y} = zone.getBoundingClientRect();
+          const {offsetHeight, offsetWidth} = zone;
 
-          // Get position info from the iframe element to replicate the
-          // positioning of the overlaid div.
-          const {x, y} = original.target.getBoundingClientRect();
-          const {offsetHeight, offsetWidth} = original.target;
           div.style.left = `${x}px`
           div.style.top = `${y}px`
           div.style.width = `${offsetWidth}px`;
           div.style.height = `${offsetHeight}px`;
           div.style.position = `absolute`;
-          div.style.outline = '2px solid #ff69ba';
+          div.style.opacity = '0.4';
+
+          // When the dropzone has a valid drop element over it, add the 'can-drop'
+          // class.
+          div.addEventListener('dragover',  (e) => {
+            e.preventDefault();
+            e.target.classList.add('can-drop');
+          });
+
+          // On drop, parse the dataTransfer data and send it to the iframe. This also
+          // includes the drop zone id, which is stored in the 'data-dom-drop' attribute.
+          div.addEventListener('drop',  (e) => {
+            const data = JSON.parse(unescape(e.dataTransfer.getData("content")));
+            const detail = {
+              original: e,
+              type: 'zoneUpdate',
+              additional: {zoneInfo: {zoneId: e.target.getAttribute('data-dom-drop'), ...data}}
+            }
+            const event = new CustomEvent('parentMessage', { detail })
+            document.querySelector('#preview-iframe-wrapper iframe').contentDocument.dispatchEvent(event)
+            e.target.classList.remove('can-drop');
+          });
           previewWrapper.append(div);
-
-          // When the mouse is no longer over an outline. remove it from the DOM.
-          div.addEventListener('mouseleave', (e) => {
-            document.querySelector(`[name="${locator}"]`)?.classList.remove('outline-in-form')
-            div.remove();
-          })
-          // If the iframe scrolls. remove the outline to avoid it being in a position that
-          // no longer corresponds to the element it outlines.
-          previewWrapper.querySelector('iframe').contentDocument.addEventListener('scroll', () => {
-            document.querySelector(`[name="${locator}"]`)?.classList.remove('outline-in-form')
-            div.remove();
-          })
-
-          outlineAndScroll(locator);
-        }, 30)
+        })
       }
     }
 
-    // Given a NodeList of dropzones in the iframe, create DOM dropzones that are
-    // positioned directly above them.
-    if (type === 'bindZones') {
-      // Remove existing dropzones to avoid duplicates.
-      document.querySelectorAll('[data-zone-id]').forEach((dropZone) => {
-        dropZone.remove();
-      })
+    // When the preview iframe communciates with the DOM, it will do so via a
+    // 'previewAction' event. managePreviewEvents will triage the event into the
+    // appropriate callback.
+    document.addEventListener('previewAction', managePreviewEvents, false)
 
-      // Place a DOM drop zone directly above the iframe drop zone.
-      additional.zones.forEach((zone) => {
-        const div = document.createElement('div');
-        div.setAttribute('data-dom-drop', zone.getAttribute('data-zone-id'));
-        const {x, y} = zone.getBoundingClientRect();
-        const {offsetHeight, offsetWidth} = zone;
-
-        div.style.left = `${x}px`
-        div.style.top = `${y}px`
-        div.style.width = `${offsetWidth}px`;
-        div.style.height = `${offsetHeight}px`;
-        div.style.position = `absolute`;
-        div.style.opacity = '0.4';
-
-        // When the dropzone has a valid drop element over it, add the 'can-drop'
-        // class.
-        div.addEventListener('dragover',  (e) => {
-          e.preventDefault();
-          e.target.classList.add('can-drop');
-        });
-
-        // On drop, parse the dataTransfer data and send it to the iframe. This also
-        // includes the drop zone id, which is stored in the 'data-dom-drop' attribute.
-        div.addEventListener('drop',  (e) => {
-          const data = JSON.parse(unescape(e.dataTransfer.getData("content")));
-          const detail = {
-            original: e,
-            type: 'zoneUpdate',
-            additional: {zoneInfo: {zoneId: e.target.getAttribute('data-dom-drop'), ...data}}
-          }
-          const event = new CustomEvent('parentMessage', { detail })
-           document.querySelector('#preview-iframe-wrapper iframe').contentDocument.dispatchEvent(event)
-          e.target.classList.remove('can-drop');
-        });
-        previewWrapper.append(div);
-      })
-    }
-  }
-
-  // When the preview iframe communciates with the DOM, it will do so via a
-  // 'previewAction' event. managePreviewEvents will triage the event into the
-  // appropriate callback.
-  document.addEventListener('previewAction', managePreviewEvents, false)
-
-  // Create a list of draggable items to demonstrate drag/drop.
-  // data-drag-content is an object of data that will be sent to the drop
-  // callback.
-  const ul = document.createElement('ul');
-  ul.classList.add('drag-items');
-  ul.innerHTML = `
+    // Create a list of draggable items to demonstrate drag/drop.
+    // data-drag-content is an object of data that will be sent to the drop
+    // callback.
+    const ul = document.createElement('ul');
+    ul.classList.add('drag-items');
+    ul.innerHTML = `
     <li draggable="true" data-drag-content="%7B%22tag%22%3A%22h2%22%2C%22content%22%3A%22This%20is%20content%20that%20we%20shall%20present%20in%20an%20h2%20tag%21%22%7D">Drag H2</li>
     <li draggable="true" data-drag-content="%7B%22tag%22%3A%22h3%22%2C%22content%22%3A%22Howdy%20I%20am%20an%20h3%20how%20do%20you%20do%3F%22%7D">Drag H3</li>
     <li draggable="true" data-drag-content="%7B%22tag%22%3A%22h4%22%2C%22content%22%3A%22And%20dont%20overlook%20the%20h4%2C%20I%20have%20much%20to%20offer%21%22%7D">Drag H4</li>`;
 
-  ul.querySelectorAll('li').forEach((li) => {
-    li.addEventListener('dragstart', (e) => {
-      // data-drag-content should be transferred to the drop event.
-      e.dataTransfer.setData('content', e.target.getAttribute('data-drag-content'))
-    })
-  });
-  document.querySelector('main').append(ul);
+    ul.querySelectorAll('li').forEach((li) => {
+      li.addEventListener('dragstart', (e) => {
+        // data-drag-content should be transferred to the drop event.
+        e.dataTransfer.setData('content', e.target.getAttribute('data-drag-content'))
+      })
+    });
+    document.querySelector('main').append(ul);
+  }
+  window.addEventListener('first-render', initIframeInteraction);
+
 })(jQuery, Drupal, once);
