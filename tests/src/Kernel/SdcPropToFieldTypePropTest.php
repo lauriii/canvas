@@ -20,7 +20,6 @@ use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\node\Entity\NodeType;
-use Drupal\sdc\ComponentPluginManager;
 
 /**
  * Tests matching SDC props against field type + field instance props.
@@ -102,7 +101,8 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
     }
 
     $sdc_manager = \Drupal::service('plugin.manager.sdc');
-    assert($sdc_manager instanceof ComponentPluginManager);
+    if (\Drupal::VERSION)
+    assert(\Drupal::VERSION ? $sdc_manager instanceof \Drupal\Core\Theme\ComponentPluginManager : $sdc_manager instanceof \Drupal\sdc\ComponentPluginManager);
 
     $matcher = \Drupal::service(SdcPropToFieldTypePropMatcher::class);
     assert($matcher instanceof SdcPropToFieldTypePropMatcher);
@@ -188,7 +188,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
   /**
    * @return \Generator
    */
-  public function provider() {
+  public static function provider() {
     $all_string_storage_props = [
       'ℹ︎comment␟last_comment_name',
       'ℹ︎daterange␟end_value',
@@ -283,7 +283,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
         'node',
         'field',
       ],
-      'expected matches' => [
+      'expected' => [
         '⿲experience_builder:image␟image' => [
           'storage' => [
             'ℹ︎image␟{src↝entity␜ℹ︎␜entity:file␝uri␞0␟value, alt↠alt, width↠width, height↠height}',
@@ -798,7 +798,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
         'sdc_examples',
         'sdc_test',
       ],
-      'expected matches' => [
+      'expected' => [
         '⿲cl_editorial:component-card␟name' => [
           'storage' => $core_only_string_storage_props,
           'format_any_prop' => [
@@ -1275,7 +1275,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
         'telephone',
         'text',
       ],
-      'expected matches' => [
+      'expected' => [
         '⿲cl_editorial:component-card␟name' => [
           'storage' => $all_string_storage_props,
           'format_any_prop' => [

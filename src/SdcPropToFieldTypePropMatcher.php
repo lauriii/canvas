@@ -245,6 +245,8 @@ final class SdcPropToFieldTypePropMatcher {
             'parent' => NULL,
             'data_definition' => $field_item_definition,
           ]);
+          // TRICKY: if no name is specified here, it'll cause a TypeError in \Drupal\Component\Render\FormattableMarkup::placeholderEscape() because e.g. the Length constraint causes string casting to happen at constraint construction time 🤪
+          $field_item_definition->getFieldDefinition()->setLabel('TBD');
           assert($field_item instanceof FieldItemInterface);
           $property = $this->recurseTypedDataInterface($field_item)[$property_name];
           if ($this->dataLeafMatchesFormat($property, $json_schema_primitive_type, $is_required_in_json_schema, $schema)) {
