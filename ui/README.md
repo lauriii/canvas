@@ -1,27 +1,15 @@
-# vite-template-redux
+# Experience Builder
 
-Uses [Vite](https://vitejs.dev/), [Vitest](https://vitest.dev/), and [React Testing Library](https://github.com/testing-library/react-testing-library) to create a modern [React](https://react.dev/) app compatible with [Create React App](https://create-react-app.dev/)
+## Prerequisites
+- Enable the Experience Builder module
 
-```sh
-npx degit reduxjs/redux-templates/packages/vite-template-redux my-app
-```
+## Build steps
+1. `npm install` from /modules/experience_builder/ui
+2. `npm run build`
 
-## Goals
-
-- Easy migration from Create React App or Vite
-- As beginner friendly as Create React App
-- Optimized performance compared to Create React App
-- Customizable without ejecting
-
-## Scripts
-
-- `dev`/`start` - start dev server and open browser
-- `build` - build for production
-- `preview` - locally preview production build
-- `test` - launch test runner
-
-## Inspiration
-
-- [Create React App](https://github.com/facebook/create-react-app/tree/main/packages/cra-template)
-- [Vite](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react)
-- [Vitest](https://github.com/vitest-dev/vitest/tree/main/examples/react-testing-lib)
+## Development mode
+1. `npm install` from /modules/experience_builder/ui
+2. `npm run dev` - Make sure nothing is running on localhost:5173
+3. Enable the Experience Builder Vite Integration module (`eb_vite`)
+4. Clear cache (`drush cr` or `/admin/config/development/performance`)
+5. Navigate to `/admin/eb` to view app
