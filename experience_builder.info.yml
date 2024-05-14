@@ -15,11 +15,12 @@ description: PoC to test the data model — instantiate entity with fields and h
 type: module
 core_version_requirement: ^10.2
 php: 8.3
-#dependencies:
-#  - drupal:sdc
-#  # For the `cl_editorial:component-card` SDC that we're using in tests.
-#  - drupal:cl_editorial
-#  # For the 5 other components we're using in tests.
-#  - drupal:sdc_test
-#  # For the additional examples, which use `type: number` etc.
-#  - drupal:sdc_examples
+dependencies:
+  - drupal:sdc
+test_dependencies:
+  # For the `cl_editorial:component-card` SDC that we're using in tests.
+  - drupal:cl_editorial
+  # For the 5 other components we're using in tests.
+  - drupal:sdc_test
+  # For the additional examples, which use `type: number` etc.
+  - drupal:sdc_examples

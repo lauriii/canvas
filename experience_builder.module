@@ -201,7 +201,7 @@ function _eb_resolve_sdc_prop_value(\Drupal\Core\Entity\ContentEntityInterface $
  * To PoC storing SDCs + fixed values + mapped values
  */
 function experience_builder_entity_view_alter(&$build, EntityInterface $entity, EntityViewDisplayInterface $display) {
-  if ($entity->getEntityTypeId() !== 'node' && $entity->bundle() == 'article') {
+  if ($entity->getEntityTypeId() !== 'node' || $entity->bundle() !== 'article') {
     return;
   }
   $sdc_manager = \Drupal::service('plugin.manager.sdc');
