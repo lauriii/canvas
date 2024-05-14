@@ -54,10 +54,19 @@ include:
 #
 # Docs at https://git.drupalcode.org/project/gitlab_templates/-/blob/main/includes/include.drupalci.variables.yml
 ################
-# variables:
-#   SKIP_ESLINT: '1'
-#   OPT_IN_TEST_NEXT_MAJOR: '1'
-#   _CURL_TEMPLATES_REF: 'main'
+variables:
+  SKIP_ESLINT: '1'
+  # Opt in to testing against max supported PHP version.
+  OPT_IN_TEST_MAX_PHP: '1'
+  # Opt in to testing current minor (Drupal 10.2.x).
+  OPT_IN_TEST_CURRENT: '1'
+  # Opt in to testing next minor (Drupal 10.3.x).
+  OPT_IN_TEST_NEXT_MINOR: '1'
+  # Experience Builder aims to match Drupal 11's minimum PHP version even in its Drupal 10 support.
+  CORE_PHP_MIN: '8.3'
+  # Opt in to testing $CORE_MAJOR_DEVELOPMENT (currently Drupal 11).
+  OPT_IN_TEST_NEXT_MAJOR: '1'
+
 
 ###################################################################################
 #
