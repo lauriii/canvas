@@ -66,7 +66,10 @@ variables:
   CORE_PHP_MIN: '8.3'
   # Opt in to testing $CORE_MAJOR_DEVELOPMENT (currently Drupal 11).
   OPT_IN_TEST_NEXT_MAJOR: '1'
-
+  # Crazy work-around:
+  # @see https://drupal.slack.com/archives/CGKLP028K/p1715689021563339?thread_ts=1715290505.152429&cid=CGKLP028K
+  # @todo Delete this when https://www.drupal.org/project/gitlab_templates/issues/3444792 lands.
+  _PHPUNIT_CONCURRENT: 1
 
 ###################################################################################
 #

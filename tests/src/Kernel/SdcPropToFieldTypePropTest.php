@@ -101,8 +101,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
     }
 
     $sdc_manager = \Drupal::service('plugin.manager.sdc');
-    if (\Drupal::VERSION)
-    assert(\Drupal::VERSION ? $sdc_manager instanceof \Drupal\Core\Theme\ComponentPluginManager : $sdc_manager instanceof \Drupal\sdc\ComponentPluginManager);
+    assert(version_compare(\Drupal::VERSION, '11', '>=')  ? $sdc_manager instanceof \Drupal\Core\Theme\ComponentPluginManager : $sdc_manager instanceof \Drupal\sdc\ComponentPluginManager);
 
     $matcher = \Drupal::service(SdcPropToFieldTypePropMatcher::class);
     assert($matcher instanceof SdcPropToFieldTypePropMatcher);
