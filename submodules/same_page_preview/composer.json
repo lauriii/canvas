@@ -1,0 +1,38 @@
+{
+    "name": "drupal/same_page_preview",
+    "type": "drupal-module",
+    "description": "Preview content alongside the edit form.",
+    "keywords": [
+        "Drupal",
+        "preview"
+    ],
+    "license": "GPL-2.0+",
+    "repositories": [
+        {
+            "type": "composer",
+            "url": "https://packages.drupal.org/8"
+        }
+    ],
+    "homepage": "https://www.drupal.org/project/same_page_preview",
+    "support": {
+        "issues": "https://www.drupal.org/project/issues/same_page_preview",
+        "source": "https://git.drupalcode.org/project/same_page_preview"
+    },
+    "authors": [
+        {
+            "name": "Chris Weber",
+            "homepage": "https://www.drupal.org/u/cosmicdreams",
+            "role": "Maintainer"
+        },
+        {
+            "name": "Brian Perry",
+            "homepage": "https://www.drupal.org/u/brianperry",
+            "role": "Co-Maintainer"
+        },
+        {
+            "name": "Ofer Shaal",
+            "homepage": "https://www.drupal.org/u/shaal",
+            "role": "Co-Maintainer"
+        }
+    ]
+}
