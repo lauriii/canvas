@@ -87,7 +87,8 @@ Cypress.Commands.add('drupalInstall', (
       Cypress.env('dbUrl')
         ? `--db-url ${Cypress.env('dbUrl')}`
         : '';
-    const installCommand = `php ../../../../../../core/scripts/test-site.php install ${setupFile} ${installProfile} ${langcodeOption} --base-url ${Cypress.env('baseUrl')} ${dbOption} --json`;
+
+    const installCommand = `php ${Cypress.env('coreDir')}/scripts/test-site.php install ${setupFile} ${installProfile} ${langcodeOption} --base-url ${Cypress.env('baseUrl')} ${dbOption} --json`;
     cy.exec(installCommand).then(install => {
       const installData = JSON.parse(install.stdout);
       const url = new URL(Cypress.env('baseUrl'));
@@ -102,7 +103,6 @@ Cypress.Commands.add('drupalInstall', (
 })
 
 Cypress.Commands.add('drupalInstallModule', (module, force, callback) => {
-  console.log('in DRUPAL install cmodule');
   cy.drupalLoginAsAdmin(() => {
     cy.drupalRelativeURL('/admin/modules');
     cy.get(`form.system-modules [name="modules[${module}][enable]"]`).check();
@@ -117,7 +117,6 @@ Cypress.Commands.add('drupalInstallModule', (module, force, callback) => {
     cy.drupalRelativeURL('/admin/modules');
 
     cy.get(`form.system-modules [name="modules[${module}][enable]"]`).should(($checkbox) => {
-      console.log(`The ${module} module is installed`)
       expect($checkbox.is(':checked'), `The ${module} module is installed`).to.be.true;
       expect($checkbox.is(':disabled'), `The ${module} install checkbox can not be unchecked`).to.be.true;
 
@@ -126,7 +125,7 @@ Cypress.Commands.add('drupalInstallModule', (module, force, callback) => {
 })
 
 Cypress.Commands.add('drupalLogAndEnd', ({ onlyOnError = true }, callback) => {
-  console.log('not sure this is even needed as cypress logs differently but who knows')
+  console.log('Not sure this is even needed as cypress logs differently but who knows')
   if (typeof callback === 'function') {
     callback.call(this);
   }
@@ -152,7 +151,7 @@ Cypress.Commands.add('drupalLoginAsAdmin', (callback) => {
     if (sessionExists) {
       cy.drupalLogout();
     }
-    const execCommand = `php ../../../../../../core/scripts/test-site.php user-login 1 --site-path ${Cypress.env('drupalSitePath')}`;
+    const execCommand = `php ${Cypress.env('coreDir')}/scripts/test-site.php user-login 1 --site-path ${Cypress.env('drupalSitePath')}`;
     cy.exec(execCommand).then((userLink)=> {
       cy.drupalRelativeURL(userLink.stdout)
       cy.drupalUserIsLoggedIn((sessionExists) => {
@@ -169,7 +168,8 @@ Cypress.Commands.add('drupalLoginAsAdmin', (callback) => {
 })
 
 Cypress.Commands.add('drupalLogout', ({ silent = false } = {}, callback) => {
-  cy.drupalRelativeURL('/user/logout');
+  cy.drupalRelativeURL('/user/logout/confirm');
+  cy.get('#user-logout-confirm').submit();
 
   cy.drupalUserIsLoggedIn((sessionExists) => {
     if (silent) {
@@ -203,7 +203,7 @@ Cypress.Commands.add('drupalUninstall', (callback) => {
         throw new Error('Missing database prefix parameter, unable to uninstall Drupal (the initial install was probably unsuccessful).');
       }
 
-      const tearDownCommand = `php ../../../../../../core/scripts/test-site.php tear-down ${prefix} ${dbOption}`;
+      const tearDownCommand = `php ${Cypress.env('coreDir')}/scripts/test-site.php tear-down ${prefix} ${dbOption}`;
       cy.exec(tearDownCommand).then(() => {
         if (typeof callback === 'function') {
           callback.call(self);
