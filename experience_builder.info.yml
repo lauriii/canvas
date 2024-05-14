@@ -13,8 +13,9 @@ description: PoC to test the data model — instantiate entity with fields and h
 # Transforming from one type to another (field type to SDC prop type — at minimum):
 # - https://docs.digibee.com/documentation/components/tools/transformer-jolt/transformer-getting-to-know-jolt
 type: module
-core_version_requirement: ^10.2
+core_version_requirement: ^10.2 || ^10.3
 php: 8.3
+configure: experience_builder.experience_builder
 dependencies:
   - drupal:sdc
 test_dependencies:
