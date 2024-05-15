@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace Drupal\experience_builder\Plugin\Validation\Constraint;
 
@@ -36,7 +36,7 @@ final class StringSemanticsConstraint extends SymfonyConstraint {
    * Examples:
    * - names
    * - titles
-   * - sentences without (HTML) markup
+   * - sentences without (HTML) markup.
    */
   const PROSE = 'prose';
 

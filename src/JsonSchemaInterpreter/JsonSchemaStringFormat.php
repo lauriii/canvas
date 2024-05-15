@@ -9,8 +9,13 @@ use Drupal\Core\TypedData\Type\UriInterface;
 use Drupal\experience_builder\DataTypeShapeRequirement;
 use Symfony\Component\Validator\Constraints\Ip;
 
-// @see https://json-schema.org/understanding-json-schema/reference/string#format
-// @see https://json-schema.org/understanding-json-schema/reference/string#built-in-formats
+// phpcs:disable Drupal.Files.LineLength.TooLong
+// phpcs:disable Drupal.Commenting.PostStatementComment.Found
+
+/**
+ * @see https://json-schema.org/understanding-json-schema/reference/string#format
+ * @see https://json-schema.org/understanding-json-schema/reference/string#built-in-formats
+ */
 enum JsonSchemaStringFormat: string {
   // Dates and times.
   // @see https://json-schema.org/understanding-json-schema/reference/string#dates-and-times
@@ -50,7 +55,7 @@ enum JsonSchemaStringFormat: string {
 
   public function toDataTypeShapeRequirements(): DataTypeShapeRequirement {
     return match($this) {
-      // Built-in formats: dates and times
+      // Built-in formats: dates and times.
       // @see https://json-schema.org/understanding-json-schema/reference/string#dates-and-times
       // @todo Restrict to only fields with the storage setting set to \Drupal\datetime\Plugin\Field\FieldType\DateTimeItem::DATETIME_TYPE_DATETIME
       // @todo Somehow allow \Drupal\Core\Field\Plugin\Field\FieldType\TimestampItem too, even though it is int-based, thanks to the use of an adapter? Infer this from \Drupal\Core\Field\FieldTypePluginManager::getGroupedDefinitions(), specifically `category = "date_time"`?
@@ -68,7 +73,7 @@ enum JsonSchemaStringFormat: string {
 
       // Built-in formats: hostnames.
       // @see https://json-schema.org/understanding-json-schema/reference/string#hostnames
-      static::HOSTNAME,  static::IDN_HOSTNAME => new DataTypeShapeRequirement('Hostname', []),
+      static::HOSTNAME, static::IDN_HOSTNAME => new DataTypeShapeRequirement('Hostname', []),
 
       // Built-in formats: IP addresses.
       // @see https://json-schema.org/understanding-json-schema/reference/string#ip-addresses
@@ -96,4 +101,5 @@ enum JsonSchemaStringFormat: string {
       static::REGEX => new DataTypeShapeRequirement('NOT YET SUPPORTED', []),
     };
   }
-};
+
+}

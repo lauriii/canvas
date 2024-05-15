@@ -101,7 +101,9 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
     }
 
     $sdc_manager = \Drupal::service('plugin.manager.sdc');
-    assert(version_compare(\Drupal::VERSION, '11', '>=')  ? $sdc_manager instanceof \Drupal\Core\Theme\ComponentPluginManager : $sdc_manager instanceof \Drupal\sdc\ComponentPluginManager);
+    // phpcs:disable Drupal.Classes.FullyQualifiedNamespace.UseStatementMissing
+    assert(version_compare(\Drupal::VERSION, '11', '>=') ? $sdc_manager instanceof \Drupal\Core\Theme\ComponentPluginManager : $sdc_manager instanceof \Drupal\sdc\ComponentPluginManager);
+    // phpcs:enable
 
     $matcher = \Drupal::service(SdcPropToFieldTypePropMatcher::class);
     assert($matcher instanceof SdcPropToFieldTypePropMatcher);
@@ -112,7 +114,10 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
       // Retrieve the full JSON schema definition from the SDC's metadata.
       // @see \Drupal\sdc\Component\ComponentValidator::validateProps()
       // @see \Drupal\sdc\Component\ComponentMetadata::parseSchemaInfo()
-      foreach ($matcher->iterateJsonSchema($component->metadata->schema) as $prop_name => ['required' => $is_required, 'schema' => $schema]) {
+      foreach ($matcher->iterateJsonSchema($component->metadata->schema) as $prop_name => [
+        'required' => $is_required,
+        'schema' => $schema,
+      ]) {
         $cpe = new ComponentPropExpression($component_name, $prop_name);
 
         // TRICKY: `attributes` is a special case — it is kind of a reserved
@@ -234,7 +239,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
       'ℹ︎︎image␟entity␜︎␜entity:file␝uri␞0␟value',
       'ℹ︎︎image␟entity␜︎␜entity:file␝uuid␞0␟value',
     ];
-    $all_integer_storage_props  = [
+    $all_integer_storage_props = [
       'ℹ︎changed␟value',
       'ℹ︎comment␟cid',
       'ℹ︎comment␟comment_count',

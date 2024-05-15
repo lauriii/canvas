@@ -7,12 +7,14 @@ namespace Drupal\experience_builder;
 use Drupal\Component\Assertion\Inspector;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\TypedData\EntityDataDefinition;
-use Drupal\Core\Entity\TypedData\EntityDataDefinitionInterface;
 use Drupal\Core\Field\FieldItemInterface;
-use Drupal\Core\Field\FieldTypePluginManagerInterface;
+
+// @todo Extract this into a set of classes after Felix pushes the Adapters work — avoiding disrupting that work.
+// phpcs:disable Drupal.Commenting.ClassComment.Missing
+// phpcs:disable Drupal.Classes.ClassFileName.NoMatch
 
 /**
- * Architectural Decision Record
+ * Architectural Decision Record.
  *
  * Since instantiated components in:
  * - content type templates
@@ -50,17 +52,21 @@ use Drupal\Core\Field\FieldTypePluginManagerInterface;
  *
  * @see https://github.com/SixArm/usv
  */
-
 interface PropExpressionInterface extends \Stringable {
+
   public static function fromString(string $representation);
+
 }
 
 interface ComponentPropExpressionInterface extends PropExpressionInterface {
+
   // Components are for graphical representations.
   const PREFIX = '⿲';
+
 }
 
 interface StructuredDataPropExpressionInterface extends PropExpressionInterface {
+
   // Structured data contains information.
   const PREFIX = 'ℹ︎';
 
@@ -68,8 +74,11 @@ interface StructuredDataPropExpressionInterface extends PropExpressionInterface 
 
 }
 
-// For pointing to a prop in a component.
+/**
+ * For pointing to a prop in a component.
+ */
 final class ComponentPropExpression implements ComponentPropExpressionInterface {
+
   public function __construct(
     public readonly string $componentName,
     public readonly string $propName,
@@ -86,8 +95,11 @@ final class ComponentPropExpression implements ComponentPropExpressionInterface 
 
 }
 
-// For pointing to a prop in a field type (not considering any delta).
+/**
+ * For pointing to a prop in a field type (not considering any delta).
+ */
 class FieldTypePropExpression implements StructuredDataPropExpressionInterface {
+
   public function __construct(
     public readonly string $fieldType,
     public readonly string $propName,
@@ -113,8 +125,11 @@ class FieldTypePropExpression implements StructuredDataPropExpressionInterface {
 
 }
 
-// For pointing to a prop in a field type (not considering any delta).
+/**
+ * For pointing to a prop in a field type (not considering any delta).
+ */
 class FieldTypeObjectPropsExpression implements StructuredDataPropExpressionInterface {
+
   public function __construct(
     public readonly string $fieldType,
     public readonly array $objectPropsToFieldTypeProps,
@@ -167,8 +182,11 @@ class FieldTypeObjectPropsExpression implements StructuredDataPropExpressionInte
 
 }
 
-// For pointing to a prop in a field type (not considering any delta).
+/**
+ * For pointing to a prop in a field type (not considering any delta).
+ */
 final class ReferenceFieldTypePropExpression extends FieldTypePropExpression {
+
   public function __construct(
     public readonly string $fieldType,
     public readonly string $propName,
@@ -194,8 +212,11 @@ final class ReferenceFieldTypePropExpression extends FieldTypePropExpression {
 
 }
 
-// For pointing to a prop in a concrete field.
+/**
+ * For pointing to a prop in a concrete field.
+ */
 final class FieldPropExpression implements StructuredDataPropExpressionInterface {
+
   public function __construct(
     // @todo will this break down once we support config entities? It must, because top-level config entity props ~= content entity fields, but deeper than that it is different.
     public readonly EntityDataDefinition $entityType,
@@ -256,7 +277,7 @@ final class ReferenceFieldPropExpression implements StructuredDataPropExpression
   ) {}
 
   public function __toString(): string {
-    return sprintf(static::PREFIX . "%s␜%s", mb_substr((string)$this->referencer, 1), mb_substr((string) $this->referenced, 1));
+    return sprintf(static::PREFIX . "%s␜%s", mb_substr((string) $this->referencer, 1), mb_substr((string) $this->referenced, 1));
   }
 
   public static function fromString(string $representation): static {
@@ -280,10 +301,10 @@ final class ReferenceFieldPropExpression implements StructuredDataPropExpression
     return TRUE;
   }
 
-
 }
 
 class FieldObjectPropsExpression implements StructuredDataPropExpressionInterface {
+
   public function __construct(
     // @todo will this break down once we support config entities? It must, because top-level config entity props ~= content entity fields, but deeper than that it is different.
     public readonly EntityDataDefinition $entityType,
@@ -301,8 +322,11 @@ class FieldObjectPropsExpression implements StructuredDataPropExpressionInterfac
 
   public function __toString(): string {
     return sprintf(static::PREFIX . "␜%s␝%s␞%s␟{%s}", $this->entityType->getDataType(), $this->fieldName, $this->delta ?? '', implode(', ', array_map(
-
-      fn (string $obj_prop_name, FieldPropExpression|ReferenceFieldPropExpression $expr) => sprintf('%s%s%s',
+      fn (
+        string $obj_prop_name,
+        FieldPropExpression|ReferenceFieldPropExpression $expr
+      ) => sprintf(
+        '%s%s%s',
         $obj_prop_name,
         $expr instanceof ReferenceFieldPropExpression ? '↝' : '↠',
         $expr instanceof ReferenceFieldPropExpression ? $expr->referencer->propName . '␜' . (string) $expr->referenced : $expr->propName,
@@ -369,11 +393,12 @@ final class PropExpressionEvaluator {
 
   public static function evaluate(null|EntityInterface|FieldItemInterface $entity_or_field, StructuredDataPropExpressionInterface $expr): mixed {
     if ($entity_or_field === NULL) {
-      // Entity is optional for reference fields: the reference may point to something or not.
+      // Entity is optional for reference fields: the reference may point to
+      // something or not.
       if ($expr instanceof ReferenceFieldPropExpression) {
         return NULL;
       }
-      throw new \LogicException('No data provided to evaluate expression ' . (string)$expr);
+      throw new \LogicException('No data provided to evaluate expression ' . (string) $expr);
     }
 
     // Assert that the received entity or field meets the needs of the

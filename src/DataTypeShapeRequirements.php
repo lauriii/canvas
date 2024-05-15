@@ -4,7 +4,13 @@ declare(strict_types=1);
 
 namespace Drupal\experience_builder;
 
+/**
+ * Describes a set of shape requirements for a Drupal data type.
+ *
+ * @see \Drupal\experience_builder\DataTypeShapeRequirement
+ */
 final class DataTypeShapeRequirements {
+
   public function __construct(
     public readonly array $requirements,
   ) {
@@ -14,4 +20,5 @@ final class DataTypeShapeRequirements {
       }
     }
   }
+
 }

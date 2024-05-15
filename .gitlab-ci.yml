@@ -76,6 +76,10 @@ variables:
   # @todo Delete this when https://www.drupal.org/project/gitlab_templates/issues/3447105 lands.
   _TARGET_DB_VERSION: 8
 
+# This module wants to strictly comply with Drupal's coding standards.
+phpcs:
+  allow_failure: false
+
 ###################################################################################
 #
 #                                        *

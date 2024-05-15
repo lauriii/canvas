@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace Drupal\experience_builder\Plugin\Validation\Constraint;
 
@@ -20,7 +20,11 @@ final class StringSemanticsConstraintValidator extends ConstraintValidator {
     if (!$constraint instanceof StringSemanticsConstraint) {
       throw new UnexpectedTypeException($constraint, __NAMESPACE__ . '\StringSemantics');
     }
-    assert(in_array($constraint->semantic, [StringSemanticsConstraint::PROSE, StringSemanticsConstraint::MARKUP, StringSemanticsConstraint::STRUCTURED], TRUE));
+    assert(in_array($constraint->semantic, [
+      StringSemanticsConstraint::PROSE,
+      StringSemanticsConstraint::MARKUP,
+      StringSemanticsConstraint::STRUCTURED,
+    ], TRUE));
 
     // No-op.
   }

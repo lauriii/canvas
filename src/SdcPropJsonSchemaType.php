@@ -4,14 +4,16 @@ declare(strict_types=1);
 
 namespace Drupal\experience_builder;
 
-use Drupal\Core\StreamWrapper\StreamWrapperManagerInterface;
 use Drupal\experience_builder\JsonSchemaInterpreter\JsonSchemaStringFormat;
 use Drupal\experience_builder\Plugin\Validation\Constraint\StringSemanticsConstraint;
 
+// phpcs:disable Drupal.Files.LineLength.TooLong
+
 /**
- * KNOWN UNKNOWNS
+ * KNOWN UNKNOWNS.
  *
  * ⚠️ CONFIDENCE UNDERMINING, HIGHEST IMPACT FIRST ⚠️
+ *
  * @todo Question: Does React also use JSON schema for restricting/defining its props? I.e.: identical set of primitives or not?
  * @todo expand test coverage for testing each known type as being REQUIRED too
  * @todo enums are widely used — auto-generating e.g. FieldConfig using @FieldType=list_string + settings would solve the 90% use case
@@ -48,7 +50,7 @@ enum SdcPropJsonSchemaType : string {
     return match ($this) {
       // A subset of the "primitive types" in JSON schema are:
       // - "scalar values" in PHP terminology
-      // - "primitives" in Drupal Typed data terminology
+      // - "primitives" in Drupal Typed data terminology.
       // @see https://www.php.net/manual/en/function.is-scalar.php
       // @see \Drupal\Core\TypedData\PrimitiveInterface
       self::STRING, self::NUMBER, self::INTEGER, self::BOOLEAN => TRUE,
@@ -100,10 +102,12 @@ enum SdcPropJsonSchemaType : string {
         TRUE => new DataTypeShapeRequirement('StringSemantics', ['semantic' => StringSemanticsConstraint::PROSE]),
       },
 
+      // phpcs:disable Drupal.Files.LineLength.TooLong
       // The `integer` and `number` JSON schema types.
       // - `enum`: https://json-schema.org/understanding-json-schema/reference/enum
       // - `multipleOf`: https://json-schema.org/understanding-json-schema/reference/numeric#multiples
       // - `minimum`, `exclusiveMinimum`, `maximum` and `exclusiveMaximum`: https://json-schema.org/understanding-json-schema/reference/numeric#range
+      // phpcs:enable
       SdcPropJsonSchemaType::INTEGER, SdcPropJsonSchemaType::NUMBER => match (TRUE) {
         array_key_exists('enum', $schema) => new DataTypeShapeRequirement('Choice', [
           'choices' => $schema['enum'],
@@ -121,9 +125,10 @@ enum SdcPropJsonSchemaType : string {
         TRUE => FALSE,
       },
 
-      SdcPropJsonSchemaType::OBJECT, SdcPropJsonSchemaType::ARRAY => (function() {
+      SdcPropJsonSchemaType::OBJECT, SdcPropJsonSchemaType::ARRAY => (function () {
         throw new \LogicException('@see ::findFieldTypeProps() and ::recurseJsonSchema()');
       })(),
     };
   }
+
 }

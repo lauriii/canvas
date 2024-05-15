@@ -49,13 +49,15 @@ final class SdcPropToFieldTypePropMatcher {
     private readonly EntityFieldManagerInterface $entityFieldManager,
   ) {}
 
-  // @see https://json-schema.org/understanding-json-schema/reference/type
-  // @todo Add caching at the appropriate layer: this is guaranteed to return the same within the same request; it depends only on code in enabled modules, not configuration
-  // TRICKY: relying on \Drupal\Core\TypedData\Type\*Interface is not possible
-  // because that interface conveys semantics, not storage mechanism. For
-  // example: DurationInterface has 2 implementations in Drupal core:
-  // - \Drupal\Core\TypedData\Plugin\DataType\TimeSpan, which is an integer
-  // - \Drupal\Core\TypedData\Plugin\DataType\DurationIso8601, which is a string
+  /**
+   * @see https://json-schema.org/understanding-json-schema/reference/type
+   * @todo Add caching at the appropriate layer: this is guaranteed to return the same within the same request; it depends only on code in enabled modules, not configuration
+   * TRICKY: relying on \Drupal\Core\TypedData\Type\*Interface is not possible
+   * because that interface conveys semantics, not storage mechanism. For
+   * example: DurationInterface has 2 implementations in Drupal core:
+   * - \Drupal\Core\TypedData\Plugin\DataType\TimeSpan, which is an integer
+   * - \Drupal\Core\TypedData\Plugin\DataType\DurationIso8601, which is a string
+   */
   public function findFieldTypeStorageCandidates(SdcPropJsonSchemaType $json_schema_primitive_type, bool $is_required_in_json_schema, ?array $subschema) : array {
     return $this->findFieldTypeProps($json_schema_primitive_type, $is_required_in_json_schema, $subschema, FALSE);
   }
@@ -81,7 +83,7 @@ final class SdcPropToFieldTypePropMatcher {
         yield $prop_name => [
           // @see https://json-schema.org/understanding-json-schema/reference/object#required
           // @see https://json-schema.org/learn/getting-started-step-by-step#required
-          'required' =>  in_array($prop_name, $schema['required'] ?? [], TRUE),
+          'required' => in_array($prop_name, $schema['required'] ?? [], TRUE),
           'schema' => self::resolveSchemaReferences($prop_schema),
         ];
       }
@@ -91,7 +93,9 @@ final class SdcPropToFieldTypePropMatcher {
     }
   }
 
-  // @todo Make *recursive* references work in justinrainbow/schema, see https://git.drupalcode.org/project/ui_patterns/-/blob/28cf60dd776fb349d9520377afa510b0d85f3334/src/SchemaManager/ReferencesResolver.php
+  /**
+   * @todo Make *recursive* references work in justinrainbow/schema, see https://git.drupalcode.org/project/ui_patterns/-/blob/28cf60dd776fb349d9520377afa510b0d85f3334/src/SchemaManager/ReferencesResolver.php
+   */
   private static function resolveSchemaReferences(array $schema): array {
     if (isset($schema['$ref'])) {
       // Perform the same schema resolving as `justinrainbow/json-schema`.
@@ -122,7 +126,7 @@ final class SdcPropToFieldTypePropMatcher {
       $object_prop_matches[$name] = $this->findFieldTypeProps(SdcPropJsonSchemaType::from($sub_schema['type']), $sub_required, $sub_schema, FALSE);
     }
 
-    // invert $object_prop_matches to determine different match types
+    // Invert $object_prop_matches to determine different match types.
     $inverted = [];
     foreach (array_keys($object_prop_matches) as $object_prop_name) {
       foreach ($object_prop_matches[$object_prop_name] as $field_type_prop_expr) {
@@ -245,7 +249,10 @@ final class SdcPropToFieldTypePropMatcher {
             'parent' => NULL,
             'data_definition' => $field_item_definition,
           ]);
-          // TRICKY: if no name is specified here, it'll cause a TypeError in \Drupal\Component\Render\FormattableMarkup::placeholderEscape() because e.g. the Length constraint causes string casting to happen at constraint construction time 🤪
+          // TRICKY: if no name is specified here, it'll cause a TypeError in
+          // \Drupal\Component\Render\FormattableMarkup::placeholderEscape()
+          // because e.g. the Length constraint causes string casting to happen
+          // at constraint construction time 🤪.
           $field_item_definition->getFieldDefinition()->setLabel('TBD');
           assert($field_item instanceof FieldItemInterface);
           $property = $this->recurseTypedDataInterface($field_item)[$property_name];
@@ -284,7 +291,7 @@ final class SdcPropToFieldTypePropMatcher {
       $object_prop_matches[$name] = $this->matchEntityProps($entity_data_definition, $levels_to_recurse, SdcPropJsonSchemaType::from($sub_schema['type']), $sub_required, $sub_schema);
     }
 
-    // invert $object_prop_matches to determine different match types
+    // Invert $object_prop_matches to determine different match types.
     $inverted = [];
     foreach (array_keys($object_prop_matches) as $object_prop_name) {
       foreach ($object_prop_matches[$object_prop_name] as $field_prop_expr) {

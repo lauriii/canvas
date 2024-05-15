@@ -15,7 +15,7 @@ use Drupal\Core\Url;
 /**
  * Defines the read-only json-schema-definitions:// stream wrapper.
  *
- * 🙏🤩Heavily inspired by https://git.drupalcode.org/project/ui_patterns/-/blob/28cf60dd776fb349d9520377afa510b0d85f3334/src/SchemaManager/StreamWrapper.php
+ * 🙏🤩Heavily inspired by https://git.drupalcode.org/project/ui_patterns/-/blob/28cf60dd776fb349d9520377afa510b0d85f3334/src/SchemaManager/StreamWrapper.php.
  *
  * @todo Investigate which of the other services that the UI Patterns module has are relevant to adopt:   # @see https://git.drupalcode.org/project/ui_patterns/-/blob/28cf60dd776fb349d9520377afa510b0d85f3334/ui_patterns.services.yml#L44-L58
  */
@@ -33,11 +33,12 @@ class JsonSchemaDefinitionsStreamwrapper extends LocalReadOnlyStream {
   /**
    * {@inheritdoc}
    */
+  // phpcs:disable Drupal.NamingConventions.ValidFunctionName.ScopeNotCamelCaps
   public function stream_open($uri, $mode, $options, &$opened_path) {
     try {
       [$extension_path, $definition_name] = self::parseUri($uri);
     }
-    catch (UnknownExtensionException|UnknownExtensionTypeException $e) {
+    catch (UnknownExtensionException | UnknownExtensionTypeException $e) {
       // @todo Re-throw with more precise exception message for better DX.
       return FALSE;
     }
