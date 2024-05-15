@@ -1,0 +1,14 @@
+name: Same Page Preview (forked by Ben)
+type: module
+description: Extends Drupal to provide side-by-side preview for node editing. Manage settings per content type by clicking "Edit" on the content type page.
+package: Preview
+core_version_requirement: ^10.1 || ^11
+configure: same_page_preview.settings_form
+# version: 2.1.2
+#dependencies:
+#  - drupal:sdc
+
+# Information added by Drupal.org packaging script on 2024-03-25
+version: '2.1.3'
+project: 'same_page_preview'
+datestamp: 1711339207

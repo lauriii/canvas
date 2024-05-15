@@ -9,10 +9,10 @@
     "cy:info": "cypress info",
     "cy:version": "cypress version",
     "cy:cache:list": "cypress cache list",
-    "cy:run": "cypress run",
+    "cy:run": "cypress run --browser chrome",
     "cy:run:record": "cypress run --record",
     "cy:open": "cypress open",
-g    "local:run": "start-test 8080 cy:run",
+    "local:run": "start-test 8080 cy:run",
     "local:run:record": "start-test 8080 cy:run:record",
     "cypress:component": "cypress run --config video=false --component"
   },

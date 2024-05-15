@@ -63,14 +63,14 @@ final class StringSemanticsConstraint extends SymfonyConstraint {
   /**
    * {@inheritdoc}
    */
-  public function getRequiredOptions() {
+  public function getRequiredOptions() : array {
     return ['semantic'];
   }
 
   /**
    * {@inheritdoc}
    */
-  public function getDefaultOption() {
+  public function getDefaultOption() : ?string {
     return 'semantic';
   }
 

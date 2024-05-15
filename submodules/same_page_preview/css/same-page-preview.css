@@ -1,0 +1,105 @@
+/**
+ * Same Page Preview styles.
+ */
+
+/* Preview panel form controls */
+#drupal-off-canvas-wrapper.same-page-preview-dialog {
+  container-type: inline-size;
+}
+
+#drupal-off-canvas-wrapper.same-page-preview-dialog div.button-group {
+  display: inline-flex;
+}
+
+#drupal-off-canvas-wrapper .same-page-preview-form-select .button {
+  width: auto;
+  margin: 0 0.625rem 0 0;
+}
+
+#drupal-off-canvas-wrapper .same-page-preview-form-select {
+  display: flex;
+  align-items: center;
+  padding-block: 14px;
+}
+
+#drupal-off-canvas-wrapper .same-page-preview-form-select .js-hide.button {
+  display: none;
+}
+
+#drupal-off-canvas-wrapper .same-page-preview-form-select .js-form-item-view-mode {
+  padding: 0;
+  /* Alignment within parent */
+  flex-grow: 1;
+  justify-content: flex-end;
+  /* Alignment of form elements */
+  display: flex;
+  align-items: center;
+}
+
+#drupal-off-canvas-wrapper .same-page-preview-form-select .js-form-item-view-mode label {
+  margin-right: 0.625rem;
+}
+
+#drupal-off-canvas-wrapper.same-page-preview-dialog a {
+  color: var(--off-canvas-button-text-color);
+}
+
+#drupal-off-canvas-wrapper.same-page-preview-dialog a.spp-settings-dropdown__link {
+  color: var(--off-canvas-details-summary-background-color);
+}
+
+#drupal-off-canvas-wrapper.same-page-preview-dialog .spp-button-text {
+  display: none;
+}
+
+@container (min-width: 650px) {
+  #drupal-off-canvas-wrapper.same-page-preview-dialog .spp-button-text {
+    display: inline-flex;
+  }
+}
+
+#drupal-off-canvas-wrapper .ui-dialog-titlebar:before {
+  display: none;
+}
+
+#drupal-off-canvas-wrapper .ui-dialog-title {
+  position: relative;
+  right: 26px;
+}
+
+[data-hover-outline] {
+  position: absolute;
+  background: transparent;
+  outline: 2px solid #ff69ba;
+}
+
+#preview-iframe-wrapper {
+  position: relative;
+  height: 100vh;
+}
+
+.outline-in-form {
+  outline: 3px solid #4468dd;
+}
+.drag-items {
+  font-size: 1.8rem;
+}
+
+[data-dom-drop] {
+  background: rgb(2,0,36) !important;
+  background: linear-gradient(357deg, rgba(2,0,36,1) 0%, rgba(119,119,189,1) 35%, rgba(0,212,255,1) 100%) !important;
+}
+
+[data-dom-drop]:hover:not(.can-drop) {
+  outline: 4px solid black !important;
+}
+
+[data-dom-drop].can-drop.can-drop {
+  outline: 6px dashed red !important;
+
+}
+
+/*[data-dom-drop] {*/
+/*  border: 7px solid green;*/
+
+/*}*/

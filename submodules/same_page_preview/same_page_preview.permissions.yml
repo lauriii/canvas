@@ -1,0 +1,8 @@
+administer same_page_preview configuration:
+  title: 'Administer same_page_preview configuration'
+  description: 'Proves management of default settings.'
+  restrict access: true
+access same_page_preview:
+  title: 'Access to extended preview feature'
+  description: 'Enables same_page_preview for this role.'
+  restrict access: true

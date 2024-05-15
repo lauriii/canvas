@@ -1,0 +1,14 @@
+title: Web/SPP/New Window Button
+argTypes:
+  iconType:
+    defaultValue: new-window
+    options:
+      NewWindow: new-window
+    control: radio
+stories:
+  - name: 1. New Window Button
+    args:
+      iconType: new-window
+
+      label: New Window
+      href: https://www.example.org
