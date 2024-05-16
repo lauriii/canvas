@@ -25,7 +25,7 @@
 /src/Plugin/DataType/
 /src/Plugin/Field/
 /src/Plugin/Validation/
-/src/PropExpressions.php
+/src/PropExpressions/
 
 [schema matching] @wimleers
 /src/JsonSchemaInterpreter/

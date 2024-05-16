@@ -1,14 +1,9 @@
 <?php
 
-require_once 'src/PropExpressions.php';
-
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\Display\EntityViewDisplayInterface;
 use Drupal\Core\Field\FieldItemInterface;
 use Drupal\Core\Template\Attribute;
-use Drupal\experience_builder\ComponentPropExpression;
-use Drupal\experience_builder\FieldPropExpression;
-use Drupal\experience_builder\FieldTypePropExpression;
 use Drupal\experience_builder\Plugin\Field\FieldType\FileItemOverride;
 use Drupal\experience_builder\Plugin\Field\FieldType\FileUriItemOverride;
 use Drupal\experience_builder\Plugin\Field\FieldType\ImageItemOverride;
@@ -19,6 +14,15 @@ use Drupal\experience_builder\Plugin\Field\FieldType\StringLongItemOverride;
 use Drupal\experience_builder\Plugin\Field\FieldType\TextItemOverride;
 use Drupal\experience_builder\Plugin\Field\FieldType\UuidItemOverride;
 use Drupal\experience_builder\Plugin\Validation\Constraint\StringSemanticsConstraint;
+use Drupal\experience_builder\PropExpressions\StructuredData\{
+  Evaluator,
+  FieldObjectPropsExpression,
+  FieldPropExpression,
+  FieldTypeObjectPropsExpression,
+  FieldTypePropExpression,
+  ReferenceFieldPropExpression,
+  StructuredDataPropExpressionInterface,
+};
 use Drupal\experience_builder\SdcPropJsonSchemaType;
 use Drupal\experience_builder\SdcPropToFieldTypePropMatcher;
 use Drupal\sdc\ComponentPluginManager;
@@ -151,14 +155,14 @@ function _eb_resolve_sdc_prop_value(\Drupal\Core\Entity\ContentEntityInterface $
 
     // Second: construct an expression object from the expression string.
     if (str_contains($sdc_prop_source['expression'], '{')) {
-      $expression = \Drupal\experience_builder\FieldTypeObjectPropsExpression::fromString($sdc_prop_source['expression']);
+      $expression = FieldTypeObjectPropsExpression::fromString($sdc_prop_source['expression']);
     }
     else {
       $expression = FieldTypePropExpression::fromString($sdc_prop_source['expression']);
     }
 
     // Finally: evaluate expression using the field item.
-    $value = \Drupal\experience_builder\PropExpressionEvaluator::evaluate($field_item, $expression);
+    $value = Evaluator::evaluate($field_item, $expression);
   }
 
   if ($sdc_prop_source['sourceType'] === 'dynamic') {
@@ -170,16 +174,16 @@ function _eb_resolve_sdc_prop_value(\Drupal\Core\Entity\ContentEntityInterface $
 
     // First: construct an expression object from the expression string.
     if (str_contains($sdc_prop_source['expression'], '{')) {
-      $expression = \Drupal\experience_builder\FieldObjectPropsExpression::fromString($sdc_prop_source['expression']);
+      $expression = FieldObjectPropsExpression::fromString($sdc_prop_source['expression']);
     }
     else if (str_contains($sdc_prop_source['expression'], 'entity␜︎␜entity:')) {
-      $expression = \Drupal\experience_builder\ReferenceFieldPropExpression::fromString($sdc_prop_source['expression']);
+      $expression = ReferenceFieldPropExpression::fromString($sdc_prop_source['expression']);
     }
     else {
       $expression = FieldPropExpression::fromString($sdc_prop_source['expression']);
     }
     // Second: evaluate expression using the field item.
-    $value = \Drupal\experience_builder\PropExpressionEvaluator::evaluate($host_entity, $expression);
+    $value = Evaluator::evaluate($host_entity, $expression);
   }
 
   if (str_starts_with($sdc_prop_source['sourceType'], 'adapter:')) {
@@ -237,8 +241,8 @@ function experience_builder_entity_view_alter(&$build, EntityInterface $entity, 
 
     $props[$prop_name] = array_filter(
       $matcher->findFieldInstanceFormatMatches($primitive_type, $is_required, $schema),
-      function (FieldPropExpression|\Drupal\experience_builder\ReferenceFieldPropExpression $expr) use ($entity) {
-        $et = $expr instanceof \Drupal\experience_builder\ReferenceFieldPropExpression
+      function (FieldPropExpression|ReferenceFieldPropExpression $expr) use ($entity) {
+        $et = $expr instanceof ReferenceFieldPropExpression
           ? $expr->referencer->entityType
           : $expr->entityType;
         return $et->getEntityTypeId() === $entity->getEntityTypeId() && $et->getBundles() === [$entity->bundle()];
@@ -373,7 +377,7 @@ function experience_builder_entity_view_alter(&$build, EntityInterface $entity, 
     $build['experience_builder_sdc_random_prop_expressions_overview'][$prop_name] = [
       '#theme' => 'item_list',
       '#title' => \Drupal\Core\Render\Markup::create("Component prop: <code>$prop_name</code>"),
-      '#items' => array_map(fn (\Drupal\experience_builder\StructuredDataPropExpressionInterface $e) => (string) $e, $matches),
+      '#items' => array_map(fn (StructuredDataPropExpressionInterface $e) => (string) $e, $matches),
       '#empty' => 'No matches found',
     ];
   }
@@ -395,7 +399,7 @@ function experience_builder_entity_view_alter(&$build, EntityInterface $entity, 
   foreach ($permutations as $label => $prop_exprs) {
     $permutation_id++;
     $evaluated_prop_exprs = array_map(
-      fn(FieldPropExpression|\Drupal\experience_builder\ReferenceFieldPropExpression $e) => \Drupal\experience_builder\PropExpressionEvaluator::evaluate($entity, $e),
+      fn(FieldPropExpression|ReferenceFieldPropExpression $e) => Evaluator::evaluate($entity, $e),
       array_filter($prop_exprs)
     );
     $build['experience_builder_sdc_random_prop_expressions']['preview' . $permutation_id] = [
