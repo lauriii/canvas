@@ -11,6 +11,9 @@ namespace Drupal\experience_builder;
  */
 final class DataTypeShapeRequirements {
 
+  /**
+   * @param \Drupal\experience_builder\DataTypeShapeRequirement[] $requirements
+   */
   public function __construct(
     public readonly array $requirements,
   ) {

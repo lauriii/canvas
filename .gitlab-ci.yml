@@ -80,6 +80,10 @@ variables:
 phpcs:
   allow_failure: false
 
+# This module wants to strictly comply with PHPStan.
+.phpstan-base:
+  allow_failure: false
+
 ###################################################################################
 #
 #                                        *

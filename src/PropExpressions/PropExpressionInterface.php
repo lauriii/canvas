@@ -6,6 +6,6 @@ namespace Drupal\experience_builder\PropExpressions;
 
 interface PropExpressionInterface extends \Stringable {
 
-  public static function fromString(string $representation);
+  public static function fromString(string $representation): static;
 
 }

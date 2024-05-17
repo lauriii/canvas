@@ -75,6 +75,9 @@ enum SdcPropJsonSchemaType : string {
     return !$this->isScalar();
   }
 
+  /**
+   * @param array<string, mixed> $schema
+   */
   public function toDataTypeShapeRequirements(array $schema): DataTypeShapeRequirement|DataTypeShapeRequirements|false {
     return match ($this) {
       // There cannot possibly be any additional validation for booleans.

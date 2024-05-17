@@ -7,13 +7,18 @@ namespace Drupal\experience_builder\PropExpressions\StructuredData;
 use Drupal\Component\Assertion\Inspector;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\TypedData\EntityDataDefinition;
+use Drupal\Core\Entity\TypedData\EntityDataDefinitionInterface;
 use Drupal\Core\Field\FieldItemInterface;
 
-class FieldObjectPropsExpression implements StructuredDataPropExpressionInterface {
+final class FieldObjectPropsExpression implements StructuredDataPropExpressionInterface {
 
+  /**
+   * @param array<string, FieldPropExpression|ReferenceFieldPropExpression> $objectPropsToFieldProps
+   *   A mapping of SDC prop names to Field Type prop expressions.
+   */
   public function __construct(
     // @todo will this break down once we support config entities? It must, because top-level config entity props ~= content entity fields, but deeper than that it is different.
-    public readonly EntityDataDefinition $entityType,
+    public readonly EntityDataDefinitionInterface $entityType,
     public readonly string $fieldName,
     // A content entity field item delta is optional.
     // @todo Should this allow expressing "all deltas"? Should that be represented using `NULL`, `TRUE`, `*` or `∀`? For now assuming NULL.
@@ -40,6 +45,15 @@ class FieldObjectPropsExpression implements StructuredDataPropExpressionInterfac
       array_keys($this->objectPropsToFieldProps),
       array_values($this->objectPropsToFieldProps),
     )));
+  }
+
+  public function withDelta(int $delta): static {
+    return new static(
+      $this->entityType,
+      $this->fieldName,
+      $delta,
+      $this->objectPropsToFieldProps,
+    );
   }
 
   public static function fromString(string $representation): static {

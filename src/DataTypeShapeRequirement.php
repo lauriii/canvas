@@ -12,6 +12,9 @@ namespace Drupal\experience_builder;
  */
 final class DataTypeShapeRequirement {
 
+  /**
+   * @param array<mixed> $constraintOptions
+   */
   public function __construct(
     public readonly string $constraint,
     public readonly array $constraintOptions,

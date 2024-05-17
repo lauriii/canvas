@@ -3,6 +3,7 @@
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\Display\EntityViewDisplayInterface;
 use Drupal\Core\Field\FieldItemInterface;
+use Drupal\Core\Field\TypedData\FieldItemDataDefinitionInterface;
 use Drupal\Core\Template\Attribute;
 use Drupal\experience_builder\Plugin\Field\FieldType\FileItemOverride;
 use Drupal\experience_builder\Plugin\Field\FieldType\FileUriItemOverride;
@@ -25,7 +26,6 @@ use Drupal\experience_builder\PropExpressions\StructuredData\{
 };
 use Drupal\experience_builder\SdcPropJsonSchemaType;
 use Drupal\experience_builder\SdcPropToFieldTypePropMatcher;
-use Drupal\sdc\ComponentPluginManager;
 use Symfony\Component\Validator\Constraints\Hostname;
 use Symfony\Component\Validator\Constraints\Ip;
 
@@ -109,7 +109,10 @@ function experience_builder_entity_base_field_info_alter(&$fields, \Drupal\Core\
   }
 }
 
-function _eb_resolve_sdc_prop_value(\Drupal\Core\Entity\ContentEntityInterface $host_entity, array $sdc_prop_source) {
+/**
+ * @param array<mixed> $sdc_prop_source
+ */
+function _eb_resolve_sdc_prop_value(EntityInterface $host_entity, array $sdc_prop_source): mixed {
   // @todo convert this to a value object?
   $missing = array_diff(['sourceType'], array_keys($sdc_prop_source));
   if (!empty($missing)) {
@@ -129,6 +132,7 @@ function _eb_resolve_sdc_prop_value(\Drupal\Core\Entity\ContentEntityInterface $
     // First: conjure the expected FieldItem instance.
     [,$data_type] = explode(':', $sdc_prop_source['sourceType'], 2);
     $field_item_definition = $typed_data_manager->createDataDefinition($data_type);
+    assert($field_item_definition instanceof FieldItemDataDefinitionInterface);
     $field_item = $typed_data_manager->createInstance($data_type, [
       'name' => NULL,
       'parent' => NULL,
@@ -196,6 +200,8 @@ function _eb_resolve_sdc_prop_value(\Drupal\Core\Entity\ContentEntityInterface $
     $value = ['src' => '@todo.png'];
   }
 
+  // When this hacky code gets refactored, this PHPStan ignore will disappear.
+  // @phpstan-ignore-next-line
   return $value;
 }
 
@@ -209,18 +215,14 @@ function experience_builder_entity_view_alter(&$build, EntityInterface $entity, 
     return;
   }
   $sdc_manager = \Drupal::service('plugin.manager.sdc');
-  assert($sdc_manager instanceof ComponentPluginManager);
   $matcher = \Drupal::service(SdcPropToFieldTypePropMatcher::class);
   assert($matcher instanceof SdcPropToFieldTypePropMatcher);
 
   // Demonstrate the SdcPropToFieldTypePropMatcher infrastructure using a single
   // component but for any entity type.
   $component = $sdc_manager->find('sdc_test:my-cta');
-  $prop_names = array_keys($component->metadata->schema['properties'] ?? []);
   $props = [];
-  foreach ($prop_names as $prop_name) {
-    $schema = $component->metadata->schema['properties'][$prop_name];
-
+  foreach ($component->metadata->schema['properties'] ?? [] as $prop_name => $schema) {
     // TRICKY: `attributes` is a special case — it is kind of a reserved
     // prop.
     // @see \Drupal\sdc\Twig\TwigExtension::mergeAdditionalRenderContext()
@@ -241,6 +243,7 @@ function experience_builder_entity_view_alter(&$build, EntityInterface $entity, 
 
     $props[$prop_name] = array_filter(
       $matcher->findFieldInstanceFormatMatches($primitive_type, $is_required, $schema),
+      // @phpstan-ignore-next-line
       function (FieldPropExpression|ReferenceFieldPropExpression $expr) use ($entity) {
         $et = $expr instanceof ReferenceFieldPropExpression
           ? $expr->referencer->entityType
@@ -257,7 +260,7 @@ function experience_builder_entity_view_alter(&$build, EntityInterface $entity, 
   ];
 
 
-
+  // @phpstan-ignore-next-line
   $experience_builder_layout_field = json_decode(json_encode([
     'static-image-56r' => ['type' => 'experience_builder:image'],
     'dynamic-image-udf7d' => ['type' => 'experience_builder:image'],
@@ -268,6 +271,7 @@ function experience_builder_entity_view_alter(&$build, EntityInterface $entity, 
   ]), TRUE);
 
 
+  // @phpstan-ignore-next-line
   $experience_builder_values_field = json_decode(json_encode([
     'dynamic-static-card2df' => [
       'text' => [
@@ -368,6 +372,7 @@ function experience_builder_entity_view_alter(&$build, EntityInterface $entity, 
   return $build;
 
   // Generate all possible permutations.
+  // @phpstan-ignore-next-line
   $build['experience_builder_sdc_random_prop_expressions_overview'] = [
     '#type' => 'container',
     '#weight' => -100,

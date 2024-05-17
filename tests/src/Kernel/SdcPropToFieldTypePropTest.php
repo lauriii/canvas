@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\Tests\experience_builder\Kernel;
 
 use Drupal\Core\Extension\ModuleInstallerInterface;
+use Drupal\Core\StreamWrapper\StreamWrapperInterface;
 use Drupal\Core\StreamWrapper\StreamWrapperManagerInterface;
 use Drupal\Core\Template\Attribute;
 use Drupal\experience_builder\JsonSchemaInterpreter\JsonSchemaStringFormat;
@@ -51,12 +52,16 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
   /**
    * Tests matches for component props.
    *
+   * @param string[] $modules
+   * @param array{'modules': string[], 'expected': array<string, array<mixed>>} $expected
+   *
    * @dataProvider provider
    */
-  public function test(array $modules, array $expected) {
+  public function test(array $modules, array $expected): void {
     $missing_test_modules = array_diff($modules, array_keys(\Drupal::service('extension.list.module')->getList()));
     if (!empty($missing_test_modules)) {
-      $this->markTestSkipped('The %s test modules are missing.', implode(',', $missing_test_modules));
+      $this->markTestSkipped(sprintf('The %s test modules are missing.', implode(',', $missing_test_modules)));
+      // @phpstan-ignore-next-line
       return;
     }
 
@@ -101,20 +106,19 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
     }
 
     $sdc_manager = \Drupal::service('plugin.manager.sdc');
-    // phpcs:disable Drupal.Classes.FullyQualifiedNamespace.UseStatementMissing
-    assert(version_compare(\Drupal::VERSION, '11', '>=') ? $sdc_manager instanceof \Drupal\Core\Theme\ComponentPluginManager : $sdc_manager instanceof \Drupal\sdc\ComponentPluginManager);
-    // phpcs:enable
-
     $matcher = \Drupal::service(SdcPropToFieldTypePropMatcher::class);
     assert($matcher instanceof SdcPropToFieldTypePropMatcher);
 
+    $matches = [];
     foreach ($sdc_manager->getAllComponents() as $component) {
       $component_name = $component->getPluginId();
 
       // Retrieve the full JSON schema definition from the SDC's metadata.
       // @see \Drupal\sdc\Component\ComponentValidator::validateProps()
       // @see \Drupal\sdc\Component\ComponentMetadata::parseSchemaInfo()
-      foreach ($matcher->iterateJsonSchema($component->metadata->schema) as $prop_name => [
+      /** @var array<string, mixed> $schema */
+      $schema = $component->metadata->schema;
+      foreach ($matcher->iterateJsonSchema($schema) as $prop_name => [
         'required' => $is_required,
         'schema' => $schema,
       ]) {
@@ -131,7 +135,9 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
 
         if (isset($schema['$ref'])) {
           // Prove a $ref URL can be transformed into a publicly accessible URL.
-          $public_ref_url = \Drupal::service(StreamWrapperManagerInterface::class)->getViaUri($schema['$ref'])->getExternalUrl();
+          $stream_wrapper = \Drupal::service(StreamWrapperManagerInterface::class)->getViaUri($schema['$ref']);
+          $this->assertInstanceOf(StreamWrapperInterface::class, $stream_wrapper);
+          $public_ref_url = $stream_wrapper->getExternalUrl();
           $this->assertStringEndsWith('/experience_builder/schema.json#defs/' . basename($schema['$ref']), $public_ref_url);
         }
 
@@ -190,7 +196,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
   }
 
   /**
-   * @return \Generator
+   * @return \Generator<string, array{'modules': string[], 'expected': array<string, array<mixed>>}>
    */
   public static function provider() {
     $all_string_storage_props = [

@@ -61,15 +61,29 @@ final class SdcPropToFieldTypePropMatcher {
    * example: DurationInterface has 2 implementations in Drupal core:
    * - \Drupal\Core\TypedData\Plugin\DataType\TimeSpan, which is an integer
    * - \Drupal\Core\TypedData\Plugin\DataType\DurationIso8601, which is a string
+   *
+   * @param array<string, mixed> $subschema
+   * @return array<int, \Drupal\experience_builder\PropExpressions\StructuredData\FieldTypePropExpression|\Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldTypePropExpression|\Drupal\experience_builder\PropExpressions\StructuredData\FieldTypePropExpression>
    */
   public function findFieldTypeStorageCandidates(SdcPropJsonSchemaType $json_schema_primitive_type, bool $is_required_in_json_schema, ?array $subschema) : array {
+    // 🐛 PHPStan complains about this, but the array shape is *identical*!
+    // @phpstan-ignore-next-line
     return $this->findFieldTypeProps($json_schema_primitive_type, $is_required_in_json_schema, $subschema, FALSE);
   }
 
+  /**
+   * @param array<string, mixed> $schema
+   * @return array<int, \Drupal\experience_builder\PropExpressions\StructuredData\FieldTypePropExpression|\Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldTypePropExpression|\Drupal\experience_builder\PropExpressions\StructuredData\FieldTypePropExpression>
+   */
   public function findFieldTypeFormatCandidates(SdcPropJsonSchemaType $json_schema_primitive_type, bool $is_required_in_json_schema, array $schema, bool $main_property_only) {
+    // 🐛 PHPStan complains about this, but the array shape is *identical*!
+    // @phpstan-ignore-next-line
     return $this->findFieldTypeProps($json_schema_primitive_type, $is_required_in_json_schema, $schema, $main_property_only);
   }
 
+  /**
+   * @param array<string, mixed> $schema
+   */
   public function iterateJsonSchema(array $schema): \Generator {
     $schema = self::resolveSchemaReferences($schema);
     $primitive_type = SdcPropJsonSchemaType::from(
@@ -99,23 +113,39 @@ final class SdcPropToFieldTypePropMatcher {
 
   /**
    * @todo Make *recursive* references work in justinrainbow/schema, see https://git.drupalcode.org/project/ui_patterns/-/blob/28cf60dd776fb349d9520377afa510b0d85f3334/src/SchemaManager/ReferencesResolver.php
+   *
+   * @param array<string, mixed> $schema
+   * @return array<string, mixed>
    */
   private static function resolveSchemaReferences(array $schema): array {
     if (isset($schema['$ref'])) {
       // Perform the same schema resolving as `justinrainbow/json-schema`.
-      $schema = json_decode(file_get_contents($schema['$ref']), TRUE);
+      // @todo Delete this method, actually use `justinrainbow/json-schema`.
+      // @phpstan-ignore-next-line
+      $schema = json_decode(file_get_contents($schema['$ref']) ?? '{}', TRUE);
     }
     return $schema;
   }
 
+  /**
+   * @param array<string, mixed> $schema
+   * @return array<int, \Drupal\experience_builder\PropExpressions\StructuredData\FieldTypePropExpression|\Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldTypePropExpression|\Drupal\experience_builder\PropExpressions\StructuredData\FieldTypeObjectPropsExpression>
+   */
   public function findFieldTypeProps(SdcPropJsonSchemaType $json_schema_primitive_type, bool $is_required_in_json_schema, ?array $schema, bool $main_property_only) : array {
-    return match ($json_schema_primitive_type->isScalar()) {
-      TRUE => $this->findFieldTypePropsForScalar($json_schema_primitive_type, $is_required_in_json_schema, $schema, $main_property_only),
-      FALSE => $this->findFieldTypePropsForIterable($json_schema_primitive_type, $schema),
-    };
+    if ($json_schema_primitive_type->isScalar()) {
+      return $this->findFieldTypePropsForScalar($json_schema_primitive_type, $is_required_in_json_schema, $schema, $main_property_only);
+    }
+    else {
+      assert(is_array($schema));
+      return $this->findFieldTypePropsForIterable($json_schema_primitive_type, $schema);
+    }
   }
 
-  public function findFieldTypePropsForIterable(SdcPropJsonSchemaType $json_schema_primitive_type, ?array $schema) : array {
+  /**
+   * @param array<string, mixed> $schema
+   * @return array<int, \Drupal\experience_builder\PropExpressions\StructuredData\FieldTypeObjectPropsExpression>
+   */
+  public function findFieldTypePropsForIterable(SdcPropJsonSchemaType $json_schema_primitive_type, array $schema) : array {
     if (!$json_schema_primitive_type->isIterable()) {
       throw new \LogicException();
     }
@@ -134,6 +164,8 @@ final class SdcPropToFieldTypePropMatcher {
     $inverted = [];
     foreach (array_keys($object_prop_matches) as $object_prop_name) {
       foreach ($object_prop_matches[$object_prop_name] as $field_type_prop_expr) {
+        // PHPStan's error is very cryptic, I'm lost. This code needs to be refactored anyway; the runtime assertions are too valuable to lose right now.
+        // @phpstan-ignore-next-line
         assert($field_type_prop_expr instanceof FieldTypePropExpression || $field_type_prop_expr instanceof ReferenceFieldTypePropExpression);
         // The same field type prop should never be used multiple times; best
         // match is selected in object prop order.
@@ -175,11 +207,17 @@ final class SdcPropToFieldTypePropMatcher {
     $matches = [];
     // Prefer complete matches: list complete matches before minimal matches.
     foreach ($matches_complete + $matches_minimal as $field_type => $mapping) {
+      // @todo Support nested/recursive/chained FieldTypeObjectPropsExpression?
+      /** @var array<string, \Drupal\experience_builder\PropExpressions\StructuredData\FieldTypePropExpression|\Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldTypePropExpression> $mapping */
       $matches[] = new FieldTypeObjectPropsExpression($field_type, $mapping);
     }
     return $matches;
   }
 
+  /**
+   * @param array<string, mixed> $schema
+   * @return array<int, \Drupal\experience_builder\PropExpressions\StructuredData\FieldTypePropExpression|\Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldTypePropExpression>
+   */
   public function findFieldTypePropsForScalar(SdcPropJsonSchemaType $json_schema_primitive_type, bool $is_required_in_json_schema, ?array $schema, bool $main_property_only) : array {
     if (!$json_schema_primitive_type->isScalar()) {
       throw new \LogicException();
@@ -194,6 +232,7 @@ final class SdcPropToFieldTypePropMatcher {
       // directly to the DataType-associated-with-FieldType level.
       // @see \Drupal\Core\Field\FieldTypePluginManager::createInstance()
       $field_item_definition = $this->typedDataManager->createDataDefinition("field_item:$field_type");
+      assert($field_item_definition instanceof FieldItemDataDefinitionInterface);
       $property_definitions = $this->recurseDataDefinitionInterface($field_item_definition);
 
       foreach ($property_definitions as $property_name => $property_definition) {
@@ -214,7 +253,7 @@ final class SdcPropToFieldTypePropMatcher {
             }
             // … but only "simple" entity targets, so not entity revisions or
             // anything else.
-            if (!$target instanceof EntityDataDefinition) {
+            if (!$target instanceof EntityDataDefinitionInterface) {
               continue;
             }
             // Finally, avoid interpreting the configurable `entity_reference`
@@ -224,6 +263,8 @@ final class SdcPropToFieldTypePropMatcher {
             // @see \Drupal\Core\Field\TypedData\FieldItemDataDefinition::createFromDataType()
             // @see \Drupal\Core\Field\Plugin\Field\FieldType\EntityReferenceItem::defaultStorageSettings()
             // @todo allow this to be detected automatically by expanding core infrastructure?
+            // @todo \Drupal\Core\Field\BaseFieldDefinition::getTargetEntityTypeId() violates the interface.
+            // @phpstan-ignore-next-line
             if ($field_item_definition->getFieldDefinition()->getType() === 'entity_reference' && $field_item_definition->getFieldDefinition()->getTargetEntityTypeId() === NULL) {
               continue;
             }
@@ -231,7 +272,13 @@ final class SdcPropToFieldTypePropMatcher {
             // constraints that are imposed by the entity reference field, to
             // narrow the matching.
             // @todo Generalize this so it works for all entity reference field types that do not allow *any* entity of the target entity type to be selected
-            if ($field_item instanceof FileItem) {
+            if (is_a($field_item_definition->getClass(), FileItem::class, TRUE)) {
+              $field_item = $this->typedDataManager->createInstance("field_item:$field_type", [
+                'name' => NULL,
+                'parent' => NULL,
+                'data_definition' => $field_item_definition,
+              ]);
+              assert($field_item instanceof FileItem);
               $target->addConstraint('FileExtension', $field_item->getUploadValidators()['FileExtension']);
             }
             $referenced_matches = $this->matchEntityProps($target, 0, $json_schema_primitive_type, $is_required_in_json_schema, $schema);
@@ -257,6 +304,7 @@ final class SdcPropToFieldTypePropMatcher {
           // \Drupal\Component\Render\FormattableMarkup::placeholderEscape()
           // because e.g. the Length constraint causes string casting to happen
           // at constraint construction time 🤪.
+          // @phpstan-ignore-next-line
           $field_item_definition->getFieldDefinition()->setLabel('TBD');
           assert($field_item instanceof FieldItemInterface);
           $property = $this->recurseTypedDataInterface($field_item)[$property_name];
@@ -267,19 +315,31 @@ final class SdcPropToFieldTypePropMatcher {
       }
     }
 
+    /** @var array<\Drupal\experience_builder\PropExpressions\StructuredData\FieldTypePropExpression|\Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldTypePropExpression> */
     $keyed_by_string = array_combine(array_map(fn ($e) => (string) $e, $candidates), $candidates);
     ksort($keyed_by_string);
     return array_values($keyed_by_string);
   }
 
-  private function matchEntityProps(EntityDataDefinition $entity_data_definition, int $levels_to_recurse, SdcPropJsonSchemaType $primitive_type, bool $is_required_in_json_schema, ?array $schema): array {
-    return match ($primitive_type->isScalar()) {
-      TRUE => $this->matchEntityPropsForScalar($entity_data_definition, $levels_to_recurse, $primitive_type, $is_required_in_json_schema, $schema),
-      FALSE => $this->matchEntityPropsForIterable($entity_data_definition, $levels_to_recurse, $primitive_type, $is_required_in_json_schema, $schema),
-    };
+  /**
+   * @param array<string, mixed> $schema
+   * @return ($levels_to_recurse is positive-int ? array<int, \Drupal\experience_builder\PropExpressions\StructuredData\FieldPropExpression|\Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldPropExpression|\Drupal\experience_builder\PropExpressions\StructuredData\FieldObjectPropsExpression> : array<int, \Drupal\experience_builder\PropExpressions\StructuredData\FieldPropExpression|\Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldPropExpression>)
+   */
+  private function matchEntityProps(EntityDataDefinitionInterface $entity_data_definition, int $levels_to_recurse, SdcPropJsonSchemaType $primitive_type, bool $is_required_in_json_schema, ?array $schema): array {
+    if ($primitive_type->isScalar()) {
+      return $this->matchEntityPropsForScalar($entity_data_definition, $levels_to_recurse, $primitive_type, $is_required_in_json_schema, $schema);
+    }
+    else {
+      assert(is_array($schema));
+      return $this->matchEntityPropsForIterable($entity_data_definition, $levels_to_recurse, $primitive_type, $is_required_in_json_schema, $schema);
+    }
   }
 
-  private function matchEntityPropsForIterable(EntityDataDefinition $entity_data_definition, int $levels_to_recurse, SdcPropJsonSchemaType $primitive_type, bool $is_required_in_json_schema, ?array $schema): array {
+  /**
+   * @param array<string, mixed> $schema
+   * @return array<int, \Drupal\experience_builder\PropExpressions\StructuredData\FieldObjectPropsExpression>
+   */
+  private function matchEntityPropsForIterable(EntityDataDefinitionInterface $entity_data_definition, int $levels_to_recurse, SdcPropJsonSchemaType $primitive_type, bool $is_required_in_json_schema, array $schema): array {
     if (!$primitive_type->isIterable()) {
       throw new \LogicException();
     }
@@ -302,6 +362,7 @@ final class SdcPropToFieldTypePropMatcher {
         $field_name = match (get_class($field_prop_expr)) {
           FieldPropExpression::class => $field_prop_expr->fieldName,
           ReferenceFieldPropExpression::class => $field_prop_expr->referencer->fieldName,
+          default => throw new \LogicException('Unhandled.'),
         };
         // The same field name prop should never be used multiple times; best
         // match is selected in object prop order.
@@ -346,12 +407,18 @@ final class SdcPropToFieldTypePropMatcher {
     $matches = [];
     // Prefer complete matches: list complete matches before minimal matches.
     foreach ($matches_complete + $matches_minimal as $field_name => $mapping) {
+      // @todo Support nested/recursive/chained FieldObjectPropsExpression?
+      /** @var array<string, \Drupal\experience_builder\PropExpressions\StructuredData\FieldPropExpression|\Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldPropExpression> $mapping */
       $matches[] = new FieldObjectPropsExpression($entity_data_definition, $field_name, NULL, $mapping);
     }
     return $matches;
   }
 
-  private function matchEntityPropsForScalar(EntityDataDefinition $entity_data_definition, int $levels_to_recurse, SdcPropJsonSchemaType $primitive_type, bool $is_required_in_json_schema, ?array $schema): array {
+  /**
+   * @param array<string, mixed> $schema
+   * @return array<int, \Drupal\experience_builder\PropExpressions\StructuredData\FieldPropExpression|\Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldPropExpression>
+   */
+  private function matchEntityPropsForScalar(EntityDataDefinitionInterface $entity_data_definition, int $levels_to_recurse, SdcPropJsonSchemaType $primitive_type, bool $is_required_in_json_schema, ?array $schema): array {
     if (!$primitive_type->isScalar()) {
       throw new \LogicException();
     }
@@ -364,8 +431,8 @@ final class SdcPropToFieldTypePropMatcher {
         continue;
       }
       $properties = $this->recurseDataDefinitionInterface($field_definition);
-      foreach ($properties as $property) {
-        $is_reference = $this->dataLeafIsReference($property);
+      foreach ($properties as $property_name => $property_definition) {
+        $is_reference = $this->dataLeafIsReference($property_definition);
         if ($is_reference === NULL) {
           // Neither a reference nor a primitive.
           continue;
@@ -374,7 +441,7 @@ final class SdcPropToFieldTypePropMatcher {
           $entity_data_definition,
           $field_definition->getName(),
           NULL,
-          $property->getName(),
+          $property_name,
         );
         if ($is_reference) {
           if ($levels_to_recurse === 0) {
@@ -382,8 +449,9 @@ final class SdcPropToFieldTypePropMatcher {
           }
           // Only follow entity references, as deep as specified.
           // @see ::findFieldTypeStorageCandidates()
-          if ($property instanceof EntityReference) {
-            $target = $property->getTargetDefinition();
+          if ($property_definition instanceof DataReferenceDefinitionInterface && is_a($property_definition->getClass(), EntityReference::class, TRUE)) {
+            $target = $property_definition->getTargetDefinition();
+            assert($target instanceof EntityDataDefinitionInterface);
             // When referencing an entity, enrich the EntityDataDefinition with
             // constraints that are imposed by the entity reference field, to
             // narrow the matching.
@@ -394,7 +462,7 @@ final class SdcPropToFieldTypePropMatcher {
                 'parent' => NULL,
                 'data_definition' => $field_definition->getItemDefinition(),
               ]);
-              assert($field_item instanceof FieldItemInterface);
+              assert($field_item instanceof FileItem);
               $target->addConstraint('FileExtension', $field_item->getUploadValidators()['FileExtension']);
             }
             $referenced_matches = $this->matchEntityProps($target, $levels_to_recurse - 1, $primitive_type, $is_required_in_json_schema, $schema);
@@ -410,28 +478,30 @@ final class SdcPropToFieldTypePropMatcher {
             // Transform an entity-level `FileExtension` constraint to
             // corresponding property-level constraint.
             // @see \Drupal\file\Plugin\Validation\Constraint\FileExtensionConstraintValidator
-            if (array_key_exists('FileExtension', $entity_data_definition->getConstraints()) && $property->getParent() instanceof FileUriItem) {
+            if (array_key_exists('FileExtension', $entity_data_definition->getConstraints()) && is_a($field_definition->getItemDefinition()->getClass(), FileUriItem::class, TRUE)) {
               // Clone to avoid polluting any static caches.
               // @todo verify if truly necessary?
-              $transformed_property_data_definition = clone $property->getDataDefinition();
+              $transformed_property_data_definition = clone $property_definition;
               // @todo JSON schema does not support case-insensitive matching!!!! https://json-schema.org/understanding-json-schema/reference/regular_expressions
               // @todo the `value` prop should only get the suffix matching, but the `url` prop should also get prefix matching: `^(http(s)?:)?\/\//`
               $transformed_property_data_definition->addConstraint('Regex', [
                 'pattern' => '\.(' . preg_replace('/ +/', '|', preg_quote($entity_constraints['FileExtension']['extensions'])) . ')$',
               ]);
-            }
-            // Recreate the property instance if the data definition
-            // transformed, to ensure ::dataLeafMatchesFormat() evaluates it
-            // using the transformed property data definition.
-            if ($transformed_property_data_definition) {
-              $property = $this->typedDataManager->create(
-                $transformed_property_data_definition,
-                $property->getValue(),
-                $property->getName(),
-                $property->getParent(),
-              );
+              $property_definition = $transformed_property_data_definition;
             }
           }
+          assert(is_a($property_definition->getClass(), PrimitiveInterface::class, TRUE));
+          $field_item = $this->typedDataManager->createInstance("field_item:" . $field_definition->getType(), [
+            'name' => NULL,
+            'parent' => NULL,
+            'data_definition' => $field_definition->getItemDefinition(),
+          ]);
+          $property = $this->typedDataManager->create(
+            $property_definition,
+            NULL,
+            $property_name,
+            $field_item,
+          );
           if ($this->dataLeafMatchesFormat($property, $primitive_type, $is_required_in_json_schema, $schema)) {
             $matches[] = $current_entity_field_prop;
           }
@@ -441,6 +511,10 @@ final class SdcPropToFieldTypePropMatcher {
     return $matches;
   }
 
+  /**
+   * @param array<string, mixed> $schema
+   * @return array<int, \Drupal\experience_builder\PropExpressions\StructuredData\FieldPropExpression|\Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldPropExpression|\Drupal\experience_builder\PropExpressions\StructuredData\FieldObjectPropsExpression>
+   */
   public function findFieldInstanceFormatMatches(SdcPropJsonSchemaType $primitive_type, bool $is_required_in_json_schema, array $schema): array {
     $entity_type_bundles = $this->entityTypeBundleInfo->getAllBundleInfo();
     $matches = [];
@@ -453,6 +527,7 @@ final class SdcPropToFieldTypePropMatcher {
         ];
       }
     }
+    /** @var array<\Drupal\experience_builder\PropExpressions\StructuredData\FieldPropExpression|\Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldPropExpression|\Drupal\experience_builder\PropExpressions\StructuredData\FieldObjectPropsExpression> */
     $keyed_by_string = array_combine(array_map(fn ($e) => (string) $e, $matches), $matches);
     ksort($keyed_by_string);
     return array_values($keyed_by_string);
@@ -495,6 +570,9 @@ final class SdcPropToFieldTypePropMatcher {
     return TRUE;
   }
 
+  /**
+   * @param array<string, mixed> $schema
+   */
   private function dataLeafMatchesFormat(TypedDataInterface $data, SdcPropJsonSchemaType $json_schema_primitive_type, bool $is_required_in_json_schema, ?array $schema): bool {
     if (!$data->getParent()) {
       throw new \LogicException('must be a property with a field item as context for format checking');
@@ -575,7 +653,10 @@ final class SdcPropToFieldTypePropMatcher {
     }
   }
 
-  private function dataTypeShapeRequirementMatchesFinalConstraintSet(DataTypeShapeRequirement $required_shape, DataDefinitionInterface $property_data_definition, array $constraints): mixed {
+  /**
+   * @param array<class-string, \Symfony\Component\Validator\Constraint> $constraints
+   */
+  private function dataTypeShapeRequirementMatchesFinalConstraintSet(DataTypeShapeRequirement $required_shape, DataDefinitionInterface $property_data_definition, array $constraints): bool {
     // Any data type that is more complex than a primitive is not accepted.
     // For example: `entity_reference`, `language_reference`, etc.
     // @see \Drupal\Core\Entity\Plugin\DataType\EntityReference
@@ -595,6 +676,9 @@ final class SdcPropToFieldTypePropMatcher {
     return $constraint_found && $interface_found;
   }
 
+  /**
+   * @return \Drupal\Core\TypedData\DataDefinitionInterface[]
+   */
   private function recurseDataDefinitionInterface(DataDefinitionInterface $dd): array {
     return match (TRUE) {
       // Entity level.
@@ -605,6 +689,7 @@ final class SdcPropToFieldTypePropMatcher {
         }
         assert($dd->getClass() === EntityAdapter::class);
         $entity_type_id = $dd->getEntityTypeId();
+        assert(is_string($entity_type_id));
         // If no bundles or multiple bundles are specified, inspect the base
         // fields. Otherwise (if a single bundle is specified), inspect all
         // fields.
@@ -614,25 +699,23 @@ final class SdcPropToFieldTypePropMatcher {
         return $this->entityFieldManager->getBaseFieldDefinitions($entity_type_id);
       })($dd),
       // Field level.
-      $dd instanceof FieldDefinitionInterface => $this->recurseTypedDataInterface($this->typedDataManager->createInstance(
-        $dd->getDataType(),
-        [
-          'name' => $dd->getName(),
-          'parent' => NULL,
-          'data_definition' => $dd->getItemDefinition(),
-        ]
-      )),
+      $dd instanceof FieldDefinitionInterface => $this->recurseDataDefinitionInterface($dd->getItemDefinition()),
       $dd instanceof FieldItemDataDefinitionInterface => $dd->getPropertyDefinitions(),
+      default => throw new \LogicException('Unhandled.'),
     };
   }
 
-  private function recurseTypedDataInterface(TypedDataInterface $td): array|bool {
+  /**
+   * @return \Drupal\Core\TypedData\TypedDataInterface[]
+   */
+  private function recurseTypedDataInterface(TypedDataInterface $td): array {
     return match (TRUE) {
       $td instanceof FieldItemInterface => $td->getProperties(TRUE),
       // Anything else is not supported: fall back to logging.
-      TRUE => function () use ($td) {
+      TRUE => (function () use ($td) {
         @trigger_error(sprintf("Unhandled TypedData class: `%s`.", get_class($td)), E_USER_DEPRECATED);
-      },
+        return [];
+      })(),
     };
   }
 
@@ -649,9 +732,14 @@ final class SdcPropToFieldTypePropMatcher {
       // Anything else cannot be handled and merits logging.
       TRUE => (function ($td_or_dd) {
         match (TRUE) {
+          // PHPStan does not like this because getParent()->getDataDefinition()
+          // only has a less specific type guarantee. But … this is just for
+          // logging unhandled cases. This is sufficient as-is.
+          // @phpstan-ignore-next-line
           $td_or_dd instanceof TypedDataInterface => @trigger_error(sprintf("Unhandled data type class: `%s` Drupal field type `%s` property uses `%s` data type class that is not yet supported", $td_or_dd->getParent()->getDataDefinition()->getFieldDefinition()->getType(), $td_or_dd->getName(), $td_or_dd->getDataDefinition()->getClass()), E_USER_DEPRECATED),
           $td_or_dd instanceof DataDefinitionInterface => @trigger_error(sprintf("Unhandled data type class: `%s` data type class that is not yet supported", $td_or_dd->getClass()), E_USER_DEPRECATED),
         };
+        return NULL;
       })($td_or_dd),
     };
   }

@@ -23,7 +23,7 @@ class FieldTypePropExpression implements StructuredDataPropExpressionInterface {
 
   public static function fromString(string $representation): static {
     $parts = explode('␟', mb_substr($representation, 2));
-    return new static(...$parts);
+    return new FieldTypePropExpression(...$parts);
   }
 
   public function isSupported(EntityInterface|FieldItemInterface $field_item): bool {

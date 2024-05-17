@@ -11,16 +11,24 @@ final class ReferenceFieldPropExpression implements StructuredDataPropExpression
 
   public function __construct(
     public readonly FieldPropExpression $referencer,
-    public readonly ReferenceFieldPropExpression|FieldPropExpression $referenced,
+    public readonly ReferenceFieldPropExpression|FieldPropExpression|FieldObjectPropsExpression $referenced,
   ) {}
 
   public function __toString(): string {
     return sprintf(static::PREFIX . "%s␜%s", mb_substr((string) $this->referencer, 1), mb_substr((string) $this->referenced, 1));
   }
 
+  public function withDelta(int $delta): static {
+    return new static(
+      $this->referencer->withDelta($delta),
+      $this->referenced,
+    );
+  }
+
   public static function fromString(string $representation): static {
     $parts = explode('␜', $representation);
     $referencer = FieldPropExpression::fromString($parts[0] . '␜' . $parts[1]);
+    // @todo detect and support ReferenceFieldPropExpression + FieldObjectPropsExpression
     $referenced = FieldPropExpression::fromString(static::PREFIX . '␜' . $parts[3]);
     return new static($referencer, $referenced);
   }

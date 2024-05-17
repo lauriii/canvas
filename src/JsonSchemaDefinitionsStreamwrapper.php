@@ -47,7 +47,9 @@ class JsonSchemaDefinitionsStreamwrapper extends LocalReadOnlyStream {
       return FALSE;
     }
 
-    $json_schema = json_decode(file_get_contents($extension_path . DIRECTORY_SEPARATOR . 'schema.json'), TRUE);
+    $contents = file_get_contents($extension_path . DIRECTORY_SEPARATOR . 'schema.json');
+    assert(is_string($contents));
+    $json_schema = json_decode($contents, TRUE);
     // @todo validate this file is valid JSON schema.
     if (!array_key_exists('$defs', $json_schema)) {
       throw new \InvalidArgumentException(sprintf("%s does not contain any definitions.", $extension_path));
@@ -57,16 +59,25 @@ class JsonSchemaDefinitionsStreamwrapper extends LocalReadOnlyStream {
     }
 
     $stream = fopen('php://memory', 'r+');
-    fwrite($stream, json_encode($json_schema['$defs'][$definition_name]));
+    if (!is_resource($stream)) {
+      return FALSE;
+    }
+
+    $json = json_encode($json_schema['$defs'][$definition_name]);
+    assert(is_string($json));
+    fwrite($stream, $json);
     rewind($stream);
     $this->handle = $stream;
-    return $stream;
+
+    return TRUE;
   }
 
   /**
    * {@inheritdoc}
    */
   public function getDirectoryPath() {
+    // @todo This is incorrect — look at https://www.drupal.org/node/1308152 for inspiration?
+    // @phpstan-ignore-next-line
     return NULL;
   }
 
@@ -101,6 +112,9 @@ class JsonSchemaDefinitionsStreamwrapper extends LocalReadOnlyStream {
       ->getGeneratedUrl();
   }
 
+  /**
+   * @return array{0: string, 1: string}
+   */
   private static function parseUri(string $uri): array {
     static $extension_path_resolver;
     // TRICKY: stream wrapper services cannot use dependency injection.
@@ -109,7 +123,11 @@ class JsonSchemaDefinitionsStreamwrapper extends LocalReadOnlyStream {
     }
     assert($extension_path_resolver instanceof ExtensionPathResolver);
 
-    ['host' => $host, 'path' => $extension_path] = parse_url($uri);
+    $url_components = parse_url($uri);
+    if ($url_components === FALSE || !array_key_exists('host', $url_components) || !array_key_exists('path', $url_components)) {
+      throw new \InvalidArgumentException("$uri is not a valid JSON schema definition URI.");
+    }
+    ['host' => $host, 'path' => $extension_path] = $url_components;
     [$extension_name, $extension_type] = explode('.', $host, 2);
     $definition_name = substr($extension_path, 1);
     $extension_path = $extension_path_resolver->getPath($extension_type, $extension_name);

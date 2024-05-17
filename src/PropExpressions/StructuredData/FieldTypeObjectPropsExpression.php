@@ -11,14 +11,26 @@ use Drupal\Core\Field\FieldItemInterface;
 /**
  * For pointing to a prop in a field type (not considering any delta).
  */
-class FieldTypeObjectPropsExpression implements StructuredDataPropExpressionInterface {
+final class FieldTypeObjectPropsExpression implements StructuredDataPropExpressionInterface {
 
+  /**
+   * Constructs a new FieldTypeObjectPropsExpression.
+   *
+   * @param string $fieldType
+   *   A field type.
+   * @param array<string, \Drupal\experience_builder\PropExpressions\StructuredData\FieldTypePropExpression|\Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldTypePropExpression> $objectPropsToFieldTypeProps
+   *   A mapping of SDC prop names to Field Type prop expressions.
+   */
   public function __construct(
     public readonly string $fieldType,
     public readonly array $objectPropsToFieldTypeProps,
   ) {
     assert(Inspector::assertAllStrings(array_keys($this->objectPropsToFieldTypeProps)));
     assert(Inspector::assertAll(function ($expr) {
+      // PHPStan's error is very cryptic, I'm lost. This code needs to be
+      // refactored anyway; the runtime assertions are too valuable to lose
+      // right now.
+      // @phpstan-ignore-next-line
       return $expr instanceof FieldTypePropExpression || $expr instanceof ReferenceFieldTypePropExpression;
     }, $this->objectPropsToFieldTypeProps));
   }

@@ -15,7 +15,7 @@ final class ReferenceFieldTypePropExpression extends FieldTypePropExpression {
   public function __construct(
     public readonly string $fieldType,
     public readonly string $propName,
-    public readonly FieldPropExpression $referenced,
+    public readonly FieldPropExpression|ReferenceFieldPropExpression|FieldObjectPropsExpression $referenced,
   ) {}
 
   public function __toString(): string {

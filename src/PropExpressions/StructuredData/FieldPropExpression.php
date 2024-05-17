@@ -6,6 +6,7 @@ namespace Drupal\experience_builder\PropExpressions\StructuredData;
 
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\TypedData\EntityDataDefinition;
+use Drupal\Core\Entity\TypedData\EntityDataDefinitionInterface;
 use Drupal\Core\Field\FieldItemInterface;
 
 /**
@@ -15,7 +16,7 @@ final class FieldPropExpression implements StructuredDataPropExpressionInterface
 
   public function __construct(
     // @todo will this break down once we support config entities? It must, because top-level config entity props ~= content entity fields, but deeper than that it is different.
-    public readonly EntityDataDefinition $entityType,
+    public readonly EntityDataDefinitionInterface $entityType,
     public readonly string $fieldName,
     // A content entity field item delta is optional.
     // @todo Should this allow expressing "all deltas"? Should that be represented using `NULL`, `TRUE`, `*` or `∀`? For now assuming NULL.
