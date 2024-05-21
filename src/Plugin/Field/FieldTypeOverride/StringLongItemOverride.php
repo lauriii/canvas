@@ -2,23 +2,23 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder\Plugin\Field\FieldType;
+namespace Drupal\experience_builder\Plugin\Field\FieldTypeOverride;
 
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
+use Drupal\Core\Field\Plugin\Field\FieldType\StringLongItem;
 use Drupal\experience_builder\Plugin\Validation\Constraint\StringSemanticsConstraint;
-use Drupal\link\Plugin\Field\FieldType\LinkItem;
 
 /**
  * @todo Fix upstream.
  */
-class LinkItemOverride extends LinkItem {
+class StringLongItemOverride extends StringLongItem {
 
   /**
    * {@inheritdoc}
    */
   public static function propertyDefinitions(FieldStorageDefinitionInterface $field_definition) {
     $properties = parent::propertyDefinitions($field_definition);
-    $properties['title']->addConstraint('StringSemantics', StringSemanticsConstraint::PROSE);
+    $properties['value']->addConstraint('StringSemantics', StringSemanticsConstraint::PROSE);
     return $properties;
   }
 

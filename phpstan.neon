@@ -10,8 +10,8 @@ parameters:
   excludePaths:
     - submodules
     # These are 1:1 copies from Drupal core, with trivial additions that cannot have significant PHPStan impact. PHPStan compliance should happen upstream.
-    - src/Plugin/DataType
-    - src/Plugin/Field/FieldType
+    - src/Plugin/DataTypeOverride
+    - src/Plugin/Field/FieldTypeOverride
   ignoreErrors:
     -
       message: "#^Method Drupal\\\\experience_builder\\\\PropExpressions\\\\StructuredData\\\\FieldTypePropExpression\\:\\:fromString\\(\\) should return static\\(Drupal\\\\experience_builder\\\\PropExpressions\\\\StructuredData\\\\FieldTypePropExpression\\) but returns Drupal\\\\experience_builder\\\\PropExpressions\\\\StructuredData\\\\FieldTypePropExpression\\.$#"

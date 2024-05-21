@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder\Plugin\Field\FieldType;
+namespace Drupal\experience_builder\Plugin\Field\FieldTypeOverride;
 
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
-use Drupal\experience_builder\Plugin\DataType\ComputedFileUrlOverride;
+use Drupal\experience_builder\Plugin\DataTypeOverride\ComputedFileUrlOverride;
 use Drupal\file\Plugin\Field\FieldType\FileUriItem;
 
 /**

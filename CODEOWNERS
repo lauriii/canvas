@@ -22,10 +22,13 @@
 /schema.json
 
 [data model] @wimleers
-/src/Plugin/DataType/
-/src/Plugin/Field/
+/src/Plugin/Field/FieldType/
 /src/Plugin/Validation/
 /src/PropExpressions/
+
+[data model — missing metadata] @wimleers
+/src/Plugin/DataTypeOverride/
+/src/Plugin/Field/FieldTypeOverride/
 
 [schema matching] @wimleers
 /src/JsonSchemaInterpreter/

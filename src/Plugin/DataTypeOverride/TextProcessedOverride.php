@@ -1,6 +1,6 @@
 <?php
 
-namespace Drupal\experience_builder\Plugin\DataType;
+namespace Drupal\experience_builder\Plugin\DataTypeOverride;
 
 use Drupal\Core\Cache\CacheableDependencyInterface;
 use Drupal\Core\TypedData\DataDefinitionInterface;
