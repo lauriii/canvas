@@ -7,6 +7,7 @@ namespace Drupal\experience_builder\PropExpressions\StructuredData;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Field\FieldItemInterface;
+use Drupal\Core\TypedData\PrimitiveInterface;
 
 final class Evaluator {
 
@@ -50,7 +51,12 @@ final class Evaluator {
       // @todo support non-fieldable entities?
       assert($entity instanceof FieldableEntityInterface);
       return match (get_class($expr)) {
-        FieldPropExpression::class => $entity->get($expr->fieldName)[$expr->delta ?? 0]?->get($expr->propName)->getValue(),
+        FieldPropExpression::class => (function () use ($entity, $expr) {
+          $prop = $entity->get($expr->fieldName)[$expr->delta ?? 0]?->get($expr->propName);
+          return $prop instanceof PrimitiveInterface
+            ? $prop->getCastedValue()
+            : $prop?->getValue();
+        })(),
         ReferenceFieldPropExpression::class => self::evaluate(
           self::evaluate($entity, $expr->referencer),
           $expr->referenced
