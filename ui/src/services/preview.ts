@@ -5,7 +5,10 @@ export const previewApi = createApi({
   reducerPath: 'previewApi',
   baseQuery: fetchBaseQuery({ baseUrl: '/api' }),
   endpoints: (builder) => ({
-    postPreview: builder.mutation<{html: string}, { layout: any, model: any }>({
+    postPreview: builder.mutation<
+      { html: string },
+      { layout: any; model: any }
+    >({
       query: (body) => ({
         url: 'preview',
         method: 'POST',

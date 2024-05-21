@@ -1,4 +1,4 @@
-import {validate} from 'uuid'
+import { validate } from 'uuid';
 
 export type UUID = string;
 

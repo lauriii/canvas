@@ -1,5 +1,16 @@
 {
+  "printWidth": 80,
   "semi": true,
-  "arrowParens": "avoid",
-  "printWidth": 150
+  "singleQuote": true,
+  "trailingComma": "all",
+  "overrides": [
+    {
+      "files": ["*.css"],
+      "options": {
+        "parser": "css",
+        "printWidth": 10000,
+        "singleQuote": false
+      }
+    }
+  ]
 }

@@ -1,17 +1,17 @@
-import type React from "react";
-import styles from "./TreeChild.module.css";
-import TreeParent from "./TreeParent";
-import type { LayoutNode } from "../layoutSlice";
-import { deleteNode } from "../layoutSlice";
-import {useAppDispatch, useAppSelector} from "../../../app/hooks";
-import {selectModel} from "../../model/modelSlice";
-import {IconButton} from "@radix-ui/themes";
-import { TrashIcon } from '@radix-ui/react-icons'
+import type React from 'react';
+import styles from './TreeChild.module.css';
+import TreeParent from './TreeParent';
+import type { LayoutNode } from '../layoutSlice';
+import { deleteNode } from '../layoutSlice';
+import { useAppDispatch, useAppSelector } from '../../../app/hooks';
+import { selectModel } from '../../model/modelSlice';
+import { IconButton } from '@radix-ui/themes';
+import { TrashIcon } from '@radix-ui/react-icons';
 
 interface TreeChildProps {
   node: LayoutNode;
 }
-const TreeChild: React.FC<TreeChildProps> = props => {
+const TreeChild: React.FC<TreeChildProps> = (props) => {
   const { node } = props;
   const model = useAppSelector(selectModel);
   const dispatch = useAppDispatch();

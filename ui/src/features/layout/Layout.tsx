@@ -1,8 +1,8 @@
-import {useEffect} from "react";
-import {useAppDispatch, useAppSelector} from "../../app/hooks";
-import {useGetLayoutByIdQuery} from "../../services/layout";
-import {LayoutNode, selectLayout, setNewLayout} from "./layoutSlice";
-import {setModel} from "../model/modelSlice";
+import { useEffect } from 'react';
+import { useAppDispatch, useAppSelector } from '../../app/hooks';
+import { useGetLayoutByIdQuery } from '../../services/layout';
+import { LayoutNode, selectLayout, setNewLayout } from './layoutSlice';
+import { setModel } from '../model/modelSlice';
 
 const Layout = () => {
   const dispatch = useAppDispatch();
@@ -11,13 +11,12 @@ const Layout = () => {
   const layout = useAppSelector(selectLayout);
 
   useEffect(() => {
-    if(fetchedLayout) {
+    if (fetchedLayout) {
       console.log(fetchedLayout);
-      dispatch(setNewLayout({layout: fetchedLayout.layout}));
-      dispatch(setModel({model: fetchedLayout.model}));
+      dispatch(setNewLayout({ layout: fetchedLayout.layout }));
+      dispatch(setModel({ model: fetchedLayout.model }));
     }
   }, [fetchedLayout]);
-
 
   return null;
 };

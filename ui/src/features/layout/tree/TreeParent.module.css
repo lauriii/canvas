@@ -29,17 +29,7 @@
     max-height: 1rem;
     opacity: 0.5;
     outline: 1px solid #ccc;
-    background: linear-gradient(
-        135deg,
-        #ddd 12.5%,
-        transparent 12.5%,
-        transparent 50%,
-        #ddd 50%,
-        #ddd 62.5%,
-        transparent 62.5%,
-        transparent 100%
-      )
-      center / 5.66px 5.66px;
+    background: linear-gradient(135deg, #ddd 12.5%, transparent 12.5%, transparent 50%, #ddd 50%, #ddd 62.5%, transparent 62.5%, transparent 100%) center / 5.66px 5.66px;
     box-shadow: none;
     & * {
       visibility: hidden;

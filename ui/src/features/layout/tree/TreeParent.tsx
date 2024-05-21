@@ -1,19 +1,24 @@
-import styles from "./TreeParent.module.css";
-import type React from "react";
-import { useRef, useEffect } from "react";
-import Sortable from "sortablejs";
-import TreeChild from "./TreeChild";
-import { useAppDispatch, useAppSelector } from "../../../app/hooks";
-import type { LayoutNode} from "../layoutSlice";
-import { selectLayout,addNewComponentToLayout, moveNode, sortNode } from "../layoutSlice";
-import { setTreeDragging } from "../../ui/uiSlice";
-import { findNodePathByUuid } from "../layoutUtils";
+import styles from './TreeParent.module.css';
+import type React from 'react';
+import { useRef, useEffect } from 'react';
+import Sortable from 'sortablejs';
+import TreeChild from './TreeChild';
+import { useAppDispatch, useAppSelector } from '../../../app/hooks';
+import type { LayoutNode } from '../layoutSlice';
+import {
+  selectLayout,
+  addNewComponentToLayout,
+  moveNode,
+  sortNode,
+} from '../layoutSlice';
+import { setTreeDragging } from '../../ui/uiSlice';
+import { findNodePathByUuid } from '../layoutUtils';
 
 interface TreeParentProps {
   node: LayoutNode;
 }
 
-const TreeParent: React.FC<TreeParentProps> = props => {
+const TreeParent: React.FC<TreeParentProps> = (props) => {
   const dispatch = useAppDispatch();
   const { node } = props;
   const { children } = node;
@@ -46,18 +51,36 @@ const TreeParent: React.FC<TreeParentProps> = props => {
     }
     if (sort) {
       // Moving a node within the same parent.
-      dispatch(sortNode({ uuid: ev.item.dataset.xbUuid, to: ev.newDraggableIndex }));
+      dispatch(
+        sortNode({ uuid: ev.item.dataset.xbUuid, to: ev.newDraggableIndex }),
+      );
     } else {
       // Moving a node from one parent to another
-      const receivingParentPath = findNodePathByUuid(layout, ev.to.dataset.xbUuid);
+      const receivingParentPath = findNodePathByUuid(
+        layout,
+        ev.to.dataset.xbUuid,
+      );
       if (receivingParentPath) {
-        const newPath: number[] = [...receivingParentPath, ev.newDraggableIndex];
+        const newPath: number[] = [
+          ...receivingParentPath,
+          ev.newDraggableIndex,
+        ];
 
-        if(ev.clone.dataset.isNew === 'true' && ev.clone.dataset.xbUuid) {
+        if (ev.clone.dataset.isNew === 'true' && ev.clone.dataset.xbUuid) {
           // When dragging a new element into the tree from the list, the clone is actually dropped into the DOM and we need
           // to remove it here.
           ev.item.remove();
-          dispatch(addNewComponentToLayout({to: newPath, newNode: {uuid: 'tempUUID', children: [], type: 'component', name: ev.clone.dataset.xbName}}))
+          dispatch(
+            addNewComponentToLayout({
+              to: newPath,
+              newNode: {
+                uuid: 'tempUUID',
+                children: [],
+                type: 'component',
+                name: ev.clone.dataset.xbName,
+              },
+            }),
+          );
         } else {
           // When dragging, the element is actually moved in the DOM, after dragging we swap the original
           // item back so that React's Virtual DOM doesn't get out of sync when we update the data.
@@ -74,11 +97,11 @@ const TreeParent: React.FC<TreeParentProps> = props => {
   useEffect(() => {
     if (listElRef.current !== null) {
       sortableInstance.current = Sortable.create(listElRef.current, {
-        dataIdAttr: "data-xb-uuid",
+        dataIdAttr: 'data-xb-uuid',
         animation: 0,
         group: {
-          name: "tree",
-          put: ["tree", "list"],
+          name: 'tree',
+          put: ['tree', 'list'],
         },
         ghostClass: styles.sortableGhost,
         onAdd: handleDragAdd,
@@ -88,25 +111,29 @@ const TreeParent: React.FC<TreeParentProps> = props => {
     }
   }, [layout]);
 
-  if(node.type === 'slot' || node.type === 'root') {
+  if (node.type === 'slot' || node.type === 'root') {
     return (
-      <ul className={`${styles.treeParent} ${styles.slot} ${children.length === 0 ? styles.listEmpty : ""}`} ref={listElRef} data-xb-uuid={node.uuid}>
-        {children.map(child => (
+      <ul
+        className={`${styles.treeParent} ${styles.slot} ${children.length === 0 ? styles.listEmpty : ''}`}
+        ref={listElRef}
+        data-xb-uuid={node.uuid}
+      >
+        {children.map((child) => (
           <TreeChild key={child.uuid} node={child} />
         ))}
       </ul>
     );
   } else if (node.children.length) {
     return (
-      <ul className={`${styles.treeParent} ${children.length === 0 ? styles.listEmpty : ""}`}>
-        {children.map(child => (
+      <ul
+        className={`${styles.treeParent} ${children.length === 0 ? styles.listEmpty : ''}`}
+      >
+        {children.map((child) => (
           <TreeChild key={child.uuid} node={child} />
         ))}
       </ul>
     );
   }
-
-
 };
 
 export default TreeParent;

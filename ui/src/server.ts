@@ -2,8 +2,8 @@
  * Mock/development API server using miragejs
  *
  */
-import {createServer, Model} from "miragejs"
-import type {LayoutNode} from "./features/layout/layoutSlice";
+import { createServer, Model } from 'miragejs';
+import type { LayoutNode } from './features/layout/layoutSlice';
 
 const styleContent = `
 .preview-dragging .sortable-list{
@@ -78,29 +78,32 @@ const styleContent = `
     }
   }
 `;
-function debugCreateHtmlFromData(layout: LayoutNode, model: { [x: string]: { name: string; }; }) {
+function debugCreateHtmlFromData(
+  layout: LayoutNode,
+  model: { [x: string]: { name: string } },
+) {
   // Recursive function to create HTML for each component
   function createComponent(component: LayoutNode) {
-    const div = document.createElement("div");
-    div.className = "sortable-item";
-    div.setAttribute("data-xb-uuid", component.uuid);
+    const div = document.createElement('div');
+    div.className = 'sortable-item';
+    div.setAttribute('data-xb-uuid', component.uuid);
 
     // Check if the component has children to create a nested structure
 
-    if (component.type === "component") {
-      const header = document.createElement("h1");
+    if (component.type === 'component') {
+      const header = document.createElement('h1');
       header.textContent = model[component.uuid]?.name || `debug: no name`;
       div.appendChild(header);
       div.setAttribute('data-xb-type', 'component');
     }
     if (component.children) {
-      const innerDiv = document.createElement("div");
-      if(component.type === 'slot') {
-        innerDiv.className = "sortable-list";
-        innerDiv.setAttribute("data-xb-uuid", component.uuid);
+      const innerDiv = document.createElement('div');
+      if (component.type === 'slot') {
+        innerDiv.className = 'sortable-list';
+        innerDiv.setAttribute('data-xb-uuid', component.uuid);
         div.setAttribute('data-xb-type', 'slot');
       } else {
-        innerDiv.className = "slot-container";
+        innerDiv.className = 'slot-container';
       }
       component.children.forEach((child: LayoutNode) => {
         innerDiv.appendChild(createComponent(child));
@@ -111,12 +114,12 @@ function debugCreateHtmlFromData(layout: LayoutNode, model: { [x: string]: { nam
   }
 
   // Create the root element
-  const rootDiv = document.createElement("div");
-  rootDiv.className = "sortable-list";
-  rootDiv.setAttribute("data-xb-uuid", layout.uuid);
+  const rootDiv = document.createElement('div');
+  rootDiv.className = 'sortable-list';
+  rootDiv.setAttribute('data-xb-uuid', layout.uuid);
 
   // Append all child components to the root
-  layout.children.forEach(child => {
+  layout.children.forEach((child) => {
     rootDiv.appendChild(createComponent(child));
   });
 
@@ -126,10 +129,10 @@ function debugCreateHtmlFromData(layout: LayoutNode, model: { [x: string]: { nam
 // Function to create a full HTML document as a string
 function debugCreateFullHtmlDocument(data: LayoutNode, model: {}): string {
   // Create a new document
-  const doc = document.implementation.createHTMLDocument("New Document");
+  const doc = document.implementation.createHTMLDocument('New Document');
 
   // Add the style element to the head
-  const styleEl = doc.createElement("style");
+  const styleEl = doc.createElement('style');
   styleEl.textContent = styleContent;
   doc.head.appendChild(styleEl);
 
@@ -145,131 +148,133 @@ function debugCreateFullHtmlDocument(data: LayoutNode, model: {}): string {
   return docString;
 }
 
-
-export function makeServer({environment = "test"} = {}) {
+export function makeServer({ environment = 'test' } = {}) {
   let server = createServer({
     environment,
 
     routes() {
-      this.namespace = "api"
+      this.namespace = 'api';
 
-      this.post("/preview", (schema, request) => {
-
-          const req = JSON.parse(request.requestBody)
-          return {html: debugCreateFullHtmlDocument(req.layout, req.model)};
+      this.post(
+        '/preview',
+        (schema, request) => {
+          const req = JSON.parse(request.requestBody);
+          return { html: debugCreateFullHtmlDocument(req.layout, req.model) };
         },
-        {timing: 2000}
+        { timing: 2000 },
       );
 
-
-      this.get("/components", () => [
+      this.get(
+        '/components',
+        () => [
           {
-            "name": "Component 1",
-            "id": "1"
+            name: 'Component 1',
+            id: '1',
           },
           {
-            "name": "Component 2",
-            "id": "2"
+            name: 'Component 2',
+            id: '2',
           },
           {
-            "name": "Component 3",
-            "id": "3"
+            name: 'Component 3',
+            id: '3',
           },
           {
-            "name": "Component 4",
-            "id": "4"
+            name: 'Component 4',
+            id: '4',
           },
           {
-            "name": "Component 5",
-            "id": "5"
-          }
+            name: 'Component 5',
+            id: '5',
+          },
         ],
-        {timing: 2000}
+        { timing: 2000 },
       );
 
-      this.get("/layout/:id", (schema, request) => {
+      this.get(
+        '/layout/:id',
+        (schema, request) => {
           let id = request.params.id;
 
           console.log(id);
           return {
-            "layout": {
-              "uuid": "root",
-              "type": "root",
-              "name": "root",
-              "children": [
+            layout: {
+              uuid: 'root',
+              type: 'root',
+              name: 'root',
+              children: [
                 {
-                  "uuid": "43cd7aa4-0160-4787-a3af-baf44ff17a88",
-                  "children": [],
-                  "type": "component",
+                  uuid: '43cd7aa4-0160-4787-a3af-baf44ff17a88',
+                  children: [],
+                  type: 'component',
                 },
                 {
-                  "uuid": "fcd2490d-1124-4146-82b6-b1e049ed8026",
-                  "type": "component",
-                  "children": [
+                  uuid: 'fcd2490d-1124-4146-82b6-b1e049ed8026',
+                  type: 'component',
+                  children: [
                     {
-                      "name": "Slot 1",
-                      "type": "slot",
-                      "uuid": "05fa13be-8291-4955-aa89-32351f68e776",
-                      "children": []
-                    }
-                  ]
+                      name: 'Slot 1',
+                      type: 'slot',
+                      uuid: '05fa13be-8291-4955-aa89-32351f68e776',
+                      children: [],
+                    },
+                  ],
                 },
                 {
-                  "uuid": "1941ffae-f9ed-4ce3-8145-a2c3977ac65b",
-                  "type": "component",
-                  "children": [
+                  uuid: '1941ffae-f9ed-4ce3-8145-a2c3977ac65b',
+                  type: 'component',
+                  children: [
                     {
-                      "name": "Slot 1",
-                      "type": "slot",
-                      "uuid": "68cafa3e-bfd8-4767-a5cc-c18cce97c236",
-                      "children": [
+                      name: 'Slot 1',
+                      type: 'slot',
+                      uuid: '68cafa3e-bfd8-4767-a5cc-c18cce97c236',
+                      children: [
                         {
-                          "type": "component",
-                          "uuid": "bdfce52f-e666-49f0-a57f-dfb8c5c0c75b",
-                          "children": []
-                        }
-                      ]
+                          type: 'component',
+                          uuid: 'bdfce52f-e666-49f0-a57f-dfb8c5c0c75b',
+                          children: [],
+                        },
+                      ],
                     },
                     {
-                      "name": "Slot 2",
-                      "type": "slot",
-                      "uuid": "584ae5f1-e242-4dad-991b-55ca20d0bfa4",
-                      "children": [
+                      name: 'Slot 2',
+                      type: 'slot',
+                      uuid: '584ae5f1-e242-4dad-991b-55ca20d0bfa4',
+                      children: [
                         {
-                          "type": "component",
-                          "uuid": "fe01d628-55ab-4146-9d04-71e5a01ad233",
-                          "children": []
-                        }
-                      ]
-                    }
-                  ]
-                }
-              ]
+                          type: 'component',
+                          uuid: 'fe01d628-55ab-4146-9d04-71e5a01ad233',
+                          children: [],
+                        },
+                      ],
+                    },
+                  ],
+                },
+              ],
             },
             model: {
-              "43cd7aa4-0160-4787-a3af-baf44ff17a88": {
+              '43cd7aa4-0160-4787-a3af-baf44ff17a88': {
                 name: 'Component 1 (no slots)',
               },
-              "fcd2490d-1124-4146-82b6-b1e049ed8026": {
-                name: 'Component 2 (1 slots)'
+              'fcd2490d-1124-4146-82b6-b1e049ed8026': {
+                name: 'Component 2 (1 slots)',
               },
-              "1941ffae-f9ed-4ce3-8145-a2c3977ac65b": {
-                name: 'Component 3 (2 slots)'
+              '1941ffae-f9ed-4ce3-8145-a2c3977ac65b': {
+                name: 'Component 3 (2 slots)',
               },
-              "fe01d628-55ab-4146-9d04-71e5a01ad233": {
-                name: 'Component 4 (no slots)'
+              'fe01d628-55ab-4146-9d04-71e5a01ad233': {
+                name: 'Component 4 (no slots)',
               },
-              "bdfce52f-e666-49f0-a57f-dfb8c5c0c75b": {
-                name: 'Component 5 (no slots)'
+              'bdfce52f-e666-49f0-a57f-dfb8c5c0c75b': {
+                name: 'Component 5 (no slots)',
               },
-            }
-          }
-
-
+            },
+          };
         },
-        {timing: 2000})
+        { timing: 2000 },
+      );
     },
-  })
+  });
 
-  return server
+  return server;
 }

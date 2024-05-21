@@ -1,22 +1,21 @@
-import React from "react";
-import {createRoot} from "react-dom/client";
-import {Provider} from "react-redux";
-import App from "./App";
-import {store} from "./app/store";
-import "./index.css";
-import {makeServer} from "./server"
+import React from 'react';
+import { createRoot } from 'react-dom/client';
+import { Provider } from 'react-redux';
+import App from './App';
+import { store } from './app/store';
+import './index.css';
+import { makeServer } from './server';
 import '@radix-ui/themes/styles.css';
-import {Theme, ThemePanel} from '@radix-ui/themes';
+import { Theme, ThemePanel } from '@radix-ui/themes';
 
 // TODO how do we do this in Drupal?
-const ENV = "development"
+const ENV = 'development';
 
-if (ENV === "development") {
-  makeServer({environment: "development"})
+if (ENV === 'development') {
+  makeServer({ environment: 'development' });
 }
 
-
-const container = document.getElementById("experience-builder");
+const container = document.getElementById('experience-builder');
 
 if (container) {
   const root = createRoot(container);
@@ -26,8 +25,7 @@ if (container) {
       <Theme hasBackground={false} panelBackground="solid" appearance="dark">
         <ThemePanel />
         <Provider store={store}>
-          <App/>
-
+          <App />
         </Provider>
       </Theme>
     </React.StrictMode>,

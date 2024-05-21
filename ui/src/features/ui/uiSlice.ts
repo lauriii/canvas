@@ -1,6 +1,5 @@
-import { createAppSlice } from "../../app/createAppSlice";
-import type { PayloadAction } from "@reduxjs/toolkit";
-
+import { createAppSlice } from '../../app/createAppSlice';
+import type { PayloadAction } from '@reduxjs/toolkit';
 
 export interface DraggingStatus {
   isDragging: boolean;
@@ -26,11 +25,11 @@ const initialState: uiSliceState = {
 
 // If you are not using async thunks you can use the standalone `createSlice`.
 export const uiSlice = createAppSlice({
-  name: "ui",
+  name: 'ui',
   // `createSlice` will infer the state type from the `initialState` argument
   initialState,
   // The `reducers` field lets us define reducers and generate associated actions
-  reducers: create => ({
+  reducers: (create) => ({
     setPending: create.reducer((state, action: PayloadAction<boolean>) => {
       state.pending = action.payload;
     }),
@@ -38,10 +37,12 @@ export const uiSlice = createAppSlice({
       state.dragging.isDragging = action.payload;
       state.dragging.treeDragging = action.payload;
     }),
-    setPreviewDragging: create.reducer((state, action: PayloadAction<boolean>) => {
-      state.dragging.isDragging = action.payload;
-      state.dragging.previewDragging = action.payload;
-    }),
+    setPreviewDragging: create.reducer(
+      (state, action: PayloadAction<boolean>) => {
+        state.dragging.isDragging = action.payload;
+        state.dragging.previewDragging = action.payload;
+      },
+    ),
     setListDragging: create.reducer((state, action: PayloadAction<boolean>) => {
       state.dragging.isDragging = action.payload;
       state.dragging.listDragging = action.payload;
@@ -57,8 +58,12 @@ export const uiSlice = createAppSlice({
 });
 
 // Action creators are generated for each case reducer function.
-export const { setPending, setTreeDragging, setPreviewDragging, setListDragging } = uiSlice.actions;
+export const {
+  setPending,
+  setTreeDragging,
+  setPreviewDragging,
+  setListDragging,
+} = uiSlice.actions;
 
 // Selectors returned by `slice.selectors` take the root state as their first argument.
 export const { selectDragging } = uiSlice.selectors;
-

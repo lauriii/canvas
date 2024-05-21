@@ -1,16 +1,23 @@
-import type {Action, ThunkAction} from "@reduxjs/toolkit";
-import {combineSlices, configureStore} from "@reduxjs/toolkit";
-import {setupListeners} from "@reduxjs/toolkit/query";
-import {layoutSlice} from "../features/layout/layoutSlice";
-import {uiSlice} from "../features/ui/uiSlice";
-import {modelSlice} from "../features/model/modelSlice";
-import {componentApi} from "../services/components";
-import {layoutApi} from "../services/layout";
-import {previewApi} from "../services/preview";
+import type { Action, ThunkAction } from '@reduxjs/toolkit';
+import { combineSlices, configureStore } from '@reduxjs/toolkit';
+import { setupListeners } from '@reduxjs/toolkit/query';
+import { layoutSlice } from '../features/layout/layoutSlice';
+import { uiSlice } from '../features/ui/uiSlice';
+import { modelSlice } from '../features/model/modelSlice';
+import { componentApi } from '../services/components';
+import { layoutApi } from '../services/layout';
+import { previewApi } from '../services/preview';
 
 // `combineSlices` automatically combines the reducers using
 // their `reducerPath`s, therefore we no longer need to call `combineReducers`.
-const rootReducer = combineSlices(layoutSlice, uiSlice, modelSlice, componentApi, layoutApi, previewApi);
+const rootReducer = combineSlices(
+  layoutSlice,
+  uiSlice,
+  modelSlice,
+  componentApi,
+  layoutApi,
+  previewApi,
+);
 // Infer the `RootState` type from the root reducer
 export type RootState = ReturnType<typeof rootReducer>;
 
@@ -22,7 +29,11 @@ export const makeStore = (preloadedState?: Partial<RootState>) => {
     // Adding the api middleware enables caching, invalidation, polling,
     // and other useful features of `rtk-query`.
     middleware: (getDefaultMiddleware) =>
-      getDefaultMiddleware().concat(componentApi.middleware, layoutApi.middleware, previewApi.middleware),
+      getDefaultMiddleware().concat(
+        componentApi.middleware,
+        layoutApi.middleware,
+        previewApi.middleware,
+      ),
     preloadedState,
   });
   // configure listeners using the provided defaults
@@ -36,7 +47,7 @@ export const store = makeStore();
 // Infer the type of `store`
 export type AppStore = typeof store;
 // Infer the `AppDispatch` type from the store itself
-export type AppDispatch = AppStore["dispatch"];
+export type AppDispatch = AppStore['dispatch'];
 export type AppThunk<ThunkReturnType = void> = ThunkAction<
   ThunkReturnType,
   RootState,
