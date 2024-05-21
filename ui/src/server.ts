@@ -78,7 +78,7 @@ const styleContent = `
     }
   }
 `;
-function debugCreateHtmlFromData(layout: LayoutNode, model) {
+function debugCreateHtmlFromData(layout: LayoutNode, model: { [x: string]: { name: string; }; }) {
   // Recursive function to create HTML for each component
   function createComponent(component: LayoutNode) {
     const div = document.createElement("div");
@@ -91,12 +91,14 @@ function debugCreateHtmlFromData(layout: LayoutNode, model) {
       const header = document.createElement("h1");
       header.textContent = model[component.uuid]?.name || `debug: no name`;
       div.appendChild(header);
+      div.setAttribute('data-xb-type', 'component');
     }
     if (component.children) {
       const innerDiv = document.createElement("div");
       if(component.type === 'slot') {
         innerDiv.className = "sortable-list";
         innerDiv.setAttribute("data-xb-uuid", component.uuid);
+        div.setAttribute('data-xb-type', 'slot');
       } else {
         innerDiv.className = "slot-container";
       }

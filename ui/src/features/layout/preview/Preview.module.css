@@ -1,0 +1,22 @@
+.preview {
+  display: block;
+  width: 100%;
+  height: calc(100vh - var(--topbar-height));
+  border: none;
+}
+
+.loadingOverlay {
+  position: absolute;
+  top:var(--topbar-height);
+  left:0;
+  width: 100%;
+  height: calc(100vh - var(--topbar-height));
+  transition: opacity 200ms ease-out;
+  pointer-events: none;
+  opacity: 0;
+  background: black;
+  &.show {
+    pointer-events: all;
+    opacity: 0.2;
+  }
+}

@@ -1,4 +1,4 @@
-import "./TreeParent.css";
+import styles from "./TreeParent.module.css";
 import type React from "react";
 import { useRef, useEffect } from "react";
 import Sortable from "sortablejs";
@@ -80,6 +80,7 @@ const TreeParent: React.FC<TreeParentProps> = props => {
           name: "tree",
           put: ["tree", "list"],
         },
+        ghostClass: styles.sortableGhost,
         onAdd: handleDragAdd,
         onStart: handleDragStart,
         onEnd: handleDragEnd,
@@ -89,7 +90,7 @@ const TreeParent: React.FC<TreeParentProps> = props => {
 
   if(node.type === 'slot' || node.type === 'root') {
     return (
-      <ul className={`treeParent slot ${children.length === 0 ? "list-empty" : ""}`} ref={listElRef} data-xb-uuid={node.uuid}>
+      <ul className={`${styles.treeParent} ${styles.slot} ${children.length === 0 ? styles.listEmpty : ""}`} ref={listElRef} data-xb-uuid={node.uuid}>
         {children.map(child => (
           <TreeChild key={child.uuid} node={child} />
         ))}
@@ -97,7 +98,7 @@ const TreeParent: React.FC<TreeParentProps> = props => {
     );
   } else if (node.children.length) {
     return (
-      <ul className={`treeParent ${children.length === 0 ? "list-empty" : ""}`}>
+      <ul className={`${styles.treeParent} ${children.length === 0 ? styles.listEmpty : ""}`}>
         {children.map(child => (
           <TreeChild key={child.uuid} node={child} />
         ))}

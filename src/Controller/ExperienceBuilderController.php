@@ -1,24 +1,48 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Drupal\experience_builder\Controller;
 
-use Drupal\Core\Controller\ControllerBase;
+use Drupal\Core\Render\HtmlResponse;
 
-class ExperienceBuilderController extends ControllerBase {
+final class ExperienceBuilderController {
 
-  // phpcs:disable Drupal.Commenting.FunctionComment.WrongStyle
-  // https://git.drupalcode.org/project/experience_builder/-/merge_requests/8 is
-  // changing this, so ignore.
-  // @phpstan-ignore-next-line
-  public function content(): array {
-    return [
-      '#markup' => '<div id="experience-builder" class="experience-builder-container">Loading react app...</div>',
-      '#attached' => [
-        'library' => [
-          'experience_builder/eb-ui',
-        ],
+  private const HTML = <<<HTML
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport"
+        content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+  <css-placeholder token="CSS-HERE-PLEASE">
+  <js-placeholder token="JS-HERE-PLEASE">
+  <title>Drupal Experience Builder</title>
+</head>
+<body>
+  <div id="experience-builder" class="experience-builder-container">Loading Experience Builder…</div>
+</body>
+</html>
+HTML;
+
+  public function content() : HtmlResponse {
+    return (new HtmlResponse(self::HTML))->setAttachments([
+      'library' => [
+        'experience_builder/eb-ui',
       ],
-    ];
+      'drupalSettings' => [],
+      // This *could* use the \Drupal\Core\Asset\AssetResolverInterface services
+      // directly, but it's simpler to shape the attachments data in the shape
+      // that all other Drupal pages are rendered. That allows reusing core
+      // infrastructure.
+      // @see \Drupal\Core\Render\HtmlResponseAttachmentsProcessor
+      // Note: the tokens here are under our control, and this accepts no user
+      // input. Hence these hardcoded tokens are fine.
+      'html_response_attachment_placeholders' => [
+        'styles' => '<css-placeholder token="CSS-HERE-PLEASE">',
+        'scripts' => '<js-placeholder token="JS-HERE-PLEASE">',
+      ],
+    ]);
   }
 
 }

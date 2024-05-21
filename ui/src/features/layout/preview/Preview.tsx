@@ -1,4 +1,4 @@
-import "./Preview.css";
+import styles from "./Preview.module.css";
 import type React from "react";
 import { useRef, useEffect, useCallback, useState } from "react";
 import Sortable from "sortablejs";
@@ -10,6 +10,8 @@ import type { LayoutNode} from "../layoutSlice";
 import { moveNode, selectLayout, sortNode, addNewComponentToLayout } from "../layoutSlice";
 import {findNodePathByUuid} from "../layoutUtils";
 import {usePostPreviewMutation} from "../../../services/preview";
+import {Flex, Spinner} from "@radix-ui/themes";
+import classNames from "classnames";
 
 
 interface PreviewProps {
@@ -179,8 +181,9 @@ const Preview: React.FC<PreviewProps> = props => {
 
   return (
     <>
-      <iframe ref={iframeRef} className="preview" id="preview" srcDoc={frameSrcDoc}></iframe>
-      {!isDragging && <Outline hoveredElementId={hoveredElementId} />}
+      <iframe ref={iframeRef} className={styles.preview} id="preview" srcDoc={frameSrcDoc}></iframe>
+      <Flex align="center" justify="center" className={classNames(styles.loadingOverlay, {[styles.show]: isLoading})}><Spinner loading={isLoading} size="3" /></Flex>
+      {!isDragging && <Outline hoveredElementId={hoveredElementId} setHoveredElementId={setHoveredElementId} />}
     </>
   );
 };

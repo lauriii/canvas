@@ -1,5 +1,5 @@
 experience_builder.experience_builder:
-    path: '/admin/eb/{react_route}'
+    path: '/xb/{react_route}'
     defaults:
       _controller: '\Drupal\experience_builder\Controller\ExperienceBuilderController::content'
       _title: 'Experience Builder'

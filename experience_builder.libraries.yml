@@ -1,5 +1,6 @@
 eb-ui:
   version: 1.0
+  header: true
   js:
     ui/dist/assets/index.js:
       attributes: { type: module }

@@ -1,5 +1,5 @@
 name: Experience Builder
-description: PoC to test the data model — instantiate entity with fields and have that data flow into SDC props, with validation
+description: On D10, first install the experimental SDC module! On D11, this is no longer a module.
 # REQUIRED READING:
 # - https://www.drupal.org/project/sdc
 # - https://www.drupal.org/project/sdc_display
@@ -17,7 +17,6 @@ core_version_requirement: ^10.2 || ^10.3 || ^11
 php: 8.3
 configure: experience_builder.experience_builder
 dependencies:
-  - drupal:sdc
   # Used by the PoC at experience_builder_entity_view_alter()
   - drupal:sdc_test
 test_dependencies:

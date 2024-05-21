@@ -1,0 +1,10 @@
+.treeChildToolbar {
+  display: flex;
+  div {
+    text-wrap: nowrap;
+    text-overflow: ellipsis;
+  }
+  button {
+    margin-left: auto;
+  }
+}

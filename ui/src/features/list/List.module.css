@@ -1,0 +1,4 @@
+.sortableGhost {
+  transition-duration: 0ms !important;
+  transform: none !important;
+}

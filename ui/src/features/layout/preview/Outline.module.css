@@ -1,17 +1,21 @@
-.xb-component-outline {
+.xbComponentOutline {
   position: fixed;
-  display: block;
-  outline: 2px dashed #02a376;
-  pointer-events: none;
   top: 0;
   left: 0;
+  display: block;
+  pointer-events: none;
+  outline: 2px solid #02a376;
   will-change: top, left, width, height, transform;
 }
-.xb-component-toolbar {
+.xbSlotOutline {
+  outline: 2px dashed #02a376;
+
+}
+.xbComponentToolbar {
   position: fixed;
-  display: block;
   top: 0;
   left: 0;
+  display: block;
   will-change: top, left, transform;
   button {
     cursor: pointer !important;

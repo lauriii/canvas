@@ -5,6 +5,7 @@ use Drupal\Core\Entity\Display\EntityViewDisplayInterface;
 use Drupal\Core\Field\FieldItemInterface;
 use Drupal\Core\Field\TypedData\FieldItemDataDefinitionInterface;
 use Drupal\Core\Template\Attribute;
+use Drupal\Core\Url;
 use Drupal\experience_builder\Plugin\Field\FieldType\FileItemOverride;
 use Drupal\experience_builder\Plugin\Field\FieldType\FileUriItemOverride;
 use Drupal\experience_builder\Plugin\Field\FieldType\ImageItemOverride;
@@ -28,6 +29,41 @@ use Drupal\experience_builder\SdcPropJsonSchemaType;
 use Drupal\experience_builder\SdcPropToFieldTypePropMatcher;
 use Symfony\Component\Validator\Constraints\Hostname;
 use Symfony\Component\Validator\Constraints\Ip;
+
+/**
+ * Implements hook_toolbar().
+ */
+function experience_builder_toolbar() {
+  $user = \Drupal::currentUser();
+
+  $items = [];
+  $items['experience_builder'] = [
+    '#cache' => [
+      'contexts' => [
+        'user.permissions',
+      ],
+    ],
+  ];
+
+  // @see experience_builder.routing.yml
+  if ($user->hasPermission('access administration pages')) {
+    $items['experience_builder'] += [
+      '#type' => 'toolbar_item',
+      'tab' => [
+        '#type' => 'link',
+        '#title' => t('Experience Builder PoC'),
+        '#url' => Url::fromRoute('experience_builder.experience_builder'),
+        '#attributes' => [
+          'title' => t('Experience Builder'),
+          'class' => ['toolbar-icon', 'toolbar-icon-edit'],
+        ],
+      ],
+      '#weight' => 1000,
+    ];
+  }
+
+  return $items;
+}
 
 /**
  * Implements hook_validation_constraint_alter().

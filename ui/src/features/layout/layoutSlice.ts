@@ -1,17 +1,16 @@
-import type {PayloadAction} from "@reduxjs/toolkit";
-import {createSlice} from "@reduxjs/toolkit";
+import type { PayloadAction } from "@reduxjs/toolkit";
+import { createSlice } from "@reduxjs/toolkit";
 import _ from "lodash";
-import {createNewModel} from "../model/modelSlice";
-import {findNodeByUuid, findNodePathByUuid, moveNodeToPath, insertNodeAtPath, removeNodeByUuid} from "./layoutUtils";
-import type { AppThunk } from "../../app/store"
-import { v4 as uuidv4 } from 'uuid';
-import type {UUID} from "../../types/UUID";
-import type {AppDispatch} from "../../app/store";
+import { createNewModel } from "../model/modelSlice";
+import { findNodeByUuid, findNodePathByUuid, moveNodeToPath, insertNodeAtPath, removeNodeByUuid } from "./layoutUtils";
+import { v4 as uuidv4 } from "uuid";
+import type { UUID } from "../../types/UUID";
+import type { AppDispatch } from "../../app/store";
 
 export interface LayoutNode {
   name?: string;
   uuid: UUID;
-  type: 'slot' | 'component' | 'root';
+  type: "slot" | "component" | "root";
   children: LayoutNode[];
 }
 
@@ -20,13 +19,13 @@ export interface LayoutSliceState {
 }
 
 const initialState: LayoutSliceState = {
-  "layout": {
-    "uuid": "root",
-    "type": "root",
-    "name": "root",
-    "children": []
-  }
-}
+  layout: {
+    uuid: "root",
+    type: "root",
+    name: "root",
+    children: [],
+  },
+};
 
 type MoveNodePayload = {
   uuid: string | undefined;
@@ -54,7 +53,7 @@ export const layoutSlice = createSlice({
       state.layout = removeNodeByUuid(state.layout, action.payload);
     }),
     moveNode: create.reducer((state, action: PayloadAction<MoveNodePayload>) => {
-      const {uuid, to} = action.payload;
+      const { uuid, to } = action.payload;
       if (!uuid || !Array.isArray(to)) {
         console.error(`Cannot move ${uuid} to position ${to}. Check both uuid and to are defined/valid.`);
         return;
@@ -63,7 +62,7 @@ export const layoutSlice = createSlice({
       state.layout = moveNodeToPath(state.layout, uuid, to);
     }),
     insertNode: create.reducer((state, action: PayloadAction<InsertNodePayload>) => {
-      const {newNode, to} = action.payload;
+      const { newNode, to } = action.payload;
       if (!newNode || !Array.isArray(to)) {
         console.error(`Cannot move ${newNode} to position ${to}. Check both uuid and to are defined/valid.`);
         return;
@@ -72,7 +71,7 @@ export const layoutSlice = createSlice({
       state.layout = insertNodeAtPath(state.layout, to, newNode);
     }),
     sortNode: create.reducer((state, action: PayloadAction<SortNodePayload>) => {
-      const {uuid, to} = action.payload;
+      const { uuid, to } = action.payload;
       if (!uuid || to === undefined) {
         console.error(`Cannot sort ${uuid} to position ${to}. Check both uuid and to are defined/valid.`);
         return;
@@ -98,20 +97,18 @@ export const layoutSlice = createSlice({
   },
 });
 
-
-export const addNewComponentToLayout = (payload: InsertNodePayload) => (dispatch:AppDispatch) => {
-  if(payload.newNode && payload.to) {
+export const addNewComponentToLayout = (payload: InsertNodePayload) => (dispatch: AppDispatch) => {
+  if (payload.newNode && payload.to) {
     payload.newNode.uuid = uuidv4();
-    const name = payload.newNode.name || 'Unknown component'
+    const name = payload.newNode.name || "Unknown component";
     dispatch(insertNode(payload));
 
-    dispatch(createNewModel({ uuid: payload.newNode.uuid, initialData: {exampleData: 'testing', name: name} }));
+    dispatch(createNewModel({ uuid: payload.newNode.uuid, initialData: { exampleData: "testing", name: name } }));
   }
 };
 
 // Action creators are generated for each case reducer function.
-export const {deleteNode, setNewLayout, moveNode, sortNode, insertNode} = layoutSlice.actions;
+export const { deleteNode, setNewLayout, moveNode, sortNode, insertNode } = layoutSlice.actions;
 
 // Selectors returned by `slice.selectors` take the root state as their first argument.
-export const {selectLayout} = layoutSlice.selectors;
-
+export const { selectLayout } = layoutSlice.selectors;

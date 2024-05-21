@@ -79,6 +79,8 @@ variables:
 # This module wants to strictly comply with Drupal's coding standards.
 phpcs:
   allow_failure: false
+stylelint:
+  allow_failure: false
 
 # This module wants to strictly comply with PHPStan.
 .phpstan-base:
