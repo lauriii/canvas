@@ -151,8 +151,8 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
         // From least to most restrictive matchmaking of structured data sources
         // to flow into component props:
         // 1. storage representation must match
-        $subschema = $primitive_type->isScalar() ? NULL : $schema;
-        $storage_candidates = $matcher->findFieldTypeStorageCandidates($primitive_type, $is_required, $subschema);
+        $sub_schema = $primitive_type->isScalar() ? NULL : $schema;
+        $storage_candidates = $matcher->findFieldTypeStorageCandidates($primitive_type, $is_required, $sub_schema);
         // 2. format must match
         //    👉 UX need: when the BUILDER is creating a content type's template
         //       and they declare the intent to not statically assign a value to

@@ -1,33 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!--
+# To use:
+$ ln -sv /PATH/TO/DRUPAL/ROOT/core/core/phpcs.xml.dist core.phpcs.xml.dist
+core.phpcs.xml.dist -> /PATH/TO/DRUPAL/ROOT/core/phpcs.xml.dist
+-->
 <ruleset name="experience_builder">
   <exclude-pattern>*/submodules/*</exclude-pattern>
   <!-- Drupal (core) uses stylelint: https://www.drupal.org/list-changes/drupal/published?keywords_description=stylelint-->
   <exclude-pattern>*.css</exclude-pattern>
 
   <!-- Use the Drupal coding standard, but … -->
-  <rule ref="Drupal">
-    <!-- Don't require boilerplate docs anywhere, at least not yet. -->
-    <exclude name="Drupal.Commenting.ClassComment.Missing"/>
-    <exclude name="Drupal.Commenting.DocComment.MissingShort"/>
+  <rule ref="./core.phpcs.xml.dist">
+    <!-- … don't require boilerplate docs *yet*. -->
     <exclude name="Drupal.Commenting.FunctionComment.MissingParamComment"/>
-    <exclude name="Drupal.Commenting.FunctionComment.MissingReturnComment"/>
-    <exclude name="Drupal.Commenting.FunctionComment.Missing"/>
     <exclude name="Drupal.Commenting.FunctionComment.ParamMissingDefinition"/>
-  </rule>
-
-  <!-- Don't require boilerplate function docs for tests. @covers already covers it. -->
-  <rule ref="Drupal.Commenting.FunctionComment.Missing">
-    <exclude-pattern>*/tests/*</exclude-pattern>
-  </rule>
-
-  <!-- Don't require boilerplate class docs for particular kinds of classes. -->
-  <rule ref="Drupal.Commenting.ClassComment.Missing">
-    <exclude-pattern>*Controller.php</exclude-pattern>
-    <exclude-pattern>*Subscriber.php</exclude-pattern>
-  </rule>
-
-  <!-- Don't require boilerplate variable docs for particular kinds of classes. -->
-  <rule ref="Drupal.Commenting.VariableComment.Missing">
-    <exclude-pattern>*Constraint.php</exclude-pattern>
   </rule>
 </ruleset>

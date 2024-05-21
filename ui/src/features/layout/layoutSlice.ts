@@ -1,3 +1,4 @@
+// cspell:ignore uuidv
 import type { PayloadAction } from "@reduxjs/toolkit";
 import { createSlice } from "@reduxjs/toolkit";
 import _ from "lodash";

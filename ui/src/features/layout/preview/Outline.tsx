@@ -62,7 +62,7 @@ const Outline: React.FC<OutlineProps> = props => {
       hoveredElementRef.current.addEventListener("mouseleave", function (event: MouseEvent) {
         event.stopPropagation();
         // When related target is null, assume the mouse moved onto a UI element that was not inside the iFrame.
-        // when moving the mouse from one element inside the iframe to another the releatedTarget is the element the mouse
+        // when moving the mouse from one element inside the iframe to another the relatedTarget is the element the mouse
         // moved to.
         if (event.relatedTarget !== null) {
           setHoveredElementId(undefined);

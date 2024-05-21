@@ -62,13 +62,14 @@ final class SdcPropToFieldTypePropMatcher {
    * - \Drupal\Core\TypedData\Plugin\DataType\TimeSpan, which is an integer
    * - \Drupal\Core\TypedData\Plugin\DataType\DurationIso8601, which is a string
    *
-   * @param array<string, mixed> $subschema
+   * @param array<string, mixed> $sub_schema
+   *
    * @return array<int, \Drupal\experience_builder\PropExpressions\StructuredData\FieldTypePropExpression|\Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldTypePropExpression|\Drupal\experience_builder\PropExpressions\StructuredData\FieldTypePropExpression>
    */
-  public function findFieldTypeStorageCandidates(SdcPropJsonSchemaType $json_schema_primitive_type, bool $is_required_in_json_schema, ?array $subschema) : array {
+  public function findFieldTypeStorageCandidates(SdcPropJsonSchemaType $json_schema_primitive_type, bool $is_required_in_json_schema, ?array $sub_schema) : array {
     // 🐛 PHPStan complains about this, but the array shape is *identical*!
     // @phpstan-ignore-next-line
-    return $this->findFieldTypeProps($json_schema_primitive_type, $is_required_in_json_schema, $subschema, FALSE);
+    return $this->findFieldTypeProps($json_schema_primitive_type, $is_required_in_json_schema, $sub_schema, FALSE);
   }
 
   /**

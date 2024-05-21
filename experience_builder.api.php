@@ -18,7 +18,7 @@
  * component props, and many APIs and layers are involved in doing this:
  * - correctly
  * - securely
- * - performantly
+ * - performant
  * It seems sensible to use a strongly typed approach to representing these
  * expressions.
  *

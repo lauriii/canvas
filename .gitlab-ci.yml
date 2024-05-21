@@ -76,8 +76,17 @@ variables:
   # @todo Delete this when https://www.drupal.org/project/gitlab_templates/issues/3447105 lands.
   _TARGET_DB_VERSION: 8
 
-# This module wants to strictly comply with Drupal's coding standards.
+# This module wants to strictly comply with Drupal core's word use standards.
+cspell:
+  allow_failure: false
+
+# This module wants to strictly comply with Drupal core's coding standards.
 phpcs:
+  # Match Drupal 11's rules, not 10.3's.
+  needs:
+    - "composer (next major)"
+  before_script:
+    - cp $_WEB_ROOT/core/phpcs.xml.dist ./core.phpcs.xml.dist
   allow_failure: false
 stylelint:
   allow_failure: false

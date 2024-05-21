@@ -1,10 +1,17 @@
 <?php
 
+/**
+ * @file
+ * Hook implementations for Experience Builder.
+ */
+
 use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Entity\Display\EntityViewDisplayInterface;
 use Drupal\Core\Field\FieldItemInterface;
 use Drupal\Core\Field\TypedData\FieldItemDataDefinitionInterface;
 use Drupal\Core\Template\Attribute;
+use Drupal\Core\TypedData\TypedDataManagerInterface;
 use Drupal\Core\Url;
 use Drupal\experience_builder\Plugin\Field\FieldType\FileItemOverride;
 use Drupal\experience_builder\Plugin\Field\FieldType\FileUriItemOverride;
@@ -16,15 +23,13 @@ use Drupal\experience_builder\Plugin\Field\FieldType\StringLongItemOverride;
 use Drupal\experience_builder\Plugin\Field\FieldType\TextItemOverride;
 use Drupal\experience_builder\Plugin\Field\FieldType\UuidItemOverride;
 use Drupal\experience_builder\Plugin\Validation\Constraint\StringSemanticsConstraint;
-use Drupal\experience_builder\PropExpressions\StructuredData\{
-  Evaluator,
-  FieldObjectPropsExpression,
-  FieldPropExpression,
-  FieldTypeObjectPropsExpression,
-  FieldTypePropExpression,
-  ReferenceFieldPropExpression,
-  StructuredDataPropExpressionInterface,
-};
+use Drupal\experience_builder\PropExpressions\StructuredData\Evaluator;
+use Drupal\experience_builder\PropExpressions\StructuredData\FieldObjectPropsExpression;
+use Drupal\experience_builder\PropExpressions\StructuredData\FieldPropExpression;
+use Drupal\experience_builder\PropExpressions\StructuredData\FieldTypeObjectPropsExpression;
+use Drupal\experience_builder\PropExpressions\StructuredData\FieldTypePropExpression;
+use Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldPropExpression;
+use Drupal\experience_builder\PropExpressions\StructuredData\StructuredDataPropExpressionInterface;
 use Drupal\experience_builder\SdcPropJsonSchemaType;
 use Drupal\experience_builder\SdcPropToFieldTypePropMatcher;
 use Symfony\Component\Validator\Constraints\Hostname;
@@ -130,7 +135,7 @@ function experience_builder_field_info_alter(&$info) {
 /**
  * Implements hook_entity_base_field_info_alter().
  */
-function experience_builder_entity_base_field_info_alter(&$fields, \Drupal\Core\Entity\EntityTypeInterface $entity_type) {
+function experience_builder_entity_base_field_info_alter(&$fields, EntityTypeInterface $entity_type) {
   // The File entity type's `filename` and `filemime` base fields use the
   // `string` field type but are NOT prose (which is the default semantic for
   // that field type).
@@ -155,8 +160,8 @@ function _eb_resolve_sdc_prop_value(EntityInterface $host_entity, array $sdc_pro
     throw new \LogicException(sprintf('Missing the keys %s.', implode(',', $missing)));
   }
 
-  $typed_data_manager = \Drupal::service(\Drupal\Core\TypedData\TypedDataManagerInterface::class);
-  assert($typed_data_manager instanceof \Drupal\Core\TypedData\TypedDataManagerInterface);
+  $typed_data_manager = \Drupal::service(TypedDataManagerInterface::class);
+  assert($typed_data_manager instanceof TypedDataManagerInterface);
 
   if (str_starts_with($sdc_prop_source['sourceType'], 'static:')) {
     // `sourceType = static` requires a value and an expression to be specified.
@@ -166,7 +171,7 @@ function _eb_resolve_sdc_prop_value(EntityInterface $host_entity, array $sdc_pro
     }
 
     // First: conjure the expected FieldItem instance.
-    [,$data_type] = explode(':', $sdc_prop_source['sourceType'], 2);
+    [, $data_type] = explode(':', $sdc_prop_source['sourceType'], 2);
     $field_item_definition = $typed_data_manager->createDataDefinition($data_type);
     assert($field_item_definition instanceof FieldItemDataDefinitionInterface);
     $field_item = $typed_data_manager->createInstance($data_type, [
@@ -181,12 +186,12 @@ function _eb_resolve_sdc_prop_value(EntityInterface $host_entity, array $sdc_pro
     // @todo This won't work for fields whose props are objects (ComplexData)/lists (ListInterface), but core does not use that AFAIK, so fine for now.
     $expected_to_be_stored = $field_item->toArray();
     match (count($field_item_definition->getPropertyDefinitions())) {
-      1 => (function() use ($expected_to_be_stored, $sdc_prop_source, $field_item) {
+      1 => (function () use ($expected_to_be_stored, $sdc_prop_source, $field_item) {
         if ($expected_to_be_stored[$field_item::mainPropertyName()] !== $sdc_prop_source['value']) {
           throw new \LogicException(sprintf('Unexpected static prop value: %s should be %s', json_encode($sdc_prop_source['value']), json_encode($expected_to_be_stored[$field_item::mainPropertyName()])));
         }
       })(),
-      default => (function() use ($expected_to_be_stored, $sdc_prop_source) {
+      default => (function () use ($expected_to_be_stored, $sdc_prop_source) {
         if ($expected_to_be_stored !== $sdc_prop_source['value']) {
           throw new \LogicException(sprintf('Unexpected static prop value: %s should be %s', json_encode($sdc_prop_source['value']), json_encode($expected_to_be_stored)));
         }
@@ -216,7 +221,7 @@ function _eb_resolve_sdc_prop_value(EntityInterface $host_entity, array $sdc_pro
     if (str_contains($sdc_prop_source['expression'], '{')) {
       $expression = FieldObjectPropsExpression::fromString($sdc_prop_source['expression']);
     }
-    else if (str_contains($sdc_prop_source['expression'], 'entity␜︎␜entity:')) {
+    elseif (str_contains($sdc_prop_source['expression'], 'entity␜︎␜entity:')) {
       $expression = ReferenceFieldPropExpression::fromString($sdc_prop_source['expression']);
     }
     else {
@@ -295,7 +300,6 @@ function experience_builder_entity_view_alter(&$build, EntityInterface $entity, 
     '#prefix' => '<h1>A complex SDC rendered from multiple sources</h1>',
   ];
 
-
   // @phpstan-ignore-next-line
   $experience_builder_layout_field = json_decode(json_encode([
     'static-image-56r' => ['type' => 'experience_builder:image'],
@@ -303,9 +307,8 @@ function experience_builder_entity_view_alter(&$build, EntityInterface $entity, 
     'static-static-card1ab' => ['type' => $component->getPluginId()],
     'dynamic-static-card2df' => ['type' => $component->getPluginId()],
     'dynamic-dynamic-card3rr' => ['type' => $component->getPluginId()],
-    'dynamic-image-static-imageStyle-sdfdsfsdfsudf7d' => ['type' => 'experience_builder:image'],
+    'dynamic-image-static-imageStyle-something7d' => ['type' => 'experience_builder:image'],
   ]), TRUE);
-
 
   // @phpstan-ignore-next-line
   $experience_builder_values_field = json_decode(json_encode([
@@ -314,7 +317,7 @@ function experience_builder_entity_view_alter(&$build, EntityInterface $entity, 
         'sourceType' => 'dynamic',
         // Either expression works:
         'expression' => 'ℹ︎␜entity:node:article␝title␞␟value',
-//        'expression' => 'ℹ︎␜entity:node:article␝field_call_to_action␞␟value',
+        // 'expression' => 'ℹ︎␜entity:node:article␝field_call_to_action␞␟value',
       ],
       'href' => [
         'sourceType' => 'static:field_item:link',
@@ -325,7 +328,7 @@ function experience_builder_entity_view_alter(&$build, EntityInterface $entity, 
     'static-static-card1ab' => [
       'text' => [
         'sourceType' => 'static:field_item:string',
-        'value' =>'hello, world!',
+        'value' => 'hello, world!',
         'expression' => 'ℹ︎string␟value',
       ],
       'href' => [
@@ -349,7 +352,7 @@ function experience_builder_entity_view_alter(&$build, EntityInterface $entity, 
         'sourceType' => 'static:field_item:link',
         'value' => ['uri' => 'http://upload.wikimedia.org/wikipedia/commons/d/d4/Cat_March_2010-1a.jpg', 'title' => NULL, 'options' => []],
         // This expression would trigger the exception `Drupal\sdc\Exception\InvalidComponentException: [image] String value found, but an object is required`.
-//        'expression' => 'ℹ︎link␟uri',
+        // 'expression' => 'ℹ︎link␟uri',
         'expression' => 'ℹ︎link␟{src↠uri}',
       ],
     ],
@@ -359,7 +362,7 @@ function experience_builder_entity_view_alter(&$build, EntityInterface $entity, 
         'expression' => 'ℹ︎␜entity:node:article␝field_image␞␟{src↝entity␜ℹ︎␜entity:file␝uri␞␟url, alt↠alt, width↠width, height↠height}',
       ],
     ],
-    'dynamic-image-static-imageStyle-sdfdsfsdfsudf7d' => [
+    'dynamic-image-static-imageStyle-something7d' => [
       'image' => [
         // @todo an adapter must be:
         // - a plugin, with a name aka plugin ID, here `imageAndStyle`
@@ -369,10 +372,10 @@ function experience_builder_entity_view_alter(&$build, EntityInterface $entity, 
         // - step 1: CREATOR chooses (places) a component and possible adapters are provided for each component prop: component prop JSON schema === adapter output JSON schema, if no such match exists, then no adapter is available
         // - step 2: BUILDER chooses (places) a component and possible adapters are provided for each component prop etc. (same as above), but this time at the content type template level
         // - step 3: BUILDER creates a COMPONENT VARIANT, this named variant such as `image--thumbnail` would e.g. always use the same image style: thumbnail. This requires a config entity to store the component variant, to depend on the module providing the adapter, depend on the chosen image style config entity. The CREATOR will not be able to choose a different image style, unless the BUILDER chose to expose the original `image` SDC, in which case the CREATOR could configure the adapter themselves.
-        // - step 4: BUILDER could also creates a COMPONENT VARIANT that does NOT restrict to a single image style, but restrict which choices are available to the CREATOR. For example, only "thumnail" and "large" image styles may be chosen. This requires the same config entity as above, but with more config dependencies. The CREATOR will be able to choose between 'thumbnail' and 'large' image styles. The BUILDER presumably chooses to not expose the original `image` SDC in this scenario, but Experience Builder won't prevent it.
+        // - step 4: BUILDER could also creates a COMPONENT VARIANT that does NOT restrict to a single image style, but restrict which choices are available to the CREATOR. For example, only "thumbnail" and "large" image styles may be chosen. This requires the same config entity as above, but with more config dependencies. The CREATOR will be able to choose between 'thumbnail' and 'large' image styles. The BUILDER presumably chooses to not expose the original `image` SDC in this scenario, but Experience Builder won't prevent it.
         'sourceType' => 'adapter:imageAndStyle',
         'adapterInputs' => [
-          // @todo order of `adapterInputs` keys is insigificant, because all keys MUST be named to match the adapter's named inputs
+          // @todo order of `adapterInputs` keys is insignificant, because all keys MUST be named to match the adapter's named inputs
           'image' => [
             'sourceType' => 'dynamic',
             'expression' => 'ℹ︎␜entity:node:article␝field_image␞␟{src↝entity␜ℹ︎␜entity:file␝uri␞␟url, alt↠alt, width↠width, height↠height}',
@@ -408,6 +411,7 @@ function experience_builder_entity_view_alter(&$build, EntityInterface $entity, 
   return $build;
 
   // Generate all possible permutations.
+  // phpcs:disable
   // @phpstan-ignore-next-line
   $build['experience_builder_sdc_random_prop_expressions_overview'] = [
     '#type' => 'container',
@@ -451,6 +455,7 @@ function experience_builder_entity_view_alter(&$build, EntityInterface $entity, 
     if ($evaluated_prop_exprs[$first_prop_name] === NULL) {
       $build['experience_builder_sdc_random_prop_expressions']['preview' . $permutation_id] += [
         '#markup' => sprintf(
+          // cspell:ignore requiredness
           '<p>❌ FAILURE: the <code>%s</code> prop resolved to NULL because field requiredness is not yet taken into account.</p>',
           $first_prop_name,
         ),
