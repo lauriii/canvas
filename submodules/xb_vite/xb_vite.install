@@ -3,7 +3,7 @@
 /**
  * Implements hook_install().
  */
-function eb_vite_install() {
-  // eb_vite_library_info_alter() has no effect without this 🤷‍️.
+function xb_vite_install() {
+  // xb_vite_library_info_alter() has no effect without this 🤷‍️.
   \Drupal\Core\Cache\Cache::invalidateTags(['library_info']);
 }

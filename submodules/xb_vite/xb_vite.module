@@ -3,16 +3,16 @@
 /**
 * Implements hook_library_info_alter().
 */
-function eb_vite_library_info_alter(&$libraries, $extension) {
+function xb_vite_library_info_alter(&$libraries, $extension) {
   $base = [
     'attributes' => ['type' => 'module'],
   ];
 
   // @see https://vitejs.dev/guide/backend-integration.html
-  $libraries['eb-ui']['js'] = [
-    'submodules/eb_vite/window.js' => $base,
+  $libraries['xb-ui']['js'] = [
+    'submodules/xb_vite/window.js' => $base,
     'http://localhost:5173/@vite/client' => ['type' => 'external'] + $base,
     'http://localhost:5173/src/main.tsx' => ['type' => 'external'] + $base,
   ];
-  $libraries['eb-ui']['css'] = [];
+  $libraries['xb-ui']['css'] = [];
 }

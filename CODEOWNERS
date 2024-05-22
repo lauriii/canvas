@@ -56,7 +56,7 @@
 /ui/*.config.ts
 
 [DX: hot reload] @hooroomoo
-/submodules/eb_vite/
+/submodules/xb_vite/
 
 [DX: PHP] @wimleers
 /phpcs.xml

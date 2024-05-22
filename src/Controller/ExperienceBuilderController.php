@@ -28,7 +28,7 @@ HTML;
   public function content() : HtmlResponse {
     return (new HtmlResponse(self::HTML))->setAttachments([
       'library' => [
-        'experience_builder/eb-ui',
+        'experience_builder/xb-ui',
       ],
       'drupalSettings' => [],
       // This *could* use the \Drupal\Core\Asset\AssetResolverInterface services
