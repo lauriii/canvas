@@ -56,8 +56,6 @@ include:
 ################
 variables:
   SKIP_ESLINT: '1'
-  # Opt in to testing against max supported PHP version.
-  OPT_IN_TEST_MAX_PHP: '1'
   # Opt in to testing current minor (Drupal 10.2.x).
   OPT_IN_TEST_CURRENT: '1'
   # Opt in to testing next minor (Drupal 10.3.x).
