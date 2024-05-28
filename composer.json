@@ -5,7 +5,7 @@
     "type": "drupal-module",
     "homepage": "https://www.drupal.org/project/experience_builder",
     "require": {
-        "drupal/core": "^10.2 || ^10.3 || ^11",
+        "drupal/core": "^10.3 || ^11",
         "php": ">=8.3"
     },
     "require-dev": {
