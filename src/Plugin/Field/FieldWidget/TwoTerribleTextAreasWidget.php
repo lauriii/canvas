@@ -121,7 +121,7 @@ class TwoTerribleTextAreasWidget extends WidgetBase {
         assert($source instanceof StaticPropSource);
         $updated_values = $source->massageFormValuesTemporaryRemoveThisExclamationExclamationExclamation($edited_sdc_prop_name, $edited_sdc_prop_values, $form, $form_state);
         // Store updated field property values for the `static:field_item:…`.
-        assert(str_starts_with('static:field_item:', $props[$component_instance_uuid][$edited_sdc_prop_name]['sourceType']));
+        assert(str_starts_with($props[$component_instance_uuid][$edited_sdc_prop_name]['sourceType'], 'static:field_item:'));
         $props[$component_instance_uuid][$edited_sdc_prop_name]['value'] = $updated_values;
       }
     }
