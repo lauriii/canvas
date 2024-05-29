@@ -1,0 +1,71 @@
+.preview-dragging .sortable-list{
+  min-height: 2rem;
+}
+.preview-dragging .sortable-list:empty{
+  background: #fff;
+}
+.sortable-list {
+  margin: 1rem;
+  background: #DA924D;
+
+  .sortable-list {
+    background: #E0B773;
+    .sortable-list {
+      background: #A7AC86;
+      .sortable-list {
+        background: #678779;
+        .sortable-list {
+          background: #566D62;
+        }
+      }
+    }
+  }
+}
+.slot-container {
+  display: flex;
+  > .sortable-item {
+    width: 100%;
+  }
+}
+.sortable-list:empty {
+  min-height: 1.5rem;
+  border: 2px dashed #ccc;
+  position: relative;
+}
+.sortable-list:empty:after {
+  content: 'Slot';
+  top: 0;
+  right: 0;
+  text-align: right;
+  position: absolute;
+
+}
+.sortable-item {
+  cursor: grab;
+  margin: 1rem;
+  padding: 1rem;
+}
+.preview-dragging *,
+.preview-dragging {
+  cursor: grabbing;
+}
+
+.sortable-ghost {
+  opacity: 0.5;
+  padding: 0;
+  height: 2rem;
+  max-height: 2rem;
+  width: 100%;
+  margin: 0;
+  clear: none;
+  position: relative;
+  background: linear-gradient(135deg, #DDD 12.50%, transparent 12.50%, transparent 50%, #DDD 50%, #DDD 62.50%, transparent 62.50%, transparent 100%) center / 5.66px 5.66px;
+  outline: 1px solid #ccc;
+  box-shadow: none;
+  flex-grow: 1;
+  overflow: hidden;
+}
+
+.sortable-ghost * {
+  visibility: hidden;
+}

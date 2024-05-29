@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.0.0",
   "engines": {
-    "node": "^18.18.0 || >=20.0.0"
+    "node": ">=20.0.0"
   },
   "type": "module",
   "scripts": {
@@ -48,11 +48,16 @@
     "eslint-config-react-app": "^7.0.1",
     "eslint-plugin-prettier": "^5.1.3",
     "jsdom": "^23.2.0",
-    "miragejs": "^0.1.48",
+    "msw": "^2.3.0",
     "prettier": "^3.2.1",
     "typescript": "^5.4.5",
     "typescript-eslint": "^7.9.0",
     "vite": "^5.0.11",
     "vitest": "^1.2.0"
+  },
+  "msw": {
+    "workerDirectory": [
+      "public"
+    ]
   }
 }
