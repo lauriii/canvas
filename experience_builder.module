@@ -7,11 +7,9 @@
 
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
+use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Entity\Display\EntityViewDisplayInterface;
-use Drupal\Core\Field\FieldItemInterface;
-use Drupal\Core\Field\TypedData\FieldItemDataDefinitionInterface;
 use Drupal\Core\Template\Attribute;
-use Drupal\Core\TypedData\TypedDataManagerInterface;
 use Drupal\Core\Url;
 use Drupal\experience_builder\Plugin\Field\FieldTypeOverride\FileItemOverride;
 use Drupal\experience_builder\Plugin\Field\FieldTypeOverride\FileUriItemOverride;
@@ -24,12 +22,11 @@ use Drupal\experience_builder\Plugin\Field\FieldTypeOverride\TextItemOverride;
 use Drupal\experience_builder\Plugin\Field\FieldTypeOverride\UuidItemOverride;
 use Drupal\experience_builder\Plugin\Validation\Constraint\StringSemanticsConstraint;
 use Drupal\experience_builder\PropExpressions\StructuredData\Evaluator;
-use Drupal\experience_builder\PropExpressions\StructuredData\FieldObjectPropsExpression;
 use Drupal\experience_builder\PropExpressions\StructuredData\FieldPropExpression;
-use Drupal\experience_builder\PropExpressions\StructuredData\FieldTypeObjectPropsExpression;
-use Drupal\experience_builder\PropExpressions\StructuredData\FieldTypePropExpression;
 use Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldPropExpression;
 use Drupal\experience_builder\PropExpressions\StructuredData\StructuredDataPropExpressionInterface;
+use Drupal\experience_builder\PropSource\DynamicPropSource;
+use Drupal\experience_builder\PropSource\StaticPropSource;
 use Drupal\experience_builder\SdcPropJsonSchemaType;
 use Drupal\experience_builder\SdcPropToFieldTypePropMatcher;
 use Symfony\Component\Validator\Constraints\Hostname;
@@ -151,102 +148,6 @@ function experience_builder_entity_base_field_info_alter(&$fields, EntityTypeInt
 }
 
 /**
- * @param array<mixed> $sdc_prop_source
- */
-function _eb_resolve_sdc_prop_value(EntityInterface $host_entity, array $sdc_prop_source): mixed {
-  // @todo convert this to a value object?
-  $missing = array_diff(['sourceType'], array_keys($sdc_prop_source));
-  if (!empty($missing)) {
-    throw new \LogicException(sprintf('Missing the keys %s.', implode(',', $missing)));
-  }
-
-  $typed_data_manager = \Drupal::service(TypedDataManagerInterface::class);
-  assert($typed_data_manager instanceof TypedDataManagerInterface);
-
-  if (str_starts_with($sdc_prop_source['sourceType'], 'static:')) {
-    // `sourceType = static` requires a value and an expression to be specified.
-    $missing = array_diff(['value', 'expression'], array_keys($sdc_prop_source));
-    if (!empty($missing)) {
-      throw new \LogicException(sprintf('Missing the keys %s.', implode(',', $missing)));
-    }
-
-    // First: conjure the expected FieldItem instance.
-    [, $data_type] = explode(':', $sdc_prop_source['sourceType'], 2);
-    $field_item_definition = $typed_data_manager->createDataDefinition($data_type);
-    assert($field_item_definition instanceof FieldItemDataDefinitionInterface);
-    $field_item = $typed_data_manager->createInstance($data_type, [
-      'name' => NULL,
-      'parent' => NULL,
-      'data_definition' => $field_item_definition,
-    ]);
-    assert($field_item instanceof FieldItemInterface);
-    $field_item->setValue($sdc_prop_source['value']);
-
-    // @todo Remove this when this logic is moved into a field type and it actually gets saved and has test coverage.
-    // @todo This won't work for fields whose props are objects (ComplexData)/lists (ListInterface), but core does not use that AFAIK, so fine for now.
-    $expected_to_be_stored = $field_item->toArray();
-    match (count($field_item_definition->getPropertyDefinitions())) {
-      1 => (function () use ($expected_to_be_stored, $sdc_prop_source, $field_item) {
-        if ($expected_to_be_stored[$field_item::mainPropertyName()] !== $sdc_prop_source['value']) {
-          throw new \LogicException(sprintf('Unexpected static prop value: %s should be %s', json_encode($sdc_prop_source['value']), json_encode($expected_to_be_stored[$field_item::mainPropertyName()])));
-        }
-      })(),
-      default => (function () use ($expected_to_be_stored, $sdc_prop_source) {
-        if ($expected_to_be_stored !== $sdc_prop_source['value']) {
-          throw new \LogicException(sprintf('Unexpected static prop value: %s should be %s', json_encode($sdc_prop_source['value']), json_encode($expected_to_be_stored)));
-        }
-      })(),
-    };
-
-    // Second: construct an expression object from the expression string.
-    if (str_contains($sdc_prop_source['expression'], '{')) {
-      $expression = FieldTypeObjectPropsExpression::fromString($sdc_prop_source['expression']);
-    }
-    else {
-      $expression = FieldTypePropExpression::fromString($sdc_prop_source['expression']);
-    }
-
-    // Finally: evaluate expression using the field item.
-    $value = Evaluator::evaluate($field_item, $expression);
-  }
-
-  if ($sdc_prop_source['sourceType'] === 'dynamic') {
-    // `sourceType = dynamic` requires an expression to be specified.
-    $missing = array_diff(['expression'], array_keys($sdc_prop_source));
-    if (!empty($missing)) {
-      throw new \LogicException(sprintf('Missing the keys %s.', implode(',', $missing)));
-    }
-
-    // First: construct an expression object from the expression string.
-    if (str_contains($sdc_prop_source['expression'], '{')) {
-      $expression = FieldObjectPropsExpression::fromString($sdc_prop_source['expression']);
-    }
-    elseif (str_contains($sdc_prop_source['expression'], 'entity␜︎␜entity:')) {
-      $expression = ReferenceFieldPropExpression::fromString($sdc_prop_source['expression']);
-    }
-    else {
-      $expression = FieldPropExpression::fromString($sdc_prop_source['expression']);
-    }
-    // Second: evaluate expression using the field item.
-    $value = Evaluator::evaluate($host_entity, $expression);
-  }
-
-  if (str_starts_with($sdc_prop_source['sourceType'], 'adapter:')) {
-    // `sourceType = adapter` requires `adapterInputs` to be specified.
-    $missing = array_diff(['adapterInputs'], array_keys($sdc_prop_source));
-    if (!empty($missing)) {
-      throw new \LogicException(sprintf('Missing the keys %s.', implode(',', $missing)));
-    }
-    // @todo
-    $value = ['src' => '@todo.png'];
-  }
-
-  // When this hacky code gets refactored, this PHPStan ignore will disappear.
-  // @phpstan-ignore-next-line
-  return $value;
-}
-
-/**
  * Implements hook_entity_view_alter().
  *
  * To PoC storing SDCs + fixed values + mapped values
@@ -307,7 +208,8 @@ function experience_builder_entity_view_alter(&$build, EntityInterface $entity, 
     'static-static-card1ab' => ['type' => $component->getPluginId()],
     'dynamic-static-card2df' => ['type' => $component->getPluginId()],
     'dynamic-dynamic-card3rr' => ['type' => $component->getPluginId()],
-    'dynamic-image-static-imageStyle-something7d' => ['type' => 'experience_builder:image'],
+    // @todo uncomment when adapters are supported
+    // 'dynamic-image-static-imageStyle-something7d' => ['type' => 'experience_builder:image'],
   ]), TRUE);
 
   // @phpstan-ignore-next-line
@@ -393,9 +295,18 @@ function experience_builder_entity_view_alter(&$build, EntityInterface $entity, 
   foreach ($experience_builder_layout_field as $uuid => $assigned_sdc) {
     $sdc_component_id = $assigned_sdc['type'];
 
+    assert($entity instanceof FieldableEntityInterface);
+
     $props = [];
     foreach ($experience_builder_values_field[$uuid] as $prop_name => $prop_value_source) {
-      $props[$prop_name] = _eb_resolve_sdc_prop_value($entity, $prop_value_source);
+      $value_object = match(TRUE) {
+        $prop_value_source['sourceType'] === 'dynamic' => DynamicPropSource::parse($prop_value_source),
+        str_starts_with($prop_value_source['sourceType'], 'static:') => StaticPropSource::parse($prop_value_source),
+        default => throw new \OutOfRangeException(),
+      };
+      $props[$prop_name] = $value_object instanceof DynamicPropSource
+        ? $value_object->withHostEntity($entity)->evaluate()
+        : $value_object->evaluate();
     }
     $build['experience_builder_sdc_data_storage_test'][$uuid] = [
       '#prefix' => "<h2>$uuid</h2>",

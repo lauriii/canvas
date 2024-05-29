@@ -1,0 +1,27 @@
+uuid: cc13c893-2114-4c02-98c2-de32b85805c4
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_xb_demo
+    - node.type.article
+  module:
+    - experience_builder
+    - sdc_test
+id: node.article.field_xb_demo
+field_name: field_xb_demo
+entity_type: node
+bundle: article
+label: 🪄 XB Demo ✨
+description: ''
+required: true
+translatable: false
+default_value:
+  -
+    tree: '[{"uuid":"dynamic-static-card2df","type":"sdc_test:my-cta"}]'
+    # cspell:ignore centity dtitle elink furi fvalue
+    props: '{"dynamic-static-card2df":{"text":{"sourceType":"dynamic","expression":"\u2139\ufe0e\u241centity:node:article\u241dtitle\u241e\u241fvalue"},"href":{"sourceType":"static:field_item:link","value":{"uri":"https:\/\/drupal.org","title":null,"options":[]},"expression":"\u2139\ufe0elink\u241furi"}}}'
+default_value_callback: ''
+settings:
+  translation: symmetric|asymmetric
+field_type: component_tree

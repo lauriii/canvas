@@ -1,0 +1,33 @@
+<?php
+
+declare(strict_types=1);
+
+use Drupal\node\Entity\NodeType;
+
+/**
+ * Implements hook_install().
+ */
+function experience_builder_install(): void {
+  // Automatically set up the Standard install profile's "article" content type
+  // to demo/test Experience Builder.
+  if (!\Drupal::moduleHandler()->moduleExists('node')) {
+    return;
+  }
+  if (NodeType::load('article')) {
+    \Drupal::service('entity_display.repository')
+      ->getFormDisplay('node', 'article')
+      ->setComponent('field_xb_demo', [
+        'type' => 'experience_builder_two_terrible_text_areas',
+        'weight' => 1,
+      ])
+      ->save();
+    \Drupal::service('entity_display.repository')
+      ->getViewDisplay('node', 'article')
+      ->setComponent('field_xb_demo', [
+        'type' => 'experience_builder_naive_render_sdc_tree',
+        // The image field has weight -1 by default.
+        'weight' => -2,
+      ])
+      ->save();
+  }
+}

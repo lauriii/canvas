@@ -14,5 +14,6 @@ core.phpcs.xml.dist -> /PATH/TO/DRUPAL/ROOT/core/phpcs.xml.dist
     <!-- … don't require boilerplate docs *yet*. -->
     <exclude name="Drupal.Commenting.FunctionComment.MissingParamComment"/>
     <exclude name="Drupal.Commenting.FunctionComment.ParamMissingDefinition"/>
+    <exclude name="Drupal.Commenting.FileComment.Missing"/>
   </rule>
 </ruleset>

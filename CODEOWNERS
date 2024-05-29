@@ -22,9 +22,12 @@
 /schema.json
 
 [data model] @wimleers
+/src/Plugin/DataType/
+/src/Plugin/Field/FieldFormatter/
 /src/Plugin/Field/FieldType/
 /src/Plugin/Validation/
 /src/PropExpressions/
+/src/PropSource/
 
 [data model — missing metadata] @wimleers
 /src/Plugin/DataTypeOverride/

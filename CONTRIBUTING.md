@@ -1,3 +1,11 @@
+# See it in action + recommended development environment
+1. Drupal 11 (preferably a git clone, for git archeology — 10.3 will work too).
+2. `composer require drush/drush`
+3. `drush si standard`
+4. `drush pm:install experience_builder`
+5. Browse to `/node/add/article` — you'll see a `🪄 XB Demo ✨` field. Don't touch that — just enter a title for the article and hit save: a component is rendered using the article title 🤓
+6. If you're curious: look at the code, step through it with a debugger, and join us!
+
 # Initial set up
 All of these steps must only be performed _once_.
 ## For `phpcs`
