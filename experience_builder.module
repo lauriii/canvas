@@ -5,6 +5,7 @@
  * Hook implementations for Experience Builder.
  */
 
+use Drupal\experience_builder\PropSource\AdaptedPropSource;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
@@ -208,8 +209,8 @@ function experience_builder_entity_view_alter(&$build, EntityInterface $entity, 
     'static-static-card1ab' => ['type' => $component->getPluginId()],
     'dynamic-static-card2df' => ['type' => $component->getPluginId()],
     'dynamic-dynamic-card3rr' => ['type' => $component->getPluginId()],
-    // @todo uncomment when adapters are supported
-    // 'dynamic-image-static-imageStyle-something7d' => ['type' => 'experience_builder:image'],
+    'dynamic-image-static-imageStyle-something7d' => ['type' => 'experience_builder:image'],
+    'dynamic-image-something-asd7d' => ['type' => 'experience_builder:image'],
   ]), TRUE);
 
   // @phpstan-ignore-next-line
@@ -266,16 +267,13 @@ function experience_builder_entity_view_alter(&$build, EntityInterface $entity, 
     ],
     'dynamic-image-static-imageStyle-something7d' => [
       'image' => [
-        // @todo an adapter must be:
-        // - a plugin, with a name aka plugin ID, here `imageAndStyle`
-        // - with defined inputs (name + JSON schema, here `image` and `imageStyle`)
-        // - with a defined output (JSON schema)
+        // @todo Expose this in the UI, after https://git.drupalcode.org/project/experience_builder/-/merge_requests/20 lands.
         // All three of these are necessary to be able to suggest possible matches for the BUILDER/CREATOR persona, and enable these increasingly complex (in terms of infrastructure) workflows:
         // - step 1: CREATOR chooses (places) a component and possible adapters are provided for each component prop: component prop JSON schema === adapter output JSON schema, if no such match exists, then no adapter is available
         // - step 2: BUILDER chooses (places) a component and possible adapters are provided for each component prop etc. (same as above), but this time at the content type template level
         // - step 3: BUILDER creates a COMPONENT VARIANT, this named variant such as `image--thumbnail` would e.g. always use the same image style: thumbnail. This requires a config entity to store the component variant, to depend on the module providing the adapter, depend on the chosen image style config entity. The CREATOR will not be able to choose a different image style, unless the BUILDER chose to expose the original `image` SDC, in which case the CREATOR could configure the adapter themselves.
         // - step 4: BUILDER could also creates a COMPONENT VARIANT that does NOT restrict to a single image style, but restrict which choices are available to the CREATOR. For example, only "thumbnail" and "large" image styles may be chosen. This requires the same config entity as above, but with more config dependencies. The CREATOR will be able to choose between 'thumbnail' and 'large' image styles. The BUILDER presumably chooses to not expose the original `image` SDC in this scenario, but Experience Builder won't prevent it.
-        'sourceType' => 'adapter:imageAndStyle',
+        'sourceType' => 'adapter:image_apply_style',
         'adapterInputs' => [
           // @todo order of `adapterInputs` keys is insignificant, because all keys MUST be named to match the adapter's named inputs
           'image' => [
@@ -286,6 +284,17 @@ function experience_builder_entity_view_alter(&$build, EntityInterface $entity, 
             'sourceType' => 'static:field_item:string',
             'value' => 'thumbnail',
             'expression' => 'ℹ︎string␟value',
+          ],
+        ],
+      ],
+    ],
+    'dynamic-image-something-asd7d' => [
+      'image' => [
+        'sourceType' => 'adapter:image_url_rel_to_abs',
+        'adapterInputs' => [
+          'image' => [
+            'sourceType' => 'dynamic',
+            'expression' => 'ℹ︎␜entity:node:article␝field_image␞␟{src↝entity␜ℹ︎␜entity:file␝uri␞␟url,alt↠alt,width↠width,height↠height}',
           ],
         ],
       ],
@@ -301,12 +310,16 @@ function experience_builder_entity_view_alter(&$build, EntityInterface $entity, 
     foreach ($experience_builder_values_field[$uuid] as $prop_name => $prop_value_source) {
       $value_object = match(TRUE) {
         $prop_value_source['sourceType'] === 'dynamic' => DynamicPropSource::parse($prop_value_source),
+        str_starts_with($prop_value_source['sourceType'], 'adapter:') => AdaptedPropSource::parse($prop_value_source),
         str_starts_with($prop_value_source['sourceType'], 'static:') => StaticPropSource::parse($prop_value_source),
         default => throw new \OutOfRangeException(),
       };
-      $props[$prop_name] = $value_object instanceof DynamicPropSource
-        ? $value_object->withHostEntity($entity)->evaluate()
-        : $value_object->evaluate();
+      $value = match(TRUE) {
+        $value_object instanceof DynamicPropSource => $value_object->withHostEntity($entity)->evaluate(),
+        $value_object instanceof AdaptedPropSource => $value_object->withHostEntity($entity)->evaluate(),
+        default => $value_object->evaluate(),
+      };
+      $props[$prop_name] = $value;
     }
     $build['experience_builder_sdc_data_storage_test'][$uuid] = [
       '#prefix' => "<h2>$uuid</h2>",

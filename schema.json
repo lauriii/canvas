@@ -21,7 +21,7 @@
       "title": "Image URL",
       "type": "string",
       "format": "uri",
-      "pattern": "\\.(png|gif|jpg|jpeg|webp)$"
+      "pattern": "\\.(png|gif|jpg|jpeg|webp)(\\?.*)?(#.*)?$"
     },
     "image": {
       "title": "image",
@@ -45,6 +45,11 @@
           "type": "integer"
         }
       }
+    },
+    "config-entity-id": {
+      "title": "config entity id",
+      "type": "string",
+      "pattern": "^[a-z0-9_\\.]+$"
     }
   }
 }

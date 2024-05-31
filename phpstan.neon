@@ -46,6 +46,14 @@ parameters:
     # These must be fixed upstream in various interfaces and base classes.
     #
     -
+      message: "#^Method Drupal\\\\experience_builder\\\\.*\\:\\:(create|__construct)\\(\\) has parameter \\$configuration with no value type specified in iterable type array\\.$#"
+      count: 6
+      path: src/Plugin/*
+    -
+      message: "#^Method Drupal\\\\experience_builder\\\\.*\\:\\:create\\(\\) should return static\\(Drupal\\\\experience_builder\\\\.*\\) but returns Drupal\\\\experience_builder\\\\.*\\.$#"
+      count: 3
+      path: src/Plugin/*
+    -
       message: "#^Method Drupal\\\\.*\\\\Plugin\\\\DataType\\\\.*\\:\\:setValue\\(\\) has no return type specified\\.$#"
       count: 2
       path: src/Plugin/DataType/*

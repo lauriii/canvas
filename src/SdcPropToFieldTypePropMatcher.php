@@ -26,6 +26,7 @@ use Drupal\Core\TypedData\TypedDataInterface;
 use Drupal\Core\TypedData\TypedDataManagerInterface;
 use Drupal\Core\Validation\ConstraintManager;
 use Drupal\Core\Validation\Plugin\Validation\Constraint\ComplexDataConstraint;
+use Drupal\experience_builder\Plugin\AdapterManager;
 use Drupal\experience_builder\PropExpressions\StructuredData\FieldObjectPropsExpression;
 use Drupal\experience_builder\PropExpressions\StructuredData\FieldPropExpression;
 use Drupal\experience_builder\PropExpressions\StructuredData\FieldTypeObjectPropsExpression;
@@ -43,6 +44,9 @@ use Symfony\Component\Validator\Constraint;
 // phpcs:disable Drupal.Commenting.FunctionComment.MissingParamComment
 // phpcs:disable Drupal.Files.LineLength.TooLong
 // phpcs:disable Drupal.Semantics.FunctionTriggerError.TriggerErrorTextLayoutRelaxed
+/**
+ * @phpstan-import-type JsonSchema from \Drupal\experience_builder\SdcPropJsonSchemaType
+ */
 final class SdcPropToFieldTypePropMatcher {
 
   public function __construct(
@@ -51,6 +55,7 @@ final class SdcPropToFieldTypePropMatcher {
     private readonly ConstraintManager $constraintManager,
     private readonly EntityTypeBundleInfoInterface $entityTypeBundleInfo,
     private readonly EntityFieldManagerInterface $entityFieldManager,
+    private readonly AdapterManager $adapterManager,
   ) {}
 
   /**
@@ -62,7 +67,7 @@ final class SdcPropToFieldTypePropMatcher {
    * - \Drupal\Core\TypedData\Plugin\DataType\TimeSpan, which is an integer
    * - \Drupal\Core\TypedData\Plugin\DataType\DurationIso8601, which is a string
    *
-   * @param array<string, mixed> $sub_schema
+   * @param JsonSchema $sub_schema
    *
    * @return array<int, \Drupal\experience_builder\PropExpressions\StructuredData\FieldTypePropExpression|\Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldTypePropExpression|\Drupal\experience_builder\PropExpressions\StructuredData\FieldTypePropExpression>
    */
@@ -73,7 +78,7 @@ final class SdcPropToFieldTypePropMatcher {
   }
 
   /**
-   * @param array<string, mixed> $schema
+   * @param JsonSchema $schema
    * @return array<int, \Drupal\experience_builder\PropExpressions\StructuredData\FieldTypePropExpression|\Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldTypePropExpression|\Drupal\experience_builder\PropExpressions\StructuredData\FieldTypePropExpression>
    */
   public function findFieldTypeFormatCandidates(SdcPropJsonSchemaType $json_schema_primitive_type, bool $is_required_in_json_schema, array $schema, bool $main_property_only) {
@@ -83,7 +88,7 @@ final class SdcPropToFieldTypePropMatcher {
   }
 
   /**
-   * @param array<string, mixed> $schema
+   * @param JsonSchema $schema
    */
   public function iterateJsonSchema(array $schema): \Generator {
     $schema = self::resolveSchemaReferences($schema);
@@ -115,8 +120,10 @@ final class SdcPropToFieldTypePropMatcher {
   /**
    * @todo Make *recursive* references work in justinrainbow/schema, see https://git.drupalcode.org/project/ui_patterns/-/blob/28cf60dd776fb349d9520377afa510b0d85f3334/src/SchemaManager/ReferencesResolver.php
    *
-   * @param array<string, mixed> $schema
-   * @return array<string, mixed>
+   * @param JsonSchema $schema
+   * @return JsonSchema
+   *
+   * @see \Drupal\experience_builder\Plugin\Adapter\AdapterBase::resolveSchemaReferences
    */
   private static function resolveSchemaReferences(array $schema): array {
     if (isset($schema['$ref'])) {
@@ -129,7 +136,7 @@ final class SdcPropToFieldTypePropMatcher {
   }
 
   /**
-   * @param array<string, mixed> $schema
+   * @param JsonSchema $schema
    * @return array<int, \Drupal\experience_builder\PropExpressions\StructuredData\FieldTypePropExpression|\Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldTypePropExpression|\Drupal\experience_builder\PropExpressions\StructuredData\FieldTypeObjectPropsExpression>
    */
   public function findFieldTypeProps(SdcPropJsonSchemaType $json_schema_primitive_type, bool $is_required_in_json_schema, ?array $schema, bool $main_property_only) : array {
@@ -143,7 +150,7 @@ final class SdcPropToFieldTypePropMatcher {
   }
 
   /**
-   * @param array<string, mixed> $schema
+   * @param JsonSchema $schema
    * @return array<int, \Drupal\experience_builder\PropExpressions\StructuredData\FieldTypeObjectPropsExpression>
    */
   public function findFieldTypePropsForIterable(SdcPropJsonSchemaType $json_schema_primitive_type, array $schema) : array {
@@ -216,7 +223,7 @@ final class SdcPropToFieldTypePropMatcher {
   }
 
   /**
-   * @param array<string, mixed> $schema
+   * @param JsonSchema $schema
    * @return array<int, \Drupal\experience_builder\PropExpressions\StructuredData\FieldTypePropExpression|\Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldTypePropExpression>
    */
   public function findFieldTypePropsForScalar(SdcPropJsonSchemaType $json_schema_primitive_type, bool $is_required_in_json_schema, ?array $schema, bool $main_property_only) : array {
@@ -323,7 +330,7 @@ final class SdcPropToFieldTypePropMatcher {
   }
 
   /**
-   * @param array<string, mixed> $schema
+   * @param JsonSchema $schema
    * @return ($levels_to_recurse is positive-int ? array<int, \Drupal\experience_builder\PropExpressions\StructuredData\FieldPropExpression|\Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldPropExpression|\Drupal\experience_builder\PropExpressions\StructuredData\FieldObjectPropsExpression> : array<int, \Drupal\experience_builder\PropExpressions\StructuredData\FieldPropExpression|\Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldPropExpression>)
    */
   private function matchEntityProps(EntityDataDefinitionInterface $entity_data_definition, int $levels_to_recurse, SdcPropJsonSchemaType $primitive_type, bool $is_required_in_json_schema, ?array $schema): array {
@@ -337,7 +344,7 @@ final class SdcPropToFieldTypePropMatcher {
   }
 
   /**
-   * @param array<string, mixed> $schema
+   * @param JsonSchema $schema
    * @return array<int, \Drupal\experience_builder\PropExpressions\StructuredData\FieldObjectPropsExpression>
    */
   private function matchEntityPropsForIterable(EntityDataDefinitionInterface $entity_data_definition, int $levels_to_recurse, SdcPropJsonSchemaType $primitive_type, bool $is_required_in_json_schema, array $schema): array {
@@ -416,7 +423,7 @@ final class SdcPropToFieldTypePropMatcher {
   }
 
   /**
-   * @param array<string, mixed> $schema
+   * @param JsonSchema $schema
    * @return array<int, \Drupal\experience_builder\PropExpressions\StructuredData\FieldPropExpression|\Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldPropExpression>
    */
   private function matchEntityPropsForScalar(EntityDataDefinitionInterface $entity_data_definition, int $levels_to_recurse, SdcPropJsonSchemaType $primitive_type, bool $is_required_in_json_schema, ?array $schema): array {
@@ -486,7 +493,7 @@ final class SdcPropToFieldTypePropMatcher {
               // @todo JSON schema does not support case-insensitive matching!!!! https://json-schema.org/understanding-json-schema/reference/regular_expressions
               // @todo the `value` prop should only get the suffix matching, but the `url` prop should also get prefix matching: `^(http(s)?:)?\/\//`
               $transformed_property_data_definition->addConstraint('Regex', [
-                'pattern' => '\.(' . preg_replace('/ +/', '|', preg_quote($entity_constraints['FileExtension']['extensions'])) . ')$',
+                'pattern' => '\.(' . preg_replace('/ +/', '|', preg_quote($entity_constraints['FileExtension']['extensions'])) . ')(\?.*)?(#.*)?$',
               ]);
               $property_definition = $transformed_property_data_definition;
             }
@@ -513,7 +520,7 @@ final class SdcPropToFieldTypePropMatcher {
   }
 
   /**
-   * @param array<string, mixed> $schema
+   * @param JsonSchema $schema
    * @return array<int, \Drupal\experience_builder\PropExpressions\StructuredData\FieldPropExpression|\Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldPropExpression|\Drupal\experience_builder\PropExpressions\StructuredData\FieldObjectPropsExpression>
    */
   public function findFieldInstanceFormatMatches(SdcPropJsonSchemaType $primitive_type, bool $is_required_in_json_schema, array $schema): array {
@@ -572,7 +579,7 @@ final class SdcPropToFieldTypePropMatcher {
   }
 
   /**
-   * @param array<string, mixed> $schema
+   * @param JsonSchema $schema
    */
   private function dataLeafMatchesFormat(TypedDataInterface $data, SdcPropJsonSchemaType $json_schema_primitive_type, bool $is_required_in_json_schema, ?array $schema): bool {
     if (!$data->getParent()) {
@@ -743,6 +750,14 @@ final class SdcPropToFieldTypePropMatcher {
         return NULL;
       })($td_or_dd),
     };
+  }
+
+  /**
+   * @param JsonSchema $schema
+   * @return \Drupal\experience_builder\Plugin\Adapter\AdapterInterface[]
+   */
+  public function findAdaptersByMatchingOutput(array $schema): array {
+    return $this->adapterManager->getDefinitionsByOutputSchema($schema);
   }
 
 }

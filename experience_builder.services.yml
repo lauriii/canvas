@@ -9,3 +9,5 @@ services:
     public: true
     tags:
       - { name: stream_wrapper, scheme: json-schema-definitions }
+  Drupal\experience_builder\Plugin\AdapterManager:
+    parent: default_plugin_manager

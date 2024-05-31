@@ -37,6 +37,8 @@ use Drupal\experience_builder\Plugin\Validation\Constraint\StringSemanticsConstr
  * @todo Question: do we need to support both `format` *and* `pattern` simultaneously; for example to only allow URLs from a certain domain?
  * @todo Question: can we reuse \JsonSchema\Constraints\FormatConstraint to validate just prior to passing information from fields to components, only when developing?
  * @todo Use `justinrainbow/json-schema`'s \JsonSchema\Constraints\FormatConstraint to ensure data flowing from Drupal entity is guaranteed to match with JSON schema constraint; log errors in production, throw errors in dev?
+ *
+ * @phpstan-type JsonSchema array<string, mixed>
  */
 enum SdcPropJsonSchemaType : string {
   case STRING = 'string';
@@ -76,7 +78,7 @@ enum SdcPropJsonSchemaType : string {
   }
 
   /**
-   * @param array<string, mixed> $schema
+   * @param JsonSchema $schema
    */
   public function toDataTypeShapeRequirements(array $schema): DataTypeShapeRequirement|DataTypeShapeRequirements|false {
     return match ($this) {
