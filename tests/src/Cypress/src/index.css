@@ -1,3 +1,4 @@
+/* stylelint-disable */
 @import url('https://fonts.googleapis.com/css2?family=Montserrat&display=swap');
 
 @tailwind base;
@@ -10,3 +11,4 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+/* stylelint-enable */

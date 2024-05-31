@@ -56,10 +56,6 @@ include:
 ################
 variables:
   SKIP_ESLINT: '1'
-  # Opt out of testing current minor (Drupal 10.2.x).
-  OPT_IN_TEST_CURRENT: '0'
-  # Opt in to testing next minor (Drupal 10.3.x).
-  OPT_IN_TEST_NEXT_MINOR: '1'
   # Experience Builder aims to match Drupal 11's minimum PHP and MySQL versions even in its Drupal 10 support.
   CORE_PHP_MIN: '8.3'
   # Opt in to testing $CORE_MAJOR_DEVELOPMENT (currently Drupal 11).
@@ -92,6 +88,64 @@ stylelint:
 # This module wants to strictly comply with PHPStan.
 .phpstan-base:
   allow_failure: false
+
+# We're choosing to not use `OPT_IN_TEST_NEXT_MINOR` but instead force the default CI build job to use Drupal 10.3.
+composer:
+  variables:
+    # Test not against the current minor, but the next minor.
+    DRUPAL_CORE: $CORE_NEXT_MINOR
+    IGNORE_PROJECT_DRUPAL_CORE_VERSION: 1
+
+cypress:
+  stage: test
+  needs:
+    - composer
+  extends:
+    - .test-variables
+  before_script:
+    - echo -e "\e[0Ksection_start:`date +%s`:Cypress-deps[collapsed=true]\r\e[0KInstall Cypress dependencies."
+    - sudo apt-get -y update
+    - sudo apt-get -y install libgtk2.0-0 libgtk-3-0 libgbm-dev libnotify-dev libnss3 libxss1 libasound2 libxtst6 xauth xvfb
+    - echo -e "\e[0Ksection_end:`date +%s`:Cypress-deps\r\e[0K"
+  variables:
+    _TARGET_DB_TYPE: sqlite
+  script:
+    #
+    # Copied from `.nightwatch-base`, but converted to use GitLab CI references.
+    # 👇
+    #
+    - !reference [ .setup-webserver ]
+    - !reference [ .simpletest-db ]
+    - export DRUPAL_TEST_DB_URL=$SIMPLETEST_DB
+    - !reference [ .show-environment-variables ]
+    - cd $_WEB_ROOT
+    #
+    # 👆
+    #
+    - cd modules/custom/experience_builder
+    - cp ./tests/src/Cypress/.env.example ./tests/src/Cypress/.env
+    - echo "BASE_URL='${SIMPLETEST_BASE_URL}'" >> ./tests/src/Cypress/.env
+    - echo "DB_URL='${DRUPAL_TEST_DB_URL}'" >> ./tests/src/Cypress/.env
+    - echo "DRUPAL_TEST_WEBSERVER_USER=www-data" >> ./tests/src/Cypress/.env
+    - echo "DRUPAL_ROOT_CORE='${CI_PROJECT_DIR}/${_WEB_ROOT}/core'" >> ./tests/src/Cypress/.env
+    - cd ./tests/src/Cypress/
+    - cat .env
+    - which npm
+    - mkdir -p ./cycache /var/www/.npm /home/apache/.cache/fontconfig ~/.cache /usr/share/fonts/ /var/cache/fontconfig
+    - chown -R www-data:www-data ./cycache /var/www/.npm /usr/bin/npm /home/apache/.cache/fontconfig ~/.cache /usr/share/fonts/ /var/cache/fontconfig
+    - chmod -R 755 ./cycache
+    - sudo -u www-data CYPRESS_CACHE_FOLDER=./cycache npm install
+    - chown -R www-data:www-data ./node_modules
+    - sudo -u www-data CYPRESS_CACHE_FOLDER=./cycache node ./node_modules/.bin/cypress install
+    - sudo -u www-data CYPRESS_CACHE_FOLDER=./cycache node ./node_modules/.bin/cypress --version
+    - CYPRESS_CACHE_FOLDER=./cycache node ./node_modules/.bin/cypress run --browser electron
+  artifacts:
+    when: always
+    expire_in: 6 mos
+    paths:
+      - ./tests/src/Cypress/cypress/screenshots/**/*.png
+
+
 
 ###################################################################################
 #

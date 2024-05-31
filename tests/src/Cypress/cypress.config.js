@@ -8,8 +8,8 @@ const getCoreDir = () => {
   let path = 'core'
   while (!fs.existsSync(path) && count < 15) {
     count +=1
-    const stepsup = `../`.repeat(count)
-    path = `${stepsup}core`
+    const stepsUp = `../`.repeat(count)
+    path = `${stepsUp}core`
 
   }
   if (fs.existsSync(path)) {
@@ -27,13 +27,19 @@ module.exports = defineConfig({
     dbUrl: process.env.DB_URL,
     defaultTheme: 'olivero',
     adminTheme: 'claro',
-    coreDir: getCoreDir(),
+    coreDir: process.env.DRUPAL_ROOT_CORE || getCoreDir(),
+    testWebserverUser: process.env.DRUPAL_TEST_WEBSERVER_USER,
   },
   e2e: {
+    baseUrl: process.env.BASE_URL,
     setupNodeEvents(on, config) {
-      // implement node event listeners here
+      on('task', {
+        log(message) {
+          console.log(message)
+          return null
+        },
+      })
     },
-
   },
 
   component: {

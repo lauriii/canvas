@@ -24,8 +24,8 @@ describe('LoginForm', () => {
   });
 
   describe('form tests', () => {
-    const username = 'testuser123';
-    const password = 's3cret';
+    const username = 'testUser123';
+    const password = 'aSecret';
 
     beforeEach(() => {
       const onLoginSpy = cy.spy().as('onLoginSpy');

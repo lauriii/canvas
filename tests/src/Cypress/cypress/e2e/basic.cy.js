@@ -9,15 +9,8 @@ describe('Basic Functionality', {testIsolation: false},  () => {
   })
 
   beforeEach(() => {
-    cy.visit(Cypress.env('baseUrl'), {failOnStatusCode: false}).then(() => {
-      cy.setCookie(
-        'SIMPLETEST_USER_AGENT',
-        encodeURIComponent(Cypress.env('userAgent')),
-        {domain: Cypress.env('host'), path: '/'},
-      )
-    })
+    cy.drupalSession();
   });
-
 
   it('Test login', () => {
     cy

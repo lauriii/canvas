@@ -8,6 +8,8 @@ core.phpcs.xml.dist -> /PATH/TO/DRUPAL/ROOT/core/phpcs.xml.dist
   <exclude-pattern>*/submodules/*</exclude-pattern>
   <!-- Drupal (core) uses stylelint: https://www.drupal.org/list-changes/drupal/published?keywords_description=stylelint-->
   <exclude-pattern>*.css</exclude-pattern>
+  <!-- Drupal (core) uses eslint: https://www.drupal.org/list-changes/drupal/published?keywords_description=eslint-->
+  <exclude-pattern>*.js</exclude-pattern>
 
   <!-- Use the Drupal coding standard, but … -->
   <rule ref="./core.phpcs.xml.dist">

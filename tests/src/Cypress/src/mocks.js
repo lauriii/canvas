@@ -5,7 +5,7 @@ export const handlers = [
     '/auth',
     (req, res, ctx) => {
       const { username, password } = req.body;
-      if (username === 'testuser' && password === 'testpassword') {
+      if (username === 'testUser' && password === 'testPassword') {
         return res(ctx.status(200), ctx.json({ message: 'Authenticated' }));
       } else {
         return res(

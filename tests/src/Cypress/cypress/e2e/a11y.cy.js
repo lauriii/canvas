@@ -73,13 +73,7 @@ describe('a11y admin', {testIsolation: false}, () => {
    cy.drupalUninstall();
   });
   beforeEach(() => {
-    cy.visit(Cypress.env('baseUrl'), {failOnStatusCode: false}).then(() => {
-      cy.setCookie(
-        'SIMPLETEST_USER_AGENT',
-        encodeURIComponent(Cypress.env('userAgent')),
-        {domain: Cypress.env('host'), path: '/'},
-      )
-    })
+    cy.drupalSession()
   });
   adminTestCases.forEach((testCase) => {
     it(`Accessibility - Admin Theme: ${testCase.name}`, () => {

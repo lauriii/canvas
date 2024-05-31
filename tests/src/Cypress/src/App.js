@@ -3,21 +3,21 @@ import LoginForm from './components/LoginForm';
 import Welcome from './components/Welcome';
 
 function App() {
-  const [isAuthed, setIsAuthed] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [username, setUsername] = useState('');
 
-  const handleLogin = async (creds) => {
+  const handleLogin = async (credentials) => {
     try {
       setErrorMessage('');
       const res = await fetch('/auth', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(creds),
+        body: JSON.stringify(credentials),
       });
       if (res.status === 200) {
-        setIsAuthed(true);
-        setUsername(creds.username);
+        setIsAuthenticated(true);
+        setUsername(credentials.username);
       } else {
         if (res.status === 401) {
           const { message } = await res.json();
@@ -33,11 +33,11 @@ function App() {
 
   return (
     <div className="lg:container lg mx-auto m-10">
-      {isAuthed ? (
+      {isAuthenticated ? (
         <Welcome
           username={username}
           onLogout={() => {
-            setIsAuthed(false);
+            setIsAuthenticated(false);
             setUsername('');
           }}
         />
