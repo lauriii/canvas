@@ -24,7 +24,7 @@ class ComponentTreeStructure extends TypedData {
    *
    * @var string
    */
-  protected string $value = '';
+  protected string $value;
 
   /**
    * The parsed data value.
@@ -40,6 +40,15 @@ class ComponentTreeStructure extends TypedData {
     // @todo Uncomment next line and delete last line after https://www.drupal.org/project/drupal/issues/2232427
     // return $this->tree;
     return $this->value;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function applyDefaultValue($notify = TRUE) {
+    // Default to the empty JSON array.
+    $this->setValue('[]', $notify);
+    return $this;
   }
 
   /**

@@ -28,7 +28,7 @@ class ComponentPropsValues extends TypedData implements \Stringable {
    *
    * @todo Delete this property after https://www.drupal.org/project/drupal/issues/2232427
    */
-  protected string $value = '';
+  protected string $value;
 
   /**
    * The parsed data value.
@@ -44,6 +44,15 @@ class ComponentPropsValues extends TypedData implements \Stringable {
     // @todo Uncomment next line and delete last line after https://www.drupal.org/project/drupal/issues/2232427
     // return $this->propsValues;
     return $this->value;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function applyDefaultValue($notify = TRUE) {
+    // Default to the empty JSON object.
+    $this->setValue('{}', $notify);
+    return $this;
   }
 
   /**
