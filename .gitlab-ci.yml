@@ -67,8 +67,6 @@ variables:
   # @see https://drupal.slack.com/archives/CGKLP028K/p1715689021563339?thread_ts=1715290505.152429&cid=CGKLP028K
   # @todo Delete this when https://www.drupal.org/project/gitlab_templates/issues/3444792 lands.
   _PHPUNIT_CONCURRENT: 1
-  # @todo Delete this when https://www.drupal.org/project/gitlab_templates/issues/3447105 lands.
-  _TARGET_DB_VERSION: 8
 
 # This module wants to strictly comply with Drupal core's word use standards.
 cspell:
@@ -95,6 +93,26 @@ composer:
     # Test not against the current minor, but the next minor.
     DRUPAL_CORE: $CORE_NEXT_MINOR
     IGNORE_PROJECT_DRUPAL_CORE_VERSION: 1
+
+phpunit:
+  parallel:
+    # @see https://www.drupal.org/node/3444548
+    matrix:
+      - _TARGET_DB_TYPE: sqlite
+        _TARGET_DB_VERSION: '3'
+        # @see https://git.drupalcode.org/project/drupal/-/commit/10466dba9d7322ed55165dd9224edb2153c9b27a
+        _TARGET_PHP: '8.3-ubuntu'
+      - _TARGET_DB_TYPE: 'mariadb'
+        _TARGET_DB_VERSION: '10.6'
+      - _TARGET_DB_TYPE: 'mysql'
+        # @todo Delete this when https://www.drupal.org/project/gitlab_templates/issues/3447105 lands.
+        _TARGET_DB_VERSION: '8'
+      - _TARGET_DB_TYPE: 'pgsql'
+        _TARGET_DB_VERSION: '16'
+  # @todo Delete this after https://www.drupal.org/project/gitlab_templates/issues/3447792 lands.
+  # @see https://git.drupalcode.org/issue/gitlab_templates-3447792/-/compare/main...3447792-raise-sqlite-version?from_project_id=96292, when 984abb7b4781559a13078d58bb65f6959fe42179 was the last commit.
+  image:
+    name: $_CONFIG_DOCKERHUB_ROOT/php-$PHP_VERSION-ubuntu-apache:$_TARGET_PHP_IMAGE_TAG
 
 cypress:
   stage: test
