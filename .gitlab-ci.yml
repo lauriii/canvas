@@ -70,6 +70,9 @@ variables:
 
 # This module wants to strictly comply with Drupal core's word use standards.
 cspell:
+  # Match Drupal 11's rules, not 10.3's.
+  needs:
+    - "composer (next major)"
   allow_failure: false
 
 # This module wants to strictly comply with Drupal core's coding standards.
@@ -81,6 +84,9 @@ phpcs:
     - cp $_WEB_ROOT/core/phpcs.xml.dist ./core.phpcs.xml.dist
   allow_failure: false
 stylelint:
+  # Match Drupal 11's rules, not 10.3's.
+  needs:
+    - "composer (next major)"
   allow_failure: false
 
 # This module wants to strictly comply with PHPStan.
