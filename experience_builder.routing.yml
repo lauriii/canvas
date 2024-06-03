@@ -10,3 +10,39 @@ experience_builder.experience_builder:
       parameters:
         react_route:
           type: string
+
+experience_builder.components:
+  path: '/xb-components'
+  defaults:
+    _controller: '\Drupal\experience_builder\Controller\SdcController::components'
+    _title: 'Components'
+  requirements:
+    _permission: 'access administration pages'
+
+
+
+experience_builder.component:
+  path: '/xb-component/{component_id}'
+  defaults:
+    _controller: '\Drupal\experience_builder\Controller\SdcController::component'
+    _title: 'Component'
+    component_id: NULL
+  requirements:
+    _permission: 'access administration pages'
+  options:
+    parameters:
+      component_id:
+        type: string
+
+experience_builder.render_component:
+  path: '/xb-render-component/{component_id}'
+  defaults:
+    _controller: '\Drupal\experience_builder\Controller\SdcController::renderComponent'
+    _title: 'Render Component'
+    component_id: NULL
+  requirements:
+    _permission: 'access administration pages'
+  options:
+    parameters:
+      component_id:
+        type: string

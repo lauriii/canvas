@@ -7,10 +7,9 @@ import './index.css';
 import '@radix-ui/themes/styles.css';
 import { Theme, ThemePanel } from '@radix-ui/themes';
 
-
 const prepare = async () => {
-  if (process.env.NODE_ENV === "development") {
-    const { worker } = await import("./mocks/browser");
+  if (process.env.NODE_ENV === 'development') {
+    const { worker } = await import('./mocks/browser');
     return worker.start();
   }
 
@@ -21,20 +20,17 @@ const container = document.getElementById('experience-builder');
 
 if (container) {
   prepare().then(() => {
-      const root = createRoot(container);
-
-      root.render(
-        <React.StrictMode>
-          <Theme hasBackground={false} panelBackground="solid" appearance="dark">
-            <ThemePanel />
-            <Provider store={store}>
-              <App />
-            </Provider>
-          </Theme>
-        </React.StrictMode>,
-      );
-    }
-  );
+    const root = createRoot(container);
+    root.render(
+      <React.StrictMode>
+        <Theme hasBackground={false} panelBackground="solid" appearance="dark">
+          <Provider store={store}>
+            <App />
+          </Provider>
+        </Theme>
+      </React.StrictMode>,
+    );
+  });
 } else {
   throw new Error(
     "Root element with ID 'root' was not found in the document. Ensure there is a corresponding HTML element with the ID 'root' in your HTML file.",

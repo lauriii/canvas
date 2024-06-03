@@ -52,16 +52,7 @@ const List = () => {
   }, [isLoading]);
 
   return (
-    <Box p="2" className={isDragging ? 'list-dragging' : ''}>
-      <Heading as="h2" color="sky">
-        Components
-      </Heading>
-      <Text color="sky">
-        <small>
-          I'm not auto-generating unique uuid's so these start at 6 to not
-          conflict with the components already present in the sample layout
-        </small>
-      </Text>
+    <Box pt="5" className={isDragging ? 'list-dragging' : ''}>
       <Spinner loading={isLoading}>
         <Flex gap="2" direction="column" width="100%" ref={listElRef}>
           {/*
@@ -70,7 +61,7 @@ const List = () => {
         */}
 
           {error && (
-            <div>
+            <div className="error">
               {
                 // @ts-ignore
                 error?.error

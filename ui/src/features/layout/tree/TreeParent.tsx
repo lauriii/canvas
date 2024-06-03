@@ -13,6 +13,7 @@ import {
 } from '../layoutSlice';
 import { setTreeDragging } from '../../ui/uiSlice';
 import { findNodePathByUuid } from '../layoutUtils';
+import classNames from 'classnames';
 
 interface TreeParentProps {
   node: LayoutNode;
@@ -114,7 +115,10 @@ const TreeParent: React.FC<TreeParentProps> = (props) => {
   if (node.type === 'slot' || node.type === 'root') {
     return (
       <ul
-        className={`${styles.treeParent} ${styles.slot} ${children.length === 0 ? styles.listEmpty : ''}`}
+        className={classNames(styles.treeParent, {
+          [styles.listEmpty]: children.length === 0,
+          [styles.slot]: node.type === 'slot',
+        })}
         ref={listElRef}
         data-xb-uuid={node.uuid}
       >
@@ -126,7 +130,7 @@ const TreeParent: React.FC<TreeParentProps> = (props) => {
   } else if (node.children.length) {
     return (
       <ul
-        className={`${styles.treeParent} ${children.length === 0 ? styles.listEmpty : ''}`}
+        className={`${styles.slotList} ${children.length === 0 ? styles.listEmpty : ''}`}
       >
         {children.map((child) => (
           <TreeChild key={child.uuid} node={child} />

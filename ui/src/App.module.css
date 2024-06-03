@@ -1,7 +1,7 @@
 :root {
   --topbar-height: 2rem;
-  --leftbar-width: 200px;
-  --rightbar-width: 400px;
+  --primary-panel-width: 300px;
+  --contextual-panel-width: 300px;
 }
 
 * {
@@ -13,20 +13,26 @@
 }
 
 .previewContainer {
+  height: 100vh;
+  margin: 0;
+  padding-top: var(--topbar-height);
   transition: margin 99ms ease-in-out;
 }
 
-.leftSideBarOpen {
-  margin-left: var(--leftbar-width);
+.leftSideBarOpen .previewContainer {
+  margin-left: var(--primary-panel-width);
 }
-.rightSideBarOpen {
-  margin-right: var(--rightbar-width);
+.rightSideBarOpen .previewContainer {
+  margin-right: var(--contextual-panel-width);
 }
 
 .topBar {
+  position: fixed;
+  top: 0;
   display: flex;
   align-items: center;
   justify-content: center;
+  width: 100%;
   height: var(--topbar-height);
   text-align: center;
   border-bottom: 1px solid #333;
@@ -42,20 +48,5 @@
 .sideBarLeft {
   right: auto;
   left: 0;
-  width: var(--leftbar-width);
-}
-
-.sideBarRight {
-  right: 0;
-  left: auto;
-  width: var(--rightbar-width);
-}
-
-.handleContainer {
-  width: 16px;
-  height: 100%;
-}
-.handleIcon {
-  position: absolute;
-  pointer-events: none;
+  width: var(--primary-panel-width);
 }

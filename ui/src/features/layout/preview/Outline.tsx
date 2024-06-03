@@ -3,17 +3,17 @@ import type React from 'react';
 import { useRef, useEffect, useCallback, useState } from 'react';
 import { deleteNode } from '../layoutSlice';
 import { useAppDispatch } from '../../../app/hooks';
-import { updateNodeModel } from '../../model/modelSlice';
 import { Button, Grid } from '@radix-ui/themes';
 import classNames from 'classnames';
+import { setHoveredComponent, setSelectedComponent } from '../../ui/uiSlice';
 
 interface OutlineProps {
-  hoveredElementId: string | undefined; // the data-xb-uuid value of the dom element that was hovered.
-  setHoveredElementId: React.SetStateAction<any>;
+  elementId: string | undefined; // the data-xb-uuid value of the dom element that was hovered.
+  selected: boolean;
 }
 
 const Outline: React.FC<OutlineProps> = (props) => {
-  const { hoveredElementId, setHoveredElementId } = props;
+  const { elementId, selected } = props;
   const hoveredElementRef = useRef<HTMLElement | null>(null);
   const outlineElRef = useRef<HTMLDivElement | null>(null);
   const iframeElRef = useRef<HTMLIFrameElement | null>(null);
@@ -29,12 +29,11 @@ const Outline: React.FC<OutlineProps> = (props) => {
   }, []);
 
   useEffect(() => {
-    if (hoveredElementId) {
+    if (elementId) {
       hoveredElementRef.current =
         iframeElRef.current?.contentDocument?.querySelectorAll(
-          `[data-xb-uuid="${hoveredElementId}"]`,
+          `[data-xb-uuid="${elementId}"]`,
         )[0] as HTMLElement | null;
-      console.log(hoveredElementRef.current);
       if (hoveredElementRef.current?.dataset.xbType === 'slot') {
         setType('slot');
       } else {
@@ -43,7 +42,7 @@ const Outline: React.FC<OutlineProps> = (props) => {
       applyStyles();
       bindEvents();
     }
-  }, [hoveredElementId]);
+  }, [elementId]);
 
   const handleFrameScroll = () => {
     if (!iframeElRef.current || !hoveredElementRef.current) {
@@ -61,7 +60,7 @@ const Outline: React.FC<OutlineProps> = (props) => {
       return;
     }
 
-    if (hoveredElementRef.current !== null) {
+    if (!selected && hoveredElementRef.current !== null) {
       hoveredElementRef.current.addEventListener(
         'mouseleave',
         function (event: MouseEvent) {
@@ -70,7 +69,7 @@ const Outline: React.FC<OutlineProps> = (props) => {
           // when moving the mouse from one element inside the iframe to another the relatedTarget is the element the mouse
           // moved to.
           if (event.relatedTarget !== null) {
-            setHoveredElementId(undefined);
+            dispatch(setHoveredComponent(undefined));
           }
         },
       );
@@ -96,30 +95,29 @@ const Outline: React.FC<OutlineProps> = (props) => {
   };
 
   function handleDeleteClick() {
-    if (hoveredElementId) {
-      dispatch(deleteNode(hoveredElementId));
+    if (elementId) {
+      dispatch(deleteNode(elementId));
     }
   }
 
-  function handleEditClick() {
-    if (hoveredElementId) {
-      dispatch(
-        updateNodeModel({ uuid: hoveredElementId, model: { name: 'FOO' } }),
-      );
+  function handleSelectClick() {
+    if (elementId) {
+      dispatch(setSelectedComponent(elementId));
     }
   }
 
-  if (hoveredElementId === undefined) {
+  if (elementId === undefined) {
     return null;
   }
 
   return (
-    hoveredElementId && (
+    elementId && (
       <>
         <div
           ref={outlineElRef}
           className={classNames(styles.xbComponentOutline, {
             [styles.xbSlotOutline]: type === 'slot',
+            [styles.selected]: selected,
           })}
         />
         <Grid
@@ -130,8 +128,8 @@ const Outline: React.FC<OutlineProps> = (props) => {
         >
           {type === 'component' && (
             <>
-              <Button size="1" type="button" onClick={handleEditClick}>
-                Edit
+              <Button size="1" type="button" onClick={handleSelectClick}>
+                Select
               </Button>
               <Button size="1" type="button" onClick={handleDeleteClick}>
                 Delete

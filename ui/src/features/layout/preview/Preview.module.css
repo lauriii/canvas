@@ -1,14 +1,15 @@
 .preview {
   display: block;
   width: 100%;
-  height: calc(100vh - var(--topbar-height));
+  height: 100%;
   border: none;
 }
 
 .loadingOverlay {
   position: absolute;
-  top: var(--topbar-height);
+  top: calc(0px - var(--topbar-height));
   left: 0;
+  display: none;
   width: 100%;
   height: calc(100vh - var(--topbar-height));
   transition: opacity 200ms ease-out;

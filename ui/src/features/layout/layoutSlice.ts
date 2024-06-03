@@ -18,6 +18,7 @@ export interface LayoutNode {
   name?: string;
   uuid: UUID;
   type: 'slot' | 'component' | 'root';
+  componentType?: string;
   children: LayoutNode[];
 }
 
@@ -124,13 +125,16 @@ export const addNewComponentToLayout =
       payload.newNode.uuid = uuidv4();
       const name = payload.newNode.name || 'Unknown component';
       dispatch(insertNode(payload));
-
-      dispatch(
-        createNewModel({
-          uuid: payload.newNode.uuid,
-          initialData: { exampleData: 'testing', name: name },
-        }),
-      );
+      fetch(`/xb-render-component/${payload.newNode.componentType}`)
+        .then(res => res.json())
+        .then(result => {
+          dispatch(
+            createNewModel({
+              uuid: payload?.newNode?.uuid,
+              initialData: { exampleData: 'testing', name: name, markup: result.markup, },
+            }),
+          );
+        })
     }
   };
 

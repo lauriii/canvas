@@ -1,15 +1,18 @@
 import styles from './Preview.module.css';
 import type React from 'react';
-import { useRef, useEffect, useCallback, useState } from 'react';
+import { useRef, useEffect, useState } from 'react';
 import Sortable from 'sortablejs';
 import Outline from './Outline';
 import { useAppDispatch, useAppSelector } from '../../../app/hooks';
 import {
   selectDragging,
+  selectSelectedComponent,
+  selectHoveredComponent,
   setPreviewDragging,
+  setSelectedComponent,
+  setHoveredComponent,
 } from '../../../features/ui/uiSlice';
 import { selectModel } from '../../model/modelSlice';
-import type { LayoutNode } from '../layoutSlice';
 import {
   moveNode,
   selectLayout,
@@ -18,7 +21,7 @@ import {
 } from '../layoutSlice';
 import { findNodePathByUuid } from '../layoutUtils';
 import { usePostPreviewMutation } from '../../../services/preview';
-import { Flex, Spinner } from '@radix-ui/themes';
+import { Spinner } from '@radix-ui/themes';
 import classNames from 'classnames';
 
 interface PreviewProps {
@@ -28,6 +31,8 @@ interface PreviewProps {
 const Preview: React.FC<PreviewProps> = (props) => {
   const { iframeRef } = props;
   const layout = useAppSelector(selectLayout);
+  const selectedComponent = useAppSelector(selectSelectedComponent);
+  const hoveredComponent = useAppSelector(selectHoveredComponent);
   const iframeDocumentRef = useRef<Document | null>(null);
   const { isDragging } = useAppSelector(selectDragging);
   const model = useAppSelector(selectModel);
@@ -82,6 +87,7 @@ const Preview: React.FC<PreviewProps> = (props) => {
         ];
 
         if (ev.clone.dataset.isNew === 'true' && ev.clone.dataset.xbUuid) {
+          ev.item.innerHTML = '<div class="lds-hourglass"></div>';
           dispatch(
             addNewComponentToLayout({
               to: newPath,
@@ -89,6 +95,7 @@ const Preview: React.FC<PreviewProps> = (props) => {
                 uuid: 'tempUUID',
                 children: [],
                 type: 'component',
+                componentType: ev.clone.dataset.xbUuid,
                 name: ev.clone.dataset.xbName,
               },
             }),
@@ -140,7 +147,19 @@ const Preview: React.FC<PreviewProps> = (props) => {
       event.stopPropagation();
       if (event.target) {
         const target = event.currentTarget as HTMLElement;
-        setHoveredElementId(target.dataset.xbUuid);
+        dispatch(setHoveredComponent(target.dataset.xbUuid));
+        // setHoveredElementId(target.dataset.xbUuid);
+      }
+    });
+  };
+
+  const initComponentClick = (listItemEl: HTMLElement) => {
+    listItemEl.addEventListener('click', function (event: MouseEvent) {
+      event.stopPropagation();
+      if (event.target) {
+        const target = event.currentTarget as HTMLElement;
+        // setHoveredElementId(target.dataset.xbUuid);
+        dispatch(setSelectedComponent(target.dataset.xbUuid));
       }
     });
   };
@@ -165,7 +184,7 @@ const Preview: React.FC<PreviewProps> = (props) => {
   useEffect(() => {
     const iframe = iframeRef.current;
     if (iframe) {
-      console.log('layout or model changed');
+      console.log('layout or model changed', model);
       // Wait for the iframe to load
       iframe.onload = () => {
         console.log('On load fired');
@@ -182,6 +201,7 @@ const Preview: React.FC<PreviewProps> = (props) => {
           Array.from(draggableItems).forEach((item) => {
             initSortableListItem(item);
             initComponentHover(item);
+            initComponentClick(item);
           });
         });
       };
@@ -215,20 +235,26 @@ const Preview: React.FC<PreviewProps> = (props) => {
         id="preview"
         srcDoc={frameSrcDoc}
       ></iframe>
-      <Flex
-        align="center"
-        justify="center"
+      <div
         className={classNames(styles.loadingOverlay, {
           [styles.show]: isLoading,
         })}
       >
         <Spinner loading={isLoading} size="3" />
-      </Flex>
+      </div>
       {!isDragging && (
-        <Outline
-          hoveredElementId={hoveredElementId}
-          setHoveredElementId={setHoveredElementId}
-        />
+        <>
+          <Outline
+            elementId={hoveredComponent}
+            // setHoveredElementId={setHoveredElementId}
+            selected={false}
+          />
+          <Outline
+            elementId={hoveredComponent}
+            // setHoveredElementId={setHoveredElementId}
+            selected={true}
+          />
+        </>
       )}
     </>
   );

@@ -11,6 +11,8 @@ export interface DraggingStatus {
 export interface uiSliceState {
   pending: boolean;
   dragging: DraggingStatus;
+  selectedComponent: string | undefined; //uuid of component
+  hoveredComponent: string | undefined; //uuid of component
 }
 
 const initialState: uiSliceState = {
@@ -21,6 +23,8 @@ const initialState: uiSliceState = {
     listDragging: false,
     previewDragging: false,
   },
+  selectedComponent: undefined,
+  hoveredComponent: undefined,
 };
 
 // If you are not using async thunks you can use the standalone `createSlice`.
@@ -47,12 +51,28 @@ export const uiSlice = createAppSlice({
       state.dragging.isDragging = action.payload;
       state.dragging.listDragging = action.payload;
     }),
+    setSelectedComponent: create.reducer(
+      (state, action: PayloadAction<string | undefined>) => {
+        state.selectedComponent = action.payload;
+      },
+    ),
+    setHoveredComponent: create.reducer(
+      (state, action: PayloadAction<string | undefined>) => {
+        state.hoveredComponent = action.payload;
+      },
+    ),
   }),
   // You can define your selectors here. These selectors receive the slice
   // state as their first argument.
   selectors: {
     selectDragging: (ui): DraggingStatus => {
       return ui.dragging;
+    },
+    selectSelectedComponent: (ui): string | undefined => {
+      return ui.selectedComponent;
+    },
+    selectHoveredComponent: (ui): string | undefined => {
+      return ui.hoveredComponent;
     },
   },
 });
@@ -63,7 +83,13 @@ export const {
   setTreeDragging,
   setPreviewDragging,
   setListDragging,
+  setSelectedComponent,
+  setHoveredComponent,
 } = uiSlice.actions;
 
 // Selectors returned by `slice.selectors` take the root state as their first argument.
-export const { selectDragging } = uiSlice.selectors;
+export const {
+  selectDragging,
+  selectSelectedComponent,
+  selectHoveredComponent,
+} = uiSlice.selectors;

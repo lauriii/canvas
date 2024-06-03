@@ -1,0 +1,36 @@
+.triggerContainer {
+  position: fixed;
+  top: var(--topbar-height);
+  left: 0;
+}
+
+.sideBar {
+  position: fixed;
+  top: var(--topbar-height);
+  height: calc(100vh - var(--topbar-height));
+  padding: var(--space-1);
+}
+
+.sideBarLeft {
+  right: auto;
+  left: 0;
+  width: var(--primary-panel-width);
+}
+
+.sideBarRight {
+  right: 0;
+  left: auto;
+  width: var(--contextual-panel-width);
+}
+
+.handleContainer {
+  width: 16px;
+  height: 100%;
+}
+.handleIcon {
+  position: absolute;
+  pointer-events: none;
+}
+.cardInset {
+  height: 100%;
+}

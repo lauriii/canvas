@@ -3,7 +3,9 @@ import styleContent from "./styles.css?raw";
 
 const createHtmlFromLayoutData = (
   layout: LayoutNode,
-  model: { [x: string]: { name: string } },
+  model: { [x: string]: {
+      markup: string;
+      name: string } },
 ) => {
   // Recursive function to create HTML for each component
   const createComponent = (component: LayoutNode): HTMLDivElement => {
@@ -14,10 +16,15 @@ const createHtmlFromLayoutData = (
     // Check if the component has children to create a nested structure
 
     if (component.type === 'component') {
-      const header = document.createElement('h1');
-      header.textContent = model[component.uuid]?.name || `debug: no name`;
-      div.appendChild(header);
+
       div.setAttribute('data-xb-type', 'component');
+      if (model[component.uuid]?.markup) {
+        div.innerHTML += model[component.uuid]?.markup;
+      } else {
+        const header = document.createElement('h1');
+        header.textContent = model[component.uuid]?.name || `debug: no name`;
+        div.appendChild(header);
+      }
     }
     if (component.children) {
       const innerDiv = document.createElement('div');

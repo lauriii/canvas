@@ -5,13 +5,15 @@ import type { Component } from '../types/Component';
 // Define a service using a base URL and expected endpoints
 export const componentApi = createApi({
   reducerPath: 'componentsApi',
-  baseQuery: fetchBaseQuery({ baseUrl: '/api' }),
+  baseQuery: fetchBaseQuery({ baseUrl: '/' }),
   endpoints: (builder) => ({
     getComponentById: builder.query<Component, string>({
-      query: (id) => `components/${id}`,
+      query: (id) => ['', '80'].includes(window.location.port) ? `xb-component/${id}` : `api/components${id}`,
     }),
     getComponents: builder.query<Component[], void>({
-      query: () => `components`,
+      query: () =>
+        ['', '80'].includes(window.location.port) ? `xb-components` : 'api/components'
+      ,
     }),
   }),
 });

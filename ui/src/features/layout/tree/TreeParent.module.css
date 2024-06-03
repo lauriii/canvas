@@ -1,23 +1,19 @@
 .treeParent {
+  position: relative;
   margin: 0 0 1rem 0;
-  padding: 2px;
+  padding: 2px 2px 2px 0;
   list-style-type: none;
   &.slot {
     min-height: 2rem;
-    border: 1px solid #ccc;
+    border: 1px dashed #3b3b3b;
   }
-  /* .listDragging & { */
-  /*  &.listEmpty { */
-  /*  } */
-  /* } */
-  li {
+  > li {
+    position: relative;
     margin-bottom: 1rem;
-    .treeParent {
-      margin-top: 0.5rem;
-    }
+    padding-left: 10px;
   }
   .treeParent {
-    margin-left: 0.5rem;
+    margin-left: -5px;
   }
   .sortableGhost {
     position: relative;
@@ -35,4 +31,11 @@
       visibility: hidden;
     }
   }
+}
+
+.slotList {
+  position: relative;
+  margin: 0 0 1rem 0;
+  padding: 2px 2px 2px 0;
+  list-style-type: none;
 }

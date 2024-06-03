@@ -6,6 +6,10 @@
   pointer-events: none;
   outline: 2px solid #02a376;
   will-change: top, left, width, height, transform;
+  &.selected {
+    border: 2px dashed #02a376;
+    outline: none;
+  }
 }
 .xbSlotOutline {
   outline: 2px dashed #02a376;
