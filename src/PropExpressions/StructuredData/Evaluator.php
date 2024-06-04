@@ -38,7 +38,7 @@ final class Evaluator {
         FieldTypeObjectPropsExpression::class => array_combine(
           array_keys($expr->objectPropsToFieldTypeProps),
           array_map(
-            fn (FieldTypePropExpression $sub_expr) => self::evaluate($field, $sub_expr),
+            fn (FieldTypePropExpression|ReferenceFieldTypePropExpression $sub_expr) => self::evaluate($field, $sub_expr),
             $expr->objectPropsToFieldTypeProps
           )
         ),

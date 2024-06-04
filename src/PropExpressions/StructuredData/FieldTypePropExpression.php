@@ -10,7 +10,7 @@ use Drupal\Core\Field\FieldItemInterface;
 /**
  * For pointing to a prop in a field type (not considering any delta).
  */
-class FieldTypePropExpression implements StructuredDataPropExpressionInterface {
+final class FieldTypePropExpression implements StructuredDataPropExpressionInterface {
 
   public function __construct(
     public readonly string $fieldType,
@@ -18,7 +18,9 @@ class FieldTypePropExpression implements StructuredDataPropExpressionInterface {
   ) {}
 
   public function __toString(): string {
-    return sprintf(static::PREFIX . "%s␟%s", $this->fieldType, $this->propName);
+    return static::PREFIX
+      . $this->fieldType
+      . static::PREFIX_PROPERTY_LEVEL . $this->propName;
   }
 
   public static function fromString(string $representation): static {

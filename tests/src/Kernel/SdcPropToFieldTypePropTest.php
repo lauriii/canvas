@@ -15,6 +15,7 @@ use Drupal\experience_builder\PropExpressions\StructuredData\FieldPropExpression
 use Drupal\experience_builder\PropExpressions\StructuredData\FieldTypeObjectPropsExpression;
 use Drupal\experience_builder\PropExpressions\StructuredData\FieldTypePropExpression;
 use Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldPropExpression;
+use Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldTypePropExpression;
 use Drupal\experience_builder\SdcPropJsonSchemaType;
 use Drupal\experience_builder\SdcPropToFieldTypePropMatcher;
 use Drupal\field\Entity\FieldConfig;
@@ -193,7 +194,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
             $field_type_matches = $matcher->findFieldTypeFormatCandidates($input_primitive_type, $input_is_required, $input_schema, TRUE);
             $instance_matches = $matcher->findFieldInstanceFormatMatches($input_primitive_type, $input_is_required, $input_schema);
 
-            $adapter_matches_field_type[$match->getPluginId()][$input_name] = array_map(fn (FieldTypePropExpression|FieldTypeObjectPropsExpression $e): string => (string) $e, $field_type_matches);
+            $adapter_matches_field_type[$match->getPluginId()][$input_name] = array_map(fn (FieldTypePropExpression|ReferenceFieldTypePropExpression|FieldTypeObjectPropsExpression $e): string => (string) $e, $field_type_matches);
             $adapter_matches_instance[$match->getPluginId()][$input_name] = array_map(fn (FieldPropExpression|ReferenceFieldPropExpression|FieldObjectPropsExpression $e): string => (string) $e, $instance_matches);
           }
           ksort($adapter_matches_field_type);
@@ -202,9 +203,9 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
 
         // For each component prop ($cpe), store the string representations of
         // the discovered matches to compare against.
-        $matches[(string) $cpe]['storage'] = array_map(fn (FieldTypePropExpression|FieldTypeObjectPropsExpression $e): string => (string) $e, $storage_candidates);
-        $matches[(string) $cpe]['format_any_prop'] = array_map(fn (FieldTypePropExpression|FieldTypeObjectPropsExpression $e): string => (string) $e, $format_candidates_any_prop);
-        $matches[(string) $cpe]['format_main_prop'] = array_map(fn (FieldTypePropExpression|FieldTypeObjectPropsExpression $e): string => (string) $e, $format_candidates_main_prop);
+        $matches[(string) $cpe]['storage'] = array_map(fn (FieldTypePropExpression|ReferenceFieldTypePropExpression|FieldTypeObjectPropsExpression $e): string => (string) $e, $storage_candidates);
+        $matches[(string) $cpe]['format_any_prop'] = array_map(fn (FieldTypePropExpression|ReferenceFieldTypePropExpression|FieldTypeObjectPropsExpression $e): string => (string) $e, $format_candidates_any_prop);
+        $matches[(string) $cpe]['format_main_prop'] = array_map(fn (FieldTypePropExpression|ReferenceFieldTypePropExpression|FieldTypeObjectPropsExpression $e): string => (string) $e, $format_candidates_main_prop);
         $matches[(string) $cpe]['instances'] = array_map(fn (FieldPropExpression|ReferenceFieldPropExpression|FieldObjectPropsExpression $e): string => (string) $e, $instance_candidates);
         $matches[(string) $cpe]['adapter_matches_field_type'] = $adapter_matches_field_type;
         $matches[(string) $cpe]['adapter_matches_instance'] = $adapter_matches_instance;
@@ -230,7 +231,19 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
       'ℹ︎file_uri␟url',
       'ℹ︎file_uri␟value',
       'ℹ︎file␟description',
+      'ℹ︎file␟entity␜␜entity:file␝filemime␞0␟value',
+      'ℹ︎file␟entity␜␜entity:file␝filename␞0␟value',
+      'ℹ︎file␟entity␜␜entity:file␝langcode␞0␟value',
+      'ℹ︎file␟entity␜␜entity:file␝uri␞0␟url',
+      'ℹ︎file␟entity␜␜entity:file␝uri␞0␟value',
+      'ℹ︎file␟entity␜␜entity:file␝uuid␞0␟value',
       'ℹ︎image␟alt',
+      'ℹ︎image␟entity␜␜entity:file␝filemime␞0␟value',
+      'ℹ︎image␟entity␜␜entity:file␝filename␞0␟value',
+      'ℹ︎image␟entity␜␜entity:file␝langcode␞0␟value',
+      'ℹ︎image␟entity␜␜entity:file␝uri␞0␟url',
+      'ℹ︎image␟entity␜␜entity:file␝uri␞0␟value',
+      'ℹ︎image␟entity␜␜entity:file␝uuid␞0␟value',
       'ℹ︎image␟title',
       'ℹ︎language␟value',
       'ℹ︎link␟title',
@@ -253,18 +266,6 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
       'ℹ︎text␟value',
       'ℹ︎uri␟value',
       'ℹ︎uuid␟value',
-      'ℹ︎︎file␟entity␜︎␜entity:file␝filemime␞0␟value',
-      'ℹ︎︎file␟entity␜︎␜entity:file␝filename␞0␟value',
-      'ℹ︎︎file␟entity␜︎␜entity:file␝langcode␞0␟value',
-      'ℹ︎︎file␟entity␜︎␜entity:file␝uri␞0␟url',
-      'ℹ︎︎file␟entity␜︎␜entity:file␝uri␞0␟value',
-      'ℹ︎︎file␟entity␜︎␜entity:file␝uuid␞0␟value',
-      'ℹ︎︎image␟entity␜︎␜entity:file␝filemime␞0␟value',
-      'ℹ︎︎image␟entity␜︎␜entity:file␝filename␞0␟value',
-      'ℹ︎︎image␟entity␜︎␜entity:file␝langcode␞0␟value',
-      'ℹ︎︎image␟entity␜︎␜entity:file␝uri␞0␟url',
-      'ℹ︎︎image␟entity␜︎␜entity:file␝uri␞0␟value',
-      'ℹ︎︎image␟entity␜︎␜entity:file␝uuid␞0␟value',
     ];
     $all_integer_storage_props = [
       'ℹ︎changed␟value',
@@ -275,7 +276,17 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
       'ℹ︎comment␟status',
       'ℹ︎created␟value',
       'ℹ︎entity_reference␟target_id',
+      'ℹ︎file␟entity␜␜entity:file␝changed␞0␟value',
+      'ℹ︎file␟entity␜␜entity:file␝created␞0␟value',
+      'ℹ︎file␟entity␜␜entity:file␝fid␞0␟value',
+      'ℹ︎file␟entity␜␜entity:file␝filesize␞0␟value',
+      'ℹ︎file␟entity␜␜entity:file␝uid␞0␟target_id',
       'ℹ︎file␟target_id',
+      'ℹ︎image␟entity␜␜entity:file␝changed␞0␟value',
+      'ℹ︎image␟entity␜␜entity:file␝created␞0␟value',
+      'ℹ︎image␟entity␜␜entity:file␝fid␞0␟value',
+      'ℹ︎image␟entity␜␜entity:file␝filesize␞0␟value',
+      'ℹ︎image␟entity␜␜entity:file␝uid␞0␟target_id',
       'ℹ︎image␟height',
       'ℹ︎image␟target_id',
       'ℹ︎image␟width',
@@ -283,16 +294,6 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
       'ℹ︎list_integer␟value',
       'ℹ︎path␟pid',
       'ℹ︎timestamp␟value',
-      'ℹ︎︎file␟entity␜︎␜entity:file␝changed␞0␟value',
-      'ℹ︎︎file␟entity␜︎␜entity:file␝created␞0␟value',
-      'ℹ︎︎file␟entity␜︎␜entity:file␝fid␞0␟value',
-      'ℹ︎︎file␟entity␜︎␜entity:file␝filesize␞0␟value',
-      'ℹ︎︎file␟entity␜︎␜entity:file␝uid␞0␟target_id',
-      'ℹ︎︎image␟entity␜︎␜entity:file␝changed␞0␟value',
-      'ℹ︎︎image␟entity␜︎␜entity:file␝created␞0␟value',
-      'ℹ︎︎image␟entity␜︎␜entity:file␝fid␞0␟value',
-      'ℹ︎︎image␟entity␜︎␜entity:file␝filesize␞0␟value',
-      'ℹ︎︎image␟entity␜︎␜entity:file␝uid␞0␟target_id',
     ];
 
     yield 'test SDC, using ALL core-provided field types' => [
@@ -318,38 +319,38 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
         '⿲experience_builder:image␟image' => [
           // field type
           'storage' => [
-            'ℹ︎image␟{src↝entity␜ℹ︎␜entity:file␝uri␞0␟value, alt↠alt, width↠width, height↠height}',
+            'ℹ︎image␟{src↝entity␜␜entity:file␝uri␞0␟url,alt↠alt,width↠width,height↠height}',
           ],
           'format_any_prop' => [
-            'ℹ︎image␟{src↝entity␜ℹ︎␜entity:file␝uri␞0␟value, alt↠alt, width↠width, height↠height}',
+            'ℹ︎image␟{src↝entity␜␜entity:file␝uri␞0␟url,alt↠alt,width↠width,height↠height}',
           ],
           'format_main_prop' => [
-            'ℹ︎image␟{src↝entity␜ℹ︎␜entity:file␝uri␞0␟value, alt↠alt, width↠width, height↠height}',
+            'ℹ︎image␟{src↝entity␜␜entity:file␝uri␞0␟url,alt↠alt,width↠width,height↠height}',
           ],
           // instance
           'instances' => [
-            'ℹ︎␜entity:node:foo␝field_silly_image␞␟{src↝entity␜ℹ︎␜entity:file␝uri␞␟value, alt↠alt, width↠width, height↠height}',
+            'ℹ︎␜entity:node:foo␝field_silly_image␞␟{src↝entity␜␜entity:file␝uri␞␟value,alt↠alt,width↠width,height↠height}',
           ],
           // adapter - field type
           'adapter_matches_field_type' => [
             'image_apply_style' => [
-              'image' => ['ℹ︎image␟{src↝entity␜ℹ︎␜entity:file␝uri␞0␟value, alt↠alt, width↠width, height↠height}'],
+              'image' => ['ℹ︎image␟{src↝entity␜␜entity:file␝uri␞0␟url,alt↠alt,width↠width,height↠height}'],
               'imageStyle' => [],
               // @todo: Figure out best way to describe config entity id via JSON schema.
               // 'imageStyle' => ['ℹ︎image_style_reference␟target_id'],
             ],
             'image_url_rel_to_abs' => [
-              'image' => ['ℹ︎image␟{src↝entity␜ℹ︎␜entity:file␝uri␞0␟value, alt↠alt, width↠width, height↠height}'],
+              'image' => ['ℹ︎image␟{src↝entity␜␜entity:file␝uri␞0␟url,alt↠alt,width↠width,height↠height}'],
             ],
           ],
           // adapter - instance
           'adapter_matches_instance' => [
             'image_apply_style' => [
-              'image' => ['ℹ︎␜entity:node:foo␝field_silly_image␞␟{src↝entity␜ℹ︎␜entity:file␝uri␞␟value, alt↠alt, width↠width, height↠height}'],
+              'image' => ['ℹ︎␜entity:node:foo␝field_silly_image␞␟{src↝entity␜␜entity:file␝uri␞␟value,alt↠alt,width↠width,height↠height}'],
               'imageStyle' => [],
             ],
             'image_url_rel_to_abs' => [
-              'image' => ['ℹ︎␜entity:node:foo␝field_silly_image␞␟{src↝entity␜ℹ︎␜entity:file␝uri␞␟value, alt↠alt, width↠width, height↠height}'],
+              'image' => ['ℹ︎␜entity:node:foo␝field_silly_image␞␟{src↝entity␜␜entity:file␝uri␞␟value,alt↠alt,width↠width,height↠height}'],
             ],
           ],
         ],
@@ -387,6 +388,10 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
             'ℹ︎email␟value',
             'ℹ︎file_uri␟url',
             'ℹ︎file_uri␟value',
+            'ℹ︎file␟entity␜␜entity:file␝uri␞0␟url',
+            'ℹ︎file␟entity␜␜entity:file␝uri␞0␟value',
+            'ℹ︎image␟entity␜␜entity:file␝uri␞0␟url',
+            'ℹ︎image␟entity␜␜entity:file␝uri␞0␟value',
             'ℹ︎language␟value',
             'ℹ︎list_string␟value',
             'ℹ︎string_long␟value',
@@ -397,10 +402,6 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
             'ℹ︎text␟value',
             'ℹ︎uri␟value',
             'ℹ︎uuid␟value',
-            'ℹ︎︎file␟entity␜︎␜entity:file␝uri␞0␟url',
-            'ℹ︎︎file␟entity␜︎␜entity:file␝uri␞0␟value',
-            'ℹ︎︎image␟entity␜︎␜entity:file␝uri␞0␟url',
-            'ℹ︎︎image␟entity␜︎␜entity:file␝uri␞0␟value',
           ],
           'format_any_prop' => [
             'ℹ︎string_long␟value',
@@ -493,14 +494,14 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
             'ℹ︎email␟value',
           ],
           'instances' => [
+            'ℹ︎␜entity:file␝uid␞␟entity␜␜entity:user␝init␞␟value',
+            'ℹ︎␜entity:file␝uid␞␟entity␜␜entity:user␝mail␞␟value',
+            'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝init␞␟value',
+            'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝mail␞␟value',
+            'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝init␞␟value',
+            'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝mail␞␟value',
             'ℹ︎␜entity:user␝init␞␟value',
             'ℹ︎␜entity:user␝mail␞␟value',
-            'ℹ︎︎␜entity:file␝uid␞␟entity␜︎␜entity:user␝init␞␟value',
-            'ℹ︎︎␜entity:file␝uid␞␟entity␜︎␜entity:user␝mail␞␟value',
-            'ℹ︎︎␜entity:node:foo␝revision_uid␞␟entity␜︎␜entity:user␝init␞␟value',
-            'ℹ︎︎␜entity:node:foo␝revision_uid␞␟entity␜︎␜entity:user␝mail␞␟value',
-            'ℹ︎︎␜entity:node:foo␝uid␞␟entity␜︎␜entity:user␝init␞␟value',
-            'ℹ︎︎␜entity:node:foo␝uid␞␟entity␜︎␜entity:user␝mail␞␟value',
           ],
           'adapter_matches_field_type' => [],
           'adapter_matches_instance' => [],
@@ -514,14 +515,14 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
             'ℹ︎email␟value',
           ],
           'instances' => [
+            'ℹ︎␜entity:file␝uid␞␟entity␜␜entity:user␝init␞␟value',
+            'ℹ︎␜entity:file␝uid␞␟entity␜␜entity:user␝mail␞␟value',
+            'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝init␞␟value',
+            'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝mail␞␟value',
+            'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝init␞␟value',
+            'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝mail␞␟value',
             'ℹ︎␜entity:user␝init␞␟value',
             'ℹ︎␜entity:user␝mail␞␟value',
-            'ℹ︎︎␜entity:file␝uid␞␟entity␜︎␜entity:user␝init␞␟value',
-            'ℹ︎︎␜entity:file␝uid␞␟entity␜︎␜entity:user␝mail␞␟value',
-            'ℹ︎︎␜entity:node:foo␝revision_uid␞␟entity␜︎␜entity:user␝init␞␟value',
-            'ℹ︎︎␜entity:node:foo␝revision_uid␞␟entity␜︎␜entity:user␝mail␞␟value',
-            'ℹ︎︎␜entity:node:foo␝uid␞␟entity␜︎␜entity:user␝init␞␟value',
-            'ℹ︎︎␜entity:node:foo␝uid␞␟entity␜︎␜entity:user␝mail␞␟value',
           ],
           'adapter_matches_field_type' => [],
           'adapter_matches_instance' => [],
@@ -575,24 +576,24 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
         '⿲sdc_test_all_props:all-props␟test-string-format-' . JsonSchemaStringFormat::UUID->value => [
           'storage' => $all_string_storage_props,
           'format_any_prop' => [
+            'ℹ︎file␟entity␜␜entity:file␝uuid␞0␟value',
+            'ℹ︎image␟entity␜␜entity:file␝uuid␞0␟value',
             'ℹ︎uuid␟value',
-            'ℹ︎︎file␟entity␜︎␜entity:file␝uuid␞0␟value',
-            'ℹ︎︎image␟entity␜︎␜entity:file␝uuid␞0␟value',
           ],
           'format_main_prop' => [
+            'ℹ︎file␟entity␜␜entity:file␝uuid␞0␟value',
+            'ℹ︎image␟entity␜␜entity:file␝uuid␞0␟value',
             'ℹ︎uuid␟value',
-            'ℹ︎︎file␟entity␜︎␜entity:file␝uuid␞0␟value',
-            'ℹ︎︎image␟entity␜︎␜entity:file␝uuid␞0␟value',
           ],
           'instances' => [
+            'ℹ︎␜entity:file␝uid␞␟entity␜␜entity:user␝uuid␞␟value',
             'ℹ︎␜entity:file␝uuid␞␟value',
+            'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uuid␞␟value',
+            'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝uuid␞␟value',
+            'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝uuid␞␟value',
             'ℹ︎␜entity:node:foo␝uuid␞␟value',
             'ℹ︎␜entity:path_alias␝uuid␞␟value',
             'ℹ︎␜entity:user␝uuid␞␟value',
-            'ℹ︎︎␜entity:file␝uid␞␟entity␜︎␜entity:user␝uuid␞␟value',
-            'ℹ︎︎␜entity:node:foo␝field_silly_image␞␟entity␜︎␜entity:file␝uuid␞␟value',
-            'ℹ︎︎␜entity:node:foo␝revision_uid␞␟entity␜︎␜entity:user␝uuid␞␟value',
-            'ℹ︎︎␜entity:node:foo␝uid␞␟entity␜︎␜entity:user␝uuid␞␟value',
           ],
           'adapter_matches_field_type' => [],
           'adapter_matches_instance' => [],
@@ -602,27 +603,27 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
           'format_any_prop' => [
             'ℹ︎file_uri␟url',
             'ℹ︎file_uri␟value',
+            'ℹ︎file␟entity␜␜entity:file␝uri␞0␟url',
+            'ℹ︎file␟entity␜␜entity:file␝uri␞0␟value',
+            'ℹ︎image␟entity␜␜entity:file␝uri␞0␟url',
+            'ℹ︎image␟entity␜␜entity:file␝uri␞0␟value',
             'ℹ︎link␟uri',
             'ℹ︎uri␟value',
-            'ℹ︎︎file␟entity␜︎␜entity:file␝uri␞0␟url',
-            'ℹ︎︎file␟entity␜︎␜entity:file␝uri␞0␟value',
-            'ℹ︎︎image␟entity␜︎␜entity:file␝uri␞0␟url',
-            'ℹ︎︎image␟entity␜︎␜entity:file␝uri␞0␟value',
           ],
           'format_main_prop' => [
             'ℹ︎file_uri␟value',
+            'ℹ︎file␟entity␜␜entity:file␝uri␞0␟url',
+            'ℹ︎file␟entity␜␜entity:file␝uri␞0␟value',
+            'ℹ︎image␟entity␜␜entity:file␝uri␞0␟url',
+            'ℹ︎image␟entity␜␜entity:file␝uri␞0␟value',
             'ℹ︎link␟uri',
             'ℹ︎uri␟value',
-            'ℹ︎︎file␟entity␜︎␜entity:file␝uri␞0␟url',
-            'ℹ︎︎file␟entity␜︎␜entity:file␝uri␞0␟value',
-            'ℹ︎︎image␟entity␜︎␜entity:file␝uri␞0␟url',
-            'ℹ︎︎image␟entity␜︎␜entity:file␝uri␞0␟value',
           ],
           'instances' => [
             'ℹ︎␜entity:file␝uri␞␟url',
             'ℹ︎␜entity:file␝uri␞␟value',
-            'ℹ︎︎␜entity:node:foo␝field_silly_image␞␟entity␜︎␜entity:file␝uri␞␟url',
-            'ℹ︎︎␜entity:node:foo␝field_silly_image␞␟entity␜︎␜entity:file␝uri␞␟value',
+            'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uri␞␟url',
+            'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uri␞␟value',
           ],
           'adapter_matches_field_type' => [],
           'adapter_matches_instance' => [],
@@ -630,23 +631,23 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
         '⿲sdc_test_all_props:all-props␟test-string-format-' . JsonSchemaStringFormat::URI->value . '-image' => [
           'storage' => $all_string_storage_props,
           'format_any_prop' => [
-            'ℹ︎︎image␟entity␜︎␜entity:file␝uri␞0␟url',
-            'ℹ︎︎image␟entity␜︎␜entity:file␝uri␞0␟value',
+            'ℹ︎image␟entity␜␜entity:file␝uri␞0␟url',
+            'ℹ︎image␟entity␜␜entity:file␝uri␞0␟value',
           ],
           'format_main_prop' => [
-            'ℹ︎︎image␟entity␜︎␜entity:file␝uri␞0␟url',
-            'ℹ︎︎image␟entity␜︎␜entity:file␝uri␞0␟value',
+            'ℹ︎image␟entity␜␜entity:file␝uri␞0␟url',
+            'ℹ︎image␟entity␜␜entity:file␝uri␞0␟value',
           ],
           'instances' => [
-            'ℹ︎︎␜entity:node:foo␝field_silly_image␞␟entity␜︎␜entity:file␝uri␞␟url',
-            'ℹ︎︎␜entity:node:foo␝field_silly_image␞␟entity␜︎␜entity:file␝uri␞␟value',
+            'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uri␞␟url',
+            'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uri␞␟value',
           ],
           // adapter - field type
           'adapter_matches_field_type' => [
             'image_extract_url' => [
               'imageUri' => [
-                'ℹ︎︎image␟entity␜︎␜entity:file␝uri␞0␟url',
-                'ℹ︎︎image␟entity␜︎␜entity:file␝uri␞0␟value',
+                'ℹ︎image␟entity␜␜entity:file␝uri␞0␟url',
+                'ℹ︎image␟entity␜␜entity:file␝uri␞0␟value',
               ],
             ],
           ],
@@ -654,8 +655,8 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
           'adapter_matches_instance' => [
             'image_extract_url' => [
               'imageUri' => [
-                'ℹ︎︎␜entity:node:foo␝field_silly_image␞␟entity␜︎␜entity:file␝uri␞␟url',
-                'ℹ︎︎␜entity:node:foo␝field_silly_image␞␟entity␜︎␜entity:file␝uri␞␟value',
+                'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uri␞␟url',
+                'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uri␞␟value',
               ],
             ],
           ],
@@ -680,27 +681,27 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
           'format_any_prop' => [
             'ℹ︎file_uri␟url',
             'ℹ︎file_uri␟value',
+            'ℹ︎file␟entity␜␜entity:file␝uri␞0␟url',
+            'ℹ︎file␟entity␜␜entity:file␝uri␞0␟value',
+            'ℹ︎image␟entity␜␜entity:file␝uri␞0␟url',
+            'ℹ︎image␟entity␜␜entity:file␝uri␞0␟value',
             'ℹ︎link␟uri',
             'ℹ︎uri␟value',
-            'ℹ︎︎file␟entity␜︎␜entity:file␝uri␞0␟url',
-            'ℹ︎︎file␟entity␜︎␜entity:file␝uri␞0␟value',
-            'ℹ︎︎image␟entity␜︎␜entity:file␝uri␞0␟url',
-            'ℹ︎︎image␟entity␜︎␜entity:file␝uri␞0␟value',
           ],
           'format_main_prop' => [
             'ℹ︎file_uri␟value',
+            'ℹ︎file␟entity␜␜entity:file␝uri␞0␟url',
+            'ℹ︎file␟entity␜␜entity:file␝uri␞0␟value',
+            'ℹ︎image␟entity␜␜entity:file␝uri␞0␟url',
+            'ℹ︎image␟entity␜␜entity:file␝uri␞0␟value',
             'ℹ︎link␟uri',
             'ℹ︎uri␟value',
-            'ℹ︎︎file␟entity␜︎␜entity:file␝uri␞0␟url',
-            'ℹ︎︎file␟entity␜︎␜entity:file␝uri␞0␟value',
-            'ℹ︎︎image␟entity␜︎␜entity:file␝uri␞0␟url',
-            'ℹ︎︎image␟entity␜︎␜entity:file␝uri␞0␟value',
           ],
           'instances' => [
             'ℹ︎␜entity:file␝uri␞␟url',
             'ℹ︎␜entity:file␝uri␞␟value',
-            'ℹ︎︎␜entity:node:foo␝field_silly_image␞␟entity␜︎␜entity:file␝uri␞␟url',
-            'ℹ︎︎␜entity:node:foo␝field_silly_image␞␟entity␜︎␜entity:file␝uri␞␟value',
+            'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uri␞␟url',
+            'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uri␞␟value',
           ],
           'adapter_matches_field_type' => [],
           'adapter_matches_instance' => [],
@@ -770,37 +771,57 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
             'ℹ︎comment␟status',
             'ℹ︎created␟value',
             'ℹ︎entity_reference␟target_id',
+            'ℹ︎file␟entity␜␜entity:file␝changed␞0␟value',
+            'ℹ︎file␟entity␜␜entity:file␝created␞0␟value',
+            'ℹ︎file␟entity␜␜entity:file␝fid␞0␟value',
+            'ℹ︎file␟entity␜␜entity:file␝filesize␞0␟value',
+            'ℹ︎file␟entity␜␜entity:file␝uid␞0␟target_id',
             'ℹ︎file␟target_id',
+            'ℹ︎image␟entity␜␜entity:file␝changed␞0␟value',
+            'ℹ︎image␟entity␜␜entity:file␝created␞0␟value',
+            'ℹ︎image␟entity␜␜entity:file␝fid␞0␟value',
+            'ℹ︎image␟entity␜␜entity:file␝filesize␞0␟value',
+            'ℹ︎image␟entity␜␜entity:file␝uid␞0␟target_id',
             'ℹ︎image␟target_id',
             'ℹ︎integer␟value',
             'ℹ︎list_integer␟value',
             'ℹ︎timestamp␟value',
-            'ℹ︎︎file␟entity␜︎␜entity:file␝changed␞0␟value',
-            'ℹ︎︎file␟entity␜︎␜entity:file␝created␞0␟value',
-            'ℹ︎︎file␟entity␜︎␜entity:file␝fid␞0␟value',
-            'ℹ︎︎file␟entity␜︎␜entity:file␝filesize␞0␟value',
-            'ℹ︎︎file␟entity␜︎␜entity:file␝uid␞0␟target_id',
-            'ℹ︎︎image␟entity␜︎␜entity:file␝changed␞0␟value',
-            'ℹ︎︎image␟entity␜︎␜entity:file␝created␞0␟value',
-            'ℹ︎︎image␟entity␜︎␜entity:file␝fid␞0␟value',
-            'ℹ︎︎image␟entity␜︎␜entity:file␝filesize␞0␟value',
-            'ℹ︎︎image␟entity␜︎␜entity:file␝uid␞0␟target_id',
           ],
           'instances' => [
             'ℹ︎␜entity:file␝changed␞␟value',
             'ℹ︎␜entity:file␝created␞␟value',
             'ℹ︎␜entity:file␝fid␞␟value',
             'ℹ︎␜entity:file␝filesize␞␟value',
+            'ℹ︎␜entity:file␝uid␞␟entity␜␜entity:user␝access␞␟value',
+            'ℹ︎␜entity:file␝uid␞␟entity␜␜entity:user␝changed␞␟value',
+            'ℹ︎␜entity:file␝uid␞␟entity␜␜entity:user␝created␞␟value',
+            'ℹ︎␜entity:file␝uid␞␟entity␜␜entity:user␝login␞␟value',
+            'ℹ︎␜entity:file␝uid␞␟entity␜␜entity:user␝uid␞␟value',
             'ℹ︎␜entity:file␝uid␞␟target_id',
             'ℹ︎␜entity:node:foo␝changed␞␟value',
             'ℹ︎␜entity:node:foo␝created␞␟value',
+            'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝changed␞␟value',
+            'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝created␞␟value',
+            'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝fid␞␟value',
+            'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝filesize␞␟value',
+            'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uid␞␟target_id',
             'ℹ︎␜entity:node:foo␝field_silly_image␞␟height',
             'ℹ︎␜entity:node:foo␝field_silly_image␞␟target_id',
             'ℹ︎␜entity:node:foo␝field_silly_image␞␟width',
             'ℹ︎␜entity:node:foo␝nid␞␟value',
             'ℹ︎␜entity:node:foo␝path␞␟pid',
             'ℹ︎␜entity:node:foo␝revision_timestamp␞␟value',
+            'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝access␞␟value',
+            'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝changed␞␟value',
+            'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝created␞␟value',
+            'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝login␞␟value',
+            'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝uid␞␟value',
             'ℹ︎␜entity:node:foo␝revision_uid␞␟target_id',
+            'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝access␞␟value',
+            'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝changed␞␟value',
+            'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝created␞␟value',
+            'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝login␞␟value',
+            'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝uid␞␟value',
             'ℹ︎␜entity:node:foo␝uid␞␟target_id',
             'ℹ︎␜entity:node:foo␝vid␞␟value',
             'ℹ︎␜entity:path_alias␝id␞␟value',
@@ -810,26 +831,6 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
             'ℹ︎␜entity:user␝created␞␟value',
             'ℹ︎␜entity:user␝login␞␟value',
             'ℹ︎␜entity:user␝uid␞␟value',
-            'ℹ︎︎␜entity:file␝uid␞␟entity␜︎␜entity:user␝access␞␟value',
-            'ℹ︎︎␜entity:file␝uid␞␟entity␜︎␜entity:user␝changed␞␟value',
-            'ℹ︎︎␜entity:file␝uid␞␟entity␜︎␜entity:user␝created␞␟value',
-            'ℹ︎︎␜entity:file␝uid␞␟entity␜︎␜entity:user␝login␞␟value',
-            'ℹ︎︎␜entity:file␝uid␞␟entity␜︎␜entity:user␝uid␞␟value',
-            'ℹ︎︎␜entity:node:foo␝field_silly_image␞␟entity␜︎␜entity:file␝changed␞␟value',
-            'ℹ︎︎␜entity:node:foo␝field_silly_image␞␟entity␜︎␜entity:file␝created␞␟value',
-            'ℹ︎︎␜entity:node:foo␝field_silly_image␞␟entity␜︎␜entity:file␝fid␞␟value',
-            'ℹ︎︎␜entity:node:foo␝field_silly_image␞␟entity␜︎␜entity:file␝filesize␞␟value',
-            'ℹ︎︎␜entity:node:foo␝field_silly_image␞␟entity␜︎␜entity:file␝uid␞␟target_id',
-            'ℹ︎︎␜entity:node:foo␝revision_uid␞␟entity␜︎␜entity:user␝access␞␟value',
-            'ℹ︎︎␜entity:node:foo␝revision_uid␞␟entity␜︎␜entity:user␝changed␞␟value',
-            'ℹ︎︎␜entity:node:foo␝revision_uid␞␟entity␜︎␜entity:user␝created␞␟value',
-            'ℹ︎︎␜entity:node:foo␝revision_uid␞␟entity␜︎␜entity:user␝login␞␟value',
-            'ℹ︎︎␜entity:node:foo␝revision_uid␞␟entity␜︎␜entity:user␝uid␞␟value',
-            'ℹ︎︎␜entity:node:foo␝uid␞␟entity␜︎␜entity:user␝access␞␟value',
-            'ℹ︎︎␜entity:node:foo␝uid␞␟entity␜︎␜entity:user␝changed␞␟value',
-            'ℹ︎︎␜entity:node:foo␝uid␞␟entity␜︎␜entity:user␝created␞␟value',
-            'ℹ︎︎␜entity:node:foo␝uid␞␟entity␜︎␜entity:user␝login␞␟value',
-            'ℹ︎︎␜entity:node:foo␝uid␞␟entity␜︎␜entity:user␝uid␞␟value',
           ],
           'adapter_matches_field_type' => [],
           'adapter_matches_instance' => [],
@@ -851,64 +852,64 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
             'ℹ︎timestamp␟value',
           ],
           'instances' => [
+            'ℹ︎␜entity:file␝uid␞␟entity␜␜entity:user␝access␞␟value',
+            'ℹ︎␜entity:file␝uid␞␟entity␜␜entity:user␝login␞␟value',
+            'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝access␞␟value',
+            'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝login␞␟value',
+            'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝access␞␟value',
+            'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝login␞␟value',
             'ℹ︎␜entity:user␝access␞␟value',
             'ℹ︎␜entity:user␝login␞␟value',
-            'ℹ︎︎␜entity:file␝uid␞␟entity␜︎␜entity:user␝access␞␟value',
-            'ℹ︎︎␜entity:file␝uid␞␟entity␜︎␜entity:user␝login␞␟value',
-            'ℹ︎︎␜entity:node:foo␝revision_uid␞␟entity␜︎␜entity:user␝access␞␟value',
-            'ℹ︎︎␜entity:node:foo␝revision_uid␞␟entity␜︎␜entity:user␝login␞␟value',
-            'ℹ︎︎␜entity:node:foo␝uid␞␟entity␜︎␜entity:user␝access␞␟value',
-            'ℹ︎︎␜entity:node:foo␝uid␞␟entity␜︎␜entity:user␝login␞␟value',
           ],
           'adapter_matches_field_type' => [],
           'adapter_matches_instance' => [],
         ],
         '⿲sdc_test_all_props:all-props␟test-object-drupal-image' => [
           'storage' => [
-            'ℹ︎image␟{src↝entity␜ℹ︎␜entity:file␝uri␞0␟value, alt↠alt, width↠width, height↠height}',
+            'ℹ︎image␟{src↝entity␜␜entity:file␝uri␞0␟url,alt↠alt,width↠width,height↠height}',
           ],
           'format_any_prop' => [
-            'ℹ︎image␟{src↝entity␜ℹ︎␜entity:file␝uri␞0␟value, alt↠alt, width↠width, height↠height}',
+            'ℹ︎image␟{src↝entity␜␜entity:file␝uri␞0␟url,alt↠alt,width↠width,height↠height}',
           ],
           'format_main_prop' => [
-            'ℹ︎image␟{src↝entity␜ℹ︎␜entity:file␝uri␞0␟value, alt↠alt, width↠width, height↠height}',
+            'ℹ︎image␟{src↝entity␜␜entity:file␝uri␞0␟url,alt↠alt,width↠width,height↠height}',
           ],
           'instances' => [
-            'ℹ︎␜entity:node:foo␝field_silly_image␞␟{src↝entity␜ℹ︎␜entity:file␝uri␞␟value, alt↠alt, width↠width, height↠height}',
+            'ℹ︎␜entity:node:foo␝field_silly_image␞␟{src↝entity␜␜entity:file␝uri␞␟value,alt↠alt,width↠width,height↠height}',
           ],
           // adapter - field type
           'adapter_matches_field_type' => [
             'image_apply_style' => [
-              'image' => ['ℹ︎image␟{src↝entity␜ℹ︎␜entity:file␝uri␞0␟value, alt↠alt, width↠width, height↠height}'],
+              'image' => ['ℹ︎image␟{src↝entity␜␜entity:file␝uri␞0␟url,alt↠alt,width↠width,height↠height}'],
               'imageStyle' => [],
             ],
             'image_url_rel_to_abs' => [
-              'image' => ['ℹ︎image␟{src↝entity␜ℹ︎␜entity:file␝uri␞0␟value, alt↠alt, width↠width, height↠height}'],
+              'image' => ['ℹ︎image␟{src↝entity␜␜entity:file␝uri␞0␟url,alt↠alt,width↠width,height↠height}'],
             ],
           ],
           // adapter - instance
           'adapter_matches_instance' => [
             'image_apply_style' => [
-              'image' => ['ℹ︎␜entity:node:foo␝field_silly_image␞␟{src↝entity␜ℹ︎␜entity:file␝uri␞␟value, alt↠alt, width↠width, height↠height}'],
+              'image' => ['ℹ︎␜entity:node:foo␝field_silly_image␞␟{src↝entity␜␜entity:file␝uri␞␟value,alt↠alt,width↠width,height↠height}'],
               'imageStyle' => [],
             ],
             'image_url_rel_to_abs' => [
-              'image' => ['ℹ︎␜entity:node:foo␝field_silly_image␞␟{src↝entity␜ℹ︎␜entity:file␝uri␞␟value, alt↠alt, width↠width, height↠height}'],
+              'image' => ['ℹ︎␜entity:node:foo␝field_silly_image␞␟{src↝entity␜␜entity:file␝uri␞␟value,alt↠alt,width↠width,height↠height}'],
             ],
           ],
         ],
         '⿲sdc_test_all_props:all-props␟test-object-drupal-date-range' => [
           'storage' => [
-            'ℹ︎daterange␟{from↠end_value, to↠value}',
+            'ℹ︎daterange␟{from↠end_value,to↠value}',
           ],
           'format_any_prop' => [
-            'ℹ︎daterange␟{from↠end_value, to↠value}',
+            'ℹ︎daterange␟{from↠end_value,to↠value}',
           ],
           'format_main_prop' => [
-            'ℹ︎daterange␟{from↠end_value, to↠value}',
+            'ℹ︎daterange␟{from↠end_value,to↠value}',
           ],
           'instances' => [
-            'ℹ︎␜entity:node:foo␝field_event_duration␞␟{from↠value, to↠end_value}',
+            'ℹ︎␜entity:node:foo␝field_event_duration␞␟{from↠value,to↠end_value}',
           ],
           'adapter_matches_field_type' => [],
           'adapter_matches_instance' => [],
@@ -1519,13 +1520,13 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
         ],
         '⿲experience_builder:image␟image' => [
           'storage' => [
-            'ℹ︎image␟{src↝entity␜ℹ︎␜entity:file␝uri␞0␟value, alt↠alt, width↠width, height↠height}',
+            'ℹ︎image␟{src↝entity␜␜entity:file␝uri␞0␟url,alt↠alt,width↠width,height↠height}',
           ],
           'format_any_prop' => [
-            'ℹ︎image␟{src↝entity␜ℹ︎␜entity:file␝uri␞0␟value, alt↠alt, width↠width, height↠height}',
+            'ℹ︎image␟{src↝entity␜␜entity:file␝uri␞0␟url,alt↠alt,width↠width,height↠height}',
           ],
           'format_main_prop' => [
-            'ℹ︎image␟{src↝entity␜ℹ︎␜entity:file␝uri␞0␟value, alt↠alt, width↠width, height↠height}',
+            'ℹ︎image␟{src↝entity␜␜entity:file␝uri␞0␟url,alt↠alt,width↠width,height↠height}',
           ],
           'instances' => [],
         ],

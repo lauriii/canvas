@@ -9,13 +9,18 @@ use Drupal\Core\Field\FieldItemInterface;
 
 final class ReferenceFieldPropExpression implements StructuredDataPropExpressionInterface {
 
+  use CompoundExpressionTrait;
+
   public function __construct(
     public readonly FieldPropExpression $referencer,
     public readonly ReferenceFieldPropExpression|FieldPropExpression|FieldObjectPropsExpression $referenced,
   ) {}
 
   public function __toString(): string {
-    return sprintf(static::PREFIX . "%s␜%s", mb_substr((string) $this->referencer, 1), mb_substr((string) $this->referenced, 1));
+    return static::PREFIX
+      . self::withoutPrefix((string) $this->referencer)
+      . self::PREFIX_ENTITY_LEVEL
+      . self::withoutPrefix((string) $this->referenced);
   }
 
   public function withDelta(int $delta): static {
@@ -26,10 +31,10 @@ final class ReferenceFieldPropExpression implements StructuredDataPropExpression
   }
 
   public static function fromString(string $representation): static {
-    $parts = explode('␜', $representation);
-    $referencer = FieldPropExpression::fromString($parts[0] . '␜' . $parts[1]);
+    $parts = explode(self::PREFIX_ENTITY_LEVEL . self::PREFIX_ENTITY_LEVEL, $representation);
+    $referencer = FieldPropExpression::fromString($parts[0]);
     // @todo detect and support ReferenceFieldPropExpression + FieldObjectPropsExpression
-    $referenced = FieldPropExpression::fromString(static::PREFIX . '␜' . $parts[3]);
+    $referenced = FieldPropExpression::fromString(static::PREFIX . static::PREFIX_ENTITY_LEVEL . $parts[1]);
     return new static($referencer, $referenced);
   }
 

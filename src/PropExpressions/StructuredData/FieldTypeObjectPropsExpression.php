@@ -13,6 +13,8 @@ use Drupal\Core\Field\FieldItemInterface;
  */
 final class FieldTypeObjectPropsExpression implements StructuredDataPropExpressionInterface {
 
+  use CompoundExpressionTrait;
+
   /**
    * Constructs a new FieldTypeObjectPropsExpression.
    *
@@ -27,39 +29,50 @@ final class FieldTypeObjectPropsExpression implements StructuredDataPropExpressi
   ) {
     assert(Inspector::assertAllStrings(array_keys($this->objectPropsToFieldTypeProps)));
     assert(Inspector::assertAll(function ($expr) {
-      // PHPStan's error is very cryptic, I'm lost. This code needs to be
-      // refactored anyway; the runtime assertions are too valuable to lose
-      // right now.
-      // @phpstan-ignore-next-line
       return $expr instanceof FieldTypePropExpression || $expr instanceof ReferenceFieldTypePropExpression;
     }, $this->objectPropsToFieldTypeProps));
   }
 
   public function __toString(): string {
-    return sprintf(static::PREFIX . "%s␟{%s}", $this->fieldType, implode(', ', array_map(
-      fn (string $obj_prop_name, FieldTypePropExpression|ReferenceFieldTypePropExpression $expr) => sprintf('%s%s%s',
-        $obj_prop_name,
-        $expr instanceof ReferenceFieldTypePropExpression ? '↝' : '↠',
-        $expr instanceof ReferenceFieldTypePropExpression ? $expr->propName . '␜' . (string) $expr->referenced : $expr->propName,
-      ),
-      array_keys($this->objectPropsToFieldTypeProps),
-      array_values($this->objectPropsToFieldTypeProps),
-    )));
+    return static::PREFIX
+      . $this->fieldType
+      . static::PREFIX_PROPERTY_LEVEL . static::PREFIX_OBJECT
+      . implode(',', array_map(
+        fn (string $obj_prop_name, FieldTypePropExpression|ReferenceFieldTypePropExpression $expr) => sprintf('%s%s%s',
+          $obj_prop_name,
+          $expr instanceof ReferenceFieldTypePropExpression
+            ? self::SYMBOL_OBJECT_MAPPED_FOLLOW_REFERENCE
+            : self::SYMBOL_OBJECT_MAPPED_USE_PROP,
+          $expr instanceof ReferenceFieldTypePropExpression
+            ? $expr->referencer->propName . self::PREFIX_ENTITY_LEVEL . self::withoutPrefix((string) $expr->referenced)
+            : $expr->propName,
+        ),
+        array_keys($this->objectPropsToFieldTypeProps),
+        array_values($this->objectPropsToFieldTypeProps),
+      ))
+      . static::SUFFIX_OBJECT;
   }
 
   public static function fromString(string $representation): static {
-    [$field_type, $object_mapping] = explode('␟', mb_substr($representation, 2));
+    [$field_type, $object_mapping] = explode(self::PREFIX_PROPERTY_LEVEL, mb_substr($representation, 2), 2);
     // Strip the surrounding curly braces.
     $object_mapping = mb_substr($object_mapping, 1, -1);
 
     $objectPropsToFieldTypeProps = [];
     foreach (explode(',', $object_mapping) as $obj_prop_mapping) {
-      if (str_contains($obj_prop_mapping, '↠')) {
-        [$sdc_obj_prop_name, $field_type_prop_name] = explode('↠', $obj_prop_mapping);
+      if (str_contains($obj_prop_mapping, self::SYMBOL_OBJECT_MAPPED_USE_PROP)) {
+        [$sdc_obj_prop_name, $field_type_prop_name] = explode(self::SYMBOL_OBJECT_MAPPED_USE_PROP, $obj_prop_mapping);
         $objectPropsToFieldTypeProps[$sdc_obj_prop_name] = new FieldTypePropExpression($field_type, $field_type_prop_name);
       }
       else {
-        throw new \LogicException('not yet implemented');
+        [$sdc_obj_prop_name, $remainder] = explode(self::SYMBOL_OBJECT_MAPPED_FOLLOW_REFERENCE, $obj_prop_mapping);
+        [$field_type_prop_name, $remainder] = explode(self::PREFIX_ENTITY_LEVEL, $remainder, 2);
+        $referenced = StructuredDataPropExpression::fromString(static::PREFIX . $remainder);
+        assert($referenced instanceof FieldPropExpression || $referenced instanceof ReferenceFieldPropExpression);
+        $objectPropsToFieldTypeProps[$sdc_obj_prop_name] = new ReferenceFieldTypePropExpression(
+          new FieldTypePropExpression($field_type, $field_type_prop_name),
+          $referenced
+        );
       }
     }
 

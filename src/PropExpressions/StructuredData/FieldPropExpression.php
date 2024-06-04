@@ -25,7 +25,11 @@ final class FieldPropExpression implements StructuredDataPropExpressionInterface
   ) {}
 
   public function __toString(): string {
-    return sprintf(static::PREFIX . "␜%s␝%s␞%s␟%s", $this->entityType->getDataType(), $this->fieldName, $this->delta ?? '', $this->propName);
+    return static::PREFIX
+      . static::PREFIX_ENTITY_LEVEL . $this->entityType->getDataType()
+      . static::PREFIX_FIELD_LEVEL . $this->fieldName
+      . static::PREFIX_FIELD_ITEM_LEVEL . ($this->delta ?? '')
+      . static::PREFIX_PROPERTY_LEVEL . $this->propName;
   }
 
   public function withDelta(int $delta): static {
@@ -38,10 +42,10 @@ final class FieldPropExpression implements StructuredDataPropExpressionInterface
   }
 
   public static function fromString(string $representation): static {
-    [$entity_part, $remainder] = explode('␝', $representation);
+    [$entity_part, $remainder] = explode(self::PREFIX_FIELD_LEVEL, $representation);
     $entity_data_definition = EntityDataDefinition::createFromDataType(mb_substr($entity_part, 3));
-    [$field_name, $remainder] = explode('␞', $remainder, 2);
-    [$delta, $prop_name] = explode('␟', $remainder, 2);
+    [$field_name, $remainder] = explode(self::PREFIX_FIELD_ITEM_LEVEL, $remainder, 2);
+    [$delta, $prop_name] = explode(self::PREFIX_PROPERTY_LEVEL, $remainder, 2);
     return new static(
       $entity_data_definition,
       $field_name,

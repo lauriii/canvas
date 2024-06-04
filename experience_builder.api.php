@@ -44,7 +44,9 @@
  *   is the smallest unit
  * - `␞` then is the field item list vs field item separator
  * - `␝` then is the field item list vs field item separator
+ * - `␜` then is the entity vs field item list separator
  *
+ * @see \Drupal\experience_builder\PropExpressions\StructuredData\StructuredDataPropExpressionInterface
  * @see https://github.com/SixArm/usv
  *
  * @}

@@ -13,11 +13,6 @@ parameters:
     - src/Plugin/DataTypeOverride
     - src/Plugin/Field/FieldTypeOverride
   ignoreErrors:
-    -
-      message: "#^Method Drupal\\\\experience_builder\\\\PropExpressions\\\\StructuredData\\\\FieldTypePropExpression\\:\\:fromString\\(\\) should return static\\(Drupal\\\\experience_builder\\\\PropExpressions\\\\StructuredData\\\\FieldTypePropExpression\\) but returns Drupal\\\\experience_builder\\\\PropExpressions\\\\StructuredData\\\\FieldTypePropExpression\\.$#"
-      count: 1
-      path: src/PropExpressions/StructuredData/FieldTypePropExpression.php
-
     #
     # These must be fixed upstream in various hooks.
     #

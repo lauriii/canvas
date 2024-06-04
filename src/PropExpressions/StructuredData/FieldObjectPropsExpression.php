@@ -12,6 +12,8 @@ use Drupal\Core\Field\FieldItemInterface;
 
 final class FieldObjectPropsExpression implements StructuredDataPropExpressionInterface {
 
+  use CompoundExpressionTrait;
+
   /**
    * @param array<string, FieldPropExpression|ReferenceFieldPropExpression> $objectPropsToFieldProps
    *   A mapping of SDC prop names to Field Type prop expressions.
@@ -29,22 +31,48 @@ final class FieldObjectPropsExpression implements StructuredDataPropExpressionIn
     assert(Inspector::assertAll(function ($expr) {
       return $expr instanceof FieldPropExpression || $expr instanceof ReferenceFieldPropExpression;
     }, $this->objectPropsToFieldProps));
+    array_walk($objectPropsToFieldProps, function (StructuredDataPropExpressionInterface $expr) {
+      // Each of the expressions in $objectPropsToFieldProps MUST target the
+      // same field item; otherwise it'd be nonsense. IOW: the following MUST match `entityType`, `fieldName` and `delta`.
+      $targets_same_field_item = $expr instanceof ReferenceFieldPropExpression
+        ? $expr->referencer->entityType == $this->entityType && $expr->referencer->fieldName === $this->fieldName && $expr->referencer->delta === $this->delta
+        : $expr->entityType == $this->entityType && $expr->fieldName === $this->fieldName && $expr->delta === $this->delta;
+      if (!$targets_same_field_item) {
+        throw new \InvalidArgumentException(sprintf(
+          '`%s` is not a valid expression, because it does not map the same field item (entity type `%s`, field name `%s`, delta `%s`).',
+          (string) $expr,
+          $this->entityType->getDataType(),
+          $this->fieldName,
+          $this->delta === NULL ? 'null' : (string) $this->delta
+        ));
+      }
+    });
   }
 
   public function __toString(): string {
-    return sprintf(static::PREFIX . "␜%s␝%s␞%s␟{%s}", $this->entityType->getDataType(), $this->fieldName, $this->delta ?? '', implode(', ', array_map(
-      fn (
-        string $obj_prop_name,
-        FieldPropExpression|ReferenceFieldPropExpression $expr
-      ) => sprintf(
-        '%s%s%s',
-        $obj_prop_name,
-        $expr instanceof ReferenceFieldPropExpression ? '↝' : '↠',
-        $expr instanceof ReferenceFieldPropExpression ? $expr->referencer->propName . '␜' . (string) $expr->referenced : $expr->propName,
-      ),
-      array_keys($this->objectPropsToFieldProps),
-      array_values($this->objectPropsToFieldProps),
-    )));
+    return static::PREFIX
+      . static::PREFIX_ENTITY_LEVEL . $this->entityType->getDataType()
+      . static::PREFIX_FIELD_LEVEL . $this->fieldName
+      . static::PREFIX_FIELD_ITEM_LEVEL . ($this->delta ?? '')
+      . static::PREFIX_PROPERTY_LEVEL . static::PREFIX_OBJECT
+      . implode(',', array_map(
+        fn (
+          string $obj_prop_name,
+          FieldPropExpression|ReferenceFieldPropExpression $expr
+        ) => sprintf(
+          '%s%s%s',
+          $obj_prop_name,
+          $expr instanceof ReferenceFieldPropExpression
+            ? self::SYMBOL_OBJECT_MAPPED_FOLLOW_REFERENCE
+            : self::SYMBOL_OBJECT_MAPPED_USE_PROP,
+          $expr instanceof ReferenceFieldPropExpression
+            ? $expr->referencer->propName . static::PREFIX_ENTITY_LEVEL . self::withoutPrefix((string) $expr->referenced)
+            : $expr->propName,
+        ),
+        array_keys($this->objectPropsToFieldProps),
+        array_values($this->objectPropsToFieldProps),
+      ))
+      . static::SUFFIX_OBJECT;
   }
 
   public function withDelta(int $delta): static {
@@ -57,17 +85,17 @@ final class FieldObjectPropsExpression implements StructuredDataPropExpressionIn
   }
 
   public static function fromString(string $representation): static {
-    [$entity_part, $remainder] = explode('␝', $representation, 2);
+    [$entity_part, $remainder] = explode(self::PREFIX_FIELD_LEVEL, $representation, 2);
     $entity_data_definition = EntityDataDefinition::createFromDataType(mb_substr($entity_part, 3));
-    [$field_name, $remainder] = explode('␞', $remainder, 2);
-    [$delta, $object_mapping] = explode('␟', $remainder, 2);
+    [$field_name, $remainder] = explode(self::PREFIX_FIELD_ITEM_LEVEL, $remainder, 2);
+    [$delta, $object_mapping] = explode(self::PREFIX_PROPERTY_LEVEL, $remainder, 2);
     // Strip the surrounding curly braces.
     $object_mapping = mb_substr($object_mapping, 1, -1);
 
     $objectPropsToFieldTypeProps = [];
     foreach (explode(',', $object_mapping) as $obj_prop_mapping) {
-      if (str_contains($obj_prop_mapping, '↠')) {
-        [$sdc_obj_prop_name, $field_instance_prop_name] = explode('↠', $obj_prop_mapping);
+      if (str_contains($obj_prop_mapping, self::SYMBOL_OBJECT_MAPPED_USE_PROP)) {
+        [$sdc_obj_prop_name, $field_instance_prop_name] = explode(self::SYMBOL_OBJECT_MAPPED_USE_PROP, $obj_prop_mapping);
         $objectPropsToFieldTypeProps[$sdc_obj_prop_name] = new FieldPropExpression(
           $entity_data_definition,
           $field_name,
@@ -76,11 +104,11 @@ final class FieldObjectPropsExpression implements StructuredDataPropExpressionIn
         );
       }
       else {
-        [$sdc_obj_prop_name, $obj_prop_mapping_remainder] = explode('↝', $obj_prop_mapping);
-        [$field_instance_prop_name, $field_prop_ref_expr] = explode('␜', $obj_prop_mapping_remainder, 2);
+        [$sdc_obj_prop_name, $obj_prop_mapping_remainder] = explode(self::SYMBOL_OBJECT_MAPPED_FOLLOW_REFERENCE, $obj_prop_mapping);
+        [$field_instance_prop_name, $field_prop_ref_expr] = explode(self::PREFIX_ENTITY_LEVEL, $obj_prop_mapping_remainder, 2);
         $objectPropsToFieldTypeProps[$sdc_obj_prop_name] = new ReferenceFieldPropExpression(
           new FieldPropExpression($entity_data_definition, $field_name, NULL, $field_instance_prop_name),
-          FieldPropExpression::fromString($field_prop_ref_expr)
+          FieldPropExpression::fromString(self::PREFIX . $field_prop_ref_expr)
         );
       }
     }

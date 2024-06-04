@@ -172,28 +172,34 @@ final class SdcPropToFieldTypePropMatcher {
     $inverted = [];
     foreach (array_keys($object_prop_matches) as $object_prop_name) {
       foreach ($object_prop_matches[$object_prop_name] as $field_type_prop_expr) {
-        // PHPStan's error is very cryptic, I'm lost. This code needs to be refactored anyway; the runtime assertions are too valuable to lose right now.
-        // @phpstan-ignore-next-line
         assert($field_type_prop_expr instanceof FieldTypePropExpression || $field_type_prop_expr instanceof ReferenceFieldTypePropExpression);
+        $field_type = $field_type_prop_expr instanceof FieldTypePropExpression
+          ? $field_type_prop_expr->fieldType
+          : $field_type_prop_expr->referencer->fieldType;
+
         // The same field type prop should never be used multiple times; best
         // match is selected in object prop order.
-        if (in_array($field_type_prop_expr, $inverted[$field_type_prop_expr->fieldType] ?? [], FALSE)) {
+        if (in_array($field_type_prop_expr, $inverted[$field_type] ?? [], FALSE)) {
           continue;
         }
+        $field_type_prop_name = $field_type_prop_expr instanceof FieldTypePropExpression
+          ? $field_type_prop_expr->propName
+          : $field_type_prop_expr->referencer->propName;
+
         // Pick the first match, except:
-        if (isset($inverted[$field_type_prop_expr->fieldType][$object_prop_name])) {
+        if (isset($inverted[$field_type][$object_prop_name])) {
           // 1. prefer non-reference matches on the field type.
-          if ($inverted[$field_type_prop_expr->fieldType][$object_prop_name] instanceof ReferenceFieldTypePropExpression && $field_type_prop_expr instanceof FieldTypePropExpression) {
-            $inverted[$field_type_prop_expr->fieldType][$object_prop_name] = $field_type_prop_expr;
+          if ($inverted[$field_type][$object_prop_name] instanceof ReferenceFieldTypePropExpression && $field_type_prop_expr instanceof FieldTypePropExpression) {
+            $inverted[$field_type][$object_prop_name] = $field_type_prop_expr;
           }
           // 2. prefer a precise match between the SDC object prop name and the
           //    the field type prop name
-          elseif ($object_prop_name === $field_type_prop_expr->propName) {
-            $inverted[$field_type_prop_expr->fieldType][$object_prop_name] = $field_type_prop_expr;
+          elseif ($object_prop_name === $field_type_prop_name) {
+            $inverted[$field_type][$object_prop_name] = $field_type_prop_expr;
           }
         }
         else {
-          $inverted[$field_type_prop_expr->fieldType][$object_prop_name] = $field_type_prop_expr;
+          $inverted[$field_type][$object_prop_name] = $field_type_prop_expr;
         }
       }
     }
@@ -291,7 +297,7 @@ final class SdcPropToFieldTypePropMatcher {
             }
             $referenced_matches = $this->matchEntityProps($target, 0, $json_schema_primitive_type, $is_required_in_json_schema, $schema);
             foreach ($referenced_matches as $referenced_match) {
-              $candidates[] = new ReferenceFieldTypePropExpression($field_type, $property_name, $referenced_match->withDelta(0));
+              $candidates[] = new ReferenceFieldTypePropExpression(new FieldTypePropExpression($field_type, $property_name), $referenced_match->withDelta(0));
             }
           }
         }

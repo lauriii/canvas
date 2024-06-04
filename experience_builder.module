@@ -247,7 +247,7 @@ function experience_builder_entity_view_alter(&$build, EntityInterface $entity, 
       ],
       'href' => [
         'sourceType' => 'dynamic',
-        'expression' => 'ℹ︎␜entity:node:article␝field_image␞␟entity␜︎␜entity:file␝uri␞␟value',
+        'expression' => 'ℹ︎␜entity:node:article␝field_image␞␟entity␜␜entity:file␝uri␞␟value',
       ],
     ],
     'static-image-56r' => [
@@ -262,7 +262,7 @@ function experience_builder_entity_view_alter(&$build, EntityInterface $entity, 
     'dynamic-image-udf7d' => [
       'image' => [
         'sourceType' => 'dynamic',
-        'expression' => 'ℹ︎␜entity:node:article␝field_image␞␟{src↝entity␜ℹ︎␜entity:file␝uri␞␟url,alt↠alt,width↠width,height↠height}',
+        'expression' => 'ℹ︎␜entity:node:article␝field_image␞␟{src↝entity␜␜entity:file␝uri␞␟url,alt↠alt,width↠width,height↠height}',
       ],
     ],
     'dynamic-image-static-imageStyle-something7d' => [
@@ -278,7 +278,7 @@ function experience_builder_entity_view_alter(&$build, EntityInterface $entity, 
           // @todo order of `adapterInputs` keys is insignificant, because all keys MUST be named to match the adapter's named inputs
           'image' => [
             'sourceType' => 'dynamic',
-            'expression' => 'ℹ︎␜entity:node:article␝field_image␞␟{src↝entity␜ℹ︎␜entity:file␝uri␞␟url,alt↠alt,width↠width,height↠height}',
+            'expression' => 'ℹ︎␜entity:node:article␝field_image␞␟{src↝entity␜␜entity:file␝uri␞␟url,alt↠alt,width↠width,height↠height}',
           ],
           'imageStyle' => [
             'sourceType' => 'static:field_item:string',
@@ -294,7 +294,7 @@ function experience_builder_entity_view_alter(&$build, EntityInterface $entity, 
         'adapterInputs' => [
           'image' => [
             'sourceType' => 'dynamic',
-            'expression' => 'ℹ︎␜entity:node:article␝field_image␞␟{src↝entity␜ℹ︎␜entity:file␝uri␞␟url,alt↠alt,width↠width,height↠height}',
+            'expression' => 'ℹ︎␜entity:node:article␝field_image␞␟{src↝entity␜␜entity:file␝uri␞␟url,alt↠alt,width↠width,height↠height}',
           ],
         ],
       ],
