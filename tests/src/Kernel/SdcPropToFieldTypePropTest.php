@@ -336,7 +336,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
             'image_apply_style' => [
               'image' => ['ℹ︎image␟{src↝entity␜␜entity:file␝uri␞0␟url,alt↠alt,width↠width,height↠height}'],
               'imageStyle' => [],
-              // @todo: Figure out best way to describe config entity id via JSON schema.
+              // @todo Figure out best way to describe config entity id via JSON schema.
               // 'imageStyle' => ['ℹ︎image_style_reference␟target_id'],
             ],
             'image_url_rel_to_abs' => [

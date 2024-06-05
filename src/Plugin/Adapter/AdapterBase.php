@@ -95,7 +95,7 @@ abstract class AdapterBase extends PluginBase implements AdapterInterface {
   }
 
   /**
-   * @todo: is there a better way?
+   * @todo Determine whether there is a better way.
    */
   public function inputIsRequired(string $input): bool {
     assert(is_array($this->getPluginDefinition()));

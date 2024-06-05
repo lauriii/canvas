@@ -52,7 +52,7 @@ final class AdaptedPropSource extends PropSource {
     foreach ($this->adapter_inputs as $input_name => $input) {
       $value_object = match(TRUE) {
         $input['sourceType'] === 'dynamic' => DynamicPropSource::parse($input),
-        // @todo: Support for nested adapted inputs?
+        // @todo Determine whether nested adapted inputs should be supported.
         // str_starts_with($input['sourceType'], 'adapter:') => AdaptedPropSource::parse($input),
         str_starts_with($input['sourceType'], 'static:') => StaticPropSource::parse($input),
         default => throw new \OutOfRangeException(),
