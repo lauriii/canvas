@@ -1,10 +1,9 @@
 import type React from 'react';
 import styles from './TreeChild.module.css';
 import TreeParent from './TreeParent';
-import type { LayoutNode } from '../layoutSlice';
-import { deleteNode } from '../layoutSlice';
+import type { LayoutNode } from '../layoutModelSlice';
+import { deleteNode, selectModel } from '../layoutModelSlice';
 import { useAppDispatch, useAppSelector } from '../../../app/hooks';
-import { selectModel } from '../../model/modelSlice';
 import { IconButton, Text } from '@radix-ui/themes';
 import { TrashIcon } from '@radix-ui/react-icons';
 import classNames from 'classnames';

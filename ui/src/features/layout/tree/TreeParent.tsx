@@ -4,13 +4,13 @@ import { useRef, useEffect } from 'react';
 import Sortable from 'sortablejs';
 import TreeChild from './TreeChild';
 import { useAppDispatch, useAppSelector } from '../../../app/hooks';
-import type { LayoutNode } from '../layoutSlice';
+import type { LayoutNode } from '../layoutModelSlice';
 import {
   selectLayout,
   addNewComponentToLayout,
   moveNode,
   sortNode,
-} from '../layoutSlice';
+} from '../layoutModelSlice';
 import { setTreeDragging } from '../../ui/uiSlice';
 import { findNodePathByUuid } from '../layoutUtils';
 import classNames from 'classnames';

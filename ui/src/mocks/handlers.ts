@@ -3,7 +3,7 @@ import components from "./fixtures/components.json"
 import layoutDefault from "./fixtures/layout-default.json"
 import mockPreviewDocument from "./preview";
 
-const DEFAULT_DELAY = 2000;
+const DEFAULT_DELAY = 200;
 
 const handlers = [
   http.get('/api/components', async () => {

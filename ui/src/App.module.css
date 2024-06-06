@@ -50,3 +50,7 @@
   left: 0;
   width: var(--primary-panel-width);
 }
+
+.topBarRedoIcon {
+  transform: rotateY(180deg);
+}

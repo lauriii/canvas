@@ -8,12 +8,12 @@ import PrimaryPanel from './features/panel/PrimaryPanel';
 import ContextualPanel from './features/panel/ContextualPanel';
 import { useAppSelector } from './app/hooks';
 import { selectSelectedComponent } from './features/ui/uiSlice';
+import UndoRedo from "./components/UndoRedo";
 
 const App = () => {
   const iframeRef = useRef(null);
   const [primaryPanelOpen, setPrimaryPanelOpen] = useState(true);
   const [contextualPanelOpen, setContextualPanelOpen] = useState(false);
-
   const selectedComponent = useAppSelector(selectSelectedComponent);
 
   useEffect(() => {
@@ -37,6 +37,7 @@ const App = () => {
           <Button size="1" onClick={() => setContextualPanelOpen(true)}>
             Open Right
           </Button>
+          <UndoRedo/>
         </Flex>
       </div>
       <div className={classNames(styles.previewContainer)}>

@@ -1,6 +1,6 @@
 import TreeParent from './TreeParent';
 import { useAppSelector } from '../../../app/hooks';
-import { selectLayout } from '../layoutSlice';
+import { selectLayout } from '../layoutModelSlice';
 import { selectDragging } from '../../ui/uiSlice';
 import TreeDebug from './TreeDebug';
 import treeParentStyles from './TreeParent.module.css';

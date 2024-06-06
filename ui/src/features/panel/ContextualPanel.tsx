@@ -17,7 +17,7 @@ import { Cross1Icon, DragHandleVerticalIcon } from '@radix-ui/react-icons';
 import type React from 'react';
 import { useAppDispatch, useAppSelector } from '../../app/hooks';
 import { selectSelectedComponent } from '../ui/uiSlice';
-import { selectModel, updateNodeModel } from '../model/modelSlice';
+import { selectModel, updateNodeModel } from '../layout/layoutModelSlice';
 
 interface ContextualPanelProps {
   open: boolean;

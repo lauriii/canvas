@@ -1,5 +1,4 @@
 import styles from './Preview.module.css';
-import type React from 'react';
 import { useRef, useEffect, useState } from 'react';
 import Sortable from 'sortablejs';
 import Outline from './Outline';
@@ -12,13 +11,13 @@ import {
   setSelectedComponent,
   setHoveredComponent,
 } from '../../../features/ui/uiSlice';
-import { selectModel } from '../../model/modelSlice';
 import {
   moveNode,
   selectLayout,
   sortNode,
   addNewComponentToLayout,
-} from '../layoutSlice';
+  selectModel
+} from '../layoutModelSlice';
 import { findNodePathByUuid } from '../layoutUtils';
 import { usePostPreviewMutation } from '../../../services/preview';
 import { Spinner } from '@radix-ui/themes';
@@ -183,6 +182,16 @@ const Preview: React.FC<PreviewProps> = (props) => {
 
   useEffect(() => {
     const iframe = iframeRef.current;
+    function undoRedoNotifyParentDocument(event: KeyboardEvent) {
+      if (event.metaKey && event.key === 'z' && !event.shiftKey || event.ctrlKey && event.key === 'z') {
+        window.parent.postMessage('dispatchUndo', '*');
+        return;
+      }
+      if (event.metaKey && event.shiftKey && event.key === 'z' || event.ctrlKey && event.key === 'y') {
+        window.parent.postMessage('dispatchRedo', '*');
+        return;
+      }
+    }
     if (iframe) {
       console.log('layout or model changed', model);
       // Wait for the iframe to load
@@ -204,10 +213,12 @@ const Preview: React.FC<PreviewProps> = (props) => {
             initComponentClick(item);
           });
         });
+        // Add an event listener to the iFrame that listens to undo/redo hot keys.
+        iframeDocumentRef.current?.body.addEventListener('keydown', undoRedoNotifyParentDocument);
+        return () => iframeDocumentRef.current?.body.removeEventListener('keydown', undoRedoNotifyParentDocument);
       };
     }
   }, [layout, model]);
-  //
 
   useEffect(() => {
     const sendPreviewRequest = async () => {

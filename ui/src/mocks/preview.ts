@@ -1,4 +1,4 @@
-import type { LayoutNode } from "../features/layout/layoutSlice";
+import type { LayoutNode } from "../features/layout/layoutModelSlice";
 import styleContent from "./styles.css?raw";
 
 const createHtmlFromLayoutData = (

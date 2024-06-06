@@ -1,7 +1,7 @@
 import styles from './Outline.module.css';
 import type React from 'react';
-import { useRef, useEffect, useCallback, useState } from 'react';
-import { deleteNode } from '../layoutSlice';
+import { useRef, useEffect, useState } from 'react';
+import { deleteNode } from '../layoutModelSlice';
 import { useAppDispatch } from '../../../app/hooks';
 import { Button, Grid } from '@radix-ui/themes';
 import classNames from 'classnames';
