@@ -6,13 +6,18 @@ import { componentApi } from '../services/components';
 import { layoutApi } from '../services/layout';
 import { previewApi } from '../services/preview';
 import undoable from 'redux-undo';
-import {layoutModelReducer} from "../features/layout/layoutModelSlice";
+import { initialState, layoutModelReducer } from "../features/layout/layoutModelSlice";
 
 // `combineSlices` automatically combines the reducers using
 // their `reducerPath`s, therefore we no longer need to call `combineReducers`.
 const rootReducer = combineSlices(
   {
-    layoutModel: undoable(layoutModelReducer)
+    layoutModel: undoable(layoutModelReducer, {
+      filter: (action, currentState, previousHistory) => {
+        const { present } = previousHistory;
+        return Object.keys(present.model).length > 0 ;
+      }
+    })
   },
   uiSlice,
   componentApi,

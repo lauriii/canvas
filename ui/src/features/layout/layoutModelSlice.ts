@@ -29,7 +29,7 @@ export interface LayoutModelSliceState {
   };
 }
 
-const initialState: LayoutModelSliceState = {
+export const initialState: LayoutModelSliceState = {
   layout: {
     uuid: 'root',
     type: 'root',
