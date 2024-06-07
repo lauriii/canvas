@@ -13,3 +13,7 @@ services:
       - { name: stream_wrapper, scheme: json-schema-definitions }
   Drupal\experience_builder\Plugin\AdapterManager:
     parent: default_plugin_manager
+  Drupal\experience_builder\FieldTypeUninstallValidator:
+    public: true
+    tags:
+      - { name: module_install.uninstall_validator }

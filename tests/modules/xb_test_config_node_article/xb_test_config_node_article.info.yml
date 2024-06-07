@@ -1,0 +1,10 @@
+name: Experience Builder Test Node Article
+type: module
+description: 'Test module that provides an article content type using a XB field.'
+package: Testing
+dependencies:
+  - experience_builder:experience_builder
+  - drupal:node
+  - drupal:field
+  - drupal:link
+  - drupal:text
