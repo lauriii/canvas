@@ -8,6 +8,7 @@ use Drupal\Component\Serialization\Json;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\TypedData\Attribute\DataType;
 use Drupal\Core\TypedData\TypedData;
+use Drupal\experience_builder\PropSource\AdaptedPropSource;
 use Drupal\experience_builder\PropSource\DynamicPropSource;
 use Drupal\experience_builder\PropSource\StaticPropSource;
 
@@ -100,6 +101,7 @@ class ComponentPropsValues extends TypedData implements \Stringable {
       fn (array $sdc_prop_source) => match (TRUE) {
         $sdc_prop_source['sourceType'] === 'dynamic' => DynamicPropSource::parse($sdc_prop_source),
         str_starts_with($sdc_prop_source['sourceType'], 'static:') => StaticPropSource::parse($sdc_prop_source),
+        str_starts_with($sdc_prop_source['sourceType'], 'adapter:') => AdaptedPropSource::parse($sdc_prop_source),
         default => throw new \OutOfRangeException(),
       },
       $this->propsValues[$component_instance_uuid]

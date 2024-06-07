@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\experience_builder\Plugin\Field\FieldType;
 
 use Drupal\Component\Serialization\Json;
+use Drupal\Core\Entity\TypedData\EntityDataDefinitionInterface;
 use Drupal\Core\Field\Attribute\FieldType;
 use Drupal\Core\Field\FieldItemBase;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
@@ -15,10 +16,10 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\Theme\Component\ComponentValidator;
 use Drupal\Core\Theme\ComponentPluginManager;
 use Drupal\Core\TypedData\DataDefinition;
+use Drupal\experience_builder\FieldForComponentSuggester;
 use Drupal\experience_builder\Plugin\DataType\ComponentPropsValues;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeHydrated;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
-use Drupal\experience_builder\PropSource\DynamicPropSource;
 use Drupal\experience_builder\PropSource\PropSource;
 
 /**
@@ -128,7 +129,7 @@ class ComponentTreeItem extends FieldItemBase implements RenderableInterface {
     // constraints because it does not validate user input: it only helps ensure
     // that the logic of this field type is correct.
     $component_instance_uuids = $tree->getComponentInstanceUuids();
-    if ($component_instance_uuids != $props->getComponentInstanceUuids()) {
+    if (array_intersect($component_instance_uuids, $props->getComponentInstanceUuids()) !== $component_instance_uuids) {
       throw new \LogicException(sprintf('The component UUIDs in the tree and props values do not match! Put a breakpoint here and figure out why.'));
     }
 
@@ -181,11 +182,34 @@ class ComponentTreeItem extends FieldItemBase implements RenderableInterface {
     $entity = $this->getEntity();
 
     return array_map(
-      fn (PropSource $s): mixed => $s instanceof DynamicPropSource
-        ? $s->withHostEntity($entity)->evaluate()
-        : $s->evaluate(),
+      fn (PropSource $s): mixed => $s->evaluate($entity),
       $props->getComponentPropsSources($component_instance_uuid)
     );
+  }
+
+  /**
+   * @return array<string, array<string, array{types: array<string, \Drupal\experience_builder\PropExpressions\StructuredData\FieldTypePropExpression|\Drupal\experience_builder\PropExpressions\StructuredData\FieldTypeObjectPropsExpression|\Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldTypePropExpression>, instances: array<string, \Drupal\experience_builder\PropExpressions\StructuredData\FieldPropExpression|\Drupal\experience_builder\PropExpressions\StructuredData\FieldObjectPropsExpression|\Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldPropExpression>}>>
+   */
+  public function getAvailablePropSourceChoices(): mixed {
+    $prop_source_suggester = \Drupal::service(FieldForComponentSuggester::class);
+    assert($prop_source_suggester instanceof FieldForComponentSuggester);
+
+    $tree = $this->get('tree');
+    assert($tree instanceof ComponentTreeStructure);
+    $host_entity_type = $this->getEntity()->getTypedData()->getDataDefinition();
+    assert($host_entity_type instanceof EntityDataDefinitionInterface);
+
+    $choices = [];
+    foreach ($tree->getComponentInstanceUuids() as $uuid) {
+      $component_plugin_id = $tree->getComponentId($uuid);
+      if (array_key_exists($component_plugin_id, $choices)) {
+        // The same component plugin may be instantiated multiple times — no
+        // need to find prop source suggestions for each instance.
+        continue;
+      }
+      $choices[$component_plugin_id] = $prop_source_suggester->suggest($component_plugin_id, $host_entity_type);
+    }
+    return $choices;
   }
 
   /**

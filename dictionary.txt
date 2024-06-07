@@ -1,3 +1,4 @@
+JSONified
 transferrables
 leftbar
 reduxjs

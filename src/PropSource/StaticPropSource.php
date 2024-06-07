@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Drupal\experience_builder\PropSource;
 
+use Drupal\Core\Entity\FieldableEntityInterface;
+use Drupal\Core\Entity\Plugin\DataType\EntityAdapter;
 use Drupal\Core\Field\BaseFieldDefinition;
 use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Field\FieldItemInterface;
@@ -16,6 +18,7 @@ use Drupal\Core\TypedData\TypedDataManagerInterface;
 use Drupal\experience_builder\PropExpressions\StructuredData\Evaluator;
 use Drupal\experience_builder\PropExpressions\StructuredData\FieldTypeObjectPropsExpression;
 use Drupal\experience_builder\PropExpressions\StructuredData\FieldTypePropExpression;
+use Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldTypePropExpression;
 use Drupal\experience_builder\PropExpressions\StructuredData\StructuredDataPropExpressionInterface;
 
 /**
@@ -31,18 +34,22 @@ final class StaticPropSource extends PropSource {
   /**
    * {@inheritdoc}
    */
-  public static function parse(array $sdc_prop_source): static {
-    // `sourceType = static` requires a value and an expression to be specified.
-    $missing = array_diff(['value', 'expression'], array_keys($sdc_prop_source));
-    if (!empty($missing)) {
-      throw new \LogicException(sprintf('Missing the keys %s.', implode(',', $missing)));
-    }
-    assert(array_key_exists('value', $sdc_prop_source));
+  public function __toString(): string {
+    // @phpstan-ignore-next-line
+    return json_encode([
+      'sourceType' => 'static:' . $this->fieldItem->getDataDefinition()->getDataType(),
+      'expression' => (string) $this->expression,
+    ], JSON_UNESCAPED_UNICODE);
+  }
 
+  private static function conjureFieldItem(FieldTypePropExpression|FieldTypeObjectPropsExpression|ReferenceFieldTypePropExpression $expression): FieldItemInterface {
     $typed_data_manager = \Drupal::service(TypedDataManagerInterface::class);
 
     // First: conjure the expected FieldItem instance.
-    [, $data_type] = explode(':', $sdc_prop_source['sourceType'], 2);
+    $field_type = $expression instanceof ReferenceFieldTypePropExpression
+      ? $expression->referencer->fieldType
+      : $expression->fieldType;
+    $data_type = "field_item:" . $field_type;
     $field_item_definition = $typed_data_manager->createDataDefinition($data_type);
     assert($field_item_definition instanceof FieldItemDataDefinitionInterface);
     $field_item = $typed_data_manager->createInstance($data_type, [
@@ -51,31 +58,62 @@ final class StaticPropSource extends PropSource {
       'data_definition' => $field_item_definition,
     ]);
     assert($field_item instanceof FieldItemInterface);
+    return $field_item;
+  }
+
+  /**
+   * Generates a new (empty) prop source.
+   */
+  public static function generate(FieldTypePropExpression|FieldTypeObjectPropsExpression|ReferenceFieldTypePropExpression $expression): static {
+    return new StaticPropSource(self::conjureFieldItem($expression), $expression);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function parse(array $sdc_prop_source): static {
+    // `sourceType = static` requires a value and an expression to be specified.
+    $missing = array_diff(['value', 'expression'], array_keys($sdc_prop_source));
+    if (!empty($missing)) {
+      throw new \LogicException(sprintf('Missing the keys %s.', implode(',', $missing)));
+    }
+    assert(array_key_exists('value', $sdc_prop_source));
+
+    // First: construct an expression object from the expression string.
+    if (str_contains($sdc_prop_source['expression'], '{')) {
+      $expression = FieldTypeObjectPropsExpression::fromString($sdc_prop_source['expression']);
+    }
+    elseif (str_contains($sdc_prop_source['expression'], 'entity␜︎␜entity:')) {
+      $expression = ReferenceFieldTypePropExpression::fromString($sdc_prop_source['expression']);
+    }
+    else {
+      $expression = FieldTypePropExpression::fromString($sdc_prop_source['expression']);
+    }
+
+    // Second: conjure the expected FieldItem instance.
+    $field_item = self::conjureFieldItem($expression);
     $field_item->setValue($sdc_prop_source['value']);
 
     // @todo Remove this when this logic is moved into a field type and it actually gets saved and has test coverage.
     // @todo This won't work for fields whose props are objects (ComplexData)/lists (ListInterface), but core does not use that AFAIK, so fine for now.
     $expected_to_be_stored = $field_item->toArray();
-    match (count($field_item_definition->getPropertyDefinitions())) {
+    match (count($field_item->getDataDefinition()->getPropertyDefinitions())) {
       1 => (function () use ($expected_to_be_stored, $sdc_prop_source, $field_item) {
         if ($expected_to_be_stored[$field_item::mainPropertyName()] !== $sdc_prop_source['value']) {
-          throw new \LogicException(sprintf('Unexpected static prop value: %s should be %s', json_encode($sdc_prop_source['value']), json_encode($expected_to_be_stored[$field_item::mainPropertyName()])));
+          throw new \LogicException(sprintf('aaaaaUnexpected static prop value: %s should be %s', json_encode($sdc_prop_source['value']), json_encode($expected_to_be_stored[$field_item::mainPropertyName()])));
         }
       })(),
-      default => (function () use ($expected_to_be_stored, $sdc_prop_source) {
-        if ($expected_to_be_stored !== $sdc_prop_source['value']) {
-          throw new \LogicException(sprintf('Unexpected static prop value: %s should be %s', json_encode($sdc_prop_source['value']), json_encode($expected_to_be_stored)));
+      default => (function () use ($expected_to_be_stored, $sdc_prop_source, $field_item) {
+        if ($expected_to_be_stored != $sdc_prop_source['value']) {
+          $optional_field_properties = array_filter($field_item->getDataDefinition()->getPropertyDefinitions(), fn ($def) => !$def->isRequired());
+          $missing_expected_properties = array_diff_key($expected_to_be_stored, $sdc_prop_source['value']);
+          $missing_required_expected_properties = array_diff_key($missing_expected_properties, $optional_field_properties);
+          if (!empty($missing_required_expected_properties)) {
+            throw new \LogicException(sprintf('Unexpected static prop value: %s should be %s — %s properties are missing', json_encode($sdc_prop_source['value']), json_encode($expected_to_be_stored), implode(', ', $missing_required_expected_properties)));
+          }
         }
       })(),
     };
-
-    // Second: construct an expression object from the expression string.
-    if (str_contains($sdc_prop_source['expression'], '{')) {
-      $expression = FieldTypeObjectPropsExpression::fromString($sdc_prop_source['expression']);
-    }
-    else {
-      $expression = FieldTypePropExpression::fromString($sdc_prop_source['expression']);
-    }
 
     return new StaticPropSource($field_item, $expression);
   }
@@ -83,8 +121,16 @@ final class StaticPropSource extends PropSource {
   /**
    * {@inheritdoc}
    */
-  public function evaluate(): mixed {
+  public function evaluate(FieldableEntityInterface $host_entity): mixed {
     return Evaluator::evaluate($this->fieldItem, $this->expression);
+  }
+
+  public function asChoice(): string {
+    return (string) $this->expression;
+  }
+
+  public function getSourceType(): string {
+    return sprintf("static:%s", $this->fieldItem->getDataDefinition()->getDataType());
   }
 
   private function conjureFieldDefinition(string $sdc_prop_name): FieldDefinitionInterface {
@@ -119,9 +165,9 @@ final class StaticPropSource extends PropSource {
   /**
    * @phpstan-ignore-next-line
    */
-  public function formTemporaryRemoveThisExclamationExclamationExclamation(string $component_instance_uuid, string $sdc_prop_name, array &$form, FormStateInterface $form_state): array {
+  public function formTemporaryRemoveThisExclamationExclamationExclamation(string $component_instance_uuid, string $sdc_prop_name, FieldableEntityInterface $host_entity, array &$form, FormStateInterface $form_state): array {
     $field_definition = $this->conjureFieldDefinition($sdc_prop_name);
-    $field = (new FieldItemList($field_definition, $sdc_prop_name))->set(0, $this->fieldItem);
+    $field = (new FieldItemList($field_definition, $sdc_prop_name, EntityAdapter::createFromEntity($host_entity)))->set(0, $this->fieldItem);
     return $this->getWidget($sdc_prop_name)->form($field, $form, $form_state);
   }
 
@@ -129,9 +175,9 @@ final class StaticPropSource extends PropSource {
    * @param array<int, array<string, mixed>> $values
    * @param array<mixed> $form
    *
-   * @return array<string, mixed>
+   * @return mixed|array<string, mixed>
    */
-  public function massageFormValuesTemporaryRemoveThisExclamationExclamationExclamation(string $sdc_prop_name, array $values, array &$form, FormStateInterface $form_state): array {
+  public function massageFormValuesTemporaryRemoveThisExclamationExclamationExclamation(string $sdc_prop_name, array $values, array &$form, FormStateInterface $form_state): mixed {
     // 1. Apply the field widget's transformation.
     $massaged_values = $this->getWidget($sdc_prop_name)
       ->massageFormValues($values, $form, $form_state);
@@ -148,7 +194,12 @@ final class StaticPropSource extends PropSource {
     $actual_values = $item->getValue();
 
     // 3. XB only needs to store non-computed values.
-    return array_intersect_key($actual_values, $item->getProperties(FALSE));
+    $stored_values = array_intersect_key($actual_values, $item->getProperties(FALSE));
+
+    if (count($this->fieldItem->getDataDefinition()->getPropertyDefinitions()) === 1) {
+      return reset($stored_values);
+    }
+    return $stored_values;
   }
 
 }

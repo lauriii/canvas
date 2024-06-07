@@ -54,6 +54,15 @@ class ComponentTreeHydrated extends TypedData implements CacheableDependencyInte
   /**
    * {@inheritdoc}
    */
+  public function setValue($value, $notify = TRUE) {
+    // There is nothing to set, so return early.
+    // @todo This is an upstream core bug, because this is defined as both computed and read-only, yet it still gets called 🙃 Once the core bug is fixed, this should throw a ReadOnlyException.
+    // throw new ReadOnlyException();
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function toRenderable(): array {
     // ⚠️ We *could* convert to a render array directly. But that should not be
     // the source of truth. So we start from a Drupal Render API-agnostic point,

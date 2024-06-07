@@ -5,6 +5,8 @@ services:
     public: true
     arguments:
       $constraintManager: '@validation.constraint'
+  Drupal\experience_builder\FieldForComponentSuggester:
+    public: true
   Drupal\experience_builder\JsonSchemaDefinitionsStreamwrapper:
     public: true
     tags:

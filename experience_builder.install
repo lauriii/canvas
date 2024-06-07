@@ -20,6 +20,10 @@ function experience_builder_install(): void {
         'type' => 'experience_builder_two_terrible_text_areas',
         'weight' => 1,
       ])
+      ->setComponent('field_hero', [
+        'type' => 'image_image',
+        'weight' => 1,
+      ])
       ->save();
     \Drupal::service('entity_display.repository')
       ->getViewDisplay('node', 'article')

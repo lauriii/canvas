@@ -42,7 +42,11 @@ final class Evaluator {
             $expr->objectPropsToFieldTypeProps
           )
         ),
-        default => throw new \LogicException('Unhandled expression type.'),
+        ReferenceFieldTypePropExpression::class => self::evaluate(
+          $field->get($expr->referencer->propName)->getValue(),
+          $expr->referenced
+        ),
+        default => throw new \LogicException('Unhandled expression type. ' . (string) $expr),
       };
     }
     else {

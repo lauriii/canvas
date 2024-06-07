@@ -11,11 +11,20 @@ use Drupal\experience_builder\PropExpressions\StructuredData\StructuredDataPropE
 
 final class DynamicPropSource extends PropSource {
 
-  private FieldableEntityInterface $hostEntity;
-
   public function __construct(
     private readonly StructuredDataPropExpressionInterface $expression,
   ) {}
+
+  /**
+   * {@inheritdoc}
+   */
+  public function __toString(): string {
+    // @phpstan-ignore-next-line
+    return json_encode([
+      'sourceType' => 'dynamic',
+      'expression' => (string) $this->expression,
+    ], JSON_UNESCAPED_UNICODE);
+  }
 
   /**
    * {@inheritdoc}
@@ -30,19 +39,15 @@ final class DynamicPropSource extends PropSource {
     return new DynamicPropSource(StructuredDataPropExpression::fromString($sdc_prop_source['expression']));
   }
 
-  public function withHostEntity(FieldableEntityInterface $host_entity): self {
-    $this->hostEntity = $host_entity;
-    return $this;
-  }
-
   /**
    * {@inheritdoc}
    */
-  public function evaluate(): mixed {
-    if (!isset($this->hostEntity)) {
-      throw new \LogicException('Can only evaluate a dynamic prop source after calling withHostEntity().');
-    }
-    return Evaluator::evaluate($this->hostEntity, $this->expression);
+  public function evaluate(FieldableEntityInterface $host_entity): mixed {
+    return Evaluator::evaluate($host_entity, $this->expression);
+  }
+
+  public function asChoice(): string {
+    return (string) $this->expression;
   }
 
 }

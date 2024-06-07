@@ -10,8 +10,6 @@ use Drupal\experience_builder\Plugin\Adapter\AdapterInterface;
 
 final class AdaptedPropSource extends PropSource {
 
-  private FieldableEntityInterface $hostEntity;
-
   /**
    * @param \Drupal\experience_builder\Plugin\Adapter\AdapterInterface $adapter_instance
    * @param array<string, mixed> $adapter_inputs
@@ -20,6 +18,23 @@ final class AdaptedPropSource extends PropSource {
     private readonly AdapterInterface $adapter_instance,
     private readonly array $adapter_inputs,
   ) {}
+
+  /**
+   * {@inheritdoc}
+   */
+  public function __toString(): string {
+    // @phpstan-ignore-next-line
+    return json_encode([
+      'sourceType' => 'adapter:' . $this->adapter_instance->getPluginId(),
+      'adapterInputs' => array_map(
+        fn (PropSource $source): array => json_decode((string) $source, TRUE),
+        array_map(
+          fn (string $input_name): PropSource => $this->getInputPropSource($input_name),
+          array_keys($this->adapter_inputs)
+        )
+      ),
+    ], JSON_UNESCAPED_UNICODE);
+  }
 
   /**
    * @param array{sourceType: string, expression: string, value?: array<string, mixed>, adapterInputs?: array<string, mixed>} $sdc_prop_source
@@ -40,38 +55,32 @@ final class AdaptedPropSource extends PropSource {
     return new AdaptedPropSource($adapter_instance, $sdc_prop_source['adapterInputs']);
   }
 
-  public function withHostEntity(FieldableEntityInterface $host_entity): self {
-    $this->hostEntity = $host_entity;
-    return $this;
-  }
-
   /**
    * {@inheritdoc}
    */
-  public function evaluate(): mixed {
+  public function evaluate(FieldableEntityInterface $host_entity): mixed {
     foreach ($this->adapter_inputs as $input_name => $input) {
-      $value_object = match(TRUE) {
-        $input['sourceType'] === 'dynamic' => DynamicPropSource::parse($input),
-        // @todo Determine whether nested adapted inputs should be supported.
-        // str_starts_with($input['sourceType'], 'adapter:') => AdaptedPropSource::parse($input),
-        str_starts_with($input['sourceType'], 'static:') => StaticPropSource::parse($input),
-        default => throw new \OutOfRangeException(),
-      };
-      if ($value_object instanceof DynamicPropSource) {
-        if (!isset($this->hostEntity)) {
-          throw new \LogicException('Can only evaluate a dynamic prop source after calling withHostEntity().');
-        }
-        $value_object->withHostEntity($this->hostEntity);
-        $value = $value_object->withHostEntity($this->hostEntity)->evaluate();
-      }
-      else {
-        $value = $value_object->evaluate();
-      }
-
+      $value_object = $this->getInputPropSource($input_name);
+      $value = $value_object->evaluate($host_entity);
       $this->adapter_instance->addInput($input_name, $value);
     }
 
     return $this->adapter_instance->adapt();
+  }
+
+  public function asChoice(): string {
+    return $this->adapter_instance->getPluginId();
+  }
+
+  public function getInputPropSource(string $input_name) : StaticPropSource|DynamicPropSource {
+    $input = $this->adapter_inputs[$input_name];
+    return match(TRUE) {
+      $input['sourceType'] === 'dynamic' => DynamicPropSource::parse($input),
+      // @todo Determine whether nested adapted inputs should be supported.
+      // str_starts_with($input['sourceType'], 'adapter:') => AdaptedPropSource::parse($input),
+      str_starts_with($input['sourceType'], 'static:') => StaticPropSource::parse($input),
+      default => throw new \OutOfRangeException(),
+    };
   }
 
 }
