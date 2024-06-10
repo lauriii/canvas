@@ -13,6 +13,7 @@ import {
   setSelectedComponent,
   setHoveredComponent,
 } from '../../ui/uiSlice';
+import { customSortableDragImage } from '../../sortable/sortableUtils';
 
 interface TreeChildProps {
   node: LayoutNode;
@@ -47,6 +48,9 @@ const TreeChild: React.FC<TreeChildProps> = (props) => {
       })}
       onClick={handleItemClick}
       onMouseEnter={handleItemMouseEnter}
+      onDragStart={(event) =>
+        customSortableDragImage(event, window.document, model[node.uuid].name)
+      }
     >
       {node.type !== 'slot' && (
         <div className={styles.treeChildToolbar}>

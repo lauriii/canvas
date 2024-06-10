@@ -8,7 +8,8 @@ import {
 import Sortable from 'sortablejs';
 import { useAppDispatch, useAppSelector } from '../../app/hooks';
 import { useGetComponentsQuery } from '../../services/components';
-import { Box, Card, Flex, Heading, Spinner, Text } from '@radix-ui/themes';
+import { Box, Card, Flex, Spinner, Text } from '@radix-ui/themes';
+import { customSortableDragImage } from '../sortable/sortableUtils';
 
 const List = () => {
   const dispatch = useAppDispatch();
@@ -76,6 +77,13 @@ const List = () => {
                 key={component.id}
                 data-xb-uuid={component.id}
                 data-xb-name={component.name}
+                onDragStart={(event) =>
+                  customSortableDragImage(
+                    event,
+                    window.document,
+                    component.name,
+                  )
+                }
               >
                 <Text>{component.name}</Text>
               </Card>

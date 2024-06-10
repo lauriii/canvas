@@ -22,6 +22,7 @@ import { findNodePathByUuid } from '../layoutUtils';
 import { usePostPreviewMutation } from '../../../services/preview';
 import { Spinner } from '@radix-ui/themes';
 import classNames from 'classnames';
+import { customSortableDragImage } from '../../sortable/sortableUtils';
 
 interface PreviewProps {
   iframeRef: React.RefObject<HTMLIFrameElement>; // Replace 'any' with a more specific type if possible
@@ -109,35 +110,13 @@ const Preview: React.FC<PreviewProps> = (props) => {
   // Takes each sortable item (component) and adds a dragstart event listener. This is so that we can implement a custom
   // dragImage (the floating representation of what you are dragging that follows your cursor).
   const initSortableListItem = (listItemEl: HTMLElement) => {
-    listItemEl.addEventListener('dragstart', function (event: DragEvent) {
-      if (iframeDocumentRef.current && event.target) {
-        // Create and style the custom drag image
-        const target = event.target as HTMLElement;
-        const customDragImage = iframeDocumentRef.current.createElement('div');
-
-        customDragImage.textContent = target.dataset.debId || 'Component';
-        customDragImage.style.cssText = `
-              background-color: #f0f0f0;
-              width: 200px;
-              height: 20px;
-              padding: 5px 10px;
-              border: 1px solid #000;
-              position: absolute;
-              display: flex;
-              justify-content: center;
-              top: -9999px; // Position off-screen to avoid flickering
-              cursor: grabbing;
-              pointer-events: none;
-            `;
-        iframeDocumentRef.current.body.appendChild(customDragImage);
-
-        // Set the custom drag image
-        event.dataTransfer?.setDragImage(customDragImage, 0, 0);
-
-        // Remove the custom drag image element after a short delay
-        window.requestAnimationFrame(function () {
-          iframeDocumentRef.current?.body.removeChild(customDragImage);
-        });
+    listItemEl.addEventListener('dragstart', (event) => {
+      if (iframeDocumentRef.current && listItemEl.dataset.xbUuid) {
+        return customSortableDragImage(
+          event,
+          iframeDocumentRef.current,
+          model[listItemEl.dataset.xbUuid].name,
+        );
       }
     });
   };
