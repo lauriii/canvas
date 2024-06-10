@@ -1,9 +1,9 @@
 import type React from 'react';
 import styles from './TreeChild.module.css';
 import TreeParent from './TreeParent';
-import type { LayoutNode } from '../layoutModelSlice';
-import { deleteNode, selectModel } from '../layoutModelSlice';
-import { useAppDispatch, useAppSelector } from '../../../app/hooks';
+import type { LayoutNode } from '@/features/layout/layoutModelSlice';
+import { deleteNode, selectModel } from '@/features/layout/layoutModelSlice';
+import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { IconButton, Text } from '@radix-ui/themes';
 import { TrashIcon } from '@radix-ui/react-icons';
 import classNames from 'classnames';
@@ -12,8 +12,9 @@ import {
   selectHoveredComponent,
   setSelectedComponent,
   setHoveredComponent,
-} from '../../ui/uiSlice';
-import { customSortableDragImage } from '../../sortable/sortableUtils';
+} from '@/features/ui/uiSlice';
+
+import { customSortableDragImage } from '@/features/sortable/sortableUtils';
 
 interface TreeChildProps {
   node: LayoutNode;

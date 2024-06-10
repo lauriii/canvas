@@ -1,14 +1,14 @@
 import styles from './App.module.css';
 import { useEffect, useRef, useState } from 'react';
-import Preview from './features/layout/preview/Preview';
-import Layout from './features/layout/Layout';
-import { Button, Theme, Flex, Card, Grid } from '@radix-ui/themes';
+import Preview from '@/features/layout/preview/Preview';
+import Layout from '@/features/layout/Layout';
+import { Button, Flex } from '@radix-ui/themes';
 import classNames from 'classnames';
-import PrimaryPanel from './features/panel/PrimaryPanel';
-import ContextualPanel from './features/panel/ContextualPanel';
-import { useAppSelector } from './app/hooks';
-import { selectSelectedComponent } from './features/ui/uiSlice';
-import UndoRedo from "./components/UndoRedo";
+import PrimaryPanel from '@/components/panel/PrimaryPanel';
+import ContextualPanel from '@/components/panel/ContextualPanel';
+import { useAppSelector } from './hooks';
+import { selectSelectedComponent } from '@/features/ui/uiSlice';
+import UndoRedo from '@/components/UndoRedo';
 
 const App = () => {
   const iframeRef = useRef(null);
@@ -37,7 +37,7 @@ const App = () => {
           <Button size="1" onClick={() => setContextualPanelOpen(true)}>
             Open Right
           </Button>
-          <UndoRedo/>
+          <UndoRedo />
         </Flex>
       </div>
       <div className={classNames(styles.previewContainer)}>

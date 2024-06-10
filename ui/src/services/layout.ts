@@ -1,6 +1,6 @@
 // Need to use the React-specific entry point to import createApi
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
-import type { LayoutNode } from '../features/layout/layoutModelSlice';
+import type { LayoutNode } from '@/features/layout/layoutModelSlice';
 
 export interface LayoutResponse {
   model: {};

@@ -4,12 +4,12 @@ import {
   selectDragging,
   setListDragging,
   setTreeDragging,
-} from '../../features/ui/uiSlice';
+} from '@/features/ui/uiSlice';
 import Sortable from 'sortablejs';
-import { useAppDispatch, useAppSelector } from '../../app/hooks';
-import { useGetComponentsQuery } from '../../services/components';
-import { Box, Card, Flex, Spinner, Text } from '@radix-ui/themes';
-import { customSortableDragImage } from '../sortable/sortableUtils';
+import { useAppDispatch, useAppSelector } from '@/app/hooks';
+import { useGetComponentsQuery } from '@/services/components';
+import { Box, Card, Flex,  Spinner, Text } from '@radix-ui/themes';
+import { customSortableDragImage } from '@/features/sortable/sortableUtils';
 
 const List = () => {
   const dispatch = useAppDispatch();

@@ -3,16 +3,16 @@ import type React from 'react';
 import { useRef, useEffect } from 'react';
 import Sortable from 'sortablejs';
 import TreeChild from './TreeChild';
-import { useAppDispatch, useAppSelector } from '../../../app/hooks';
-import type { LayoutNode } from '../layoutModelSlice';
+import { useAppDispatch, useAppSelector } from '@/app/hooks';
+import type { LayoutNode } from '@/features/layout/layoutModelSlice';
 import {
   selectLayout,
   addNewComponentToLayout,
   moveNode,
   sortNode,
-} from '../layoutModelSlice';
-import { setTreeDragging } from '../../ui/uiSlice';
-import { findNodePathByUuid } from '../layoutUtils';
+} from '@/features/layout/layoutModelSlice';
+import { setTreeDragging } from '@/features/ui/uiSlice';
+import { findNodePathByUuid } from '@/features/layout/layoutUtils';
 import classNames from 'classnames';
 
 interface TreeParentProps {

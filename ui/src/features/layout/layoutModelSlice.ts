@@ -10,8 +10,8 @@ import {
   removeNodeByUuid,
 } from './layoutUtils';
 import { v4 as uuidv4 } from 'uuid';
-import type { UUID } from '../../types/UUID';
-import type { AppDispatch } from '../../app/store';
+import type { UUID } from '@/types/UUID';
+import type { AppDispatch } from '@/app/store';
 import type { StateWithHistory } from "redux-undo";
 
 export interface LayoutNode {

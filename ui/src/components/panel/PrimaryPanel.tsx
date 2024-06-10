@@ -13,10 +13,10 @@ import {
 } from '@radix-ui/themes';
 import classNames from 'classnames';
 import styles from './Panel.module.css';
-import List from '../list/List';
+import List from '@/components/list/List';
 import { Cross1Icon, DragHandleVerticalIcon } from '@radix-ui/react-icons';
 import type React from 'react';
-import TreeView from '../layout/tree/TreeView';
+import TreeView from '@/features/layout/tree/TreeView';
 
 interface PrimaryPanelProps {
   open: boolean;

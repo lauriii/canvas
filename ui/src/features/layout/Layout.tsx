@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
-import { useAppDispatch } from '../../app/hooks';
-import { useGetLayoutByIdQuery } from '../../services/layout';
+import { useAppDispatch } from '@/app/hooks';
+import { useGetLayoutByIdQuery } from '@/services/layout';
 import { setLayoutModel } from './layoutModelSlice';
 
 const Layout = () => {

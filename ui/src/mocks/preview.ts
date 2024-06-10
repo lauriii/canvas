@@ -1,11 +1,14 @@
-import type { LayoutNode } from "../features/layout/layoutModelSlice";
-import styleContent from "./styles.css?raw";
+import type { LayoutNode } from '@/features/layout/layoutModelSlice';
+import styleContent from './styles.css?raw';
 
 const createHtmlFromLayoutData = (
   layout: LayoutNode,
-  model: { [x: string]: {
+  model: {
+    [x: string]: {
       markup: string;
-      name: string } },
+      name: string;
+    };
+  },
 ) => {
   // Recursive function to create HTML for each component
   const createComponent = (component: LayoutNode): HTMLDivElement => {
@@ -16,7 +19,6 @@ const createHtmlFromLayoutData = (
     // Check if the component has children to create a nested structure
 
     if (component.type === 'component') {
-
       div.setAttribute('data-xb-type', 'component');
       if (model[component.uuid]?.markup) {
         div.innerHTML += model[component.uuid]?.markup;
@@ -54,7 +56,7 @@ const createHtmlFromLayoutData = (
   });
 
   return rootDiv.outerHTML;
-}
+};
 
 // Function to create a full HTML document as a string
 const mockPreviewDocument = (data: LayoutNode, model: {}): string => {
@@ -73,6 +75,6 @@ const mockPreviewDocument = (data: LayoutNode, model: {}): string => {
   // Serialize the new document to a string
   const serializer = new XMLSerializer();
   return serializer.serializeToString(doc);
-}
+};
 
 export default mockPreviewDocument;

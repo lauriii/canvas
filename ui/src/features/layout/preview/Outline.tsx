@@ -1,11 +1,14 @@
 import styles from './Outline.module.css';
 import type React from 'react';
 import { useRef, useEffect, useState } from 'react';
-import { deleteNode } from '../layoutModelSlice';
-import { useAppDispatch } from '../../../app/hooks';
+import { deleteNode } from '@/features/layout/layoutModelSlice';
+import { useAppDispatch } from '@/app/hooks';
 import { Button, Grid } from '@radix-ui/themes';
 import classNames from 'classnames';
-import { setHoveredComponent, setSelectedComponent } from '../../ui/uiSlice';
+import {
+  setHoveredComponent,
+  setSelectedComponent,
+} from '@/features/ui/uiSlice';
 
 interface OutlineProps {
   elementId: string | undefined; // the data-xb-uuid value of the dom element that was hovered.

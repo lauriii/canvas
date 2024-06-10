@@ -2,7 +2,7 @@ import styles from './Preview.module.css';
 import { useRef, useEffect, useState } from 'react';
 import Sortable from 'sortablejs';
 import Outline from './Outline';
-import { useAppDispatch, useAppSelector } from '../../../app/hooks';
+import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import {
   selectDragging,
   selectSelectedComponent,
@@ -10,16 +10,16 @@ import {
   setPreviewDragging,
   setSelectedComponent,
   setHoveredComponent,
-} from '../../../features/ui/uiSlice';
+} from '@/features/ui/uiSlice';
 import {
   moveNode,
   selectLayout,
   sortNode,
   addNewComponentToLayout,
-  selectModel
-} from '../layoutModelSlice';
-import { findNodePathByUuid } from '../layoutUtils';
-import { usePostPreviewMutation } from '../../../services/preview';
+  selectModel,
+} from '@/features/layout/layoutModelSlice';
+import { findNodePathByUuid } from '@/features/layout/layoutUtils';
+import { usePostPreviewMutation } from '@/services/preview';
 import { Spinner } from '@radix-ui/themes';
 import classNames from 'classnames';
 import { customSortableDragImage } from '../../sortable/sortableUtils';
@@ -162,11 +162,17 @@ const Preview: React.FC<PreviewProps> = (props) => {
   useEffect(() => {
     const iframe = iframeRef.current;
     function undoRedoNotifyParentDocument(event: KeyboardEvent) {
-      if (event.metaKey && event.key === 'z' && !event.shiftKey || event.ctrlKey && event.key === 'z') {
+      if (
+        (event.metaKey && event.key === 'z' && !event.shiftKey) ||
+        (event.ctrlKey && event.key === 'z')
+      ) {
         window.parent.postMessage('dispatchUndo', '*');
         return;
       }
-      if (event.metaKey && event.shiftKey && event.key === 'z' || event.ctrlKey && event.key === 'y') {
+      if (
+        (event.metaKey && event.shiftKey && event.key === 'z') ||
+        (event.ctrlKey && event.key === 'y')
+      ) {
         window.parent.postMessage('dispatchRedo', '*');
         return;
       }
@@ -193,8 +199,15 @@ const Preview: React.FC<PreviewProps> = (props) => {
           });
         });
         // Add an event listener to the iFrame that listens to undo/redo hot keys.
-        iframeDocumentRef.current?.body.addEventListener('keydown', undoRedoNotifyParentDocument);
-        return () => iframeDocumentRef.current?.body.removeEventListener('keydown', undoRedoNotifyParentDocument);
+        iframeDocumentRef.current?.body.addEventListener(
+          'keydown',
+          undoRedoNotifyParentDocument,
+        );
+        return () =>
+          iframeDocumentRef.current?.body.removeEventListener(
+            'keydown',
+            undoRedoNotifyParentDocument,
+          );
       };
     }
   }, [layout, model]);

@@ -1,6 +1,6 @@
-import { useAppSelector } from '../../../app/hooks';
-import { selectLayout, selectModel } from '../layoutModelSlice';
-import { selectDragging, selectSelectedComponent } from '../../ui/uiSlice';
+import { useAppSelector } from '@/app/hooks';
+import { selectLayout, selectModel } from '@/features/layout/layoutModelSlice';
+import { selectDragging, selectSelectedComponent } from '@/features/ui/uiSlice';
 import { useEffect } from 'react';
 import { Text } from '@radix-ui/themes';
 
