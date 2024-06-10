@@ -7,6 +7,7 @@ namespace Drupal\experience_builder\Controller;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Render\RendererInterface;
 use Drupal\Core\Theme\ComponentPluginManager;
+use Drupal\experience_builder\Entity\Component;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 
@@ -39,13 +40,17 @@ final class SdcController extends ControllerBase {
    * @return array<integer, mixed>
    *   The array or single directory components.
    */
-  private function getComponentsList() {
-    $components = array_map(fn($component) => [
-      'id' => $component->getPluginId(),
-      'name' => $component->metadata->name,
-      'metadata' => $component->metadata,
-    ], $this->componentPluginManager->getAllComponents());
-    return $components;
+  private function getComponentsList(): array {
+    $component_plugins = [];
+    foreach (Component::loadMultiple() as $component) {
+      $component_plugins[] = $this->componentPluginManager->find($component->getComponentMachineName());
+    }
+
+    return array_map(fn($component_plugin) => [
+      'id' => $component_plugin->getPluginId(),
+      'name' => $component_plugin->metadata->name,
+      'metadata' => $component_plugin->metadata,
+    ], $component_plugins);
   }
 
   /**

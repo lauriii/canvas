@@ -1,3 +1,19 @@
+experience_builder.component.*:
+  type: config_entity
+  constraints:
+    FullyValidatable: ~
+  mapping:
+    label:
+      type: required_label
+      label: 'Label'
+    component:
+      type: machine_name
+      label: 'Component'
+      constraints:
+        Regex:
+          pattern: '/^[a-z0-9_-]+\+[a-z0-9_-]+$/'
+          message: "The %value machine name is not valid."
+
 # @todo reuse the yet-to-be-written validation logic that \Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem::preSave() is referring to
 field.value.component_tree:
   type: field.value.*

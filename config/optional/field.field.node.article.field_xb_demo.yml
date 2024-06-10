@@ -1,10 +1,11 @@
-uuid: cc13c893-2114-4c02-98c2-de32b85805c4
 langcode: en
 status: true
 dependencies:
   config:
     - field.storage.node.field_xb_demo
     - node.type.article
+    # @todo make this calculated via code https://www.drupal.org/project/experience_builder/issues/3453680
+    - experience_builder.component.sdc_test+my-cta
   module:
     - experience_builder
     - sdc_test

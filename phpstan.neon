@@ -84,3 +84,27 @@ parameters:
       message: "#^Method Drupal\\\\.*\\\\Plugin\\\\Field\\\\FieldWidget\\\\.*\\:\\:formElement\\(\\) return type has no value type specified in iterable type array\\.$#"
       count: 1
       path: src/Plugin/Field/FieldWidget/*
+    -
+      message: "#^Method Drupal\\\\experience_builder\\\\Form\\\\ComponentListBuilder\\:\\:buildHeader\\(\\) return type has no value type specified in iterable type array\\.$#"
+      count: 1
+      path: src/Form/*
+    -
+      message: "#^Method Drupal\\\\experience_builder\\\\Form\\\\ComponentListBuilder\\:\\:buildRow\\(\\) return type has no value type specified in iterable type array\\.$#"
+      count: 1
+      path: src/Form/*
+    -
+      message: "#^Method Drupal\\\\experience_builder\\\\Form\\\\ComponentEditForm\\:\\:getEditableConfigNames\\(\\) return type has no value type specified in iterable type array\\.$#"
+      count: 1
+      path: src/Form/*
+    -
+      message: "#^Method Drupal\\\\experience_builder\\\\Form\\\\ComponentEditForm\\:\\:form\\(\\) has parameter \\$form with no value type specified in iterable type array\\.$#"
+      count: 1
+      path: src/Form/*
+    -
+      message: "#^Method Drupal\\\\experience_builder\\\\Form\\\\ComponentEditForm\\:\\:form\\(\\) return type has no value type specified in iterable type array\\.$#"
+      count: 1
+      path: src/Form/*
+    -
+      message: "#^Method Drupal\\\\experience_builder\\\\Form\\\\ComponentEditForm\\:\\:save\\(\\) has parameter \\$form with no value type specified in iterable type array\\.$#"
+      count: 1
+      path: src/Form/*

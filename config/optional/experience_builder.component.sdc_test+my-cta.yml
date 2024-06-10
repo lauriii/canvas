@@ -1,0 +1,7 @@
+langcode: en
+status: true
+dependencies:
+  module:
+    - sdc_test
+label: 'My Test CTA Component'
+component: sdc_test+my-cta

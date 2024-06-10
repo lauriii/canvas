@@ -1,0 +1,4 @@
+entity.component.edit_form:
+  title: 'Edit'
+  route_name: entity.component.edit_form
+  base_route: entity.component.edit_form
