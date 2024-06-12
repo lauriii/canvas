@@ -11,27 +11,37 @@ import {
   Text,
   Theme,
 } from '@radix-ui/themes';
-import classNames from 'classnames';
+import clsx from 'clsx';
 import styles from './Panel.module.css';
 import { Cross1Icon, DragHandleVerticalIcon } from '@radix-ui/react-icons';
 import type React from 'react';
+import { useEffect } from 'react';
+import {
+  selectContextualPanelOpen,
+  selectSelectedComponent,
+  setContextualPanelOpen,
+} from '@/features/ui/uiSlice';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
-import { selectSelectedComponent } from '@/features/ui/uiSlice';
 import { selectModel, updateNodeModel } from '@/features/layout/layoutModelSlice';
 
-interface ContextualPanelProps {
-  open: boolean;
-  setOpen: React.SetStateAction<any>;
-}
+interface ContextualPanelProps {}
 
-const ContextualPanel: React.FC<ContextualPanelProps> = (props) => {
-  const { open, setOpen } = props;
+const ContextualPanel: React.FC<ContextualPanelProps> = () => {
   const dispatch = useAppDispatch();
   const selectedComponent = useAppSelector(selectSelectedComponent);
   const model = useAppSelector(selectModel);
+  const contextualPanelOpen = useAppSelector(selectContextualPanelOpen);
+
+  useEffect(() => {
+    if (selectedComponent) {
+      dispatch(setContextualPanelOpen(true));
+    } else {
+      dispatch(setContextualPanelOpen(false));
+    }
+  }, [selectedComponent]);
 
   const handleContextualPanelOpenChange = (open: boolean) => {
-    setOpen(open);
+    dispatch(setContextualPanelOpen(open));
   };
 
   const handleEditClick = () => {
@@ -46,7 +56,7 @@ const ContextualPanel: React.FC<ContextualPanelProps> = (props) => {
 
   return (
     <Drawer.Root
-      open={open}
+      open={contextualPanelOpen}
       direction="right"
       handleOnly={true}
       modal={false}
@@ -55,7 +65,7 @@ const ContextualPanel: React.FC<ContextualPanelProps> = (props) => {
       <Drawer.Portal>
         <Theme>
           <Drawer.Content
-            className={classNames(styles.sideBar, styles.sideBarRight)}
+            className={clsx(styles.sideBar, styles.sideBarRight)}
           >
             <Grid height="100%" rows="1" columns="1" gap="2">
               <Card variant="classic">

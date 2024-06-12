@@ -1,0 +1,41 @@
+.canvasPane {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  overflow: hidden;
+  background: #9f9f9f;
+}
+.canvas {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 10000px;
+  height: 10000px;
+  transition: background-color 100ms ease-in-out;
+  transform: translate(-5000px, -5000px);
+  border: 1px solid black;
+  background: #fff;
+  .isPanning & {
+    background: #eee;
+  }
+}
+.modifierKeyPressed .canvas {
+  cursor: grab;
+  user-select: none;
+}
+.modifierKeyPressed.isPanning .canvas {
+  cursor: grabbing;
+  user-select: none;
+}
+.previewsContainer {
+  display: flex;
+  gap: 2em;
+}
+
+.modifierKeyPressed .canvas > * {
+  user-select: none;
+  pointer-events: none;
+}

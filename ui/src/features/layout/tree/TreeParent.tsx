@@ -11,9 +11,9 @@ import {
   moveNode,
   sortNode,
 } from '@/features/layout/layoutModelSlice';
+import clsx from 'clsx';
 import { setTreeDragging } from '@/features/ui/uiSlice';
 import { findNodePathByUuid } from '@/features/layout/layoutUtils';
-import classNames from 'classnames';
 
 interface TreeParentProps {
   node: LayoutNode;
@@ -115,7 +115,7 @@ const TreeParent: React.FC<TreeParentProps> = (props) => {
   if (node.type === 'slot' || node.type === 'root') {
     return (
       <ul
-        className={classNames(styles.treeParent, {
+        className={clsx(styles.treeParent, {
           [styles.listEmpty]: children.length === 0,
           [styles.slot]: node.type === 'slot',
         })}

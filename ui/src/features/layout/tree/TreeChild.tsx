@@ -6,7 +6,7 @@ import { deleteNode, selectModel } from '@/features/layout/layoutModelSlice';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { IconButton, Text } from '@radix-ui/themes';
 import { TrashIcon } from '@radix-ui/react-icons';
-import classNames from 'classnames';
+import clsx from 'clsx';
 import {
   selectSelectedComponent,
   selectHoveredComponent,
@@ -43,7 +43,7 @@ const TreeChild: React.FC<TreeChildProps> = (props) => {
     <li
       data-xb-uuid={node.uuid}
       data-xb-type={node.type}
-      className={classNames({
+      className={clsx({
         [styles.selected]: selectedComponent === node.uuid,
         [styles.hovered]: hoveredComponent === node.uuid,
       })}

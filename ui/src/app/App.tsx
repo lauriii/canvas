@@ -1,53 +1,109 @@
 import styles from './App.module.css';
-import { useEffect, useRef, useState } from 'react';
-import Preview from '@/features/layout/preview/Preview';
 import Layout from '@/features/layout/Layout';
-import { Button, Flex } from '@radix-ui/themes';
-import classNames from 'classnames';
+import {
+  Button,
+  Theme,
+  Flex,
+  Card,
+  Grid,
+  Inset,
+  Select,
+  Text,
+} from '@radix-ui/themes';
+import clsx from 'clsx';
 import PrimaryPanel from '@/components/panel/PrimaryPanel';
 import ContextualPanel from '@/components/panel/ContextualPanel';
-import { useAppSelector } from './hooks';
-import { selectSelectedComponent } from '@/features/ui/uiSlice';
+import { useAppDispatch, useAppSelector } from '@/app/hooks';
+import {
+  selectCanvasViewPort,
+  selectContextualPanelOpen,
+  selectPrimaryPanelOpen,
+  setCanvasViewPort,
+  setContextualPanelOpen,
+  scaleValues,
+} from '@/features/ui/uiSlice';
 import UndoRedo from '@/components/UndoRedo';
+import Canvas from '@/features/canvas/Canvas';
+import { ZoomInIcon } from '@radix-ui/react-icons';
 
 const App = () => {
-  const iframeRef = useRef(null);
-  const [primaryPanelOpen, setPrimaryPanelOpen] = useState(true);
-  const [contextualPanelOpen, setContextualPanelOpen] = useState(false);
-  const selectedComponent = useAppSelector(selectSelectedComponent);
-
-  useEffect(() => {
-    if (selectedComponent) {
-      setContextualPanelOpen(true);
-    } else {
-      setContextualPanelOpen(false);
-    }
-  }, [selectedComponent]);
+  const dispatch = useAppDispatch();
+  const contextualPanelOpen = useAppSelector(selectContextualPanelOpen);
+  const primaryPanelOpen = useAppSelector(selectPrimaryPanelOpen);
+  const canvasViewPort = useAppSelector(selectCanvasViewPort);
 
   return (
     <div
-      className={classNames(styles.app, {
+      className={clsx(styles.app, {
         [styles.leftSideBarOpen]: primaryPanelOpen,
         [styles.rightSideBarOpen]: contextualPanelOpen,
       })}
     >
+      <Canvas />
       <Layout />
       <div className={styles.topBar}>
         <Flex gap="3">
-          <Button size="1" onClick={() => setContextualPanelOpen(true)}>
+          <Button
+            size="1"
+            onClick={() => dispatch(setContextualPanelOpen(true))}
+          >
             Open Right
           </Button>
           <UndoRedo />
         </Flex>
       </div>
-      <div className={classNames(styles.previewContainer)}>
-        <Preview iframeRef={iframeRef} />
+      <PrimaryPanel />
+      <ContextualPanel />
+      <div className={styles.canvasControls}>
+        <Card size="1">
+          <Flex align="center" gap="3">
+            <Text size="1">
+              Hold space + drag to pan
+            </Text>
+            <Text size="1">x: {Math.round(canvasViewPort.x)}px, </Text>
+            <Text size="1">y: {Math.round(canvasViewPort.y)}px</Text>
+            <Select.Root
+              defaultValue="100%"
+              value={
+                scaleValues.find((sv) => sv.scale === canvasViewPort.scale)
+                  ?.percent
+              }
+              onValueChange={(value) =>
+                dispatch(
+                  setCanvasViewPort({
+                    scale: scaleValues.find((sv) => value === sv.percent)
+                      ?.scale,
+                  }),
+                )
+              }
+            >
+              <Select.Trigger variant="ghost">
+                <Flex as="span" align="center" gap="2">
+                  <ZoomInIcon />
+                  {
+                    scaleValues.find((sv) => sv.scale === canvasViewPort.scale)
+                      ?.percent
+                  }
+                </Flex>
+              </Select.Trigger>
+              <Select.Content>
+                {scaleValues.map((sv) => (
+                  <Select.Item key={sv.scale} value={sv.percent}>
+                    {sv.percent}
+                  </Select.Item>
+                ))}
+              </Select.Content>
+            </Select.Root>
+            <Button
+              onClick={() =>
+                dispatch(setCanvasViewPort({ x: 350, y: 70, scale: 1 }))
+              }
+            >
+              Debug: scroll to top left
+            </Button>
+          </Flex>
+        </Card>
       </div>
-      <PrimaryPanel open={primaryPanelOpen} setOpen={setPrimaryPanelOpen} />
-      <ContextualPanel
-        open={contextualPanelOpen}
-        setOpen={setContextualPanelOpen}
-      />
     </div>
   );
 };

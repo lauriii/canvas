@@ -8,12 +8,27 @@ export interface DraggingStatus {
   previewDragging: boolean;
 }
 
+export interface CanvasViewPort {
+  x: number;
+  y: number;
+  scale: number;
+}
+
 export interface uiSliceState {
   pending: boolean;
   dragging: DraggingStatus;
   selectedComponent: string | undefined; //uuid of component
   hoveredComponent: string | undefined; //uuid of component
+  primaryPanelOpen: boolean;
+  contextualPanelOpen: boolean;
+  canvasViewport: CanvasViewPort;
 }
+
+type UpdateViewportPayload = {
+  x?: number | undefined;
+  y?: number | undefined;
+  scale?: number | undefined;
+};
 
 const initialState: uiSliceState = {
   pending: false,
@@ -25,7 +40,39 @@ const initialState: uiSliceState = {
   },
   selectedComponent: undefined,
   hoveredComponent: undefined,
+  primaryPanelOpen: true,
+  contextualPanelOpen: false,
+  canvasViewport: {
+    x: 0,
+    y: 0,
+    scale: 1,
+  },
 };
+
+export const scaleValues = [
+  { scale: 0.25, percent: '25%' },
+  { scale: 0.33, percent: '33%' },
+  { scale: 0.5, percent: '50%' },
+  { scale: 0.67, percent: '67%' },
+  { scale: 0.75, percent: '75%' },
+  { scale: 0.8, percent: '80%' },
+  { scale: 0.9, percent: '90%' },
+  { scale: 1, percent: '100%' },
+  { scale: 1.1, percent: '110%' },
+  { scale: 1.25, percent: '125%' },
+  { scale: 1.5, percent: '150%' },
+  { scale: 1.75, percent: '175%' },
+  { scale: 2, percent: '200%' },
+  { scale: 2.5, percent: '250%' },
+  { scale: 3, percent: '300%' },
+  { scale: 4, percent: '400%' },
+  { scale: 5, percent: '500%' },
+];
+
+// const scaleValues = [
+//   0.25, 0.33, 0.5, 0.67, 0.75, 0.8, 0.9, 1, 1.1, 1.25, 1.5, 1.75, 2, 2.5, 3, 4,
+//   5,
+// ];
 
 // If you are not using async thunks you can use the standalone `createSlice`.
 export const uiSlice = createAppSlice({
@@ -61,6 +108,39 @@ export const uiSlice = createAppSlice({
         state.hoveredComponent = action.payload;
       },
     ),
+    setPrimaryPanelOpen: create.reducer(
+      (state, action: PayloadAction<boolean>) => {
+        state.primaryPanelOpen = action.payload;
+      },
+    ),
+    setContextualPanelOpen: create.reducer(
+      (state, action: PayloadAction<boolean>) => {
+        state.contextualPanelOpen = action.payload;
+      },
+    ),
+    setCanvasViewPort: create.reducer(
+      (state, action: PayloadAction<UpdateViewportPayload>) => {
+        state.canvasViewport.x = action.payload.x || state.canvasViewport.x;
+        state.canvasViewport.y = action.payload.y || state.canvasViewport.y;
+        state.canvasViewport.scale =
+          action.payload.scale || state.canvasViewport.scale;
+      },
+    ),
+    canvasViewPortZoomIn: create.reducer((state) => {
+      const currentIndex = scaleValues.findIndex(
+        (value) => value.scale === state.canvasViewport.scale,
+      );
+      const nextIndex =
+        currentIndex + 1 < scaleValues.length ? currentIndex + 1 : currentIndex;
+      state.canvasViewport.scale = scaleValues[nextIndex].scale;
+    }),
+    canvasViewPortZoomOut: create.reducer((state) => {
+      const currentIndex = scaleValues.findIndex(
+        (value) => value.scale === state.canvasViewport.scale,
+      );
+      const prevIndex = currentIndex - 1 >= 0 ? currentIndex - 1 : currentIndex;
+      state.canvasViewport.scale = scaleValues[prevIndex].scale;
+    }),
   }),
   // You can define your selectors here. These selectors receive the slice
   // state as their first argument.
@@ -74,6 +154,15 @@ export const uiSlice = createAppSlice({
     selectHoveredComponent: (ui): string | undefined => {
       return ui.hoveredComponent;
     },
+    selectPrimaryPanelOpen: (ui): boolean => {
+      return ui.primaryPanelOpen;
+    },
+    selectContextualPanelOpen: (ui): boolean => {
+      return ui.contextualPanelOpen;
+    },
+    selectCanvasViewPort: (ui): CanvasViewPort => {
+      return ui.canvasViewport;
+    },
   },
 });
 
@@ -85,6 +174,11 @@ export const {
   setListDragging,
   setSelectedComponent,
   setHoveredComponent,
+  setPrimaryPanelOpen,
+  setContextualPanelOpen,
+  setCanvasViewPort,
+  canvasViewPortZoomIn,
+  canvasViewPortZoomOut,
 } = uiSlice.actions;
 
 // Selectors returned by `slice.selectors` take the root state as their first argument.
@@ -92,4 +186,7 @@ export const {
   selectDragging,
   selectSelectedComponent,
   selectHoveredComponent,
+  selectPrimaryPanelOpen,
+  selectContextualPanelOpen,
+  selectCanvasViewPort,
 } = uiSlice.selectors;

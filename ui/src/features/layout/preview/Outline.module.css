@@ -1,5 +1,5 @@
 .xbComponentOutline {
-  position: fixed;
+  position: absolute;
   top: 0;
   left: 0;
   display: block;
@@ -15,7 +15,7 @@
   outline: 2px dashed #02a376;
 }
 .xbComponentToolbar {
-  position: fixed;
+  position: absolute;
   top: 0;
   left: 0;
   display: block;

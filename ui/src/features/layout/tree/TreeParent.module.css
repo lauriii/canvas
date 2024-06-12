@@ -39,3 +39,10 @@
   padding: 2px 2px 2px 0;
   list-style-type: none;
 }
+
+.slotList {
+  position: relative;
+  margin: 0 0 1rem 0;
+  padding: 2px 2px 2px 0;
+  list-style-type: none;
+}

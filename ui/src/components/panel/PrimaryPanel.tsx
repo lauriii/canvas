@@ -11,31 +11,30 @@ import {
   Text,
   Theme,
 } from '@radix-ui/themes';
-import classNames from 'classnames';
+import clsx from 'clsx';
 import styles from './Panel.module.css';
 import List from '@/components/list/List';
 import { Cross1Icon, DragHandleVerticalIcon } from '@radix-ui/react-icons';
 import type React from 'react';
+import { useAppDispatch, useAppSelector } from '@/app/hooks';
+import { setPrimaryPanelOpen, selectPrimaryPanelOpen } from '@/features/ui/uiSlice';
 import TreeView from '@/features/layout/tree/TreeView';
 
-interface PrimaryPanelProps {
-  open: boolean;
-  setOpen: React.SetStateAction<any>;
-}
+interface PrimaryPanelProps {}
 
-const PrimaryPanel: React.FC<PrimaryPanelProps> = (props) => {
-  const { open, setOpen } = props;
+const PrimaryPanel: React.FC<PrimaryPanelProps> = () => {
+  const dispatch = useAppDispatch();
+  const primaryPanelOpen = useAppSelector(selectPrimaryPanelOpen);
 
   const handlePrimaryPanelOpenChange = (open: boolean) => {
-    console.log('left', open);
-    setOpen(open);
+    dispatch(setPrimaryPanelOpen(open));
   };
 
   return (
     <Drawer.Root
       direction="left"
       handleOnly={true}
-      open={open}
+      open={primaryPanelOpen}
       modal={false}
       onOpenChange={handlePrimaryPanelOpenChange}
     >
@@ -49,7 +48,7 @@ const PrimaryPanel: React.FC<PrimaryPanelProps> = (props) => {
       <Drawer.Portal>
         <Theme>
           <Drawer.Content
-            className={classNames([styles.sideBar, styles.sideBarLeft])}
+            className={clsx(styles.sideBar, styles.sideBarLeft)}
           >
             <Grid height="100%" rows="1" columns="1" gap="2">
               <Card variant="classic">

@@ -4,7 +4,7 @@ import { useRef, useEffect, useState } from 'react';
 import { deleteNode } from '@/features/layout/layoutModelSlice';
 import { useAppDispatch } from '@/app/hooks';
 import { Button, Grid } from '@radix-ui/themes';
-import classNames from 'classnames';
+import clsx from 'clsx';
 import {
   setHoveredComponent,
   setSelectedComponent,
@@ -13,28 +13,22 @@ import {
 interface OutlineProps {
   elementId: string | undefined; // the data-xb-uuid value of the dom element that was hovered.
   selected: boolean;
+  iframeRef: React.RefObject<HTMLIFrameElement>;
 }
 
 const Outline: React.FC<OutlineProps> = (props) => {
-  const { elementId, selected } = props;
+  const { elementId, selected, iframeRef } = props;
   const hoveredElementRef = useRef<HTMLElement | null>(null);
   const outlineElRef = useRef<HTMLDivElement | null>(null);
-  const iframeElRef = useRef<HTMLIFrameElement | null>(null);
+  // const iframeElRef = useRef<HTMLIFrameElement | null>(null);
   const toolbarElRef = useRef<HTMLDivElement | null>(null);
   const [type, setType] = useState<'component' | 'slot'>('component'); //
   const dispatch = useAppDispatch();
 
   useEffect(() => {
-    const iframe = document.getElementById(
-      'preview',
-    ) as HTMLIFrameElement | null;
-    iframeElRef.current = iframe;
-  }, []);
-
-  useEffect(() => {
     if (elementId) {
       hoveredElementRef.current =
-        iframeElRef.current?.contentDocument?.querySelectorAll(
+        iframeRef.current?.contentDocument?.querySelectorAll(
           `[data-xb-uuid="${elementId}"]`,
         )[0] as HTMLElement | null;
       if (hoveredElementRef.current?.dataset.xbType === 'slot') {
@@ -48,17 +42,17 @@ const Outline: React.FC<OutlineProps> = (props) => {
   }, [elementId]);
 
   const handleFrameScroll = () => {
-    if (!iframeElRef.current || !hoveredElementRef.current) {
+    if (!iframeRef.current || !hoveredElementRef.current) {
       return;
     }
     applyStyles();
   };
 
   const bindEvents = () => {
-    if (!iframeElRef.current) {
+    if (!iframeRef.current) {
       return;
     }
-    const iframeDocument = iframeElRef.current.contentDocument;
+    const iframeDocument = iframeRef.current.contentDocument;
     if (!iframeDocument) {
       return;
     }
@@ -84,16 +78,16 @@ const Outline: React.FC<OutlineProps> = (props) => {
 
   const applyStyles = () => {
     const elRect = hoveredElementRef.current?.getBoundingClientRect();
-    const iframeRect = iframeElRef.current?.getBoundingClientRect();
+    const iframeRect = iframeRef.current?.getBoundingClientRect();
 
     if (outlineElRef.current && elRect && iframeRect) {
-      outlineElRef.current.style.transform = `translate(${elRect.left + iframeRect.x}px, ${elRect.top + iframeRect.y}px)`;
+      outlineElRef.current.style.transform = `translate(${elRect.left}px, ${elRect.top}px)`;
       outlineElRef.current.style.width = `${elRect.width}px`;
       outlineElRef.current.style.height = `${elRect.height}px`;
     }
 
     if (toolbarElRef.current && elRect && iframeRect) {
-      toolbarElRef.current.style.transform = `translate(${elRect.left + iframeRect.x}px, ${elRect.top + iframeRect.y}px)`;
+      toolbarElRef.current.style.transform = `translate(${elRect.left}px, ${elRect.top}px)`;
     }
   };
 
@@ -118,7 +112,7 @@ const Outline: React.FC<OutlineProps> = (props) => {
       <>
         <div
           ref={outlineElRef}
-          className={classNames(styles.xbComponentOutline, {
+          className={clsx(styles.xbComponentOutline, {
             [styles.xbSlotOutline]: type === 'slot',
             [styles.selected]: selected,
           })}

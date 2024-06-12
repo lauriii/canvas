@@ -18,18 +18,22 @@ import {
   addNewComponentToLayout,
   selectModel,
 } from '@/features/layout/layoutModelSlice';
+import clsx from 'clsx';
 import { findNodePathByUuid } from '@/features/layout/layoutUtils';
 import { usePostPreviewMutation } from '@/services/preview';
 import { Spinner } from '@radix-ui/themes';
-import classNames from 'classnames';
-import { customSortableDragImage } from '../../sortable/sortableUtils';
+import { customSortableDragImage } from '@/features/sortable/sortableUtils';
 
 interface PreviewProps {
-  iframeRef: React.RefObject<HTMLIFrameElement>; // Replace 'any' with a more specific type if possible
+  height: number;
+  width: number;
 }
 
+const modifierKey = 'Space';
+
 const Preview: React.FC<PreviewProps> = (props) => {
-  const { iframeRef } = props;
+  const { height, width } = props;
+  const iframeRef = useRef<HTMLIFrameElement>(null);
   const layout = useAppSelector(selectLayout);
   const selectedComponent = useAppSelector(selectSelectedComponent);
   const hoveredComponent = useAppSelector(selectHoveredComponent);
@@ -126,7 +130,6 @@ const Preview: React.FC<PreviewProps> = (props) => {
       if (event.target) {
         const target = event.currentTarget as HTMLElement;
         dispatch(setHoveredComponent(target.dataset.xbUuid));
-        // setHoveredElementId(target.dataset.xbUuid);
       }
     });
   };
@@ -141,6 +144,7 @@ const Preview: React.FC<PreviewProps> = (props) => {
       }
     });
   };
+
   const initSortableList = (listEl: HTMLElement) => {
     // Initialize SortableJS on the elements inside the iframe
     Sortable.create(listEl, {
@@ -161,20 +165,40 @@ const Preview: React.FC<PreviewProps> = (props) => {
 
   useEffect(() => {
     const iframe = iframeRef.current;
-    function undoRedoNotifyParentDocument(event: KeyboardEvent) {
-      if (
-        (event.metaKey && event.key === 'z' && !event.shiftKey) ||
-        (event.ctrlKey && event.key === 'z')
-      ) {
-        window.parent.postMessage('dispatchUndo', '*');
-        return;
+    function notifyParentDocument(event: KeyboardEvent) {
+      if (event.type === 'keydown') {
+        if (
+          (event.metaKey && event.key === 'z' && !event.shiftKey) ||
+          (event.ctrlKey && event.key === 'z')
+        ) {
+          window.parent.postMessage('dispatchUndo', '*');
+          return;
+        }
+        if (
+          (event.metaKey && event.shiftKey && event.key === 'z') ||
+          (event.ctrlKey && event.key === 'y')
+        ) {
+          window.parent.postMessage('dispatchRedo', '*');
+          return;
+        }
+        if (event.code === 'NumpadAdd' || event.code === 'Equal') {
+          window.parent.postMessage('dispatchZoomIn', '*');
+          return;
+        }
+        if (event.code === 'NumpadSubtract' || event.code === 'Minus') {
+          window.parent.postMessage('dispatchZoomOut', '*');
+          return;
+        }
+        if (event.code === modifierKey) {
+          window.parent.postMessage('dispatchModifierKeyDown', '*');
+          return;
+        }
       }
-      if (
-        (event.metaKey && event.shiftKey && event.key === 'z') ||
-        (event.ctrlKey && event.key === 'y')
-      ) {
-        window.parent.postMessage('dispatchRedo', '*');
-        return;
+      if (event.type === 'keyup') {
+        if (event.code === modifierKey) {
+          window.parent.postMessage('dispatchModifierKeyUp', '*');
+          return;
+        }
       }
     }
     if (iframe) {
@@ -198,16 +222,26 @@ const Preview: React.FC<PreviewProps> = (props) => {
             initComponentClick(item);
           });
         });
-        // Add an event listener to the iFrame that listens to undo/redo hot keys.
+
+        // Add an event listener to the iFrame that listens to hot keys.
         iframeDocumentRef.current?.body.addEventListener(
           'keydown',
-          undoRedoNotifyParentDocument,
+          notifyParentDocument,
         );
-        return () =>
+        iframeDocumentRef.current?.body.addEventListener(
+          'keyup',
+          notifyParentDocument,
+        );
+        return () => {
           iframeDocumentRef.current?.body.removeEventListener(
             'keydown',
-            undoRedoNotifyParentDocument,
+            notifyParentDocument,
           );
+          iframeDocumentRef.current?.body.removeEventListener(
+            'keyup',
+            notifyParentDocument,
+          );
+        };
       };
     }
   }, [layout, model]);
@@ -231,15 +265,16 @@ const Preview: React.FC<PreviewProps> = (props) => {
   }, [layout, model]);
 
   return (
-    <>
+    <div className={styles.previewContainer}>
       <iframe
         ref={iframeRef}
         className={styles.preview}
         id="preview"
         srcDoc={frameSrcDoc}
+        style={{ height: `${height}px`, width: `${width}px` }}
       ></iframe>
       <div
-        className={classNames(styles.loadingOverlay, {
+        className={clsx(styles.loadingOverlay, {
           [styles.show]: isLoading,
         })}
       >
@@ -249,17 +284,19 @@ const Preview: React.FC<PreviewProps> = (props) => {
         <>
           <Outline
             elementId={hoveredComponent}
+            iframeRef={iframeRef}
             // setHoveredElementId={setHoveredElementId}
             selected={false}
           />
           <Outline
-            elementId={hoveredComponent}
+            elementId={selectedComponent}
+            iframeRef={iframeRef}
             // setHoveredElementId={setHoveredElementId}
             selected={true}
           />
         </>
       )}
-    </>
+    </div>
   );
 };
 export default Preview;
