@@ -96,4 +96,11 @@ class ComponentTreeStructure extends TypedData {
     return $this->tree[$index]['type'];
   }
 
+  /**
+   * @return array<string>
+   */
+  public function getComponentIdList(): array {
+    return array_unique(array_column($this->tree, 'type'));
+  }
+
 }

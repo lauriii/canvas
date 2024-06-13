@@ -7,6 +7,7 @@ namespace Drupal\experience_builder\Plugin\Field\FieldType;
 use Drupal\Component\Serialization\Json;
 use Drupal\Core\Entity\TypedData\EntityDataDefinitionInterface;
 use Drupal\Core\Field\Attribute\FieldType;
+use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Field\FieldItemBase;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\Render\Component\Exception\ComponentNotFoundException;
@@ -16,6 +17,7 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\Theme\Component\ComponentValidator;
 use Drupal\Core\Theme\ComponentPluginManager;
 use Drupal\Core\TypedData\DataDefinition;
+use Drupal\experience_builder\Entity\Component;
 use Drupal\experience_builder\FieldForComponentSuggester;
 use Drupal\experience_builder\Plugin\DataType\ComponentPropsValues;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeHydrated;
@@ -44,6 +46,28 @@ use Drupal\experience_builder\PropSource\PropSource;
   cardinality: 1,
 )]
 class ComponentTreeItem extends FieldItemBase implements RenderableInterface {
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function calculateDependencies(FieldDefinitionInterface $field_definition) {
+    $dependencies = parent::calculateDependencies($field_definition);
+
+    if (empty($field_definition->getDefaultValueLiteral())) {
+      return $dependencies;
+    }
+
+    $default_value = $field_definition->getDefaultValueLiteral()[0];
+    $tree = ComponentTreeStructure::createInstance(DataDefinition::create('component_tree_structure'));
+    $tree->setValue($default_value['tree']);
+
+    foreach (Component::loadMultiple(array_map(Component::convertMachineNameToId(...), $tree->getComponentIdList())) as $component_entity) {
+      assert($component_entity instanceof Component);
+      $dependencies[$component_entity->getConfigDependencyKey()][] = $component_entity->getConfigDependencyName();
+    }
+
+    return $dependencies;
+  }
 
   /**
    * {@inheritdoc}
