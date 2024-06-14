@@ -21,7 +21,7 @@
 /src/JsonSchemaDefinitions*
 /schema.json
 
-[data model] @wimleers
+[data model] @wimleers @f.mazeikis @tedbow
 /src/Plugin/DataType/
 /src/Plugin/Field/FieldFormatter/
 /src/Plugin/Field/FieldType/
@@ -29,11 +29,11 @@
 /src/PropExpressions/
 /src/PropSource/
 
-[data model — missing metadata] @wimleers
+[data model — missing metadata] @wimleers @f.mazeikis @tedbow
 /src/Plugin/DataTypeOverride/
 /src/Plugin/Field/FieldTypeOverride/
 
-[schema matching] @wimleers
+[schema matching] @wimleers @f.mazeikis @tedbow
 /src/JsonSchemaInterpreter/
 /src/DataTypeShape*
 /src/SdcProp*
@@ -54,15 +54,13 @@
 [DX: CI] @wimleers
 /.gitlab-ci.yml
 
-[DX: Cypress] @bnjmnm @jessebaker
-/submodules/cypress/
-
-[DX: JS][2] @bnjmnm @jessebaker
+[DX: JS] @bnjmnm @jessebaker
 /ui/*.json
 /ui/*.config.ts
 
 [DX: hot reload] @hooroomoo
 /submodules/xb_vite/
 
-[DX: PHP] @wimleers
+[DX: PHP] @wimleers @larowlan
 /phpcs.xml
+/phpstan.neon
