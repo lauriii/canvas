@@ -40,15 +40,20 @@ final class FieldForComponentSuggester {
 
   /**
    * @param string $component_plugin_id
+   * @param \Drupal\Core\Entity\TypedData\EntityDataDefinitionInterface|null $host_entity_type
+   *   Host entity type, if the given component is being used in the context of
+   *   an entity.
    *
    * @return array<string, array{required: bool, types: array<string, \Drupal\experience_builder\PropExpressions\StructuredData\FieldTypePropExpression|\Drupal\experience_builder\PropExpressions\StructuredData\FieldTypeObjectPropsExpression|\Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldTypePropExpression>, instances: array<string, \Drupal\experience_builder\PropExpressions\StructuredData\FieldPropExpression|\Drupal\experience_builder\PropExpressions\StructuredData\FieldObjectPropsExpression|\Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldPropExpression>, adapters: array<AdapterInterface>}>
    */
-  public function suggest(string $component_plugin_id, EntityDataDefinitionInterface $host_entity_type): array {
-    $host_entity_type_id = $host_entity_type->getEntityTypeId();
-    assert(is_string($host_entity_type_id));
-    $bundles = $host_entity_type->getBundles();
-    assert(is_array($bundles) && array_key_exists(0, $bundles));
-    $host_entity_type_bundle = $bundles[0];
+  public function suggest(string $component_plugin_id, ?EntityDataDefinitionInterface $host_entity_type): array {
+    if ($host_entity_type) {
+      $host_entity_type_id = $host_entity_type->getEntityTypeId();
+      assert(is_string($host_entity_type_id));
+      $bundles = $host_entity_type->getBundles();
+      assert(is_array($bundles) && array_key_exists(0, $bundles));
+      $host_entity_type_bundle = $bundles[0];
+    }
 
     // 1. Get raw matches.
     $raw_matches = $this->getRawMatches($component_plugin_id);
@@ -87,12 +92,15 @@ final class FieldForComponentSuggester {
 
       // Instance matches: filter to the ones matching the current host entity
       // type + bundle.
-      $processed_matches[$cpe]['instances'] = array_filter(
-        $m['instances'],
-        fn (FieldPropExpression|FieldObjectPropsExpression|ReferenceFieldPropExpression $e) => $e instanceof ReferenceFieldPropExpression
-          ? $e->referencer->entityType->getDataType() === $host_entity_type->getDataType()
-          : $e->entityType->getDataType() === $host_entity_type->getDataType()
-      );
+      $processed_matches[$cpe]['instances'] = [];
+      if ($host_entity_type) {
+        $processed_matches[$cpe]['instances'] = array_filter(
+          $m['instances'],
+          fn(FieldPropExpression|FieldObjectPropsExpression|ReferenceFieldPropExpression $e) => $e instanceof ReferenceFieldPropExpression
+            ? $e->referencer->entityType->getDataType() === $host_entity_type->getDataType()
+            : $e->entityType->getDataType() === $host_entity_type->getDataType()
+        );
+      }
 
       // @todo filtering
       $processed_matches[$cpe]['adapters'] = $m['adapters'];
@@ -125,25 +133,28 @@ final class FieldForComponentSuggester {
 
       // Field instances.
       // @todo Ensure these expressions do not break: https://www.drupal.org/project/experience_builder/issues/3452848
-      $field_definitions = $this->entityFieldManager->getFieldDefinitions($host_entity_type_id, $host_entity_type_bundle);
-      $suggestions[$cpe]['instances'] = array_combine(
-        array_map(
+      $suggestions[$cpe]['instances'] = [];
+      if ($host_entity_type) {
+        $field_definitions = $this->entityFieldManager->getFieldDefinitions($host_entity_type_id, $host_entity_type_bundle);
+        $suggestions[$cpe]['instances'] = array_combine(
+          array_map(
           // @todo Defensive edge case: multiple field instances with the same label.
-          function (FieldPropExpression|FieldObjectPropsExpression|ReferenceFieldPropExpression $e) use ($field_definitions, $host_entity_type_id, $host_entity_type_bundle) {
-            $field_name = $e instanceof ReferenceFieldPropExpression
-              ? $e->referencer->fieldName
-              : $e->fieldName;
-            $field_definition = $field_definitions[$field_name];
-            assert($field_definition instanceof FieldDefinitionInterface);
-            return (string) t("This @entity's @field-label", [
-              '@entity' => $this->entityTypeBundleInfo->getBundleInfo($host_entity_type_id)[$host_entity_type_bundle]['label'],
-              '@field-label' => $field_definition->getLabel(),
-            ]);
-          },
+            function (FieldPropExpression|FieldObjectPropsExpression|ReferenceFieldPropExpression $e) use ($field_definitions, $host_entity_type_id, $host_entity_type_bundle) {
+              $field_name = $e instanceof ReferenceFieldPropExpression
+                ? $e->referencer->fieldName
+                : $e->fieldName;
+              $field_definition = $field_definitions[$field_name];
+              assert($field_definition instanceof FieldDefinitionInterface);
+              return (string) t("This @entity's @field-label", [
+                '@entity' => $this->entityTypeBundleInfo->getBundleInfo($host_entity_type_id)[$host_entity_type_bundle]['label'],
+                '@field-label' => $field_definition->getLabel(),
+              ]);
+            },
+            $m['instances']
+          ),
           $m['instances']
-        ),
-        $m['instances']
-      );
+        );
+      }
 
       // Adapters.
       $suggestions[$cpe]['adapters'] = array_combine(

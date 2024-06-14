@@ -94,11 +94,11 @@ class FieldForComponentSuggesterTest extends KernelTestBase {
    *
    * @dataProvider provider
    */
-  public function test(string $component_plugin_id, string $entity_type_id, string $bundle, array $expected): void {
+  public function test(string $component_plugin_id, ?string $data_type_context, array $expected): void {
     $suggestions = $this->container->get(FieldForComponentSuggester::class)
       ->suggest(
         $component_plugin_id,
-        EntityDataDefinition::create($entity_type_id, $bundle)
+        $data_type_context ? EntityDataDefinition::createFromDataType($data_type_context) : NULL,
       );
 
     // All expectations that are present must be correct.
@@ -122,8 +122,7 @@ class FieldForComponentSuggesterTest extends KernelTestBase {
   public static function provider(): \Generator {
     yield 'the image component' => [
       'experience_builder:image',
-      'node',
-      'foo',
+      'entity:node:foo',
       [
         '⿲experience_builder:image␟image' => [
           'required' => TRUE,
@@ -141,10 +140,27 @@ class FieldForComponentSuggesterTest extends KernelTestBase {
       ],
     ];
 
+    yield 'the image component — free of context' => [
+      'experience_builder:image',
+      NULL,
+      [
+        '⿲experience_builder:image␟image' => [
+          'required' => TRUE,
+          'types' => [
+            'Image' => 'ℹ︎image␟{src↝entity␜␜entity:file␝uri␞0␟url,alt↠alt,width↠width,height↠height}',
+          ],
+          'instances' => [],
+          'adapters' => [
+            'Apply image style' => 'image_apply_style',
+            'Make relative image URL absolute' => 'image_url_rel_to_abs',
+          ],
+        ],
+      ],
+    ];
+
     yield 'the "ALL PROPS" test component' => [
       'sdc_test_all_props:all-props',
-      'node',
-      'foo',
+      'entity:node:foo',
       [
         '⿲sdc_test_all_props:all-props␟test-string' => [
           'required' => FALSE,
