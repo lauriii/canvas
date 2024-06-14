@@ -23,7 +23,7 @@ use Symfony\Component\Validator\Constraints\Ip;
 /**
  * Implements hook_toolbar().
  */
-function experience_builder_toolbar() {
+function experience_builder_toolbar(): array {
   $user = \Drupal::currentUser();
 
   $items = [];
@@ -58,7 +58,7 @@ function experience_builder_toolbar() {
 /**
  * Implements hook_validation_constraint_alter().
  */
-function experience_builder_validation_constraint_alter(array &$definitions) {
+function experience_builder_validation_constraint_alter(array &$definitions): void {
   // Add the Symfony validation constraints that Drupal core does not add in
   // \Drupal\Core\Validation\ConstraintManager::registerDefinitions() for
   // unknown reasons. Do it defensively, to not break when this changes.
@@ -87,7 +87,7 @@ function experience_builder_validation_constraint_alter(array &$definitions) {
 /**
  * Implements hook_field_info_alter().
  */
-function experience_builder_field_info_alter(&$info) {
+function experience_builder_field_info_alter(array &$info): void {
   if (!empty($info['file'])) {
     $info['file']['class'] = FileItemOverride::class;
   }
@@ -120,7 +120,7 @@ function experience_builder_field_info_alter(&$info) {
 /**
  * Implements hook_entity_base_field_info_alter().
  */
-function experience_builder_entity_base_field_info_alter(&$fields, EntityTypeInterface $entity_type) {
+function experience_builder_entity_base_field_info_alter(array &$fields, EntityTypeInterface $entity_type): void {
   // The File entity type's `filename` and `filemime` base fields use the
   // `string` field type but are NOT prose (which is the default semantic for
   // that field type).

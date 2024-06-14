@@ -54,7 +54,7 @@ class ComponentTreeHydrated extends TypedData implements CacheableDependencyInte
   /**
    * {@inheritdoc}
    */
-  public function setValue($value, $notify = TRUE) {
+  public function setValue($value, $notify = TRUE): void {
     // There is nothing to set, so return early.
     // @todo This is an upstream core bug, because this is defined as both computed and read-only, yet it still gets called 🙃 Once the core bug is fixed, this should throw a ReadOnlyException.
     // throw new ReadOnlyException();

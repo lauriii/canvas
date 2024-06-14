@@ -88,8 +88,7 @@ abstract class AdapterBase extends PluginBase implements AdapterInterface {
     if (isset($schema['$ref'])) {
       // Perform the same schema resolving as `justinrainbow/json-schema`.
       // @todo Delete this method, actually use `justinrainbow/json-schema`.
-      // @phpstan-ignore-next-line
-      $schema = json_decode(file_get_contents($schema['$ref']) ?? '{}', TRUE);
+      $schema = json_decode(file_get_contents($schema['$ref']) ?: '{}', TRUE);
     }
     return $schema;
   }

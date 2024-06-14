@@ -62,8 +62,6 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
     $missing_test_modules = array_diff($modules, array_keys(\Drupal::service('extension.list.module')->getList()));
     if (!empty($missing_test_modules)) {
       $this->markTestSkipped(sprintf('The %s test modules are missing.', implode(',', $missing_test_modules)));
-      // @phpstan-ignore-next-line
-      return;
     }
 
     $module_installer = \Drupal::service('module_installer');

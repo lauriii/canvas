@@ -24,7 +24,7 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
   requiredInputs: ['image'],
   output: ['type' => 'object', '$ref' => 'json-schema-definitions://experience_builder.module/image'],
 )]
-class ImageAndStyleAdapter extends AdapterBase implements ContainerFactoryPluginInterface {
+final class ImageAndStyleAdapter extends AdapterBase implements ContainerFactoryPluginInterface {
 
   /**
    * @var array{src:string, alt: string, width:integer, height:integer}
@@ -46,8 +46,8 @@ class ImageAndStyleAdapter extends AdapterBase implements ContainerFactoryPlugin
     $this->imageFactory = $imageFactory;
   }
 
-  public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition) {
-    return new self(
+  public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition): static {
+    return new static(
       $configuration,
       $plugin_id,
       $plugin_definition,

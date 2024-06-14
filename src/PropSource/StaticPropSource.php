@@ -162,9 +162,6 @@ final class StaticPropSource extends PropSource {
     return $widget;
   }
 
-  /**
-   * @phpstan-ignore-next-line
-   */
   public function formTemporaryRemoveThisExclamationExclamationExclamation(string $component_instance_uuid, string $sdc_prop_name, FieldableEntityInterface $host_entity, array &$form, FormStateInterface $form_state): array {
     $field_definition = $this->conjureFieldDefinition($sdc_prop_name);
     $field = (new FieldItemList($field_definition, $sdc_prop_name, EntityAdapter::createFromEntity($host_entity)))->set(0, $this->fieldItem);

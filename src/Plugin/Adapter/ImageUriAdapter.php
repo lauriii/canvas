@@ -20,7 +20,7 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
   requiredInputs: ['image'],
   output: ['type' => 'object', '$ref' => 'json-schema-definitions://experience_builder.module/image-uri'],
 )]
-class ImageUriAdapter extends AdapterBase implements ContainerFactoryPluginInterface {
+final class ImageUriAdapter extends AdapterBase implements ContainerFactoryPluginInterface {
 
   protected string $imageUri;
   protected EntityStorageInterface $fileStorage;
@@ -30,8 +30,8 @@ class ImageUriAdapter extends AdapterBase implements ContainerFactoryPluginInter
     $this->fileStorage = $entityTypeManager->getStorage('file');
   }
 
-  public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition) {
-    return new self(
+  public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition): static {
+    return new static(
       $configuration,
       $plugin_id,
       $plugin_definition,

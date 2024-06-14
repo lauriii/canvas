@@ -143,7 +143,7 @@ class ComponentTreeItem extends FieldItemBase implements RenderableInterface {
   /**
    * {@inheritdoc}
    */
-  public function preSave() {
+  public function preSave(): void {
     $tree = $this->get('tree');
     assert($tree instanceof ComponentTreeStructure);
     $props = $this->get('props');

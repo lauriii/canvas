@@ -76,7 +76,7 @@ class JsonSchemaDefinitionsStreamwrapper extends LocalReadOnlyStream {
    * {@inheritdoc}
    */
   public function getDirectoryPath() {
-    // @todo This is incorrect — look at https://www.drupal.org/node/1308152 for inspiration?
+    // @todo This makes no sense for this stream wrapper, it's an additional concept layered by Drupal onto PHP stream wrappers we don't need; instead extend \Drupal\Core\StreamWrapper\ReadOnlyStream, but this will require implementing many more methods.
     // @phpstan-ignore-next-line
     return NULL;
   }

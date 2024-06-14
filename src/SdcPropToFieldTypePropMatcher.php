@@ -69,21 +69,20 @@ final class SdcPropToFieldTypePropMatcher {
    *
    * @param JsonSchema $sub_schema
    *
-   * @return array<int, \Drupal\experience_builder\PropExpressions\StructuredData\FieldTypePropExpression|\Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldTypePropExpression|\Drupal\experience_builder\PropExpressions\StructuredData\FieldTypePropExpression>
+   * @return array<int, \Drupal\experience_builder\PropExpressions\StructuredData\FieldTypePropExpression|\Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldTypePropExpression|\Drupal\experience_builder\PropExpressions\StructuredData\FieldTypeObjectPropsExpression>
    */
   public function findFieldTypeStorageCandidates(SdcPropJsonSchemaType $json_schema_primitive_type, bool $is_required_in_json_schema, ?array $sub_schema) : array {
     // 🐛 PHPStan complains about this, but the array shape is *identical*!
-    // @phpstan-ignore-next-line
     return $this->findFieldTypeProps($json_schema_primitive_type, $is_required_in_json_schema, $sub_schema, FALSE);
   }
 
   /**
    * @param JsonSchema $schema
-   * @return array<int, \Drupal\experience_builder\PropExpressions\StructuredData\FieldTypePropExpression|\Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldTypePropExpression|\Drupal\experience_builder\PropExpressions\StructuredData\FieldTypePropExpression>
+   *
+   * @return array<int, \Drupal\experience_builder\PropExpressions\StructuredData\FieldTypePropExpression|\Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldTypePropExpression|\Drupal\experience_builder\PropExpressions\StructuredData\FieldTypeObjectPropsExpression>
    */
   public function findFieldTypeFormatCandidates(SdcPropJsonSchemaType $json_schema_primitive_type, bool $is_required_in_json_schema, array $schema, bool $main_property_only) {
     // 🐛 PHPStan complains about this, but the array shape is *identical*!
-    // @phpstan-ignore-next-line
     return $this->findFieldTypeProps($json_schema_primitive_type, $is_required_in_json_schema, $schema, $main_property_only);
   }
 
@@ -129,8 +128,7 @@ final class SdcPropToFieldTypePropMatcher {
     if (isset($schema['$ref'])) {
       // Perform the same schema resolving as `justinrainbow/json-schema`.
       // @todo Delete this method, actually use `justinrainbow/json-schema`.
-      // @phpstan-ignore-next-line
-      $schema = json_decode(file_get_contents($schema['$ref']) ?? '{}', TRUE);
+      $schema = json_decode(file_get_contents($schema['$ref']) ?: '{}', TRUE);
     }
     return $schema;
   }
@@ -278,7 +276,6 @@ final class SdcPropToFieldTypePropMatcher {
             // @see \Drupal\Core\Field\Plugin\Field\FieldType\EntityReferenceItem::defaultStorageSettings()
             // @todo allow this to be detected automatically by expanding core infrastructure?
             // @todo \Drupal\Core\Field\BaseFieldDefinition::getTargetEntityTypeId() violates the interface.
-            // @phpstan-ignore-next-line
             if ($field_item_definition->getFieldDefinition()->getType() === 'entity_reference' && $field_item_definition->getFieldDefinition()->getTargetEntityTypeId() === NULL) {
               continue;
             }
