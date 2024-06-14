@@ -66,12 +66,12 @@ props:
       format: uri
     test-string-format-uri-image:
       title: 'String, format=uri, images only'
-      $ref: "json-schema-definitions://experience_builder.module/image-uri"
+      $ref: json-schema-definitions://experience_builder.module/image-uri
       # ⚠️ The reference above is equivalent to:
-#      type: string
-#      format: uri
-#      # @see \Drupal\image\Plugin\Field\FieldType\ImageItem::defaultFieldSettings()
-#      pattern: '\.(png|gif|jpg|jpeg|webp)$'
+      # type: string
+      # format: uri
+      # # @see \Drupal\image\Plugin\Field\FieldType\ImageItem::defaultFieldSettings()
+      # pattern: '\.(png|gif|jpg|jpeg|webp)$'
     test-string-format-uri-reference:
       type: string
       format: uri-reference
@@ -113,11 +113,11 @@ props:
     # The "image" predefined object format.
     # @todo Agree on one special case, for ecosystem-wide formats: `json-schema-definitions://drupal/<something>`, so `json-schema-definitions://drupal/image` here.
     test-object-drupal-image:
-      $ref: "json-schema-definitions://experience_builder.module/image"
+      $ref: json-schema-definitions://experience_builder.module/image
 
     # The "date-range" object format for this module.
     test-object-drupal-date-range:
-      $ref: "json-schema-definitions://sdc_test_all_props.module/date-range"
+      $ref: json-schema-definitions://sdc_test_all_props.module/date-range
 
     #
     # @todo finish adding all other types + formats supported by JSON schema

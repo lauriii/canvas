@@ -1,5 +1,5 @@
 import type React from 'react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import styles from './Canvas.module.css';
 import clsx from 'clsx';
 import Preview from '@/features/layout/preview/Preview';
@@ -77,7 +77,7 @@ const Canvas = () => {
       // 320/40 to approx. account for primaryPanel width and topBar height - could be more accurate
       dispatch(setCanvasViewPort({ x: 320 - canvasX, y: 40 - canvasY }));
     }
-  }, []);
+  }, [dispatch]);
 
   const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
     if (modifierKeyPressedRef.current) {
@@ -117,18 +117,21 @@ const Canvas = () => {
     }
   };
 
-  const handleMouseUp = () => {
+  const handleMouseUp = useCallback(() => {
     setIsPanning(false);
-  };
+  }, []);
 
-  const handleWheel = (e: WheelEvent) => {
-    if (modifierKeyPressedRef.current) {
-      // Determine zoom direction
-      e.deltaY > 0
-        ? dispatch(canvasViewPortZoomOut())
-        : dispatch(canvasViewPortZoomIn());
-    }
-  };
+  const handleWheel = useCallback(
+    (e: WheelEvent) => {
+      if (modifierKeyPressedRef.current) {
+        // Determine zoom direction
+        e.deltaY > 0
+          ? dispatch(canvasViewPortZoomOut())
+          : dispatch(canvasViewPortZoomIn());
+      }
+    },
+    [dispatch],
+  );
 
   useEffect(() => {
     if (animFrameIdRef.current) {
@@ -150,7 +153,7 @@ const Canvas = () => {
       window.removeEventListener('mouseup', handleMouseUp);
       window.removeEventListener('wheel', handleWheel);
     };
-  }, []);
+  }, [handleWheel, handleMouseUp]);
 
   return (
     <div

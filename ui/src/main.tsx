@@ -5,7 +5,7 @@ import App from '@/app/App';
 import { store } from '@/app/store';
 import './index.css';
 import '@radix-ui/themes/styles.css';
-import { Theme, ThemePanel } from '@radix-ui/themes';
+import { Theme } from '@radix-ui/themes';
 
 const prepare = async () => {
   if (process.env.NODE_ENV === 'development') {

@@ -1,5 +1,6 @@
+import type React from 'react';
 import styles from './Preview.module.css';
-import { useRef, useEffect, useState } from 'react';
+import { useRef, useEffect, useState, useCallback } from 'react';
 import Sortable from 'sortablejs';
 import Outline from './Outline';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
@@ -41,129 +42,133 @@ const Preview: React.FC<PreviewProps> = (props) => {
   const { isDragging } = useAppSelector(selectDragging);
   const model = useAppSelector(selectModel);
   const dispatch = useAppDispatch();
-  const [hoveredElementId, setHoveredElementId] = useState<
-    string | undefined
-  >();
   const [frameSrcDoc, setFrameSrcDoc] = useState('');
-  const [postPreview, { data, isLoading, error }] = usePostPreviewMutation();
+  const [postPreview, { isLoading }] = usePostPreviewMutation();
 
-  const bindEvents = () => {};
-
-  function handleDragStart(ev: Sortable.SortableEvent) {
+  const handleDragStart = useCallback(() => {
     dispatch(setPreviewDragging(true));
     iframeDocumentRef.current?.body.classList.add('preview-dragging');
-  }
+  }, [dispatch]);
 
-  function handleDragAdd(ev: Sortable.SortableEvent) {
-    updateData(ev, false);
-  }
+  const updateData = useCallback(
+    (ev: Sortable.SortableEvent, sort: boolean) => {
+      if (typeof ev.newDraggableIndex !== 'number') {
+        return;
+      }
+      if (sort) {
+        // Moving a node within the same parent.
+        dispatch(
+          sortNode({ uuid: ev.item.dataset.xbUuid, to: ev.newDraggableIndex }),
+        );
+      } else {
+        // Moving a node from one parent to another
+        const receivingParentPath = findNodePathByUuid(
+          layout,
+          ev.to.dataset.xbUuid,
+        );
+        if (receivingParentPath) {
+          const newPath: number[] = [
+            ...receivingParentPath,
+            ev.newDraggableIndex,
+          ];
 
-  function handleDragEnd(ev: Sortable.SortableEvent) {
-    dispatch(setPreviewDragging(false));
-    iframeDocumentRef.current?.body.classList.remove('preview-dragging');
-
-    // Normally handle the data update in dragAdd unless the item is being dragged within the same container, in which
-    // case dragAdd doesn't fire, so we can call it from here.
-    if (ev.to === ev.from) {
-      updateData(ev, true);
-    }
-  }
-
-  function updateData(ev: Sortable.SortableEvent, sort: boolean) {
-    if (typeof ev.newDraggableIndex !== 'number') {
-      return;
-    }
-    if (sort) {
-      // Moving a node within the same parent.
-      dispatch(
-        sortNode({ uuid: ev.item.dataset.xbUuid, to: ev.newDraggableIndex }),
-      );
-    } else {
-      // Moving a node from one parent to another
-      const receivingParentPath = findNodePathByUuid(
-        layout,
-        ev.to.dataset.xbUuid,
-      );
-      if (receivingParentPath) {
-        const newPath: number[] = [
-          ...receivingParentPath,
-          ev.newDraggableIndex,
-        ];
-
-        if (ev.clone.dataset.isNew === 'true' && ev.clone.dataset.xbUuid) {
-          ev.item.innerHTML = '<div class="lds-hourglass"></div>';
-          dispatch(
-            addNewComponentToLayout({
-              to: newPath,
-              newNode: {
-                uuid: 'tempUUID',
-                children: [],
-                type: 'component',
-                componentType: ev.clone.dataset.xbUuid,
-                name: ev.clone.dataset.xbName,
-              },
-            }),
-          );
-        } else {
-          dispatch(moveNode({ uuid: ev.item.dataset.xbUuid, to: newPath }));
+          if (ev.clone.dataset.isNew === 'true' && ev.clone.dataset.xbUuid) {
+            ev.item.innerHTML = '<div class="lds-hourglass"></div>';
+            dispatch(
+              addNewComponentToLayout({
+                to: newPath,
+                newNode: {
+                  uuid: 'tempUUID',
+                  children: [],
+                  type: 'component',
+                  componentType: ev.clone.dataset.xbUuid,
+                  name: ev.clone.dataset.xbName,
+                },
+              }),
+            );
+          } else {
+            dispatch(moveNode({ uuid: ev.item.dataset.xbUuid, to: newPath }));
+          }
         }
       }
-    }
-  }
+    },
+    [dispatch, layout],
+  );
 
-  // Takes each sortable item (component) and adds a dragstart event listener. This is so that we can implement a custom
-  // dragImage (the floating representation of what you are dragging that follows your cursor).
-  const initSortableListItem = (listItemEl: HTMLElement) => {
-    listItemEl.addEventListener('dragstart', (event) => {
-      if (iframeDocumentRef.current && listItemEl.dataset.xbUuid) {
-        return customSortableDragImage(
-          event,
-          iframeDocumentRef.current,
-          model[listItemEl.dataset.xbUuid].name,
-        );
-      }
-    });
-  };
-  const initComponentHover = (listItemEl: HTMLElement) => {
-    listItemEl.addEventListener('mouseover', function (event: MouseEvent) {
-      event.stopPropagation();
-      if (event.target) {
-        const target = event.currentTarget as HTMLElement;
-        dispatch(setHoveredComponent(target.dataset.xbUuid));
-      }
-    });
-  };
+  const handleDragAdd = useCallback(
+    (ev: Sortable.SortableEvent) => {
+      updateData(ev, false);
+    },
+    [updateData],
+  );
 
-  const initComponentClick = (listItemEl: HTMLElement) => {
-    listItemEl.addEventListener('click', function (event: MouseEvent) {
-      event.stopPropagation();
-      if (event.target) {
-        const target = event.currentTarget as HTMLElement;
-        // setHoveredElementId(target.dataset.xbUuid);
-        dispatch(setSelectedComponent(target.dataset.xbUuid));
-      }
-    });
-  };
+  const handleDragEnd = useCallback(
+    (ev: Sortable.SortableEvent) => {
+      dispatch(setPreviewDragging(false));
+      iframeDocumentRef.current?.body.classList.remove('preview-dragging');
 
-  const initSortableList = (listEl: HTMLElement) => {
-    // Initialize SortableJS on the elements inside the iframe
-    Sortable.create(listEl, {
-      animation: 0,
-      invertSwap: true,
-      group: {
-        name: 'layout',
-        pull: true,
-        put: ['layout', 'list'],
-        revertClone: false,
-      },
-      dataIdAttr: 'data-xb-uuid',
-      onAdd: handleDragAdd,
-      onStart: handleDragStart,
-      onEnd: handleDragEnd,
-    });
-  };
+      // Normally handle the data update in dragAdd unless the item is being dragged within the same container, in which
+      // case dragAdd doesn't fire, so we can call it from here.
+      if (ev.to === ev.from) {
+        updateData(ev, true);
+      }
+    },
+    [dispatch, updateData],
+  );
 
   useEffect(() => {
+    // Takes each sortable item (component) and adds a dragstart event listener. This is so that we can implement a custom
+    // dragImage (the floating representation of what you are dragging that follows your cursor).
+    const initSortableListItem = (listItemEl: HTMLElement) => {
+      listItemEl.addEventListener('dragstart', (event) => {
+        if (iframeDocumentRef.current && listItemEl.dataset.xbUuid) {
+          return customSortableDragImage(
+            event,
+            iframeDocumentRef.current,
+            model[listItemEl.dataset.xbUuid].name,
+          );
+        }
+      });
+    };
+    const initComponentHover = (listItemEl: HTMLElement) => {
+      listItemEl.addEventListener('mouseover', function (event: MouseEvent) {
+        event.stopPropagation();
+        if (event.target) {
+          const target = event.currentTarget as HTMLElement;
+          dispatch(setHoveredComponent(target.dataset.xbUuid));
+        }
+      });
+    };
+
+    const initComponentClick = (listItemEl: HTMLElement) => {
+      listItemEl.addEventListener('click', function (event: MouseEvent) {
+        event.stopPropagation();
+        if (event.target) {
+          const target = event.currentTarget as HTMLElement;
+          // setHoveredElementId(target.dataset.xbUuid);
+          dispatch(setSelectedComponent(target.dataset.xbUuid));
+        }
+      });
+    };
+
+    const initSortableList = (listEl: HTMLElement) => {
+      // Initialize SortableJS on the elements inside the iframe
+      Sortable.create(listEl, {
+        animation: 0,
+        invertSwap: true,
+        group: {
+          name: 'layout',
+          pull: true,
+          put: ['layout', 'list'],
+          revertClone: false,
+        },
+        dataIdAttr: 'data-xb-uuid',
+        onAdd: handleDragAdd,
+        onStart: handleDragStart,
+        onEnd: handleDragEnd,
+      });
+    };
+
     const iframe = iframeRef.current;
     function notifyParentDocument(event: KeyboardEvent) {
       if (event.type === 'keydown') {
@@ -244,7 +249,7 @@ const Preview: React.FC<PreviewProps> = (props) => {
         };
       };
     }
-  }, [layout, model]);
+  }, [dispatch, handleDragAdd, handleDragEnd, handleDragStart, layout, model]);
 
   useEffect(() => {
     const sendPreviewRequest = async () => {
@@ -262,7 +267,7 @@ const Preview: React.FC<PreviewProps> = (props) => {
     if (layout && model) {
       sendPreviewRequest();
     }
-  }, [layout, model]);
+  }, [layout, model, postPreview]);
 
   return (
     <div className={styles.previewContainer}>
@@ -270,6 +275,7 @@ const Preview: React.FC<PreviewProps> = (props) => {
         ref={iframeRef}
         className={styles.preview}
         id="preview"
+        title="Preview"
         srcDoc={frameSrcDoc}
         style={{ height: `${height}px`, width: `${width}px` }}
       ></iframe>

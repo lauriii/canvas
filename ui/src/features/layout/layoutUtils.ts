@@ -1,4 +1,4 @@
-import _, { lastIndexOf } from 'lodash';
+import _ from 'lodash';
 import type { LayoutNode } from './layoutModelSlice';
 
 //   recurseNodes,

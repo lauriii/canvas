@@ -22,7 +22,10 @@ import {
   setContextualPanelOpen,
 } from '@/features/ui/uiSlice';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
-import { selectModel, updateNodeModel } from '@/features/layout/layoutModelSlice';
+import {
+  selectModel,
+  updateNodeModel,
+} from '@/features/layout/layoutModelSlice';
 
 interface ContextualPanelProps {}
 
@@ -38,7 +41,7 @@ const ContextualPanel: React.FC<ContextualPanelProps> = () => {
     } else {
       dispatch(setContextualPanelOpen(false));
     }
-  }, [selectedComponent]);
+  }, [selectedComponent, dispatch]);
 
   const handleContextualPanelOpenChange = (open: boolean) => {
     dispatch(setContextualPanelOpen(open));
@@ -64,9 +67,7 @@ const ContextualPanel: React.FC<ContextualPanelProps> = () => {
     >
       <Drawer.Portal>
         <Theme>
-          <Drawer.Content
-            className={clsx(styles.sideBar, styles.sideBarRight)}
-          >
+          <Drawer.Content className={clsx(styles.sideBar, styles.sideBarRight)}>
             <Grid height="100%" rows="1" columns="1" gap="2">
               <Card variant="classic">
                 <Flex p="1" justify="end">

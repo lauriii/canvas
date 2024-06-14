@@ -6,14 +6,18 @@ import { setLayoutModel } from './layoutModelSlice';
 const Layout = () => {
   const dispatch = useAppDispatch();
   //TODO: Hardcoded node id:
-  const { data: fetchedLayout, error, isLoading } = useGetLayoutByIdQuery('1');
+  const { data: fetchedLayout } = useGetLayoutByIdQuery('1');
 
   useEffect(() => {
     if (fetchedLayout) {
-      console.log(fetchedLayout);
-      dispatch(setLayoutModel({ layout: fetchedLayout.layout, model: fetchedLayout.model }))
+      dispatch(
+        setLayoutModel({
+          layout: fetchedLayout.layout,
+          model: fetchedLayout.model,
+        }),
+      );
     }
-  }, [fetchedLayout]);
+  }, [fetchedLayout, dispatch]);
 
   return null;
 };

@@ -1,14 +1,10 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import styles from './List.module.css';
-import {
-  selectDragging,
-  setListDragging,
-  setTreeDragging,
-} from '@/features/ui/uiSlice';
+import { selectDragging, setListDragging } from '@/features/ui/uiSlice';
 import Sortable from 'sortablejs';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { useGetComponentsQuery } from '@/services/components';
-import { Box, Card, Flex,  Spinner, Text } from '@radix-ui/themes';
+import { Box, Card, Flex, Spinner, Text } from '@radix-ui/themes';
 import { customSortableDragImage } from '@/features/sortable/sortableUtils';
 
 const List = () => {
@@ -18,20 +14,24 @@ const List = () => {
   const listElRef = useRef<HTMLDivElement>(null);
   const { isDragging } = useAppSelector(selectDragging);
 
-  function handleDragStart(ev: Sortable.SortableEvent) {
+  const handleDragStart = useCallback(() => {
     dispatch(setListDragging(true));
-  }
+  }, [dispatch]);
 
-  function handleDragClone(ev: Sortable.SortableEvent) {
+  const handleDragClone = useCallback((ev: Sortable.SortableEvent) => {
     ev.clone.dataset.isNew = 'true';
-  }
+  }, []);
 
-  function handleDragEnd(ev: Sortable.SortableEvent) {
+  const handleDragEnd = useCallback(() => {
     dispatch(setListDragging(false));
-  }
+  }, [dispatch]);
 
   useEffect(() => {
-    if (listElRef.current !== null) {
+    if (
+      !isLoading &&
+      listElRef.current !== null &&
+      !sortableInstance.current?.el
+    ) {
       sortableInstance.current = Sortable.create(listElRef.current, {
         dataIdAttr: 'data-xb-uuid',
         sort: false,
@@ -50,7 +50,12 @@ const List = () => {
         onClone: handleDragClone,
       });
     }
-  }, [isLoading]);
+    return () => {
+      if (sortableInstance.current !== null) {
+        sortableInstance.current.destroy();
+      }
+    };
+  }, [isLoading, handleDragStart, handleDragEnd, handleDragClone]);
 
   return (
     <Box pt="5" className={isDragging ? 'list-dragging' : ''}>

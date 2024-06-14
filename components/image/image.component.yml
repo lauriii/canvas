@@ -7,6 +7,6 @@ props:
   properties:
     image:
       title: 'Image'
-      $ref: "json-schema-definitions://experience_builder.module/image"
+      $ref: json-schema-definitions://experience_builder.module/image
       # @todo `type: object` should not be necessary, it's because \Drupal\sdc\Component\ComponentValidator::getClassProps() does not yet support $ref
       type: object

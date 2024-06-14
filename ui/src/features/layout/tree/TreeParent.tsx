@@ -1,6 +1,6 @@
 import styles from './TreeParent.module.css';
 import type React from 'react';
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useCallback } from 'react';
 import Sortable from 'sortablejs';
 import TreeChild from './TreeChild';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
@@ -28,72 +28,81 @@ const TreeParent: React.FC<TreeParentProps> = (props) => {
   const listElRef = useRef<HTMLUListElement>(null);
   const sortableInstance = useRef<Sortable | null>(null);
 
-  function handleDragStart(ev: Sortable.SortableEvent) {
+  const handleDragStart = useCallback(() => {
     dispatch(setTreeDragging(true));
-  }
+  }, [dispatch]);
 
-  function handleDragAdd(ev: Sortable.SortableEvent) {
-    updateData(ev, false);
-  }
+  const updateData = useCallback(
+    (ev: Sortable.SortableEvent, sort: boolean) => {
+      if (typeof ev.newDraggableIndex !== 'number') {
+        return;
+      }
+      if (sort) {
+        // Moving a node within the same parent.
+        dispatch(
+          sortNode({ uuid: ev.item.dataset.xbUuid, to: ev.newDraggableIndex }),
+        );
+      } else {
+        // Moving a node from one parent to another
+        const receivingParentPath = findNodePathByUuid(
+          layout,
+          ev.to.dataset.xbUuid,
+        );
+        if (receivingParentPath) {
+          const newPath: number[] = [
+            ...receivingParentPath,
+            ev.newDraggableIndex,
+          ];
 
-  function handleDragEnd(ev: Sortable.SortableEvent) {
-    dispatch(setTreeDragging(false));
+          if (ev.clone.dataset.isNew === 'true' && ev.clone.dataset.xbUuid) {
+            // When dragging a new element into the tree from the list, the clone is actually dropped into the DOM and we need
+            // to remove it here.
+            ev.item.remove();
+            dispatch(
+              addNewComponentToLayout({
+                to: newPath,
+                newNode: {
+                  uuid: 'tempUUID',
+                  children: [],
+                  type: 'component',
+                  name: ev.clone.dataset.xbName,
+                },
+              }),
+            );
+          } else {
+            // When dragging, the element is actually moved in the DOM, after dragging we swap the original
+            // item back so that the React Virtual DOM doesn't get out of sync when we update the data.
+            const itemEl = ev.item; // dragged HTMLElement
+            let origParent = ev.from;
+            origParent.appendChild(itemEl);
 
-    // Normally handle the data update in dragAdd unless the item is being dragged within the same container, in which
-    // case dragAdd doesn't fire, so we can call it from here.
-    if (ev.to === ev.from) {
-      updateData(ev, true);
-    }
-  }
-
-  function updateData(ev: Sortable.SortableEvent, sort: boolean) {
-    if (typeof ev.newDraggableIndex !== 'number') {
-      return;
-    }
-    if (sort) {
-      // Moving a node within the same parent.
-      dispatch(
-        sortNode({ uuid: ev.item.dataset.xbUuid, to: ev.newDraggableIndex }),
-      );
-    } else {
-      // Moving a node from one parent to another
-      const receivingParentPath = findNodePathByUuid(
-        layout,
-        ev.to.dataset.xbUuid,
-      );
-      if (receivingParentPath) {
-        const newPath: number[] = [
-          ...receivingParentPath,
-          ev.newDraggableIndex,
-        ];
-
-        if (ev.clone.dataset.isNew === 'true' && ev.clone.dataset.xbUuid) {
-          // When dragging a new element into the tree from the list, the clone is actually dropped into the DOM and we need
-          // to remove it here.
-          ev.item.remove();
-          dispatch(
-            addNewComponentToLayout({
-              to: newPath,
-              newNode: {
-                uuid: 'tempUUID',
-                children: [],
-                type: 'component',
-                name: ev.clone.dataset.xbName,
-              },
-            }),
-          );
-        } else {
-          // When dragging, the element is actually moved in the DOM, after dragging we swap the original
-          // item back so that React's Virtual DOM doesn't get out of sync when we update the data.
-          const itemEl = ev.item; // dragged HTMLElement
-          let origParent = ev.from;
-          origParent.appendChild(itemEl);
-
-          dispatch(moveNode({ uuid: ev.item.dataset.xbUuid, to: newPath }));
+            dispatch(moveNode({ uuid: ev.item.dataset.xbUuid, to: newPath }));
+          }
         }
       }
-    }
-  }
+    },
+    [dispatch, layout],
+  );
+
+  const handleDragAdd = useCallback(
+    (ev: Sortable.SortableEvent) => {
+      updateData(ev, false);
+    },
+    [updateData],
+  );
+
+  const handleDragEnd = useCallback(
+    (ev: Sortable.SortableEvent) => {
+      dispatch(setTreeDragging(false));
+
+      // Normally handle the data update in dragAdd unless the item is being dragged within the same container, in which
+      // case dragAdd doesn't fire, so we can call it from here.
+      if (ev.to === ev.from) {
+        updateData(ev, true);
+      }
+    },
+    [dispatch, updateData],
+  );
 
   useEffect(() => {
     if (listElRef.current !== null) {
@@ -110,7 +119,7 @@ const TreeParent: React.FC<TreeParentProps> = (props) => {
         onEnd: handleDragEnd,
       });
     }
-  }, [layout]);
+  }, [layout, handleDragAdd, handleDragEnd, handleDragStart]);
 
   if (node.type === 'slot' || node.type === 'root') {
     return (

@@ -6,7 +6,7 @@ import { componentApi } from '@/services/components';
 import { layoutApi } from '@/services/layout';
 import { previewApi } from '@/services/preview';
 import undoable from 'redux-undo';
-import { initialState, layoutModelReducer } from "@/features/layout/layoutModelSlice";
+import { layoutModelReducer } from "@/features/layout/layoutModelSlice";
 
 // `combineSlices` automatically combines the reducers using
 // their `reducerPath`s, therefore we no longer need to call `combineReducers`.

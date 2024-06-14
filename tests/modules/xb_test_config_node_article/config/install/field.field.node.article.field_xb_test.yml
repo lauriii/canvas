@@ -17,8 +17,7 @@ description: ''
 required: true
 translatable: false
 default_value:
-  -
-    tree: '[{"uuid":"dynamic-static-card2df","type":"sdc_test:my-cta"}]'
+  - tree: '[{"uuid":"dynamic-static-card2df","type":"sdc_test:my-cta"}]'
     # cspell:ignore centity dtitle elink furi fvalue
     props: '{"dynamic-static-card2df":{"text":{"sourceType":"dynamic","expression":"\u2139\ufe0e\u241centity:node:article\u241dtitle\u241e\u241fvalue"},"href":{"sourceType":"static:field_item:link","value":{"uri":"https:\/\/drupal.org","title":null,"options":[]},"expression":"\u2139\ufe0elink\u241furi"}}}'
 default_value_callback: ''

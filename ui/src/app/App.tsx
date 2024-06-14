@@ -2,11 +2,8 @@ import styles from './App.module.css';
 import Layout from '@/features/layout/Layout';
 import {
   Button,
-  Theme,
   Flex,
   Card,
-  Grid,
-  Inset,
   Select,
   Text,
 } from '@radix-ui/themes';

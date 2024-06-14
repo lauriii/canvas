@@ -55,7 +55,6 @@ include:
 # Docs at https://git.drupalcode.org/project/gitlab_templates/-/blob/main/includes/include.drupalci.variables.yml
 ################
 variables:
-  SKIP_ESLINT: '1'
   # Experience Builder aims to match Drupal 11's minimum PHP and MySQL versions even in its Drupal 10 support.
   CORE_PHP_MIN: '8.3'
   # Opt in to testing $CORE_MAJOR_DEVELOPMENT (currently Drupal 11).
@@ -115,6 +114,59 @@ phpunit:
   # @see https://git.drupalcode.org/issue/gitlab_templates-3447792/-/compare/main...3447792-raise-sqlite-version?from_project_id=96292, when 984abb7b4781559a13078d58bb65f6959fe42179 was the last commit.
   image:
     name: $_CONFIG_DOCKERHUB_ROOT/php-$PHP_VERSION-ubuntu-apache:$_TARGET_PHP_IMAGE_TAG
+
+eslint:
+  # This module wants to strictly comply with eslint.
+  allow_failure: false
+  before_script:
+    # 🤷‍.eslintignore already instructs eslint to ignore this, but it does not seem to work. This is validated by the `UI - eslint` job below.
+    - rm -rf ui
+  # Run on push, or on MRs if relevant files have changed, or manually.
+  # @todo Remove when https://www.drupal.org/project/gitlab_templates/issues/3452183 lands.
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "push" && $CI_PROJECT_ROOT_NAMESPACE == "project"
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes:
+        - .prettier*
+        - "**/*.js"
+        - "**/*.yml"
+    - when: manual
+      allow_failure: true
+
+UI eslint:
+  stage: validate
+  image: node:current-alpine
+  allow_failure: false
+  needs: []
+  # Run on push, or on MRs if UI TS files have changed, or manually.
+  # @todo Refine when https://www.drupal.org/project/gitlab_templates/issues/3452183 lands.
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "push" && $CI_PROJECT_ROOT_NAMESPACE == "project"
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes:
+        - ui/package.json
+        - ui/**/*.ts
+        - ui/**/*.tsx
+        - ui/tsconfig.json
+        - ui/tsconfig.node.json
+    - when: manual
+      allow_failure: true
+  script:
+    - cd ui
+    - npm ci
+    # First, generate the `junit.xml` for code quality. Violations will not cause this to fail.
+    - node_modules/.bin/eslint . --format=junit --output-file=$CI_PROJECT_DIR/junit.xml
+    # Second, explicitly pass/fail this job.
+    - npm run lint
+  artifacts:
+    expose_as: junit
+    expire_in: 6 mos
+    when: always
+    name: artifacts-$CI_PIPELINE_ID-$CI_JOB_NAME_SLUG
+    paths:
+      - junit.xml
+    reports:
+      junit: junit.xml
 
 cypress:
   stage: test

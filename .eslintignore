@@ -1,0 +1,6 @@
+submodules/**/*
+# The UI is written in TypeScript and React, and has its own linting.
+ui/**/*
+
+# @todo Update eslint config/refine CI job to ensure Cypress tests comply with Drupal core's eslint config.
+tests/src/Cypress/**/*

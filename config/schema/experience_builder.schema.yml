@@ -12,7 +12,7 @@ experience_builder.component.*:
       constraints:
         Regex:
           pattern: '/^[a-z0-9_-]+\+[a-z0-9_-]+$/'
-          message: "The %value machine name is not valid."
+          message: 'The %value machine name is not valid.'
 
 # @todo reuse the yet-to-be-written validation logic that \Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem::preSave() is referring to
 field.value.component_tree:

@@ -1,6 +1,6 @@
 import styles from './Outline.module.css';
 import type React from 'react';
-import { useRef, useEffect, useState } from 'react';
+import { useRef, useEffect, useState, useCallback } from 'react';
 import { deleteNode } from '@/features/layout/layoutModelSlice';
 import { useAppDispatch } from '@/app/hooks';
 import { Button, Grid } from '@radix-ui/themes';
@@ -25,30 +25,29 @@ const Outline: React.FC<OutlineProps> = (props) => {
   const [type, setType] = useState<'component' | 'slot'>('component'); //
   const dispatch = useAppDispatch();
 
-  useEffect(() => {
-    if (elementId) {
-      hoveredElementRef.current =
-        iframeRef.current?.contentDocument?.querySelectorAll(
-          `[data-xb-uuid="${elementId}"]`,
-        )[0] as HTMLElement | null;
-      if (hoveredElementRef.current?.dataset.xbType === 'slot') {
-        setType('slot');
-      } else {
-        setType('component');
-      }
-      applyStyles();
-      bindEvents();
-    }
-  }, [elementId]);
+  const applyStyles = useCallback(() => {
+    const elRect = hoveredElementRef.current?.getBoundingClientRect();
+    const iframeRect = iframeRef.current?.getBoundingClientRect();
 
-  const handleFrameScroll = () => {
+    if (outlineElRef.current && elRect && iframeRect) {
+      outlineElRef.current.style.transform = `translate(${elRect.left}px, ${elRect.top}px)`;
+      outlineElRef.current.style.width = `${elRect.width}px`;
+      outlineElRef.current.style.height = `${elRect.height}px`;
+    }
+
+    if (toolbarElRef.current && elRect && iframeRect) {
+      toolbarElRef.current.style.transform = `translate(${elRect.left}px, ${elRect.top}px)`;
+    }
+  }, [iframeRef]);
+
+  const handleFrameScroll = useCallback(() => {
     if (!iframeRef.current || !hoveredElementRef.current) {
       return;
     }
     applyStyles();
-  };
+  }, [applyStyles, iframeRef]);
 
-  const bindEvents = () => {
+  const bindEvents = useCallback(() => {
     if (!iframeRef.current) {
       return;
     }
@@ -74,22 +73,7 @@ const Outline: React.FC<OutlineProps> = (props) => {
 
     // Attach the scroll event listener to the iframe's content window
     iframeDocument.addEventListener('scroll', handleFrameScroll);
-  };
-
-  const applyStyles = () => {
-    const elRect = hoveredElementRef.current?.getBoundingClientRect();
-    const iframeRect = iframeRef.current?.getBoundingClientRect();
-
-    if (outlineElRef.current && elRect && iframeRect) {
-      outlineElRef.current.style.transform = `translate(${elRect.left}px, ${elRect.top}px)`;
-      outlineElRef.current.style.width = `${elRect.width}px`;
-      outlineElRef.current.style.height = `${elRect.height}px`;
-    }
-
-    if (toolbarElRef.current && elRect && iframeRect) {
-      toolbarElRef.current.style.transform = `translate(${elRect.left}px, ${elRect.top}px)`;
-    }
-  };
+  }, [dispatch, handleFrameScroll, iframeRef, selected]);
 
   function handleDeleteClick() {
     if (elementId) {
@@ -102,6 +86,22 @@ const Outline: React.FC<OutlineProps> = (props) => {
       dispatch(setSelectedComponent(elementId));
     }
   }
+
+  useEffect(() => {
+    if (elementId) {
+      hoveredElementRef.current =
+        iframeRef.current?.contentDocument?.querySelectorAll(
+          `[data-xb-uuid="${elementId}"]`,
+        )[0] as HTMLElement | null;
+      if (hoveredElementRef.current?.dataset.xbType === 'slot') {
+        setType('slot');
+      } else {
+        setType('component');
+      }
+      applyStyles();
+      bindEvents();
+    }
+  }, [elementId, applyStyles, bindEvents, iframeRef]);
 
   if (elementId === undefined) {
     return null;
