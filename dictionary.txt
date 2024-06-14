@@ -1,8 +1,12 @@
 JSONified
 transferrables
 leftbar
+Nygard
+Nygard's
+Pryce's
 reduxjs
 rightbar
+toolset
 topbar
 Validatable
 vaul

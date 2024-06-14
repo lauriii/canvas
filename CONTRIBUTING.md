@@ -26,3 +26,9 @@ From Drupal project root (i.e. where `index.php` lives):
 ```
 php vendor/bin/phpstan analyze modules/contrib/experience_builder --memory-limit=256M --configuration=modules/contrib/experience_builder/phpstan.neon
 ```
+
+# Architectural Decision Records
+When architectural decisions are made, they should be recorded in _ADRs_. To create an ADR:
+
+1. Install <https://github.com/npryce/adr-tools> — see [installation instructions](https://github.com/npryce/adr-tools/blob/master/INSTALL.md).
+2. From the root of this project: ```adr new This Is A New Decision```.
