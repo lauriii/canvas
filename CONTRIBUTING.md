@@ -32,3 +32,14 @@ When architectural decisions are made, they should be recorded in _ADRs_. To cre
 
 1. Install <https://github.com/npryce/adr-tools> — see [installation instructions](https://github.com/npryce/adr-tools/blob/master/INSTALL.md).
 2. From the root of this project: ```adr new This Is A New Decision```.
+
+# C4 model & Diagrams
+To edit: either modify locally, or copy/paste `docs/XB.dsl` into <https://structurizr.com/dsl> for easy previewing!
+
+When updating the C4 model in `docs/XB.dsl`, the diagrams (in `docs/diagrams/`) must be updated too. To do that:
+
+```
+structurizr-cli export -workspace docs/XB.dsl --format mermaid --output docs/diagrams && for file in docs/diagrams/*.mmd; do printf "\`\`\`mermaid\n" | cat - $file  > temp && mv -f temp $file && echo $'\n```' >> $file; done && find docs/diagrams/ -name "*.mmd" -exec sh -c 'mv "$1" "${1%.mmd}.md"' _ {} \;
+```
+
+(After installing `structurizr-cli`: <https://docs.structurizr.com/cli/installation>.)

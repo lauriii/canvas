@@ -6,7 +6,8 @@
     "minWordLength": 4,
     "ignorePaths": [
       "CODEOWNERS",
-      "submodules/**"
+      "submodules/**",
+      "docs/diagrams/**"
     ],
     "ignoreRegExpList": [
       "ℹ\uFE0E.*"
