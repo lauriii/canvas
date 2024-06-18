@@ -1,4 +1,6 @@
+adrs
 autolayout
+entityviewdisplay
 JSONified
 transferrables
 leftbar
