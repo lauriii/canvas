@@ -116,6 +116,7 @@ const Outline: React.FC<OutlineProps> = (props) => {
             [styles.xbSlotOutline]: type === 'slot',
             [styles.selected]: selected,
           })}
+          data-xb-component-outline=''
         />
         <Grid
           ref={toolbarElRef}
@@ -125,10 +126,10 @@ const Outline: React.FC<OutlineProps> = (props) => {
         >
           {type === 'component' && (
             <>
-              <Button size="1" type="button" onClick={handleSelectClick}>
+              <Button data-xb-component-outline-button='' size="1" type="button" onClick={handleSelectClick}>
                 Select
               </Button>
-              <Button size="1" type="button" onClick={handleDeleteClick}>
+              <Button data-xb-component-outline-button='' size="1" type="button" onClick={handleDeleteClick}>
                 Delete
               </Button>
             </>

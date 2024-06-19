@@ -80,6 +80,13 @@ Cypress.Commands.add('drupalEnableTheme', (
   });
 })
 
+Cypress.Commands.add('drupalXbInstall', () => {
+  cy.task('log', `The setup file ${Cypress.env('setupFile')}`);
+  cy.drupalInstall({
+    setupFile: Cypress.env('setupFile'),
+  });
+})
+
 Cypress.Commands.add('drupalInstall', (
   { setupFile = '', installProfile = 'nightwatch_testing', langcode = '' } = {},
   callback,
@@ -150,6 +157,9 @@ Cypress.Commands.add('drupalLogin', (name, password) => {
     cy.get('input[name="name"]').type(name);
     cy.get('input[name="pass"]').type(password);
     cy.get('#user-login-form').submit()
+    // @todo👇I'm not sure will work on all themes. It is beneficial to have
+    // at the moment but if it needs removing it's understandable.
+    cy.get('h1').contains(name)
   })
 })
 
@@ -246,4 +256,16 @@ Cypress.Commands.add('drupalSession', () => {
       {domain: Cypress.env('host'), path: '/'},
     )
   })
+})
+
+Cypress.Commands.add('getPreviewIframe', () => {
+  return cy
+  .get('iframe#preview')
+  .its('0.contentDocument').should('exist')
+})
+
+Cypress.Commands.add('getPreviewBody', () => {
+  return cy.getPreviewIframe()
+    .its('body').should('not.be.undefined')
+    .then(cy.wrap)
 })

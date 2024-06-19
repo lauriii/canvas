@@ -6,7 +6,12 @@ import path from "path";
 export default defineConfig({
   plugins: [react()],
   server: {
-    open: true,
+    // open: true,
+    fs: {
+      // Component tests using this vite config do not have this as a parent
+      // directory. We disable strict so they can be served by Vite.
+      strict: false,
+    }
   },
   test: {
     globals: true,

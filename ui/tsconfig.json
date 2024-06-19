@@ -12,13 +12,15 @@
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "noEmit": true,
     "jsx": "react-jsx",
     "types": ["vitest/globals"],
     "baseUrl": "src",
     "paths": {
       "@/*": ["./*"]
-    }
+    },
+    "sourceMap": false,
+    "inlineSourceMap": true,
+    "inlineSources": false
   },
   "references": [{ "path": "./tsconfig.node.json" }]
 }

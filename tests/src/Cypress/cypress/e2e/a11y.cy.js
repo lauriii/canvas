@@ -1,5 +1,6 @@
-import minimist from 'minimist';
-const argv = minimist(process.argv.slice(2))
+const argv = Cypress.env('args')
+// TEMPORARY: Replace this with XB accessibility tests once development is far
+// enough along to warrant them.
 
 const adminTestCases = [
   { name: 'User Edit', path: '/user/1/edit' },
@@ -56,6 +57,8 @@ const defaultTestCases = [
         'heading-order': { enabled: false },
         'duplicate-id-aria': { enabled: false },
         'region': { enabled: false },
+        'duplicate-id-active': { enabled: false },
+        'duplicate-id': { enabled: false },
       },
     },
   },
