@@ -6,9 +6,17 @@ import mockPreviewDocument from "./preview";
 const DEFAULT_DELAY = 200;
 
 const handlers = [
-  http.get('/api/components', async () => {
+  http.get('/xb-components', async () => {
     await delay(DEFAULT_DELAY);
     return HttpResponse.json(components)
+  }),
+  http.get('/xb-components/:id', async ({params}) => {
+    await delay(DEFAULT_DELAY);
+    const component = components.find(component => component.id === params.id);
+    if (component) {
+      return HttpResponse.json(component);
+    }
+    return HttpResponse.json({},  { status: 404 });
   }),
   http.get('/api/layout/:id', async () => {
     await delay(DEFAULT_DELAY);

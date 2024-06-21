@@ -1,16 +1,17 @@
-import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
+import { createApi } from "@reduxjs/toolkit/query/react";
+import { baseQuery } from "@/services/baseQuery";
 
 // Define a service using a base URL and expected endpoints
 export const previewApi = createApi({
   reducerPath: 'previewApi',
-  baseQuery: fetchBaseQuery({ baseUrl: '/api' }),
+  baseQuery,
   endpoints: (builder) => ({
     postPreview: builder.mutation<
       { html: string },
       { layout: any; model: any }
     >({
       query: (body) => ({
-        url: 'preview',
+        url: 'api/preview',
         method: 'POST',
         body,
       }),

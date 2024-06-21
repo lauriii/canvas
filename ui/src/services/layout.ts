@@ -1,6 +1,7 @@
 // Need to use the React-specific entry point to import createApi
-import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
-import type { LayoutNode } from '@/features/layout/layoutModelSlice';
+import { createApi } from "@reduxjs/toolkit/query/react";
+import type { LayoutNode } from "@/features/layout/layoutModelSlice";
+import { baseQuery } from "@/services/baseQuery";
 
 export interface LayoutResponse {
   model: {};
@@ -10,10 +11,10 @@ export interface LayoutResponse {
 // Define a service using a base URL and expected endpoints
 export const layoutApi = createApi({
   reducerPath: 'layoutApi',
-  baseQuery: fetchBaseQuery({ baseUrl: '/api' }),
+  baseQuery,
   endpoints: (builder) => ({
     getLayoutById: builder.query<LayoutResponse, string>({
-      query: (nodeId) => `layout/${nodeId}`,
+      query: (nodeId) => `api/layout/${nodeId}`,
     }),
   }),
 });

@@ -1,12 +1,13 @@
-import type { Action, ThunkAction } from '@reduxjs/toolkit';
-import { combineSlices, configureStore } from '@reduxjs/toolkit';
-import { setupListeners } from '@reduxjs/toolkit/query';
-import { uiSlice } from '@/features/ui/uiSlice';
-import { componentApi } from '@/services/components';
-import { layoutApi } from '@/services/layout';
-import { previewApi } from '@/services/preview';
-import undoable from 'redux-undo';
+import type { Action, ThunkAction } from "@reduxjs/toolkit";
+import { combineSlices, configureStore } from "@reduxjs/toolkit";
+import { setupListeners } from "@reduxjs/toolkit/query";
+import { uiSlice } from "@/features/ui/uiSlice";
+import { componentApi } from "@/services/components";
+import { layoutApi } from "@/services/layout";
+import { previewApi } from "@/services/preview";
+import undoable from "redux-undo";
 import { layoutModelReducer } from "@/features/layout/layoutModelSlice";
+import { configurationSlice } from "@/features/configuration/configurationSlice";
 
 // `combineSlices` automatically combines the reducers using
 // their `reducerPath`s, therefore we no longer need to call `combineReducers`.
@@ -23,6 +24,7 @@ const rootReducer = combineSlices(
   componentApi,
   layoutApi,
   previewApi,
+  configurationSlice,
 );
 // Infer the `RootState` type from the root reducer
 export type RootState = ReturnType<typeof rootReducer>;
@@ -48,10 +50,8 @@ export const makeStore = (preloadedState?: Partial<RootState>) => {
   return store;
 };
 
-export const store = makeStore();
-
 // Infer the type of `store`
-export type AppStore = typeof store;
+export type AppStore = ReturnType<typeof makeStore>;
 // Infer the `AppDispatch` type from the store itself
 export type AppDispatch = AppStore['dispatch'];
 export type AppThunk<ThunkReturnType = void> = ThunkAction<
