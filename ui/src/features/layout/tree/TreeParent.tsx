@@ -61,12 +61,7 @@ const TreeParent: React.FC<TreeParentProps> = (props) => {
             dispatch(
               addNewComponentToLayout({
                 to: newPath,
-                newNode: {
-                  uuid: 'tempUUID',
-                  children: [],
-                  type: 'component',
-                  name: ev.clone.dataset.xbName,
-                },
+                newNode: ev.clone.dataset.xbUuid,
               }),
             );
           } else {

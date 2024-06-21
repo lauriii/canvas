@@ -8,8 +8,13 @@ use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Render\RendererInterface;
 use Drupal\Core\Theme\ComponentPluginManager;
 use Drupal\experience_builder\Entity\Component;
+use Drupal\experience_builder\Plugin\DataType\ComponentTreeHydrated;
+use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
+use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
+use Drupal\node\Entity\Node;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\Request;
 
 final class SdcController extends ControllerBase {
 
@@ -105,7 +110,109 @@ final class SdcController extends ControllerBase {
 
     $rendered_component = $this->renderer->render($build);
 
-    return new JsonResponse(['markup' => $rendered_component, 'props' => $build['#props'] ?? [], 'metadata' => $metadata]);
+    return new JsonResponse([
+      'id' => $component_id,
+      'markup' => $rendered_component,
+      'props' => $build['#props'] ?? [],
+      'metadata' => $metadata,
+    ]);
+  }
+
+  public function layout(): JsonResponse {
+    $first_article = Node::load(1);
+    if (!$first_article || $first_article->getType() !== 'article') {
+      throw new \LogicException('For now, this assumes node 1 exists and is an article!');
+    }
+
+    assert($first_article->field_xb_demo[0] instanceof ComponentTreeItem);
+
+    $tree = $first_article->field_xb_demo[0]->get('tree');
+    assert($tree instanceof ComponentTreeStructure);
+
+    $hydrated = $first_article->field_xb_demo[0]->get('hydrated');
+    assert($hydrated instanceof ComponentTreeHydrated);
+    $hydrated_json = $hydrated->getValue()->getContent();
+    assert(is_string($hydrated_json));
+
+    // @todo tree recursion/slot support — this only supports a flat list — blocked on https://www.drupal.org/project/experience_builder/issues/3455728
+    $children = [];
+    foreach (json_decode($tree->getValue(), TRUE) as ['uuid' => $component_instance_uuid, 'type' => $component_type]) {
+      $children[] = [
+        'uuid' => $component_instance_uuid,
+        // Note: the UI expects slots in this component to be defined as `type: slot`.
+        'type' => 'component',
+        'componentType' => $component_type,
+      ];
+    }
+
+    $model = [];
+    foreach (json_decode($hydrated_json, TRUE) as $component_instance_uuid => ['props' => $resolved_prop_values]) {
+      $model[$component_instance_uuid] = $resolved_prop_values;
+      $component_id = $tree->getComponentId($component_instance_uuid);
+      // @todo the current quick-and-dirty UI PoC unfortunately prevents any prop from being named `name`, because it expects that to convey the component name
+      $component_config = Component::loadByComponentMachineName($component_id);
+      assert($component_config !== NULL);
+      $model[$component_instance_uuid]['name'] = $component_config->label();
+    }
+
+    // @todo This now returns a mixture of pure tree structure with hydrated props values. Re-assess.
+    return new JsonResponse([
+      // Maps to the `tree` property of the XB field type.
+      // @see \Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure
+      // @todo Settle on final names and get in sync.
+      'layout' => [
+        'uuid' => 'root',
+        'type' => 'root',
+        'name' => 'root',
+        'children' => $children,
+      ],
+      // Maps to the `props` property of the XB field type,.
+      // @see \Drupal\experience_builder\Plugin\DataType\ComponentPropsValues
+      // @todo Settle on final names and get in sync.
+      'model' => $model,
+    ]);
+  }
+
+  public function preview(Request $request): JsonResponse {
+    ['layout' => $layout, 'model' => $model] = json_decode($request->getContent(), TRUE);
+
+    $html = <<<HTML
+<!doctype html>
+<html lang="en">
+<head>
+<style>
+HTML;
+    // @phpstan-ignore-next-line
+    $html .= file_get_contents(\Drupal::service('extension.list.module')->getPath('experience_builder') . '/ui/src/mocks/styles.css');
+    $html .= <<<HTML
+</style>
+</head>
+<body>
+    <div class="sortable-list" data-xb-uuid="root">
+HTML;
+    // @todo tree recursion — this only supports a flat list
+    // @todo Refactor to use \Drupal\experience_builder\Plugin\DataType\ComponentTreeHydrated.
+    foreach ($layout['children'] as ['uuid' => $uuid, 'componentType' => $type]) {
+      $html .= sprintf('<div class="sortable-item" data-xb-uuid="%s" data-xb-type="%s">', $uuid, $type);
+      // @todo the current quick-and-dirty UI PoC unfortunately prevents any prop from being named `name`, because it expects that to convey the component name — but it's not actually one of the props consumed by the SDC.
+      unset($model[$uuid]['name']);
+      $build = [
+        '#type' => 'component',
+        '#component' => $type,
+        '#props' => $model[$uuid],
+      ];
+      // @todo support CSS + JS
+      $html .= $this->renderer->renderInIsolation($build);
+      $html .= '</div>';
+    }
+    $html .= <<<HTML
+</body>
+</html>
+HTML;
+
+    return new JsonResponse([
+      'html' => $html,
+    ]);
   }
 
   /**

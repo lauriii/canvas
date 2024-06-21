@@ -12,7 +12,7 @@ import {
 import { v4 as uuidv4 } from 'uuid';
 import type { UUID } from '@/types/UUID';
 import type { AppDispatch } from '@/app/store';
-import type { StateWithHistory } from "redux-undo";
+import type { StateWithHistory } from 'redux-undo';
 
 export interface LayoutNode {
   name?: string;
@@ -20,6 +20,7 @@ export interface LayoutNode {
   type: 'slot' | 'component' | 'root';
   componentType?: string;
   children: LayoutNode[];
+  props?: {} | undefined;
 }
 
 export interface LayoutModelSliceState {
@@ -36,13 +37,13 @@ export const initialState: LayoutModelSliceState = {
     name: 'root',
     children: [],
   },
-  model: {}
+  model: {},
 };
 
 // This wrapper is necessary because when using slices with redux-undo,
 // you reference state.[sliceName].present.
 export interface StateWithHistoryWrapper {
-  layoutModel: StateWithHistory<LayoutModelSliceState>
+  layoutModel: StateWithHistory<LayoutModelSliceState>;
 }
 
 type MoveNodePayload = {
@@ -52,6 +53,11 @@ type MoveNodePayload = {
 
 type InsertNodePayload = {
   newNode: LayoutNode | undefined;
+  to: number[] | undefined;
+};
+
+type AddNewNodePayload = {
+  newNode: string | undefined;
   to: number[] | undefined;
 };
 
@@ -67,7 +73,7 @@ type UpdateNodePayload = {
 
 type CreateModelPayload = {
   uuid: string | undefined;
-  initialData: {};
+  initialData: {} | undefined;
 };
 export interface ComponentModel {
   [key: string]: string | boolean | [] | number;
@@ -136,7 +142,7 @@ export const layoutModelSlice = createSlice({
         const { layout, model } = action.payload;
         state.layout = layout;
         state.model = model;
-        },
+      },
     ),
     // Reducers for state.model
     updateNodeModel: create.reducer(
@@ -160,21 +166,31 @@ export const layoutModelSlice = createSlice({
 });
 
 export const addNewComponentToLayout =
-  (payload: InsertNodePayload) => (dispatch: AppDispatch) => {
+  (payload: AddNewNodePayload) => (dispatch: AppDispatch) => {
     if (payload.newNode && payload.to) {
-      payload.newNode.uuid = uuidv4();
-      const name = payload.newNode.name || 'Unknown component';
-      dispatch(insertNode(payload));
-      fetch(`/xb-render-component/${payload.newNode.componentType}`)
-        .then(res => res.json())
-        .then(result => {
+      const uuid = uuidv4();
+      // @todo this fetch should not be required - we should get all the info about the component in the call /xb-components before the component has even been dragged on.
+      fetch(`/xb-render-component/${payload.newNode}`)
+        .then((res) => res.json())
+        .then((result) => {
           dispatch(
-            createNewModel({
-              uuid: payload?.newNode?.uuid,
-              initialData: { exampleData: 'testing', name: name, markup: result.markup, },
+            insertNode({
+              to: payload.to,
+              newNode: {
+                uuid: uuid,
+                children: [],
+                type: 'component',
+                componentType: payload.newNode,
+              },
             }),
           );
-        })
+          dispatch(
+            createNewModel({
+              uuid: uuid,
+              initialData: result?.props,
+            }),
+          );
+        });
     }
   };
 
@@ -186,13 +202,17 @@ export const {
   sortNode,
   insertNode,
   updateNodeModel,
-  createNewModel } = layoutModelSlice.actions;
+  createNewModel,
+} = layoutModelSlice.actions;
 
 export const layoutModelReducer = layoutModelSlice.reducer;
 
 // When using redux-undo, you reference the current state by state.[sliceName].present.[targetKey].
 // These selectors are written outside the slice because the type of state is different. Here, we need
 // to be able to access the history, so we use the StateWithHistoryWrapper type.
-export const selectLayout = (state: StateWithHistoryWrapper) => state.layoutModel.present.layout;
-export const selectModel = (state: StateWithHistoryWrapper) => state.layoutModel.present.model;
-export const selectHistory = (state: StateWithHistoryWrapper) => state.layoutModel;
+export const selectLayout = (state: StateWithHistoryWrapper) =>
+  state.layoutModel.present.layout;
+export const selectModel = (state: StateWithHistoryWrapper) =>
+  state.layoutModel.present.model;
+export const selectHistory = (state: StateWithHistoryWrapper) =>
+  state.layoutModel;

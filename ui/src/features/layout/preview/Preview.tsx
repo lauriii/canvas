@@ -24,6 +24,7 @@ import { findNodePathByUuid } from '@/features/layout/layoutUtils';
 import { usePostPreviewMutation } from '@/services/preview';
 import { Spinner } from '@radix-ui/themes';
 import { customSortableDragImage } from '@/features/sortable/sortableUtils';
+import { useGetComponentsQuery } from '@/services/components';
 
 interface PreviewProps {
   height: number;
@@ -44,6 +45,7 @@ const Preview: React.FC<PreviewProps> = (props) => {
   const dispatch = useAppDispatch();
   const [frameSrcDoc, setFrameSrcDoc] = useState('');
   const [postPreview, { isLoading }] = usePostPreviewMutation();
+  const { data: components } = useGetComponentsQuery();
 
   const handleDragStart = useCallback(() => {
     dispatch(setPreviewDragging(true));
@@ -73,17 +75,21 @@ const Preview: React.FC<PreviewProps> = (props) => {
           ];
 
           if (ev.clone.dataset.isNew === 'true' && ev.clone.dataset.xbUuid) {
-            ev.item.innerHTML = '<div class="lds-hourglass"></div>';
+            // @todo ideally we would use the markup of the component here instead of a loading <p>
+            if (components) {
+              const newNode = components.find(
+                (c) => c.id === ev.clone.dataset.xbUuid,
+              );
+              console.log(newNode, 'this does not yet have markup');
+              // ev.item.innerHTML = newNode.markup;
+            }
+
+            ev.item.innerHTML = '<p>Loading...</p>';
+
             dispatch(
               addNewComponentToLayout({
                 to: newPath,
-                newNode: {
-                  uuid: 'tempUUID',
-                  children: [],
-                  type: 'component',
-                  componentType: ev.clone.dataset.xbUuid,
-                  name: ev.clone.dataset.xbName,
-                },
+                newNode: ev.clone.dataset.xbUuid,
               }),
             );
           } else {
@@ -92,7 +98,7 @@ const Preview: React.FC<PreviewProps> = (props) => {
         }
       }
     },
-    [dispatch, layout],
+    [dispatch, layout, components],
   );
 
   const handleDragAdd = useCallback(
@@ -252,6 +258,7 @@ const Preview: React.FC<PreviewProps> = (props) => {
   }, [dispatch, handleDragAdd, handleDragEnd, handleDragStart, layout, model]);
 
   useEffect(() => {
+    console.log(layout, model, postPreview);
     const sendPreviewRequest = async () => {
       try {
         // Trigger the mutation

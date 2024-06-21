@@ -45,6 +45,20 @@ experience_builder.render_component:
       component_id:
         type: string
 
+experience_builder.layout:
+  path: '/api/layout/1'
+  defaults:
+    _controller: '\Drupal\experience_builder\Controller\SdcController::layout'
+  requirements:
+    _permission: 'access administration pages'
+
+experience_builder.preview:
+  path: '/api/preview'
+  defaults:
+    _controller: '\Drupal\experience_builder\Controller\SdcController::preview'
+  requirements:
+    _permission: 'access administration pages'
+
 entity.component.form_add:
   path: '/admin/structure/component/add'
   defaults:
