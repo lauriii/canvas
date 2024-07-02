@@ -140,7 +140,9 @@ describe('General Experience Builder', {testIsolation: false}, () => {
 
     cy.wait(2000)
 
-    cy.get('[vaul-drawer-direction="left"] [data-xb-uuid="experience_builder:image"]')
+    cy.get('[data-menu-root="primary"] > [data-menu-trigger="addElement"]').click({force:true});
+    cy.get('[data-radix-popper-content-wrapper] > [data-radix-menubar-content] > [data-radix-menubar-subtrigger]')
+    .contains('Default components').click().get('[data-xb-uuid="experience_builder:image"]')
       .should(($componentOption) => {
         expect($componentOption).to.have.length(1, 'The image component is available to select')
       });
@@ -149,7 +151,6 @@ describe('General Experience Builder', {testIsolation: false}, () => {
       .should((previewIframe) => {
         expect(previewIframe.querySelector('.sortable-item:first-child h1').textContent).to.equal('Component 1 (no slots)')
       });
-
 
     // Drag over a component
     cy.get('[data-xb-component-outline]').should('not.exist')

@@ -2,3 +2,18 @@
   transition-duration: 0ms !important;
   transform: none !important;
 }
+
+.listItem {
+  margin-bottom: var(--primary-menu-subcontent-item-margin-bottom);
+  font-size: 14px;
+}
+
+.listContainer {
+  position: relative;
+  top: var(--primary-menu-subcontent-item-height);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  width: 100%;
+  padding-left: 16px;
+}

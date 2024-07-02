@@ -1,7 +1,6 @@
 :root {
+  --canvas-bg: #e8e8ec;
   --topbar-height: 2rem;
-  --primary-panel-width: 300px;
-  --contextual-panel-width: 300px;
 }
 
 * {
@@ -19,9 +18,6 @@
   transition: margin 99ms ease-in-out;
 }
 
-.leftSideBarOpen .previewContainer {
-  margin-left: var(--primary-panel-width);
-}
 .rightSideBarOpen .previewContainer {
   margin-right: var(--contextual-panel-width);
 }
@@ -43,12 +39,6 @@
   position: fixed;
   top: 0;
   height: 100vh;
-}
-
-.sideBarLeft {
-  right: auto;
-  left: 0;
-  width: var(--primary-panel-width);
 }
 
 .topBarRedoIcon {

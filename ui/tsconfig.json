@@ -14,9 +14,10 @@
     "isolatedModules": true,
     "jsx": "react-jsx",
     "types": ["vitest/globals"],
-    "baseUrl": "src",
+    "baseUrl": ".",
     "paths": {
-      "@/*": ["./*"]
+      "@/*": ["src/*"],
+      "@assets/*": ["assets/*"]
     },
     "sourceMap": false,
     "inlineSourceMap": true,

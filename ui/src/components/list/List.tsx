@@ -1,11 +1,14 @@
 import { useEffect, useRef, useCallback } from 'react';
 import styles from './List.module.css';
+import menuStyles from '@/components/sidebar/primary/PrimaryMenubar.module.css';
 import { selectDragging, setListDragging } from '@/features/ui/uiSlice';
 import Sortable from 'sortablejs';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { useGetComponentsQuery } from '@/services/components';
 import { Box, Card, Flex, Spinner, Text } from '@radix-ui/themes';
 import { customSortableDragImage } from '@/features/sortable/sortableUtils';
+import clsx from 'clsx';
+import * as Menubar from '@radix-ui/react-menubar';
 
 const List = () => {
   const dispatch = useAppDispatch();
@@ -58,44 +61,48 @@ const List = () => {
   }, [isLoading, handleDragStart, handleDragEnd, handleDragClone]);
 
   return (
-    <Box pt="5" className={isDragging ? 'list-dragging' : ''}>
-      <Spinner loading={isLoading}>
-        <Flex gap="2" direction="column" width="100%" ref={listElRef}>
-          {/*
+    <div className={clsx('listContainer', styles.listContainer)}>
+      <Menubar.Label className={menuStyles.MenubarLabel}>Basic</Menubar.Label>
+      <Box pt="5" className={isDragging ? 'list-dragging' : ''}>
+        <Spinner loading={isLoading}>
+          <Flex gap="2" direction="column" width="100%" ref={listElRef}>
+            {/*
          TODO: I've not figured out how to make this work as a UL/LI list as dragging LI elements into the preview doesn't work
          as an LI being dropped into a DIV is invalid and breaks the sortable newDraggableIndex value
         */}
 
-          {error && (
-            <div className="error">
-              {
-                // @ts-ignore
-                error?.error
-              }
-            </div>
-          )}
-          {components &&
-            components.map((component) => (
-              <Card
-                variant="surface"
-                size="1"
-                key={component.id}
-                data-xb-uuid={component.id}
-                data-xb-name={component.name}
-                onDragStart={(event) =>
-                  customSortableDragImage(
-                    event,
-                    window.document,
-                    component.name,
-                  )
+            {error && (
+              <div className="error">
+                {
+                  // @ts-ignore
+                  error?.error
                 }
-              >
-                <Text>{component.name}</Text>
-              </Card>
-            ))}
-        </Flex>
-      </Spinner>
-    </Box>
+              </div>
+            )}
+            {components &&
+              components.map((component) => (
+                <Card
+                  variant="surface"
+                  size="1"
+                  key={component.id}
+                  data-xb-uuid={component.id}
+                  data-xb-name={component.name}
+                  className={clsx('listItem', styles.listItem)}
+                  onDragStart={(event) =>
+                    customSortableDragImage(
+                      event,
+                      window.document,
+                      component.name,
+                    )
+                  }
+                >
+                  <Text>{component.name}</Text>
+                </Card>
+              ))}
+          </Flex>
+        </Spinner>
+      </Box>
+    </div>
   );
 };
 

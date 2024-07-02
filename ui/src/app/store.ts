@@ -1,13 +1,13 @@
-import type { Action, ThunkAction } from "@reduxjs/toolkit";
-import { combineSlices, configureStore } from "@reduxjs/toolkit";
-import { setupListeners } from "@reduxjs/toolkit/query";
-import { uiSlice } from "@/features/ui/uiSlice";
-import { componentApi } from "@/services/components";
-import { layoutApi } from "@/services/layout";
-import { previewApi } from "@/services/preview";
-import undoable from "redux-undo";
-import { layoutModelReducer } from "@/features/layout/layoutModelSlice";
-import { configurationSlice } from "@/features/configuration/configurationSlice";
+import type { Action, ThunkAction } from '@reduxjs/toolkit';
+import { combineSlices, configureStore } from '@reduxjs/toolkit';
+import { setupListeners } from '@reduxjs/toolkit/query';
+import { uiSlice } from '@/features/ui/uiSlice';
+import { componentApi } from '@/services/components';
+import { layoutApi } from '@/services/layout';
+import { previewApi } from '@/services/preview';
+import undoable from 'redux-undo';
+import { layoutModelReducer } from '@/features/layout/layoutModelSlice';
+import { configurationSlice } from '@/features/configuration/configurationSlice';
 
 // `combineSlices` automatically combines the reducers using
 // their `reducerPath`s, therefore we no longer need to call `combineReducers`.
@@ -16,9 +16,9 @@ const rootReducer = combineSlices(
     layoutModel: undoable(layoutModelReducer, {
       filter: (action, currentState, previousHistory) => {
         const { present } = previousHistory;
-        return Object.keys(present.model).length > 0 ;
-      }
-    })
+        return Object.keys(present.model).length > 0;
+      },
+    }),
   },
   uiSlice,
   componentApi,

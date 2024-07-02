@@ -1,20 +1,8 @@
-.triggerContainer {
-  position: fixed;
-  top: var(--topbar-height);
-  left: 0;
-}
-
 .sideBar {
   position: fixed;
   top: var(--topbar-height);
   height: calc(100vh - var(--topbar-height));
   padding: var(--space-1);
-}
-
-.sideBarLeft {
-  right: auto;
-  left: 0;
-  width: var(--primary-panel-width);
 }
 
 .sideBarRight {

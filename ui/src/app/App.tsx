@@ -1,14 +1,7 @@
 import styles from './App.module.css';
 import Layout from '@/features/layout/Layout';
-import {
-  Button,
-  Flex,
-  Card,
-  Select,
-  Text,
-} from '@radix-ui/themes';
+import { Button, Flex, Card, Select, Text } from '@radix-ui/themes';
 import clsx from 'clsx';
-import PrimaryPanel from '@/components/panel/PrimaryPanel';
 import ContextualPanel from '@/components/panel/ContextualPanel';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import {
@@ -22,6 +15,7 @@ import {
 import UndoRedo from '@/components/UndoRedo';
 import Canvas from '@/features/canvas/Canvas';
 import { ZoomInIcon } from '@radix-ui/react-icons';
+import PrimaryMenubar from '@/components/sidebar/primary/PrimaryMenubar';
 
 const App = () => {
   const dispatch = useAppDispatch();
@@ -49,14 +43,12 @@ const App = () => {
           <UndoRedo />
         </Flex>
       </div>
-      <PrimaryPanel />
+      <PrimaryMenubar />
       <ContextualPanel />
       <div className={styles.canvasControls}>
         <Card size="1">
           <Flex align="center" gap="3">
-            <Text size="1">
-              Hold space + drag to pan
-            </Text>
+            <Text size="1">Hold space + drag to pan</Text>
             <Text size="1">x: {Math.round(canvasViewPort.x)}px, </Text>
             <Text size="1">y: {Math.round(canvasViewPort.y)}px</Text>
             <Select.Root

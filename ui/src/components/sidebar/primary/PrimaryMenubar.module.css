@@ -1,0 +1,147 @@
+:root {
+  --primary-menu-width: 60px;
+  --contextual-panel-width: 300px;
+  --primary-menu-content-width: 230px;
+  --primary-menu-subcontent-width: 230px;
+  --primary-menu-text-color: #1c2024;
+  --selected-menu-item-color: #e0e1e6;
+  --hovered-menu-item-color: #f0f0f3;
+  --primary-menu-subcontent-item-height: 42px;
+  --primary-menu-subcontent-item-margin-bottom: 20px;
+  --primary-menu-item-font-size: 14px;
+}
+
+/* reset */
+button {
+  all: unset;
+}
+
+.MenubarRoot {
+  position: fixed;
+  top: var(--topbar-height);
+  display: flex;
+  flex-direction: column;
+  width: var(--primary-menu-width);
+  height: 100vh;
+  padding: 3px;
+  border-right: 1px solid #e0e1e6;
+  background-color: white;
+}
+
+.MenubarTrigger,
+.MenubarSubTrigger,
+.MenubarItem {
+  position: relative;
+  display: flex;
+  align-items: center;
+  user-select: none;
+  color: var(--primary-menu-text-color);
+  border-radius: 4px;
+  outline: none;
+  font-family: Inter, serif;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1;
+  gap: 2px;
+
+  &:hover {
+    background-color: var(--hovered-menu-item-color);
+  }
+}
+
+.MenubarTrigger[data-state="open"],
+.MenubarSubTrigger[data-state="open"] {
+  background-color: var(--selected-menu-item-color);
+}
+
+.MenubarTrigger {
+  justify-content: center;
+  padding: 7px 7px;
+}
+
+.MenubarSubTrigger,
+.MenubarItem {
+  padding: 14px 7px 14px 16px;
+}
+
+.MenubarContent {
+  position: fixed;
+  top: var(--topbar-height);
+  left: calc(var(--primary-menu-width) + 1px);
+  width: var(--primary-menu-content-width);
+  height: 100vh;
+  padding: 5px;
+  transform: none !important;
+  color: var(--primary-menu-text-color);
+  border-right: 1px solid #e0e1e6;
+  background-color: white;
+  will-change: transform, opacity;
+}
+
+.MenubarSubContent {
+  position: fixed;
+  top: var(--topbar-height);
+  left: calc(var(--primary-menu-width) + var(--primary-menu-content-width) + 1px);
+  width: var(--primary-menu-subcontent-width);
+  height: 100vh;
+  padding: 5px;
+  color: var(--primary-menu-text-color);
+  background-color: white;
+  will-change: transform, opacity;
+}
+
+.MenubarItem.inset {
+  padding-left: 20px;
+}
+
+.MenubarItem[data-highlighted] {
+  background-color: var(--hovered-menu-item-color);
+}
+
+.MenubarItem[data-disabled] {
+  pointer-events: none;
+}
+
+.MenubarItemIndicator {
+  position: absolute;
+  left: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+}
+
+.rightSlot {
+  position: fixed;
+  right: 10px;
+  color: var(--primary-menu-text-color);
+}
+
+.MenubarSeparator {
+  height: 1px;
+  margin: 5px;
+  background-color: #00002f26;
+}
+
+.leftSlot {
+  position: fixed;
+  left: 10px;
+}
+
+.menuItemText {
+  position: relative;
+  left: 10px;
+}
+
+.MenubarLabel {
+  margin-bottom: var(--primary-menu-subcontent-item-margin-bottom);
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.overlayForHover {
+  position: absolute;
+  z-index: 1;
+  width: 53px;
+  height: 54px;
+}
