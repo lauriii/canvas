@@ -90,6 +90,7 @@ export const layoutModelSlice = createSlice({
     // Reducers for state.layout
     deleteNode: create.reducer((state, action: PayloadAction<string>) => {
       state.layout = removeNodeByUuid(state.layout, action.payload);
+      delete state.model[action.payload];
     }),
     moveNode: create.reducer(
       (state, action: PayloadAction<MoveNodePayload>) => {

@@ -9,7 +9,10 @@ import { Theme } from '@radix-ui/themes';
 import type { AppConfiguration } from '@/features/configuration/configurationSlice';
 
 const prepare = async () => {
-  if (!process.env.NODE_ENV || process.env.NODE_ENV === 'development') {
+  if (
+    import.meta.env.VITE_DRUPAL !== 'true' &&
+    (!process.env.NODE_ENV || process.env.NODE_ENV === 'development')
+  ) {
     const { worker } = await import('./mocks/browser');
     return worker.start();
   }

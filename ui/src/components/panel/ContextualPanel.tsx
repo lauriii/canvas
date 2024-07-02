@@ -51,8 +51,11 @@ const ContextualPanel: React.FC<ContextualPanelProps> = () => {
     dispatch(
       updateNodeModel({
         uuid: selectedComponent,
-        // @ts-ignore
-        model: { ...model[selectedComponent], name: 'FOO' },
+        model: {
+          // @ts-ignore
+          ...model[selectedComponent],
+          text: 'This prop (text) was updated and re-rendered by the SDC!',
+        },
       }),
     );
   };

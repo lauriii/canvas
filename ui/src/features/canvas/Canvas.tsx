@@ -174,8 +174,7 @@ const Canvas = () => {
         }}
       >
         <div className={styles.previewsContainer} ref={previewsContainerRef}>
-          <Preview height={768} width={1024} />
-          <Preview height={900} width={400} />
+          <Preview />
         </div>
       </div>
     </div>

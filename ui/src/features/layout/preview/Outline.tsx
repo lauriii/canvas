@@ -1,14 +1,19 @@
 import styles from './Outline.module.css';
 import type React from 'react';
 import { useRef, useEffect, useState, useCallback } from 'react';
-import { deleteNode } from '@/features/layout/layoutModelSlice';
-import { useAppDispatch } from '@/app/hooks';
+import {
+  deleteNode,
+  selectLayout,
+  selectModel,
+} from '@/features/layout/layoutModelSlice';
+import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { Button, Grid } from '@radix-ui/themes';
 import clsx from 'clsx';
 import {
   setHoveredComponent,
   setSelectedComponent,
 } from '@/features/ui/uiSlice';
+import useSyncElementSize from '@/hooks/useSyncElementSize';
 
 interface OutlineProps {
   elementId: string | undefined; // the data-xb-uuid value of the dom element that was hovered.
@@ -18,27 +23,27 @@ interface OutlineProps {
 
 const Outline: React.FC<OutlineProps> = (props) => {
   const { elementId, selected, iframeRef } = props;
+  const layout = useAppSelector(selectLayout);
+  const model = useAppSelector(selectModel);
   const hoveredElementRef = useRef<HTMLElement | null>(null);
   const outlineElRef = useRef<HTMLDivElement | null>(null);
   // const iframeElRef = useRef<HTMLIFrameElement | null>(null);
   const toolbarElRef = useRef<HTMLDivElement | null>(null);
   const [type, setType] = useState<'component' | 'slot'>('component'); //
   const dispatch = useAppDispatch();
+  const elementRect = useSyncElementSize(iframeRef, elementId);
 
   const applyStyles = useCallback(() => {
-    const elRect = hoveredElementRef.current?.getBoundingClientRect();
-    const iframeRect = iframeRef.current?.getBoundingClientRect();
-
-    if (outlineElRef.current && elRect && iframeRect) {
-      outlineElRef.current.style.transform = `translate(${elRect.left}px, ${elRect.top}px)`;
-      outlineElRef.current.style.width = `${elRect.width}px`;
-      outlineElRef.current.style.height = `${elRect.height}px`;
+    if (outlineElRef.current && elementRect) {
+      outlineElRef.current.style.transform = `translate(${elementRect.left}px, ${elementRect.top}px)`;
+      outlineElRef.current.style.width = `${elementRect.width}px`;
+      outlineElRef.current.style.height = `${elementRect.height}px`;
     }
 
-    if (toolbarElRef.current && elRect && iframeRect) {
-      toolbarElRef.current.style.transform = `translate(${elRect.left}px, ${elRect.top}px)`;
+    if (toolbarElRef.current && elementRect) {
+      toolbarElRef.current.style.transform = `translate(${elementRect.left}px, ${elementRect.top}px)`;
     }
-  }, [iframeRef]);
+  }, [elementRect]);
 
   const handleFrameScroll = useCallback(() => {
     if (!iframeRef.current || !hoveredElementRef.current) {
@@ -88,6 +93,10 @@ const Outline: React.FC<OutlineProps> = (props) => {
   }
 
   useEffect(() => {
+    applyStyles();
+  }, [elementRect, applyStyles]);
+
+  useEffect(() => {
     if (elementId) {
       hoveredElementRef.current =
         iframeRef.current?.contentDocument?.querySelectorAll(
@@ -103,6 +112,18 @@ const Outline: React.FC<OutlineProps> = (props) => {
     }
   }, [elementId, applyStyles, bindEvents, iframeRef]);
 
+  useEffect(() => {
+    if (elementId) {
+      if (!model[elementId]) {
+        if (selected) {
+          dispatch(setSelectedComponent());
+        } else {
+          dispatch(setHoveredComponent());
+        }
+      }
+    }
+  }, [layout, model, dispatch, elementId, selected, applyStyles]);
+
   if (elementId === undefined) {
     return null;
   }
@@ -116,7 +137,7 @@ const Outline: React.FC<OutlineProps> = (props) => {
             [styles.xbSlotOutline]: type === 'slot',
             [styles.selected]: selected,
           })}
-          data-xb-component-outline=''
+          data-xb-component-outline=""
         />
         <Grid
           ref={toolbarElRef}
@@ -126,10 +147,20 @@ const Outline: React.FC<OutlineProps> = (props) => {
         >
           {type === 'component' && (
             <>
-              <Button data-xb-component-outline-button='' size="1" type="button" onClick={handleSelectClick}>
+              <Button
+                data-xb-component-outline-button=""
+                size="1"
+                type="button"
+                onClick={handleSelectClick}
+              >
                 Select
               </Button>
-              <Button data-xb-component-outline-button='' size="1" type="button" onClick={handleDeleteClick}>
+              <Button
+                data-xb-component-outline-button=""
+                size="1"
+                type="button"
+                onClick={handleDeleteClick}
+              >
                 Delete
               </Button>
             </>

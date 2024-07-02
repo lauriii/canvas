@@ -6,20 +6,6 @@
 }
 .sortable-list {
   margin: 1rem;
-  background: #DA924D;
-
-  .sortable-list {
-    background: #E0B773;
-    .sortable-list {
-      background: #A7AC86;
-      .sortable-list {
-        background: #678779;
-        .sortable-list {
-          background: #566D62;
-        }
-      }
-    }
-  }
 }
 .slot-container {
   display: flex;
