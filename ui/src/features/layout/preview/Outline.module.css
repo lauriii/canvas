@@ -4,10 +4,10 @@
   left: 0;
   display: block;
   pointer-events: none;
-  outline: 2px solid #02a376;
+  outline: 1px dashed #000;
   will-change: top, left, width, height, transform;
   &.selected {
-    border: 2px dashed #02a376;
+    border: 2px solid #1a89c9;
     outline: none;
   }
 }

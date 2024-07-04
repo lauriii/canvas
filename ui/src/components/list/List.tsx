@@ -5,7 +5,7 @@ import { selectDragging, setListDragging } from '@/features/ui/uiSlice';
 import Sortable from 'sortablejs';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { useGetComponentsQuery } from '@/services/components';
-import { Box, Card, Flex, Spinner, Text } from '@radix-ui/themes';
+import { Box, Flex, Spinner, Text } from '@radix-ui/themes';
 import { customSortableDragImage } from '@/features/sortable/sortableUtils';
 import clsx from 'clsx';
 import * as Menubar from '@radix-ui/react-menubar';
@@ -63,9 +63,9 @@ const List = () => {
   return (
     <div className={clsx('listContainer', styles.listContainer)}>
       <Menubar.Label className={menuStyles.MenubarLabel}>Basic</Menubar.Label>
-      <Box pt="5" className={isDragging ? 'list-dragging' : ''}>
+      <Box pt="2" className={isDragging ? 'list-dragging' : ''}>
         <Spinner loading={isLoading}>
-          <Flex gap="2" direction="column" width="100%" ref={listElRef}>
+          <Flex direction="column" width="100%" ref={listElRef}>
             {/*
          TODO: I've not figured out how to make this work as a UL/LI list as dragging LI elements into the preview doesn't work
          as an LI being dropped into a DIV is invalid and breaks the sortable newDraggableIndex value
@@ -81,13 +81,15 @@ const List = () => {
             )}
             {components &&
               components.map((component) => (
-                <Card
-                  variant="surface"
-                  size="1"
+                <div
                   key={component.id}
                   data-xb-uuid={component.id}
                   data-xb-name={component.name}
-                  className={clsx('listItem', styles.listItem)}
+                  className={clsx(
+                    'listItem',
+                    styles.listItem,
+                    menuStyles.MenubarItem,
+                  )}
                   onDragStart={(event) =>
                     customSortableDragImage(
                       event,
@@ -97,7 +99,7 @@ const List = () => {
                   }
                 >
                   <Text>{component.name}</Text>
-                </Card>
+                </div>
               ))}
           </Flex>
         </Spinner>

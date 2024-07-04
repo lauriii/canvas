@@ -95,7 +95,7 @@ const PrimaryMenubar = () => {
         >
           <img src={PlusIcon} alt="plus icon in menu bar" />
         </Menubar.Trigger>
-        <Menubar.Portal>
+        <Menubar.Portal container={document.getElementById('menuBarContainer')}>
           <Menubar.Content
             className={clsx('MenubarContent', styles.MenubarContent)}
             align="start"
@@ -137,7 +137,7 @@ const PrimaryMenubar = () => {
         >
           <img src={PageIcon} alt="file icon in menu bar" />
         </Menubar.Trigger>
-        <Menubar.Portal>
+        <Menubar.Portal container={document.getElementById('menuBarContainer')}>
           <Menubar.Content
             className={clsx('MenubarContent', styles.MenubarContent)}
             align="start"
@@ -167,7 +167,7 @@ const PrimaryMenubar = () => {
         >
           <img src={LayersIcon} alt="layers icon in menu bar" />
         </Menubar.Trigger>
-        <Menubar.Portal>
+        <Menubar.Portal container={document.getElementById('menuBarContainer')}>
           <Menubar.Content
             className={clsx('MenubarContent', styles.MenubarContent)}
             align="start"

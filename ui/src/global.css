@@ -1,4 +1,4 @@
 /* The Radix Menubar component has a transform by default which so here we override it. */
-[data-radix-popper-content-wrapper]:has(> [data-radix-menu-content]) {
+.menuBarContainer [data-radix-popper-content-wrapper]:has(> [data-radix-menu-content]) {
   transform: none !important;
 }

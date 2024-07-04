@@ -34,7 +34,7 @@ const PrimarySubmenu = (props: {
           <ChevronRightIcon />
         </div>
       </Menubar.SubTrigger>
-      <Menubar.Portal>
+      <Menubar.Portal container={document.getElementById('menuBarContainer')}>
         <Menubar.SubContent
           className={clsx('MenubarSubContent', styles.MenubarSubContent)}
         >

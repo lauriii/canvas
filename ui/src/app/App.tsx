@@ -48,7 +48,6 @@ const App = () => {
       <div className={styles.canvasControls}>
         <Card size="1">
           <Flex align="center" gap="3">
-            <Text size="1">Hold space + drag to pan</Text>
             <Text size="1">x: {Math.round(canvasViewPort.x)}px, </Text>
             <Text size="1">y: {Math.round(canvasViewPort.y)}px</Text>
             <Select.Root
@@ -85,14 +84,15 @@ const App = () => {
             </Select.Root>
             <Button
               onClick={() =>
-                dispatch(setCanvasViewPort({ x: 350, y: 70, scale: 1 }))
+                dispatch(setCanvasViewPort({ x: 4000, y: 4500, scale: 1 }))
               }
             >
-              Debug: scroll to top left
+              Debug: scroll to middle
             </Button>
           </Flex>
         </Card>
       </div>
+      <div id="menuBarContainer" className="menuBarContainer"></div>
     </div>
   );
 };

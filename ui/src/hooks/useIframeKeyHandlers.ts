@@ -1,85 +1,125 @@
 import type React from 'react';
 import { useCallback, useEffect } from 'react';
-const modifierKey = 'Space';
+const modifierKey = 'meta';
 
 /**
  * This hook takes preview iFrame and makes sure that if the iframe has focus, any key presses the user makes are
  * passed up to the parent window via post messages
  */
 function useIframeKeyHandlers(iframeRef: React.RefObject<HTMLIFrameElement>) {
-  function notifyParentDocument(event: KeyboardEvent) {
-    if (event.type === 'keydown') {
-      if (
-        (event.metaKey && event.key === 'z' && !event.shiftKey) ||
-        (event.ctrlKey && event.key === 'z')
-      ) {
-        window.parent.postMessage('dispatchUndo', '*');
-        return;
+  function notifyParentDocumentKey(event: KeyboardEvent) {
+    const keyCombinations = {
+      dispatchUndo:
+        (event.type === 'keydown' &&
+          event.metaKey &&
+          event.key === 'z' &&
+          !event.shiftKey) ||
+        (event.ctrlKey && event.key === 'z'),
+      dispatchRedo:
+        (event.type === 'keydown' &&
+          event.metaKey &&
+          event.shiftKey &&
+          event.key === 'z') ||
+        (event.ctrlKey && event.key === 'y'),
+      dispatchZoomIn:
+        (event.type === 'keydown' && event.code === 'NumpadAdd') ||
+        event.code === 'Equal',
+      dispatchZoomOut:
+        (event.type === 'keydown' && event.code === 'NumpadSubtract') ||
+        event.code === 'Minus',
+      dispatchModifierKeyDown:
+        event.type === 'keydown' && event.code === modifierKey,
+      dispatchModifierKeyUp:
+        event.type === 'keyup' && event.code === modifierKey,
+    };
+
+    Object.entries(keyCombinations).some(([message, shouldDispatch]) => {
+      if (shouldDispatch) {
+        window.parent.postMessage(message, '*');
+        return true;
       }
-      if (
-        (event.metaKey && event.shiftKey && event.key === 'z') ||
-        (event.ctrlKey && event.key === 'y')
-      ) {
-        window.parent.postMessage('dispatchRedo', '*');
-        return;
-      }
-      if (event.code === 'NumpadAdd' || event.code === 'Equal') {
-        window.parent.postMessage('dispatchZoomIn', '*');
-        return;
-      }
-      if (event.code === 'NumpadSubtract' || event.code === 'Minus') {
-        window.parent.postMessage('dispatchZoomOut', '*');
-        return;
-      }
-      if (event.code === modifierKey) {
-        window.parent.postMessage('dispatchModifierKeyDown', '*');
-        return;
-      }
+      return false;
+    });
+  }
+
+  function notifyParentDocumentMouse(event: MouseEvent) {
+    if (event.button !== 1) {
+      return;
     }
-    if (event.type === 'keyup') {
-      if (event.code === modifierKey) {
-        window.parent.postMessage('dispatchModifierKeyUp', '*');
-        return;
-      }
+    if (event.type === 'mousedown') {
+      window.parent.postMessage(
+        {
+          type: 'dispatchMiddleMouseDown',
+          coordinates: { x: event.clientX, y: event.clientY },
+        },
+        '*',
+      );
+      return;
+    }
+    if (event.type === 'mouseup') {
+      window.parent.postMessage('dispatchMiddleMouseUp', '*');
+      return;
     }
   }
   const handleLoad = useCallback((event: Event) => {
     const iframe = event.currentTarget as HTMLIFrameElement | null;
 
-    if (iframe) {
-      const iframeContentDoc = iframe.contentDocument;
-
-      if (iframeContentDoc) {
-        // Add event listeners to the iframe's body for keyboard events
-        iframeContentDoc.body.addEventListener('keydown', notifyParentDocument);
-        iframeContentDoc.body.addEventListener('keyup', notifyParentDocument);
-      }
+    if (!iframe) {
+      return;
     }
+
+    const iframeContentDoc = iframe.contentDocument;
+
+    (['keydown', 'keyup'] as Array<keyof HTMLElementEventMap>).forEach(
+      (eventType) => {
+        iframeContentDoc?.body.addEventListener(
+          eventType,
+          notifyParentDocumentKey as EventListener,
+        );
+      },
+    );
+
+    (['mousedown', 'mouseup'] as Array<keyof HTMLElementEventMap>).forEach(
+      (eventType) => {
+        iframeContentDoc?.body.addEventListener(
+          eventType,
+          notifyParentDocumentMouse as EventListener,
+        );
+      },
+    );
   }, []);
 
   useEffect(() => {
     const iframe = iframeRef.current;
 
-    if (iframe) {
-      iframe.addEventListener('load', handleLoad);
+    iframe?.addEventListener('load', handleLoad);
 
-      return () => {
-        if (iframe) {
-          const iframeContentDoc = iframe.contentDocument;
-          iframe.removeEventListener('load', handleLoad);
-          if (iframeContentDoc) {
-            iframeContentDoc.body.removeEventListener(
-              'keydown',
-              notifyParentDocument,
-            );
-            iframeContentDoc.body.removeEventListener(
-              'keyup',
-              notifyParentDocument,
-            );
-          }
-        }
-      };
-    }
+    return () => {
+      if (!iframe) {
+        return;
+      }
+
+      const iframeContentDoc = iframe.contentDocument;
+      iframe.removeEventListener('load', handleLoad);
+
+      (['keydown', 'keyup'] as Array<keyof HTMLElementEventMap>).forEach(
+        (eventType) => {
+          iframeContentDoc?.body.removeEventListener(
+            eventType,
+            notifyParentDocumentKey as EventListener,
+          );
+        },
+      );
+
+      (['mousedown', 'mouseup'] as Array<keyof HTMLElementEventMap>).forEach(
+        (eventType) => {
+          iframeContentDoc?.body.removeEventListener(
+            eventType,
+            notifyParentDocumentMouse as EventListener,
+          );
+        },
+      );
+    };
   }, [iframeRef, handleLoad]);
 }
 

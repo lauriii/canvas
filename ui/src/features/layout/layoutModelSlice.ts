@@ -51,6 +51,15 @@ type MoveNodePayload = {
   to: number[] | undefined;
 };
 
+type ShiftNodePayload = {
+  uuid: string | undefined;
+  direction: 'up' | 'down';
+};
+
+type DuplicateNodePayload = {
+  uuid: string;
+};
+
 type InsertNodePayload = {
   newNode: LayoutNode | undefined;
   to: number[] | undefined;
@@ -92,6 +101,29 @@ export const layoutModelSlice = createSlice({
       state.layout = removeNodeByUuid(state.layout, action.payload);
       delete state.model[action.payload];
     }),
+    duplicateNode: create.reducer(
+      (state, action: PayloadAction<DuplicateNodePayload>) => {
+        const { uuid } = action.payload;
+        const cloneNode = _.cloneDeep(findNodeByUuid(state.layout, uuid));
+        if (!cloneNode) {
+          console.error(`Cannot duplicate ${uuid}. Check the uuid is valid.`);
+          return;
+        }
+        const newUuid = uuidv4();
+        cloneNode.uuid = newUuid;
+        state.model[newUuid] = _.cloneDeep(state.model[uuid]);
+
+        const nodePath = findNodePathByUuid(state.layout, uuid);
+        if (nodePath === null) {
+          console.error(
+            `Cannot find ${uuid} in layout. Check the uuid is valid.`,
+          );
+          return;
+        }
+        nodePath[nodePath.length - 1]++;
+        state.layout = insertNodeAtPath(state.layout, nodePath, cloneNode);
+      },
+    ),
     moveNode: create.reducer(
       (state, action: PayloadAction<MoveNodePayload>) => {
         const { uuid, to } = action.payload;
@@ -132,6 +164,30 @@ export const layoutModelSlice = createSlice({
         const nodePath = findNodePathByUuid(state.layout, uuid);
         if (cloneNode && nodePath) {
           const insertPosition = [...nodePath.slice(0, -1), to];
+          const newLayout = removeNodeByUuid(state.layout, uuid);
+
+          state.layout = insertNodeAtPath(newLayout, insertPosition, cloneNode);
+        }
+      },
+    ),
+    shiftNode: create.reducer(
+      (state, action: PayloadAction<ShiftNodePayload>) => {
+        const { uuid, direction } = action.payload;
+        if (!uuid) {
+          console.error(
+            `Cannot shift ${uuid} ${direction}. Check both uuid and direction are defined/valid.`,
+          );
+          return;
+        }
+
+        const cloneNode = _.cloneDeep(findNodeByUuid(state.layout, uuid));
+        const nodePath = findNodePathByUuid(state.layout, uuid);
+        if (cloneNode && nodePath) {
+          const newPos =
+            direction === 'down'
+              ? nodePath[nodePath.length - 1] + 1
+              : Math.max(0, nodePath[nodePath.length - 1] - 1);
+          const insertPosition = [...nodePath.slice(0, -1), newPos];
           const newLayout = removeNodeByUuid(state.layout, uuid);
 
           state.layout = insertNodeAtPath(newLayout, insertPosition, cloneNode);
@@ -199,7 +255,9 @@ export const addNewComponentToLayout =
 export const {
   deleteNode,
   setLayoutModel,
+  duplicateNode,
   moveNode,
+  shiftNode,
   sortNode,
   insertNode,
   updateNodeModel,

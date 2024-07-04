@@ -6,8 +6,8 @@
   --primary-menu-text-color: #1c2024;
   --selected-menu-item-color: #e0e1e6;
   --hovered-menu-item-color: #f0f0f3;
-  --primary-menu-subcontent-item-height: 42px;
-  --primary-menu-subcontent-item-margin-bottom: 20px;
+  --primary-menu-subcontent-item-height: 12px;
+  --primary-menu-subcontent-item-margin-bottom: 10px;
   --primary-menu-item-font-size: 14px;
 }
 
@@ -67,7 +67,7 @@ button {
 .MenubarContent {
   position: fixed;
   top: var(--topbar-height);
-  left: calc(var(--primary-menu-width) + 1px);
+  left: calc(var(--primary-menu-width));
   width: var(--primary-menu-content-width);
   height: 100vh;
   padding: 5px;
@@ -81,11 +81,12 @@ button {
 .MenubarSubContent {
   position: fixed;
   top: var(--topbar-height);
-  left: calc(var(--primary-menu-width) + var(--primary-menu-content-width) + 1px);
+  left: calc(var(--primary-menu-width) + var(--primary-menu-content-width));
   width: var(--primary-menu-subcontent-width);
   height: 100vh;
   padding: 5px;
   color: var(--primary-menu-text-color);
+  border-right: 1px solid #e0e1e6;
   background-color: white;
   will-change: transform, opacity;
 }
@@ -135,6 +136,7 @@ button {
 
 .MenubarLabel {
   margin-bottom: var(--primary-menu-subcontent-item-margin-bottom);
+  padding: 0 7px 0 16px;
   font-size: 16px;
   font-weight: 700;
 }
