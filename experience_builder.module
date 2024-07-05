@@ -126,6 +126,8 @@ function experience_builder_entity_base_field_info_alter(array &$fields, EntityT
   // that field type).
   // @see \Drupal\experience_builder\Plugin\Field\FieldType\StringItemOverride
   if ($entity_type->id() === 'file') {
+    // Override the default string semantics of the "string" field type.
+    // @see \Drupal\experience_builder\Plugin\Field\FieldTypeOverride\StringItemOverride::propertyDefinitions()
     $fields['filename']->addPropertyConstraints('value', ['StringSemantics' => StringSemanticsConstraint::STRUCTURED]);
     $fields['filemime']->addPropertyConstraints('value', ['StringSemantics' => StringSemanticsConstraint::STRUCTURED]);
     $fields['uri']->setRequired(TRUE);

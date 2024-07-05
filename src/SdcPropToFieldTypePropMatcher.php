@@ -610,24 +610,8 @@ final class SdcPropToFieldTypePropMatcher {
     assert($field_item instanceof FieldItemInterface);
     $field_property_name = $data->getName();
 
-    // Gather all constraints that apply to this field item property.
-    $property_level_constraints = $data->getConstraints();
-    $complex_data_constraint = array_filter(
-      $field_item->getConstraints(),
-      fn ($c) => $c instanceof ComplexDataConstraint
-    );
-    if (!empty($complex_data_constraint)) {
-      $field_item_level_constraints_indirect = reset($complex_data_constraint)
-        ->properties[$field_property_name] ?? [];
-    }
-    else {
-      $field_item_level_constraints_indirect = [];
-    }
-    $field_item_level_constraints_direct = $field_item->getConstraints()[$field_property_name] ?? [];
-    // @todo Field item-level indirect vs direct constraints should not override each other. Investigate in Drupal core, this seems to be an oversight?
-    // Field item-level constraints override property-level constraints.
     // TRICKY: to correctly merge these, these arrays must be rekeyed to allow
-    // overriding of default property-level constraints.
+    // the field type to override default property-level constraints.
     $rekey = function (array $constraints) {
       return array_combine(
         array_map(
@@ -637,9 +621,39 @@ final class SdcPropToFieldTypePropMatcher {
         $constraints
       );
     };
-    $constraints = $rekey($field_item_level_constraints_indirect)
-      + $rekey($field_item_level_constraints_direct)
-      + $rekey($property_level_constraints);
+
+    // Gather all constraints that apply to this field item property. Note:
+    // 1. all field item properties are DataType plugin instances
+    // 2. DataType plugin definitions can define constraints
+    // 3. all FieldType plugins defines which properties they contain and what
+    //    DataType plugins they use in its `::propertyDefinitions()`
+    // 4. in that `::propertyDefinitions()`, FieldType plugins can override the
+    //    default constraints
+    // 5. (per `DataDefinitionInterface::getConstraints()`, each constraint can
+    //    be used only once — hence only overriding is possible)
+    // 6. FieldType plugins can can narrow a particular use of a DataType
+    //    further based on configuration in their `::getConstraints()` method by
+    //    adding a `ComplexData` constraint; any constraint added here trumps a
+    //    constraint defined at the property level
+    //    e.g.: \Drupal\Core\Field\Plugin\Field\FieldType\NumericItemBase::getConstraints()
+    // 7. EntityType plugins can similarly narrow the use of a DataType by
+    //    calling `::addPropertyConstraints()` in their
+    //    `::baseFieldDefinitions()`
+    //   e.g.: \Drupal\path_alias\Entity\PathAlias::baseFieldDefinitions()
+    // @see \Drupal\Core\TypedData\DataDefinition::addConstraint()
+    // @see \Drupal\Core\Field\BaseFieldDefinition::addPropertyConstraints()
+    // @see \Drupal\Core\Field\FieldItemInterface::propertyDefinitions()
+    // @see \Drupal\Core\TypedData\DataDefinitionInterface::getConstraints()
+    // @see \Drupal\Core\Validation\Plugin\Validation\Constraint\ComplexDataConstraint
+    // @see \Drupal\Core\Field\Plugin\Field\FieldType\NumericItemBase::getConstraints()
+    $property_level_constraints = $rekey($data->getConstraints());
+    $field_item_level_constraints = [];
+    foreach ($field_item->getConstraints() as $field_item_constraint) {
+      if ($field_item_constraint instanceof ComplexDataConstraint) {
+        $field_item_level_constraints += $rekey($field_item_constraint->properties[$field_property_name] ?? []);
+      }
+    }
+    $constraints = $field_item_level_constraints + $property_level_constraints;
 
     if ($required_shape instanceof DataTypeShapeRequirement) {
       if ($required_shape->constraint === 'NOT YET SUPPORTED') {
@@ -665,7 +679,7 @@ final class SdcPropToFieldTypePropMatcher {
   }
 
   /**
-   * @param array<class-string, \Symfony\Component\Validator\Constraint> $constraints
+   * @param array<string, \Symfony\Component\Validator\Constraint> $constraints
    */
   private function dataTypeShapeRequirementMatchesFinalConstraintSet(DataTypeShapeRequirement $required_shape, DataDefinitionInterface $property_data_definition, array $constraints): bool {
     // Any data type that is more complex than a primitive is not accepted.
