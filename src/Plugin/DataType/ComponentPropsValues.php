@@ -34,7 +34,7 @@ class ComponentPropsValues extends TypedData implements \Stringable {
   /**
    * The parsed data value.
    *
-   * @var array<string, array<string, array{'sourceType': string, 'value'?: array<mixed>, 'expression': string}>>
+   * @var array<string, array<string, array{'sourceType': string, 'value': array<mixed>, 'expression': string}>>
    */
   protected array $propsValues = [];
 
@@ -106,6 +106,37 @@ class ComponentPropsValues extends TypedData implements \Stringable {
       },
       $this->propsValues[$component_instance_uuid]
     );
+  }
+
+  /**
+   * Validates that static prop sources store a denormalized value.
+   *
+   * @return void
+   *
+   * @throws \LogicException
+   *
+   * @see \Drupal\experience_builder\PropSource\StaticPropSource::denormalizeValue()
+   */
+  public function ensureMinimalPropSourceRepresentations(): void {
+    foreach ($this->propsValues as $component_instance_uuid => $raw_prop_sources) {
+      foreach ($raw_prop_sources as $component_prop_name => $raw_prop_source) {
+        if (str_starts_with($raw_prop_source['sourceType'], 'static:')) {
+          try {
+            StaticPropSource::isMinimalRepresentation($raw_prop_source);
+          }
+          catch (\LogicException $e) {
+            throw new \LogicException(
+              previous: $e,
+              message: sprintf("For component `%s`, prop `%s`, an invalid field property value was detected: %s.",
+                $component_instance_uuid,
+                $component_prop_name,
+                $e->getMessage(),
+              )
+            );
+          }
+        }
+      }
+    }
   }
 
 }

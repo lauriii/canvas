@@ -2,13 +2,12 @@ langcode: en
 status: true
 dependencies:
   config:
+    - experience_builder.component.experience_builder+image
+    - experience_builder.component.sdc_test+my-cta
     - field.storage.node.field_xb_demo
     - node.type.article
-    # @todo make this calculated via code https://www.drupal.org/project/experience_builder/issues/3453680
-    - experience_builder.component.sdc_test+my-cta
   module:
     - experience_builder
-    - sdc_test
 id: node.article.field_xb_demo
 field_name: field_xb_demo
 entity_type: node

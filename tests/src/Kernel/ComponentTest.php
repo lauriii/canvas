@@ -4,11 +4,17 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\experience_builder\Kernel;
 
+use Drupal\Core\Field\Plugin\Field\FieldWidget\StringTextfieldWidget;
+use Drupal\Core\Field\Plugin\Field\FieldWidget\UriWidget;
 use Drupal\Core\Render\Component\Exception\ComponentNotFoundException;
 use Drupal\experience_builder\Entity\Component;
+use Drupal\experience_builder\PropSource\StaticPropSource;
 use Drupal\KernelTests\KernelTestBase;
+use Drupal\Tests\experience_builder\Traits\ContribStrictConfigSchemaTestTrait;
 
 class ComponentTest extends KernelTestBase {
+
+  use ContribStrictConfigSchemaTestTrait;
 
   const MODULE_COMPONENT_ID = 'sdc_test:my-cta';
   const MODULE_CONFIG_ENTITY_ID = 'sdc_test+my-cta';
@@ -24,6 +30,8 @@ class ComponentTest extends KernelTestBase {
     'experience_builder',
     'sdc',
     'sdc_test',
+    // Modules providing field types + widgets for the component props defaults.
+    'image',
   ];
 
   /**
@@ -45,6 +53,32 @@ class ComponentTest extends KernelTestBase {
     $module_component = Component::create([
       'component' => self::MODULE_CONFIG_ENTITY_ID,
       'label' => self::LABEL,
+      'defaults' => [
+        'props' => [
+          'text' => [
+            // @see \Drupal\Core\Field\Plugin\Field\FieldType\StringItem
+            'field_type' => 'string',
+            // @see \Drupal\Core\Field\Plugin\Field\FieldWidget\StringTextfieldWidget
+            'field_widget' => 'string_textfield',
+            'default_value' => ['value' => 'Hello, world!'],
+            'expression' => 'ℹ︎string␟value',
+          ],
+          'href' => [
+            // @see \Drupal\Core\Field\Plugin\Field\FieldType\UriItem
+            'field_type' => 'uri',
+            // @see \Drupal\Core\Field\Plugin\Field\FieldWidget\UriWidget
+            'field_widget' => 'uri',
+            'default_value' => ['value' => 'https://drupal.org'],
+            'expression' => 'ℹ︎uri␟value',
+          ],
+          'target' => [
+            'field_type' => NULL,
+            'field_widget' => NULL,
+            'default_value' => NULL,
+            'expression' => NULL,
+          ],
+        ],
+      ],
     ]);
     $module_component->save();
 
@@ -53,9 +87,26 @@ class ComponentTest extends KernelTestBase {
     $this->assertSame(self::MODULE_COMPONENT_ID, $module_component->getComponentMachineName());
     $this->assertSame(self::MODULE_CONFIG_ENTITY_ID, $module_component->id());
 
+    $text_default_static_prop_source = $module_component->getDefaultStaticPropSource('text');
+    $this->assertInstanceOf(StaticPropSource::class, $text_default_static_prop_source);
+    $this->assertSame('static:field_item:string', $text_default_static_prop_source->getSourceType());
+    $this->assertInstanceOf(StringTextfieldWidget::class, $text_default_static_prop_source->getWidget('text'));
+    $this->assertSame('{"sourceType":"static:field_item:string","value":"Hello, world!","expression":"ℹ︎string␟value"}', (string) $text_default_static_prop_source);
+
+    $href_default_static_prop_source = $module_component->getDefaultStaticPropSource('href');
+    $this->assertInstanceOf(StaticPropSource::class, $href_default_static_prop_source);
+    $this->assertSame('static:field_item:uri', $href_default_static_prop_source->getSourceType());
+    $this->assertInstanceOf(UriWidget::class, $href_default_static_prop_source->getWidget('href'));
+    $this->assertSame('{"sourceType":"static:field_item:uri","value":"https:\/\/drupal.org","expression":"ℹ︎uri␟value"}', (string) $href_default_static_prop_source);
+
+    $this->assertNull($module_component->getDefaultStaticPropSource('target'));
+
     $theme_component = Component::create([
       'component' => self::THEME_CONFIG_ENTITY_ID,
       'label' => self::LABEL,
+      'defaults' => [
+        'props' => [],
+      ],
     ]);
     $theme_component->save();
 

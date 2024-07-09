@@ -219,13 +219,13 @@ class EndToEndDemoIntegrationTest extends BrowserTestBase {
         'source class' => StaticPropSource::class,
         // Generated JSON from the runtime representation, should match what is
         // stored.
-        'JSONified' => '{"sourceType":"static:field_item:string","expression":"ℹ︎string␟value"}',
+        'JSONified' => '{"sourceType":"static:field_item:string","value":"hello, world!","expression":"ℹ︎string␟value"}',
         // What this evaluates to, to actually provide a value to an SDC prop.
         'evaluated' => 'hello, world!',
       ],
       'href' => [
         'source class' => StaticPropSource::class,
-        'JSONified' => '{"sourceType":"static:field_item:uri","expression":"ℹ︎uri␟value"}',
+        'JSONified' => '{"sourceType":"static:field_item:uri","value":"https:\/\/drupal.org","expression":"ℹ︎uri␟value"}',
         'evaluated' => 'https://drupal.org',
       ],
     ], array_map($make_source_assertable, $props->getComponentPropsSources('static-static-card1ab')));
@@ -238,7 +238,7 @@ class EndToEndDemoIntegrationTest extends BrowserTestBase {
       ],
       'href' => [
         'source class' => StaticPropSource::class,
-        'JSONified' => '{"sourceType":"static:field_item:uri","expression":"ℹ︎uri␟value"}',
+        'JSONified' => '{"sourceType":"static:field_item:uri","value":"https:\/\/drupal.org","expression":"ℹ︎uri␟value"}',
         'evaluated' => 'https://drupal.org',
       ],
     ], array_map($make_source_assertable, $props->getComponentPropsSources('dynamic-static-card2df')));
@@ -272,7 +272,7 @@ class EndToEndDemoIntegrationTest extends BrowserTestBase {
     $this->assertEquals([
       'image' => [
         'source class' => AdaptedPropSource::class,
-        'JSONified' => '{"sourceType":"adapter:image_apply_style","adapterInputs":[{"sourceType":"dynamic","expression":"ℹ︎␜entity:node:article␝field_hero␞␟{src↝entity␜␜entity:file␝uri␞0␟value,alt↠alt,width↠width,height↠height}"},{"sourceType":"static:field_item:string","expression":"ℹ︎string␟value"}]}',
+        'JSONified' => '{"sourceType":"adapter:image_apply_style","adapterInputs":[{"sourceType":"dynamic","expression":"ℹ︎␜entity:node:article␝field_hero␞␟{src↝entity␜␜entity:file␝uri␞0␟value,alt↠alt,width↠width,height↠height}"},{"sourceType":"static:field_item:string","value":"thumbnail","expression":"ℹ︎string␟value"}]}',
         'evaluated' => [
           'src' => ImageStyle::load('thumbnail')->buildUrl(File::load(1)->getFileUri()),
           'alt' => 'A random image for testing purposes.',

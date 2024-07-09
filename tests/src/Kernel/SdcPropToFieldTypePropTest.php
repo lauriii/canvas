@@ -22,11 +22,14 @@ use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\node\Entity\NodeType;
+use Drupal\Tests\experience_builder\Traits\ContribStrictConfigSchemaTestTrait;
 
 /**
  * Tests matching SDC props against field type + field instance props.
  */
 class SdcPropToFieldTypePropTest extends KernelTestBase {
+
+  use ContribStrictConfigSchemaTestTrait;
 
   /**
    * {@inheritdoc}

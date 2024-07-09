@@ -14,7 +14,11 @@ class XBTestSetup implements TestSetupInterface {
   public function setup(): void {
     $module_installer = \Drupal::service('module_installer');
     assert($module_installer instanceof ModuleInstallerInterface);
-    $module_installer->install(['experience_builder']);
+    $module_installer->install([
+      'experience_builder',
+      // Modules providing field types + widgets used by XB's default config.
+      'image',
+    ]);
 
     $xb_role = Role::create([
       'id' => 'xb',

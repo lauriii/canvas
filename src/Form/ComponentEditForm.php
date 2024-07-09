@@ -5,19 +5,35 @@ declare(strict_types=1);
 namespace Drupal\experience_builder\Form;
 
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
+use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Field\WidgetPluginManager;
+use Drupal\Core\Render\Element;
+use Drupal\Core\TypedData\TypedDataManagerInterface;
 use Drupal\experience_builder\Entity\Component;
 use Drupal\Core\Plugin\Component as ComponentPlugin;
 use Drupal\Core\Theme\ComponentPluginManager;
+use Drupal\experience_builder\FieldForComponentSuggester;
+use Drupal\experience_builder\JsonSchemaInterpreter\JsonSchemaStringFormat;
+use Drupal\experience_builder\Plugin\Validation\Constraint\StringSemanticsConstraint;
+use Drupal\experience_builder\PropExpressions\Component\ComponentPropExpression;
+use Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldTypePropExpression;
+use Drupal\experience_builder\PropSource\StaticPropSource;
+use Drupal\experience_builder\SdcPropJsonSchemaType;
+use Drupal\user\Entity\User;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Drupal\Core\Entity\EntityForm;
 use Drupal\Core\Form\ConfigFormBaseTrait;
 use Drupal\Core\Form\FormStateInterface;
+use Symfony\Component\Validator\ConstraintViolation;
 
 class ComponentEditForm extends EntityForm implements ContainerInjectionInterface {
   use ConfigFormBaseTrait;
 
   public function __construct(
     protected readonly ComponentPluginManager $pluginManager,
+    protected readonly TypedDataManagerInterface $typedDataManager,
+    protected readonly WidgetPluginManager $widgetPluginManager,
+    protected readonly FieldForComponentSuggester $fieldForComponentSuggester,
   ) {}
 
   /**
@@ -25,7 +41,10 @@ class ComponentEditForm extends EntityForm implements ContainerInjectionInterfac
    */
   public static function create(ContainerInterface $container): self {
     return new self(
-      $container->get('plugin.manager.sdc')
+      $container->get('plugin.manager.sdc'),
+      $container->get('typed_data_manager'),
+      $container->get('plugin.manager.field.widget'),
+      $container->get(FieldForComponentSuggester::class),
     );
   }
 
@@ -51,33 +70,229 @@ class ComponentEditForm extends EntityForm implements ContainerInjectionInterfac
       '#required' => TRUE,
     ];
 
-    $components = $this->pluginManager->getAllComponents();
+    if ($this->entity->isNew()) {
+      $form['component'] = [
+        '#type' => 'select',
+        '#title' => $this->t('Component'),
+        '#description' => $this->t("Component to be used in Experience Builder"),
+        '#required' => TRUE,
+      ];
+      $components = $this->pluginManager->getAllComponents();
+    }
+    else {
+      $components = [$this->pluginManager->find($this->entity->getComponentMachineName())];
+    }
+
     $options = [];
     foreach ($components as $component) {
       assert($component instanceof ComponentPlugin);
-      if (Component::loadByComponentMachineName($component->getPluginId()) instanceof Component) {
+      if ($this->entity->isNew() && Component::loadByComponentMachineName($component->getPluginId()) instanceof Component) {
         continue;
       }
+
+      $schema = $component->metadata->schema;
+      if (!is_array($schema) || !array_key_exists('required', $schema)) {
+        continue;
+      }
+
       if (is_array($component->getPluginDefinition()) && array_key_exists('name', $component->getPluginDefinition())) {
         $value = $component->getPluginDefinition()['name'];
       }
       else {
         $value = $component->getDerivativeId();
       }
+
       $options[$component->getBaseId()][Component::convertMachineNameToId($component->getPluginId())] = $value;
+
+      $suggestions = $this->fieldForComponentSuggester->suggest($component->getPluginId(), NULL);
+      $form[Component::convertMachineNameToId($component->getPluginId())]['__default_props__'] = [
+        '#type' => 'vertical_tabs',
+        '#description' => 'Configure which field type and widget to use for each component property. Default values may also be specified and determine the default preview of the component.',
+      ];
+      $form['live_preview'] = [
+        '#type' => 'container',
+        '#markup' => '✨ @TODO: live preview of the component, using the defaults specified in the vertical tabs 👆',
+      ];
+      foreach ($suggestions as $component_prop_expression => ['required' => $is_required, 'types' => $static_prop_source_suggestions]) {
+        $component_prop_name = ComponentPropExpression::fromString($component_prop_expression)->propName;
+
+        $prop_schema = $schema['properties'][$component_prop_name];
+        $primitive_type = SdcPropJsonSchemaType::from(
+          // TRICKY: SDC always allowed `object` for Twig integration reasons.
+          // @see \Drupal\sdc\Component\ComponentMetadata::parseSchemaInfo()
+          is_array($prop_schema['type']) ? $prop_schema['type'][0] : $prop_schema['type']
+        );
+
+        $form[Component::convertMachineNameToId($component->getPluginId())][$component_prop_name] = [
+          '#type' => 'details',
+          '#group' => '__default_props__',
+          '#title' => sprintf("<code>%s</code> (%s)", $component_prop_name, $is_required ? 'required' : 'optional'),
+          '#attributes' => [
+            'id' => $component_prop_name,
+          ],
+          '#description' => $primitive_type->value !== SdcPropJsonSchemaType::STRING->value
+            ? sprintf("Prop shape: JSON schema type <code>%s</code>", $primitive_type->value)
+            : sprintf("Prop shape: JSON schema type <code>%s</code>, format: %s", $primitive_type->value, array_key_exists('format', $prop_schema)
+              ? '<code>' . JsonSchemaStringFormat::from($prop_schema['format'])->value . '</code>'
+              : 'none ⇒ ' . StringSemanticsConstraint::PROSE,
+          ),
+          '#states' => [
+            'visible' => [
+              [
+                ':input[name="component"]' => ['value' => Component::convertMachineNameToId($component->getPluginId())],
+              ],
+            ],
+          ],
+        ];
+        $widget_type_options = [];
+        $field_type_options = [];
+        $widget_forms = [];
+        if (empty($static_prop_source_suggestions)) {
+          $form[Component::convertMachineNameToId($component->getPluginId())][$component_prop_name]['skip'] = [
+            '#type' => 'container',
+            '#markup' => "Skipped <b>$component_prop_name</b> as it has no suggested field types",
+          ];
+          continue;
+        }
+
+        foreach ($static_prop_source_suggestions as $field_type_label => $static_prop_source_expression) {
+          if ($static_prop_source_expression instanceof ReferenceFieldTypePropExpression) {
+            $form[Component::convertMachineNameToId($component->getPluginId())][$component_prop_name][$static_prop_source_expression->referencer->fieldType]['skip'] = [
+              '#type' => 'container',
+              '#markup' => "Skipped <b>$field_type_label</b> as it is instance of ReferenceFieldTypePropExpression",
+            ];
+            continue;
+          }
+
+          /* @todo Change to this, once the form is meant to handle reference field types.
+           * $field_type = $prop_suggestion instanceof ReferenceFieldTypePropExpression
+           * ? $prop_suggestion->referencer->fieldType
+           * : $prop_suggestion->fieldType;
+           */
+          $field_type = $static_prop_source_expression->fieldType;
+          $form_state->set("expressions|$component_prop_name|$field_type", $static_prop_source_expression);
+          $field_type_options[$field_type] = $field_type_label;
+
+          foreach ($this->widgetPluginManager->getOptions($field_type) as $widget_type => $option) {
+            $widget_type_options[$field_type][$widget_type] = $option;
+            $parents['#parents'] = [Component::convertMachineNameToId($component->getPluginId()), $component_prop_name, 'widget', $widget_type];
+
+            // Generate an empty static prop source using the
+            // StructuredDataPropExpressionInterface returned by the suggester
+            // service.
+            $static_prop_source = StaticPropSource::generate($static_prop_source_expression);
+            // If a default value is already stored, populate the prop source.
+            if (!$this->entity->isNew() && array_key_exists($component_prop_name, $this->entity->get('defaults')['props']) && $this->entity->get('defaults')['props'][$component_prop_name]['field_type'] === $field_type) {
+              $static_prop_source = StaticPropSource::parse([
+                'sourceType' => $static_prop_source->getSourceType(),
+                'value' => $this->entity->get('defaults')['props'][$component_prop_name]['default_value'],
+                'expression' => (string) $static_prop_source_expression,
+              ]);
+            }
+
+            // @todo Refactor to use \Drupal\Core\Field\FieldItemListInterface::defaultValuesForm(), just like \Drupal\field_ui\Form\FieldConfigEditForm::form()?
+            $widget_form = $static_prop_source->formTemporaryRemoveThisExclamationExclamationExclamation('nonsensical-uuid', $component_prop_name, User::create([]), $parents, $form_state);
+            $widget_children = Element::children($widget_form["widget"][0]);
+            $widget_form['widget'][0][reset($widget_children)]['#description'] = 'Default value — used for preview';
+            $widget_form['#description'] = 'Default value — used for preview';
+            $widget_form['#states'] = [
+              'visible' => [
+                [
+                  ':input[name="' . Component::convertMachineNameToId($component->getPluginId()) . '[' . $component_prop_name . '][widget_type][' . $field_type . ']"]' => ['value' => $widget_type],
+                  'and',
+                  ':input[name="' . Component::convertMachineNameToId($component->getPluginId()) . '[' . $component_prop_name . '][field_type]"]' => ['value' => $field_type],
+                ],
+              ],
+            ];
+            $widget_forms[$widget_type][] = $widget_form;
+          }
+        }
+
+        if (!empty($field_type_options)) {
+          $form[Component::convertMachineNameToId($component->getPluginId())][$component_prop_name]['field_type'] = [
+            '#type' => 'select',
+            '#title' => $this->t('Field type'),
+            '#required' => TRUE,
+            '#description' => $this->t("Field type to be used for the prop"),
+            '#options' => $field_type_options,
+            '#empty_option' => $this->t('- Select -'),
+            '#default_value' => $this->entity->isNew() ? NULL : $this->entity->get('defaults')['props'][$component_prop_name]['field_type'] ?? NULL,
+            '#parents' => [Component::convertMachineNameToId($component->getPluginId()), $component_prop_name, 'field_type'],
+          ];
+        }
+        if (!empty($widget_type_options)) {
+          foreach ($widget_type_options as $field_type_key => $widget_options) {
+            $form[Component::convertMachineNameToId($component->getPluginId())][$component_prop_name]['widget_type'][$field_type_key] = [
+              '#type' => 'select',
+              '#title' => $this->t('Widget'),
+              '#description' => $this->t("Widget to be used for the prop — choices depend on the field type."),
+              '#options' => $widget_options,
+              '#empty_option' => $this->t('- Select -'),
+              '#default_value' => $this->entity->isNew() ? NULL : $this->entity->get('defaults')['props'][$component_prop_name]['field_widget'] ?? NULL,
+              '#parents' => [Component::convertMachineNameToId($component->getPluginId()), $component_prop_name, 'widget_type', $field_type_key],
+              // @todo Make this required, this is not currently possible because this >1 <select> is generated: one per possible field type, and only the appropriate one is visible thanks to #states.
+              '#states' => [
+                'visible' => [
+                  [
+                    ':input[name="' . Component::convertMachineNameToId($component->getPluginId()) . '[' . $component_prop_name . '][field_type]"]' => ['value' => $field_type_key],
+                  ],
+                ],
+              ],
+            ];
+          }
+        }
+        if (!empty($widget_forms)) {
+          foreach ($widget_forms as $key => $value) {
+            $form[Component::convertMachineNameToId($component->getPluginId())][$component_prop_name]['widget'][$key] = $value;
+          }
+        }
+
+      }
     }
 
     if ($this->entity->isNew()) {
-      $form['component'] = [
-        '#type' => 'select',
-        '#title' => $this->t('Component'),
-        '#description' => $this->t("Component to be used in Experience Builder"),
-        '#options' => $options,
-        '#required' => TRUE,
-      ];
+      $form['component']['#options'] = $options;
     }
 
     return $form;
+  }
+
+  protected function copyFormValuesToEntity(EntityInterface $entity, array $form, FormStateInterface $form_state): void {
+    assert($entity instanceof Component);
+    $values = $form_state->getValues();
+
+    foreach ($form_state->getValues() as $key => $value) {
+      if (!in_array($key, ['label', 'component'])) {
+        continue;
+      }
+      $entity->set($key, $value);
+    }
+    $defaults = ['props' => []];
+
+    $component = $entity->isNew() ? $values['component'] : $entity->id();
+    foreach ($values[$component] as $prop_name => $default) {
+      $selected_field_type = $default['field_type'];
+      $defaults['props'][$prop_name] = [
+        'field_type' => $selected_field_type,
+        'field_widget' => $default['widget_type'][$selected_field_type],
+        'default_value' => $default['widget'][$default['widget_type'][$selected_field_type]][$prop_name][0],
+        'expression' => (string) $form_state->getStorage()["expressions|$prop_name|$selected_field_type"],
+      ];
+    }
+    $entity->set('defaults', $defaults);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function validateForm(array &$form, FormStateInterface $form_state): void {
+    $violations = $this->entity->getTypedData()->validate();
+    $index = 0;
+    foreach ($violations as $violation) {
+      assert($violation instanceof ConstraintViolation);
+      // @todo Remove this silly index-based work-around, instead eventually associate with the correct form elements.
+      $form_state->setErrorByName((string) $index++, $violation->getPropertyPath() . ': ' . $violation->getMessage());
+    }
   }
 
   /**

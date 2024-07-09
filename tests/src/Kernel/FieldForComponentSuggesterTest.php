@@ -12,12 +12,15 @@ use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\node\Entity\NodeType;
+use Drupal\Tests\experience_builder\Traits\ContribStrictConfigSchemaTestTrait;
 
 /**
  * @coversClass \Drupal\experience_builder\FieldForComponentSuggester
  * @group experience_builder
  */
 class FieldForComponentSuggesterTest extends KernelTestBase {
+
+  use ContribStrictConfigSchemaTestTrait;
 
   /**
    * {@inheritdoc}

@@ -7,6 +7,7 @@ namespace Drupal\Tests\experience_builder\Kernel;
 use Drupal\Core\Database\Database;
 use Drupal\Core\Extension\ModuleUninstallValidatorException;
 use Drupal\KernelTests\KernelTestBase;
+use Drupal\Tests\experience_builder\Traits\ContribStrictConfigSchemaTestTrait;
 use Drupal\Tests\node\Traits\NodeCreationTrait;
 
 /**
@@ -22,6 +23,7 @@ use Drupal\Tests\node\Traits\NodeCreationTrait;
  */
 final class FieldTypeUninstallValidatorTest extends KernelTestBase {
 
+  use ContribStrictConfigSchemaTestTrait;
   use NodeCreationTrait;
 
   protected function setUp(): void {
@@ -45,7 +47,7 @@ final class FieldTypeUninstallValidatorTest extends KernelTestBase {
    * Tests the FieldUninstallValidator.
    */
   public function testUninstall(): void {
-    $this->container->get('module_installer')->install(['experience_builder', 'link', 'node', 'text', 'xb_test_config_node_article']);
+    $this->container->get('module_installer')->install(['experience_builder', 'link', 'node', 'text', 'xb_test_config_node_article', 'image']);
     $this->createNode([
       'title' => 'Test node',
       'type' => 'article',

@@ -26,12 +26,45 @@ class ComponentValidationTest extends ConfigEntityValidationTestBase {
   /**
    * {@inheritdoc}
    */
+  protected static array $propertiesWithRequiredKeys = [
+    'defaults' => "'props' is a required key.",
+  ];
+
+  /**
+   * {@inheritdoc}
+   */
   protected function setUp(): void {
     parent::setUp();
 
     $this->entity = Component::create([
       'component' => 'sdc_test+my-cta',
       'label' => 'Test',
+      'defaults' => [
+        'props' => [
+          'text' => [
+            // @see \Drupal\Core\Field\Plugin\Field\FieldType\StringItem
+            'field_type' => 'string',
+            // @see \Drupal\Core\Field\Plugin\Field\FieldWidget\StringTextfieldWidget
+            'field_widget' => 'string_textfield',
+            'default_value' => ['value' => 'Hello, world!'],
+            'expression' => 'ℹ︎string␟value',
+          ],
+          'href' => [
+            // @see \Drupal\Core\Field\Plugin\Field\FieldType\UriItem
+            'field_type' => 'uri',
+            // @see \Drupal\Core\Field\Plugin\Field\FieldWidget\UriWidget
+            'field_widget' => 'uri',
+            'default_value' => ['value' => 'https://drupal.org'],
+            'expression' => 'ℹ︎uri␟value',
+          ],
+          'target' => [
+            'field_type' => NULL,
+            'field_widget' => NULL,
+            'default_value' => NULL,
+            'expression' => NULL,
+          ],
+        ],
+      ],
     ]);
     $this->entity->save();
   }

@@ -8,6 +8,7 @@ use Drupal\Core\Field\BaseFieldDefinition;
 use Drupal\experience_builder\Entity\Component;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\KernelTests\KernelTestBase;
+use Drupal\Tests\experience_builder\Traits\ContribStrictConfigSchemaTestTrait;
 
 /**
  * Tests dependency calculation in ComponentTreeItem.
@@ -15,6 +16,8 @@ use Drupal\KernelTests\KernelTestBase;
  * @group experience_builder
  */
 class ComponentTreeItemTest extends KernelTestBase {
+
+  use ContribStrictConfigSchemaTestTrait;
 
   const DEFAULT_VALUE = [
     'tree' => '[{"uuid":"dynamic-image-udf7d","type":"experience_builder:image"},{"uuid":"static-static-card1ab","type":"sdc_test:my-cta"},{"uuid":"dynamic-static-card2df","type":"sdc_test:my-cta"},{"uuid":"dynamic-dynamic-card3rr","type":"sdc_test:my-cta"},{"uuid":"dynamic-image-static-imageStyle-something7d","type":"experience_builder:image"}]',
@@ -32,6 +35,8 @@ class ComponentTreeItemTest extends KernelTestBase {
     'experience_builder',
     'sdc',
     'sdc_test',
+    // Modules providing field types + widgets for the component props defaults.
+    'image',
   ];
 
   /**
@@ -43,10 +48,48 @@ class ComponentTreeItemTest extends KernelTestBase {
     Component::create([
       'label' => $this->randomString(),
       'component' => Component::convertMachineNameToId('experience_builder:image'),
+      'defaults' => [
+        'props' => [
+          'image' => [
+            // @see \Drupal\image\Plugin\Field\FieldType\ImageItem
+            'field_type' => 'image',
+            // @see \Drupal\image\Plugin\Field\FieldWidget\ImageWidget
+            'field_widget' => 'image_image',
+            'default_value' => NULL,
+            'expression' => 'ℹ︎image␟image',
+          ],
+        ],
+      ],
     ])->save();
     Component::create([
       'label' => $this->randomString(),
       'component' => Component::convertMachineNameToId('sdc_test:my-cta'),
+      'defaults' => [
+        'props' => [
+          'text' => [
+            // @see \Drupal\Core\Field\Plugin\Field\FieldType\StringItem
+            'field_type' => 'string',
+            // @see \Drupal\Core\Field\Plugin\Field\FieldWidget\StringTextfieldWidget
+            'field_widget' => 'string_textfield',
+            'default_value' => ['value' => 'Hello, world!'],
+            'expression' => 'ℹ︎string␟value',
+          ],
+          'href' => [
+            // @see \Drupal\Core\Field\Plugin\Field\FieldType\UriItem
+            'field_type' => 'uri',
+            // @see \Drupal\Core\Field\Plugin\Field\FieldWidget\UriWidget
+            'field_widget' => 'uri',
+            'default_value' => ['value' => 'https://drupal.org'],
+            'expression' => 'ℹ︎uri␟value',
+          ],
+          'target' => [
+            'field_type' => NULL,
+            'field_widget' => NULL,
+            'default_value' => NULL,
+            'expression' => NULL,
+          ],
+        ],
+      ],
     ])->save();
   }
 

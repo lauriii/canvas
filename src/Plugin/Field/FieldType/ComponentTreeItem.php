@@ -149,6 +149,8 @@ class ComponentTreeItem extends FieldItemBase implements RenderableInterface {
     $props = $this->get('props');
     assert($props instanceof ComponentPropsValues);
 
+    $props->ensureMinimalPropSourceRepresentations();
+
     // This *internal-only* validation does not need to happen using validation
     // constraints because it does not validate user input: it only helps ensure
     // that the logic of this field type is correct.

@@ -1,5 +1,14 @@
 langcode: en
 status: true
-dependencies: {}
+dependencies:
+  module:
+    - image
 label: 'My Test Image Component'
 component: experience_builder+image
+defaults:
+  props:
+    image:
+      field_type: image
+      field_widget: image_image
+      default_value: ~
+      expression: ℹ︎image␟image

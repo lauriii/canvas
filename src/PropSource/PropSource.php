@@ -9,7 +9,7 @@ use Drupal\Core\Entity\FieldableEntityInterface;
 abstract class PropSource implements \Stringable {
 
   /**
-   * @param array{sourceType: string, expression: string, value?: array<string, mixed>} $sdc_prop_source
+   * @param array{sourceType: string, expression: string, value: array<string, mixed>} $sdc_prop_source
    */
   abstract public static function parse(array $sdc_prop_source): static;
 

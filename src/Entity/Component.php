@@ -5,8 +5,11 @@ declare(strict_types=1);
 namespace Drupal\experience_builder\Entity;
 
 use Drupal\Core\Config\Entity\ConfigEntityBase;
+use Drupal\Core\Field\FieldTypePluginManagerInterface;
+use Drupal\Core\Field\WidgetPluginManager;
 use Drupal\Core\Plugin\Component as ComponentPlugin;
 use Drupal\Core\Theme\ComponentPluginManager;
+use Drupal\experience_builder\PropSource\StaticPropSource;
 
 /**
  * @ConfigEntityType(
@@ -39,6 +42,7 @@ use Drupal\Core\Theme\ComponentPluginManager;
  *    config_export = {
  *      "label",
  *      "component",
+ *      "defaults",
  *    }
  *  )
  */
@@ -53,12 +57,17 @@ final class Component extends ConfigEntityBase {
    * Component entity ID, based on component plugin machine name.
    *
    * Component plugin machine names are required to contain `:`, which is an
-   * invalid character for a config entity ID. Hence this transformation.
+   * invalid character for a config entity ID, hence this transformation.
    *
    * @see self::convertMachineNameToId()
    * @see \Drupal\Core\Plugin\Component::$machineName
    */
   protected string $component;
+
+  /**
+   * @var array{"props": array<string, array{"field_type": string, "field_widget": string, "default_value": mixed, "expression": string}>}
+   */
+  protected ?array $defaults;
 
   /**
    * {@inheritdoc}
@@ -85,6 +94,23 @@ final class Component extends ConfigEntityBase {
     }
     elseif ($this->themeHandler()->themeExists($provider)) {
       $this->addDependency('theme', $provider);
+    }
+
+    $field_type_plugin_manager = \Drupal::service(FieldTypePluginManagerInterface::class);
+    assert($field_type_plugin_manager instanceof FieldTypePluginManagerInterface);
+    $field_widget_plugin_manager = \Drupal::service('plugin.manager.field.widget');
+    assert($field_widget_plugin_manager instanceof WidgetPluginManager);
+    assert(is_array($this->defaults));
+    foreach ($this->defaults['props'] ?? [] as ['field_type' => $field_type, 'field_widget' => $field_widget]) {
+      // TRICKY: `field_type` (and `field_widget`) may not be set if no field
+      // types match this SDC prop shape.
+      if ($field_type === NULL) {
+        continue;
+      }
+      $field_type_definition = $field_type_plugin_manager->getDefinition($field_type);
+      $this->addDependency('module', $field_type_definition['provider']);
+      $field_widget_definition = $field_widget_plugin_manager->getDefinition($field_widget);
+      $this->addDependency('module', $field_widget_definition['provider']);
     }
 
     return $this;
@@ -132,6 +158,28 @@ final class Component extends ConfigEntityBase {
    */
   public static function convertMachineNameToId(string $machine_name): string {
     return str_replace(':', '+', $machine_name);
+  }
+
+  public function getDefaultStaticPropSource(string $prop_name): ?StaticPropSource {
+    assert(is_array($this->defaults));
+
+    $plugin_manager = \Drupal::service(ComponentPluginManager::class);
+    $component = $plugin_manager->find($this->getComponentMachineName());
+    assert($component instanceof ComponentPlugin);
+    if (!array_key_exists($prop_name, $component->metadata->schema['properties'] ?? [])) {
+      throw new \OutOfRangeException(sprintf("'%s' is not a prop on the '%s' component.", $prop_name, $this->getComponentMachineName()));
+    }
+
+    // Optional component props may not have a default value specified.
+    if ($this->defaults['props'][$prop_name]['default_value'] === NULL) {
+      return NULL;
+    }
+
+    return StaticPropSource::parse([
+      'sourceType' => 'static:field_item:' . $this->defaults['props'][$prop_name]['field_type'],
+      'value' => $this->defaults['props'][$prop_name]['default_value'],
+      'expression' => $this->defaults['props'][$prop_name]['expression'],
+    ]);
   }
 
 }
