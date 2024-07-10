@@ -13,7 +13,7 @@ use Drupal\experience_builder\Plugin\DataType\ComponentTreeHydrated;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 use Drupal\experience_builder\PropSource\AdaptedPropSource;
 use Drupal\experience_builder\PropSource\DynamicPropSource;
-use Drupal\experience_builder\PropSource\PropSource;
+use Drupal\experience_builder\PropSource\PropSourceBase;
 use Drupal\experience_builder\PropSource\StaticPropSource;
 use Drupal\file\Entity\File;
 use Drupal\image\Entity\ImageStyle;
@@ -207,7 +207,9 @@ class EndToEndDemoIntegrationTest extends BrowserTestBase {
       ],
     ], json_decode($props->getValue(), TRUE));
     // Second, assert the interpreted results.
-    $make_source_assertable = fn (PropSource $source) : array => [
+    // More detailed/theoretical tests also exist.
+    // @see \Drupal\Tests\experience_builder\Kernel\PropSourceTest
+    $make_source_assertable = fn (PropSourceBase $source) : array => [
       'source class' => get_class($source),
       'JSONified' => (string) $source,
       'evaluated' => $source->evaluate($node),
@@ -272,7 +274,7 @@ class EndToEndDemoIntegrationTest extends BrowserTestBase {
     $this->assertEquals([
       'image' => [
         'source class' => AdaptedPropSource::class,
-        'JSONified' => '{"sourceType":"adapter:image_apply_style","adapterInputs":[{"sourceType":"dynamic","expression":"ℹ︎␜entity:node:article␝field_hero␞␟{src↝entity␜␜entity:file␝uri␞0␟value,alt↠alt,width↠width,height↠height}"},{"sourceType":"static:field_item:string","value":"thumbnail","expression":"ℹ︎string␟value"}]}',
+        'JSONified' => '{"sourceType":"adapter:image_apply_style","adapterInputs":{"image":{"sourceType":"dynamic","expression":"ℹ︎␜entity:node:article␝field_hero␞␟{src↝entity␜␜entity:file␝uri␞0␟value,alt↠alt,width↠width,height↠height}"},"imageStyle":{"sourceType":"static:field_item:string","value":"thumbnail","expression":"ℹ︎string␟value"}}}',
         'evaluated' => [
           'src' => ImageStyle::load('thumbnail')->buildUrl(File::load(1)->getFileUri()),
           'alt' => 'A random image for testing purposes.',

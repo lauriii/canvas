@@ -8,7 +8,10 @@ use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\experience_builder\Plugin\AdapterManager;
 use Drupal\experience_builder\Plugin\Adapter\AdapterInterface;
 
-final class AdaptedPropSource extends PropSource {
+/**
+ * @phpstan-import-type AdaptedPropSourceArray from PropSource
+ */
+final class AdaptedPropSource extends PropSourceBase {
 
   /**
    * @param \Drupal\experience_builder\Plugin\Adapter\AdapterInterface $adapter_instance
@@ -22,27 +25,44 @@ final class AdaptedPropSource extends PropSource {
   /**
    * {@inheritdoc}
    */
+  public static function getSourceTypePrefix(): string {
+    return 'adapter';
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getSourceType(): string {
+    return $this->getSourceTypePrefix() . self::SOURCE_TYPE_PREFIX_SEPARATOR . $this->adapter_instance->getPluginId();
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function __toString(): string {
     // @phpstan-ignore-next-line
     return json_encode([
-      'sourceType' => 'adapter:' . $this->adapter_instance->getPluginId(),
-      'adapterInputs' => array_map(
-        fn (PropSource $source): array => json_decode((string) $source, TRUE),
+      'sourceType' => $this->getSourceType(),
+      'adapterInputs' => array_combine(
+        array_keys($this->adapter_inputs),
         array_map(
-          fn (string $input_name): PropSource => $this->getInputPropSource($input_name),
-          array_keys($this->adapter_inputs)
-        )
+          fn (PropSourceBase $source): array => json_decode((string) $source, TRUE),
+          array_map(
+            fn (string $input_name): PropSourceBase => $this->getInputPropSource($input_name),
+            array_keys($this->adapter_inputs)
+          )
+        ),
       ),
     ], JSON_UNESCAPED_UNICODE);
   }
 
   /**
-   * @param array{sourceType: string, expression: string, value?: array<string, mixed>, adapterInputs?: array<string, mixed>} $sdc_prop_source
+   * @param AdaptedPropSourceArray $sdc_prop_source
    */
   public static function parse(array $sdc_prop_source): static {
     $adapter_manager = \Drupal::service(AdapterManager::class);
     assert($adapter_manager instanceof AdapterManager);
-    $adapter_instance = $adapter_manager->createInstance(explode(':', $sdc_prop_source['sourceType'])[1]);
+    $adapter_instance = $adapter_manager->createInstance(explode(self::SOURCE_TYPE_PREFIX_SEPARATOR, $sdc_prop_source['sourceType'])[1]);
     assert($adapter_instance instanceof AdapterInterface);
 
     // `sourceType = adapter:*` requires adapterInputs to be specified.
@@ -72,15 +92,8 @@ final class AdaptedPropSource extends PropSource {
     return $this->adapter_instance->getPluginId();
   }
 
-  public function getInputPropSource(string $input_name) : StaticPropSource|DynamicPropSource {
-    $input = $this->adapter_inputs[$input_name];
-    return match(TRUE) {
-      $input['sourceType'] === 'dynamic' => DynamicPropSource::parse($input),
-      // @todo Determine whether nested adapted inputs should be supported.
-      // str_starts_with($input['sourceType'], 'adapter:') => AdaptedPropSource::parse($input),
-      str_starts_with($input['sourceType'], 'static:') => StaticPropSource::parse($input),
-      default => throw new \OutOfRangeException(),
-    };
+  public function getInputPropSource(string $input_name) : PropSourceBase {
+    return PropSource::parse($this->adapter_inputs[$input_name]);
   }
 
 }

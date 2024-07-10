@@ -8,8 +8,8 @@ use Drupal\Component\Serialization\Json;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\TypedData\Attribute\DataType;
 use Drupal\Core\TypedData\TypedData;
-use Drupal\experience_builder\PropSource\AdaptedPropSource;
-use Drupal\experience_builder\PropSource\DynamicPropSource;
+use Drupal\experience_builder\PropSource\PropSource;
+use Drupal\experience_builder\PropSource\PropSourceBase;
 use Drupal\experience_builder\PropSource\StaticPropSource;
 
 /**
@@ -90,7 +90,7 @@ class ComponentPropsValues extends TypedData implements \Stringable {
    * @param string $component_instance_uuid
    *   The UUID of a placed component instance.
    *
-   * @return array<string, \Drupal\experience_builder\PropSource\PropSource>
+   * @return array<string, \Drupal\experience_builder\PropSource\PropSourceBase>
    */
   public function getComponentPropsSources(string $component_instance_uuid): array {
     if (!array_key_exists($component_instance_uuid, $this->propsValues)) {
@@ -98,12 +98,7 @@ class ComponentPropsValues extends TypedData implements \Stringable {
     }
 
     return array_map(
-      fn (array $sdc_prop_source) => match (TRUE) {
-        $sdc_prop_source['sourceType'] === 'dynamic' => DynamicPropSource::parse($sdc_prop_source),
-        str_starts_with($sdc_prop_source['sourceType'], 'static:') => StaticPropSource::parse($sdc_prop_source),
-        str_starts_with($sdc_prop_source['sourceType'], 'adapter:') => AdaptedPropSource::parse($sdc_prop_source),
-        default => throw new \OutOfRangeException(),
-      },
+      fn (array $prop_source): PropSourceBase => PropSource::parse($prop_source),
       $this->propsValues[$component_instance_uuid]
     );
   }

@@ -22,7 +22,7 @@ use Drupal\experience_builder\FieldForComponentSuggester;
 use Drupal\experience_builder\Plugin\DataType\ComponentPropsValues;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeHydrated;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
-use Drupal\experience_builder\PropSource\PropSource;
+use Drupal\experience_builder\PropSource\PropSourceBase;
 
 /**
  * Plugin implementation of the 'component_tree' field type.
@@ -208,7 +208,7 @@ class ComponentTreeItem extends FieldItemBase implements RenderableInterface {
     $entity = $this->getEntity();
 
     return array_map(
-      fn (PropSource $s): mixed => $s->evaluate($entity),
+      fn (PropSourceBase $s): mixed => $s->evaluate($entity),
       $props->getComponentPropsSources($component_instance_uuid)
     );
   }

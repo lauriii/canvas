@@ -53,8 +53,7 @@ final class FieldTypeUninstallValidatorTest extends KernelTestBase {
       'type' => 'article',
       'field_xb_test' => [
         'tree' => '[{"uuid":"dynamic-static-card2df","type":"sdc_test:my-cta"}]',
-        // cspell:ignore centity dtitle elink furi fvalue
-        'props' => '{"dynamic-static-card2df":{"text":{"sourceType":"dynamic","expression":"\u2139\ufe0e\u241centity:node:article\u241dtitle\u241e\u241fvalue"},"href":{"sourceType":"static:field_item:link","value":{"uri":"https:\/\/drupal.org","title":null,"options":[]},"expression":"ℹ︎link␟uri"}}}',
+        'props' => '{"dynamic-static-card2df":{"text":{"sourceType":"dynamic","expression":"ℹ︎␜entity:node:article␝title␞␟value"},"href":{"sourceType":"static:field_item:link","value":{"uri":"https:\/\/drupal.org","title":null,"options":[]},"expression":"ℹ︎link␟uri"}}}',
       ],
     ]);
     $this->expectException(ModuleUninstallValidatorException::class);

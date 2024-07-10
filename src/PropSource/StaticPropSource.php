@@ -25,12 +25,19 @@ use Drupal\experience_builder\PropExpressions\StructuredData\StructuredDataPropE
 /**
  * @todo Finalize name. "Fixed" might be better. "Local" might be even better?
  */
-final class StaticPropSource extends PropSource {
+final class StaticPropSource extends PropSourceBase {
 
   public function __construct(
     private readonly FieldItemInterface $fieldItem,
     private readonly StructuredDataPropExpressionInterface $expression,
   ) {}
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function getSourceTypePrefix(): string {
+    return 'static';
+  }
 
   /**
    * {@inheritdoc}
@@ -79,6 +86,7 @@ final class StaticPropSource extends PropSource {
     if (!empty($missing)) {
       throw new \LogicException(sprintf('Missing the keys %s.', implode(',', $missing)));
     }
+    assert(array_key_exists('value', $sdc_prop_source));
 
     // First: construct an expression object from the expression string.
     $expression = StructuredDataPropExpression::fromString($sdc_prop_source['expression']);
@@ -144,7 +152,7 @@ final class StaticPropSource extends PropSource {
   }
 
   public function getSourceType(): string {
-    return sprintf("static:%s", $this->fieldItem->getDataDefinition()->getDataType());
+    return self::getSourceTypePrefix() . self::SOURCE_TYPE_PREFIX_SEPARATOR . $this->fieldItem->getDataDefinition()->getDataType();
   }
 
   public function getValue(): mixed {
