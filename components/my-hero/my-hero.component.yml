@@ -1,0 +1,34 @@
+$schema: https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json
+name: Hero
+description: A Hero section with inline styles for testing purposes
+libraryOverrides:
+  dependencies:
+    - core/once
+props:
+  type: object
+  required:
+    - heading
+  properties:
+    heading:
+      type: string
+      title: Heading
+      description: The main heading of the hero
+      minLength: 2
+      examples:
+        - There goes my hero
+        - Submit now
+    subheading:
+      type: string
+      title: Sub-heading
+      examples:
+        - Watch him as he goes!
+    cta1:
+      type: string
+      title: CTA 1 text
+      examples:
+        - View
+    cta2:
+      type: string
+      title: CTA 2 text
+      examples:
+        - Click

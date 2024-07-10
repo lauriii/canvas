@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\Tests\experience_builder\Kernel;
 
 use Drupal\Core\Extension\ModuleInstallerInterface;
+use Drupal\Core\Plugin\Component;
 use Drupal\Core\StreamWrapper\StreamWrapperInterface;
 use Drupal\Core\StreamWrapper\StreamWrapperManagerInterface;
 use Drupal\Core\Template\Attribute;
@@ -112,7 +113,15 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
     assert($matcher instanceof SdcPropToFieldTypePropMatcher);
 
     $matches = [];
-    foreach ($sdc_manager->getAllComponents() as $component) {
+    $components = $sdc_manager->getAllComponents();
+    // Ensure the consistent sorting that ComponentPluginManager should have
+    // already guaranteed.
+    $components = array_combine(
+      array_map(fn (Component $c) => $c->getPluginId(), $components),
+      $components
+    );
+    ksort($components);
+    foreach ($components as $component) {
       $component_name = $component->getPluginId();
 
       // Retrieve the full JSON schema definition from the SDC's metadata.
@@ -354,6 +363,162 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
               'image' => ['ℹ︎␜entity:node:foo␝field_silly_image␞␟{src↝entity␜␜entity:file␝uri␞␟value,alt↠alt,width↠width,height↠height}'],
             ],
           ],
+        ],
+        '⿲experience_builder:my-hero␟heading' => [
+          'storage' => [
+            'ℹ︎daterange␟end_value',
+            'ℹ︎daterange␟value',
+            'ℹ︎datetime␟value',
+            'ℹ︎decimal␟value',
+            'ℹ︎email␟value',
+            'ℹ︎file_uri␟url',
+            'ℹ︎file_uri␟value',
+            'ℹ︎file␟entity␜␜entity:file␝uri␞0␟url',
+            'ℹ︎file␟entity␜␜entity:file␝uri␞0␟value',
+            'ℹ︎image␟entity␜␜entity:file␝uri␞0␟url',
+            'ℹ︎image␟entity␜␜entity:file␝uri␞0␟value',
+            'ℹ︎language␟value',
+            'ℹ︎list_string␟value',
+            'ℹ︎string_long␟value',
+            'ℹ︎string␟value',
+            'ℹ︎telephone␟value',
+            'ℹ︎text_long␟value',
+            'ℹ︎text_with_summary␟value',
+            'ℹ︎text␟value',
+            'ℹ︎uri␟value',
+            'ℹ︎uuid␟value',
+          ],
+          'format_any_prop' => [
+            'ℹ︎string_long␟value',
+            'ℹ︎string␟value',
+          ],
+          'format_main_prop' => [
+            'ℹ︎string_long␟value',
+            'ℹ︎string␟value',
+          ],
+          'instances' => [
+            'ℹ︎␜entity:node:foo␝title␞␟value',
+            'ℹ︎␜entity:path_alias␝alias␞␟value',
+            'ℹ︎␜entity:path_alias␝path␞␟value',
+          ],
+          'adapter_matches_field_type' => [],
+          'adapter_matches_instance' => [],
+        ],
+        '⿲experience_builder:my-hero␟subheading' => [
+          // field type
+          'storage' => $all_string_storage_props,
+          'format_any_prop' => [
+            'ℹ︎file␟description',
+            'ℹ︎image␟alt',
+            'ℹ︎image␟title',
+            'ℹ︎link␟title',
+            'ℹ︎string_long␟value',
+            'ℹ︎string␟value',
+          ],
+          'format_main_prop' => [
+            'ℹ︎string_long␟value',
+            'ℹ︎string␟value',
+          ],
+          'instances' => [
+            'ℹ︎␜entity:node:foo␝field_silly_image␞␟alt',
+            'ℹ︎␜entity:node:foo␝field_silly_image␞␟title',
+            'ℹ︎␜entity:node:foo␝revision_log␞␟value',
+            'ℹ︎␜entity:node:foo␝title␞␟value',
+            'ℹ︎␜entity:path_alias␝alias␞␟value',
+            'ℹ︎␜entity:path_alias␝path␞␟value',
+          ],
+          'adapter_matches_field_type' => [],
+          'adapter_matches_instance' => [],
+        ],
+        '⿲experience_builder:my-hero␟cta1' => [
+          'storage' => $all_string_storage_props,
+          'format_any_prop' => [
+            'ℹ︎file␟description',
+            'ℹ︎image␟alt',
+            'ℹ︎image␟title',
+            'ℹ︎link␟title',
+            'ℹ︎string_long␟value',
+            'ℹ︎string␟value',
+          ],
+          'format_main_prop' => [
+            'ℹ︎string_long␟value',
+            'ℹ︎string␟value',
+          ],
+          'instances' => [
+            'ℹ︎␜entity:node:foo␝field_silly_image␞␟alt',
+            'ℹ︎␜entity:node:foo␝field_silly_image␞␟title',
+            'ℹ︎␜entity:node:foo␝revision_log␞␟value',
+            'ℹ︎␜entity:node:foo␝title␞␟value',
+            'ℹ︎␜entity:path_alias␝alias␞␟value',
+            'ℹ︎␜entity:path_alias␝path␞␟value',
+          ],
+          'adapter_matches_field_type' => [],
+          'adapter_matches_instance' => [],
+        ],
+        '⿲experience_builder:my-hero␟cta2' => [
+          'storage' => $all_string_storage_props,
+          'format_any_prop' => [
+            'ℹ︎file␟description',
+            'ℹ︎image␟alt',
+            'ℹ︎image␟title',
+            'ℹ︎link␟title',
+            'ℹ︎string_long␟value',
+            'ℹ︎string␟value',
+          ],
+          'format_main_prop' => [
+            'ℹ︎string_long␟value',
+            'ℹ︎string␟value',
+          ],
+          'instances' => [
+            'ℹ︎␜entity:node:foo␝field_silly_image␞␟alt',
+            'ℹ︎␜entity:node:foo␝field_silly_image␞␟title',
+            'ℹ︎␜entity:node:foo␝revision_log␞␟value',
+            'ℹ︎␜entity:node:foo␝title␞␟value',
+            'ℹ︎␜entity:path_alias␝alias␞␟value',
+            'ℹ︎␜entity:path_alias␝path␞␟value',
+          ],
+          'adapter_matches_field_type' => [],
+          'adapter_matches_instance' => [],
+        ],
+        '⿲experience_builder:my-section␟text' => [
+          'storage' => [
+            'ℹ︎daterange␟end_value',
+            'ℹ︎daterange␟value',
+            'ℹ︎datetime␟value',
+            'ℹ︎decimal␟value',
+            'ℹ︎email␟value',
+            'ℹ︎file_uri␟url',
+            'ℹ︎file_uri␟value',
+            'ℹ︎file␟entity␜␜entity:file␝uri␞0␟url',
+            'ℹ︎file␟entity␜␜entity:file␝uri␞0␟value',
+            'ℹ︎image␟entity␜␜entity:file␝uri␞0␟url',
+            'ℹ︎image␟entity␜␜entity:file␝uri␞0␟value',
+            'ℹ︎language␟value',
+            'ℹ︎list_string␟value',
+            'ℹ︎string_long␟value',
+            'ℹ︎string␟value',
+            'ℹ︎telephone␟value',
+            'ℹ︎text_long␟value',
+            'ℹ︎text_with_summary␟value',
+            'ℹ︎text␟value',
+            'ℹ︎uri␟value',
+            'ℹ︎uuid␟value',
+          ],
+          'format_any_prop' => [
+            'ℹ︎string_long␟value',
+            'ℹ︎string␟value',
+          ],
+          'format_main_prop' => [
+            'ℹ︎string_long␟value',
+            'ℹ︎string␟value',
+          ],
+          'instances' => [
+            'ℹ︎␜entity:node:foo␝title␞␟value',
+            'ℹ︎␜entity:path_alias␝alias␞␟value',
+            'ℹ︎␜entity:path_alias␝path␞␟value',
+          ],
+          'adapter_matches_field_type' => [],
+          'adapter_matches_instance' => [],
         ],
         '⿲sdc_test_all_props:all-props␟test-string' => [
           'storage' => $all_string_storage_props,
