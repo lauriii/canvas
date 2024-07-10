@@ -94,7 +94,10 @@ final class StaticPropSource extends PropSourceBase {
 
     // Second: conjure the expected FieldItem instance.
     $field_item = self::conjureFieldItem($expression);
-    $field_item->setValue($sdc_prop_source['value']);
+    // TRICKY: Setting `[]` is the equivalent of emptying a field. 🤷 (NULL
+    // causes *some* field widgets (e.g. image) to fail.)
+    // @see \Drupal\Core\Entity\ContentEntityBase::__unset()
+    $field_item->setValue($sdc_prop_source['value'] ?? []);
 
     return new StaticPropSource($field_item, $expression);
   }
@@ -233,7 +236,7 @@ final class StaticPropSource extends PropSourceBase {
       ->massageFormValues($values, $form, $form_state);
 
     // 2. Keep only the first value — only single cardinality is supported ATM.
-    $massaged_values = $massaged_values[0];
+    $massaged_values = $massaged_values[0] ?? [];
 
     // Work on a clone of the stored field item to avoid side effects.
     $item = clone $this->fieldItem;
@@ -246,10 +249,19 @@ final class StaticPropSource extends PropSourceBase {
     // 3. XB only needs to store non-computed values.
     $stored_values = array_intersect_key($actual_values, $item->getProperties(FALSE));
 
-    if (count($this->fieldItem->getDataDefinition()->getPropertyDefinitions()) === 1) {
-      return reset($stored_values);
-    }
     return $stored_values;
+  }
+
+  /**
+   * @param array<string, mixed> $field_item_value
+   *
+   * @return mixed|array<string, mixed>
+   */
+  public function minimizeValue(array $field_item_value): mixed {
+    if (count($this->fieldItem->getDataDefinition()->getPropertyDefinitions()) === 1) {
+      return reset($field_item_value);
+    }
+    return $field_item_value;
   }
 
 }

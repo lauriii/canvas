@@ -60,6 +60,8 @@ class PropSourceTest extends KernelTestBase {
     // Test the functionality of a StaticPropSource:
     // - evaluate it to populate an SDC prop
     $this->assertSame('Hello, world!', $simple_example->evaluate(User::create([])));
+    // - the field type's item's raw value is minimized if it is single-property
+    $this->assertSame('Hello, world!', $simple_example->minimizeValue(['value' => 'Hello, world!']));
     // - generate a widget to edit the stored value — using the default widget
     //   or a specified widget.
     // @see \Drupal\experience_builder\Entity\Component::$defaults
@@ -98,6 +100,17 @@ class PropSourceTest extends KernelTestBase {
       'start' => '2020-04-16T00:00',
       'stop' => '2024-07-10T10:24',
     ], $complex_example->evaluate(User::create([])));
+    // - the field type's item's raw value is minimized if it is single-property
+    $this->assertSame(
+      [
+        'value' => '2020-04-16T00:00',
+        'end_value' => '2024-07-10T10:24',
+      ],
+      $complex_example->minimizeValue([
+        'value' => '2020-04-16T00:00',
+        'end_value' => '2024-07-10T10:24',
+      ])
+    );
     // - generate a widget to edit the stored value — using the default widget
     //   or a specified widget.
     // @see \Drupal\experience_builder\Entity\Component::$defaults

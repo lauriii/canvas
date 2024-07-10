@@ -249,7 +249,7 @@ class TwoTerribleTextAreasWidget extends WidgetBase {
         $chosen_source_prop_values = $edited_sdc_prop_values[$choice][$edited_sdc_prop_name];
         $source = $form_state->getStorage()["xb_source|$component_instance_uuid|$edited_sdc_prop_name|$choice"];
         assert($source instanceof StaticPropSource);
-        $updated_values = $source->massageFormValuesTemporaryRemoveThisExclamationExclamationExclamation($edited_sdc_prop_name, $chosen_source_prop_values, $form, $form_state);
+        $updated_values = $source->minimizeValue($source->massageFormValuesTemporaryRemoveThisExclamationExclamationExclamation($edited_sdc_prop_name, $chosen_source_prop_values, $form, $form_state));
         // Store the selected source choice: update the sourceType + expression.
         $props[$component_instance_uuid][$edited_sdc_prop_name]['sourceType'] = $source->getSourceType();
         $props[$component_instance_uuid][$edited_sdc_prop_name]['expression'] = (string) $source->asChoice();

@@ -105,9 +105,16 @@ class ComponentEditForm extends EntityForm implements ContainerInjectionInterfac
       $options[$component->getBaseId()][Component::convertMachineNameToId($component->getPluginId())] = $value;
 
       $suggestions = $this->fieldForComponentSuggester->suggest($component->getPluginId(), NULL);
-      $form[Component::convertMachineNameToId($component->getPluginId())]['__default_props__'] = [
+      $form[Component::convertMachineNameToId($component->getPluginId())]['__default_props__' . Component::convertMachineNameToId($component->getPluginId())] = [
         '#type' => 'vertical_tabs',
         '#description' => 'Configure which field type and widget to use for each component property. Default values may also be specified and determine the default preview of the component.',
+        '#states' => [
+          'visible' => [
+            [
+              ':input[name="component"]' => ['value' => Component::convertMachineNameToId($component->getPluginId())],
+            ],
+          ],
+        ],
       ];
       $form['live_preview'] = [
         '#type' => 'container',
@@ -125,7 +132,7 @@ class ComponentEditForm extends EntityForm implements ContainerInjectionInterfac
 
         $form[Component::convertMachineNameToId($component->getPluginId())][$component_prop_name] = [
           '#type' => 'details',
-          '#group' => '__default_props__',
+          '#group' => '__default_props__' . Component::convertMachineNameToId($component->getPluginId()),
           '#title' => sprintf("<code>%s</code> (%s)", $component_prop_name, $is_required ? 'required' : 'optional'),
           '#attributes' => [
             'id' => $component_prop_name,
@@ -136,13 +143,6 @@ class ComponentEditForm extends EntityForm implements ContainerInjectionInterfac
               ? '<code>' . JsonSchemaStringFormat::from($prop_schema['format'])->value . '</code>'
               : 'none ⇒ ' . StringSemanticsConstraint::PROSE,
           ),
-          '#states' => [
-            'visible' => [
-              [
-                ':input[name="component"]' => ['value' => Component::convertMachineNameToId($component->getPluginId())],
-              ],
-            ],
-          ],
         ];
         $widget_type_options = [];
         $field_type_options = [];
@@ -189,6 +189,7 @@ class ComponentEditForm extends EntityForm implements ContainerInjectionInterfac
                 'expression' => (string) $static_prop_source_expression,
               ]);
             }
+            $form_state->set("static_prop_sources|$component_prop_name|$field_type|$widget_type", $static_prop_source);
 
             // @todo Refactor to use \Drupal\Core\Field\FieldItemListInterface::defaultValuesForm(), just like \Drupal\field_ui\Form\FieldConfigEditForm::form()?
             $widget_form = $static_prop_source->formTemporaryRemoveThisExclamationExclamationExclamation('nonsensical-uuid', $component_prop_name, User::create([]), $parents, $form_state);
@@ -212,12 +213,17 @@ class ComponentEditForm extends EntityForm implements ContainerInjectionInterfac
           $form[Component::convertMachineNameToId($component->getPluginId())][$component_prop_name]['field_type'] = [
             '#type' => 'select',
             '#title' => $this->t('Field type'),
-            '#required' => TRUE,
+            '#required' => !$this->entity->isNew(),
             '#description' => $this->t("Field type to be used for the prop"),
             '#options' => $field_type_options,
             '#empty_option' => $this->t('- Select -'),
             '#default_value' => $this->entity->isNew() ? NULL : $this->entity->get('defaults')['props'][$component_prop_name]['field_type'] ?? NULL,
             '#parents' => [Component::convertMachineNameToId($component->getPluginId()), $component_prop_name, 'field_type'],
+            '#states' => [
+              'required' => [
+                ':input[name="component"]' => ['value' => Component::convertMachineNameToId($component->getPluginId())],
+              ],
+            ],
           ];
         }
         if (!empty($widget_type_options)) {
@@ -236,6 +242,9 @@ class ComponentEditForm extends EntityForm implements ContainerInjectionInterfac
                   [
                     ':input[name="' . Component::convertMachineNameToId($component->getPluginId()) . '[' . $component_prop_name . '][field_type]"]' => ['value' => $field_type_key],
                   ],
+                ],
+                'required' => [
+                  ':input[name="' . Component::convertMachineNameToId($component->getPluginId()) . '[' . $component_prop_name . '][field_type]"]' => ['value' => $field_type_key],
                 ],
               ],
             ];
@@ -272,13 +281,27 @@ class ComponentEditForm extends EntityForm implements ContainerInjectionInterfac
     $component = $entity->isNew() ? $values['component'] : $entity->id();
     foreach ($values[$component] as $prop_name => $default) {
       $selected_field_type = $default['field_type'];
+      $selected_field_widget = $default['widget_type'][$selected_field_type];
+
+      // Extract the relevant values, but DO NOT minimize the field value: that
+      // is expected for XB's field storage, but is not expected for config.
+      // @see `type: field.value.*`
+      // @see \Drupal\experience_builder\PropSource\StaticPropSource::minimizeValue()
+      // @see \Drupal\experience_builder\PropSource\StaticPropSource::isMinimalRepresentation()
+      // @see \Drupal\experience_builder\Plugin\DataType\ComponentPropsValues::ensureMinimalPropSourceRepresentations()
+      $raw_default_value = $default['widget'][$selected_field_widget][$prop_name];
+      $static_prop_source = $form_state->getStorage()["static_prop_sources|$prop_name|$selected_field_type|$selected_field_widget"];
+      assert($static_prop_source instanceof StaticPropSource);
+      $massaged_default_value = $static_prop_source->massageFormValuesTemporaryRemoveThisExclamationExclamationExclamation('nonsensical-uuid', $raw_default_value, $form, $form_state);
+
       $defaults['props'][$prop_name] = [
         'field_type' => $selected_field_type,
-        'field_widget' => $default['widget_type'][$selected_field_type],
-        'default_value' => $default['widget'][$default['widget_type'][$selected_field_type]][$prop_name][0],
+        'field_widget' => $selected_field_widget,
+        'default_value' => $massaged_default_value,
         'expression' => (string) $form_state->getStorage()["expressions|$prop_name|$selected_field_type"],
       ];
     }
+
     $entity->set('defaults', $defaults);
   }
 
