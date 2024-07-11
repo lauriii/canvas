@@ -77,6 +77,57 @@ cspell:
     - "composer (next major)"
   allow_failure: false
 
+# @todo Remove when https://www.drupal.org/project/gitlab_templates/issues/3452183 lands.
+.is-push-rule: &is-push-rule
+  if: $CI_PIPELINE_SOURCE == "push" && $CI_PROJECT_ROOT_NAMESPACE == "project"
+
+.manual-rule: &manual-rule
+  - when: manual
+    allow_failure: true
+
+# @todo Remove when https://www.drupal.org/project/gitlab_templates/issues/3452183 lands.
+.php-files-change-rule: &php-files-change-rule
+  - changes:
+      - "*.{php,module,inc,install,theme,profile}"
+      - "**/*.{php,module,inc,install,theme,profile}"
+    when: on_success
+
+# @todo Remove when https://www.drupal.org/project/gitlab_templates/issues/3452183 lands.
+.css-files-change-rule: &css-files-change-rule
+  - changes:
+      - "**/*.css"
+    when: on_success
+
+# @todo Remove when https://www.drupal.org/project/gitlab_templates/issues/3452183 lands.
+.module-metadata-files-change-rule: &module-metadata-files-change-rule
+  - changes:
+      - "*.yml"
+    when: on_success
+
+# @todo Remove when https://www.drupal.org/project/gitlab_templates/issues/3452183 lands.
+.module-config-files-change-rule: &module-config-files-change-rule
+  - changes:
+      # config schema and/or default config
+      - config
+    when: on_success
+
+# @todo Remove when https://www.drupal.org/project/gitlab_templates/issues/3452183 lands.
+.SDC-files-change-rule: &SDC-files-change-rule
+  - changes:
+      - components
+      - schema.json
+    when: on_success
+
+# @todo Remove when https://www.drupal.org/project/gitlab_templates/issues/3452183 lands.
+composer-lint:
+  rules:
+    - *manual-rule
+    - *is-push-rule
+    - *php-files-change-rule
+    - changes:
+        - composer.json
+      when: on_success
+
 # This module wants to strictly comply with Drupal core's coding standards.
 phpcs:
   # Match Drupal 11's rules, not 10.3's.
@@ -85,15 +136,38 @@ phpcs:
   before_script:
     - cp $_WEB_ROOT/core/phpcs.xml.dist ./core.phpcs.xml.dist
   allow_failure: false
+  # @todo Remove when https://www.drupal.org/project/gitlab_templates/issues/3452183 lands.
+  rules:
+    - *manual-rule
+    - *is-push-rule
+    - *php-files-change-rule
+
 stylelint:
   # Match Drupal 11's rules, not 10.3's.
   needs:
     - "composer (next major)"
   allow_failure: false
+  # @todo Remove when https://www.drupal.org/project/gitlab_templates/issues/3452183 lands.
+  rules:
+    - *manual-rule
+    - *is-push-rule
+    - *css-files-change-rule
 
 # This module wants to strictly comply with PHPStan.
 .phpstan-base:
   allow_failure: false
+  # @todo Remove when https://www.drupal.org/project/gitlab_templates/issues/3452183 lands.
+  rules:
+    - *manual-rule
+    - *is-push-rule
+    - *php-files-change-rule
+# Sadly, changes to `.phpstan-base` do not affect derivatives that themselves override `rules`… 😬
+phpstan (next major):
+  # @todo Remove when https://www.drupal.org/project/gitlab_templates/issues/3452183 lands.
+  rules:
+    - *manual-rule
+    - *is-push-rule
+    - *php-files-change-rule
 
 # We're choosing to not use `OPT_IN_TEST_NEXT_MINOR` but instead force the default CI build job to use Drupal 10.3.
 composer:
@@ -121,6 +195,24 @@ phpunit:
   # @see https://git.drupalcode.org/issue/gitlab_templates-3447792/-/compare/main...3447792-raise-sqlite-version?from_project_id=96292, when 984abb7b4781559a13078d58bb65f6959fe42179 was the last commit.
   image:
     name: $_CONFIG_DOCKERHUB_ROOT/php-$PHP_VERSION-ubuntu-apache:$_TARGET_PHP_IMAGE_TAG
+  # @todo Remove when https://www.drupal.org/project/gitlab_templates/issues/3452183 lands.
+  rules:
+    - *manual-rule
+    - *is-push-rule
+    - *php-files-change-rule
+    - *module-metadata-files-change-rule
+    - *module-config-files-change-rule
+    - *SDC-files-change-rule
+# Sadly, changes to `phpunit` do not affect derivatives that themselves override `rules`… 😬
+phpunit (next major):
+  # @todo Remove when https://www.drupal.org/project/gitlab_templates/issues/3452183 lands.
+  rules:
+    - *manual-rule
+    - *is-push-rule
+    - *php-files-change-rule
+    - *module-metadata-files-change-rule
+    - *module-config-files-change-rule
+    - *SDC-files-change-rule
 
 eslint:
   # This module wants to strictly comply with eslint.
@@ -128,27 +220,25 @@ eslint:
   before_script:
     # 🤷‍.eslintignore already instructs eslint to ignore this, but it does not seem to work. This is validated by the `UI - eslint` job below.
     - rm -rf ui
-  # Run on push, or on MRs if relevant files have changed, or manually.
   # @todo Remove when https://www.drupal.org/project/gitlab_templates/issues/3452183 lands.
   rules:
-    - if: $CI_PIPELINE_SOURCE == "push" && $CI_PROJECT_ROOT_NAMESPACE == "project"
+    - *manual-rule
+    - *is-push-rule
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       changes:
         - .prettier*
         - "**/*.js"
         - "**/*.yml"
-    - when: manual
-      allow_failure: true
 
 UI eslint:
   stage: validate
   image: node:current-alpine
   allow_failure: false
   needs: []
-  # Run on push, or on MRs if UI TS files have changed, or manually.
   # @todo Refine when https://www.drupal.org/project/gitlab_templates/issues/3452183 lands.
   rules:
-    - if: $CI_PIPELINE_SOURCE == "push" && $CI_PROJECT_ROOT_NAMESPACE == "project"
+    - *manual-rule
+    - *is-push-rule
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       changes:
         - ui/package.json
@@ -156,8 +246,6 @@ UI eslint:
         - ui/**/*.tsx
         - ui/tsconfig.json
         - ui/tsconfig.node.json
-    - when: manual
-      allow_failure: true
   script:
     - cd ui
     - npm ci
