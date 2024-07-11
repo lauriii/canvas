@@ -1,0 +1,56 @@
+:root {
+  --topbar-bg-color: #1c2024;
+}
+
+/* reset */
+button {
+  all: unset;
+}
+
+.TopbarRoot {
+  position: fixed;
+  display: flex;
+  width: 100%;
+  height: var(--topbar-height);
+  padding-inline-start: 12px;
+  background-color: var(--topbar-bg-color);
+  box-shadow: 0 2px 10px var(--black-a7);
+}
+
+.TopbarLabel {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+@media screen and (max-width: 1096px) {
+  .TopbarLabel {
+    position: relative;
+    left: auto;
+    align-content: center;
+    margin-inline-start: auto;
+  }
+}
+
+.TopbarTrigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 13px;
+  user-select: none;
+  color: white;
+  border-radius: 4px;
+  outline: none;
+  gap: 2px;
+}
+
+.topbarBtnContainer {
+  align-items: center;
+  margin-inline-start: auto;
+  margin-inline-end: 25px;
+}
+
+.dropIcon {
+  width: 25px;
+}

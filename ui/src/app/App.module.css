@@ -1,6 +1,6 @@
 :root {
   --canvas-bg: #e8e8ec;
-  --topbar-height: 2rem;
+  --topbar-height: 60px;
 }
 
 * {

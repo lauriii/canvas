@@ -40,13 +40,23 @@ const UndoRedo = () => {
 
   return (
     <>
-      <Button size="1" onClick={() => dispatchUndo()} disabled={!isUndoable}>
-        <ResetIcon />
-        Undo
+      <Button
+        variant="outline"
+        color="gray"
+        highContrast
+        onClick={() => dispatchUndo()}
+        disabled={!isUndoable}
+      >
+        <ResetIcon /> Undo
       </Button>
-      <Button size="1" onClick={() => dispatchRedo()} disabled={!isRedoable}>
-        <ResetIcon className={styles.topBarRedoIcon} />
-        Redo
+      <Button
+        variant="outline"
+        color="gray"
+        highContrast
+        onClick={() => dispatchRedo()}
+        disabled={!isRedoable}
+      >
+        <ResetIcon className={styles.topBarRedoIcon} /> Redo
       </Button>
     </>
   );

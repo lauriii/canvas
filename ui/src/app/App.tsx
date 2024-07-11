@@ -9,13 +9,12 @@ import {
   selectContextualPanelOpen,
   selectPrimaryPanelOpen,
   setCanvasViewPort,
-  setContextualPanelOpen,
   scaleValues,
 } from '@/features/ui/uiSlice';
-import UndoRedo from '@/components/UndoRedo';
 import Canvas from '@/features/canvas/Canvas';
 import { ZoomInIcon } from '@radix-ui/react-icons';
 import PrimaryMenubar from '@/components/sidebar/primary/PrimaryMenubar';
+import Topbar from '@/components/topbar/Topbar';
 
 const App = () => {
   const dispatch = useAppDispatch();
@@ -32,17 +31,7 @@ const App = () => {
     >
       <Canvas />
       <Layout />
-      <div className={styles.topBar}>
-        <Flex gap="3">
-          <Button
-            size="1"
-            onClick={() => dispatch(setContextualPanelOpen(true))}
-          >
-            Open Right
-          </Button>
-          <UndoRedo />
-        </Flex>
-      </div>
+      <Topbar />
       <PrimaryMenubar />
       <ContextualPanel />
       <div className={styles.canvasControls}>
