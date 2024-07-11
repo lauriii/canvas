@@ -230,11 +230,28 @@ eslint:
         - "**/*.js"
         - "**/*.yml"
 
+UI:
+  stage: build
+  image: node:current-alpine
+  needs: []
+  script:
+    - cd ui
+    - npm ci
+    # Verify building the entire app succeeds — this first runs the TypeScript Compiler.
+    - npm run build
+    # @todo In the future, when `ui/dist` is committed, verify here that it matches.
+  artifacts:
+    paths:
+      - ui/dist
+      # TRICKY: necessary for the `Cypress` job to be able to run `cypress install`.
+      - ui/node_modules
+
 UI eslint:
   stage: validate
   image: node:current-alpine
   allow_failure: false
-  needs: []
+  needs:
+    - UI
   # @todo Refine when https://www.drupal.org/project/gitlab_templates/issues/3452183 lands.
   rules:
     - *manual-rule
@@ -267,6 +284,7 @@ cypress:
   stage: test
   needs:
     - composer
+    - UI
   extends:
     - .test-variables
   before_script:
@@ -290,6 +308,7 @@ cypress:
     # 👆
     #
     - cd modules/custom/experience_builder
+    - echo -e "\e[0Ksection_start:`date +%s`:Cypress-install[collapsed=true]\r\e[0KInstall Cypress."
     - cp ./ui/.env.example ./ui/.env
     - echo "BASE_URL='${SIMPLETEST_BASE_URL}'" >> ./ui/.env
     - echo "DB_URL='${DRUPAL_TEST_DB_URL}'" >> ./ui/.env
@@ -300,11 +319,9 @@ cypress:
     - mkdir -p ./cycache /var/www/.npm /home/apache/.cache/fontconfig ~/.cache /usr/share/fonts/ /var/cache/fontconfig
     - chown -R www-data:www-data ./cycache /var/www/.npm /usr/bin/npm /home/apache/.cache/fontconfig ~/.cache /usr/share/fonts/ /var/cache/fontconfig
     - chmod -R 755 ./cycache
-    - sudo -u www-data CYPRESS_CACHE_FOLDER=./cycache npm install
-    - chown -R www-data:www-data ./node_modules
     - sudo -u www-data CYPRESS_CACHE_FOLDER=./cycache node ./node_modules/.bin/cypress install
+    - echo -e "\e[0Ksection_end:`date +%s`:Cypress-install\r\e[0K"
     - sudo -u www-data CYPRESS_CACHE_FOLDER=./cycache node ./node_modules/.bin/cypress --version
-    - sudo -u www-data npm run build
     - CYPRESS_CACHE_FOLDER=./cycache node ./node_modules/.bin/cypress run --browser electron
     - CYPRESS_CACHE_FOLDER=./cycache node ./node_modules/.bin/cypress run --component --browser electron
 
