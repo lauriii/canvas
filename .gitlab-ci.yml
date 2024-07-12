@@ -88,7 +88,6 @@ cspell:
 # @todo Remove when https://www.drupal.org/project/gitlab_templates/issues/3452183 lands.
 .php-files-change-rule: &php-files-change-rule
   - changes:
-      - "*.{php,module,inc,install,theme,profile}"
       - "**/*.{php,module,inc,install,theme,profile}"
     when: on_success
 
@@ -121,12 +120,12 @@ cspell:
 # @todo Remove when https://www.drupal.org/project/gitlab_templates/issues/3452183 lands.
 composer-lint:
   rules:
-    - *manual-rule
     - *is-push-rule
     - *php-files-change-rule
     - changes:
         - composer.json
       when: on_success
+    - *manual-rule
 
 # This module wants to strictly comply with Drupal core's coding standards.
 phpcs:
@@ -138,9 +137,9 @@ phpcs:
   allow_failure: false
   # @todo Remove when https://www.drupal.org/project/gitlab_templates/issues/3452183 lands.
   rules:
-    - *manual-rule
     - *is-push-rule
     - *php-files-change-rule
+    - *manual-rule
 
 stylelint:
   # Match Drupal 11's rules, not 10.3's.
@@ -149,25 +148,25 @@ stylelint:
   allow_failure: false
   # @todo Remove when https://www.drupal.org/project/gitlab_templates/issues/3452183 lands.
   rules:
-    - *manual-rule
     - *is-push-rule
     - *css-files-change-rule
+    - *manual-rule
 
 # This module wants to strictly comply with PHPStan.
 .phpstan-base:
   allow_failure: false
   # @todo Remove when https://www.drupal.org/project/gitlab_templates/issues/3452183 lands.
   rules:
-    - *manual-rule
     - *is-push-rule
     - *php-files-change-rule
+    - *manual-rule
 # Sadly, changes to `.phpstan-base` do not affect derivatives that themselves override `rules`… 😬
 phpstan (next major):
   # @todo Remove when https://www.drupal.org/project/gitlab_templates/issues/3452183 lands.
   rules:
-    - *manual-rule
     - *is-push-rule
     - *php-files-change-rule
+    - *manual-rule
 
 # We're choosing to not use `OPT_IN_TEST_NEXT_MINOR` but instead force the default CI build job to use Drupal 10.3.
 composer:
@@ -197,22 +196,22 @@ phpunit:
     name: $_CONFIG_DOCKERHUB_ROOT/php-$PHP_VERSION-ubuntu-apache:$_TARGET_PHP_IMAGE_TAG
   # @todo Remove when https://www.drupal.org/project/gitlab_templates/issues/3452183 lands.
   rules:
-    - *manual-rule
     - *is-push-rule
     - *php-files-change-rule
     - *module-metadata-files-change-rule
     - *module-config-files-change-rule
     - *SDC-files-change-rule
+    - *manual-rule
 # Sadly, changes to `phpunit` do not affect derivatives that themselves override `rules`… 😬
 phpunit (next major):
   # @todo Remove when https://www.drupal.org/project/gitlab_templates/issues/3452183 lands.
   rules:
-    - *manual-rule
     - *is-push-rule
     - *php-files-change-rule
     - *module-metadata-files-change-rule
     - *module-config-files-change-rule
     - *SDC-files-change-rule
+    - *manual-rule
 
 eslint:
   # This module wants to strictly comply with eslint.
@@ -222,13 +221,13 @@ eslint:
     - rm -rf ui
   # @todo Remove when https://www.drupal.org/project/gitlab_templates/issues/3452183 lands.
   rules:
-    - *manual-rule
     - *is-push-rule
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       changes:
         - .prettier*
         - "**/*.js"
         - "**/*.yml"
+    - *manual-rule
 
 UI:
   stage: build
@@ -254,7 +253,6 @@ UI eslint:
     - UI
   # @todo Refine when https://www.drupal.org/project/gitlab_templates/issues/3452183 lands.
   rules:
-    - *manual-rule
     - *is-push-rule
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       changes:
@@ -263,6 +261,7 @@ UI eslint:
         - ui/**/*.tsx
         - ui/tsconfig.json
         - ui/tsconfig.node.json
+    - *manual-rule
   script:
     - cd ui
     - npm ci

@@ -1,3 +1,4 @@
+# Trigger CI.
 experience_builder.component.*:
   type: config_entity
   constraints:
