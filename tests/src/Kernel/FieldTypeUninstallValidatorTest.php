@@ -6,6 +6,7 @@ namespace Drupal\Tests\experience_builder\Kernel;
 
 use Drupal\Core\Database\Database;
 use Drupal\Core\Extension\ModuleUninstallValidatorException;
+use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\Tests\experience_builder\Traits\ContribStrictConfigSchemaTestTrait;
 use Drupal\Tests\node\Traits\NodeCreationTrait;
@@ -52,7 +53,7 @@ final class FieldTypeUninstallValidatorTest extends KernelTestBase {
       'title' => 'Test node',
       'type' => 'article',
       'field_xb_test' => [
-        'tree' => '[{"uuid":"dynamic-static-card2df","type":"sdc_test:my-cta"}]',
+        'tree' => '{"' . ComponentTreeStructure::ROOT_UUID . '": [{"uuid":"dynamic-static-card2df","component":"sdc_test:my-cta"}]}',
         'props' => '{"dynamic-static-card2df":{"text":{"sourceType":"dynamic","expression":"ℹ︎␜entity:node:article␝title␞␟value"},"href":{"sourceType":"static:field_item:link","value":{"uri":"https:\/\/drupal.org","title":null,"options":[]},"expression":"ℹ︎link␟uri"}}}',
       ],
     ]);

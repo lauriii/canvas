@@ -114,25 +114,27 @@ class EndToEndDemoIntegrationTest extends BrowserTestBase {
     $this->assertInstanceOf(ComponentTreeStructure::class, $tree);
     // First, assert the stored JSON.
     $this->assertEquals([
-      [
-        'uuid' => 'dynamic-image-udf7d',
-        'type' => 'experience_builder:image',
-      ],
-      [
-        'uuid' => 'static-static-card1ab',
-        'type' => 'sdc_test:my-cta',
-      ],
-      [
-        'uuid' => 'dynamic-static-card2df',
-        'type' => 'sdc_test:my-cta',
-      ],
-      [
-        'uuid' => 'dynamic-dynamic-card3rr',
-        'type' => 'sdc_test:my-cta',
-      ],
-      [
-        'uuid' => 'dynamic-image-static-imageStyle-something7d',
-        'type' => 'experience_builder:image',
+      ComponentTreeStructure::ROOT_UUID => [
+        [
+          'uuid' => 'dynamic-image-udf7d',
+          'component' => 'experience_builder:image',
+        ],
+        [
+          'uuid' => 'static-static-card1ab',
+          'component' => 'sdc_test:my-cta',
+        ],
+        [
+          'uuid' => 'dynamic-static-card2df',
+          'component' => 'sdc_test:my-cta',
+        ],
+        [
+          'uuid' => 'dynamic-dynamic-card3rr',
+          'component' => 'sdc_test:my-cta',
+        ],
+        [
+          'uuid' => 'dynamic-image-static-imageStyle-something7d',
+          'component' => 'experience_builder:image',
+        ],
       ],
     ], json_decode($tree->getValue(), TRUE));
     // Second, assert the interpreted results.

@@ -6,6 +6,7 @@ namespace Drupal\Tests\experience_builder\Kernel\Plugin\Field\FieldType;
 
 use Drupal\Core\Field\BaseFieldDefinition;
 use Drupal\experience_builder\Entity\Component;
+use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\Tests\experience_builder\Traits\ContribStrictConfigSchemaTestTrait;
@@ -20,7 +21,7 @@ class ComponentTreeItemTest extends KernelTestBase {
   use ContribStrictConfigSchemaTestTrait;
 
   const DEFAULT_VALUE = [
-    'tree' => '[{"uuid":"dynamic-image-udf7d","type":"experience_builder:image"},{"uuid":"static-static-card1ab","type":"sdc_test:my-cta"},{"uuid":"dynamic-static-card2df","type":"sdc_test:my-cta"},{"uuid":"dynamic-dynamic-card3rr","type":"sdc_test:my-cta"},{"uuid":"dynamic-image-static-imageStyle-something7d","type":"experience_builder:image"}]',
+    'tree' => '{"' . ComponentTreeStructure::ROOT_UUID . '": [{"uuid":"dynamic-image-udf7d","component":"experience_builder:image"},{"uuid":"static-static-card1ab","component":"sdc_test:my-cta"},{"uuid":"dynamic-static-card2df","component":"sdc_test:my-cta"},{"uuid":"dynamic-dynamic-card3rr","component":"sdc_test:my-cta"},{"uuid":"dynamic-image-static-imageStyle-something7d","component":"experience_builder:image"}]}',
     'props' => '{"dynamic-static-card2df":{"text":{"sourceType":"dynamic","expression":"ℹ︎␜entity:node:article␝title␞␟value"},"href":{"sourceType":"static:field_item:uri","value":"https:\/\/drupal.org","expression":"ℹ︎uri␟value"}},"static-static-card1ab":{"text":{"sourceType":"static:field_item:string","value":"hello, world!","expression":"ℹ︎string␟value"},"href":{"sourceType":"static:field_item:uri","value":"https:\/\/drupal.org","expression":"ℹ︎uri␟value"}},"dynamic-dynamic-card3rr":{"text":{"sourceType":"dynamic","expression":"ℹ︎␜entity:node:article␝title␞␟value"},"href":{"sourceType":"dynamic","expression":"ℹ︎␜entity:node:article␝field_hero␞␟entity␜␜entity:file␝uri␞␟value"}},"dynamic-image-udf7d":{"image":{"sourceType":"dynamic","expression":"ℹ︎␜entity:node:article␝field_hero␞␟{src↝entity␜␜entity:file␝uri␞␟value,alt↠alt,width↠width,height↠height}"}},"dynamic-image-static-imageStyle-something7d":{"image":{"sourceType":"adapter:image_apply_style","adapterInputs":{"image":{"sourceType":"dynamic","expression":"ℹ︎␜entity:node:article␝field_hero␞␟{src↝entity␜␜entity:file␝uri␞0␟value,alt↠alt,width↠width,height↠height}"},"imageStyle":{"sourceType":"static:field_item:string","value":"thumbnail","expression":"ℹ︎string␟value"}}}}}',
   ];
   const EXPECTED_DEPENDENCIES = [

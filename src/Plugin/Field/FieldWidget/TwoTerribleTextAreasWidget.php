@@ -14,6 +14,7 @@ use Drupal\Core\Field\FieldItemListInterface;
 use Drupal\Core\Field\WidgetBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
+use Drupal\Core\TypedData\DataDefinition;
 use Drupal\experience_builder\Plugin\Adapter\AdapterInterface;
 use Drupal\experience_builder\Plugin\DataType\ComponentPropsValues;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
@@ -222,8 +223,9 @@ class TwoTerribleTextAreasWidget extends WidgetBase {
     // TRICKY: This manual JSON handling is necessary due to https://www.drupal.org/project/drupal/issues/2232427 not having landed yet.
     $props = json_decode($values[0]['props'], TRUE);
 
-    foreach (json_decode($values[0]['tree'], TRUE) as $component_instance) {
-      $component_instance_uuid = $component_instance['uuid'];
+    $tree_structure = ComponentTreeStructure::createInstance(DataDefinition::create('component_tree_structure'));
+    $tree_structure->setValue($values[0]['tree']);
+    foreach ($tree_structure->getComponentInstanceUuids() as $component_instance_uuid) {
 
       // Not every component instance has static prop sources to edit.
       if (!array_key_exists($component_instance_uuid, $edited_sdc_props)) {

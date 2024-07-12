@@ -353,10 +353,6 @@ pages:
     - if: $CI_COMMIT_BRANCH == "staging" # Run on master (with default PAGES_PREFIX)
       variables:
         PAGES_PREFIX: '-stg-' # Prefix with -stg- for the staging branch
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event" # Conditionally change the prefix for Merge Requests
-      when: manual # Run pages manually on Merge Requests
-      variables:
-        PAGES_PREFIX: 'mr-$CI_MERGE_REQUEST_IID' # Prefix with the mr-<iid>, like `mr-123`
 
 🗺️ C4 model diagrams:
   stage: validate
