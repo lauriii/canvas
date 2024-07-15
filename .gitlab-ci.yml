@@ -279,7 +279,7 @@ UI eslint:
     reports:
       junit: junit.xml
 
-cypress:
+.cypress-base:
   stage: test
   needs:
     - composer
@@ -291,9 +291,6 @@ cypress:
     - sudo apt-get -y update
     - sudo apt-get -y install libgtk2.0-0 libgtk-3-0 libgbm-dev libnotify-dev libnss3 libxss1 libasound2 libxtst6 xauth xvfb
     - echo -e "\e[0Ksection_end:`date +%s`:Cypress-deps\r\e[0K"
-  variables:
-    _TARGET_DB_TYPE: sqlite
-  script:
     #
     # Copied from `.nightwatch-base`, but converted to use GitLab CI references.
     # 👇
@@ -321,14 +318,32 @@ cypress:
     - sudo -u www-data CYPRESS_CACHE_FOLDER=./cycache node ./node_modules/.bin/cypress install
     - echo -e "\e[0Ksection_end:`date +%s`:Cypress-install\r\e[0K"
     - sudo -u www-data CYPRESS_CACHE_FOLDER=./cycache node ./node_modules/.bin/cypress --version
-    - CYPRESS_CACHE_FOLDER=./cycache node ./node_modules/.bin/cypress run --browser electron
-    - CYPRESS_CACHE_FOLDER=./cycache node ./node_modules/.bin/cypress run --component --browser electron
-
+  variables:
+    _TARGET_DB_TYPE: sqlite
   artifacts:
     when: always
     expire_in: 6 mos
     paths:
       - ./tests/src/Cypress/cypress/screenshots/**/*.png
+
+cypress E2E:
+  extends: .cypress-base
+  script:
+    - CYPRESS_CACHE_FOLDER=./cycache node ./node_modules/.bin/cypress run --browser electron
+
+cypress unit:
+  extends: .cypress-base
+  script:
+    - CYPRESS_CACHE_FOLDER=./cycache node ./node_modules/.bin/cypress run --component --browser electron
+  rules:
+    - *is-push-rule
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes:
+        - ui/src/**/*
+        - ui/tsconfig.json
+        - ui/tsconfig.node.json
+        - tests/src/Cypress/cypress/unit/**/*
+    - *manual-rule
 
 pages:
   image: node:current-alpine
