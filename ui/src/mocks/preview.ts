@@ -15,22 +15,18 @@ const createHtmlFromLayoutData = (
     const div = document.createElement('div');
     div.className = 'sortable-item';
     div.setAttribute('data-xb-uuid', component.uuid);
-
-    // Check if the component has children to create a nested structure
-
-    if (component.type === 'component') {
-      div.setAttribute('data-xb-type', 'component');
-      if (model[component.uuid]?.markup) {
-        div.innerHTML += model[component.uuid]?.markup;
-      } else {
-        const header = document.createElement('h1');
-        header.textContent = model[component.uuid]?.name || `debug: no name`;
-        div.appendChild(header);
-      }
+    div.setAttribute('data-xb-type', 'component');
+    if (model[component.uuid]?.markup) {
+      div.innerHTML += model[component.uuid]?.markup;
+    } else {
+      const header = document.createElement('h1');
+      header.textContent = model[component.uuid]?.name || `debug: no name`;
+      div.appendChild(header);
     }
+    // Check if the component has children to create a nested structure
     if (component.children) {
       const innerDiv = document.createElement('div');
-      if (component.type === 'slot') {
+      if (component.nodeType === 'slot') {
         innerDiv.className = 'sortable-list';
         innerDiv.setAttribute('data-xb-uuid', component.uuid);
         div.setAttribute('data-xb-type', 'slot');

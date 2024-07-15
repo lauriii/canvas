@@ -14,6 +14,7 @@ import {
 import clsx from 'clsx';
 import { setTreeDragging } from '@/features/ui/uiSlice';
 import { findNodePathByUuid } from '@/features/layout/layoutUtils';
+import { useGetComponentsQuery } from '@/services/components';
 
 interface TreeParentProps {
   node: LayoutNode;
@@ -24,6 +25,8 @@ const TreeParent: React.FC<TreeParentProps> = (props) => {
   const { node } = props;
   const { children } = node;
   const layout = useAppSelector(selectLayout);
+  const { data: components } = useGetComponentsQuery();
+  const componentsRef = useRef(components);
 
   const listElRef = useRef<HTMLUListElement>(null);
   const sortableInstance = useRef<Sortable | null>(null);
@@ -62,6 +65,7 @@ const TreeParent: React.FC<TreeParentProps> = (props) => {
               addNewComponentToLayout({
                 to: newPath,
                 newNode: ev.clone.dataset.xbUuid,
+                componentFieldData: componentsRef?.current?.[ev.clone.dataset.xbUuid]?.['field_data'],
               }),
             );
           } else {
@@ -100,6 +104,10 @@ const TreeParent: React.FC<TreeParentProps> = (props) => {
   );
 
   useEffect(() => {
+    componentsRef.current = components;
+  }, [components]);
+
+  useEffect(() => {
     if (listElRef.current !== null) {
       sortableInstance.current = Sortable.create(listElRef.current, {
         dataIdAttr: 'data-xb-uuid',
@@ -116,12 +124,12 @@ const TreeParent: React.FC<TreeParentProps> = (props) => {
     }
   }, [layout, handleDragAdd, handleDragEnd, handleDragStart]);
 
-  if (node.type === 'slot' || node.type === 'root') {
+  if (['root', 'slot'].includes(node.nodeType)) {
     return (
       <ul
         className={clsx(styles.treeParent, {
           [styles.listEmpty]: children.length === 0,
-          [styles.slot]: node.type === 'slot',
+          [styles.slot]: node.nodeType === 'slot',
         })}
         ref={listElRef}
         data-xb-uuid={node.uuid}

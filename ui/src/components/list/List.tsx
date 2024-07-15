@@ -92,7 +92,7 @@ const List = () => {
               </div>
             )}
             {components &&
-              components.map((component) => (
+              Object.values(components).map((component) => (
                 <div
                   key={component.id}
                   data-xb-uuid={component.id}
@@ -114,6 +114,7 @@ const List = () => {
                 </div>
               ))}
           </Flex>
+
         </Spinner>
       </Box>
     </div>

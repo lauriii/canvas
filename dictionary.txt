@@ -1,12 +1,16 @@
 adrs
 autolayout
+drupalcode
+drupaldev
 entityviewdisplay
+hyperscriptify
 JSONified
 transferrables
 leftbar
 Nygard
 Nygard's
 Pryce's
+propsify
 reduxjs
 rightbar
 structurizr
@@ -18,3 +22,4 @@ drupalcode
 subcontent
 subtrigger
 testid
+xbxb

@@ -7,7 +7,8 @@
     "ignorePaths": [
       "CODEOWNERS",
       "submodules/**",
-      "docs/diagrams/**"
+      "docs/diagrams/**",
+      "ui/src/local_packages/**"
     ],
     "ignoreRegExpList": [
       "ℹ\uFE0E.*"

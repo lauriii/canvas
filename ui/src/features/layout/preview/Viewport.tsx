@@ -45,9 +45,10 @@ const Viewport: React.FC<ViewportProps> = (props) => {
   const iframeDocumentRef = useRef<Document | null>(null);
   const { isDragging } = useAppSelector(selectDragging);
   const dispatch = useAppDispatch();
-  const { data: components } = useGetComponentsQuery();
   useIframeKeyHandlers(iframeRef);
   useSyncIframeHeightToContent(iframeRef, height, width);
+  const { data: components } = useGetComponentsQuery();
+  const componentsRef = useRef(components);
 
   const handleDragStart = useCallback(() => {
     dispatch(setPreviewDragging(true));
@@ -79,19 +80,19 @@ const Viewport: React.FC<ViewportProps> = (props) => {
           if (ev.clone.dataset.isNew === 'true' && ev.clone.dataset.xbUuid) {
             // @todo ideally we would use the markup of the component here instead of a loading <p>
             if (components) {
-              const newNode = components.find(
+              const newNode = Object.values(components).find(
                 (c) => c.id === ev.clone.dataset.xbUuid,
               );
-              console.log(newNode, 'this does not yet have markup');
-              // ev.item.innerHTML = newNode.markup;
+              if (newNode) {
+                ev.item.innerHTML = newNode['default_markup'];
+              }
             }
-
-            ev.item.innerHTML = '<p>Loading...</p>';
 
             dispatch(
               addNewComponentToLayout({
                 to: newPath,
                 newNode: ev.clone.dataset.xbUuid,
+                componentFieldData: componentsRef?.current?.[ev.clone.dataset.xbUuid]?.['field_data'],
               }),
             );
           } else {
@@ -123,6 +124,10 @@ const Viewport: React.FC<ViewportProps> = (props) => {
     },
     [dispatch, updateData],
   );
+
+  useEffect(() => {
+    componentsRef.current = components;
+  }, [components]);
 
   useEffect(() => {
     // Takes each sortable item (component) and adds a dragstart event listener. This is so that we can implement a custom
@@ -214,6 +219,7 @@ const Viewport: React.FC<ViewportProps> = (props) => {
     handleDragStart,
     layout,
     model,
+    components,
   ]);
 
   return (

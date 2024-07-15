@@ -13,12 +13,13 @@ import { v4 as uuidv4 } from 'uuid';
 import type { UUID } from '@/types/UUID';
 import type { AppDispatch } from '@/app/store';
 import type { StateWithHistory } from 'redux-undo';
+import type { FieldData } from "@/types/Component";
 
 export interface LayoutNode {
   name?: string;
   uuid: UUID;
-  type: 'slot' | 'component' | 'root';
-  componentType?: string;
+  nodeType: 'slot' | 'component' | 'root';
+  type?: string;
   children: LayoutNode[];
   props?: {} | undefined;
 }
@@ -33,7 +34,7 @@ export interface LayoutModelSliceState {
 export const initialState: LayoutModelSliceState = {
   layout: {
     uuid: 'root',
-    type: 'root',
+    nodeType: 'root',
     name: 'root',
     children: [],
   },
@@ -68,6 +69,7 @@ type InsertNodePayload = {
 type AddNewNodePayload = {
   newNode: string | undefined;
   to: number[] | undefined;
+  componentFieldData: FieldData | undefined;
 };
 
 type SortNodePayload = {
@@ -80,9 +82,13 @@ type UpdateNodePayload = {
   model: {};
 };
 
+type InitialPropData = {
+  [key: string]: any;
+}
+
 type CreateModelPayload = {
   uuid: string | undefined;
-  initialData: {} | undefined;
+  initialData: InitialPropData | undefined;
 };
 export interface ComponentModel {
   [key: string]: string | boolean | [] | number;
@@ -226,28 +232,32 @@ export const addNewComponentToLayout =
   (payload: AddNewNodePayload) => (dispatch: AppDispatch) => {
     if (payload.newNode && payload.to) {
       const uuid = uuidv4();
-      // @todo this fetch should not be required - we should get all the info about the component in the call /xb-components before the component has even been dragged on.
-      fetch(`/xb-render-component/${payload.newNode}`)
-        .then((res) => res.json())
-        .then((result) => {
-          dispatch(
-            insertNode({
-              to: payload.to,
-              newNode: {
-                uuid: uuid,
-                children: [],
-                type: 'component',
-                componentType: payload.newNode,
-              },
-            }),
-          );
-          dispatch(
-            createNewModel({
-              uuid: uuid,
-              initialData: result?.props,
-            }),
-          );
-        });
+      dispatch(
+        insertNode({
+          to: payload.to,
+          newNode: {
+            uuid: uuid,
+            children: [],
+            nodeType: 'component',
+            type: payload.newNode,
+          },
+        }),
+      );
+      const initialData: InitialPropData = {}
+      if (payload?.componentFieldData) {
+        // @todo Update this logic in https://www.drupal.org/project/experience_builder/issues/3455942
+        Object.keys(payload.componentFieldData).forEach((propName) => {
+          if (payload.componentFieldData?.[propName]?.['default_values']) {
+            initialData[propName] = payload.componentFieldData[propName]['default_values']
+          }
+        })
+      }
+      dispatch(
+        createNewModel({
+          uuid: uuid,
+          initialData,
+        }),
+      );
     }
   };
 

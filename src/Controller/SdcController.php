@@ -4,13 +4,20 @@ declare(strict_types=1);
 
 namespace Drupal\experience_builder\Controller;
 
+use Drupal\experience_builder\FieldForComponentSuggester;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Render\RendererInterface;
 use Drupal\Core\Theme\ComponentPluginManager;
 use Drupal\experience_builder\Entity\Component;
+
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeHydrated;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
+use Drupal\experience_builder\PropExpressions\Component\ComponentPropExpression;
+use Drupal\experience_builder\PropExpressions\StructuredData\FieldTypeObjectPropsExpression;
+use Drupal\experience_builder\PropExpressions\StructuredData\FieldTypePropExpression;
+use Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldTypePropExpression;
+use Drupal\experience_builder\PropSource\StaticPropSource;
 use Drupal\node\Entity\Node;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -27,6 +34,7 @@ final class SdcController extends ControllerBase {
   public function __construct(
     private readonly ComponentPluginManager $componentPluginManager,
     private readonly RendererInterface $renderer,
+    private readonly FieldForComponentSuggester $fieldForComponentSuggester,
   ) {}
 
   /**
@@ -36,13 +44,14 @@ final class SdcController extends ControllerBase {
     return new static(
       $container->get('plugin.manager.sdc'),
       $container->get('renderer'),
+      $container->get('Drupal\experience_builder\FieldForComponentSuggester'),
     );
   }
 
   /**
    * Gets an array of single directory components in an xb-friendly form.
    *
-   * @return array<integer, mixed>
+   * @return array<string, mixed>
    *   The array or single directory components.
    */
   private function getComponentsList(): array {
@@ -51,11 +60,50 @@ final class SdcController extends ControllerBase {
       $component_plugins[] = $this->componentPluginManager->find($component->getComponentMachineName());
     }
 
-    return array_map(fn($component_plugin) => [
-      'id' => $component_plugin->getPluginId(),
-      'name' => $component_plugin->metadata->name,
-      'metadata' => $component_plugin->metadata,
-    ], $component_plugins);
+    $component_list = array_map(function ($component_plugin) {
+      $choices = $this->fieldForComponentSuggester->suggest($component_plugin->getPluginId(), NULL);
+      $keyed_choices = [];
+      foreach ($choices as $component_prop_string => $data) {
+        $component_prop_expression = ComponentPropExpression::fromString($component_prop_string);
+        $prop_name = $component_prop_expression->propName;
+        if (empty($data['types'])) {
+          continue;
+        }
+
+        // The final suggested type is typically the most likely one.
+        $selected_suggestion = end($data['types']);
+        assert($selected_suggestion instanceof FieldTypePropExpression || $selected_suggestion instanceof FieldTypeObjectPropsExpression || $selected_suggestion instanceof ReferenceFieldTypePropExpression);
+
+        // Default prop values are provided in the prop metadata since they will
+        // be the same for every newly added SDC instance.
+        $prop_info = ($component_plugin->metadata->schema['properties'] ?? [])[$prop_name];
+        $default_values = isset($prop_info['examples']) ? $prop_info['examples'][0] : $this->getDefaultValueFromPropInfo($prop_info);
+
+        // Expression and Source Type are needed for generating an SDCs prop
+        // edit form in the UI app.
+        $expression = (string) $selected_suggestion;
+        $source_type = StaticPropSource::generate($selected_suggestion)->getSourceType();
+
+        $keyed_choices[$component_prop_expression->propName] = [
+          'expression' => $expression,
+          'sourceType' => $source_type,
+          'default_values' => $default_values,
+          ...$data,
+        ];
+      }
+      return [
+        'id' => $component_plugin->getPluginId(),
+        'name' => $component_plugin->metadata->name,
+        'metadata' => $component_plugin->metadata,
+        'field_data' => $keyed_choices,
+        // A pre-rendered version of the component is provided so no requests
+        // are needed when adding it to the layout.
+        'default_markup' => (string) $this->prepareRenderArray($component_plugin->getPluginId())['markup'],
+      ];
+    }, $component_plugins);
+
+    // Component array is keyed by ID.
+    return array_combine(array_column($component_list, 'id'), $component_list);
   }
 
   /**
@@ -79,11 +127,14 @@ final class SdcController extends ControllerBase {
   public function component(string $component_id): JsonResponse {
     $components = array_filter($this->getComponentsList(), fn($component) => $component['id'] === $component_id);
     assert(!empty($components));
-    return new JsonResponse($components[0]);
+    return new JsonResponse(reset($components));
   }
 
   /**
    * Renders an SDC and provides the markup in a JSON response.
+   *
+   * This currently renders the component with default prop values. To render
+   * with other prop values, this will need to be expanded.
    *
    * @param string $component_id
    *   The component ID.
@@ -91,6 +142,10 @@ final class SdcController extends ControllerBase {
    * @return \Symfony\Component\HttpFoundation\JsonResponse
    */
   public function renderComponent(string $component_id): JsonResponse {
+    return new JsonResponse($this->prepareRenderArray($component_id));
+  }
+
+  public function prepareRenderArray(string $component_id): array {
     $build = [
       '#type' => 'component',
       '#component' => $component_id,
@@ -109,13 +164,13 @@ final class SdcController extends ControllerBase {
     }
 
     $rendered_component = $this->renderer->render($build);
-
-    return new JsonResponse([
+    unset($build['#props']['attributes']);
+    return [
       'id' => $component_id,
       'markup' => $rendered_component,
       'props' => $build['#props'] ?? [],
       'metadata' => $metadata,
-    ]);
+    ];
   }
 
   public function layout(): JsonResponse {
@@ -136,12 +191,12 @@ final class SdcController extends ControllerBase {
 
     // @todo tree recursion/slot support — this only supports a flat list — blocked on https://www.drupal.org/project/experience_builder/issues/3455728
     $children = [];
-    foreach (json_decode($tree->getValue(), TRUE) as ['uuid' => $component_instance_uuid, 'type' => $component_type]) {
+    foreach (json_decode($tree->getValue(), TRUE)[ComponentTreeStructure::ROOT_UUID] as ['uuid' => $component_instance_uuid, 'component' => $component_type]) {
       $children[] = [
         'uuid' => $component_instance_uuid,
         // Note: the UI expects slots in this component to be defined as `type: slot`.
-        'type' => 'component',
-        'componentType' => $component_type,
+        'nodeType' => 'component',
+        'type' => $component_type,
       ];
     }
 
@@ -192,7 +247,7 @@ HTML;
 HTML;
     // @todo tree recursion — this only supports a flat list
     // @todo Refactor to use \Drupal\experience_builder\Plugin\DataType\ComponentTreeHydrated.
-    foreach ($layout['children'] as ['uuid' => $uuid, 'componentType' => $type]) {
+    foreach ($layout['children'] as ['uuid' => $uuid, 'type' => $type]) {
       $html .= sprintf('<div class="sortable-item" data-xb-uuid="%s" data-xb-type="%s">', $uuid, $type);
       // @todo the current quick-and-dirty UI PoC unfortunately prevents any prop from being named `name`, because it expects that to convey the component name — but it's not actually one of the props consumed by the SDC.
       unset($model[$uuid]['name']);
@@ -227,7 +282,7 @@ HTML;
    * @param array<string, mixed> $prop_info
    *   The prop's metadata.
    */
-  private function populatePropValues(array &$build, array $values, string $prop_name, array $prop_info):void {
+  private function populatePropValues(array &$build, array $values, string $prop_name, array $prop_info): void {
     $value = '';
     if (isset($prop_info['examples'])) {
       if ($values) {
@@ -237,8 +292,46 @@ HTML;
         $value = $prop_info['examples'][0];
       }
     }
-    elseif (isset($prop_info['enum'])) {
+    else {
+      $value = $this->getDefaultValueFromPropInfo($prop_info);
+    }
+
+    $build['#props'][$prop_name] = $value;
+  }
+
+  /**
+   * @todo Remove in https://www.drupal.org/project/experience_builder/issues/3455942.
+   */
+  public function getDefaultValueFromPropInfo(array $prop_info): array|string|object|int {
+    $value = '';
+    if (isset($prop_info['enum'])) {
       $value = $prop_info['enum'][0];
+    }
+    elseif (isset($prop_info['type']) && $prop_info['type'] === 'integer') {
+      $value = 14;
+    }
+    elseif (isset($prop_info['type']) && $prop_info['type'] === 'string') {
+      $value = 'Lorem Ipsum';
+      if (isset($prop_info['pattern'])) {
+        // @todo if this were to work we would need to create a string that
+        // matched the regex... perhaps at that point we just insist the
+        // creators add their own defaults?
+      }
+    }
+    elseif (isset($prop_info['$ref'])) {
+      $value = [];
+      $schema = json_decode(file_get_contents($prop_info['$ref']) ?: '{}', TRUE);
+      if (isset($schema['properties'])) {
+        foreach ($schema["properties"] as $sub_property => $sub_property_data) {
+          $value[$sub_property] = $this->getDefaultValueFromPropInfo($sub_property_data);
+        }
+      }
+      else {
+        $value = $this->getDefaultValueFromPropInfo($schema);
+      }
+    }
+    elseif (isset($prop_info['type']) &&$prop_info['type'][0] === 'object') {
+      $value = [];
     }
     elseif (isset($prop_info['type'][1]) && $prop_info['type'][1] === 'object') {
       if (isset($prop_info['format']) && $prop_info['format'] === 'uri') {
@@ -248,10 +341,8 @@ HTML;
         $value = new $prop_info['type'][0]();
       }
     }
-    elseif ($prop_info['type'][0] === 'object') {
-      $value = [];
-    }
-    $build['#props'][$prop_name] = $value;
+
+    return $value;
   }
 
 }

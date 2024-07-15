@@ -1,21 +1,21 @@
 {
   "layout": {
     "uuid": "root",
-    "type": "root",
+    "nodeType": "root",
     "name": "root",
     "children": [
       {
         "uuid": "43cd7aa4-0160-4787-a3af-baf44ff17a88",
         "children": [],
-        "type": "component"
+        "nodeType": "component"
       },
       {
         "uuid": "fcd2490d-1124-4146-82b6-b1e049ed8026",
-        "type": "component",
+        "nodeType": "component",
         "children": [
           {
             "name": "Slot 1",
-            "type": "slot",
+            "nodeType": "slot",
             "uuid": "05fa13be-8291-4955-aa89-32351f68e776",
             "children": []
           }
@@ -23,15 +23,15 @@
       },
       {
         "uuid": "1941ffae-f9ed-4ce3-8145-a2c3977ac65b",
-        "type": "component",
+        "nodeType": "component",
         "children": [
           {
             "name": "Slot 1",
-            "type": "slot",
+            "nodeType": "slot",
             "uuid": "68cafa3e-bfd8-4767-a5cc-c18cce97c236",
             "children": [
               {
-                "type": "component",
+                "nodeType": "component",
                 "uuid": "bdfce52f-e666-49f0-a57f-dfb8c5c0c75b",
                 "children": []
               }
@@ -39,11 +39,11 @@
           },
           {
             "name": "Slot 2",
-            "type": "slot",
+            "nodeType": "slot",
             "uuid": "584ae5f1-e242-4dad-991b-55ca20d0bfa4",
             "children": [
               {
-                "type": "component",
+                "nodeType": "component",
                 "uuid": "fe01d628-55ab-4146-9d04-71e5a01ad233",
                 "children": []
               }

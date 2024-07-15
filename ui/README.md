@@ -12,7 +12,10 @@
 ## Development mode
 
 1. `npm install` from /modules/experience_builder/ui
-2. `npm run dev` - Make sure nothing is running on localhost:5173
+2. Make sure nothing is running on localhost:5173
+2. Choose one of
+   1. `npm run dev` - Will use MSW to serve mock endpoint data
+   2. `npm run drupaldev` - Will retrieve data from Drupal endpoints
 3. Enable the Experience Builder Vite Integration module (`xb_vite`)
 4. Clear cache (`drush cr` or `/admin/config/development/performance`)
 5. Navigate to `/xb` to view app

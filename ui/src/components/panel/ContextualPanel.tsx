@@ -10,6 +10,7 @@ import {
   Tabs,
   Text,
   Theme,
+  ScrollArea
 } from '@radix-ui/themes';
 import clsx from 'clsx';
 import styles from './Panel.module.css';
@@ -26,6 +27,7 @@ import {
   selectModel,
   updateNodeModel,
 } from '@/features/layout/layoutModelSlice';
+import DummyPropsEditForm from "@/components/DummyPropsEditForm";
 
 interface ContextualPanelProps {}
 
@@ -54,7 +56,7 @@ const ContextualPanel: React.FC<ContextualPanelProps> = () => {
         model: {
           // @ts-ignore
           ...model[selectedComponent],
-          text: 'This prop (text) was updated and re-rendered by the SDC!',
+          text: 'This here prop (text) was updated and re-rendered by the SDC!',
         },
       }),
     );
@@ -106,11 +108,12 @@ const ContextualPanel: React.FC<ContextualPanelProps> = () => {
                             </Tabs.Trigger>
                             <Tabs.Trigger value="styles">Styles</Tabs.Trigger>
                           </Tabs.List>
-
+                          <ScrollArea type="always" size="1" scrollbars="vertical" style={{height: 700}}>
                           <Box pt="3">
-                            <Tabs.Content value="settings">
+                                <Tabs.Content value="settings">
                               <Text size="1">
-                                Settings for... {selectedComponent}
+                                <details>
+                                  <summary>Settings for... {selectedComponent}</summary>
                                 <pre>
                                   {JSON.stringify(
                                     model[selectedComponent],
@@ -118,8 +121,10 @@ const ContextualPanel: React.FC<ContextualPanelProps> = () => {
                                     2,
                                   )}
                                 </pre>
+                                </details>
+                                <DummyPropsEditForm/>
                               </Text>
-                              <Button onClick={handleEditClick}>Edit</Button>
+                              <Button onClick={handleEditClick} className={styles.editButton}>Edit</Button>
                             </Tabs.Content>
 
                             <Tabs.Content value="styles">
@@ -128,6 +133,7 @@ const ContextualPanel: React.FC<ContextualPanelProps> = () => {
                               </Text>
                             </Tabs.Content>
                           </Box>
+                          </ScrollArea>
                         </Tabs.Root>
                       </Box>
                     )}

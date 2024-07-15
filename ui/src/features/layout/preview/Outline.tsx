@@ -32,7 +32,7 @@ const Outline: React.FC<OutlineProps> = (props) => {
   const outlineElRef = useRef<HTMLDivElement | null>(null);
   // const iframeElRef = useRef<HTMLIFrameElement | null>(null);
   const toolbarElRef = useRef<HTMLDivElement | null>(null);
-  const [type, setType] = useState<'component' | 'slot'>('component'); //
+  const [nodeType, setNodeType] = useState<'component' | 'slot'>('component'); //
   const dispatch = useAppDispatch();
   const elementRect = useSyncElementSize(iframeRef, elementId);
 
@@ -65,7 +65,7 @@ const Outline: React.FC<OutlineProps> = (props) => {
     }
 
     if (!selected && hoveredElementRef.current) {
-      hoveredElementRef.current.addEventListener(
+      hoveredElementRef?.current?.addEventListener(
         'mouseleave',
         function (event: MouseEvent) {
           event.stopPropagation();
@@ -119,9 +119,9 @@ const Outline: React.FC<OutlineProps> = (props) => {
           `[data-xb-uuid="${elementId}"]`,
         )[0] as HTMLElement | null;
       if (hoveredElementRef.current?.dataset.xbType === 'slot') {
-        setType('slot');
+        setNodeType('slot');
       } else {
-        setType('component');
+        setNodeType('component');
       }
       applyStyles();
       bindEvents();
@@ -150,7 +150,7 @@ const Outline: React.FC<OutlineProps> = (props) => {
         <div
           ref={outlineElRef}
           className={clsx(styles.xbComponentOutline, {
-            [styles.xbSlotOutline]: type === 'slot',
+            [styles.xbSlotOutline]: nodeType === 'slot',
             [styles.selected]: selected,
           })}
           data-xb-component-outline=""
@@ -161,7 +161,7 @@ const Outline: React.FC<OutlineProps> = (props) => {
           gap="1"
           className={styles.xbComponentToolbar}
         >
-          {type === 'component' && !selected && (
+          {nodeType === 'component' && !selected && (
             <>
               <DropdownMenu.Root>
                 <DropdownMenu.Trigger>

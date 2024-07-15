@@ -42,7 +42,7 @@ const TreeChild: React.FC<TreeChildProps> = (props) => {
   return (
     <li
       data-xb-uuid={node.uuid}
-      data-xb-type={node.type}
+      data-xb-type={node.nodeType}
       className={clsx({
         [styles.selected]: selectedComponent === node.uuid,
         [styles.hovered]: hoveredComponent === node.uuid,
@@ -53,7 +53,7 @@ const TreeChild: React.FC<TreeChildProps> = (props) => {
         customSortableDragImage(event, window.document, model[node.uuid].name)
       }
     >
-      {node.type !== 'slot' && (
+      {node.nodeType !== 'slot' && (
         <div className={styles.treeChildToolbar}>
           <div>{model[node.uuid]?.name}</div>
           <IconButton size="1" type="button" onClick={handleDeleteClick}>
@@ -62,7 +62,7 @@ const TreeChild: React.FC<TreeChildProps> = (props) => {
         </div>
       )}
 
-      {node.type === 'slot' && (
+      {node.nodeType === 'slot' && (
         <Text size="1" className={styles.treeChildToolbar}>
           {node.name}
         </Text>
