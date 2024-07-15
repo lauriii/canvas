@@ -1,7 +1,12 @@
 import { useEffect, useRef, useCallback } from 'react';
 import styles from './List.module.css';
 import menuStyles from '@/components/sidebar/primary/PrimaryMenubar.module.css';
-import { selectDragging, setListDragging } from '@/features/ui/uiSlice';
+import {
+  selectDragging,
+  setListDragging,
+  setPrimaryMenuActiveMenu,
+  setPrimaryMenuHidden,
+} from '@/features/ui/uiSlice';
 import Sortable from 'sortablejs';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { useGetComponentsQuery } from '@/services/components';
@@ -19,6 +24,9 @@ const List = () => {
 
   const handleDragStart = useCallback(() => {
     dispatch(setListDragging(true));
+    // When dragging a component, hide it instead of closing the menu, because we don't want
+    // to unmount the draggable element from the DOM.
+    dispatch(setPrimaryMenuHidden(true));
   }, [dispatch]);
 
   const handleDragClone = useCallback((ev: Sortable.SortableEvent) => {
@@ -27,6 +35,10 @@ const List = () => {
 
   const handleDragEnd = useCallback(() => {
     dispatch(setListDragging(false));
+    // After the drag ends, we can now close the menu without disrupting
+    // the draggable functionality. Setting the primary menu to an empty string
+    // closes it.
+    dispatch(setPrimaryMenuActiveMenu(''));
   }, [dispatch]);
 
   useEffect(() => {

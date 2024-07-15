@@ -5,16 +5,22 @@ import '@/global.css';
 import PlusIcon from '@assets/icons/sidebar/primary/plus.svg';
 import PageIcon from '@assets/icons/sidebar/primary/page.svg';
 import LayersIcon from '@assets/icons/sidebar/primary/layers.svg';
-import PrimarySubmenu from '@/components/sidebar/primary/PrimarySubmenu';
+import Submenu from '@/components/sidebar/primary/sub/Submenu';
 import ComponentIcon from '@assets/icons/sidebar/primary/component.svg';
 import SectionIcon from '@assets/icons/sidebar/primary/section.svg';
 import SearchPlaceholder from '@/components/sidebar/primary/SearchPlaceholder';
 import TreeView from '@/features/layout/tree/TreeView';
 import menuStyles from '@/components/sidebar/primary/PrimaryMenubar.module.css';
-import List from '@/components/list/List';
 import TooltipComponent from '@/components/Tooltip';
 import type React from 'react';
-import { useRef, useState } from 'react';
+import { useRef } from 'react';
+import { useAppDispatch, useAppSelector } from '@/app/hooks';
+import {
+  selectPrimaryMenuActiveMenu,
+  selectPrimaryMenuHidden,
+  setPrimaryMenuActiveMenu,
+} from '@/features/ui/uiSlice';
+import List from '@/components/list/List';
 
 const ADD_ELEMENT_ID = 'addElement';
 const PAGES_ID = 'pages';
@@ -30,52 +36,30 @@ const PrimaryMenubar = () => {
   const addElementTriggerRef = useRef<HTMLButtonElement>(null);
   const pagesTriggerRef = useRef<HTMLButtonElement>(null);
   const layersTriggerRef = useRef<HTMLButtonElement>(null);
-  const [currentOpenMenu, setCurrentOpenMenu] = useState('');
+  const dispatch = useAppDispatch();
+  const activeMenu = useAppSelector(selectPrimaryMenuActiveMenu);
+  const isHidden = useAppSelector(selectPrimaryMenuHidden);
 
-  // Because we preventHover on the trigger, we need to manually dispatch the pointerdown event
-  // to trigger the tooltip on hover. An invisible overlay div
-  // that sits on top of the trigger dispatches the pointerdown event.
+  // Control what is active in primary menu since the invisible overlay used for the tooltip
+  // is what receives the pointer events.
   const pointerDownHandler = (
     event: React.PointerEvent<HTMLDivElement>,
     trigger: string,
   ) => {
     const e = event as unknown as Event;
     e.preventDefault();
-    // Create a new PointerEvent
-    const pointerEvent = new PointerEvent('pointerdown', {
-      bubbles: true, // This event should bubble up
-      cancelable: true, // This event can be cancelled
-    });
-
-    switch (trigger) {
-      case ADD_ELEMENT_ID:
-        addElementTriggerRef.current?.dispatchEvent(pointerEvent);
-        if (currentOpenMenu !== ADD_ELEMENT_ID) {
-          setCurrentOpenMenu(ADD_ELEMENT_ID);
-        }
-        break;
-      case PAGES_ID:
-        pagesTriggerRef.current?.dispatchEvent(pointerEvent);
-        if (currentOpenMenu !== PAGES_ID) {
-          setCurrentOpenMenu(PAGES_ID);
-        }
-        break;
-      case LAYERS_ID:
-        layersTriggerRef.current?.dispatchEvent(pointerEvent);
-        if (currentOpenMenu !== LAYERS_ID) {
-          setCurrentOpenMenu(LAYERS_ID);
-        }
-        break;
-      default:
-        break;
+    if (activeMenu === trigger) {
+      dispatch(setPrimaryMenuActiveMenu(''));
+    } else {
+      dispatch(setPrimaryMenuActiveMenu(trigger));
     }
   };
 
   return (
     <Menubar.Root
       className={clsx('MenubarRoot', styles.MenubarRoot)}
-      value={currentOpenMenu}
-      onValueChange={setCurrentOpenMenu}
+      value={activeMenu}
+      onValueChange={setPrimaryMenuActiveMenu}
       data-menu-root="primary"
     >
       <Menubar.Menu value={ADD_ELEMENT_ID}>
@@ -83,6 +67,7 @@ const PrimaryMenubar = () => {
           <div
             onPointerDown={(e) => pointerDownHandler(e, ADD_ELEMENT_ID)}
             className={clsx('overlayForHover', styles.overlayForHover)}
+            data-testid={`${ADD_ELEMENT_ID}Overlay`}
           ></div>
         </TooltipComponent>
         <Menubar.Trigger
@@ -101,22 +86,17 @@ const PrimaryMenubar = () => {
             align="start"
             onPointerEnter={preventHover}
             onPointerLeave={preventHover}
+            style={{ display: isHidden ? 'none' : 'initial' }}
           >
             <SearchPlaceholder />
-            <PrimarySubmenu
-              submenuTitle="Default components"
-              leftIcon={ComponentIcon}
-            >
+            <Submenu submenuTitle="Default components" leftIcon={ComponentIcon}>
               <List />
-            </PrimarySubmenu>
-            <PrimarySubmenu
+            </Submenu>
+            <Submenu
               submenuTitle="Custom components"
               leftIcon={ComponentIcon}
             />
-            <PrimarySubmenu
-              submenuTitle="Section templates"
-              leftIcon={SectionIcon}
-            />
+            <Submenu submenuTitle="Section templates" leftIcon={SectionIcon} />
           </Menubar.Content>
         </Menubar.Portal>
       </Menubar.Menu>
@@ -125,6 +105,7 @@ const PrimaryMenubar = () => {
           <div
             onPointerDown={(e) => pointerDownHandler(e, PAGES_ID)}
             className={clsx('overlayForHover', styles.overlayForHover)}
+            data-testid={`${PAGES_ID}Overlay`}
           ></div>
         </TooltipComponent>
         <Menubar.Trigger
@@ -155,6 +136,7 @@ const PrimaryMenubar = () => {
           <div
             onPointerDown={(e) => pointerDownHandler(e, LAYERS_ID)}
             className={clsx('overlayForHover', styles.overlayForHover)}
+            data-testid={`${LAYERS_ID}Overlay`}
           ></div>
         </TooltipComponent>
         <Menubar.Trigger

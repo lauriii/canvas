@@ -140,7 +140,7 @@ describe('General Experience Builder', {testIsolation: false}, () => {
 
     cy.wait(2000)
 
-    cy.get('[data-menu-root="primary"] > [data-menu-trigger="addElement"]').click({force:true});
+    cy.get('[data-testid="addElementOverlay"]').click({force:true});
     cy.get('[data-radix-popper-content-wrapper] > [data-radix-menubar-content] > [data-radix-menubar-subtrigger]')
     .contains('Default components').click().get('[data-xb-uuid="experience_builder:image"]')
       .should(($componentOption) => {

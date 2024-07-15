@@ -7,7 +7,6 @@ import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import {
   selectCanvasViewPort,
   selectContextualPanelOpen,
-  selectPrimaryPanelOpen,
   setCanvasViewPort,
   scaleValues,
 } from '@/features/ui/uiSlice';
@@ -19,13 +18,11 @@ import Topbar from '@/components/topbar/Topbar';
 const App = () => {
   const dispatch = useAppDispatch();
   const contextualPanelOpen = useAppSelector(selectContextualPanelOpen);
-  const primaryPanelOpen = useAppSelector(selectPrimaryPanelOpen);
   const canvasViewPort = useAppSelector(selectCanvasViewPort);
 
   return (
     <div
       className={clsx(styles.app, {
-        [styles.leftSideBarOpen]: primaryPanelOpen,
         [styles.rightSideBarOpen]: contextualPanelOpen,
       })}
     >

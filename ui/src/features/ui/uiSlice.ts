@@ -8,6 +8,10 @@ export interface DraggingStatus {
   previewDragging: boolean;
 }
 
+export interface PrimaryMenuState {
+  activeMenu: string;
+  isHidden: boolean;
+}
 export interface CanvasViewPort {
   x: number;
   y: number;
@@ -19,9 +23,9 @@ export interface uiSliceState {
   dragging: DraggingStatus;
   selectedComponent: string | undefined; //uuid of component
   hoveredComponent: string | undefined; //uuid of component
-  primaryPanelOpen: boolean;
   contextualPanelOpen: boolean;
   canvasViewport: CanvasViewPort;
+  primaryMenu: PrimaryMenuState;
 }
 
 type UpdateViewportPayload = {
@@ -40,12 +44,15 @@ const initialState: uiSliceState = {
   },
   selectedComponent: undefined,
   hoveredComponent: undefined,
-  primaryPanelOpen: true,
   contextualPanelOpen: false,
   canvasViewport: {
     x: 0,
     y: 0,
     scale: 1,
+  },
+  primaryMenu: {
+    activeMenu: '',
+    isHidden: false,
   },
 };
 
@@ -108,11 +115,6 @@ export const uiSlice = createAppSlice({
         state.hoveredComponent = action.payload;
       },
     ),
-    setPrimaryPanelOpen: create.reducer(
-      (state, action: PayloadAction<boolean>) => {
-        state.primaryPanelOpen = action.payload;
-      },
-    ),
     setContextualPanelOpen: create.reducer(
       (state, action: PayloadAction<boolean>) => {
         state.contextualPanelOpen = action.payload;
@@ -141,6 +143,21 @@ export const uiSlice = createAppSlice({
       const prevIndex = currentIndex - 1 >= 0 ? currentIndex - 1 : currentIndex;
       state.canvasViewport.scale = scaleValues[prevIndex].scale;
     }),
+    setPrimaryMenuActiveMenu: create.reducer(
+      (state, action: PayloadAction<string>) => {
+        state.primaryMenu.activeMenu = action.payload;
+        // When the menu is set to an empty string, it's closed. So, we should reset the
+        // hidden state back to false here too to reset the css display property.
+        if (!action.payload) {
+          state.primaryMenu.isHidden = false;
+        }
+      },
+    ),
+    setPrimaryMenuHidden: create.reducer(
+      (state, action: PayloadAction<boolean>) => {
+        state.primaryMenu.isHidden = action.payload;
+      },
+    ),
   }),
   // You can define your selectors here. These selectors receive the slice
   // state as their first argument.
@@ -154,14 +171,17 @@ export const uiSlice = createAppSlice({
     selectHoveredComponent: (ui): string | undefined => {
       return ui.hoveredComponent;
     },
-    selectPrimaryPanelOpen: (ui): boolean => {
-      return ui.primaryPanelOpen;
-    },
     selectContextualPanelOpen: (ui): boolean => {
       return ui.contextualPanelOpen;
     },
     selectCanvasViewPort: (ui): CanvasViewPort => {
       return ui.canvasViewport;
+    },
+    selectPrimaryMenuActiveMenu: (ui): string => {
+      return ui.primaryMenu.activeMenu;
+    },
+    selectPrimaryMenuHidden: (ui): boolean => {
+      return ui.primaryMenu.isHidden;
     },
   },
 });
@@ -174,11 +194,12 @@ export const {
   setListDragging,
   setSelectedComponent,
   setHoveredComponent,
-  setPrimaryPanelOpen,
   setContextualPanelOpen,
   setCanvasViewPort,
   canvasViewPortZoomIn,
   canvasViewPortZoomOut,
+  setPrimaryMenuActiveMenu,
+  setPrimaryMenuHidden,
 } = uiSlice.actions;
 
 // Selectors returned by `slice.selectors` take the root state as their first argument.
@@ -186,7 +207,8 @@ export const {
   selectDragging,
   selectSelectedComponent,
   selectHoveredComponent,
-  selectPrimaryPanelOpen,
   selectContextualPanelOpen,
   selectCanvasViewPort,
+  selectPrimaryMenuActiveMenu,
+  selectPrimaryMenuHidden,
 } = uiSlice.selectors;
