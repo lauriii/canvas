@@ -219,22 +219,24 @@ Cypress.Commands.add('drupalRelativeURL', (pathname, callback) => {
 Cypress.Commands.add('drupalUninstall', (callback) => {
   const prefix = Cypress.env('drupalDbPrefix');
 
-    const dbOption =
-    Cypress.env('dbUrl').length > 0  ? `--db-url ${Cypress.env('dbUrl')}` : '';
-    try {
-      if (!prefix || !prefix.length) {
-        throw new Error('Missing database prefix parameter, unable to uninstall Drupal (the initial install was probably unsuccessful).');
-      }
-
-      const tearDownCommand = commandAsWebserver(`php ${Cypress.env('coreDir')}/scripts/test-site.php tear-down ${prefix} ${dbOption}`);
-      cy.exec(tearDownCommand).then(() => {
-        if (typeof callback === 'function') {
-          callback.call(self);
-        }
-      })
-    } catch (error) {
-      throw new Error(error);
+  const dbOption =
+    Cypress.env('dbUrl')
+      ? `--db-url ${Cypress.env('dbUrl')}`
+      : '';
+  try {
+    if (!prefix || !prefix.length) {
+      throw new Error('Missing database prefix parameter, unable to uninstall Drupal (the initial install was probably unsuccessful).');
     }
+
+    const tearDownCommand = commandAsWebserver(`php ${Cypress.env('coreDir')}/scripts/test-site.php tear-down ${prefix} ${dbOption}`);
+    cy.exec(tearDownCommand).then(() => {
+      if (typeof callback === 'function') {
+        callback.call(self);
+      }
+    })
+  } catch (error) {
+    throw new Error(error);
+  }
 })
 
 Cypress.Commands.add('drupalUserIsLoggedIn', (callback) => {
