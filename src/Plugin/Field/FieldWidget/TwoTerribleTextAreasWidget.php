@@ -145,7 +145,8 @@ class TwoTerribleTextAreasWidget extends WidgetBase {
         // All except the currently selected choice will be hidden. Only the
         // widget for the currently selected choice will have its value saved.
         foreach ($static_choices as $choice) {
-          $stored_source = $stored_props_sources[$prop_name];
+          // Use the stored source, if any.
+          $stored_source = $stored_props_sources[$prop_name] ?? NULL;
           $source = ($stored_source instanceof StaticPropSource && (string) $choice == (string) $stored_source->asChoice())
             ? $stored_source
             : StaticPropSource::generate($choice);

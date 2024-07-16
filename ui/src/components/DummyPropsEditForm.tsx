@@ -79,10 +79,10 @@ const DummyPropsEditForm = () => {
     if (propData.expression) {
       preparedModel[selectedComponent as keyof PreparedModel][propName].expression = propData.expression;
     }
-    // The current value of the prop.
-    if (selectedModel[propName]) {
-      preparedModel[selectedComponent as keyof PreparedModel][propName].value = selectedModel[propName];
-    }
+
+    // The current value of the prop, or an empty string so the `value` is at
+    // least present.
+    preparedModel[selectedComponent as keyof PreparedModel][propName].value = selectedModel[propName] || '';
   }
 
   // The "tree" sent to the field widget only contains the selected component.

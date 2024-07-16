@@ -8,6 +8,7 @@ props:
   type: object
   required:
     - heading
+    - cta1href
   properties:
     heading:
       type: string
@@ -27,8 +28,18 @@ props:
       title: CTA 1 text
       examples:
         - View
+    cta1href:
+      type: string
+      format: uri
+      title: CTA 1 link
+      examples:
+        - https://example.com
     cta2:
       type: string
       title: CTA 2 text
       examples:
         - Click
+    # @see \Drupal\Core\Template\ComponentsTwigExtension::mergeAdditionalRenderContext()
+    attributes:
+      type: Drupal\Core\Template\Attribute
+      name: Attributes

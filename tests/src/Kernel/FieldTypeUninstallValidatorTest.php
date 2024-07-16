@@ -48,7 +48,7 @@ final class FieldTypeUninstallValidatorTest extends KernelTestBase {
    * Tests the FieldUninstallValidator.
    */
   public function testUninstall(): void {
-    $this->container->get('module_installer')->install(['experience_builder', 'link', 'node', 'text', 'xb_test_config_node_article', 'image']);
+    $this->container->get('module_installer')->install(['experience_builder', 'link', 'node', 'text', 'xb_test_config_node_article', 'image', 'sdc_test']);
     $this->createNode([
       'title' => 'Test node',
       'type' => 'article',

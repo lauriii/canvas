@@ -16,9 +16,6 @@ type: module
 core_version_requirement: ^10.3 || ^11
 php: 8.3
 configure: experience_builder.experience_builder
-dependencies:
-  # Used by the PoC at experience_builder_entity_view_alter()
-  - drupal:sdc_test
 test_dependencies:
   # For the `cl_editorial:component-card` SDC that we're using in tests.
   - drupal:cl_editorial

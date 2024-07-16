@@ -121,15 +121,15 @@ class EndToEndDemoIntegrationTest extends BrowserTestBase {
         ],
         [
           'uuid' => 'static-static-card1ab',
-          'component' => 'sdc_test:my-cta',
+          'component' => 'experience_builder:my-hero',
         ],
         [
           'uuid' => 'dynamic-static-card2df',
-          'component' => 'sdc_test:my-cta',
+          'component' => 'experience_builder:my-hero',
         ],
         [
           'uuid' => 'dynamic-dynamic-card3rr',
-          'component' => 'sdc_test:my-cta',
+          'component' => 'experience_builder:my-hero',
         ],
         [
           'uuid' => 'dynamic-image-static-imageStyle-something7d',
@@ -153,34 +153,34 @@ class EndToEndDemoIntegrationTest extends BrowserTestBase {
     // First, assert the stored JSON.
     $this->assertEquals([
       'dynamic-static-card2df' => [
-        'text' => [
+        'heading' => [
           'sourceType' => 'dynamic',
           'expression' => 'ℹ︎␜entity:node:article␝title␞␟value',
         ],
-        'href' => [
+        'cta1href' => [
           'sourceType' => 'static:field_item:uri',
           'value' => 'https://drupal.org',
           'expression' => 'ℹ︎uri␟value',
         ],
       ],
       'static-static-card1ab' => [
-        'text' => [
+        'heading' => [
           'sourceType' => 'static:field_item:string',
           'value' => 'hello, world!',
           'expression' => 'ℹ︎string␟value',
         ],
-        'href' => [
+        'cta1href' => [
           'sourceType' => 'static:field_item:uri',
           'value' => 'https://drupal.org',
           'expression' => 'ℹ︎uri␟value',
         ],
       ],
       'dynamic-dynamic-card3rr' => [
-        'text' => [
+        'heading' => [
           'sourceType' => 'dynamic',
           'expression' => 'ℹ︎␜entity:node:article␝title␞␟value',
         ],
-        'href' => [
+        'cta1href' => [
           'sourceType' => 'dynamic',
           'expression' => 'ℹ︎␜entity:node:article␝field_hero␞␟entity␜␜entity:file␝uri␞␟value',
         ],
@@ -218,7 +218,7 @@ class EndToEndDemoIntegrationTest extends BrowserTestBase {
     ];
     // Prop source for component instance with UUID `static-static-card1ab`.
     $this->assertEquals([
-      'text' => [
+      'heading' => [
         // Runtime representation.
         'source class' => StaticPropSource::class,
         // Generated JSON from the runtime representation, should match what is
@@ -227,7 +227,7 @@ class EndToEndDemoIntegrationTest extends BrowserTestBase {
         // What this evaluates to, to actually provide a value to an SDC prop.
         'evaluated' => 'hello, world!',
       ],
-      'href' => [
+      'cta1href' => [
         'source class' => StaticPropSource::class,
         'JSONified' => '{"sourceType":"static:field_item:uri","value":"https:\/\/drupal.org","expression":"ℹ︎uri␟value"}',
         'evaluated' => 'https://drupal.org',
@@ -235,12 +235,12 @@ class EndToEndDemoIntegrationTest extends BrowserTestBase {
     ], array_map($make_source_assertable, $props->getComponentPropsSources('static-static-card1ab')));
     // Prop source for component instance with UUID `dynamic-static-card2df`.
     $this->assertEquals([
-      'text' => [
+      'heading' => [
         'source class' => DynamicPropSource::class,
         'JSONified' => '{"sourceType":"dynamic","expression":"ℹ︎␜entity:node:article␝title␞␟value"}',
         'evaluated' => $node->getTitle(),
       ],
-      'href' => [
+      'cta1href' => [
         'source class' => StaticPropSource::class,
         'JSONified' => '{"sourceType":"static:field_item:uri","value":"https:\/\/drupal.org","expression":"ℹ︎uri␟value"}',
         'evaluated' => 'https://drupal.org',
@@ -248,12 +248,12 @@ class EndToEndDemoIntegrationTest extends BrowserTestBase {
     ], array_map($make_source_assertable, $props->getComponentPropsSources('dynamic-static-card2df')));
     // Prop source for component instance with UUID `dynamic-dynamic-card3rr`.
     $this->assertEquals([
-      'text' => [
+      'heading' => [
         'source class' => DynamicPropSource::class,
         'JSONified' => '{"sourceType":"dynamic","expression":"ℹ︎␜entity:node:article␝title␞␟value"}',
         'evaluated' => $node->getTitle(),
       ],
-      'href' => [
+      'cta1href' => [
         'source class' => DynamicPropSource::class,
         'JSONified' => '{"sourceType":"dynamic","expression":"ℹ︎␜entity:node:article␝field_hero␞␟entity␜␜entity:file␝uri␞␟value"}',
         'evaluated' => File::load(1)->getFileUri(),
@@ -304,26 +304,26 @@ class EndToEndDemoIntegrationTest extends BrowserTestBase {
         'slots' => [],
       ],
       'static-static-card1ab' => [
-        'component' => 'sdc_test:my-cta',
+        'component' => 'experience_builder:my-hero',
         'props' => [
-          'text' => 'hello, world!',
-          'href' => 'https://drupal.org',
+          'heading' => 'hello, world!',
+          'cta1href' => 'https://drupal.org',
         ],
         'slots' => [],
       ],
       'dynamic-static-card2df' => [
-        'component' => 'sdc_test:my-cta',
+        'component' => 'experience_builder:my-hero',
         'props' => [
-          'text' => $node->getTitle(),
-          'href' => 'https://drupal.org',
+          'heading' => $node->getTitle(),
+          'cta1href' => 'https://drupal.org',
         ],
         'slots' => [],
       ],
       'dynamic-dynamic-card3rr' => [
-        'component' => 'sdc_test:my-cta',
+        'component' => 'experience_builder:my-hero',
         'props' => [
-          'text' => $node->getTitle(),
-          'href' => File::load(1)->getFileUri(),
+          'heading' => $node->getTitle(),
+          'cta1href' => File::load(1)->getFileUri(),
         ],
         'slots' => [],
       ],
@@ -343,33 +343,49 @@ class EndToEndDemoIntegrationTest extends BrowserTestBase {
     ], json_decode($hydrated->getValue()->getContent(), TRUE));
 
     // Assert each component instance is rendered correctly on `/node/1`.
-    $cta_components = $page->findAll('css', '[data-component-id="sdc_test:my-cta"]');
-    $this->assertCount(3, $cta_components);
+    $hero_components = $page->findAll('css', '[data-component-id="experience_builder:my-hero"]');
+    $this->assertCount(3, $hero_components);
     $image_components = $page->findAll('css', 'img[alt="A random image for testing purposes."]');
     $this->assertCount(2, $image_components);
     // Markup for component instance with UUID `static-static-card1ab`.
     $this->assertSame(<<<HTML
-<a data-component-id="sdc_test:my-cta" href="https://drupal.org">
-  hello, world!
-</a>
-HTML, $cta_components[0]->getOuterHtml());
+<div data-component-id="experience_builder:my-hero" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
+  <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;">hello, world!</h1>
+  <p style="font-size: 1.5em; margin: 0.5em 0; color: #666;"></p>
+  <div style="margin-top: 1em;">
+    <button formaction="https://drupal.org" style="background-color: #007BFF; color: white; border: none; padding: 15px 30px; font-size: 1em; margin: 0 10px; cursor: pointer; border-radius: 5px;">
+      </button>
+    <button style="background-color: #6c757d; color: white; border: none; padding: 15px 30px; font-size: 1em; margin: 0 10px; cursor: pointer; border-radius: 5px;">
+      </button>
+  </div>
+</div>
+HTML, $hero_components[0]->getOuterHtml());
     // Markup for component instance with UUID `dynamic-static-card2df`.
     $this->assertSame(sprintf(<<<HTML
-<a data-component-id="sdc_test:my-cta" href="https://drupal.org">
-  %s
-</a>
-HTML, $node->getTitle()), $cta_components[1]->getOuterHtml());
+<div data-component-id="experience_builder:my-hero" style="font-family: Helvetica, Arial, sans-serif; width: 100%%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
+  <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;">%s</h1>
+  <p style="font-size: 1.5em; margin: 0.5em 0; color: #666;"></p>
+  <div style="margin-top: 1em;">
+    <button formaction="https://drupal.org" style="background-color: #007BFF; color: white; border: none; padding: 15px 30px; font-size: 1em; margin: 0 10px; cursor: pointer; border-radius: 5px;">
+      </button>
+    <button style="background-color: #6c757d; color: white; border: none; padding: 15px 30px; font-size: 1em; margin: 0 10px; cursor: pointer; border-radius: 5px;">
+      </button>
+  </div>
+</div>
+HTML, $node->getTitle()), $hero_components[1]->getOuterHtml());
     // Markup for component instance with UUID `dynamic-dynamic-card3rr`.
     $this->assertSame(sprintf(<<<HTML
-<a data-component-id="sdc_test:my-cta" href="%s">
-  %s
-</a>
-HTML, File::load(1)->getFileUri(), $node->getTitle()), $cta_components[2]->getOuterHtml());
-    $this->assertSame(sprintf(<<<HTML
-<a data-component-id="sdc_test:my-cta" href="%s">
-  %s
-</a>
-HTML, File::load(1)->getFileUri(), $node->getTitle()), $cta_components[2]->getOuterHtml());
+<div data-component-id="experience_builder:my-hero" style="font-family: Helvetica, Arial, sans-serif; width: 100%%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
+  <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;">%s</h1>
+  <p style="font-size: 1.5em; margin: 0.5em 0; color: #666;"></p>
+  <div style="margin-top: 1em;">
+    <button formaction="%s" style="background-color: #007BFF; color: white; border: none; padding: 15px 30px; font-size: 1em; margin: 0 10px; cursor: pointer; border-radius: 5px;">
+      </button>
+    <button style="background-color: #6c757d; color: white; border: none; padding: 15px 30px; font-size: 1em; margin: 0 10px; cursor: pointer; border-radius: 5px;">
+      </button>
+  </div>
+</div>
+HTML, $node->getTitle(), File::load(1)->getFileUri()), $hero_components[2]->getOuterHtml());
     // Markup for component instance with UUID `dynamic-image-udf7d`.
     $this->assertSame(sprintf(<<<HTML
 <img src="%s" alt="A random image for testing purposes." width="%d" height="%d">
