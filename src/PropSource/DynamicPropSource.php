@@ -57,7 +57,10 @@ final class DynamicPropSource extends PropSourceBase {
   /**
    * {@inheritdoc}
    */
-  public function evaluate(FieldableEntityInterface $host_entity): mixed {
+  public function evaluate(?FieldableEntityInterface $host_entity): mixed {
+    if ($host_entity === NULL) {
+      throw new \OutOfRangeException('Missing host entity.');
+    }
     return Evaluator::evaluate($host_entity, $this->expression);
   }
 

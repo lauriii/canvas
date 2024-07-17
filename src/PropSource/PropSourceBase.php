@@ -19,7 +19,7 @@ abstract class PropSourceBase implements \Stringable {
    */
   abstract public static function parse(array $sdc_prop_source): static;
 
-  abstract public function evaluate(FieldableEntityInterface $host_entity): mixed;
+  abstract public function evaluate(?FieldableEntityInterface $host_entity): mixed;
 
   abstract public function asChoice(): string;
 

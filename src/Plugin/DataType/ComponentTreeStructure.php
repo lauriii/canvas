@@ -43,7 +43,8 @@ class ComponentTreeStructure extends TypedData {
   public function getValue() {
     // @todo Uncomment next line and delete last line after https://www.drupal.org/project/drupal/issues/2232427
     // return $this->tree;
-    return $this->value;
+    // @see \Drupal\experience_builder\Plugin\Validation\Constraint\ValidComponentTreeConstraintValidator
+    return $this->value ?? NULL;
   }
 
   /**

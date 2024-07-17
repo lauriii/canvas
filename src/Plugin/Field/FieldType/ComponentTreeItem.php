@@ -10,12 +10,8 @@ use Drupal\Core\Field\Attribute\FieldType;
 use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Field\FieldItemBase;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
-use Drupal\Core\Render\Component\Exception\ComponentNotFoundException;
-use Drupal\Core\Render\Component\Exception\InvalidComponentException;
 use Drupal\Core\Render\RenderableInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
-use Drupal\Core\Theme\Component\ComponentValidator;
-use Drupal\Core\Theme\ComponentPluginManager;
 use Drupal\Core\TypedData\DataDefinition;
 use Drupal\experience_builder\Entity\Component;
 use Drupal\experience_builder\FieldForComponentSuggester;
@@ -38,7 +34,9 @@ use Drupal\experience_builder\PropSource\PropSourceBase;
   default_widget: "experience_builder_two_terrible_text_areas",
   default_formatter: "experience_builder_naive_render_sdc_tree",
   // list_class: ComponentItemList::class,
-  constraints: [],
+  constraints: [
+    'ValidComponentTree' => [],
+  ],
   // @todo Add support for both symmetric and asymmetric translations.
   // @see https://www.drupal.org/project/drupal/issues/3440578
   // @see content_translation_field_info_alter()
@@ -59,6 +57,10 @@ class ComponentTreeItem extends FieldItemBase implements RenderableInterface {
 
     $default_value = $field_definition->getDefaultValueLiteral()[0];
     $tree = ComponentTreeStructure::createInstance(DataDefinition::create('component_tree_structure'));
+    // The default should always have a "tree" key but this runs before validation.
+    if (!isset($default_value['tree'])) {
+      return [];
+    }
     $tree->setValue($default_value['tree']);
 
     foreach (Component::loadMultiple(array_map(Component::convertMachineNameToId(...), $tree->getComponentIdList())) as $component_entity) {
@@ -136,8 +138,64 @@ class ComponentTreeItem extends FieldItemBase implements RenderableInterface {
    * {@inheritdoc}
    */
   public function isEmpty() {
+    // If either `tree` or `props` is not set, consider this not empty, because
+    // it is not empty in a *valid* way. If considered empty, the
+    // NotNullConstraintValidator would apply some magic that prevents detailed
+    // validation.
+    // @see \Drupal\Core\Validation\Plugin\Validation\Constraint\NotNullConstraintValidator::validate()
+    if ($this->get('tree')->getValue() === NULL || $this->get('props')->getValue() === NULL) {
+      return FALSE;
+    }
+
     $tree = $this->get('tree')->getValue();
-    return $tree === NULL || $tree === '' || $tree === Json::encode([]);
+    return $tree === '' || $tree === Json::encode([]);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function toArray() {
+    // Return the raw property values, avoid the magic of parent Map::toArray().
+    // This is necessary to allow validating a component tree in detail.
+    // @see \Drupal\experience_builder\Plugin\Validation\Constraint\ValidComponentTreeConstraintValidator::validate()
+    return $this->values;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function setValue($values, $notify = TRUE): void {
+    // This field type does not want either:
+    // - the parent FieldItemBase::setValue()'s behavior, which assigns $values
+    //   to the first property if $values is not an array.
+    // - the grandparent Map::setValue() removes key-value pairs from
+    //   $this->values that are assigned to a n on-computed property.
+    // Both of those behaviors prevent strict validation. Instead, perform *no*
+    // magic transformations, just respect the `tree` and `props` key-value
+    // pairs, if they are provided.
+    if (is_array($values)) {
+      // Store the exact values passed in to be assigned to the contained
+      // properties.
+      $this->values = $values;
+      // Assign the values to the contained properties.
+      if (array_key_exists('tree', $values)) {
+        $this->set('tree', $values['tree'], FALSE);
+      }
+      if (array_key_exists('props', $values)) {
+        $this->set('props', $values['props'], FALSE);
+      }
+    }
+
+    // If they are missing, fall back to the default value of the non-computed
+    // properties `tree` and `props`. This avoids a *repeated* validation error:
+    // if there already is a validation error for a missing key, another
+    // validation error for an invalid value is not helpful.
+    // @see \Drupal\experience_builder\Plugin\Validation\Constraint\ValidComponentTreeConstraintValidator
+    foreach ($this->getProperties(FALSE) as $property_name => $property) {
+      if (!is_array($values) || !array_key_exists($property_name, $values)) {
+        $property->applyDefaultValue(FALSE);
+      }
+    }
   }
 
   /**
@@ -159,41 +217,9 @@ class ComponentTreeItem extends FieldItemBase implements RenderableInterface {
       throw new \LogicException(sprintf('The component UUIDs in the tree and props values do not match! Put a breakpoint here and figure out why.'));
     }
 
-    // Validate that each prop source resolves into a value that is considered
-    // valid by the destination SDC prop.
-    // @todo Move to validation constraint.
-    foreach ($component_instance_uuids as $component_instance_uuid) {
-      $component_id = $tree->getComponentId($component_instance_uuid);
-      $props_values = $this->resolveComponentProps($component_instance_uuid);
-      try {
-        $component = $this->getComponentPluginManager()->find($component_id);
-        $this->getComponentValidator()->validateProps($props_values, $component);
-      }
-      catch (ComponentNotFoundException) {
-        throw new \LogicException(sprintf('The component instance with UUID %s uses component %s but does not exist! Put a breakpoint here and figure out why.', $component_instance_uuid, $component_id));
-      }
-      catch (InvalidComponentException) {
-        throw new \LogicException(sprintf('The component instance with UUID %s uses component %s and receives some invalid props! Put a breakpoint here and figure out why.', $component_instance_uuid, $component_id));
-      }
-    }
-
     // @todo Omit defaults that are stored at the content type template level, e.g. in core.entity_view_display.node.article.default.yml
     // $template_tree = '@todo';
     // $template_props = '@todo';
-  }
-
-  /**
-   * @todo Move to validation constraint.
-   */
-  private function getComponentPluginManager(): ComponentPluginManager {
-    return \Drupal::service(ComponentPluginManager::class);
-  }
-
-  /**
-   * @todo Move to validation constraint.
-   */
-  private function getComponentValidator(): ComponentValidator {
-    return \Drupal::service(ComponentValidator::class);
   }
 
   /**
@@ -205,12 +231,34 @@ class ComponentTreeItem extends FieldItemBase implements RenderableInterface {
     $props = $this->get('props');
     assert($props instanceof ComponentPropsValues);
 
-    $entity = $this->getEntity();
+    $entity = $this->getRoot() === $this ? NULL : $this->getEntity();
 
     return array_map(
       fn (PropSourceBase $s): mixed => $s->evaluate($entity),
       $props->getComponentPropsSources($component_instance_uuid)
     );
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function postSave($update) {
+    // @todo Remove this method once Drupal allows validating some constraints after some other constraints (i.e. ValidComponentTreeConstraintValidator must run after all other fields on an entity have been validated).
+
+    // Re-run the validation logic now that fields that are required on this
+    // entity are guaranteed to exist (i.e. the entity is no longer new, because
+    // it already was saved).
+    assert($this->getEntity()->isNew() === FALSE);
+    // Because the entity is now guaranteed to not be new, a slightly stricter
+    // validation is performed — if it fails, then an exception is thrown and
+    // the entity saving database transaction is rolled back, and an error
+    // message is displayed.
+    // This should NEVER occur, but until Experience Builder is stable and/or
+    // https://www.drupal.org/project/drupal/issues/2820364 is unresolved, this
+    // ensures Experience Builder developers are informed early.
+    // @see \Drupal\experience_builder\Plugin\Validation\Constraint\ValidComponentTreeConstraintValidator::validate()
+    $this->validate();
+    return FALSE;
   }
 
   /**

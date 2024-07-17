@@ -78,7 +78,7 @@ final class AdaptedPropSource extends PropSourceBase {
   /**
    * {@inheritdoc}
    */
-  public function evaluate(FieldableEntityInterface $host_entity): mixed {
+  public function evaluate(?FieldableEntityInterface $host_entity): mixed {
     foreach ($this->adapter_inputs as $input_name => $input) {
       $value_object = $this->getInputPropSource($input_name);
       $value = $value_object->evaluate($host_entity);

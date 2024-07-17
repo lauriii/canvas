@@ -44,7 +44,9 @@ class ComponentPropsValues extends TypedData implements \Stringable {
   public function getValue() {
     // @todo Uncomment next line and delete last line after https://www.drupal.org/project/drupal/issues/2232427
     // return $this->propsValues;
-    return $this->value;
+    // Fall back to NULL if not yet initialized, to allow validation.
+    // @see \Drupal\experience_builder\Plugin\Validation\Constraint\ValidComponentTreeConstraintValidator
+    return $this->value ?? NULL;
   }
 
   /**

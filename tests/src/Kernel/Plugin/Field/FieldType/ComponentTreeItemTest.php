@@ -9,24 +9,19 @@ use Drupal\experience_builder\Entity\Component;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\KernelTests\KernelTestBase;
+use Drupal\node\Entity\Node;
+use Drupal\Tests\experience_builder\Traits\ComponentTreeTestTrait;
 use Drupal\Tests\experience_builder\Traits\ContribStrictConfigSchemaTestTrait;
+use Symfony\Component\Validator\ConstraintViolationListInterface;
 
 /**
- * Tests dependency calculation in ComponentTreeItem.
- *
+ * @coversDefaultClass \Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem
  * @group experience_builder
  */
 class ComponentTreeItemTest extends KernelTestBase {
 
+  use ComponentTreeTestTrait;
   use ContribStrictConfigSchemaTestTrait;
-
-  const DEFAULT_VALUE = [
-    'tree' => '{"' . ComponentTreeStructure::ROOT_UUID . '": [{"uuid":"dynamic-image-udf7d","component":"experience_builder:image"},{"uuid":"static-static-card1ab","component":"sdc_test:my-cta"},{"uuid":"dynamic-static-card2df","component":"sdc_test:my-cta"},{"uuid":"dynamic-dynamic-card3rr","component":"sdc_test:my-cta"},{"uuid":"dynamic-image-static-imageStyle-something7d","component":"experience_builder:image"}]}',
-    'props' => '{"dynamic-static-card2df":{"text":{"sourceType":"dynamic","expression":"ℹ︎␜entity:node:article␝title␞␟value"},"href":{"sourceType":"static:field_item:uri","value":"https:\/\/drupal.org","expression":"ℹ︎uri␟value"}},"static-static-card1ab":{"text":{"sourceType":"static:field_item:string","value":"hello, world!","expression":"ℹ︎string␟value"},"href":{"sourceType":"static:field_item:uri","value":"https:\/\/drupal.org","expression":"ℹ︎uri␟value"}},"dynamic-dynamic-card3rr":{"text":{"sourceType":"dynamic","expression":"ℹ︎␜entity:node:article␝title␞␟value"},"href":{"sourceType":"dynamic","expression":"ℹ︎␜entity:node:article␝field_hero␞␟entity␜␜entity:file␝uri␞␟value"}},"dynamic-image-udf7d":{"image":{"sourceType":"dynamic","expression":"ℹ︎␜entity:node:article␝field_hero␞␟{src↝entity␜␜entity:file␝uri␞␟value,alt↠alt,width↠width,height↠height}"}},"dynamic-image-static-imageStyle-something7d":{"image":{"sourceType":"adapter:image_apply_style","adapterInputs":{"image":{"sourceType":"dynamic","expression":"ℹ︎␜entity:node:article␝field_hero␞␟{src↝entity␜␜entity:file␝uri␞0␟value,alt↠alt,width↠width,height↠height}"},"imageStyle":{"sourceType":"static:field_item:string","value":"thumbnail","expression":"ℹ︎string␟value"}}}}}',
-  ];
-  const EXPECTED_DEPENDENCIES = [
-    'config' => ['experience_builder.component.experience_builder+image', 'experience_builder.component.sdc_test+my-cta'],
-  ];
 
   /**
    * {@inheritdoc}
@@ -39,11 +34,7 @@ class ComponentTreeItemTest extends KernelTestBase {
     'image',
   ];
 
-  /**
-   * {@inheritdoc}
-   */
-  protected function setUp(): void {
-    parent::setUp();
+  public function testCalculateDependencies(): void {
     $this->container->get('theme_installer')->install(['sdc_theme_test']);
     Component::create([
       'label' => $this->randomString(),
@@ -91,14 +82,96 @@ class ComponentTreeItemTest extends KernelTestBase {
         ],
       ],
     ])->save();
-  }
-
-  public function testCalculateDependencies(): void {
     $this->assertSame([], ComponentTreeItem::calculateDependencies(BaseFieldDefinition::create('component_tree')));
     $this->assertSame(
-      self::EXPECTED_DEPENDENCIES,
-      ComponentTreeItem::calculateDependencies(BaseFieldDefinition::create('component_tree')->setDefaultValue(self::DEFAULT_VALUE))
+      [
+        'config' => ['experience_builder.component.experience_builder+image', 'experience_builder.component.sdc_test+my-cta'],
+      ],
+      ComponentTreeItem::calculateDependencies(BaseFieldDefinition::create('component_tree')->setDefaultValue(
+        [
+          'tree' => '{"' . ComponentTreeStructure::ROOT_UUID . '": [{"uuid":"dynamic-image-udf7d","component":"experience_builder:image"},{"uuid":"static-static-card1ab","component":"sdc_test:my-cta"},{"uuid":"dynamic-static-card2df","component":"sdc_test:my-cta"},{"uuid":"dynamic-dynamic-card3rr","component":"sdc_test:my-cta"},{"uuid":"dynamic-image-static-imageStyle-something7d","component":"experience_builder:image"}]}',
+          'props' => '{"dynamic-static-card2df":{"text":{"sourceType":"dynamic","expression":"ℹ︎␜entity:node:article␝title␞␟value"},"href":{"sourceType":"static:field_item:uri","value":"https:\/\/drupal.org","expression":"ℹ︎uri␟value"}},"static-static-card1ab":{"text":{"sourceType":"static:field_item:string","value":"hello, world!","expression":"ℹ︎string␟value"},"href":{"sourceType":"static:field_item:uri","value":"https:\/\/drupal.org","expression":"ℹ︎uri␟value"}},"dynamic-dynamic-card3rr":{"text":{"sourceType":"dynamic","expression":"ℹ︎␜entity:node:article␝title␞␟value"},"href":{"sourceType":"dynamic","expression":"ℹ︎␜entity:node:article␝field_hero␞␟entity␜␜entity:file␝uri␞␟value"}},"dynamic-image-udf7d":{"image":{"sourceType":"dynamic","expression":"ℹ︎␜entity:node:article␝field_hero␞␟{src↝entity␜␜entity:file␝uri␞␟value,alt↠alt,width↠width,height↠height}"}},"dynamic-image-static-imageStyle-something7d":{"image":{"sourceType":"adapter:image_apply_style","adapterInputs":{"image":{"sourceType":"dynamic","expression":"ℹ︎␜entity:node:article␝field_hero␞␟{src↝entity␜␜entity:file␝uri␞0␟value,alt↠alt,width↠width,height↠height}"},"imageStyle":{"sourceType":"static:field_item:string","value":"thumbnail","expression":"ℹ︎string␟value"}}}}}',
+        ]
+      ))
     );
+  }
+
+  public function providerInvalidField(): array {
+    $test_cases = $this->getComponentTreeTestCases();
+    $test_cases['valid values using dynamic props'][] = [];
+    $test_cases['missing components, using dynamic props'][] = [
+      'field_xb_test.0' => [
+        'The component instance with UUID <em class="placeholder">dynamic-static-card2df</em> uses component <em class="placeholder">sdc_test:missing</em> but does not exist! Put a breakpoint here and figure out why.',
+        'The component instance with UUID <em class="placeholder">dynamic-static-card3</em> uses component <em class="placeholder">sdc_test:missing-also</em> but does not exist! Put a breakpoint here and figure out why.',
+      ],
+    ];
+    $test_cases['missing components, using only static props'][] = [
+      'field_xb_test.0' => 'The component instance with UUID <em class="placeholder">static-card2df</em> uses component <em class="placeholder">sdc_test:missing</em> but does not exist! Put a breakpoint here and figure out why.',
+    ];
+    $test_cases['props invalid, using dynamic props'][] = [
+      'field_xb_test.0' => [
+        'The component instance with UUID <em class="placeholder">dynamic-static-card2df</em> uses component <em class="placeholder">sdc_test:my-cta</em> and receives some invalid props! Put a breakpoint here and figure out why.',
+        'The component instance with UUID <em class="placeholder">dynamic-static-card3</em> uses component <em class="placeholder">sdc_test:my-cta</em> and receives some invalid props! Put a breakpoint here and figure out why.',
+      ],
+    ];
+    $test_cases['props invalid, using only static props'][] = [
+      'field_xb_test.0' => 'The component instance with UUID <em class="placeholder">static-card2df</em> uses component <em class="placeholder">sdc_test:my-cta</em> and receives some invalid props! Put a breakpoint here and figure out why.',
+    ];
+    $test_cases['missing props key'][] = [
+      'field_xb_test.0' => 'The array must contain a "props" key.',
+    ];
+    $test_cases['missing tree key'][] = [
+      'field_xb_test.0' => 'The array must contain a "tree" key.',
+    ];
+    return $test_cases;
+  }
+
+  /**
+   * @coversClass \Drupal\experience_builder\Plugin\Validation\Constraint\ValidComponentTreeConstraintValidator
+   * @param array $field_values
+   * @param array $expected_violations
+   *
+   * @dataProvider providerInvalidField
+   */
+  public function testInvalidField(array $field_values, array $expected_violations): void {
+    $this->container->get('module_installer')->install(['experience_builder', 'link', 'node', 'text', 'xb_test_config_node_article']);
+    $node = Node::create([
+      'title' => 'Test node',
+      'type' => 'article',
+      'field_xb_test' => [$field_values],
+    ]);
+    $violations = $node->validate();
+    $this->assertSame($expected_violations, self::violationsToArray($violations));
+  }
+
+  /**
+   * Transforms a constraint violation list object to an assertable array.
+   *
+   * @param \Symfony\Component\Validator\ConstraintViolationListInterface $violations
+   *   Validation constraint violations.
+   *
+   * @return array
+   *   An array with property paths as keys and violation messages as values.
+   *
+   * @see \Drupal\Tests\ckeditor5\Kernel\CKEditor5ValidationTestTrait::violationsToArray()
+   */
+  private static function violationsToArray(ConstraintViolationListInterface $violations): array {
+    $actual_violations = [];
+    foreach ($violations as $violation) {
+      if (!isset($actual_violations[$violation->getPropertyPath()])) {
+        $actual_violations[$violation->getPropertyPath()] = (string) $violation->getMessage();
+      }
+      else {
+        // Transform value from string to array.
+        if (is_string($actual_violations[$violation->getPropertyPath()])) {
+          $actual_violations[$violation->getPropertyPath()] = (array) $actual_violations[$violation->getPropertyPath()];
+        }
+        // And append.
+        // @phpstan-ignore-next-line
+        $actual_violations[$violation->getPropertyPath()][] = (string) $violation->getMessage();
+      }
+    }
+    return $actual_violations;
   }
 
 }

@@ -18,7 +18,7 @@ final class Evaluator {
       if ($expr instanceof ReferenceFieldPropExpression) {
         return NULL;
       }
-      throw new \LogicException('No data provided to evaluate expression ' . (string) $expr);
+      throw new \OutOfRangeException('No data provided to evaluate expression ' . (string) $expr);
     }
 
     // Assert that the received entity or field meets the needs of the

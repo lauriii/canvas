@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\experience_builder\Functional;
 
+use Drupal\Core\Serialization\Yaml;
 use Drupal\experience_builder\Plugin\DataType\ComponentPropsValues;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeHydrated;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
@@ -394,6 +395,24 @@ HTML, File::load(1)->getFileUri(), 40, 20), $image_components[0]->getOuterHtml()
     $this->assertSame(sprintf(<<<HTML
 <img src="%s" alt="A random image for testing purposes." width="%d" height="%d">
 HTML, ImageStyle::load('thumbnail')->buildUrl(File::load(1)->getFileUri()), 40, 20), $image_components[1]->getOuterHtml());
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  protected function prepareSettings(): void {
+    parent::prepareSettings();
+
+    $directory = DRUPAL_ROOT . '/' . $this->siteDirectory;
+    // @todo Why does phpstan not know of the Yaml class.
+    // @phpstan-ignore-next-line
+    $services = Yaml::decode(file_get_contents($directory . '/services.yml'));
+    // Opt in to strict config schema checking, even though this is a contrib
+    // module.
+    $services['services']['testing.config_schema_checker']['arguments'][2] = TRUE;
+    // @todo Why does phpstan not know of the Yaml class.
+    // @phpstan-ignore-next-line
+    file_put_contents($directory . '/services.yml', Yaml::encode($services));
   }
 
 }

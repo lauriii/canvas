@@ -146,7 +146,7 @@ final class StaticPropSource extends PropSourceBase {
   /**
    * {@inheritdoc}
    */
-  public function evaluate(FieldableEntityInterface $host_entity): mixed {
+  public function evaluate(?FieldableEntityInterface $host_entity): mixed {
     return Evaluator::evaluate($this->fieldItem, $this->expression);
   }
 
