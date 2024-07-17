@@ -29,6 +29,7 @@ import useIframeKeyHandlers from '@/hooks/useIframeKeyHandlers';
 import useSyncIframeHeightToContent from '@/hooks/useSyncIframeHeightToContent';
 
 interface ViewportProps {
+  previewId: string;
   height: number;
   width: number;
   isLoading: boolean;
@@ -36,7 +37,7 @@ interface ViewportProps {
 }
 
 const Viewport: React.FC<ViewportProps> = (props) => {
-  const { height, width, frameSrcDoc, isLoading } = props;
+  const { height, width, frameSrcDoc, isLoading, previewId } = props;
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const layout = useAppSelector(selectLayout);
   const model = useAppSelector(selectModel);
@@ -232,7 +233,7 @@ const Viewport: React.FC<ViewportProps> = (props) => {
         <iframe
           ref={iframeRef}
           className={styles.preview}
-          id="preview"
+          data-xb-preview={previewId}
           title="Preview"
           srcDoc={frameSrcDoc}
         ></iframe>

@@ -260,14 +260,14 @@ Cypress.Commands.add('drupalSession', () => {
   })
 })
 
-Cypress.Commands.add('getPreviewIframe', () => {
+Cypress.Commands.add('getPreviewIframe', (selector = '[data-xb-preview]') => {
   return cy
-  .get('iframe#preview')
+  .get(selector)
   .its('0.contentDocument').should('exist')
 })
 
-Cypress.Commands.add('getPreviewBody', () => {
-  return cy.getPreviewIframe()
+Cypress.Commands.add('getPreviewBody', (selector = '[data-xb-preview]') => {
+  return cy.getPreviewIframe(selector)
     .its('body').should('not.be.undefined')
     .then(cy.wrap)
 })
