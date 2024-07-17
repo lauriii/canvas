@@ -246,7 +246,7 @@ function _semi_coupled_collect_props(array &$props, array &$slots, array $prop_t
           $value = (string) $variable;
         }
         // @phpstan-ignore catch.neverThrown
-        catch (\Exception $e) {
+        catch (\Exception) {
           // For example, \Drupal\Core\Url.
           if (is_object($variable) && method_exists($variable, 'toString')) {
             $value = $variable->toString();
@@ -330,7 +330,7 @@ function _semi_coupled_get_variable(array|object $variables, string $index_in_js
         // inside an array.
         return count($values) <= 1 ? $values[0] : $values;
       }
-      catch (\Throwable $e) {
+      catch (\Throwable) {
         // Intentionally empty.
       }
     }

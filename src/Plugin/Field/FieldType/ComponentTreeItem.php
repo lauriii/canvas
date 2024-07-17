@@ -169,10 +169,10 @@ class ComponentTreeItem extends FieldItemBase implements RenderableInterface {
         $component = $this->getComponentPluginManager()->find($component_id);
         $this->getComponentValidator()->validateProps($props_values, $component);
       }
-      catch (ComponentNotFoundException $e) {
+      catch (ComponentNotFoundException) {
         throw new \LogicException(sprintf('The component instance with UUID %s uses component %s but does not exist! Put a breakpoint here and figure out why.', $component_instance_uuid, $component_id));
       }
-      catch (InvalidComponentException $e) {
+      catch (InvalidComponentException) {
         throw new \LogicException(sprintf('The component instance with UUID %s uses component %s and receives some invalid props! Put a breakpoint here and figure out why.', $component_instance_uuid, $component_id));
       }
     }
