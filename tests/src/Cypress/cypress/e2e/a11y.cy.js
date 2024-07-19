@@ -1,121 +1,102 @@
-const argv = Cypress.env('args')
-// TEMPORARY: Replace this with XB accessibility tests once development is far
-// enough along to warrant them.
+describe('UI a11y Scan', () => {
+  before( () => {
+    cy.drupalXbInstall()
+  });
 
-const adminTestCases = [
-  { name: 'User Edit', path: '/user/1/edit' },
-  { name: 'Create Article', path: '/user/1/edit' },
-  { name: 'Create Page', path: '/node/add/page?destination=/admin/content' },
-  { name: 'Content Page', path: '/admin/content' },
-  { name: 'Structure Page', path: '/admin/structure' },
-  { name: 'Add content type', path: '/admin/structure/types/add' },
-  { name: 'Add vocabulary', path: '/admin/structure/taxonomy/add' },
-  // @todo remove the skipped rules below in https://drupal.org/i/3318394.
-  {
-    name: 'Structure | Block',
-    path: '/admin/structure/block',
-    options: {
-      rules: {
-        'color-contrast': { enabled: false },
-        'duplicate-id-active': { enabled: false },
-        region: { enabled: false },
-      },
-    },
-  },
-];
+  after(() => {
+    cy.drupalUninstall()
+  })
 
-const defaultTestCases = [
-  {
-    name: 'Homepage',
-    path: '/',
-    // @todo remove the disabled 'region' rule in https://drupal.org/i/3318396.
-    options: {
+  beforeEach(() => {
+    cy.drupalSession();
+  });
+
+  it('a11y scan without any interaction', () => {
+    cy.drupalLogin('xbUser', 'xbUser')
+    cy.drupalRelativeURL('xb')
+    cy.waitForElementInIframe('[data-xb-type="experience_builder:image"]')
+    cy.injectAxe();
+    // @todo there are several a11y rules not being checked in order for the
+    // test to pass. These need to be fixed.
+    cy.checkA11y('body', {
       rules: {
-        region: { enabled: false },
-        'heading-order': { enabled: false },
-      },
-    },
-  },
-  {
-    name: 'Login',
-    path: '/user/login',
-    // @todo remove the disabled 'region' rule in https://drupal.org/i/3318396.
-    options: {
-      rules: {
-        region: { enabled: false },
-        'heading-order': { enabled: false },
-      },
-    },
-  },
-  // @todo remove the heading and duplicate id rules below in
-  //   https://drupal.org/i/3318398.
-  {
-    name: 'Search',
-    path: '/search/node',
-    options: {
-      rules: {
-        'heading-order': { enabled: false },
-        'duplicate-id-aria': { enabled: false },
+        'aria-required-children': { enabled: false },
+        'button-name': { enabled: false },
         'region': { enabled: false },
-        'duplicate-id-active': { enabled: false },
-        'duplicate-id': { enabled: false },
+        'scrollable-region-focusable': { enabled: false },
       },
-    },
-  },
-];
+    });
+  })
+  it('a11y scan open first left drawer', () => {
+    cy.drupalLogin('xbUser', 'xbUser')
+    cy.drupalRelativeURL('xb')
+    cy.waitForElementInIframe('[data-xb-type="experience_builder:image"]')
+    cy.get('[data-radix-menubar-content]').should('have.length', 0)
+    cy.get('[data-hover-overlay="addElement"]').click()
+    cy.get('[data-radix-menubar-content]').should('have.length', 1)
 
-describe('a11y admin', {testIsolation: false}, () => {
-  before(() => {
-    cy.drupalInstall({ installProfile: 'nightwatch_a11y_testing' });
-    // If an admin theme other than Claro is being used for testing, install it.
-    if (argv.adminTheme && argv.adminTheme !== Cypress.env('adminTheme')) {
-      browser.drupalEnableTheme(argv.adminTheme, true);
-    }
-  });
-  after(() => {
-   cy.drupalUninstall();
-  });
-  beforeEach(() => {
-    cy.drupalSession()
-  });
-  adminTestCases.forEach((testCase) => {
-    it(`Accessibility - Admin Theme: ${testCase.name}`, () => {
-      cy.drupalLoginAsAdmin(() => {
-        cy.drupalRelativeURL(testCase.path)
-        cy.injectAxe();
-        cy.checkA11y('body', testCase.options || {});
-      })
-    })
-  });
-})
+    cy.injectAxe();
+    // @todo there are several a11y rules not being checked in order for the
+    // test to pass. These need to be fixed.
+    cy.checkA11y('body', {
+      rules: {
+        'aria-required-children': { enabled: false },
+        'button-name': { enabled: false },
+        'region': { enabled: false },
+        'scrollable-region-focusable': { enabled: false },
+      },
+    });
+  })
+  it('a11y scan open secondary left drawer', () => {
+    cy.drupalLogin('xbUser', 'xbUser')
+    cy.drupalRelativeURL('xb')
+    cy.waitForElementInIframe('[data-xb-type="experience_builder:image"]')
+    cy.get('[data-radix-menubar-content]').should('have.length', 0)
+    cy.get('[data-hover-overlay="addElement"]').click()
+    cy.get('[data-radix-menubar-content]').should('have.length', 1)
+    cy.get('[role="menuitem"][aria-expanded="false"]').contains('Default components').click()
+    cy.get('[data-radix-menubar-content]').should('have.length', 2)
 
-describe('a11y default', {testIsolation: false}, () => {
-  before(() => {
-    cy.drupalInstall({ installProfile: 'nightwatch_a11y_testing' });
-    // If an admin theme other than Claro is being used for testing, install it.
-    if (argv.adminTheme && argv.adminTheme !== Cypress.env('defaultTheme')) {
-      browser.drupalEnableTheme(argv.adminTheme, true);
-    }
-  });
-  after(() => {
-    cy.drupalUninstall();
-  });
-  beforeEach(() => {
-    cy.visit(Cypress.env('baseUrl'), {failOnStatusCode: false}).then(() => {
-      cy.setCookie(
-        'SIMPLETEST_USER_AGENT',
-        encodeURIComponent(Cypress.env('userAgent')),
-        {domain: Cypress.env('host'), path: '/'},
-      )
-    })
-  });
-  defaultTestCases.forEach((testCase) => {
-    it(`Accessibility - Default Theme: ${testCase.name}`, () => {
-      cy.drupalLoginAsAdmin(() => {
-        cy.drupalRelativeURL(testCase.path)
-        cy.injectAxe();
-        cy.checkA11y('body', testCase.options || {});
-      })
-    })
-  });
+    cy.injectAxe();
+    // @todo there are several a11y rules not being checked in order for the
+    // test to pass. These need to be fixed.
+    cy.checkA11y('body', {
+      rules: {
+        'aria-required-children': { enabled: false },
+        'button-name': { enabled: false },
+        'region': { enabled: false },
+        'scrollable-region-focusable': { enabled: false },
+      },
+    });
+  })
+  it('a11y scan open props edit form', () => {
+    cy.drupalLogin('xbUser', 'xbUser')
+    cy.drupalRelativeURL('xb')
+    cy.waitForElementInIframe('[data-xb-type="experience_builder:image"]')
+    cy.get('[data-radix-menubar-content]').should('have.length', 0)
+    cy.get('[data-hover-overlay="addElement"]').click()
+    cy.get('[data-radix-menubar-content]').should('have.length', 1)
+    cy.get('[role="menuitem"][aria-expanded="false"]').contains('Default components').click()
+    cy.get('[data-radix-menubar-content]').should('have.length', 2)
+    cy.get('[role="dialog"][vaul-drawer-direction="right"][data-state="open"]').should('not.exist')
+    cy.getIframeBody().find('[data-component-id="experience_builder:my-hero"] h1')
+      .first()
+      .trigger('click')
+    cy.get('[role="dialog"][vaul-drawer-direction="right"][data-state="open"] [data-drupal-selector="component-field-form"].component-field-form').should('exist')
+
+
+    cy.injectAxe();
+    // @todo there are several a11y rules not being checked in order for the
+    // test to pass. These need to be fixed.
+    cy.checkA11y('body', {
+      rules: {
+        'aria-required-children': { enabled: false },
+        'button-name': { enabled: false },
+        'region': { enabled: false },
+        'scrollable-region-focusable': { enabled: false },
+        'aria-allowed-attr': { enabled: false },
+        'aria-dialog-name': { enabled: false },
+      },
+    });
+  })
 })

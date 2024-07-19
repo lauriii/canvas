@@ -34,4 +34,7 @@ function experience_builder_install(): void {
       ])
       ->save();
   }
+
+  // Cache flush ensures the contextual form works.
+  drupal_flush_all_caches();
 }

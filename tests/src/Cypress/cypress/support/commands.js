@@ -260,14 +260,83 @@ Cypress.Commands.add('drupalSession', () => {
   })
 })
 
-Cypress.Commands.add('getPreviewIframe', (selector = '[data-xb-preview]') => {
+/**
+ * Gets an iframe element once its content has loaded.
+ *
+ * @param {string} selector
+ *   The selector of the iframe to get.
+ *
+ * @return
+ *   The Cypress-wrapped iframe.
+ */
+Cypress.Commands.add('getIframe', (selector = '[data-xb-preview]') => {
   return cy
   .get(selector)
   .its('0.contentDocument').should('exist')
 })
 
-Cypress.Commands.add('getPreviewBody', (selector = '[data-xb-preview]') => {
-  return cy.getPreviewIframe(selector)
+/**
+ * Gets the body content of an iframe
+ *
+ * @param {string} selector
+ *   The selector of the iframe to get
+ *
+ * @return {object}
+ *  The Cypress-wrapped iframe body.
+ */
+Cypress.Commands.add('getIframeBody', (selector = '[data-xb-preview]') => {
+  return cy.getIframe(selector)
     .its('body').should('not.be.undefined')
     .then(cy.wrap)
+})
+
+/**
+ * Waits for element matching a selector to be present in an iframe.
+ *
+ * @param {string} selector
+ *   The selector of what to wait on in the iframe.
+ * @param {string} iframeSelector
+ *   The selector of the iframe to check inside. Defaults to the first preview.
+ * @param {number|null} customTimeout
+ *   Optional: If the time to wait for the element should differ from the
+ *   Cypress retry default duration.
+ */
+Cypress.Commands.add('waitForElementInIframe', (selector, iframeSelector = '[data-xb-preview]', customTimeout) => {
+  cy.document().then((doc) => {
+    cy.get(true, {  timeout: customTimeout || Cypress.config('defaultCommandTimeout')}).should(() => {
+      const frameContent = doc.querySelector(iframeSelector)?.contentWindow?.document?.body.querySelector(selector)
+      expect(!!frameContent, `'${selector}' was found in iframe '${iframeSelector}'`).to.equal(true)
+    })
+  })
+})
+
+/**
+ * Gets element(s) matching a selector within an iframe and sends to a callback.
+ * @example
+ * ```javascript
+ * cy.testInIframe('#some-id', (result) => {
+ *   expect(result.text).to.equal('Hello World')
+ * });
+ * ```
+ *
+ * @param {string} selector
+ *   The selector of what to query in the iframe.
+ * @param {function} callback
+ *   User supplied callback that receives the `selector` result as the argument.
+ * @param {string} iframeSelector
+ *   The selector of the iframe. Defaults to the first preview iframe.
+ */
+Cypress.Commands.add('testInIframe', (selector, callback, iframeSelector = '[data-xb-preview]') => {
+  cy.getIframeBody(iframeSelector)
+    .should((previewIframe) => {
+      const queryResult = previewIframe.querySelectorAll(selector)
+      let callbackArg = queryResult;
+      if (queryResult.length === 1) {
+        callbackArg = queryResult[0]
+      } else if (queryResult.length === 0) {
+        callbackArg = null;
+      }
+
+      callback(callbackArg, previewIframe)
+    });
 })

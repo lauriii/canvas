@@ -8,6 +8,8 @@ import '@radix-ui/themes/styles.css';
 import { Theme } from '@radix-ui/themes';
 import type { AppConfiguration } from '@/features/configuration/configurationSlice';
 
+const { drupalSettings } = window as any;
+
 const prepare = async () => {
   if (
     import.meta.env.VITE_DRUPAL !== 'true' &&
@@ -25,7 +27,7 @@ const container = document.getElementById('experience-builder');
 // Here we will pass along app configuration such as entity-type and ID.
 // We will have access to `window.drupalSettings` here.
 const appConfiguration: AppConfiguration = {
-  baseUrl: import.meta.env.BASE_URL,
+  baseUrl: drupalSettings.path.baseUrl || import.meta.env.BASE_URL,
 };
 
 if (container) {

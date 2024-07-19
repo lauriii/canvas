@@ -7,3 +7,6 @@ xb-ui:
   css:
     theme:
       ui/dist/assets/index.css: {}
+  dependencies:
+    - core/drupal
+    - core/drupalSettings

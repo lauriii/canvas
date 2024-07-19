@@ -67,7 +67,7 @@ const PrimaryMenubar = () => {
           <div
             onPointerDown={(e) => pointerDownHandler(e, ADD_ELEMENT_ID)}
             className={clsx('overlayForHover', styles.overlayForHover)}
-            data-testid={`${ADD_ELEMENT_ID}Overlay`}
+            data-hover-overlay={ADD_ELEMENT_ID}
           ></div>
         </TooltipComponent>
         <Menubar.Trigger
@@ -105,7 +105,7 @@ const PrimaryMenubar = () => {
           <div
             onPointerDown={(e) => pointerDownHandler(e, PAGES_ID)}
             className={clsx('overlayForHover', styles.overlayForHover)}
-            data-testid={`${PAGES_ID}Overlay`}
+            data-hover-overlay={PAGES_ID}
           ></div>
         </TooltipComponent>
         <Menubar.Trigger
@@ -136,7 +136,7 @@ const PrimaryMenubar = () => {
           <div
             onPointerDown={(e) => pointerDownHandler(e, LAYERS_ID)}
             className={clsx('overlayForHover', styles.overlayForHover)}
-            data-testid={`${LAYERS_ID}Overlay`}
+            data-hover-overlay={LAYERS_ID}
           ></div>
         </TooltipComponent>
         <Menubar.Trigger

@@ -6,6 +6,9 @@
 function xb_vite_library_info_alter(&$libraries, $extension) {
   $base = [
     'attributes' => ['type' => 'module'],
+    // Disabling preprocessing ensures these files are not aggregated, which
+    // avoids the need for clearing Drupal caches during `npm run drupaldev`.
+    'preprocess' => FALSE,
   ];
 
   // @see https://vitejs.dev/guide/backend-integration.html
