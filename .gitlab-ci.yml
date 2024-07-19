@@ -231,7 +231,7 @@ eslint:
 
 UI:
   stage: build
-  image: node:current-alpine
+  image: node:20-alpine
   needs: []
   script:
     - cd ui
@@ -247,7 +247,7 @@ UI:
 
 UI eslint:
   stage: validate
-  image: node:current-alpine
+  image: node:20-alpine
   allow_failure: false
   needs:
     - UI
