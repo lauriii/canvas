@@ -169,7 +169,7 @@ function experience_builder_theme_suggestions_alter(array &$suggestions, array $
 /**
  * Implements hook_form_alter().
  */
-function experience_builder_form_component_field_form_alter(array &$form, FormStateInterface $form_state, string $form_id): void {
+function experience_builder_form_component_props_form_alter(array &$form, FormStateInterface $form_state, string $form_id): void {
   // The component edit form should be set as #is_xb, making it renderable by
   // React.
   $form['#is_xb'] = TRUE;

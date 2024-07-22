@@ -36,11 +36,11 @@ final class StructuredDataPropExpression {
     // @code
     // ℹ︎image␟entity
     // @endcode
-    // would be a FieldTypePropExpression, whereas
+    // Would be a FieldTypePropExpression, whereas
     // @code
     // ℹ︎image␟entity␜␜entity:file␝filemime␞0␟value
     // @endcode
-    // would be a ReferenceFieldTypePropExpression.
+    // Would be a ReferenceFieldTypePropExpression.
     $root_expr_symbol_next = mb_substr($representation, mb_strlen($root_expr), 1);
     assert((mb_strlen($root_expr) < mb_strlen($representation) && !empty($root_expr_symbol_next)) || empty($root_expr_symbol_next), 'If the top-level expression is not the full string representation of the expression, then $tle_after MUST be not empty.');
 

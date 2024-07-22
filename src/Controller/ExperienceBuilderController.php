@@ -4,11 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\experience_builder\Controller;
 
-use Drupal\Core\Controller\HtmlFormController;
-use Drupal\Core\Render\BareHtmlPageRendererInterface;
 use Drupal\Core\Render\HtmlResponse;
-use Drupal\Core\Routing\RouteMatchInterface;
-use Symfony\Component\HttpFoundation\Request;
 
 final class ExperienceBuilderController {
 
@@ -47,16 +43,6 @@ HTML;
         'scripts' => '<js-placeholder token="JS-HERE-PLEASE">',
       ],
     ]);
-  }
-
-  /**
-   * @todo Remove in https://www.drupal.org/project/experience_builder/issues/3461422
-   */
-  public function horribleFormHack(Request $request, RouteMatchInterface $route_match): HtmlResponse {
-    // @phpstan-ignore-next-line
-    $form = \Drupal::service(HtmlFormController::class)->getContentResult($request, $route_match);
-    // @phpstan-ignore-next-line
-    return \Drupal::service(BareHtmlPageRendererInterface::class)->renderBarePage($form, 'this is a horrible hack that helps us move forward', 'page');
   }
 
 }

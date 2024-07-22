@@ -90,6 +90,22 @@ describe('General Experience Builder', {testIsolation: false}, () => {
     cy.get('[role="dialog"][vaul-drawer-direction="right"][data-state="open"]').should('exist')
 
     // The drawer contains a component edit form.
-    cy.get('[role="dialog"][vaul-drawer-direction="right"][data-state="open"] [data-drupal-selector="component-field-form"].component-field-form').should('exist')
+    cy.get('[role="dialog"][vaul-drawer-direction="right"][data-state="open"] [data-drupal-selector="component-props-form"].component-props-form').should(($form) => {
+      expect($form).to.exist
+      const expectedLabels = ['heading', 'subheading', 'cta1', 'cta1href', 'cta2'];
+      $form.find('label').each((index, label) => {
+        expect(label.textContent).to.equal(expectedLabels[index])
+      })
+    })
+
+    cy.get('[data-drupal-selector="edit-xb-component-props-static-static-card1ab-heading-0-value"]')
+      .should('have.value', 'hello, world!')
+      .invoke('attr', 'type')
+      .should('eq', 'text')
+
+    cy.get('[data-drupal-selector="edit-xb-component-props-static-static-card1ab-cta1href-0-value"]')
+      .should('have.value', 'https://drupal.org')
+      .invoke('attr', 'type')
+      .should('eq', 'url')
   })
 })

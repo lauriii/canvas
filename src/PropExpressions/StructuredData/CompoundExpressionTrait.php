@@ -81,7 +81,7 @@ trait CompoundExpressionTrait {
       // @code
       // ℹ︎image␟entity␜␜entity:file␝filemime␞0␟value
       // @endcode
-      // which means the top-level is:
+      // Which means the top-level is:
       // @code
       // ℹ︎image␟entity
       // @endcode

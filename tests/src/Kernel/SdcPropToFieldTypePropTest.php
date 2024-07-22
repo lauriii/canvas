@@ -327,7 +327,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
       ],
       'expected' => [
         '⿲experience_builder:image␟image' => [
-          // field type
+          // Field type.
           'storage' => [
             'ℹ︎image␟{src↝entity␜␜entity:file␝uri␞0␟url,alt↠alt,width↠width,height↠height}',
           ],
@@ -337,11 +337,11 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
           'format_main_prop' => [
             'ℹ︎image␟{src↝entity␜␜entity:file␝uri␞0␟url,alt↠alt,width↠width,height↠height}',
           ],
-          // instance
+          // Instance.
           'instances' => [
             'ℹ︎␜entity:node:foo␝field_silly_image␞␟{src↝entity␜␜entity:file␝uri␞␟value,alt↠alt,width↠width,height↠height}',
           ],
-          // adapter - field type
+          // Adapter is field type.
           'adapter_matches_field_type' => [
             'image_apply_style' => [
               'image' => ['ℹ︎image␟{src↝entity␜␜entity:file␝uri␞0␟url,alt↠alt,width↠width,height↠height}'],
@@ -353,7 +353,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
               'image' => ['ℹ︎image␟{src↝entity␜␜entity:file␝uri␞0␟url,alt↠alt,width↠width,height↠height}'],
             ],
           ],
-          // adapter - instance
+          // Instance of: adapter.
           'adapter_matches_instance' => [
             'image_apply_style' => [
               'image' => ['ℹ︎␜entity:node:foo␝field_silly_image␞␟{src↝entity␜␜entity:file␝uri␞␟value,alt↠alt,width↠width,height↠height}'],
@@ -405,7 +405,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
           'adapter_matches_instance' => [],
         ],
         '⿲experience_builder:my-hero␟subheading' => [
-          // field type
+          // Field type.
           'storage' => $all_string_storage_props,
           'format_any_prop' => [
             'ℹ︎file␟description',
@@ -858,7 +858,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
             'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uri␞␟url',
             'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uri␞␟value',
           ],
-          // adapter - field type
+          // Adapter is field type.
           'adapter_matches_field_type' => [
             'image_extract_url' => [
               'imageUri' => [
@@ -867,7 +867,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
               ],
             ],
           ],
-          // adapter - instance
+          // Instance of: adapter.
           'adapter_matches_instance' => [
             'image_extract_url' => [
               'imageUri' => [
@@ -1093,7 +1093,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
           'instances' => [
             'ℹ︎␜entity:node:foo␝field_silly_image␞␟{src↝entity␜␜entity:file␝uri␞␟value,alt↠alt,width↠width,height↠height}',
           ],
-          // adapter - field type
+          // Instance of: field type.
           'adapter_matches_field_type' => [
             'image_apply_style' => [
               'image' => ['ℹ︎image␟{src↝entity␜␜entity:file␝uri␞0␟url,alt↠alt,width↠width,height↠height}'],
@@ -1103,7 +1103,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
               'image' => ['ℹ︎image␟{src↝entity␜␜entity:file␝uri␞0␟url,alt↠alt,width↠width,height↠height}'],
             ],
           ],
-          // adapter - instance
+          // Instance of: adapter.
           'adapter_matches_instance' => [
             'image_apply_style' => [
               'image' => ['ℹ︎␜entity:node:foo␝field_silly_image␞␟{src↝entity␜␜entity:file␝uri␞␟value,alt↠alt,width↠width,height↠height}'],

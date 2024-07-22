@@ -196,7 +196,8 @@ final class StaticPropSource extends PropSourceBase {
     // @todo This is not quite a BaseFieldDefinition. Create an alternative FieldDefinitionInterface?
     // @see review at https://git.drupalcode.org/project/experience_builder/-/merge_requests/20#note_317509
     assert($field_item_list_definition instanceof BaseFieldDefinition);
-    $field_item_list_definition->setName($sdc_prop_name);
+    $field_item_list_definition->setName($sdc_prop_name)
+      ->setLabel($sdc_prop_name);
 
     return $field_item_list_definition;
   }

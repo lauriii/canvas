@@ -5,7 +5,7 @@ import type * as React from 'react';
 
 const Input = (props: React.ComponentProps<any>) => {
   const { attributes = {}, renderChildren = '' } = props;
-  const [value, setValue] = useState("");
+  const [value, setValue] = useState(attributes.value || '');
   const onChangeHandler = (e: ChangeEvent<HTMLInputElement>) => {
     setValue(e.target.value);
   }

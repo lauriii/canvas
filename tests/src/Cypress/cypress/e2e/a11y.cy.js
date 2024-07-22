@@ -82,7 +82,7 @@ describe('UI a11y Scan', () => {
     cy.getIframeBody().find('[data-component-id="experience_builder:my-hero"] h1')
       .first()
       .trigger('click')
-    cy.get('[role="dialog"][vaul-drawer-direction="right"][data-state="open"] [data-drupal-selector="component-field-form"].component-field-form').should('exist')
+    cy.get('[role="dialog"][vaul-drawer-direction="right"][data-state="open"] [data-drupal-selector="component-props-form"].component-props-form').should('exist')
 
 
     cy.injectAxe();
