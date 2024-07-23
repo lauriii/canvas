@@ -48,6 +48,7 @@ include:
       - "/includes/include.drupalci.workflows.yml"
 
 stages:
+  - development
   - build
   - validate
   - test
@@ -127,13 +128,9 @@ composer-lint:
       when: on_success
     - *manual-rule
 
-# This module wants to strictly comply with Drupal core's coding standards.
 phpcs:
-  # Match Drupal 11's rules, not 10.3's.
   needs:
     - "composer (next major)"
-  before_script:
-    - cp $_WEB_ROOT/core/phpcs.xml.dist ./core.phpcs.xml.dist
   allow_failure: false
   # @todo Remove when https://www.drupal.org/project/gitlab_templates/issues/3452183 lands.
   rules:
@@ -141,6 +138,40 @@ phpcs:
     - *php-files-change-rule
     - *manual-rule
 
+phpcs-rules-match-drupal-11:
+  stage: development
+  script:
+    - |
+      # Download the file from the Drupal repository
+      curl -o drupal_core_phpcs.xml.dist https://git.drupalcode.org/project/drupal/-/raw/11.x/core/phpcs.xml.dist?ref_type=heads
+
+      # Check if the download was successful
+      if [ $? -ne 0 ]; then
+        echo "🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥"
+        echo "Error: Failed to download $DRUPAL_URL"
+        exit 1
+      fi
+
+      # Compare the downloaded file with the local file using a subshell to prevent premature exit
+      echo "Comparing downloaded file with local file..."
+      # With uses the braces the job just ends here for some reason.
+       {
+        diff drupal_core_phpcs.xml.dist core.phpcs.xml.dist
+        DIFF_EXIT_CODE=$?
+      } || true
+
+      if [ $DIFF_EXIT_CODE -ne 0 ]; then
+        echo "🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥"
+        echo "Error: core.phpcs.xml.dist not up to date with Drupal 11.x core/phpcs.xml.dist. Please create an issue to update this file."
+      else
+        echo "👍👍👍👍👍👍👍👍👍👍👍👍👍👍👍👍👍👍"
+        echo "core.phpcs.xml.dist is up to date with Drupal 11.x core/phpcs.xml.dist"
+      fi
+      
+      # Exit with the exit code of the diff command
+      exit $DIFF_EXIT_CODE
+  # Allow this to fail, to avoid disrupting XB's CI when upstream changes.
+  allow_failure: true
 stylelint:
   # Match Drupal 11's rules, not 10.3's.
   needs:
