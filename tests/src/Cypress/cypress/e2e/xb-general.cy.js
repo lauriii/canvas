@@ -9,6 +9,7 @@ describe('General Experience Builder', {testIsolation: false}, () => {
 
   beforeEach(() => {
     cy.drupalSession();
+    cy.viewport(2000, 1000);
   });
 
   it ('Created a node 1 with type article on install', () => {
@@ -50,10 +51,17 @@ describe('General Experience Builder', {testIsolation: false}, () => {
       ))
     }, '[data-xb-preview="sm"]')
 
+    // Confirm that the iframe loads the SDC CSS.
+    cy.getIframe()
+      .its('head').should('not.be.undefined')
+      .then((head) => {
+        expect(head.querySelector('link[rel="stylesheet"][href*="experience_builder/components/my-hero/my-hero.css"]'))
+          .to.exist
+      })
 
     cy.get('[data-radix-menubar-content]').should('have.length', 0, 'There is no menubar yet.')
     cy.get('[data-hover-overlay="addElement"]').click()
-    cy.get('[data-radix-menubar-content]').should('have.length', 1,  'Menubar is present after clicking `[data-radix-menubar-content]`')
+    cy.get('[data-radix-menubar-content]').should('have.length', 1, 'Menubar is present after clicking `[data-radix-menubar-content]`')
     cy.get('[role="menuitem"][aria-expanded="false"]').contains('Default components').click()
     cy.get('[data-radix-menubar-content]').should('have.length', 2)
 

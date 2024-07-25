@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace Drupal\experience_builder\Controller;
 
+use Drupal\Core\Asset\AssetCollectionRendererInterface;
+use Drupal\Core\Asset\AssetResolverInterface;
 use Drupal\experience_builder\FieldForComponentSuggester;
+use Drupal\Core\Asset\AttachedAssets;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Render\RendererInterface;
 use Drupal\Core\Theme\ComponentPluginManager;
@@ -26,15 +29,20 @@ use Symfony\Component\HttpFoundation\Request;
 final class SdcController extends ControllerBase {
 
   /**
-   * Constructor for the SDC controller.
-   *
    * @param \Drupal\Core\Theme\ComponentPluginManager $componentPluginManager
    * @param \Drupal\Core\Render\RendererInterface $renderer
+   * @param \Drupal\experience_builder\FieldForComponentSuggester $fieldForComponentSuggester
+   * @param \Drupal\Core\Asset\AssetResolverInterface $assetResolver
+   * @param \Drupal\Core\Asset\AssetCollectionRendererInterface $cssCollectionRenderer
+   * @param \Drupal\Core\Asset\AssetCollectionRendererInterface $jsCollectionRenderer
    */
   public function __construct(
     private readonly ComponentPluginManager $componentPluginManager,
     private readonly RendererInterface $renderer,
     private readonly FieldForComponentSuggester $fieldForComponentSuggester,
+    protected AssetResolverInterface $assetResolver,
+    protected AssetCollectionRendererInterface $cssCollectionRenderer,
+    protected AssetCollectionRendererInterface $jsCollectionRenderer,
   ) {}
 
   /**
@@ -45,6 +53,9 @@ final class SdcController extends ControllerBase {
       $container->get('plugin.manager.sdc'),
       $container->get('renderer'),
       $container->get('Drupal\experience_builder\FieldForComponentSuggester'),
+      $container->get('asset.resolver'),
+      $container->get('asset.css.collection_renderer'),
+      $container->get('asset.js.collection_renderer'),
     );
   }
 
@@ -229,12 +240,43 @@ final class SdcController extends ControllerBase {
   }
 
   public function preview(Request $request): JsonResponse {
+    $component_list = array_map(fn($component) => $component->getPluginId(), $this->componentPluginManager->getAllComponents());
     ['layout' => $layout, 'model' => $model] = json_decode($request->getContent(), TRUE);
+    $component_and_other_names = [];
+
+    // Get all components in the layout, at any depth.
+    array_walk_recursive($layout, function ($value, $key) use (&$component_and_other_names) {
+      if ($key == 'type') {
+        $component_and_other_names[] = $value;
+      }
+    });
+
+    // Remove duplicates and non-components.
+    $components_in_use = array_filter(array_unique($component_and_other_names), fn($item) => in_array($item, $component_list, TRUE));
+
+    $assets = AttachedAssets::createFromRenderArray([
+      '#attached' => [
+        // @see \Drupal\Core\Plugin\Component::getLibraryName()
+        'library' => array_map(fn($name) => 'core/components.' . str_replace(':', '--', $name), $components_in_use),
+      ],
+    ]);
+
+    $css_array = $this->cssCollectionRenderer->render($this->assetResolver->getCssAssets($assets, FALSE));
+    [$head_assets, $foot_assets] = $this->assetResolver->getJsAssets($assets, FALSE);
+    $head_array = $this->jsCollectionRenderer->render($head_assets);
+    $foot_array = $this->jsCollectionRenderer->render($foot_assets);
+    $css = $this->renderer->render($css_array);
+    $js_head = $this->renderer->render($head_array);
+    $js_foot = $this->renderer->render($foot_array);
 
     $html = <<<HTML
 <!doctype html>
 <html lang="en">
 <head>
+HTML;
+    $html .= $css;
+    $html .= $js_head;
+    $html .= <<<HTML
 <style>
 HTML;
     // @phpstan-ignore-next-line
@@ -262,6 +304,9 @@ HTML;
     }
     $html .= <<<HTML
 </body>
+HTML;
+    $html .= $js_foot;
+    $html .= <<<HTML
 </html>
 HTML;
 

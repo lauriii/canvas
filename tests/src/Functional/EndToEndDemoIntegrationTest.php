@@ -350,39 +350,39 @@ class EndToEndDemoIntegrationTest extends BrowserTestBase {
     $this->assertCount(2, $image_components);
     // Markup for component instance with UUID `static-static-card1ab`.
     $this->assertSame(<<<HTML
-<div data-component-id="experience_builder:my-hero" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
-  <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;">hello, world!</h1>
-  <p style="font-size: 1.5em; margin: 0.5em 0; color: #666;"></p>
-  <div style="margin-top: 1em;">
-    <button formaction="https://drupal.org" style="background-color: #007BFF; color: white; border: none; padding: 15px 30px; font-size: 1em; margin: 0 10px; cursor: pointer; border-radius: 5px;">
+<div data-component-id="experience_builder:my-hero" class="my-hero__container">
+  <h1 class="my-hero__heading">hello, world!</h1>
+  <p class="my-hero__subheading"></p>
+  <div class="my-hero__actions">
+    <button formaction="https://drupal.org" class="my-hero__cta my-hero__cta--primary">
       </button>
-    <button style="background-color: #6c757d; color: white; border: none; padding: 15px 30px; font-size: 1em; margin: 0 10px; cursor: pointer; border-radius: 5px;">
+    <button class="my-hero__cta">
       </button>
   </div>
 </div>
 HTML, $hero_components[0]->getOuterHtml());
     // Markup for component instance with UUID `dynamic-static-card2df`.
     $this->assertSame(sprintf(<<<HTML
-<div data-component-id="experience_builder:my-hero" style="font-family: Helvetica, Arial, sans-serif; width: 100%%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
-  <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;">%s</h1>
-  <p style="font-size: 1.5em; margin: 0.5em 0; color: #666;"></p>
-  <div style="margin-top: 1em;">
-    <button formaction="https://drupal.org" style="background-color: #007BFF; color: white; border: none; padding: 15px 30px; font-size: 1em; margin: 0 10px; cursor: pointer; border-radius: 5px;">
+<div data-component-id="experience_builder:my-hero" class="my-hero__container">
+  <h1 class="my-hero__heading">%s</h1>
+  <p class="my-hero__subheading"></p>
+  <div class="my-hero__actions">
+    <button formaction="https://drupal.org" class="my-hero__cta my-hero__cta--primary">
       </button>
-    <button style="background-color: #6c757d; color: white; border: none; padding: 15px 30px; font-size: 1em; margin: 0 10px; cursor: pointer; border-radius: 5px;">
+    <button class="my-hero__cta">
       </button>
   </div>
 </div>
 HTML, $node->getTitle()), $hero_components[1]->getOuterHtml());
     // Markup for component instance with UUID `dynamic-dynamic-card3rr`.
     $this->assertSame(sprintf(<<<HTML
-<div data-component-id="experience_builder:my-hero" style="font-family: Helvetica, Arial, sans-serif; width: 100%%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
-  <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;">%s</h1>
-  <p style="font-size: 1.5em; margin: 0.5em 0; color: #666;"></p>
-  <div style="margin-top: 1em;">
-    <button formaction="%s" style="background-color: #007BFF; color: white; border: none; padding: 15px 30px; font-size: 1em; margin: 0 10px; cursor: pointer; border-radius: 5px;">
+<div data-component-id="experience_builder:my-hero" class="my-hero__container">
+  <h1 class="my-hero__heading">%s</h1>
+  <p class="my-hero__subheading"></p>
+  <div class="my-hero__actions">
+    <button formaction="%s" class="my-hero__cta my-hero__cta--primary">
       </button>
-    <button style="background-color: #6c757d; color: white; border: none; padding: 15px 30px; font-size: 1em; margin: 0 10px; cursor: pointer; border-radius: 5px;">
+    <button class="my-hero__cta">
       </button>
   </div>
 </div>
