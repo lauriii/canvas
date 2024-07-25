@@ -76,10 +76,18 @@ describe('General Experience Builder', {testIsolation: false}, () => {
     // Enter the iframe to find an element in the preview iframe and hover over it.
     cy.getIframeBody().find('[data-component-id="experience_builder:my-hero"] h1')
       .first()
-      .trigger('mouseover')
+      .trigger('mouseover');
 
-    // After hovering, the component should be outlined
-    cy.get('[data-xb-component-outline]').should('exist')
+    // After hovering, the component should be outlined for both small and large viewports.
+    cy.get('[data-xb-component-outline]').should('exist');
+    cy.get(`[data-xb-component-outline]`).should('have.css', 'position', 'absolute');
+    cy.get(`[data-xb-component-outline]`).should('have.css', 'top', '0px');
+    cy.get(`[data-xb-component-outline]`).should('have.css', 'left', '0px');
+    cy.get(`[data-xb-preview="lg"] ~ [data-xb-component-outline]`).should('have.css', 'width', '944px');
+    cy.get(`[data-xb-preview="lg"] ~ [data-xb-component-outline]`).should('have.css', 'height', '800px');
+
+    cy.get(`[data-xb-preview="sm"] ~ [data-xb-component-outline]`).should('have.css', 'width', '320px');
+    cy.get(`[data-xb-preview="sm"] ~ [data-xb-component-outline]`).should('have.css', 'height', '800px');
 
     // Click the component to trigger the opening of the right drawer.
     cy.getIframeBody().find('[data-component-id="experience_builder:my-hero"] h1')

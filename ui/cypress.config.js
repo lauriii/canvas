@@ -47,6 +47,11 @@ export default defineConfig({
           console.log(message)
           return null
         },
+        table(message) {
+          console.table(message)
+
+          return null
+        }
       })
 
       // This makes e2e tests aware of the project's node_modules directory

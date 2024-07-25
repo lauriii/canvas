@@ -1,3 +1,23 @@
+function terminalLog(violations) {
+  cy.task(
+    'log',
+    `${violations.length} accessibility violation${
+      violations.length === 1 ? '' : 's'
+    } ${violations.length === 1 ? 'was' : 'were'} detected`
+  )
+  // pluck specific keys to keep the table readable
+  const violationData = violations.map(
+    ({ id, impact, description, nodes }) => ({
+      id,
+      impact,
+      description,
+      nodes: nodes.length
+    })
+  )
+
+  cy.task('table', violationData)
+}
+
 describe('UI a11y Scan', () => {
   before( () => {
     cy.drupalXbInstall()
@@ -25,7 +45,7 @@ describe('UI a11y Scan', () => {
         'region': { enabled: false },
         'scrollable-region-focusable': { enabled: false },
       },
-    });
+    }, terminalLog);
   })
   it('a11y scan open first left drawer', () => {
     cy.drupalLogin('xbUser', 'xbUser')
@@ -45,7 +65,7 @@ describe('UI a11y Scan', () => {
         'region': { enabled: false },
         'scrollable-region-focusable': { enabled: false },
       },
-    });
+    }, terminalLog);
   })
   it('a11y scan open secondary left drawer', () => {
     cy.drupalLogin('xbUser', 'xbUser')
@@ -67,7 +87,7 @@ describe('UI a11y Scan', () => {
         'region': { enabled: false },
         'scrollable-region-focusable': { enabled: false },
       },
-    });
+    }, terminalLog);
   })
   it('a11y scan open props edit form', () => {
     cy.drupalLogin('xbUser', 'xbUser')
@@ -97,6 +117,6 @@ describe('UI a11y Scan', () => {
         'aria-allowed-attr': { enabled: false },
         'aria-dialog-name': { enabled: false },
       },
-    });
+    }, terminalLog);
   })
 })

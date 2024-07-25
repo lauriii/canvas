@@ -149,6 +149,9 @@ const Viewport: React.FC<ViewportProps> = (props) => {
         event.stopPropagation();
         if (event.target) {
           const target = event.currentTarget as HTMLElement;
+          if (!target.dataset.xbUuid) {
+            return;
+          }
           dispatch(setHoveredComponent(target.dataset.xbUuid));
         }
       });
@@ -159,7 +162,9 @@ const Viewport: React.FC<ViewportProps> = (props) => {
         event.stopPropagation();
         if (event.target) {
           const target = event.currentTarget as HTMLElement;
-          // setHoveredElementId(target.dataset.xbUuid);
+          if (!target.dataset.xbUuid) {
+            return;
+          }
           dispatch(setSelectedComponent(target.dataset.xbUuid));
         }
       });
@@ -247,17 +252,17 @@ const Viewport: React.FC<ViewportProps> = (props) => {
         {!isDragging && (
           <>
             <Outline
-              elementId={hoveredComponent}
-              iframeRef={iframeRef}
-              // setHoveredElementId={setHoveredElementId}
-              selected={false}
-            />
-            <Outline
               elementId={selectedComponent}
               iframeRef={iframeRef}
-              // setHoveredElementId={setHoveredElementId}
               selected={true}
             />
+            {selectedComponent !== hoveredComponent && (
+              <Outline
+                elementId={hoveredComponent}
+                iframeRef={iframeRef}
+                selected={false}
+              />
+            )}
           </>
         )}
       </div>

@@ -4,21 +4,23 @@
   left: 0;
   display: block;
   pointer-events: none;
-  outline: 1px dashed #000;
+  opacity: 0;
+  outline: 1px solid var(--component-outline-color);
   will-change: top, left, width, height, transform;
   &.selected {
-    border: 2px solid #1a89c9;
-    outline: none;
+    outline: 1px dashed var(--component-outline-color);
   }
 }
 .xbSlotOutline {
-  outline: 2px dashed #02a376;
+  outline: 1px dashed #02a376;
 }
 .xbComponentToolbar {
   position: absolute;
-  top: 0;
-  left: 0;
+  z-index: 1;
+  top: -26px;
+  left: -1px;
   display: block;
+  opacity: 0;
   will-change: top, left, transform;
   button {
     cursor: pointer !important;

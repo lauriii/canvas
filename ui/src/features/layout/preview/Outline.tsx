@@ -9,14 +9,15 @@ import {
   duplicateNode,
 } from '@/features/layout/layoutModelSlice';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
-import { Button, Grid, DropdownMenu } from '@radix-ui/themes';
+import { Box, ContextMenu } from '@radix-ui/themes';
 import clsx from 'clsx';
 import {
-  setHoveredComponent,
+  unsetHoveredComponent,
   setSelectedComponent,
+  unsetSelectedComponent,
 } from '@/features/ui/uiSlice';
 import useSyncElementSize from '@/hooks/useSyncElementSize';
-import { HamburgerMenuIcon } from '@radix-ui/react-icons';
+import NameTag from '@/features/layout/preview/NameTag';
 
 interface OutlineProps {
   elementId: string | undefined; // the data-xb-uuid value of the dom element that was hovered.
@@ -41,19 +42,14 @@ const Outline: React.FC<OutlineProps> = (props) => {
       outlineElRef.current.style.transform = `translate(${elementRect.left}px, ${elementRect.top}px)`;
       outlineElRef.current.style.width = `${elementRect.width}px`;
       outlineElRef.current.style.height = `${elementRect.height}px`;
+      outlineElRef.current.style.opacity = '1';
     }
 
     if (toolbarElRef.current && elementRect) {
       toolbarElRef.current.style.transform = `translate(${elementRect.left}px, ${elementRect.top}px)`;
+      toolbarElRef.current.style.opacity = `1`;
     }
   }, [elementRect]);
-
-  const handleFrameScroll = useCallback(() => {
-    if (!iframeRef.current || !hoveredElementRef.current) {
-      return;
-    }
-    applyStyles();
-  }, [applyStyles, iframeRef]);
 
   const bindEvents = useCallback(() => {
     if (!iframeRef.current) {
@@ -73,15 +69,12 @@ const Outline: React.FC<OutlineProps> = (props) => {
           // when moving the mouse from one element inside the iframe to another the relatedTarget is the element the mouse
           // moved to.
           if (event.relatedTarget !== null) {
-            dispatch(setHoveredComponent(undefined));
+            dispatch(unsetHoveredComponent());
           }
         },
       );
     }
-
-    // Attach the scroll event listener to the iframe's content window
-    iframeDocument.addEventListener('scroll', handleFrameScroll);
-  }, [dispatch, handleFrameScroll, iframeRef, selected]);
+  }, [dispatch, iframeRef, selected]);
 
   function handleDeleteClick() {
     if (elementId) {
@@ -132,13 +125,25 @@ const Outline: React.FC<OutlineProps> = (props) => {
     if (elementId) {
       if (!model[elementId]) {
         if (selected) {
-          dispatch(setSelectedComponent());
+          dispatch(unsetSelectedComponent());
         } else {
-          dispatch(setHoveredComponent());
+          dispatch(unsetHoveredComponent());
         }
       }
     }
   }, [layout, model, dispatch, elementId, selected, applyStyles]);
+
+  // When the elementId changes, hide the outline immediately to prevent a flicker
+  // when moving from one component to the next quickly.
+  useEffect(() => {
+    if (outlineElRef.current) {
+      outlineElRef.current.style.opacity = '0';
+    }
+
+    if (toolbarElRef.current) {
+      toolbarElRef.current.style.opacity = `0`;
+    }
+  }, [elementId]);
 
   if (elementId === undefined) {
     return null;
@@ -155,61 +160,51 @@ const Outline: React.FC<OutlineProps> = (props) => {
           })}
           data-xb-component-outline=""
         />
-        <Grid
-          ref={toolbarElRef}
-          columns="2"
-          gap="1"
-          className={styles.xbComponentToolbar}
-        >
-          {nodeType === 'component' && !selected && (
-            <>
-              <DropdownMenu.Root>
-                <DropdownMenu.Trigger>
-                  <Button size="1" radius="none">
-                    <HamburgerMenuIcon />
-                  </Button>
-                </DropdownMenu.Trigger>
-                <DropdownMenu.Content>
-                  <DropdownMenu.Item shortcut="⌘ E" onClick={handleSelectClick}>
-                    Edit
-                  </DropdownMenu.Item>
-                  <DropdownMenu.Item
-                    shortcut="⌘ D"
-                    onClick={handleDuplicateClick}
-                  >
-                    Duplicate
-                  </DropdownMenu.Item>
-                  <DropdownMenu.Separator />
 
-                  <DropdownMenu.Sub>
-                    <DropdownMenu.SubTrigger>Move</DropdownMenu.SubTrigger>
-                    <DropdownMenu.SubContent>
-                      <DropdownMenu.Item onClick={handleMoveUpClick}>
-                        Move up
-                      </DropdownMenu.Item>
-                      <DropdownMenu.Item onClick={handleMoveDownClick}>
-                        Move down
-                      </DropdownMenu.Item>
+        <ContextMenu.Root>
+          <ContextMenu.Trigger>
+            <Box ref={toolbarElRef} className={styles.xbComponentToolbar}>
+              <NameTag
+                elementId={elementId}
+                selected={selected}
+              />
+            </Box>
+          </ContextMenu.Trigger>
+          <ContextMenu.Content>
+            <ContextMenu.Item shortcut="⌘ E" onClick={handleSelectClick}>
+              Edit
+            </ContextMenu.Item>
+            <ContextMenu.Item shortcut="⌘ D" onClick={handleDuplicateClick}>
+              Duplicate
+            </ContextMenu.Item>
+            <ContextMenu.Separator />
 
-                      <DropdownMenu.Separator />
-                      <DropdownMenu.Item onClick={() => alert('Todo')}>
-                        Move into
-                      </DropdownMenu.Item>
-                    </DropdownMenu.SubContent>
-                  </DropdownMenu.Sub>
-                  <DropdownMenu.Separator />
-                  <DropdownMenu.Item
-                    // shortcut="⌘ ⌫"
-                    color="red"
-                    onClick={handleDeleteClick}
-                  >
-                    Delete
-                  </DropdownMenu.Item>
-                </DropdownMenu.Content>
-              </DropdownMenu.Root>
-            </>
-          )}
-        </Grid>
+            <ContextMenu.Sub>
+              <ContextMenu.SubTrigger>Move</ContextMenu.SubTrigger>
+              <ContextMenu.SubContent>
+                <ContextMenu.Item onClick={handleMoveUpClick}>
+                  Move up
+                </ContextMenu.Item>
+                <ContextMenu.Item onClick={handleMoveDownClick}>
+                  Move down
+                </ContextMenu.Item>
+
+                <ContextMenu.Separator />
+                <ContextMenu.Item onClick={() => alert('Todo')}>
+                  Move into
+                </ContextMenu.Item>
+              </ContextMenu.SubContent>
+            </ContextMenu.Sub>
+            <ContextMenu.Separator />
+            <ContextMenu.Item
+              // shortcut="⌘ ⌫"
+              color="red"
+              onClick={handleDeleteClick}
+            >
+              Delete
+            </ContextMenu.Item>
+          </ContextMenu.Content>
+        </ContextMenu.Root>
       </>
     )
   );

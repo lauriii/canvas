@@ -1,17 +1,3 @@
-:root {
-  --primary-menu-width: 60px;
-  --contextual-panel-width: 300px;
-  --primary-menu-content-width: 230px;
-  --primary-menu-subcontent-width: 230px;
-  --primary-menu-text-color: #1c2024;
-  --selected-menu-item-color: #e0e1e6;
-  --hovered-menu-item-color: #f0f0f3;
-  --primary-menu-subcontent-item-height: 12px;
-  --primary-menu-subcontent-item-margin-bottom: 10px;
-  --primary-menu-item-font-size: 14px;
-  --primary-menu-border-color: #e0e1e6;
-}
-
 /* reset */
 button {
   all: unset;

@@ -34,7 +34,7 @@ type UpdateViewportPayload = {
   scale?: number | undefined;
 };
 
-const initialState: uiSliceState = {
+export const initialState: uiSliceState = {
   pending: false,
   dragging: {
     isDragging: false,
@@ -106,15 +106,21 @@ export const uiSlice = createAppSlice({
       state.dragging.listDragging = action.payload;
     }),
     setSelectedComponent: create.reducer(
-      (state, action: PayloadAction<string | undefined>) => {
+      (state, action: PayloadAction<string>) => {
         state.selectedComponent = action.payload;
       },
     ),
     setHoveredComponent: create.reducer(
-      (state, action: PayloadAction<string | undefined>) => {
+      (state, action: PayloadAction<string>) => {
         state.hoveredComponent = action.payload;
       },
     ),
+    unsetSelectedComponent: create.reducer((state) => {
+      state.selectedComponent = undefined;
+    }),
+    unsetHoveredComponent: create.reducer((state) => {
+      state.hoveredComponent = undefined;
+    }),
     setContextualPanelOpen: create.reducer(
       (state, action: PayloadAction<boolean>) => {
         state.contextualPanelOpen = action.payload;
@@ -194,6 +200,8 @@ export const {
   setListDragging,
   setSelectedComponent,
   setHoveredComponent,
+  unsetSelectedComponent,
+  unsetHoveredComponent,
   setContextualPanelOpen,
   setCanvasViewPort,
   canvasViewPortZoomIn,
