@@ -32,6 +32,10 @@ class ComponentTreeStructure extends TypedData {
   /**
    * The parsed data value.
    *
+   * @todo The value 'component' key stored is a machine name of Component plugin though XB only allows users to select Component config entities.
+   *    Because all config entities have a corresponding Component plugin, and it is not possible to have 2 config entities that relate to the same plugin, this works.
+   *    It is a bit confusing but probably not worth fixing as this will all change in https://drupal.org/i/3454519.
+   *
    * @var array<string,array<int, array{'uuid': string, 'component': string}>|array<string, array<int, array{'uuid': string, 'component': string}>>
    * >
    */

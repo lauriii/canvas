@@ -12,6 +12,12 @@ use Drupal\Core\Theme\ComponentPluginManager;
 use Drupal\experience_builder\PropSource\StaticPropSource;
 
 /**
+ * @todo Update these docs in https://drupal.org/i/3454519 to reflect changes.
+ *
+ * A config entity that exposes SDC components to the Experience Builder UI.
+ * 1. There can be only one Component entity per component plugin.
+ *
+ *
  * @ConfigEntityType(
  *    id = "component",
  *    label = @Translation("Component"),
@@ -117,7 +123,10 @@ final class Component extends ConfigEntityBase {
   }
 
   /**
+   * Gets the component plugin machine name.
+   *
    * @return string
+   *   The component plugin machine name.
    *
    * @see \Drupal\Core\Plugin\Component::$machineName
    */
@@ -126,7 +135,12 @@ final class Component extends ConfigEntityBase {
   }
 
   /**
+   * Loads a component entity by its component plugin machine name.
+   *
+   * This works because there can only ever be one Component entity per component plugin.
+   *
    * @param string $component_machine_name
+   *   The component plugin machine name.
    *
    * @return \Drupal\experience_builder\Entity\Component|null
    *
@@ -137,7 +151,9 @@ final class Component extends ConfigEntityBase {
   }
 
   /**
-   * The naming convention for components is [module/theme]:[component machine name], so we change '+' back to ':'.
+   * Converts a config ID to plugin machine name.
+   *
+   * The naming convention for SDC plugin components is [module/theme]:[component machine name], so we change '+' back to ':'.
    * @see https://www.drupal.org/docs/develop/theming-drupal/using-single-directory-components/api-for-single-directory-components
    * @see \Drupal\Core\Plugin\Discovery\DirectoryWithMetadataDiscovery::getDirectoryIterator()
    * @see \Drupal\Core\Plugin\Component::$machineName
@@ -147,7 +163,9 @@ final class Component extends ConfigEntityBase {
   }
 
   /**
-   * The naming convention for components is [module/theme]:[component machine name]. Colon is invalid config entity name, so we replace it with '+'.
+   * Converts a plugin machine name into a plugin ID.
+   *
+   * The naming convention for SDC plugin components is [module/theme]:[component machine name]. Colon is invalid config entity name, so we replace it with '+'.
    * @see https://www.drupal.org/docs/develop/theming-drupal/using-single-directory-components/api-for-single-directory-components
    *
    * @param string $machine_name

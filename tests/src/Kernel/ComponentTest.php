@@ -43,6 +43,8 @@ class ComponentTest extends KernelTestBase {
   }
 
   public function testMachineNameAndIdConversion(): void {
+    // @todo This confusing because in both cases both the input and output are something we call an "ID" but
+    //   Then it is supposed to be conversion to/from a "machine name".
     $this->assertSame(self::MODULE_CONFIG_ENTITY_ID, Component::convertMachineNameToId(self::MODULE_COMPONENT_ID));
     $this->assertSame(self::MODULE_COMPONENT_ID, Component::convertIdToMachineName(self::MODULE_CONFIG_ENTITY_ID));
   }
