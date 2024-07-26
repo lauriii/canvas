@@ -81,21 +81,66 @@ describe('General Experience Builder', {testIsolation: false}, () => {
     // Confirm no component has a hover outline.
     cy.get('[data-xb-component-outline]').should('not.exist')
 
+    let lgPreviewRect = {}
     // Enter the iframe to find an element in the preview iframe and hover over it.
     cy.getIframeBody().find('[data-component-id="experience_builder:my-hero"] h1')
       .first()
-      .trigger('mouseover');
+      .trigger('mouseover')
+      .then(clicked => {
+        // While in the iframe, get the dimensions of the component so we can
+        // compare the outline dimensions to it
+        const item = clicked.closest('.sortable-item')
+        lgPreviewRect = item[0].getBoundingClientRect();
+      });
 
     // After hovering, the component should be outlined for both small and large viewports.
-    cy.get('[data-xb-component-outline]').should('exist');
-    cy.get(`[data-xb-component-outline]`).should('have.css', 'position', 'absolute');
-    cy.get(`[data-xb-component-outline]`).should('have.css', 'top', '0px');
-    cy.get(`[data-xb-component-outline]`).should('have.css', 'left', '0px');
-    cy.get(`[data-xb-preview="lg"] ~ [data-xb-component-outline]`).should('have.css', 'width', '944px');
-    cy.get(`[data-xb-preview="lg"] ~ [data-xb-component-outline]`).should('have.css', 'height', '800px');
+    cy.get('[data-xb-component-outline]')
+      .should(($outline) => {
+        expect($outline).to.exist;
+        // Ensure the width is set before moving on to then().
+        expect($outline[0].getBoundingClientRect().width).to.not.equal(0)
+      })
+      .then($outline => {
+        // The outline width and height should be the same as the dimensions of
+        // the corresponding component in the iframe.
+        const outlineRect = $outline[0].getBoundingClientRect();
+        expect(outlineRect.width).to.equal(lgPreviewRect.width)
+        expect(outlineRect.height).to.equal(lgPreviewRect.height)
+        expect($outline).to.have.css('position', 'absolute')
+        expect($outline).to.have.css('top', '0px')
+        expect($outline).to.have.css('left', '0px')
+    });
 
-    cy.get(`[data-xb-preview="sm"] ~ [data-xb-component-outline]`).should('have.css', 'width', '320px');
-    cy.get(`[data-xb-preview="sm"] ~ [data-xb-component-outline]`).should('have.css', 'height', '800px');
+    // Get the dimensions of the highlighted component in the small preview, so
+    // it can be compared to its corresponding outline.
+    let smPreviewRect = {}
+    cy.getIframeBody('[data-xb-preview="sm"]').find('[data-component-id="experience_builder:my-hero"] h1')
+      .first()
+      .then(clicked => {
+        // While in the iframe, get the dimensions of the component so we can
+        // compare the outline dimensions to it
+        const item = clicked.closest('.sortable-item')
+        smPreviewRect = item[0].getBoundingClientRect();
+      });
+
+    // Get the small preview outline and confirm its dimensions match the
+    // corresponding component,
+    cy.get('[data-xb-preview="sm"] ~ [data-xb-component-outline]')
+      .should(($outline) => {
+        expect($outline).to.exist;
+        // Ensure the width is set before moving on to then().
+        expect($outline[0].getBoundingClientRect().width).to.not.equal(0)
+      })
+      .then($outline => {
+        // The outline width and height should be the same as the dimensions of
+        // the corresponding component in the iframe.
+        const outlineRect = $outline[0].getBoundingClientRect();
+        expect(outlineRect.width).to.equal(smPreviewRect.width)
+        expect(outlineRect.height).to.equal(smPreviewRect.height)
+        expect($outline).to.have.css('position', 'absolute')
+        expect($outline).to.have.css('top', '0px')
+        expect($outline).to.have.css('left', '0px')
+      });
 
     // Click the component to trigger the opening of the right drawer.
     cy.getIframeBody().find('[data-component-id="experience_builder:my-hero"] h1')
