@@ -20,3 +20,17 @@ import "cypress-axe";
 
 // Alternatively you can use CommonJS syntax:
 // require('./commands')
+
+Cypress.on('uncaught:exception', (err, runnable) => {
+  // This is safe to ignore, and often is with Cypress E2E tests.
+  // @see https://github.com/w3c/csswg-drafts/issues/6173
+  // @see https://github.com/w3c/csswg-drafts/issues/6185
+  if (err.message.includes('ResizeObserver loop limit exceeded') || err.message.includes('ResizeObserver loop completed')) {
+    return false
+  }
+})
+
+// Remove newlines and excess whitespace from a string.
+String.prototype.onlyVisibleChars = function() {
+  return this.replace(/^(?:&nbsp;|\s)+|(?:&nbsp;|\s)+$/ig,'').trim()
+};

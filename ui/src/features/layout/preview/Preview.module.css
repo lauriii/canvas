@@ -7,6 +7,12 @@
   border: 1px solid #ccc;
 }
 
+.progress {
+  position: absolute !important;
+  width: 100%;
+  background: transparent;
+}
+
 .loadingOverlay {
   position: absolute;
   top: 0;

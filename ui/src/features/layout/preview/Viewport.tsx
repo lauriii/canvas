@@ -1,6 +1,6 @@
 import styles from './Preview.module.css';
 import type React from 'react';
-import { useRef, useEffect, useCallback } from 'react';
+import { useRef, useEffect, useCallback, useState } from 'react';
 import {
   addNewComponentToLayout,
   moveNode,
@@ -9,8 +9,7 @@ import {
   sortNode,
 } from '@/features/layout/layoutModelSlice';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
-import { Card, Spinner } from '@radix-ui/themes';
-import clsx from 'clsx';
+import { Card, Progress } from '@radix-ui/themes';
 import {
   selectDragging,
   selectHoveredComponent,
@@ -38,6 +37,7 @@ interface ViewportProps {
 
 const Viewport: React.FC<ViewportProps> = (props) => {
   const { height, width, frameSrcDoc, isLoading, previewId } = props;
+  const [isReloading, setIsReloading] = useState(false)
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const layout = useAppSelector(selectLayout);
   const model = useAppSelector(selectModel);
@@ -131,6 +131,13 @@ const Viewport: React.FC<ViewportProps> = (props) => {
   }, [components]);
 
   useEffect(() => {
+    if (iframeRef.current) {
+      setIsReloading(true)
+      iframeRef.current.srcdoc = frameSrcDoc;
+    }
+  }, [frameSrcDoc]);
+
+  useEffect(() => {
     // Takes each sortable item (component) and adds a dragstart event listener. This is so that we can implement a custom
     // dragImage (the floating representation of what you are dragging that follows your cursor).
     const initSortableListItem = (listItemEl: HTMLElement) => {
@@ -216,6 +223,8 @@ const Viewport: React.FC<ViewportProps> = (props) => {
           initComponentClick(item);
         });
       });
+
+      setIsReloading(false)
     };
   }, [
     dispatch,
@@ -235,20 +244,13 @@ const Viewport: React.FC<ViewportProps> = (props) => {
         {width}px x {height}px
       </Card>
       <div className={styles.previewContainer}>
+        {(isLoading || isReloading) && <><Progress aria-label='Loading Preview' className={styles.progress} duration='1s' /></>}
         <iframe
           ref={iframeRef}
           className={styles.preview}
           data-xb-preview={previewId}
           title="Preview"
-          srcDoc={frameSrcDoc}
         ></iframe>
-        <div
-          className={clsx(styles.loadingOverlay, {
-            [styles.show]: isLoading,
-          })}
-        >
-          <Spinner loading={isLoading} size="3" />
-        </div>
         {!isDragging && (
           <>
             <Outline

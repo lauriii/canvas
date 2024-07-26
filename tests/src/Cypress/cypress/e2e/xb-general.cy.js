@@ -1,3 +1,4 @@
+
 describe('General Experience Builder', {testIsolation: false}, () => {
   before( () => {
     cy.drupalXbInstall()
@@ -9,18 +10,18 @@ describe('General Experience Builder', {testIsolation: false}, () => {
 
   beforeEach(() => {
     cy.drupalSession();
+    //A larger viewport makes it easier to debug in the test runner app.
     cy.viewport(2000, 1000);
   });
 
   it ('Created a node 1 with type article on install', () => {
     cy.drupalRelativeURL('node/1');
-      cy.get('h1').should(($h1) => {
-        expect($h1.text()).to.include('XB Needs This')
-      })
+    cy.get('h1').should(($h1) => {
+      expect($h1.text()).to.include('XB Needs This')
+    })
     cy.get('[data-component-id="experience_builder:my-hero"] h1').should(($h1) => {
       expect($h1.text()).to.include('hello, world!')
     })
-
     cy.get('[data-component-id="experience_builder:my-hero"] button[formaction="https://drupal.org"]').should.exist
     cy.get('[data-component-id="experience_builder:my-hero"] button[formaction="https://drupal.org"] ~ button').should.exist
   })
@@ -109,7 +110,7 @@ describe('General Experience Builder', {testIsolation: false}, () => {
         expect($outline).to.have.css('position', 'absolute')
         expect($outline).to.have.css('top', '0px')
         expect($outline).to.have.css('left', '0px')
-    });
+      });
 
     // Get the dimensions of the highlighted component in the small preview, so
     // it can be compared to its corresponding outline.
@@ -151,13 +152,15 @@ describe('General Experience Builder', {testIsolation: false}, () => {
     cy.get('[role="dialog"][vaul-drawer-direction="right"][data-state="open"]').should('exist')
 
     // The drawer contains a component edit form.
-    cy.get('[role="dialog"][vaul-drawer-direction="right"][data-state="open"] [data-drupal-selector="component-props-form"].component-props-form').should(($form) => {
-      expect($form).to.exist
-      const expectedLabels = ['heading', 'subheading', 'cta1', 'cta1href', 'cta2'];
-      $form.find('label').each((index, label) => {
-        expect(label.textContent).to.equal(expectedLabels[index])
+    cy.get(
+      '[role="dialog"][vaul-drawer-direction="right"][data-state="open"] [data-drupal-selector="component-props-form"].component-props-form')
+      .should(($form) => {
+        expect($form).to.exist
+        const expectedLabels = ['heading', 'subheading', 'cta1', 'cta1href', 'cta2'];
+        $form.find('label').each((index, label) => {
+          expect(label.textContent).to.equal(expectedLabels[index])
+        })
       })
-    })
 
     cy.get('[data-drupal-selector="edit-xb-component-props-static-static-card1ab-heading-0-value"]')
       .should('have.value', 'hello, world!')
@@ -168,5 +171,79 @@ describe('General Experience Builder', {testIsolation: false}, () => {
       .should('have.value', 'https://drupal.org')
       .invoke('attr', 'type')
       .should('eq', 'url')
+
+
+    const heroSelectors = {
+      heading: 'h1',
+      subheading: 'h1 ~ p',
+      cta1: 'button:first-child',
+      cta2: 'button:last-child',
+    }
+    const heroBefore = {
+      heading: 'hello, world!',
+      subheading: '',
+      cta1: '',
+      cta2: '',
+    }
+
+    // Confirm the current values of the first "My Hero" component so we can
+    // be certain these values later change.
+    cy.testInIframe('[data-xb-type="experience_builder:my-hero"]', (heroes) => {
+      const hero = heroes[0];
+      Object.entries(heroSelectors).forEach(([ prop, selector ]) => {
+        if(heroBefore[prop]) {
+          expect(hero.querySelector(selector).textContent.onlyVisibleChars()
+            ,  `${prop} should be ${heroBefore[prop]}`).to.equal(heroBefore[prop])
+        } else {
+          expect(!!hero.querySelector(selector).textContent.onlyVisibleChars()
+            ,  `${prop} should be empty`).to.be.false
+        }
+      })
+      expect(hero.querySelector(heroSelectors.cta1).getAttribute('formaction')).to.equal('https://drupal.org')
+    })
+
+    const propEditFormSelectors  = {
+      heading: '[data-drupal-selector="component-props-form"] [data-drupal-selector="edit-xb-component-props-static-static-card1ab-heading-0-value"]',
+      subheading: '[data-drupal-selector="component-props-form"] [data-drupal-selector="edit-xb-component-props-static-static-card1ab-subheading-0-value"]',
+      cta1href: '[data-drupal-selector="component-props-form"] [data-drupal-selector="edit-xb-component-props-static-static-card1ab-cta1href-0-value"]',
+      cta1: '[data-drupal-selector="component-props-form"] [data-drupal-selector="edit-xb-component-props-static-static-card1ab-cta1-0-value"]',
+      cta2: '[data-drupal-selector="component-props-form"] [data-drupal-selector="edit-xb-component-props-static-static-card1ab-cta2-0-value"]',
+    }
+    const newValues = {
+      heading: 'You parked your car',
+      subheading: 'Over the sidewalk',
+      cta1: 'ponytail',
+      cta2: 'stuck',
+      cta1href: 'https://hoobastank.com'
+    }
+
+    // Monitor the endpoint that processes changed values in the prop edit form.
+    cy.intercept('POST', '**/api/preview').as('getPreview')
+    Object.entries(propEditFormSelectors).forEach(([ prop, selector ]) => {
+      // Type a new value into a given input.
+      cy.get(selector).focus().clear().type(newValues[prop])
+
+      // Wait for completion of the request triggered by our typing. This
+      // ensures that the `testInIframe` ~10 lines down is working with an iframe that
+      // has fully responded to these value changes.
+      cy.wait('@getPreview')
+      // Confirm React is properly handling form state by confirming the input
+      // has the value we typed into it.
+      cy.get(selector).should('have.value', newValues[prop])
+    })
+
+    // New values were typed into the prop form inputs, now enter the iframe
+    // and confirm the component reflects these new values.
+    cy.testInIframe('[data-xb-type="experience_builder:my-hero"]', (heroes) => {
+      const hero = heroes[0];
+      Object.entries(heroSelectors).forEach(([ prop, selector ]) => {
+        expect(
+          hero.querySelector(selector).textContent.onlyVisibleChars(),
+          `${prop} (${selector}) should be '${newValues[prop]}'`)
+          .to.equal(newValues[prop])
+      })
+      // Special check for ctaHref as it is an attribute value.
+      expect(hero.querySelector(heroSelectors.cta1).getAttribute('formaction')).to.equal(newValues.cta1href)
+    })
   })
 })
