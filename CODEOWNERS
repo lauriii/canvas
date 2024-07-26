@@ -9,7 +9,7 @@
 # Client side.
 #
 
-[UI] @bnjmnm @jessebaker
+[UI] @bnjmnm @jessebaker @hooroomoo
 /ui/
 
 
@@ -43,7 +43,7 @@
 # Tests
 #
 
-[tests] @bnjmnm @f.mazeikis @jessebaker @larowlan @lauriii @tedbow @wimleers
+[tests] @bnjmnm @f.mazeikis @jessebaker @larowlan @lauriii @tedbow @wimleers @hooroomoo
 /tests/
 
 
@@ -54,7 +54,7 @@
 [DX: CI] @wimleers
 /.gitlab-ci.yml
 
-[DX: JS] @bnjmnm @jessebaker
+[DX: JS] @bnjmnm @jessebaker @hooroomoo
 /ui/*.json
 /ui/*.config.ts
 
