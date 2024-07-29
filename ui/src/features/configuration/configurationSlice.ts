@@ -1,15 +1,15 @@
-import type { PayloadAction } from "@reduxjs/toolkit";
-import { createSlice } from "@reduxjs/toolkit";
-import type { RootState } from "@/app/store";
+import type { PayloadAction } from '@reduxjs/toolkit';
+import { createSlice } from '@reduxjs/toolkit';
+import type { RootState } from '@/app/store';
 
 export interface AppConfiguration {
-  baseUrl: string
+  baseUrl: string;
   // Here we will be able to add extra parameters such as e.g. entity-type and
   // ID.
 }
 
 export const initialState: AppConfiguration = {
-  baseUrl: '/'
+  baseUrl: '/',
 };
 
 export const configurationSlice = createSlice({
@@ -17,13 +17,14 @@ export const configurationSlice = createSlice({
   initialState,
   reducers: (create) => ({
     setConfiguration: create.reducer(
-      (state, action: PayloadAction<AppConfiguration>) => ({...state, ...action.payload}),
+      (state, action: PayloadAction<AppConfiguration>) => ({
+        ...state,
+        ...action.payload,
+      }),
     ),
   }),
 });
 
-export const {
-  setConfiguration
-} = configurationSlice.actions
+export const { setConfiguration } = configurationSlice.actions;
 
 export const selectBaseUrl = (state: RootState) => state.configuration.baseUrl;

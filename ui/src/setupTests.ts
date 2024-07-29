@@ -1,14 +1,14 @@
 import '@testing-library/jest-dom/vitest';
-import { server } from './mocks/server'
+import { server } from './mocks/server';
 
 beforeAll(() => {
-  server.listen()
-})
+  server.listen();
+});
 
 afterEach(() => {
-  server.resetHandlers()
-})
+  server.resetHandlers();
+});
 
 afterAll(() => {
-  server.close()
-})
+  server.close();
+});

@@ -70,7 +70,13 @@
  * @returns {*}
  *   The result of calling h() with the info collected from domElementOrFragment.
  */
-export default function hyperscriptify(domElementOrFragment, h, Fragment, components, options = {}) {
+export default function hyperscriptify(
+  domElementOrFragment,
+  h,
+  Fragment,
+  components,
+  options = {},
+) {
   // Remove the prefix id.
   // Collect basic info about the element or fragment.
   let element, tagName, component, attributes, childNodes;
@@ -87,13 +93,17 @@ export default function hyperscriptify(domElementOrFragment, h, Fragment, compon
               element.removeChild(node);
             }
           }
-        })
+        });
       }
       component = components[tagName];
-      attributes = Object.fromEntries(element.getAttributeNames().map((name) => [name, element.getAttribute(name)]));
+      attributes = Object.fromEntries(
+        element
+          .getAttributeNames()
+          .map((name) => [name, element.getAttribute(name)]),
+      );
       childNodes = element.childNodes;
       if (component) {
-        element.setAttribute('data-drupal-scriptified', true)
+        element.setAttribute('data-drupal-scriptified', true);
       }
       break;
     case Node.DOCUMENT_FRAGMENT_NODE:
@@ -108,7 +118,7 @@ export default function hyperscriptify(domElementOrFragment, h, Fragment, compon
   // Collect the element's or fragment's slots and children.
   const slots = {};
   const children = [];
-  childNodes.forEach(function(childNode) {
+  childNodes.forEach(function (childNode) {
     let child;
     switch (childNode.nodeType) {
       case Node.TEXT_NODE:
@@ -134,14 +144,19 @@ export default function hyperscriptify(domElementOrFragment, h, Fragment, compon
   // don't also retain the slot attribute, since that could conflict with the
   // component's props expectations or trigger additional slot distribution by
   // the browser.
-  if (attributes.slot && components[element.parentNode.nodeName.toLowerCase()]) {
+  if (
+    attributes.slot &&
+    components[element.parentNode.nodeName.toLowerCase()]
+  ) {
     delete attributes.slot;
   }
 
   // Create a props object from the attributes and slots.
   const context = { tagName, component, element };
-  const props = (element && options.propsify) ? options.propsify(attributes, slots, context) : { ...attributes, ...slots };
+  const props =
+    element && options.propsify
+      ? options.propsify(attributes, slots, context)
+      : { ...attributes, ...slots };
 
   return h(component || tagName, props, ...children);
 }
-

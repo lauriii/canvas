@@ -65,7 +65,10 @@ const TreeParent: React.FC<TreeParentProps> = (props) => {
               addNewComponentToLayout({
                 to: newPath,
                 newNode: ev.clone.dataset.xbUuid,
-                componentFieldData: componentsRef?.current?.[ev.clone.dataset.xbUuid]?.['field_data'],
+                componentFieldData:
+                  componentsRef?.current?.[ev.clone.dataset.xbUuid]?.[
+                    'field_data'
+                  ],
               }),
             );
           } else {

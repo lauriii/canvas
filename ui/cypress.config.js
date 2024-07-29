@@ -1,31 +1,29 @@
-import { defineConfig } from "cypress";
+import { defineConfig } from 'cypress';
 import minimist from 'minimist';
-import webpackPreprocessor from '@cypress/webpack-preprocessor'
+import webpackPreprocessor from '@cypress/webpack-preprocessor';
 import { fileURLToPath } from 'url';
 import * as fs from 'fs';
 import * as path from 'path';
-import dotenv from 'dotenv'
-dotenv.config()
+import dotenv from 'dotenv';
+dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const getCoreDir = () => {
   let count = 0;
-  let path = 'core'
+  let path = 'core';
   while (!fs.existsSync(path) && count < 15) {
-    count +=1
-    const stepsUp = `../`.repeat(count)
-    path = `${stepsUp}core`
-
+    count += 1;
+    const stepsUp = `../`.repeat(count);
+    path = `${stepsUp}core`;
   }
   if (fs.existsSync(path)) {
     return path;
-  }
-  else {
+  } else {
     throw new Error(`Path not found, stuck at ${path}`);
   }
-}
+};
 
 export default defineConfig({
   chromeWebSecurity: false,
@@ -44,15 +42,15 @@ export default defineConfig({
     setupNodeEvents(on, config) {
       on('task', {
         log(message) {
-          console.log(message)
-          return null
+          console.log(message);
+          return null;
         },
         table(message) {
-          console.table(message)
+          console.table(message);
 
-          return null
-        }
-      })
+          return null;
+        },
+      });
 
       // This makes e2e tests aware of the project's node_modules directory
       // even though those tests are not in a child directory of the path
@@ -63,25 +61,23 @@ export default defineConfig({
         extensions: ['.ts', '.js'],
         fullySpecified: false,
         alias: {
-          "@": path.resolve(__dirname, "src/"),
+          '@': path.resolve(__dirname, 'src/'),
         },
-      }
+      };
       options.webpackOptions.module.rules.push({
         test: /\.tsx?$/,
         use: 'ts-loader',
         exclude: /node_modules/,
-      })
+      });
 
       options.webpackOptions.module.rules.push({
         test: /\.css$/i,
-        use: ["style-loader", "css-loader"],
-      })
+        use: ['style-loader', 'css-loader'],
+      });
 
-      on("file:preprocessor", webpackPreprocessor(options));
+      on('file:preprocessor', webpackPreprocessor(options));
     },
-    specPattern: [
-      '../tests/src/Cypress/cypress/e2e/**/*.cy.{js,ts,jsx,tsx}',
-    ],
+    specPattern: ['../tests/src/Cypress/cypress/e2e/**/*.cy.{js,ts,jsx,tsx}'],
     supportFile: '../tests/src/Cypress/cypress/support/e2e.js',
     downloadsFolder: '../tests/src/Cypress/cypress/downloads',
     screenshotsFolder: '../tests/src/Cypress/cypress/screenshots',
@@ -103,10 +99,10 @@ export default defineConfig({
     setupNodeEvents(on, config) {
       on('task', {
         log(message) {
-          console.log(message)
-          return null
+          console.log(message);
+          return null;
         },
-      })
+      });
     },
   },
 });

@@ -114,7 +114,6 @@ const List = () => {
                 </div>
               ))}
           </Flex>
-
         </Spinner>
       </Box>
     </div>

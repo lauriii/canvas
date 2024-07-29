@@ -36,14 +36,14 @@ const Preview: React.FC<PreviewProps> = () => {
   return (
     <>
       <Viewport
-        previewId='lg'
+        previewId="lg"
         height={768}
         width={1024}
         frameSrcDoc={frameSrcDoc}
         isLoading={isLoading}
       />
       <Viewport
-        previewId='sm'
+        previewId="sm"
         height={768}
         width={400}
         frameSrcDoc={frameSrcDoc}

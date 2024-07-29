@@ -13,7 +13,7 @@ import { v4 as uuidv4 } from 'uuid';
 import type { UUID } from '@/types/UUID';
 import type { AppDispatch } from '@/app/store';
 import type { StateWithHistory } from 'redux-undo';
-import type { FieldData } from "@/types/Component";
+import type { FieldData } from '@/types/Component';
 
 export interface LayoutNode {
   name?: string;
@@ -84,7 +84,7 @@ type UpdateNodePayload = {
 
 type InitialPropData = {
   [key: string]: any;
-}
+};
 
 type CreateModelPayload = {
   uuid: string | undefined;
@@ -243,14 +243,15 @@ export const addNewComponentToLayout =
           },
         }),
       );
-      const initialData: InitialPropData = {}
+      const initialData: InitialPropData = {};
       if (payload?.componentFieldData) {
         // @todo Update this logic in https://www.drupal.org/project/experience_builder/issues/3455942
         Object.keys(payload.componentFieldData).forEach((propName) => {
           if (payload.componentFieldData?.[propName]?.['default_values']) {
-            initialData[propName] = payload.componentFieldData[propName]['default_values']
+            initialData[propName] =
+              payload.componentFieldData[propName]['default_values'];
           }
-        })
+        });
       }
       dispatch(
         createNewModel({

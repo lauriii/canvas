@@ -37,7 +37,7 @@ interface ViewportProps {
 
 const Viewport: React.FC<ViewportProps> = (props) => {
   const { height, width, frameSrcDoc, isLoading, previewId } = props;
-  const [isReloading, setIsReloading] = useState(false)
+  const [isReloading, setIsReloading] = useState(false);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const layout = useAppSelector(selectLayout);
   const model = useAppSelector(selectModel);
@@ -93,7 +93,10 @@ const Viewport: React.FC<ViewportProps> = (props) => {
               addNewComponentToLayout({
                 to: newPath,
                 newNode: ev.clone.dataset.xbUuid,
-                componentFieldData: componentsRef?.current?.[ev.clone.dataset.xbUuid]?.['field_data'],
+                componentFieldData:
+                  componentsRef?.current?.[ev.clone.dataset.xbUuid]?.[
+                    'field_data'
+                  ],
               }),
             );
           } else {
@@ -132,7 +135,7 @@ const Viewport: React.FC<ViewportProps> = (props) => {
 
   useEffect(() => {
     if (iframeRef.current) {
-      setIsReloading(true)
+      setIsReloading(true);
       iframeRef.current.srcdoc = frameSrcDoc;
     }
   }, [frameSrcDoc]);
@@ -224,7 +227,7 @@ const Viewport: React.FC<ViewportProps> = (props) => {
         });
       });
 
-      setIsReloading(false)
+      setIsReloading(false);
     };
   }, [
     dispatch,
@@ -244,7 +247,15 @@ const Viewport: React.FC<ViewportProps> = (props) => {
         {width}px x {height}px
       </Card>
       <div className={styles.previewContainer}>
-        {(isLoading || isReloading) && <><Progress aria-label='Loading Preview' className={styles.progress} duration='1s' /></>}
+        {(isLoading || isReloading) && (
+          <>
+            <Progress
+              aria-label="Loading Preview"
+              className={styles.progress}
+              duration="1s"
+            />
+          </>
+        )}
         <iframe
           ref={iframeRef}
           className={styles.preview}

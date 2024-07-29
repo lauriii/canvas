@@ -1,32 +1,37 @@
-import { delay, http, HttpResponse } from "msw";
-import components from "./fixtures/components.json"
-import layoutDefault from "./fixtures/layout-default.json"
-import mockPreviewDocument from "./preview";
+import { delay, http, HttpResponse } from 'msw';
+import components from './fixtures/components.json';
+import layoutDefault from './fixtures/layout-default.json';
+import mockPreviewDocument from './preview';
 
 const DEFAULT_DELAY = 200;
 
 const handlers = [
   http.get('/xb-components', async () => {
     await delay(DEFAULT_DELAY);
-    return HttpResponse.json(components)
+    return HttpResponse.json(components);
   }),
-  http.get('/xb-components/:id', async ({params}) => {
+  http.get('/xb-components/:id', async ({ params }) => {
     await delay(DEFAULT_DELAY);
-    const component = components.find(component => component.id === params.id);
+    const component = components.find(
+      (component) => component.id === params.id,
+    );
     if (component) {
       return HttpResponse.json(component);
     }
-    return HttpResponse.json({},  { status: 404 });
+    return HttpResponse.json({}, { status: 404 });
   }),
   http.get('/api/layout/:id', async () => {
     await delay(DEFAULT_DELAY);
-    return HttpResponse.json(layoutDefault)
+    return HttpResponse.json(layoutDefault);
   }),
-  http.post<{}, { layout: any; model: any }>('/api/preview', async ({ request }) => {
-    await delay(DEFAULT_DELAY);
-    const {layout, model} = await request.json()
-    return HttpResponse.json({html: mockPreviewDocument(layout, model)});
-  }),
+  http.post<{}, { layout: any; model: any }>(
+    '/api/preview',
+    async ({ request }) => {
+      await delay(DEFAULT_DELAY);
+      const { layout, model } = await request.json();
+      return HttpResponse.json({ html: mockPreviewDocument(layout, model) });
+    },
+  ),
 ];
 
 export default handlers;

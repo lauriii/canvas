@@ -10,7 +10,7 @@ import {
   Tabs,
   Text,
   Theme,
-  ScrollArea
+  ScrollArea,
 } from '@radix-ui/themes';
 import clsx from 'clsx';
 import styles from './Panel.module.css';
@@ -27,7 +27,7 @@ import {
   selectModel,
   updateNodeModel,
 } from '@/features/layout/layoutModelSlice';
-import DummyPropsEditForm from "@/components/DummyPropsEditForm";
+import DummyPropsEditForm from '@/components/DummyPropsEditForm';
 
 interface ContextualPanelProps {}
 
@@ -108,31 +108,43 @@ const ContextualPanel: React.FC<ContextualPanelProps> = () => {
                             </Tabs.Trigger>
                             <Tabs.Trigger value="styles">Styles</Tabs.Trigger>
                           </Tabs.List>
-                          <ScrollArea type="always" size="1" scrollbars="vertical" style={{height: 700}}>
-                          <Box pt="3">
-                                <Tabs.Content value="settings">
-                              <Text size="1">
-                                <details>
-                                  <summary>Settings for... {selectedComponent}</summary>
-                                <pre>
-                                  {JSON.stringify(
-                                    model[selectedComponent],
-                                    null,
-                                    2,
-                                  )}
-                                </pre>
-                                </details>
-                                <DummyPropsEditForm/>
-                              </Text>
-                              <Button onClick={handleEditClick} className={styles.editButton}>Edit</Button>
-                            </Tabs.Content>
+                          <ScrollArea
+                            type="always"
+                            size="1"
+                            scrollbars="vertical"
+                            style={{ height: 700 }}
+                          >
+                            <Box pt="3">
+                              <Tabs.Content value="settings">
+                                <Text size="1">
+                                  <details>
+                                    <summary>
+                                      Settings for... {selectedComponent}
+                                    </summary>
+                                    <pre>
+                                      {JSON.stringify(
+                                        model[selectedComponent],
+                                        null,
+                                        2,
+                                      )}
+                                    </pre>
+                                  </details>
+                                  <DummyPropsEditForm />
+                                </Text>
+                                <Button
+                                  onClick={handleEditClick}
+                                  className={styles.editButton}
+                                >
+                                  Edit
+                                </Button>
+                              </Tabs.Content>
 
-                            <Tabs.Content value="styles">
-                              <Text size="1">
-                                Styles for...{selectedComponent}
-                              </Text>
-                            </Tabs.Content>
-                          </Box>
+                              <Tabs.Content value="styles">
+                                <Text size="1">
+                                  Styles for...{selectedComponent}
+                                </Text>
+                              </Tabs.Content>
+                            </Box>
                           </ScrollArea>
                         </Tabs.Root>
                       </Box>

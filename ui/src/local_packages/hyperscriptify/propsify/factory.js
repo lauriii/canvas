@@ -56,8 +56,15 @@
  * @returns {function(*, *, *): *}
  *   The function to provide to hyperscriptify() for options.propsify.
  */
-export default function basicPropsifyFactory({ mapKeys, mapValues, set, camelCase, htmlElementAttributeToPropMap = {}, componentAttributeToPropMap = {} }) {
-  return function( attributes, slots, context ) {
+export default function basicPropsifyFactory({
+  mapKeys,
+  mapValues,
+  set,
+  camelCase,
+  htmlElementAttributeToPropMap = {},
+  componentAttributeToPropMap = {},
+}) {
+  return function (attributes, slots, context) {
     let props = { ...attributes };
 
     // For components (not intrinsic HTML elements)...
@@ -66,7 +73,10 @@ export default function basicPropsifyFactory({ mapKeys, mapValues, set, camelCas
       // for custom elements, multi-word attribute names are by convention
       // kebab-cased. JSX prop names are case-sensitive and by convention,
       // camelCased.
-      props = mapKeys(props, (value, key) => componentAttributeToPropMap[key] || camelCase(key));
+      props = mapKeys(
+        props,
+        (value, key) => componentAttributeToPropMap[key] || camelCase(key),
+      );
 
       // HTML attribute values are strings. JSX prop values can be other data
       // types, such as objects or arrays. Therefore, if the attribute value is
@@ -90,9 +100,12 @@ export default function basicPropsifyFactory({ mapKeys, mapValues, set, camelCas
     }
     // For intrinsic HTML elements...
     else {
-      props = mapKeys(props, (value, key) => htmlElementAttributeToPropMap[key] || key);
+      props = mapKeys(
+        props,
+        (value, key) => htmlElementAttributeToPropMap[key] || key,
+      );
     }
 
     return props;
-  }
+  };
 }

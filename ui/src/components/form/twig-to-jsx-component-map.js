@@ -16,4 +16,3 @@ const twigToJSXComponentMap = {
 };
 
 export default twigToJSXComponentMap;
-

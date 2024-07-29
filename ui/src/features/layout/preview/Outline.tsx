@@ -164,10 +164,7 @@ const Outline: React.FC<OutlineProps> = (props) => {
         <ContextMenu.Root>
           <ContextMenu.Trigger>
             <Box ref={toolbarElRef} className={styles.xbComponentToolbar}>
-              <NameTag
-                elementId={elementId}
-                selected={selected}
-              />
+              <NameTag elementId={elementId} selected={selected} />
             </Box>
           </ContextMenu.Trigger>
           <ContextMenu.Content>
