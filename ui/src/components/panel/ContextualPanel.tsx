@@ -77,7 +77,7 @@ const ContextualPanel: React.FC<ContextualPanelProps> = () => {
               <Card variant="classic">
                 <Flex p="1" justify="end">
                   <Drawer.Close asChild={true}>
-                    <IconButton size="1">
+                    <IconButton size="1" aria-label="Close">
                       <Cross1Icon />
                     </IconButton>
                   </Drawer.Close>

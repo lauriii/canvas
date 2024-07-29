@@ -232,6 +232,10 @@ describe('General Experience Builder', {testIsolation: false}, () => {
       cy.get(selector).should('have.value', newValues[prop])
     })
 
+    // Close the right drawer, so it doesn't cover the iFrame content when Cypress is looking
+    // for elements.
+    cy.get('[role="dialog"][vaul-drawer-direction="right"] button[aria-label="Close"]').click();
+
     // New values were typed into the prop form inputs, now enter the iframe
     // and confirm the component reflects these new values.
     cy.testInIframe('[data-xb-type="experience_builder:my-hero"]', (heroes) => {
