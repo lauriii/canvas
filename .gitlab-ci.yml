@@ -136,6 +136,10 @@ phpcs:
   rules:
     - *is-push-rule
     - *php-files-change-rule
+    # Also run whenever we catch up to the upstream PHPCS rules.
+    - changes:
+        - core.phpcs.xml.dist
+      when: on_success
     - *manual-rule
 
 phpcs-rules-match-drupal-11:
