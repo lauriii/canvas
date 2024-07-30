@@ -1,0 +1,13 @@
+langcode: en
+status: true
+dependencies: {}
+label: Props and Slots
+component: xb_test_sdc+props-slots
+defaults:
+  props:
+    heading:
+      field_type: string
+      field_widget: string_textfield
+      default_value:
+        value: 'Hello, world!'
+      expression: ℹ︎string␟value

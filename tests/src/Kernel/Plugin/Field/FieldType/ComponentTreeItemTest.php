@@ -11,8 +11,8 @@ use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\node\Entity\Node;
 use Drupal\Tests\experience_builder\Traits\ComponentTreeTestTrait;
+use Drupal\Tests\experience_builder\Traits\ConstraintViolationsTestTrait;
 use Drupal\Tests\experience_builder\Traits\ContribStrictConfigSchemaTestTrait;
-use Symfony\Component\Validator\ConstraintViolationListInterface;
 
 /**
  * @coversDefaultClass \Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem
@@ -21,6 +21,7 @@ use Symfony\Component\Validator\ConstraintViolationListInterface;
 class ComponentTreeItemTest extends KernelTestBase {
 
   use ComponentTreeTestTrait;
+  use ConstraintViolationsTestTrait;
   use ContribStrictConfigSchemaTestTrait;
 
   /**
@@ -30,6 +31,7 @@ class ComponentTreeItemTest extends KernelTestBase {
     'experience_builder',
     'sdc',
     'sdc_test',
+    'xb_test_sdc',
     // Modules providing field types + widgets for the component props defaults.
     'image',
   ];
@@ -97,25 +99,30 @@ class ComponentTreeItemTest extends KernelTestBase {
   }
 
   public function providerInvalidField(): array {
+    $root_uuid = ComponentTreeStructure::ROOT_UUID;
     $test_cases = $this->getComponentTreeTestCases();
-    $test_cases['valid values using dynamic props'][] = [];
-    $test_cases['missing components, using dynamic props'][] = [
-      'field_xb_test.0' => [
-        'The component instance with UUID <em class="placeholder">dynamic-static-card2df</em> uses component <em class="placeholder">sdc_test:missing</em> but does not exist! Put a breakpoint here and figure out why.',
-        'The component instance with UUID <em class="placeholder">dynamic-static-card3</em> uses component <em class="placeholder">sdc_test:missing-also</em> but does not exist! Put a breakpoint here and figure out why.',
+    $test_cases['invalid tree structure, uuid at top of data structure is not in the tree, also has empty slots'][] = [
+      'field_xb_test.0.tree[other-uuid]' => [
+        'Empty component subtree. A component subtree must contain >=1 populated slot (with >=1 component instance). Empty component subtrees must be omitted.',
+        'Dangling component subtree. This component subtree claims to be for a component instance with UUID <em class="placeholder">other-uuid</em>, but no such component instance can be found.',
       ],
     ];
+    $test_cases['valid values using dynamic props'][] = [];
+    $test_cases['missing components, using dynamic props'][] = [
+      "field_xb_test.0.tree[$root_uuid][0]" => 'The component <em class="placeholder">sdc_test:missing</em> does not exist.',
+      "field_xb_test.0.tree[$root_uuid][1]" => 'The component <em class="placeholder">sdc_test:missing-also</em> does not exist.',
+    ];
     $test_cases['missing components, using only static props'][] = [
-      'field_xb_test.0' => 'The component instance with UUID <em class="placeholder">static-card2df</em> uses component <em class="placeholder">sdc_test:missing</em> but does not exist! Put a breakpoint here and figure out why.',
+      "field_xb_test.0.tree[$root_uuid][0]" => 'The component <em class="placeholder">sdc_test:missing</em> does not exist.',
     ];
     $test_cases['props invalid, using dynamic props'][] = [
       'field_xb_test.0' => [
-        'The component instance with UUID <em class="placeholder">dynamic-static-card2df</em> uses component <em class="placeholder">sdc_test:my-cta</em> and receives some invalid props! Put a breakpoint here and figure out why.',
-        'The component instance with UUID <em class="placeholder">dynamic-static-card3</em> uses component <em class="placeholder">sdc_test:my-cta</em> and receives some invalid props! Put a breakpoint here and figure out why.',
+        'The component instance with UUID <em class="placeholder">dynamic-static-card2df</em> uses component <em class="placeholder">xb_test_sdc:props-slots</em> and receives some invalid props! Put a breakpoint here and figure out why.',
+        'The component instance with UUID <em class="placeholder">dynamic-static-card3</em> uses component <em class="placeholder">xb_test_sdc:props-slots</em> and receives some invalid props! Put a breakpoint here and figure out why.',
       ],
     ];
     $test_cases['props invalid, using only static props'][] = [
-      'field_xb_test.0' => 'The component instance with UUID <em class="placeholder">static-card2df</em> uses component <em class="placeholder">sdc_test:my-cta</em> and receives some invalid props! Put a breakpoint here and figure out why.',
+      'field_xb_test.0' => 'The component instance with UUID <em class="placeholder">static-card2df</em> uses component <em class="placeholder">xb_test_sdc:props-no-slots</em> and receives some invalid props! Put a breakpoint here and figure out why.',
     ];
     $test_cases['missing props key'][] = [
       'field_xb_test.0' => 'The array must contain a "props" key.',
@@ -134,7 +141,7 @@ class ComponentTreeItemTest extends KernelTestBase {
    * @dataProvider providerInvalidField
    */
   public function testInvalidField(array $field_values, array $expected_violations): void {
-    $this->container->get('module_installer')->install(['experience_builder', 'link', 'node', 'text', 'xb_test_config_node_article']);
+    $this->container->get('module_installer')->install(['xb_test_config_node_article']);
     $node = Node::create([
       'title' => 'Test node',
       'type' => 'article',
@@ -142,36 +149,6 @@ class ComponentTreeItemTest extends KernelTestBase {
     ]);
     $violations = $node->validate();
     $this->assertSame($expected_violations, self::violationsToArray($violations));
-  }
-
-  /**
-   * Transforms a constraint violation list object to an assertable array.
-   *
-   * @param \Symfony\Component\Validator\ConstraintViolationListInterface $violations
-   *   Validation constraint violations.
-   *
-   * @return array
-   *   An array with property paths as keys and violation messages as values.
-   *
-   * @see \Drupal\Tests\ckeditor5\Kernel\CKEditor5ValidationTestTrait::violationsToArray()
-   */
-  private static function violationsToArray(ConstraintViolationListInterface $violations): array {
-    $actual_violations = [];
-    foreach ($violations as $violation) {
-      if (!isset($actual_violations[$violation->getPropertyPath()])) {
-        $actual_violations[$violation->getPropertyPath()] = (string) $violation->getMessage();
-      }
-      else {
-        // Transform value from string to array.
-        if (is_string($actual_violations[$violation->getPropertyPath()])) {
-          $actual_violations[$violation->getPropertyPath()] = (array) $actual_violations[$violation->getPropertyPath()];
-        }
-        // And append.
-        // @phpstan-ignore-next-line
-        $actual_violations[$violation->getPropertyPath()][] = (string) $violation->getMessage();
-      }
-    }
-    return $actual_violations;
   }
 
 }

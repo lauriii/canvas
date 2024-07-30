@@ -1,0 +1,5 @@
+name: 'Test SDC Components'
+type: module
+dependencies:
+  - experience_builder:experience_builder
+package: Testing

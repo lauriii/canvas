@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Drupal\experience_builder\Plugin\Validation\Constraint;
 
-use Drupal\Core\Config\Schema\SchemaCheckTrait;
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
 use Drupal\Core\Render\Component\Exception\ComponentNotFoundException;
 use Drupal\Core\Render\Component\Exception\InvalidComponentException;
@@ -18,8 +17,6 @@ use Symfony\Component\Validator\Constraint;
 use Symfony\Component\Validator\ConstraintValidator;
 
 final class ValidComponentTreeConstraintValidator extends ConstraintValidator implements ContainerInjectionInterface {
-
-  use SchemaCheckTrait;
 
   public function __construct(
     private readonly ComponentPluginManager $componentPluginManager,
@@ -77,12 +74,16 @@ final class ValidComponentTreeConstraintValidator extends ConstraintValidator im
     foreach ($tree->getComponentInstanceUuids() as $component_instance_uuid) {
       $component_id = $tree->getComponentId($component_instance_uuid);
       try {
+        // @todo Handle the case where component exists but has no props in
+        //   https://drupal.org/i/3463188.
         $props_values = $value->resolveComponentProps($component_instance_uuid);
         $component = $this->componentPluginManager->find($component_id);
         $this->componentValidator->validateProps($props_values, $component);
       }
       catch (ComponentNotFoundException) {
-        $this->context->addViolation('The component instance with UUID %uuid uses component %id but does not exist! Put a breakpoint here and figure out why.', ['%uuid' => $component_instance_uuid, '%id' => $component_id]);
+        // The violation for a missing component will be added in the validation
+        // of the tree structure.
+        // @see \Drupal\experience_builder\Plugin\Validation\Constraint\ComponentTreeStructureConstraintValidator
       }
       catch (InvalidComponentException) {
         $this->context->addViolation('The component instance with UUID %uuid uses component %id and receives some invalid props! Put a breakpoint here and figure out why.', ['%uuid' => $component_instance_uuid, '%id' => $component_id]);

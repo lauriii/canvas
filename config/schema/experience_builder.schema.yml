@@ -92,6 +92,8 @@ experience_builder.component_tree:
     tree:
       type: label
       label: 'A component tree without props values.'
+      constraints:
+        ComponentTreeStructure: []
     # @see \Drupal\experience_builder\Plugin\DataType\ComponentPropsValues
     props:
       type: string

@@ -20,19 +20,38 @@ class DefaultFieldValueTest extends KernelTestBase {
    */
   protected static $modules = [
     'experience_builder',
-    'sdc_test',
+    'system',
+    'xb_test_sdc',
+    'xb_test_config_node_article',
+    // All of `xb_test_config_node_article`'s dependencies.
+    'node',
+    'field',
+    'link',
+    'text',
   ];
+
+  /**
+   * {@inheritdoc}
+   */
+  protected function setUp(): void {
+    parent::setUp();
+    $this->installConfig(['xb_test_config_node_article']);
+  }
 
   public function providerDefaultFieldValue(): array {
     $test_cases = $this->getComponentTreeTestCases();
+    // Ensure the root validation is enforced.
+    array_push($test_cases['invalid tree structure, uuid at top of data structure is not in the tree, also has empty slots'], SchemaIncompleteException::class, 'Schema errors for field.field.node.article.field_xb_test with the following errors: 0 [default_value.0.tree[other-uuid]] Empty component subtree. A component subtree must contain &gt;=1 populated slot (with &gt;=1 component instance). Empty component subtrees must be omitted., 1 [default_value.0.tree[other-uuid]] Dangling component subtree. This component subtree claims to be for a component instance with UUID &lt;em class=&quot;placeholder&quot;&gt;other-uuid&lt;/em&gt;, but no such component instance can be found.');
+    // Ensure the props validation is enforced even if the root is invalid.
+    array_push($test_cases['props invalid, using only static props'], SchemaIncompleteException::class, 'Schema errors for field.field.node.article.field_xb_test with the following errors: 0 [default_value.0] The component instance with UUID &lt;em class=&quot;placeholder&quot;&gt;static-card2df&lt;/em&gt; uses component &lt;em class=&quot;placeholder&quot;&gt;xb_test_sdc:props-no-slots&lt;/em&gt; and receives some invalid props! Put a breakpoint here and figure out why.');
     array_push($test_cases['valid values using dynamic props'], NULL, NULL);
     array_push($test_cases['missing props key'], SchemaIncompleteException::class, 'Schema errors for field.field.node.article.field_xb_test with the following errors: 0 [default_value.0] The array must contain a &quot;props&quot; key.');
     array_push($test_cases['missing tree key'], SchemaIncompleteException::class, 'Schema errors for field.field.node.article.field_xb_test with the following errors: 0 [default_value.0] The array must contain a &quot;tree&quot; key.');
     // If dynamic prop sources are used the validation cannot be preformed for the default value.
-    array_push($test_cases['missing components, using dynamic props'], NULL, NULL);
+    array_push($test_cases['missing components, using dynamic props'], SchemaIncompleteException::class, 'Schema errors for field.field.node.article.field_xb_test with the following errors: 0 [default_value.0.tree[a548b48d-58a8-4077-aa04-da9405a6f418][0]] The component &lt;em class=&quot;placeholder&quot;&gt;sdc_test:missing&lt;/em&gt; does not exist., 1 [default_value.0.tree[a548b48d-58a8-4077-aa04-da9405a6f418][1]] The component &lt;em class=&quot;placeholder&quot;&gt;sdc_test:missing-also&lt;/em&gt; does not exist.');
     array_push($test_cases['props invalid, using dynamic props'], NULL, NULL);
-    array_push($test_cases['missing components, using only static props'], SchemaIncompleteException::class, "Schema errors for field.field.node.article.field_xb_test with the following errors: 0 [default_value.0] The component instance with UUID &lt;em class=&quot;placeholder&quot;&gt;static-card2df&lt;/em&gt; uses component &lt;em class=&quot;placeholder&quot;&gt;sdc_test:missing&lt;/em&gt; but does not exist! Put a breakpoint here and figure out why.");
-    array_push($test_cases['props invalid, using only static props'], SchemaIncompleteException::class, 'Schema errors for field.field.node.article.field_xb_test with the following errors: 0 [default_value.0] The component instance with UUID &lt;em class=&quot;placeholder&quot;&gt;static-card2df&lt;/em&gt; uses component &lt;em class=&quot;placeholder&quot;&gt;sdc_test:my-cta&lt;/em&gt; and receives some invalid props! Put a breakpoint here and figure out why.');
+    array_push($test_cases['missing components, using only static props'], SchemaIncompleteException::class, 'Schema errors for field.field.node.article.field_xb_test with the following errors: 0 [default_value.0.tree[a548b48d-58a8-4077-aa04-da9405a6f418][0]] The component &lt;em class=&quot;placeholder&quot;&gt;sdc_test:missing&lt;/em&gt; does not exist.');
+    array_push($test_cases['props invalid, using only static props'], SchemaIncompleteException::class, 'Schema errors for field.field.node.article.field_xb_test with the following errors: 0 [default_value.0] The component instance with UUID &lt;em class=&quot;placeholder&quot;&gt;static-card2df&lt;/em&gt; uses component &lt;em class=&quot;placeholder&quot;&gt;xb_test_sdc:props-no-slots&lt;/em&gt; and receives some invalid props! Put a breakpoint here and figure out why.');
     return $test_cases;
   }
 
@@ -41,7 +60,6 @@ class DefaultFieldValueTest extends KernelTestBase {
    * @dataProvider providerDefaultFieldValue
    */
   public function testDefaultFieldValue(array $field_values, ?string $expected_exception, ?string $expected_message): void {
-    $this->container->get('module_installer')->install(['link', 'node', 'text', 'xb_test_config_node_article']);
     $field_config = FieldConfig::loadByName('node', 'article', 'field_xb_test');
     $this->assertInstanceOf(FieldConfig::class, $field_config);
 

@@ -4,19 +4,65 @@ declare(strict_types=1);
 
 namespace Drupal\experience_builder\Plugin\DataType;
 
-use Drupal\Component\Assertion\Inspector;
 use Drupal\Component\Serialization\Json;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\TypedData\Attribute\DataType;
 use Drupal\Core\TypedData\TypedData;
 
 /**
+ * The component tree structure's data structure is optimized for efficiency.
+ *
+ * - The component tree is represented as an array of component subtrees.
+ * - Each component subtree is keyed by its parent component instance's UUID.
+ * - There is one special case: the root, which has a reserved UUID.
+ * - Each component subtree contains only its children, not grandchildren — its
+ *   depth is hence always 1.
+ * - Each component subtree contains a list of populated slot names, with an
+ *   ordered list of component "uuid,component" tuples in each populated slot.
+ *   The sole exception is the root, which contains has no slot names: it is
+ *   essentially a slot.
+ * - Hence each component subtree contains only its children, not grandchildren;
+ *   its depth is hence always 1.
+ *
+ * This avoids the need for deep tree traversal: the depth of the data structure
+ * when represented as PHP arrays is at most 4 levels:
+ * - the top level lists the root UUID plus all component instances that contain
+ *   subtrees
+ * - the root component subtree contains "uuid,component" tuples, bringing it to
+ *   3 levels deep: level 2 contains the tuples, level 3 is each tuple
+ *   represented as an array
+ * - the other component subtrees contain populated slot names, followed by the
+ *   aforementioned tuples, bringing it to 4 levels deep: level 2 contains the
+ *   populated slot names, level 3 contains the tuples in each populated slot,
+ *   and level 4 is each tuple represented as an array
+ *
+ * The costly consequence is that the complete component tree is not readily
+ * available: it requires some assembly. However, since this requires rendering
+ * anyway, this cost is negligible.
+ *
+ * @see \Drupal\experience_builder\Plugin\DataType\ComponentTreeHydrated
+ *
+ * The benefits:
+ * - finding a component instance by UUID or by component does not require tree
+ *   traversal; it can happen more efficiently
+ * - less recursion throughout the codebase — this tree is the heart of
+ *   Experience Builder, and how it works affects the entire codebase
+ * - … for example in the validation logic
+ * - updating/migrating existing component instances is hence simpler
+ * - bugs in update/migration paths cannot easily corrupt the entire tree
+ *
+ * @see \Drupal\experience_builder\Plugin\Validation\Constraint\ComponentTreeStructureConstraintValidator
+ * @see \Drupal\Tests\experience_builder\Kernel\DataType\ComponentTreeStructureTest
+ *
  * @todo Implement ListInterface because it conceptually fits, but … what does it get us?
  */
 #[DataType(
   id: "component_tree_structure",
   label: new TranslatableMarkup("Component tree structure"),
   description: new TranslatableMarkup("The structure of the component tree: without props values"),
+  constraints: [
+    "ComponentTreeStructure" => [],
+  ]
 )]
 class ComponentTreeStructure extends TypedData {
 
@@ -67,19 +113,6 @@ class ComponentTreeStructure extends TypedData {
     // @todo Delete next line; update this code to ONLY do the JSON-to-PHP-object parsing after https://www.drupal.org/project/drupal/issues/2232427 lands — that will allow specifying the "json" serialization strategy rather than only PHP's serialize().
     $this->value = $value;
     $this->tree = Json::decode($value);
-    // @todo These are temporary checks until we have a constraint. Just to make
-    //   sure tests fail if we don't have valid test values. Add actual
-    //   constraint in https://drupal.org/i/3460856.
-    if (!isset($this->tree[ComponentTreeStructure::ROOT_UUID]) || !array_is_list($this->tree[ComponentTreeStructure::ROOT_UUID])) {
-      throw new \UnexpectedValueException('Temp exception replace with constraint. Root UUID is missing or incorrect:' . $value);
-    }
-    foreach (array_keys($this->tree) as $top_level_uuid) {
-      assert(is_string($top_level_uuid));
-      if ($top_level_uuid !== ComponentTreeStructure::ROOT_UUID && substr_count($value, $top_level_uuid) !== 2) {
-        throw new \UnexpectedValueException("Temp exception replace with constraint. Top level UUID, $top_level_uuid does not appear in tree.");
-      }
-    }
-
     // Notify the parent of any changes.
     if ($notify && isset($this->parent)) {
       $this->parent->onChange($this->name);
@@ -116,6 +149,7 @@ class ComponentTreeStructure extends TypedData {
 
       foreach ($sub_tree_value as $section_name => $items) {
         if (!is_array($items)) {
+          // @see \Drupal\experience_builder\Plugin\Validation\Constraint\ComponentTreeStructureConstraintValidator
           throw new \UnexpectedValueException(sprintf('Expected an array of items expect in %s, but got %s.', $section_name, gettype($items)));
         }
         // Efficiently extract UUID values from each inner array.
@@ -123,12 +157,7 @@ class ComponentTreeStructure extends TypedData {
       }
     }
 
-    assert(Inspector::assertAllArrays($components));
-    assert(Inspector::assertAll(fn (array $a) => array_keys($a) == ['uuid', 'component'], $components));
-
-    // TRICKY: PHPStan gets confused by the array shape of $this->tree, and does
-    // not understand the above assertions. Those assertions guarantee that the
-    // documented return array shape is actually met.
+    // @see \Drupal\experience_builder\Plugin\Validation\Constraint\ValidComponentTreeConstraintValidator
     // @phpstan-ignore-next-line
     return $components;
   }
