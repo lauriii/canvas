@@ -2,8 +2,8 @@ import styles from './App.module.css';
 import Layout from '@/features/layout/Layout';
 import { Button, Flex, Card, Select, Text } from '@radix-ui/themes';
 import clsx from 'clsx';
-import ContextualPanel from '@/components/panel/ContextualPanel';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
+import { Outlet } from 'react-router-dom';
 import {
   selectCanvasViewPort,
   selectContextualPanelOpen,
@@ -14,11 +14,16 @@ import Canvas from '@/features/canvas/Canvas';
 import { ZoomInIcon } from '@radix-ui/react-icons';
 import PrimaryMenubar from '@/components/sidebar/primary/PrimaryMenubar';
 import Topbar from '@/components/topbar/Topbar';
+import useSyncComponentId from '@/hooks/useSyncComponentId';
 
 const App = () => {
   const dispatch = useAppDispatch();
+
   const contextualPanelOpen = useAppSelector(selectContextualPanelOpen);
   const canvasViewPort = useAppSelector(selectCanvasViewPort);
+
+  // Hook to keep the selected component ID in state in sync with :componentId in the url params.
+  useSyncComponentId();
 
   return (
     <div
@@ -30,7 +35,7 @@ const App = () => {
       <Layout />
       <Topbar />
       <PrimaryMenubar />
-      <ContextualPanel />
+      <Outlet />
       <div className={styles.canvasControls}>
         <Card size="1">
           <Flex align="center" gap="3">

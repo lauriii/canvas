@@ -10,10 +10,7 @@ const TreeView = () => {
   const { isDragging } = useAppSelector(selectDragging);
 
   return (
-    <div
-      data-vaul-no-drag
-      className={isDragging ? treeParentStyles.listDragging : ''}
-    >
+    <div className={isDragging ? treeParentStyles.listDragging : ''}>
       <TreeParent node={layout} />
 
       <TreeDebug />

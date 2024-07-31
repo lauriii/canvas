@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Drupal\experience_builder\Controller;
 
 use Drupal\Core\Render\HtmlResponse;
+use Drupal\Core\Url;
+use Symfony\Component\HttpFoundation\RedirectResponse;
 
 final class ExperienceBuilderController {
 
@@ -25,7 +27,13 @@ final class ExperienceBuilderController {
 </html>
 HTML;
 
-  public function content() : HtmlResponse {
+  public function content(string|null $react_route = NULL, string|null $react_subroute = NULL) : HtmlResponse|RedirectResponse {
+    if (!empty($react_route)) {
+      // Temporary measure so refreshing a page with a component selected does
+      // not result in a 404.
+      // @todo Investigate how https://www.drupal.org/project/decoupled_pages solved this same problem.
+      return new RedirectResponse(Url::fromRoute('experience_builder.experience_builder')->toString());
+    }
     return (new HtmlResponse(self::HTML))->setAttachments([
       'library' => [
         'experience_builder/xb-ui',

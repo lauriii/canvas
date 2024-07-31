@@ -77,7 +77,7 @@ describe('General Experience Builder', {testIsolation: false}, () => {
 
     // Before interacting with components in the layout, confirm there is
     // currently no right drawer.
-    cy.get('[role="dialog"][vaul-drawer-direction="right"][data-state="open"]').should('not.exist')
+    cy.get('[class*="contextualPanel"]').should('not.exist')
 
     // Confirm no component has a hover outline.
     cy.get('[data-xb-component-outline]').should('not.exist')
@@ -148,19 +148,17 @@ describe('General Experience Builder', {testIsolation: false}, () => {
       .first()
       .trigger('click')
 
-    // The right drawer has opened.
-    cy.get('[role="dialog"][vaul-drawer-direction="right"][data-state="open"]').should('exist')
+    // The right panel has opened.
+    cy.get('[class*="contextualPanel"]').should('exist')
 
     // The drawer contains a component edit form.
-    cy.get(
-      '[role="dialog"][vaul-drawer-direction="right"][data-state="open"] [data-drupal-selector="component-props-form"].component-props-form')
-      .should(($form) => {
-        expect($form).to.exist
-        const expectedLabels = ['heading', 'subheading', 'cta1', 'cta1href', 'cta2'];
-        $form.find('label').each((index, label) => {
-          expect(label.textContent).to.equal(expectedLabels[index])
-        })
+    cy.get('[class*="contextualPanel"] [data-drupal-selector="component-props-form"].component-props-form').then(($form) => {
+      expect($form).to.exist
+      const expectedLabels = ['heading', 'subheading', 'cta1', 'cta1href', 'cta2'];
+      $form.find('label').each((index, label) => {
+        expect(label.textContent).to.equal(expectedLabels[index])
       })
+    })
 
     cy.get('[data-drupal-selector="edit-xb-component-props-static-static-card1ab-heading-0-value"]')
       .should('have.value', 'hello, world!')
@@ -193,7 +191,7 @@ describe('General Experience Builder', {testIsolation: false}, () => {
       Object.entries(heroSelectors).forEach(([ prop, selector ]) => {
         if(heroBefore[prop]) {
           expect(hero.querySelector(selector).textContent.onlyVisibleChars()
-            ,  `${prop} should be ${heroBefore[prop]}`).to.equal(heroBefore[prop])
+            , `${prop} should be ${heroBefore[prop]}`).to.equal(heroBefore[prop])
         } else {
           expect(!!hero.querySelector(selector).textContent.onlyVisibleChars()
             ,  `${prop} should be empty`).to.be.false
@@ -234,7 +232,7 @@ describe('General Experience Builder', {testIsolation: false}, () => {
 
     // Close the right drawer, so it doesn't cover the iFrame content when Cypress is looking
     // for elements.
-    cy.get('[role="dialog"][vaul-drawer-direction="right"] button[aria-label="Close"]').click();
+    cy.get('[class*="contextualPanel"] button[aria-label="Close"]').click();
 
     // New values were typed into the prop form inputs, now enter the iframe
     // and confirm the component reflects these new values.
@@ -250,4 +248,77 @@ describe('General Experience Builder', {testIsolation: false}, () => {
       expect(hero.querySelector(heroSelectors.cta1).getAttribute('formaction')).to.equal(newValues.cta1href)
     })
   })
+
+  it('uses react router successfully', () => {
+      cy.drupalLogin('xbUser', 'xbUser')
+      cy.drupalRelativeURL('xb')
+
+      // Wait for the preview iframe to load and render something that confirms
+      // it is ready.
+      cy.get('iframe[data-xb-preview]').should('exist')
+      cy.waitForElementInIframe('[data-xb-type="experience_builder:image"]')
+
+
+      let componentId1 = ''
+      let componentId2 = ''
+
+      // data-xb-uuid="static-static-card1ab"
+      cy.getIframeBody().find('[data-xb-type="experience_builder:my-hero"]')
+        .first()
+        .invoke('attr', 'data-xb-uuid')
+        .then((uuid) => {
+          componentId1 = uuid;
+        })
+      cy.getIframeBody().find('[data-xb-type="experience_builder:my-hero"]')
+        .eq(2)
+        .invoke('attr', 'data-xb-uuid')
+        .then((uuid) => {
+          componentId2 = uuid;
+          expect(componentId1).to.not.equal(componentId2)
+        })
+
+      // Click a component.
+      cy.getIframeBody().find('[data-xb-type="experience_builder:my-hero"] h1')
+        .first()
+        .trigger('click')
+
+      // Opens the contextual form for the clicked component.
+      cy.get('[class*="contextualPanel"] h4').should('contain', componentId1)
+
+      // Now on a path specific to that component.
+      cy.url().should('contain', `/xb/component/${componentId1}`)
+      cy.url().should((url) => {
+        expect(url, `After clicking on ${componentId1}, path should include '/xb/component/${componentId1}'`).to.contain(`/xb/component/${componentId1}`)
+      })
+
+      // Click a different component.
+      cy.getIframeBody().find('[data-xb-type="experience_builder:my-hero"] h1')
+        .eq(2)
+        .trigger('click')
+
+      // Opens the contextual form for the clicked component.
+      cy.get('[class*="contextualPanel"] h4').should('contain', componentId2)
+      // Now on a path specific to that component.
+      cy.url().should('contain', `/xb/component/${componentId2}`)
+      cy.url().should((url) => {
+        expect(url, `After clicking on ${componentId2}, path should include '/xb/component/${componentId2}'`).to.contain(`/xb/component/${componentId2}`)
+      })
+
+      cy.go('back')
+      // Returns to the URL for the prior component.
+      cy.url().should((url) => {
+        expect(url, `Hit back once and path should again include '/xb/component/${componentId1}'`).to.contain(`/xb/component/${componentId1}`)
+      })
+      // Returns to the contextual form for the prior component.
+      cy.get('[class*="contextualPanel"] h4').should('contain', componentId1)
+
+      cy.go('back')
+      cy.url().should((url) => {
+        expect(url, `Hit back twice and the and path should not have 'component' in it`).to.not.contain('/xb/component')
+        expect(url, `Hit back twice and the path should still have /xb`).to.contain('/xb')
+      })
+
+      // No contextual panel open.
+      cy.get('[class*="contextualPanel"] h4').should('not.exist')
+    })
 })

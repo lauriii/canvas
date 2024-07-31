@@ -1,14 +1,12 @@
-.sideBar {
+.contextualPanel {
   position: fixed;
   top: var(--topbar-height);
-  height: calc(100vh - var(--topbar-height));
-  padding: var(--space-1);
-}
-
-.sideBarRight {
   right: 0;
   left: auto;
   width: var(--contextual-panel-width);
+  height: calc(100vh - var(--topbar-height));
+  padding: var(--space-1) var(--space-1) var(--space-1) 0;
+  background-color: #fff;
 }
 
 .handleContainer {

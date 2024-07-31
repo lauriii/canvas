@@ -98,12 +98,11 @@ describe('UI a11y Scan', () => {
     cy.get('[data-radix-menubar-content]').should('have.length', 1)
     cy.get('[role="menuitem"][aria-expanded="false"]').contains('Default components').click()
     cy.get('[data-radix-menubar-content]').should('have.length', 2)
-    cy.get('[role="dialog"][vaul-drawer-direction="right"][data-state="open"]').should('not.exist')
+    cy.get('[class*="contextualPanel"]').should('not.exist')
     cy.getIframeBody().find('[data-component-id="experience_builder:my-hero"] h1')
       .first()
       .trigger('click')
-    cy.get('[role="dialog"][vaul-drawer-direction="right"][data-state="open"] [data-drupal-selector="component-props-form"].component-props-form').should('exist')
-
+    cy.get('[class*="contextualPanel"] [data-drupal-selector="component-props-form"].component-props-form').should('exist')
 
     cy.injectAxe();
     // @todo there are several a11y rules not being checked in order for the

@@ -10,7 +10,6 @@ import ComponentIcon from '@assets/icons/sidebar/primary/component.svg';
 import SectionIcon from '@assets/icons/sidebar/primary/section.svg';
 import SearchPlaceholder from '@/components/sidebar/primary/SearchPlaceholder';
 import TreeView from '@/features/layout/tree/TreeView';
-import menuStyles from '@/components/sidebar/primary/PrimaryMenubar.module.css';
 import TooltipComponent from '@/components/Tooltip';
 import type React from 'react';
 import { useRef } from 'react';
@@ -125,7 +124,7 @@ const PrimaryMenubar = () => {
             onPointerEnter={preventHover}
             onPointerLeave={preventHover}
           >
-            <Menubar.Label className={menuStyles.MenubarLabel}>
+            <Menubar.Label className={styles.MenubarLabel}>
               Placeholder
             </Menubar.Label>
           </Menubar.Content>
@@ -156,7 +155,7 @@ const PrimaryMenubar = () => {
             onPointerEnter={preventHover}
             onPointerLeave={preventHover}
           >
-            <Menubar.Label className={menuStyles.MenubarLabel}>
+            <Menubar.Label className={styles.MenubarLabel}>
               Layers
             </Menubar.Label>
             <TreeView />

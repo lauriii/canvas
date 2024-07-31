@@ -1,7 +1,7 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { Provider } from 'react-redux';
-import App from '@/app/App';
+import AppRoutes from '@/app/AppRoutes';
 import { makeStore } from '@/app/store';
 import './index.css';
 import '@radix-ui/themes/styles.css';
@@ -35,9 +35,9 @@ if (container) {
     const root = createRoot(container);
     root.render(
       <React.StrictMode>
-        <Theme hasBackground={false} panelBackground="solid" appearance="dark">
+        <Theme hasBackground={false} panelBackground="solid" appearance="light">
           <Provider store={makeStore({ configuration: appConfiguration })}>
-            <App />
+            <AppRoutes />
           </Provider>
         </Theme>
       </React.StrictMode>,
