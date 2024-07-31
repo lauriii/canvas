@@ -249,6 +249,46 @@ describe('General Experience Builder', {testIsolation: false}, () => {
     })
   })
 
+  it('previews components on hover', () => {
+    cy.drupalLogin('xbUser', 'xbUser')
+    cy.drupalRelativeURL('xb')
+    cy.get('iframe[data-xb-preview]').should('exist')
+    cy.waitForElementInIframe('[data-xb-type="experience_builder:image"]')
+    cy.get('[data-radix-menubar-content]').should('have.length', 0, 'There is no menubar yet.')
+    cy.get('[data-hover-overlay="addElement"]').click()
+    cy.get('[data-radix-menubar-content]').should('have.length', 1, 'Menubar is present after clicking `[data-radix-menubar-content]`')
+    cy.get('[role="menuitem"][aria-expanded="false"]').contains('Default components').click()
+    cy.get('[data-radix-menubar-content]').should('have.length', 2)
+
+
+    const previewSelect = `[data-radix-popper-content-wrapper] > .ComponentPreviewContent`
+    const imageSelect = '.MenubarSubContent [data-xb-uuid="experience_builder:image"]'
+    const heroSelect = '.MenubarSubContent [data-xb-uuid="experience_builder:my-hero"]'
+
+    // Hover over "Image" and a preview should appear.
+    cy.get(`${imageSelect} > button`)
+      .should('exist')
+      .realHover()
+    cy.get(
+      `${imageSelect} ${previewSelect} img[alt="Boring placeholder"]`,
+      ).should('exist')
+
+    // Hover over "My Hero" and a preview should appear
+    cy.get(`${heroSelect} > button`)
+      .should('exist')
+      .realHover()
+    cy.get(
+      `.ComponentPreviewContent div.my-hero__container > .my-hero__actions > .my-hero__cta--primary`,
+    )
+      .should('exist')
+      .then(($cta) => {
+        expect(
+          window.getComputedStyle($cta[0])['background-color'],
+          'The "My Hero" SDC is styled'
+        ).to.equal('rgb(0, 123, 255)')
+    })
+  })
+
   it('uses react router successfully', () => {
       cy.drupalLogin('xbUser', 'xbUser')
       cy.drupalRelativeURL('xb')

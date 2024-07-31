@@ -13,3 +13,5 @@ props:
       examples:
         - src: https://placehold.co/600x400.png
           alt: 'Boring placeholder'
+          width: 600
+          height: 400

@@ -16,3 +16,15 @@
   justify-content: center;
   width: 100%;
 }
+
+.ComponentPreviewContent {
+  position: absolute;
+  user-select: none;
+  color: white;
+  border-radius: 4px;
+  will-change: transform, opacity;
+}
+
+.ComponentPreviewTrigger {
+  width: 100%;
+}

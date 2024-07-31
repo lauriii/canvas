@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, useState } from 'react';
 import styles from './List.module.css';
 import menuStyles from '@/components/sidebar/primary/PrimaryMenubar.module.css';
 import {
@@ -14,13 +14,23 @@ import { Box, Flex, Spinner, Text } from '@radix-ui/themes';
 import { customSortableDragImage } from '@/features/sortable/sortableUtils';
 import clsx from 'clsx';
 import * as Menubar from '@radix-ui/react-menubar';
+import * as Tooltip from '@radix-ui/react-tooltip';
+import type { Component } from '@/types/Component';
+
+interface PreviewCache {
+  [key: string]: string;
+}
 
 const List = () => {
   const dispatch = useAppDispatch();
   const { data: components, error, isLoading } = useGetComponentsQuery();
   const sortableInstance = useRef<Sortable | null>(null);
   const listElRef = useRef<HTMLDivElement>(null);
+  const previewMarkupRef = useRef<PreviewCache>({});
   const { isDragging } = useAppSelector(selectDragging);
+  const [previewContent, setPreviewContent] = useState<string>('');
+  const defaultPreviewHeight = 800;
+  const defaultPreviewWidth = 600;
 
   const handleDragStart = useCallback(() => {
     dispatch(setListDragging(true));
@@ -40,6 +50,100 @@ const List = () => {
     // closes it.
     dispatch(setPrimaryMenuActiveMenu(''));
   }, [dispatch]);
+
+  const handleMouseEnter = (component: Component) => {
+    // Use cached preview markup when available.
+    if (previewMarkupRef.current[component.name]) {
+      setPreviewContent(previewMarkupRef.current[component.name]);
+      return;
+    }
+
+    // Unless the user is on a very narrow viewport (which isn't
+    // ideal for working in XB), the component preview popup
+    // will not be as wide as the layout it should appear in.
+    // This is a good thing because the preview should not
+    // cover large portions of the layout.
+    // However, if the preview is generated based on the popup
+    // width, it will render as if presented on a narrow
+    // viewport. To mitigate this, we generate the preview based
+    // on larger "calc" dimensions, then scale that content down
+    // to fit the popup dimensions.
+    const calcWidth = '1200';
+    const calcHeight = '1600';
+
+    const scaledPreview = document.createElement('div');
+    Object.assign(scaledPreview.style, {
+      width: `${calcWidth}px`,
+      height: `${calcHeight}px`,
+      visibility: 'hidden',
+      position: 'absolute',
+    });
+    // Wrap the preview in a common parent so that can be used
+    // to get height/width of the full component.
+    scaledPreview.innerHTML = `<div data-common-parent>${component['default_markup']}</div>`;
+
+    // Append to body so the element has dimensions.
+    document.body.appendChild(scaledPreview);
+    const { offsetWidth, offsetHeight } = scaledPreview
+      .children[0] as HTMLElement;
+    // If the previewed component is smaller than both preview
+    // dimensions, reduce the container width and height
+    // to match the component dimensions.
+    if (
+      offsetWidth < defaultPreviewWidth &&
+      offsetHeight < defaultPreviewHeight
+    ) {
+      scaledPreview.style.width = `${offsetWidth}px`;
+      scaledPreview.style.height = `${offsetHeight}px`;
+    } else {
+      // If we are here, then one or more component dimensions
+      // exceed the preview maximums. We begin by determining
+      // how much each dimension exceeds their maximum.
+      const widthScale = defaultPreviewWidth / offsetWidth;
+      const heightScale = defaultPreviewHeight / offsetHeight;
+
+      Object.assign(scaledPreview.style, {
+        // Scale the preview to whichever dimension requires the
+        // most reduction to fit the preview container.
+        transform: `scale(${Math.min(widthScale, heightScale)})`,
+        transformOrigin: '0 0',
+        // When width needs the most reduction, explicitly set
+        // it, then set height to auto.
+        width:
+          widthScale < heightScale
+            ? `${scaledPreview.offsetWidth * widthScale}px`
+            : 'auto',
+        // When height needs the most reduction, explicitly set
+        // it, then set width to auto.
+        height:
+          widthScale > heightScale
+            ? `${scaledPreview.offsetHeight * heightScale}px`
+            : 'auto',
+      });
+    }
+
+    // Create another wrapper that exists in its actual size
+    // to contain the scaled-down div.
+    const previewWrapper = document.createElement('div');
+    previewWrapper.style.zIndex = '1';
+    previewWrapper.append(scaledPreview);
+
+    // Apply display styles and remove the visibility and
+    // position styling that were only needed for dimension
+    // assessment.
+    Object.assign(scaledPreview.style, {
+      overflow: 'hidden',
+      'border-radius': '16px',
+      'box-shadow': '4px 5px 13px 2px rgba(0,0,0,0.4)',
+      visibility: null,
+      position: null,
+    });
+
+    // Cache the preview markup in a ref.
+    previewMarkupRef.current[component.name] = previewWrapper.outerHTML;
+    setPreviewContent(previewWrapper.outerHTML);
+    // }}
+  };
 
   useEffect(() => {
     if (
@@ -109,8 +213,31 @@ const List = () => {
                       component.name,
                     )
                   }
+                  onMouseEnter={() => handleMouseEnter(component)}
                 >
-                  <Text>{component.name}</Text>
+                  <Tooltip.Root>
+                    <Tooltip.Trigger
+                      className={clsx(
+                        'ComponentPreviewTrigger',
+                        styles.ComponentPreviewTrigger,
+                      )}
+                    >
+                      <Text>{component.name}</Text>
+                    </Tooltip.Trigger>
+                    <Tooltip.Content
+                      side="right"
+                      className={clsx(
+                        'ComponentPreviewContent',
+                        styles.ComponentPreviewContent,
+                      )}
+                    >
+                      {previewContent && (
+                        <div
+                          dangerouslySetInnerHTML={{ __html: previewContent }}
+                        />
+                      )}
+                    </Tooltip.Content>
+                  </Tooltip.Root>
                 </div>
               ))}
           </Flex>

@@ -116,6 +116,16 @@ final class SdcController extends ControllerBase {
           ...$data,
         ];
       }
+      $assets = AttachedAssets::createFromRenderArray([
+        '#attached' => [
+          // @see \Drupal\Core\Plugin\Component::getLibraryName()
+          'library' => ['core/components.' . str_replace(':', '--', $component_plugin->getPluginId())],
+        ],
+      ]);
+
+      [$css] = $this->generateAssetsMarkup($assets);
+      $default_markup = (string) $this->prepareRenderArray($component_plugin->getPluginId())['markup'];
+
       return [
         'id' => $component_plugin->getPluginId(),
         'name' => $component_plugin->metadata->name,
@@ -123,7 +133,7 @@ final class SdcController extends ControllerBase {
         'field_data' => $keyed_choices,
         // A pre-rendered version of the component is provided so no requests
         // are needed when adding it to the layout.
-        'default_markup' => (string) $this->prepareRenderArray($component_plugin->getPluginId())['markup'],
+        'default_markup' => $css . $default_markup,
       ];
     }, $component_plugins);
 
@@ -153,6 +163,17 @@ final class SdcController extends ControllerBase {
     $components = array_filter($this->getComponentsList(), fn($component) => $component['id'] === $component_id);
     assert(!empty($components));
     return new JsonResponse(reset($components));
+  }
+
+  public function generateAssetsMarkup(AttachedAssets $assets): array {
+    $css_array = $this->cssCollectionRenderer->render($this->assetResolver->getCssAssets($assets, FALSE));
+    [$head_assets, $foot_assets] = $this->assetResolver->getJsAssets($assets, FALSE);
+    $head_array = $this->jsCollectionRenderer->render($head_assets);
+    $foot_array = $this->jsCollectionRenderer->render($foot_assets);
+    $css = $this->renderer->render($css_array);
+    $js_head = $this->renderer->render($head_array);
+    $js_foot = $this->renderer->render($foot_array);
+    return [$css, $js_head, $js_foot];
   }
 
   /**
@@ -324,14 +345,7 @@ final class SdcController extends ControllerBase {
     $this->renderer->renderInIsolation($build);
 
     $assets = AttachedAssets::createFromRenderArray($build);
-    $css_array = $this->cssCollectionRenderer->render($this->assetResolver->getCssAssets($assets, FALSE));
-    [$head_assets, $foot_assets] = $this->assetResolver->getJsAssets($assets, FALSE);
-    $head_array = $this->jsCollectionRenderer->render($head_assets);
-    $foot_array = $this->jsCollectionRenderer->render($foot_assets);
-    $css = $this->renderer->render($css_array);
-    $js_head = $this->renderer->render($head_array);
-    $js_foot = $this->renderer->render($foot_array);
-
+    [$css, $js_head, $js_foot] = $this->generateAssetsMarkup($assets);
     $html = <<<HTML
 <!doctype html>
 <html lang="en">
