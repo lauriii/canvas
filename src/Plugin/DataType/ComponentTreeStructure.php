@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Drupal\experience_builder\Plugin\DataType;
 
+use Drupal\Component\Graph\Graph;
 use Drupal\Component\Serialization\Json;
+use Drupal\Component\Utility\SortArray;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\TypedData\Attribute\DataType;
 use Drupal\Core\TypedData\TypedData;
@@ -82,10 +84,14 @@ class ComponentTreeStructure extends TypedData {
    *    Because all config entities have a corresponding Component plugin, and it is not possible to have 2 config entities that relate to the same plugin, this works.
    *    It is a bit confusing but probably not worth fixing as this will all change in https://drupal.org/i/3454519.
    *
-   * @var array<string,array<int, array{'uuid': string, 'component': string}>|array<string, array<int, array{'uuid': string, 'component': string}>>
-   * >
+   * @var array<string,array<int, array{'uuid': string, 'component': string}>|array<string, array<int, array{'uuid': string, 'component': string}>>>
    */
   protected array $tree = [];
+
+  /**
+   * @var null|array<string, array{'edges': array<string, TRUE>}>
+   */
+  protected ?array $graph = NULL;
 
   /**
    * {@inheritdoc}
@@ -113,6 +119,10 @@ class ComponentTreeStructure extends TypedData {
     // @todo Delete next line; update this code to ONLY do the JSON-to-PHP-object parsing after https://www.drupal.org/project/drupal/issues/2232427 lands — that will allow specifying the "json" serialization strategy rather than only PHP's serialize().
     $this->value = $value;
     $this->tree = Json::decode($value);
+
+    // Keep the graph representation in sync: force it to be recomputed.
+    $this->graph = NULL;
+
     // Notify the parent of any changes.
     if ($notify && isset($this->parent)) {
       $this->parent->onChange($this->name);
@@ -160,6 +170,73 @@ class ComponentTreeStructure extends TypedData {
     // @see \Drupal\experience_builder\Plugin\Validation\Constraint\ValidComponentTreeConstraintValidator
     // @phpstan-ignore-next-line
     return $components;
+  }
+
+  /**
+   * Constructs a depth-first graph based on the given tree.
+   *
+   * @param array<string,array<int, array{'uuid': string, 'component': string}>|array<string, array<int, array{'uuid': string, 'component': string}>>> $tree
+   *
+   * @return array<string, array{'edges': array<string, TRUE>}>
+   *
+   * @see \Drupal\Component\Graph\Graph
+   */
+  private static function constructDepthFirstGraph(array $tree): array {
+    // Transform the tree to the input expected by Drupal's Graph utility.
+    $graph = [];
+    foreach ($tree as $component_subtree_uuid => $value) {
+      if ($component_subtree_uuid === self::ROOT_UUID) {
+        foreach (array_column($value, 'uuid') as $component_instance_uuid) {
+          assert(is_string($component_instance_uuid));
+          $graph[$component_subtree_uuid]['edges'][$component_instance_uuid] = TRUE;
+        }
+        continue;
+      }
+
+      foreach ($value as $slot => $component_instances) {
+        $graph[$component_subtree_uuid]['edges']["$component_subtree_uuid:$slot"] = TRUE;
+        foreach (array_column($component_instances, 'uuid') as $component_instance_uuid) {
+          $graph["$component_subtree_uuid:$slot"]['edges'][$component_instance_uuid] = TRUE;
+        }
+      }
+    }
+
+    // Use Drupal's battle-hardened Graph utility.
+    $sorted_graph = (new Graph($graph))->searchAndSort();
+
+    // Sort by weight, then reverse: this results in a depth-first sorted graph.
+    uasort($sorted_graph, [SortArray::class, 'sortByWeightElement']);
+    $reverse_sorted_graph = array_reverse($sorted_graph);
+
+    return $reverse_sorted_graph;
+  }
+
+  /**
+   * @return \Generator<string, array{'slot': string, 'uuid': string}>
+   */
+  public function getSlotChildrenDepthFirst(): \Generator {
+    if ($this->graph === NULL) {
+      $this->graph = self::constructDepthFirstGraph($this->tree);
+    }
+    foreach ($this->graph as $vertex_key => $vertex) {
+      // This method is concerned only with component instances in slots. Those
+      // are easily identified by their vertex key: they must contain a colon,
+      // which separates the parent component instance UUID from the slot name.
+      if (!str_contains($vertex_key, ':')) {
+        continue;
+      }
+      [$parent_uuid, $slot] = explode(':', $vertex_key, 2);
+
+      // For each vertex (after the filtering above), all edges represent
+      // child component instances placed in this slot.
+      foreach (array_keys($vertex['edges']) as $component_instance_uuid) {
+        assert(is_string($component_instance_uuid));
+        yield $parent_uuid => [
+          'slot' => $slot,
+          'uuid' => $component_instance_uuid,
+        ];
+      }
+    }
   }
 
   /**

@@ -19,6 +19,7 @@ toolset
 topbar
 Validatable
 drupalcode
+renderify
 subcontent
 subtrigger
 testid

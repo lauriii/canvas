@@ -6,13 +6,14 @@ namespace Drupal\experience_builder\Controller;
 
 use Drupal\Core\Asset\AssetCollectionRendererInterface;
 use Drupal\Core\Asset\AssetResolverInterface;
+use Drupal\Core\Render\Element;
+use Drupal\Core\TypedData\TypedDataManagerInterface;
 use Drupal\experience_builder\FieldForComponentSuggester;
 use Drupal\Core\Asset\AttachedAssets;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Render\RendererInterface;
 use Drupal\Core\Theme\ComponentPluginManager;
 use Drupal\experience_builder\Entity\Component;
-
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeHydrated;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
@@ -25,6 +26,17 @@ use Drupal\node\Entity\Node;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
+
+// phpcs:disable
+// @todo Remove this — this was added to avoid breaking the client while finalizing the server.
+final class HardcodedPropsComponentTreeItem extends ComponentTreeItem {
+  public array $hardcoded_props = [];
+  public function resolveComponentProps(string $component_instance_uuid): array {
+    // @todo the current quick-and-dirty UI PoC unfortunately prevents any prop from being named `name`, because it expects that to convey the component name — but it's not actually one of the props consumed by the SDC.
+    return array_diff_key($this->hardcoded_props[$component_instance_uuid], ['name' => NULL]);
+  }
+}
+// phpcs:enable
 
 final class SdcController extends ControllerBase {
 
@@ -43,6 +55,7 @@ final class SdcController extends ControllerBase {
     protected AssetResolverInterface $assetResolver,
     protected AssetCollectionRendererInterface $cssCollectionRenderer,
     protected AssetCollectionRendererInterface $jsCollectionRenderer,
+    private readonly TypedDataManagerInterface $typedDataManager,
   ) {}
 
   /**
@@ -56,6 +69,7 @@ final class SdcController extends ControllerBase {
       $container->get('asset.resolver'),
       $container->get('asset.css.collection_renderer'),
       $container->get('asset.js.collection_renderer'),
+      $container->get(TypedDataManagerInterface::class)
     );
   }
 
@@ -200,7 +214,7 @@ final class SdcController extends ControllerBase {
     $hydrated_json = $hydrated->getValue()->getContent();
     assert(is_string($hydrated_json));
 
-    // @todo tree recursion/slot support — this only supports a flat list — blocked on https://www.drupal.org/project/experience_builder/issues/3455728
+    // @todo tree recursion/slot support — this only supports a flat list — do this in https://www.drupal.org/project/experience_builder/issues/3446722
     $children = [];
     foreach (json_decode($tree->getValue(), TRUE)[ComponentTreeStructure::ROOT_UUID] as ['uuid' => $component_instance_uuid, 'component' => $component_type]) {
       $children[] = [
@@ -212,7 +226,7 @@ final class SdcController extends ControllerBase {
     }
 
     $model = [];
-    foreach (json_decode($hydrated_json, TRUE) as $component_instance_uuid => ['props' => $resolved_prop_values]) {
+    foreach (json_decode($hydrated_json, TRUE)[ComponentTreeStructure::ROOT_UUID] as $component_instance_uuid => ['props' => $resolved_prop_values]) {
       $model[$component_instance_uuid] = $resolved_prop_values;
       $component_id = $tree->getComponentId($component_instance_uuid);
       // @todo the current quick-and-dirty UI PoC unfortunately prevents any prop from being named `name`, because it expects that to convey the component name
@@ -239,28 +253,77 @@ final class SdcController extends ControllerBase {
     ]);
   }
 
-  public function preview(Request $request): JsonResponse {
-    $component_list = array_map(fn($component) => $component->getPluginId(), $this->componentPluginManager->getAllComponents());
-    ['layout' => $layout, 'model' => $model] = json_decode($request->getContent(), TRUE);
-    $component_and_other_names = [];
-
-    // Get all components in the layout, at any depth.
-    array_walk_recursive($layout, function ($value, $key) use (&$component_and_other_names) {
-      if ($key == 'type') {
-        $component_and_other_names[] = $value;
+  private static function clientLayoutToServerTree(array $layout, string $parent_uuid, ?string $parent_slot, array &$tree) : void {
+    foreach ($layout['children'] as $child) {
+      if ($child['nodeType'] === 'slot') {
+        // @todo This indicates the client model does not quite make sense: SDC slots do NOT have UUIDs, but names!
+        self::clientLayoutToServerTree($child, $parent_uuid, $child['uuid'], $tree);
+        continue;
       }
-    });
 
-    // Remove duplicates and non-components.
-    $components_in_use = array_filter(array_unique($component_and_other_names), fn($item) => in_array($item, $component_list, TRUE));
+      // Root level.
+      if (!isset($parent_slot)) {
+        $tree[$parent_uuid][] = [
+          'uuid' => $child['uuid'],
+          'component' => $child['type'],
+        ];
+      }
+      // All other levels.
+      else {
+        $tree[$parent_uuid][$parent_slot][] = [
+          'uuid' => $child['uuid'],
+          'component' => $child['type'],
+        ];
+      }
+    }
+  }
 
-    $assets = AttachedAssets::createFromRenderArray([
-      '#attached' => [
-        // @see \Drupal\Core\Plugin\Component::getLibraryName()
-        'library' => array_map(fn($name) => 'core/components.' . str_replace(':', '--', $name), $components_in_use),
-      ],
+  /**
+   * Transform the `layout` + `model` data structure that the client uses.
+   *
+   * This is the server side, so transform to the representation used by the
+   * server-side field type. This allows reusing all of the field type
+   * infrastructure, which is also used for
+   * final rendering.
+   *
+   * @see \Drupal\experience_builder\Plugin\Field\FieldFormatter\NaiveComponentTreeFormatter
+   */
+  private function clientLayoutAndModelToXbField(array $layout, array $model): ComponentTreeItem {
+    $field_item_definition = $this->typedDataManager->createDataDefinition('field_item:component_tree');
+    // @phpstan-ignore-next-line
+    $field_item_definition->setClass(HardcodedPropsComponentTreeItem::class);
+    $component_tree_field_item = $this->typedDataManager->createInstance('field_item:component_tree', [
+      'name' => NULL,
+      'parent' => NULL,
+      'data_definition' => $field_item_definition,
     ]);
 
+    // Transform `layout` to `tree`.
+    // @see \Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure
+    $tree = [ComponentTreeStructure::ROOT_UUID => []];
+    self::clientLayoutToServerTree($layout, ComponentTreeStructure::ROOT_UUID, NULL, $tree);
+
+    // This uses a partial override of the XB field type, because the client is
+    // sending explicit prop values in its `model`, not prop sources. Use these
+    // directly.
+    // @see \Drupal\experience_builder\Controller\HardcodedPropsComponentTreeItem::resolveComponentProps()
+    assert($component_tree_field_item instanceof HardcodedPropsComponentTreeItem);
+    $component_tree_field_item->setValue([
+      'tree' => json_encode($tree, JSON_UNESCAPED_UNICODE | JSON_FORCE_OBJECT),
+    ]);
+    $component_tree_field_item->hardcoded_props = $model;
+
+    return $component_tree_field_item;
+  }
+
+  public function preview(Request $request): JsonResponse {
+    ['layout' => $layout, 'model' => $model] = json_decode($request->getContent(), TRUE);
+    $component_tree_field_item = $this->clientLayoutAndModelToXbField($layout, $model);
+
+    $build = self::wrapComponentsForPreview($component_tree_field_item->toRenderable());
+    $this->renderer->renderInIsolation($build);
+
+    $assets = AttachedAssets::createFromRenderArray($build);
     $css_array = $this->cssCollectionRenderer->render($this->assetResolver->getCssAssets($assets, FALSE));
     [$head_assets, $foot_assets] = $this->assetResolver->getJsAssets($assets, FALSE);
     $head_array = $this->jsCollectionRenderer->render($head_assets);
@@ -287,21 +350,7 @@ HTML;
 <body>
     <div class="sortable-list" data-xb-uuid="root">
 HTML;
-    // @todo tree recursion — this only supports a flat list
-    // @todo Refactor to use \Drupal\experience_builder\Plugin\DataType\ComponentTreeHydrated.
-    foreach ($layout['children'] as ['uuid' => $uuid, 'type' => $type]) {
-      $html .= sprintf('<div class="sortable-item" data-xb-uuid="%s" data-xb-type="%s">', $uuid, $type);
-      // @todo the current quick-and-dirty UI PoC unfortunately prevents any prop from being named `name`, because it expects that to convey the component name — but it's not actually one of the props consumed by the SDC.
-      unset($model[$uuid]['name']);
-      $build = [
-        '#type' => 'component',
-        '#component' => $type,
-        '#props' => $model[$uuid],
-      ];
-      // @todo support CSS + JS
-      $html .= $this->renderer->renderInIsolation($build);
-      $html .= '</div>';
-    }
+    $html .= $build['#markup'];
     $html .= <<<HTML
 </body>
 HTML;
@@ -313,6 +362,18 @@ HTML;
     return new JsonResponse([
       'html' => $html,
     ]);
+  }
+
+  private static function wrapComponentsForPreview(array $build, ?string $component_instance_uuid = NULL): array {
+    if (isset($build['#component'])) {
+      assert(is_string($component_instance_uuid));
+      $build['#prefix'] = sprintf('<div class="sortable-item" data-xb-uuid="%s" data-xb-type="%s">', $component_instance_uuid, $build['#component']);
+      $build['#suffix'] = '</div>';
+    }
+    foreach (Element::children($build) as $component_instance_uuid) {
+      $build[$component_instance_uuid] = self::wrapComponentsForPreview($build[$component_instance_uuid], $component_instance_uuid);
+    }
+    return $build;
   }
 
   /**

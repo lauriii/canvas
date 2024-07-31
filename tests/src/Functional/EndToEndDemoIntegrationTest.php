@@ -292,53 +292,50 @@ class EndToEndDemoIntegrationTest extends BrowserTestBase {
     $hydrated = $node->get('field_xb_demo')[0]->get('hydrated');
     $this->assertInstanceOf(ComponentTreeHydrated::class, $hydrated);
     $this->assertEquals([
-      'dynamic-image-udf7d' => [
-        'component' => 'experience_builder:image',
-        'props' => [
-          'image' => [
-            'src' => File::load(1)->getFileUri(),
-            'alt' => 'A random image for testing purposes.',
-            'width' => 40,
-            'height' => 20,
+      ComponentTreeStructure::ROOT_UUID => [
+        'dynamic-image-udf7d' => [
+          'component' => 'experience_builder:image',
+          'props' => [
+            'image' => [
+              'src' => File::load(1)->getFileUri(),
+              'alt' => 'A random image for testing purposes.',
+              'width' => 40,
+              'height' => 20,
+            ],
           ],
         ],
-        'slots' => [],
-      ],
-      'static-static-card1ab' => [
-        'component' => 'experience_builder:my-hero',
-        'props' => [
-          'heading' => 'hello, world!',
-          'cta1href' => 'https://drupal.org',
-        ],
-        'slots' => [],
-      ],
-      'dynamic-static-card2df' => [
-        'component' => 'experience_builder:my-hero',
-        'props' => [
-          'heading' => $node->getTitle(),
-          'cta1href' => 'https://drupal.org',
-        ],
-        'slots' => [],
-      ],
-      'dynamic-dynamic-card3rr' => [
-        'component' => 'experience_builder:my-hero',
-        'props' => [
-          'heading' => $node->getTitle(),
-          'cta1href' => File::load(1)->getFileUri(),
-        ],
-        'slots' => [],
-      ],
-      'dynamic-image-static-imageStyle-something7d' => [
-        'component' => 'experience_builder:image',
-        'props' => [
-          'image' => [
-            'src' => ImageStyle::load('thumbnail')->buildUrl(File::load(1)->getFileUri()),
-            'alt' => 'A random image for testing purposes.',
-            'width' => 40,
-            'height' => 20,
+        'static-static-card1ab' => [
+          'component' => 'experience_builder:my-hero',
+          'props' => [
+            'heading' => 'hello, world!',
+            'cta1href' => 'https://drupal.org',
           ],
         ],
-        'slots' => [],
+        'dynamic-static-card2df' => [
+          'component' => 'experience_builder:my-hero',
+          'props' => [
+            'heading' => $node->getTitle(),
+            'cta1href' => 'https://drupal.org',
+          ],
+        ],
+        'dynamic-dynamic-card3rr' => [
+          'component' => 'experience_builder:my-hero',
+          'props' => [
+            'heading' => $node->getTitle(),
+            'cta1href' => File::load(1)->getFileUri(),
+          ],
+        ],
+        'dynamic-image-static-imageStyle-something7d' => [
+          'component' => 'experience_builder:image',
+          'props' => [
+            'image' => [
+              'src' => ImageStyle::load('thumbnail')->buildUrl(File::load(1)->getFileUri()),
+              'alt' => 'A random image for testing purposes.',
+              'width' => 40,
+              'height' => 20,
+            ],
+          ],
+        ],
       ],
       // @phpstan-ignore-next-line
     ], json_decode($hydrated->getValue()->getContent(), TRUE));
