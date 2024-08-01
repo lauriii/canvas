@@ -1,7 +1,6 @@
 import { a2p } from '@/local_packages/utils.js';
 import { createContext, useState } from 'react';
 import type * as React from 'react';
-import styles from './Form.module.css';
 
 interface FormProps {
   attributes: {
@@ -29,8 +28,6 @@ const Form = ({
   const [formState, setFormState] = useState({
     formId: attributes['data-drupal-selector'] || '',
   });
-  const existingClass = attributes.class || '';
-  attributes.class = `${existingClass} ${styles.componentFieldForm}`;
 
   return (
     <FormStateContext.Provider value={formState}>
