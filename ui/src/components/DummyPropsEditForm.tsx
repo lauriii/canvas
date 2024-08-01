@@ -18,6 +18,7 @@ const { Drupal } = window as any;
 
 interface PropData {
   sourceType?: string;
+  sourceTypeSettings?: object;
   expression?: string;
   value?: any;
 }
@@ -134,6 +135,12 @@ const DummyPropsEditForm: React.FC<DummyPropsEditFormProps> = () => {
         preparedModel[selectedComponent as keyof PreparedModel][
           propName
         ].sourceType = propData.sourceType;
+      }
+      // Some sourceTypes may have additional settings (e.g. for indicating valid choices in an SDC's `enum`.)
+      if (propData.sourceTypeSettings) {
+        preparedModel[selectedComponent as keyof PreparedModel][
+          propName
+        ].sourceTypeSettings = propData.sourceTypeSettings;
       }
       // The expression of the prop is required by the component edit form. This
       // information is provided to the UI in the components list returned by

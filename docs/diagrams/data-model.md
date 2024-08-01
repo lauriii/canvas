@@ -26,6 +26,18 @@ classDiagram
         slots
         render(PropSources)
     }
+    class PropShape {
+        array JSON schema
+    }
+    Component <|-- PropShape: Describes 1 prop
+    class StorablePropShape {
+        PropShape shape
+        PropExpression fieldTypeProp
+        string fieldWidget
+        array fieldStorageSettings
+    }
+    PropShape <|-- StorablePropShape: Defines storage
+    StaticPropSource <|-- StorablePropShape: Can generate
     class PropSource {
         sourceType
     }
@@ -36,8 +48,9 @@ classDiagram
         PropExpression expression
     }
     class StaticPropSource {
-        string value
         PropExpression expression
+        array fieldStorageSettings
+        string value
     }
     class AdaptedPropSource {
         string adapterPlugin

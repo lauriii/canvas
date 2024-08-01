@@ -8,7 +8,6 @@ use Drupal\Core\Asset\AssetCollectionRendererInterface;
 use Drupal\Core\Asset\AssetResolverInterface;
 use Drupal\Core\Render\Element;
 use Drupal\Core\TypedData\TypedDataManagerInterface;
-use Drupal\experience_builder\FieldForComponentSuggester;
 use Drupal\Core\Asset\AttachedAssets;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Render\RendererInterface;
@@ -18,10 +17,7 @@ use Drupal\experience_builder\Plugin\DataType\ComponentTreeHydrated;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\experience_builder\PropExpressions\Component\ComponentPropExpression;
-use Drupal\experience_builder\PropExpressions\StructuredData\FieldTypeObjectPropsExpression;
-use Drupal\experience_builder\PropExpressions\StructuredData\FieldTypePropExpression;
-use Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldTypePropExpression;
-use Drupal\experience_builder\PropSource\StaticPropSource;
+use Drupal\experience_builder\PropShape;
 use Drupal\node\Entity\Node;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -43,7 +39,6 @@ final class SdcController extends ControllerBase {
   /**
    * @param \Drupal\Core\Theme\ComponentPluginManager $componentPluginManager
    * @param \Drupal\Core\Render\RendererInterface $renderer
-   * @param \Drupal\experience_builder\FieldForComponentSuggester $fieldForComponentSuggester
    * @param \Drupal\Core\Asset\AssetResolverInterface $assetResolver
    * @param \Drupal\Core\Asset\AssetCollectionRendererInterface $cssCollectionRenderer
    * @param \Drupal\Core\Asset\AssetCollectionRendererInterface $jsCollectionRenderer
@@ -51,7 +46,6 @@ final class SdcController extends ControllerBase {
   public function __construct(
     private readonly ComponentPluginManager $componentPluginManager,
     private readonly RendererInterface $renderer,
-    private readonly FieldForComponentSuggester $fieldForComponentSuggester,
     protected AssetResolverInterface $assetResolver,
     protected AssetCollectionRendererInterface $cssCollectionRenderer,
     protected AssetCollectionRendererInterface $jsCollectionRenderer,
@@ -65,7 +59,6 @@ final class SdcController extends ControllerBase {
     return new static(
       $container->get('plugin.manager.sdc'),
       $container->get('renderer'),
-      $container->get('Drupal\experience_builder\FieldForComponentSuggester'),
       $container->get('asset.resolver'),
       $container->get('asset.css.collection_renderer'),
       $container->get('asset.js.collection_renderer'),
@@ -80,41 +73,40 @@ final class SdcController extends ControllerBase {
    *   The array or single directory components.
    */
   private function getComponentsList(): array {
-    $component_plugins = [];
+    $component_list = [];
     foreach (Component::loadMultiple() as $component) {
-      $component_plugins[] = $this->componentPluginManager->find($component->getComponentMachineName());
-    }
-
-    $component_list = array_map(function ($component_plugin) {
-      $choices = $this->fieldForComponentSuggester->suggest($component_plugin->getPluginId(), NULL);
+      $component_plugin = $this->componentPluginManager->find($component->getComponentMachineName());
       $keyed_choices = [];
-      foreach ($choices as $component_prop_string => $data) {
-        $component_prop_expression = ComponentPropExpression::fromString($component_prop_string);
-        $prop_name = $component_prop_expression->propName;
-        if (empty($data['types'])) {
+      foreach (PropShape::getComponentProps($component_plugin) as $component_prop_expression => $prop_shape) {
+        // @todo Remove this fallback logic in https://www.drupal.org/project/experience_builder/issues/3463999, and rely solely on what is defined in the Component config entity. This non-ideal issue merging order was chosen to allow https://www.drupal.org/project/experience_builder/issues/3463583 to be worked on sooner.
+        $storable_prop_shape = $prop_shape->findFieldTypeStorage();
+        // @todo Remove this once every SDC prop shape can be stored.
+        // @todo Create a status report that lists which SDC props are not storable.
+        if (!$storable_prop_shape) {
           continue;
         }
+        $static_prop_source = $storable_prop_shape->toStaticPropSource();
+        $component_prop = ComponentPropExpression::fromString($component_prop_expression);
 
-        // The final suggested type is typically the most likely one.
-        $selected_suggestion = end($data['types']);
-        assert($selected_suggestion instanceof FieldTypePropExpression || $selected_suggestion instanceof FieldTypeObjectPropsExpression || $selected_suggestion instanceof ReferenceFieldTypePropExpression);
-
-        // Default prop values are provided in the prop metadata since they will
-        // be the same for every newly added SDC instance.
-        $prop_info = ($component_plugin->metadata->schema['properties'] ?? [])[$prop_name];
-        $default_values = isset($prop_info['examples']) ? $prop_info['examples'][0] : $this->getDefaultValueFromPropInfo($prop_info);
-
-        // Expression and Source Type are needed for generating an SDCs prop
-        // edit form in the UI app.
-        $expression = (string) $selected_suggestion;
-        $source_type = StaticPropSource::generate($selected_suggestion)->getSourceType();
-
-        $keyed_choices[$component_prop_expression->propName] = [
-          'expression' => $expression,
-          'sourceType' => $source_type,
-          'default_values' => $default_values,
-          ...$data,
+        $keyed_choices[$component_prop->propName] = [
+          'expression' => (string) $storable_prop_shape->fieldTypeProp,
+          'sourceType' => $static_prop_source->getSourceType(),
+          'required' => in_array($component_prop->propName, $component_plugin->metadata->schema['required'] ?? [], TRUE),
         ];
+        $prop_info = ($component_plugin->metadata->schema['properties'] ?? [])[$component_prop->propName];
+        // Provide defaults if they are specified on the SDC *or* if they are
+        // required. If they're required and no example is specified: generate a
+        // value.
+        if ($keyed_choices[$component_prop->propName]['required'] || isset($prop_info['examples'])) {
+          // @todo Revisit in https://www.drupal.org/project/experience_builder/issues/3455942.
+          $keyed_choices[$component_prop->propName]['default_values'] = isset($prop_info['examples'])
+            ? $prop_info['examples'][0]
+            : $this->getDefaultValueFromPropInfo($prop_info);
+        }
+        if ($storable_prop_shape->fieldStorageSettings !== NULL) {
+          $keyed_choices[$component_prop->propName]['sourceTypeSettings'] = $storable_prop_shape->fieldStorageSettings;
+        }
+        // TRICKY: widget is determined on server side again, that will be removed in https://www.drupal.org/project/experience_builder/issues/3463999.
       }
       $assets = AttachedAssets::createFromRenderArray([
         '#attached' => [
@@ -126,7 +118,7 @@ final class SdcController extends ControllerBase {
       [$css] = $this->generateAssetsMarkup($assets);
       $default_markup = (string) $this->prepareRenderArray($component_plugin->getPluginId())['markup'];
 
-      return [
+      $component_list[] = [
         'id' => $component_plugin->getPluginId(),
         'name' => $component_plugin->metadata->name,
         'metadata' => $component_plugin->metadata,
@@ -135,7 +127,7 @@ final class SdcController extends ControllerBase {
         // are needed when adding it to the layout.
         'default_markup' => $css . $default_markup,
       ];
-    }, $component_plugins);
+    }
 
     // Component array is keyed by ID.
     return array_combine(array_column($component_list, 'id'), $component_list);
@@ -206,7 +198,13 @@ final class SdcController extends ControllerBase {
     $metadata = $component->metadata;
     $properties = $metadata->schema['properties'] ?? [];
     foreach ($properties as $prop_name => $prop_info) {
-      self::populatePropValues($build, [], $prop_name, $prop_info);
+      // Provide defaults if they are specified on the SDC *or* if they are
+      // required. If they're required and no example is specified: generate a
+      // value.
+      // @todo Revisit in https://www.drupal.org/project/experience_builder/issues/3455942.
+      if (isset($prop_info['examples']) || in_array($prop_name, $metadata->schema['required'] ?? [])) {
+        self::populatePropValues($build, [], $prop_name, $prop_info);
+      }
     }
 
     $rendered_component = $this->renderer->render($build);
@@ -418,6 +416,9 @@ HTML;
       }
     }
     else {
+      if ($prop_name === 'attributes') {
+        return;
+      }
       $value = $this->getDefaultValueFromPropInfo($prop_info);
     }
 

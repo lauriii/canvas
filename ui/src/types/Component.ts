@@ -4,7 +4,8 @@ export interface FieldData {
 
 export interface FieldDataItem {
   expression: string;
-  sourceTypes: string;
+  sourceType: string;
+  sourceTypeSettings?: object;
   default_values: object;
   [x: string | number | symbol]: unknown;
 }

@@ -6,15 +6,15 @@ namespace Drupal\experience_builder\PropSource;
 
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Entity\Plugin\DataType\EntityAdapter;
-use Drupal\Core\Field\BaseFieldDefinition;
-use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Field\FieldItemInterface;
 use Drupal\Core\Field\FieldItemList;
 use Drupal\Core\Field\TypedData\FieldItemDataDefinitionInterface;
 use Drupal\Core\Field\WidgetInterface;
 use Drupal\Core\Field\WidgetPluginManager;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\TypedData\DataDefinition;
 use Drupal\Core\TypedData\TypedDataManagerInterface;
+use Drupal\experience_builder\FieldStorageDefinition;
 use Drupal\experience_builder\PropExpressions\StructuredData\Evaluator;
 use Drupal\experience_builder\PropExpressions\StructuredData\FieldTypeObjectPropsExpression;
 use Drupal\experience_builder\PropExpressions\StructuredData\FieldTypePropExpression;
@@ -23,13 +23,18 @@ use Drupal\experience_builder\PropExpressions\StructuredData\StructuredDataPropE
 use Drupal\experience_builder\PropExpressions\StructuredData\StructuredDataPropExpressionInterface;
 
 /**
- * @todo Finalize name. "Fixed" might be better. "Local" might be even better?
+ * @todo Finalize name. "Fixed", "Local" and "Stored" all seem better. (Note: "Stored" would match nicely with StorablePropShape.)
  */
 final class StaticPropSource extends PropSourceBase {
 
   public function __construct(
     private readonly FieldItemInterface $fieldItem,
     private readonly StructuredDataPropExpressionInterface $expression,
+    // - (optionally) which storage settings to specify for an instance of this
+    //   field type — crucial for e.g. the `enum` use case. Note that in theory
+    //   is the same as $this->fieldItem->getFieldDefinition()->getSettings(),
+    //   but in practice that is unusable: it contains all default settings too.
+    private readonly ?array $fieldStorageSettings = NULL,
   ) {}
 
   /**
@@ -43,15 +48,19 @@ final class StaticPropSource extends PropSourceBase {
    * {@inheritdoc}
    */
   public function __toString(): string {
-    // @phpstan-ignore-next-line
-    return json_encode([
+    $array_representation = [
       'sourceType' => $this->getSourceType(),
       'value' => $this->getValue(),
       'expression' => (string) $this->expression,
-    ], JSON_UNESCAPED_UNICODE);
+    ];
+    if ($this->fieldStorageSettings !== NULL) {
+      $array_representation['sourceTypeSettings'] = $this->fieldStorageSettings;
+    }
+    // @phpstan-ignore-next-line
+    return json_encode($array_representation, JSON_UNESCAPED_UNICODE);
   }
 
-  private static function conjureFieldItem(FieldTypePropExpression|FieldTypeObjectPropsExpression|ReferenceFieldTypePropExpression $expression): FieldItemInterface {
+  private static function conjureFieldItem(FieldTypePropExpression|FieldTypeObjectPropsExpression|ReferenceFieldTypePropExpression $expression, ?array $field_storage_settings): FieldItemInterface {
     $typed_data_manager = \Drupal::service(TypedDataManagerInterface::class);
 
     // First: conjure the expected FieldItem instance.
@@ -59,7 +68,16 @@ final class StaticPropSource extends PropSourceBase {
       ? $expression->referencer->fieldType
       : $expression->fieldType;
     $data_type = "field_item:" . $field_type;
-    $field_item_definition = $typed_data_manager->createDataDefinition($data_type);
+
+    // TRICKY: this does not work due to it using BaseFieldDefinition, and BaseFieldDefinition::getOptionsProvider() assuming it to exist on the host entity. Hence the use of XB's own \Drupal\experience_builder\FieldStorageDefinition.
+    // @see \Drupal\Core\Field\TypedData\FieldItemDataDefinition::createFromDataType()
+    // @todo Refactor this after https://www.drupal.org/node/2280639 is fixed.
+    // $field_item_definition = $typed_data_manager->createDataDefinition($data_type);
+    $field_item_definition = FieldStorageDefinition::create($field_type)->getItemDefinition();
+    assert($field_item_definition instanceof DataDefinition);
+    if ($field_storage_settings) {
+      $field_item_definition->setSettings($field_storage_settings + $field_item_definition->getSettings());
+    }
     assert($field_item_definition instanceof FieldItemDataDefinitionInterface);
     $field_item = $typed_data_manager->createInstance($data_type, [
       'name' => NULL,
@@ -73,8 +91,24 @@ final class StaticPropSource extends PropSourceBase {
   /**
    * Generates a new (empty) prop source.
    */
-  public static function generate(FieldTypePropExpression|FieldTypeObjectPropsExpression|ReferenceFieldTypePropExpression $expression): static {
-    return new StaticPropSource(self::conjureFieldItem($expression), $expression);
+  public static function generate(FieldTypePropExpression|FieldTypeObjectPropsExpression|ReferenceFieldTypePropExpression $expression, ?array $field_storage_settings = NULL): static {
+    return new StaticPropSource(self::conjureFieldItem($expression, $field_storage_settings), $expression, $field_storage_settings);
+  }
+
+  /**
+   * @return \Drupal\experience_builder\PropSource\StaticPropSource
+   *
+   * @see \Drupal\Core\Field\FieldItemList::generateSampleItems()
+   */
+  public function randomizeValue(): static {
+    $field_item = clone $this->fieldItem;
+    $field_type_class = $field_item->getDataDefinition()->getClass();
+    $field_item->setValue($field_type_class::generateSampleValue($field_item->getFieldDefinition()));
+    return new StaticPropSource(
+      $field_item,
+      $this->expression,
+      $this->fieldStorageSettings,
+    );
   }
 
   /**
@@ -92,14 +126,20 @@ final class StaticPropSource extends PropSourceBase {
     $expression = StructuredDataPropExpression::fromString($sdc_prop_source['expression']);
     assert($expression instanceof FieldTypePropExpression || $expression instanceof FieldTypeObjectPropsExpression || $expression instanceof ReferenceFieldTypePropExpression);
 
-    // Second: conjure the expected FieldItem instance.
-    $field_item = self::conjureFieldItem($expression);
+    // Second: retrieve the field storage settings, if any.
+    $field_storage_settings = NULL;
+    if (array_key_exists('sourceTypeSettings', $sdc_prop_source)) {
+      $field_storage_settings = $sdc_prop_source['sourceTypeSettings'];
+    }
+
+    // Third: conjure the expected FieldItem instance.
+    $field_item = self::conjureFieldItem($expression, $field_storage_settings);
     // TRICKY: Setting `[]` is the equivalent of emptying a field. 🤷 (NULL
     // causes *some* field widgets (e.g. image) to fail.)
     // @see \Drupal\Core\Entity\ContentEntityBase::__unset()
     $field_item->setValue($sdc_prop_source['value'] ?? []);
 
-    return new StaticPropSource($field_item, $expression);
+    return new StaticPropSource($field_item, $expression, $field_storage_settings);
   }
 
   /**
@@ -119,7 +159,11 @@ final class StaticPropSource extends PropSourceBase {
   public static function isMinimalRepresentation(array $sdc_prop_source): void {
     $expression = StructuredDataPropExpression::fromString($sdc_prop_source['expression']);
     assert($expression instanceof FieldTypePropExpression || $expression instanceof FieldTypeObjectPropsExpression || $expression instanceof ReferenceFieldTypePropExpression);
-    $field_item = self::conjureFieldItem($expression);
+    $field_storage_settings = NULL;
+    if (array_key_exists('sourceTypeSettings', $sdc_prop_source)) {
+      $field_storage_settings = $sdc_prop_source['sourceTypeSettings'];
+    }
+    $field_item = self::conjureFieldItem($expression, $field_storage_settings);
     $field_item->setValue($sdc_prop_source['value']);
 
     // @todo This won't work for fields whose props are objects (ComplexData)/lists (ListInterface), but core does not use that AFAIK, so fine for now.
@@ -180,26 +224,9 @@ final class StaticPropSource extends PropSourceBase {
    */
   private function denormalizeValue(array $field_item_value): mixed {
     return match (count($this->fieldItem->getDataDefinition()->getPropertyDefinitions())) {
-      1 => $field_item_value[$this->fieldItem::mainPropertyName()],
+      1 => $field_item_value[$this->fieldItem::mainPropertyName()] ?? NULL,
       default => $field_item_value,
     };
-  }
-
-  private function conjureFieldDefinition(string $sdc_prop_name): FieldDefinitionInterface {
-    // @phpstan-ignore-next-line
-    $typed_data_manager = \Drupal::service(TypedDataManagerInterface::class);
-    assert($typed_data_manager instanceof TypedDataManagerInterface);
-
-    // Field widgets require field item lists.
-    $data_type = $this->fieldItem->getDataDefinition()->getDataType();
-    $field_item_list_definition = $typed_data_manager->createListDataDefinition($data_type);
-    // @todo This is not quite a BaseFieldDefinition. Create an alternative FieldDefinitionInterface?
-    // @see review at https://git.drupalcode.org/project/experience_builder/-/merge_requests/20#note_317509
-    assert($field_item_list_definition instanceof BaseFieldDefinition);
-    $field_item_list_definition->setName($sdc_prop_name)
-      ->setLabel($sdc_prop_name);
-
-    return $field_item_list_definition;
   }
 
   public function getWidget(string $sdc_prop_name, ?string $field_widget_plugin_id = NULL): WidgetInterface {
@@ -210,8 +237,12 @@ final class StaticPropSource extends PropSourceBase {
     if ($field_widget_plugin_id) {
       $configuration['type'] = $field_widget_plugin_id;
     }
+    $field_storage_definition = $this->fieldItem->getFieldDefinition();
+    assert($field_storage_definition instanceof FieldStorageDefinition);
     $widget = $field_widget_plugin_manager->getInstance([
-      'field_definition' => $this->conjureFieldDefinition($sdc_prop_name),
+      'field_definition' => $field_storage_definition
+        ->setName($sdc_prop_name)
+        ->setLabel($sdc_prop_name),
       'configuration' => $configuration,
       'prepare' => TRUE,
     ]);
@@ -220,8 +251,23 @@ final class StaticPropSource extends PropSourceBase {
   }
 
   public function formTemporaryRemoveThisExclamationExclamationExclamation(string $component_instance_uuid, string $sdc_prop_name, ?FieldableEntityInterface $host_entity, array &$form, FormStateInterface $form_state): array {
-    $field_definition = $this->conjureFieldDefinition($sdc_prop_name);
-    $field = (new FieldItemList($field_definition, $sdc_prop_name, $host_entity === NULL ? NULL : EntityAdapter::createFromEntity($host_entity)))->set(0, $this->fieldItem);
+    // TRICKY: create the field item list without a parent. Otherwise, the Typed
+    // Data manager tries to be clever but in doing so fails: it generates a new
+    // field item object using the full property path (which then includes the
+    // host entity type + bundle), fails to find a field definition, and falls
+    // back to a pseudo-random default.
+    // @see \Drupal\Core\Field\FieldTypePluginManager::createFieldItem()
+    // @see \Drupal\Core\TypedData\TypedDataManagerInterface::getPropertyInstance()
+    $field = (new FieldItemList($this->fieldItem->getFieldDefinition(), $sdc_prop_name, NULL));
+    $field->set(0, $this->fieldItem);
+    // Only *after* the field item list has had its conjured field item set as
+    // the sole value, it becomes safe to specify the host entity. Most widgets
+    // do not need an entity context, but some do:
+    // @see \Drupal\file\Plugin\Field\FieldWidget\FileWidget
+    // @see \Drupal\image\Plugin\Field\FieldWidget\ImageWidget
+    if ($host_entity) {
+      $field->setContext(NULL, EntityAdapter::createFromEntity($host_entity));
+    }
     return $this->getWidget($sdc_prop_name)->form($field, $form, $form_state);
   }
 

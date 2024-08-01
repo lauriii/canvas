@@ -30,30 +30,23 @@ experience_builder.component.*:
           sequence:
             type: mapping
             # For each SDC prop, first a field type must be picked from the list of possible choices provided by \Drupal\experience_builder\FieldForComponentSuggester
-            # @todo MUCH later: field settings.
             mapping:
               field_type:
                 type: string
                 label: 'Default field type'
-                # @todo Conditionally nullable: if truly zero field types can match this SDC prop shape.
-                nullable: true
                 constraints:
                   PluginExists:
                     manager: plugin.manager.field.field_type
                     interface: '\Drupal\Core\Field\FieldItemInterface'
-                  Choice:
-                    # @todo Currently, FieldForComponentSuggester assumes an entity context. We need to extract a new FieldTypeForComponentSuggester service out of that *first*. Until then, hardcode a list of possible field type choices.
-                    - string
-                    - uri
-                    - file
-                    - image
+              field_storage_settings:
+                type: field.storage_settings.[%parent.field_type]
+                # Optional *if* the default storage settings should be used.
+                requiredKey: false
               # After a field type is selected, a field widget must be picked.
               # @todo MUCH later: widget settings.
               field_widget:
                 type: string
                 label: 'Default field widget'
-                # @todo Add validation constraint because this is only *conditionally* nullable: if truly zero field types can match this SDC prop shape.
-                nullable: true
                 constraints:
                   PluginExists:
                     manager: plugin.manager.field.widget
@@ -72,8 +65,6 @@ experience_builder.component.*:
               expression:
                 type: string
                 label: ''
-                # @todo Add validation constraint because this is only *conditionally* nullable: if truly zero field types can match this SDC prop shape.
-                nullable: true
                 constraints: {}
                 # @todo Add `StructuredDataPropExpression` validation constraint that fails if StructuredDataPropExpression::fromString() fails
                 # StructuredDataPropExpression: [field_type]

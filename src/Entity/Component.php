@@ -9,6 +9,8 @@ use Drupal\Core\Field\FieldTypePluginManagerInterface;
 use Drupal\Core\Field\WidgetPluginManager;
 use Drupal\Core\Plugin\Component as ComponentPlugin;
 use Drupal\Core\Theme\ComponentPluginManager;
+use Drupal\experience_builder\PropExpressions\Component\ComponentPropExpression;
+use Drupal\experience_builder\PropShape;
 use Drupal\experience_builder\PropSource\StaticPropSource;
 
 /**
@@ -188,16 +190,28 @@ final class Component extends ConfigEntityBase {
       throw new \OutOfRangeException(sprintf("'%s' is not a prop on the '%s' component.", $prop_name, $this->getComponentMachineName()));
     }
 
-    // Optional component props may not have a default value specified.
-    if ($this->defaults['props'][$prop_name]['default_value'] === NULL) {
-      return NULL;
+    // When no field type is specified, fall back to the default.
+    // @todo Remove this fallback logic in https://www.drupal.org/project/experience_builder/issues/3463999, and rely solely on what is defined in the Component config entity. This non-ideal issue merging order was chosen to allow https://www.drupal.org/project/experience_builder/issues/3463583 to be worked on sooner.
+    if ($this->defaults['props'][$prop_name]['field_type'] === NULL) {
+      $component_prop_expression = new ComponentPropExpression($component->getPluginId(), $prop_name);
+      $prop_shape = PropShape::getComponentProps($component)[(string) $component_prop_expression];
+      $storable_prop_shape = $prop_shape->findFieldTypeStorage();
+      if ($storable_prop_shape === NULL) {
+        return NULL;
+      }
+      return $storable_prop_shape->toStaticPropSource();
     }
 
-    return StaticPropSource::parse([
+    $sdc_prop_source = [
       'sourceType' => 'static:field_item:' . $this->defaults['props'][$prop_name]['field_type'],
       'value' => $this->defaults['props'][$prop_name]['default_value'],
       'expression' => $this->defaults['props'][$prop_name]['expression'],
-    ]);
+    ];
+    if (array_key_exists('field_storage_settings', $this->defaults['props'][$prop_name])) {
+      $sdc_prop_source['sourceTypeSettings'] = $this->defaults['props'][$prop_name]['field_storage_settings'];
+    }
+
+    return StaticPropSource::parse($sdc_prop_source);
   }
 
 }

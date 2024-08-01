@@ -6,7 +6,11 @@ namespace Drupal\experience_builder\JsonSchemaInterpreter;
 
 use Drupal\Core\TypedData\Type\DateTimeInterface;
 use Drupal\Core\TypedData\Type\UriInterface;
+use Drupal\datetime\Plugin\Field\FieldType\DateTimeItem;
 use Drupal\experience_builder\DataTypeShapeRequirement;
+use Drupal\experience_builder\PropExpressions\StructuredData\FieldTypePropExpression;
+use Drupal\experience_builder\PropShape;
+use Drupal\experience_builder\StorablePropShape;
 use Symfony\Component\Validator\Constraints\Ip;
 
 // phpcs:disable Drupal.Files.LineLength.TooLong
@@ -99,6 +103,78 @@ enum JsonSchemaStringFormat: string {
       // Built-in formats: Regular expressions.
       // @see https://json-schema.org/understanding-json-schema/reference/string#regular-expressions
       static::REGEX => new DataTypeShapeRequirement('NOT YET SUPPORTED', []),
+    };
+  }
+
+  /**
+   * Finds the recommended UX (storage + widget) for a prop shape.
+   *
+   * Used for generating a StaticPropSource, for storing a value that fits in
+   * this prop shape.
+   *
+   * @param \Drupal\experience_builder\PropShape $shape
+   *   The prop shape to find the recommended UX (storage + widget) for.
+   *
+   * @return \Drupal\experience_builder\StorablePropShape|null
+   *   NULL is returned to indicate that Experience Builder + Drupal core do not
+   *   support a field type that provides a good UX for entering a value of this
+   *   shape. Otherwise, a StorablePropShape is returned that specifies that UX.
+   *
+   * @see \Drupal\experience_builder\PropSource\StaticPropSource
+   */
+  public function findFieldTypeStorage(PropShape $shape): ?StorablePropShape {
+    return match($this) {
+      // Built-in formats: dates and times.
+      // @see https://json-schema.org/understanding-json-schema/reference/string#dates-and-times
+      // @see \Drupal\datetime\Plugin\Field\FieldType\DateTimeItem
+      static::DATE_TIME => new StorablePropShape(shape: $shape, fieldTypeProp: new FieldTypePropExpression('datetime', 'value'), fieldStorageSettings: ['datetime_type' => DateTimeItem::DATETIME_TYPE_DATETIME], fieldWidget: 'datetime_default'),
+      // @see \Drupal\datetime\Plugin\Field\FieldType\DateTimeItem
+      static::DATE => new StorablePropShape(shape: $shape, fieldTypeProp: new FieldTypePropExpression('datetime', 'value'), fieldStorageSettings: ['datetime_type' => DateTimeItem::DATETIME_TYPE_DATE], fieldWidget: 'datetime_default'),
+      // @todo A new subclass of DateTimeItem, to allow storing only time?
+      static::TIME => NULL,
+      // @todo A new field type powered by \Drupal\Core\TypedData\Plugin\DataType\DurationIso8601, to allow storing a duration?
+      // @see \Drupal\Core\TypedData\Plugin\DataType\DurationIso8601
+      static::DURATION => NULL,
+
+      // Built-in formats: email addresses.
+      // @see https://json-schema.org/understanding-json-schema/reference/string#email-addresses
+      // @see \Drupal\Core\Field\Plugin\Field\FieldType\EmailItem
+      static::EMAIL, static::IDN_EMAIL => new StorablePropShape(shape: $shape, fieldTypeProp: new FieldTypePropExpression('email', 'value'), fieldWidget: 'email_default'),
+
+      // Built-in formats: hostnames.
+      // @see https://json-schema.org/understanding-json-schema/reference/string#hostnames
+      static::HOSTNAME, static::IDN_HOSTNAME => NULL,
+
+      // Built-in formats: IP addresses.
+      // @see https://json-schema.org/understanding-json-schema/reference/string#ip-addresses
+      static::IPV4 => NULL,
+      static::IPV6 => NULL,
+
+      // Built-in formats: resource identifiers.
+      // @see https://json-schema.org/understanding-json-schema/reference/string#resource-identifiers
+      // ⚠️ This field type has no widget in Drupal core, otherwise it'd be
+      //     possible to support! But … would allowing the Content Creator to
+      //     enter a UUID really make sense?
+      // @see \Drupal\Core\Field\Plugin\Field\FieldType\UuidItem
+      static::UUID => NULL,
+      // TRICKY: Drupal core does not support RFC3987 aka IRIs, but it's a superset of RFC3986.
+      // @see \Drupal\Core\Field\Plugin\Field\FieldType\UriItem
+      static::URI, static::IRI => new StorablePropShape(shape: $shape, fieldTypeProp: new FieldTypePropExpression('uri', 'value'), fieldWidget: 'uri'),
+      // @todo Verify that \Drupal\Core\Path\Plugin\Validation\Constraint\ValidPathConstraintValidator matches this close enough.
+      // @see \Drupal\path\Plugin\Field\FieldType\PathItem
+      static::URI_REFERENCE, static::IRI_REFERENCE => new StorablePropShape(shape: $shape, fieldTypeProp: new FieldTypePropExpression('path', 'alias'), fieldWidget: 'path'),
+
+      // Built-in formats: URI template.
+      // @see https://json-schema.org/understanding-json-schema/reference/string#uri-template
+      static::URI_TEMPLATE => NULL,
+
+      // Built-in formats: JSON Pointer.
+      // @see https://json-schema.org/understanding-json-schema/reference/string#json-pointer
+      static::JSON_POINTER, static::RELATIVE_JSON_POINTER => NULL,
+
+      // Built-in formats: Regular expressions.
+      // @see https://json-schema.org/understanding-json-schema/reference/string#regular-expressions
+      static::REGEX => NULL,
     };
   }
 

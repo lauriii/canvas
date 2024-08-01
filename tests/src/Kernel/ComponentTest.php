@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\experience_builder\Kernel;
 
+use Drupal\Core\Field\Plugin\Field\FieldWidget\OptionsSelectWidget;
 use Drupal\Core\Field\Plugin\Field\FieldWidget\StringTextfieldWidget;
 use Drupal\Core\Field\Plugin\Field\FieldWidget\UriWidget;
 use Drupal\Core\Render\Component\Exception\ComponentNotFoundException;
@@ -32,6 +33,7 @@ class ComponentTest extends KernelTestBase {
     'sdc_test',
     // Modules providing field types + widgets for the component props defaults.
     'image',
+    'options',
   ];
 
   /**
@@ -74,10 +76,18 @@ class ComponentTest extends KernelTestBase {
             'expression' => 'ℹ︎uri␟value',
           ],
           'target' => [
-            'field_type' => NULL,
-            'field_widget' => NULL,
+            // @see \Drupal\options\Plugin\Field\FieldType\ListStringItem
+            'field_type' => 'list_string',
+            'field_storage_settings' => [
+              'allowed_values' => [
+                ['value' => 'foo', 'label' => 'foo'],
+                ['value' => 'bar', 'label' => 'bar'],
+              ],
+            ],
+            // @see \Drupal\Core\Field\Plugin\Field\FieldWidget\OptionsSelectWidget
+            'field_widget' => 'options_select',
             'default_value' => NULL,
-            'expression' => NULL,
+            'expression' => 'ℹ︎list_string␟value',
           ],
         ],
       ],
@@ -85,7 +95,7 @@ class ComponentTest extends KernelTestBase {
     $module_component->save();
 
     $this->assertNotEmpty(Component::loadMultiple());
-    $this->assertSame(['module' => ['sdc_test']], $module_component->getDependencies());
+    $this->assertSame(['module' => ['options', 'sdc_test']], $module_component->getDependencies());
     $this->assertSame(self::MODULE_COMPONENT_ID, $module_component->getComponentMachineName());
     $this->assertSame(self::MODULE_CONFIG_ENTITY_ID, $module_component->id());
 
@@ -101,7 +111,11 @@ class ComponentTest extends KernelTestBase {
     $this->assertInstanceOf(UriWidget::class, $href_default_static_prop_source->getWidget('href'));
     $this->assertSame('{"sourceType":"static:field_item:uri","value":"https:\/\/drupal.org","expression":"ℹ︎uri␟value"}', (string) $href_default_static_prop_source);
 
-    $this->assertNull($module_component->getDefaultStaticPropSource('target'));
+    $target_default_static_prop_source = $module_component->getDefaultStaticPropSource('target');
+    $this->assertInstanceOf(StaticPropSource::class, $target_default_static_prop_source);
+    $this->assertSame('static:field_item:list_string', $target_default_static_prop_source->getSourceType());
+    $this->assertInstanceOf(OptionsSelectWidget::class, $target_default_static_prop_source->getWidget('target'));
+    $this->assertSame('{"sourceType":"static:field_item:list_string","value":null,"expression":"ℹ︎list_string␟value","sourceTypeSettings":{"allowed_values":[{"value":"foo","label":"foo"},{"value":"bar","label":"bar"}]}}', (string) $target_default_static_prop_source);
 
     $theme_component = Component::create([
       'component' => self::THEME_CONFIG_ENTITY_ID,

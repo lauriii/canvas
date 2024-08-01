@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\experience_builder\Form;
 
+use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Field\WidgetPluginManager;
@@ -17,6 +18,7 @@ use Drupal\experience_builder\JsonSchemaInterpreter\JsonSchemaStringFormat;
 use Drupal\experience_builder\Plugin\Validation\Constraint\StringSemanticsConstraint;
 use Drupal\experience_builder\PropExpressions\Component\ComponentPropExpression;
 use Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldTypePropExpression;
+use Drupal\experience_builder\PropShape;
 use Drupal\experience_builder\PropSource\StaticPropSource;
 use Drupal\experience_builder\SdcPropJsonSchemaType;
 use Drupal\user\Entity\User;
@@ -120,6 +122,8 @@ class ComponentEditForm extends EntityForm implements ContainerInjectionInterfac
         '#type' => 'container',
         '#markup' => '✨ @TODO: live preview of the component, using the defaults specified in the vertical tabs 👆',
       ];
+
+      $prop_shapes = PropShape::getComponentProps($component);
       foreach ($suggestions as $component_prop_expression => ['required' => $is_required, 'types' => $static_prop_source_suggestions]) {
         $component_prop_name = ComponentPropExpression::fromString($component_prop_expression)->propName;
 
@@ -141,16 +145,24 @@ class ComponentEditForm extends EntityForm implements ContainerInjectionInterfac
             ? sprintf("Prop shape: JSON schema type <code>%s</code>", $primitive_type->value)
             : sprintf("Prop shape: JSON schema type <code>%s</code>, format: %s", $primitive_type->value, array_key_exists('format', $prop_schema)
               ? '<code>' . JsonSchemaStringFormat::from($prop_schema['format'])->value . '</code>'
-              : 'none ⇒ ' . StringSemanticsConstraint::PROSE,
+              : (
+                array_key_exists('enum', $prop_schema)
+                  ? 'none, but a list of allowed values ⇒ ' . StringSemanticsConstraint::STRUCTURED
+                  : 'none ⇒ ' . StringSemanticsConstraint::PROSE
+              ),
           ),
         ];
+
+        $storable_prop_shape = $prop_shapes[$component_prop_expression]->findFieldTypeStorage();
         $widget_type_options = [];
         $field_type_options = [];
         $widget_forms = [];
         if (empty($static_prop_source_suggestions)) {
           $form[Component::convertMachineNameToId($component->getPluginId())][$component_prop_name]['skip'] = [
             '#type' => 'container',
-            '#markup' => "Skipped <b>$component_prop_name</b> as it has no suggested field types",
+            '#markup' => $storable_prop_shape === NULL
+              ? "⚠️ Skipped <b>$component_prop_name</b> as it has no available field types"
+              : "<b>$component_prop_name</b> requires a field type to be precisely configured, configuring that in this UI is not supported.",
           ];
           continue;
         }
@@ -191,10 +203,21 @@ class ComponentEditForm extends EntityForm implements ContainerInjectionInterfac
             }
             $form_state->set("static_prop_sources|$component_prop_name|$field_type|$widget_type", $static_prop_source);
 
+            // @see \Drupal\Core\Field\WidgetBase::handlesMultipleValues()
+            // @see \Drupal\Core\Field\Attribute\FieldWidget::__construct(multiple_values)
+            $widget_plugin_definition = $static_prop_source->getWidget($component_prop_name)->getPluginDefinition();
+            assert(is_array($widget_plugin_definition) && array_key_exists('multiple_values', $widget_plugin_definition));
+            $handles_multiple_values = $widget_plugin_definition['multiple_values'];
+
             // @todo Refactor to use \Drupal\Core\Field\FieldItemListInterface::defaultValuesForm(), just like \Drupal\field_ui\Form\FieldConfigEditForm::form()?
             $widget_form = $static_prop_source->formTemporaryRemoveThisExclamationExclamationExclamation('nonsensical-uuid', $component_prop_name, User::create([]), $parents, $form_state);
-            $widget_children = Element::children($widget_form["widget"][0]);
-            $widget_form['widget'][0][reset($widget_children)]['#description'] = 'Default value — used for preview';
+            $single_item_form_path = ['widget', 0];
+            if (!$handles_multiple_values) {
+              // @phpstan-ignore-next-line
+              $children = Element::children(NestedArray::getValue($widget_form, $single_item_form_path));
+              $single_item_form_path[] = reset($children);
+            }
+            NestedArray::setValue($widget_form, [...$single_item_form_path, '#description'], 'Default value — used for preview');
             $widget_form['#description'] = 'Default value — used for preview';
             $widget_form['#states'] = [
               'visible' => [
@@ -217,7 +240,7 @@ class ComponentEditForm extends EntityForm implements ContainerInjectionInterfac
             '#description' => $this->t("Field type to be used for the prop"),
             '#options' => $field_type_options,
             '#empty_option' => $this->t('- Select -'),
-            '#default_value' => $this->entity->isNew() ? NULL : $this->entity->get('defaults')['props'][$component_prop_name]['field_type'] ?? NULL,
+            '#default_value' => $this->entity->isNew() ? ($storable_prop_shape ? $storable_prop_shape->fieldTypeProp->fieldType : NULL) : $this->entity->get('defaults')['props'][$component_prop_name]['field_type'] ?? NULL,
             '#parents' => [Component::convertMachineNameToId($component->getPluginId()), $component_prop_name, 'field_type'],
             '#states' => [
               'required' => [
@@ -234,7 +257,7 @@ class ComponentEditForm extends EntityForm implements ContainerInjectionInterfac
               '#description' => $this->t("Widget to be used for the prop — choices depend on the field type."),
               '#options' => $widget_options,
               '#empty_option' => $this->t('- Select -'),
-              '#default_value' => $this->entity->isNew() ? NULL : $this->entity->get('defaults')['props'][$component_prop_name]['field_widget'] ?? NULL,
+              '#default_value' => $this->entity->isNew() ? ($storable_prop_shape ? $storable_prop_shape->fieldWidget : NULL) : $this->entity->get('defaults')['props'][$component_prop_name]['field_widget'] ?? NULL,
               '#parents' => [Component::convertMachineNameToId($component->getPluginId()), $component_prop_name, 'widget_type', $field_type_key],
               // @todo Make this required, this is not currently possible because this >1 <select> is generated: one per possible field type, and only the appropriate one is visible thanks to #states.
               '#states' => [

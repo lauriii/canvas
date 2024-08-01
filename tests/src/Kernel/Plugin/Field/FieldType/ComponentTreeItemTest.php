@@ -34,6 +34,7 @@ class ComponentTreeItemTest extends KernelTestBase {
     'xb_test_sdc',
     // Modules providing field types + widgets for the component props defaults.
     'image',
+    'options',
   ];
 
   public function testCalculateDependencies(): void {
@@ -76,10 +77,18 @@ class ComponentTreeItemTest extends KernelTestBase {
             'expression' => 'ℹ︎uri␟value',
           ],
           'target' => [
-            'field_type' => NULL,
-            'field_widget' => NULL,
+            // @see \Drupal\options\Plugin\Field\FieldType\ListStringItem
+            'field_type' => 'list_string',
+            'field_storage_settings' => [
+              'allowed_values' => [
+                ['value' => 'foo', 'label' => 'foo'],
+                ['value' => 'bar', 'label' => 'bar'],
+              ],
+            ],
+            // @see \Drupal\Core\Field\Plugin\Field\FieldWidget\OptionsSelectWidget
+            'field_widget' => 'options_select',
             'default_value' => NULL,
-            'expression' => NULL,
+            'expression' => 'ℹ︎list_string␟value',
           ],
         ],
       ],

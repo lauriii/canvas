@@ -4,8 +4,14 @@ declare(strict_types=1);
 
 namespace Drupal\experience_builder;
 
+use Drupal\Core\Entity\TypedData\EntityDataDefinition;
+use Drupal\datetime\Plugin\Field\FieldType\DateTimeItem;
 use Drupal\experience_builder\JsonSchemaInterpreter\JsonSchemaStringFormat;
 use Drupal\experience_builder\Plugin\Validation\Constraint\StringSemanticsConstraint;
+use Drupal\experience_builder\PropExpressions\StructuredData\FieldPropExpression;
+use Drupal\experience_builder\PropExpressions\StructuredData\FieldTypeObjectPropsExpression;
+use Drupal\experience_builder\PropExpressions\StructuredData\FieldTypePropExpression;
+use Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldTypePropExpression;
 
 // phpcs:disable Drupal.Files.LineLength.TooLong
 
@@ -16,7 +22,6 @@ use Drupal\experience_builder\Plugin\Validation\Constraint\StringSemanticsConstr
  *
  * @todo Question: Does React also use JSON schema for restricting/defining its props? I.e.: identical set of primitives or not?
  * @todo expand test coverage for testing each known type as being REQUIRED too
- * @todo enums are widely used — auto-generating e.g. FieldConfig using @FieldType=list_string + settings would solve the 90% use case
  * @todo adapters for transforming @FieldType=timestamp -> `type:string,format=time`, @FieldType=datetime -> `type:string,format=time`, a StringSemanticsConstraint::MARKUP string could be adapted to StringSemanticsConstraint::PROSE, UnixTimestampToDateAdapter was a test-only start
  * @todo the `array` type — in particular arrays of tuples/objects, for example an array of "(image uri, alt)" pairs for an image gallery component, see https://stackoverflow.com/questions/40750340/how-to-define-json-schema-for-mapstring-integer
  * @todo `exclusiveMinimum` and `exclusiveMaximum` work differently in JSON schema draft 4 (which SDC uses) than other versions. This is a future BC nightmare.
@@ -78,6 +83,15 @@ enum SdcPropJsonSchemaType : string {
   }
 
   /**
+   * Maps the given schema to data type shape requirements.
+   *
+   * Used for matching against existing field instances, to find candidate
+   * dynamic prop source expressions that return a value that fits in this prop
+   * shape.
+   *
+   * @see \Drupal\experience_builder\PropSource\DynamicPropSource
+   * @see \Drupal\experience_builder\SdcPropToFieldTypePropMatcher
+   *
    * @param JsonSchema $schema
    */
   public function toDataTypeShapeRequirements(array $schema): DataTypeShapeRequirement|DataTypeShapeRequirements|false {
@@ -133,6 +147,119 @@ enum SdcPropJsonSchemaType : string {
       SdcPropJsonSchemaType::OBJECT, SdcPropJsonSchemaType::ARRAY => (function () {
         throw new \LogicException('@see ::findFieldTypeProps() and ::recurseJsonSchema()');
       })(),
+    };
+  }
+
+  /**
+   * Maps the given schema to a StorablePropShape, if possible.
+   *
+   * Used for generating a StaticPropSource, for storing a value that fits in
+   * this prop shape.
+   *
+   * @see \Drupal\experience_builder\PropSource\StaticPropSource
+   */
+
+  /**
+   * Finds the recommended UX (storage + widget) for a prop shape.
+   *
+   * Used for generating a StaticPropSource, for storing a value that fits in
+   * this prop shape.
+   *
+   * @param \Drupal\experience_builder\PropShape $shape
+   *   The prop shape to find the recommended UX (storage + widget) for.
+   *
+   * @return \Drupal\experience_builder\StorablePropShape|null
+   *   NULL is returned to indicate that Experience Builder + Drupal core do not
+   *   support a field type that provides a good UX for entering a value of this
+   *   shape. Otherwise, a StorablePropShape is returned that specifies that UX.
+   *
+   * @see \Drupal\experience_builder\PropSource\StaticPropSource
+   */
+  public function findFieldTypeStorage(PropShape $shape): ?StorablePropShape {
+    $schema = $shape->schema;
+    return match ($this) {
+      // @see \Drupal\Core\Field\Plugin\Field\FieldType\BooleanItem
+      SdcPropJsonSchemaType::BOOLEAN => new StorablePropShape(shape: $shape, fieldTypeProp: new FieldTypePropExpression('boolean', 'value'), fieldWidget: 'boolean_checkbox'),
+
+      // The `string` JSON schema type
+      // - `enum`: https://json-schema.org/understanding-json-schema/reference/enum
+      // - `minLength` and `maxLength`: https://json-schema.org/understanding-json-schema/reference/string#length
+      // - `pattern`: https://json-schema.org/understanding-json-schema/reference/string#regexp
+      // - `format`: https://json-schema.org/understanding-json-schema/reference/string#format and https://json-schema.org/understanding-json-schema/reference/string#built-in-formats
+      SdcPropJsonSchemaType::STRING => match (TRUE) {
+        array_key_exists('$ref', $schema) => NULL,
+        array_key_exists('enum', $schema) => new StorablePropShape(shape: $shape, fieldWidget: 'options_select', fieldTypeProp: new FieldTypePropExpression('list_string', 'value'), fieldStorageSettings: [
+          'allowed_values' => array_combine($schema['enum'], $schema['enum']),
+        ]),
+        // @todo subclass \Drupal\Core\Field\Plugin\Field\FieldType\StringItem to allow for a "pattern" setting + create subclass of \Drupal\Core\Field\Plugin\Field\FieldWidget\StringTextfieldWidget to pass on that pattern setting  ⚠️
+        array_key_exists('pattern', $schema) => NULL,
+        array_key_exists('format', $schema) => JsonSchemaStringFormat::from($schema['format'])->findFieldTypeStorage($shape),
+        // @see \Drupal\Core\Field\Plugin\Field\FieldType\StringItem
+        // @todo Support `minLength`.  ⚠️
+        array_key_exists('maxLength', $schema) => new StorablePropShape(shape: $shape, fieldTypeProp: new FieldTypePropExpression('string', 'value'), fieldWidget: 'string_textfield', fieldStorageSettings: [
+          'max_length' => $schema['maxLength'],
+        ]),
+        TRUE => new StorablePropShape(shape: $shape, fieldTypeProp: new FieldTypePropExpression('string', 'value'), fieldWidget: 'string_textfield'),
+      },
+
+      // The `integer` JSON schema types.
+      // - `enum`: https://json-schema.org/understanding-json-schema/reference/enum
+      // - `multipleOf`: https://json-schema.org/understanding-json-schema/reference/numeric#multiples
+      // - `minimum`, `exclusiveMinimum`, `maximum` and `exclusiveMaximum`: https://json-schema.org/understanding-json-schema/reference/numeric#range
+      SdcPropJsonSchemaType::INTEGER => match (TRUE) {
+        array_key_exists('$ref', $schema) => NULL,
+        array_key_exists('enum', $schema) => new StorablePropShape(shape: $shape, fieldWidget: 'options_select', fieldTypeProp: new FieldTypePropExpression('list_integer', 'value'), fieldStorageSettings: [
+          'allowed_values' => array_combine($schema['enum'], $schema['enum']),
+        ]),
+        // `min` and/or `max`
+        array_key_exists('minimum', $schema) || array_key_exists('maximum', $schema) => new StorablePropShape(shape: $shape, fieldTypeProp: new FieldTypePropExpression('integer', 'value'), fieldWidget: 'number', fieldStorageSettings: [
+          'min' => $schema['minimum'] ?? (array_key_exists('exclusiveMinimum', $schema) ? $schema['exclusiveMinimum'] + 1 : ''),
+          'max' => $schema['maximum'] ?? (array_key_exists('exclusiveMaximum', $schema) ? $schema['exclusiveMaximum'] - 1 : ''),
+        ]),
+        // Otherwise, it's an unrestricted integer.
+        // @todo `multipleOf` ⚠️
+        TRUE => new StorablePropShape(shape: $shape, fieldTypeProp: new FieldTypePropExpression('integer', 'value'), fieldWidget: 'number'),
+      },
+
+      // The `number` JSON schema types.
+      // - `enum`: https://json-schema.org/understanding-json-schema/reference/enum
+      // - `multipleOf`: https://json-schema.org/understanding-json-schema/reference/numeric#multiples
+      // - `minimum`, `exclusiveMinimum`, `maximum` and `exclusiveMaximum`: https://json-schema.org/understanding-json-schema/reference/numeric#range
+      SdcPropJsonSchemaType::NUMBER => match (TRUE) {
+        array_key_exists('$ref', $schema) => NULL,
+        array_key_exists('enum', $schema) => new StorablePropShape(shape: $shape, fieldWidget: 'options_select', fieldTypeProp: new FieldTypePropExpression('list_float', 'value'), fieldStorageSettings: [
+          'allowed_values' => array_combine($schema['enum'], $schema['enum']),
+        ]),
+        // `min` and/or `max`
+        array_key_exists('minimum', $schema) || array_key_exists('maximum', $schema) => new StorablePropShape(shape: $shape, fieldTypeProp: new FieldTypePropExpression('float', 'value'), fieldWidget: 'number', fieldStorageSettings: [
+          'min' => $schema['minimum'] ?? (array_key_exists('exclusiveMinimum', $schema) ? $schema['exclusiveMinimum'] + 0.000001 : ''),
+          'max' => $schema['maximum'] ?? (array_key_exists('exclusiveMaximum', $schema) ? $schema['exclusiveMaximum'] - 0.000001 : ''),
+        ]),
+        // Otherwise, it's an unrestricted integer.
+        // @todo `multipleOf` ⚠️
+        TRUE => new StorablePropShape(shape: $shape, fieldTypeProp: new FieldTypePropExpression('float', 'value'), fieldWidget: 'number'),
+      },
+
+      SdcPropJsonSchemaType::OBJECT => match (TRUE) {
+        array_key_exists('$ref', $schema) => match ($schema['$ref']) {
+          // @todo make configurable in https://www.drupal.org/project/experience_builder/issues/3464031
+          // @see \Drupal\image\Plugin\Field\FieldType\ImageItem
+          'json-schema-definitions://experience_builder.module/image' => new StorablePropShape(shape: $shape, fieldWidget: 'image_image', fieldTypeProp: new FieldTypeObjectPropsExpression('image', [
+            'src' => new ReferenceFieldTypePropExpression(
+              new FieldTypePropExpression('image', 'entity'),
+              new FieldPropExpression(EntityDataDefinition::create('file'), 'uri', NULL, 'value'),
+            ),
+            'alt' => new FieldTypePropExpression('image', 'alt'),
+            'width' => new FieldTypePropExpression('image', 'width'),
+            'height' => new FieldTypePropExpression('image', 'height'),
+          ])),
+          default => NULL,
+        },
+        default => NULL,
+      },
+
+      // @todo Support this! ⚠️
+      SdcPropJsonSchemaType::ARRAY => NULL,
     };
   }
 
