@@ -344,7 +344,12 @@ final class SdcController extends ControllerBase {
     $build = self::wrapComponentsForPreview($component_tree_field_item->toRenderable());
     $this->renderer->renderInIsolation($build);
 
-    $assets = AttachedAssets::createFromRenderArray($build);
+    $assets = AttachedAssets::createFromRenderArray(isset($build['#attached'])
+      ? $build
+      // TRICKY: When the layout is empty, there is no component tree to render,
+      // and hence #attached will not get set. Avoid an exception.
+      : ['#attached' => []]
+    );
     [$css, $js_head, $js_foot] = $this->generateAssetsMarkup($assets);
     $html = <<<HTML
 <!doctype html>
