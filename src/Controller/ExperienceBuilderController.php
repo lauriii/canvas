@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\experience_builder\Controller;
 
+use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Render\HtmlResponse;
 use Drupal\Core\Url;
 use Symfony\Component\HttpFoundation\RedirectResponse;
@@ -27,7 +28,7 @@ final class ExperienceBuilderController {
 </html>
 HTML;
 
-  public function content(string|null $react_route = NULL, string|null $react_subroute = NULL) : HtmlResponse|RedirectResponse {
+  public function content(EntityInterface $entity, string|null $react_route = NULL, string|null $react_subroute = NULL) : HtmlResponse|RedirectResponse {
     if (!empty($react_route)) {
       // Temporary measure so refreshing a page with a component selected does
       // not result in a 404.
@@ -38,7 +39,13 @@ HTML;
       'library' => [
         'experience_builder/xb-ui',
       ],
-      'drupalSettings' => [],
+      'drupalSettings' => [
+        'xb' => [
+          'base' => \sprintf('xb/%s/%s', $entity->getEntityTypeId(), $entity->id()),
+          'entityType' => $entity->getEntityTypeId(),
+          'entity' => $entity->id(),
+        ],
+      ],
       // This *could* use the \Drupal\Core\Asset\AssetResolverInterface services
       // directly, but it's simpler to shape the attachments data in the shape
       // that all other Drupal pages are rendered. That allows reusing core

@@ -1,5 +1,5 @@
 experience_builder.experience_builder:
-  path: '/xb/{react_route}/{react_subroute}'
+  path: '/xb/{entity_type}/{entity}/{react_route}/{react_subroute}'
   defaults:
     _controller: '\Drupal\experience_builder\Controller\ExperienceBuilderController::content'
     _title: 'Experience Builder'
@@ -13,6 +13,8 @@ experience_builder.experience_builder:
         type: string
       react_subroute:
         type: string
+      entity:
+        type: entity:{entity_type}
 
 experience_builder.components:
   path: '/xb-components'
@@ -49,18 +51,26 @@ experience_builder.render_component:
         type: string
 
 experience_builder.layout:
-  path: '/api/layout/1'
+  path: '/api/layout/{entity_type}/{entity}'
   defaults:
     _controller: '\Drupal\experience_builder\Controller\SdcController::layout'
   requirements:
     _permission: 'access administration pages'
+  options:
+    parameters:
+      entity:
+        type: entity:{entity_type}
 
 experience_builder.preview:
-  path: '/api/preview'
+  path: '/api/preview/{entity_type}/{entity}'
   defaults:
     _controller: '\Drupal\experience_builder\Controller\SdcController::preview'
   requirements:
     _permission: 'access administration pages'
+  options:
+    parameters:
+      entity:
+        type: entity:{entity_type}
 
 entity.component.form_add:
   path: '/admin/structure/component/add'
@@ -87,9 +97,13 @@ entity.component.delete_form:
     _entity_access: 'component.delete'
 
 experience_builder.component_props_form:
-  path: '/xb-field-form'
+  path: '/xb-field-form/{entity_type}/{entity}'
   defaults:
     _form: '\Drupal\experience_builder\Form\ComponentPropsForm'
     _title: 'Component Props Form'
   requirements:
     _permission: 'access administration pages'
+  options:
+    parameters:
+      entity:
+        type: entity:{entity_type}

@@ -45,7 +45,7 @@ function experience_builder_toolbar(): array {
       'tab' => [
         '#type' => 'link',
         '#title' => t('Experience Builder PoC'),
-        '#url' => Url::fromRoute('experience_builder.experience_builder'),
+        '#url' => Url::fromRoute('experience_builder.experience_builder', ['entity_type' => 'node', 'entity' => 1]),
         '#attributes' => [
           'title' => t('Experience Builder'),
           'class' => ['toolbar-icon', 'toolbar-icon-edit'],

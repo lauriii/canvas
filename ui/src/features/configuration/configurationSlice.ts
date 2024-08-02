@@ -4,12 +4,14 @@ import type { RootState } from '@/app/store';
 
 export interface AppConfiguration {
   baseUrl: string;
-  // Here we will be able to add extra parameters such as e.g. entity-type and
-  // ID.
+  entityType: string;
+  entity: string;
 }
 
 export const initialState: AppConfiguration = {
   baseUrl: '/',
+  entityType: 'none',
+  entity: 'none',
 };
 
 export const configurationSlice = createSlice({
@@ -28,3 +30,7 @@ export const configurationSlice = createSlice({
 export const { setConfiguration } = configurationSlice.actions;
 
 export const selectBaseUrl = (state: RootState) => state.configuration.baseUrl;
+
+export const selectEntityType = (state: RootState) =>
+  state.configuration.entityType;
+export const selectEntityId = (state: RootState) => state.configuration.entity;

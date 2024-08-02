@@ -33,7 +33,7 @@ describe('UI a11y Scan', () => {
 
   it('a11y scan without any interaction', () => {
     cy.drupalLogin('xbUser', 'xbUser')
-    cy.drupalRelativeURL('xb')
+    cy.drupalRelativeURL('xb/node/1')
     cy.waitForElementInIframe('[data-xb-type="experience_builder:image"]')
     cy.injectAxe();
     // @todo there are several a11y rules not being checked in order for the
@@ -49,7 +49,7 @@ describe('UI a11y Scan', () => {
   })
   it('a11y scan open first left drawer', () => {
     cy.drupalLogin('xbUser', 'xbUser')
-    cy.drupalRelativeURL('xb')
+    cy.drupalRelativeURL('xb/node/1')
     cy.waitForElementInIframe('[data-xb-type="experience_builder:image"]')
     cy.get('[data-radix-menubar-content]').should('have.length', 0)
     cy.get('[data-hover-overlay="addElement"]').click()
@@ -69,7 +69,7 @@ describe('UI a11y Scan', () => {
   })
   it('a11y scan open secondary left drawer', () => {
     cy.drupalLogin('xbUser', 'xbUser')
-    cy.drupalRelativeURL('xb')
+    cy.drupalRelativeURL('xb/node/1')
     cy.waitForElementInIframe('[data-xb-type="experience_builder:image"]')
     cy.get('[data-radix-menubar-content]').should('have.length', 0)
     cy.get('[data-hover-overlay="addElement"]').click()
@@ -91,7 +91,7 @@ describe('UI a11y Scan', () => {
   })
   it('a11y scan open props edit form', () => {
     cy.drupalLogin('xbUser', 'xbUser')
-    cy.drupalRelativeURL('xb')
+    cy.drupalRelativeURL('xb/node/1')
     cy.waitForElementInIframe('[data-xb-type="experience_builder:image"]')
     cy.get('[data-radix-menubar-content]').should('have.length', 0)
     cy.get('[data-hover-overlay="addElement"]').click()

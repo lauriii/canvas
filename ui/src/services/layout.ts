@@ -14,7 +14,7 @@ export const layoutApi = createApi({
   baseQuery,
   endpoints: (builder) => ({
     getLayoutById: builder.query<LayoutResponse, string>({
-      query: (nodeId) => `api/layout/${nodeId}`,
+      query: (nodeId) => `api/layout/{entity_type}/${nodeId}`,
     }),
   }),
 });

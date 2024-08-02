@@ -11,7 +11,7 @@ export const previewApi = createApi({
       { layout: any; model: any }
     >({
       query: (body) => ({
-        url: 'api/preview',
+        url: 'api/preview/{entity_type}/{entity_id}',
         method: 'POST',
         body,
       }),

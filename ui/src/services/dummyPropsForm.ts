@@ -1,18 +1,14 @@
 // Need to use the React-specific entry point to import createApi
-import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
-
-// Define a service using a base URL and expected endpoints
-const { drupalSettings } = window as any;
+import { createApi } from '@reduxjs/toolkit/query/react';
+import { baseQuery } from '@/services/baseQuery';
 
 export const dummyPropsFormApi = createApi({
   reducerPath: 'dummyPropsFormApi',
-  baseQuery: fetchBaseQuery({
-    baseUrl: `${drupalSettings?.path?.baseUrl || '/'}xb-field-form`,
-  }),
+  baseQuery,
   endpoints: (builder) => ({
     getDummyPropsForm: builder.query<string, string>({
       query: (queryString) => ({
-        url: `${queryString}`,
+        url: `xb-field-form/{entity_type}/{entity_id}?${queryString}`,
         // fetchBaseQuery assumes every Response will get parsed by JSON so we need to add the below.
         responseHandler: 'text',
       }),

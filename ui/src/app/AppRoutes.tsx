@@ -2,8 +2,6 @@ import ContextualPanel from '@/components/panel/ContextualPanel';
 import { defer, createBrowserRouter, RouterProvider } from 'react-router-dom';
 import App from '@/app/App';
 
-const { drupalSettings } = window as any;
-
 const getHTML = async (componentId: string) => {
   return new Promise((resolve) => {
     setTimeout(() => {
@@ -13,8 +11,10 @@ const getHTML = async (componentId: string) => {
     }, 700);
   });
 };
-
-const AppRoutes = () => {
+interface AppRoutesInterface {
+  basePath: string;
+}
+const AppRoutes: React.FC<AppRoutesInterface> = ({ basePath }) => {
   const router = createBrowserRouter(
     [
       {
@@ -37,7 +37,7 @@ const AppRoutes = () => {
       },
     ],
     {
-      basename: `${drupalSettings.path.baseUrl}xb`,
+      basename: `${basePath}`,
       future: {
         v7_fetcherPersist: true,
         v7_normalizeFormMethod: true,

@@ -8,7 +8,20 @@ import '@radix-ui/themes/styles.css';
 import { Theme } from '@radix-ui/themes';
 import type { AppConfiguration } from '@/features/configuration/configurationSlice';
 
-const { drupalSettings } = window as any;
+interface XbSettings {
+  path: { baseUrl: string };
+  xb: {
+    base: string;
+    entityType: string;
+    entity: string;
+  };
+}
+
+interface XbGlobals {
+  drupalSettings?: XbSettings;
+}
+
+const { drupalSettings } = window as XbGlobals;
 
 const prepare = async () => {
   if (
@@ -24,20 +37,24 @@ const prepare = async () => {
 
 const container = document.getElementById('experience-builder');
 
-// Here we will pass along app configuration such as entity-type and ID.
-// We will have access to `window.drupalSettings` here.
 const appConfiguration: AppConfiguration = {
-  baseUrl: drupalSettings.path.baseUrl || import.meta.env.BASE_URL,
+  baseUrl: drupalSettings?.path?.baseUrl || import.meta.env.BASE_URL,
+  entityType: drupalSettings?.xb?.entityType || '',
+  entity: drupalSettings?.xb?.entity || '',
 };
 
 if (container) {
   prepare().then(() => {
     const root = createRoot(container);
+    let routerRoot = appConfiguration.baseUrl;
+    if (drupalSettings?.xb?.base) {
+      routerRoot = `${routerRoot}${drupalSettings.xb.base}`;
+    }
     root.render(
       <React.StrictMode>
         <Theme hasBackground={false} panelBackground="solid" appearance="light">
           <Provider store={makeStore({ configuration: appConfiguration })}>
-            <AppRoutes />
+            <AppRoutes basePath={routerRoot} />
           </Provider>
         </Theme>
       </React.StrictMode>,

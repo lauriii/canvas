@@ -7,7 +7,7 @@
   },
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "BASE_URL=/ vite",
     "drupaldev": "VITE_DRUPAL=true vite",
     "start": "vite",
     "build": "npm run type-check && vite build",

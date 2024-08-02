@@ -6,19 +6,20 @@ namespace Drupal\experience_builder\Controller;
 
 use Drupal\Core\Asset\AssetCollectionRendererInterface;
 use Drupal\Core\Asset\AssetResolverInterface;
-use Drupal\Core\Render\Element;
-use Drupal\Core\TypedData\TypedDataManagerInterface;
 use Drupal\Core\Asset\AttachedAssets;
 use Drupal\Core\Controller\ControllerBase;
+use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Entity\FieldableEntityInterface;
+use Drupal\Core\Render\Element;
 use Drupal\Core\Render\RendererInterface;
 use Drupal\Core\Theme\ComponentPluginManager;
+use Drupal\Core\TypedData\TypedDataManagerInterface;
 use Drupal\experience_builder\Entity\Component;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeHydrated;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\experience_builder\PropExpressions\Component\ComponentPropExpression;
 use Drupal\experience_builder\PropShape;
-use Drupal\node\Entity\Node;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -217,18 +218,17 @@ final class SdcController extends ControllerBase {
     ];
   }
 
-  public function layout(): JsonResponse {
-    $first_article = Node::load(1);
-    if (!$first_article || $first_article->getType() !== 'article') {
-      throw new \LogicException('For now, this assumes node 1 exists and is an article!');
+  public function layout(FieldableEntityInterface $entity): JsonResponse {
+    if ($entity->bundle() !== 'article') {
+      throw new \LogicException('For now, this assumes the entity is an article!');
     }
 
-    assert($first_article->field_xb_demo[0] instanceof ComponentTreeItem);
-
-    $tree = $first_article->field_xb_demo[0]->get('tree');
+    $item = $entity->get('field_xb_demo')->first();
+    assert($item instanceof ComponentTreeItem);
+    $tree = $item->get('tree');
     assert($tree instanceof ComponentTreeStructure);
 
-    $hydrated = $first_article->field_xb_demo[0]->get('hydrated');
+    $hydrated = $item->get('hydrated');
     assert($hydrated instanceof ComponentTreeHydrated);
     $hydrated_json = $hydrated->getValue()->getContent();
     assert(is_string($hydrated_json));
@@ -335,7 +335,7 @@ final class SdcController extends ControllerBase {
     return $component_tree_field_item;
   }
 
-  public function preview(Request $request): JsonResponse {
+  public function preview(Request $request, EntityInterface $entity): JsonResponse {
     ['layout' => $layout, 'model' => $model] = json_decode($request->getContent(), TRUE);
     $component_tree_field_item = $this->clientLayoutAndModelToXbField($layout, $model);
 

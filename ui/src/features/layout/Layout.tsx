@@ -1,12 +1,13 @@
 import { useEffect } from 'react';
-import { useAppDispatch } from '@/app/hooks';
+import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { useGetLayoutByIdQuery } from '@/services/layout';
 import { setLayoutModel } from './layoutModelSlice';
+import { selectEntityId } from '@/features/configuration/configurationSlice';
 
 const Layout = () => {
   const dispatch = useAppDispatch();
-  //TODO: Hardcoded node id:
-  const { data: fetchedLayout } = useGetLayoutByIdQuery('1');
+  const entityId = useAppSelector(selectEntityId);
+  const { data: fetchedLayout } = useGetLayoutByIdQuery(entityId);
 
   useEffect(() => {
     if (fetchedLayout) {

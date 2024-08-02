@@ -28,11 +28,10 @@ const rawBaseQuery = (appConfiguration: AppConfiguration) => {
     extraOptions: object = {},
   ) => {
     const url = typeof arg == 'string' ? arg : arg.url;
-    // Here we can do dynamic parameter replacement based on app configuration.
-    // const { entity_type, entity_id } = appConfiguration;
-    const newUrl = url;
-    // .replace("{entity_type}", entity_type)
-    // .replace("{entity_id}", entity_id);
+    const { entityType, entity } = appConfiguration;
+    const newUrl = url
+      .replace('{entity_type}', entityType)
+      .replace('{entity_id}', entity);
     const newArg = typeof arg == 'string' ? newUrl : { ...arg, url: newUrl };
     return defaultQuery(newArg, api, extraOptions);
   };

@@ -28,7 +28,7 @@ describe('General Experience Builder', {testIsolation: false}, () => {
 
   it('Can access XB UI and do basic interactions', () => {
     cy.drupalLogin('xbUser', 'xbUser')
-    cy.drupalRelativeURL('xb')
+    cy.drupalRelativeURL('xb/node/1')
 
     // Wait for the preview iframe to load and render something that confirms
     // it is ready.
@@ -216,7 +216,7 @@ describe('General Experience Builder', {testIsolation: false}, () => {
     }
 
     // Monitor the endpoint that processes changed values in the prop edit form.
-    cy.intercept('POST', '**/api/preview').as('getPreview')
+    cy.intercept('POST', '**/api/preview/node/1').as('getPreview')
     Object.entries(propEditFormSelectors).forEach(([ prop, selector ]) => {
       // Type a new value into a given input.
       cy.get(selector).focus().clear().type(newValues[prop])
@@ -251,7 +251,7 @@ describe('General Experience Builder', {testIsolation: false}, () => {
 
   it('previews components on hover', () => {
     cy.drupalLogin('xbUser', 'xbUser')
-    cy.drupalRelativeURL('xb')
+    cy.drupalRelativeURL('xb/node/1')
     cy.get('iframe[data-xb-preview]').should('exist')
     cy.waitForElementInIframe('[data-xb-type="experience_builder:image"]')
     cy.get('[data-radix-menubar-content]').should('have.length', 0, 'There is no menubar yet.')
@@ -291,7 +291,7 @@ describe('General Experience Builder', {testIsolation: false}, () => {
 
   it('uses react router successfully', () => {
       cy.drupalLogin('xbUser', 'xbUser')
-      cy.drupalRelativeURL('xb')
+      cy.drupalRelativeURL('xb/node/1')
 
       // Wait for the preview iframe to load and render something that confirms
       // it is ready.
@@ -326,9 +326,9 @@ describe('General Experience Builder', {testIsolation: false}, () => {
       cy.get('[class*="contextualPanel"] h4').should('contain', componentId1)
 
       // Now on a path specific to that component.
-      cy.url().should('contain', `/xb/component/${componentId1}`)
+      cy.url().should('contain', `/xb/node/1/component/${componentId1}`)
       cy.url().should((url) => {
-        expect(url, `After clicking on ${componentId1}, path should include '/xb/component/${componentId1}'`).to.contain(`/xb/component/${componentId1}`)
+        expect(url, `After clicking on ${componentId1}, path should include '/xb/node/1/component/${componentId1}'`).to.contain(`/xb/node/1/component/${componentId1}`)
       })
 
       // Click a different component.
@@ -339,23 +339,23 @@ describe('General Experience Builder', {testIsolation: false}, () => {
       // Opens the contextual form for the clicked component.
       cy.get('[class*="contextualPanel"] h4').should('contain', componentId2)
       // Now on a path specific to that component.
-      cy.url().should('contain', `/xb/component/${componentId2}`)
+      cy.url().should('contain', `/xb/node/1/component/${componentId2}`)
       cy.url().should((url) => {
-        expect(url, `After clicking on ${componentId2}, path should include '/xb/component/${componentId2}'`).to.contain(`/xb/component/${componentId2}`)
+        expect(url, `After clicking on ${componentId2}, path should include '/xb/node/1/component/${componentId2}'`).to.contain(`/xb/node/1/component/${componentId2}`)
       })
 
       cy.go('back')
       // Returns to the URL for the prior component.
       cy.url().should((url) => {
-        expect(url, `Hit back once and path should again include '/xb/component/${componentId1}'`).to.contain(`/xb/component/${componentId1}`)
+        expect(url, `Hit back once and path should again include '/xb/node/1/component/${componentId1}'`).to.contain(`/xb/node/1/component/${componentId1}`)
       })
       // Returns to the contextual form for the prior component.
       cy.get('[class*="contextualPanel"] h4').should('contain', componentId1)
 
       cy.go('back')
       cy.url().should((url) => {
-        expect(url, `Hit back twice and the and path should not have 'component' in it`).to.not.contain('/xb/component')
-        expect(url, `Hit back twice and the path should still have /xb`).to.contain('/xb')
+        expect(url, `Hit back twice and the and path should not have 'component' in it`).to.not.contain('/xb/node/1/component')
+        expect(url, `Hit back twice and the path should still have /xb`).to.contain('/xb/node/1')
       })
 
       // No contextual panel open.

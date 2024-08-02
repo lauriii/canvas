@@ -20,7 +20,7 @@ const handlers = [
     }
     return HttpResponse.json({}, { status: 404 });
   }),
-  http.get('/api/layout/:id', async () => {
+  http.get('/api/layout/:entity_type/:entity', async () => {
     await delay(DEFAULT_DELAY);
     return HttpResponse.json(layoutDefault);
   }),
