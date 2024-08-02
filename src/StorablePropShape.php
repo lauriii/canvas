@@ -10,8 +10,6 @@ use Drupal\experience_builder\PropSource\StaticPropSource;
 
 /**
  * A storable prop shape: a prop shape with corresponding field type + widget.
- *
- * @todo Support a `hook_storable_prop_shape_alter()`, which does NOT allow modifying the schema, but does allow modifying the field type, widget and storage settings. There is a risk here wrt deps, but the fact that after https://www.drupal.org/project/experience_builder/issues/3463999, dependency checking will be handled by config dependencies for us. 👍
  */
 final class StorablePropShape {
 

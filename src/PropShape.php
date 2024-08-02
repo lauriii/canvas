@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\experience_builder;
 
+use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Plugin\Component;
 use Drupal\Core\Template\Attribute;
 use Drupal\experience_builder\PropExpressions\Component\ComponentPropExpression;
@@ -92,7 +93,30 @@ final class PropShape {
   }
 
   public function findFieldTypeStorage(): ?StorablePropShape {
-    return SdcPropJsonSchemaType::from($this->schema['type'])->findFieldTypeStorage($this);
+    // The default storable prop shape, if any.
+    $storable_prop_shape = SdcPropJsonSchemaType::from($this->schema['type'])->findFieldTypeStorage($this);
+
+    $alterable = $storable_prop_shape
+      ? CandidateStorablePropShape::fromStorablePropShape($storable_prop_shape)
+      // If no default storable prop shape exists, generate an empty candidate.
+      : new CandidateStorablePropShape($this);
+
+    // Allow modules to alter the default.
+    self::moduleHandler()->alter(
+      'storage_prop_shape',
+      // The value that other modules can alter.
+      $alterable,
+    );
+
+    // @todo DX: validate that the field type exists.
+    // @todo DX: validate that the field prop exists.
+    // @todo DX: validate that the field widget exists.
+
+    return $alterable->toStorablePropShape();
+  }
+
+  private static function moduleHandler(): ModuleHandlerInterface {
+    return \Drupal::moduleHandler();
   }
 
 }

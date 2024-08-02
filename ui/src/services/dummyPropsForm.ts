@@ -8,7 +8,7 @@ export const dummyPropsFormApi = createApi({
   endpoints: (builder) => ({
     getDummyPropsForm: builder.query<string, string>({
       query: (queryString) => ({
-        url: `xb-field-form/{entity_type}/{entity_id}?${queryString}`,
+        url: `xb-field-form/{entity_type}/{entity_id}${queryString}`,
         // fetchBaseQuery assumes every Response will get parsed by JSON so we need to add the below.
         responseHandler: 'text',
       }),

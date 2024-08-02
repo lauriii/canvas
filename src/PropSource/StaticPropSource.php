@@ -7,7 +7,8 @@ namespace Drupal\experience_builder\PropSource;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Entity\Plugin\DataType\EntityAdapter;
 use Drupal\Core\Field\FieldItemInterface;
-use Drupal\Core\Field\FieldItemList;
+use Drupal\Core\Field\FieldItemListInterface;
+use Drupal\Core\Field\Plugin\Field\FieldType\EntityReferenceItem;
 use Drupal\Core\Field\TypedData\FieldItemDataDefinitionInterface;
 use Drupal\Core\Field\WidgetInterface;
 use Drupal\Core\Field\WidgetPluginManager;
@@ -99,11 +100,25 @@ final class StaticPropSource extends PropSourceBase {
    * @return \Drupal\experience_builder\PropSource\StaticPropSource
    *
    * @see \Drupal\Core\Field\FieldItemList::generateSampleItems()
+   *
+   * @internal
+   *   This is currently only intended to be used by Experience Builder's tests.
    */
   public function randomizeValue(): static {
     $field_item = clone $this->fieldItem;
     $field_type_class = $field_item->getDataDefinition()->getClass();
     $field_item->setValue($field_type_class::generateSampleValue($field_item->getFieldDefinition()));
+    if ($field_item instanceof EntityReferenceItem) {
+      // TRICKY: the target_id MUST be set for this StaticPropSource
+      // serialize and then restore. But Drupal core (sensibly!) does not save
+      // sample entities. However, for this
+      // @see \Drupal\Core\Field\Plugin\Field\FieldType\EntityReferenceItem::onChange()
+      // @see \Drupal\Core\Entity\Plugin\DataType\EntityReference::isTargetNew()
+      if ($field_item->get('target_id')->getValue() === NULL && $field_item->get('entity')->getValue()->isNew()) {
+        $target_id = $field_item->get('entity')->getValue()->save();
+        $field_item->get('target_id')->setValue($target_id);
+      }
+    }
     return new StaticPropSource(
       $field_item,
       $this->expression,
@@ -229,7 +244,7 @@ final class StaticPropSource extends PropSourceBase {
     };
   }
 
-  public function getWidget(string $sdc_prop_name, ?string $field_widget_plugin_id = NULL): WidgetInterface {
+  public function getWidget(string $sdc_prop_name, ?string $field_widget_plugin_id): WidgetInterface {
     // @phpstan-ignore-next-line
     $field_widget_plugin_manager = \Drupal::service('plugin.manager.field.widget');
     assert($field_widget_plugin_manager instanceof WidgetPluginManager);
@@ -250,7 +265,7 @@ final class StaticPropSource extends PropSourceBase {
     return $widget;
   }
 
-  public function formTemporaryRemoveThisExclamationExclamationExclamation(string $component_instance_uuid, string $sdc_prop_name, ?FieldableEntityInterface $host_entity, array &$form, FormStateInterface $form_state): array {
+  public function formTemporaryRemoveThisExclamationExclamationExclamation(?string $field_widget_plugin_id, string $component_instance_uuid, string $sdc_prop_name, ?FieldableEntityInterface $host_entity, array &$form, FormStateInterface $form_state): array {
     // TRICKY: create the field item list without a parent. Otherwise, the Typed
     // Data manager tries to be clever but in doing so fails: it generates a new
     // field item object using the full property path (which then includes the
@@ -258,7 +273,9 @@ final class StaticPropSource extends PropSourceBase {
     // back to a pseudo-random default.
     // @see \Drupal\Core\Field\FieldTypePluginManager::createFieldItem()
     // @see \Drupal\Core\TypedData\TypedDataManagerInterface::getPropertyInstance()
-    $field = (new FieldItemList($this->fieldItem->getFieldDefinition(), $sdc_prop_name, NULL));
+    $list_class = $this->fieldItem->getFieldDefinition()->getClass();
+    $field = (new $list_class($this->fieldItem->getFieldDefinition(), $sdc_prop_name, NULL));
+    assert($field instanceof FieldItemListInterface);
     $field->set(0, $this->fieldItem);
     // Only *after* the field item list has had its conjured field item set as
     // the sole value, it becomes safe to specify the host entity. Most widgets
@@ -268,7 +285,7 @@ final class StaticPropSource extends PropSourceBase {
     if ($host_entity) {
       $field->setContext(NULL, EntityAdapter::createFromEntity($host_entity));
     }
-    return $this->getWidget($sdc_prop_name)->form($field, $form, $form_state);
+    return $this->getWidget($sdc_prop_name, $field_widget_plugin_id)->form($field, $form, $form_state);
   }
 
   /**
@@ -277,9 +294,9 @@ final class StaticPropSource extends PropSourceBase {
    *
    * @return mixed|array<string, mixed>
    */
-  public function massageFormValuesTemporaryRemoveThisExclamationExclamationExclamation(string $sdc_prop_name, array $values, array &$form, FormStateInterface $form_state): mixed {
+  public function massageFormValuesTemporaryRemoveThisExclamationExclamationExclamation(?string $field_widget_plugin_id, string $sdc_prop_name, array $values, array &$form, FormStateInterface $form_state): mixed {
     // 1. Apply the field widget's transformation.
-    $massaged_values = $this->getWidget($sdc_prop_name)
+    $massaged_values = $this->getWidget($sdc_prop_name, $field_widget_plugin_id)
       ->massageFormValues($values, $form, $form_state);
 
     // 2. Keep only the first value — only single cardinality is supported ATM.

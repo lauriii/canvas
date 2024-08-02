@@ -47,6 +47,8 @@ class PropShapeRepositoryTest extends KernelTestBase {
     'file',
     'options',
     'path',
+    // @see \Drupal\path\Plugin\Field\FieldType\PathItem::generateSampleValue()
+    'path_alias',
   ];
 
   /**
@@ -60,6 +62,8 @@ class PropShapeRepositoryTest extends KernelTestBase {
     $this->installConfig(['system']);
     // @see \Drupal\file\Plugin\Field\FieldType\FileItem::generateSampleValue()
     $this->installEntitySchema('file');
+    // @see \Drupal\path\Plugin\Field\FieldType\PathItem::generateSampleValue()
+    $this->installEntitySchema('path_alias');
   }
 
   /**
@@ -124,23 +128,10 @@ class PropShapeRepositoryTest extends KernelTestBase {
   }
 
   /**
-   * @depends testUniquePropSchemaDiscovery
+   * @return \Drupal\experience_builder\StorablePropShape[]
    */
-  public function testStorablePropShapes(array $unique_prop_shapes): array {
-    $this->assertNotEmpty($unique_prop_shapes);
-
-    $unique_storable_prop_shapes = [];
-    foreach ($unique_prop_shapes as $prop_shape) {
-      assert($prop_shape instanceof PropShape);
-      // If this prop shape is not storable, then fall back to the PropShape
-      // object, to make it easy to assert which shapes are storable vs not.
-      $unique_storable_prop_shapes[$prop_shape->uniquePropSchemaKey()] = $prop_shape->findFieldTypeStorage() ?? $prop_shape;
-    }
-
-    $unstorable_prop_shapes = array_filter($unique_storable_prop_shapes, fn ($s) => $s instanceof PropShape);
-    $unique_storable_prop_shapes = array_filter($unique_storable_prop_shapes, fn ($s) => $s instanceof StorablePropShape);
-
-    $this->assertEquals([
+  public static function getExpectedStorablePropShapes(): array {
+    return [
       'type=integer' => new StorablePropShape(
         shape: new PropShape(['type' => 'integer']),
         fieldTypeProp: new FieldTypePropExpression('integer', 'value'),
@@ -261,10 +252,14 @@ class PropShapeRepositoryTest extends KernelTestBase {
         fieldTypeProp: new FieldTypePropExpression('path', 'alias'),
         fieldWidget: 'path',
       ),
-    ], $unique_storable_prop_shapes);
+    ];
+  }
 
-    // ⚠️ No field type + widget yet for these! For some that is fine though.
-    $this->assertEquals([
+  /**
+   * @return \Drupal\experience_builder\PropShape[]
+   */
+  public static function getExpectedUnstorablePropShapes(): array {
+    return [
       'type=object&$ref=json-schema-definitions://sdc_test_all_props.module/date-range' => new PropShape(['type' => 'object', '$ref' => 'json-schema-definitions://sdc_test_all_props.module/date-range']),
       'type=string&$ref=json-schema-definitions://experience_builder.module/image-uri' => new PropShape(['type' => 'string', '$ref' => 'json-schema-definitions://experience_builder.module/image-uri']),
       'type=string&format=duration' => new PropShape(['type' => 'string', 'format' => JsonSchemaStringFormat::DURATION->value]),
@@ -278,7 +273,30 @@ class PropShapeRepositoryTest extends KernelTestBase {
       'type=string&format=time' => new PropShape(['type' => 'string', 'format' => JsonSchemaStringFormat::TIME->value]),
       'type=string&format=uri-template' => new PropShape(['type' => 'string', 'format' => JsonSchemaStringFormat::URI_TEMPLATE->value]),
       'type=string&format=uuid' => new PropShape(['type' => 'string', 'format' => JsonSchemaStringFormat::UUID->value]),
-    ], $unstorable_prop_shapes);
+    ];
+  }
+
+  /**
+   * @depends testUniquePropSchemaDiscovery
+   */
+  public function testStorablePropShapes(array $unique_prop_shapes): array {
+    $this->assertNotEmpty($unique_prop_shapes);
+
+    $unique_storable_prop_shapes = [];
+    foreach ($unique_prop_shapes as $prop_shape) {
+      assert($prop_shape instanceof PropShape);
+      // If this prop shape is not storable, then fall back to the PropShape
+      // object, to make it easy to assert which shapes are storable vs not.
+      $unique_storable_prop_shapes[$prop_shape->uniquePropSchemaKey()] = $prop_shape->findFieldTypeStorage() ?? $prop_shape;
+    }
+
+    $unstorable_prop_shapes = array_filter($unique_storable_prop_shapes, fn ($s) => $s instanceof PropShape);
+    $unique_storable_prop_shapes = array_filter($unique_storable_prop_shapes, fn ($s) => $s instanceof StorablePropShape);
+
+    $this->assertEquals(static::getExpectedStorablePropShapes(), $unique_storable_prop_shapes);
+
+    // ⚠️ No field type + widget yet for these! For some that is fine though.
+    $this->assertEquals(static::getExpectedUnstorablePropShapes(), $unstorable_prop_shapes);
 
     return array_filter($unique_storable_prop_shapes, fn ($prop_shape) => $prop_shape instanceof StorablePropShape);
   }
@@ -304,7 +322,7 @@ class PropShapeRepositoryTest extends KernelTestBase {
       // @see \Drupal\Core\Field\WidgetBase::form()
       $form = ['#parents' => [$this->randomMachineName()]];
       $form_state = new FormState();
-      $form = $prop_source->formTemporaryRemoveThisExclamationExclamationExclamation('nonsensical-uuid', 'some-prop-name', User::create([]), $form, $form_state);
+      $form = $prop_source->formTemporaryRemoveThisExclamationExclamationExclamation($storable_prop_shape->fieldWidget, 'nonsensical-uuid', 'some-prop-name', User::create([]), $form, $form_state);
 
       // Finally, prove the total compatibility of the StaticPropSource
       // generated by the StorablePropShape:

@@ -242,8 +242,8 @@ enum SdcPropJsonSchemaType : string {
 
       SdcPropJsonSchemaType::OBJECT => match (TRUE) {
         array_key_exists('$ref', $schema) => match ($schema['$ref']) {
-          // @todo make configurable in https://www.drupal.org/project/experience_builder/issues/3464031
           // @see \Drupal\image\Plugin\Field\FieldType\ImageItem
+          // @see media_library_storage_prop_shape_alter()
           'json-schema-definitions://experience_builder.module/image' => new StorablePropShape(shape: $shape, fieldWidget: 'image_image', fieldTypeProp: new FieldTypeObjectPropsExpression('image', [
             'src' => new ReferenceFieldTypePropExpression(
               new FieldTypePropExpression('image', 'entity'),
