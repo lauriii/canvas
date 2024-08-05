@@ -173,8 +173,8 @@ class PropShapeRepositoryTest extends KernelTestBase {
         fieldWidget: 'options_select',
         fieldStorageSettings: [
           'allowed_values' => [
-            'foo' => 'foo',
-            'bar' => 'bar',
+            ['value' => 'foo', 'label' => 'foo'],
+            ['value' => 'bar', 'label' => 'bar'],
           ],
         ],
       ),
@@ -184,8 +184,8 @@ class PropShapeRepositoryTest extends KernelTestBase {
         fieldWidget: 'options_select',
         fieldStorageSettings: [
           'allowed_values' => [
-            '' => '',
-            '_blank' => '_blank',
+            ['value' => '', 'label' => ''],
+            ['value' => '_blank', 'label' => '_blank'],
           ],
         ],
       ),
@@ -195,9 +195,9 @@ class PropShapeRepositoryTest extends KernelTestBase {
         fieldWidget: 'options_select',
         fieldStorageSettings: [
           'allowed_values' => [
-            'power' => 'power',
-            'like' => 'like',
-            'external' => 'external',
+            ['value' => 'power', 'label' => 'power'],
+            ['value' => 'like', 'label' => 'like'],
+            ['value' => 'external', 'label' => 'external'],
           ],
         ],
       ),

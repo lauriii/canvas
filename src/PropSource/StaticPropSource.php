@@ -77,7 +77,9 @@ final class StaticPropSource extends PropSourceBase {
     $field_item_definition = FieldStorageDefinition::create($field_type)->getItemDefinition();
     assert($field_item_definition instanceof DataDefinition);
     if ($field_storage_settings) {
-      $field_item_definition->setSettings($field_storage_settings + $field_item_definition->getSettings());
+      $field_item_class = $field_item_definition->getClass();
+      $field_item_definition->setSettings($field_item_class::storageSettingsFromConfigData($field_storage_settings) +
+        $field_item_definition->getSettings());
     }
     assert($field_item_definition instanceof FieldItemDataDefinitionInterface);
     $field_item = $typed_data_manager->createInstance($data_type, [

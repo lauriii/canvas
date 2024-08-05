@@ -189,7 +189,7 @@ enum SdcPropJsonSchemaType : string {
       SdcPropJsonSchemaType::STRING => match (TRUE) {
         array_key_exists('$ref', $schema) => NULL,
         array_key_exists('enum', $schema) => new StorablePropShape(shape: $shape, fieldWidget: 'options_select', fieldTypeProp: new FieldTypePropExpression('list_string', 'value'), fieldStorageSettings: [
-          'allowed_values' => array_combine($schema['enum'], $schema['enum']),
+          'allowed_values' => array_map(fn ($v) => ['value' => $v, 'label' => (string) $v], $schema['enum']),
         ]),
         // @todo subclass \Drupal\Core\Field\Plugin\Field\FieldType\StringItem to allow for a "pattern" setting + create subclass of \Drupal\Core\Field\Plugin\Field\FieldWidget\StringTextfieldWidget to pass on that pattern setting  ⚠️
         array_key_exists('pattern', $schema) => NULL,
@@ -209,7 +209,7 @@ enum SdcPropJsonSchemaType : string {
       SdcPropJsonSchemaType::INTEGER => match (TRUE) {
         array_key_exists('$ref', $schema) => NULL,
         array_key_exists('enum', $schema) => new StorablePropShape(shape: $shape, fieldWidget: 'options_select', fieldTypeProp: new FieldTypePropExpression('list_integer', 'value'), fieldStorageSettings: [
-          'allowed_values' => array_combine($schema['enum'], $schema['enum']),
+          'allowed_values' => array_map(fn ($v) => ['value' => $v, 'label' => (string) $v], $schema['enum']),
         ]),
         // `min` and/or `max`
         array_key_exists('minimum', $schema) || array_key_exists('maximum', $schema) => new StorablePropShape(shape: $shape, fieldTypeProp: new FieldTypePropExpression('integer', 'value'), fieldWidget: 'number', fieldStorageSettings: [
@@ -228,7 +228,7 @@ enum SdcPropJsonSchemaType : string {
       SdcPropJsonSchemaType::NUMBER => match (TRUE) {
         array_key_exists('$ref', $schema) => NULL,
         array_key_exists('enum', $schema) => new StorablePropShape(shape: $shape, fieldWidget: 'options_select', fieldTypeProp: new FieldTypePropExpression('list_float', 'value'), fieldStorageSettings: [
-          'allowed_values' => array_combine($schema['enum'], $schema['enum']),
+          'allowed_values' => array_map(fn ($v) => ['value' => $v, 'label' => (string) $v], $schema['enum']),
         ]),
         // `min` and/or `max`
         array_key_exists('minimum', $schema) || array_key_exists('maximum', $schema) => new StorablePropShape(shape: $shape, fieldTypeProp: new FieldTypePropExpression('float', 'value'), fieldWidget: 'number', fieldStorageSettings: [
