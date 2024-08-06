@@ -340,3 +340,7 @@ Cypress.Commands.add('testInIframe', (selector, callback, iframeSelector = '[dat
       callback(callbackArg, previewIframe)
     });
 })
+
+Cypress.Commands.add('scrollToMiddleOfIframe', () => {
+  cy.contains('button', 'Debug: scroll to middle').click();
+});

@@ -3,10 +3,10 @@ import { createRoot } from 'react-dom/client';
 import { Provider } from 'react-redux';
 import AppRoutes from '@/app/AppRoutes';
 import { makeStore } from '@/app/store';
-import './index.css';
 import '@radix-ui/themes/styles.css';
 import { Theme } from '@radix-ui/themes';
 import type { AppConfiguration } from '@/features/configuration/configurationSlice';
+import './index.css';
 
 interface XbSettings {
   path: { baseUrl: string };
@@ -52,7 +52,12 @@ if (container) {
     }
     root.render(
       <React.StrictMode>
-        <Theme hasBackground={false} panelBackground="solid" appearance="light">
+        <Theme
+          accentColor="blue"
+          hasBackground={false}
+          panelBackground="solid"
+          appearance="light"
+        >
           <Provider store={makeStore({ configuration: appConfiguration })}>
             <AppRoutes basePath={routerRoot} />
           </Provider>

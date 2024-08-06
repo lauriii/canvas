@@ -1,5 +1,6 @@
 .xbComponentOutline {
   position: absolute;
+  z-index: 1;
   top: 0;
   left: 0;
   display: block;
@@ -14,15 +15,19 @@
 .xbSlotOutline {
   outline: 1px dashed #02a376;
 }
-.xbComponentToolbar {
+
+.xbNameTag {
   position: absolute;
-  z-index: 1;
-  top: -26px;
-  left: -1px;
+  z-index: 2;
+  top: 0;
   display: block;
-  opacity: 0;
-  will-change: top, left, transform;
-  button {
-    cursor: pointer !important;
-  }
+  opacity: 1;
+}
+
+.xbAddSectionButton {
+  position: absolute;
+  z-index: 3;
+  display: block;
+  transform: translate(-50%, -50%);
+  opacity: 1;
 }

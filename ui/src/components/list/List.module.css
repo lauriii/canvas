@@ -8,6 +8,10 @@
   font-size: 14px;
 }
 
+.outline {
+  border: 1px solid var(--component-outline-color);
+}
+
 .listContainer {
   position: relative;
   top: var(--primary-menu-subcontent-item-height);

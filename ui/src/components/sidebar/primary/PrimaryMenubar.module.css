@@ -36,6 +36,10 @@ button {
   }
 }
 
+.MenubarSubTrigger {
+  width: var(--primary-menu-subcontent-width);
+}
+
 .MenubarTrigger[data-state="open"],
 .MenubarSubTrigger[data-state="open"] {
   background-color: var(--selected-menu-item-color);

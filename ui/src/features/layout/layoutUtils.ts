@@ -192,3 +192,18 @@ export function moveNodeToPath(
   // Remove the original node by finding it by uuid (which is now `${child.uuid}_remove`)
   return removeNodeByUuid(newState, child.uuid);
 }
+
+/**
+ * Checks if a node is a child of another node.
+ * @param layoutNode - The root node.
+ * @param uuid - The UUID of the node to check.
+ * @returns {boolean | null} - Returns if node is a child or not and null if the node is not found.
+ */
+export function isChildNode(layoutNode: LayoutNode, uuid: string) {
+  const path = findNodePathByUuid(layoutNode, uuid);
+  if (path !== null) {
+    return path && path.length > 1;
+  } else {
+    return null;
+  }
+}

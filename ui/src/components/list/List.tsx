@@ -1,12 +1,14 @@
 import { useEffect, useRef, useCallback, useState } from 'react';
 import styles from './List.module.css';
 import menuStyles from '@/components/sidebar/primary/PrimaryMenubar.module.css';
+import { selectDragging, setListDragging } from '@/features/ui/uiSlice';
 import {
-  selectDragging,
-  setListDragging,
-  setPrimaryMenuActiveMenu,
-  setPrimaryMenuHidden,
-} from '@/features/ui/uiSlice';
+  disableClickToInsert,
+  NodeType,
+  selectClickToInsertState,
+  setHidden,
+  setInactive,
+} from '@/features/ui/primaryMenuSlice';
 import Sortable from 'sortablejs';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { useGetComponentsQuery } from '@/services/components';
@@ -14,6 +16,11 @@ import { Box, Flex, Spinner, Text } from '@radix-ui/themes';
 import { customSortableDragImage } from '@/features/sortable/sortableUtils';
 import clsx from 'clsx';
 import * as Menubar from '@radix-ui/react-menubar';
+import {
+  addNewComponentToLayout,
+  selectLayout,
+} from '@/features/layout/layoutModelSlice';
+import { findNodePathByUuid } from '@/features/layout/layoutUtils';
 import * as Tooltip from '@radix-ui/react-tooltip';
 import type { Component } from '@/types/Component';
 
@@ -28,6 +35,11 @@ const List = () => {
   const listElRef = useRef<HTMLDivElement>(null);
   const previewMarkupRef = useRef<PreviewCache>({});
   const { isDragging } = useAppSelector(selectDragging);
+  const { isEnabled, originUUID, originNodeType } = useAppSelector(
+    selectClickToInsertState,
+  );
+  const layout = useAppSelector(selectLayout);
+  const componentsRef = useRef(components);
   const [previewContent, setPreviewContent] = useState<string>('');
   const defaultPreviewHeight = 800;
   const defaultPreviewWidth = 600;
@@ -36,7 +48,7 @@ const List = () => {
     dispatch(setListDragging(true));
     // When dragging a component, hide it instead of closing the menu, because we don't want
     // to unmount the draggable element from the DOM.
-    dispatch(setPrimaryMenuHidden(true));
+    dispatch(setHidden(true));
   }, [dispatch]);
 
   const handleDragClone = useCallback((ev: Sortable.SortableEvent) => {
@@ -48,8 +60,43 @@ const List = () => {
     // After the drag ends, we can now close the menu without disrupting
     // the draggable functionality. Setting the primary menu to an empty string
     // closes it.
-    dispatch(setPrimaryMenuActiveMenu(''));
+    dispatch(setInactive());
   }, [dispatch]);
+
+  const clickToInsertHandler = (newNodeId: string) => {
+    if (isEnabled) {
+      const path = findNodePathByUuid(layout, originUUID);
+      if (path) {
+        const newPath = [...path];
+        // First check if the selected node is a component (node with parent) or
+        // a section (node without parent).
+        if (originNodeType === NodeType.COMPONENT) {
+          // Example: A path [0, 2] means a node is the 3rd child of the 1st parent.
+          // So when a new node is added, it should be added as the 4th child of the 1st parent.
+          // Therefore, the newly inserted node's path would be [0, 3].
+          newPath[newPath.length - 1] += 1;
+        } else {
+          // If the selected node is in the root level, then the new node should
+          // be added as a sibling.
+          // Example: A path [2] means a node is the 3rd root level node.
+          // Therefore, the newly inserted node's path should be [3].
+          newPath[0] += 1;
+        }
+        dispatch(
+          addNewComponentToLayout({
+            to: newPath,
+            newNode: newNodeId,
+            componentFieldData:
+              componentsRef.current?.[newNodeId]?.['field_data'],
+          }),
+        );
+
+        dispatch(disableClickToInsert());
+        // Close the menu once the user selects section/component.
+        dispatch(setInactive());
+      }
+    }
+  };
 
   const handleMouseEnter = (component: Component) => {
     // Use cached preview markup when available.
@@ -142,7 +189,6 @@ const List = () => {
     // Cache the preview markup in a ref.
     previewMarkupRef.current[component.name] = previewWrapper.outerHTML;
     setPreviewContent(previewWrapper.outerHTML);
-    // }}
   };
 
   useEffect(() => {
@@ -196,7 +242,7 @@ const List = () => {
               </div>
             )}
             {components &&
-              Object.values(components).map((component) => (
+              Object.values(components).map((component, index) => (
                 <div
                   key={component.id}
                   data-xb-uuid={component.id}
@@ -205,7 +251,11 @@ const List = () => {
                     'listItem',
                     styles.listItem,
                     menuStyles.MenubarItem,
+                    // Highlight the first item in the list when click to insert is enabled to
+                    // let the user know that they can click to insert the component.
+                    index === 0 && isEnabled ? styles.outline : null,
                   )}
+                  onClick={() => clickToInsertHandler(component.id)}
                   onDragStart={(event) =>
                     customSortableDragImage(
                       event,
@@ -215,29 +265,31 @@ const List = () => {
                   }
                   onMouseEnter={() => handleMouseEnter(component)}
                 >
-                  <Tooltip.Root>
-                    <Tooltip.Trigger
-                      className={clsx(
-                        'ComponentPreviewTrigger',
-                        styles.ComponentPreviewTrigger,
-                      )}
-                    >
-                      <Text>{component.name}</Text>
-                    </Tooltip.Trigger>
-                    <Tooltip.Content
-                      side="right"
-                      className={clsx(
-                        'ComponentPreviewContent',
-                        styles.ComponentPreviewContent,
-                      )}
-                    >
-                      {previewContent && (
-                        <div
-                          dangerouslySetInnerHTML={{ __html: previewContent }}
-                        />
-                      )}
-                    </Tooltip.Content>
-                  </Tooltip.Root>
+                  <Tooltip.Provider>
+                    <Tooltip.Root>
+                      <Tooltip.Trigger
+                        className={clsx(
+                          'ComponentPreviewTrigger',
+                          styles.ComponentPreviewTrigger,
+                        )}
+                      >
+                        <Text>{component.name}</Text>
+                      </Tooltip.Trigger>
+                      <Tooltip.Content
+                        side="right"
+                        className={clsx(
+                          'ComponentPreviewContent',
+                          styles.ComponentPreviewContent,
+                        )}
+                      >
+                        {previewContent && (
+                          <div
+                            dangerouslySetInnerHTML={{ __html: previewContent }}
+                          />
+                        )}
+                      </Tooltip.Content>
+                    </Tooltip.Root>
+                  </Tooltip.Provider>
                 </div>
               ))}
           </Flex>

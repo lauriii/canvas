@@ -1,7 +1,13 @@
 import {selectHistory, deleteNode, moveNode, layoutModelSlice, setLayoutModel, initialState } from "../../../../../ui/src/features/layout/layoutModelSlice";
-import layout from "../../../../../ui/src/mocks/fixtures/layout-default.json"
 import { makeStore } from "../../../../../ui/src/app/store";
 import { ActionCreators } from "redux-undo";
+
+let layout;
+before('Load fixture', function () {
+  cy.fixture('layout-default.json').then((data)=>{
+    layout = data;
+  })
+})
 
 describe('Set layout model', () => {
   it('Should set model and layout', () => {
@@ -13,35 +19,36 @@ describe('Set layout model', () => {
 
 describe('Delete node', () => {
   it('Should delete node', () => {
-    cy.wrap(layout.layout.children).should('have.length', 3);
+    expect(layout.layout.children).to.have.length(4);
     expect(layout.layout.children.map(item => item.uuid)).to.deep.equal([
-      '43cd7aa4-0160-4787-a3af-baf44ff17a88',
-      'fcd2490d-1124-4146-82b6-b1e049ed8026',
-      '1941ffae-f9ed-4ce3-8145-a2c3977ac65b',
+      'dynamic-image-udf7d',
+      'dynamic-static-card2df',
+      'dynamic-dynamic-card3rr',
+      'dynamic-image-static-imageStyle-something7d'
     ]);
-    const state = layoutModelSlice.reducer(layout, deleteNode('43cd7aa4-0160-4787-a3af-baf44ff17a88'))
-    cy.wrap(state.layout.children).should('have.length', 2);
+    const state = layoutModelSlice.reducer(layout, deleteNode('dynamic-static-card2df'));
+    cy.wrap(state.layout.children).should('have.length', 3);
     expect(state.layout.children.map(item => item.uuid)).to.deep.equal([
-      'fcd2490d-1124-4146-82b6-b1e049ed8026',
-      '1941ffae-f9ed-4ce3-8145-a2c3977ac65b',
+      'dynamic-image-udf7d',
+      'dynamic-dynamic-card3rr',
+      'dynamic-image-static-imageStyle-something7d'
     ]);
   })
 })
 
 describe('Move node', () => {
   it('Should move node', () => {
-    cy.wrap(layout.layout.children[2].children[0].children).should('have.length', 1);
-    cy.wrap(layout.layout.children[2].children[1].children).should('have.length', 1);
-    expect(layout.layout.children[2].children[0].children[0].uuid).to.deep.equal('bdfce52f-e666-49f0-a57f-dfb8c5c0c75b');
+    cy.wrap(layout.layout.children[0].children[0].children).should('have.length', 1);
+    cy.wrap(layout.layout.children[2].children[0].children).should('have.length', 0);
+    expect(layout.layout.children[0].children[0].children[0].uuid).to.deep.equal('static-static-card1ab');
     const state = layoutModelSlice.reducer(layout, moveNode({
-      uuid: 'bdfce52f-e666-49f0-a57f-dfb8c5c0c75b',
-      to: [2, 1, 1],
+      uuid: 'static-static-card1ab',
+      to: [2, 0, 1],
     }))
-    cy.wrap(state.layout.children[2].children[0].children).should('have.length', 0);
-    cy.wrap(state.layout.children[2].children[1].children).should('have.length', 2);
-    expect(state.layout.children[2].children[1].children.map(item => item.uuid)).to.deep.equal([
-      'fe01d628-55ab-4146-9d04-71e5a01ad233',
-      'bdfce52f-e666-49f0-a57f-dfb8c5c0c75b',
+    cy.wrap(state.layout.children[0].children[0].children).should('have.length', 0);
+    cy.wrap(state.layout.children[2].children[0].children).should('have.length', 1);
+    expect(state.layout.children[2].children[0].children.map(item => item.uuid)).to.deep.equal([
+      'static-static-card1ab',
     ]);
   })
 })

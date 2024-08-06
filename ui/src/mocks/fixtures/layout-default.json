@@ -1,73 +1,88 @@
 {
   "layout": {
     "uuid": "root",
-    "nodeType": "root",
+    "type": "root",
     "name": "root",
     "children": [
       {
-        "uuid": "43cd7aa4-0160-4787-a3af-baf44ff17a88",
-        "children": [],
-        "nodeType": "component"
-      },
-      {
-        "uuid": "fcd2490d-1124-4146-82b6-b1e049ed8026",
+        "uuid": "dynamic-image-udf7d",
         "nodeType": "component",
+        "type": "experience_builder:image",
         "children": [
           {
             "name": "Slot 1",
             "nodeType": "slot",
             "uuid": "05fa13be-8291-4955-aa89-32351f68e776",
-            "children": []
+            "children": [
+              {
+                "uuid": "static-static-card1ab",
+                "nodeType": "component",
+                "type": "sdc_test:my-cta"
+              }
+            ]
           }
         ]
       },
       {
-        "uuid": "1941ffae-f9ed-4ce3-8145-a2c3977ac65b",
+        "uuid": "dynamic-static-card2df",
         "nodeType": "component",
+        "type": "sdc_test:my-cta"
+      },
+      {
+        "uuid": "dynamic-dynamic-card3rr",
+        "nodeType": "component",
+        "type": "sdc_test:my-cta",
         "children": [
-          {
-            "name": "Slot 1",
-            "nodeType": "slot",
-            "uuid": "68cafa3e-bfd8-4767-a5cc-c18cce97c236",
-            "children": [
-              {
-                "nodeType": "component",
-                "uuid": "bdfce52f-e666-49f0-a57f-dfb8c5c0c75b",
-                "children": []
-              }
-            ]
-          },
           {
             "name": "Slot 2",
             "nodeType": "slot",
-            "uuid": "584ae5f1-e242-4dad-991b-55ca20d0bfa4",
+            "uuid": "0dea13be-8291-4955-aa89-32351f68e776",
             "children": [
-              {
-                "nodeType": "component",
-                "uuid": "fe01d628-55ab-4146-9d04-71e5a01ad233",
-                "children": []
-              }
+
             ]
           }
         ]
+      },
+      {
+        "uuid": "dynamic-image-static-imageStyle-something7d",
+        "nodeType": "component",
+        "type": "experience_builder:image"
       }
     ]
   },
   "model": {
-    "43cd7aa4-0160-4787-a3af-baf44ff17a88": {
-      "name": "Component 1 (no slots)"
+    "dynamic-image-udf7d": {
+      "image": {
+        "src": "public://2024-07/framer.png",
+        "alt": "asd",
+        "width": 518,
+        "height": 1118
+      },
+      "name": "My Test Image Component"
     },
-    "fcd2490d-1124-4146-82b6-b1e049ed8026": {
-      "name": "Component 2 (1 slots)"
+    "static-static-card1ab": {
+      "text": "hello, world!",
+      "href": "https://drupal.org",
+      "name": "My Test CTA Component"
     },
-    "1941ffae-f9ed-4ce3-8145-a2c3977ac65b": {
-      "name": "Component 3 (2 slots)"
+    "dynamic-static-card2df": {
+      "text": "Art",
+      "href": "https://drupal.org",
+      "name": "My Test CTA Component"
     },
-    "fe01d628-55ab-4146-9d04-71e5a01ad233": {
-      "name": "Component 4 (no slots)"
+    "dynamic-dynamic-card3rr": {
+      "text": "Art",
+      "href": "public://2024-07/framer.png",
+      "name": "My Test CTA Component"
     },
-    "bdfce52f-e666-49f0-a57f-dfb8c5c0c75b": {
-      "name": "Component 5 (no slots)"
+    "dynamic-image-static-imageStyle-something7d": {
+      "image": {
+        "src": "http://experience-builder.ddev.site/sites/default/files/styles/thumbnail/public/2024-07/framer.png.webp?itok=k9sN8Fqf",
+        "alt": "asd",
+        "width": 46,
+        "height": 100
+      },
+      "name": "My Test Image Component"
     }
   }
 }

@@ -8,11 +8,7 @@ import { useAppSelector } from '@/app/hooks';
 import { selectModel, selectLayout } from '@/features/layout/layoutModelSlice';
 import { selectSelectedComponent } from '@/features/ui/uiSlice';
 import { useGetComponentsQuery } from '@/services/components';
-import type { LayoutNode } from '@/features/layout/layoutModelSlice';
-
-interface KeyedLayoutList {
-  [key: string]: LayoutNode;
-}
+import { findNodeByUuid } from '@/features/layout/layoutUtils';
 
 const { Drupal } = window as any;
 
@@ -96,25 +92,14 @@ const DummyPropsEditForm: React.FC<DummyPropsEditFormProps> = () => {
   const [dynamicStaticCardQueryString, setDynamicStaticCardQueryString] =
     useState('');
 
-  const keyedLayoutRef = useRef<KeyedLayoutList>({});
-
   useEffect(() => {
     if (!components) {
       return;
     }
-    keyedLayoutRef.current = {};
-    // Create a version of the layout tree as an Object with nodes indexed by
-    // UUID. This is used to get information about the SDC being used (type,
-    // default values, etc.) as the model only contains prop data.
-    Object.values(layout.children).forEach((item) => {
-      if (item.type && components[item.type]) {
-        keyedLayoutRef.current[item.uuid] = item;
-      }
-    });
     const preparedModel: PreparedModel = { [selectedComponent]: {} };
     const selectedModel = model[selectedComponent];
-    const selectedComponentType =
-      keyedLayoutRef.current[selectedComponent].type || 'noop';
+    const node = findNodeByUuid(layout, selectedComponent);
+    const selectedComponentType = node ? (node.type as string) : 'noop';
 
     // This is metadata about the props of the SDC being edited. This is specific
     // to the SDC *type* but unconcerned with this SDC *instance*.

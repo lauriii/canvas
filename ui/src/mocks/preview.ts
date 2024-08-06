@@ -18,7 +18,7 @@ const createHtmlFromLayoutData = (
     div.setAttribute('data-xb-type', 'component');
     if (model[component.uuid]?.markup) {
       div.innerHTML += model[component.uuid]?.markup;
-    } else {
+    } else if (component.nodeType !== 'slot') {
       const header = document.createElement('h1');
       header.textContent = model[component.uuid]?.name || `debug: no name`;
       div.appendChild(header);

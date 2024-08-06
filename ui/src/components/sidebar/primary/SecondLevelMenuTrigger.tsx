@@ -3,26 +3,42 @@ import * as Menubar from '@radix-ui/react-menubar';
 import clsx from 'clsx';
 import styles from '@/components/sidebar/primary/PrimaryMenubar.module.css';
 import { ChevronRightIcon } from '@radix-ui/react-icons';
-import type { Dispatch, SetStateAction } from 'react';
+import {
+  selectActiveSecondLevelMenu,
+  setActiveSecondLevelMenu,
+  setInactiveSecondLevelMenu,
+} from '@/features/ui/primaryMenuSlice';
+import { useAppDispatch, useAppSelector } from '@/app/hooks';
 
-interface SubmenuTriggerInterfaceProps {
+interface SecondLevelMenuTriggerInterfaceProps {
   submenuTitle: string;
   leftIcon: string;
-  setOpen: Dispatch<SetStateAction<boolean>>;
+  value: string;
 }
 
-const SubmenuTrigger = ({
+const SecondLevelMenuTrigger = ({
   submenuTitle,
   leftIcon,
-  setOpen,
-}: SubmenuTriggerInterfaceProps) => {
+  value,
+}: SecondLevelMenuTriggerInterfaceProps) => {
+  const dispatch = useAppDispatch();
+  const activeSubmenu = useAppSelector(selectActiveSecondLevelMenu);
+
+  const onClickHandler = () => {
+    if (activeSubmenu === value) {
+      dispatch(setInactiveSecondLevelMenu());
+    } else {
+      dispatch(setActiveSecondLevelMenu(value));
+    }
+  };
+
   return (
-    <Menubar.SubTrigger
+    <Menubar.Trigger
       onPointerEnter={preventHover}
       onPointerMove={preventHover}
       onPointerLeave={preventHover}
       className={clsx('MenubarSubTrigger', styles.MenubarSubTrigger)}
-      onClick={() => setOpen((prev: any) => !prev)}
+      onClick={onClickHandler}
     >
       <div className={clsx('leftSlot', styles.leftSlot)}>
         <img src={leftIcon} alt="menu item icon" />
@@ -33,8 +49,8 @@ const SubmenuTrigger = ({
       <div className={clsx('rightSlot', styles.rightSlot)}>
         <ChevronRightIcon />
       </div>
-    </Menubar.SubTrigger>
+    </Menubar.Trigger>
   );
 };
 
-export default SubmenuTrigger;
+export default SecondLevelMenuTrigger;

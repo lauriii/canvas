@@ -117,7 +117,6 @@ const Canvas = () => {
   };
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    console.log('isPanning', isPanning);
     if (isPanning) {
       const { clientX, clientY } = e;
       const translationX = startPos.x - clientX;

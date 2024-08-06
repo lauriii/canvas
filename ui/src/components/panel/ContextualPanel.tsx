@@ -141,7 +141,6 @@ const ContextualPanel: React.FC<ContextualPanelProps> = () => {
                                 Edit
                               </Button>
                             </Tabs.Content>
-
                             <Tabs.Content value="styles">
                               <Text size="1">
                                 Styles for...{selectedComponent}

@@ -9,7 +9,7 @@ import {
   duplicateNode,
 } from '@/features/layout/layoutModelSlice';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
-import { Box, ContextMenu } from '@radix-ui/themes';
+import { ContextMenu } from '@radix-ui/themes';
 import clsx from 'clsx';
 import {
   unsetHoveredComponent,
@@ -18,6 +18,7 @@ import {
 } from '@/features/ui/uiSlice';
 import useSyncElementSize from '@/hooks/useSyncElementSize';
 import NameTag from '@/features/layout/preview/NameTag';
+import AddButton from '@/features/layout/preview/AddButton';
 
 interface OutlineProps {
   elementId: string | undefined; // the data-xb-uuid value of the dom element that was hovered.
@@ -31,9 +32,9 @@ const Outline: React.FC<OutlineProps> = (props) => {
   const model = useAppSelector(selectModel);
   const hoveredElementRef = useRef<HTMLElement | null>(null);
   const outlineElRef = useRef<HTMLDivElement | null>(null);
-  // const iframeElRef = useRef<HTMLIFrameElement | null>(null);
-  const toolbarElRef = useRef<HTMLDivElement | null>(null);
-  const [nodeType, setNodeType] = useState<'component' | 'slot'>('component'); //
+  const nameTagElRef = useRef<HTMLDivElement | null>(null);
+  const addSectionButtonRef = useRef<HTMLDivElement | null>(null);
+  const [nodeType, setNodeType] = useState<'component' | 'slot'>('component');
   const dispatch = useAppDispatch();
   const elementRect = useSyncElementSize(iframeRef, elementId);
 
@@ -45,11 +46,15 @@ const Outline: React.FC<OutlineProps> = (props) => {
       outlineElRef.current.style.opacity = '1';
     }
 
-    if (toolbarElRef.current && elementRect) {
-      toolbarElRef.current.style.transform = `translate(${elementRect.left}px, ${elementRect.top}px)`;
-      toolbarElRef.current.style.opacity = `1`;
+    if (nameTagElRef.current && elementRect) {
+      nameTagElRef.current.style.transform = `translate(${elementRect.left}px, ${elementRect.top - 25}px)`;
+      nameTagElRef.current.style.opacity = '1';
     }
-  }, [elementRect]);
+    if (addSectionButtonRef.current && elementRect && selected) {
+      addSectionButtonRef.current.style.top = `${elementRect.top + elementRect.height}px`;
+      addSectionButtonRef.current.style.left = `${elementRect.left + elementRect.width / 2}px`;
+    }
+  }, [elementRect, selected]);
 
   const bindEvents = useCallback(() => {
     if (!iframeRef.current) {
@@ -140,8 +145,8 @@ const Outline: React.FC<OutlineProps> = (props) => {
       outlineElRef.current.style.opacity = '0';
     }
 
-    if (toolbarElRef.current) {
-      toolbarElRef.current.style.opacity = `0`;
+    if (nameTagElRef.current) {
+      nameTagElRef.current.style.opacity = '0';
     }
   }, [elementId]);
 
@@ -160,48 +165,57 @@ const Outline: React.FC<OutlineProps> = (props) => {
           })}
           data-xb-component-outline=""
         />
+        {nodeType !== 'slot' && (
+          <ContextMenu.Root>
+            <ContextMenu.Trigger>
+              <div ref={nameTagElRef} className={styles.xbNameTag}>
+                <NameTag elementId={elementId} selected={selected} />
+              </div>
+            </ContextMenu.Trigger>
+            {selected && (
+              <div
+                ref={addSectionButtonRef}
+                className={styles.xbAddSectionButton}
+              >
+                <AddButton elementId={elementId} />
+              </div>
+            )}
+            <ContextMenu.Content>
+              <ContextMenu.Item shortcut="⌘ E" onClick={handleSelectClick}>
+                Edit
+              </ContextMenu.Item>
+              <ContextMenu.Item shortcut="⌘ D" onClick={handleDuplicateClick}>
+                Duplicate
+              </ContextMenu.Item>
+              <ContextMenu.Separator />
 
-        <ContextMenu.Root>
-          <ContextMenu.Trigger>
-            <Box ref={toolbarElRef} className={styles.xbComponentToolbar}>
-              <NameTag elementId={elementId} selected={selected} />
-            </Box>
-          </ContextMenu.Trigger>
-          <ContextMenu.Content>
-            <ContextMenu.Item shortcut="⌘ E" onClick={handleSelectClick}>
-              Edit
-            </ContextMenu.Item>
-            <ContextMenu.Item shortcut="⌘ D" onClick={handleDuplicateClick}>
-              Duplicate
-            </ContextMenu.Item>
-            <ContextMenu.Separator />
+              <ContextMenu.Sub>
+                <ContextMenu.SubTrigger>Move</ContextMenu.SubTrigger>
+                <ContextMenu.SubContent>
+                  <ContextMenu.Item onClick={handleMoveUpClick}>
+                    Move up
+                  </ContextMenu.Item>
+                  <ContextMenu.Item onClick={handleMoveDownClick}>
+                    Move down
+                  </ContextMenu.Item>
 
-            <ContextMenu.Sub>
-              <ContextMenu.SubTrigger>Move</ContextMenu.SubTrigger>
-              <ContextMenu.SubContent>
-                <ContextMenu.Item onClick={handleMoveUpClick}>
-                  Move up
-                </ContextMenu.Item>
-                <ContextMenu.Item onClick={handleMoveDownClick}>
-                  Move down
-                </ContextMenu.Item>
-
-                <ContextMenu.Separator />
-                <ContextMenu.Item onClick={() => alert('Todo')}>
-                  Move into
-                </ContextMenu.Item>
-              </ContextMenu.SubContent>
-            </ContextMenu.Sub>
-            <ContextMenu.Separator />
-            <ContextMenu.Item
-              // shortcut="⌘ ⌫"
-              color="red"
-              onClick={handleDeleteClick}
-            >
-              Delete
-            </ContextMenu.Item>
-          </ContextMenu.Content>
-        </ContextMenu.Root>
+                  <ContextMenu.Separator />
+                  <ContextMenu.Item onClick={() => alert('Todo')}>
+                    Move into
+                  </ContextMenu.Item>
+                </ContextMenu.SubContent>
+              </ContextMenu.Sub>
+              <ContextMenu.Separator />
+              <ContextMenu.Item
+                // shortcut="⌘ ⌫"
+                color="red"
+                onClick={handleDeleteClick}
+              >
+                Delete
+              </ContextMenu.Item>
+            </ContextMenu.Content>
+          </ContextMenu.Root>
+        )}
       </>
     )
   );

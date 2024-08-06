@@ -2,39 +2,38 @@ import * as Menubar from '@radix-ui/react-menubar';
 import clsx from 'clsx';
 import styles from '@/components/sidebar/primary/PrimaryMenubar.module.css';
 import type { ReactElement } from 'react';
-import { useState } from 'react';
-import SubmenuTrigger from '@/components/sidebar/primary/sub/SubmenuTrigger';
+import SecondLevelMenuTrigger from '@/components/sidebar/primary/SecondLevelMenuTrigger';
 import { useAppSelector } from '@/app/hooks';
-import { selectPrimaryMenuHidden } from '@/features/ui/uiSlice';
+import { selectIsHidden } from '@/features/ui/primaryMenuSlice';
 import SearchPlaceholder from '@/components/sidebar/primary/SearchPlaceholder';
 
-const Submenu = (props: {
+const SecondLevelMenu = (props: {
   submenuTitle: string;
   leftIcon: string;
   children?: ReactElement;
+  value: string;
 }) => {
-  const { submenuTitle, leftIcon, children } = props;
-  const [open, setOpen] = useState(false);
-  const isHidden = useAppSelector(selectPrimaryMenuHidden);
+  const { submenuTitle, leftIcon, children, value } = props;
+  const isHidden = useAppSelector(selectIsHidden);
 
   return (
-    <Menubar.Sub open={open} onOpenChange={setOpen}>
-      <SubmenuTrigger
+    <Menubar.Menu value={value}>
+      <SecondLevelMenuTrigger
         submenuTitle={submenuTitle}
         leftIcon={leftIcon}
-        setOpen={setOpen}
+        value={value}
       />
       <Menubar.Portal container={document.getElementById('menuBarContainer')}>
-        <Menubar.SubContent
+        <Menubar.Content
           className={clsx('MenubarSubContent', styles.MenubarSubContent)}
           style={{ display: isHidden ? 'none' : 'initial' }}
         >
           <SearchPlaceholder />
           {children}
-        </Menubar.SubContent>
+        </Menubar.Content>
       </Menubar.Portal>
-    </Menubar.Sub>
+    </Menubar.Menu>
   );
 };
 
-export default Submenu;
+export default SecondLevelMenu;

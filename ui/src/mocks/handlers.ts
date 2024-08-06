@@ -12,7 +12,7 @@ const handlers = [
   }),
   http.get('/xb-components/:id', async ({ params }) => {
     await delay(DEFAULT_DELAY);
-    const component = components.find(
+    const component = Object.values(components).find(
       (component) => component.id === params.id,
     );
     if (component) {
@@ -25,7 +25,7 @@ const handlers = [
     return HttpResponse.json(layoutDefault);
   }),
   http.post<{}, { layout: any; model: any }>(
-    '/api/preview',
+    '/api/preview/:entity_type/:entity',
     async ({ request }) => {
       await delay(DEFAULT_DELAY);
       const { layout, model } = await request.json();
