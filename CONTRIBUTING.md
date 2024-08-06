@@ -6,14 +6,6 @@
 5. Browse to `/node/add/article` — you'll see a `🪄 XB Demo ✨` field. Don't touch that — just enter a title for the article and hit save: a component is rendered using the article title 🤓
 6. If you're curious: look at the code, step through it with a debugger, and join us!
 
-# Initial set up
-All of these steps must only be performed _once_.
-## For `phpcs`
-To allow Experience Builder to reuse Drupal core's `phpcs` ruleset:
-```
-ln -sv /PATH/TO/DRUPAL/ROOT/core/core/phpcs.xml.dist core.phpcs.xml.dist
-```
-
 # During development
 ## `phpcs`
 From Drupal project root (i.e. where `index.php` lives):
