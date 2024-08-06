@@ -43,24 +43,36 @@ function useIframeKeyHandlers(iframeRef: React.RefObject<HTMLIFrameElement>) {
   }
 
   function notifyParentDocumentMouse(event: MouseEvent) {
-    if (event.button !== 1) {
-      return;
-    }
-    if (event.type === 'mousedown') {
-      window.parent.postMessage(
-        {
-          type: 'dispatchMiddleMouseDown',
-          coordinates: { x: event.clientX, y: event.clientY },
-        },
-        '*',
-      );
-      return;
-    }
-    if (event.type === 'mouseup') {
-      window.parent.postMessage('dispatchMiddleMouseUp', '*');
-      return;
+    switch (event.type) {
+      case 'mousemove':
+        window.parent.postMessage(
+          {
+            type: 'dispatchMouseMove',
+            coordinates: { x: event.clientX, y: event.clientY },
+          },
+          '*',
+        );
+        break;
+      case 'mousedown':
+        if (event.button === 1) {
+          window.parent.postMessage(
+            {
+              type: 'dispatchMiddleMouseDown',
+              coordinates: { x: event.clientX, y: event.clientY },
+            },
+            '*',
+          );
+          event.preventDefault();
+        }
+        break;
+      case 'mouseup':
+        if (event.button === 1) {
+          window.parent.postMessage('dispatchMiddleMouseUp', '*');
+        }
+        break;
     }
   }
+
   const handleLoad = useCallback((event: Event) => {
     const iframe = event.currentTarget as HTMLIFrameElement | null;
 
@@ -79,14 +91,14 @@ function useIframeKeyHandlers(iframeRef: React.RefObject<HTMLIFrameElement>) {
       },
     );
 
-    (['mousedown', 'mouseup'] as Array<keyof HTMLElementEventMap>).forEach(
-      (eventType) => {
-        iframeContentDoc?.body.addEventListener(
-          eventType,
-          notifyParentDocumentMouse as EventListener,
-        );
-      },
-    );
+    (
+      ['mousedown', 'mouseup', 'mousemove'] as Array<keyof HTMLElementEventMap>
+    ).forEach((eventType) => {
+      iframeContentDoc?.body.addEventListener(
+        eventType,
+        notifyParentDocumentMouse as EventListener,
+      );
+    });
   }, []);
 
   useEffect(() => {

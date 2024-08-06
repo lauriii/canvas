@@ -15,10 +15,13 @@ function useSyncIframeHeightToContent(
     const iframe = iframeRef.current;
     if (iframe && iframe.contentDocument) {
       const iframeHTML = iframe.contentDocument.documentElement;
+      const iframeBody = iframe.contentDocument.body;
       window.requestAnimationFrame(() => {
         iframe.style.height = iframeHTML.offsetHeight + 'px';
         iframe.style.width = width + 'px';
         iframe.style.minHeight = height + 'px';
+        iframeHTML.style.minHeight = height + 'px';
+        iframeBody.style.minHeight = height + 'px';
       });
     }
   }, [iframeRef, height, width]);

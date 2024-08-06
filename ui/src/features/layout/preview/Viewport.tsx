@@ -12,6 +12,7 @@ import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { Card, Progress } from '@radix-ui/themes';
 import {
   selectDragging,
+  selectPanning,
   selectHoveredComponent,
   selectSelectedComponent,
   setHoveredComponent,
@@ -45,6 +46,7 @@ const Viewport: React.FC<ViewportProps> = (props) => {
   const hoveredComponent = useAppSelector(selectHoveredComponent);
   const iframeDocumentRef = useRef<Document | null>(null);
   const { isDragging } = useAppSelector(selectDragging);
+  const { isPanning } = useAppSelector(selectPanning);
   const dispatch = useAppDispatch();
   useIframeKeyHandlers(iframeRef);
   useSyncIframeHeightToContent(iframeRef, height, width);
@@ -169,6 +171,10 @@ const Viewport: React.FC<ViewportProps> = (props) => {
 
     const initComponentClick = (listItemEl: HTMLElement) => {
       listItemEl.addEventListener('click', function (event: MouseEvent) {
+        // In safari middle mouse click fires the click event with button === 1
+        if (event.button === 1) {
+          return;
+        }
         event.stopPropagation();
         if (event.target) {
           const target = event.currentTarget as HTMLElement;
@@ -262,7 +268,7 @@ const Viewport: React.FC<ViewportProps> = (props) => {
           data-xb-preview={previewId}
           title="Preview"
         ></iframe>
-        {!isDragging && (
+        {!isDragging && !isPanning && (
           <>
             <Outline
               elementId={selectedComponent}

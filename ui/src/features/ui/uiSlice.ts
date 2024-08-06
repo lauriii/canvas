@@ -8,6 +8,17 @@ export interface DraggingStatus {
   previewDragging: boolean;
 }
 
+export interface PanningStatus {
+  isPanning: boolean;
+  isPanningIFrame: boolean;
+  isPanningParent: boolean;
+}
+
+export interface PrimaryMenuState {
+  activeMenu: string;
+  isHidden: boolean;
+}
+
 export interface CanvasViewPort {
   x: number;
   y: number;
@@ -17,6 +28,7 @@ export interface CanvasViewPort {
 export interface uiSliceState {
   pending: boolean;
   dragging: DraggingStatus;
+  panning: PanningStatus;
   selectedComponent: string | undefined; //uuid of component
   hoveredComponent: string | undefined; //uuid of component
   contextualPanelOpen: boolean;
@@ -36,6 +48,11 @@ export const initialState: uiSliceState = {
     treeDragging: false,
     listDragging: false,
     previewDragging: false,
+  },
+  panning: {
+    isPanning: false,
+    isPanningIFrame: false,
+    isPanningParent: false,
   },
   selectedComponent: undefined,
   hoveredComponent: undefined,
@@ -96,6 +113,18 @@ export const uiSlice = createAppSlice({
       state.dragging.isDragging = action.payload;
       state.dragging.listDragging = action.payload;
     }),
+    setPanningIFrame: create.reducer(
+      (state, action: PayloadAction<boolean>) => {
+        state.panning.isPanning = action.payload;
+        state.panning.isPanningIFrame = action.payload;
+      },
+    ),
+    setPanningParent: create.reducer(
+      (state, action: PayloadAction<boolean>) => {
+        state.panning.isPanning = action.payload;
+        state.panning.isPanningParent = action.payload;
+      },
+    ),
     setSelectedComponent: create.reducer(
       (state, action: PayloadAction<string>) => {
         state.selectedComponent = action.payload;
@@ -144,6 +173,9 @@ export const uiSlice = createAppSlice({
   // You can define your selectors here. These selectors receive the slice
   // state as their first argument.
   selectors: {
+    selectPanning: (ui): PanningStatus => {
+      return ui.panning;
+    },
     selectDragging: (ui): DraggingStatus => {
       return ui.dragging;
     },
@@ -168,6 +200,8 @@ export const {
   setTreeDragging,
   setPreviewDragging,
   setListDragging,
+  setPanningIFrame,
+  setPanningParent,
   setSelectedComponent,
   setHoveredComponent,
   unsetSelectedComponent,
@@ -181,6 +215,7 @@ export const {
 // Selectors returned by `slice.selectors` take the root state as their first argument.
 export const {
   selectDragging,
+  selectPanning,
   selectSelectedComponent,
   selectHoveredComponent,
   selectContextualPanelOpen,

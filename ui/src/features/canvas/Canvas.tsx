@@ -10,6 +10,9 @@ import {
   canvasViewPortZoomIn,
   canvasViewPortZoomOut,
   setCanvasViewPort,
+  selectPanning,
+  setPanningIFrame,
+  setPanningParent,
 } from '@/features/ui/uiSlice';
 
 const Canvas = () => {
@@ -18,9 +21,10 @@ const Canvas = () => {
   const canvasPaneRef = useRef<HTMLDivElement | null>(null);
   const animFrameIdRef = useRef<number | null>(null);
   const previewsContainerRef = useRef<HTMLDivElement | null>(null);
-  const [isPanning, setIsPanning] = useState(false);
   const [startPos, setStartPos] = useState({ x: 0, y: 0 });
   const canvasViewPort = useAppSelector(selectCanvasViewPort);
+  const { isPanning, isPanningIFrame, isPanningParent } =
+    useAppSelector(selectPanning);
   const [modifierKeyPressed, setModifierKeyPressed] = useState(false);
   const modifierKeyPressedRef = useRef(false);
   useHotkeys(['NumpadAdd', 'Equal'], () => dispatch(canvasViewPortZoomIn()));
@@ -35,6 +39,16 @@ const Canvas = () => {
     keydown: false,
     keyup: true,
   });
+  const isPanningParentRef = useRef(isPanningParent);
+  const isPanningIFrameRef = useRef(isPanningIFrame);
+
+  useEffect(() => {
+    isPanningParentRef.current = isPanningParent;
+  }, [isPanningParent]);
+
+  useEffect(() => {
+    isPanningIFrameRef.current = isPanningIFrame;
+  }, [isPanningIFrame]);
 
   useEffect(() => {
     modifierKeyPressedRef.current = modifierKeyPressed;
@@ -59,12 +73,16 @@ const Canvas = () => {
           setModifierKeyPressed(false);
           break;
         case 'dispatchMiddleMouseDown':
-          setIsPanning(true);
-          // @todo the coordinates of where the iframe is clicked should be added probably to the top left position of the iframe on the canvas.
+          dispatch(setPanningIFrame(true));
           setStartPos(event.data.coordinates);
           break;
         case 'dispatchMiddleMouseUp':
-          setIsPanning(false);
+          dispatch(setPanningIFrame(false));
+          dispatch(setPanningParent(false));
+          break;
+        case 'dispatchMouseMove':
+          isPanningIFrameRef.current &&
+            handlePreviewMouseMove(event.data.coordinates);
           break;
       }
     }
@@ -106,18 +124,19 @@ const Canvas = () => {
   const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
     if (e.button === 1) {
       const { clientX, clientY } = e;
-      setIsPanning(true);
+      dispatch(setPanningParent(true));
       if (canvasPaneRef.current) {
         setStartPos({
           x: clientX + canvasPaneRef.current.scrollLeft,
           y: clientY + canvasPaneRef.current.scrollTop,
         });
       }
+      e.preventDefault();
     }
   };
 
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (isPanning) {
+  const handleCanvasMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (isPanningParentRef.current) {
       const { clientX, clientY } = e;
       const translationX = startPos.x - clientX;
       const translationY = startPos.y - clientY;
@@ -144,9 +163,28 @@ const Canvas = () => {
     }
   };
 
+  const handlePreviewMouseMove = ({ x, y }: { x: number; y: number }) => {
+    if (isPanningIFrameRef.current) {
+      const translationX = startPos.x - x;
+      const translationY = startPos.y - y;
+
+      if (animFrameIdRef.current) {
+        cancelAnimationFrame(animFrameIdRef.current);
+      }
+
+      animFrameIdRef.current = requestAnimationFrame(() => {
+        if (canvasPaneRef.current) {
+          canvasPaneRef.current.scrollLeft += translationX;
+          canvasPaneRef.current.scrollTop += translationY;
+        }
+      });
+    }
+  };
+
   const handleMouseUp = useCallback(() => {
-    setIsPanning(false);
-  }, []);
+    dispatch(setPanningParent(false));
+    dispatch(setPanningIFrame(false));
+  }, [dispatch]);
 
   const handleWheel = useCallback(
     (e: WheelEvent) => {
@@ -165,16 +203,6 @@ const Canvas = () => {
     },
     [dispatch],
   );
-
-  useEffect(() => {
-    if (previewsContainerRef.current) {
-      if (isPanning) {
-        previewsContainerRef.current.style.pointerEvents = 'none';
-      } else {
-        previewsContainerRef.current.style.pointerEvents = 'all';
-      }
-    }
-  }, [isPanning]);
 
   useEffect(() => {
     if (animFrameIdRef.current) {
@@ -209,7 +237,7 @@ const Canvas = () => {
         [styles.isPanning]: isPanning,
       })}
       onMouseDown={handleMouseDown}
-      onMouseMove={handleMouseMove}
+      onMouseMove={handleCanvasMouseMove}
       onScroll={handlePaneScroll}
       onMouseUp={handleMouseUp}
       onMouseLeave={handleMouseUp}
