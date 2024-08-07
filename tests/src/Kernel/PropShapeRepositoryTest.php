@@ -46,9 +46,6 @@ class PropShapeRepositoryTest extends KernelTestBase {
     'image',
     'file',
     'options',
-    'path',
-    // @see \Drupal\path\Plugin\Field\FieldType\PathItem::generateSampleValue()
-    'path_alias',
   ];
 
   /**
@@ -62,8 +59,6 @@ class PropShapeRepositoryTest extends KernelTestBase {
     $this->installConfig(['system']);
     // @see \Drupal\file\Plugin\Field\FieldType\FileItem::generateSampleValue()
     $this->installEntitySchema('file');
-    // @see \Drupal\path\Plugin\Field\FieldType\PathItem::generateSampleValue()
-    $this->installEntitySchema('path_alias');
   }
 
   /**
@@ -242,16 +237,6 @@ class PropShapeRepositoryTest extends KernelTestBase {
         fieldTypeProp: new FieldTypePropExpression('uri', 'value'),
         fieldWidget: 'uri',
       ),
-      'type=string&format=iri-reference' => new StorablePropShape(
-        shape: new PropShape(['type' => 'string', 'format' => JsonSchemaStringFormat::IRI_REFERENCE->value]),
-        fieldTypeProp: new FieldTypePropExpression('path', 'alias'),
-        fieldWidget: 'path',
-      ),
-      'type=string&format=uri-reference' => new StorablePropShape(
-        shape: new PropShape(['type' => 'string', 'format' => JsonSchemaStringFormat::URI_REFERENCE->value]),
-        fieldTypeProp: new FieldTypePropExpression('path', 'alias'),
-        fieldWidget: 'path',
-      ),
     ];
   }
 
@@ -273,6 +258,8 @@ class PropShapeRepositoryTest extends KernelTestBase {
       'type=string&format=time' => new PropShape(['type' => 'string', 'format' => JsonSchemaStringFormat::TIME->value]),
       'type=string&format=uri-template' => new PropShape(['type' => 'string', 'format' => JsonSchemaStringFormat::URI_TEMPLATE->value]),
       'type=string&format=uuid' => new PropShape(['type' => 'string', 'format' => JsonSchemaStringFormat::UUID->value]),
+      'type=string&format=iri-reference' => new PropShape(['type' => 'string', 'format' => JsonSchemaStringFormat::IRI_REFERENCE->value]),
+      'type=string&format=uri-reference' => new PropShape(['type' => 'string', 'format' => JsonSchemaStringFormat::URI_REFERENCE->value]),
     ];
   }
 
@@ -350,10 +337,6 @@ class PropShapeRepositoryTest extends KernelTestBase {
       $props = Validator::arrayToObjectRecursive([$some_prop_name => $reloaded_randomized_prop_source->evaluate(NULL)]);
       $validator = new Validator();
       $validator->validate($props, $schema, Constraint::CHECK_MODE_TYPE_CAST);
-      if ($storable_prop_shape->fieldTypeProp->fieldType === 'uri') {
-        // @todo Figure out why the `uri` field type's sample value violates the JSON schema validation for `format=uri` 😬
-        return;
-      }
       $this->assertSame(
         [],
         $validator->getErrors(),

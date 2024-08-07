@@ -21,6 +21,7 @@ use Drupal\experience_builder\Plugin\Field\FieldTypeOverride\StringItemOverride;
 use Drupal\experience_builder\Plugin\Field\FieldTypeOverride\StringLongItemOverride;
 use Drupal\experience_builder\Plugin\Field\FieldTypeOverride\TextItemOverride;
 use Drupal\experience_builder\Plugin\Field\FieldTypeOverride\UuidItemOverride;
+use Drupal\experience_builder\Plugin\Field\FieldTypeOverride\UriItemOverride;
 use Drupal\experience_builder\Plugin\Validation\Constraint\StringSemanticsConstraint;
 use Drupal\experience_builder\PropExpressions\StructuredData\FieldPropExpression;
 use Drupal\experience_builder\PropExpressions\StructuredData\FieldTypeObjectPropsExpression;
@@ -125,6 +126,9 @@ function experience_builder_field_info_alter(array &$info): void {
   }
   if (!empty($info['uuid'])) {
     $info['uuid']['class'] = UuidItemOverride::class;
+  }
+  if (!empty($info['uri'])) {
+    $info['uri']['class'] = UriItemOverride::class;
   }
 }
 

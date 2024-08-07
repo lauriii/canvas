@@ -160,9 +160,10 @@ enum JsonSchemaStringFormat: string {
       // TRICKY: Drupal core does not support RFC3987 aka IRIs, but it's a superset of RFC3986.
       // @see \Drupal\Core\Field\Plugin\Field\FieldType\UriItem
       static::URI, static::IRI => new StorablePropShape(shape: $shape, fieldTypeProp: new FieldTypePropExpression('uri', 'value'), fieldWidget: 'uri'),
-      // @todo Verify that \Drupal\Core\Path\Plugin\Validation\Constraint\ValidPathConstraintValidator matches this close enough.
+      // TRICKY: Drupal core has a "path" field type, but it's tightly coupled to the parent entity's URL; it does not store arbitrary URI references. Hence it only makes sense as a DynamicPropSource, not a StaticPropSource.
+      // @see ::toDataTypeShapeRequirements()
       // @see \Drupal\path\Plugin\Field\FieldType\PathItem
-      static::URI_REFERENCE, static::IRI_REFERENCE => new StorablePropShape(shape: $shape, fieldTypeProp: new FieldTypePropExpression('path', 'alias'), fieldWidget: 'path'),
+      static::URI_REFERENCE, static::IRI_REFERENCE => NULL,
 
       // Built-in formats: URI template.
       // @see https://json-schema.org/understanding-json-schema/reference/string#uri-template
