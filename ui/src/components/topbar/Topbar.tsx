@@ -8,6 +8,7 @@ import UndoRedo from '@/components/UndoRedo';
 import { useAppDispatch } from '@/app/hooks';
 import DropIcon from '@assets/icons/topbar/drop.svg';
 import { Link } from 'react-router-dom';
+import { handleNonWorkingBtn } from '@/utils/function-utils';
 
 const Topbar = () => {
   const dispatch = useAppDispatch();
@@ -43,10 +44,20 @@ const Topbar = () => {
           <Button onClick={() => dispatch(setContextualPanelOpen(true))}>
             Open Right
           </Button>
-          <Button variant="outline" color="gray" highContrast>
+          <Button
+            variant="outline"
+            color="gray"
+            highContrast
+            onClick={handleNonWorkingBtn}
+          >
             Share
           </Button>
-          <Button variant="solid" color="gray" highContrast>
+          <Button
+            variant="solid"
+            color="gray"
+            highContrast
+            onClick={handleNonWorkingBtn}
+          >
             Publish
           </Button>
           <Link to={'/component/dynamic-dynamic-card3rr'}>Open component</Link>
