@@ -1,0 +1,224 @@
+# Tip: copy/paste this into https://editor-next.swagger.io/ and edit it there, to get real-time feedback!
+openapi: 3.1.0
+info:
+  version: 0.x
+  title: Experience Builder
+  description: API Spec for Experience Builder
+paths:
+  /xb-components:
+    get:
+      responses:
+        200:
+          description: All available components
+          content:
+            application/json:
+              examples:
+                'a single available component':
+                  value:
+                    'sdc_test:my-cta':
+                      id: sdc_test:my-cta
+                      name: Call to Action
+                      metadata:
+                        path: core/modules/system/tests/modules/sdc_test/components/my-cta
+                        documentation: No documentation found. Add a README.md in your component directory.
+                        status: stable
+                        machineName: my-cta
+                        name: Call to Action
+                        group: All Components
+                        schema:
+                          type: object
+                          required: [text]
+                          properties:
+                            text:
+                              type: [string, object]
+                              title: Title
+                              description: The title for the cta
+                              examples:
+                                - Press
+                                - Submit now
+                            href:
+                              type: [string, object]
+                              title: URL
+                              format: uri
+                            target:
+                              type: [string, object]
+                              title: Target
+                              enum:
+                                - ''
+                                - _blank
+                            attributes:
+                              type:
+                                - "Drupal\\Core\\Template\\Attribute"
+                                - object
+                              name: Attributes
+                          additionalProperties: false
+                      description: Call to action link.
+                      mandatorySchemas: true
+                      slots: []
+              schema:
+                type: object
+                minProperties: 1
+                # @see \Drupal\Core\Plugin\Component::$machineName
+                patternProperties:
+                  '^\\[a-zA-Z0-9_-]:[a-zA-Z0-9_-]$':
+                    $ref: '#/components/schemas/Component'
+  /api/layout/{entityTypeId}/{id}:
+    get:
+      parameters:
+        - name: entityTypeId
+          in: path
+          required: true
+          description: 'The entity type ID of the layout to retrieve'
+          schema:
+            type: string
+          example: node
+        - name: id
+          in: path
+          required: true
+          description: 'The entity ID of the layout to retrieve'
+          schema:
+            type: integer
+          examples:
+            'first entity of this type':
+              value: 14
+            'another entity of this type':
+              value: 42
+      responses:
+        200:
+          description: 'The layout'
+          content:
+            application/json:
+              examples:
+                'empty component tree':
+                  value:
+                    layout:
+                      uuid: root
+                      nodeType: root
+                      name: root
+                      children: []
+                    model: {}
+                'component tree with single component':
+                  value:
+                    layout:
+                      uuid: root
+                      nodeType: root
+                      name: root
+                      children:
+                        - uuid: bce8d97e-8d44-4609-adc3-5e1015342b49
+                          nodeType: component
+                          type: sdc_test:my-cta
+                    model:
+                      bce8d97e-8d44-4609-adc3-5e1015342b49:
+                        text: hello, world!
+                        href: https://drupal.org
+                        name: My Test CTA Component
+              schema:
+                type: object
+                required: [layout, model]
+                properties:
+                  layout:
+                    $ref: '#/components/schemas/Layout'
+                  model:
+                    $ref: '#/components/schemas/Model'
+  /api/preview/{entityTypeId}/{id}:
+    post:
+      parameters:
+        - name: entityTypeId
+          in: path
+          required: true
+          description: 'The entity type ID of the layout to retrieve'
+          schema:
+            type: string
+          example: node
+        - name: id
+          in: path
+          required: true
+          description: 'The entity ID of the layout to retrieve'
+          schema:
+            type: integer
+          examples:
+            'first entity of this type':
+              value: 14
+            'another entity of this type':
+              value: 42
+      requestBody:
+        $ref: '#/components/requestBodies/Layout'
+      responses:
+        200:
+          description: Generated preview successfully
+
+components:
+  schemas:
+    Component:
+      title: Component
+      type: object
+      required: [name, id, metadata, field_data, default_markup]
+      properties:
+        name:
+          type: string
+          description: The component name
+        id:
+          type: string
+          description: The component id
+        # @see \Drupal\Core\Theme\Component\ComponentMetadata
+        metadata:
+          type: object
+        field_data:
+          type: object
+          # Keys are props for this SDC. Only required SDC props are required here.
+          additionalProperties:
+            type: object
+            required: [sourceType, expression, required]
+            properties:
+              sourceType:
+                type: string
+              expression:
+                type: string
+              required:
+                type: boolean
+              default_values:
+                type: [string, integer, number, boolean, object]
+        default_markup:
+          type: string
+      additionalProperties: false
+    Layout:
+      title: layout
+      type: object
+      required: [uuid, nodeType]
+      additionalProperties: false
+      properties:
+        uuid:
+          type: string
+          description: The UUID of the layout
+        nodeType:
+          type: string
+          description: The layout type
+        type:
+          type: string
+        name:
+          type: string
+          description: The name of the layout
+        children:
+          type: array
+          description: Array of layouts
+          items:
+            $ref: '#/components/schemas/Layout'
+    Model:
+      title: model
+      type: object
+    LayoutPreview:
+      title: LayoutPreview
+      type: object
+      additionalProperties: false
+      properties:
+        layout:
+          $ref: '#/components/schemas/Layout'
+        model:
+          $ref: '#/components/schemas/Model'
+
+  requestBodies:
+    Layout:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/LayoutPreview'

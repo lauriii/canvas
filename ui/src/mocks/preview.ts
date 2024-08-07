@@ -11,6 +11,7 @@ const createHtmlFromLayoutData = (
   },
 ) => {
   // Recursive function to create HTML for each component
+  // @todo Refactor to instead use the `default_markup` for each component in `components.json`
   const createComponent = (component: LayoutNode): HTMLDivElement => {
     const div = document.createElement('div');
     div.className = 'sortable-item';

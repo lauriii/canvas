@@ -17,3 +17,18 @@ services:
     public: true
     tags:
       - { name: module_install.uninstall_validator }
+
+  logger.channel.experience_builder:
+    parent: logger.channel_base
+    arguments: ['experience_builder']
+
+  # Event subscribers.
+  experience_builder.openapi.validator.subscriber:
+    class: Drupal\experience_builder\EventSubscriber\ApiResponseValidator
+    arguments:
+      $logger: '@logger.channel.experience_builder'
+      $appRoot: '%app.root%'
+    calls:
+      - [setValidator, []]
+    tags:
+      - { name: event_subscriber }

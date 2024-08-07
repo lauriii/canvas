@@ -5,6 +5,7 @@
 4. `drush pm:install experience_builder`
 5. Browse to `/node/add/article` — you'll see a `🪄 XB Demo ✨` field. Don't touch that — just enter a title for the article and hit save: a component is rendered using the article title 🤓
 6. If you're curious: look at the code, step through it with a debugger, and join us!
+7. If you want to run *all* tests locally, including the OpenAPI spec one: `composer require league/openapi-psr7-validator webflo/drupal-finder devizzent/cebe-php-openapi --dev`
 
 # During development
 ## `phpcs`

@@ -39,8 +39,8 @@ const container = document.getElementById('experience-builder');
 
 const appConfiguration: AppConfiguration = {
   baseUrl: drupalSettings?.path?.baseUrl || import.meta.env.BASE_URL,
-  entityType: drupalSettings?.xb?.entityType || '',
-  entity: drupalSettings?.xb?.entity || '',
+  entityType: drupalSettings?.xb?.entityType || 'node',
+  entity: drupalSettings?.xb?.entity || '1',
 };
 
 if (container) {

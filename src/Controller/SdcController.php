@@ -261,7 +261,7 @@ final class SdcController extends ControllerBase {
       // @todo Settle on final names and get in sync.
       'layout' => [
         'uuid' => 'root',
-        'type' => 'root',
+        'nodeType' => 'root',
         'name' => 'root',
         'children' => $children,
       ],
