@@ -1,16 +1,13 @@
 # Experience Builder
 
 ## Prerequisites
-
 - Enable the Experience Builder module
 
 ## Build steps
-
 1. `npm install` from /modules/experience_builder/ui
 2. `npm run build`
 
 ## Development mode
-
 1. `npm install` from /modules/experience_builder/ui
 2. Make sure nothing is running on localhost:5173
 2. Choose one of
@@ -20,13 +17,21 @@
 4. Clear cache (`drush cr` or `/admin/config/development/performance`)
 5. Navigate to `/xb` to view app
 
+## Running Unit/Component Tests
+- `npm run cy:component`
+
+## Running E2E Tests
+- In your `.env` file, set `BASE_URL` and `DB_URL`. See `.env.example` for an example.
+- The e2e tests use the application file in /ui/dist, which is only updated by
+  running `npm run build`. Be sure to do this before running e2e tests.
+- Then, _either_:
+  - Use `npm run cy:open` to run e2e with the (very helpful) Cypress GUI test runner (do that in its own terminal). This runs the test in a visible browser.
+  - Use `npm run cy:run` to run the same e2e tests in the terminal (this is also the command used by Gitlab CI). This runs the test in a "headless" browser.
 
 ## Testing Strategy
-
 Our testing strategy leverages [Cypress.io](https://www.cypress.io) for both end-to-end (e2e) and component testing, integrated with [Testing Library](https://testing-library.com/) to ensure robust and maintainable tests.
 
 ### Principles
-
 1. We are not testing Drupal core functionality outside the Experience Builder — any global setup tasks should be in a base install profile where possible
 2. All specs are isolated and start from a fresh database and filesystem import created (e.g. no dependencies between tests)
 3. Every spec file is responsible for setting up the test environment for that set of scenarios (e.g. package imports, enabling contrib modules outside the basic install)
