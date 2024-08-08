@@ -340,7 +340,7 @@ final class SdcController extends ControllerBase {
     $component_tree_field_item = $this->clientLayoutAndModelToXbField($layout, $model);
 
     $build = self::wrapComponentsForPreview($component_tree_field_item->toRenderable());
-    $this->renderer->renderInIsolation($build);
+    $component_tree_html = $this->renderer->renderInIsolation($build);
 
     $assets = AttachedAssets::createFromRenderArray(isset($build['#attached'])
       ? $build
@@ -367,7 +367,7 @@ HTML;
 <body>
     <div class="sortable-list" data-xb-uuid="root">
 HTML;
-    $html .= $build['#markup'];
+    $html .= $component_tree_html;
     $html .= <<<HTML
 </body>
 HTML;

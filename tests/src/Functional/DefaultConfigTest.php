@@ -18,7 +18,10 @@ class DefaultConfigTest extends BrowserTestBase {
   /**
    * {@inheritdoc}
    */
-  protected static $modules = ['experience_builder'];
+  protected static $modules = [
+    'experience_builder',
+    'sdc_test_all_props',
+  ];
 
   /**
    * {@inheritdoc}

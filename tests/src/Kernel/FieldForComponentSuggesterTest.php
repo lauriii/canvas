@@ -165,7 +165,7 @@ class FieldForComponentSuggesterTest extends KernelTestBase {
       'sdc_test_all_props:all-props',
       'entity:node:foo',
       [
-        '⿲sdc_test_all_props:all-props␟test-string' => [
+        '⿲sdc_test_all_props:all-props␟test_string' => [
           'required' => FALSE,
           'types' => [
             'Text (plain, long)' => 'ℹ︎string_long␟value',
@@ -178,7 +178,7 @@ class FieldForComponentSuggesterTest extends KernelTestBase {
           ],
           'adapters' => [],
         ],
-        '⿲sdc_test_all_props:all-props␟test-REQUIRED-string' => [
+        '⿲sdc_test_all_props:all-props␟test_REQUIRED_string' => [
           'required' => TRUE,
           'types' => [
             'Text (plain, long)' => 'ℹ︎string_long␟value',
@@ -189,13 +189,13 @@ class FieldForComponentSuggesterTest extends KernelTestBase {
           ],
           'adapters' => [],
         ],
-        '⿲sdc_test_all_props:all-props␟test-string-enum' => [
+        '⿲sdc_test_all_props:all-props␟test_string_enum' => [
           'required' => FALSE,
           'types' => [],
           'instances' => [],
           'adapters' => [],
         ],
-        '⿲sdc_test_all_props:all-props␟test-string-format-date-time' => [
+        '⿲sdc_test_all_props:all-props␟test_string_format_date_time' => [
           'required' => FALSE,
           'types' => [
             'Date' => 'ℹ︎datetime␟value',
@@ -205,7 +205,7 @@ class FieldForComponentSuggesterTest extends KernelTestBase {
           ],
           'adapters' => [],
         ],
-        '⿲sdc_test_all_props:all-props␟test-string-format-date' => [
+        '⿲sdc_test_all_props:all-props␟test_string_format_date' => [
           'required' => FALSE,
           'types' => [
             'Date' => 'ℹ︎datetime␟value',
@@ -215,19 +215,19 @@ class FieldForComponentSuggesterTest extends KernelTestBase {
           ],
           'adapters' => [],
         ],
-        '⿲sdc_test_all_props:all-props␟test-string-format-time' => [
+        '⿲sdc_test_all_props:all-props␟test_string_format_time' => [
           'required' => FALSE,
           'types' => [],
           'instances' => [],
           'adapters' => [],
         ],
-        '⿲sdc_test_all_props:all-props␟test-string-format-duration' => [
+        '⿲sdc_test_all_props:all-props␟test_string_format_duration' => [
           'required' => FALSE,
           'types' => [],
           'instances' => [],
           'adapters' => [],
         ],
-        '⿲sdc_test_all_props:all-props␟test-string-format-email' => [
+        '⿲sdc_test_all_props:all-props␟test_string_format_email' => [
           'required' => FALSE,
           'types' => [
             'Email' => 'ℹ︎email␟value',
@@ -238,7 +238,7 @@ class FieldForComponentSuggesterTest extends KernelTestBase {
           ],
           'adapters' => [],
         ],
-        '⿲sdc_test_all_props:all-props␟test-string-format-idn-email' => [
+        '⿲sdc_test_all_props:all-props␟test_string_format_idn_email' => [
           'required' => FALSE,
           'types' => [
             'Email' => 'ℹ︎email␟value',
@@ -249,31 +249,31 @@ class FieldForComponentSuggesterTest extends KernelTestBase {
           ],
           'adapters' => [],
         ],
-        '⿲sdc_test_all_props:all-props␟test-string-format-hostname' => [
+        '⿲sdc_test_all_props:all-props␟test_string_format_hostname' => [
           'required' => FALSE,
           'types' => [],
           'instances' => [],
           'adapters' => [],
         ],
-        '⿲sdc_test_all_props:all-props␟test-string-format-idn-hostname' => [
+        '⿲sdc_test_all_props:all-props␟test_string_format_idn_hostname' => [
           'required' => FALSE,
           'types' => [],
           'instances' => [],
           'adapters' => [],
         ],
-        '⿲sdc_test_all_props:all-props␟test-string-format-ipv4' => [
+        '⿲sdc_test_all_props:all-props␟test_string_format_ipv4' => [
           'required' => FALSE,
           'types' => [],
           'instances' => [],
           'adapters' => [],
         ],
-        '⿲sdc_test_all_props:all-props␟test-string-format-ipv6' => [
+        '⿲sdc_test_all_props:all-props␟test_string_format_ipv6' => [
           'required' => FALSE,
           'types' => [],
           'instances' => [],
           'adapters' => [],
         ],
-        '⿲sdc_test_all_props:all-props␟test-string-format-uuid' => [
+        '⿲sdc_test_all_props:all-props␟test_string_format_uuid' => [
           'required' => FALSE,
           'types' => [
             'File' => 'ℹ︎file␟entity␜␜entity:file␝uuid␞0␟value',
@@ -288,7 +288,7 @@ class FieldForComponentSuggesterTest extends KernelTestBase {
           ],
           'adapters' => [],
         ],
-        '⿲sdc_test_all_props:all-props␟test-string-format-uri' => [
+        '⿲sdc_test_all_props:all-props␟test_string_format_uri' => [
           'required' => FALSE,
           'types' => [
             'File' => 'ℹ︎file␟entity␜␜entity:file␝uri␞0␟value',
@@ -300,7 +300,7 @@ class FieldForComponentSuggesterTest extends KernelTestBase {
           ],
           'adapters' => [],
         ],
-        '⿲sdc_test_all_props:all-props␟test-string-format-uri-image' => [
+        '⿲sdc_test_all_props:all-props␟test_string_format_uri_image' => [
           'required' => FALSE,
           'types' => [
             'Image' => 'ℹ︎image␟entity␜␜entity:file␝uri␞0␟value',
@@ -312,7 +312,7 @@ class FieldForComponentSuggesterTest extends KernelTestBase {
             'Extract image URL' => 'image_extract_url',
           ],
         ],
-        '⿲sdc_test_all_props:all-props␟test-string-format-uri-reference' => [
+        '⿲sdc_test_all_props:all-props␟test_string_format_uri_reference' => [
           'required' => FALSE,
           'types' => [
             'Path' => 'ℹ︎path␟alias',
@@ -322,7 +322,7 @@ class FieldForComponentSuggesterTest extends KernelTestBase {
           ],
           'adapters' => [],
         ],
-        '⿲sdc_test_all_props:all-props␟test-string-format-iri' => [
+        '⿲sdc_test_all_props:all-props␟test_string_format_iri' => [
           'required' => FALSE,
           'types' => [
             'File' => 'ℹ︎file␟entity␜␜entity:file␝uri␞0␟value',
@@ -334,7 +334,7 @@ class FieldForComponentSuggesterTest extends KernelTestBase {
           ],
           'adapters' => [],
         ],
-        '⿲sdc_test_all_props:all-props␟test-string-format-iri-reference' => [
+        '⿲sdc_test_all_props:all-props␟test_string_format_iri_reference' => [
           'required' => FALSE,
           'types' => [
             'Path' => 'ℹ︎path␟alias',
@@ -344,31 +344,31 @@ class FieldForComponentSuggesterTest extends KernelTestBase {
           ],
           'adapters' => [],
         ],
-        '⿲sdc_test_all_props:all-props␟test-string-format-uri-template' => [
+        '⿲sdc_test_all_props:all-props␟test_string_format_uri_template' => [
           'required' => FALSE,
           'types' => [],
           'instances' => [],
           'adapters' => [],
         ],
-        '⿲sdc_test_all_props:all-props␟test-string-format-json-pointer' => [
+        '⿲sdc_test_all_props:all-props␟test_string_format_json_pointer' => [
           'required' => FALSE,
           'types' => [],
           'instances' => [],
           'adapters' => [],
         ],
-        '⿲sdc_test_all_props:all-props␟test-string-format-relative-json-pointer' => [
+        '⿲sdc_test_all_props:all-props␟test_string_format_relative_json_pointer' => [
           'required' => FALSE,
           'types' => [],
           'instances' => [],
           'adapters' => [],
         ],
-        '⿲sdc_test_all_props:all-props␟test-string-format-regex' => [
+        '⿲sdc_test_all_props:all-props␟test_string_format_regex' => [
           'required' => FALSE,
           'types' => [],
           'instances' => [],
           'adapters' => [],
         ],
-        '⿲sdc_test_all_props:all-props␟test-integer' => [
+        '⿲sdc_test_all_props:all-props␟test_integer' => [
           'required' => FALSE,
           'types' => [
             'File' => 'ℹ︎file␟entity␜␜entity:file␝uid␞0␟target_id',
@@ -392,13 +392,13 @@ class FieldForComponentSuggesterTest extends KernelTestBase {
           ],
           'adapters' => [],
         ],
-        '⿲sdc_test_all_props:all-props␟test-integer-range-minimum' => [
+        '⿲sdc_test_all_props:all-props␟test_integer_range_minimum' => [
           'required' => FALSE,
           'types' => [],
           'instances' => [],
           'adapters' => [],
         ],
-        '⿲sdc_test_all_props:all-props␟test-integer-range-minimum-maximum-timestamps' => [
+        '⿲sdc_test_all_props:all-props␟test_integer_range_minimum_maximum_timestamps' => [
           'required' => FALSE,
           'types' => [
             'Timestamp' => 'ℹ︎timestamp␟value',
@@ -409,7 +409,7 @@ class FieldForComponentSuggesterTest extends KernelTestBase {
           ],
           'adapters' => [],
         ],
-        '⿲sdc_test_all_props:all-props␟test-object-drupal-image' => [
+        '⿲sdc_test_all_props:all-props␟test_object_drupal_image' => [
           'required' => FALSE,
           'types' => [
             'Image' => 'ℹ︎image␟{src↝entity␜␜entity:file␝uri␞0␟url,alt↠alt,width↠width,height↠height}',
@@ -422,7 +422,7 @@ class FieldForComponentSuggesterTest extends KernelTestBase {
             'Make relative image URL absolute' => 'image_url_rel_to_abs',
           ],
         ],
-        '⿲sdc_test_all_props:all-props␟test-object-drupal-date-range' => [
+        '⿲sdc_test_all_props:all-props␟test_object_drupal_date_range' => [
           'required' => FALSE,
           'types' => [
             'Date range' => 'ℹ︎daterange␟{from↠end_value,to↠value}',

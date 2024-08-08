@@ -570,7 +570,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
           'adapter_matches_field_type' => [],
           'adapter_matches_instance' => [],
         ],
-        '⿲sdc_test_all_props:all-props␟test-string' => [
+        '⿲sdc_test_all_props:all-props␟test_string' => [
           'storage' => $all_string_storage_props,
           'format_any_prop' => [
             'ℹ︎file␟description',
@@ -595,7 +595,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
           'adapter_matches_field_type' => [],
           'adapter_matches_instance' => [],
         ],
-        '⿲sdc_test_all_props:all-props␟test-REQUIRED-string' => [
+        '⿲sdc_test_all_props:all-props␟test_REQUIRED_string' => [
           'storage' => [
             'ℹ︎daterange␟end_value',
             'ℹ︎daterange␟value',
@@ -635,7 +635,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
           'adapter_matches_field_type' => [],
           'adapter_matches_instance' => [],
         ],
-        '⿲sdc_test_all_props:all-props␟test-string-enum' => [
+        '⿲sdc_test_all_props:all-props␟test_string_enum' => [
           'storage' => $all_string_storage_props,
           'format_any_prop' => [
             // @todo Make this work using the `list_string` field type
@@ -645,7 +645,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
           'adapter_matches_field_type' => [],
           'adapter_matches_instance' => [],
         ],
-        '⿲sdc_test_all_props:all-props␟test-string-format-' . JsonSchemaStringFormat::DATE_TIME->value => [
+        '⿲sdc_test_all_props:all-props␟test_string_format_' . str_replace('-', '_', JsonSchemaStringFormat::DATE_TIME->value) => [
           'storage' => $all_string_storage_props,
           'format_any_prop' => [
             'ℹ︎daterange␟end_value',
@@ -663,7 +663,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
           'adapter_matches_field_type' => [],
           'adapter_matches_instance' => [],
         ],
-        '⿲sdc_test_all_props:all-props␟test-string-format-' . JsonSchemaStringFormat::DATE->value => [
+        '⿲sdc_test_all_props:all-props␟test_string_format_' . JsonSchemaStringFormat::DATE->value => [
           'storage' => $all_string_storage_props,
           'format_any_prop' => [
             'ℹ︎daterange␟end_value',
@@ -681,7 +681,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
           'adapter_matches_field_type' => [],
           'adapter_matches_instance' => [],
         ],
-        '⿲sdc_test_all_props:all-props␟test-string-format-' . JsonSchemaStringFormat::TIME->value => [
+        '⿲sdc_test_all_props:all-props␟test_string_format_' . JsonSchemaStringFormat::TIME->value => [
           'storage' => $all_string_storage_props,
           'format_any_prop' => [
             // @todo Adapter for @FieldType=timestamp -> `type:string,format=time`, @FieldType=datetime -> `type:string,format=time`
@@ -691,7 +691,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
           'adapter_matches_field_type' => [],
           'adapter_matches_instance' => [],
         ],
-        '⿲sdc_test_all_props:all-props␟test-string-format-' . JsonSchemaStringFormat::DURATION->value => [
+        '⿲sdc_test_all_props:all-props␟test_string_format_' . JsonSchemaStringFormat::DURATION->value => [
           'storage' => $all_string_storage_props,
           'format_any_prop' => [
             // @todo No field type in Drupal core uses \Drupal\Core\TypedData\Plugin\DataType\DurationIso8601.
@@ -701,7 +701,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
           'adapter_matches_field_type' => [],
           'adapter_matches_instance' => [],
         ],
-        '⿲sdc_test_all_props:all-props␟test-string-format-' . JsonSchemaStringFormat::EMAIL->value => [
+        '⿲sdc_test_all_props:all-props␟test_string_format_' . JsonSchemaStringFormat::EMAIL->value => [
           'storage' => $all_string_storage_props,
           'format_any_prop' => [
             'ℹ︎email␟value',
@@ -722,7 +722,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
           'adapter_matches_field_type' => [],
           'adapter_matches_instance' => [],
         ],
-        '⿲sdc_test_all_props:all-props␟test-string-format-' . JsonSchemaStringFormat::IDN_EMAIL->value => [
+        '⿲sdc_test_all_props:all-props␟test_string_format_' . str_replace('-', '_', JsonSchemaStringFormat::IDN_EMAIL->value) => [
           'storage' => $all_string_storage_props,
           'format_any_prop' => [
             'ℹ︎email␟value',
@@ -743,7 +743,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
           'adapter_matches_field_type' => [],
           'adapter_matches_instance' => [],
         ],
-        '⿲sdc_test_all_props:all-props␟test-string-format-' . JsonSchemaStringFormat::HOSTNAME->value => [
+        '⿲sdc_test_all_props:all-props␟test_string_format_' . JsonSchemaStringFormat::HOSTNAME->value => [
           'storage' => $all_string_storage_props,
           'format_any_prop' => [
             // @todo adapter from `type: string, format=uri`?
@@ -753,7 +753,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
           'adapter_matches_field_type' => [],
           'adapter_matches_instance' => [],
         ],
-        '⿲sdc_test_all_props:all-props␟test-string-format-' . JsonSchemaStringFormat::IDN_HOSTNAME->value => [
+        '⿲sdc_test_all_props:all-props␟test_string_format_' . str_replace('-', '_', JsonSchemaStringFormat::IDN_HOSTNAME->value) => [
           'storage' => $all_string_storage_props,
           'format_any_prop' => [
             // phpcs:disable
@@ -769,7 +769,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
           'adapter_matches_field_type' => [],
           'adapter_matches_instance' => [],
         ],
-        '⿲sdc_test_all_props:all-props␟test-string-format-' . JsonSchemaStringFormat::IPV4->value => [
+        '⿲sdc_test_all_props:all-props␟test_string_format_' . JsonSchemaStringFormat::IPV4->value => [
           'storage' => $all_string_storage_props,
           'format_any_prop' => [
             // @todo Update \Drupal\sdc\Component\ComponentValidator to disallow this — does not make sense for presenting information?
@@ -779,7 +779,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
           'adapter_matches_field_type' => [],
           'adapter_matches_instance' => [],
         ],
-        '⿲sdc_test_all_props:all-props␟test-string-format-' . JsonSchemaStringFormat::IPV6->value => [
+        '⿲sdc_test_all_props:all-props␟test_string_format_' . JsonSchemaStringFormat::IPV6->value => [
           'storage' => $all_string_storage_props,
           'format_any_prop' => [
             // @todo Update \Drupal\sdc\Component\ComponentValidator to disallow this — does not make sense for presenting information?
@@ -789,7 +789,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
           'adapter_matches_field_type' => [],
           'adapter_matches_instance' => [],
         ],
-        '⿲sdc_test_all_props:all-props␟test-string-format-' . JsonSchemaStringFormat::UUID->value => [
+        '⿲sdc_test_all_props:all-props␟test_string_format_' . JsonSchemaStringFormat::UUID->value => [
           'storage' => $all_string_storage_props,
           'format_any_prop' => [
             'ℹ︎file␟entity␜␜entity:file␝uuid␞0␟value',
@@ -814,7 +814,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
           'adapter_matches_field_type' => [],
           'adapter_matches_instance' => [],
         ],
-        '⿲sdc_test_all_props:all-props␟test-string-format-' . JsonSchemaStringFormat::URI->value => [
+        '⿲sdc_test_all_props:all-props␟test_string_format_' . JsonSchemaStringFormat::URI->value => [
           'storage' => $all_string_storage_props,
           'format_any_prop' => [
             'ℹ︎file_uri␟url',
@@ -844,7 +844,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
           'adapter_matches_field_type' => [],
           'adapter_matches_instance' => [],
         ],
-        '⿲sdc_test_all_props:all-props␟test-string-format-' . JsonSchemaStringFormat::URI->value . '-image' => [
+        '⿲sdc_test_all_props:all-props␟test_string_format_' . JsonSchemaStringFormat::URI->value . '_image' => [
           'storage' => $all_string_storage_props,
           'format_any_prop' => [
             'ℹ︎image␟entity␜␜entity:file␝uri␞0␟url',
@@ -877,7 +877,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
             ],
           ],
         ],
-        '⿲sdc_test_all_props:all-props␟test-string-format-' . JsonSchemaStringFormat::URI_REFERENCE->value => [
+        '⿲sdc_test_all_props:all-props␟test_string_format_' . str_replace('-', '_', JsonSchemaStringFormat::URI_REFERENCE->value) => [
           'storage' => $all_string_storage_props,
           'format_any_prop' => [
             'ℹ︎path␟alias',
@@ -892,7 +892,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
           'adapter_matches_field_type' => [],
           'adapter_matches_instance' => [],
         ],
-        '⿲sdc_test_all_props:all-props␟test-string-format-' . JsonSchemaStringFormat::IRI->value => [
+        '⿲sdc_test_all_props:all-props␟test_string_format_' . JsonSchemaStringFormat::IRI->value => [
           'storage' => $all_string_storage_props,
           'format_any_prop' => [
             'ℹ︎file_uri␟url',
@@ -922,7 +922,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
           'adapter_matches_field_type' => [],
           'adapter_matches_instance' => [],
         ],
-        '⿲sdc_test_all_props:all-props␟test-string-format-' . JsonSchemaStringFormat::IRI_REFERENCE->value => [
+        '⿲sdc_test_all_props:all-props␟test_string_format_' . str_replace('-', '_', JsonSchemaStringFormat::IRI_REFERENCE->value) => [
           'storage' => $all_string_storage_props,
           'format_any_prop' => [
             'ℹ︎path␟alias',
@@ -937,7 +937,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
           'adapter_matches_field_type' => [],
           'adapter_matches_instance' => [],
         ],
-        '⿲sdc_test_all_props:all-props␟test-string-format-' . JsonSchemaStringFormat::URI_TEMPLATE->value => [
+        '⿲sdc_test_all_props:all-props␟test_string_format_' . str_replace('-', '_', JsonSchemaStringFormat::URI_TEMPLATE->value) => [
           'storage' => $all_string_storage_props,
           'format_any_prop' => [
             // @todo Update \Drupal\sdc\Component\ComponentValidator to disallow this — does not make sense for presenting information?
@@ -947,7 +947,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
           'adapter_matches_field_type' => [],
           'adapter_matches_instance' => [],
         ],
-        '⿲sdc_test_all_props:all-props␟test-string-format-' . JsonSchemaStringFormat::JSON_POINTER->value => [
+        '⿲sdc_test_all_props:all-props␟test_string_format_' . str_replace('-', '_', JsonSchemaStringFormat::JSON_POINTER->value) => [
           'storage' => $all_string_storage_props,
           'format_any_prop' => [
             // @todo Update \Drupal\sdc\Component\ComponentValidator to disallow this — does not make sense for presenting information?
@@ -957,7 +957,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
           'adapter_matches_field_type' => [],
           'adapter_matches_instance' => [],
         ],
-        '⿲sdc_test_all_props:all-props␟test-string-format-' . JsonSchemaStringFormat::RELATIVE_JSON_POINTER->value => [
+        '⿲sdc_test_all_props:all-props␟test_string_format_' . str_replace('-', '_', JsonSchemaStringFormat::RELATIVE_JSON_POINTER->value) => [
           'storage' => $all_string_storage_props,
           'format_any_prop' => [
             // @todo Update \Drupal\sdc\Component\ComponentValidator to disallow this — does not make sense for presenting information?
@@ -967,7 +967,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
           'adapter_matches_field_type' => [],
           'adapter_matches_instance' => [],
         ],
-        '⿲sdc_test_all_props:all-props␟test-string-format-' . JsonSchemaStringFormat::REGEX->value => [
+        '⿲sdc_test_all_props:all-props␟test_string_format_' . JsonSchemaStringFormat::REGEX->value => [
           'storage' => $all_string_storage_props,
           'format_any_prop' => [
             // @todo Update \Drupal\sdc\Component\ComponentValidator to disallow this — does not make sense for presenting information?
@@ -979,7 +979,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
         ],
 
         // Integers.
-        '⿲sdc_test_all_props:all-props␟test-integer' => [
+        '⿲sdc_test_all_props:all-props␟test_integer' => [
           'storage' => $all_integer_storage_props,
           'format_any_prop' => $all_integer_storage_props,
           'format_main_prop' => [
@@ -1051,7 +1051,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
           'adapter_matches_field_type' => [],
           'adapter_matches_instance' => [],
         ],
-        '⿲sdc_test_all_props:all-props␟test-integer-range-minimum' => [
+        '⿲sdc_test_all_props:all-props␟test_integer_range_minimum' => [
           'storage' => $all_integer_storage_props,
           'format_any_prop' => [],
           'format_main_prop' => [],
@@ -1059,7 +1059,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
           'adapter_matches_field_type' => [],
           'adapter_matches_instance' => [],
         ],
-        '⿲sdc_test_all_props:all-props␟test-integer-range-minimum-maximum-timestamps' => [
+        '⿲sdc_test_all_props:all-props␟test_integer_range_minimum_maximum_timestamps' => [
           'storage' => $all_integer_storage_props,
           'format_any_prop' => [
             'ℹ︎timestamp␟value',
@@ -1080,7 +1080,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
           'adapter_matches_field_type' => [],
           'adapter_matches_instance' => [],
         ],
-        '⿲sdc_test_all_props:all-props␟test-object-drupal-image' => [
+        '⿲sdc_test_all_props:all-props␟test_object_drupal_image' => [
           'storage' => [
             'ℹ︎image␟{src↝entity␜␜entity:file␝uri␞0␟url,alt↠alt,width↠width,height↠height}',
           ],
@@ -1114,7 +1114,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
             ],
           ],
         ],
-        '⿲sdc_test_all_props:all-props␟test-object-drupal-date-range' => [
+        '⿲sdc_test_all_props:all-props␟test_object_drupal_date_range' => [
           'storage' => [
             'ℹ︎daterange␟{from↠end_value,to↠value}',
           ],

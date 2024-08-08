@@ -158,6 +158,12 @@ class ComponentEditForm extends EntityForm implements ContainerInjectionInterfac
         $field_type_options = [];
         $widget_forms = [];
         if (empty($static_prop_source_suggestions)) {
+          // @see https://www.drupal.org/project/experience_builder/issues/3463583#comment-15710082
+          // @todo This, and this entire file, will be removed in https://www.drupal.org/project/experience_builder/issues/3464025
+          if (array_key_exists($component_prop_name, $this->entity->get('defaults')['props'])) {
+            // @phpstan-ignore-next-line
+            \Drupal::messenger()->addWarning('This test-only component is provided as-is and cannot be edited.');
+          }
           $form[Component::convertMachineNameToId($component->getPluginId())][$component_prop_name]['skip'] = [
             '#type' => 'container',
             '#markup' => $storable_prop_shape === NULL

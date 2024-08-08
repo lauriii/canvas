@@ -3,68 +3,88 @@ name: All props
 props:
   type: object
   required:
-    - test-REQUIRED-string
+    - test_REQUIRED_string
   properties:
-    test-string:
+    test_string:
       title: 'String'
       type: string
-    test-REQUIRED-string:
+      examples:
+        - Hello, world!
+    test_REQUIRED_string:
       title: 'String'
       type: string
-    test-string-enum:
+      examples:
+        - Hello, required world!
+    test_string_enum:
       title: 'String'
       type: string
       enum:
         - foo
         - bar
+      examples:
+        - foo
     # Built-in formats: dates and times
     # @see https://json-schema.org/understanding-json-schema/reference/string#dates-and-times
-    test-string-format-date-time:
+    test_string_format_date_time:
       type: string
       format: date-time
-    test-string-format-date:
+      examples:
+        - '2018-11-13T20:20:39+00:00'
+    test_string_format_date:
       type: string
       format: date
-    test-string-format-time:
+      examples:
+        - '2018-11-13'
+    test_string_format_time:
       type: string
       format: time
-    test-string-format-duration:
+      examples:
+        - '20:20:39'
+        # @todo 🐛 This is copy/pasted from https://json-schema.org/understanding-json-schema/reference/string#dates-and-times but is refused by justinrainbow/json-schema!
+        # - '20:20:39+00:00'
+    test_string_format_duration:
       type: string
       format: duration
     # Built-in formats: email addresses.
     # @see https://json-schema.org/understanding-json-schema/reference/string#email-addresses
-    test-string-format-email:
+    test_string_format_email:
       type: string
       format: email
-    test-string-format-idn-email:
+      examples:
+        - hello@example.com
+    test_string_format_idn_email:
       type: string
       format: idn-email
+      examples:
+        - hello@idn.example.com
     # Built-in formats: hostnames.
     # @see https://json-schema.org/understanding-json-schema/reference/string#hostnames
-    test-string-format-hostname:
+    test_string_format_hostname:
       type: string
       format: hostname
-    test-string-format-idn-hostname:
+    test_string_format_idn_hostname:
       type: string
       format: idn-hostname
     # Built-in formats: IP addresses.
     # @see https://json-schema.org/understanding-json-schema/reference/string#ip-addresses
-    test-string-format-ipv4:
+    test_string_format_ipv4:
       type: string
       format: ipv4
-    test-string-format-ipv6:
+    test_string_format_ipv6:
       type: string
       format: ipv6
     # Built-in formats: resource identifiers.
     # @see https://json-schema.org/understanding-json-schema/reference/string#resource-identifiers
-    test-string-format-uuid:
+    test_string_format_uuid:
       type: string
       format: uuid
-    test-string-format-uri:
+    test_string_format_uri:
       title: 'String, format=uri'
       type: string
       format: uri
-    test-string-format-uri-image:
+      examples:
+        - https://uri.example.com
+    test_string_format_uri_image:
       title: 'String, format=uri, images only'
       $ref: json-schema-definitions://experience_builder.module/image-uri
       # @todo Remove in https://www.drupal.org/project/drupal/issues/3352063 — should not be necessary, but removing this causes \Drupal\Core\Theme\Component\ComponentMetadata::parseSchemaInfo() to generate `type = ['', 'object'] 🐛
@@ -74,53 +94,69 @@ props:
       # format: uri
       # # @see \Drupal\image\Plugin\Field\FieldType\ImageItem::defaultFieldSettings()
       # pattern: '\.(png|gif|jpg|jpeg|webp)$'
-    test-string-format-uri-reference:
+    test_string_format_uri_reference:
       type: string
       format: uri-reference
-    test-string-format-iri:
+      examples:
+        - /example-uri
+    test_string_format_iri:
       type: string
       format: iri
-    test-string-format-iri-reference:
+      examples:
+        - https://iri.example.com
+    test_string_format_iri_reference:
       type: string
       format: iri-reference
+      examples:
+        - /example-iri
     # Built-in formats: URI template.
     # @see https://json-schema.org/understanding-json-schema/reference/string#uri-template
-    test-string-format-uri-template:
+    test_string_format_uri_template:
       type: string
       format: uri-template
     # Built-in formats: JSON Pointer.
     # @see https://json-schema.org/understanding-json-schema/reference/string#json-pointer
-    test-string-format-json-pointer:
+    test_string_format_json_pointer:
       type: string
       format: json-pointer
-    test-string-format-relative-json-pointer:
+    test_string_format_relative_json_pointer:
       type: string
       format: relative-json-pointer
     # Built-in formats: Regular expressions.
     # @see https://json-schema.org/understanding-json-schema/reference/string#regular-expressions
-    test-string-format-regex:
+    test_string_format_regex:
       type: string
       format: regex
 
-    test-integer:
+    test_integer:
       type: integer
-    test-integer-range-minimum:
+      examples:
+        - -42
+    test_integer_range_minimum:
       type: integer
       minimum: 0
-    test-integer-range-minimum-maximum-timestamps:
+      examples:
+        - 42
+    test_integer_range_minimum_maximum_timestamps:
       type: integer
       minimum: -2147483648
       maximum: 2147483648
-
+      examples:
+        - 1730718000
     # The "image" predefined object format.
     # @todo Agree on one special case, for ecosystem-wide formats: `json-schema-definitions://drupal/<something>`, so `json-schema-definitions://drupal/image` here.
-    test-object-drupal-image:
+    test_object_drupal_image:
       $ref: json-schema-definitions://experience_builder.module/image
       # @todo Remove in https://www.drupal.org/project/drupal/issues/3352063 — should not be necessary, but removing this causes \Drupal\Core\Theme\Component\ComponentMetadata::parseSchemaInfo() to generate `type = ['', 'object'] 🐛
       type: object
+      examples:
+        - src: https://placehold.co/600x400.png
+          alt: 'Boring placeholder'
+          width: 600
+          height: 400
 
     # The "date-range" object format for this module.
-    test-object-drupal-date-range:
+    test_object_drupal_date_range:
       $ref: json-schema-definitions://sdc_test_all_props.module/date-range
       # @todo Remove in https://www.drupal.org/project/drupal/issues/3352063 — should not be necessary, but removing this causes \Drupal\Core\Theme\Component\ComponentMetadata::parseSchemaInfo() to generate `type = ['', 'object'] 🐛
       type: object

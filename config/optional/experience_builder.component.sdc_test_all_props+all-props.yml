@@ -1,0 +1,89 @@
+# @todo Remove this file in https://www.drupal.org/project/experience_builder/issues/3463999
+langcode: en
+status: true
+dependencies:
+  module:
+    - datetime
+    - image
+    - options
+    - path
+    - sdc_test_all_props
+label: All Props
+component: sdc_test_all_props+all-props
+defaults:
+  props:
+    test_REQUIRED_string:
+      field_type: string
+      field_widget: string_textfield
+      default_value: null
+      expression: ℹ︎string␟value
+    test_integer:
+      field_type: integer
+      field_widget: number
+      default_value: null
+      expression: ℹ︎integer␟value
+    test_integer_range_minimum:
+      field_type: integer
+      field_widget: number
+      default_value: null
+      expression: ℹ︎integer␟value
+    test_integer_range_minimum_maximum_timestamps:
+      field_type: integer
+      field_widget: number
+      default_value: null
+      expression: ℹ︎integer␟value
+    test_object_drupal_image:
+      field_type: image
+      field_widget: image_image
+      default_value: null
+      expression: 'ℹ︎image␟{src↝entity␜␜entity:file␝uri␞0␟url,alt↠alt,width↠width,height↠height}'
+    test_string:
+      field_type: string
+      field_widget: string_textfield
+      default_value: null
+      expression: ℹ︎string␟value
+    test_string_enum:
+      field_type: list_string
+      field_widget: options_select
+      default_value: null
+      expression: ℹ︎list_string␟value
+    test_string_format_date:
+      field_type: datetime
+      field_widget: datetime_default
+      default_value: null
+      expression: ℹ︎datetime␟value
+    test_string_format_date_time:
+      field_type: datetime
+      field_widget: datetime_default
+      default_value: null
+      expression: ℹ︎datetime␟value
+    test_string_format_email:
+      field_type: email
+      field_widget: email_default
+      default_value: null
+      expression: ℹ︎email␟value
+    test_string_format_idn_email:
+      field_type: email
+      field_widget: email_default
+      default_value: null
+      expression: ℹ︎email␟value
+    test_string_format_iri:
+      field_type: uri
+      field_widget: uri
+      default_value: null
+      expression: ℹ︎uri␟value
+    test_string_format_iri_reference:
+      field_type: path
+      field_widget: path
+      default_value: null
+      expression: ℹ︎path␟alias
+    test_string_format_uri:
+      field_type: uri
+      field_widget: uri
+      default_value: null
+      expression: ℹ︎uri␟value
+    test_string_format_uri_reference:
+      field_type: path
+      field_widget: path
+      default_value: null
+      expression: ℹ︎path␟alias
