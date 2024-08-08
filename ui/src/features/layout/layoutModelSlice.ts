@@ -64,6 +64,7 @@ type DuplicateNodePayload = {
 type InsertNodePayload = {
   newNode: LayoutNode | undefined;
   to: number[] | undefined;
+  model: InitialPropData | undefined;
 };
 
 type AddNewNodePayload = {
@@ -86,10 +87,6 @@ type InitialPropData = {
   [key: string]: any;
 };
 
-type CreateModelPayload = {
-  uuid: string | undefined;
-  initialData: InitialPropData | undefined;
-};
 export interface ComponentModel {
   [key: string]: string | boolean | [] | number;
   name: string;
@@ -145,7 +142,7 @@ export const layoutModelSlice = createSlice({
     ),
     insertNode: create.reducer(
       (state, action: PayloadAction<InsertNodePayload>) => {
-        const { newNode, to } = action.payload;
+        const { newNode, to, model } = action.payload;
         if (!newNode || !Array.isArray(to)) {
           console.error(
             `Cannot move ${newNode} to position ${to}. Check both uuid and to are defined/valid.`,
@@ -154,6 +151,7 @@ export const layoutModelSlice = createSlice({
         }
 
         state.layout = insertNodeAtPath(state.layout, to, newNode);
+        state.model[newNode.uuid] = { ...state.model[newNode.uuid], ...model };
       },
     ),
     sortNode: create.reducer(
@@ -217,14 +215,6 @@ export const layoutModelSlice = createSlice({
         }
       },
     ),
-    createNewModel: create.reducer(
-      (state, action: PayloadAction<CreateModelPayload>) => {
-        const { uuid, initialData } = action.payload;
-        if (uuid) {
-          state.model[uuid] = { ...state.model[uuid], ...initialData };
-        }
-      },
-    ),
   }),
 });
 
@@ -232,17 +222,6 @@ export const addNewComponentToLayout =
   (payload: AddNewNodePayload) => (dispatch: AppDispatch) => {
     if (payload.newNode && payload.to) {
       const uuid = uuidv4();
-      dispatch(
-        insertNode({
-          to: payload.to,
-          newNode: {
-            uuid: uuid,
-            children: [],
-            nodeType: 'component',
-            type: payload.newNode,
-          },
-        }),
-      );
       const initialData: InitialPropData = {};
       if (payload?.componentFieldData) {
         // @todo Update this logic in https://www.drupal.org/project/experience_builder/issues/3455942
@@ -254,9 +233,15 @@ export const addNewComponentToLayout =
         });
       }
       dispatch(
-        createNewModel({
-          uuid: uuid,
-          initialData,
+        insertNode({
+          to: payload.to,
+          newNode: {
+            uuid: uuid,
+            children: [],
+            nodeType: 'component',
+            type: payload.newNode,
+          },
+          model: initialData,
         }),
       );
     }
@@ -272,7 +257,6 @@ export const {
   sortNode,
   insertNode,
   updateNodeModel,
-  createNewModel,
 } = layoutModelSlice.actions;
 
 export const layoutModelReducer = layoutModelSlice.reducer;

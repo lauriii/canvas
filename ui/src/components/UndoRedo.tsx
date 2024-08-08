@@ -11,7 +11,7 @@ import { useEffect } from 'react';
 const UndoRedo = () => {
   const dispatch = useAppDispatch();
   const layoutModel = useAppSelector(selectHistory);
-  const isUndoable = layoutModel.past.length > 0;
+  const isUndoable = layoutModel.past.length > 1;
   const isRedoable = layoutModel.future.length > 0;
   const dispatchUndo = () =>
     isUndoable ? dispatch(ActionCreators.undo()) : null;
@@ -46,6 +46,7 @@ const UndoRedo = () => {
         highContrast
         onClick={() => dispatchUndo()}
         disabled={!isUndoable}
+        aria-label="Undo"
       >
         <ResetIcon /> Undo
       </Button>
@@ -55,6 +56,7 @@ const UndoRedo = () => {
         highContrast
         onClick={() => dispatchRedo()}
         disabled={!isRedoable}
+        aria-label="Redo"
       >
         <ResetIcon className={styles.topBarRedoIcon} /> Redo
       </Button>
