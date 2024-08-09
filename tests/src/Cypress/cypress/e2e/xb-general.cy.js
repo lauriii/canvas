@@ -288,7 +288,7 @@ describe('General Experience Builder', {testIsolation: false}, () => {
       });
   })
 
-  it('uses react router successfully', () => {
+  it('Uses React Router successfully', () => {
       cy.drupalLogin('xbUser', 'xbUser')
       cy.drupalRelativeURL('xb/node/1')
 
@@ -297,9 +297,9 @@ describe('General Experience Builder', {testIsolation: false}, () => {
       cy.get('iframe[data-xb-preview]').should('exist')
       cy.waitForElementInIframe('[data-xb-type="experience_builder:image"]')
 
-
-      let componentId1 = ''
-      let componentId2 = ''
+      // @todo Do not hardcode these, but the the logic below to set them did not do anything 😅
+      let componentId1 = 'static-static-card1ab'
+      let componentId2 = 'dynamic-dynamic-card3rr'
 
       // data-xb-uuid="static-static-card1ab"
       cy.getIframeBody().find('[data-xb-type="experience_builder:my-hero"]')
@@ -359,5 +359,22 @@ describe('General Experience Builder', {testIsolation: false}, () => {
 
       // No contextual panel open.
       cy.get('[class*="contextualPanel"] h4').should('not.exist')
+
+      // Navigate away from the Experience Builder UI.
+      // TRICKY: visiting `about:blank` fails due to https://github.com/cypress-io/cypress-documentation/pull/630
+      cy.visit('http://localhost')
+
+      // Verify that navigating directly to a client-side-only URL works: server responds with necessary data, client
+      // fetches necessary data and navigate to the requested part of the UI.
+      cy.intercept('GET', '**/api/layout/node/1').as('getLayout')
+      cy.intercept('POST', '**/api/preview/node/1').as('getPreview')
+      cy.intercept('GET', '**/xb-field-form/node/1?**').as('getPropsForm')
+      cy.drupalRelativeURL(`xb/node/1/component/${componentId1}`)
+      cy.wait('@getLayout')
+      cy.wait('@getPreview')
+      cy.wait('@getPreview')
+      cy.wait('@getPropsForm')
+      cy.get('[class*="contextualPanel"] h4').should('contain', componentId1)
+      cy.url().should('contain', `/xb/node/1/component/${componentId1}`)
     })
 })

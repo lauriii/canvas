@@ -87,13 +87,13 @@ const DummyPropsEditForm: React.FC<DummyPropsEditFormProps> = () => {
   const model = useAppSelector(selectModel);
   const layout = useAppSelector(selectLayout);
   const { data: components } = useGetComponentsQuery();
-  const selectedComponent = useAppSelector(selectSelectedComponent) || 'noop';
+  const selectedComponent = useAppSelector(selectSelectedComponent);
 
   const [dynamicStaticCardQueryString, setDynamicStaticCardQueryString] =
     useState('');
 
   useEffect(() => {
-    if (!components) {
+    if (!components || !selectedComponent) {
       return;
     }
     const preparedModel: PreparedModel = { [selectedComponent]: {} };

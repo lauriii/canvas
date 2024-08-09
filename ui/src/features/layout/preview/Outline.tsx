@@ -19,6 +19,7 @@ import {
 import useSyncElementSize from '@/hooks/useSyncElementSize';
 import NameTag from '@/features/layout/preview/NameTag';
 import AddButton from '@/features/layout/preview/AddButton';
+import _ from 'lodash';
 
 interface OutlineProps {
   elementId: string | undefined; // the data-xb-uuid value of the dom element that was hovered.
@@ -127,6 +128,11 @@ const Outline: React.FC<OutlineProps> = (props) => {
   }, [elementId, applyStyles, bindEvents, iframeRef]);
 
   useEffect(() => {
+    // If we haven't got the model yet, don't update the selectedComponent because it was probably
+    // set by the user hitting a /component/:componentId url.
+    if (_.isEmpty(model)) {
+      return;
+    }
     if (elementId) {
       if (!model[elementId]) {
         if (selected) {
