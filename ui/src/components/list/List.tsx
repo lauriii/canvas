@@ -23,6 +23,7 @@ import {
 import { findNodePathByUuid } from '@/features/layout/layoutUtils';
 import * as Tooltip from '@radix-ui/react-tooltip';
 import type { Component } from '@/types/Component';
+import ShadowWrapper from '../ShadowWrapper';
 
 interface PreviewCache {
   [key: string]: string;
@@ -127,8 +128,8 @@ const List = () => {
     });
     // Wrap the preview in a common parent so that can be used
     // to get height/width of the full component.
-    scaledPreview.innerHTML = `<div data-common-parent>${component['default_markup']}</div>`;
 
+    scaledPreview.innerHTML = `<div data-common-parent>${component['default_markup']}</div>`;
     // Append to body so the element has dimensions.
     document.body.appendChild(scaledPreview);
     const { offsetWidth, offsetHeight } = scaledPreview
@@ -283,9 +284,13 @@ const List = () => {
                         )}
                       >
                         {previewContent && (
-                          <div
-                            dangerouslySetInnerHTML={{ __html: previewContent }}
-                          />
+                          <ShadowWrapper>
+                            <div
+                              dangerouslySetInnerHTML={{
+                                __html: previewContent,
+                              }}
+                            />
+                          </ShadowWrapper>
                         )}
                       </Tooltip.Content>
                     </Tooltip.Root>

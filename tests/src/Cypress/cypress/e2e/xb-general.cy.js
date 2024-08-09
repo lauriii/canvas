@@ -269,24 +269,23 @@ describe('General Experience Builder', {testIsolation: false}, () => {
     cy.get(`${imageSelect} > button`)
       .should('exist')
       .realHover()
-    cy.get(
-      `${imageSelect} ${previewSelect} img[alt="Boring placeholder"]`,
-      ).should('exist')
+    cy.get(`.shadowDomWrapper`).shadow().find('img[alt="Boring placeholder"]').should('exist');
 
     // Hover over "My Hero" and a preview should appear
     cy.get(`${heroSelect} > button`)
       .should('exist')
       .realHover()
-    cy.get(
-      `.ComponentPreviewContent div.my-hero__container > .my-hero__actions > .my-hero__cta--primary`,
-    )
+
+    cy.get('.shadowDomWrapper')
+      .shadow()
+      .find('div.my-hero__container > .my-hero__actions > .my-hero__cta--primary')
       .should('exist')
       .then(($cta) => {
         expect(
           window.getComputedStyle($cta[0])['background-color'],
           'The "My Hero" SDC is styled'
         ).to.equal('rgb(0, 123, 255)')
-    })
+      });
   })
 
   it('uses react router successfully', () => {
