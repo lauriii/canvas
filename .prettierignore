@@ -1,3 +1,4 @@
-submodules/**/*
+modules/same_page_preview/**/*
+modules/xb_vite/**/*
 ui/node_modules/**/*
 ui/dist/**/*

@@ -1,4 +1,5 @@
-submodules/**/*
+modules/same_page_preview/**/*
+modules/xb_vite/**/*
 # The UI is written in TypeScript and React, and has its own linting.
 ui/**/*
 

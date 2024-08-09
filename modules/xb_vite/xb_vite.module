@@ -13,7 +13,7 @@ function xb_vite_library_info_alter(&$libraries, $extension) {
 
   // @see https://vitejs.dev/guide/backend-integration.html
   $libraries['xb-ui']['js'] = [
-    'submodules/xb_vite/window.js' => $base,
+    'modules/xb_vite/window.js' => $base,
     'http://localhost:5173/@vite/client' => ['type' => 'external'] + $base,
     'http://localhost:5173/src/main.tsx' => ['type' => 'external'] + $base,
   ];

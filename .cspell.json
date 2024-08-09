@@ -6,7 +6,8 @@
     "minWordLength": 4,
     "ignorePaths": [
       "CODEOWNERS",
-      "submodules/**",
+      "modules/same_page_preview/**",
+      "modules/xb_vite/**",
       "docs/diagrams/**",
       "ui/src/local_packages/**"
     ],

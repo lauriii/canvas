@@ -8,7 +8,8 @@ parameters:
     - theme
     - profile
   excludePaths:
-    - submodules
+    - modules/xb_vite
+    - modules/same_page_preview
     # These are 1:1 copies from Drupal core, with trivial additions that cannot have significant PHPStan impact. PHPStan compliance should happen upstream.
     - src/Plugin/DataTypeOverride
     - src/Plugin/Field/FieldTypeOverride
