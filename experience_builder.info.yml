@@ -15,7 +15,7 @@ description: On D10, first install the experimental SDC module! On D11, this is 
 type: module
 core_version_requirement: ^10.3 || ^11
 php: 8.3
-configure: experience_builder.experience_builder
+configure: entity.component.collection
 dependencies:
   # To support datetime prop shapes.
   # @see https://json-schema.org/understanding-json-schema/reference/string#dates-and-times
