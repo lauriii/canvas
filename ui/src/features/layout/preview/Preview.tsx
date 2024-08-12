@@ -3,7 +3,11 @@ import type React from 'react';
 import { useEffect, useState } from 'react';
 import { useAppSelector } from '@/app/hooks';
 
-import { selectLayout, selectModel } from '@/features/layout/layoutModelSlice';
+import {
+  selectLayout,
+  selectModel,
+  selectInitialized,
+} from '@/features/layout/layoutModelSlice';
 import { usePostPreviewMutation } from '@/services/preview';
 import Viewport from '@/features/layout/preview/Viewport';
 
@@ -11,7 +15,7 @@ interface PreviewProps {}
 
 const Preview: React.FC<PreviewProps> = () => {
   const layout = useAppSelector(selectLayout);
-
+  const initialized = useAppSelector(selectInitialized);
   const model = useAppSelector(selectModel);
   const [frameSrcDoc, setFrameSrcDoc] = useState('');
   const [postPreview, { isLoading }] = usePostPreviewMutation();
@@ -28,10 +32,10 @@ const Preview: React.FC<PreviewProps> = () => {
         console.error(err); // Do something with the error
       }
     };
-    if (layout && model) {
+    if (initialized === true) {
       sendPreviewRequest().then(() => {});
     }
-  }, [layout, model, postPreview]);
+  }, [layout, model, postPreview, initialized]);
 
   return (
     <>

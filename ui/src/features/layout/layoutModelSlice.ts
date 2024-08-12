@@ -29,6 +29,7 @@ export interface LayoutModelSliceState {
   model: {
     [key: string]: ComponentModel;
   };
+  initialized: boolean;
 }
 
 export const initialState: LayoutModelSliceState = {
@@ -39,6 +40,7 @@ export const initialState: LayoutModelSliceState = {
     children: [],
   },
   model: {},
+  initialized: false,
 };
 
 // This wrapper is necessary because when using slices with redux-undo,
@@ -200,9 +202,10 @@ export const layoutModelSlice = createSlice({
     ),
     setLayoutModel: create.reducer(
       (state, action: PayloadAction<LayoutModelSliceState>) => {
-        const { layout, model } = action.payload;
+        const { layout, model, initialized } = action.payload;
         state.layout = layout;
         state.model = model;
+        state.initialized = initialized;
       },
     ),
     // Reducers for state.model
@@ -270,3 +273,5 @@ export const selectModel = (state: StateWithHistoryWrapper) =>
   state.layoutModel.present.model;
 export const selectHistory = (state: StateWithHistoryWrapper) =>
   state.layoutModel;
+export const selectInitialized = (state: StateWithHistoryWrapper) =>
+  state.layoutModel.present.initialized;

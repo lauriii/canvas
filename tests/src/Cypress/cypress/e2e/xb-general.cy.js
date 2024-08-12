@@ -372,9 +372,18 @@ describe('General Experience Builder', {testIsolation: false}, () => {
       cy.drupalRelativeURL(`xb/node/1/component/${componentId1}`)
       cy.wait('@getLayout')
       cy.wait('@getPreview')
-      cy.wait('@getPreview')
       cy.wait('@getPropsForm')
       cy.get('[class*="contextualPanel"] h4').should('contain', componentId1)
       cy.url().should('contain', `/xb/node/1/component/${componentId1}`)
     })
+
+  it('has the expected performance', () => {
+    cy.intercept('POST', '**/api/preview/node/1').as('getPreview')
+
+    cy.visit('/xb/node/1');
+    cy.wait('@getPreview').its('response.statusCode').should('eq', 200);
+
+    // Assert that only one request was sent
+    cy.get('@getPreview.all').should('have.length', 1);
+  });
 })

@@ -93,7 +93,8 @@ describe('Undo/redo', () => {
     store.dispatch(setLayoutModel(layout));
 
     state = selectHistory(store.getState());
-    expect(state.present).to.deep.equal(layout);
+    expect(state.present.layout).to.deep.equal(layout.layout);
+    expect(state.present.model).to.deep.equal(layout.model);
     cy.wrap(state.past).should('have.length', 0);
     cy.wrap(state.future).should('have.length', 0);
   });

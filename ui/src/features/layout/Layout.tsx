@@ -15,6 +15,7 @@ const Layout = () => {
         setLayoutModel({
           layout: fetchedLayout.layout,
           model: fetchedLayout.model,
+          initialized: true,
         }),
       );
     }
