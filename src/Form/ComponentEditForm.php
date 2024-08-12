@@ -211,12 +211,12 @@ class ComponentEditForm extends EntityForm implements ContainerInjectionInterfac
 
             // @see \Drupal\Core\Field\WidgetBase::handlesMultipleValues()
             // @see \Drupal\Core\Field\Attribute\FieldWidget::__construct(multiple_values)
-            $widget_plugin_definition = $static_prop_source->getWidget($component_prop_name, NULL)->getPluginDefinition();
+            $widget_plugin_definition = $static_prop_source->getWidget($component_prop_name, $component_prop_name, NULL)->getPluginDefinition();
             assert(is_array($widget_plugin_definition) && array_key_exists('multiple_values', $widget_plugin_definition));
             $handles_multiple_values = $widget_plugin_definition['multiple_values'];
 
             // @todo Refactor to use \Drupal\Core\Field\FieldItemListInterface::defaultValuesForm(), just like \Drupal\field_ui\Form\FieldConfigEditForm::form()?
-            $widget_form = $static_prop_source->formTemporaryRemoveThisExclamationExclamationExclamation(NULL, 'nonsensical-uuid', $component_prop_name, User::create([]), $parents, $form_state);
+            $widget_form = $static_prop_source->formTemporaryRemoveThisExclamationExclamationExclamation(NULL, 'nonsensical-uuid', $component_prop_name, $component_prop_name, User::create([]), $parents, $form_state);
             $single_item_form_path = ['widget', 0];
             if (!$handles_multiple_values) {
               // @phpstan-ignore-next-line
@@ -321,7 +321,7 @@ class ComponentEditForm extends EntityForm implements ContainerInjectionInterfac
       $raw_default_value = $default['widget'][$selected_field_widget][$prop_name];
       $static_prop_source = $form_state->getStorage()["static_prop_sources|$prop_name|$selected_field_type|$selected_field_widget"];
       assert($static_prop_source instanceof StaticPropSource);
-      $massaged_default_value = $static_prop_source->massageFormValuesTemporaryRemoveThisExclamationExclamationExclamation(NULL, 'nonsensical-uuid', $raw_default_value, $form, $form_state);
+      $massaged_default_value = $static_prop_source->massageFormValuesTemporaryRemoveThisExclamationExclamationExclamation(NULL, 'nonsensical-uuid', 'nonsensical-uuid', $raw_default_value, $form, $form_state);
 
       $defaults['props'][$prop_name] = [
         'field_type' => $selected_field_type,

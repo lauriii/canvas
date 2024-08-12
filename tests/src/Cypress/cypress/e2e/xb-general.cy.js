@@ -154,7 +154,7 @@ describe('General Experience Builder', {testIsolation: false}, () => {
     // The drawer contains a component edit form.
     cy.get('[class*="contextualPanel"] [data-drupal-selector="component-props-form"].component-props-form').then(($form) => {
       expect($form).to.exist
-      const expectedLabels = ['heading', 'subheading', 'cta1', 'cta1href', 'cta2'];
+      const expectedLabels = ['Heading', 'Sub-heading', 'CTA 1 text', 'CTA 1 link', 'CTA 2 text'];
       $form.find('label').each((index, label) => {
         expect(label.textContent).to.equal(expectedLabels[index])
       })

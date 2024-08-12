@@ -66,12 +66,12 @@ class PropSourceTest extends KernelTestBase {
     // - generate a widget to edit the stored value — using the default widget
     //   or a specified widget.
     // @see \Drupal\experience_builder\Entity\Component::$defaults
-    $this->assertInstanceOf(StringTextfieldWidget::class, $simple_example->getWidget('irrelevant-for-test', NULL));
-    $this->assertInstanceOf(StringTextfieldWidget::class, $simple_example->getWidget('irrelevant-for-test', 'string_textfield'));
+    $this->assertInstanceOf(StringTextfieldWidget::class, $simple_example->getWidget('irrelevant-for-test', $this->randomString(), NULL));
+    $this->assertInstanceOf(StringTextfieldWidget::class, $simple_example->getWidget('irrelevant-for-test', $this->randomString(), 'string_textfield'));
     // The widget plugin manager ignores any request for another widget type and
     // falls back to the default widget if
     // @see \Drupal\Core\Field\WidgetPluginManager::getInstance()
-    $this->assertInstanceOf(StringTextfieldWidget::class, $simple_example->getWidget('irrelevant-for-test', 'string_textarea'));
+    $this->assertInstanceOf(StringTextfieldWidget::class, $simple_example->getWidget('irrelevant-for-test', $this->randomString(), 'string_textarea'));
 
     // A complex example.
     $complex_example = StaticPropSource::parse([
@@ -115,9 +115,9 @@ class PropSourceTest extends KernelTestBase {
     // - generate a widget to edit the stored value — using the default widget
     //   or a specified widget.
     // @see \Drupal\experience_builder\Entity\Component::$defaults
-    $this->assertInstanceOf(DateRangeDefaultWidget::class, $complex_example->getWidget('irrelevant-for-test', NULL));
-    $this->assertInstanceOf(DateRangeDefaultWidget::class, $complex_example->getWidget('irrelevant-for-test', 'daterange_default'));
-    $this->assertInstanceOf(DateRangeDatelistWidget::class, $complex_example->getWidget('irrelevant-for-test', 'daterange_datelist'));
+    $this->assertInstanceOf(DateRangeDefaultWidget::class, $complex_example->getWidget('irrelevant-for-test', $this->randomString(), NULL));
+    $this->assertInstanceOf(DateRangeDefaultWidget::class, $complex_example->getWidget('irrelevant-for-test', $this->randomString(), 'daterange_default'));
+    $this->assertInstanceOf(DateRangeDatelistWidget::class, $complex_example->getWidget('irrelevant-for-test', $this->randomString(), 'daterange_datelist'));
   }
 
   /**

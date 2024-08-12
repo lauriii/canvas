@@ -61,7 +61,8 @@ final class ComponentPropsForm extends FormBase implements ContainerInjectionInt
 
     $component = Component::loadByComponentMachineName($component_machine_name);
     assert($component !== NULL);
-    $prop_shapes = PropShape::getComponentProps($this->componentPluginManager->createInstance($component_machine_name));
+    $component_plugin = $this->componentPluginManager->createInstance($component_machine_name);
+    $prop_shapes = PropShape::getComponentProps($component_plugin);
 
     $form['#parents'] = ['xb_component_props', $component_instance_uuid];
     foreach ($stored_prop_sources as $sdc_prop_name => $prop_source_array) {
@@ -85,7 +86,9 @@ final class ComponentPropsForm extends FormBase implements ContainerInjectionInt
             $field_widget_plugin_id = $storable_prop_shape->fieldWidget;
           }
         }
-        $form[$sdc_prop_name] = $source->formTemporaryRemoveThisExclamationExclamationExclamation($field_widget_plugin_id, $component_instance_uuid, $sdc_prop_name, $entity, $form, $form_state);
+        // @todo Remove the fallback value in https://www.drupal.org/project/experience_builder/issues/3463999 — that will make the presence of `title` for each SDC prop required.
+        $label = $component_plugin->metadata->schema['properties'][$sdc_prop_name]['title'] ?? $sdc_prop_name;
+        $form[$sdc_prop_name] = $source->formTemporaryRemoveThisExclamationExclamationExclamation($field_widget_plugin_id, $component_instance_uuid, $sdc_prop_name, $label, $entity, $form, $form_state);
       }
       // @todo Design is undefined for the DynamicPropSource UX. Related: https://www.drupal.org/project/experience_builder/issues/3459234
       // @todo Design is undefined for the AdaptedPropSource UX.

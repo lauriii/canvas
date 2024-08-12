@@ -102,19 +102,19 @@ class ComponentTest extends KernelTestBase {
     $text_default_static_prop_source = $module_component->getDefaultStaticPropSource('text');
     $this->assertInstanceOf(StaticPropSource::class, $text_default_static_prop_source);
     $this->assertSame('static:field_item:string', $text_default_static_prop_source->getSourceType());
-    $this->assertInstanceOf(StringTextfieldWidget::class, $text_default_static_prop_source->getWidget('text', NULL));
+    $this->assertInstanceOf(StringTextfieldWidget::class, $text_default_static_prop_source->getWidget('text', $this->randomString(), NULL));
     $this->assertSame('{"sourceType":"static:field_item:string","value":"Hello, world!","expression":"ℹ︎string␟value"}', (string) $text_default_static_prop_source);
 
     $href_default_static_prop_source = $module_component->getDefaultStaticPropSource('href');
     $this->assertInstanceOf(StaticPropSource::class, $href_default_static_prop_source);
     $this->assertSame('static:field_item:uri', $href_default_static_prop_source->getSourceType());
-    $this->assertInstanceOf(UriWidget::class, $href_default_static_prop_source->getWidget('href', NULL));
+    $this->assertInstanceOf(UriWidget::class, $href_default_static_prop_source->getWidget('href', $this->randomString(), NULL));
     $this->assertSame('{"sourceType":"static:field_item:uri","value":"https:\/\/drupal.org","expression":"ℹ︎uri␟value"}', (string) $href_default_static_prop_source);
 
     $target_default_static_prop_source = $module_component->getDefaultStaticPropSource('target');
     $this->assertInstanceOf(StaticPropSource::class, $target_default_static_prop_source);
     $this->assertSame('static:field_item:list_string', $target_default_static_prop_source->getSourceType());
-    $this->assertInstanceOf(OptionsSelectWidget::class, $target_default_static_prop_source->getWidget('target', NULL));
+    $this->assertInstanceOf(OptionsSelectWidget::class, $target_default_static_prop_source->getWidget('target', $this->randomString(), NULL));
     $this->assertSame('{"sourceType":"static:field_item:list_string","value":null,"expression":"ℹ︎list_string␟value","sourceTypeSettings":{"allowed_values":[{"value":"foo","label":"foo"},{"value":"bar","label":"bar"}]}}', (string) $target_default_static_prop_source);
 
     $theme_component = Component::create([

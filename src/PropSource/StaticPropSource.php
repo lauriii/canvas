@@ -246,7 +246,7 @@ final class StaticPropSource extends PropSourceBase {
     };
   }
 
-  public function getWidget(string $sdc_prop_name, ?string $field_widget_plugin_id): WidgetInterface {
+  public function getWidget(string $sdc_prop_name, string $sdc_prop_label, ?string $field_widget_plugin_id): WidgetInterface {
     // @phpstan-ignore-next-line
     $field_widget_plugin_manager = \Drupal::service('plugin.manager.field.widget');
     assert($field_widget_plugin_manager instanceof WidgetPluginManager);
@@ -259,7 +259,7 @@ final class StaticPropSource extends PropSourceBase {
     $widget = $field_widget_plugin_manager->getInstance([
       'field_definition' => $field_storage_definition
         ->setName($sdc_prop_name)
-        ->setLabel($sdc_prop_name),
+        ->setLabel($sdc_prop_label),
       'configuration' => $configuration,
       'prepare' => TRUE,
     ]);
@@ -267,7 +267,7 @@ final class StaticPropSource extends PropSourceBase {
     return $widget;
   }
 
-  public function formTemporaryRemoveThisExclamationExclamationExclamation(?string $field_widget_plugin_id, string $component_instance_uuid, string $sdc_prop_name, ?FieldableEntityInterface $host_entity, array &$form, FormStateInterface $form_state): array {
+  public function formTemporaryRemoveThisExclamationExclamationExclamation(?string $field_widget_plugin_id, string $component_instance_uuid, string $sdc_prop_name, string $sdc_prop_label, ?FieldableEntityInterface $host_entity, array &$form, FormStateInterface $form_state): array {
     // TRICKY: create the field item list without a parent. Otherwise, the Typed
     // Data manager tries to be clever but in doing so fails: it generates a new
     // field item object using the full property path (which then includes the
@@ -287,7 +287,7 @@ final class StaticPropSource extends PropSourceBase {
     if ($host_entity) {
       $field->setContext(NULL, EntityAdapter::createFromEntity($host_entity));
     }
-    return $this->getWidget($sdc_prop_name, $field_widget_plugin_id)->form($field, $form, $form_state);
+    return $this->getWidget($sdc_prop_name, $sdc_prop_label, $field_widget_plugin_id)->form($field, $form, $form_state);
   }
 
   /**
@@ -296,9 +296,9 @@ final class StaticPropSource extends PropSourceBase {
    *
    * @return mixed|array<string, mixed>
    */
-  public function massageFormValuesTemporaryRemoveThisExclamationExclamationExclamation(?string $field_widget_plugin_id, string $sdc_prop_name, array $values, array &$form, FormStateInterface $form_state): mixed {
+  public function massageFormValuesTemporaryRemoveThisExclamationExclamationExclamation(?string $field_widget_plugin_id, string $sdc_prop_name, string $sdc_prop_label, array $values, array &$form, FormStateInterface $form_state): mixed {
     // 1. Apply the field widget's transformation.
-    $massaged_values = $this->getWidget($sdc_prop_name, $field_widget_plugin_id)
+    $massaged_values = $this->getWidget($sdc_prop_name, $sdc_prop_label, $field_widget_plugin_id)
       ->massageFormValues($values, $form, $form_state);
 
     // 2. Keep only the first value — only single cardinality is supported ATM.
