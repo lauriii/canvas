@@ -1,17 +1,19 @@
 import {
   Box,
-  Button,
   Flex,
   Grid,
   IconButton,
   Inset,
-  Tabs,
   Text,
+  Heading,
   ScrollArea,
+  SegmentedControl,
+  Separator,
 } from '@radix-ui/themes';
 import styles from './Panel.module.css';
 import { Cross1Icon, DragHandleVerticalIcon } from '@radix-ui/react-icons';
 import type React from 'react';
+import { useState } from 'react';
 import { useEffect, Suspense } from 'react';
 import {
   selectSelectedComponent,
@@ -19,20 +21,17 @@ import {
   setSelectedComponent,
 } from '@/features/ui/uiSlice';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
-import {
-  selectModel,
-  updateNodeModel,
-} from '@/features/layout/layoutModelSlice';
 import { useLoaderData, Await } from 'react-router-dom';
 import DummyPropsEditForm from '@/components/DummyPropsEditForm';
+import clsx from 'clsx';
 
 interface ContextualPanelProps {}
 
 const ContextualPanel: React.FC<ContextualPanelProps> = () => {
   const dispatch = useAppDispatch();
   const selectedComponent = useAppSelector(selectSelectedComponent);
-  const model = useAppSelector(selectModel);
   let data = useLoaderData();
+  const [activePanel, setActivePanel] = useState('settings');
 
   useEffect(() => {
     if (selectedComponent) {
@@ -44,22 +43,6 @@ const ContextualPanel: React.FC<ContextualPanelProps> = () => {
 
   const handleContextualPanelCloseClick = () => {
     dispatch(setSelectedComponent(''));
-  };
-
-  const handleEditClick = () => {
-    alert(
-      ' TODO: This really ought to be removed, and instead the form above should update model values when the user types into the inputs!',
-    );
-    dispatch(
-      updateNodeModel({
-        uuid: selectedComponent,
-        model: {
-          // @ts-ignore
-          ...model[selectedComponent],
-          text: 'This here prop (text) was updated and re-rendered by the SDC!',
-        },
-      }),
-    );
   };
 
   return (
@@ -101,54 +84,50 @@ const ContextualPanel: React.FC<ContextualPanelProps> = () => {
                 {(html) => (
                   <>
                     <Box>
-                      <Tabs.Root defaultValue="settings">
-                        <Tabs.List size="1">
-                          <Tabs.Trigger value="settings">Settings</Tabs.Trigger>
-                          <Tabs.Trigger value="styles">Styles</Tabs.Trigger>
-                        </Tabs.List>
-                        <ScrollArea
-                          type="always"
-                          size="1"
-                          scrollbars="vertical"
-                          style={{ height: 700 }}
+                      <Flex justify="center" align="center" my="2">
+                        <SegmentedControl.Root
+                          defaultValue="settings"
+                          onValueChange={setActivePanel}
                         >
-                          <Box pt="3">
-                            <Tabs.Content value="settings">
-                              <Text size="1">
-                                <details>
-                                  <summary>
-                                    Settings for... {selectedComponent}
-                                  </summary>
-                                  {selectedComponent && (
-                                    <pre>
-                                      {JSON.stringify(
-                                        model[selectedComponent],
-                                        null,
-                                        2,
-                                      )}
-                                    </pre>
-                                  )}
-                                </details>
-                                <h4 style={{ color: '#8A00E6' }}>
-                                  POC: {html}
-                                </h4>
-                                <DummyPropsEditForm />
-                              </Text>
-                              <Button
-                                onClick={handleEditClick}
-                                className={styles.editButton}
+                          <SegmentedControl.Item value="settings">
+                            Settings
+                          </SegmentedControl.Item>
+                          <SegmentedControl.Item value="pageSettings">
+                            Page Data
+                          </SegmentedControl.Item>
+                        </SegmentedControl.Root>
+                      </Flex>
+                      <Separator
+                        orientation="horizontal"
+                        size="4"
+                        className={clsx('separator', styles.separator)}
+                      />
+                      <ScrollArea
+                        type="always"
+                        size="1"
+                        scrollbars="vertical"
+                        style={{ height: 700 }}
+                      >
+                        <Box pt="3">
+                          {activePanel === 'settings' && (
+                            <>
+                              <DummyPropsEditForm />
+                              <Heading
+                                as="h4"
+                                size="1"
+                                style={{ color: '#8A00E6' }}
                               >
-                                Edit
-                              </Button>
-                            </Tabs.Content>
-                            <Tabs.Content value="styles">
-                              <Text size="1">
-                                Styles for...{selectedComponent}
-                              </Text>
-                            </Tabs.Content>
-                          </Box>
-                        </ScrollArea>
-                      </Tabs.Root>
+                                POC: {html}
+                              </Heading>
+                            </>
+                          )}
+                          {activePanel === 'pageSettings' && (
+                            <Text size="1">
+                              Styles for...{selectedComponent}
+                            </Text>
+                          )}
+                        </Box>
+                      </ScrollArea>
                     </Box>
                   </>
                 )}

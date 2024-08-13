@@ -83,6 +83,8 @@ export default defineConfig({
     supportFile: '../tests/src/Cypress/cypress/support/e2e.js',
     downloadsFolder: '../tests/src/Cypress/cypress/downloads',
     screenshotsFolder: '../tests/src/Cypress/cypress/screenshots',
+    viewportHeight: 1080,
+    viewportWidth: 1920,
   },
 
   component: {

@@ -9,7 +9,7 @@ import {
   sortNode,
 } from '@/features/layout/layoutModelSlice';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
-import { Card, Progress } from '@radix-ui/themes';
+import { Progress } from '@radix-ui/themes';
 import {
   selectDragging,
   selectPanning,
@@ -24,12 +24,13 @@ import Sortable from 'sortablejs';
 import { customSortableDragImage } from '@/features/sortable/sortableUtils';
 import { findNodePathByUuid } from '@/features/layout/layoutUtils';
 import { useGetComponentsQuery } from '@/services/components';
-import { DesktopIcon } from '@radix-ui/react-icons';
 import useIframeKeyHandlers from '@/hooks/useIframeKeyHandlers';
 import useSyncIframeHeightToContent from '@/hooks/useSyncIframeHeightToContent';
+import ViewportToolbar from '@/features/layout/preview/ViewportToolbar';
 
-interface ViewportProps {
-  previewId: string;
+export interface ViewportProps {
+  size: 'lg' | 'sm';
+  name: string;
   height: number;
   width: number;
   isLoading: boolean;
@@ -37,7 +38,7 @@ interface ViewportProps {
 }
 
 const Viewport: React.FC<ViewportProps> = (props) => {
-  const { height, width, frameSrcDoc, isLoading, previewId } = props;
+  const { name, height, width, frameSrcDoc, isLoading, size } = props;
   const [isReloading, setIsReloading] = useState(false);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const layout = useAppSelector(selectLayout);
@@ -248,10 +249,7 @@ const Viewport: React.FC<ViewportProps> = (props) => {
 
   return (
     <div>
-      <Card mb="2" variant="surface">
-        <DesktopIcon />
-        {width}px x {height}px
-      </Card>
+      <ViewportToolbar size={size} name={name} width={width} height={height} />
       <div className={styles.previewContainer}>
         {(isLoading || isReloading) && (
           <>
@@ -265,7 +263,7 @@ const Viewport: React.FC<ViewportProps> = (props) => {
         <iframe
           ref={iframeRef}
           className={styles.preview}
-          data-xb-preview={previewId}
+          data-xb-preview={size}
           title="Preview"
         ></iframe>
         {!isDragging && !isPanning && (

@@ -1,6 +1,8 @@
 import { a2p } from '@/local_packages/utils.js';
 import { createContext, useState } from 'react';
 import type * as React from 'react';
+import styles from './Form.module.css';
+import clsx from 'clsx';
 
 interface FormProps {
   attributes: {
@@ -28,11 +30,17 @@ const Form = ({
   const [formState, setFormState] = useState({
     formId: attributes['data-drupal-selector'] || '',
   });
+  const classes = clsx('component-props-form', styles.propertiesForm);
 
   return (
     <FormStateContext.Provider value={formState}>
       <FormDispatchContext.Provider value={setFormState}>
-        <form {...a2p(attributes)}>{renderChildren}</form>
+        <form
+          className={styles.xbPropertiesForm}
+          {...a2p(attributes, { class: classes })}
+        >
+          {renderChildren}
+        </form>
       </FormDispatchContext.Provider>
     </FormStateContext.Provider>
   );

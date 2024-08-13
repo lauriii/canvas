@@ -3,16 +3,11 @@ import { ChevronDownIcon } from '@radix-ui/react-icons';
 import styles from './Topbar.module.css';
 import clsx from 'clsx';
 import { Button, Flex, Theme } from '@radix-ui/themes';
-import { setContextualPanelOpen } from '@/features/ui/uiSlice';
 import UndoRedo from '@/components/UndoRedo';
-import { useAppDispatch } from '@/app/hooks';
 import DropIcon from '@assets/icons/topbar/drop.svg';
-import { Link } from 'react-router-dom';
 import { handleNonWorkingBtn } from '@/utils/function-utils';
 
 const Topbar = () => {
-  const dispatch = useAppDispatch();
-
   return (
     <Theme appearance="dark">
       <Menubar.Root className={clsx('TopbarRoot', styles.TopbarRoot)}>
@@ -41,9 +36,6 @@ const Topbar = () => {
           className={clsx('topbarBtnContainer', styles.topbarBtnContainer)}
         >
           <UndoRedo />
-          <Button onClick={() => dispatch(setContextualPanelOpen(true))}>
-            Open Right
-          </Button>
           <Button
             variant="outline"
             color="gray"
@@ -60,7 +52,6 @@ const Topbar = () => {
           >
             Publish
           </Button>
-          <Link to={'/component/dynamic-dynamic-card3rr'}>Open component</Link>
         </Flex>
       </Menubar.Root>
     </Theme>

@@ -102,7 +102,11 @@ describe('UI a11y Scan', () => {
     cy.getIframeBody().find('[data-component-id="experience_builder:my-hero"] h1')
       .first()
       .trigger('click')
+
     cy.get('[class*="contextualPanel"] [data-drupal-selector="component-props-form"].component-props-form').should('exist')
+    // It's gross but the Radix component has two of each button in the segmented control that it flips between.
+    cy.findAllByText('Settings').should('have.length', 2);
+    cy.findAllByText('Page Data').should('have.length', 2);
 
     cy.injectAxe();
     // @todo there are several a11y rules not being checked in order for the

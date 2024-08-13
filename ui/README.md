@@ -47,7 +47,7 @@ Points 1 and 3 in particular have led to our choice to implement Cypress testing
 ### Best Practices
 To mitigate potential issues such as flakiness and to ensure our tests reflect actual user interactions as closely as possible we adhere to the following best practices:
 
-1. **Avoid Direct DOM Manipulation:** We use `@testing-library/cypress` to interact with the DOM in a way that reflects user interactions. This means avoiding direct `querySelector` calls and instead using methods like `getByRole`, `getByText`, etc.
+1. **Avoid Direct DOM Manipulation:** We use [`@testing-library/cypress`](https://testing-library.com/docs/cypress-testing-library/intro) to interact with the DOM in a way that reflects user interactions. This means avoiding direct `querySelector` calls and instead using methods like `findByRole`, `findByText`, etc.
 2. **ESLint Rules:** We enforce `eslint-plugin-testing-library` rules to ensure tests are written in a maintainable and user-centric manner.
 3. **Centralize repeated actions:** In e2e test in particular, where possible, testing actions (such as logging in) should be centralized in a commands file in the `cypress/support/` directory.
 

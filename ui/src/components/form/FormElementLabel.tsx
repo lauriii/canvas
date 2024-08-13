@@ -1,5 +1,7 @@
 import { a2p } from '@/local_packages/utils.js';
 import clsx from 'clsx';
+import { Text } from '@radix-ui/themes';
+import styles from './Form.module.css';
 
 export type LabelTitle = {
   '#markup': string;
@@ -12,7 +14,7 @@ const FormElementLabel = ({
 }) => {
   const labelTitle: LabelTitle | string = title;
   const classes = clsx(
-    'form-label',
+    styles.formLabel,
     titleDisplay === 'after' ? 'option' : '',
     titleDisplay === 'invisible' ? 'visually-hidden' : '',
     required ? 'js-form-required' : '',
@@ -21,9 +23,9 @@ const FormElementLabel = ({
   const show = !!title || !!required;
   return (
     show && (
-      <label {...a2p(attributes, { class: classes })}>
+      <Text as="label" {...a2p(attributes, { class: classes })}>
         {title['#markup'] ? labelTitle['#markup'] : labelTitle}
-      </label>
+      </Text>
     )
   );
 };

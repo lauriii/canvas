@@ -76,12 +76,10 @@ const FormElement = ({
           </div>
         )}
       {renderChildren}
-
       {suffix && suffix.length > 0 && (
         <span className="field-suffix">{suffix}</span>
       )}
       {['after'].includes(labelDisplay) && label}
-
       {errors && (
         <div className="form-item--error-message form-item-errors">
           {errors}

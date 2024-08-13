@@ -10,7 +10,6 @@ describe('Undo/Redo functionality', { testIsolation: false }, () => {
 
   beforeEach(() => {
     cy.drupalSession();
-    cy.viewport(2000, 1000);
     cy.drupalLogin('xbUser', 'xbUser');
   });
 

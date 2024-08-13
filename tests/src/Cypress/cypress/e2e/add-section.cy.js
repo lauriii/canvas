@@ -10,7 +10,6 @@ describe('Add section/component functionality', { testIsolation: false }, () => 
 
   beforeEach(() => {
     cy.drupalSession();
-    cy.viewport(2000, 1000);
     cy.drupalLogin('xbUser', 'xbUser');
   });
 
@@ -29,24 +28,24 @@ describe('Add section/component functionality', { testIsolation: false }, () => 
     cy.get('[data-radix-menubar-content]').should('have.length', 0);
     cy.scrollToMiddleOfIframe();
     cy.getIframeBody().
-      find('[data-component-id="experience_builder:my-hero"] h1').
-      first().
-      trigger('click');
+    find('[data-component-id="experience_builder:my-hero"] h1').
+    first().
+    trigger('click');
     cy.get('button[aria-label="Add section"]').then((button) => {
-        button.click();
+      button.click();
     });
     // Confirm that the menu opens the Section templates.
     cy.get('[data-radix-menubar-content]').should('have.length', 2);
     cy.get('[data-radix-menu-content].MenubarSubContent').
-      should('contain.text', 'Section templates placeholder');
+    should('contain.text', 'Section templates placeholder');
     cy.intercept('POST', '**/api/preview/node/1').as('getPreview');
 
     // Click on the menu item with data-xb-name="Hero" inside menu.
     cy.get('[data-radix-menu-content] [data-xb-name="Hero"]').
-      click().
-      then(() => {
-        cy.wait('@getPreview');
-      });
+    click().
+    then(() => {
+      cy.wait('@getPreview');
+    });
 
     cy.getIframeBody().find('[data-component-id="experience_builder:my-hero"]',
       (myHeroComponent) => {

@@ -1,3 +1,5 @@
+import '@testing-library/cypress/add-commands'
+
 const commandAsWebserver = (command) => {
   if (Cypress.env('testWebserverUser')) {
     return `sudo -u ${Cypress.env('testWebserverUser')} ${command}`;

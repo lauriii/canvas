@@ -3,6 +3,7 @@ import inputBehaviors from './inputBehaviors';
 import { useState } from 'react';
 import type { ChangeEvent } from 'react';
 import type * as React from 'react';
+import { TextArea } from '@radix-ui/themes';
 
 const Textarea: React.FC<any> = (props: any) => {
   const {
@@ -17,11 +18,11 @@ const Textarea: React.FC<any> = (props: any) => {
 
   return (
     <div {...a2p(wrapperAttributes)}>
-      <textarea
+      <TextArea
         {...a2p(attributes)}
         onChange={onChangeHandler}
         defaultValue={theValue}
-      ></textarea>
+      ></TextArea>
     </div>
   );
 };

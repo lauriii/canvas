@@ -213,6 +213,20 @@ function _experience_builder_mark_xb(array &$form, string $form_id): void {
   }
 }
 
+/**
+ * Adds a TRUE #is_xb setting to form labels.
+ *
+ * TRICKY: this cannot happen in _experience_builder_mark_xb(), because form
+ * labels are added after form altering — they are added *during* rendering.
+ *
+ * @see template_preprocess_form_element()
+ */
+function experience_builder_preprocess_form_element(array &$variables): void {
+  if (!empty($variables['element']['#is_xb']) && !empty($variables['label'])) {
+    $variables['label']['#is_xb'] = TRUE;
+  }
+}
+
 function experience_builder_system_info_alter(array &$info, Extension $file, string $type): void {
   if ($type === 'theme') {
     if (isset($info['engine']) && $info['engine'] === 'twig') {

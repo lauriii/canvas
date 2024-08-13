@@ -1,0 +1,17 @@
+.toolbar {
+  display: flex;
+  align-items: center;
+  border-radius: 5px;
+  background-color: #cdced6;
+}
+
+.iconContainer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  margin-right: 5px;
+  border-radius: 4px;
+  background-color: #4d525d;
+}

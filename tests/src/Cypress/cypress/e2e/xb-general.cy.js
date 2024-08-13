@@ -10,8 +10,6 @@ describe('General Experience Builder', {testIsolation: false}, () => {
 
   beforeEach(() => {
     cy.drupalSession();
-    //A larger viewport makes it easier to debug in the test runner app.
-    cy.viewport(2000, 1000);
   });
 
   it ('Created a node 1 with type article on install', () => {
@@ -56,7 +54,9 @@ describe('General Experience Builder', {testIsolation: false}, () => {
     cy.getIframe()
       .its('head').should('not.be.undefined')
       .then((head) => {
-        expect(head.querySelector('link[rel="stylesheet"][href*="experience_builder/components/my-hero/my-hero.css"]'))
+        expect(
+          head.querySelector('link[rel="stylesheet"][href*="experience_builder/components/my-hero/my-hero.css"]',
+            `Tried to find [href*="components/my-hero/my-hero.css"] in <head> ${head.innerHTML}`))
           .to.exist
       })
 
