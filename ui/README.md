@@ -51,6 +51,8 @@ To mitigate potential issues such as flakiness and to ensure our tests reflect a
 2. **ESLint Rules:** We enforce `eslint-plugin-testing-library` rules to ensure tests are written in a maintainable and user-centric manner.
 3. **Centralize repeated actions:** In e2e test in particular, where possible, testing actions (such as logging in) should be centralized in a commands file in the `cypress/support/` directory.
 
+Further documentation on best practices for writing Cypress tests can be found in the [Cypress documentation](https://docs.cypress.io/guides/core-concepts/introduction-to-cypress) and [Testing Library Guiding Principles](https://testing-library.com/docs/guiding-principles).
+
 ### Continuous Integration
 We are working on integrating Cypress tests into our CI pipeline to ensure that all tests are run consistently and reliably. This includes setting up the necessary infrastructure and addressing any performance concerns.
 

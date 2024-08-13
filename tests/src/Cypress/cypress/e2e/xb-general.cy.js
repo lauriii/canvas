@@ -288,96 +288,123 @@ describe('General Experience Builder', {testIsolation: false}, () => {
       });
   })
 
-  it('Uses React Router successfully', () => {
-      cy.drupalLogin('xbUser', 'xbUser')
-      cy.drupalRelativeURL('xb/node/1')
+  // Use function syntax so the function creates scope that allows Cypress
+  // aliases to be accessed as properties of `this`.
+  it('Uses React Router successfully', function() {
+    cy.drupalLogin('xbUser', 'xbUser')
+    cy.drupalRelativeURL('xb/node/1')
+    cy.intercept('GET', '**/xb-field-form/**').as('getPropsForm')
 
-      // Wait for the preview iframe to load and render something that confirms
-      // it is ready.
-      cy.get('iframe[data-xb-preview]').should('exist')
-      cy.waitForElementInIframe('[data-xb-type="experience_builder:image"]')
+    // Wait for the preview iframe to load and render something that confirms
+    // it is ready.
+    cy.get('iframe[data-xb-preview]').should('exist')
+    cy.waitForElementInIframe('[data-xb-type="experience_builder:image"]')
+    cy.scrollToMiddleOfIframe()
 
-      // @todo Do not hardcode these, but the the logic below to set them did not do anything 😅
-      let componentId1 = 'static-static-card1ab'
-      let componentId2 = 'dynamic-dynamic-card3rr'
-
-      // data-xb-uuid="static-static-card1ab"
-      cy.getIframeBody().find('[data-xb-type="experience_builder:my-hero"]')
-        .first()
-        .invoke('attr', 'data-xb-uuid')
-        .then((uuid) => {
-          componentId1 = uuid;
-        })
-      cy.getIframeBody().find('[data-xb-type="experience_builder:my-hero"]')
-        .eq(2)
-        .invoke('attr', 'data-xb-uuid')
-        .then((uuid) => {
-          componentId2 = uuid;
-          expect(componentId1).to.not.equal(componentId2)
-        })
-
-      // Click a component.
-      cy.getIframeBody().find('[data-xb-type="experience_builder:my-hero"] h1')
-        .first()
-        .trigger('click')
-
-      // Opens the contextual form for the clicked component.
-      cy.get('[class*="contextualPanel"] h4').should('contain', componentId1)
-
-      // Now on a path specific to that component.
-      cy.url().should('contain', `/xb/node/1/component/${componentId1}`)
-      cy.url().should((url) => {
-        expect(url, `After clicking on ${componentId1}, path should include '/xb/node/1/component/${componentId1}'`).to.contain(`/xb/node/1/component/${componentId1}`)
+    cy.getIframeBody().find('[data-xb-type="experience_builder:my-hero"]')
+      .should('have.length', 3)
+      .last()
+      .invoke('attr', 'data-xb-uuid')
+      .then((uuid) => {
+        cy.wrap(uuid).as('cid1')
+      })
+    cy.getIframeBody().find('[data-xb-type="experience_builder:image"]')
+      .should('have.length', 2)
+      .last()
+      .invoke('attr', 'data-xb-uuid')
+      .then((uuid) => {
+        cy.wrap(uuid).as('cid2')
+        expect(this.cid2).to.not.equal(this.cid1)
       })
 
-      // Click a different component.
-      cy.getIframeBody().find('[data-xb-type="experience_builder:my-hero"] h1')
-        .eq(2)
-        .trigger('click')
+    // Do not advance until cid 1 and 2 exist.
+    cy.get(this.cid1 && this.cid2).should('not.be.empty')
 
-      // Opens the contextual form for the clicked component.
-      cy.get('[class*="contextualPanel"] h4').should('contain', componentId2)
-      // Now on a path specific to that component.
-      cy.url().should('contain', `/xb/node/1/component/${componentId2}`)
-      cy.url().should((url) => {
-        expect(url, `After clicking on ${componentId2}, path should include '/xb/node/1/component/${componentId2}'`).to.contain(`/xb/node/1/component/${componentId2}`)
-      })
+    cy.scrollToMiddleOfIframe()
 
-      cy.go('back')
-      // Returns to the URL for the prior component.
-      cy.url().should((url) => {
-        expect(url, `Hit back once and path should again include '/xb/node/1/component/${componentId1}'`).to.contain(`/xb/node/1/component/${componentId1}`)
-      })
-      // Returns to the contextual form for the prior component.
-      cy.get('[class*="contextualPanel"] h4').should('contain', componentId1)
+    // Click a component.
+    cy.getIframeBody().find(`[data-xb-type="experience_builder:my-hero"]`).then((heroes) => {
+      const theHero =  heroes.filter(`[data-xb-uuid="${this.cid1}"]`).find('h1')
+      cy.wrap(theHero).trigger('click')
+    })
+    cy.wait('@getPropsForm')
 
-      cy.go('back')
-      cy.url().should((url) => {
-        expect(url, `Hit back twice and the and path should not have 'component' in it`).to.not.contain('/xb/node/1/component')
-        expect(url, `Hit back twice and the path should still have /xb`).to.contain('/xb/node/1')
-      })
-
-      // No contextual panel open.
-      cy.get('[class*="contextualPanel"] h4').should('not.exist')
-
-      // Navigate away from the Experience Builder UI.
-      // TRICKY: visiting `about:blank` fails due to https://github.com/cypress-io/cypress-documentation/pull/630
-      cy.visit('http://localhost')
-
-      // Verify that navigating directly to a client-side-only URL works: server responds with necessary data, client
-      // fetches necessary data and navigate to the requested part of the UI.
-      cy.intercept('GET', '**/api/layout/node/1').as('getLayout')
-      cy.intercept('POST', '**/api/preview/node/1').as('getPreview')
-      cy.intercept('GET', '**/xb-field-form/node/1?**').as('getPropsForm')
-      cy.drupalRelativeURL(`xb/node/1/component/${componentId1}`)
-      cy.wait('@getLayout')
-      cy.wait('@getPreview')
-      cy.wait('@getPropsForm')
-      cy.get('[class*="contextualPanel"] h4').should('contain', componentId1)
-      cy.url().should('contain', `/xb/node/1/component/${componentId1}`)
+    // Opens the contextual form for the clicked component.
+    cy.get('[class*="contextualPanel"] h4').then($h4 => {
+      expect($h4.text()).to.contain(this.cid1)
     })
 
+    // Now on a path specific to that component.
+    cy.url().should((url) => {
+      expect(url, `After clicking on ${this.cid1}, path should include '/xb/node/1/component/${this.cid1}'`).to.contain(`/xb/node/1/component/${this.cid1}`)
+    })
+
+    cy.scrollToMiddleOfIframe()
+
+    // Click a different component.
+    cy.getIframeBody().find(`[data-xb-type="experience_builder:image"]`).then((images) => {
+      const theImage = images.filter(`[data-xb-uuid="${this.cid2}"]`)
+      cy.wrap(theImage.find('img')).trigger('click')
+    })
+    cy.wait('@getPropsForm')
+
+    // Opens the contextual form for the clicked component.
+    cy.get('[class*="contextualPanel"] h4').should($h4 => {
+      expect($h4.text()).to.contain(this.cid2)
+    })
+    // Now on a path specific to that component.
+    cy.url().should((url) => {
+      expect(url,
+        `After clicking on ${this.cid2}, path should include '/xb/node/1/component/${this.cid2}'`,
+      ).to.contain(`/xb/node/1/component/${this.cid2}`)
+    })
+
+    cy.go('back')
+
+    // Returns to the URL for the prior component.
+    cy.url().should((url) => {
+      expect(url, `Hit back once and path should again include '/xb/node/1/component/${this.cid1}'`).to.contain(`/xb/node/1/component/${this.cid1}`)
+    })
+
+    // Returns to the contextual form for the prior component.
+    cy.get('[class*="contextualPanel"] h4').should($h4 => {
+      expect($h4.text()).to.contain(this.cid1)
+    })
+
+    cy.go('back')
+
+    cy.url().should((url) => {
+      expect(url, `Hit back twice and the and path should not have 'component' in it`).to.not.contain('/xb/node/1/component')
+      expect(url, `Hit back twice and the path should still have /xb`).to.contain('/xb/node/1')
+    })
+
+    // No contextual panel open.
+    cy.get('[class*="contextualPanel"] h4').should('not.exist')
+  })
+
+  it('Visits a router URL directly', () => {
+    cy.drupalLogin('xbUser', 'xbUser')
+
+    // Ideally the UUID would get its value dynamically, but that value can
+    // only be accessed reliably in a command callback, and visiting a url
+    // can't happen in that scope.
+    const uuid = 'dynamic-dynamic-card3rr';
+    cy.intercept('GET', '**/api/layout/node/1').as('getLayout')
+    cy.intercept('POST', '**/api/preview/node/1').as('getPreview')
+    cy.intercept('GET', '**/xb-field-form/node/1?**').as('getPropsForm')
+    cy.drupalRelativeURL(`xb/node/1/component/${uuid}`)
+
+    cy.wait('@getLayout')
+    cy.wait('@getPreview')
+    cy.wait('@getPropsForm')
+    cy.get('[class*="contextualPanel"] h4').should($h4 => {
+      expect($h4.text()).to.contain(uuid)
+    })
+    cy.url().should('contain', `/xb/node/1/component/${uuid}`)
+  })
+
   it('has the expected performance', () => {
+    cy.drupalLogin('xbUser', 'xbUser')
     cy.intercept('POST', '**/api/preview/node/1').as('getPreview')
 
     cy.visit('/xb/node/1');

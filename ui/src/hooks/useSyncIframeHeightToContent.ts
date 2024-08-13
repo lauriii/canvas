@@ -17,7 +17,9 @@ function useSyncIframeHeightToContent(
       const iframeHTML = iframe.contentDocument.documentElement;
       const iframeBody = iframe.contentDocument.body;
       window.requestAnimationFrame(() => {
-        iframe.style.height = iframeHTML.offsetHeight + 'px';
+        iframe.style.height = iframeHTML.offsetHeight
+          ? `${iframeHTML.offsetHeight}px`
+          : 'auto';
         iframe.style.width = width + 'px';
         iframe.style.minHeight = height + 'px';
         iframeHTML.style.minHeight = height + 'px';

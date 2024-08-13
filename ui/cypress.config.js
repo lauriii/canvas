@@ -5,6 +5,7 @@ import { fileURLToPath } from 'url';
 import * as fs from 'fs';
 import * as path from 'path';
 import dotenv from 'dotenv';
+import installLogsPrinter from 'cypress-terminal-report/src/installLogsPrinter';
 dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
@@ -40,6 +41,7 @@ export default defineConfig({
   e2e: {
     baseUrl: process.env.BASE_URL,
     setupNodeEvents(on, config) {
+      installLogsPrinter(on);
       on('task', {
         log(message) {
           console.log(message);
