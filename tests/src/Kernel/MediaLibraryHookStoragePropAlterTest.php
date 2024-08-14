@@ -65,6 +65,8 @@ class MediaLibraryHookStoragePropAlterTest extends PropShapeRepositoryTest {
       fieldTypeProp: StructuredDataPropExpression::fromString('ℹ︎entity_reference␟{src↝entity␜␜entity:media:image␝field_media_image␞␟entity␜␜entity:file␝uri␞␟value,alt↝entity␜␜entity:media:image␝field_media_image␞␟alt,width↝entity␜␜entity:media:image␝field_media_image␞␟width,height↝entity␜␜entity:media:image␝field_media_image␞␟height}'),
       fieldStorageSettings: [
         'target_type' => 'media',
+      ],
+      fieldInstanceSettings: [
         'handler' => 'default:media',
         'handler_settings' => [
           'target_bundles' => [

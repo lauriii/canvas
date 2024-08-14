@@ -227,7 +227,9 @@ class PropSourceTest extends KernelTestBase {
         'oldest' => [
           'sourceType' => 'static:field_item:datetime',
           'sourceTypeSettings' => [
-            'datetime_type' => DateTimeItem::DATETIME_TYPE_DATE,
+            'storage' => [
+              'datetime_type' => DateTimeItem::DATETIME_TYPE_DATE,
+            ],
           ],
           'value' => '2020-04-16',
           'expression' => 'ℹ︎datetime␟value',
@@ -246,7 +248,7 @@ class PropSourceTest extends KernelTestBase {
     // First, get the string representation and parse it back, to prove
     // serialization and deserialization works.
     $json_representation = (string) $complex_example;
-    $this->assertSame('{"sourceType":"adapter:day_count","adapterInputs":{"oldest":{"sourceType":"static:field_item:datetime","value":{"value":"2020-04-16"},"expression":"ℹ︎datetime␟value","sourceTypeSettings":{"datetime_type":"date"}},"newest":{"sourceType":"adapter:unix_to_date","adapterInputs":{"unix":{"sourceType":"dynamic","expression":"ℹ︎␜entity:user␝access␞␟value"}}}}}', $json_representation);
+    $this->assertSame('{"sourceType":"adapter:day_count","adapterInputs":{"oldest":{"sourceType":"static:field_item:datetime","value":{"value":"2020-04-16"},"expression":"ℹ︎datetime␟value","sourceTypeSettings":{"storage":{"datetime_type":"date"}}},"newest":{"sourceType":"adapter:unix_to_date","adapterInputs":{"unix":{"sourceType":"dynamic","expression":"ℹ︎␜entity:user␝access␞␟value"}}}}}', $json_representation);
     $complex_example = PropSource::parse(json_decode($json_representation, TRUE));
     $this->assertInstanceOf(AdaptedPropSource::class, $complex_example);
     // The contained information read back out.

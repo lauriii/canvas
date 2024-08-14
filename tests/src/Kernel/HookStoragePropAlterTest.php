@@ -30,7 +30,7 @@ class HookStoragePropAlterTest extends PropShapeRepositoryTest {
       shape: $storable_prop_shapes['type=string&format=uri']->shape,
       fieldTypeProp: new FieldTypePropExpression('link', 'uri'),
       fieldWidget: 'link_default',
-      fieldStorageSettings: ['title' => DRUPAL_DISABLED],
+      fieldInstanceSettings: ['title' => DRUPAL_DISABLED],
     );
     return $storable_prop_shapes;
   }

@@ -227,12 +227,14 @@ class EndToEndDemoIntegrationTest extends BrowserTestBase {
           'value' => 50,
           'expression' => 'ℹ︎list_integer␟value',
           'sourceTypeSettings' => [
-            'allowed_values' => [
-              ['value' => 25, 'label' => '25'],
-              ['value' => 33, 'label' => '33'],
-              ['value' => 50, 'label' => '50'],
-              ['value' => 66, 'label' => '66'],
-              ['value' => 75, 'label' => '75'],
+            'storage' => [
+              'allowed_values' => [
+                ['value' => 25, 'label' => '25'],
+                ['value' => 33, 'label' => '33'],
+                ['value' => 50, 'label' => '50'],
+                ['value' => 66, 'label' => '66'],
+                ['value' => 75, 'label' => '75'],
+              ],
             ],
           ],
         ],

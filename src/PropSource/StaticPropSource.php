@@ -29,13 +29,16 @@ use Drupal\experience_builder\PropExpressions\StructuredData\StructuredDataPropE
 final class StaticPropSource extends PropSourceBase {
 
   public function __construct(
-    private readonly FieldItemInterface $fieldItem,
+    public readonly FieldItemInterface $fieldItem,
     private readonly StructuredDataPropExpressionInterface $expression,
     // - (optionally) which storage settings to specify for an instance of this
     //   field type — crucial for e.g. the `enum` use case. Note that in theory
     //   is the same as $this->fieldItem->getFieldDefinition()->getSettings(),
     //   but in practice that is unusable: it contains all default settings too.
     private readonly ?array $fieldStorageSettings = NULL,
+    // - (optionally) which storage settings to specify for an instance of this
+    //   field type — necessary for the `entity_reference` field type
+    private readonly ?array $fieldInstanceSettings = NULL,
   ) {}
 
   /**
@@ -55,13 +58,16 @@ final class StaticPropSource extends PropSourceBase {
       'expression' => (string) $this->expression,
     ];
     if ($this->fieldStorageSettings !== NULL) {
-      $array_representation['sourceTypeSettings'] = $this->fieldStorageSettings;
+      $array_representation['sourceTypeSettings']['storage'] = $this->fieldStorageSettings;
+    }
+    if ($this->fieldInstanceSettings !== NULL) {
+      $array_representation['sourceTypeSettings']['instance'] = $this->fieldInstanceSettings;
     }
     // @phpstan-ignore-next-line
     return json_encode($array_representation, JSON_UNESCAPED_UNICODE);
   }
 
-  private static function conjureFieldItem(FieldTypePropExpression|FieldTypeObjectPropsExpression|ReferenceFieldTypePropExpression $expression, ?array $field_storage_settings): FieldItemInterface {
+  private static function conjureFieldItem(FieldTypePropExpression|FieldTypeObjectPropsExpression|ReferenceFieldTypePropExpression $expression, ?array $field_storage_settings, ?array $field_instance_settings): FieldItemInterface {
     $typed_data_manager = \Drupal::service(TypedDataManagerInterface::class);
 
     // First: conjure the expected FieldItem instance.
@@ -80,6 +86,11 @@ final class StaticPropSource extends PropSourceBase {
       $field_item_class = $field_item_definition->getClass();
       $field_item_definition->setSettings($field_item_class::storageSettingsFromConfigData($field_storage_settings) + $field_item_definition->getSettings());
     }
+    if ($field_instance_settings) {
+      $field_item_class = $field_item_definition->getClass();
+      $field_item_definition->setSettings($field_item_class::fieldSettingsFromConfigData($field_instance_settings) +
+        $field_item_definition->getSettings());
+    }
     assert($field_item_definition instanceof FieldItemDataDefinitionInterface);
     $field_item = $typed_data_manager->createInstance($data_type, [
       'name' => NULL,
@@ -93,8 +104,8 @@ final class StaticPropSource extends PropSourceBase {
   /**
    * Generates a new (empty) prop source.
    */
-  public static function generate(FieldTypePropExpression|FieldTypeObjectPropsExpression|ReferenceFieldTypePropExpression $expression, ?array $field_storage_settings = NULL): static {
-    return new StaticPropSource(self::conjureFieldItem($expression, $field_storage_settings), $expression, $field_storage_settings);
+  public static function generate(FieldTypePropExpression|FieldTypeObjectPropsExpression|ReferenceFieldTypePropExpression $expression, ?array $field_storage_settings = NULL, ?array $field_instance_settings = NULL): static {
+    return new StaticPropSource(self::conjureFieldItem($expression, $field_storage_settings, $field_instance_settings), $expression, $field_storage_settings, $field_instance_settings);
   }
 
   /**
@@ -124,6 +135,7 @@ final class StaticPropSource extends PropSourceBase {
       $field_item,
       $this->expression,
       $this->fieldStorageSettings,
+      $this->fieldInstanceSettings,
     );
   }
 
@@ -143,19 +155,17 @@ final class StaticPropSource extends PropSourceBase {
     assert($expression instanceof FieldTypePropExpression || $expression instanceof FieldTypeObjectPropsExpression || $expression instanceof ReferenceFieldTypePropExpression);
 
     // Second: retrieve the field storage settings, if any.
-    $field_storage_settings = NULL;
-    if (array_key_exists('sourceTypeSettings', $sdc_prop_source)) {
-      $field_storage_settings = $sdc_prop_source['sourceTypeSettings'];
-    }
+    $field_storage_settings = $sdc_prop_source['sourceTypeSettings']['storage'] ?? NULL;
+    $field_instance_settings = $sdc_prop_source['sourceTypeSettings']['instance'] ?? NULL;
 
     // Third: conjure the expected FieldItem instance.
-    $field_item = self::conjureFieldItem($expression, $field_storage_settings);
+    $field_item = self::conjureFieldItem($expression, $field_storage_settings, $field_instance_settings);
     // TRICKY: Setting `[]` is the equivalent of emptying a field. 🤷 (NULL
     // causes *some* field widgets (e.g. image) to fail.)
     // @see \Drupal\Core\Entity\ContentEntityBase::__unset()
     $field_item->setValue($sdc_prop_source['value'] ?? []);
 
-    return new StaticPropSource($field_item, $expression, $field_storage_settings);
+    return new StaticPropSource($field_item, $expression, $field_storage_settings, $field_instance_settings);
   }
 
   /**
@@ -175,11 +185,9 @@ final class StaticPropSource extends PropSourceBase {
   public static function isMinimalRepresentation(array $sdc_prop_source): void {
     $expression = StructuredDataPropExpression::fromString($sdc_prop_source['expression']);
     assert($expression instanceof FieldTypePropExpression || $expression instanceof FieldTypeObjectPropsExpression || $expression instanceof ReferenceFieldTypePropExpression);
-    $field_storage_settings = NULL;
-    if (array_key_exists('sourceTypeSettings', $sdc_prop_source)) {
-      $field_storage_settings = $sdc_prop_source['sourceTypeSettings'];
-    }
-    $field_item = self::conjureFieldItem($expression, $field_storage_settings);
+    $field_storage_settings = $sdc_prop_source['sourceTypeSettings']['storage'] ?? NULL;
+    $field_instance_settings = $sdc_prop_source['sourceTypeSettings']['instance'] ?? NULL;
+    $field_item = self::conjureFieldItem($expression, $field_storage_settings, $field_instance_settings);
     $field_item->setValue($sdc_prop_source['value']);
 
     // @todo This won't work for fields whose props are objects (ComplexData)/lists (ListInterface), but core does not use that AFAIK, so fine for now.

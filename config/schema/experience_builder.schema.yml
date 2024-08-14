@@ -42,6 +42,10 @@ experience_builder.component.*:
                 type: field.storage_settings.[%parent.field_type]
                 # Optional *if* the default storage settings should be used.
                 requiredKey: false
+              field_instance_settings:
+                type: field.field_settings.[%parent.field_type]
+                # Optional *if* the default instance settings should be used.
+                requiredKey: false
               # After a field type is selected, a field widget must be picked.
               # @todo MUCH later: widget settings.
               field_widget:

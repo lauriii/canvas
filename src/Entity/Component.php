@@ -208,7 +208,10 @@ final class Component extends ConfigEntityBase {
       'expression' => $this->defaults['props'][$prop_name]['expression'],
     ];
     if (array_key_exists('field_storage_settings', $this->defaults['props'][$prop_name])) {
-      $sdc_prop_source['sourceTypeSettings'] = $this->defaults['props'][$prop_name]['field_storage_settings'];
+      $sdc_prop_source['sourceTypeSettings']['storage'] = $this->defaults['props'][$prop_name]['field_storage_settings'];
+    }
+    if (array_key_exists('field_instance_settings', $this->defaults['props'][$prop_name])) {
+      $sdc_prop_source['sourceTypeSettings']['instance'] = $this->defaults['props'][$prop_name]['field_instance_settings'];
     }
 
     return StaticPropSource::parse($sdc_prop_source);

@@ -347,6 +347,8 @@ function media_library_storage_prop_shape_alter(CandidateStorablePropShape $stor
     ]);
     $storable_prop_shape->fieldStorageSettings = [
       'target_type' => 'media',
+    ];
+    $storable_prop_shape->fieldInstanceSettings = [
       'handler' => 'default:media',
       'handler_settings' => [
         'target_bundles' => [

@@ -73,7 +73,7 @@ function hook_storage_prop_shape_alter(CandidateStorablePropShape $storable_prop
     // @see \Drupal\link\Plugin\Field\FieldType\LinkItem::propertyDefinitions()
     $storable_prop_shape->fieldTypeProp = StructuredDataPropExpression::fromString('ℹ︎link␟uri');
     // @see \Drupal\link\Plugin\Field\FieldType\LinkItem::defaultFieldSettings()
-    $storable_prop_shape->fieldStorageSettings = [
+    $storable_prop_shape->fieldInstanceSettings = [
       // This shape only needs the URI, not a title.
       'title' => DRUPAL_DISABLED,
     ];

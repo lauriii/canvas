@@ -23,6 +23,7 @@ final class CandidateStorablePropShape {
     public FieldTypePropExpression|FieldTypeObjectPropsExpression|null $fieldTypeProp = NULL,
     public string|null $fieldWidget = NULL,
     public array|null $fieldStorageSettings = NULL,
+    public array|null $fieldInstanceSettings = NULL,
   ) {}
 
   public static function fromStorablePropShape(StorablePropShape $immutable): CandidateStorablePropShape {
@@ -31,6 +32,7 @@ final class CandidateStorablePropShape {
       $immutable->fieldTypeProp,
       $immutable->fieldWidget,
       $immutable->fieldStorageSettings,
+      $immutable->fieldInstanceSettings,
     );
   }
 
@@ -42,7 +44,7 @@ final class CandidateStorablePropShape {
     // Note: this will result in a fatal PHP error if a
     // hook_storage_prop_shape_alter() implementation alters incorrectly.
     // @phpstan-ignore-next-line
-    return new StorablePropShape($this->shape, $this->fieldTypeProp, $this->fieldWidget, $this->fieldStorageSettings);
+    return new StorablePropShape($this->shape, $this->fieldTypeProp, $this->fieldWidget, $this->fieldStorageSettings, $this->fieldInstanceSettings);
   }
 
 }

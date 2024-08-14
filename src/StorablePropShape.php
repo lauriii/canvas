@@ -23,6 +23,9 @@ final class StorablePropShape {
     // - (optionally) which storage settings to specify for an instance of this
     //   field type — crucial for e.g. the `enum` use case
     public readonly ?array $fieldStorageSettings = NULL,
+    // - (optionally) which storage settings to specify for an instance of this
+    //   field type — necessary for the `entity_reference` field type
+    public readonly ?array $fieldInstanceSettings = NULL,
   ) {
     // In theory, this could be validated: `$this->fieldTypeProp->fieldType` is
     // a field type plugin ID, which determines which field widgets
@@ -35,7 +38,7 @@ final class StorablePropShape {
   }
 
   public function toStaticPropSource(): StaticPropSource {
-    return StaticPropSource::generate($this->fieldTypeProp, $this->fieldStorageSettings);
+    return StaticPropSource::generate($this->fieldTypeProp, $this->fieldStorageSettings, $this->fieldInstanceSettings);
   }
 
 }

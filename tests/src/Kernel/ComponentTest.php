@@ -115,7 +115,7 @@ class ComponentTest extends KernelTestBase {
     $this->assertInstanceOf(StaticPropSource::class, $target_default_static_prop_source);
     $this->assertSame('static:field_item:list_string', $target_default_static_prop_source->getSourceType());
     $this->assertInstanceOf(OptionsSelectWidget::class, $target_default_static_prop_source->getWidget('target', $this->randomString(), NULL));
-    $this->assertSame('{"sourceType":"static:field_item:list_string","value":null,"expression":"ℹ︎list_string␟value","sourceTypeSettings":{"allowed_values":[{"value":"foo","label":"foo"},{"value":"bar","label":"bar"}]}}', (string) $target_default_static_prop_source);
+    $this->assertSame('{"sourceType":"static:field_item:list_string","value":null,"expression":"ℹ︎list_string␟value","sourceTypeSettings":{"storage":{"allowed_values":[{"value":"foo","label":"foo"},{"value":"bar","label":"bar"}]}}}', (string) $target_default_static_prop_source);
 
     $theme_component = Component::create([
       'component' => self::THEME_CONFIG_ENTITY_ID,
