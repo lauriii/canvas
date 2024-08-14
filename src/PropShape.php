@@ -19,6 +19,11 @@ use Drupal\experience_builder\PropExpressions\Component\ComponentPropExpression;
  */
 final class PropShape {
 
+  /**
+   * The resolved schema of the prop shape.
+   */
+  public readonly array $resolvedSchema;
+
   public function __construct(
     // The schema of the prop shape.
     public readonly array $schema,
@@ -26,10 +31,35 @@ final class PropShape {
     if ($schema !== self::normalizePropSchema($this->schema)) {
       throw new \InvalidArgumentException();
     }
+    $this->resolvedSchema = self::resolveSchemaReferences($schema);
   }
 
   public static function normalize(array $raw_sdc_prop_schema): PropShape {
     return new PropShape(self::normalizePropSchema($raw_sdc_prop_schema));
+  }
+
+  /**
+   * @param JsonSchema $schema
+   * @return JsonSchema
+   *
+   * @see \Drupal\experience_builder\Plugin\Adapter\AdapterBase::resolveSchemaReferences
+   */
+  private static function resolveSchemaReferences(array $schema): array {
+    if (isset($schema['$ref'])) {
+      // Perform the same schema resolving as `justinrainbow/json-schema`.
+      // @todo Delete this method, actually use `justinrainbow/json-schema`.
+      $schema = json_decode(file_get_contents($schema['$ref']) ?: '{}', TRUE);
+    }
+
+    // Recurse.
+    if ($schema['type'] === 'object') {
+      $schema['properties'] = array_map([__CLASS__, 'resolveSchemaReferences'], $schema['properties'] ?? []);
+    }
+    elseif ($schema['type'] === 'array') {
+      $schema['items'] = array_map([__CLASS__, 'resolveSchemaReferences'], $schema['items'] ?? []);
+    }
+
+    return $schema;
   }
 
   /**
@@ -82,6 +112,9 @@ final class PropShape {
     unset($normalized_prop_schema['title']);
     unset($normalized_prop_schema['description']);
     unset($normalized_prop_schema['examples']);
+    // @todo Add support to `SDC` for `default` in https://www.drupal.org/project/experience_builder/issues/3462705?
+    // @see https://json-schema.org/draft/2020-12/draft-bhutton-json-schema-validation-00#rfc.section.9.2
+    unset($normalized_prop_schema['default']);
 
     $normalized_prop_schema['type'] = SdcPropJsonSchemaType::from(
     // TRICKY: SDC always allowed `object` for Twig integration reasons.
@@ -93,8 +126,19 @@ final class PropShape {
   }
 
   public function findFieldTypeStorage(): ?StorablePropShape {
-    // The default storable prop shape, if any.
-    $storable_prop_shape = SdcPropJsonSchemaType::from($this->schema['type'])->findFieldTypeStorage($this);
+    // The default storable prop shape, if any. Prefer the original prop shape,
+    // which may contain `$ref`, and allows hook_storage_prop_shape_alter()
+    // implementations to suggest a field type based on the
+    // definition name.
+    // If that finds no field type storage, resolve `$ref`, which removes `$ref`
+    // altogether. Try to find a field type storage again, but then the decision
+    // relies solely on the final (fully resolved) JSON schema.
+    $json_schema_type = SdcPropJsonSchemaType::from($this->schema['type']);
+    $storable_prop_shape = $json_schema_type->findFieldTypeStorage($this);
+    if ($storable_prop_shape === NULL) {
+      $resolved_prop_shape = PropShape::normalize($this->resolvedSchema);
+      $storable_prop_shape = $json_schema_type->findFieldTypeStorage($resolved_prop_shape);
+    }
 
     $alterable = $storable_prop_shape
       ? CandidateStorablePropShape::fromStorablePropShape($storable_prop_shape)

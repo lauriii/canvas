@@ -3,6 +3,7 @@
 namespace Drupal\experience_builder\Plugin\Adapter;
 
 use Drupal\Core\Plugin\PluginBase;
+use Drupal\experience_builder\PropShape;
 use JsonSchema\Constraints\Constraint;
 use JsonSchema\Validator;
 
@@ -38,7 +39,7 @@ abstract class AdapterBase extends PluginBase implements AdapterInterface {
    * @param JsonSchema $schema
    */
   public function matchesOutputSchema(array $schema): bool {
-    return $schema === $this->getOutputSchema();
+    return PropShape::normalizePropSchema($schema) === PropShape::normalizePropSchema($this->getOutputSchema());
   }
 
   /**
@@ -73,7 +74,8 @@ abstract class AdapterBase extends PluginBase implements AdapterInterface {
   public function getOutputSchema(): array {
     assert(is_array($this->getPluginDefinition()));
     assert(array_key_exists('output', $this->getPluginDefinition()));
-    return self::resolveSchemaReferences($this->getPluginDefinition()['output']);
+    $prop_shape = new PropShape($this->getPluginDefinition()['output']);
+    return $prop_shape->resolvedSchema;
   }
 
   /**

@@ -28,7 +28,7 @@ describe('Add section/component functionality', { testIsolation: false }, () => 
     cy.get('[data-radix-menubar-content]').should('have.length', 0);
     cy.scrollToMiddleOfIframe();
     cy.getIframeBody().
-    find('[data-component-id="experience_builder:my-hero"] h1').
+    find('[data-component-id="experience_builder:two_column"] .column-one').
     first().
     trigger('click');
     cy.get('button[aria-label="Add section"]').then((button) => {

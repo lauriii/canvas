@@ -106,7 +106,15 @@ class ComponentEditForm extends EntityForm implements ContainerInjectionInterfac
 
       $options[$component->getBaseId()][Component::convertMachineNameToId($component->getPluginId())] = $value;
 
-      $suggestions = $this->fieldForComponentSuggester->suggest($component->getPluginId(), NULL);
+      try {
+        $suggestions = $this->fieldForComponentSuggester->suggest($component->getPluginId(), NULL);
+      }
+      catch (\LogicException $e) {
+        if ($e->getMessage() == 'Support for "array" props is not yet implemented.') {
+          continue;
+        }
+        throw $e;
+      }
       $form[Component::convertMachineNameToId($component->getPluginId())]['__default_props__' . Component::convertMachineNameToId($component->getPluginId())] = [
         '#type' => 'vertical_tabs',
         '#description' => 'Configure which field type and widget to use for each component property. Default values may also be specified and determine the default preview of the component.',
@@ -160,7 +168,7 @@ class ComponentEditForm extends EntityForm implements ContainerInjectionInterfac
         if (empty($static_prop_source_suggestions)) {
           // @see https://www.drupal.org/project/experience_builder/issues/3463583#comment-15710082
           // @todo This, and this entire file, will be removed in https://www.drupal.org/project/experience_builder/issues/3464025
-          if (array_key_exists($component_prop_name, $this->entity->get('defaults')['props'])) {
+          if (array_key_exists($component_prop_name, $this->entity->get('defaults')['props'] ?? [])) {
             // @phpstan-ignore-next-line
             \Drupal::messenger()->addWarning('This test-only component is provided as-is and cannot be edited.');
           }

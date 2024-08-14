@@ -38,3 +38,20 @@ function experience_builder_install(): void {
   // Cache flush ensures the contextual form works.
   drupal_flush_all_caches();
 }
+
+/**
+ * Implements hook_module_preinstall().
+ */
+function experience_builder_module_preinstall(string $module): void {
+  if ($module !== 'experience_builder') {
+    return;
+  }
+
+  // Register the JSON schema definitions stream wrapper *prior* to installing
+  // default config and hence prior to config validation. Otherwise validation
+  // fails.
+  // @see \Drupal\experience_builder\JsonSchemaDefinitionsStreamwrapper
+  // @see \Drupal\Core\Extension\ModuleInstaller::install()
+  // @todo Remove this after https://www.drupal.org/project/drupal/issues/3352063 lands.
+  \Drupal::service('stream_wrapper_manager')->register();
+}

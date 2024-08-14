@@ -68,8 +68,8 @@ describe('General Experience Builder', {testIsolation: false}, () => {
 
     cy.get('.listContainer > div').contains('Basic').should(($basicListLabel) => {
       const $listed = $basicListLabel.parent().find('[data-xb-uuid]');
-      expect($listed).to.have.length(2)
-      const expectedNames = ['Image', 'Hero']
+      expect($listed).to.have.length(3)
+      const expectedNames = ['Image', 'Hero', 'Two Column'];
       $listed.each((index, listItem) => {
         expect($listed.get(index).textContent.trim()).to.equal(expectedNames[index])
       })

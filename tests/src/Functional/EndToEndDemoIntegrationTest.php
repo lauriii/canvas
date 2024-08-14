@@ -117,35 +117,48 @@ class EndToEndDemoIntegrationTest extends BrowserTestBase {
     $this->assertEquals([
       ComponentTreeStructure::ROOT_UUID => [
         [
-          'uuid' => 'dynamic-image-udf7d',
-          'component' => 'experience_builder:image',
+          'uuid' => 'two-column-uuid',
+          'component' => 'experience_builder:two_column',
         ],
-        [
-          'uuid' => 'static-static-card1ab',
-          'component' => 'experience_builder:my-hero',
+      ],
+      'two-column-uuid' => [
+        'column_one' => [
+          [
+            'uuid' => 'dynamic-image-udf7d',
+            'component' => 'experience_builder:image',
+          ],
+          [
+            'uuid' => 'static-static-card1ab',
+            'component' => 'experience_builder:my-hero',
+          ],
         ],
-        [
-          'uuid' => 'dynamic-static-card2df',
-          'component' => 'experience_builder:my-hero',
-        ],
-        [
-          'uuid' => 'dynamic-dynamic-card3rr',
-          'component' => 'experience_builder:my-hero',
-        ],
-        [
-          'uuid' => 'dynamic-image-static-imageStyle-something7d',
-          'component' => 'experience_builder:image',
+        'column_two' => [
+          [
+            'uuid' => 'dynamic-static-card2df',
+            'component' => 'experience_builder:my-hero',
+          ],
+          [
+            'uuid' => 'dynamic-dynamic-card3rr',
+            'component' => 'experience_builder:my-hero',
+          ],
+          [
+            'uuid' => 'dynamic-image-static-imageStyle-something7d',
+            'component' => 'experience_builder:image',
+          ],
         ],
       ],
     ], json_decode($tree->getValue(), TRUE));
     // Second, assert the interpreted results.
+    $actual_uuids = $tree->getComponentInstanceUuids();
+    $this->assertTrue(sort($actual_uuids));
     $this->assertSame([
-      'dynamic-image-udf7d',
-      'static-static-card1ab',
-      'dynamic-static-card2df',
       'dynamic-dynamic-card3rr',
       'dynamic-image-static-imageStyle-something7d',
-    ], $tree->getComponentInstanceUuids());
+      'dynamic-image-udf7d',
+      'dynamic-static-card2df',
+      'static-static-card1ab',
+      'two-column-uuid',
+    ], $actual_uuids);
 
     // Assert each of the 5 component instances have the expected prop sources.
     // @see config/optional/field.field.node.article.field_xb_demo.yml
@@ -204,6 +217,22 @@ class EndToEndDemoIntegrationTest extends BrowserTestBase {
               'sourceType' => 'static:field_item:string',
               'value' => 'thumbnail',
               'expression' => 'ℹ︎string␟value',
+            ],
+          ],
+        ],
+      ],
+      'two-column-uuid' => [
+        'width' => [
+          'sourceType' => 'static:field_item:list_integer',
+          'value' => 50,
+          'expression' => 'ℹ︎list_integer␟value',
+          'sourceTypeSettings' => [
+            'allowed_values' => [
+              ['value' => 25, 'label' => '25'],
+              ['value' => 33, 'label' => '33'],
+              ['value' => 50, 'label' => '50'],
+              ['value' => 66, 'label' => '66'],
+              ['value' => 75, 'label' => '75'],
             ],
           ],
         ],
@@ -293,46 +322,58 @@ class EndToEndDemoIntegrationTest extends BrowserTestBase {
     $this->assertInstanceOf(ComponentTreeHydrated::class, $hydrated);
     $this->assertEquals([
       ComponentTreeStructure::ROOT_UUID => [
-        'dynamic-image-udf7d' => [
-          'component' => 'experience_builder:image',
+        'two-column-uuid' => [
+          'component' => 'experience_builder:two_column',
           'props' => [
-            'image' => [
-              'src' => File::load(1)->getFileUri(),
-              'alt' => 'A random image for testing purposes.',
-              'width' => 40,
-              'height' => 20,
+            'width' => 50,
+          ],
+          'slots' => [
+            'column_one' => [
+              'dynamic-image-udf7d' => [
+                'component' => 'experience_builder:image',
+                'props' => [
+                  'image' => [
+                    'src' => File::load(1)->getFileUri(),
+                    'alt' => 'A random image for testing purposes.',
+                    'width' => 40,
+                    'height' => 20,
+                  ],
+                ],
+              ],
+              'static-static-card1ab' => [
+                'component' => 'experience_builder:my-hero',
+                'props' => [
+                  'heading' => 'hello, world!',
+                  'cta1href' => 'https://drupal.org',
+                ],
+              ],
             ],
-          ],
-        ],
-        'static-static-card1ab' => [
-          'component' => 'experience_builder:my-hero',
-          'props' => [
-            'heading' => 'hello, world!',
-            'cta1href' => 'https://drupal.org',
-          ],
-        ],
-        'dynamic-static-card2df' => [
-          'component' => 'experience_builder:my-hero',
-          'props' => [
-            'heading' => $node->getTitle(),
-            'cta1href' => 'https://drupal.org',
-          ],
-        ],
-        'dynamic-dynamic-card3rr' => [
-          'component' => 'experience_builder:my-hero',
-          'props' => [
-            'heading' => $node->getTitle(),
-            'cta1href' => File::load(1)->getFileUri(),
-          ],
-        ],
-        'dynamic-image-static-imageStyle-something7d' => [
-          'component' => 'experience_builder:image',
-          'props' => [
-            'image' => [
-              'src' => ImageStyle::load('thumbnail')->buildUrl(File::load(1)->getFileUri()),
-              'alt' => 'A random image for testing purposes.',
-              'width' => 40,
-              'height' => 20,
+            'column_two' => [
+              'dynamic-static-card2df' => [
+                'component' => 'experience_builder:my-hero',
+                'props' => [
+                  'heading' => $node->getTitle(),
+                  'cta1href' => 'https://drupal.org',
+                ],
+              ],
+              'dynamic-dynamic-card3rr' => [
+                'component' => 'experience_builder:my-hero',
+                'props' => [
+                  'heading' => $node->getTitle(),
+                  'cta1href' => File::load(1)->getFileUri(),
+                ],
+              ],
+              'dynamic-image-static-imageStyle-something7d' => [
+                'component' => 'experience_builder:image',
+                'props' => [
+                  'image' => [
+                    'src' => ImageStyle::load('thumbnail')->buildUrl(File::load(1)->getFileUri()),
+                    'alt' => 'A random image for testing purposes.',
+                    'width' => 40,
+                    'height' => 20,
+                  ],
+                ],
+              ],
             ],
           ],
         ],

@@ -16,6 +16,7 @@ use Drupal\experience_builder\Plugin\Field\FieldTypeOverride\FileItemOverride;
 use Drupal\experience_builder\Plugin\Field\FieldTypeOverride\FileUriItemOverride;
 use Drupal\experience_builder\Plugin\Field\FieldTypeOverride\ImageItemOverride;
 use Drupal\experience_builder\Plugin\Field\FieldTypeOverride\LinkItemOverride;
+use Drupal\experience_builder\Plugin\Field\FieldTypeOverride\ListIntegerItemOverride;
 use Drupal\experience_builder\Plugin\Field\FieldTypeOverride\PathItemOverride;
 use Drupal\experience_builder\Plugin\Field\FieldTypeOverride\StringItemOverride;
 use Drupal\experience_builder\Plugin\Field\FieldTypeOverride\StringLongItemOverride;
@@ -29,6 +30,7 @@ use Drupal\experience_builder\PropExpressions\StructuredData\FieldTypePropExpres
 use Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldPropExpression;
 use Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldTypePropExpression;
 use Drupal\media\Entity\MediaType;
+use Drupal\node\Entity\Node;
 use Symfony\Component\Validator\Constraints\Hostname;
 use Symfony\Component\Validator\Constraints\Ip;
 
@@ -49,19 +51,23 @@ function experience_builder_toolbar(): array {
 
   // @see experience_builder.routing.yml
   if ($user->hasPermission('access administration pages')) {
-    $items['experience_builder'] += [
-      '#type' => 'toolbar_item',
-      'tab' => [
-        '#type' => 'link',
-        '#title' => t('Experience Builder PoC'),
-        '#url' => Url::fromRoute('experience_builder.experience_builder', ['entity_type' => 'node', 'entity' => 1]),
-        '#attributes' => [
-          'title' => t('Experience Builder'),
-          'class' => ['toolbar-icon', 'toolbar-icon-edit'],
+    $node = Node::load(1);
+    // @todo How does work in 0.x if node 1 doesn't exist?
+    if ($node) {
+      $items['experience_builder'] += [
+        '#type' => 'toolbar_item',
+        'tab' => [
+          '#type' => 'link',
+          '#title' => t('Experience Builder PoC'),
+          '#url' => Url::fromRoute('experience_builder.experience_builder', ['entity_type' => 'node', 'entity' => 1]),
+          '#attributes' => [
+            'title' => t('Experience Builder'),
+            'class' => ['toolbar-icon', 'toolbar-icon-edit'],
+          ],
         ],
-      ],
-      '#weight' => 1000,
-    ];
+        '#weight' => 1000,
+      ];
+    }
   }
 
   return $items;
@@ -111,6 +117,9 @@ function experience_builder_field_info_alter(array &$info): void {
   }
   if (!empty($info['link'])) {
     $info['link']['class'] = LinkItemOverride::class;
+  }
+  if (!empty($info['list_integer'])) {
+    $info['list_integer']['class'] = ListIntegerItemOverride::class;
   }
   if (!empty($info['path'])) {
     $info['path']['class'] = PathItemOverride::class;

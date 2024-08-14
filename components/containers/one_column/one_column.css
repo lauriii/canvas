@@ -1,0 +1,18 @@
+[data-component-id="experience_builder:one_column"] {
+  .width-full {
+    overflow: visible;
+    width: 100vw;
+  }
+
+  .width-wide {
+    width: 80%;
+  }
+
+  .width-normal {
+    width: 65%;
+  }
+
+  .width-narrow {
+    width: 50%;
+  }
+}

@@ -1,5 +1,20 @@
 {
   "$defs": {
+    "heading-element": {
+      "title": "Heading element",
+      "type": "string",
+      "enum": ["div", "h1", "h2", "h3", "h4", "h5", "h6"]
+    },
+    "column-width": {
+      "title": "Column Width",
+      "type": "integer",
+      "enum": [25, 33, 50, 66, 75]
+    },
+    "background-color": {
+      "title": "Background Color",
+      "type": "string",
+      "enum": ["", "primary", "secondary", "white"]
+    },
     "date-range": {
       "title": "date range",
       "type":  "object",
@@ -22,6 +37,136 @@
       "type": "string",
       "format": "uri",
       "pattern": "\\.(png|gif|jpg|jpeg|webp)(\\?.*)?(#.*)?$"
+    },
+    "heading": {
+      "title": "Heading",
+      "type": "object",
+      "required": ["text", "element"],
+      "properties": {
+        "text": {
+          "type": "string",
+          "title": "Text",
+          "description": "The heading text.",
+          "examples": ["A heading element"]
+        },
+        "style": {
+          "type": "string",
+          "title": "Style",
+          "description": "The heading style to use.",
+          "enum": ["primary", "secondary"],
+          "examples": ["primary", "secondary"]
+        },
+        "element": {
+          "type": "string",
+          "title": "Element",
+          "description": "The HTML element to use.",
+          "enum": ["div", "h1", "h2", "h3", "h4", "h5", "h6"],
+          "examples": ["h1", "h2", "h3", "h4", "h5", "h6", "div"]
+        }
+      }
+    },
+    "text": {
+      "title": "Text",
+      "type": "object",
+      "properties": {
+        "text": {
+          "type": "string",
+          "title": "Text",
+          "description": "The text to display.",
+          "examples": ["This is some text"]
+        }
+      }
+    },
+    "shoe-icon": {
+      "title": "Icon",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "title": "Name",
+          "description": "The badge’s theme variant.",
+          "default": "primary",
+          "enum": [
+            "moon-stars-fill",
+            "moon-stars",
+            "star-fill",
+            "star",
+            "stars",
+            "rocket-fill",
+            "rocket-takeoff-fill",
+            "rocket-takeoff",
+            "rocket"
+          ],
+          "examples": [
+            "moon-stars-fill",
+            "moon-stars",
+            "star-fill",
+            "star",
+            "stars",
+            "rocket-fill",
+            "rocket-takeoff-fill",
+            "rocket-takeoff",
+            "rocket"
+          ]
+        },
+        "label": {
+          "type": "string",
+          "title": "Label",
+          "description": "An alternate description to use for assistive devices. If omitted, the icon will be considered presentational and ignored by assistive devices.",
+          "default": "This is an icon",
+          "examples": ["This is an icon"]
+        },
+        "size": {
+          "type": "string",
+          "title": "Size",
+          "description": "The icon size.",
+          "default": "",
+          "enum": ["", "base", "l", "s", "xs", "xxs"],
+          "examples": ["", "base", "l", "s", "xs", "xxs"]
+        },
+        "color": {
+          "type": "string",
+          "title": "Color",
+          "description": "The icon color",
+          "default": "",
+          "enum": [
+            "",
+            "gray",
+            "primary",
+            "neutral-soft",
+            "neutral-medium",
+            "neutral-loud",
+            "primary-medium",
+            "primary-loud",
+            "black",
+            "white",
+            "red",
+            "gold",
+            "green"
+          ],
+          "examples": [
+            "",
+            "gray",
+            "primary",
+            "neutral-soft",
+            "neutral-medium",
+            "neutral-loud",
+            "primary-medium",
+            "primary-loud",
+            "black",
+            "white",
+            "red",
+            "gold",
+            "green"
+          ]
+        },
+        "slot": {
+          "type": "string",
+          "title": "Slot",
+          "description": "The slot the icon should appear in",
+          "examples": []
+        }
+      }
     },
     "image": {
       "title": "image",

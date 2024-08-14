@@ -51,7 +51,7 @@ final class ComponentPropsForm extends FormBase implements ContainerInjectionInt
     $props = $this->getRequest()->get('props');
     $component_instance_uuid = $this->getRequest()->get('selected');
     $stored_prop_sources = json_decode($props, TRUE)[$component_instance_uuid];
-    $component_machine_name = json_decode($this->getRequest()->get('tree'), TRUE)[0]['type'];
+    $component_machine_name = json_decode($this->getRequest()->get('tree'), TRUE)['type'];
 
     // ⚠️ This is HORRIBLY HACKY and will go away! ☺️
     // @see \Drupal\experience_builder\Controller\SdcController::layout()

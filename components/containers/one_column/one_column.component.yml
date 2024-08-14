@@ -1,0 +1,25 @@
+'$schema': 'https://git.drupalcode.org/project/sdc/-/raw/1.x/src/metadata.schema.json'
+name: One Column
+status: stable
+group: Container
+props:
+  type: object
+  required:
+    - width
+  properties:
+    width:
+      type: string
+      title: Width
+      default: normal
+      enum:
+        - 'full'
+        - 'wide'
+        - 'normal'
+        - 'narrow'
+      examples: ['full', 'wide', 'normal', 'narrow']
+slots:
+  content:
+    title: Content
+    description: The contents of the column.
+    # @todo can_be_dropzone: true
+    # @todo this should be a dropzone

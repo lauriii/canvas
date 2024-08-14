@@ -1,0 +1,20 @@
+'$schema': 'https://git.drupalcode.org/project/sdc/-/raw/1.x/src/metadata.schema.json'
+name: Video
+status: stable
+group: Atom/Media
+description: A video element
+props:
+  type: object
+  required:
+    - src
+  properties:
+    src:
+      type: string
+      title: URI
+      format: uri
+      pattern: "\\.(mp4|webm)(\\?.*)?(#.*)?$"
+      description: The video URL.
+      examples:
+        [
+          'https://media.istockphoto.com/id/1340051874/video/aerial-top-down-view-of-a-container-cargo-ship.mp4?s=mp4-640x640-is&k=20&c=5qPpYI7TOJiOYzKq9V2myBvUno6Fq2XM3ITPGFE8Cd8=',
+        ]

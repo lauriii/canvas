@@ -50,7 +50,12 @@ final class Evaluator {
       $field = $entity_or_field;
       assert($field instanceof FieldItemInterface);
       return match (get_class($expr)) {
-        FieldTypePropExpression::class => $field->get($expr->propName)->getValue(),
+        FieldTypePropExpression::class => (function () use ($field, $expr) {
+          $prop = $field->get($expr->propName);
+          return $prop instanceof PrimitiveInterface
+            ? $prop->getCastedValue()
+            : $prop->getValue();
+        })(),
         FieldTypeObjectPropsExpression::class => array_combine(
           array_keys($expr->objectPropsToFieldTypeProps),
           array_map(

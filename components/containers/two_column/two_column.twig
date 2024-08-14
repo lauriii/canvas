@@ -1,0 +1,17 @@
+<div {{ attributes }}>
+    {% if block('column_one') %}
+      <div class="column-one width-{{ width }}">
+        {% block column_one %}
+          The contents of the one column.
+        {% endblock %}
+      </div>
+    {% endif %}
+
+    {% if block('column_two') %}
+      <div class="column-two width-{{ 100-width }}">
+        {% block column_two %}
+          The contents of the two column.
+        {% endblock %}
+      </div>
+    {% endif %}
+</div>

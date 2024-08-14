@@ -14,7 +14,9 @@ use Drupal\Core\Field\FieldItemListInterface;
 use Drupal\Core\Field\WidgetBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
+use Drupal\Core\Theme\ComponentPluginManager;
 use Drupal\Core\TypedData\DataDefinition;
+use Drupal\experience_builder\Entity\Component;
 use Drupal\experience_builder\Plugin\Adapter\AdapterInterface;
 use Drupal\experience_builder\Plugin\DataType\ComponentPropsValues;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
@@ -22,6 +24,7 @@ use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\experience_builder\PropExpressions\Component\ComponentPropExpression;
 use Drupal\experience_builder\PropExpressions\PropExpressionInterface;
 use Drupal\experience_builder\PropExpressions\StructuredData\StructuredDataPropExpressionInterface;
+use Drupal\experience_builder\PropShape;
 use Drupal\experience_builder\PropSource\AdaptedPropSource;
 use Drupal\experience_builder\PropSource\StaticPropSource;
 
@@ -88,6 +91,19 @@ class TwoTerribleTextAreasWidget extends WidgetBase {
         'adapters' => $adapter_choices,
       ]) {
         $prop_name = ComponentPropExpression::fromString($cpe)->propName;
+
+        // @todo Move this into FieldForComponentSuggester.
+        // @phpstan-ignore-next-line
+        $component_plugin_manager = \Drupal::service(ComponentPluginManager::class);
+        assert($component_plugin_manager instanceof ComponentPluginManager);
+        $component_plugin_instance = $component_plugin_manager->createInstance($component_plugin_id);
+        $prop_shapes = PropShape::getComponentProps($component_plugin_instance);
+        // @phpstan-ignore-next-line
+        $recommended_static_prop_source_expression = $prop_shapes[(string) $cpe]->findFieldTypeStorage()->fieldTypeProp;
+        if (!in_array($recommended_static_prop_source_expression, $static_choices, TRUE)) {
+          $static_choices['Recommended'] = $recommended_static_prop_source_expression;
+        }
+
         // @phpstan-ignore-next-line
         $element['props_editor'][$uuid][$prop_name] = [
           '#type' => 'details',
@@ -252,7 +268,38 @@ class TwoTerribleTextAreasWidget extends WidgetBase {
         $chosen_source_prop_values = $edited_sdc_prop_values[$choice][$edited_sdc_prop_name];
         $source = $form_state->getStorage()["xb_source|$component_instance_uuid|$edited_sdc_prop_name|$choice"];
         assert($source instanceof StaticPropSource);
-        $updated_values = $source->minimizeValue($source->massageFormValuesTemporaryRemoveThisExclamationExclamationExclamation(NULL, $edited_sdc_prop_name, $edited_sdc_prop_name, $chosen_source_prop_values, $form, $form_state));
+        // TRICKY: this widget does NOT respect the Component config entity
+        // configuration, so it needs some fallback logic to determine the
+        // appropriate field widget:
+        // 1. If the given static prop source matches the *current* field type
+        // configuration, use the configured widget.
+        // 2. Otherwise, fall back to the field widget specified in the
+        // StorablePropShape.
+        // 3. Worst case: fall back to the default widget for this field type.
+        // @todo Improve this in https://www.drupal.org/project/experience_builder/issues/3463996
+        // This is 99% duplicated from \Drupal\experience_builder\Form\ComponentPropsForm::buildForm()
+        // @see
+        $component_id = $tree_structure->getComponentId($component_instance_uuid);
+        $component = Component::loadByComponentMachineName($component_id);
+        assert($component !== NULL);
+        // @phpstan-ignore-next-line
+        $component_plugin_manager = \Drupal::service(ComponentPluginManager::class);
+        assert($component_plugin_manager instanceof ComponentPluginManager);
+        $prop_shapes = PropShape::getComponentProps($component_plugin_manager->createInstance($component_id));
+        $field_widget_plugin_id = NULL;
+        if ($source->getSourceType() === 'static:field_item:' . $component->get('defaults')['props'][$edited_sdc_prop_name]['field_type']) {
+          $field_widget_plugin_id = $component->get('defaults')['props'][$edited_sdc_prop_name]['field_widget'] ?? NULL;
+        }
+        else {
+          $component_prop_expression = new ComponentPropExpression($component_id, $edited_sdc_prop_name);
+          $prop_shape = $prop_shapes[(string) $component_prop_expression];
+          $storable_prop_shape = $prop_shape->findFieldTypeStorage();
+          if ($storable_prop_shape !== NULL && $source->getSourceType() === $storable_prop_shape->toStaticPropSource()->getSourceType()) {
+            $field_widget_plugin_id = $storable_prop_shape->fieldWidget;
+          }
+        }
+
+        $updated_values = $source->minimizeValue($source->massageFormValuesTemporaryRemoveThisExclamationExclamationExclamation($field_widget_plugin_id, $edited_sdc_prop_name, $edited_sdc_prop_name, $chosen_source_prop_values, $form, $form_state));
         // Store the selected source choice: update the sourceType + expression.
         $props[$component_instance_uuid][$edited_sdc_prop_name]['sourceType'] = $source->getSourceType();
         $props[$component_instance_uuid][$edited_sdc_prop_name]['expression'] = (string) $source->asChoice();

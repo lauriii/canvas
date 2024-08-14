@@ -142,10 +142,26 @@ const DummyPropsEditForm: React.FC<DummyPropsEditFormProps> = () => {
         selectedModel[propName] || '';
     }
 
+    interface TreeNode {
+      uuid: string;
+      children?: TreeNode[];
+    }
     // The "tree" sent to the field widget only contains the selected component.
-    const tree = layout.children.filter(
-      (node) => node.uuid === selectedComponent,
-    );
+    function findNodeInObjectTree(tree: TreeNode, uuid: string): object | null {
+      if (tree.uuid === uuid) {
+        return tree;
+      }
+      if (tree.children) {
+        for (let i = 0; i < tree.children.length; i++) {
+          const found = findNodeInObjectTree(tree.children[i], uuid);
+          if (found) {
+            return found;
+          }
+        }
+      }
+      return null; // If no match is found
+    }
+    const tree = findNodeInObjectTree(layout, selectedComponent);
     const query = new URLSearchParams({
       tree: JSON.stringify(tree),
       props: JSON.stringify(preparedModel),

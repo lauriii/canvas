@@ -78,8 +78,7 @@ final class StaticPropSource extends PropSourceBase {
     assert($field_item_definition instanceof DataDefinition);
     if ($field_storage_settings) {
       $field_item_class = $field_item_definition->getClass();
-      $field_item_definition->setSettings($field_item_class::storageSettingsFromConfigData($field_storage_settings) +
-        $field_item_definition->getSettings());
+      $field_item_definition->setSettings($field_item_class::storageSettingsFromConfigData($field_storage_settings) + $field_item_definition->getSettings());
     }
     assert($field_item_definition instanceof FieldItemDataDefinitionInterface);
     $field_item = $typed_data_manager->createInstance($data_type, [
@@ -310,6 +309,9 @@ final class StaticPropSource extends PropSourceBase {
     // 2. Apply the field item's transformation.
     // @see \Drupal\link\Plugin\Field\FieldType\LinkItem::setValue()
     $item->setValue($massaged_values);
+    // @see \Drupal\image\Plugin\Field\FieldType\ImageItem::preSave()
+    // @see \Drupal\experience_builder\Plugin\Field\FieldTypeOverride\ListIntegerItemOverride::preSave()
+    $item->preSave();
     $actual_values = $item->getValue();
 
     // 3. XB only needs to store non-computed values.

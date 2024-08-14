@@ -213,7 +213,9 @@ class FieldForComponentSuggesterTest extends KernelTestBase {
           'instances' => [
             "This Foo's field_event_duration" => 'ℹ︎␜entity:node:foo␝field_event_duration␞␟value',
           ],
-          'adapters' => [],
+          'adapters' => [
+            'UNIX timestamp to date' => 'unix_to_date',
+          ],
         ],
         '⿲sdc_test_all_props:all-props␟test_string_format_time' => [
           'required' => FALSE,
@@ -390,7 +392,9 @@ class FieldForComponentSuggesterTest extends KernelTestBase {
             "This Foo's Authored by" => 'ℹ︎␜entity:node:foo␝uid␞␟target_id',
             "This Foo's Revision ID" => 'ℹ︎␜entity:node:foo␝vid␞␟value',
           ],
-          'adapters' => [],
+          'adapters' => [
+            'Count days' => 'day_count',
+          ],
         ],
         '⿲sdc_test_all_props:all-props␟test_integer_range_minimum' => [
           'required' => FALSE,

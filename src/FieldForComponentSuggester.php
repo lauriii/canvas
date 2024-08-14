@@ -9,9 +9,6 @@ use Drupal\Core\Entity\EntityTypeBundleInfoInterface;
 use Drupal\Core\Entity\TypedData\EntityDataDefinitionInterface;
 use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Field\FieldTypePluginManagerInterface;
-use Drupal\Core\StreamWrapper\StreamWrapperInterface;
-use Drupal\Core\StreamWrapper\StreamWrapperManagerInterface;
-use Drupal\Core\Template\Attribute;
 use Drupal\Core\Theme\ComponentPluginManager;
 use Drupal\Core\TypedData\TypedDataManagerInterface;
 use Drupal\experience_builder\Plugin\Adapter\AdapterInterface;
@@ -35,7 +32,6 @@ final class FieldForComponentSuggester {
     private readonly TypedDataManagerInterface $typedDataManager,
     private readonly EntityFieldManagerInterface $entityFieldManager,
     private readonly EntityTypeBundleInfoInterface $entityTypeBundleInfo,
-    private readonly StreamWrapperManagerInterface $streamWrapperManager,
   ) {}
 
   /**
@@ -177,36 +173,14 @@ final class FieldForComponentSuggester {
     $raw_matches = [];
 
     $component = $this->componentPluginManager->find($component_plugin_id);
-    /** @var array<string, mixed> $schema */
-    $schema = $component->metadata->schema;
-    foreach ($this->propMatcher->iterateJsonSchema($schema) as $prop_name => [
-      'required' => $is_required,
-      'schema' => $schema,
-    ]) {
-      $cpe = new ComponentPropExpression($component_plugin_id, $prop_name);
+    foreach (PropShape::getComponentProps($component) as $cpe_string => $prop_shape) {
+      $cpe = ComponentPropExpression::fromString($cpe_string);
+      // @see https://json-schema.org/understanding-json-schema/reference/object#required
+      // @see https://json-schema.org/learn/getting-started-step-by-step#required
+      $is_required = in_array($cpe->propName, $component->metadata->schema['required'] ?? [], TRUE);
+      $schema = $prop_shape->resolvedSchema;
 
-      // TRICKY: `attributes` is a special case — it is kind of a reserved
-      // prop.
-      // @see \Drupal\sdc\Twig\TwigExtension::mergeAdditionalRenderContext()
-      // @see https://www.drupal.org/project/drupal/issues/3352063#comment-15277820
-      if ($prop_name === 'attributes') {
-        assert($schema['type'][0] === Attribute::class);
-        continue;
-      }
-
-      if (isset($schema['$ref'])) {
-        // Prove a $ref URL can be transformed into a publicly accessible URL.
-        $stream_wrapper = $this->streamWrapperManager->getViaUri($schema['$ref']);
-        assert($stream_wrapper instanceof StreamWrapperInterface);
-        $public_ref_url = $stream_wrapper->getExternalUrl();
-        assert(str_ends_with($public_ref_url, '/experience_builder/schema.json#defs/' . basename($schema['$ref'])));
-      }
-
-      $primitive_type = SdcPropJsonSchemaType::from(
-      // TRICKY: SDC always allowed `object` for Twig integration reasons.
-      // @see \Drupal\sdc\Component\ComponentMetadata::parseSchemaInfo()
-        is_array($schema['type']) ? $schema['type'][0] : $schema['type']
-      );
+      $primitive_type = SdcPropJsonSchemaType::from($schema['type']);
 
       $format_candidates_main_prop = $this->propMatcher->findFieldTypeFormatCandidates($primitive_type, $is_required, $schema, TRUE);
       $instance_candidates = $this->propMatcher->findFieldInstanceFormatMatches($primitive_type, $is_required, $schema);

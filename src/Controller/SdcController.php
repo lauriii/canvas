@@ -67,6 +67,44 @@ final class SdcController extends ControllerBase {
     );
   }
 
+  private function buildLayout(array &$layout, array &$model, ComponentTreeItem $item, array $tree_tier, array $hydrated): void {
+    $tree = $item->get('tree');
+    assert($tree instanceof ComponentTreeStructure);
+    $full_tree = json_decode($tree->getValue(), TRUE);
+    // @todo tree recursion/slot support — this only supports a flat list — do this in https://www.drupal.org/project/experience_builder/issues/3446722
+    foreach ($tree_tier as ['uuid' => $component_instance_uuid, 'component' => $component_type]) {
+      $component_instance = [
+        'uuid' => $component_instance_uuid,
+        // Note: the UI expects slots in this component to be defined as `nodeType: slot`.
+        'nodeType' => 'component',
+        'type' => $component_type,
+        'children' => [],
+      ];
+      if (isset($hydrated[$component_instance_uuid])) {
+        $model[$component_instance_uuid] = $hydrated[$component_instance_uuid]['props'];
+        $component_id = $tree->getComponentId($component_instance_uuid);
+        // @todo the current quick-and-dirty UI PoC unfortunately prevents any prop from being named `name`, because it expects that to convey the component name
+        $component_config = Component::loadByComponentMachineName($component_id);
+        assert($component_config !== NULL);
+        $model[$component_instance_uuid]['name'] = $component_config->label();
+      }
+      if (isset($full_tree[$component_instance_uuid])) {
+        foreach ($full_tree[$component_instance_uuid] as $slot_name => $slot_children) {
+          $component_instance_slot = [
+            // @todo The client expects a UUID for slots, but we don't have one.
+            'uuid' => $component_instance_uuid . '-slot-' . $slot_name,
+            'name' => $slot_name,
+            'nodeType' => 'slot',
+            'children' => [],
+          ];
+          $this->buildLayout($component_instance_slot['children'], $model, $item, $slot_children, $hydrated[$component_instance_uuid]['slots'][$slot_name]);
+          $component_instance['children'][] = $component_instance_slot;
+        }
+      }
+      $layout[] = $component_instance;
+    }
+  }
+
   /**
    * Gets an array of single directory components in an xb-friendly form.
    *
@@ -233,38 +271,24 @@ final class SdcController extends ControllerBase {
     $hydrated_json = $hydrated->getValue()->getContent();
     assert(is_string($hydrated_json));
 
-    // @todo tree recursion/slot support — this only supports a flat list — do this in https://www.drupal.org/project/experience_builder/issues/3446722
-    $children = [];
-    foreach (json_decode($tree->getValue(), TRUE)[ComponentTreeStructure::ROOT_UUID] as ['uuid' => $component_instance_uuid, 'component' => $component_type]) {
-      $children[] = [
-        'uuid' => $component_instance_uuid,
-        // Note: the UI expects slots in this component to be defined as `type: slot`.
-        'nodeType' => 'component',
-        'type' => $component_type,
-      ];
-    }
-
+    $layout = [];
     $model = [];
-    foreach (json_decode($hydrated_json, TRUE)[ComponentTreeStructure::ROOT_UUID] as $component_instance_uuid => ['props' => $resolved_prop_values]) {
-      $model[$component_instance_uuid] = $resolved_prop_values;
-      $component_id = $tree->getComponentId($component_instance_uuid);
-      // @todo the current quick-and-dirty UI PoC unfortunately prevents any prop from being named `name`, because it expects that to convey the component name
-      $component_config = Component::loadByComponentMachineName($component_id);
-      assert($component_config !== NULL);
-      $model[$component_instance_uuid]['name'] = $component_config->label();
-    }
+    $decoded_tree = json_decode($tree->getValue(), TRUE);
+
+    $this->buildLayout($layout, $model, $item, $decoded_tree[ComponentTreeStructure::ROOT_UUID], json_decode($hydrated_json, TRUE)[ComponentTreeStructure::ROOT_UUID]);
 
     // @todo This now returns a mixture of pure tree structure with hydrated props values. Re-assess.
+    $full_layout = [
+      'uuid' => 'root',
+      'nodeType' => 'root',
+      'name' => 'root',
+      'children' => $layout,
+    ];
     return new JsonResponse([
       // Maps to the `tree` property of the XB field type.
       // @see \Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure
       // @todo Settle on final names and get in sync.
-      'layout' => [
-        'uuid' => 'root',
-        'nodeType' => 'root',
-        'name' => 'root',
-        'children' => $children,
-      ],
+      'layout' => $full_layout,
       // Maps to the `props` property of the XB field type,.
       // @see \Drupal\experience_builder\Plugin\DataType\ComponentPropsValues
       // @todo Settle on final names and get in sync.
@@ -276,7 +300,7 @@ final class SdcController extends ControllerBase {
     foreach ($layout['children'] as $child) {
       if ($child['nodeType'] === 'slot') {
         // @todo This indicates the client model does not quite make sense: SDC slots do NOT have UUIDs, but names!
-        self::clientLayoutToServerTree($child, $parent_uuid, $child['uuid'], $tree);
+        self::clientLayoutToServerTree($child, $parent_uuid, $child['name'], $tree);
         continue;
       }
 
@@ -293,6 +317,9 @@ final class SdcController extends ControllerBase {
           'uuid' => $child['uuid'],
           'component' => $child['type'],
         ];
+      }
+      if (!empty($child['children'])) {
+        self::clientLayoutToServerTree($child, $child['uuid'], NULL, $tree);
       }
     }
   }
@@ -389,6 +416,11 @@ HTML;
     }
     foreach (Element::children($build) as $component_instance_uuid) {
       $build[$component_instance_uuid] = self::wrapComponentsForPreview($build[$component_instance_uuid], $component_instance_uuid);
+    }
+    if (isset($build['#slots'])) {
+      foreach ($build['#slots'] as $slot_name => $slot) {
+        $build['#slots'][$slot_name] = self::wrapComponentsForPreview($slot, $component_instance_uuid . '-slot-' . $slot_name);
+      }
     }
     return $build;
   }
