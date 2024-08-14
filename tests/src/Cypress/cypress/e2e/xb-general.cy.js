@@ -55,9 +55,9 @@ describe('General Experience Builder', {testIsolation: false}, () => {
       .its('head').should('not.be.undefined')
       .then((head) => {
         expect(
-          head.querySelector('link[rel="stylesheet"][href*="experience_builder/components/my-hero/my-hero.css"]',
-            `Tried to find [href*="components/my-hero/my-hero.css"] in <head> ${head.innerHTML}`))
-          .to.exist
+          head.querySelector('link[rel="stylesheet"][href*="components/my-hero/my-hero.css"]'),
+          `Tried to find [href*="components/my-hero/my-hero.css"] in <head> ${head.innerHTML}`,
+        ).to.exist
       })
 
     cy.get('[data-radix-menubar-content]').should('have.length', 0, 'There is no menubar yet.')
