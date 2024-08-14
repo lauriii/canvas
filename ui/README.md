@@ -1,26 +1,38 @@
 # Experience Builder
+This document outlines how to contribute to Experience Builder.
 
-## Prerequisites
+## Local development environment
+There are two supported options for creating a local development environment: DDEV (containers) and native (or "bare metal").
+
+- [**DDEV**](https://ddev.com/) is [the recommended solution](https://www.drupal.org/docs/official_docs/local-development-guide) for local Drupal development. <!-- c.f. https://www.drupal.org/project/ideas/issues/2965681 --> It requires minimal setup for this project (due to our custom add-on) and few specialized skills to set it up and maintain it. Its main drawback is that our add-on only officially supports macOS (though everything other than the Cypress tests will work fine anywhere). It has the benefits of isolation (Docker) and automation. It is recommended if you already use DDEV or aren't already invested in another solution.
+- **Native development** involves installing system dependencies directly on your machine (i.e., not inside a container). Its main drawbacks are lack of isolation and the amount of manual configuration required to set it up. It's main benefit may be the number of core contributors that already work this way. There's no reason to switch away from this approach if you prefer it.
+
+### DDEV
+DDEV setup is fully automated through our custom add-on: https://github.com/TravisCarden/ddev-drupal-xb-dev. Follow the instructions there to get started.
+
+### Native development
+
+#### Prerequisites
 - Enable the Experience Builder module
 
-## Build steps
+#### Build steps
 1. `npm install` from /modules/experience_builder/ui
 2. `npm run build`
 
-## Development mode
+##### Development mode
 1. `npm install` from /modules/experience_builder/ui
 2. Make sure nothing is running on localhost:5173
-2. Choose one of
+3. Choose one of
    1. `npm run dev` - Will use MSW to serve mock endpoint data
    2. `npm run drupaldev` - Will retrieve data from Drupal endpoints
-3. Enable the Experience Builder Vite Integration module (`xb_vite`)
-4. Clear cache (`drush cr` or `/admin/config/development/performance`)
-5. Navigate to `/xb` to view app
+4. Enable the Experience Builder Vite Integration module (`xb_vite`)
+5. Clear cache (`drush cr` or `/admin/config/development/performance`)
+6. Navigate to `/xb` to view app
 
-## Running Unit/Component Tests
+#### Running Unit/Component Tests
 - `npm run cy:component`
 
-## Running E2E Tests
+#### Running E2E Tests
 - In your `.env` file, set `BASE_URL` and `DB_URL`. See `.env.example` for an example.
 - The e2e tests use the application file in /ui/dist, which is only updated by
   running `npm run build`. Be sure to do this before running e2e tests.
@@ -57,4 +69,3 @@ Further documentation on best practices for writing Cypress tests can be found i
 We are working on integrating Cypress tests into our CI pipeline to ensure that all tests are run consistently and reliably. This includes setting up the necessary infrastructure and addressing any performance concerns.
 
 We will periodically evaluate using Cypress for our **unit tests** and compare it with other testing frameworks (e.g. `vitest`) to ensure we are making the best trade-offs between ease of use, functionality and speed/performance.
-
