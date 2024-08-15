@@ -87,10 +87,11 @@ const ContextualPanel: React.FC<ContextualPanelProps> = () => {
                   {(html) => (
                     <>
                       <Box>
-                        <Flex justify="center" align="center" my="2">
+                        <Flex justify="center" align="center">
                           <SegmentedControl.Root
                             defaultValue="settings"
                             onValueChange={setActivePanel}
+                            className={clsx(styles.segmentedControlRoot)}
                           >
                             <SegmentedControl.Item value="settings">
                               Settings
@@ -100,11 +101,7 @@ const ContextualPanel: React.FC<ContextualPanelProps> = () => {
                             </SegmentedControl.Item>
                           </SegmentedControl.Root>
                         </Flex>
-                        <Separator
-                          orientation="horizontal"
-                          size="4"
-                          className={clsx('separator', styles.separator)}
-                        />
+                        <Separator orientation="horizontal" size="4" />
                         <ScrollArea
                           type="always"
                           size="1"

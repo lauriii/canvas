@@ -13,7 +13,7 @@ import {
 import Canvas from '@/features/canvas/Canvas';
 import { ZoomInIcon } from '@radix-ui/react-icons';
 import ErrorBoundary from '@/components/error/ErrorBoundary';
-import PrimaryMenubar from '@/components/sidebar/primary/PrimaryMenubar';
+import PrimaryMenu from '@/components/sidebar/PrimaryMenu';
 import Topbar from '@/components/topbar/Topbar';
 import useSyncComponentId from '@/hooks/useSyncComponentId';
 
@@ -41,7 +41,7 @@ const App = () => {
           <Layout />
         </ErrorBoundary>
         <Topbar />
-        <PrimaryMenubar />
+        <PrimaryMenu />
         <Outlet />
         <div className={styles.canvasControls}>
           <Card size="1">

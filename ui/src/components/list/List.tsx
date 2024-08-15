@@ -1,6 +1,6 @@
 import { useEffect, useRef, useCallback, useState } from 'react';
 import styles from './List.module.css';
-import menuStyles from '@/components/sidebar/primary/PrimaryMenubar.module.css';
+import menuStyles from '@/components/topbar/add/AddMenu.module.css';
 import { selectDragging, setListDragging } from '@/features/ui/uiSlice';
 import {
   disableClickToInsert,
@@ -8,7 +8,7 @@ import {
   selectClickToInsertState,
   setHidden,
   setInactive,
-} from '@/features/ui/primaryMenuSlice';
+} from '@/features/ui/addMenuSlice';
 import Sortable from 'sortablejs';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { useGetComponentsQuery } from '@/services/components';

@@ -14,11 +14,6 @@ export interface PanningStatus {
   isPanningParent: boolean;
 }
 
-export interface PrimaryMenuState {
-  activeMenu: string;
-  isHidden: boolean;
-}
-
 export interface CanvasViewPort {
   x: number;
   y: number;

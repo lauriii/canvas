@@ -33,18 +33,6 @@ button {
   }
 }
 
-.TopbarTrigger {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 8px 13px;
-  user-select: none;
-  color: white;
-  border-radius: 4px;
-  outline: none;
-  gap: 2px;
-}
-
 .topbarBtnContainer {
   align-items: center;
   margin-inline-start: auto;
@@ -52,5 +40,13 @@ button {
 }
 
 .dropIcon {
-  width: 25px;
+  width: 50px;
+}
+
+.buttonGroup {
+  align-items: center;
+}
+
+.link {
+  display: contents !important;
 }

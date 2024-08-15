@@ -1,35 +1,22 @@
-import styles from './TreeParent.module.css';
-import type React from 'react';
 import { useRef, useEffect, useCallback } from 'react';
-import Sortable from 'sortablejs';
-import TreeChild from './TreeChild';
+import type Sortable from 'sortablejs';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
-import type { LayoutNode } from '@/features/layout/layoutModelSlice';
 import {
   selectLayout,
   addNewComponentToLayout,
   moveNode,
   sortNode,
 } from '@/features/layout/layoutModelSlice';
-import clsx from 'clsx';
 import { setTreeDragging } from '@/features/ui/uiSlice';
 import { findNodePathByUuid } from '@/features/layout/layoutUtils';
 import { useGetComponentsQuery } from '@/services/components';
 
-interface TreeParentProps {
-  node: LayoutNode;
-}
-
-const TreeParent: React.FC<TreeParentProps> = (props) => {
+// Hooks for handling sortable drag and drop.
+const useSortable = () => {
   const dispatch = useAppDispatch();
-  const { node } = props;
-  const { children } = node;
   const layout = useAppSelector(selectLayout);
   const { data: components } = useGetComponentsQuery();
   const componentsRef = useRef(components);
-
-  const listElRef = useRef<HTMLUListElement>(null);
-  const sortableInstance = useRef<Sortable | null>(null);
 
   const handleDragStart = useCallback(() => {
     dispatch(setTreeDragging(true));
@@ -110,49 +97,7 @@ const TreeParent: React.FC<TreeParentProps> = (props) => {
     componentsRef.current = components;
   }, [components]);
 
-  useEffect(() => {
-    if (listElRef.current !== null) {
-      sortableInstance.current = Sortable.create(listElRef.current, {
-        dataIdAttr: 'data-xb-uuid',
-        animation: 0,
-        group: {
-          name: 'tree',
-          put: ['tree', 'list'],
-        },
-        ghostClass: styles.sortableGhost,
-        onAdd: handleDragAdd,
-        onStart: handleDragStart,
-        onEnd: handleDragEnd,
-      });
-    }
-  }, [layout, handleDragAdd, handleDragEnd, handleDragStart]);
-
-  if (['root', 'slot'].includes(node.nodeType)) {
-    return (
-      <ul
-        className={clsx(styles.treeParent, {
-          [styles.listEmpty]: children.length === 0,
-          [styles.slot]: node.nodeType === 'slot',
-        })}
-        ref={listElRef}
-        data-xb-uuid={node.uuid}
-      >
-        {children.map((child) => (
-          <TreeChild key={child.uuid} node={child} />
-        ))}
-      </ul>
-    );
-  } else if (node.children.length) {
-    return (
-      <ul
-        className={`${styles.slotList} ${children.length === 0 ? styles.listEmpty : ''}`}
-      >
-        {children.map((child) => (
-          <TreeChild key={child.uuid} node={child} />
-        ))}
-      </ul>
-    );
-  }
+  return { handleDragAdd, handleDragEnd, handleDragStart };
 };
 
-export default TreeParent;
+export default useSortable;

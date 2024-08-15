@@ -47,13 +47,13 @@ describe('UI a11y Scan', () => {
       },
     }, terminalLog);
   })
-  it('a11y scan open first left drawer', () => {
+  it('a11y scan open add menu', () => {
     cy.drupalLogin('xbUser', 'xbUser')
     cy.drupalRelativeURL('xb/node/1')
     cy.waitForElementInIframe('[data-xb-type="experience_builder:image"]')
     cy.get('[data-radix-menubar-content]').should('have.length', 0)
-    cy.get('[data-hover-overlay="addElement"]').click()
-    cy.get('[data-radix-menubar-content]').should('have.length', 1)
+    cy.clickAddMenu();
+    cy.get('[data-radix-menubar-content]').should('have.length', 2)
 
     cy.injectAxe();
     // @todo there are several a11y rules not being checked in order for the
@@ -67,15 +67,14 @@ describe('UI a11y Scan', () => {
       },
     }, terminalLog);
   })
-  it('a11y scan open secondary left drawer', () => {
+  it('a11y scan primary menu', () => {
     cy.drupalLogin('xbUser', 'xbUser')
     cy.drupalRelativeURL('xb/node/1')
     cy.waitForElementInIframe('[data-xb-type="experience_builder:image"]')
-    cy.get('[data-radix-menubar-content]').should('have.length', 0)
-    cy.get('[data-hover-overlay="addElement"]').click()
-    cy.get('[data-radix-menubar-content]').should('have.length', 1)
-    cy.get('[role="menuitem"][aria-expanded="false"]').contains('Default components').click()
-    cy.get('[data-radix-menubar-content]').should('have.length', 2)
+    cy.get('.primaryMenuContent').should('exist')
+    // Radix component has two of each button in the segmented control that it flips between.
+    cy.findAllByText('Layers').should('have.length', 2);
+    cy.findAllByText('Assets').should('have.length', 2);
 
     cy.injectAxe();
     // @todo there are several a11y rules not being checked in order for the
@@ -94,9 +93,7 @@ describe('UI a11y Scan', () => {
     cy.drupalRelativeURL('xb/node/1')
     cy.waitForElementInIframe('[data-xb-type="experience_builder:image"]')
     cy.get('[data-radix-menubar-content]').should('have.length', 0)
-    cy.get('[data-hover-overlay="addElement"]').click()
-    cy.get('[data-radix-menubar-content]').should('have.length', 1)
-    cy.get('[role="menuitem"][aria-expanded="false"]').contains('Default components').click()
+    cy.clickAddMenu();
     cy.get('[data-radix-menubar-content]').should('have.length', 2)
     cy.get('[class*="contextualPanel"]').should('not.exist')
     cy.getIframeBody().find('[data-component-id="experience_builder:my-hero"] h1')

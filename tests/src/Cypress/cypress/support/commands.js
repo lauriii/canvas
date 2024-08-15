@@ -346,3 +346,7 @@ Cypress.Commands.add('testInIframe', (selector, callback, iframeSelector = '[dat
 Cypress.Commands.add('scrollToMiddleOfIframe', () => {
   cy.contains('button', 'Debug: scroll to middle').click();
 });
+
+Cypress.Commands.add('clickAddMenu', () => {
+  cy.get('.TopbarRoot').find('#add-menu-button').click();
+});

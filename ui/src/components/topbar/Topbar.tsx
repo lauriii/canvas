@@ -1,33 +1,34 @@
 import * as Menubar from '@radix-ui/react-menubar';
-import { ChevronDownIcon } from '@radix-ui/react-icons';
 import styles from './Topbar.module.css';
 import clsx from 'clsx';
-import { Button, Flex, Theme } from '@radix-ui/themes';
+import { Button, Flex, Link, Theme } from '@radix-ui/themes';
 import UndoRedo from '@/components/UndoRedo';
-import DropIcon from '@assets/icons/topbar/drop.svg';
+import DropIcon from '@assets/icons/drop.svg';
 import { handleNonWorkingBtn } from '@/utils/function-utils';
+import AddMenu from '@/components/topbar/add/AddMenu';
+import { useAppSelector } from '@/app/hooks';
+import { selectActiveMenu, setActiveMenu } from '@/features/ui/addMenuSlice';
 
 const Topbar = () => {
+  const activeMenu = useAppSelector(selectActiveMenu);
+
   return (
     <Theme appearance="dark">
-      <Menubar.Root className={clsx('TopbarRoot', styles.TopbarRoot)}>
-        <Menubar.Menu>
-          <Menubar.Trigger
-            className={clsx('TopbarTrigger', styles.TopbarTrigger)}
-          >
+      <Menubar.Root
+        className={clsx('TopbarRoot', styles.TopbarRoot)}
+        value={activeMenu}
+        onValueChange={setActiveMenu}
+      >
+        <Flex gap="3" className={clsx(styles.buttonGroup)}>
+          <Link href="/" className={clsx(styles.link)}>
             <img
               src={DropIcon}
               alt="drop icon in topbar"
               className={styles.dropIcon}
             />
-            <ChevronDownIcon width={18} height={18} />
-          </Menubar.Trigger>
-          <Menubar.Portal>
-            <Menubar.Content className="TopbarContent" align="start">
-              {/* Add items here */}
-            </Menubar.Content>
-          </Menubar.Portal>
-        </Menubar.Menu>
+          </Link>
+          <AddMenu />
+        </Flex>
         <Menubar.Label className={clsx('TopbarLabel', styles.TopbarLabel)}>
           Site Name
         </Menubar.Label>

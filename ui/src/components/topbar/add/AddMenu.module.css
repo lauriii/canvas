@@ -21,6 +21,8 @@ button {
   position: relative;
   display: flex;
   align-items: center;
+  box-sizing: border-box; /* Ensures padding and border are included in the width */
+  width: 100%;
   user-select: none;
   color: var(--primary-menu-text-color);
   border-radius: 4px;
@@ -34,10 +36,6 @@ button {
   &:hover {
     background-color: var(--hovered-menu-item-color);
   }
-}
-
-.MenubarSubTrigger {
-  width: var(--primary-menu-subcontent-width);
 }
 
 .MenubarTrigger[data-state="open"],
@@ -58,7 +56,6 @@ button {
 .MenubarContent {
   position: fixed;
   top: var(--topbar-height);
-  left: var(--primary-menu-width);
   width: var(--primary-menu-content-width);
   height: 100vh;
   padding: 5px;
@@ -72,7 +69,7 @@ button {
 .MenubarSubContent {
   position: fixed;
   top: var(--topbar-height);
-  left: calc(var(--primary-menu-width) + var(--primary-menu-content-width));
+  left: var(--primary-menu-content-width);
   width: var(--primary-menu-subcontent-width);
   height: 100vh;
   padding: 5px;
@@ -80,10 +77,6 @@ button {
   border-right: 1px solid var(--primary-menu-border-color);
   background-color: white;
   will-change: transform, opacity;
-}
-
-.MenubarItem.inset {
-  padding-left: 20px;
 }
 
 .MenubarItem[data-highlighted] {
@@ -132,9 +125,18 @@ button {
   font-weight: 700;
 }
 
-.overlayForHover {
-  position: absolute;
-  z-index: 1;
-  width: 53px;
-  height: 54px;
+.plusIconWrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  text-align: center;
+  color: white;
+  border-radius: 4px;
+  background-color: var(--blue-9);
+}
+
+.plusIconWrapper:hover {
+  background-color: var(--blue-10);
 }

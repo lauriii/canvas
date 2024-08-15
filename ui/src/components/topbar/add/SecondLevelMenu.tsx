@@ -1,11 +1,10 @@
 import * as Menubar from '@radix-ui/react-menubar';
 import clsx from 'clsx';
-import styles from '@/components/sidebar/primary/PrimaryMenubar.module.css';
+import styles from '@/components/topbar/add/AddMenu.module.css';
 import type { ReactElement } from 'react';
-import SecondLevelMenuTrigger from '@/components/sidebar/primary/SecondLevelMenuTrigger';
+import SecondLevelMenuTrigger from '@/components/topbar/add/SecondLevelMenuTrigger';
 import { useAppSelector } from '@/app/hooks';
-import { selectIsHidden } from '@/features/ui/primaryMenuSlice';
-import SearchPlaceholder from '@/components/sidebar/primary/SearchPlaceholder';
+import { selectIsHidden } from '@/features/ui/addMenuSlice';
 
 const SecondLevelMenu = (props: {
   submenuTitle: string;
@@ -28,7 +27,6 @@ const SecondLevelMenu = (props: {
           className={clsx('MenubarSubContent', styles.MenubarSubContent)}
           style={{ display: isHidden ? 'none' : 'initial' }}
         >
-          <SearchPlaceholder />
           {children}
         </Menubar.Content>
       </Menubar.Portal>

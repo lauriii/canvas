@@ -2,34 +2,36 @@ import * as Menubar from '@radix-ui/react-menubar';
 import {
   selectActiveSecondLevelMenu,
   setActiveSecondLevelMenu,
-} from '@/features/ui/primaryMenuSlice';
-import SecondLevelMenu from '@/components/sidebar/primary/SecondLevelMenu';
-import ComponentIcon from '@assets/icons/sidebar/primary/component.svg';
+  ADD_MENU_ITEMS,
+} from '@/features/ui/addMenuSlice';
+import SecondLevelMenu from '@/components/topbar/add/SecondLevelMenu';
+import ComponentIcon from '@assets/icons/component.svg';
 import List from '@/components/list/List';
-import SectionIcon from '@assets/icons/sidebar/primary/section.svg';
+import SectionIcon from '@assets/icons/section.svg';
 import { useAppSelector } from '@/app/hooks';
-import { PRIMARY_MENU_ITEMS } from '@/components/sidebar/primary/PrimaryMenubar';
+import '@/global.css';
 
 const SecondLevelMenubar = () => {
   const activeMenu = useAppSelector(selectActiveSecondLevelMenu);
+
   return (
     <Menubar.Root value={activeMenu} onValueChange={setActiveSecondLevelMenu}>
       <SecondLevelMenu
-        value={PRIMARY_MENU_ITEMS.DEFAULT_COMPONENTS_ID}
+        value={ADD_MENU_ITEMS.DEFAULT_COMPONENTS_ID}
         submenuTitle="Default components"
         leftIcon={ComponentIcon}
       >
         <List />
       </SecondLevelMenu>
       <SecondLevelMenu
-        value={PRIMARY_MENU_ITEMS.CUSTOM_COMPONENTS_ID}
+        value={ADD_MENU_ITEMS.CUSTOM_COMPONENTS_ID}
         submenuTitle="Custom components"
         leftIcon={ComponentIcon}
       >
         <h4>Custom components placeholder</h4>
       </SecondLevelMenu>
       <SecondLevelMenu
-        value={PRIMARY_MENU_ITEMS.SECTION_ID}
+        value={ADD_MENU_ITEMS.SECTION_ID}
         submenuTitle="Section templates"
         leftIcon={SectionIcon}
       >

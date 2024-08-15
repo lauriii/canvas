@@ -61,10 +61,9 @@ describe('General Experience Builder', {testIsolation: false}, () => {
       })
 
     cy.get('[data-radix-menubar-content]').should('have.length', 0, 'There is no menubar yet.')
-    cy.get('[data-hover-overlay="addElement"]').click()
-    cy.get('[data-radix-menubar-content]').should('have.length', 1, 'Menubar is present after clicking `[data-radix-menubar-content]`')
-    cy.get('[role="menuitem"][aria-expanded="false"]').contains('Default components').click()
-    cy.get('[data-radix-menubar-content]').should('have.length', 2)
+    cy.clickAddMenu();
+    cy.get('[data-radix-menubar-content]').should('have.length', 2, 'Menubar is present after clicking `[data-radix-menubar-content]`')
+    cy.get('[role="menuitem"][aria-expanded="true"]').contains('Default components');
 
     cy.get('.listContainer > div').contains('Basic').should(($basicListLabel) => {
       const $listed = $basicListLabel.parent().find('[data-xb-uuid]');
@@ -255,11 +254,9 @@ describe('General Experience Builder', {testIsolation: false}, () => {
     cy.get('iframe[data-xb-preview]').should('exist')
     cy.waitForElementInIframe('[data-xb-type="experience_builder:image"]')
     cy.get('[data-radix-menubar-content]').should('have.length', 0, 'There is no menubar yet.')
-    cy.get('[data-hover-overlay="addElement"]').click()
-    cy.get('[data-radix-menubar-content]').should('have.length', 1, 'Menubar is present after clicking `[data-radix-menubar-content]`')
-    cy.get('[role="menuitem"][aria-expanded="false"]').contains('Default components').click()
-    cy.get('[data-radix-menubar-content]').should('have.length', 2)
-
+    cy.clickAddMenu();
+    cy.get('[data-radix-menubar-content]').should('have.length', 2, 'Menubar is present after clicking `[data-radix-menubar-content]`')
+    cy.get('[role="menuitem"][aria-expanded="true"]').contains('Default components');
 
     const previewSelect = `[data-radix-popper-content-wrapper] > .ComponentPreviewContent`
     const imageSelect = '.MenubarSubContent [data-xb-uuid="experience_builder:image"]'

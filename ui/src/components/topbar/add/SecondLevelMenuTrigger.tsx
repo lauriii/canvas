@@ -1,13 +1,12 @@
-import { preventHover } from '@/components/sidebar/primary/PrimaryMenubar';
+import { preventHover } from '@/utils/function-utils';
 import * as Menubar from '@radix-ui/react-menubar';
 import clsx from 'clsx';
-import styles from '@/components/sidebar/primary/PrimaryMenubar.module.css';
+import styles from '@/components/topbar/add/AddMenu.module.css';
 import { ChevronRightIcon } from '@radix-ui/react-icons';
 import {
   selectActiveSecondLevelMenu,
   setActiveSecondLevelMenu,
-  setInactiveSecondLevelMenu,
-} from '@/features/ui/primaryMenuSlice';
+} from '@/features/ui/addMenuSlice';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 
 interface SecondLevelMenuTriggerInterfaceProps {
@@ -25,9 +24,7 @@ const SecondLevelMenuTrigger = ({
   const activeSubmenu = useAppSelector(selectActiveSecondLevelMenu);
 
   const onClickHandler = () => {
-    if (activeSubmenu === value) {
-      dispatch(setInactiveSecondLevelMenu());
-    } else {
+    if (activeSubmenu !== value) {
       dispatch(setActiveSecondLevelMenu(value));
     }
   };

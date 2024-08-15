@@ -4,11 +4,11 @@ import {
   enableClickToInsert,
   NodeType,
   setActiveSecondLevelMenu,
-} from '@/features/ui/primaryMenuSlice';
+  ADD_MENU_ITEMS,
+} from '@/features/ui/addMenuSlice';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { isChildNode } from '@/features/layout/layoutUtils';
 import { selectLayout } from '@/features/layout/layoutModelSlice';
-import { PRIMARY_MENU_ITEMS } from '@/components/sidebar/primary/PrimaryMenubar';
 
 const AddButton = ({ elementId }: { elementId: string }) => {
   const dispatch = useAppDispatch();
@@ -19,11 +19,9 @@ const AddButton = ({ elementId }: { elementId: string }) => {
 
   const onClickHandler = () => {
     if (nodeType === NodeType.SECTION) {
-      dispatch(setActiveSecondLevelMenu(PRIMARY_MENU_ITEMS.SECTION_ID));
+      dispatch(setActiveSecondLevelMenu(ADD_MENU_ITEMS.SECTION_ID));
     } else
-      dispatch(
-        setActiveSecondLevelMenu(PRIMARY_MENU_ITEMS.DEFAULT_COMPONENTS_ID),
-      );
+      dispatch(setActiveSecondLevelMenu(ADD_MENU_ITEMS.DEFAULT_COMPONENTS_ID));
     dispatch(
       enableClickToInsert({
         isEnabled: true,

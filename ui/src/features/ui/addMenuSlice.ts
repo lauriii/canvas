@@ -1,8 +1,7 @@
 import { createAppSlice } from '@/app/createAppSlice';
 import type { PayloadAction } from '@reduxjs/toolkit';
-import { PRIMARY_MENU_ITEMS } from '@/components/sidebar/primary/PrimaryMenubar';
 
-export interface PrimaryMenuState {
+export interface AddMenuState {
   activeMenu: string;
   isHidden: boolean;
   activeSecondLevelMenu: string;
@@ -22,7 +21,7 @@ export enum NodeType {
   UNDEFINED = 'undefined',
 }
 
-const initialState: PrimaryMenuState = {
+const initialState: AddMenuState = {
   activeMenu: '',
   isHidden: false,
   activeSecondLevelMenu: '',
@@ -33,8 +32,16 @@ const initialState: PrimaryMenuState = {
   },
 };
 
-export const primaryMenuSlice = createAppSlice({
-  name: 'primaryMenu',
+export const ADD_MENU_ITEMS = {
+  ADD_ID: 'add',
+  // Second level items
+  DEFAULT_COMPONENTS_ID: 'default',
+  CUSTOM_COMPONENTS_ID: 'custom',
+  SECTION_ID: 'section',
+};
+
+export const addMenuSlice = createAppSlice({
+  name: 'addMenu',
   // `createSlice` will infer the state type from the `initialState` argument
   initialState,
   // The `reducers` field lets us define reducers and generate associated actions
@@ -53,13 +60,10 @@ export const primaryMenuSlice = createAppSlice({
     }),
     setActiveSecondLevelMenu: create.reducer(
       (state, action: PayloadAction<string>) => {
-        state.activeMenu = PRIMARY_MENU_ITEMS.ADD_ELEMENT_ID;
+        state.activeMenu = ADD_MENU_ITEMS.ADD_ID;
         state.activeSecondLevelMenu = action.payload;
       },
     ),
-    setInactiveSecondLevelMenu: create.reducer((state) => {
-      state.activeSecondLevelMenu = '';
-    }),
     enableClickToInsert: create.reducer(
       (state, action: PayloadAction<ClickToInsertState>) => {
         state.clickToInsertState.isEnabled = action.payload.isEnabled;
@@ -73,17 +77,17 @@ export const primaryMenuSlice = createAppSlice({
     }),
   }),
   selectors: {
-    selectActiveMenu: (primaryMenu): string => {
-      return primaryMenu.activeMenu;
+    selectActiveMenu: (addMenu): string => {
+      return addMenu.activeMenu;
     },
-    selectIsHidden: (primaryMenu): boolean => {
-      return primaryMenu.isHidden;
+    selectIsHidden: (addMenu): boolean => {
+      return addMenu.isHidden;
     },
-    selectActiveSecondLevelMenu: (primaryMenu): string => {
-      return primaryMenu.activeSecondLevelMenu;
+    selectActiveSecondLevelMenu: (addMenu): string => {
+      return addMenu.activeSecondLevelMenu;
     },
-    selectClickToInsertState: (primaryMenu): ClickToInsertState => {
-      return primaryMenu.clickToInsertState;
+    selectClickToInsertState: (addMenu): ClickToInsertState => {
+      return addMenu.clickToInsertState;
     },
   },
 });
@@ -94,10 +98,9 @@ export const {
   setInactive,
   setHidden,
   setActiveSecondLevelMenu,
-  setInactiveSecondLevelMenu,
   enableClickToInsert,
   disableClickToInsert,
-} = primaryMenuSlice.actions;
+} = addMenuSlice.actions;
 
 // Selectors returned by `slice.selectors` take the root state as their first argument.
 export const {
@@ -105,4 +108,4 @@ export const {
   selectIsHidden,
   selectActiveSecondLevelMenu,
   selectClickToInsertState,
-} = primaryMenuSlice.selectors;
+} = addMenuSlice.selectors;

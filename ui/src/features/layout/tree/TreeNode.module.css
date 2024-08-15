@@ -1,0 +1,19 @@
+.selected {
+  border: var(--blue-9) 1px solid;
+}
+
+.hovered {
+  background-color: #f0f0f3;
+}
+
+.treeChildIcon {
+  margin-right: 10px;
+  color: var(--blue-9);
+}
+
+.treeNode {
+  width: 100%;
+  padding: 0.5rem;
+  cursor: pointer;
+  border-radius: 0.25rem;
+}
