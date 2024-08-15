@@ -1,4 +1,5 @@
 import React from 'react';
+import { useErrorBoundary } from 'react-error-boundary';
 import { useGetDummyPropsFormQuery } from '@/services/dummyPropsForm';
 import hyperscriptify from '@/local_packages/hyperscriptify';
 import twigToJSXComponentMap from '@/components/form/twig-to-jsx-component-map.js';
@@ -36,11 +37,17 @@ const DummyPropsEditFormRenderer: React.FC<DummyPropsEditFormRendererProps> = (
   props,
 ) => {
   const { dynamicStaticCardQueryString } = props;
-  const { data } = useGetDummyPropsFormQuery(dynamicStaticCardQueryString);
+  const { data, error } = useGetDummyPropsFormQuery(
+    dynamicStaticCardQueryString,
+  );
+  const { showBoundary } = useErrorBoundary();
   const [jsxFormContent, setJsxFormContent] = useState(null);
   const formRef = useRef(null);
 
   useEffect(() => {
+    if (error) {
+      showBoundary(error);
+    }
     if (!data) {
       return;
     }
@@ -62,7 +69,7 @@ const DummyPropsEditFormRenderer: React.FC<DummyPropsEditFormRendererProps> = (
           )
         : null,
     );
-  }, [data]);
+  }, [data, error, showBoundary]);
 
   // Any time this form changes, process it through Drupal behaviors the same
   // way it would be if it were added to the DOM by Drupal AJAX. This allows
@@ -86,13 +93,17 @@ const DummyPropsEditFormRenderer: React.FC<DummyPropsEditFormRendererProps> = (
 const DummyPropsEditForm: React.FC<DummyPropsEditFormProps> = () => {
   const model = useAppSelector(selectModel);
   const layout = useAppSelector(selectLayout);
-  const { data: components } = useGetComponentsQuery();
+  const { data: components, error } = useGetComponentsQuery();
+  const { showBoundary } = useErrorBoundary();
   const selectedComponent = useAppSelector(selectSelectedComponent);
 
   const [dynamicStaticCardQueryString, setDynamicStaticCardQueryString] =
     useState('');
 
   useEffect(() => {
+    if (error) {
+      showBoundary(error);
+    }
     if (!components || !selectedComponent) {
       return;
     }
@@ -168,7 +179,7 @@ const DummyPropsEditForm: React.FC<DummyPropsEditFormProps> = () => {
       selected: selectedComponent,
     });
     setDynamicStaticCardQueryString(`?${query.toString()}`);
-  }, [components, selectedComponent, layout, model]);
+  }, [components, error, showBoundary, selectedComponent, layout, model]);
 
   return (
     dynamicStaticCardQueryString && (

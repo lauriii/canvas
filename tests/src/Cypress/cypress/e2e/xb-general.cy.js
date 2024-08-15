@@ -403,6 +403,30 @@ describe('General Experience Builder', {testIsolation: false}, () => {
     cy.url().should('contain', `/xb/node/1/component/${uuid}`)
   })
 
+  it('Handles and resets errors', () => {
+    cy.drupalLogin('xbUser', 'xbUser');
+
+    // Intercept the request to the preview endpoint and return a 418 status
+    // code. This will cause the error boundary to display an error message.
+    // Note the times: 1 option, which ensures the request is only intercepted
+    // once.
+    cy.intercept(
+      { url: '**/api/preview/node/1', times: 1 },
+      { statusCode: 418 }
+    );
+    cy.drupalRelativeURL('xb/node/1');
+
+    cy.findByTestId('error-alert')
+      .should('exist')
+      .invoke('text')
+      .should('include', 'An unexpected error has occurred');
+
+    // Click the reset button to clear the error, and confirm the error message
+    // is no longer present.
+    cy.findByTestId('error-reset').click();
+    cy.contains('An unexpected error has occurred').should('not.exist');
+  });
+
   it('has the expected performance', () => {
     cy.drupalLogin('xbUser', 'xbUser')
     cy.intercept('POST', '**/api/preview/node/1').as('getPreview')

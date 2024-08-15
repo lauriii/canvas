@@ -1,6 +1,7 @@
 import ContextualPanel from '@/components/panel/ContextualPanel';
 import { defer, createBrowserRouter, RouterProvider } from 'react-router-dom';
 import App from '@/app/App';
+import { RouteErrorBoundary } from '@/components/error/ErrorBoundary';
 
 const getHTML = async (componentId: string) => {
   return new Promise((resolve) => {
@@ -20,6 +21,7 @@ const AppRoutes: React.FC<AppRoutesInterface> = ({ basePath }) => {
       {
         path: '',
         element: <App />,
+        errorElement: <RouteErrorBoundary />,
         children: [
           {
             path: '/component/:componentId',

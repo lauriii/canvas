@@ -1,6 +1,7 @@
 import type React from 'react';
 
 import { useEffect, useState } from 'react';
+import { useErrorBoundary } from 'react-error-boundary';
 import { useAppSelector } from '@/app/hooks';
 
 import {
@@ -33,6 +34,7 @@ const Preview: React.FC<PreviewProps> = () => {
   const model = useAppSelector(selectModel);
   const [frameSrcDoc, setFrameSrcDoc] = useState('');
   const [postPreview, { isLoading }] = usePostPreviewMutation();
+  const { showBoundary } = useErrorBoundary();
 
   useEffect(() => {
     const sendPreviewRequest = async () => {
@@ -42,14 +44,13 @@ const Preview: React.FC<PreviewProps> = () => {
         // Handle the successful response here
         setFrameSrcDoc(result.html);
       } catch (err) {
-        // Handle the error here
-        console.error(err); // Do something with the error
+        showBoundary(err);
       }
     };
     if (initialized === true) {
       sendPreviewRequest().then(() => {});
     }
-  }, [layout, model, postPreview, initialized]);
+  }, [layout, model, postPreview, initialized, showBoundary]);
 
   return (
     <>

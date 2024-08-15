@@ -5,6 +5,7 @@ import AppRoutes from '@/app/AppRoutes';
 import { makeStore } from '@/app/store';
 import '@radix-ui/themes/styles.css';
 import { Theme } from '@radix-ui/themes';
+import ErrorBoundary from '@/components/error/ErrorBoundary';
 import type { AppConfiguration } from '@/features/configuration/configurationSlice';
 import './index.css';
 
@@ -58,9 +59,11 @@ if (container) {
           panelBackground="solid"
           appearance="light"
         >
-          <Provider store={makeStore({ configuration: appConfiguration })}>
-            <AppRoutes basePath={routerRoot} />
-          </Provider>
+          <ErrorBoundary variant="page">
+            <Provider store={makeStore({ configuration: appConfiguration })}>
+              <AppRoutes basePath={routerRoot} />
+            </Provider>
+          </ErrorBoundary>
         </Theme>
       </React.StrictMode>,
     );

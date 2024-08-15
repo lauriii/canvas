@@ -5,6 +5,7 @@ import clsx from 'clsx';
 import Preview from '@/features/layout/preview/Preview';
 import { useHotkeys } from 'react-hotkeys-hook';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
+import ErrorBoundary from '@/components/error/ErrorBoundary';
 import {
   selectCanvasViewPort,
   canvasViewPortZoomIn,
@@ -251,7 +252,12 @@ const Canvas = () => {
         }}
       >
         <div className={styles.previewsContainer} ref={previewsContainerRef}>
-          <Preview />
+          <ErrorBoundary
+            title="An unexpected error has occurred while rendering preview."
+            variant="alert"
+          >
+            <Preview />
+          </ErrorBoundary>
         </div>
       </div>
     </div>
