@@ -5,6 +5,7 @@ props:
   required:
     - image
   properties:
+    # @todo Consider pulling all these props up a level, and move to components/simple/image: https://www.drupal.org/project/experience_builder/issues/3468944
     image:
       title: 'Image'
       $ref: json-schema-definitions://experience_builder.module/image
@@ -15,3 +16,4 @@ props:
           alt: 'Boring placeholder'
           width: 600
           height: 400
+    # @todo Consider adding an `attributes` prop in https://www.drupal.org/project/experience_builder/issues/3468944

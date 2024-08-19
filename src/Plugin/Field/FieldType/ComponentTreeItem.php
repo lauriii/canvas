@@ -31,7 +31,6 @@ use Drupal\experience_builder\PropSource\PropSourceBase;
   id: "component_tree",
   label: new TranslatableMarkup("Experience Builder"),
   description: new TranslatableMarkup("Field to use Experience Builder for presenting these entities"),
-  default_widget: "experience_builder_two_terrible_text_areas",
   default_formatter: "experience_builder_naive_render_sdc_tree",
   // list_class: ComponentItemList::class,
   constraints: [

@@ -1,3 +1,4 @@
+# @todo Evaluate updating all tests + config from using components/image/image.component.yml to use this implementation in https://www.drupal.org/project/experience_builder/issues/3468944
 '$schema': 'https://git.drupalcode.org/project/sdc/-/raw/1.x/src/metadata.schema.json'
 name: Image
 status: stable

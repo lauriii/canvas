@@ -16,10 +16,6 @@ function experience_builder_install(): void {
   if (NodeType::load('article')) {
     \Drupal::service('entity_display.repository')
       ->getFormDisplay('node', 'article')
-      ->setComponent('field_xb_demo', [
-        'type' => 'experience_builder_two_terrible_text_areas',
-        'weight' => 1,
-      ])
       ->setComponent('field_hero', [
         'type' => 'image_image',
         'weight' => 1,
