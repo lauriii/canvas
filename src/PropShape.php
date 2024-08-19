@@ -125,7 +125,7 @@ final class PropShape {
     return $normalized_prop_schema;
   }
 
-  public function findFieldTypeStorage(): ?StorablePropShape {
+  public function getStorage(): ?StorablePropShape {
     // The default storable prop shape, if any. Prefer the original prop shape,
     // which may contain `$ref`, and allows hook_storage_prop_shape_alter()
     // implementations to suggest a field type based on the
@@ -134,10 +134,10 @@ final class PropShape {
     // altogether. Try to find a field type storage again, but then the decision
     // relies solely on the final (fully resolved) JSON schema.
     $json_schema_type = SdcPropJsonSchemaType::from($this->schema['type']);
-    $storable_prop_shape = $json_schema_type->findFieldTypeStorage($this);
+    $storable_prop_shape = SdcPropJsonSchemaType::from($this->schema['type'])->computeStorablePropShape($this);
     if ($storable_prop_shape === NULL) {
       $resolved_prop_shape = PropShape::normalize($this->resolvedSchema);
-      $storable_prop_shape = $json_schema_type->findFieldTypeStorage($resolved_prop_shape);
+      $storable_prop_shape = $json_schema_type->computeStorablePropShape($resolved_prop_shape);
     }
 
     $alterable = $storable_prop_shape

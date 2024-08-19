@@ -118,7 +118,7 @@ final class SdcController extends ControllerBase {
       $keyed_choices = [];
       foreach (PropShape::getComponentProps($component_plugin) as $component_prop_expression => $prop_shape) {
         // @todo Remove this fallback logic in https://www.drupal.org/project/experience_builder/issues/3463999, and rely solely on what is defined in the Component config entity. This non-ideal issue merging order was chosen to allow https://www.drupal.org/project/experience_builder/issues/3463583 to be worked on sooner.
-        $storable_prop_shape = $prop_shape->findFieldTypeStorage();
+        $storable_prop_shape = $prop_shape->getStorage();
         // @todo Remove this once every SDC prop shape can be stored.
         // @todo Create a status report that lists which SDC props are not storable.
         if (!$storable_prop_shape) {

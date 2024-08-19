@@ -122,7 +122,7 @@ enum JsonSchemaStringFormat: string {
    *
    * @see \Drupal\experience_builder\PropSource\StaticPropSource
    */
-  public function findFieldTypeStorage(PropShape $shape): ?StorablePropShape {
+  public function computeStorablePropShape(PropShape $shape): ?StorablePropShape {
     return match($this) {
       // Built-in formats: dates and times.
       // @see https://json-schema.org/understanding-json-schema/reference/string#dates-and-times

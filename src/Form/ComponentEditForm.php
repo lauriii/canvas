@@ -161,7 +161,7 @@ class ComponentEditForm extends EntityForm implements ContainerInjectionInterfac
           ),
         ];
 
-        $storable_prop_shape = $prop_shapes[$component_prop_expression]->findFieldTypeStorage();
+        $storable_prop_shape = $prop_shapes[$component_prop_expression]->getStorage();
         $widget_type_options = [];
         $field_type_options = [];
         $widget_forms = [];

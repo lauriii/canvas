@@ -18,8 +18,8 @@ use Drupal\experience_builder\PropExpressions\StructuredData\StructuredDataPropE
  * Since instantiated components in:
  * - content type templates
  * - content entities
- * must be able to map values from structured data (entity field props) into
- * component props, and many APIs and layers are involved in doing this:
+ * must be able to map values from structured data (field props) into component
+ * props, and many APIs and layers are involved in doing this:
  * - correctly
  * - securely
  * - performant

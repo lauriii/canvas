@@ -423,7 +423,7 @@ class PropShapeRepositoryTest extends KernelTestBase {
       assert($prop_shape instanceof PropShape);
       // If this prop shape is not storable, then fall back to the PropShape
       // object, to make it easy to assert which shapes are storable vs not.
-      $unique_storable_prop_shapes[$prop_shape->uniquePropSchemaKey()] = $prop_shape->findFieldTypeStorage() ?? $prop_shape;
+      $unique_storable_prop_shapes[$prop_shape->uniquePropSchemaKey()] = $prop_shape->getStorage() ?? $prop_shape;
     }
 
     $unstorable_prop_shapes = array_filter($unique_storable_prop_shapes, fn ($s) => $s instanceof PropShape);

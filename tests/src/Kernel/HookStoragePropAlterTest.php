@@ -8,7 +8,7 @@ use Drupal\experience_builder\PropExpressions\StructuredData\FieldTypePropExpres
 use Drupal\experience_builder\StorablePropShape;
 
 /**
- * @covers \Drupal\experience_builder\PropShape::findFieldTypeStorage()
+ * @covers \Drupal\experience_builder\PropShape::getStorage()
  */
 class HookStoragePropAlterTest extends PropShapeRepositoryTest {
 

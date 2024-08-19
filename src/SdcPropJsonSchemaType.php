@@ -145,7 +145,7 @@ enum SdcPropJsonSchemaType : string {
       },
 
       SdcPropJsonSchemaType::OBJECT, SdcPropJsonSchemaType::ARRAY => (function () {
-        throw new \LogicException('@see ::findFieldTypeProps() and ::recurseJsonSchema()');
+        throw new \LogicException('@see ::computeStorablePropShape() and ::recurseJsonSchema()');
       })(),
     };
   }
@@ -175,7 +175,7 @@ enum SdcPropJsonSchemaType : string {
    *
    * @see \Drupal\experience_builder\PropSource\StaticPropSource
    */
-  public function findFieldTypeStorage(PropShape $shape): ?StorablePropShape {
+  public function computeStorablePropShape(PropShape $shape): ?StorablePropShape {
     $schema = $shape->schema;
     return match ($this) {
       // @see \Drupal\Core\Field\Plugin\Field\FieldType\BooleanItem
@@ -193,7 +193,7 @@ enum SdcPropJsonSchemaType : string {
         ]),
         // @todo subclass \Drupal\Core\Field\Plugin\Field\FieldType\StringItem to allow for a "pattern" setting + create subclass of \Drupal\Core\Field\Plugin\Field\FieldWidget\StringTextfieldWidget to pass on that pattern setting  ⚠️
         array_key_exists('pattern', $schema) => NULL,
-        array_key_exists('format', $schema) => JsonSchemaStringFormat::from($schema['format'])->findFieldTypeStorage($shape),
+        array_key_exists('format', $schema) => JsonSchemaStringFormat::from($schema['format'])->computeStorablePropShape($shape),
         // @see \Drupal\Core\Field\Plugin\Field\FieldType\StringItem
         // @todo Support `minLength`.  ⚠️
         array_key_exists('maxLength', $schema) => new StorablePropShape(shape: $shape, fieldTypeProp: new FieldTypePropExpression('string', 'value'), fieldWidget: 'string_textfield', fieldStorageSettings: [

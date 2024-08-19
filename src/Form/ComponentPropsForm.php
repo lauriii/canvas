@@ -81,7 +81,7 @@ final class ComponentPropsForm extends FormBase implements ContainerInjectionInt
         else {
           $component_prop_expression = new ComponentPropExpression($component_machine_name, $sdc_prop_name);
           $prop_shape = $prop_shapes[(string) $component_prop_expression];
-          $storable_prop_shape = $prop_shape->findFieldTypeStorage();
+          $storable_prop_shape = $prop_shape->getStorage();
           if ($storable_prop_shape !== NULL && $source->getSourceType() === $storable_prop_shape->toStaticPropSource()->getSourceType()) {
             $field_widget_plugin_id = $storable_prop_shape->fieldWidget;
           }

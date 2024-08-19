@@ -195,7 +195,7 @@ final class Component extends ConfigEntityBase {
     if ($this->defaults['props'][$prop_name]['field_type'] === NULL) {
       $component_prop_expression = new ComponentPropExpression($component->getPluginId(), $prop_name);
       $prop_shape = PropShape::getComponentProps($component)[(string) $component_prop_expression];
-      $storable_prop_shape = $prop_shape->findFieldTypeStorage();
+      $storable_prop_shape = $prop_shape->getStorage();
       if ($storable_prop_shape === NULL) {
         return NULL;
       }

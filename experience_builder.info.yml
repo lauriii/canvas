@@ -20,22 +20,22 @@ dependencies:
   # To support datetime prop shapes.
   # @see https://json-schema.org/understanding-json-schema/reference/string#dates-and-times
   # @see \Drupal\datetime\Plugin\Field\FieldType\DateTimeItem
-  # @see \Drupal\experience_builder\JsonSchemaInterpreter\JsonSchemaStringFormat::findFieldTypeStorage()
+  # @see \Drupal\experience_builder\JsonSchemaInterpreter\JsonSchemaStringFormat::computeStorablePropShape()
   - drupal:datetime
   # To support the json-schema-definitions://experience_builder.module/image prop shape.
   # @see \Drupal\image\Plugin\Field\FieldType\ImageItem
-  # @see \Drupal\experience_builder\SdcPropJsonSchemaType::findFieldTypeStorage()
+  # @see \Drupal\experience_builder\SdcPropJsonSchemaType::computeStorablePropShape()
   - drupal:image
   # To support prop shapes using `enum`.
   # @see \Drupal\options\Plugin\Field\FieldType\ListFloatItem
   # @see \Drupal\options\Plugin\Field\FieldType\ListIntegerItem
   # @see \Drupal\options\Plugin\Field\FieldType\ListStringItem
-  # @see \Drupal\experience_builder\SdcPropJsonSchemaType::findFieldTypeStorage()
+  # @see \Drupal\experience_builder\SdcPropJsonSchemaType::computeStorablePropShape()
   - drupal:options
   # To support URI reference prop shapes.
   # @see https://json-schema.org/understanding-json-schema/reference/string#resource-identifiers
   # @see \Drupal\path\Plugin\Field\FieldType\PathItem
-  # @see \Drupal\experience_builder\JsonSchemaInterpreter\JsonSchemaStringFormat::findFieldTypeStorage()
+  # @see \Drupal\experience_builder\JsonSchemaInterpreter\JsonSchemaStringFormat::computeStorablePropShape()
   - drupal:path
 test_dependencies:
   # For the `cl_editorial:component-card` SDC that we're using in tests.

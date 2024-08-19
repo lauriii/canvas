@@ -99,7 +99,7 @@ class TwoTerribleTextAreasWidget extends WidgetBase {
         $component_plugin_instance = $component_plugin_manager->createInstance($component_plugin_id);
         $prop_shapes = PropShape::getComponentProps($component_plugin_instance);
         // @phpstan-ignore-next-line
-        $recommended_static_prop_source_expression = $prop_shapes[(string) $cpe]->findFieldTypeStorage()->fieldTypeProp;
+        $recommended_static_prop_source_expression = $prop_shapes[(string) $cpe]->getStorage()->fieldTypeProp;
         if (!in_array($recommended_static_prop_source_expression, $static_choices, TRUE)) {
           $static_choices['Recommended'] = $recommended_static_prop_source_expression;
         }
@@ -293,7 +293,7 @@ class TwoTerribleTextAreasWidget extends WidgetBase {
         else {
           $component_prop_expression = new ComponentPropExpression($component_id, $edited_sdc_prop_name);
           $prop_shape = $prop_shapes[(string) $component_prop_expression];
-          $storable_prop_shape = $prop_shape->findFieldTypeStorage();
+          $storable_prop_shape = $prop_shape->getStorage();
           if ($storable_prop_shape !== NULL && $source->getSourceType() === $storable_prop_shape->toStaticPropSource()->getSourceType()) {
             $field_widget_plugin_id = $storable_prop_shape->fieldWidget;
           }
