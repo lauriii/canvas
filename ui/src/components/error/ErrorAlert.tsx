@@ -16,7 +16,7 @@ const ErrorAlert: React.FC<{
   resetButtonText = DEFAULT_RESET_BUTTON_TEXT,
 }) => (
   <AlertDialog.Root defaultOpen>
-    <AlertDialog.Content data-testid="error-alert" maxWidth="520px">
+    <AlertDialog.Content data-testid="xb-error-alert" maxWidth="520px">
       <AlertDialog.Title>
         <Flex align="center" gap="3">
           <Flex flexShrink="0" flexGrow="0" align="center">
@@ -32,7 +32,7 @@ const ErrorAlert: React.FC<{
         <Box mt="4">
           <AlertDialog.Action>
             <Button
-              data-testid="error-reset"
+              data-testid="xb-error-reset"
               variant="solid"
               onClick={resetErrorBoundary}
             >

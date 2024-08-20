@@ -15,7 +15,7 @@ const ErrorCard: React.FC<{
   resetErrorBoundary,
   resetButtonText = DEFAULT_RESET_BUTTON_TEXT,
 }) => (
-  <Box data-testid="error-card" maxWidth="520px" m="4">
+  <Box data-testid="xb-error-card" maxWidth="520px" m="4">
     <Card role="alert" variant="surface">
       <Flex p="4" direction="column" gap="4" align="start">
         <Flex align="center" gap="3">
@@ -28,7 +28,7 @@ const ErrorCard: React.FC<{
         </Flex>
         {error && <Text as="p">{error}</Text>}
         {resetErrorBoundary && (
-          <Button data-testid="error-reset" onClick={resetErrorBoundary}>
+          <Button data-testid="xb-error-reset" onClick={resetErrorBoundary}>
             <ReloadIcon />
             {resetButtonText}
           </Button>

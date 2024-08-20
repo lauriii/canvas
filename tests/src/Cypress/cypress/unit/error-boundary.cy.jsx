@@ -82,7 +82,7 @@ describe('ErrorBoundary handles errors', () => {
         <TroubleMaker shouldThrow={true} />
       </ErrorBoundary>
     );
-    cy.findByTestId('error-page')
+    cy.findByTestId('xb-error-page')
       .should('exist')
       .invoke('text')
       .should('include', 'An unexpected error has occurred.')
@@ -94,7 +94,7 @@ describe('ErrorBoundary handles errors', () => {
         <TroubleMaker shouldThrow={true} />
       </ErrorBoundary>
     );
-    cy.findByTestId('error-card')
+    cy.findByTestId('xb-error-card')
       .should('exist')
       .invoke('text')
       .should('include', 'An unexpected error has occurred.')
@@ -106,7 +106,7 @@ describe('ErrorBoundary handles errors', () => {
         <TroubleMaker shouldThrow={true} />
       </ErrorBoundary>
     );
-    cy.findByTestId('error-alert')
+    cy.findByTestId('xb-error-alert')
       .should('exist')
       .invoke('text')
       .should('include', 'An unexpected error has occurred.')

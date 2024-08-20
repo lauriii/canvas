@@ -1,10 +1,10 @@
-import React from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useErrorBoundary } from 'react-error-boundary';
+import { Spinner } from '@radix-ui/themes';
 import { useGetDummyPropsFormQuery } from '@/services/dummyPropsForm';
 import hyperscriptify from '@/local_packages/hyperscriptify';
 import twigToJSXComponentMap from '@/components/form/twig-to-jsx-component-map.js';
 import propsify from '@/local_packages/hyperscriptify/propsify/standard/index.js';
-import { useEffect, useRef, useState } from 'react';
 import { useAppSelector } from '@/app/hooks';
 import { selectModel, selectLayout } from '@/features/layout/layoutModelSlice';
 import { selectSelectedComponent } from '@/features/ui/uiSlice';
@@ -37,39 +37,66 @@ const DummyPropsEditFormRenderer: React.FC<DummyPropsEditFormRendererProps> = (
   props,
 ) => {
   const { dynamicStaticCardQueryString } = props;
-  const { data, error } = useGetDummyPropsFormQuery(
-    dynamicStaticCardQueryString,
-  );
+  const { currentData, error, originalArgs, isFetching } =
+    useGetDummyPropsFormQuery(dynamicStaticCardQueryString);
+  const selectedComponent = useAppSelector(selectSelectedComponent);
   const { showBoundary } = useErrorBoundary();
-  const [jsxFormContent, setJsxFormContent] = useState(null);
+
+  const [jsxFormContent, setJsxFormContent] =
+    useState<React.ReactElement | null>(null);
+  const [currentComponentId, setCurrentComponentId] = useState<string | null>(
+    null,
+  );
   const formRef = useRef(null);
 
   useEffect(() => {
     if (error) {
       showBoundary(error);
     }
-    if (!data) {
+  }, [error, showBoundary]);
+
+  useEffect(() => {
+    if (!currentData) {
       return;
     }
     const responseAsDocument = new DOMParser().parseFromString(
-      data as string,
+      currentData as string,
       'text/html',
     );
     // Get the form we want from the HTML response.
     const xbDemoFieldElement: HTMLTemplateElement | null =
       responseAsDocument.querySelector('template[hyperscriptify]');
+    if (!xbDemoFieldElement?.content) {
+      return;
+    }
+    // While we have `selectedComponent` in the Redux store, we can't rely on it
+    // here, because if it's added as a dependency of this `useEffect` hook, it
+    // will cause a re-render using stale data from the Redux Toolkit Query hook
+    // — the API call. Instead we rely on fresh data from RTK Query to
+    // re-render, and we grab the selected component's ID from the arg that was
+    // passed to the API call which produced the current data.
+    const componentId = new URLSearchParams(originalArgs).get('selected');
+    setCurrentComponentId(componentId);
+
     setJsxFormContent(
-      xbDemoFieldElement?.content
-        ? hyperscriptify(
-            xbDemoFieldElement?.content as DocumentFragment,
-            React.createElement,
-            React.Fragment,
-            twigToJSXComponentMap,
-            { propsify },
-          )
-        : null,
+      // Wrapping the constructed `ReactElement` for the form so we can add a
+      // key which tells React when to re-render this subtree. The component ID
+      // is granular enough. Using the entire value of
+      // `dynamicStaticCardQueryString` would cause the form to re-render while
+      // prop values are being updated by the user in the contextual panel,
+      // causing the form to lose focus.
+      // A `<div>` is used instead of `React.Fragment` so a test ID can be added.
+      <div key={componentId} data-testid={`xb-component-form-${componentId}`}>
+        {hyperscriptify(
+          xbDemoFieldElement?.content as DocumentFragment,
+          React.createElement,
+          React.Fragment,
+          twigToJSXComponentMap,
+          { propsify },
+        )}
+      </div>,
     );
-  }, [data, error, showBoundary]);
+  }, [currentData, originalArgs]);
 
   // Any time this form changes, process it through Drupal behaviors the same
   // way it would be if it were added to the DOM by Drupal AJAX. This allows
@@ -87,7 +114,15 @@ const DummyPropsEditFormRenderer: React.FC<DummyPropsEditFormRendererProps> = (
     };
   }, [jsxFormContent]);
 
-  return <>{jsxFormContent ? jsxFormContent : <h1>Loading...</h1>}</>;
+  return (
+    <Spinner
+      size="3"
+      // Display the spinner only when a new component is being fetched.
+      loading={isFetching && currentComponentId !== selectedComponent}
+    >
+      {jsxFormContent}
+    </Spinner>
+  );
 };
 
 const DummyPropsEditForm: React.FC<DummyPropsEditFormProps> = () => {
@@ -115,7 +150,7 @@ const DummyPropsEditForm: React.FC<DummyPropsEditFormProps> = () => {
     // This is metadata about the props of the SDC being edited. This is specific
     // to the SDC *type* but unconcerned with this SDC *instance*.
     const selectedComponentFieldData: PropDataCollection =
-      components[selectedComponentType]['field_data'] || {};
+      components[selectedComponentType]?.['field_data'] || {};
 
     // The prepared model combines prop values from the model and prop metadata
     // from the SDC definition.

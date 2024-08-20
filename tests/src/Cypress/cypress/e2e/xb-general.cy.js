@@ -76,7 +76,7 @@ describe('General Experience Builder', {testIsolation: false}, () => {
 
     // Before interacting with components in the layout, confirm there is
     // currently no right drawer.
-    cy.get('[class*="contextualPanel"]').should('not.exist')
+    cy.findByTestId('xb-contextual-panel').should('not.exist')
 
     // Confirm no component has a hover outline.
     cy.get('[data-xb-component-outline]').should('not.exist')
@@ -148,7 +148,7 @@ describe('General Experience Builder', {testIsolation: false}, () => {
       .trigger('click')
 
     // The right panel has opened.
-    cy.get('[class*="contextualPanel"]').should('exist')
+    cy.findByTestId('xb-contextual-panel').should('exist')
 
     // The drawer contains a component edit form.
     cy.get('[class*="contextualPanel"] [data-drupal-selector="component-props-form"].component-props-form').then(($form) => {
@@ -285,99 +285,115 @@ describe('General Experience Builder', {testIsolation: false}, () => {
       });
   })
 
-  // Use function syntax so the function creates scope that allows Cypress
-  // aliases to be accessed as properties of `this`.
-  it('Uses React Router successfully', function() {
-    cy.drupalLogin('xbUser', 'xbUser')
-    cy.drupalRelativeURL('xb/node/1')
-    cy.intercept('GET', '**/xb-field-form/**').as('getPropsForm')
+  it('Opens contextual panel on component selection with correct routing', () => {
+    cy.drupalLogin('xbUser', 'xbUser');
+    cy.drupalRelativeURL('xb/node/1');
 
     // Wait for the preview iframe to load and render something that confirms
     // it is ready.
-    cy.get('iframe[data-xb-preview]').should('exist')
-    cy.waitForElementInIframe('[data-xb-type="experience_builder:image"]')
-    cy.scrollToMiddleOfIframe()
+    cy.get('iframe[data-xb-preview]').should('exist');
+    cy.waitForElementInIframe('[data-xb-type="experience_builder:image"]');
+    cy.scrollToMiddleOfIframe();
 
-    cy.getIframeBody().find('[data-xb-type="experience_builder:my-hero"]')
+    // Find and alias the UUID of the "my-hero" component.
+    cy.getIframeBody()
+      .find('[data-xb-type="experience_builder:my-hero"]')
       .should('have.length', 3)
       .last()
       .invoke('attr', 'data-xb-uuid')
-      .then((uuid) => {
-        cy.wrap(uuid).as('cid1')
-      })
-    cy.getIframeBody().find('[data-xb-type="experience_builder:image"]')
+      .as('cid1');
+    // Find and alias the UUID of the "image" component.
+    cy.getIframeBody()
+      .find('[data-xb-type="experience_builder:image"]')
       .should('have.length', 2)
       .last()
       .invoke('attr', 'data-xb-uuid')
-      .then((uuid) => {
-        cy.wrap(uuid).as('cid2')
-        expect(this.cid2).to.not.equal(this.cid1)
-      })
+      .as('cid2');
 
-    // Do not advance until cid 1 and 2 exist.
-    cy.get(this.cid1 && this.cid2).should('not.be.empty')
+    // Ensure both aliases are retrieved and compare them.
+    cy.get('@cid1').then((uuid1) => {
+      cy.get('@cid2').then((uuid2) => {
+        expect(uuid2).to.not.equal(uuid1);
+      });
+    });
 
-    cy.scrollToMiddleOfIframe()
+    cy.scrollToMiddleOfIframe();
 
-    // Click a component.
-    cy.getIframeBody().find(`[data-xb-type="experience_builder:my-hero"]`).then((heroes) => {
-      const theHero =  heroes.filter(`[data-xb-uuid="${this.cid1}"]`).find('h1')
-      cy.wrap(theHero).trigger('click')
-    })
-    cy.wait('@getPropsForm')
+    // Click component 1.
+    cy.get('@cid1').then((cid1) => {
+      cy.getIframeBody()
+        .find(`[data-xb-type="experience_builder:my-hero"]`)
+        .then((heroes) => {
+          heroes.filter(`[data-xb-uuid="${cid1}"]`).find('h1').trigger('click');
+          // Make sure the contextual panel opens for the clicked component.
+          cy.findByTestId(`xb-contextual-panel-${cid1}`).should('exist');
+          // Make sure the component form is rendered for the clicked component.
+          cy.findByTestId(`xb-component-form-${cid1}`).should('exist');
+          // Now on a path specific to that component.
+          cy.url().should((url) => {
+            expect(
+              url,
+              `After clicking on ${cid1}, path should include '/xb/node/1/component/${cid1}'`
+            ).to.contain(`/xb/node/1/component/${cid1}`);
+          });
+        });
+    });
 
-    // Opens the contextual form for the clicked component.
-    cy.get('[class*="contextualPanel"] h4').then($h4 => {
-      expect($h4.text()).to.contain(this.cid1)
-    })
+    cy.scrollToMiddleOfIframe();
 
-    // Now on a path specific to that component.
+    // Click component 2.
+    cy.get('@cid2').then((cid2) => {
+      cy.getIframeBody()
+        .find(`[data-xb-type="experience_builder:image"]`)
+        .then((images) => {
+          images
+            .filter(`[data-xb-uuid="${cid2}"]`)
+            .find('img')
+            .trigger('click');
+          // Make sure the contextual panel opens for the clicked component.
+          cy.findByTestId(`xb-contextual-panel-${cid2}`).should('exist');
+          // Make sure the component form is rendered for the clicked component.
+          cy.findByTestId(`xb-component-form-${cid2}`).should('exist');
+          // Now on a path specific to that component.
+          cy.url().should((url) => {
+            expect(
+              url,
+              `After clicking on ${cid2}, path should include '/xb/node/1/component/${cid2}'`
+            ).to.contain(`/xb/node/1/component/${cid2}`);
+          });
+        });
+    });
+
+    cy.go('back');
+
+    cy.get('@cid1').then((cid1) => {
+      // Returns to the URL for the prior component.
+      cy.url().should((url) => {
+        expect(
+          url,
+          `Hit back once and path should again include '/xb/node/1/component/${cid1}'`
+        ).to.contain(`/xb/node/1/component/${cid1}`);
+      });
+      // Returns to the contextual form for the prior component.
+      cy.findByTestId(`xb-contextual-panel-${cid1}`).should('exist');
+    });
+
+    cy.go('back');
+
     cy.url().should((url) => {
-      expect(url, `After clicking on ${this.cid1}, path should include '/xb/node/1/component/${this.cid1}'`).to.contain(`/xb/node/1/component/${this.cid1}`)
-    })
-
-    cy.scrollToMiddleOfIframe()
-
-    // Click a different component.
-    cy.getIframeBody().find(`[data-xb-type="experience_builder:image"]`).then((images) => {
-      const theImage = images.filter(`[data-xb-uuid="${this.cid2}"]`)
-      cy.wrap(theImage.find('img')).trigger('click')
-    })
-    cy.wait('@getPropsForm')
-
-    // Opens the contextual form for the clicked component.
-    cy.get('[class*="contextualPanel"] h4').should($h4 => {
-      expect($h4.text()).to.contain(this.cid2)
-    })
-    // Now on a path specific to that component.
-    cy.url().should((url) => {
-      expect(url,
-        `After clicking on ${this.cid2}, path should include '/xb/node/1/component/${this.cid2}'`,
-      ).to.contain(`/xb/node/1/component/${this.cid2}`)
-    })
-
-    cy.go('back')
-
-    // Returns to the URL for the prior component.
-    cy.url().should((url) => {
-      expect(url, `Hit back once and path should again include '/xb/node/1/component/${this.cid1}'`).to.contain(`/xb/node/1/component/${this.cid1}`)
-    })
-
-    // Returns to the contextual form for the prior component.
-    cy.get('[class*="contextualPanel"] h4').should($h4 => {
-      expect($h4.text()).to.contain(this.cid1)
-    })
-
-    cy.go('back')
-
-    cy.url().should((url) => {
-      expect(url, `Hit back twice and the and path should not have 'component' in it`).to.not.contain('/xb/node/1/component')
-      expect(url, `Hit back twice and the path should still have /xb`).to.contain('/xb/node/1')
-    })
+      expect(
+        url,
+        `Hit back twice and the and path should not have 'component' in it`
+      ).to.not.contain('/xb/node/1/component');
+      expect(
+        url,
+        `Hit back twice and the path should still have /xb`
+      ).to.contain('/xb/node/1');
+    });
 
     // No contextual panel open.
-    cy.get('[class*="contextualPanel"] h4').should('not.exist')
-  })
+    cy.findByTestId('xb-contextual-panel').should('not.exist');
+  });
 
   it('Visits a router URL directly', () => {
     cy.drupalLogin('xbUser', 'xbUser')
@@ -394,9 +410,7 @@ describe('General Experience Builder', {testIsolation: false}, () => {
     cy.wait('@getLayout')
     cy.wait('@getPreview')
     cy.wait('@getPropsForm')
-    cy.get('[class*="contextualPanel"] h4').should($h4 => {
-      expect($h4.text()).to.contain(uuid)
-    })
+    cy.findByTestId(`xb-contextual-panel-${uuid}`).should('exist');
     cy.url().should('contain', `/xb/node/1/component/${uuid}`)
   })
 
@@ -413,14 +427,14 @@ describe('General Experience Builder', {testIsolation: false}, () => {
     );
     cy.drupalRelativeURL('xb/node/1');
 
-    cy.findByTestId('error-alert')
+    cy.findByTestId('xb-error-alert')
       .should('exist')
       .invoke('text')
       .should('include', 'An unexpected error has occurred');
 
     // Click the reset button to clear the error, and confirm the error message
     // is no longer present.
-    cy.findByTestId('error-reset').click();
+    cy.findByTestId('xb-error-reset').click();
     cy.contains('An unexpected error has occurred').should('not.exist');
   });
 

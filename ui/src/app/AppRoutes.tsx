@@ -1,17 +1,8 @@
 import ContextualPanel from '@/components/panel/ContextualPanel';
-import { defer, createBrowserRouter, RouterProvider } from 'react-router-dom';
+import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import App from '@/app/App';
 import { RouteErrorBoundary } from '@/components/error/ErrorBoundary';
 
-const getHTML = async (componentId: string) => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve(
-        `This text was loaded async from AppRoutes.tsx when component(${componentId}) was selected.`,
-      );
-    }, 700);
-  });
-};
 interface AppRoutesInterface {
   basePath: string;
 }
@@ -26,14 +17,6 @@ const AppRoutes: React.FC<AppRoutesInterface> = ({ basePath }) => {
           {
             path: '/component/:componentId',
             element: <ContextualPanel />,
-            loader: async ({ params }) => {
-              if (!params.componentId) {
-                return;
-              }
-              return defer({
-                html: getHTML(params.componentId),
-              });
-            },
           },
         ],
       },
