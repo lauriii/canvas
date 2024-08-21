@@ -32,7 +32,7 @@ describe('ErrorBoundary handles errors', () => {
     cy.mount(
       <ErrorBoundary>
         <TroubleMaker />
-      </ErrorBoundary>
+      </ErrorBoundary>,
     );
     cy.contains('too little coffee').should('not.exist');
 
@@ -40,7 +40,7 @@ describe('ErrorBoundary handles errors', () => {
     cy.mount(
       <ErrorBoundary>
         <TroubleMaker shouldThrow={true} />
-      </ErrorBoundary>
+      </ErrorBoundary>,
     );
     cy.findByRole('alert')
       .invoke('text')
@@ -52,11 +52,11 @@ describe('ErrorBoundary handles errors', () => {
   it('displays custom props', () => {
     cy.mount(
       <ErrorBoundary
-        title='Unexpected decaf detected.'
-        resetButtonText='Brew again'
+        title="Unexpected decaf detected."
+        resetButtonText="Brew again"
       >
         <TroubleMaker shouldThrow={true} />
-      </ErrorBoundary>
+      </ErrorBoundary>,
     );
     cy.findByRole('alert')
       .invoke('text')
@@ -70,7 +70,7 @@ describe('ErrorBoundary handles errors', () => {
     cy.mount(
       <ErrorBoundary onReset={reset}>
         <TroubleMaker shouldThrow={true} />
-      </ErrorBoundary>
+      </ErrorBoundary>,
     );
     cy.contains('Try again').click();
     cy.get('@reset').should('be.calledOnce');
@@ -78,9 +78,9 @@ describe('ErrorBoundary handles errors', () => {
 
   it('displays the right variant', () => {
     cy.mount(
-      <ErrorBoundary variant='page'>
+      <ErrorBoundary variant="page">
         <TroubleMaker shouldThrow={true} />
-      </ErrorBoundary>
+      </ErrorBoundary>,
     );
     cy.findByTestId('xb-error-page')
       .should('exist')
@@ -90,9 +90,9 @@ describe('ErrorBoundary handles errors', () => {
       .should('include', 'Try again');
 
     cy.mount(
-      <ErrorBoundary variant='card'>
+      <ErrorBoundary variant="card">
         <TroubleMaker shouldThrow={true} />
-      </ErrorBoundary>
+      </ErrorBoundary>,
     );
     cy.findByTestId('xb-error-card')
       .should('exist')
@@ -102,9 +102,9 @@ describe('ErrorBoundary handles errors', () => {
       .should('include', 'Try again');
 
     cy.mount(
-      <ErrorBoundary variant='alert'>
+      <ErrorBoundary variant="alert">
         <TroubleMaker shouldThrow={true} />
-      </ErrorBoundary>
+      </ErrorBoundary>,
     );
     cy.findByTestId('xb-error-alert')
       .should('exist')
@@ -131,7 +131,7 @@ describe('RouteErrorBoundary handles errors', () => {
             errorElement: <RouteErrorBoundary />,
           },
         ])}
-      />
+      />,
     );
     // No error is thrown yet, so we shouldn't see any error message.
     cy.contains('too little coffee').should('not.exist');
@@ -146,7 +146,7 @@ describe('RouteErrorBoundary handles errors', () => {
             errorElement: <RouteErrorBoundary />,
           },
         ])}
-      />
+      />,
     );
     cy.findByRole('alert')
       .invoke('text')
@@ -171,12 +171,12 @@ describe('RouteErrorBoundary handles errors', () => {
             loader: () => {
               throw json(
                 {},
-                { status: 418, statusText: 'Unable to brew coffee' }
+                { status: 418, statusText: 'Unable to brew coffee' },
               );
             },
           },
         ])}
-      />
+      />,
     );
     cy.findByRole('alert')
       .invoke('text')
@@ -207,7 +207,7 @@ describe('RouteAsyncErrorBoundary handles errors', () => {
             ),
           },
         ])}
-      />
+      />,
     );
     cy.findByRole('alert')
       .invoke('text')

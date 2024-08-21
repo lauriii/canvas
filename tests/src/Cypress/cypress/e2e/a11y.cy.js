@@ -3,75 +3,83 @@ function terminalLog(violations) {
     'log',
     `${violations.length} accessibility violation${
       violations.length === 1 ? '' : 's'
-    } ${violations.length === 1 ? 'was' : 'were'} detected`
-  )
+    } ${violations.length === 1 ? 'was' : 'were'} detected`,
+  );
   // pluck specific keys to keep the table readable
   const violationData = violations.map(
     ({ id, impact, description, nodes }) => ({
       id,
       impact,
       description,
-      nodes: nodes.length
-    })
-  )
+      nodes: nodes.length,
+    }),
+  );
 
-  cy.task('table', violationData)
+  cy.task('table', violationData);
 }
 
 describe('UI a11y Scan', () => {
-  before( () => {
-    cy.drupalXbInstall()
+  before(() => {
+    cy.drupalXbInstall();
   });
 
   after(() => {
-    cy.drupalUninstall()
-  })
+    cy.drupalUninstall();
+  });
 
   beforeEach(() => {
     cy.drupalSession();
   });
 
   it('a11y scan without any interaction', () => {
-    cy.drupalLogin('xbUser', 'xbUser')
-    cy.drupalRelativeURL('xb/node/1')
-    cy.waitForElementInIframe('[data-xb-type="experience_builder:image"]')
+    cy.drupalLogin('xbUser', 'xbUser');
+    cy.drupalRelativeURL('xb/node/1');
+    cy.waitForElementInIframe('[data-xb-type="experience_builder:image"]');
     cy.injectAxe();
     // @todo there are several a11y rules not being checked in order for the
     // test to pass. These need to be fixed.
-    cy.checkA11y('body', {
-      rules: {
-        'aria-required-children': { enabled: false },
-        'button-name': { enabled: false },
-        'region': { enabled: false },
-        'scrollable-region-focusable': { enabled: false },
+    cy.checkA11y(
+      'body',
+      {
+        rules: {
+          'aria-required-children': { enabled: false },
+          'button-name': { enabled: false },
+          region: { enabled: false },
+          'scrollable-region-focusable': { enabled: false },
+        },
       },
-    }, terminalLog);
-  })
+      terminalLog,
+    );
+  });
   it('a11y scan open add menu', () => {
-    cy.drupalLogin('xbUser', 'xbUser')
-    cy.drupalRelativeURL('xb/node/1')
-    cy.waitForElementInIframe('[data-xb-type="experience_builder:image"]')
-    cy.get('[data-radix-menubar-content]').should('have.length', 0)
+    cy.drupalLogin('xbUser', 'xbUser');
+    cy.drupalRelativeURL('xb/node/1');
+    cy.waitForElementInIframe('[data-xb-type="experience_builder:image"]');
+    cy.get('[data-radix-menubar-content]').should('have.length', 0);
     cy.clickAddMenu();
-    cy.get('[data-radix-menubar-content]').should('have.length', 2)
+    cy.get('[data-radix-menubar-content]').should('have.length', 2);
 
     cy.injectAxe();
     // @todo there are several a11y rules not being checked in order for the
     // test to pass. These need to be fixed.
-    cy.checkA11y('body', {
-      rules: {
-        'aria-required-children': { enabled: false },
-        'button-name': { enabled: false },
-        'region': { enabled: false },
-        'scrollable-region-focusable': { enabled: false },
+    cy.checkA11y(
+      'body',
+      {
+        rules: {
+          'aria-required-children': { enabled: false },
+          'button-name': { enabled: false },
+          region: { enabled: false },
+          'scrollable-region-focusable': { enabled: false },
+        },
       },
-    }, terminalLog);
-  })
+      terminalLog,
+    );
+  });
   it('a11y scan primary menu', () => {
-    cy.drupalLogin('xbUser', 'xbUser')
-    cy.drupalRelativeURL('xb/node/1')
-    cy.waitForElementInIframe('[data-xb-type="experience_builder:image"]')
-    cy.get('.primaryMenuContent').should('exist')
+    cy.drupalLogin('xbUser', 'xbUser');
+    cy.drupalRelativeURL('xb/node/1');
+    cy.waitForElementInIframe('[data-xb-type="experience_builder:image"]');
+    cy.get('.primaryMenuContent').should('exist');
     // Radix component has two of each button in the segmented control that it flips between.
     cy.findAllByText('Layers').should('have.length', 2);
     cy.findAllByText('Assets').should('have.length', 2);
@@ -79,28 +87,35 @@ describe('UI a11y Scan', () => {
     cy.injectAxe();
     // @todo there are several a11y rules not being checked in order for the
     // test to pass. These need to be fixed.
-    cy.checkA11y('body', {
-      rules: {
-        'aria-required-children': { enabled: false },
-        'button-name': { enabled: false },
-        'region': { enabled: false },
-        'scrollable-region-focusable': { enabled: false },
+    cy.checkA11y(
+      'body',
+      {
+        rules: {
+          'aria-required-children': { enabled: false },
+          'button-name': { enabled: false },
+          region: { enabled: false },
+          'scrollable-region-focusable': { enabled: false },
+        },
       },
-    }, terminalLog);
-  })
+      terminalLog,
+    );
+  });
   it('a11y scan open props edit form', () => {
-    cy.drupalLogin('xbUser', 'xbUser')
-    cy.drupalRelativeURL('xb/node/1')
-    cy.waitForElementInIframe('[data-xb-type="experience_builder:image"]')
-    cy.get('[data-radix-menubar-content]').should('have.length', 0)
+    cy.drupalLogin('xbUser', 'xbUser');
+    cy.drupalRelativeURL('xb/node/1');
+    cy.waitForElementInIframe('[data-xb-type="experience_builder:image"]');
+    cy.get('[data-radix-menubar-content]').should('have.length', 0);
     cy.clickAddMenu();
-    cy.get('[data-radix-menubar-content]').should('have.length', 2)
-    cy.get('[class*="contextualPanel"]').should('not.exist')
-    cy.getIframeBody().find('[data-component-id="experience_builder:my-hero"] h1')
+    cy.get('[data-radix-menubar-content]').should('have.length', 2);
+    cy.get('[class*="contextualPanel"]').should('not.exist');
+    cy.getIframeBody()
+      .find('[data-component-id="experience_builder:my-hero"] h1')
       .first()
-      .trigger('click')
+      .trigger('click');
 
-    cy.get('[class*="contextualPanel"] [data-drupal-selector="component-props-form"].component-props-form').should('exist')
+    cy.get(
+      '[class*="contextualPanel"] [data-drupal-selector="component-props-form"].component-props-form',
+    ).should('exist');
     // It's gross but the Radix component has two of each button in the segmented control that it flips between.
     cy.findAllByText('Settings').should('have.length', 2);
     cy.findAllByText('Page Data').should('have.length', 2);
@@ -108,15 +123,19 @@ describe('UI a11y Scan', () => {
     cy.injectAxe();
     // @todo there are several a11y rules not being checked in order for the
     // test to pass. These need to be fixed.
-    cy.checkA11y('body', {
-      rules: {
-        'aria-required-children': { enabled: false },
-        'button-name': { enabled: false },
-        'region': { enabled: false },
-        'scrollable-region-focusable': { enabled: false },
-        'aria-allowed-attr': { enabled: false },
-        'aria-dialog-name': { enabled: false },
+    cy.checkA11y(
+      'body',
+      {
+        rules: {
+          'aria-required-children': { enabled: false },
+          'button-name': { enabled: false },
+          region: { enabled: false },
+          'scrollable-region-focusable': { enabled: false },
+          'aria-allowed-attr': { enabled: false },
+          'aria-dialog-name': { enabled: false },
+        },
       },
-    }, terminalLog);
-  })
-})
+      terminalLog,
+    );
+  });
+});

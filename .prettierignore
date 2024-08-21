@@ -1,4 +1,17 @@
-modules/same_page_preview/**/*
-modules/xb_vite/**/*
-ui/node_modules/**/*
-ui/dist/**/*
+# Ignore everything as a starting point.
+**/*.*
+
+# Explicitly enable Prettier for JS/JSX/TS/TSX files in the UI codebase.
+!ui/**/*.js
+!ui/**/*.jsx
+!ui/**/*.ts
+!ui/**/*.tsx
+
+# Ignore the `dist` directory.
+ui/dist
+
+# Explicitly enable Prettier for JS/JSX/TS/TSX files in Cypress tests.
+!tests/src/Cypress/**/*.js
+!tests/src/Cypress/**/*.jsx
+!tests/src/Cypress/**/*.ts
+!tests/src/Cypress/**/*.tsx

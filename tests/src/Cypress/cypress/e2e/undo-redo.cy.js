@@ -1,5 +1,4 @@
 describe('Undo/Redo functionality', { testIsolation: false }, () => {
-
   before(() => {
     cy.drupalXbInstall();
   });
@@ -23,59 +22,69 @@ describe('Undo/Redo functionality', { testIsolation: false }, () => {
     cy.get('button[aria-label="Undo"]').should('be.disabled');
 
     // Check there are three heroes initially.
-    cy.testInIframe('[data-component-id="experience_builder:my-hero"]',
+    cy.testInIframe(
+      '[data-component-id="experience_builder:my-hero"]',
       (myHeroComponent) => {
         expect(myHeroComponent.length).to.equal(3);
-      });
+      },
+    );
     // Check that the menu is not open yet.
     cy.get('[data-radix-menubar-content]').should('have.length', 0);
     cy.scrollToMiddleOfIframe();
-    cy.getIframeBody().
-    find('[data-component-id="experience_builder:two_column"] .column-one').
-    first().
-    trigger('click');
+    cy.getIframeBody()
+      .find('[data-component-id="experience_builder:two_column"] .column-one')
+      .first()
+      .trigger('click');
     cy.get('button[aria-label="Add section"]').then((button) => {
       button.click();
     });
     // Confirm that the menu opens the Section templates.
     cy.get('[data-radix-menubar-content]').should('have.length', 2);
-    cy.get('[data-radix-menu-content].MenubarSubContent').
-    should('contain.text', 'Section templates placeholder');
+    cy.get('[data-radix-menu-content].MenubarSubContent').should(
+      'contain.text',
+      'Section templates placeholder',
+    );
     cy.intercept('POST', '**/api/preview/node/1').as('getPreview');
 
     // Click on the menu item with data-xb-name="Hero" inside menu.
-    cy.get('[data-radix-menu-content] [data-xb-name="Hero"]').
-    click().
-    then(() => {
-      cy.wait('@getPreview');
-    });
-
-    cy.getIframeBody().find('[data-component-id="experience_builder:my-hero"]',
-      (myHeroComponent) => {
-        expect(myHeroComponent.length).to.equal(4)
+    cy.get('[data-radix-menu-content] [data-xb-name="Hero"]')
+      .click()
+      .then(() => {
+        cy.wait('@getPreview');
       });
-    cy.get('button[aria-label="Undo"]').
-    click().
-    then(() => {
-      cy.wait('@getPreview');
-    });
+
+    cy.getIframeBody().find(
+      '[data-component-id="experience_builder:my-hero"]',
+      (myHeroComponent) => {
+        expect(myHeroComponent.length).to.equal(4);
+      },
+    );
+    cy.get('button[aria-label="Undo"]')
+      .click()
+      .then(() => {
+        cy.wait('@getPreview');
+      });
 
     // Assert that the component was deleted from the layout.
-    cy.getIframeBody().find('[data-component-id="experience_builder:my-hero"]',
+    cy.getIframeBody().find(
+      '[data-component-id="experience_builder:my-hero"]',
       (myHeroComponent) => {
-        expect(myHeroComponent.length).to.equal(3)
-      });
+        expect(myHeroComponent.length).to.equal(3);
+      },
+    );
 
     // Click the Redo button.
-    cy.get('button[aria-label="Redo"]').
-    click().
-    then(() => {
-      cy.wait('@getPreview');
-    });
-    // Assert that the component was again added to the layout.
-    cy.getIframeBody().find('[data-component-id="experience_builder:my-hero"]',
-      (myHeroComponent) => {
-        expect(myHeroComponent.length).to.equal(4)
+    cy.get('button[aria-label="Redo"]')
+      .click()
+      .then(() => {
+        cy.wait('@getPreview');
       });
+    // Assert that the component was again added to the layout.
+    cy.getIframeBody().find(
+      '[data-component-id="experience_builder:my-hero"]',
+      (myHeroComponent) => {
+        expect(myHeroComponent.length).to.equal(4);
+      },
+    );
   });
 });

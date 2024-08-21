@@ -13,7 +13,7 @@
     "build": "npm run type-check && vite build",
     "preview": "vite preview",
     "test": "vitest run",
-    "format": "prettier --write .",
+    "format": "prettier .. --write --config ../.prettierrc.json --ignore-path ../.prettierignore",
     "lint:eslint": "eslint . --max-warnings=0",
     "lint": "npm run lint:eslint",
     "lint:fix": "eslint --fix .",

@@ -1,95 +1,129 @@
-
-describe('General Experience Builder', {testIsolation: false}, () => {
-  before( () => {
-    cy.drupalXbInstall()
+describe('General Experience Builder', { testIsolation: false }, () => {
+  before(() => {
+    cy.drupalXbInstall();
   });
 
   after(() => {
-    cy.drupalUninstall()
-  })
+    cy.drupalUninstall();
+  });
 
   beforeEach(() => {
     cy.drupalSession();
   });
 
-  it ('Created a node 1 with type article on install', () => {
+  it('Created a node 1 with type article on install', () => {
     cy.drupalRelativeURL('node/1');
     cy.get('h1').should(($h1) => {
-      expect($h1.text()).to.include('XB Needs This')
-    })
-    cy.get('[data-component-id="experience_builder:my-hero"] h1').should(($h1) => {
-      expect($h1.text()).to.include('hello, world!')
-    })
-    cy.get('[data-component-id="experience_builder:my-hero"] button[formaction="https://drupal.org"]').should.exist
-    cy.get('[data-component-id="experience_builder:my-hero"] button[formaction="https://drupal.org"] ~ button').should.exist
-  })
+      expect($h1.text()).to.include('XB Needs This');
+    });
+    cy.get('[data-component-id="experience_builder:my-hero"] h1').should(
+      ($h1) => {
+        expect($h1.text()).to.include('hello, world!');
+      },
+    );
+    cy.get(
+      '[data-component-id="experience_builder:my-hero"] button[formaction="https://drupal.org"]',
+    ).should.exist;
+    cy.get(
+      '[data-component-id="experience_builder:my-hero"] button[formaction="https://drupal.org"] ~ button',
+    ).should.exist;
+  });
 
   it('Can access XB UI and do basic interactions', () => {
-    cy.drupalLogin('xbUser', 'xbUser')
-    cy.drupalRelativeURL('xb/node/1')
+    cy.drupalLogin('xbUser', 'xbUser');
+    cy.drupalRelativeURL('xb/node/1');
 
     // Wait for the preview iframe to load and render something that confirms
     // it is ready.
-    cy.get('iframe[data-xb-preview]').should('exist')
-    cy.waitForElementInIframe('[data-xb-type="experience_builder:image"]')
+    cy.get('iframe[data-xb-preview]').should('exist');
+    cy.waitForElementInIframe('[data-xb-type="experience_builder:image"]');
 
     // Confirm that some elements in the default layout are present in the
     // default iframe (lg).
-    cy.testInIframe('[data-component-id="experience_builder:my-hero"] h1', (h1s) => {
-      expect(h1s.length).to.equal(3)
-      h1s.forEach((h1, index) => expect(h1.textContent).to.equal(
-        (index === 0 ? 'hello, world!' : 'XB Needs This For The Time Being')
-      ))
-    })
+    cy.testInIframe(
+      '[data-component-id="experience_builder:my-hero"] h1',
+      (h1s) => {
+        expect(h1s.length).to.equal(3);
+        h1s.forEach((h1, index) =>
+          expect(h1.textContent).to.equal(
+            index === 0 ? 'hello, world!' : 'XB Needs This For The Time Being',
+          ),
+        );
+      },
+    );
 
     // Do the same checks as above, but for the narrow layout preview.
-    cy.testInIframe('[data-component-id="experience_builder:my-hero"] h1', (h1s) => {
-      expect(h1s.length).to.equal(3)
-      h1s.forEach((h1, index) => expect(h1.textContent).to.equal(
-        (index === 0 ? 'hello, world!' : 'XB Needs This For The Time Being')
-      ))
-    }, '[data-xb-preview="sm"]')
+    cy.testInIframe(
+      '[data-component-id="experience_builder:my-hero"] h1',
+      (h1s) => {
+        expect(h1s.length).to.equal(3);
+        h1s.forEach((h1, index) =>
+          expect(h1.textContent).to.equal(
+            index === 0 ? 'hello, world!' : 'XB Needs This For The Time Being',
+          ),
+        );
+      },
+      '[data-xb-preview="sm"]',
+    );
 
     // Confirm that the iframe loads the SDC CSS.
     cy.getIframe()
-      .its('head').should('not.be.undefined')
+      .its('head')
+      .should('not.be.undefined')
       .then((head) => {
         expect(
-          head.querySelector('link[rel="stylesheet"][href*="components/my-hero/my-hero.css"]'),
+          head.querySelector(
+            'link[rel="stylesheet"][href*="components/my-hero/my-hero.css"]',
+          ),
           `Tried to find [href*="components/my-hero/my-hero.css"] in <head> ${head.innerHTML}`,
-        ).to.exist
-      })
+        ).to.exist;
+      });
 
-    cy.get('[data-radix-menubar-content]').should('have.length', 0, 'There is no menubar yet.')
+    cy.get('[data-radix-menubar-content]').should(
+      'have.length',
+      0,
+      'There is no menubar yet.',
+    );
     cy.clickAddMenu();
-    cy.get('[data-radix-menubar-content]').should('have.length', 2, 'Menubar is present after clicking `[data-radix-menubar-content]`')
-    cy.get('[role="menuitem"][aria-expanded="true"]').contains('Default components');
+    cy.get('[data-radix-menubar-content]').should(
+      'have.length',
+      2,
+      'Menubar is present after clicking `[data-radix-menubar-content]`',
+    );
+    cy.get('[role="menuitem"][aria-expanded="true"]').contains(
+      'Default components',
+    );
 
-    cy.get('.listContainer > div').contains('Basic').should(($basicListLabel) => {
-      const $listed = $basicListLabel.parent().find('[data-xb-uuid]');
-      expect($listed).to.have.length(3)
-      const expectedNames = ['Image', 'Hero', 'Two Column'];
-      $listed.each((index, listItem) => {
-        expect($listed.get(index).textContent.trim()).to.equal(expectedNames[index])
-      })
-    })
+    cy.get('.listContainer > div')
+      .contains('Basic')
+      .should(($basicListLabel) => {
+        const $listed = $basicListLabel.parent().find('[data-xb-uuid]');
+        expect($listed).to.have.length(3);
+        const expectedNames = ['Image', 'Hero', 'Two Column'];
+        $listed.each((index, listItem) => {
+          expect($listed.get(index).textContent.trim()).to.equal(
+            expectedNames[index],
+          );
+        });
+      });
 
     // Before interacting with components in the layout, confirm there is
     // currently no right drawer.
-    cy.findByTestId('xb-contextual-panel').should('not.exist')
+    cy.findByTestId('xb-contextual-panel').should('not.exist');
 
     // Confirm no component has a hover outline.
-    cy.get('[data-xb-component-outline]').should('not.exist')
+    cy.get('[data-xb-component-outline]').should('not.exist');
 
-    let lgPreviewRect = {}
+    let lgPreviewRect = {};
     // Enter the iframe to find an element in the preview iframe and hover over it.
-    cy.getIframeBody().find('[data-component-id="experience_builder:my-hero"] h1')
+    cy.getIframeBody()
+      .find('[data-component-id="experience_builder:my-hero"] h1')
       .first()
       .trigger('mouseover')
-      .then(clicked => {
+      .then((clicked) => {
         // While in the iframe, get the dimensions of the component so we can
         // compare the outline dimensions to it
-        const item = clicked.closest('.sortable-item')
+        const item = clicked.closest('.sortable-item');
         lgPreviewRect = item[0].getBoundingClientRect();
       });
 
@@ -98,28 +132,29 @@ describe('General Experience Builder', {testIsolation: false}, () => {
       .should(($outline) => {
         expect($outline).to.exist;
         // Ensure the width is set before moving on to then().
-        expect($outline[0].getBoundingClientRect().width).to.not.equal(0)
+        expect($outline[0].getBoundingClientRect().width).to.not.equal(0);
       })
-      .then($outline => {
+      .then(($outline) => {
         // The outline width and height should be the same as the dimensions of
         // the corresponding component in the iframe.
         const outlineRect = $outline[0].getBoundingClientRect();
-        expect(outlineRect.width).to.equal(lgPreviewRect.width)
-        expect(outlineRect.height).to.equal(lgPreviewRect.height)
-        expect($outline).to.have.css('position', 'absolute')
-        expect($outline).to.have.css('top', '0px')
-        expect($outline).to.have.css('left', '0px')
+        expect(outlineRect.width).to.equal(lgPreviewRect.width);
+        expect(outlineRect.height).to.equal(lgPreviewRect.height);
+        expect($outline).to.have.css('position', 'absolute');
+        expect($outline).to.have.css('top', '0px');
+        expect($outline).to.have.css('left', '0px');
       });
 
     // Get the dimensions of the highlighted component in the small preview, so
     // it can be compared to its corresponding outline.
-    let smPreviewRect = {}
-    cy.getIframeBody('[data-xb-preview="sm"]').find('[data-component-id="experience_builder:my-hero"] h1')
+    let smPreviewRect = {};
+    cy.getIframeBody('[data-xb-preview="sm"]')
+      .find('[data-component-id="experience_builder:my-hero"] h1')
       .first()
-      .then(clicked => {
+      .then((clicked) => {
         // While in the iframe, get the dimensions of the component so we can
         // compare the outline dimensions to it
-        const item = clicked.closest('.sortable-item')
+        const item = clicked.closest('.sortable-item');
         smPreviewRect = item[0].getBoundingClientRect();
       });
 
@@ -129,105 +164,126 @@ describe('General Experience Builder', {testIsolation: false}, () => {
       .should(($outline) => {
         expect($outline).to.exist;
         // Ensure the width is set before moving on to then().
-        expect($outline[0].getBoundingClientRect().width).to.not.equal(0)
+        expect($outline[0].getBoundingClientRect().width).to.not.equal(0);
       })
-      .then($outline => {
+      .then(($outline) => {
         // The outline width and height should be the same as the dimensions of
         // the corresponding component in the iframe.
         const outlineRect = $outline[0].getBoundingClientRect();
-        expect(outlineRect.width).to.equal(smPreviewRect.width)
-        expect(outlineRect.height).to.equal(smPreviewRect.height)
-        expect($outline).to.have.css('position', 'absolute')
-        expect($outline).to.have.css('top', '0px')
-        expect($outline).to.have.css('left', '0px')
+        expect(outlineRect.width).to.equal(smPreviewRect.width);
+        expect(outlineRect.height).to.equal(smPreviewRect.height);
+        expect($outline).to.have.css('position', 'absolute');
+        expect($outline).to.have.css('top', '0px');
+        expect($outline).to.have.css('left', '0px');
       });
 
     // Click the component to trigger the opening of the right drawer.
-    cy.getIframeBody().find('[data-component-id="experience_builder:my-hero"] h1')
+    cy.getIframeBody()
+      .find('[data-component-id="experience_builder:my-hero"] h1')
       .first()
-      .trigger('click')
+      .trigger('click');
 
     // The right panel has opened.
-    cy.findByTestId('xb-contextual-panel').should('exist')
+    cy.findByTestId('xb-contextual-panel').should('exist');
 
     // The drawer contains a component edit form.
-    cy.get('[class*="contextualPanel"] [data-drupal-selector="component-props-form"].component-props-form').then(($form) => {
-      expect($form).to.exist
-      const expectedLabels = ['Heading', 'Sub-heading', 'CTA 1 text', 'CTA 1 link', 'CTA 2 text'];
+    cy.get(
+      '[class*="contextualPanel"] [data-drupal-selector="component-props-form"].component-props-form',
+    ).then(($form) => {
+      expect($form).to.exist;
+      const expectedLabels = [
+        'Heading',
+        'Sub-heading',
+        'CTA 1 text',
+        'CTA 1 link',
+        'CTA 2 text',
+      ];
       $form.find('label').each((index, label) => {
-        expect(label.textContent).to.equal(expectedLabels[index])
-      })
-    })
+        expect(label.textContent).to.equal(expectedLabels[index]);
+      });
+    });
 
-    cy.get('[data-drupal-selector="edit-xb-component-props-static-static-card1ab-heading-0-value"]')
+    cy.get(
+      '[data-drupal-selector="edit-xb-component-props-static-static-card1ab-heading-0-value"]',
+    )
       .should('have.value', 'hello, world!')
       .invoke('attr', 'type')
-      .should('eq', 'text')
+      .should('eq', 'text');
 
-    cy.get('[data-drupal-selector="edit-xb-component-props-static-static-card1ab-cta1href-0-value"]')
+    cy.get(
+      '[data-drupal-selector="edit-xb-component-props-static-static-card1ab-cta1href-0-value"]',
+    )
       .should('have.value', 'https://drupal.org')
       .invoke('attr', 'type')
-      .should('eq', 'url')
-
+      .should('eq', 'url');
 
     const heroSelectors = {
       heading: 'h1',
       subheading: 'h1 ~ p',
       cta1: 'button:first-child',
       cta2: 'button:last-child',
-    }
+    };
     const heroBefore = {
       heading: 'hello, world!',
       subheading: '',
       cta1: '',
       cta2: '',
-    }
+    };
 
     // Confirm the current values of the first "My Hero" component so we can
     // be certain these values later change.
     cy.testInIframe('[data-xb-type="experience_builder:my-hero"]', (heroes) => {
       const hero = heroes[0];
-      Object.entries(heroSelectors).forEach(([ prop, selector ]) => {
-        if(heroBefore[prop]) {
-          expect(hero.querySelector(selector).textContent.onlyVisibleChars()
-            , `${prop} should be ${heroBefore[prop]}`).to.equal(heroBefore[prop])
+      Object.entries(heroSelectors).forEach(([prop, selector]) => {
+        if (heroBefore[prop]) {
+          expect(
+            hero.querySelector(selector).textContent.onlyVisibleChars(),
+            `${prop} should be ${heroBefore[prop]}`,
+          ).to.equal(heroBefore[prop]);
         } else {
-          expect(!!hero.querySelector(selector).textContent.onlyVisibleChars()
-            ,  `${prop} should be empty`).to.be.false
+          expect(
+            !!hero.querySelector(selector).textContent.onlyVisibleChars(),
+            `${prop} should be empty`,
+          ).to.be.false;
         }
-      })
-      expect(hero.querySelector(heroSelectors.cta1).getAttribute('formaction')).to.equal('https://drupal.org')
-    })
+      });
+      expect(
+        hero.querySelector(heroSelectors.cta1).getAttribute('formaction'),
+      ).to.equal('https://drupal.org');
+    });
 
-    const propEditFormSelectors  = {
-      heading: '[data-drupal-selector="component-props-form"] [data-drupal-selector="edit-xb-component-props-static-static-card1ab-heading-0-value"]',
-      subheading: '[data-drupal-selector="component-props-form"] [data-drupal-selector="edit-xb-component-props-static-static-card1ab-subheading-0-value"]',
-      cta1href: '[data-drupal-selector="component-props-form"] [data-drupal-selector="edit-xb-component-props-static-static-card1ab-cta1href-0-value"]',
+    const propEditFormSelectors = {
+      heading:
+        '[data-drupal-selector="component-props-form"] [data-drupal-selector="edit-xb-component-props-static-static-card1ab-heading-0-value"]',
+      subheading:
+        '[data-drupal-selector="component-props-form"] [data-drupal-selector="edit-xb-component-props-static-static-card1ab-subheading-0-value"]',
+      cta1href:
+        '[data-drupal-selector="component-props-form"] [data-drupal-selector="edit-xb-component-props-static-static-card1ab-cta1href-0-value"]',
       cta1: '[data-drupal-selector="component-props-form"] [data-drupal-selector="edit-xb-component-props-static-static-card1ab-cta1-0-value"]',
       cta2: '[data-drupal-selector="component-props-form"] [data-drupal-selector="edit-xb-component-props-static-static-card1ab-cta2-0-value"]',
-    }
+    };
     const newValues = {
       heading: 'You parked your car',
       subheading: 'Over the sidewalk',
       cta1: 'ponytail',
       cta2: 'stuck',
-      cta1href: 'https://hoobastank.com'
-    }
+      cta1href: 'https://hoobastank.com',
+    };
 
     // Monitor the endpoint that processes changed values in the prop edit form.
-    cy.intercept('POST', '**/api/preview/node/1').as('getPreview')
-    Object.entries(propEditFormSelectors).forEach(([ prop, selector ]) => {
+    cy.intercept('POST', '**/api/preview/node/1').as('getPreview');
+    Object.entries(propEditFormSelectors).forEach(([prop, selector]) => {
       // Type a new value into a given input.
-      cy.get(selector).focus().clear().type(newValues[prop])
+      cy.get(selector).focus().clear().type(newValues[prop]);
 
       // Wait for completion of the request triggered by our typing. This
       // ensures that the `testInIframe` ~10 lines down is working with an iframe that
       // has fully responded to these value changes.
-      cy.wait('@getPreview')
+      cy.wait('@getPreview');
       // Confirm React is properly handling form state by confirming the input
       // has the value we typed into it.
-      cy.get(selector).should('have.value', newValues[prop])
-    })
+      cy.get(selector).should('have.value', newValues[prop]);
+    });
 
     // Close the right drawer, so it doesn't cover the iFrame content when Cypress is looking
     // for elements.
@@ -237,53 +293,68 @@ describe('General Experience Builder', {testIsolation: false}, () => {
     // and confirm the component reflects these new values.
     cy.testInIframe('[data-xb-type="experience_builder:my-hero"]', (heroes) => {
       const hero = heroes[0];
-      Object.entries(heroSelectors).forEach(([ prop, selector ]) => {
+      Object.entries(heroSelectors).forEach(([prop, selector]) => {
         expect(
           hero.querySelector(selector).textContent.onlyVisibleChars(),
-          `${prop} (${selector}) should be '${newValues[prop]}'`)
-          .to.equal(newValues[prop])
-      })
+          `${prop} (${selector}) should be '${newValues[prop]}'`,
+        ).to.equal(newValues[prop]);
+      });
       // Special check for ctaHref as it is an attribute value.
-      expect(hero.querySelector(heroSelectors.cta1).getAttribute('formaction')).to.equal(newValues.cta1href)
-    })
-  })
+      expect(
+        hero.querySelector(heroSelectors.cta1).getAttribute('formaction'),
+      ).to.equal(newValues.cta1href);
+    });
+  });
 
   it('previews components on hover', () => {
-    cy.drupalLogin('xbUser', 'xbUser')
-    cy.drupalRelativeURL('xb/node/1')
-    cy.get('iframe[data-xb-preview]').should('exist')
-    cy.waitForElementInIframe('[data-xb-type="experience_builder:image"]')
-    cy.get('[data-radix-menubar-content]').should('have.length', 0, 'There is no menubar yet.')
+    cy.drupalLogin('xbUser', 'xbUser');
+    cy.drupalRelativeURL('xb/node/1');
+    cy.get('iframe[data-xb-preview]').should('exist');
+    cy.waitForElementInIframe('[data-xb-type="experience_builder:image"]');
+    cy.get('[data-radix-menubar-content]').should(
+      'have.length',
+      0,
+      'There is no menubar yet.',
+    );
     cy.clickAddMenu();
-    cy.get('[data-radix-menubar-content]').should('have.length', 2, 'Menubar is present after clicking `[data-radix-menubar-content]`')
-    cy.get('[role="menuitem"][aria-expanded="true"]').contains('Default components');
+    cy.get('[data-radix-menubar-content]').should(
+      'have.length',
+      2,
+      'Menubar is present after clicking `[data-radix-menubar-content]`',
+    );
+    cy.get('[role="menuitem"][aria-expanded="true"]').contains(
+      'Default components',
+    );
 
-    const previewSelect = `[data-radix-popper-content-wrapper] > .ComponentPreviewContent`
-    const imageSelect = '.MenubarSubContent [data-xb-uuid="experience_builder:image"]'
-    const heroSelect = '.MenubarSubContent [data-xb-uuid="experience_builder:my-hero"]'
+    const previewSelect = `[data-radix-popper-content-wrapper] > .ComponentPreviewContent`;
+    const imageSelect =
+      '.MenubarSubContent [data-xb-uuid="experience_builder:image"]';
+    const heroSelect =
+      '.MenubarSubContent [data-xb-uuid="experience_builder:my-hero"]';
 
     // Hover over "Image" and a preview should appear.
-    cy.get(`${imageSelect} > button`)
-      .should('exist')
-      .realHover()
-    cy.get(`.shadowDomWrapper`).shadow().find('img[alt="Boring placeholder"]').should('exist');
+    cy.get(`${imageSelect} > button`).should('exist').realHover();
+    cy.get(`.shadowDomWrapper`)
+      .shadow()
+      .find('img[alt="Boring placeholder"]')
+      .should('exist');
 
     // Hover over "My Hero" and a preview should appear
-    cy.get(`${heroSelect} > button`)
-      .should('exist')
-      .realHover()
+    cy.get(`${heroSelect} > button`).should('exist').realHover();
 
     cy.get('.shadowDomWrapper')
       .shadow()
-      .find('div.my-hero__container > .my-hero__actions > .my-hero__cta--primary')
+      .find(
+        'div.my-hero__container > .my-hero__actions > .my-hero__cta--primary',
+      )
       .should('exist')
       .then(($cta) => {
         expect(
           window.getComputedStyle($cta[0])['background-color'],
-          'The "My Hero" SDC is styled'
-        ).to.equal('rgb(0, 123, 255)')
+          'The "My Hero" SDC is styled',
+        ).to.equal('rgb(0, 123, 255)');
       });
-  })
+  });
 
   it('Opens contextual panel on component selection with correct routing', () => {
     cy.drupalLogin('xbUser', 'xbUser');
@@ -333,7 +404,7 @@ describe('General Experience Builder', {testIsolation: false}, () => {
           cy.url().should((url) => {
             expect(
               url,
-              `After clicking on ${cid1}, path should include '/xb/node/1/component/${cid1}'`
+              `After clicking on ${cid1}, path should include '/xb/node/1/component/${cid1}'`,
             ).to.contain(`/xb/node/1/component/${cid1}`);
           });
         });
@@ -358,7 +429,7 @@ describe('General Experience Builder', {testIsolation: false}, () => {
           cy.url().should((url) => {
             expect(
               url,
-              `After clicking on ${cid2}, path should include '/xb/node/1/component/${cid2}'`
+              `After clicking on ${cid2}, path should include '/xb/node/1/component/${cid2}'`,
             ).to.contain(`/xb/node/1/component/${cid2}`);
           });
         });
@@ -371,7 +442,7 @@ describe('General Experience Builder', {testIsolation: false}, () => {
       cy.url().should((url) => {
         expect(
           url,
-          `Hit back once and path should again include '/xb/node/1/component/${cid1}'`
+          `Hit back once and path should again include '/xb/node/1/component/${cid1}'`,
         ).to.contain(`/xb/node/1/component/${cid1}`);
       });
       // Returns to the contextual form for the prior component.
@@ -383,11 +454,11 @@ describe('General Experience Builder', {testIsolation: false}, () => {
     cy.url().should((url) => {
       expect(
         url,
-        `Hit back twice and the and path should not have 'component' in it`
+        `Hit back twice and the and path should not have 'component' in it`,
       ).to.not.contain('/xb/node/1/component');
       expect(
         url,
-        `Hit back twice and the path should still have /xb`
+        `Hit back twice and the path should still have /xb`,
       ).to.contain('/xb/node/1');
     });
 
@@ -396,23 +467,23 @@ describe('General Experience Builder', {testIsolation: false}, () => {
   });
 
   it('Visits a router URL directly', () => {
-    cy.drupalLogin('xbUser', 'xbUser')
+    cy.drupalLogin('xbUser', 'xbUser');
 
     // Ideally the UUID would get its value dynamically, but that value can
     // only be accessed reliably in a command callback, and visiting a url
     // can't happen in that scope.
     const uuid = 'dynamic-dynamic-card3rr';
-    cy.intercept('GET', '**/api/layout/node/1').as('getLayout')
-    cy.intercept('POST', '**/api/preview/node/1').as('getPreview')
-    cy.intercept('GET', '**/xb-field-form/node/1?**').as('getPropsForm')
-    cy.drupalRelativeURL(`xb/node/1/component/${uuid}`)
+    cy.intercept('GET', '**/api/layout/node/1').as('getLayout');
+    cy.intercept('POST', '**/api/preview/node/1').as('getPreview');
+    cy.intercept('GET', '**/xb-field-form/node/1?**').as('getPropsForm');
+    cy.drupalRelativeURL(`xb/node/1/component/${uuid}`);
 
-    cy.wait('@getLayout')
-    cy.wait('@getPreview')
-    cy.wait('@getPropsForm')
+    cy.wait('@getLayout');
+    cy.wait('@getPreview');
+    cy.wait('@getPropsForm');
     cy.findByTestId(`xb-contextual-panel-${uuid}`).should('exist');
-    cy.url().should('contain', `/xb/node/1/component/${uuid}`)
-  })
+    cy.url().should('contain', `/xb/node/1/component/${uuid}`);
+  });
 
   it('Handles and resets errors', () => {
     cy.drupalLogin('xbUser', 'xbUser');
@@ -423,7 +494,7 @@ describe('General Experience Builder', {testIsolation: false}, () => {
     // once.
     cy.intercept(
       { url: '**/api/preview/node/1', times: 1 },
-      { statusCode: 418 }
+      { statusCode: 418 },
     );
     cy.drupalRelativeURL('xb/node/1');
 
@@ -439,8 +510,8 @@ describe('General Experience Builder', {testIsolation: false}, () => {
   });
 
   it('has the expected performance', () => {
-    cy.drupalLogin('xbUser', 'xbUser')
-    cy.intercept('POST', '**/api/preview/node/1').as('getPreview')
+    cy.drupalLogin('xbUser', 'xbUser');
+    cy.intercept('POST', '**/api/preview/node/1').as('getPreview');
 
     cy.visit('/xb/node/1');
     cy.wait('@getPreview').its('response.statusCode').should('eq', 200);
@@ -448,4 +519,4 @@ describe('General Experience Builder', {testIsolation: false}, () => {
     // Assert that only one request was sent
     cy.get('@getPreview.all').should('have.length', 1);
   });
-})
+});

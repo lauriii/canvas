@@ -1,12 +1,18 @@
-import { configurationSlice, setConfiguration } from "../../../../../ui/src/features/configuration/configurationSlice";
+import {
+  configurationSlice,
+  setConfiguration,
+} from '../../../../../ui/src/features/configuration/configurationSlice';
 
 const initialState = {
-  baseUrl: '/'
-}
+  baseUrl: '/',
+};
 
 describe('Configuration slice', () => {
   it('Should set configuration', () => {
-    const state = configurationSlice.reducer(initialState, setConfiguration({baseUrl: '/xb/'}))
+    const state = configurationSlice.reducer(
+      initialState,
+      setConfiguration({ baseUrl: '/xb/' }),
+    );
     expect(state.baseUrl).to.eq('/xb/');
-  })
-})
+  });
+});
