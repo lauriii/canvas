@@ -148,11 +148,15 @@ const Viewport: React.FC<ViewportProps> = (props) => {
     // dragImage (the floating representation of what you are dragging that follows your cursor).
     const initSortableListItem = (listItemEl: HTMLElement) => {
       listItemEl.addEventListener('dragstart', (event) => {
-        if (iframeDocumentRef.current && listItemEl.dataset.xbUuid) {
+        if (iframeDocumentRef.current && event.target) {
+          const target = event.target as HTMLElement;
+          if (!target.dataset.xbUuid) {
+            return;
+          }
           return customSortableDragImage(
             event,
             iframeDocumentRef.current,
-            model[listItemEl.dataset.xbUuid].name,
+            model[target.dataset.xbUuid].name,
           );
         }
       });

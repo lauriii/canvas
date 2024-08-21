@@ -419,7 +419,10 @@ HTML;
     }
     if (isset($build['#slots'])) {
       foreach ($build['#slots'] as $slot_name => $slot) {
-        $build['#slots'][$slot_name] = self::wrapComponentsForPreview($slot, $component_instance_uuid . '-slot-' . $slot_name);
+        $slot_uuid = $component_instance_uuid . '-slot-' . $slot_name;
+        $build['#slots'][$slot_name] = self::wrapComponentsForPreview($slot, $slot_uuid);
+        $build['#slots'][$slot_name]['#prefix'] = sprintf('<div class="sortable-list" data-xb-uuid="%s" data-xb-type="%s">', $slot_uuid, 'slot');
+        $build['#slots'][$slot_name]['#suffix'] = '</div>';
       }
     }
     return $build;
