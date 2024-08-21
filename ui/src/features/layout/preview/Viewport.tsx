@@ -209,9 +209,12 @@ const Viewport: React.FC<ViewportProps> = (props) => {
     if (!iframe) {
       return;
     }
-
+    iframe.dataset.testXbContentInitialized = 'false';
     // Wait for the iframe to load
     iframe.onload = () => {
+      if (!iframe.srcdoc) {
+        return;
+      }
       iframeDocumentRef.current = iframe.contentDocument;
 
       if (!iframeDocumentRef.current) {
@@ -235,6 +238,7 @@ const Viewport: React.FC<ViewportProps> = (props) => {
       });
 
       setIsReloading(false);
+      iframe.dataset.testXbContentInitialized = 'true';
     };
   }, [
     dispatch,
@@ -264,6 +268,7 @@ const Viewport: React.FC<ViewportProps> = (props) => {
           ref={iframeRef}
           className={styles.preview}
           data-xb-preview={size}
+          data-test-xb-content-initialized="false"
           title="Preview"
         ></iframe>
         {!isDragging && !isPanning && (

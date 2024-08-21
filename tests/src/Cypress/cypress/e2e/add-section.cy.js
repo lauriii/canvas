@@ -16,7 +16,7 @@ describe('Add section/component functionality', { testIsolation: false }, () => 
   it('Performs basic interaction with the Add section button', () => {
     cy.drupalRelativeURL('xb/node/1');
     // Wait for the preview iframe to load and render something that confirms it is ready.
-    cy.get('iframe[data-xb-preview]').should('exist');
+    cy.get('iframe[data-xb-preview="lg"]').should('have.attr', 'data-test-xb-content-initialized', 'true');
     cy.waitForElementInIframe('[data-xb-type="experience_builder:image"]')
 
     // Check there are three heroes initially.
