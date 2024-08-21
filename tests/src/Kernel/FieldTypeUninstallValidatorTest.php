@@ -8,7 +8,9 @@ use Drupal\Core\Database\Database;
 use Drupal\Core\Extension\ModuleUninstallValidatorException;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 use Drupal\KernelTests\KernelTestBase;
+use Drupal\node\Entity\Node;
 use Drupal\Tests\experience_builder\Traits\ContribStrictConfigSchemaTestTrait;
+use Drupal\Tests\experience_builder\Traits\TestDataUtilitiesTrait;
 use Drupal\Tests\node\Traits\NodeCreationTrait;
 
 /**
@@ -26,6 +28,7 @@ final class FieldTypeUninstallValidatorTest extends KernelTestBase {
 
   use ContribStrictConfigSchemaTestTrait;
   use NodeCreationTrait;
+  use TestDataUtilitiesTrait;
 
   protected function setUp(): void {
     parent::setUp();
@@ -49,14 +52,38 @@ final class FieldTypeUninstallValidatorTest extends KernelTestBase {
    */
   public function testUninstall(): void {
     $this->container->get('module_installer')->install(['experience_builder', 'link', 'node', 'text', 'xb_test_config_node_article', 'image', 'sdc_test']);
-    $this->createNode([
+    $node = $this->createNode([
       'title' => 'Test node',
       'type' => 'article',
       'field_xb_test' => [
-        'tree' => '{"' . ComponentTreeStructure::ROOT_UUID . '": [{"uuid":"dynamic-static-card2df","component":"sdc_test:my-cta"}]}',
-        'props' => '{"dynamic-static-card2df":{"text":{"sourceType":"dynamic","expression":"ℹ︎␜entity:node:article␝title␞␟value"},"href":{"sourceType":"static:field_item:link","value":{"uri":"https:\/\/drupal.org","title":null,"options":[]},"expression":"ℹ︎link␟uri"}}}',
+        'tree' => self::encodeXBData([
+          ComponentTreeStructure::ROOT_UUID => [
+            [
+              'uuid' => 'dynamic-static-card2df',
+              'component' => 'sdc_test:my-cta',
+            ],
+          ],
+        ]),
+        'props' => self::encodeXBData([
+          'dynamic-static-card2df' => [
+            'text' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:article␝title␞␟value',
+            ],
+            'href' => [
+              'sourceType' => 'static:field_item:link',
+              'value' => [
+                'uri' => 'https://drupal.org',
+                'title' => NULL,
+                'options' => [],
+              ],
+              'expression' => 'ℹ︎link␟uri',
+            ],
+          ],
+        ]),
       ],
     ]);
+    $this->assertInstanceOf(Node::class, $node);
     $this->expectException(ModuleUninstallValidatorException::class);
     // For now match crude messages that prove we have caught both default and content uses.
     $this->expectExceptionMessage('Provides a field type, <em class="placeholder">link</em>, that is in use in the content of the following entities: <em class="placeholder">node</em> id=<em class="placeholder">1</em> revision=<em class="placeholder">1</em>, Provides a field type, <em class="placeholder">link</em>, that is in use in the content of the following entities: <em class="placeholder">node</em> id=<em class="placeholder">1</em> revision=<em class="placeholder">1</em>, Provides a field type, <em class="placeholder">link</em>, that is in use in the default value of the following fields: <em class="placeholder">field_xb_test</em>');

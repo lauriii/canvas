@@ -6,12 +6,15 @@ namespace Drupal\Tests\experience_builder\Unit\DataType;
 
 use Drupal\Core\TypedData\DataDefinition;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
+use Drupal\Tests\experience_builder\Traits\TestDataUtilitiesTrait;
 use Drupal\Tests\UnitTestCase;
 
 /**
  * @coversDefaultClass \Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure
  */
 class ComponentTreeStructureTest extends UnitTestCase {
+
+  use TestDataUtilitiesTrait;
 
   /**
    * @covers ::getValue
@@ -80,28 +83,29 @@ class ComponentTreeStructureTest extends UnitTestCase {
    * @return \Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure
    */
   private function getTestComponentTreeStructure(): ComponentTreeStructure {
-    $test_json = str_replace('ROOT_UUID', ComponentTreeStructure::ROOT_UUID, '
-      {
-      "ROOT_UUID": [
-        {"uuid": "uuid-root-1", "component": "provider:two-col"},
-        {"uuid": "uuid-root-2", "component": "provider:marquee"},
-        {"uuid": "uuid-root-3", "component": "provider:marquee"}
+    $tree = [
+      ComponentTreeStructure::ROOT_UUID => [
+        ['uuid' => 'uuid-root-1', 'component' => 'provider:two-col'],
+        ['uuid' => 'uuid-root-2', 'component' => 'provider:marquee'],
+        ['uuid' => 'uuid-root-3', 'component' => 'provider:marquee'],
       ],
-      "uuid-root-1": {
-        "firstColumn": [
-          {"uuid": "uuid4-author1", "component": "provider:person-card"},
-          {"uuid": "uuid2-submitted", "component": "provider:elegant-date"}
+      'uuid-root-1' => [
+        'firstColumn' => [
+          ['uuid' => 'uuid4-author1', 'component' => 'provider:person-card'],
+          ['uuid' => 'uuid2-submitted', 'component' => 'provider:elegant-date'],
         ],
-        "secondColumn": [
-          {"uuid": "uuid5-author2", "component": "provider:person-card"}
-        ]
-      },
-      "uuid-root-2": {
-         "content": [
-            {"uuid": "uuid4-author3", "component": "provider:person-card"}
-         ]
-      }
-    }');
+        'secondColumn' => [
+          ['uuid' => 'uuid5-author2', 'component' => 'provider:person-card'],
+        ],
+      ],
+      'uuid-root-2' => [
+        'content' => [
+          ['uuid' => 'uuid4-author3', 'component' => 'provider:person-card'],
+        ],
+      ],
+    ];
+
+    $test_json = self::encodeXBData($tree);
     $definition = DataDefinition::create('component_tree_structure');
     $component_tree_structure = new ComponentTreeStructure($definition,
       'component_tree_structure');
