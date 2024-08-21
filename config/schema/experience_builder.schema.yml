@@ -104,11 +104,3 @@ field.field_settings.component_tree:
   type: field.field_settings.*
   constraints:
     FullyValidatable: ~
-  mapping:
-    translation:
-      type: string
-      label: 'Experience Builder translations'
-      constraints:
-        Choice:
-          # @todo \Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem::defaultFieldSettings()
-          - symmetric|asymmetric

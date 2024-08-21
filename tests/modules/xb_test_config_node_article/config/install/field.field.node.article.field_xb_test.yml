@@ -21,6 +21,5 @@ default_value:
     # cspell:ignore centity dtitle elink furi fvalue
     props: '{"dynamic-static-card2df":{"heading":{"sourceType":"dynamic","expression":"\u2139\ufe0e\u241centity:node:article\u241dtitle\u241e\u241fvalue"},"href":{"sourceType":"static:field_item:link","value":{"uri":"https:\/\/drupal.org","title":null,"options":[]},"expression":"\u2139\ufe0elink\u241furi"}}}'
 default_value_callback: ''
-settings:
-  translation: symmetric|asymmetric
+settings: {}
 field_type: component_tree

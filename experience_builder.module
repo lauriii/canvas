@@ -5,6 +5,7 @@
  * Hook implementations for Experience Builder.
  */
 
+use Drupal\Core\Entity\ContentEntityBase;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Entity\TypedData\EntityDataDefinition;
 use Drupal\Core\Extension\Extension;
@@ -158,6 +159,37 @@ function experience_builder_entity_base_field_info_alter(array &$fields, EntityT
   }
   if ($entity_type->id() === 'taxonomy_term') {
     $fields['name']->addPropertyConstraints('value', ['StringSemantics' => StringSemanticsConstraint::PROSE]);
+  }
+}
+
+/**
+ * Implements hook_entity_prepare_view().
+ *
+ * @see \Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem
+ */
+function experience_builder_entity_prepare_view(string $entity_type_id, array $entities, array $displays, string $view_mode): void {
+  foreach ($entities as $entity) {
+    // TRICKY: We only care about ContentEntityBase because we are trying to undo logic in
+    // \Drupal\Core\Entity\ContentEntityBase::getTranslatedField(). In that method
+    // non-translated fields have their parent entity set as the default translation
+    // even if entity is not the default translation. This is a problem for the
+    // component tree field type, because it may render dynamic properties
+    // that reference the fields on the entity, and it needs to render the
+    // translated fields when viewing a translation.
+    // This unfortunately cannot be moved to ComponentTreeItem::view().
+    // @see https://drupal.org/i/2513094
+    // @see https://git.drupalcode.org/project/experience_builder/-/merge_requests/52/diffs#note_343826
+    if ($entity instanceof ContentEntityBase && !$entity->isDefaultTranslation()) {
+      foreach ($entity->getFields() as $field) {
+        $field_entity = $field->getEntity();
+        assert($field_entity instanceof ContentEntityBase);
+        if ($field->getFieldDefinition()->getType() === 'component_tree' && $field_entity->isDefaultTranslation()) {
+          $field_name = $field->getName();
+          assert(is_string($field_name));
+          $field->setContext($field_name, $entity->getTypedData());
+        }
+      }
+    }
   }
 }
 

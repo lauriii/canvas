@@ -36,10 +36,19 @@ use Drupal\experience_builder\PropSource\PropSourceBase;
   constraints: [
     'ValidComponentTree' => [],
   ],
-  // @todo Add support for both symmetric and asymmetric translations.
-  // @see https://www.drupal.org/project/drupal/issues/3440578
+  // @see docs/data-model.md
   // @see content_translation_field_info_alter()
-  column_groups: [],
+  // @see experience_builder_entity_prepare_view()
+  column_groups: [
+    'props' => [
+      'label' => new TranslatableMarkup('Component property values'),
+      'translatable' => TRUE,
+    ],
+    'tree' => [
+      'label' => new TranslatableMarkup('Component tree'),
+      'translatable' => TRUE,
+    ],
+  ],
   cardinality: 1,
 )]
 class ComponentTreeItem extends FieldItemBase implements RenderableInterface {
@@ -68,17 +77,6 @@ class ComponentTreeItem extends FieldItemBase implements RenderableInterface {
     }
 
     return $dependencies;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public static function defaultFieldSettings() {
-    return [
-      // @todo This should be configurable per bundle for max flexibility? Or should it be per entity type?
-      'translation' => 'symmetric|asymmetric',
-      // @todo Other things such as restricting what level of change is allowed? TBD.
-    ] + parent::defaultFieldSettings();
   }
 
   /**
