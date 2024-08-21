@@ -8,7 +8,10 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\experience_builder\Functional;
 
+use Drupal\Core\File\FileExists;
+use Drupal\Core\File\FileSystemInterface;
 use Drupal\Core\Serialization\Yaml;
+use Drupal\Core\TypedData\Plugin\DataType\Uri;
 use Drupal\experience_builder\Plugin\DataType\ComponentPropsValues;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeHydrated;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
@@ -17,6 +20,7 @@ use Drupal\experience_builder\PropSource\DynamicPropSource;
 use Drupal\experience_builder\PropSource\PropSourceBase;
 use Drupal\experience_builder\PropSource\StaticPropSource;
 use Drupal\file\Entity\File;
+use Drupal\file\Plugin\Field\FieldType\FileUriItem;
 use Drupal\image\Entity\ImageStyle;
 use Drupal\node\Entity\Node;
 use Drupal\Tests\BrowserTestBase;
@@ -71,7 +75,12 @@ class EndToEndDemoIntegrationTest extends BrowserTestBase {
     $page->fillField('title[0][value]', 'The first entity using XB!');
     $image_file = current($this->getTestFiles('image'));
     // @phpstan-ignore-next-line
-    $image_path = $this->container->get('file_system')->realpath($image_file->uri);
+    $image_file_uri = 'public://' . $image_file->name . ' with spaces.png';
+    $file_system = $this->container->get(FileSystemInterface::class);
+    assert($file_system instanceof FileSystemInterface);
+    // @phpstan-ignore-next-line
+    $file_system->move($image_file->uri, $image_file_uri, FileExists::Rename);
+    $image_path = $this->container->get('file_system')->realpath($image_file_uri);
     $this->assertNotFalse($image_path);
     $page->attachFileToField('files[field_hero_0]', $image_path);
     $page->pressButton('Save');
@@ -279,6 +288,8 @@ class EndToEndDemoIntegrationTest extends BrowserTestBase {
       ],
     ], array_map($make_source_assertable, $props->getComponentPropsSources('dynamic-static-card2df')));
     // Prop source for component instance with UUID `dynamic-dynamic-card3rr`.
+    assert(File::load(1)->get('uri')[0] instanceof FileUriItem);
+    assert(File::load(1)->get('uri')[0]->get('value') instanceof Uri);
     $this->assertEquals([
       'heading' => [
         'source class' => DynamicPropSource::class,
@@ -288,7 +299,8 @@ class EndToEndDemoIntegrationTest extends BrowserTestBase {
       'cta1href' => [
         'source class' => DynamicPropSource::class,
         'JSONified' => '{"sourceType":"dynamic","expression":"ℹ︎␜entity:node:article␝field_hero␞␟entity␜␜entity:file␝uri␞␟value"}',
-        'evaluated' => File::load(1)->getFileUri(),
+        // 🐛 Upstream Drupal core bug: `File::load(1)->getFileUri()` does not return a valid URI!
+        'evaluated' => File::load(1)->get('uri')[0]->get('value')->getCastedValue(),
       ],
     ], array_map($make_source_assertable, $props->getComponentPropsSources('dynamic-dynamic-card3rr')));
     // Prop source for component instance with UUID `dynamic-image-udf7d`.
@@ -297,7 +309,8 @@ class EndToEndDemoIntegrationTest extends BrowserTestBase {
         'source class' => DynamicPropSource::class,
         'JSONified' => '{"sourceType":"dynamic","expression":"ℹ︎␜entity:node:article␝field_hero␞␟{src↝entity␜␜entity:file␝uri␞␟value,alt↠alt,width↠width,height↠height}"}',
         'evaluated' => [
-          'src' => File::load(1)->getFileUri(),
+          // 🐛 Upstream Drupal core bug: `File::load(1)->getFileUri()` does not return a valid URI!
+          'src' => File::load(1)->get('uri')[0]->get('value')->getCastedValue(),
           'alt' => 'A random image for testing purposes.',
           'width' => 40,
           'height' => 20,
@@ -335,7 +348,8 @@ class EndToEndDemoIntegrationTest extends BrowserTestBase {
                 'component' => 'experience_builder:image',
                 'props' => [
                   'image' => [
-                    'src' => File::load(1)->getFileUri(),
+                    // 🐛 Upstream Drupal core bug: `File::load(1)->getFileUri()` does not return a valid URI!
+                    'src' => File::load(1)->get('uri')[0]->get('value')->getCastedValue(),
                     'alt' => 'A random image for testing purposes.',
                     'width' => 40,
                     'height' => 20,
@@ -362,7 +376,8 @@ class EndToEndDemoIntegrationTest extends BrowserTestBase {
                 'component' => 'experience_builder:my-hero',
                 'props' => [
                   'heading' => $node->getTitle(),
-                  'cta1href' => File::load(1)->getFileUri(),
+                  // 🐛 Upstream Drupal core bug: `File::load(1)->getFileUri()` does not return a valid URI!
+                  'cta1href' => File::load(1)->get('uri')[0]->get('value')->getCastedValue(),
                 ],
               ],
               'dynamic-image-static-imageStyle-something7d' => [
@@ -426,11 +441,11 @@ HTML, $node->getTitle()), $hero_components[1]->getOuterHtml());
       </button>
   </div>
 </div>
-HTML, $node->getTitle(), File::load(1)->getFileUri()), $hero_components[2]->getOuterHtml());
+HTML, $node->getTitle(), File::load(1)->get('uri')[0]->get('value')->getCastedValue()), $hero_components[2]->getOuterHtml());
     // Markup for component instance with UUID `dynamic-image-udf7d`.
     $this->assertSame(sprintf(<<<HTML
 <img src="%s" alt="A random image for testing purposes." width="%d" height="%d">
-HTML, File::load(1)->getFileUri(), 40, 20), $image_components[0]->getOuterHtml());
+HTML, File::load(1)->get('uri')[0]->get('value')->getCastedValue(), 40, 20), $image_components[0]->getOuterHtml());
     // Markup for component instance with UUID `dynamic-image-static-imageStyle-something7d`.
     $this->assertSame(sprintf(<<<HTML
 <img src="%s" alt="A random image for testing purposes." width="%d" height="%d">

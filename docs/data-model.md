@@ -13,7 +13,7 @@ In the rest of this document, `Experience Builder` will be written as `XB`.
 - `bundle field`: a `field instance` that exists for _some_ bundles of an entity type, typically defined in config
 - `content entity`: an entity that can be created by a Content Creator, containing various `field`s, potentially including the `XB field type`, of a particular entity type (e.g. "node")
 - `content type`: a definition for content entities of a certain entity type and bundle, and hence every `content entity` of this bundle is guaranteed to contain the same `bundle field`s
-- `data type`: Drupal's smallest unit of representing data, defines semantics and typically comes with validation logic and convenience methods for interacting with the data it represents
+- `data type`: Drupal's smallest unit of representing data, defines semantics and typically comes with validation logic and convenience methods for interacting with the data it represents ⚠️ Not all data types in Drupal core do what they say, see `\Drupal\experience_builder\Plugin\DataTypeOverride\UriOverride` for example. ⚠️
 - `field`: synonym of `field item list`
 - `field prop`: a property defined by a `field type`, with a value for that property on such a `field item`, represented by a `data type`. Often a single prop exists (typically: `value`), but not always (for example: the `image` field type: `target_id`, `entity`, `alt`, `title`, `width`, `height` — with `entity` a `computed field prop`)
 - `field instance`: a definition for instantiating a `field type` into a `field item list` containing >=1 `field item`

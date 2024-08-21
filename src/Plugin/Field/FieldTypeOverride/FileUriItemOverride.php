@@ -6,6 +6,7 @@ namespace Drupal\experience_builder\Plugin\Field\FieldTypeOverride;
 
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\experience_builder\Plugin\DataTypeOverride\ComputedFileUrlOverride;
+use Drupal\experience_builder\Plugin\DataTypeOverride\UriOverride;
 use Drupal\file\Plugin\Field\FieldType\FileUriItem;
 
 /**
@@ -18,6 +19,7 @@ class FileUriItemOverride extends FileUriItem {
    */
   public static function propertyDefinitions(FieldStorageDefinitionInterface $field_definition) {
     $properties = parent::propertyDefinitions($field_definition);
+    $properties['value']->setClass(UriOverride::class);
     $properties['url']
       ->setClass(ComputedFileUrlOverride::class)
       // The `url` property is computed using the `value` property, which is
