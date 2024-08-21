@@ -38,8 +38,8 @@ class DefaultFieldValueTest extends KernelTestBase {
     $this->installConfig(['xb_test_config_node_article']);
   }
 
-  public function providerDefaultFieldValue(): array {
-    $test_cases = $this->getComponentTreeTestCases();
+  public static function providerDefaultFieldValue(): array {
+    $test_cases = static::getComponentTreeTestCases();
     // Ensure the root validation is enforced.
     array_push($test_cases['invalid tree structure, uuid at top of data structure is not in the tree, also has empty slots'], SchemaIncompleteException::class, 'Schema errors for field.field.node.article.field_xb_test with the following errors: 0 [default_value.0.tree[other-uuid]] Empty component subtree. A component subtree must contain &gt;=1 populated slot (with &gt;=1 component instance). Empty component subtrees must be omitted., 1 [default_value.0.tree[other-uuid]] Dangling component subtree. This component subtree claims to be for a component instance with UUID &lt;em class=&quot;placeholder&quot;&gt;other-uuid&lt;/em&gt;, but no such component instance can be found.');
     // Ensure the props validation is enforced even if the root is invalid.

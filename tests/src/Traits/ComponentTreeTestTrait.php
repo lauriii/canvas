@@ -13,7 +13,7 @@ trait ComponentTreeTestTrait {
 
   use TestDataUtilitiesTrait;
 
-  protected function getComponentTreeTestCases(): array {
+  protected static function getComponentTreeTestCases(): array {
     return [
       'invalid tree structure, uuid at top of data structure is not in the tree, also has empty slots' => [
         [

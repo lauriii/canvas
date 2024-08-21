@@ -42,7 +42,7 @@ final class ComponentTreeStructureConstraintValidator extends ConstraintValidato
   /**
    * {@inheritdoc}
    */
-  public function validate(mixed $value, Constraint $constraint) {
+  public function validate(mixed $value, Constraint $constraint): void {
     if (!is_string($value)) {
       throw new \UnexpectedValueException(sprintf('The value must be a string, found %s.', gettype($value)));
     }

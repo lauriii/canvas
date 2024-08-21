@@ -75,25 +75,25 @@ class ComponentTreeHydratedTest extends KernelTestBase {
     };
 
     yield 'empty component tree' => [
-      'tree structure' => [
+      'tree' => [
         ComponentTreeStructure::ROOT_UUID => [],
       ],
-      'props values' => [],
-      'expected value' => [
+      'props' => [],
+      'expected_value' => [
         ComponentTreeStructure::ROOT_UUID => [],
       ],
-      'expected renderable' => [],
-      'expected HTML' => '',
+      'expected_renderable' => [],
+      'expected_html' => '',
     ];
 
     yield 'simplest component tree without nesting' => [
-      'tree structure' => [
+      'tree' => [
         ComponentTreeStructure::ROOT_UUID => [
           ['uuid' => 'uuid-in-root', 'component' => 'xb_test_sdc:props-no-slots'],
           ['uuid' => 'uuid-in-root-another', 'component' => 'xb_test_sdc:props-no-slots'],
         ],
       ],
-      'props values' => [
+      'props' => [
         'uuid-in-root' => [
           'heading' => $generate_static_prop_source('world'),
         ],
@@ -101,7 +101,7 @@ class ComponentTreeHydratedTest extends KernelTestBase {
           'heading' => $generate_static_prop_source('another world'),
         ],
       ],
-      'expected value' => [
+      'expected_value' => [
         ComponentTreeStructure::ROOT_UUID => [
           'uuid-in-root' => [
             'component' => 'xb_test_sdc:props-no-slots',
@@ -113,7 +113,7 @@ class ComponentTreeHydratedTest extends KernelTestBase {
           ],
         ],
       ],
-      'expected renderable' => [
+      'expected_renderable' => [
         ComponentTreeStructure::ROOT_UUID => [
           'uuid-in-root' => [
             '#type' => 'component',
@@ -127,7 +127,7 @@ class ComponentTreeHydratedTest extends KernelTestBase {
           ],
         ],
       ],
-      'expected HTML' => <<<HTML
+      'expected_html' => <<<HTML
 <div  data-component-id="xb_test_sdc:props-no-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
   <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;">Hello, world!</h1>
 </div>
@@ -139,7 +139,7 @@ HTML,
     ];
 
     yield 'simplest component tree with nesting' => [
-      'tree structure' => [
+      'tree' => [
         ComponentTreeStructure::ROOT_UUID => [
           ['uuid' => 'uuid-in-root', 'component' => 'xb_test_sdc:props-slots'],
         ],
@@ -149,7 +149,7 @@ HTML,
           ],
         ],
       ],
-      'props values' => [
+      'props' => [
         'uuid-in-root' => [
           'heading' => $generate_static_prop_source('world'),
         ],
@@ -157,7 +157,7 @@ HTML,
           'heading' => $generate_static_prop_source('from a slot'),
         ],
       ],
-      'expected value' => [
+      'expected_value' => [
         ComponentTreeStructure::ROOT_UUID => [
           'uuid-in-root' => [
             'component' => 'xb_test_sdc:props-slots',
@@ -173,7 +173,7 @@ HTML,
           ],
         ],
       ],
-      'expected renderable' => [
+      'expected_renderable' => [
         ComponentTreeStructure::ROOT_UUID => [
           'uuid-in-root' => [
             '#type' => 'component',
@@ -191,7 +191,7 @@ HTML,
           ],
         ],
       ],
-      'expected HTML' => <<<HTML
+      'expected_html' => <<<HTML
 <div  data-component-id="xb_test_sdc:props-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
   <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;">Hello, world!</h1>
   <div class="component--props-slots--body">
@@ -206,7 +206,7 @@ HTML,
     ];
 
     yield 'component tree with complex nesting' => [
-      'tree structure' => [
+      'tree' => [
         // Note how these are NOT sequentially ordered.
         'uuid-in-root' => [
           'the_body' => [
@@ -228,7 +228,7 @@ HTML,
           ['uuid' => 'uuid-in-root', 'component' => 'xb_test_sdc:props-slots'],
         ],
       ],
-      'props values' => [
+      'props' => [
         // Note how these are NOT sequentially ordered, but in a different way.
         'uuid-in-root' => [
           'heading' => $generate_static_prop_source('world'),
@@ -238,7 +238,7 @@ HTML,
         'uuid-last-in-tree' => ['heading' => $generate_static_prop_source('from slot <LAST ONE>')],
         'uuid-level-2' => ['heading' => $generate_static_prop_source('from slot level 2')],
       ],
-      'expected value' => [
+      'expected_value' => [
         // Note how these are sequentially ordered.
         ComponentTreeStructure::ROOT_UUID => [
           'uuid-in-root' => [
@@ -275,7 +275,7 @@ HTML,
           ],
         ],
       ],
-      'expected renderable' => [
+      'expected_renderable' => [
         // Note how these are sequentially ordered.
         ComponentTreeStructure::ROOT_UUID => [
           'uuid-in-root' => [
@@ -317,7 +317,7 @@ HTML,
           ],
         ],
       ],
-      'expected HTML' => <<<HTML
+      'expected_html' => <<<HTML
 <div  data-component-id="xb_test_sdc:props-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
   <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;">Hello, world!</h1>
   <div class="component--props-slots--body">

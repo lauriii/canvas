@@ -16,6 +16,7 @@ use Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldTypeP
 use Drupal\experience_builder\PropExpressions\StructuredData\StructuredDataPropExpression;
 use Drupal\experience_builder\PropExpressions\StructuredData\StructuredDataPropExpressionInterface;
 use Drupal\Tests\UnitTestCase;
+use Prophecy\Prophet;
 
 /**
  * @coversDefaultClass \Drupal\experience_builder\PropExpressions\StructuredData\StructuredDataPropExpression
@@ -60,11 +61,11 @@ class PropExpressionTest extends UnitTestCase {
    *
    * @return array<array{0: string, 1: FieldPropExpression|ReferenceFieldPropExpression}>
    */
-  public function provider(): array {
+  public static function provider(): array {
     $container = new ContainerBuilder();
-    $container->set('typed_data_manager', $this->prophesize(TypedDataManagerInterface::class)->reveal());
+    $prophet = new Prophet();
+    $container->set('typed_data_manager', $prophet->prophesize(TypedDataManagerInterface::class)->reveal());
     \Drupal::setContainer($container);
-
     $generate_meaningful_case_label = function (string $prefix, array $cases) : array {
       return array_combine(
         array_map(fn (int|string $key) => sprintf("$prefix - %s", is_string($key) ? $key : "#$key"), array_keys($cases)),
@@ -72,18 +73,18 @@ class PropExpressionTest extends UnitTestCase {
       );
     };
 
-    return $generate_meaningful_case_label('FieldPropExpression', $this->providerFieldPropExpression())
-      + $generate_meaningful_case_label('FieldReferencePropExpression', $this->providerReferenceFieldPropExpression())
-      + $generate_meaningful_case_label('FieldObjectPropsExpression', $this->providerFieldObjectPropsExpression())
-      + $generate_meaningful_case_label('FieldTypePropExpression', $this->providerFieldTypePropExpression())
-      + $generate_meaningful_case_label('ReferenceFieldTypePropExpression', $this->providerReferenceFieldTypePropExpression())
-      + $generate_meaningful_case_label('FieldTypeObjectPropsExpression', $this->providerFieldTypeObjectPropsExpression());
+    return $generate_meaningful_case_label('FieldPropExpression', self::providerFieldPropExpression())
+      + $generate_meaningful_case_label('FieldReferencePropExpression', self::providerReferenceFieldPropExpression())
+      + $generate_meaningful_case_label('FieldObjectPropsExpression', self::providerFieldObjectPropsExpression())
+      + $generate_meaningful_case_label('FieldTypePropExpression', self::providerFieldTypePropExpression())
+      + $generate_meaningful_case_label('ReferenceFieldTypePropExpression', self::providerReferenceFieldTypePropExpression())
+      + $generate_meaningful_case_label('FieldTypeObjectPropsExpression', self::providerFieldTypeObjectPropsExpression());
   }
 
   /**
    * @return array<array{0: string, 1: FieldPropExpression}>
    */
-  public function providerFieldPropExpression(): array {
+  public static function providerFieldPropExpression(): array {
     return [
       // Context: entity type, base field.
       ['ℹ︎␜entity:node␝title␞␟value', new FieldPropExpression(EntityDataDefinition::create('node'), 'title', NULL, 'value')],
@@ -113,7 +114,7 @@ class PropExpressionTest extends UnitTestCase {
   /**
    * @return array<array{0: string, 1: ReferenceFieldPropExpression}>
    */
-  public function providerReferenceFieldPropExpression(): array {
+  public static function providerReferenceFieldPropExpression(): array {
     $referencer_delta_null = new FieldPropExpression(EntityDataDefinition::create('node'), 'owner', NULL, 'value');
     $referencer_delta_zero = new FieldPropExpression(EntityDataDefinition::create('node'), 'owner', 0, 'value');
     $referencer_delta_high = new FieldPropExpression(EntityDataDefinition::create('node'), 'owner', 123, 'value');
@@ -136,7 +137,7 @@ class PropExpressionTest extends UnitTestCase {
   /**
    * @return array<array{0: string, 1: FieldObjectPropsExpression}>
    */
-  public function providerFieldObjectPropsExpression(): array {
+  public static function providerFieldObjectPropsExpression(): array {
     return [
       // Context: entity type, base field.
       [
@@ -174,7 +175,7 @@ class PropExpressionTest extends UnitTestCase {
   /**
    * @return array<array{0: string, 1: FieldTypePropExpression}>
    */
-  public function providerFieldTypePropExpression(): array {
+  public static function providerFieldTypePropExpression(): array {
     return [
       // Field type with single property.
       // @see \Drupal\Core\Field\Plugin\Field\FieldType\StringItem
@@ -195,7 +196,7 @@ class PropExpressionTest extends UnitTestCase {
   /**
    * @return array<array{0: string, 1: ReferenceFieldTypePropExpression}>
    */
-  public function providerReferenceFieldTypePropExpression(): array {
+  public static function providerReferenceFieldTypePropExpression(): array {
     return [
       // Reference field type for a single property.
       // @see \Drupal\Core\Field\Plugin\Field\FieldType\StringItem
@@ -245,7 +246,7 @@ class PropExpressionTest extends UnitTestCase {
   /**
    * @return array<array{0: string, 1: FieldTypeObjectPropsExpression}>
    */
-  public function providerFieldTypeObjectPropsExpression(): array {
+  public static function providerFieldTypeObjectPropsExpression(): array {
     return [
       // Context: entity type, base field.
       [

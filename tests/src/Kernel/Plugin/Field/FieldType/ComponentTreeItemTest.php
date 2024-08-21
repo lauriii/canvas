@@ -173,9 +173,9 @@ class ComponentTreeItemTest extends KernelTestBase {
     );
   }
 
-  public function providerInvalidField(): array {
+  public static function providerInvalidField(): array {
     $root_uuid = ComponentTreeStructure::ROOT_UUID;
-    $test_cases = $this->getComponentTreeTestCases();
+    $test_cases = static::getComponentTreeTestCases();
     $test_cases['invalid tree structure, uuid at top of data structure is not in the tree, also has empty slots'][] = [
       'field_xb_test.0.tree[other-uuid]' => [
         'Empty component subtree. A component subtree must contain >=1 populated slot (with >=1 component instance). Empty component subtrees must be omitted.',

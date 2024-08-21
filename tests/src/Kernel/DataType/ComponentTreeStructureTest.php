@@ -43,7 +43,7 @@ class ComponentTreeStructureTest extends KernelTestBase {
     $this->assertSame($expected_violations, self::violationsToArray($violations));
   }
 
-  public function providerValidation(): array {
+  public static function providerValidation(): array {
     $root_uuid = ComponentTreeStructure::ROOT_UUID;
     return [
       'INVALID: component instance keys wrong, string instead of arrays' => [
