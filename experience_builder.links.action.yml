@@ -1,5 +1,0 @@
-entity.component.form_add:
-  route_name: entity.component.form_add
-  title: 'Add page builder component'
-  appears_on:
-    - entity.component.collection

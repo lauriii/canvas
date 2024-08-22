@@ -72,22 +72,6 @@ experience_builder.preview:
       entity:
         type: entity:{entity_type}
 
-entity.component.form_add:
-  path: '/admin/structure/component/add'
-  defaults:
-    _entity_form: 'component.add'
-    _title: 'Add component'
-  requirements:
-    _entity_create_access: 'component'
-
-entity.component.edit_form:
-  path: '/admin/structure/component/edit/{component}'
-  defaults:
-    _entity_form: 'component.edit'
-    _title: 'Edit component'
-  requirements:
-    _entity_access: 'component.update'
-
 entity.component.delete_form:
   path: '/admin/structure/component/delete/{component}'
   defaults:

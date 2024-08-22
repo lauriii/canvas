@@ -32,8 +32,6 @@ use Drupal\experience_builder\PropSource\StaticPropSource;
  *    handlers = {
  *      "list_builder" = "Drupal\experience_builder\Form\ComponentListBuilder",
  *      "form" = {
- *        "add" = "Drupal\experience_builder\Form\ComponentEditForm",
- *        "edit" = "Drupal\experience_builder\Form\ComponentEditForm",
  *        "delete" = "Drupal\Core\Entity\EntityDeleteForm"
  *      },
  *      "route_provider" = {
@@ -45,7 +43,6 @@ use Drupal\experience_builder\PropSource\StaticPropSource;
  *      "label" = "label",
  *    },
  *    links = {
- *      "edit-form" = "/admin/structure/component/edit/{component}",
  *      "delete-form" = "/admin/structure/component/delete/{component}",
  *      "collection" = "/admin/structure/component",
  *    },
