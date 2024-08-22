@@ -1,6 +1,6 @@
 # @see https://docs.gitlab.com/ee/user/project/codeowners/reference.html
 
-[project metadata][3] @bnjmnm @f.mazeikis @hooroomoo @jessebaker @lauriii @tedbow @wimleers
+[project metadata][3] @balintbrews @bnjmnm @f.mazeikis @hooroomoo @jessebaker @lauriii @tedbow @wimleers
 /*.info.yml
 /composer.json
 
@@ -9,7 +9,7 @@
 # Client side.
 #
 
-[UI] @bnjmnm @jessebaker @hooroomoo
+[UI] @balintbrews @bnjmnm @jessebaker @hooroomoo
 /ui/
 
 
@@ -43,7 +43,7 @@
 # Tests
 #
 
-[tests] @bnjmnm @f.mazeikis @jessebaker @larowlan @lauriii @tedbow @wimleers @hooroomoo
+[tests] @balintbrews @bnjmnm @f.mazeikis @jessebaker @larowlan @lauriii @tedbow @wimleers @hooroomoo
 /tests/
 
 
@@ -54,7 +54,7 @@
 [DX: CI] @wimleers
 /.gitlab-ci.yml
 
-[DX: JS] @bnjmnm @jessebaker @hooroomoo
+[DX: JS] @balintbrews @bnjmnm @jessebaker @hooroomoo
 /ui/*.json
 /ui/*.config.ts
 
