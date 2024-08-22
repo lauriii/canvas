@@ -19,3 +19,7 @@ parameters:
   ignoreErrors:
     - identifier: missingType.iterableValue
     - identifier: missingType.generics
+    -
+      message: "#^Plugin definitions cannot be altered\\.$#"
+      count: 1
+      path: src/Plugin/ComponentPluginManager.php

@@ -4,10 +4,11 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\experience_builder\Kernel;
 
+use Drupal\Component\Plugin\PluginManagerInterface;
 use Drupal\Core\Field\Plugin\Field\FieldWidget\OptionsSelectWidget;
 use Drupal\Core\Field\Plugin\Field\FieldWidget\StringTextfieldWidget;
 use Drupal\Core\Field\Plugin\Field\FieldWidget\UriWidget;
-use Drupal\Core\Render\Component\Exception\ComponentNotFoundException;
+use Drupal\experience_builder\Plugin\ComponentPluginManager;
 use Drupal\experience_builder\Entity\Component;
 use Drupal\experience_builder\PropSource\StaticPropSource;
 use Drupal\KernelTests\KernelTestBase;
@@ -19,10 +20,11 @@ class ComponentTest extends KernelTestBase {
 
   const MODULE_COMPONENT_ID = 'sdc_test:my-cta';
   const MODULE_CONFIG_ENTITY_ID = 'sdc_test+my-cta';
-  const THEME_COMPONENT_ID = 'sdc_theme_test:bar';
-  const THEME_CONFIG_ENTITY_ID = 'sdc_theme_test+bar';
   const MISSING_COMPONENT_ID = 'experience_builder:missing-component';
+  const MISSING_CONFIG_ENTITY_ID = 'experience_builder+missing-component';
   const LABEL = 'Test Component';
+
+  protected PluginManagerInterface $componentPluginManager;
 
   /**
    * {@inheritdoc}
@@ -32,8 +34,9 @@ class ComponentTest extends KernelTestBase {
     'sdc',
     'sdc_test',
     // Modules providing field types + widgets for the component props defaults.
-    'image',
     'options',
+    'image',
+    'file',
   ];
 
   /**
@@ -41,7 +44,39 @@ class ComponentTest extends KernelTestBase {
    */
   protected function setUp(): void {
     parent::setUp();
-    $this->container->get('theme_installer')->install(['sdc_theme_test']);
+    $this->componentPluginManager = $this->container->get(ComponentPluginManager::class);
+  }
+
+  protected function midTestSetUp(): void {
+    // The Standard install profile's "image" media type must be installed when
+    // the media_library module gets installed.
+    // @see core/profiles/standard/config/optional/media.type.image.yml
+    $this->container->get('module_installer')->install(['media']);
+    $this->setInstallProfile('standard');
+    \Drupal::service('config.installer')->installOptionalConfig();
+
+    $modules = [
+      'media_library',
+      'views',
+      'user',
+      'filter',
+    ];
+    $this->container->get('module_installer')->install($modules);
+    // @see \Drupal\Core\Field\Plugin\Field\FieldType\EntityReferenceItem::generateSampleValue()
+    $this->installEntitySchema('media');
+
+    // @see \Drupal\media_library\Plugin\Field\FieldWidget\MediaLibraryWidget
+    $this->installEntitySchema('user');
+
+    // @see core/profiles/standard/config/optional/media.type.image.yml
+    $this->setInstallProfile('standard');
+    $this->installConfig(['media']);
+
+    // A sample value is generated during the test, which needs this table.
+    $this->installSchema('file', ['file_usage']);
+
+    // @see \Drupal\media_library\MediaLibraryEditorOpener::__construct()
+    $this->installEntitySchema('filter_format');
   }
 
   public function testMachineNameAndIdConversion(): void {
@@ -116,31 +151,140 @@ class ComponentTest extends KernelTestBase {
     $this->assertSame('static:field_item:list_string', $target_default_static_prop_source->getSourceType());
     $this->assertInstanceOf(OptionsSelectWidget::class, $target_default_static_prop_source->getWidget('target', $this->randomString(), NULL));
     $this->assertSame('{"sourceType":"static:field_item:list_string","value":null,"expression":"ℹ︎list_string␟value","sourceTypeSettings":{"storage":{"allowed_values":[{"value":"foo","label":"foo"},{"value":"bar","label":"bar"}]}}}', (string) $target_default_static_prop_source);
-
-    $theme_component = Component::create([
-      'component' => self::THEME_CONFIG_ENTITY_ID,
-      'label' => self::LABEL,
-      'defaults' => [
-        'props' => [],
-      ],
-    ]);
-    $theme_component->save();
-
-    $this->assertSame(['theme' => ['sdc_theme_test']], $theme_component->getDependencies());
-    $this->assertSame(self::THEME_COMPONENT_ID, $theme_component->getComponentMachineName());
-    $this->assertSame(self::THEME_CONFIG_ENTITY_ID, $theme_component->id());
   }
 
   /**
-   * Tests ComponentNotFoundException thrown when saving entity with machine name referring to component that can't be located.
+   * @param array<string> $modules
+   * @param array<string, bool> $sdcs
+   *
+   * @dataProvider provider
    */
-  public function testMissingComponentDependency(): void {
-    $message = sprintf('Unable to find component "%s" in the component repository.', self::MISSING_COMPONENT_ID);
-    $this->expectExceptionObject(new ComponentNotFoundException($message));
-    Component::create([
-      'component' => self::MISSING_COMPONENT_ID,
-      'label' => self::LABEL,
-    ])->save();
+  public function testComponentAutoCreate(array $modules, array $sdcs): void {
+    // Initial state: no Component config entities.
+    $this->assertEmpty(Component::loadMultiple());
+
+    $this->midTestSetUp();
+
+    // Installing a module with SDCs should result in Component config entities being generated.
+    $this->container->get('module_installer')->install($modules);
+    foreach ($sdcs as $plugin_id => $component_entity_exists) {
+      $this->assertSame($component_entity_exists, Component::load(Component::convertMachineNameToId($plugin_id)) instanceof Component, $plugin_id . ' and modules: ' . implode(', ', $modules));
+    }
+  }
+
+  public static function provider(): \Generator {
+
+    yield 'initial set of components from experience_builder and sdc_test' => [
+      'modules' => [],
+      'sdcs' => [
+        'experience_builder:obsolete' => TRUE,
+        'experience_builder:experimental' => TRUE,
+        'experience_builder:deprecated' => TRUE,
+        'experience_builder:image' => TRUE,
+        'experience_builder:two_column' => TRUE,
+        'experience_builder:one_column' => TRUE,
+        'experience_builder:shoe_tab_group' => TRUE,
+        'experience_builder:video' => TRUE,
+        'experience_builder:shoe_tab_panel' => TRUE,
+        'experience_builder:shoe_badge' => TRUE,
+        'experience_builder:shoe_button' => TRUE,
+        'experience_builder:shoe_icon' => TRUE,
+        'experience_builder:shoe_tab' => TRUE,
+        'experience_builder:heading' => TRUE,
+        'experience_builder:shoe_details' => TRUE,
+        'experience_builder:my-hero' => TRUE,
+        'experience_builder:my-section' => TRUE,
+        'sdc_test:array-to-object' => TRUE,
+        'sdc_test:my-button' => TRUE,
+        'sdc_test:no-props' => TRUE,
+        'sdc_test:my-banner' => TRUE,
+        'xb_test_sdc:props-no-slots' => FALSE,
+        'xb_test_sdc:props-slots' => FALSE,
+        'sdc_test_all_props:all-props-component' => FALSE,
+      ],
+    ];
+
+    yield 'installing xb_test_sdc creates props-no-slots and props-slots components' => [
+      'modules' => ['xb_test_sdc'],
+      'sdcs' => [
+        'experience_builder:obsolete' => TRUE,
+        'experience_builder:experimental' => TRUE,
+        'experience_builder:deprecated' => TRUE,
+        'experience_builder:image' => TRUE,
+        'experience_builder:two_column' => TRUE,
+        'experience_builder:one_column' => TRUE,
+        'experience_builder:shoe_tab_group' => TRUE,
+        'experience_builder:video' => TRUE,
+        'experience_builder:shoe_tab_panel' => TRUE,
+        'experience_builder:shoe_badge' => TRUE,
+        'experience_builder:shoe_button' => TRUE,
+        'experience_builder:shoe_icon' => TRUE,
+        'experience_builder:shoe_tab' => TRUE,
+        'experience_builder:heading' => TRUE,
+        'experience_builder:shoe_details' => TRUE,
+        'experience_builder:my-hero' => TRUE,
+        'experience_builder:my-section' => TRUE,
+        'sdc_test:array-to-object' => TRUE,
+        'sdc_test:my-button' => TRUE,
+        'sdc_test:no-props' => TRUE,
+        'sdc_test:my-banner' => TRUE,
+        'xb_test_sdc:props-no-slots' => TRUE,
+        'xb_test_sdc:props-slots' => TRUE,
+        'xb_test_sdc:props-no-title' => FALSE,
+        'xb_test_sdc:props-no-examples' => FALSE,
+        'sdc_test_all_props:all-props-component' => FALSE,
+      ],
+    ];
+    yield 'sdc_test_all_props:all-props-component component does not meet requirements' => [
+      'modules' => ['xb_test_sdc', 'sdc_test_all_props'],
+      'sdcs' => [
+        'experience_builder:obsolete' => TRUE,
+        'experience_builder:experimental' => TRUE,
+        'experience_builder:deprecated' => TRUE,
+        'experience_builder:image' => TRUE,
+        'experience_builder:two_column' => TRUE,
+        'experience_builder:one_column' => TRUE,
+        'experience_builder:shoe_tab_group' => TRUE,
+        'experience_builder:video' => TRUE,
+        'experience_builder:shoe_tab_panel' => TRUE,
+        'experience_builder:shoe_badge' => TRUE,
+        'experience_builder:shoe_button' => TRUE,
+        'experience_builder:shoe_icon' => TRUE,
+        'experience_builder:shoe_tab' => TRUE,
+        'experience_builder:heading' => TRUE,
+        'experience_builder:shoe_details' => TRUE,
+        'experience_builder:my-hero' => TRUE,
+        'experience_builder:my-section' => TRUE,
+        'sdc_test:array-to-object' => TRUE,
+        'sdc_test:my-button' => TRUE,
+        'sdc_test:no-props' => TRUE,
+        'sdc_test:my-banner' => TRUE,
+        'xb_test_sdc:props-no-slots' => TRUE,
+        'xb_test_sdc:props-slots' => TRUE,
+        'xb_test_sdc:props-no-title' => FALSE,
+        'xb_test_sdc:props-no-examples' => FALSE,
+        'sdc_test_all_props:all-props' => TRUE,
+      ],
+    ];
+
+  }
+
+  /**
+   * @see media_library_storage_prop_shape_alter()
+   * @see \Drupal\Tests\experience_builder\Kernel\MediaLibraryHookStoragePropAlterTest
+   */
+  public function testComponentAutoUpdate(): void {
+    $this->assertEmpty(Component::loadMultiple());
+    $this->componentPluginManager->getDefinitions();
+    $initial_components = Component::loadMultiple();
+    $this->assertNotEmpty($initial_components);
+    $this->assertArrayHasKey('experience_builder+image', $initial_components);
+    $this->assertSame('image', $initial_components['experience_builder+image']->get('defaults')['props']['image']['field_type']);
+
+    $this->midTestSetUp();
+    $updated_component = Component::load('experience_builder+image');
+    assert($updated_component instanceof Component);
+    $this->assertSame('entity_reference', $updated_component->get('defaults')['props']['image']['field_type']);
   }
 
 }

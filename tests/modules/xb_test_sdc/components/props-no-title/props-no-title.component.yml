@@ -11,7 +11,6 @@ props:
   properties:
     heading:
       type: string
-      title: Heading
       description: The main heading of the hero
       minLength: 2
       examples:

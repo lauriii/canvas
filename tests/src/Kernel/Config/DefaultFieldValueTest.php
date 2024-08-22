@@ -28,6 +28,10 @@ class DefaultFieldValueTest extends KernelTestBase {
     'field',
     'link',
     'text',
+    // The modules that provide plugins for component props, should be able to remove this for untested components in https://www.drupal.org/project/experience_builder/issues/3469461.
+    'options',
+    'image',
+    'file',
   ];
 
   /**

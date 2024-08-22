@@ -98,8 +98,26 @@ describe('General Experience Builder', { testIsolation: false }, () => {
       .contains('Basic')
       .should(($basicListLabel) => {
         const $listed = $basicListLabel.parent().find('[data-xb-uuid]');
-        expect($listed).to.have.length(3);
-        const expectedNames = ['Image', 'Hero', 'Two Column'];
+        const expectedNames = [
+          'Deprecated SDC',
+          'Experimental SDC',
+          'Heading',
+          'Image',
+          'Hero',
+          'Section',
+          'Obsolete SDC',
+          'One Column',
+          'Shoe Badge',
+          'Shoe Button',
+          'Shoe Details',
+          'Shoe Icon',
+          'Shoe Tab',
+          'Shoe Tab Group',
+          'Shoe Tab Panel',
+          'Two Column',
+          'Video',
+          'Teaser',
+        ];
         $listed.each((index, listItem) => {
           expect($listed.get(index).textContent.trim()).to.equal(
             expectedNames[index],

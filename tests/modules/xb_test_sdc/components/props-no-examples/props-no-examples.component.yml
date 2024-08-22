@@ -14,9 +14,6 @@ props:
       title: Heading
       description: The main heading of the hero
       minLength: 2
-      examples:
-        - There goes my hero
-        - Submit now
     attributes:
       type: Drupal\Core\Template\Attribute
       name: Attributes

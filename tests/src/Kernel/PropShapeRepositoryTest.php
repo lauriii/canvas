@@ -87,7 +87,6 @@ class PropShapeRepositoryTest extends KernelTestBase {
     ksort($unique_prop_shapes);
     $unique_prop_shapes = array_values($unique_prop_shapes);
     $this->assertEquals([
-      new PropShape(['type' => 'array']),
       new PropShape(['type' => 'boolean']),
       new PropShape(['type' => 'integer']),
       new PropShape(['type' => 'integer', '$ref' => 'json-schema-definitions://experience_builder.module/column-width']),
@@ -391,7 +390,6 @@ class PropShapeRepositoryTest extends KernelTestBase {
    */
   public static function getExpectedUnstorablePropShapes(): array {
     return [
-      'type=array' => new PropShape(['type' => 'array']),
       'type=object&$ref=json-schema-definitions://sdc_test_all_props.module/date-range' => new PropShape(['type' => 'object', '$ref' => 'json-schema-definitions://sdc_test_all_props.module/date-range']),
       'type=string&$ref=json-schema-definitions://experience_builder.module/image-uri' => new PropShape(['type' => 'string', '$ref' => 'json-schema-definitions://experience_builder.module/image-uri']),
       'type=object&$ref=json-schema-definitions://experience_builder.module/shoe-icon' => new PropShape(['type' => 'object', '$ref' => 'json-schema-definitions://experience_builder.module/shoe-icon']),

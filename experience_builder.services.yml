@@ -17,6 +17,11 @@ services:
     public: true
     tags:
       - { name: module_install.uninstall_validator }
+  Drupal\experience_builder\Plugin\ComponentPluginManager:
+    decorates: plugin.manager.sdc
+    parent: plugin.manager.sdc
+    calls:
+      - [setEntityTypeManager, ['@entity_type.manager']]
 
   logger.channel.experience_builder:
     parent: logger.channel_base

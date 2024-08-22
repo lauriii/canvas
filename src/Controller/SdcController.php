@@ -117,7 +117,6 @@ final class SdcController extends ControllerBase {
       $component_plugin = $this->componentPluginManager->find($component->getComponentMachineName());
       $keyed_choices = [];
       foreach (PropShape::getComponentProps($component_plugin) as $component_prop_expression => $prop_shape) {
-        // @todo Remove this fallback logic in https://www.drupal.org/project/experience_builder/issues/3463999, and rely solely on what is defined in the Component config entity. This non-ideal issue merging order was chosen to allow https://www.drupal.org/project/experience_builder/issues/3463583 to be worked on sooner.
         $storable_prop_shape = $prop_shape->getStorage();
         // @todo Remove this once every SDC prop shape can be stored.
         // @todo Create a status report that lists which SDC props are not storable.
@@ -136,16 +135,13 @@ final class SdcController extends ControllerBase {
         // Provide defaults if they are specified on the SDC *or* if they are
         // required. If they're required and no example is specified: generate a
         // value.
-        if ($keyed_choices[$component_prop->propName]['required'] || isset($prop_info['examples'])) {
+        if ($keyed_choices[$component_prop->propName]['required'] || (isset($prop_info['examples']) && isset($prop_info['examples'][0]))) {
           // @todo Revisit in https://www.drupal.org/project/experience_builder/issues/3455942.
-          $keyed_choices[$component_prop->propName]['default_values'] = isset($prop_info['examples'])
-            ? $prop_info['examples'][0]
-            : $this->getDefaultValueFromPropInfo($prop_info);
+          $keyed_choices[$component_prop->propName]['default_values'] = $prop_info['examples'][0] ?? $this->getDefaultValueFromPropInfo($prop_info);
         }
         if ($storable_prop_shape->fieldStorageSettings !== NULL) {
           $keyed_choices[$component_prop->propName]['sourceTypeSettings'] = $storable_prop_shape->fieldStorageSettings;
         }
-        // TRICKY: widget is determined on server side again, that will be removed in https://www.drupal.org/project/experience_builder/issues/3463999.
       }
       $assets = AttachedAssets::createFromRenderArray([
         '#attached' => [
@@ -241,7 +237,7 @@ final class SdcController extends ControllerBase {
       // required. If they're required and no example is specified: generate a
       // value.
       // @todo Revisit in https://www.drupal.org/project/experience_builder/issues/3455942.
-      if (isset($prop_info['examples']) || in_array($prop_name, $metadata->schema['required'] ?? [])) {
+      if ((isset($prop_info['examples']) && isset($prop_info['examples'][0])) || in_array($prop_name, $metadata->schema['required'] ?? [])) {
         self::populatePropValues($build, [], $prop_name, $prop_info);
       }
     }

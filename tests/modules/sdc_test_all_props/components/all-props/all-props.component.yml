@@ -26,16 +26,19 @@ props:
     # Built-in formats: dates and times
     # @see https://json-schema.org/understanding-json-schema/reference/string#dates-and-times
     test_string_format_date_time:
+      title: 'String, format=date-time'
       type: string
       format: date-time
       examples:
         - '2018-11-13T20:20:39+00:00'
     test_string_format_date:
+      title: 'String, format=date'
       type: string
       format: date
       examples:
         - '2018-11-13'
     test_string_format_time:
+      title: 'String, format=time'
       type: string
       format: time
       examples:
@@ -43,16 +46,19 @@ props:
         # @todo 🐛 This is copy/pasted from https://json-schema.org/understanding-json-schema/reference/string#dates-and-times but is refused by justinrainbow/json-schema!
         # - '20:20:39+00:00'
     test_string_format_duration:
+      title: 'String, format=duration'
       type: string
       format: duration
     # Built-in formats: email addresses.
     # @see https://json-schema.org/understanding-json-schema/reference/string#email-addresses
     test_string_format_email:
+      title: 'String, format=email'
       type: string
       format: email
       examples:
         - hello@example.com
     test_string_format_idn_email:
+      title: 'String, format=idn-email'
       type: string
       format: idn-email
       examples:
@@ -60,22 +66,27 @@ props:
     # Built-in formats: hostnames.
     # @see https://json-schema.org/understanding-json-schema/reference/string#hostnames
     test_string_format_hostname:
+      title: 'String, format=hostname'
       type: string
       format: hostname
     test_string_format_idn_hostname:
+      title: 'String, format=date-time'
       type: string
       format: idn-hostname
     # Built-in formats: IP addresses.
     # @see https://json-schema.org/understanding-json-schema/reference/string#ip-addresses
     test_string_format_ipv4:
+      title: 'String, format=ipv4'
       type: string
       format: ipv4
     test_string_format_ipv6:
+      title: 'String, format=ipv6'
       type: string
       format: ipv6
     # Built-in formats: resource identifiers.
     # @see https://json-schema.org/understanding-json-schema/reference/string#resource-identifiers
     test_string_format_uuid:
+      title: 'String, format=uuid'
       type: string
       format: uuid
     test_string_format_uri:
@@ -95,16 +106,19 @@ props:
       # # @see \Drupal\image\Plugin\Field\FieldType\ImageItem::defaultFieldSettings()
       # pattern: '\.(png|gif|jpg|jpeg|webp)$'
     test_string_format_uri_reference:
+      title: 'String, format=uri-reference'
       type: string
       format: uri-reference
       examples:
         - /example-uri
     test_string_format_iri:
+      title: 'String, format=iri'
       type: string
       format: iri
       examples:
         - https://iri.example.com
     test_string_format_iri_reference:
+      title: 'String, format=iri-reference'
       type: string
       format: iri-reference
       examples:
@@ -112,32 +126,39 @@ props:
     # Built-in formats: URI template.
     # @see https://json-schema.org/understanding-json-schema/reference/string#uri-template
     test_string_format_uri_template:
+      title: 'String, format=uri-template'
       type: string
       format: uri-template
     # Built-in formats: JSON Pointer.
     # @see https://json-schema.org/understanding-json-schema/reference/string#json-pointer
     test_string_format_json_pointer:
+      title: 'String, format=json-pointer'
       type: string
       format: json-pointer
     test_string_format_relative_json_pointer:
+      title: 'String, format=relative-json-pointer'
       type: string
       format: relative-json-pointer
     # Built-in formats: Regular expressions.
     # @see https://json-schema.org/understanding-json-schema/reference/string#regular-expressions
     test_string_format_regex:
+      title: 'String, format=regex'
       type: string
       format: regex
 
     test_integer:
+      title: 'Integer'
       type: integer
       examples:
         - -42
     test_integer_range_minimum:
+      title: 'Integer, minimum=0'
       type: integer
       minimum: 0
       examples:
         - 42
     test_integer_range_minimum_maximum_timestamps:
+      title: 'Integer, minimum=-2147483648, maximum=2147483648'
       type: integer
       minimum: -2147483648
       maximum: 2147483648
@@ -146,6 +167,7 @@ props:
     # The "image" predefined object format.
     # @todo Agree on one special case, for ecosystem-wide formats: `json-schema-definitions://drupal/<something>`, so `json-schema-definitions://drupal/image` here.
     test_object_drupal_image:
+      title: 'Object, $ref=json-schema-definitions://experience_builder.module/image'
       $ref: json-schema-definitions://experience_builder.module/image
       # @todo Remove in https://www.drupal.org/project/drupal/issues/3352063 — should not be necessary, but removing this causes \Drupal\Core\Theme\Component\ComponentMetadata::parseSchemaInfo() to generate `type = ['', 'object'] 🐛
       type: object
@@ -157,6 +179,7 @@ props:
 
     # The "date-range" object format for this module.
     test_object_drupal_date_range:
+      title: 'Object, $ref=json-schema-definitions://sdc_test_all_props.module/date-range'
       $ref: json-schema-definitions://sdc_test_all_props.module/date-range
       # @todo Remove in https://www.drupal.org/project/drupal/issues/3352063 — should not be necessary, but removing this causes \Drupal\Core\Theme\Component\ComponentMetadata::parseSchemaInfo() to generate `type = ['', 'object'] 🐛
       type: object

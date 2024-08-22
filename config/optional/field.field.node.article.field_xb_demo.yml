@@ -1,3 +1,4 @@
+# @todo This is the only config that depends on `experience_builder.component.*`. When this file is removed, simplify experience_builder_module_preinstall().
 langcode: en
 status: true
 dependencies:

@@ -10,6 +10,8 @@ use Drupal\Core\Field\WidgetPluginManager;
 use Drupal\Core\Plugin\Component as ComponentPlugin;
 use Drupal\Core\Theme\ComponentPluginManager;
 use Drupal\experience_builder\PropExpressions\Component\ComponentPropExpression;
+use Drupal\experience_builder\PropExpressions\StructuredData\FieldTypeObjectPropsExpression;
+use Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldTypePropExpression;
 use Drupal\experience_builder\PropShape;
 use Drupal\experience_builder\PropSource\StaticPropSource;
 
@@ -90,13 +92,8 @@ final class Component extends ConfigEntityBase {
   public function calculateDependencies() {
     parent::calculateDependencies();
 
-    $plugin_manager = \Drupal::service(ComponentPluginManager::class);
-    assert($plugin_manager instanceof ComponentPluginManager);
+    $provider = explode(':', $this->getComponentMachineName())[0];
 
-    $component = $plugin_manager->find($this->getComponentMachineName());
-    assert($component instanceof ComponentPlugin);
-
-    $provider = $component->getBaseId();
     if ($this->moduleHandler()->moduleExists($provider)) {
       $this->addDependency('module', $provider);
     }
@@ -190,18 +187,6 @@ final class Component extends ConfigEntityBase {
       throw new \OutOfRangeException(sprintf("'%s' is not a prop on the '%s' component.", $prop_name, $this->getComponentMachineName()));
     }
 
-    // When no field type is specified, fall back to the default.
-    // @todo Remove this fallback logic in https://www.drupal.org/project/experience_builder/issues/3463999, and rely solely on what is defined in the Component config entity. This non-ideal issue merging order was chosen to allow https://www.drupal.org/project/experience_builder/issues/3463583 to be worked on sooner.
-    if ($this->defaults['props'][$prop_name]['field_type'] === NULL) {
-      $component_prop_expression = new ComponentPropExpression($component->getPluginId(), $prop_name);
-      $prop_shape = PropShape::getComponentProps($component)[(string) $component_prop_expression];
-      $storable_prop_shape = $prop_shape->getStorage();
-      if ($storable_prop_shape === NULL) {
-        return NULL;
-      }
-      return $storable_prop_shape->toStaticPropSource();
-    }
-
     $sdc_prop_source = [
       'sourceType' => 'static:field_item:' . $this->defaults['props'][$prop_name]['field_type'],
       'value' => $this->defaults['props'][$prop_name]['default_value'],
@@ -215,6 +200,72 @@ final class Component extends ConfigEntityBase {
     }
 
     return StaticPropSource::parse($sdc_prop_source);
+  }
+
+  public static function updateFromComponentPlugin(ComponentPlugin $component_plugin): self {
+    $component = Component::load(Component::convertMachineNameToId($component_plugin->getPluginId()));
+
+    assert($component instanceof Component);
+    assert(is_array($component_plugin->metadata->schema));
+    $defaults = self::getDefaultsForComponentPlugin($component_plugin);
+    $component->set('defaults', $defaults);
+
+    return $component;
+  }
+
+  public static function getDefaultsForComponentPlugin(ComponentPlugin $component_plugin): array {
+    $defaults = ['props' => []];
+    if (!isset($component_plugin->metadata->schema['required']) || !is_array($component_plugin->metadata->schema['required'])) {
+      return $defaults;
+    }
+
+    foreach ($component_plugin->metadata->schema['required'] as $required_prop) {
+      $skip_prop = FALSE;
+      $component_prop_expression = new ComponentPropExpression($component_plugin->getPluginId(), $required_prop);
+      $prop_shape = PropShape::getComponentProps($component_plugin)[(string) $component_prop_expression];
+      $storable_prop_shape = $prop_shape->getStorage();
+      if (is_null($storable_prop_shape)) {
+        continue;
+      }
+
+      if ($storable_prop_shape->fieldTypeProp instanceof FieldTypeObjectPropsExpression) {
+        if ($storable_prop_shape->fieldTypeProp->fieldType === 'entity_reference') {
+          $skip_prop = TRUE;
+        }
+        else {
+          foreach ($storable_prop_shape->fieldTypeProp->objectPropsToFieldTypeProps as $field_type_prop) {
+            if ($field_type_prop instanceof ReferenceFieldTypePropExpression) {
+              $skip_prop = TRUE;
+            }
+          }
+        }
+      }
+      $static_prop_source = $storable_prop_shape->toStaticPropSource();
+
+      // @see `type: experience_builder.component.*`
+      $defaults['props'][$required_prop] = [
+        'field_type' => $storable_prop_shape->fieldTypeProp->fieldType,
+        'field_widget' => $storable_prop_shape->fieldWidget,
+        'expression' => (string) $storable_prop_shape->fieldTypeProp,
+        // TRICKY: need to transform to the array structure that is field type-specific, which includes the required non-computed field properties at minimum
+        'default_value' => $skip_prop ? [] : $static_prop_source->withValue($component_plugin->metadata->schema['properties'][$required_prop]['examples'][0])->fieldItem->getValue(),
+        'field_storage_settings' => $storable_prop_shape->fieldStorageSettings ?? [],
+        'field_instance_settings' => $storable_prop_shape->fieldInstanceSettings ?? [],
+      ];
+    }
+
+    return $defaults;
+  }
+
+  public static function createFromComponentPlugin(ComponentPlugin $component_plugin): self {
+    assert(is_array($component_plugin->metadata->schema));
+    $defaults = self::getDefaultsForComponentPlugin($component_plugin);
+    assert(is_array($component_plugin->getPluginDefinition()));
+    return Component::create([
+      'label' => $component_plugin->getPluginDefinition()['name'] ?? $component_plugin->getPluginId(),
+      'component' => self::convertMachineNameToId($component_plugin->getPluginId()),
+      'defaults' => $defaults,
+    ]);
   }
 
 }

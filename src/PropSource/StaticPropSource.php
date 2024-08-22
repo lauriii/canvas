@@ -139,6 +139,16 @@ final class StaticPropSource extends PropSourceBase {
     );
   }
 
+  public function withValue(mixed $value): static {
+    $field_item = clone $this->fieldItem;
+    $field_item->setValue($value);
+    return new StaticPropSource(
+      $field_item,
+      $this->expression,
+      $this->fieldStorageSettings,
+    );
+  }
+
   /**
    * {@inheritdoc}
    */

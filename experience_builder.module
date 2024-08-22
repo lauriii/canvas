@@ -13,6 +13,7 @@ use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Render\Element;
 use Drupal\Core\Url;
 use Drupal\experience_builder\CandidateStorablePropShape;
+use Drupal\experience_builder\Plugin\ComponentPluginManager;
 use Drupal\experience_builder\Plugin\Field\FieldTypeOverride\FileItemOverride;
 use Drupal\experience_builder\Plugin\Field\FieldTypeOverride\FileUriItemOverride;
 use Drupal\experience_builder\Plugin\Field\FieldTypeOverride\ImageItemOverride;
@@ -390,4 +391,23 @@ function media_library_storage_prop_shape_alter(CandidateStorablePropShape $stor
     ];
     $storable_prop_shape->fieldWidget = 'media_library_widget';
   }
+}
+
+/**
+ * Implements hook_modules_installed().
+ */
+function experience_builder_modules_installed(array $modules, bool $is_syncing): void {
+  if ($is_syncing) {
+    return;
+  }
+  // The module installer cleared all plugin caches. Force new/changed SDCs to create/update Component config entities.
+  \Drupal::service(ComponentPluginManager::class)->getDefinitions();
+}
+
+/**
+ * Implements hook_rebuild().
+ */
+function experience_builder_rebuild(): void {
+  // The module installer cleared all plugin caches. Force new/changed SDCs to create/update Component config entities.
+  \Drupal::service(ComponentPluginManager::class)->getDefinitions();
 }

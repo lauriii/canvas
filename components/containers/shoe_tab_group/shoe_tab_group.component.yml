@@ -23,7 +23,7 @@ props:
         - 'end'
       examples: ['top', 'bottom', 'start', 'end']
     activation:
-      type: array
+      type: string
       title: Activation
       description: When set to auto, navigating tabs with the arrow keys will instantly show the corresponding tab panel. When set to manual, the tab will receive focus but will not show until the user presses space bar or enter.
       default: auto
