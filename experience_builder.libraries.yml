@@ -10,6 +10,10 @@ xb-ui:
   dependencies:
     - core/drupal
     - core/drupalSettings
+preview:
+  css:
+    theme:
+      ui/assets/css/preview.css: {}
 shoelace:
   css:
     theme:

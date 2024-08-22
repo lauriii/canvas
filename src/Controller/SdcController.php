@@ -10,6 +10,7 @@ use Drupal\Core\Asset\AttachedAssets;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
+use Drupal\Core\Render\BareHtmlPageRendererInterface;
 use Drupal\Core\Render\Element;
 use Drupal\Core\Render\RendererInterface;
 use Drupal\Core\Theme\ComponentPluginManager;
@@ -20,7 +21,7 @@ use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\experience_builder\PropExpressions\Component\ComponentPropExpression;
 use Drupal\experience_builder\PropShape;
-use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 
@@ -42,30 +43,18 @@ final class SdcController extends ControllerBase {
    * @param \Drupal\Core\Render\RendererInterface $renderer
    * @param \Drupal\Core\Asset\AssetResolverInterface $assetResolver
    * @param \Drupal\Core\Asset\AssetCollectionRendererInterface $cssCollectionRenderer
-   * @param \Drupal\Core\Asset\AssetCollectionRendererInterface $jsCollectionRenderer
+   * @param \Drupal\Core\Render\BareHtmlPageRendererInterface $bareHtmlPageRenderer
+   * @param \Drupal\Core\TypedData\TypedDataManagerInterface $typedDataManager
    */
   public function __construct(
     private readonly ComponentPluginManager $componentPluginManager,
     private readonly RendererInterface $renderer,
     protected AssetResolverInterface $assetResolver,
+    #[Autowire(service: 'asset.css.collection_renderer')]
     protected AssetCollectionRendererInterface $cssCollectionRenderer,
-    protected AssetCollectionRendererInterface $jsCollectionRenderer,
+    protected readonly BareHtmlPageRendererInterface $bareHtmlPageRenderer,
     private readonly TypedDataManagerInterface $typedDataManager,
   ) {}
-
-  /**
-   * {@inheritdoc}
-   */
-  public static function create(ContainerInterface $container) {
-    return new static(
-      $container->get('plugin.manager.sdc'),
-      $container->get('renderer'),
-      $container->get('asset.resolver'),
-      $container->get('asset.css.collection_renderer'),
-      $container->get('asset.js.collection_renderer'),
-      $container->get(TypedDataManagerInterface::class)
-    );
-  }
 
   private function buildLayout(array &$layout, array &$model, ComponentTreeItem $item, array $tree_tier, array $hydrated): void {
     $tree = $item->get('tree');
@@ -150,7 +139,9 @@ final class SdcController extends ControllerBase {
         ],
       ]);
 
-      [$css] = $this->generateAssetsMarkup($assets);
+      $css_array = $this->cssCollectionRenderer->render($this->assetResolver->getCssAssets($assets, FALSE));
+      $css = $this->renderer->render($css_array);
+
       $default_markup = (string) $this->prepareRenderArray($component_plugin->getPluginId())['markup'];
 
       $component_list[] = [
@@ -190,17 +181,6 @@ final class SdcController extends ControllerBase {
     $components = array_filter($this->getComponentsList(), fn($component) => $component['id'] === $component_id);
     assert(!empty($components));
     return new JsonResponse(reset($components));
-  }
-
-  public function generateAssetsMarkup(AttachedAssets $assets): array {
-    $css_array = $this->cssCollectionRenderer->render($this->assetResolver->getCssAssets($assets, FALSE));
-    [$head_assets, $foot_assets] = $this->assetResolver->getJsAssets($assets, FALSE);
-    $head_array = $this->jsCollectionRenderer->render($head_assets);
-    $foot_array = $this->jsCollectionRenderer->render($foot_assets);
-    $css = $this->renderer->render($css_array);
-    $js_head = $this->renderer->render($head_array);
-    $js_foot = $this->renderer->render($foot_array);
-    return [$css, $js_head, $js_foot];
   }
 
   /**
@@ -363,44 +343,12 @@ final class SdcController extends ControllerBase {
     $component_tree_field_item = $this->clientLayoutAndModelToXbField($layout, $model);
 
     $build = self::wrapComponentsForPreview($component_tree_field_item->toRenderable());
-    $component_tree_html = $this->renderer->renderInIsolation($build);
-
-    $assets = AttachedAssets::createFromRenderArray(isset($build['#attached'])
-      ? $build
-      // TRICKY: When the layout is empty, there is no component tree to render,
-      // and hence #attached will not get set. Avoid an exception.
-      : ['#attached' => []]
-    );
-    [$css, $js_head, $js_foot] = $this->generateAssetsMarkup($assets);
-    $html = <<<HTML
-<!doctype html>
-<html lang="en">
-<head>
-HTML;
-    $html .= $css;
-    $html .= $js_head;
-    $html .= <<<HTML
-<style>
-HTML;
-    // @phpstan-ignore-next-line
-    $html .= file_get_contents(\Drupal::service('extension.list.module')->getPath('experience_builder') . '/ui/src/mocks/styles.css');
-    $html .= <<<HTML
-</style>
-</head>
-<body>
-    <div class="sortable-list" data-xb-uuid="root">
-HTML;
-    $html .= $component_tree_html;
-    $html .= <<<HTML
-</body>
-HTML;
-    $html .= $js_foot;
-    $html .= <<<HTML
-</html>
-HTML;
+    $build['#prefix'] = '<div class="sortable-list" data-xb-uuid="root">';
+    $build['#suffix'] = '</div>';
+    $build['#attached']['library'][] = 'experience_builder/preview';
 
     return new JsonResponse([
-      'html' => $html,
+      'html' => $this->bareHtmlPageRenderer->renderBarePage($build, '', 'page')->getContent(),
     ]);
   }
 
