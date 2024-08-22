@@ -129,7 +129,10 @@ final class SdcController extends ControllerBase {
           $keyed_choices[$component_prop->propName]['default_values'] = $prop_info['examples'][0] ?? $this->getDefaultValueFromPropInfo($prop_info);
         }
         if ($storable_prop_shape->fieldStorageSettings !== NULL) {
-          $keyed_choices[$component_prop->propName]['sourceTypeSettings'] = $storable_prop_shape->fieldStorageSettings;
+          $keyed_choices[$component_prop->propName]['sourceTypeSettings']['storage'] = $storable_prop_shape->fieldStorageSettings;
+        }
+        if ($storable_prop_shape->fieldInstanceSettings !== NULL) {
+          $keyed_choices[$component_prop->propName]['sourceTypeSettings']['instance'] = $storable_prop_shape->fieldInstanceSettings;
         }
       }
       $assets = AttachedAssets::createFromRenderArray([
