@@ -103,7 +103,7 @@ class ComponentValidationTest extends ConfigEntityValidationTestBase {
    *
    * @return string
    */
-  protected function randomMachineName($length = 8) {
+  protected function randomMachineName($length = 8): string {
     return parent::randomMachineName(intdiv($length, 2)) . '+' . parent::randomMachineName(intdiv($length, 2));
   }
 
