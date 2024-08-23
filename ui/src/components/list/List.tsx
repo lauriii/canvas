@@ -87,8 +87,7 @@ const List = () => {
           addNewComponentToLayout({
             to: newPath,
             newNode: newNodeId,
-            componentFieldData:
-              componentsRef.current?.[newNodeId]?.['field_data'],
+            component: componentsRef.current?.[newNodeId],
           }),
         );
 

@@ -13,7 +13,7 @@ import { v4 as uuidv4 } from 'uuid';
 import type { UUID } from '@/types/UUID';
 import type { AppDispatch } from '@/app/store';
 import type { StateWithHistory } from 'redux-undo';
-import type { FieldData } from '@/types/Component';
+import type { Component } from '@/types/Component';
 
 export interface LayoutNode {
   name?: string;
@@ -72,7 +72,7 @@ type InsertNodePayload = {
 type AddNewNodePayload = {
   newNode: string | undefined;
   to: number[] | undefined;
-  componentFieldData: FieldData | undefined;
+  component: Component | undefined;
 };
 
 type SortNodePayload = {
@@ -223,15 +223,16 @@ export const layoutModelSlice = createSlice({
 
 export const addNewComponentToLayout =
   (payload: AddNewNodePayload) => (dispatch: AppDispatch) => {
-    if (payload.newNode && payload.to) {
+    if (payload.newNode && payload.to && payload.component) {
       const uuid = uuidv4();
       const initialData: InitialPropData = {};
-      if (payload?.componentFieldData) {
+      if (payload.component.field_data) {
         // @todo Update this logic in https://www.drupal.org/project/experience_builder/issues/3455942
-        Object.keys(payload.componentFieldData).forEach((propName) => {
-          if (payload.componentFieldData?.[propName]?.['default_values']) {
+        initialData.name = payload.component.name;
+        Object.keys(payload.component.field_data).forEach((propName) => {
+          if (payload.component?.field_data?.[propName]?.['default_values']) {
             initialData[propName] =
-              payload.componentFieldData[propName]['default_values'];
+              payload.component?.field_data[propName]['default_values'];
           }
         });
       }

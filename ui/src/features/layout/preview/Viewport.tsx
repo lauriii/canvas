@@ -96,10 +96,7 @@ const Viewport: React.FC<ViewportProps> = (props) => {
               addNewComponentToLayout({
                 to: newPath,
                 newNode: ev.clone.dataset.xbUuid,
-                componentFieldData:
-                  componentsRef?.current?.[ev.clone.dataset.xbUuid]?.[
-                    'field_data'
-                  ],
+                component: componentsRef.current?.[ev.clone.dataset.xbUuid],
               }),
             );
           } else {

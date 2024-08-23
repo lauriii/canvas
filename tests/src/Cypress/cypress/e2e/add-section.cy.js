@@ -32,6 +32,7 @@ describe(
           expect(myHeroComponent.length).to.equal(3);
         },
       );
+      cy.get('[data-xb-uuid="root"]').findByText('Hero').should('not.exist');
       // Check that the menu is not open yet.
       cy.get('[data-radix-menubar-content]').should('have.length', 0);
       cy.scrollToMiddleOfIframe();
@@ -63,6 +64,7 @@ describe(
           expect(myHeroComponent.length).to.equal(4);
         },
       );
+      cy.get('[data-xb-uuid="root"]').findByText('Hero');
     });
 
     // @todo: Add a test for the "Add component" button when we have child nodes to test in the frontend.
