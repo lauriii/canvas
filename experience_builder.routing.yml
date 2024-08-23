@@ -91,3 +91,21 @@ experience_builder.component_props_form:
     parameters:
       entity:
         type: entity:{entity_type}
+
+experience_builder.api.entity_form:
+  path: '/xb/api/entity-form/{entity_type}/{entity}/{entity_form_mode}'
+  defaults:
+    # It is not possible to use '_entity_form' as a default because form mode is not taken into account.
+    # When '_entity_form' is used as a default with 2 parts, for example 'node.default', the 2nd part is the form
+    # operation, not form mode.
+    # @see \Drupal\Core\Entity\Enhancer\EntityRouteEnhancer::enhanceEntityForm
+    # @see \Drupal\Core\Entity\HtmlEntityFormController::getFormObject
+    _controller: '\Drupal\experience_builder\Controller\EntityFormController::form'
+    _title: 'Entity Form'
+    entity_form_mode: default
+  requirements:
+    _permission: 'access administration pages'
+  options:
+    parameters:
+      entity:
+        type: entity:{entity_type}

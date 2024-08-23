@@ -8,13 +8,12 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\experience_builder\Functional;
 
-use Drupal\Core\File\FileExists;
-use Drupal\Core\File\FileSystemInterface;
 use Drupal\Core\Serialization\Yaml;
 use Drupal\Core\TypedData\Plugin\DataType\Uri;
 use Drupal\experience_builder\Plugin\DataType\ComponentPropsValues;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeHydrated;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
+use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\experience_builder\PropSource\AdaptedPropSource;
 use Drupal\experience_builder\PropSource\DynamicPropSource;
 use Drupal\experience_builder\PropSource\PropSourceBase;
@@ -22,16 +21,11 @@ use Drupal\experience_builder\PropSource\StaticPropSource;
 use Drupal\file\Entity\File;
 use Drupal\file\Plugin\Field\FieldType\FileUriItem;
 use Drupal\image\Entity\ImageStyle;
-use Drupal\node\Entity\Node;
-use Drupal\Tests\BrowserTestBase;
-use Drupal\Tests\TestFileCreationTrait;
 
 /**
  * @group experience_builder
  */
-class EndToEndDemoIntegrationTest extends BrowserTestBase {
-
-  use TestFileCreationTrait;
+class EndToEndDemoIntegrationTest extends FunctionalTestBase {
 
   /**
    * {@inheritdoc}
@@ -53,51 +47,8 @@ class EndToEndDemoIntegrationTest extends BrowserTestBase {
    */
   public function test(): void {
     $page = $this->getSession()->getPage();
-    $assert_session = $this->assertSession();
-
-    // The `thumbnail` image style already exists.
-    $this->assertInstanceOf(ImageStyle::class, ImageStyle::load('thumbnail'));
-
-    // Node 1 does not exist.
-    $this->assertNull(Node::load(1));
-
-    // Navigate to `/node/add/article` and press `Save`, do nothing else.
-    $this->drupalLogin($this->rootUser);
-    $this->drupalGet('node/add/article');
-    $assert_session->statusCodeEquals(200);
-    $page->pressButton('Save');
-    $this->assertStringEndsWith('node/add/article', $this->getSession()->getCurrentUrl());
-    // @todo For some reason, specifying `type: 'error'` fails: the expected HTML structure is different?! 🤯
-    $this->assertSession()->statusMessageContains('Title field is required.');
-    $this->assertSession()->statusMessageContains('Hero field is required.');
-
-    // Two entity fields are required: `Title` + `Hero`. Fill 'em, press `Save`.
-    $page->fillField('title[0][value]', 'The first entity using XB!');
-    $image_file = current($this->getTestFiles('image'));
-    // @phpstan-ignore-next-line
-    $image_file_uri = 'public://' . $image_file->name . ' with spaces.png';
-    $file_system = $this->container->get(FileSystemInterface::class);
-    assert($file_system instanceof FileSystemInterface);
-    // @phpstan-ignore-next-line
-    $file_system->move($image_file->uri, $image_file_uri, FileExists::Rename);
-    $image_path = $this->container->get('file_system')->realpath($image_file_uri);
-    $this->assertNotFalse($image_path);
-    $page->attachFileToField('files[field_hero_0]', $image_path);
-    $page->pressButton('Save');
-    $this->assertStringEndsWith('node/add/article', $this->getSession()->getCurrentUrl());
-
-    // Now that a file has been uploaded, we also need to specify `alt`.
-    $this->assertSession()->statusMessageContains('Alternative text field is required.');
-    $page->fillField('field_hero[0][alt]', 'A random image for testing purposes.');
-    $page->pressButton('Save');
-
-    // Success!
-    $this->assertStringEndsWith('node/1', $this->getSession()->getCurrentUrl());
-
+    $node = $this->createTestNode1();
     // Assert the node has the expected values.
-    $node = Node::load(1);
-    // @phpstan-ignore-next-line
-    $this->assertInstanceOf(Node::class, $node);
     $this->assertSame([
       [
         'value' => 'The first entity using XB!',
@@ -120,6 +71,7 @@ class EndToEndDemoIntegrationTest extends BrowserTestBase {
 
     // Assert 5 component instances are placed; they are the default value.
     // @see config/optional/field.field.node.article.field_xb_demo.yml
+    assert($node->get('field_xb_demo')[0] instanceof ComponentTreeItem);
     $tree = $node->get('field_xb_demo')[0]->get('tree');
     $this->assertInstanceOf(ComponentTreeStructure::class, $tree);
     // First, assert the stored JSON.
@@ -318,6 +270,7 @@ class EndToEndDemoIntegrationTest extends BrowserTestBase {
       ],
     ], array_map($make_source_assertable, $props->getComponentPropsSources('dynamic-image-udf7d')));
     // Prop source for component instance with UUID `dynamic-image-static-imageStyle-something7d`.
+    assert(ImageStyle::load('thumbnail') instanceof ImageStyle);
     $this->assertEquals([
       'image' => [
         'source class' => AdaptedPropSource::class,

@@ -6,15 +6,13 @@ namespace Drupal\Tests\experience_builder\Functional;
 
 use Drupal\experience_builder\Plugin\DataType\ComponentPropsValues;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
+use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\image\Entity\ImageStyle;
 use Drupal\node\Entity\Node;
-use Drupal\Tests\BrowserTestBase;
 use Drupal\Tests\content_translation\Traits\ContentTranslationTestTrait;
-use Drupal\Tests\TestFileCreationTrait;
 
-class TranslationTest extends BrowserTestBase {
+class TranslationTest extends FunctionalTestBase {
 
-  use TestFileCreationTrait;
   use ContentTranslationTestTrait;
 
   /**
@@ -170,40 +168,7 @@ class TranslationTest extends BrowserTestBase {
    *   The default translation of the node.
    */
   protected function createXbNodeWithTranslation(): Node {
-    $page = $this->getSession()->getPage();
-    $assert_session = $this->assertSession();
-    // Node 1 does not exist.
-    $this->assertNull(Node::load(1));
-    $this->drupalGet('node/add/article');
-    $assert_session->statusCodeEquals(200);
-    $page->pressButton('Save');
-    $this->assertStringEndsWith('node/add/article',
-      $this->getSession()->getCurrentUrl());
-    // @todo For some reason, specifying `type: 'error'` fails: the expected HTML structure is different?! 🤯
-    $this->assertSession()->statusMessageContains('Title field is required.');
-    $this->assertSession()->statusMessageContains('Hero field is required.');
-
-    // Two entity fields are required: `Title` + `Hero`. Fill 'em, press `Save`.
-    $page->fillField('title[0][value]', 'The first entity using XB!');
-    $image_file = current($this->getTestFiles('image'));
-    // @phpstan-ignore-next-line
-    $image_path = $this->container->get('file_system')->realpath($image_file->uri);
-    $this->assertNotFalse($image_path);
-    $page->attachFileToField('files[field_hero_0]', $image_path);
-    $page->pressButton('Save');
-
-    // Now that a file has been uploaded, we also need to specify `alt`.
-    $this->assertSession()
-      ->statusMessageContains('Alternative text field is required.');
-    $page->fillField('field_hero[0][alt]',
-      'A random image for testing purposes.');
-    $page->pressButton('Save');
-    // Success!
-    $this->assertStringEndsWith('node/1', $this->getSession()->getCurrentUrl());
-
-    $node = Node::load(1);
-    // @phpstan-ignore-next-line
-    $this->assertInstanceOf(Node::class, $node);
+    $node = $this->createTestNode1();
     // Create a translation from the original English node.
     $translation = $node->addTranslation('fr');
     $this->assertInstanceOf(Node::class, $translation);
@@ -212,6 +177,7 @@ class TranslationTest extends BrowserTestBase {
     $translation->title = 'The French title';
     $translation->save();
     $translation = $node->getTranslation('fr');
+    assert($node->get('field_xb_demo')[0] instanceof ComponentTreeItem);
     $props = $node->get('field_xb_demo')[0]->get('props');
     $this->assertInstanceOf(ComponentPropsValues::class, $props);
     $original_props_value = $props->getValue();
@@ -219,6 +185,7 @@ class TranslationTest extends BrowserTestBase {
     // In both the Symmetric and Asymmetric translation cases, the `props` field
     // is translatable and this should only change the translation.
     $french_prop = str_replace('hello, world!', 'bonjour, monde!', $original_props_value);
+    assert($translation->get('field_xb_demo')[0] instanceof ComponentTreeItem);
     $translation->get('field_xb_demo')[0]->set('props', $french_prop);
     $translation->save();
 

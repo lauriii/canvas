@@ -146,8 +146,70 @@ paths:
       responses:
         200:
           description: Generated preview successfully
+  /xb/api/entity-form/{entityTypeId}/{id}:
+    description: 'Fetches the entity form with the "default" form mode'
+    get:
+      parameters:
+        - $ref: '#/components/parameters/entityTypeId'
+        - $ref: '#/components/parameters/id'
+      responses:
+        200:
+          $ref: '#/components/responses/FormResponse'
+  /xb/api/entity-form/{entityTypeId}/{id}/{entityFormMode}:
+    description: 'Fetches the entity form with the specified form mode'
+    get:
+      parameters:
+        - $ref: '#/components/parameters/entityTypeId'
+        - $ref: '#/components/parameters/id'
+        - name: entityFormMode
+          in: path
+          required: true
+          description: 'The entity form mode of the form to retrieve'
+          schema:
+            type: string
+          example: default
 
+      responses:
+        200:
+          $ref: '#/components/responses/FormResponse'
 components:
+  parameters:
+    entityTypeId:
+      name: entityTypeId
+      in: path
+      required: true
+      description: 'The entity type ID of the form to retrieve'
+      schema:
+        type: string
+      example: node
+    id:
+      name: id
+      in: path
+      required: true
+      description: 'The entity ID of the form to retrieve'
+      schema:
+        type: integer
+      examples:
+        'first entity of this type':
+          value: 14
+        'another entity of this type':
+          value: 42
+  responses:
+    FormResponse:
+      description: 'The form'
+      content:
+        application/json:
+          examples:
+            'A form':
+              value:
+                html: "<form></form>"
+          schema:
+            type: object
+            required: [html]
+            properties:
+              html:
+                schema:
+                  type: string
   schemas:
     Component:
       title: Component
