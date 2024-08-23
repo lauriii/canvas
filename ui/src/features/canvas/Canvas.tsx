@@ -103,8 +103,8 @@ const Canvas = () => {
       //
       // canvasX = canvasX + previewContainerWidth;
       // canvasY = canvasY - previewContainerHeight / 2;
-      // @todo - this calc should be dynamic to correctly center the preview container in the canvas pane.
-      dispatch(setCanvasViewPort({ x: 3740, y: 4500 }));
+      // @todo - this calc should be dynamic to correctly center the preview container in the canvas pane on page load. https://www.drupal.org/project/experience_builder/issues/3469894
+      dispatch(setCanvasViewPort({ x: 670, y: 880 }));
     }
   }, [dispatch]);
 

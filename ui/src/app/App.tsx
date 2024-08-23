@@ -83,7 +83,7 @@ const App = () => {
               </Select.Root>
               <Button
                 onClick={() =>
-                  dispatch(setCanvasViewPort({ x: 4000, y: 4500, scale: 1 }))
+                  dispatch(setCanvasViewPort({ x: 670, y: 830, scale: 1 }))
                 }
               >
                 Debug: scroll to middle

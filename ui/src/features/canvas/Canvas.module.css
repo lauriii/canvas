@@ -12,8 +12,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 10000px;
-  height: 10000px;
+  width: 3500px;
+  height: 2800px;
   transition: background-color 100ms ease-in-out;
   transform: translate(-5000px, -5000px);
   border: 1px solid black;
