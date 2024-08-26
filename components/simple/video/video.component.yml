@@ -1,4 +1,4 @@
-'$schema': 'https://git.drupalcode.org/project/sdc/-/raw/1.x/src/metadata.schema.json'
+'$schema': 'https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json'
 name: Video
 status: stable
 group: Atom/Media
