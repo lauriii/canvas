@@ -17,25 +17,35 @@
 # Server side.
 #
 
-[component schema shared definitions] @lauriii @wimleers
-/src/JsonSchemaDefinitions*
-/schema.json
+# The default for the back-end, with more specific code owners for specific areas.
+[Page Builder back-end] @wimleers @f.mazeikis @tedbow
+/src/
 
-[data model] @wimleers @f.mazeikis @tedbow
+# Issues: https://www.drupal.org/project/issues/experience_builder?component=Config+management
+[Config management] @f.mazeikis @wimleers
+/docs/config-management.md
+/docs/diagrams/config-management.md
+/config/schema/
+/src/Entity/
+/tests/src/Kernel/Entity/ComponentValidationTest.php
+/tests/src/Kernel/ComponentTest.php
+
+# Issues: https://www.drupal.org/project/issues/experience_builder?component=Data+model
+[Data model] @effulgentsia @tedbow @wimleers
+/docs/data-model.md
+/docs/diagrams/data-model.md
+# data type
 /src/Plugin/DataType/
-/src/Plugin/Field/FieldFormatter/
+/tests/src/Kernel/DataType/
+# field type
 /src/Plugin/Field/FieldType/
-/src/Plugin/Validation/
-/src/PropExpressions/
-/src/PropSource/
+/tests/src/Kernel/Plugin/Field/FieldType/
 
-[data model — missing metadata] @wimleers @f.mazeikis @tedbow
-/src/Plugin/DataTypeOverride/
-/src/Plugin/Field/FieldTypeOverride/
-
-[schema matching] @wimleers @f.mazeikis @tedbow
+[highly experimental new concepts] @wimleers
 /src/JsonSchemaInterpreter/
 /src/DataTypeShape*
+/src/PropExpressions/
+/src/PropSource/
 /src/SdcProp*
 
 
