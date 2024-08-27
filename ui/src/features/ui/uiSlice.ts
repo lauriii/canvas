@@ -28,6 +28,7 @@ export interface uiSliceState {
   hoveredComponent: string | undefined; //uuid of component
   contextualPanelOpen: boolean;
   canvasViewport: CanvasViewPort;
+  latestUndoRedoActionId: string;
 }
 
 type UpdateViewportPayload = {
@@ -57,6 +58,7 @@ export const initialState: uiSliceState = {
     y: 0,
     scale: 1,
   },
+  latestUndoRedoActionId: '',
 };
 
 interface ScaleValue {
@@ -180,6 +182,11 @@ export const uiSlice = createAppSlice({
       const prevIndex = currentIndex - 1 >= 0 ? currentIndex - 1 : currentIndex;
       state.canvasViewport.scale = scaleValues[prevIndex].scale;
     }),
+    setLatestUndoRedoActionId: create.reducer(
+      (state, action: PayloadAction<string>) => {
+        state.latestUndoRedoActionId = action.payload;
+      },
+    ),
   }),
   // You can define your selectors here. These selectors receive the slice
   // state as their first argument.
@@ -202,6 +209,9 @@ export const uiSlice = createAppSlice({
     selectCanvasViewPort: (ui): CanvasViewPort => {
       return ui.canvasViewport;
     },
+    selectLatestUndoRedoActionId: (ui): string => {
+      return ui.latestUndoRedoActionId;
+    },
   },
 });
 
@@ -222,6 +232,7 @@ export const {
   canvasViewPortZoomIn,
   canvasViewPortZoomOut,
   canvasViewPortZoomDelta,
+  setLatestUndoRedoActionId,
 } = uiSlice.actions;
 
 // Selectors returned by `slice.selectors` take the root state as their first argument.
@@ -232,4 +243,5 @@ export const {
   selectHoveredComponent,
   selectContextualPanelOpen,
   selectCanvasViewPort,
+  selectLatestUndoRedoActionId,
 } = uiSlice.selectors;

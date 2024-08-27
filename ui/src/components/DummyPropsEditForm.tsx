@@ -7,7 +7,10 @@ import twigToJSXComponentMap from '@/components/form/twig-to-jsx-component-map.j
 import propsify from '@/local_packages/hyperscriptify/propsify/standard/index.js';
 import { useAppSelector } from '@/app/hooks';
 import { selectModel, selectLayout } from '@/features/layout/layoutModelSlice';
-import { selectSelectedComponent } from '@/features/ui/uiSlice';
+import {
+  selectSelectedComponent,
+  selectLatestUndoRedoActionId,
+} from '@/features/ui/uiSlice';
 import { useGetComponentsQuery } from '@/services/components';
 import { findNodeByUuid } from '@/features/layout/layoutUtils';
 
@@ -69,13 +72,17 @@ const DummyPropsEditFormRenderer: React.FC<DummyPropsEditFormRendererProps> = (
     if (!xbDemoFieldElement?.content) {
       return;
     }
-    // While we have `selectedComponent` in the Redux store, we can't rely on it
-    // here, because if it's added as a dependency of this `useEffect` hook, it
-    // will cause a re-render using stale data from the Redux Toolkit Query hook
-    // — the API call. Instead we rely on fresh data from RTK Query to
-    // re-render, and we grab the selected component's ID from the arg that was
-    // passed to the API call which produced the current data.
+    // While we have `selectedComponent` and `latestUndoRedoActionId` in the
+    // Redux store, we can't rely on those values here, because if they are added
+    // as a dependency of this `useEffect` hook, they will cause a re-render
+    // using stale data from the Redux Toolkit Query hook — the API call.
+    // Instead we rely on fresh data from RTK Query to re-render, and we grab
+    // the values from the arg that was passed to the API call which produced
+    // the current data.
     const componentId = new URLSearchParams(originalArgs).get('selected');
+    const latestUndoRedoActionId = new URLSearchParams(originalArgs).get(
+      'latestUndoRedoActionId',
+    );
     setCurrentComponentId(componentId);
 
     setJsxFormContent(
@@ -86,7 +93,10 @@ const DummyPropsEditFormRenderer: React.FC<DummyPropsEditFormRendererProps> = (
       // prop values are being updated by the user in the contextual panel,
       // causing the form to lose focus.
       // A `<div>` is used instead of `React.Fragment` so a test ID can be added.
-      <div key={componentId} data-testid={`xb-component-form-${componentId}`}>
+      <div
+        key={`${componentId}-${latestUndoRedoActionId}`}
+        data-testid={`xb-component-form-${componentId}`}
+      >
         {hyperscriptify(
           xbDemoFieldElement?.content as DocumentFragment,
           React.createElement,
@@ -131,6 +141,7 @@ const DummyPropsEditForm: React.FC<DummyPropsEditFormProps> = () => {
   const { data: components, error } = useGetComponentsQuery();
   const { showBoundary } = useErrorBoundary();
   const selectedComponent = useAppSelector(selectSelectedComponent);
+  const latestUndoRedoActionId = useAppSelector(selectLatestUndoRedoActionId);
 
   const [dynamicStaticCardQueryString, setDynamicStaticCardQueryString] =
     useState('');
@@ -212,9 +223,18 @@ const DummyPropsEditForm: React.FC<DummyPropsEditFormProps> = () => {
       tree: JSON.stringify(tree),
       props: JSON.stringify(preparedModel),
       selected: selectedComponent,
+      latestUndoRedoActionId,
     });
     setDynamicStaticCardQueryString(`?${query.toString()}`);
-  }, [components, error, showBoundary, selectedComponent, layout, model]);
+  }, [
+    components,
+    error,
+    showBoundary,
+    selectedComponent,
+    latestUndoRedoActionId,
+    layout,
+    model,
+  ]);
 
   return (
     dynamicStaticCardQueryString && (

@@ -83,4 +83,43 @@ describe('Undo/Redo functionality', { testIsolation: false }, () => {
       },
     );
   });
+
+  it('Component props form values are included in Undo/Redo', () => {
+    cy.loadURLandWaitForXBLoaded();
+
+    // Click on our "hello, world!" hero component.
+    cy.getIframeBody().findByText('hello, world!').click();
+
+    // Add " one" to the heading field.
+    cy.findByTestId(/^xb-component-form-.*/)
+      .findByLabelText('Heading')
+      .click()
+      .type(' one')
+      .wait(500); // Wait for debounce to finish to ensure undo history is updated.
+
+    // Add " two" to the heading field.
+    cy.findByTestId(/^xb-component-form-.*/)
+      .findByLabelText('Heading')
+      .click()
+      .type(' two')
+      .wait(500); // Wait for debounce to finish to ensure undo history is updated.
+
+    // Click the Undo button, see if the value is "hello, world! one".
+    cy.get('button[aria-label="Undo"]').click();
+    cy.findByTestId(/^xb-component-form-.*/)
+      .findByLabelText('Heading')
+      .should('have.value', 'hello, world! one');
+
+    // Click the Redo button, see if the value is "hello, world! one two".
+    cy.get('button[aria-label="Redo"]').click();
+    cy.findByTestId(/^xb-component-form-.*/)
+      .findByLabelText('Heading')
+      .should('have.value', 'hello, world! one two');
+
+    // Click the Undo button twice, see if the value is "hello, world!".
+    cy.get('button[aria-label="Undo"]').click().click();
+    cy.findByTestId(/^xb-component-form-.*/)
+      .findByLabelText('Heading')
+      .should('have.value', 'hello, world!');
+  });
 });
