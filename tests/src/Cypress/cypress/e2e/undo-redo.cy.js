@@ -13,10 +13,7 @@ describe('Undo/Redo functionality', { testIsolation: false }, () => {
   });
 
   it('Performs a basic interaction with Undo/Redo', () => {
-    cy.drupalRelativeURL('xb/node/1');
-    // Wait for the preview iframe to load and render something that confirms it is ready.
-    cy.get('iframe[data-xb-preview]').should('exist');
-    cy.waitForElementInIframe('[data-xb-type="experience_builder:image"]');
+    cy.loadURLandWaitForXBLoaded();
 
     // Assert that the undo button is disabled initially.
     cy.get('button[aria-label="Undo"]').should('be.disabled');
@@ -30,7 +27,6 @@ describe('Undo/Redo functionality', { testIsolation: false }, () => {
     );
     // Check that the menu is not open yet.
     cy.get('[data-radix-menubar-content]').should('have.length', 0);
-    cy.scrollToMiddleOfIframe();
     cy.getIframeBody()
       .find('[data-component-id="experience_builder:two_column"] .column-one')
       .first()

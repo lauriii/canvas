@@ -1,6 +1,6 @@
 import type React from 'react';
 import { useCallback, useEffect } from 'react';
-const modifierKey = 'meta';
+const modifierKey = 'Control';
 
 /**
  * This hook takes preview iFrame and makes sure that if the iframe has focus, any key presses the user makes are
@@ -28,9 +28,9 @@ function useIframeKeyHandlers(iframeRef: React.RefObject<HTMLIFrameElement>) {
         (event.type === 'keydown' && event.code === 'NumpadSubtract') ||
         event.code === 'Minus',
       dispatchModifierKeyDown:
-        event.type === 'keydown' && event.code === modifierKey,
+        event.type === 'keydown' && event.key === modifierKey,
       dispatchModifierKeyUp:
-        event.type === 'keyup' && event.code === modifierKey,
+        event.type === 'keyup' && event.key === modifierKey,
     };
 
     Object.entries(keyCombinations).some(([message, shouldDispatch]) => {
@@ -42,6 +42,19 @@ function useIframeKeyHandlers(iframeRef: React.RefObject<HTMLIFrameElement>) {
     });
   }
 
+  function notifyParentDocumentWheel(event: WheelEvent) {
+    if (event.ctrlKey) {
+      event.preventDefault();
+      event.stopPropagation();
+      window.parent.postMessage(
+        {
+          type: 'dispatchZoomDelta',
+          delta: event.deltaY,
+        },
+        '*',
+      );
+    }
+  }
   function notifyParentDocumentMouse(event: MouseEvent) {
     switch (event.type) {
       case 'mousemove':
@@ -99,6 +112,12 @@ function useIframeKeyHandlers(iframeRef: React.RefObject<HTMLIFrameElement>) {
         notifyParentDocumentMouse as EventListener,
       );
     });
+
+    iframeContentDoc?.body.addEventListener(
+      'wheel',
+      notifyParentDocumentWheel as EventListener,
+      { passive: false },
+    );
   }, []);
 
   useEffect(() => {

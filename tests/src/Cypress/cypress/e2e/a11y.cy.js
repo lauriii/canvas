@@ -27,14 +27,9 @@ describe('UI a11y Scan', () => {
     cy.drupalUninstall();
   });
 
-  beforeEach(() => {
-    cy.drupalSession();
-  });
-
   it('a11y scan without any interaction', () => {
     cy.drupalLogin('xbUser', 'xbUser');
-    cy.drupalRelativeURL('xb/node/1');
-    cy.waitForElementInIframe('[data-xb-type="experience_builder:image"]');
+    cy.loadURLandWaitForXBLoaded();
     cy.injectAxe();
     // @todo there are several a11y rules not being checked in order for the
     // test to pass. These need to be fixed.
@@ -53,8 +48,7 @@ describe('UI a11y Scan', () => {
   });
   it('a11y scan open add menu', () => {
     cy.drupalLogin('xbUser', 'xbUser');
-    cy.drupalRelativeURL('xb/node/1');
-    cy.waitForElementInIframe('[data-xb-type="experience_builder:image"]');
+    cy.loadURLandWaitForXBLoaded();
     cy.get('[data-radix-menubar-content]').should('have.length', 0);
     cy.clickAddMenu();
     cy.get('[data-radix-menubar-content]').should('have.length', 2);
@@ -77,8 +71,7 @@ describe('UI a11y Scan', () => {
   });
   it('a11y scan primary menu', () => {
     cy.drupalLogin('xbUser', 'xbUser');
-    cy.drupalRelativeURL('xb/node/1');
-    cy.waitForElementInIframe('[data-xb-type="experience_builder:image"]');
+    cy.loadURLandWaitForXBLoaded();
     cy.get('.primaryMenuContent').should('exist');
     // Radix component has two of each button in the segmented control that it flips between.
     cy.findAllByText('Layers').should('have.length', 2);
@@ -102,8 +95,7 @@ describe('UI a11y Scan', () => {
   });
   it('a11y scan open props edit form', () => {
     cy.drupalLogin('xbUser', 'xbUser');
-    cy.drupalRelativeURL('xb/node/1');
-    cy.waitForElementInIframe('[data-xb-type="experience_builder:image"]');
+    cy.loadURLandWaitForXBLoaded();
     cy.get('[data-radix-menubar-content]').should('have.length', 0);
     cy.clickAddMenu();
     cy.get('[data-radix-menubar-content]').should('have.length', 2);

@@ -59,7 +59,12 @@ export const initialState: uiSliceState = {
   },
 };
 
-export const scaleValues = [
+interface ScaleValue {
+  scale: number;
+  percent: string;
+}
+
+export const scaleValues: ScaleValue[] = [
   { scale: 0.25, percent: '25%' },
   { scale: 0.33, percent: '33%' },
   { scale: 0.5, percent: '50%' },
@@ -149,7 +154,18 @@ export const uiSlice = createAppSlice({
           action.payload.scale || state.canvasViewport.scale;
       },
     ),
-    canvasViewPortZoomIn: create.reducer((state) => {
+    canvasViewPortZoomDelta: create.reducer(
+      (state, action: PayloadAction<number>) => {
+        if (action.payload) {
+          state.canvasViewport.scale = Math.max(
+            Math.min(state.canvasViewport.scale - action.payload / 100, 5),
+            0.25,
+          );
+          return;
+        }
+      },
+    ),
+    canvasViewPortZoomIn: create.reducer((state, action) => {
       const currentIndex = scaleValues.findIndex(
         (value) => value.scale === state.canvasViewport.scale,
       );
@@ -157,7 +173,7 @@ export const uiSlice = createAppSlice({
         currentIndex + 1 < scaleValues.length ? currentIndex + 1 : currentIndex;
       state.canvasViewport.scale = scaleValues[nextIndex].scale;
     }),
-    canvasViewPortZoomOut: create.reducer((state) => {
+    canvasViewPortZoomOut: create.reducer((state, action) => {
       const currentIndex = scaleValues.findIndex(
         (value) => value.scale === state.canvasViewport.scale,
       );
@@ -205,6 +221,7 @@ export const {
   setCanvasViewPort,
   canvasViewPortZoomIn,
   canvasViewPortZoomOut,
+  canvasViewPortZoomDelta,
 } = uiSlice.actions;
 
 // Selectors returned by `slice.selectors` take the root state as their first argument.

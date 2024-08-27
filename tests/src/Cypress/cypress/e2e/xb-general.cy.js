@@ -7,11 +7,8 @@ describe('General Experience Builder', { testIsolation: false }, () => {
     cy.drupalUninstall();
   });
 
-  beforeEach(() => {
-    cy.drupalSession();
-  });
-
   it('Created a node 1 with type article on install', () => {
+    cy.drupalSession();
     cy.drupalRelativeURL('node/1');
     cy.get('h1').should(($h1) => {
       expect($h1.text()).to.include('XB Needs This');
@@ -31,12 +28,7 @@ describe('General Experience Builder', { testIsolation: false }, () => {
 
   it('Can access XB UI and do basic interactions', () => {
     cy.drupalLogin('xbUser', 'xbUser');
-    cy.drupalRelativeURL('xb/node/1');
-
-    // Wait for the preview iframe to load and render something that confirms
-    // it is ready.
-    cy.get('iframe[data-xb-preview]').should('exist');
-    cy.waitForElementInIframe('[data-xb-type="experience_builder:image"]');
+    cy.loadURLandWaitForXBLoaded();
 
     // Confirm that some elements in the default layout are present in the
     // default iframe (lg).
@@ -326,9 +318,8 @@ describe('General Experience Builder', { testIsolation: false }, () => {
 
   it('previews components on hover', () => {
     cy.drupalLogin('xbUser', 'xbUser');
-    cy.drupalRelativeURL('xb/node/1');
-    cy.get('iframe[data-xb-preview]').should('exist');
-    cy.waitForElementInIframe('[data-xb-type="experience_builder:image"]');
+    cy.loadURLandWaitForXBLoaded();
+
     cy.get('[data-radix-menubar-content]').should(
       'have.length',
       0,
@@ -376,13 +367,7 @@ describe('General Experience Builder', { testIsolation: false }, () => {
 
   it('Opens contextual panel on component selection with correct routing', () => {
     cy.drupalLogin('xbUser', 'xbUser');
-    cy.drupalRelativeURL('xb/node/1');
-
-    // Wait for the preview iframe to load and render something that confirms
-    // it is ready.
-    cy.get('iframe[data-xb-preview]').should('exist');
-    cy.waitForElementInIframe('[data-xb-type="experience_builder:image"]');
-    cy.scrollToMiddleOfIframe();
+    cy.loadURLandWaitForXBLoaded();
 
     // Find and alias the UUID of the "my-hero" component.
     cy.getIframeBody()
@@ -406,8 +391,6 @@ describe('General Experience Builder', { testIsolation: false }, () => {
       });
     });
 
-    cy.scrollToMiddleOfIframe();
-
     // Click component 1.
     cy.get('@cid1').then((cid1) => {
       cy.getIframeBody()
@@ -427,8 +410,6 @@ describe('General Experience Builder', { testIsolation: false }, () => {
           });
         });
     });
-
-    cy.scrollToMiddleOfIframe();
 
     // Click component 2.
     cy.get('@cid2').then((cid2) => {

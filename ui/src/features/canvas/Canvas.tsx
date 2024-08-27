@@ -10,6 +10,7 @@ import {
   selectCanvasViewPort,
   canvasViewPortZoomIn,
   canvasViewPortZoomOut,
+  canvasViewPortZoomDelta,
   setCanvasViewPort,
   selectPanning,
   setPanningIFrame,
@@ -66,6 +67,9 @@ const Canvas = () => {
           break;
         case 'dispatchZoomOut':
           dispatch(canvasViewPortZoomOut());
+          break;
+        case 'dispatchZoomDelta':
+          dispatch(canvasViewPortZoomDelta(event.data.delta));
           break;
         case 'dispatchModifierKeyDown':
           setModifierKeyPressed(true);
@@ -189,13 +193,10 @@ const Canvas = () => {
 
   const handleWheel = useCallback(
     (e: WheelEvent) => {
-      if (modifierKeyPressedRef.current) {
-        // Determine zoom direction
-        e.deltaY > 0
-          ? dispatch(canvasViewPortZoomOut())
-          : dispatch(canvasViewPortZoomIn());
-      } else {
+      if (e.ctrlKey) {
         e.preventDefault();
+        dispatch(canvasViewPortZoomDelta(e.deltaY));
+      } else {
         if (canvasPaneRef.current) {
           canvasPaneRef.current.scrollTop += e.deltaY;
           canvasPaneRef.current.scrollLeft += e.deltaX;
@@ -247,6 +248,7 @@ const Canvas = () => {
       <div
         className={styles.canvas}
         ref={canvasRef}
+        data-testid="canvasElement"
         style={{
           transform: `scale(${canvasViewPort.scale})`,
         }}

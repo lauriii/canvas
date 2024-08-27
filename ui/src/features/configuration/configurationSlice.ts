@@ -29,6 +29,7 @@ export const configurationSlice = createSlice({
 
 export const { setConfiguration } = configurationSlice.actions;
 
+export default configurationSlice.reducer;
 export const selectBaseUrl = (state: RootState) => state.configuration.baseUrl;
 
 export const selectEntityType = (state: RootState) =>

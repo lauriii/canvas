@@ -1,0 +1,60 @@
+.canvasControls {
+  position: fixed;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+
+  .canvasCard {
+    padding: 6px;
+    color: #000;
+    border-radius: 3px;
+
+    &::before {
+      background-color: #fff;
+    }
+  }
+}
+
+.zoomControl {
+  transition: all 0.3s ease;
+  color: #fff;
+  border: none;
+  border-radius: 2px;
+  background-color: #0090ff;
+}
+.oneHundred {
+  background-color: var(--accent-3);
+  font-weight: bold;
+}
+
+.rangeSlider {
+  -webkit-appearance: none;
+  width: 185px;
+  height: 4px;
+  transition: all 0.3s ease;
+  border-radius: 3px;
+  outline: none;
+  background: #d5efff;
+
+  &::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    border-radius: 50%;
+    background: #0090ff;
+  }
+
+  &::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+    border-radius: 50%;
+    background-color: #548bf4;
+  }
+}
+
+.zoomControlSelect {
+  width: 5em;
+}

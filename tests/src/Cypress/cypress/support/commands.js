@@ -171,14 +171,27 @@ Cypress.Commands.add('drupalLogin', (name, password) => {
     if (sessionExists) {
       cy.drupalLogout();
     }
-
-    cy.drupalRelativeURL('/user/login');
-    cy.get('input[name="name"]').type(name);
-    cy.get('input[name="pass"]').type(password);
-    cy.get('#user-login-form').submit();
-    // @todo👇I'm not sure will work on all themes. It is beneficial to have
-    // at the moment but if it needs removing it's understandable.
-    cy.get('h1').contains(name);
+    cy.session(
+      [name, password],
+      () => {
+        cy.drupalSession();
+        cy.drupalRelativeURL('/user/login');
+        cy.get('input[name="name"]').type(name);
+        cy.get('input[name="pass"]').type(password);
+        cy.get('#user-login-form').submit();
+        cy.get('h1').contains(name);
+      },
+      {
+        validate() {
+          cy.request('/')
+            .its('body')
+            .then((body) => {
+              // @todo👇Is there a better way to validate that someone is logged in.
+              cy.expect(body).to.contain(name);
+            });
+        },
+      },
+    );
   });
 });
 
@@ -364,7 +377,12 @@ Cypress.Commands.add(
  */
 Cypress.Commands.add(
   'testInIframe',
-  (selector, callback, iframeSelector = '[data-xb-preview]') => {
+  (selector, callback, iframeSelector = '[data-xb-preview="lg"]') => {
+    cy.get(iframeSelector).should(
+      'have.attr',
+      'data-test-xb-content-initialized',
+      'true',
+    );
     cy.getIframeBody(iframeSelector).should((previewIframe) => {
       const queryResult = previewIframe.querySelectorAll(selector);
       let callbackArg = queryResult;
@@ -379,10 +397,64 @@ Cypress.Commands.add(
   },
 );
 
-Cypress.Commands.add('scrollToMiddleOfIframe', () => {
-  cy.contains('button', 'Debug: scroll to middle').click();
-});
-
 Cypress.Commands.add('clickAddMenu', () => {
   cy.get('.TopbarRoot').find('#add-menu-button').click();
+});
+
+/**
+ * Sets the value of input[type="range"] that is controlled by React in a way that ensures that React is notified of the change.
+ * using .val(101).trigger('change') or .trigger('input') does not seem to work. https://github.com/cypress-io/cypress/issues/1570
+ * @example
+ * ```javascript
+ *    cy.findByLabelText('Canvas zoom level').setRangeValue('101');
+ * ```
+*/
+Cypress.Commands.add(
+  'setRangeValue',
+  { prevSubject: 'element' },
+  (subject, value) => {
+    const range = subject[0];
+    const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
+      window.HTMLInputElement.prototype,
+      'value',
+    ).set;
+    nativeInputValueSetter.call(range, value);
+    const event = new Event('input', { bubbles: true });
+    range.dispatchEvent(event);
+    return cy.wrap(subject); // Ensure the command is chainable
+  },
+);
+
+// Simulates the user using the mousewheel while holding the Control key
+Cypress.Commands.add(
+  'triggerMouseWheelWithCtrl',
+  { prevSubject: 'element' },
+  (subject, deltaY) => {
+    const event = new WheelEvent('wheel', {
+      deltaY: deltaY,
+      ctrlKey: true,
+      bubbles: true,
+      cancelable: true,
+      view: window,
+    });
+    subject[0].dispatchEvent(event);
+    return cy.wrap(subject); // Ensure the command is chainable
+  },
+);
+
+/**
+ * Loads the XB page and waits to ensure initial backend requests have been returned and that the preview
+ * iFrame is initialized and ready to be interacted with.
+ *
+ * @param {string} url
+ *   The url you want to visit - defaults to /xb/node/1.
+*/
+Cypress.Commands.add('loadURLandWaitForXBLoaded', (url = 'xb/node/1') => {
+  cy.drupalRelativeURL(url);
+
+  cy.get('iframe[data-xb-preview="lg"]').should(
+    'have.attr',
+    'data-test-xb-content-initialized',
+    'true',
+  );
 });

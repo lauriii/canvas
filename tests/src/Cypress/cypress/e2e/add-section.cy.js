@@ -11,19 +11,11 @@ describe(
     });
 
     beforeEach(() => {
-      cy.drupalSession();
       cy.drupalLogin('xbUser', 'xbUser');
     });
 
     it('Performs basic interaction with the Add section button', () => {
-      cy.drupalRelativeURL('xb/node/1');
-      // Wait for the preview iframe to load and render something that confirms it is ready.
-      cy.get('iframe[data-xb-preview="lg"]').should(
-        'have.attr',
-        'data-test-xb-content-initialized',
-        'true',
-      );
-      cy.waitForElementInIframe('[data-xb-type="experience_builder:image"]');
+      cy.loadURLandWaitForXBLoaded();
 
       // Check there are three heroes initially.
       cy.testInIframe(
@@ -35,7 +27,6 @@ describe(
       cy.get('[data-xb-uuid="root"]').findByText('Hero').should('not.exist');
       // Check that the menu is not open yet.
       cy.get('[data-radix-menubar-content]').should('have.length', 0);
-      cy.scrollToMiddleOfIframe();
       cy.getIframeBody()
         .find('[data-component-id="experience_builder:two_column"] .column-one')
         .first()

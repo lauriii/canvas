@@ -34,3 +34,7 @@
   display: flex;
   gap: 2em;
 }
+
+.modifierKeyPressed .previewsContainer iframe {
+  pointer-events: none;
+}
