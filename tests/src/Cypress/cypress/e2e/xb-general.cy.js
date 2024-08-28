@@ -100,8 +100,6 @@ describe('General Experience Builder', { testIsolation: false }, () => {
           'Obsolete SDC',
           'One Column',
           'Shoe Badge',
-          'Shoe Button',
-          'Shoe Details',
           'Shoe Icon',
           'Shoe Tab',
           'Shoe Tab Group',

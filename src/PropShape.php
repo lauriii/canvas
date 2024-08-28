@@ -7,6 +7,7 @@ namespace Drupal\experience_builder;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Plugin\Component;
 use Drupal\Core\Template\Attribute;
+use Drupal\Core\Theme\Component\ComponentMetadata;
 use Drupal\experience_builder\PropExpressions\Component\ComponentPropExpression;
 
 /**
@@ -68,13 +69,23 @@ final class PropShape {
    * @return \Drupal\experience_builder\PropShape[]
    */
   public static function getComponentProps(Component $component): array {
+    return self::getComponentPropsForMetadata($component->getPluginId(), $component->metadata);
+  }
+
+  /**
+   * @param string $plugin_id
+   * @param \Drupal\Core\Theme\Component\ComponentMetadata $metadata
+   *
+   * @return \Drupal\experience_builder\PropShape[]
+   */
+  public static function getComponentPropsForMetadata(string $plugin_id, ComponentMetadata $metadata): array {
     $prop_shapes = [];
 
     // Retrieve the full JSON schema definition from the SDC's metadata.
     // @see \Drupal\sdc\Component\ComponentValidator::validateProps()
     // @see \Drupal\sdc\Component\ComponentMetadata::parseSchemaInfo()
     /** @var array<string, mixed> $component_schema */
-    $component_schema = $component->metadata->schema;
+    $component_schema = $metadata->schema;
     foreach ($component_schema['properties'] ?? [] as $prop_name => $prop_schema) {
       // TRICKY: `attributes` is a special case — it is kind of a reserved
       // prop.
@@ -85,7 +96,7 @@ final class PropShape {
         continue;
       }
 
-      $component_prop_expression = new ComponentPropExpression($component->getPluginId(), $prop_name);
+      $component_prop_expression = new ComponentPropExpression($plugin_id, $prop_name);
       $prop_shapes[(string) $component_prop_expression] = static::normalize($prop_schema);
     }
 

@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\experience_builder\Kernel;
 
-use Drupal\Component\Plugin\PluginManagerInterface;
 use Drupal\Core\Field\Plugin\Field\FieldWidget\OptionsSelectWidget;
 use Drupal\Core\Field\Plugin\Field\FieldWidget\StringTextfieldWidget;
 use Drupal\Core\Field\Plugin\Field\FieldWidget\UriWidget;
+use Drupal\Core\Theme\ComponentPluginManager as CoreComponentPluginManager;
 use Drupal\experience_builder\Plugin\ComponentPluginManager;
 use Drupal\experience_builder\Entity\Component;
 use Drupal\experience_builder\PropSource\StaticPropSource;
@@ -24,7 +24,7 @@ class ComponentTest extends KernelTestBase {
   const MISSING_CONFIG_ENTITY_ID = 'experience_builder+missing-component';
   const LABEL = 'Test Component';
 
-  protected PluginManagerInterface $componentPluginManager;
+  protected CoreComponentPluginManager $componentPluginManager;
 
   /**
    * {@inheritdoc}
@@ -47,13 +47,34 @@ class ComponentTest extends KernelTestBase {
     $this->componentPluginManager = $this->container->get(ComponentPluginManager::class);
   }
 
+  /**
+   * {@inheritdoc}
+   */
+  protected function enableModules(array $modules): void {
+    parent::enableModules($modules);
+    // Installing a module with SDCs should result in Component config entities
+    // being generated. This requires hook_module_preinstall() and subsequently
+    // hook_modules_installed() to be invoked, but `::enableModules()` does not
+    // do that, for performance reasons. Simulate it.
+    // @see \Drupal\KernelTests\KernelTestBase::enableModules()
+    // @see \Drupal\Tests\ckeditor5\Kernel\CKEditor5PluginManagerTest::enableModules()
+
+    // 1. Simulate hook_module_preinstall() getting invoked.
+    // @see experience_builder_module_preinstall()
+    $this->componentPluginManager->clearCachedDefinitions();
+
+    // 2. Simulate experience_builder_modules_installed() getting invoked.
+    // @see experience_builder_modules_installed()
+    $this->componentPluginManager->getDefinitions();
+  }
+
   protected function midTestSetUp(): void {
     // The Standard install profile's "image" media type must be installed when
     // the media_library module gets installed.
     // @see core/profiles/standard/config/optional/media.type.image.yml
-    $this->container->get('module_installer')->install(['media']);
+    $this->enableModules(['media']);
     $this->setInstallProfile('standard');
-    \Drupal::service('config.installer')->installOptionalConfig();
+    $this->container->get('config.installer')->installOptionalConfig();
 
     $modules = [
       'media_library',
@@ -61,7 +82,7 @@ class ComponentTest extends KernelTestBase {
       'user',
       'filter',
     ];
-    $this->container->get('module_installer')->install($modules);
+    $this->enableModules($modules);
     // @see \Drupal\Core\Field\Plugin\Field\FieldType\EntityReferenceItem::generateSampleValue()
     $this->installEntitySchema('media');
 
@@ -69,7 +90,6 @@ class ComponentTest extends KernelTestBase {
     $this->installEntitySchema('user');
 
     // @see core/profiles/standard/config/optional/media.type.image.yml
-    $this->setInstallProfile('standard');
     $this->installConfig(['media']);
 
     // A sample value is generated during the test, which needs this table.
@@ -163,13 +183,17 @@ class ComponentTest extends KernelTestBase {
     // Initial state: no Component config entities.
     $this->assertEmpty(Component::loadMultiple());
 
-    $this->midTestSetUp();
-
     // Installing a module with SDCs should result in Component config entities being generated.
-    $this->container->get('module_installer')->install($modules);
+    $this->enableModules($modules);
     foreach ($sdcs as $plugin_id => $component_entity_exists) {
       $this->assertSame($component_entity_exists, Component::load(Component::convertMachineNameToId($plugin_id)) instanceof Component, $plugin_id . ' and modules: ' . implode(', ', $modules));
     }
+
+    $found_sdcs = array_keys($this->componentPluginManager->getDefinitions());
+    sort($found_sdcs);
+    $expected_sdcs = array_keys($sdcs);
+    sort($expected_sdcs);
+    $this->assertSame($expected_sdcs, $found_sdcs);
   }
 
   public static function provider(): \Generator {
@@ -184,23 +208,21 @@ class ComponentTest extends KernelTestBase {
         'experience_builder:two_column' => TRUE,
         'experience_builder:one_column' => TRUE,
         'experience_builder:shoe_tab_group' => TRUE,
-        'experience_builder:video' => TRUE,
+        'experience_builder:video' => FALSE,
         'experience_builder:shoe_tab_panel' => TRUE,
         'experience_builder:shoe_badge' => TRUE,
-        'experience_builder:shoe_button' => TRUE,
+        'experience_builder:shoe_button' => FALSE,
         'experience_builder:shoe_icon' => TRUE,
         'experience_builder:shoe_tab' => TRUE,
         'experience_builder:heading' => TRUE,
-        'experience_builder:shoe_details' => TRUE,
+        'experience_builder:shoe_details' => FALSE,
         'experience_builder:my-hero' => TRUE,
         'experience_builder:my-section' => TRUE,
-        'sdc_test:array-to-object' => TRUE,
+        'sdc_test:array-to-object' => FALSE,
         'sdc_test:my-button' => TRUE,
+        'sdc_test:my-cta' => TRUE,
         'sdc_test:no-props' => TRUE,
         'sdc_test:my-banner' => TRUE,
-        'xb_test_sdc:props-no-slots' => FALSE,
-        'xb_test_sdc:props-slots' => FALSE,
-        'sdc_test_all_props:all-props-component' => FALSE,
       ],
     ];
 
@@ -214,28 +236,28 @@ class ComponentTest extends KernelTestBase {
         'experience_builder:two_column' => TRUE,
         'experience_builder:one_column' => TRUE,
         'experience_builder:shoe_tab_group' => TRUE,
-        'experience_builder:video' => TRUE,
+        'experience_builder:video' => FALSE,
         'experience_builder:shoe_tab_panel' => TRUE,
         'experience_builder:shoe_badge' => TRUE,
-        'experience_builder:shoe_button' => TRUE,
+        'experience_builder:shoe_button' => FALSE,
         'experience_builder:shoe_icon' => TRUE,
         'experience_builder:shoe_tab' => TRUE,
         'experience_builder:heading' => TRUE,
-        'experience_builder:shoe_details' => TRUE,
+        'experience_builder:shoe_details' => FALSE,
         'experience_builder:my-hero' => TRUE,
         'experience_builder:my-section' => TRUE,
-        'sdc_test:array-to-object' => TRUE,
+        'sdc_test:array-to-object' => FALSE,
         'sdc_test:my-button' => TRUE,
+        'sdc_test:my-cta' => TRUE,
         'sdc_test:no-props' => TRUE,
         'sdc_test:my-banner' => TRUE,
         'xb_test_sdc:props-no-slots' => TRUE,
         'xb_test_sdc:props-slots' => TRUE,
         'xb_test_sdc:props-no-title' => FALSE,
         'xb_test_sdc:props-no-examples' => FALSE,
-        'sdc_test_all_props:all-props-component' => FALSE,
       ],
     ];
-    yield 'sdc_test_all_props:all-props-component component does not meet requirements' => [
+    yield 'installing sdc_test_all_props creates sdc_test_all_props:all-props creates component' => [
       'modules' => ['xb_test_sdc', 'sdc_test_all_props'],
       'sdcs' => [
         'experience_builder:obsolete' => TRUE,
@@ -245,25 +267,26 @@ class ComponentTest extends KernelTestBase {
         'experience_builder:two_column' => TRUE,
         'experience_builder:one_column' => TRUE,
         'experience_builder:shoe_tab_group' => TRUE,
-        'experience_builder:video' => TRUE,
+        'experience_builder:video' => FALSE,
         'experience_builder:shoe_tab_panel' => TRUE,
         'experience_builder:shoe_badge' => TRUE,
-        'experience_builder:shoe_button' => TRUE,
+        'experience_builder:shoe_button' => FALSE,
         'experience_builder:shoe_icon' => TRUE,
         'experience_builder:shoe_tab' => TRUE,
         'experience_builder:heading' => TRUE,
-        'experience_builder:shoe_details' => TRUE,
+        'experience_builder:shoe_details' => FALSE,
         'experience_builder:my-hero' => TRUE,
         'experience_builder:my-section' => TRUE,
-        'sdc_test:array-to-object' => TRUE,
+        'sdc_test:array-to-object' => FALSE,
         'sdc_test:my-button' => TRUE,
+        'sdc_test:my-cta' => TRUE,
         'sdc_test:no-props' => TRUE,
         'sdc_test:my-banner' => TRUE,
+        'sdc_test_all_props:all-props' => TRUE,
         'xb_test_sdc:props-no-slots' => TRUE,
         'xb_test_sdc:props-slots' => TRUE,
         'xb_test_sdc:props-no-title' => FALSE,
         'xb_test_sdc:props-no-examples' => FALSE,
-        'sdc_test_all_props:all-props' => TRUE,
       ],
     ];
 
