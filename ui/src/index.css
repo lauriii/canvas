@@ -168,10 +168,3 @@ html {
 code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, "Courier New", monospace;
 }
-
-@font-face {
-  font-family: Inter;
-  src:
-    local("Inter"),
-    url("../assets/fonts/Inter/Inter-VariableFont_slnt,wght.ttf") format("truetype");
-}

@@ -27,7 +27,6 @@ button {
   color: var(--primary-menu-text-color);
   border-radius: 4px;
   outline: none;
-  font-family: Inter, serif;
   font-size: 14px;
   font-weight: 400;
   line-height: 1;
