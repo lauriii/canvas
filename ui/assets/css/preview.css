@@ -31,20 +31,18 @@
 }
 .sortable-ghost {
   position: relative;
+  display: flex;
   clear: none;
   overflow: hidden;
   flex-grow: 1;
+  align-items: center;
+  justify-content: center;
   width: 100%;
-  height: 2rem;
-  max-height: 2rem;
+  min-height: 3.5rem;
   margin: 0;
   padding: 0;
-  opacity: 0.5;
+  opacity: 0.4;
   outline: 1px solid #ccc;
   background: linear-gradient(135deg, #ddd 12.5%, transparent 12.5%, transparent 50%, #ddd 50%, #ddd 62.5%, transparent 62.5%, transparent 100%) center / 5.66px 5.66px;
   box-shadow: none;
-}
-
-.sortable-ghost * {
-  visibility: hidden;
 }
