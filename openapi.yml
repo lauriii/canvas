@@ -1,3 +1,7 @@
+# Wherever the OpenAPI spec indicates a specific field order, follow that order.
+# For example: https://spec.openapis.org/oas/latest.html#fixed-fields. Sort list
+# values, such as paths and components, alphabetically for easy reading and to
+# prevent needless merge conflicts.
 # Tip: copy/paste this into https://editor-next.swagger.io/ and edit it there, to get real-time feedback!
 openapi: 3.1.0
 info:
@@ -5,63 +9,6 @@ info:
   title: Experience Builder
   description: API Spec for Experience Builder
 paths:
-  /xb-components:
-    get:
-      responses:
-        200:
-          description: All available components
-          content:
-            application/json:
-              examples:
-                'a single available component':
-                  value:
-                    'sdc_test:my-cta':
-                      id: sdc_test:my-cta
-                      name: Call to Action
-                      metadata:
-                        path: core/modules/system/tests/modules/sdc_test/components/my-cta
-                        documentation: No documentation found. Add a README.md in your component directory.
-                        status: stable
-                        machineName: my-cta
-                        name: Call to Action
-                        group: All Components
-                        schema:
-                          type: object
-                          required: [text]
-                          properties:
-                            text:
-                              type: [string, object]
-                              title: Title
-                              description: The title for the cta
-                              examples:
-                                - Press
-                                - Submit now
-                            href:
-                              type: [string, object]
-                              title: URL
-                              format: uri
-                            target:
-                              type: [string, object]
-                              title: Target
-                              enum:
-                                - ''
-                                - _blank
-                            attributes:
-                              type:
-                                - "Drupal\\Core\\Template\\Attribute"
-                                - object
-                              name: Attributes
-                          additionalProperties: false
-                      description: Call to action link.
-                      mandatorySchemas: true
-                      slots: []
-              schema:
-                type: object
-                minProperties: 1
-                # @see \Drupal\Core\Plugin\Component::$machineName
-                patternProperties:
-                  '^\\[a-zA-Z0-9_-]:[a-zA-Z0-9_-]$':
-                    $ref: '#/components/schemas/Component'
   /api/layout/{entityTypeId}/{id}:
     get:
       parameters:
@@ -146,15 +93,63 @@ paths:
       responses:
         200:
           description: Generated preview successfully
-  /xb/api/entity-form/{entityTypeId}/{id}:
-    description: 'Fetches the entity form with the "default" form mode'
+  /xb-components:
     get:
-      parameters:
-        - $ref: '#/components/parameters/entityTypeId'
-        - $ref: '#/components/parameters/id'
       responses:
         200:
-          $ref: '#/components/responses/FormResponse'
+          description: All available components
+          content:
+            application/json:
+              examples:
+                'a single available component':
+                  value:
+                    'sdc_test:my-cta':
+                      id: sdc_test:my-cta
+                      name: Call to Action
+                      metadata:
+                        path: core/modules/system/tests/modules/sdc_test/components/my-cta
+                        documentation: No documentation found. Add a README.md in your component directory.
+                        status: stable
+                        machineName: my-cta
+                        name: Call to Action
+                        group: All Components
+                        schema:
+                          type: object
+                          required: [text]
+                          properties:
+                            text:
+                              type: [string, object]
+                              title: Title
+                              description: The title for the cta
+                              examples:
+                                - Press
+                                - Submit now
+                            href:
+                              type: [string, object]
+                              title: URL
+                              format: uri
+                            target:
+                              type: [string, object]
+                              title: Target
+                              enum:
+                                - ''
+                                - _blank
+                            attributes:
+                              type:
+                                - "Drupal\\Core\\Template\\Attribute"
+                                - object
+                              name: Attributes
+                          additionalProperties: false
+                      description: Call to action link.
+                      mandatorySchemas: true
+                      slots: []
+              schema:
+                type: object
+                minProperties: 1
+                # @see \Drupal\Core\Plugin\Component::$machineName
+                patternProperties:
+                  '^\\[a-zA-Z0-9_-]:[a-zA-Z0-9_-]$':
+                    $ref: '#/components/schemas/Component'
   /xb/api/entity-form/{entityTypeId}/{id}/{entityFormMode}:
     description: 'Fetches the entity form with the specified form mode'
     get:
@@ -169,6 +164,15 @@ paths:
             type: string
           example: default
 
+      responses:
+        200:
+          $ref: '#/components/responses/FormResponse'
+  /xb/api/entity-form/{entityTypeId}/{id}:
+    description: 'Fetches the entity form with the "default" form mode'
+    get:
+      parameters:
+        - $ref: '#/components/parameters/entityTypeId'
+        - $ref: '#/components/parameters/id'
       responses:
         200:
           $ref: '#/components/responses/FormResponse'
@@ -265,9 +269,6 @@ components:
           description: Array of layouts
           items:
             $ref: '#/components/schemas/Layout'
-    Model:
-      title: model
-      type: object
     LayoutPreview:
       title: LayoutPreview
       type: object
@@ -277,6 +278,9 @@ components:
           $ref: '#/components/schemas/Layout'
         model:
           $ref: '#/components/schemas/Model'
+    Model:
+      title: model
+      type: object
 
   requestBodies:
     Layout:
