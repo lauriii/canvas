@@ -110,7 +110,7 @@ final class FieldForComponentSuggester {
       $component = $this->componentPluginManager->find($component_plugin_id);
       /** @var array<string, mixed> $schema */
       $schema = $component->metadata->schema;
-      $suggestions[$cpe]['required'] = in_array($prop_name, $schema['required'], TRUE);
+      $suggestions[$cpe]['required'] = in_array($prop_name, $schema['required'] ?? [], TRUE);
 
       // Field types.
       // @todo Ensure these expressions do not break: https://www.drupal.org/project/experience_builder/issues/3450957

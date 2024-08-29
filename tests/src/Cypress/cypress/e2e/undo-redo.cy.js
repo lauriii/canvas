@@ -31,6 +31,7 @@ describe('Undo/Redo functionality', { testIsolation: false }, () => {
       .find('[data-component-id="experience_builder:two_column"] .column-one')
       .first()
       .trigger('click');
+    cy.findByLabelText('Column Width').should('exist');
     cy.get('button[aria-label="Add section"]').then((button) => {
       button.click();
     });
@@ -106,20 +107,21 @@ describe('Undo/Redo functionality', { testIsolation: false }, () => {
 
     // Click the Undo button, see if the value is "hello, world! one".
     cy.get('button[aria-label="Undo"]').click();
-    cy.findByTestId(/^xb-component-form-.*/)
-      .findByLabelText('Heading')
-      .should('have.value', 'hello, world! one');
+    cy.findByLabelText('Heading').should((input) => {
+      expect(input).to.have.value('hello, world! one');
+    });
 
     // Click the Redo button, see if the value is "hello, world! one two".
     cy.get('button[aria-label="Redo"]').click();
-    cy.findByTestId(/^xb-component-form-.*/)
-      .findByLabelText('Heading')
-      .should('have.value', 'hello, world! one two');
+
+    cy.findByLabelText('Heading').should((input) => {
+      expect(input).to.have.value('hello, world! one two');
+    });
 
     // Click the Undo button twice, see if the value is "hello, world!".
     cy.get('button[aria-label="Undo"]').click().click();
-    cy.findByTestId(/^xb-component-form-.*/)
-      .findByLabelText('Heading')
-      .should('have.value', 'hello, world!');
+    cy.findByLabelText('Heading').should((input) => {
+      expect(input).to.have.value('hello, world!');
+    });
   });
 });

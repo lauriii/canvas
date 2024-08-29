@@ -240,6 +240,9 @@ describe('General Experience Builder', { testIsolation: false }, () => {
 
     // Confirm the current values of the first "My Hero" component so we can
     // be certain these values later change.
+    cy.get(
+      'iframe[data-xb-preview="lg"][data-test-xb-content-initialized="true"]',
+    ).should('exist');
     cy.testInIframe('[data-xb-type="experience_builder:my-hero"]', (heroes) => {
       const hero = heroes[0];
       Object.entries(heroSelectors).forEach(([prop, selector]) => {
@@ -299,6 +302,9 @@ describe('General Experience Builder', { testIsolation: false }, () => {
 
     // New values were typed into the prop form inputs, now enter the iframe
     // and confirm the component reflects these new values.
+    cy.get(
+      'iframe[data-xb-preview="lg"][data-test-xb-content-initialized="true"]',
+    ).should('exist');
     cy.testInIframe('[data-xb-type="experience_builder:my-hero"]', (heroes) => {
       const hero = heroes[0];
       Object.entries(heroSelectors).forEach(([prop, selector]) => {

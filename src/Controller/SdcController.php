@@ -14,14 +14,20 @@ use Drupal\Core\Render\BareHtmlPageRendererInterface;
 use Drupal\Core\Render\Element;
 use Drupal\Core\Render\RendererInterface;
 use Drupal\Core\Theme\ComponentPluginManager;
+use Drupal\Core\Entity\TypedData\EntityDataDefinition;
 use Drupal\Core\TypedData\TypedDataManagerInterface;
 use Drupal\experience_builder\Entity\Component;
+use Drupal\experience_builder\FieldForComponentSuggester;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeHydrated;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\experience_builder\PropExpressions\Component\ComponentPropExpression;
+use Drupal\experience_builder\PropExpressions\StructuredData\FieldObjectPropsExpression;
+use Drupal\experience_builder\PropExpressions\StructuredData\FieldPropExpression;
+use Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldPropExpression;
 use Drupal\experience_builder\PropShape;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 
@@ -54,7 +60,23 @@ final class SdcController extends ControllerBase {
     protected AssetCollectionRendererInterface $cssCollectionRenderer,
     protected readonly BareHtmlPageRendererInterface $bareHtmlPageRenderer,
     private readonly TypedDataManagerInterface $typedDataManager,
+    protected readonly FieldForComponentSuggester $fieldForComponentSuggester,
   ) {}
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function create(ContainerInterface $container) {
+    return new static(
+      $container->get('plugin.manager.sdc'),
+      $container->get('renderer'),
+      $container->get('asset.resolver'),
+      $container->get('asset.css.collection_renderer'),
+      $container->get(BareHtmlPageRendererInterface::class),
+      $container->get(TypedDataManagerInterface::class),
+      $container->get(FieldForComponentSuggester::class),
+    );
+  }
 
   private function buildLayout(array &$layout, array &$model, ComponentTreeItem $item, array $tree_tier, array $hydrated): void {
     $tree = $item->get('tree');
@@ -105,6 +127,8 @@ final class SdcController extends ControllerBase {
     foreach (Component::loadMultiple() as $component) {
       $component_plugin = $this->componentPluginManager->find($component->getComponentMachineName());
       $keyed_choices = [];
+      $suggestions = $this->fieldForComponentSuggester->suggest($component_plugin->getPluginId(), EntityDataDefinition::create('node', 'article'));
+      $dynamic_prop_source_candidates = [];
       foreach (PropShape::getComponentProps($component_plugin) as $component_prop_expression => $prop_shape) {
         $storable_prop_shape = $prop_shape->getStorage();
         // @todo Remove this once every SDC prop shape can be stored.
@@ -114,7 +138,12 @@ final class SdcController extends ControllerBase {
         }
         $static_prop_source = $storable_prop_shape->toStaticPropSource();
         $component_prop = ComponentPropExpression::fromString($component_prop_expression);
-
+        if (isset($suggestions[$component_prop_expression])) {
+          $dynamic_prop_source_candidates[$component_prop->propName] = array_map(
+            fn (FieldPropExpression|FieldObjectPropsExpression|ReferenceFieldPropExpression $expr) => (string) $expr,
+            $suggestions[$component_prop_expression]['instances']
+          );
+        }
         $keyed_choices[$component_prop->propName] = [
           'expression' => (string) $storable_prop_shape->fieldTypeProp,
           'sourceType' => $static_prop_source->getSourceType(),
@@ -155,6 +184,7 @@ final class SdcController extends ControllerBase {
         // A pre-rendered version of the component is provided so no requests
         // are needed when adding it to the layout.
         'default_markup' => $css . $default_markup,
+        'dynamic_prop_source_candidates' => $dynamic_prop_source_candidates,
       ];
     }
 

@@ -83,8 +83,8 @@ const Viewport: React.FC<ViewportProps> = (props) => {
 
           if (ev.clone.dataset.isNew === 'true' && ev.clone.dataset.xbUuid) {
             // @todo ideally we would use the markup of the component here instead of a loading <p>
-            if (components) {
-              const newNode = Object.values(components).find(
+            if (componentsRef.current) {
+              const newNode = Object.values(componentsRef.current).find(
                 (c) => c.id === ev.clone.dataset.xbUuid,
               );
               if (newNode) {
@@ -105,7 +105,7 @@ const Viewport: React.FC<ViewportProps> = (props) => {
         }
       }
     },
-    [dispatch, layout, components],
+    [dispatch, layout],
   );
 
   const handleDragAdd = useCallback(
@@ -249,7 +249,6 @@ const Viewport: React.FC<ViewportProps> = (props) => {
     handleDragStart,
     layout,
     model,
-    components,
   ]);
 
   return (

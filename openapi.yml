@@ -7,8 +7,16 @@ openapi: 3.1.0
 info:
   version: 0.x
   title: Experience Builder
-  description: API Spec for Experience Builder
+description: API Spec for Experience Builder
 paths:
+  /xb-field-form/{entityTypeId}/{id}:
+    get:
+      parameters:
+        - $ref: '#/components/parameters/entityTypeId'
+        - $ref: '#/components/parameters/id'
+      responses:
+        200:
+          description: 'The form'
   /api/layout/{entityTypeId}/{id}:
     get:
       parameters:
@@ -246,6 +254,8 @@ components:
                 type: [string, integer, number, boolean, object]
         default_markup:
           type: string
+        dynamic_prop_source_candidates:
+          type: object
       additionalProperties: false
     Layout:
       title: layout
