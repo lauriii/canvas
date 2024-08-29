@@ -137,7 +137,7 @@ final class FieldTypeUninstallValidator implements ModuleUninstallValidatorInter
       $default_props = $default[0]['props'];
       foreach (json_decode($default_props, TRUE) as $default_prop_values) {
         foreach ($default_prop_values as $default_prop_value) {
-          if (str_starts_with($default_prop_value['expression'], $field_type_prop_expression_prefix)) {
+          if (isset($default_prop_value['expression']) && is_string($default_prop_value['expression']) && str_starts_with($default_prop_value['expression'], $field_type_prop_expression_prefix)) {
             $fields_using_provided_field[] = $component_field->getName();
           }
         }
