@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Drupal\node\Entity\NodeType;
+use Drupal\Core\Extension\ThemeInstallerInterface;
 use Drupal\Core\Config\TypedConfigManagerInterface;
 use Drupal\Core\Theme\ComponentPluginManager;
 
@@ -10,6 +11,11 @@ use Drupal\Core\Theme\ComponentPluginManager;
  * Implements hook_install().
  */
 function experience_builder_install(): void {
+  // Ensure Stark is installed for the semi-coupled theme engine.
+  // @see \Drupal\experience_builder\Theme\XBThemeNegotiator
+  // @see \Drupal\Core\Theme\ThemeNegotiator::determineActiveTheme()
+  \Drupal::service(ThemeInstallerInterface::class)->install(['stark']);
+
   // Automatically set up the Standard install profile's "article" content type
   // to demo/test Experience Builder.
   if (!\Drupal::moduleHandler()->moduleExists('node')) {

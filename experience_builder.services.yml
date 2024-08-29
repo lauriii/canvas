@@ -37,3 +37,7 @@ services:
       - [setValidator, []]
     tags:
       - { name: event_subscriber }
+  experience_builder.theme_negotiator.xb:
+    class: Drupal\experience_builder\Theme\XBThemeNegotiator
+    tags:
+      - { name: theme_negotiator }
