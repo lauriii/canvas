@@ -4,4 +4,14 @@
     {% block the_body %}
     {% endblock %}
   </div>
+  <div class="component--props-slots--footer">
+    {% block the_footer %}
+    {% endblock %}
+  </div>
+  <div class="component--props-slots--colophon">
+    {% apply spaceless %}
+    {% block the_colophon %}
+    {% endblock %}
+    {% endapply %}
+  </div>
 </div>

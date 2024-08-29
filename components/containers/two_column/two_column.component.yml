@@ -17,14 +17,10 @@ slots:
   column_one:
     title: Column One
     description: The contents of the first column.
-    # @todo can_be_dropzone: true
     examples:
       - <p>This is column 1 content</p>
-    # @todo this should be a dropzone
   column_two:
     title: Column Two
     description: The contents of the second column.
-    # @todo can_be_dropzone: true
     examples:
       - <p>This is column 2 content</p>
-    # @todo this should be a dropzone

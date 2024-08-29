@@ -108,6 +108,38 @@ const Viewport: React.FC<ViewportProps> = (props) => {
     [dispatch, layout],
   );
 
+  const toggleEmptySlotExampleVisibility = useCallback(
+    (el: HTMLElement, show: boolean) => {
+      const elements = el.querySelectorAll(
+        // Empty slots are annotated with a `data-xb-slot-is-empty` attribute.
+        // Inside the slot we target all children (the example content), but
+        // exclude the ghost element that's created when dragging.
+        '[data-xb-slot-is-empty] > *:not(.sortable-ghost)',
+      );
+      elements.forEach((child) => {
+        // Simply set the display property as an inline style.
+        (child as HTMLElement).style.display = show ? '' : 'none';
+      });
+    },
+    [],
+  );
+
+  const handleDragMove = useCallback(
+    (ev: Sortable.MoveEvent) => {
+      // When a component/section is dragged over an empty slot, we want to hide
+      // the example content that's provided by the SDC.
+      // As the first step, display previously hidden empty slot examples. This is
+      // relevant when there are multiple empty slots available and a component is
+      // being dragged over them. We only want to hide the example in the current
+      // drop target.
+      iframeDocumentRef.current?.body &&
+        toggleEmptySlotExampleVisibility(iframeDocumentRef.current?.body, true);
+      // Now hide the example in the slot that's currently targeted for drop.
+      ev.to && toggleEmptySlotExampleVisibility(ev.to, false);
+    },
+    [toggleEmptySlotExampleVisibility],
+  );
+
   const handleDragAdd = useCallback(
     (ev: Sortable.SortableEvent) => {
       updateData(ev, false);
@@ -125,8 +157,13 @@ const Viewport: React.FC<ViewportProps> = (props) => {
       if (ev.to === ev.from) {
         updateData(ev, true);
       }
+
+      // Restore the visibility of previously hidden empty slot examples.
+      // See `handleDragMove` for more details.
+      iframeDocumentRef.current?.body &&
+        toggleEmptySlotExampleVisibility(iframeDocumentRef.current?.body, true);
     },
-    [dispatch, updateData],
+    [dispatch, updateData, toggleEmptySlotExampleVisibility],
   );
 
   useEffect(() => {
@@ -202,7 +239,10 @@ const Viewport: React.FC<ViewportProps> = (props) => {
         dataIdAttr: 'data-xb-uuid',
         onAdd: handleDragAdd,
         onStart: handleDragStart,
+        onMove: handleDragMove,
         onEnd: handleDragEnd,
+        // Prevent dragging content that's provided as an example (default content) by the SDC.
+        filter: '[data-xb-slot-is-empty]',
       });
     };
 
@@ -247,6 +287,7 @@ const Viewport: React.FC<ViewportProps> = (props) => {
     handleDragAdd,
     handleDragEnd,
     handleDragStart,
+    handleDragMove,
     layout,
     model,
   ]);

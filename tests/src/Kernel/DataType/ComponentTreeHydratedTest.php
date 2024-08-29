@@ -90,6 +90,77 @@ class ComponentTreeHydratedTest extends KernelTestBase {
       'expected_html' => '',
     ];
 
+    yield 'component tree with a single component that has unpopulated slots with default values' => [
+      'tree' => [
+        ComponentTreeStructure::ROOT_UUID => [
+          ['uuid' => 'uuid-in-root', 'component' => 'xb_test_sdc:props-slots'],
+        ],
+      ],
+      'props' => [
+        'uuid-in-root' => [
+          'heading' => $generate_static_prop_source('world'),
+        ],
+      ],
+      'expected_value' => [
+        ComponentTreeStructure::ROOT_UUID => [
+          'uuid-in-root' => [
+            'component' => 'xb_test_sdc:props-slots',
+            'props' => ['heading' => 'Hello, world!'],
+            'slots' => [
+              // TRICKY: this is different from the *stored* representation of a
+              // component tree (where empty slots must be omitted). Since this
+              // is the *hydrated* representation of
+              // component tree, each slot merits being explicitly present, and
+              // list its default value.
+              // @see \Drupal\experience_builder\Plugin\DataType\ComponentTreeHydrated::getDefaultSlotValue()
+              // @see \Drupal\experience_builder\Plugin\Validation\Constraint\ComponentTreeStructureConstraintValidator
+              // @see \Drupal\Tests\experience_builder\Kernel\DataType\ComponentTreeStructureTest
+              'the_body' => '<p>Example value for <strong>the_body</strong> slot in <strong>prop-slots</strong> component.</p>',
+              'the_footer' => 'Example value for <strong>the_footer</strong>.',
+              'the_colophon' => '',
+            ],
+          ],
+        ],
+      ],
+      'expected_renderable' => [
+        ComponentTreeStructure::ROOT_UUID => [
+          'uuid-in-root' => [
+            '#type' => 'component',
+            '#component' => 'xb_test_sdc:props-slots',
+            '#props' => ['heading' => 'Hello, world!'],
+            '#slots' => [
+              'the_body' => [
+                // This string is the first example value for this slot.
+                '#markup' => '<p>Example value for <strong>the_body</strong> slot in <strong>prop-slots</strong> component.</p>',
+              ],
+              'the_footer' => [
+                // This string is the first example value for this slot.
+                '#plain_text' => 'Example value for <strong>the_footer</strong>.',
+              ],
+              'the_colophon' => [
+                // This slot has no example value defined.
+                '#plain_text' => '',
+              ],
+            ],
+          ],
+        ],
+      ],
+      'expected_html' => <<<HTML
+<div  data-component-id="xb_test_sdc:props-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
+  <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;">Hello, world!</h1>
+  <div class="component--props-slots--body">
+        <p>Example value for <strong>the_body</strong> slot in <strong>prop-slots</strong> component.</p>
+    </div>
+  <div class="component--props-slots--footer">
+        Example value for &lt;strong&gt;the_footer&lt;/strong&gt;.
+    </div>
+  <div class="component--props-slots--colophon">
+      </div>
+</div>
+
+HTML,
+    ];
+
     yield 'simplest component tree without nesting' => [
       'tree' => [
         ComponentTreeStructure::ROOT_UUID => [
@@ -167,6 +238,8 @@ HTML,
             'component' => 'xb_test_sdc:props-slots',
             'props' => ['heading' => 'Hello, world!'],
             'slots' => [
+              'the_footer' => 'Example value for <strong>the_footer</strong>.',
+              'the_colophon' => '',
               'the_body' => [
                 'uuid-in-slot' => [
                   'component' => 'xb_test_sdc:props-no-slots',
@@ -184,6 +257,10 @@ HTML,
             '#component' => 'xb_test_sdc:props-slots',
             '#props' => ['heading' => 'Hello, world!'],
             '#slots' => [
+              'the_footer' => [
+                '#plain_text' => 'Example value for <strong>the_footer</strong>.',
+              ],
+              'the_colophon' => ['#plain_text' => ''],
               'the_body' => [
                 'uuid-in-slot' => [
                   '#type' => 'component',
@@ -204,6 +281,11 @@ HTML,
 </div>
 
     </div>
+  <div class="component--props-slots--footer">
+        Example value for &lt;strong&gt;the_footer&lt;/strong&gt;.
+    </div>
+  <div class="component--props-slots--colophon">
+      </div>
 </div>
 
 HTML,
@@ -249,16 +331,22 @@ HTML,
             'component' => 'xb_test_sdc:props-slots',
             'props' => ['heading' => 'Hello, world!'],
             'slots' => [
+              'the_footer' => 'Example value for <strong>the_footer</strong>.',
+              'the_colophon' => '',
               'the_body' => [
                 'uuid-level-1' => [
                   'component' => 'xb_test_sdc:props-slots',
                   'props' => ['heading' => 'Hello, from slot level 1!'],
                   'slots' => [
+                    'the_footer' => 'Example value for <strong>the_footer</strong>.',
+                    'the_colophon' => '',
                     'the_body' => [
                       'uuid-level-2' => [
                         'component' => 'xb_test_sdc:props-slots',
                         'props' => ['heading' => 'Hello, from slot level 2!'],
                         'slots' => [
+                          'the_footer' => 'Example value for <strong>the_footer</strong>.',
+                          'the_colophon' => '',
                           'the_body' => [
                             'uuid-level-3' => [
                               'component' => 'xb_test_sdc:props-no-slots',
@@ -287,18 +375,34 @@ HTML,
             '#component' => 'xb_test_sdc:props-slots',
             '#props' => ['heading' => 'Hello, world!'],
             '#slots' => [
+              'the_footer' => [
+                '#plain_text' => 'Example value for <strong>the_footer</strong>.',
+              ],
+              'the_colophon' => ['#plain_text' => ''],
               'the_body' => [
                 'uuid-level-1' => [
                   '#type' => 'component',
                   '#component' => 'xb_test_sdc:props-slots',
                   '#props' => ['heading' => 'Hello, from slot level 1!'],
                   '#slots' => [
+                    'the_footer' => [
+                      // This string is the first example value for this slot.
+                      '#plain_text' => 'Example value for <strong>the_footer</strong>.',
+                    ],
+                    'the_colophon' => [
+                      // This slot has no example value defined.
+                      '#plain_text' => '',
+                    ],
                     'the_body' => [
                       'uuid-level-2' => [
                         '#type' => 'component',
                         '#component' => 'xb_test_sdc:props-slots',
                         '#props' => ['heading' => 'Hello, from slot level 2!'],
                         '#slots' => [
+                          'the_footer' => [
+                            '#plain_text' => 'Example value for <strong>the_footer</strong>.',
+                          ],
+                          'the_colophon' => ['#plain_text' => ''],
                           'the_body' => [
                             'uuid-level-3' => [
                               '#type' => 'component',
@@ -339,12 +443,27 @@ HTML,
 </div>
 
     </div>
+  <div class="component--props-slots--footer">
+        Example value for &lt;strong&gt;the_footer&lt;/strong&gt;.
+    </div>
+  <div class="component--props-slots--colophon">
+      </div>
 </div>
 
     </div>
+  <div class="component--props-slots--footer">
+        Example value for &lt;strong&gt;the_footer&lt;/strong&gt;.
+    </div>
+  <div class="component--props-slots--colophon">
+      </div>
 </div>
 
     </div>
+  <div class="component--props-slots--footer">
+        Example value for &lt;strong&gt;the_footer&lt;/strong&gt;.
+    </div>
+  <div class="component--props-slots--colophon">
+      </div>
 </div>
 
 HTML,

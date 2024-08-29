@@ -402,7 +402,13 @@ final class SdcController extends ControllerBase {
       foreach ($build['#slots'] as $slot_name => $slot) {
         $slot_uuid = $component_instance_uuid . '-slot-' . $slot_name;
         $build['#slots'][$slot_name] = self::wrapComponentsForPreview($slot, $slot_uuid);
-        $build['#slots'][$slot_name]['#prefix'] = sprintf('<div class="sortable-list" data-xb-uuid="%s" data-xb-type="%s">', $slot_uuid, 'slot');
+        $build['#slots'][$slot_name]['#prefix'] = sprintf('<div class="sortable-list" data-xb-uuid="%s" data-xb-type="%s"%s>',
+          $slot_uuid,
+          'slot',
+          (array_key_exists('#plain_text', $build['#slots'][$slot_name]) || array_key_exists('#markup', $build['#slots'][$slot_name]))
+            ? ' data-xb-slot-is-empty'
+            : ''
+        );
         $build['#slots'][$slot_name]['#suffix'] = '</div>';
       }
     }

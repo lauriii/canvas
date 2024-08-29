@@ -146,9 +146,9 @@ class ComponentTreeStructureTest extends KernelTestBase {
           ],
         ],
         [
-          '[uuid-in-top-level-2][slot1]' => 'Invalid component subtree. This component subtree contains an invalid slot name for component <em class="placeholder">xb_test_sdc:props-slots</em>: <em class="placeholder">slot1</em>. Valid slot names are: <em class="placeholder">the_body</em>.',
-          '[uuid-in-top-level-2][slot2]' => 'Invalid component subtree. This component subtree contains an invalid slot name for component <em class="placeholder">xb_test_sdc:props-slots</em>: <em class="placeholder">slot2</em>. Valid slot names are: <em class="placeholder">the_body</em>.',
-          '[uuid-under-top-level-3][slot3]' => 'Invalid component subtree. This component subtree contains an invalid slot name for component <em class="placeholder">xb_test_sdc:props-slots</em>: <em class="placeholder">slot3</em>. Valid slot names are: <em class="placeholder">the_body</em>.',
+          '[uuid-in-top-level-2][slot1]' => 'Invalid component subtree. This component subtree contains an invalid slot name for component <em class="placeholder">xb_test_sdc:props-slots</em>: <em class="placeholder">slot1</em>. Valid slot names are: <em class="placeholder">the_body, the_footer, the_colophon</em>.',
+          '[uuid-in-top-level-2][slot2]' => 'Invalid component subtree. This component subtree contains an invalid slot name for component <em class="placeholder">xb_test_sdc:props-slots</em>: <em class="placeholder">slot2</em>. Valid slot names are: <em class="placeholder">the_body, the_footer, the_colophon</em>.',
+          '[uuid-under-top-level-3][slot3]' => 'Invalid component subtree. This component subtree contains an invalid slot name for component <em class="placeholder">xb_test_sdc:props-slots</em>: <em class="placeholder">slot3</em>. Valid slot names are: <em class="placeholder">the_body, the_footer, the_colophon</em>.',
         ],
       ],
       'INVALID: valid tree, only root, component with no slots, listed at top level' => [
@@ -189,7 +189,7 @@ class ComponentTreeStructureTest extends KernelTestBase {
         ],
         [
           '[uuid-in-root][slot1]' => [
-            'Invalid component subtree. This component subtree contains an invalid slot name for component <em class="placeholder">xb_test_sdc:props-slots</em>: <em class="placeholder">slot1</em>. Valid slot names are: <em class="placeholder">the_body</em>.',
+            'Invalid component subtree. This component subtree contains an invalid slot name for component <em class="placeholder">xb_test_sdc:props-slots</em>: <em class="placeholder">slot1</em>. Valid slot names are: <em class="placeholder">the_body, the_footer, the_colophon</em>.',
             'Empty slot. Slots without component instances must be omitted.',
           ],
           '[uuid-in-root][the_body]' => 'Empty slot. Slots without component instances must be omitted.',
