@@ -201,7 +201,7 @@ class ComponentTest extends KernelTestBase {
     yield 'initial set of components from experience_builder and sdc_test' => [
       'modules' => [],
       'sdcs' => [
-        'experience_builder:obsolete' => TRUE,
+        'experience_builder:obsolete' => FALSE,
         'experience_builder:experimental' => TRUE,
         'experience_builder:deprecated' => TRUE,
         'experience_builder:image' => TRUE,
@@ -229,7 +229,7 @@ class ComponentTest extends KernelTestBase {
     yield 'installing xb_test_sdc creates props-no-slots and props-slots components' => [
       'modules' => ['xb_test_sdc'],
       'sdcs' => [
-        'experience_builder:obsolete' => TRUE,
+        'experience_builder:obsolete' => FALSE,
         'experience_builder:experimental' => TRUE,
         'experience_builder:deprecated' => TRUE,
         'experience_builder:image' => TRUE,
@@ -260,7 +260,7 @@ class ComponentTest extends KernelTestBase {
     yield 'installing sdc_test_all_props creates sdc_test_all_props:all-props creates component' => [
       'modules' => ['xb_test_sdc', 'sdc_test_all_props'],
       'sdcs' => [
-        'experience_builder:obsolete' => TRUE,
+        'experience_builder:obsolete' => FALSE,
         'experience_builder:experimental' => TRUE,
         'experience_builder:deprecated' => TRUE,
         'experience_builder:image' => TRUE,
@@ -308,6 +308,18 @@ class ComponentTest extends KernelTestBase {
     $updated_component = Component::load('experience_builder+image');
     assert($updated_component instanceof Component);
     $this->assertSame('entity_reference', $updated_component->get('defaults')['props']['image']['field_type']);
+  }
+
+  public function testObsoleteStatusHandling(): void {
+    $this->componentPluginManager->getDefinitions();
+    $this->assertNull(Component::load(Component::convertMachineNameToId('experience_builder:obsolete')));
+    $component = Component::createFromComponentPlugin($this->componentPluginManager->find('experience_builder:obsolete'));
+    $this->assertFalse($component->status());
+    $component->enable();
+    $this->assertTrue($component->status());
+    $component->save();
+    $component = Component::updateFromComponentPlugin($this->componentPluginManager->find('experience_builder:obsolete'));
+    $this->assertFalse($component->status());
   }
 
 }

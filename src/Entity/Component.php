@@ -206,6 +206,9 @@ final class Component extends ConfigEntityBase {
     assert(is_array($component_plugin->metadata->schema));
     $defaults = self::getDefaultsForComponentPlugin($component_plugin);
     $component->set('defaults', $defaults);
+    if (isset($component_plugin->metadata->status) && $component_plugin->metadata->status === 'obsolete') {
+      $component->disable();
+    }
 
     return $component;
   }
@@ -258,10 +261,12 @@ final class Component extends ConfigEntityBase {
     assert(is_array($component_plugin->metadata->schema));
     $defaults = self::getDefaultsForComponentPlugin($component_plugin);
     assert(is_array($component_plugin->getPluginDefinition()));
+    $status = !(isset($component_plugin->metadata->status) && $component_plugin->metadata->status === 'obsolete');
     return Component::create([
       'label' => $component_plugin->getPluginDefinition()['name'] ?? $component_plugin->getPluginId(),
       'component' => self::convertMachineNameToId($component_plugin->getPluginId()),
       'defaults' => $defaults,
+      'status' => $status,
     ]);
   }
 

@@ -97,7 +97,6 @@ describe('General Experience Builder', { testIsolation: false }, () => {
           'Image',
           'Hero',
           'Section',
-          'Obsolete SDC',
           'One Column',
           'Shoe Badge',
           'Shoe Icon',

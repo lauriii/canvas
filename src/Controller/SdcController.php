@@ -125,6 +125,10 @@ final class SdcController extends ControllerBase {
   private function getComponentsList(): array {
     $component_list = [];
     foreach (Component::loadMultiple() as $component) {
+      // Hide disabled components.
+      if (!$component->status()) {
+        continue;
+      }
       $component_plugin = $this->componentPluginManager->find($component->getComponentMachineName());
       $keyed_choices = [];
       $suggestions = $this->fieldForComponentSuggester->suggest($component_plugin->getPluginId(), EntityDataDefinition::create('node', 'article'));

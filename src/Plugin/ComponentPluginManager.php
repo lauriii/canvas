@@ -34,15 +34,17 @@ class ComponentPluginManager extends CoreComponentPluginManager {
 
     $components = $this->entityTypeManager->getStorage('component')->loadMultiple();
     foreach ($definitions as $machine_name => $plugin_definition) {
-      if (!self::componentMeetsRequirements($plugin_definition)) {
-        continue;
-      }
-
-      $component_plugin = $this->createInstance($machine_name, $plugin_definition);
+      // Update all components, even those that do not meet the requirements.
+      // (Because those components may already be in use!)
       if (array_key_exists(Component::convertMachineNameToId($machine_name), $components)) {
+        $component_plugin = $this->createInstance($machine_name, $plugin_definition);
         $component = Component::updateFromComponentPlugin($component_plugin);
       }
       else {
+        if (!self::componentMeetsRequirements($plugin_definition)) {
+          continue;
+        }
+        $component_plugin = $this->createInstance($machine_name, $plugin_definition);
         $component = Component::createFromComponentPlugin($component_plugin);
       }
       $component->save();
@@ -52,6 +54,9 @@ class ComponentPluginManager extends CoreComponentPluginManager {
   }
 
   public static function componentMeetsRequirements(array $plugin_definition): bool {
+    if (isset($plugin_definition['status']) && $plugin_definition['status'] === 'obsolete') {
+      return FALSE;
+    }
     // Special case exception for 'all-props' SDC.
     // (This is used to develop support for more prop shapes.)
     if ($plugin_definition['id'] === 'sdc_test_all_props:all-props') {

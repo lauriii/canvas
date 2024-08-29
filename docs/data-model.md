@@ -63,6 +63,7 @@ This uses the terms defined above.
     - MUST have `title` for each prop
     - MUST have `example` for each required prop
     - MUST have only props for whose `prop shape`s a `static prop source` can be found (see 3.1.2.b)
+    - MUST not have `status` value `obsolete`
   - MAY require API additions and perhaps even changes to `SDC`s (such as: defining restrictions for `component slot`s) ⚠️ [an overview of what has been identified is constantly updated](https://www.drupal.org/project/experience_builder/issues/3462705) ⚠️
 - MUST be able to synchronize `component`s and `content type template`s from one site to another WITHOUT changes to Drupal deployment best practices
 - MUST support auditability, assuming (to answer questions such as: which `field type` and `field widget` does a `component` use when it is instantiated, why is a given `SDC` not available as a `component` in XB, et cetera)
