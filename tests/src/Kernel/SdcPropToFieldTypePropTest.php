@@ -555,6 +555,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
             '⿲experience_builder:shoe_tab␟closable',
             '⿲experience_builder:shoe_tab␟disabled',
             '⿲experience_builder:shoe_tab_panel␟active',
+            '⿲sdc_test_all_props:all-props␟test_bool',
           ],
           'storage' => [
             'ℹ︎boolean␟value',

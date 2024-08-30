@@ -100,6 +100,19 @@ class PropSourceEndpointTest extends BrowserTestBase {
       'sdc_test_all_props:all-props' => [
         'id' => 'sdc_test_all_props:all-props',
         'dynamic_prop_source_candidates' => [
+          'test_bool' => [
+            "This Article's Default translation" => 'ℹ︎␜entity:node:article␝default_langcode␞␟value',
+            "This Article's Hero" => 'ℹ︎␜entity:node:article␝field_hero␞␟entity␜␜entity:file␝status␞␟value',
+            "This Article's Image" => 'ℹ︎␜entity:node:article␝field_image␞␟entity␜␜entity:file␝status␞␟value',
+            "This Article's Tags" => 'ℹ︎␜entity:node:article␝field_tags␞␟entity␜␜entity:taxonomy_term␝status␞␟value',
+            "This Article's Promoted to front page" => 'ℹ︎␜entity:node:article␝promote␞␟value',
+            "This Article's Default revision" => 'ℹ︎␜entity:node:article␝revision_default␞␟value',
+            "This Article's Revision translation affected" => 'ℹ︎␜entity:node:article␝revision_translation_affected␞␟value',
+            "This Article's Revision user" => 'ℹ︎␜entity:node:article␝revision_uid␞␟entity␜␜entity:user␝status␞␟value',
+            "This Article's Published" => 'ℹ︎␜entity:node:article␝status␞␟value',
+            "This Article's Sticky at top of lists" => 'ℹ︎␜entity:node:article␝sticky␞␟value',
+            "This Article's Authored by" => 'ℹ︎␜entity:node:article␝uid␞␟entity␜␜entity:user␝status␞␟value',
+          ],
           'test_string' => [
             "This Article's Hero" => 'ℹ︎␜entity:node:article␝field_hero␞␟title',
             "This Article's Image" => 'ℹ︎␜entity:node:article␝field_image␞␟title',

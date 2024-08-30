@@ -1,6 +1,10 @@
 <div>
   <h2>Boolean shapes</h2>
-  <p>None yet.</p>
+  {% if test_bool %}
+    ✅<code>{{ test_bool }}</code> ✅
+  {% else %}
+    ❌<code>{{ test_bool }}</code> ❌
+  {% endif %}
   <h2>String shapes</h2>
   <dl>
     <dt>test_REQUIRED_string</dt>

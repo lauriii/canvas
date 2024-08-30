@@ -165,6 +165,26 @@ class FieldForComponentSuggesterTest extends KernelTestBase {
       'sdc_test_all_props:all-props',
       'entity:node:foo',
       [
+        '⿲sdc_test_all_props:all-props␟test_bool' => [
+          'required' => FALSE,
+          'types' => [
+            'File' => 'ℹ︎file␟entity␜␜entity:file␝status␞0␟value',
+            'Image' => 'ℹ︎image␟entity␜␜entity:file␝status␞0␟value',
+            'Boolean' => 'ℹ︎boolean␟value',
+          ],
+          'instances' => [
+            "This Foo's Default translation" => 'ℹ︎␜entity:node:foo␝default_langcode␞␟value',
+            "This Foo's field_silly_image" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝status␞␟value',
+            "This Foo's Promoted to front page" => 'ℹ︎␜entity:node:foo␝promote␞␟value',
+            "This Foo's Default revision" => 'ℹ︎␜entity:node:foo␝revision_default␞␟value',
+            "This Foo's Revision translation affected" => 'ℹ︎␜entity:node:foo␝revision_translation_affected␞␟value',
+            "This Foo's Revision user" => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝status␞␟value',
+            "This Foo's Published" => 'ℹ︎␜entity:node:foo␝status␞␟value',
+            "This Foo's Sticky at top of lists" => 'ℹ︎␜entity:node:foo␝sticky␞␟value',
+            "This Foo's Authored by" => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝status␞␟value',
+          ],
+          'adapters' => [],
+        ],
         '⿲sdc_test_all_props:all-props␟test_string' => [
           'required' => FALSE,
           'types' => [

@@ -5,6 +5,11 @@ props:
   required:
     - test_REQUIRED_string
   properties:
+    test_bool:
+      title: 'Bool'
+      type: boolean
+      examples:
+        - true
     test_string:
       title: 'String'
       type: string
