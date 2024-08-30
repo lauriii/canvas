@@ -98,6 +98,7 @@ class PropShapeRepositoryTest extends KernelTestBase {
       new PropShape(['type' => 'string']),
       new PropShape(['type' => 'string', '$ref' => 'json-schema-definitions://experience_builder.module/heading-element']),
       new PropShape(['type' => 'string', '$ref' => 'json-schema-definitions://experience_builder.module/image-uri']),
+      new PropShape(['type' => 'string', '$ref' => 'json-schema-definitions://experience_builder.module/textarea']),
       new PropShape(['type' => 'string', 'enum' => ['', '_blank']]),
       new PropShape(['type' => 'string', 'enum' => ['', 'base', 'l', 's', 'xs', 'xxs']]),
       new PropShape(['type' => 'string', 'enum' => ['', 'gray', 'primary', 'neutral-soft', 'neutral-medium', 'neutral-loud', 'primary-medium', 'primary-loud', 'black', 'white', 'red', 'gold', 'green']]),
@@ -381,6 +382,11 @@ class PropShapeRepositoryTest extends KernelTestBase {
         shape: new PropShape(['type' => 'string', 'format' => JsonSchemaStringFormat::IRI->value]),
         fieldTypeProp: new FieldTypePropExpression('uri', 'value'),
         fieldWidget: 'uri',
+      ),
+      'type=string&$ref=json-schema-definitions://experience_builder.module/textarea' => new StorablePropShape(
+        shape: new PropShape(['type' => 'string', '$ref' => 'json-schema-definitions://experience_builder.module/textarea']),
+        fieldTypeProp: new FieldTypePropExpression('string_long', 'value'),
+        fieldWidget: 'string_textarea',
       ),
     ];
   }

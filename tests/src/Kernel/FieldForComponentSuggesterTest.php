@@ -198,6 +198,16 @@ class FieldForComponentSuggesterTest extends KernelTestBase {
           ],
           'adapters' => [],
         ],
+        '⿲sdc_test_all_props:all-props␟test_string_multiline' => [
+          'required' => FALSE,
+          'types' => [
+            'Text (plain, long)' => 'ℹ︎string_long␟value',
+          ],
+          'instances' => [
+            "This Foo's Revision log message" => 'ℹ︎␜entity:node:foo␝revision_log␞␟value',
+          ],
+          'adapters' => [],
+        ],
         '⿲sdc_test_all_props:all-props␟test_REQUIRED_string' => [
           'required' => TRUE,
           'types' => [

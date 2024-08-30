@@ -900,6 +900,23 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
             ],
           ],
         ],
+        'optional, type=string&$ref=json-schema-definitions://experience_builder.module/textarea' => [
+          'component props' => [
+            '⿲sdc_test_all_props:all-props␟test_string_multiline',
+          ],
+          'storage' => $all_string_storage_props,
+          'format_any_prop' => [
+            'ℹ︎string_long␟value',
+          ],
+          'format_main_prop' => [
+            'ℹ︎string_long␟value',
+          ],
+          'instances' => [
+            'ℹ︎␜entity:node:foo␝revision_log␞␟value',
+          ],
+          'adapter_matches_field_type' => [],
+          'adapter_matches_instance' => [],
+        ],
         'optional, type=string&enum[0]=&enum[1]=base&enum[2]=l&enum[3]=s&enum[4]=xs&enum[5]=xxs' => [
           'component props' => [
             '⿲experience_builder:shoe_icon␟size',

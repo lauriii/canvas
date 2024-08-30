@@ -187,7 +187,10 @@ enum SdcPropJsonSchemaType : string {
       // - `pattern`: https://json-schema.org/understanding-json-schema/reference/string#regexp
       // - `format`: https://json-schema.org/understanding-json-schema/reference/string#format and https://json-schema.org/understanding-json-schema/reference/string#built-in-formats
       SdcPropJsonSchemaType::STRING => match (TRUE) {
-        array_key_exists('$ref', $schema) => NULL,
+        array_key_exists('$ref', $schema) => match ($schema['$ref']) {
+          'json-schema-definitions://experience_builder.module/textarea' => new StorablePropShape(shape: $shape, fieldWidget: 'string_textarea', fieldTypeProp: new FieldTypePropExpression('string_long', 'value')),
+          default => NULL,
+        },
         array_key_exists('enum', $schema) => new StorablePropShape(shape: $shape, fieldWidget: 'options_select', fieldTypeProp: new FieldTypePropExpression('list_string', 'value'), fieldStorageSettings: [
           'allowed_values' => array_map(fn ($v) => ['value' => $v, 'label' => (string) $v], $schema['enum']),
         ]),

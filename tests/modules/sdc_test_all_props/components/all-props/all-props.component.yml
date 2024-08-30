@@ -11,10 +11,23 @@ props:
       examples:
         - true
     test_string:
-      title: 'String'
+      title: 'String — single line'
       type: string
+      # Implied pattern:
+      #pattern: '.''
       examples:
-        - Hello, world!
+        - "Hello, world!"
+    test_string_multiline:
+      title: 'String — multi-line'
+      type: string
+      $ref: json-schema-definitions://experience_builder.module/textarea
+      # Pattern in $ref:
+      # @see https://json-schema.org/understanding-json-schema/reference/regular_expressions
+      #pattern: '(.|\r?\n)*'
+      # This pattern needs to match the pattern added in
+      # \Drupal\experience_builder\Plugin\Field\FieldTypeOverride\StringLongItemOverride::propertyDefinitions.
+      examples:
+        - "Hello,\nworld!"
     test_REQUIRED_string:
       title: 'String'
       type: string

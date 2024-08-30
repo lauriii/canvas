@@ -120,6 +120,10 @@ class PropSourceEndpointTest extends BrowserTestBase {
             "This Article's Revision log message" => 'ℹ︎␜entity:node:article␝revision_log␞␟value',
             "This Article's Title" => 'ℹ︎␜entity:node:article␝title␞␟value',
           ],
+          'test_string_multiline' => [
+            "This Article's Tags" => 'ℹ︎␜entity:node:article␝field_tags␞␟entity␜␜entity:taxonomy_term␝revision_log_message␞␟value',
+            "This Article's Revision log message" => 'ℹ︎␜entity:node:article␝revision_log␞␟value',
+          ],
           'test_REQUIRED_string' => [
             "This Article's Title" => 'ℹ︎␜entity:node:article␝title␞␟value',
           ],
