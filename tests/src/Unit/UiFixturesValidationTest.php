@@ -30,20 +30,10 @@ class UiFixturesValidationTest extends UnitTestCase {
    *   Fixture data.
    */
   protected function getUiFixtureData(string $filename): array {
-    $fixturesDirectory = dirname(__FILE__, 4) . '/ui/src/mocks/fixtures';
+    $fixturesDirectory = dirname(__FILE__, 4) . '/tests/src/Cypress/cypress/fixtures';
     $json = file_get_contents(sprintf('%s/%s', $fixturesDirectory, $filename));
     assert(is_string($json));
     return Json::decode($json);
-  }
-
-  /**
-   * Tests the components.json UI Fixture.
-   */
-  public function testUiComponentsFixture(): void {
-    $uiFixture = $this->getUiFixtureData('components.json');
-    foreach ($uiFixture as $fixture) {
-      $this->assertDataCompliesWithApiSpecification($fixture, 'Component');
-    }
   }
 
   /**

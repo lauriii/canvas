@@ -100,7 +100,7 @@ export default defineConfig({
     supportFile: '../tests/src/Cypress/cypress/support/component.js',
     downloadsFolder: '../tests/src/Cypress/cypress/downloads',
     screenshotsFolder: '../tests/src/Cypress/cypress/screenshots',
-    fixturesFolder: '../ui/src/mocks/fixtures',
+    fixturesFolder: '../tests/src/Cypress/cypress/fixtures',
     setupNodeEvents(on, config) {
       on('task', {
         log(message) {

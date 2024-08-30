@@ -6,7 +6,6 @@ drupaldev
 entityviewdisplay
 hyperscriptify
 JSONified
-transferrables
 leftbar
 Nygard
 Nygard's

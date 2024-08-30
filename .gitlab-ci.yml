@@ -171,7 +171,7 @@ phpcs-rules-match-drupal-11:
         echo "👍👍👍👍👍👍👍👍👍👍👍👍👍👍👍👍👍👍"
         echo "core.phpcs.xml.dist is up to date with Drupal 11.x core/phpcs.xml.dist"
       fi
-      
+
       # Exit with the exit code of the diff command
       exit $DIFF_EXIT_CODE
   # Allow this to fail, to avoid disrupting XB's CI when upstream changes.
@@ -379,29 +379,6 @@ cypress unit:
         - ui/tsconfig.node.json
         - tests/src/Cypress/cypress/unit/**/*
     - *manual-rule
-
-pages:
-  image: node:current-alpine
-  stage: publish
-  script:
-    - echo "Pages accessible through ${CI_PAGES_URL}"
-    - cd ui
-    - npm install
-    # We pass development so msw gets used.
-    - NODE_ENV=development npm run build
-  variables:
-    PAGES_PREFIX: "" # No prefix by default
-  pages:
-    path_prefix: "$PAGES_PREFIX"
-  publish: ui/dist
-  artifacts:
-    paths:
-      - ui/dist
-  rules:
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH # Run on default branch (with default PAGES_PREFIX)
-    - if: $CI_COMMIT_BRANCH == "staging" # Run on master (with default PAGES_PREFIX)
-      variables:
-        PAGES_PREFIX: '-stg-' # Prefix with -stg- for the staging branch
 
 🗺️ C4 model diagrams:
   stage: validate
