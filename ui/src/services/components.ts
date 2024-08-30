@@ -1,6 +1,6 @@
 // Need to use the React-specific entry point to import createApi
 import { createApi } from '@reduxjs/toolkit/query/react';
-import type { Component, ComponentsList } from '@/types/Component';
+import type { ComponentsList } from '@/types/Component';
 import { baseQuery } from '@/services/baseQuery';
 
 // Define a service using a base URL and expected endpoints
@@ -8,9 +8,6 @@ export const componentApi = createApi({
   reducerPath: 'componentsApi',
   baseQuery,
   endpoints: (builder) => ({
-    getComponentById: builder.query<Component, string>({
-      query: (id) => `xb-component/${id}`,
-    }),
     getComponents: builder.query<ComponentsList, void>({
       query: () => `xb-components`,
     }),
@@ -19,4 +16,4 @@ export const componentApi = createApi({
 
 // Export hooks for usage in functional components, which are
 // auto-generated based on the defined endpoints
-export const { useGetComponentByIdQuery, useGetComponentsQuery } = componentApi;
+export const { useGetComponentsQuery } = componentApi;

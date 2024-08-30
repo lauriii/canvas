@@ -59,7 +59,7 @@ final class OpenApiSpecValidationTest extends UnitTestCase {
   public function testSpecIsValid(): void {
     $specification = $this->getSpecification();
     $specification->validate();
-    $this->assertEmpty($specification->getErrors());
+    $this->assertSame([], $specification->getErrors());
     $validator = new Validator();
     $open_api_data = $specification->getSerializableData();
     $validator->validate($open_api_data, (object) ['$ref' => 'file://' . $this->documentLocation]);

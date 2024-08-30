@@ -1,50 +1,41 @@
-# Wherever the OpenAPI spec indicates a specific field order, follow that order.
-# For example: https://spec.openapis.org/oas/latest.html#fixed-fields. Sort list
-# values, such as paths and components, alphabetically for easy reading and to
-# prevent needless merge conflicts.
-# Tip: copy/paste this into https://editor-next.swagger.io/ and edit it there, to get real-time feedback!
+# For readability and to prevent needless merge conflicts, follow all possible
+# conventions in the official OpenAPI specification and documentation, including
+# the order of fixed fields like paths and components, spacing, and quoting of
+# strings. Pay attention to the rest of the file for any other conventions. Use
+# one of the automated formatters in the resources below.
+#
+# Tip: Use https://editor-next.swagger.io/ for real-time, in-browser feedback.
+#
+# Resources:
+# - https://spec.openapis.org/oas/v3.1.0.html - Official specification.
+# - https://learn.openapis.org/specification/ - Official documentation.
+# - https://swagger.io/docs/specification/ - Alternative documentation.
+# - https://www.jetbrains.com/help/idea/openapi.html - PhpStorm features.
+# - https://codifyformatter.org/yaml-formatter,
+#   https://onlineyamltools.com/prettify-yaml - YAML formatters that follow the
+#   official OpenAPI conventions. They are functionally identical. Warning: They
+#   also strip comments and blank lines. Review diffs carefully to avoid losing
+#   any.
+
 openapi: 3.1.0
 info:
-  version: 0.x
   title: Experience Builder
-description: API Spec for Experience Builder
+  description: API Spec for Experience Builder
+  version: 0.x
+
 paths:
-  /xb-field-form/{entityTypeId}/{id}:
+  '/api/layout/{entityTypeId}/{entityId}':
     get:
       parameters:
         - $ref: '#/components/parameters/entityTypeId'
-        - $ref: '#/components/parameters/id'
+        - $ref: '#/components/parameters/entityId'
       responses:
-        200:
-          description: 'The form'
-  /api/layout/{entityTypeId}/{id}:
-    get:
-      parameters:
-        - name: entityTypeId
-          in: path
-          required: true
-          description: 'The entity type ID of the layout to retrieve'
-          schema:
-            type: string
-          example: node
-        - name: id
-          in: path
-          required: true
-          description: 'The entity ID of the layout to retrieve'
-          schema:
-            type: integer
-          examples:
-            'first entity of this type':
-              value: 14
-            'another entity of this type':
-              value: 42
-      responses:
-        200:
-          description: 'The layout'
+        '200':
+          description: The layout
           content:
             application/json:
               examples:
-                'empty component tree':
+                emptyComponentTree:
                   value:
                     layout:
                       uuid: root
@@ -52,7 +43,7 @@ paths:
                       name: root
                       children: []
                     model: {}
-                'component tree with single component':
+                componentTreeWithSingleComponent:
                   value:
                     layout:
                       uuid: root
@@ -61,90 +52,86 @@ paths:
                       children:
                         - uuid: bce8d97e-8d44-4609-adc3-5e1015342b49
                           nodeType: component
-                          type: sdc_test:my-cta
+                          type: 'sdc_test:my-cta'
                     model:
                       bce8d97e-8d44-4609-adc3-5e1015342b49:
-                        text: hello, world!
-                        href: https://drupal.org
+                        text: 'hello, world!'
+                        href: 'https://drupal.org'
                         name: My Test CTA Component
               schema:
                 type: object
-                required: [layout, model]
+                required:
+                  - layout
+                  - model
                 properties:
                   layout:
                     $ref: '#/components/schemas/Layout'
                   model:
                     $ref: '#/components/schemas/Model'
-  /api/preview/{entityTypeId}/{id}:
+  '/api/preview/{entityTypeId}/{entityId}':
     post:
       parameters:
-        - name: entityTypeId
-          in: path
-          required: true
-          description: 'The entity type ID of the layout to retrieve'
-          schema:
-            type: string
-          example: node
-        - name: id
-          in: path
-          required: true
-          description: 'The entity ID of the layout to retrieve'
-          schema:
-            type: integer
-          examples:
-            'first entity of this type':
-              value: 14
-            'another entity of this type':
-              value: 42
+        - $ref: '#/components/parameters/entityTypeId'
+        - $ref: '#/components/parameters/entityId'
       requestBody:
         $ref: '#/components/requestBodies/Layout'
       responses:
-        200:
+        '200':
           description: Generated preview successfully
   /xb-components:
     get:
       responses:
-        200:
+        '200':
           description: All available components
           content:
             application/json:
               examples:
-                'a single available component':
+                singleAvailableComponent:
                   value:
                     'sdc_test:my-cta':
-                      id: sdc_test:my-cta
+                      id: 'sdc_test:my-cta'
                       name: Call to Action
                       metadata:
-                        path: core/modules/system/tests/modules/sdc_test/components/my-cta
-                        documentation: No documentation found. Add a README.md in your component directory.
+                        path: >-
+                          core/modules/system/tests/modules/sdc_test/components/my-cta
+                        documentation: >-
+                          No documentation found. Add a README.md in your
+                          component directory.
                         status: stable
                         machineName: my-cta
                         name: Call to Action
                         group: All Components
                         schema:
                           type: object
-                          required: [text]
+                          required:
+                            - text
                           properties:
                             text:
-                              type: [string, object]
+                              type:
+                                - string
+                                - object
                               title: Title
                               description: The title for the cta
                               examples:
                                 - Press
                                 - Submit now
                             href:
-                              type: [string, object]
+                              type:
+                                - string
+                                - object
                               title: URL
                               format: uri
                             target:
-                              type: [string, object]
+                              type:
+                                - string
+                                - object
                               title: Target
                               enum:
                                 - ''
                                 - _blank
                             attributes:
                               type:
-                                - "Drupal\\Core\\Template\\Attribute"
+                                - Drupal\Core\Template\Attribute
                                 - object
                               name: Attributes
                           additionalProperties: false
@@ -158,75 +145,84 @@ paths:
                 patternProperties:
                   '^\\[a-zA-Z0-9_-]:[a-zA-Z0-9_-]$':
                     $ref: '#/components/schemas/Component'
-  /xb/api/entity-form/{entityTypeId}/{id}/{entityFormMode}:
-    description: 'Fetches the entity form with the specified form mode'
+  '/xb-field-form/{entityTypeId}/{entityId}':
     get:
       parameters:
         - $ref: '#/components/parameters/entityTypeId'
-        - $ref: '#/components/parameters/id'
+        - $ref: '#/components/parameters/entityId'
+      responses:
+        '200':
+          description: The form
+  '/xb-render-component/{componentId}':
+    get:
+      parameters:
+        - name: componentId
+          in: path
+          required: true
+          description: TODO
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The rendered component, along with relevant metadata for re-rendering it client-side.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - id
+                  - markup
+                  - props
+                  - metadata
+                properties:
+                  id:
+                    type: string
+                    description: The component ID
+                  markup:
+                    type: string
+                  # @see \Drupal\Core\Theme\Component\ComponentMetadata
+                  metadata:
+                    type: object
+                  props:
+                    type: object
+                additionalProperties: false
+  '/xb/api/entity-form/{entityTypeId}/{entityId}/{entityFormMode}':
+    description: Fetches the entity form with the specified form mode
+    get:
+      parameters:
+        - $ref: '#/components/parameters/entityTypeId'
+        - $ref: '#/components/parameters/entityId'
         - name: entityFormMode
           in: path
           required: true
-          description: 'The entity form mode of the form to retrieve'
+          description: The entity form mode of the form to retrieve
           schema:
             type: string
           example: default
-
       responses:
-        200:
+        '200':
           $ref: '#/components/responses/FormResponse'
-  /xb/api/entity-form/{entityTypeId}/{id}:
-    description: 'Fetches the entity form with the "default" form mode'
+  '/xb/api/entity-form/{entityTypeId}/{entityId}':
+    description: Fetches the entity form with the "default" form mode
     get:
       parameters:
         - $ref: '#/components/parameters/entityTypeId'
-        - $ref: '#/components/parameters/id'
+        - $ref: '#/components/parameters/entityId'
       responses:
-        200:
+        '200':
           $ref: '#/components/responses/FormResponse'
+
 components:
-  parameters:
-    entityTypeId:
-      name: entityTypeId
-      in: path
-      required: true
-      description: 'The entity type ID of the form to retrieve'
-      schema:
-        type: string
-      example: node
-    id:
-      name: id
-      in: path
-      required: true
-      description: 'The entity ID of the form to retrieve'
-      schema:
-        type: integer
-      examples:
-        'first entity of this type':
-          value: 14
-        'another entity of this type':
-          value: 42
-  responses:
-    FormResponse:
-      description: 'The form'
-      content:
-        application/json:
-          examples:
-            'A form':
-              value:
-                html: "<form></form>"
-          schema:
-            type: object
-            required: [html]
-            properties:
-              html:
-                schema:
-                  type: string
   schemas:
     Component:
       title: Component
       type: object
-      required: [name, id, metadata, field_data, default_markup]
+      required:
+        - name
+        - id
+        - metadata
+        - field_data
+        - default_markup
       properties:
         name:
           type: string
@@ -242,7 +238,10 @@ components:
           # Keys are props for this SDC. Only required SDC props are required here.
           additionalProperties:
             type: object
-            required: [sourceType, expression, required]
+            required:
+              - sourceType
+              - expression
+              - required
             properties:
               sourceType:
                 type: string
@@ -251,7 +250,12 @@ components:
               required:
                 type: boolean
               default_values:
-                type: [string, integer, number, boolean, object]
+                type:
+                  - string
+                  - integer
+                  - number
+                  - boolean
+                  - object
         default_markup:
           type: string
         dynamic_prop_source_candidates:
@@ -260,7 +264,9 @@ components:
     Layout:
       title: layout
       type: object
-      required: [uuid, nodeType]
+      required:
+        - uuid
+        - nodeType
       additionalProperties: false
       properties:
         uuid:
@@ -291,7 +297,42 @@ components:
     Model:
       title: model
       type: object
-
+  responses:
+    FormResponse:
+      description: The form
+      content:
+        application/json:
+          examples:
+            arbitraryForm:
+              value:
+                html: <form></form>
+          schema:
+            type: object
+            required:
+              - html
+            properties:
+              html:
+                schema:
+                  type: string
+  parameters:
+    entityTypeId:
+      name: entityTypeId
+      in: path
+      required: true
+      description: The entity type ID
+      schema:
+        type: string
+      example: node
+    entityId:
+      name: entityId
+      in: path
+      required: true
+      description: The entity ID
+      schema:
+        type: integer
+      examples:
+        arbitraryEntityId:
+          value: 42
   requestBodies:
     Layout:
       content:
