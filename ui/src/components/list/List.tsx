@@ -275,23 +275,25 @@ const List = () => {
                       >
                         <Text>{component.name}</Text>
                       </Tooltip.Trigger>
-                      <Tooltip.Content
-                        side="right"
-                        className={clsx(
-                          'ComponentPreviewContent',
-                          styles.ComponentPreviewContent,
-                        )}
-                      >
-                        {previewContent && (
-                          <ShadowWrapper>
-                            <div
-                              dangerouslySetInnerHTML={{
-                                __html: previewContent,
-                              }}
-                            />
-                          </ShadowWrapper>
-                        )}
-                      </Tooltip.Content>
+                      <Tooltip.Portal>
+                        <Tooltip.Content
+                          side="right"
+                          className={clsx(
+                            'ComponentPreviewContent',
+                            styles.ComponentPreviewContent,
+                          )}
+                        >
+                          {previewContent && (
+                            <ShadowWrapper>
+                              <div
+                                dangerouslySetInnerHTML={{
+                                  __html: previewContent,
+                                }}
+                              />
+                            </ShadowWrapper>
+                          )}
+                        </Tooltip.Content>
+                      </Tooltip.Portal>
                     </Tooltip.Root>
                   </Tooltip.Provider>
                 </div>

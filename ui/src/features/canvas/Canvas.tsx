@@ -196,11 +196,6 @@ const Canvas = () => {
       if (e.ctrlKey) {
         e.preventDefault();
         dispatch(canvasViewPortZoomDelta(e.deltaY));
-      } else {
-        if (canvasPaneRef.current) {
-          canvasPaneRef.current.scrollTop += e.deltaY;
-          canvasPaneRef.current.scrollLeft += e.deltaX;
-        }
       }
     },
     [dispatch],

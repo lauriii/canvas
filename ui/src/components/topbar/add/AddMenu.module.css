@@ -3,18 +3,6 @@ button {
   all: unset;
 }
 
-.MenubarRoot {
-  position: fixed;
-  top: var(--topbar-height);
-  display: flex;
-  flex-direction: column;
-  width: var(--primary-menu-width);
-  height: 100vh;
-  padding: 3px;
-  border-right: 1px solid var(--primary-menu-border-color);
-  background-color: white;
-}
-
 .MenubarTrigger,
 .MenubarSubTrigger,
 .MenubarItem {
@@ -56,7 +44,7 @@ button {
   position: fixed;
   top: var(--topbar-height);
   width: var(--primary-menu-content-width);
-  height: 100vh;
+  height: calc(100vh - var(--topbar-height));
   padding: 5px;
   transform: none !important;
   color: var(--primary-menu-text-color);
@@ -69,8 +57,9 @@ button {
   position: fixed;
   top: var(--topbar-height);
   left: var(--primary-menu-content-width);
+  overflow: auto;
   width: var(--primary-menu-subcontent-width);
-  height: 100vh;
+  height: calc(100vh - var(--topbar-height));
   padding: 5px;
   color: var(--primary-menu-text-color);
   border-right: 1px solid var(--primary-menu-border-color);
