@@ -44,7 +44,7 @@ final class ApiMessageValidator implements EventSubscriberInterface {
    *
    * @var \League\OpenAPIValidation\PSR7\ValidatorBuilder|null
    */
-  private ?ValidatorBuilder $validatorBuilder;
+  private ?ValidatorBuilder $validatorBuilder = NULL;
 
   /**
    * Constructs an API Message Validator object.
