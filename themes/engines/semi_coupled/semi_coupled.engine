@@ -276,7 +276,7 @@ function _semi_coupled_collect_props(array &$props, array &$slots, array $prop_t
  * @return array|string|object|null
  *   Essentially $variables[~$index_in] or $variables->{~$index_in}.
  */
-function _semi_coupled_get_variable(array|object $variables, string $index_in_js_format): array|string|object|null {
+function _semi_coupled_get_variable(array|object $variables, string $index_in_js_format): array|string|object|bool|null {
   // The lookup information we have is camelCased, but the values are likely
   // in snake case, so we create a snake case formatted index.
   $index_in_php_format = _semi_coupled_snake_case($index_in_js_format);

@@ -8,6 +8,7 @@ import {
   updateNodeModel,
 } from '@/features/layout/layoutModelSlice';
 import { debounce } from 'lodash';
+import { parseValue } from '@/utils/function-utils';
 
 // Wraps all form elements to provide common functionality and subscribe to the
 // parent form's context.
@@ -19,8 +20,13 @@ const InputBehaviors = (OriginalInput: React.FC) => {
     const selectedComponent = useAppSelector(selectSelectedComponent) || 'noop';
     const model = useAppSelector(selectModel);
     const selectedModel = model[selectedComponent];
-    const { attributes, ...passProps } = properties;
-    const [inputValue, setInputValue] = useState(attributes.value || '');
+    const { attributes, options, ...passProps } = properties;
+    const defaultValue = options
+      ? options.filter(
+          (option: React.ComponentProps<any>) => option.selected,
+        )?.[0]?.value
+      : attributes.value;
+    const [inputValue, setInputValue] = useState(defaultValue || '');
     const setFormState = useContext(FormDispatchContext);
 
     const formStateToStore = (newFormState: object) => {
@@ -79,16 +85,18 @@ const InputBehaviors = (OriginalInput: React.FC) => {
       // be managed by React.
       attributes.value = inputValue;
       attributes.onChange = (e: React.ChangeEvent) => {
-        const target = e.target as HTMLInputElement;
+        const target = e.target as HTMLInputElement | HTMLSelectElement;
+        // If parsing results in a number that is not NaN, return the number, otherwise return the original string
+        const value = parseValue(target.value);
         // Update the value of the input - which belongs to just this instance
         // of inputBehaviors.
-        setInputValue(target.value);
+        setInputValue(value);
 
         // In addition, update the Context-stored Form State, which is aware
         // of all form values plus additional metadata.
         if (setFormState) {
           setFormState((prior: object) => {
-            const newState = { ...prior, [target.name]: target.value };
+            const newState = { ...prior, [target.name]: value };
             storeUpdateCallback(newState);
             return newState;
           });
@@ -110,7 +118,11 @@ const InputBehaviors = (OriginalInput: React.FC) => {
 
     return (
       <>
-        <OriginalInput {...passProps} attributes={attributes} />
+        <OriginalInput
+          {...passProps}
+          attributes={attributes}
+          options={options}
+        />
       </>
     );
   }

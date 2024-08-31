@@ -3,6 +3,7 @@ import Form from '@/components/form/Form';
 import FormElement from '@/components/form/FormElement';
 import FormElementLabel from '@/components/form/FormElementLabel';
 import Input from '@/components/form/Input';
+import Select from '@/components/form/Select';
 
 // This is where we map the Drupal Twig templates to the corresponding JSX component.
 // @see experience_builder_theme_suggestions_alter()
@@ -13,6 +14,7 @@ const twigToJSXComponentMap = {
   'drupal-form--xbxb': Form,
   'drupal-form-element--xbxb': FormElement,
   'drupal-form-element-label--xbxb': FormElementLabel,
+  'drupal-select--xbxb': Select,
 };
 
 export default twigToJSXComponentMap;
