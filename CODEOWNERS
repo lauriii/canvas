@@ -12,12 +12,14 @@
 [UI] @balintbrews @bnjmnm @jessebaker @hooroomoo
 /ui/
 
+[UI utils] @balintbrews @bnjmnm @jessebaker @hooroomoo @effulgentsia
+/ui/src/utils/
 
 #
 # Hybrid side.
 #
 
-[semi-coupled theme engine] @bnjmnm @hooroomoo
+[semi-coupled theme engine] @bnjmnm @hooroomoo @effulgentsia
 /src/Theme/XBThemeNegotiator.php
 /themes/engines/semi_coupled/
 /templates/form/
