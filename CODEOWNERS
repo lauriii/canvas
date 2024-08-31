@@ -19,6 +19,13 @@
 # Hybrid side.
 #
 
+[OpenAPI] @traviscarden
+/openapi.yml
+/src/EventSubscriber/ApiMessageValidator.php
+/tests/src/Traits/OpenApiSpecTrait.php
+/tests/src/Unit/OpenApiSpecValidationTest.php
+/tests/src/Unit/UiFixturesValidationTest.php
+
 [semi-coupled theme engine] @bnjmnm @hooroomoo @effulgentsia
 /src/Theme/XBThemeNegotiator.php
 /themes/engines/semi_coupled/
