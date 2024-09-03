@@ -1,5 +1,3 @@
-name: 'Component Props Test'
+name: '"All-Props" Test SDC '
 type: module
-dependencies:
-  - sdc:sdc
 package: Testing

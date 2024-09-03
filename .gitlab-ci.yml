@@ -101,7 +101,7 @@ cspell:
 # @todo Remove when https://www.drupal.org/project/gitlab_templates/issues/3452183 lands.
 .module-metadata-files-change-rule: &module-metadata-files-change-rule
   - changes:
-      - "*.yml"
+      - "**/*.yml"
     when: on_success
 
 # @todo Remove when https://www.drupal.org/project/gitlab_templates/issues/3452183 lands.
