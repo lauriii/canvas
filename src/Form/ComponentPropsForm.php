@@ -19,9 +19,20 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  */
 final class ComponentPropsForm extends FormBase implements ContainerInjectionInterface {
 
+  /**
+   * The component plugin manager.
+   *
+   * @var \Drupal\Core\Theme\ComponentPluginManager
+   */
+  protected $componentPluginManager;
+
   public function __construct(
-    private readonly ComponentPluginManager $componentPluginManager,
-  ) {}
+    ComponentPluginManager $componentPluginManager,
+  ) {
+    // Unable to use property injection due to extending a class that does not
+    // use it.
+    $this->componentPluginManager = $componentPluginManager;
+  }
 
   /**
    * {@inheritdoc}
@@ -60,6 +71,10 @@ final class ComponentPropsForm extends FormBase implements ContainerInjectionInt
     $component = Component::loadByComponentMachineName($component_machine_name);
     assert($component !== NULL);
     $component_plugin = $this->componentPluginManager->createInstance($component_machine_name);
+
+    // Allow form alterations specific to XB component prop forms (currently
+    // only "static prop sources").
+    $form_state->set('is_xb_static_prop_source', TRUE);
 
     $form['#parents'] = ['xb_component_props', $component_instance_uuid];
     foreach ($stored_prop_sources as $sdc_prop_name => $prop_source_array) {

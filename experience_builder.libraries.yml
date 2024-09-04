@@ -10,10 +10,23 @@ xb-ui:
   dependencies:
     - core/drupal
     - core/drupalSettings
+    - core/drupal.ajax
+    - core/drupal.states
+    # The libraries below might be unnecessary but here for the trial & error phase
+    - system/base
+    - core/dialog
+    - core/internal.jquery.form
+    - experience_builder/ajax.hyperscriptify
+
+ajax.hyperscriptify:
+  js:
+    js/ajax.hyperscriptify.js: {}
+
 preview:
   css:
     theme:
       ui/assets/css/preview.css: {}
+
 shoelace:
   css:
     theme:

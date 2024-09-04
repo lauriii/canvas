@@ -1,6 +1,7 @@
 // Need to use the React-specific entry point to import createApi
 import { createApi } from '@reduxjs/toolkit/query/react';
 import { baseQuery } from '@/services/baseQuery';
+import processResponseAssets from '@/services/processResponseAssets';
 
 export const dummyPropsFormApi = createApi({
   reducerPath: 'dummyPropsFormApi',
@@ -12,6 +13,7 @@ export const dummyPropsFormApi = createApi({
         // fetchBaseQuery assumes every Response will get parsed by JSON so we need to add the below.
         responseHandler: 'text',
       }),
+      transformResponse: processResponseAssets,
     }),
   }),
 });

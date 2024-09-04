@@ -144,7 +144,7 @@ final class ApiMessageValidator implements EventSubscriberInterface {
   private function isExperienceBuilderMessage(): bool {
     return str_starts_with(
       $this->currentRouteMatch->getRouteName() ?? '',
-      'experience_builder.',
+      'experience_builder.api.',
     );
   }
 

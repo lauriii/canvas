@@ -56,9 +56,29 @@ const InputBehaviors = (OriginalInput: React.FC) => {
       );
     };
 
-    // Include the input's default value in the form state on init.
+    // Include the input's default value in the form state on init - including
+    // when an element is added via AJAX.
     useEffect(() => {
-      if (attributes.name && setFormState) {
+      const isMediaPreview =
+        attributes['data-media-file'] && attributes['data-media-field-name'];
+      if (isMediaPreview) {
+        // @todo this is assuming the media is an image. This will eventually
+        //  need to accommodate all media types.
+        // @see media_library_storage_prop_shape_alter()
+        // @see experience_builder_preprocess_media_library_item__widget()
+        const image = JSON.parse(attributes['data-media-file']);
+        image.width = Number(image.width);
+        image.height = Number(image.height);
+        dispatch(
+          updateNodeModel({
+            uuid: selectedComponent,
+            model: {
+              ...selectedModel,
+              image,
+            },
+          }),
+        );
+      } else if (attributes.name && setFormState) {
         setFormState((prior: object) => ({
           ...prior,
           [attributes.name]: inputValue,

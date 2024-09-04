@@ -16,7 +16,7 @@ experience_builder.experience_builder:
       entity:
         type: entity:{entity_type}
 
-experience_builder.components:
+experience_builder.api.components:
   path: '/xb-components'
   defaults:
     _controller: '\Drupal\experience_builder\Controller\SdcController::components'
@@ -24,7 +24,20 @@ experience_builder.components:
   requirements:
     _permission: 'access administration pages'
 
-experience_builder.render_component:
+experience_builder.api.component:
+  path: '/xb-component/{component_id}'
+  defaults:
+    _controller: '\Drupal\experience_builder\Controller\SdcController::component'
+    _title: 'Component'
+    component_id: NULL
+  requirements:
+    _permission: 'access administration pages'
+  options:
+    parameters:
+      component_id:
+        type: string
+
+experience_builder.api.render_component:
   path: '/xb-render-component/{component_id}'
   defaults:
     _controller: '\Drupal\experience_builder\Controller\SdcController::renderComponent'
@@ -37,7 +50,7 @@ experience_builder.render_component:
       component_id:
         type: string
 
-experience_builder.layout:
+experience_builder.api.layout:
   path: '/api/layout/{entity_type}/{entity}'
   defaults:
     _controller: '\Drupal\experience_builder\Controller\SdcController::layout'
@@ -48,7 +61,7 @@ experience_builder.layout:
       entity:
         type: entity:{entity_type}
 
-experience_builder.preview:
+experience_builder.api.preview:
   path: '/api/preview/{entity_type}/{entity}'
   defaults:
     _controller: '\Drupal\experience_builder\Controller\SdcController::preview'
@@ -67,7 +80,7 @@ entity.component.delete_form:
   requirements:
     _entity_access: 'component.delete'
 
-experience_builder.component_props_form:
+experience_builder.api.component_props_form:
   path: '/xb-field-form/{entity_type}/{entity}'
   defaults:
     _form: '\Drupal\experience_builder\Form\ComponentPropsForm'
@@ -75,6 +88,11 @@ experience_builder.component_props_form:
   requirements:
     _permission: 'access administration pages'
   options:
+    # The XB equivalent of requesting an AJAX response using `?_wrapper_format`.
+    # @see Drupal.Ajax.AJAX_REQUEST_PARAMETER
+    # @see \Drupal\Core\Ajax\AjaxResponse
+    # @see \Drupal\experience_builder\Render\MainContent\XBEndpointRenderer
+    _wrapper_format: 'xb_endpoint'
     parameters:
       entity:
         type: entity:{entity_type}

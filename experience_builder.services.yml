@@ -17,12 +17,18 @@ services:
     public: true
     tags:
       - { name: module_install.uninstall_validator }
+  xb_endpoint_renderer:
+    class: Drupal\experience_builder\Render\MainContent\XBEndpointRenderer
+    arguments:
+      $cssCollectionRenderer: '@asset.css.collection_renderer'
+      $jsCollectionRenderer: '@asset.js.collection_renderer'
+    tags:
+      - { name: render.main_content_renderer, format: xb_endpoint }
   Drupal\experience_builder\Plugin\ComponentPluginManager:
     decorates: plugin.manager.sdc
     parent: plugin.manager.sdc
     calls:
       - [setEntityTypeManager, ['@entity_type.manager']]
-
   logger.channel.experience_builder:
     parent: logger.channel_base
     arguments: ['experience_builder']
@@ -37,6 +43,14 @@ services:
       - [setValidatorBuilder, []]
     tags:
       - { name: event_subscriber }
+  experience_builder.route_options.subscriber:
+    class: Drupal\experience_builder\EventSubscriber\XbRouteOptionsEventSubscriber
+    tags:
+      - { name: 'event_subscriber' }
+  experience_builder.main_content_view_subscriber:
+    class: Drupal\experience_builder\EventSubscriber\XbMainContentViewSubscriber
+    tags:
+      - { name: 'event_subscriber' }
   experience_builder.theme_negotiator.xb:
     class: Drupal\experience_builder\Theme\XBThemeNegotiator
     tags:

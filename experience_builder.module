@@ -5,6 +5,7 @@
  * Hook implementations for Experience Builder.
  */
 
+use Drupal\Component\Serialization\Json;
 use Drupal\Core\Entity\ContentEntityBase;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Entity\TypedData\EntityDataDefinition;
@@ -31,7 +32,11 @@ use Drupal\experience_builder\PropExpressions\StructuredData\FieldTypeObjectProp
 use Drupal\experience_builder\PropExpressions\StructuredData\FieldTypePropExpression;
 use Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldPropExpression;
 use Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldTypePropExpression;
+use Drupal\experience_builder\RenderArrayXB;
+use Drupal\file\Entity\File;
+use Drupal\media\Entity\Media;
 use Drupal\media\Entity\MediaType;
+use Drupal\media_library\MediaLibraryState;
 use Drupal\node\Entity\Node;
 use Symfony\Component\Validator\Constraints\Hostname;
 use Symfony\Component\Validator\Constraints\Ip;
@@ -217,6 +222,18 @@ function experience_builder_theme_suggestions_alter(array &$suggestions, array $
       $suggestions[] = $variables["theme_hook_original"];
       $suggestions[] = $variables["theme_hook_original"] . '__xbxb';
     }
+
+    if (in_array($variables["theme_hook_original"], ['container', 'field_multiple_value_form', 'fieldset']) && !empty($variables["element"]["#widget-type"])) {
+      if ($variables["theme_hook_original"] === 'fieldset') {
+        $suggestions[] = $variables["theme_hook_original"] . '__widget_' . str_replace('-', '_', $variables["element"]["#widget-type"]) . '__xbxb';
+      }
+      else {
+        $suggestions[] = $variables["theme_hook_original"] . '__' . str_replace('-', '_', $variables["element"]["#widget-type"]) . '__xbxb';
+      }
+    }
+    elseif (!empty($variables["element"]["#widget-type"])) {
+      $suggestions[] = $variables["theme_hook_original"] . '__inwidget_' . str_replace('-', '_', $variables["element"]["#widget-type"]) . '__xbxb';
+    }
   }
 }
 
@@ -227,38 +244,12 @@ function experience_builder_form_component_props_form_alter(array &$form, FormSt
   // The component edit form should be set as #is_xb, making it renderable by
   // React.
   $form['#is_xb'] = TRUE;
-  // Recursively mark all the form elements as #is_xb, indicating they can be
-  // rendered by React instead of Twig.
-  _experience_builder_mark_xb($form, $form_id);
-}
-
-/**
- * Adds a TRUE #is_xb setting to all elements within a given $form.
- *
- * The #is_xb setting is then used by experience_builder_theme_suggestions_alter
- * to identify elements that should have suggestions for templates that will be
- * processed by the semi-coupled theme engine instead of Twig.
- *
- * @param array $form
- *   The form or form element which children should have form id attached.
- * @param string $form_id
- *   The form id attached to form elements.
- */
-function _experience_builder_mark_xb(array &$form, string $form_id): void {
-  foreach (Element::children($form) as $child) {
-    if (!isset($form[$child]['#form_id'])) {
-      $form[$child]['#form_id'] = $form_id;
-    }
-    $form[$child]['#is_xb'] = TRUE;
-
-    _experience_builder_mark_xb($form[$child], $form_id);
-  }
 }
 
 /**
  * Adds a TRUE #is_xb setting to form labels.
  *
- * TRICKY: this cannot happen in _experience_builder_mark_xb(), because form
+ * TRICKY: this cannot happen in RenderArrayXB::markXB(), because form
  * labels are added after form altering — they are added *during* rendering.
  *
  * @see template_preprocess_form_element()
@@ -306,6 +297,36 @@ function experience_builder_theme(array $existing, string $type, string $theme, 
       if (isset($config['variables'])) {
         $xb_templates[$hook . '__xbxb']['variables'] = $config['variables'];
       }
+      unset($files[$filename]);
+    }
+  }
+
+  // Also create theme hooks for variants.
+  foreach ($files as $file => $file_obj) {
+    $name_parts = explode('--', basename($file, semi_coupled_extension()));
+    // The part of the filename following the final '--'.
+    $final = array_pop($name_parts);
+    // The base hook aka the part before the first '--'.
+    $the_hook = array_shift($name_parts);
+
+    // Step backwards through '--' uses until an existing hook is found, and
+    // specify that as the base hook.
+    if ($final === 'xbxb' && !empty($name_parts) && isset($existing[$the_hook])) {
+      $new_hook = $the_hook . '__' . str_replace('-', '_', implode('__', $name_parts)) . '__xbxb';
+      $base_hook = $the_hook . (count($name_parts) > 0 ? '__' . implode('__', $name_parts) : '');
+      while (!isset($existing[$base_hook]) || $base_hook !== $the_hook) {
+        $split_pos = strrpos($base_hook, '__');
+        if ($split_pos) {
+          $base_hook = substr($base_hook, 0, $split_pos);
+        }
+      }
+      $xb_templates[$new_hook] = [
+        'base hook' => $base_hook,
+        'path' => str_replace("/$file", '', $file_obj->uri),
+      ];
+      if (isset($existing[$the_hook]['variables'])) {
+        $xb_templates[$new_hook]['variables'] = $existing[$the_hook]['variables'];
+      }
     }
   }
   return $xb_templates;
@@ -322,6 +343,7 @@ function experience_builder_theme_registry_alter(array &$theme_registry): void {
       // the theme registry comes from 'module' it will only use the render
       // function from twig.engine.
       $theme_registry[$hook]['type'] = 'xb_module';
+      $theme_registry[str_replace('__xbxb', '', $hook)]['type'] = 'xb_module';
     }
   }
 }
@@ -357,6 +379,7 @@ function media_library_storage_prop_shape_alter(CandidateStorablePropShape $stor
     if (!MediaType::load('image')) {
       return;
     }
+
     $storable_prop_shape->fieldTypeProp = new FieldTypeObjectPropsExpression('entity_reference', [
       'src' => new ReferenceFieldTypePropExpression(
         new FieldTypePropExpression('entity_reference', 'entity'),
@@ -390,6 +413,125 @@ function media_library_storage_prop_shape_alter(CandidateStorablePropShape $stor
       ],
     ];
     $storable_prop_shape->fieldWidget = 'media_library_widget';
+  }
+}
+
+/**
+ * Implements hook_library_info_alter().
+ */
+function experience_builder_library_info_alter(array &$libraries, string $extension): void {
+  $route_name = \Drupal::routeMatch()->getRouteName();
+  if ($route_name === 'experience_builder.experience_builder' && $extension === 'olivero') {
+    // Olivero's `drupal.message` depends on `olivero/global-styling` to ensure
+    // a particular ordering only. This causes JS to be loaded in the incorrect
+    // order.
+    // @see https://git.drupalcode.org/project/experience_builder/-/merge_requests/154#note_356130
+    // @see https://www.drupal.org/node/2987444#mr3609-note158377
+    // @todo Remove this alter hook implementation once https://www.drupal.org/node/1945262 updates `olivero/drupal.message`.
+    unset($libraries['drupal.message']['js']);
+    // To be valid it needs either js, css, drupalSettings, or dependencies.
+    // Referencing a library that already exists to keep it legit but inert.
+    $libraries['drupal.message']['dependencies'] = ['core/drupal'];
+  }
+}
+
+/**
+ * Implements hook_field_widget_complete_form_alter().
+ *
+ * Provide additional context to experience_builder_theme_suggestions_alter().
+ */
+function experience_builder_field_widget_complete_form_alter(array &$field_widget_complete_form, FormStateInterface $form_state, array $context): void {
+  $field_widget_complete_form['#widget-type'] = $context['widget']->getPluginId();
+  if (isset($field_widget_complete_form['widget']) && is_array($field_widget_complete_form["widget"])) {
+    $field_widget_complete_form["widget"]['#widget-type'] = $context['widget']->getPluginId();
+    foreach (Element::children($field_widget_complete_form['widget']) as $key) {
+      $field_widget_complete_form['widget'][$key]['#widget-type'] = $context['widget']->getPluginId();
+    }
+  }
+  if (isset($context['form']['#parents']) && array_search('xb_component_props', $context["form"]["#parents"]) !== FALSE) {
+    RenderArrayXB::markXB($field_widget_complete_form);
+    if ($context['widget']->getPluginId() === 'media_library_widget') {
+      $config = \Drupal::service('config.factory')->getEditable('system.performance');
+      $js_preprocess = $config->get('js.preprocess');
+      if (!empty($js_preprocess)) {
+        $field_widget_complete_form['#suffix'] = 'Warning: This site has JS aggregation enabled. The media library widget will not work unless it is disabled. This will, of course, be addressed soon.';
+      }
+    }
+  }
+}
+
+/**
+ * Implements hook_field_widget_single_element_WIDGET_TYPE_form_alter().
+ *
+ * @see \Drupal\experience_builder\MediaLibraryXbPropOpener
+ */
+function experience_builder_field_widget_single_element_media_library_widget_form_alter(array &$form, FormStateInterface $form_state, array $context): void {
+  // Use an XB-specific media library opener, because the default opener assumes
+  // the media library is opened for a field widget of a field instance on the
+  // host entity type. That is not true for XB's "static prop sources".
+  // @see \Drupal\experience_builder\PropSource\StaticPropSource
+  // @see \Drupal\experience_builder\Form\ComponentPropsForm::buildForm()
+  if ($form_state->get('is_xb_static_prop_source') !== TRUE) {
+    return;
+  }
+
+  // @see \Drupal\media_library\Plugin\Field\FieldWidget\MediaLibraryWidget::formElement()
+  assert(array_key_exists('open_button', $form));
+  assert(array_key_exists('#media_library_state', $form['open_button']));
+  $old = $form['open_button']['#media_library_state'];
+  assert($old instanceof MediaLibraryState);
+  $form['open_button']['#media_library_state'] = MediaLibraryState::create(
+    'experience_builder.media_library.opener',
+    $old->getAllowedTypeIds(),
+    $old->getSelectedTypeId(),
+    $old->getAvailableSlots(),
+    [
+      // This single opener parameter is necessary.
+      // @see \Drupal\experience_builder\MediaLibraryXbPropOpener::getSelectionResponse()
+      'field_widget_id' => $old->getOpenerParameters()['field_widget_id'],
+    ]
+  );
+}
+
+/**
+ * Implements hook_preprocess_media_library_item__widget().
+ *
+ * Retrieves the typed data contained by the selected Media entity (if it uses
+ * an `image` media source), and makes it available to the XB UI as a
+ * `data-media-file` attribute.
+ *
+ * @see media_library_storage_prop_shape_alter()
+ * @todo Revisit in https://www.drupal.org/project/experience_builder/issues/3463842
+ */
+function experience_builder_preprocess_media_library_item__widget(array &$variables): void {
+  $media_id = $variables['element']['remove_button']['#media_id'] ?? NULL;
+  $string_split = 'media-library-remove-button-';
+  $offset = strpos($variables['element']['remove_button']['#name'], $string_split) + strlen($string_split);
+  $associated_field_name = substr($variables['element']['remove_button']['#name'], $offset);
+  $variables['content']['remove_button']['#attributes']['data-media-field-name'] = $associated_field_name;
+  if ($media_id) {
+    $media = Media::load($media_id);
+    if (is_null($media)) {
+      return;
+    }
+    $field = $media->get('field_media_' . $media->bundle());
+    $fid = $field->getValue()[0]['target_id'];
+    $media_file = File::load($fid);
+    $value = $field->getValue()[0];
+    if (is_null($media_file) || is_null($value)) {
+      return;
+    }
+    // For now, this only supports image media.
+    // @see media_library_storage_prop_shape_alter()
+    if ($media->bundle() !== 'image') {
+      return;
+    }
+    $prepared = array_intersect_key([
+      ...$value,
+      'src' => $media_file->getFileUri(),
+    ], ['src' => '', 'alt' => '', 'width' => '', 'height' => '']);
+
+    $variables["content"]["remove_button"]["#attributes"]['data-media-file'] = Json::encode($prepared);
   }
 }
 

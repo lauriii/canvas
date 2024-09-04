@@ -23,3 +23,7 @@ parameters:
       message: "#^Plugin definitions cannot be altered\\.$#"
       count: 1
       path: src/Plugin/ComponentPluginManager.php
+    -
+      message: "#^Class .* extends @internal class#"
+      count: 1
+      path: src/MediaLibraryXbPropOpener.php

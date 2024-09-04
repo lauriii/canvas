@@ -4,7 +4,10 @@ devizzent
 drupalcode
 drupaldev
 entityviewdisplay
+hyperscriptification
 hyperscriptify
+hyperscriptifying
+inwidget
 JSONified
 leftbar
 Nygard
@@ -13,6 +16,8 @@ Pryce's
 propsify
 reduxjs
 rightbar
+scriptification
+scriptified
 sdcs
 structurizr
 subroute

@@ -112,11 +112,14 @@ const DummyPropsEditFormRenderer: React.FC<DummyPropsEditFormRendererProps> = (
   // way it would be if it were added to the DOM by Drupal AJAX. This allows
   // Drupal functionality like Autocomplete work in this React-rendered form.
   useEffect(() => {
-    let formRefValue = null;
-    if (jsxFormContent && formRef.current) {
-      Drupal.attachBehaviors(formRef.current);
-      formRefValue = formRef.current;
-    }
+    let formRefValue: HTMLElement | null = null;
+    setTimeout(() => {
+      if (jsxFormContent && formRef.current) {
+        Drupal.attachBehaviors(formRef.current);
+        formRefValue = formRef.current;
+      }
+    });
+
     return () => {
       if (formRefValue) {
         Drupal.detachBehaviors(formRefValue);
@@ -130,7 +133,10 @@ const DummyPropsEditFormRenderer: React.FC<DummyPropsEditFormRendererProps> = (
       // Display the spinner only when a new component is being fetched.
       loading={isFetching && currentComponentId !== selectedComponent}
     >
-      {jsxFormContent}
+      {/* Wrap the JSX form in a ref, so we can send it as a stable DOM element
+          argument to Drupal.attachBehaviors() anytime jsxFormContent changes.
+          See the useEffect just above this. */}
+      <div ref={formRef}>{jsxFormContent}</div>
     </Spinner>
   );
 };

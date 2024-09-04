@@ -146,13 +146,60 @@ paths:
                   '^\\[a-zA-Z0-9_-]:[a-zA-Z0-9_-]$':
                     $ref: '#/components/schemas/Component'
   '/xb-field-form/{entityTypeId}/{entityId}':
+    parameters:
+      - $ref: '#/components/parameters/entityTypeId'
+      - $ref: '#/components/parameters/entityId'
     get:
-      parameters:
-        - $ref: '#/components/parameters/entityTypeId'
-        - $ref: '#/components/parameters/entityId'
       responses:
         '200':
-          description: The form
+          description: Component props form
+          headers:
+            Attach-CSS:
+              required: true
+              schema:
+                type: string
+              description: 'JSON representing CSS assets to attach, as expected by `Drupal.AjaxCommands.add_css`.'
+            Attach-JS:
+              required: true
+              schema:
+                type: string
+              description: 'JSON representing JS assets to attach, as expected by `Drupal.AjaxCommands.add_js`.'
+            Attach-Settings:
+              required: true
+              schema:
+                type: string
+              description: 'JSON representing Drupal settings to attach, as expected by `Drupal.AjaxCommands.settings()`.'
+          content:
+            text/html:
+              schema:
+                type: string
+                description: 'The HTML for this server-defined form.'
+    post:
+      parameters:
+        # @see \Drupal\Core\Form\FormBuilderInterface::AJAX_FORM_REQUEST
+        # @see \Drupal\Core\Form\EventSubscriber\FormAjaxSubscriber
+        # @see \Drupal\Core\EventSubscriber\AjaxResponseSubscriber
+        - in: query
+          name: ajax_form
+          required: true
+          schema:
+            type: integer
+            enum: [ 1 ]
+        # @see \Drupal\experience_builder\Render\MainContent\XBEndpointRenderer
+        - in: query
+          name: _wrapper_format
+          required: true
+          schema:
+            type: string
+            enum: [ xb_endpoint, drupal_ajax ]
+      responses:
+        200:
+          description: AJAX updates
+          content:
+            application/json:
+              schema:
+                type: object
+                description: 'A Drupal AJAX response.'
   '/xb-render-component/{componentId}':
     get:
       parameters:
