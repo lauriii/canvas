@@ -7,6 +7,13 @@ use Drupal\image\Plugin\Field\FieldType\ImageItem;
 use Drupal\node\Entity\Node;
 use Drupal\Tests\BrowserTestBase;
 
+/**
+ * The functional test equivalent of FieldForComponentSuggesterTest.
+ *
+ * @covers \Drupal\experience_builder\Controller\SdcController::getComponentsList()
+ * @group experience_builder
+ * @internal
+ */
 class PropSourceEndpointTest extends BrowserTestBase {
 
   /**
@@ -55,6 +62,13 @@ class PropSourceEndpointTest extends BrowserTestBase {
     }
   }
 
+  /**
+   * For each SDC prop, the expected candidate field instance expressions.
+   *
+   * @see \Drupal\experience_builder\FieldForComponentSuggester
+   *
+   * @return array<string, array{id: string, dynamic_prop_source_candidates: array<string, array<string, string>>}>
+   */
   public function getExpected(): array {
     return [
       'experience_builder:image' => [
