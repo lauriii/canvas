@@ -33,10 +33,12 @@ class ComponentTest extends KernelTestBase {
     'experience_builder',
     'sdc',
     'sdc_test',
-    // Modules providing field types + widgets for the component props defaults.
-    'options',
-    'image',
+    // XB's dependencies (modules providing field types + widgets).
+    'datetime',
     'file',
+    'image',
+    'options',
+    'path',
   ];
 
   /**
@@ -110,7 +112,8 @@ class ComponentTest extends KernelTestBase {
     $this->assertEmpty(Component::loadMultiple());
 
     $module_component = Component::create([
-      'component' => self::MODULE_CONFIG_ENTITY_ID,
+      'component' => self::MODULE_COMPONENT_ID,
+      'id' => self::MODULE_CONFIG_ENTITY_ID,
       'label' => self::LABEL,
       'defaults' => [
         'props' => [

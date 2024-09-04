@@ -8,13 +8,24 @@ experience_builder.component.*:
       type: required_label
       label: 'Label'
     # @see \Drupal\Core\Plugin\Component::$machineName
-    component:
+    id:
       type: machine_name
       label: 'Component'
       constraints:
         Regex:
           pattern: '/^[a-z0-9_-]+\+[a-z0-9_-]+$/'
           message: 'The %value machine name is not valid.'
+    component:
+      type: string
+      label: 'Single-Directory Component'
+      constraints:
+        NotBlank: []
+        Regex:
+          pattern: '/^[a-z0-9_-]+:[a-z0-9_-]+$/'
+          message: 'The %value machine name is not valid.'
+        PluginExists:
+          manager: plugin.manager.sdc
+          interface: 'Drupal\Core\Plugin\PluginBase'
     # All defaults for this Component made available through Experience Builder.
     defaults:
       type: mapping
@@ -23,10 +34,8 @@ experience_builder.component.*:
         props:
           type: sequence
           orderby: key
-          constraints: {}
-          # Ensure a default is specified for EVERY prop of this component.
-          # @todo Follow-up issue: implement this constraint, similar to the `CKEditor5EnabledConfigurablePlugins` constraint, with test coverage that causes existing config entities to fail if the props of an SDC change (because that is a BC break in the SDC).
-          # KeyForEveryComponentProp: [%parent.component]
+          constraints:
+            KeyForEverySdcProp: "%parent.%parent.component"
           sequence:
             type: mapping
             # For each SDC prop, first a field type must be picked from the list of possible choices provided by \Drupal\experience_builder\FieldForComponentSuggester

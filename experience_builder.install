@@ -68,6 +68,7 @@ function experience_builder_module_preinstall(string $module): void {
   // TRICKY: at this point, the `Component` config entity type does not yet
   // exist. So explicitly install that first.
   // @see \Drupal\Core\Extension\ModuleInstaller::install()
+  \Drupal::service('validation.constraint')->clearCachedDefinitions();
   \Drupal::service(TypedConfigManagerInterface::class)->clearCachedDefinitions();
   \Drupal::entityTypeManager()->clearCachedDefinitions();
   $entity_types = \Drupal::entityTypeManager()->getDefinitions();

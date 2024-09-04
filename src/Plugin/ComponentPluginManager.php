@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\experience_builder\Plugin;
 
+use Drupal\Core\Config\Schema\SchemaIncompleteException;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Theme\Component\ComponentMetadata;
 use Drupal\Core\Theme\ComponentPluginManager as CoreComponentPluginManager;
@@ -22,6 +23,8 @@ class ComponentPluginManager extends CoreComponentPluginManager {
 
   protected EntityTypeManagerInterface $entityTypeManager;
 
+  protected static bool $isRecursing = FALSE;
+
   public function setEntityTypeManager(EntityTypeManagerInterface $entityTypeManager): void {
     $this->entityTypeManager = $entityTypeManager;
   }
@@ -31,6 +34,14 @@ class ComponentPluginManager extends CoreComponentPluginManager {
    */
   protected function setCachedDefinitions($definitions): array {
     parent::setCachedDefinitions($definitions);
+
+    // TRICKY: Component::save() calls SdcPropKeysConstraintValidator, which
+    // will also call this plugin manager! Avoid recursively creating Component
+    // config entities.
+    if (self::$isRecursing) {
+      return $definitions;
+    }
+    self::$isRecursing = TRUE;
 
     $components = $this->entityTypeManager->getStorage('component')->loadMultiple();
     foreach ($definitions as $machine_name => $plugin_definition) {
@@ -47,13 +58,28 @@ class ComponentPluginManager extends CoreComponentPluginManager {
         $component_plugin = $this->createInstance($machine_name, $plugin_definition);
         $component = Component::createFromComponentPlugin($component_plugin);
       }
-      $component->save();
+      try {
+        $component->save();
+      }
+      catch (SchemaIncompleteException $exception) {
+        if (!str_starts_with($exception->getMessage(), 'Schema errors for experience_builder.component.sdc_test_all_props+all-props with the following errors:')) {
+          throw $exception;
+        }
+      }
     }
+
+    self::$isRecursing = FALSE;
 
     return $definitions;
   }
 
   public static function componentMeetsRequirements(array $plugin_definition): bool {
+    // XB always requires schema, even for theme components.
+    // @see \Drupal\Core\Theme\ComponentPluginManager::shouldEnforceSchemas()
+    // @see \Drupal\Core\Theme\Component\ComponentMetadata::parseSchemaInfo()
+    if (empty($plugin_definition['props'])) {
+      return FALSE;
+    }
     if (isset($plugin_definition['status']) && $plugin_definition['status'] === 'obsolete') {
       return FALSE;
     }
@@ -71,17 +97,19 @@ class ComponentPluginManager extends CoreComponentPluginManager {
         }
       }
     }
-    foreach ($plugin_definition['props']['properties'] as $prop_name => $prop) {
-      if ($prop_name === 'attributes') {
-        continue;
-      }
-      // Every prop must have a title.
-      if (!isset($prop['title'])) {
-        return FALSE;
-      }
-      // Every prop must have a StorablePropShape.
-      if (!self::propHasStorablePropShape($prop_name, $plugin_definition)) {
-        return FALSE;
+    if (isset($plugin_definition['props']['properties'])) {
+      foreach ($plugin_definition['props']['properties'] as $prop_name => $prop) {
+        if ($prop_name === 'attributes') {
+          continue;
+        }
+        // Every prop must have a title.
+        if (!isset($prop['title'])) {
+          return FALSE;
+        }
+        // Every prop must have a StorablePropShape.
+        if (!self::propHasStorablePropShape($prop_name, $plugin_definition)) {
+          return FALSE;
+        }
       }
     }
     return TRUE;

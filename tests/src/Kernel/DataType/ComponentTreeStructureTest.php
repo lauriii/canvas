@@ -22,10 +22,12 @@ class ComponentTreeStructureTest extends KernelTestBase {
   protected static $modules = [
     'experience_builder',
     'xb_test_sdc',
-    // The modules that provide plugins for component props, should be able to remove this for untested components in https://www.drupal.org/project/experience_builder/issues/3469461.
-    'options',
-    'image',
+    // XB's dependencies (modules providing field types + widgets).
+    'datetime',
     'file',
+    'image',
+    'options',
+    'path',
   ];
 
   /**

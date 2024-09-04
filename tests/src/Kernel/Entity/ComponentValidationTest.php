@@ -21,8 +21,12 @@ class ComponentValidationTest extends ConfigEntityValidationTestBase {
     'experience_builder',
     'sdc',
     'sdc_test',
-    // Modules providing field types + widgets for the component props defaults.
+    // XB's dependencies (modules providing field types + widgets).
+    'datetime',
+    'file',
+    'image',
     'options',
+    'path',
   ];
 
   /**
@@ -39,7 +43,8 @@ class ComponentValidationTest extends ConfigEntityValidationTestBase {
     parent::setUp();
 
     $this->entity = Component::create([
-      'component' => 'sdc_test+my-cta',
+      'id' => 'sdc_test+my-cta',
+      'component' => 'sdc_test:my-cta',
       'label' => 'Test',
       'defaults' => [
         'props' => [
@@ -110,12 +115,45 @@ class ComponentValidationTest extends ConfigEntityValidationTestBase {
   /**
    * Tests validating a component with a SDC machine name.
    */
-  public function testInvalidComponent(): void {
-    $this->entity->set('component', Component::convertIdToMachineName($this->entity->get('component')));
+  public function testInvalidId(): void {
+    $this->entity->set('id', Component::convertIdToMachineName($this->entity->get('component')));
+    $this->assertValidationErrors([
+      '' => "The 'id' property cannot be changed.",
+      'id' => 'The <em class="placeholder">&quot;sdc_test:my-cta&quot;</em> machine name is not valid.',
+    ]);
+  }
+
+  /**
+   * @testWith ["sdc_test+my-cta", true, true]
+   *           ["invalid", true, true]
+   *           ["experience_builder:non_existent", false, true]
+   */
+  public function testInvalidComponent(string $component, bool $expect_error_for_invalid_name, bool $expect_error_for_non_existent_plugin): void {
+    $expected_error_messages = [];
+    if ($expect_error_for_invalid_name) {
+      $expected_error_messages[] = sprintf('The <em class="placeholder">&quot;%s&quot;</em> machine name is not valid.', $component);
+    }
+    if ($expect_error_for_non_existent_plugin) {
+      $expected_error_messages[] = sprintf("The '%s' plugin does not exist.", $component);
+    }
+
+    $this->entity->set('component', $component);
+    // @phpstan-ignore-next-line
     $this->assertValidationErrors([
       '' => "The 'component' property cannot be changed.",
-      'component' => 'The <em class="placeholder">&quot;sdc_test:my-cta&quot;</em> machine name is not valid.',
+      'component' => count($expected_error_messages) > 1
+        ? $expected_error_messages
+        : reset($expected_error_messages),
     ]);
+  }
+
+  public function testImmutableProperties(array $valid_values = []): void {
+    $valid_values = [
+      'component' => 'sdc_test:no-props',
+      'id' => 'sdc_test+no-props',
+      'defaults' => ['props' => []],
+    ];
+    parent::testImmutableProperties($valid_values);
   }
 
 }

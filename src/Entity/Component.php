@@ -39,17 +39,22 @@ use Drupal\experience_builder\PropSource\StaticPropSource;
  *      }
  *    },
  *    entity_keys = {
- *      "id" = "component",
+ *      "id" = "id",
+ *      "component" = "component",
  *      "label" = "label",
  *    },
  *    links = {
- *      "delete-form" = "/admin/structure/component/delete/{component}",
+ *      "delete-form" = "/admin/structure/component/delete/{id}",
  *      "collection" = "/admin/structure/component",
  *    },
  *    config_export = {
  *      "label",
+ *      "id",
  *      "component",
  *      "defaults",
+ *    },
+*     constraints = {
+ *      "ImmutableProperties" = {"id", "component"},
  *    }
  *  )
  */
@@ -65,8 +70,13 @@ final class Component extends ConfigEntityBase {
    *
    * Component plugin machine names are required to contain `:`, which is an
    * invalid character for a config entity ID, hence this transformation.
-   *
    * @see self::convertMachineNameToId()
+   */
+  protected string $id;
+
+  /**
+   * Component plugin machine name.
+   *
    * @see \Drupal\Core\Plugin\Component::$machineName
    */
   protected string $component;
@@ -80,7 +90,15 @@ final class Component extends ConfigEntityBase {
    * {@inheritdoc}
    */
   public function id() {
-    return $this->get('component');
+    return $this->id;
+  }
+
+  /**
+   * {@inheritdoc}
+   * @throws \Drupal\Core\Config\Schema\SchemaIncompleteException
+   */
+  public function save() {
+    return parent::save();
   }
 
   /**
@@ -127,7 +145,7 @@ final class Component extends ConfigEntityBase {
    * @see \Drupal\Core\Plugin\Component::$machineName
    */
   public function getComponentMachineName(): string {
-    return self::convertIdToMachineName($this->get('component'));
+    return $this->component;
   }
 
   /**
@@ -215,14 +233,15 @@ final class Component extends ConfigEntityBase {
 
   public static function getDefaultsForComponentPlugin(ComponentPlugin $component_plugin): array {
     $defaults = ['props' => []];
-    if (!isset($component_plugin->metadata->schema['required']) || !is_array($component_plugin->metadata->schema['required'])) {
-      return $defaults;
-    }
+    foreach (PropShape::getComponentProps($component_plugin) as $cpe_string => $prop_shape) {
+      $cpe = ComponentPropExpression::fromString($cpe_string);
 
-    foreach ($component_plugin->metadata->schema['required'] as $required_prop) {
+      assert(is_array($component_plugin->metadata->schema));
+      // @see https://json-schema.org/understanding-json-schema/reference/object#required
+      // @see https://json-schema.org/learn/getting-started-step-by-step#required
+      $is_required = in_array($cpe->propName, $component_plugin->metadata->schema['required'] ?? [], TRUE);
+
       $skip_prop = FALSE;
-      $component_prop_expression = new ComponentPropExpression($component_plugin->getPluginId(), $required_prop);
-      $prop_shape = PropShape::getComponentProps($component_plugin)[(string) $component_prop_expression];
       $storable_prop_shape = $prop_shape->getStorage();
       if (is_null($storable_prop_shape)) {
         continue;
@@ -243,12 +262,25 @@ final class Component extends ConfigEntityBase {
       $static_prop_source = $storable_prop_shape->toStaticPropSource();
 
       // @see `type: experience_builder.component.*`
-      $defaults['props'][$required_prop] = [
+      assert(array_key_exists('properties', $component_plugin->metadata->schema));
+      $defaults['props'][$cpe->propName] = [
         'field_type' => $storable_prop_shape->fieldTypeProp->fieldType,
         'field_widget' => $storable_prop_shape->fieldWidget,
         'expression' => (string) $storable_prop_shape->fieldTypeProp,
-        // TRICKY: need to transform to the array structure that is field type-specific, which includes the required non-computed field properties at minimum
-        'default_value' => $skip_prop ? [] : $static_prop_source->withValue($component_plugin->metadata->schema['properties'][$required_prop]['examples'][0])->fieldItem->getValue(),
+        // TRICKY: need to transform to the array structure that depends on the
+        // field type.
+        // @see `type: field.storage_settings.*`
+        'default_value' => $skip_prop ? [] : $static_prop_source->withValue(
+          $is_required
+            // Example guaranteed to exist if a required prop.
+            ? $component_plugin->metadata->schema['properties'][$cpe->propName]['examples'][0]
+            // Example may exist if an optional prop.
+            : (
+              array_key_exists('examples', $component_plugin->metadata->schema['properties'][$cpe->propName]) && array_key_exists(0, $component_plugin->metadata->schema['properties'][$cpe->propName]['examples'])
+                ? $component_plugin->metadata->schema['properties'][$cpe->propName]['examples'][0]
+                : NULL
+            )
+        )->fieldItem->getValue(),
         'field_storage_settings' => $storable_prop_shape->fieldStorageSettings ?? [],
         'field_instance_settings' => $storable_prop_shape->fieldInstanceSettings ?? [],
       ];
@@ -264,7 +296,8 @@ final class Component extends ConfigEntityBase {
     $status = !(isset($component_plugin->metadata->status) && $component_plugin->metadata->status === 'obsolete');
     return Component::create([
       'label' => $component_plugin->getPluginDefinition()['name'] ?? $component_plugin->getPluginId(),
-      'component' => self::convertMachineNameToId($component_plugin->getPluginId()),
+      'id' => self::convertMachineNameToId($component_plugin->getPluginId()),
+      'component' => $component_plugin->getPluginId(),
       'defaults' => $defaults,
       'status' => $status,
     ]);

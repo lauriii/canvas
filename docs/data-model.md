@@ -60,6 +60,7 @@ This uses the terms defined above.
   - MUST be evolvable to [support other component types later](https://www.drupal.org/project/experience_builder/issues/3454519)
 - MUST support existing `SDC`s
   - MUST require `SDC`s to meet certain criteria:
+    - MUST always have schema, even for theme `SDC`s
     - MUST have `title` for each prop
     - MUST have `example` for each required prop
     - MUST have only props for whose `prop shape`s a `static prop source` can be found (see 3.1.2.b)
