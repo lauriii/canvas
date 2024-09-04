@@ -22,5 +22,6 @@
 }
 
 .menuContent {
+  height: 100%;
   color: var(--default-black-text-color);
 }

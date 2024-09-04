@@ -1,4 +1,5 @@
 import '@testing-library/cypress/add-commands';
+import { realDnd } from './realDnd'
 
 const commandAsWebserver = (command) => {
   if (Cypress.env('testWebserverUser')) {
@@ -458,3 +459,31 @@ Cypress.Commands.add('loadURLandWaitForXBLoaded', (url = 'xb/node/1') => {
     'true',
   );
 });
+
+// Helper function used by the realDnd command.
+Cypress.Commands.add("realDndRaw", realDnd);
+
+/**
+ * Drag and drop an element.
+ *
+ *  @param {string} subject
+ *  The selector of the item to drag.
+ *  @param {string} destination
+ *  The selector of where to drop the item.
+ *  @param {object} opts
+ *  Options for the drag and drop.
+ *
+ *  @see https://github.com/dmtrKovalenko/cypress-real-events/pull/17 */
+Cypress.Commands.add(
+  "realDnd",
+  { prevSubject: true },
+  (subject, destination, opts) => {
+    if (typeof destination === "string") {
+      cy.get(destination).then((el) => {
+        cy.realDndRaw(subject, el, opts);
+      });
+    } else {
+      cy.realDndRaw(subject, destination, opts);
+    }
+  }
+);

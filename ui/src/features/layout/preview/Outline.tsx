@@ -137,8 +137,6 @@ const Outline: React.FC<OutlineProps> = (props) => {
       if (!model[elementId]) {
         if (selected) {
           dispatch(unsetSelectedComponent());
-        } else {
-          dispatch(unsetHoveredComponent());
         }
       }
     }

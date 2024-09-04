@@ -6,14 +6,20 @@
   background-color: #f0f0f3;
 }
 
-.treeChildIcon {
+.icon {
   margin-right: 10px;
   color: var(--blue-9);
 }
 
-.treeNode {
+.treeItem {
   width: 100%;
-  padding: 0.5rem;
+  height: 35px;
+  padding: 0.4rem;
+  list-style-type: none;
   cursor: pointer;
-  border-radius: 0.25rem;
+  border-radius: 0.2rem;
+}
+
+.inline {
+  display: inline-flex;
 }
