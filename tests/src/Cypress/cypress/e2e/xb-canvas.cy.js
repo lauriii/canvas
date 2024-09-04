@@ -44,10 +44,9 @@ describe(
         "The selected value in the drop down should match the zoom level if it's one of the available steps",
       );
       cy.findByLabelText('Select zoom level').click();
-      cy.findByTestId('zoom-select-menu').get('[role="option"][aria-selected="true"]').should(
-        'have.text',
-        '110%',
-      );
+      cy.findByTestId('zoom-select-menu')
+        .get('[role="option"][aria-selected="true"]')
+        .should('have.text', '110%');
       cy.get('html').click(); // close the select menu
 
       Array(4)
@@ -83,10 +82,9 @@ describe(
         "The selected value in the drop down should match the zoom level if it's one of the available steps",
       );
       cy.findByLabelText('Select zoom level').click();
-      cy.findByTestId('zoom-select-menu').get('[role="option"][aria-selected="true"]').should(
-        'have.text',
-        '100%',
-      );
+      cy.findByTestId('zoom-select-menu')
+        .get('[role="option"][aria-selected="true"]')
+        .should('have.text', '100%');
       cy.get('html').click(); // close the select menu
 
       cy.log(
@@ -100,7 +98,9 @@ describe(
       );
       cy.findByText('101%');
       cy.findByLabelText('Select zoom level').click();
-      cy.findByTestId('zoom-select-menu').get('[role="option"][aria-selected="true"]').should('not.exist');
+      cy.findByTestId('zoom-select-menu')
+        .get('[role="option"][aria-selected="true"]')
+        .should('not.exist');
       cy.get('html').click(); // close the select menu
     });
 
@@ -120,10 +120,9 @@ describe(
         "The selected value in the drop down should match the zoom level if it's one of the available steps",
       );
       cy.findByLabelText('Select zoom level').click();
-      cy.findByTestId('zoom-select-menu').get('[role="option"][aria-selected="true"]').should(
-        'have.text',
-        '110%',
-      );
+      cy.findByTestId('zoom-select-menu')
+        .get('[role="option"][aria-selected="true"]')
+        .should('have.text', '110%');
       cy.get('html').click(); // close the select menu
 
       cy.log('Zoom out by pressing - key (4 times)');
@@ -139,10 +138,9 @@ describe(
         "The selected value in the drop down should match the zoom level if it's one of the available steps",
       );
       cy.findByLabelText('Select zoom level').click();
-      cy.findByTestId('zoom-select-menu').get('[role="option"][aria-selected="true"]').should(
-        'have.text',
-        '75%',
-      );
+      cy.findByTestId('zoom-select-menu')
+        .get('[role="option"][aria-selected="true"]')
+        .should('have.text', '75%');
       cy.get('html').click(); // close the select menu
     });
 

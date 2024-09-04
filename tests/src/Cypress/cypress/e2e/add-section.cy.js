@@ -31,6 +31,7 @@ describe(
         .find('[data-component-id="experience_builder:two_column"] .column-one')
         .first()
         .trigger('click');
+      cy.findByLabelText('Column Width').should('exist');
       cy.findAllByLabelText('Add section')
         .first()
         .click({ scrollBehavior: 'center' });

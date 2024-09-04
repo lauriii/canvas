@@ -10,7 +10,7 @@ const Input = (props: React.ComponentProps<any>) => {
   return (
     <>
       {!unHandledTypes.includes(attributes?.type) && (
-        <TextField.Root {...a2p(attributes)} mb="5" />
+        <TextField.Root {...a2p(attributes)} />
       )}
       {/* The a2p() process converts 'value to 'defaultValue', which is
           typically what React wants. Explicitly set the value on submit inputs

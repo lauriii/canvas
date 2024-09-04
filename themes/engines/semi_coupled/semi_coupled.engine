@@ -33,7 +33,7 @@ function semi_coupled_theme(array $existing, string $type, string $theme, string
  * @see themes/engines/semi_coupled/README.md
  */
 function semi_coupled_render_template(string $template_file, array $variables): string|MarkupInterface {
-  // If the template filename does not end with --xbxb, it it processed bu Twig.
+  // If the template filename does not end with --xbxb, it is processed by Twig.
   if (!str_ends_with(basename($template_file, semi_coupled_extension()), '--xbxb')) {
     /** @phpstan-ignore function.notFound */
     return twig_render_template($template_file, $variables);

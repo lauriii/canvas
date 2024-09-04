@@ -79,9 +79,12 @@ const InputBehaviors = (OriginalInput: React.FC) => {
           }),
         );
       } else if (attributes.name && setFormState) {
+        // Note that checkbox is cast to bool to match the server prop
+        // type requirements.
         setFormState((prior: object) => ({
           ...prior,
-          [attributes.name]: inputValue,
+          [attributes.name]:
+            attributes.type === 'checkbox' ? !!inputValue : inputValue,
         }));
       }
       // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -116,6 +119,9 @@ const InputBehaviors = (OriginalInput: React.FC) => {
         // of all form values plus additional metadata.
         if (setFormState) {
           setFormState((prior: object) => {
+            // Use the "checked" property when present so the value is boolean.
+            // Additional prop types might require similar type conversion so
+            // don't be shocked if it becomes trickier than just this ternary.
             const newState = { ...prior, [target.name]: value };
             storeUpdateCallback(newState);
             return newState;

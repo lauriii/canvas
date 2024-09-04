@@ -21,7 +21,7 @@ const Textarea: React.FC<any> = (props: any) => {
       <TextArea
         {...a2p(attributes)}
         onChange={onChangeHandler}
-        defaultValue={theValue}
+        value={theValue}
       ></TextArea>
     </div>
   );

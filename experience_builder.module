@@ -303,7 +303,7 @@ function experience_builder_theme(array $existing, string $type, string $theme, 
 
   // Also create theme hooks for variants.
   foreach ($files as $file => $file_obj) {
-    $name_parts = explode('--', basename($file, semi_coupled_extension()));
+    $name_parts = explode('--', basename($file, '.html.twig'));
     // The part of the filename following the final '--'.
     $final = array_pop($name_parts);
     // The base hook aka the part before the first '--'.
@@ -317,7 +317,7 @@ function experience_builder_theme(array $existing, string $type, string $theme, 
       while (!isset($existing[$base_hook]) || $base_hook !== $the_hook) {
         $split_pos = strrpos($base_hook, '__');
         if ($split_pos) {
-          $base_hook = substr($base_hook, 0, $split_pos);
+          $base_hook = substr($base_hook, 0, (int) $split_pos);
         }
       }
       $xb_templates[$new_hook] = [
