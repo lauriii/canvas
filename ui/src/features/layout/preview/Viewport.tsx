@@ -133,37 +133,32 @@ const Viewport: React.FC<ViewportProps> = (props) => {
     [dispatch, layout],
   );
 
-  const toggleEmptySlotExampleVisibility = useCallback(
-    (el: HTMLElement, show: boolean) => {
-      const elements = el.querySelectorAll(
-        // Empty slots are annotated with a `data-xb-slot-is-empty` attribute.
-        // Inside the slot we target all children (the example content), but
-        // exclude the ghost element that's created when dragging.
-        '[data-xb-slot-is-empty] > *:not(.sortable-ghost)',
-      );
-      elements.forEach((child) => {
-        // Simply set the display property as an inline style.
-        (child as HTMLElement).style.display = show ? '' : 'none';
-      });
-    },
-    [],
-  );
+  const handleDragMove = useCallback((ev: Sortable.MoveEvent) => {
+    let isTargetAllowed = true;
 
-  const handleDragMove = useCallback(
-    (ev: Sortable.MoveEvent) => {
-      // When a component/section is dragged over an empty slot, we want to hide
-      // the example content that's provided by the SDC.
-      // As the first step, display previously hidden empty slot examples. This is
-      // relevant when there are multiple empty slots available and a component is
-      // being dragged over them. We only want to hide the example in the current
-      // drop target.
-      iframeDocumentRef.current?.body &&
-        toggleEmptySlotExampleVisibility(iframeDocumentRef.current?.body, true);
-      // Now hide the example in the slot that's currently targeted for drop.
-      ev.to && toggleEmptySlotExampleVisibility(ev.to, false);
-    },
-    [toggleEmptySlotExampleVisibility],
-  );
+    // Prevent placing a component below an empty slot's example content.
+    if (
+      ev.related.parentElement?.getAttribute('data-xb-slot-is-empty') !==
+        null &&
+      ev.willInsertAfter
+    ) {
+      isTargetAllowed = false;
+    }
+
+    // Prevent placing a component below its own clone element (the element that stays in the original place when
+    // dragging) if it's the only one in the list (slot or root layout).
+    if (
+      ev.related.classList.contains('sortable-clone') &&
+      ev.related.parentElement?.querySelectorAll(
+        '.sortable-item:not(.sortable-ghost)',
+      ).length === 1 &&
+      ev.willInsertAfter
+    ) {
+      isTargetAllowed = false;
+    }
+
+    return isTargetAllowed;
+  }, []);
 
   const handleDragAdd = useCallback(
     (ev: Sortable.SortableEvent) => {
@@ -182,14 +177,18 @@ const Viewport: React.FC<ViewportProps> = (props) => {
       if (ev.to === ev.from) {
         updateData(ev, true);
       }
-
-      // Restore the visibility of previously hidden empty slot examples.
-      // See `handleDragMove` for more details.
-      iframeDocumentRef.current?.body &&
-        toggleEmptySlotExampleVisibility(iframeDocumentRef.current?.body, true);
     },
-    [dispatch, updateData, toggleEmptySlotExampleVisibility],
+    [dispatch, updateData],
   );
+
+  const handleDragClone = useCallback((ev: Sortable.SortableEvent) => {
+    // Add a class to the clone element so we can style it. This is the element that shows up in the original position
+    // when dragging.
+    ev.clone.classList.add('sortable-clone');
+    // SortableJS sets `display: none` as an inline style. We could override that with `!important` in CSS since we
+    // already have a class on the clone element, but that causes an error with an internal function of SortableJS.
+    ev.clone.style.display = 'block';
+  }, []);
 
   useEffect(() => {
     componentsRef.current = components;
@@ -266,12 +265,16 @@ const Viewport: React.FC<ViewportProps> = (props) => {
           revertClone: false,
         },
         dataIdAttr: 'data-xb-uuid',
+        // Keep a clone element in the original position until the drag ends.
+        removeCloneOnHide: false,
+        onClone: handleDragClone,
         onAdd: handleDragAdd,
         onStart: handleDragStart,
         onMove: handleDragMove,
         onEnd: handleDragEnd,
         // Prevent dragging content that's provided as an example (default content) by the SDC.
         filter: '[data-xb-slot-is-empty]',
+        emptyInsertThreshold: 50,
       });
     };
 
@@ -313,6 +316,7 @@ const Viewport: React.FC<ViewportProps> = (props) => {
   }, [
     dispatch,
     height,
+    handleDragClone,
     handleDragAdd,
     handleDragEnd,
     handleDragStart,

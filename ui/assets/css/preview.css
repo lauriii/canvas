@@ -10,8 +10,11 @@
 .slot-container > .sortable-item {
   width: 100%;
 }
-.sortable-list:empty {
+.sortable-list {
   position: relative;
+  display: flow-root; /* Prevent margin collapse from content inside */
+}
+.sortable-list:empty {
   min-height: 1.5rem;
   border: 2px dashed #ccc;
 }
@@ -30,19 +33,18 @@
   cursor: grabbing;
 }
 .sortable-ghost {
-  position: relative;
-  display: flex;
-  clear: none;
-  overflow: hidden;
-  flex-grow: 1;
-  align-items: center;
-  justify-content: center;
+  position: absolute;
+  z-index: 1;
   width: 100%;
-  min-height: 3.5rem;
+  height: 4px; /* Equivalent of --space-1 from Radix Theme */
   margin: 0;
   padding: 0;
-  opacity: 0.4;
-  outline: 1px solid #ccc;
-  background: linear-gradient(135deg, #ddd 12.5%, transparent 12.5%, transparent 50%, #ddd 50%, #ddd 62.5%, transparent 62.5%, transparent 100%) center / 5.66px 5.66px;
-  box-shadow: none;
+  border-radius: 3px; /* Equivalent of --radius-1 from Radix Theme */
+  background-color: #176bfd; /* Equivalent of --accent-900/--blue-900 from Radix Theme */
+}
+.sortable-ghost * {
+  display: none;
+}
+.sortable-clone {
+  opacity: 0.2;
 }
