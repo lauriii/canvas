@@ -6,6 +6,7 @@
     "homepage": "https://www.drupal.org/project/experience_builder",
     "require": {
         "drupal/core": "^10.3 || ^11",
+        "justinrainbow/json-schema": "^5.2",
         "php": ">=8.3"
     },
     "require-dev": {
