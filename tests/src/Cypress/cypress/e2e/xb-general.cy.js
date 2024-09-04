@@ -239,28 +239,28 @@ describe('General Experience Builder', { testIsolation: false }, () => {
 
     // Confirm the current values of the first "My Hero" component so we can
     // be certain these values later change.
-    cy.get(
-      'iframe[data-xb-preview="lg"][data-test-xb-content-initialized="true"]',
-    ).should('exist');
-    cy.testInIframe('[data-xb-type="experience_builder:my-hero"]', (heroes) => {
-      const hero = heroes[0];
-      Object.entries(heroSelectors).forEach(([prop, selector]) => {
-        if (heroBefore[prop]) {
-          expect(
-            hero.querySelector(selector).textContent.onlyVisibleChars(),
-            `${prop} should be ${heroBefore[prop]}`,
-          ).to.equal(heroBefore[prop]);
-        } else {
-          expect(
-            !!hero.querySelector(selector).textContent.onlyVisibleChars(),
-            `${prop} should be empty`,
-          ).to.be.false;
-        }
-      });
-      expect(
-        hero.querySelector(heroSelectors.cta1).getAttribute('formaction'),
-      ).to.equal('https://drupal.org');
-    });
+    cy.testInIframe(
+      '[data-xb-component-id="experience_builder:my-hero"]',
+      (heroes) => {
+        const hero = heroes[0];
+        Object.entries(heroSelectors).forEach(([prop, selector]) => {
+          if (heroBefore[prop]) {
+            expect(
+              hero.querySelector(selector).textContent.onlyVisibleChars(),
+              `${prop} should be ${heroBefore[prop]}`,
+            ).to.equal(heroBefore[prop]);
+          } else {
+            expect(
+              !!hero.querySelector(selector).textContent.onlyVisibleChars(),
+              `${prop} should be empty`,
+            ).to.be.false;
+          }
+        });
+        expect(
+          hero.querySelector(heroSelectors.cta1).getAttribute('formaction'),
+        ).to.equal('https://drupal.org');
+      },
+    );
 
     const propEditFormSelectors = {
       heading:
@@ -301,22 +301,22 @@ describe('General Experience Builder', { testIsolation: false }, () => {
 
     // New values were typed into the prop form inputs, now enter the iframe
     // and confirm the component reflects these new values.
-    cy.get(
-      'iframe[data-xb-preview="lg"][data-test-xb-content-initialized="true"]',
-    ).should('exist');
-    cy.testInIframe('[data-xb-type="experience_builder:my-hero"]', (heroes) => {
-      const hero = heroes[0];
-      Object.entries(heroSelectors).forEach(([prop, selector]) => {
+    cy.testInIframe(
+      '[data-xb-component-id="experience_builder:my-hero"]',
+      (heroes) => {
+        const hero = heroes[0];
+        Object.entries(heroSelectors).forEach(([prop, selector]) => {
+          expect(
+            hero.querySelector(selector).textContent.onlyVisibleChars(),
+            `${prop} (${selector}) should be '${newValues[prop]}'`,
+          ).to.equal(newValues[prop]);
+        });
+        // Special check for ctaHref as it is an attribute value.
         expect(
-          hero.querySelector(selector).textContent.onlyVisibleChars(),
-          `${prop} (${selector}) should be '${newValues[prop]}'`,
-        ).to.equal(newValues[prop]);
-      });
-      // Special check for ctaHref as it is an attribute value.
-      expect(
-        hero.querySelector(heroSelectors.cta1).getAttribute('formaction'),
-      ).to.equal(newValues.cta1href);
-    });
+          hero.querySelector(heroSelectors.cta1).getAttribute('formaction'),
+        ).to.equal(newValues.cta1href);
+      },
+    );
   });
 
   it('previews components on hover', () => {
@@ -340,19 +340,19 @@ describe('General Experience Builder', { testIsolation: false }, () => {
 
     const previewSelect = `[data-radix-popper-content-wrapper] > .ComponentPreviewContent`;
     const imageSelect =
-      '.MenubarSubContent [data-xb-uuid="experience_builder:image"]';
+      '.MenubarSubContent [data-xb-component-id="experience_builder:image"]';
     const heroSelect =
-      '.MenubarSubContent [data-xb-uuid="experience_builder:my-hero"]';
+      '.MenubarSubContent [data-xb-component-id="experience_builder:my-hero"]';
 
     // Hover over "Image" and a preview should appear.
-    cy.get(`${imageSelect} > button`).should('exist').realHover();
+    cy.get(`${imageSelect} > span`).should('exist').realHover();
     cy.get(`.shadowDomWrapper`)
       .shadow()
       .find('img[alt="Boring placeholder"]')
       .should('exist');
 
     // Hover over "My Hero" and a preview should appear
-    cy.get(`${heroSelect} > button`).should('exist').realHover();
+    cy.get(`${heroSelect} > span`).should('exist').realHover();
 
     cy.get('.shadowDomWrapper')
       .shadow()
@@ -374,14 +374,14 @@ describe('General Experience Builder', { testIsolation: false }, () => {
 
     // Find and alias the UUID of the "my-hero" component.
     cy.getIframeBody()
-      .find('[data-xb-type="experience_builder:my-hero"]')
+      .find('[data-xb-component-id="experience_builder:my-hero"]')
       .should('have.length', 3)
       .last()
       .invoke('attr', 'data-xb-uuid')
       .as('cid1');
     // Find and alias the UUID of the "image" component.
     cy.getIframeBody()
-      .find('[data-xb-type="experience_builder:image"]')
+      .find('[data-xb-component-id="experience_builder:image"]')
       .should('have.length', 2)
       .last()
       .invoke('attr', 'data-xb-uuid')
@@ -397,7 +397,7 @@ describe('General Experience Builder', { testIsolation: false }, () => {
     // Click component 1.
     cy.get('@cid1').then((cid1) => {
       cy.getIframeBody()
-        .find(`[data-xb-type="experience_builder:my-hero"]`)
+        .find(`[data-xb-component-id="experience_builder:my-hero"]`)
         .then((heroes) => {
           heroes.filter(`[data-xb-uuid="${cid1}"]`).find('h1').trigger('click');
           // Make sure the contextual panel opens for the clicked component.
@@ -417,7 +417,7 @@ describe('General Experience Builder', { testIsolation: false }, () => {
     // Click component 2.
     cy.get('@cid2').then((cid2) => {
       cy.getIframeBody()
-        .find(`[data-xb-type="experience_builder:image"]`)
+        .find(`[data-xb-component-id="experience_builder:image"]`)
         .then((images) => {
           images
             .filter(`[data-xb-uuid="${cid2}"]`)

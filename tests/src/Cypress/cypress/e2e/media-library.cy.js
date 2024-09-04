@@ -16,12 +16,12 @@ describe('Media Library', () => {
   it('Can open the media library widget in a props form', () => {
     cy.drupalLogin('xbUser', 'xbUser');
     cy.loadURLandWaitForXBLoaded();
-    cy.waitForElementInIframe('[data-xb-type="experience_builder:image"]');
+    cy.waitForElementInIframe('[data-xb-component-id="experience_builder:image"]');
 
     cy.get('[class*="contextualPanel"]').should('not.exist');
 
     cy.getIframeBody()
-      .find('[data-xb-type="experience_builder:image"] img')
+      .find('[data-xb-component-id="experience_builder:image"] img')
       .last()
       .trigger('click');
 
@@ -44,7 +44,7 @@ describe('Media Library', () => {
       '[class*="contextualPanel"] article .js-media-library-item-preview img[alt="The bones equal dollars"]',
     ).should('exist');
     cy.waitForElementInIframe(
-      '[data-xb-type="experience_builder:image"] img[alt="The bones equal dollars"]',
+      '[data-xb-component-id="experience_builder:image"] img[alt="The bones equal dollars"]',
     );
   });
 });

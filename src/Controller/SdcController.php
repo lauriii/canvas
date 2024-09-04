@@ -392,7 +392,7 @@ final class SdcController extends ControllerBase {
   private static function wrapComponentsForPreview(array $build, ?string $component_instance_uuid = NULL): array {
     if (isset($build['#component'])) {
       assert(is_string($component_instance_uuid));
-      $build['#prefix'] = sprintf('<div class="sortable-item" data-xb-uuid="%s" data-xb-type="%s">', $component_instance_uuid, $build['#component']);
+      $build['#prefix'] = sprintf('<div class="sortable-item" data-xb-uuid="%s" data-xb-component-id="%s">', $component_instance_uuid, $build['#component']);
       $build['#suffix'] = '</div>';
     }
     foreach (Element::children($build) as $component_instance_uuid) {
@@ -402,7 +402,7 @@ final class SdcController extends ControllerBase {
       foreach ($build['#slots'] as $slot_name => $slot) {
         $slot_uuid = $component_instance_uuid . '-slot-' . $slot_name;
         $build['#slots'][$slot_name] = self::wrapComponentsForPreview($slot, $slot_uuid);
-        $build['#slots'][$slot_name]['#prefix'] = sprintf('<div class="sortable-list" data-xb-uuid="%s" data-xb-type="%s"%s>',
+        $build['#slots'][$slot_name]['#prefix'] = sprintf('<div class="sortable-list" data-xb-uuid="%s" data-xb-component-id="%s"%s>',
           $slot_uuid,
           'slot',
           (array_key_exists('#plain_text', $build['#slots'][$slot_name]) || array_key_exists('#markup', $build['#slots'][$slot_name]))

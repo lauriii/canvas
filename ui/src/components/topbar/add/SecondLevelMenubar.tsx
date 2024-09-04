@@ -6,10 +6,13 @@ import {
 } from '@/features/ui/addMenuSlice';
 import SecondLevelMenu from '@/components/topbar/add/SecondLevelMenu';
 import ComponentIcon from '@assets/icons/component.svg';
-import List from '@/components/list/List';
 import SectionIcon from '@assets/icons/section.svg';
 import { useAppSelector } from '@/app/hooks';
 import '@/global.css';
+import ComponentList from '@/components/list/ComponentList';
+import SectionList from '@/components/list/SectionList';
+import ErrorBoundary from '@/components/error/ErrorBoundary';
+import { Text } from '@radix-ui/themes';
 
 const SecondLevelMenubar = () => {
   const activeMenu = useAppSelector(selectActiveSecondLevelMenu);
@@ -21,7 +24,9 @@ const SecondLevelMenubar = () => {
         submenuTitle="Default components"
         leftIcon={ComponentIcon}
       >
-        <List />
+        <ErrorBoundary title="An unexpected error has occurred while fetching components.">
+          <ComponentList />
+        </ErrorBoundary>
       </SecondLevelMenu>
       <SecondLevelMenu
         value={ADD_MENU_ITEMS.CUSTOM_COMPONENTS_ID}
@@ -36,9 +41,14 @@ const SecondLevelMenubar = () => {
         leftIcon={SectionIcon}
       >
         <>
-          <h4>Section templates placeholder</h4>
-          <i>Below options subject to change. Added for testing purposes.</i>
-          <List />
+          <Text size="2">
+            The section template listed below is hard coded and is a proof of
+            concept. It should allow the user to add a hero with an image below
+            it in a single action.
+          </Text>
+          <ErrorBoundary title="An unexpected error has occurred while fetching section templates.">
+            <SectionList />
+          </ErrorBoundary>
         </>
       </SecondLevelMenu>
     </Menubar.Root>

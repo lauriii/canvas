@@ -24,13 +24,15 @@ export interface LayoutNode {
   props?: {} | undefined;
 }
 
+export type LayoutNodeWithoutUUID = Omit<LayoutNode, 'uuid'>;
+
 export interface LayoutModelSliceState {
   layout: LayoutNode;
-  model: {
-    [key: string]: ComponentModel;
-  };
+  model: ComponentModels;
   initialized: boolean;
 }
+
+type ComponentModels = Record<string, ComponentModel>;
 
 export const initialState: LayoutModelSliceState = {
   layout: {
@@ -64,15 +66,27 @@ type DuplicateNodePayload = {
 };
 
 type InsertNodePayload = {
-  newNode: LayoutNode | undefined;
+  newNode: LayoutNodeWithoutUUID | undefined;
   to: number[] | undefined;
   model: InitialPropData | undefined;
+};
+
+type InsertMultipleNodesPayload = {
+  newNodes: LayoutNode;
+  to: number[] | undefined;
+  model: ComponentModels;
 };
 
 type AddNewNodePayload = {
   newNode: string | undefined;
   to: number[] | undefined;
   component: Component | undefined;
+};
+
+type AddNewSectionPayload = {
+  newSection: string | undefined;
+  to: number[] | undefined;
+  layoutModel: LayoutModelSliceState;
 };
 
 type SortNodePayload = {
@@ -94,14 +108,44 @@ export interface ComponentModel {
   name: string;
 }
 
-// If you are not using async thunks you can use the standalone `createSlice`.
+/**
+ * Replace UUIDs in a layout node and its corresponding model.
+ * @param node - The layout node to update.
+ * @param model - The corresponding model to update.
+ */
+const replaceUUIDsAndUpdateModel = (
+  node: LayoutNode,
+  model: ComponentModels,
+) => {
+  const oldToNewUUIDMap: Record<string, string> = {};
+
+  const replaceUUIDs = (node: LayoutNode) => {
+    if (node.uuid) {
+      const newUUID = uuidv4();
+      oldToNewUUIDMap[node.uuid] = newUUID;
+      node.uuid = newUUID;
+    }
+
+    if (node.children) {
+      node.children.forEach((child) => replaceUUIDs(child));
+    }
+  };
+
+  replaceUUIDs(node);
+
+  // Update the model keys
+  for (const oldUUID in model) {
+    if (oldToNewUUIDMap[oldUUID]) {
+      model[oldToNewUUIDMap[oldUUID]] = _.cloneDeep(model[oldUUID]);
+      delete model[oldUUID];
+    }
+  }
+};
+
 export const layoutModelSlice = createSlice({
   name: 'layoutModel',
-  // `createSlice` will infer the state type from the `initialState` argument
   initialState,
-  // The `reducers` field lets us define reducers and generate associated actions
   reducers: (create) => ({
-    // Reducers for state.layout
     deleteNode: create.reducer((state, action: PayloadAction<string>) => {
       state.layout = removeNodeByUuid(state.layout, action.payload);
       delete state.model[action.payload];
@@ -151,9 +195,46 @@ export const layoutModelSlice = createSlice({
           );
           return;
         }
+        const newNewNode: LayoutNode = {
+          ..._.cloneDeep(newNode),
+          uuid: uuidv4(),
+        };
 
-        state.layout = insertNodeAtPath(state.layout, to, newNode);
-        state.model[newNode.uuid] = { ...state.model[newNode.uuid], ...model };
+        state.layout = insertNodeAtPath(state.layout, to, newNewNode);
+        state.model[newNewNode.uuid] = {
+          ...state.model[newNewNode.uuid],
+          ...model,
+        };
+      },
+    ),
+
+    insertMultipleNodes: create.reducer(
+      (state, action: PayloadAction<InsertMultipleNodesPayload>) => {
+        const { newNodes, to, model } = action.payload;
+
+        if (!newNodes || !newNodes.children.length || !Array.isArray(to)) {
+          console.error(
+            `Cannot insert nodes. Invalid parameters: newNodes: ${newNodes}, to: ${to}.`,
+          );
+          return;
+        }
+
+        // The nodes we're inserting into the layout already have UUIDs. We need to make sure they're unique before
+        // inserting them into the layout., so we need to generate new UUIDs and update. Ww also need the  the model to
+        // reflect the new UUIDs.
+        const nodesToInsert: LayoutNode[] = _.cloneDeep(newNodes.children);
+        const updatedModel: ComponentModels = _.cloneDeep(model);
+        let newLayout: LayoutNode = _.cloneDeep(state.layout);
+
+        // Loop backwards so that we don't have to keep incrementing the insert position for each node we insert.
+        for (let i = nodesToInsert.length - 1; i >= 0; i--) {
+          const node = nodesToInsert[i];
+          replaceUUIDsAndUpdateModel(node, updatedModel);
+          newLayout = insertNodeAtPath(newLayout, to, node);
+        }
+
+        state.model = { ...state.model, ...updatedModel };
+        state.layout = newLayout;
       },
     ),
     sortNode: create.reducer(
@@ -224,7 +305,6 @@ export const layoutModelSlice = createSlice({
 export const addNewComponentToLayout =
   (payload: AddNewNodePayload) => (dispatch: AppDispatch) => {
     if (payload.newNode && payload.to && payload.component) {
-      const uuid = uuidv4();
       const initialData: InitialPropData = {};
       if (payload.component.field_data) {
         // @todo Update this logic in https://www.drupal.org/project/experience_builder/issues/3455942
@@ -236,16 +316,29 @@ export const addNewComponentToLayout =
           }
         });
       }
+
       dispatch(
         insertNode({
           to: payload.to,
           newNode: {
-            uuid: uuid,
             children: [],
             nodeType: 'component',
             type: payload.newNode,
           },
           model: initialData,
+        }),
+      );
+    }
+  };
+
+export const addNewSectionToLayout =
+  (payload: AddNewSectionPayload) => (dispatch: AppDispatch) => {
+    if (payload.newSection && payload.to) {
+      dispatch(
+        insertMultipleNodes({
+          to: payload.to,
+          newNodes: payload.layoutModel.layout,
+          model: payload.layoutModel.model,
         }),
       );
     }
@@ -260,6 +353,7 @@ export const {
   shiftNode,
   sortNode,
   insertNode,
+  insertMultipleNodes,
   updateNodeModel,
 } = layoutModelSlice.actions;
 

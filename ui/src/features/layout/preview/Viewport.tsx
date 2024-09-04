@@ -3,6 +3,7 @@ import type React from 'react';
 import { useRef, useEffect, useCallback, useState } from 'react';
 import {
   addNewComponentToLayout,
+  addNewSectionToLayout,
   moveNode,
   selectLayout,
   selectModel,
@@ -24,6 +25,7 @@ import Sortable from 'sortablejs';
 import { customSortableDragImage } from '@/features/sortable/sortableUtils';
 import { findNodePathByUuid } from '@/features/layout/layoutUtils';
 import { useGetComponentsQuery } from '@/services/components';
+import { useGetSectionsQuery } from '@/services/sections';
 import useIframeKeyHandlers from '@/hooks/useIframeKeyHandlers';
 import useSyncIframeHeightToContent from '@/hooks/useSyncIframeHeightToContent';
 import ViewportToolbar from '@/features/layout/preview/ViewportToolbar';
@@ -52,7 +54,9 @@ const Viewport: React.FC<ViewportProps> = (props) => {
   useIframeKeyHandlers(iframeRef);
   useSyncIframeHeightToContent(iframeRef, height, width);
   const { data: components } = useGetComponentsQuery();
+  const { data: sections } = useGetSectionsQuery();
   const componentsRef = useRef(components);
+  const sectionsRef = useRef(sections);
 
   const handleDragStart = useCallback(() => {
     dispatch(setPreviewDragging(true));
@@ -69,23 +73,33 @@ const Viewport: React.FC<ViewportProps> = (props) => {
         dispatch(
           sortNode({ uuid: ev.item.dataset.xbUuid, to: ev.newDraggableIndex }),
         );
-      } else {
-        // Moving a node from one parent to another
-        const receivingParentPath = findNodePathByUuid(
-          layout,
-          ev.to.dataset.xbUuid,
-        );
-        if (receivingParentPath) {
-          const newPath: number[] = [
-            ...receivingParentPath,
-            ev.newDraggableIndex,
-          ];
+        return;
+      }
 
-          if (ev.clone.dataset.isNew === 'true' && ev.clone.dataset.xbUuid) {
-            // @todo ideally we would use the markup of the component here instead of a loading <p>
+      const receivingParentPath =
+        ev.to.dataset.xbRoot === 'true'
+          ? []
+          : findNodePathByUuid(layout, ev.to.dataset.xbUuid);
+      if (receivingParentPath) {
+        const newPath: number[] = [
+          ...receivingParentPath,
+          ev.newDraggableIndex,
+        ];
+
+        if (ev.clone.dataset.isNew !== 'true') {
+          // Moving an existing node from one parent to another.
+          dispatch(moveNode({ uuid: ev.item.dataset.xbUuid, to: newPath }));
+          return;
+        }
+
+        const type = ev.clone.dataset.xbType;
+
+        if (ev.clone.dataset.xbComponentId) {
+          if (type === 'component') {
+            // Adding a component.
             if (componentsRef.current) {
               const newNode = Object.values(componentsRef.current).find(
-                (c) => c.id === ev.clone.dataset.xbUuid,
+                (c) => c.id === ev.clone.dataset.xbComponentId,
               );
               if (newNode) {
                 ev.item.innerHTML = newNode['default_markup'];
@@ -95,12 +109,23 @@ const Viewport: React.FC<ViewportProps> = (props) => {
             dispatch(
               addNewComponentToLayout({
                 to: newPath,
-                newNode: ev.clone.dataset.xbUuid,
-                component: componentsRef.current?.[ev.clone.dataset.xbUuid],
+                newNode: ev.clone.dataset.xbComponentId,
+                component:
+                  componentsRef?.current?.[ev.clone.dataset.xbComponentId],
               }),
             );
-          } else {
-            dispatch(moveNode({ uuid: ev.item.dataset.xbUuid, to: newPath }));
+          } else if (type === 'section') {
+            // Adding a section template.
+            ev.item.innerHTML = '<p>Loading section...</p>';
+            dispatch(
+              addNewSectionToLayout({
+                to: newPath,
+                newSection: ev.clone.dataset.xbComponentId,
+                layoutModel:
+                  sectionsRef?.current?.[ev.clone.dataset.xbComponentId]
+                    .layoutModel,
+              }),
+            );
           }
         }
       }
@@ -169,6 +194,10 @@ const Viewport: React.FC<ViewportProps> = (props) => {
   useEffect(() => {
     componentsRef.current = components;
   }, [components]);
+
+  useEffect(() => {
+    sectionsRef.current = sections;
+  }, [sections]);
 
   useEffect(() => {
     if (iframeRef.current) {

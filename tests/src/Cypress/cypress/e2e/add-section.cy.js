@@ -31,35 +31,74 @@ describe(
         .find('[data-component-id="experience_builder:two_column"] .column-one')
         .first()
         .trigger('click');
-      cy.findByLabelText('Column Width').should('exist')
-      cy.get('button[aria-label="Add section"]').then((button) => {
-        button.click();
-      });
+      cy.findAllByLabelText('Add section')
+        .first()
+        .click({ scrollBehavior: 'center' });
       // Confirm that the menu opens the Section templates.
       cy.get('[data-radix-menubar-content]').should('have.length', 2);
       cy.get('[data-radix-menu-content].MenubarSubContent').should(
         'contain.text',
-        'Section templates placeholder',
+        'Section templates',
       );
-      cy.intercept('POST', '**/api/preview/node/1').as('getPreview');
 
-      // Click on the menu item with data-xb-name="Hero" inside menu.
-      cy.get('[data-radix-menu-content] [data-xb-name="Hero"]')
-        .click()
-        .then(() => {
-          cy.wait('@getPreview');
-        });
+      // Click on Fake Section 2 inside menu.
+      cy.get('[data-radix-menu-content]').findByText('Fake Section 2').click();
 
-      cy.getIframeBody().find(
+      cy.testInIframe(
+        '[data-component-id="experience_builder:my-hero"]',
+        (components) => {
+          expect(components.length).to.equal(5);
+        },
+      );
+
+      cy.testInIframe(
+        '[data-component-id="experience_builder:my-hero"] h1',
+        (components) => {
+          expect(components[3].textContent.onlyVisibleChars()).to.equal(
+            'A hero in slot 1!',
+          );
+          expect(components[4].textContent.onlyVisibleChars()).to.equal(
+            'A hero in slot 2!',
+          );
+        },
+      );
+    });
+
+    it('Can add component via the Add component button', () => {
+      cy.loadURLandWaitForXBLoaded();
+
+      // Check there are three heroes initially.
+      cy.testInIframe(
+        '[data-component-id="experience_builder:my-hero"]',
+        (myHeroComponent) => {
+          expect(myHeroComponent.length).to.equal(3);
+        },
+      );
+      // Check that the menu is not open yet.
+      cy.get('[data-radix-menubar-content]').should('have.length', 0);
+      cy.getIframeBody()
+        .find('[data-xb-component-id="experience_builder:image"]')
+        .first()
+        .trigger('click');
+      cy.findAllByLabelText('Add component')
+        .first()
+        .click({ scrollBehavior: 'center' });
+      // Confirm that the menu opens the Section templates.
+      cy.get('[data-radix-menubar-content]').should('have.length', 2);
+      cy.get('[data-radix-menu-content].MenubarSubContent').should(
+        'contain.text',
+        'Components',
+      );
+
+      // Click Hero in the side menu
+      cy.get('[data-radix-menu-content]').findByText('Hero').click();
+
+      cy.testInIframe(
         '[data-component-id="experience_builder:my-hero"]',
         (myHeroComponent) => {
           expect(myHeroComponent.length).to.equal(4);
         },
       );
-      cy.get('[data-xb-uuid="root"]').findByText('Hero');
     });
-
-    // @todo: Add a test for the "Add component" button when we have child nodes to test in the frontend.
-    //   https://www.drupal.org/project/experience_builder/issues/3463300
   },
 );

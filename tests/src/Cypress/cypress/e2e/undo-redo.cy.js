@@ -31,17 +31,19 @@ describe('Undo/Redo functionality', { testIsolation: false }, () => {
       .find('[data-component-id="experience_builder:two_column"] .column-one')
       .first()
       .trigger('click');
-    cy.findByLabelText('Column Width').should('exist');
-    cy.get('button[aria-label="Add section"]').then((button) => {
-      button.click();
-    });
+    cy.findAllByLabelText('Add section')
+      .first()
+      .click({ scrollBehavior: 'center' });
+
     // Confirm that the menu opens the Section templates.
     cy.get('[data-radix-menubar-content]').should('have.length', 2);
     cy.get('[data-radix-menu-content].MenubarSubContent').should(
       'contain.text',
-      'Section templates placeholder',
+      'Section templates',
     );
     cy.intercept('POST', '**/api/preview/node/1').as('getPreview');
+
+    cy.findByText('Default components').click();
 
     // Click on the menu item with data-xb-name="Hero" inside menu.
     cy.get('[data-radix-menu-content] [data-xb-name="Hero"]')

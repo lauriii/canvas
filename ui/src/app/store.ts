@@ -11,6 +11,7 @@ import undoable, { ActionCreators as UndoActionCreators } from 'redux-undo';
 import { layoutModelReducer } from '@/features/layout/layoutModelSlice';
 import { dummyPropsFormApi } from '@/services/dummyPropsForm';
 import { configurationSlice } from '@/features/configuration/configurationSlice';
+import { sectionApi } from '@/services/sections';
 import { setLatestUndoRedoActionId } from '@/features/ui/uiSlice';
 
 // `combineSlices` automatically combines the reducers using
@@ -26,6 +27,7 @@ const rootReducer = combineSlices(
   },
   uiSlice,
   componentApi,
+  sectionApi,
   layoutApi,
   previewApi,
   dummyPropsFormApi,
@@ -64,6 +66,7 @@ export const makeStore = (preloadedState?: Partial<RootState>) => {
     middleware: (getDefaultMiddleware) =>
       getDefaultMiddleware().concat(
         componentApi.middleware,
+        sectionApi.middleware,
         layoutApi.middleware,
         previewApi.middleware,
         dummyPropsFormApi.middleware,
