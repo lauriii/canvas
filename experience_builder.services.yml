@@ -34,8 +34,17 @@ services:
     arguments: ['experience_builder']
 
   # Event subscribers.
-  experience_builder.openapi.http_message_validator.subscriber:
-    class: Drupal\experience_builder\EventSubscriber\ApiMessageValidator
+  experience_builder.openapi.http_request_validator.subscriber:
+    class: Drupal\experience_builder\EventSubscriber\ApiRequestValidator
+    arguments:
+      $logger: '@logger.channel.experience_builder'
+      $appRoot: '%app.root%'
+    calls:
+      - [setValidatorBuilder, []]
+    tags:
+      - { name: event_subscriber }
+  experience_builder.openapi.http_response_validator.subscriber:
+    class: Drupal\experience_builder\EventSubscriber\ApiResponseValidator
     arguments:
       $logger: '@logger.channel.experience_builder'
       $appRoot: '%app.root%'

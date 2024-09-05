@@ -1,0 +1,42 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Drupal\experience_builder\EventSubscriber;
+
+use League\OpenAPIValidation\PSR7\ValidatorBuilder;
+use Symfony\Component\HttpKernel\Event\RequestEvent;
+use Symfony\Component\HttpKernel\Event\ResponseEvent;
+use Symfony\Component\HttpKernel\KernelEvents;
+
+/**
+ * Request subscriber that validates an Experience Builder API request.
+ *
+ * @internal
+ */
+final class ApiRequestValidator extends ApiMessageValidatorBase {
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function getSubscribedEvents(): array {
+    return [KernelEvents::REQUEST => 'onMessage'];
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  protected function validate(
+    ValidatorBuilder $validatorBuilder,
+    RequestEvent|ResponseEvent $event,
+  ): void {
+    assert($event instanceof RequestEvent);
+    $validator = $validatorBuilder->getRequestValidator();
+
+    $psr7_request = $this->httpMessageFactory
+      ->createRequest($event->getRequest());
+
+    $validator->validate($psr7_request);
+  }
+
+}

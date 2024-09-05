@@ -21,7 +21,9 @@
 
 [OpenAPI] @traviscarden
 /openapi.yml
-/src/EventSubscriber/ApiMessageValidator.php
+/src/EventSubscriber/ApiMessageValidatorBase.php
+/src/EventSubscriber/ApiRequestValidator.php
+/src/EventSubscriber/ApiResponseValidator.php
 /tests/src/Traits/OpenApiSpecTrait.php
 /tests/src/Unit/OpenApiSpecValidationTest.php
 /tests/src/Unit/UiFixturesValidationTest.php
