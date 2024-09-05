@@ -31,6 +31,9 @@ function useIframeKeyHandlers(iframeRef: React.RefObject<HTMLIFrameElement>) {
         event.type === 'keydown' && event.key === modifierKey,
       dispatchModifierKeyUp:
         event.type === 'keyup' && event.key === modifierKey,
+      dispatchDeleteKey:
+        event.type === 'keydown' &&
+        (event.key === 'Backspace' || event.key === 'Delete'),
     };
 
     Object.entries(keyCombinations).some(([message, shouldDispatch]) => {

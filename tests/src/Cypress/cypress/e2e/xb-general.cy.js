@@ -521,4 +521,49 @@ describe('General Experience Builder', { testIsolation: false }, () => {
     // Assert that only one request was sent
     cy.get('@getPreview.all').should('have.length', 1);
   });
+
+  it('Can delete component with delete button', () => {
+    cy.drupalLogin('xbUser', 'xbUser');
+    cy.loadURLandWaitForXBLoaded();
+
+    // Check there are three heroes initially.
+    cy.testInIframe(
+      '[data-xb-component-id="experience_builder:my-hero"]',
+      (myHeroComponent) => {
+        expect(myHeroComponent.length).to.equal(3);
+      },
+    );
+
+    // Select the component and ensure it's focused
+    cy.getIframeBody()
+      .find(`[data-xb-component-id="experience_builder:my-hero"]`)
+      .first()
+      .click();
+
+    cy.getIframeBody().realPress('{del}');
+
+    // Check there are two heroes after deleting
+    cy.testInIframe(
+      '[data-xb-component-id="experience_builder:my-hero"]',
+      (myHeroComponent) => {
+        expect(myHeroComponent.length).to.equal(2);
+      },
+    );
+    cy.getIframeBody()
+      .find(`[data-xb-component-id="experience_builder:my-hero"]`)
+      .first()
+      .click();
+
+    cy.get('[data-xb-uuid="root"]').click();
+    cy.realPress('{del}');
+    cy.getIframeBody().find('[data-component-id="experience_builder:two_column"] .column-one').should('have.length', 1);
+
+    // Deleting from the content menu.
+    cy.get('[data-xb-uuid="root"]').findByText('Two Column').click();
+    cy.realPress('{del}');
+
+    cy.get('[data-xb-uuid="root"]').findByText('Two Column').should('not.exist');
+
+  });
+
 });

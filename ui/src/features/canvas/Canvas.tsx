@@ -15,7 +15,9 @@ import {
   selectPanning,
   setPanningIFrame,
   setPanningParent,
+  selectSelectedComponent,
 } from '@/features/ui/uiSlice';
+import { deleteNode } from '../layout/layoutModelSlice';
 
 const Canvas = () => {
   const dispatch = useAppDispatch();
@@ -29,6 +31,7 @@ const Canvas = () => {
     useAppSelector(selectPanning);
   const [modifierKeyPressed, setModifierKeyPressed] = useState(false);
   const modifierKeyPressedRef = useRef(false);
+  const selectedComponent = useAppSelector(selectSelectedComponent);
   useHotkeys(['NumpadAdd', 'Equal'], () => dispatch(canvasViewPortZoomIn()));
   useHotkeys(['Minus', 'NumpadSubtract'], () =>
     dispatch(canvasViewPortZoomOut()),
@@ -40,6 +43,11 @@ const Canvas = () => {
   useHotkeys('ctrl', () => setModifierKeyPressed(false), {
     keydown: false,
     keyup: true,
+  });
+  useHotkeys(['Backspace', 'Delete'], () => {
+    if (selectedComponent) {
+      dispatch(deleteNode(selectedComponent));
+    }
   });
   const isPanningParentRef = useRef(isPanningParent);
   const isPanningIFrameRef = useRef(isPanningIFrame);
@@ -89,6 +97,8 @@ const Canvas = () => {
           isPanningIFrameRef.current &&
             handlePreviewMouseMove(event.data.coordinates);
           break;
+        case 'dispatchDeleteKey':
+          selectedComponent && dispatch(deleteNode(selectedComponent));
       }
     }
     window.addEventListener('message', handleIframeEvent);
