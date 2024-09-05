@@ -130,7 +130,7 @@ describe('General Experience Builder', { testIsolation: false }, () => {
       .then((clicked) => {
         // While in the iframe, get the dimensions of the component so we can
         // compare the outline dimensions to it
-        const item = clicked.closest('.sortable-item');
+        const item = clicked.closest('.xb--sortable-item');
         lgPreviewRect = item[0].getBoundingClientRect();
       });
 
@@ -161,7 +161,7 @@ describe('General Experience Builder', { testIsolation: false }, () => {
       .then((clicked) => {
         // While in the iframe, get the dimensions of the component so we can
         // compare the outline dimensions to it
-        const item = clicked.closest('.sortable-item');
+        const item = clicked.closest('.xb--sortable-item');
         smPreviewRect = item[0].getBoundingClientRect();
       });
 

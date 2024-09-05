@@ -28,7 +28,6 @@ export function customSortableDragImage(
               display: flex;
               justify-content: center;
               top: -9999px;
-              cursor: grabbing;
               pointer-events: none;
             `;
     document.body.appendChild(customDragImage);

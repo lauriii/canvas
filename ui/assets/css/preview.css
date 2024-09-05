@@ -1,38 +1,39 @@
-.preview-dragging .sortable-list {
+/* Warning - the CSS in this file is loaded INSIDE the preview iFrame which means that
+care must be taken when adding classes in here. All classes should be very specific and
+contain some mention of XB to mitigate against pollution from other CSS loaded in the
+iFrame and to avoid polluting user styles.
+
+Also note, the HMR does not watch this file so you must refresh your page manually to see changes in here.
+
+This file is included as an attached Drupal library and as such is subject to CSS aggregation.
+ */
+
+.xb--preview-dragging .xb--sortable-list {
   min-height: 2rem;
 }
-.preview-dragging .sortable-list:empty {
-  background: #fff;
-}
-.slot-container {
-  display: flex;
-}
-.slot-container > .sortable-item {
-  width: 100%;
-}
-.sortable-list {
+.xb--sortable-list {
   position: relative;
   display: flow-root; /* Prevent margin collapse from content inside */
 }
-.sortable-list:empty {
+.xb--sortable-list:empty {
   min-height: 1.5rem;
   border: 2px dashed #ccc;
 }
-.sortable-list:empty::after {
+.xb--sortable-list:empty::after {
   position: absolute;
   top: 0;
   right: 0;
   content: "Slot";
   text-align: right;
 }
-.sortable-item {
+.xb--sortable-item {
   cursor: grab;
 }
-.preview-dragging *,
-.preview-dragging {
-  cursor: grabbing;
+.xb--preview-dragging *,
+.xb--preview-dragging {
+  cursor: grabbing !important;
 }
-.sortable-ghost {
+.xb--sortable-ghost {
   position: absolute;
   z-index: 1;
   width: 100%;
@@ -42,9 +43,9 @@
   border-radius: 3px; /* Equivalent of --radius-1 from Radix Theme */
   background-color: #176bfd; /* Equivalent of --accent-900/--blue-900 from Radix Theme */
 }
-.sortable-ghost * {
+.xb--sortable-ghost * {
   display: none;
 }
-.sortable-clone {
+.xb--sortable-clone {
   opacity: 0.2;
 }

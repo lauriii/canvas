@@ -60,7 +60,7 @@ const Viewport: React.FC<ViewportProps> = (props) => {
 
   const handleDragStart = useCallback(() => {
     dispatch(setPreviewDragging(true));
-    iframeDocumentRef.current?.body.classList.add('preview-dragging');
+    iframeDocumentRef.current?.body.classList.add('xb--preview-dragging');
   }, [dispatch]);
 
   const updateData = useCallback(
@@ -148,9 +148,9 @@ const Viewport: React.FC<ViewportProps> = (props) => {
     // Prevent placing a component below its own clone element (the element that stays in the original place when
     // dragging) if it's the only one in the list (slot or root layout).
     if (
-      ev.related.classList.contains('sortable-clone') &&
+      ev.related.classList.contains('xb--sortable-clone') &&
       ev.related.parentElement?.querySelectorAll(
-        '.sortable-item:not(.sortable-ghost)',
+        '.xb--sortable-item:not(.xb--sortable-ghost)',
       ).length === 1 &&
       ev.willInsertAfter
     ) {
@@ -170,7 +170,7 @@ const Viewport: React.FC<ViewportProps> = (props) => {
   const handleDragEnd = useCallback(
     (ev: Sortable.SortableEvent) => {
       dispatch(setPreviewDragging(false));
-      iframeDocumentRef.current?.body.classList.remove('preview-dragging');
+      iframeDocumentRef.current?.body.classList.remove('xb--preview-dragging');
 
       // Normally handle the data update in dragAdd unless the item is being dragged within the same container, in which
       // case dragAdd doesn't fire, so we can call it from here.
@@ -184,7 +184,7 @@ const Viewport: React.FC<ViewportProps> = (props) => {
   const handleDragClone = useCallback((ev: Sortable.SortableEvent) => {
     // Add a class to the clone element so we can style it. This is the element that shows up in the original position
     // when dragging.
-    ev.clone.classList.add('sortable-clone');
+    ev.clone.classList.add('xb--sortable-clone');
     // SortableJS sets `display: none` as an inline style. We could override that with `!important` in CSS since we
     // already have a class on the clone element, but that causes an error with an internal function of SortableJS.
     ev.clone.style.display = 'block';
@@ -258,6 +258,7 @@ const Viewport: React.FC<ViewportProps> = (props) => {
       Sortable.create(listEl, {
         animation: 0,
         invertSwap: true,
+        ghostClass: 'xb--sortable-ghost',
         group: {
           name: 'layout',
           pull: true,
@@ -295,12 +296,12 @@ const Viewport: React.FC<ViewportProps> = (props) => {
       }
       const sortableLists =
         iframeDocumentRef.current.querySelectorAll<HTMLElement>(
-          '.sortable-list',
+          '.xb--sortable-list',
         );
 
       sortableLists.forEach((sortableList) => {
         const draggableItems =
-          sortableList.querySelectorAll<HTMLElement>('.sortable-item');
+          sortableList.querySelectorAll<HTMLElement>('.xb--sortable-item');
 
         initSortableList(sortableList);
         draggableItems.forEach((item) => {
