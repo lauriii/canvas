@@ -1,6 +1,3 @@
-button {
-  box-shadow: 5px 5px hotpink;
-}
 .my-hero__container {
   display: flex;
   flex-direction: column;
