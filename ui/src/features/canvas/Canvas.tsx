@@ -15,6 +15,7 @@ import {
   selectPanning,
   setPanningIFrame,
   setPanningParent,
+  selectIsContextMenuOpen,
   selectSelectedComponent,
 } from '@/features/ui/uiSlice';
 import { deleteNode } from '../layout/layoutModelSlice';
@@ -29,6 +30,7 @@ const Canvas = () => {
   const canvasViewPort = useAppSelector(selectCanvasViewPort);
   const { isPanning, isPanningIFrame, isPanningParent } =
     useAppSelector(selectPanning);
+  const contextMenuOpen = useAppSelector(selectIsContextMenuOpen);
   const [modifierKeyPressed, setModifierKeyPressed] = useState(false);
   const modifierKeyPressedRef = useRef(false);
   const selectedComponent = useAppSelector(selectSelectedComponent);
@@ -203,12 +205,26 @@ const Canvas = () => {
 
   const handleWheel = useCallback(
     (e: WheelEvent) => {
-      if (e.ctrlKey) {
-        e.preventDefault();
-        dispatch(canvasViewPortZoomDelta(e.deltaY));
+      if (!contextMenuOpen) {
+        if (modifierKeyPressedRef.current) {
+          // Determine zoom direction
+          e.deltaY > 0
+            ? dispatch(canvasViewPortZoomOut())
+            : dispatch(canvasViewPortZoomIn());
+        } else {
+          e.preventDefault();
+          if (canvasPaneRef.current) {
+            canvasPaneRef.current.scrollTop += e.deltaY;
+            canvasPaneRef.current.scrollLeft += e.deltaX;
+          }
+        }
+        if (e.ctrlKey) {
+          e.preventDefault();
+          dispatch(canvasViewPortZoomDelta(e.deltaY));
+        }
       }
     },
-    [dispatch],
+    [dispatch, contextMenuOpen],
   );
 
   useEffect(() => {
@@ -239,10 +255,16 @@ const Canvas = () => {
 
   return (
     <div
-      className={clsx(styles.canvasPane, {
-        [styles.modifierKeyPressed]: modifierKeyPressed,
-        [styles.isPanning]: isPanning,
-      })}
+      className={clsx(
+        styles.canvasPane,
+        {
+          [styles.modifierKeyPressed]: modifierKeyPressed,
+          [styles.isPanning]: isPanning,
+        },
+        {
+          [styles.hoveredComponent]: contextMenuOpen,
+        },
+      )}
       onMouseDown={handleMouseDown}
       onMouseMove={handleCanvasMouseMove}
       onScroll={handlePaneScroll}

@@ -35,6 +35,16 @@
   gap: 2em;
 }
 
+.modifierKeyPressed .canvas > *,
+.isPanning .canvas > * {
+  user-select: none;
+  pointer-events: none;
+}
+
+.canvasPane.hoveredComponent {
+  overflow: hidden;
+}
+
 .modifierKeyPressed .previewsContainer iframe {
   pointer-events: none;
 }

@@ -19,6 +19,7 @@ import {
   setHoveredComponent,
   setPreviewDragging,
   setSelectedComponent,
+  setIsContextMenuOpen,
 } from '@/features/ui/uiSlice';
 import Outline from '@/features/layout/preview/Outline';
 import Sortable from 'sortablejs';
@@ -29,9 +30,11 @@ import { useGetSectionsQuery } from '@/services/sections';
 import useIframeKeyHandlers from '@/hooks/useIframeKeyHandlers';
 import useSyncIframeHeightToContent from '@/hooks/useSyncIframeHeightToContent';
 import ViewportToolbar from '@/features/layout/preview/ViewportToolbar';
+import RightClickMenu from '@/features/layout/preview/RightClickMenu';
 
+export type ViewPortSize = 'lg' | 'sm';
 export interface ViewportProps {
-  size: 'lg' | 'sm';
+  size: ViewPortSize;
   name: string;
   height: number;
   width: number;
@@ -51,6 +54,10 @@ const Viewport: React.FC<ViewportProps> = (props) => {
   const { isDragging } = useAppSelector(selectDragging);
   const { isPanning } = useAppSelector(selectPanning);
   const dispatch = useAppDispatch();
+  const [mouseEventPosition, setMouseEventPosition] = useState<{
+    pageX: number;
+    pageY: number;
+  }>({ pageX: 0, pageY: 0 });
   useIframeKeyHandlers(iframeRef);
   useSyncIframeHeightToContent(iframeRef, height, width);
   const { data: components } = useGetComponentsQuery();
@@ -229,6 +236,7 @@ const Viewport: React.FC<ViewportProps> = (props) => {
         }
       });
     };
+
     const initComponentHover = (listItemEl: HTMLElement) => {
       listItemEl.addEventListener('mouseover', function (event: MouseEvent) {
         event.stopPropagation();
@@ -238,6 +246,23 @@ const Viewport: React.FC<ViewportProps> = (props) => {
             return;
           }
           dispatch(setHoveredComponent(target.dataset.xbUuid));
+          dispatch(setIsContextMenuOpen(undefined));
+        }
+      });
+    };
+
+    const initComponentRightClick = (listItemEl: HTMLElement) => {
+      listItemEl.addEventListener('contextmenu', function (event: MouseEvent) {
+        event.stopPropagation();
+        event.preventDefault();
+        if (event.target) {
+          const target = event.currentTarget as HTMLElement;
+          if (!target.dataset.xbUuid) {
+            return;
+          }
+          setMouseEventPosition({ pageX: event.pageX, pageY: event.pageY });
+          dispatch(setHoveredComponent(target.dataset.xbUuid));
+          dispatch(setIsContextMenuOpen(size));
         }
       });
     };
@@ -327,6 +352,7 @@ const Viewport: React.FC<ViewportProps> = (props) => {
         draggableItems.forEach((item) => {
           initSortableListItem(item);
           initComponentHover(item);
+          initComponentRightClick(item);
           initComponentClick(item);
         });
       });
@@ -344,6 +370,7 @@ const Viewport: React.FC<ViewportProps> = (props) => {
     handleDragMove,
     layout,
     model,
+    size,
   ]);
 
   return (
@@ -366,6 +393,14 @@ const Viewport: React.FC<ViewportProps> = (props) => {
           data-test-xb-content-initialized="false"
           title="Preview"
         ></iframe>
+        {hoveredComponent && (
+          <RightClickMenu
+            iframeRef={iframeRef}
+            elementId={hoveredComponent}
+            viewportSize={size}
+            mouseEventPosition={mouseEventPosition}
+          />
+        )}
         {!isDragging && !isPanning && (
           <>
             <Outline

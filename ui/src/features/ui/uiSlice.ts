@@ -1,5 +1,6 @@
 import { createAppSlice } from '@/app/createAppSlice';
 import type { PayloadAction } from '@reduxjs/toolkit';
+import type { ViewPortSize } from '@/features/layout/preview/Viewport';
 
 export interface DraggingStatus {
   isDragging: boolean;
@@ -20,6 +21,11 @@ export interface CanvasViewPort {
   scale: number;
 }
 
+export interface PrimaryMenuState {
+  activeMenu: string;
+  isHidden: boolean;
+}
+
 export interface uiSliceState {
   pending: boolean;
   dragging: DraggingStatus;
@@ -28,6 +34,8 @@ export interface uiSliceState {
   hoveredComponent: string | undefined; //uuid of component
   contextualPanelOpen: boolean;
   canvasViewport: CanvasViewPort;
+  primaryMenu: PrimaryMenuState;
+  contextMenuOpen: ViewPortSize | undefined;
   latestUndoRedoActionId: string;
 }
 
@@ -58,6 +66,11 @@ export const initialState: uiSliceState = {
     y: 0,
     scale: 1,
   },
+  primaryMenu: {
+    activeMenu: '',
+    isHidden: false,
+  },
+  contextMenuOpen: undefined,
   latestUndoRedoActionId: '',
 };
 
@@ -182,6 +195,26 @@ export const uiSlice = createAppSlice({
       const prevIndex = currentIndex - 1 >= 0 ? currentIndex - 1 : currentIndex;
       state.canvasViewport.scale = scaleValues[prevIndex].scale;
     }),
+    setPrimaryMenuActiveMenu: create.reducer(
+      (state, action: PayloadAction<string>) => {
+        state.primaryMenu.activeMenu = action.payload;
+        // When the menu is set to an empty string, it's closed. So, we should reset the
+        // hidden state back to false here too to reset the css display property.
+        if (!action.payload) {
+          state.primaryMenu.isHidden = false;
+        }
+      },
+    ),
+    setPrimaryMenuHidden: create.reducer(
+      (state, action: PayloadAction<boolean>) => {
+        state.primaryMenu.isHidden = action.payload;
+      },
+    ),
+    setIsContextMenuOpen: create.reducer(
+      (state, action: PayloadAction<ViewPortSize | undefined>) => {
+        state.contextMenuOpen = action.payload;
+      },
+    ),
     setLatestUndoRedoActionId: create.reducer(
       (state, action: PayloadAction<string>) => {
         state.latestUndoRedoActionId = action.payload;
@@ -209,6 +242,15 @@ export const uiSlice = createAppSlice({
     selectCanvasViewPort: (ui): CanvasViewPort => {
       return ui.canvasViewport;
     },
+    selectPrimaryMenuActiveMenu: (ui): string => {
+      return ui.primaryMenu.activeMenu;
+    },
+    selectPrimaryMenuHidden: (ui): boolean => {
+      return ui.primaryMenu.isHidden;
+    },
+    selectIsContextMenuOpen: (ui): ViewPortSize | undefined => {
+      return ui.contextMenuOpen;
+    },
     selectLatestUndoRedoActionId: (ui): string => {
       return ui.latestUndoRedoActionId;
     },
@@ -231,6 +273,9 @@ export const {
   setCanvasViewPort,
   canvasViewPortZoomIn,
   canvasViewPortZoomOut,
+  setPrimaryMenuActiveMenu,
+  setPrimaryMenuHidden,
+  setIsContextMenuOpen,
   canvasViewPortZoomDelta,
   setLatestUndoRedoActionId,
 } = uiSlice.actions;
@@ -243,5 +288,8 @@ export const {
   selectHoveredComponent,
   selectContextualPanelOpen,
   selectCanvasViewPort,
+  selectPrimaryMenuActiveMenu,
+  selectPrimaryMenuHidden,
+  selectIsContextMenuOpen,
   selectLatestUndoRedoActionId,
 } = uiSlice.selectors;

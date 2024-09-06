@@ -1,25 +1,19 @@
 import styles from './Outline.module.css';
 import type React from 'react';
 import { useRef, useEffect, useState, useCallback } from 'react';
-import {
-  deleteNode,
-  selectLayout,
-  selectModel,
-  shiftNode,
-  duplicateNode,
-} from '@/features/layout/layoutModelSlice';
+import { selectLayout, selectModel } from '@/features/layout/layoutModelSlice';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
-import { ContextMenu } from '@radix-ui/themes';
+import { Grid } from '@radix-ui/themes';
 import clsx from 'clsx';
 import {
   unsetHoveredComponent,
-  setSelectedComponent,
   unsetSelectedComponent,
 } from '@/features/ui/uiSlice';
+
 import useSyncElementSize from '@/hooks/useSyncElementSize';
-import NameTag from '@/features/layout/preview/NameTag';
-import AddButton from '@/features/layout/preview/AddButton';
 import _ from 'lodash';
+import NameTag from './NameTag';
+import AddButton from './AddButton';
 
 interface OutlineProps {
   elementId: string | undefined; // the data-xb-uuid value of the dom element that was hovered.
@@ -81,31 +75,6 @@ const Outline: React.FC<OutlineProps> = (props) => {
       );
     }
   }, [dispatch, iframeRef, selected]);
-
-  function handleDeleteClick() {
-    if (elementId) {
-      dispatch(deleteNode(elementId));
-    }
-  }
-
-  function handleSelectClick() {
-    if (elementId) {
-      dispatch(setSelectedComponent(elementId));
-    }
-  }
-  function handleDuplicateClick() {
-    if (elementId) {
-      dispatch(duplicateNode({ uuid: elementId }));
-    }
-  }
-
-  function handleMoveUpClick() {
-    dispatch(shiftNode({ uuid: elementId, direction: 'up' }));
-  }
-
-  function handleMoveDownClick() {
-    dispatch(shiftNode({ uuid: elementId, direction: 'down' }));
-  }
 
   useEffect(() => {
     applyStyles();
@@ -170,12 +139,10 @@ const Outline: React.FC<OutlineProps> = (props) => {
           data-xb-component-outline=""
         />
         {nodeType !== 'slot' && (
-          <ContextMenu.Root>
-            <ContextMenu.Trigger>
-              <div ref={nameTagElRef} className={styles.xbNameTag}>
-                <NameTag elementId={elementId} selected={selected} />
-              </div>
-            </ContextMenu.Trigger>
+          <Grid columns="2" gap="1">
+            <div ref={nameTagElRef} className={styles.xbNameTag}>
+              <NameTag elementId={elementId} selected={selected} />
+            </div>
             {selected && (
               <div
                 ref={addSectionButtonRef}
@@ -184,41 +151,7 @@ const Outline: React.FC<OutlineProps> = (props) => {
                 <AddButton elementId={elementId} />
               </div>
             )}
-            <ContextMenu.Content>
-              <ContextMenu.Item shortcut="⌘ E" onClick={handleSelectClick}>
-                Edit
-              </ContextMenu.Item>
-              <ContextMenu.Item shortcut="⌘ D" onClick={handleDuplicateClick}>
-                Duplicate
-              </ContextMenu.Item>
-              <ContextMenu.Separator />
-
-              <ContextMenu.Sub>
-                <ContextMenu.SubTrigger>Move</ContextMenu.SubTrigger>
-                <ContextMenu.SubContent>
-                  <ContextMenu.Item onClick={handleMoveUpClick}>
-                    Move up
-                  </ContextMenu.Item>
-                  <ContextMenu.Item onClick={handleMoveDownClick}>
-                    Move down
-                  </ContextMenu.Item>
-
-                  <ContextMenu.Separator />
-                  <ContextMenu.Item onClick={() => alert('Todo')}>
-                    Move into
-                  </ContextMenu.Item>
-                </ContextMenu.SubContent>
-              </ContextMenu.Sub>
-              <ContextMenu.Separator />
-              <ContextMenu.Item
-                // shortcut="⌘ ⌫"
-                color="red"
-                onClick={handleDeleteClick}
-              >
-                Delete
-              </ContextMenu.Item>
-            </ContextMenu.Content>
-          </ContextMenu.Root>
+          </Grid>
         )}
       </>
     )
