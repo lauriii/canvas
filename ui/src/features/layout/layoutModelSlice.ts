@@ -195,9 +195,16 @@ export const layoutModelSlice = createSlice({
           );
           return;
         }
+        const uuid = uuidv4();
+        const childSlotsWithUuids = newNode.children.map((child) => {
+          child.uuid = `${uuid}${child.uuid}`;
+          return child;
+        });
+
         const newNewNode: LayoutNode = {
           ..._.cloneDeep(newNode),
-          uuid: uuidv4(),
+          children: childSlotsWithUuids,
+          uuid,
         };
 
         state.layout = insertNodeAtPath(state.layout, to, newNewNode);
@@ -317,11 +324,24 @@ export const addNewComponentToLayout =
         });
       }
 
+      const children: LayoutNode[] = [];
+
+      if (payload.component.metadata?.slots) {
+        Object.keys(payload.component.metadata.slots).forEach((name) => {
+          children.push({
+            uuid: `-slot-${name}`,
+            name: name,
+            nodeType: 'slot',
+            children: [],
+          });
+        });
+      }
+
       dispatch(
         insertNode({
           to: payload.to,
           newNode: {
-            children: [],
+            children,
             nodeType: 'component',
             type: payload.newNode,
           },

@@ -300,6 +300,26 @@ Cypress.Commands.add('drupalSession', () => {
   });
 });
 
+
+/**
+ * Ensures that the preview iframe is initialized and has content before continuing. Can be called
+ * after performing an action that refreshes the iFrame to ensure subsequent actions wait for the new
+ * content to have loaded.
+ *
+ * @param {string} selector
+ *   The selector of the iframe to get.
+ */
+Cypress.Commands.add(
+  'previewReady',
+  (iframeSelector = '[data-xb-preview="lg"]') => {
+    // Not logging these assertions to try and keep the command log a bit tidier
+    cy.get(`${iframeSelector}[data-test-xb-content-initialized="true"]`, {log: false, timeout: 5000})
+    cy.get(iframeSelector, {log: false}).its('0.contentDocument', {log: false})
+    cy.log(`Preview '${iframeSelector}' initialized and has content document.`);
+  },
+);
+
+
 /**
  * Gets an iframe element once its content has loaded.
  *
@@ -309,7 +329,7 @@ Cypress.Commands.add('drupalSession', () => {
  * @return
  *   The Cypress-wrapped iframe.
  */
-Cypress.Commands.add('getIframe', (selector = '[data-xb-preview]') => {
+Cypress.Commands.add('getIframe', (selector = '[data-xb-preview="lg"]') => {
   return cy.get(selector).its('0.contentDocument').should('exist');
 });
 
@@ -322,7 +342,7 @@ Cypress.Commands.add('getIframe', (selector = '[data-xb-preview]') => {
  * @return {object}
  *  The Cypress-wrapped iframe body.
  */
-Cypress.Commands.add('getIframeBody', (selector = '[data-xb-preview]') => {
+Cypress.Commands.add('getIframeBody', (selector = '[data-xb-preview="lg"]') => {
   return cy
     .getIframe(selector)
     .its('body')
@@ -343,7 +363,7 @@ Cypress.Commands.add('getIframeBody', (selector = '[data-xb-preview]') => {
  */
 Cypress.Commands.add(
   'waitForElementInIframe',
-  (selector, iframeSelector = '[data-xb-preview]', customTimeout) => {
+  (selector, iframeSelector = '[data-xb-preview="lg"]', customTimeout) => {
     cy.document().then((doc) => {
       cy.get(true, {
         timeout: customTimeout || Cypress.config('defaultCommandTimeout'),
@@ -379,11 +399,8 @@ Cypress.Commands.add(
 Cypress.Commands.add(
   'testInIframe',
   (selector, callback, iframeSelector = '[data-xb-preview="lg"]') => {
-    cy.get(iframeSelector).should(
-      'have.attr',
-      'data-test-xb-content-initialized',
-      'true',
-    );
+    cy.previewReady(iframeSelector);
+
     cy.getIframeBody(iframeSelector).should((previewIframe) => {
       const queryResult = previewIframe.querySelectorAll(selector);
       let callbackArg = queryResult;
@@ -453,11 +470,7 @@ Cypress.Commands.add(
 Cypress.Commands.add('loadURLandWaitForXBLoaded', (url = 'xb/node/1') => {
   cy.drupalRelativeURL(url);
 
-  cy.get('iframe[data-xb-preview="lg"]').should(
-    'have.attr',
-    'data-test-xb-content-initialized',
-    'true',
-  );
+  cy.previewReady('iframe[data-xb-preview="lg"]');
 });
 
 // Helper function used by the realDnd command.

@@ -14,7 +14,15 @@ export interface Component {
   name: string;
   id: string;
   default_markup: string;
-  metadata: object;
+  metadata: {
+    slots?: {
+      [key: string]: {
+        title: string;
+        [key: string]: any;
+      };
+    };
+    [key: string]: any;
+  };
   field_data: FieldData;
 }
 

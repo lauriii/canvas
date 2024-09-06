@@ -1,0 +1,78 @@
+describe('Component slots functionality', { testIsolation: false }, () => {
+  before(() => {
+    cy.drupalXbInstall();
+  });
+
+  after(() => {
+    cy.drupalUninstall();
+  });
+
+  beforeEach(() => {
+    cy.drupalSession();
+    cy.drupalLogin('xbUser', 'xbUser');
+  });
+
+  it('Can add a component with slots and then add components into those slots', () => {
+    cy.loadURLandWaitForXBLoaded();
+    // Set the viewport to be 4k to ensure the full canvas is visible without scrolling because
+    // the scrolling messes up the realDnd command.
+    cy.viewport(3840,2160);
+    cy.get('[data-xb-uuid="root"]').findByText('Two Column').click();
+
+
+    cy.log('Add a Two Column component at the bottom of the page');
+    cy.findAllByText('Add section').first().click();
+    cy.findByText('Default components').click();
+    cy.get('.MenubarSubContent').within(()=> {
+      cy.findByText('Two Column').click();
+    });
+
+    cy.previewReady()
+
+    cy.log('There should now be 2 Two Column components and the default content should be showing in the slots.')
+    cy.getIframeBody().within(()=> {
+      cy.findByText('This is column 1 content');
+      cy.findByText('This is column 2 content');
+      cy.get('[data-xb-component-id="experience_builder:two_column"]').should('have.length', 2)
+      cy.get('[data-xb-component-id="experience_builder:two_column"]').first().findByText('hello, world!');
+    });
+
+    cy.log('Drag an existing Hero from the preview into column 1');
+    cy.getIframeBody().findByText('This is column 1 content').parent().then($dropTarget=> {
+      cy.getIframeBody().findByText('hello, world!').realDnd($dropTarget);
+    });
+
+    cy.previewReady()
+
+    cy.log('The default content in the first slot of the 2nd Two Column component should have been replaced with the hello, world! hero component that was dragged from the first Two Column component.')
+    cy.getIframeBody().within(()=> {
+      cy.findByText('This is column 1 content').should('not.exist');
+      cy.findByText('This is column 2 content');
+      cy.get('[data-xb-component-id="experience_builder:two_column"]').should('have.length', 2)
+      cy.get('[data-xb-component-id="experience_builder:two_column"]').eq(1).findByText('hello, world!');
+    });
+
+    cy.findByLabelText('Open add menu').click();
+    cy.findByText('Default components').click();
+
+    cy.log('Drag a new Section from the component list into column 2');
+    cy.getIframeBody().findByText('This is column 2 content').parent().then($dropTarget=> {
+
+      cy.get('.MenubarSubContent').within(()=> {
+        cy.findByText('Section').realDnd($dropTarget);
+      });
+
+    });
+
+    cy.previewReady()
+
+    cy.log('The default content in the 2nd slot of the 2nd Two Column component should now have been replaced with the Section component that was dragged from the component list which has default text of "Our Mission".')
+    cy.getIframeBody().within(()=> {
+      cy.findByText('This is column 1 content').should('not.exist');
+      cy.findByText('This is column 2 content').should('not.exist');
+      cy.get('[data-xb-component-id="experience_builder:two_column"]').should('have.length', 2)
+      cy.get('[data-xb-component-id="experience_builder:two_column"]').eq(1).findByText('hello, world!');
+      cy.get('[data-xb-component-id="experience_builder:two_column"]').eq(1).findByText('Our Mission').should('exist');
+    });
+  });
+});
