@@ -47,7 +47,7 @@ This file is included as an attached Drupal library and as such is subject to CS
   z-index: 1;
   right: var(--xb--space-2);
   left: var(--xb--space-2);
-  height: var(--xb--space-2);
+  height: var(--xb--space-1);
   margin: 0;
   padding: 0;
   border-radius: var(--xb--radius-1);
