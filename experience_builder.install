@@ -81,3 +81,34 @@ function experience_builder_module_preinstall(string $module): void {
   \Drupal::service(ComponentPluginManager::class)->clearCachedDefinitions();
   \Drupal::service(ComponentPluginManager::class)->getDefinitions();
 }
+
+/**
+ * Implements hook_requirements().
+ *
+ * @todo Remove when https://www.drupal.org/project/drupal/issues/3472008 is fixed in Drupal core.
+ */
+function experience_builder_requirements(string $phase): array {
+  $requirements = [];
+  if ($phase === 'install'|| $phase == 'runtime') {
+    // Check if JSON:API module is enabled.
+    $json_api_enabled = \Drupal::moduleHandler()->moduleExists('jsonapi');
+    if ($json_api_enabled) {
+      $severity = REQUIREMENT_WARNING;
+      // Check if PHP assertions are enabled and update the severity.
+      // @see \Drupal\experience_builder\EventSubscriber\ApiMessageValidator::isProd()
+      $assertions_disabled = TRUE;
+      // @phpstan-ignore booleanNot.alwaysTrue
+      assert(!($assertions_disabled = FALSE));
+      // @phpstan-ignore booleanNot.alwaysTrue
+      if (!$assertions_disabled) {
+        $severity = REQUIREMENT_ERROR;
+      }
+      $requirements['experience_builder'] = [
+        'title' => t('Experience Builder'),
+        'description' => t("Experience Builder requires the <code>justinrainbow/json-schema</code> library which may impact site performance when the JSON:API module is installed and PHP assertions are enabled. See <a href=':url'>:url</a> for more information.", [':url' => 'https://www.drupal.org/project/drupal/issues/3472008']),
+        'severity' => $severity,
+      ];
+    }
+  }
+  return $requirements;
+}
