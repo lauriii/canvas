@@ -1,6 +1,6 @@
 .preview {
   display: block;
-  overflow: hidden;
+  overflow: auto;
   box-sizing: content-box;
   width: 1024px;
   height: 768px;

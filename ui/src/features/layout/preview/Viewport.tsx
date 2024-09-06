@@ -280,6 +280,8 @@ const Viewport: React.FC<ViewportProps> = (props) => {
         onMove: handleDragMove,
         onChange: handleChange,
         onEnd: handleDragEnd,
+        scrollSensitivity: 120,
+        scrollSpeed: 40,
         // Prevent dragging content that's provided as an example (default content) by the SDC.
         filter: '[data-xb-slot-is-empty]',
         emptyInsertThreshold: 50,
