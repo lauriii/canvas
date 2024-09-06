@@ -11,6 +11,7 @@ hyperscriptifying
 inwidget
 JSONified
 leftbar
+metacharacter
 Nygard
 Nygard's
 Pryce's

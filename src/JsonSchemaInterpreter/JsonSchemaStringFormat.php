@@ -43,6 +43,11 @@ enum JsonSchemaStringFormat: string {
   // Resource identifiers.
   case UUID = 'uuid'; // Since draft 2019-09. RFC4122.
   case URI = 'uri'; // RFC3986.
+  // Because FILTER_VALIDATE_URL does not conform to RFC-3986, and cannot handle
+  // relative URLs, to support the relative URLs the 'uri-reference' format must
+  // be used.
+  // @see \JsonSchema\Constraints\FormatConstraint::check()
+  // @see \Drupal\Core\Validation\Plugin\Validation\Constraint\PrimitiveTypeConstraintValidator::validate()
   case URI_REFERENCE = 'uri-reference'; // Since draft 6, RFC3986 section 4.1.
   case IRI = 'iri'; // Since draft 7, RFC3987.
   case IRI_REFERENCE = 'iri-reference'; // Since draft 7, RFC3987.
@@ -88,9 +93,7 @@ enum JsonSchemaStringFormat: string {
       // @see https://json-schema.org/understanding-json-schema/reference/string#resource-identifiers
       static::UUID => new DataTypeShapeRequirement('Uuid', []),
       // TRICKY: Drupal core does not support RFC3987 aka IRIs, but it's a superset of RFC3986.
-      static::URI, static::IRI => new DataTypeShapeRequirement('PrimitiveType', [], UriInterface::class),
-      // @todo Verify that \Drupal\Core\Path\Plugin\Validation\Constraint\ValidPathConstraintValidator matches this close enough.
-      static::URI_REFERENCE, static::IRI_REFERENCE => new DataTypeShapeRequirement('ValidPath', []),
+      static::URI_REFERENCE, static::URI, static::IRI, static::IRI_REFERENCE => new DataTypeShapeRequirement('PrimitiveType', [], UriInterface::class),
 
       // Built-in formats: URI template.
       // @see https://json-schema.org/understanding-json-schema/reference/string#uri-template

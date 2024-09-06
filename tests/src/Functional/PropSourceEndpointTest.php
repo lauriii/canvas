@@ -75,7 +75,7 @@ class PropSourceEndpointTest extends BrowserTestBase {
         'id' => 'experience_builder:image',
         'dynamic_prop_source_candidates' => [
           'image' => [
-            'This Article\'s Hero' => 'ℹ︎␜entity:node:article␝field_hero␞␟{src↝entity␜␜entity:file␝uri␞␟value,alt↠alt,width↠width,height↠height}',
+            'This Article\'s Hero' => 'ℹ︎␜entity:node:article␝field_hero␞␟{src↝entity␜␜entity:file␝uri␞␟url,alt↠alt,width↠width,height↠height}',
           ],
         ],
       ],
@@ -180,7 +180,7 @@ class PropSourceEndpointTest extends BrowserTestBase {
             "This Article's Authored by" => 'ℹ︎␜entity:node:article␝uid␞␟entity␜␜entity:user␝login␞␟value',
           ],
           'test_object_drupal_image' => [
-            "This Article's Hero" => 'ℹ︎␜entity:node:article␝field_hero␞␟{src↝entity␜␜entity:file␝uri␞␟value,alt↠alt,width↠width,height↠height}',
+            "This Article's Hero" => 'ℹ︎␜entity:node:article␝field_hero␞␟{src↝entity␜␜entity:file␝uri␞␟url,alt↠alt,width↠width,height↠height}',
           ],
         ],
       ],

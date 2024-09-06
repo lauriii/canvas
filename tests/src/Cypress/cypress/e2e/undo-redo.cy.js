@@ -27,10 +27,7 @@ describe('Undo/Redo functionality', { testIsolation: false }, () => {
     );
     // Check that the menu is not open yet.
     cy.get('[data-radix-menubar-content]').should('have.length', 0);
-    cy.getIframeBody()
-      .find('[data-component-id="experience_builder:two_column"] .column-one')
-      .first()
-      .trigger('click');
+    cy.get('.primaryMenuContent').findByText('Two Column').click();
     cy.findAllByLabelText('Add section')
       .first()
       .click({ scrollBehavior: 'center' });

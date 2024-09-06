@@ -196,7 +196,7 @@ class PropShapeRepositoryTest extends KernelTestBase {
         fieldTypeProp: new FieldTypeObjectPropsExpression('image', [
           'src' => new ReferenceFieldTypePropExpression(
             new FieldTypePropExpression('image', 'entity'),
-            new FieldPropExpression(EntityDataDefinition::create('file'), 'uri', NULL, 'value'),
+            new FieldPropExpression(EntityDataDefinition::create('file'), 'uri', NULL, 'url'),
           ),
           'alt' => new FieldTypePropExpression('image', 'alt'),
           'width' => new FieldTypePropExpression('image', 'width'),

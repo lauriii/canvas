@@ -15,7 +15,7 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
   id: 'image_extract_url',
   label: new TranslatableMarkup('Extract image URL'),
   inputs: [
-    'imageUri' => ['type' => 'object', '$ref' => 'json-schema-definitions://experience_builder.module/image-uri'],
+    'imageUri' => ['type' => 'object', '$ref' => 'json-schema-definitions://experience_builder.module/stream-wrapper-image-uri'],
   ],
   requiredInputs: ['image'],
   output: ['type' => 'object', '$ref' => 'json-schema-definitions://experience_builder.module/image-uri'],

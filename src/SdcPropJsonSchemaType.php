@@ -39,7 +39,6 @@ use Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldTypeP
  * Will have to fix eventually, but high confidence that it will work:
  * @todo `minLength` and `maxLength` for `string`
  * @todo `multipleOf`, `minimum`, `exclusiveMinimum`, `maximum` and `exclusiveMaximum` support for `integer` and `number`.
- * @todo Question: do we need to support both `format` *and* `pattern` simultaneously; for example to only allow URLs from a certain domain?
  * @todo Question: can we reuse \JsonSchema\Constraints\FormatConstraint to validate just prior to passing information from fields to components, only when developing?
  * @todo Use `justinrainbow/json-schema`'s \JsonSchema\Constraints\FormatConstraint to ensure data flowing from Drupal entity is guaranteed to match with JSON schema constraint; log errors in production, throw errors in dev?
  *
@@ -110,9 +109,17 @@ enum SdcPropJsonSchemaType : string {
         ], NULL),
         array_key_exists('pattern', $schema) && array_key_exists('format', $schema) => new DataTypeShapeRequirements([
           JsonSchemaStringFormat::from($schema['format'])->toDataTypeShapeRequirements(),
-          new DataTypeShapeRequirement('Regex', ['pattern' => $schema['pattern']]),
+          // TRICKY: `pattern` in JSON schema requires no start/end delimiters,
+          // but `preg_match()` in PHP does.
+          // @see https://json-schema.org/understanding-json-schema/reference/regular_expressions
+          // @see \Symfony\Component\Validator\Constraints\Regex
+          new DataTypeShapeRequirement('Regex', ['pattern' => '/' . str_replace('/', '\/', $schema['pattern']) . '/']),
         ]),
-        array_key_exists('pattern', $schema) => new DataTypeShapeRequirement('Regex', ['pattern' => $schema['pattern']]),
+        // TRICKY: `pattern` in JSON schema requires no start/end delimiters,
+        // but `preg_match()` in PHP does.
+        // @see https://json-schema.org/understanding-json-schema/reference/regular_expressions
+        // @see \Symfony\Component\Validator\Constraints\Regex
+        array_key_exists('pattern', $schema) => new DataTypeShapeRequirement('Regex', ['pattern' => '/' . str_replace('/', '\/',$schema['pattern']) . '/']),
         array_key_exists('format', $schema) => JsonSchemaStringFormat::from($schema['format'])->toDataTypeShapeRequirements(),
         // Otherwise, it's an unrestricted string. Simply surfacing all
         // structured data containing strings would be meaningless though. To
@@ -250,7 +257,7 @@ enum SdcPropJsonSchemaType : string {
           'json-schema-definitions://experience_builder.module/image' => new StorablePropShape(shape: $shape, fieldWidget: 'image_image', fieldTypeProp: new FieldTypeObjectPropsExpression('image', [
             'src' => new ReferenceFieldTypePropExpression(
               new FieldTypePropExpression('image', 'entity'),
-              new FieldPropExpression(EntityDataDefinition::create('file'), 'uri', NULL, 'value'),
+              new FieldPropExpression(EntityDataDefinition::create('file'), 'uri', NULL, 'url'),
             ),
             'alt' => new FieldTypePropExpression('image', 'alt'),
             'width' => new FieldTypePropExpression('image', 'width'),

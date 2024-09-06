@@ -483,7 +483,6 @@ final class SdcPropToFieldTypePropMatcher {
           }
         }
         else {
-          $transformed_property_data_definition = FALSE;
           $entity_constraints = $entity_data_definition->getConstraints();
           if (!empty($entity_constraints)) {
             // Transform an entity-level `FileExtension` constraint to
@@ -494,10 +493,33 @@ final class SdcPropToFieldTypePropMatcher {
               // @todo verify if truly necessary?
               $transformed_property_data_definition = clone $property_definition;
               // @todo JSON schema does not support case-insensitive matching!!!! https://json-schema.org/understanding-json-schema/reference/regular_expressions
-              // @todo the `value` prop should only get the suffix matching, but the `url` prop should also get prefix matching: `^(http(s)?:)?\/\//`
-              $transformed_property_data_definition->addConstraint('Regex', [
-                'pattern' => '\.(' . preg_replace('/ +/', '|', preg_quote($entity_constraints['FileExtension']['extensions'])) . ')(\?.*)?(#.*)?$',
-              ]);
+              $trailing_uri_regex_pattern = '\.(' . preg_replace('/ +/', '|', preg_quote($entity_constraints['FileExtension']['extensions'])) . ')(\?.*)?(#.*)?$';
+              // If a `Regex` constraint exists, expand it to also match the trailing part.
+              // @todo verify the regex constraint currently only matches the leading part.
+              if ($regex_constraint = $transformed_property_data_definition->getConstraint('Regex')) {
+                assert(str_starts_with($regex_constraint['pattern'], '/^'));
+                // Because we are concatenating the regex pattern with another
+                // pattern that applies to the end of the line the existing
+                // pattern cannot contain a `$` which is the end of line
+                // metacharacter.
+                // @todo Make this check smarter to handle cases like:
+                //   '\$/': should not match because this is literal '$'
+                //   '\\$/': should match because '$' is an end of line
+                if (str_ends_with($regex_constraint['pattern'], '$/')) {
+                  throw new \LogicException(sprintf('The property %s for the field %s uses Regex constraint pattern, %s, that includes an end-of-line metacharacter, `$`,  which is not allowed when also using a FileExtension constraint', $property_name, $regex_constraint['pattern'], $field_definition->getName()));
+                }
+                assert(str_ends_with($regex_constraint['pattern'], '/'));
+                // Trim the trailing slash away. (Using `rtrim()` is incorrect:
+                // it would trim _all_ trailing slashes away.)
+                $regex_constraint['pattern'] = substr($regex_constraint['pattern'], 0, -1);
+                $regex_constraint['pattern'] .= '.*' . $trailing_uri_regex_pattern . '/';
+                $transformed_property_data_definition->addConstraint('Regex', $regex_constraint);
+              }
+              else {
+                $transformed_property_data_definition->addConstraint('Regex', [
+                  'pattern' => $trailing_uri_regex_pattern,
+                ]);
+              }
               $property_definition = $transformed_property_data_definition;
             }
           }

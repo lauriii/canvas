@@ -37,11 +37,23 @@
         }
       }
     },
+    "stream-wrapper-uri": {
+      "title": "Stream wrapper URI",
+      "type": "string",
+      "format": "uri",
+      "pattern": "^(?!https?://)[\\w\\-]+://"
+    },
+    "stream-wrapper-image-uri": {
+      "title": "Stream wrapper image URI",
+      "type": "string",
+      "format": "uri",
+      "pattern": "^(?!https?://)[\\w\\-]+://.*\\.(png|gif|jpg|jpeg|webp)(\\?.*)?(#.*)?$"
+    },
     "image-uri": {
       "title": "Image URL",
       "type": "string",
-      "format": "uri",
-      "pattern": "\\.(png|gif|jpg|jpeg|webp)(\\?.*)?(#.*)?$"
+      "format": "uri-reference",
+      "pattern": "^(/|https?://).*\\.(png|gif|jpg|jpeg|webp)(\\?.*)?(#.*)?$"
     },
     "heading": {
       "title": "Heading",

@@ -204,9 +204,9 @@ To express that, `prop expression`s exist, which define:
 Examples:
 - `ℹ︎␜entity:node:article␝title␞99␟value` declares it evaluates an "article" `content entity`, and returns the "value"
   prop of the 100th `field item` in the "title" `field`
-- `ℹ︎image␟{src↝entity␜␜entity:file␝uri␞␟value,alt↠alt}` declares it evaluates an "image" `field item`, and returns
+- `ℹ︎image␟{src↝entity␜␜entity:file␝uri␞␟url,alt↠alt}` declares it evaluates an "image" `field item`, and returns
   two key-value pairs:
-  - the first one being "src" for which the first "value" `field prop` of the "uri" `field` on the "file"
+  - the first one being "src" for which the first "url" `field prop` of the "uri" `field` on the "file"
     `content entity` that is referenced by the "image" `field type`
   - the second one being "alt", which can be retrieved directly from the "image" `field item`
 

@@ -18,7 +18,29 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
   id: 'image_apply_style',
   label: new TranslatableMarkup('Apply image style'),
   inputs: [
-    'image' => ['type' => 'object', '$ref' => 'json-schema-definitions://experience_builder.module/image'],
+    'image' => [
+      'type' => 'object',
+      // @todo Make `width` and `height` required?
+      'required' => ['src'],
+      'properties' => [
+        'src' => [
+          'title' => 'Original image stream wrapper URI',
+          '$ref' => 'json-schema-definitions://experience_builder.module/stream-wrapper-image-uri',
+        ],
+        'width' => [
+          'title' => 'Original image width',
+          'type' => 'integer',
+        ],
+        'height' => [
+          'title' => 'Original image height',
+          'type' => 'integer',
+        ],
+        'alt' => [
+          'title' => 'Original image alternative text',
+          'type' => 'string',
+        ],
+      ],
+    ],
     'imageStyle' => ['type' => 'string', '$ref' => 'json-schema-definitions://experience_builder.module/config-entity-id'],
   ],
   requiredInputs: ['image'],

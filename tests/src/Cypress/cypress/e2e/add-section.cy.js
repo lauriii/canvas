@@ -27,10 +27,7 @@ describe(
       cy.get('[data-xb-uuid="root"]').findByText('Hero').should('not.exist');
       // Check that the menu is not open yet.
       cy.get('[data-radix-menubar-content]').should('have.length', 0);
-      cy.getIframeBody()
-        .find('[data-component-id="experience_builder:two_column"] .column-one')
-        .first()
-        .trigger('click');
+      cy.get('.primaryMenuContent').findByText('Two Column').click();
       cy.findByLabelText('Column Width').should('exist');
       cy.findAllByLabelText('Add section')
         .first()

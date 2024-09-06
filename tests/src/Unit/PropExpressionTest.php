@@ -157,13 +157,13 @@ class PropExpressionTest extends UnitTestCase {
 
       // Context: bundle of entity type, configurable field.
       [
-        'ℹ︎␜entity:node:article␝field_image␞␟{src↝entity␜␜entity:file␝uri␞␟value,width↠width}',
+        'ℹ︎␜entity:node:article␝field_image␞␟{src↝entity␜␜entity:file␝uri␞␟url,width↠width}',
         new FieldObjectPropsExpression(EntityDataDefinition::create('node', 'article'), 'field_image', NULL, [
           // SDC prop accepting an object, with >=1 mapped key-value pairs:
           // 1. one (non-leaf) field property that follows an entity reference
           'src' => new ReferenceFieldPropExpression(
             new FieldPropExpression(EntityDataDefinition::create('node', 'article'), 'field_image', NULL, 'entity'),
-            new FieldPropExpression(EntityDataDefinition::create('file'), 'uri', NULL, 'value'),
+            new FieldPropExpression(EntityDataDefinition::create('file'), 'uri', NULL, 'url'),
           ),
           // 2. one (leaf) field property
           'width' => new FieldPropExpression(EntityDataDefinition::create('node', 'article'), 'field_image', NULL, 'width'),
@@ -259,13 +259,13 @@ class PropExpressionTest extends UnitTestCase {
 
       // Context: bundle of entity type, configurable field.
       [
-        'ℹ︎image␟{src↝entity␜␜entity:file␝uri␞␟value,width↠width}',
+        'ℹ︎image␟{src↝entity␜␜entity:file␝uri␞␟url,width↠width}',
         new FieldTypeObjectPropsExpression('image', [
           // SDC prop accepting an object, with >=1 mapped key-value pairs:
           // 1. one (non-leaf) field property that follows an entity reference
           'src' => new ReferenceFieldTypePropExpression(
             new FieldTypePropExpression('image', 'entity'),
-            new FieldPropExpression(EntityDataDefinition::create('file'), 'uri', NULL, 'value'),
+            new FieldPropExpression(EntityDataDefinition::create('file'), 'uri', NULL, 'url'),
           ),
           // 2. one (leaf) field property
           'width' => new FieldTypePropExpression('image', 'width'),

@@ -20,7 +20,7 @@ class StringLongItemOverride extends StringLongItem {
     $properties = parent::propertyDefinitions($field_definition);
     $properties['value']->addConstraint('StringSemantics', StringSemanticsConstraint::PROSE);
     $properties['value']->addConstraint('Regex', [
-      'pattern' => '(.|\r?\n)*',
+      'pattern' => '/(.|\r?\n)*/',
     ]);
     return $properties;
   }

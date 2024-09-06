@@ -385,7 +385,7 @@ function media_library_storage_prop_shape_alter(CandidateStorablePropShape $stor
         new FieldTypePropExpression('entity_reference', 'entity'),
         new ReferenceFieldPropExpression(
           new FieldPropExpression(EntityDataDefinition::create('media', 'image'), 'field_media_image', NULL, 'entity'),
-          new FieldPropExpression(EntityDataDefinition::create('file'), 'uri', NULL, 'value'),
+          new FieldPropExpression(EntityDataDefinition::create('file'), 'uri', NULL, 'url'),
         )
       ),
       'alt' => new ReferenceFieldTypePropExpression(
@@ -528,7 +528,8 @@ function experience_builder_preprocess_media_library_item__widget(array &$variab
     }
     $prepared = array_intersect_key([
       ...$value,
-      'src' => $media_file->getFileUri(),
+      // @todo Figure out how to remove these hard-coded assumptions in https://www.drupal.org/project/experience_builder/issues/3463842 — this is assuming `type: string, format: uri-reference` (or more specifically: `$ref: json-schema-definitions://experience_builder.module/image-uri`)
+      'src' => $media_file->createFileUrl(),
     ], ['src' => '', 'alt' => '', 'width' => '', 'height' => '']);
 
     $variables["content"]["remove_button"]["#attributes"]['data-media-file'] = Json::encode($prepared);

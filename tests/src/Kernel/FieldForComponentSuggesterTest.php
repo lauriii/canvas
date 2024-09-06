@@ -133,7 +133,7 @@ class FieldForComponentSuggesterTest extends KernelTestBase {
             'Image' => 'ℹ︎image␟{src↝entity␜␜entity:file␝uri␞0␟url,alt↠alt,width↠width,height↠height}',
           ],
           'instances' => [
-            "This Foo's field_silly_image" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟{src↝entity␜␜entity:file␝uri␞␟value,alt↠alt,width↠width,height↠height}',
+            "This Foo's field_silly_image" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟{src↝entity␜␜entity:file␝uri␞␟url,alt↠alt,width↠width,height↠height}',
           ],
           'adapters' => [
             'Apply image style' => 'image_apply_style',
@@ -335,10 +335,10 @@ class FieldForComponentSuggesterTest extends KernelTestBase {
         '⿲sdc_test_all_props:all-props␟test_string_format_uri_image' => [
           'required' => FALSE,
           'types' => [
-            'Image' => 'ℹ︎image␟entity␜␜entity:file␝uri␞0␟value',
+            'Image' => 'ℹ︎image␟entity␜␜entity:file␝uri␞0␟url',
           ],
           'instances' => [
-            "This Foo's field_silly_image" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uri␞␟value',
+            "This Foo's field_silly_image" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uri␞␟url',
           ],
           'adapters' => [
             'Extract image URL' => 'image_extract_url',
@@ -347,10 +347,12 @@ class FieldForComponentSuggesterTest extends KernelTestBase {
         '⿲sdc_test_all_props:all-props␟test_string_format_uri_reference' => [
           'required' => FALSE,
           'types' => [
-            'Path' => 'ℹ︎path␟alias',
+            'File' => 'ℹ︎file␟entity␜␜entity:file␝uri␞0␟value',
+            'Image' => 'ℹ︎image␟entity␜␜entity:file␝uri␞0␟value',
+            'URI' => 'ℹ︎uri␟value',
           ],
           'instances' => [
-            "This Foo's URL alias" => 'ℹ︎␜entity:node:foo␝path␞␟alias',
+            "This Foo's field_silly_image" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uri␞␟value',
           ],
           'adapters' => [],
         ],
@@ -369,10 +371,12 @@ class FieldForComponentSuggesterTest extends KernelTestBase {
         '⿲sdc_test_all_props:all-props␟test_string_format_iri_reference' => [
           'required' => FALSE,
           'types' => [
-            'Path' => 'ℹ︎path␟alias',
+            'File' => 'ℹ︎file␟entity␜␜entity:file␝uri␞0␟value',
+            'Image' => 'ℹ︎image␟entity␜␜entity:file␝uri␞0␟value',
+            'URI' => 'ℹ︎uri␟value',
           ],
           'instances' => [
-            "This Foo's URL alias" => 'ℹ︎␜entity:node:foo␝path␞␟alias',
+            "This Foo's field_silly_image" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uri␞␟value',
           ],
           'adapters' => [],
         ],
@@ -449,7 +453,7 @@ class FieldForComponentSuggesterTest extends KernelTestBase {
             'Image' => 'ℹ︎image␟{src↝entity␜␜entity:file␝uri␞0␟url,alt↠alt,width↠width,height↠height}',
           ],
           'instances' => [
-            "This Foo's field_silly_image" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟{src↝entity␜␜entity:file␝uri␞␟value,alt↠alt,width↠width,height↠height}',
+            "This Foo's field_silly_image" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟{src↝entity␜␜entity:file␝uri␞␟url,alt↠alt,width↠width,height↠height}',
           ],
           'adapters' => [
             'Apply image style' => 'image_apply_style',

@@ -163,7 +163,7 @@ class EndToEndDemoIntegrationTest extends FunctionalTestBase {
       'dynamic-image-udf7d' => [
         'image' => [
           'sourceType' => 'dynamic',
-          'expression' => 'ℹ︎␜entity:node:article␝field_hero␞␟{src↝entity␜␜entity:file␝uri␞␟value,alt↠alt,width↠width,height↠height}',
+          'expression' => 'ℹ︎␜entity:node:article␝field_hero␞␟{src↝entity␜␜entity:file␝uri␞␟url,alt↠alt,width↠width,height↠height}',
         ],
       ],
       'dynamic-image-static-imageStyle-something7d' => [
@@ -242,6 +242,7 @@ class EndToEndDemoIntegrationTest extends FunctionalTestBase {
     // Prop source for component instance with UUID `dynamic-dynamic-card3rr`.
     assert(File::load(1)->get('uri')[0] instanceof FileUriItem);
     assert(File::load(1)->get('uri')[0]->get('value') instanceof Uri);
+    assert(File::load(1)->get('uri')[0]->get('url') instanceof Uri);
     $this->assertEquals([
       'heading' => [
         'source class' => DynamicPropSource::class,
@@ -259,10 +260,10 @@ class EndToEndDemoIntegrationTest extends FunctionalTestBase {
     $this->assertEquals([
       'image' => [
         'source class' => DynamicPropSource::class,
-        'JSONified' => '{"sourceType":"dynamic","expression":"ℹ︎␜entity:node:article␝field_hero␞␟{src↝entity␜␜entity:file␝uri␞␟value,alt↠alt,width↠width,height↠height}"}',
+        'JSONified' => '{"sourceType":"dynamic","expression":"ℹ︎␜entity:node:article␝field_hero␞␟{src↝entity␜␜entity:file␝uri␞␟url,alt↠alt,width↠width,height↠height}"}',
         'evaluated' => [
           // 🐛 Upstream Drupal core bug: `File::load(1)->getFileUri()` does not return a valid URI!
-          'src' => File::load(1)->get('uri')[0]->get('value')->getCastedValue(),
+          'src' => File::load(1)->get('uri')[0]->get('url')->getCastedValue(),
           'alt' => 'A random image for testing purposes.',
           'width' => 40,
           'height' => 20,
@@ -302,7 +303,7 @@ class EndToEndDemoIntegrationTest extends FunctionalTestBase {
                 'props' => [
                   'image' => [
                     // 🐛 Upstream Drupal core bug: `File::load(1)->getFileUri()` does not return a valid URI!
-                    'src' => File::load(1)->get('uri')[0]->get('value')->getCastedValue(),
+                    'src' => File::load(1)->get('uri')[0]->get('url')->getCastedValue(),
                     'alt' => 'A random image for testing purposes.',
                     'width' => 40,
                     'height' => 20,
@@ -398,7 +399,7 @@ HTML, $node->getTitle(), File::load(1)->get('uri')[0]->get('value')->getCastedVa
     // Markup for component instance with UUID `dynamic-image-udf7d`.
     $this->assertSame(sprintf(<<<HTML
 <img src="%s" alt="A random image for testing purposes." width="%d" height="%d">
-HTML, File::load(1)->get('uri')[0]->get('value')->getCastedValue(), 40, 20), $image_components[0]->getOuterHtml());
+HTML, File::load(1)->get('uri')[0]->get('url')->getCastedValue(), 40, 20), $image_components[0]->getOuterHtml());
     // Markup for component instance with UUID `dynamic-image-static-imageStyle-something7d`.
     $this->assertSame(sprintf(<<<HTML
 <img src="%s" alt="A random image for testing purposes." width="%d" height="%d">
