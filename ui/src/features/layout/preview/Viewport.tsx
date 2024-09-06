@@ -177,6 +177,12 @@ const Viewport: React.FC<ViewportProps> = (props) => {
       if (ev.to === ev.from) {
         updateData(ev, true);
       }
+
+      iframeDocumentRef.current
+        ?.querySelectorAll('.xb--sortable-slot-hover')
+        .forEach((el) => {
+          el.classList.remove('xb--sortable-slot-hover');
+        });
     },
     [dispatch, updateData],
   );
@@ -272,11 +278,23 @@ const Viewport: React.FC<ViewportProps> = (props) => {
         onAdd: handleDragAdd,
         onStart: handleDragStart,
         onMove: handleDragMove,
+        onChange: handleChange,
         onEnd: handleDragEnd,
         // Prevent dragging content that's provided as an example (default content) by the SDC.
         filter: '[data-xb-slot-is-empty]',
         emptyInsertThreshold: 50,
       });
+    };
+
+    const handleChange = (ev: Sortable.SortableEvent) => {
+      iframeDocumentRef.current
+        ?.querySelectorAll('.xb--sortable-slot-hover')
+        .forEach((el) => {
+          el.classList.remove('xb--sortable-slot-hover');
+        });
+      ev.to
+        .closest('[data-xb-component-id="slot"]')
+        ?.classList.add('xb--sortable-slot-hover');
     };
 
     const iframe = iframeRef.current;
