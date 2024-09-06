@@ -225,10 +225,6 @@ phpunit:
         _TARGET_DB_VERSION: '8'
       - _TARGET_DB_TYPE: 'pgsql'
         _TARGET_DB_VERSION: '16'
-  # @todo Delete this after https://www.drupal.org/project/gitlab_templates/issues/3447792 lands.
-  # @see https://git.drupalcode.org/issue/gitlab_templates-3447792/-/compare/main...3447792-raise-sqlite-version?from_project_id=96292, when 984abb7b4781559a13078d58bb65f6959fe42179 was the last commit.
-  image:
-    name: $_CONFIG_DOCKERHUB_ROOT/php-$PHP_VERSION-ubuntu-apache:$_TARGET_PHP_IMAGE_TAG
   # @todo Remove when https://www.drupal.org/project/gitlab_templates/issues/3452183 lands.
   rules:
     - *is-push-rule
