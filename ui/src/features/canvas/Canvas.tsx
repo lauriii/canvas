@@ -206,18 +206,6 @@ const Canvas = () => {
   const handleWheel = useCallback(
     (e: WheelEvent) => {
       if (!contextMenuOpen) {
-        if (modifierKeyPressedRef.current) {
-          // Determine zoom direction
-          e.deltaY > 0
-            ? dispatch(canvasViewPortZoomOut())
-            : dispatch(canvasViewPortZoomIn());
-        } else {
-          e.preventDefault();
-          if (canvasPaneRef.current) {
-            canvasPaneRef.current.scrollTop += e.deltaY;
-            canvasPaneRef.current.scrollLeft += e.deltaX;
-          }
-        }
         if (e.ctrlKey) {
           e.preventDefault();
           dispatch(canvasViewPortZoomDelta(e.deltaY));
