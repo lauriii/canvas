@@ -40,7 +40,7 @@
 #
 
 # The default for the back-end, with more specific code owners for specific areas.
-[Page Builder back-end] @wimleers @f.mazeikis @tedbow
+[Page Builder back-end] @wimleers @f.mazeikis @tedbow @effulgentsia
 /src/
 
 # Issues: https://www.drupal.org/project/issues/experience_builder?component=Config+management
