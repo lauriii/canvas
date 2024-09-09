@@ -13,7 +13,9 @@
   align-items: center;
   justify-content: center;
   width: 3500px;
-  height: 2800px;
+  height: auto;
+  min-height: 2800px;
+  padding-block: 100px;
   transition: background-color 100ms ease-in-out;
   transform: translate(-5000px, -5000px);
   border: 1px solid black;
