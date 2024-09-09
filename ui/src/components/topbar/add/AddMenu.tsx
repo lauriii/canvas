@@ -1,6 +1,7 @@
 import * as Menubar from '@radix-ui/react-menubar';
 import { PlusIcon } from '@radix-ui/react-icons';
 import clsx from 'clsx';
+import { useEffect, useRef, useCallback } from 'react';
 import styles from '@/components/topbar/add/AddMenu.module.css';
 import { preventHover } from '@/utils/function-utils';
 import SecondLevelMenubar from '@/components/topbar/add/SecondLevelMenubar';
@@ -17,6 +18,10 @@ export const AddMenu = () => {
   const isHidden = useAppSelector(selectIsHidden);
   const activeMenu = useAppSelector(selectActiveMenu);
   const dispatch = useAppDispatch();
+  const menuRef = useRef<HTMLDivElement>(null);
+  const portalContainerRef = useRef<HTMLElement | null>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const iframesRef = useRef<HTMLIFrameElement[]>([]);
 
   const onClickHandler = () => {
     if (activeMenu === ADD_MENU_ITEMS.ADD_ID) {
@@ -27,9 +32,61 @@ export const AddMenu = () => {
     }
   };
 
+  const handleClickOutside = useCallback(
+    (event: MouseEvent) => {
+      const portalContainer =
+        portalContainerRef.current ||
+        document.getElementById('menuBarContainer');
+      if (
+        buttonRef.current &&
+        buttonRef.current.contains(event.target as Node)
+      ) {
+        return;
+      }
+      if (
+        menuRef.current &&
+        !menuRef.current.contains(event.target as Node) &&
+        portalContainer &&
+        !portalContainer.contains(event.target as Node)
+      ) {
+        dispatch(setInactive());
+      }
+    },
+    [dispatch],
+  );
+
+  useEffect(() => {
+    portalContainerRef.current = document.getElementById('menuBarContainer');
+    document.addEventListener('mousedown', handleClickOutside);
+    const iframes = document.querySelectorAll('iframe');
+    const currentIframes = Array.from(iframes) as HTMLIFrameElement[];
+    currentIframes.forEach((iframe, index) => {
+      iframesRef.current[index] = iframe;
+      iframe.addEventListener('load', () => {
+        const iframeDoc =
+          iframe.contentDocument || iframe.contentWindow?.document;
+        if (iframeDoc) {
+          iframeDoc.addEventListener('mousedown', handleClickOutside);
+        }
+      });
+    });
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      currentIframes.forEach((iframe) => {
+        const iframeDoc =
+          iframe.contentDocument || iframe.contentWindow?.document;
+        if (iframeDoc) {
+          iframeDoc.removeEventListener('mousedown', handleClickOutside);
+        }
+      });
+    };
+  }, [handleClickOutside]);
+
   return (
     <Menubar.Menu value={ADD_MENU_ITEMS.ADD_ID}>
       <Menubar.Trigger
+        ref={buttonRef}
         onPointerEnter={preventHover}
         onPointerMove={preventHover}
         onPointerLeave={preventHover}
@@ -43,6 +100,7 @@ export const AddMenu = () => {
       </Menubar.Trigger>
       <Menubar.Portal container={document.getElementById('menuBarContainer')}>
         <Menubar.Content
+          ref={menuRef}
           className={clsx('MenubarContent', styles.MenubarContent)}
           align="start"
           onPointerEnter={preventHover}

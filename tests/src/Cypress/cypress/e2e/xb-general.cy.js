@@ -522,7 +522,7 @@ describe('General Experience Builder', { testIsolation: false }, () => {
     cy.get('@getPreview.all').should('have.length', 1);
   });
 
-  it('Can delete component with delete button', () => {
+  it('Can delete component with delete key', () => {
     cy.drupalLogin('xbUser', 'xbUser');
     cy.loadURLandWaitForXBLoaded();
 
@@ -540,7 +540,8 @@ describe('General Experience Builder', { testIsolation: false }, () => {
       .first()
       .click();
 
-    cy.getIframeBody().realPress('{del}');
+    cy.getIframeBody().realType('{del}');
+    cy.previewReady();
 
     // Check there are two heroes after deleting
     cy.testInIframe(
@@ -556,14 +557,38 @@ describe('General Experience Builder', { testIsolation: false }, () => {
 
     cy.get('[data-xb-uuid="root"]').click();
     cy.realPress('{del}');
+    cy.previewReady();
     cy.getIframeBody().find('[data-component-id="experience_builder:two_column"] .column-one').should('have.length', 1);
 
     // Deleting from the content menu.
     cy.get('[data-xb-uuid="root"]').findByText('Two Column').click();
     cy.realPress('{del}');
+    cy.previewReady();
 
     cy.get('[data-xb-uuid="root"]').findByText('Two Column').should('not.exist');
 
   });
 
+  it('Insert panel should close when clicking off', () => {
+    cy.drupalLogin('xbUser', 'xbUser');
+    cy.loadURLandWaitForXBLoaded();
+
+    cy.get('#menuBarContainer .MenubarSubContent').should('not.exist');
+    cy.get('#add-menu-button').click();
+    cy.get('#menuBarContainer .MenubarSubContent').should('exist');
+    cy.get('#add-menu-button').click();
+    cy.get('#menuBarContainer .MenubarSubContent').should('not.exist');
+
+    cy.log('Should close insert panel when clicking outside');
+    cy.get('#add-menu-button').click();
+    cy.get('#menuBarContainer .MenubarSubContent').should('exist');
+    cy.get('body').click('topRight');
+    cy.get('#menuBarContainer .MenubarSubContent').should('not.exist');
+
+    cy.log('Should close insert panel when clicking inside iframe');
+    cy.get('#add-menu-button').click();
+    cy.get('#menuBarContainer .MenubarSubContent').should('exist');
+    cy.getIframeBody().findByText('hello, world!').click();
+    cy.get('#menuBarContainer .MenubarSubContent').should('not.exist');
+  });
 });

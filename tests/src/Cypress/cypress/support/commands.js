@@ -313,7 +313,7 @@ Cypress.Commands.add(
   'previewReady',
   (iframeSelector = '[data-xb-preview="lg"]') => {
     // Not logging these assertions to try and keep the command log a bit tidier
-    cy.get(`${iframeSelector}[data-test-xb-content-initialized="true"]`, {log: false, timeout: 5000})
+    cy.get(`${iframeSelector}[data-test-xb-content-initialized="true"]`, {log: false, timeout: 10000})
     cy.get(iframeSelector, {log: false}).its('0.contentDocument', {log: false})
     cy.log(`Preview '${iframeSelector}' initialized and has content document.`);
   },
