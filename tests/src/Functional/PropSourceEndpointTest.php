@@ -46,6 +46,19 @@ class PropSourceEndpointTest extends BrowserTestBase {
     $node->save();
     $this->drupalLogin($this->rootUser);
     $this->drupalGet('xb-components');
+
+    // Ensure the response is cached by Dynamic Page Cache (because this is a
+    // complex response), but not by Page Cache (because it should not be
+    // available to anonymous users).
+    $this->assertSession()->responseHeaderEquals('X-Drupal-Cache-Tags', 'config:component_list http_response');
+    $this->assertSession()->responseHeaderEquals('X-Drupal-Cache-Contexts', 'user.permissions');
+    $this->assertSession()->responseHeaderEquals('X-Drupal-Cache-Max-Age', '-1 (Permanent)');
+    $this->assertSession()->responseHeaderEquals('X-Drupal-Dynamic-Cache', 'MISS');
+    $this->assertSession()->responseHeaderDoesNotExist('X-Drupal-Cache');
+    $this->drupalGet('xb-components');
+    $this->assertSession()->responseHeaderEquals('X-Drupal-Dynamic-Cache', 'HIT');
+    $this->assertSession()->responseHeaderDoesNotExist('X-Drupal-Cache');
+
     $data = Json::decode($page->getText());
     $data = array_intersect_key(
       $data,

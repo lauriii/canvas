@@ -7,6 +7,8 @@ namespace Drupal\experience_builder\Controller;
 use Drupal\Core\Asset\AssetCollectionRendererInterface;
 use Drupal\Core\Asset\AssetResolverInterface;
 use Drupal\Core\Asset\AttachedAssets;
+use Drupal\Core\Cache\CacheableJsonResponse;
+use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
@@ -203,7 +205,9 @@ final class SdcController extends ControllerBase {
    *   The components list.
    */
   public function components() {
-    return new JsonResponse($this->getComponentsList());
+    return (new CacheableJsonResponse())
+      ->addCacheableDependency((new CacheableMetadata())->addCacheTags(['config:component_list']))
+      ->setData($this->getComponentsList());
   }
 
   /**
