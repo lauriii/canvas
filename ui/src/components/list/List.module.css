@@ -4,6 +4,7 @@
 }
 
 .listItem {
+  padding: 0 7px 0 16px;
   cursor: grab;
   font-size: 14px;
 }
@@ -31,4 +32,5 @@
 
 .ComponentPreviewTrigger {
   width: 100%;
+  padding: 14px 0;
 }

@@ -205,7 +205,7 @@ const ListItem: React.FC<{
       onMouseEnter={() => handleMouseEnter(item)}
     >
       <Tooltip.Provider>
-        <Tooltip.Root>
+        <Tooltip.Root delayDuration={0}>
           <Tooltip.Trigger
             asChild
             className={clsx(
