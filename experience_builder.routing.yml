@@ -114,3 +114,29 @@ experience_builder.api.entity_form:
     parameters:
       entity:
         type: entity:{entity_type}
+
+experience_builder.component.status:
+  path: '/admin/structure/component/status'
+  defaults:
+    _controller: 'Drupal\experience_builder\Controller\ComponentStatusController'
+    _title:  'Components status'
+  requirements:
+    _permission: 'access administration pages'
+
+entity.component.enable:
+  path: '/admin/structure/component/{component}/enable'
+  defaults:
+    _controller: 'Drupal\experience_builder\Controller\ComponentStatusController::performOperation'
+    op: enable
+  requirements:
+    _entity_access: 'component.enable'
+    _csrf_token: 'TRUE'
+
+entity.component.disable:
+  path: '/admin/structure/component/{component}/disable'
+  defaults:
+    _controller: 'Drupal\experience_builder\Controller\ComponentStatusController::performOperation'
+    op: disable
+  requirements:
+    _entity_access: 'component.disable'
+    _csrf_token: 'TRUE'

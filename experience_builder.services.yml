@@ -25,10 +25,10 @@ services:
     tags:
       - { name: render.main_content_renderer, format: xb_endpoint }
   Drupal\experience_builder\Plugin\ComponentPluginManager:
-    decorates: plugin.manager.sdc
-    parent: plugin.manager.sdc
-    calls:
-      - [setEntityTypeManager, ['@entity_type.manager']]
+    decorates: Drupal\Core\Theme\ComponentPluginManager
+    parent: Drupal\Core\Theme\ComponentPluginManager
+    arguments: ['@entity_type.manager', '@state']
+
   logger.channel.experience_builder:
     parent: logger.channel_base
     arguments: ['experience_builder']
@@ -64,3 +64,6 @@ services:
     class: Drupal\experience_builder\Theme\XBThemeNegotiator
     tags:
       - { name: theme_negotiator }
+
+  # Controllers.
+  Drupal\experience_builder\Controller\ComponentStatusController: {}

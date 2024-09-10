@@ -28,3 +28,7 @@ parameters:
       message: "#^Class .* extends @internal class#"
       count: 1
       path: src/MediaLibraryXbPropOpener.php
+    -
+      message: "#^Missing cache backend declaration for performance\\.$#"
+      count: 1
+      path: src/Plugin/ComponentPluginManager.php

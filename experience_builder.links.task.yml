@@ -1,0 +1,9 @@
+entity.block_content.collection:
+  title: 'Enabled components'
+  route_name: entity.component.collection
+  base_route: entity.component.collection
+experience_builder.component.status:
+  title: 'Disabled components'
+  description: 'List of disabled Experience Builder components and their status'
+  route_name: experience_builder.component.status
+  base_route: entity.component.collection

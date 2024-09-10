@@ -42,10 +42,13 @@ use Drupal\experience_builder\PropSource\StaticPropSource;
  *      "id" = "id",
  *      "component" = "component",
  *      "label" = "label",
+ *      "status" = "status",
  *    },
  *    links = {
  *      "delete-form" = "/admin/structure/component/delete/{id}",
  *      "collection" = "/admin/structure/component",
+ *      "enable" = "/admin/structure/component/{id}/enable",
+ *      "disable" = "/admin/structure/component/{id}/disable",
  *    },
  *    config_export = {
  *      "label",
@@ -224,9 +227,6 @@ final class Component extends ConfigEntityBase {
     assert(is_array($component_plugin->metadata->schema));
     $defaults = self::getDefaultsForComponentPlugin($component_plugin);
     $component->set('defaults', $defaults);
-    if (isset($component_plugin->metadata->status) && $component_plugin->metadata->status === 'obsolete') {
-      $component->disable();
-    }
 
     return $component;
   }

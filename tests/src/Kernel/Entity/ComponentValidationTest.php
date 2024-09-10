@@ -10,6 +10,8 @@ use Drupal\KernelTests\Core\Config\ConfigEntityValidationTestBase;
 /**
  * Tests validation of component entities.
  *
+ * @todo Add `testStatus()` method in https://www.drupal.org/project/experience_builder/issues/3473289
+ *
  * @group experience_builder
  */
 class ComponentValidationTest extends ConfigEntityValidationTestBase {

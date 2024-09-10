@@ -7,6 +7,11 @@ experience_builder.component.*:
     label:
       type: required_label
       label: 'Label'
+    status:
+      # Refine `type: config_entity`'s `status`: only allow `true` for SDCs that meet the requirements.
+      constraints: {
+      # @todo Write validation constraint per above comment in https://www.drupal.org/project/experience_builder/issues/3473289
+      }
     # @see \Drupal\Core\Plugin\Component::$machineName
     id:
       type: machine_name
