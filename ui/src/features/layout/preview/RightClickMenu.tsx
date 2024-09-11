@@ -4,16 +4,10 @@ import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import {
   selectIsContextMenuOpen,
   setIsContextMenuOpen,
-  setSelectedComponent,
   unsetHoveredComponent,
 } from '@/features/ui/uiSlice';
-import { DropdownMenu } from '@radix-ui/themes';
-import {
-  deleteNode,
-  duplicateNode,
-  shiftNode,
-} from '@/features/layout/layoutModelSlice';
 import type { ViewPortSize } from '@/features/layout/preview/Viewport';
+import DropDownContextMenu from './DropDownContextMenu';
 
 export interface RightClickMenuProps {
   viewportSize: ViewPortSize;
@@ -76,90 +70,14 @@ const RightClickMenu: React.FC<RightClickMenuProps> = (props) => {
     };
   }, [handleLeftClick]);
 
-  function handleDeleteClick() {
-    dispatch(setIsContextMenuOpen(undefined));
-    dispatch(unsetHoveredComponent());
-    if (elementId) {
-      dispatch(deleteNode(elementId));
-    }
-  }
-
-  function handleSelectClick() {
-    dispatch(unsetHoveredComponent());
-    dispatch(setIsContextMenuOpen(undefined));
-    if (elementId) {
-      dispatch(setSelectedComponent(elementId));
-    }
-  }
-  function handleDuplicateClick() {
-    dispatch(setIsContextMenuOpen(undefined));
-    dispatch(unsetHoveredComponent());
-
-    if (elementId) {
-      dispatch(duplicateNode({ uuid: elementId }));
-    }
-  }
-
-  function handleMoveUpClick() {
-    dispatch(setIsContextMenuOpen(undefined));
-    dispatch(unsetHoveredComponent());
-
-    dispatch(shiftNode({ uuid: elementId, direction: 'up' }));
-  }
-
-  function handleMoveDownClick() {
-    dispatch(setIsContextMenuOpen(undefined));
-    dispatch(unsetHoveredComponent());
-
-    dispatch(shiftNode({ uuid: elementId, direction: 'down' }));
-  }
-
   if (contextMenuOpen === viewportSize && isPositionUpdated) {
     return (
       <>
-        <DropdownMenu.Root open={!!contextMenuOpen}>
-          <DropdownMenu.Content
-            style={{
-              top: contextMenuPosition.y,
-              left: contextMenuPosition.x,
-              position: 'absolute',
-              pointerEvents: 'all',
-            }}
-          >
-            <DropdownMenu.Item shortcut="⌘ E" onClick={handleSelectClick}>
-              Edit
-            </DropdownMenu.Item>
-            <DropdownMenu.Item shortcut="⌘ D" onClick={handleDuplicateClick}>
-              Duplicate
-            </DropdownMenu.Item>
-            <DropdownMenu.Separator />
-
-            <DropdownMenu.Sub>
-              <DropdownMenu.SubTrigger>Move</DropdownMenu.SubTrigger>
-              <DropdownMenu.SubContent>
-                <DropdownMenu.Item onClick={handleMoveUpClick}>
-                  Move up
-                </DropdownMenu.Item>
-                <DropdownMenu.Item onClick={handleMoveDownClick}>
-                  Move down
-                </DropdownMenu.Item>
-
-                <DropdownMenu.Separator />
-                <DropdownMenu.Item onClick={() => alert('Todo')}>
-                  Move into
-                </DropdownMenu.Item>
-              </DropdownMenu.SubContent>
-            </DropdownMenu.Sub>
-            <DropdownMenu.Separator />
-            <DropdownMenu.Item
-              // shortcut="⌘ ⌫"
-              color="red"
-              onClick={handleDeleteClick}
-            >
-              Delete
-            </DropdownMenu.Item>
-          </DropdownMenu.Content>
-        </DropdownMenu.Root>
+        <DropDownContextMenu
+          elementId={elementId}
+          contextMenuPosition={contextMenuPosition}
+          contextMenuOpen={contextMenuOpen}
+        />
       </>
     );
   }

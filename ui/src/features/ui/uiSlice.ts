@@ -35,7 +35,7 @@ export interface uiSliceState {
   contextualPanelOpen: boolean;
   canvasViewport: CanvasViewPort;
   primaryMenu: PrimaryMenuState;
-  contextMenuOpen: ViewPortSize | undefined;
+  contextMenuOpen: ViewPortSize | undefined | boolean;
   latestUndoRedoActionId: string;
 }
 
@@ -211,7 +211,7 @@ export const uiSlice = createAppSlice({
       },
     ),
     setIsContextMenuOpen: create.reducer(
-      (state, action: PayloadAction<ViewPortSize | undefined>) => {
+      (state, action: PayloadAction<ViewPortSize | undefined | boolean>) => {
         state.contextMenuOpen = action.payload;
       },
     ),
@@ -248,7 +248,7 @@ export const uiSlice = createAppSlice({
     selectPrimaryMenuHidden: (ui): boolean => {
       return ui.primaryMenu.isHidden;
     },
-    selectIsContextMenuOpen: (ui): ViewPortSize | undefined => {
+    selectIsContextMenuOpen: (ui): ViewPortSize | undefined | boolean => {
       return ui.contextMenuOpen;
     },
     selectLatestUndoRedoActionId: (ui): string => {
