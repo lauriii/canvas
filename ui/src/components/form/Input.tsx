@@ -5,8 +5,7 @@ import { TextField } from '@radix-ui/themes';
 
 const Input = (props: React.ComponentProps<any>) => {
   const { attributes = {}, renderChildren = '' } = props;
-  const unHandledTypes = ['submit', 'hidden'];
-
+  const unHandledTypes = ['submit', 'hidden', 'checkbox'];
   return (
     <>
       {!unHandledTypes.includes(attributes?.type) && (

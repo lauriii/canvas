@@ -88,12 +88,7 @@ const ContextualPanel: React.FC<ContextualPanelProps> = () => {
                   </SegmentedControl.Root>
                 </Flex>
                 <Separator orientation="horizontal" size="4" />
-                <ScrollArea
-                  type="always"
-                  size="1"
-                  scrollbars="vertical"
-                  style={{ height: 700 }}
-                >
+                <ScrollArea type="always" size="1" scrollbars="vertical">
                   <Box pt="3">
                     {activePanel === 'settings' && (
                       <>

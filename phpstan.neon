@@ -29,6 +29,10 @@ parameters:
       count: 1
       path: src/MediaLibraryXbPropOpener.php
     -
+      message: "#^Access to an undefined property#"
+      count: 1
+      path: src/PropSource/StaticPropSource.php
+    -
       message: "#^Missing cache backend declaration for performance\\.$#"
       count: 1
       path: src/Plugin/ComponentPluginManager.php

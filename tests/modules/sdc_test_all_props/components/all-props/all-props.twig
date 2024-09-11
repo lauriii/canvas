@@ -1,6 +1,6 @@
 <div>
   <h2>Boolean shapes</h2>
-  <dl>
+  <dl id="test-bool">
     <dt>test_bool</dt>
     <dd>
   {% if test_bool %}
@@ -13,58 +13,58 @@
   <h2>String shapes</h2>
   <dl>
     <dt>test_REQUIRED_string</dt>
-    <dd><code>{{ test_REQUIRED_string }}</code></dd>
+    <dd id="test-required-string"><code>{{ test_REQUIRED_string }}</code></dd>
     <dt>test_string</dt>
-    <dd><code>{{ test_string }}</code></dd>
+    <dd id="test-string"><code>{{ test_string }}</code></dd>
     <dt>test_string_multiline</dt>
-    <dd><code>{{ test_string_multiline }}</code></dd>
+    <dd id="test-string-multiline"><code>{{ test_string_multiline }}</code></dd>
     <dt>test_string_enum</dt>
-    <dd><code>{{ test_string_enum }}</code></dd>
+    <dd id="test-string-enum"><code>{{ test_string_enum }}</code></dd>
     <dt>test_string_format_date_time</dt>
-    <dd><code>{{ test_string_format_date_time }}</code></dd>
+    <dd id="test-string-format-date-time"><code>{{ test_string_format_date_time }}</code></dd>
     <dt>test_string_format_date</dt>
-    <dd><code>{{ test_string_format_date }}</code></dd>
+    <dd id="test-string-format-date"><code>{{ test_string_format_date }}</code></dd>
     <dt>test_string_format_time</dt>
-    <dd><code>{{ test_string_format_time }}</code></dd>
+    <dd id="test-string-format-time"><code>{{ test_string_format_time }}</code></dd>
     <dt>test_string_format_email</dt>
-    <dd><code>{{ test_string_format_email }}</code></dd>
+    <dd id="test-string-format-email"><code>{{ test_string_format_email }}</code></dd>
     <dt>test_string_format_idn_email</dt>
-    <dd><code>{{ test_string_format_idn_email }}</code></dd>
+    <dd id="test-string-format-idn-email"><code>{{ test_string_format_idn_email }}</code></dd>
     <dt>test_string_format_hostname</dt>
-    <dd><code>{{ test_string_format_hostname }}</code></dd>
+    <dd id="test-string-format-hostname"><code>{{ test_string_format_hostname }}</code></dd>
     <dt>test_string_format_idn_hostname</dt>
-    <dd><code>{{ test_string_format_idn_hostname }}</code></dd>
+    <dd id="test-string-format-idn-hostname"><code>{{ test_string_format_idn_hostname }}</code></dd>
     <dt>test_string_format_ipv4</dt>
-    <dd><code>{{ test_string_format_ipv4 }}</code></dd>
+    <dd id="test-string-format-ipv4"><code>{{ test_string_format_ipv4 }}</code></dd>
     <dt>test_string_format_ipv6</dt>
-    <dd><code>{{ test_string_format_ipv6 }}</code></dd>
+    <dd id="test-string-format-hostname-ipv6"><code>{{ test_string_format_ipv6 }}</code></dd>
     <dt>test_string_format_uuid</dt>
-    <dd><code>{{ test_string_format_uuid }}</code></dd>
+    <dd id="test-string-format-uuid"><code>{{ test_string_format_uuid }}</code></dd>
     <dt>test_string_format_uri</dt>
-    <dd><code>{{ test_string_format_uri }}</code></dd>
+    <dd id="test-string-format-uri"><code>{{ test_string_format_uri }}</code></dd>
     <dt>test_string_format_uri_image</dt>
-    <dd><code>{{ test_string_format_uri_image }}</code></dd>
+    <dd id="test-string-format-uri-image"><code>{{ test_string_format_uri_image }}</code></dd>
     <dt>test_string_format_uri_reference</dt>
-    <dd><code>{{ test_string_format_uri_reference }}</code></dd>
+    <dd id="test-string-format-uri-reference"><code>{{ test_string_format_uri_reference }}</code></dd>
     <dt>test_string_format_iri</dt>
-    <dd><code>{{ test_string_format_iri }}</code></dd>
+    <dd id="test-string-format-iri"><code>{{ test_string_format_iri }}</code></dd>
     <dt>test_string_format_iri_reference</dt>
-    <dd><code>{{ test_string_format_iri_reference }}</code></dd>
+    <dd id="test-string-format-iri-reference"><code>{{ test_string_format_iri_reference }}</code></dd>
     <dt>test_string_format_uri_template</dt>
-    <dd><code>{{ test_string_format_uri_template }}</code></dd>
+    <dd id="test-string-format-uri-template"><code>{{ test_string_format_uri_template }}</code></dd>
     <dt>test_string_format_json_pointer</dt>
-    <dd><code>{{ test_string_format_json_pointer }}</code></dd>
+    <dd id="test-string-format-json-pointer"><code>{{ test_string_format_json_pointer }}</code></dd>
     <dt>test_string_format_regex</dt>
-    <dd><code>{{ test_string_format_regex }}</code></dd>
+    <dd id="test-string-format-regex"><code>{{ test_string_format_regex }}</code></dd>
   </dl>
   <h2>Integer shapes</h2>
   <dl>
     <dt>test_integer</dt>
-    <dd><code>{{ test_integer }}</code></dd>
+    <dd id="test-integer"><code>{{ test_integer }}</code></dd>
     <dt>test_integer_range_minimum</dt>
-    <dd><code>{{ test_integer_range_minimum }}</code></dd>
+    <dd id="test-integer-range-minimum"><code>{{ test_integer_range_minimum }}</code></dd>
     <dt>test_integer_range_minimum_maximum_timestamps</dt>
-    <dd><code>{{ test_integer_range_minimum_maximum_timestamps }}</code></dd>
+    <dd id="test-integer-range-minimum-maximum-timestamps"><code>{{ test_integer_range_minimum_maximum_timestamps }}</code></dd>
   </dl>
   <h2>Number shapes</h2>
   <p>None yet.</p>
@@ -73,17 +73,17 @@
     <dt>test_object_drupal_image</dt>
     <dd>
       <ul>
-        <li>src: <code>{{ test_object_drupal_image.src }}</code>
-        <li>alt: <code>{{ test_object_drupal_image.alt }}</code>
-        <li>width: <code>{{ test_object_drupal_image.width }}</code>
-        <li>height: <code>{{ test_object_drupal_image.height }}</code>
+        <li id="test-object-drupal-image--src">src: <code>{{ test_object_drupal_image.src }}</code>
+        <li id="test-object-drupal-image--alt">alt: <code>{{ test_object_drupal_image.alt }}</code>
+        <li id="test-object-drupal-image--width">width: <code>{{ test_object_drupal_image.width }}</code>
+        <li id="test-object-drupal-image--height">height: <code>{{ test_object_drupal_image.height }}</code>
       </ul>
     </dd>
     <dt>test_object_drupal_date_range</dt>
     <dd>
       <ul>
-        <li>from: <code>{{ test_object_drupal_date_range.from }}</code>
-        <li>to: <code>{{ test_object_drupal_date_range.to }}</code>
+        <li id="test-object-drupal-date-range--from">from: <code>{{ test_object_drupal_date_range.from }}</code>
+        <li id="test-object-drupal-date-range--to">to: <code>{{ test_object_drupal_date_range.to }}</code>
       </ul>
     </dd>
   </dl>

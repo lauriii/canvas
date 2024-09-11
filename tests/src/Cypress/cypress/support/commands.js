@@ -134,6 +134,15 @@ Cypress.Commands.add(
 Cypress.Commands.add('drupalInstallModule', (module, force, callback) => {
   cy.drupalLoginAsAdmin(() => {
     cy.drupalRelativeURL('/admin/modules');
+
+    // Open any collapsed sections in the modules page.
+    cy.get('[data-drupal-selector="system-modules"] > details > summary[aria-expanded="false"][aria-controls^="edit-modules"]')
+      .then(($closedDetails) => {
+        $closedDetails.each((index, closed) => {
+          Cypress.$(closed).click();
+        })
+      })
+
     cy.get(`form.system-modules [name="modules[${module}][enable]"]`).check();
     cy.get('form.system-modules').submit();
     if (force) {
@@ -375,6 +384,46 @@ Cypress.Commands.add(
           !!frameContent,
           `'${selector}' was found in iframe '${iframeSelector}'`,
         ).to.equal(true);
+      });
+    });
+  },
+);
+
+Cypress.Commands.add(
+  'waitForElementContentInIframe',
+  (selector, textContent, iframeSelector = '[data-xb-preview="lg"]', customTimeout) => {
+    cy.document().then((doc) => {
+      cy.get(true, {
+        timeout: customTimeout || Cypress.config('defaultCommandTimeout'),
+      }).should(() => {
+        const frameContent = doc
+          .querySelector(iframeSelector)
+          ?.contentWindow?.document?.body.querySelector(selector);
+        expect(
+          !!frameContent,
+          `'${selector}' was found in iframe '${iframeSelector}'`,
+        ).to.equal(true);
+        expect(frameContent?.textContent?.includes(textContent), `${iframeSelector} in iframe includes text ${textContent}`).to.equal(true)
+      });
+    });
+  },
+);
+
+Cypress.Commands.add(
+  'waitForElementContentNotInIframe',
+  (selector, textContent, iframeSelector = '[data-xb-preview="lg"]', customTimeout) => {
+    cy.document().then((doc) => {
+      cy.get(true, {
+        timeout: customTimeout || Cypress.config('defaultCommandTimeout'),
+      }).should(() => {
+        const frameContent = doc
+          .querySelector(iframeSelector)
+          ?.contentWindow?.document?.body.querySelector(selector);
+        expect(
+          !!frameContent,
+          `'${selector}' was found in iframe '${iframeSelector}'`,
+        ).to.equal(true);
+        expect(!!(!!frameContent && !frameContent.textContent.includes(textContent)), `${iframeSelector} in iframe should no longer include text ${textContent}, but there is ${frameContent?.textContent}`).to.equal(true)
       });
     });
   },

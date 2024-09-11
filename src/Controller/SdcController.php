@@ -169,6 +169,7 @@ final class SdcController extends ControllerBase {
         if ($storable_prop_shape->fieldInstanceSettings !== NULL) {
           $keyed_choices[$component_prop->propName]['sourceTypeSettings']['instance'] = $storable_prop_shape->fieldInstanceSettings;
         }
+        $keyed_choices[$component_prop->propName]['jsonSchema'] = $prop_shape->resolvedSchema;
       }
       $assets = AttachedAssets::createFromRenderArray([
         '#attached' => [

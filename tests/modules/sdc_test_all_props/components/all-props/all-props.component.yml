@@ -27,14 +27,14 @@ props:
       # This pattern needs to match the pattern added in
       # \Drupal\experience_builder\Plugin\Field\FieldTypeOverride\StringLongItemOverride::propertyDefinitions.
       examples:
-        - "Hello,\nworld!"
+        - "Hello,\nmultiline\nworld!"
     test_REQUIRED_string:
       title: 'String'
       type: string
       examples:
         - Hello, required world!
     test_string_enum:
-      title: 'String'
+      title: 'String - Enum'
       type: string
       enum:
         - foo
@@ -48,7 +48,7 @@ props:
       type: string
       format: date-time
       examples:
-        - '2018-11-13T20:20:39+00:00'
+        - '2016-09-16T20:20:39+00:00'
     test_string_format_date:
       title: 'String, format=date'
       type: string

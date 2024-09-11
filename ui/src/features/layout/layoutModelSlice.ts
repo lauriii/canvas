@@ -306,6 +306,17 @@ export const layoutModelSlice = createSlice({
         }
       },
     ),
+    // Nearly identical to updateNodeModel above, but makes it possible to
+    // remove props by not including the prior state.model[uuid] in the value
+    // update.
+    updateNodeModelForce: create.reducer(
+      (state, action: PayloadAction<UpdateNodePayload>) => {
+        const { uuid, model } = action.payload;
+        if (uuid) {
+          state.model[uuid] = { ...(model as ComponentModel) };
+        }
+      },
+    ),
   }),
 });
 
@@ -375,6 +386,7 @@ export const {
   insertNode,
   insertMultipleNodes,
   updateNodeModel,
+  updateNodeModelForce,
 } = layoutModelSlice.actions;
 
 export const layoutModelReducer = layoutModelSlice.reducer;

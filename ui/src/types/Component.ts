@@ -5,7 +5,12 @@ export interface FieldData {
 export interface FieldDataItem {
   expression: string;
   sourceType: string;
-  sourceTypeSettings?: object;
+  sourceTypeSettings?: {
+    storage?: object;
+  };
+  jsonSchema?: {
+    properties?: object;
+  };
   default_values: object;
   [x: string | number | symbol]: unknown;
 }

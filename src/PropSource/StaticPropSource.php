@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\experience_builder\PropSource;
 
+use Drupal\Core\Datetime\DrupalDateTime;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Entity\Plugin\DataType\EntityAdapter;
 use Drupal\Core\Field\FieldItemInterface;
@@ -304,7 +305,16 @@ final class StaticPropSource extends PropSourceBase {
     if ($host_entity) {
       $field->setContext(NULL, EntityAdapter::createFromEntity($host_entity));
     }
-    return $this->getWidget($sdc_prop_name, $sdc_prop_label, $field_widget_plugin_id)->form($field, $form, $form_state);
+    $widget = $this->getWidget($sdc_prop_name, $sdc_prop_label, $field_widget_plugin_id);
+    $widget_form = $widget->form($field, $form, $form_state);
+    if ($field_widget_plugin_id === 'datetime_default') {
+      // The datetime widget needs a DrupalDateTime object as the value.
+      // @todo Figure out why this is necessary — \DateTimeWidgetBase::createDefaultValue() *is* getting called, but somehow it does not result in the default value being populated unless we do this.
+      // @see \Drupal\datetime\Plugin\Field\FieldWidget\DateTimeWidgetBase::createDefaultValue()
+      $widget_form['widget'][0]['value']['#default_value'] = new DrupalDateTime($this->fieldItem->value);
+    }
+
+    return $widget_form;
   }
 
   /**

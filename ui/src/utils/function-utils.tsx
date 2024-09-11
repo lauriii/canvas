@@ -7,8 +7,13 @@ export const preventHover = (event: any) => {
   e.preventDefault();
 };
 
-export function parseValue(value: any) {
-  if (value === '') return value;
+export function parseValue(value: any, element: HTMLInputElement) {
+  if (element && Object.prototype.hasOwnProperty.call(element, 'checked')) {
+    return element.checked;
+  }
+  if (value === '') {
+    return value;
+  }
   const parsed = Number(value);
   return isNaN(parsed) ? value : parsed;
 }
