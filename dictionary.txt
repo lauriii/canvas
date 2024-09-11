@@ -14,6 +14,7 @@ leftbar
 metacharacter
 Nygard
 Nygard's
+propless
 Pryce's
 propsify
 reduxjs

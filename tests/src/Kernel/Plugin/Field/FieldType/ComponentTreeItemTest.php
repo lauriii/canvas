@@ -134,14 +134,15 @@ class ComponentTreeItemTest extends KernelTestBase {
 
   public static function providerInvalidField(): array {
     $root_uuid = ComponentTreeStructure::ROOT_UUID;
-    $test_cases = static::getComponentTreeTestCases();
+    $test_cases = static::getValidTreeTestCases();
+    array_walk($test_cases, fn(array &$test_case) => $test_case[] = []);
+    $test_cases = array_merge($test_cases, static::getInvalidTreeTestCases());
     $test_cases['invalid tree structure, uuid at top of data structure is not in the tree, also has empty slots'][] = [
       'field_xb_test.0.tree[other-uuid]' => [
         'Empty component subtree. A component subtree must contain >=1 populated slot (with >=1 component instance). Empty component subtrees must be omitted.',
         'Dangling component subtree. This component subtree claims to be for a component instance with UUID <em class="placeholder">other-uuid</em>, but no such component instance can be found.',
       ],
     ];
-    $test_cases['valid values using dynamic props'][] = [];
     $test_cases['missing components, using dynamic props'][] = [
       "field_xb_test.0.tree[$root_uuid][0]" => 'The component <em class="placeholder">sdc_test:missing</em> does not exist.',
       "field_xb_test.0.tree[$root_uuid][1]" => 'The component <em class="placeholder">sdc_test:missing-also</em> does not exist.',
@@ -163,6 +164,45 @@ class ComponentTreeItemTest extends KernelTestBase {
     ];
     $test_cases['missing tree key'][] = [
       'field_xb_test.0' => 'The array must contain a "tree" key.',
+    ];
+    return $test_cases;
+  }
+
+  /**
+   * @covers \Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem::resolveComponentProps
+   * @dataProvider providerComponentResolving
+   */
+  public function testComponentResolving(array $component_item_value, array $expected_props_for_uuids): void {
+    $this->container->get('module_installer')->install(['xb_test_config_node_article']);
+    $node = Node::create([
+      'title' => 'Test node',
+      'type' => 'article',
+      'field_xb_test' => $component_item_value,
+    ]);
+    $xb_field_item = $node->field_xb_test[0];
+    $this->assertInstanceOf(ComponentTreeItem::class, $xb_field_item);
+    $actual_props = array_combine(
+      array_keys($expected_props_for_uuids),
+      array_map(fn (string $uuid) => $xb_field_item->resolveComponentProps($uuid), array_keys($expected_props_for_uuids))
+    );
+    $this->assertSame($expected_props_for_uuids, $actual_props);
+  }
+
+  public static function providerComponentResolving(): array {
+    $test_cases = static::getValidTreeTestCases();
+    $invalid_test_cases = static::getInvalidTreeTestCases();
+    // Only 1 invalid case will allow to call
+    // \Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem::resolveComponentProps()
+    // without an exception.
+    $test_cases['invalid tree structure, uuid at top of data structure is not in the tree, also has empty slots'] = $invalid_test_cases['invalid tree structure, uuid at top of data structure is not in the tree, also has empty slots'];
+    $test_cases['invalid tree structure, uuid at top of data structure is not in the tree, also has empty slots'][] = [];
+    $test_cases['valid values using dynamic props'][] = [
+      'dynamic-static-card2df' => [
+        'heading' => 'Test node',
+      ],
+    ];
+    $test_cases['valid values for propless component'][] = [
+      'propless-component-uuid' => [],
     ];
     return $test_cases;
   }

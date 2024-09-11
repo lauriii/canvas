@@ -13,9 +13,9 @@ trait ComponentTreeTestTrait {
 
   use TestDataUtilitiesTrait;
 
-  protected static function getComponentTreeTestCases(): array {
+  protected static function getValidTreeTestCases(): array {
     return [
-      'invalid tree structure, uuid at top of data structure is not in the tree, also has empty slots' => [
+      'valid values using dynamic props' => [
         [
           'tree' => self::encodeXBData([
             ComponentTreeStructure::ROOT_UUID => [
@@ -24,7 +24,6 @@ trait ComponentTreeTestTrait {
                 'component' => 'xb_test_sdc:props-slots',
               ],
             ],
-            'other-uuid' => [],
           ]),
           'props' => self::encodeXBData([
             'dynamic-static-card2df' => [
@@ -36,7 +35,18 @@ trait ComponentTreeTestTrait {
           ]),
         ],
       ],
-      'valid values using dynamic props' => [
+      'valid values for propless component' => [
+        [
+          'tree' => '{"a548b48d-58a8-4077-aa04-da9405a6f418": [{"uuid":"propless-component-uuid","component":"experience_builder:druplicon"}]}',
+          'props' => '{}',
+        ],
+      ],
+    ];
+  }
+
+  protected static function getInvalidTreeTestCases(): array {
+    return [
+      'invalid tree structure, uuid at top of data structure is not in the tree, also has empty slots' => [
         [
           'tree' => self::encodeXBData([
             ComponentTreeStructure::ROOT_UUID => [
@@ -45,6 +55,7 @@ trait ComponentTreeTestTrait {
                 'component' => 'xb_test_sdc:props-slots',
               ],
             ],
+            'other-uuid' => [],
           ]),
           'props' => self::encodeXBData([
             'dynamic-static-card2df' => [

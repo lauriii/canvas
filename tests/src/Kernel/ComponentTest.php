@@ -213,6 +213,9 @@ class ComponentTest extends KernelTestBase {
           'compatible' => FALSE,
           'reason' => 'Component has "obsolete" status',
         ],
+        'experience_builder:druplicon'  => [
+          'compatible' => TRUE,
+        ],
         'experience_builder:experimental' => [
           'compatible' => TRUE,
         ],
@@ -289,6 +292,9 @@ class ComponentTest extends KernelTestBase {
         'experience_builder:obsolete' => [
           'compatible' => FALSE,
           'reason' => 'Component has "obsolete" status',
+        ],
+        'experience_builder:druplicon'  => [
+          'compatible' => TRUE,
         ],
         'experience_builder:experimental' => [
           'compatible' => TRUE,
@@ -379,6 +385,9 @@ class ComponentTest extends KernelTestBase {
         'experience_builder:obsolete' => [
           'compatible' => FALSE,
           'reason' => 'Component has "obsolete" status',
+        ],
+        'experience_builder:druplicon'  => [
+          'compatible' => TRUE,
         ],
         'experience_builder:experimental' => [
           'compatible' => TRUE,

@@ -15,6 +15,7 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\TypedData\DataDefinition;
 use Drupal\experience_builder\Entity\Component;
 use Drupal\experience_builder\FieldForComponentSuggester;
+use Drupal\experience_builder\Plugin\ComponentPluginManager;
 use Drupal\experience_builder\Plugin\DataType\ComponentPropsValues;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeHydrated;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
@@ -227,13 +228,29 @@ class ComponentTreeItem extends FieldItemBase implements RenderableInterface {
   public function resolveComponentProps(string $component_instance_uuid): array {
     $props = $this->get('props');
     assert($props instanceof ComponentPropsValues);
-
     $entity = $this->getRoot() === $this ? NULL : $this->getEntity();
+    $tree = $this->get('tree');
+    assert($tree instanceof ComponentTreeStructure);
+    if (!self::componentHasProps($tree->getComponentId($component_instance_uuid))) {
+      return [];
+    }
 
     return array_map(
       fn (PropSourceBase $s): mixed => $s->evaluate($entity),
       $props->getComponentPropsSources($component_instance_uuid)
     );
+  }
+
+  /**
+   * @param string $component_id
+   *   A component plugin ID.
+   *
+   * @return bool
+   */
+  protected static function componentHasProps(string $component_id): bool {
+    $component_manager = \Drupal::service(ComponentPluginManager::class);
+    $component = $component_manager->find($component_id);
+    return !empty($component->metadata->schema['properties']);
   }
 
   /**

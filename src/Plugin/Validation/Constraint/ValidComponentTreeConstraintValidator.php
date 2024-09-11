@@ -74,10 +74,8 @@ final class ValidComponentTreeConstraintValidator extends ConstraintValidator im
     foreach ($tree->getComponentInstanceUuids() as $component_instance_uuid) {
       $component_id = $tree->getComponentId($component_instance_uuid);
       try {
-        // @todo Handle the case where component exists but has no props in
-        //   https://drupal.org/i/3463188.
-        $props_values = $value->resolveComponentProps($component_instance_uuid);
         $component = $this->componentPluginManager->find($component_id);
+        $props_values = $value->resolveComponentProps($component_instance_uuid);
         $this->componentValidator->validateProps($props_values, $component);
       }
       catch (ComponentNotFoundException) {

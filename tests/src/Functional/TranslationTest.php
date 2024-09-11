@@ -55,7 +55,7 @@ class TranslationTest extends FunctionalTestBase {
    * Data provider for testTranslation().
    * @return array<array{0: array, 1: bool}>
    */
-  public function translationDataProvider(): array {
+  public static function translationDataProvider(): array {
     return [
       // In the symmetric case, the 'tree' property is not translatable. This
       // means every translation has the same components but can have different
