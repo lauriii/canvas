@@ -17,13 +17,19 @@ function useSyncIframeHeightToContent(
       const iframeHTML = iframe.contentDocument.documentElement;
       const iframeBody = iframe.contentDocument.body;
       window.requestAnimationFrame(() => {
-        iframe.style.height = iframeHTML?.offsetHeight
-          ? `${iframeHTML.offsetHeight}px`
-          : 'auto';
-        iframe.style.width = width + 'px';
-        iframe.style.minHeight = height + 'px';
-        iframeHTML.style.minHeight = height + 'px';
-        iframeBody.style.minHeight = height + 'px';
+        if (iframe?.style) {
+          iframe.style.height = iframeHTML?.offsetHeight
+            ? `${iframeHTML.offsetHeight}px`
+            : 'auto';
+          iframe.style.width = width + 'px';
+          iframe.style.minHeight = height + 'px';
+        }
+        if (iframeHTML?.style) {
+          iframeHTML.style.minHeight = height + 'px';
+        }
+        if (iframeBody?.style) {
+          iframeBody.style.minHeight = height + 'px';
+        }
       });
     }
   }, [iframeRef, height, width]);

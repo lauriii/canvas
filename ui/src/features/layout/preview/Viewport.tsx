@@ -64,6 +64,7 @@ const Viewport: React.FC<ViewportProps> = (props) => {
   const { data: sections } = useGetSectionsQuery();
   const componentsRef = useRef(components);
   const sectionsRef = useRef(sections);
+  const sizeRef = useRef(size);
 
   const handleDragStart = useCallback(() => {
     dispatch(setPreviewDragging(true));
@@ -204,6 +205,10 @@ const Viewport: React.FC<ViewportProps> = (props) => {
   }, []);
 
   useEffect(() => {
+    sizeRef.current = size;
+  }, [size]);
+
+  useEffect(() => {
     componentsRef.current = components;
   }, [components]);
 
@@ -262,7 +267,7 @@ const Viewport: React.FC<ViewportProps> = (props) => {
           }
           setMouseEventPosition({ pageX: event.pageX, pageY: event.pageY });
           dispatch(setHoveredComponent(target.dataset.xbUuid));
-          dispatch(setIsContextMenuOpen(size));
+          dispatch(setIsContextMenuOpen(sizeRef?.current));
         }
       });
     };
@@ -362,7 +367,6 @@ const Viewport: React.FC<ViewportProps> = (props) => {
     };
   }, [
     dispatch,
-    height,
     handleDragClone,
     handleDragAdd,
     handleDragEnd,
@@ -370,7 +374,6 @@ const Viewport: React.FC<ViewportProps> = (props) => {
     handleDragMove,
     layout,
     model,
-    size,
   ]);
 
   return (
