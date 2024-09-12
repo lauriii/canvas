@@ -78,7 +78,7 @@ class PropSourceEndpointTest extends BrowserTestBase {
   /**
    * For each SDC prop, the expected candidate field instance expressions.
    *
-   * @see \Drupal\experience_builder\FieldForComponentSuggester
+   * @see \Drupal\experience_builder\ShapeMatcher\FieldForComponentSuggester
    *
    * @return array<string, array{id: string, dynamic_prop_source_candidates: array<string, array<string, string>>}>
    */
@@ -169,7 +169,15 @@ class PropSourceEndpointTest extends BrowserTestBase {
             "This Article's Hero" => 'ℹ︎␜entity:node:article␝field_hero␞␟entity␜␜entity:file␝uri␞␟value',
             "This Article's Image" => 'ℹ︎␜entity:node:article␝field_image␞␟entity␜␜entity:file␝uri␞␟value',
           ],
+          'test_string_format_uri_reference' => [
+            "This Article's Hero" => 'ℹ︎␜entity:node:article␝field_hero␞␟entity␜␜entity:file␝uri␞␟value',
+            "This Article's Image" => 'ℹ︎␜entity:node:article␝field_image␞␟entity␜␜entity:file␝uri␞␟value',
+          ],
           'test_string_format_iri' => [
+            "This Article's Hero" => 'ℹ︎␜entity:node:article␝field_hero␞␟entity␜␜entity:file␝uri␞␟value',
+            "This Article's Image" => 'ℹ︎␜entity:node:article␝field_image␞␟entity␜␜entity:file␝uri␞␟value',
+          ],
+          'test_string_format_iri_reference' => [
             "This Article's Hero" => 'ℹ︎␜entity:node:article␝field_hero␞␟entity␜␜entity:file␝uri␞␟value',
             "This Article's Image" => 'ℹ︎␜entity:node:article␝field_image␞␟entity␜␜entity:file␝uri␞␟value',
           ],

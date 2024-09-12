@@ -3,12 +3,12 @@
 namespace Drupal\experience_builder\Plugin\Adapter;
 
 use Drupal\Core\Plugin\PluginBase;
-use Drupal\experience_builder\PropShape;
+use Drupal\experience_builder\PropShape\PropShape;
 use JsonSchema\Constraints\Constraint;
 use JsonSchema\Validator;
 
 /**
- * @phpstan-import-type JsonSchema from \Drupal\experience_builder\SdcPropJsonSchemaType
+ * @phpstan-import-type JsonSchema from \Drupal\experience_builder\JsonSchemaInterpreter\SdcPropJsonSchemaType
  */
 abstract class AdapterBase extends PluginBase implements AdapterInterface {
 

@@ -21,8 +21,8 @@ use Drupal\Core\Theme\ExtensionType;
 use Drupal\Core\Theme\ThemeManagerInterface;
 use Drupal\experience_builder\Entity\Component;
 use Drupal\experience_builder\PropExpressions\Component\ComponentPropExpression;
-use Drupal\experience_builder\PropShape;
-use Drupal\experience_builder\StorablePropShape;
+use Drupal\experience_builder\PropShape\PropShape;
+use Drupal\experience_builder\PropShape\StorablePropShape;
 
 /**
  * Decorator that auto-creates/updates an Experience Builder Component entity per SDC.

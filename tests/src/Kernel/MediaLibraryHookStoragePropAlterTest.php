@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Drupal\Tests\experience_builder\Kernel;
 
 use Drupal\experience_builder\PropExpressions\StructuredData\StructuredDataPropExpression;
-use Drupal\experience_builder\PropShape;
-use Drupal\experience_builder\StorablePropShape;
+use Drupal\experience_builder\PropShape\PropShape;
+use Drupal\experience_builder\PropShape\StorablePropShape;
 
 /**
  * @covers media_library_storage_prop_shape_alter()
@@ -54,7 +54,7 @@ class MediaLibraryHookStoragePropAlterTest extends PropShapeRepositoryTest {
   }
 
   /**
-   * @return \Drupal\experience_builder\StorablePropShape[]
+   * @return \Drupal\experience_builder\PropShape\StorablePropShape[]
    */
   public static function getExpectedStorablePropShapes(): array {
     $storable_prop_shapes = parent::getExpectedStorablePropShapes();

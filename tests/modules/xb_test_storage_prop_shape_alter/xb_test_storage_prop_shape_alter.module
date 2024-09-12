@@ -2,8 +2,8 @@
 
 declare(strict_types=1);
 
-use Drupal\experience_builder\CandidateStorablePropShape;
 use Drupal\experience_builder\PropExpressions\StructuredData\StructuredDataPropExpression;
+use Drupal\experience_builder\PropShape\CandidateStorablePropShape;
 
 /**
  * Implements hook_storage_prop_shape_alter().

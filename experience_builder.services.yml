@@ -1,11 +1,11 @@
 services:
   _defaults:
     autowire: true
-  Drupal\experience_builder\SdcPropToFieldTypePropMatcher:
+  Drupal\experience_builder\ShapeMatcher\SdcPropToFieldTypePropMatcher:
     public: true
     arguments:
       $constraintManager: '@validation.constraint'
-  Drupal\experience_builder\FieldForComponentSuggester:
+  Drupal\experience_builder\ShapeMatcher\FieldForComponentSuggester:
     public: true
   Drupal\experience_builder\JsonSchemaDefinitionsStreamwrapper:
     public: true

@@ -13,10 +13,10 @@ use Drupal\experience_builder\PropExpressions\StructuredData\FieldPropExpression
 use Drupal\experience_builder\PropExpressions\StructuredData\FieldTypeObjectPropsExpression;
 use Drupal\experience_builder\PropExpressions\StructuredData\FieldTypePropExpression;
 use Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldTypePropExpression;
-use Drupal\experience_builder\PropShape;
+use Drupal\experience_builder\PropShape\PropShape;
+use Drupal\experience_builder\PropShape\StorablePropShape;
 use Drupal\experience_builder\PropSource\StaticPropSource;
-use Drupal\experience_builder\SdcPropToFieldTypePropMatcher;
-use Drupal\experience_builder\StorablePropShape;
+use Drupal\experience_builder\ShapeMatcher\SdcPropToFieldTypePropMatcher;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\Tests\experience_builder\Traits\ContribStrictConfigSchemaTestTrait;
 use Drupal\user\Entity\User;
@@ -140,7 +140,7 @@ class PropShapeRepositoryTest extends KernelTestBase {
   }
 
   /**
-   * @return \Drupal\experience_builder\StorablePropShape[]
+   * @return \Drupal\experience_builder\PropShape\StorablePropShape[]
    */
   public static function getExpectedStorablePropShapes(): array {
     $generate_allowed_values_setting = function (array $allowed_values): array {
@@ -383,6 +383,16 @@ class PropShapeRepositoryTest extends KernelTestBase {
         fieldTypeProp: new FieldTypePropExpression('uri', 'value'),
         fieldWidget: 'uri',
       ),
+      'type=string&format=iri-reference' => new StorablePropShape(
+        shape: new PropShape(['type' => 'string', 'format' => JsonSchemaStringFormat::IRI_REFERENCE->value]),
+        fieldTypeProp: new FieldTypePropExpression('uri', 'value'),
+        fieldWidget: 'uri',
+      ),
+      'type=string&format=uri-reference' => new StorablePropShape(
+        shape: new PropShape(['type' => 'string', 'format' => JsonSchemaStringFormat::URI_REFERENCE->value]),
+        fieldTypeProp: new FieldTypePropExpression('uri', 'value'),
+        fieldWidget: 'uri',
+      ),
       'type=string&$ref=json-schema-definitions://experience_builder.module/textarea' => new StorablePropShape(
         shape: new PropShape(['type' => 'string', '$ref' => 'json-schema-definitions://experience_builder.module/textarea']),
         fieldTypeProp: new FieldTypePropExpression('string_long', 'value'),
@@ -392,7 +402,7 @@ class PropShapeRepositoryTest extends KernelTestBase {
   }
 
   /**
-   * @return \Drupal\experience_builder\PropShape[]
+   * @return \Drupal\experience_builder\PropShape\PropShape[]
    */
   public static function getExpectedUnstorablePropShapes(): array {
     return [
@@ -411,8 +421,6 @@ class PropShapeRepositoryTest extends KernelTestBase {
       'type=string&format=uri&pattern=\.(mp4|webm)(\?.*)?(#.*)?$' => new PropShape(['type' => 'string', 'format' => JsonSchemaStringFormat::URI->value, 'pattern' => '\.(mp4|webm)(\?.*)?(#.*)?$']),
       'type=string&format=uri-template' => new PropShape(['type' => 'string', 'format' => JsonSchemaStringFormat::URI_TEMPLATE->value]),
       'type=string&format=uuid' => new PropShape(['type' => 'string', 'format' => JsonSchemaStringFormat::UUID->value]),
-      'type=string&format=iri-reference' => new PropShape(['type' => 'string', 'format' => JsonSchemaStringFormat::IRI_REFERENCE->value]),
-      'type=string&format=uri-reference' => new PropShape(['type' => 'string', 'format' => JsonSchemaStringFormat::URI_REFERENCE->value]),
     ];
   }
 
@@ -443,7 +451,7 @@ class PropShapeRepositoryTest extends KernelTestBase {
 
   /**
    * @depends testStorablePropShapes
-   * @param \Drupal\experience_builder\StorablePropShape[] $storable_prop_shapes
+   * @param \Drupal\experience_builder\PropShape\StorablePropShape[] $storable_prop_shapes
    */
   public function testPropShapesYieldWorkingStaticPropSources(array $storable_prop_shapes): void {
     $this->assertNotEmpty($storable_prop_shapes);

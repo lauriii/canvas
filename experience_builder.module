@@ -13,7 +13,7 @@ use Drupal\Core\Extension\Extension;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Render\Element;
 use Drupal\Core\Url;
-use Drupal\experience_builder\CandidateStorablePropShape;
+use Drupal\datetime\Plugin\Field\FieldType\DateTimeItem;
 use Drupal\experience_builder\Plugin\ComponentPluginManager;
 use Drupal\experience_builder\Plugin\Field\FieldTypeOverride\FileItemOverride;
 use Drupal\experience_builder\Plugin\Field\FieldTypeOverride\FileUriItemOverride;
@@ -32,6 +32,7 @@ use Drupal\experience_builder\PropExpressions\StructuredData\FieldTypeObjectProp
 use Drupal\experience_builder\PropExpressions\StructuredData\FieldTypePropExpression;
 use Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldPropExpression;
 use Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldTypePropExpression;
+use Drupal\experience_builder\PropShape\CandidateStorablePropShape;
 use Drupal\experience_builder\RenderArrayXB;
 use Drupal\file\Entity\File;
 use Drupal\media\Entity\Media;
@@ -368,7 +369,7 @@ function experience_builder_module_implements_alter(array &$implementations, str
  *
  * Overrides the default: the "image" field type + widget.
  *
- * @see \Drupal\experience_builder\SdcPropJsonSchemaType::computeStorablePropShape()
+ * @see \Drupal\experience_builder\JsonSchemaInterpreter\SdcPropJsonSchemaType::computeStorablePropShape()
  * @todo Move to Media Library module, eventually.
  */
 function media_library_storage_prop_shape_alter(CandidateStorablePropShape $storable_prop_shape): void {
@@ -413,6 +414,28 @@ function media_library_storage_prop_shape_alter(CandidateStorablePropShape $stor
       ],
     ];
     $storable_prop_shape->fieldWidget = 'media_library_widget';
+  }
+}
+
+/**
+ * Implements hook_storage_prop_shape_alter().
+ *
+ * (On behalf of the Date Range module.)
+ *
+ * @see \Drupal\experience_builder\JsonSchemaInterpreter\SdcPropJsonSchemaType::computeStorablePropShape()
+ * @see \Drupal\datetime_range\Plugin\Field\FieldType\DateRangeItem
+ */
+function datetime_range_storage_prop_shape_alter(CandidateStorablePropShape $storable_prop_shape): void {
+  if ($storable_prop_shape->shape->schema == ['type' => 'object', '$ref' => 'json-schema-definitions://sdc_test_all_props.module/date-range']) {
+    $storable_prop_shape->fieldTypeProp = new FieldTypeObjectPropsExpression(
+      'daterange',
+      [
+        'from' => new FieldTypePropExpression('daterange', 'end_value'),
+        'to' => new FieldTypePropExpression('daterange', 'value'),
+      ]
+    );
+    $storable_prop_shape->fieldStorageSettings = ['datetime_type' => DateTimeItem::DATETIME_TYPE_DATE];
+    $storable_prop_shape->fieldWidget = 'daterange_default';
   }
 }
 

@@ -4,6 +4,17 @@ In the rest of this document, `Experience Builder` will be written as `XB`.
 
 **Also see the [diagram](diagrams/data-model.md).**
 
+## Finding issues 🐛, code 🤖 & people 👯‍♀️
+Related XB issue queue components:
+1. [Data model](https://www.drupal.org/project/issues/experience_builder?component=Data+model)
+2. [Shape matching](https://www.drupal.org/project/issues/experience_builder?component=Shape+matching) (see section
+  3.1.2 below, and specifically 3.1.2.a)
+
+Those issue queue components also have corresponding entries in [`CODEOWNERS`](../CODEOWNERS).
+
+If anything is unclear or missing in this document, create an issue in one of those issue queue components and assign it
+to one of us! 😊 🙏
+
 ## 1. Terminology
 
 ### 1.1 Existing Drupal Terminology that is crucial for XB
@@ -88,7 +99,7 @@ Content Creator to place a `component instance` in the `component tree`, specify
 
 #### 3.1.1 Interpreting `component`s: `prop shapes`
 
-See `\Drupal\experience_builder\PropShape`.
+See `\Drupal\experience_builder\PropShape\PropShape`.
 
 The `component slot`s part is simple: any other `component instance` can be placed there (⚠️this will change, see
 product requirements).
@@ -125,8 +136,8 @@ ask. Because:
 ##### 3.1.2.a `structured data` → matching `field instance`s ⇒ `dynamic prop source`
 
 See:
-- `\Drupal\experience_builder\SdcPropToFieldTypePropMatcher`
-- `\Drupal\experience_builder\SdcPropJsonSchemaType::toDataTypeShapeRequirements()`
+- `\Drupal\experience_builder\ShapeMatcher\SdcPropToFieldTypePropMatcher`
+- `\Drupal\experience_builder\JsonSchemaInterpreter\SdcPropJsonSchemaType::toDataTypeShapeRequirements()`
 
 All `structured data` in every `content entity` in Drupal is found in `base field`s and `bundle field`s. These already
 have field settings defined. Hence `XB` must **match** a `field instance` for a given `prop shape`.
@@ -150,11 +161,15 @@ value that fits in the `prop shape`.
 
 See `\Drupal\experience_builder\PropSource\DynamicPropSource`.
 
+⚠️ **Multiple** bits of `structured data` may be able to fit into a given `prop shape`. All viable choices are
+suggested by `\Drupal\experience_builder\ShapeMatcher\FieldForComponentSuggester`. The Content Creator or Site Builder
+will choose one.
+
 ##### 3.1.2.b `unstructured data` → generating `conjured field`s ⇒ `static prop source`
 
 See:
-- `\Drupal\experience_builder\SdcPropJsonSchemaType::computeStorablePropShape()`
-- `\Drupal\experience_builder\StorablePropShape`
+- `\Drupal\experience_builder\JsonSchemaInterpreter\SdcPropJsonSchemaType::computeStorablePropShape()`
+- `\Drupal\experience_builder\PropShape\StorablePropShape`
 - `hook_storage_prop_shape_alter()`
 
 For any `unstructured data`, no field settings exist yet, so the appropriate settings for a `prop shape` must be
@@ -164,11 +179,15 @@ optional `component prop`s.
 
 Contributed modules can implement `hook_storage_prop_shape_alter()` to make different choices.
 
-The computed `\Drupal\experience_builder\StorablePropShape` can be used to create a `static prop source` (which contains
-all information for the `conjured field` that powers it), that can be _evaluated_ to retrieve the stored
+The computed `\Drupal\experience_builder\PropShape\StorablePropShape` can be used to create a `static prop source`
+(which contains all information for the `conjured field` that powers it), that can be _evaluated_ to retrieve the stored
 value that fits in the `prop shape`.
 
 See `\Drupal\experience_builder\PropSource\StaticPropSource`.
+
+⚠️ When choosing to use `unstructured data` to populate a `component prop`, XB decides
+using the aforementioned logic what `field type`, `field widget` et cetera to use. Only when using `structured data`,
+there is a need for an additional choice (see the `FieldForComponentSuggester` mentioned in 3.1.2.a).
 
 #### 3.1.3 `prop expression`s: evaluating a `dynamic prop source` or `static prop source`
 

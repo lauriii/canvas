@@ -1,6 +1,7 @@
 adrs
 autolayout
 Carden
+CODEOWNERS
 devizzent
 drupalcode
 drupaldev

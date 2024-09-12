@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Drupal\Tests\experience_builder\Kernel;
 
 use Drupal\Core\Entity\TypedData\EntityDataDefinition;
-use Drupal\experience_builder\FieldForComponentSuggester;
+use Drupal\experience_builder\ShapeMatcher\FieldForComponentSuggester;
 use Drupal\experience_builder\Plugin\Adapter\AdapterInterface;
 use Drupal\experience_builder\PropExpressions\StructuredData\StructuredDataPropExpressionInterface;
 use Drupal\field\Entity\FieldConfig;
@@ -15,7 +15,7 @@ use Drupal\node\Entity\NodeType;
 use Drupal\Tests\experience_builder\Traits\ContribStrictConfigSchemaTestTrait;
 
 /**
- * @coversClass \Drupal\experience_builder\FieldForComponentSuggester
+ * @coversClass \Drupal\experience_builder\ShapeMatcher\FieldForComponentSuggester
  * @group experience_builder
  */
 class FieldForComponentSuggesterTest extends KernelTestBase {
@@ -93,7 +93,7 @@ class FieldForComponentSuggesterTest extends KernelTestBase {
   }
 
   /**
-   * @param array<string, array{'required': bool, 'types': array<string, string>, 'instances': array<string, string>, 'adapters': array<string, string>}> $expected
+   * @param array<string, array{'required': bool, 'instances': array<string, string>, 'adapters': array<string, string>}> $expected
    *
    * @dataProvider provider
    */
@@ -110,7 +110,6 @@ class FieldForComponentSuggesterTest extends KernelTestBase {
         $expected[$prop_name],
         [
           'required' => $suggestions[$prop_name]['required'],
-          'types' => array_map(fn (StructuredDataPropExpressionInterface $e): string => (string) $e, $suggestions[$prop_name]['types']),
           'instances' => array_map(fn (StructuredDataPropExpressionInterface $e): string => (string) $e, $suggestions[$prop_name]['instances']),
           'adapters' => array_map(fn (AdapterInterface $a): string => $a->getPluginId(), $suggestions[$prop_name]['adapters']),
         ],
@@ -129,9 +128,6 @@ class FieldForComponentSuggesterTest extends KernelTestBase {
       [
         '⿲experience_builder:image␟image' => [
           'required' => TRUE,
-          'types' => [
-            'Image' => 'ℹ︎image␟{src↝entity␜␜entity:file␝uri␞0␟url,alt↠alt,width↠width,height↠height}',
-          ],
           'instances' => [
             "This Foo's field_silly_image" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟{src↝entity␜␜entity:file␝uri␞␟url,alt↠alt,width↠width,height↠height}',
           ],
@@ -149,9 +145,6 @@ class FieldForComponentSuggesterTest extends KernelTestBase {
       [
         '⿲experience_builder:image␟image' => [
           'required' => TRUE,
-          'types' => [
-            'Image' => 'ℹ︎image␟{src↝entity␜␜entity:file␝uri␞0␟url,alt↠alt,width↠width,height↠height}',
-          ],
           'instances' => [],
           'adapters' => [
             'Apply image style' => 'image_apply_style',
@@ -167,11 +160,6 @@ class FieldForComponentSuggesterTest extends KernelTestBase {
       [
         '⿲sdc_test_all_props:all-props␟test_bool' => [
           'required' => FALSE,
-          'types' => [
-            'File' => 'ℹ︎file␟entity␜␜entity:file␝status␞0␟value',
-            'Image' => 'ℹ︎image␟entity␜␜entity:file␝status␞0␟value',
-            'Boolean' => 'ℹ︎boolean␟value',
-          ],
           'instances' => [
             "This Foo's Default translation" => 'ℹ︎␜entity:node:foo␝default_langcode␞␟value',
             "This Foo's field_silly_image" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝status␞␟value',
@@ -187,10 +175,6 @@ class FieldForComponentSuggesterTest extends KernelTestBase {
         ],
         '⿲sdc_test_all_props:all-props␟test_string' => [
           'required' => FALSE,
-          'types' => [
-            'Text (plain, long)' => 'ℹ︎string_long␟value',
-            'Text (plain)' => 'ℹ︎string␟value',
-          ],
           'instances' => [
             "This Foo's field_silly_image" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟title',
             "This Foo's Revision log message" => 'ℹ︎␜entity:node:foo␝revision_log␞␟value',
@@ -200,9 +184,6 @@ class FieldForComponentSuggesterTest extends KernelTestBase {
         ],
         '⿲sdc_test_all_props:all-props␟test_string_multiline' => [
           'required' => FALSE,
-          'types' => [
-            'Text (plain, long)' => 'ℹ︎string_long␟value',
-          ],
           'instances' => [
             "This Foo's Revision log message" => 'ℹ︎␜entity:node:foo␝revision_log␞␟value',
           ],
@@ -210,10 +191,6 @@ class FieldForComponentSuggesterTest extends KernelTestBase {
         ],
         '⿲sdc_test_all_props:all-props␟test_REQUIRED_string' => [
           'required' => TRUE,
-          'types' => [
-            'Text (plain, long)' => 'ℹ︎string_long␟value',
-            'Text (plain)' => 'ℹ︎string␟value',
-          ],
           'instances' => [
             "This Foo's Title" => 'ℹ︎␜entity:node:foo␝title␞␟value',
           ],
@@ -221,15 +198,11 @@ class FieldForComponentSuggesterTest extends KernelTestBase {
         ],
         '⿲sdc_test_all_props:all-props␟test_string_enum' => [
           'required' => FALSE,
-          'types' => [],
           'instances' => [],
           'adapters' => [],
         ],
         '⿲sdc_test_all_props:all-props␟test_string_format_date_time' => [
           'required' => FALSE,
-          'types' => [
-            'Date' => 'ℹ︎datetime␟value',
-          ],
           'instances' => [
             "This Foo's field_event_duration" => 'ℹ︎␜entity:node:foo␝field_event_duration␞␟value',
           ],
@@ -237,9 +210,6 @@ class FieldForComponentSuggesterTest extends KernelTestBase {
         ],
         '⿲sdc_test_all_props:all-props␟test_string_format_date' => [
           'required' => FALSE,
-          'types' => [
-            'Date' => 'ℹ︎datetime␟value',
-          ],
           'instances' => [
             "This Foo's field_event_duration" => 'ℹ︎␜entity:node:foo␝field_event_duration␞␟value',
           ],
@@ -249,21 +219,16 @@ class FieldForComponentSuggesterTest extends KernelTestBase {
         ],
         '⿲sdc_test_all_props:all-props␟test_string_format_time' => [
           'required' => FALSE,
-          'types' => [],
           'instances' => [],
           'adapters' => [],
         ],
         '⿲sdc_test_all_props:all-props␟test_string_format_duration' => [
           'required' => FALSE,
-          'types' => [],
           'instances' => [],
           'adapters' => [],
         ],
         '⿲sdc_test_all_props:all-props␟test_string_format_email' => [
           'required' => FALSE,
-          'types' => [
-            'Email' => 'ℹ︎email␟value',
-          ],
           'instances' => [
             "This Foo's Revision user" => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝mail␞␟value',
             "This Foo's Authored by" => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝mail␞␟value',
@@ -272,9 +237,6 @@ class FieldForComponentSuggesterTest extends KernelTestBase {
         ],
         '⿲sdc_test_all_props:all-props␟test_string_format_idn_email' => [
           'required' => FALSE,
-          'types' => [
-            'Email' => 'ℹ︎email␟value',
-          ],
           'instances' => [
             "This Foo's Revision user" => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝mail␞␟value',
             "This Foo's Authored by" => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝mail␞␟value',
@@ -283,35 +245,26 @@ class FieldForComponentSuggesterTest extends KernelTestBase {
         ],
         '⿲sdc_test_all_props:all-props␟test_string_format_hostname' => [
           'required' => FALSE,
-          'types' => [],
           'instances' => [],
           'adapters' => [],
         ],
         '⿲sdc_test_all_props:all-props␟test_string_format_idn_hostname' => [
           'required' => FALSE,
-          'types' => [],
           'instances' => [],
           'adapters' => [],
         ],
         '⿲sdc_test_all_props:all-props␟test_string_format_ipv4' => [
           'required' => FALSE,
-          'types' => [],
           'instances' => [],
           'adapters' => [],
         ],
         '⿲sdc_test_all_props:all-props␟test_string_format_ipv6' => [
           'required' => FALSE,
-          'types' => [],
           'instances' => [],
           'adapters' => [],
         ],
         '⿲sdc_test_all_props:all-props␟test_string_format_uuid' => [
           'required' => FALSE,
-          'types' => [
-            'File' => 'ℹ︎file␟entity␜␜entity:file␝uuid␞0␟value',
-            'Image' => 'ℹ︎image␟entity␜␜entity:file␝uuid␞0␟value',
-            'UUID' => 'ℹ︎uuid␟value',
-          ],
           'instances' => [
             "This Foo's field_silly_image" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uuid␞␟value',
             "This Foo's Revision user" => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝uuid␞␟value',
@@ -322,11 +275,6 @@ class FieldForComponentSuggesterTest extends KernelTestBase {
         ],
         '⿲sdc_test_all_props:all-props␟test_string_format_uri' => [
           'required' => FALSE,
-          'types' => [
-            'File' => 'ℹ︎file␟entity␜␜entity:file␝uri␞0␟value',
-            'Image' => 'ℹ︎image␟entity␜␜entity:file␝uri␞0␟value',
-            'URI' => 'ℹ︎uri␟value',
-          ],
           'instances' => [
             "This Foo's field_silly_image" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uri␞␟value',
           ],
@@ -334,9 +282,6 @@ class FieldForComponentSuggesterTest extends KernelTestBase {
         ],
         '⿲sdc_test_all_props:all-props␟test_string_format_uri_image' => [
           'required' => FALSE,
-          'types' => [
-            'Image' => 'ℹ︎image␟entity␜␜entity:file␝uri␞0␟url',
-          ],
           'instances' => [
             "This Foo's field_silly_image" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uri␞␟url',
           ],
@@ -346,11 +291,6 @@ class FieldForComponentSuggesterTest extends KernelTestBase {
         ],
         '⿲sdc_test_all_props:all-props␟test_string_format_uri_reference' => [
           'required' => FALSE,
-          'types' => [
-            'File' => 'ℹ︎file␟entity␜␜entity:file␝uri␞0␟value',
-            'Image' => 'ℹ︎image␟entity␜␜entity:file␝uri␞0␟value',
-            'URI' => 'ℹ︎uri␟value',
-          ],
           'instances' => [
             "This Foo's field_silly_image" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uri␞␟value',
           ],
@@ -358,11 +298,6 @@ class FieldForComponentSuggesterTest extends KernelTestBase {
         ],
         '⿲sdc_test_all_props:all-props␟test_string_format_iri' => [
           'required' => FALSE,
-          'types' => [
-            'File' => 'ℹ︎file␟entity␜␜entity:file␝uri␞0␟value',
-            'Image' => 'ℹ︎image␟entity␜␜entity:file␝uri␞0␟value',
-            'URI' => 'ℹ︎uri␟value',
-          ],
           'instances' => [
             "This Foo's field_silly_image" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uri␞␟value',
           ],
@@ -370,11 +305,6 @@ class FieldForComponentSuggesterTest extends KernelTestBase {
         ],
         '⿲sdc_test_all_props:all-props␟test_string_format_iri_reference' => [
           'required' => FALSE,
-          'types' => [
-            'File' => 'ℹ︎file␟entity␜␜entity:file␝uri␞0␟value',
-            'Image' => 'ℹ︎image␟entity␜␜entity:file␝uri␞0␟value',
-            'URI' => 'ℹ︎uri␟value',
-          ],
           'instances' => [
             "This Foo's field_silly_image" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uri␞␟value',
           ],
@@ -382,39 +312,26 @@ class FieldForComponentSuggesterTest extends KernelTestBase {
         ],
         '⿲sdc_test_all_props:all-props␟test_string_format_uri_template' => [
           'required' => FALSE,
-          'types' => [],
           'instances' => [],
           'adapters' => [],
         ],
         '⿲sdc_test_all_props:all-props␟test_string_format_json_pointer' => [
           'required' => FALSE,
-          'types' => [],
           'instances' => [],
           'adapters' => [],
         ],
         '⿲sdc_test_all_props:all-props␟test_string_format_relative_json_pointer' => [
           'required' => FALSE,
-          'types' => [],
           'instances' => [],
           'adapters' => [],
         ],
         '⿲sdc_test_all_props:all-props␟test_string_format_regex' => [
           'required' => FALSE,
-          'types' => [],
           'instances' => [],
           'adapters' => [],
         ],
         '⿲sdc_test_all_props:all-props␟test_integer' => [
           'required' => FALSE,
-          'types' => [
-            'File' => 'ℹ︎file␟entity␜␜entity:file␝uid␞0␟target_id',
-            'Image' => 'ℹ︎image␟entity␜␜entity:file␝uid␞0␟target_id',
-            'Last changed' => 'ℹ︎changed␟value',
-            'Created' => 'ℹ︎created␟value',
-            'Number (integer)' => 'ℹ︎integer␟value',
-            'List (integer)' => 'ℹ︎list_integer␟value',
-            'Timestamp' => 'ℹ︎timestamp␟value',
-          ],
           'instances' => [
             "This Foo's Changed" => 'ℹ︎␜entity:node:foo␝changed␞␟value',
             "This Foo's Authored on" => 'ℹ︎␜entity:node:foo␝created␞␟value',
@@ -432,15 +349,11 @@ class FieldForComponentSuggesterTest extends KernelTestBase {
         ],
         '⿲sdc_test_all_props:all-props␟test_integer_range_minimum' => [
           'required' => FALSE,
-          'types' => [],
           'instances' => [],
           'adapters' => [],
         ],
         '⿲sdc_test_all_props:all-props␟test_integer_range_minimum_maximum_timestamps' => [
           'required' => FALSE,
-          'types' => [
-            'Timestamp' => 'ℹ︎timestamp␟value',
-          ],
           'instances' => [
             "This Foo's Revision user" => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝login␞␟value',
             "This Foo's Authored by" => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝login␞␟value',
@@ -449,9 +362,6 @@ class FieldForComponentSuggesterTest extends KernelTestBase {
         ],
         '⿲sdc_test_all_props:all-props␟test_object_drupal_image' => [
           'required' => FALSE,
-          'types' => [
-            'Image' => 'ℹ︎image␟{src↝entity␜␜entity:file␝uri␞0␟url,alt↠alt,width↠width,height↠height}',
-          ],
           'instances' => [
             "This Foo's field_silly_image" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟{src↝entity␜␜entity:file␝uri␞␟url,alt↠alt,width↠width,height↠height}',
           ],
@@ -462,9 +372,6 @@ class FieldForComponentSuggesterTest extends KernelTestBase {
         ],
         '⿲sdc_test_all_props:all-props␟test_object_drupal_date_range' => [
           'required' => FALSE,
-          'types' => [
-            'Date range' => 'ℹ︎daterange␟{from↠end_value,to↠value}',
-          ],
           'instances' => [
             "This Foo's field_event_duration" => 'ℹ︎␜entity:node:foo␝field_event_duration␞␟{from↠value,to↠end_value}',
           ],

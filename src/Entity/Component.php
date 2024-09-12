@@ -12,7 +12,7 @@ use Drupal\Core\Theme\ComponentPluginManager;
 use Drupal\experience_builder\PropExpressions\Component\ComponentPropExpression;
 use Drupal\experience_builder\PropExpressions\StructuredData\FieldTypeObjectPropsExpression;
 use Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldTypePropExpression;
-use Drupal\experience_builder\PropShape;
+use Drupal\experience_builder\PropShape\PropShape;
 use Drupal\experience_builder\PropSource\StaticPropSource;
 
 /**

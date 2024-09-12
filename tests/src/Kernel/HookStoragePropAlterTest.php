@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace Drupal\Tests\experience_builder\Kernel;
 
 use Drupal\experience_builder\PropExpressions\StructuredData\FieldTypePropExpression;
-use Drupal\experience_builder\StorablePropShape;
+use Drupal\experience_builder\PropShape\StorablePropShape;
 
 /**
- * @covers \Drupal\experience_builder\PropShape::getStorage()
+ * @covers \Drupal\experience_builder\PropShape\PropShape::getStorage()
  */
 class HookStoragePropAlterTest extends PropShapeRepositoryTest {
 

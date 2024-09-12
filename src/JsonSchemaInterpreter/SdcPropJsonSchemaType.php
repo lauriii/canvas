@@ -2,16 +2,20 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder;
+namespace Drupal\experience_builder\JsonSchemaInterpreter;
 
 use Drupal\Core\Entity\TypedData\EntityDataDefinition;
 use Drupal\datetime\Plugin\Field\FieldType\DateTimeItem;
-use Drupal\experience_builder\JsonSchemaInterpreter\JsonSchemaStringFormat;
 use Drupal\experience_builder\Plugin\Validation\Constraint\StringSemanticsConstraint;
 use Drupal\experience_builder\PropExpressions\StructuredData\FieldPropExpression;
 use Drupal\experience_builder\PropExpressions\StructuredData\FieldTypeObjectPropsExpression;
 use Drupal\experience_builder\PropExpressions\StructuredData\FieldTypePropExpression;
 use Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldTypePropExpression;
+use Drupal\experience_builder\PropExpressions\StructuredData\StructuredDataPropExpression;
+use Drupal\experience_builder\PropShape\PropShape;
+use Drupal\experience_builder\PropShape\StorablePropShape;
+use Drupal\experience_builder\ShapeMatcher\DataTypeShapeRequirement;
+use Drupal\experience_builder\ShapeMatcher\DataTypeShapeRequirements;
 
 // phpcs:disable Drupal.Files.LineLength.TooLong
 
@@ -172,10 +176,10 @@ enum SdcPropJsonSchemaType : string {
    * Used for generating a StaticPropSource, for storing a value that fits in
    * this prop shape.
    *
-   * @param \Drupal\experience_builder\PropShape $shape
+   * @param \Drupal\experience_builder\PropShape\PropShape $shape
    *   The prop shape to find the recommended UX (storage + widget) for.
    *
-   * @return \Drupal\experience_builder\StorablePropShape|null
+   * @return \Drupal\experience_builder\PropShape\StorablePropShape|null
    *   NULL is returned to indicate that Experience Builder + Drupal core do not
    *   support a field type that provides a good UX for entering a value of this
    *   shape. Otherwise, a StorablePropShape is returned that specifies that UX.

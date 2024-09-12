@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder;
+namespace Drupal\experience_builder\ShapeMatcher;
 
 /**
  * Describes a single shape requirement for a Drupal data type.
  *
  * @see \Drupal\Core\TypedData\Attribute\DataType
- * @see \Drupal\experience_builder\DataTypeShapeRequirements
+ * @see \Drupal\experience_builder\JsonSchemaInterpreter\DataTypeShapeRequirements
  */
 final class DataTypeShapeRequirement {
 

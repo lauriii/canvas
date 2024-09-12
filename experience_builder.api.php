@@ -5,9 +5,9 @@
  * Documentation related to Experience Builder.
  */
 
-use Drupal\experience_builder\CandidateStorablePropShape;
 use Drupal\experience_builder\PropExpressions\StructuredData\FieldTypePropExpression;
 use Drupal\experience_builder\PropExpressions\StructuredData\StructuredDataPropExpression;
+use Drupal\experience_builder\PropShape\CandidateStorablePropShape;
 
 /**
  * @defgroup experience_builder_architecture Experience Builder Architecture

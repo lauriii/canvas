@@ -16,7 +16,6 @@ use Drupal\Core\Field\WidgetPluginManager;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\TypedData\DataDefinition;
 use Drupal\Core\TypedData\TypedDataManagerInterface;
-use Drupal\experience_builder\FieldStorageDefinition;
 use Drupal\experience_builder\PropExpressions\StructuredData\Evaluator;
 use Drupal\experience_builder\PropExpressions\StructuredData\FieldTypeObjectPropsExpression;
 use Drupal\experience_builder\PropExpressions\StructuredData\FieldTypePropExpression;
@@ -77,7 +76,7 @@ final class StaticPropSource extends PropSourceBase {
       : $expression->fieldType;
     $data_type = "field_item:" . $field_type;
 
-    // TRICKY: this does not work due to it using BaseFieldDefinition, and BaseFieldDefinition::getOptionsProvider() assuming it to exist on the host entity. Hence the use of XB's own \Drupal\experience_builder\FieldStorageDefinition.
+    // TRICKY: this does not work due to it using BaseFieldDefinition, and BaseFieldDefinition::getOptionsProvider() assuming it to exist on the host entity. Hence the use of XB's own \Drupal\experience_builder\PropSource\FieldStorageDefinition.
     // @see \Drupal\Core\Field\TypedData\FieldItemDataDefinition::createFromDataType()
     // @todo Refactor this after https://www.drupal.org/node/2280639 is fixed.
     // $field_item_definition = $typed_data_manager->createDataDefinition($data_type);
@@ -307,7 +306,7 @@ final class StaticPropSource extends PropSourceBase {
     }
     $widget = $this->getWidget($sdc_prop_name, $sdc_prop_label, $field_widget_plugin_id);
     $widget_form = $widget->form($field, $form, $form_state);
-    if ($field_widget_plugin_id === 'datetime_default') {
+    if ($field_widget_plugin_id === 'datetime_default' && !$this->fieldItem->isEmpty()) {
       // The datetime widget needs a DrupalDateTime object as the value.
       // @todo Figure out why this is necessary — \DateTimeWidgetBase::createDefaultValue() *is* getting called, but somehow it does not result in the default value being populated unless we do this.
       // @see \Drupal\datetime\Plugin\Field\FieldWidget\DateTimeWidgetBase::createDefaultValue()

@@ -16,9 +16,10 @@
 /ui/src/utils/
 
 #
-# Hybrid side.
+# Hybrid side: the bridges connecting client & server sides.
 #
 
+# Issues: https://www.drupal.org/project/issues/search/experience_builder?issue_tags=openapi
 [OpenAPI] @traviscarden
 /openapi.yml
 /src/EventSubscriber/ApiMessageValidatorBase.php
@@ -63,12 +64,24 @@
 /src/Plugin/Field/FieldType/
 /tests/src/Kernel/Plugin/Field/FieldType/
 
-[highly experimental new concepts] @wimleers
-/src/JsonSchemaInterpreter/
-/src/DataTypeShape*
+
+# ⚠️
+# ⚠️ Highly experimental new concepts ⚠️
+# ⚠️
+
+# To become part of `[Data model]`, but likely to change significantly
+[Data model: highly experimental new concepts] @effulgentsia @tedbow @wimleers
+# data descriptions
 /src/PropExpressions/
+# the JSONable-PHP-objects representing the different sources to retrieve a prop value
 /src/PropSource/
-/src/SdcProp*
+
+# Issues: https://www.drupal.org/project/issues/experience_builder?component=Shape+matching
+# @see https://en.wikipedia.org/wiki/Schema_matching
+[Shape matching] @wimleers @tedbow
+/src/JsonSchemaInterpreter/
+/src/PropShape/
+/src/ShapeMatcher/
 
 
 #
@@ -93,6 +106,6 @@
 [DX: hot reload] @hooroomoo
 /modules/xb_vite/
 
-[DX: PHP] @wimleers @larowlan
+[DX: PHP] @effulgentsia @wimleers @larowlan
 /phpcs.xml
 /phpstan.neon

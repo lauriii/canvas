@@ -2,23 +2,20 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder;
+namespace Drupal\experience_builder\ShapeMatcher;
 
 use Drupal\Core\Entity\EntityFieldManagerInterface;
 use Drupal\Core\Entity\EntityTypeBundleInfoInterface;
 use Drupal\Core\Entity\TypedData\EntityDataDefinitionInterface;
 use Drupal\Core\Field\FieldDefinitionInterface;
-use Drupal\Core\Field\FieldTypePluginManagerInterface;
 use Drupal\Core\Theme\ComponentPluginManager;
-use Drupal\Core\TypedData\TypedDataManagerInterface;
+use Drupal\experience_builder\JsonSchemaInterpreter\SdcPropJsonSchemaType;
 use Drupal\experience_builder\Plugin\Adapter\AdapterInterface;
 use Drupal\experience_builder\PropExpressions\Component\ComponentPropExpression;
 use Drupal\experience_builder\PropExpressions\StructuredData\FieldObjectPropsExpression;
 use Drupal\experience_builder\PropExpressions\StructuredData\FieldPropExpression;
-use Drupal\experience_builder\PropExpressions\StructuredData\FieldTypeObjectPropsExpression;
-use Drupal\experience_builder\PropExpressions\StructuredData\FieldTypePropExpression;
 use Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldPropExpression;
-use Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldTypePropExpression;
+use Drupal\experience_builder\PropShape\PropShape;
 
 /**
  * @todo Rename things for clarity: this handles all props for an SDC simultaneously, SdcPropToFieldTypePropMatcher handles a single prop at a time
@@ -28,8 +25,6 @@ final class FieldForComponentSuggester {
   public function __construct(
     private readonly SdcPropToFieldTypePropMatcher $propMatcher,
     private readonly ComponentPluginManager $componentPluginManager,
-    private readonly FieldTypePluginManagerInterface $fieldTypePluginManager,
-    private readonly TypedDataManagerInterface $typedDataManager,
     private readonly EntityFieldManagerInterface $entityFieldManager,
     private readonly EntityTypeBundleInfoInterface $entityTypeBundleInfo,
   ) {}
@@ -40,7 +35,7 @@ final class FieldForComponentSuggester {
    *   Host entity type, if the given component is being used in the context of
    *   an entity.
    *
-   * @return array<string, array{required: bool, types: array<string, \Drupal\experience_builder\PropExpressions\StructuredData\FieldTypePropExpression|\Drupal\experience_builder\PropExpressions\StructuredData\FieldTypeObjectPropsExpression|\Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldTypePropExpression>, instances: array<string, \Drupal\experience_builder\PropExpressions\StructuredData\FieldPropExpression|\Drupal\experience_builder\PropExpressions\StructuredData\FieldObjectPropsExpression|\Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldPropExpression>, adapters: array<AdapterInterface>}>
+   * @return array<string, array{required: bool, instances: array<string, \Drupal\experience_builder\PropExpressions\StructuredData\FieldPropExpression|\Drupal\experience_builder\PropExpressions\StructuredData\FieldObjectPropsExpression|\Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldPropExpression>, adapters: array<AdapterInterface>}>
    */
   public function suggest(string $component_plugin_id, ?EntityDataDefinitionInterface $host_entity_type): array {
     if ($host_entity_type) {
@@ -58,34 +53,6 @@ final class FieldForComponentSuggester {
     //    considers best practices.
     $processed_matches = [];
     foreach ($raw_matches as $cpe => $m) {
-      // Filter field type matches:
-      $field_type_prop_expressions = array_filter($m['types'], fn ($e) => $e instanceof FieldTypePropExpression);
-      $field_type_object_prop_expressions = array_filter($m['types'], fn ($e) => $e instanceof FieldTypeObjectPropsExpression);
-      $reference_field_type_prop_expressions = array_filter($m['types'], fn ($e) => $e instanceof ReferenceFieldTypePropExpression);
-      // - among the FieldTypePropExpressions: filter to the ones matching
-      //   narrowly, i.e. with as few additional properties as possible
-      if (!empty($field_type_prop_expressions)) {
-        $field_type_property_counts = array_map(
-          // @phpstan-ignore-next-line
-          fn(FieldTypePropExpression $e) => count($this->typedDataManager->createDataDefinition("field_item:{$e->fieldType}")
-            ->getPropertyDefinitions()),
-          $field_type_prop_expressions
-        );
-        arsort($field_type_property_counts);
-        $keys_of_expressions_with_minimal_property_count = array_intersect($field_type_property_counts, [min($field_type_property_counts)]);
-        $field_type_prop_expressions = array_intersect_key($field_type_prop_expressions, $keys_of_expressions_with_minimal_property_count);
-      }
-      // - @todo filter/order FieldTypeObjectPropsExpression
-      // Order field type matches:
-      // - first suggest the reference field types, to encourage reusing
-      //   existing structured data
-      // - then everything else
-      $processed_matches[$cpe]['types'] = [
-        ...$reference_field_type_prop_expressions,
-        ...$field_type_prop_expressions,
-        ...$field_type_object_prop_expressions,
-      ];
-
       // Instance matches: filter to the ones matching the current host entity
       // type + bundle.
       $processed_matches[$cpe]['instances'] = [];
@@ -111,21 +78,6 @@ final class FieldForComponentSuggester {
       /** @var array<string, mixed> $schema */
       $schema = $component->metadata->schema;
       $suggestions[$cpe]['required'] = in_array($prop_name, $schema['required'] ?? [], TRUE);
-
-      // Field types.
-      // @todo Ensure these expressions do not break: https://www.drupal.org/project/experience_builder/issues/3450957
-      $suggestions[$cpe]['types'] = array_combine(
-        array_map(
-          // @todo Defensive edge case: multiple field types with the same label.
-          fn (FieldTypePropExpression|FieldTypeObjectPropsExpression|ReferenceFieldTypePropExpression $e) => $this->fieldTypePluginManager->getDefinition(
-            $e instanceof ReferenceFieldTypePropExpression
-              ? $e->referencer->fieldType
-              : $e->fieldType
-          )['label'],
-          $m['types']
-        ),
-        $m['types']
-      );
 
       // Field instances.
       // @todo Ensure these expressions do not break: https://www.drupal.org/project/experience_builder/issues/3452848
@@ -167,7 +119,7 @@ final class FieldForComponentSuggester {
   }
 
   /**
-   * @return array<string, array{types: array<int, \Drupal\experience_builder\PropExpressions\StructuredData\FieldTypePropExpression|\Drupal\experience_builder\PropExpressions\StructuredData\FieldTypeObjectPropsExpression|\Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldTypePropExpression>, instances: array<int, \Drupal\experience_builder\PropExpressions\StructuredData\FieldPropExpression|\Drupal\experience_builder\PropExpressions\StructuredData\FieldObjectPropsExpression|\Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldPropExpression>, adapters: array<\Drupal\experience_builder\Plugin\Adapter\AdapterInterface>}>
+   * @return array<string, array{instances: array<int, \Drupal\experience_builder\PropExpressions\StructuredData\FieldPropExpression|\Drupal\experience_builder\PropExpressions\StructuredData\FieldObjectPropsExpression|\Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldPropExpression>, adapters: array<\Drupal\experience_builder\Plugin\Adapter\AdapterInterface>}>
    */
   private function getRawMatches(string $component_plugin_id): array {
     $raw_matches = [];
@@ -182,10 +134,8 @@ final class FieldForComponentSuggester {
 
       $primitive_type = SdcPropJsonSchemaType::from($schema['type']);
 
-      $format_candidates_main_prop = $this->propMatcher->findFieldTypeFormatCandidates($primitive_type, $is_required, $schema, TRUE);
       $instance_candidates = $this->propMatcher->findFieldInstanceFormatMatches($primitive_type, $is_required, $schema);
       $adapter_candidates = $this->propMatcher->findAdaptersByMatchingOutput($schema);
-      $raw_matches[(string) $cpe]['types'] = $format_candidates_main_prop;
       $raw_matches[(string) $cpe]['instances'] = $instance_candidates;
       $raw_matches[(string) $cpe]['adapters'] = $adapter_candidates;
     }

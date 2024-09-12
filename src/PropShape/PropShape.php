@@ -2,12 +2,13 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder;
+namespace Drupal\experience_builder\PropShape;
 
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Plugin\Component;
 use Drupal\Core\Template\Attribute;
 use Drupal\Core\Theme\Component\ComponentMetadata;
+use Drupal\experience_builder\JsonSchemaInterpreter\SdcPropJsonSchemaType;
 use Drupal\experience_builder\PropExpressions\Component\ComponentPropExpression;
 
 /**
@@ -66,7 +67,7 @@ final class PropShape {
   /**
    * @param \Drupal\Core\Plugin\Component $component
    *
-   * @return \Drupal\experience_builder\PropShape[]
+   * @return \Drupal\experience_builder\PropShape\PropShape[]
    */
   public static function getComponentProps(Component $component): array {
     return self::getComponentPropsForMetadata($component->getPluginId(), $component->metadata);
@@ -76,7 +77,7 @@ final class PropShape {
    * @param string $plugin_id
    * @param \Drupal\Core\Theme\Component\ComponentMetadata $metadata
    *
-   * @return \Drupal\experience_builder\PropShape[]
+   * @return \Drupal\experience_builder\PropShape\PropShape[]
    */
   public static function getComponentPropsForMetadata(string $plugin_id, ComponentMetadata $metadata): array {
     $prop_shapes = [];

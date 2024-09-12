@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder;
+namespace Drupal\experience_builder\PropShape;
 
 use Drupal\experience_builder\PropExpressions\StructuredData\FieldTypeObjectPropsExpression;
 use Drupal\experience_builder\PropExpressions\StructuredData\FieldTypePropExpression;
@@ -14,7 +14,7 @@ use Drupal\experience_builder\PropExpressions\StructuredData\FieldTypePropExpres
  * - writable instead of read-only
  * - optional instead of required
  *
- * @see \Drupal\experience_builder\StorablePropShape
+ * @see \Drupal\experience_builder\PropShape\StorablePropShape
  */
 final class CandidateStorablePropShape {
 

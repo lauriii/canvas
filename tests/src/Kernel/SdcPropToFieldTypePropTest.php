@@ -10,13 +10,10 @@ use Drupal\experience_builder\JsonSchemaInterpreter\JsonSchemaStringFormat;
 use Drupal\experience_builder\PropExpressions\Component\ComponentPropExpression;
 use Drupal\experience_builder\PropExpressions\StructuredData\FieldObjectPropsExpression;
 use Drupal\experience_builder\PropExpressions\StructuredData\FieldPropExpression;
-use Drupal\experience_builder\PropExpressions\StructuredData\FieldTypeObjectPropsExpression;
-use Drupal\experience_builder\PropExpressions\StructuredData\FieldTypePropExpression;
 use Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldPropExpression;
-use Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldTypePropExpression;
-use Drupal\experience_builder\PropShape;
-use Drupal\experience_builder\SdcPropJsonSchemaType;
-use Drupal\experience_builder\SdcPropToFieldTypePropMatcher;
+use Drupal\experience_builder\PropShape\PropShape;
+use Drupal\experience_builder\JsonSchemaInterpreter\SdcPropJsonSchemaType;
+use Drupal\experience_builder\ShapeMatcher\SdcPropToFieldTypePropMatcher;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\KernelTests\KernelTestBase;
@@ -24,7 +21,17 @@ use Drupal\node\Entity\NodeType;
 use Drupal\Tests\experience_builder\Traits\ContribStrictConfigSchemaTestTrait;
 
 /**
- * Tests matching SDC props against field type + field instance props.
+ * Tests matching component prop shapes against field instances & adapters.
+ *
+ * To make the test expectations easier to read, this does slightly duplicate
+ * some expectations that exist for PropShape::getStorage(). Specifically, the
+ * "prop expression" for the computed StaticPropSource is repeated in this test.
+ *
+ * This provides helpful context about how the constraint-based matching logic
+ * is yielding similar or different field type matches.
+ *
+ * @see docs/data-model.md
+ * @see \Drupal\Tests\experience_builder\Kernel\PropShapeRepositoryTest
  */
 class SdcPropToFieldTypePropTest extends KernelTestBase {
 
@@ -137,49 +144,28 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
 
         $matches[$unique_match_key]['component props'][] = $cpe_string;
 
-        if (isset($matches[$unique_match_key]['storage'])) {
+        if (isset($matches[$unique_match_key]['static prop source'])) {
           continue;
         }
 
         $schema = $prop_shape->resolvedSchema;
 
+        // 1. compute viable field type + storage settings + instance settings
+        // @see \Drupal\experience_builder\PropShape\StorablePropShape::toStaticPropSource()
+        // @see \Drupal\experience_builder\PropSource\StaticPropSource()
+        $storable_prop_shape = $prop_shape->getStorage();
         $primitive_type = SdcPropJsonSchemaType::from($schema['type']);
-        // phpcs:disable
-        // From least to most restrictive matchmaking of structured data sources
-        // to flow into component props:
-        // 1. storage representation must match
-        $sub_schema = $primitive_type->isScalar() ? NULL : $prop_shape->resolvedSchema;
-        $storage_candidates = $matcher->findFieldTypeStorageCandidates($primitive_type, $is_required, $sub_schema);
-        // 2. format must match
-        //    👉 UX need: when the BUILDER is creating a content type's template
-        //       and they declare the intent to not statically assign a value to
-        //       a component prop, then the "main" property of a field type must
-        //       match semantically. These are the available choices to create a
-        //       new field!
-        //    🎉 Component placement at a structural level (content
-        //       template) encourages EXPANDING the data model IF needs are met!
-        //    ❓ UX need: when the CREATOR is placing a component and they want
-        //       to statically assign a value; then it's also preferable to use
-        //       a field type's "main" property (for the best semantical match),
-        //       but using a non-main property is fine too, especially when
-        //       reusing structured data.
-        $format_candidates_main_prop = $matcher->findFieldTypeFormatCandidates($primitive_type, $is_required, $schema, TRUE);
-        $format_candidates_any_prop = $matcher->findFieldTypeFormatCandidates($primitive_type, $is_required, $schema, FALSE);
-        // 3. a field instance of this type must exist.
-        //    👉 UX need: when the BUILDER is creating a content type's template
-        //       OR the creator is placing a component in a slot, and they
-        //       declare the intent to not statically assign a value to a
-        //       component prop, then these are the available choices
-        //    🎉 Component placement at a structural level (content
-        //       template) encourages USING the data model IF needs are not met!
-        // phpcs:enable
+        // 2. find matching field instances
+        // @see \Drupal\experience_builder\PropSource\DynamicPropSource
         $instance_candidates = $matcher->findFieldInstanceFormatMatches($primitive_type, $is_required, $schema);
-        // 4. adapters.
+        // 3. adapters.
+        // @see \Drupal\experience_builder\PropSource\AdaptedPropSource
         $adapter_output_matches = $matcher->findAdaptersByMatchingOutput($schema);
         $adapter_matches_field_type = [];
         $adapter_matches_instance = [];
         foreach ($adapter_output_matches as $match) {
           foreach ($match->getInputs() as $input_name => $input_schema_ref) {
+            $storable_prop_shape_for_adapter_input = PropShape::normalize($input_schema_ref)->getStorage();
 
             $input_schema = $match->getInputSchema($input_name);
             $input_primitive_type = SdcPropJsonSchemaType::from(
@@ -187,10 +173,11 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
             );
 
             $input_is_required = $match->inputIsRequired($input_name);
-            $field_type_matches = $matcher->findFieldTypeFormatCandidates($input_primitive_type, $input_is_required, $input_schema, TRUE);
             $instance_matches = $matcher->findFieldInstanceFormatMatches($input_primitive_type, $input_is_required, $input_schema);
 
-            $adapter_matches_field_type[$match->getPluginId()][$input_name] = array_map(fn (FieldTypePropExpression|ReferenceFieldTypePropExpression|FieldTypeObjectPropsExpression $e): string => (string) $e, $field_type_matches);
+            $adapter_matches_field_type[$match->getPluginId()][$input_name] = $storable_prop_shape_for_adapter_input
+              ? (string) $storable_prop_shape_for_adapter_input->fieldTypeProp
+              : NULL;
             $adapter_matches_instance[$match->getPluginId()][$input_name] = array_map(fn (FieldPropExpression|ReferenceFieldPropExpression|FieldObjectPropsExpression $e): string => (string) $e, $instance_matches);
           }
           ksort($adapter_matches_field_type);
@@ -199,9 +186,12 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
 
         // For each unique required/optional PropShape, store the string
         // representations of the discovered matches to compare against.
-        $matches[$unique_match_key]['storage'] = array_map(fn (FieldTypePropExpression|ReferenceFieldTypePropExpression|FieldTypeObjectPropsExpression $e): string => (string) $e, $storage_candidates);
-        $matches[$unique_match_key]['format_any_prop'] = array_map(fn (FieldTypePropExpression|ReferenceFieldTypePropExpression|FieldTypeObjectPropsExpression $e): string => (string) $e, $format_candidates_any_prop);
-        $matches[$unique_match_key]['format_main_prop'] = array_map(fn (FieldTypePropExpression|ReferenceFieldTypePropExpression|FieldTypeObjectPropsExpression $e): string => (string) $e, $format_candidates_main_prop);
+        // Note: this is actually already tested in PropShapeRepositoryTest in
+        // detail, but this test tries to provide a comprehensive overview.
+        // @see \Drupal\Tests\experience_builder\Kernel\PropShapeRepositoryTest
+        $matches[$unique_match_key]['static prop source'] = $storable_prop_shape
+          ? (string) $storable_prop_shape->fieldTypeProp
+          : NULL;
         $matches[$unique_match_key]['instances'] = array_map(fn (FieldPropExpression|ReferenceFieldPropExpression|FieldObjectPropsExpression $e): string => (string) $e, $instance_candidates);
         $matches[$unique_match_key]['adapter_matches_field_type'] = $adapter_matches_field_type;
         $matches[$unique_match_key]['adapter_matches_instance'] = $adapter_matches_instance;
@@ -218,104 +208,6 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
    * @return array<string, array{'modules': string[], 'expected': array<string, array<mixed>>}>
    */
   public static function provider(): array {
-    $all_required_string_storage_props = [
-      'ℹ︎daterange␟end_value',
-      'ℹ︎daterange␟value',
-      'ℹ︎datetime␟value',
-      'ℹ︎decimal␟value',
-      'ℹ︎email␟value',
-      'ℹ︎file_uri␟url',
-      'ℹ︎file_uri␟value',
-      'ℹ︎file␟entity␜␜entity:file␝uri␞0␟url',
-      'ℹ︎file␟entity␜␜entity:file␝uri␞0␟value',
-      'ℹ︎image␟entity␜␜entity:file␝uri␞0␟url',
-      'ℹ︎image␟entity␜␜entity:file␝uri␞0␟value',
-      'ℹ︎language␟value',
-      'ℹ︎list_string␟value',
-      'ℹ︎string_long␟value',
-      'ℹ︎string␟value',
-      'ℹ︎telephone␟value',
-      'ℹ︎text_long␟value',
-      'ℹ︎text_with_summary␟value',
-      'ℹ︎text␟value',
-      'ℹ︎uri␟value',
-      'ℹ︎uuid␟value',
-    ];
-    $all_string_storage_props = [
-      'ℹ︎comment␟last_comment_name',
-      'ℹ︎daterange␟end_value',
-      'ℹ︎daterange␟value',
-      'ℹ︎datetime␟value',
-      'ℹ︎decimal␟value',
-      'ℹ︎email␟value',
-      'ℹ︎file_uri␟url',
-      'ℹ︎file_uri␟value',
-      'ℹ︎file␟description',
-      'ℹ︎file␟entity␜␜entity:file␝filemime␞0␟value',
-      'ℹ︎file␟entity␜␜entity:file␝filename␞0␟value',
-      'ℹ︎file␟entity␜␜entity:file␝langcode␞0␟value',
-      'ℹ︎file␟entity␜␜entity:file␝uri␞0␟url',
-      'ℹ︎file␟entity␜␜entity:file␝uri␞0␟value',
-      'ℹ︎file␟entity␜␜entity:file␝uuid␞0␟value',
-      'ℹ︎image␟alt',
-      'ℹ︎image␟entity␜␜entity:file␝filemime␞0␟value',
-      'ℹ︎image␟entity␜␜entity:file␝filename␞0␟value',
-      'ℹ︎image␟entity␜␜entity:file␝langcode␞0␟value',
-      'ℹ︎image␟entity␜␜entity:file␝uri␞0␟url',
-      'ℹ︎image␟entity␜␜entity:file␝uri␞0␟value',
-      'ℹ︎image␟entity␜␜entity:file␝uuid␞0␟value',
-      'ℹ︎image␟title',
-      'ℹ︎language␟value',
-      'ℹ︎link␟title',
-      'ℹ︎link␟uri',
-      'ℹ︎list_string␟value',
-      'ℹ︎password␟existing',
-      'ℹ︎password␟value',
-      'ℹ︎path␟alias',
-      'ℹ︎path␟langcode',
-      'ℹ︎string_long␟value',
-      'ℹ︎string␟value',
-      'ℹ︎telephone␟value',
-      'ℹ︎text_long␟format',
-      'ℹ︎text_long␟value',
-      'ℹ︎text_with_summary␟format',
-      'ℹ︎text_with_summary␟summary',
-      'ℹ︎text_with_summary␟value',
-      'ℹ︎text␟format',
-      'ℹ︎text␟processed',
-      'ℹ︎text␟value',
-      'ℹ︎uri␟value',
-      'ℹ︎uuid␟value',
-    ];
-    $all_integer_storage_props = [
-      'ℹ︎changed␟value',
-      'ℹ︎comment␟cid',
-      'ℹ︎comment␟comment_count',
-      'ℹ︎comment␟last_comment_timestamp',
-      'ℹ︎comment␟last_comment_uid',
-      'ℹ︎comment␟status',
-      'ℹ︎created␟value',
-      'ℹ︎entity_reference␟target_id',
-      'ℹ︎file␟entity␜␜entity:file␝changed␞0␟value',
-      'ℹ︎file␟entity␜␜entity:file␝created␞0␟value',
-      'ℹ︎file␟entity␜␜entity:file␝fid␞0␟value',
-      'ℹ︎file␟entity␜␜entity:file␝filesize␞0␟value',
-      'ℹ︎file␟entity␜␜entity:file␝uid␞0␟target_id',
-      'ℹ︎file␟target_id',
-      'ℹ︎image␟entity␜␜entity:file␝changed␞0␟value',
-      'ℹ︎image␟entity␜␜entity:file␝created␞0␟value',
-      'ℹ︎image␟entity␜␜entity:file␝fid␞0␟value',
-      'ℹ︎image␟entity␜␜entity:file␝filesize␞0␟value',
-      'ℹ︎image␟entity␜␜entity:file␝uid␞0␟target_id',
-      'ℹ︎image␟height',
-      'ℹ︎image␟target_id',
-      'ℹ︎image␟width',
-      'ℹ︎integer␟value',
-      'ℹ︎list_integer␟value',
-      'ℹ︎path␟pid',
-      'ℹ︎timestamp␟value',
-    ];
-
     $cases = [];
     $cases['XB example SDCs + all-props SDC, using ALL core-provided field types'] = [
       'modules' => [
@@ -341,19 +233,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
           'component props' => [
             '⿲experience_builder:two_column␟width',
           ],
-          'storage' => [
-            'ℹ︎changed␟value',
-            'ℹ︎comment␟status',
-            'ℹ︎created␟value',
-            'ℹ︎entity_reference␟target_id',
-            'ℹ︎file␟target_id',
-            'ℹ︎image␟target_id',
-            'ℹ︎integer␟value',
-            'ℹ︎list_integer␟value',
-            'ℹ︎timestamp␟value',
-          ],
-          'format_any_prop' => [],
-          'format_main_prop' => [],
+          'static prop source' => 'ℹ︎list_integer␟value',
           'instances' => [],
           'adapter_matches_field_type' => [],
           'adapter_matches_instance' => [],
@@ -362,27 +242,18 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
           'component props' => [
             '⿲experience_builder:image␟image',
           ],
-          'storage' => [
-            'ℹ︎image␟{src↝entity␜␜entity:file␝uri␞0␟url,alt↠alt,width↠width,height↠height}',
-          ],
-          'format_any_prop' => [
-            'ℹ︎image␟{src↝entity␜␜entity:file␝uri␞0␟url,alt↠alt,width↠width,height↠height}',
-          ],
-          'format_main_prop' => [
-            'ℹ︎image␟{src↝entity␜␜entity:file␝uri␞0␟url,alt↠alt,width↠width,height↠height}',
-          ],
+          'static prop source' => 'ℹ︎image␟{src↝entity␜␜entity:file␝uri␞␟url,alt↠alt,width↠width,height↠height}',
           'instances' => [
             'ℹ︎␜entity:node:foo␝field_silly_image␞␟{src↝entity␜␜entity:file␝uri␞␟url,alt↠alt,width↠width,height↠height}',
           ],
           'adapter_matches_field_type' => [
             'image_apply_style' => [
-              'image' => ['ℹ︎image␟{src↝entity␜␜entity:file␝uri␞0␟value,width↠width,height↠height,alt↠alt}'],
-              'imageStyle' => [],
+              'image' => NULL,
               // @todo Figure out best way to describe config entity id via JSON schema.
-              // 'imageStyle' => ['ℹ︎image_style_reference␟target_id'],
+              'imageStyle' => NULL,
             ],
             'image_url_rel_to_abs' => [
-              'image' => ['ℹ︎image␟{src↝entity␜␜entity:file␝uri␞0␟url,alt↠alt,width↠width,height↠height}'],
+              'image' => 'ℹ︎image␟{src↝entity␜␜entity:file␝uri␞␟url,alt↠alt,width↠width,height↠height}',
             ],
           ],
           'adapter_matches_instance' => [
@@ -404,15 +275,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
             '⿲experience_builder:shoe_tab_panel␟name',
             '⿲sdc_test_all_props:all-props␟test_REQUIRED_string',
           ],
-          'storage' => $all_required_string_storage_props,
-          'format_any_prop' => [
-            'ℹ︎string_long␟value',
-            'ℹ︎string␟value',
-          ],
-          'format_main_prop' => [
-            'ℹ︎string_long␟value',
-            'ℹ︎string␟value',
-          ],
+          'static prop source' => 'ℹ︎string␟value',
           'instances' => [
             'ℹ︎␜entity:node:foo␝title␞␟value',
             'ℹ︎␜entity:path_alias␝alias␞␟value',
@@ -425,9 +288,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
           'component props' => [
             '⿲experience_builder:heading␟element',
           ],
-          'storage' => $all_required_string_storage_props,
-          'format_any_prop' => [],
-          'format_main_prop' => [],
+          'static prop source' => 'ℹ︎list_string␟value',
           'instances' => [],
           'adapter_matches_field_type' => [],
           'adapter_matches_instance' => [],
@@ -436,9 +297,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
           'component props' => [
             '⿲experience_builder:shoe_button␟variant',
           ],
-          'storage' => $all_required_string_storage_props,
-          'format_any_prop' => [],
-          'format_main_prop' => [],
+          'static prop source' => 'ℹ︎list_string␟value',
           'instances' => [],
           'adapter_matches_field_type' => [],
           'adapter_matches_instance' => [],
@@ -447,9 +306,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
           'component props' => [
             '⿲experience_builder:one_column␟width',
           ],
-          'storage' => $all_required_string_storage_props,
-          'format_any_prop' => [],
-          'format_main_prop' => [],
+          'static prop source' => 'ℹ︎list_string␟value',
           'instances' => [],
           'adapter_matches_field_type' => [],
           'adapter_matches_instance' => [],
@@ -458,9 +315,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
           'component props' => [
             '⿲experience_builder:shoe_icon␟name',
           ],
-          'storage' => $all_required_string_storage_props,
-          'format_any_prop' => [],
-          'format_main_prop' => [],
+          'static prop source' => 'ℹ︎list_string␟value',
           'instances' => [],
           'adapter_matches_field_type' => [],
           'adapter_matches_instance' => [],
@@ -469,9 +324,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
           'component props' => [
             '⿲experience_builder:shoe_badge␟variant',
           ],
-          'storage' => $all_required_string_storage_props,
-          'format_any_prop' => [],
-          'format_main_prop' => [],
+          'static prop source' => 'ℹ︎list_string␟value',
           'instances' => [],
           'adapter_matches_field_type' => [],
           'adapter_matches_instance' => [],
@@ -480,24 +333,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
           'component props' => [
             '⿲experience_builder:my-hero␟cta1href',
           ],
-          'storage' => $all_required_string_storage_props,
-          'format_any_prop' => [
-            'ℹ︎file_uri␟url',
-            'ℹ︎file_uri␟value',
-            'ℹ︎file␟entity␜␜entity:file␝uri␞0␟url',
-            'ℹ︎file␟entity␜␜entity:file␝uri␞0␟value',
-            'ℹ︎image␟entity␜␜entity:file␝uri␞0␟url',
-            'ℹ︎image␟entity␜␜entity:file␝uri␞0␟value',
-            'ℹ︎uri␟value',
-          ],
-          'format_main_prop' => [
-            'ℹ︎file_uri␟value',
-            'ℹ︎file␟entity␜␜entity:file␝uri␞0␟url',
-            'ℹ︎file␟entity␜␜entity:file␝uri␞0␟value',
-            'ℹ︎image␟entity␜␜entity:file␝uri␞0␟url',
-            'ℹ︎image␟entity␜␜entity:file␝uri␞0␟value',
-            'ℹ︎uri␟value',
-          ],
+          'static prop source' => 'ℹ︎uri␟value',
           'instances' => [
             'ℹ︎␜entity:file␝uri␞␟url',
             'ℹ︎␜entity:file␝uri␞␟value',
@@ -511,9 +347,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
           'component props' => [
             '⿲experience_builder:video␟src',
           ],
-          'storage' => $all_required_string_storage_props,
-          'format_any_prop' => [],
-          'format_main_prop' => [],
+          'static prop source' => NULL,
           'instances' => [],
           'adapter_matches_field_type' => [],
           'adapter_matches_instance' => [],
@@ -523,15 +357,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
             '⿲experience_builder:my-hero␟heading',
             '⿲experience_builder:my-section␟text',
           ],
-          'storage' => $all_required_string_storage_props,
-          'format_any_prop' => [
-            'ℹ︎string_long␟value',
-            'ℹ︎string␟value',
-          ],
-          'format_main_prop' => [
-            'ℹ︎string_long␟value',
-            'ℹ︎string␟value',
-          ],
+          'static prop source' => 'ℹ︎string␟value',
           'instances' => [
             'ℹ︎␜entity:node:foo␝title␞␟value',
             'ℹ︎␜entity:path_alias␝alias␞␟value',
@@ -557,25 +383,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
             '⿲experience_builder:shoe_tab_panel␟active',
             '⿲sdc_test_all_props:all-props␟test_bool',
           ],
-          'storage' => [
-            'ℹ︎boolean␟value',
-            'ℹ︎file␟display',
-            'ℹ︎file␟entity␜␜entity:file␝status␞0␟value',
-            'ℹ︎image␟entity␜␜entity:file␝status␞0␟value',
-            'ℹ︎password␟pre_hashed',
-          ],
-          'format_any_prop' => [
-            'ℹ︎boolean␟value',
-            'ℹ︎file␟display',
-            'ℹ︎file␟entity␜␜entity:file␝status␞0␟value',
-            'ℹ︎image␟entity␜␜entity:file␝status␞0␟value',
-            'ℹ︎password␟pre_hashed',
-          ],
-          'format_main_prop' => [
-            'ℹ︎boolean␟value',
-            'ℹ︎file␟entity␜␜entity:file␝status␞0␟value',
-            'ℹ︎image␟entity␜␜entity:file␝status␞0␟value',
-          ],
+          'static prop source' => 'ℹ︎boolean␟value',
           'instances' => [
             'ℹ︎␜entity:file␝status␞␟value',
             'ℹ︎␜entity:file␝uid␞␟entity␜␜entity:user␝default_langcode␞␟value',
@@ -607,29 +415,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
           'component props' => [
             '⿲sdc_test_all_props:all-props␟test_integer',
           ],
-          'storage' => $all_integer_storage_props,
-          'format_any_prop' => $all_integer_storage_props,
-          'format_main_prop' => [
-            'ℹ︎changed␟value',
-            'ℹ︎comment␟status',
-            'ℹ︎created␟value',
-            'ℹ︎entity_reference␟target_id',
-            'ℹ︎file␟entity␜␜entity:file␝changed␞0␟value',
-            'ℹ︎file␟entity␜␜entity:file␝created␞0␟value',
-            'ℹ︎file␟entity␜␜entity:file␝fid␞0␟value',
-            'ℹ︎file␟entity␜␜entity:file␝filesize␞0␟value',
-            'ℹ︎file␟entity␜␜entity:file␝uid␞0␟target_id',
-            'ℹ︎file␟target_id',
-            'ℹ︎image␟entity␜␜entity:file␝changed␞0␟value',
-            'ℹ︎image␟entity␜␜entity:file␝created␞0␟value',
-            'ℹ︎image␟entity␜␜entity:file␝fid␞0␟value',
-            'ℹ︎image␟entity␜␜entity:file␝filesize␞0␟value',
-            'ℹ︎image␟entity␜␜entity:file␝uid␞0␟target_id',
-            'ℹ︎image␟target_id',
-            'ℹ︎integer␟value',
-            'ℹ︎list_integer␟value',
-            'ℹ︎timestamp␟value',
-          ],
+          'static prop source' => 'ℹ︎integer␟value',
           'instances' => [
             'ℹ︎␜entity:file␝changed␞␟value',
             'ℹ︎␜entity:file␝created␞␟value',
@@ -677,14 +463,8 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
           ],
           'adapter_matches_field_type' => [
             'day_count' => [
-              'oldest' => [
-                'ℹ︎daterange␟value',
-                'ℹ︎datetime␟value',
-              ],
-              'newest' => [
-                'ℹ︎daterange␟value',
-                'ℹ︎datetime␟value',
-              ],
+              'oldest' => 'ℹ︎datetime␟value',
+              'newest' => 'ℹ︎datetime␟value',
             ],
           ],
           'adapter_matches_instance' => [
@@ -704,13 +484,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
           'component props' => [
             '⿲sdc_test_all_props:all-props␟test_integer_range_minimum_maximum_timestamps',
           ],
-          'storage' => $all_integer_storage_props,
-          'format_any_prop' => [
-            'ℹ︎timestamp␟value',
-          ],
-          'format_main_prop' => [
-            'ℹ︎timestamp␟value',
-          ],
+          'static prop source' => 'ℹ︎integer␟value',
           'instances' => [
             'ℹ︎␜entity:file␝uid␞␟entity␜␜entity:user␝access␞␟value',
             'ℹ︎␜entity:file␝uid␞␟entity␜␜entity:user␝login␞␟value',
@@ -728,9 +502,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
           'component props' => [
             '⿲sdc_test_all_props:all-props␟test_integer_range_minimum',
           ],
-          'storage' => $all_integer_storage_props,
-          'format_any_prop' => [],
-          'format_main_prop' => [],
+          'static prop source' => 'ℹ︎integer␟value',
           'instances' => [],
           'adapter_matches_field_type' => [],
           'adapter_matches_instance' => [],
@@ -739,25 +511,17 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
           'component props' => [
             '⿲sdc_test_all_props:all-props␟test_object_drupal_image',
           ],
-          'storage' => [
-            'ℹ︎image␟{src↝entity␜␜entity:file␝uri␞0␟url,alt↠alt,width↠width,height↠height}',
-          ],
-          'format_any_prop' => [
-            'ℹ︎image␟{src↝entity␜␜entity:file␝uri␞0␟url,alt↠alt,width↠width,height↠height}',
-          ],
-          'format_main_prop' => [
-            'ℹ︎image␟{src↝entity␜␜entity:file␝uri␞0␟url,alt↠alt,width↠width,height↠height}',
-          ],
+          'static prop source' => 'ℹ︎image␟{src↝entity␜␜entity:file␝uri␞␟url,alt↠alt,width↠width,height↠height}',
           'instances' => [
             'ℹ︎␜entity:node:foo␝field_silly_image␞␟{src↝entity␜␜entity:file␝uri␞␟url,alt↠alt,width↠width,height↠height}',
           ],
           'adapter_matches_field_type' => [
             'image_apply_style' => [
-              'image' => ['ℹ︎image␟{src↝entity␜␜entity:file␝uri␞0␟value,width↠width,height↠height,alt↠alt}'],
-              'imageStyle' => [],
+              'image' => NULL,
+              'imageStyle' => NULL,
             ],
             'image_url_rel_to_abs' => [
-              'image' => ['ℹ︎image␟{src↝entity␜␜entity:file␝uri␞0␟url,alt↠alt,width↠width,height↠height}'],
+              'image' => 'ℹ︎image␟{src↝entity␜␜entity:file␝uri␞␟url,alt↠alt,width↠width,height↠height}',
             ],
           ],
           'adapter_matches_instance' => [
@@ -776,27 +540,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
             '⿲experience_builder:shoe_details␟expand_icon',
             '⿲experience_builder:shoe_details␟collapse_icon',
           ],
-          'storage' => [
-            'ℹ︎file␟{label↠description}',
-            'ℹ︎image␟{label↠alt,slot↠title}',
-            'ℹ︎link␟{label↠title}',
-            'ℹ︎string␟{label↠value}',
-            'ℹ︎string_long␟{label↠value}',
-          ],
-          'format_any_prop' => [
-            'ℹ︎file␟{label↠description}',
-            'ℹ︎image␟{label↠alt,slot↠title}',
-            'ℹ︎link␟{label↠title}',
-            'ℹ︎string␟{label↠value}',
-            'ℹ︎string_long␟{label↠value}',
-          ],
-          'format_main_prop' => [
-            'ℹ︎file␟{label↠description}',
-            'ℹ︎image␟{label↠alt,slot↠title}',
-            'ℹ︎link␟{label↠title}',
-            'ℹ︎string␟{label↠value}',
-            'ℹ︎string_long␟{label↠value}',
-          ],
+          'static prop source' => NULL,
           'instances' => [
             'ℹ︎␜entity:node:foo␝field_silly_image␞␟{label↠alt,slot↠title}',
             'ℹ︎␜entity:node:foo␝revision_log␞␟{label↠value}',
@@ -811,15 +555,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
           'component props' => [
             '⿲sdc_test_all_props:all-props␟test_object_drupal_date_range',
           ],
-          'storage' => [
-            'ℹ︎daterange␟{from↠end_value,to↠value}',
-          ],
-          'format_any_prop' => [
-            'ℹ︎daterange␟{from↠end_value,to↠value}',
-          ],
-          'format_main_prop' => [
-            'ℹ︎daterange␟{from↠end_value,to↠value}',
-          ],
+          'static prop source' => 'ℹ︎daterange␟{from↠end_value,to↠value}',
           'instances' => [
             'ℹ︎␜entity:node:foo␝field_event_duration␞␟{from↠value,to↠end_value}',
           ],
@@ -842,19 +578,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
             '⿲experience_builder:shoe_icon␟slot',
             '⿲sdc_test_all_props:all-props␟test_string',
           ],
-          'storage' => $all_string_storage_props,
-          'format_any_prop' => [
-            'ℹ︎file␟description',
-            'ℹ︎image␟alt',
-            'ℹ︎image␟title',
-            'ℹ︎link␟title',
-            'ℹ︎string_long␟value',
-            'ℹ︎string␟value',
-          ],
-          'format_main_prop' => [
-            'ℹ︎string_long␟value',
-            'ℹ︎string␟value',
-          ],
+          'static prop source' => 'ℹ︎string␟value',
           'instances' => [
             'ℹ︎␜entity:node:foo␝field_silly_image␞␟alt',
             'ℹ︎␜entity:node:foo␝field_silly_image␞␟title',
@@ -870,21 +594,13 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
           'component props' => [
             '⿲sdc_test_all_props:all-props␟test_string_format_' . JsonSchemaStringFormat::URI->value . '_image',
           ],
-          'storage' => $all_string_storage_props,
-          'format_any_prop' => [
-            'ℹ︎image␟entity␜␜entity:file␝uri␞0␟url',
-          ],
-          'format_main_prop' => [
-            'ℹ︎image␟entity␜␜entity:file␝uri␞0␟url',
-          ],
+          'static prop source' => NULL,
           'instances' => [
             'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uri␞␟url',
           ],
           'adapter_matches_field_type' => [
             'image_extract_url' => [
-              'imageUri' => [
-                'ℹ︎image␟entity␜␜entity:file␝uri␞0␟value',
-              ],
+              'imageUri' => NULL,
             ],
           ],
           'adapter_matches_instance' => [
@@ -899,13 +615,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
           'component props' => [
             '⿲sdc_test_all_props:all-props␟test_string_multiline',
           ],
-          'storage' => $all_string_storage_props,
-          'format_any_prop' => [
-            'ℹ︎string_long␟value',
-          ],
-          'format_main_prop' => [
-            'ℹ︎string_long␟value',
-          ],
+          'static prop source' => 'ℹ︎string_long␟value',
           'instances' => [
             'ℹ︎␜entity:node:foo␝revision_log␞␟value',
           ],
@@ -916,9 +626,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
           'component props' => [
             '⿲experience_builder:shoe_icon␟size',
           ],
-          'storage' => $all_string_storage_props,
-          'format_any_prop' => [],
-          'format_main_prop' => [],
+          'static prop source' => 'ℹ︎list_string␟value',
           'instances' => [],
           'adapter_matches_field_type' => [],
           'adapter_matches_instance' => [],
@@ -927,9 +635,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
           'component props' => [
             '⿲experience_builder:shoe_icon␟color',
           ],
-          'storage' => $all_string_storage_props,
-          'format_any_prop' => [],
-          'format_main_prop' => [],
+          'static prop source' => 'ℹ︎list_string␟value',
           'instances' => [],
           'adapter_matches_field_type' => [],
           'adapter_matches_instance' => [],
@@ -938,9 +644,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
           'component props' => [
             '⿲experience_builder:shoe_button␟target',
           ],
-          'storage' => $all_string_storage_props,
-          'format_any_prop' => [],
-          'format_main_prop' => [],
+          'static prop source' => 'ℹ︎list_string␟value',
           'instances' => [],
           'adapter_matches_field_type' => [],
           'adapter_matches_instance' => [],
@@ -949,9 +653,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
           'component props' => [
             '⿲sdc_test_all_props:all-props␟test_string_enum',
           ],
-          'storage' => $all_string_storage_props,
-          'format_any_prop' => [],
-          'format_main_prop' => [],
+          'static prop source' => 'ℹ︎list_string␟value',
           'instances' => [],
           'adapter_matches_field_type' => [],
           'adapter_matches_instance' => [],
@@ -960,9 +662,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
           'component props' => [
             '⿲experience_builder:shoe_button␟icon_position',
           ],
-          'storage' => $all_string_storage_props,
-          'format_any_prop' => [],
-          'format_main_prop' => [],
+          'static prop source' => 'ℹ︎list_string␟value',
           'instances' => [],
           'adapter_matches_field_type' => [],
           'adapter_matches_instance' => [],
@@ -971,9 +671,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
           'component props' => [
             '⿲experience_builder:heading␟style',
           ],
-          'storage' => $all_string_storage_props,
-          'format_any_prop' => [],
-          'format_main_prop' => [],
+          'static prop source' => 'ℹ︎list_string␟value',
           'instances' => [],
           'adapter_matches_field_type' => [],
           'adapter_matches_instance' => [],
@@ -982,9 +680,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
           'component props' => [
             '⿲experience_builder:shoe_button␟size',
           ],
-          'storage' => $all_string_storage_props,
-          'format_any_prop' => [],
-          'format_main_prop' => [],
+          'static prop source' => 'ℹ︎list_string␟value',
           'instances' => [],
           'adapter_matches_field_type' => [],
           'adapter_matches_instance' => [],
@@ -993,33 +689,14 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
           'component props' => [
             '⿲sdc_test_all_props:all-props␟test_string_format_' . JsonSchemaStringFormat::DATE->value,
           ],
-          'storage' => $all_string_storage_props,
-          'format_any_prop' => [
-            'ℹ︎daterange␟end_value',
-            'ℹ︎daterange␟value',
-            'ℹ︎datetime␟value',
-          ],
-          'format_main_prop' => [
-            'ℹ︎daterange␟value',
-            'ℹ︎datetime␟value',
-          ],
+          'static prop source' => 'ℹ︎datetime␟value',
           'instances' => [
             'ℹ︎␜entity:node:foo␝field_event_duration␞␟end_value',
             'ℹ︎␜entity:node:foo␝field_event_duration␞␟value',
           ],
           'adapter_matches_field_type' => [
             'unix_to_date' => [
-              'unix' => [
-                'ℹ︎changed␟value',
-                'ℹ︎comment␟status',
-                'ℹ︎created␟value',
-                'ℹ︎entity_reference␟target_id',
-                'ℹ︎file␟target_id',
-                'ℹ︎image␟target_id',
-                'ℹ︎integer␟value',
-                'ℹ︎list_integer␟value',
-                'ℹ︎timestamp␟value',
-              ],
+              'unix' => 'ℹ︎integer␟value',
             ],
           ],
           'adapter_matches_instance' => [
@@ -1034,16 +711,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
           'component props' => [
             '⿲sdc_test_all_props:all-props␟test_string_format_' . str_replace('-', '_', JsonSchemaStringFormat::DATE_TIME->value),
           ],
-          'storage' => $all_string_storage_props,
-          'format_any_prop' => [
-            'ℹ︎daterange␟end_value',
-            'ℹ︎daterange␟value',
-            'ℹ︎datetime␟value',
-          ],
-          'format_main_prop' => [
-            'ℹ︎daterange␟value',
-            'ℹ︎datetime␟value',
-          ],
+          'static prop source' => 'ℹ︎datetime␟value',
           'instances' => [
             'ℹ︎␜entity:node:foo␝field_event_duration␞␟end_value',
             'ℹ︎␜entity:node:foo␝field_event_duration␞␟value',
@@ -1055,11 +723,8 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
           'component props' => [
             '⿲sdc_test_all_props:all-props␟test_string_format_' . JsonSchemaStringFormat::DURATION->value,
           ],
-          'storage' => $all_string_storage_props,
-          'format_any_prop' => [
-            // @todo No field type in Drupal core uses \Drupal\Core\TypedData\Plugin\DataType\DurationIso8601.
-          ],
-          'format_main_prop' => [],
+          // @todo No field type in Drupal core uses \Drupal\Core\TypedData\Plugin\DataType\DurationIso8601.
+          'static prop source' => NULL,
           'instances' => [],
           'adapter_matches_field_type' => [],
           'adapter_matches_instance' => [],
@@ -1068,13 +733,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
           'component props' => [
             '⿲sdc_test_all_props:all-props␟test_string_format_' . JsonSchemaStringFormat::EMAIL->value,
           ],
-          'storage' => $all_string_storage_props,
-          'format_any_prop' => [
-            'ℹ︎email␟value',
-          ],
-          'format_main_prop' => [
-            'ℹ︎email␟value',
-          ],
+          'static prop source' => 'ℹ︎email␟value',
           'instances' => [
             'ℹ︎␜entity:file␝uid␞␟entity␜␜entity:user␝init␞␟value',
             'ℹ︎␜entity:file␝uid␞␟entity␜␜entity:user␝mail␞␟value',
@@ -1092,11 +751,8 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
           'component props' => [
             '⿲sdc_test_all_props:all-props␟test_string_format_' . JsonSchemaStringFormat::HOSTNAME->value,
           ],
-          'storage' => $all_string_storage_props,
-          'format_any_prop' => [
-            // @todo adapter from `type: string, format=uri`?
-          ],
-          'format_main_prop' => [],
+          // @todo adapter from `type: string, format=uri`?
+          'static prop source' => NULL,
           'instances' => [],
           'adapter_matches_field_type' => [],
           'adapter_matches_instance' => [],
@@ -1105,13 +761,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
           'component props' => [
             '⿲sdc_test_all_props:all-props␟test_string_format_' . str_replace('-', '_', JsonSchemaStringFormat::IDN_EMAIL->value),
           ],
-          'storage' => $all_string_storage_props,
-          'format_any_prop' => [
-            'ℹ︎email␟value',
-          ],
-          'format_main_prop' => [
-            'ℹ︎email␟value',
-          ],
+          'static prop source' => 'ℹ︎email␟value',
           'instances' => [
             'ℹ︎␜entity:file␝uid␞␟entity␜␜entity:user␝init␞␟value',
             'ℹ︎␜entity:file␝uid␞␟entity␜␜entity:user␝mail␞␟value',
@@ -1129,17 +779,14 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
           'component props' => [
             '⿲sdc_test_all_props:all-props␟test_string_format_' . str_replace('-', '_', JsonSchemaStringFormat::IDN_HOSTNAME->value),
           ],
-          'storage' => $all_string_storage_props,
-          'format_any_prop' => [
-            // phpcs:disable
-            // @todo adapter from `type: string, format=uri`?
-            // @todo To generate a match for this JSON schema type:
-            // - generate an adapter?! -> but we cannot just adapt arbitrary data to generate a IP
-            // - follow entity references in the actual data model, i.e. this will find matches at the instance level? -> but does not allow the BUILDER persona to create instances
-            // - create an instance with the necessary requirement?! => `@FieldType=string` + `Ip` constraint … but no field type allows configuring this?
-            // phpcs:enable
-          ],
-          'format_main_prop' => [],
+          // phpcs:disable
+          // @todo adapter from `type: string, format=uri`?
+          // @todo To generate a match for this JSON schema type:
+          // - generate an adapter?! -> but we cannot just adapt arbitrary data to generate a IP
+          // - follow entity references in the actual data model, i.e. this will find matches at the instance level? -> but does not allow the BUILDER persona to create instances
+          // - create an instance with the necessary requirement?! => `@FieldType=string` + `Ip` constraint … but no field type allows configuring this?
+          // phpcs:enable
+          'static prop source' => NULL,
           'instances' => [],
           'adapter_matches_field_type' => [],
           'adapter_matches_instance' => [],
@@ -1149,9 +796,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
           'component props' => [
             '⿲sdc_test_all_props:all-props␟test_string_format_' . JsonSchemaStringFormat::IPV4->value,
           ],
-          'storage' => $all_string_storage_props,
-          'format_any_prop' => [],
-          'format_main_prop' => [],
+          'static prop source' => NULL,
           'instances' => [],
           'adapter_matches_field_type' => [],
           'adapter_matches_instance' => [],
@@ -1161,9 +806,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
           'component props' => [
             '⿲sdc_test_all_props:all-props␟test_string_format_' . JsonSchemaStringFormat::IPV6->value,
           ],
-          'storage' => $all_string_storage_props,
-          'format_any_prop' => [],
-          'format_main_prop' => [],
+          'static prop source' => NULL,
           'instances' => [],
           'adapter_matches_field_type' => [],
           'adapter_matches_instance' => [],
@@ -1172,26 +815,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
           'component props' => [
             '⿲sdc_test_all_props:all-props␟test_string_format_' . JsonSchemaStringFormat::IRI->value,
           ],
-          'storage' => $all_string_storage_props,
-          'format_any_prop' => [
-            'ℹ︎file_uri␟url',
-            'ℹ︎file_uri␟value',
-            'ℹ︎file␟entity␜␜entity:file␝uri␞0␟url',
-            'ℹ︎file␟entity␜␜entity:file␝uri␞0␟value',
-            'ℹ︎image␟entity␜␜entity:file␝uri␞0␟url',
-            'ℹ︎image␟entity␜␜entity:file␝uri␞0␟value',
-            'ℹ︎link␟uri',
-            'ℹ︎uri␟value',
-          ],
-          'format_main_prop' => [
-            'ℹ︎file_uri␟value',
-            'ℹ︎file␟entity␜␜entity:file␝uri␞0␟url',
-            'ℹ︎file␟entity␜␜entity:file␝uri␞0␟value',
-            'ℹ︎image␟entity␜␜entity:file␝uri␞0␟url',
-            'ℹ︎image␟entity␜␜entity:file␝uri␞0␟value',
-            'ℹ︎link␟uri',
-            'ℹ︎uri␟value',
-          ],
+          'static prop source' => 'ℹ︎uri␟value',
           'instances' => [
             'ℹ︎␜entity:file␝uri␞␟url',
             'ℹ︎␜entity:file␝uri␞␟value',
@@ -1205,26 +829,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
           'component props' => [
             '⿲sdc_test_all_props:all-props␟test_string_format_' . str_replace('-', '_', JsonSchemaStringFormat::IRI_REFERENCE->value),
           ],
-          'storage' => $all_string_storage_props,
-          'format_any_prop' => [
-            'ℹ︎file_uri␟url',
-            'ℹ︎file_uri␟value',
-            'ℹ︎file␟entity␜␜entity:file␝uri␞0␟url',
-            'ℹ︎file␟entity␜␜entity:file␝uri␞0␟value',
-            'ℹ︎image␟entity␜␜entity:file␝uri␞0␟url',
-            'ℹ︎image␟entity␜␜entity:file␝uri␞0␟value',
-            'ℹ︎link␟uri',
-            'ℹ︎uri␟value',
-          ],
-          'format_main_prop' => [
-            'ℹ︎file_uri␟value',
-            'ℹ︎file␟entity␜␜entity:file␝uri␞0␟url',
-            'ℹ︎file␟entity␜␜entity:file␝uri␞0␟value',
-            'ℹ︎image␟entity␜␜entity:file␝uri␞0␟url',
-            'ℹ︎image␟entity␜␜entity:file␝uri␞0␟value',
-            'ℹ︎link␟uri',
-            'ℹ︎uri␟value',
-          ],
+          'static prop source' => 'ℹ︎uri␟value',
           'instances' => [
             'ℹ︎␜entity:file␝uri␞␟url',
             'ℹ︎␜entity:file␝uri␞␟value',
@@ -1239,9 +844,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
           'component props' => [
             '⿲sdc_test_all_props:all-props␟test_string_format_' . str_replace('-', '_', JsonSchemaStringFormat::JSON_POINTER->value),
           ],
-          'storage' => $all_string_storage_props,
-          'format_any_prop' => [],
-          'format_main_prop' => [],
+          'static prop source' => NULL,
           'instances' => [],
           'adapter_matches_field_type' => [],
           'adapter_matches_instance' => [],
@@ -1251,9 +854,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
           'component props' => [
             '⿲sdc_test_all_props:all-props␟test_string_format_' . JsonSchemaStringFormat::REGEX->value,
           ],
-          'storage' => $all_string_storage_props,
-          'format_any_prop' => [],
-          'format_main_prop' => [],
+          'static prop source' => NULL,
           'instances' => [],
           'adapter_matches_field_type' => [],
           'adapter_matches_instance' => [],
@@ -1263,9 +864,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
           'component props' => [
             '⿲sdc_test_all_props:all-props␟test_string_format_' . str_replace('-', '_', JsonSchemaStringFormat::RELATIVE_JSON_POINTER->value),
           ],
-          'storage' => $all_string_storage_props,
-          'format_any_prop' => [],
-          'format_main_prop' => [],
+          'static prop source' => NULL,
           'instances' => [],
           'adapter_matches_field_type' => [],
           'adapter_matches_instance' => [],
@@ -1274,11 +873,8 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
           'component props' => [
             '⿲sdc_test_all_props:all-props␟test_string_format_' . JsonSchemaStringFormat::TIME->value,
           ],
-          'storage' => $all_string_storage_props,
-          'format_any_prop' => [
-            // @todo Adapter for @FieldType=timestamp -> `type:string,format=time`, @FieldType=datetime -> `type:string,format=time`
-          ],
-          'format_main_prop' => [],
+          // @todo Adapter for @FieldType=timestamp -> `type:string,format=time`, @FieldType=datetime -> `type:string,format=time`
+          'static prop source' => NULL,
           'instances' => [],
           'adapter_matches_field_type' => [],
           'adapter_matches_instance' => [],
@@ -1287,26 +883,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
           'component props' => [
             '⿲sdc_test_all_props:all-props␟test_string_format_' . JsonSchemaStringFormat::URI->value,
           ],
-          'storage' => $all_string_storage_props,
-          'format_any_prop' => [
-            'ℹ︎file_uri␟url',
-            'ℹ︎file_uri␟value',
-            'ℹ︎file␟entity␜␜entity:file␝uri␞0␟url',
-            'ℹ︎file␟entity␜␜entity:file␝uri␞0␟value',
-            'ℹ︎image␟entity␜␜entity:file␝uri␞0␟url',
-            'ℹ︎image␟entity␜␜entity:file␝uri␞0␟value',
-            'ℹ︎link␟uri',
-            'ℹ︎uri␟value',
-          ],
-          'format_main_prop' => [
-            'ℹ︎file_uri␟value',
-            'ℹ︎file␟entity␜␜entity:file␝uri␞0␟url',
-            'ℹ︎file␟entity␜␜entity:file␝uri␞0␟value',
-            'ℹ︎image␟entity␜␜entity:file␝uri␞0␟url',
-            'ℹ︎image␟entity␜␜entity:file␝uri␞0␟value',
-            'ℹ︎link␟uri',
-            'ℹ︎uri␟value',
-          ],
+          'static prop source' => 'ℹ︎uri␟value',
           'instances' => [
             'ℹ︎␜entity:file␝uri␞␟url',
             'ℹ︎␜entity:file␝uri␞␟value',
@@ -1320,26 +897,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
           'component props' => [
             '⿲sdc_test_all_props:all-props␟test_string_format_' . str_replace('-', '_', JsonSchemaStringFormat::URI_REFERENCE->value),
           ],
-          'storage' => $all_string_storage_props,
-          'format_any_prop' => [
-            'ℹ︎file_uri␟url',
-            'ℹ︎file_uri␟value',
-            'ℹ︎file␟entity␜␜entity:file␝uri␞0␟url',
-            'ℹ︎file␟entity␜␜entity:file␝uri␞0␟value',
-            'ℹ︎image␟entity␜␜entity:file␝uri␞0␟url',
-            'ℹ︎image␟entity␜␜entity:file␝uri␞0␟value',
-            'ℹ︎link␟uri',
-            'ℹ︎uri␟value',
-          ],
-          'format_main_prop' => [
-            'ℹ︎file_uri␟value',
-            'ℹ︎file␟entity␜␜entity:file␝uri␞0␟url',
-            'ℹ︎file␟entity␜␜entity:file␝uri␞0␟value',
-            'ℹ︎image␟entity␜␜entity:file␝uri␞0␟url',
-            'ℹ︎image␟entity␜␜entity:file␝uri␞0␟value',
-            'ℹ︎link␟uri',
-            'ℹ︎uri␟value',
-          ],
+          'static prop source' => 'ℹ︎uri␟value',
           'instances' => [
             'ℹ︎␜entity:file␝uri␞␟url',
             'ℹ︎␜entity:file␝uri␞␟value',
@@ -1354,9 +912,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
           'component props' => [
             '⿲sdc_test_all_props:all-props␟test_string_format_' . str_replace('-', '_', JsonSchemaStringFormat::URI_TEMPLATE->value),
           ],
-          'storage' => $all_string_storage_props,
-          'format_any_prop' => [],
-          'format_main_prop' => [],
+          'static prop source' => NULL,
           'instances' => [],
           'adapter_matches_field_type' => [],
           'adapter_matches_instance' => [],
@@ -1365,17 +921,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
           'component props' => [
             '⿲sdc_test_all_props:all-props␟test_string_format_' . JsonSchemaStringFormat::UUID->value,
           ],
-          'storage' => $all_string_storage_props,
-          'format_any_prop' => [
-            'ℹ︎file␟entity␜␜entity:file␝uuid␞0␟value',
-            'ℹ︎image␟entity␜␜entity:file␝uuid␞0␟value',
-            'ℹ︎uuid␟value',
-          ],
-          'format_main_prop' => [
-            'ℹ︎file␟entity␜␜entity:file␝uuid␞0␟value',
-            'ℹ︎image␟entity␜␜entity:file␝uuid␞0␟value',
-            'ℹ︎uuid␟value',
-          ],
+          'static prop source' => NULL,
           'instances' => [
             'ℹ︎␜entity:file␝uid␞␟entity␜␜entity:user␝uuid␞␟value',
             'ℹ︎␜entity:file␝uuid␞␟value',
@@ -1394,10 +940,10 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
 
     // The Media Library module being installed does not affect the results of
     // the SdcPropToFieldTypePropMatcher; it only affects
-    // PropShape::findFieldTypeStorage().
+    // PropShape::getStorage().
     // @see media_library_storage_prop_shape_alter()
-    // @see \Drupal\experience_builder\PropShape::findFieldTypeStorage()
-    // @see \Drupal\experience_builder\SdcPropToFieldTypePropMatcher
+    // @see \Drupal\experience_builder\PropShape\PropShape::getStorage()
+    // @see \Drupal\experience_builder\ShapeMatcher\SdcPropToFieldTypePropMatcher
     // @todo Remove the field type matching functionality from SdcPropToFieldTypePropMatcher in https://www.drupal.org/project/experience_builder/issues/3450496
     $cases['XB example SDCs + all-props SDC, using ALL core-provided field types + media library'] = $cases['XB example SDCs + all-props SDC, using ALL core-provided field types'];
     $cases['XB example SDCs + all-props SDC, using ALL core-provided field types + media library']['modules'][] = 'media_library';

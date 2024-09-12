@@ -14,12 +14,12 @@ use Drupal\Core\Render\RenderableInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\TypedData\DataDefinition;
 use Drupal\experience_builder\Entity\Component;
-use Drupal\experience_builder\FieldForComponentSuggester;
 use Drupal\experience_builder\Plugin\ComponentPluginManager;
 use Drupal\experience_builder\Plugin\DataType\ComponentPropsValues;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeHydrated;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 use Drupal\experience_builder\PropSource\PropSourceBase;
+use Drupal\experience_builder\ShapeMatcher\FieldForComponentSuggester;
 
 /**
  * Plugin implementation of the 'component_tree' field type.
@@ -276,7 +276,7 @@ class ComponentTreeItem extends FieldItemBase implements RenderableInterface {
   }
 
   /**
-   * @return array<string, array<string, array{types: array<string, \Drupal\experience_builder\PropExpressions\StructuredData\FieldTypePropExpression|\Drupal\experience_builder\PropExpressions\StructuredData\FieldTypeObjectPropsExpression|\Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldTypePropExpression>, instances: array<string, \Drupal\experience_builder\PropExpressions\StructuredData\FieldPropExpression|\Drupal\experience_builder\PropExpressions\StructuredData\FieldObjectPropsExpression|\Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldPropExpression>}>>
+   * @return array<string, array<string, array{instances: array<string, \Drupal\experience_builder\PropExpressions\StructuredData\FieldPropExpression|\Drupal\experience_builder\PropExpressions\StructuredData\FieldObjectPropsExpression|\Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldPropExpression>}>>
    */
   public function getAvailablePropSourceChoices(): mixed {
     $prop_source_suggester = \Drupal::service(FieldForComponentSuggester::class);

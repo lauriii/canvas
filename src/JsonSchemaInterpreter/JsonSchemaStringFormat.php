@@ -7,10 +7,10 @@ namespace Drupal\experience_builder\JsonSchemaInterpreter;
 use Drupal\Core\TypedData\Type\DateTimeInterface;
 use Drupal\Core\TypedData\Type\UriInterface;
 use Drupal\datetime\Plugin\Field\FieldType\DateTimeItem;
-use Drupal\experience_builder\DataTypeShapeRequirement;
 use Drupal\experience_builder\PropExpressions\StructuredData\FieldTypePropExpression;
-use Drupal\experience_builder\PropShape;
-use Drupal\experience_builder\StorablePropShape;
+use Drupal\experience_builder\PropShape\PropShape;
+use Drupal\experience_builder\PropShape\StorablePropShape;
+use Drupal\experience_builder\ShapeMatcher\DataTypeShapeRequirement;
 use Symfony\Component\Validator\Constraints\Ip;
 
 // phpcs:disable Drupal.Files.LineLength.TooLong
@@ -115,10 +115,10 @@ enum JsonSchemaStringFormat: string {
    * Used for generating a StaticPropSource, for storing a value that fits in
    * this prop shape.
    *
-   * @param \Drupal\experience_builder\PropShape $shape
+   * @param \Drupal\experience_builder\PropShape\PropShape $shape
    *   The prop shape to find the recommended UX (storage + widget) for.
    *
-   * @return \Drupal\experience_builder\StorablePropShape|null
+   * @return \Drupal\experience_builder\PropShape\StorablePropShape|null
    *   NULL is returned to indicate that Experience Builder + Drupal core do not
    *   support a field type that provides a good UX for entering a value of this
    *   shape. Otherwise, a StorablePropShape is returned that specifies that UX.
@@ -162,11 +162,7 @@ enum JsonSchemaStringFormat: string {
       static::UUID => NULL,
       // TRICKY: Drupal core does not support RFC3987 aka IRIs, but it's a superset of RFC3986.
       // @see \Drupal\Core\Field\Plugin\Field\FieldType\UriItem
-      static::URI, static::IRI => new StorablePropShape(shape: $shape, fieldTypeProp: new FieldTypePropExpression('uri', 'value'), fieldWidget: 'uri'),
-      // TRICKY: Drupal core has a "path" field type, but it's tightly coupled to the parent entity's URL; it does not store arbitrary URI references. Hence it only makes sense as a DynamicPropSource, not a StaticPropSource.
-      // @see ::toDataTypeShapeRequirements()
-      // @see \Drupal\path\Plugin\Field\FieldType\PathItem
-      static::URI_REFERENCE, static::IRI_REFERENCE => NULL,
+      static::URI_REFERENCE, static::URI, static::IRI_REFERENCE, static::IRI => new StorablePropShape(shape: $shape, fieldTypeProp: new FieldTypePropExpression('uri', 'value'), fieldWidget: 'uri'),
 
       // Built-in formats: URI template.
       // @see https://json-schema.org/understanding-json-schema/reference/string#uri-template
