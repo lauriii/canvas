@@ -23,7 +23,10 @@ import {
 } from '@/features/ui/uiSlice';
 import Outline from '@/features/layout/preview/Outline';
 import Sortable from 'sortablejs';
-import { customSortableDragImage } from '@/features/sortable/sortableUtils';
+import {
+  customSortableDragImage,
+  isDropTargetInSlotAllowedByEdgeDistance,
+} from '@/features/sortable/sortableUtils';
 import { findNodePathByUuid } from '@/features/layout/layoutUtils';
 import { useGetComponentsQuery } from '@/services/components';
 import { useGetSectionsQuery } from '@/services/sections';
@@ -141,32 +144,34 @@ const Viewport: React.FC<ViewportProps> = (props) => {
     [dispatch, layout],
   );
 
-  const handleDragMove = useCallback((ev: Sortable.MoveEvent) => {
-    let isTargetAllowed = true;
+  const handleDragMove = useCallback(
+    (
+      ev: Sortable.MoveEvent,
+      originalEvent: Event | { clientX: number; clientY: number },
+    ) => {
+      let isTargetAllowed = true;
 
-    // Prevent placing a component below an empty slot's example content.
-    if (
-      ev.related.parentElement?.getAttribute('data-xb-slot-is-empty') !==
-        null &&
-      ev.willInsertAfter
-    ) {
-      isTargetAllowed = false;
-    }
+      // Prevent placing a component by dragging too close to the top or bottom edge of a slot.
+      if (!isDropTargetInSlotAllowedByEdgeDistance(ev, originalEvent)) {
+        isTargetAllowed = false;
+      }
 
-    // Prevent placing a component below its own clone element (the element that stays in the original place when
-    // dragging) if it's the only one in the list (slot or root layout).
-    if (
-      ev.related.classList.contains('xb--sortable-clone') &&
-      ev.related.parentElement?.querySelectorAll(
-        '.xb--sortable-item:not(.xb--sortable-ghost)',
-      ).length === 1 &&
-      ev.willInsertAfter
-    ) {
-      isTargetAllowed = false;
-    }
+      // Prevent placing a component below its own clone element (the element that stays in the original place when
+      // dragging) if it's the only one in the list (slot or root layout).
+      if (
+        ev.related.classList.contains('xb--sortable-clone') &&
+        ev.related.parentElement?.querySelectorAll(
+          '.xb--sortable-item:not(.xb--sortable-ghost)',
+        ).length === 1 &&
+        ev.willInsertAfter
+      ) {
+        isTargetAllowed = false;
+      }
 
-    return isTargetAllowed;
-  }, []);
+      return isTargetAllowed;
+    },
+    [],
+  );
 
   const handleDragAdd = useCallback(
     (ev: Sortable.SortableEvent) => {
@@ -294,6 +299,7 @@ const Viewport: React.FC<ViewportProps> = (props) => {
       Sortable.create(listEl, {
         animation: 0,
         invertSwap: true,
+        swapThreshold: 0.5,
         ghostClass: 'xb--sortable-ghost',
         group: {
           name: 'layout',

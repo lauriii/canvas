@@ -56,12 +56,13 @@ This file is included as an attached Drupal library and as such is subject to CS
 .xb--sortable-ghost * {
   display: none;
 }
-.xb--sortable-clone {
-  opacity: 0.2;
+
+[data-xb-slot-is-empty] .xb--sortable-ghost {
+  top: 0;
 }
 
-.xb--sortable-ghost * {
-  visibility: hidden;
+.xb--sortable-clone {
+  opacity: 0.2;
 }
 
 [data-xb-component-id="slot"] {
@@ -71,4 +72,14 @@ This file is included as an attached Drupal library and as such is subject to CS
 .xb--sortable-slot-hover {
   outline: 1px solid var(--xb--blue-900);
   outline-offset: -1px;
+}
+
+.xb--sortable-slot-hover[data-xb-slot-is-empty] *:not(.xb--sortable-ghost) {
+  opacity: 0.2;
+}
+
+[data-xb-uuid="root"] {
+  /* Provide "space" for SortableJS at the top and bottom as drop targets. */
+  margin: -40px 0;
+  padding: 40px 0;
 }

@@ -11,6 +11,7 @@ import clsx from 'clsx';
 import * as Menubar from '@radix-ui/react-menubar';
 import ListItem from '@/components/list/ListItem';
 import type { LayoutModelSliceState } from '@/features/layout/layoutModelSlice';
+import { isDropTargetInSlotAllowedByEdgeDistance } from '@/features/sortable/sortableUtils';
 
 export interface ListProps {
   items: ListData | undefined;
@@ -62,6 +63,17 @@ const List: React.FC<ListProps> = (props) => {
     dispatch(setInactive());
   }, [dispatch]);
 
+  const handleDragMove = useCallback(
+    (
+      ev: Sortable.MoveEvent,
+      originalEvent: Event | { clientX: number; clientY: number },
+    ) => {
+      // Prevent placing a component by dragging too close to the top or bottom edge of a slot.
+      return isDropTargetInSlotAllowedByEdgeDistance(ev, originalEvent);
+    },
+    [],
+  );
+
   useEffect(() => {
     if (
       !isLoading &&
@@ -84,6 +96,7 @@ const List: React.FC<ListProps> = (props) => {
         onStart: handleDragStart,
         onEnd: handleDragEnd,
         onClone: handleDragClone,
+        onMove: handleDragMove,
       });
     }
     return () => {
@@ -91,7 +104,13 @@ const List: React.FC<ListProps> = (props) => {
         sortableInstance.current.destroy();
       }
     };
-  }, [isLoading, handleDragStart, handleDragEnd, handleDragClone]);
+  }, [
+    isLoading,
+    handleDragStart,
+    handleDragEnd,
+    handleDragClone,
+    handleDragMove,
+  ]);
 
   return (
     <div className={clsx('listContainer', styles.listContainer)}>

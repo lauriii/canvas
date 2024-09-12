@@ -1,4 +1,5 @@
 import type React from 'react';
+import type { MoveEvent as SortableMoveEvent } from 'sortablejs';
 
 export function customSortableDragImage(
   event: DragEvent | React.DragEvent,
@@ -40,4 +41,54 @@ export function customSortableDragImage(
       document?.body.removeChild(customDragImage);
     });
   }
+}
+
+/**
+ * Decide if a component can be dropped at the current target based on the distance from the edge of a slot.
+ *
+ * We require a minimum distance from the slot's vertical edges when dragging a component to ensure that we can place
+ * a component between two adjacent components which both have slots when there is no other component in between them.
+ * Without this extra logic, depending on the layout of two adjacent components with slots, it can be impossible to place
+ * a component between them. This is because if we have no space between the adjacent components with slots, their slots
+ * will always be picked up as drop target instead of a spot in their parent slot/root.
+ *
+ * Can be called from Sortable's `onMove` callback.
+ * @see https://github.com/SortableJS/Sortable/blob/1.15.2/README.md?plain=1#L211
+ *
+ * @param ev - The Sortable.MoveEvent object.
+ * @param originalEvent - The original Event object. (This can be expected as a MouseEvent.)
+ * @returns - A boolean indicating whether the component can be placed at the current target.
+ */
+export function isDropTargetInSlotAllowedByEdgeDistance(
+  ev: SortableMoveEvent,
+  originalEvent: Event | { clientX: number; clientY: number },
+  edgeThreshold: number = 20,
+): boolean {
+  // Get the bounding rect of the target's list — the slot to where the component is being dragged.
+  // (This can also be the root.)
+  const slotRect = ev.to.getBoundingClientRect();
+  // Get all the components in the slot/root.
+  const slotComponents = Array.from(ev.to.children);
+  // Check if the component we're currently hovering over while dragging is the first or last in the slot.
+  const isFirstInSlot = ev.related === slotComponents[0];
+  const isLastInSlot = ev.related === slotComponents[slotComponents.length - 1];
+  // Check if we're targeting the root instead of a slot inside a component.
+  const isRoot = ev.to.getAttribute('data-xb-uuid') === 'root';
+
+  // If the component we're currently hovering over is the first or last component in a slot, and the slot is not the
+  // root, make sure that we don't allow the position as a drop target unless we're within a specified distance from
+  // the top or bottom of the slot.
+  if (
+    // originalEvent is expected to be a MouseEvent, but we'll type guard just in case.
+    originalEvent &&
+    'clientY' in originalEvent &&
+    !isRoot &&
+    (isFirstInSlot || isLastInSlot)
+  ) {
+    const distanceFromEdge = isFirstInSlot
+      ? originalEvent.clientY - slotRect.top
+      : slotRect.bottom - originalEvent.clientY;
+    return Math.abs(distanceFromEdge) >= edgeThreshold;
+  }
+  return true;
 }

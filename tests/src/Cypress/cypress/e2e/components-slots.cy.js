@@ -1,4 +1,7 @@
-describe('Component slots functionality', { testIsolation: false }, () => {
+// WARNING: describe.skip() is used to ignore this spec.
+// See #3473617: Write end-to-end test for dragging components into slots
+// https://www.drupal.org/project/experience_builder/issues/3473617
+describe.skip('Component slots functionality', { testIsolation: false }, () => {
   before(() => {
     cy.drupalXbInstall();
   });
