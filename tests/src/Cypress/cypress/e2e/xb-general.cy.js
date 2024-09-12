@@ -591,4 +591,32 @@ describe('General Experience Builder', { testIsolation: false }, () => {
     cy.getIframeBody().findByText('hello, world!').click();
     cy.get('#menuBarContainer .MenubarSubContent').should('not.exist');
   });
+
+  it('Should ensure the component insert panel is scrollable', () => {
+    // Stub the HTTP request to return many components to make scrolling necessary
+    cy.intercept('GET', '**/xb-components', {
+      statusCode: 200,
+      body: Array(50)
+        .fill()
+        .reduce((acc, _, index) => {
+          const id = `experience_builder:component_${index + 1}`;
+          acc[id] = { id, name: `Component ${index + 1}` };
+          return acc;
+        }, {}),
+    }).as('getComponents');
+
+    cy.visit('/xb/node/1');
+
+    cy.get('#add-menu-button').click();
+    cy.get('#menuBarContainer .MenubarSubContent').should('exist');
+    cy.wait('@getComponents');
+
+    cy.get('#menuBarContainer .MenubarSubContent')
+      .realMouseWheel({ deltaY: 2000 })
+      .then(() => {
+        cy.get(
+          '[data-xb-component-id="experience_builder:component_50"]',
+        ).should('be.visible');
+      });
+  });
 });
