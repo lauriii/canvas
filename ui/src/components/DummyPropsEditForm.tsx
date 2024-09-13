@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useErrorBoundary } from 'react-error-boundary';
-import { Spinner } from '@radix-ui/themes';
+import { Spinner, Text } from '@radix-ui/themes';
 import { useGetDummyPropsFormQuery } from '@/services/dummyPropsForm';
 import hyperscriptify from '@/local_packages/hyperscriptify';
 import twigToJSXComponentMap from '@/components/form/twig-to-jsx-component-map.js';
@@ -151,6 +151,7 @@ const DummyPropsEditForm: React.FC<DummyPropsEditFormProps> = () => {
 
   const [dynamicStaticCardQueryString, setDynamicStaticCardQueryString] =
     useState('');
+  const [emptyProp, setEmptyProp] = useState(false);
 
   useEffect(() => {
     if (error) {
@@ -168,6 +169,14 @@ const DummyPropsEditForm: React.FC<DummyPropsEditFormProps> = () => {
     // to the SDC *type* but unconcerned with this SDC *instance*.
     const selectedComponentFieldData: PropDataCollection =
       components[selectedComponentType]?.['field_data'] || {};
+
+    // Check if this component has any props or not.
+    if (Object.keys(selectedComponentFieldData).length === 0) {
+      setDynamicStaticCardQueryString('');
+      setEmptyProp(true);
+    } else {
+      setEmptyProp(false);
+    }
 
     // The prepared model combines prop values from the model and prop metadata
     // from the SDC definition.
@@ -244,9 +253,16 @@ const DummyPropsEditForm: React.FC<DummyPropsEditFormProps> = () => {
 
   return (
     dynamicStaticCardQueryString && (
-      <DummyPropsEditFormRenderer
-        dynamicStaticCardQueryString={dynamicStaticCardQueryString}
-      />
+      <>
+        <DummyPropsEditFormRenderer
+          dynamicStaticCardQueryString={dynamicStaticCardQueryString}
+        />
+        {emptyProp && emptyProp ? (
+          <Text size="4">This component has no props.</Text>
+        ) : (
+          ''
+        )}
+      </>
     )
   );
 };
