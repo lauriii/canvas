@@ -26,6 +26,9 @@ dependencies:
   # @see \Drupal\image\Plugin\Field\FieldType\ImageItem
   # @see \Drupal\experience_builder\JsonSchemaInterpreter\SdcPropJsonSchemaType::computeStorablePropShape()
   - drupal:image
+  # … for the same prop shape, but to ensure a better widget experience is available.
+  # @see \Drupal\media_library\Plugin\Field\FieldWidget\MediaLibraryWidget
+  - drupal:media_library
   # To support prop shapes using `enum`.
   # @see \Drupal\options\Plugin\Field\FieldType\ListFloatItem
   # @see \Drupal\options\Plugin\Field\FieldType\ListIntegerItem

@@ -66,7 +66,6 @@ class XBTestSetup implements TestSetupInterface {
       ],
     ])->save();
     $module_installer->install([
-      'media_library',
       'experience_builder',
     ]);
 
