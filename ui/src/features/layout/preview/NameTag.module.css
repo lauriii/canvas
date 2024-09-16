@@ -12,4 +12,8 @@
     color: #fff;
     background-color: var(--component-outline-color);
   }
+  &.slot {
+    color: #fff;
+    background-color: var(--slot-outline-color);
+  }
 }

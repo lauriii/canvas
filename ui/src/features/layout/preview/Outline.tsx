@@ -29,7 +29,7 @@ const Outline: React.FC<OutlineProps> = (props) => {
   const outlineElRef = useRef<HTMLDivElement | null>(null);
   const nameTagElRef = useRef<HTMLDivElement | null>(null);
   const addSectionButtonRef = useRef<HTMLDivElement | null>(null);
-  const [nodeType, setNodeType] = useState<'component' | 'slot'>('component');
+  const [nodeType, setNodeType] = useState<'component' | 'slot' | null>(null);
   const dispatch = useAppDispatch();
   const elementRect = useSyncElementSize(iframeRef, elementId);
 
@@ -86,7 +86,7 @@ const Outline: React.FC<OutlineProps> = (props) => {
         iframeRef.current?.contentDocument?.querySelectorAll(
           `[data-xb-uuid="${elementId}"]`,
         )[0] as HTMLElement | null;
-      if (hoveredElementRef.current?.dataset.xbType === 'slot') {
+      if (hoveredElementRef.current?.dataset.xbComponentId === 'slot') {
         setNodeType('slot');
       } else {
         setNodeType('component');
@@ -128,7 +128,8 @@ const Outline: React.FC<OutlineProps> = (props) => {
   }
 
   return (
-    elementId && (
+    elementId &&
+    nodeType && (
       <>
         <div
           ref={outlineElRef}
@@ -138,21 +139,23 @@ const Outline: React.FC<OutlineProps> = (props) => {
           })}
           data-xb-component-outline=""
         />
-        {nodeType !== 'slot' && (
-          <Grid columns="2" gap="1">
-            <div ref={nameTagElRef} className={styles.xbNameTag}>
-              <NameTag elementId={elementId} selected={selected} />
+        <Grid columns="2" gap="1">
+          <div ref={nameTagElRef} className={styles.xbNameTag}>
+            <NameTag
+              elementId={elementId}
+              selected={selected}
+              nodeType={nodeType}
+            />
+          </div>
+          {selected && (
+            <div
+              ref={addSectionButtonRef}
+              className={styles.xbAddSectionButton}
+            >
+              <AddButton elementId={elementId} />
             </div>
-            {selected && (
-              <div
-                ref={addSectionButtonRef}
-                className={styles.xbAddSectionButton}
-              >
-                <AddButton elementId={elementId} />
-              </div>
-            )}
-          </Grid>
-        )}
+          )}
+        </Grid>
       </>
     )
   );

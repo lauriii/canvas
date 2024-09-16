@@ -12,6 +12,7 @@
   --primary-menu-item-font-size: 14px;
   --primary-menu-border-color: #e0e1e6;
   --component-outline-color: var(--blue-9);
+  --slot-outline-color: #9747ff;
 }
 
 /** These blues are generated from https://www.radix-ui.com/colors/custom using #176BFD as the accent's base color (--blue-9) */

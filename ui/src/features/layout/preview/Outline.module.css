@@ -13,7 +13,7 @@
   }
 }
 .xbSlotOutline {
-  outline: 1px dashed #02a376;
+  outline: 1px dashed var(--slot-outline-color);
 }
 
 .xbNameTag {
