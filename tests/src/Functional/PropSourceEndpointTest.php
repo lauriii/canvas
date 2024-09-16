@@ -3,7 +3,6 @@
 declare(strict_types=1);
 
 use Drupal\Component\Serialization\Json;
-use Drupal\image\Plugin\Field\FieldType\ImageItem;
 use Drupal\node\Entity\Node;
 use Drupal\Tests\BrowserTestBase;
 
@@ -37,11 +36,9 @@ class PropSourceEndpointTest extends BrowserTestBase {
   public function test(): void {
     $page = $this->getSession()->getPage();
     $field_definitions = \Drupal::service('entity_field.manager')->getFieldDefinitions('node', 'article');
-    $image_field_sample_value = ImageItem::generateSampleValue($field_definitions['field_hero']);
     $node = Node::create([
       'type' => 'article',
       'title' => 'XB Needs This For The Time Being',
-      'field_hero' => $image_field_sample_value,
     ]);
     $node->save();
     $this->drupalLogin($this->rootUser);
@@ -87,9 +84,7 @@ class PropSourceEndpointTest extends BrowserTestBase {
       'experience_builder:image' => [
         'id' => 'experience_builder:image',
         'dynamic_prop_source_candidates' => [
-          'image' => [
-            'This Article\'s Hero' => 'ℹ︎␜entity:node:article␝field_hero␞␟{src↝entity␜␜entity:file␝uri␞␟url,alt↠alt,width↠width,height↠height}',
-          ],
+          'image' => [],
         ],
       ],
       'experience_builder:my-hero' => [
@@ -99,24 +94,19 @@ class PropSourceEndpointTest extends BrowserTestBase {
             'This Article\'s Title' => 'ℹ︎␜entity:node:article␝title␞␟value',
           ],
           'subheading' => [
-            "This Article's Hero" => 'ℹ︎␜entity:node:article␝field_hero␞␟title',
             "This Article's Image" => 'ℹ︎␜entity:node:article␝field_image␞␟title',
             "This Article's Tags" => 'ℹ︎␜entity:node:article␝field_tags␞␟entity␜␜entity:taxonomy_term␝revision_log_message␞␟value',
             "This Article's Revision log message" => 'ℹ︎␜entity:node:article␝revision_log␞␟value',
             "This Article's Title" => 'ℹ︎␜entity:node:article␝title␞␟value',
           ],
           'cta1' => [
-            "This Article's Hero" => 'ℹ︎␜entity:node:article␝field_hero␞␟title',
             "This Article's Image" => 'ℹ︎␜entity:node:article␝field_image␞␟title',
             "This Article's Tags" => 'ℹ︎␜entity:node:article␝field_tags␞␟entity␜␜entity:taxonomy_term␝revision_log_message␞␟value',
             "This Article's Revision log message" => 'ℹ︎␜entity:node:article␝revision_log␞␟value',
             "This Article's Title" => 'ℹ︎␜entity:node:article␝title␞␟value',
           ],
-          'cta1href' => [
-            "This Article's Hero" => 'ℹ︎␜entity:node:article␝field_hero␞␟entity␜␜entity:file␝uri␞␟value',
-          ],
+          'cta1href' => [],
           'cta2' => [
-            "This Article's Hero" => 'ℹ︎␜entity:node:article␝field_hero␞␟title',
             "This Article's Image" => 'ℹ︎␜entity:node:article␝field_image␞␟title',
             "This Article's Tags" => 'ℹ︎␜entity:node:article␝field_tags␞␟entity␜␜entity:taxonomy_term␝revision_log_message␞␟value',
             "This Article's Revision log message" => 'ℹ︎␜entity:node:article␝revision_log␞␟value',
@@ -129,7 +119,6 @@ class PropSourceEndpointTest extends BrowserTestBase {
         'dynamic_prop_source_candidates' => [
           'test_bool' => [
             "This Article's Default translation" => 'ℹ︎␜entity:node:article␝default_langcode␞␟value',
-            "This Article's Hero" => 'ℹ︎␜entity:node:article␝field_hero␞␟entity␜␜entity:file␝status␞␟value',
             "This Article's Image" => 'ℹ︎␜entity:node:article␝field_image␞␟entity␜␜entity:file␝status␞␟value',
             "This Article's Tags" => 'ℹ︎␜entity:node:article␝field_tags␞␟entity␜␜entity:taxonomy_term␝status␞␟value',
             "This Article's Promoted to front page" => 'ℹ︎␜entity:node:article␝promote␞␟value',
@@ -141,7 +130,6 @@ class PropSourceEndpointTest extends BrowserTestBase {
             "This Article's Authored by" => 'ℹ︎␜entity:node:article␝uid␞␟entity␜␜entity:user␝status␞␟value',
           ],
           'test_string' => [
-            "This Article's Hero" => 'ℹ︎␜entity:node:article␝field_hero␞␟title',
             "This Article's Image" => 'ℹ︎␜entity:node:article␝field_image␞␟title',
             "This Article's Tags" => 'ℹ︎␜entity:node:article␝field_tags␞␟entity␜␜entity:taxonomy_term␝revision_log_message␞␟value',
             "This Article's Revision log message" => 'ℹ︎␜entity:node:article␝revision_log␞␟value',
@@ -166,26 +154,21 @@ class PropSourceEndpointTest extends BrowserTestBase {
             "This Article's Authored by" => 'ℹ︎␜entity:node:article␝uid␞␟entity␜␜entity:user␝mail␞␟value',
           ],
           'test_string_format_uri' => [
-            "This Article's Hero" => 'ℹ︎␜entity:node:article␝field_hero␞␟entity␜␜entity:file␝uri␞␟value',
             "This Article's Image" => 'ℹ︎␜entity:node:article␝field_image␞␟entity␜␜entity:file␝uri␞␟value',
           ],
           'test_string_format_uri_reference' => [
-            "This Article's Hero" => 'ℹ︎␜entity:node:article␝field_hero␞␟entity␜␜entity:file␝uri␞␟value',
             "This Article's Image" => 'ℹ︎␜entity:node:article␝field_image␞␟entity␜␜entity:file␝uri␞␟value',
           ],
           'test_string_format_iri' => [
-            "This Article's Hero" => 'ℹ︎␜entity:node:article␝field_hero␞␟entity␜␜entity:file␝uri␞␟value',
             "This Article's Image" => 'ℹ︎␜entity:node:article␝field_image␞␟entity␜␜entity:file␝uri␞␟value',
           ],
           'test_string_format_iri_reference' => [
-            "This Article's Hero" => 'ℹ︎␜entity:node:article␝field_hero␞␟entity␜␜entity:file␝uri␞␟value',
             "This Article's Image" => 'ℹ︎␜entity:node:article␝field_image␞␟entity␜␜entity:file␝uri␞␟value',
           ],
           'test_integer' => [
             "This Article's Changed" => 'ℹ︎␜entity:node:article␝changed␞␟value',
             "This Article's Comments" => 'ℹ︎␜entity:node:article␝comment␞␟status',
             "This Article's Authored on" => 'ℹ︎␜entity:node:article␝created␞␟value',
-            "This Article's Hero" => 'ℹ︎␜entity:node:article␝field_hero␞␟width',
             "This Article's Image" => 'ℹ︎␜entity:node:article␝field_image␞␟width',
             "This Article's Tags" => 'ℹ︎␜entity:node:article␝field_tags␞␟target_id',
             "This Article's ID" => 'ℹ︎␜entity:node:article␝nid␞␟value',
@@ -200,9 +183,7 @@ class PropSourceEndpointTest extends BrowserTestBase {
             "This Article's Revision user" => 'ℹ︎␜entity:node:article␝revision_uid␞␟entity␜␜entity:user␝login␞␟value',
             "This Article's Authored by" => 'ℹ︎␜entity:node:article␝uid␞␟entity␜␜entity:user␝login␞␟value',
           ],
-          'test_object_drupal_image' => [
-            "This Article's Hero" => 'ℹ︎␜entity:node:article␝field_hero␞␟{src↝entity␜␜entity:file␝uri␞␟url,alt↠alt,width↠width,height↠height}',
-          ],
+          'test_object_drupal_image' => [],
         ],
       ],
     ];

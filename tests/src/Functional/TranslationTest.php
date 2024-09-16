@@ -7,7 +7,6 @@ namespace Drupal\Tests\experience_builder\Functional;
 use Drupal\experience_builder\Plugin\DataType\ComponentPropsValues;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
-use Drupal\image\Entity\ImageStyle;
 use Drupal\node\Entity\Node;
 use Drupal\Tests\content_translation\Traits\ContentTranslationTestTrait;
 
@@ -18,7 +17,11 @@ class TranslationTest extends FunctionalTestBase {
   /**
    * {@inheritdoc}
    */
-  protected static $modules = ['experience_builder', 'content_translation', 'language'];
+  protected static $modules = [
+    'xb_test_config_node_article',
+    'content_translation',
+    'language',
+  ];
 
   /**
    * {@inheritdoc}
@@ -28,13 +31,22 @@ class TranslationTest extends FunctionalTestBase {
   /**
    * {@inheritdoc}
    */
-  protected $profile = 'standard';
+  protected $profile = 'minimal';
 
   /**
    * {@inheritdoc}
    */
   protected function setUp(): void {
     parent::setUp();
+
+    // Display the `field_xb_test` field.
+    \Drupal::service('entity_display.repository')
+      ->getViewDisplay('node', 'article')
+      ->setComponent('field_xb_test', [
+        'type' => 'experience_builder_naive_render_sdc_tree',
+      ])
+      ->save();
+
     $page = $this->getSession()->getPage();
     $this->drupalLogin($this->rootUser);
     $this->drupalGet('admin/config/regional/language');
@@ -46,9 +58,6 @@ class TranslationTest extends FunctionalTestBase {
     // that hold a list of languages.
     $this->rebuildContainer();
     $this->enableContentTranslation('node', 'article');
-
-    // The `thumbnail` image style already exists.
-    $this->assertInstanceOf(ImageStyle::class, ImageStyle::load('thumbnail'));
   }
 
   /**
@@ -95,15 +104,15 @@ class TranslationTest extends FunctionalTestBase {
 
     $this->drupalGet('admin/config/regional/content-language');
     if ($field_is_translatable) {
-      $page->checkField('settings[node][article][fields][field_xb_demo]');
+      $page->checkField('settings[node][article][fields][field_xb_test]');
       foreach (['tree', 'props'] as $field_property) {
         in_array($field_property, $translatable_properties)
-          ? $page->checkField("settings[node][article][columns][field_xb_demo][$field_property]")
-          : $page->uncheckField("settings[node][article][columns][field_xb_demo][$field_property]");
+          ? $page->checkField("settings[node][article][columns][field_xb_test][$field_property]")
+          : $page->uncheckField("settings[node][article][columns][field_xb_test][$field_property]");
       }
     }
     else {
-      $page->uncheckField('settings[node][article][fields][field_xb_demo]');
+      $page->uncheckField('settings[node][article][fields][field_xb_test]');
     }
 
     $page->pressButton('Save configuration');
@@ -125,9 +134,9 @@ class TranslationTest extends FunctionalTestBase {
     // Confirm the first hero component does not use the translated properties
     // because it uses a StaticPropSource.
     $this->assertSame('hello, new world!', $hero_components[0]->getText());
-    // Confirm the image component that displays the thumbnail image has been
-    // removed from display. This was changed on the default translation.
-    $assert_session->elementsCount('css', 'article img[src*="/files/styles/thumbnail/"]', 0);
+    // Confirm the heading has been removed from display. This was changed on
+    // the default translation.
+    $assert_session->elementsCount('css', 'article [data-component-id="experience_builder:heading"]', 0);
 
     $this->drupalGet($translated_node->toUrl());
     $assert_session->elementTextEquals('css', '#block-stark-page-title h1', 'The French title');
@@ -152,11 +161,11 @@ class TranslationTest extends FunctionalTestBase {
       $this->assertSame('hello, new world!', $hero_components[0]->getText());
     }
 
-    // Confirm the image component that displays the thumbnail image has been
-    // removed or not based the test case expectation.
+    // Confirm the heading component has been removed or not based the test case
+    // expectation.
     $assert_session->elementsCount(
       'css',
-      'article img[src*="/files/styles/thumbnail/"]',
+      'article [data-component-id="experience_builder:heading"]',
       $expect_component_removed_on_translation ? 0 : 1
     );
   }
@@ -177,16 +186,16 @@ class TranslationTest extends FunctionalTestBase {
     $translation->title = 'The French title';
     $translation->save();
     $translation = $node->getTranslation('fr');
-    assert($node->get('field_xb_demo')[0] instanceof ComponentTreeItem);
-    $props = $node->get('field_xb_demo')[0]->get('props');
+    assert($node->get('field_xb_test')[0] instanceof ComponentTreeItem);
+    $props = $node->get('field_xb_test')[0]->get('props');
     $this->assertInstanceOf(ComponentPropsValues::class, $props);
     $original_props_value = $props->getValue();
 
     // In both the Symmetric and Asymmetric translation cases, the `props` field
     // is translatable and this should only change the translation.
     $french_prop = str_replace('hello, world!', 'bonjour, monde!', $original_props_value);
-    assert($translation->get('field_xb_demo')[0] instanceof ComponentTreeItem);
-    $translation->get('field_xb_demo')[0]->set('props', $french_prop);
+    assert($translation->get('field_xb_test')[0] instanceof ComponentTreeItem);
+    $translation->get('field_xb_test')[0]->set('props', $french_prop);
     $translation->save();
 
     $updated_props_value = str_replace('hello, world!', 'hello, new world!', $original_props_value);
@@ -194,19 +203,19 @@ class TranslationTest extends FunctionalTestBase {
     // translatable and this should only change the original. If the field is
     // not translatable, this should change both the original and the
     // translation.
-    $node->get('field_xb_demo')[0]->set('props', $updated_props_value);
-    $tree = $node->get('field_xb_demo')[0]->get('tree');
+    $node->get('field_xb_test')[0]->set('props', $updated_props_value);
+    $tree = $node->get('field_xb_test')[0]->get('tree');
     $this->assertInstanceOf(ComponentTreeStructure::class, $tree);
     $tree_value = $tree->getValue();
     $tree_decoded = json_decode($tree_value, TRUE);
-    // Remove the component that shows the thumbnail from the tree.
+    // Remove the heading from the tree.
     // In the asymmetric case, where 'tree' is translatable, this should only
     // affect the untranslated node.
     // In the symmetric case, where 'tree' is not translatable, this should
     // change both the original and the translation.
-    $this->assertSame('dynamic-image-static-imageStyle-something7d', $tree_decoded['two-column-uuid']['column_two'][2]['uuid']);
+    $this->assertSame('static-heading-some-uuid', $tree_decoded['two-column-uuid']['column_two'][2]['uuid']);
     unset($tree_decoded['two-column-uuid']['column_two'][2]);
-    $node->get('field_xb_demo')[0]->set('tree', json_encode($tree_decoded));
+    $node->get('field_xb_test')[0]->set('tree', json_encode($tree_decoded));
     $node->save();
     return $node;
   }

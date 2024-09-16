@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\experience_builder\Functional;
 
-use Drupal\Core\File\FileExists;
-use Drupal\Core\File\FileSystemInterface;
 use Drupal\image\Entity\ImageStyle;
 use Drupal\node\Entity\Node;
 use Drupal\Tests\BrowserTestBase;
@@ -32,26 +30,9 @@ abstract class FunctionalTestBase extends BrowserTestBase {
     $this->assertStringEndsWith('node/add/article', $this->getSession()->getCurrentUrl());
     // @todo For some reason, specifying `type: 'error'` fails: the expected HTML structure is different?! 🤯
     $this->assertSession()->statusMessageContains('Title field is required.');
-    $this->assertSession()->statusMessageContains('Hero field is required.');
 
-    // Two entity fields are required: `Title` + `Hero`. Fill 'em, press `Save`.
+    // One entity fields is required: `Title`. Fill it, press `Save`.
     $page->fillField('title[0][value]', 'The first entity using XB!');
-    $image_file = current($this->getTestFiles('image'));
-    // @phpstan-ignore-next-line
-    $image_file_uri = 'public://' . $image_file->name . ' with spaces.png';
-    $file_system = $this->container->get(FileSystemInterface::class);
-    assert($file_system instanceof FileSystemInterface);
-    // @phpstan-ignore-next-line
-    $file_system->move($image_file->uri, $image_file_uri, FileExists::Rename);
-    $image_path = $this->container->get('file_system')->realpath($image_file_uri);
-    $this->assertNotFalse($image_path);
-    $page->attachFileToField('files[field_hero_0]', $image_path);
-    $page->pressButton('Save');
-    $this->assertStringEndsWith('node/add/article', $this->getSession()->getCurrentUrl());
-
-    // Now that a file has been uploaded, we also need to specify `alt`.
-    $this->assertSession()->statusMessageContains('Alternative text field is required.');
-    $page->fillField('field_hero[0][alt]', 'A random image for testing purposes.');
     $page->pressButton('Save');
 
     // Success!

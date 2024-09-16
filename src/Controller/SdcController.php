@@ -310,7 +310,9 @@ final class SdcController extends ControllerBase {
       // Maps to the `props` property of the XB field type,.
       // @see \Drupal\experience_builder\Plugin\DataType\ComponentPropsValues
       // @todo Settle on final names and get in sync.
-      'model' => $model,
+      // If the model is empty return an empty object to ensure it is encoded as
+      // an object and not empty array.
+      'model' => empty($model) ? new \stdClass() : $model,
     ]);
   }
 

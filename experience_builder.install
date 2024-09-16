@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 use Drupal\node\Entity\NodeType;
 use Drupal\Core\Extension\ThemeInstallerInterface;
-use Drupal\Core\Config\TypedConfigManagerInterface;
-use Drupal\Core\Theme\ComponentPluginManager;
 
 /**
  * Implements hook_install().
@@ -22,13 +20,6 @@ function experience_builder_install(): void {
     return;
   }
   if (NodeType::load('article')) {
-    \Drupal::service('entity_display.repository')
-      ->getFormDisplay('node', 'article')
-      ->setComponent('field_hero', [
-        'type' => 'image_image',
-        'weight' => 1,
-      ])
-      ->save();
     \Drupal::service('entity_display.repository')
       ->getViewDisplay('node', 'article')
       ->setComponent('field_xb_demo', [
@@ -58,28 +49,6 @@ function experience_builder_module_preinstall(string $module): void {
   // @see \Drupal\Core\Extension\ModuleInstaller::install()
   // @todo Remove this after https://www.drupal.org/project/drupal/issues/3352063 lands.
   \Drupal::service('stream_wrapper_manager')->register();
-
-  // @todo Remove this as soon as this module no longer contains default config
-  // that depends on Component config entities, i.e. once
-  // config/optional/field.field.node.article.field_xb_demo.yml is removed
-  // Force SDCs to be rediscovered, to ensure Component config entities are
-  // created *prior* to installing default config. Otherwise config with
-  // dependencies on Component config entities will fail to install.
-  // TRICKY: at this point, the `Component` config entity type does not yet
-  // exist. So explicitly install that first.
-  // @see \Drupal\Core\Extension\ModuleInstaller::install()
-  \Drupal::service('validation.constraint')->clearCachedDefinitions();
-  \Drupal::service(TypedConfigManagerInterface::class)->clearCachedDefinitions();
-  \Drupal::entityTypeManager()->clearCachedDefinitions();
-  $entity_types = \Drupal::entityTypeManager()->getDefinitions();
-  assert(array_key_exists('component', $entity_types));
-  \Drupal::entityDefinitionUpdateManager()->installEntityType($entity_types['component']);
-  // Thanks to the 5 above lines, Component config entities can now be created.
-  // Force them to be created for all SDCs in the current system that meet the
-  // criteria.
-  // @see \Drupal\experience_builder\Plugin\ComponentPluginManager::getDefinitions()
-  \Drupal::service(ComponentPluginManager::class)->clearCachedDefinitions();
-  \Drupal::service(ComponentPluginManager::class)->getDefinitions();
 }
 
 /**

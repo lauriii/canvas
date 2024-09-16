@@ -3,10 +3,11 @@
 2. `composer require drush/drush`
 3. `drush si standard`
 4. `drush pm:install experience_builder`
-5. Browse to `/node/add/article` — you'll see a `🪄 XB Demo ✨` field. Don't touch that — just enter a title for the article and hit save: a component is rendered using the article title 🤓
-6. If you're curious: look at the code, step through it with a debugger, and join us!
-7. If you want to run *all* tests locally, including the OpenAPI spec one: `composer require league/openapi-psr7-validator webflo/drupal-finder devizzent/cebe-php-openapi --dev`
-
+5. `cd modules/contrib/experience_builder/ui` and run `npm install && npm run build`
+6. Browse to `/node/add/article` just enter a title for the article and hit save. This will create a node with an empty canvas for the field `field_xb_demo`.
+7. Browse to `/xb/node/1` to use Experience Builder! 🥳
+8. If you're curious: look at the code, step through it with a debugger, and join us!
+9. If you want to run *all* tests locally, including the OpenAPI spec one: `composer require league/openapi-psr7-validator webflo/drupal-finder devizzent/cebe-php-openapi --dev`
 # During development
 The following commands assume the recommended development details outlined above, particularly the location of the `vendor` directory. If your `vendor` directory is not adjacent to your `index.php` — if you created your environment using [`drupal/recommended-project`](https://packagist.org/packages/drupal/recommended-project), for example — you will need to adjust the command path (i.e., `../vendor` instead of `vendor`). If you are using our DDEV add-on ([`TravisCarden/ddev-drupal-xb-dev`](https://github.com/TravisCarden/ddev-drupal-xb-dev)), convenience commands are provided.
 
