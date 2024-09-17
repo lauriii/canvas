@@ -157,7 +157,7 @@ const DummyPropsEditForm: React.FC<DummyPropsEditFormProps> = () => {
     if (error) {
       showBoundary(error);
     }
-    if (!components || !selectedComponent) {
+    if (!components || !selectedComponent || layout.children.length === 0) {
       return;
     }
     const preparedModel: PreparedModel = { [selectedComponent]: {} };
