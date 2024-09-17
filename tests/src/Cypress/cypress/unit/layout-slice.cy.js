@@ -4,7 +4,7 @@ import {
   moveNode,
   layoutModelSlice,
   setLayoutModel,
-  initialState,
+  initialState, duplicateNode,
 } from '../../../../../ui/src/features/layout/layoutModelSlice';
 import { makeStore } from '../../../../../ui/src/app/store';
 import { ActionCreators } from 'redux-undo';
@@ -133,5 +133,78 @@ describe('Undo/redo', () => {
     expect(state.present.model).to.deep.equal(layout.model);
     cy.wrap(state.past).should('have.length', 0);
     cy.wrap(state.future).should('have.length', 0);
+  });
+});
+describe('Duplicate node', () => {
+  it('Should duplicate a node correctly with a new UUID and duplicate its children nodes', () => {
+    // Initialize state with a layout
+    const initialStateWithLayout = layoutModelSlice.reducer(
+      initialState,
+      setLayoutModel({
+        layout: {
+          uuid: 'root',
+          nodeType: 'root',
+          name: 'root',
+          children: [
+            {
+              uuid: 'original-node',
+              nodeType: 'component',
+              name: 'Original Node',
+              children: [
+                {
+                  uuid: 'child-1',
+                  nodeType: 'component',
+                  name: 'Child 1',
+                  children: [],
+                },
+                {
+                  uuid: 'child-2',
+                  nodeType: 'component',
+                  name: 'Child 2',
+                  children: [],
+                },
+              ],
+            },
+          ],
+        },
+        model: {},
+        initialized: true,
+      }),
+    );
+
+    const nodeToDuplicateUUID = 'original-node';
+    const stateAfterDuplication = layoutModelSlice.reducer(
+      initialStateWithLayout,
+      duplicateNode({ uuid: nodeToDuplicateUUID }),
+    );
+
+    const originalNode = initialStateWithLayout.layout.children.find(
+      (node) => node.uuid === nodeToDuplicateUUID
+    );
+    const newNode = stateAfterDuplication.layout.children.find(
+      (node) => node.uuid !== nodeToDuplicateUUID
+    );
+
+    // Ensure the new node is a duplicate and has a different UUID
+    expect(newNode).to.not.be.undefined;
+    expect(newNode.uuid).to.not.equal(nodeToDuplicateUUID);
+    expect(newNode.name).to.equal(originalNode.name);
+    expect(newNode.nodeType).to.equal(originalNode.nodeType);
+    expect(newNode.children.length).to.equal(originalNode.children.length);
+
+    // Verify each child node's UUID in the new node
+    originalNode.children.forEach((originalChild, index) => {
+      const newChild = newNode.children[index];
+      expect(newChild).to.not.be.undefined;
+      expect(newChild.uuid).to.not.equal(originalChild.uuid);
+      expect(newChild.name).to.equal(originalChild.name);
+      expect(newChild.nodeType).to.equal(originalChild.nodeType);
+      expect(newChild.children).to.deep.equal(originalChild.children);
+    });
+
+    // Verify the model for the new node and its children
+    expect(stateAfterDuplication.model[newNode.uuid]).to.deep.equal(
+      stateAfterDuplication.model[nodeToDuplicateUUID]
+    );
   });
 });

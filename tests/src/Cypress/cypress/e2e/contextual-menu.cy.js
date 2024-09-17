@@ -54,4 +54,22 @@ describe('Contextual menu functionality', {testIsolation: false}, () => {
     cy.getIframeBody().findByText('Two Column').should('not.exist');
   });
 
+  it('should duplicate the element on clicking the "Duplicate" button', () => {
+    cy.loadURLandWaitForXBLoaded();
+    cy.getIframeBody().find('[data-component-id="experience_builder:two_column"]').should('have.length', 1);
+
+    // Right-click on the element that should trigger the context menu
+    cy.get('.primaryMenuContent').findByText('Two Column').trigger('contextmenu');
+
+    cy.get('[data-radix-scroll-area-viewport]')
+      .should('exist')
+      .and('be.visible');
+    cy.get('[data-radix-scroll-area-viewport]')
+      .within(() => {
+        // Click on the "Duplicate" button
+        cy.findByText('Duplicate').click();
+      });
+    cy.get('.primaryMenuContent').findAllByText('Two Column').should('have.length', 2);
+  });
+
 });

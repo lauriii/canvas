@@ -112,34 +112,42 @@ export interface ComponentModel {
  * Replace UUIDs in a layout node and its corresponding model.
  * @param node - The layout node to update.
  * @param model - The corresponding model to update.
+ * @returns An updated model and a updated state.
  */
 const replaceUUIDsAndUpdateModel = (
   node: LayoutNode,
   model: ComponentModels,
-) => {
+): {
+  updatedNode: LayoutNode;
+  updatedModel: ComponentModels;
+} => {
   const oldToNewUUIDMap: Record<string, string> = {};
+  const updatedModel: ComponentModels = {};
 
-  const replaceUUIDs = (node: LayoutNode) => {
-    if (node.uuid) {
-      const newUUID = uuidv4();
-      oldToNewUUIDMap[node.uuid] = newUUID;
-      node.uuid = newUUID;
+  const replaceUUIDs = (node: LayoutNode): LayoutNode => {
+    const newNode: LayoutNode = { ...node, uuid: uuidv4() };
+
+    oldToNewUUIDMap[node.uuid] = newNode.uuid;
+
+    // Recursively process children
+    if (newNode.children) {
+      newNode.children = newNode.children.map(replaceUUIDs);
     }
 
-    if (node.children) {
-      node.children.forEach((child) => replaceUUIDs(child));
-    }
+    return newNode;
   };
 
-  replaceUUIDs(node);
+  const updatedNode = replaceUUIDs(node);
 
   // Update the model keys
   for (const oldUUID in model) {
-    if (oldToNewUUIDMap[oldUUID]) {
-      model[oldToNewUUIDMap[oldUUID]] = _.cloneDeep(model[oldUUID]);
-      delete model[oldUUID];
+    const newUUID = oldToNewUUIDMap[oldUUID];
+    if (newUUID) {
+      updatedModel[newUUID] = _.cloneDeep(model[oldUUID]);
     }
   }
+
+  return { updatedNode, updatedModel };
 };
 
 export const layoutModelSlice = createSlice({
@@ -153,14 +161,20 @@ export const layoutModelSlice = createSlice({
     duplicateNode: create.reducer(
       (state, action: PayloadAction<DuplicateNodePayload>) => {
         const { uuid } = action.payload;
-        const cloneNode = _.cloneDeep(findNodeByUuid(state.layout, uuid));
-        if (!cloneNode) {
+        const nodeToDuplicate = findNodeByUuid(state.layout, uuid);
+
+        if (!nodeToDuplicate) {
           console.error(`Cannot duplicate ${uuid}. Check the uuid is valid.`);
           return;
         }
-        const newUuid = uuidv4();
-        cloneNode.uuid = newUuid;
-        state.model[newUuid] = _.cloneDeep(state.model[uuid]);
+
+        const { updatedNode, updatedModel } = replaceUUIDsAndUpdateModel(
+          nodeToDuplicate,
+          state.model,
+        );
+
+        // Add the updated model to the state
+        state.model = { ...state.model, ...updatedModel };
 
         const nodePath = findNodePathByUuid(state.layout, uuid);
         if (nodePath === null) {
@@ -170,7 +184,7 @@ export const layoutModelSlice = createSlice({
           return;
         }
         nodePath[nodePath.length - 1]++;
-        state.layout = insertNodeAtPath(state.layout, nodePath, cloneNode);
+        state.layout = insertNodeAtPath(state.layout, nodePath, updatedNode);
       },
     ),
     moveNode: create.reducer(
@@ -225,22 +239,25 @@ export const layoutModelSlice = createSlice({
           );
           return;
         }
+        let updatedModel: ComponentModels = { ...state.model };
 
-        // The nodes we're inserting into the layout already have UUIDs. We need to make sure they're unique before
-        // inserting them into the layout., so we need to generate new UUIDs and update. Ww also need the  the model to
-        // reflect the new UUIDs.
+        // The nodes we're inserting into the layout already have UUIDs. We need to ensure they're unique before
+        // inserting them into the layout, so we need to generate new UUIDs and update the model accordingly.
         const nodesToInsert: LayoutNode[] = _.cloneDeep(newNodes.children);
-        const updatedModel: ComponentModels = _.cloneDeep(model);
         let newLayout: LayoutNode = _.cloneDeep(state.layout);
 
-        // Loop backwards so that we don't have to keep incrementing the insert position for each node we insert.
+        // Loop through each node in reverse order to maintain the correct insert positions
         for (let i = nodesToInsert.length - 1; i >= 0; i--) {
           const node = nodesToInsert[i];
-          replaceUUIDsAndUpdateModel(node, updatedModel);
-          newLayout = insertNodeAtPath(newLayout, to, node);
+          const { updatedNode, updatedModel: nodeUpdatedModel } =
+            replaceUUIDsAndUpdateModel(node, model);
+          updatedModel = { ...updatedModel, ...nodeUpdatedModel };
+
+          // Insert the node into the new layout at the specified position
+          newLayout = insertNodeAtPath(newLayout, to, updatedNode);
         }
 
-        state.model = { ...state.model, ...updatedModel };
+        state.model = updatedModel;
         state.layout = newLayout;
       },
     ),
