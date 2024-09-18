@@ -33,6 +33,23 @@ const Canvas = () => {
   const contextMenuOpen = useAppSelector(selectIsContextMenuOpen);
   const [modifierKeyPressed, setModifierKeyPressed] = useState(false);
   const modifierKeyPressedRef = useRef(false);
+
+  const calculateCanvasSize = () => {
+    if (previewsContainerRef.current && canvasRef.current) {
+      const viewportWidth = window.innerWidth;
+      const viewportHeight = window.innerHeight;
+
+      const containerWidth = previewsContainerRef.current.offsetWidth;
+      const containerHeight = previewsContainerRef.current.offsetHeight;
+
+      const canvasWidth = containerWidth + viewportWidth * 1.5;
+      const canvasHeight = containerHeight + viewportHeight * 1.5;
+
+      canvasRef.current.style.width = `${canvasWidth}px`;
+      canvasRef.current.style.height = `${canvasHeight}px`;
+    }
+  };
+
   const selectedComponent = useAppSelector(selectSelectedComponent);
   useHotkeys(['NumpadAdd', 'Equal'], () => dispatch(canvasViewPortZoomIn()));
   useHotkeys(['Minus', 'NumpadSubtract'], () =>
@@ -110,17 +127,47 @@ const Canvas = () => {
   });
 
   useEffect(() => {
+    calculateCanvasSize();
+    window.addEventListener('resize', calculateCanvasSize);
+
+    return () => {
+      window.removeEventListener('resize', calculateCanvasSize);
+    };
+  }, []);
+
+  useEffect(() => {
+    const currentContainer = previewsContainerRef.current;
+    const observer = new ResizeObserver(calculateCanvasSize);
+
+    if (currentContainer) {
+      observer.observe(currentContainer);
+    }
+
+    return () => {
+      if (currentContainer) {
+        observer.unobserve(currentContainer);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
     if (previewsContainerRef.current && canvasRef.current) {
-      // let previewContainerWidth = previewsContainerRef.current.offsetWidth;
-      // console.log(previewContainerWidth);
-      // let previewContainerHeight = previewsContainerRef.current.offsetHeight;
-      // let canvasX = canvasRef.current.offsetWidth / 2;
-      // let canvasY = canvasRef.current.offsetHeight / 2;
-      //
-      // canvasX = canvasX + previewContainerWidth;
-      // canvasY = canvasY - previewContainerHeight / 2;
-      // @todo - this calc should be dynamic to correctly center the preview container in the canvas pane on page load. https://www.drupal.org/project/experience_builder/issues/3469894
-      dispatch(setCanvasViewPort({ x: 670, y: 880 }));
+      // Get the width and height of the preview container
+      const previewContainerWidth =
+        previewsContainerRef.current.offsetWidth || 0;
+      const previewContainerHeight =
+        previewsContainerRef.current.offsetHeight || 0;
+
+      // Get the width and height of the canvas
+      const canvasWidth = canvasRef.current.offsetWidth || 0;
+      const canvasHeight = canvasRef.current.offsetHeight || 0;
+
+      // Calculate the center position to align the preview container in the canvas
+      const canvasX = (canvasWidth - previewContainerWidth) / 2;
+      const canvasY = (canvasHeight - previewContainerHeight) / 2;
+
+      // Dispatch the action with the calculated center position
+      dispatch(setCanvasViewPort({ x: canvasX, y: canvasY }));
     }
   }, [dispatch]);
 
@@ -266,6 +313,8 @@ const Canvas = () => {
         data-testid="canvasElement"
         style={{
           transform: `scale(${canvasViewPort.scale})`,
+          width: '100%',
+          height: '100%',
         }}
       >
         <div className={styles.previewsContainer} ref={previewsContainerRef}>
