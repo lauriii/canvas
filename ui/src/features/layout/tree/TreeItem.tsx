@@ -67,15 +67,11 @@ const TreeItem: React.FC<TreeItemProps> = ({ node, children }) => {
   function handleItemMouseEnter(event: React.MouseEvent<HTMLDivElement>) {
     event.stopPropagation();
     dispatch(setHoveredComponent(node.uuid));
-    dispatch(setIsContextMenuOpen(undefined));
-    setIsContextMenuOpen(false);
   }
 
   function handleItemMouseLeave(event: React.MouseEvent<HTMLDivElement>) {
     event.stopPropagation();
     if (!contextMenuOpen) {
-      dispatch(unsetHoveredComponent());
-      dispatch(setIsContextMenuOpen(undefined));
       dispatch(unsetHoveredComponent());
     }
   }
