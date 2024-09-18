@@ -65,6 +65,13 @@ class ComponentPluginManager extends CoreComponentPluginManager {
   protected function setCachedDefinitions($definitions): array {
     parent::setCachedDefinitions($definitions);
 
+    // Do not auto-create/update XB configuration when syncing config/deploying.
+    // @todo Introduce a "XB development mode" similar to Twig's: https://www.drupal.org/node/3359728
+    // @phpstan-ignore-next-line
+    if (\Drupal::isConfigSyncing()) {
+      return $definitions;
+    }
+
     // TRICKY: Component::save() calls SdcPropKeysConstraintValidator, which
     // will also call this plugin manager! Avoid recursively creating Component
     // config entities.

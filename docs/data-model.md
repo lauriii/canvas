@@ -2,6 +2,11 @@
 
 In the rest of this document, `Experience Builder` will be written as `XB`.
 
+This builds on top of the [`XB Components` doc](components.md). Please read that first.
+
+It also builds on top of the [`XB Config Management` doc](config-management.md), which itself refers back to this one
+for a few things. The data model is built on top of the configuration architecture.
+
 **Also see the [diagram](diagrams/data-model.md).**
 
 ## Finding issues 🐛, code 🤖 & people 👯‍♀️
@@ -32,26 +37,24 @@ to one of us! 😊 🙏
 - `field item list`: to support multiple-cardinality values, Drupal core has opted to wrap every `field item` in a list — even if a particular `field instance` is single-cardinality
 - `field type`: metadata plus a class defining the `field prop`s that exist on this field type, requires a `field instance` to be used
 - `field widget`: a class that uses Form API to specify the editing UX for a `field type`
-- `SDC`: a [Single-Directory Component](https://www.drupal.org/project/sdc)
+- `SDC`: see [`XB Components` doc](components.md)
 - `view mode`: view modes lets a `content entity` be displayed in multiple ways
 
 ### 1.2 XB terminology
 
-- `component`: a component generates markup (and might attach CSS + JS), potentially based on some input. ⚠️ This is currently limited to `SDC`s, but that _will_ change. So: read this more broadly. ⚠️
+- `component`: see [`XB Components` doc](components.md)
 - `component instance`: a UUID uniquely identifying this instance + component + values for each required `component prop` (if any) + optionally values for its `component slot`s (if any)
-- `component prop`: each component may in its metadata define 0 or more props, each prop accepts structured data conforming to the shape defined in the `component`'s metadata
-- `component slot`: each component may in its metadata define 0 or more slots, each slot accepts >=0 component instances in a particular order
+- `component prop`: see [`XB Components` doc](components.md)
+- `component slot`: see [`XB Components` doc](components.md)
 - `component tree`: a tree of `component instance`s, by placing >=1 `component instance`s in a particular order in another `component instance`'s slot
 - `component tree field type`: XB's field type that allows storing a `component tree` ⚠️ This is currently limited to the "default" `view mode`, and hence one component tree per `content entity`. ⚠️
 - `component tree root`: the root of the `component tree` is the special case: it does not exist in another `component`, but it behaves the same as any other `component slot`
-- `component type`: the mechanism through which a `component` is defined (currently only `SDC`)
-  - TBD: inputs for non-`SDC` components may be modeled as `component prop`s or not
-  - TBD: the first non-`SDC` component type will likely be blocks, unclear today how to handle/surface [_context_](https://www.drupal.org/docs/drupal-apis/plugin-api/plugin-contexts#s-context-on-blocks) in XB
+- `component type`: see [`XB Components` doc](components.md)
 - `conjured field`: a `field instance` that is not backed by code nor config, but generated dynamically to edit/store a value for a `component prop` as `unstructured data`
-- `content type template`: the default `component tree` for a particular `content type`, which typically includes assigning the smallest units of `structured data` to particular `component props`
+- `content type template`: see [`XB Config Management` doc](config-management.md).
 - `layout`: synonym of `component tree`
 - `prop expression`: a (compact) string representing what context (entity type+bundle or field type) is required for retrieving one or more properties stored inside of that context; also has a typed PHP object representation to facilitate logic
-- `prop shape`: a normalized representation of the schema for a `component prop`, without metadata that does not affect the _shape_: a title or description does not affect what values _fit into this shape_
+- `prop shape`: see [`XB Components` doc](components.md)
 - `prop source`: a source for retrieving a prop value
   - `static prop source`: a `prop source` powered by a `conjured field` (i.e. `unstructured data`)
   - `dynamic prop source`: a `prop source` powered by a `base field` or `bundle field` (i.e. `structured data`)
@@ -65,21 +68,10 @@ to one of us! 😊 🙏
 
 This uses the terms defined above.
 
+This adds to the product requirements listed in [`XB Components` doc](components.md) and [`XB Config Management` doc](config-management.md).
+
 (There are [more](https://docs.google.com/spreadsheets/d/1OpETAzprh6DWjpTsZG55LWgldWV_D8jNe9AM73jNaZo/edit?gid=1721130122#gid=1721130122), but these in particular affect XB's data model.)
 
-- MUST support `SDC` today
-  - MUST be evolvable to [support other component types later](https://www.drupal.org/project/experience_builder/issues/3454519)
-- MUST support existing `SDC`s
-  - MUST require `SDC`s to meet certain criteria:
-    - MUST always have schema, even for theme `SDC`s
-    - MUST have `title` for each prop
-    - MUST have `example` for each required prop
-    - MUST have only props for whose `prop shape`s a `static prop source` can be found (see 3.1.2.b)
-    - MUST not have `status` value `obsolete`
-  - MAY require API additions and perhaps even changes to `SDC`s (such as: defining restrictions for `component slot`s) ⚠️ [an overview of what has been identified is constantly updated](https://www.drupal.org/project/experience_builder/issues/3462705) ⚠️
-- MUST be able to synchronize `component`s and `content type template`s from one site to another WITHOUT changes to Drupal deployment best practices
-- MUST support auditability, assuming (to answer questions such as: which `field type` and `field widget` does a `component` use when it is instantiated, why is a given `SDC` not available as a `component` in XB, et cetera)
-- MUST be able to specify the default layout/component [content type templates](https://www.drupal.org/project/experience_builder/issues/3455629) as configuration
 - MUST have validation logic that generates consistent validation error messages for either content (a `component tree` created by the Content Creator and stored in a `content entity`) or config (a `component tree` created by the Site Builder and stored in a `content type template`)
 - MUST allow continuing to use existing Drupal functionality (notably: `field type`s and `field widget`s)
 - SHOULD encourage Content Creators to use `structured data` whenever possible, `unstructured data` should be minimized except where necessary
