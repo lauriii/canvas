@@ -46,5 +46,37 @@ describe('Media Library', () => {
     cy.waitForElementInIframe(
       '[data-xb-component-id="experience_builder:image"] img[alt="The bones equal dollars"]',
     );
+
+    // Use the Media Library widget an additional time. This effectively
+    // confirms that XBEndpointRenderer is not loading JS assets that already
+    // exist on the page.
+    cy.get('[data-testid="xb-contextual-panel"] button[aria-label="Close"]')
+      .click()
+    cy.get('[data-testid="xb-contextual-panel"]').should('not.exist');
+    cy.getIframeBody()
+      .find('[data-xb-component-id="experience_builder:image"] img')
+      .first()
+      .trigger('click');
+
+    cy.get('[class*="contextualPanel"]').should('exist');
+    cy.get('div[role="dialog"]').should('not.exist');
+    cy.get(
+      '[class*="contextualPanel"] .js-media-library-open-button[data-once="drupal-ajax"]',
+    )
+      .first()
+      .click();
+    cy.get('div[role="dialog"]').should('exist');
+    cy.findByLabelText('Select Sorry I resemble a dog').check();
+    cy.get('button:contains("Insert selected")').click();
+    cy.get('div[role="dialog"]').should('not.exist');
+    cy.get(
+      '[class*="contextualPanel"] input[aria-label="Remove Sorry I resemble a dog"]',
+    ).should('exist');
+    cy.get(
+      '[class*="contextualPanel"] article .js-media-library-item-preview img[alt="My barber may have been looking at a picture of a dog"]',
+    ).should('exist');
+    cy.waitForElementInIframe(
+      '[data-xb-component-id="experience_builder:image"] img[alt="My barber may have been looking at a picture of a dog"]',
+    );
   });
 });

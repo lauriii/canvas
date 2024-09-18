@@ -152,16 +152,20 @@ const InputBehaviors = (OriginalInput: React.FC) => {
         },
       );
 
-      // If the special '_none' value is present, we must remove the prop from
-      // the model entirely so it reflects the choice of 'none', but does not
-      // attempt to store a value unrecognized by prop storage.
-      if (attributes?.value === '_none') {
-        const modelName = attributes.name
-          .replace(`xb_component_props[${selectedComponent}][`, '')
-          .replace(/\].*$/, '');
-        delete propsValues[modelName as keyof PropsValues];
-        delete selectedModel[modelName as keyof ComponentModel];
-      }
+      Object.entries(propsValues).forEach(([fieldName, value]) => {
+        const fieldData: FieldDataItem | undefined =
+          components?.[selectedComponentType]?.['field_data']?.[fieldName];
+
+        // @todo below is special-casing for enum fields but we will need to do
+        // this for many more use cases, so this should probably be moved to its
+        // own utility once we have more use cases.
+        if (fieldData?.jsonSchema?.enum) {
+          if (!fieldData.jsonSchema.enum.includes(value)) {
+            delete propsValues[fieldName as keyof PropsValues];
+            delete selectedModel[fieldName as keyof ComponentModel];
+          }
+        }
+      });
 
       dispatch(
         updateNodeModelForce({

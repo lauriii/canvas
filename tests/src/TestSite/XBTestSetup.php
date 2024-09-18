@@ -68,6 +68,17 @@ class XBTestSetup implements TestSetupInterface {
         ],
       ],
     ])->save();
+    Media::create([
+      'bundle' => 'image',
+      'name' => 'Sorry I resemble a dog',
+      'field_media_image' => [
+        [
+          'target_id' => 1,
+          'alt' => 'My barber may have been looking at a picture of a dog',
+          'title' => 'When he gave me this haircut',
+        ],
+      ],
+    ])->save();
     $module_installer->install([
       'experience_builder',
     ]);

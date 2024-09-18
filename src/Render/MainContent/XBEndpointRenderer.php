@@ -3,6 +3,7 @@
 namespace Drupal\experience_builder\Render\MainContent;
 
 use Drupal\Component\Serialization\Json;
+use Drupal\Component\Utility\UrlHelper;
 use Drupal\Core\Asset\AssetCollectionRendererInterface;
 use Drupal\Core\Asset\AssetResolverInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
@@ -70,6 +71,34 @@ final class XBEndpointRenderer implements MainContentRendererInterface {
     $html = $this->renderer->renderRoot($main_content);
     $assets = AttachedAssets::createFromRenderArray($main_content);
     $response->setContent($html);
+
+    $query = $request->query->all();
+
+    // This is effectively the same as the ajax_page_state query parameter
+    // automatically included in all Drupal.Ajax requests. This camel cased
+    // equivalent is explicitly added by Experience Builder as the request is
+    // not made by Drupal.Ajax.
+    $ajax_page_state = isset($query['ajaxPageState']) ? json_decode($query['ajaxPageState'], TRUE) : [];
+
+    // The first time (and perhaps other times?) this renderer runs, the
+    // libraries query parameter is compressed. We decompress anything requiring
+    // it here.
+    if (isset($ajax_page_state['libraries']) && !is_array($ajax_page_state['libraries'])) {
+      if (is_array($ajax_page_state['libraries'])) {
+        $ajax_page_state['libraries'] = array_map(
+          fn($item) => str_contains($item, '/') ? $item : UrlHelper::uncompressQueryParameter($item),
+          $ajax_page_state['libraries'],
+        );
+      }
+      else {
+        $ajax_page_state['libraries'] = UrlHelper::uncompressQueryParameter($ajax_page_state['libraries']);
+      }
+    }
+
+    $assets
+      ->setAlreadyLoadedLibraries(
+        isset($ajax_page_state['libraries']) ? explode(',', $ajax_page_state['libraries']) : [],
+      );
 
     // Collect CSS, JS and settings, which will then be added to headers which
     // can be parsed by the client and added to the page using Drupal.Ajax()

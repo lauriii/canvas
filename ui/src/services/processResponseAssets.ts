@@ -26,7 +26,14 @@ const processResponseAssets = async (response: any, meta: any) => {
     JSON.parse(meta.response.headers.get('Attach-Css'));
   const js =
     meta.response.headers.get('Attach-Js') &&
-    JSON.parse(meta.response.headers.get('Attach-Js'));
+    JSON.parse(meta.response.headers.get('Attach-Js')).filter(
+      // Not all items in the array correspond to JS files, and as a result not
+      // parseable by `Drupal.AjaxCommands['add_js']`, hence the filter.
+      // F.E. a settings attribute such as:
+      // `{"type":"application\/json","data-drupal-selector":"drupal-settings-json"}`
+      // @see the 'setting' case in \Drupal\Core\Asset\JsCollectionRenderer::render().
+      (item: JsAttachItem) => item.src,
+    );
   const settings =
     meta.response.headers.get('Attach-Settings') &&
     JSON.parse(meta.response.headers.get('Attach-Settings'));
@@ -55,10 +62,7 @@ const processResponseAssets = async (response: any, meta: any) => {
         {
           command: 'add_js',
           status: 'success',
-          data: js.filter(
-            (item: JsAttachItem) =>
-              item.src && !document.querySelector(`script[src="${item.src}"]`),
-          ),
+          data: js,
         },
       );
     } catch (e) {

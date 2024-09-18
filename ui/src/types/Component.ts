@@ -10,6 +10,7 @@ export interface FieldDataItem {
   };
   jsonSchema?: {
     properties?: object;
+    enum?: any[];
   };
   default_values: object;
   [x: string | number | symbol]: unknown;
