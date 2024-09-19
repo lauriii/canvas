@@ -1,0 +1,68 @@
+services:
+  php:
+    # Specify the version of Drupal you wish to use for Tugboat below.
+    image: tugboatqa/drupal:11
+    default: true
+    http: false
+    depends: mysql
+    commands:
+      update:
+        # Install NodeJS
+        - curl -fsSL https://deb.nodesource.com/setup_$(cat $TUGBOAT_ROOT/ui/.nvmrc).x -o nodesource_setup.sh
+        - bash nodesource_setup.sh
+        - apt-get install -y nodejs
+
+        # Run various commands from the drupal/recommended-project root.
+        - |
+          set -eux
+
+          # This is an environment variable we added in the Dockerfile that
+          # provides the path to Drupal composer root (not the web root).
+          cd $DRUPAL_COMPOSER_ROOT
+
+          # Configure composer to require this module as a symlink.
+          composer config minimum-stability dev
+          composer config repositories.tugboat path $TUGBOAT_ROOT
+          composer require drupal/experience_builder
+
+          # Install Drupal on the site.
+          vendor/bin/drush \
+            --yes \
+            --db-url=mysql://tugboat:tugboat@mysql:3306/tugboat \
+            --site-name="Live preview for ${TUGBOAT_PREVIEW_NAME}" \
+            --account-pass=admin \
+            site:install standard
+
+          # Add tugboat URLs to the Drupal trusted host patterns.
+          echo "\$settings['trusted_host_patterns'] = ['\.tugboatqa\.com\$'];" >> $DOCROOT/sites/default/settings.php
+
+          # Set up the files directory permissions.
+          mkdir -p $DRUPAL_DOCROOT/sites/default/files
+          chgrp -R www-data $DRUPAL_DOCROOT/sites/default/files
+          chmod 2775 $DRUPAL_DOCROOT/sites/default/files
+          chmod -R g+w $DRUPAL_DOCROOT/sites/default/files
+
+          # Enable the module.
+          vendor/bin/drush --yes pm:install experience_builder media_library
+
+          # Create node/1
+          vendor/bin/drush scr $TUGBOAT_ROOT/.tugboat/create-article-node.php
+
+      build:
+        # Install node packages and build the UI.
+        - npm --prefix $TUGBOAT_ROOT/ui ci
+        - npm --prefix $TUGBOAT_ROOT/ui run build
+
+        # Update Drupal core composer packages and run any Drupal updates.
+        - |
+          set -eux
+          cd $DRUPAL_COMPOSER_ROOT
+          composer install --optimize-autoloader
+          # Update this module, including all dependencies.
+          composer update drupal/experience_builder --with-all-dependencies
+          # Run Drupal updates
+          vendor/bin/drush --yes updb
+          vendor/bin/drush cache:rebuild
+
+  mysql:
+    image: tugboatqa/mariadb
