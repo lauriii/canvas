@@ -4,10 +4,18 @@ declare(strict_types=1);
 
 namespace Drupal\experience_builder\Controller;
 
+use Drupal\Core\Asset\AttachedAssets;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Render\HtmlResponse;
+use Drupal\Core\Theme\ThemeManagerInterface;
+use Drupal\experience_builder\AssetRenderer;
 
 final class ExperienceBuilderController {
+
+  public function __construct(
+    private readonly AssetRenderer $assetRenderer,
+    protected ThemeManagerInterface $themeManager,
+  ) {}
 
   private const HTML = <<<HTML
 <!doctype html>
@@ -26,7 +34,13 @@ final class ExperienceBuilderController {
 </html>
 HTML;
 
-  public function content(EntityInterface $entity, string|null $react_route = NULL, string|null $react_subroute = NULL) : HtmlResponse {
+  public function __invoke(EntityInterface $entity, string|null $react_route = NULL, string|null $react_subroute = NULL) : HtmlResponse {
+    $libraries = [
+      'system/base',
+      ...$this->themeManager->getActiveTheme()->getLibraries(),
+    ];
+    $assets = (new AttachedAssets())->setLibraries($libraries);
+
     return (new HtmlResponse(self::HTML))->setAttachments([
       'library' => [
         'experience_builder/xb-ui',
@@ -36,6 +50,14 @@ HTML;
           'base' => \sprintf('xb/%s/%s', $entity->getEntityTypeId(), $entity->id()),
           'entityType' => $entity->getEntityTypeId(),
           'entity' => $entity->id(),
+          // Allow for perfect component previews, by letting the client side
+          // know what global assets to load in component preview <iframe>s.
+          // @see ui/src/components/ComponentPreview.tsx
+          'global_assets' => [
+            'css' => $this->assetRenderer->renderCssAssets($assets),
+            'js_header' => $this->assetRenderer->renderJsHeaderAssets($assets),
+            'js_footer' => $this->assetRenderer->renderJsFooterAssets($assets),
+          ],
         ],
       ],
       // This *could* use the \Drupal\Core\Asset\AssetResolverInterface services

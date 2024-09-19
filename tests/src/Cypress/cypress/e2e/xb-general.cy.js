@@ -338,7 +338,6 @@ describe('General Experience Builder', { testIsolation: false }, () => {
       'Default components',
     );
 
-    const previewSelect = `[data-radix-popper-content-wrapper] > .ComponentPreviewContent`;
     const imageSelect =
       '.MenubarSubContent [data-xb-component-id="experience_builder:image"]';
     const heroSelect =
@@ -346,25 +345,20 @@ describe('General Experience Builder', { testIsolation: false }, () => {
 
     // Hover over "Image" and a preview should appear.
     cy.get(`${imageSelect} > span`).should('exist').realHover();
-    cy.get(`.shadowDomWrapper`)
-      .shadow()
-      .find('img[alt="Boring placeholder"]')
-      .should('exist');
+    cy.waitForElementInIframe('img[alt="Boring placeholder"]','iframe[data-preview-component-id="experience_builder:image"]');
 
-    // Hover over "My Hero" and a preview should appear
+    // Hover over "My Hero" and a preview should appear and load correct CSS
     cy.get(`${heroSelect} > span`).should('exist').realHover();
-
-    cy.get('.shadowDomWrapper')
-      .shadow()
+    cy.waitForElementInIframe('div.my-hero__container > .my-hero__actions > .my-hero__cta--primary','iframe[data-preview-component-id="experience_builder:my-hero"]');
+    cy.getIframeBody('iframe[data-preview-component-id="experience_builder:my-hero"]')
       .find(
         'div.my-hero__container > .my-hero__actions > .my-hero__cta--primary',
       )
       .should('exist')
-      .then(($cta) => {
-        expect(
-          window.getComputedStyle($cta[0])['background-color'],
-          'The "My Hero" SDC is styled',
-        ).to.equal('rgb(0, 123, 255)');
+      .should(($cta) => {
+        // Retry until the background-color is the expected one
+        const bgColor = window.getComputedStyle($cta[0])['background-color'];
+        expect(bgColor, 'The "My Hero" SDC is styled').to.equal('rgb(0, 123, 255)');
       });
   });
 

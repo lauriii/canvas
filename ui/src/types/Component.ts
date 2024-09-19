@@ -20,6 +20,9 @@ export interface Component {
   name: string;
   id: string;
   default_markup: string;
+  css: string;
+  js_header: string;
+  js_footer: string;
   metadata: {
     slots?: {
       [key: string]: {

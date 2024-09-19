@@ -25,6 +25,9 @@ export interface ListItemBase {
   name: string;
   metadata: Record<string, any>;
   default_markup: string;
+  css: string;
+  js_header: string;
+  js_footer: string;
 }
 export interface ComponentListItem extends ListItemBase {
   field_data: Record<string, any>;

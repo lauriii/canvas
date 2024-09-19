@@ -3,7 +3,7 @@ import type {
   ComponentListItem,
   SectionListItem,
 } from '@/components/list/List';
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import clsx from 'clsx';
 import styles from '@/components/list/List.module.css';
 import menuStyles from '@/components/topbar/add/AddMenu.module.css';
@@ -23,28 +23,21 @@ import {
   selectLayout,
 } from '@/features/layout/layoutModelSlice';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
-import ShadowWrapper from '@/components/ShadowWrapper';
-
-interface PreviewCache {
-  [key: string]: string;
-}
+import ComponentPreview from '@/components/ComponentPreview';
 
 const ListItem: React.FC<{
   item: ComponentListItem | SectionListItem;
   type: 'component' | 'section';
 }> = (props) => {
   const { item, type } = props;
-
-  const previewMarkupRef = useRef<PreviewCache>({});
   const dispatch = useAppDispatch();
   const { isEnabled, originUUID, originNodeType } = useAppSelector(
     selectClickToInsertState,
   );
   const layout = useAppSelector(selectLayout);
-
-  const [previewContent, setPreviewContent] = useState<string>('');
-  const defaultPreviewHeight = 800;
-  const defaultPreviewWidth = 600;
+  const [previewingComponent, setPreviewingComponent] = useState<
+    ComponentListItem | SectionListItem
+  >();
 
   const clickToInsertHandler = (newId: string) => {
     if (isEnabled) {
@@ -92,96 +85,7 @@ const ListItem: React.FC<{
   };
 
   const handleMouseEnter = (component: ComponentListItem | SectionListItem) => {
-    // Use cached preview markup when available.
-    if (previewMarkupRef.current[component.name]) {
-      setPreviewContent(previewMarkupRef.current[component.name]);
-      return;
-    }
-
-    // Unless the user is on a very narrow viewport (which isn't
-    // ideal for working in XB), the component preview popup
-    // will not be as wide as the layout it should appear in.
-    // This is a good thing because the preview should not
-    // cover large portions of the layout.
-    // However, if the preview is generated based on the popup
-    // width, it will render as if presented on a narrow
-    // viewport. To mitigate this, we generate the preview based
-    // on larger "calc" dimensions, then scale that content down
-    // to fit the popup dimensions.
-    const calcWidth = '1200';
-    const calcHeight = '1600';
-
-    const scaledPreview = document.createElement('div');
-    Object.assign(scaledPreview.style, {
-      width: `${calcWidth}px`,
-      height: `${calcHeight}px`,
-      visibility: 'hidden',
-      position: 'absolute',
-    });
-    // Wrap the preview in a common parent so that can be used
-    // to get height/width of the full component.
-    scaledPreview.innerHTML = `<div data-common-parent>${component['default_markup']}</div>`;
-
-    // Append to body so the element has dimensions.
-    document.body.appendChild(scaledPreview);
-    const { offsetWidth, offsetHeight } = scaledPreview
-      .children[0] as HTMLElement;
-    // If the previewed component is smaller than both preview
-    // dimensions, reduce the container width and height
-    // to match the component dimensions.
-    if (
-      offsetWidth < defaultPreviewWidth &&
-      offsetHeight < defaultPreviewHeight
-    ) {
-      scaledPreview.style.width = `${offsetWidth}px`;
-      scaledPreview.style.height = `${offsetHeight}px`;
-    } else {
-      // If we are here, then one or more component dimensions
-      // exceed the preview maximums. We begin by determining
-      // how much each dimension exceeds their maximum.
-      const widthScale = defaultPreviewWidth / offsetWidth;
-      const heightScale = defaultPreviewHeight / offsetHeight;
-
-      Object.assign(scaledPreview.style, {
-        // Scale the preview to whichever dimension requires the
-        // most reduction to fit the preview container.
-        transform: `scale(${Math.min(widthScale, heightScale)})`,
-        transformOrigin: '0 0',
-        // When width needs the most reduction, explicitly set
-        // it, then set height to auto.
-        width:
-          widthScale < heightScale
-            ? `${scaledPreview.offsetWidth * widthScale}px`
-            : 'auto',
-        // When height needs the most reduction, explicitly set
-        // it, then set width to auto.
-        height:
-          widthScale > heightScale
-            ? `${scaledPreview.offsetHeight * heightScale}px`
-            : 'auto',
-      });
-    }
-
-    // Create another wrapper that exists in its actual size
-    // to contain the scaled-down div.
-    const previewWrapper = document.createElement('div');
-    previewWrapper.style.zIndex = '1';
-    previewWrapper.append(scaledPreview);
-
-    // Apply display styles and remove the visibility and
-    // position styling that were only needed for dimension
-    // assessment.
-    Object.assign(scaledPreview.style, {
-      overflow: 'hidden',
-      'border-radius': '16px',
-      'box-shadow': '4px 5px 13px 2px rgba(0,0,0,0.4)',
-      visibility: null,
-      position: null,
-    });
-
-    // Cache the preview markup in a ref.
-    previewMarkupRef.current[component.name] = previewWrapper.outerHTML;
-    setPreviewContent(previewWrapper.outerHTML);
+    setPreviewingComponent(component);
   };
 
   return (
@@ -223,14 +127,8 @@ const ListItem: React.FC<{
                 styles.ComponentPreviewContent,
               )}
             >
-              {previewContent && (
-                <ShadowWrapper>
-                  <div
-                    dangerouslySetInnerHTML={{
-                      __html: previewContent,
-                    }}
-                  />
-                </ShadowWrapper>
+              {previewingComponent && (
+                <ComponentPreview componentListItem={previewingComponent} />
               )}
             </Tooltip.Content>
           </Tooltip.Portal>

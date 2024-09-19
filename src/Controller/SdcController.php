@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Drupal\experience_builder\Controller;
 
-use Drupal\Core\Asset\AssetCollectionRendererInterface;
-use Drupal\Core\Asset\AssetResolverInterface;
 use Drupal\Core\Asset\AttachedAssets;
 use Drupal\Core\Cache\CacheableJsonResponse;
 use Drupal\Core\Cache\CacheableMetadata;
@@ -18,6 +16,7 @@ use Drupal\Core\Render\RendererInterface;
 use Drupal\Core\Theme\ComponentPluginManager;
 use Drupal\Core\Entity\TypedData\EntityDataDefinition;
 use Drupal\Core\TypedData\TypedDataManagerInterface;
+use Drupal\experience_builder\AssetRenderer;
 use Drupal\experience_builder\Entity\Component;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeHydrated;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
@@ -28,8 +27,6 @@ use Drupal\experience_builder\PropExpressions\StructuredData\FieldPropExpression
 use Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldPropExpression;
 use Drupal\experience_builder\PropShape\PropShape;
 use Drupal\experience_builder\ShapeMatcher\FieldForComponentSuggester;
-use Symfony\Component\DependencyInjection\Attribute\Autowire;
-use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 
@@ -46,39 +43,14 @@ final class HardcodedPropsComponentTreeItem extends ComponentTreeItem {
 
 final class SdcController extends ControllerBase {
 
-  /**
-   * @param \Drupal\Core\Theme\ComponentPluginManager $componentPluginManager
-   * @param \Drupal\Core\Render\RendererInterface $renderer
-   * @param \Drupal\Core\Asset\AssetResolverInterface $assetResolver
-   * @param \Drupal\Core\Asset\AssetCollectionRendererInterface $cssCollectionRenderer
-   * @param \Drupal\Core\Render\BareHtmlPageRendererInterface $bareHtmlPageRenderer
-   * @param \Drupal\Core\TypedData\TypedDataManagerInterface $typedDataManager
-   */
   public function __construct(
     private readonly ComponentPluginManager $componentPluginManager,
     private readonly RendererInterface $renderer,
-    protected AssetResolverInterface $assetResolver,
-    #[Autowire(service: 'asset.css.collection_renderer')]
-    protected AssetCollectionRendererInterface $cssCollectionRenderer,
+    private readonly AssetRenderer $assetRenderer,
     protected readonly BareHtmlPageRendererInterface $bareHtmlPageRenderer,
     private readonly TypedDataManagerInterface $typedDataManager,
     protected readonly FieldForComponentSuggester $fieldForComponentSuggester,
   ) {}
-
-  /**
-   * {@inheritdoc}
-   */
-  public static function create(ContainerInterface $container) {
-    return new static(
-      $container->get('plugin.manager.sdc'),
-      $container->get('renderer'),
-      $container->get('asset.resolver'),
-      $container->get('asset.css.collection_renderer'),
-      $container->get(BareHtmlPageRendererInterface::class),
-      $container->get(TypedDataManagerInterface::class),
-      $container->get(FieldForComponentSuggester::class),
-    );
-  }
 
   private function buildLayout(array &$layout, array &$model, ComponentTreeItem $item, array $tree_tier, array $hydrated): void {
     $tree = $item->get('tree');
@@ -177,10 +149,6 @@ final class SdcController extends ControllerBase {
           'library' => ['core/components.' . str_replace(':', '--', $component_plugin->getPluginId())],
         ],
       ]);
-
-      $css_array = $this->cssCollectionRenderer->render($this->assetResolver->getCssAssets($assets, FALSE));
-      $css = $this->renderer->render($css_array);
-
       $default_markup = (string) $this->prepareRenderArray($component_plugin->getPluginId())['markup'];
 
       $component_list[] = [
@@ -189,8 +157,12 @@ final class SdcController extends ControllerBase {
         'metadata' => $component_plugin->metadata,
         'field_data' => $keyed_choices,
         // A pre-rendered version of the component is provided so no requests
-        // are needed when adding it to the layout.
-        'default_markup' => $css . $default_markup,
+        // are needed when adding it to the layout which includes a default markup,
+        // CSS files, JS files in the header and JS files in the footer.
+        'default_markup' => $default_markup,
+        'css' => $this->assetRenderer->renderCssAssets($assets),
+        'js_header' => $this->assetRenderer->renderJsHeaderAssets($assets),
+        'js_footer' => $this->assetRenderer->renderJsFooterAssets($assets),
         'dynamic_prop_source_candidates' => $dynamic_prop_source_candidates,
       ];
     }

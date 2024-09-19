@@ -1,7 +1,7 @@
 experience_builder.experience_builder:
   path: '/xb/{entity_type}/{entity}/{react_route}/{react_subroute}'
   defaults:
-    _controller: '\Drupal\experience_builder\Controller\ExperienceBuilderController::content'
+    _controller: 'Drupal\experience_builder\Controller\ExperienceBuilderController'
     _title: 'Experience Builder'
     react_route: NULL
     react_subroute: NULL

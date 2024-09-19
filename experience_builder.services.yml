@@ -29,6 +29,8 @@ services:
     parent: Drupal\Core\Theme\ComponentPluginManager
     arguments: ['@entity_type.manager', '@state']
 
+  # Utilities.
+  Drupal\experience_builder\AssetRenderer: {}
   logger.channel.experience_builder:
     parent: logger.channel_base
     arguments: ['experience_builder']
@@ -66,4 +68,5 @@ services:
       - { name: theme_negotiator }
 
   # Controllers.
+  Drupal\experience_builder\Controller\ExperienceBuilderController: {}
   Drupal\experience_builder\Controller\ComponentStatusController: {}
