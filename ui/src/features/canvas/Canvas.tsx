@@ -17,6 +17,7 @@ import {
   setPanningParent,
   selectIsContextMenuOpen,
   selectSelectedComponent,
+  selectFirstLoadComplete,
 } from '@/features/ui/uiSlice';
 import { deleteNode } from '../layout/layoutModelSlice';
 
@@ -28,6 +29,8 @@ const Canvas = () => {
   const previewsContainerRef = useRef<HTMLDivElement | null>(null);
   const [startPos, setStartPos] = useState({ x: 0, y: 0 });
   const canvasViewPort = useAppSelector(selectCanvasViewPort);
+  const firstLoadComplete = useAppSelector(selectFirstLoadComplete);
+  const [isVisible, setIsVisible] = useState(false);
   const { isPanning, isPanningIFrame, isPanningParent } =
     useAppSelector(selectPanning);
   const contextMenuOpen = useAppSelector(selectIsContextMenuOpen);
@@ -151,25 +154,20 @@ const Canvas = () => {
   }, []);
 
   useEffect(() => {
-    if (previewsContainerRef.current && canvasRef.current) {
-      // Get the width and height of the preview container
-      const previewContainerWidth =
-        previewsContainerRef.current.offsetWidth || 0;
-      const previewContainerHeight =
-        previewsContainerRef.current.offsetHeight || 0;
-
-      // Get the width and height of the canvas
-      const canvasWidth = canvasRef.current.offsetWidth || 0;
-      const canvasHeight = canvasRef.current.offsetHeight || 0;
-
-      // Calculate the center position to align the preview container in the canvas
-      const canvasX = (canvasWidth - previewContainerWidth) / 2;
-      const canvasY = (canvasHeight - previewContainerHeight) / 2;
-
-      // Dispatch the action with the calculated center position
-      dispatch(setCanvasViewPort({ x: canvasX, y: canvasY }));
+    if (!firstLoadComplete) {
+      return;
     }
-  }, [dispatch]);
+    if (previewsContainerRef.current && canvasRef.current) {
+      // @todo Temporary/hardcoded values of 400/160 to account for the width/height
+      // of the UI (top bar/layers panel) - replace with calculated values.
+      const x = previewsContainerRef.current.getBoundingClientRect().left - 400;
+      const y = previewsContainerRef.current.getBoundingClientRect().top - 160;
+
+      // Dispatch the action with the calculated adjusted position
+      dispatch(setCanvasViewPort({ x: x, y: y }));
+      setIsVisible(true);
+    }
+  }, [dispatch, firstLoadComplete]);
 
   const handlePaneScroll = useCallback(
     (event: React.UIEvent<HTMLDivElement>) => {
@@ -317,7 +315,12 @@ const Canvas = () => {
           height: '100%',
         }}
       >
-        <div className={styles.previewsContainer} ref={previewsContainerRef}>
+        <div
+          className={clsx('previewsContainer', styles.previewsContainer, {
+            [styles.visible]: isVisible,
+          })}
+          ref={previewsContainerRef}
+        >
           <ErrorBoundary
             title="An unexpected error has occurred while rendering preview."
             variant="alert"

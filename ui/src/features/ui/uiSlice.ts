@@ -37,6 +37,7 @@ export interface uiSliceState {
   primaryMenu: PrimaryMenuState;
   contextMenuOpen: ViewPortSize | undefined | boolean;
   latestUndoRedoActionId: string;
+  firstLoadComplete: boolean;
 }
 
 type UpdateViewportPayload = {
@@ -72,6 +73,7 @@ export const initialState: uiSliceState = {
   },
   contextMenuOpen: undefined,
   latestUndoRedoActionId: '',
+  firstLoadComplete: false,
 };
 
 interface ScaleValue {
@@ -220,6 +222,9 @@ export const uiSlice = createAppSlice({
         state.latestUndoRedoActionId = action.payload;
       },
     ),
+    setFirstLoadComplete: create.reducer((state, action) => {
+      state.firstLoadComplete = true;
+    }),
   }),
   // You can define your selectors here. These selectors receive the slice
   // state as their first argument.
@@ -254,6 +259,9 @@ export const uiSlice = createAppSlice({
     selectLatestUndoRedoActionId: (ui): string => {
       return ui.latestUndoRedoActionId;
     },
+    selectFirstLoadComplete: (ui): boolean => {
+      return ui.firstLoadComplete;
+    },
   },
 });
 
@@ -278,6 +286,7 @@ export const {
   setIsContextMenuOpen,
   canvasViewPortZoomDelta,
   setLatestUndoRedoActionId,
+  setFirstLoadComplete,
 } = uiSlice.actions;
 
 // Selectors returned by `slice.selectors` take the root state as their first argument.
@@ -292,4 +301,5 @@ export const {
   selectPrimaryMenuHidden,
   selectIsContextMenuOpen,
   selectLatestUndoRedoActionId,
+  selectFirstLoadComplete,
 } = uiSlice.selectors;

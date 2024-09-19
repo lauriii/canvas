@@ -31,7 +31,7 @@ const Outline: React.FC<OutlineProps> = (props) => {
   const addSectionButtonRef = useRef<HTMLDivElement | null>(null);
   const [nodeType, setNodeType] = useState<'component' | 'slot' | null>(null);
   const dispatch = useAppDispatch();
-  const elementRect = useSyncElementSize(iframeRef, elementId);
+  const elementRect = useSyncElementSize(iframeRef.current, elementId);
 
   const applyStyles = useCallback(() => {
     if (outlineElRef.current && elementRect) {

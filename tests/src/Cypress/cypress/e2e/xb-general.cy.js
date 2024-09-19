@@ -55,11 +55,11 @@ describe('General Experience Builder', { testIsolation: false }, () => {
           ),
         );
       },
-      '[data-xb-preview="sm"]',
+      '[data-xb-preview="sm"][data-test-xb-content-initialized="true"][data-xb-swap-active="true"]',
     );
 
     // Confirm that the iframe loads the SDC CSS.
-    cy.getIframe()
+    cy.getIframe('[data-xb-preview="lg"][data-test-xb-content-initialized="true"][data-xb-swap-active="true"]')
       .its('head')
       .should('not.be.undefined')
       .then((head) => {
@@ -155,7 +155,7 @@ describe('General Experience Builder', { testIsolation: false }, () => {
     // Get the dimensions of the highlighted component in the small preview, so
     // it can be compared to its corresponding outline.
     let smPreviewRect = {};
-    cy.getIframeBody('[data-xb-preview="sm"]')
+    cy.getIframeBody('[data-xb-preview="sm"][data-test-xb-content-initialized="true"][data-xb-swap-active="true"]')
       .find('[data-component-id="experience_builder:my-hero"] h1')
       .first()
       .then((clicked) => {

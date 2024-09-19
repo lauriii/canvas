@@ -33,7 +33,7 @@ const Preview: React.FC<PreviewProps> = () => {
   const initialized = useAppSelector(selectInitialized);
   const model = useAppSelector(selectModel);
   const [frameSrcDoc, setFrameSrcDoc] = useState('');
-  const [postPreview, { isLoading }] = usePostPreviewMutation();
+  const [postPreview, { isLoading: isFetching }] = usePostPreviewMutation();
   const { showBoundary } = useErrorBoundary();
 
   useEffect(() => {
@@ -64,7 +64,7 @@ const Preview: React.FC<PreviewProps> = () => {
             height={previewSizes[key].height}
             width={previewSizes[key].width}
             frameSrcDoc={frameSrcDoc}
-            isLoading={isLoading}
+            isFetching={isFetching}
           />
         );
       })}

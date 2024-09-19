@@ -1,4 +1,3 @@
-import type React from 'react';
 import { useCallback, useEffect } from 'react';
 const modifierKey = 'Control';
 
@@ -6,7 +5,7 @@ const modifierKey = 'Control';
  * This hook takes preview iFrame and makes sure that if the iframe has focus, any key presses the user makes are
  * passed up to the parent window via post messages
  */
-function useIframeKeyHandlers(iframeRef: React.RefObject<HTMLIFrameElement>) {
+function useIframeKeyHandlers(iframe: HTMLIFrameElement | null) {
   function notifyParentDocumentKey(event: KeyboardEvent) {
     const keyCombinations = {
       dispatchUndo:
@@ -22,11 +21,11 @@ function useIframeKeyHandlers(iframeRef: React.RefObject<HTMLIFrameElement>) {
           event.key === 'z') ||
         (event.ctrlKey && event.key === 'y'),
       dispatchZoomIn:
-        (event.type === 'keydown' && event.code === 'NumpadAdd') ||
-        event.code === 'Equal',
+        event.type === 'keydown' &&
+        (event.code === 'NumpadAdd' || event.code === 'Equal'),
       dispatchZoomOut:
-        (event.type === 'keydown' && event.code === 'NumpadSubtract') ||
-        event.code === 'Minus',
+        event.type === 'keydown' &&
+        (event.code === 'NumpadSubtract' || event.code === 'Minus'),
       dispatchModifierKeyDown:
         event.type === 'keydown' && event.key === modifierKey,
       dispatchModifierKeyUp:
@@ -89,9 +88,7 @@ function useIframeKeyHandlers(iframeRef: React.RefObject<HTMLIFrameElement>) {
     }
   }
 
-  const handleLoad = useCallback((event: Event) => {
-    const iframe = event.currentTarget as HTMLIFrameElement | null;
-
+  const init = useCallback(() => {
     if (!iframe) {
       return;
     }
@@ -121,12 +118,12 @@ function useIframeKeyHandlers(iframeRef: React.RefObject<HTMLIFrameElement>) {
       notifyParentDocumentWheel as EventListener,
       { passive: false },
     );
-  }, []);
+  }, [iframe]);
 
   useEffect(() => {
-    const iframe = iframeRef.current;
-
-    iframe?.addEventListener('load', handleLoad);
+    if (iframe) {
+      init();
+    }
 
     return () => {
       if (!iframe) {
@@ -134,7 +131,6 @@ function useIframeKeyHandlers(iframeRef: React.RefObject<HTMLIFrameElement>) {
       }
 
       const iframeContentDoc = iframe.contentDocument;
-      iframe.removeEventListener('load', handleLoad);
 
       (['keydown', 'keyup'] as Array<keyof HTMLElementEventMap>).forEach(
         (eventType) => {
@@ -154,7 +150,7 @@ function useIframeKeyHandlers(iframeRef: React.RefObject<HTMLIFrameElement>) {
         },
       );
     };
-  }, [iframeRef, handleLoad]);
+  }, [iframe, init]);
 }
 
 export default useIframeKeyHandlers;

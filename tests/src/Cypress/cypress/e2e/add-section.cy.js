@@ -42,6 +42,8 @@ describe(
       // Click on Fake Section 2 inside menu.
       cy.get('[data-radix-menu-content]').findByText('Fake Section 2').click();
 
+      cy.waitForElementContentInIframe('div', 'A hero in slot 1!');
+
       cy.testInIframe(
         '[data-component-id="experience_builder:my-hero"]',
         (components) => {
@@ -90,6 +92,8 @@ describe(
 
       // Click Hero in the side menu
       cy.get('[data-radix-menu-content]').findByText('Hero').click();
+
+      cy.waitForElementContentInIframe('div', 'There goes my hero');
 
       cy.testInIframe(
         '[data-component-id="experience_builder:my-hero"]',

@@ -1,6 +1,9 @@
 import '@testing-library/cypress/add-commands';
 import { realDnd } from './realDnd'
 
+// This selector gets the preview iframe ensuring that it is initialized and that it is the currently active/swapped in element.
+const initializedReadyPreviewIframeSelector = '[data-xb-preview="lg"][data-test-xb-content-initialized="true"][data-xb-swap-active="true"]'
+
 const commandAsWebserver = (command) => {
   if (Cypress.env('testWebserverUser')) {
     return `sudo -u ${Cypress.env('testWebserverUser')} ${command}`;
@@ -320,14 +323,15 @@ Cypress.Commands.add('drupalSession', () => {
  */
 Cypress.Commands.add(
   'previewReady',
-  (iframeSelector = '[data-xb-preview="lg"]') => {
+  (iframeSelector = initializedReadyPreviewIframeSelector) => {
     // Not logging these assertions to try and keep the command log a bit tidier
-    cy.get(`${iframeSelector}[data-test-xb-content-initialized="true"]`, {log: false, timeout: 10000})
+    cy.get('.previewsContainer', {log: false}).should('have.css', 'opacity', '1');
+    cy.get(iframeSelector, {log: false, timeout: 10000}).as('iframe')
     cy.get(iframeSelector, {log: false}).its('0.contentDocument', {log: false})
     cy.log(`Preview '${iframeSelector}' initialized and has content document.`);
+    return cy.get('@iframe')
   },
 );
-
 
 /**
  * Gets an iframe element once its content has loaded.
@@ -338,7 +342,7 @@ Cypress.Commands.add(
  * @return
  *   The Cypress-wrapped iframe.
  */
-Cypress.Commands.add('getIframe', (selector = '[data-xb-preview="lg"]') => {
+Cypress.Commands.add('getIframe', (selector) => {
   return cy.get(selector).its('0.contentDocument').should('exist');
 });
 
@@ -351,7 +355,7 @@ Cypress.Commands.add('getIframe', (selector = '[data-xb-preview="lg"]') => {
  * @return {object}
  *  The Cypress-wrapped iframe body.
  */
-Cypress.Commands.add('getIframeBody', (selector = '[data-xb-preview="lg"]') => {
+Cypress.Commands.add('getIframeBody', (selector = initializedReadyPreviewIframeSelector) => {
   return cy
     .getIframe(selector)
     .its('body')
@@ -372,7 +376,7 @@ Cypress.Commands.add('getIframeBody', (selector = '[data-xb-preview="lg"]') => {
  */
 Cypress.Commands.add(
   'waitForElementInIframe',
-  (selector, iframeSelector = '[data-xb-preview="lg"]', customTimeout) => {
+  (selector, iframeSelector = initializedReadyPreviewIframeSelector, customTimeout) => {
     cy.document().then((doc) => {
       cy.get(true, {
         timeout: customTimeout || Cypress.config('defaultCommandTimeout'),
@@ -391,7 +395,7 @@ Cypress.Commands.add(
 
 Cypress.Commands.add(
   'waitForElementContentInIframe',
-  (selector, textContent, iframeSelector = '[data-xb-preview="lg"]', customTimeout) => {
+  (selector, textContent, iframeSelector = initializedReadyPreviewIframeSelector, customTimeout) => {
     cy.document().then((doc) => {
       cy.get(true, {
         timeout: customTimeout || Cypress.config('defaultCommandTimeout'),
@@ -411,7 +415,7 @@ Cypress.Commands.add(
 
 Cypress.Commands.add(
   'waitForElementContentNotInIframe',
-  (selector, textContent, iframeSelector = '[data-xb-preview="lg"]', customTimeout) => {
+  (selector, textContent, iframeSelector = initializedReadyPreviewIframeSelector, customTimeout) => {
     cy.document().then((doc) => {
       cy.get(true, {
         timeout: customTimeout || Cypress.config('defaultCommandTimeout'),
@@ -447,9 +451,7 @@ Cypress.Commands.add(
  */
 Cypress.Commands.add(
   'testInIframe',
-  (selector, callback, iframeSelector = '[data-xb-preview="lg"]') => {
-    cy.previewReady(iframeSelector);
-
+  (selector, callback, iframeSelector = initializedReadyPreviewIframeSelector) => {
     cy.getIframeBody(iframeSelector).should((previewIframe) => {
       const queryResult = previewIframe.querySelectorAll(selector);
       let callbackArg = queryResult;
@@ -519,7 +521,7 @@ Cypress.Commands.add(
 Cypress.Commands.add('loadURLandWaitForXBLoaded', (url = 'xb/node/1') => {
   cy.drupalRelativeURL(url);
 
-  cy.previewReady('iframe[data-xb-preview="lg"]');
+  cy.previewReady();
 });
 
 // Helper function used by the realDnd command.

@@ -31,7 +31,7 @@ describe('Contextual menu functionality', {testIsolation: false}, () => {
         cy.findByText('Move').should('be.visible');
         cy.findByText('Delete').click();
       });
-    cy.getIframeBody().findByText('hello, world!').should('not.exist');
+    cy.waitForElementContentNotInIframe('h1', 'hello, world!')
   });
   it('should open the context menu on right-click in primary content menu', () => {
     cy.loadURLandWaitForXBLoaded();
@@ -43,6 +43,7 @@ describe('Contextual menu functionality', {testIsolation: false}, () => {
     cy.get('[data-radix-scroll-area-viewport]')
       .should('exist')
       .and('be.visible');
+
     // Assert that each menu item is inside the DropdownMenu.Content component
     cy.get('[data-radix-scroll-area-viewport]')
       .within(() => {
@@ -51,7 +52,7 @@ describe('Contextual menu functionality', {testIsolation: false}, () => {
         cy.findByText('Move').should('be.visible');
         cy.findByText('Delete').click();
       });
-    cy.getIframeBody().findByText('Two Column').should('not.exist');
+    cy.get('[data-xb-uuid="root"]').findByText('Two Column').should('not.exist');
   });
 
   it('should duplicate the element on clicking the "Duplicate" button', () => {

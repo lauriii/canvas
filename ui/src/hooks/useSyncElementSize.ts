@@ -1,4 +1,3 @@
-import type React from 'react';
 import { useEffect, useState, useCallback, useRef } from 'react';
 
 /**
@@ -15,7 +14,7 @@ interface Rect {
 }
 
 function useSyncElementSize(
-  iframeRef: React.RefObject<HTMLIFrameElement>,
+  iframe: HTMLIFrameElement | null,
   elementId: string | undefined,
 ) {
   const [elementRect, setElementRect] = useState<Rect>({
@@ -30,9 +29,9 @@ function useSyncElementSize(
   const resizeObserverRef = useRef<ResizeObserver | null>(null);
 
   const recalculateBorder = useCallback(() => {
-    const element = iframeRef.current?.contentDocument?.querySelectorAll(
+    const element = iframe?.contentDocument?.querySelector(
       `[data-xb-uuid="${elementIdRef.current}"]`,
-    )[0] as HTMLElement | null;
+    ) as HTMLElement | null;
     if (element && elementIdRef.current) {
       setElementRect(
         (({ left, top, width, height }) => ({ left, top, width, height }))(
@@ -40,75 +39,66 @@ function useSyncElementSize(
         ),
       );
     }
-  }, [iframeRef]);
+  }, [iframe]);
 
   useEffect(() => {
     elementIdRef.current = elementId;
   }, [elementId]);
 
-  const handleLoad = useCallback(
-    (event: Event) => {
-      recalculateBorder();
-      const iframe = event.currentTarget as HTMLIFrameElement | null;
-      const iframeHTML = iframe?.contentDocument?.documentElement;
+  const init = useCallback(() => {
+    recalculateBorder();
+    const iframeHTML = iframe?.contentDocument?.documentElement;
 
-      if (!iframeHTML) {
-        return;
-      }
+    if (!iframeHTML) {
+      return;
+    }
 
-      iframeHTML.style.overflow = 'hidden';
+    iframeHTML.style.overflow = 'hidden';
 
-      // Disconnect existing observers
-      mutationObserverRef.current?.disconnect();
-      resizeObserverRef.current?.disconnect();
+    // Disconnect existing observers
+    mutationObserverRef.current?.disconnect();
+    resizeObserverRef.current?.disconnect();
 
-      // Set up a new MutationObserver to watch for changes in the content of the iframe
-      const observer = new MutationObserver(recalculateBorder);
-      observer.observe(iframeHTML, {
-        attributes: true,
-        childList: true,
-        subtree: true,
+    // Set up a new MutationObserver to watch for changes in the content of the iframe
+    const observer = new MutationObserver(recalculateBorder);
+    observer.observe(iframeHTML, {
+      attributes: true,
+      childList: true,
+      subtree: true,
+    });
+    mutationObserverRef.current = observer;
+
+    const element = iframe?.contentDocument?.querySelector(
+      `[data-xb-uuid="${elementId}"]`,
+    ) as HTMLElement | null;
+
+    if (!element) {
+      return;
+    }
+    const resizeObserver = new ResizeObserver((entries) => {
+      entries.forEach(() => {
+        recalculateBorder();
       });
-      mutationObserverRef.current = observer;
-
-      const element = iframeRef.current?.contentDocument?.querySelectorAll(
-        `[data-xb-uuid="${elementId}"]`,
-      )[0] as HTMLElement | null;
-
-      if (!element) {
-        return;
-      }
-      const resizeObserver = new ResizeObserver((entries) => {
-        entries.forEach(() => {
-          recalculateBorder();
-        });
-      });
-      resizeObserver.observe(element);
-      resizeObserverRef.current = resizeObserver;
-    },
-    [recalculateBorder, elementId, iframeRef],
-  );
+    });
+    resizeObserver.observe(element);
+    resizeObserverRef.current = resizeObserver;
+  }, [recalculateBorder, elementId, iframe]);
 
   useEffect(() => {
     recalculateBorder();
   }, [elementId, recalculateBorder]);
 
   useEffect(() => {
-    const iframe = iframeRef.current;
-
     if (iframe) {
-      iframe.addEventListener('load', handleLoad);
+      init();
 
       return () => {
-        if (iframe) {
-          iframe.removeEventListener('load', handleLoad);
-        }
         // Cleanup observers
         mutationObserverRef.current?.disconnect();
         resizeObserverRef.current?.disconnect();
       };
     }
-  }, [iframeRef, handleLoad]);
+  }, [iframe, init]);
 
   return elementRect;
 }
