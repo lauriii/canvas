@@ -4,12 +4,9 @@ declare(strict_types=1);
 
 namespace Drupal\experience_builder\Plugin\Adapter;
 
-use Drupal\Core\Entity\EntityStorageInterface;
-use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\file\FileInterface;
-use Symfony\Component\DependencyInjection\ContainerInterface;
 
 #[Adapter(
   id: 'image_url_rel_to_abs',
@@ -22,28 +19,16 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 )]
 final class ImageAdapter extends AdapterBase implements ContainerFactoryPluginInterface {
 
+  use EntityTypeManagerDependentAdapterTrait;
+
   /**
    * @var array{src: string, alt: string, width:integer, height:integer}
    */
   protected array $image;
-  protected EntityStorageInterface $fileStorage;
-
-  public function __construct(array $configuration, $plugin_id, $plugin_definition, EntityTypeManagerInterface $entityTypeManager) {
-    parent::__construct($configuration, $plugin_id, $plugin_definition);
-    $this->fileStorage = $entityTypeManager->getStorage('file');
-  }
-
-  public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition): static {
-    return new static(
-      $configuration,
-      $plugin_id,
-      $plugin_definition,
-      $container->get('entity_type.manager')
-    );
-  }
 
   public function adapt(): mixed {
-    $files = $this->fileStorage
+    $files = $this->entityTypeManager
+      ->getStorage('file')
       ->loadByProperties(['filename' => urldecode(basename($this->image['src']))]);
     $image = reset($files);
     if (!$image instanceof FileInterface) {
