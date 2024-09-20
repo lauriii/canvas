@@ -1,5 +1,6 @@
 services:
   _defaults:
+    autoconfigure: true
     autowire: true
   Drupal\experience_builder\ShapeMatcher\SdcPropToFieldTypePropMatcher:
     public: true
@@ -66,6 +67,7 @@ services:
     class: Drupal\experience_builder\Theme\XBThemeNegotiator
     tags:
       - { name: theme_negotiator }
+  Drupal\experience_builder\EventSubscriber\ApiExceptionSubscriber: ~
 
   # Controllers.
   Drupal\experience_builder\Controller\ExperienceBuilderController: {}

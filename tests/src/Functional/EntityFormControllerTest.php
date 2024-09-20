@@ -41,7 +41,11 @@ class EntityFormControllerTest extends FunctionalTestBase {
     // Try to retrieve the form using the new form mode before it is created.
     $this->drupalGet($new_form_mode_path);
     $assert->statusCodeEquals(500);
-    $assert->pageTextContains('The "mode2" form display was not found');
+    $assert->responseHeaderEquals('Content-Type', 'application/json');
+    $json = json_decode($this->getSession()->getPage()->getContent());
+    $this->assertSame('The "mode2" form display was not found', $json->message);
+    // We are logged in as user 1 so we should see the trace.
+    $this->assertObjectHasProperty('trace', $json);
 
     $user = $this->drupalCreateUser(['administer display modes', 'administer node form display', 'access administration pages']);
     $this->assertInstanceOf(User::class, $user);
