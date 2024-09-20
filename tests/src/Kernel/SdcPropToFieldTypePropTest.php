@@ -269,6 +269,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
         'REQUIRED, type=string' => [
           'component props' => [
             '⿲experience_builder:heading␟text',
+            '⿲experience_builder:my-hero␟heading',
             '⿲experience_builder:shoe_details␟summary',
             '⿲experience_builder:shoe_tab␟label',
             '⿲experience_builder:shoe_tab␟panel',
@@ -354,7 +355,6 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
         ],
         'REQUIRED, type=string&minLength=2' => [
           'component props' => [
-            '⿲experience_builder:my-hero␟heading',
             '⿲experience_builder:my-section␟text',
           ],
           'static prop source' => 'ℹ︎string␟value',

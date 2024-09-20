@@ -235,8 +235,13 @@ const InputBehaviors = (OriginalInput: React.FC) => {
         // of inputBehaviors.
         setInputValue(value);
 
-        // In addition, update the Context-stored Form State, which is aware
-        // of all form values plus additional metadata.
+        // Check if the input is valid before continuing.
+        if (target instanceof HTMLInputElement && !target.reportValidity()) {
+          return;
+        }
+
+        // Then, update the Context-stored Form State, which is aware of all
+        // form values plus additional metadata.
         if (setFormState) {
           setFormState((prior: object) => {
             const newState = { ...prior, [target.name]: value };

@@ -14,7 +14,6 @@ props:
       type: string
       title: Heading
       description: The main heading of the hero
-      minLength: 2
       examples:
         - There goes my hero
         - Submit now

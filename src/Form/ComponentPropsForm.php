@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Drupal\experience_builder\Form;
 
-use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
@@ -17,7 +16,7 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 /**
  * Allows editing the prop sources for a component.
  */
-final class ComponentPropsForm extends FormBase implements ContainerInjectionInterface {
+final class ComponentPropsForm extends FormBase {
 
   /**
    * The component plugin manager.
@@ -90,7 +89,9 @@ final class ComponentPropsForm extends FormBase implements ContainerInjectionInt
         }
         assert(isset($component_plugin->metadata->schema['properties'][$sdc_prop_name]['title']));
         $label = $component_plugin->metadata->schema['properties'][$sdc_prop_name]['title'];
-        $form[$sdc_prop_name] = $source->formTemporaryRemoveThisExclamationExclamationExclamation($field_widget_plugin_id, $component_instance_uuid, $sdc_prop_name, $label, $entity, $form, $form_state);
+        $is_required = isset($component_plugin->metadata->schema['required'])
+          && in_array($sdc_prop_name, $component_plugin->metadata->schema['required'], TRUE);
+        $form[$sdc_prop_name] = $source->formTemporaryRemoveThisExclamationExclamationExclamation($field_widget_plugin_id, $sdc_prop_name, $label, $is_required, $entity, $form, $form_state);
       }
       // @todo Design is undefined for the DynamicPropSource UX. Related: https://www.drupal.org/project/experience_builder/issues/3459234
       // @todo Design is undefined for the AdaptedPropSource UX.

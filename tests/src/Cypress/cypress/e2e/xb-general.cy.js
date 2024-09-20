@@ -613,4 +613,134 @@ describe('General Experience Builder', { testIsolation: false }, () => {
         ).should('be.visible');
       });
   });
+
+  it('Handles empty values in required inputs', () => {
+    cy.drupalLogin('xbUser', 'xbUser');
+    cy.loadURLandWaitForXBLoaded();
+
+    // Make note of the number of Hero components currently in the preview.
+    cy.getIframeBody()
+      .find('[data-xb-component-id="experience_builder:my-hero"]')
+      .its('length')
+      .then((count) => {
+        cy.wrap(count).as('initialHeroCount');
+      });
+
+    // Click a Hero component to open the component form.
+    cy.getIframeBody().findByText('hello, world!').click();
+
+    // `@componentFormHeading`
+    cy.findByTestId(/^xb-component-form-.*/)
+      .findByLabelText('Heading')
+      .as('componentFormHeading');
+
+    // Check if the "Heading" prop's <input> tag has the `required` attribute.
+    cy.get('@componentFormHeading').should('have.attr', 'required');
+    // Clear the value.
+    cy.get('@componentFormHeading')
+      .clear()
+      // Ensure the input is invalid.
+      .then(($input) => {
+        expect($input[0].validity.valid).to.be.false;
+        expect($input[0].matches(':invalid')).to.be.true;
+      });
+
+    // Make sure the umber of Hero components in the preview hasn't changed.
+    cy.get('@initialHeroCount').then((initialHeroCount) => {
+      cy.getIframeBody()
+        .find('[data-xb-component-id="experience_builder:my-hero"]')
+        .its('length')
+        .should('eq', initialHeroCount);
+    });
+
+    // Update the value of the "Heading" prop's <input>.
+    cy.get('@componentFormHeading').type('New heading text');
+    // Ensure the new value shows in the preview.
+    cy.waitForElementContentInIframe(
+      'div[data-xb-component-id="experience_builder:my-hero"] h1',
+      'New heading text',
+    );
+
+    // `@componentFormCTA1Link`
+    cy.findByTestId(/^xb-component-form-.*/)
+      .findByLabelText('CTA 1 link')
+      .as('componentFormCTA1Link');
+    // `@componentFormCTA1Text`
+    cy.findByTestId(/^xb-component-form-.*/)
+      .findByLabelText('CTA 1 text')
+      .as('componentFormCTA1Text');
+
+    // Check if the "CTA 1 link" prop's <input> tag has the `required` attribute.
+    cy.get('@componentFormCTA1Link').should('have.attr', 'required');
+    // Clear the value.
+    cy.get('@componentFormHeading')
+      .clear()
+      // Ensure the input is invalid.
+      .then(($input) => {
+        expect($input[0].validity.valid).to.be.false;
+        expect($input[0].matches(':invalid')).to.be.true;
+      });
+
+    // Make sure the number of Hero components in the preview hasn't changed.
+    cy.get('@initialHeroCount').then((initialHeroCount) => {
+      cy.getIframeBody()
+        .find('[data-xb-component-id="experience_builder:my-hero"]')
+        .its('length')
+        .should('eq', initialHeroCount);
+    });
+
+    // Update the value of the "CTA 1 link" prop's <input>.
+    cy.get('@componentFormCTA1Link')
+      .clear()
+      // Ensure the input is invalid.
+      .then(($input) => {
+        expect($input[0].validity.valid).to.be.false;
+        expect($input[0].matches(':invalid')).to.be.true;
+      })
+      .type('https://www.example.com/');
+    // Also update the value of the "CTA 1 text" prop's <input>.
+    cy.get('@componentFormCTA1Text').type('Example link');
+    // Ensure the new value shows in the preview.
+    cy.waitForElementContentInIframe(
+      'div[data-xb-component-id="experience_builder:my-hero"] button',
+      'Example link',
+    );
+    cy.getIframeBody()
+      .findByText('Example link')
+      .should('have.attr', 'formaction', 'https://www.example.com/');
+
+    // Make sure the number of Hero components in the preview hasn't changed.
+    cy.get('@initialHeroCount').then((initialHeroCount) => {
+      cy.getIframeBody()
+        .find('[data-xb-component-id="experience_builder:my-hero"]')
+        .its('length')
+        .should('eq', initialHeroCount);
+    });
+
+    // Ensure enum/select required field does not have None option
+    // Click on the first image component
+    cy.getIframeBody()
+      .find('[data-xb-component-id="experience_builder:image"]')
+      .first()
+      .click();
+    // Click on the Add component button of image component
+    cy.findAllByLabelText('Add component')
+      .first()
+      .click({ scrollBehavior: 'center' });
+    // Click Heading in the side menu
+    cy.get('[data-radix-menu-content]').findByText('Heading').click();
+    // Check if heading component has been added in the preview
+    cy.waitForElementContentInIframe(
+      'div[data-xb-component-id="experience_builder:heading"] h1[data-component-id="experience_builder:heading"]',
+      'A heading element',
+    );
+    // Find added Heading component above and click on it
+    cy.getIframeBody().findByText('A heading element').click();
+    // Find the Element enum/select component and check for None option - it should not be there
+    cy.findByTestId(/^xb-component-form-.*/)
+      .find('select[required]')
+      .should('be.visible')
+      .find('option')
+      .should('not.contain', '- None -');
+  });
 });

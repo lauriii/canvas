@@ -284,7 +284,7 @@ final class StaticPropSource extends PropSourceBase {
     return $widget;
   }
 
-  public function formTemporaryRemoveThisExclamationExclamationExclamation(?string $field_widget_plugin_id, string $component_instance_uuid, string $sdc_prop_name, string $sdc_prop_label, ?FieldableEntityInterface $host_entity, array &$form, FormStateInterface $form_state): array {
+  public function formTemporaryRemoveThisExclamationExclamationExclamation(?string $field_widget_plugin_id, string $sdc_prop_name, string $sdc_prop_label, bool $is_required, ?FieldableEntityInterface $host_entity, array &$form, FormStateInterface $form_state): array {
     // TRICKY: create the field item list without a parent. Otherwise, the Typed
     // Data manager tries to be clever but in doing so fails: it generates a new
     // field item object using the full property path (which then includes the
@@ -292,8 +292,11 @@ final class StaticPropSource extends PropSourceBase {
     // back to a pseudo-random default.
     // @see \Drupal\Core\Field\FieldTypePluginManager::createFieldItem()
     // @see \Drupal\Core\TypedData\TypedDataManagerInterface::getPropertyInstance()
-    $list_class = $this->fieldItem->getFieldDefinition()->getClass();
-    $field = (new $list_class($this->fieldItem->getFieldDefinition(), $sdc_prop_name, NULL));
+    $field_definition = $this->fieldItem->getFieldDefinition();
+    assert($field_definition instanceof FieldStorageDefinition);
+    $list_class = $field_definition->getClass();
+    $field_definition->setRequired($is_required);
+    $field = (new $list_class($field_definition, $sdc_prop_name, NULL));
     assert($field instanceof FieldItemListInterface);
     $field->set(0, $this->fieldItem);
     // Only *after* the field item list has had its conjured field item set as
