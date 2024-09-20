@@ -56,6 +56,8 @@ use Drupal\Core\TypedData\TypedData;
  * @see \Drupal\experience_builder\Plugin\Validation\Constraint\ComponentTreeStructureConstraintValidator
  * @see \Drupal\Tests\experience_builder\Kernel\DataType\ComponentTreeStructureTest
  *
+ * @phpstan-import-type ComponentConfigEntityId from \Drupal\experience_builder\Entity\Component
+ *
  * @todo Implement ListInterface because it conceptually fits, but … what does it get us?
  */
 #[DataType(
@@ -243,7 +245,10 @@ class ComponentTreeStructure extends TypedData {
    * @param string $component_instance_uuid
    *   The UUID of a placed component instance.
    *
-   * @return string
+   * @return ComponentConfigEntityId
+   *   A Component config entity ID.
+   *
+   * @see \Drupal\experience_builder\Entity\Component
    */
   public function getComponentId(string $component_instance_uuid): string {
     if (!in_array($component_instance_uuid, $this->getComponentInstanceUuids(), TRUE)) {
@@ -257,7 +262,7 @@ class ComponentTreeStructure extends TypedData {
   }
 
   /**
-   * @return array<string>
+   * @return array<ComponentConfigEntityId>
    */
   public function getComponentIdList(): array {
     return array_values(array_unique(array_column($this->getComponents(), 'component')));

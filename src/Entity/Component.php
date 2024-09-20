@@ -60,6 +60,8 @@ use Drupal\experience_builder\PropSource\StaticPropSource;
  *      "ImmutableProperties" = {"id", "component"},
  *    }
  *  )
+ *
+ * @phpstan-type ComponentConfigEntityId string
  */
 final class Component extends ConfigEntityBase {
 
@@ -91,6 +93,8 @@ final class Component extends ConfigEntityBase {
 
   /**
    * {@inheritdoc}
+   *
+   * @return ComponentConfigEntityId
    */
   public function id() {
     return $this->id;
@@ -170,7 +174,15 @@ final class Component extends ConfigEntityBase {
   /**
    * Converts a config ID to plugin machine name.
    *
-   * The naming convention for SDC plugin components is [module/theme]:[component machine name], so we change '+' back to ':'.
+   * The naming convention for SDC plugin components is [module/theme]:[component machine name],
+   * so we change '+' back to ':'.
+   *
+   * @param string $id
+   *   A Component config entity ID.
+   *
+   * @return string
+   *   The converted plugin machine name.
+   *
    * @see https://www.drupal.org/docs/develop/theming-drupal/using-single-directory-components/api-for-single-directory-components
    * @see \Drupal\Core\Plugin\Discovery\DirectoryWithMetadataDiscovery::getDirectoryIterator()
    * @see \Drupal\Core\Plugin\Component::$machineName

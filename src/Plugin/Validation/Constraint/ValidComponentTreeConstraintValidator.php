@@ -10,6 +10,7 @@ use Drupal\Core\Render\Component\Exception\InvalidComponentException;
 use Drupal\Core\Theme\Component\ComponentValidator;
 use Drupal\Core\Theme\ComponentPluginManager;
 use Drupal\Core\TypedData\TypedDataManagerInterface;
+use Drupal\experience_builder\Entity\Component;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -71,10 +72,11 @@ final class ValidComponentTreeConstraintValidator extends ConstraintValidator im
 
     // Validate that each prop source resolves into a value that is considered
     // valid by the destination SDC prop.
+    // @todo This will need to evolve when supporting non-SDC component types in https://www.drupal.org/project/experience_builder/issues/3454519
     foreach ($tree->getComponentInstanceUuids() as $component_instance_uuid) {
       $component_id = $tree->getComponentId($component_instance_uuid);
       try {
-        $component = $this->componentPluginManager->find($component_id);
+        $component = $this->componentPluginManager->find(Component::convertIdToMachineName($component_id));
         $props_values = $value->resolveComponentProps($component_instance_uuid);
         $this->componentValidator->validateProps($props_values, $component);
       }
@@ -84,7 +86,7 @@ final class ValidComponentTreeConstraintValidator extends ConstraintValidator im
         // @see \Drupal\experience_builder\Plugin\Validation\Constraint\ComponentTreeStructureConstraintValidator
       }
       catch (InvalidComponentException) {
-        $this->context->addViolation('The component instance with UUID %uuid uses component %id and receives some invalid props! Put a breakpoint here and figure out why.', ['%uuid' => $component_instance_uuid, '%id' => $component_id]);
+        $this->context->addViolation('The component instance with UUID %uuid uses component %id and receives some invalid props! Put a breakpoint here and figure out why.', ['%uuid' => $component_instance_uuid, '%id' => Component::convertIdToMachineName($component_id)]);
       }
       catch (\OutOfRangeException $e) {
         // DynamicPropSources cannot be validated in isolation, only in the

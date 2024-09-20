@@ -40,11 +40,11 @@ class ComponentTreeStructureTest extends UnitTestCase {
    */
   public function testGetComponentId(): void {
     $component_tree_structure = $this->getTestComponentTreeStructure();
-    $this->assertSame('provider:two-col', $component_tree_structure->getComponentId('uuid-root-1'));
-    $this->assertSame('provider:marquee', $component_tree_structure->getComponentId('uuid-root-2'));
-    $this->assertSame('provider:person-card', $component_tree_structure->getComponentId('uuid4-author1'));
-    $this->assertSame('provider:elegant-date', $component_tree_structure->getComponentId('uuid2-submitted'));
-    $this->assertSame('provider:person-card', $component_tree_structure->getComponentId('uuid5-author2'));
+    $this->assertSame('provider+two-col', $component_tree_structure->getComponentId('uuid-root-1'));
+    $this->assertSame('provider+marquee', $component_tree_structure->getComponentId('uuid-root-2'));
+    $this->assertSame('provider+person-card', $component_tree_structure->getComponentId('uuid4-author1'));
+    $this->assertSame('provider+elegant-date', $component_tree_structure->getComponentId('uuid2-submitted'));
+    $this->assertSame('provider+person-card', $component_tree_structure->getComponentId('uuid5-author2'));
   }
 
   /**
@@ -56,7 +56,7 @@ class ComponentTreeStructureTest extends UnitTestCase {
       ComponentTreeStructure::createInstance(DataDefinition::create('component_tree_structure'))->getComponentIdList()
     );
     $this->assertSame(
-      ['provider:two-col', 'provider:marquee', 'provider:person-card', 'provider:elegant-date'],
+      ['provider+two-col', 'provider+marquee', 'provider+person-card', 'provider+elegant-date'],
       $this->getTestComponentTreeStructure()->getComponentIdList()
     );
   }
@@ -85,22 +85,22 @@ class ComponentTreeStructureTest extends UnitTestCase {
   private function getTestComponentTreeStructure(): ComponentTreeStructure {
     $tree = [
       ComponentTreeStructure::ROOT_UUID => [
-        ['uuid' => 'uuid-root-1', 'component' => 'provider:two-col'],
-        ['uuid' => 'uuid-root-2', 'component' => 'provider:marquee'],
-        ['uuid' => 'uuid-root-3', 'component' => 'provider:marquee'],
+        ['uuid' => 'uuid-root-1', 'component' => 'provider+two-col'],
+        ['uuid' => 'uuid-root-2', 'component' => 'provider+marquee'],
+        ['uuid' => 'uuid-root-3', 'component' => 'provider+marquee'],
       ],
       'uuid-root-1' => [
         'firstColumn' => [
-          ['uuid' => 'uuid4-author1', 'component' => 'provider:person-card'],
-          ['uuid' => 'uuid2-submitted', 'component' => 'provider:elegant-date'],
+          ['uuid' => 'uuid4-author1', 'component' => 'provider+person-card'],
+          ['uuid' => 'uuid2-submitted', 'component' => 'provider+elegant-date'],
         ],
         'secondColumn' => [
-          ['uuid' => 'uuid5-author2', 'component' => 'provider:person-card'],
+          ['uuid' => 'uuid5-author2', 'component' => 'provider+person-card'],
         ],
       ],
       'uuid-root-2' => [
         'content' => [
-          ['uuid' => 'uuid4-author3', 'component' => 'provider:person-card'],
+          ['uuid' => 'uuid4-author3', 'component' => 'provider+person-card'],
         ],
       ],
     ];

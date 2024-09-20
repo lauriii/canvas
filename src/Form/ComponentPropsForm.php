@@ -70,7 +70,7 @@ final class ComponentPropsForm extends FormBase implements ContainerInjectionInt
 
     $component = Component::loadByComponentMachineName($component_machine_name);
     assert($component !== NULL);
-    $component_plugin = $this->componentPluginManager->createInstance($component_machine_name);
+    $component_plugin = $this->componentPluginManager->createInstance(Component::convertIdToMachineName($component_machine_name));
 
     // Allow form alterations specific to XB component prop forms (currently
     // only "static prop sources").

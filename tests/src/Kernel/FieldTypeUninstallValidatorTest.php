@@ -60,7 +60,7 @@ final class FieldTypeUninstallValidatorTest extends KernelTestBase {
           ComponentTreeStructure::ROOT_UUID => [
             [
               'uuid' => 'dynamic-static-card2df',
-              'component' => 'sdc_test:my-cta',
+              'component' => 'sdc_test+my-cta',
             ],
           ],
         ]),
@@ -99,7 +99,7 @@ final class FieldTypeUninstallValidatorTest extends KernelTestBase {
         ComponentTreeStructure::ROOT_UUID => [
           [
             'uuid' => 'dynamic-static-card2df',
-            'component' => 'sdc_test:my-cta',
+            'component' => 'sdc_test+my-cta',
           ],
         ],
       ]),

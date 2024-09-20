@@ -21,7 +21,7 @@ trait ComponentTreeTestTrait {
             ComponentTreeStructure::ROOT_UUID => [
               [
                 'uuid' => 'dynamic-static-card2df',
-                'component' => 'xb_test_sdc:props-slots',
+                'component' => 'xb_test_sdc+props-slots',
               ],
             ],
           ]),
@@ -37,7 +37,7 @@ trait ComponentTreeTestTrait {
       ],
       'valid values for propless component' => [
         [
-          'tree' => '{"a548b48d-58a8-4077-aa04-da9405a6f418": [{"uuid":"propless-component-uuid","component":"experience_builder:druplicon"}]}',
+          'tree' => '{"a548b48d-58a8-4077-aa04-da9405a6f418": [{"uuid":"propless-component-uuid","component":"experience_builder+druplicon"}]}',
           'props' => '{}',
         ],
       ],
@@ -52,7 +52,7 @@ trait ComponentTreeTestTrait {
             ComponentTreeStructure::ROOT_UUID => [
               [
                 'uuid' => 'dynamic-static-card2df',
-                'component' => 'xb_test_sdc:props-slots',
+                'component' => 'xb_test_sdc+props-slots',
               ],
             ],
             'other-uuid' => [],
@@ -71,9 +71,9 @@ trait ComponentTreeTestTrait {
         [
           'tree' => self::encodeXBData([
             ComponentTreeStructure::ROOT_UUID => [
-              ['uuid' => 'dynamic-static-card2df', 'component' => 'sdc_test:missing'],
-              ['uuid' => 'dynamic-static-card3', 'component' => 'sdc_test:missing-also'],
-              ['uuid' => 'dynamic-static-card4', 'component' => 'xb_test_sdc:props-slots'],
+              ['uuid' => 'dynamic-static-card2df', 'component' => 'sdc_test+missing'],
+              ['uuid' => 'dynamic-static-card3', 'component' => 'sdc_test+missing-also'],
+              ['uuid' => 'dynamic-static-card4', 'component' => 'xb_test_sdc+props-slots'],
             ],
           ]),
           'props' => self::encodeXBData([
@@ -96,7 +96,7 @@ trait ComponentTreeTestTrait {
         [
           'tree' => self::encodeXBData([
             ComponentTreeStructure::ROOT_UUID => [
-              ['uuid' => 'static-card2df', 'component' => 'sdc_test:missing'],
+              ['uuid' => 'static-card2df', 'component' => 'sdc_test+missing'],
             ],
           ]),
           'props' => self::encodeXBData([
@@ -118,9 +118,9 @@ trait ComponentTreeTestTrait {
         [
           'tree' => self::encodeXBData([
             ComponentTreeStructure::ROOT_UUID => [
-              ['uuid' => 'dynamic-static-card2df', 'component' => 'xb_test_sdc:props-slots'],
-              ['uuid' => 'dynamic-static-card3', 'component' => 'xb_test_sdc:props-slots'],
-              ['uuid' => 'dynamic-static-card4', 'component' => 'xb_test_sdc:props-slots'],
+              ['uuid' => 'dynamic-static-card2df', 'component' => 'xb_test_sdc+props-slots'],
+              ['uuid' => 'dynamic-static-card3', 'component' => 'xb_test_sdc+props-slots'],
+              ['uuid' => 'dynamic-static-card4', 'component' => 'xb_test_sdc+props-slots'],
             ],
           ]),
           'props' => self::encodeXBData([
@@ -149,7 +149,7 @@ trait ComponentTreeTestTrait {
         [
           'tree' => self::encodeXBData([
             ComponentTreeStructure::ROOT_UUID => [
-              ['uuid' => 'static-card2df', 'component' => 'xb_test_sdc:props-no-slots'],
+              ['uuid' => 'static-card2df', 'component' => 'xb_test_sdc+props-no-slots'],
             ],
           ]),
           'props' => self::encodeXBData([
@@ -171,9 +171,9 @@ trait ComponentTreeTestTrait {
         [
           'tree' => self::encodeXBData([
             ComponentTreeStructure::ROOT_UUID => [
-              ['uuid' => 'dynamic-static-card2df', 'component' => 'xb_test_sdc:props-slots'],
-              ['uuid' => 'dynamic-static-card3', 'component' => 'xb_test_sdc:props-slots'],
-              ['uuid' => 'dynamic-static-card4', 'component' => 'xb_test_sdc:props-slots'],
+              ['uuid' => 'dynamic-static-card2df', 'component' => 'xb_test_sdc+props-slots'],
+              ['uuid' => 'dynamic-static-card3', 'component' => 'xb_test_sdc+props-slots'],
+              ['uuid' => 'dynamic-static-card4', 'component' => 'xb_test_sdc+props-slots'],
             ],
           ]),
         ],

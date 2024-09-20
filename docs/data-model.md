@@ -43,6 +43,7 @@ to one of us! 😊 🙏
 ### 1.2 XB terminology
 
 - `component`: see [`XB Components` doc](components.md)
+- `Component config entity`: see [`XB Config Management` doc](config-management.md)
 - `component instance`: a UUID uniquely identifying this instance + component + values for each required `component prop` (if any) + optionally values for its `component slot`s (if any)
 - `component prop`: see [`XB Components` doc](components.md)
 - `component slot`: see [`XB Components` doc](components.md)
@@ -247,34 +248,36 @@ The `component tree`'s _tree_ `field prop` has a representation that minimizes n
 as well as changes to `component prop`s (simpler JSON querying).
 
 The _tree_ `field prop` is stored as a JSON blob, and always meets the following requirements:
-1. the root UUID is present
-2. any top-level UUID appears as a UUID in a _parent branch/tree_ (except its own branch), _if_ the `component` for that
-   UUID (referring to a `component instance`) is a component that has >=1 `component slot`s
-3. `component slot`s of every `component`: the stored slot names (`firstColumn` and `secondColumn` in the example below)
-   MUST be actually existing slot names for this particular `component`
-4. the ordering in each array (the component instances under the root UUID and under each slot name) is meaningful,
+1. every `component instance` is represented by a "uuid, component" pair, with the value for "component" being the ID of
+   a `Component config entity` (NOT that of the underlying `component`), and the "uuid" being a randomly generated UUID
+2. the root UUID is present, and represents the root of the `component tree`
+3. any top-level UUID appears as a UUID in a _parent branch/tree_ (except its own branch), _if_ the `Component config
+   entity` is for a `component` that has >=1 `component slot`s
+4. `component slot`s of every `component instance`: the stored slot names (`firstColumn` and `secondColumn` in the
+   example below) MUST be existing slot names for this particular `Component config entity`/`component`
+5. the ordering in each array (the component instances under the root UUID and under each slot name) is meaningful,
    because the `component instance`s are positioned in a particular order
 
 Example:
 ```json
 {
   "ROOT_UUID": [
-    {"uuid": "uuid-root-1", "component": "provider:two-col"},
-    {"uuid": "uuid-root-2", "component": "provider:marquee"},
-    {"uuid": "uuid-root-3", "component": "provider:marquee"}
+    {"uuid": "uuid-root-1", "component": "provider+two-col"},
+    {"uuid": "uuid-root-2", "component": "provider+marquee"},
+    {"uuid": "uuid-root-3", "component": "provider+marquee"}
   ],
   "uuid-root-1": {
     "firstColumn": [
-      {"uuid": "uuid4-author1", "component": "provider:person-card"},
-      {"uuid": "uuid2-submitted", "component": "provider:elegant-date"}
+      {"uuid": "uuid4-author1", "component": "provider+person-card"},
+      {"uuid": "uuid2-submitted", "component": "provider+elegant-date"}
     ],
     "secondColumn": [
-      {"uuid": "uuid5-author2", "component": "provider:person-card"}
+      {"uuid": "uuid5-author2", "component": "provider+person-card"}
     ]
   },
   "uuid-root-2": {
     "content": [
-      {"uuid": "uuid4-author3", "component": "provider:person-card"}
+      {"uuid": "uuid4-author3", "component": "provider+person-card"}
     ]
   }
 }

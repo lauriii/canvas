@@ -13,6 +13,7 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\TypedData\Attribute\DataType;
 use Drupal\Core\TypedData\TypedData;
 use Drupal\Core\Theme\ComponentPluginManager;
+use Drupal\experience_builder\Entity\Component;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
 
 /**
@@ -56,7 +57,7 @@ class ComponentTreeHydrated extends TypedData implements CacheableDependencyInte
     // ignoring their slots. The result: a flat list of hydrated components, but
     // with all slots empty.
     foreach ($tree->getComponentInstanceUuids() as $uuid) {
-      $sdc_component_id = $tree->getComponentId($uuid);
+      $component_id = $tree->getComponentId($uuid);
       $sdc_component_props = $item->resolveComponentProps($uuid);
 
       // Use the first example defined in SDC metadata, if it exists. Otherwise,
@@ -65,14 +66,14 @@ class ComponentTreeHydrated extends TypedData implements CacheableDependencyInte
       // @see https://www.drupal.org/node/3391702
       // @see \Drupal\Core\Render\Element\ComponentElement::generateComponentTemplate()
       // @see \Drupal\experience_builder\Controller\SdcController::wrapComponentsForPreview()
-      $sdc_component_plugin_instance = $this->getComponentPluginManager()->find($sdc_component_id);
+      $sdc_component_plugin_instance = $this->getComponentPluginManager()->find(Component::convertIdToMachineName($component_id));
       $default_slot_values = array_map(
         fn (array $s): string => self::getDefaultSlotValue($s),
         $sdc_component_plugin_instance->metadata->slots,
       );
 
       $hydrated[$uuid] = [
-        'component' => $sdc_component_id,
+        'component' => $component_id,
         'props' => $sdc_component_props,
       ];
       if (!empty($sdc_component_plugin_instance->metadata->slots)) {
@@ -145,11 +146,18 @@ class ComponentTreeHydrated extends TypedData implements CacheableDependencyInte
     $build = [];
     foreach ($hydrated as $component_subtree_uuid => $component_instances) {
       foreach ($component_instances as $component_instance_uuid => $component_instance) {
+        // @todo This will need to evolve when supporting non-SDC component types in https://www.drupal.org/project/experience_builder/issues/3454519
         $build[$component_subtree_uuid][$component_instance_uuid] = [
           '#type' => 'component',
         ];
         foreach ($component_instance as $key => $value) {
           if ($key !== 'slots') {
+            // An SDC plugin ID is expected when using `#type => component`.
+            // @see \Drupal\Core\Render\Element\ComponentElement
+            if ($key === 'component') {
+              $value = Component::convertIdToMachineName($value);
+            }
+
             // Note: this works because `::getValue()` above uses `props` and
             // `slots`, which allow simply prefixing them with `#` to generate the
             // corresponding render array.

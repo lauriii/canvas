@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace Drupal\experience_builder\Plugin\Validation\Constraint;
 
+use Drupal\Core\Config\Entity\ConfigEntityStorageInterface;
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
-use Drupal\Core\Render\Component\Exception\ComponentNotFoundException;
-use Drupal\Core\Theme\ComponentPluginManager;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Validation\BasicRecursiveValidatorFactory;
+use Drupal\experience_builder\Entity\Component;
+use Drupal\experience_builder\Plugin\ComponentPluginManager;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\Validator\Constraint;
@@ -25,15 +27,22 @@ use Symfony\Component\Validator\Context\ExecutionContextInterface;
 final class ComponentTreeStructureConstraintValidator extends ConstraintValidator implements ContainerInjectionInterface {
 
   public function __construct(
+    private readonly ConfigEntityStorageInterface $componentStorage,
     private readonly ComponentPluginManager $componentPluginManager,
     private readonly BasicRecursiveValidatorFactory $validatorFactory,
-  ) {}
+  ) {
+    // @see \Drupal\experience_builder\Entity\Component
+    assert($this->componentStorage->getEntityTypeId() === 'component');
+  }
 
   /**
    * {@inheritdoc}
    */
   public static function create(ContainerInterface $container): self {
+    $component_storage = $container->get(EntityTypeManagerInterface::class)->getStorage('component');
+    assert($component_storage instanceof ConfigEntityStorageInterface);
     return new static(
+      $component_storage,
       $container->get(ComponentPluginManager::class),
       $container->get(BasicRecursiveValidatorFactory::class),
     );
@@ -113,7 +122,10 @@ final class ComponentTreeStructureConstraintValidator extends ConstraintValidato
         ]),
         new Callback(
           callback: self::validateComponentInstance(...),
-          payload: ['component_manager' => $this->componentPluginManager]
+          payload: [
+            'component_storage' => $this->componentStorage,
+            'component_manager' => $this->componentPluginManager,
+          ]
         ),
       ]
     );
@@ -155,6 +167,9 @@ final class ComponentTreeStructureConstraintValidator extends ConstraintValidato
   }
 
   private static function validateComponentInstance(array $component_instance, ExecutionContextInterface $context, array $payload): void {
+    /** @var \Drupal\Core\Config\Entity\ConfigEntityStorageInterface $component_storage */
+    $component_storage = $payload['component_storage'];
+    assert($component_storage->getEntityTypeId() === 'component');
     /** @var \Drupal\Core\Theme\ComponentPluginManager $component_manager */
     $component_manager = $payload['component_manager'];
     $tree = $context->getRoot();
@@ -164,10 +179,8 @@ final class ComponentTreeStructureConstraintValidator extends ConstraintValidato
       // will add the violations for the unset key.
       return;
     }
-    try {
-      $component = $component_manager->find($component_instance['component']);
-    }
-    catch (ComponentNotFoundException) {
+    $component_config_entity = $component_storage->load($component_instance['component']);
+    if ($component_config_entity === NULL) {
       $context->addViolation('The component %component does not exist.', ['%component' => $component_instance['component']]);
       return;
     }
@@ -186,6 +199,8 @@ final class ComponentTreeStructureConstraintValidator extends ConstraintValidato
       '',
     );
 
+    // @todo This will need to evolve when supporting non-SDC component types in https://www.drupal.org/project/experience_builder/issues/3454519
+    $component = $component_manager->find(Component::convertIdToMachineName($component_instance['component']));
     if (empty($component->metadata->slots)) {
       if (isset($tree[$component_instance['uuid']])) {
         $context->buildViolation('Invalid component subtree. A component subtree must only exist for components with >=1 slot, but the component %component has no slots, yet a subtree exists for the instance with UUID %uuid.', [

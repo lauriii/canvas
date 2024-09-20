@@ -27,6 +27,8 @@ use Drupal\experience_builder\ShapeMatcher\FieldForComponentSuggester;
  * @todo Implement PreconfiguredFieldUiOptionsInterface?
  * @todo How to achieve https://www.previousnext.com.au/blog/pitchburgh-diaries-decoupled-layout-builder-sprint-1-2?
  * @see https://git.drupalcode.org/project/metatag/-/blob/2.0.x/src/Plugin/Field/FieldType/MetatagFieldItem.php
+ *
+ * @phpstan-import-type ComponentConfigEntityId from \Drupal\experience_builder\Entity\Component
  */
 #[FieldType(
   id: "component_tree",
@@ -72,7 +74,7 @@ class ComponentTreeItem extends FieldItemBase implements RenderableInterface {
     }
     $tree->setValue($default_value['tree']);
 
-    foreach (Component::loadMultiple(array_map(Component::convertMachineNameToId(...), $tree->getComponentIdList())) as $component_entity) {
+    foreach (Component::loadMultiple($tree->getComponentIdList()) as $component_entity) {
       assert($component_entity instanceof Component);
       $dependencies[$component_entity->getConfigDependencyKey()][] = $component_entity->getConfigDependencyName();
     }
@@ -242,14 +244,15 @@ class ComponentTreeItem extends FieldItemBase implements RenderableInterface {
   }
 
   /**
-   * @param string $component_id
-   *   A component plugin ID.
+   * phpcs:ignore Drupal.Commenting.DataTypeNamespace.DataTypeNamespace
+   * @param ComponentConfigEntityId $component_id
+   *   A Component config entity ID.
    *
    * @return bool
    */
   protected static function componentHasProps(string $component_id): bool {
     $component_manager = \Drupal::service(ComponentPluginManager::class);
-    $component = $component_manager->find($component_id);
+    $component = $component_manager->find(Component::convertIdToMachineName($component_id));
     return !empty($component->metadata->schema['properties']);
   }
 

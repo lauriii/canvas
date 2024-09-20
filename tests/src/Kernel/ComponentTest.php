@@ -14,10 +14,12 @@ use Drupal\experience_builder\Entity\Component;
 use Drupal\experience_builder\PropSource\StaticPropSource;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\Tests\experience_builder\Traits\ContribStrictConfigSchemaTestTrait;
+use Drupal\Tests\experience_builder\Traits\GenerateComponentConfigTrait;
 
 class ComponentTest extends KernelTestBase {
 
   use ContribStrictConfigSchemaTestTrait;
+  use GenerateComponentConfigTrait;
 
   const MODULE_COMPONENT_ID = 'sdc_test:my-cta';
   const MODULE_CONFIG_ENTITY_ID = 'sdc_test+my-cta';
@@ -52,32 +54,12 @@ class ComponentTest extends KernelTestBase {
     $this->state = $this->container->get('state');
   }
 
-  /**
-   * {@inheritdoc}
-   */
-  protected function enableModules(array $modules): void {
-    parent::enableModules($modules);
-    // Installing a module with SDCs should result in Component config entities
-    // being generated. This requires hook_module_preinstall() and subsequently
-    // hook_modules_installed() to be invoked, but `::enableModules()` does not
-    // do that, for performance reasons. Simulate it.
-    // @see \Drupal\KernelTests\KernelTestBase::enableModules()
-    // @see \Drupal\Tests\ckeditor5\Kernel\CKEditor5PluginManagerTest::enableModules()
-
-    // 1. Simulate hook_module_preinstall() getting invoked.
-    // @see experience_builder_module_preinstall()
-    $this->componentPluginManager->clearCachedDefinitions();
-
-    // 2. Simulate experience_builder_modules_installed() getting invoked.
-    // @see experience_builder_modules_installed()
-    $this->componentPluginManager->getDefinitions();
-  }
-
   protected function midTestSetUp(): void {
     // The Standard install profile's "image" media type must be installed when
     // the media_library module gets installed.
     // @see core/profiles/standard/config/optional/media.type.image.yml
     $this->enableModules(['media']);
+    $this->generateComponentConfig();
     $this->setInstallProfile('standard');
     $this->container->get('config.installer')->installOptionalConfig();
 
@@ -88,6 +70,7 @@ class ComponentTest extends KernelTestBase {
       'filter',
     ];
     $this->enableModules($modules);
+    $this->generateComponentConfig();
     // @see \Drupal\Core\Field\Plugin\Field\FieldType\EntityReferenceItem::generateSampleValue()
     $this->installEntitySchema('media');
 
@@ -189,8 +172,11 @@ class ComponentTest extends KernelTestBase {
     // Initial state: no Component config entities.
     $this->assertEmpty(Component::loadMultiple());
 
-    // Installing a module with SDCs should result in Component config entities being generated.
     $this->enableModules($modules);
+    // Installing a module with SDCs should result in Component config entities
+    // being generated, but in kernel tests we have to explicitly trigger the
+    // hooks that would normally do this.
+    $this->generateComponentConfig();
     $reasons = $this->state->get(ComponentPluginManager::REASONS_STATE_KEY, []);
     foreach ($sdcs as $plugin_id => $component_entity) {
       $this->assertSame($component_entity['compatible'], Component::load(Component::convertMachineNameToId($plugin_id)) instanceof Component, $plugin_id . ' and modules: ' . implode(', ', $modules));
@@ -506,8 +492,7 @@ class ComponentTest extends KernelTestBase {
     $component->save();
 
     // Trigger component update that will disable 'obsolete' component.
-    $this->componentPluginManager->clearCachedDefinitions();
-    $this->componentPluginManager->getDefinitions();
+    $this->generateComponentConfig();
 
     $component = Component::load($component->id());
     assert($component instanceof Component);

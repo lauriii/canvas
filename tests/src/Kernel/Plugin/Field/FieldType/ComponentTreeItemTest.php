@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Drupal\Tests\experience_builder\Kernel\Plugin\Field\FieldType;
 
 use Drupal\Core\Field\BaseFieldDefinition;
-use Drupal\experience_builder\Plugin\ComponentPluginManager;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\KernelTests\KernelTestBase;
@@ -13,6 +12,7 @@ use Drupal\node\Entity\Node;
 use Drupal\Tests\experience_builder\Traits\ComponentTreeTestTrait;
 use Drupal\Tests\experience_builder\Traits\ConstraintViolationsTestTrait;
 use Drupal\Tests\experience_builder\Traits\ContribStrictConfigSchemaTestTrait;
+use Drupal\Tests\experience_builder\Traits\GenerateComponentConfigTrait;
 use Drupal\Tests\experience_builder\Traits\TestDataUtilitiesTrait;
 
 /**
@@ -24,6 +24,7 @@ class ComponentTreeItemTest extends KernelTestBase {
   use ComponentTreeTestTrait;
   use ConstraintViolationsTestTrait;
   use ContribStrictConfigSchemaTestTrait;
+  use GenerateComponentConfigTrait;
   use TestDataUtilitiesTrait;
 
   /**
@@ -45,12 +46,7 @@ class ComponentTreeItemTest extends KernelTestBase {
    */
   protected function setUp(): void {
     parent::setUp();
-
-    // Ensuring Component entities are auto-generated.
-    // @see \Drupal\Tests\experience_builder\Kernel\ComponentTest::enableModules()
-    $componentPluginManager = $this->container->get(ComponentPluginManager::class);
-    $componentPluginManager->clearCachedDefinitions();
-    $componentPluginManager->getDefinitions();
+    $this->generateComponentConfig();
   }
 
   public function testCalculateDependencies(): void {
@@ -63,11 +59,11 @@ class ComponentTreeItemTest extends KernelTestBase {
         [
           'tree' => self::encodeXBData([
             ComponentTreeStructure::ROOT_UUID => [
-              ['uuid' => 'dynamic-image-udf7d', 'component' => 'experience_builder:image'],
-              ['uuid' => 'static-static-card1ab', 'component' => 'sdc_test:my-cta'],
-              ['uuid' => 'dynamic-static-card2df', 'component' => 'sdc_test:my-cta'],
-              ['uuid' => 'dynamic-dynamic-card3rr', 'component' => 'sdc_test:my-cta'],
-              ['uuid' => 'dynamic-image-static-imageStyle-something7d', 'component' => 'experience_builder:image'],
+              ['uuid' => 'dynamic-image-udf7d', 'component' => 'experience_builder+image'],
+              ['uuid' => 'static-static-card1ab', 'component' => 'sdc_test+my-cta'],
+              ['uuid' => 'dynamic-static-card2df', 'component' => 'sdc_test+my-cta'],
+              ['uuid' => 'dynamic-dynamic-card3rr', 'component' => 'sdc_test+my-cta'],
+              ['uuid' => 'dynamic-image-static-imageStyle-something7d', 'component' => 'experience_builder+image'],
             ],
           ]),
           'props' => json_encode([
@@ -144,11 +140,11 @@ class ComponentTreeItemTest extends KernelTestBase {
       ],
     ];
     $test_cases['missing components, using dynamic props'][] = [
-      "field_xb_test.0.tree[$root_uuid][0]" => 'The component <em class="placeholder">sdc_test:missing</em> does not exist.',
-      "field_xb_test.0.tree[$root_uuid][1]" => 'The component <em class="placeholder">sdc_test:missing-also</em> does not exist.',
+      "field_xb_test.0.tree[$root_uuid][0]" => 'The component <em class="placeholder">sdc_test+missing</em> does not exist.',
+      "field_xb_test.0.tree[$root_uuid][1]" => 'The component <em class="placeholder">sdc_test+missing-also</em> does not exist.',
     ];
     $test_cases['missing components, using only static props'][] = [
-      "field_xb_test.0.tree[$root_uuid][0]" => 'The component <em class="placeholder">sdc_test:missing</em> does not exist.',
+      "field_xb_test.0.tree[$root_uuid][0]" => 'The component <em class="placeholder">sdc_test+missing</em> does not exist.',
     ];
     $test_cases['props invalid, using dynamic props'][] = [
       'field_xb_test.0' => [
