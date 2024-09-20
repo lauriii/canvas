@@ -22,9 +22,11 @@ function useIframeKeyHandlers(iframe: HTMLIFrameElement | null) {
         (event.ctrlKey && event.key === 'y'),
       dispatchZoomIn:
         event.type === 'keydown' &&
+        !event.metaKey &&
         (event.code === 'NumpadAdd' || event.code === 'Equal'),
       dispatchZoomOut:
         event.type === 'keydown' &&
+        !event.metaKey &&
         (event.code === 'NumpadSubtract' || event.code === 'Minus'),
       dispatchModifierKeyDown:
         event.type === 'keydown' && event.key === modifierKey,
