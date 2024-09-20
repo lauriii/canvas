@@ -1,6 +1,0 @@
-same_page_preview.settings_form:
-  title: 'Same Page Preview'
-  description: 'Configure Same Page Preview.'
-  parent: system.admin_config_content
-  route_name: same_page_preview.settings_form
-  weight: 10
