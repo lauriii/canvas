@@ -167,7 +167,7 @@ describe('General Experience Builder', { testIsolation: false }, () => {
 
     // Get the small preview outline and confirm its dimensions match the
     // corresponding component,
-    cy.get('[data-xb-preview="sm"] ~ [data-xb-component-outline]')
+    cy.get('[data-xb-preview="sm"] ~ div > [data-xb-component-outline]')
       .should(($outline) => {
         expect($outline).to.exist;
         // Ensure the width is set before moving on to then().

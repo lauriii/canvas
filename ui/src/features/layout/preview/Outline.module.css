@@ -29,5 +29,6 @@
   z-index: 3;
   display: block;
   transform: translate(-50%, -50%);
+  white-space: nowrap;
   opacity: 1;
 }

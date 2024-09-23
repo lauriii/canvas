@@ -551,3 +551,31 @@ Cypress.Commands.add(
     }
   }
 );
+
+Cypress.Commands.add('getElementScaledDimensions', ($item) => {
+  cy.findByTestId('canvasElement').then(($parent) => {
+    const computedStyle = window.getComputedStyle($parent[0]);
+    const matrix = computedStyle.transform;
+    if (matrix !== 'none') {
+      const values = matrix.match(/matrix\(([^)]+)\)/)[1].split(', ');
+      const scaleX = parseFloat(values[0]); // scaleX from matrix
+      const scaleY = parseFloat(values[3]); // scaleY from matrix
+      // Get the original width and height (before scaling)
+      const originalWidth = $item.offsetWidth;
+      const originalHeight = $item.offsetHeight;
+
+      // Calculate scaled dimensions
+      const scaledWidth = originalWidth * scaleX;
+      const scaledHeight = originalHeight * scaleY;
+
+      return {
+        width: scaledWidth,
+        height: scaledHeight
+      };
+    }
+    return {
+      width: 0,
+      height: 0
+    };
+  });
+});

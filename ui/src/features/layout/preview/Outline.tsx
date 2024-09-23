@@ -6,6 +6,7 @@ import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { Grid } from '@radix-ui/themes';
 import clsx from 'clsx';
 import {
+  selectCanvasViewPort,
   unsetHoveredComponent,
   unsetSelectedComponent,
 } from '@/features/ui/uiSlice';
@@ -25,6 +26,7 @@ const Outline: React.FC<OutlineProps> = (props) => {
   const { elementId, selected, iframeRef } = props;
   const layout = useAppSelector(selectLayout);
   const model = useAppSelector(selectModel);
+  const canvasViewPort = useAppSelector(selectCanvasViewPort);
   const hoveredElementRef = useRef<HTMLElement | null>(null);
   const outlineElRef = useRef<HTMLDivElement | null>(null);
   const nameTagElRef = useRef<HTMLDivElement | null>(null);
@@ -35,21 +37,21 @@ const Outline: React.FC<OutlineProps> = (props) => {
 
   const applyStyles = useCallback(() => {
     if (outlineElRef.current && elementRect) {
-      outlineElRef.current.style.transform = `translate(${elementRect.left}px, ${elementRect.top}px)`;
-      outlineElRef.current.style.width = `${elementRect.width}px`;
-      outlineElRef.current.style.height = `${elementRect.height}px`;
+      outlineElRef.current.style.transform = `translate(${elementRect.left * canvasViewPort.scale}px, ${elementRect.top * canvasViewPort.scale}px)`;
+      outlineElRef.current.style.width = `${elementRect.width * canvasViewPort.scale}px`;
+      outlineElRef.current.style.height = `${elementRect.height * canvasViewPort.scale}px`;
       outlineElRef.current.style.opacity = '1';
     }
 
     if (nameTagElRef.current && elementRect) {
-      nameTagElRef.current.style.transform = `translate(${elementRect.left}px, ${elementRect.top - 25}px)`;
+      nameTagElRef.current.style.transform = `translate(${elementRect.left * canvasViewPort.scale}px, ${elementRect.top * canvasViewPort.scale - 25}px)`;
       nameTagElRef.current.style.opacity = '1';
     }
     if (addSectionButtonRef.current && elementRect && selected) {
-      addSectionButtonRef.current.style.top = `${elementRect.top + elementRect.height}px`;
-      addSectionButtonRef.current.style.left = `${elementRect.left + elementRect.width / 2}px`;
+      addSectionButtonRef.current.style.top = `${(elementRect.top + elementRect.height) * canvasViewPort.scale}px`;
+      addSectionButtonRef.current.style.left = `${(elementRect.left + elementRect.width / 2) * canvasViewPort.scale}px`;
     }
-  }, [elementRect, selected]);
+  }, [elementRect, selected, canvasViewPort.scale]);
 
   const bindEvents = useCallback(() => {
     if (!iframeRef.current) {
@@ -130,7 +132,12 @@ const Outline: React.FC<OutlineProps> = (props) => {
   return (
     elementId &&
     nodeType && (
-      <>
+      <div
+        style={{
+          transform: `scale(${1 / canvasViewPort.scale})`,
+          transformOrigin: '0 0',
+        }}
+      >
         <div
           ref={outlineElRef}
           className={clsx(styles.xbComponentOutline, {
@@ -156,7 +163,7 @@ const Outline: React.FC<OutlineProps> = (props) => {
             </div>
           )}
         </Grid>
-      </>
+      </div>
     )
   );
 };

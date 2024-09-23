@@ -14,8 +14,33 @@ describe(
       cy.drupalLogin('xbUser', 'xbUser');
     });
 
+    const roundValue = (value) => Math.round(value);
+
     it('Can zoom the canvas with the Zoom Controls', () => {
       cy.loadURLandWaitForXBLoaded();
+      // Confirm that no component has a hover outline initially.
+      cy.get('[data-xb-component-outline]').should('not.exist');
+
+      // Hover over a component to trigger the outline and get its bounding rect.
+      cy.getIframeBody()
+        .find('[data-component-id="experience_builder:my-hero"] h1')
+        .first()
+        .trigger('mouseover')
+        .closest('.xb--sortable-item')
+        .then((item) => {
+          const rect = item[0].getBoundingClientRect();
+          cy.wrap(rect).as('initialComponentRect');
+        });
+
+      // Verify the initial outline matches the component's size.
+      cy.get('@initialComponentRect').then((initialComponentRect) => {
+        cy.get('[data-xb-component-outline]').should(($outline) => {
+          expect($outline).to.exist;
+          const outlineRect = $outline[0].getBoundingClientRect();
+          expect(outlineRect.width).to.equal(initialComponentRect.width);
+          expect(outlineRect.height).to.equal(initialComponentRect.height);
+        });
+      });
 
       cy.log('Zoom by clicking the buttons');
       cy.findByLabelText('Zoom in').click();
@@ -25,6 +50,46 @@ describe(
         'matrix(1.1, 0, 0, 1.1, 0, 0)',
       );
       cy.findByText('110%');
+
+      // Re-hover over the component after zoom change and get its new bounding rect.
+      cy.getIframeBody()
+        .find('[data-component-id="experience_builder:my-hero"] h1')
+        .first()
+        .trigger('mouseover')
+        .closest('.xb--sortable-item')
+        .then(($item) => {
+          // Calculate component height and width by scale value - as by default component's dimensions are not changing on zoom
+          cy.getElementScaledDimensions($item[0]).then((dimensions) => {
+            const zoomedComponentRect = $item[0].getBoundingClientRect();
+            zoomedComponentRect.width = roundValue(dimensions.width);
+            zoomedComponentRect.height = roundValue(dimensions.height);
+            cy.wrap(zoomedComponentRect).as('zoomedComponentRect');
+          });
+        });
+
+      // Verify the outline matches the zoomed component's size.
+      cy.get('@zoomedComponentRect').then((zoomedComponentRect) => {
+        cy.get('[data-xb-component-outline]').should(($outline) => {
+          expect($outline).to.exist;
+          const outlineRectAfterZoom = $outline[0].getBoundingClientRect();
+          // Compare the outline dimensions with the zoomed component's dimensions.
+          expect(roundValue(outlineRectAfterZoom.width)).to.equal(
+            zoomedComponentRect.width,
+          );
+          expect(roundValue(outlineRectAfterZoom.height)).to.equal(
+            zoomedComponentRect.height,
+          );
+        });
+      });
+
+      // Assert that the outline has a style to cancel out scaling.
+      cy.get('[data-xb-component-outline]')
+        .should('exist')
+        .first()
+        .parent()
+        .should('have.attr', 'style')
+        .and('contain', `transform: scale(${(1 / 1.1).toFixed(6)})`);
+
       cy.findByLabelText('Zoom in').click();
       cy.findByTestId('canvasElement').should(
         'have.css',
@@ -33,6 +98,37 @@ describe(
       );
       cy.findByText('125%');
       cy.findByLabelText('Zoom out').click();
+
+      // Re-hover over the component again after zoom-out.
+      cy.getIframeBody()
+        .find('[data-component-id="experience_builder:my-hero"] h1')
+        .first()
+        .trigger('mouseover', { force: true })
+        .closest('.xb--sortable-item')
+        .then(($item) => {
+          // Calculate component height and width by scale value - as by default component's dimensions are not changing on zoom
+          cy.getElementScaledDimensions($item[0]).then((dimensions) => {
+            const resetOutlineRect = $item[0].getBoundingClientRect();
+            resetOutlineRect.width = roundValue(dimensions.width);
+            resetOutlineRect.height = roundValue(dimensions.height);
+            cy.wrap(resetOutlineRect).as('resetOutlineRect');
+          });
+        });
+
+      // Verify the outline size matches the original size after zoom-out.
+      cy.get('@resetOutlineRect').then((resetOutlineRect) => {
+        cy.get('[data-xb-component-outline]').should(($outline) => {
+          expect($outline).to.exist;
+          const outlineRect = $outline[0].getBoundingClientRect();
+          // Assert that the outline is equal to the size of the element after zoom-out (back to 100%).
+          expect(roundValue(outlineRect.width)).to.equal(
+            resetOutlineRect.width,
+          );
+          expect(roundValue(outlineRect.height)).to.equal(
+            resetOutlineRect.height,
+          );
+        });
+      });
       cy.findByTestId('canvasElement').should(
         'have.css',
         'transform',
