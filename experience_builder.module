@@ -483,13 +483,6 @@ function experience_builder_field_widget_complete_form_alter(array &$field_widge
   }
   if (isset($context['form']['#parents']) && array_search('xb_component_props', $context["form"]["#parents"]) !== FALSE) {
     RenderArrayXB::markXB($field_widget_complete_form);
-    if ($context['widget']->getPluginId() === 'media_library_widget') {
-      $config = \Drupal::service('config.factory')->getEditable('system.performance');
-      $js_preprocess = $config->get('js.preprocess');
-      if (!empty($js_preprocess)) {
-        $field_widget_complete_form['#suffix'] = 'Warning: This site has JS aggregation enabled. The media library widget will not work unless it is disabled. This will, of course, be addressed soon.';
-      }
-    }
   }
 }
 
