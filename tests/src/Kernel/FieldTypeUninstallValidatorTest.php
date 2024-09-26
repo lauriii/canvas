@@ -62,7 +62,6 @@ final class FieldTypeUninstallValidatorTest extends KernelTestBase {
 
     $this->assertUninstallFailureReasons([
       'Provides a field type, <em class="placeholder">link</em>, that is in use in the content of the following entities: <em class="placeholder">node</em> id=<em class="placeholder">1</em> revision=<em class="placeholder">1</em>',
-      'Provides a field type, <em class="placeholder">link</em>, that is in use in the content of the following entities: <em class="placeholder">node</em> id=<em class="placeholder">1</em> revision=<em class="placeholder">1</em>',
       'Provides a field type, <em class="placeholder">link</em>, that is in use in the default value of the following fields: <em class="placeholder">field_xb_test</em>',
     ]);
 
@@ -121,7 +120,6 @@ final class FieldTypeUninstallValidatorTest extends KernelTestBase {
 
     $this->assertUninstallFailureReasons([
       'Provides a field type, <em class="placeholder">link</em>, that is in use in the content of the following entities: <em class="placeholder">taxonomy_term</em> id=<em class="placeholder">1</em> revision=<em class="placeholder">1</em>',
-      'Provides a field type, <em class="placeholder">link</em>, that is in use in the content of the following entities: <em class="placeholder">taxonomy_term</em> id=<em class="placeholder">1</em> revision=<em class="placeholder">1</em>',
       'Provides a field type, <em class="placeholder">link</em>, that is in use in the default value of the following fields: <em class="placeholder">field_xb_test, field_tag_test</em>',
     ]);
 
@@ -153,8 +151,7 @@ final class FieldTypeUninstallValidatorTest extends KernelTestBase {
   }
 
   private function assertUninstallFailureReasons(array $reasons): void {
-    // @todo Assert that there are no duplicated reasons in
-    //   https://drupal.org/i/3476891.
+    $this->assertSame($reasons, array_unique($reasons));
     $expected_message = 'The following reasons prevent the modules from being uninstalled: ' . implode(', ', $reasons);
     try {
       $this->container->get('module_installer')->uninstall(['link']);

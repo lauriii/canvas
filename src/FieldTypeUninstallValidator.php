@@ -194,33 +194,28 @@ final class FieldTypeUninstallValidator implements ModuleUninstallValidatorInter
         $base_table = $table_mapping->getBaseTable();
         $revision_table = $table_mapping->getRevisionTable();
       }
-      $tables = $revision_table ? [
-        $base_table,
-        $revision_table,
-      ] : [$base_table];
-      foreach ($tables as $table) {
-        $column_name = $table_mapping->getFieldColumnName($component_field_storage,
-          'props');
-        $select = $this->database->select($table);
-        $select->fields($table, ['entity_id', 'revision_id']);
+      $table = $revision_table ?? $base_table;
+      $column_name = $table_mapping->getFieldColumnName($component_field_storage,
+        'props');
+      $select = $this->database->select($table);
+      $select->fields($table, ['entity_id', 'revision_id']);
 
-        // @todo The "$.*.*.expression" wildcard key matching works in Mariadb but not Sqlite.
-        //   We need figure out a way to make this work in Sqlite and PGSQL in https://drupal.org/i/3452756.
-        $select->where("JSON_EXTRACT($column_name, '$.*.*.expression') LIKE '%$field_expression%'");
-        // @todo Determine how a site user would be able to find all entities that use a field.
-        /** @var object $row */
-        if ($row = $select->execute()?->fetchObject()) {
-          // @todo These messages should be more user friendly.
-          $reasons[] = $this->t('Provides a field type, %used_field, that is in use in the content of the following entities: %entity_type id=%entity_id revision=%revision_id',
-            [
-              '%used_field' => $field_definition['id'],
-              '%entity_type' => $entity_type_id,
-              // @phpstan-ignore-next-line
-              '%entity_id' => $row->entity_id,
-              // @phpstan-ignore-next-line
-              '%revision_id' => $row->revision_id,
-            ]);
-        }
+      // @todo The "$.*.*.expression" wildcard key matching works in Mariadb but not Sqlite.
+      //   We need figure out a way to make this work in Sqlite and PGSQL in https://drupal.org/i/3452756.
+      $select->where("JSON_EXTRACT($column_name, '$.*.*.expression') LIKE '%$field_expression%'");
+      // @todo Determine how a site user would be able to find all entities that use a field.
+      /** @var object $row */
+      if ($row = $select->execute()?->fetchObject()) {
+        // @todo These messages should be more user friendly.
+        $reasons[] = $this->t('Provides a field type, %used_field, that is in use in the content of the following entities: %entity_type id=%entity_id revision=%revision_id',
+          [
+            '%used_field' => $field_definition['id'],
+            '%entity_type' => $entity_type_id,
+            // @phpstan-ignore-next-line
+            '%entity_id' => $row->entity_id,
+            // @phpstan-ignore-next-line
+            '%revision_id' => $row->revision_id,
+          ]);
       }
     }
     return $reasons;
