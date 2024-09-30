@@ -4,6 +4,8 @@ import { Card, Flex, IconButton } from '@radix-ui/themes';
 import { MinusIcon, PlusIcon, ZoomInIcon } from '@radix-ui/react-icons';
 import { Select } from '@radix-ui/themes';
 import {
+  canvasViewPortZoomIn,
+  canvasViewPortZoomOut,
   scaleValues,
   selectCanvasViewPort,
   setCanvasViewPort,
@@ -20,25 +22,18 @@ const ZoomControl = () => {
     dispatch(setCanvasViewPort({ scale: value / 100 }));
   };
 
-  const handleIncrement = () => {
-    const currentScaleIndex = scaleValues.findIndex(
-      (sv) => sv.scale === canvasViewPort.scale,
-    );
-    const nextScale =
-      scaleValues[currentScaleIndex + 1]?.scale || scaleValues.at(-1)!.scale;
-
-    dispatch(setCanvasViewPort({ scale: nextScale }));
+  const handleSliderKeyDown = (
+    event: React.KeyboardEvent<HTMLInputElement>,
+  ) => {
+    if (event.code === 'NumpadAdd' || event.code === 'Equal') {
+      handleIncrement();
+    } else if (event.code === 'NumpadSubtract' || event.code === 'Minus') {
+      handleDecrement();
+    }
   };
 
-  const handleDecrement = () => {
-    const currentScaleIndex = scaleValues.findIndex(
-      (sv) => sv.scale === canvasViewPort.scale,
-    );
-    const prevScale =
-      scaleValues[currentScaleIndex - 1]?.scale || scaleValues.at(0)!.scale;
-
-    dispatch(setCanvasViewPort({ scale: prevScale }));
-  };
+  const handleIncrement = () => dispatch(canvasViewPortZoomIn());
+  const handleDecrement = () => dispatch(canvasViewPortZoomOut());
 
   return (
     <div className={styles.canvasControls}>
@@ -59,6 +54,7 @@ const ZoomControl = () => {
               max={scaleValues.at(-1)!.scale * 100}
               value={canvasViewPort.scale * 100}
               onChange={handleSliderChange}
+              onKeyDown={handleSliderKeyDown}
               className={styles.rangeSlider}
               aria-label="Canvas zoom level"
             />

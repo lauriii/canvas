@@ -101,10 +101,31 @@ export const scaleValues: ScaleValue[] = [
   { scale: 5, percent: '500%' },
 ];
 
-// const scaleValues = [
-//   0.25, 0.33, 0.5, 0.67, 0.75, 0.8, 0.9, 1, 1.1, 1.25, 1.5, 1.75, 2, 2.5, 3, 4,
-//   5,
-// ];
+/**
+ * Get the next/previous closest scale to the current scale (which might not be one of the
+ * available scaleValues) up to the min/max scaleValue available.
+ */
+const getNewScaleIndex = (
+  currentScale: number,
+  direction: 'increment' | 'decrement',
+) => {
+  let currentIndex = scaleValues.findIndex(
+    (value) => value.scale === currentScale,
+  );
+
+  if (currentIndex === -1) {
+    currentIndex = scaleValues.findIndex((value) => value.scale > currentScale);
+    currentIndex =
+      direction === 'increment'
+        ? Math.max(0, currentIndex)
+        : Math.max(0, currentIndex - 1);
+  } else {
+    currentIndex += direction === 'increment' ? 1 : -1;
+  }
+
+  // Clamp value between 0 and length of scaleValues array.
+  return Math.max(0, Math.min(scaleValues.length - 1, currentIndex));
+};
 
 // If you are not using async thunks you can use the standalone `createSlice`.
 export const uiSlice = createAppSlice({
@@ -183,19 +204,15 @@ export const uiSlice = createAppSlice({
       },
     ),
     canvasViewPortZoomIn: create.reducer((state, action) => {
-      const currentIndex = scaleValues.findIndex(
-        (value) => value.scale === state.canvasViewport.scale,
-      );
-      const nextIndex =
-        currentIndex + 1 < scaleValues.length ? currentIndex + 1 : currentIndex;
-      state.canvasViewport.scale = scaleValues[nextIndex].scale;
+      const currentScale = state.canvasViewport.scale;
+      const newIndex = getNewScaleIndex(currentScale, 'increment');
+      state.canvasViewport.scale = scaleValues[newIndex].scale;
     }),
+
     canvasViewPortZoomOut: create.reducer((state, action) => {
-      const currentIndex = scaleValues.findIndex(
-        (value) => value.scale === state.canvasViewport.scale,
-      );
-      const prevIndex = currentIndex - 1 >= 0 ? currentIndex - 1 : currentIndex;
-      state.canvasViewport.scale = scaleValues[prevIndex].scale;
+      const currentScale = state.canvasViewport.scale;
+      const newIndex = getNewScaleIndex(currentScale, 'decrement');
+      state.canvasViewport.scale = scaleValues[newIndex].scale;
     }),
     setPrimaryMenuActiveMenu: create.reducer(
       (state, action: PayloadAction<string>) => {
