@@ -75,6 +75,12 @@ final class ComponentPropsForm extends FormBase {
     // only "static prop sources").
     $form_state->set('is_xb_static_prop_source', TRUE);
 
+    // Prevent form submission while specifying values for component props,
+    // because changes are saved via Redux instead of a traditional submit.
+    // @see ui/src/components/form/inputBehaviors.tsx
+    // @see https://developer.mozilla.org/en-US/docs/Web/HTML/Element/form#method
+    $form['#method'] = 'dialog';
+
     $form['#parents'] = ['xb_component_props', $component_instance_uuid];
     foreach ($stored_prop_sources as $sdc_prop_name => $prop_source_array) {
       $source = PropSource::parse($prop_source_array);

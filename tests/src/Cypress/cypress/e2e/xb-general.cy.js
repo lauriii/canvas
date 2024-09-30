@@ -736,11 +736,20 @@ describe('General Experience Builder', { testIsolation: false }, () => {
     );
     // Find added Heading component above and click on it
     cy.getIframeBody().findByText('A heading element').click();
+
     // Find the Element enum/select component and check for None option - it should not be there
     cy.findByTestId(/^xb-component-form-.*/)
       .find('select[required]')
       .should('be.visible')
       .find('option')
       .should('not.contain', '- None -');
+
+    // Hitting enter within a field should not submit the form or alter that
+    // prop within the layout.
+    cy.findByTestId(/^xb-component-form-.*/)
+      .find('input[required]')
+      .click()
+      .type('{enter}');
+    cy.getIframeBody().findByText('A heading element').should('exist');
   });
 });
