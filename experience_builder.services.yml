@@ -72,3 +72,4 @@ services:
   # Controllers.
   Drupal\experience_builder\Controller\ExperienceBuilderController: {}
   Drupal\experience_builder\Controller\ComponentStatusController: {}
+  Drupal\experience_builder\Controller\ApiPreviewController: {}

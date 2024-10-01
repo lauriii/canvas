@@ -64,7 +64,7 @@ experience_builder.api.layout:
 experience_builder.api.preview:
   path: '/api/preview/{entity_type}/{entity}'
   defaults:
-    _controller: '\Drupal\experience_builder\Controller\SdcController::preview'
+    _controller: 'Drupal\experience_builder\Controller\ApiPreviewController'
   requirements:
     _permission: 'access administration pages'
   options:
