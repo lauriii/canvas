@@ -167,35 +167,6 @@ final class SdcController extends ControllerBase {
       ->setData($this->getComponentsList());
   }
 
-  /**
-   * Provides one single directory component as JSON.
-   *
-   * @param string $component_id
-   *   The component ID.
-   *
-   * @return \Symfony\Component\HttpFoundation\JsonResponse
-   */
-  public function component(string $component_id): JsonResponse {
-    $components = array_filter($this->getComponentsList(), fn($component) => $component['id'] === $component_id);
-    assert(!empty($components));
-    return new JsonResponse(reset($components));
-  }
-
-  /**
-   * Renders an SDC and provides the markup in a JSON response.
-   *
-   * This currently renders the component with default prop values. To render
-   * with other prop values, this will need to be expanded.
-   *
-   * @param string $component_id
-   *   The component ID.
-   *
-   * @return \Symfony\Component\HttpFoundation\JsonResponse
-   */
-  public function renderComponent(string $component_id): JsonResponse {
-    return new JsonResponse($this->prepareRenderArray($component_id));
-  }
-
   public function prepareRenderArray(string $component_id): array {
     $build = [
       '#type' => 'component',

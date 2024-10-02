@@ -200,39 +200,6 @@ paths:
               schema:
                 type: object
                 description: 'A Drupal AJAX response.'
-  '/xb-render-component/{componentId}':
-    get:
-      parameters:
-        - name: componentId
-          in: path
-          required: true
-          description: TODO
-          schema:
-            type: string
-      responses:
-        '200':
-          description: The rendered component, along with relevant metadata for re-rendering it client-side.
-          content:
-            application/json:
-              schema:
-                type: object
-                required:
-                  - id
-                  - markup
-                  - props
-                  - metadata
-                properties:
-                  id:
-                    type: string
-                    description: The component ID
-                  markup:
-                    type: string
-                  # @see \Drupal\Core\Theme\Component\ComponentMetadata
-                  metadata:
-                    type: object
-                  props:
-                    type: object
-                additionalProperties: false
   '/xb/api/entity-form/{entityTypeId}/{entityId}/{entityFormMode}':
     description: Fetches the entity form with the specified form mode
     get:
