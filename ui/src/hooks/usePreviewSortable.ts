@@ -278,13 +278,12 @@ function usePreviewSortable(iframe: HTMLIFrameElement | null) {
   useEffect(() => {
     if (iframe) {
       init();
-
-      return () => {
-        if (sortableInstanceRef.current) {
-          sortableInstanceRef.current.destroy();
-        }
-      };
     }
+    return () => {
+      if (sortableInstanceRef.current) {
+        sortableInstanceRef.current.destroy();
+      }
+    };
   }, [iframe, init]);
 }
 

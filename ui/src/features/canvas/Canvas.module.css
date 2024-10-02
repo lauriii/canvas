@@ -12,12 +12,11 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 3500px;
+  min-width: fit-content;
   height: auto;
-  min-height: 2800px;
-  padding-block: 100px;
+  min-height: fit-content;
+  padding: 80vh 80vw;
   transition: background-color 100ms ease-in-out;
-  transform: translate(-5000px, -5000px);
   border: 1px solid black;
   background: var(--canvas-bg);
   .isPanning & {

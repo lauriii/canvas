@@ -36,23 +36,6 @@ const Canvas = () => {
   const contextMenuOpen = useAppSelector(selectIsContextMenuOpen);
   const [modifierKeyPressed, setModifierKeyPressed] = useState(false);
   const modifierKeyPressedRef = useRef(false);
-
-  const calculateCanvasSize = () => {
-    if (previewsContainerRef.current && canvasRef.current) {
-      const viewportWidth = window.innerWidth;
-      const viewportHeight = window.innerHeight;
-
-      const containerWidth = previewsContainerRef.current.offsetWidth;
-      const containerHeight = previewsContainerRef.current.offsetHeight;
-
-      const canvasWidth = containerWidth + viewportWidth * 1.5;
-      const canvasHeight = containerHeight + viewportHeight * 1.5;
-
-      canvasRef.current.style.width = `${canvasWidth}px`;
-      canvasRef.current.style.height = `${canvasHeight}px`;
-    }
-  };
-
   const selectedComponent = useAppSelector(selectSelectedComponent);
   useHotkeys(['NumpadAdd', 'Equal'], () => dispatch(canvasViewPortZoomIn()));
   useHotkeys(['Minus', 'NumpadSubtract'], () =>
@@ -128,30 +111,6 @@ const Canvas = () => {
       window.removeEventListener('message', handleIframeEvent);
     };
   });
-
-  useEffect(() => {
-    calculateCanvasSize();
-    window.addEventListener('resize', calculateCanvasSize);
-
-    return () => {
-      window.removeEventListener('resize', calculateCanvasSize);
-    };
-  }, []);
-
-  useEffect(() => {
-    const currentContainer = previewsContainerRef.current;
-    const observer = new ResizeObserver(calculateCanvasSize);
-
-    if (currentContainer) {
-      observer.observe(currentContainer);
-    }
-
-    return () => {
-      if (currentContainer) {
-        observer.unobserve(currentContainer);
-      }
-    };
-  }, []);
 
   useEffect(() => {
     if (!firstLoadComplete) {
@@ -311,8 +270,6 @@ const Canvas = () => {
         data-testid="canvasElement"
         style={{
           transform: `scale(${canvasViewPort.scale})`,
-          width: '100%',
-          height: '100%',
         }}
       >
         <div
