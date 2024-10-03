@@ -260,6 +260,7 @@ final class Component extends ConfigEntityBase {
       }
 
       if ($storable_prop_shape->fieldTypeProp instanceof FieldTypeObjectPropsExpression) {
+        // @todo Add support for default images: /components/image/image.component.yml.
         if ($storable_prop_shape->fieldTypeProp->fieldType === 'entity_reference') {
           $skip_prop = TRUE;
         }

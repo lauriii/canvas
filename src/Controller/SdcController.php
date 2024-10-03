@@ -91,6 +91,7 @@ final class SdcController extends ControllerBase {
       $keyed_choices = [];
       $suggestions = $this->fieldForComponentSuggester->suggest($component_plugin->getPluginId(), EntityDataDefinition::create('node', 'article'));
       $dynamic_prop_source_candidates = [];
+      $default_props_for_default_markup = [];
       foreach (PropShape::getComponentProps($component_plugin) as $component_prop_expression => $prop_shape) {
         $storable_prop_shape = $prop_shape->getStorage();
         // @todo Remove this once every SDC prop shape can be stored.
@@ -112,12 +113,21 @@ final class SdcController extends ControllerBase {
           'required' => in_array($component_prop->propName, $component_plugin->metadata->schema['required'] ?? [], TRUE),
         ];
         $prop_info = ($component_plugin->metadata->schema['properties'] ?? [])[$component_prop->propName];
-        // Provide defaults if they are specified on the SDC *or* if they are
-        // required. If they're required and no example is specified: generate a
-        // value.
-        if ($keyed_choices[$component_prop->propName]['required'] || (isset($prop_info['examples']) && isset($prop_info['examples'][0]))) {
-          // @todo Revisit in https://www.drupal.org/project/experience_builder/issues/3455942.
-          $keyed_choices[$component_prop->propName]['default_values'] = $prop_info['examples'][0] ?? $this->getDefaultValueFromPropInfo($prop_info);
+        // Defaults are guaranteed to exist for required props, may exist for
+        // optional props. When an optional prop has no default value, the value
+        // stored as the default in the Component config entity is NULL.
+        // @see \Drupal\experience_builder\Plugin\ComponentPluginManager::componentMeetsRequirements()
+        $is_image = isset($prop_info['$ref']) && $prop_info['$ref'] === 'json-schema-definitions://experience_builder.module/image';
+        // @todo Add support for default images in SDCs: /components/image/image.component.yml. (And entity references in general.)
+        // @see \Drupal\experience_builder\Entity\Component::getDefaultsForComponentPlugin
+        $is_datetime = isset($prop_info['format']) && $prop_info['format'] === 'date-time';
+        // @todo DateTimeItem stores information in a format that clashes with JSON schema's, and it has no automatic conversion. Figure out a better solution for both this and \Drupal\experience_builder\PropExpressions\StructuredData\Evaluator::evaluate().
+        $default_value = ($is_image || $is_datetime)
+          ? $prop_info['examples'][0]
+          : $component->getDefaultStaticPropSource($component_prop->propName)?->evaluate(NULL);
+        if ($default_value !== NULL) {
+          $keyed_choices[$component_prop->propName]['default_values'] = $default_value;
+          $default_props_for_default_markup[$component_prop->propName] = $default_value;
         }
         if ($storable_prop_shape->fieldStorageSettings !== NULL) {
           $keyed_choices[$component_prop->propName]['sourceTypeSettings']['storage'] = $storable_prop_shape->fieldStorageSettings;
@@ -133,7 +143,7 @@ final class SdcController extends ControllerBase {
           'library' => ['core/components.' . str_replace(':', '--', $component_plugin->getPluginId())],
         ],
       ]);
-      $default_markup = (string) $this->prepareRenderArray($component_plugin->getPluginId())['markup'];
+      $default_markup = (string) $this->prepareRenderArray($component_plugin->getPluginId(), $default_props_for_default_markup)['markup'];
 
       $component_list[] = [
         'id' => $component_plugin->getPluginId(),
@@ -167,10 +177,11 @@ final class SdcController extends ControllerBase {
       ->setData($this->getComponentsList());
   }
 
-  public function prepareRenderArray(string $component_id): array {
+  public function prepareRenderArray(string $component_id, array $props_values): array {
     $build = [
       '#type' => 'component',
       '#component' => $component_id,
+      '#props' => $props_values,
     ];
 
     $component_info = array_filter(
@@ -180,23 +191,12 @@ final class SdcController extends ControllerBase {
     assert(!empty($component_info));
     $component = array_values($component_info)[0];
     $metadata = $component->metadata;
-    $properties = $metadata->schema['properties'] ?? [];
-    foreach ($properties as $prop_name => $prop_info) {
-      // Provide defaults if they are specified on the SDC *or* if they are
-      // required. If they're required and no example is specified: generate a
-      // value.
-      // @todo Revisit in https://www.drupal.org/project/experience_builder/issues/3455942.
-      if ((isset($prop_info['examples']) && isset($prop_info['examples'][0])) || in_array($prop_name, $metadata->schema['required'] ?? [])) {
-        self::populatePropValues($build, [], $prop_name, $prop_info);
-      }
-    }
 
     $rendered_component = $this->renderer->render($build);
-    unset($build['#props']['attributes']);
     return [
       'id' => $component_id,
       'markup' => $rendered_component,
-      'props' => $build['#props'] ?? [],
+      'props' => $props_values,
       'metadata' => $metadata,
     ];
   }
@@ -241,84 +241,6 @@ final class SdcController extends ControllerBase {
       // an object and not empty array.
       'model' => empty($model) ? new \stdClass() : $model,
     ]);
-  }
-
-  /**
-   * Assign values to props in the SDC render array.
-   *
-   * @param array<string, mixed> $build
-   *   The render array.
-   * @param array<string, mixed> $values
-   *   Already defined prop values.
-   * @param string $prop_name
-   *   The prop being checked.
-   * @param array<string, mixed> $prop_info
-   *   The prop's metadata.
-   */
-  private function populatePropValues(array &$build, array $values, string $prop_name, array $prop_info): void {
-    $value = '';
-    if (isset($prop_info['examples'])) {
-      if ($values) {
-        $value = $prop_info['examples'][$values[$prop_name]] ?? $prop_info['examples'][0];
-      }
-      else {
-        $value = $prop_info['examples'][0];
-      }
-    }
-    else {
-      if ($prop_name === 'attributes') {
-        return;
-      }
-      $value = $this->getDefaultValueFromPropInfo($prop_info);
-    }
-
-    $build['#props'][$prop_name] = $value;
-  }
-
-  /**
-   * @todo Remove in https://www.drupal.org/project/experience_builder/issues/3455942.
-   */
-  public function getDefaultValueFromPropInfo(array $prop_info): array|string|object|int {
-    $value = '';
-    if (isset($prop_info['enum'])) {
-      $value = $prop_info['enum'][0];
-    }
-    elseif (isset($prop_info['type']) && $prop_info['type'] === 'integer') {
-      $value = 14;
-    }
-    elseif (isset($prop_info['type']) && $prop_info['type'] === 'string') {
-      $value = 'Lorem Ipsum';
-      if (isset($prop_info['pattern'])) {
-        // @todo if this were to work we would need to create a string that
-        // matched the regex... perhaps at that point we just insist the
-        // creators add their own defaults?
-      }
-    }
-    elseif (isset($prop_info['$ref'])) {
-      $value = [];
-      $schema = json_decode(file_get_contents($prop_info['$ref']) ?: '{}', TRUE);
-      if (isset($schema['properties'])) {
-        foreach ($schema["properties"] as $sub_property => $sub_property_data) {
-          $value[$sub_property] = $this->getDefaultValueFromPropInfo($sub_property_data);
-        }
-      }
-      else {
-        $value = $this->getDefaultValueFromPropInfo($schema);
-      }
-    }
-    elseif (isset($prop_info['type']) &&$prop_info['type'][0] === 'object') {
-      $value = [];
-    }
-    elseif (isset($prop_info['type'][1]) && $prop_info['type'][1] === 'object') {
-      if (isset($prop_info['format']) && $prop_info['format'] === 'uri') {
-        $value = 'https://drupal.org';
-      }
-      elseif ($prop_info['type'][0] !== 'string') {
-        $value = new $prop_info['type'][0]();
-      }
-    }
-
-    return $value;
   }
 
 }
