@@ -51,10 +51,10 @@ class PropSourceEndpointTest extends BrowserTestBase {
     $this->assertSession()->responseHeaderEquals('X-Drupal-Cache-Contexts', 'user.permissions');
     $this->assertSession()->responseHeaderEquals('X-Drupal-Cache-Max-Age', '-1 (Permanent)');
     $this->assertSession()->responseHeaderEquals('X-Drupal-Dynamic-Cache', 'MISS');
-    $this->assertSession()->responseHeaderDoesNotExist('X-Drupal-Cache');
+    $this->assertSession()->responseHeaderEquals('X-Drupal-Cache', 'UNCACHEABLE (request policy)');
     $this->drupalGet('xb-components');
     $this->assertSession()->responseHeaderEquals('X-Drupal-Dynamic-Cache', 'HIT');
-    $this->assertSession()->responseHeaderDoesNotExist('X-Drupal-Cache');
+    $this->assertSession()->responseHeaderEquals('X-Drupal-Cache', 'UNCACHEABLE (request policy)');
 
     $data = Json::decode($page->getText());
     $data = array_intersect_key(

@@ -13,7 +13,7 @@ description: On D10, first install the experimental SDC module! On D11, this is 
 # Transforming from one type to another (field type to SDC prop type — at minimum):
 # - https://docs.digibee.com/documentation/components/tools/transformer-jolt/transformer-getting-to-know-jolt
 type: module
-core_version_requirement: ^10.3 || ^11
+core_version_requirement: ^10.4 || ^11
 php: 8.3
 configure: entity.component.collection
 dependencies:
