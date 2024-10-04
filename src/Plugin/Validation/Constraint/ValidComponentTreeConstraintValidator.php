@@ -10,6 +10,7 @@ use Drupal\Core\Render\Component\Exception\InvalidComponentException;
 use Drupal\Core\Theme\Component\ComponentValidator;
 use Drupal\Core\Theme\ComponentPluginManager;
 use Drupal\Core\TypedData\TypedDataManagerInterface;
+use Drupal\experience_builder\MissingHostEntityException;
 use Drupal\experience_builder\Entity\Component;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
@@ -88,11 +89,9 @@ final class ValidComponentTreeConstraintValidator extends ConstraintValidator im
       catch (InvalidComponentException) {
         $this->context->addViolation('The component instance with UUID %uuid uses component %id and receives some invalid props! Put a breakpoint here and figure out why.', ['%uuid' => $component_instance_uuid, '%id' => Component::convertIdToMachineName($component_id)]);
       }
-      catch (\OutOfRangeException $e) {
+      catch (MissingHostEntityException $e) {
         // DynamicPropSources cannot be validated in isolation, only in the
         // context of a host content entity.
-        // @todo Create specific exceptions for this in
-        //   https://drupal.org/i/3462160.
         if ($component_tree_type === 'config') {
           // Silence this exception until this config is used in a content
           // entity.

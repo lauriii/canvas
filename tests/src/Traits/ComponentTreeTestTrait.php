@@ -89,6 +89,12 @@ trait ComponentTreeTestTrait {
                 'expression' => 'ℹ︎␜entity:node:article␝title␞␟value',
               ],
             ],
+            'dynamic-static-card4' => [
+              'heading' => [
+                'sourceType' => 'dynamic',
+                'expression' => 'ℹ︎␜entity:node:article␝title␞␟value',
+              ],
+            ],
           ]),
         ],
       ],

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\experience_builder\PropSource;
 
 use Drupal\Core\Entity\FieldableEntityInterface;
+use Drupal\experience_builder\MissingHostEntityException;
 use Drupal\experience_builder\PropExpressions\StructuredData\Evaluator;
 use Drupal\experience_builder\PropExpressions\StructuredData\StructuredDataPropExpression;
 use Drupal\experience_builder\PropExpressions\StructuredData\StructuredDataPropExpressionInterface;
@@ -59,7 +60,7 @@ final class DynamicPropSource extends PropSourceBase {
    */
   public function evaluate(?FieldableEntityInterface $host_entity): mixed {
     if ($host_entity === NULL) {
-      throw new \OutOfRangeException('Missing host entity.');
+      throw new MissingHostEntityException();
     }
     return Evaluator::evaluate($host_entity, $this->expression);
   }
