@@ -62,7 +62,7 @@ final class ComponentPropsForm extends FormBase {
     $component_machine_name = json_decode($this->getRequest()->get('tree'), TRUE)['type'];
 
     // ⚠️ This is HORRIBLY HACKY and will go away! ☺️
-    // @see \Drupal\experience_builder\Controller\SdcController::layout()
+    // @see \Drupal\experience_builder\Controller\ApiLayoutController
     if (!$entity || $entity->bundle() !== 'article') {
       throw new \LogicException('For now, this assumes the entity is an article!');
     }

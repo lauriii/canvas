@@ -9,7 +9,7 @@ use Drupal\Tests\BrowserTestBase;
 /**
  * The functional test equivalent of FieldForComponentSuggesterTest.
  *
- * @covers \Drupal\experience_builder\Controller\SdcController::getComponentsList()
+ * @covers \Drupal\experience_builder\Controller\ApiComponentsController
  * @group experience_builder
  * @internal
  */

@@ -65,7 +65,7 @@ class ComponentTreeHydrated extends TypedData implements CacheableDependencyInte
       // logic but still results in an empty slot.
       // @see https://www.drupal.org/node/3391702
       // @see \Drupal\Core\Render\Element\ComponentElement::generateComponentTemplate()
-      // @see \Drupal\experience_builder\Controller\SdcController::wrapComponentsForPreview()
+      // @see \Drupal\experience_builder\Controller\ApiPreviewController::wrapComponentsForPreview()
       $sdc_component_plugin_instance = $this->getComponentPluginManager()->find(Component::convertIdToMachineName($component_id));
       $default_slot_values = array_map(
         fn (array $s): string => self::getDefaultSlotValue($s),
