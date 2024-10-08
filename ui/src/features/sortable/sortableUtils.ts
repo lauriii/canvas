@@ -15,19 +15,23 @@ export function customSortableDragImage(
     // inserted into the preview iFrame and needs to also be styled in that context.
     customDragImage.style.cssText = `
               all: unset;
-              font-family: sans-serif;
-              background-color: #fff;
-              color: #333;
+              font-family: var(--default-font-family);
+              background-color: #166bfd;
+              font-size: 12px;
+              line-height: 12px;
+              color: #fff;
               width: 200px;
               height: 20px;
               padding: 5px 10px;
-              border: 1px solid #333;
-              border-radius: 4px;
-              box-shadow: 2px 2px rgba(0,0,0,0.2);
+              border: 2px solid transparent;
+              border-right: 2px solid rgba(0,0,0,0.2);
+              border-bottom: 2px solid rgba(0,0,0,0.2);
+              box-shadow: 2px 2px black;
               opacity: 0.7;
               position: absolute;
               display: flex;
               justify-content: center;
+              align-items: center;
               top: -9999px;
               pointer-events: none;
             `;

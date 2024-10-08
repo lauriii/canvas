@@ -1,23 +1,36 @@
-.selected {
-  border: var(--blue-9) 1px solid;
-}
-
-.hovered {
-  background-color: #f0f0f3;
-}
-
 .icon {
   margin-right: 10px;
   color: var(--blue-9);
 }
 
 .treeItem {
-  width: 100%;
   height: 35px;
   padding: 0.4rem;
   list-style-type: none;
   cursor: pointer;
-  border-radius: 0.2rem;
+  &.hovered {
+    color: initial;
+    background-color: var(--gray-3);
+    .icon path {
+      fill: var(--blue-9);
+    }
+  }
+  &.selected {
+    width: 100%;
+    color: #fff;
+    background-color: var(--blue-9);
+    .icon path {
+      fill: #fff;
+    }
+  }
+}
+
+[data-xb-is-dragging="true"] .selected {
+  color: initial;
+  background-color: initial;
+  .icon path {
+    fill: var(--blue-9);
+  }
 }
 
 .inline {

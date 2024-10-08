@@ -207,3 +207,17 @@ export function isChildNode(layoutNode: LayoutNode, uuid: string) {
     return null;
   }
 }
+
+/**
+ * Get the depth of the node in the layout tree from the root.
+ * @param layoutNode - The root node.
+ * @param uuid - The UUID of the node to check.
+ * @returns Depth of a node as an integer.
+ */
+export function getNodeDepth(layoutNode: LayoutNode, uuid: string | undefined) {
+  const path = findNodePathByUuid(layoutNode, uuid);
+  if (path) {
+    return path.length - 1;
+  }
+  return 0;
+}

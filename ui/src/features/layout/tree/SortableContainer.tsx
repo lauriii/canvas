@@ -4,25 +4,29 @@ import { useRef, useEffect, useState } from 'react';
 import Sortable from 'sortablejs';
 import { useAppSelector } from '@/app/hooks';
 import type { LayoutNode } from '@/features/layout/layoutModelSlice';
-import { selectLayout } from '@/features/layout/layoutModelSlice';
+import { selectLayout, selectModel } from '@/features/layout/layoutModelSlice';
 import useSortable from '@/features/layout/tree/useSortable';
 import * as Collapsible from '@radix-ui/react-collapsible';
 import TreeItem from '@/features/layout/tree/TreeItem';
 import { TriangleDownIcon, TriangleRightIcon } from '@radix-ui/react-icons';
 import clsx from 'clsx';
+import { getNodeDepth } from '@/features/layout/layoutUtils';
+import { customSortableDragImage } from '@/features/sortable/sortableUtils';
 
 interface SortableContainerProps {
   node: LayoutNode;
+  setDragging: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 const SortableContainer: React.FC<SortableContainerProps> = (props) => {
-  const { node } = props;
+  const { node, setDragging } = props;
   const layout = useAppSelector(selectLayout);
   const sortableRef = useRef<HTMLDivElement | null>(null);
   const sortableInstance = useRef<Sortable | null>(null);
   const { handleDragAdd, handleDragStart, handleDragEnd } = useSortable();
   const [open, setOpen] = useState(false);
   const isSlotEmpty = node.children.length === 0;
+  const model = useAppSelector(selectModel);
 
   useEffect(() => {
     if (sortableRef?.current !== null) {
@@ -30,15 +34,41 @@ const SortableContainer: React.FC<SortableContainerProps> = (props) => {
         sortableRef.current as HTMLDivElement,
         {
           dataIdAttr: 'data-xb-uuid',
-          animation: 0,
-          ghostClass: styles.sortableGhost,
+          animation: 150,
+          fallbackOnBody: true, // Recommended to set to true when using animation.
           onAdd: handleDragAdd,
-          onStart: handleDragStart,
-          onEnd: handleDragEnd,
+          invertSwap: true,
+          ghostClass: styles.xbCustomGhost,
+          onStart: () => {
+            handleDragStart();
+            setDragging(true);
+          },
+          onMove: (evt) => {
+            const uuid = evt.to.dataset.xbUuid;
+            const targetDepth = getNodeDepth(layout, uuid) + 1;
+            const offsetVal = targetDepth * 15 + 57;
+            // Calculate the width of the ghost element (thin blue line)
+            // based on the depth of the target slot in the tree.
+            evt.dragged.style.width = `calc(100% - ${offsetVal}px)`;
+          },
+          onEnd: (evt) => {
+            handleDragEnd(evt);
+            setDragging(false);
+            // Reset the width on end because we manually set the ghost width based on
+            // the target slot in the onMove option.
+            evt.item.style.width = 'initial';
+          },
+          swapThreshold: 0.65,
           group: {
             name: 'tree',
-            put: ['tree'],
           },
+          // Keep a clone element in the original position until the drag ends.
+          removeCloneOnHide: false,
+          onClone: (evt) => {
+            evt.clone.classList.add(styles.xbCustomClone);
+          },
+          // Don't allow dragging a slot.
+          filter: '[data-xb-type="slot"]',
         },
       );
     }
@@ -47,12 +77,18 @@ const SortableContainer: React.FC<SortableContainerProps> = (props) => {
         sortableInstance.current.destroy();
       }
     };
-  }, [layout, handleDragAdd, handleDragEnd, handleDragStart]);
+  }, [layout, handleDragAdd, handleDragEnd, handleDragStart, setDragging]);
 
   const renderChildren = (children: LayoutNode[]) => {
     return children.map((child: LayoutNode) => {
       if (child.nodeType === 'slot' || child.children?.length > 0) {
-        return <SortableContainer node={child} key={child.uuid} />;
+        return (
+          <SortableContainer
+            setDragging={setDragging}
+            node={child}
+            key={child.uuid}
+          />
+        );
       } else {
         return <TreeItem node={child} key={child.uuid} />;
       }
@@ -67,7 +103,7 @@ const SortableContainer: React.FC<SortableContainerProps> = (props) => {
         data-xb-uuid={node.uuid}
         data-xb-type={node.nodeType}
         ref={sortableRef}
-        className={clsx('rootNodeWrapper', styles.rootNodeWrapper)}
+        className={clsx('rootDropZone', styles.rootDropZone)}
       >
         {renderChildren(node.children)}
       </div>
@@ -79,27 +115,35 @@ const SortableContainer: React.FC<SortableContainerProps> = (props) => {
       className="CollapsibleRoot"
       open={open}
       onOpenChange={setOpen}
-      asChild={true}
+      onDragStart={(event) => {
+        event.stopPropagation();
+        customSortableDragImage(event, window.document, model[node.uuid].name);
+      }}
+      data-xb-uuid={node.uuid}
     >
-      <>
-        <TreeItem node={node}>
-          {/* Only show the trigger if the slot has children */}
-          {!isSlotEmpty && (
-            <Collapsible.Trigger asChild={true}>
-              <button>
-                {open ? <TriangleDownIcon /> : <TriangleRightIcon />}
-              </button>
-            </Collapsible.Trigger>
-          )}
-        </TreeItem>
-        {/* Only allow nodeType of slot (not component) to receive dragged items */}
-        <Collapsible.Content
-          ref={node.nodeType === 'slot' ? sortableRef : null}
-          data-xb-uuid={node.uuid}
-        >
-          {renderChildren(node.children)}
+      <TreeItem node={node}>
+        {/* Only show the trigger if the slot has children */}
+        {!isSlotEmpty && (
+          <Collapsible.Trigger asChild={true}>
+            <button>
+              {open ? <TriangleDownIcon /> : <TriangleRightIcon />}
+            </button>
+          </Collapsible.Trigger>
+        )}
+      </TreeItem>
+      {/* Only allow nodeType of slot (not component) to receive dragged items */}
+      <div
+        ref={node.nodeType === 'slot' ? sortableRef : null}
+        className={clsx(
+          node.nodeType === 'slot' && styles.slotDropZone,
+          'slotDropZone',
+        )}
+        data-xb-uuid={node.uuid}
+      >
+        <Collapsible.Content asChild={true}>
+          <>{renderChildren(node.children)}</>
         </Collapsible.Content>
-      </>
+      </div>
     </Collapsible.Root>
   );
 };

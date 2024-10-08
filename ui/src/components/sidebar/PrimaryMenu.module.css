@@ -10,13 +10,13 @@
   flex-direction: column;
   width: var(--sidebar-left-width);
   height: var(--sidebar-height);
-  padding: 24px 16px;
+  padding: var(--space-5) var(--space-4);
 }
 
 .segmentedControlRoot {
   margin-bottom: 24px;
-  margin-inline-start: 15px;
-  margin-inline-end: 15px;
+  margin-inline-start: 31px;
+  margin-inline-end: 31px;
 }
 
 .menuContent {

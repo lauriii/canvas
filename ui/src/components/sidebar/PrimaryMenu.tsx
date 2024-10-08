@@ -10,6 +10,7 @@ import SortableContainer from '@/features/layout/tree/SortableContainer';
 export const PrimaryMenu = () => {
   const [activeItem, setActiveItem] = useState('layers');
   const layout = useAppSelector(selectLayout);
+  const [dragging, setDragging] = useState(false);
 
   return (
     <Panel className={clsx('MenuRoot', styles.MenuRoot)}>
@@ -22,8 +23,13 @@ export const PrimaryMenu = () => {
         <SegmentedControl.Item value="assets">Assets</SegmentedControl.Item>
       </SegmentedControl.Root>
       <Separator orientation="horizontal" size="4" />
-      <div className={clsx('primaryMenuContent', styles.menuContent)}>
-        {activeItem === 'layers' && <SortableContainer node={layout} />}
+      <div
+        className={clsx('primaryMenuContent', styles.menuContent)}
+        data-xb-is-dragging={dragging}
+      >
+        {activeItem === 'layers' && (
+          <SortableContainer setDragging={setDragging} node={layout} />
+        )}
         {activeItem === 'assets' && <h3>Assets placeholder</h3>}
       </div>
     </Panel>

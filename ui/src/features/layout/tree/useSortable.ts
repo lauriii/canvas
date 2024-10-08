@@ -84,6 +84,10 @@ const useSortable = () => {
       // Normally handle the data update in dragAdd unless the item is being dragged within the same container, in which
       // case dragAdd doesn't fire, so we can call it from here.
       if (ev.to === ev.from) {
+        // Abort if the item is dropped in the same position.
+        if (ev.oldIndex === ev.newIndex) {
+          return;
+        }
         updateData(ev, true);
       }
     },

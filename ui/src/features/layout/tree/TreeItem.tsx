@@ -16,7 +16,7 @@ import {
 } from '@/features/ui/uiSlice';
 import type { LayoutNode } from '@/features/layout/layoutModelSlice';
 import { selectLayout, selectModel } from '@/features/layout/layoutModelSlice';
-import { findNodePathByUuid } from '@/features/layout/layoutUtils';
+import { getNodeDepth } from '@/features/layout/layoutUtils';
 import type { CollapsibleTriggerProps } from '@radix-ui/react-collapsible';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import DropDownContextMenu from '../preview/DropDownContextMenu';
@@ -39,18 +39,11 @@ const TreeItem: React.FC<TreeItemProps> = ({ node, children }) => {
     x: number;
     y: number;
   }>({ x: 0, y: 0 });
-  // Get the depth of the node in the layout tree from the root and use that to calculate
-  // the padding left value in the layers view.
-  const depth = () => {
-    const path = findNodePathByUuid(layout, node.uuid);
-    if (path) {
-      return path.length - 1;
-    }
-    return 0;
-  };
-  const nodeName = node.name ?? model[node.uuid].name;
+  const nodeName = model[node.uuid] ? model[node.uuid].name : 'Slot';
   const isSlot = node.nodeType === 'slot';
   const IconComponent = isSlot ? BoxModelIcon : ComponentInstanceIcon;
+  // Calculate the padding left value based on the depth of the node in the tree.
+  const paddingLeftValue = getNodeDepth(layout, node.uuid) * 15;
 
   useEffect(() => {
     contextMenuOpenLayersRef.current = contextMenuOpen;
@@ -74,6 +67,13 @@ const TreeItem: React.FC<TreeItemProps> = ({ node, children }) => {
     if (!contextMenuOpen) {
       dispatch(unsetHoveredComponent());
     }
+  }
+
+  function handleItemDragStart(event: React.DragEvent<HTMLDivElement>) {
+    event.stopPropagation();
+    // Clear hovered component to avoid interference with SortableJS setting a ghost class.
+    dispatch(unsetHoveredComponent());
+    customSortableDragImage(event, window.document, model[node.uuid].name);
   }
 
   function handleContextMenu(event: React.MouseEvent<HTMLDivElement>) {
@@ -117,15 +117,15 @@ const TreeItem: React.FC<TreeItemProps> = ({ node, children }) => {
         },
         styles.treeItem,
       )}
-      style={{ paddingLeft: `${depth() * 15}px` }}
+      style={{
+        paddingLeft: `${paddingLeftValue}px`,
+      }}
       data-xb-uuid={node.uuid}
       data-xb-type={node.nodeType}
       onClick={handleItemClick}
       onMouseEnter={handleItemMouseEnter}
       onMouseLeave={handleItemMouseLeave}
-      onDragStart={(event) =>
-        customSortableDragImage(event, window.document, model[node.uuid].name)
-      }
+      onDragStart={handleItemDragStart}
       onContextMenu={handleContextMenu}
     >
       <Flex>
@@ -134,7 +134,7 @@ const TreeItem: React.FC<TreeItemProps> = ({ node, children }) => {
         </Box>
         <Box>
           <div className={clsx(styles.inline)}>
-            <IconComponent className={clsx(styles.icon)} />
+            <IconComponent className={clsx(styles.icon, 'icon')} />
             <Text size="1">{nodeName}</Text>
           </div>
         </Box>
