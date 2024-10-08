@@ -1,4 +1,5 @@
 import * as Menubar from '@radix-ui/react-menubar';
+import styles from '@/components/topbar/add/AddMenu.module.css';
 import {
   selectActiveSecondLevelMenu,
   setActiveSecondLevelMenu,
@@ -8,49 +9,55 @@ import SecondLevelMenu from '@/components/topbar/add/SecondLevelMenu';
 import ComponentIcon from '@assets/icons/component.svg';
 import SectionIcon from '@assets/icons/section.svg';
 import { useAppSelector } from '@/app/hooks';
-import '@/global.css';
 import ComponentList from '@/components/list/ComponentList';
 import SectionList from '@/components/list/SectionList';
+import Panel from '@/components/Panel';
 import ErrorBoundary from '@/components/error/ErrorBoundary';
-import { Text } from '@radix-ui/themes';
+import { Box, Text } from '@radix-ui/themes';
 
 const SecondLevelMenubar = () => {
   const activeMenu = useAppSelector(selectActiveSecondLevelMenu);
 
   return (
     <Menubar.Root value={activeMenu} onValueChange={setActiveSecondLevelMenu}>
-      <SecondLevelMenu
-        value={ADD_MENU_ITEMS.DEFAULT_COMPONENTS_ID}
-        submenuTitle="Default components"
-        leftIcon={ComponentIcon}
-      >
-        <ErrorBoundary title="An unexpected error has occurred while fetching components.">
-          <ComponentList />
-        </ErrorBoundary>
-      </SecondLevelMenu>
-      <SecondLevelMenu
-        value={ADD_MENU_ITEMS.CUSTOM_COMPONENTS_ID}
-        submenuTitle="Custom components"
-        leftIcon={ComponentIcon}
-      >
-        <h4>Custom components placeholder</h4>
-      </SecondLevelMenu>
-      <SecondLevelMenu
-        value={ADD_MENU_ITEMS.SECTION_ID}
-        submenuTitle="Section templates"
-        leftIcon={SectionIcon}
-      >
-        <>
-          <Text size="2">
-            The section template listed below is hard coded and is a proof of
-            concept. It should allow the user to add a hero with an image below
-            it in a single action.
-          </Text>
-          <ErrorBoundary title="An unexpected error has occurred while fetching section templates.">
-            <SectionList />
+      <Panel p="1" className={styles.MenubarPanel}>
+        <SecondLevelMenu
+          value={ADD_MENU_ITEMS.DEFAULT_COMPONENTS_ID}
+          submenuTitle="Default components"
+          leftIcon={ComponentIcon}
+        >
+          <ErrorBoundary title="An unexpected error has occurred while fetching components.">
+            <ComponentList />
           </ErrorBoundary>
-        </>
-      </SecondLevelMenu>
+        </SecondLevelMenu>
+        <SecondLevelMenu
+          value={ADD_MENU_ITEMS.CUSTOM_COMPONENTS_ID}
+          submenuTitle="Custom components"
+          leftIcon={ComponentIcon}
+        >
+          <Box px="4" pb="4">
+            <Text size="4">Custom components placeholder</Text>
+          </Box>
+        </SecondLevelMenu>
+        <SecondLevelMenu
+          value={ADD_MENU_ITEMS.SECTION_ID}
+          submenuTitle="Section templates"
+          leftIcon={SectionIcon}
+        >
+          <>
+            <Box px="4" pb="4">
+              <Text size="2">
+                The section template listed below is hard coded and is a proof
+                of concept. It should allow the user to add a hero with an image
+                below it in a single action.
+              </Text>
+            </Box>
+            <ErrorBoundary title="An unexpected error has occurred while fetching section templates.">
+              <SectionList />
+            </ErrorBoundary>
+          </>
+        </SecondLevelMenu>
+      </Panel>
     </Menubar.Root>
   );
 };

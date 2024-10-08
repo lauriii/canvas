@@ -3,6 +3,7 @@ import styles from '@/components/sidebar/PrimaryMenu.module.css';
 import { SegmentedControl, Separator } from '@radix-ui/themes';
 import { useState } from 'react';
 import { useAppSelector } from '@/app/hooks';
+import Panel from '../Panel';
 import { selectLayout } from '@/features/layout/layoutModelSlice';
 import SortableContainer from '@/features/layout/tree/SortableContainer';
 
@@ -11,7 +12,7 @@ export const PrimaryMenu = () => {
   const layout = useAppSelector(selectLayout);
 
   return (
-    <div className={clsx('MenuRoot', styles.MenuRoot)}>
+    <Panel className={clsx('MenuRoot', styles.MenuRoot)}>
       <SegmentedControl.Root
         defaultValue="layers"
         onValueChange={setActiveItem}
@@ -25,7 +26,7 @@ export const PrimaryMenu = () => {
         {activeItem === 'layers' && <SortableContainer node={layout} />}
         {activeItem === 'assets' && <h3>Assets placeholder</h3>}
       </div>
-    </div>
+    </Panel>
   );
 };
 

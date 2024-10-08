@@ -3,6 +3,28 @@ button {
   all: unset;
 }
 
+@keyframes slide-down-and-fade-in {
+  from {
+    transform: translateY(calc(-0.5 * var(--topbar-height)));
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slide-right-and-fade-in {
+  from {
+    transform: translateX(calc(-1.5 * var(--sidebar-space-side)));
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
 .MenubarTrigger,
 .MenubarSubTrigger,
 .MenubarItem {
@@ -12,7 +34,6 @@ button {
   box-sizing: border-box; /* Ensures padding and border are included in the width */
   width: 100%;
   user-select: none;
-  color: var(--primary-menu-text-color);
   border-radius: 4px;
   outline: none;
   font-size: 14px;
@@ -21,13 +42,13 @@ button {
   gap: 2px;
 
   &:hover {
-    background-color: var(--hovered-menu-item-color);
+    background-color: var(--slate-3);
   }
 }
 
 .MenubarTrigger[data-state="open"],
 .MenubarSubTrigger[data-state="open"] {
-  background-color: var(--selected-menu-item-color);
+  background-color: var(--slate-5);
 }
 
 .MenubarTrigger {
@@ -35,40 +56,44 @@ button {
   padding: 7px 7px;
 }
 
-.MenubarSubTrigger,
-.MenubarItem {
-  padding: 14px 7px 14px 16px;
+.MenubarPanel {
+  box-shadow: var(--shadow-6);
 }
 
 .MenubarContent {
   position: fixed;
-  top: var(--topbar-height);
-  width: var(--primary-menu-content-width);
-  height: calc(100vh - var(--topbar-height));
-  padding: 5px;
-  transform: none !important;
-  color: var(--primary-menu-text-color);
-  border-right: 1px solid var(--primary-menu-border-color);
-  background-color: white;
+  top: calc(var(--topbar-height) + var(--topbar-space-above) + var(--topbar-space-below) / 2);
+  left: calc(var(--sidebar-space-side) * 2);
+  width: var(--component-insert-menu-width);
   will-change: transform, opacity;
+  transform-origin: top center;
+  opacity: 0;
+}
+
+.MenubarContent[data-state="open"] {
+  animation: slide-down-and-fade-in 400ms cubic-bezier(0.15, 1, 0.3, 1) forwards;
 }
 
 .MenubarSubContent {
   position: fixed;
-  top: var(--topbar-height);
-  left: var(--primary-menu-content-width);
+  left: calc(var(--sidebar-space-side) / 2 + var(--component-insert-menu-width));
   overflow: auto;
-  width: var(--primary-menu-subcontent-width);
-  height: calc(100vh - var(--topbar-height));
-  padding: 5px;
-  color: var(--primary-menu-text-color);
-  border-right: 1px solid var(--primary-menu-border-color);
-  background-color: white;
+  width: var(--component-insert-menu-width);
+  height: auto;
+  min-height: 0;
+  max-height: calc(100vh - var(--topbar-height) - var(--topbar-space-above) - var(--topbar-space-below));
+  transform-origin: top center;
+  opacity: 0;
+  box-shadow: var(--shadow-6);
   will-change: transform, opacity;
 }
 
+.MenubarSubContent[data-state="open"] {
+  animation: slide-right-and-fade-in 600ms cubic-bezier(0.15, 1, 0.3, 1) forwards;
+}
+
 .MenubarItem[data-highlighted] {
-  background-color: var(--hovered-menu-item-color);
+  background-color: var(--slate-3);
 }
 
 .MenubarItem[data-disabled] {
@@ -84,21 +109,10 @@ button {
   width: 20px;
 }
 
-.rightSlot {
-  position: fixed;
-  right: 10px;
-  color: var(--primary-menu-text-color);
-}
-
 .MenubarSeparator {
   height: 1px;
   margin: 5px;
   background-color: #00002f26;
-}
-
-.leftSlot {
-  position: fixed;
-  left: 10px;
 }
 
 .menuItemText {
@@ -107,8 +121,8 @@ button {
 }
 
 .MenubarLabel {
-  margin-bottom: var(--primary-menu-subcontent-item-margin-bottom);
-  padding: 0 7px 0 16px;
+  margin-bottom: var(--space-3);
+  padding: 0 var(--space-3) 0 var(--space-3);
   font-size: 16px;
   font-weight: 700;
 }
@@ -117,8 +131,8 @@ button {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 22px;
+  height: 22px;
   text-align: center;
   color: white;
   border-radius: 4px;
@@ -127,4 +141,11 @@ button {
 
 .plusIconWrapper:hover {
   background-color: var(--blue-10);
+}
+
+/* stylelint-disable-next-line selector-pseudo-class-no-unknown, selector-id-pattern */
+:global(#menuBarContainer [data-radix-popper-content-wrapper]:has(> [data-radix-menu-content])) {
+  /* Reset some default styling of the Radix Themes Menubar component. The styling is attached to the portal element,
+     so we use the :global selector of CSS modules to avoid scoping this reset. */
+  transform: none !important;
 }

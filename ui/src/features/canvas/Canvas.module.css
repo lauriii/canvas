@@ -1,11 +1,8 @@
 .canvasPane {
   position: fixed;
-  top: var(--topbar-height);
-  right: 0;
-  bottom: 0;
-  left: 0;
+  inset: 0;
   overflow: scroll;
-  background: #9f9f9f;
+  background: var(--gray-8);
 }
 .canvas {
   position: relative;
@@ -17,10 +14,10 @@
   min-height: fit-content;
   padding: 80vh 80vw;
   transition: background-color 100ms ease-in-out;
-  border: 1px solid black;
-  background: var(--canvas-bg);
+  background: var(--gray-4);
+  box-shadow: var(--shadow-3);
   .isPanning & {
-    background: #eee;
+    background: var(--gray-3);
   }
 }
 .modifierKeyPressed .canvas {

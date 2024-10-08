@@ -9,17 +9,16 @@ import {
   SegmentedControl,
   Separator,
 } from '@radix-ui/themes';
-import styles from './Panel.module.css';
+import styles from './ContextualPanel.module.css';
 import { Cross1Icon, DragHandleVerticalIcon } from '@radix-ui/react-icons';
 import type React from 'react';
 import { useState } from 'react';
-import { useEffect } from 'react';
 import {
   selectSelectedComponent,
-  setContextualPanelOpen,
   setSelectedComponent,
 } from '@/features/ui/uiSlice';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
+import Panel from '@/components/Panel';
 import ErrorBoundary from '@/components/error/ErrorBoundary';
 import DummyPropsEditForm from '@/components/DummyPropsEditForm';
 import clsx from 'clsx';
@@ -31,20 +30,12 @@ const ContextualPanel: React.FC<ContextualPanelProps> = () => {
   const selectedComponent = useAppSelector(selectSelectedComponent);
   const [activePanel, setActivePanel] = useState('settings');
 
-  useEffect(() => {
-    if (selectedComponent) {
-      dispatch(setContextualPanelOpen(true));
-    } else {
-      dispatch(setContextualPanelOpen(false));
-    }
-  }, [selectedComponent, dispatch]);
-
   const handleContextualPanelCloseClick = () => {
     dispatch(setSelectedComponent(''));
   };
 
   return (
-    <Box data-testid="xb-contextual-panel" className={styles.contextualPanel}>
+    <Panel data-testid="xb-contextual-panel" className={styles.contextualPanel}>
       <Flex p="1" justify="end">
         <IconButton
           size="1"
@@ -107,7 +98,7 @@ const ContextualPanel: React.FC<ContextualPanelProps> = () => {
           </Inset>
         </Grid>
       </ErrorBoundary>
-    </Box>
+    </Panel>
   );
 };
 export default ContextualPanel;

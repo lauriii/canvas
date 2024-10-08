@@ -49,10 +49,10 @@ describe('UI a11y Scan', () => {
   it('a11y scan open add menu', () => {
     cy.drupalLogin('xbUser', 'xbUser');
     cy.loadURLandWaitForXBLoaded();
-    cy.get('[data-radix-menubar-content]').should('have.length', 0);
+    cy.get('#menuBarContainer').should('be.empty');
     cy.clickAddMenu();
-    cy.get('[data-radix-menubar-content]').should('have.length', 2);
-
+    cy.get('#menuBarContainer').should('not.be.empty');
+    cy.get('#menuBarSubmenuContainer').should('not.be.empty');
     cy.injectAxe();
     // @todo there are several a11y rules not being checked in order for the
     // test to pass. These need to be fixed.
@@ -96,9 +96,9 @@ describe('UI a11y Scan', () => {
   it('a11y scan open props edit form', () => {
     cy.drupalLogin('xbUser', 'xbUser');
     cy.loadURLandWaitForXBLoaded();
-    cy.get('[data-radix-menubar-content]').should('have.length', 0);
+    cy.get('#menuBarContainer').should('be.empty');
     cy.clickAddMenu();
-    cy.get('[data-radix-menubar-content]').should('have.length', 2);
+    cy.get('#menuBarContainer').should('not.be.empty');
     cy.get('[class*="contextualPanel"]').should('not.exist');
     cy.getIframeBody()
       .find('[data-component-id="experience_builder:my-hero"] h1')

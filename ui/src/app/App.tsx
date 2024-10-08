@@ -1,10 +1,6 @@
 import type React from 'react';
-import styles from './App.module.css';
 import Layout from '@/features/layout/Layout';
-import clsx from 'clsx';
-import { useAppSelector } from '@/app/hooks';
 import { Outlet } from 'react-router-dom';
-import { selectContextualPanelOpen } from '@/features/ui/uiSlice';
 import Canvas from '@/features/canvas/Canvas';
 import ErrorBoundary from '@/components/error/ErrorBoundary';
 import PrimaryMenu from '@/components/sidebar/PrimaryMenu';
@@ -13,18 +9,12 @@ import useSyncComponentId from '@/hooks/useSyncComponentId';
 import ZoomControl from '@/components/zoom/ZoomControl';
 
 const App: React.FC = () => {
-  const contextualPanelOpen = useAppSelector(selectContextualPanelOpen);
-
   // Hook to keep the selected component ID in state in sync with :componentId in the url params.
   useSyncComponentId();
 
   return (
-    <ErrorBoundary variant="page">
-      <div
-        className={clsx(styles.app, {
-          [styles.rightSideBarOpen]: contextualPanelOpen,
-        })}
-      >
+    <div className="xb-app">
+      <ErrorBoundary variant="page">
         <Canvas />
         <ErrorBoundary
           variant="alert"
@@ -36,9 +26,10 @@ const App: React.FC = () => {
         <PrimaryMenu />
         <Outlet />
         <ZoomControl />
-        <div id="menuBarContainer" className="menuBarContainer"></div>
-      </div>
-    </ErrorBoundary>
+        <div id="menuBarContainer"></div>
+        <div id="menuBarSubmenuContainer"></div>
+      </ErrorBoundary>
+    </div>
   );
 };
 

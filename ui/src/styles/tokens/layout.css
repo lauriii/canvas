@@ -1,0 +1,11 @@
+.xb-app {
+  --topbar-height: 60px;
+  --topbar-space-above: 20px;
+  --topbar-space-below: 15px;
+  --topbar-space-side: 10px;
+  --sidebar-height: calc(100vh - var(--topbar-height) - var(--topbar-space-above) - var(--topbar-space-below) * 2);
+  --sidebar-left-width: 320px;
+  --sidebar-right-width: 296px;
+  --sidebar-space-side: var(--topbar-space-above);
+  --component-insert-menu-width: 262px;
+}

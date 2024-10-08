@@ -3,6 +3,7 @@ import clsx from 'clsx';
 import styles from '@/components/topbar/add/AddMenu.module.css';
 import type { ReactElement } from 'react';
 import SecondLevelMenuTrigger from '@/components/topbar/add/SecondLevelMenuTrigger';
+import Panel from '@/components/Panel';
 import { useAppSelector } from '@/app/hooks';
 import { selectIsHidden } from '@/features/ui/addMenuSlice';
 
@@ -22,12 +23,19 @@ const SecondLevelMenu = (props: {
         leftIcon={leftIcon}
         value={value}
       />
-      <Menubar.Portal container={document.getElementById('menuBarContainer')}>
+      <Menubar.Portal
+        container={document.getElementById('menuBarSubmenuContainer')}
+      >
         <Menubar.Content
+          forceMount
+          side="top"
           className={clsx('MenubarSubContent', styles.MenubarSubContent)}
-          style={{ display: isHidden ? 'none' : 'initial' }}
+          asChild
+          style={{ display: isHidden ? 'none' : undefined }}
         >
-          {children}
+          <Panel p="1" pt="4">
+            {children}
+          </Panel>
         </Menubar.Content>
       </Menubar.Portal>
     </Menubar.Menu>

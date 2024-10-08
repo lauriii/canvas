@@ -1,5 +1,6 @@
 import { preventHover } from '@/utils/function-utils';
 import * as Menubar from '@radix-ui/react-menubar';
+import { Box, Flex, Text } from '@radix-ui/themes';
 import clsx from 'clsx';
 import styles from '@/components/topbar/add/AddMenu.module.css';
 import { ChevronRightIcon } from '@radix-ui/react-icons';
@@ -36,16 +37,19 @@ const SecondLevelMenuTrigger = ({
       onPointerLeave={preventHover}
       className={clsx('MenubarSubTrigger', styles.MenubarSubTrigger)}
       onClick={onClickHandler}
+      asChild
     >
-      <div className={clsx('leftSlot', styles.leftSlot)}>
-        <img src={leftIcon} alt="menu item icon" />
-      </div>
-      <div className={clsx('menuItemText', styles.menuItemText)}>
-        {submenuTitle}
-      </div>
-      <div className={clsx('rightSlot', styles.rightSlot)}>
-        <ChevronRightIcon />
-      </div>
+      <Flex align="center" justify="between" gap="5" px="3" py="3">
+        <Flex align="center" justify="start" gap="3">
+          <Box flexGrow="0" flexShrink="0">
+            <img src={leftIcon} alt="menu item icon" />
+          </Box>
+          <Text size="2">{submenuTitle}</Text>
+        </Flex>
+        <Box flexGrow="0" flexShrink="0">
+          <ChevronRightIcon />
+        </Box>
+      </Flex>
     </Menubar.Trigger>
   );
 };

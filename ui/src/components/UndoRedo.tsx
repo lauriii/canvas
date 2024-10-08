@@ -2,7 +2,6 @@
 import { Button } from '@radix-ui/themes';
 import { ActionCreators } from 'redux-undo';
 import { ResetIcon } from '@radix-ui/react-icons';
-import styles from '@/app/App.module.css';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { selectHistory } from '@/features/layout/layoutModelSlice';
 import { useHotkeys } from 'react-hotkeys-hook';
@@ -58,7 +57,7 @@ const UndoRedo = () => {
         disabled={!isRedoable}
         aria-label="Redo"
       >
-        <ResetIcon className={styles.topBarRedoIcon} /> Redo
+        <ResetIcon /> Redo
       </Button>
     </>
   );

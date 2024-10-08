@@ -26,21 +26,22 @@ describe(
       );
       cy.get('[data-xb-uuid="root"]').findByText('Hero').should('not.exist');
       // Check that the menu is not open yet.
-      cy.get('[data-radix-menubar-content]').should('have.length', 0);
+      cy.get('#menuBarContainer').should('be.empty');
       cy.get('.primaryMenuContent').findByText('Two Column').click();
       cy.findByLabelText('Column Width').should('exist');
       cy.findAllByLabelText('Add section')
         .first()
         .click({ scrollBehavior: 'center' });
       // Confirm that the menu opens the Section templates.
-      cy.get('[data-radix-menubar-content]').should('have.length', 2);
-      cy.get('[data-radix-menu-content].MenubarSubContent').should(
+      cy.get('#menuBarContainer').should('not.be.empty');
+      cy.get('#menuBarSubmenuContainer').should(
         'contain.text',
         'Section templates',
       );
 
       // Click on Fake Section 2 inside menu.
-      cy.get('[data-radix-menu-content]').findByText('Fake Section 2').click();
+      cy.get('#menuBarContainer').findByText('Section templates').click();
+      cy.get('#menuBarSubmenuContainer').findByText('Fake Section 2').click();
 
       cy.waitForElementContentInIframe('div', 'A hero in slot 1!');
 
@@ -75,7 +76,7 @@ describe(
         },
       );
       // Check that the menu is not open yet.
-      cy.get('[data-radix-menubar-content]').should('have.length', 0);
+      cy.get('#menuBarContainer').should('be.empty');
       cy.getIframeBody()
         .find('[data-xb-component-id="experience_builder:image"]')
         .first()
@@ -84,14 +85,11 @@ describe(
         .first()
         .click({ scrollBehavior: 'center' });
       // Confirm that the menu opens the Section templates.
-      cy.get('[data-radix-menubar-content]').should('have.length', 2);
-      cy.get('[data-radix-menu-content].MenubarSubContent').should(
-        'contain.text',
-        'Components',
-      );
+      cy.get('#menuBarContainer').should('not.be.empty');
+      cy.get('#menuBarSubmenuContainer').should('contain.text', 'Components');
 
       // Click Hero in the side menu
-      cy.get('[data-radix-menu-content]').findByText('Hero').click();
+      cy.get('#menuBarSubmenuContainer').findByText('Hero').click();
 
       cy.waitForElementContentInIframe('div', 'There goes my hero');
 

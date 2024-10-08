@@ -1,10 +1,9 @@
 .contextualPanel {
   position: fixed;
-  top: var(--topbar-height);
-  right: 0;
-  left: auto;
-  width: var(--contextual-panel-width);
-  height: calc(100vh - var(--topbar-height));
+  top: calc(var(--topbar-height) + var(--topbar-space-above) + var(--topbar-space-below));
+  right: 15px;
+  width: var(--sidebar-right-width);
+  height: var(--sidebar-height);
   padding: 0 var(--space-1) var(--space-1) 0;
   background-color: #fff;
 }

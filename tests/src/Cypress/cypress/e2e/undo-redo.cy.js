@@ -26,14 +26,14 @@ describe('Undo/Redo functionality', { testIsolation: false }, () => {
       },
     );
     // Check that the menu is not open yet.
-    cy.get('[data-radix-menubar-content]').should('have.length', 0);
+    cy.get('#menuBarContainer').should('be.empty');
     cy.get('.primaryMenuContent').findByText('Two Column').click();
     cy.findAllByLabelText('Add section')
       .first()
       .click({ scrollBehavior: 'center' });
 
     // Confirm that the menu opens the Section templates.
-    cy.get('[data-radix-menubar-content]').should('have.length', 2);
+    cy.get('#menuBarContainer').should('not.be.empty');
     cy.get('[data-radix-menu-content].MenubarSubContent').should(
       'contain.text',
       'Section templates',

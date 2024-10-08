@@ -9,12 +9,12 @@ This file is included as an attached Drupal library and as such is subject to CS
  */
 
  :root {
-  /* Picked from the design tokens in the `ui/src/index.css` file. */
-  --xb--space-1: 4px;
+  /* Copied from the design tokens provided by Radix Themes and/or `ui/styles/tokens`.
+    We can't use those tokens directly because this CSS is loaded in an iFrame. */
   --xb--space-2: 8px;
   --xb--radius-1: 3px;
   --xb--radius-2: 4px;
-  --xb--blue-900: #176bfd;
+  --xb--blue-9: #176bfd;
  }
 
 .xb--preview-dragging .xb--sortable-list {
@@ -47,11 +47,11 @@ This file is included as an attached Drupal library and as such is subject to CS
   z-index: 1;
   right: var(--xb--space-2);
   left: var(--xb--space-2);
-  height: var(--xb--space-1);
+  height: 4px;
   margin: 0;
   padding: 0;
   border-radius: var(--xb--radius-1);
-  background-color: var(--xb--blue-900)
+  background-color: var(--xb--blue-9)
 }
 .xb--sortable-ghost * {
   display: none;
@@ -70,7 +70,7 @@ This file is included as an attached Drupal library and as such is subject to CS
 }
 
 .xb--sortable-slot-hover {
-  outline: 1px solid var(--xb--blue-900);
+  outline: 1px solid var(--xb--blue-9);
   outline-offset: -1px;
 }
 

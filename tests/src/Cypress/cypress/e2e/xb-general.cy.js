@@ -59,7 +59,9 @@ describe('General Experience Builder', { testIsolation: false }, () => {
     );
 
     // Confirm that the iframe loads the SDC CSS.
-    cy.getIframe('[data-xb-preview="lg"][data-test-xb-content-initialized="true"][data-xb-swap-active="true"]')
+    cy.getIframe(
+      '[data-xb-preview="lg"][data-test-xb-content-initialized="true"][data-xb-swap-active="true"]',
+    )
       .its('head')
       .should('not.be.undefined')
       .then((head) => {
@@ -71,17 +73,9 @@ describe('General Experience Builder', { testIsolation: false }, () => {
         ).to.exist;
       });
 
-    cy.get('[data-radix-menubar-content]').should(
-      'have.length',
-      0,
-      'There is no menubar yet.',
-    );
+    cy.get('#menuBarContainer').should('be.empty');
     cy.clickAddMenu();
-    cy.get('[data-radix-menubar-content]').should(
-      'have.length',
-      2,
-      'Menubar is present after clicking `[data-radix-menubar-content]`',
-    );
+    cy.get('#menuBarContainer').should('not.be.empty');
     cy.get('[role="menuitem"][aria-expanded="true"]').contains(
       'Default components',
     );
@@ -155,7 +149,9 @@ describe('General Experience Builder', { testIsolation: false }, () => {
     // Get the dimensions of the highlighted component in the small preview, so
     // it can be compared to its corresponding outline.
     let smPreviewRect = {};
-    cy.getIframeBody('[data-xb-preview="sm"][data-test-xb-content-initialized="true"][data-xb-swap-active="true"]')
+    cy.getIframeBody(
+      '[data-xb-preview="sm"][data-test-xb-content-initialized="true"][data-xb-swap-active="true"]',
+    )
       .find('[data-component-id="experience_builder:my-hero"] h1')
       .first()
       .then((clicked) => {
@@ -323,17 +319,9 @@ describe('General Experience Builder', { testIsolation: false }, () => {
     cy.drupalLogin('xbUser', 'xbUser');
     cy.loadURLandWaitForXBLoaded();
 
-    cy.get('[data-radix-menubar-content]').should(
-      'have.length',
-      0,
-      'There is no menubar yet.',
-    );
+    cy.get('#menuBarContainer').should('be.empty');
     cy.clickAddMenu();
-    cy.get('[data-radix-menubar-content]').should(
-      'have.length',
-      2,
-      'Menubar is present after clicking `[data-radix-menubar-content]`',
-    );
+    cy.get('#menuBarContainer').should('not.be.empty');
     cy.get('[role="menuitem"][aria-expanded="true"]').contains(
       'Default components',
     );
@@ -345,12 +333,20 @@ describe('General Experience Builder', { testIsolation: false }, () => {
 
     // Hover over "Image" and a preview should appear.
     cy.get(`${imageSelect} > span`).should('exist').realHover();
-    cy.waitForElementInIframe('img[alt="Boring placeholder"]','iframe[data-preview-component-id="experience_builder:image"]');
+    cy.waitForElementInIframe(
+      'img[alt="Boring placeholder"]',
+      'iframe[data-preview-component-id="experience_builder:image"]',
+    );
 
     // Hover over "My Hero" and a preview should appear and load correct CSS
     cy.get(`${heroSelect} > span`).should('exist').realHover();
-    cy.waitForElementInIframe('div.my-hero__container > .my-hero__actions > .my-hero__cta--primary','iframe[data-preview-component-id="experience_builder:my-hero"]');
-    cy.getIframeBody('iframe[data-preview-component-id="experience_builder:my-hero"]')
+    cy.waitForElementInIframe(
+      'div.my-hero__container > .my-hero__actions > .my-hero__cta--primary',
+      'iframe[data-preview-component-id="experience_builder:my-hero"]',
+    );
+    cy.getIframeBody(
+      'iframe[data-preview-component-id="experience_builder:my-hero"]',
+    )
       .find(
         'div.my-hero__container > .my-hero__actions > .my-hero__cta--primary',
       )
@@ -358,7 +354,9 @@ describe('General Experience Builder', { testIsolation: false }, () => {
       .should(($cta) => {
         // Retry until the background-color is the expected one
         const bgColor = window.getComputedStyle($cta[0])['background-color'];
-        expect(bgColor, 'The "My Hero" SDC is styled').to.equal('rgb(0, 123, 255)');
+        expect(bgColor, 'The "My Hero" SDC is styled').to.equal(
+          'rgb(0, 123, 255)',
+        );
       });
   });
 
@@ -552,60 +550,73 @@ describe('General Experience Builder', { testIsolation: false }, () => {
     cy.get('[data-xb-uuid="root"]').click();
     cy.realPress('{del}');
     cy.previewReady();
-    cy.getIframeBody().find('[data-component-id="experience_builder:two_column"] .column-one').should('have.length', 1);
+    cy.getIframeBody()
+      .find('[data-component-id="experience_builder:two_column"] .column-one')
+      .should('have.length', 1);
 
     // Deleting from the content menu.
     cy.get('[data-xb-uuid="root"]').findByText('Two Column').click();
     cy.realPress('{del}');
     cy.previewReady();
 
-    cy.get('[data-xb-uuid="root"]').findByText('Two Column').should('not.exist');
-
+    cy.get('[data-xb-uuid="root"]')
+      .findByText('Two Column')
+      .should('not.exist');
   });
 
   it('Insert panel should close when clicking off', () => {
     cy.drupalLogin('xbUser', 'xbUser');
     cy.loadURLandWaitForXBLoaded();
 
-    cy.get('#menuBarContainer .MenubarSubContent').should('not.exist');
-    cy.get('#add-menu-button').click();
-    cy.get('#menuBarContainer .MenubarSubContent').should('exist');
-    cy.get('#add-menu-button').click();
-    cy.get('#menuBarContainer .MenubarSubContent').should('not.exist');
+    cy.get('#menuBarContainer').should('be.empty');
+    cy.clickAddMenu();
+    cy.get('#menuBarContainer').should('not.be.empty');
+    cy.get('#menuBarSubmenuContainer').should('not.be.empty');
+    cy.clickAddMenu();
+    cy.get('#menuBarContainer').should('be.empty');
+    cy.get('#menuBarSubmenuContainer').should('be.empty');
 
     cy.log('Should close insert panel when clicking outside');
-    cy.get('#add-menu-button').click();
-    cy.get('#menuBarContainer .MenubarSubContent').should('exist');
+    cy.clickAddMenu();
+    cy.get('#menuBarContainer').should('not.be.empty');
+    cy.get('#menuBarSubmenuContainer').should('not.be.empty');
     cy.get('body').click('topRight');
-    cy.get('#menuBarContainer .MenubarSubContent').should('not.exist');
+    cy.get('#menuBarContainer').should('be.empty');
+    cy.get('#menuBarSubmenuContainer').should('be.empty');
 
     cy.log('Should close insert panel when clicking inside iframe');
-    cy.get('#add-menu-button').click();
-    cy.get('#menuBarContainer .MenubarSubContent').should('exist');
+    cy.clickAddMenu();
+    cy.get('#menuBarContainer').should('not.be.empty');
+    cy.get('#menuBarSubmenuContainer').should('not.be.empty');
     cy.getIframeBody().findByText('hello, world!').click();
-    cy.get('#menuBarContainer .MenubarSubContent').should('not.exist');
+    cy.get('#menuBarContainer').should('be.empty');
+    cy.get('#menuBarSubmenuContainer').should('be.empty');
   });
 
   it('Should ensure the component insert panel is scrollable', () => {
+    cy.drupalLogin('xbUser', 'xbUser');
+
     // Stub the HTTP request to return many components to make scrolling necessary
     cy.intercept('GET', '**/xb-components', {
       statusCode: 200,
       body: Array(50)
         .fill()
         .reduce((acc, _, index) => {
-          const id = `experience_builder:component_${index + 1}`;
-          acc[id] = { id, name: `Component ${index + 1}` };
+          const paddedIndex = String(index + 1).padStart(2, '0');
+          const id = `experience_builder:component_${paddedIndex}`;
+          acc[id] = { id, name: `Component ${paddedIndex}` };
           return acc;
         }, {}),
     }).as('getComponents');
 
-    cy.visit('/xb/node/1');
+    cy.loadURLandWaitForXBLoaded();
 
-    cy.get('#add-menu-button').click();
-    cy.get('#menuBarContainer .MenubarSubContent').should('exist');
+    cy.clickAddMenu();
+    cy.get('#menuBarContainer').should('not.be.empty');
+    cy.get('#menuBarSubmenuContainer').should('not.be.empty');
     cy.wait('@getComponents');
 
-    cy.get('#menuBarContainer .MenubarSubContent')
+    cy.get('#menuBarSubmenuContainer .MenubarSubContent')
       .realMouseWheel({ deltaY: 2000 })
       .then(() => {
         cy.get(
@@ -728,7 +739,7 @@ describe('General Experience Builder', { testIsolation: false }, () => {
       .first()
       .click({ scrollBehavior: 'center' });
     // Click Heading in the side menu
-    cy.get('[data-radix-menu-content]').findByText('Heading').click();
+    cy.get('#menuBarSubmenuContainer').findByText('Heading').click();
     // Check if heading component has been added in the preview
     cy.waitForElementContentInIframe(
       'div[data-xb-component-id="experience_builder:heading"] h1[data-component-id="experience_builder:heading"]',

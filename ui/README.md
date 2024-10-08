@@ -67,3 +67,27 @@ Further documentation on best practices for writing Cypress tests can be found i
 We are working on integrating Cypress tests into our CI pipeline to ensure that all tests are run consistently and reliably. This includes setting up the necessary infrastructure and addressing any performance concerns.
 
 We will periodically evaluate using Cypress for our **unit tests** and compare it with other testing frameworks (e.g. `vitest`) to ensure we are making the best trade-offs between ease of use, functionality and speed/performance.
+
+## Styling
+
+Experience Builder uses the [Radix Themes component library](https://www.radix-ui.com/themes/docs/overview/getting-started). Custom styling is done using [CSS modules](https://github.com/css-modules/css-modules) and relying on design tokens provided by Radix Themes as much as possible. Custom components should leverage [Radix primitives](https://www.radix-ui.com/primitives/docs/overview/introduction) as appropriate.
+
+
+### Design Tokens
+
+Design tokens are defined in the `ui/src/styles/tokens` directory. File naming conventions follow the [Radix Themes token naming conventions](https://www.radix-ui.com/themes/docs/theme/overview#tokens) ([source code](https://github.com/radix-ui/themes/tree/main/packages/radix-ui-themes/src/styles/tokens)).
+
+* Customizing design tokens provided by Radix Themes should be done by redefining CSS variables under the `.radix-themes` class.
+* New design tokens are added under the `.xb-app` class.
+
+### Styling Code Setup
+
+Style definitions are imported in `ui/src/main.tsx`:
+
+| Imported file  | Description |
+| -------------- | ----------- |
+| `ui/src/styles/radix-themes.tsx` | All style definitions from Radix Themes with the colors selectively imported to reduce bundle size. |
+| `ui/src/styles/index.css` |  Design token overrides and additions, as well as some base style definitions and resets which are meant to be global, thus are not scoped as CSS modules. |
+
+
+The [`<Theme>` component by Radix Themes](https://www.radix-ui.com/themes/docs/components/theme) is added in `ui/src/main.tsx`. We make little to no use of the customization props this component offers, however, it is required as a context provider for components of Radix Themes.

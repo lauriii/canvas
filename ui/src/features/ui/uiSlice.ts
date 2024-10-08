@@ -179,11 +179,6 @@ export const uiSlice = createAppSlice({
     unsetHoveredComponent: create.reducer((state) => {
       state.hoveredComponent = undefined;
     }),
-    setContextualPanelOpen: create.reducer(
-      (state, action: PayloadAction<boolean>) => {
-        state.contextualPanelOpen = action.payload;
-      },
-    ),
     setCanvasViewPort: create.reducer(
       (state, action: PayloadAction<UpdateViewportPayload>) => {
         state.canvasViewport.x = action.payload.x || state.canvasViewport.x;
@@ -258,9 +253,6 @@ export const uiSlice = createAppSlice({
     selectHoveredComponent: (ui): string | undefined => {
       return ui.hoveredComponent;
     },
-    selectContextualPanelOpen: (ui): boolean => {
-      return ui.contextualPanelOpen;
-    },
     selectCanvasViewPort: (ui): CanvasViewPort => {
       return ui.canvasViewport;
     },
@@ -294,7 +286,6 @@ export const {
   setHoveredComponent,
   unsetSelectedComponent,
   unsetHoveredComponent,
-  setContextualPanelOpen,
   setCanvasViewPort,
   canvasViewPortZoomIn,
   canvasViewPortZoomOut,
@@ -312,7 +303,6 @@ export const {
   selectPanning,
   selectSelectedComponent,
   selectHoveredComponent,
-  selectContextualPanelOpen,
   selectCanvasViewPort,
   selectPrimaryMenuActiveMenu,
   selectPrimaryMenuHidden,

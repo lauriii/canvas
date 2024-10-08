@@ -19,7 +19,8 @@ export const AddMenu = () => {
   const activeMenu = useAppSelector(selectActiveMenu);
   const dispatch = useAppDispatch();
   const menuRef = useRef<HTMLDivElement>(null);
-  const portalContainerRef = useRef<HTMLElement | null>(null);
+  const portalMenuBarContainerRef = useRef<HTMLElement | null>(null);
+  const portalMenuBarSubmenuContainerRef = useRef<HTMLElement | null>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const iframesRef = useRef<HTMLIFrameElement[]>([]);
 
@@ -34,9 +35,12 @@ export const AddMenu = () => {
 
   const handleClickOutside = useCallback(
     (event: MouseEvent) => {
-      const portalContainer =
-        portalContainerRef.current ||
+      const portalMenuBarContainer =
+        portalMenuBarContainerRef.current ||
         document.getElementById('menuBarContainer');
+      const portalMenuBarSubmenuContainer =
+        portalMenuBarSubmenuContainerRef.current ||
+        document.getElementById('menuBarSubmenuContainer');
       if (
         buttonRef.current &&
         buttonRef.current.contains(event.target as Node)
@@ -46,8 +50,10 @@ export const AddMenu = () => {
       if (
         menuRef.current &&
         !menuRef.current.contains(event.target as Node) &&
-        portalContainer &&
-        !portalContainer.contains(event.target as Node)
+        portalMenuBarContainer &&
+        !portalMenuBarContainer.contains(event.target as Node) &&
+        portalMenuBarSubmenuContainer &&
+        !portalMenuBarSubmenuContainer.contains(event.target as Node)
       ) {
         dispatch(setInactive());
       }
@@ -56,7 +62,8 @@ export const AddMenu = () => {
   );
 
   useEffect(() => {
-    portalContainerRef.current = document.getElementById('menuBarContainer');
+    portalMenuBarContainerRef.current =
+      document.getElementById('menuBarContainer');
     document.addEventListener('mousedown', handleClickOutside);
     const iframes = document.querySelectorAll('iframe');
     const currentIframes = Array.from(iframes) as HTMLIFrameElement[];
@@ -105,7 +112,8 @@ export const AddMenu = () => {
           align="start"
           onPointerEnter={preventHover}
           onPointerLeave={preventHover}
-          style={{ display: isHidden ? 'none' : 'initial' }}
+          style={{ display: isHidden ? 'none' : undefined }}
+          forceMount
         >
           <SecondLevelMenubar />
         </Menubar.Content>

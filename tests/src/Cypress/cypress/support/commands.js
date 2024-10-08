@@ -467,7 +467,7 @@ Cypress.Commands.add(
 );
 
 Cypress.Commands.add('clickAddMenu', () => {
-  cy.get('.TopbarRoot').find('#add-menu-button').click();
+  cy.findByTestId('xb-topbar').find('#add-menu-button').click();
 });
 
 /**

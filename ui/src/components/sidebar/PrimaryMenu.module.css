@@ -1,18 +1,16 @@
 :root {
-  --layers-menu-width: 305px;
   --default-black-text-color: #1c2024;
 }
 
 .MenuRoot {
   position: fixed;
-  top: var(--topbar-height);
+  top: calc(var(--topbar-height) + var(--topbar-space-above) + var(--topbar-space-below));
+  left: var(--sidebar-space-side);
   display: flex;
   flex-direction: column;
-  width: var(--layers-menu-width);
-  height: 100vh;
+  width: var(--sidebar-left-width);
+  height: var(--sidebar-height);
   padding: 24px 16px;
-  border-right: 1px solid var(--primary-menu-border-color);
-  background-color: white;
 }
 
 .segmentedControlRoot {

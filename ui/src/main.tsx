@@ -4,15 +4,16 @@ import { createRoot } from 'react-dom/client';
 import { Provider } from 'react-redux';
 import AppRoutes from '@/app/AppRoutes';
 import { makeStore } from '@/app/store';
-import '@radix-ui/themes/styles.css';
 import { Theme } from '@radix-ui/themes';
 import ErrorBoundary from '@/components/error/ErrorBoundary';
 import type { AppConfiguration } from '@/features/configuration/configurationSlice';
-import './index.css';
 import twigToJSXComponentMap from '@/components/form/twig-to-jsx-component-map';
 import hyperscriptify from '@/local_packages/hyperscriptify';
 import propsify from '@/local_packages/hyperscriptify/propsify/standard';
 import type { EnhancedStore } from '@reduxjs/toolkit';
+
+import '@/styles/radix-themes';
+import '@/styles/index.css';
 
 interface XbSettings {
   path: { baseUrl: string };
