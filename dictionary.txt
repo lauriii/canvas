@@ -30,6 +30,7 @@ topbar
 Validatable
 drupalcode
 renderify
+Starshot
 subcontent
 subtrigger
 testid
