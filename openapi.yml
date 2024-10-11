@@ -158,22 +158,28 @@ paths:
               required: true
               schema:
                 type: string
-              description: 'JSON representing CSS assets to attach, as expected by `Drupal.AjaxCommands.add_css`.'
+              description: >-
+                JSON representing CSS assets to attach, as expected by
+                `Drupal.AjaxCommands.add_css`.
             Attach-JS:
               required: true
               schema:
                 type: string
-              description: 'JSON representing JS assets to attach, as expected by `Drupal.AjaxCommands.add_js`.'
+              description: >-
+                JSON representing JS assets to attach, as expected by
+                `Drupal.AjaxCommands.add_js`.
             Attach-Settings:
               required: true
               schema:
                 type: string
-              description: 'JSON representing Drupal settings to attach, as expected by `Drupal.AjaxCommands.settings()`.'
+              description: >-
+                JSON representing Drupal settings to attach, as expected by
+                `Drupal.AjaxCommands.settings()`.
           content:
             text/html:
               schema:
                 type: string
-                description: 'The HTML for this server-defined form.'
+                description: The HTML for this server-defined form.
     post:
       parameters:
         # @see \Drupal\Core\Form\FormBuilderInterface::AJAX_FORM_REQUEST
@@ -184,22 +190,25 @@ paths:
           required: true
           schema:
             type: integer
-            enum: [ 1 ]
+            enum:
+              - 1
         # @see \Drupal\experience_builder\Render\MainContent\XBEndpointRenderer
         - in: query
           name: _wrapper_format
           required: true
           schema:
             type: string
-            enum: [ xb_endpoint, drupal_ajax ]
+            enum:
+              - xb_endpoint
+              - drupal_ajax
       responses:
-        200:
+        '200':
           description: AJAX updates
           content:
             application/json:
               schema:
                 type: object
-                description: 'A Drupal AJAX response.'
+                description: A Drupal AJAX response.
   '/xb/api/entity-form/{entityTypeId}/{entityId}/{entityFormMode}':
     description: Fetches the entity form with the specified form mode
     get:
@@ -225,6 +234,55 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/FormResponse'
+  /xb/api/log-error:
+    post:
+      requestBody:
+        description: Log an error message with a specified log level.
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - message
+                - level
+              properties:
+                message:
+                  type: string
+                  description: The error message to log.
+                level:
+                  type: string
+                  description: The severity level of the log.
+                  enum:
+                    - emergency
+                    - alert
+                    - critical
+                    - error
+                    - warning
+                    - notice
+                    - info
+                    - debug
+      responses:
+        '200':
+          description: Error logged successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: Error logged successfully
+                    description: The success message returned after logging the error.
+        '400':
+          description: Invalid request payload
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: Error description
 
 components:
   schemas:
