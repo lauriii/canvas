@@ -262,22 +262,22 @@ Example:
 ```json
 {
   "ROOT_UUID": [
-    {"uuid": "uuid-root-1", "component": "provider+two-col"},
-    {"uuid": "uuid-root-2", "component": "provider+marquee"},
-    {"uuid": "uuid-root-3", "component": "provider+marquee"}
+    {"uuid": "uuid-root-1", "component": "sdc+provider+two-col"},
+    {"uuid": "uuid-root-2", "component": "sdc+provider+marquee"},
+    {"uuid": "uuid-root-3", "component": "sdc+provider+marquee"}
   ],
   "uuid-root-1": {
     "firstColumn": [
-      {"uuid": "uuid4-author1", "component": "provider+person-card"},
-      {"uuid": "uuid2-submitted", "component": "provider+elegant-date"}
+      {"uuid": "uuid4-author1", "component": "sdc+provider+person-card"},
+      {"uuid": "uuid2-submitted", "component": "sdc+provider+elegant-date"}
     ],
     "secondColumn": [
-      {"uuid": "uuid5-author2", "component": "provider+person-card"}
+      {"uuid": "uuid5-author2", "component": "sdc+provider+person-card"}
     ]
   },
   "uuid-root-2": {
     "content": [
-      {"uuid": "uuid4-author3", "component": "provider+person-card"}
+      {"uuid": "uuid4-author3", "component": "sdc+provider+person-card"}
     ]
   }
 }

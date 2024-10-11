@@ -22,9 +22,9 @@ class ComponentTest extends KernelTestBase {
   use GenerateComponentConfigTrait;
 
   const MODULE_COMPONENT_ID = 'sdc_test:my-cta';
-  const MODULE_CONFIG_ENTITY_ID = 'sdc_test+my-cta';
+  const MODULE_CONFIG_ENTITY_ID = 'sdc+sdc_test+my-cta';
   const MISSING_COMPONENT_ID = 'experience_builder:missing-component';
-  const MISSING_CONFIG_ENTITY_ID = 'experience_builder+missing-component';
+  const MISSING_CONFIG_ENTITY_ID = 'sdc+experience_builder+missing-component';
   const LABEL = 'Test Component';
 
   protected CoreComponentPluginManager $componentPluginManager;
@@ -473,11 +473,11 @@ class ComponentTest extends KernelTestBase {
     $this->componentPluginManager->getDefinitions();
     $initial_components = Component::loadMultiple();
     $this->assertNotEmpty($initial_components);
-    $this->assertArrayHasKey('experience_builder+image', $initial_components);
-    $this->assertSame('image', $initial_components['experience_builder+image']->get('defaults')['props']['image']['field_type']);
+    $this->assertArrayHasKey('sdc+experience_builder+image', $initial_components);
+    $this->assertSame('image', $initial_components['sdc+experience_builder+image']->get('defaults')['props']['image']['field_type']);
 
     $this->midTestSetUp();
-    $updated_component = Component::load('experience_builder+image');
+    $updated_component = Component::load('sdc+experience_builder+image');
     assert($updated_component instanceof Component);
     $this->assertSame('entity_reference', $updated_component->get('defaults')['props']['image']['field_type']);
   }

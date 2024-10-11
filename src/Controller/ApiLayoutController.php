@@ -72,7 +72,7 @@ final class ApiLayoutController {
         $model[$component_instance_uuid] = $hydrated[$component_instance_uuid]['props'];
         $component_id = $tree->getComponentId($component_instance_uuid);
         // @todo the current quick-and-dirty UI PoC unfortunately prevents any prop from being named `name`, because it expects that to convey the component name
-        $component_config = Component::loadByComponentMachineName($component_id);
+        $component_config = Component::load($component_id);
         assert($component_config !== NULL);
         $model[$component_instance_uuid]['name'] = $component_config->label();
       }

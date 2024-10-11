@@ -45,7 +45,7 @@ class ComponentValidationTest extends ConfigEntityValidationTestBase {
     parent::setUp();
 
     $this->entity = Component::create([
-      'id' => 'sdc_test+my-cta',
+      'id' => 'sdc+sdc_test+my-cta',
       'component' => 'sdc_test:my-cta',
       'label' => 'Test',
       'defaults' => [
@@ -94,13 +94,14 @@ class ComponentValidationTest extends ConfigEntityValidationTestBase {
    */
   public static function providerInvalidMachineNameCharacters(): array {
     return [
-      'INVALID: space separated' => ['space separated+space separated', FALSE],
-      'INVALID: uppercase letters' => ['Uppercase_Letters+Uppercase_Letters', FALSE],
-      'INVALID: period separated' => ['period.separated+period.separated]', FALSE],
-      'INVALID: only underscore separated' => ['underscore_separated_underscore_separated', FALSE],
-      'VALID: plus instead of colon' => ['provider+component', TRUE],
-      'VALID: dash separated' => ['dash-separated+dash-separated', TRUE],
-      'VALID: underscore separated' => ['underscore_separated+underscore_separated', TRUE],
+      'INVALID: missing components' => ['sdc+sdc', FALSE],
+      'INVALID: space separated' => ['sdc+space separated+space separated', FALSE],
+      'INVALID: uppercase letters' => ['sdc+Uppercase_Letters+Uppercase_Letters', FALSE],
+      'INVALID: period separated' => ['sdc+period.separated+period.separated]', FALSE],
+      'INVALID: only underscore separated' => ['sdc+underscore_separated_underscore_separated', FALSE],
+      'VALID: plus instead of colon' => ['sdc+provider+component', TRUE],
+      'VALID: dash separated' => ['sdc+dash-separated+dash-separated', TRUE],
+      'VALID: underscore separated' => ['sdc+underscore_separated+underscore_separated', TRUE],
     ];
   }
 
@@ -111,14 +112,14 @@ class ComponentValidationTest extends ConfigEntityValidationTestBase {
    * @return string
    */
   protected function randomMachineName($length = 8): string {
-    return parent::randomMachineName(intdiv($length, 2)) . '+' . parent::randomMachineName(intdiv($length, 2));
+    return 'sdc+' . parent::randomMachineName(intdiv($length, 2)) . '+' . parent::randomMachineName(intdiv($length, 2));
   }
 
   /**
    * Tests validating a component with a SDC machine name.
    */
   public function testInvalidId(): void {
-    $this->entity->set('id', Component::convertIdToMachineName($this->entity->get('component')));
+    $this->entity->set('id', 'sdc_test:my-cta');
     $this->assertValidationErrors([
       '' => "The 'id' property cannot be changed.",
       'id' => 'The <em class="placeholder">&quot;sdc_test:my-cta&quot;</em> machine name is not valid.',
@@ -152,7 +153,7 @@ class ComponentValidationTest extends ConfigEntityValidationTestBase {
   public function testImmutableProperties(array $valid_values = []): void {
     $valid_values = [
       'component' => 'sdc_test:no-props',
-      'id' => 'sdc_test+no-props',
+      'id' => 'sdc+sdc_test+no-props',
       'defaults' => ['props' => []],
     ];
     parent::testImmutableProperties($valid_values);

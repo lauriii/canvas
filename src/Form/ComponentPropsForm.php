@@ -59,7 +59,7 @@ final class ComponentPropsForm extends FormBase {
     $props = $this->getRequest()->get('props');
     $component_instance_uuid = $this->getRequest()->get('selected');
     $stored_prop_sources = json_decode($props, TRUE)[$component_instance_uuid];
-    $component_machine_name = json_decode($this->getRequest()->get('tree'), TRUE)['type'];
+    $component_id = json_decode($this->getRequest()->get('tree'), TRUE)['type'];
 
     // ⚠️ This is HORRIBLY HACKY and will go away! ☺️
     // @see \Drupal\experience_builder\Controller\ApiLayoutController
@@ -67,9 +67,9 @@ final class ComponentPropsForm extends FormBase {
       throw new \LogicException('For now, this assumes the entity is an article!');
     }
 
-    $component = Component::loadByComponentMachineName($component_machine_name);
+    $component = Component::load($component_id);
     assert($component !== NULL);
-    $component_plugin = $this->componentPluginManager->createInstance(Component::convertIdToMachineName($component_machine_name));
+    $component_plugin = $this->componentPluginManager->createInstance($component->getComponentMachineName());
 
     // Allow form alterations specific to XB component prop forms (currently
     // only "static prop sources").

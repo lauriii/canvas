@@ -80,6 +80,7 @@ final class ApiPreviewController {
    * final rendering.
    *
    * @see \Drupal\experience_builder\Plugin\Field\FieldFormatter\NaiveComponentTreeFormatter
+   * @todo Refactor/remove in https://www.drupal.org/project/experience_builder/issues/3467954.
    */
   private function clientLayoutAndModelToXbField(array $layout, array $model): ComponentTreeItem {
     $field_item_definition = $this->typedDataManager->createDataDefinition('field_item:component_tree');
@@ -109,10 +110,13 @@ final class ApiPreviewController {
     return $component_tree_field_item;
   }
 
+  /**
+   * @todo Refactor/remove in https://www.drupal.org/project/experience_builder/issues/3467954.
+   */
   private static function clientLayoutToServerTree(array $layout, string $parent_uuid, ?string $parent_slot, array &$tree) : void {
     foreach ($layout['children'] as $child) {
       if ($child['nodeType'] === 'slot') {
-        // @todo This indicates the client model does not quite make sense: SDC slots do NOT have UUIDs, but names!
+        // @todo This indicates the client model does not quite make sense: SDC slots do NOT have UUIDs, but names! Fix in https://www.drupal.org/project/experience_builder/issues/3467954.
         self::clientLayoutToServerTree($child, $parent_uuid, $child['name'], $tree);
         continue;
       }

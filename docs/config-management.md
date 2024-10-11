@@ -69,7 +69,7 @@ per `component` that is present and meets the criteria (see [`XB Components` doc
 When a `component` does not meet the criteria, the _reasons_ for that are tracked and presented in the UI.
 
 The `Component` config entity contains:
-- the `component` ID (currently only always 1:1 with an `SDC`, but that will change, see [`XB Components` doc, section 3.2](components.md#3.2))
+- the `component` ID (currently always prefixed with `sdc+` because it only supports `SDC`-powered `component`s, but that will change, see [`XB Components` doc, section 3.2](components.md#3.2))
 - the `status`: `true` conveys it is available for XB Content Creators, `false` conveys it once was available, but not
   anymore (either because it was explicitly disabled by the Site Builder, or because the underlying SDC was marked as
   "obsolete"). Existing content can then continue to use disabled `Component`s (in other words: nothing breaks), while

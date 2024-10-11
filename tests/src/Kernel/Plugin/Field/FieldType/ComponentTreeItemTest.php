@@ -53,17 +53,17 @@ class ComponentTreeItemTest extends KernelTestBase {
     $this->assertSame([], ComponentTreeItem::calculateDependencies(BaseFieldDefinition::create('component_tree')));
     $this->assertSame(
       [
-        'config' => ['experience_builder.component.experience_builder+image', 'experience_builder.component.sdc_test+my-cta'],
+        'config' => ['experience_builder.component.sdc+experience_builder+image', 'experience_builder.component.sdc+sdc_test+my-cta'],
       ],
       ComponentTreeItem::calculateDependencies(BaseFieldDefinition::create('component_tree')->setDefaultValue(
         [
           'tree' => self::encodeXBData([
             ComponentTreeStructure::ROOT_UUID => [
-              ['uuid' => 'dynamic-image-udf7d', 'component' => 'experience_builder+image'],
-              ['uuid' => 'static-static-card1ab', 'component' => 'sdc_test+my-cta'],
-              ['uuid' => 'dynamic-static-card2df', 'component' => 'sdc_test+my-cta'],
-              ['uuid' => 'dynamic-dynamic-card3rr', 'component' => 'sdc_test+my-cta'],
-              ['uuid' => 'dynamic-image-static-imageStyle-something7d', 'component' => 'experience_builder+image'],
+              ['uuid' => 'dynamic-image-udf7d', 'component' => 'sdc+experience_builder+image'],
+              ['uuid' => 'static-static-card1ab', 'component' => 'sdc+sdc_test+my-cta'],
+              ['uuid' => 'dynamic-static-card2df', 'component' => 'sdc+sdc_test+my-cta'],
+              ['uuid' => 'dynamic-dynamic-card3rr', 'component' => 'sdc+sdc_test+my-cta'],
+              ['uuid' => 'dynamic-image-static-imageStyle-something7d', 'component' => 'sdc+experience_builder+image'],
             ],
           ]),
           'props' => json_encode([
@@ -140,11 +140,11 @@ class ComponentTreeItemTest extends KernelTestBase {
       ],
     ];
     $test_cases['missing components, using dynamic props'][] = [
-      "field_xb_test.0.tree[$root_uuid][0]" => 'The component <em class="placeholder">sdc_test+missing</em> does not exist.',
-      "field_xb_test.0.tree[$root_uuid][1]" => 'The component <em class="placeholder">sdc_test+missing-also</em> does not exist.',
+      "field_xb_test.0.tree[$root_uuid][0]" => 'The component <em class="placeholder">sdc+sdc_test+missing</em> does not exist.',
+      "field_xb_test.0.tree[$root_uuid][1]" => 'The component <em class="placeholder">sdc+sdc_test+missing-also</em> does not exist.',
     ];
     $test_cases['missing components, using only static props'][] = [
-      "field_xb_test.0.tree[$root_uuid][0]" => 'The component <em class="placeholder">sdc_test+missing</em> does not exist.',
+      "field_xb_test.0.tree[$root_uuid][0]" => 'The component <em class="placeholder">sdc+sdc_test+missing</em> does not exist.',
     ];
     $test_cases['props invalid, using dynamic props'][] = [
       'field_xb_test.0' => [

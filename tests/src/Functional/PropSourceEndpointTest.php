@@ -35,7 +35,6 @@ class PropSourceEndpointTest extends BrowserTestBase {
 
   public function test(): void {
     $page = $this->getSession()->getPage();
-    $field_definitions = \Drupal::service('entity_field.manager')->getFieldDefinitions('node', 'article');
     $node = Node::create([
       'type' => 'article',
       'title' => 'XB Needs This For The Time Being',
@@ -60,9 +59,9 @@ class PropSourceEndpointTest extends BrowserTestBase {
     $data = array_intersect_key(
       $data,
       [
-        'experience_builder:image' => TRUE,
-        'experience_builder:my-hero' => TRUE,
-        'sdc_test_all_props:all-props' => TRUE,
+        'sdc+experience_builder+image' => TRUE,
+        'sdc+experience_builder+my-hero' => TRUE,
+        'sdc+sdc_test_all_props+all-props' => TRUE,
       ],
     );
     $this->assertCount(3, $data);
@@ -81,14 +80,14 @@ class PropSourceEndpointTest extends BrowserTestBase {
    */
   public function getExpected(): array {
     return [
-      'experience_builder:image' => [
-        'id' => 'experience_builder:image',
+      'sdc+experience_builder+image' => [
+        'id' => 'sdc+experience_builder+image',
         'dynamic_prop_source_candidates' => [
           'image' => [],
         ],
       ],
-      'experience_builder:my-hero' => [
-        'id' => 'experience_builder:my-hero',
+      'sdc+experience_builder+my-hero' => [
+        'id' => 'sdc+experience_builder+my-hero',
         'dynamic_prop_source_candidates' => [
           'heading' => [
             'This Article\'s Title' => 'ℹ︎␜entity:node:article␝title␞␟value',
@@ -114,8 +113,8 @@ class PropSourceEndpointTest extends BrowserTestBase {
           ],
         ],
       ],
-      'sdc_test_all_props:all-props' => [
-        'id' => 'sdc_test_all_props:all-props',
+      'sdc+sdc_test_all_props+all-props' => [
+        'id' => 'sdc+sdc_test_all_props+all-props',
         'dynamic_prop_source_candidates' => [
           'test_bool' => [
             "This Article's Default translation" => 'ℹ︎␜entity:node:article␝default_langcode␞␟value',

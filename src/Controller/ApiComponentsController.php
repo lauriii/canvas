@@ -115,7 +115,7 @@ final class ApiComponentsController {
       $default_markup = (string) $this->prepareRenderArray($component_plugin->getPluginId(), $default_props_for_default_markup)['markup'];
 
       $component_list[] = [
-        'id' => $component_plugin->getPluginId(),
+        'id' => $component->id(),
         'name' => $component_plugin->metadata->name,
         'metadata' => $component_plugin->metadata,
         'field_data' => $keyed_choices,
