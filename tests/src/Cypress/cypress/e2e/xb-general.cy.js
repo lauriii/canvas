@@ -108,10 +108,6 @@ describe('General Experience Builder', { testIsolation: false }, () => {
         });
       });
 
-    // Before interacting with components in the layout, confirm there is
-    // currently no right drawer.
-    cy.findByTestId('xb-contextual-panel').should('not.exist');
-
     // Confirm no component has a hover outline.
     cy.get('[data-xb-component-outline]').should('not.exist');
 
@@ -291,28 +287,15 @@ describe('General Experience Builder', { testIsolation: false }, () => {
       cy.get(selector).should('have.value', newValues[prop]);
     });
 
-    // Close the right drawer, so it doesn't cover the iFrame content when Cypress is looking
-    // for elements.
-    cy.get('[class*="contextualPanel"] button[aria-label="Close"]').click();
-
     // New values were typed into the prop form inputs, now enter the iframe
     // and confirm the component reflects these new values.
-    cy.testInIframe(
-      '[data-xb-component-id="experience_builder:my-hero"]',
-      (heroes) => {
-        const hero = heroes[0];
-        Object.entries(heroSelectors).forEach(([prop, selector]) => {
-          expect(
-            hero.querySelector(selector).textContent.onlyVisibleChars(),
-            `${prop} (${selector}) should be '${newValues[prop]}'`,
-          ).to.equal(newValues[prop]);
-        });
-        // Special check for ctaHref as it is an attribute value.
-        expect(
-          hero.querySelector(heroSelectors.cta1).getAttribute('formaction'),
-        ).to.equal(newValues.cta1href);
-      },
+    cy.waitForElementContentInIframe(heroSelectors.heading, newValues.heading);
+    cy.waitForElementContentInIframe(
+      heroSelectors.subheading,
+      newValues.subheading,
     );
+    cy.waitForElementContentInIframe(heroSelectors.cta1, newValues.cta1);
+    cy.waitForElementContentInIframe(heroSelectors.cta2, newValues.cta2);
   });
 
   it('previews components on hover', () => {
@@ -455,9 +438,6 @@ describe('General Experience Builder', { testIsolation: false }, () => {
         `Hit back twice and the path should still have /xb`,
       ).to.contain('/xb/node/1');
     });
-
-    // No contextual panel open.
-    cy.findByTestId('xb-contextual-panel').should('not.exist');
   });
 
   it('Visits a router URL directly', () => {

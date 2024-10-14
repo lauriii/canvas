@@ -33,7 +33,7 @@
 /src/Theme/XBThemeNegotiator.php
 /themes/engines/semi_coupled/
 /templates/form/
-/ui/src/components/form/
+/ui/src/components/form/inputBehaviors.tsx
 
 
 #
