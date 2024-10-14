@@ -105,7 +105,7 @@ class ComponentTreeHydratedTest extends KernelTestBase {
     yield 'component tree with a single component that has unpopulated slots with default values' => [
       'tree' => [
         ComponentTreeStructure::ROOT_UUID => [
-          ['uuid' => 'uuid-in-root', 'component' => 'sdc+xb_test_sdc+props-slots'],
+          ['uuid' => 'uuid-in-root', 'component' => 'sdc.xb_test_sdc.props-slots'],
         ],
       ],
       'props' => [
@@ -116,7 +116,7 @@ class ComponentTreeHydratedTest extends KernelTestBase {
       'expected_value' => [
         ComponentTreeStructure::ROOT_UUID => [
           'uuid-in-root' => [
-            'component' => 'sdc+xb_test_sdc+props-slots',
+            'component' => 'sdc.xb_test_sdc.props-slots',
             'props' => ['heading' => 'Hello, world!'],
             'slots' => [
               // TRICKY: this is different from the *stored* representation of a
@@ -176,8 +176,8 @@ HTML,
     yield 'simplest component tree without nesting' => [
       'tree' => [
         ComponentTreeStructure::ROOT_UUID => [
-          ['uuid' => 'uuid-in-root', 'component' => 'sdc+xb_test_sdc+props-no-slots'],
-          ['uuid' => 'uuid-in-root-another', 'component' => 'sdc+xb_test_sdc+props-no-slots'],
+          ['uuid' => 'uuid-in-root', 'component' => 'sdc.xb_test_sdc.props-no-slots'],
+          ['uuid' => 'uuid-in-root-another', 'component' => 'sdc.xb_test_sdc.props-no-slots'],
         ],
       ],
       'props' => [
@@ -191,11 +191,11 @@ HTML,
       'expected_value' => [
         ComponentTreeStructure::ROOT_UUID => [
           'uuid-in-root' => [
-            'component' => 'sdc+xb_test_sdc+props-no-slots',
+            'component' => 'sdc.xb_test_sdc.props-no-slots',
             'props' => ['heading' => 'Hello, world!'],
           ],
           'uuid-in-root-another' => [
-            'component' => 'sdc+xb_test_sdc+props-no-slots',
+            'component' => 'sdc.xb_test_sdc.props-no-slots',
             'props' => ['heading' => 'Hello, another world!'],
           ],
         ],
@@ -228,11 +228,11 @@ HTML,
     yield 'simplest component tree with nesting' => [
       'tree' => [
         ComponentTreeStructure::ROOT_UUID => [
-          ['uuid' => 'uuid-in-root', 'component' => 'sdc+xb_test_sdc+props-slots'],
+          ['uuid' => 'uuid-in-root', 'component' => 'sdc.xb_test_sdc.props-slots'],
         ],
         'uuid-in-root' => [
           'the_body' => [
-            ['uuid' => 'uuid-in-slot', 'component' => 'sdc+xb_test_sdc+props-no-slots'],
+            ['uuid' => 'uuid-in-slot', 'component' => 'sdc.xb_test_sdc.props-no-slots'],
           ],
         ],
       ],
@@ -247,14 +247,14 @@ HTML,
       'expected_value' => [
         ComponentTreeStructure::ROOT_UUID => [
           'uuid-in-root' => [
-            'component' => 'sdc+xb_test_sdc+props-slots',
+            'component' => 'sdc.xb_test_sdc.props-slots',
             'props' => ['heading' => 'Hello, world!'],
             'slots' => [
               'the_footer' => 'Example value for <strong>the_footer</strong>.',
               'the_colophon' => '',
               'the_body' => [
                 'uuid-in-slot' => [
-                  'component' => 'sdc+xb_test_sdc+props-no-slots',
+                  'component' => 'sdc.xb_test_sdc.props-no-slots',
                   'props' => ['heading' => 'Hello, from a slot!'],
                 ],
               ],
@@ -308,22 +308,22 @@ HTML,
         // Note how these are NOT sequentially ordered.
         'uuid-in-root' => [
           'the_body' => [
-            ['uuid' => 'uuid-level-1', 'component' => 'sdc+xb_test_sdc+props-slots'],
+            ['uuid' => 'uuid-level-1', 'component' => 'sdc.xb_test_sdc.props-slots'],
           ],
         ],
         'uuid-level-2' => [
           'the_body' => [
-            ['uuid' => 'uuid-level-3', 'component' => 'sdc+xb_test_sdc+props-no-slots'],
-            ['uuid' => 'uuid-last-in-tree', 'component' => 'sdc+xb_test_sdc+props-no-slots'],
+            ['uuid' => 'uuid-level-3', 'component' => 'sdc.xb_test_sdc.props-no-slots'],
+            ['uuid' => 'uuid-last-in-tree', 'component' => 'sdc.xb_test_sdc.props-no-slots'],
           ],
         ],
         'uuid-level-1' => [
           'the_body' => [
-            ['uuid' => 'uuid-level-2', 'component' => 'sdc+xb_test_sdc+props-slots'],
+            ['uuid' => 'uuid-level-2', 'component' => 'sdc.xb_test_sdc.props-slots'],
           ],
         ],
         ComponentTreeStructure::ROOT_UUID => [
-          ['uuid' => 'uuid-in-root', 'component' => 'sdc+xb_test_sdc+props-slots'],
+          ['uuid' => 'uuid-in-root', 'component' => 'sdc.xb_test_sdc.props-slots'],
         ],
       ],
       'props' => [
@@ -340,32 +340,32 @@ HTML,
         // Note how these are sequentially ordered.
         ComponentTreeStructure::ROOT_UUID => [
           'uuid-in-root' => [
-            'component' => 'sdc+xb_test_sdc+props-slots',
+            'component' => 'sdc.xb_test_sdc.props-slots',
             'props' => ['heading' => 'Hello, world!'],
             'slots' => [
               'the_footer' => 'Example value for <strong>the_footer</strong>.',
               'the_colophon' => '',
               'the_body' => [
                 'uuid-level-1' => [
-                  'component' => 'sdc+xb_test_sdc+props-slots',
+                  'component' => 'sdc.xb_test_sdc.props-slots',
                   'props' => ['heading' => 'Hello, from slot level 1!'],
                   'slots' => [
                     'the_footer' => 'Example value for <strong>the_footer</strong>.',
                     'the_colophon' => '',
                     'the_body' => [
                       'uuid-level-2' => [
-                        'component' => 'sdc+xb_test_sdc+props-slots',
+                        'component' => 'sdc.xb_test_sdc.props-slots',
                         'props' => ['heading' => 'Hello, from slot level 2!'],
                         'slots' => [
                           'the_footer' => 'Example value for <strong>the_footer</strong>.',
                           'the_colophon' => '',
                           'the_body' => [
                             'uuid-level-3' => [
-                              'component' => 'sdc+xb_test_sdc+props-no-slots',
+                              'component' => 'sdc.xb_test_sdc.props-no-slots',
                               'props' => ['heading' => 'Hello, from slot level 3!'],
                             ],
                             'uuid-last-in-tree' => [
-                              'component' => 'sdc+xb_test_sdc+props-no-slots',
+                              'component' => 'sdc.xb_test_sdc.props-no-slots',
                               'props' => ['heading' => 'Hello, from slot <LAST ONE>!'],
                             ],
                           ],

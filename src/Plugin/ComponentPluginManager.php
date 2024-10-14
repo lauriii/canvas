@@ -104,7 +104,7 @@ class ComponentPluginManager extends CoreComponentPluginManager {
         $component->save();
       }
       catch (SchemaIncompleteException $exception) {
-        if (!str_starts_with($exception->getMessage(), 'Schema errors for experience_builder.component.sdc+sdc_test_all_props+all-props with the following errors:')) {
+        if (!str_starts_with($exception->getMessage(), 'Schema errors for experience_builder.component.sdc.sdc_test_all_props.all-props with the following errors:')) {
           throw $exception;
         }
       }

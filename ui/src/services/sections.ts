@@ -17,7 +17,7 @@ const mockSections = {
           {
             uuid: 'abcde',
             nodeType: 'component',
-            type: 'sdc+experience_builder+two_column',
+            type: 'sdc.experience_builder.two_column',
             children: [
               {
                 uuid: 'two-column-uuid-slot-column_one',
@@ -27,7 +27,7 @@ const mockSections = {
                   {
                     uuid: 'fghij',
                     nodeType: 'component',
-                    type: 'sdc+experience_builder+my-hero',
+                    type: 'sdc.experience_builder.my-hero',
                     children: [],
                   },
                 ],
@@ -40,7 +40,7 @@ const mockSections = {
                   {
                     uuid: 'klmno',
                     nodeType: 'component',
-                    type: 'sdc+experience_builder+my-hero',
+                    type: 'sdc.experience_builder.my-hero',
                     children: [],
                   },
                 ],

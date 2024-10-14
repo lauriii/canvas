@@ -97,32 +97,32 @@ class XBTestSetup implements TestSetupInterface {
           ComponentTreeStructure::ROOT_UUID => [
             [
               'uuid' => 'two-column-uuid',
-              'component' => 'sdc+experience_builder+two_column',
+              'component' => 'sdc.experience_builder.two_column',
             ],
           ],
           'two-column-uuid' => [
             'column_one' => [
               [
                 'uuid' => 'dynamic-image-udf7d',
-                'component' => 'sdc+experience_builder+image',
+                'component' => 'sdc.experience_builder.image',
               ],
               [
                 'uuid' => 'static-static-card1ab',
-                'component' => 'sdc+experience_builder+my-hero',
+                'component' => 'sdc.experience_builder.my-hero',
               ],
             ],
             'column_two' => [
               [
                 'uuid' => 'dynamic-static-card2df',
-                'component' => 'sdc+experience_builder+my-hero',
+                'component' => 'sdc.experience_builder.my-hero',
               ],
               [
                 'uuid' => 'dynamic-dynamic-card3rr',
-                'component' => 'sdc+experience_builder+my-hero',
+                'component' => 'sdc.experience_builder.my-hero',
               ],
               [
                 'uuid' => 'dynamic-image-static-imageStyle-something7d',
-                'component' => 'sdc+experience_builder+image',
+                'component' => 'sdc.experience_builder.image',
               ],
             ],
           ],

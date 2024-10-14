@@ -18,8 +18,8 @@ experience_builder.component.*:
       label: 'Component'
       constraints:
         Regex:
-          # @todo Update to not hardcode the `sdc+` prefix in https://www.drupal.org/project/experience_builder/issues/3475584
-          pattern: '/^sdc\+[a-z0-9_-]+\+[a-z0-9_-]+$/'
+          # @todo Update to not hardcode the `sdc` prefix in https://www.drupal.org/project/experience_builder/issues/3475584
+          pattern: '/^sdc\.[a-z0-9_-]+\.[a-z0-9_-]+$/'
           message: 'The %value machine name is not valid.'
     component:
       type: string

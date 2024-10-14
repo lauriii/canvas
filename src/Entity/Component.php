@@ -160,7 +160,7 @@ final class Component extends ConfigEntityBase {
    * Converts a config ID to plugin machine name.
    *
    * The naming convention for SDC plugin components is [module/theme]:[component machine name],
-   * so we change '+' back to ':' and strip off the 'sdc:' prefix.
+   * so we change '.' back to ':' and strip off the 'sdc' prefix.
    *
    * @param string $id
    *   A Component config entity ID.
@@ -173,15 +173,15 @@ final class Component extends ConfigEntityBase {
    * @see \Drupal\Core\Plugin\Component::$machineName
    */
   public static function convertIdToMachineName(string $id): string {
-    assert(str_contains($id, '+'));
-    $parts = explode('+', $id);
+    assert(str_contains($id, '.'));
+    $parts = explode('.', $id, 3);
     return $parts[1] . ':' . $parts[2];
   }
 
   /**
    * Converts a plugin machine name into a plugin ID.
    *
-   * The naming convention for SDC plugin components is [module/theme]:[component machine name]. Colon is invalid config entity name, so we replace it with '+'.
+   * The naming convention for SDC plugin components is [module/theme]:[component machine name]. Colon is invalid config entity name, so we replace it with '.'.
    * @see https://www.drupal.org/docs/develop/theming-drupal/using-single-directory-components/api-for-single-directory-components
    *
    * @todo Handle non-SDC component source types, or move this method from this class and into the SDC-specific logic in https://www.drupal.org/project/experience_builder/issues/3475584.
@@ -194,7 +194,7 @@ final class Component extends ConfigEntityBase {
    */
   public static function convertMachineNameToId(string $machine_name): string {
     assert(str_contains($machine_name, ':'));
-    return 'sdc+' . str_replace(':', '+', $machine_name);
+    return 'sdc.' . str_replace(':', '.', $machine_name);
   }
 
   public function getDefaultStaticPropSource(string $prop_name): ?StaticPropSource {

@@ -59,9 +59,9 @@ class PropSourceEndpointTest extends BrowserTestBase {
     $data = array_intersect_key(
       $data,
       [
-        'sdc+experience_builder+image' => TRUE,
-        'sdc+experience_builder+my-hero' => TRUE,
-        'sdc+sdc_test_all_props+all-props' => TRUE,
+        'sdc.experience_builder.image' => TRUE,
+        'sdc.experience_builder.my-hero' => TRUE,
+        'sdc.sdc_test_all_props.all-props' => TRUE,
       ],
     );
     $this->assertCount(3, $data);
@@ -80,14 +80,14 @@ class PropSourceEndpointTest extends BrowserTestBase {
    */
   public function getExpected(): array {
     return [
-      'sdc+experience_builder+image' => [
-        'id' => 'sdc+experience_builder+image',
+      'sdc.experience_builder.image' => [
+        'id' => 'sdc.experience_builder.image',
         'dynamic_prop_source_candidates' => [
           'image' => [],
         ],
       ],
-      'sdc+experience_builder+my-hero' => [
-        'id' => 'sdc+experience_builder+my-hero',
+      'sdc.experience_builder.my-hero' => [
+        'id' => 'sdc.experience_builder.my-hero',
         'dynamic_prop_source_candidates' => [
           'heading' => [
             'This Article\'s Title' => 'ℹ︎␜entity:node:article␝title␞␟value',
@@ -113,8 +113,8 @@ class PropSourceEndpointTest extends BrowserTestBase {
           ],
         ],
       ],
-      'sdc+sdc_test_all_props+all-props' => [
-        'id' => 'sdc+sdc_test_all_props+all-props',
+      'sdc.sdc_test_all_props.all-props' => [
+        'id' => 'sdc.sdc_test_all_props.all-props',
         'dynamic_prop_source_candidates' => [
           'test_bool' => [
             "This Article's Default translation" => 'ℹ︎␜entity:node:article␝default_langcode␞␟value',

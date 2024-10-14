@@ -45,7 +45,7 @@ class ComponentValidationTest extends ConfigEntityValidationTestBase {
     parent::setUp();
 
     $this->entity = Component::create([
-      'id' => 'sdc+sdc_test+my-cta',
+      'id' => 'sdc.sdc_test.my-cta',
       'component' => 'sdc_test:my-cta',
       'label' => 'Test',
       'defaults' => [
@@ -94,14 +94,15 @@ class ComponentValidationTest extends ConfigEntityValidationTestBase {
    */
   public static function providerInvalidMachineNameCharacters(): array {
     return [
-      'INVALID: missing components' => ['sdc+sdc', FALSE],
-      'INVALID: space separated' => ['sdc+space separated+space separated', FALSE],
-      'INVALID: uppercase letters' => ['sdc+Uppercase_Letters+Uppercase_Letters', FALSE],
-      'INVALID: period separated' => ['sdc+period.separated+period.separated]', FALSE],
-      'INVALID: only underscore separated' => ['sdc+underscore_separated_underscore_separated', FALSE],
-      'VALID: plus instead of colon' => ['sdc+provider+component', TRUE],
-      'VALID: dash separated' => ['sdc+dash-separated+dash-separated', TRUE],
-      'VALID: underscore separated' => ['sdc+underscore_separated+underscore_separated', TRUE],
+      'INVALID: missing components' => ['sdc.sdc', FALSE],
+      'INVALID: space separated' => ['sdc.space separated.space separated', FALSE],
+      'INVALID: uppercase letters' => ['sdc.Uppercase_Letters.Uppercase_Letters', FALSE],
+      // @todo period separated should be valid for the final identifier.
+      'INVALID: period separated' => ['sdc.provider.period.separated', FALSE],
+      'INVALID: only underscore separated' => ['sdc.underscore_separated_underscore_separated', FALSE],
+      'VALID: dot instead of colon' => ['sdc.provider.component', TRUE],
+      'VALID: dash separated' => ['sdc.dash-separated.dash-separated', TRUE],
+      'VALID: underscore separated' => ['sdc.underscore_separated.underscore_separated', TRUE],
     ];
   }
 
@@ -112,7 +113,7 @@ class ComponentValidationTest extends ConfigEntityValidationTestBase {
    * @return string
    */
   protected function randomMachineName($length = 8): string {
-    return 'sdc+' . parent::randomMachineName(intdiv($length, 2)) . '+' . parent::randomMachineName(intdiv($length, 2));
+    return 'sdc.' . parent::randomMachineName(intdiv($length, 2)) . '.' . parent::randomMachineName(intdiv($length, 2));
   }
 
   /**
@@ -153,7 +154,7 @@ class ComponentValidationTest extends ConfigEntityValidationTestBase {
   public function testImmutableProperties(array $valid_values = []): void {
     $valid_values = [
       'component' => 'sdc_test:no-props',
-      'id' => 'sdc+sdc_test+no-props',
+      'id' => 'sdc.sdc_test.no-props',
       'defaults' => ['props' => []],
     ];
     parent::testImmutableProperties($valid_values);
