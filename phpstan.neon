@@ -16,6 +16,8 @@ parameters:
     # The npm package flatted includes PHP files 🙃
     - tests/src/Cypress/node_modules
     - ui/node_modules
+    # This trait decorates core's \Drupal\Core\Test\FunctionalTestSetupTrait::prepareSettings(), which itself triggers a PHPStan warning that core ignores. Match that.
+    - tests/src/Traits/ContribStrictConfigSchemaTestTrait.php
   treatPhpDocTypesAsCertain: false
   ignoreErrors:
     - identifier: missingType.iterableValue

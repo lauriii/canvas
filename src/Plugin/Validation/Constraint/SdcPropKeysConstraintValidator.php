@@ -20,7 +20,7 @@ use Symfony\Component\Validator\Exception\UnexpectedValueException;
  * Enabled configurable plugin settings validator.
  *
  * @internal
- * @todo Once this works, try to subclass \Drupal\Core\Validation\Plugin\Validation\Constraint\ValidKeysConstraintValidator
+ * @todo Extract a base class out of ThemeRegionKeysConstraintValidator and make both this and that one use it. Better yet: move the unique logic into the constraint class, similar to `\Drupal\Core\Validation\Plugin\Validation\Constraint\ValidKeysConstraint::getAllowedKeys()`.
  */
 final class SdcPropKeysConstraintValidator extends ConstraintValidator implements ContainerInjectionInterface {
 

@@ -67,6 +67,7 @@ services:
     class: Drupal\experience_builder\Theme\XBThemeNegotiator
     tags:
       - { name: theme_negotiator }
+  Drupal\experience_builder\EventSubscriber\RenderEventsSubscriber: ~
   Drupal\experience_builder\EventSubscriber\ApiExceptionSubscriber: ~
 
   # Controllers.

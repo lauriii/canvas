@@ -149,6 +149,12 @@ class ComponentTreeHydrated extends TypedData implements CacheableDependencyInte
         // @todo This will need to evolve when supporting non-SDC component types in https://www.drupal.org/project/experience_builder/issues/3454519
         $build[$component_subtree_uuid][$component_instance_uuid] = [
           '#type' => 'component',
+          '#cache' => [
+            'tags' => [
+              // @see \Drupal\Core\Config\Entity\ConfigEntityBase::getCacheTagsToInvalidate()
+              'config:experience_builder.component.' . $component_instance['component'],
+            ],
+          ],
         ];
         foreach ($component_instance as $key => $value) {
           if ($key !== 'slots') {

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\experience_builder\Kernel\DataType;
 
+use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Render\RendererInterface;
 use Drupal\Core\TypedData\TypedDataManagerInterface;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeHydrated;
@@ -47,7 +48,7 @@ class ComponentTreeHydratedTest extends KernelTestBase {
   /**
    * @dataProvider provider
    */
-  public function test(array $tree, array $props, array $expected_value, array $expected_renderable, string $expected_html): void {
+  public function test(array $tree, array $props, array $expected_value, array $expected_renderable, string $expected_html, array $expected_cache_tags): void {
     $typed_data_manager = $this->container->get(TypedDataManagerInterface::class);
     $field_item_definition = $typed_data_manager->createDataDefinition('field_item:component_tree');
     $component_tree_field_item = $typed_data_manager->createInstance('field_item:component_tree', [
@@ -79,6 +80,7 @@ class ComponentTreeHydratedTest extends KernelTestBase {
     $renderable = $hydrated->toRenderable();
     $this->assertSame($expected_renderable, $renderable);
     $this->assertSame($expected_html, (string) $this->container->get(RendererInterface::class)->renderInIsolation($renderable));
+    $this->assertSame($expected_cache_tags, array_values(CacheableMetadata::createFromRenderArray($renderable)->getCacheTags()));
   }
 
   public static function provider(): \Generator {
@@ -100,6 +102,7 @@ class ComponentTreeHydratedTest extends KernelTestBase {
       ],
       'expected_renderable' => [],
       'expected_html' => '',
+      'expected_cache_tags' => [],
     ];
 
     yield 'component tree with a single component that has unpopulated slots with default values' => [
@@ -138,6 +141,9 @@ class ComponentTreeHydratedTest extends KernelTestBase {
         ComponentTreeStructure::ROOT_UUID => [
           'uuid-in-root' => [
             '#type' => 'component',
+            '#cache' => [
+              'tags' => ['config:experience_builder.component.sdc.xb_test_sdc.props-slots'],
+            ],
             '#component' => 'xb_test_sdc:props-slots',
             '#props' => ['heading' => 'Hello, world!'],
             '#slots' => [
@@ -171,6 +177,9 @@ class ComponentTreeHydratedTest extends KernelTestBase {
 </div>
 
 HTML,
+      'expected_cache_tags' => [
+        'config:experience_builder.component.sdc.xb_test_sdc.props-slots',
+      ],
     ];
 
     yield 'simplest component tree without nesting' => [
@@ -204,11 +213,17 @@ HTML,
         ComponentTreeStructure::ROOT_UUID => [
           'uuid-in-root' => [
             '#type' => 'component',
+            '#cache' => [
+              'tags' => ['config:experience_builder.component.sdc.xb_test_sdc.props-no-slots'],
+            ],
             '#component' => 'xb_test_sdc:props-no-slots',
             '#props' => ['heading' => 'Hello, world!'],
           ],
           'uuid-in-root-another' => [
             '#type' => 'component',
+            '#cache' => [
+              'tags' => ['config:experience_builder.component.sdc.xb_test_sdc.props-no-slots'],
+            ],
             '#component' => 'xb_test_sdc:props-no-slots',
             '#props' => ['heading' => 'Hello, another world!'],
           ],
@@ -223,6 +238,9 @@ HTML,
 </div>
 
 HTML,
+      'expected_cache_tags' => [
+        'config:experience_builder.component.sdc.xb_test_sdc.props-no-slots',
+      ],
     ];
 
     yield 'simplest component tree with nesting' => [
@@ -266,6 +284,9 @@ HTML,
         ComponentTreeStructure::ROOT_UUID => [
           'uuid-in-root' => [
             '#type' => 'component',
+            '#cache' => [
+              'tags' => ['config:experience_builder.component.sdc.xb_test_sdc.props-slots'],
+            ],
             '#component' => 'xb_test_sdc:props-slots',
             '#props' => ['heading' => 'Hello, world!'],
             '#slots' => [
@@ -276,6 +297,9 @@ HTML,
               'the_body' => [
                 'uuid-in-slot' => [
                   '#type' => 'component',
+                  '#cache' => [
+                    'tags' => ['config:experience_builder.component.sdc.xb_test_sdc.props-no-slots'],
+                  ],
                   '#component' => 'xb_test_sdc:props-no-slots',
                   '#props' => ['heading' => 'Hello, from a slot!'],
                 ],
@@ -301,6 +325,10 @@ HTML,
 </div>
 
 HTML,
+      'expected_cache_tags' => [
+        'config:experience_builder.component.sdc.xb_test_sdc.props-slots',
+        'config:experience_builder.component.sdc.xb_test_sdc.props-no-slots',
+      ],
     ];
 
     yield 'component tree with complex nesting' => [
@@ -384,6 +412,9 @@ HTML,
         ComponentTreeStructure::ROOT_UUID => [
           'uuid-in-root' => [
             '#type' => 'component',
+            '#cache' => [
+              'tags' => ['config:experience_builder.component.sdc.xb_test_sdc.props-slots'],
+            ],
             '#component' => 'xb_test_sdc:props-slots',
             '#props' => ['heading' => 'Hello, world!'],
             '#slots' => [
@@ -394,6 +425,9 @@ HTML,
               'the_body' => [
                 'uuid-level-1' => [
                   '#type' => 'component',
+                  '#cache' => [
+                    'tags' => ['config:experience_builder.component.sdc.xb_test_sdc.props-slots'],
+                  ],
                   '#component' => 'xb_test_sdc:props-slots',
                   '#props' => ['heading' => 'Hello, from slot level 1!'],
                   '#slots' => [
@@ -408,6 +442,9 @@ HTML,
                     'the_body' => [
                       'uuid-level-2' => [
                         '#type' => 'component',
+                        '#cache' => [
+                          'tags' => ['config:experience_builder.component.sdc.xb_test_sdc.props-slots'],
+                        ],
                         '#component' => 'xb_test_sdc:props-slots',
                         '#props' => ['heading' => 'Hello, from slot level 2!'],
                         '#slots' => [
@@ -418,11 +455,17 @@ HTML,
                           'the_body' => [
                             'uuid-level-3' => [
                               '#type' => 'component',
+                              '#cache' => [
+                                'tags' => ['config:experience_builder.component.sdc.xb_test_sdc.props-no-slots'],
+                              ],
                               '#component' => 'xb_test_sdc:props-no-slots',
                               '#props' => ['heading' => 'Hello, from slot level 3!'],
                             ],
                             'uuid-last-in-tree' => [
                               '#type' => 'component',
+                              '#cache' => [
+                                'tags' => ['config:experience_builder.component.sdc.xb_test_sdc.props-no-slots'],
+                              ],
                               '#component' => 'xb_test_sdc:props-no-slots',
                               '#props' => ['heading' => 'Hello, from slot <LAST ONE>!'],
                             ],
@@ -479,6 +522,10 @@ HTML,
 </div>
 
 HTML,
+      'expected_cache_tags' => [
+        'config:experience_builder.component.sdc.xb_test_sdc.props-slots',
+        'config:experience_builder.component.sdc.xb_test_sdc.props-no-slots',
+      ],
     ];
   }
 

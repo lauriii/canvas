@@ -179,6 +179,35 @@ final class Component extends ConfigEntityBase {
   }
 
   /**
+   * Gets the unique (plugin) interfaces for passed Component config entity IDs.
+   *
+   * @param array<ComponentConfigEntityId> $ids
+   *   A list of (unique) Component config entity IDs.
+   *
+   * @return string[]
+   *   The corresponding list of interface IDs. Depending on the component type,
+   *   this may be one unique plugin interface per Component config entity (ID),
+   *   or the same plugin interface for all.
+   *   For example: all SDC-sourced XB Components use the same (plugin)
+   *   interface, but many Block plugin-sourced XB Components have a unique
+   *   (plugin) interface.
+   *   @see \Drupal\Core\Theme\ComponentPluginManager::$defaults
+   *
+   * @todo Generalize this in https://www.drupal.org/project/experience_builder/issues/3475584.
+   */
+  public static function getInterfaces(array $ids): array {
+    $sdc_plugin_ids = array_map(
+      fn (string $config_entity_id): string => Component::convertIdToMachineName($config_entity_id),
+      $ids
+    );
+    $sdc_plugin_manager = \Drupal::service(ComponentPluginManager::class);
+    assert($sdc_plugin_manager instanceof ComponentPluginManager);
+    $sdc_plugin_definitions = array_intersect_key($sdc_plugin_manager->getDefinitions(), array_flip($sdc_plugin_ids));
+    $sdc_plugin_interfaces = array_column($sdc_plugin_definitions, 'class');
+    return array_unique($sdc_plugin_interfaces);
+  }
+
+  /**
    * Converts a plugin machine name into a plugin ID.
    *
    * The naming convention for SDC plugin components is [module/theme]:[component machine name]. Colon is invalid config entity name, so we replace it with '.'.

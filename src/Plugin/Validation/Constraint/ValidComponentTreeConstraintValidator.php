@@ -20,6 +20,8 @@ use Symfony\Component\Validator\ConstraintValidator;
 
 final class ValidComponentTreeConstraintValidator extends ConstraintValidator implements ContainerInjectionInterface {
 
+  use ConfigComponentTreeTrait;
+
   public function __construct(
     private readonly ComponentPluginManager $componentPluginManager,
     private readonly ComponentValidator $componentValidator,
@@ -42,6 +44,10 @@ final class ValidComponentTreeConstraintValidator extends ConstraintValidator im
    * {@inheritdoc}
    */
   public function validate(mixed $value, Constraint $constraint): void {
+    if ($value === NULL) {
+      return;
+    }
+
     if (!$value instanceof ComponentTreeItem && !is_array($value)) {
       throw new \UnexpectedValueException(sprintf('The value must be a ComponentTreeItem object or an array, found %s.', gettype($value)));
     }
@@ -132,23 +138,6 @@ final class ValidComponentTreeConstraintValidator extends ConstraintValidator im
       $is_valid = FALSE;
     }
     return $is_valid;
-  }
-
-  /**
-   * @param array{tree: string, props: string} $value
-   *
-   * @return \Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem
-   */
-  private function conjureFieldItemObject(array $value): ComponentTreeItem {
-    $field_item_definition = $this->typedDataManager->createDataDefinition('field_item:component_tree');
-    $field_item = $this->typedDataManager->createInstance('field_item:component_tree', [
-      'name' => NULL,
-      'parent' => NULL,
-      'data_definition' => $field_item_definition,
-    ]);
-    $field_item->setValue($value);
-    assert($field_item instanceof ComponentTreeItem);
-    return $field_item;
   }
 
 }

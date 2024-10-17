@@ -51,6 +51,7 @@
 /config/schema/
 /src/Entity/
 /tests/src/Kernel/Entity/ComponentValidationTest.php
+/tests/src/Kernel/Entity/PageTemplateValidationTest.php
 /tests/src/Kernel/ComponentTest.php
 
 # Issues: https://www.drupal.org/project/issues/experience_builder?component=Data+model

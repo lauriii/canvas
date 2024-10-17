@@ -27,6 +27,13 @@ to one of us! 😊 🙏
 - `SDC`: a [Single-Directory Component](https://www.drupal.org/project/sdc)
 - `field type`: see [`XB Data Model` doc](data-model.md)
 - `field widget`: see [`XB Data Model` doc](data-model.md)
+- `page template`: a Drupal theme's template in which every `theme region` is rendered
+- `page.html.twig`: see `page template`
+- `PageDisplayVariant`: Drupal is architected to allow multiple implementations to decorate/lay out the _main content_
+  that is  computed by a route's controller. Such implementations are `PageDisplayVariant` plugins.
+- `theme region`: a Drupal theme exposes multiple regions to Drupal, to render things (historically: "blocks") into; the
+  surrounding markup is defined in the Drupal theme's `page.html.twig`. This is conceptually identical to
+  `component slot`s.
 
 ### 1.2 XB terminology
 
@@ -37,6 +44,7 @@ to one of us! 😊 🙏
 - `component type`: see [`XB Components` doc](components.md)
 - `component tree`: see [`XB Data Model` doc](data-model.md)
 - `content type template`: the default `component tree` for a particular `content type`, which typically includes assigning the smallest units of `structured data` to particular `component prop`s, and uses `configuration entity dependencies` to ensure the necessary `component`s are present
+- `PageTemplate config entity`: stores a `component tree` for every `theme region` in a given Drupal theme
 - `structured data`: see [`XB Data Model` doc](data-model.md)
 - `unstructured data`: see [`XB Data Model` doc](data-model.md)
 
@@ -92,6 +100,45 @@ UI routes:
 - unavailable `component`s: `/admin/structure/component/status`
 
 
-#### 3.2 Other configuration entities
+### 3.2 `PageTemplate config entity`
+
+See:
+- `\Drupal\experience_builder\Entity\PageTemplate`
+- `\Drupal\experience_builder\Plugin\DisplayVariant\PageTemplateDisplayVariant`
+
+One `PageTemplate config entity` may be created per Drupal theme. This allows using XB instead of the Block module's
+"Block Layout" functionality (at `/admin/structure/block`) to populate the `theme region`s of the Drupal theme's
+`page.html.twig`.
+
+⚠️ This means it is currently not possible to have a a different `PageTemplate config entity` per route/URL/…, which the
+"Block Layout" functionality solved using "visibility conditions". This will be covered in the future by XB's product
+requirement [`41. Conditional display of components`](https://docs.google.com/spreadsheets/d/1OpETAzprh6DWjpTsZG55LWgldWV_D8jNe9AM73jNaZo/edit?gid=1721130122#gid=1721130122&range=B53),
+which will be XB's generalized equivalent to Drupal core's Block module's "visibility conditions".
+
+⚠️ This means it is currently not possible to have a draft/non-live `PageTemplate config entity` (just like is the case
+for "Block Layout" functionality). This will be covered in the future by XB's product requirements [`37. Revisionable templates`](https://docs.google.com/spreadsheets/d/1OpETAzprh6DWjpTsZG55LWgldWV_D8jNe9AM73jNaZo/edit?gid=1721130122#gid=1721130122&range=B49)
+and [`55. Workspaces`](https://docs.google.com/spreadsheets/d/1OpETAzprh6DWjpTsZG55LWgldWV_D8jNe9AM73jNaZo/edit?gid=1721130122#gid=1721130122&range=B62).
+
+Once a theme has an XB `PageTemplate config entity` defined, it overrides the block layout (if any).
+Strict validation is imposed on a `PageTemplate config entity`, to ensure that essential information is displayed as
+expected:
+1. exactly one `component` is present that implements `MainContentBlockPluginInterface`, to ensure the content of the
+   route controller is displayed on the page
+2. exactly one `component` is present that implements `TitleBlockPluginInterface`, to ensure the title of the route
+   controller is displayed on the page
+2. exactly one `component` is present that implements `MessagesBlockPluginInterface`, to ensure messages are displayed
+   on the page
+
+That means that when this is used, the Block module is in principle unnecessary. However, Drupal admin themes typically
+rely on the Block module to provide the intended administrative User Experience, which makes that impractical.
+
+See `\Drupal\block\Plugin\DisplayVariant\BlockPageVariant`.
+
+⚠️ Still to be built:
+- a UI to configure `PageTemplate` config entities
+- support for blocks-as-components in general
+
+
+### 3.3 Other configuration entities
 
 Nothing yet, this will change when support for [`content type template`s is added later](https://www.drupal.org/project/experience_builder/issues/3455629)

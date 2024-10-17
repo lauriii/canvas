@@ -7,6 +7,7 @@ namespace Drupal\experience_builder\PropSource;
 use Drupal\Core\Entity\FieldableEntityInterface;
 
 /**
+ * @phpstan-type PropSourceTypePrefix 'static'|'dynamic'|'adapter'
  * @phpstan-import-type PropSourceArray from PropSource
  * @phpstan-import-type AdaptedPropSourceArray from PropSource
  */

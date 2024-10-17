@@ -106,6 +106,26 @@ class ComponentPropsValues extends TypedData implements \Stringable {
   }
 
   /**
+   * Retrieves the list of unique types of prop sources used.
+   *
+   * Sibling method on ComponentTreeStructure:
+   * @see \Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure::getComponentIdList()
+   *
+   * @return string[]
+   *   A list of all unique PropSourceBase::getSourceTypePrefix() return values
+   *   stored in this list of component prop values, for this component tree.
+   */
+  public function getPropSourceTypePrefixList(): array {
+    $source_type_prefixes = [];
+    foreach ($this->propsValues as $raw_prop_sources) {
+      foreach ($raw_prop_sources as $raw_prop_source) {
+        $source_type_prefixes[] = explode(':', $raw_prop_source['sourceType'])[0];
+      }
+    }
+    return array_unique($source_type_prefixes);
+  }
+
+  /**
    * Validates that static prop sources store a denormalized value.
    *
    * @return void
