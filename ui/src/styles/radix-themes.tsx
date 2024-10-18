@@ -27,6 +27,7 @@ import '@radix-ui/themes/tokens/colors/slate.css';
 import '@radix-ui/themes/tokens/colors/blue.css';
 import '@radix-ui/themes/tokens/colors/purple.css';
 import '@radix-ui/themes/tokens/colors/sand.css';
+import '@radix-ui/themes/tokens/colors/red.css';
 
 // Components and utilities
 import '@radix-ui/themes/components.css';
