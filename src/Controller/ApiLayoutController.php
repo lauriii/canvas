@@ -13,9 +13,15 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 
 final class ApiLayoutController {
 
+  use NotTheGoodAutoSaveTrait;
+
   public function __invoke(FieldableEntityInterface $entity): JsonResponse {
     if ($entity->bundle() !== 'article') {
       throw new \LogicException('For now, this assumes the entity is an article!');
+    }
+
+    if ($body = $this->getAutoSaveData($entity)) {
+      return new JsonResponse($body);
     }
 
     $item = $entity->get('field_xb_demo')->first();

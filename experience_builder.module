@@ -53,21 +53,24 @@ function experience_builder_toolbar(): array {
     '#cache' => [
       'contexts' => [
         'user.permissions',
+        'url',
       ],
     ],
   ];
 
   // @see experience_builder.routing.yml
   if ($user->hasPermission('access administration pages')) {
-    $node = Node::load(1);
-    // @todo How does work in 0.x if node 1 doesn't exist?
-    if ($node) {
+    $node = \Drupal::routeMatch()->getParameter('node');
+    if (!$node instanceof Node || !$node->hasField('field_xb_demo')) {
+      $node = Node::load(1);
+    }
+    if ($node && $node->hasField('field_xb_demo')) {
       $items['experience_builder'] += [
         '#type' => 'toolbar_item',
         'tab' => [
           '#type' => 'link',
-          '#title' => t('Experience Builder PoC'),
-          '#url' => Url::fromRoute('experience_builder.experience_builder', ['entity_type' => 'node', 'entity' => 1]),
+          '#title' => t('Experience Builder: %title', ['%title' => $node->label()]),
+          '#url' => Url::fromRoute('experience_builder.experience_builder', ['entity_type' => 'node', 'entity' => $node->id()]),
           '#attributes' => [
             'title' => t('Experience Builder'),
             'class' => ['toolbar-icon', 'toolbar-icon-edit'],

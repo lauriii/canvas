@@ -26,12 +26,15 @@ final class HardcodedPropsComponentTreeItem extends ComponentTreeItem {
 
 final class ApiPreviewController {
 
+  use NotTheGoodAutoSaveTrait;
+
   public function __construct(
     private readonly BareHtmlPageRendererInterface $bareHtmlPageRenderer,
     private readonly TypedDataManagerInterface $typedDataManager,
   ) {}
 
   public function __invoke(Request $request, EntityInterface $entity): JsonResponse {
+    $this->doAutoSave($entity, $request);
     ['layout' => $layout, 'model' => $model] = json_decode($request->getContent(), TRUE);
     $component_tree_field_item = $this->clientLayoutAndModelToXbField($layout, $model);
 
