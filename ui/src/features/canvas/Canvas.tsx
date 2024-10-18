@@ -143,6 +143,12 @@ const Canvas = () => {
   );
 
   const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    // Reset modifierKeyPressed to false if left button is clicked along with ctrl key press
+    if (e.ctrlKey && e.button === 0) {
+      setModifierKeyPressed(false);
+      e.preventDefault();
+      return;
+    }
     if (e.button === 1) {
       const { clientX, clientY } = e;
       dispatch(setPanningParent(true));
