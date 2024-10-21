@@ -8,6 +8,9 @@ const mockSections = {
   fakeSection2: {
     id: 'fakeSection2',
     name: 'Fake Section 2',
+    css: '',
+    js_footer: '',
+    js_header: '',
     layoutModel: {
       layout: {
         nodeType: 'root',
