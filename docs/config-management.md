@@ -57,12 +57,27 @@ This adds to the product requirements listed in [`XB Components` doc](components
 (There are [more](https://docs.google.com/spreadsheets/d/1OpETAzprh6DWjpTsZG55LWgldWV_D8jNe9AM73jNaZo/edit?gid=1721130122#gid=1721130122), but these in particular affect XB's supported components.)
 
 - MUST be able to synchronize `component`s and `content type template`s from one site to another WITHOUT changes to Drupal deployment best practices
+- MUST be able to populate a `theme`'s `page template` using XB `component`s
 - MUST support auditability, assuming (to answer questions such as: which `field type` and `field widget` does a `component` use when it is instantiated, why is a given `SDC` not available as a `component` in XB, et cetera)
 
 
 ## 3. Implementation
 
 This uses the terms defined above.
+
+A HTTP API is provided to list, read, create, update and delete _some_ of these config entities. This HTTP API is
+designed to only be used by XB's (client-side) UI.
+
+XB intentionally does not use Drupal core's [JSON:API module](https://jsonapi.org/), because:
+-  requiring the Drupal JSON:API module to be installed is excessive
+-  XB's HTTP API does not need pagination support
+-  XB tracks all available Components as config entities, but those actually do not need to be exposed in full; there's
+   no need to modify them from the  client-side UI, and there already is the `/xb-components` controller for that which
+   enriches it with additional metadata, matching the UI's needs
+- XB's HTTP API does not need to surface relationships between XB's config entities — that mostly makes sense for
+  _content entity_ relationships (i.e. "entity references")
+
+See the `experience_builder.api.config.*` routes.
 
 
 ### 3.1 `Component config entity`

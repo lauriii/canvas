@@ -29,7 +29,7 @@ use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
  *    }
  *  )
  */
-final class PageTemplate extends ConfigEntityBase {
+final class PageTemplate extends ConfigEntityBase implements XbHttpApiEligibleConfigEntityInterface {
 
   use TypedDataTrait;
 
