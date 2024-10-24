@@ -13,7 +13,10 @@ export const PrimaryMenu = () => {
   const [dragging, setDragging] = useState(false);
 
   return (
-    <Panel className={clsx('MenuRoot', styles.MenuRoot)}>
+    <Panel
+      className={clsx('MenuRoot', styles.MenuRoot)}
+      data-testid="xb-menu-root"
+    >
       <SegmentedControl.Root
         defaultValue="layers"
         onValueChange={setActiveItem}

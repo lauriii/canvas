@@ -1,0 +1,83 @@
+.overlay {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  /* match the border width of the iFrame to prevent the overlay position being out by 1px */
+  border: 1px transparent solid;
+}
+
+.viewportOverlay {
+  position: absolute;
+  transition: opacity 0.1s ease-in-out;
+  opacity: 1;
+  &.isPanning {
+    transition: none;
+    opacity: 0;
+  }
+}
+
+.rootCanvasOverlay {
+  position: absolute;
+}
+
+.componentOverlay {
+  position: absolute;
+  > span {
+    display: none;
+  }
+  &.selected {
+    outline: 1px dashed var(--blue-9);
+  }
+  &.hovered {
+    outline: 1px solid var(--blue-9);
+  }
+  &.selected:not(.dragging),
+  &.hovered:not(.dragging),
+  &:focus:not(.dragging) {
+    > .sortableItem > .xbComponentControls > .xbNameTag {
+      display: block;
+    }
+  }
+  &.dragging {
+    outline: none;
+    .xbNameTag,
+    .xbAddSectionButton {
+      display: none;
+    }
+    .xbNameTagSlot {
+      display: block;
+    }
+  }
+}
+.slotOverlay {
+  position: absolute;
+  &.dropTarget {
+    outline: 1px dashed var(--color-outline-slot);
+    outline-offset: -1px;
+  }
+}
+
+.xbAddSectionButton {
+  position: absolute;
+  z-index: 3;
+  bottom: 0;
+  left: 50%;
+  display: block;
+  transform: translate(-50%, 50%);
+  white-space: nowrap;
+  opacity: 1;
+}
+.xbNameTag {
+  position: absolute;
+  z-index: 2;
+  top: -24px;
+  display: none;
+  opacity: 1;
+}
+.sortableItem {
+  width: 100%;
+  height: 100%;
+  cursor: grab;
+}

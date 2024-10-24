@@ -88,7 +88,7 @@ describe('Undo/Redo functionality', { testIsolation: false }, () => {
     cy.loadURLandWaitForXBLoaded();
 
     // Click on our "hello, world!" hero component.
-    cy.getIframeBody().findByText('hello, world!').click();
+    cy.clickComponentInPreview('Hero')
 
     // Add " one" to the heading field.
     cy.findByTestId(/^xb-component-form-.*/)

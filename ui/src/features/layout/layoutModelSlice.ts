@@ -124,14 +124,19 @@ const replaceUUIDsAndUpdateModel = (
   const oldToNewUUIDMap: Record<string, string> = {};
   const updatedModel: ComponentModels = {};
 
-  const replaceUUIDs = (node: LayoutNode): LayoutNode => {
+  const replaceUUIDs = (node: LayoutNode, parentUuid?: string): LayoutNode => {
     const newNode: LayoutNode = { ...node, uuid: uuidv4() };
+    if (newNode.nodeType === 'slot') {
+      newNode.uuid = `${parentUuid}-slot-${newNode.name}`;
+    }
 
     oldToNewUUIDMap[node.uuid] = newNode.uuid;
 
     // Recursively process children
     if (newNode.children) {
-      newNode.children = newNode.children.map(replaceUUIDs);
+      newNode.children = newNode.children.map((child) =>
+        replaceUUIDs(child, newNode.uuid),
+      );
     }
 
     return newNode;

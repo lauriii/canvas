@@ -5,6 +5,8 @@ import { forwardRef } from 'react';
 import styles from '@/features/layout/preview/Preview.module.css';
 import clsx from 'clsx';
 import type { ViewPortSize } from '@/features/layout/preview/Viewport';
+import { useAppSelector } from '@/app/hooks';
+import { selectDragging } from '@/features/ui/uiSlice';
 
 interface IFrameSwapperProps {
   srcDocument: string;
@@ -17,6 +19,7 @@ const IFrameSwapper = forwardRef<HTMLIFrameElement, IFrameSwapperProps>(
     const iFrameRefs = useRef<(HTMLIFrameElement | null)[]>([]);
     const whichActiveRef = useRef(0);
     const [whichActive, setWhichActive] = useState(0);
+    const { isDragging } = useAppSelector(selectDragging);
 
     useImperativeHandle(ref, () => {
       if (!iFrameRefs.current[0] || !iFrameRefs.current[1]) {
@@ -79,7 +82,7 @@ const IFrameSwapper = forwardRef<HTMLIFrameElement, IFrameSwapperProps>(
     }, [srcDocument, setIsReloading, swapIFrames, getIFrames]);
 
     const commonIFrameProps = {
-      className: clsx(styles.preview),
+      className: clsx(styles.preview, { [styles.interactable]: isDragging }),
       'data-xb-preview': size,
       'data-test-xb-content-initialized': 'false',
     };
@@ -87,6 +90,7 @@ const IFrameSwapper = forwardRef<HTMLIFrameElement, IFrameSwapperProps>(
     return (
       <>
         <iframe
+          tabIndex={-1}
           ref={(el) => (iFrameRefs.current[0] = el)}
           data-xb-swap-active={whichActive === 0 ? 'true' : 'false'}
           title={whichActive === 0 ? 'Preview' : 'Inactive preview'}
@@ -94,6 +98,7 @@ const IFrameSwapper = forwardRef<HTMLIFrameElement, IFrameSwapperProps>(
           {...commonIFrameProps}
         ></iframe>
         <iframe
+          tabIndex={-1}
           ref={(el) => (iFrameRefs.current[1] = el)}
           data-xb-swap-active={whichActive === 1 ? 'true' : 'false'}
           title={whichActive === 1 ? 'Preview' : 'Inactive preview'}

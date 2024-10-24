@@ -70,16 +70,8 @@ describe('Prop types editing', () => {
 
     cy.findByText('Default components').click();
     cy.get('#menuBarSubmenuContainer [data-xb-name="All props"]').click();
-    cy.findByLabelText('Zoom out').click();
-    cy.findByLabelText('Zoom out').click();
-    cy.findByLabelText('Zoom out').click();
-    cy.findByLabelText('Zoom out').click();
 
-    const allPropsSelector =
-      '[data-xb-component-id="sdc_test_all_props:all-props"]';
-    cy.waitForElementInIframe(allPropsSelector);
-    // cy.wait(4000)
-    cy.getIframeBody().find(allPropsSelector).first().trigger('click');
+    cy.clickComponentInLayersView('All props');
     cy.findByLabelText('String — single line').should('exist');
   });
 

@@ -7,7 +7,7 @@ import {
   canvasViewPortZoomIn,
   canvasViewPortZoomOut,
   scaleValues,
-  selectCanvasViewPort,
+  selectCanvasViewPortScale,
   setCanvasViewPort,
 } from '@/features/ui/uiSlice';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
@@ -15,7 +15,7 @@ import clsx from 'clsx';
 
 const ZoomControl = () => {
   const dispatch = useAppDispatch();
-  const canvasViewPort = useAppSelector(selectCanvasViewPort);
+  const canvasViewPortScale = useAppSelector(selectCanvasViewPortScale);
 
   const handleSliderChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const value = parseInt(event.target.value, 10);
@@ -36,7 +36,7 @@ const ZoomControl = () => {
   const handleDecrement = () => dispatch(canvasViewPortZoomOut());
 
   return (
-    <div className={styles.canvasControls}>
+    <div className={styles.canvasControls} data-testid="xb-canvas-controls">
       <Card size="1" className={styles.canvasCard}>
         <Flex align="center" gap="3">
           <Flex as="span" align="center" gap="3">
@@ -52,7 +52,7 @@ const ZoomControl = () => {
               type="range"
               min={scaleValues[0].scale * 100}
               max={scaleValues.at(-1)!.scale * 100}
-              value={canvasViewPort.scale * 100}
+              value={canvasViewPortScale * 100}
               onChange={handleSliderChange}
               onKeyDown={handleSliderKeyDown}
               className={styles.rangeSlider}
@@ -66,7 +66,7 @@ const ZoomControl = () => {
                 defaultValue="100%"
                 // @ts-ignore - setting value to null when scale doesn't match unsets the selected value
                 value={
-                  scaleValues.find((sv) => sv.scale === canvasViewPort.scale)
+                  scaleValues.find((sv) => sv.scale === canvasViewPortScale)
                     ?.percent || null
                 }
                 onValueChange={(value) =>
@@ -86,7 +86,7 @@ const ZoomControl = () => {
                     className={styles.zoomControlSelect}
                   >
                     <ZoomInIcon />
-                    {Math.round(canvasViewPort.scale * 100)}%
+                    {Math.round(canvasViewPortScale * 100)}%
                   </Flex>
                 </Select.Trigger>
                 <Select.Content

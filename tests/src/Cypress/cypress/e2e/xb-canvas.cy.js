@@ -34,7 +34,7 @@ describe(
 
       // Verify the initial outline matches the component's size.
       cy.get('@initialComponentRect').then((initialComponentRect) => {
-        cy.get('[data-xb-component-outline]').should(($outline) => {
+        cy.getComponentInPreview('Hero').should(($outline) => {
           expect($outline).to.exist;
           const outlineRect = $outline[0].getBoundingClientRect();
           expect(outlineRect.width).to.equal(initialComponentRect.width);
@@ -44,7 +44,7 @@ describe(
 
       cy.log('Zoom by clicking the buttons');
       cy.findByLabelText('Zoom in').click();
-      cy.findByTestId('canvasElement').should(
+      cy.findByTestId('xb-canvas-scaling').should(
         'have.css',
         'transform',
         'matrix(1.1, 0, 0, 1.1, 0, 0)',
@@ -69,7 +69,7 @@ describe(
 
       // Verify the outline matches the zoomed component's size.
       cy.get('@zoomedComponentRect').then((zoomedComponentRect) => {
-        cy.get('[data-xb-component-outline]').should(($outline) => {
+        cy.getComponentInPreview('Hero').should(($outline) => {
           expect($outline).to.exist;
           const outlineRectAfterZoom = $outline[0].getBoundingClientRect();
           // Compare the outline dimensions with the zoomed component's dimensions.
@@ -82,16 +82,8 @@ describe(
         });
       });
 
-      // Assert that the outline has a style to cancel out scaling.
-      cy.get('[data-xb-component-outline]')
-        .should('exist')
-        .first()
-        .parent()
-        .should('have.attr', 'style')
-        .and('contain', `transform: scale(${(1 / 1.1).toFixed(6)})`);
-
       cy.findByLabelText('Zoom in').click();
-      cy.findByTestId('canvasElement').should(
+      cy.findByTestId('xb-canvas-scaling').should(
         'have.css',
         'transform',
         'matrix(1.25, 0, 0, 1.25, 0, 0)',
@@ -117,7 +109,7 @@ describe(
 
       // Verify the outline size matches the original size after zoom-out.
       cy.get('@resetOutlineRect').then((resetOutlineRect) => {
-        cy.get('[data-xb-component-outline]').should(($outline) => {
+        cy.getComponentInPreview('Hero').should(($outline) => {
           expect($outline).to.exist;
           const outlineRect = $outline[0].getBoundingClientRect();
           // Assert that the outline is equal to the size of the element after zoom-out (back to 100%).
@@ -129,7 +121,7 @@ describe(
           );
         });
       });
-      cy.findByTestId('canvasElement').should(
+      cy.findByTestId('xb-canvas-scaling').should(
         'have.css',
         'transform',
         'matrix(1.1, 0, 0, 1.1, 0, 0)',
@@ -150,7 +142,7 @@ describe(
         .forEach(() => {
           cy.findByLabelText('Zoom out').click();
         });
-      cy.findByTestId('canvasElement').should(
+      cy.findByTestId('xb-canvas-scaling').should(
         'have.css',
         'transform',
         'matrix(0.75, 0, 0, 0.75, 0, 0)',
@@ -159,7 +151,7 @@ describe(
 
       cy.log('Zoom by adjusting the slider');
       cy.findByLabelText('Canvas zoom level').setRangeValue('200');
-      cy.findByTestId('canvasElement').should(
+      cy.findByTestId('xb-canvas-scaling').should(
         'have.css',
         'transform',
         'matrix(2, 0, 0, 2, 0, 0)',
@@ -167,7 +159,7 @@ describe(
       cy.findByText('200%');
 
       cy.findByLabelText('Canvas zoom level').setRangeValue('100');
-      cy.findByTestId('canvasElement').should(
+      cy.findByTestId('xb-canvas-scaling').should(
         'have.css',
         'transform',
         'matrix(1, 0, 0, 1, 0, 0)',
@@ -187,7 +179,7 @@ describe(
         'Zoom to non-step zoom level and ensure nothing is selected in the drop down.',
       );
       cy.findByLabelText('Canvas zoom level').setRangeValue('101');
-      cy.findByTestId('canvasElement').should(
+      cy.findByTestId('xb-canvas-scaling').should(
         'have.css',
         'transform',
         'matrix(1.01, 0, 0, 1.01, 0, 0)',
@@ -204,8 +196,8 @@ describe(
       cy.loadURLandWaitForXBLoaded();
 
       cy.log('Zoom in by pressing + key');
-      cy.get('html').type('+');
-      cy.findByTestId('canvasElement').should(
+      cy.get('html').realType('+');
+      cy.findByTestId('xb-canvas-scaling').should(
         'have.css',
         'transform',
         'matrix(1.1, 0, 0, 1.1, 0, 0)',
@@ -222,8 +214,8 @@ describe(
       cy.get('html').click(); // close the select menu
 
       cy.log('Zoom out by pressing - key (4 times)');
-      cy.get('html').type('----');
-      cy.findByTestId('canvasElement').should(
+      cy.get('html').realType('----');
+      cy.findByTestId('xb-canvas-scaling').should(
         'have.css',
         'transform',
         'matrix(0.75, 0, 0, 0.75, 0, 0)',
@@ -247,10 +239,10 @@ describe(
         'Zoom out by holding ctrl and using the mousewheel (or pinch on track pad)',
       );
 
-      cy.findByTestId('canvasElement').click({ force: true }); // Hold down the Control key
-      cy.findByTestId('canvasElement').triggerMouseWheelWithCtrl(-10); // Simulate mouse wheel roll
+      cy.findByTestId('xb-canvas').click({ force: true }); // Hold down the Control key
+      cy.findByTestId('xb-canvas').triggerMouseWheelWithCtrl(-10); // Simulate mouse wheel roll
 
-      cy.findByTestId('canvasElement').should(
+      cy.findByTestId('xb-canvas-scaling').should(
         'have.css',
         'transform',
         'matrix(1.1, 0, 0, 1.1, 0, 0)',
@@ -261,10 +253,10 @@ describe(
         'Zoom in by holding ctrl and using the mousewheel (or pinch on track pad)',
       );
 
-      cy.findByTestId('canvasElement').click({ force: true }); // Hold down the Control key
-      cy.findByTestId('canvasElement').triggerMouseWheelWithCtrl(20); // Simulate mouse wheel roll
+      cy.findByTestId('xb-canvas').click({ force: true }); // Hold down the Control key
+      cy.findByTestId('xb-canvas').triggerMouseWheelWithCtrl(20); // Simulate mouse wheel roll
 
-      cy.findByTestId('canvasElement').should(
+      cy.findByTestId('xb-canvas-scaling').should(
         'have.css',
         'transform',
         'matrix(0.9, 0, 0, 0.9, 0, 0)',

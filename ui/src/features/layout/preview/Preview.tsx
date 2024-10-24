@@ -1,9 +1,7 @@
 import type React from 'react';
-
 import { useEffect, useState } from 'react';
 import { useErrorBoundary } from 'react-error-boundary';
 import { useAppSelector } from '@/app/hooks';
-
 import {
   selectLayout,
   selectModel,
@@ -47,7 +45,7 @@ const Preview: React.FC<PreviewProps> = () => {
         showBoundary(err);
       }
     };
-    if (initialized === true) {
+    if (initialized) {
       sendPreviewRequest().then(() => {});
     }
   }, [layout, model, postPreview, initialized, showBoundary]);

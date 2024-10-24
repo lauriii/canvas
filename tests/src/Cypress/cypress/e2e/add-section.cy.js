@@ -77,10 +77,8 @@ describe(
       );
       // Check that the menu is not open yet.
       cy.get('#menuBarContainer').should('be.empty');
-      cy.getIframeBody()
-        .find('[data-xb-component-id="experience_builder:image"]')
-        .first()
-        .trigger('click');
+      cy.clickComponentInPreview('Image');
+
       cy.findAllByLabelText('Add component')
         .first()
         .click({ scrollBehavior: 'center' });

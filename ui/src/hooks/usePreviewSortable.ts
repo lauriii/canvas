@@ -13,7 +13,11 @@ import {
   selectModel,
   sortNode,
 } from '@/features/layout/layoutModelSlice';
-import { setPreviewDragging } from '@/features/ui/uiSlice';
+import {
+  setPreviewDragging,
+  setTargetSlot,
+  unsetTargetSlot,
+} from '@/features/ui/uiSlice';
 import { findNodePathByUuid } from '@/features/layout/layoutUtils';
 import { useGetComponentsQuery } from '@/services/components';
 import { useGetSectionsQuery } from '@/services/sections';
@@ -54,6 +58,7 @@ function usePreviewSortable(iframe: HTMLIFrameElement | null) {
 
   const updateData = useCallback(
     (ev: Sortable.SortableEvent, sort: boolean) => {
+      dispatch(unsetTargetSlot());
       if (typeof ev.newDraggableIndex !== 'number') {
         return;
       }
@@ -172,16 +177,16 @@ function usePreviewSortable(iframe: HTMLIFrameElement | null) {
     [],
   );
 
-  const handleChange = useCallback((ev: Sortable.SortableEvent) => {
-    iframeDocumentRef.current
-      ?.querySelectorAll('.xb--sortable-slot-hover')
-      .forEach((el) => {
-        el.classList.remove('xb--sortable-slot-hover');
-      });
-    ev.to
-      .closest('[data-xb-component-id="slot"]')
-      ?.classList.add('xb--sortable-slot-hover');
-  }, []);
+  const handleChange = useCallback(
+    (ev: Sortable.SortableEvent) => {
+      if (ev.to.dataset.xbUuid) {
+        dispatch(setTargetSlot(ev.to.dataset.xbUuid));
+      } else {
+        dispatch(unsetTargetSlot());
+      }
+    },
+    [dispatch],
+  );
 
   const handleDragEnd = useCallback(
     (ev: Sortable.SortableEvent) => {
@@ -193,12 +198,6 @@ function usePreviewSortable(iframe: HTMLIFrameElement | null) {
       if (ev.to === ev.from) {
         updateData(ev, true);
       }
-
-      iframeDocumentRef.current
-        ?.querySelectorAll('.xb--sortable-slot-hover')
-        .forEach((el) => {
-          el.classList.remove('xb--sortable-slot-hover');
-        });
     },
     [dispatch, updateData],
   );
@@ -218,7 +217,7 @@ function usePreviewSortable(iframe: HTMLIFrameElement | null) {
         group: {
           name: 'layout',
           pull: true,
-          put: ['layout', 'list'],
+          put: ['list'],
           revertClone: false,
         },
         dataIdAttr: 'data-xb-uuid',

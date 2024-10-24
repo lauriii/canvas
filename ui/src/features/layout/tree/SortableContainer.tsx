@@ -4,14 +4,13 @@ import { useRef, useEffect, useState } from 'react';
 import Sortable from 'sortablejs';
 import { useAppSelector } from '@/app/hooks';
 import type { LayoutNode } from '@/features/layout/layoutModelSlice';
-import { selectLayout, selectModel } from '@/features/layout/layoutModelSlice';
+import { selectLayout } from '@/features/layout/layoutModelSlice';
 import useSortable from '@/features/layout/tree/useSortable';
 import * as Collapsible from '@radix-ui/react-collapsible';
 import TreeItem from '@/features/layout/tree/TreeItem';
 import { TriangleDownIcon, TriangleRightIcon } from '@radix-ui/react-icons';
 import clsx from 'clsx';
 import { getNodeDepth } from '@/features/layout/layoutUtils';
-import { customSortableDragImage } from '@/features/sortable/sortableUtils';
 
 interface SortableContainerProps {
   node: LayoutNode;
@@ -26,7 +25,6 @@ const SortableContainer: React.FC<SortableContainerProps> = (props) => {
   const { handleDragAdd, handleDragStart, handleDragEnd } = useSortable();
   const [open, setOpen] = useState(false);
   const isSlotEmpty = node.children.length === 0;
-  const model = useAppSelector(selectModel);
 
   useEffect(() => {
     if (sortableRef?.current !== null) {
@@ -34,8 +32,7 @@ const SortableContainer: React.FC<SortableContainerProps> = (props) => {
         sortableRef.current as HTMLDivElement,
         {
           dataIdAttr: 'data-xb-uuid',
-          animation: 150,
-          fallbackOnBody: true, // Recommended to set to true when using animation.
+          animation: 0,
           onAdd: handleDragAdd,
           invertSwap: true,
           ghostClass: styles.xbCustomGhost,
@@ -112,20 +109,20 @@ const SortableContainer: React.FC<SortableContainerProps> = (props) => {
 
   return (
     <Collapsible.Root
-      className="CollapsibleRoot"
+      className="xb--collapsible-root"
       open={open}
       onOpenChange={setOpen}
-      onDragStart={(event) => {
-        event.stopPropagation();
-        customSortableDragImage(event, window.document, model[node.uuid].name);
-      }}
       data-xb-uuid={node.uuid}
     >
       <TreeItem node={node}>
         {/* Only show the trigger if the slot has children */}
         {!isSlotEmpty && (
           <Collapsible.Trigger asChild={true}>
-            <button>
+            <button
+              aria-label={
+                open ? `Collapse component tree` : `Expand component tree`
+              }
+            >
               {open ? <TriangleDownIcon /> : <TriangleRightIcon />}
             </button>
           </Collapsible.Trigger>

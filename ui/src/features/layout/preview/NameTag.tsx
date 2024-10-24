@@ -6,16 +6,16 @@ import clsx from 'clsx';
 import { BoxModelIcon } from '@radix-ui/react-icons';
 
 interface NameTagProps {
-  elementId: string;
+  componentUuid: string;
   selected: boolean;
   nodeType: string;
 }
 
 const NameTag: React.FC<NameTagProps> = (props) => {
-  const { elementId, selected, nodeType } = props;
+  const { componentUuid, selected, nodeType } = props;
 
   const model = useAppSelector(selectModel);
-  const component = model[elementId];
+  const component = model[componentUuid];
   const name = nodeType === 'slot' ? 'Slot' : component?.name;
 
   return (
@@ -27,7 +27,7 @@ const NameTag: React.FC<NameTagProps> = (props) => {
       )}
     >
       <BoxModelIcon width={10} height={10} />
-      {name}
+      <span id={`${componentUuid}-name`}>{name}</span>
     </div>
   );
 };

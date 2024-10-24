@@ -62,16 +62,12 @@ This file is included as an attached Drupal library and as such is subject to CS
 }
 
 .xb--sortable-clone {
+  pointer-events: none;
   opacity: 0.2;
 }
 
 [data-xb-component-id="slot"] {
   height: 100%;
-}
-
-.xb--sortable-slot-hover {
-  outline: 1px solid var(--xb--blue-9);
-  outline-offset: -1px;
 }
 
 .xb--sortable-slot-hover[data-xb-slot-is-empty] *:not(.xb--sortable-ghost) {

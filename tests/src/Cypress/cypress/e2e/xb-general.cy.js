@@ -1,4 +1,4 @@
-describe('General Experience Builder', { testIsolation: false }, () => {
+describe('General Experience Builder', {testIsolation: false}, () => {
   before(() => {
     cy.drupalXbInstall();
   });
@@ -125,7 +125,7 @@ describe('General Experience Builder', { testIsolation: false }, () => {
       });
 
     // After hovering, the component should be outlined for both small and large viewports.
-    cy.get('[data-xb-component-outline]')
+    cy.getComponentInPreview('Hero')
       .should(($outline) => {
         expect($outline).to.exist;
         // Ensure the width is set before moving on to then().
@@ -138,8 +138,6 @@ describe('General Experience Builder', { testIsolation: false }, () => {
         expect(outlineRect.width).to.equal(lgPreviewRect.width);
         expect(outlineRect.height).to.equal(lgPreviewRect.height);
         expect($outline).to.have.css('position', 'absolute');
-        expect($outline).to.have.css('top', '0px');
-        expect($outline).to.have.css('left', '0px');
       });
 
     // Get the dimensions of the highlighted component in the small preview, so
@@ -159,7 +157,7 @@ describe('General Experience Builder', { testIsolation: false }, () => {
 
     // Get the small preview outline and confirm its dimensions match the
     // corresponding component,
-    cy.get('[data-xb-preview="sm"] ~ div > [data-xb-component-outline]')
+    cy.getComponentInPreview('Hero', 0, 'sm')
       .should(($outline) => {
         expect($outline).to.exist;
         // Ensure the width is set before moving on to then().
@@ -172,15 +170,10 @@ describe('General Experience Builder', { testIsolation: false }, () => {
         expect(outlineRect.width).to.equal(smPreviewRect.width);
         expect(outlineRect.height).to.equal(smPreviewRect.height);
         expect($outline).to.have.css('position', 'absolute');
-        expect($outline).to.have.css('top', '0px');
-        expect($outline).to.have.css('left', '0px');
       });
 
     // Click the component to trigger the opening of the right drawer.
-    cy.getIframeBody()
-      .find('[data-component-id="experience_builder:my-hero"] h1')
-      .first()
-      .trigger('click');
+    cy.clickComponentInPreview('Hero');
 
     // The right panel has opened.
     cy.findByTestId('xb-contextual-panel').should('exist');
@@ -348,19 +341,9 @@ describe('General Experience Builder', { testIsolation: false }, () => {
     cy.loadURLandWaitForXBLoaded();
 
     // Find and alias the UUID of the "my-hero" component.
-    cy.getIframeBody()
-      .find('[data-xb-component-id="experience_builder:my-hero"]')
-      .should('have.length', 3)
-      .last()
-      .invoke('attr', 'data-xb-uuid')
-      .as('cid1');
+    cy.getComponentInPreview('Hero', 2).find('.xb--sortable-item').invoke('attr', 'data-xb-uuid').as('cid1');
     // Find and alias the UUID of the "image" component.
-    cy.getIframeBody()
-      .find('[data-xb-component-id="experience_builder:image"]')
-      .should('have.length', 2)
-      .last()
-      .invoke('attr', 'data-xb-uuid')
-      .as('cid2');
+    cy.getComponentInPreview('Image', 1).find('.xb--sortable-item').invoke('attr', 'data-xb-uuid').as('cid2');
 
     // Ensure both aliases are retrieved and compare them.
     cy.get('@cid1').then((uuid1) => {
@@ -371,45 +354,35 @@ describe('General Experience Builder', { testIsolation: false }, () => {
 
     // Click component 1.
     cy.get('@cid1').then((cid1) => {
-      cy.getIframeBody()
-        .find(`[data-xb-component-id="experience_builder:my-hero"]`)
-        .then((heroes) => {
-          heroes.filter(`[data-xb-uuid="${cid1}"]`).find('h1').trigger('click');
-          // Make sure the contextual panel opens for the clicked component.
-          cy.findByTestId(`xb-contextual-panel-${cid1}`).should('exist');
-          // Make sure the component form is rendered for the clicked component.
-          cy.findByTestId(`xb-component-form-${cid1}`).should('exist');
-          // Now on a path specific to that component.
-          cy.url().should((url) => {
-            expect(
-              url,
-              `After clicking on ${cid1}, path should include '/xb/node/1/component/${cid1}'`,
-            ).to.contain(`/xb/node/1/component/${cid1}`);
-          });
-        });
+      cy.clickComponentInPreview('Hero', 2);
+      // Make sure the contextual panel opens for the clicked component.
+      cy.findByTestId(`xb-contextual-panel-${cid1}`).should('exist');
+      // Make sure the component form is rendered for the clicked component.
+      cy.findByTestId(`xb-component-form-${cid1}`).should('exist');
+      // Now on a path specific to that component.
+      cy.url().should((url) => {
+        expect(
+          url,
+          `After clicking on ${cid1}, path should include '/xb/node/1/component/${cid1}'`,
+        ).to.contain(`/xb/node/1/component/${cid1}`);
+      });
     });
 
     // Click component 2.
     cy.get('@cid2').then((cid2) => {
-      cy.getIframeBody()
-        .find(`[data-xb-component-id="experience_builder:image"]`)
-        .then((images) => {
-          images
-            .filter(`[data-xb-uuid="${cid2}"]`)
-            .find('img')
-            .trigger('click');
-          // Make sure the contextual panel opens for the clicked component.
-          cy.findByTestId(`xb-contextual-panel-${cid2}`).should('exist');
-          // Make sure the component form is rendered for the clicked component.
-          cy.findByTestId(`xb-component-form-${cid2}`).should('exist');
-          // Now on a path specific to that component.
-          cy.url().should((url) => {
-            expect(
-              url,
-              `After clicking on ${cid2}, path should include '/xb/node/1/component/${cid2}'`,
-            ).to.contain(`/xb/node/1/component/${cid2}`);
-          });
-        });
+      cy.clickComponentInPreview('Image', 1);
+
+      // Make sure the contextual panel opens for the clicked component.
+      cy.findByTestId(`xb-contextual-panel-${cid2}`).should('exist');
+      // Make sure the component form is rendered for the clicked component.
+      cy.findByTestId(`xb-component-form-${cid2}`).should('exist');
+      // Now on a path specific to that component.
+      cy.url().should((url) => {
+        expect(
+          url,
+          `After clicking on ${cid2}, path should include '/xb/node/1/component/${cid2}'`,
+        ).to.contain(`/xb/node/1/component/${cid2}`);
+      });
     });
 
     cy.go('back');
@@ -467,8 +440,8 @@ describe('General Experience Builder', { testIsolation: false }, () => {
     // Note the times: 1 option, which ensures the request is only intercepted
     // once.
     cy.intercept(
-      { url: '**/api/preview/node/1', times: 1 },
-      { statusCode: 418 },
+      {url: '**/api/preview/node/1', times: 1},
+      {statusCode: 418},
     );
     cy.drupalRelativeURL('xb/node/1');
 
@@ -507,10 +480,7 @@ describe('General Experience Builder', { testIsolation: false }, () => {
     );
 
     // Select the component and ensure it's focused
-    cy.getIframeBody()
-      .find(`[data-xb-component-id="experience_builder:my-hero"]`)
-      .first()
-      .click();
+    cy.clickComponentInPreview('Hero');
 
     cy.getIframeBody().realType('{del}');
     cy.previewReady();
@@ -522,26 +492,18 @@ describe('General Experience Builder', { testIsolation: false }, () => {
         expect(myHeroComponent.length).to.equal(2);
       },
     );
-    cy.getIframeBody()
-      .find(`[data-xb-component-id="experience_builder:my-hero"]`)
-      .first()
-      .click();
 
-    cy.get('[data-xb-uuid="root"]').click();
-    cy.realPress('{del}');
-    cy.previewReady();
     cy.getIframeBody()
-      .find('[data-component-id="experience_builder:two_column"] .column-one')
+      .find('[data-component-id="experience_builder:two_column"]')
       .should('have.length', 1);
 
     // Deleting from the content menu.
-    cy.get('[data-xb-uuid="root"]').findByText('Two Column').click();
+    cy.clickComponentInLayersView('Two Column');
     cy.realPress('{del}');
-    cy.previewReady();
 
-    cy.get('[data-xb-uuid="root"]')
-      .findByText('Two Column')
-      .should('not.exist');
+    cy.get('.primaryMenuContent').findByLabelText('Two Column').should('not.exist');
+    cy.previewReady();
+    cy.get(`#xbPreviewOverlay`).findAllByLabelText('Two Column').should('not.exist');
   });
 
   it('Insert panel should close when clicking off', () => {
@@ -584,7 +546,7 @@ describe('General Experience Builder', { testIsolation: false }, () => {
         .reduce((acc, _, index) => {
           const paddedIndex = String(index + 1).padStart(2, '0');
           const id = `experience_builder:component_${paddedIndex}`;
-          acc[id] = { id, name: `Component ${paddedIndex}` };
+          acc[id] = {id, name: `Component ${paddedIndex}`};
           return acc;
         }, {}),
     }).as('getComponents');
@@ -597,7 +559,7 @@ describe('General Experience Builder', { testIsolation: false }, () => {
     cy.wait('@getComponents');
 
     cy.get('#menuBarSubmenuContainer .MenubarSubContent')
-      .realMouseWheel({ deltaY: 2000 })
+      .realMouseWheel({deltaY: 2000})
       .then(() => {
         cy.get(
           '[data-xb-component-id="experience_builder:component_50"]',
@@ -618,7 +580,7 @@ describe('General Experience Builder', { testIsolation: false }, () => {
       });
 
     // Click a Hero component to open the component form.
-    cy.getIframeBody().findByText('hello, world!').click();
+    cy.clickComponentInPreview('Hero')
 
     // `@componentFormHeading`
     cy.findByTestId(/^xb-component-form-.*/)
@@ -717,7 +679,7 @@ describe('General Experience Builder', { testIsolation: false }, () => {
     // Click on the Add component button of image component
     cy.findAllByLabelText('Add component')
       .first()
-      .click({ scrollBehavior: 'center' });
+      .click({scrollBehavior: 'center'});
     // Click Heading in the side menu
     cy.get('#menuBarSubmenuContainer').findByText('Heading').click();
     // Check if heading component has been added in the preview
@@ -726,7 +688,7 @@ describe('General Experience Builder', { testIsolation: false }, () => {
       'A heading element',
     );
     // Find added Heading component above and click on it
-    cy.getIframeBody().findByText('A heading element').click();
+    cy.clickComponentInPreview('Heading');
 
     // Find the Element enum/select component and check for None option - it should not be there
     cy.findByTestId(/^xb-component-form-.*/)

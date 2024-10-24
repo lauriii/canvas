@@ -75,13 +75,12 @@ function useSyncElementSize(
     if (!element) {
       return;
     }
-    const resizeObserver = new ResizeObserver((entries) => {
+    resizeObserverRef.current = new ResizeObserver((entries) => {
       entries.forEach(() => {
         recalculateBorder();
       });
     });
-    resizeObserver.observe(element);
-    resizeObserverRef.current = resizeObserver;
+    resizeObserverRef.current.observe(element);
   }, [recalculateBorder, elementId, iframe]);
 
   useEffect(() => {

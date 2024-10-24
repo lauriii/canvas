@@ -1,5 +1,6 @@
 import type React from 'react';
 import type { MoveEvent as SortableMoveEvent } from 'sortablejs';
+import Sortable from 'sortablejs';
 
 export function customSortableDragImage(
   event: DragEvent | React.DragEvent,
@@ -95,4 +96,19 @@ export function isDropTargetInSlotAllowedByEdgeDistance(
     return Math.abs(distanceFromEdge) >= edgeThreshold;
   }
   return true;
+}
+
+export function getSortableGroupName(el: HTMLElement): string {
+  let name = '';
+  const sortableOptions = Sortable.get(el)?.options;
+  if (!sortableOptions) {
+    return name;
+  }
+  const group = sortableOptions.group;
+  if (typeof group === 'string') {
+    name = group;
+  } else if (typeof group === 'object' && group.name) {
+    name = group.name;
+  }
+  return name;
 }

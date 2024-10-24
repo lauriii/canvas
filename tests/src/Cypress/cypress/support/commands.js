@@ -553,7 +553,7 @@ Cypress.Commands.add(
 );
 
 Cypress.Commands.add('getElementScaledDimensions', ($item) => {
-  cy.findByTestId('canvasElement').then(($parent) => {
+  cy.findByTestId('xb-canvas-scaling').then(($parent) => {
     const computedStyle = window.getComputedStyle($parent[0]);
     const matrix = computedStyle.transform;
     if (matrix !== 'none') {
@@ -579,3 +579,113 @@ Cypress.Commands.add('getElementScaledDimensions', ($item) => {
     };
   });
 });
+
+Cypress.Commands.add('clickComponentInPreview', (componentName, index= 0, viewportSize="lg") => {
+  cy.get(`#xbPreviewOverlay .xb--viewport-overlay[data-xb-viewport-size="${viewportSize}"]`)
+    .findAllByLabelText(componentName).eq(index).click({scrollBehavior:'center'});
+});
+
+Cypress.Commands.add('getComponentInPreview', (componentName, index= 0, viewportSize="lg") => {
+  return cy.get(`#xbPreviewOverlay .xb--viewport-overlay[data-xb-viewport-size="${viewportSize}"]`)
+    .findAllByLabelText(componentName).eq(index)
+});
+
+Cypress.Commands.add('clickComponentInLayersView', (componentName, index= 0) => {
+  cy.get('.primaryMenuContent').findAllByLabelText(componentName).eq(index).click({force: true});
+});
+
+
+Cypress.Commands.add('checkSiblings', (firstQuery, secondQuery) => {
+  // Function to resolve elements from a query (either string or chain)
+  const resolveElement = (query) => {
+    if (typeof query === 'string') {
+      return cy.get(query);
+    }
+    return query;
+  };
+
+  // Resolve both elements
+  resolveElement(firstQuery).then(($firstElements) => {
+    resolveElement(secondQuery).then(($secondElements) => {
+      let siblingPairs = [];
+
+      // Iterate over each pair of elements to check sibling relationships
+      $firstElements.each((_, firstElement) => {
+        $secondElements.each((_, secondElement) => {
+          const firstParent = Cypress.$(firstElement).parent();
+          const secondParent = Cypress.$(secondElement).parent();
+
+          // Check if they have the same parent
+          if (firstParent[0] === secondParent[0]) {
+            siblingPairs.push({ firstElement, secondElement });
+          }
+        });
+      });
+
+      // Expect that at least one pair of elements are siblings
+      expect(siblingPairs.length).to.be.greaterThan(0);
+    });
+  });
+});
+
+/**
+ * Hide the left, right, top and zoom control panels so that they don't get
+ * in the way when cypress is performing visibility checks etc.
+ */
+Cypress.Commands.add('hidePanels', () => {
+  function hide($el) {
+    $el.css({'display': 'none'});
+  }
+
+  cy.findByTestId('xb-menu-root').then(hide)
+  cy.findByTestId('xb-topbar').then(hide)
+  cy.findByTestId('xb-contextual-panel').then(hide)
+  cy.findByTestId('xb-canvas-controls').then(hide)
+})
+
+/**
+ * Show the left, right, top and zoom control panels after they have been hidden with cy.hidePanels();
+ */
+Cypress.Commands.add('showPanels', () => {
+  function show($el) {
+    $el.css({'display': ''});
+  }
+
+  cy.findByTestId('xb-menu-root').then(show)
+  cy.findByTestId('xb-topbar').then(show)
+  cy.findByTestId('xb-contextual-panel').then(show)
+  cy.findByTestId('xb-canvas-controls').then(show)
+})
+
+/**
+ * Set the canvas to be static and scrollable so that Cypress is better able to interact with elements in the canvas.
+ */
+Cypress.Commands.add('disableCanvasPanning', () => {
+  cy.findByTestId('xb-canvas').then(($canvas) => {
+    $canvas.css({padding: '100px 0 0 0'});
+  })
+
+  cy.findByTestId('xb-canvas').parent().then(($parent) => {
+    $parent.css({overflow: 'visible', display: 'block', position: 'static'});
+  })
+  cy.get('body').then(($body) => {
+    $body.css({overflow: 'visible'});
+  })
+})
+
+/**
+ * Reset the canvas to its normal behavior after disabling it with cy.disableCanvasPanning();
+ */
+Cypress.Commands.add('reEnableCanvasPanning', () => {
+  cy.findByTestId('xb-canvas').then(($canvas) => {
+    $canvas.css({padding: ''});
+  })
+
+  cy.findByTestId('xb-canvas').parent().then(($parent) => {
+    $parent.css({overflow: '', display: '', position: ''});
+  })
+  cy.get('body').then(($body) => {
+    $body.css({overflow: ''});
+  })
+})
+

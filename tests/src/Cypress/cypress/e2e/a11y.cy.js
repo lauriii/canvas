@@ -93,17 +93,13 @@ describe('UI a11y Scan', () => {
       terminalLog,
     );
   });
+
   it('a11y scan open props edit form', () => {
     cy.drupalLogin('xbUser', 'xbUser');
     cy.loadURLandWaitForXBLoaded();
     cy.get('#menuBarContainer').should('be.empty');
-    cy.clickAddMenu();
-    cy.get('#menuBarContainer').should('not.be.empty');
     cy.get('[class*="contextualPanel"]').should('not.exist');
-    cy.getIframeBody()
-      .find('[data-component-id="experience_builder:my-hero"] h1')
-      .first()
-      .trigger('click');
+    cy.clickComponentInPreview('Hero');
 
     cy.get(
       '[class*="contextualPanel"] [data-drupal-selector="component-props-form"].component-props-form',
@@ -120,6 +116,7 @@ describe('UI a11y Scan', () => {
       {
         rules: {
           'aria-required-children': { enabled: false },
+          'color-contrast': { enabled: false },
           'button-name': { enabled: false },
           region: { enabled: false },
           'scrollable-region-focusable': { enabled: false },

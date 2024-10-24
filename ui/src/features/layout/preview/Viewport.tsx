@@ -1,23 +1,14 @@
 import styles from './Preview.module.css';
 import type React from 'react';
 import { useRef, useEffect, useState } from 'react';
-import { useAppDispatch, useAppSelector } from '@/app/hooks';
+import { useAppDispatch } from '@/app/hooks';
 import { Progress } from '@radix-ui/themes';
-import {
-  selectDragging,
-  selectPanning,
-  selectHoveredComponent,
-  selectSelectedComponent,
-  setFirstLoadComplete,
-} from '@/features/ui/uiSlice';
-import Outline from '@/features/layout/preview/Outline';
-import useIframeKeyHandlers from '@/hooks/useIframeKeyHandlers';
+import { setFirstLoadComplete } from '@/features/ui/uiSlice';
 import useSyncIframeHeightToContent from '@/hooks/useSyncIframeHeightToContent';
 import ViewportToolbar from '@/features/layout/preview/ViewportToolbar';
-import RightClickMenu from '@/features/layout/preview/RightClickMenu';
 import IframeSwapper from '@/features/layout/preview/IframeSwapper';
 import usePreviewSortable from '@/hooks/usePreviewSortable';
-import usePreviewComponentInteractions from '@/hooks/usePreviewComponentInteractions';
+import ViewportOverlay from '@/features/layout/previewOverlay/ViewportOverlay';
 
 export type ViewPortSize = 'lg' | 'sm';
 export interface ViewportProps {
@@ -36,24 +27,14 @@ const Viewport: React.FC<ViewportProps> = (props) => {
   const progressTimerRef = useRef<number | null>();
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const previewContainerRef = useRef<HTMLDivElement>(null);
-  const selectedComponent = useAppSelector(selectSelectedComponent);
-  const hoveredComponent = useAppSelector(selectHoveredComponent);
-
-  const { isDragging } = useAppSelector(selectDragging);
-  const { isPanning } = useAppSelector(selectPanning);
   const dispatch = useAppDispatch();
 
-  useIframeKeyHandlers(iframeRef.current);
   usePreviewSortable(iframeRef.current);
   useSyncIframeHeightToContent(
     iframeRef.current,
     previewContainerRef.current,
     height,
     width,
-  );
-  const mouseEventPosition = usePreviewComponentInteractions(
-    iframeRef.current,
-    size,
   );
 
   useEffect(() => {
@@ -104,30 +85,7 @@ const Viewport: React.FC<ViewportProps> = (props) => {
           size={size}
           setIsReloading={setIsReloading}
         />
-        {hoveredComponent && (
-          <RightClickMenu
-            iframeRef={iframeRef}
-            elementId={hoveredComponent}
-            viewportSize={size}
-            mouseEventPosition={mouseEventPosition}
-          />
-        )}
-        {!isDragging && !isPanning && (
-          <>
-            <Outline
-              elementId={selectedComponent}
-              iframeRef={iframeRef}
-              selected={true}
-            />
-            {selectedComponent !== hoveredComponent && (
-              <Outline
-                elementId={hoveredComponent}
-                iframeRef={iframeRef}
-                selected={false}
-              />
-            )}
-          </>
-        )}
+        <ViewportOverlay iframeRef={iframeRef} size={size} />
       </div>
     </div>
   );

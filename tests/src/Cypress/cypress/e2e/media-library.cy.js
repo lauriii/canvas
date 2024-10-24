@@ -22,10 +22,7 @@ describe('Media Library', () => {
 
     cy.get('[class*="contextualPanel"]').should('not.exist');
 
-    cy.getIframeBody()
-      .find('[data-xb-component-id="experience_builder:image"] img')
-      .last()
-      .trigger('click');
+    cy.clickComponentInPreview('Image', 1);
 
     cy.get('[class*="contextualPanel"]').should('exist');
 
@@ -52,10 +49,7 @@ describe('Media Library', () => {
     // Use the Media Library widget an additional time. This effectively
     // confirms that XBEndpointRenderer is not loading JS assets that already
     // exist on the page.
-    cy.getIframeBody()
-      .find('[data-xb-component-id="experience_builder:image"] img')
-      .first()
-      .trigger('click');
+    cy.clickComponentInPreview('Image');
 
     cy.get('[class*="contextualPanel"]').should('exist');
     cy.get('div[role="dialog"]').should('not.exist');

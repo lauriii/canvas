@@ -15,80 +15,112 @@ describe(
       cy.drupalLogin('xbUser', 'xbUser');
     });
 
-    // @todo: Remove cy.wait usages and instead wait for a change in the UI.
-    //    https://www.drupal.org/project/experience_builder/issues/3470490
-    it('Drag a component from the column one slot to the root level then to the column two slot', () => {
+
+    function preparePage() {
       cy.loadURLandWaitForXBLoaded();
-      cy.get('.primaryMenuContent').find('.treeItem[data-xb-uuid="two-column-uuid"]').find('button').click();
-      cy.get('.primaryMenuContent').find('.treeItem[data-xb-uuid="two-column-uuid-slot-column_one"]').find('button').click();
 
+      cy.get('#xbPreviewOverlay .xb--viewport-overlay').first().as('desktopPreviewOverlay');
+      cy.get('.primaryMenuContent').as('layersTree');
+
+      // TODO don't even have this image here in the first place! For now, we delete it
+      cy.clickComponentInPreview('Image', 1);
+      cy.realType('{del}');
+
+      // Open the layers in the Tree.
+      cy.get('@layersTree').findByText('Two Column').parents('.treeItem').findByLabelText('Expand component tree').click();
+      cy.get('@layersTree').findAllByText('Slot').first().parents('.treeItem').findByLabelText('Expand component tree').click();
+      cy.get('@layersTree').findAllByText('Image').should('be.visible');
+      cy.get('@layersTree').findAllByText('Hero').should('be.visible');
+    }
+
+    function assertInitialPageState() {
       // Before dragging, check that the component is in the column one slot in the layers menu and preview.
-      cy.get('.treeItem[data-xb-uuid="dynamic-image-udf7d"]').parent('[data-xb-uuid="two-column-uuid-slot-column_one"]').should('exist');
-      cy.get('.treeItem[data-xb-uuid="dynamic-image-udf7d"]').siblings('.CollapsibleRoot').should('not.exist');
-      cy.getIframeBody().find('[data-xb-uuid="dynamic-image-udf7d"]').parent('[data-xb-uuid="two-column-uuid-slot-column_one"]').should('exist');
-      cy.getIframeBody().find('[data-xb-uuid="dynamic-image-udf7d"]').siblings('[data-xb-uuid="two-column-uuid"]').should('not.exist');
+      cy.log('Image component exists in the first slot in the layers panel');
+      cy.get('@layersTree').within(()=> {
+        cy.findAllByText('Slot').first().closest('.xb--collapsible-root').within(()=>{
+          cy.findAllByText('Image');
+        })
+      })
 
-      // Drag image component out of the slot and to the root level.
+      cy.log('Image component exists in the first slot in the overlay UI');
+      cy.get('@desktopPreviewOverlay').within(()=>{
+        cy.findByLabelText('Two Column column_one').within(()=>{
+          cy.findByLabelText('Image');
+        })
+      });
+    }
+
+    function assertPageStateAfterFirstDrag() {
+      cy.log('Image component no longer exists in the first slot in the layers panel and is now a sibling of Two Column');
+      cy.get('@layersTree').within(()=> {
+        cy.findAllByText('Slot').first().closest('.xb--collapsible-root').within(()=>{
+          cy.findAllByText('Image').should('not.exist');
+        });
+        cy.checkSiblings(cy.findByLabelText('Two Column').parents('.xb--collapsible-root'), cy.findByLabelText('Image') );
+      })
+
+      cy.log('Image component no longer exists in the first slot in the overlay UI and is now a sibling of Two Column');
+      cy.get('@desktopPreviewOverlay').within(()=>{
+        cy.findByLabelText('Two Column column_one').within(()=>{
+          cy.findByLabelText('Image').should('not.exist');
+        });
+        cy.checkSiblings(cy.findByLabelText('Two Column'), cy.findByLabelText('Image') );
+      });
+    }
+
+    it('Drag a component from the column one slot to the root level then to the column two slot', () => {
+
+      preparePage();
+      assertInitialPageState();
+
+
+      cy.log('Drag image component out of the slot and to the root level.');
       cy.get('.treeItem[data-xb-uuid="dynamic-image-udf7d"]').realDnd('.rootDropZone[data-xb-type="root"]');
-      cy.wait(1000);
 
-      // After dragging, check that the component is now in the root level of the layers menu and preview by checking that the two column SDC is a sibling.
-      cy.get('.treeItem[data-xb-uuid="dynamic-image-udf7d"]').parent('[data-xb-uuid="two-column-uuid-slot-column_one"]').should('not.exist');
-      cy.get('.treeItem[data-xb-uuid="dynamic-image-udf7d"]').siblings('.CollapsibleRoot').children('.treeItem[data-xb-uuid="two-column-uuid"]').should('exist');
-      cy.getIframeBody().find('[data-xb-uuid="dynamic-image-udf7d"]').parent('[data-xb-uuid="two-column-uuid-slot-column_one"]').should('not.exist');
-      cy.getIframeBody().find('[data-xb-uuid="dynamic-image-udf7d"]').siblings('[data-xb-uuid="two-column-uuid"]').should('exist');
+      assertPageStateAfterFirstDrag();
 
       // Next, drag the image component from the root level to column two's slot.
-      cy.get('.primaryMenuContent').find('.treeItem[data-xb-uuid="two-column-uuid-slot-column_two"]').find('button').click();
-      cy.get('.treeItem[data-xb-uuid="dynamic-image-udf7d"]').realDnd('[data-xb-uuid="dynamic-static-card2df"]', { position: 'bottom'});
-      cy.wait(1000);
+      cy.get('@layersTree').within(()=>{
+        cy.findAllByText('Slot').eq(1).parents('.treeItem').findByLabelText('Expand component tree').click();
+        cy.get('.treeItem[data-xb-uuid="dynamic-image-udf7d"]').realDnd('[data-xb-uuid="dynamic-static-card2df"]', { position: 'bottom'});
+      });
 
-      // After dragging, check that the component is now in column two's slot in the layers menu and preview.
-      cy.get('.treeItem[data-xb-uuid="dynamic-image-udf7d"]').parent('[data-xb-uuid="two-column-uuid-slot-column_two"]').should('exist');
-      cy.get('.treeItem[data-xb-uuid="dynamic-image-udf7d"]').siblings('.CollapsibleRoot').should('not.exist');
-      // Also check the preview updated.
-      cy.getIframeBody().find('[data-xb-uuid="dynamic-image-udf7d"]').parent('[data-xb-uuid="two-column-uuid-slot-column_two"]').should('exist');
-      cy.getIframeBody().find('[data-xb-uuid="dynamic-image-udf7d"]').siblings('[data-xb-uuid="two-column-uuid"]').should('not.exist');
+
+      // After dragging, check that the image is now in column two's slot in the layers menu and preview.
+      cy.log('Image component exists in the second slot in the layers panel');
+      cy.get('@layersTree').within(()=> {
+        cy.findAllByText('Slot').eq(1).closest('.xb--collapsible-root').within(()=>{
+          cy.findAllByText('Image');
+        })
+        // Ensure there is only one Image and we didn't clone it or anything!
+        cy.findAllByLabelText('Image').should('have.length', 1);
+      })
+
+      cy.log('Image component exists in the column_two slot in the overlay UI');
+      cy.get('@desktopPreviewOverlay').within(()=>{
+        cy.findByLabelText('Two Column column_two').within(()=>{
+          cy.findByLabelText('Image');
+        });
+        // Ensure there is only one Image and we didn't clone it or anything!
+        cy.findAllByLabelText('Image').should('have.length', 1);
+      });
     });
 
     it('Check undo/redo works with the layers menu', () => {
-      cy.loadURLandWaitForXBLoaded();
-      cy.get('.primaryMenuContent').find('.treeItem[data-xb-uuid="two-column-uuid"]').find('button').click();
-      cy.get('.primaryMenuContent').find('.treeItem[data-xb-uuid="two-column-uuid-slot-column_one"]').find('button').click();
-      // Before dragging, check that the component is in the column one slot in the layers menu.
-      cy.get('.treeItem[data-xb-uuid="dynamic-image-udf7d"]').parent('[data-xb-uuid="two-column-uuid-slot-column_one"]').should('exist');
-      cy.get('.treeItem[data-xb-uuid="dynamic-image-udf7d"]').siblings('.CollapsibleRoot').should('not.exist');
-      // Also check the preview.
-      cy.getIframeBody().find('[data-xb-uuid="dynamic-image-udf7d"]').parent('[data-xb-uuid="two-column-uuid-slot-column_one"]').should('exist');
-      cy.getIframeBody().find('[data-xb-uuid="dynamic-image-udf7d"]').siblings('[data-xb-uuid="two-column-uuid"]').should('not.exist');
+      preparePage();
+      assertInitialPageState();
 
-      // Drag image component out of the slot and to the root level.
+      cy.log('Drag image component out of the slot and to the root level.');
       cy.get('.treeItem[data-xb-uuid="dynamic-image-udf7d"]').realDnd('.rootDropZone[data-xb-type="root"]');
-      cy.wait(1000);
-
-      // After dragging, check that the component is now in the root level of the layers menu and preview by checking that the two column SDC is a sibling.
-      cy.get('.treeItem[data-xb-uuid="dynamic-image-udf7d"]').parent('[data-xb-uuid="two-column-uuid-slot-column_one"]').should('not.exist');
-      cy.get('.treeItem[data-xb-uuid="dynamic-image-udf7d"]').siblings('.CollapsibleRoot').children('.treeItem[data-xb-uuid="two-column-uuid"]').should('exist');
-      cy.getIframeBody().find('[data-xb-uuid="dynamic-image-udf7d"]').parent('[data-xb-uuid="two-column-uuid-slot-column_one"]').should('not.exist');
-      cy.getIframeBody().find('[data-xb-uuid="dynamic-image-udf7d"]').siblings('[data-xb-uuid="two-column-uuid"]').should('exist');
+      assertPageStateAfterFirstDrag();
 
       // Hit the undo button.
       cy.get('button[aria-label="Undo"]').click();
-      cy.wait(1000);
-      // Check that the component is back in its original column one slot in the layers menu and preview.
-      cy.get('.treeItem[data-xb-uuid="dynamic-image-udf7d"]').parent('[data-xb-uuid="two-column-uuid-slot-column_one"]').should('exist');
-      cy.get('.treeItem[data-xb-uuid="dynamic-image-udf7d"]').siblings('.CollapsibleRoot').should('not.exist');
-      cy.getIframeBody().find('[data-xb-uuid="dynamic-image-udf7d"]').parent('[data-xb-uuid="two-column-uuid-slot-column_one"]').should('exist');
-      cy.getIframeBody().find('[data-xb-uuid="dynamic-image-udf7d"]').siblings('[data-xb-uuid="two-column-uuid"]').should('not.exist');
+      assertInitialPageState();
 
       // Hit Redo
       cy.get('button[aria-label="Redo"]').click();
-      cy.wait(1000);
-      // Check that the component is back in the root level of the layers menu and preview.
-      cy.get('.treeItem[data-xb-uuid="dynamic-image-udf7d"]').parent('[data-xb-uuid="two-column-uuid-slot-column_one"]').should('not.exist');
-      cy.get('.treeItem[data-xb-uuid="dynamic-image-udf7d"]').siblings('.CollapsibleRoot').children('.treeItem[data-xb-uuid="two-column-uuid"]').should('exist');
-      cy.getIframeBody().find('[data-xb-uuid="dynamic-image-udf7d"]').parent('[data-xb-uuid="two-column-uuid-slot-column_one"]').should('not.exist');
-      cy.getIframeBody().find('[data-xb-uuid="dynamic-image-udf7d"]').siblings('[data-xb-uuid="two-column-uuid"]').should('exist');
+      assertPageStateAfterFirstDrag();
     });
   },
 );

@@ -13,13 +13,12 @@ import {
   canvasViewPortZoomDelta,
   setCanvasViewPort,
   selectPanning,
-  setPanningIFrame,
-  setPanningParent,
-  selectIsContextMenuOpen,
+  setIsPanning,
   selectSelectedComponent,
   selectFirstLoadComplete,
 } from '@/features/ui/uiSlice';
 import { deleteNode } from '../layout/layoutModelSlice';
+import PreviewOverlay from '@/features/layout/previewOverlay/PreviewOverlay';
 
 const Canvas = () => {
   const dispatch = useAppDispatch();
@@ -31,12 +30,12 @@ const Canvas = () => {
   const canvasViewPort = useAppSelector(selectCanvasViewPort);
   const firstLoadComplete = useAppSelector(selectFirstLoadComplete);
   const [isVisible, setIsVisible] = useState(false);
-  const { isPanning, isPanningIFrame, isPanningParent } =
-    useAppSelector(selectPanning);
-  const contextMenuOpen = useAppSelector(selectIsContextMenuOpen);
+  const [middleMouseDown, setMiddleMouseDown] = useState(false);
+  const { isPanning } = useAppSelector(selectPanning);
   const [modifierKeyPressed, setModifierKeyPressed] = useState(false);
   const modifierKeyPressedRef = useRef(false);
   const selectedComponent = useAppSelector(selectSelectedComponent);
+  const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   useHotkeys(['NumpadAdd', 'Equal'], () => dispatch(canvasViewPortZoomIn()));
   useHotkeys(['Minus', 'NumpadSubtract'], () =>
     dispatch(canvasViewPortZoomOut()),
@@ -54,63 +53,15 @@ const Canvas = () => {
       dispatch(deleteNode(selectedComponent));
     }
   });
-  const isPanningParentRef = useRef(isPanningParent);
-  const isPanningIFrameRef = useRef(isPanningIFrame);
+  const middleMouseDownRef = useRef(middleMouseDown);
 
   useEffect(() => {
-    isPanningParentRef.current = isPanningParent;
-  }, [isPanningParent]);
-
-  useEffect(() => {
-    isPanningIFrameRef.current = isPanningIFrame;
-  }, [isPanningIFrame]);
+    middleMouseDownRef.current = middleMouseDown;
+  }, [middleMouseDown]);
 
   useEffect(() => {
     modifierKeyPressedRef.current = modifierKeyPressed;
   }, [modifierKeyPressed]);
-
-  // Add an event listener for a message from the iFrame that a user used hot keys for zooming in/out
-  // while inside the iFrame.
-  useEffect(() => {
-    function handleIframeEvent(event: MessageEvent) {
-      const type = event.data.type ? event.data.type : event.data;
-      switch (type) {
-        case 'dispatchZoomIn':
-          dispatch(canvasViewPortZoomIn());
-          break;
-        case 'dispatchZoomOut':
-          dispatch(canvasViewPortZoomOut());
-          break;
-        case 'dispatchZoomDelta':
-          dispatch(canvasViewPortZoomDelta(event.data.delta));
-          break;
-        case 'dispatchModifierKeyDown':
-          setModifierKeyPressed(true);
-          break;
-        case 'dispatchModifierKeyUp':
-          setModifierKeyPressed(false);
-          break;
-        case 'dispatchMiddleMouseDown':
-          dispatch(setPanningIFrame(true));
-          setStartPos(event.data.coordinates);
-          break;
-        case 'dispatchMiddleMouseUp':
-          dispatch(setPanningIFrame(false));
-          dispatch(setPanningParent(false));
-          break;
-        case 'dispatchMouseMove':
-          isPanningIFrameRef.current &&
-            handlePreviewMouseMove(event.data.coordinates);
-          break;
-        case 'dispatchDeleteKey':
-          selectedComponent && dispatch(deleteNode(selectedComponent));
-      }
-    }
-    window.addEventListener('message', handleIframeEvent);
-    return () => {
-      window.removeEventListener('message', handleIframeEvent);
-    };
-  });
 
   useEffect(() => {
     if (!firstLoadComplete) {
@@ -131,12 +82,14 @@ const Canvas = () => {
   const handlePaneScroll = useCallback(
     (event: React.UIEvent<HTMLDivElement>) => {
       if (event.currentTarget) {
-        dispatch(
-          setCanvasViewPort({
-            x: event.currentTarget.scrollLeft,
-            y: event.currentTarget.scrollTop,
-          }),
-        );
+        dispatch(setIsPanning(true));
+        // debounce the setIsPanning(false) so that elements hidden when panning don't flicker.
+        if (scrollTimeoutRef.current) {
+          clearTimeout(scrollTimeoutRef.current);
+        }
+        scrollTimeoutRef.current = setTimeout(() => {
+          dispatch(setIsPanning(false));
+        }, 140);
       }
     },
     [dispatch],
@@ -151,7 +104,8 @@ const Canvas = () => {
     }
     if (e.button === 1) {
       const { clientX, clientY } = e;
-      dispatch(setPanningParent(true));
+      setMiddleMouseDown(true);
+      dispatch(setIsPanning(true));
       if (canvasPaneRef.current) {
         setStartPos({
           x: clientX + canvasPaneRef.current.scrollLeft,
@@ -163,7 +117,7 @@ const Canvas = () => {
   };
 
   const handleCanvasMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (isPanningParentRef.current) {
+    if (middleMouseDownRef.current) {
       const { clientX, clientY } = e;
       const translationX = startPos.x - clientX;
       const translationY = startPos.y - clientY;
@@ -173,56 +127,39 @@ const Canvas = () => {
       }
 
       animFrameIdRef.current = requestAnimationFrame(() => {
-        if (canvasRef.current) {
-          canvasRef.current.style.transform = `scale(${canvasViewPort.scale})`;
+        if (previewsContainerRef.current) {
+          previewsContainerRef.current.style.transform = `scale(${canvasViewPort.scale})`;
         }
         if (canvasPaneRef.current) {
           canvasPaneRef.current.scrollLeft = translationX;
           canvasPaneRef.current.scrollTop = translationY;
-          dispatch(
-            setCanvasViewPort({
-              x: translationX,
-              y: translationY,
-            }),
-          );
-        }
-      });
-    }
-  };
-
-  const handlePreviewMouseMove = ({ x, y }: { x: number; y: number }) => {
-    if (isPanningIFrameRef.current) {
-      const translationX = startPos.x - x;
-      const translationY = startPos.y - y;
-
-      if (animFrameIdRef.current) {
-        cancelAnimationFrame(animFrameIdRef.current);
-      }
-
-      animFrameIdRef.current = requestAnimationFrame(() => {
-        if (canvasPaneRef.current) {
-          canvasPaneRef.current.scrollLeft += translationX;
-          canvasPaneRef.current.scrollTop += translationY;
         }
       });
     }
   };
 
   const handleMouseUp = useCallback(() => {
-    dispatch(setPanningParent(false));
-    dispatch(setPanningIFrame(false));
+    setMiddleMouseDown(false);
+    dispatch(setIsPanning(false));
   }, [dispatch]);
 
   const handleWheel = useCallback(
     (e: WheelEvent) => {
-      if (!contextMenuOpen) {
-        if (e.ctrlKey) {
-          e.preventDefault();
-          dispatch(canvasViewPortZoomDelta(e.deltaY));
+      if (e.ctrlKey) {
+        e.preventDefault();
+        dispatch(canvasViewPortZoomDelta(e.deltaY));
+        dispatch(setIsPanning(true));
+
+        // debounce the setIsPanning(false) so that elements hidden when zooming don't flicker.
+        if (scrollTimeoutRef.current) {
+          clearTimeout(scrollTimeoutRef.current);
         }
+        scrollTimeoutRef.current = setTimeout(() => {
+          dispatch(setIsPanning(false));
+        }, 500);
       }
     },
-    [dispatch, contextMenuOpen],
+    [dispatch],
   );
 
   useEffect(() => {
@@ -231,15 +168,24 @@ const Canvas = () => {
     }
 
     animFrameIdRef.current = requestAnimationFrame(() => {
-      if (canvasRef.current) {
-        canvasRef.current.style.transform = `scale(${canvasViewPort.scale})`;
-      }
       if (canvasPaneRef.current) {
         canvasPaneRef.current.scrollLeft = canvasViewPort.x;
         canvasPaneRef.current.scrollTop = canvasViewPort.y;
       }
     });
-  }, [canvasViewPort.x, canvasViewPort.y, canvasViewPort.scale]);
+  }, [canvasViewPort.x, canvasViewPort.y]);
+
+  useEffect(() => {
+    if (animFrameIdRef.current) {
+      cancelAnimationFrame(animFrameIdRef.current);
+    }
+
+    animFrameIdRef.current = requestAnimationFrame(() => {
+      if (previewsContainerRef.current) {
+        previewsContainerRef.current.style.transform = `scale(${canvasViewPort.scale})`;
+      }
+    });
+  }, [canvasViewPort.scale]);
 
   useEffect(() => {
     window.addEventListener('mouseup', handleMouseUp);
@@ -252,47 +198,51 @@ const Canvas = () => {
   }, [handleWheel, handleMouseUp]);
 
   return (
-    <div
-      className={clsx(
-        styles.canvasPane,
-        {
+    <>
+      <div
+        className={clsx(styles.canvasPane, {
           [styles.modifierKeyPressed]: modifierKeyPressed,
           [styles.isPanning]: isPanning,
-        },
-        {
-          [styles.hoveredComponent]: contextMenuOpen,
-        },
-      )}
-      onMouseDown={handleMouseDown}
-      onMouseMove={handleCanvasMouseMove}
-      onScroll={handlePaneScroll}
-      onMouseUp={handleMouseUp}
-      onMouseLeave={handleMouseUp}
-      ref={canvasPaneRef}
-    >
-      <div
-        className={styles.canvas}
-        ref={canvasRef}
-        data-testid="canvasElement"
-        style={{
-          transform: `scale(${canvasViewPort.scale})`,
-        }}
+        })}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleCanvasMouseMove}
+        onScroll={handlePaneScroll}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
+        ref={canvasPaneRef}
       >
         <div
-          className={clsx('previewsContainer', styles.previewsContainer, {
+          className={clsx(styles.canvas, {
             [styles.visible]: isVisible,
           })}
-          ref={previewsContainerRef}
+          ref={canvasRef}
+          data-testid="xb-canvas"
         >
-          <ErrorBoundary
-            title="An unexpected error has occurred while rendering preview."
-            variant="alert"
-          >
-            <Preview />
-          </ErrorBoundary>
+          <div style={{ position: 'relative' }} id="positionAnchor">
+            <div
+              className={clsx('previewsContainer', styles.previewsContainer)}
+              data-testid="xb-canvas-scaling"
+              style={{
+                transform: `scale(${canvasViewPort.scale})`,
+              }}
+              ref={previewsContainerRef}
+            >
+              <ErrorBoundary
+                title="An unexpected error has occurred while rendering preview."
+                variant="alert"
+              >
+                <Preview />
+              </ErrorBoundary>
+            </div>
+
+            <PreviewOverlay
+              canvasPaneRef={canvasPaneRef}
+              previewsContainerRef={previewsContainerRef}
+            />
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 };
 

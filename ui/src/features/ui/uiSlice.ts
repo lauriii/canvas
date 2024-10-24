@@ -1,6 +1,5 @@
 import { createAppSlice } from '@/app/createAppSlice';
 import type { PayloadAction } from '@reduxjs/toolkit';
-import type { ViewPortSize } from '@/features/layout/preview/Viewport';
 
 export interface DraggingStatus {
   isDragging: boolean;
@@ -11,8 +10,6 @@ export interface DraggingStatus {
 
 export interface PanningStatus {
   isPanning: boolean;
-  isPanningIFrame: boolean;
-  isPanningParent: boolean;
 }
 
 export interface CanvasViewPort {
@@ -32,10 +29,9 @@ export interface uiSliceState {
   panning: PanningStatus;
   selectedComponent: string | undefined; //uuid of component
   hoveredComponent: string | undefined; //uuid of component
-  contextualPanelOpen: boolean;
+  targetSlot: string | undefined; //uuid of slot being hovered when dragging
   canvasViewport: CanvasViewPort;
   primaryMenu: PrimaryMenuState;
-  contextMenuOpen: ViewPortSize | undefined | boolean;
   latestUndoRedoActionId: string;
   firstLoadComplete: boolean;
 }
@@ -56,12 +52,10 @@ export const initialState: uiSliceState = {
   },
   panning: {
     isPanning: false,
-    isPanningIFrame: false,
-    isPanningParent: false,
   },
   selectedComponent: undefined,
   hoveredComponent: undefined,
-  contextualPanelOpen: false,
+  targetSlot: undefined,
   canvasViewport: {
     x: 0,
     y: 0,
@@ -71,7 +65,6 @@ export const initialState: uiSliceState = {
     activeMenu: '',
     isHidden: false,
   },
-  contextMenuOpen: undefined,
   latestUndoRedoActionId: '',
   firstLoadComplete: false,
 };
@@ -151,18 +144,9 @@ export const uiSlice = createAppSlice({
       state.dragging.isDragging = action.payload;
       state.dragging.listDragging = action.payload;
     }),
-    setPanningIFrame: create.reducer(
-      (state, action: PayloadAction<boolean>) => {
-        state.panning.isPanning = action.payload;
-        state.panning.isPanningIFrame = action.payload;
-      },
-    ),
-    setPanningParent: create.reducer(
-      (state, action: PayloadAction<boolean>) => {
-        state.panning.isPanning = action.payload;
-        state.panning.isPanningParent = action.payload;
-      },
-    ),
+    setIsPanning: create.reducer((state, action: PayloadAction<boolean>) => {
+      state.panning.isPanning = action.payload;
+    }),
     setSelectedComponent: create.reducer(
       (state, action: PayloadAction<string>) => {
         state.selectedComponent = action.payload;
@@ -173,16 +157,26 @@ export const uiSlice = createAppSlice({
         state.hoveredComponent = action.payload;
       },
     ),
+    setTargetSlot: create.reducer((state, action: PayloadAction<string>) => {
+      state.targetSlot = action.payload;
+    }),
     unsetSelectedComponent: create.reducer((state) => {
       state.selectedComponent = undefined;
     }),
     unsetHoveredComponent: create.reducer((state) => {
       state.hoveredComponent = undefined;
     }),
+    unsetTargetSlot: create.reducer((state) => {
+      state.targetSlot = undefined;
+    }),
     setCanvasViewPort: create.reducer(
       (state, action: PayloadAction<UpdateViewportPayload>) => {
-        state.canvasViewport.x = action.payload.x || state.canvasViewport.x;
-        state.canvasViewport.y = action.payload.y || state.canvasViewport.y;
+        if (action.payload.x) {
+          state.canvasViewport.x = action.payload.x;
+        }
+        if (action.payload.y) {
+          state.canvasViewport.y = action.payload.y;
+        }
         state.canvasViewport.scale =
           action.payload.scale || state.canvasViewport.scale;
       },
@@ -224,11 +218,6 @@ export const uiSlice = createAppSlice({
         state.primaryMenu.isHidden = action.payload;
       },
     ),
-    setIsContextMenuOpen: create.reducer(
-      (state, action: PayloadAction<ViewPortSize | undefined | boolean>) => {
-        state.contextMenuOpen = action.payload;
-      },
-    ),
     setLatestUndoRedoActionId: create.reducer(
       (state, action: PayloadAction<string>) => {
         state.latestUndoRedoActionId = action.payload;
@@ -253,17 +242,21 @@ export const uiSlice = createAppSlice({
     selectHoveredComponent: (ui): string | undefined => {
       return ui.hoveredComponent;
     },
+    selectTargetSlot: (ui): string | undefined => {
+      return ui.targetSlot;
+    },
     selectCanvasViewPort: (ui): CanvasViewPort => {
       return ui.canvasViewport;
+    },
+
+    selectCanvasViewPortScale: (ui): number => {
+      return ui.canvasViewport.scale;
     },
     selectPrimaryMenuActiveMenu: (ui): string => {
       return ui.primaryMenu.activeMenu;
     },
     selectPrimaryMenuHidden: (ui): boolean => {
       return ui.primaryMenu.isHidden;
-    },
-    selectIsContextMenuOpen: (ui): ViewPortSize | undefined | boolean => {
-      return ui.contextMenuOpen;
     },
     selectLatestUndoRedoActionId: (ui): string => {
       return ui.latestUndoRedoActionId;
@@ -280,18 +273,18 @@ export const {
   setTreeDragging,
   setPreviewDragging,
   setListDragging,
-  setPanningIFrame,
-  setPanningParent,
+  setIsPanning,
   setSelectedComponent,
   setHoveredComponent,
+  setTargetSlot,
   unsetSelectedComponent,
   unsetHoveredComponent,
+  unsetTargetSlot,
   setCanvasViewPort,
   canvasViewPortZoomIn,
   canvasViewPortZoomOut,
   setPrimaryMenuActiveMenu,
   setPrimaryMenuHidden,
-  setIsContextMenuOpen,
   canvasViewPortZoomDelta,
   setLatestUndoRedoActionId,
   setFirstLoadComplete,
@@ -303,10 +296,11 @@ export const {
   selectPanning,
   selectSelectedComponent,
   selectHoveredComponent,
+  selectTargetSlot,
   selectCanvasViewPort,
+  selectCanvasViewPortScale,
   selectPrimaryMenuActiveMenu,
   selectPrimaryMenuHidden,
-  selectIsContextMenuOpen,
   selectLatestUndoRedoActionId,
   selectFirstLoadComplete,
 } = uiSlice.selectors;

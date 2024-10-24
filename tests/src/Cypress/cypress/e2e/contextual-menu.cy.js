@@ -18,13 +18,13 @@ describe('Contextual menu functionality', {testIsolation: false}, () => {
     // Wait for the preview iframe to load and render something that confirms it is ready.
     cy.get('iframe[data-xb-preview]').should('exist');
     // Right-click on the element that should trigger the context menu
-    cy.getIframeBody().findByText('hello, world!').first().trigger('contextmenu');
+    cy.getComponentInPreview('Hero').trigger('contextmenu');
 
-    cy.get('[data-radix-scroll-area-viewport]')
+    cy.findByLabelText('Context menu for Hero')
       .should('exist')
       .and('be.visible');
     // Assert that each menu item is inside the DropdownMenu.Content component
-    cy.get('[data-radix-scroll-area-viewport]')
+    cy.findByLabelText('Context menu for Hero')
       .within(() => {
         cy.findByText('Edit').should('be.visible');
         cy.findByText('Duplicate').should('be.visible');
@@ -40,12 +40,12 @@ describe('Contextual menu functionality', {testIsolation: false}, () => {
     // Right-click on the element in primary content menu that should trigger the context menu.
     cy.get('[data-xb-uuid="root"]').findByText('Two Column').first().trigger('contextmenu');
 
-    cy.get('[data-radix-scroll-area-viewport]')
+    cy.findByLabelText('Context menu for Two Column')
       .should('exist')
       .and('be.visible');
 
     // Assert that each menu item is inside the DropdownMenu.Content component
-    cy.get('[data-radix-scroll-area-viewport]')
+    cy.findByLabelText('Context menu for Two Column')
       .within(() => {
         cy.findByText('Edit').should('be.visible');
         cy.findByText('Duplicate').should('be.visible');
@@ -62,10 +62,10 @@ describe('Contextual menu functionality', {testIsolation: false}, () => {
     // Right-click on the element that should trigger the context menu
     cy.get('.primaryMenuContent').findByText('Two Column').trigger('contextmenu');
 
-    cy.get('[data-radix-scroll-area-viewport]')
+    cy.findByLabelText('Context menu for Two Column')
       .should('exist')
       .and('be.visible');
-    cy.get('[data-radix-scroll-area-viewport]')
+    cy.findByLabelText('Context menu for Two Column')
       .within(() => {
         // Click on the "Duplicate" button
         cy.findByText('Duplicate').click();

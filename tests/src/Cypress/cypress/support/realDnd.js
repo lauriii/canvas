@@ -34,6 +34,7 @@ export async function realDnd(
       End: endCoords,
     }),
   });
+  await new Promise(resolve => setTimeout(resolve, 200));
 
   log.snapshot("before");
   await fireCdpCommand("Input.dispatchMouseEvent", {
@@ -44,6 +45,7 @@ export async function realDnd(
     pointerType: options.pointer ?? "mouse",
     button: "left",
   });
+  await new Promise(resolve => setTimeout(resolve, 200));
 
   console.log(endCoords)
   await fireCdpCommand("Input.dispatchMouseEvent", {
@@ -52,6 +54,7 @@ export async function realDnd(
     button: "left",
     pointerType: options.pointer ?? "mouse",
   });
+  await new Promise(resolve => setTimeout(resolve, 200));
 
   await fireCdpCommand("Input.dispatchMouseEvent", {
     type: "mouseReleased",
@@ -61,6 +64,7 @@ export async function realDnd(
     pointerType: options.pointer ?? "mouse",
     button: "left",
   });
+  await new Promise(resolve => setTimeout(resolve, 200));
 
   log.snapshot("after").end();
 
