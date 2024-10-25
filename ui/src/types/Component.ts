@@ -23,7 +23,9 @@ export interface Component {
   css: string;
   js_header: string;
   js_footer: string;
-  metadata: {
+  // `metadata` is specific to the SDC Component type.
+  // @see https://www.drupal.org/project/experience_builder/issues/3475584
+  metadata?: {
     slots?: {
       [key: string]: {
         title: string;
@@ -32,7 +34,9 @@ export interface Component {
     };
     [key: string]: any;
   };
-  field_data: FieldData;
+  // `field_data` is specific to the SDC Component type.
+  // @see https://www.drupal.org/project/experience_builder/issues/3475584
+  field_data?: FieldData;
 }
 
 export interface ComponentsList {

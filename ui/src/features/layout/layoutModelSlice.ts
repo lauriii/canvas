@@ -346,7 +346,7 @@ export const addNewComponentToLayout =
   (payload: AddNewNodePayload) => (dispatch: AppDispatch) => {
     if (payload.newNode && payload.to && payload.component) {
       const initialData: InitialPropData = {};
-      if (payload.component.field_data) {
+      if (payload.component?.field_data) {
         // @todo Update this logic in https://www.drupal.org/project/experience_builder/issues/3455942
         initialData.name = payload.component.name;
         Object.keys(payload.component.field_data).forEach((propName) => {
@@ -359,7 +359,7 @@ export const addNewComponentToLayout =
 
       const children: LayoutNode[] = [];
 
-      if (payload.component.metadata?.slots) {
+      if (payload.component?.metadata?.slots) {
         Object.keys(payload.component.metadata.slots).forEach((name) => {
           children.push({
             uuid: `-slot-${name}`,

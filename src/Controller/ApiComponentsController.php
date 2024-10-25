@@ -21,6 +21,14 @@ use Drupal\experience_builder\PropShape\PropShape;
 use Drupal\experience_builder\ShapeMatcher\FieldForComponentSuggester;
 use Symfony\Component\HttpFoundation\JsonResponse;
 
+/**
+ * Provides the client side with all information needed of all XB Components.
+ *
+ * @see ui/src/types/Component.ts
+ * @phpstan-import-type ComponentConfigEntityId from \Drupal\experience_builder\Entity\Component
+ * @phpstan-type ComponentClientSideTypeAny array{'id': string, 'name': string, 'default_markup': string|\Stringable, 'css': string|\Stringable, 'js_header': string|\Stringable, 'js_footer': string|\Stringable}
+ * @phpstan-type ComponentClientSideTypeSdc array{'id': string, 'name': string, 'default_markup': string|\Stringable, 'css': string|\Stringable, 'js_header': string|\Stringable, 'js_footer': string|\Stringable, 'metadata': array<string, mixed>, 'field_data': array<string, mixed>, 'dynamic_prop_source_candidates': array<string, mixed>,}
+ */
 final class ApiComponentsController {
 
   public function __construct(
@@ -32,7 +40,7 @@ final class ApiComponentsController {
   ) {}
 
   /**
-   * Provides a list of single directory components as JSON.
+   * Provides a list of XB Components as JSON.
    *
    * @return \Symfony\Component\HttpFoundation\JsonResponse
    *   The components list.
@@ -44,13 +52,29 @@ final class ApiComponentsController {
   }
 
   /**
-   * Gets an array of single directory components in an xb-friendly form.
+   * Gets an array of all XB Components, prepared for XB's client side.
    *
-   * @return array<string, mixed>
-   *   The array or single directory components.
+   * @return array<ComponentConfigEntityId, ComponentClientSideTypeAny|ComponentClientSideTypeSdc>
+   *   An array of XB Component config entities, with for each:
+   *   - `id`: the Component config entity ID
+   *   - `name`: human-readable name
+   *   - `default_markup`: without providing user input, this is what
+   *     Component's markup would look like — used to preview the Component
+   *     prior to placing it
+   *   - `css`: markup to load CSS assets associated with `default_markup`
+   *   - `js_header`: markup to load header JS assets associated with
+   *     `default_markup`
+   *   - `js_footer`: markup to load footer JS assets associated with
+   *     `default_markup`
+   *
+   *   And when the XB Component type is `sdc`, it also adds:
+   *   - `metadata`: SDC metadata
+   *   - `field_data`: the StaticPropSources to use for each SDC prop
+   *   - `dynamic_prop_source_candidates`: the DynamicPropSources that match
+   *      each
    */
   private function getComponentsList(): array {
-    $component_list = [];
+    $component_info_list = [];
     foreach (Component::loadMultiple() as $component) {
       // Hide disabled components.
       if (!$component->status()) {
@@ -114,11 +138,9 @@ final class ApiComponentsController {
       ]);
       $default_markup = (string) $this->prepareRenderArray($component_plugin->getPluginId(), $default_props_for_default_markup)['markup'];
 
-      $component_list[] = [
+      $component_info = [
         'id' => $component->id(),
         'name' => $component_plugin->metadata->name,
-        'metadata' => $component_plugin->metadata,
-        'field_data' => $keyed_choices,
         // A pre-rendered version of the component is provided so no requests
         // are needed when adding it to the layout which includes a default markup,
         // CSS files, JS files in the header and JS files in the footer.
@@ -126,12 +148,20 @@ final class ApiComponentsController {
         'css' => $this->assetRenderer->renderCssAssets($assets),
         'js_header' => $this->assetRenderer->renderJsHeaderAssets($assets),
         'js_footer' => $this->assetRenderer->renderJsFooterAssets($assets),
+      ];
+
+      // @todo Make this conditional in https://www.drupal.org/project/experience_builder/issues/3475584, do something else for blocks.
+      $component_info += [
+        'metadata' => $component_plugin->metadata,
+        'field_data' => $keyed_choices,
         'dynamic_prop_source_candidates' => $dynamic_prop_source_candidates,
       ];
+
+      $component_info_list[] = $component_info;
     }
 
     // Component array is keyed by ID.
-    return array_combine(array_column($component_list, 'id'), $component_list);
+    return array_combine(array_column($component_info_list, 'id'), $component_info_list);
   }
 
   public function prepareRenderArray(string $component_id, array $props_values): array {
