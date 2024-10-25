@@ -1,6 +1,5 @@
 import {
   Flex,
-  Text,
   ScrollArea,
   SegmentedControl,
   Separator,
@@ -15,6 +14,7 @@ import Panel from '@/components/Panel';
 import ErrorBoundary from '@/components/error/ErrorBoundary';
 import DummyPropsEditForm from '@/components/DummyPropsEditForm';
 import clsx from 'clsx';
+import PageDataForm from '@/components/PageDataForm';
 
 interface ContextualPanelProps {}
 
@@ -40,11 +40,17 @@ const ContextualPanel: React.FC<ContextualPanelProps> = () => {
                 onValueChange={setActivePanel}
                 className={clsx(styles.segmentedControlRoot)}
               >
-                <SegmentedControl.Item value="settings">
+                <SegmentedControl.Item
+                  value="settings"
+                  data-testid="xb-contextual-panel--settings"
+                >
                   Settings
                 </SegmentedControl.Item>
-                <SegmentedControl.Item value="pageSettings">
-                  Page Data
+                <SegmentedControl.Item
+                  value="pageData"
+                  data-testid="xb-contextual-panel--page-data"
+                >
+                  Page data
                 </SegmentedControl.Item>
               </SegmentedControl.Root>
             </Flex>
@@ -57,9 +63,7 @@ const ContextualPanel: React.FC<ContextualPanelProps> = () => {
                   <DummyPropsEditForm />
                 </ErrorBoundary>
               )}
-              {activePanel === 'pageSettings' && (
-                <Text size="1">Styles for...{selectedComponent}</Text>
-              )}
+              {activePanel === 'pageData' && <PageDataForm />}
             </Box>
           </ScrollArea>
         </ErrorBoundary>

@@ -68,15 +68,18 @@ class EntityFormControllerTest extends FunctionalTestBase {
   private function assertFormResponse(string $path, bool $expected_menu_element): void {
     $response = $this->drupalGet($path);
     $this->assertSession()->statusCodeEquals(200);
-    $this->assertJson($response);
-    $decoded = json_decode($response, TRUE);
-    $this->assertSame(['html'], array_keys($decoded));
-    $html = $decoded['html'];
-    $this->assertStringStartsWith('<form class="node-article-form node-form" data-drupal-selector="node-article-form" enctype="multipart/form-data"', $html);
-    $menu_form_element_html_snippet = '<input data-drupal-selector="edit-menu-title"';
+    $expected_start = '<template hyperscriptify><drupal-form--xbxb attributes="' . htmlspecialchars(
+      '{"class":["node-article-form","node-form"],"data-drupal-selector":"node-article-form","enctype":"multipart\/form-data"',
+      ENT_QUOTES,
+    );
+    $this->assertStringStartsWith($expected_start, $response);
+    $menu_form_element_html_snippet = '<drupal-input--xbxb attributes="' . htmlspecialchars(
+      '{"data-drupal-selector":"edit-menu-title"',
+      ENT_QUOTES,
+    );
     $expected_menu_element ?
-      $this->assertStringContainsString($menu_form_element_html_snippet, $html) :
-      $this->assertStringNotContainsString($menu_form_element_html_snippet, $html);
+      $this->assertStringContainsString($menu_form_element_html_snippet, $response) :
+      $this->assertStringNotContainsString($menu_form_element_html_snippet, $response);
   }
 
 }

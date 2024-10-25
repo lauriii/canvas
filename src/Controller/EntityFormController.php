@@ -10,17 +10,10 @@ use Drupal\Core\Entity\Entity\EntityFormDisplay;
 use Drupal\Core\Entity\EntityDisplayBase;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Form\FormState;
-use Drupal\Core\Render\RendererInterface;
-use Symfony\Component\HttpFoundation\JsonResponse;
-use Symfony\Component\HttpFoundation\Response;
 
 final class EntityFormController extends ControllerBase {
 
-  public function __construct(
-    private readonly RendererInterface $renderer,
-  ) {}
-
-  public function form(string $entity_type, FieldableEntityInterface $entity, string $entity_form_mode): Response {
+  public function form(string $entity_type, FieldableEntityInterface $entity, string $entity_form_mode): array {
     // The 'default' value sent to `\Drupal\Core\Entity\EntityTypeManagerInterface::getFormObject`
     // is for 'operation' not form mode.
     $form = $this->entityTypeManager()->getFormObject($entity_type, 'default');
@@ -51,12 +44,7 @@ final class EntityFormController extends ControllerBase {
     $form_state = new FormState();
     $form->setFormDisplay($form_display, $form_state);
 
-    $build = $this->formBuilder()->buildForm($form, $form_state);
-    $html = $this->renderer->renderRoot($build);
-
-    return new JsonResponse([
-      'html' => $html,
-    ]);
+    return $this->formBuilder()->buildForm($form, $form_state);
   }
 
 }

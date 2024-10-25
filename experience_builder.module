@@ -251,6 +251,20 @@ function experience_builder_form_component_props_form_alter(array &$form, FormSt
 }
 
 /**
+ * Implements hook_form_alter().
+ */
+function experience_builder_form_alter(array &$form, FormStateInterface $form_state, string $form_id): void {
+  $route_name = \Drupal::routeMatch()->getRouteName();
+  if ($route_name === 'experience_builder.api.entity_form') {
+    // The entity edit form accessed via experience builder should be set as
+    // #is_xb, making it renderable by React.
+    $form['#is_xb'] = TRUE;
+    // Hide submit buttons.
+    $form['actions']['#access'] = FALSE;
+  }
+}
+
+/**
  * Adds a TRUE #is_xb setting to form labels.
  *
  * TRICKY: this cannot happen in RenderArrayXB::markXB(), because form
@@ -342,12 +356,27 @@ function experience_builder_theme(array $existing, string $type, string $theme, 
 function experience_builder_theme_registry_alter(array &$theme_registry): void {
   foreach ($theme_registry as $hook => $config) {
     if (str_ends_with($hook, '__xbxb')) {
-      // Change to something other than 'module' so the render function from
-      // semi_coupled is called by \Drupal\Core\Theme\ThemeManager::render. If
-      // the theme registry comes from 'module' it will only use the render
+      // Change the theme implementation's `type` key to something other than
+      // `'module'` so \Drupal\Core\Theme\ThemeManager::render() will call
+      // `semi_coupled_render_template()` after we set the theme engine to
+      // `'semi_coupled'` in experience_builder_system_info_alter(). If the
+      // theme registry comes from `'module'`, it will only use the render
       // function from twig.engine.
       $theme_registry[$hook]['type'] = 'xb_module';
-      $theme_registry[str_replace('__xbxb', '', $hook)]['type'] = 'xb_module';
+
+      // Make sure the original hook gets the same treatment.
+      $original_hook = str_replace('__xbxb', '', $hook);
+      if (isset($theme_registry[$original_hook])) {
+        $theme_registry[$original_hook]['type'] = 'xb_module';
+      }
+      else {
+        // The original hook may not exist in the theme registry. E.g. it may
+        // have been added as a theme suggestion by this module. In this case,
+        // copy the theme registry information from our new XB-specific hook.
+        // The definition contains data that's needed for e.g. preprocess
+        // functions.
+        $theme_registry[$original_hook] = $theme_registry[$hook];
+      }
     }
   }
 }

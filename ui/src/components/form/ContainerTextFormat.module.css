@@ -1,0 +1,10 @@
+.ContainerTextFormatFilterWrapperPopoverContent {
+  color: var(--slate-12);
+  font-size: var(--font-size-1);
+
+  & h4 {
+    margin: var(--space-1) 0;
+    color: var(--slate-12);
+    font-size: var(--font-size-2);
+  }
+}

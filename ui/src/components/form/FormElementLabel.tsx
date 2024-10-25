@@ -23,7 +23,12 @@ const FormElementLabel = ({
   const show = !!title || !!required;
   return (
     show && (
-      <Text as="label" {...a2p(attributes, { class: classes })}>
+      <Text
+        as="label"
+        size="1"
+        weight="medium"
+        {...a2p(attributes, { class: classes })}
+      >
         {title['#markup'] ? labelTitle['#markup'] : labelTitle}
       </Text>
     )

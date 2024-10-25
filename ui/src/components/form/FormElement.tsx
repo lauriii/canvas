@@ -1,5 +1,6 @@
 import { a2p } from '@/local_packages/utils.js';
 import clsx from 'clsx';
+import styles from './FormElement.module.css';
 
 export type Description = {
   content?: string;
@@ -51,6 +52,9 @@ const FormElement = ({
     !['after', 'before'].includes(titleDisplay) ? 'form-no-label' : '',
     disabled === 'disabled' ? 'form-disabled' : '',
     errors ? 'form-item--error' : '',
+    styles.Root,
+    type === 'checkbox' && styles.Checkbox,
+    type === 'radio' && styles.Radio,
   );
 
   const descriptionClasses = clsx(

@@ -5,6 +5,7 @@ import { useGetDummyPropsFormQuery } from '@/services/dummyPropsForm';
 import hyperscriptify from '@/local_packages/hyperscriptify';
 import twigToJSXComponentMap from '@/components/form/twig-to-jsx-component-map.js';
 import propsify from '@/local_packages/hyperscriptify/propsify/standard/index.js';
+import parseHyperscriptifyTemplate from '@/utils/parse-hyperscriptify-template';
 import { useAppSelector } from '@/app/hooks';
 import { selectModel, selectLayout } from '@/features/layout/layoutModelSlice';
 import {
@@ -13,8 +14,7 @@ import {
 } from '@/features/ui/uiSlice';
 import { useGetComponentsQuery } from '@/services/components';
 import { findNodeByUuid } from '@/features/layout/layoutUtils';
-
-const { Drupal } = window as any;
+import { useDrupalBehaviors } from '@/hooks/useDrupalBehaviors';
 
 interface PropData {
   sourceType?: string;
@@ -62,14 +62,8 @@ const DummyPropsEditFormRenderer: React.FC<DummyPropsEditFormRendererProps> = (
     if (!currentData) {
       return;
     }
-    const responseAsDocument = new DOMParser().parseFromString(
-      currentData as string,
-      'text/html',
-    );
-    // Get the form we want from the HTML response.
-    const xbDemoFieldElement: HTMLTemplateElement | null =
-      responseAsDocument.querySelector('template[hyperscriptify]');
-    if (!xbDemoFieldElement?.content) {
+    const template = parseHyperscriptifyTemplate(currentData as string);
+    if (!template) {
       return;
     }
     // While we have `selectedComponent` and `latestUndoRedoActionId` in the
@@ -98,7 +92,7 @@ const DummyPropsEditFormRenderer: React.FC<DummyPropsEditFormRendererProps> = (
         data-testid={`xb-component-form-${componentId}`}
       >
         {hyperscriptify(
-          xbDemoFieldElement?.content as DocumentFragment,
+          template,
           React.createElement,
           React.Fragment,
           twigToJSXComponentMap,
@@ -111,21 +105,7 @@ const DummyPropsEditFormRenderer: React.FC<DummyPropsEditFormRendererProps> = (
   // Any time this form changes, process it through Drupal behaviors the same
   // way it would be if it were added to the DOM by Drupal AJAX. This allows
   // Drupal functionality like Autocomplete work in this React-rendered form.
-  useEffect(() => {
-    let formRefValue: HTMLElement | null = null;
-    setTimeout(() => {
-      if (jsxFormContent && formRef.current) {
-        Drupal.attachBehaviors(formRef.current);
-        formRefValue = formRef.current;
-      }
-    });
-
-    return () => {
-      if (formRefValue) {
-        Drupal.detachBehaviors(formRefValue);
-      }
-    };
-  }, [jsxFormContent]);
+  useDrupalBehaviors(formRef, jsxFormContent);
 
   return (
     <Spinner
