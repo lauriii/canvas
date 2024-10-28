@@ -4,9 +4,10 @@ import {
   moveNode,
   layoutModelSlice,
   setLayoutModel,
-  initialState, duplicateNode,
-} from '../../../../../ui/src/features/layout/layoutModelSlice';
-import { makeStore } from '../../../../../ui/src/app/store';
+  initialState,
+  duplicateNode,
+} from '@/features/layout/layoutModelSlice';
+import { makeStore } from '@/app/store';
 import { ActionCreators } from 'redux-undo';
 
 let layout;
@@ -179,10 +180,10 @@ describe('Duplicate node', () => {
     );
 
     const originalNode = initialStateWithLayout.layout.children.find(
-      (node) => node.uuid === nodeToDuplicateUUID
+      (node) => node.uuid === nodeToDuplicateUUID,
     );
     const newNode = stateAfterDuplication.layout.children.find(
-      (node) => node.uuid !== nodeToDuplicateUUID
+      (node) => node.uuid !== nodeToDuplicateUUID,
     );
 
     // Ensure the new node is a duplicate and has a different UUID
@@ -204,7 +205,7 @@ describe('Duplicate node', () => {
 
     // Verify the model for the new node and its children
     expect(stateAfterDuplication.model[newNode.uuid]).to.deep.equal(
-      stateAfterDuplication.model[nodeToDuplicateUUID]
+      stateAfterDuplication.model[nodeToDuplicateUUID],
     );
   });
 });

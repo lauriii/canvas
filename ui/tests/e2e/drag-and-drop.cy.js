@@ -15,11 +15,12 @@ describe(
       cy.drupalLogin('xbUser', 'xbUser');
     });
 
-
     function preparePage() {
       cy.loadURLandWaitForXBLoaded();
 
-      cy.get('#xbPreviewOverlay .xb--viewport-overlay').first().as('desktopPreviewOverlay');
+      cy.get('#xbPreviewOverlay .xb--viewport-overlay')
+        .first()
+        .as('desktopPreviewOverlay');
       cy.get('.primaryMenuContent').as('layersTree');
 
       // TODO don't even have this image here in the first place! For now, we delete it
@@ -27,8 +28,17 @@ describe(
       cy.realType('{del}');
 
       // Open the layers in the Tree.
-      cy.get('@layersTree').findByText('Two Column').parents('.treeItem').findByLabelText('Expand component tree').click();
-      cy.get('@layersTree').findAllByText('Slot').first().parents('.treeItem').findByLabelText('Expand component tree').click();
+      cy.get('@layersTree')
+        .findByText('Two Column')
+        .parents('.treeItem')
+        .findByLabelText('Expand component tree')
+        .click();
+      cy.get('@layersTree')
+        .findAllByText('Slot')
+        .first()
+        .parents('.treeItem')
+        .findByLabelText('Expand component tree')
+        .click();
       cy.get('@layersTree').findAllByText('Image').should('be.visible');
       cy.get('@layersTree').findAllByText('Hero').should('be.visible');
     }
@@ -36,69 +46,94 @@ describe(
     function assertInitialPageState() {
       // Before dragging, check that the component is in the column one slot in the layers menu and preview.
       cy.log('Image component exists in the first slot in the layers panel');
-      cy.get('@layersTree').within(()=> {
-        cy.findAllByText('Slot').first().closest('.xb--collapsible-root').within(()=>{
-          cy.findAllByText('Image');
-        })
-      })
+      cy.get('@layersTree').within(() => {
+        cy.findAllByText('Slot')
+          .first()
+          .closest('.xb--collapsible-root')
+          .within(() => {
+            cy.findAllByText('Image');
+          });
+      });
 
       cy.log('Image component exists in the first slot in the overlay UI');
-      cy.get('@desktopPreviewOverlay').within(()=>{
-        cy.findByLabelText('Two Column column_one').within(()=>{
+      cy.get('@desktopPreviewOverlay').within(() => {
+        cy.findByLabelText('Two Column column_one').within(() => {
           cy.findByLabelText('Image');
-        })
+        });
       });
     }
 
     function assertPageStateAfterFirstDrag() {
-      cy.log('Image component no longer exists in the first slot in the layers panel and is now a sibling of Two Column');
-      cy.get('@layersTree').within(()=> {
-        cy.findAllByText('Slot').first().closest('.xb--collapsible-root').within(()=>{
-          cy.findAllByText('Image').should('not.exist');
-        });
-        cy.checkSiblings(cy.findByLabelText('Two Column').parents('.xb--collapsible-root'), cy.findByLabelText('Image') );
-      })
+      cy.log(
+        'Image component no longer exists in the first slot in the layers panel and is now a sibling of Two Column',
+      );
+      cy.get('@layersTree').within(() => {
+        cy.findAllByText('Slot')
+          .first()
+          .closest('.xb--collapsible-root')
+          .within(() => {
+            cy.findAllByText('Image').should('not.exist');
+          });
+        cy.checkSiblings(
+          cy.findByLabelText('Two Column').parents('.xb--collapsible-root'),
+          cy.findByLabelText('Image'),
+        );
+      });
 
-      cy.log('Image component no longer exists in the first slot in the overlay UI and is now a sibling of Two Column');
-      cy.get('@desktopPreviewOverlay').within(()=>{
-        cy.findByLabelText('Two Column column_one').within(()=>{
+      cy.log(
+        'Image component no longer exists in the first slot in the overlay UI and is now a sibling of Two Column',
+      );
+      cy.get('@desktopPreviewOverlay').within(() => {
+        cy.findByLabelText('Two Column column_one').within(() => {
           cy.findByLabelText('Image').should('not.exist');
         });
-        cy.checkSiblings(cy.findByLabelText('Two Column'), cy.findByLabelText('Image') );
+        cy.checkSiblings(
+          cy.findByLabelText('Two Column'),
+          cy.findByLabelText('Image'),
+        );
       });
     }
 
     it('Drag a component from the column one slot to the root level then to the column two slot', () => {
-
       preparePage();
       assertInitialPageState();
 
-
       cy.log('Drag image component out of the slot and to the root level.');
-      cy.get('.treeItem[data-xb-uuid="dynamic-image-udf7d"]').realDnd('.rootDropZone[data-xb-type="root"]');
+      cy.get('.treeItem[data-xb-uuid="dynamic-image-udf7d"]').realDnd(
+        '.rootDropZone[data-xb-type="root"]',
+      );
 
       assertPageStateAfterFirstDrag();
 
       // Next, drag the image component from the root level to column two's slot.
-      cy.get('@layersTree').within(()=>{
-        cy.findAllByText('Slot').eq(1).parents('.treeItem').findByLabelText('Expand component tree').click();
-        cy.get('.treeItem[data-xb-uuid="dynamic-image-udf7d"]').realDnd('[data-xb-uuid="dynamic-static-card2df"]', { position: 'bottom'});
+      cy.get('@layersTree').within(() => {
+        cy.findAllByText('Slot')
+          .eq(1)
+          .parents('.treeItem')
+          .findByLabelText('Expand component tree')
+          .click();
+        cy.get('.treeItem[data-xb-uuid="dynamic-image-udf7d"]').realDnd(
+          '[data-xb-uuid="dynamic-static-card2df"]',
+          { position: 'bottom' },
+        );
       });
-
 
       // After dragging, check that the image is now in column two's slot in the layers menu and preview.
       cy.log('Image component exists in the second slot in the layers panel');
-      cy.get('@layersTree').within(()=> {
-        cy.findAllByText('Slot').eq(1).closest('.xb--collapsible-root').within(()=>{
-          cy.findAllByText('Image');
-        })
+      cy.get('@layersTree').within(() => {
+        cy.findAllByText('Slot')
+          .eq(1)
+          .closest('.xb--collapsible-root')
+          .within(() => {
+            cy.findAllByText('Image');
+          });
         // Ensure there is only one Image and we didn't clone it or anything!
         cy.findAllByLabelText('Image').should('have.length', 1);
-      })
+      });
 
       cy.log('Image component exists in the column_two slot in the overlay UI');
-      cy.get('@desktopPreviewOverlay').within(()=>{
-        cy.findByLabelText('Two Column column_two').within(()=>{
+      cy.get('@desktopPreviewOverlay').within(() => {
+        cy.findByLabelText('Two Column column_two').within(() => {
           cy.findByLabelText('Image');
         });
         // Ensure there is only one Image and we didn't clone it or anything!
@@ -111,7 +146,9 @@ describe(
       assertInitialPageState();
 
       cy.log('Drag image component out of the slot and to the root level.');
-      cy.get('.treeItem[data-xb-uuid="dynamic-image-udf7d"]').realDnd('.rootDropZone[data-xb-type="root"]');
+      cy.get('.treeItem[data-xb-uuid="dynamic-image-udf7d"]').realDnd(
+        '.rootDropZone[data-xb-type="root"]',
+      );
       assertPageStateAfterFirstDrag();
 
       // Hit the undo button.

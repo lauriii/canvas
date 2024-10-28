@@ -1,7 +1,7 @@
 import {
   configurationSlice,
   setConfiguration,
-} from '../../../../../ui/src/features/configuration/configurationSlice';
+} from '@/features/configuration/configurationSlice';
 
 const initialState = {
   baseUrl: '/',

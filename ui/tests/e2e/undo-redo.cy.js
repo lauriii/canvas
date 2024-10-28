@@ -43,11 +43,8 @@ describe('Undo/Redo functionality', { testIsolation: false }, () => {
     cy.findByText('Default components').click();
 
     // Click on the menu item with data-xb-name="Hero" inside menu.
-    cy.get('[data-radix-menu-content] [data-xb-name="Hero"]')
-      .click()
-      .then(() => {
-        cy.wait('@getPreview');
-      });
+    cy.get('[data-radix-menu-content] [data-xb-name="Hero"]').click();
+    cy.wait('@getPreview');
 
     cy.getIframeBody().find(
       '[data-component-id="experience_builder:my-hero"]',
@@ -55,11 +52,8 @@ describe('Undo/Redo functionality', { testIsolation: false }, () => {
         expect(myHeroComponent.length).to.equal(4);
       },
     );
-    cy.get('button[aria-label="Undo"]')
-      .click()
-      .then(() => {
-        cy.wait('@getPreview');
-      });
+    cy.get('button[aria-label="Undo"]').click();
+    cy.wait('@getPreview');
 
     // Assert that the component was deleted from the layout.
     cy.getIframeBody().find(
@@ -70,11 +64,9 @@ describe('Undo/Redo functionality', { testIsolation: false }, () => {
     );
 
     // Click the Redo button.
-    cy.get('button[aria-label="Redo"]')
-      .click()
-      .then(() => {
-        cy.wait('@getPreview');
-      });
+    cy.get('button[aria-label="Redo"]').click();
+    cy.wait('@getPreview');
+
     // Assert that the component was again added to the layout.
     cy.getIframeBody().find(
       '[data-component-id="experience_builder:my-hero"]',
@@ -88,21 +80,35 @@ describe('Undo/Redo functionality', { testIsolation: false }, () => {
     cy.loadURLandWaitForXBLoaded();
 
     // Click on our "hello, world!" hero component.
-    cy.clickComponentInPreview('Hero')
+    cy.clickComponentInPreview('Hero');
 
     // Add " one" to the heading field.
     cy.findByTestId(/^xb-component-form-.*/)
       .findByLabelText('Heading')
-      .click()
-      .type(' one')
-      .wait(500); // Wait for debounce to finish to ensure undo history is updated.
+      .click();
+    cy.findByTestId(/^xb-component-form-.*/)
+      .findByLabelText('Heading')
+      .type(' one');
+    // Disable the no-unnecessary-waiting eslint rule below because we need to wait
+    // for the debounce to finish to ensure the undo history is updated.
+    cy.wait(500); // eslint-disable-line cypress/no-unnecessary-waiting
+    cy.findByTestId(/^xb-component-form-.*/)
+      .findByLabelText('Heading')
+      .should('have.value', 'hello, world! one');
 
     // Add " two" to the heading field.
     cy.findByTestId(/^xb-component-form-.*/)
       .findByLabelText('Heading')
-      .click()
-      .type(' two')
-      .wait(500); // Wait for debounce to finish to ensure undo history is updated.
+      .click();
+    cy.findByTestId(/^xb-component-form-.*/)
+      .findByLabelText('Heading')
+      .type(' two');
+    // Disable the no-unnecessary-waiting eslint rule below because we need to wait
+    // for the debounce to finish to ensure the undo history is updated.
+    cy.wait(500); // eslint-disable-line cypress/no-unnecessary-waiting
+    cy.findByTestId(/^xb-component-form-.*/)
+      .findByLabelText('Heading')
+      .should('have.value', 'hello, world! one two');
 
     // Click the Undo button, see if the value is "hello, world! one".
     cy.get('button[aria-label="Undo"]').click();
@@ -118,7 +124,8 @@ describe('Undo/Redo functionality', { testIsolation: false }, () => {
     });
 
     // Click the Undo button twice, see if the value is "hello, world!".
-    cy.get('button[aria-label="Undo"]').click().click();
+    cy.get('button[aria-label="Undo"]').click();
+    cy.get('button[aria-label="Undo"]').click();
     cy.findByLabelText('Heading').should((input) => {
       expect(input).to.have.value('hello, world!');
     });

@@ -5,7 +5,7 @@ import {
   unsetSelectedComponent,
   setHoveredComponent,
   unsetHoveredComponent,
-} from '../../../../../ui/src/features/ui/uiSlice';
+} from '@/features/ui/uiSlice';
 
 describe('Set selected component', () => {
   it('Should set model and layout', () => {

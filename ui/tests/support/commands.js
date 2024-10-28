@@ -1,8 +1,9 @@
-import '@testing-library/cypress/add-commands';
-import { realDnd } from './realDnd'
+import '@testing-library/cypress/add-commands.js';
+import { realDnd } from './realDnd.js';
 
 // This selector gets the preview iframe ensuring that it is initialized and that it is the currently active/swapped in element.
-const initializedReadyPreviewIframeSelector = '[data-xb-preview="lg"][data-test-xb-content-initialized="true"][data-xb-swap-active="true"]'
+const initializedReadyPreviewIframeSelector =
+  '[data-xb-preview="lg"][data-test-xb-content-initialized="true"][data-xb-swap-active="true"]';
 
 const commandAsWebserver = (command) => {
   if (Cypress.env('testWebserverUser')) {
@@ -68,7 +69,7 @@ Cypress.Commands.add(
           cy.get('form').submit('#user-admin-permissions');
           cy.drupalRelativeURL('/admin/people/permissions');
           if (typeof callback === 'function') {
-            callback.call(self, machineName);
+            callback.call(window.self, machineName);
           }
         });
     });
@@ -139,12 +140,13 @@ Cypress.Commands.add('drupalInstallModule', (module, force, callback) => {
     cy.drupalRelativeURL('/admin/modules');
 
     // Open any collapsed sections in the modules page.
-    cy.get('[data-drupal-selector="system-modules"] > details > summary[aria-expanded="false"][aria-controls^="edit-modules"]')
-      .then(($closedDetails) => {
-        $closedDetails.each((index, closed) => {
-          Cypress.$(closed).click();
-        })
-      })
+    cy.get(
+      '[data-drupal-selector="system-modules"] > details > summary[aria-expanded="false"][aria-controls^="edit-modules"]',
+    ).then(($closedDetails) => {
+      $closedDetails.each((index, closed) => {
+        Cypress.$(closed).click();
+      });
+    });
 
     cy.get(`form.system-modules [name="modules[${module}][enable]"]`).check();
     cy.get('form.system-modules').submit();
@@ -233,7 +235,6 @@ Cypress.Commands.add('drupalLoginAsAdmin', (callback) => {
 
 Cypress.Commands.add('drupalLogout', ({ silent = false } = {}, callback) => {
   cy.getAllCookies().then((result) => {
-    const stringResult = JSON.stringify(result);
     result.forEach((cookie) => {
       if (cookie.name.match(/^S?SESS/)) {
         cy.clearCookie(cookie.name);
@@ -281,7 +282,7 @@ Cypress.Commands.add('drupalUninstall', (callback) => {
     );
     cy.exec(tearDownCommand).then(() => {
       if (typeof callback === 'function') {
-        callback.call(self);
+        callback.call(window.self);
       }
     });
   } catch (error) {
@@ -312,7 +313,6 @@ Cypress.Commands.add('drupalSession', () => {
   });
 });
 
-
 /**
  * Ensures that the preview iframe is initialized and has content before continuing. Can be called
  * after performing an action that refreshes the iFrame to ensure subsequent actions wait for the new
@@ -325,11 +325,17 @@ Cypress.Commands.add(
   'previewReady',
   (iframeSelector = initializedReadyPreviewIframeSelector) => {
     // Not logging these assertions to try and keep the command log a bit tidier
-    cy.get('.previewsContainer', {log: false}).should('have.css', 'opacity', '1');
-    cy.get(iframeSelector, {log: false, timeout: 10000}).as('iframe')
-    cy.get(iframeSelector, {log: false}).its('0.contentDocument', {log: false})
+    cy.get('.previewsContainer', { log: false }).should(
+      'have.css',
+      'opacity',
+      '1',
+    );
+    cy.get(iframeSelector, { log: false, timeout: 10000 }).as('iframe');
+    cy.get(iframeSelector, { log: false }).its('0.contentDocument', {
+      log: false,
+    });
     cy.log(`Preview '${iframeSelector}' initialized and has content document.`);
-    return cy.get('@iframe')
+    return cy.get('@iframe');
   },
 );
 
@@ -355,13 +361,16 @@ Cypress.Commands.add('getIframe', (selector) => {
  * @return {object}
  *  The Cypress-wrapped iframe body.
  */
-Cypress.Commands.add('getIframeBody', (selector = initializedReadyPreviewIframeSelector) => {
-  return cy
-    .getIframe(selector)
-    .its('body')
-    .should('not.be.undefined')
-    .then(cy.wrap);
-});
+Cypress.Commands.add(
+  'getIframeBody',
+  (selector = initializedReadyPreviewIframeSelector) => {
+    return cy
+      .getIframe(selector)
+      .its('body')
+      .should('not.be.undefined')
+      .then(cy.wrap);
+  },
+);
 
 /**
  * Waits for element matching a selector to be present in an iframe.
@@ -376,7 +385,11 @@ Cypress.Commands.add('getIframeBody', (selector = initializedReadyPreviewIframeS
  */
 Cypress.Commands.add(
   'waitForElementInIframe',
-  (selector, iframeSelector = initializedReadyPreviewIframeSelector, customTimeout) => {
+  (
+    selector,
+    iframeSelector = initializedReadyPreviewIframeSelector,
+    customTimeout,
+  ) => {
     cy.document().then((doc) => {
       cy.get(true, {
         timeout: customTimeout || Cypress.config('defaultCommandTimeout'),
@@ -395,7 +408,12 @@ Cypress.Commands.add(
 
 Cypress.Commands.add(
   'waitForElementContentInIframe',
-  (selector, textContent, iframeSelector = initializedReadyPreviewIframeSelector, customTimeout) => {
+  (
+    selector,
+    textContent,
+    iframeSelector = initializedReadyPreviewIframeSelector,
+    customTimeout,
+  ) => {
     cy.document().then((doc) => {
       cy.get(true, {
         timeout: customTimeout || Cypress.config('defaultCommandTimeout'),
@@ -407,7 +425,10 @@ Cypress.Commands.add(
           !!frameContent,
           `'${selector}' was found in iframe '${iframeSelector}'`,
         ).to.equal(true);
-        expect(frameContent?.textContent?.includes(textContent), `${iframeSelector} in iframe includes text ${textContent}`).to.equal(true)
+        expect(
+          frameContent?.textContent?.includes(textContent),
+          `${iframeSelector} in iframe includes text ${textContent}`,
+        ).to.equal(true);
       });
     });
   },
@@ -415,7 +436,12 @@ Cypress.Commands.add(
 
 Cypress.Commands.add(
   'waitForElementContentNotInIframe',
-  (selector, textContent, iframeSelector = initializedReadyPreviewIframeSelector, customTimeout) => {
+  (
+    selector,
+    textContent,
+    iframeSelector = initializedReadyPreviewIframeSelector,
+    customTimeout,
+  ) => {
     cy.document().then((doc) => {
       cy.get(true, {
         timeout: customTimeout || Cypress.config('defaultCommandTimeout'),
@@ -427,7 +453,10 @@ Cypress.Commands.add(
           !!frameContent,
           `'${selector}' was found in iframe '${iframeSelector}'`,
         ).to.equal(true);
-        expect(!!(!!frameContent && !frameContent.textContent.includes(textContent)), `${iframeSelector} in iframe should no longer include text ${textContent}, but there is ${frameContent?.textContent}`).to.equal(true)
+        expect(
+          !!(!!frameContent && !frameContent.textContent.includes(textContent)),
+          `${iframeSelector} in iframe should no longer include text ${textContent}, but there is ${frameContent?.textContent}`,
+        ).to.equal(true);
       });
     });
   },
@@ -451,7 +480,11 @@ Cypress.Commands.add(
  */
 Cypress.Commands.add(
   'testInIframe',
-  (selector, callback, iframeSelector = initializedReadyPreviewIframeSelector) => {
+  (
+    selector,
+    callback,
+    iframeSelector = initializedReadyPreviewIframeSelector,
+  ) => {
     cy.getIframeBody(iframeSelector).should((previewIframe) => {
       const queryResult = previewIframe.querySelectorAll(selector);
       let callbackArg = queryResult;
@@ -477,7 +510,7 @@ Cypress.Commands.add('clickAddMenu', () => {
  * ```javascript
  *    cy.findByLabelText('Canvas zoom level').setRangeValue('101');
  * ```
-*/
+ */
 Cypress.Commands.add(
   'setRangeValue',
   { prevSubject: 'element' },
@@ -517,7 +550,7 @@ Cypress.Commands.add(
  *
  * @param {string} url
  *   The url you want to visit - defaults to /xb/node/1.
-*/
+ */
 Cypress.Commands.add('loadURLandWaitForXBLoaded', (url = 'xb/node/1') => {
   cy.drupalRelativeURL(url);
 
@@ -525,7 +558,7 @@ Cypress.Commands.add('loadURLandWaitForXBLoaded', (url = 'xb/node/1') => {
 });
 
 // Helper function used by the realDnd command.
-Cypress.Commands.add("realDndRaw", realDnd);
+Cypress.Commands.add('realDndRaw', realDnd);
 
 /**
  * Drag and drop an element.
@@ -539,17 +572,17 @@ Cypress.Commands.add("realDndRaw", realDnd);
  *
  *  @see https://github.com/dmtrKovalenko/cypress-real-events/pull/17 */
 Cypress.Commands.add(
-  "realDnd",
+  'realDnd',
   { prevSubject: true },
   (subject, destination, opts) => {
-    if (typeof destination === "string") {
+    if (typeof destination === 'string') {
       cy.get(destination).then((el) => {
         cy.realDndRaw(subject, el, opts);
       });
     } else {
       cy.realDndRaw(subject, destination, opts);
     }
-  }
+  },
 );
 
 Cypress.Commands.add('getElementScaledDimensions', ($item) => {
@@ -570,30 +603,49 @@ Cypress.Commands.add('getElementScaledDimensions', ($item) => {
 
       return {
         width: scaledWidth,
-        height: scaledHeight
+        height: scaledHeight,
       };
     }
     return {
       width: 0,
-      height: 0
+      height: 0,
     };
   });
 });
 
-Cypress.Commands.add('clickComponentInPreview', (componentName, index= 0, viewportSize="lg") => {
-  cy.get(`#xbPreviewOverlay .xb--viewport-overlay[data-xb-viewport-size="${viewportSize}"]`)
-    .findAllByLabelText(componentName).eq(index).click({scrollBehavior:'center'});
-});
+Cypress.Commands.add(
+  'clickComponentInPreview',
+  (componentName, index = 0, viewportSize = 'lg') => {
+    cy.get(
+      `#xbPreviewOverlay .xb--viewport-overlay[data-xb-viewport-size="${viewportSize}"]`,
+    )
+      .findAllByLabelText(componentName)
+      .eq(index)
+      .click({ scrollBehavior: 'center' });
+  },
+);
 
-Cypress.Commands.add('getComponentInPreview', (componentName, index= 0, viewportSize="lg") => {
-  return cy.get(`#xbPreviewOverlay .xb--viewport-overlay[data-xb-viewport-size="${viewportSize}"]`)
-    .findAllByLabelText(componentName).eq(index)
-});
+Cypress.Commands.add(
+  'getComponentInPreview',
+  (componentName, index = 0, viewportSize = 'lg') => {
+    return cy
+      .get(
+        `#xbPreviewOverlay .xb--viewport-overlay[data-xb-viewport-size="${viewportSize}"]`,
+      )
+      .findAllByLabelText(componentName)
+      .eq(index);
+  },
+);
 
-Cypress.Commands.add('clickComponentInLayersView', (componentName, index= 0) => {
-  cy.get('.primaryMenuContent').findAllByLabelText(componentName).eq(index).click({force: true});
-});
-
+Cypress.Commands.add(
+  'clickComponentInLayersView',
+  (componentName, index = 0) => {
+    cy.get('.primaryMenuContent')
+      .findAllByLabelText(componentName)
+      .eq(index)
+      .click({ force: true });
+  },
+);
 
 Cypress.Commands.add('checkSiblings', (firstQuery, secondQuery) => {
   // Function to resolve elements from a query (either string or chain)
@@ -634,58 +686,65 @@ Cypress.Commands.add('checkSiblings', (firstQuery, secondQuery) => {
  */
 Cypress.Commands.add('hidePanels', () => {
   function hide($el) {
-    $el.css({'display': 'none'});
+    $el.css({ display: 'none' });
   }
 
-  cy.findByTestId('xb-menu-root').then(hide)
-  cy.findByTestId('xb-topbar').then(hide)
-  cy.findByTestId('xb-contextual-panel').then(hide)
-  cy.findByTestId('xb-canvas-controls').then(hide)
-})
+  cy.findByTestId('xb-menu-root').then(hide);
+  cy.findByTestId('xb-topbar').then(hide);
+  cy.findByTestId('xb-contextual-panel').then(hide);
+  cy.findByTestId('xb-canvas-controls').then(hide);
+});
 
 /**
  * Show the left, right, top and zoom control panels after they have been hidden with cy.hidePanels();
  */
 Cypress.Commands.add('showPanels', () => {
   function show($el) {
-    $el.css({'display': ''});
+    $el.css({ display: '' });
   }
 
-  cy.findByTestId('xb-menu-root').then(show)
-  cy.findByTestId('xb-topbar').then(show)
-  cy.findByTestId('xb-contextual-panel').then(show)
-  cy.findByTestId('xb-canvas-controls').then(show)
-})
+  cy.findByTestId('xb-menu-root').then(show);
+  cy.findByTestId('xb-topbar').then(show);
+  cy.findByTestId('xb-contextual-panel').then(show);
+  cy.findByTestId('xb-canvas-controls').then(show);
+});
 
 /**
  * Set the canvas to be static and scrollable so that Cypress is better able to interact with elements in the canvas.
  */
 Cypress.Commands.add('disableCanvasPanning', () => {
   cy.findByTestId('xb-canvas').then(($canvas) => {
-    $canvas.css({padding: '100px 0 0 0'});
-  })
+    $canvas.css({ padding: '100px 0 0 0' });
+  });
 
-  cy.findByTestId('xb-canvas').parent().then(($parent) => {
-    $parent.css({overflow: 'visible', display: 'block', position: 'static'});
-  })
+  cy.findByTestId('xb-canvas')
+    .parent()
+    .then(($parent) => {
+      $parent.css({
+        overflow: 'visible',
+        display: 'block',
+        position: 'static',
+      });
+    });
   cy.get('body').then(($body) => {
-    $body.css({overflow: 'visible'});
-  })
-})
+    $body.css({ overflow: 'visible' });
+  });
+});
 
 /**
  * Reset the canvas to its normal behavior after disabling it with cy.disableCanvasPanning();
  */
 Cypress.Commands.add('reEnableCanvasPanning', () => {
   cy.findByTestId('xb-canvas').then(($canvas) => {
-    $canvas.css({padding: ''});
-  })
+    $canvas.css({ padding: '' });
+  });
 
-  cy.findByTestId('xb-canvas').parent().then(($parent) => {
-    $parent.css({overflow: '', display: '', position: ''});
-  })
+  cy.findByTestId('xb-canvas')
+    .parent()
+    .then(($parent) => {
+      $parent.css({ overflow: '', display: '', position: '' });
+    });
   cy.get('body').then(($body) => {
-    $body.css({overflow: ''});
-  })
-})
-
+    $body.css({ overflow: '' });
+  });
+});

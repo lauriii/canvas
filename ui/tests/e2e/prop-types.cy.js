@@ -172,8 +172,10 @@ describe('Prop types editing', () => {
       '2016-09-16T20:20:39+00:00',
     );
 
-    cy.get(dateSelector).clear().type('2017-06-28');
-    cy.get(timeSelector).clear().type('07:21:35');
+    cy.get(dateSelector).clear();
+    cy.get(dateSelector).type('2017-06-28');
+    cy.get(timeSelector).clear();
+    cy.get(timeSelector).type('07:21:35');
     cy.get(dateSelector).should('have.value', '2017-06-28');
 
     cy.get(timeSelector).should('have.value', '07:21:35');
@@ -194,19 +196,22 @@ describe('Prop types editing', () => {
     const dateSelector = '[name$="[test_string_format_date][0][value][date]"]';
     cy.get(dateSelector).should('have.value', '2018-11-12');
     cy.waitForElementContentInIframe('#test-string-format-date', '2018-11-13');
-    cy.get(dateSelector).clear().type('2017-06-28');
+    cy.get(dateSelector).clear();
+    cy.get(dateSelector).type('2017-06-28');
     cy.waitForElementContentInIframe('#test-string-format-date', '2017-06-28');
   });
   it('Integer', () => {
     cy.findByLabelText('Integer').should('have.value', -42);
     cy.waitForElementContentInIframe('#test-integer', '-42');
-    cy.findByLabelText('Integer').clear().type(12);
+    cy.findByLabelText('Integer').clear();
+    cy.findByLabelText('Integer').type(12);
     cy.findByLabelText('Integer').should('have.value', 12);
     cy.waitForElementContentInIframe('#test-integer', '12');
 
     cy.findByLabelText('Integer, minimum=0').should('have.value', 42);
     cy.waitForElementContentInIframe('#test-integer-range-minimum', '42');
-    cy.findByLabelText('Integer, minimum=0').clear().type(55);
+    cy.findByLabelText('Integer, minimum=0').clear();
+    cy.findByLabelText('Integer, minimum=0').type(55);
     cy.findByLabelText('Integer, minimum=0').should('have.value', 55);
     cy.waitForElementContentInIframe('#test-integer-range-minimum', '55');
 
@@ -217,9 +222,12 @@ describe('Prop types editing', () => {
       '#test-integer-range-minimum-maximum-timestamps',
       '1730718000',
     );
-    cy.findByLabelText('Integer, minimum=-2147483648, maximum=2147483648')
-      .clear()
-      .type(543211);
+    cy.findByLabelText(
+      'Integer, minimum=-2147483648, maximum=2147483648',
+    ).clear();
+    cy.findByLabelText('Integer, minimum=-2147483648, maximum=2147483648').type(
+      543211,
+    );
     cy.findByLabelText(
       'Integer, minimum=-2147483648, maximum=2147483648',
     ).should('have.value', 543211);

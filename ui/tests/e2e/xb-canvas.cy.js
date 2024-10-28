@@ -25,11 +25,15 @@ describe(
       cy.getIframeBody()
         .find('[data-component-id="experience_builder:my-hero"] h1')
         .first()
-        .trigger('mouseover')
-        .closest('.xb--sortable-item')
-        .then((item) => {
-          const rect = item[0].getBoundingClientRect();
-          cy.wrap(rect).as('initialComponentRect');
+        .then(($h1) => {
+          const element = $h1;
+          cy.wrap(element).trigger('mouseover');
+          cy.wrap(element)
+            .closest('.xb--sortable-item')
+            .then(($item) => {
+              const rect = $item[0].getBoundingClientRect();
+              cy.wrap(rect).as('initialComponentRect');
+            });
         });
 
       // Verify the initial outline matches the component's size.
@@ -55,16 +59,19 @@ describe(
       cy.getIframeBody()
         .find('[data-component-id="experience_builder:my-hero"] h1')
         .first()
-        .trigger('mouseover')
-        .closest('.xb--sortable-item')
-        .then(($item) => {
-          // Calculate component height and width by scale value - as by default component's dimensions are not changing on zoom
-          cy.getElementScaledDimensions($item[0]).then((dimensions) => {
-            const zoomedComponentRect = $item[0].getBoundingClientRect();
-            zoomedComponentRect.width = roundValue(dimensions.width);
-            zoomedComponentRect.height = roundValue(dimensions.height);
-            cy.wrap(zoomedComponentRect).as('zoomedComponentRect');
-          });
+        .then(($h1) => {
+          cy.wrap($h1).trigger('mouseover');
+          cy.wrap($h1)
+            .closest('.xb--sortable-item')
+            .then(($item) => {
+              // Calculate component height and width by scale value - as by default component's dimensions are not changing on zoom
+              cy.getElementScaledDimensions($item[0]).then((dimensions) => {
+                const zoomedComponentRect = $item[0].getBoundingClientRect();
+                zoomedComponentRect.width = roundValue(dimensions.width);
+                zoomedComponentRect.height = roundValue(dimensions.height);
+                cy.wrap(zoomedComponentRect).as('zoomedComponentRect');
+              });
+            });
         });
 
       // Verify the outline matches the zoomed component's size.
@@ -95,16 +102,19 @@ describe(
       cy.getIframeBody()
         .find('[data-component-id="experience_builder:my-hero"] h1')
         .first()
-        .trigger('mouseover', { force: true })
-        .closest('.xb--sortable-item')
-        .then(($item) => {
-          // Calculate component height and width by scale value - as by default component's dimensions are not changing on zoom
-          cy.getElementScaledDimensions($item[0]).then((dimensions) => {
-            const resetOutlineRect = $item[0].getBoundingClientRect();
-            resetOutlineRect.width = roundValue(dimensions.width);
-            resetOutlineRect.height = roundValue(dimensions.height);
-            cy.wrap(resetOutlineRect).as('resetOutlineRect');
-          });
+        .then(($h1) => {
+          cy.wrap($h1).trigger('mouseover', { force: true });
+          cy.wrap($h1)
+            .closest('.xb--sortable-item')
+            .then(($item) => {
+              // Calculate component height and width by scale value - as by default component's dimensions are not changing on zoom
+              cy.getElementScaledDimensions($item[0]).then((dimensions) => {
+                const resetOutlineRect = $item[0].getBoundingClientRect();
+                resetOutlineRect.width = roundValue(dimensions.width);
+                resetOutlineRect.height = roundValue(dimensions.height);
+                cy.wrap(resetOutlineRect).as('resetOutlineRect');
+              });
+            });
         });
 
       // Verify the outline size matches the original size after zoom-out.

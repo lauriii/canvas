@@ -359,7 +359,7 @@ UI eslint:
     when: always
     expire_in: 6 mos
     paths:
-      - ./tests/src/Cypress/cypress/screenshots/**/*.png
+      - ui/tests/screenshots/**/*.png
 
 cypress E2E:
   extends: .cypress-base
@@ -377,7 +377,7 @@ cypress unit:
         - ui/src/**/*
         - ui/tsconfig.json
         - ui/tsconfig.node.json
-        - tests/src/Cypress/cypress/unit/**/*
+        - ui/tests/unit/**/*
     - *manual-rule
 
 🗺️ C4 model diagrams:

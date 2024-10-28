@@ -1,3 +1,5 @@
+import { onlyVisibleChars } from '../support/utils.js';
+
 describe(
   'Add section/component functionality',
   { testIsolation: false },
@@ -55,12 +57,10 @@ describe(
       cy.testInIframe(
         '[data-component-id="experience_builder:my-hero"] h1',
         (components) => {
-          expect(components[3].textContent.onlyVisibleChars()).to.equal(
-            'A hero in slot 1!',
-          );
-          expect(components[4].textContent.onlyVisibleChars()).to.equal(
-            'A hero in slot 2!',
-          );
+          const heroText1 = onlyVisibleChars(components[3].textContent);
+          const heroText2 = onlyVisibleChars(components[4].textContent);
+          expect(heroText1).to.equal('A hero in slot 1!');
+          expect(heroText2).to.equal('A hero in slot 2!');
         },
       );
     });

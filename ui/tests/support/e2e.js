@@ -34,8 +34,3 @@ Cypress.on('uncaught:exception', (err, runnable) => {
     return false;
   }
 });
-
-// Remove newlines and excess whitespace from a string.
-String.prototype.onlyVisibleChars = function () {
-  return this.replace(/^(?:&nbsp;|\s)+|(?:&nbsp;|\s)+$/gi, '').trim();
-};

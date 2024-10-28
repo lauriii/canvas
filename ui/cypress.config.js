@@ -79,28 +79,28 @@ export default defineConfig({
 
       on('file:preprocessor', webpackPreprocessor(options));
     },
-    specPattern: ['../tests/src/Cypress/cypress/e2e/**/*.cy.{js,ts,jsx,tsx}'],
-    supportFile: '../tests/src/Cypress/cypress/support/e2e.js',
-    downloadsFolder: '../tests/src/Cypress/cypress/downloads',
-    screenshotsFolder: '../tests/src/Cypress/cypress/screenshots',
+    specPattern: ['tests/e2e/**/*.cy.{js,ts,jsx,tsx}'],
+    supportFile: 'tests/support/e2e.js',
+    downloadsFolder: 'tests/downloads',
+    screenshotsFolder: 'tests/screenshots',
     viewportHeight: 1080,
     viewportWidth: 1920,
   },
 
   component: {
     specPattern: [
-      '../tests/src/Cypress/cypress/component/**/*.cy.{js,ts,jsx,tsx}',
-      '../tests/src/Cypress/cypress/unit/**/*.cy.{js,ts,jsx,tsx}',
+      'tests/component/**/*.cy.{js,ts,jsx,tsx}',
+      'tests/unit/**/*.cy.{js,ts,jsx,tsx}',
     ],
     devServer: {
       framework: 'react',
       bundler: 'vite',
     },
-    indexHtmlFile: '../tests/src/Cypress/cypress/support/component-index.html',
-    supportFile: '../tests/src/Cypress/cypress/support/component.js',
-    downloadsFolder: '../tests/src/Cypress/cypress/downloads',
-    screenshotsFolder: '../tests/src/Cypress/cypress/screenshots',
-    fixturesFolder: '../tests/src/Cypress/cypress/fixtures',
+    indexHtmlFile: 'tests/support/component-index.html',
+    supportFile: 'tests/support/component.js',
+    downloadsFolder: 'tests/downloads',
+    screenshotsFolder: 'tests/screenshots',
+    fixturesFolder: 'tests/fixtures',
     setupNodeEvents(on, config) {
       on('task', {
         log(message) {

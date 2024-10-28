@@ -1,4 +1,6 @@
-describe('General Experience Builder', {testIsolation: false}, () => {
+import { onlyVisibleChars } from '../support/utils.js';
+
+describe('General Experience Builder', { testIsolation: false }, () => {
   before(() => {
     cy.drupalXbInstall();
   });
@@ -116,12 +118,12 @@ describe('General Experience Builder', {testIsolation: false}, () => {
     cy.getIframeBody()
       .find('[data-component-id="experience_builder:my-hero"] h1')
       .first()
-      .trigger('mouseover')
-      .then((clicked) => {
+      .then(($h1) => {
+        cy.wrap($h1).trigger('mouseover');
         // While in the iframe, get the dimensions of the component so we can
         // compare the outline dimensions to it
-        const item = clicked.closest('.xb--sortable-item');
-        lgPreviewRect = item[0].getBoundingClientRect();
+        const $item = $h1.closest('.xb--sortable-item');
+        lgPreviewRect = $item[0].getBoundingClientRect();
       });
 
     // After hovering, the component should be outlined for both small and large viewports.
@@ -229,16 +231,15 @@ describe('General Experience Builder', {testIsolation: false}, () => {
       (heroes) => {
         const hero = heroes[0];
         Object.entries(heroSelectors).forEach(([prop, selector]) => {
+          const heroText = onlyVisibleChars(
+            hero.querySelector(selector).textContent,
+          );
           if (heroBefore[prop]) {
-            expect(
-              hero.querySelector(selector).textContent.onlyVisibleChars(),
-              `${prop} should be ${heroBefore[prop]}`,
-            ).to.equal(heroBefore[prop]);
+            expect(heroText, `${prop} should be ${heroBefore[prop]}`).to.equal(
+              heroBefore[prop],
+            );
           } else {
-            expect(
-              !!hero.querySelector(selector).textContent.onlyVisibleChars(),
-              `${prop} should be empty`,
-            ).to.be.false;
+            expect(heroText, `${prop} should be empty`).to.be.empty;
           }
         });
         expect(
@@ -269,7 +270,8 @@ describe('General Experience Builder', {testIsolation: false}, () => {
     cy.intercept('POST', '**/api/preview/node/1').as('getPreview');
     Object.entries(propEditFormSelectors).forEach(([prop, selector]) => {
       // Type a new value into a given input.
-      cy.get(selector).focus().clear().type(newValues[prop]);
+      cy.get(selector).clear();
+      cy.get(selector).type(newValues[prop]);
 
       // Wait for completion of the request triggered by our typing. This
       // ensures that the `testInIframe` ~10 lines down is working with an iframe that
@@ -341,9 +343,15 @@ describe('General Experience Builder', {testIsolation: false}, () => {
     cy.loadURLandWaitForXBLoaded();
 
     // Find and alias the UUID of the "my-hero" component.
-    cy.getComponentInPreview('Hero', 2).find('.xb--sortable-item').invoke('attr', 'data-xb-uuid').as('cid1');
+    cy.getComponentInPreview('Hero', 2)
+      .find('.xb--sortable-item')
+      .invoke('attr', 'data-xb-uuid')
+      .as('cid1');
     // Find and alias the UUID of the "image" component.
-    cy.getComponentInPreview('Image', 1).find('.xb--sortable-item').invoke('attr', 'data-xb-uuid').as('cid2');
+    cy.getComponentInPreview('Image', 1)
+      .find('.xb--sortable-item')
+      .invoke('attr', 'data-xb-uuid')
+      .as('cid2');
 
     // Ensure both aliases are retrieved and compare them.
     cy.get('@cid1').then((uuid1) => {
@@ -440,8 +448,8 @@ describe('General Experience Builder', {testIsolation: false}, () => {
     // Note the times: 1 option, which ensures the request is only intercepted
     // once.
     cy.intercept(
-      {url: '**/api/preview/node/1', times: 1},
-      {statusCode: 418},
+      { url: '**/api/preview/node/1', times: 1 },
+      { statusCode: 418 },
     );
     cy.drupalRelativeURL('xb/node/1');
 
@@ -501,9 +509,13 @@ describe('General Experience Builder', {testIsolation: false}, () => {
     cy.clickComponentInLayersView('Two Column');
     cy.realPress('{del}');
 
-    cy.get('.primaryMenuContent').findByLabelText('Two Column').should('not.exist');
+    cy.get('.primaryMenuContent')
+      .findByLabelText('Two Column')
+      .should('not.exist');
     cy.previewReady();
-    cy.get(`#xbPreviewOverlay`).findAllByLabelText('Two Column').should('not.exist');
+    cy.get(`#xbPreviewOverlay`)
+      .findAllByLabelText('Two Column')
+      .should('not.exist');
   });
 
   it('Insert panel should close when clicking off', () => {
@@ -546,7 +558,7 @@ describe('General Experience Builder', {testIsolation: false}, () => {
         .reduce((acc, _, index) => {
           const paddedIndex = String(index + 1).padStart(2, '0');
           const id = `experience_builder:component_${paddedIndex}`;
-          acc[id] = {id, name: `Component ${paddedIndex}`};
+          acc[id] = { id, name: `Component ${paddedIndex}` };
           return acc;
         }, {}),
     }).as('getComponents');
@@ -559,7 +571,7 @@ describe('General Experience Builder', {testIsolation: false}, () => {
     cy.wait('@getComponents');
 
     cy.get('#menuBarSubmenuContainer .MenubarSubContent')
-      .realMouseWheel({deltaY: 2000})
+      .realMouseWheel({ deltaY: 2000 })
       .then(() => {
         cy.get(
           '[data-xb-component-id="experience_builder:component_50"]',
@@ -580,7 +592,7 @@ describe('General Experience Builder', {testIsolation: false}, () => {
       });
 
     // Click a Hero component to open the component form.
-    cy.clickComponentInPreview('Hero')
+    cy.clickComponentInPreview('Hero');
 
     // `@componentFormHeading`
     cy.findByTestId(/^xb-component-form-.*/)
@@ -590,13 +602,12 @@ describe('General Experience Builder', {testIsolation: false}, () => {
     // Check if the "Heading" prop's <input> tag has the `required` attribute.
     cy.get('@componentFormHeading').should('have.attr', 'required');
     // Clear the value.
-    cy.get('@componentFormHeading')
-      .clear()
-      // Ensure the input is invalid.
-      .then(($input) => {
-        expect($input[0].validity.valid).to.be.false;
-        expect($input[0].matches(':invalid')).to.be.true;
-      });
+    cy.get('@componentFormHeading').clear();
+    cy.get('@componentFormHeading').then(($input) => {
+      // Ensure the input is invalid
+      expect($input[0].validity.valid).to.be.false;
+      expect($input[0].matches(':invalid')).to.be.true;
+    });
 
     // Make sure the umber of Hero components in the preview hasn't changed.
     cy.get('@initialHeroCount').then((initialHeroCount) => {
@@ -626,13 +637,12 @@ describe('General Experience Builder', {testIsolation: false}, () => {
     // Check if the "CTA 1 link" prop's <input> tag has the `required` attribute.
     cy.get('@componentFormCTA1Link').should('have.attr', 'required');
     // Clear the value.
-    cy.get('@componentFormHeading')
-      .clear()
-      // Ensure the input is invalid.
-      .then(($input) => {
-        expect($input[0].validity.valid).to.be.false;
-        expect($input[0].matches(':invalid')).to.be.true;
-      });
+    cy.get('@componentFormCTA1Link').clear();
+    // Ensure the input is invalid.
+    cy.get('@componentFormCTA1Link').then(($input) => {
+      expect($input[0].validity.valid).to.be.false;
+      expect($input[0].matches(':invalid')).to.be.true;
+    });
 
     // Make sure the number of Hero components in the preview hasn't changed.
     cy.get('@initialHeroCount').then((initialHeroCount) => {
@@ -643,9 +653,9 @@ describe('General Experience Builder', {testIsolation: false}, () => {
     });
 
     // Update the value of the "CTA 1 link" prop's <input>.
+    cy.get('@componentFormCTA1Link').clear();
+    // Ensure the input is invalid.
     cy.get('@componentFormCTA1Link')
-      .clear()
-      // Ensure the input is invalid.
       .then(($input) => {
         expect($input[0].validity.valid).to.be.false;
         expect($input[0].matches(':invalid')).to.be.true;
@@ -679,7 +689,7 @@ describe('General Experience Builder', {testIsolation: false}, () => {
     // Click on the Add component button of image component
     cy.findAllByLabelText('Add component')
       .first()
-      .click({scrollBehavior: 'center'});
+      .click({ scrollBehavior: 'center' });
     // Click Heading in the side menu
     cy.get('#menuBarSubmenuContainer').findByText('Heading').click();
     // Check if heading component has been added in the preview
@@ -701,7 +711,9 @@ describe('General Experience Builder', {testIsolation: false}, () => {
     // prop within the layout.
     cy.findByTestId(/^xb-component-form-.*/)
       .find('input[required]')
-      .click()
+      .click();
+    cy.findByTestId(/^xb-component-form-.*/)
+      .find('input[required]')
       .type('{enter}');
     cy.getIframeBody().findByText('A heading element').should('exist');
   });

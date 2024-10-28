@@ -1,5 +1,5 @@
 // cspell:ignore idontexist
-import { isChildNode } from '../../../../../ui/src/features/layout/layoutUtils';
+import { isChildNode } from '@/features/layout/layoutUtils';
 
 let layout;
 before('Load fixture', function () {

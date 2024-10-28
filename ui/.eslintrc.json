@@ -30,6 +30,15 @@
   },
   "overrides": [
     { "files": ["*.{c,m,}{t,j}s", "*.{t,j}sx"] },
-    { "files": ["*{test,spec}.{t,j}s?(x)"], "env": { "jest": true } }
+    { "files": ["*{test,spec}.{t,j}s?(x)"], "env": { "jest": true } },
+    { "files": ["tests/**/*.{js,jsx,ts,tsx}"],
+      "extends": [
+        "plugin:cypress/recommended",
+        // Chai assertions can be used in Cypress but some assertions e.g. "expect(value).to.be.true" can fail an ESLint rule even if it's
+        // not an error. eslint-plugin-cypress recommends adding this plugin to fix this.
+        // @see https://github.com/cypress-io/eslint-plugin-cypress?tab=readme-ov-file#cypress-and-chai-recommended
+        "plugin:chai-friendly/recommended"
+        ]
+    }
   ]
 }
