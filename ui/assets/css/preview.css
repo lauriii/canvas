@@ -8,14 +8,14 @@ Also note, the HMR does not watch this file so you must refresh your page manual
 This file is included as an attached Drupal library and as such is subject to CSS aggregation.
  */
 
- :root {
+:root {
   /* Copied from the design tokens provided by Radix Themes and/or `ui/styles/tokens`.
     We can't use those tokens directly because this CSS is loaded in an iFrame. */
   --xb--space-2: 8px;
   --xb--radius-1: 3px;
   --xb--radius-2: 4px;
   --xb--blue-9: #176bfd;
- }
+}
 
 .xb--preview-dragging .xb--sortable-list {
   min-height: 2rem;
@@ -51,7 +51,7 @@ This file is included as an attached Drupal library and as such is subject to CS
   margin: 0;
   padding: 0;
   border-radius: var(--xb--radius-1);
-  background-color: var(--xb--blue-9)
+  background-color: var(--xb--blue-9);
 }
 .xb--sortable-ghost * {
   display: none;
