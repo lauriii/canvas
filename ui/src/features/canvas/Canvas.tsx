@@ -16,6 +16,7 @@ import {
   setIsPanning,
   selectSelectedComponent,
   selectFirstLoadComplete,
+  unsetSelectedComponent,
 } from '@/features/ui/uiSlice';
 import { deleteNode } from '../layout/layoutModelSlice';
 import PreviewOverlay from '@/features/layout/previewOverlay/PreviewOverlay';
@@ -51,6 +52,7 @@ const Canvas = () => {
   useHotkeys(['Backspace', 'Delete'], () => {
     if (selectedComponent) {
       dispatch(deleteNode(selectedComponent));
+      dispatch(unsetSelectedComponent());
     }
   });
   const middleMouseDownRef = useRef(middleMouseDown);

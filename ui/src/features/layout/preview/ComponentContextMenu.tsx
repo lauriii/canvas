@@ -7,6 +7,7 @@ import {
   selectCanvasViewPort,
   setSelectedComponent,
   unsetHoveredComponent,
+  unsetSelectedComponent,
 } from '@/features/ui/uiSlice';
 import {
   deleteNode,
@@ -30,6 +31,7 @@ const ComponentContextMenu: React.FC<ComponentContextMenuProps> = (props) => {
   const handleDeleteClick = useCallback(() => {
     if (componentUuid) {
       dispatch(deleteNode(componentUuid));
+      dispatch(unsetSelectedComponent());
     }
     dispatch(unsetHoveredComponent());
   }, [dispatch, componentUuid]);
