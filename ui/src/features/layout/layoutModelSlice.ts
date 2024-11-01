@@ -8,8 +8,8 @@ import {
   moveNodeToPath,
   insertNodeAtPath,
   removeNodeByUuid,
+  replaceUUIDsAndUpdateModel,
 } from './layoutUtils';
-import { v4 as uuidv4 } from 'uuid';
 import type { UUID } from '@/types/UUID';
 import type { AppDispatch } from '@/app/store';
 import type { StateWithHistory } from 'redux-undo';
@@ -24,15 +24,16 @@ export interface LayoutNode {
   props?: {} | undefined;
 }
 
-export type LayoutNodeWithoutUUID = Omit<LayoutNode, 'uuid'>;
-
-export interface LayoutModelSliceState {
+export interface LayoutModel {
   layout: LayoutNode;
   model: ComponentModels;
+}
+
+export interface LayoutModelSliceState extends LayoutModel {
   initialized: boolean;
 }
 
-type ComponentModels = Record<string, ComponentModel>;
+export type ComponentModels = Record<string, ComponentModel>;
 
 export const initialState: LayoutModelSliceState = {
   layout: {
@@ -65,28 +66,19 @@ type DuplicateNodePayload = {
   uuid: string;
 };
 
-type InsertNodePayload = {
-  newNode: LayoutNodeWithoutUUID | undefined;
-  to: number[] | undefined;
-  model: InitialPropData | undefined;
-};
-
 type InsertMultipleNodesPayload = {
-  newNodes: LayoutNode;
   to: number[] | undefined;
-  model: ComponentModels;
+  layoutModel: LayoutModel;
+  /**
+   * Pass an optional UUID that will be assigned to the last, top level node being inserted. Allows you to define the UUID
+   * so that you can then do something with the newly inserted node using that UUID.
+   */
+  useUUID?: string;
 };
 
 type AddNewNodePayload = {
-  newNode: string | undefined;
   to: number[] | undefined;
   component: Component | undefined;
-};
-
-type AddNewSectionPayload = {
-  newSection: string | undefined;
-  to: number[] | undefined;
-  layoutModel: LayoutModelSliceState;
 };
 
 type SortNodePayload = {
@@ -99,61 +91,10 @@ type UpdateNodePayload = {
   model: {};
 };
 
-type InitialPropData = {
-  [key: string]: any;
-};
-
 export interface ComponentModel {
-  [key: string]: string | boolean | [] | number;
+  [key: string]: string | boolean | [] | number | {};
   name: string;
 }
-
-/**
- * Replace UUIDs in a layout node and its corresponding model.
- * @param node - The layout node to update.
- * @param model - The corresponding model to update.
- * @returns An updated model and a updated state.
- */
-const replaceUUIDsAndUpdateModel = (
-  node: LayoutNode,
-  model: ComponentModels,
-): {
-  updatedNode: LayoutNode;
-  updatedModel: ComponentModels;
-} => {
-  const oldToNewUUIDMap: Record<string, string> = {};
-  const updatedModel: ComponentModels = {};
-
-  const replaceUUIDs = (node: LayoutNode, parentUuid?: string): LayoutNode => {
-    const newNode: LayoutNode = { ...node, uuid: uuidv4() };
-    if (newNode.nodeType === 'slot') {
-      newNode.uuid = `${parentUuid}-slot-${newNode.name}`;
-    }
-
-    oldToNewUUIDMap[node.uuid] = newNode.uuid;
-
-    // Recursively process children
-    if (newNode.children) {
-      newNode.children = newNode.children.map((child) =>
-        replaceUUIDs(child, newNode.uuid),
-      );
-    }
-
-    return newNode;
-  };
-
-  const updatedNode = replaceUUIDs(node);
-
-  // Update the model keys
-  for (const oldUUID in model) {
-    const newUUID = oldToNewUUIDMap[oldUUID];
-    if (newUUID) {
-      updatedModel[newUUID] = _.cloneDeep(model[oldUUID]);
-    }
-  }
-
-  return { updatedNode, updatedModel };
-};
 
 export const layoutModelSlice = createSlice({
   name: 'layoutModel',
@@ -205,60 +146,39 @@ export const layoutModelSlice = createSlice({
         state.layout = moveNodeToPath(state.layout, uuid, to);
       },
     ),
-    insertNode: create.reducer(
-      (state, action: PayloadAction<InsertNodePayload>) => {
-        const { newNode, to, model } = action.payload;
-        if (!newNode || !Array.isArray(to)) {
-          console.error(
-            `Cannot move ${newNode} to position ${to}. Check both uuid and to are defined/valid.`,
-          );
-          return;
-        }
-        const uuid = uuidv4();
-        const childSlotsWithUuids = newNode.children.map((child) => {
-          child.uuid = `${uuid}${child.uuid}`;
-          return child;
-        });
-
-        const newNewNode: LayoutNode = {
-          ..._.cloneDeep(newNode),
-          children: childSlotsWithUuids,
-          uuid,
-        };
-
-        state.layout = insertNodeAtPath(state.layout, to, newNewNode);
-        state.model[newNewNode.uuid] = {
-          ...state.model[newNewNode.uuid],
-          ...model,
-        };
-      },
-    ),
-
-    insertMultipleNodes: create.reducer(
+    insertNodes: create.reducer(
       (state, action: PayloadAction<InsertMultipleNodesPayload>) => {
-        const { newNodes, to, model } = action.payload;
+        const { layoutModel, to, useUUID } = action.payload;
 
-        if (!newNodes || !newNodes.children.length || !Array.isArray(to)) {
+        if (layoutModel.layout.nodeType !== 'root') {
           console.error(
-            `Cannot insert nodes. Invalid parameters: newNodes: ${newNodes}, to: ${to}.`,
+            'Insert nodes should be passed a root layout node with children as a wrapper for the nodes you want to insert.',
+          );
+        }
+
+        if (!Array.isArray(to)) {
+          console.error(
+            `Cannot insert nodes. Invalid parameters: newNodes: ${layoutModel}, to: ${to}.`,
           );
           return;
         }
-        let updatedModel: ComponentModels = { ...state.model };
 
-        // The nodes we're inserting into the layout already have UUIDs. We need to ensure they're unique before
-        // inserting them into the layout, so we need to generate new UUIDs and update the model accordingly.
-        const nodesToInsert: LayoutNode[] = _.cloneDeep(newNodes.children);
+        let updatedModel: ComponentModels = { ...state.model };
         let newLayout: LayoutNode = _.cloneDeep(state.layout);
+        const rootNode = layoutModel.layout;
+        const model = layoutModel.model;
 
         // Loop through each node in reverse order to maintain the correct insert positions
-        for (let i = nodesToInsert.length - 1; i >= 0; i--) {
-          const node = nodesToInsert[i];
+        for (let i = rootNode.children.length - 1; i >= 0; i--) {
+          const node = rootNode.children[i];
+          const specifyUUID = i === 0;
           const { updatedNode, updatedModel: nodeUpdatedModel } =
-            replaceUUIDsAndUpdateModel(node, model);
+            replaceUUIDsAndUpdateModel(
+              node,
+              model,
+              specifyUUID ? useUUID : undefined,
+            );
           updatedModel = { ...updatedModel, ...nodeUpdatedModel };
-
-          // Insert the node into the new layout at the specified position
           newLayout = insertNodeAtPath(newLayout, to, updatedNode);
         }
 
@@ -318,7 +238,6 @@ export const layoutModelSlice = createSlice({
         state.initialized = initialized;
       },
     ),
-    // Reducers for state.model
     updateNodeModel: create.reducer(
       (state, action: PayloadAction<UpdateNodePayload>) => {
         const { uuid, model } = action.payload;
@@ -344,57 +263,61 @@ export const layoutModelSlice = createSlice({
 
 export const addNewComponentToLayout =
   (payload: AddNewNodePayload) => (dispatch: AppDispatch) => {
-    if (payload.newNode && payload.to && payload.component) {
-      const initialData: InitialPropData = {};
-      if (payload.component?.field_data) {
-        // @todo Update this logic in https://www.drupal.org/project/experience_builder/issues/3455942
-        initialData.name = payload.component.name;
-        Object.keys(payload.component.field_data).forEach((propName) => {
-          if (payload.component?.field_data?.[propName]?.['default_values']) {
-            initialData[propName] =
-              payload.component?.field_data[propName]['default_values'];
-          }
+    if (!payload.to || !payload.component) {
+      return;
+    }
+    const initialData: ComponentModel = { name: '' };
+    const children: LayoutNode[] = [];
+    const uuid = 'to_be_replaced';
+
+    // Populate the model data with the default values
+    if (payload.component?.field_data) {
+      // @todo Update this logic in https://www.drupal.org/project/experience_builder/issues/3455942
+      initialData.name = payload.component.name;
+      Object.keys(payload.component.field_data).forEach((propName) => {
+        if (payload.component?.field_data?.[propName]?.['default_values']) {
+          initialData[propName] =
+            payload.component?.field_data[propName]['default_values'];
+        }
+      });
+    }
+
+    // Create empty slots in the layout data for each child slot the component has
+    if (payload.component?.metadata?.slots) {
+      Object.keys(payload.component.metadata.slots).forEach((name) => {
+        children.push({
+          uuid: `-slot-${name}`,
+          name: name,
+          nodeType: 'slot',
+          children: [],
         });
-      }
+      });
+    }
 
-      const children: LayoutNode[] = [];
-
-      if (payload.component?.metadata?.slots) {
-        Object.keys(payload.component.metadata.slots).forEach((name) => {
-          children.push({
-            uuid: `-slot-${name}`,
-            name: name,
-            nodeType: 'slot',
-            children: [],
-          });
-        });
-      }
-
-      dispatch(
-        insertNode({
-          to: payload.to,
-          newNode: {
+    const layoutModel: LayoutModel = {
+      layout: {
+        children: [
+          {
             children,
             nodeType: 'component',
-            type: payload.newNode,
+            type: payload.component.id,
+            uuid: uuid,
           },
-          model: initialData,
-        }),
-      );
-    }
-  };
+        ],
+        nodeType: 'root',
+        uuid: 'dummy',
+      },
+      model: {
+        [uuid]: initialData,
+      },
+    };
 
-export const addNewSectionToLayout =
-  (payload: AddNewSectionPayload) => (dispatch: AppDispatch) => {
-    if (payload.newSection && payload.to) {
-      dispatch(
-        insertMultipleNodes({
-          to: payload.to,
-          newNodes: payload.layoutModel.layout,
-          model: payload.layoutModel.model,
-        }),
-      );
-    }
+    dispatch(
+      insertNodes({
+        to: payload.to,
+        layoutModel,
+      }),
+    );
   };
 
 // Action creators are generated for each case reducer function.
@@ -405,8 +328,7 @@ export const {
   moveNode,
   shiftNode,
   sortNode,
-  insertNode,
-  insertMultipleNodes,
+  insertNodes,
   updateNodeModel,
   updateNodeModelForce,
 } = layoutModelSlice.actions;

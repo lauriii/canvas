@@ -18,8 +18,9 @@ import {
   selectFirstLoadComplete,
   unsetSelectedComponent,
 } from '@/features/ui/uiSlice';
-import { deleteNode } from '../layout/layoutModelSlice';
 import PreviewOverlay from '@/features/layout/previewOverlay/PreviewOverlay';
+import { deleteNode } from '../layout/layoutModelSlice';
+import useCopyPasteComponents from '@/hooks/useCopyPasteComponents';
 
 const Canvas = () => {
   const dispatch = useAppDispatch();
@@ -37,6 +38,10 @@ const Canvas = () => {
   const modifierKeyPressedRef = useRef(false);
   const selectedComponent = useAppSelector(selectSelectedComponent);
   const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const middleMouseDownRef = useRef(middleMouseDown);
+  const { copySelectedComponent, pasteAfterSelectedComponent } =
+    useCopyPasteComponents();
+
   useHotkeys(['NumpadAdd', 'Equal'], () => dispatch(canvasViewPortZoomIn()));
   useHotkeys(['Minus', 'NumpadSubtract'], () =>
     dispatch(canvasViewPortZoomOut()),
@@ -55,7 +60,12 @@ const Canvas = () => {
       dispatch(unsetSelectedComponent());
     }
   });
-  const middleMouseDownRef = useRef(middleMouseDown);
+  useHotkeys('mod+c', () => {
+    copySelectedComponent();
+  });
+  useHotkeys('mod+v', () => {
+    pasteAfterSelectedComponent();
+  });
 
   useEffect(() => {
     middleMouseDownRef.current = middleMouseDown;

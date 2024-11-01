@@ -643,7 +643,7 @@ Cypress.Commands.add(
     cy.get('.primaryMenuContent')
       .findAllByLabelText(componentName)
       .eq(index)
-      .click({ force: true });
+      .click();
   },
 );
 

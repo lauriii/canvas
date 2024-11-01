@@ -7,7 +7,7 @@ import {
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import {
   addNewComponentToLayout,
-  addNewSectionToLayout,
+  insertNodes,
   moveNode,
   selectLayout,
   selectModel,
@@ -103,7 +103,6 @@ function usePreviewSortable(iframe: HTMLIFrameElement | null) {
             dispatch(
               addNewComponentToLayout({
                 to: newPath,
-                newNode: ev.clone.dataset.xbComponentId,
                 component:
                   componentsRef?.current?.[ev.clone.dataset.xbComponentId],
               }),
@@ -112,9 +111,8 @@ function usePreviewSortable(iframe: HTMLIFrameElement | null) {
             // Adding a section template.
             ev.item.innerHTML = '<p>Loading section...</p>';
             dispatch(
-              addNewSectionToLayout({
+              insertNodes({
                 to: newPath,
-                newSection: ev.clone.dataset.xbComponentId,
                 layoutModel:
                   sectionsRef?.current?.[ev.clone.dataset.xbComponentId]
                     .layoutModel,
@@ -273,6 +271,10 @@ function usePreviewSortable(iframe: HTMLIFrameElement | null) {
   useEffect(() => {
     componentsRef.current = components;
   }, [components]);
+
+  useEffect(() => {
+    sectionsRef.current = sections;
+  }, [sections]);
 
   useEffect(() => {
     if (iframe) {

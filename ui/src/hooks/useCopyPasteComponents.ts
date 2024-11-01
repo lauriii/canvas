@@ -1,0 +1,91 @@
+import { useAppDispatch, useAppSelector } from '@/app/hooks';
+import {
+  selectSelectedComponent,
+  setSelectedComponent,
+} from '@/features/ui/uiSlice';
+import {
+  findNodeByUuid,
+  findNodePathByUuid,
+  recurseNodes,
+} from '@/features/layout/layoutUtils';
+import type { LayoutNode } from '@/features/layout/layoutModelSlice';
+import {
+  insertNodes,
+  selectLayout,
+  selectModel,
+} from '@/features/layout/layoutModelSlice';
+import { v4 as uuidv4 } from 'uuid';
+
+interface CopyPasteFunctions {
+  copySelectedComponent: () => void;
+  pasteAfterSelectedComponent: () => void;
+}
+function useCopyPasteComponents(): CopyPasteFunctions {
+  const dispatch = useAppDispatch();
+  const selectedComponent = useAppSelector(selectSelectedComponent);
+  const model = useAppSelector(selectModel);
+  const layout = useAppSelector(selectLayout);
+  const copySelectedComponent = () => {
+    if (selectedComponent) {
+      const copiedComponent = findNodeByUuid(layout, selectedComponent);
+      if (!copiedComponent) {
+        return;
+      }
+      // Recursively get ALL the model data for not just the selected component but also all of its children.
+      const copiedModels = { [selectedComponent]: model[selectedComponent] };
+      recurseNodes(copiedComponent, (node: LayoutNode) => {
+        copiedModels[node.uuid] = model[node.uuid];
+      });
+
+      localStorage.setItem(
+        'copiedComponent',
+        JSON.stringify({
+          model: copiedModels,
+          layout: {
+            nodeType: 'root',
+            uuid: 'dummy',
+            children: [copiedComponent],
+          },
+        }),
+      );
+    }
+  };
+
+  const pasteAfterSelectedComponent = () => {
+    if (!selectedComponent) {
+      return;
+    }
+    const destinationUUID = selectedComponent;
+    const serializedCopiedComponent = localStorage.getItem('copiedComponent');
+    let componentFromClipboard;
+
+    if (!serializedCopiedComponent) {
+      return;
+    }
+    try {
+      componentFromClipboard = JSON.parse(serializedCopiedComponent);
+    } catch (err) {
+      return;
+    }
+
+    const to = findNodePathByUuid(layout, destinationUUID);
+    if (!to) {
+      return;
+    }
+    to[to.length - 1]++;
+
+    const assignedUUID = uuidv4();
+    dispatch(
+      insertNodes({
+        to: to,
+        layoutModel: componentFromClipboard,
+        useUUID: assignedUUID,
+      }),
+    );
+    dispatch(setSelectedComponent(assignedUUID));
+  };
+
+  return { pasteAfterSelectedComponent, copySelectedComponent };
+}
+
+export default useCopyPasteComponents;

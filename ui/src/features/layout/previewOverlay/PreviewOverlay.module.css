@@ -35,7 +35,7 @@
   }
   &.selected:not(.dragging),
   &.hovered:not(.dragging),
-  &:focus:not(.dragging) {
+  &:focus-visible:not(.dragging) {
     > .sortableItem > .xbComponentControls > .xbNameTag {
       display: block;
     }

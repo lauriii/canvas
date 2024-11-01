@@ -1,5 +1,6 @@
 import _ from 'lodash';
-import type { LayoutNode } from './layoutModelSlice';
+import type { ComponentModels, LayoutNode } from './layoutModelSlice';
+import { v4 as uuidv4 } from 'uuid';
 
 //   recurseNodes,
 //   findNodeByUuid,
@@ -220,4 +221,57 @@ export function getNodeDepth(layoutNode: LayoutNode, uuid: string | undefined) {
     return path.length - 1;
   }
   return 0;
+}
+
+/**
+ * Replace UUIDs in a layout node and its corresponding model.
+ * @param node - The layout node to update.
+ * @param model - The corresponding model to update.
+ * @param newUUID - Optionally specify the UUID of the new node and its model.
+ * @returns An updated model and an updated state.
+ */
+export function replaceUUIDsAndUpdateModel(
+  node: LayoutNode,
+  model: ComponentModels,
+  newUUID?: string,
+): {
+  updatedNode: LayoutNode;
+  updatedModel: ComponentModels;
+} {
+  const oldToNewUUIDMap: Record<string, string> = {};
+  const updatedModel: ComponentModels = {};
+
+  const replaceUUIDs = (
+    node: LayoutNode,
+    parentUuid?: string,
+    newUuid?: string,
+  ): LayoutNode => {
+    const newNode: LayoutNode = { ...node, uuid: newUuid || uuidv4() };
+    if (newNode.nodeType === 'slot') {
+      newNode.uuid = `${parentUuid}-slot-${newNode.name}`;
+    }
+
+    oldToNewUUIDMap[node.uuid] = newNode.uuid;
+
+    // Recursively process children
+    if (newNode.children) {
+      newNode.children = newNode.children.map((child) =>
+        replaceUUIDs(child, newNode.uuid),
+      );
+    }
+
+    return newNode;
+  };
+
+  const updatedNode = replaceUUIDs(node, undefined, newUUID);
+
+  // Update the model keys
+  for (const oldUUID in model) {
+    const newUUID = oldToNewUUIDMap[oldUUID];
+    if (newUUID) {
+      updatedModel[newUUID] = _.cloneDeep(model[oldUUID]);
+    }
+  }
+
+  return { updatedNode, updatedModel };
 }

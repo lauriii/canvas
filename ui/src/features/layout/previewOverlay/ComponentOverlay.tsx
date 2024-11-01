@@ -73,6 +73,7 @@ const ComponentOverlay: React.FC<ComponentOverlayProps> = (props) => {
     horizontalDistance: 0,
     verticalDistance: 0,
   });
+  const [initialized, setInitialized] = useState(false);
   const selectedComponent = useAppSelector(selectSelectedComponent);
   const hoveredComponent = useAppSelector(selectHoveredComponent);
   const canvasViewPortScale = useAppSelector(selectCanvasViewPortScale);
@@ -107,6 +108,9 @@ const ComponentOverlay: React.FC<ComponentOverlayProps> = (props) => {
           elementInsideIframe.current,
         ),
       );
+      // Only set this to true once the offset has been correctly calculated to avoid the border flickering to the top
+      // left when the preview updates.
+      setInitialized(true);
     }
   }, [component.uuid, iframeRef, parentComponent.uuid, rect]);
 
@@ -202,6 +206,7 @@ const ComponentOverlay: React.FC<ComponentOverlayProps> = (props) => {
           [styles.dragging]: isDragging,
         })}
         style={{
+          display: initialized ? '' : 'none',
           height: rect.height * canvasViewPortScale,
           width: rect.width * canvasViewPortScale,
           top: elementOffset.verticalDistance * canvasViewPortScale,

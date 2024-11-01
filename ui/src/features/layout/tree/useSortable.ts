@@ -3,7 +3,6 @@ import type Sortable from 'sortablejs';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import {
   selectLayout,
-  addNewComponentToLayout,
   moveNode,
   sortNode,
 } from '@/features/layout/layoutModelSlice';
@@ -47,14 +46,18 @@ const useSortable = () => {
           if (ev.clone.dataset.isNew === 'true' && ev.clone.dataset.xbUuid) {
             // When dragging a new element into the tree from the list, the clone is actually dropped into the DOM and we need
             // to remove it here.
-            ev.item.remove();
-            dispatch(
-              addNewComponentToLayout({
-                to: newPath,
-                newNode: ev.clone.dataset.xbUuid,
-                component: componentsRef?.current?.[ev.clone.dataset.xbUuid],
-              }),
+            console.error(
+              'You dragged from the component list and dropped into the layers panel. This use case is not handled or tested...yet?',
             );
+            // TODO - At the moment its not possible to drag items from the component list into the layers view
+            //  - but it might be required in future.
+            // ev.item.remove();
+            // dispatch(
+            //   addNewComponentToLayout({
+            //     to: newPath,
+            //     component: componentsRef?.current?.[ev.clone.dataset.xbUuid],
+            //   }),
+            // );
           } else {
             // When dragging, the element is actually moved in the DOM, after dragging we swap the original
             // item back so that the React Virtual DOM doesn't get out of sync when we update the data.

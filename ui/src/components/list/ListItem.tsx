@@ -19,7 +19,7 @@ import {
 } from '@/features/ui/addMenuSlice';
 import {
   addNewComponentToLayout,
-  addNewSectionToLayout,
+  insertNodes,
   selectLayout,
 } from '@/features/layout/layoutModelSlice';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
@@ -63,15 +63,13 @@ const ListItem: React.FC<{
           dispatch(
             addNewComponentToLayout({
               to: newPath,
-              newNode: newId,
               component: item as ComponentListItem,
             }),
           );
         } else if (type === 'section') {
           dispatch(
-            addNewSectionToLayout({
+            insertNodes({
               to: newPath,
-              newSection: newId,
               layoutModel: (item as SectionListItem).layoutModel,
             }),
           );
