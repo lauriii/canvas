@@ -10,6 +10,13 @@ use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\node\Entity\Node;
 use Drupal\Tests\content_translation\Traits\ContentTranslationTestTrait;
 
+/**
+ * @todo Add test coverage for dynamic prop sources used in the content type
+ *   templates in https://drupal.org/i/3455629. This will most likely require
+ *   adding back `experience_builder_entity_prepare_view()` which was removed in
+ *   https://www.drupal.org/i/3481720.
+ * @see https://www.drupal.org/project/experience_builder/issues/3455629#comment-15831060
+ */
 class TranslationTest extends FunctionalTestBase {
 
   use ContentTranslationTestTrait;
@@ -77,8 +84,7 @@ class TranslationTest extends FunctionalTestBase {
       'asymmetric' => [['tree', 'props'], FALSE],
       // This case tests when the field is not translatable, but it is used on
       // an entity that has translations. In this case, the components and their
-      // properties are shared between the translations. But dynamic properties
-      // of the entity should use the values of the current translation.
+      // properties are shared between the translations.
       'not translatable' => [[], TRUE],
     ];
   }
@@ -123,17 +129,13 @@ class TranslationTest extends FunctionalTestBase {
     $this->assertSame('The French title', (string) $translated_node->getTitle());
 
     $this->drupalGet($original_node->toUrl());
-    $hero_components = $this->getSession()->getPage()->findAll('css', 'article [data-component-id="experience_builder:my-hero"]');
-    $this->assertCount(3, $hero_components);
-    // Confirm the 2 components that use a DynamicPropSource to retrieve the
-    // actual node title, which should be the untranslated version here.
-    $this->assertSame('The first entity using XB!', $hero_components[1]->getText());
-    $this->assertSame('The first entity using XB!', $hero_components[2]->getText());
+    $hero_component = $assert_session->elementExists('css', 'article [data-component-id="experience_builder:my-hero"]');
+
     // Confirm the translated property is no on the page anywhere.
     $assert_session->pageTextNotContains('bonjour');
     // Confirm the first hero component does not use the translated properties
     // because it uses a StaticPropSource.
-    $this->assertSame('hello, new world!', $hero_components[0]->getText());
+    $this->assertSame('hello, new world!', $hero_component->getText());
     // Confirm the heading has been removed from display. This was changed on
     // the default translation.
     $assert_session->elementsCount('css', 'article [data-component-id="experience_builder:heading"]', 0);
@@ -141,24 +143,18 @@ class TranslationTest extends FunctionalTestBase {
     $this->drupalGet($translated_node->toUrl());
     $assert_session->elementTextEquals('css', '#block-stark-page-title h1', 'The French title');
 
-    // Confirm the 2 components that use a DynamicPropSource to retrieve the
-    // actual node title now use the translated version.
-    // @see \experience_builder_entity_prepare_view()
-    $hero_components = $this->getSession()->getPage()->findAll('css', 'article [data-component-id="experience_builder:my-hero"]');
-    $this->assertCount(3, $hero_components);
-    $this->assertSame('The French title', $hero_components[1]->getText());
-    $this->assertSame('The French title', $hero_components[2]->getText());
+    $hero_component = $assert_session->elementExists('css', 'article [data-component-id="experience_builder:my-hero"]');
     if ($field_is_translatable) {
       // If the field is translatable updating props in the default translation
       // should not have updated the French translation.
-      $this->assertSame('bonjour, monde!', $hero_components[0]->getText());
+      $this->assertSame('bonjour, monde!', $hero_component->getText());
       $assert_session->pageTextNotContains('hello, new world!');
     }
     else {
       // If the field is not translatable updating props in the default translation
       // should have also updated the French translation.
       $assert_session->pageTextNotContains('bonjour');
-      $this->assertSame('hello, new world!', $hero_components[0]->getText());
+      $this->assertSame('hello, new world!', $hero_component->getText());
     }
 
     // Confirm the heading component has been removed or not based the test case

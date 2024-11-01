@@ -15,7 +15,7 @@ trait ComponentTreeTestTrait {
 
   protected static function getValidTreeTestCases(): array {
     return [
-      'valid values using dynamic props' => [
+      'valid values using static props' => [
         [
           'tree' => self::encodeXBData([
             ComponentTreeStructure::ROOT_UUID => [
@@ -28,8 +28,9 @@ trait ComponentTreeTestTrait {
           'props' => self::encodeXBData([
             'dynamic-static-card2df' => [
               'heading' => [
-                'sourceType' => 'dynamic',
-                'expression' => 'ℹ︎␜entity:node:article␝title␞␟value',
+                'sourceType' => 'static:field_item:string',
+                'value' => 'They say I am static, but I want to believe I can change!',
+                'expression' => 'ℹ︎string␟value',
               ],
             ],
           ]),
@@ -44,8 +45,31 @@ trait ComponentTreeTestTrait {
     ];
   }
 
+  /**
+   * @todo Add a test to ensure the 3 forbidden Blocks-as-XB-Components components are not allowed: https://www.drupal.org/project/experience_builder/issues/3475584
+   */
   protected static function getInvalidTreeTestCases(): array {
     return [
+      'invalid values using dynamic props' => [
+        [
+          'tree' => self::encodeXBData([
+            ComponentTreeStructure::ROOT_UUID => [
+              [
+                'uuid' => 'dynamic-dynamic-card2df',
+                'component' => 'sdc.xb_test_sdc.props-slots',
+              ],
+            ],
+          ]),
+          'props' => self::encodeXBData([
+            'dynamic-dynamic-card2df' => [
+              'heading' => [
+                'sourceType' => 'dynamic',
+                'expression' => 'ℹ︎␜entity:node:article␝title␞␟value',
+              ],
+            ],
+          ]),
+        ],
+      ],
       'invalid tree structure, uuid at top of data structure is not in the tree, also has empty slots' => [
         [
           'tree' => self::encodeXBData([
@@ -60,8 +84,9 @@ trait ComponentTreeTestTrait {
           'props' => self::encodeXBData([
             'dynamic-static-card2df' => [
               'heading' => [
-                'sourceType' => 'dynamic',
-                'expression' => 'ℹ︎␜entity:node:article␝title␞␟value',
+                'sourceType' => 'static:field_item:string',
+                'value' => 'Do not cause no static!',
+                'expression' => 'ℹ︎string␟value',
               ],
             ],
           ]),
@@ -189,8 +214,9 @@ trait ComponentTreeTestTrait {
           'props' => self::encodeXBData([
             'dynamic-static-card2df' => [
               'text' => [
-                'sourceType' => 'dynamic',
-                'expression' => 'ℹ︎␜entity:node:article␝title␞␟value',
+                'sourceType' => 'static:field_item:string',
+                'value' => 'Static like electricity? No like unchanging',
+                'expression' => 'ℹ︎string␟value',
               ],
               'href' => [
                 'sourceType' => 'static:field_item:link',

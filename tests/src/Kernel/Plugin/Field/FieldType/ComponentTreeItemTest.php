@@ -136,6 +136,9 @@ class ComponentTreeItemTest extends KernelTestBase {
     $test_cases = static::getValidTreeTestCases();
     array_walk($test_cases, fn(array &$test_case) => $test_case[] = []);
     $test_cases = array_merge($test_cases, static::getInvalidTreeTestCases());
+    $test_cases['invalid values using dynamic props'][] = [
+      'field_xb_test.0' => "The 'dynamic' prop source type must be absent.",
+    ];
     $test_cases['invalid tree structure, uuid at top of data structure is not in the tree, also has empty slots'][] = [
       'field_xb_test.0.tree[other-uuid]' => [
         'Empty component subtree. A component subtree must contain >=1 populated slot (with >=1 component instance). Empty component subtrees must be omitted.',
@@ -143,6 +146,7 @@ class ComponentTreeItemTest extends KernelTestBase {
       ],
     ];
     $test_cases['missing components, using dynamic props'][] = [
+      'field_xb_test.0' => "The 'dynamic' prop source type must be absent.",
       "field_xb_test.0.tree[$root_uuid][0]" => 'The component <em class="placeholder">sdc.sdc_test.missing</em> does not exist.',
       "field_xb_test.0.tree[$root_uuid][1]" => 'The component <em class="placeholder">sdc.sdc_test.missing-also</em> does not exist.',
     ];
@@ -153,6 +157,7 @@ class ComponentTreeItemTest extends KernelTestBase {
       'field_xb_test.0' => [
         'The component instance with UUID <em class="placeholder">dynamic-static-card2df</em> uses component <em class="placeholder">xb_test_sdc:props-slots</em> and receives some invalid props! Put a breakpoint here and figure out why.',
         'The component instance with UUID <em class="placeholder">dynamic-static-card3</em> uses component <em class="placeholder">xb_test_sdc:props-slots</em> and receives some invalid props! Put a breakpoint here and figure out why.',
+        "The 'dynamic' prop source type must be absent.",
       ],
     ];
     $test_cases['props invalid, using only static props'][] = [
@@ -195,9 +200,9 @@ class ComponentTreeItemTest extends KernelTestBase {
     // without an exception.
     $test_cases['invalid tree structure, uuid at top of data structure is not in the tree, also has empty slots'] = $invalid_test_cases['invalid tree structure, uuid at top of data structure is not in the tree, also has empty slots'];
     $test_cases['invalid tree structure, uuid at top of data structure is not in the tree, also has empty slots'][] = [];
-    $test_cases['valid values using dynamic props'][] = [
+    $test_cases['valid values using static props'][] = [
       'dynamic-static-card2df' => [
-        'heading' => 'Test node',
+        'heading' => 'They say I am static, but I want to believe I can change!',
       ],
     ];
     $test_cases['valid values for propless component'][] = [

@@ -37,29 +37,29 @@ final class ComponentTreeMeetsRequirementsConstraintValidator extends Constraint
     if ($value === NULL) {
       return;
     }
-
-    if (!$value instanceof ComponentTreeItem && !is_array($value)) {
-      throw new \UnexpectedValueException(sprintf('The value must be a ComponentTreeItem object, an array representing a single component tree, or an array containing arrays each representing a component tree, found %s.', gettype($value)));
-    }
-
-    // Regardless of how many component trees the requirements span, always
-    // generate an array of ComponentTreeItem objects, to simplify validation.
-    $component_trees = match (TRUE) {
-      // A single content-defined component tree.
-      $value instanceof ComponentTreeItem => [$value],
-      // A single config-defined component tree.
-      (
-        count(array_keys($value)) === 2
-        && array_key_exists('tree', $value)
-        && array_key_exists('props', $value)
-      ) => $this->conjureFieldItemObject($value),
+    if ($constraint->nested) {
+      if (!is_array($value)) {
+        throw new \UnexpectedValueException('The value must be an array of component trees.');
+      }
       // Multiple config-defined component trees.
-      default => array_map(
+      $component_trees = array_map(
         // @phpstan-ignore-next-line
         fn(array $child_component_tree): ComponentTreeItem => $this->conjureFieldItemObject($child_component_tree),
         array_filter($value)
-      )
-    };
+      );
+    }
+    else {
+      // Regardless of how many component trees the requirements span, always
+      // generate an array of ComponentTreeItem objects, to simplify validation.
+      $component_trees = match (TRUE) {
+        // A single content-defined component tree.
+        $value instanceof ComponentTreeItem => [$value],
+        // A single config-defined component tree.
+        // @phpstan-ignore-next-line
+        is_array($value) => [$this->conjureFieldItemObject($value)],
+        default => throw new \UnexpectedValueException(sprintf('The value must be a ComponentTreeItem object, an array representing a single component tree, found %s.', gettype($value)))
+      };
+    }
     assert(is_array($component_trees));
 
     // Perform the necessary detections to check against what the constraint

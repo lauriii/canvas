@@ -127,6 +127,7 @@ experience_builder.page_template.*:
         # region must be explicitly present.
         KeyForEveryThemeRegion: "%parent.theme"
         ComponentTreeMeetRequirements:
+          nested: true
           # Only StaticPropSources may be used, because the Page Template cannot rely on an entity of a particular type
           # and bundle to be present on every route.
           props:
@@ -177,6 +178,21 @@ field.value.component_tree:
   type: experience_builder.component_tree
   label: 'Default value'
   constraints:
+    # The options for this constraint must match the options for the `ComponentTreeMeetRequirements` set in the field
+    # type plugin.
+    # @see \Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem
+    ComponentTreeMeetRequirements:
+      props:
+        absence:
+          - dynamic
+          - adapter
+        presence: ~
+      tree:
+        absence:
+          - Drupal\Core\Block\MainContentBlockPluginInterface
+          - Drupal\Core\Block\TitleBlockPluginInterface
+          - Drupal\Core\Block\MessagesBlockPluginInterface
+        presence: ~
     FullyValidatable: ~
 
 field.field_settings.component_tree:

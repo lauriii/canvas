@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace Drupal\experience_builder\Plugin\Field\FieldType;
 
 use Drupal\Component\Serialization\Json;
+use Drupal\Core\Block\MainContentBlockPluginInterface;
+use Drupal\Core\Block\MessagesBlockPluginInterface;
+use Drupal\Core\Block\TitleBlockPluginInterface;
 use Drupal\Core\Entity\TypedData\EntityDataDefinitionInterface;
 use Drupal\Core\Field\Attribute\FieldType;
 use Drupal\Core\Field\FieldDefinitionInterface;
@@ -38,6 +41,31 @@ use Drupal\experience_builder\ShapeMatcher\FieldForComponentSuggester;
   // list_class: ComponentItemList::class,
   constraints: [
     'ValidComponentTree' => [],
+    'ComponentTreeMeetRequirements' => [
+      // Only StaticPropSources may be used, because using DynamicPropSources is
+      // a decision that should be made at the Content Type Template level by a
+      // Site Builder, not by each Content Creator.
+      // @see https://www.drupal.org/project/experience_builder/issues/3455629
+      'props' => [
+        'absence' => [
+          'dynamic',
+          'adapter',
+        ],
+        'presence' => NULL,
+      ],
+      'tree' => [
+        'absence' => [
+          // Components implementing either of these 3 interfaces are only
+          // allowed to live at the PageTemplate level.
+          // @see \Drupal\experience_builder\Entity\PageTemplate
+          // @see `type: experience_builder.page_template.*`
+          MainContentBlockPluginInterface::class,
+          TitleBlockPluginInterface::class,
+          MessagesBlockPluginInterface::class,
+        ],
+        'presence' => NULL,
+      ],
+    ],
   ],
   // @see docs/data-model.md
   // @see content_translation_field_info_alter()
