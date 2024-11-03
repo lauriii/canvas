@@ -9,10 +9,10 @@ use Drupal\Core\Extension\ThemeInstallerInterface;
  * Implements hook_install().
  */
 function experience_builder_install(): void {
-  // Ensure Stark is installed for the semi-coupled theme engine.
+  // Ensure xb_stark is installed for the semi-coupled theme engine.
   // @see \Drupal\experience_builder\Theme\XBThemeNegotiator
   // @see \Drupal\Core\Theme\ThemeNegotiator::determineActiveTheme()
-  \Drupal::service(ThemeInstallerInterface::class)->install(['stark']);
+  \Drupal::service(ThemeInstallerInterface::class)->install(['xb_stark']);
 
   // Automatically set up the Standard install profile's "article" content type
   // to demo/test Experience Builder.

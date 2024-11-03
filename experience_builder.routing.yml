@@ -65,8 +65,8 @@ experience_builder.api.component_props_form:
     # The XB equivalent of requesting an AJAX response using `?_wrapper_format`.
     # @see Drupal.Ajax.AJAX_REQUEST_PARAMETER
     # @see \Drupal\Core\Ajax\AjaxResponse
-    # @see \Drupal\experience_builder\Render\MainContent\XBEndpointRenderer
-    _wrapper_format: 'xb_endpoint'
+    # @see \Drupal\experience_builder\Render\MainContent\XBTemplateRenderer
+    _wrapper_format: 'xb_template'
     parameters:
       entity:
         type: entity:{entity_type}
@@ -88,8 +88,8 @@ experience_builder.api.entity_form:
     # The XB equivalent of requesting an AJAX response using `?_wrapper_format`.
     # @see Drupal.Ajax.AJAX_REQUEST_PARAMETER
     # @see \Drupal\Core\Ajax\AjaxResponse
-    # @see \Drupal\experience_builder\Render\MainContent\XBEndpointRenderer
-    _wrapper_format: 'xb_endpoint'
+    # @see \Drupal\experience_builder\Render\MainContent\XBTemplateRenderer
+    _wrapper_format: 'xb_template'
     parameters:
       entity:
         type: entity:{entity_type}

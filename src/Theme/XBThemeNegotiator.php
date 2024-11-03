@@ -10,7 +10,7 @@ use Drupal\Core\Theme\ThemeNegotiatorInterface;
 /**
  * Determines the theme to be used for specific Experience Builder (XB) routes.
  *
- * This theme negotiator uses the `stark` theme for Experience Builder routes
+ * This theme negotiator uses the `xb_stark` theme for Experience Builder routes
  * serving forms that are intended to be rendered using React, to guarantee
  * predictable markup. Otherwise the Redux integration is likely to break.
  *
@@ -47,7 +47,7 @@ final class XBThemeNegotiator implements ThemeNegotiatorInterface {
    * {@inheritdoc}
    */
   public function determineActiveTheme(RouteMatchInterface $route_match) {
-    return 'stark';
+    return 'xb_stark';
   }
 
 }

@@ -18,13 +18,13 @@ services:
     public: true
     tags:
       - { name: module_install.uninstall_validator }
-  xb_endpoint_renderer:
-    class: Drupal\experience_builder\Render\MainContent\XBEndpointRenderer
+  xb_template_renderer:
+    class: Drupal\experience_builder\Render\MainContent\XBTemplateRenderer
     arguments:
       $cssCollectionRenderer: '@asset.css.collection_renderer'
       $jsCollectionRenderer: '@asset.js.collection_renderer'
     tags:
-      - { name: render.main_content_renderer, format: xb_endpoint }
+      - { name: render.main_content_renderer, format: xb_template }
   Drupal\experience_builder\Plugin\ComponentPluginManager:
     decorates: Drupal\Core\Theme\ComponentPluginManager
     parent: Drupal\Core\Theme\ComponentPluginManager
@@ -57,10 +57,6 @@ services:
       - { name: event_subscriber }
   experience_builder.route_options.subscriber:
     class: Drupal\experience_builder\EventSubscriber\XbRouteOptionsEventSubscriber
-    tags:
-      - { name: 'event_subscriber' }
-  experience_builder.main_content_view_subscriber:
-    class: Drupal\experience_builder\EventSubscriber\XbMainContentViewSubscriber
     tags:
       - { name: 'event_subscriber' }
   experience_builder.theme_negotiator.xb:

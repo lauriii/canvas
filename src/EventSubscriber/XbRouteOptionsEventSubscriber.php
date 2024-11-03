@@ -29,7 +29,7 @@ final class XbRouteOptionsEventSubscriber implements EventSubscriberInterface {
     // renderer, by accepting a `_wrapper_format` route option that is upcast
     // to the URL query parameter that Drupal core expects.
     // @see \Drupal\Core\EventSubscriber\MainContentViewSubscriber::WRAPPER_FORMAT
-    // @see \Drupal\experience_builder\Render\MainContent\XBEndpointRenderer
+    // @see \Drupal\experience_builder\Render\MainContent\XBTemplateRenderer
     $route_object = $this->routeMatch->getRouteObject();
     if (!is_null($route_object) && $wrapper_format = $route_object->getOption('_wrapper_format')) {
       $event->getRequest()->query->set('_wrapper_format', $wrapper_format);

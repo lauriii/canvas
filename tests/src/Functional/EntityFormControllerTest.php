@@ -68,12 +68,12 @@ class EntityFormControllerTest extends FunctionalTestBase {
   private function assertFormResponse(string $path, bool $expected_menu_element): void {
     $response = $this->drupalGet($path);
     $this->assertSession()->statusCodeEquals(200);
-    $expected_start = '<template hyperscriptify><drupal-form--xbxb attributes="' . htmlspecialchars(
+    $expected_start = '<template hyperscriptify><drupal-form attributes="' . htmlspecialchars(
       '{"class":["node-article-form","node-form"],"data-drupal-selector":"node-article-form","enctype":"multipart\/form-data"',
       ENT_QUOTES,
     );
     $this->assertStringStartsWith($expected_start, $response);
-    $menu_form_element_html_snippet = '<drupal-input--xbxb attributes="' . htmlspecialchars(
+    $menu_form_element_html_snippet = '<drupal-input attributes="' . htmlspecialchars(
       '{"data-drupal-selector":"edit-menu-title"',
       ENT_QUOTES,
     );

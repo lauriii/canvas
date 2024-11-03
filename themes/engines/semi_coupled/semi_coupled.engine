@@ -33,8 +33,8 @@ function semi_coupled_theme(array $existing, string $type, string $theme, string
  * @see themes/engines/semi_coupled/README.md
  */
 function semi_coupled_render_template(string $template_file, array $variables): string|MarkupInterface {
-  // If the template filename does not end with --xbxb, it is processed by Twig.
-  if (!str_ends_with(basename($template_file, semi_coupled_extension()), '--xbxb')) {
+  // If the template is not provided by the xb_stark theme, render with Twig.
+  if (!str_contains($template_file, '/process_as_jsx/')) {
     /** @phpstan-ignore function.notFound */
     return twig_render_template($template_file, $variables);
   }
@@ -79,22 +79,6 @@ function semi_coupled_render_template(string $template_file, array $variables): 
   if (!empty($info['wrap'])) {
     $element['#prefix'] = $info['wrap'][0];
     $element['#suffix'] = $info['wrap'][1];
-  }
-
-  elseif ($tag_name === 'drupal-page' || str_starts_with($tag_name, 'drupal-page--') || !empty($info['wrapTemplate'])) {
-    // If this is a drupal-page element or the template JSON includes a truthy
-    // `wrapTemplate`, then we wrap this with `<template hyperscriptify>`, which
-    // targets it (and it's children - JSX or Twig) for React rendering via
-    // hyperscriptify().
-    // Hyperscriptify takes a not-ideal-for-eyeballs markup structure and
-    // renders into something pleasant with React.
-    // While hyperscriptify can be called on any element, using <template>
-    // keeps the for-informational-purposes-only markup out of the DOM so React
-    // can then turn it into something DOM-worthy.
-    //
-    // @see https://github.com/effulgentsia/hyperscriptify
-    $element['#prefix'] = '<template hyperscriptify>';
-    $element['#suffix'] = '</template>';
   }
 
   return $renderer->render($element);

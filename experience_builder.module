@@ -8,7 +8,6 @@
 use Drupal\Component\Serialization\Json;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Entity\TypedData\EntityDataDefinition;
-use Drupal\Core\Extension\Extension;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Render\Element;
 use Drupal\Core\Url;
@@ -32,7 +31,6 @@ use Drupal\experience_builder\PropExpressions\StructuredData\FieldTypePropExpres
 use Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldPropExpression;
 use Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldTypePropExpression;
 use Drupal\experience_builder\PropShape\CandidateStorablePropShape;
-use Drupal\experience_builder\RenderArrayXB;
 use Drupal\file\Entity\File;
 use Drupal\media\Entity\Media;
 use Drupal\media\Entity\MediaType;
@@ -40,6 +38,8 @@ use Drupal\media_library\MediaLibraryState;
 use Drupal\node\Entity\Node;
 use Symfony\Component\Validator\Constraints\Hostname;
 use Symfony\Component\Validator\Constraints\Ip;
+
+require_once __DIR__ . '/experience_builder.force_render_with_twig.inc';
 
 /**
  * Implements hook_toolbar().
@@ -172,180 +172,33 @@ function experience_builder_entity_base_field_info_alter(array &$fields, EntityT
 }
 
 /**
- * Implements hook_theme_suggestions_alter().
- */
-function experience_builder_theme_suggestions_alter(array &$suggestions, array $variables): void {
-  // Any element with #is_xb will have `--xbxb` suffixed versions of all of its
-  // theme suggestions. When the semi coupled theme engine sees a filename
-  // ending with this suffix, it bypasses Twig rendering and instead provides
-  // an object that informs React rendering.
-  if (!empty($variables['element']['#is_xb'])) {
-    foreach ($suggestions as $suggestion) {
-      if (!str_contains($suggestion, '__xbxb')) {
-        $suggestions[] = $suggestion . '__xbxb';
-      }
-    }
-    if (empty($suggestions)) {
-      if (str_contains($variables["theme_hook_original"], '__')) {
-        $base = explode('__', $variables["theme_hook_original"])[0];
-        $suggestions[] = $base;
-        $suggestions[] = $base . '__xbxb';
-      }
-      $suggestions[] = $variables["theme_hook_original"];
-      $suggestions[] = $variables["theme_hook_original"] . '__xbxb';
-    }
-
-    if (in_array($variables["theme_hook_original"], ['container', 'field_multiple_value_form', 'fieldset']) && !empty($variables["element"]["#widget-type"])) {
-      if ($variables["theme_hook_original"] === 'fieldset') {
-        $suggestions[] = $variables["theme_hook_original"] . '__widget_' . str_replace('-', '_', $variables["element"]["#widget-type"]) . '__xbxb';
-      }
-      else {
-        $suggestions[] = $variables["theme_hook_original"] . '__' . str_replace('-', '_', $variables["element"]["#widget-type"]) . '__xbxb';
-      }
-    }
-    elseif (!empty($variables["element"]["#widget-type"])) {
-      $suggestions[] = $variables["theme_hook_original"] . '__inwidget_' . str_replace('-', '_', $variables["element"]["#widget-type"]) . '__xbxb';
-    }
-  }
-}
-
-/**
- * Implements hook_form_alter().
- */
-function experience_builder_form_component_props_form_alter(array &$form, FormStateInterface $form_state, string $form_id): void {
-  // The component edit form should be set as #is_xb, making it renderable by
-  // React.
-  $form['#is_xb'] = TRUE;
-}
-
-/**
  * Implements hook_form_alter().
  */
 function experience_builder_form_alter(array &$form, FormStateInterface $form_state, string $form_id): void {
+  experience_builder_force_render_with_twig_form_alter($form, $form_state, $form_id);
+
   $route_name = \Drupal::routeMatch()->getRouteName();
   if ($route_name === 'experience_builder.api.entity_form') {
-    // The entity edit form accessed via experience builder should be set as
-    // #is_xb, making it renderable by React.
-    $form['#is_xb'] = TRUE;
-    // Hide submit buttons.
+    // Hide submit buttons on the entity form accessed via the XB app.
     $form['actions']['#access'] = FALSE;
   }
 }
 
 /**
- * Adds a TRUE #is_xb setting to form labels.
- *
- * TRICKY: this cannot happen in RenderArrayXB::markXB(), because form
- * labels are added after form altering — they are added *during* rendering.
- *
- * @see template_preprocess_form_element()
+ * Implements hook_theme_suggestions_alter().
  */
-function experience_builder_preprocess_form_element(array &$variables): void {
-  if (!empty($variables['element']['#is_xb']) && !empty($variables['label'])) {
-    $variables['label']['#is_xb'] = TRUE;
-  }
-}
-
-function experience_builder_system_info_alter(array &$info, Extension $file, string $type): void {
-  if ($type === 'theme') {
-    if (isset($info['engine']) && $info['engine'] === 'twig') {
-      // The semi-coupled theme engine makes it possible for templates with
-      // filenames ending in --xbxb to be output as objects for eventual React
-      // rendering. Filenames without this naming convention will be processed
-      // as if they were using the Twig engine.
-      $info['engine'] = 'semi_coupled';
+function experience_builder_theme_suggestions_alter(array &$suggestions, array $variables): void {
+  // Add widget type to theme suggestions.
+  if (in_array($variables["theme_hook_original"], ['container', 'field_multiple_value_form', 'fieldset']) && !empty($variables["element"]["#widget-type"])) {
+    if ($variables["theme_hook_original"] === 'fieldset') {
+      $suggestions[] = $variables["theme_hook_original"] . '__widget_' . str_replace('-', '_', $variables["element"]["#widget-type"]);
+    }
+    else {
+      $suggestions[] = $variables["theme_hook_original"] . '__' . str_replace('-', '_', $variables["element"]["#widget-type"]);
     }
   }
-}
-
-/**
- * Implements hook_theme().
- */
-function experience_builder_theme(array $existing, string $type, string $theme, string $path): array {
-  $xb_templates = [];
-  $extension = '.html.twig';
-  $regex = '/' . str_replace('.', '\.', $extension) . '$/';
-  // Get a listing of all template files in the path to search.
-  $files = [];
-  if (is_dir($path)) {
-    $files = \Drupal::service('file_system')->scanDirectory($path, $regex, ['key' => 'filename']);
-  }
-
-  // For every existing theme hook, see if there is a supporting template that
-  // ends with --xbxb somewhere in /templates then add it to the theme registry.
-  foreach ($existing as $hook => $config) {
-    $filename = $config['template'] . '--xbxb.html.twig';
-    if (isset($files[$filename])) {
-      $xb_templates[$hook . '__xbxb'] = [
-        'base hook' => $hook,
-        'path' => str_replace("/$filename", '', $files[$filename]->uri),
-      ];
-      if (isset($config['variables'])) {
-        $xb_templates[$hook . '__xbxb']['variables'] = $config['variables'];
-      }
-      unset($files[$filename]);
-    }
-  }
-
-  // Also create theme hooks for variants.
-  foreach ($files as $file => $file_obj) {
-    $name_parts = explode('--', basename($file, '.html.twig'));
-    // The part of the filename following the final '--'.
-    $final = array_pop($name_parts);
-    // The base hook aka the part before the first '--'.
-    $the_hook = array_shift($name_parts);
-
-    // Step backwards through '--' uses until an existing hook is found, and
-    // specify that as the base hook.
-    if ($final === 'xbxb' && !empty($name_parts) && isset($existing[$the_hook])) {
-      $new_hook = $the_hook . '__' . str_replace('-', '_', implode('__', $name_parts)) . '__xbxb';
-      $base_hook = $the_hook . (count($name_parts) > 0 ? '__' . implode('__', $name_parts) : '');
-      while (!isset($existing[$base_hook]) || $base_hook !== $the_hook) {
-        $split_pos = strrpos($base_hook, '__');
-        if ($split_pos) {
-          $base_hook = substr($base_hook, 0, (int) $split_pos);
-        }
-      }
-      $xb_templates[$new_hook] = [
-        'base hook' => $base_hook,
-        'path' => str_replace("/$file", '', $file_obj->uri),
-      ];
-      if (isset($existing[$the_hook]['variables'])) {
-        $xb_templates[$new_hook]['variables'] = $existing[$the_hook]['variables'];
-      }
-    }
-  }
-  return $xb_templates;
-}
-
-/**
- * Implements hook_theme_registry_alter().
- */
-function experience_builder_theme_registry_alter(array &$theme_registry): void {
-  foreach ($theme_registry as $hook => $config) {
-    if (str_ends_with($hook, '__xbxb')) {
-      // Change the theme implementation's `type` key to something other than
-      // `'module'` so \Drupal\Core\Theme\ThemeManager::render() will call
-      // `semi_coupled_render_template()` after we set the theme engine to
-      // `'semi_coupled'` in experience_builder_system_info_alter(). If the
-      // theme registry comes from `'module'`, it will only use the render
-      // function from twig.engine.
-      $theme_registry[$hook]['type'] = 'xb_module';
-
-      // Make sure the original hook gets the same treatment.
-      $original_hook = str_replace('__xbxb', '', $hook);
-      if (isset($theme_registry[$original_hook])) {
-        $theme_registry[$original_hook]['type'] = 'xb_module';
-      }
-      else {
-        // The original hook may not exist in the theme registry. E.g. it may
-        // have been added as a theme suggestion by this module. In this case,
-        // copy the theme registry information from our new XB-specific hook.
-        // The definition contains data that's needed for e.g. preprocess
-        // functions.
-        $theme_registry[$original_hook] = $theme_registry[$hook];
-      }
-    }
+  elseif (!empty($variables["element"]["#widget-type"])) {
+    $suggestions[] = $variables["theme_hook_original"] . '__inwidget_' . str_replace('-', '_', $variables["element"]["#widget-type"]);
   }
 }
 
@@ -353,9 +206,8 @@ function experience_builder_theme_registry_alter(array &$theme_registry): void {
  * Implements hook_module_implements_alter().
  */
 function experience_builder_module_implements_alter(array &$implementations, string $hook): void {
-  // Make the theme and theme_suggestions_alter hooks in this module run last
-  // so they are aware of all existing templates and theme implementations.
-  if (in_array($hook, ['theme_suggestions_alter', 'theme'])) {
+  // Make the form alter hooks in this module run last.
+  if ($hook === 'form_alter') {
     $group = $implementations['experience_builder'];
     unset($implementations['experience_builder']);
     $implementations['experience_builder'] = $group;
@@ -480,9 +332,6 @@ function experience_builder_field_widget_complete_form_alter(array &$field_widge
     foreach (Element::children($field_widget_complete_form['widget']) as $key) {
       $field_widget_complete_form['widget'][$key]['#widget-type'] = $context['widget']->getPluginId();
     }
-  }
-  if (isset($context['form']['#parents']) && array_search('xb_component_props', $context["form"]["#parents"]) !== FALSE) {
-    RenderArrayXB::markXB($field_widget_complete_form);
   }
 }
 

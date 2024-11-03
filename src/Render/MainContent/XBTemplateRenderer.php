@@ -36,7 +36,7 @@ use Symfony\Component\HttpFoundation\Response;
  * @see \Drupal\Core\Ajax\SettingsCommand
  * @see ui/src/services/processResponseAssets.ts
  */
-final class XBEndpointRenderer implements MainContentRendererInterface {
+final class XBTemplateRenderer implements MainContentRendererInterface {
 
   public function __construct(
     protected ElementInfoManagerInterface $element_info_manager,
@@ -70,7 +70,7 @@ final class XBEndpointRenderer implements MainContentRendererInterface {
     ]);
     $html = $this->renderer->renderRoot($main_content);
     $assets = AttachedAssets::createFromRenderArray($main_content);
-    $response->setContent($html);
+    $response->setContent('<template hyperscriptify>' . $html . '</template>');
 
     $query = $request->query->all();
 

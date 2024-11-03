@@ -16,23 +16,23 @@ import {
 // This is where we map the Drupal Twig templates to the corresponding JSX component.
 // @see experience_builder_theme_suggestions_alter()
 // @see themes/engines/semi_coupled/README.md
+// @see themes/xb_stark/templates/process_as_jsx/
 const twigToJSXComponentMap = {
-  'drupal-container--text-format-filter-guidelines--xbxb':
+  'drupal-container--text-format-filter-guidelines':
     ContainerTextFormatFilterGuidelines,
-  'drupal-container--text-format-filter-help--xbxb':
-    ContainerTextFormatFilterHelp,
-  'drupal-container--text-format-filter-wrapper--xbxb':
+  'drupal-container--text-format-filter-help': ContainerTextFormatFilterHelp,
+  'drupal-container--text-format-filter-wrapper':
     ContainerTextFormatFilterWrapper,
-  'drupal-details--xbxb': AccordionDetails,
-  'drupal-form--xbxb': Form,
-  'drupal-form-element--xbxb': FormElement,
-  'drupal-form-element-label--xbxb': FormElementLabel,
-  'drupal-input--checkbox--inwidget-boolean-checkbox--xbxb': Toggle,
-  'drupal-input--url--xbxb': UrlInput,
-  'drupal-input--xbxb': Input,
-  'drupal-select--xbxb': Select,
-  'drupal-textarea--xbxb': TextArea,
-  'drupal-vertical-tabs--xbxb': AccordionRoot,
+  'drupal-details': AccordionDetails,
+  'drupal-form': Form,
+  'drupal-form-element': FormElement,
+  'drupal-form-element-label': FormElementLabel,
+  'drupal-input--checkbox--inwidget-boolean-checkbox': Toggle,
+  'drupal-input--url': UrlInput,
+  'drupal-input': Input,
+  'drupal-select': Select,
+  'drupal-textarea': TextArea,
+  'drupal-vertical-tabs': AccordionRoot,
 };
 
 export default twigToJSXComponentMap;

@@ -6,17 +6,17 @@ interface JsAttachItem {
 }
 
 /**
- * Takes a response rendered by XBEndpointRenderer, identifies any attached
+ * Takes a response rendered by XBTemplateRenderer, identifies any attached
  * assets, then uses Drupal's AJAX API to add them to the page.
  *
  * This is designed to be used in `transformResponse` setting in endpoints
  * services by createApi such as the one in dummyPropsForm.ts.
  *
- * To use XBEndpointRenderer for a route set the  _wrapper_format option to
- * 'xb_endpoint' in its route definition.
+ * To use XBTemplateRenderer for a route set the  _wrapper_format option to
+ * 'xb_template' in its route definition.
  *
  * @see core/misc/ajax.js
- * @see \Drupal\experience_builder\Render\MainContent\XBEndpointRenderer
+ * @see \Drupal\experience_builder\Render\MainContent\XBTemplateRenderer
  * @see ui/src/services/dummyPropsForm.ts
  */
 // @see core/misc/ajax.js

@@ -685,11 +685,11 @@ describe('General Experience Builder', { testIsolation: false }, () => {
     cy.getIframeBody()
       .find('[data-xb-component-id="experience_builder:image"]')
       .first()
-      .click();
+      .click({ scrollBehavior: false });
     // Click on the Add component button of image component
     cy.findAllByLabelText('Add component')
       .first()
-      .click({ scrollBehavior: 'center' });
+      .click({ scrollBehavior: false });
     // Click Heading in the side menu
     cy.get('#menuBarSubmenuContainer').findByText('Heading').click();
     // Check if heading component has been added in the preview

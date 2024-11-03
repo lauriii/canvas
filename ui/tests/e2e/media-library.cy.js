@@ -47,7 +47,7 @@ describe('Media Library', () => {
     );
 
     // Use the Media Library widget an additional time. This effectively
-    // confirms that XBEndpointRenderer is not loading JS assets that already
+    // confirms that XBTemplateRenderer is not loading JS assets that already
     // exist on the page.
     cy.clickComponentInPreview('Image');
 

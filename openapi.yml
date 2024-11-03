@@ -192,14 +192,14 @@ paths:
             type: integer
             enum:
               - 1
-        # @see \Drupal\experience_builder\Render\MainContent\XBEndpointRenderer
+        # @see \Drupal\experience_builder\Render\MainContent\XBTemplateRenderer
         - in: query
           name: _wrapper_format
           required: true
           schema:
             type: string
             enum:
-              - xb_endpoint
+              - xb_template
               - drupal_ajax
       responses:
         '200':
