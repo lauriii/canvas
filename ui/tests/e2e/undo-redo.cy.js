@@ -25,25 +25,23 @@ describe('Undo/Redo functionality', { testIsolation: false }, () => {
         expect(myHeroComponent.length).to.equal(3);
       },
     );
-    // Check that the menu is not open yet.
-    cy.get('#menuBarContainer').should('be.empty');
-    cy.get('.primaryMenuContent').findByText('Two Column').click();
+    cy.get('.primaryPanelContent').findByText('Two Column').click();
     cy.findAllByLabelText('Add section')
       .first()
       .click({ scrollBehavior: 'center' });
 
-    // Confirm that the menu opens the Section templates.
-    cy.get('#menuBarContainer').should('not.be.empty');
-    cy.get('[data-radix-menu-content].MenubarSubContent').should(
-      'contain.text',
-      'Section templates',
+    // Confirm that the menu opens the Section dropdown.
+    cy.get('[data-testid="xb-primary-panel--library"]').should(
+      'have.attr',
+      'data-state',
+      'on',
     );
+    cy.get('.primaryPanelContent').should('contain.text', 'Sections');
+    cy.get('.primaryPanelContent').findByText('Fake Section 2');
     cy.intercept('POST', '**/api/preview/node/1').as('getPreview');
 
-    cy.findByText('Default components').click();
-
     // Click on the menu item with data-xb-name="Hero" inside menu.
-    cy.get('[data-radix-menu-content] [data-xb-name="Hero"]').click();
+    cy.get('.primaryPanelContent [data-xb-name="Hero"]').click();
     cy.wait('@getPreview');
 
     cy.getIframeBody().find(

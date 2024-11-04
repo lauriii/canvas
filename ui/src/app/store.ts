@@ -3,7 +3,7 @@ import { combineSlices, configureStore } from '@reduxjs/toolkit';
 import { setupListeners } from '@reduxjs/toolkit/query';
 import { v4 as uuidv4 } from 'uuid';
 import { uiSlice } from '@/features/ui/uiSlice';
-import { addMenuSlice } from '@/features/ui/addMenuSlice';
+import { primaryPanelSlice } from '@/features/ui/primaryPanelSlice';
 import { componentApi } from '@/services/components';
 import { layoutApi } from '@/services/layout';
 import { previewApi } from '@/services/preview';
@@ -34,7 +34,7 @@ const rootReducer = combineSlices(
   dummyPropsFormApi,
   pageDataFormApi,
   configurationSlice,
-  addMenuSlice,
+  primaryPanelSlice,
 );
 // Infer the `RootState` type from the root reducer
 export type RootState = ReturnType<typeof rootReducer>;

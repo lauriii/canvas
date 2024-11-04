@@ -64,7 +64,7 @@ describe('Contextual menu functionality', { testIsolation: false }, () => {
       .should('have.length', 1);
 
     // Right-click on the element that should trigger the context menu
-    cy.get('.primaryMenuContent')
+    cy.get('.primaryPanelContent')
       .findByText('Two Column')
       .trigger('contextmenu');
 
@@ -75,7 +75,7 @@ describe('Contextual menu functionality', { testIsolation: false }, () => {
       // Click on the "Duplicate" button
       cy.findByText('Duplicate').click();
     });
-    cy.get('.primaryMenuContent')
+    cy.get('.primaryPanelContent')
       .findAllByText('Two Column')
       .should('have.length', 2);
   });

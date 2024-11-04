@@ -13,10 +13,9 @@ import { Text } from '@radix-ui/themes';
 import { findNodePathByUuid } from '@/features/layout/layoutUtils';
 import {
   disableClickToInsert,
-  NodeType,
+  LayoutItemType,
   selectClickToInsertState,
-  setInactive,
-} from '@/features/ui/addMenuSlice';
+} from '@/features/ui/primaryPanelSlice';
 import {
   addNewComponentToLayout,
   insertNodes,
@@ -31,7 +30,7 @@ const ListItem: React.FC<{
 }> = (props) => {
   const { item, type } = props;
   const dispatch = useAppDispatch();
-  const { isEnabled, originUUID, originNodeType } = useAppSelector(
+  const { isEnabled, originUUID, originLayoutItemType } = useAppSelector(
     selectClickToInsertState,
   );
   const layout = useAppSelector(selectLayout);
@@ -46,7 +45,7 @@ const ListItem: React.FC<{
         const newPath = [...path];
         // First check if the selected node is a component (node with parent) or
         // a section (node without parent).
-        if (originNodeType === NodeType.COMPONENT) {
+        if (originLayoutItemType === LayoutItemType.COMPONENT) {
           // Example: A path [0, 2] means a node is the 3rd child of the 1st parent.
           // So when a new node is added, it should be added as the 4th child of the 1st parent.
           // Therefore, the newly inserted node's path would be [0, 3].
@@ -76,8 +75,6 @@ const ListItem: React.FC<{
         }
 
         dispatch(disableClickToInsert());
-        // Close the menu once the user selects section/component.
-        dispatch(setInactive());
       }
     }
   };
@@ -109,17 +106,18 @@ const ListItem: React.FC<{
       <Tooltip.Provider>
         <Tooltip.Root delayDuration={0}>
           <Tooltip.Trigger
-            asChild
+            asChild={true}
             className={clsx(
               'ComponentPreviewTrigger',
               styles.ComponentPreviewTrigger,
             )}
           >
-            <Text>{item.name}</Text>
+            <Text size="1">{item.name}</Text>
           </Tooltip.Trigger>
           <Tooltip.Portal>
             <Tooltip.Content
               side="right"
+              align="start"
               className={clsx(
                 'ComponentPreviewContent',
                 styles.ComponentPreviewContent,

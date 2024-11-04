@@ -46,13 +46,10 @@ describe('UI a11y Scan', () => {
       terminalLog,
     );
   });
-  it('a11y scan open add menu', () => {
+  it('a11y scan library panel', () => {
     cy.drupalLogin('xbUser', 'xbUser');
     cy.loadURLandWaitForXBLoaded();
-    cy.get('#menuBarContainer').should('be.empty');
-    cy.clickAddMenu();
-    cy.get('#menuBarContainer').should('not.be.empty');
-    cy.get('#menuBarSubmenuContainer').should('not.be.empty');
+    cy.openLibraryPanel();
     cy.injectAxe();
     // @todo there are several a11y rules not being checked in order for the
     // test to pass. These need to be fixed.
@@ -69,13 +66,13 @@ describe('UI a11y Scan', () => {
       terminalLog,
     );
   });
-  it('a11y scan primary menu', () => {
+  it('a11y scan primary panel', () => {
     cy.drupalLogin('xbUser', 'xbUser');
     cy.loadURLandWaitForXBLoaded();
-    cy.get('.primaryMenuContent').should('exist');
+    cy.get('.primaryPanelContent').should('exist');
     // Radix component has two of each button in the segmented control that it flips between.
     cy.findAllByText('Layers').should('have.length', 2);
-    cy.findAllByText('Assets').should('have.length', 2);
+    cy.findAllByText('Library').should('have.length', 2);
 
     cy.injectAxe();
     // @todo there are several a11y rules not being checked in order for the

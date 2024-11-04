@@ -26,34 +26,35 @@ describe(
           expect(myHeroComponent.length).to.equal(3);
         },
       );
+      // Check that the layers menu is initially open
+      cy.get('[data-testid="xb-primary-panel--layers"]').should(
+        'have.attr',
+        'data-state',
+        'on',
+      );
       cy.get('[data-xb-uuid="root"]').findByText('Hero').should('not.exist');
-      // Check that the menu is not open yet.
-      cy.get('#menuBarContainer').should('be.empty');
-      cy.get('.primaryMenuContent').findByText('Two Column').click();
+      cy.get('.primaryPanelContent').findByText('Two Column').click();
       cy.findByLabelText('Column Width').should('exist');
       cy.findAllByLabelText('Add section')
         .first()
         .click({ scrollBehavior: 'center' });
-      // Confirm that the menu opens the Section templates.
-      cy.get('#menuBarContainer').should('not.be.empty');
-      cy.get('#menuBarSubmenuContainer').should(
-        'contain.text',
-        'Section templates',
+
+      // Check the active panel is the library panel.
+      cy.get('[data-testid="xb-primary-panel--library"]').should(
+        'have.attr',
+        'data-state',
+        'on',
       );
-
+      cy.get('.primaryPanelContent').should('contain.text', 'Sections');
       // Click on Fake Section 2 inside menu.
-      cy.get('#menuBarContainer').findByText('Section templates').click();
-      cy.get('#menuBarSubmenuContainer').findByText('Fake Section 2').click();
-
+      cy.get('.primaryPanelContent').findByText('Fake Section 2').click();
       cy.waitForElementContentInIframe('div', 'A hero in slot 1!');
-
       cy.testInIframe(
         '[data-component-id="experience_builder:my-hero"]',
         (components) => {
           expect(components.length).to.equal(5);
         },
       );
-
       cy.testInIframe(
         '[data-component-id="experience_builder:my-hero"] h1',
         (components) => {
@@ -75,22 +76,27 @@ describe(
           expect(myHeroComponent.length).to.equal(3);
         },
       );
-      // Check that the menu is not open yet.
-      cy.get('#menuBarContainer').should('be.empty');
+      // Check that the layers menu is initially open
+      cy.get('[data-testid="xb-primary-panel--layers"]').should(
+        'have.attr',
+        'data-state',
+        'on',
+      );
       cy.clickComponentInPreview('Image');
 
       cy.findAllByLabelText('Add component')
         .first()
         .click({ scrollBehavior: 'center' });
-      // Confirm that the menu opens the Section templates.
-      cy.get('#menuBarContainer').should('not.be.empty');
-      cy.get('#menuBarSubmenuContainer').should('contain.text', 'Components');
-
-      // Click Hero in the side menu
-      cy.get('#menuBarSubmenuContainer').findByText('Hero').click();
-
+      // Check the active panel is the library panel.
+      cy.get('[data-testid="xb-primary-panel--library"]').should(
+        'have.attr',
+        'data-state',
+        'on',
+      );
+      cy.get('.primaryPanelContent').should('contain.text', 'Components');
+      // Click Hero
+      cy.get('.primaryPanelContent').findByText('Hero').click();
       cy.waitForElementContentInIframe('div', 'There goes my hero');
-
       cy.testInIframe(
         '[data-component-id="experience_builder:my-hero"]',
         (myHeroComponent) => {

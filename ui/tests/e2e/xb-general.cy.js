@@ -75,12 +75,10 @@ describe('General Experience Builder', { testIsolation: false }, () => {
         ).to.exist;
       });
 
-    cy.get('#menuBarContainer').should('be.empty');
-    cy.clickAddMenu();
-    cy.get('#menuBarContainer').should('not.be.empty');
-    cy.get('[role="menuitem"][aria-expanded="true"]').contains(
-      'Default components',
-    );
+    cy.openLibraryPanel();
+    // Confirm the Library panel is open by checking if a component is visible.
+    cy.get('.primaryPanelContent [data-state="open"]').contains('Components');
+    cy.get('.primaryPanelContent').should('contain.text', 'Deprecated SDC');
 
     cy.get('.listContainer > div')
       .contains('Basic')
@@ -297,17 +295,13 @@ describe('General Experience Builder', { testIsolation: false }, () => {
     cy.drupalLogin('xbUser', 'xbUser');
     cy.loadURLandWaitForXBLoaded();
 
-    cy.get('#menuBarContainer').should('be.empty');
-    cy.clickAddMenu();
-    cy.get('#menuBarContainer').should('not.be.empty');
-    cy.get('[role="menuitem"][aria-expanded="true"]').contains(
-      'Default components',
-    );
+    cy.openLibraryPanel();
+    cy.get('.primaryPanelContent [data-state="open"]').contains('Components');
 
     const imageSelect =
-      '.MenubarSubContent [data-xb-component-id="sdc.experience_builder.image"]';
+      '.primaryPanelContent [data-xb-component-id="sdc.experience_builder.image"]';
     const heroSelect =
-      '.MenubarSubContent [data-xb-component-id="sdc.experience_builder.my-hero"]';
+      '.primaryPanelContent [data-xb-component-id="sdc.experience_builder.my-hero"]';
 
     // Hover over "Image" and a preview should appear.
     cy.get(`${imageSelect} > span`).should('exist').realHover();
@@ -509,7 +503,7 @@ describe('General Experience Builder', { testIsolation: false }, () => {
     cy.clickComponentInLayersView('Two Column');
     cy.realPress('{del}');
 
-    cy.get('.primaryMenuContent')
+    cy.get('.primaryPanelContent')
       .findByLabelText('Two Column')
       .should('not.exist');
     cy.previewReady();
@@ -518,7 +512,9 @@ describe('General Experience Builder', { testIsolation: false }, () => {
       .should('not.exist');
   });
 
-  it('Insert panel should close when clicking off', () => {
+  // @todo: Remove skip and update this test for displaying module menu.
+  //    @see https://www.drupal.org/project/experience_builder/issues/3482393
+  it.skip('Insert panel should close when clicking off', () => {
     cy.drupalLogin('xbUser', 'xbUser');
     cy.loadURLandWaitForXBLoaded();
 
@@ -565,13 +561,11 @@ describe('General Experience Builder', { testIsolation: false }, () => {
 
     cy.loadURLandWaitForXBLoaded();
 
-    cy.clickAddMenu();
-    cy.get('#menuBarContainer').should('not.be.empty');
-    cy.get('#menuBarSubmenuContainer').should('not.be.empty');
+    cy.openLibraryPanel();
     cy.wait('@getComponents');
 
-    cy.get('#menuBarSubmenuContainer .MenubarSubContent')
-      .realMouseWheel({ deltaY: 2000 })
+    cy.get('[data-testid="xb-primary-panel"]')
+      .realMouseWheel({ deltaY: 2500 })
       .then(() => {
         cy.get(
           '[data-xb-component-id="experience_builder:component_50"]',
@@ -691,7 +685,7 @@ describe('General Experience Builder', { testIsolation: false }, () => {
       .first()
       .click({ scrollBehavior: false });
     // Click Heading in the side menu
-    cy.get('#menuBarSubmenuContainer').findByText('Heading').click();
+    cy.get('.primaryPanelContent').findByText('Heading').click();
     // Check if heading component has been added in the preview
     cy.waitForElementContentInIframe(
       'div[data-xb-component-id="experience_builder:heading"] h1[data-component-id="experience_builder:heading"]',

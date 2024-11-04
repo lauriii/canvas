@@ -499,8 +499,12 @@ Cypress.Commands.add(
   },
 );
 
-Cypress.Commands.add('clickAddMenu', () => {
-  cy.findByTestId('xb-topbar').find('#add-menu-button').click();
+Cypress.Commands.add('openLibraryPanel', () => {
+  cy.findByTestId('xb-primary-panel--library').click();
+});
+
+Cypress.Commands.add('openLayersPanel', () => {
+  cy.findByTestId('xb-primary-panel--layers').click();
 });
 
 /**
@@ -640,7 +644,7 @@ Cypress.Commands.add(
 Cypress.Commands.add(
   'clickComponentInLayersView',
   (componentName, index = 0) => {
-    cy.get('.primaryMenuContent')
+    cy.get('.primaryPanelContent')
       .findAllByLabelText(componentName)
       .eq(index)
       .click();
@@ -689,7 +693,7 @@ Cypress.Commands.add('hidePanels', () => {
     $el.css({ display: 'none' });
   }
 
-  cy.findByTestId('xb-menu-root').then(hide);
+  cy.findByTestId('xb-primary-panel').then(hide);
   cy.findByTestId('xb-topbar').then(hide);
   cy.findByTestId('xb-contextual-panel').then(hide);
   cy.findByTestId('xb-canvas-controls').then(hide);
@@ -703,7 +707,7 @@ Cypress.Commands.add('showPanels', () => {
     $el.css({ display: '' });
   }
 
-  cy.findByTestId('xb-menu-root').then(show);
+  cy.findByTestId('xb-primary-panel').then(show);
   cy.findByTestId('xb-topbar').then(show);
   cy.findByTestId('xb-contextual-panel').then(show);
   cy.findByTestId('xb-canvas-controls').then(show);

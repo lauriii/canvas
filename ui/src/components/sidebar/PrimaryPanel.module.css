@@ -1,13 +1,7 @@
-:root {
-  --default-black-text-color: #1c2024;
-}
-
-.MenuRoot {
+.primaryPanel {
   position: fixed;
   top: calc(var(--topbar-height) + var(--topbar-space-above) + var(--topbar-space-below));
   left: var(--sidebar-space-side);
-  display: flex;
-  flex-direction: column;
   width: var(--sidebar-left-width);
   height: var(--sidebar-height);
   padding: var(--space-5) var(--space-4);
@@ -19,7 +13,24 @@
   margin-inline-end: 31px;
 }
 
-.menuContent {
+.header {
+  margin: 0;
+  vertical-align: middle;
+  > button {
+    width: 100%;
+    cursor: pointer;
+  }
+}
+
+.chevron {
+  margin-right: 0.5em;
+  transition: transform 250ms cubic-bezier(0.87, 0, 0.13, 1);
+  vertical-align: middle;
+  .trigger[data-state="open"] > span > & {
+    transform: rotate(90deg);
+  }
+}
+
+.primaryPanelContent {
   height: 100%;
-  color: var(--default-black-text-color);
 }

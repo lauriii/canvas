@@ -1,14 +1,11 @@
 import type React from 'react';
 import { useEffect, useRef, useCallback } from 'react';
 import styles from './List.module.css';
-import menuStyles from '@/components/topbar/add/AddMenu.module.css';
 import { selectDragging, setListDragging } from '@/features/ui/uiSlice';
-import { setHidden, setInactive } from '@/features/ui/addMenuSlice';
 import Sortable from 'sortablejs';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { Box, Flex, Spinner } from '@radix-ui/themes';
 import clsx from 'clsx';
-import * as Menubar from '@radix-ui/react-menubar';
 import ListItem from '@/components/list/ListItem';
 import type { LayoutModelSliceState } from '@/features/layout/layoutModelSlice';
 import { isDropTargetInSlotAllowedByEdgeDistance } from '@/features/sortable/sortableUtils';
@@ -41,7 +38,7 @@ interface ListData {
 }
 
 const List: React.FC<ListProps> = (props) => {
-  const { items, isLoading, type, label } = props;
+  const { items, isLoading, type } = props;
   const dispatch = useAppDispatch();
   const sortableInstance = useRef<Sortable | null>(null);
   const listElRef = useRef<HTMLDivElement>(null);
@@ -49,9 +46,6 @@ const List: React.FC<ListProps> = (props) => {
 
   const handleDragStart = useCallback(() => {
     dispatch(setListDragging(true));
-    // When dragging a component, hide it instead of closing the menu, because we don't want
-    // to unmount the draggable element from the DOM.
-    dispatch(setHidden(true));
   }, [dispatch]);
 
   const handleDragClone = useCallback((ev: Sortable.SortableEvent) => {
@@ -60,10 +54,6 @@ const List: React.FC<ListProps> = (props) => {
 
   const handleDragEnd = useCallback(() => {
     dispatch(setListDragging(false));
-    // After the drag ends, we can now close the menu without disrupting
-    // the draggable functionality. Setting the primary menu to an empty string
-    // closes it.
-    dispatch(setInactive());
   }, [dispatch]);
 
   const handleDragMove = useCallback(
@@ -117,8 +107,7 @@ const List: React.FC<ListProps> = (props) => {
 
   return (
     <div className={clsx('listContainer', styles.listContainer)}>
-      <Menubar.Label className={menuStyles.MenubarLabel}>{label}</Menubar.Label>
-      <Box pt="2" className={isDragging ? 'list-dragging' : ''}>
+      <Box className={isDragging ? 'list-dragging' : ''}>
         <Spinner loading={isLoading}>
           <Flex direction="column" width="100%" ref={listElRef}>
             {items &&

@@ -5,27 +5,19 @@ import Panel from '@/components/Panel';
 import UndoRedo from '@/components/UndoRedo';
 import DropIcon from '@assets/icons/drop.svg';
 import { handleNonWorkingBtn } from '@/utils/function-utils';
-import AddMenu from '@/components/topbar/add/AddMenu';
-import { useAppSelector } from '@/app/hooks';
-import { selectActiveMenu, setActiveMenu } from '@/features/ui/addMenuSlice';
 
 const Topbar = () => {
-  const activeMenu = useAppSelector(selectActiveMenu);
-
   return (
-    <Menubar.Root
-      data-testid="xb-topbar"
-      value={activeMenu}
-      onValueChange={setActiveMenu}
-      asChild
-    >
+    <Menubar.Root data-testid="xb-topbar" asChild>
       <Panel className={styles.root} px="6">
         <Flex height="100%" align="center" justify="between">
           <Flex gap="5" align="center">
             <a href="/" className={styles.logo}>
               <img src={DropIcon} alt="Drupal icon" />
             </a>
-            <AddMenu />
+            {/* @todo: Keep the <AddMenu/> code to reuse for displaying module components.*/}
+            {/*   https://www.drupal.org/project/experience_builder/issues/3482393 */}
+            {/*<AddMenu />*/}
           </Flex>
 
           <Text size="2" weight="medium">

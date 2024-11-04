@@ -4,7 +4,8 @@
 }
 
 .listItem {
-  padding: 0 7px 0 16px;
+  /* 15px is the width of the arrow icon */
+  padding: 0 0.5em 0 calc(0.5em + 15px);
   cursor: grab;
   font-size: 14px;
 }

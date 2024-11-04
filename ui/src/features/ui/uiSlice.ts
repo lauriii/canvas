@@ -18,11 +18,6 @@ export interface CanvasViewPort {
   scale: number;
 }
 
-export interface PrimaryMenuState {
-  activeMenu: string;
-  isHidden: boolean;
-}
-
 export interface uiSliceState {
   pending: boolean;
   dragging: DraggingStatus;
@@ -31,7 +26,6 @@ export interface uiSliceState {
   hoveredComponent: string | undefined; //uuid of component
   targetSlot: string | undefined; //uuid of slot being hovered when dragging
   canvasViewport: CanvasViewPort;
-  primaryMenu: PrimaryMenuState;
   latestUndoRedoActionId: string;
   firstLoadComplete: boolean;
 }
@@ -60,10 +54,6 @@ export const initialState: uiSliceState = {
     x: 0,
     y: 0,
     scale: 1,
-  },
-  primaryMenu: {
-    activeMenu: '',
-    isHidden: false,
   },
   latestUndoRedoActionId: '',
   firstLoadComplete: false,
@@ -197,27 +187,11 @@ export const uiSlice = createAppSlice({
       const newIndex = getNewScaleIndex(currentScale, 'increment');
       state.canvasViewport.scale = scaleValues[newIndex].scale;
     }),
-
     canvasViewPortZoomOut: create.reducer((state, action) => {
       const currentScale = state.canvasViewport.scale;
       const newIndex = getNewScaleIndex(currentScale, 'decrement');
       state.canvasViewport.scale = scaleValues[newIndex].scale;
     }),
-    setPrimaryMenuActiveMenu: create.reducer(
-      (state, action: PayloadAction<string>) => {
-        state.primaryMenu.activeMenu = action.payload;
-        // When the menu is set to an empty string, it's closed. So, we should reset the
-        // hidden state back to false here too to reset the css display property.
-        if (!action.payload) {
-          state.primaryMenu.isHidden = false;
-        }
-      },
-    ),
-    setPrimaryMenuHidden: create.reducer(
-      (state, action: PayloadAction<boolean>) => {
-        state.primaryMenu.isHidden = action.payload;
-      },
-    ),
     setLatestUndoRedoActionId: create.reducer(
       (state, action: PayloadAction<string>) => {
         state.latestUndoRedoActionId = action.payload;
@@ -248,15 +222,8 @@ export const uiSlice = createAppSlice({
     selectCanvasViewPort: (ui): CanvasViewPort => {
       return ui.canvasViewport;
     },
-
     selectCanvasViewPortScale: (ui): number => {
       return ui.canvasViewport.scale;
-    },
-    selectPrimaryMenuActiveMenu: (ui): string => {
-      return ui.primaryMenu.activeMenu;
-    },
-    selectPrimaryMenuHidden: (ui): boolean => {
-      return ui.primaryMenu.isHidden;
     },
     selectLatestUndoRedoActionId: (ui): string => {
       return ui.latestUndoRedoActionId;
@@ -283,8 +250,6 @@ export const {
   setCanvasViewPort,
   canvasViewPortZoomIn,
   canvasViewPortZoomOut,
-  setPrimaryMenuActiveMenu,
-  setPrimaryMenuHidden,
   canvasViewPortZoomDelta,
   setLatestUndoRedoActionId,
   setFirstLoadComplete,
@@ -299,8 +264,6 @@ export const {
   selectTargetSlot,
   selectCanvasViewPort,
   selectCanvasViewPortScale,
-  selectPrimaryMenuActiveMenu,
-  selectPrimaryMenuHidden,
   selectLatestUndoRedoActionId,
   selectFirstLoadComplete,
 } = uiSlice.selectors;

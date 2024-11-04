@@ -21,7 +21,7 @@ describe(
       cy.get('#xbPreviewOverlay .xb--viewport-overlay')
         .first()
         .as('desktopPreviewOverlay');
-      cy.get('.primaryMenuContent').as('layersTree');
+      cy.get('.primaryPanelContent').as('layersTree');
 
       // TODO don't even have this image here in the first place! For now, we delete it
       cy.clickComponentInPreview('Image', 1);
@@ -102,6 +102,7 @@ describe(
       cy.get('.treeItem[data-xb-uuid="dynamic-image-udf7d"]').realDnd(
         '.rootDropZone[data-xb-type="root"]',
       );
+      cy.pause();
 
       assertPageStateAfterFirstDrag();
 

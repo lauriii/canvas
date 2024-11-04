@@ -61,16 +61,18 @@ describe('Prop types editing', () => {
   beforeEach(() => {
     cy.drupalLogin('xbUser', 'xbUser');
     cy.loadURLandWaitForXBLoaded();
-    cy.get('#menuBarContainer').should('be.empty');
-    cy.get('.primaryMenuContent').findByText('Two Column').click();
+    cy.get('.primaryPanelContent').findByText('Two Column').click();
     cy.findByLabelText('Column Width').should('exist');
     cy.findAllByLabelText('Add section')
       .first()
       .click({ scrollBehavior: 'center' });
-
-    cy.findByText('Default components').click();
-    cy.get('#menuBarSubmenuContainer [data-xb-name="All props"]').click();
-
+    cy.get('[data-testid="xb-primary-panel--library"]').should(
+      'have.attr',
+      'data-state',
+      'on',
+    );
+    cy.get('.primaryPanelContent').findByText('All props').click();
+    cy.openLayersPanel();
     cy.clickComponentInLayersView('All props');
     cy.findByLabelText('String — single line').should('exist');
   });
