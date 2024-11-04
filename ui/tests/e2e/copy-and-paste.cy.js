@@ -52,6 +52,7 @@ describe(
 
       cy.getComponentInPreview('Hero', 0).trigger('contextmenu');
       cy.findByText('Delete').click();
+      cy.waitForElementContentNotInIframe('div', 'Hero');
 
       cy.log(
         'Select the Image component and then paste the Hero we copied after it.',
@@ -62,6 +63,8 @@ describe(
       cy.log(
         'The Hero we copied had the text hello, world! so that should have been pasted, not a different Hero.',
       );
+
+      cy.waitForElementContentInIframe('div', 'hello, world!');
       cy.getIframeBody()
         .findAllByText('hello, world!')
         .should('have.length', 1);
