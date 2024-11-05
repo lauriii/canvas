@@ -6,13 +6,17 @@
  */
 
 use Drupal\Component\Serialization\Json;
+use Drupal\Core\Block\BlockPluginInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Entity\TypedData\EntityDataDefinition;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Render\Element;
 use Drupal\Core\Url;
 use Drupal\datetime\Plugin\Field\FieldType\DateTimeItem;
+use Drupal\experience_builder\Entity\Component;
 use Drupal\experience_builder\Plugin\ComponentPluginManager;
+use Drupal\Core\Validation\Plugin\Validation\Constraint\FullyValidatableConstraint;
+use Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\BlockComponent;
 use Drupal\experience_builder\Plugin\Field\FieldTypeOverride\FileItemOverride;
 use Drupal\experience_builder\Plugin\Field\FieldTypeOverride\FileUriItemOverride;
 use Drupal\experience_builder\Plugin\Field\FieldTypeOverride\ImageItemOverride;
@@ -428,4 +432,82 @@ function experience_builder_modules_installed(array $modules, bool $is_syncing):
 function experience_builder_rebuild(): void {
   // The module installer cleared all plugin caches. Force new/changed SDCs to create/update Component config entities.
   \Drupal::service(ComponentPluginManager::class)->getDefinitions();
+}
+
+/**
+ * Implements hook_block_alter().
+ */
+function experience_builder_block_alter(array &$definitions): void {
+  static $in_recursion = FALSE;
+  // Ensure we're not in infinite recursion.
+  if ($in_recursion) {
+    return;
+  }
+
+  // @todo Remove this in Drupal 11 following https://www.drupal.org/project/drupal/issues/3379725
+  [$version] = explode('.', \Drupal::VERSION);
+  $additional = $version > 10 ? [] : [
+    'info' => '',
+    'status' => TRUE,
+    'view_mode' => '',
+    'context_mapping' => [],
+  ];
+
+  // @todo This only handles new & existing Component entities in best case scenario, but does not handle cases where BlockComponent based entities exist, but Block Plugin definition is missing, see https://www.drupal.org/project/experience_builder/issues/3484682
+  foreach ($definitions as $definition) {
+    if ($definition['id'] == 'broken') {
+      continue;
+    }
+
+    // @todo Handle block derivatives in https://www.drupal.org/project/experience_builder/issues/3484671
+    if (isset($definition['deriver'])) {
+      continue;
+    }
+
+    $id = 'block.' . $definition['id'];
+    $component = Component::load($id);
+    if ($component instanceof Component) {
+      // @todo Update Component entities with BlockComponent source plugin: https://www.drupal.org/project/experience_builder/issues/3484682
+      continue;
+    }
+    else {
+      $in_recursion = TRUE;
+      // @todo This is super ugly, decorate the block plugin manager so we can create instances directly?
+      // @todo is this a not going to become performance bottle neck on BlockPlugin heavy sites?
+      $block = \Drupal::service('plugin.manager.block')->createInstance($definition['id']);
+      assert($block instanceof BlockPluginInterface);
+      $settings = $block->defaultConfiguration();
+      $data_definition = \Drupal::service('config.typed')->createFromNameAndData('block.settings.' . $definition['id'], $settings);
+      // We currently support only block plugins with fully validatable settings schema.
+      $fullyValidatable = FALSE;
+      foreach ($data_definition->getConstraints() as $constraint) {
+        if ($constraint instanceof FullyValidatableConstraint) {
+          $fullyValidatable = TRUE;
+          break;
+        }
+      }
+      if (!$fullyValidatable) {
+        continue;
+      }
+      $component = Component::create([
+        'id' => $id,
+        'label' => (string) $definition['admin_label'],
+        'source' => BlockComponent::SOURCE_PLUGIN_ID,
+        'settings' => [
+          'plugin_id' => $definition['id'],
+          // We are using strict config schema validation, so we need to provide valid settings for each block.
+          'settings' => [
+            // @todo if we need ID here can we merge settings with the parent and drop plugin_id?
+            'id' => $definition['id'],
+            'label' => (string) $definition['admin_label'],
+            'label_display' => FALSE,
+            'provider' => $definition['provider'],
+          ] + $additional + $settings,
+        ],
+        'status' => TRUE,
+      ]);
+      $component->save();
+      $in_recursion = FALSE;
+    }
+  }
 }

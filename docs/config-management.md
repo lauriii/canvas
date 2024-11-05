@@ -25,6 +25,7 @@ to one of us! 😊 🙏
 - `configuration entity dependencies`: [configuration entities may declare dependencies on modules, themes or another config entity](https://www.drupal.org/docs/drupal-apis/configuration-api/configuration-entity-dependencies)
 - `configuration validation`: the ability to [thoroughly validate](https://www.drupal.org/project/drupal/issues/2164373) configuration
 - `SDC`: a [Single-Directory Component](https://www.drupal.org/project/sdc)
+- `Block`: a [block plugin](https://www.drupal.org/docs/drupal-apis/block-api/block-api-overview) — ⚠️ not to be confused with the identically named config entities!
 - `field type`: see [`XB Data Model` doc](data-model.md)
 - `field widget`: see [`XB Data Model` doc](data-model.md)
 - `page template`: a Drupal theme's template in which every `theme region` is rendered
@@ -38,7 +39,10 @@ to one of us! 😊 🙏
 ### 1.2 XB terminology
 
 - `component`: see [`XB Components` doc](components.md)
-- `Component config entity`: `component`s available for use in XB are tracked as config entities. They correspond 1:1 to `SDC`s.
+- `Component config entity`: `component`s available for use in XB are tracked as config entities. They correspond 1:1 to eligible
+  `SDC`s and `Block`s.
+- `Component Source Plugin`: `component`s have a translation layer (per `component type`) between the `Component` config entity and the actual plugin that
+  generates output, e.g. `SingleDirectoryComponent` (`sdc`-prefixed) and `BlockComponent` (`block`-prefixed).
 - `component prop`: see [`XB Components` doc](components.md)
 - `component slot`: see [`XB Components` doc](components.md)
 - `component type`: see [`XB Components` doc](components.md)
@@ -92,7 +96,12 @@ per `component` that is present and meets the criteria (see [`XB Components` doc
 When a `component` does not meet the criteria, the _reasons_ for that are tracked and presented in the UI.
 
 The `Component` config entity contains:
-- the `component` ID (currently always prefixed with `sdc+` because it only supports `SDC`-powered `component`s, but that will change, see [`XB Components` doc, section 3.2](components.md#3.2))
+- the `component` ID, with the prefix (the first ID part) identifying the `Component Source Plugin`, and the
+  remainder being used by that plugin (typically to allow a `Component Source Plugin` to provide >1 `component`)
+- the `source`: a `Component Source Plugin` ID. ⚠️ This will eventually become extensible; currently only `sdc` or `block`.
+- the `settings`: each `Component Source Plugin` MAY need to store component settings, and each has different needs:
+  - `SDC` component type: `props`, to configure what field type, widget and so on to use to store and edit the SDC's props.
+  - `Block` component type: `settings`, to store block settings, if any. For example: which menu to display in a menu block.
 - the `status`: `true` conveys it is available for XB Content Creators, `false` conveys it once was available, but not
   anymore (either because it was explicitly disabled by the Site Builder, or because the underlying SDC was marked as
   "obsolete"). Existing content can then continue to use disabled `Component`s (in other words: nothing breaks), while

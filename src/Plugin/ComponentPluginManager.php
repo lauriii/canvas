@@ -19,7 +19,7 @@ use Drupal\Core\Theme\ComponentNegotiator;
 use Drupal\Core\Theme\ComponentPluginManager as CoreComponentPluginManager;
 use Drupal\Core\Theme\ExtensionType;
 use Drupal\Core\Theme\ThemeManagerInterface;
-use Drupal\experience_builder\Entity\Component;
+use Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\SingleDirectoryComponent;
 use Drupal\experience_builder\PropExpressions\Component\ComponentPropExpression;
 use Drupal\experience_builder\PropShape\PropShape;
 use Drupal\experience_builder\PropShape\StorablePropShape;
@@ -85,9 +85,9 @@ class ComponentPluginManager extends CoreComponentPluginManager {
     foreach ($definitions as $machine_name => $plugin_definition) {
       // Update all components, even those that do not meet the requirements.
       // (Because those components may already be in use!)
-      if (array_key_exists(Component::convertMachineNameToId($machine_name), $components)) {
-        $component_plugin = $this->createInstance($machine_name, $plugin_definition);
-        $component = Component::updateFromComponentPlugin($component_plugin);
+      if (array_key_exists(SingleDirectoryComponent::convertMachineNameToId($machine_name), $components)) {
+        $component_plugin = $this->createInstance($machine_name);
+        $component = SingleDirectoryComponent::updateConfigEntity($component_plugin);
         if (isset($component_plugin->metadata->status) && $component_plugin->metadata->status === 'obsolete') {
           $this->reasons[$component_plugin->getPluginId()] = 'Component has "obsolete" status';
           $component->disable();
@@ -97,8 +97,8 @@ class ComponentPluginManager extends CoreComponentPluginManager {
         if (!self::componentMeetsRequirements($plugin_definition)) {
           continue;
         }
-        $component_plugin = $this->createInstance($machine_name, $plugin_definition);
-        $component = Component::createFromComponentPlugin($component_plugin);
+        $component_plugin = $this->createInstance($machine_name);
+        $component = SingleDirectoryComponent::createConfigEntity($component_plugin);
       }
       try {
         $component->save();

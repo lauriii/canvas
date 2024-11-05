@@ -49,9 +49,14 @@ final class ApiPreviewController {
   }
 
   private static function wrapComponentsForPreview(array $build, ?string $component_instance_uuid = NULL): array {
-    if (isset($build['#component'])) {
-      assert(is_string($component_instance_uuid));
-      $build['#prefix'] = sprintf('<div class="xb--sortable-item" data-xb-uuid="%s" data-xb-component-id="%s">', $component_instance_uuid, $build['#component']);
+    if ($component_instance_uuid !== NULL) {
+      if (isset($build['#component'])) {
+        // @todo where is data-xb-component-id used in the client? how does this affect non-SDC components?
+        $build['#prefix'] = sprintf('<div class="xb--sortable-item" data-xb-uuid="%s" data-xb-component-id="%s">', $component_instance_uuid, $build['#component']);
+      }
+      else {
+        $build['#prefix'] = sprintf('<div class="xb--sortable-item" data-xb-uuid="%s">', $component_instance_uuid);
+      }
       $build['#suffix'] = '</div>';
     }
     foreach (Element::children($build) as $component_instance_uuid) {

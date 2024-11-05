@@ -33,9 +33,14 @@ class ComponentValidationTest extends ConfigEntityValidationTestBase {
 
   /**
    * {@inheritdoc}
+   *
+   * @phpstan-ignore property.defaultValue
    */
   protected static array $propertiesWithRequiredKeys = [
-    'defaults' => "'props' is a required key.",
+    'settings' => [
+      "'plugin_id' is a required key because source is sdc (see config schema type experience_builder.component_source_settings.sdc).",
+      "'props' is a required key because source is sdc (see config schema type experience_builder.component_source_settings.sdc).",
+    ],
   ];
 
   /**
@@ -46,9 +51,9 @@ class ComponentValidationTest extends ConfigEntityValidationTestBase {
 
     $this->entity = Component::create([
       'id' => 'sdc.sdc_test.my-cta',
-      'component' => 'sdc_test:my-cta',
-      'label' => 'Test',
-      'defaults' => [
+      'source' => 'sdc',
+      'settings' => [
+        'plugin_id' => 'sdc_test:my-cta',
         'props' => [
           'text' => [
             // @see \Drupal\Core\Field\Plugin\Field\FieldType\StringItem
@@ -82,6 +87,7 @@ class ComponentValidationTest extends ConfigEntityValidationTestBase {
           ],
         ],
       ],
+      'label' => 'Test',
     ]);
     $this->entity->save();
   }
@@ -120,44 +126,47 @@ class ComponentValidationTest extends ConfigEntityValidationTestBase {
    * Tests validating a component with a SDC machine name.
    */
   public function testInvalidId(): void {
-    $this->entity->set('id', 'sdc_test:my-cta');
+    $this->entity->set('id', 'invalid:name');
     $this->assertValidationErrors([
       '' => "The 'id' property cannot be changed.",
-      'id' => 'The <em class="placeholder">&quot;sdc_test:my-cta&quot;</em> machine name is not valid.',
-    ]);
-  }
-
-  /**
-   * @testWith ["sdc_test+my-cta", true, true]
-   *           ["invalid", true, true]
-   *           ["experience_builder:non_existent", false, true]
-   */
-  public function testInvalidComponent(string $component, bool $expect_error_for_invalid_name, bool $expect_error_for_non_existent_plugin): void {
-    $expected_error_messages = [];
-    if ($expect_error_for_invalid_name) {
-      $expected_error_messages[] = sprintf('The <em class="placeholder">&quot;%s&quot;</em> machine name is not valid.', $component);
-    }
-    if ($expect_error_for_non_existent_plugin) {
-      $expected_error_messages[] = sprintf("The '%s' plugin does not exist.", $component);
-    }
-
-    $this->entity->set('component', $component);
-    // @phpstan-ignore-next-line
-    $this->assertValidationErrors([
-      '' => "The 'component' property cannot be changed.",
-      'component' => count($expected_error_messages) > 1
-        ? $expected_error_messages
-        : reset($expected_error_messages),
+      'id' => "Expected 'sdc.sdc_test.my-cta', not 'invalid:name'. Format: '&lt;%parent.source&gt;.&lt;%parent.settings.plugin_id&gt;'.",
     ]);
   }
 
   public function testImmutableProperties(array $valid_values = []): void {
     $valid_values = [
-      'component' => 'sdc_test:no-props',
       'id' => 'sdc.sdc_test.no-props',
-      'defaults' => ['props' => []],
+      'source' => 'test',
+      'plugin_id' => 'sdc_test:no-props',
     ];
-    parent::testImmutableProperties($valid_values);
+    $additional_validation_errors = [
+      'id' => [
+        'id' => "Expected 'sdc.sdc_test.my-cta', not 'sdc.sdc_test.no-props'. Format: '&lt;%parent.source&gt;.&lt;%parent.settings.plugin_id&gt;'.",
+      ],
+      'source' => [
+        'id' => "Expected 'test.sdc_test.my-cta', not 'sdc.sdc_test.my-cta'. Format: '&lt;%parent.source&gt;.&lt;%parent.settings.plugin_id&gt;'.",
+        'source' => "The 'test' plugin does not exist.",
+      ],
+    ];
+
+    // @todo Update parent method to accept a `$additional_validation_errors` parameter in addition to `$valid_values`, and uncomment the next line, remove all lines after it.
+    // parent::testImmutableProperties($valid_values);
+    $constraints = $this->entity->getEntityType()->getConstraints();
+    $this->assertNotEmpty($constraints['ImmutableProperties'], 'All config entities should have at least one immutable ID property.');
+
+    foreach ($constraints['ImmutableProperties'] as $property_name) {
+      $original_value = $this->entity->get($property_name);
+      $this->entity->set($property_name, $valid_values[$property_name] ?? $this->randomMachineName());
+      $this->assertValidationErrors([
+        '' => "The '$property_name' property cannot be changed.",
+      ] + $additional_validation_errors[$property_name]);
+      $this->entity->set($property_name, $original_value);
+    }
+  }
+
+  public function testRequiredPropertyKeysMissing(?array $additional_expected_validation_errors_when_missing = NULL): void {
+    $additional_expected_validation_errors_when_missing['settings']['id'] = 'This validation constraint is configured to inspect the properties <em class="placeholder">%parent.source, %parent.settings.plugin_id</em>, but some do not exist: <em class="placeholder">%parent.settings.plugin_id</em>.';
+    parent::testRequiredPropertyKeysMissing($additional_expected_validation_errors_when_missing);
   }
 
 }

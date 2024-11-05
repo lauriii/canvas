@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\experience_builder\Traits;
 
+use Drupal\Core\Block\BlockManagerInterface;
 use Drupal\experience_builder\Plugin\ComponentPluginManager;
 
 trait GenerateComponentConfigTrait {
@@ -24,6 +25,13 @@ trait GenerateComponentConfigTrait {
     // 2. Simulate experience_builder_modules_installed() getting invoked.
     // @see experience_builder_modules_installed()
     $componentPluginManager->getDefinitions();
+
+    // Repeat, but for block-based components.
+    if ($this->container->get('module_handler')->moduleExists('block')) {
+      $blockPluginManager = $this->container->get(BlockManagerInterface::class);
+      $blockPluginManager->clearCachedDefinitions();
+      $blockPluginManager->getDefinitions();
+    }
   }
 
 }

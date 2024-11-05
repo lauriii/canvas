@@ -17,7 +17,6 @@ use Drupal\Core\Render\RenderableInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\TypedData\DataDefinition;
 use Drupal\experience_builder\Entity\Component;
-use Drupal\experience_builder\Plugin\ComponentPluginManager;
 use Drupal\experience_builder\Plugin\DataType\ComponentPropsValues;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeHydrated;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
@@ -279,8 +278,7 @@ class ComponentTreeItem extends FieldItemBase implements RenderableInterface {
    * @return bool
    */
   protected static function componentHasProps(string $component_id): bool {
-    $component_manager = \Drupal::service(ComponentPluginManager::class);
-    $component = $component_manager->find(Component::convertIdToMachineName($component_id));
+    $component = Component::load($component_id)?->getComponentSource()?->getComponentPlugin();
     return !empty($component->metadata->schema['properties']);
   }
 

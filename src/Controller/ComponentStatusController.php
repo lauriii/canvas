@@ -9,6 +9,7 @@ use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\Url;
 use Drupal\experience_builder\Entity\Component;
 use Drupal\experience_builder\Plugin\ComponentPluginManager;
+use Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\SingleDirectoryComponent;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 
 /**
@@ -16,6 +17,7 @@ use Symfony\Component\HttpFoundation\RedirectResponse;
  * @see \Drupal\experience_builder\Plugin\ComponentPluginManager::setCachedDefinitions()
  *
  * @todo Ensure reasons are translated.
+ * @todo Handle non SDC components, see https://www.drupal.org/project/experience_builder/issues/3484672
  */
 final class ComponentStatusController {
 
@@ -50,7 +52,7 @@ final class ComponentStatusController {
       ],
     ];
     foreach ($reasons as $component => $reason) {
-      $component_entity = Component::load(Component::convertMachineNameToId($component));
+      $component_entity = Component::load(SingleDirectoryComponent::convertMachineNameToId($component));
       $status = $component_entity instanceof Component && !$component_entity->status() ? $this->t('Disabled') : $this->t('Incompatible');
 
       $rows[] = [
@@ -87,18 +89,18 @@ final class ComponentStatusController {
     $reasons = $this->state->get(ComponentPluginManager::REASONS_STATE_KEY);
     if ($op === 'disable') {
       $component->disable()->save();
-      $reasons[$component->getComponentMachineName()] = 'Manually disabled';
+      $reasons[$component->getComponentPluginId()] = 'Manually disabled';
     }
     elseif ($op === 'enable') {
-      $component_plugin = $this->componentPluginManager->getDefinition($component->getComponentMachineName());
+      $component_plugin = $this->componentPluginManager->getDefinition($component->getComponentPluginId());
       if ($this->componentPluginManager->componentMeetsRequirements($component_plugin)) {
         $component->enable()->save();
-        unset($reasons[$component->getComponentMachineName()]);
+        unset($reasons[$component->getComponentPluginId()]);
       }
       else {
         $this->messenger->addError($this->t('The component %component does not meet requirements: %reason', [
           "%component" => $component->id(),
-          "%reason" => $reasons[$component->getComponentMachineName()],
+          "%reason" => $reasons[$component->getComponentPluginId()],
         ]));
         return new RedirectResponse(Url::fromRoute('entity.component.collection')->toString());
       }

@@ -8,8 +8,8 @@ use Drupal\Core\Config\Entity\ConfigEntityStorageInterface;
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Validation\BasicRecursiveValidatorFactory;
+use Drupal\experience_builder\ComponentSource\ComponentSourceWithSlotsInterface;
 use Drupal\experience_builder\Entity\Component;
-use Drupal\experience_builder\Plugin\ComponentPluginManager;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\Validator\Constraint;
@@ -28,7 +28,6 @@ final class ComponentTreeStructureConstraintValidator extends ConstraintValidato
 
   public function __construct(
     private readonly ConfigEntityStorageInterface $componentStorage,
-    private readonly ComponentPluginManager $componentPluginManager,
     private readonly BasicRecursiveValidatorFactory $validatorFactory,
   ) {
     // @see \Drupal\experience_builder\Entity\Component
@@ -43,7 +42,6 @@ final class ComponentTreeStructureConstraintValidator extends ConstraintValidato
     assert($component_storage instanceof ConfigEntityStorageInterface);
     return new static(
       $component_storage,
-      $container->get(ComponentPluginManager::class),
       $container->get(BasicRecursiveValidatorFactory::class),
     );
   }
@@ -124,7 +122,6 @@ final class ComponentTreeStructureConstraintValidator extends ConstraintValidato
           callback: self::validateComponentInstance(...),
           payload: [
             'component_storage' => $this->componentStorage,
-            'component_manager' => $this->componentPluginManager,
           ]
         ),
       ]
@@ -170,8 +167,6 @@ final class ComponentTreeStructureConstraintValidator extends ConstraintValidato
     /** @var \Drupal\Core\Config\Entity\ConfigEntityStorageInterface $component_storage */
     $component_storage = $payload['component_storage'];
     assert($component_storage->getEntityTypeId() === 'component');
-    /** @var \Drupal\Core\Theme\ComponentPluginManager $component_manager */
-    $component_manager = $payload['component_manager'];
     $tree = $context->getRoot();
 
     if (!isset($component_instance['component'])) {
@@ -199,30 +194,34 @@ final class ComponentTreeStructureConstraintValidator extends ConstraintValidato
       '',
     );
 
-    // @todo This will need to evolve when supporting non-SDC component types in https://www.drupal.org/project/experience_builder/issues/3454519
-    $component = $component_manager->find(Component::convertIdToMachineName($component_instance['component']));
-    if (empty($component->metadata->slots)) {
-      if (isset($tree[$component_instance['uuid']])) {
-        $context->buildViolation('Invalid component subtree. A component subtree must only exist for components with >=1 slot, but the component %component has no slots, yet a subtree exists for the instance with UUID %uuid.', [
-          '%component' => $component_instance['component'],
-          '%uuid' => $component_instance['component'],
-        ])
-          ->atPath('[' . $component_instance['uuid'] . ']')
-          ->addViolation();
+    $component_entity = Component::load($component_instance['component']);
+    assert($component_entity instanceof Component);
+    $component_source = $component_entity->getComponentSource();
+    if ($component_source instanceof ComponentSourceWithSlotsInterface) {
+      $slots = $component_source->getSlotDefinitions();
+      if (empty($slots)) {
+        if (isset($tree[$component_instance['uuid']])) {
+          $context->buildViolation('Invalid component subtree. A component subtree must only exist for components with >=1 slot, but the component %component has no slots, yet a subtree exists for the instance with UUID %uuid.', [
+            '%component' => $component_instance['component'],
+            '%uuid' => $component_instance['component'],
+          ])
+            ->atPath('[' . $component_instance['uuid'] . ']')
+            ->addViolation();
+        }
       }
-    }
-    elseif (isset($tree[$component_instance['uuid']])) {
-      $tree_slot_info = $tree[$component_instance['uuid']];
-      $actual_slot_names = array_keys($component->metadata->slots);
-      $unknown_slot_names = array_diff(array_keys($tree_slot_info), $actual_slot_names);
-      foreach ($unknown_slot_names as $unknown_slot_name) {
-        $context->buildViolation('Invalid component subtree. This component subtree contains an invalid slot name for component %component: %invalid_slot_name. Valid slot names are: %valid_slot_names.', [
-          '%component' => $component_instance['component'],
-          '%invalid_slot_name' => $unknown_slot_name,
-          '%valid_slot_names' => implode(', ', $actual_slot_names),
-        ])
-          ->atPath('[' . $component_instance['uuid'] . '][' . $unknown_slot_name . ']')
-          ->addViolation();
+      elseif (isset($tree[$component_instance['uuid']])) {
+        $tree_slot_info = $tree[$component_instance['uuid']];
+        $actual_slot_names = array_keys($slots);
+        $unknown_slot_names = array_diff(array_keys($tree_slot_info), $actual_slot_names);
+        foreach ($unknown_slot_names as $unknown_slot_name) {
+          $context->buildViolation('Invalid component subtree. This component subtree contains an invalid slot name for component %component: %invalid_slot_name. Valid slot names are: %valid_slot_names.', [
+            '%component' => $component_instance['component'],
+            '%invalid_slot_name' => $unknown_slot_name,
+            '%valid_slot_names' => implode(', ', $actual_slot_names),
+          ])
+            ->atPath('[' . $component_instance['uuid'] . '][' . $unknown_slot_name . ']')
+            ->addViolation();
+        }
       }
     }
 

@@ -29,6 +29,9 @@ services:
     decorates: Drupal\Core\Theme\ComponentPluginManager
     parent: Drupal\Core\Theme\ComponentPluginManager
     arguments: ['@entity_type.manager', '@state']
+  Drupal\experience_builder\ComponentSource\ComponentSourceManager:
+    parent: default_plugin_manager
+    public: true
 
   # Utilities.
   Drupal\experience_builder\AssetRenderer: {}

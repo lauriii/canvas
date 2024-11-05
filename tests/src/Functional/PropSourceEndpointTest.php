@@ -46,8 +46,15 @@ class PropSourceEndpointTest extends BrowserTestBase {
     // Ensure the response is cached by Dynamic Page Cache (because this is a
     // complex response), but not by Page Cache (because it should not be
     // available to anonymous users).
-    $this->assertSession()->responseHeaderEquals('X-Drupal-Cache-Tags', 'config:component_list http_response');
-    $this->assertSession()->responseHeaderEquals('X-Drupal-Cache-Contexts', 'user.permissions');
+    if (version_compare(\Drupal::VERSION, '11', '>=')) {
+      $this->assertSession()->responseHeaderEquals('X-Drupal-Cache-Tags', 'CACHE_MISS_IF_UNCACHEABLE_HTTP_METHOD:form announcements_feed:feed config:component_list config:search.settings config:system.site http_response local_task');
+      $this->assertSession()->responseHeaderEquals('X-Drupal-Cache-Contexts', 'route url.path.is_front url.path.parent url.query_args:_wrapper_format user.permissions user.roles:authenticated');
+    }
+    else {
+      // @todo Why are the `config:search.settings config:system.site` cache tags absent on Drupal 10?!
+      $this->assertSession()->responseHeaderEquals('X-Drupal-Cache-Tags', 'config:component_list http_response local_task');
+      $this->assertSession()->responseHeaderEquals('X-Drupal-Cache-Contexts', 'route user.permissions');
+    }
     $this->assertSession()->responseHeaderEquals('X-Drupal-Cache-Max-Age', '-1 (Permanent)');
     $this->assertSession()->responseHeaderEquals('X-Drupal-Dynamic-Cache', 'MISS');
     $this->assertSession()->responseHeaderEquals('X-Drupal-Cache', 'UNCACHEABLE (request policy)');

@@ -12,13 +12,12 @@ use Drupal\Core\Render\RenderableInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\TypedData\Attribute\DataType;
 use Drupal\Core\TypedData\TypedData;
-use Drupal\Core\Theme\ComponentPluginManager;
+use Drupal\experience_builder\ComponentSource\ComponentSourceWithSlotsInterface;
 use Drupal\experience_builder\Entity\Component;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
 
 /**
  * @todo Do we need multiple variations of this? See \Drupal\datetime\DateTimeComputed for an example where there's *settings*
- * @phpstan-type JsonSchema array<string, mixed>
  */
 #[DataType(
   id: "component_tree_hydrated",
@@ -26,20 +25,6 @@ use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
   description: new TranslatableMarkup("Computed from tree structure + props values"),
 )]
 class ComponentTreeHydrated extends TypedData implements CacheableDependencyInterface, RenderableInterface {
-
-  /**
-   * @param JsonSchema $slot_schema
-   */
-  private static function getDefaultSlotValue(array $slot_schema): string {
-    if (array_key_exists('examples', $slot_schema) && array_key_exists(0, $slot_schema['examples'])) {
-      return $slot_schema['examples'][0];
-    }
-    return '';
-  }
-
-  private function getComponentPluginManager(): ComponentPluginManager {
-    return \Drupal::service(ComponentPluginManager::class);
-  }
 
   /**
    * {@inheritdoc}
@@ -58,27 +43,12 @@ class ComponentTreeHydrated extends TypedData implements CacheableDependencyInte
     // with all slots empty.
     foreach ($tree->getComponentInstanceUuids() as $uuid) {
       $component_id = $tree->getComponentId($uuid);
-      $sdc_component_props = $item->resolveComponentProps($uuid);
-
-      // Use the first example defined in SDC metadata, if it exists. Otherwise,
-      // fall back to `"#plain_text => ''`, which is accepted by SDC's rendering
-      // logic but still results in an empty slot.
-      // @see https://www.drupal.org/node/3391702
-      // @see \Drupal\Core\Render\Element\ComponentElement::generateComponentTemplate()
-      // @see \Drupal\experience_builder\Controller\ApiPreviewController::wrapComponentsForPreview()
-      $sdc_component_plugin_instance = $this->getComponentPluginManager()->find(Component::convertIdToMachineName($component_id));
-      $default_slot_values = array_map(
-        fn (array $s): string => self::getDefaultSlotValue($s),
-        $sdc_component_plugin_instance->metadata->slots,
-      );
+      $component = Component::load($component_id);
+      assert($component instanceof Component);
 
       $hydrated[$uuid] = [
         'component' => $component_id,
-        'props' => $sdc_component_props,
-      ];
-      if (!empty($sdc_component_plugin_instance->metadata->slots)) {
-        $hydrated[$uuid]['slots'] = $default_slot_values;
-      }
+      ] + $component->getComponentSource()->hydrateComponent($uuid, $item);
     }
 
     // Transform the flat list of hydrated components into a hydrated component
@@ -146,37 +116,19 @@ class ComponentTreeHydrated extends TypedData implements CacheableDependencyInte
     $build = [];
     foreach ($hydrated as $component_subtree_uuid => $component_instances) {
       foreach ($component_instances as $component_instance_uuid => $component_instance) {
-        // @todo This will need to evolve when supporting non-SDC component types in https://www.drupal.org/project/experience_builder/issues/3454519
-        $build[$component_subtree_uuid][$component_instance_uuid] = [
-          '#type' => 'component',
-          '#cache' => [
-            'tags' => [
-              // @see \Drupal\Core\Config\Entity\ConfigEntityBase::getCacheTagsToInvalidate()
-              'config:experience_builder.component.' . $component_instance['component'],
-            ],
-          ],
-        ];
-        foreach ($component_instance as $key => $value) {
-          if ($key !== 'slots') {
-            // An SDC plugin ID is expected when using `#type => component`.
-            // @see \Drupal\Core\Render\Element\ComponentElement
-            if ($key === 'component') {
-              $value = Component::convertIdToMachineName($value);
-            }
+        $component = Component::load($component_instance['component']);
+        assert($component instanceof Component);
+        $source = $component->getComponentSource();
+        $build[$component_subtree_uuid][$component_instance_uuid] = $source->renderComponent($component_instance);
 
-            // Note: this works because `::getValue()` above uses `props` and
-            // `slots`, which allow simply prefixing them with `#` to generate the
-            // corresponding render array.
-            $build[$component_subtree_uuid][$component_instance_uuid]["#$key"] = $value;
-            continue;
-          }
-
-          $build[$component_subtree_uuid][$component_instance_uuid]["#slots"] = [];
-          foreach ($value as $slot => $slot_value) {
+        // Figure out the slots, if there are any.
+        if ($source instanceof ComponentSourceWithSlotsInterface  && !empty($component_instance['slots'])) {
+          $slots = [];
+          foreach ($component_instance['slots'] as $slot => $slot_value) {
             // Handle default slot value: convert to renderable using either
             // #plain_text or `#markup`.
             if (is_string($slot_value)) {
-              $build[$component_subtree_uuid][$component_instance_uuid]["#slots"][$slot] = !str_starts_with($slot_value, '<')
+              $slots[$slot] = !str_starts_with($slot_value, '<')
                 // Match how Drupal core handles string values for components.
                 // @see https://www.drupal.org/node/3398039
                 ? ['#plain_text' => $slot_value]
@@ -189,9 +141,11 @@ class ComponentTreeHydrated extends TypedData implements CacheableDependencyInte
             // Explicit slot value: renderify, just like the rest of the
             // component tree.
             else {
-              $build[$component_subtree_uuid][$component_instance_uuid]["#slots"] += self::renderify([$slot => $slot_value]);
+              $slots += self::renderify([$slot => $slot_value]);
             }
           }
+
+          $source->setSlots($build[$component_subtree_uuid][$component_instance_uuid], $slots);
         }
       }
     }

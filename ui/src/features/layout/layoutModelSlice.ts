@@ -276,14 +276,14 @@ export const addNewComponentToLayout =
     if (!payload.to || !payload.component) {
       return;
     }
-    const initialData: ComponentModel = { name: '' };
+
+    // @todo Remove this limitation in https://www.drupal.org/project/experience_builder/issues/3467954
+    const initialData: ComponentModel = { name: payload.component.name };
     const children: LayoutNode[] = [];
     const uuid = 'to_be_replaced';
 
     // Populate the model data with the default values
     if (payload.component?.field_data) {
-      // @todo Update this logic in https://www.drupal.org/project/experience_builder/issues/3455942
-      initialData.name = payload.component.name;
       Object.keys(payload.component.field_data).forEach((propName) => {
         if (payload.component?.field_data?.[propName]?.['default_values']) {
           initialData[propName] =

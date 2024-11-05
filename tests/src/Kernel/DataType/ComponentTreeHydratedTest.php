@@ -29,12 +29,14 @@ class ComponentTreeHydratedTest extends KernelTestBase {
   protected static $modules = [
     'experience_builder',
     'xb_test_sdc',
+    'block',
     // XB's dependencies (modules providing field types + widgets).
     'datetime',
     'file',
     'image',
     'options',
     'path',
+    'system',
   ];
 
   /**
@@ -78,7 +80,7 @@ class ComponentTreeHydratedTest extends KernelTestBase {
     $this->assertIsString($json);
     $this->assertSame($expected_value, json_decode($json, TRUE));
     $renderable = $hydrated->toRenderable();
-    $this->assertSame($expected_renderable, $renderable);
+    $this->assertEquals($expected_renderable, $renderable);
     $this->assertSame($expected_html, (string) $this->container->get(RendererInterface::class)->renderInIsolation($renderable));
     $this->assertSame($expected_cache_tags, array_values(CacheableMetadata::createFromRenderArray($renderable)->getCacheTags()));
   }
@@ -127,7 +129,7 @@ class ComponentTreeHydratedTest extends KernelTestBase {
               // is the *hydrated* representation of
               // component tree, each slot merits being explicitly present, and
               // list its default value.
-              // @see \Drupal\experience_builder\Plugin\DataType\ComponentTreeHydrated::getDefaultSlotValue()
+              // @see \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\SingleDirectoryComponent::hydrateComponent()
               // @see \Drupal\experience_builder\Plugin\Validation\Constraint\ComponentTreeStructureConstraintValidator
               // @see \Drupal\Tests\experience_builder\Kernel\DataType\ComponentTreeStructureTest
               'the_body' => '<p>Example value for <strong>the_body</strong> slot in <strong>prop-slots</strong> component.</p>',
@@ -179,6 +181,53 @@ class ComponentTreeHydratedTest extends KernelTestBase {
 HTML,
       'expected_cache_tags' => [
         'config:experience_builder.component.sdc.xb_test_sdc.props-slots',
+      ],
+    ];
+
+    yield 'component tree with a single block component' => [
+      'tree' => [
+        ComponentTreeStructure::ROOT_UUID => [
+          ['uuid' => 'uuid-in-root', 'component' => 'block.system_branding_block'],
+        ],
+      ],
+      'props' => [],
+      'expected_value' => [
+        ComponentTreeStructure::ROOT_UUID => [
+          'uuid-in-root' => [
+            'component' => 'block.system_branding_block',
+            'settings' => [],
+          ],
+        ],
+      ],
+      'expected_renderable' => [
+        ComponentTreeStructure::ROOT_UUID => [
+          'uuid-in-root' => [
+            'site_logo' => [
+              '#theme' => "image",
+              '#uri' => NULL,
+              '#alt' => 'Home',
+              '#access' => TRUE,
+            ],
+            'site_name' => [
+              '#markup' => NULL,
+              '#access' => TRUE,
+            ],
+            'site_slogan' => [
+              '#markup' => NULL,
+              '#access' => TRUE,
+            ],
+            '#cache' => [
+              'tags' => ['config:experience_builder.component.block.system_branding_block'],
+            ],
+          ],
+        ],
+      ],
+      'expected_html' => <<<HTML
+<img alt="Home" />
+
+HTML,
+      'expected_cache_tags' => [
+        'config:experience_builder.component.block.system_branding_block',
       ],
     ];
 
@@ -342,6 +391,7 @@ HTML,
         'uuid-level-2' => [
           'the_body' => [
             ['uuid' => 'uuid-level-3', 'component' => 'sdc.xb_test_sdc.props-no-slots'],
+            ['uuid' => 'uuid-block', 'component' => 'block.system_branding_block'],
             ['uuid' => 'uuid-last-in-tree', 'component' => 'sdc.xb_test_sdc.props-no-slots'],
           ],
         ],
@@ -391,6 +441,10 @@ HTML,
                             'uuid-level-3' => [
                               'component' => 'sdc.xb_test_sdc.props-no-slots',
                               'props' => ['heading' => 'Hello, from slot level 3!'],
+                            ],
+                            'uuid-block' => [
+                              'component' => 'block.system_branding_block',
+                              'settings' => [],
                             ],
                             'uuid-last-in-tree' => [
                               'component' => 'sdc.xb_test_sdc.props-no-slots',
@@ -461,6 +515,25 @@ HTML,
                               '#component' => 'xb_test_sdc:props-no-slots',
                               '#props' => ['heading' => 'Hello, from slot level 3!'],
                             ],
+                            'uuid-block' => [
+                              'site_logo' => [
+                                '#theme' => 'image',
+                                '#uri' => NULL,
+                                '#alt' => 'Home',
+                                '#access' => TRUE,
+                              ],
+                              'site_name' => [
+                                '#markup' => NULL,
+                                '#access' => TRUE,
+                              ],
+                              'site_slogan' => [
+                                '#markup' => NULL,
+                                '#access' => TRUE,
+                              ],
+                              '#cache' => [
+                                'tags' => ['config:experience_builder.component.block.system_branding_block'],
+                              ],
+                            ],
                             'uuid-last-in-tree' => [
                               '#type' => 'component',
                               '#cache' => [
@@ -493,6 +566,7 @@ HTML,
         <div  data-component-id="xb_test_sdc:props-no-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
   <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;">Hello, from slot level 3!</h1>
 </div>
+<img alt="Home" />
 <div  data-component-id="xb_test_sdc:props-no-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
   <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;">Hello, from slot &lt;LAST ONE&gt;!</h1>
 </div>
@@ -525,6 +599,7 @@ HTML,
       'expected_cache_tags' => [
         'config:experience_builder.component.sdc.xb_test_sdc.props-slots',
         'config:experience_builder.component.sdc.xb_test_sdc.props-no-slots',
+        'config:experience_builder.component.block.system_branding_block',
       ],
     ];
   }

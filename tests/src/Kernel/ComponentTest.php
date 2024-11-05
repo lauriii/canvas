@@ -11,6 +11,7 @@ use Drupal\Core\State\StateInterface;
 use Drupal\Core\Theme\ComponentPluginManager as CoreComponentPluginManager;
 use Drupal\experience_builder\Plugin\ComponentPluginManager;
 use Drupal\experience_builder\Entity\Component;
+use Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\SingleDirectoryComponent;
 use Drupal\experience_builder\PropSource\StaticPropSource;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\Tests\experience_builder\Traits\ContribStrictConfigSchemaTestTrait;
@@ -87,21 +88,15 @@ class ComponentTest extends KernelTestBase {
     $this->installEntitySchema('filter_format');
   }
 
-  public function testMachineNameAndIdConversion(): void {
-    // @todo This confusing because in both cases both the input and output are something we call an "ID" but
-    //   Then it is supposed to be conversion to/from a "machine name".
-    $this->assertSame(self::MODULE_CONFIG_ENTITY_ID, Component::convertMachineNameToId(self::MODULE_COMPONENT_ID));
-    $this->assertSame(self::MODULE_COMPONENT_ID, Component::convertIdToMachineName(self::MODULE_CONFIG_ENTITY_ID));
-  }
-
   public function testComponentCreation(): void {
     $this->assertEmpty(Component::loadMultiple());
 
     $module_component = Component::create([
-      'component' => self::MODULE_COMPONENT_ID,
       'id' => self::MODULE_CONFIG_ENTITY_ID,
       'label' => self::LABEL,
-      'defaults' => [
+      'source' => SingleDirectoryComponent::SOURCE_PLUGIN_ID,
+      'settings' => [
+        'plugin_id' => self::MODULE_COMPONENT_ID,
         'props' => [
           'text' => [
             // @see \Drupal\Core\Field\Plugin\Field\FieldType\StringItem
@@ -140,8 +135,9 @@ class ComponentTest extends KernelTestBase {
 
     $this->assertNotEmpty(Component::loadMultiple());
     $this->assertSame(['module' => ['options', 'sdc_test']], $module_component->getDependencies());
-    $this->assertSame(self::MODULE_COMPONENT_ID, $module_component->getComponentMachineName());
+    $this->assertSame(self::MODULE_COMPONENT_ID, $module_component->getComponentPluginId());
     $this->assertSame(self::MODULE_CONFIG_ENTITY_ID, $module_component->id());
+    $this->assertSame(self::MODULE_COMPONENT_ID, $module_component->getComponentSource()->getConfiguration()['plugin_id']);
 
     $text_default_static_prop_source = $module_component->getDefaultStaticPropSource('text');
     $this->assertInstanceOf(StaticPropSource::class, $text_default_static_prop_source);
@@ -164,11 +160,12 @@ class ComponentTest extends KernelTestBase {
 
   /**
    * @param array<string> $modules
-   * @param array<string, array{'compatible': bool, 'reason'?: bool}> $sdcs
+   * @param array<string, array{'compatible': bool, 'reason'?: bool}> $components
+   * @param array<string> $interfaces
    *
    * @dataProvider provider
    */
-  public function testComponentAutoCreate(array $modules, array $sdcs): void {
+  public function testComponentAutoCreate(array $modules, array $components, array $interfaces): void {
     // Initial state: no Component config entities.
     $this->assertEmpty(Component::loadMultiple());
 
@@ -177,291 +174,204 @@ class ComponentTest extends KernelTestBase {
     // being generated, but in kernel tests we have to explicitly trigger the
     // hooks that would normally do this.
     $this->generateComponentConfig();
+
     $reasons = $this->state->get(ComponentPluginManager::REASONS_STATE_KEY, []);
-    foreach ($sdcs as $plugin_id => $component_entity) {
-      $this->assertSame($component_entity['compatible'], Component::load(Component::convertMachineNameToId($plugin_id)) instanceof Component, $plugin_id . ' and modules: ' . implode(', ', $modules));
+    $expected_plugins = [];
+    foreach ($components as $component_id => $component_entity) {
+      [$type, $plugin_id] = explode('.', $component_id, 2);
+      $plugin_id = str_replace('.', ':', $plugin_id);
+      $expected_plugins[$type][] = $plugin_id;
+      $this->assertSame($component_entity['compatible'], Component::load($component_id) instanceof Component, $plugin_id . ' and modules: ' . implode(', ', $modules));
       $this->assertSame($component_entity['reason'] ?? NULL, isset($reasons[$plugin_id]) ? (string) $reasons[$plugin_id] : NULL, $plugin_id);
     }
 
-    $found_sdcs = array_keys($this->componentPluginManager->getDefinitions());
-    sort($found_sdcs);
-    $expected_sdcs = array_keys($sdcs);
-    sort($expected_sdcs);
-    $this->assertSame($expected_sdcs, $found_sdcs);
+    $this->assertEqualsCanonicalizing($expected_plugins['sdc'], array_keys($this->componentPluginManager->getDefinitions()));
+    if (in_array('block', $modules)) {
+      $this->assertEqualsCanonicalizing($expected_plugins['block'], array_keys($this->container->get('plugin.manager.block')->getDefinitions()));
+    }
+
+    $this->assertEqualsCanonicalizing($interfaces, Component::getInterfaces(array_keys($components)));
   }
 
   public static function provider(): \Generator {
+    $defaults = [
+      'sdc.experience_builder.obsolete' => [
+        'compatible' => FALSE,
+        'reason' => 'Component has "obsolete" status',
+      ],
+      'sdc.experience_builder.druplicon' => [
+        'compatible' => TRUE,
+      ],
+      'sdc.experience_builder.experimental' => [
+        'compatible' => TRUE,
+      ],
+      'sdc.experience_builder.deprecated' => [
+        'compatible' => TRUE,
+      ],
+      'sdc.experience_builder.image' => [
+        'compatible' => TRUE,
+      ],
+      'sdc.experience_builder.two_column' => [
+        'compatible' => TRUE,
+      ],
+      'sdc.experience_builder.one_column' => [
+        'compatible' => TRUE,
+      ],
+      'sdc.experience_builder.shoe_tab_group' => [
+        'compatible' => TRUE,
+      ],
+      'sdc.experience_builder.video' => [
+        'compatible' => FALSE,
+        'reason' => 'Experience Builder does not know of a field type/widget to allow populating the <code>src</code> prop, with the shape <code>{"type":"string","format":"uri","pattern":"\\\.(mp4|webm)(\\\?.*)?(#.*)?$"}</code>.',
+      ],
+      'sdc.experience_builder.shoe_tab_panel' => [
+        'compatible' => TRUE,
+      ],
+      'sdc.experience_builder.shoe_badge' => [
+        'compatible' => TRUE,
+      ],
+      'sdc.experience_builder.shoe_button' => [
+        'compatible' => FALSE,
+        'reason' => 'Experience Builder does not know of a field type/widget to allow populating the <code>icon</code> prop, with the shape <code>{"type":"object","$ref":"json-schema-definitions://experience_builder.module/shoe-icon"}</code>.',
+      ],
+      'sdc.experience_builder.shoe_icon' => [
+        'compatible' => TRUE,
+      ],
+      'sdc.experience_builder.shoe_tab' => [
+        'compatible' => TRUE,
+      ],
+      'sdc.experience_builder.heading' => [
+        'compatible' => TRUE,
+      ],
+      'sdc.experience_builder.shoe_details' => [
+        'compatible' => FALSE,
+        'reason' => 'Experience Builder does not know of a field type/widget to allow populating the <code>expand_icon</code> prop, with the shape <code>{"type":"object","$ref":"json-schema-definitions://experience_builder.module/shoe-icon"}</code>.',
+      ],
+      'sdc.experience_builder.my-hero' => [
+        'compatible' => TRUE,
+      ],
+      'sdc.experience_builder.my-section' => [
+        'compatible' => TRUE,
+      ],
+      'sdc.sdc_test.array-to-object' => [
+        'compatible' => FALSE,
+        'reason' => 'Experience Builder does not know of a field type/widget to allow populating the <code>testProp</code> prop, with the shape <code>{"type":"object"}</code>.',
+      ],
+      'sdc.sdc_test.my-button' => [
+        'compatible' => TRUE,
+      ],
+      'sdc.sdc_test.my-cta' => [
+        'compatible' => TRUE,
+      ],
+      'sdc.sdc_test.no-props' => [
+        'compatible' => TRUE,
+      ],
+      'sdc.sdc_test.my-banner' => [
+        'compatible' => TRUE,
+      ],
+    ];
 
     yield 'initial set of components from experience_builder and sdc_test' => [
       'modules' => [],
-      'sdcs' => [
-        'experience_builder:obsolete' => [
-          'compatible' => FALSE,
-          'reason' => 'Component has "obsolete" status',
-        ],
-        'experience_builder:druplicon'  => [
-          'compatible' => TRUE,
-        ],
-        'experience_builder:experimental' => [
-          'compatible' => TRUE,
-        ],
-        'experience_builder:deprecated' => [
-          'compatible' => TRUE,
-        ],
-        'experience_builder:image' => [
-          'compatible' => TRUE,
-        ],
-        'experience_builder:two_column' => [
-          'compatible' => TRUE,
-        ],
-        'experience_builder:one_column' => [
-          'compatible' => TRUE,
-        ],
-        'experience_builder:shoe_tab_group' => [
-          'compatible' => TRUE,
-        ],
-        'experience_builder:video' => [
-          'compatible' => FALSE,
-          'reason' => 'Experience Builder does not know of a field type/widget to allow populating the <code>src</code> prop, with the shape <code>{"type":"string","format":"uri","pattern":"\\\.(mp4|webm)(\\\?.*)?(#.*)?$"}</code>.',
-        ],
-        'experience_builder:shoe_tab_panel' => [
-          'compatible' => TRUE,
-        ],
-        'experience_builder:shoe_badge' => [
-          'compatible' => TRUE,
-        ],
-        'experience_builder:shoe_button' => [
-          'compatible' => FALSE,
-          'reason' => 'Experience Builder does not know of a field type/widget to allow populating the <code>icon</code> prop, with the shape <code>{"type":"object","$ref":"json-schema-definitions://experience_builder.module/shoe-icon"}</code>.',
-        ],
-        'experience_builder:shoe_icon' => [
-          'compatible' => TRUE,
-        ],
-        'experience_builder:shoe_tab' => [
-          'compatible' => TRUE,
-        ],
-        'experience_builder:heading' => [
-          'compatible' => TRUE,
-        ],
-        'experience_builder:shoe_details' => [
-          'compatible' => FALSE,
-          'reason' => 'Experience Builder does not know of a field type/widget to allow populating the <code>expand_icon</code> prop, with the shape <code>{"type":"object","$ref":"json-schema-definitions://experience_builder.module/shoe-icon"}</code>.',
-        ],
-        'experience_builder:my-hero' => [
-          'compatible' => TRUE,
-        ],
-        'experience_builder:my-section' => [
-          'compatible' => TRUE,
-        ],
-        'sdc_test:array-to-object' => [
-          'compatible' => FALSE,
-          'reason' => 'Experience Builder does not know of a field type/widget to allow populating the <code>testProp</code> prop, with the shape <code>{"type":"object"}</code>.',
-        ],
-        'sdc_test:my-button' => [
-          'compatible' => TRUE,
-        ],
-        'sdc_test:my-cta' => [
-          'compatible' => TRUE,
-        ],
-        'sdc_test:no-props' => [
-          'compatible' => TRUE,
-        ],
-        'sdc_test:my-banner' => [
-          'compatible' => TRUE,
-        ],
+      'components' => $defaults,
+      'interfaces' => [
+        'Drupal\Core\Plugin\Component',
       ],
     ];
 
     yield 'installing xb_test_sdc creates props-no-slots and props-slots components' => [
       'modules' => ['xb_test_sdc'],
-      'sdcs' => [
-        'experience_builder:obsolete' => [
-          'compatible' => FALSE,
-          'reason' => 'Component has "obsolete" status',
-        ],
-        'experience_builder:druplicon'  => [
+      'components' => $defaults + [
+        'sdc.xb_test_sdc.props-no-slots' => [
           'compatible' => TRUE,
         ],
-        'experience_builder:experimental' => [
+        'sdc.xb_test_sdc.props-slots' => [
           'compatible' => TRUE,
         ],
-        'experience_builder:deprecated' => [
-          'compatible' => TRUE,
-        ],
-        'experience_builder:image' => [
-          'compatible' => TRUE,
-        ],
-        'experience_builder:two_column' => [
-          'compatible' => TRUE,
-        ],
-        'experience_builder:one_column' => [
-          'compatible' => TRUE,
-        ],
-        'experience_builder:shoe_tab_group' => [
-          'compatible' => TRUE,
-        ],
-        'experience_builder:video' => [
-          'compatible' => FALSE,
-          'reason' => 'Experience Builder does not know of a field type/widget to allow populating the <code>src</code> prop, with the shape <code>{"type":"string","format":"uri","pattern":"\\\.(mp4|webm)(\\\?.*)?(#.*)?$"}</code>.',
-        ],
-        'experience_builder:shoe_tab_panel' => [
-          'compatible' => TRUE,
-        ],
-        'experience_builder:shoe_badge' => [
-          'compatible' => TRUE,
-        ],
-        'experience_builder:shoe_button' => [
-          'compatible' => FALSE,
-          'reason' => 'Experience Builder does not know of a field type/widget to allow populating the <code>icon</code> prop, with the shape <code>{"type":"object","$ref":"json-schema-definitions://experience_builder.module/shoe-icon"}</code>.',
-        ],
-        'experience_builder:shoe_icon' => [
-          'compatible' => TRUE,
-        ],
-        'experience_builder:shoe_tab' => [
-          'compatible' => TRUE,
-        ],
-        'experience_builder:heading' => [
-          'compatible' => TRUE,
-        ],
-        'experience_builder:shoe_details' => [
-          'compatible' => FALSE,
-          'reason' => 'Experience Builder does not know of a field type/widget to allow populating the <code>expand_icon</code> prop, with the shape <code>{"type":"object","$ref":"json-schema-definitions://experience_builder.module/shoe-icon"}</code>.',
-        ],
-        'experience_builder:my-hero' => [
-          'compatible' => TRUE,
-        ],
-        'experience_builder:my-section' => [
-          'compatible' => TRUE,
-        ],
-        'sdc_test:array-to-object' => [
-          'compatible' => FALSE,
-          'reason' => 'Experience Builder does not know of a field type/widget to allow populating the <code>testProp</code> prop, with the shape <code>{"type":"object"}</code>.',
-        ],
-        'sdc_test:my-button' => [
-          'compatible' => TRUE,
-        ],
-        'sdc_test:my-cta' => [
-          'compatible' => TRUE,
-        ],
-        'sdc_test:no-props' => [
-          'compatible' => TRUE,
-        ],
-        'sdc_test:my-banner' => [
-          'compatible' => TRUE,
-        ],
-        'xb_test_sdc:props-no-slots' => [
-          'compatible' => TRUE,
-        ],
-        'xb_test_sdc:props-slots' => [
-          'compatible' => TRUE,
-        ],
-        'xb_test_sdc:props-no-title' => [
+        'sdc.xb_test_sdc.props-no-title' => [
           'compatible' => FALSE,
           'reason' => 'Prop "heading" must have title',
         ],
-        'xb_test_sdc:props-no-examples' => [
+        'sdc.xb_test_sdc.props-no-examples' => [
           'compatible' => FALSE,
           'reason' => 'Prop "heading" is required, but does not have example value',
         ],
       ],
-    ];
-    yield 'installing sdc_test_all_props creates sdc_test_all_props:all-props creates component' => [
-      'modules' => ['xb_test_sdc', 'sdc_test_all_props'],
-      'sdcs' => [
-        'experience_builder:obsolete' => [
-          'compatible' => FALSE,
-          'reason' => 'Component has "obsolete" status',
-        ],
-        'experience_builder:druplicon'  => [
-          'compatible' => TRUE,
-        ],
-        'experience_builder:experimental' => [
-          'compatible' => TRUE,
-        ],
-        'experience_builder:deprecated' => [
-          'compatible' => TRUE,
-        ],
-        'experience_builder:image' => [
-          'compatible' => TRUE,
-        ],
-        'experience_builder:two_column' => [
-          'compatible' => TRUE,
-        ],
-        'experience_builder:one_column' => [
-          'compatible' => TRUE,
-        ],
-        'experience_builder:shoe_tab_group' => [
-          'compatible' => TRUE,
-        ],
-        'experience_builder:video' => [
-          'compatible' => FALSE,
-          'reason' => 'Experience Builder does not know of a field type/widget to allow populating the <code>src</code> prop, with the shape <code>{"type":"string","format":"uri","pattern":"\\\.(mp4|webm)(\\\?.*)?(#.*)?$"}</code>.',
-        ],
-        'experience_builder:shoe_tab_panel' => [
-          'compatible' => TRUE,
-        ],
-        'experience_builder:shoe_badge' => [
-          'compatible' => TRUE,
-        ],
-        'experience_builder:shoe_button' => [
-          'compatible' => FALSE,
-          'reason' => 'Experience Builder does not know of a field type/widget to allow populating the <code>icon</code> prop, with the shape <code>{"type":"object","$ref":"json-schema-definitions://experience_builder.module/shoe-icon"}</code>.',
-        ],
-        'experience_builder:shoe_icon' => [
-          'compatible' => TRUE,
-        ],
-        'experience_builder:shoe_tab' => [
-          'compatible' => TRUE,
-        ],
-        'experience_builder:heading' => [
-          'compatible' => TRUE,
-        ],
-        'experience_builder:shoe_details' => [
-          'compatible' => FALSE,
-          'reason' => 'Experience Builder does not know of a field type/widget to allow populating the <code>expand_icon</code> prop, with the shape <code>{"type":"object","$ref":"json-schema-definitions://experience_builder.module/shoe-icon"}</code>.',
-        ],
-        'experience_builder:my-hero' => [
-          'compatible' => TRUE,
-        ],
-        'experience_builder:my-section' => [
-          'compatible' => TRUE,
-        ],
-        'sdc_test:array-to-object' => [
-          'compatible' => FALSE,
-          'reason' => 'Experience Builder does not know of a field type/widget to allow populating the <code>testProp</code> prop, with the shape <code>{"type":"object"}</code>.',
-        ],
-        'sdc_test:my-button' => [
-          'compatible' => TRUE,
-        ],
-        'sdc_test:my-cta' => [
-          'compatible' => TRUE,
-        ],
-        'sdc_test:no-props' => [
-          'compatible' => TRUE,
-        ],
-        'sdc_test:my-banner' => [
-          'compatible' => TRUE,
-        ],
-        'sdc_test_all_props:all-props' => [
-          'compatible' => TRUE,
-        ],
-        'xb_test_sdc:props-no-slots' => [
-          'compatible' => TRUE,
-        ],
-        'xb_test_sdc:props-slots' => [
-          'compatible' => TRUE,
-        ],
-        'xb_test_sdc:props-no-title' => [
-          'compatible' => FALSE,
-          'reason' => 'Prop "heading" must have title',
-        ],
-        'xb_test_sdc:props-no-examples' => [
-          'compatible' => FALSE,
-          'reason' => 'Prop "heading" is required, but does not have example value',
-        ],
+      'interfaces' => [
+        'Drupal\Core\Plugin\Component',
       ],
     ];
 
+    yield 'installing sdc_test_all_props creates sdc_test_all_props:all-props creates component' => [
+      'modules' => ['xb_test_sdc', 'sdc_test_all_props'],
+      'components' => $defaults + [
+        'sdc.sdc_test_all_props.all-props' => [
+          'compatible' => TRUE,
+        ],
+        'sdc.xb_test_sdc.props-no-slots' => [
+          'compatible' => TRUE,
+        ],
+        'sdc.xb_test_sdc.props-slots' => [
+          'compatible' => TRUE,
+        ],
+        'sdc.xb_test_sdc.props-no-title' => [
+          'compatible' => FALSE,
+          'reason' => 'Prop "heading" must have title',
+        ],
+        'sdc.xb_test_sdc.props-no-examples' => [
+          'compatible' => FALSE,
+          'reason' => 'Prop "heading" is required, but does not have example value',
+        ],
+      ],
+      'interfaces' => [
+        'Drupal\Core\Plugin\Component',
+      ],
+    ];
+
+    [$version] = explode('.', \Drupal::VERSION);
+    yield 'installing block creates block components' => [
+      'modules' => ['system', 'block'],
+      'components' => $defaults + [
+        'block.broken' => [
+          'compatible' => FALSE,
+        ],
+        'block.local_actions_block' => [
+          'compatible' => $version > 10,
+        ],
+        'block.local_tasks_block' => [
+          'compatible' => TRUE,
+        ],
+        'block.page_title_block' => [
+          'compatible' => $version > 10,
+        ],
+        'block.system_branding_block' => [
+          'compatible' => TRUE,
+        ],
+        'block.system_breadcrumb_block' => [
+          'compatible' => $version > 10,
+        ],
+        'block.system_main_block' => [
+          'compatible' => $version > 10,
+        ],
+        'block.system_messages_block' => [
+          'compatible' => $version > 10,
+        ],
+        'block.system_powered_by_block' => [
+          'compatible' => $version > 10,
+        ],
+      ],
+      'interfaces' => array_filter([
+        'Drupal\Core\Plugin\Component',
+        $version > 10 ? 'Drupal\Core\Block\Plugin\Block\PageTitleBlock' : '',
+        $version > 10 ? 'Drupal\Core\Menu\Plugin\Block\LocalActionsBlock' : '',
+        'Drupal\Core\Menu\Plugin\Block\LocalTasksBlock',
+        'Drupal\system\Plugin\Block\SystemBrandingBlock',
+        $version > 10 ? 'Drupal\system\Plugin\Block\SystemBreadcrumbBlock' : '',
+        $version > 10 ? 'Drupal\system\Plugin\Block\SystemMainBlock' : '',
+        $version > 10 ? 'Drupal\system\Plugin\Block\SystemMessagesBlock' : '',
+        $version > 10 ? 'Drupal\system\Plugin\Block\SystemPoweredByBlock' : '',
+      ]),
+    ];
   }
 
   /**
@@ -474,18 +384,20 @@ class ComponentTest extends KernelTestBase {
     $initial_components = Component::loadMultiple();
     $this->assertNotEmpty($initial_components);
     $this->assertArrayHasKey('sdc.experience_builder.image', $initial_components);
-    $this->assertSame('image', $initial_components['sdc.experience_builder.image']->get('defaults')['props']['image']['field_type']);
+    $this->assertSame('image', $initial_components['sdc.experience_builder.image']->get('settings')['props']['image']['field_type']);
 
     $this->midTestSetUp();
     $updated_component = Component::load('sdc.experience_builder.image');
     assert($updated_component instanceof Component);
-    $this->assertSame('entity_reference', $updated_component->get('defaults')['props']['image']['field_type']);
+    $this->assertSame('entity_reference', $updated_component->get('settings')['props']['image']['field_type']);
   }
 
   public function testObsoleteStatusHandling(): void {
     $this->componentPluginManager->getDefinitions();
-    $this->assertNull(Component::load(Component::convertMachineNameToId('experience_builder:obsolete')));
-    $component = Component::createFromComponentPlugin($this->componentPluginManager->find('experience_builder:obsolete'));
+    $id = 'sdc.experience_builder.obsolete';
+    $this->assertNull(Component::load($id));
+    $component = SingleDirectoryComponent::createConfigEntity($this->componentPluginManager->find('experience_builder:obsolete'));
+    $this->assertSame($id, $component->id());
     $this->assertFalse($component->status());
     $component->enable();
     $this->assertTrue($component->status());

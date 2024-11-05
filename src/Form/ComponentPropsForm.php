@@ -9,6 +9,7 @@ use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Theme\ComponentPluginManager;
 use Drupal\experience_builder\Entity\Component;
+use Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\SingleDirectoryComponent;
 use Drupal\experience_builder\PropSource\PropSource;
 use Drupal\experience_builder\PropSource\StaticPropSource;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -69,7 +70,14 @@ final class ComponentPropsForm extends FormBase {
 
     $component = Component::load($component_id);
     assert($component !== NULL);
-    $component_plugin = $this->componentPluginManager->createInstance($component->getComponentMachineName());
+    $source = $component->getComponentSource();
+    // @todo Support non-SDC plugins, see https://www.drupal.org/project/experience_builder/issues/3484669
+    if (!$source instanceof SingleDirectoryComponent) {
+      $form['#markup'] = $this->t('You clicked a %component_source component, customizing its settings is not yet supported.', ['%component_source' => $source->getPluginDefinition()['label']]);
+      return $form;
+    }
+
+    $component_schema = $source->getSchema();
 
     // Allow form alterations specific to XB component prop forms (currently
     // only "static prop sources").
@@ -90,13 +98,12 @@ final class ComponentPropsForm extends FormBase {
         // 2. Worst case: fall back to the default widget for this field type.
         // @todo Implement 2. in https://www.drupal.org/project/experience_builder/issues/3463996
         $field_widget_plugin_id = NULL;
-        if ($source->getSourceType() === 'static:field_item:' . $component->get('defaults')['props'][$sdc_prop_name]['field_type']) {
-          $field_widget_plugin_id = $component->get('defaults')['props'][$sdc_prop_name]['field_widget'];
+        if ($source->getSourceType() === 'static:field_item:' . $component->get('settings')['props'][$sdc_prop_name]['field_type']) {
+          $field_widget_plugin_id = $component->get('settings')['props'][$sdc_prop_name]['field_widget'];
         }
-        assert(isset($component_plugin->metadata->schema['properties'][$sdc_prop_name]['title']));
-        $label = $component_plugin->metadata->schema['properties'][$sdc_prop_name]['title'];
-        $is_required = isset($component_plugin->metadata->schema['required'])
-          && in_array($sdc_prop_name, $component_plugin->metadata->schema['required'], TRUE);
+        assert(isset($component_schema['properties'][$sdc_prop_name]['title']));
+        $label = $component_schema['properties'][$sdc_prop_name]['title'];
+        $is_required = isset($component_schema['required']) && in_array($sdc_prop_name, $component_schema['required'], TRUE);
         $form[$sdc_prop_name] = $source->formTemporaryRemoveThisExclamationExclamationExclamation($field_widget_plugin_id, $sdc_prop_name, $label, $is_required, $entity, $form, $form_state);
       }
       // @todo Design is undefined for the DynamicPropSource UX. Related: https://www.drupal.org/project/experience_builder/issues/3459234

@@ -7,85 +7,39 @@ experience_builder.component.*:
       type: required_label
       label: 'Label'
     status:
-      # Refine `type: config_entity`'s `status`: only allow `true` for SDCs that meet the requirements.
+      # Refine `type: config_entity`'s `status`: only allow `true` for SDCs/Blocks that meet the requirements.
       constraints: {
       # @todo Write validation constraint per above comment in https://www.drupal.org/project/experience_builder/issues/3473289
       }
-    # @see \Drupal\Core\Plugin\Component::$machineName
     id:
-      type: machine_name
+      # This ID intentionally does not use `type: machine_name`, because it is a composite ID that is better validated
+      # using the `StringParts` constraint than the `RegEx` constraint.
+      type: string
       label: 'Component'
       constraints:
-        Regex:
-          # @todo Update to not hardcode the `sdc` prefix in https://www.drupal.org/project/experience_builder/issues/3475584
-          pattern: '/^sdc\.[a-z0-9_-]+\.[a-z0-9_-]+$/'
-          message: 'The %value machine name is not valid.'
-    component:
+        StringParts:
+          separator: .
+          reservedCharacters:
+            - ':'
+          reservedCharactersSubstitute: .
+          parts:
+            - '%parent.source'
+            - '%parent.settings.plugin_id'
+        Length:
+          # @see \Drupal\Core\Config\Entity\ConfigEntityStorage::MAX_ID_LENGTH
+          max: 166
+    source:
       type: string
-      label: 'Single-Directory Component'
+      label: 'Source plugin'
       constraints:
-        NotBlank: []
         Regex:
-          pattern: '/^[a-z0-9_-]+:[a-z0-9_-]+$/'
-          message: 'The %value machine name is not valid.'
+          pattern: '/^[a-z0-9_]+$/'
+          message: 'The %value source plugin ID is not valid.'
         PluginExists:
-          manager: plugin.manager.sdc
-          interface: 'Drupal\Core\Plugin\PluginBase'
-    # All defaults for this Component made available through Experience Builder.
-    defaults:
-      type: mapping
-      mapping:
-        # Defaults for this SDC' props, keyed by SDC prop name, alphabetically.
-        props:
-          type: sequence
-          orderby: key
-          constraints:
-            KeyForEverySdcProp: "%parent.%parent.component"
-          sequence:
-            type: mapping
-            # For each SDC prop, first a field type must be picked from the list of possible choices provided by \Drupal\experience_builder\ShapeMatcher\FieldForComponentSuggester
-            mapping:
-              field_type:
-                type: string
-                label: 'Default field type'
-                constraints:
-                  PluginExists:
-                    manager: plugin.manager.field.field_type
-                    interface: '\Drupal\Core\Field\FieldItemInterface'
-              field_storage_settings:
-                type: field.storage_settings.[%parent.field_type]
-                # Optional *if* the default storage settings should be used.
-                requiredKey: false
-              field_instance_settings:
-                type: field.field_settings.[%parent.field_type]
-                # Optional *if* the default instance settings should be used.
-                requiredKey: false
-              # After a field type is selected, a field widget must be picked.
-              # @todo MUCH later: widget settings.
-              field_widget:
-                type: string
-                label: 'Default field widget'
-                constraints:
-                  PluginExists:
-                    manager: plugin.manager.field.widget
-                    interface: '\Drupal\Core\Field\WidgetInterface'
-              # Then finally, a default value must be picked for every REQUIRED prop, using the aforementioned widget.
-              # This value uses the field type's default value config schema, and will be simplified to a
-              # StaticPropSource's `value`.
-              # @see \Drupal\experience_builder\PropSource\StaticPropSource::denormalizeValue()
-              # @see \Drupal\experience_builder\PropSource\StaticPropSource::isMinimalRepresentation()
-              default_value:
-                type: field.value.[%parent.field_type]
-                label: 'Default value'
-                # @todo Add validation constraint because this is only *conditionally* nullable: if the SDC prop is optional
-                nullable: true
-              # The default value must be retrievable
-              expression:
-                type: string
-                label: ''
-                constraints: {}
-                # @todo Add `StructuredDataPropExpression` validation constraint that fails if StructuredDataPropExpression::fromString() fails
-                # StructuredDataPropExpression: [field_type]
+          manager: Drupal\experience_builder\ComponentSource\ComponentSourceManager
+          interface: '\Drupal\experience_builder\ComponentSource\ComponentSourceInterface'
+    settings:
+      type: experience_builder.component_source_settings.[%parent.source]
 
 # At most a single entity of this type is allowed to exist. If it exists, it *replaces* the theme's `page.html.twig`.
 experience_builder.global_page_template.*:
@@ -173,6 +127,97 @@ experience_builder.component_tree:
     props:
       type: string
       label: 'Prop values for each component in the component tree'
+
+experience_builder.component_source_settings.sdc:
+  constraints:
+    FullyValidatable: ~
+  type: mapping
+  label: 'SDC component settings'
+  mapping:
+    # @see \Drupal\Core\Plugin\Component::$machineName
+    plugin_id:
+      type: string
+      label: 'Component ID'
+      constraints:
+        NotBlank: []
+        Regex:
+          pattern: '/^[a-z0-9_-]+:[a-z0-9_-]+$/'
+          message: 'The %value machine name is not valid.'
+        PluginExists:
+          manager: plugin.manager.sdc
+          interface: 'Drupal\Core\Plugin\PluginBase'
+    props:
+      type: sequence
+      orderby: key
+      constraints:
+        KeyForEverySdcProp: "%parent.plugin_id"
+      sequence:
+        type: mapping
+        # For each SDC prop, first a field type must be picked from the list of possible choices provided by \Drupal\experience_builder\ShapeMatcher\FieldForComponentSuggester
+        mapping:
+          field_type:
+            type: string
+            label: 'Default field type'
+            constraints:
+              PluginExists:
+                manager: plugin.manager.field.field_type
+                interface: '\Drupal\Core\Field\FieldItemInterface'
+          field_storage_settings:
+            type: field.storage_settings.[%parent.field_type]
+            # Optional *if* the default storage settings should be used.
+            requiredKey: false
+          field_instance_settings:
+            type: field.field_settings.[%parent.field_type]
+            # Optional *if* the default instance settings should be used.
+            requiredKey: false
+          # After a field type is selected, a field widget must be picked.
+          # @todo MUCH later: widget settings.
+          field_widget:
+            type: string
+            label: 'Default field widget'
+            constraints:
+              PluginExists:
+                manager: plugin.manager.field.widget
+                interface: '\Drupal\Core\Field\WidgetInterface'
+          # Then finally, a default value must be picked for every REQUIRED prop, using the aforementioned widget.
+          # This value uses the field type's default value config schema, and will be simplified to a
+          # StaticPropSource's `value`.
+          # @see \Drupal\experience_builder\PropSource\StaticPropSource::denormalizeValue()
+          # @see \Drupal\experience_builder\PropSource\StaticPropSource::isMinimalRepresentation()
+          default_value:
+            type: field.value.[%parent.field_type]
+            label: 'Default value'
+            # @todo Add validation constraint because this is only *conditionally* nullable: if the SDC prop is optional
+            nullable: true
+          # The default value must be retrievable
+          expression:
+            type: string
+            label: ''
+            constraints: { }
+            # @todo Add `StructuredDataPropExpression` validation constraint that fails if StructuredDataPropExpression::fromString() fails
+            # StructuredDataPropExpression: [field_type]
+
+# This is similar to Block config entities, but different:
+# - Block config entities are tied to a particular theme + region (and have a weight to convey position in a region), Block-Plugins-as-XB-Components are not
+# - Block config entities have visibility conditions that determines the visibility of that particular "placed block", Block-Plugins-as-XB-Components do not
+# ⚠️ The XB equivalent of "visibility conditions" will be added when product requirement `41. Conditional display of components` is implemented, and it will not happen at the `Component` config entity level, but at the use/placement/instantiation level: in a component tree.
+# @see https://docs.google.com/spreadsheets/d/1OpETAzprh6DWjpTsZG55LWgldWV_D8jNe9AM73jNaZo/edit?gid=1721130122#gid=1721130122&range=B53
+# @see `type: block.block.*` in core/modules/block/config/schema/block.schema.yml
+experience_builder.component_source_settings.block:
+  constraints:
+    FullyValidatable: ~
+  type: mapping
+  label: 'Block component settings'
+  mapping:
+    plugin_id:
+      type: string
+      label: 'Block plugin ID'
+      constraints:
+        PluginExists:
+          manager: plugin.manager.block
+          interface: Drupal\Core\Block\BlockPluginInterface
+    settings:
+      type: block.settings.[%parent.plugin_id]
 
 field.value.component_tree:
   type: experience_builder.component_tree
