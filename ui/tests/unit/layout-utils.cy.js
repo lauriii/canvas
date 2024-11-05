@@ -59,7 +59,7 @@ describe('replaceUUIDsAndUpdateModel', () => {
         expect(newUUID).not.to.equal(oldUUID);
       });
 
-      expect(updatedNode.children).to.have.length(4);
+      expect(updatedNode.children).to.have.length(5);
       expect(updatedNode.children[0].children).to.have.length(1);
       expect(updatedNode.children[0].children[0].children).to.have.length(1);
       expect(updatedNode.children[2].children).to.have.length(1);
@@ -82,6 +82,13 @@ describe('replaceUUIDsAndUpdateModel', () => {
             'alt',
             'width',
             'height',
+          );
+        } else if (componentData.element) {
+          expect(componentData).to.have.all.keys(
+            'name',
+            'text',
+            'style',
+            'element',
           );
         } else if (componentData.text) {
           expect(componentData).to.have.all.keys('text', 'href', 'name');

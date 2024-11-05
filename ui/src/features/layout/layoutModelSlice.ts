@@ -9,6 +9,7 @@ import {
   insertNodeAtPath,
   removeNodeByUuid,
   replaceUUIDsAndUpdateModel,
+  recurseNodes,
 } from './layoutUtils';
 import type { UUID } from '@/types/UUID';
 import type { AppDispatch } from '@/app/store';
@@ -101,8 +102,17 @@ export const layoutModelSlice = createSlice({
   initialState,
   reducers: (create) => ({
     deleteNode: create.reducer((state, action: PayloadAction<string>) => {
+      const deletedComponent = findNodeByUuid(state.layout, action.payload);
+      const removableModelsUuids = [action.payload];
+      if (deletedComponent) {
+        recurseNodes(deletedComponent, (node: LayoutNode) => {
+          removableModelsUuids.push(node.uuid);
+        });
+      }
+      for (const uuid of removableModelsUuids) {
+        if (state.model[uuid]) delete state.model[uuid];
+      }
       state.layout = removeNodeByUuid(state.layout, action.payload);
-      delete state.model[action.payload];
     }),
     duplicateNode: create.reducer(
       (state, action: PayloadAction<DuplicateNodePayload>) => {

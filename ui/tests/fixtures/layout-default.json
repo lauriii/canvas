@@ -47,6 +47,45 @@
         "uuid": "dynamic-image-static-imageStyle-something7d",
         "nodeType": "component",
         "type": "experience_builder:image"
+      },
+      {
+        "nodeType": "component",
+        "type": "sdc.experience_builder.two_column",
+        "uuid": "ee07d472-a754-4427-b6d4-acfc6f92bbdc",
+        "children": [
+          {
+            "uuid": "ee07d472-a754-4427-b6d4-acfc6f92bbdc-slot-column_one",
+            "name": "column_one",
+            "nodeType": "slot",
+            "children": [
+              {
+                "children": [],
+                "nodeType": "component",
+                "type": "sdc.experience_builder.my-section",
+                "uuid": "6f3224e2-cb61-46e4-a9e4-35b4d18f0a82"
+              }
+            ]
+          },
+          {
+            "uuid": "ee07d472-a754-4427-b6d4-acfc6f92bbdc-slot-column_two",
+            "name": "column_two",
+            "nodeType": "slot",
+            "children": [
+              {
+                "children": [],
+                "nodeType": "component",
+                "type": "sdc.experience_builder.heading",
+                "uuid": "3b709ed2-99d3-4db2-869d-ca426f69fbb9"
+              },
+              {
+                "children": [],
+                "nodeType": "component",
+                "type": "sdc.experience_builder.my-hero",
+                "uuid": "eaa37ee1-7d50-4041-b04c-c80bdbac3412"
+              }
+            ]
+          }
+        ]
       }
     ]
   },
@@ -83,6 +122,29 @@
         "height": 100
       },
       "name": "My Test Image Component"
+    },
+    "ee07d472-a754-4427-b6d4-acfc6f92bbdc": {
+      "name": "Two Column",
+      "width": 33
+    },
+    "6f3224e2-cb61-46e4-a9e4-35b4d18f0a82": {
+      "name": "Section",
+      "text": "Our mission is to deliver the best products and services to our customers. We strive to exceed expectations and continuously improve our offerings.",
+      "href": "https://drupal.org"
+    },
+    "3b709ed2-99d3-4db2-869d-ca426f69fbb9": {
+      "name": "Heading",
+      "text": "Hello",
+      "style": "primary",
+      "element": "h1"
+    },
+    "eaa37ee1-7d50-4041-b04c-c80bdbac3412": {
+      "name": "Hero",
+      "heading": "There goes my hero",
+      "subheading": "Watch him as he goes!",
+      "cta1": "View",
+      "cta1href": "https://example.com",
+      "cta2": "Click"
     }
   }
 }

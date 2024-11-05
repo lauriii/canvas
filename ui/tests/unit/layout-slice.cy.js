@@ -30,20 +30,64 @@ describe('Set layout model', () => {
 
 describe('Delete node', () => {
   it('Should delete node', () => {
-    expect(layout.layout.children).to.have.length(4);
+    expect(layout.layout.children).to.have.length(5);
     expect(layout.layout.children.map((item) => item.uuid)).to.deep.equal([
       'dynamic-image-udf7d',
       'dynamic-static-card2df',
       'dynamic-dynamic-card3rr',
       'dynamic-image-static-imageStyle-something7d',
+      'ee07d472-a754-4427-b6d4-acfc6f92bbdc',
     ]);
-    const state = layoutModelSlice.reducer(
+    let state = layoutModelSlice.reducer(
       layout,
       deleteNode('dynamic-static-card2df'),
     );
-    cy.wrap(state.layout.children).should('have.length', 3);
+    cy.wrap(state.layout.children).should('have.length', 4);
     expect(state.layout.children.map((item) => item.uuid)).to.deep.equal([
       'dynamic-image-udf7d',
+      'dynamic-dynamic-card3rr',
+      'dynamic-image-static-imageStyle-something7d',
+      'ee07d472-a754-4427-b6d4-acfc6f92bbdc',
+    ]);
+
+    // Delete node with children
+    // Check if all UUIDs of nested component(Two Column) exists before deletion
+    cy.wrap(Object.keys(state.model)).then((items) => {
+      [
+        'ee07d472-a754-4427-b6d4-acfc6f92bbdc',
+        '6f3224e2-cb61-46e4-a9e4-35b4d18f0a82',
+        '3b709ed2-99d3-4db2-869d-ca426f69fbb9',
+        'eaa37ee1-7d50-4041-b04c-c80bdbac3412',
+      ].forEach((element) => {
+        expect(items).to.include(element);
+      });
+    });
+    state = layoutModelSlice.reducer(
+      layout,
+      deleteNode('ee07d472-a754-4427-b6d4-acfc6f92bbdc'),
+    );
+    cy.wrap(state.layout.children).should('have.length', 4);
+    expect(state.layout.children.map((item) => item.uuid)).to.deep.equal([
+      'dynamic-image-udf7d',
+      'dynamic-static-card2df',
+      'dynamic-dynamic-card3rr',
+      'dynamic-image-static-imageStyle-something7d',
+    ]);
+    // To be double sure: check if all UUIDs of nested component(Two Column) should not exist after deletion
+    cy.wrap(Object.keys(state.model)).then((items) => {
+      [
+        'ee07d472-a754-4427-b6d4-acfc6f92bbdc',
+        '6f3224e2-cb61-46e4-a9e4-35b4d18f0a82',
+        '3b709ed2-99d3-4db2-869d-ca426f69fbb9',
+        'eaa37ee1-7d50-4041-b04c-c80bdbac3412',
+      ].forEach((element) => {
+        expect(items).to.not.include(element);
+      });
+    });
+    expect(Object.keys(state.model)).to.deep.equal([
+      'dynamic-image-udf7d',
+      'static-static-card1ab',
+      'dynamic-static-card2df',
       'dynamic-dynamic-card3rr',
       'dynamic-image-static-imageStyle-something7d',
     ]);
