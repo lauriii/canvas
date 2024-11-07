@@ -16,6 +16,12 @@ import type { AppDispatch } from '@/app/store';
 import type { StateWithHistory } from 'redux-undo';
 import type { Component } from '@/types/Component';
 
+export interface RootNode {
+  name?: string;
+  nodeType: 'root';
+  uuid: 'root';
+  children: LayoutNode[];
+}
 export interface LayoutNode {
   name?: string;
   uuid: UUID;
@@ -26,7 +32,7 @@ export interface LayoutNode {
 }
 
 export interface LayoutModel {
-  layout: LayoutNode;
+  layout: LayoutNode | RootNode;
   model: ComponentModels;
 }
 
@@ -315,7 +321,7 @@ export const addNewComponentToLayout =
           },
         ],
         nodeType: 'root',
-        uuid: 'dummy',
+        uuid: 'root',
       },
       model: {
         [uuid]: initialData,

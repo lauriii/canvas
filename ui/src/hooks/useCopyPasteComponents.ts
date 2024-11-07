@@ -43,7 +43,7 @@ function useCopyPasteComponents(): CopyPasteFunctions {
           model: copiedModels,
           layout: {
             nodeType: 'root',
-            uuid: 'dummy',
+            uuid: 'root',
             children: [copiedComponent],
           },
         }),

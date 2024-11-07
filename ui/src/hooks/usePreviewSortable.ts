@@ -20,7 +20,7 @@ import {
 } from '@/features/ui/uiSlice';
 import { findNodePathByUuid } from '@/features/layout/layoutUtils';
 import { useGetComponentsQuery } from '@/services/components';
-import { useGetSectionsQuery } from '@/services/sections';
+import { useGetDummySectionsQuery } from '@/services/sections';
 
 /**
  * This hook initializes the SortableJS implementation to allow for drag and drop interactions within the preview iFrames.
@@ -31,7 +31,8 @@ function usePreviewSortable(iframe: HTMLIFrameElement | null) {
   const model = useAppSelector(selectModel);
   const dispatch = useAppDispatch();
   const { data: components } = useGetComponentsQuery();
-  const { data: sections } = useGetSectionsQuery();
+  // TODO update to use the real section query once it works.
+  const { data: sections } = useGetDummySectionsQuery();
   const modelRef = useRef(model);
   const iframeDocumentRef = useRef<Document | null>(null);
   const componentsRef = useRef(components);

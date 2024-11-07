@@ -4,7 +4,7 @@ import List from '@/components/list/List';
 import { useGetSectionsQuery } from '@/services/sections';
 
 const SectionList = () => {
-  const { data: fakeSections, error, isLoading } = useGetSectionsQuery();
+  const { data: sections, error, isLoading } = useGetSectionsQuery();
   const { showBoundary } = useErrorBoundary();
 
   useEffect(() => {
@@ -15,7 +15,7 @@ const SectionList = () => {
 
   return (
     <List
-      items={fakeSections}
+      items={sections}
       isLoading={isLoading}
       type="section"
       label="Section templates"

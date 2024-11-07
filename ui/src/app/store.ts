@@ -4,6 +4,7 @@ import { setupListeners } from '@reduxjs/toolkit/query';
 import { v4 as uuidv4 } from 'uuid';
 import { uiSlice } from '@/features/ui/uiSlice';
 import { primaryPanelSlice } from '@/features/ui/primaryPanelSlice';
+import { dialogSlice } from '@/features/ui/dialogSlice';
 import { componentApi } from '@/services/components';
 import { layoutApi } from '@/services/layout';
 import { previewApi } from '@/services/preview';
@@ -35,6 +36,7 @@ const rootReducer = combineSlices(
   pageDataFormApi,
   configurationSlice,
   primaryPanelSlice,
+  dialogSlice,
 );
 // Infer the `RootState` type from the root reducer
 export type RootState = ReturnType<typeof rootReducer>;

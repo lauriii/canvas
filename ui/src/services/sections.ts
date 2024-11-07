@@ -3,6 +3,10 @@
 // Need to use the React-specific entry point to import createApi
 import { createApi } from '@reduxjs/toolkit/query/react';
 import { baseQuery } from '@/services/baseQuery';
+import type {
+  ComponentModels,
+  RootNode,
+} from '@/features/layout/layoutModelSlice';
 
 const mockSections = {
   fakeSection2: {
@@ -97,12 +101,30 @@ export const sectionApi = createApi({
     getSectionById: builder.query<any, string>({
       query: (id) => `xb-section/${id}`,
     }),
-    getSections: builder.query<any, void>({
+    getDummySections: builder.query<any, void>({
       query: () => `xb-sections`,
+    }),
+    getSections: builder.query<any, void>({
+      query: () => `/xb/api/config/pattern`,
+    }),
+    saveSection: builder.mutation<
+      { html: string },
+      { layout: RootNode; model: ComponentModels; name: string }
+    >({
+      query: (body) => ({
+        url: '/xb/api/config/pattern',
+        method: 'POST',
+        body,
+      }),
     }),
   }),
 });
 
 // Export hooks for usage in functional sections, which are
 // auto-generated based on the defined endpoints
-export const { useGetSectionByIdQuery, useGetSectionsQuery } = sectionApi;
+export const {
+  useGetSectionByIdQuery,
+  useGetSectionsQuery,
+  useGetDummySectionsQuery,
+  useSaveSectionMutation,
+} = sectionApi;

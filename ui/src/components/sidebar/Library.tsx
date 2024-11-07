@@ -14,6 +14,7 @@ import {
 } from '@/features/ui/primaryPanelSlice';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import ErrorBoundary from '@/components/error/ErrorBoundary';
+import DummySectionList from '@/components/list/DummySectionList';
 
 const Library = () => {
   const openItems = useAppSelector(selectOpenLayoutItems);
@@ -61,11 +62,7 @@ const Library = () => {
             Sections
           </AccordionTrigger>
           <Accordion.Content>
-            <Text size="1">
-              The section template listed below is hard coded and is a proof of
-              concept. It should allow the user to add a hero with an image
-              below it in a single action.
-            </Text>
+            <DummySectionList />
             <ErrorBoundary title="An unexpected error has occurred while fetching section templates.">
               <SectionList />
             </ErrorBoundary>

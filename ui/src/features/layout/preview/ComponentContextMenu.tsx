@@ -5,6 +5,7 @@ import { ContextMenu } from '@radix-ui/themes';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import {
   selectCanvasViewPort,
+  selectSelectedComponent,
   setSelectedComponent,
   unsetHoveredComponent,
   unsetSelectedComponent,
@@ -15,6 +16,7 @@ import {
   selectModel,
   shiftNode,
 } from '@/features/layout/layoutModelSlice';
+import { setDialogOpen } from '@/features/ui/dialogSlice';
 
 interface ComponentContextMenuProps {
   children: ReactNode;
@@ -27,6 +29,7 @@ const ComponentContextMenu: React.FC<ComponentContextMenuProps> = (props) => {
   const model = useAppSelector(selectModel);
   const componentName = model[componentUuid].name || 'Unnamed component';
   const canvasViewPort = useAppSelector(selectCanvasViewPort);
+  const selectedComponent = useAppSelector(selectSelectedComponent);
 
   const handleDeleteClick = useCallback(() => {
     if (componentUuid) {
@@ -42,6 +45,7 @@ const ComponentContextMenu: React.FC<ComponentContextMenuProps> = (props) => {
       dispatch(setSelectedComponent(componentUuid));
     }
   }, [dispatch, componentUuid]);
+
   const handleDuplicateClick = useCallback(() => {
     dispatch(unsetHoveredComponent());
 
@@ -61,6 +65,13 @@ const ComponentContextMenu: React.FC<ComponentContextMenuProps> = (props) => {
 
     dispatch(shiftNode({ uuid: componentUuid, direction: 'down' }));
   }, [dispatch, componentUuid]);
+
+  const handleCreateSectionClick = useCallback(() => {
+    if (componentUuid !== selectedComponent) {
+      dispatch(setSelectedComponent(componentUuid));
+    }
+    dispatch(setDialogOpen('saveAsSection'));
+  }, [componentUuid, dispatch, selectedComponent]);
 
   const closeContextMenu = () => {
     // Todo: There has to be a better way to close the context menu than firing an esc key press.
@@ -84,8 +95,18 @@ const ComponentContextMenu: React.FC<ComponentContextMenuProps> = (props) => {
       <ContextMenu.Content aria-label={`Context menu for ${componentName}`}>
         <ContextMenu.Label>{componentName}</ContextMenu.Label>
         <ContextMenu.Item onClick={handleSelectClick}>Edit</ContextMenu.Item>
-        <ContextMenu.Item onClick={handleDuplicateClick}>
+        <ContextMenu.Item onClick={handleDuplicateClick} shortcut="⌘ D">
           Duplicate
+        </ContextMenu.Item>
+        <ContextMenu.Item onClick={handleDuplicateClick} shortcut="⌘ C">
+          Copy
+        </ContextMenu.Item>
+        <ContextMenu.Item onClick={handleDuplicateClick} shortcut="⌘ V">
+          Paste
+        </ContextMenu.Item>
+        <ContextMenu.Separator />
+        <ContextMenu.Item onClick={handleCreateSectionClick}>
+          Create section
         </ContextMenu.Item>
         <ContextMenu.Separator />
 
@@ -106,11 +127,7 @@ const ComponentContextMenu: React.FC<ComponentContextMenuProps> = (props) => {
           </ContextMenu.SubContent>
         </ContextMenu.Sub>
         <ContextMenu.Separator />
-        <ContextMenu.Item
-          // shortcut="⌘ ⌫"
-          color="red"
-          onClick={handleDeleteClick}
-        >
+        <ContextMenu.Item shortcut="⌫" color="red" onClick={handleDeleteClick}>
           Delete
         </ContextMenu.Item>
       </ContextMenu.Content>

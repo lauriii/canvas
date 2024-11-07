@@ -1,0 +1,187 @@
+import type React from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import {
+  Button,
+  Dialog,
+  Flex,
+  Spinner,
+  Text,
+  TextField,
+} from '@radix-ui/themes';
+import {
+  selectDialogOpen,
+  setDialogOpen,
+  setDialogClosed,
+} from '@/features/ui/dialogSlice';
+import { useAppDispatch, useAppSelector } from '@/app/hooks';
+import { selectSelectedComponent } from '@/features/ui/uiSlice';
+import { selectLayout, selectModel } from '@/features/layout/layoutModelSlice';
+import { findNodeByUuid, recurseNodes } from '@/features/layout/layoutUtils';
+import { useSaveSectionMutation } from '@/services/sections';
+import type { FetchBaseQueryError } from '@reduxjs/toolkit/query/react';
+import type { SerializedError } from '@reduxjs/toolkit';
+import ErrorCard from '@/components/error/ErrorCard';
+
+interface ErrorData {
+  message?: string;
+}
+
+function getErrorMessage(error: FetchBaseQueryError | SerializedError): string {
+  if ('status' in error) {
+    // TODO: I think any calls to /api/ should respond in JSON, not an HTML document?
+    if (error.status === 'PARSING_ERROR') {
+      return 'The server returned an unexpected response format.';
+    }
+    if (error.status === 404) {
+      return 'Resource not found.';
+    }
+    // Handle other HTTP status errors generically
+    const errorData = error.data as ErrorData;
+    return `Error ${error.status}: ${errorData?.message || 'No additional information'}`;
+  } else {
+    // Handle SerializedError
+    return error.message || 'Unknown error occurred';
+  }
+}
+
+const SaveSectionDialog: React.FC = () => {
+  const { saveAsSection } = useAppSelector(selectDialogOpen);
+  const dispatch = useAppDispatch();
+  const selectedComponent = useAppSelector(selectSelectedComponent);
+  const model = useAppSelector(selectModel);
+  const layout = useAppSelector(selectLayout);
+  const [sectionName, setSectionName] = useState('My section');
+  const [
+    saveSection,
+    { isLoading: isSaving, isSuccess, isError, error, reset },
+  ] = useSaveSectionMutation();
+
+  const handleOpenChange = useCallback(
+    (open: boolean) => {
+      open
+        ? dispatch(setDialogOpen('saveAsSection'))
+        : dispatch(setDialogClosed('saveAsSection'));
+      if (!open) {
+        reset();
+      }
+    },
+    [dispatch, reset],
+  );
+
+  useEffect(() => {
+    if (selectedComponent) {
+      setSectionName(`${model[selectedComponent]?.name} section`);
+    }
+  }, [model, selectedComponent]);
+
+  const handleSaveClick = useCallback(() => {
+    if (!selectedComponent || !layout) {
+      return;
+    }
+
+    let modelsToSave = {
+      [selectedComponent]: model[selectedComponent],
+    };
+    const thisNode = findNodeByUuid(layout, selectedComponent);
+    if (!thisNode) {
+      return;
+    }
+
+    recurseNodes(thisNode, (node) => {
+      if (model[node.uuid]) {
+        modelsToSave[node.uuid] = model[node.uuid];
+      }
+    });
+
+    saveSection({
+      layout: {
+        nodeType: 'root',
+        uuid: 'root',
+        children: [thisNode],
+      },
+      model: modelsToSave,
+      name: sectionName,
+    });
+  }, [layout, model, saveSection, selectedComponent, sectionName]);
+
+  const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setSectionName(event.target.value);
+  };
+
+  useEffect(() => {
+    if (isSuccess) {
+      dispatch(setDialogClosed('saveAsSection'));
+    }
+    if (isError) {
+      console.error('Save failed', error);
+    }
+  }, [isSuccess, isError, dispatch, error]);
+
+  if (!selectedComponent) {
+    return null;
+  }
+
+  return (
+    <Dialog.Root open={saveAsSection} onOpenChange={handleOpenChange}>
+      <Dialog.Content maxWidth="550px">
+        <Text size="1">
+          <strong>
+            This is currently only a proof of concept, saving will fail until
+            the endpoint is fully implemented.
+          </strong>
+        </Text>
+        <Dialog.Title>Add new section</Dialog.Title>
+        <Dialog.Description size="2" mb="4">
+          Save "{model[selectedComponent]?.name}" as a section. Unlike
+          components, sections are independent and can be customized without
+          affecting other instances.
+        </Dialog.Description>
+
+        <Flex direction="column" gap="3">
+          <label>
+            <Text as="div" size="2" mb="1" weight="bold">
+              Section name
+            </Text>
+            <TextField.Root
+              defaultValue={sectionName}
+              onChange={handleInputChange}
+              placeholder="Enter a name for your section"
+              id="sectionName"
+              name="sectionName"
+            />
+          </label>
+          {isError && (
+            <>
+              <ErrorCard
+                title="Save failed!"
+                error={getErrorMessage(error)}
+                resetButtonText="Try again"
+                resetErrorBoundary={handleSaveClick}
+              ></ErrorCard>
+            </>
+          )}
+        </Flex>
+
+        <Flex gap="3" mt="4" justify="center">
+          {isSaving && (
+            <Button disabled={true}>
+              <Spinner /> Saving&hellip;
+            </Button>
+          )}
+          {!isSaving && (
+            <Button onClick={handleSaveClick} disabled={isError}>
+              Add to Library
+            </Button>
+          )}
+          <Dialog.Close>
+            <Button variant="soft" color="gray">
+              Cancel
+            </Button>
+          </Dialog.Close>
+        </Flex>
+      </Dialog.Content>
+    </Dialog.Root>
+  );
+};
+
+export default SaveSectionDialog;

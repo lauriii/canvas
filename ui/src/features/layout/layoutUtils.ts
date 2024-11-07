@@ -9,6 +9,12 @@ import { v4 as uuidv4 } from 'uuid';
 //   removeNodeByUuid,
 //   moveNodeToPath,
 
+type NodeFunction = (
+  node: LayoutNode,
+  index: number,
+  parent: LayoutNode,
+) => void;
+
 /**
  * Recursively run one or multiple functions against a node and all its descendants.
  * @param node - A layout or layout node.
@@ -17,10 +23,9 @@ import { v4 as uuidv4 } from 'uuid';
  */
 export function recurseNodes(
   node: LayoutNode | LayoutNode[],
-  functionOrFunctions: Function | Function[] = [],
+  functionOrFunctions: NodeFunction | NodeFunction[] = [],
 ): void {
-  let functionsToRun: Function[] = _.castArray(functionOrFunctions);
-
+  let functionsToRun: NodeFunction[] = _.castArray(functionOrFunctions);
   let children: LayoutNode[] = Array.isArray(node) ? node : node.children || [];
 
   // Loop backwards in case the array is modified by the passed function/functions
@@ -29,7 +34,7 @@ export function recurseNodes(
 
     functionsToRun.forEach((func) => {
       if (typeof func === 'function') {
-        func(child, index, node);
+        func(child, index, node as LayoutNode);
       }
     });
 

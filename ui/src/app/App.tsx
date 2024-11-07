@@ -7,6 +7,7 @@ import PrimaryPanel from '@/components/sidebar/PrimaryPanel';
 import Topbar from '@/components/topbar/Topbar';
 import useSyncComponentId from '@/hooks/useSyncComponentId';
 import ZoomControl from '@/components/zoom/ZoomControl';
+import SaveSectionDialog from '@/features/saveSection/SaveSectionDialog';
 
 const App: React.FC = () => {
   // Hook to keep the selected component ID in state in sync with :componentId in the url params.
@@ -28,6 +29,7 @@ const App: React.FC = () => {
         <ZoomControl />
         <div id="menuBarContainer"></div>
         <div id="menuBarSubmenuContainer"></div>
+        <SaveSectionDialog />
       </ErrorBoundary>
     </div>
   );
