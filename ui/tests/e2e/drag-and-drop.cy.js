@@ -102,7 +102,6 @@ describe(
       cy.get('.treeItem[data-xb-uuid="dynamic-image-udf7d"]').realDnd(
         '.rootDropZone[data-xb-type="root"]',
       );
-      cy.pause();
 
       assertPageStateAfterFirstDrag();
 

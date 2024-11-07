@@ -69,7 +69,7 @@ describe('Prop types editing', () => {
     cy.get('[data-testid="xb-primary-panel--library"]').should(
       'have.attr',
       'data-state',
-      'on',
+      'active',
     );
     cy.get('.primaryPanelContent').findByText('All props').click();
     cy.openLayersPanel();

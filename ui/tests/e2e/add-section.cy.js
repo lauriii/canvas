@@ -30,7 +30,7 @@ describe(
       cy.get('[data-testid="xb-primary-panel--layers"]').should(
         'have.attr',
         'data-state',
-        'on',
+        'active',
       );
       cy.get('[data-xb-uuid="root"]').findByText('Hero').should('not.exist');
       cy.get('.primaryPanelContent').findByText('Two Column').click();
@@ -43,7 +43,7 @@ describe(
       cy.get('[data-testid="xb-primary-panel--library"]').should(
         'have.attr',
         'data-state',
-        'on',
+        'active',
       );
       cy.get('.primaryPanelContent').should('contain.text', 'Sections');
       // Click on Fake Section 2 inside menu.
@@ -80,7 +80,7 @@ describe(
       cy.get('[data-testid="xb-primary-panel--layers"]').should(
         'have.attr',
         'data-state',
-        'on',
+        'active',
       );
       cy.clickComponentInPreview('Image');
 
@@ -91,7 +91,7 @@ describe(
       cy.get('[data-testid="xb-primary-panel--library"]').should(
         'have.attr',
         'data-state',
-        'on',
+        'active',
       );
       cy.get('.primaryPanelContent').should('contain.text', 'Components');
       // Click Hero

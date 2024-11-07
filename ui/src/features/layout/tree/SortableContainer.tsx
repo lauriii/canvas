@@ -11,6 +11,7 @@ import TreeItem from '@/features/layout/tree/TreeItem';
 import { TriangleDownIcon, TriangleRightIcon } from '@radix-ui/react-icons';
 import clsx from 'clsx';
 import { getNodeDepth } from '@/features/layout/layoutUtils';
+import { Box } from '@radix-ui/themes';
 
 interface SortableContainerProps {
   node: LayoutNode;
@@ -96,14 +97,16 @@ const SortableContainer: React.FC<SortableContainerProps> = (props) => {
   // But attach the root id and the sortable ref to it, so we can still drag items into the root level.
   if (node.nodeType === 'root') {
     return (
-      <div
+      <Box
         data-xb-uuid={node.uuid}
         data-xb-type={node.nodeType}
         ref={sortableRef}
-        className={clsx('rootDropZone', styles.rootDropZone)}
+        className="rootDropZone"
+        py="4"
+        height="100%"
       >
         {renderChildren(node.children)}
-      </div>
+      </Box>
     );
   }
 

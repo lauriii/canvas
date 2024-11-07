@@ -1,12 +1,6 @@
 import clsx from 'clsx';
 import styles from '@/components/sidebar/PrimaryPanel.module.css';
-import {
-  Box,
-  Flex,
-  ScrollArea,
-  SegmentedControl,
-  Separator,
-} from '@radix-ui/themes';
+import { Box, Flex, ScrollArea, Tabs } from '@radix-ui/themes';
 import { useState } from 'react';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import Panel from '../Panel';
@@ -24,48 +18,51 @@ export const PrimaryPanel = () => {
   const [dragging, setDragging] = useState(false);
   const dispatch = useAppDispatch();
 
-  const onClickHandler = (clickedPanel: string) => {
-    if (activePanel !== clickedPanel) {
-      dispatch(setActivePanel(clickedPanel));
-    }
+  const onValueChange = (selectedPanel: string) => {
+    dispatch(setActivePanel(selectedPanel));
   };
 
   return (
     <Panel className={clsx(styles.primaryPanel)} data-testid="xb-primary-panel">
       <Flex direction="column" height="100%">
-        <SegmentedControl.Root
-          onValueChange={setActivePanel}
-          className={clsx(styles.segmentedControlRoot)}
+        <Tabs.Root
+          defaultValue={'layers'}
+          onValueChange={onValueChange}
           value={activePanel}
+          className={clsx(styles.tabRoot)}
         >
-          <SegmentedControl.Item
-            value="layers"
-            data-testid="xb-primary-panel--layers"
-            onClick={() => onClickHandler('layers')}
-          >
-            Layers
-          </SegmentedControl.Item>
-          <SegmentedControl.Item
-            value="library"
-            data-testid="xb-primary-panel--library"
-            onClick={() => onClickHandler('library')}
-          >
-            Library
-          </SegmentedControl.Item>
-        </SegmentedControl.Root>
-        <Separator orientation="horizontal" size="4" />
-        <ScrollArea>
-          <Box
-            pr="4"
-            className={clsx('primaryPanelContent', styles.primaryPanelContent)}
-            data-xb-is-dragging={dragging}
-          >
-            {activePanel === 'layers' && (
-              <SortableContainer setDragging={setDragging} node={layout} />
-            )}
-            {activePanel === 'library' && <Library />}
-          </Box>
-        </ScrollArea>
+          <Tabs.List justify="center" mx="4">
+            <Tabs.Trigger value="layers" data-testid="xb-primary-panel--layers">
+              Layers
+            </Tabs.Trigger>
+            <Tabs.Trigger
+              value="library"
+              data-testid="xb-primary-panel--library"
+            >
+              Library
+            </Tabs.Trigger>
+          </Tabs.List>
+          <ScrollArea scrollbars="vertical" className={styles.scrollArea}>
+            <Box
+              px="4"
+              className={clsx(
+                'primaryPanelContent',
+                styles.primaryPanelContent,
+              )}
+              data-xb-is-dragging={dragging}
+            >
+              <Tabs.Content
+                value={'layers'}
+                className={styles.layersTabContent}
+              >
+                <SortableContainer setDragging={setDragging} node={layout} />
+              </Tabs.Content>
+              <Tabs.Content value={'library'}>
+                <Library />
+              </Tabs.Content>
+            </Box>
+          </ScrollArea>
+        </Tabs.Root>
       </Flex>
     </Panel>
   );

@@ -34,7 +34,7 @@ describe('Undo/Redo functionality', { testIsolation: false }, () => {
     cy.get('[data-testid="xb-primary-panel--library"]').should(
       'have.attr',
       'data-state',
-      'on',
+      'active',
     );
     cy.get('.primaryPanelContent').should('contain.text', 'Sections');
     cy.get('.primaryPanelContent').findByText('Fake Section 2');

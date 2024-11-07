@@ -17,11 +17,6 @@
   opacity: 0.6 !important;
 }
 
-.rootDropZone {
-  height: 100%;
-  padding-top: 1.5rem;
-}
-
 /* Provide "space" for SortableJS at the top and bottom as drop targets. */
 .slotDropZone {
   margin: -20px 0;

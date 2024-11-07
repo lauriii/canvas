@@ -1,10 +1,4 @@
-import {
-  Flex,
-  ScrollArea,
-  SegmentedControl,
-  Separator,
-  Box,
-} from '@radix-ui/themes';
+import { Flex, ScrollArea, Box, Tabs } from '@radix-ui/themes';
 import styles from './ContextualPanel.module.css';
 import type React from 'react';
 import { useState } from 'react';
@@ -13,8 +7,8 @@ import { useAppSelector } from '@/app/hooks';
 import Panel from '@/components/Panel';
 import ErrorBoundary from '@/components/error/ErrorBoundary';
 import DummyPropsEditForm from '@/components/DummyPropsEditForm';
-import clsx from 'clsx';
 import PageDataForm from '@/components/PageDataForm';
+import clsx from 'clsx';
 
 interface ContextualPanelProps {}
 
@@ -27,45 +21,43 @@ const ContextualPanel: React.FC<ContextualPanelProps> = () => {
       <Flex
         flexGrow="1"
         direction="column"
-        pl="4"
-        py="5"
         height="100%"
         data-testid={`xb-contextual-panel-${selectedComponent}`}
       >
         <ErrorBoundary>
-          <Box pr="4">
-            <Flex justify="center" align="center">
-              <SegmentedControl.Root
-                defaultValue="settings"
-                onValueChange={setActivePanel}
-                className={clsx(styles.segmentedControlRoot)}
+          <Tabs.Root
+            defaultValue={'pageData'}
+            onValueChange={setActivePanel}
+            value={activePanel}
+            className={clsx(styles.tabRoot)}
+          >
+            <Tabs.List justify="center" mx="4">
+              <Tabs.Trigger
+                value="settings"
+                data-testid="xb-contextual-panel--settings"
               >
-                <SegmentedControl.Item
-                  value="settings"
-                  data-testid="xb-contextual-panel--settings"
-                >
-                  Settings
-                </SegmentedControl.Item>
-                <SegmentedControl.Item
-                  value="pageData"
-                  data-testid="xb-contextual-panel--page-data"
-                >
-                  Page data
-                </SegmentedControl.Item>
-              </SegmentedControl.Root>
-            </Flex>
-            <Separator orientation="horizontal" size="4" />
-          </Box>
-          <ScrollArea>
-            <Box pr="4">
-              {activePanel === 'settings' && (
-                <ErrorBoundary title="An unexpected error has occurred while rendering the component's form.">
-                  <DummyPropsEditForm />
-                </ErrorBoundary>
-              )}
-              {activePanel === 'pageData' && <PageDataForm />}
-            </Box>
-          </ScrollArea>
+                Settings
+              </Tabs.Trigger>
+              <Tabs.Trigger
+                value="pageData"
+                data-testid="xb-contextual-panel--page-data"
+              >
+                Page data
+              </Tabs.Trigger>
+            </Tabs.List>
+            <ScrollArea scrollbars="vertical" className={styles.scrollArea}>
+              <Box px="4" width="100%">
+                <Tabs.Content value={'settings'}>
+                  <ErrorBoundary title="An unexpected error has occurred while rendering the component's form.">
+                    <DummyPropsEditForm />
+                  </ErrorBoundary>
+                </Tabs.Content>
+                <Tabs.Content value={'pageData'}>
+                  <PageDataForm />
+                </Tabs.Content>
+              </Box>
+            </ScrollArea>
+          </Tabs.Root>
         </ErrorBoundary>
       </Flex>
     </Panel>
