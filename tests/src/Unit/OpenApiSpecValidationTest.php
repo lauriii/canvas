@@ -14,7 +14,7 @@ use JsonSchema\Validator;
  *
  * @group experience_builder.
  *
- * @requires function \cebe\openapi\Reader::readFromYaml
+ * @requires function \cebe\openapi\Reader::readFromYamlFile
  * @requires function \DrupalFinder\DrupalFinderComposerRuntime::getVendorDir
  * @requires function \League\OpenAPIValidation\Schema\SchemaValidator::validate
  */

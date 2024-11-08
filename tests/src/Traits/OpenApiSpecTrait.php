@@ -27,15 +27,24 @@ trait OpenApiSpecTrait {
    * @see https://github.com/OAI/OpenAPI-Specification/blob/3.0.2/versions/3.0.2.md#openapi-object
    */
   protected function getSpecification(): OpenApi {
-    $yaml = file_get_contents(sprintf('%s/openapi.yml', dirname(__FILE__, 4)));
-    assert(is_string($yaml));
-    $specification = Reader::readFromYaml($yaml);
+    $specification_path = $this->getSpecificationPath();
+    $specification = Reader::readFromYamlFile($specification_path);
     $context = new ReferenceContext($specification, "/");
     $context->throwException = FALSE;
     $context->mode = ReferenceContext::RESOLVE_MODE_ALL;
     $specification->resolveReferences($context);
     $specification->setDocumentContext($specification, new JsonPointer(''));
     return $specification;
+  }
+
+  /**
+   * Gets the path to the OpenAPI specification.
+   */
+  private function getSpecificationPath(): string {
+    return sprintf(
+      '%s/openapi.yml',
+      dirname(__DIR__, 3),
+    );
   }
 
   /**
