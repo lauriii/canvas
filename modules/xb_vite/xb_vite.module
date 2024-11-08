@@ -11,11 +11,17 @@ function xb_vite_library_info_alter(&$libraries, $extension) {
     'preprocess' => FALSE,
   ];
 
+  $vite_server_origin = getenv('VITE_SERVER_ORIGIN') ?: 'http://localhost:5173';
+
+  $libraries['xb-ui']['drupalSettings']['xb_vite'] = [
+    'serverOrigin' => $vite_server_origin
+  ];
+
   // @see https://vitejs.dev/guide/backend-integration.html
   $libraries['xb-ui']['js'] = [
     'modules/xb_vite/window.js' => $base,
-    'http://localhost:5173/@vite/client' => ['type' => 'external'] + $base,
-    'http://localhost:5173/src/main.tsx' => ['type' => 'external'] + $base,
+    $vite_server_origin . '/@vite/client' => ['type' => 'external'] + $base,
+    $vite_server_origin . '/src/main.tsx' => ['type' => 'external'] + $base,
   ];
   $libraries['xb-ui']['css'] = [];
 }

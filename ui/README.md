@@ -21,7 +21,9 @@ DDEV setup is fully automated through our custom add-on: https://github.com/Trav
 
 ##### Development mode
 1. `npm install` from /modules/experience_builder/ui
-2. Make sure nothing is running on localhost:5173
+2. Next, you'll start a development server that runs at `http://localhost:5173` (ensure port is available)
+    - To use a different URL (e.g., for DDEV containers), set `VITE_SERVER_ORIGIN` in `.env`
+    - Note: this is already handled if you use the XB DDEV add-on ([`TravisCarden/ddev-drupal-xb-dev`](https://github.com/TravisCarden/ddev-drupal-xb-dev))
 3. `npm run drupaldev`
 4. Enable the Experience Builder Vite Integration module (`xb_vite`)
 5. Clear cache (`drush cr` or `/admin/config/development/performance`)
