@@ -32,24 +32,23 @@ final class OpenApiSpecValidationTest extends UnitTestCase {
    */
   protected function setUp(): void {
     parent::setUp();
-    $possible_start_paths = [dirname(DRUPAL_ROOT), DRUPAL_ROOT];
     $tested_paths = [];
-    foreach ($possible_start_paths as $path) {
-      $finder = new DrupalFinderComposerRuntime();
-      $vendor_directory = $finder->getVendorDir();
-      if (!$vendor_directory) {
-        continue;
-      }
+
+    $finder = new DrupalFinderComposerRuntime();
+    $vendor_directory = $finder->getVendorDir();
+
+    if ($vendor_directory) {
       $document_location = $vendor_directory . '/devizzent/cebe-php-openapi/schemas/openapi-v3.1.json';
-      if (!file_exists($document_location)) {
-        $tested_paths[] = $document_location;
-        continue;
+      if (file_exists($document_location)) {
+        $this->documentLocation = $document_location;
       }
-      $this->documentLocation = $document_location;
-      break;
+      else {
+        $tested_paths[] = $document_location;
+      }
     }
+
     if (!$this->documentLocation) {
-      throw new \Exception(sprintf('Could not OpenAPI 3.0 schema at %s.', implode(' or ', $tested_paths)));
+      throw new \Exception(sprintf('Could not find OpenAPI 3.0 schema at %s.', implode(' or ', $tested_paths)));
     }
   }
 
