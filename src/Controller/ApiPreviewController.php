@@ -39,8 +39,6 @@ final class ApiPreviewController {
     $component_tree_field_item = $this->clientLayoutAndModelToXbField($layout, $model);
 
     $build = self::wrapComponentsForPreview($component_tree_field_item->toRenderable());
-    $build['#prefix'] = '<div class="xb--sortable-list" data-xb-uuid="root">';
-    $build['#suffix'] = '</div>';
     $build['#attached']['library'][] = 'experience_builder/preview';
 
     return new JsonResponse([
@@ -50,7 +48,10 @@ final class ApiPreviewController {
 
   private static function wrapComponentsForPreview(array $build, ?string $component_instance_uuid = NULL): array {
     if ($component_instance_uuid !== NULL) {
-      if (isset($build['#component'])) {
+      if ($component_instance_uuid === ComponentTreeStructure::ROOT_UUID) {
+        $build['#prefix'] = '<div class="xb--sortable-list" data-xb-uuid="root">';
+      }
+      elseif (isset($build['#component'])) {
         // @todo where is data-xb-component-id used in the client? how does this affect non-SDC components?
         $build['#prefix'] = sprintf('<div class="xb--sortable-item" data-xb-uuid="%s" data-xb-component-id="%s">', $component_instance_uuid, $build['#component']);
       }
