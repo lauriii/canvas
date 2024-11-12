@@ -1,13 +1,11 @@
 import _ from 'lodash';
-import type { ComponentModels, LayoutNode } from './layoutModelSlice';
+import type {
+  ComponentModels,
+  LayoutNode,
+  Node,
+  RootNode,
+} from './layoutModelSlice';
 import { v4 as uuidv4 } from 'uuid';
-
-//   recurseNodes,
-//   findNodeByUuid,
-//   findNodePathByUuid,
-//   insertNodeAtPath,
-//   removeNodeByUuid,
-//   moveNodeToPath,
 
 type NodeFunction = (
   node: LayoutNode,
@@ -50,11 +48,11 @@ export function recurseNodes(
  * @param uuid - The UUID of the node to find.
  * @returns The found node or null if not found.
  */
-export function findNodeByUuid(
-  node: LayoutNode,
-  uuid: string,
-): LayoutNode | null {
+export function findNodeByUuid(node: LayoutNode, uuid: string): Node | null {
   if (node.uuid === uuid) {
+    if (node.nodeType === 'root') {
+      return null;
+    }
     return node;
   }
   if (node.children) {
@@ -110,7 +108,10 @@ export function findNodePathByUuid(
  * @param uuid - The UUID of the node to remove.
  * @returns A deep clone of the node with the node matching the uuid removed.
  */
-export function removeNodeByUuid(node: LayoutNode, uuid: string): LayoutNode {
+export function removeNodeByUuid<T extends LayoutNode>(
+  node: T,
+  uuid: string,
+): T {
   const newState = _.cloneDeep(node);
   const path = findNodePathByUuid(newState, uuid);
 
@@ -134,11 +135,11 @@ export function removeNodeByUuid(node: LayoutNode, uuid: string): LayoutNode {
  * @param newNode - The new node to insert.
  * @returns A deep clone of the node with the newNode inserted at path.
  */
-export function insertNodeAtPath(
-  layoutNode: LayoutNode,
+export function insertNodeAtPath<T extends LayoutNode>(
+  layoutNode: T,
   path: number[],
-  newNode: LayoutNode,
-): LayoutNode {
+  newNode: Node,
+): T {
   const newState = _.cloneDeep(layoutNode);
 
   if (path.length === 0) {
@@ -166,24 +167,24 @@ export function insertNodeAtPath(
     newState.children[currentIndex],
     restOfPath,
     newNode,
-  );
+  ) as Node;
 
   return newState;
 }
 
 /**
  * Move a node to a new path.
- * @param node - The root node of the layout.
+ * @param rootNode - The root node of the layout.
  * @param uuid - The UUID of the node to move.
  * @param path - The path to move the node to.
- * @returns A deep clone of the `node` with the node matching the `uuid` moved to the `path`.
+ * @returns A deep clone of the `rootNode` with the node matching the `uuid` moved to the `path`.
  */
 export function moveNodeToPath(
-  layoutNode: LayoutNode,
+  rootNode: RootNode,
   uuid: string,
   path: number[],
-): LayoutNode {
-  const child = findNodeByUuid(layoutNode, uuid);
+): RootNode {
+  const child = findNodeByUuid(rootNode, uuid);
   if (!child) {
     throw new Error(`Node with UUID ${uuid} not found.`);
   }
@@ -193,7 +194,7 @@ export function moveNodeToPath(
   child.uuid = child.uuid + '_remove';
 
   // Insert the clone at toPath
-  const newState = insertNodeAtPath(layoutNode, path, clone);
+  const newState = insertNodeAtPath(rootNode, path, clone);
 
   // Remove the original node by finding it by uuid (which is now `${child.uuid}_remove`)
   return removeNodeByUuid(newState, child.uuid);
@@ -236,22 +237,22 @@ export function getNodeDepth(layoutNode: LayoutNode, uuid: string | undefined) {
  * @returns An updated model and an updated state.
  */
 export function replaceUUIDsAndUpdateModel(
-  node: LayoutNode,
+  node: Node,
   model: ComponentModels,
   newUUID?: string,
 ): {
-  updatedNode: LayoutNode;
+  updatedNode: Node;
   updatedModel: ComponentModels;
 } {
   const oldToNewUUIDMap: Record<string, string> = {};
   const updatedModel: ComponentModels = {};
 
   const replaceUUIDs = (
-    node: LayoutNode,
+    node: Node,
     parentUuid?: string,
     newUuid?: string,
-  ): LayoutNode => {
-    const newNode: LayoutNode = { ...node, uuid: newUuid || uuidv4() };
+  ): Node => {
+    const newNode: Node = { ...node, uuid: newUuid || uuidv4() };
     if (newNode.nodeType === 'slot') {
       newNode.uuid = `${parentUuid}-slot-${newNode.name}`;
     }

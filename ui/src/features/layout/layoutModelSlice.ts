@@ -20,23 +20,26 @@ export interface RootNode {
   name?: string;
   nodeType: 'root';
   uuid: 'root';
-  children: LayoutNode[];
+  children: Node[];
 }
-export interface LayoutNode {
+
+export interface Node {
   name?: string;
   uuid: UUID;
-  nodeType: 'slot' | 'component' | 'root';
+  nodeType: 'slot' | 'component';
   type?: string;
-  children: LayoutNode[];
+  children: Node[];
   props?: {} | undefined;
 }
 
-export interface LayoutModel {
-  layout: LayoutNode | RootNode;
+export type LayoutNode = RootNode | Node;
+
+export interface RootLayoutModel {
+  layout: RootNode;
   model: ComponentModels;
 }
 
-export interface LayoutModelSliceState extends LayoutModel {
+export interface LayoutModelSliceState extends RootLayoutModel {
   initialized: boolean;
 }
 
@@ -75,7 +78,7 @@ type DuplicateNodePayload = {
 
 type InsertMultipleNodesPayload = {
   to: number[] | undefined;
-  layoutModel: LayoutModel;
+  layoutModel: RootLayoutModel;
   /**
    * Pass an optional UUID that will be assigned to the last, top level node being inserted. Allows you to define the UUID
    * so that you can then do something with the newly inserted node using that UUID.
@@ -118,7 +121,7 @@ export const layoutModelSlice = createSlice({
       for (const uuid of removableModelsUuids) {
         if (state.model[uuid]) delete state.model[uuid];
       }
-      state.layout = removeNodeByUuid(state.layout, action.payload);
+      state.layout = removeNodeByUuid(state.layout, action.payload) as RootNode;
     }),
     duplicateNode: create.reducer(
       (state, action: PayloadAction<DuplicateNodePayload>) => {
@@ -146,7 +149,11 @@ export const layoutModelSlice = createSlice({
           return;
         }
         nodePath[nodePath.length - 1]++;
-        state.layout = insertNodeAtPath(state.layout, nodePath, updatedNode);
+        state.layout = insertNodeAtPath(
+          state.layout,
+          nodePath,
+          updatedNode,
+        ) as RootNode;
       },
     ),
     moveNode: create.reducer(
@@ -166,12 +173,6 @@ export const layoutModelSlice = createSlice({
       (state, action: PayloadAction<InsertMultipleNodesPayload>) => {
         const { layoutModel, to, useUUID } = action.payload;
 
-        if (layoutModel.layout.nodeType !== 'root') {
-          console.error(
-            'Insert nodes should be passed a root layout node with children as a wrapper for the nodes you want to insert.',
-          );
-        }
-
         if (!Array.isArray(to)) {
           console.error(
             `Cannot insert nodes. Invalid parameters: newNodes: ${layoutModel}, to: ${to}.`,
@@ -180,7 +181,7 @@ export const layoutModelSlice = createSlice({
         }
 
         let updatedModel: ComponentModels = { ...state.model };
-        let newLayout: LayoutNode = _.cloneDeep(state.layout);
+        let newLayout: RootNode = _.cloneDeep(state.layout);
         const rootNode = layoutModel.layout;
         const model = layoutModel.model;
 
@@ -285,7 +286,7 @@ export const addNewComponentToLayout =
 
     // @todo Remove this limitation in https://www.drupal.org/project/experience_builder/issues/3467954
     const initialData: ComponentModel = { name: payload.component.name };
-    const children: LayoutNode[] = [];
+    const children: Node[] = [];
     const uuid = 'to_be_replaced';
 
     // Populate the model data with the default values
@@ -310,7 +311,7 @@ export const addNewComponentToLayout =
       });
     }
 
-    const layoutModel: LayoutModel = {
+    const layoutModel: RootLayoutModel = {
       layout: {
         children: [
           {
