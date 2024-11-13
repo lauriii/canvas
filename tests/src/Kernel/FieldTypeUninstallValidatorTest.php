@@ -31,6 +31,8 @@ final class FieldTypeUninstallValidatorTest extends KernelTestBase {
   use NodeCreationTrait;
   use TestDataUtilitiesTrait;
 
+  private const XB_FIELD_UNINSTALL_ERROR = 'The <em class="placeholder">Experience Builder</em> field type is used in the following fields: node.field_xb_demo, node.field_xb_test';
+
   protected function setUp(): void {
     parent::setUp();
     // Clone the current connection and replace the current prefix.
@@ -81,7 +83,14 @@ final class FieldTypeUninstallValidatorTest extends KernelTestBase {
     ]);
 
     $this->updateFieldDefaultValue('node', 'article', 'field_xb_test', $this->getComponentTreeItemValue(FALSE));
-    $this->container->get('module_installer')->uninstall(['link']);
+    // We should now be able to uninstall the 'link' module but because 'link'
+    // is dependency for 'experience_builder' we should get an error because
+    // of the XB fields.
+    $this->assertUninstallFailureReasons(
+      [self::XB_FIELD_UNINSTALL_ERROR],
+      // Ensure 'link' is not in the error message.
+      'link'
+    );
   }
 
   /**
@@ -140,7 +149,14 @@ final class FieldTypeUninstallValidatorTest extends KernelTestBase {
     ]);
 
     $this->updateFieldDefaultValue('node', 'article', 'field_xb_test', $this->getComponentTreeItemValue(FALSE));
-    $this->container->get('module_installer')->uninstall(['link']);
+    // We should now be able to uninstall the 'link' module but because 'link'
+    // is dependency for 'experience_builder' we should get an error because
+    // of the XB fields.
+    $this->assertUninstallFailureReasons(
+      [self::XB_FIELD_UNINSTALL_ERROR],
+      // Ensure 'link' is not in the error message.
+      'link'
+    );
   }
 
   private function updateFieldDefaultValue(string $entity_type, string $bundle, string $field_name, array $default_value): void {
@@ -150,15 +166,23 @@ final class FieldTypeUninstallValidatorTest extends KernelTestBase {
     $field_config->save();
   }
 
-  private function assertUninstallFailureReasons(array $reasons): void {
-    $this->assertSame($reasons, array_unique($reasons));
-    $expected_message = 'The following reasons prevent the modules from being uninstalled: ' . implode(', ', $reasons);
+  private function assertUninstallFailureReasons(array $reasons, string|null $not_contains = NULL): void {
     try {
       $this->container->get('module_installer')->uninstall(['link']);
       $this->fail('Expected an exception');
     }
     catch (ModuleUninstallValidatorException $exception) {
-      $this->assertStringContainsString($expected_message, $exception->getMessage());
+      if ($reasons) {
+        $this->assertSame($reasons, array_unique($reasons));
+        $this->assertStringContainsString(
+          'The following reasons prevent the modules from being uninstalled: ' . implode(', ', $reasons),
+          $exception->getMessage()
+        );
+      }
+      if ($not_contains) {
+        $this->assertStringNotContainsString($not_contains, $exception->getMessage());
+      }
+
     }
   }
 

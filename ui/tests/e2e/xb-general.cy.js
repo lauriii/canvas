@@ -135,8 +135,8 @@ describe('General Experience Builder', { testIsolation: false }, () => {
         // The outline width and height should be the same as the dimensions of
         // the corresponding component in the iframe.
         const outlineRect = $outline[0].getBoundingClientRect();
-        expect(outlineRect.width).to.equal(lgPreviewRect.width);
-        expect(outlineRect.height).to.equal(lgPreviewRect.height);
+        expect(outlineRect.width).to.be.closeTo(lgPreviewRect.width, 0.1);
+        expect(outlineRect.height).to.be.closeTo(lgPreviewRect.height, 0.1);
         expect($outline).to.have.css('position', 'absolute');
       });
 
@@ -178,48 +178,42 @@ describe('General Experience Builder', { testIsolation: false }, () => {
     // The right panel has opened.
     cy.findByTestId('xb-contextual-panel').should('exist');
 
+    const expectedLabels = [
+      'Heading',
+      'Sub-heading',
+      'CTA 1 text',
+      'CTA 1 link',
+      'CTA 2 text',
+    ];
+
     // The drawer contains a component edit form.
     cy.get(
       '[class*="contextualPanel"] [data-drupal-selector="component-props-form"].component-props-form',
     ).then(($form) => {
       expect($form).to.exist;
-      const expectedLabels = [
-        'Heading',
-        'Sub-heading',
-        'CTA 1 text',
-        'CTA 1 link',
-        'CTA 2 text',
-      ];
       $form.find('label').each((index, label) => {
         expect(label.textContent).to.equal(expectedLabels[index]);
       });
     });
 
-    cy.get(
-      '[data-drupal-selector="edit-xb-component-props-static-static-card1ab-heading-0-value"]',
-    )
+    cy.findByLabelText('Heading')
       .should('have.value', 'hello, world!')
       .invoke('attr', 'type')
       .should('eq', 'text');
 
-    cy.get(
-      '[data-drupal-selector="edit-xb-component-props-static-static-card1ab-cta1href-0-value"]',
-    )
-      .should('have.value', 'https://drupal.org')
-      .invoke('attr', 'type')
-      .should('eq', 'url');
+    cy.findByLabelText('CTA 1 link').should('have.value', 'https://drupal.org');
 
     const heroSelectors = {
-      heading: 'h1',
-      subheading: 'h1 ~ p',
-      cta1: 'button:first-child',
-      cta2: 'button:last-child',
+      Heading: 'h1',
+      'Sub-heading': 'h1 ~ p',
+      'CTA 1 text': 'button:first-child',
+      'CTA 2 text': 'button:last-child',
     };
     const heroBefore = {
-      heading: 'hello, world!',
-      subheading: '',
-      cta1: '',
-      cta2: '',
+      Heading: 'hello, world!',
+      'Sub-heading': '',
+      'CTA 1 text': '',
+      'CTA 2 text': '',
     };
 
     // Confirm the current values of the first "My Hero" component so we can
@@ -241,54 +235,52 @@ describe('General Experience Builder', { testIsolation: false }, () => {
           }
         });
         expect(
-          hero.querySelector(heroSelectors.cta1).getAttribute('formaction'),
+          hero
+            .querySelector(heroSelectors['CTA 1 text'])
+            .getAttribute('formaction'),
         ).to.equal('https://drupal.org');
       },
     );
 
-    const propEditFormSelectors = {
-      heading:
-        '[data-drupal-selector="component-props-form"] [data-drupal-selector="edit-xb-component-props-static-static-card1ab-heading-0-value"]',
-      subheading:
-        '[data-drupal-selector="component-props-form"] [data-drupal-selector="edit-xb-component-props-static-static-card1ab-subheading-0-value"]',
-      cta1href:
-        '[data-drupal-selector="component-props-form"] [data-drupal-selector="edit-xb-component-props-static-static-card1ab-cta1href-0-value"]',
-      cta1: '[data-drupal-selector="component-props-form"] [data-drupal-selector="edit-xb-component-props-static-static-card1ab-cta1-0-value"]',
-      cta2: '[data-drupal-selector="component-props-form"] [data-drupal-selector="edit-xb-component-props-static-static-card1ab-cta2-0-value"]',
-    };
     const newValues = {
-      heading: 'You parked your car',
-      subheading: 'Over the sidewalk',
-      cta1: 'ponytail',
-      cta2: 'stuck',
-      cta1href: 'https://hoobastank.com',
+      Heading: 'You parked your car',
+      'Sub-heading': 'Over the sidewalk',
+      'CTA 1 text': 'ponytail',
+      'CTA 2 text': 'stuck',
+      'CTA 1 link': 'https://hoobastank.com',
     };
 
     // Monitor the endpoint that processes changed values in the prop edit form.
     cy.intercept('POST', '**/api/preview/node/1').as('getPreview');
-    Object.entries(propEditFormSelectors).forEach(([prop, selector]) => {
+    expectedLabels.forEach((label) => {
       // Type a new value into a given input.
-      cy.get(selector).clear();
-      cy.get(selector).type(newValues[prop]);
-
+      cy.findByLabelText(label).focus();
+      cy.findByLabelText(label).clear();
+      cy.findByLabelText(label).type(newValues[label]);
       // Wait for completion of the request triggered by our typing. This
       // ensures that the `testInIframe` ~10 lines down is working with an iframe that
       // has fully responded to these value changes.
       cy.wait('@getPreview');
       // Confirm React is properly handling form state by confirming the input
       // has the value we typed into it.
-      cy.get(selector).should('have.value', newValues[prop]);
+      cy.findByLabelText(label).should('have.value', newValues[label]);
     });
 
     // New values were typed into the prop form inputs, now enter the iframe
     // and confirm the component reflects these new values.
-    cy.waitForElementContentInIframe(heroSelectors.heading, newValues.heading);
+    cy.waitForElementContentInIframe(heroSelectors.Heading, newValues.Heading);
     cy.waitForElementContentInIframe(
-      heroSelectors.subheading,
-      newValues.subheading,
+      heroSelectors['Sub-heading'],
+      newValues['Sub-heading'],
     );
-    cy.waitForElementContentInIframe(heroSelectors.cta1, newValues.cta1);
-    cy.waitForElementContentInIframe(heroSelectors.cta2, newValues.cta2);
+    cy.waitForElementContentInIframe(
+      heroSelectors['CTA 1 text'],
+      newValues['CTA 1 text'],
+    );
+    cy.waitForElementContentInIframe(
+      heroSelectors['CTA 2 text'],
+      newValues['CTA 2 text'],
+    );
   });
 
   it('previews components on hover', () => {

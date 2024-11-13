@@ -30,6 +30,8 @@ class ComponentTreeStructureTest extends KernelTestBase {
     'image',
     'options',
     'path',
+    'link',
+    'system',
   ];
 
   /**

@@ -141,7 +141,7 @@ describe('Prop types editing', () => {
     });
   });
 
-  it('Enum (select)', () => {
+  it('Enum (select) - string', () => {
     cy.findByLabelText('String - Enum').should('have.value', 'foo');
     cy.waitForElementContentInIframe('#test-string-enum', 'foo');
     cy.findByLabelText('String - Enum').select(0);
@@ -153,6 +153,20 @@ describe('Prop types editing', () => {
     cy.findByLabelText('String - Enum').select(2);
     cy.findByLabelText('String - Enum').should('have.value', 'bar');
     cy.waitForElementContentInIframe('#test-string-enum', 'bar');
+  });
+
+  it('Enum (select) - integer', () => {
+    cy.findByLabelText('Integer - Enum').should('have.value', 1);
+    cy.waitForElementContentInIframe('#test-integer-enum', '1');
+    cy.findByLabelText('Integer - Enum').select(0);
+    cy.findByLabelText('Integer - Enum').should('have.value', '_none');
+    cy.waitForElementContentNotInIframe('#test-integer-enum', '1');
+    cy.testInIframe('#test-integer-enum code', (enumPreview) => {
+      expect(enumPreview.textContent).to.eq('');
+    });
+    cy.findByLabelText('Integer - Enum').select(2);
+    cy.findByLabelText('Integer - Enum').should('have.value', 2);
+    cy.waitForElementContentInIframe('#test-integer-enum', '2');
   });
 
   it('Date + Time widget', () => {
@@ -174,10 +188,12 @@ describe('Prop types editing', () => {
       '2016-09-16T20:20:39+00:00',
     );
 
-    cy.get(dateSelector).clear();
-    cy.get(dateSelector).type('2017-06-28');
-    cy.get(timeSelector).clear();
-    cy.get(timeSelector).type('07:21:35');
+    cy.get(dateSelector).focus();
+    cy.realType('628{uparrow}');
+
+    cy.get(timeSelector).focus();
+    cy.realType('72135');
+
     cy.get(dateSelector).should('have.value', '2017-06-28');
 
     cy.get(timeSelector).should('have.value', '07:21:35');
@@ -237,5 +253,235 @@ describe('Prop types editing', () => {
       '#test-integer-range-minimum-maximum-timestamps',
       '543211',
     );
+    cy.findByLabelText(
+      'Integer, minimum=-2147483648, maximum=2147483648',
+    ).clear();
+    cy.findByLabelText('Integer, minimum=-2147483648, maximum=2147483648').type(
+      2147483648,
+    );
+    cy.waitForElementContentInIframe(
+      '#test-integer-range-minimum-maximum-timestamps',
+      '2147483648',
+    );
+    cy.findByLabelText('Integer, minimum=-2147483648, maximum=2147483648').type(
+      '{uparrow}',
+    );
+    cy.findByLabelText(
+      'Integer, minimum=-2147483648, maximum=2147483648',
+    ).should('have.value', '2147483648');
+    cy.waitForElementContentInIframe(
+      '#test-integer-range-minimum-maximum-timestamps',
+      '2147483648',
+    );
+  });
+
+  it('url field', () => {
+    // not sure if this is THE test yet, but it resembles it.
+    const previewSelector = '#test-string-format-uri code';
+    cy.waitForElementContentInIframe(
+      previewSelector,
+      'https://uri.example.com',
+    );
+
+    cy.findByLabelText('String, format=uri')
+      .as('theInput')
+      .should('have.value', 'https://uri.example.com');
+    cy.get('@theInput').clear();
+    cy.get('@theInput')
+      .should('have.value', '')
+      .then(($el) => $el[0].checkValidity())
+      .should('be.true');
+
+    cy.waitForElementContentNotInIframe(
+      previewSelector,
+      'https://uri.example.com',
+    );
+
+    cy.testInIframe(previewSelector, (uriPreview) => {
+      expect(uriPreview.textContent.trim()).to.equal('');
+    });
+
+    cy.get('@theInput').type('start');
+    cy.get('@theInput').should('have.value', 'start');
+
+    cy.testInIframe(previewSelector, (uriPreview) => {
+      expect(uriPreview.textContent.trim()).to.equal('');
+    });
+
+    cy.get('button').first().focus();
+    cy.get('@theInput').should('have.attr', 'data-invalid-prop-value');
+    cy.get('[data-prop-message]')
+      .should('have.length', 1)
+      .should('have.text', '❌ data must match format "uri"');
+  });
+
+  it('idn-email', () => {
+    const previewSelector = '#test-string-format-idn-email code';
+    const initialValue = 'hello@idn.example.com';
+    cy.waitForElementContentInIframe(previewSelector, initialValue);
+
+    cy.findByLabelText('String, format=idn-email')
+      .as('theInput')
+      .should('have.value', initialValue);
+    cy.get('@theInput').clear();
+    cy.get('@theInput')
+      .should('have.value', '')
+      .then(($el) => $el[0].checkValidity())
+      .should('be.true');
+
+    cy.waitForElementContentNotInIframe(previewSelector, initialValue);
+
+    cy.testInIframe(previewSelector, (preview) => {
+      expect(preview.textContent.trim()).to.equal('');
+    });
+
+    cy.get('@theInput').type('not-email');
+    cy.get('@theInput').should('have.value', 'not-email');
+
+    cy.testInIframe(previewSelector, (preview) => {
+      expect(preview.textContent.trim()).to.equal('');
+    });
+
+    cy.get('button').first().focus();
+    cy.get('@theInput').should('have.attr', 'data-invalid-prop-value');
+    cy.get('[data-prop-message]')
+      .should('have.length', 1)
+      .should('have.text', '❌ data must match format "idn-email"');
+  });
+
+  it('String, format=email', () => {
+    const previewSelector = '#test-string-format-email code';
+    const initialValue = 'hello@example.com';
+    cy.waitForElementContentInIframe(previewSelector, initialValue);
+
+    cy.findByLabelText('String, format=email')
+      .as('theInput')
+      .should('have.value', initialValue);
+    cy.get('@theInput').clear();
+    cy.get('@theInput')
+      .should('have.value', '')
+      .then(($el) => $el[0].checkValidity())
+      .should('be.true');
+
+    cy.waitForElementContentNotInIframe(previewSelector, initialValue);
+
+    cy.testInIframe(previewSelector, (preview) => {
+      expect(preview.textContent.trim()).to.equal('');
+    });
+
+    cy.get('@theInput').type('not-email');
+    cy.get('@theInput').should('have.value', 'not-email');
+
+    cy.testInIframe(previewSelector, (preview) => {
+      expect(preview.textContent.trim()).to.equal('');
+    });
+
+    cy.get('button').first().focus();
+    cy.get('@theInput').should('have.attr', 'data-invalid-prop-value');
+    cy.get('[data-prop-message]')
+      .should('have.length', 1)
+      .should('have.text', '❌ data must match format "email"');
+  });
+
+  it('String, format=uri-reference', () => {
+    const previewSelector = '#test-string-format-uri-reference code';
+    const initialValue = '/example-uri';
+    cy.waitForElementContentInIframe(previewSelector, initialValue);
+
+    cy.findByLabelText('String, format=uri-reference')
+      .as('theInput')
+      .should('have.value', initialValue);
+    cy.get('@theInput').clear();
+    cy.get('@theInput')
+      .should('have.value', '')
+      .then(($el) => $el[0].checkValidity())
+      .should('be.true');
+
+    cy.waitForElementContentNotInIframe(previewSelector, initialValue);
+
+    cy.testInIframe(previewSelector, (preview) => {
+      expect(preview.textContent.trim()).to.equal('');
+    });
+
+    cy.get('@theInput').focus();
+    cy.realType('not');
+    cy.get('@theInput').should('have.value', 'not');
+
+    cy.testInIframe(previewSelector, (preview) => {
+      expect(preview.textContent.trim()).to.equal('');
+    });
+
+    // @todo HTML5 validation works IRL but not in these tests.
+    // Fortunately we are still confirming values in an invalid format does not
+    // result in errors.
+
+    cy.get('@theInput').clear();
+    cy.get('@theInput').focus();
+    cy.realType('/whatever');
+
+    cy.waitForElementContentInIframe(previewSelector, '/whatever');
+  });
+
+  it('String, format=iri-reference', () => {
+    const previewSelector = '#test-string-format-iri-reference code';
+    const initialValue = '/example-iri';
+    cy.waitForElementContentInIframe(previewSelector, initialValue);
+
+    cy.findByLabelText('String, format=iri-reference')
+      .as('theInput')
+      .should('have.value', initialValue);
+    cy.findByLabelText('String, format=iri-reference').clear();
+    cy.findByLabelText('String, format=iri-reference')
+      .should('have.value', '')
+      .then(($el) => $el[0].checkValidity())
+      .should('be.true');
+
+    cy.waitForElementContentNotInIframe(previewSelector, initialValue);
+
+    cy.testInIframe(previewSelector, (preview) => {
+      expect(preview.textContent.trim()).to.equal('');
+    });
+
+    cy.get('@theInput').focus();
+    cy.realType('not');
+    cy.get('@theInput').should('have.value', 'not');
+
+    cy.testInIframe(previewSelector, (preview) => {
+      expect(preview.textContent.trim()).to.equal('');
+    });
+
+    // @todo HTML5 validation works IRL but not in these tests.
+    // Fortunately we are still confirming values in an invalid format does not
+    // result in errors.
+
+    cy.get('@theInput').clear();
+    cy.get('@theInput').focus();
+    cy.realType('/whatever');
+
+    cy.waitForElementContentInIframe(previewSelector, '/whatever');
+  });
+  it('can enter number into a text field', () => {
+    const iframeSelector = '#test-string';
+    const labelText = 'String — single line';
+    const valuePre = 'Hello, world!';
+    const valuePost = '1999';
+    cy.waitForElementContentInIframe(iframeSelector, valuePre);
+    cy.findByLabelText(labelText).should('have.value', valuePre);
+    cy.findByLabelText(labelText).clear();
+    cy.findByLabelText(labelText).type(valuePost);
+    cy.waitForElementContentNotInIframe(iframeSelector, valuePre);
+    cy.waitForElementContentInIframe(iframeSelector, valuePost);
+  });
+  it('can enter just a space into a text field', () => {
+    const iframeSelector = '#test-string';
+    const labelText = 'String — single line';
+    const valuePre = 'Hello, world!';
+    const valuePost = ' ';
+    cy.waitForElementContentInIframe(iframeSelector, valuePre);
+    cy.findByLabelText(labelText).should('have.value', valuePre);
+    cy.findByLabelText(labelText).clear();
+    cy.findByLabelText(labelText).type(valuePost);
+    cy.waitForElementContentNotInIframe(iframeSelector, valuePre);
+    cy.waitForElementContentInIframe(iframeSelector, valuePost);
   });
 });

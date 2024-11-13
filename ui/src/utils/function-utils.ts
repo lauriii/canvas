@@ -1,3 +1,5 @@
+import type { PropsValues } from '@/types/Form';
+
 export function handleNonWorkingBtn(): void {
   alert('Not yet supported.');
 }
@@ -7,7 +9,18 @@ export const preventHover = (event: any) => {
   e.preventDefault();
 };
 
-export function parseValue(value: any, element: HTMLInputElement) {
+export function parseValue(
+  value: any,
+  element: HTMLInputElement,
+  schema: PropsValues | null,
+) {
+  if (schema?.type === 'string') {
+    return `${value}`;
+  }
+  if (schema?.type === 'number') {
+    const parsed = Number(value);
+    return isNaN(parsed) ? value : parsed;
+  }
   if (element && Object.prototype.hasOwnProperty.call(element, 'checked')) {
     return element.checked;
   }

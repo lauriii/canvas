@@ -33,6 +33,7 @@ class PageTemplateValidationTest extends ConfigEntityValidationTestBase {
     'image',
     'options',
     'path',
+    'link',
   ];
 
   /**

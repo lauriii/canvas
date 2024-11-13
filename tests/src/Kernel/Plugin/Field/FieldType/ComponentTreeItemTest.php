@@ -39,6 +39,8 @@ class ComponentTreeItemTest extends KernelTestBase {
     'file',
     'image',
     'options',
+    'link',
+    'system',
   ];
 
   /**

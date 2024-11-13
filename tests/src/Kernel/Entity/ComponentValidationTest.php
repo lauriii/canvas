@@ -29,6 +29,7 @@ class ComponentValidationTest extends ConfigEntityValidationTestBase {
     'image',
     'options',
     'path',
+    'link',
   ];
 
   /**

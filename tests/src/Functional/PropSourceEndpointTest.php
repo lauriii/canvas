@@ -149,6 +149,7 @@ class PropSourceEndpointTest extends BrowserTestBase {
             "This Article's Title" => 'ℹ︎␜entity:node:article␝title␞␟value',
           ],
           'test_string_enum' => [],
+          'test_integer_enum' => [],
           'test_string_format_date_time' => [],
           'test_string_format_date' => [],
           'test_string_format_email' => [

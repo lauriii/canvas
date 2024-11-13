@@ -36,6 +36,7 @@ class ComponentTreeHydratedTest extends KernelTestBase {
     'image',
     'options',
     'path',
+    'link',
     'system',
   ];
 

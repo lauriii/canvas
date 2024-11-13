@@ -44,6 +44,8 @@ class ComponentTest extends KernelTestBase {
     'image',
     'options',
     'path',
+    'link',
+    'system',
   ];
 
   /**

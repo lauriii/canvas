@@ -16,7 +16,6 @@ class HookStoragePropAlterTest extends PropShapeRepositoryTest {
    * {@inheritdoc}
    */
   protected static $modules = [
-    'link',
     // @see xb_test_storage_prop_shape_alter_storage_prop_shape_alter()
     'xb_test_storage_prop_shape_alter',
   ];
@@ -28,9 +27,8 @@ class HookStoragePropAlterTest extends PropShapeRepositoryTest {
     $storable_prop_shapes = parent::getExpectedStorablePropShapes();
     $storable_prop_shapes['type=string&format=uri'] = new StorablePropShape(
       shape: $storable_prop_shapes['type=string&format=uri']->shape,
-      fieldTypeProp: new FieldTypePropExpression('link', 'uri'),
-      fieldWidget: 'link_default',
-      fieldInstanceSettings: ['title' => DRUPAL_DISABLED],
+      fieldTypeProp: new FieldTypePropExpression('uri', 'value'),
+      fieldWidget: 'uri',
     );
     return $storable_prop_shapes;
   }

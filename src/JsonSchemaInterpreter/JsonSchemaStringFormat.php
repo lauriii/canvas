@@ -11,6 +11,7 @@ use Drupal\experience_builder\PropExpressions\StructuredData\FieldTypePropExpres
 use Drupal\experience_builder\PropShape\PropShape;
 use Drupal\experience_builder\PropShape\StorablePropShape;
 use Drupal\experience_builder\ShapeMatcher\DataTypeShapeRequirement;
+use Drupal\link\LinkItemInterface;
 use Symfony\Component\Validator\Constraints\Ip;
 
 // phpcs:disable Drupal.Files.LineLength.TooLong
@@ -161,8 +162,20 @@ enum JsonSchemaStringFormat: string {
       // @see \Drupal\Core\Field\Plugin\Field\FieldType\UuidItem
       static::UUID => NULL,
       // TRICKY: Drupal core does not support RFC3987 aka IRIs, but it's a superset of RFC3986.
+      // TRICKY: the `uri` and `iri` prop types will only pass validation with absolute paths, so we
+      // instead use the link widget which is more permissive about the URI/IRI content.
       // @see \Drupal\Core\Field\Plugin\Field\FieldType\UriItem
-      static::URI_REFERENCE, static::URI, static::IRI_REFERENCE, static::IRI => new StorablePropShape(shape: $shape, fieldTypeProp: new FieldTypePropExpression('uri', 'value'), fieldWidget: 'uri'),
+      // @see \Drupal\link\Plugin\Field\FieldType\LinkItem::defaultFieldSettings()
+      static::URI_REFERENCE, static::URI, static::IRI_REFERENCE, static::IRI => new StorablePropShape(
+        shape: $shape,
+        fieldTypeProp: new FieldTypePropExpression('link', 'uri'),
+        // @see \Drupal\link\Plugin\Field\FieldType\LinkItem::defaultFieldSettings()
+        fieldInstanceSettings: [
+          // This shape only needs the URI, not a title.
+          'title' => 0,
+        ],
+        fieldWidget: 'link_default',
+      ),
 
       // Built-in formats: URI template.
       // @see https://json-schema.org/understanding-json-schema/reference/string#uri-template

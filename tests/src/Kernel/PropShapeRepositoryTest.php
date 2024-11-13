@@ -45,6 +45,7 @@ class PropShapeRepositoryTest extends KernelTestBase {
     'datetime',
     'image',
     'file',
+    'link',
     'options',
   ];
 
@@ -90,6 +91,7 @@ class PropShapeRepositoryTest extends KernelTestBase {
       new PropShape(['type' => 'boolean']),
       new PropShape(['type' => 'integer']),
       new PropShape(['type' => 'integer', '$ref' => 'json-schema-definitions://experience_builder.module/column-width']),
+      new PropShape(['type' => 'integer', 'enum' => [1, 2]]),
       new PropShape(['type' => 'integer', 'maximum' => 2147483648, 'minimum' => -2147483648]),
       new PropShape(['type' => 'integer', 'minimum' => 0]),
       new PropShape(['type' => 'object', '$ref' => 'json-schema-definitions://experience_builder.module/image']),
@@ -344,8 +346,9 @@ class PropShapeRepositoryTest extends KernelTestBase {
       ),
       'type=string&format=uri' => new StorablePropShape(
         shape: new PropShape(['type' => 'string', 'format' => 'uri']),
-        fieldTypeProp: new FieldTypePropExpression('uri', 'value'),
-        fieldWidget: 'uri',
+        fieldTypeProp: new FieldTypePropExpression('link', 'uri'),
+        fieldInstanceSettings: ['title' => DRUPAL_DISABLED],
+        fieldWidget: 'link_default',
       ),
       'type=string&minLength=2' => new StorablePropShape(
         shape: new PropShape(['type' => 'string', 'minLength' => 2]),
@@ -380,23 +383,37 @@ class PropShapeRepositoryTest extends KernelTestBase {
       ),
       'type=string&format=iri' => new StorablePropShape(
         shape: new PropShape(['type' => 'string', 'format' => JsonSchemaStringFormat::IRI->value]),
-        fieldTypeProp: new FieldTypePropExpression('uri', 'value'),
-        fieldWidget: 'uri',
+        fieldTypeProp: new FieldTypePropExpression('link', 'uri'),
+        fieldInstanceSettings: ['title' => DRUPAL_DISABLED],
+        fieldWidget: 'link_default',
       ),
       'type=string&format=iri-reference' => new StorablePropShape(
         shape: new PropShape(['type' => 'string', 'format' => JsonSchemaStringFormat::IRI_REFERENCE->value]),
-        fieldTypeProp: new FieldTypePropExpression('uri', 'value'),
-        fieldWidget: 'uri',
+        fieldTypeProp: new FieldTypePropExpression('link', 'uri'),
+        fieldInstanceSettings: ['title' => DRUPAL_DISABLED],
+        fieldWidget: 'link_default',
       ),
       'type=string&format=uri-reference' => new StorablePropShape(
         shape: new PropShape(['type' => 'string', 'format' => JsonSchemaStringFormat::URI_REFERENCE->value]),
-        fieldTypeProp: new FieldTypePropExpression('uri', 'value'),
-        fieldWidget: 'uri',
+        fieldTypeProp: new FieldTypePropExpression('link', 'uri'),
+        fieldInstanceSettings: ['title' => DRUPAL_DISABLED],
+        fieldWidget: 'link_default',
       ),
       'type=string&$ref=json-schema-definitions://experience_builder.module/textarea' => new StorablePropShape(
         shape: new PropShape(['type' => 'string', '$ref' => 'json-schema-definitions://experience_builder.module/textarea']),
         fieldTypeProp: new FieldTypePropExpression('string_long', 'value'),
         fieldWidget: 'string_textarea',
+      ),
+      'type=integer&enum[0]=1&enum[1]=2' => new StorablePropShape(
+        shape: new PropShape(['type' => 'integer', 'enum' => [1, 2]]),
+        fieldTypeProp: new FieldTypePropExpression('list_integer', 'value'),
+        fieldWidget: 'options_select',
+        fieldStorageSettings: [
+          'allowed_values' => [
+            ['value' => 1, 'label' => '1'],
+            ['value' => 2, 'label' => '2'],
+          ],
+        ],
       ),
     ];
   }

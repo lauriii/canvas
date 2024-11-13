@@ -10,15 +10,12 @@ use Drupal\experience_builder\PropShape\CandidateStorablePropShape;
  */
 function xb_test_storage_prop_shape_alter_storage_prop_shape_alter(CandidateStorablePropShape $storable_prop_shape): void {
   if ($storable_prop_shape->shape->schema == ['type' => 'string', 'format' => 'uri']) {
-    // @see \Drupal\link\Plugin\Field\FieldType\LinkItem::propertyDefinitions()
+    // @see \Drupal\Core\Field\Plugin\Field\FieldType\UriItem::propertyDefinitions()
     // @phpstan-ignore-next-line
-    $storable_prop_shape->fieldTypeProp = StructuredDataPropExpression::fromString('ℹ︎link␟uri');
-    // @see \Drupal\link\Plugin\Field\FieldType\LinkItem::defaultFieldSettings()
-    $storable_prop_shape->fieldInstanceSettings = [
-      // This shape only needs the URI, not a title.
-      'title' => DRUPAL_DISABLED,
-    ];
-    // @see \Drupal\link\Plugin\Field\FieldWidget\LinkWidget
-    $storable_prop_shape->fieldWidget = 'link_default';
+    $storable_prop_shape->fieldTypeProp = StructuredDataPropExpression::fromString('ℹ︎uri␟value');
+    // @see \Drupal\Core\Field\Plugin\Field\FieldType\UriItem::defaultFieldSettings()
+    $storable_prop_shape->fieldInstanceSettings = NULL;
+    // @see \Drupal\Core\Field\Plugin\Field\FieldWidget\UriWidget
+    $storable_prop_shape->fieldWidget = 'uri';
   }
 }

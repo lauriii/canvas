@@ -334,7 +334,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
           'component props' => [
             '⿲experience_builder:my-hero␟cta1href',
           ],
-          'static prop source' => 'ℹ︎uri␟value',
+          'static prop source' => 'ℹ︎link␟uri',
           'instances' => [
             'ℹ︎␜entity:file␝uri␞␟url',
             'ℹ︎␜entity:file␝uri␞␟value',
@@ -479,6 +479,15 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
               ],
             ],
           ],
+        ],
+        'optional, type=integer&enum[0]=1&enum[1]=2' => [
+          'component props' => [
+            0 => '⿲sdc_test_all_props:all-props␟test_integer_enum',
+          ],
+          'static prop source' => 'ℹ︎list_integer␟value',
+          'instances' => [],
+          'adapter_matches_field_type' => [],
+          'adapter_matches_instance' => [],
         ],
         'optional, type=integer&maximum=2147483648&minimum=-2147483648' => [
           'component props' => [
@@ -815,7 +824,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
           'component props' => [
             '⿲sdc_test_all_props:all-props␟test_string_format_' . JsonSchemaStringFormat::IRI->value,
           ],
-          'static prop source' => 'ℹ︎uri␟value',
+          'static prop source' => 'ℹ︎link␟uri',
           'instances' => [
             'ℹ︎␜entity:file␝uri␞␟url',
             'ℹ︎␜entity:file␝uri␞␟value',
@@ -829,7 +838,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
           'component props' => [
             '⿲sdc_test_all_props:all-props␟test_string_format_' . str_replace('-', '_', JsonSchemaStringFormat::IRI_REFERENCE->value),
           ],
-          'static prop source' => 'ℹ︎uri␟value',
+          'static prop source' => 'ℹ︎link␟uri',
           'instances' => [
             'ℹ︎␜entity:file␝uri␞␟url',
             'ℹ︎␜entity:file␝uri␞␟value',
@@ -883,7 +892,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
           'component props' => [
             '⿲sdc_test_all_props:all-props␟test_string_format_' . JsonSchemaStringFormat::URI->value,
           ],
-          'static prop source' => 'ℹ︎uri␟value',
+          'static prop source' => 'ℹ︎link␟uri',
           'instances' => [
             'ℹ︎␜entity:file␝uri␞␟url',
             'ℹ︎␜entity:file␝uri␞␟value',
@@ -897,7 +906,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
           'component props' => [
             '⿲sdc_test_all_props:all-props␟test_string_format_' . str_replace('-', '_', JsonSchemaStringFormat::URI_REFERENCE->value),
           ],
-          'static prop source' => 'ℹ︎uri␟value',
+          'static prop source' => 'ℹ︎link␟uri',
           'instances' => [
             'ℹ︎␜entity:file␝uri␞␟url',
             'ℹ︎␜entity:file␝uri␞␟value',

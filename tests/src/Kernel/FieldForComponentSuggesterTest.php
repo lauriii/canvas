@@ -201,6 +201,11 @@ class FieldForComponentSuggesterTest extends KernelTestBase {
           'instances' => [],
           'adapters' => [],
         ],
+        '⿲sdc_test_all_props:all-props␟test_integer_enum' => [
+          'required' => FALSE,
+          'instances' => [],
+          'adapters' => [],
+        ],
         '⿲sdc_test_all_props:all-props␟test_string_format_date_time' => [
           'required' => FALSE,
           'instances' => [

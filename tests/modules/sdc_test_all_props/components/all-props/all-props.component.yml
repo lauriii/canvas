@@ -41,6 +41,15 @@ props:
         - bar
       examples:
         - foo
+    test_integer_enum:
+      title: 'Integer - Enum'
+      type: integer
+      enum:
+        - 1
+        - 2
+      examples:
+        - 1
+
     # Built-in formats: dates and times
     # @see https://json-schema.org/understanding-json-schema/reference/string#dates-and-times
     test_string_format_date_time:
