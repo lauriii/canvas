@@ -54,11 +54,11 @@ final class PropShape {
     }
 
     // Recurse.
-    if ($schema['type'] === 'object') {
-      $schema['properties'] = array_map([__CLASS__, 'resolveSchemaReferences'], $schema['properties'] ?? []);
+    if ($schema['type'] === 'object' && isset($schema['properties'])) {
+      $schema['properties'] = array_map([__CLASS__, 'resolveSchemaReferences'], $schema['properties']);
     }
-    elseif ($schema['type'] === 'array') {
-      $schema['items'] = array_map([__CLASS__, 'resolveSchemaReferences'], $schema['items'] ?? []);
+    elseif ($schema['type'] === 'array' && isset($schema['items'])) {
+      $schema['items'] = self::resolveSchemaReferences($schema['items']);
     }
 
     return $schema;
