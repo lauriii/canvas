@@ -36,9 +36,13 @@ final class ApiPreviewController {
   public function __invoke(Request $request, EntityInterface $entity): JsonResponse {
     $this->doAutoSave($entity, $request);
     ['layout' => $layout, 'model' => $model] = json_decode($request->getContent(), TRUE);
-    $component_tree_field_item = $this->clientLayoutAndModelToXbField($layout, $model);
+    $renderable = $this->clientLayoutAndModelToXbField($layout, $model)->toRenderable();
 
-    $build = self::wrapComponentsForPreview($component_tree_field_item->toRenderable());
+    if (isset($renderable[ComponentTreeStructure::ROOT_UUID])) {
+      $build = self::wrapComponentsForPreview($renderable[ComponentTreeStructure::ROOT_UUID]);
+    }
+    $build['#prefix'] = '<div class="xb--sortable-list" data-xb-uuid="root">';
+    $build['#suffix'] = '</div>';
     $build['#attached']['library'][] = 'experience_builder/preview';
 
     return new JsonResponse([
@@ -46,35 +50,30 @@ final class ApiPreviewController {
     ]);
   }
 
-  private static function wrapComponentsForPreview(array $build, ?string $component_instance_uuid = NULL): array {
-    if ($component_instance_uuid !== NULL) {
-      if ($component_instance_uuid === ComponentTreeStructure::ROOT_UUID) {
-        $build['#prefix'] = '<div class="xb--sortable-list" data-xb-uuid="root">';
-      }
-      elseif (isset($build['#component'])) {
+  private static function wrapComponentsForPreview(array $build): array {
+    foreach (Element::children($build) as $uuid) {
+      $build[$uuid] = self::wrapComponentsForPreview($build[$uuid]);
+
+      if (isset($build[$uuid]['#component'])) {
         // @todo where is data-xb-component-id used in the client? how does this affect non-SDC components?
-        $build['#prefix'] = sprintf('<div class="xb--sortable-item" data-xb-uuid="%s" data-xb-component-id="%s">', $component_instance_uuid, $build['#component']);
+        $build[$uuid]['#prefix'] = sprintf('<div class="xb--sortable-item" data-xb-uuid="%s" data-xb-component-id="%s">', $uuid, $build[$uuid]['#component']);
       }
       else {
-        $build['#prefix'] = sprintf('<div class="xb--sortable-item" data-xb-uuid="%s">', $component_instance_uuid);
+        $build[$uuid]['#prefix'] = sprintf('<div class="xb--sortable-item" data-xb-uuid="%s">', $uuid);
       }
-      $build['#suffix'] = '</div>';
-    }
-    foreach (Element::children($build) as $component_instance_uuid) {
-      $build[$component_instance_uuid] = self::wrapComponentsForPreview($build[$component_instance_uuid], $component_instance_uuid);
-    }
-    if (isset($build['#slots'])) {
-      foreach ($build['#slots'] as $slot_name => $slot) {
-        $slot_uuid = $component_instance_uuid . '-slot-' . $slot_name;
-        $build['#slots'][$slot_name] = self::wrapComponentsForPreview($slot, $slot_uuid);
-        $build['#slots'][$slot_name]['#prefix'] = sprintf('<div class="xb--sortable-list" data-xb-uuid="%s" data-xb-component-id="%s"%s>',
-          $slot_uuid,
-          'slot',
-          (array_key_exists('#plain_text', $build['#slots'][$slot_name]) || array_key_exists('#markup', $build['#slots'][$slot_name]))
-            ? ' data-xb-slot-is-empty'
-            : ''
-        );
-        $build['#slots'][$slot_name]['#suffix'] = '</div>';
+      $build[$uuid]['#suffix'] = '</div>';
+
+      if (isset($build[$uuid]['#slots'])) {
+        foreach ($build[$uuid]['#slots'] as $slot_name => $slot) {
+          $build[$uuid]['#slots'][$slot_name] = self::wrapComponentsForPreview($slot);
+          $build[$uuid]['#slots'][$slot_name]['#prefix'] = sprintf('<div class="xb--sortable-list" data-xb-uuid="%s" data-xb-component-id="slot"%s>',
+            $uuid . '-slot-' . $slot_name,
+            (array_key_exists('#plain_text', $build[$uuid]['#slots'][$slot_name]) || array_key_exists('#markup', $build[$uuid]['#slots'][$slot_name]))
+              ? ' data-xb-slot-is-empty'
+              : ''
+          );
+          $build[$uuid]['#slots'][$slot_name]['#suffix'] = '</div>';
+        }
       }
     }
     return $build;
