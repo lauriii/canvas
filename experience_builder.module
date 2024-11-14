@@ -463,18 +463,13 @@ function experience_builder_block_alter(array &$definitions): void {
   ];
 
   // @todo This only handles new & existing Component entities in best case scenario, but does not handle cases where BlockComponent based entities exist, but Block Plugin definition is missing, see https://www.drupal.org/project/experience_builder/issues/3484682
-  foreach ($definitions as $definition) {
-    if ($definition['id'] == 'broken') {
+  foreach ($definitions as $id => $definition) {
+    if ($id === 'broken') {
       continue;
     }
 
-    // @todo Handle block derivatives in https://www.drupal.org/project/experience_builder/issues/3484671
-    if (isset($definition['deriver'])) {
-      continue;
-    }
-
-    $id = 'block.' . $definition['id'];
-    $component = Component::load($id);
+    $component_id = 'block.' . str_replace(':', '.', $id);
+    $component = Component::load($component_id);
     if ($component instanceof Component) {
       // @todo Update Component entities with BlockComponent source plugin: https://www.drupal.org/project/experience_builder/issues/3484682
       continue;
@@ -483,10 +478,10 @@ function experience_builder_block_alter(array &$definitions): void {
       $in_recursion = TRUE;
       // @todo This is super ugly, decorate the block plugin manager so we can create instances directly?
       // @todo is this a not going to become performance bottle neck on BlockPlugin heavy sites?
-      $block = \Drupal::service('plugin.manager.block')->createInstance($definition['id']);
+      $block = \Drupal::service('plugin.manager.block')->createInstance($id);
       assert($block instanceof BlockPluginInterface);
       $settings = $block->defaultConfiguration();
-      $data_definition = \Drupal::service('config.typed')->createFromNameAndData('block.settings.' . $definition['id'], $settings);
+      $data_definition = \Drupal::service('config.typed')->createFromNameAndData('block.settings.' . $id, $settings);
       // We currently support only block plugins with no settings, or if they do
       // have settings, they must be fully validatable.
       $fullyValidatable = FALSE;
@@ -497,19 +492,19 @@ function experience_builder_block_alter(array &$definitions): void {
         }
       }
       // @todo Remove the PageTitleBlock and SystemMessagesBlock special cases: make it fully validatable upstream in Drupal core. It is exempted here because of its crucial role in \Drupal\experience_builder\Entity\PageTemplate.
-      if (!empty($settings) && !$fullyValidatable && $id !== 'block.page_title_block' && $id !== 'block.system_messages_block') {
+      if (!empty($settings) && !$fullyValidatable && $id !== 'page_title_block' && $id !== 'system_messages_block') {
         continue;
       }
       $component = Component::create([
-        'id' => $id,
+        'id' => $component_id,
         'label' => (string) $definition['admin_label'],
         'source' => BlockComponent::SOURCE_PLUGIN_ID,
         'settings' => [
-          'plugin_id' => $definition['id'],
+          'plugin_id' => $id,
           // We are using strict config schema validation, so we need to provide valid settings for each block.
           'settings' => [
             // @todo if we need ID here can we merge settings with the parent and drop plugin_id?
-            'id' => $definition['id'],
+            'id' => $id,
             'label' => (string) $definition['admin_label'],
             'label_display' => FALSE,
             'provider' => $definition['provider'],
@@ -519,6 +514,21 @@ function experience_builder_block_alter(array &$definitions): void {
       ]);
       $component->save();
       $in_recursion = FALSE;
+    }
+  }
+}
+
+/**
+ * Implements hook_config_schema_info_alter().
+ */
+function experience_builder_config_schema_info_alter(array &$definitions): void {
+  // This allows these blocks to be placed for now, but really the schema
+  // should actually be FullyValidatable.
+  // @todo Fix this in core or solve this another way in https://www.drupal.org/project/experience_builder/issues/3484666
+  $types = ['block.settings.system_menu_block:*', 'block.settings.views_block:*'];
+  foreach ($types as $type) {
+    if (isset($definitions[$type])) {
+      $definitions[$type]['constraints']['FullyValidatable'] = NULL;
     }
   }
 }

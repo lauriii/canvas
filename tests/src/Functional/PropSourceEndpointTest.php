@@ -5,6 +5,7 @@ declare(strict_types=1);
 use Drupal\Component\Serialization\Json;
 use Drupal\node\Entity\Node;
 use Drupal\Tests\BrowserTestBase;
+use Drupal\Tests\system\Functional\Cache\AssertPageCacheContextsAndTagsTrait;
 
 /**
  * The functional test equivalent of FieldForComponentSuggesterTest.
@@ -14,6 +15,8 @@ use Drupal\Tests\BrowserTestBase;
  * @internal
  */
 class PropSourceEndpointTest extends BrowserTestBase {
+
+  use AssertPageCacheContextsAndTagsTrait;
 
   /**
    * {@inheritdoc}
@@ -43,30 +46,54 @@ class PropSourceEndpointTest extends BrowserTestBase {
     $this->drupalLogin($this->rootUser);
     $this->drupalGet('xb-components');
 
+    $expected_tags = [
+      'CACHE_MISS_IF_UNCACHEABLE_HTTP_METHOD:form',
+      'announcements_feed:feed',
+      'comment_list',
+      'config:component_list',
+      'config:node_type_list',
+      'config:search.settings',
+      'config:system.menu.account',
+      'config:system.menu.admin',
+      'config:system.menu.footer',
+      'config:system.menu.main',
+      'config:system.menu.tools',
+      'config:system.site',
+      'config:views.view.comments_recent',
+      'config:views.view.content_recent',
+      'config:views.view.who_s_new',
+      'config:views.view.who_s_online',
+      'local_task',
+      'node:1',
+      'node_list',
+      'user:0',
+      'user:1',
+      'user_list',
+    ];
+
+    $expected_contexts = [
+      'languages:language_content',
+      'route',
+      'url.path.is_front',
+      'url.path.parent',
+      'url.query_args:_wrapper_format',
+      'user.node_grants:view',
+      'user.roles:authenticated',
+    ];
+
+    // @todo Require Drupal 11, then this can be removed.
+    if (version_compare(\Drupal::VERSION, '11', '<')) {
+      // On Drupal 10, the `search_form_block` block is not available as an XB Component because its settings are not fully validatable, hence its cache tag does not appear.
+      $expected_tags = array_diff($expected_tags, ['config:search.settings']);
+    }
+
+    $this->assertCacheTags($expected_tags);
+    $this->assertCacheContexts($expected_contexts);
+    $this->assertSession()->responseHeaderEquals('X-Drupal-Cache-Max-Age', '3600');
+
     // Ensure the response is cached by Dynamic Page Cache (because this is a
     // complex response), but not by Page Cache (because it should not be
     // available to anonymous users).
-    if (version_compare(\Drupal::VERSION, '11', '>=')) {
-      $this->assertSession()->responseHeaderEquals('X-Drupal-Cache-Tags', 'CACHE_MISS_IF_UNCACHEABLE_HTTP_METHOD:form announcements_feed:feed config:component_list config:search.settings config:system.site http_response local_task');
-    }
-    else {
-      // @todo Require Drupal 11, then this branch can be removed.
-      // TRICKY: On Drupal 10, the `search_form_block` block is not available as an XB Component because its settings are not fully validatable, hence its cache tag does not appear.
-      $this->assertSession()->responseHeaderEquals('X-Drupal-Cache-Tags', 'CACHE_MISS_IF_UNCACHEABLE_HTTP_METHOD:form announcements_feed:feed config:component_list config:system.site http_response local_task');
-    }
-    $this->assertSession()->responseHeaderEquals('X-Drupal-Cache-Contexts', 'route url.path.is_front url.path.parent url.query_args:_wrapper_format user.permissions user.roles:authenticated');
-    // TRICKY: the preview markup for \Drupal\user\Plugin\Block\UserLoginBlock
-    // contains an uncacheable (max-age 0 s) form token, which is automatically
-    // ignored and a minimum max-age of 60 s is enforced … except that on Drupal
-    // 11, https://www.drupal.org/project/drupal/issues/2578855 has made this
-    // form cacheable!
-    // @see \Drupal\Core\Form\FormBuilder::prepareForm()
-    if (version_compare(\Drupal::VERSION, '11', '>=')) {
-      $this->assertSession()->responseHeaderEquals('X-Drupal-Cache-Max-Age', '-1 (Permanent)');
-    }
-    else {
-      $this->assertSession()->responseHeaderEquals('X-Drupal-Cache-Max-Age', '60');
-    }
     $this->assertSession()->responseHeaderEquals('X-Drupal-Dynamic-Cache', 'MISS');
     $this->assertSession()->responseHeaderEquals('X-Drupal-Cache', 'UNCACHEABLE (request policy)');
     $this->drupalGet('xb-components');

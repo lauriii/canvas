@@ -173,6 +173,11 @@ class ComponentTest extends KernelTestBase {
     $this->assertEmpty(Component::loadMultiple());
 
     $this->enableModules($modules);
+    if (in_array('block', $modules)) {
+      // system.module provides some default menus in config, installing that
+      // allows us to test menu block derivatives here.
+      $this->installConfig(['system']);
+    }
     // Installing a module with SDCs should result in Component config entities
     // being generated, but in kernel tests we have to explicitly trigger the
     // hooks that would normally do this.
@@ -332,7 +337,7 @@ class ComponentTest extends KernelTestBase {
     ];
 
     [$version] = explode('.', \Drupal::VERSION);
-    yield 'installing block creates block components' => [
+    yield 'installing block creates block components including menus' => [
       // `system` and `user` are the two only required core modules.
       'modules' => ['system', 'user', 'block'],
       'components' => $defaults + [
@@ -363,6 +368,21 @@ class ComponentTest extends KernelTestBase {
         'block.system_powered_by_block' => [
           'compatible' => $version > 10,
         ],
+        'block.system_menu_block.account' => [
+          'compatible' => TRUE,
+        ],
+        'block.system_menu_block.admin' => [
+          'compatible' => TRUE,
+        ],
+        'block.system_menu_block.footer' => [
+          'compatible' => TRUE,
+        ],
+        'block.system_menu_block.main' => [
+          'compatible' => TRUE,
+        ],
+        'block.system_menu_block.tools' => [
+          'compatible' => TRUE,
+        ],
         'block.user_login_block' => [
           'compatible' => TRUE,
         ],
@@ -377,6 +397,7 @@ class ComponentTest extends KernelTestBase {
         'Drupal\system\Plugin\Block\SystemMainBlock',
         'Drupal\system\Plugin\Block\SystemMessagesBlock',
         $version > 10 ? 'Drupal\system\Plugin\Block\SystemPoweredByBlock' : '',
+        'Drupal\system\Plugin\Block\SystemMenuBlock',
         UserLoginBlock::class,
       ]),
     ];
