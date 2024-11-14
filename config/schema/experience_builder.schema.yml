@@ -94,12 +94,11 @@ experience_builder.page_template.*:
           tree:
             absence: ~
             presence:
-              # 💁‍♂️ The `block+` prefix will be added in https://www.drupal.org/project/experience_builder/issues/3475584
-              # In core: `block+system+system_main_block`. Contrib/custom modules may add additional implementations.
+              # In core: `block.system_main_block`. Contrib/custom modules may add additional implementations.
               - Drupal\Core\Block\MainContentBlockPluginInterface
-              # In core: `block+system+page_title_block`. Contrib/custom modules may add additional implementations.
+              # In core: `block.page_title_block`. Contrib/custom modules may add additional implementations.
               - Drupal\Core\Block\TitleBlockPluginInterface
-              # In core: `block+system+system_messages_block`. Contrib/custom modules may add additional implementations.
+              # In core: `block.system_messages_block`. Contrib/custom modules may add additional implementations.
               - Drupal\Core\Block\MessagesBlockPluginInterface
       sequence:
         # A region that is left empty may be `null`.

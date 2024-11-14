@@ -74,7 +74,13 @@ final class ComponentTreeMeetsRequirementsConstraintValidator extends Constraint
       []
     );
     sort($detected_component_ids);
-    $detected_component_interfaces = Component::getInterfaces($detected_component_ids);
+    $detected_component_classes = Component::getClasses($detected_component_ids);
+    $detected_component_interfaces = [];
+    foreach ($detected_component_classes as $fqcn) {
+      // @phpstan-ignore arrayUnpacking.nonIterable
+      $detected_component_interfaces = [...$detected_component_interfaces, ...class_implements($fqcn)];
+    }
+    $detected_component_interfaces = array_unique($detected_component_interfaces);
     sort($detected_component_interfaces);
     $detected_prop_source_prefixes = array_reduce(
       array_map(
@@ -136,16 +142,11 @@ final class ComponentTreeMeetsRequirementsConstraintValidator extends Constraint
         elseif ($nested_option === 'presence' && $intersection != $requirement_values) {
           $missing_values = array_diff($requirement_values, $intersection);
           foreach ($missing_values as $missing_value) {
-            // @todo Remove this in Blocks-as-XB-Components: https://www.drupal.org/project/experience_builder/issues/3475584
-            if (str_starts_with($missing_value, 'block.') || str_starts_with($missing_value, 'Drupal\\')) {
-              continue;
-            }
-
             $this->context
               ->buildViolation(match($aspect_to_check) {
                 'props' => $constraint->propSourceTypePresenceMessage,
                 'tree:component_ids' => $constraint->componentPresenceMessage,
-                'tree:component_interfaces' => $constraint->componentPresenceMessage,
+                'tree:component_interfaces' => $constraint->componentInterfacePresenceMessage,
               })
               ->setParameter(
                 match($aspect_to_check) {

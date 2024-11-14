@@ -6,6 +6,8 @@ namespace Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource;
 
 use Drupal\Core\Block\BlockManagerInterface;
 use Drupal\Core\Block\BlockPluginInterface;
+use Drupal\Core\Block\MainContentBlockPluginInterface;
+use Drupal\Core\Block\TitleBlockPluginInterface;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\Core\Render\RendererInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
@@ -112,6 +114,15 @@ final class BlockComponent extends ComponentSourceBase implements ContainerFacto
     $block = $this->getComponentPlugin();
     foreach ($inputs['settings'] ?? [] as $key => $value) {
       $block->setConfigurationValue($key, $value);
+    }
+
+    // Allow global context to be injected by suspending the fiber.
+    // @see \Drupal\experience_builder\Plugin\DisplayVariant\PageTemplateDisplayVariant::build()
+    if ($block instanceof MainContentBlockPluginInterface || $block instanceof TitleBlockPluginInterface) {
+      if (\Fiber::getCurrent() === NULL) {
+        throw new \LogicException();
+      }
+      \Fiber::suspend($block);
     }
 
     // @todo access checking and everything in \Drupal\layout_builder\EventSubscriber\BlockComponentRenderArray::onBuildRender

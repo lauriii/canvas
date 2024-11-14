@@ -25,6 +25,7 @@ class PageTemplateValidationTest extends ConfigEntityValidationTestBase {
    * {@inheritdoc}
    */
   protected static $modules = [
+    'block',
     'experience_builder',
     'xb_test_sdc',
     // XB's dependencies (modules providing field types + widgets).
@@ -59,6 +60,9 @@ class PageTemplateValidationTest extends ConfigEntityValidationTestBase {
             ComponentTreeStructure::ROOT_UUID => [
               ['uuid' => 'uuid-in-root', 'component' => 'sdc.xb_test_sdc.props-no-slots'],
               ['uuid' => 'uuid-in-root-another', 'component' => 'sdc.xb_test_sdc.props-no-slots'],
+              ['uuid' => 'uuid-main', 'component' => 'block.system_main_block'],
+              ['uuid' => 'uuid-title', 'component' => 'block.page_title_block'],
+              ['uuid' => 'uuid-messages', 'component' => 'block.system_messages_block'],
             ],
           ]),
           'props' => self::encodeXBData([
@@ -101,6 +105,9 @@ class PageTemplateValidationTest extends ConfigEntityValidationTestBase {
     $this->assertSame(
       [
         'config' => [
+          'experience_builder.component.block.page_title_block',
+          'experience_builder.component.block.system_main_block',
+          'experience_builder.component.block.system_messages_block',
           'experience_builder.component.sdc.xb_test_sdc.props-no-slots',
         ],
         'theme' => ['stark'],
@@ -141,7 +148,16 @@ class PageTemplateValidationTest extends ConfigEntityValidationTestBase {
       'hero' => NULL,
       'highlighted' => NULL,
       'breadcrumb' => NULL,
-      'social' => NULL,
+      'social' => [
+        'tree' => self::encodeXBData([
+          ComponentTreeStructure::ROOT_UUID => [
+            ['uuid' => 'uuid-main', 'component' => 'block.system_main_block'],
+            ['uuid' => 'uuid-title', 'component' => 'block.page_title_block'],
+            ['uuid' => 'uuid-messages', 'component' => 'block.system_messages_block'],
+          ],
+        ]),
+        'props' => '{}',
+      ],
       'content_above' => NULL,
       'content' => NULL,
       'sidebar' => NULL,
@@ -163,14 +179,72 @@ class PageTemplateValidationTest extends ConfigEntityValidationTestBase {
     $this->assertValidationErrors($expected_messages);
   }
 
-  /**
-   * @todo Update these in Blocks-as-XB-Components to always include the 3 essential blocks: https://www.drupal.org/project/experience_builder/issues/3475584
-   */
   public static function providerInvalidComponentTrees(): \Generator {
-    yield "missing `content` region" => [
+    yield "missing `content` region and essential blocks" => [
       'component_trees' => [
         'sidebar_first' => NULL,
         'sidebar_second' => NULL,
+        'header' => NULL,
+        'primary_menu' => NULL,
+        'secondary_menu' => NULL,
+        'footer' => NULL,
+        'highlighted' => NULL,
+        'help' => NULL,
+        'page_top' => NULL,
+        'page_bottom' => NULL,
+        'breadcrumb' => NULL,
+      ],
+      'expected_messages' => [
+        'component_trees' => [
+          'Configuration for the region "<em class="placeholder">content</em>" (<em class="placeholder">content</em>) is missing.',
+          "The 'Drupal\Core\Block\MainContentBlockPluginInterface' component interface must be present.",
+          "The 'Drupal\Core\Block\TitleBlockPluginInterface' component interface must be present.",
+          "The 'Drupal\Core\Block\MessagesBlockPluginInterface' component interface must be present.",
+        ],
+      ],
+    ];
+
+    yield "missing one essential block" => [
+      'component_trees' => [
+        'sidebar_first' => NULL,
+        'sidebar_second' => [
+          'tree' => self::encodeXBData([
+            ComponentTreeStructure::ROOT_UUID => [
+              ['uuid' => 'uuid-main', 'component' => 'block.system_main_block'],
+              ['uuid' => 'uuid-messages', 'component' => 'block.system_messages_block'],
+            ],
+          ]),
+          'props' => '{}',
+        ],
+        'header' => NULL,
+        'content' => NULL,
+        'primary_menu' => NULL,
+        'secondary_menu' => NULL,
+        'footer' => NULL,
+        'highlighted' => NULL,
+        'help' => NULL,
+        'page_top' => NULL,
+        'page_bottom' => NULL,
+        'breadcrumb' => NULL,
+      ],
+      'expected_messages' => [
+        'component_trees' => "The 'Drupal\Core\Block\TitleBlockPluginInterface' component interface must be present.",
+      ],
+    ];
+
+    yield "missing `content` region" => [
+      'component_trees' => [
+        'sidebar_first' => NULL,
+        'sidebar_second' => [
+          'tree' => self::encodeXBData([
+            ComponentTreeStructure::ROOT_UUID => [
+              ['uuid' => 'uuid-main', 'component' => 'block.system_main_block'],
+              ['uuid' => 'uuid-title', 'component' => 'block.page_title_block'],
+              ['uuid' => 'uuid-messages', 'component' => 'block.system_messages_block'],
+            ],
+          ]),
+          'props' => '{}',
+        ],
         'header' => NULL,
         'primary_menu' => NULL,
         'secondary_menu' => NULL,
@@ -189,7 +263,16 @@ class PageTemplateValidationTest extends ConfigEntityValidationTestBase {
     yield "missing `content` and `highlighted` regions" => [
       'component_trees' => [
         'sidebar_first' => NULL,
-        'sidebar_second' => NULL,
+        'sidebar_second' => [
+          'tree' => self::encodeXBData([
+            ComponentTreeStructure::ROOT_UUID => [
+              ['uuid' => 'uuid-main', 'component' => 'block.system_main_block'],
+              ['uuid' => 'uuid-title', 'component' => 'block.page_title_block'],
+              ['uuid' => 'uuid-messages', 'component' => 'block.system_messages_block'],
+            ],
+          ]),
+          'props' => '{}',
+        ],
         'header' => NULL,
         'primary_menu' => NULL,
         'secondary_menu' => NULL,
@@ -210,7 +293,16 @@ class PageTemplateValidationTest extends ConfigEntityValidationTestBase {
     yield "non-existent `foobar` region" => [
       'component_trees' => [
         'sidebar_first' => NULL,
-        'sidebar_second' => NULL,
+        'sidebar_second' => [
+          'tree' => self::encodeXBData([
+            ComponentTreeStructure::ROOT_UUID => [
+              ['uuid' => 'uuid-main', 'component' => 'block.system_main_block'],
+              ['uuid' => 'uuid-title', 'component' => 'block.page_title_block'],
+              ['uuid' => 'uuid-messages', 'component' => 'block.system_messages_block'],
+            ],
+          ]),
+          'props' => '{}',
+        ],
         'content' => NULL,
         'header' => NULL,
         'primary_menu' => NULL,
@@ -231,7 +323,16 @@ class PageTemplateValidationTest extends ConfigEntityValidationTestBase {
     yield "using DynamicPropSource" => [
       'component_trees' => [
         'sidebar_first' => NULL,
-        'sidebar_second' => NULL,
+        'sidebar_second' => [
+          'tree' => self::encodeXBData([
+            ComponentTreeStructure::ROOT_UUID => [
+              ['uuid' => 'uuid-main', 'component' => 'block.system_main_block'],
+              ['uuid' => 'uuid-title', 'component' => 'block.page_title_block'],
+              ['uuid' => 'uuid-messages', 'component' => 'block.system_messages_block'],
+            ],
+          ]),
+          'props' => '{}',
+        ],
         'content' => NULL,
         'header' => NULL,
         'primary_menu' => NULL,

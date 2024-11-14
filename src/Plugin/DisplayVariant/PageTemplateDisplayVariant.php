@@ -2,6 +2,8 @@
 
 namespace Drupal\experience_builder\Plugin\DisplayVariant;
 
+use Drupal\Core\Block\MainContentBlockPluginInterface;
+use Drupal\Core\Block\TitleBlockPluginInterface;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Display\Attribute\PageDisplayVariant;
 use Drupal\Core\Display\PageVariantInterface;
@@ -25,6 +27,11 @@ use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
  *    TitleBlockPluginInterface
  * 3. exactly one Experience Builder Component is placed that uses
  *    MessagesBlockPluginInterface
+ *
+ * All MessagesBlockPluginInterface implementations use the global context; but
+ * the two others need to receive the information from this page variant. To
+ * achieve that without burdening all intermediary abstraction layers with the
+ * need for additional parameters or exception handling, PHP fibers are used.
  *
  * @see docs/components.md
  * @see \Drupal\Core\Render\Element\Page
@@ -90,28 +97,41 @@ final class PageTemplateDisplayVariant extends VariantBase implements PageVarian
     assert(!empty($this->title));
     assert(!empty($this->mainContent));
 
-    // @todo Blocked on Blocks-as-XB-Components: https://www.drupal.org/project/experience_builder/issues/3475584
-    // Algorithm:
-    // 1. in the foreach-loop below, iterate over the components in each tree to
-    //    find where 2 of the 3 special block plugins are placed
-    //    (config validation will already guarantee their presence)
-    // 2. call ::setMainContent($this->mainContent) and ::setTitle($this->title)
-    //    (no special treatment is necessary for the messages block: it gets its
-    //    information from global state)
-
     $build = [];
     foreach ($page_template->getComponentTrees() as $region_name => $component_tree) {
       assert($component_tree instanceof ComponentTreeItem);
-      $build[$region_name] = $component_tree->toRenderable();
+
+      // Render the component tree in a PHP fiber to allow injecting page-level
+      // information (title + main content — both originating from the matched
+      // route's controller) into special XB Components.
+      // @see \Drupal\Core\Display\PageVariantInterface
+      // @see \Drupal\Core\Block\MainContentBlockPluginInterface
+      // @see \Drupal\Core\Block\TitleBlockPluginInterface
+      // @see \Drupal\experience_builder\ComponentSource\ComponentSourceInterface::renderComponent()
+      // @see \Drupal\block\Plugin\DisplayVariant\BlockPageVariant::build()
+      $fiber = new \Fiber(fn() => $component_tree->toRenderable());
+      $component_instance = $fiber->start();
+      while ($fiber->isSuspended()) {
+        $component_instance = match (TRUE) {
+          // The first kind of page-level information: the main content.
+          $component_instance instanceof MainContentBlockPluginInterface => (function () use ($component_instance, $fiber) {
+            $component_instance->setMainContent($this->mainContent);
+            return $fiber->resume();
+          })(),
+          // The second kind of page-level information: the title.
+          $component_instance instanceof TitleBlockPluginInterface => (function () use ($component_instance, $fiber) {
+            $component_instance->setTitle($this->title);
+            return $fiber->resume();
+          })(),
+          // No other page-level information exists in Drupal at this time.
+          default => new \LogicException(),
+        };
+      }
+      assert($fiber->isTerminated());
+      $build[$region_name] = $fiber->getReturn();
     }
 
     CacheableMetadata::createFromObject($page_template)->applyTo($build);
-
-    // @todo Remove these once the ::setMainContent() call is present. All are added by the route controller calling \Drupal\user\Form\UserLoginForm.
-    $build['#cache']['tags'][] = 'CACHE_MISS_IF_UNCACHEABLE_HTTP_METHOD:form';
-    $build['#cache']['tags'][] = 'config:system.site';
-    $build['#cache']['contexts'][] = 'url.path';
-    $build['#cache']['contexts'][] = 'url.query_args';
 
     return $build;
   }

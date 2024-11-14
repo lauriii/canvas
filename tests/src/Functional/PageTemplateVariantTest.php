@@ -86,6 +86,9 @@ class PageTemplateVariantTest extends BrowserTestBase {
           'tree' => self::encodeXBData([
             ComponentTreeStructure::ROOT_UUID => [
               ['uuid' => 'uuid-in-root', 'component' => 'sdc.xb_test_sdc.props-no-slots'],
+              ['uuid' => 'uuid-main', 'component' => 'block.system_main_block'],
+              ['uuid' => 'uuid-title', 'component' => 'block.page_title_block'],
+              ['uuid' => 'uuid-messages', 'component' => 'block.system_messages_block'],
               ['uuid' => 'uuid-in-root-another', 'component' => 'sdc.xb_test_sdc.props-no-slots'],
             ],
           ]),
@@ -118,6 +121,9 @@ class PageTemplateVariantTest extends BrowserTestBase {
     // this should be totally plausible. FOR NOW THIS WOULD BE PREMATURE
     // OPTIMIZATION.
     $this->assertPageDisplayVariant(PageTemplateDisplayVariant::class, Component::loadMultiple([
+      'block.page_title_block',
+      'block.system_main_block',
+      'block.page_title_block',
       'sdc.xb_test_sdc.props-no-slots',
     ]));
     $this->assertSession()->pageTextNotContains('Powered by Drupal');

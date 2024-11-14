@@ -48,14 +48,25 @@ class PropSourceEndpointTest extends BrowserTestBase {
     // available to anonymous users).
     if (version_compare(\Drupal::VERSION, '11', '>=')) {
       $this->assertSession()->responseHeaderEquals('X-Drupal-Cache-Tags', 'CACHE_MISS_IF_UNCACHEABLE_HTTP_METHOD:form announcements_feed:feed config:component_list config:search.settings config:system.site http_response local_task');
-      $this->assertSession()->responseHeaderEquals('X-Drupal-Cache-Contexts', 'route url.path.is_front url.path.parent url.query_args:_wrapper_format user.permissions user.roles:authenticated');
     }
     else {
-      // @todo Why are the `config:search.settings config:system.site` cache tags absent on Drupal 10?!
-      $this->assertSession()->responseHeaderEquals('X-Drupal-Cache-Tags', 'config:component_list http_response local_task');
-      $this->assertSession()->responseHeaderEquals('X-Drupal-Cache-Contexts', 'route user.permissions');
+      // @todo Require Drupal 11, then this branch can be removed.
+      // TRICKY: On Drupal 10, the `search_form_block` block is not available as an XB Component because its settings are not fully validatable, hence its cache tag does not appear.
+      $this->assertSession()->responseHeaderEquals('X-Drupal-Cache-Tags', 'CACHE_MISS_IF_UNCACHEABLE_HTTP_METHOD:form announcements_feed:feed config:component_list config:system.site http_response local_task');
     }
-    $this->assertSession()->responseHeaderEquals('X-Drupal-Cache-Max-Age', '-1 (Permanent)');
+    $this->assertSession()->responseHeaderEquals('X-Drupal-Cache-Contexts', 'route url.path.is_front url.path.parent url.query_args:_wrapper_format user.permissions user.roles:authenticated');
+    // TRICKY: the preview markup for \Drupal\user\Plugin\Block\UserLoginBlock
+    // contains an uncacheable (max-age 0 s) form token, which is automatically
+    // ignored and a minimum max-age of 60 s is enforced … except that on Drupal
+    // 11, https://www.drupal.org/project/drupal/issues/2578855 has made this
+    // form cacheable!
+    // @see \Drupal\Core\Form\FormBuilder::prepareForm()
+    if (version_compare(\Drupal::VERSION, '11', '>=')) {
+      $this->assertSession()->responseHeaderEquals('X-Drupal-Cache-Max-Age', '-1 (Permanent)');
+    }
+    else {
+      $this->assertSession()->responseHeaderEquals('X-Drupal-Cache-Max-Age', '60');
+    }
     $this->assertSession()->responseHeaderEquals('X-Drupal-Dynamic-Cache', 'MISS');
     $this->assertSession()->responseHeaderEquals('X-Drupal-Cache', 'UNCACHEABLE (request policy)');
     $this->drupalGet('xb-components');

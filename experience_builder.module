@@ -6,6 +6,7 @@
  */
 
 use Drupal\Component\Serialization\Json;
+use Drupal\Core\Block\BlockManagerInterface;
 use Drupal\Core\Block\BlockPluginInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Entity\TypedData\EntityDataDefinition;
@@ -422,7 +423,11 @@ function experience_builder_modules_installed(array $modules, bool $is_syncing):
   if ($is_syncing) {
     return;
   }
-  // The module installer cleared all plugin caches. Force new/changed SDCs to create/update Component config entities.
+  // The module installer cleared all plugin caches. Create/update Component
+  // config entities for all XB Component source plugins.
+  // @see \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\BlockComponent
+  \Drupal::service(BlockManagerInterface::class)->getDefinitions();
+  // @see \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\SingleDirectoryComponent
   \Drupal::service(ComponentPluginManager::class)->getDefinitions();
 }
 
@@ -430,7 +435,11 @@ function experience_builder_modules_installed(array $modules, bool $is_syncing):
  * Implements hook_rebuild().
  */
 function experience_builder_rebuild(): void {
-  // The module installer cleared all plugin caches. Force new/changed SDCs to create/update Component config entities.
+  // The module installer cleared all plugin caches. Create/update Component
+  // config entities for all XB Component source plugins.
+  // @see \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\BlockComponent
+  \Drupal::service(BlockManagerInterface::class)->getDefinitions();
+  // @see \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\SingleDirectoryComponent
   \Drupal::service(ComponentPluginManager::class)->getDefinitions();
 }
 
@@ -478,7 +487,8 @@ function experience_builder_block_alter(array &$definitions): void {
       assert($block instanceof BlockPluginInterface);
       $settings = $block->defaultConfiguration();
       $data_definition = \Drupal::service('config.typed')->createFromNameAndData('block.settings.' . $definition['id'], $settings);
-      // We currently support only block plugins with fully validatable settings schema.
+      // We currently support only block plugins with no settings, or if they do
+      // have settings, they must be fully validatable.
       $fullyValidatable = FALSE;
       foreach ($data_definition->getConstraints() as $constraint) {
         if ($constraint instanceof FullyValidatableConstraint) {
@@ -486,7 +496,8 @@ function experience_builder_block_alter(array &$definitions): void {
           break;
         }
       }
-      if (!$fullyValidatable) {
+      // @todo Remove the PageTitleBlock and SystemMessagesBlock special cases: make it fully validatable upstream in Drupal core. It is exempted here because of its crucial role in \Drupal\experience_builder\Entity\PageTemplate.
+      if (!empty($settings) && !$fullyValidatable && $id !== 'block.page_title_block' && $id !== 'block.system_messages_block') {
         continue;
       }
       $component = Component::create([

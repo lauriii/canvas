@@ -45,11 +45,18 @@ trait ComponentTreeTestTrait {
     ];
   }
 
-  /**
-   * @todo Add a test to ensure the 3 forbidden Blocks-as-XB-Components components are not allowed: https://www.drupal.org/project/experience_builder/issues/3475584
-   */
   protected static function getInvalidTreeTestCases(): array {
     return [
+      'invalid tree: the main content block is only allowed in PageTemplate' => [
+        [
+          'tree' => self::encodeXBData([
+            ComponentTreeStructure::ROOT_UUID => [
+              ['uuid' => 'uuid-main', 'component' => 'block.system_main_block'],
+            ],
+          ]),
+          'props' => '{}',
+        ],
+      ],
       'invalid values using dynamic props' => [
         [
           'tree' => self::encodeXBData([

@@ -16,6 +16,7 @@ use Drupal\experience_builder\PropSource\StaticPropSource;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\Tests\experience_builder\Traits\ContribStrictConfigSchemaTestTrait;
 use Drupal\Tests\experience_builder\Traits\GenerateComponentConfigTrait;
+use Drupal\user\Plugin\Block\UserLoginBlock;
 
 class ComponentTest extends KernelTestBase {
 
@@ -163,11 +164,11 @@ class ComponentTest extends KernelTestBase {
   /**
    * @param array<string> $modules
    * @param array<string, array{'compatible': bool, 'reason'?: bool}> $components
-   * @param array<string> $interfaces
+   * @param array<string> $classes
    *
    * @dataProvider provider
    */
-  public function testComponentAutoCreate(array $modules, array $components, array $interfaces): void {
+  public function testComponentAutoCreate(array $modules, array $components, array $classes): void {
     // Initial state: no Component config entities.
     $this->assertEmpty(Component::loadMultiple());
 
@@ -192,7 +193,7 @@ class ComponentTest extends KernelTestBase {
       $this->assertEqualsCanonicalizing($expected_plugins['block'], array_keys($this->container->get('plugin.manager.block')->getDefinitions()));
     }
 
-    $this->assertEqualsCanonicalizing($interfaces, Component::getInterfaces(array_keys($components)));
+    $this->assertEqualsCanonicalizing($classes, Component::getClasses(array_keys($components)));
   }
 
   public static function provider(): \Generator {
@@ -332,7 +333,8 @@ class ComponentTest extends KernelTestBase {
 
     [$version] = explode('.', \Drupal::VERSION);
     yield 'installing block creates block components' => [
-      'modules' => ['system', 'block'],
+      // `system` and `user` are the two only required core modules.
+      'modules' => ['system', 'user', 'block'],
       'components' => $defaults + [
         'block.broken' => [
           'compatible' => FALSE,
@@ -344,34 +346,38 @@ class ComponentTest extends KernelTestBase {
           'compatible' => TRUE,
         ],
         'block.page_title_block' => [
-          'compatible' => $version > 10,
+          'compatible' => TRUE,
         ],
         'block.system_branding_block' => [
           'compatible' => TRUE,
         ],
         'block.system_breadcrumb_block' => [
-          'compatible' => $version > 10,
+          'compatible' => TRUE,
         ],
         'block.system_main_block' => [
-          'compatible' => $version > 10,
+          'compatible' => TRUE,
         ],
         'block.system_messages_block' => [
-          'compatible' => $version > 10,
+          'compatible' => TRUE,
         ],
         'block.system_powered_by_block' => [
           'compatible' => $version > 10,
         ],
+        'block.user_login_block' => [
+          'compatible' => TRUE,
+        ],
       ],
-      'interfaces' => array_filter([
+      'classes' => array_filter([
         'Drupal\Core\Plugin\Component',
-        $version > 10 ? 'Drupal\Core\Block\Plugin\Block\PageTitleBlock' : '',
+        'Drupal\Core\Block\Plugin\Block\PageTitleBlock',
         $version > 10 ? 'Drupal\Core\Menu\Plugin\Block\LocalActionsBlock' : '',
         'Drupal\Core\Menu\Plugin\Block\LocalTasksBlock',
         'Drupal\system\Plugin\Block\SystemBrandingBlock',
-        $version > 10 ? 'Drupal\system\Plugin\Block\SystemBreadcrumbBlock' : '',
-        $version > 10 ? 'Drupal\system\Plugin\Block\SystemMainBlock' : '',
-        $version > 10 ? 'Drupal\system\Plugin\Block\SystemMessagesBlock' : '',
+        'Drupal\system\Plugin\Block\SystemBreadcrumbBlock',
+        'Drupal\system\Plugin\Block\SystemMainBlock',
+        'Drupal\system\Plugin\Block\SystemMessagesBlock',
         $version > 10 ? 'Drupal\system\Plugin\Block\SystemPoweredByBlock' : '',
+        UserLoginBlock::class,
       ]),
     ];
   }

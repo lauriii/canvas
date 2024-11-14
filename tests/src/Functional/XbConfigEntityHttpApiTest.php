@@ -26,6 +26,7 @@ class XbConfigEntityHttpApiTest extends BrowserTestBase {
    * {@inheritdoc}
    */
   protected static $modules = [
+    'block',
     'experience_builder',
     'xb_test_sdc',
   ];
@@ -77,7 +78,16 @@ class XbConfigEntityHttpApiTest extends BrowserTestBase {
       'component_trees' => [
         'sidebar_first' => NULL,
         'sidebar_second' => NULL,
-        'header' => NULL,
+        'header' => [
+          'tree' => self::encodeXBData([
+            ComponentTreeStructure::ROOT_UUID => [
+              ['uuid' => 'uuid-main', 'component' => 'block.system_main_block'],
+              ['uuid' => 'uuid-title', 'component' => 'block.page_title_block'],
+              ['uuid' => 'uuid-messages', 'component' => 'block.system_messages_block'],
+            ],
+          ]),
+          'props' => '{}',
+        ],
         'primary_menu' => NULL,
         'secondary_menu' => NULL,
         'footer' => NULL,
@@ -177,7 +187,16 @@ class XbConfigEntityHttpApiTest extends BrowserTestBase {
           ]),
         ],
         'footer' => NULL,
-        'header' => NULL,
+        'header' => [
+          'tree' => self::encodeXBData([
+            ComponentTreeStructure::ROOT_UUID => [
+              ['uuid' => 'uuid-main', 'component' => 'block.system_main_block'],
+              ['uuid' => 'uuid-title', 'component' => 'block.page_title_block'],
+              ['uuid' => 'uuid-messages', 'component' => 'block.system_messages_block'],
+            ],
+          ]),
+          'props' => '{}',
+        ],
         'help' => NULL,
         'highlighted' => NULL,
         'page_bottom' => NULL,

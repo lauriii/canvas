@@ -133,15 +133,16 @@ final class Component extends ConfigEntityBase implements ComponentInterface {
    *   A list of (unique) Component config entity IDs.
    *
    * @return string[]
-   *   The corresponding list of interface IDs. Depending on the component type,
-   *   this may be one unique plugin interface per Component config entity (ID),
-   *   or the same plugin interface for all.
-   *   For example: all SDC-sourced XB Components use the same (plugin)
-   *   interface, but many Block plugin-sourced XB Components have a unique
-   *   (plugin) interface.
+   *   The corresponding list of PHP FQCNs. Depending on the component type,
+   *   this may be one unique class per Component config entity (ID), or the
+   *   same class for all.
+   *   For example: all SDC-sourced XB Components use the same (plugin) class
+   *   (and even interface) interface, but every Block plugin-sourced XB
+   *   Components has a unique (plugin) class, and often even a unique (plugin)
+   *   interface.
    *   @see \Drupal\Core\Theme\ComponentPluginManager::$defaults
    */
-  public static function getInterfaces(array $ids): array {
+  public static function getClasses(array $ids): array {
     return array_values(array_unique(array_filter(array_map(
       fn (string $id): string => Component::load($id)?->getComponentSource()?->getComponentPluginDefinition()['class'] ?? '',
       $ids
