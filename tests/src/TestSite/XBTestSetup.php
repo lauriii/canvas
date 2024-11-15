@@ -224,6 +224,12 @@ class XBTestSetup implements TestSetupInterface {
     ]);
     $node->save();
 
+    $empty_node = Node::create([
+      'type' => 'article',
+      'title' => 'I am an empty node',
+    ]);
+    $empty_node->save();
+
     $xb_role = Role::create([
       'id' => 'xb',
       'label' => 'xb',
