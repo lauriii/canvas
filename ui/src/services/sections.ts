@@ -59,7 +59,7 @@ const mockSections = {
       model: {
         abcde: {
           width: 50,
-          name: 'Two column',
+          name: 'Two Column',
         },
         fghij: {
           heading: 'A hero in slot 1!',

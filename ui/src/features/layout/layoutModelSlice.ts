@@ -1,20 +1,22 @@
 // cspell:ignore uuidv
+import type { AppDispatch } from '@/app/store';
+import { setSelectedComponent } from '@/features/ui/uiSlice';
+import type { Component } from '@/types/Component';
+import type { UUID } from '@/types/UUID';
 import type { PayloadAction } from '@reduxjs/toolkit';
 import { createSlice } from '@reduxjs/toolkit';
 import _ from 'lodash';
+import type { StateWithHistory } from 'redux-undo';
+import { v4 as uuidv4 } from 'uuid';
 import {
   findNodeByUuid,
   findNodePathByUuid,
-  moveNodeToPath,
   insertNodeAtPath,
+  moveNodeToPath,
+  recurseNodes,
   removeNodeByUuid,
   replaceUUIDsAndUpdateModel,
-  recurseNodes,
 } from './layoutUtils';
-import type { UUID } from '@/types/UUID';
-import type { AppDispatch } from '@/app/store';
-import type { StateWithHistory } from 'redux-undo';
-import type { Component } from '@/types/Component';
 
 export interface RootNode {
   name?: string;
@@ -89,6 +91,11 @@ type InsertMultipleNodesPayload = {
 type AddNewNodePayload = {
   to: number[] | undefined;
   component: Component | undefined;
+};
+
+type AddNewSectionPayload = {
+  to: number[] | undefined;
+  layoutModel: RootLayoutModel;
 };
 
 type SortNodePayload = {
@@ -287,7 +294,7 @@ export const addNewComponentToLayout =
     // @todo Remove this limitation in https://www.drupal.org/project/experience_builder/issues/3467954
     const initialData: ComponentModel = { name: payload.component.name };
     const children: Node[] = [];
-    const uuid = 'to_be_replaced';
+    const uuid = uuidv4();
 
     // Populate the model data with the default values
     if (payload.component?.field_data) {
@@ -333,8 +340,30 @@ export const addNewComponentToLayout =
       insertNodes({
         to: payload.to,
         layoutModel,
+        useUUID: uuid,
       }),
     );
+    dispatch(setSelectedComponent(uuid));
+  };
+
+export const addNewSectionToLayout =
+  (payload: AddNewSectionPayload) => (dispatch: AppDispatch) => {
+    const uuid = uuidv4();
+
+    const { to, layoutModel } = payload;
+
+    if (!to || !layoutModel) {
+      return;
+    }
+
+    dispatch(
+      insertNodes({
+        to,
+        layoutModel,
+        useUUID: uuid,
+      }),
+    );
+    dispatch(setSelectedComponent(uuid));
   };
 
 // Action creators are generated for each case reducer function.

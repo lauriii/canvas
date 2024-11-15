@@ -200,6 +200,7 @@ const ComponentOverlay: React.FC<ComponentOverlayProps> = (props) => {
         onMouseOut={handleItemMouseOut}
         onClick={handleComponentClick}
         onKeyDown={handleKeyDown}
+        data-xb-selected={component.uuid === selectedComponent}
         className={clsx('componentOverlay', styles.componentOverlay, {
           [styles.selected]: component.uuid === selectedComponent,
           [styles.hovered]: component.uuid === hoveredComponent,

@@ -7,7 +7,7 @@ import {
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import {
   addNewComponentToLayout,
-  insertNodes,
+  addNewSectionToLayout,
   moveNode,
   selectLayout,
   selectModel,
@@ -112,7 +112,7 @@ function usePreviewSortable(iframe: HTMLIFrameElement | null) {
             // Adding a section template.
             ev.item.innerHTML = '<p>Loading section...</p>';
             dispatch(
-              insertNodes({
+              addNewSectionToLayout({
                 to: newPath,
                 layoutModel:
                   sectionsRef?.current?.[ev.clone.dataset.xbComponentId]

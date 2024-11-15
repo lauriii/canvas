@@ -64,6 +64,21 @@ describe(
           expect(heroText2).to.equal('A hero in slot 2!');
         },
       );
+
+      cy.log(
+        'The newly added Two Column component from the section should be selected',
+      );
+      cy.openLayersPanel();
+      cy.findByTestId('xb-primary-panel').within(() => {
+        cy.findAllByText('Two Column').should('have.length', 2);
+        cy.log(
+          'The second (new) Two Column should be selected (check that it has a parent treeItem with the data-xb-selected attr)',
+        );
+        cy.findAllByText('Two Column')
+          .eq(1)
+          .parents('.treeItem')
+          .should('have.attr', 'data-xb-selected', 'true');
+      });
     });
 
     it('Can add component via the Add component button', () => {
@@ -103,6 +118,10 @@ describe(
           expect(myHeroComponent.length).to.equal(4);
         },
       );
+      cy.log('The newly added Hero component should be selected');
+      cy.findAllByLabelText('Hero', { selector: '.componentOverlay' })
+        .eq(0)
+        .should('have.attr', 'data-xb-selected', 'true');
     });
   },
 );

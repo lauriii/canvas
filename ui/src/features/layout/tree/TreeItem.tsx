@@ -99,6 +99,7 @@ const TreeItem: React.FC<TreeItemProps> = ({ node, children }) => {
       }}
       data-xb-uuid={node.uuid}
       data-xb-type={node.nodeType}
+      data-xb-selected={selectedComponent === node.uuid}
       onClick={handleItemClick}
       onMouseEnter={handleItemMouseEnter}
       onMouseLeave={handleItemMouseLeave}

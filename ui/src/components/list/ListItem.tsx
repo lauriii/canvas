@@ -18,7 +18,7 @@ import {
 } from '@/features/ui/primaryPanelSlice';
 import {
   addNewComponentToLayout,
-  insertNodes,
+  addNewSectionToLayout,
   selectLayout,
 } from '@/features/layout/layoutModelSlice';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
@@ -67,7 +67,7 @@ const ListItem: React.FC<{
           );
         } else if (type === 'section') {
           dispatch(
-            insertNodes({
+            addNewSectionToLayout({
               to: newPath,
               layoutModel: (item as SectionListItem).layoutModel,
             }),
