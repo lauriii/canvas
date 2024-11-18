@@ -1,0 +1,302 @@
+describe('Contextual panel', { testIsolation: false }, () => {
+  before(() => {
+    cy.drupalXbInstall();
+  });
+
+  beforeEach(() => {
+    cy.drupalSession();
+    cy.drupalLogin('xbUser', 'xbUser');
+  });
+
+  after(() => {
+    cy.drupalUninstall();
+  });
+
+  it('should open the context menu on right-click', () => {
+    cy.loadURLandWaitForXBLoaded();
+    // Wait for the preview iframe to load and render something that confirms it is ready.
+    cy.get('iframe[data-xb-preview]').should('exist');
+    // Right-click on the element that should trigger the context menu
+    cy.getComponentInPreview('Hero').trigger('contextmenu');
+
+    cy.findByLabelText('Context menu for Hero')
+      .should('exist')
+      .and('be.visible');
+    // Assert that each menu item is inside the DropdownMenu.Content component
+    cy.findByLabelText('Context menu for Hero').within(() => {
+      cy.findByText('Edit').should('be.visible');
+      cy.findByText('Duplicate').should('be.visible');
+      cy.findByText('Move').should('be.visible');
+      cy.findByText('Delete').click();
+    });
+    cy.waitForElementContentNotInIframe('h1', 'hello, world!');
+  });
+  it('should open the context menu on right-click in primary content menu', () => {
+    cy.loadURLandWaitForXBLoaded();
+    // Wait for the preview iframe to load and render something that confirms it is ready.
+    cy.get('iframe[data-xb-preview]').should('exist');
+    // Right-click on the element in primary content menu that should trigger the context menu.
+    cy.get('[data-xb-uuid="root"]')
+      .findByText('Two Column')
+      .first()
+      .trigger('contextmenu');
+
+    cy.findByLabelText('Context menu for Two Column')
+      .should('exist')
+      .and('be.visible');
+
+    // Assert that each menu item is inside the DropdownMenu.Content component
+    cy.findByLabelText('Context menu for Two Column').within(() => {
+      cy.findByText('Edit').should('be.visible');
+      cy.findByText('Duplicate').should('be.visible');
+      cy.findByText('Move').should('be.visible');
+      cy.findByText('Delete').click();
+    });
+    cy.get('[data-xb-uuid="root"]')
+      .findByText('Two Column')
+      .should('not.exist');
+  });
+
+  it('should duplicate the element on clicking the "Duplicate" button', () => {
+    cy.loadURLandWaitForXBLoaded();
+    cy.getIframeBody()
+      .find('[data-component-id="experience_builder:two_column"]')
+      .should('have.length', 1);
+
+    // Right-click on the element that should trigger the context menu
+    cy.get('.primaryPanelContent')
+      .findByText('Two Column')
+      .trigger('contextmenu');
+
+    cy.findByLabelText('Context menu for Two Column')
+      .should('exist')
+      .and('be.visible');
+    cy.findByLabelText('Context menu for Two Column').within(() => {
+      // Click on the "Duplicate" button
+      cy.findByText('Duplicate').click();
+    });
+    cy.get('.primaryPanelContent')
+      .findAllByText('Two Column')
+      .should('have.length', 2);
+  });
+
+  it('Opens contextual panel on component selection with correct routing', () => {
+    cy.loadURLandWaitForXBLoaded();
+
+    // Find and alias the UUID of the "my-hero" component.
+    cy.getComponentInPreview('Hero', 2)
+      .find('.xb--sortable-item')
+      .invoke('attr', 'data-xb-uuid')
+      .as('cid1');
+    // Find and alias the UUID of the "image" component.
+    cy.getComponentInPreview('Image', 1)
+      .find('.xb--sortable-item')
+      .invoke('attr', 'data-xb-uuid')
+      .as('cid2');
+
+    // Ensure both aliases are retrieved and compare them.
+    cy.get('@cid1').then((uuid1) => {
+      cy.get('@cid2').then((uuid2) => {
+        expect(uuid2).to.not.equal(uuid1);
+      });
+    });
+
+    // Click component 1.
+    cy.get('@cid1').then((cid1) => {
+      cy.clickComponentInPreview('Hero', 2);
+      // Make sure the contextual panel opens for the clicked component.
+      cy.findByTestId(`xb-contextual-panel-${cid1}`).should('exist');
+      // Make sure the component form is rendered for the clicked component.
+      cy.findByTestId(`xb-component-form-${cid1}`).should('exist');
+      // Now on a path specific to that component.
+      cy.url().should((url) => {
+        expect(
+          url,
+          `After clicking on ${cid1}, path should include '/xb/node/1/component/${cid1}'`,
+        ).to.contain(`/xb/node/1/component/${cid1}`);
+      });
+    });
+
+    // Click component 2.
+    cy.get('@cid2').then((cid2) => {
+      cy.clickComponentInPreview('Image', 1);
+
+      // Make sure the contextual panel opens for the clicked component.
+      cy.findByTestId(`xb-contextual-panel-${cid2}`).should('exist');
+      // Make sure the component form is rendered for the clicked component.
+      cy.findByTestId(`xb-component-form-${cid2}`).should('exist');
+      // Now on a path specific to that component.
+      cy.url().should((url) => {
+        expect(
+          url,
+          `After clicking on ${cid2}, path should include '/xb/node/1/component/${cid2}'`,
+        ).to.contain(`/xb/node/1/component/${cid2}`);
+      });
+    });
+
+    cy.go('back');
+
+    cy.get('@cid1').then((cid1) => {
+      // Returns to the URL for the prior component.
+      cy.url().should((url) => {
+        expect(
+          url,
+          `Hit back once and path should again include '/xb/node/1/component/${cid1}'`,
+        ).to.contain(`/xb/node/1/component/${cid1}`);
+      });
+      // Returns to the contextual form for the prior component.
+      cy.findByTestId(`xb-contextual-panel-${cid1}`).should('exist');
+    });
+
+    cy.go('back');
+
+    cy.url().should((url) => {
+      expect(
+        url,
+        `Hit back twice and the and path should not have 'component' in it`,
+      ).to.not.contain('/xb/node/1/component');
+      expect(
+        url,
+        `Hit back twice and the path should still have /xb`,
+      ).to.contain('/xb/node/1');
+    });
+  });
+
+  it('Handles empty values in required inputs', () => {
+    cy.loadURLandWaitForXBLoaded();
+
+    // Make note of the number of Hero components currently in the preview.
+    cy.getIframeBody()
+      .find('[data-xb-component-id="experience_builder:my-hero"]')
+      .its('length')
+      .then((count) => {
+        cy.wrap(count).as('initialHeroCount');
+      });
+
+    // Click a Hero component to open the component form.
+    cy.clickComponentInPreview('Hero');
+
+    // `@componentFormHeading`
+    cy.findByTestId(/^xb-component-form-.*/)
+      .findByLabelText('Heading')
+      .as('componentFormHeading');
+
+    // Check if the "Heading" prop's <input> tag has the `required` attribute.
+    cy.get('@componentFormHeading').should('have.attr', 'required');
+    // Clear the value.
+    cy.get('@componentFormHeading').clear();
+    cy.get('@componentFormHeading').then(($input) => {
+      // Ensure the input is invalid
+      expect($input[0].validity.valid).to.be.false;
+      expect($input[0].matches(':invalid')).to.be.true;
+    });
+
+    // Make sure the number of Hero components in the preview hasn't changed.
+    cy.get('@initialHeroCount').then((initialHeroCount) => {
+      cy.getIframeBody()
+        .find('[data-xb-component-id="experience_builder:my-hero"]')
+        .its('length')
+        .should('eq', initialHeroCount);
+    });
+
+    // Update the value of the "Heading" prop's <input>.
+    cy.get('@componentFormHeading').type('New heading text');
+    // Ensure the new value shows in the preview.
+    cy.waitForElementContentInIframe(
+      'div[data-xb-component-id="experience_builder:my-hero"] h1',
+      'New heading text',
+    );
+
+    // `@componentFormCTA1Link`
+    cy.findByTestId(/^xb-component-form-.*/)
+      .findByLabelText('CTA 1 link')
+      .as('componentFormCTA1Link');
+    // `@componentFormCTA1Text`
+    cy.findByTestId(/^xb-component-form-.*/)
+      .findByLabelText('CTA 1 text')
+      .as('componentFormCTA1Text');
+
+    // Check if the "CTA 1 link" prop's <input> tag has the `required` attribute.
+    cy.get('@componentFormCTA1Link').should('have.attr', 'required');
+    // Clear the value.
+    cy.get('@componentFormCTA1Link').clear();
+    // Ensure the input is invalid.
+    cy.get('@componentFormCTA1Link').then(($input) => {
+      expect($input[0].validity.valid).to.be.false;
+      expect($input[0].matches(':invalid')).to.be.true;
+    });
+
+    // Make sure the number of Hero components in the preview hasn't changed.
+    cy.get('@initialHeroCount').then((initialHeroCount) => {
+      cy.getIframeBody()
+        .find('[data-xb-component-id="experience_builder:my-hero"]')
+        .its('length')
+        .should('eq', initialHeroCount);
+    });
+
+    // Update the value of the "CTA 1 link" prop's <input>.
+    cy.get('@componentFormCTA1Link').clear();
+    // Ensure the input is invalid.
+    cy.get('@componentFormCTA1Link')
+      .then(($input) => {
+        expect($input[0].validity.valid).to.be.false;
+        expect($input[0].matches(':invalid')).to.be.true;
+      })
+      .type('https://www.example.com/');
+    // Also update the value of the "CTA 1 text" prop's <input>.
+    cy.get('@componentFormCTA1Text').type('Example link');
+    // Ensure the new value shows in the preview.
+    cy.waitForElementContentInIframe(
+      'div[data-xb-component-id="experience_builder:my-hero"] button',
+      'Example link',
+    );
+    cy.getIframeBody()
+      .findByText('Example link')
+      .should('have.attr', 'formaction', 'https://www.example.com/');
+
+    // Make sure the number of Hero components in the preview hasn't changed.
+    cy.get('@initialHeroCount').then((initialHeroCount) => {
+      cy.getIframeBody()
+        .find('[data-xb-component-id="experience_builder:my-hero"]')
+        .its('length')
+        .should('eq', initialHeroCount);
+    });
+
+    // Ensure enum/select required field does not have None option
+    // Click on the first image component
+    cy.getIframeBody()
+      .find('[data-xb-component-id="experience_builder:image"]')
+      .first()
+      .click({ scrollBehavior: false });
+    // Click on the Add component button of image component
+    cy.findAllByLabelText('Add component')
+      .first()
+      .click({ scrollBehavior: false });
+    // Click Heading in the side menu
+    cy.get('.primaryPanelContent').findByText('Heading').click();
+    // Check if heading component has been added in the preview
+    cy.waitForElementContentInIframe(
+      'div[data-xb-component-id="experience_builder:heading"] h1[data-component-id="experience_builder:heading"]',
+      'A heading element',
+    );
+    // Find added Heading component above and click on it
+    cy.clickComponentInPreview('Heading');
+
+    // Find the Element enum/select component and check for None option - it should not be there
+    cy.findByTestId(/^xb-component-form-.*/)
+      .find('select[required]')
+      .should('be.visible')
+      .find('option')
+      .should('not.contain', '- None -');
+
+    // Hitting enter within a field should not submit the form or alter that
+    // prop within the layout.
+    cy.findByTestId(/^xb-component-form-.*/)
+      .find('input[required]')
+      .click();
+    cy.findByTestId(/^xb-component-form-.*/)
+      .find('input[required]')
+      .type('{enter}');
+    cy.getIframeBody().findByText('A heading element').should('exist');
+  });
+});

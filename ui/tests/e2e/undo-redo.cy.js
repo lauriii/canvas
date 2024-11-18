@@ -3,13 +3,13 @@ describe('Undo/Redo functionality', { testIsolation: false }, () => {
     cy.drupalXbInstall();
   });
 
-  after(() => {
-    cy.drupalUninstall();
-  });
-
   beforeEach(() => {
     cy.drupalSession();
     cy.drupalLogin('xbUser', 'xbUser');
+  });
+
+  after(() => {
+    cy.drupalUninstall();
   });
 
   it('Performs a basic interaction with Undo/Redo', () => {

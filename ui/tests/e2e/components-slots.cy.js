@@ -6,13 +6,13 @@ describe.skip('Component slots functionality', { testIsolation: false }, () => {
     cy.drupalXbInstall();
   });
 
-  after(() => {
-    cy.drupalUninstall();
-  });
-
   beforeEach(() => {
     cy.drupalSession();
     cy.drupalLogin('xbUser', 'xbUser');
+  });
+
+  after(() => {
+    cy.drupalUninstall();
   });
 
   it('Can add a component with slots and then add components into those slots', () => {

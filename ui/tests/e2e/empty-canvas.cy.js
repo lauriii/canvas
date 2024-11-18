@@ -3,12 +3,14 @@ describe('Empty canvas', () => {
     cy.drupalXbInstall();
   });
 
-  after(() => {
-    cy.drupalUninstall();
-  });
   beforeEach(() => {
     cy.drupalLogin('xbUser', 'xbUser');
   });
+
+  after(() => {
+    cy.drupalUninstall();
+  });
+
   it('can add a component to an empty canvas', () => {
     cy.loadURLandWaitForXBLoaded('xb/node/2');
 

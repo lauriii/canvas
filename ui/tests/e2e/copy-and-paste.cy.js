@@ -6,13 +6,13 @@ describe(
       cy.drupalXbInstall();
     });
 
-    after(() => {
-      cy.drupalUninstall();
-    });
-
     beforeEach(() => {
       cy.drupalSession();
       cy.drupalLogin('xbUser', 'xbUser');
+    });
+
+    after(() => {
+      cy.drupalUninstall();
     });
 
     it('Copy and paste a node using keyboard shortcuts', () => {

@@ -6,12 +6,12 @@ describe(
       cy.drupalXbInstall();
     });
 
-    after(() => {
-      cy.drupalUninstall();
-    });
-
     beforeEach(() => {
       cy.drupalLogin('xbUser', 'xbUser');
+    });
+
+    after(() => {
+      cy.drupalUninstall();
     });
 
     it('Can zoom the canvas with the Zoom Controls', () => {

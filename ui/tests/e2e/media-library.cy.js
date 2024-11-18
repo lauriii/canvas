@@ -3,14 +3,14 @@ describe('Media Library', () => {
     cy.drupalXbInstall();
   });
 
-  after(() => {
-    cy.drupalUninstall();
-  });
-
   beforeEach(() => {
     cy.drupalSession();
     // A larger viewport makes it easier to debug in the test runner app.
     cy.viewport(2000, 1000);
+  });
+
+  after(() => {
+    cy.drupalUninstall();
   });
 
   it('Can open the media library widget in a props form', () => {

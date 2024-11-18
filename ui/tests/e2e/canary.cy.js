@@ -6,12 +6,12 @@ describe(
       cy.drupalInstall();
     });
 
-    after(() => {
-      cy.drupalUninstall();
-    });
-
     beforeEach(() => {
       cy.drupalSession();
+    });
+
+    after(() => {
+      cy.drupalUninstall();
     });
 
     it('Test login', () => {
