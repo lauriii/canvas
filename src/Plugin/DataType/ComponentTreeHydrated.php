@@ -18,6 +18,8 @@ use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
 
 /**
  * @todo Do we need multiple variations of this? See \Drupal\datetime\DateTimeComputed for an example where there's *settings*
+ *
+ * @phpstan-type ComponentTreeHydratedValue \Drupal\Core\Cache\CacheableJsonResponse
  */
 #[DataType(
   id: "component_tree_hydrated",
@@ -28,6 +30,8 @@ class ComponentTreeHydrated extends TypedData implements CacheableDependencyInte
 
   /**
    * {@inheritdoc}
+   *
+   * @phpstan-return ComponentTreeHydratedValue
    */
   public function getValue(): CacheableJsonResponse {
     $item = $this->getParent();

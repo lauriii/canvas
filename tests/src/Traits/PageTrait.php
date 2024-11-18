@@ -1,0 +1,32 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Drupal\Tests\experience_builder\Traits;
+
+use Drupal\experience_builder\Entity\Page;
+
+trait PageTrait {
+
+  protected const array PAGE_TEST_MODULES = [
+    'user',
+    'path',
+    'path_alias',
+    'xb_test_page',
+  ];
+
+  /**
+   * Asserts that the page entity can be saved without violations.
+   *
+   * @param \Drupal\experience_builder\Entity\Page $page
+   *   The page entity.
+   */
+  protected static function assertSaveWithoutViolations(Page $page): void {
+    // Path field is always invalid for new entities.
+    // @see \Drupal\path\Plugin\Field\FieldWidget\PathWidget::validateFormElement().
+    $violations = $page->validate()->filterByFields(['path']);
+    self::assertCount(0, $violations);
+    $page->save();
+  }
+
+}
