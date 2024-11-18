@@ -1,9 +1,4 @@
-// cspell:ignore ndpoint
 const { Drupal } = window as any;
-
-interface JsAttachItem {
-  src?: string;
-}
 
 /**
  * Takes a response rendered by XBTemplateRenderer, identifies any attached
@@ -21,22 +16,7 @@ interface JsAttachItem {
  */
 // @see core/misc/ajax.js
 const processResponseAssets = async (response: any, meta: any) => {
-  const css =
-    meta.response.headers.get('Attach-Css') &&
-    JSON.parse(meta.response.headers.get('Attach-Css'));
-  const js =
-    meta.response.headers.get('Attach-Js') &&
-    JSON.parse(meta.response.headers.get('Attach-Js')).filter(
-      // Not all items in the array correspond to JS files, and as a result not
-      // parseable by `Drupal.AjaxCommands['add_js']`, hence the filter.
-      // F.E. a settings attribute such as:
-      // `{"type":"application\/json","data-drupal-selector":"drupal-settings-json"}`
-      // @see the 'setting' case in \Drupal\Core\Asset\JsCollectionRenderer::render().
-      (item: JsAttachItem) => item.src,
-    );
-  const settings =
-    meta.response.headers.get('Attach-Settings') &&
-    JSON.parse(meta.response.headers.get('Attach-Settings'));
+  const { css, js, settings } = response;
 
   if (css && css.length) {
     try {
@@ -84,7 +64,8 @@ const processResponseAssets = async (response: any, meta: any) => {
       console.error(e);
     }
   }
-  return response;
+
+  return response.html;
 };
 
 export default processResponseAssets;

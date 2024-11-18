@@ -13,8 +13,6 @@ export const dummyPropsFormApi = createApi({
         const fullQueryString = addAjaxPageState(queryString);
         return {
           url: `xb-field-form/{entity_type}/{entity_id}?${fullQueryString}`,
-          // fetchBaseQuery assumes every Response will get parsed by JSON so we need to add the below.
-          responseHandler: 'text',
         };
       },
       transformResponse: processResponseAssets,

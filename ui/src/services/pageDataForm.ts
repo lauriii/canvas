@@ -12,8 +12,6 @@ export const pageDataFormApi = createApi({
       query: () => {
         return {
           url: `/xb/api/entity-form/{entity_type}/{entity_id}/default?${addAjaxPageState('')}`,
-          // fetchBaseQuery assumes every Response will get parsed by JSON so we need to add the below.
-          responseHandler: 'text',
         };
       },
       transformResponse: processResponseAssets,

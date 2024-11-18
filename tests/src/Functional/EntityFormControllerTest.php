@@ -72,14 +72,15 @@ class EntityFormControllerTest extends FunctionalTestBase {
       '{"class":["node-article-form","node-form"],"data-drupal-selector":"node-article-form","enctype":"multipart\/form-data"',
       ENT_QUOTES,
     );
-    $this->assertStringStartsWith($expected_start, $response);
+    $parsed_response = json_decode($response, TRUE);
+    $this->assertStringStartsWith($expected_start, $parsed_response['html']);
     $menu_form_element_html_snippet = '<drupal-input attributes="' . htmlspecialchars(
       '{"data-drupal-selector":"edit-menu-title"',
       ENT_QUOTES,
     );
     $expected_menu_element ?
-      $this->assertStringContainsString($menu_form_element_html_snippet, $response) :
-      $this->assertStringNotContainsString($menu_form_element_html_snippet, $response);
+      $this->assertStringContainsString($menu_form_element_html_snippet, $parsed_response['html']) :
+      $this->assertStringNotContainsString($menu_form_element_html_snippet, $parsed_response['html']);
   }
 
 }

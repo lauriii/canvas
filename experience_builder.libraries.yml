@@ -14,7 +14,7 @@ xb-ui:
     - core/drupal.states
     # The libraries below might be unnecessary but here for the trial & error phase
     - system/base
-    - core/dialog
+    - core/drupal.dialog.ajax
     - core/internal.jquery.form
     - experience_builder/ajax.hyperscriptify
 

@@ -153,33 +153,28 @@ paths:
       responses:
         '200':
           description: Component props form
-          headers:
-            Attach-CSS:
-              required: true
-              schema:
-                type: string
-              description: >-
-                JSON representing CSS assets to attach, as expected by
-                `Drupal.AjaxCommands.add_css`.
-            Attach-JS:
-              required: true
-              schema:
-                type: string
-              description: >-
-                JSON representing JS assets to attach, as expected by
-                `Drupal.AjaxCommands.add_js`.
-            Attach-Settings:
-              required: true
-              schema:
-                type: string
-              description: >-
-                JSON representing Drupal settings to attach, as expected by
-                `Drupal.AjaxCommands.settings()`.
           content:
-            text/html:
+            application/json:
               schema:
-                type: string
-                description: The HTML for this server-defined form.
+                type: object
+                required:
+                  - html
+                  - css
+                  - js
+                  - settings
+                properties:
+                  html:
+                    type: string
+                    description: HTML originating from a Drupal render array.
+                  css:
+                    type: array
+                    description: Stringified CSS info structured for use by `add_css` AJAX command
+                  js:
+                    type: object
+                    description: Stringified JS info structured for use by `add_js` AJAX command
+                  settings:
+                    type: object
+                    description: Stringified settings info structured for use by `settings` AJAX command
     post:
       parameters:
         # @see \Drupal\Core\Form\FormBuilderInterface::AJAX_FORM_REQUEST
