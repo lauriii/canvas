@@ -275,4 +275,18 @@ class ComponentTreeStructure extends TypedData {
     return array_values(array_unique(array_column($this->getComponents(), 'component')));
   }
 
+  /**
+   * All unique components used in the tree are dependencies.
+   */
+  public function getDependencies(): array {
+    $dependencies = [];
+    $component_ids = $this->getComponentIdList();
+
+    foreach ($component_ids as $component_id) {
+      // @see \Drupal\Core\Config\Entity\ConfigEntityTypeInterface::getConfigPrefix()
+      $dependencies['config'][] = 'experience_builder.component.' . $component_id;
+    }
+    return $dependencies;
+  }
+
 }

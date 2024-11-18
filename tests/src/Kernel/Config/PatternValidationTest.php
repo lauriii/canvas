@@ -1,0 +1,185 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Drupal\Tests\experience_builder\Kernel\Config;
+
+use Drupal\experience_builder\Entity\Pattern;
+use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
+use Drupal\KernelTests\Core\Config\ConfigEntityValidationTestBase;
+use Drupal\Tests\experience_builder\Traits\BetterConfigDependencyManagerTrait;
+use Drupal\Tests\experience_builder\Traits\GenerateComponentConfigTrait;
+use Drupal\Tests\experience_builder\Traits\TestDataUtilitiesTrait;
+
+class PatternValidationTest extends ConfigEntityValidationTestBase {
+
+  use BetterConfigDependencyManagerTrait;
+  use GenerateComponentConfigTrait;
+  use TestDataUtilitiesTrait;
+
+  /**
+   * {@inheritdoc}
+   */
+  protected static $modules = [
+    'experience_builder',
+    'xb_test_sdc',
+    'block',
+    // XB's dependencies (modules providing field types + widgets).
+    'datetime',
+    'file',
+    'image',
+    'options',
+    'path',
+    'link',
+  ];
+
+  /**
+   * {@inheritdoc}
+   */
+  protected static array $propertiesWithRequiredKeys = [
+    'component_tree' => [
+      "'tree' is a required key.",
+      "'props' is a required key.",
+      'The array must contain a "tree" key.',
+      'The array must contain a "props" key.',
+    ],
+  ];
+
+  /**
+   * {@inheritdoc}
+   */
+  protected function setUp(): void {
+    parent::setUp();
+    $this->generateComponentConfig();
+    $generate_static_prop_source = function (string $label): array {
+      return [
+        'sourceType' => 'static:field_item:string',
+        'value' => "Hello, $label!",
+        'expression' => 'ℹ︎string␟value',
+      ];
+    };
+    $this->entity = Pattern::create([
+      'id' => 'test_pattern',
+      'label' => 'Test pattern',
+      'component_tree' => [
+        'tree' => self::encodeXBData([
+          ComponentTreeStructure::ROOT_UUID => [
+            ['uuid' => 'uuid-in-root', 'component' => 'sdc.xb_test_sdc.props-no-slots'],
+            ['uuid' => 'uuid-in-root-another', 'component' => 'sdc.xb_test_sdc.props-no-slots'],
+            ['uuid' => 'uuid-in-root-another-again', 'component' => 'sdc.experience_builder.heading'],
+            ['uuid' => 'local_tasks', 'component' => 'block.local_tasks_block'],
+          ],
+        ]),
+        'props' => self::encodeXBData([
+          'uuid-in-root' => [
+            'heading' => $generate_static_prop_source('world'),
+          ],
+          'uuid-in-root-another' => [
+            'heading' => $generate_static_prop_source('another world'),
+          ],
+          'uuid-in-root-another-again' => [
+            'text' => $generate_static_prop_source('heading level three'),
+            'element' => [
+              'sourceType' => 'static:field_item:list_string',
+              'value' => 'h3',
+              'expression' => 'ℹ︎list_string␟value',
+            ],
+          ],
+        ]),
+      ],
+    ]);
+    $this->entity->save();
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function testEntityIsValid(): void {
+    parent::testEntityIsValid();
+
+    // Beyond validity, validate config dependencies are computed correctly.
+    $this->assertSame(
+      [
+        'config' => [
+          'experience_builder.component.block.local_tasks_block',
+          'experience_builder.component.sdc.experience_builder.heading',
+          'experience_builder.component.sdc.xb_test_sdc.props-no-slots',
+        ],
+      ],
+      $this->entity->getDependencies()
+    );
+    $this->assertSame([
+      'config' => [
+        'experience_builder.component.block.local_tasks_block',
+        'experience_builder.component.sdc.experience_builder.heading',
+        'experience_builder.component.sdc.xb_test_sdc.props-no-slots',
+      ],
+      'module' => [
+        'experience_builder',
+        'options',
+        'xb_test_sdc',
+      ],
+    ], $this->getAllDependencies($this->entity));
+  }
+
+  /**
+   * @dataProvider providerInvalidComponentTree
+   * @covers \Drupal\experience_builder\Plugin\Validation\Constraint\ComponentTreeMeetsRequirementsConstraint
+   */
+  public function testInvalidComponentTree(array $component_tree, array $expected_messages): void {
+    $this->entity->set('component_tree', $component_tree);
+    $this->assertValidationErrors($expected_messages);
+  }
+
+  public static function providerInvalidComponentTree(): \Generator {
+    yield "missing `component_tree` property" => [
+      'component_tree' => [],
+      'expected_messages' => [
+        'component_tree' => [
+          '\'tree\' is a required key.',
+          '\'props\' is a required key.',
+          'The array must contain a "tree" key.',
+          'The array must contain a "props" key.',
+        ],
+      ],
+    ];
+
+    yield "using DynamicPropSource" => [
+      'component_tree' => [
+        'tree' => self::encodeXBData([
+          ComponentTreeStructure::ROOT_UUID => [
+            ['uuid' => 'uuid-in-root', 'component' => 'sdc.xb_test_sdc.props-no-slots'],
+          ],
+        ]),
+        'props' => self::encodeXBData([
+          'uuid-in-root' => [
+            'heading' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:article␝title␞␟value',
+            ],
+          ],
+        ]),
+      ],
+      'expected_messages' => [
+        'component_tree' => 'The \'dynamic\' prop source type must be absent.',
+      ],
+    ];
+
+    yield "using a disallowed Block-sourced Component" => [
+      'component_tree' => [
+        'tree' => self::encodeXBData([
+          ComponentTreeStructure::ROOT_UUID => [
+            ['uuid' => 'sdc-valid', 'component' => 'sdc.experience_builder.druplicon'],
+            ['uuid' => 'block-valid', 'component' => 'block.system_branding_block'],
+            ['uuid' => 'block-invalid', 'component' => 'block.page_title_block'],
+          ],
+        ]),
+        'props' => self::encodeXBData([]),
+      ],
+      'expected_messages' => [
+        'component_tree' => 'The \'Drupal\Core\Block\TitleBlockPluginInterface\' component interface must be absent.',
+      ],
+    ];
+  }
+
+}

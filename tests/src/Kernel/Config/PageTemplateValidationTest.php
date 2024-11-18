@@ -8,11 +8,13 @@ use Drupal\Core\Extension\ThemeInstallerInterface;
 use Drupal\experience_builder\Entity\PageTemplate;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 use Drupal\KernelTests\Core\Config\ConfigEntityValidationTestBase;
+use Drupal\Tests\experience_builder\Traits\BetterConfigDependencyManagerTrait;
 use Drupal\Tests\experience_builder\Traits\GenerateComponentConfigTrait;
 use Drupal\Tests\experience_builder\Traits\TestDataUtilitiesTrait;
 
 class PageTemplateValidationTest extends ConfigEntityValidationTestBase {
 
+  use BetterConfigDependencyManagerTrait;
   use GenerateComponentConfigTrait;
   use TestDataUtilitiesTrait;
 
@@ -114,6 +116,19 @@ class PageTemplateValidationTest extends ConfigEntityValidationTestBase {
       ],
       $this->entity->getDependencies()
     );
+    $this->assertSame([
+      'config' => [
+        'experience_builder.component.block.page_title_block',
+        'experience_builder.component.block.system_main_block',
+        'experience_builder.component.block.system_messages_block',
+        'experience_builder.component.sdc.xb_test_sdc.props-no-slots',
+      ],
+      'module' => [
+        'experience_builder',
+        'xb_test_sdc',
+      ],
+      'theme' => ['stark'],
+    ], $this->getAllDependencies($this->entity));
   }
 
   /**

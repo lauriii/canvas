@@ -42,3 +42,7 @@ parameters:
       message: "#^Cannot assign offset 'id' to string\\.$#"
       count: 1
       path: tests/src/Kernel/Entity/ComponentValidationTest.php
+    -
+      message: "#^Static property Drupal\\\\Tests\\\\experience_builder\\\\Kernel\\\\Config\\\\PatternValidationTest\\:\\:\\$propertiesWithRequiredKeys \\(array<string>\\) does not accept default value of type array<string, array<int, string>>\\.$#"
+      count: 1
+      path: tests/src/Kernel/Config/PatternValidationTest.php

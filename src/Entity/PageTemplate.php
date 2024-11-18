@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace Drupal\experience_builder\Entity;
 
 use Drupal\Core\Config\Entity\ConfigEntityBase;
-use Drupal\Core\TypedData\TypedDataTrait;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
+use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemInstantiatorTrait;
 
 /**
  * @ConfigEntityType(
@@ -31,7 +31,7 @@ use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
  */
 final class PageTemplate extends ConfigEntityBase implements XbHttpApiEligibleConfigEntityInterface {
 
-  use TypedDataTrait;
+  use ComponentTreeItemInstantiatorTrait;
 
   /**
    * The theme that this defines the XB Page Template for.
@@ -64,18 +64,10 @@ final class PageTemplate extends ConfigEntityBase implements XbHttpApiEligibleCo
   public function getComponentTrees(): \Generator {
     assert(is_array($this->component_trees));
 
-    // Instantiates a single (dangling) XB component tree field item object to
+    // Instantiate a single (dangling) XB component tree field item object to
     // subsequently clone and assign a different value for each region that has
     // a component tree defined.
-    $typed_data_manager = $this->getTypedDataManager();
-    $field_item_definition = $typed_data_manager->createDataDefinition('field_item:component_tree');
-    $field_item = $typed_data_manager->createInstance('field_item:component_tree', [
-      'name' => NULL,
-      'parent' => NULL,
-      'data_definition' => $field_item_definition,
-    ]);
-    assert($field_item instanceof ComponentTreeItem);
-
+    $field_item = $this->createDanglingComponentTree();
     foreach ($this->component_trees as $region_name => $component_tree) {
       if ($component_tree === NULL) {
         continue;
@@ -94,18 +86,17 @@ final class PageTemplate extends ConfigEntityBase implements XbHttpApiEligibleCo
     $this->addDependency('theme', $this->theme);
 
     foreach ($this->getComponentTrees() as $component_tree) {
-      // Use the XB field type infrastructure to determine the list of Component
-      // config entities in use.
       assert($component_tree instanceof ComponentTreeItem);
       $tree = $component_tree->get('tree');
       assert($tree instanceof ComponentTreeStructure);
-      $component_ids = $tree->getComponentIdList();
+      $this->addDependencies($tree->getDependencies());
 
-      // All unique components used in the tree are dependencies.
-      foreach ($component_ids as $component_id) {
-        // @see \Drupal\Core\Config\Entity\ConfigEntityTypeInterface::getConfigPrefix()
-        $this->addDependency('config', 'experience_builder.component.' . $component_id);
-      }
+      // TRICKY: in theory, dependencies must also be calculated for the `props`
+      // field prop. But, currently it can only contain StaticPropSources, and
+      // the dependencies for those are tracked in the Component config entity.
+      // @see \Drupal\experience_builder\Entity\Component::calculateDependencies()
+      // @todo Revisit this when allowing more complex values in `props`, that are not dictated by/captured in the Component config entity.
+      // @todo Revisit this in https://www.drupal.org/project/experience_builder/issues/3484666, where the above MIGHT change.
     }
 
     return $this;
