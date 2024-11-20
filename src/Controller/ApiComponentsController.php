@@ -19,8 +19,8 @@ use Symfony\Component\DependencyInjection\Attribute\Autowire;
  *
  * @see ui/src/types/Component.ts
  * @phpstan-import-type ComponentConfigEntityId from \Drupal\experience_builder\Entity\Component
- * @phpstan-type ComponentClientSideTypeAny array{'id': string, 'name': string, 'default_markup': string|\Stringable, 'css': string|\Stringable, 'js_header': string|\Stringable, 'js_footer': string|\Stringable}
- * @phpstan-type ComponentClientSideTypeSdc array{'id': string, 'name': string, 'default_markup': string|\Stringable, 'css': string|\Stringable, 'js_header': string|\Stringable, 'js_footer': string|\Stringable, 'metadata': array<string, mixed>, 'field_data': array<string, mixed>, 'dynamic_prop_source_candidates': array<string, mixed>,}
+ * @phpstan-type ComponentClientSideTypeAny array{'id': string, 'name': string, 'source': string, 'default_markup': string|\Stringable, 'css': string|\Stringable, 'js_header': string|\Stringable, 'js_footer': string|\Stringable}
+ * @phpstan-type ComponentClientSideTypeSdc array{'id': string, 'name': string, 'source': string, 'default_markup': string|\Stringable, 'css': string|\Stringable, 'js_header': string|\Stringable, 'js_footer': string|\Stringable, 'metadata': array<string, mixed>, 'field_data': array<string, mixed>, 'dynamic_prop_source_candidates': array<string, mixed>,}
  *
  * This controller provides a critical response for the XB UI. Therefore it
  * should hence be as fast and cacheable as possible. High-cardinality cache
@@ -62,6 +62,7 @@ final class ApiComponentsController {
    *   array of XB Component config entities, with for each:
    *   - `id`: the Component config entity ID
    *   - `name`: human-readable name
+   *   - `source`: human-readable component type
    *   - `default_markup`: without providing user input, this is what
    *     Component's markup would look like — used to preview the Component
    *     prior to placing it

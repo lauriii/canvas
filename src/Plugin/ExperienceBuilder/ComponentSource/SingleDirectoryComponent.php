@@ -17,6 +17,7 @@ use Drupal\Core\Render\RendererInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\Theme\Component\ComponentValidator;
 use Drupal\Core\Theme\ComponentPluginManager;
+use Drupal\Core\Theme\ExtensionType;
 use Drupal\experience_builder\AssetRenderer;
 use Drupal\experience_builder\Attribute\ComponentSource;
 use Drupal\experience_builder\ComponentSource\ComponentSourceBase;
@@ -315,6 +316,7 @@ final class SingleDirectoryComponent extends ComponentSourceBase implements Comp
     return [
       'id' => $component->id(),
       'name' => $component_plugin->metadata->name,
+      'source' => (string) $this->getSourceLabel(),
       // A pre-rendered version of the component is provided so no requests
       // are needed when adding it to the layout which includes a default markup,
       // CSS files, JS files in the header and JS files in the footer.
@@ -328,6 +330,26 @@ final class SingleDirectoryComponent extends ComponentSourceBase implements Comp
       'field_data' => $keyed_choices,
       'dynamic_prop_source_candidates' => $dynamic_prop_source_candidates,
     ];
+  }
+
+  /**
+   * Returns the source label for this component.
+   *
+   * @return \Drupal\Core\StringTranslation\TranslatableMarkup
+   *   The source label.
+   */
+  protected function getSourceLabel(): TranslatableMarkup {
+    $component_plugin = $this->getComponentPlugin();
+    assert(is_array($component_plugin->getPluginDefinition()));
+
+    // The 'extension_type' key is guaranteed to be set.
+    // @see \Drupal\Core\Theme\ComponentPluginManager::alterDefinition()
+    $extension_type = $component_plugin->getPluginDefinition()['extension_type'];
+    assert($extension_type instanceof ExtensionType);
+    return match ($extension_type) {
+      ExtensionType::Module => $this->t('Module component'),
+      ExtensionType::Theme => $this->t('Theme component'),
+    };
   }
 
   /**

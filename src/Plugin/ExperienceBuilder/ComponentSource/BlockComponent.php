@@ -151,6 +151,7 @@ final class BlockComponent extends ComponentSourceBase implements ContainerFacto
     return [
       'id' => $component->id(),
       'name' => (string) $definition['admin_label'],
+      'source' => (string) $this->t('Block'),
       // @todo Allow components to pass build arrays back?
       'default_markup' => $this->renderer->render($build),
       // @todo CSS and JS

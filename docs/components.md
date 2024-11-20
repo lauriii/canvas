@@ -31,6 +31,7 @@ This uses the terms defined above.
 - MUST support `SDC` and `Block` today
   - MUST be evolvable to [support other component types later](https://www.drupal.org/project/experience_builder/issues/3454519)
 - MUST support existing `SDC`s and `Block`s, if they meet certain criteria necessary for XB to provide a good UX
+- MUST support categorization of `component`s
 - MAY require API additions and perhaps even changes to `SDC`s (such as: defining restrictions for `component slot`s, schema references and more) ⚠️ [an overview of what has been identified is constantly updated](https://www.drupal.org/project/experience_builder/issues/3462705) ⚠️
 
 ⚠️ The [supported component modeling approaches](https://www.drupal.org/project/experience_builder/issues/3446083)
@@ -96,3 +97,26 @@ refer to "blocks" and not "block plugins", under the hood, they actually _are_ b
 ### 3.3 Other `component type`s
 
 Nothing yet, this will change when we [support other `component type`s later](https://www.drupal.org/project/experience_builder/issues/3454519).
+
+### 3.4 Categorization
+
+Each `component` can be categorized in order to group them in the UI. Some `component type`s have shared categories, as follows:
+
+```mermaid
+stateDiagram-v2
+classdef source color:white,fill:purple
+
+state "JavaScript component" as JavaScript
+state "Theme component" as Theme
+state "Theme component categories" as ThemeCat
+state "Module component" as Module
+state "Module component categories" as ModuleCat
+state "Element categories" as ElementCat
+state "Block categories" as BlockCat
+
+JavaScript:::source --> ThemeCat
+Theme:::source --> ThemeCat
+Module:::source --> ModuleCat
+Element:::source --> ElementCat
+Block:::source --> BlockCat
+```

@@ -91,6 +91,7 @@ paths:
                     'sdc_test:my-cta':
                       id: 'sdc_test:my-cta'
                       name: Call to Action
+                      source: Module component
                       metadata:
                         path: >-
                           core/modules/system/tests/modules/sdc_test/components/my-cta
