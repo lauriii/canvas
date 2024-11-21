@@ -49,8 +49,10 @@ to one of us! 😊 🙏
 - `component tree`: see [`XB Data Model` doc](data-model.md)
 - `content type template`: the default `component tree` for a particular `content type`, which typically includes assigning the smallest units of `structured data` to particular `component prop`s, and uses `configuration entity dependencies` to ensure the necessary `component`s are present
 - `PageTemplate config entity`: stores a `component tree` for every `theme region` in a given Drupal theme
+- `Pattern config entity`: stores a `component tree` that allows Ambitious Site Builders to save common component composition patterns for Content Creators to reuse
 - `structured data`: see [`XB Data Model` doc](data-model.md)
 - `unstructured data`: see [`XB Data Model` doc](data-model.md)
+- `XB field`: see [`XB Data Model` doc](data-model.md)
 
 ## 2. Product requirements
 
@@ -60,8 +62,9 @@ This adds to the product requirements listed in [`XB Components` doc](components
 
 (There are [more](https://docs.google.com/spreadsheets/d/1OpETAzprh6DWjpTsZG55LWgldWV_D8jNe9AM73jNaZo/edit?gid=1721130122#gid=1721130122), but these in particular affect XB's supported components.)
 
-- MUST be able to synchronize `component`s and `content type template`s from one site to another WITHOUT changes to Drupal deployment best practices
-- MUST be able to populate a `theme`'s `page template` using XB `component`s
+- MUST be able to synchronize `component`s and `content type template`s from one site to another WITHOUT changes to Drupal deployment best practices (requirement [`14. Configuration management`](https://docs.google.com/spreadsheets/d/1OpETAzprh6DWjpTsZG55LWgldWV_D8jNe9AM73jNaZo/edit?gid=1721130122#gid=1721130122&range=B25))
+- MUST be able to populate a `theme`'s `page template` using XB `component`s (requirement [`19. Modify the page template`](https://docs.google.com/spreadsheets/d/1OpETAzprh6DWjpTsZG55LWgldWV_D8jNe9AM73jNaZo/edit?gid=1721130122#gid=1721130122&range=B30))
+- MUST be able to store and reuse `component` compositions (requirement [`29. Layout Patterns`](https://docs.google.com/spreadsheets/d/1OpETAzprh6DWjpTsZG55LWgldWV_D8jNe9AM73jNaZo/edit?gid=1721130122#gid=1721130122&range=B41))
 - MUST support auditability, assuming (to answer questions such as: which `field type` and `field widget` does a `component` use when it is instantiated, why is a given `SDC` not available as a `component` in XB, et cetera)
 
 
@@ -163,6 +166,22 @@ See `\Drupal\block\Plugin\DisplayVariant\BlockPageVariant`.
 - support for blocks-as-components in general
 
 
-### 3.3 Other configuration entities
+### 3.3 `Pattern config entity`
+
+See:
+- `\Drupal\experience_builder\Entity\Pattern`
+
+A `Pattern config entity` can be created by Ambitious Site Builders to accelerate the work of Content Creators: it
+contains a common `component` composition pattern, exposed as a "section" in the user interface.
+
+When using a "section" (reusing a `Pattern config entity`), the `component tree` it contains at the time of using it is
+_absorbed_ into the place where it is being used in an `XB field`. Hence any changes to a `Pattern config entity` will
+only be visible in any subsequent uses of it. (Similar to how Drupal Recipes behave.)
+
+⚠️ Still to be built:
+- a UI to create `Pattern config entities` [exists](https://www.drupal.org/project/experience_builder/issues/3459229) already, but it does not yet save to the server side, that is still to be implemented in <https://www.drupal.org/project/experience_builder/issues/3486203>
+
+
+### 3.4 Other configuration entities
 
 Nothing yet, this will change when support for [`content type template`s is added later](https://www.drupal.org/project/experience_builder/issues/3455629)
