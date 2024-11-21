@@ -159,14 +159,12 @@ class ComponentTreeItemTest extends KernelTestBase {
       "field_xb_test.0.tree[$root_uuid][0]" => 'The component <em class="placeholder">sdc.sdc_test.missing</em> does not exist.',
     ];
     $test_cases['props invalid, using dynamic props'][] = [
-      'field_xb_test.0' => [
-        'The component instance with UUID <em class="placeholder">dynamic-static-card2df</em> uses component <em class="placeholder">sdc.xb_test_sdc.props-slots</em> and receives some invalid props! Put a breakpoint here and figure out why.',
-        'The component instance with UUID <em class="placeholder">dynamic-static-card3</em> uses component <em class="placeholder">sdc.xb_test_sdc.props-slots</em> and receives some invalid props! Put a breakpoint here and figure out why.',
-        "The 'dynamic' prop source type must be absent.",
-      ],
+      'field_xb_test.0.props.dynamic-static-card2df.heading' => 'The property heading is required',
+      'field_xb_test.0.props.dynamic-static-card3.heading' => 'The property heading is required',
+      'field_xb_test.0' => "The 'dynamic' prop source type must be absent.",
     ];
     $test_cases['props invalid, using only static props'][] = [
-      'field_xb_test.0' => 'The component instance with UUID <em class="placeholder">static-card2df</em> uses component <em class="placeholder">sdc.xb_test_sdc.props-no-slots</em> and receives some invalid props! Put a breakpoint here and figure out why.',
+      'field_xb_test.0.props.static-card2df.heading' => 'The property heading is required',
     ];
     $test_cases['missing props key'][] = [
       'field_xb_test.0' => 'The array must contain a "props" key.',

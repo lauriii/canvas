@@ -173,7 +173,7 @@ class TranslationTest extends FunctionalTestBase {
    *   The default translation of the node.
    */
   protected function createXbNodeWithTranslation(): Node {
-    $node = $this->createTestNode1();
+    $node = $this->createTestNode();
     // Create a translation from the original English node.
     $translation = $node->addTranslation('fr');
     $this->assertInstanceOf(Node::class, $translation);

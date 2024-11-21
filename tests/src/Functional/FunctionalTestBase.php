@@ -13,14 +13,14 @@ abstract class FunctionalTestBase extends BrowserTestBase {
 
   use TestFileCreationTrait;
 
-  protected function createTestNode1(): Node {
+  protected function createTestNode(): Node {
+    $nodes = $this->container->get('entity_type.manager')->getStorage('node')->loadMultiple();
+    $expected_nid = count($nodes) + 1;
+    $this->assertNull(Node::load($expected_nid));
     $assert_session = $this->assertSession();
     $page = $this->getSession()->getPage();
     // The `thumbnail` image style already exists.
     $this->assertInstanceOf(ImageStyle::class, ImageStyle::load('thumbnail'));
-
-    // Node 1 does not exist.
-    $this->assertNull(Node::load(1));
 
     // Navigate to `/node/add/article` and press `Save`, do nothing else.
     $this->drupalLogin($this->rootUser);
@@ -36,9 +36,9 @@ abstract class FunctionalTestBase extends BrowserTestBase {
     $page->pressButton('Save');
 
     // Success!
-    $this->assertStringEndsWith('node/1', $this->getSession()->getCurrentUrl());
+    $this->assertStringEndsWith("node/$expected_nid", $this->getSession()->getCurrentUrl());
 
-    $node = Node::load(1);
+    $node = Node::load($expected_nid);
     // @phpstan-ignore-next-line
     $this->assertInstanceOf(Node::class, $node);
     return $node;

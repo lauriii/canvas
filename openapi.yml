@@ -78,6 +78,28 @@ paths:
       responses:
         '200':
           description: Generated preview successfully
+  '/xb/api/content-update/{entityTypeId}/{entityId}':
+    patch:
+      parameters:
+        - $ref: '#/components/parameters/entityTypeId'
+        - $ref: '#/components/parameters/entityId'
+      requestBody:
+        $ref: '#/components/requestBodies/Layout'
+      responses:
+        '200':
+          description: Saved entity successfully
+        '400':
+          description: Invalid request payload
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  errors:
+                    type: array
+                    description: Error descriptions
+                    items:
+                      type: string
   /xb-components:
     get:
       responses:

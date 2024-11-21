@@ -155,10 +155,10 @@ final class Component extends ConfigEntityBase implements ComponentInterface {
    * @param string $prop_name
    *   The prop name.
    *
-   * @return \Drupal\experience_builder\PropSource\StaticPropSource|null
+   * @return \Drupal\experience_builder\PropSource\StaticPropSource
    *   The prop source object.
    */
-  public function getDefaultStaticPropSource(string $prop_name): ?StaticPropSource {
+  public function getDefaultStaticPropSource(string $prop_name): StaticPropSource {
     assert(isset($this->settings['props']));
     assert(is_array($this->settings['props']));
 

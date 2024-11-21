@@ -56,6 +56,7 @@ use Drupal\Core\TypedData\TypedData;
  * @see \Drupal\experience_builder\Plugin\Validation\Constraint\ComponentTreeStructureConstraintValidator
  * @see \Drupal\Tests\experience_builder\Kernel\DataType\ComponentTreeStructureTest
  *
+ * @phpstan-type ComponentTreeStructureArray array<string,array<int, array{'uuid': string, 'component': string}>|array<string, array<int, array{'uuid': string, 'component': string}>>>
  * @phpstan-import-type ComponentConfigEntityId from \Drupal\experience_builder\Entity\Component
  *
  * @todo Implement ListInterface because it conceptually fits, but … what does it get us?
@@ -82,7 +83,7 @@ class ComponentTreeStructure extends TypedData {
   /**
    * The parsed data value.
    *
-   * @var array<string,array<int, array{'uuid': string, 'component': string}>|array<string, array<int, array{'uuid': string, 'component': string}>>>
+   * @var ComponentTreeStructureArray
    *
    * @todo The value 'component' key stored is a machine name of Component plugin though XB only allows users to select Component config entities.
    *    Because all config entities have a corresponding Component plugin, and it is not possible to have 2 config entities that relate to the same plugin, this works.

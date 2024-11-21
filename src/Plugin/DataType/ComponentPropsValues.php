@@ -8,6 +8,7 @@ use Drupal\Component\Serialization\Json;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\TypedData\Attribute\DataType;
 use Drupal\Core\TypedData\TypedData;
+use Drupal\experience_builder\MissingComponentPropsException;
 use Drupal\experience_builder\PropSource\PropSource;
 use Drupal\experience_builder\PropSource\PropSourceBase;
 use Drupal\experience_builder\PropSource\StaticPropSource;
@@ -96,7 +97,7 @@ class ComponentPropsValues extends TypedData implements \Stringable {
    */
   public function getComponentPropsSources(string $component_instance_uuid): array {
     if (!array_key_exists($component_instance_uuid, $this->propsValues)) {
-      throw new \OutOfRangeException(sprintf('No props sources stored for %s. Caused by either incorrect logic or `props` being out of sync with `tree`.', $component_instance_uuid));
+      throw new MissingComponentPropsException($component_instance_uuid);
     }
 
     return array_map(

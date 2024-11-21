@@ -78,5 +78,6 @@ services:
   Drupal\experience_builder\Controller\ApiLayoutController: {}
   Drupal\experience_builder\Controller\ApiLogController: {}
   Drupal\experience_builder\Controller\ApiPreviewController: {}
+  Drupal\experience_builder\Controller\ApiContentUpdateController: {}
   Drupal\experience_builder\Controller\ComponentStatusController: {}
   Drupal\experience_builder\Controller\ExperienceBuilderController: {}

@@ -32,7 +32,7 @@ class EntityFormControllerTest extends FunctionalTestBase {
    */
   public function testForm(): void {
     $assert = $this->assertSession();
-    $this->createTestNode1();
+    $this->createTestNode();
 
     $this->assertFormResponse('xb/api/entity-form/node/1/default', TRUE);
     $this->assertFormResponse('xb/api/entity-form/node/1', TRUE);

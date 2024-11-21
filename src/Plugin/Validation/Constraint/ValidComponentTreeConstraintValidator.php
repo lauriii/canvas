@@ -9,6 +9,7 @@ use Drupal\Core\Render\Component\Exception\ComponentNotFoundException;
 use Drupal\Core\Render\Component\Exception\InvalidComponentException;
 use Drupal\Core\Theme\Component\ComponentValidator;
 use Drupal\Core\TypedData\TypedDataManagerInterface;
+use Drupal\experience_builder\MissingComponentPropsException;
 use Drupal\experience_builder\MissingHostEntityException;
 use Drupal\experience_builder\Entity\Component;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
@@ -92,8 +93,32 @@ final class ValidComponentTreeConstraintValidator extends ConstraintValidator im
           // of the tree structure.
           // @see \Drupal\experience_builder\Plugin\Validation\Constraint\ComponentTreeStructureConstraintValidator
         }
-        catch (InvalidComponentException) {
-          $this->context->addViolation('The component instance with UUID %uuid uses component %id and receives some invalid props! Put a breakpoint here and figure out why.', ['%uuid' => $component_instance_uuid, '%id' => $component_id]);
+        catch (MissingComponentPropsException $e) {
+          $this->context->buildViolation('The required properties are missing.')
+            ->atPath(sprintf('props.%s', $e->componentInstanceUuid))
+            ->addViolation();
+        }
+        catch (InvalidComponentException $e) {
+          // Deconstruct the multi-part exception message constructed by SDC.
+          // @see \Drupal\Core\Theme\Component\ComponentValidator::validateProps()
+          $errors = explode("\n", $e->getMessage());
+          foreach ($errors as $error) {
+            // An example error:
+            // @code
+            // [style] Does not have a value in the enumeration ["primary","secondary"]
+            // @endcode
+            // In that string, `[style]` is the bracket-enclosed SDC prop name
+            // for which an error occurred. This string must be parsed.
+            $sdc_prop_name_closing_bracket_pos = strpos($error, ']', 1);
+            assert($sdc_prop_name_closing_bracket_pos !== FALSE);
+            // This extracts `style` and the subsequent error message from the
+            // example string above.
+            $prop_name = substr($error, 1, $sdc_prop_name_closing_bracket_pos - 1);
+            $prop_error_message = substr($error, $sdc_prop_name_closing_bracket_pos + 2);
+            $this->context->buildViolation($prop_error_message)
+              ->atPath("props.$component_instance_uuid.$prop_name")
+              ->addViolation();
+          }
         }
         catch (MissingHostEntityException $e) {
           // DynamicPropSources cannot be validated in isolation, only in the

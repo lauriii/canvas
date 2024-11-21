@@ -287,7 +287,7 @@ final class SingleDirectoryComponent extends ComponentSourceBase implements Comp
       // @todo DateTimeItem stores information in a format that clashes with JSON schema's, and it has no automatic conversion. Figure out a better solution for both this and \Drupal\experience_builder\PropExpressions\StructuredData\Evaluator::evaluate().
       $default_value = ($is_image || $is_datetime)
         ? $prop_info['examples'][0]
-        : $component->getDefaultStaticPropSource($component_prop->propName)?->evaluate(NULL);
+        : $component->getDefaultStaticPropSource($component_prop->propName)->evaluate(NULL);
       if ($default_value !== NULL) {
         $keyed_choices[$component_prop->propName]['default_values'] = $default_value;
         $default_props_for_default_markup[$component_prop->propName] = $default_value;

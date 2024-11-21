@@ -7,7 +7,6 @@ namespace Drupal\experience_builder\Controller;
 use Drupal\Component\Assertion\Inspector;
 use Drupal\Core\Cache\CacheableJsonResponse;
 use Drupal\Core\Cache\CacheableMetadata;
-use Drupal\Core\Config\Entity\ConfigEntityInterface;
 use Drupal\Core\Config\Entity\ConfigEntityTypeInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
@@ -18,13 +17,16 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
-use Symfony\Component\Validator\ConstraintViolationInterface;
 
 /**
+ * Controllers exposing HTTP API for interacting with XB's Config entity types.
+ *
  * @internal This HTTP API is intended only for the XB UI. These controllers
  *   and associated routes may change at any time.
+ *
+ * @see \Drupal\experience_builder\Entity\XbHttpApiEligibleConfigEntityInterface
  */
-final class ApiConfigControllers {
+final class ApiConfigControllers extends ApiControllerBase {
 
   public function __construct(
     private readonly EntityTypeManagerInterface $entityTypeManager,
@@ -101,7 +103,7 @@ final class ApiConfigControllers {
       ->getStorage($xb_config_entity_type_id)
       ->create($denormalized);
     assert($xb_config_entity instanceof XbHttpApiEligibleConfigEntityInterface);
-    if ($validation_errors_response = self::validate($xb_config_entity)) {
+    if ($validation_errors_response = self::createJsonResponseFromViolations($xb_config_entity->getTypedData()->validate())) {
       return $validation_errors_response;
     }
 
@@ -137,7 +139,7 @@ final class ApiConfigControllers {
     foreach ($denormalized as $property_name => $property_value) {
       $xb_config_entity->set($property_name, $property_value);
     }
-    if ($validation_errors_response = self::validate($xb_config_entity)) {
+    if ($validation_errors_response = self::createJsonResponseFromViolations($xb_config_entity->getTypedData()->validate())) {
       return $validation_errors_response;
     }
 
@@ -221,55 +223,6 @@ final class ApiConfigControllers {
     }
 
     return $data;
-  }
-
-  /**
-   * Validates the given config entity, generates error response if errors.
-   *
-   * @param \Drupal\Core\Config\Entity\ConfigEntityInterface $xb_config_entity
-   *   A config entity of af type provided by Experience Builder.
-   *
-   * @return \Symfony\Component\HttpFoundation\JsonResponse|null
-   *   A JSON:API-style error response, with a top-level `errors` member that
-   *   contains an array of `error` objects.
-   *
-   * @see https://jsonapi.org/format/#document-top-level
-   * @see https://jsonapi.org/format/#error-objects
-   */
-  private static function validate(ConfigEntityInterface $xb_config_entity): ?JsonResponse {
-    $violations = $xb_config_entity->getTypedData()->validate();
-
-    if ($violations->count() === 0) {
-      return NULL;
-    }
-
-    return new JsonResponse(status: 422, data: [
-      'errors' => array_map(
-        fn ($violation) => self::violationToJsonApiStyleErrorObject($violation),
-        iterator_to_array($violations)
-      ),
-    ]);
-  }
-
-  /**
-   * Transforms a constraint violation to a JSON:API-style error object.
-   *
-   * @param \Symfony\Component\Validator\ConstraintViolationInterface $violation
-   *   A validation constraint violation.
-   *
-   * @return array{'detail': string, 'source': array{'pointer': string}}
-   *   A subset of a JSON:API error object.
-   *
-   * @see https://jsonapi.org/format/#error-objects
-   * @see \Drupal\jsonapi\Normalizer\UnprocessableHttpEntityExceptionNormalizer()
-   */
-  private static function violationToJsonApiStyleErrorObject(ConstraintViolationInterface $violation): array {
-    return [
-      'detail' => (string) $violation->getMessage(),
-      'source' => [
-        'pointer' => $violation->getPropertyPath(),
-      ],
-    ];
   }
 
 }

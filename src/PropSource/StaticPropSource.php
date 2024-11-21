@@ -146,6 +146,7 @@ final class StaticPropSource extends PropSourceBase {
       $field_item,
       $this->expression,
       $this->fieldStorageSettings,
+      $this->fieldInstanceSettings,
     );
   }
 

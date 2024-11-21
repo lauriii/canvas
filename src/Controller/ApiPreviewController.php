@@ -26,6 +26,7 @@ final class HardcodedPropsComponentTreeItem extends ComponentTreeItem {
 
 final class ApiPreviewController {
 
+  use ClientServerConversionTrait;
   use NotTheGoodAutoSaveTrait;
 
   public function __construct(
@@ -100,10 +101,10 @@ final class ApiPreviewController {
       'data_definition' => $field_item_definition,
     ]);
 
-    // Transform `layout` to `tree`.
-    // @see \Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure
-    $tree = [ComponentTreeStructure::ROOT_UUID => []];
-    self::clientLayoutToServerTree($layout, ComponentTreeStructure::ROOT_UUID, NULL, $tree);
+    // @todo Use $violations in https://www.drupal.org/project/experience_builder/issues/3485878
+    // phpcs:disable DrupalPractice.CodeAnalysis.VariableAnalysis.UnusedVariable
+    [$tree, $violations] = self::clientLayoutToServerTree($layout);
+    // phpcs:enable
 
     // This uses a partial override of the XB field type, because the client is
     // sending explicit prop values in its `model`, not prop sources. Use these
@@ -116,37 +117,6 @@ final class ApiPreviewController {
     $component_tree_field_item->hardcoded_props = $model;
 
     return $component_tree_field_item;
-  }
-
-  /**
-   * @todo Refactor/remove in https://www.drupal.org/project/experience_builder/issues/3467954.
-   */
-  private static function clientLayoutToServerTree(array $layout, string $parent_uuid, ?string $parent_slot, array &$tree) : void {
-    foreach ($layout['children'] as $child) {
-      if ($child['nodeType'] === 'slot') {
-        // @todo This indicates the client model does not quite make sense: SDC slots do NOT have UUIDs, but names! Fix in https://www.drupal.org/project/experience_builder/issues/3467954.
-        self::clientLayoutToServerTree($child, $parent_uuid, $child['name'], $tree);
-        continue;
-      }
-
-      // Root level.
-      if (!isset($parent_slot)) {
-        $tree[$parent_uuid][] = [
-          'uuid' => $child['uuid'],
-          'component' => $child['type'],
-        ];
-      }
-      // All other levels.
-      else {
-        $tree[$parent_uuid][$parent_slot][] = [
-          'uuid' => $child['uuid'],
-          'component' => $child['type'],
-        ];
-      }
-      if (!empty($child['children'])) {
-        self::clientLayoutToServerTree($child, $child['uuid'], NULL, $tree);
-      }
-    }
   }
 
 }
