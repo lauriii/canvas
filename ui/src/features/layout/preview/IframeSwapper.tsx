@@ -12,10 +12,14 @@ interface IFrameSwapperProps {
   srcDocument: string;
   size: ViewPortSize;
   setIsReloading: Dispatch<SetStateAction<boolean>>;
+  interactive: boolean;
 }
 
 const IFrameSwapper = forwardRef<HTMLIFrameElement, IFrameSwapperProps>(
-  ({ size, srcDocument, setIsReloading }, ref: Ref<HTMLIFrameElement>) => {
+  (
+    { size, srcDocument, setIsReloading, interactive },
+    ref: Ref<HTMLIFrameElement>,
+  ) => {
     const iFrameRefs = useRef<(HTMLIFrameElement | null)[]>([]);
     const whichActiveRef = useRef(0);
     const [whichActive, setWhichActive] = useState(0);
@@ -82,7 +86,9 @@ const IFrameSwapper = forwardRef<HTMLIFrameElement, IFrameSwapperProps>(
     }, [srcDocument, setIsReloading, swapIFrames, getIFrames]);
 
     const commonIFrameProps = {
-      className: clsx(styles.preview, { [styles.interactable]: isDragging }),
+      className: clsx(styles.preview, {
+        [styles.interactable]: isDragging || interactive,
+      }),
       'data-xb-preview': size,
       'data-test-xb-content-initialized': 'false',
     };
@@ -90,7 +96,8 @@ const IFrameSwapper = forwardRef<HTMLIFrameElement, IFrameSwapperProps>(
     return (
       <>
         <iframe
-          tabIndex={-1}
+          // Set the tab index to 0 when the iframe is interactive, -1 when it is not.
+          tabIndex={!interactive || whichActive === 1 ? -1 : 0}
           ref={(el) => (iFrameRefs.current[0] = el)}
           data-xb-swap-active={whichActive === 0 ? 'true' : 'false'}
           title={whichActive === 0 ? 'Preview' : 'Inactive preview'}
@@ -98,7 +105,7 @@ const IFrameSwapper = forwardRef<HTMLIFrameElement, IFrameSwapperProps>(
           {...commonIFrameProps}
         ></iframe>
         <iframe
-          tabIndex={-1}
+          tabIndex={!interactive || whichActive === 0 ? -1 : 0}
           ref={(el) => (iFrameRefs.current[1] = el)}
           data-xb-swap-active={whichActive === 1 ? 'true' : 'false'}
           title={whichActive === 1 ? 'Preview' : 'Inactive preview'}

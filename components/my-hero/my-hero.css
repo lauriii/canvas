@@ -31,13 +31,21 @@
   margin: 0 10px;
   padding: 15px 30px;
   cursor: pointer;
+  text-decoration: none;
   color: white;
   border: none;
   border-radius: 5px;
   background-color: #6c757d;
   font-size: 1em;
 }
+.my-hero__cta:hover {
+  background-color: #90989f;
+}
 
 .my-hero__cta--primary {
   background-color: #007bff;
+}
+
+.my-hero__cta--primary:hover {
+  background-color: #5384b8;
 }

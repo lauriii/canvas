@@ -68,6 +68,9 @@ services:
       - { name: theme_negotiator }
   Drupal\experience_builder\EventSubscriber\RenderEventsSubscriber: ~
   Drupal\experience_builder\EventSubscriber\ApiExceptionSubscriber: ~
+  Drupal\experience_builder\PathProcessor\ExperienceBuilderPathProcessor:
+    tags:
+      - { name: path_processor_inbound, priority: 200 }
 
   # Controllers.
   Drupal\experience_builder\Controller\ApiComponentsController: {}

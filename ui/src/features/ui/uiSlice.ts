@@ -18,6 +18,11 @@ export interface CanvasViewPort {
   scale: number;
 }
 
+export enum CanvasMode {
+  INTERACTIVE = 'interactive',
+  EDIT = 'edit',
+}
+
 export interface uiSliceState {
   pending: boolean;
   dragging: DraggingStatus;
@@ -28,6 +33,7 @@ export interface uiSliceState {
   canvasViewport: CanvasViewPort;
   latestUndoRedoActionId: string;
   firstLoadComplete: boolean;
+  canvasMode: CanvasMode;
 }
 
 type UpdateViewportPayload = {
@@ -57,6 +63,7 @@ export const initialState: uiSliceState = {
   },
   latestUndoRedoActionId: '',
   firstLoadComplete: false,
+  canvasMode: CanvasMode.EDIT,
 };
 
 interface ScaleValue {
@@ -161,10 +168,10 @@ export const uiSlice = createAppSlice({
     }),
     setCanvasViewPort: create.reducer(
       (state, action: PayloadAction<UpdateViewportPayload>) => {
-        if (action.payload.x) {
+        if (action.payload.x !== undefined) {
           state.canvasViewport.x = action.payload.x;
         }
-        if (action.payload.y) {
+        if (action.payload.y !== undefined) {
           state.canvasViewport.y = action.payload.y;
         }
         state.canvasViewport.scale =
@@ -197,8 +204,16 @@ export const uiSlice = createAppSlice({
         state.latestUndoRedoActionId = action.payload;
       },
     ),
-    setFirstLoadComplete: create.reducer((state, action) => {
-      state.firstLoadComplete = true;
+    setFirstLoadComplete: create.reducer(
+      (state, action: PayloadAction<boolean>) => {
+        state.firstLoadComplete = action.payload;
+      },
+    ),
+    setCanvasModeEditing: create.reducer((state, action) => {
+      state.canvasMode = CanvasMode.EDIT;
+    }),
+    setCanvasModeInteractive: create.reducer((state, action) => {
+      state.canvasMode = CanvasMode.INTERACTIVE;
     }),
   }),
   // You can define your selectors here. These selectors receive the slice
@@ -231,6 +246,9 @@ export const uiSlice = createAppSlice({
     selectFirstLoadComplete: (ui): boolean => {
       return ui.firstLoadComplete;
     },
+    selectCanvasMode: (ui): CanvasMode => {
+      return ui.canvasMode;
+    },
   },
 });
 
@@ -253,6 +271,8 @@ export const {
   canvasViewPortZoomDelta,
   setLatestUndoRedoActionId,
   setFirstLoadComplete,
+  setCanvasModeEditing,
+  setCanvasModeInteractive,
 } = uiSlice.actions;
 
 // Selectors returned by `slice.selectors` take the root state as their first argument.
@@ -266,4 +286,5 @@ export const {
   selectCanvasViewPortScale,
   selectLatestUndoRedoActionId,
   selectFirstLoadComplete,
+  selectCanvasMode,
 } = uiSlice.selectors;

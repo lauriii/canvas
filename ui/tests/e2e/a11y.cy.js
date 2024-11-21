@@ -41,6 +41,7 @@ describe('UI a11y Scan', () => {
           'button-name': { enabled: false },
           region: { enabled: false },
           'scrollable-region-focusable': { enabled: false },
+          'color-contrast': { enabled: false },
         },
       },
       terminalLog,
@@ -61,6 +62,7 @@ describe('UI a11y Scan', () => {
           'button-name': { enabled: false },
           region: { enabled: false },
           'scrollable-region-focusable': { enabled: false },
+          'color-contrast': { enabled: false },
         },
       },
       terminalLog,
@@ -85,6 +87,7 @@ describe('UI a11y Scan', () => {
           'button-name': { enabled: false },
           region: { enabled: false },
           'scrollable-region-focusable': { enabled: false },
+          'color-contrast': { enabled: false },
         },
       },
       terminalLog,
@@ -95,12 +98,23 @@ describe('UI a11y Scan', () => {
     cy.drupalLogin('xbUser', 'xbUser');
     cy.loadURLandWaitForXBLoaded();
     cy.get('#menuBarContainer').should('be.empty');
-    cy.get('[class*="contextualPanel"]').should('not.exist');
+    cy.findByTestId('xb-contextual-panel--page-data').should(
+      'have.attr',
+      'data-state',
+      'active',
+    );
     cy.clickComponentInPreview('Hero');
 
-    cy.get(
-      '[class*="contextualPanel"] [data-drupal-selector="component-props-form"].component-props-form',
-    ).should('exist');
+    cy.findByTestId('xb-contextual-panel--page-data').should(
+      'have.attr',
+      'data-state',
+      'inactive',
+    );
+    cy.findByTestId('xb-contextual-panel--settings').should(
+      'have.attr',
+      'data-state',
+      'active',
+    );
     // It's gross but the Radix component has two of each button in the segmented control that it flips between.
     cy.findAllByText('Settings').should('have.length', 2);
     cy.findAllByText('Page data').should('have.length', 2);

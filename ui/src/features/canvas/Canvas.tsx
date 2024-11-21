@@ -17,6 +17,8 @@ import {
   selectSelectedComponent,
   selectFirstLoadComplete,
   unsetSelectedComponent,
+  setCanvasModeEditing,
+  setCanvasModeInteractive,
 } from '@/features/ui/uiSlice';
 import PreviewOverlay from '@/features/layout/previewOverlay/PreviewOverlay';
 import { deleteNode } from '../layout/layoutModelSlice';
@@ -54,6 +56,17 @@ const Canvas = () => {
     keydown: false,
     keyup: true,
   });
+
+  // TODO This should have a better keyboard shortcut, but as the Interactive mode is still
+  // in development/buggy, leaving it as something obscure for now.
+  useHotkeys('v', () => dispatch(setCanvasModeInteractive()), {
+    keydown: true,
+    keyup: false,
+  });
+  useHotkeys('v', () => dispatch(setCanvasModeEditing()), {
+    keydown: false,
+    keyup: true,
+  });
   useHotkeys(['Backspace', 'Delete'], () => {
     if (selectedComponent) {
       dispatch(deleteNode(selectedComponent));
@@ -77,6 +90,7 @@ const Canvas = () => {
 
   useEffect(() => {
     if (!firstLoadComplete) {
+      dispatch(setCanvasViewPort({ x: 0, y: 0 }));
       return;
     }
     if (previewsContainerRef.current && canvasRef.current) {

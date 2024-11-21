@@ -57,7 +57,7 @@ const UndoRedo = () => {
         disabled={!isRedoable}
         aria-label="Redo"
       >
-        <ResetIcon /> Redo
+        <ResetIcon style={{ transform: 'scaleX(-1)' }} /> Redo
       </Button>
     </>
   );

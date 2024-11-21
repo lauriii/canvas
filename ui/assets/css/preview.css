@@ -35,9 +35,6 @@ This file is included as an attached Drupal library and as such is subject to CS
   content: "Slot";
   text-align: right;
 }
-.xb--sortable-item {
-  cursor: grab;
-}
 .xb--preview-dragging *,
 .xb--preview-dragging {
   cursor: grabbing !important;

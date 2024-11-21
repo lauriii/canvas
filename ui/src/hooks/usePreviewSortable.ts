@@ -1,9 +1,6 @@
 import { useEffect, useCallback, useRef } from 'react';
 import Sortable from 'sortablejs';
-import {
-  customSortableDragImage,
-  isDropTargetInSlotAllowedByEdgeDistance,
-} from '@/features/sortable/sortableUtils';
+import { isDropTargetInSlotAllowedByEdgeDistance } from '@/features/sortable/sortableUtils';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import {
   addNewComponentToLayout,
@@ -26,7 +23,11 @@ import { useGetDummySectionsQuery } from '@/services/sections';
  * This hook initializes the SortableJS implementation to allow for drag and drop interactions within the preview iFrames.
  */
 
-function usePreviewSortable(iframe: HTMLIFrameElement | null) {
+function usePreviewSortable(iframe: HTMLIFrameElement | null): {
+  destroySortables: () => void;
+  disableSortables: () => void;
+  enableSortables: () => void;
+} {
   const layout = useAppSelector(selectLayout);
   const model = useAppSelector(selectModel);
   const dispatch = useAppDispatch();
@@ -37,25 +38,7 @@ function usePreviewSortable(iframe: HTMLIFrameElement | null) {
   const iframeDocumentRef = useRef<Document | null>(null);
   const componentsRef = useRef(components);
   const sectionsRef = useRef(sections);
-  const sortableInstanceRef = useRef<Sortable>();
-
-  // Takes each sortable item (component) and adds a dragstart event listener. This is so that we can implement a custom
-  // dragImage (the floating representation of what you are dragging that follows your cursor).
-  const initSortableListItem = (listItemEl: HTMLElement) => {
-    listItemEl.addEventListener('dragstart', (event) => {
-      if (iframeDocumentRef.current && event.target) {
-        const target = event.target as HTMLElement;
-        if (!target.dataset.xbUuid) {
-          return;
-        }
-        return customSortableDragImage(
-          event,
-          iframeDocumentRef.current,
-          modelRef.current[target.dataset.xbUuid].name,
-        );
-      }
-    });
-  };
+  const sortableInstancesRef = useRef<Sortable[]>([]);
 
   const updateData = useCallback(
     (ev: Sortable.SortableEvent, sort: boolean) => {
@@ -126,15 +109,6 @@ function usePreviewSortable(iframe: HTMLIFrameElement | null) {
     [dispatch, layout],
   );
 
-  const handleDragClone = useCallback((ev: Sortable.SortableEvent) => {
-    // Add a class to the clone element so that we can style it. This is the element that shows up in the original position
-    // when dragging.
-    ev.clone.classList.add('xb--sortable-clone');
-    // SortableJS sets `display: none` as an inline style. We could override that with `!important` in CSS since we
-    // already have a class on the clone element, but that causes an error with an internal function of SortableJS.
-    ev.clone.style.display = 'block';
-  }, []);
-
   const handleDragAdd = useCallback(
     (ev: Sortable.SortableEvent) => {
       updateData(ev, false);
@@ -201,28 +175,53 @@ function usePreviewSortable(iframe: HTMLIFrameElement | null) {
     [dispatch, updateData],
   );
 
+  const destroySortables = useCallback(() => {
+    if (iframe && sortableInstancesRef.current.length) {
+      sortableInstancesRef.current.forEach((instance) => {
+        instance.destroy();
+      });
+    }
+  }, [iframe]);
+
+  const disableSortables = useCallback(() => {
+    if (iframe && sortableInstancesRef.current.length) {
+      sortableInstancesRef.current.forEach((instance) => {
+        instance.option('disabled', true);
+      });
+    }
+  }, [iframe]);
+
+  const enableSortables = useCallback(() => {
+    if (iframe && sortableInstancesRef.current.length) {
+      sortableInstancesRef.current.forEach((instance) => {
+        instance.option('disabled', false);
+      });
+    }
+  }, [iframe]);
+
   const init = useCallback(() => {
     if (!iframe?.srcdoc) {
       return;
     }
 
+    sortableInstancesRef.current = [];
+
     const initSortableList = (listEl: HTMLElement) => {
       // Initialize SortableJS on the elements inside the iframe
-      sortableInstanceRef.current = Sortable.create(listEl, {
+      const sortableInstance = Sortable.create(listEl, {
         animation: 0,
         invertSwap: true,
         swapThreshold: 0.5,
         ghostClass: 'xb--sortable-ghost',
         group: {
           name: 'layout',
-          pull: true,
+          pull: false,
           put: ['list'],
           revertClone: false,
         },
         dataIdAttr: 'data-xb-uuid',
         // Keep a clone element in the original position until the drag ends.
         removeCloneOnHide: false,
-        onClone: handleDragClone,
         onAdd: handleDragAdd,
         onStart: handleDragStart,
         onMove: handleDragMove,
@@ -234,6 +233,8 @@ function usePreviewSortable(iframe: HTMLIFrameElement | null) {
         filter: '[data-xb-slot-is-empty]',
         emptyInsertThreshold: 50,
       });
+
+      sortableInstancesRef.current.push(sortableInstance);
     };
 
     iframeDocumentRef.current = iframe.contentDocument;
@@ -247,17 +248,10 @@ function usePreviewSortable(iframe: HTMLIFrameElement | null) {
       );
 
     sortableLists.forEach((sortableList) => {
-      const draggableItems =
-        sortableList.querySelectorAll<HTMLElement>('.xb--sortable-item');
-
       initSortableList(sortableList);
-      draggableItems.forEach((item) => {
-        initSortableListItem(item);
-      });
     });
   }, [
     iframe,
-    handleDragClone,
     handleDragAdd,
     handleDragStart,
     handleDragMove,
@@ -281,12 +275,13 @@ function usePreviewSortable(iframe: HTMLIFrameElement | null) {
     if (iframe) {
       init();
     }
+
     return () => {
-      if (sortableInstanceRef.current) {
-        sortableInstanceRef.current.destroy();
-      }
+      destroySortables();
     };
-  }, [iframe, init]);
+  }, [destroySortables, iframe, init]);
+
+  return { destroySortables, enableSortables, disableSortables };
 }
 
 export default usePreviewSortable;

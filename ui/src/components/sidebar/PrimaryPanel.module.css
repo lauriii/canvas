@@ -1,7 +1,7 @@
 .primaryPanel {
   position: fixed;
   top: calc(var(--topbar-height) + var(--topbar-space-above) + var(--topbar-space-below));
-  left: var(--sidebar-space-side);
+  left: var(--topbar-space-side);
   width: var(--sidebar-left-width);
   height: var(--sidebar-height);
   padding: var(--space-4) 0;

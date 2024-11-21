@@ -11,19 +11,24 @@ import {
   selectActivePanel,
   setActivePanel,
 } from '@/features/ui/primaryPanelSlice';
+import useHidePanelClasses from '@/hooks/useHidePanelClasses';
 
 export const PrimaryPanel = () => {
   const layout = useAppSelector(selectLayout);
   const activePanel = useAppSelector(selectActivePanel);
   const [dragging, setDragging] = useState(false);
   const dispatch = useAppDispatch();
+  const offLeftClasses = useHidePanelClasses('left');
 
   const onValueChange = (selectedPanel: string) => {
     dispatch(setActivePanel(selectedPanel));
   };
 
   return (
-    <Panel className={clsx(styles.primaryPanel)} data-testid="xb-primary-panel">
+    <Panel
+      className={clsx(styles.primaryPanel, ...offLeftClasses)}
+      data-testid="xb-primary-panel"
+    >
       <Flex direction="column" height="100%">
         <Tabs.Root
           defaultValue={'layers'}

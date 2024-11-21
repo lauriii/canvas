@@ -4,6 +4,7 @@
   right: 0;
   bottom: 0;
   left: 0;
+  pointer-events: none;
   /* match the border width of the iFrame to prevent the overlay position being out by 1px */
   border: 1px transparent solid;
 }

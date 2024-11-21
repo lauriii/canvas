@@ -112,8 +112,8 @@ describe('Contextual panel', { testIsolation: false }, () => {
       cy.url().should((url) => {
         expect(
           url,
-          `After clicking on ${cid1}, path should include '/xb/node/1/component/${cid1}'`,
-        ).to.contain(`/xb/node/1/component/${cid1}`);
+          `After clicking on ${cid1}, path should include '/xb/node/1/editor/component/${cid1}'`,
+        ).to.contain(`/xb/node/1/editor/component/${cid1}`);
       });
     });
 
@@ -129,8 +129,8 @@ describe('Contextual panel', { testIsolation: false }, () => {
       cy.url().should((url) => {
         expect(
           url,
-          `After clicking on ${cid2}, path should include '/xb/node/1/component/${cid2}'`,
-        ).to.contain(`/xb/node/1/component/${cid2}`);
+          `After clicking on ${cid2}, path should include '/xb/node/1/editor/component/${cid2}'`,
+        ).to.contain(`/xb/node/1/editor/component/${cid2}`);
       });
     });
 
@@ -141,8 +141,8 @@ describe('Contextual panel', { testIsolation: false }, () => {
       cy.url().should((url) => {
         expect(
           url,
-          `Hit back once and path should again include '/xb/node/1/component/${cid1}'`,
-        ).to.contain(`/xb/node/1/component/${cid1}`);
+          `Hit back once and path should again include '/xb/node/1/editor/component/${cid1}'`,
+        ).to.contain(`/xb/node/1/editor/component/${cid1}`);
       });
       // Returns to the contextual form for the prior component.
       cy.findByTestId(`xb-contextual-panel-${cid1}`).should('exist');
@@ -247,12 +247,12 @@ describe('Contextual panel', { testIsolation: false }, () => {
     cy.get('@componentFormCTA1Text').type('Example link');
     // Ensure the new value shows in the preview.
     cy.waitForElementContentInIframe(
-      'div[data-xb-component-id="experience_builder:my-hero"] button',
+      'div[data-xb-component-id="experience_builder:my-hero"] a',
       'Example link',
     );
     cy.getIframeBody()
       .findByText('Example link')
-      .should('have.attr', 'formaction', 'https://www.example.com/');
+      .should('have.attr', 'href', 'https://www.example.com/');
 
     // Make sure the number of Hero components in the preview hasn't changed.
     cy.get('@initialHeroCount').then((initialHeroCount) => {

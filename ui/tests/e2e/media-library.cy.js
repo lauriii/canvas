@@ -20,11 +20,19 @@ describe('Media Library', () => {
       '[data-xb-component-id="experience_builder:image"]',
     );
 
-    cy.get('[class*="contextualPanel"]').should('not.exist');
+    cy.findByTestId('xb-contextual-panel--page-data').should(
+      'have.attr',
+      'data-state',
+      'active',
+    );
 
     cy.clickComponentInPreview('Image', 1);
 
-    cy.get('[class*="contextualPanel"]').should('exist');
+    cy.findByTestId('xb-contextual-panel--settings').should(
+      'have.attr',
+      'data-state',
+      'active',
+    );
 
     cy.get('div[role="dialog"]').should('not.exist');
     cy.get(

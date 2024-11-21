@@ -34,7 +34,7 @@ final class ExperienceBuilderController {
 </html>
 HTML;
 
-  public function __invoke(EntityInterface $entity, string|null $react_route = NULL, string|null $react_subroute = NULL) : HtmlResponse {
+  public function __invoke(EntityInterface $entity) : HtmlResponse {
     $libraries = [
       'system/base',
       ...$this->themeManager->getActiveTheme()->getLibraries(),

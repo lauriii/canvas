@@ -4,6 +4,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import {
   setSelectedComponent,
   selectSelectedComponent,
+  unsetSelectedComponent,
 } from '@/features/ui/uiSlice';
 
 /**
@@ -32,8 +33,15 @@ const useSyncComponentId = () => {
 
   // Effect to update state when URL changes
   useEffect(() => {
-    if (prevComponentIdRef.current !== componentId && componentId) {
-      dispatch(setSelectedComponent(componentId));
+    if (
+      prevComponentIdRef.current !== componentId &&
+      (componentId || prevComponentIdRef.current)
+    ) {
+      if (componentId) {
+        dispatch(setSelectedComponent(componentId));
+      } else {
+        dispatch(unsetSelectedComponent());
+      }
     }
     prevComponentIdRef.current = componentId;
   }, [componentId, dispatch]);
@@ -42,9 +50,9 @@ const useSyncComponentId = () => {
   useEffect(() => {
     if (prevSelectedComponentRef.current !== selectedComponent) {
       if (selectedComponent && componentId !== selectedComponent) {
-        navigate(`component/${selectedComponent}`);
+        navigate(`editor/component/${selectedComponent}`);
       } else if (componentId !== selectedComponent) {
-        navigate(`/`);
+        navigate(`/editor/`);
       }
     }
     prevSelectedComponentRef.current = selectedComponent;

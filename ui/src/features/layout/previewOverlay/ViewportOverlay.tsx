@@ -9,6 +9,7 @@ import useResizeObserver from '@/hooks/useResizeObserver';
 
 import {
   selectCanvasViewPortScale,
+  selectDragging,
   selectPanning,
 } from '@/features/ui/uiSlice';
 import RootCanvasOverlay from '@/features/layout/previewOverlay/RootCanvasOverlay';
@@ -30,6 +31,7 @@ const ViewportOverlay: React.FC<ViewportOverlayProps> = (props) => {
   const [portalRoot, setPortalRoot] = useState<HTMLElement | null>(null);
   const positionDivRef = useRef(null);
   const canvasViewPortScale = useAppSelector(selectCanvasViewPortScale);
+  const { isDragging } = useAppSelector(selectDragging);
   const [rect, setRect] = useState<Rect | null>(null);
   const { isPanning } = useAppSelector(selectPanning);
 
@@ -80,6 +82,7 @@ const ViewportOverlay: React.FC<ViewportOverlayProps> = (props) => {
         left: `${rect.left}px`,
         width: `${rect.width}px`,
         height: `${rect.height}px`,
+        pointerEvents: isDragging ? 'none' : 'all',
       }}
     >
       <RootCanvasOverlay iframeRef={iframeRef} />

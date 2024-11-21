@@ -27,10 +27,10 @@ describe(
         },
       );
       cy.get(
-        '[data-component-id="experience_builder:my-hero"] button[formaction="https://drupal.org"]',
+        '[data-component-id="experience_builder:my-hero"] a[href="https://drupal.org"]',
       ).should.exist;
       cy.get(
-        '[data-component-id="experience_builder:my-hero"] button[formaction="https://drupal.org"] ~ button',
+        '[data-component-id="experience_builder:my-hero"] a[href="https://drupal.org"] ~ button',
       ).should.exist;
     });
 
@@ -218,8 +218,8 @@ describe(
       const heroSelectors = {
         Heading: 'h1',
         'Sub-heading': 'h1 ~ p',
-        'CTA 1 text': 'button:first-child',
-        'CTA 2 text': 'button:last-child',
+        'CTA 1 text': '.my-hero__cta:first-child',
+        'CTA 2 text': '.my-hero__cta:last-child',
       };
       const heroBefore = {
         Heading: 'hello, world!',
@@ -244,13 +244,16 @@ describe(
                 `${prop} should be ${heroBefore[prop]}`,
               ).to.equal(heroBefore[prop]);
             } else {
-              expect(heroText, `${prop} should be empty`).to.be.empty;
+              expect(
+                heroText,
+                `${prop} should be empty but it is "${heroText}"`,
+              ).to.be.empty;
             }
           });
           expect(
             hero
               .querySelector(heroSelectors['CTA 1 text'])
-              .getAttribute('formaction'),
+              .getAttribute('href'),
           ).to.equal('https://drupal.org');
         },
       );

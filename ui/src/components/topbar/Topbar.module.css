@@ -7,8 +7,32 @@
   bottom: var(--topbar-space-below);
   left: var(--topbar-space-side);
   height: var(--topbar-height);
+  transition:
+    top 0.2s cubic-bezier(0.4, 0, 0.6, 1),
+    left 0.2s cubic-bezier(0.4, 0, 0.6, 1),
+    right 0.2s cubic-bezier(0.4, 0, 0.6, 1),
+    opacity 2s ease-out;
+  transition-delay: 0.1s;
   border-radius: var(--radius-6);
   box-shadow: var(--shadow-3);
+
+  &.inPreview {
+    top: 0;
+    right: 0;
+    left: 0;
+    transition-delay: 1s;
+    opacity: 0.2;
+    border-radius: 0;
+    &:hover {
+      transition:
+        top 0.1s cubic-bezier(0.4, 0, 0.6, 1),
+        left 0.1s cubic-bezier(0.4, 0, 0.6, 1),
+        right 0.1s cubic-bezier(0.4, 0, 0.6, 1),
+        opacity 0.1s ease-in;
+      transition-delay: 0s;
+      opacity: 1;
+    }
+  }
 }
 
 .logo {

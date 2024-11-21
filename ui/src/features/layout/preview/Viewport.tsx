@@ -1,9 +1,13 @@
 import styles from './Preview.module.css';
 import type React from 'react';
 import { useRef, useEffect, useState } from 'react';
-import { useAppDispatch } from '@/app/hooks';
+import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { Progress } from '@radix-ui/themes';
-import { setFirstLoadComplete } from '@/features/ui/uiSlice';
+import {
+  CanvasMode,
+  selectCanvasMode,
+  setFirstLoadComplete,
+} from '@/features/ui/uiSlice';
 import useSyncIframeHeightToContent from '@/hooks/useSyncIframeHeightToContent';
 import ViewportToolbar from '@/features/layout/preview/ViewportToolbar';
 import IframeSwapper from '@/features/layout/preview/IframeSwapper';
@@ -28,8 +32,12 @@ const Viewport: React.FC<ViewportProps> = (props) => {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const previewContainerRef = useRef<HTMLDivElement>(null);
   const dispatch = useAppDispatch();
+  const canvasMode = useAppSelector(selectCanvasMode);
 
-  usePreviewSortable(iframeRef.current);
+  const { enableSortables, disableSortables } = usePreviewSortable(
+    iframeRef.current,
+  );
+
   useSyncIframeHeightToContent(
     iframeRef.current,
     previewContainerRef.current,
@@ -63,8 +71,17 @@ const Viewport: React.FC<ViewportProps> = (props) => {
     }
 
     iframe.dataset.testXbContentInitialized = 'true';
-    dispatch(setFirstLoadComplete());
+    dispatch(setFirstLoadComplete(true));
   }, [dispatch, isReloading]);
+
+  useEffect(() => {
+    if (canvasMode === CanvasMode.INTERACTIVE) {
+      disableSortables();
+    }
+    if (canvasMode === CanvasMode.EDIT) {
+      enableSortables();
+    }
+  }, [enableSortables, disableSortables, canvasMode]);
 
   return (
     <div>
@@ -84,8 +101,11 @@ const Viewport: React.FC<ViewportProps> = (props) => {
           srcDocument={frameSrcDoc}
           size={size}
           setIsReloading={setIsReloading}
+          interactive={canvasMode === CanvasMode.INTERACTIVE}
         />
-        <ViewportOverlay iframeRef={iframeRef} size={size} />
+        {canvasMode === CanvasMode.EDIT && (
+          <ViewportOverlay iframeRef={iframeRef} size={size} />
+        )}
       </div>
     </div>
   );

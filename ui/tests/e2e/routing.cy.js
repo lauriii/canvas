@@ -11,7 +11,7 @@ describe('Routing', { testIsolation: false }, () => {
     cy.drupalUninstall();
   });
 
-  it('Visits a router URL directly', () => {
+  it('Visits a component router URL directly', () => {
     // Ideally the UUID would get its value dynamically, but that value can
     // only be accessed reliably in a command callback, and visiting a url
     // can't happen in that scope.
@@ -19,13 +19,29 @@ describe('Routing', { testIsolation: false }, () => {
     cy.intercept('GET', '**/api/layout/node/1').as('getLayout');
     cy.intercept('POST', '**/api/preview/node/1').as('getPreview');
     cy.intercept('GET', '**/xb-field-form/node/1?**').as('getPropsForm');
-    cy.drupalRelativeURL(`xb/node/1/component/${uuid}`);
+    cy.drupalRelativeURL(`xb/node/1/editor/component/${uuid}`);
 
     cy.wait('@getLayout');
     cy.wait('@getPreview');
     cy.wait('@getPropsForm');
     cy.findByTestId(`xb-contextual-panel-${uuid}`).should('exist');
-    cy.url().should('contain', `/xb/node/1/component/${uuid}`);
+    cy.url().should('contain', `/xb/node/1/editor/component/${uuid}`);
+  });
+
+  it('Visits a preview router URL directly', () => {
+    cy.drupalRelativeURL(`xb/node/1/preview/full`);
+
+    cy.findByText('Exit Preview');
+
+    cy.get('iframe[title="Page preview"]')
+      .its('0.contentDocument.body')
+      .should('not.be.empty')
+      .then(cy.wrap)
+      .within(() => {
+        cy.get('.my-hero__heading').should('exist');
+      });
+
+    cy.url().should('contain', `/xb/node/1/preview/full`);
   });
 
   it('has the expected performance', () => {

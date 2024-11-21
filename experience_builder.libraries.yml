@@ -26,6 +26,10 @@ preview:
   css:
     theme:
       ui/assets/css/preview.css: {}
+  js:
+    ui/assets/js/xbDisableLinksBehavior.js: { }
+  dependencies:
+    - core/once
 
 shoelace:
   css:
