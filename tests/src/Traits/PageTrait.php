@@ -8,6 +8,8 @@ use Drupal\experience_builder\Entity\Page;
 
 trait PageTrait {
 
+  use ConstraintViolationsTestTrait;
+
   protected const array PAGE_TEST_MODULES = [
     'user',
     'path',
@@ -25,7 +27,11 @@ trait PageTrait {
     // Path field is always invalid for new entities.
     // @see \Drupal\path\Plugin\Field\FieldWidget\PathWidget::validateFormElement().
     $violations = $page->validate()->filterByFields(['path']);
-    self::assertCount(0, $violations);
+    self::assertCount(
+      0,
+      $violations,
+      var_export(self::violationsToArray($violations), TRUE)
+    );
     $page->save();
   }
 
