@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 use Drupal\Component\Render\HtmlEscapedText;
 use Drupal\Component\Render\MarkupInterface;
-use Drupal\Component\Render\PlainTextOutput;
 use Drupal\Core\Render\RendererInterface;
 use Drupal\Component\Serialization\Json;
 use Drupal\Component\Utility\NestedArray;
@@ -60,9 +59,6 @@ function semi_coupled_render_template(string $template_file, array $variables): 
   if (isset($slots['children'])) {
     $slots['renderChildren'] = $slots['children'];
   }
-  if (isset($props['children'])) {
-    $props['renderChildren'] = $props['children'];
-  }
 
   // This is a render element that begins with a custom element based on the
   // template name. So if the template name was foo--bar the markup for this
@@ -76,33 +72,7 @@ function semi_coupled_render_template(string $template_file, array $variables): 
   // and the attributes are converted to the props received by that component.
   $element = _semi_coupled_build_html_tag($tag_name, $props, $slots, $renderer);
 
-  if (!empty($info['wrap'])) {
-    $element['#prefix'] = $info['wrap'][0];
-    $element['#suffix'] = $info['wrap'][1];
-  }
-
   return $renderer->render($element);
-}
-
-/**
- * Implements a #pre_render callback for 'component' elements.
- *
- * @see \Drupal\semi_coupled_sdc\Element\ComponentElement
- */
-function semi_coupled_pre_render_component(array $element): array {
-  $renderer = \Drupal::service('renderer');
-
-  /** @var \Drupal\Core\Theme\ComponentPluginManager $component_manager */
-  $component_manager = \Drupal::service('plugin.manager.sdc');
-  $component_definition = $component_manager->getDefinition($element['#component']);
-
-  foreach ($element['#props'] as $name => $prop) {
-    if (is_array($prop)) {
-      $element['#props'][$name] = PlainTextOutput::renderFromHtml($renderer->render($prop));
-    }
-  }
-  $element['html_tag'] = _semi_coupled_build_html_tag($component_definition['machineName'], $element['#props'], $element['#slots'], $renderer);
-  return $element;
 }
 
 /**

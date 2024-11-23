@@ -71,7 +71,6 @@ use Drupal\experience_builder\ShapeMatcher\FieldForComponentSuggester;
   ],
   // @see docs/data-model.md
   // @see content_translation_field_info_alter()
-  // @see experience_builder_entity_prepare_view()
   column_groups: [
     'props' => [
       'label' => new TranslatableMarkup('Component property values'),

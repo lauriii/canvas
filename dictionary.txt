@@ -8,6 +8,7 @@ drupalcode
 drupaldev
 entityviewdisplay
 hyperscriptification
+hyperscriptified
 hyperscriptify
 hyperscriptifying
 inwidget

@@ -14,6 +14,7 @@ Related XB issue queue components:
 1. [Data model](https://www.drupal.org/project/issues/experience_builder?component=Data+model)
 2. [Shape matching](https://www.drupal.org/project/issues/experience_builder?component=Shape+matching) (see section
   3.1.2 below, and specifically 3.1.2.a)
+3. [Redux-integrated field widgets](https://www.drupal.org/project/issues/experience_builder?component=Redux-integrated+field+widgets)
 
 Those issue queue components also have corresponding entries in [`CODEOWNERS`](../CODEOWNERS).
 
@@ -36,7 +37,7 @@ to one of us! 😊 🙏
 - `field item`: the instantiation of a `field type`
 - `field item list`: to support multiple-cardinality values, Drupal core has opted to wrap every `field item` in a list — even if a particular `field instance` is single-cardinality
 - `field type`: metadata plus a class defining the `field prop`s that exist on this field type, requires a `field instance` to be used
-- `field widget`: a class that uses Form API to specify the editing UX for a `field type`
+- `field widget`: see [`Redux-integrated field widgets` doc](redux-integrated-field-widgets.md)
 - `SDC`: see [`XB Components` doc](components.md)
 - `view mode`: view modes lets a `content entity` be displayed in multiple ways
 

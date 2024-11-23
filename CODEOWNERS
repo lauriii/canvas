@@ -29,12 +29,24 @@
 /tests/src/Unit/OpenApiSpecValidationTest.php
 /tests/src/Unit/UiFixturesValidationTest.php
 
-[semi-coupled theme engine] @bnjmnm @hooroomoo @effulgentsia
+# Issues: https://www.drupal.org/project/issues/experience_builder?component=Semi-Coupled+theme+engine
+[Semi-Coupled theme engine] @bnjmnm @hooroomoo @effulgentsia
 /src/Theme/XBThemeNegotiator.php
 /themes/engines/semi_coupled/
+/ui/src/components/form/*.tsx
+/ui/src/components/form/twig-to-jsx-component-map.js
+# Hook implementations for this functionality.
+/experience_builder.semi_coupled_theme_engine.inc
+
+# Issues: https://www.drupal.org/project/issues/experience_builder?component=Redux-integrated+field+widgets
+[Redux-integrated field widgets] @bnjmnm @effulgentsia @wimleers
+/ui/src/components/form/inputBehaviors.tsx
+/tests/src/Cypress/cypress/e2e/media-library.cy.js
+/tests/src/Cypress/cypress/e2e/prop-types.cy.js
+# Hook implementations for this functionality.
+/experience_builder.redux_integrated_field_widgets.inc
 /templates/form/
 /ui/src/components/form/inputBehaviors.tsx
-
 
 #
 # Server side.
@@ -83,6 +95,11 @@
 /src/JsonSchemaInterpreter/
 /src/PropShape/
 /src/ShapeMatcher/
+/src/Plugin/DataTypeOverride/
+/src/Plugin/Field/FieldTypeOverride/
+/src/Plugin/Validation/Constraint/StringSemanticsConstraint.php
+# Hook implementations for this functionality.
+/experience_builder.shape_matching.inc
 
 
 #

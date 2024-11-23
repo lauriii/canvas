@@ -58,6 +58,16 @@ final class XBTemplateRenderer implements MainContentRendererInterface {
    */
   public function renderResponse(array $main_content, Request $request, RouteMatchInterface $route_match): Response {
     $html = $this->renderer->renderRoot($main_content);
+
+    // Wrap this in `<template hyperscriptify>`, which targets it (and its
+    // children - JSX or Twig) for React rendering via `hyperscriptify()`).
+    // Hyperscriptify takes a not-ideal-for-eyeballs markup structure and
+    // renders into something pleasant with React.
+    // While hyperscriptify can be called on any element, using <template> keeps
+    // the for-informational-purposes-only markup out of the DOM so React can
+    // then turn it into something DOM-worthy.
+    //
+    // @see https://github.com/effulgentsia/hyperscriptify
     $assets = AttachedAssets::createFromRenderArray($main_content);
     $query = $request->query->all();
 
@@ -105,7 +115,7 @@ final class XBTemplateRenderer implements MainContentRendererInterface {
     $settings = $assets->getSettings();
 
     return new JsonResponse([
-      'html' => "<template hyperscriptify>$html</template>",
+      'html' => "<template data-hyperscriptify>$html</template>",
       'css' => !empty($css_for_ajax) ? $css_for_ajax : [],
       'js' => !empty($js_for_ajax) ? $js_for_ajax : (object) $js_for_ajax,
       'settings' => $settings,

@@ -1,4 +1,4 @@
-# Experience Builder Config Management
+`# Experience Builder Config Management
 
 In the rest of this document, `Experience Builder` will be written as `XB`.
 
@@ -27,7 +27,7 @@ to one of us! 😊 🙏
 - `SDC`: a [Single-Directory Component](https://www.drupal.org/project/sdc)
 - `Block`: a [block plugin](https://www.drupal.org/docs/drupal-apis/block-api/block-api-overview) — ⚠️ not to be confused with the identically named config entities!
 - `field type`: see [`XB Data Model` doc](data-model.md)
-- `field widget`: see [`XB Data Model` doc](data-model.md)
+- `field widget`: see [`Redux-integrated field widgets` doc](redux-integrated-field-widgets.md)
 - `page template`: a Drupal theme's template in which every `theme region` is rendered
 - `page.html.twig`: see `page template`
 - `PageDisplayVariant`: Drupal is architected to allow multiple implementations to decorate/lay out the _main content_

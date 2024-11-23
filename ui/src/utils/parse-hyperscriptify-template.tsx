@@ -10,6 +10,8 @@ export default function parseHyperscriptifyTemplate(
   const document = new DOMParser().parseFromString(data, 'text/html');
 
   return (
-    document.querySelector('template[hyperscriptify]') as HTMLTemplateElement
+    document.querySelector(
+      'template[data-hyperscriptify]',
+    ) as HTMLTemplateElement
   )?.content;
 }

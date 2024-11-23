@@ -15,8 +15,10 @@ import {
 
 // This is where we map the Drupal Twig templates to the corresponding JSX component.
 // @see experience_builder_theme_suggestions_alter()
+// @see docs/semi-coupled-theme-engine.md
 // @see themes/engines/semi_coupled/README.md
 // @see themes/xb_stark/templates/process_as_jsx/
+
 const twigToJSXComponentMap = {
   'drupal-container--text-format-filter-guidelines':
     ContainerTextFormatFilterGuidelines,
