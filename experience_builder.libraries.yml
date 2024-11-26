@@ -10,17 +10,64 @@ xb-ui:
   dependencies:
     - core/drupal
     - core/drupalSettings
-    - core/drupal.ajax
+    # @todo Replace this with core/drupal.ajax once https://www.drupal.org/node/1945262 updates `olivero/drupal.message`.
+    # @see library definition for more information.
+    - experience_builder/drupal.ajax
     - core/drupal.states
     # The libraries below might be unnecessary but here for the trial & error phase
     - system/base
-    - core/drupal.dialog.ajax
+    - experience_builder/drupal.dialog.ajax
     - core/internal.jquery.form
     - experience_builder/ajax.hyperscriptify
 
 ajax.hyperscriptify:
   js:
     js/ajax.hyperscriptify.js: {}
+
+# This is a workaround until https://www.drupal.org/node/1945262 is in core.
+# When 'core/drupal.ajax' is added as an XB dependency, it sometimes causes unwanted Olivero
+# assets to load onto the XB page which affects XB styling due to 'drupal.message' having 'olivero/global-styling' in
+# its chain of dependencies. To prevent this, we are adding a copy of the 'core/drupal.ajax' library without
+# drupal.message.
+# @see https://git.drupalcode.org/project/experience_builder/-/merge_requests/154#note_356130
+# @see https://www.drupal.org/node/2987444#mr3609-note158377
+# @todo Remove this when https://www.drupal.org/node/1945262 updates `olivero/drupal.message`.
+drupal.ajax:
+  version: VERSION
+  js:
+    /core/misc/ajax.js: { }
+  css:
+    component:
+      /core/misc/components/ajax-progress.module.css: { weight: -10 }
+
+  drupalSettings:
+    # These placeholder values will be set by system_js_settings_alter().
+    ajaxPageState:
+      libraries: null
+      theme: null
+      theme_token: null
+    ajaxTrustedUrl: { }
+  dependencies:
+    - core/jquery
+    - core/drupal
+    - core/drupalSettings
+    - core/drupal.progress
+    - core/once
+    - core/tabbable
+    - core/loadjs
+
+drupal.dialog.ajax:
+  version: VERSION
+  js:
+    /core/misc/dialog/dialog.ajax.js: {}
+  dependencies:
+    - core/jquery
+    - core/drupal
+    - core/drupalSettings
+    # Use this file's drupal.ajax instead of core/drupal.ajax.
+    - experience_builder/drupal.ajax
+    - core/drupal.dialog
+    - core/tabbable
 
 preview:
   css:
