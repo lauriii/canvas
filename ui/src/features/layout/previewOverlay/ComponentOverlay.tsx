@@ -23,9 +23,9 @@ import {
   getSortableGroupName,
 } from '@/features/sortable/sortableUtils';
 import type { LayoutNode } from '@/features/layout/layoutModelSlice';
-import { selectModel } from '@/features/layout/layoutModelSlice';
 import ComponentContextMenu from '@/features/layout/preview/ComponentContextMenu';
 import { getDistanceBetweenElements } from '@/utils/function-utils';
+import useGetComponentName from '@/hooks/useGetComponentName';
 
 export interface ComponentOverlayProps {
   component: any;
@@ -77,14 +77,13 @@ const ComponentOverlay: React.FC<ComponentOverlayProps> = (props) => {
   const selectedComponent = useAppSelector(selectSelectedComponent);
   const hoveredComponent = useAppSelector(selectHoveredComponent);
   const canvasViewPortScale = useAppSelector(selectCanvasViewPortScale);
-  const model = useAppSelector(selectModel);
   const dispatch = useAppDispatch();
   const nameTagElRef = useRef<HTMLDivElement | null>(null);
   const { isDragging } = useAppSelector(selectDragging);
   const sortableContainerRef = useRef<HTMLDivElement | null>(null);
   const sortableInstance = useRef<Sortable | null>(null);
   const elementInsideIframe = useRef<HTMLElement | null>(null);
-  const componentName = model[component.uuid].name || 'Unnamed component';
+  const name = useGetComponentName(component);
 
   useEffect(() => {
     const iframeDocument = iframeRef.current?.contentDocument;
@@ -192,7 +191,7 @@ const ComponentOverlay: React.FC<ComponentOverlayProps> = (props) => {
   }, [dispatch]);
 
   return (
-    <ComponentContextMenu componentUuid={component.uuid}>
+    <ComponentContextMenu component={component}>
       <div
         aria-labelledby={`${component.uuid}-name`}
         tabIndex={0}
@@ -220,9 +219,10 @@ const ComponentOverlay: React.FC<ComponentOverlayProps> = (props) => {
           data-xb-component-id={component.type}
           data-xb-uuid={component.uuid}
           data-xb-type={component.nodeType}
-          onDragStart={(event) =>
-            customSortableDragImage(event, window.document, componentName)
-          }
+          onDragStart={(event) => {
+            event.stopPropagation();
+            customSortableDragImage(event, window.document, name);
+          }}
           data-xb-overlay="true"
         >
           {component.children.map((slot: LayoutNode) => (
@@ -244,6 +244,7 @@ const ComponentOverlay: React.FC<ComponentOverlayProps> = (props) => {
             </button>
             <div ref={nameTagElRef} className={clsx(styles.xbNameTag)}>
               <NameTag
+                name={name}
                 componentUuid={component.uuid}
                 selected={selectedComponent === component.uuid}
                 nodeType={component.nodeType}

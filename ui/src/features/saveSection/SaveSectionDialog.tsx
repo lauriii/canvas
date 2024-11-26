@@ -21,6 +21,7 @@ import { useSaveSectionMutation } from '@/services/sections';
 import type { FetchBaseQueryError } from '@reduxjs/toolkit/query/react';
 import type { SerializedError } from '@reduxjs/toolkit';
 import ErrorCard from '@/components/error/ErrorCard';
+import useGetComponentName from '@/hooks/useGetComponentName';
 
 interface ErrorData {
   message?: string;
@@ -50,6 +51,8 @@ const SaveSectionDialog: React.FC = () => {
   const selectedComponent = useAppSelector(selectSelectedComponent);
   const model = useAppSelector(selectModel);
   const layout = useAppSelector(selectLayout);
+  const selectedNode = findNodeByUuid(layout, selectedComponent || '');
+  const selectedComponentName = useGetComponentName(selectedNode);
   const [sectionName, setSectionName] = useState('My section');
   const [
     saveSection,
@@ -70,9 +73,9 @@ const SaveSectionDialog: React.FC = () => {
 
   useEffect(() => {
     if (selectedComponent) {
-      setSectionName(`${model[selectedComponent]?.name} section`);
+      setSectionName(`${selectedComponentName} section`);
     }
-  }, [model, selectedComponent]);
+  }, [model, selectedComponent, selectedComponentName]);
 
   const handleSaveClick = useCallback(() => {
     if (!selectedComponent || !layout) {
@@ -132,9 +135,9 @@ const SaveSectionDialog: React.FC = () => {
         </Text>
         <Dialog.Title>Add new section</Dialog.Title>
         <Dialog.Description size="2" mb="4">
-          Save "{model[selectedComponent]?.name}" as a section. Unlike
-          components, sections are independent and can be customized without
-          affecting other instances.
+          Save "{selectedComponentName}" as a section. Unlike components,
+          sections are independent and can be customized without affecting other
+          instances.
         </Dialog.Description>
 
         <Flex direction="column" gap="3">
@@ -143,7 +146,7 @@ const SaveSectionDialog: React.FC = () => {
               Section name
             </Text>
             <TextField.Root
-              defaultValue={sectionName}
+              value={sectionName}
               onChange={handleInputChange}
               placeholder="Enter a name for your section"
               id="sectionName"

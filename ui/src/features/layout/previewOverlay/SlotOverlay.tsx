@@ -13,8 +13,8 @@ import clsx from 'clsx';
 import NameTag from '@/features/layout/preview/NameTag';
 import ComponentOverlay from '@/features/layout/previewOverlay/ComponentOverlay';
 import type { LayoutNode } from '@/features/layout/layoutModelSlice';
-import { selectModel } from '@/features/layout/layoutModelSlice';
 import { getDistanceBetweenElements } from '@/utils/function-utils';
+import useGetComponentName from '@/hooks/useGetComponentName';
 
 const SlotOverlay: React.FC<SlotOverlayProps> = (props) => {
   const { slot, parentComponent, iframeRef } = props;
@@ -30,9 +30,8 @@ const SlotOverlay: React.FC<SlotOverlayProps> = (props) => {
   const targetSlot = useAppSelector(selectTargetSlot);
   const canvasViewPortScale = useAppSelector(selectCanvasViewPortScale);
   const nameTagElRef = useRef<HTMLDivElement | null>(null);
-  const model = useAppSelector(selectModel);
-  const parentComponentName =
-    model[parentComponent.uuid].name || 'Unnamed component';
+  const slotName = useGetComponentName(slot, parentComponent);
+  const parentComponentName = useGetComponentName(parentComponent);
 
   useEffect(() => {
     const iframeDocument = iframeRef.current?.contentDocument;
@@ -66,7 +65,7 @@ const SlotOverlay: React.FC<SlotOverlayProps> = (props) => {
 
   return (
     <div
-      aria-label={`${parentComponentName} ${slot.name}`}
+      aria-label={`${parentComponentName}: ${slotName}`}
       className={clsx('slotOverlay', styles.slotOverlay, {
         [styles.selected]: slot.uuid === selectedComponent,
         [styles.hovered]: slot.uuid === hoveredComponent,
@@ -86,6 +85,7 @@ const SlotOverlay: React.FC<SlotOverlayProps> = (props) => {
           className={clsx(styles.xbNameTag, styles.xbNameTagSlot)}
         >
           <NameTag
+            name={slotName}
             componentUuid={slot.uuid}
             selected={selectedComponent === slot.uuid}
             nodeType={slot.nodeType}

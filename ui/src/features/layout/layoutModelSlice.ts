@@ -110,7 +110,6 @@ type UpdateNodePayload = {
 
 export interface ComponentModel {
   [key: string]: string | boolean | [] | number | {};
-  name: string;
 }
 
 export const layoutModelSlice = createSlice({
@@ -291,8 +290,7 @@ export const addNewComponentToLayout =
       return;
     }
 
-    // @todo Remove this limitation in https://www.drupal.org/project/experience_builder/issues/3467954
-    const initialData: ComponentModel = { name: payload.component.name };
+    const initialData: ComponentModel = {};
     const children: Node[] = [];
     const uuid = uuidv4();
 

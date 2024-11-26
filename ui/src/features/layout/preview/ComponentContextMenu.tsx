@@ -10,26 +10,27 @@ import {
   unsetHoveredComponent,
   unsetSelectedComponent,
 } from '@/features/ui/uiSlice';
+import type { Node } from '@/features/layout/layoutModelSlice';
 import {
   deleteNode,
   duplicateNode,
-  selectModel,
   shiftNode,
 } from '@/features/layout/layoutModelSlice';
 import { setDialogOpen } from '@/features/ui/dialogSlice';
+import useGetComponentName from '@/hooks/useGetComponentName';
 
 interface ComponentContextMenuProps {
   children: ReactNode;
-  componentUuid: string;
+  component: Node;
 }
 
 const ComponentContextMenu: React.FC<ComponentContextMenuProps> = (props) => {
-  const { children, componentUuid } = props;
+  const { children, component } = props;
   const dispatch = useAppDispatch();
-  const model = useAppSelector(selectModel);
-  const componentName = model[componentUuid].name || 'Unnamed component';
+  const componentName = useGetComponentName(component);
   const canvasViewPort = useAppSelector(selectCanvasViewPort);
   const selectedComponent = useAppSelector(selectSelectedComponent);
+  const componentUuid = component.uuid;
 
   const handleDeleteClick = useCallback(() => {
     if (componentUuid) {
@@ -66,12 +67,16 @@ const ComponentContextMenu: React.FC<ComponentContextMenuProps> = (props) => {
     dispatch(shiftNode({ uuid: componentUuid, direction: 'down' }));
   }, [dispatch, componentUuid]);
 
-  const handleCreateSectionClick = useCallback(() => {
-    if (componentUuid !== selectedComponent) {
-      dispatch(setSelectedComponent(componentUuid));
-    }
-    dispatch(setDialogOpen('saveAsSection'));
-  }, [componentUuid, dispatch, selectedComponent]);
+  const handleCreateSectionClick = useCallback(
+    (e: React.MouseEvent<HTMLElement>) => {
+      e.stopPropagation();
+      if (componentUuid !== selectedComponent) {
+        dispatch(setSelectedComponent(componentUuid));
+      }
+      dispatch(setDialogOpen('saveAsSection'));
+    },
+    [componentUuid, dispatch, selectedComponent],
+  );
 
   const closeContextMenu = () => {
     // Todo: There has to be a better way to close the context menu than firing an esc key press.

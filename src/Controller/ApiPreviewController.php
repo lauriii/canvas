@@ -18,8 +18,7 @@ use Symfony\Component\HttpFoundation\Request;
 final class HardcodedPropsComponentTreeItem extends ComponentTreeItem {
   public array $hardcoded_props = [];
   public function resolveComponentProps(string $component_instance_uuid): array {
-    // @todo the current quick-and-dirty UI PoC unfortunately prevents any prop from being named `name`, because it expects that to convey the component name — but it's not actually one of the props consumed by the SDC.
-    return array_diff_key($this->hardcoded_props[$component_instance_uuid], ['name' => NULL]);
+    return $this->hardcoded_props[$component_instance_uuid];
   }
 }
 // phpcs:enable

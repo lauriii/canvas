@@ -1,22 +1,16 @@
-import type React from 'react';
 import styles from './NameTag.module.css';
-import { useAppSelector } from '@/app/hooks';
-import { selectModel } from '@/features/layout/layoutModelSlice';
 import clsx from 'clsx';
 import { BoxModelIcon } from '@radix-ui/react-icons';
 
 interface NameTagProps {
+  name: string;
   componentUuid: string;
   selected: boolean;
   nodeType: string;
 }
 
 const NameTag: React.FC<NameTagProps> = (props) => {
-  const { componentUuid, selected, nodeType } = props;
-
-  const model = useAppSelector(selectModel);
-  const component = model[componentUuid];
-  const name = nodeType === 'slot' ? 'Slot' : component?.name;
+  const { name, selected, nodeType, componentUuid } = props;
 
   return (
     <div

@@ -150,15 +150,6 @@ final class ApiContentUpdateController extends ApiControllerBase {
     $props = [];
     $component_entity = Component::load($component);
     assert($component_entity instanceof Component);
-    try {
-      // @todo Allow 'name' prop to be used in https://drupal.org/i/3467954 or https://www.drupal.org/i/3487773.
-      $component_entity->getDefaultStaticPropSource('name');
-      $violation_list->add(new ConstraintViolation("Component '$component' cannot be used. 'name' prop is not supported.", "Component '$component' cannot be used. 'name' prop is not supported.", [], $client_props, '', $client_props));
-      return [[], $violation_list];
-    }
-    catch (\OutOfRangeException) {
-      unset($client_props['name']);
-    }
     foreach ($client_props as $prop => $prop_value) {
       $static_source = $component_entity->getDefaultStaticPropSource($prop);
       $updated_static_source = $static_source->withValue($prop_value);

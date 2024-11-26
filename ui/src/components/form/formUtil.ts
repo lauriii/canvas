@@ -220,9 +220,7 @@ export function getPropsValues(
 ) {
   const { selectedComponent, model, components, selectedComponentType } =
     inputAndUiData;
-  const selectedModel = model
-    ? { ...model[selectedComponent] }
-    : { name: 'noop' };
+  const selectedModel = model ? { ...model[selectedComponent] } : {};
   const {
     propsWithSourceStorageSettings,
     multipleInputsSingleValue,

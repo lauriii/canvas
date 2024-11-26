@@ -3,7 +3,7 @@ import type React from 'react';
 import { useRef, useEffect, useState } from 'react';
 import Sortable from 'sortablejs';
 import { useAppSelector } from '@/app/hooks';
-import type { LayoutNode } from '@/features/layout/layoutModelSlice';
+import type { LayoutNode, Node } from '@/features/layout/layoutModelSlice';
 import { selectLayout } from '@/features/layout/layoutModelSlice';
 import useSortable from '@/features/layout/tree/useSortable';
 import * as Collapsible from '@radix-ui/react-collapsible';
@@ -15,11 +15,12 @@ import { Box } from '@radix-ui/themes';
 
 interface SortableContainerProps {
   node: LayoutNode;
+  parentNode?: Node;
   setDragging: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 const SortableContainer: React.FC<SortableContainerProps> = (props) => {
-  const { node, setDragging } = props;
+  const { node, setDragging, parentNode } = props;
   const layout = useAppSelector(selectLayout);
   const sortableRef = useRef<HTMLDivElement | null>(null);
   const sortableInstance = useRef<Sortable | null>(null);
@@ -77,18 +78,21 @@ const SortableContainer: React.FC<SortableContainerProps> = (props) => {
     };
   }, [layout, handleDragAdd, handleDragEnd, handleDragStart, setDragging]);
 
-  const renderChildren = (children: LayoutNode[]) => {
-    return children.map((child: LayoutNode) => {
+  const renderChildren = (children: Node[], parentNode?: Node) => {
+    return children.map((child: Node) => {
       if (child.nodeType === 'slot' || child.children?.length > 0) {
         return (
           <SortableContainer
             setDragging={setDragging}
             node={child}
             key={child.uuid}
+            parentNode={parentNode}
           />
         );
       } else {
-        return <TreeItem node={child} key={child.uuid} />;
+        return (
+          <TreeItem node={child} key={child.uuid} parentNode={parentNode} />
+        );
       }
     });
   };
@@ -117,7 +121,7 @@ const SortableContainer: React.FC<SortableContainerProps> = (props) => {
       onOpenChange={setOpen}
       data-xb-uuid={node.uuid}
     >
-      <TreeItem node={node}>
+      <TreeItem node={node} parentNode={parentNode}>
         {/* Only show the trigger if the slot has children */}
         {!isSlotEmpty && (
           <Collapsible.Trigger asChild={true}>
@@ -141,7 +145,7 @@ const SortableContainer: React.FC<SortableContainerProps> = (props) => {
         data-xb-uuid={node.uuid}
       >
         <Collapsible.Content asChild={true}>
-          <>{renderChildren(node.children)}</>
+          <>{renderChildren(node.children, node)}</>
         </Collapsible.Content>
       </div>
     </Collapsible.Root>

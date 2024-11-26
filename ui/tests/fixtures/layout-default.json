@@ -10,7 +10,7 @@
         "type": "experience_builder:image",
         "children": [
           {
-            "name": "Slot 1",
+            "name": "slot",
             "nodeType": "slot",
             "uuid": "05fa13be-8291-4955-aa89-32351f68e776",
             "children": [
@@ -34,7 +34,7 @@
         "type": "sdc_test:my-cta",
         "children": [
           {
-            "name": "Slot 2",
+            "name": "slot_2",
             "nodeType": "slot",
             "uuid": "0dea13be-8291-4955-aa89-32351f68e776",
             "children": [

@@ -34,7 +34,7 @@ describe(
         .findByLabelText('Expand component tree')
         .click();
       cy.get('@layersTree')
-        .findAllByText('Slot')
+        .findAllByText('Column One')
         .first()
         .parents('.treeItem')
         .findByLabelText('Expand component tree')
@@ -47,7 +47,7 @@ describe(
       // Before dragging, check that the component is in the column one slot in the layers menu and preview.
       cy.log('Image component exists in the first slot in the layers panel');
       cy.get('@layersTree').within(() => {
-        cy.findAllByText('Slot')
+        cy.findAllByText('Column One')
           .first()
           .closest('.xb--collapsible-root')
           .within(() => {
@@ -57,7 +57,7 @@ describe(
 
       cy.log('Image component exists in the first slot in the overlay UI');
       cy.get('@desktopPreviewOverlay').within(() => {
-        cy.findByLabelText('Two Column column_one').within(() => {
+        cy.findByLabelText('Two Column: Column One').within(() => {
           cy.findByLabelText('Image');
         });
       });
@@ -68,7 +68,7 @@ describe(
         'Image component no longer exists in the first slot in the layers panel and is now a sibling of Two Column',
       );
       cy.get('@layersTree').within(() => {
-        cy.findAllByText('Slot')
+        cy.findAllByText('Column One')
           .first()
           .closest('.xb--collapsible-root')
           .within(() => {
@@ -84,7 +84,7 @@ describe(
         'Image component no longer exists in the first slot in the overlay UI and is now a sibling of Two Column',
       );
       cy.get('@desktopPreviewOverlay').within(() => {
-        cy.findByLabelText('Two Column column_one').within(() => {
+        cy.findByLabelText('Two Column: Column One').within(() => {
           cy.findByLabelText('Image').should('not.exist');
         });
         cy.checkSiblings(
@@ -107,8 +107,7 @@ describe(
 
       // Next, drag the image component from the root level to column two's slot.
       cy.get('@layersTree').within(() => {
-        cy.findAllByText('Slot')
-          .eq(1)
+        cy.findAllByText('Column Two')
           .parents('.treeItem')
           .findByLabelText('Expand component tree')
           .click();
@@ -121,8 +120,7 @@ describe(
       // After dragging, check that the image is now in column two's slot in the layers menu and preview.
       cy.log('Image component exists in the second slot in the layers panel');
       cy.get('@layersTree').within(() => {
-        cy.findAllByText('Slot')
-          .eq(1)
+        cy.findAllByText('Column Two')
           .closest('.xb--collapsible-root')
           .within(() => {
             cy.findAllByText('Image');
@@ -133,7 +131,7 @@ describe(
 
       cy.log('Image component exists in the column_two slot in the overlay UI');
       cy.get('@desktopPreviewOverlay').within(() => {
-        cy.findByLabelText('Two Column column_two').within(() => {
+        cy.findByLabelText('Two Column: Column Two').within(() => {
           cy.findByLabelText('Image');
         });
         // Ensure there is only one Image and we didn't clone it or anything!

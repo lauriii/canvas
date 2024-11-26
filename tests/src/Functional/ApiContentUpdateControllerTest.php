@@ -96,13 +96,11 @@ final class ApiContentUpdateControllerTest extends FunctionalTestBase {
       ],
       'model' => [
         $heading_uuid => [
-          'name' => 'Heading',
           'text' => 'This is a random heading.',
           'style' => 'primary',
           'element' => 'h1',
         ],
         $image_uuid => [
-          'name' => 'Image',
           'image' => [
             'src' => $this->getSrcPropertyFromFile($this->referencedImage),
             'alt' => 'This is a random image.',

@@ -12,25 +12,27 @@ import {
   setSelectedComponent,
   unsetHoveredComponent,
 } from '@/features/ui/uiSlice';
-import type { LayoutNode } from '@/features/layout/layoutModelSlice';
-import { selectLayout, selectModel } from '@/features/layout/layoutModelSlice';
+import type { Node } from '@/features/layout/layoutModelSlice';
+import { selectLayout } from '@/features/layout/layoutModelSlice';
 import { getNodeDepth } from '@/features/layout/layoutUtils';
 import type { CollapsibleTriggerProps } from '@radix-ui/react-collapsible';
 import ComponentContextMenu from '@/features/layout/preview/ComponentContextMenu';
+import useGetComponentName from '@/hooks/useGetComponentName';
 
 interface TreeItemProps {
-  node: LayoutNode;
+  node: Node;
   children?: false | React.ReactElement<CollapsibleTriggerProps>;
+  parentNode?: Node;
 }
 
-const TreeItem: React.FC<TreeItemProps> = ({ node, children }) => {
+const TreeItem: React.FC<TreeItemProps> = ({ node, children, parentNode }) => {
   const dispatch = useAppDispatch();
-  const model = useAppSelector(selectModel);
   const selectedComponent = useAppSelector(selectSelectedComponent);
   const hoveredComponent = useAppSelector(selectHoveredComponent);
   const layout = useAppSelector(selectLayout);
-  const nodeName = model[node.uuid] ? model[node.uuid].name : 'Slot';
   const isSlot = node.nodeType === 'slot';
+  const nodeName = useGetComponentName(node, isSlot ? parentNode : undefined);
+
   const IconComponent = isSlot ? BoxModelIcon : ComponentInstanceIcon;
   // Calculate the padding left value based on the depth of the node in the tree.
   const paddingLeftValue = getNodeDepth(layout, node.uuid) * 15;
@@ -57,7 +59,7 @@ const TreeItem: React.FC<TreeItemProps> = ({ node, children }) => {
     event.stopPropagation();
     // Clear hovered component to avoid interference with SortableJS setting a ghost class.
     dispatch(unsetHoveredComponent());
-    customSortableDragImage(event, window.document, model[node.uuid].name);
+    customSortableDragImage(event, window.document, nodeName);
   }
 
   function handleContextMenu(event: React.MouseEvent<HTMLDivElement>) {
@@ -108,9 +110,7 @@ const TreeItem: React.FC<TreeItemProps> = ({ node, children }) => {
       aria-labelledby={`layer-${node.uuid}-name`}
     >
       {!isSlot ? (
-        <ComponentContextMenu componentUuid={node.uuid}>
-          {treeItem}
-        </ComponentContextMenu>
+        <ComponentContextMenu component={node}>{treeItem}</ComponentContextMenu>
       ) : (
         treeItem
       )}

@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Drupal\experience_builder\Controller;
 
 use Drupal\Core\Entity\FieldableEntityInterface;
-use Drupal\experience_builder\Entity\Component;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeHydrated;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
@@ -76,11 +75,6 @@ final class ApiLayoutController {
       ];
       if (isset($hydrated[$component_instance_uuid])) {
         $model[$component_instance_uuid] = $hydrated[$component_instance_uuid]['props'];
-        $component_id = $tree->getComponentId($component_instance_uuid);
-        // @todo the current quick-and-dirty UI PoC unfortunately prevents any prop from being named `name`, because it expects that to convey the component name
-        $component_config = Component::load($component_id);
-        assert($component_config !== NULL);
-        $model[$component_instance_uuid]['name'] = $component_config->label();
       }
       if (isset($full_tree[$component_instance_uuid])) {
         foreach ($full_tree[$component_instance_uuid] as $slot_name => $slot_children) {
