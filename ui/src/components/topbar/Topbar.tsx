@@ -4,10 +4,10 @@ import { Button, Flex, SegmentedControl, Text } from '@radix-ui/themes';
 import Panel from '@/components/Panel';
 import UndoRedo from '@/components/UndoRedo';
 import DropIcon from '@assets/icons/drop.svg';
-import { handleNonWorkingBtn } from '@/utils/function-utils';
 import { EyeNoneIcon, EyeOpenIcon } from '@radix-ui/react-icons';
 import { useLocation, useNavigate } from 'react-router-dom';
 import clsx from 'clsx';
+import DemoPublishButton from '@/components/DemoPublishButton';
 
 const Topbar = () => {
   const navigate = useNavigate();
@@ -84,10 +84,7 @@ const Topbar = () => {
                 <EyeOpenIcon /> Preview
               </Button>
             )}
-
-            <Button variant="solid" color="blue" onClick={handleNonWorkingBtn}>
-              Publish
-            </Button>
+            <DemoPublishButton />
           </Flex>
         </Flex>
       </Panel>
