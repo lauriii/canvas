@@ -12,7 +12,7 @@ describe('Empty canvas', () => {
   });
 
   it('can add a component to an empty canvas', () => {
-    cy.loadURLandWaitForXBLoaded('xb/node/2');
+    cy.loadURLandWaitForXBLoaded({ url: 'xb/node/2' });
 
     // Confirm there is nothing in the canvas.
     cy.get('.xb--viewport-overlay [data-xb-component-id]').should('not.exist');

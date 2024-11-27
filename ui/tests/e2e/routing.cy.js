@@ -1,4 +1,4 @@
-describe('Routing', { testIsolation: false }, () => {
+describe('Routing', () => {
   before(() => {
     cy.drupalXbInstall();
   });

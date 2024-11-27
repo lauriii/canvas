@@ -1,4 +1,4 @@
-describe('Primary panel', { testIsolation: false }, () => {
+describe('Primary panel', () => {
   before(() => {
     cy.drupalXbInstall();
   });

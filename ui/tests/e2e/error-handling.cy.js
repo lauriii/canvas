@@ -1,4 +1,4 @@
-describe('Error handling', { testIsolation: false }, () => {
+describe('Error handling', () => {
   before(() => {
     cy.drupalXbInstall();
   });

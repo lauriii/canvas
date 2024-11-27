@@ -1,4 +1,4 @@
-describe('Undo/Redo functionality', { testIsolation: false }, () => {
+describe('Undo/Redo functionality', () => {
   before(() => {
     cy.drupalXbInstall();
   });

@@ -31,9 +31,6 @@ class XBTestSetup implements TestSetupInterface {
     $config = $config_factory->getEditable('system.logging');
     $config->set('error_level', ERROR_REPORTING_DISPLAY_VERBOSE);
     $config->save(TRUE);
-    // @todo Update E2E tests to work with auto-save in
-    //   https://drupal.org/i/3481736.
-    \Drupal::state()->set('experience_builder.disable_auto-save', TRUE);
 
     $config = \Drupal::service('config.factory')->getEditable('system.performance');
     $config->set('js.preprocess', FALSE);
@@ -85,6 +82,7 @@ class XBTestSetup implements TestSetupInterface {
     ])->save();
     $module_installer->install([
       'experience_builder',
+      'xb_e2e_support',
     ]);
 
     $field_definitions = \Drupal::service('entity_field.manager')->getFieldDefinitions('node', 'article');

@@ -16,7 +16,7 @@ describe('Contain CSS', () => {
   });
 
   it('Olivero CSS should not present in the XB UI', () => {
-    cy.loadURLandWaitForXBLoaded('xb/node/2');
+    cy.loadURLandWaitForXBLoaded({ url: 'xb/node/2' });
     cy.get(oliveroCssLink).should('not.exist');
   });
 });

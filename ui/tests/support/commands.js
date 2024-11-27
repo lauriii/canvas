@@ -301,6 +301,15 @@ Cypress.Commands.add('drupalUserIsLoggedIn', (callback) => {
   }
 });
 
+Cypress.Commands.add('clearAutoSave', (type = 'node', id = '1') => {
+  cy.request({
+    method: 'GET', // Use POST if your endpoint requires it
+    url: `/xb-test/clear-auto-save/${type}/${id}`,
+  }).then((response) => {
+    expect(response.status).to.eq(200);
+  });
+});
+
 Cypress.Commands.add('drupalSession', () => {
   cy.visit('/', { failOnStatusCode: false }).then(() => {
     // With this cookie set, visits to the test site will be directed to a
@@ -552,10 +561,19 @@ Cypress.Commands.add(
  * Loads the XB page and waits to ensure initial backend requests have been returned and that the preview
  * iFrame is initialized and ready to be interacted with.
  *
- * @param {string} url
- *   The url you want to visit - defaults to /xb/node/1.
- */
-Cypress.Commands.add('loadURLandWaitForXBLoaded', (url = 'xb/node/1') => {
+ * * @param {Object} options
+ *  *   An options object to configure the command.
+ *  * @param {string} options.url
+ *  *   The URL you want to visit - defaults to '/xb/node/1'.
+ *  * @param {boolean} options.clearAutoSave
+ *  *   Can be set to false if you want the autosave data to persist on loading a new page - defaults to true.
+ *  */
+Cypress.Commands.add('loadURLandWaitForXBLoaded', (options = {}) => {
+  const { url = 'xb/node/1', clearAutoSave = true } = options;
+
+  if (clearAutoSave) {
+    cy.clearAutoSave();
+  }
   cy.drupalRelativeURL(url);
 
   cy.previewReady();

@@ -1,0 +1,10 @@
+xb_e2e_support.clear_auto_save:
+  path: '/xb-test/clear-auto-save/{entity_type}/{entity}'
+  defaults:
+    _controller: '\Drupal\xb_e2e_support\Controller\AutoSaveController::clearAutoSave'
+  options:
+    parameters:
+      entity:
+        type: entity:{entity_type}
+  requirements:
+    _permission: 'access content'

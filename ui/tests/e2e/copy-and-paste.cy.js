@@ -1,124 +1,116 @@
-describe(
-  'Copy and paste a node using keyboard shortcuts',
-  { testIsolation: false },
-  () => {
-    before(() => {
-      cy.drupalXbInstall();
+describe('Copy and paste a node using keyboard shortcuts', () => {
+  before(() => {
+    cy.drupalXbInstall();
+  });
+
+  beforeEach(() => {
+    cy.drupalSession();
+    cy.drupalLogin('xbUser', 'xbUser');
+  });
+
+  after(() => {
+    cy.drupalUninstall();
+  });
+
+  it('Copy and paste a node using keyboard shortcuts', () => {
+    // Transfer message listener from Cypress window to the XB application
+    // window.
+    cy.window().then((win) => {
+      win.top.addEventListener('message', (e) => {
+        win.postMessage(e.data, '*');
+      });
     });
 
-    beforeEach(() => {
-      cy.drupalSession();
-      cy.drupalLogin('xbUser', 'xbUser');
+    cy.loadURLandWaitForXBLoaded();
+    cy.clearLocalStorage();
+    cy.getIframeBody().findAllByText('hello, world!').should('have.length', 1);
+    cy.getIframeBody()
+      .findAllByText('XB Needs This For The Time Being')
+      .should('have.length', 2);
+
+    cy.log('Click and copy the first Hero component.');
+    cy.clickComponentInPreview('Hero', 0);
+    cy.realPress(['Meta', 'c']);
+
+    cy.getAllLocalStorage().then((ls) => {
+      expect(Object.keys(ls).length).to.equal(1);
     });
 
-    after(() => {
-      cy.drupalUninstall();
-    });
+    cy.log(
+      'Delete all the heroes including the one we just copied to ensure you can still paste it.',
+    );
+    cy.getComponentInPreview('Hero', 2).trigger('contextmenu');
+    cy.findByText('Delete').click();
 
-    it('Copy and paste a node using keyboard shortcuts', () => {
-      // Transfer message listener from Cypress window to the XB application
-      // window.
-      cy.window().then((win) => {
-        win.top.addEventListener('message', (e) => {
-          win.postMessage(e.data, '*');
-        });
+    cy.getComponentInPreview('Hero', 1).trigger('contextmenu');
+    cy.findByText('Delete').click();
+
+    cy.getComponentInPreview('Hero', 0).trigger('contextmenu');
+    cy.findByText('Delete').click();
+    cy.waitForElementContentNotInIframe(
+      'div',
+      'XB Needs This For The Time Being',
+    );
+    cy.waitForElementContentNotInIframe('div', 'hello, world!');
+
+    cy.log(
+      'Select the Image component and then paste the Hero we copied after it.',
+    );
+    cy.clickComponentInPreview('Image', 1);
+    cy.realPress(['Meta', 'v']);
+
+    cy.log(
+      'The Hero we copied had the text hello, world! so that should have been pasted, not a different Hero.',
+    );
+
+    cy.waitForElementContentInIframe('div', 'hello, world!');
+    cy.getIframeBody().findAllByText('hello, world!').should('have.length', 1);
+    cy.getIframeBody()
+      .findAllByText('XB Needs This For The Time Being')
+      .should('have.length', 0);
+
+    cy.log('The Hero that was pasted should be selected');
+    cy.getComponentInPreview('Hero', 0)
+      .invoke('attr', 'class')
+      .then((classList) => {
+        expect(classList).to.include('selected');
       });
 
-      cy.loadURLandWaitForXBLoaded();
-      cy.clearLocalStorage();
-      cy.getIframeBody()
-        .findAllByText('hello, world!')
-        .should('have.length', 1);
-      cy.getIframeBody()
-        .findAllByText('XB Needs This For The Time Being')
-        .should('have.length', 2);
+    cy.log('Refresh the page and confirm the component can still be pasted');
+    cy.loadURLandWaitForXBLoaded();
 
-      cy.log('Click and copy the first Hero component.');
-      cy.clickComponentInPreview('Hero', 0);
-      cy.realPress(['Meta', 'c']);
-
-      cy.getAllLocalStorage().then((ls) => {
-        expect(Object.keys(ls).length).to.equal(1);
-      });
-
-      cy.log(
-        'Delete all the heroes including the one we just copied to ensure you can still paste it.',
-      );
-      cy.getComponentInPreview('Hero', 2).trigger('contextmenu');
-      cy.findByText('Delete').click();
-
-      cy.getComponentInPreview('Hero', 1).trigger('contextmenu');
-      cy.findByText('Delete').click();
-
-      cy.getComponentInPreview('Hero', 0).trigger('contextmenu');
-      cy.findByText('Delete').click();
-      cy.waitForElementContentNotInIframe('div', 'Hero');
-
-      cy.log(
-        'Select the Image component and then paste the Hero we copied after it.',
-      );
-      cy.clickComponentInPreview('Image', 1);
-      cy.realPress(['Meta', 'v']);
-
-      cy.log(
-        'The Hero we copied had the text hello, world! so that should have been pasted, not a different Hero.',
-      );
-
-      cy.waitForElementContentInIframe('div', 'hello, world!');
-      cy.getIframeBody()
-        .findAllByText('hello, world!')
-        .should('have.length', 1);
-      cy.getIframeBody()
-        .findAllByText('XB Needs This For The Time Being')
-        .should('have.length', 0);
-
-      cy.log('The Hero that was pasted should be selected');
-      cy.getComponentInPreview('Hero', 0)
-        .invoke('attr', 'class')
-        .then((classList) => {
-          expect(classList).to.include('selected');
-        });
-
-      cy.log('Refresh the page and confirm the component can still be pasted');
-      cy.loadURLandWaitForXBLoaded();
-
-      cy.getAllLocalStorage().then((ls) => {
-        expect(Object.keys(ls).length).to.equal(1);
-      });
-
-      cy.getIframeBody()
-        .findAllByText('hello, world!')
-        .should('have.length', 1);
-
-      cy.clickComponentInPreview('Hero', 2);
-
-      cy.realPress(['Meta', 'v']);
-      cy.waitForElementInIframe('.column-two .xb--sortable-item:nth-child(4)');
-      cy.getIframeBody()
-        .findAllByText('hello, world!')
-        .should('have.length', 2);
+    cy.getAllLocalStorage().then((ls) => {
+      expect(Object.keys(ls).length).to.equal(1);
     });
 
-    it('Copy and paste a node with children using keyboard shortcuts', () => {
-      cy.loadURLandWaitForXBLoaded();
-      cy.clearLocalStorage();
+    cy.getIframeBody().findAllByText('hello, world!').should('have.length', 1);
 
-      cy.clickComponentInLayersView('Two Column');
-      cy.realPress(['Meta', 'c']);
-      cy.realPress(['Meta', 'v']);
-      cy.log('The Two Column that was pasted should be selected');
-      cy.getComponentInPreview('Two Column', 1)
-        .invoke('attr', 'class')
-        .then((classList) => {
-          expect(classList).to.include('selected');
-        });
-      cy.realPress(['Meta', 'v']);
-      cy.log('The Two Column that was pasted should be selected');
-      cy.getComponentInPreview('Two Column', 2)
-        .invoke('attr', 'class')
-        .then((classList) => {
-          expect(classList).to.include('selected');
-        });
-    });
-  },
-);
+    cy.clickComponentInPreview('Hero', 2);
+
+    cy.realPress(['Meta', 'v']);
+    cy.waitForElementInIframe('.column-two .xb--sortable-item:nth-child(4)');
+    cy.getIframeBody().findAllByText('hello, world!').should('have.length', 2);
+  });
+
+  it('Copy and paste a node with children using keyboard shortcuts', () => {
+    cy.loadURLandWaitForXBLoaded();
+    cy.clearLocalStorage();
+
+    cy.clickComponentInLayersView('Two Column');
+    cy.realPress(['Meta', 'c']);
+    cy.realPress(['Meta', 'v']);
+    cy.log('The Two Column that was pasted should be selected');
+    cy.getComponentInPreview('Two Column', 1)
+      .invoke('attr', 'class')
+      .then((classList) => {
+        expect(classList).to.include('selected');
+      });
+    cy.realPress(['Meta', 'v']);
+    cy.log('The Two Column that was pasted should be selected');
+    cy.getComponentInPreview('Two Column', 2)
+      .invoke('attr', 'class')
+      .then((classList) => {
+        expect(classList).to.include('selected');
+      });
+  });
+});

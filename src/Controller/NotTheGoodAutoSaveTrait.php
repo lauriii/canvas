@@ -18,12 +18,6 @@ use Symfony\Component\HttpFoundation\Request;
 trait NotTheGoodAutoSaveTrait {
 
   private function doAutoSave(EntityInterface $entity, Request $request): void {
-    // @todo Update E2E tests to work with auto-save in
-    //   https://drupal.org/i/3481736.
-    // @see \Drupal\Tests\experience_builder\TestSite\XBTestSetup::setup()
-    if (\Drupal::state()->get('experience_builder.disable_auto-save', FALSE)) {
-      return;
-    }
     $body = json_decode($request->getContent());
     $this->getTempStore()->set($this->getAutoSaveKey($entity), $body);
   }

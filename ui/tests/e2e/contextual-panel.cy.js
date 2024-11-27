@@ -1,4 +1,4 @@
-describe('Contextual panel', { testIsolation: false }, () => {
+describe('Contextual panel', () => {
   before(() => {
     cy.drupalXbInstall();
   });
