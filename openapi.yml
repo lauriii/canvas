@@ -78,6 +78,16 @@ paths:
       responses:
         '200':
           description: Generated preview successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - html
+                properties:
+                  html:
+                    type: string
+                    description: The HTML preview.
   '/xb/api/content-update/{entityTypeId}/{entityId}':
     patch:
       parameters:

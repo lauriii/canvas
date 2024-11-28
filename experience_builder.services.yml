@@ -25,6 +25,9 @@ services:
       $jsCollectionRenderer: '@asset.js.collection_renderer'
     tags:
       - { name: render.main_content_renderer, format: xb_template }
+  Drupal\experience_builder\Render\MainContent\XBPreviewRenderer:
+    tags:
+      - { name: render.main_content_renderer, format: xb_preview }
   Drupal\experience_builder\Plugin\ComponentPluginManager:
     decorates: Drupal\Core\Theme\ComponentPluginManager
     parent: Drupal\Core\Theme\ComponentPluginManager

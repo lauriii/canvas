@@ -5,12 +5,10 @@ declare(strict_types=1);
 namespace Drupal\experience_builder\Controller;
 
 use Drupal\Core\Entity\EntityInterface;
-use Drupal\Core\Render\BareHtmlPageRendererInterface;
 use Drupal\Core\Render\Element;
 use Drupal\Core\TypedData\TypedDataManagerInterface;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
-use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 
 // phpcs:disable
@@ -29,11 +27,10 @@ final class ApiPreviewController {
   use NotTheGoodAutoSaveTrait;
 
   public function __construct(
-    private readonly BareHtmlPageRendererInterface $bareHtmlPageRenderer,
     private readonly TypedDataManagerInterface $typedDataManager,
   ) {}
 
-  public function __invoke(Request $request, EntityInterface $entity): JsonResponse {
+  public function __invoke(Request $request, EntityInterface $entity): array {
     $this->doAutoSave($entity, $request);
     ['layout' => $layout, 'model' => $model] = json_decode($request->getContent(), TRUE);
     $renderable = $this->clientLayoutAndModelToXbField($layout, $model)->toRenderable();
@@ -44,10 +41,7 @@ final class ApiPreviewController {
     $build['#prefix'] = '<div class="xb--sortable-list" data-xb-uuid="root">';
     $build['#suffix'] = '</div>';
     $build['#attached']['library'][] = 'experience_builder/preview';
-
-    return new JsonResponse([
-      'html' => $this->bareHtmlPageRenderer->renderBarePage($build, '', 'page')->getContent(),
-    ]);
+    return $build;
   }
 
   private static function wrapComponentsForPreview(array $build): array {
@@ -88,7 +82,8 @@ final class ApiPreviewController {
    * final rendering.
    *
    * @see \Drupal\experience_builder\Plugin\Field\FieldFormatter\NaiveComponentTreeFormatter
-   * @todo Refactor/remove in https://www.drupal.org/project/experience_builder/issues/3467954.
+   * @todo Refactor/remove in
+   *   https://www.drupal.org/project/experience_builder/issues/3467954.
    */
   private function clientLayoutAndModelToXbField(array $layout, array $model): ComponentTreeItem {
     $field_item_definition = $this->typedDataManager->createDataDefinition('field_item:component_tree');
@@ -116,6 +111,15 @@ final class ApiPreviewController {
     $component_tree_field_item->hardcoded_props = $model;
 
     return $component_tree_field_item;
+  }
+
+  /**
+   * @param \Drupal\Core\Entity\EntityInterface $entity
+   *
+   * @return string
+   */
+  public function getLabel(EntityInterface $entity): string {
+    return (string) $entity->label();
   }
 
 }

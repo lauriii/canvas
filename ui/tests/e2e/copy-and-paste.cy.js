@@ -24,9 +24,11 @@ describe('Copy and paste a node using keyboard shortcuts', () => {
     cy.loadURLandWaitForXBLoaded();
     cy.clearLocalStorage();
     cy.getIframeBody().findAllByText('hello, world!').should('have.length', 1);
+
+    // text occurs 3 times (one is the page title)
     cy.getIframeBody()
       .findAllByText('XB Needs This For The Time Being')
-      .should('have.length', 2);
+      .should('have.length', 3);
 
     cy.log('Click and copy the first Hero component.');
     cy.clickComponentInPreview('Hero', 0);
@@ -47,11 +49,10 @@ describe('Copy and paste a node using keyboard shortcuts', () => {
 
     cy.getComponentInPreview('Hero', 0).trigger('contextmenu');
     cy.findByText('Delete').click();
-    cy.waitForElementContentNotInIframe(
-      'div',
-      'XB Needs This For The Time Being',
-    );
     cy.waitForElementContentNotInIframe('div', 'hello, world!');
+    cy.getIframeBody()
+      .findAllByText('XB Needs This For The Time Being')
+      .should('have.length', 1);
 
     cy.log(
       'Select the Image component and then paste the Hero we copied after it.',
@@ -65,9 +66,11 @@ describe('Copy and paste a node using keyboard shortcuts', () => {
 
     cy.waitForElementContentInIframe('div', 'hello, world!');
     cy.getIframeBody().findAllByText('hello, world!').should('have.length', 1);
+
+    // this text should now occur only once (the page title)
     cy.getIframeBody()
       .findAllByText('XB Needs This For The Time Being')
-      .should('have.length', 0);
+      .should('have.length', 1);
 
     cy.log('The Hero that was pasted should be selected');
     cy.getComponentInPreview('Hero', 0)

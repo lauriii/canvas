@@ -4,21 +4,19 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\experience_builder\Kernel;
 
-use Drupal\Core\Entity\FieldableEntityInterface;
-use Drupal\experience_builder\Controller\ApiLayoutController;
-use Drupal\experience_builder\Controller\ApiPreviewController;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
-use Drupal\KernelTests\KernelTestBase;
-use Drupal\node\Entity\Node;
 use Drupal\Tests\experience_builder\TestSite\XBTestSetup;
-use Symfony\Component\HttpFoundation\JsonResponse;
+use Drupal\Tests\user\Traits\UserCreationTrait;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
 
 /**
  * @coversDefaultClass \Drupal\experience_builder\Controller\ApiPreviewController
  * @group experience_builder
  */
-class ApiPreviewControllerTest extends KernelTestBase {
+final class ApiPreviewControllerTest extends ExperienceBuilderTestBase {
+
+  use UserCreationTrait;
 
   /**
    * {@inheritdoc}
@@ -27,25 +25,16 @@ class ApiPreviewControllerTest extends KernelTestBase {
     parent::setUp();
     $this->container->get('module_installer')->install(['system']);
     (new XBTestSetup())->setup();
+    $this->setUpCurrentUser([], ['access administration pages']);
   }
 
   public function testEmpty(): void {
-    $node = Node::load(1);
-    assert($node instanceof FieldableEntityInterface);
-    $content = [
+    $this->request(Request::create('/api/preview/node/1', content: json_encode([
       'layout' => [
         'children' => [],
       ],
       'model' => [],
-    ];
-
-    $controller = \Drupal::service(ApiPreviewController::class);
-    $response = $controller(new Request(content: (string) json_encode($content)), $node);
-
-    $this->assertInstanceOf(JsonResponse::class, $response);
-    $json = json_decode($response->getContent() ?: '', TRUE);
-    $this->assertArrayHasKey('html', $json);
-    $this->setRawContent($json['html']);
+    ], JSON_THROW_ON_ERROR)));
 
     // Check that the root level is structured correctly.
     $root = $this->cssSelect('main div.xb--sortable-list[data-xb-uuid="root"]');
@@ -55,21 +44,10 @@ class ApiPreviewControllerTest extends KernelTestBase {
 
   public function test(): void {
     // Load the test data from the layout controller.
-    $node = Node::load(1);
-    $controller = new ApiLayoutController();
-    assert($node instanceof FieldableEntityInterface);
-    $response = $controller($node);
-    $this->assertInstanceOf(JsonResponse::class, $response);
-    $model = json_decode($response->getContent() ?: '', TRUE)['model'];
-
-    // Pass it straight back to the preview controller.
-    $controller = \Drupal::service(ApiPreviewController::class);
-    $response = $controller(new Request(content: (string) $response->getContent()), $node);
-
-    $this->assertInstanceOf(JsonResponse::class, $response);
-    $json = json_decode($response->getContent() ?: '', TRUE);
-    $this->assertArrayHasKey('html', $json);
-    $this->setRawContent($json['html']);
+    $content = parent::request(Request::create('/api/layout/node/1'))->getContent();
+    $this->assertIsString($content);
+    $model = json_decode($content, TRUE)['model'];
+    $this->request(Request::create('/api/preview/node/1', content: $content));
 
     // Check that each level is structured correctly.
     $root = $this->cssSelect('main div.xb--sortable-list[data-xb-uuid="root"]');
@@ -77,6 +55,17 @@ class ApiPreviewControllerTest extends KernelTestBase {
     $this->assertGreaterThan(0, $root[0]->count());
     $uuids = $this->assertStructure($root[0]->children());
     $this->assertSame(array_keys($model), $uuids);
+  }
+
+  /**
+   * Unwrap the JSON response so we can perform assertions on it.
+   */
+  protected function request(Request $request, bool $terminate = TRUE): Response {
+    $response = parent::request($request, $terminate);
+    $content = $response->getContent();
+    $this->assertIsString($content);
+    $this->setRawContent(json_decode($content, TRUE)['html']);
+    return $response;
   }
 
   private function assertStructure(\SimpleXMLElement $items): array {

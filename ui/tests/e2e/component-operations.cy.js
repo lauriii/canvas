@@ -206,7 +206,7 @@ describe('Perform CRUD operations on components', () => {
     cy.findByLabelText('CTA 1 link').should('have.value', 'https://drupal.org');
 
     const heroSelectors = {
-      Heading: 'h1',
+      Heading: '.my-hero__heading',
       'Sub-heading': 'h1 ~ p',
       'CTA 1 text': '.my-hero__cta:first-child',
       'CTA 2 text': '.my-hero__cta:last-child',

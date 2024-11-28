@@ -45,9 +45,15 @@ experience_builder.api.preview:
   path: '/api/preview/{entity_type}/{entity}'
   defaults:
     _controller: 'Drupal\experience_builder\Controller\ApiPreviewController'
+    _title_callback: 'Drupal\experience_builder\Controller\ApiPreviewController::getLabel'
   requirements:
     _permission: 'access administration pages'
   options:
+    # The XB equivalent of requesting an AJAX response using `?_wrapper_format`.
+    # @see Drupal.Ajax.AJAX_REQUEST_PARAMETER
+    # @see \Drupal\Core\Ajax\AjaxResponse
+    # @see \Drupal\experience_builder\Render\MainContent\XBPreviewRenderer
+    _wrapper_format: xb_preview
     parameters:
       entity:
         type: entity:{entity_type}

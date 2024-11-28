@@ -1,0 +1,80 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Drupal\experience_builder\Render\MainContent;
+
+use Drupal\Component\Plugin\PluginManagerInterface;
+use Drupal\Core\Controller\TitleResolverInterface;
+use Drupal\Core\Extension\ModuleHandlerInterface;
+use Drupal\Core\Render\AttachmentsInterface;
+use Drupal\Core\Render\AttachmentsResponseProcessorInterface;
+use Drupal\Core\Render\MainContent\HtmlRenderer;
+use Drupal\Core\Render\RenderCacheInterface;
+use Drupal\Core\Render\RendererInterface;
+use Drupal\Core\Routing\RouteMatchInterface;
+use Drupal\Core\Theme\ThemeManagerInterface;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
+use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
+
+/**
+ * Main content renderer for XB endpoints returning preview markup.
+ *
+ * Overrides the default HTML renderer to remove the page_top and page_bottom
+ * regions, to remove the toolbar and any other extraneous markup in previews,
+ * and returns a JSON response containing the rendered HTML.
+ *
+ * Unlike XBTemplateRenderer the output of this renderer is intended to be
+ * displayed in an iframe, so assets are included in the HTML instead of being
+ * handled separately.
+ */
+final class XBPreviewRenderer extends HtmlRenderer {
+
+  public function __construct(
+    TitleResolverInterface $title_resolver,
+    #[Autowire(service: 'plugin.manager.display_variant')]
+    PluginManagerInterface $display_variant_manager,
+    EventDispatcherInterface $event_dispatcher,
+    ModuleHandlerInterface $module_handler,
+    RendererInterface $renderer,
+    RenderCacheInterface $render_cache,
+    #[Autowire(param: 'renderer.config')]
+    array $renderer_config,
+    ThemeManagerInterface $theme_manager,
+    #[Autowire(service: 'html_response.attachments_processor')]
+    private readonly AttachmentsResponseProcessorInterface $attachmentsResponseProcessor,
+  ) {
+    parent::__construct($title_resolver, $display_variant_manager, $event_dispatcher, $module_handler, $renderer, $render_cache, $renderer_config, $theme_manager);
+  }
+
+  /**
+   * {@inheritdoc}
+   *
+   * This renderer renders the HTML, processes the attachments, and wraps it
+   * in a JSON response for the frontend to consume.
+   *
+   * @see \Drupal\Core\EventSubscriber\HtmlResponseSubscriber
+   */
+  public function renderResponse(array $main_content, Request $request, RouteMatchInterface $route_match): JsonResponse {
+    $response = parent::renderResponse($main_content, $request, $route_match);
+    assert($response instanceof AttachmentsInterface);
+    $response = $this->attachmentsResponseProcessor->processAttachments($response);
+    assert($response instanceof Response);
+
+    // @todo Expose warnings and errors to the XB UI: https://www.drupal.org/project/experience_builder/issues/3489302#comment-15877293
+    return new JsonResponse([
+      'html' => $response->getContent(),
+    ]);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function buildPageTopAndBottom(array &$html): void {
+    // Intentionally does nothing, so we don't get toolbar, etc.
+  }
+
+}
