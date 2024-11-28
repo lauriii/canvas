@@ -15,6 +15,10 @@ final class PageViewBuilder extends EntityViewBuilder {
    * {@inheritdoc}
    */
   protected function alterBuild(array &$build, EntityInterface $entity, EntityViewDisplayInterface $display, $view_mode): void {
+    if (!$display->isNew()) {
+      throw new \InvalidArgumentException('Pages do not have configurable view displays. The view display is computed from base field definitions, to ensure there is never a need for an update path.');
+    }
+
     foreach (Element::children($build) as $key) {
       if ($key !== 'components') {
         unset($build[$key]);

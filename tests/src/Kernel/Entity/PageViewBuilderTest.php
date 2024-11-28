@@ -136,4 +136,33 @@ final class PageViewBuilderTest extends KernelTestBase {
     self::assertStringNotContainsString('xb_test_page_xb_page_view markup', $this->getRawContent());
   }
 
+  public function testConfiguredViewDisplayNotAllowed(): void {
+    $this->expectException(\InvalidArgumentException::class);
+    $this->expectExceptionMessage('Pages do not have configurable view displays. The view display is computed from base field definitions, to ensure there is never a need for an update path.');
+
+    EntityViewDisplay::create([
+      'targetEntityType' => 'xb_page',
+      'bundle' => 'xb_page',
+      'mode' => 'default',
+      'status' => TRUE,
+    ])->save();
+
+    $sut = Page::create([
+      'title' => 'Test page',
+      'description' => 'This is a test page.',
+      'path' => ['alias' => '/test-page'],
+      'components' => [
+        'tree' => self::encodeXBData([
+          ComponentTreeStructure::ROOT_UUID => [],
+        ]),
+        'props' => self::encodeXBData([]),
+      ],
+    ]);
+    self::assertSaveWithoutViolations($sut);
+
+    $view_builder = $this->container->get('entity_type.manager')->getViewBuilder('xb_page');
+    $build = $view_builder->view($sut);
+    $this->render($build);
+  }
+
 }
