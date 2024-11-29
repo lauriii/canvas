@@ -16,4 +16,8 @@
     color: #fff;
     background-color: var(--color-outline-slot);
   }
+  &.root {
+    color: #fff;
+    background-color: var(--color-outline-root);
+  }
 }

@@ -1,4 +1,5 @@
 .xb-app {
   --color-outline-component: var(--blue-9);
   --color-outline-slot: var(--purple-9);
+  --color-outline-root: var(--green-9);
 }

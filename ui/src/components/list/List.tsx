@@ -1,7 +1,11 @@
 import type React from 'react';
 import { useEffect, useRef, useCallback } from 'react';
 import styles from './List.module.css';
-import { selectDragging, setListDragging } from '@/features/ui/uiSlice';
+import {
+  selectDragging,
+  setListDragging,
+  unsetTargetSlot,
+} from '@/features/ui/uiSlice';
 import Sortable from 'sortablejs';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { Box, Flex, Spinner } from '@radix-ui/themes';
@@ -54,6 +58,7 @@ const List: React.FC<ListProps> = (props) => {
 
   const handleDragEnd = useCallback(() => {
     dispatch(setListDragging(false));
+    dispatch(unsetTargetSlot());
   }, [dispatch]);
 
   const handleDragMove = useCallback(

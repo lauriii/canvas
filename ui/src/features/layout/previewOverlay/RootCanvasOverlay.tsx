@@ -5,7 +5,12 @@ import { selectLayout } from '@/features/layout/layoutModelSlice';
 import ComponentOverlay from '@/features/layout/previewOverlay/ComponentOverlay';
 import styles from './PreviewOverlay.module.css';
 import useSyncElementSize from '@/hooks/useSyncElementSize';
-import { selectCanvasViewPortScale } from '@/features/ui/uiSlice';
+import {
+  selectCanvasViewPortScale,
+  selectTargetSlot,
+} from '@/features/ui/uiSlice';
+import NameTag from '@/features/layout/preview/NameTag';
+import clsx from 'clsx';
 
 interface RootCanvasOverlayProps {
   iframeRef: React.RefObject<HTMLIFrameElement>;
@@ -18,6 +23,7 @@ const RootCanvasOverlay: React.FC<RootCanvasOverlayProps> = (props) => {
   const elementRect = useSyncElementSize(iframeRef.current, 'root');
   const canvasViewPortScale = useAppSelector(selectCanvasViewPortScale);
   const [overlayStyles, setOverlayStyles] = useState({});
+  const targetSlot = useAppSelector(selectTargetSlot);
 
   useEffect(() => {
     const iframeDocument = iframeRef.current?.contentDocument;
@@ -45,7 +51,9 @@ const RootCanvasOverlay: React.FC<RootCanvasOverlayProps> = (props) => {
   return (
     <div
       ref={rootCanvasOverlayRef}
-      className={styles.rootCanvasOverlay}
+      className={clsx(styles.rootCanvasOverlay, {
+        [styles.dropTarget]: 'root' === targetSlot,
+      })}
       style={overlayStyles}
     >
       {layout.children.map((component) => (
@@ -56,6 +64,16 @@ const RootCanvasOverlay: React.FC<RootCanvasOverlayProps> = (props) => {
           parentComponent={{ uuid: 'root' }}
         />
       ))}
+      {targetSlot === 'root' && (
+        <div className={clsx(styles.xbNameTag, styles.xbNameTagSlot)}>
+          <NameTag
+            name={'Root'}
+            componentUuid={'root'}
+            selected={true}
+            nodeType={'root'}
+          />
+        </div>
+      )}
     </div>
   );
 };

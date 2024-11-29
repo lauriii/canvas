@@ -14,11 +14,11 @@ const NameTag: React.FC<NameTagProps> = (props) => {
 
   return (
     <div
-      className={clsx(
-        styles.nameTag,
-        { [styles.selected]: selected },
-        { [styles.slot]: nodeType === 'slot' },
-      )}
+      className={clsx(styles.nameTag, {
+        [styles.selected]: selected,
+        [styles.slot]: nodeType === 'slot',
+        [styles.root]: nodeType === 'root',
+      })}
     >
       <BoxModelIcon width={10} height={10} />
       <span id={`${componentUuid}-name`}>{name}</span>

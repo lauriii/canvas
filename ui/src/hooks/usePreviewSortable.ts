@@ -1,6 +1,5 @@
 import { useEffect, useCallback, useRef } from 'react';
 import Sortable from 'sortablejs';
-import { isDropTargetInSlotAllowedByEdgeDistance } from '@/features/sortable/sortableUtils';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import {
   addNewComponentToLayout,
@@ -10,11 +9,7 @@ import {
   selectModel,
   sortNode,
 } from '@/features/layout/layoutModelSlice';
-import {
-  setPreviewDragging,
-  setTargetSlot,
-  unsetTargetSlot,
-} from '@/features/ui/uiSlice';
+import { setTargetSlot, unsetTargetSlot } from '@/features/ui/uiSlice';
 import { findNodePathByUuid } from '@/features/layout/layoutUtils';
 import { useGetComponentsQuery } from '@/services/components';
 import { useGetDummySectionsQuery } from '@/services/sections';
@@ -73,6 +68,15 @@ function usePreviewSortable(iframe: HTMLIFrameElement | null): {
         const type = ev.clone.dataset.xbType;
 
         if (ev.clone.dataset.xbComponentId) {
+          // If the location we are dropping into was empty and had the empty placeholder div, immediately
+          // remove it here so that the newly dropped item doesn't appear alongside it for a split second.
+          const wasEmpty = Array.from(ev.to.children).some((child) =>
+            child.classList.contains('xb--sortable-slot-empty-placeholder'),
+          );
+          if (wasEmpty) {
+            ev.to.innerHTML = '';
+          }
+
           if (type === 'component') {
             // Adding a component.
             if (componentsRef.current) {
@@ -116,40 +120,6 @@ function usePreviewSortable(iframe: HTMLIFrameElement | null): {
     [updateData],
   );
 
-  const handleDragStart = useCallback(() => {
-    dispatch(setPreviewDragging(true));
-    iframeDocumentRef.current?.body.classList.add('xb--preview-dragging');
-  }, [dispatch]);
-
-  const handleDragMove = useCallback(
-    (
-      ev: Sortable.MoveEvent,
-      originalEvent: Event | { clientX: number; clientY: number },
-    ) => {
-      let isTargetAllowed = true;
-
-      // Prevent placing a component by dragging too close to the top or bottom edge of a slot.
-      if (!isDropTargetInSlotAllowedByEdgeDistance(ev, originalEvent)) {
-        isTargetAllowed = false;
-      }
-
-      // Prevent placing a component below its own clone element (the element that stays in the original place when
-      // dragging) if it's the only one in the list (slot or root layout).
-      if (
-        ev.related.classList.contains('xb--sortable-clone') &&
-        ev.related.parentElement?.querySelectorAll(
-          '.xb--sortable-item:not(.xb--sortable-ghost)',
-        ).length === 1 &&
-        ev.willInsertAfter
-      ) {
-        isTargetAllowed = false;
-      }
-
-      return isTargetAllowed;
-    },
-    [],
-  );
-
   const handleChange = useCallback(
     (ev: Sortable.SortableEvent) => {
       if (ev.to.dataset.xbUuid) {
@@ -159,20 +129,6 @@ function usePreviewSortable(iframe: HTMLIFrameElement | null): {
       }
     },
     [dispatch],
-  );
-
-  const handleDragEnd = useCallback(
-    (ev: Sortable.SortableEvent) => {
-      dispatch(setPreviewDragging(false));
-      iframeDocumentRef.current?.body.classList.remove('xb--preview-dragging');
-
-      // Normally handle the data update in dragAdd unless the item is being dragged within the same container, in which
-      // case dragAdd doesn't fire, so we can call it from here.
-      if (ev.to === ev.from) {
-        updateData(ev, true);
-      }
-    },
-    [dispatch, updateData],
   );
 
   const destroySortables = useCallback(() => {
@@ -207,6 +163,12 @@ function usePreviewSortable(iframe: HTMLIFrameElement | null): {
     sortableInstancesRef.current = [];
 
     const initSortableList = (listEl: HTMLElement) => {
+      // if listEl is empty, insert an empty placeholder div that we can style.
+      if (!listEl.hasChildNodes()) {
+        const placeholderDiv = document.createElement('div');
+        placeholderDiv.classList.add('xb--sortable-slot-empty-placeholder');
+        listEl.appendChild(placeholderDiv);
+      }
       // Initialize SortableJS on the elements inside the iframe
       const sortableInstance = Sortable.create(listEl, {
         animation: 0,
@@ -220,17 +182,15 @@ function usePreviewSortable(iframe: HTMLIFrameElement | null): {
           revertClone: false,
         },
         dataIdAttr: 'data-xb-uuid',
+        draggable: '[data-xb-uuid]',
         // Keep a clone element in the original position until the drag ends.
         removeCloneOnHide: false,
         onAdd: handleDragAdd,
-        onStart: handleDragStart,
-        onMove: handleDragMove,
         onChange: handleChange,
-        onEnd: handleDragEnd,
         scrollSensitivity: 120,
         scrollSpeed: 40,
         // Prevent dragging content that's provided as an example (default content) by the SDC.
-        filter: '[data-xb-slot-is-empty]',
+        filter: '[data-xb-slot-is-empty], .xb--sortable-slot-empty-placeholder',
         emptyInsertThreshold: 50,
       });
 
@@ -250,14 +210,7 @@ function usePreviewSortable(iframe: HTMLIFrameElement | null): {
     sortableLists.forEach((sortableList) => {
       initSortableList(sortableList);
     });
-  }, [
-    iframe,
-    handleDragAdd,
-    handleDragStart,
-    handleDragMove,
-    handleChange,
-    handleDragEnd,
-  ]);
+  }, [iframe, handleDragAdd, handleChange]);
 
   useEffect(() => {
     modelRef.current = model;

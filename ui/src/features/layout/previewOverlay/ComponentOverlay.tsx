@@ -21,6 +21,7 @@ import SlotOverlay from '@/features/layout/previewOverlay/SlotOverlay';
 import {
   customSortableDragImage,
   getSortableGroupName,
+  isDropTargetInSlotAllowedByEdgeDistance,
 } from '@/features/sortable/sortableUtils';
 import type { LayoutNode } from '@/features/layout/layoutModelSlice';
 import ComponentContextMenu from '@/features/layout/preview/ComponentContextMenu';
@@ -146,6 +147,12 @@ const ComponentOverlay: React.FC<ComponentOverlayProps> = (props) => {
           animation: 0,
           ghostClass: 'xb--sortable-ghost',
           draggable: '.xb--sortable-item',
+          onMove: (
+            ev: Sortable.MoveEvent,
+            originalEvent: Event | { clientX: number; clientY: number },
+          ) => {
+            return isDropTargetInSlotAllowedByEdgeDistance(ev, originalEvent);
+          },
           onStart: () => {
             dispatch(setPreviewDragging(true));
             // Set opacity on the real dragged element and make it not draggable so it doesn't interfere with the indexing.

@@ -15,6 +15,8 @@ This file is included as an attached Drupal library and as such is subject to CS
   --xb--radius-1: 3px;
   --xb--radius-2: 4px;
   --xb--blue-9: #176bfd;
+  --xb--blue-slot-bg: #CCEDF9;
+  --xb--sortable-empty-height: 40px;
 }
 
 .xb--preview-dragging .xb--sortable-list {
@@ -24,21 +26,24 @@ This file is included as an attached Drupal library and as such is subject to CS
   position: relative;
   display: flow-root; /* Prevent margin collapse from content inside */
 }
-.xb--sortable-list:empty {
-  min-height: 1.5rem;
-  border: 2px dashed #ccc;
-}
-.xb--sortable-list:empty::after {
-  position: absolute;
-  top: 0;
-  right: 0;
-  content: "Slot";
-  text-align: right;
+
+.xb--sortable-slot-empty-placeholder {
+  min-height: var(--xb--sortable-empty-height);
+  background-color: var(--xb--blue-slot-bg);
+  background-image: url('../icons/drop-plain.svg');
+  background-repeat: repeat;
+  background-position: -5px -5px;
+  background-size: 29px 30px;
+  box-shadow: inset 0 0 10px rgba(53, 129, 158, 0.3);
+  [data-xb-uuid="root"] >  & {
+    min-height: calc(4 * var(--xb--sortable-empty-height));
+  }
 }
 .xb--preview-dragging *,
 .xb--preview-dragging {
   cursor: grabbing !important;
 }
+
 .xb--sortable-ghost {
   position: absolute;
   z-index: 1;
@@ -53,7 +58,6 @@ This file is included as an attached Drupal library and as such is subject to CS
 .xb--sortable-ghost * {
   display: none;
 }
-
 [data-xb-slot-is-empty] .xb--sortable-ghost {
   top: 0;
 }

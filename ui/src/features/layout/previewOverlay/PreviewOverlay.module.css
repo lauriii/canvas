@@ -1,4 +1,7 @@
 .overlay {
+  --drop-target-spacing: 40px;
+  --name-tag-vertical-offset: -24px;
+
   position: absolute;
   top: 0;
   right: 0;
@@ -21,6 +24,18 @@
 
 .rootCanvasOverlay {
   position: absolute;
+  &.dropTarget::before {
+    position: absolute;
+    content: "";
+    pointer-events: none;
+    outline: 1px dashed var(--color-outline-root);
+    /* Offset extra drop target spacing added in ui/assets/css/preview.css. */
+    inset: var(--drop-target-spacing) 0;
+  }
+  &.dropTarget .xbNameTagSlot {
+    top: calc(var(--name-tag-vertical-offset) + var(--drop-target-spacing));
+    display: block;
+  }
 }
 
 .componentOverlay {
@@ -73,7 +88,7 @@
 .xbNameTag {
   position: absolute;
   z-index: 2;
-  top: -24px;
+  top: var(--name-tag-vertical-offset);
   display: none;
   opacity: 1;
 }
