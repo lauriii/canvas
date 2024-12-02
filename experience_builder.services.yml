@@ -41,6 +41,7 @@ services:
   logger.channel.experience_builder:
     parent: logger.channel_base
     arguments: ['experience_builder']
+  Drupal\experience_builder\ClientDataToEntityConverter: {}
 
   # Event subscribers.
   experience_builder.openapi.http_request_validator.subscriber:
@@ -81,6 +82,7 @@ services:
   Drupal\experience_builder\Controller\ApiLayoutController: {}
   Drupal\experience_builder\Controller\ApiLogController: {}
   Drupal\experience_builder\Controller\ApiPreviewController: {}
-  Drupal\experience_builder\Controller\ApiContentUpdateController: {}
+  Drupal\experience_builder\Controller\ApiContentUpdateForDemoController: {}
   Drupal\experience_builder\Controller\ComponentStatusController: {}
   Drupal\experience_builder\Controller\ExperienceBuilderController: {}
+  Drupal\experience_builder\Controller\ApiPublishAllController: {}

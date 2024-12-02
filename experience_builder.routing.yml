@@ -32,7 +32,7 @@ experience_builder.api.layout:
 experience_builder.api.content.update:
   path: '/xb/api/content-update/{entity_type}/{entity}'
   defaults:
-    _controller: 'Drupal\experience_builder\Controller\ApiContentUpdateController'
+    _controller: 'Drupal\experience_builder\Controller\ApiContentUpdateForDemoController'
   requirements:
     _permission: 'access administration pages'
   methods: ['PATCH']
@@ -192,3 +192,11 @@ entity.component.disable:
   requirements:
     _entity_access: 'component.disable'
     _csrf_token: 'TRUE'
+
+experience_builder.api.publish_all:
+  path: '/xb/api/publish-all'
+  defaults:
+    _controller: '\Drupal\experience_builder\Controller\ApiPublishAllController'
+  requirements:
+    _permission: 'access administration pages'
+  methods: [POST]

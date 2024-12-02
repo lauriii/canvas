@@ -1,20 +1,18 @@
 <?php
 
-declare(strict_types=1);
+namespace Drupal\experience_builder;
 
-namespace Drupal\experience_builder\Controller;
-
+use Drupal\Core\Entity\EntityConstraintViolationList;
+use Drupal\Core\Entity\EntityConstraintViolationListInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
-use Drupal\Core\Entity\RevisionableInterface;
 use Drupal\Core\Field\Plugin\Field\FieldType\EntityReferenceItemInterface;
 use Drupal\Core\StreamWrapper\PublicStream;
 use Drupal\Core\TypedData\DataDefinition;
+use Drupal\experience_builder\Controller\ClientServerConversionTrait;
 use Drupal\experience_builder\Entity\Component;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
-use Symfony\Component\HttpFoundation\JsonResponse;
-use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Validator\ConstraintViolation;
 use Symfony\Component\Validator\ConstraintViolationInterface;
 use Symfony\Component\Validator\ConstraintViolationList;
@@ -31,26 +29,19 @@ final class InvalidRequestBodyValue extends \Exception {
 }
 // phpcs:enable
 
-/**
- * Controller exposing HTTP API for updating Content entities using an XB field.
- *
- * (So: "content" as in "content entity type", not as in the human-readable
- * label for the `Node` content entity type.)
- *
- * @internal This HTTP API is intended only for the XB UI. These controllers
- *   and associated routes may change at any time.
- */
-final class ApiContentUpdateController extends ApiControllerBase {
+class ClientDataToEntityConverter {
 
   use ClientServerConversionTrait;
 
-  public function __construct(private readonly EntityTypeManagerInterface $entityTypeManager) {}
+  public function __construct(
+    private readonly EntityTypeManagerInterface $entityTypeManager,
+  ) {}
 
-  public function __invoke(Request $request, FieldableEntityInterface $entity): JsonResponse {
+  public function convert(array $client_data, FieldableEntityInterface $entity): EntityConstraintViolationListInterface {
     assert($entity->hasField('field_xb_demo'));
     // @todo Security hardening: any key besides `layout` and `model` should trigger an error response.
     // @todo Allow more keys when allowing data other than the XB component tree to be edited through the XB UI! See the `2.1. Content editing of meta fields` requirement, due for the 0.2 milestone: https://www.drupal.org/project/experience_builder/issues/3455753
-    ['layout' => $layout, 'model' => $model] = json_decode($request->getContent(), TRUE);
+    ['layout' => $layout, 'model' => $model] = $client_data;
 
     // Denormalize the `layout` the client sent into a value that the server-
     // side ComponentTreeStructure expects, abort early if it is invalid.
@@ -58,12 +49,12 @@ final class ApiContentUpdateController extends ApiControllerBase {
     // @see \Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure
     // @see \Drupal\experience_builder\Plugin\Validation\Constraint\ComponentTreeStructureConstraintValidator
     [$tree, $violations] = self::clientLayoutToServerTree($layout);
-    $transformed_violations = new ConstraintViolationList(array_map(
+    $transformed_violations = new EntityConstraintViolationList($entity, array_map(
       fn (ConstraintViolationInterface $v) => self::violationWithPropertyPathReplacePrefix($v, '[' . ComponentTreeStructure::ROOT_UUID . ']', "layout.children"),
       iterator_to_array($violations),
     ));
-    if ($validation_errors_response = self::createJsonResponseFromViolations($transformed_violations)) {
-      return $validation_errors_response;
+    if ($transformed_violations->count() > 0) {
+      return $transformed_violations;
     }
 
     // Denormalize the `model` the client sent into a value that the server-side
@@ -73,9 +64,9 @@ final class ApiContentUpdateController extends ApiControllerBase {
     // ⚠️ TRICKY: in order to denormalize `model`, `layout` must already been
     // been denormalized to `tree`, because only those values in `model` that
     // are for actually existing XB components can be denormalized.
-    [$props, $violations] = $this->clientModelToServerProps($tree, $model);
-    if ($validation_errors_response = self::createJsonResponseFromViolations($violations)) {
-      return $validation_errors_response;
+    [$props, $violations] = $this->clientModelToServerProps($entity, $tree, $model);
+    if ($violations->count() > 0) {
+      return $violations;
     }
 
     // Update the entity, validate and save.
@@ -104,7 +95,7 @@ final class ApiContentUpdateController extends ApiControllerBase {
     // the request body.
     // @see ::clientLayoutToServerTree()
     // @see ::clientModelToServerProps()
-    $transformed_violations = new ConstraintViolationList(array_map(
+    $transformed_violations = new EntityConstraintViolationList($entity, array_map(
       fn (ConstraintViolationInterface $v) => match (TRUE) {
         str_starts_with($v->getPropertyPath(), 'field_xb_demo.0.tree[' . ComponentTreeStructure::ROOT_UUID . ']') => self::violationWithPropertyPathReplacePrefix($v, 'field_xb_demo.0.tree[' . ComponentTreeStructure::ROOT_UUID . ']', 'layout.children'),
         // @todo Perform a more complex transformation to accurately point to non-root-level components, OR remove the need for that in https://www.drupal.org/project/experience_builder/issues/3467954
@@ -114,27 +105,29 @@ final class ApiContentUpdateController extends ApiControllerBase {
       },
       iterator_to_array($original_entity_violations),
     ));
-    if ($validation_errors_response = self::createJsonResponseFromViolations($transformed_violations)) {
-      return $validation_errors_response;
-    }
-
-    return self::save($entity);
+    return $transformed_violations;
   }
 
   /**
-   * @return array{0: array<string, array<string, \Drupal\experience_builder\PropSource\StaticPropSource>>, 1: \Symfony\Component\Validator\ConstraintViolationListInterface}
+   * @return array{0: array<string, array<string, \Drupal\experience_builder\PropSource\StaticPropSource>>, 1: \Drupal\Core\Entity\EntityConstraintViolationListInterface}
    */
-  private function clientModelToServerProps(array $tree, array $model): array {
+  private function clientModelToServerProps(FieldableEntityInterface $entity, array $tree, array $model): array {
     $definition = DataDefinition::create('component_tree_structure');
     $component_tree_structure = new ComponentTreeStructure($definition, 'component_tree_structure');
     $component_tree_structure->setValue(json_encode($tree, JSON_UNESCAPED_UNICODE));
 
     $props = [];
-    $violation_list = new ConstraintViolationList();
+    $violation_list = new EntityConstraintViolationList($entity);
     foreach ($model as $uuid => $client_props) {
       $component = $component_tree_structure->getComponentId($uuid);
       [$props[$uuid], $violations_for_component_instance] = $this->createPropsForComponent($uuid, $component, $client_props);
-      $violation_list->addAll($violations_for_component_instance);
+      foreach ($violations_for_component_instance as $violation) {
+        // We use ::add here rather than ::addAll because ::addAll doesn't reset
+        // the internal groupings in EntityConstraintViolationList whereas ::add
+        // does.
+        // @see https://drupal.org/i/3490588
+        $violation_list->add($violation);
+      }
     }
     return [$props, $violation_list];
   }
@@ -217,20 +210,6 @@ final class ApiContentUpdateController extends ApiControllerBase {
       throw new InvalidRequestBodyValue("No media entity found that uses file '$src'.", 'src');
     }
     return (int) array_pop($media_ids);
-  }
-
-  /**
-   * @param \Drupal\Core\Entity\FieldableEntityInterface $entity
-   *
-   * @return \Symfony\Component\HttpFoundation\JsonResponse
-   * @throws \Drupal\Core\Entity\EntityStorageException
-   */
-  protected static function save(FieldableEntityInterface $entity): JsonResponse {
-    if ($entity instanceof RevisionableInterface) {
-      $entity->setNewRevision();
-    }
-    $entity->save();
-    return new JsonResponse(data: ['message' => 'Saved successfully.'], status: 200);
   }
 
   private static function violationWithPropertyPathReplacePrefix(ConstraintViolationInterface $v, string $prefix_original, string $prefix_new): ConstraintViolationInterface {

@@ -311,7 +311,35 @@ paths:
                   error:
                     type: string
                     description: Error description
-
+  /xb/api/publish-all:
+    post:
+      requestBody:
+        content:
+          application/json: { }
+      responses:
+        '200':
+          description: Successful publish
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    title: Success message
+                    example: 'Successfully published 3 items'
+        '422':
+          description: Validation errors exist
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  errors:
+                    type: array
+                    description: Error descriptions
+                    items:
+                      type: string
 components:
   schemas:
     Component:
