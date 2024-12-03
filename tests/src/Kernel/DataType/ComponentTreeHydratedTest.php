@@ -148,7 +148,11 @@ class ComponentTreeHydratedTest extends KernelTestBase {
               'tags' => ['config:experience_builder.component.sdc.xb_test_sdc.props-slots'],
             ],
             '#component' => 'xb_test_sdc:props-slots',
-            '#props' => ['heading' => 'Hello, world!'],
+            '#props' => [
+              'heading' => 'Hello, world!',
+              'xb_uuid' => 'uuid-in-root',
+              'xb_slot_ids' => ['the_body', 'the_footer', 'the_colophon'],
+            ],
             '#slots' => [
               'the_body' => [
                 // This string is the first example value for this slot.
@@ -167,18 +171,18 @@ class ComponentTreeHydratedTest extends KernelTestBase {
         ],
       ],
       'expected_html' => <<<HTML
-<div  data-component-id="xb_test_sdc:props-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
-  <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;">Hello, world!</h1>
+<!-- xb-start-uuid-in-root --><div  data-component-id="xb_test_sdc:props-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
+  <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;"><!-- xb-prop-start-heading -->Hello, world!<!-- xb-prop-end-heading --></h1>
   <div class="component--props-slots--body">
-        <p>Example value for <strong>the_body</strong> slot in <strong>prop-slots</strong> component.</p>
+        <!-- xb-slot-start-the_body --><p>Example value for <strong>the_body</strong> slot in <strong>prop-slots</strong> component.</p><!-- xb-slot-end-the_body -->
     </div>
   <div class="component--props-slots--footer">
-        Example value for &lt;strong&gt;the_footer&lt;/strong&gt;.
+        <!-- xb-slot-start-the_footer -->Example value for &lt;strong&gt;the_footer&lt;/strong&gt;.<!-- xb-slot-end-the_footer -->
     </div>
   <div class="component--props-slots--colophon">
-      </div>
+    <!-- xb-slot-start-the_colophon --><!-- xb-slot-end-the_colophon -->  </div>
 </div>
-
+<!-- xb-end-uuid-in-root -->
 HTML,
       'expected_cache_tags' => [
         'config:experience_builder.component.sdc.xb_test_sdc.props-slots',
@@ -267,7 +271,11 @@ HTML,
               'tags' => ['config:experience_builder.component.sdc.xb_test_sdc.props-no-slots'],
             ],
             '#component' => 'xb_test_sdc:props-no-slots',
-            '#props' => ['heading' => 'Hello, world!'],
+            '#props' => [
+              'heading' => 'Hello, world!',
+              'xb_uuid' => 'uuid-in-root',
+              'xb_slot_ids' => [],
+            ],
           ],
           'uuid-in-root-another' => [
             '#type' => 'component',
@@ -275,18 +283,22 @@ HTML,
               'tags' => ['config:experience_builder.component.sdc.xb_test_sdc.props-no-slots'],
             ],
             '#component' => 'xb_test_sdc:props-no-slots',
-            '#props' => ['heading' => 'Hello, another world!'],
+            '#props' => [
+              'heading' => 'Hello, another world!',
+              'xb_uuid' => 'uuid-in-root-another',
+              'xb_slot_ids' => [],
+            ],
           ],
         ],
       ],
       'expected_html' => <<<HTML
-<div  data-component-id="xb_test_sdc:props-no-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
-  <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;">Hello, world!</h1>
+<!-- xb-start-uuid-in-root --><div  data-component-id="xb_test_sdc:props-no-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
+  <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;"><!-- xb-prop-start-heading -->Hello, world!<!-- xb-prop-end-heading --></h1>
 </div>
-<div  data-component-id="xb_test_sdc:props-no-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
-  <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;">Hello, another world!</h1>
+<!-- xb-end-uuid-in-root --><!-- xb-start-uuid-in-root-another --><div  data-component-id="xb_test_sdc:props-no-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
+  <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;"><!-- xb-prop-start-heading -->Hello, another world!<!-- xb-prop-end-heading --></h1>
 </div>
-
+<!-- xb-end-uuid-in-root-another -->
 HTML,
       'expected_cache_tags' => [
         'config:experience_builder.component.sdc.xb_test_sdc.props-no-slots',
@@ -338,7 +350,11 @@ HTML,
               'tags' => ['config:experience_builder.component.sdc.xb_test_sdc.props-slots'],
             ],
             '#component' => 'xb_test_sdc:props-slots',
-            '#props' => ['heading' => 'Hello, world!'],
+            '#props' => [
+              'heading' => 'Hello, world!',
+              'xb_uuid' => 'uuid-in-root',
+              'xb_slot_ids' => ['the_body', 'the_footer', 'the_colophon'],
+            ],
             '#slots' => [
               'the_footer' => [
                 '#plain_text' => 'Example value for <strong>the_footer</strong>.',
@@ -351,7 +367,11 @@ HTML,
                     'tags' => ['config:experience_builder.component.sdc.xb_test_sdc.props-no-slots'],
                   ],
                   '#component' => 'xb_test_sdc:props-no-slots',
-                  '#props' => ['heading' => 'Hello, from a slot!'],
+                  '#props' => [
+                    'heading' => 'Hello, from a slot!',
+                    'xb_uuid' => 'uuid-in-slot',
+                    'xb_slot_ids' => [],
+                  ],
                 ],
               ],
             ],
@@ -359,21 +379,21 @@ HTML,
         ],
       ],
       'expected_html' => <<<HTML
-<div  data-component-id="xb_test_sdc:props-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
-  <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;">Hello, world!</h1>
+<!-- xb-start-uuid-in-root --><div  data-component-id="xb_test_sdc:props-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
+  <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;"><!-- xb-prop-start-heading -->Hello, world!<!-- xb-prop-end-heading --></h1>
   <div class="component--props-slots--body">
-        <div  data-component-id="xb_test_sdc:props-no-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
-  <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;">Hello, from a slot!</h1>
+        <!-- xb-slot-start-the_body --><!-- xb-start-uuid-in-slot --><div  data-component-id="xb_test_sdc:props-no-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
+  <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;"><!-- xb-prop-start-heading -->Hello, from a slot!<!-- xb-prop-end-heading --></h1>
 </div>
-
+<!-- xb-end-uuid-in-slot --><!-- xb-slot-end-the_body -->
     </div>
   <div class="component--props-slots--footer">
-        Example value for &lt;strong&gt;the_footer&lt;/strong&gt;.
+        <!-- xb-slot-start-the_footer -->Example value for &lt;strong&gt;the_footer&lt;/strong&gt;.<!-- xb-slot-end-the_footer -->
     </div>
   <div class="component--props-slots--colophon">
-      </div>
+    <!-- xb-slot-start-the_colophon --><!-- xb-slot-end-the_colophon -->  </div>
 </div>
-
+<!-- xb-end-uuid-in-root -->
 HTML,
       'expected_cache_tags' => [
         'config:experience_builder.component.sdc.xb_test_sdc.props-slots',
@@ -471,7 +491,11 @@ HTML,
               'tags' => ['config:experience_builder.component.sdc.xb_test_sdc.props-slots'],
             ],
             '#component' => 'xb_test_sdc:props-slots',
-            '#props' => ['heading' => 'Hello, world!'],
+            '#props' => [
+              'heading' => 'Hello, world!',
+              'xb_uuid' => 'uuid-in-root',
+              'xb_slot_ids' => ['the_body', 'the_footer', 'the_colophon'],
+            ],
             '#slots' => [
               'the_footer' => [
                 '#plain_text' => 'Example value for <strong>the_footer</strong>.',
@@ -484,7 +508,11 @@ HTML,
                     'tags' => ['config:experience_builder.component.sdc.xb_test_sdc.props-slots'],
                   ],
                   '#component' => 'xb_test_sdc:props-slots',
-                  '#props' => ['heading' => 'Hello, from slot level 1!'],
+                  '#props' => [
+                    'heading' => 'Hello, from slot level 1!',
+                    'xb_uuid' => 'uuid-level-1',
+                    'xb_slot_ids' => ['the_body', 'the_footer', 'the_colophon'],
+                  ],
                   '#slots' => [
                     'the_footer' => [
                       // This string is the first example value for this slot.
@@ -501,7 +529,11 @@ HTML,
                           'tags' => ['config:experience_builder.component.sdc.xb_test_sdc.props-slots'],
                         ],
                         '#component' => 'xb_test_sdc:props-slots',
-                        '#props' => ['heading' => 'Hello, from slot level 2!'],
+                        '#props' => [
+                          'heading' => 'Hello, from slot level 2!',
+                          'xb_uuid' => 'uuid-level-2',
+                          'xb_slot_ids' => ['the_body', 'the_footer', 'the_colophon'],
+                        ],
                         '#slots' => [
                           'the_footer' => [
                             '#plain_text' => 'Example value for <strong>the_footer</strong>.',
@@ -514,7 +546,11 @@ HTML,
                                 'tags' => ['config:experience_builder.component.sdc.xb_test_sdc.props-no-slots'],
                               ],
                               '#component' => 'xb_test_sdc:props-no-slots',
-                              '#props' => ['heading' => 'Hello, from slot level 3!'],
+                              '#props' => [
+                                'heading' => 'Hello, from slot level 3!',
+                                'xb_uuid' => 'uuid-level-3',
+                                'xb_slot_ids' => [],
+                              ],
                             ],
                             'uuid-block' => [
                               'site_logo' => [
@@ -541,7 +577,11 @@ HTML,
                                 'tags' => ['config:experience_builder.component.sdc.xb_test_sdc.props-no-slots'],
                               ],
                               '#component' => 'xb_test_sdc:props-no-slots',
-                              '#props' => ['heading' => 'Hello, from slot <LAST ONE>!'],
+                              '#props' => [
+                                'heading' => 'Hello, from slot <LAST ONE>!',
+                                'xb_uuid' => 'uuid-last-in-tree',
+                                'xb_slot_ids' => [],
+                              ],
                             ],
                           ],
                         ],
@@ -555,47 +595,47 @@ HTML,
         ],
       ],
       'expected_html' => <<<HTML
-<div  data-component-id="xb_test_sdc:props-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
-  <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;">Hello, world!</h1>
+<!-- xb-start-uuid-in-root --><div  data-component-id="xb_test_sdc:props-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
+  <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;"><!-- xb-prop-start-heading -->Hello, world!<!-- xb-prop-end-heading --></h1>
   <div class="component--props-slots--body">
-        <div  data-component-id="xb_test_sdc:props-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
-  <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;">Hello, from slot level 1!</h1>
+        <!-- xb-slot-start-the_body --><!-- xb-start-uuid-level-1 --><div  data-component-id="xb_test_sdc:props-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
+  <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;"><!-- xb-prop-start-heading -->Hello, from slot level 1!<!-- xb-prop-end-heading --></h1>
   <div class="component--props-slots--body">
-        <div  data-component-id="xb_test_sdc:props-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
-  <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;">Hello, from slot level 2!</h1>
+        <!-- xb-slot-start-the_body --><!-- xb-start-uuid-level-2 --><div  data-component-id="xb_test_sdc:props-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
+  <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;"><!-- xb-prop-start-heading -->Hello, from slot level 2!<!-- xb-prop-end-heading --></h1>
   <div class="component--props-slots--body">
-        <div  data-component-id="xb_test_sdc:props-no-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
-  <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;">Hello, from slot level 3!</h1>
+        <!-- xb-slot-start-the_body --><!-- xb-start-uuid-level-3 --><div  data-component-id="xb_test_sdc:props-no-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
+  <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;"><!-- xb-prop-start-heading -->Hello, from slot level 3!<!-- xb-prop-end-heading --></h1>
 </div>
-<img alt="Home" />
-<div  data-component-id="xb_test_sdc:props-no-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
-  <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;">Hello, from slot &lt;LAST ONE&gt;!</h1>
+<!-- xb-end-uuid-level-3 --><img alt="Home" />
+<!-- xb-start-uuid-last-in-tree --><div  data-component-id="xb_test_sdc:props-no-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
+  <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;"><!-- xb-prop-start-heading -->Hello, from slot &lt;LAST ONE&gt;!<!-- xb-prop-end-heading --></h1>
 </div>
-
+<!-- xb-end-uuid-last-in-tree --><!-- xb-slot-end-the_body -->
     </div>
   <div class="component--props-slots--footer">
-        Example value for &lt;strong&gt;the_footer&lt;/strong&gt;.
+        <!-- xb-slot-start-the_footer -->Example value for &lt;strong&gt;the_footer&lt;/strong&gt;.<!-- xb-slot-end-the_footer -->
     </div>
   <div class="component--props-slots--colophon">
-      </div>
+    <!-- xb-slot-start-the_colophon --><!-- xb-slot-end-the_colophon -->  </div>
 </div>
-
+<!-- xb-end-uuid-level-2 --><!-- xb-slot-end-the_body -->
     </div>
   <div class="component--props-slots--footer">
-        Example value for &lt;strong&gt;the_footer&lt;/strong&gt;.
+        <!-- xb-slot-start-the_footer -->Example value for &lt;strong&gt;the_footer&lt;/strong&gt;.<!-- xb-slot-end-the_footer -->
     </div>
   <div class="component--props-slots--colophon">
-      </div>
+    <!-- xb-slot-start-the_colophon --><!-- xb-slot-end-the_colophon -->  </div>
 </div>
-
+<!-- xb-end-uuid-level-1 --><!-- xb-slot-end-the_body -->
     </div>
   <div class="component--props-slots--footer">
-        Example value for &lt;strong&gt;the_footer&lt;/strong&gt;.
+        <!-- xb-slot-start-the_footer -->Example value for &lt;strong&gt;the_footer&lt;/strong&gt;.<!-- xb-slot-end-the_footer -->
     </div>
   <div class="component--props-slots--colophon">
-      </div>
+    <!-- xb-slot-start-the_colophon --><!-- xb-slot-end-the_colophon -->  </div>
 </div>
-
+<!-- xb-end-uuid-in-root -->
 HTML,
       'expected_cache_tags' => [
         'config:experience_builder.component.sdc.xb_test_sdc.props-slots',

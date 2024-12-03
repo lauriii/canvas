@@ -214,4 +214,15 @@ final class Component extends ConfigEntityBase implements ComponentInterface {
     return $this->moduleHandler()->moduleExists($provider) || $this->themeHandler()->themeExists($provider);
   }
 
+  /**
+   * {@inheritdoc}
+   *
+   * Override the parent to enforce the string return type.
+   * @see \Drupal\Core\Entity\EntityStorageBase::create
+   */
+  public function uuid(): string {
+    /** @var string */
+    return parent::uuid();
+  }
+
 }

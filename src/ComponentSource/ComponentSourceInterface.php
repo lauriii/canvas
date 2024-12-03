@@ -79,11 +79,13 @@ interface ComponentSourceInterface extends PluginInspectionInterface, Derivative
    *
    * @param array $inputs
    *   Component inputs.
+   * @param string $componentUuid
+   *   Component UUID.
    *
    * @return array
    *   Render array.
    */
-  public function renderComponent(array $inputs): array;
+  public function renderComponent(array $inputs, string $componentUuid): array;
 
   /**
    * Hydrates a component with any data, including slots.

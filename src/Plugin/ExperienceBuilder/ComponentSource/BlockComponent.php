@@ -110,7 +110,7 @@ final class BlockComponent extends ComponentSourceBase implements ContainerFacto
   /**
    * {@inheritdoc}
    */
-  public function renderComponent(array $inputs): array {
+  public function renderComponent(array $inputs, string $componentUuid): array {
     $block = $this->getComponentPlugin();
     foreach ($inputs['settings'] ?? [] as $key => $value) {
       $block->setConfigurationValue($key, $value);
@@ -145,7 +145,7 @@ final class BlockComponent extends ComponentSourceBase implements ContainerFacto
    */
   public function getClientSideInfo(ComponentEntity $component, ?bool $cache_tags = TRUE): array {
     $definition = $this->blockManager->getDefinition($this->configuration['plugin_id']);
-    $build = $this->renderComponent([]);
+    $build = $this->renderComponent([], $component->uuid());
 
     // @todo Determine what other values this must return, do we need a value object? Decide in https://www.drupal.org/project/experience_builder/issues/3484678
     return [

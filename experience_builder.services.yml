@@ -76,6 +76,10 @@ services:
     tags:
       - { name: path_processor_inbound, priority: 200 }
 
+  Drupal\experience_builder\Extension\XbTwigExtension:
+    tags:
+      - { name: twig.extension }
+
   # Controllers.
   Drupal\experience_builder\Controller\ApiComponentsController: {}
   Drupal\experience_builder\Controller\ApiConfigControllers: ~

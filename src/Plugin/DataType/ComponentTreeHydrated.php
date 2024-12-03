@@ -123,7 +123,7 @@ class ComponentTreeHydrated extends TypedData implements CacheableDependencyInte
         $component = Component::load($component_instance['component']);
         assert($component instanceof Component);
         $source = $component->getComponentSource();
-        $build[$component_subtree_uuid][$component_instance_uuid] = $source->renderComponent($component_instance);
+        $build[$component_subtree_uuid][$component_instance_uuid] = $source->renderComponent($component_instance, $component_instance_uuid);
 
         // Figure out the slots, if there are any.
         if ($source instanceof ComponentSourceWithSlotsInterface  && !empty($component_instance['slots'])) {

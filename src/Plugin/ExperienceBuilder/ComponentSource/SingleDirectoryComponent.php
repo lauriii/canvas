@@ -189,7 +189,7 @@ final class SingleDirectoryComponent extends ComponentSourceBase implements Comp
   /**
    * {@inheritdoc}
    */
-  public function renderComponent(array $inputs): array {
+  public function renderComponent(array $inputs, string $componentUuid): array {
     return [
       '#type' => 'component',
       '#cache' => [
@@ -199,7 +199,10 @@ final class SingleDirectoryComponent extends ComponentSourceBase implements Comp
         ],
       ],
       '#component' => $this->configuration['plugin_id'],
-      '#props' => $inputs['props'] ?? [],
+      '#props' => ($inputs['props'] ?? []) + [
+        'xb_uuid' => $componentUuid,
+        'xb_slot_ids' => \array_keys($this->getSlotDefinitions()),
+      ],
     ];
   }
 
@@ -302,7 +305,7 @@ final class SingleDirectoryComponent extends ComponentSourceBase implements Comp
     }
 
     // @todo return this as a single build array and let the controller render and extract assets? Decide in https://www.drupal.org/project/experience_builder/issues/3484678
-    $build = $this->renderComponent(['props' => $default_props_for_default_markup]);
+    $build = $this->renderComponent(['props' => $default_props_for_default_markup], $component->uuid());
     if (!$cache_tags) {
       unset($build['#cache']);
     }
