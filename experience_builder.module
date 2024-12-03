@@ -220,9 +220,8 @@ function experience_builder_block_alter(array &$definitions): void {
     return;
   }
 
-  // @todo Remove this in Drupal 11 following https://www.drupal.org/project/drupal/issues/3379725
-  [$version] = explode('.', \Drupal::VERSION);
-  $additional = $version > 10 ? [] : [
+  // @todo Remove when minimum version is Drupal 11.1 following https://www.drupal.org/project/drupal/issues/3379725
+  $additional = version_compare(\Drupal::VERSION, '11.1', '>=') ? [] : [
     'info' => '',
     'status' => TRUE,
     'view_mode' => '',
