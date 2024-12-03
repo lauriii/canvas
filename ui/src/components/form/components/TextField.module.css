@@ -1,0 +1,4 @@
+.root {
+  color: var(--slate-12) !important;
+  box-shadow: inset 0 0 0 var(--text-field-border-width) var(--slate-5) !important;
+}

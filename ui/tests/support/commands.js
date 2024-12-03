@@ -770,3 +770,34 @@ Cypress.Commands.add('reEnableCanvasPanning', () => {
     $body.css({ overflow: '' });
   });
 });
+
+/**
+ * Assert the state of a Toggle component.
+ * @see ui/src/components/form/components/Toggle.tsx
+ */
+Cypress.Commands.add(
+  'assertToggleState',
+  { prevSubject: 'element' },
+  (subject, expectedState) => {
+    cy.wrap(subject).then(($el) => {
+      const $button = $el.is('button') ? $el : $el.find('button');
+      cy.wrap($button)
+        .should(
+          'have.attr',
+          'data-state',
+          expectedState ? 'checked' : 'unchecked',
+        )
+        .and('have.attr', 'aria-checked', expectedState ? 'checked' : 'false');
+    });
+    return cy.wrap(subject);
+  },
+);
+
+/**
+ * Toggle the state of a Toggle component.
+ * @see ui/src/components/form/components/Toggle.tsx
+ */
+Cypress.Commands.add('toggleToggle', { prevSubject: 'element' }, (subject) => {
+  cy.wrap(subject).click();
+  return cy.wrap(subject);
+});

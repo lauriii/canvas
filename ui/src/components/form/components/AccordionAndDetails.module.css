@@ -1,4 +1,4 @@
-.Trigger {
+.trigger {
   height: var(--space-7);
   color: var(--slate-11);
   &:hover {
@@ -7,7 +7,7 @@
   }
 }
 
-.Content {
+.content {
   overflow: hidden;
 
   &[data-state="open"] {
@@ -18,10 +18,20 @@
   }
 }
 
-.Chevron {
+.accordionContent {
+  /* @see https://www.radix-ui.com/primitives/docs/components/accordion#animating-content-size */
+  --content-height: var(--radix-accordion-content-height);
+}
+
+.detailsContent {
+  /* @see https://www.radix-ui.com/primitives/docs/components/collapsible#animating-content-size */
+  --content-height: var(--radix-collapsible-content-height);
+}
+
+.chevron {
   transition: transform 300ms cubic-bezier(0.87, 0, 0.13, 1);
   color: var(--slate-12);
-  .Trigger[data-state="open"] > & {
+  .trigger[data-state="open"] > & {
     transform: rotate(180deg);
   }
 }
@@ -31,13 +41,13 @@
     height: 0;
   }
   to {
-    height: var(--radix-accordion-content-height);
+    height: var(--content-height);
   }
 }
 
 @keyframes slide-up {
   from {
-    height: var(--radix-accordion-content-height);
+    height: var(--content-height);
   }
   to {
     height: 0;

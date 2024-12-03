@@ -285,7 +285,6 @@ describe('Contextual panel', () => {
     // Find the Element enum/select component and check for None option - it should not be there
     cy.findByTestId(/^xb-component-form-.*/)
       .find('select[required]')
-      .should('be.visible')
       .find('option')
       .should('not.contain', '- None -');
 

@@ -2,24 +2,26 @@ import { Box, Button, Flex, Popover } from '@radix-ui/themes';
 import { Pencil1Icon } from '@radix-ui/react-icons';
 import clsx from 'clsx';
 import { a2p } from '@/local_packages/utils.js';
-import styles from './ContainerTextFormat.module.css';
 
-interface ContainerTextFormatFilterProps {
-  attributes: object | null;
+import type { Attributes } from '@/types/DrupalAttribute';
+
+import styles from '@/components/form/components/ContainerTextFormat.module.css';
+
+interface DrupalContainerTextFormatFilterProps {
+  attributes?: Attributes;
   renderChildren?: JSX.Element | null;
   hasParent?: boolean;
 }
 
 /**
- * Mapped to `container--text-format-filter-guidelines--xbxb` / `container--text-format-filter-guidelines.html.twig`.
- * @see `ui/src/components/form/twig-to-jsx-component-map.js`
+ * Mapped to `container--text-format-filter-guidelines.html.twig`.
  * @see https://git.drupalcode.org/project/drupal/-/blob/11.x/core/modules/system/templates/container.html.twig
  */
-const ContainerTextFormatFilterGuidelines = ({
+const DrupalContainerTextFormatFilterGuidelines = ({
   attributes = {},
   renderChildren = null,
   hasParent = false,
-}: ContainerTextFormatFilterProps) => {
+}: DrupalContainerTextFormatFilterProps) => {
   return (
     <Box
       {...a2p(attributes, {
@@ -32,15 +34,14 @@ const ContainerTextFormatFilterGuidelines = ({
 };
 
 /**
- * Mapped to `container--text-format-filter-help--xbxb` / `container--text-format-filter-help.html.twig`.
- * @see `ui/src/components/form/twig-to-jsx-component-map.js`
+ * Mapped to `container--text-format-filter-help.html.twig`.
  * @see https://git.drupalcode.org/project/drupal/-/blob/11.x/core/modules/system/templates/container.html.twig
  */
-const ContainerTextFormatFilterHelp = ({
+const DrupalContainerTextFormatFilterHelp = ({
   attributes = {},
   renderChildren = null,
   hasParent = false,
-}: ContainerTextFormatFilterProps) => {
+}: DrupalContainerTextFormatFilterProps) => {
   return (
     <Box
       {...a2p(attributes, {
@@ -54,15 +55,14 @@ const ContainerTextFormatFilterHelp = ({
 };
 
 /**
- * Mapped to `container--text-format-filter-wrapper--xbxb` / `container--text-format-filter-wrapper.html.twig`.
- * @see `ui/src/components/form/twig-to-jsx-component-map.js`
+ * Mapped to `container--text-format-filter-wrapper.html.twig`.
  * @see https://git.drupalcode.org/project/drupal/-/blob/11.x/core/modules/system/templates/container.html.twig
  */
-const ContainerTextFormatFilterWrapper = ({
+const DrupalContainerTextFormatFilterWrapper = ({
   attributes = {},
   renderChildren = null,
   hasParent = false,
-}: ContainerTextFormatFilterProps) => {
+}: DrupalContainerTextFormatFilterProps) => {
   return (
     <Flex
       {...a2p(attributes, {
@@ -70,6 +70,7 @@ const ContainerTextFormatFilterWrapper = ({
       })}
       justify="end"
     >
+      {/* The following is mostly for demo purposes. It is why it's not extracted to its own component. */}
       {/* @todo Change this to a component that doesn't use a portal and simply hides/shows content. */}
       <Popover.Root>
         <Popover.Trigger>
@@ -91,7 +92,7 @@ const ContainerTextFormatFilterWrapper = ({
 };
 
 export {
-  ContainerTextFormatFilterGuidelines,
-  ContainerTextFormatFilterHelp,
-  ContainerTextFormatFilterWrapper,
+  DrupalContainerTextFormatFilterGuidelines,
+  DrupalContainerTextFormatFilterHelp,
+  DrupalContainerTextFormatFilterWrapper,
 };

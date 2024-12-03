@@ -1,14 +1,18 @@
 import { a2p } from '@/local_packages/utils.js';
 import clsx from 'clsx';
-import styles from './FormElement.module.css';
+// @todo Import styles in a standalone <FormElement> component.
+// https://www.drupal.org/i/3491293
+import styles from '../FormElement.module.css';
+
+import type { Attributes } from '@/types/DrupalAttribute';
 
 export type Description = {
   content?: string;
-  attributes?: object;
+  attributes?: Attributes;
 };
 
 interface FormElementProps {
-  attributes: object | null;
+  attributes?: Attributes;
   errors: string | null;
   prefix: string | null;
   suffix: string | null;
@@ -25,7 +29,7 @@ interface FormElementProps {
   renderChildren: string | any[] | null;
 }
 
-const FormElement = ({
+const DrupalFormElement = ({
   attributes = {},
   errors = '',
   prefix = '',
@@ -52,9 +56,11 @@ const FormElement = ({
     !['after', 'before'].includes(titleDisplay) ? 'form-no-label' : '',
     disabled === 'disabled' ? 'form-disabled' : '',
     errors ? 'form-item--error' : '',
-    styles.Root,
-    type === 'checkbox' && styles.Checkbox,
-    type === 'radio' && styles.Radio,
+    // @todo Add styles below in a standalone <FormElement> component.
+    // https://www.drupal.org/i/3491293
+    styles.root,
+    type === 'checkbox' && styles.checkbox,
+    type === 'radio' && styles.radio,
   );
 
   const descriptionClasses = clsx(
@@ -63,6 +69,8 @@ const FormElement = ({
   );
 
   return (
+    // @todo Extract to a standalone <FormElement> component.
+    // https://www.drupal.org/i/3491293
     <div {...a2p(attributes, { class: classes })}>
       {['before', 'invisible'].includes(labelDisplay) && label}
       {prefix && prefix.length > 0 && (
@@ -71,6 +79,9 @@ const FormElement = ({
       {descriptionDisplay === 'before' &&
         description.content &&
         description.content && (
+          // @todo Extract to a standalone <FormElementDescription> component.
+          // @todo Pass as a prop to the <FormElement> component.
+          // https://www.drupal.org/i/3491293
           <div
             {...a2p(description.attributes || {}, {
               class: descriptionClasses,
@@ -92,6 +103,9 @@ const FormElement = ({
       {['after', 'invisible'].includes(descriptionDisplay) &&
         description.content &&
         description.content && (
+          // @todo Extract to a standalone <FormElementDescription> component.
+          // @todo Pass as a prop to the <FormElement> component.
+          // https://www.drupal.org/i/3491293
           <div
             {...a2p(description.attributes || {}, {
               class: descriptionClasses,
@@ -104,4 +118,4 @@ const FormElement = ({
   );
 };
 
-export default FormElement;
+export default DrupalFormElement;

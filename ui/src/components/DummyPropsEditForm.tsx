@@ -3,7 +3,7 @@ import { useErrorBoundary } from 'react-error-boundary';
 import { Spinner, Text } from '@radix-ui/themes';
 import { useGetDummyPropsFormQuery } from '@/services/dummyPropsForm';
 import hyperscriptify from '@/local_packages/hyperscriptify';
-import twigToJSXComponentMap from '@/components/form/twig-to-jsx-component-map.js';
+import twigToJSXComponentMap from '@/components/form/twig-to-jsx-component-map';
 import propsify from '@/local_packages/hyperscriptify/propsify/standard/index.js';
 import parseHyperscriptifyTemplate from '@/utils/parse-hyperscriptify-template';
 import { useAppSelector } from '@/app/hooks';

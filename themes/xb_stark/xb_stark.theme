@@ -1,0 +1,25 @@
+<?php
+
+/**
+ * @file
+ * Functions to support theming in the XB Stark theme.
+ */
+
+use Drupal\Core\Form\FormStateInterface;
+use Drupal\xb_stark\PreRender;
+
+function xb_stark_element_info_alter(array &$type): void {
+  if (isset($type['vertical_tabs'])) {
+    $type['vertical_tabs']['#pre_render'][] = [PreRender::class, 'verticalTabs'];
+  }
+}
+
+function xb_stark_form_node_form_alter(array &$form, FormStateInterface $form_state): void {
+  // Inspired by Claro to render the sidebar details as accordions.
+  $form['#theme'] = ['node_edit_form'];
+  $form['advanced']['#accordion'] = TRUE;
+  $form['meta']['#type'] = 'container';
+  $form['meta']['#access'] = TRUE;
+  $form['revision_information']['#type'] = 'container';
+  $form['revision_information']['#group'] = 'meta';
+}

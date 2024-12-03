@@ -1,17 +1,17 @@
-import Form from '@/components/form/Form';
-import FormElement from '@/components/form/FormElement';
-import FormElementLabel from '@/components/form/FormElementLabel';
-import Input from '@/components/form/Input';
-import Select from '@/components/form/Select';
-import TextArea from '@/components/form/TextArea';
-import Toggle from '@/components/form/Toggle';
-import UrlInput from '@/components/form/UrlInput';
-import { AccordionRoot, AccordionDetails } from '@/components/form/Accordion';
+import DrupalDetails from '@/components/form/components/drupal/DrupalDetails';
+import DrupalForm from '@/components/form/components/drupal/DrupalForm';
+import DrupalFormElement from '@/components/form/components/drupal/DrupalFormElement';
+import DrupalFormElementLabel from '@/components/form/components/drupal/DrupalFormElementLabel';
+import DrupalInput from '@/components/form/components/drupal/DrupalInput';
+import DrupalSelect from '@/components/form/components/drupal/DrupalSelect';
+import DrupalTextArea from '@/components/form/components/drupal/DrupalTextArea';
+import DrupalToggle from '@/components/form/components/drupal/DrupalToggle';
+import DrupalVerticalTabs from '@/components/form/components/drupal/DrupalVerticalTabs';
 import {
-  ContainerTextFormatFilterGuidelines,
-  ContainerTextFormatFilterHelp,
-  ContainerTextFormatFilterWrapper,
-} from '@/components/form/ContainerTextFormat';
+  DrupalContainerTextFormatFilterGuidelines,
+  DrupalContainerTextFormatFilterHelp,
+  DrupalContainerTextFormatFilterWrapper,
+} from '@/components/form/components/drupal/DrupalContainerTextFormat';
 
 // This is where we map the Drupal Twig templates to the corresponding JSX component.
 // @see experience_builder_theme_suggestions_alter()
@@ -21,20 +21,21 @@ import {
 
 const twigToJSXComponentMap = {
   'drupal-container--text-format-filter-guidelines':
-    ContainerTextFormatFilterGuidelines,
-  'drupal-container--text-format-filter-help': ContainerTextFormatFilterHelp,
+    DrupalContainerTextFormatFilterGuidelines,
+  'drupal-container--text-format-filter-help':
+    DrupalContainerTextFormatFilterHelp,
   'drupal-container--text-format-filter-wrapper':
-    ContainerTextFormatFilterWrapper,
-  'drupal-details': AccordionDetails,
-  'drupal-form': Form,
-  'drupal-form-element': FormElement,
-  'drupal-form-element-label': FormElementLabel,
-  'drupal-input--checkbox--inwidget-boolean-checkbox': Toggle,
-  'drupal-input--url': UrlInput,
-  'drupal-input': Input,
-  'drupal-select': Select,
-  'drupal-textarea': TextArea,
-  'drupal-vertical-tabs': AccordionRoot,
+    DrupalContainerTextFormatFilterWrapper,
+  'drupal-details': DrupalDetails,
+  'drupal-form': DrupalForm,
+  'drupal-form-element': DrupalFormElement,
+  'drupal-form-element-label': DrupalFormElementLabel,
+  'drupal-input': DrupalInput,
+  'drupal-input--checkbox--inwidget-boolean-checkbox': DrupalToggle,
+  'drupal-input--url': DrupalInput,
+  'drupal-select': DrupalSelect,
+  'drupal-textarea': DrupalTextArea,
+  'drupal-vertical-tabs': DrupalVerticalTabs,
 };
 
 export default twigToJSXComponentMap;

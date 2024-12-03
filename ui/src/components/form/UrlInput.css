@@ -1,9 +1,0 @@
-.urlInputElement {
-  width: 275px;
-  height: 30px;
-  padding-left: 5px;
-  border: 0.5px solid #ccc;
-  border-radius: var(--radius-3);
-  background-color: #f0f0f3;
-  font-size: 15px;
-}

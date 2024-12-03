@@ -1,0 +1,46 @@
+import { useState } from 'react';
+
+import clsx from 'clsx';
+import * as Collapsible from '@radix-ui/react-collapsible';
+import { Box, Flex, Text } from '@radix-ui/themes';
+import { ChevronDownIcon } from '@radix-ui/react-icons';
+
+import type { ReactNode } from 'react';
+import type { Attributes } from '@/types/DrupalAttribute';
+
+import styles from './AccordionAndDetails.module.css';
+
+const Details = ({
+  title = '',
+  children = null,
+  attributes = {},
+  summaryAttributes = {},
+}: {
+  title: string;
+  children: ReactNode;
+  attributes: Attributes;
+  summaryAttributes: object;
+}) => {
+  const [open, setOpen] = useState(false);
+  return (
+    <Collapsible.Root open={open} onOpenChange={setOpen} {...attributes}>
+      <Flex asChild justify="between" align="center" width="100%">
+        <Collapsible.Trigger asChild className={styles.trigger}>
+          <button>
+            <Text size="2" weight="medium" {...summaryAttributes}>
+              {title}
+            </Text>
+            <ChevronDownIcon className={styles.chevron} aria-hidden />
+          </button>
+        </Collapsible.Trigger>
+      </Flex>
+      <Collapsible.Content
+        className={clsx(styles.content, styles.detailsContent)}
+      >
+        <Box p="1">{children}</Box>
+      </Collapsible.Content>
+    </Collapsible.Root>
+  );
+};
+
+export default Details;

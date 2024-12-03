@@ -1,9 +1,0 @@
-.propertiesForm {
-  margin-top: var(--space-5);
-  font-size: 12px;
-}
-.formLabel {
-  display: inline-block;
-  margin: var(--space-1) 0;
-  color: var(--slate-11);
-}

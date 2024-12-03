@@ -88,35 +88,10 @@ describe('Prop types editing', () => {
   it('Boolean', () => {
     cy.waitForElementContentInIframe('#test-bool code', 'true');
     cy.waitForElementContentNotInIframe('#test-bool code', 'false');
-    cy.get('.ToggleContainer')
-      .should('exist')
-      .then(($toggleContainer) => {
-        const $buttons = $toggleContainer.find('button');
-        expect($buttons).to.have.length(2);
-        expect($buttons.get(0)).to.have.text('TrueTrue');
-        expect($buttons.get(0)).attr('aria-checked', 'true');
-        expect($buttons.get(0)).attr('data-state', 'on');
-
-        expect($buttons.get(1)).to.have.text('FalseFalse');
-        expect($buttons.get(1)).attr('aria-checked', 'false');
-        expect($buttons.get(1)).attr('data-state', 'off');
-      });
-
-    cy.get('.ToggleContainer button').last().click();
-
-    cy.get('.ToggleContainer')
-      .should('exist')
-      .then(($toggleContainer) => {
-        const $buttons = $toggleContainer.find('button');
-        expect($buttons).to.have.length(2);
-        expect($buttons.get(0)).to.have.text('TrueTrue');
-        expect($buttons.get(0)).attr('aria-checked', 'false');
-        expect($buttons.get(0)).attr('data-state', 'off');
-
-        expect($buttons.get(1)).to.have.text('FalseFalse');
-        expect($buttons.get(1)).attr('aria-checked', 'true');
-        expect($buttons.get(1)).attr('data-state', 'on');
-      });
+    cy.findByLabelText('Bool')
+      .assertToggleState(true)
+      .toggleToggle()
+      .assertToggleState(false);
 
     cy.waitForElementContentInIframe('#test-bool code', 'false');
     cy.waitForElementContentNotInIframe('#test-bool code', 'true');
@@ -142,30 +117,38 @@ describe('Prop types editing', () => {
   });
 
   it('Enum (select) - string', () => {
-    cy.findByLabelText('String - Enum').should('have.value', 'foo');
+    cy.findByLabelText('String - Enum')
+      .parent()
+      .find('select')
+      .as('select')
+      .should('have.value', 'foo');
     cy.waitForElementContentInIframe('#test-string-enum', 'foo');
-    cy.findByLabelText('String - Enum').select(0);
-    cy.findByLabelText('String - Enum').should('have.value', '_none');
+    cy.get('@select').select(0, { force: true });
+    cy.get('@select').should('have.value', '_none');
     cy.waitForElementContentNotInIframe('#test-string-enum', 'foo');
     cy.testInIframe('#test-string-enum code', (enumPreview) => {
       expect(enumPreview.textContent).to.eq('');
     });
-    cy.findByLabelText('String - Enum').select(2);
-    cy.findByLabelText('String - Enum').should('have.value', 'bar');
+    cy.get('@select').select(2, { force: true });
+    cy.get('@select').should('have.value', 'bar');
     cy.waitForElementContentInIframe('#test-string-enum', 'bar');
   });
 
   it('Enum (select) - integer', () => {
-    cy.findByLabelText('Integer - Enum').should('have.value', 1);
+    cy.findByLabelText('Integer - Enum')
+      .parent()
+      .find('select')
+      .as('select')
+      .should('have.value', '1');
     cy.waitForElementContentInIframe('#test-integer-enum', '1');
-    cy.findByLabelText('Integer - Enum').select(0);
-    cy.findByLabelText('Integer - Enum').should('have.value', '_none');
+    cy.get('@select').select(0, { force: true });
+    cy.get('@select').should('have.value', '_none');
     cy.waitForElementContentNotInIframe('#test-integer-enum', '1');
     cy.testInIframe('#test-integer-enum code', (enumPreview) => {
       expect(enumPreview.textContent).to.eq('');
     });
-    cy.findByLabelText('Integer - Enum').select(2);
-    cy.findByLabelText('Integer - Enum').should('have.value', 2);
+    cy.get('@select').select(2, { force: true });
+    cy.get('@select').should('have.value', '2');
     cy.waitForElementContentInIframe('#test-integer-enum', '2');
   });
 
