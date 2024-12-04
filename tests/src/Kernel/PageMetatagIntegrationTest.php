@@ -5,15 +5,21 @@ declare(strict_types=1);
 namespace Drupal\Tests\experience_builder\Kernel;
 
 use Drupal\experience_builder\Entity\Page;
+use Drupal\file\Entity\File;
 use Drupal\KernelTests\KernelTestBase;
+use Drupal\media\Entity\Media;
 use Drupal\Tests\experience_builder\Traits\PageTrait;
+use Drupal\Tests\media\Traits\MediaTypeCreationTrait;
+use Drupal\Tests\TestFileCreationTrait;
 
 /**
  * @group experience_builder
  */
 final class PageMetatagIntegrationTest extends KernelTestBase {
 
+  use MediaTypeCreationTrait;
   use PageTrait;
+  use TestFileCreationTrait;
 
   /**
    * {@inheritdoc}
@@ -38,6 +44,10 @@ final class PageMetatagIntegrationTest extends KernelTestBase {
     $this->installConfig(['system']);
     $this->installEntitySchema('path_alias');
     $this->installEntitySchema('xb_page');
+    $this->installEntitySchema('file');
+    $this->installSchema('file', 'file_usage');
+    $this->installEntitySchema('media');
+    $this->installEntitySchema('user');
   }
 
   public function testTags(): void {
@@ -55,13 +65,29 @@ final class PageMetatagIntegrationTest extends KernelTestBase {
     $changes = $this->container->get('entity.definition_update_manager')->getChangeList();
     self::assertArrayNotHasKey('xb_page', $changes);
 
-    $this->installConfig(['experience_builder']);
+    $media_type = $this->createMediaType('image');
+    $image_file = File::create([
+      // @phpstan-ignore-next-line
+      'uri' => $this->getTestFiles('image')[0]->uri,
+    ]);
+    $image_file->save();
+    $media_image = Media::create([
+      'bundle' => $media_type->id(),
+      'name' => 'Test image',
+      'field_media_image' => [
+        'target_id' => $image_file->id(),
+        'alt' => 'default alt',
+        'title' => 'default title',
+      ],
+    ]);
+    $media_image->save();
 
     $sut = Page::create([
       'title' => 'Test page',
       'description' => 'This is a test page.',
       'path' => ['alias' => '/test-page'],
       'components' => [],
+      'image' => $media_image->id(),
     ]);
     self::assertSaveWithoutViolations($sut);
 
@@ -95,6 +121,16 @@ final class PageMetatagIntegrationTest extends KernelTestBase {
           ],
         ],
         'canonical_url',
+      ],
+      [
+        [
+          '#tag' => 'link',
+          '#attributes' => [
+            'rel' => 'image_src',
+            'href' => $image_file->createFileUrl(FALSE),
+          ],
+        ],
+        'image_src',
       ],
     ]);
   }

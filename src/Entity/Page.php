@@ -7,6 +7,7 @@ namespace Drupal\experience_builder\Entity;
 use Drupal\Core\Entity\EditorialContentEntityBase;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Field\BaseFieldDefinition;
+use Drupal\media\Entity\MediaType;
 
 /**
  * Defines the page entity class.
@@ -140,6 +141,24 @@ final class Page extends EditorialContentEntityBase {
       ->setDescription(t('The time the page was last edited.'))
       ->setTranslatable(TRUE)
       ->setRevisionable(TRUE);
+    $fields['image'] = BaseFieldDefinition::create('entity_reference')
+      ->setLabel(t('Image'))
+      ->setTranslatable(TRUE)
+      ->setRevisionable(TRUE)
+      ->setSetting('target_type', 'media')
+      ->setSetting('handler', 'default')
+      ->setSetting('handler_settings', [
+        'target_bundles' => self::getImageMediaTypes(),
+      ])
+      ->setDisplayOptions('form', [
+        'type' => 'media_library_widget',
+        'settings' => [
+          // Leave empty so that the allowed media types are delegated to the
+          // `handler_settings.target_bundles` setting.
+          'media_types' => [],
+        ],
+      ])
+      ->setDisplayConfigurable('form', TRUE);
     return $fields;
   }
 
@@ -148,6 +167,25 @@ final class Page extends EditorialContentEntityBase {
    */
   public static function getRequestTime(): int {
     return \Drupal::time()->getRequestTime();
+  }
+
+  /**
+   * Gets the media type IDs that use the `image` field type.
+   *
+   * @return array
+   *   The media type IDs that use the `image` field type.
+   */
+  private static function getImageMediaTypes(): array {
+    $media_types = MediaType::loadMultiple();
+    $target_bundles = [];
+    foreach ($media_types as $media_type) {
+      /** @var array{allowed_field_types: list<string>} $media_source_plugin_definition */
+      $media_source_plugin_definition = $media_type->getSource()->getPluginDefinition();
+      if (in_array('image', $media_source_plugin_definition['allowed_field_types'], TRUE)) {
+        $target_bundles[] = $media_type->id();
+      }
+    }
+    return $target_bundles;
   }
 
 }

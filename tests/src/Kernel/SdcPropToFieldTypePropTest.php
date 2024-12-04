@@ -48,6 +48,9 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
     'experience_builder',
     // The dependent modules.
     'sdc',
+    'file',
+    'image',
+    'media',
   ];
 
   /**
@@ -58,6 +61,8 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
     // Necessary for uninstalling modules.
     $this->installSchema('user', ['users_data']);
     $this->installEntitySchema('xb_page');
+    $this->installEntitySchema('media');
+    $this->installEntitySchema('file');
   }
 
   /**
@@ -411,6 +416,10 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
             'ℹ︎␜entity:user␝pass␞␟pre_hashed',
             'ℹ︎␜entity:user␝status␞␟value',
             'ℹ︎␜entity:xb_page␝default_langcode␞␟value',
+            'ℹ︎␜entity:xb_page␝image␞␟entity␜␜entity:media␝default_langcode␞␟value',
+            'ℹ︎␜entity:xb_page␝image␞␟entity␜␜entity:media␝revision_default␞␟value',
+            'ℹ︎␜entity:xb_page␝image␞␟entity␜␜entity:media␝revision_translation_affected␞␟value',
+            'ℹ︎␜entity:xb_page␝image␞␟entity␜␜entity:media␝status␞␟value',
             'ℹ︎␜entity:xb_page␝revision_default␞␟value',
             'ℹ︎␜entity:xb_page␝revision_translation_affected␞␟value',
             'ℹ︎␜entity:xb_page␝revision_user␞␟entity␜␜entity:user␝default_langcode␞␟value',
@@ -473,6 +482,18 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
             'ℹ︎␜entity:xb_page␝changed␞␟value',
             'ℹ︎␜entity:xb_page␝created␞␟value',
             'ℹ︎␜entity:xb_page␝id␞␟value',
+            'ℹ︎␜entity:xb_page␝image␞␟entity␜␜entity:media␝changed␞␟value',
+            'ℹ︎␜entity:xb_page␝image␞␟entity␜␜entity:media␝created␞␟value',
+            'ℹ︎␜entity:xb_page␝image␞␟entity␜␜entity:media␝mid␞␟value',
+            'ℹ︎␜entity:xb_page␝image␞␟entity␜␜entity:media␝path␞␟pid',
+            'ℹ︎␜entity:xb_page␝image␞␟entity␜␜entity:media␝revision_created␞␟value',
+            'ℹ︎␜entity:xb_page␝image␞␟entity␜␜entity:media␝revision_user␞␟target_id',
+            'ℹ︎␜entity:xb_page␝image␞␟entity␜␜entity:media␝thumbnail␞␟height',
+            'ℹ︎␜entity:xb_page␝image␞␟entity␜␜entity:media␝thumbnail␞␟target_id',
+            'ℹ︎␜entity:xb_page␝image␞␟entity␜␜entity:media␝thumbnail␞␟width',
+            'ℹ︎␜entity:xb_page␝image␞␟entity␜␜entity:media␝uid␞␟target_id',
+            'ℹ︎␜entity:xb_page␝image␞␟entity␜␜entity:media␝vid␞␟value',
+            'ℹ︎␜entity:xb_page␝image␞␟target_id',
             'ℹ︎␜entity:xb_page␝path␞␟pid',
             'ℹ︎␜entity:xb_page␝revision_created␞␟value',
             'ℹ︎␜entity:xb_page␝revision_id␞␟value',
@@ -581,6 +602,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
             'ℹ︎␜entity:path_alias␝alias␞␟{label↠value}',
             'ℹ︎␜entity:path_alias␝path␞␟{label↠value}',
             'ℹ︎␜entity:xb_page␝description␞␟{label↠value}',
+            'ℹ︎␜entity:xb_page␝image␞␟{label↝entity␜␜entity:media␝revision_log_message␞␟value,slot↝entity␜␜entity:media␝name␞␟value}',
             'ℹ︎␜entity:xb_page␝revision_log␞␟{label↠value}',
             'ℹ︎␜entity:xb_page␝title␞␟{label↠value}',
           ],
@@ -623,6 +645,10 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
             'ℹ︎␜entity:path_alias␝alias␞␟value',
             'ℹ︎␜entity:path_alias␝path␞␟value',
             'ℹ︎␜entity:xb_page␝description␞␟value',
+            'ℹ︎␜entity:xb_page␝image␞␟entity␜␜entity:media␝name␞␟value',
+            'ℹ︎␜entity:xb_page␝image␞␟entity␜␜entity:media␝revision_log_message␞␟value',
+            'ℹ︎␜entity:xb_page␝image␞␟entity␜␜entity:media␝thumbnail␞␟alt',
+            'ℹ︎␜entity:xb_page␝image␞␟entity␜␜entity:media␝thumbnail␞␟title',
             'ℹ︎␜entity:xb_page␝revision_log␞␟value',
             'ℹ︎␜entity:xb_page␝title␞␟value',
           ],
@@ -658,6 +684,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
           'instances' => [
             'ℹ︎␜entity:node:foo␝revision_log␞␟value',
             'ℹ︎␜entity:xb_page␝description␞␟value',
+            'ℹ︎␜entity:xb_page␝image␞␟entity␜␜entity:media␝revision_log_message␞␟value',
             'ℹ︎␜entity:xb_page␝revision_log␞␟value',
           ],
           'adapter_matches_field_type' => [],
@@ -976,6 +1003,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
             'ℹ︎␜entity:node:foo␝uuid␞␟value',
             'ℹ︎␜entity:path_alias␝uuid␞␟value',
             'ℹ︎␜entity:user␝uuid␞␟value',
+            'ℹ︎␜entity:xb_page␝image␞␟entity␜␜entity:media␝uuid␞␟value',
             'ℹ︎␜entity:xb_page␝revision_user␞␟entity␜␜entity:user␝uuid␞␟value',
             'ℹ︎␜entity:xb_page␝uuid␞␟value',
           ],

@@ -12,10 +12,12 @@ use Drupal\KernelTests\KernelTestBase;
 use Drupal\Tests\experience_builder\Traits\GenerateComponentConfigTrait;
 use Drupal\Tests\experience_builder\Traits\PageTrait;
 use Drupal\Tests\experience_builder\Traits\TestDataUtilitiesTrait;
+use Drupal\Tests\media\Traits\MediaTypeCreationTrait;
 
 final class PageTest extends KernelTestBase {
 
   use GenerateComponentConfigTrait;
+  use MediaTypeCreationTrait;
   use PageTrait;
   use TestDataUtilitiesTrait;
 
@@ -53,6 +55,47 @@ final class PageTest extends KernelTestBase {
       ],
       $sut->getLinkTemplates()
     );
+  }
+
+  public function testImageFieldDefinition(): void {
+    $image_media_type = $this->createMediaType('image');
+    // Create a `file` media type to ensure that the field definition is
+    // correctly filtered to only allow media types that use `image`.
+    $this->createMediaType('file');
+
+    $fields = $this->container->get('entity_field.manager')
+      ->getFieldDefinitions('xb_page', 'xb_page');
+    self::assertArrayHasKey('image', $fields);
+    $field = $fields['image'];
+    self::assertEquals([
+      'target_type' => 'media',
+      'handler' => 'default',
+      'handler_settings' => [
+        'target_bundles' => [$image_media_type->id()],
+      ],
+    ], $field->getSettings());
+    self::assertEquals([
+      'type' => 'media_library_widget',
+      'settings' => [
+        'media_types' => [],
+      ],
+    ], $field->getDisplayOptions('form'));
+
+    // Verify adding a new media type causes the base field's settings to be
+    // automatically updated.
+    $second_image_media_type = $this->createMediaType('image');
+    $fields = $this->container->get('entity_field.manager')
+      ->getFieldDefinitions('xb_page', 'xb_page');
+    self::assertArrayHasKey('image', $fields);
+    $field = $fields['image'];
+    self::assertEqualsCanonicalizing([
+      'target_type' => 'media',
+      'handler' => 'default',
+      'handler_settings' => [
+        'target_bundles' => [$image_media_type->id(), $second_image_media_type->id()],
+      ],
+    ], $field->getSettings());
+
   }
 
   public function testEntity(): void {

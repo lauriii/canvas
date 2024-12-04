@@ -37,6 +37,7 @@ class DefaultFieldValueTest extends KernelTestBase {
     'image',
     'options',
     'path',
+    'media',
   ];
 
   /**

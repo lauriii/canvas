@@ -336,6 +336,8 @@ function experience_builder_entity_base_field_info(EntityTypeInterface $entity_t
           'title' => '[xb_page:title] | [site:name]',
           'description' => '[xb_page:description]',
           'canonical_url' => '[xb_page:url]',
+          // @see https://stackoverflow.com/a/19274942
+          'image_src' => '[xb_page:image:entity:field_media_image:entity:url]',
         ]))
         // Mark the field as internal. The Metatag module provides a computed
         // `metatag` field that is computed to combine the metatag defaults

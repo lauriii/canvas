@@ -33,6 +33,7 @@ class FieldForComponentSuggesterTest extends KernelTestBase {
     'experience_builder',
     // The dependent modules.
     'sdc',
+    'media',
     // The module providing the sample SDC to test all JSON schema types.
     'sdc_test_all_props',
     // All other core modules providing field types.

@@ -14,6 +14,11 @@ trait PageTrait {
     'user',
     'path',
     'path_alias',
+    'field',
+    'media',
+    'views',
+    'filter',
+    'media_library',
     'xb_test_page',
   ];
 
