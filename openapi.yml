@@ -201,13 +201,19 @@ paths:
                     description: HTML originating from a Drupal render array.
                   css:
                     type: array
-                    description: Stringified CSS info structured for use by `add_css` AJAX command
+                    description: >-
+                      Stringified CSS info structured for use by `add_css` AJAX
+                      command
                   js:
                     type: object
-                    description: Stringified JS info structured for use by `add_js` AJAX command
+                    description: >-
+                      Stringified JS info structured for use by `add_js` AJAX
+                      command
                   settings:
                     type: object
-                    description: Stringified settings info structured for use by `settings` AJAX command
+                    description: >-
+                      Stringified settings info structured for use by `settings`
+                      AJAX command
     post:
       parameters:
         # @see \Drupal\Core\Form\FormBuilderInterface::AJAX_FORM_REQUEST
@@ -315,7 +321,7 @@ paths:
     post:
       requestBody:
         content:
-          application/json: { }
+          application/json: {}
       responses:
         '200':
           description: Successful publish
@@ -327,7 +333,18 @@ paths:
                   message:
                     type: string
                     title: Success message
-                    example: 'Successfully published 3 items'
+                    example: Successfully published 3 items
+        '204':
+          description: No items to publish
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    title: Status message
+                    example: No items to publish
         '422':
           description: Validation errors exist
           content:
