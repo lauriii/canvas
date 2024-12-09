@@ -23,6 +23,103 @@ trait XBFieldTrait {
   private File $unreferencedImage;
   private Media $mediaEntity;
 
+  protected function getValidConvertedProps(): array {
+    return [
+      self::TEST_HEADING_UUID => [
+        'text' => [
+          'sourceType' => 'static:field_item:string',
+          'value' => 'This is a random heading.',
+          'expression' => 'ℹ︎string␟value',
+          'sourceTypeSettings' => [
+            'storage' => [],
+            'instance' => [],
+          ],
+        ],
+        'style' => [
+          'sourceType' => 'static:field_item:list_string',
+          'value' => 'primary',
+          'expression' => 'ℹ︎list_string␟value',
+          'sourceTypeSettings' => [
+            'storage' => [
+              'allowed_values' => [
+                [
+                  'value' => 'primary',
+                  'label' => 'primary',
+                ],
+                [
+                  'value' => 'secondary',
+                  'label' => 'secondary',
+                ],
+              ],
+            ],
+            'instance' => [],
+          ],
+        ],
+        'element' => [
+          'sourceType' => 'static:field_item:list_string',
+          'value' => 'h1',
+          'expression' => 'ℹ︎list_string␟value',
+          'sourceTypeSettings' => [
+            'storage' => [
+              'allowed_values' => [
+                [
+                  'value' => 'div',
+                  'label' => 'div',
+                ],
+                [
+                  'value' => 'h1',
+                  'label' => 'h1',
+                ],
+                [
+                  'value' => 'h2',
+                  'label' => 'h2',
+                ],
+                [
+                  'value' => 'h3',
+                  'label' => 'h3',
+                ],
+                [
+                  'value' => 'h4',
+                  'label' => 'h4',
+                ],
+                [
+                  'value' => 'h5',
+                  'label' => 'h5',
+                ],
+                [
+                  'value' => 'h6',
+                  'label' => 'h6',
+                ],
+              ],
+            ],
+            'instance' => [],
+          ],
+        ],
+      ],
+      self::TEST_IMAGE_UUID => [
+        'image' => [
+          'sourceType' => 'static:field_item:entity_reference',
+          'value' => [
+            'alt' => 'This is a random image.',
+            'width' => 100,
+            'height' => 100,
+            'target_id' => (int) $this->mediaEntity->id(),
+          ],
+          'expression' => 'ℹ︎entity_reference␟{src↝entity␜␜entity:media:image␝field_media_image␞␟entity␜␜entity:file␝uri␞␟url,alt↝entity␜␜entity:media:image␝field_media_image␞␟alt,width↝entity␜␜entity:media:image␝field_media_image␞␟width,height↝entity␜␜entity:media:image␝field_media_image␞␟height}',
+          'sourceTypeSettings' => [
+            'storage' => ['target_type' => 'media'],
+            'instance' => [
+              'handler' => 'default:media',
+              'handler_settings' => [
+                'target_bundles' => ['image' => 'image'],
+              ],
+            ],
+          ],
+        ],
+      ],
+    ];
+  }
+
   private function setUpImages(): void {
     $test_image_files = $this->getTestFiles('image');
     // Start with the second image because
@@ -142,100 +239,7 @@ trait XBFieldTrait {
         'sdc.experience_builder.heading',
         'sdc.experience_builder.image',
       ],
-      [
-        self::TEST_HEADING_UUID => [
-          'text' => [
-            'sourceType' => 'static:field_item:string',
-            'value' => 'This is a random heading.',
-            'expression' => 'ℹ︎string␟value',
-            'sourceTypeSettings' => [
-              'storage' => [],
-              'instance' => [],
-            ],
-          ],
-          'style' => [
-            'sourceType' => 'static:field_item:list_string',
-            'value' => 'primary',
-            'expression' => 'ℹ︎list_string␟value',
-            'sourceTypeSettings' => [
-              'storage' => [
-                'allowed_values' => [
-                  [
-                    'value' => 'primary',
-                    'label' => 'primary',
-                  ],
-                  [
-                    'value' => 'secondary',
-                    'label' => 'secondary',
-                  ],
-                ],
-              ],
-              'instance' => [],
-            ],
-          ],
-          'element' => [
-            'sourceType' => 'static:field_item:list_string',
-            'value' => 'h1',
-            'expression' => 'ℹ︎list_string␟value',
-            'sourceTypeSettings' => [
-              'storage' => [
-                'allowed_values' => [
-                  [
-                    'value' => 'div',
-                    'label' => 'div',
-                  ],
-                  [
-                    'value' => 'h1',
-                    'label' => 'h1',
-                  ],
-                  [
-                    'value' => 'h2',
-                    'label' => 'h2',
-                  ],
-                  [
-                    'value' => 'h3',
-                    'label' => 'h3',
-                  ],
-                  [
-                    'value' => 'h4',
-                    'label' => 'h4',
-                  ],
-                  [
-                    'value' => 'h5',
-                    'label' => 'h5',
-                  ],
-                  [
-                    'value' => 'h6',
-                    'label' => 'h6',
-                  ],
-                ],
-              ],
-              'instance' => [],
-            ],
-          ],
-        ],
-        self::TEST_IMAGE_UUID => [
-          'image' => [
-            'sourceType' => 'static:field_item:entity_reference',
-            'value' => [
-              'alt' => 'This is a random image.',
-              'width' => 100,
-              'height' => 100,
-              'target_id' => (int) $this->mediaEntity->id(),
-            ],
-            'expression' => 'ℹ︎entity_reference␟{src↝entity␜␜entity:media:image␝field_media_image␞␟entity␜␜entity:file␝uri␞␟url,alt↝entity␜␜entity:media:image␝field_media_image␞␟alt,width↝entity␜␜entity:media:image␝field_media_image␞␟width,height↝entity␜␜entity:media:image␝field_media_image␞␟height}',
-            'sourceTypeSettings' => [
-              'storage' => ['target_type' => 'media'],
-              'instance' => [
-                'handler' => 'default:media',
-                'handler_settings' => [
-                  'target_bundles' => ['image' => 'image'],
-                ],
-              ],
-            ],
-          ],
-        ],
-      ]
+      $this->getValidConvertedProps()
     );
 
   }

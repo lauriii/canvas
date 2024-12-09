@@ -1,0 +1,76 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Drupal\Tests\experience_builder\Kernel;
+
+use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\experience_builder\Controller\ClientServerConversionTrait;
+use Drupal\experience_builder\Entity\Pattern;
+use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
+use Drupal\KernelTests\KernelTestBase;
+use Drupal\node\Entity\Node;
+use Drupal\Tests\experience_builder\TestSite\XBTestSetup;
+use Drupal\Tests\experience_builder\Traits\ContribStrictConfigSchemaTestTrait;
+use Drupal\Tests\experience_builder\Traits\TestDataUtilitiesTrait;
+use Drupal\Tests\experience_builder\Traits\XBFieldTrait;
+
+class ClientServerConversionTraitTest extends KernelTestBase {
+
+  use XBFieldTrait;
+  use ClientServerConversionTrait;
+  use TestDataUtilitiesTrait;
+  use ContribStrictConfigSchemaTestTrait;
+
+  private EntityTypeManagerInterface $entityTypeManager;
+
+  public function setUp(): void {
+    parent::setUp();
+    $this->container->get('module_installer')->install(['system']);
+    (new XBTestSetup())->setup();
+    $this->setUpImages();
+    $this->entityTypeManager = $this->container->get('entity_type.manager');
+  }
+
+  public function testConvertClientToServer(): void {
+    ['layout' => $layout, 'model' => $model] = $this->getValidClientJson();
+    [$tree, $props, $violations] = $this->convertClientToServer($layout, $model);
+    $this->assertCount(0, $violations);
+    $this->assertSame($this->getValidConvertedProps(), $props);
+    $this->assertSame([
+      ComponentTreeStructure::ROOT_UUID => [
+        [
+          'uuid' => self::TEST_HEADING_UUID,
+          'component' => 'sdc.experience_builder.heading',
+        ],
+        [
+          'uuid' => self::TEST_IMAGE_UUID,
+          'component' => 'sdc.experience_builder.image',
+        ],
+      ],
+    ], $tree);
+
+    $converted_item = [
+      'tree' => self::encodeXBData($tree),
+      'props' => self::encodeXBData($props),
+    ];
+
+    // Ensure convert 'tree' and 'props' can be used both to create both a
+    // config entity and a content entity field value.
+    Pattern::create([
+      'id' => 'test_pattern',
+      'label' => 'Test Pattern',
+      'component_tree' => $converted_item,
+    ])->save();
+
+    $node1 = Node::create([
+      'type' => 'article',
+      'title' => '5 amazing uses for old toothbrushes',
+      'field_xb_demo' => $converted_item,
+    ]);
+    $node1->validate();
+    $node1->save();
+    $this->assertValidJsonUpdateNode($node1);
+  }
+
+}

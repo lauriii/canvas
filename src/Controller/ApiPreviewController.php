@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\experience_builder\Controller;
 
 use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Render\Element;
 use Drupal\Core\TypedData\TypedDataManagerInterface;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
@@ -27,6 +28,7 @@ final class ApiPreviewController {
   use NotTheGoodAutoSaveTrait;
 
   public function __construct(
+    private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly TypedDataManagerInterface $typedDataManager,
   ) {}
 

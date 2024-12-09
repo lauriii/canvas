@@ -25,8 +25,6 @@ use Symfony\Component\HttpFoundation\Request;
  */
 final class ApiContentUpdateForDemoController extends ApiControllerBase {
 
-  use ClientServerConversionTrait;
-
   public function __construct(
     private readonly ClientDataToEntityConverter $clientDataToEntityConverter,
   ) {}
