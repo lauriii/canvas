@@ -124,7 +124,7 @@ Cypress.Commands.add(
         Cypress.env('drupalDbPrefix', installData.db_prefix);
         Cypress.env('drupalSitePath', installData.site_path);
         Cypress.env('userAgent', installData.user_agent);
-        Cypress.env('host', url.host);
+        Cypress.env('host', url.hostname);
         cy.visit('/', { failOnStatusCode: false }).then(() => {
           cy.drupalSession();
         });

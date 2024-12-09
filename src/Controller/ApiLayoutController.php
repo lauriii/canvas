@@ -15,15 +15,21 @@ final class ApiLayoutController {
   use NotTheGoodAutoSaveTrait;
 
   public function __invoke(FieldableEntityInterface $entity): JsonResponse {
-    if ($entity->bundle() !== 'article') {
-      throw new \LogicException('For now, this assumes the entity is an article!');
+    if ($entity->getEntityTypeId() !== 'xb_page' && $entity->bundle() !== 'article') {
+      throw new \LogicException('For now, this assumes the entity is an xb_page or an article node!');
     }
 
     if ($body = $this->getAutoSaveData($entity)) {
       return new JsonResponse($body);
     }
 
-    $item = $entity->get('field_xb_demo')->first();
+    if ($entity->getEntityTypeId() === 'xb_page') {
+      $field_name = 'components';
+    }
+    else {
+      $field_name = 'field_xb_demo';
+    }
+    $item = $entity->get($field_name)->first();
     assert($item instanceof ComponentTreeItem);
     $tree = $item->get('tree');
     assert($tree instanceof ComponentTreeStructure);

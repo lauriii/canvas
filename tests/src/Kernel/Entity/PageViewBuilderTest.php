@@ -9,14 +9,19 @@ use Drupal\experience_builder\Entity\Page;
 use Drupal\experience_builder\Entity\PageViewBuilder;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 use Drupal\KernelTests\KernelTestBase;
+use Drupal\Tests\experience_builder\Kernel\Traits\PageTrait;
+use Drupal\Tests\experience_builder\Kernel\Traits\RequestTrait;
 use Drupal\Tests\experience_builder\Traits\GenerateComponentConfigTrait;
-use Drupal\Tests\experience_builder\Traits\PageTrait;
 use Drupal\Tests\experience_builder\Traits\TestDataUtilitiesTrait;
 
+/**
+ * @group experience_builder
+ */
 final class PageViewBuilderTest extends KernelTestBase {
 
   use GenerateComponentConfigTrait;
   use PageTrait;
+  use RequestTrait;
   use TestDataUtilitiesTrait;
 
   /**
@@ -43,8 +48,7 @@ final class PageViewBuilderTest extends KernelTestBase {
   protected function setUp(): void {
     parent::setUp();
     $this->generateComponentConfig();
-    $this->installEntitySchema('path_alias');
-    $this->installEntitySchema('xb_page');
+    $this->installPageEntitySchema();
 
     $this->config('system.site')
       ->set('name', 'XB Test Site')

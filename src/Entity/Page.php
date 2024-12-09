@@ -12,6 +12,12 @@ use Drupal\media\Entity\MediaType;
 /**
  * Defines the page entity class.
  *
+ * @todo change add-form and edit-form links to use `page` instead of `xb_page`.
+ *    This requires updating the UI to use the values from `drupalSettings.xb`
+ *    without them matching the URL path. If they don't routing in the UI is
+ *    broken and the UI never renders. See `empty-canvas.cy.js`.
+ *    Fix after https://www.drupal.org/project/experience_builder/issues/3489775
+ *
  * @ContentEntityType(
  *   id = "xb_page",
  *   label = @Translation("Page"),
@@ -30,11 +36,11 @@ use Drupal\media\Entity\MediaType;
  *     "form" = {
  *       "default" = "Drupal\Core\Entity\ContentEntityForm",
  *       "delete" = "Drupal\Core\Entity\ContentEntityDeleteForm",
- *       "revision_delete" = "Drupal\Core\Entity\Form\RevisionDeleteForm",
- *       "revision_revert" = "Drupal\Core\Entity\Form\RevisionRevertForm",
+ *       "revision-delete" = \Drupal\Core\Entity\Form\RevisionDeleteForm::class,
+ *       "revision-revert" = \Drupal\Core\Entity\Form\RevisionRevertForm::class,
  *     },
  *     "route_provider" = {
- *       "html" = \Drupal\Core\Entity\Routing\DefaultHtmlRouteProvider::class,
+ *       "html" = \Drupal\experience_builder\Entity\Routing\XbHtmlRouteProvider::class,
  *       "revision" = \Drupal\Core\Entity\Routing\RevisionHtmlRouteProvider::class,
  *     }
  *   },
@@ -48,10 +54,10 @@ use Drupal\media\Entity\MediaType;
  *   links = {
  *     "canonical" = "/page/{xb_page}",
  *     "delete-form" = "/page/{xb_page}/delete",
- *     "edit-form" = "/page/{xb_page}/edit",
- *     "create" = "/page/add",
- *     "revision_delete_form" = "/page/{xb_page}/revisions/{xb_page_revision}/delete",
- *     "revision_revert_form" = "/page/{xb_page}/revisions/{xb_page_revision}/revert",
+ *     "edit-form" = "/xb/xb_page/{xb_page}",
+ *     "add-form" = "/xb/xb_page",
+ *     "revision-delete-form" = "/page/{xb_page}/revisions/{xb_page_revision}/delete",
+ *     "revision-revert-form" = "/page/{xb_page}/revisions/{xb_page_revision}/revert",
  *     "version-history" = "/page/{xb_page}/revisions",
  *   },
  *   translatable = TRUE,

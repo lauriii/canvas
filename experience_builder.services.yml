@@ -76,6 +76,12 @@ services:
     tags:
       - { name: path_processor_inbound, priority: 200 }
 
+  # Routing.
+  Drupal\experience_builder\Entity\Routing\XbHtmlRouteEnhancer:
+    tags:
+      - { name: route_enhancer }
+
+  # Twig.
   Drupal\experience_builder\Extension\XbTwigExtension:
     tags:
       - { name: twig.extension }

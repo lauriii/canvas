@@ -34,7 +34,7 @@ final class ExperienceBuilderController {
 </html>
 HTML;
 
-  public function __invoke(EntityInterface $entity) : HtmlResponse {
+  public function __invoke(string $entity_type, ?EntityInterface $entity) : HtmlResponse {
     $libraries = [
       'system/base',
       ...$this->themeManager->getActiveTheme()->getLibraries(),
@@ -47,9 +47,9 @@ HTML;
       ],
       'drupalSettings' => [
         'xb' => [
-          'base' => \sprintf('xb/%s/%s', $entity->getEntityTypeId(), $entity->id()),
-          'entityType' => $entity->getEntityTypeId(),
-          'entity' => $entity->id(),
+          'base' => \sprintf('xb/%s/%s', $entity_type, $entity?->id()),
+          'entityType' => $entity_type,
+          'entity' => $entity?->id(),
           // Allow for perfect component previews, by letting the client side
           // know what global assets to load in component preview <iframe>s.
           // @see ui/src/components/ComponentPreview.tsx

@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace Drupal\Tests\experience_builder\Kernel;
 
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
+use Drupal\KernelTests\KernelTestBase;
 use Drupal\Tests\experience_builder\TestSite\XBTestSetup;
 use Drupal\Tests\user\Traits\UserCreationTrait;
+use Drupal\Tests\experience_builder\Kernel\Traits\RequestTrait;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -14,8 +16,11 @@ use Symfony\Component\HttpFoundation\Response;
  * @coversDefaultClass \Drupal\experience_builder\Controller\ApiPreviewController
  * @group experience_builder
  */
-final class ApiPreviewControllerTest extends ExperienceBuilderTestBase {
+final class ApiPreviewControllerTest extends KernelTestBase {
 
+  use RequestTrait {
+    request as parentRequest;
+  }
   use UserCreationTrait;
 
   /**
@@ -44,7 +49,7 @@ final class ApiPreviewControllerTest extends ExperienceBuilderTestBase {
 
   public function test(): void {
     // Load the test data from the layout controller.
-    $content = parent::request(Request::create('/api/layout/node/1'))->getContent();
+    $content = $this->parentRequest(Request::create('/api/layout/node/1'))->getContent();
     $this->assertIsString($content);
     $model = json_decode($content, TRUE)['model'];
     $this->request(Request::create('/api/preview/node/1', content: $content));
@@ -60,8 +65,8 @@ final class ApiPreviewControllerTest extends ExperienceBuilderTestBase {
   /**
    * Unwrap the JSON response so we can perform assertions on it.
    */
-  protected function request(Request $request, bool $terminate = TRUE): Response {
-    $response = parent::request($request, $terminate);
+  protected function request(Request $request): Response {
+    $response = $this->parentRequest($request);
     $content = $response->getContent();
     $this->assertIsString($content);
     $this->setRawContent(json_decode($content, TRUE)['html']);

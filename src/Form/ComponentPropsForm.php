@@ -64,8 +64,8 @@ final class ComponentPropsForm extends FormBase {
 
     // ⚠️ This is HORRIBLY HACKY and will go away! ☺️
     // @see \Drupal\experience_builder\Controller\ApiLayoutController
-    if (!$entity || $entity->bundle() !== 'article') {
-      throw new \LogicException('For now, this assumes the entity is an article!');
+    if (!$entity || ($entity->getEntityTypeId() !== 'xb_page' && $entity->bundle() !== 'article')) {
+      throw new \LogicException('For now, this assumes the entity is an xb_page or an article node!');
     }
 
     $component = Component::load($component_id);

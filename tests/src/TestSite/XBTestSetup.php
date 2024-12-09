@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\Tests\experience_builder\TestSite;
 
 use Drupal\Core\Extension\ModuleInstallerInterface;
+use Drupal\experience_builder\Entity\Page;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 use Drupal\file\Entity\File;
 use Drupal\image\Plugin\Field\FieldType\ImageItem;
@@ -228,6 +229,44 @@ class XBTestSetup implements TestSetupInterface {
     ]);
     $empty_node->save();
 
+    $page = Page::create([
+      'title' => 'Homepage',
+      'description' => 'This is the homepage',
+      'path' => ['alias' => '/homepage'],
+      'components' => [
+        'tree' => \json_encode([
+          ComponentTreeStructure::ROOT_UUID => [
+            [
+              'uuid' => 'component-sdc',
+              'component' => 'sdc.xb_test_sdc.props-slots',
+            ],
+            [
+              'uuid' => 'component-block',
+              'component' => 'block.system_branding_block',
+            ],
+          ],
+        ]),
+        'props' => \json_encode([
+          'component-sdc' => [
+            'heading' => [
+              'sourceType' => 'static:field_item:string',
+              'value' => 'Welcome to the site!',
+              'expression' => 'ℹ︎string␟value',
+            ],
+          ],
+          'component-block' => [],
+        ]),
+      ],
+    ]);
+    $page->save();
+
+    $empty_page = Page::create([
+      'title' => 'Empty Page',
+      'description' => 'This is an empty page',
+      'path' => ['alias' => '/test-page'],
+    ]);
+    $empty_page->save();
+
     $xb_role = Role::create([
       'id' => 'xb',
       'label' => 'xb',
@@ -239,6 +278,7 @@ class XBTestSetup implements TestSetupInterface {
     $xb_role->grantPermission('view media');
     $xb_role->grantPermission('create media');
     $xb_role->grantPermission('create article content');
+    $xb_role->grantPermission('administer xb_page');
     $xb_role->save();
 
     $xb_user = User::create();

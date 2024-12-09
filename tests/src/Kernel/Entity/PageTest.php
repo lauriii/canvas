@@ -9,11 +9,14 @@ use Drupal\experience_builder\Entity\Page;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\KernelTests\KernelTestBase;
+use Drupal\Tests\experience_builder\Kernel\Traits\PageTrait;
 use Drupal\Tests\experience_builder\Traits\GenerateComponentConfigTrait;
-use Drupal\Tests\experience_builder\Traits\PageTrait;
 use Drupal\Tests\experience_builder\Traits\TestDataUtilitiesTrait;
 use Drupal\Tests\media\Traits\MediaTypeCreationTrait;
 
+/**
+ * @group experience_builder
+ */
 final class PageTest extends KernelTestBase {
 
   use GenerateComponentConfigTrait;
@@ -39,6 +42,12 @@ final class PageTest extends KernelTestBase {
     ...self::PAGE_TEST_MODULES,
   ];
 
+  protected function setUp(): void {
+    parent::setUp();
+    $this->generateComponentConfig();
+    $this->installPageEntitySchema();
+  }
+
   public function testDefinition(): void {
     $sut = $this->container->get('entity_type.manager')
       ->getDefinition('xb_page');
@@ -47,10 +56,10 @@ final class PageTest extends KernelTestBase {
       [
         'canonical' => '/page/{xb_page}',
         'delete-form' => '/page/{xb_page}/delete',
-        'edit-form' => '/page/{xb_page}/edit',
-        'create' => '/page/add',
-        'revision_delete_form' => '/page/{xb_page}/revisions/{xb_page_revision}/delete',
-        'revision_revert_form' => '/page/{xb_page}/revisions/{xb_page_revision}/revert',
+        'edit-form' => '/xb/xb_page/{xb_page}',
+        'add-form' => '/xb/xb_page',
+        'revision-delete-form' => '/page/{xb_page}/revisions/{xb_page_revision}/delete',
+        'revision-revert-form' => '/page/{xb_page}/revisions/{xb_page_revision}/revert',
         'version-history' => '/page/{xb_page}/revisions',
       ],
       $sut->getLinkTemplates()
@@ -100,10 +109,6 @@ final class PageTest extends KernelTestBase {
 
   public function testEntity(): void {
     $test_heading_text = $this->randomString();
-
-    $this->generateComponentConfig();
-    $this->installEntitySchema('path_alias');
-    $this->installEntitySchema('xb_page');
 
     $sut = Page::create([
       'title' => 'Test page',

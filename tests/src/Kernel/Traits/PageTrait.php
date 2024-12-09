@@ -2,9 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Drupal\Tests\experience_builder\Traits;
+namespace Drupal\Tests\experience_builder\Kernel\Traits;
 
 use Drupal\experience_builder\Entity\Page;
+use Drupal\Tests\experience_builder\Traits\ConstraintViolationsTestTrait;
 
 trait PageTrait {
 
@@ -21,6 +22,11 @@ trait PageTrait {
     'media_library',
     'xb_test_page',
   ];
+
+  protected function installPageEntitySchema(): void {
+    $this->installEntitySchema('path_alias');
+    $this->installEntitySchema('xb_page');
+  }
 
   /**
    * Asserts that the page entity can be saved without violations.

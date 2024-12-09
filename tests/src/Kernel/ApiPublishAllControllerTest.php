@@ -8,17 +8,20 @@ use Drupal\Core\Url;
 use Drupal\experience_builder\Controller\ApiPublishAllController;
 use Drupal\experience_builder\Controller\NotTheGoodAutoSaveTrait;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
+use Drupal\KernelTests\KernelTestBase;
 use Drupal\node\Entity\Node;
 use Drupal\Tests\experience_builder\TestSite\XBTestSetup;
 use Drupal\Tests\experience_builder\Traits\XBFieldTrait;
 use Drupal\Tests\user\Traits\UserCreationTrait;
+use Drupal\Tests\experience_builder\Kernel\Traits\RequestTrait;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 
-class ApiPublishAllControllerTest extends ExperienceBuilderTestBase {
+class ApiPublishAllControllerTest extends KernelTestBase {
 
   use NotTheGoodAutoSaveTrait;
+  use RequestTrait;
   use XBFieldTrait;
   use UserCreationTrait;
 

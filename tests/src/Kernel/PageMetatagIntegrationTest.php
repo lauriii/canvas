@@ -8,9 +8,9 @@ use Drupal\experience_builder\Entity\Page;
 use Drupal\file\Entity\File;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\media\Entity\Media;
-use Drupal\Tests\experience_builder\Traits\PageTrait;
 use Drupal\Tests\media\Traits\MediaTypeCreationTrait;
 use Drupal\Tests\TestFileCreationTrait;
+use Drupal\Tests\experience_builder\Kernel\Traits\PageTrait;
 
 /**
  * @group experience_builder
@@ -42,8 +42,7 @@ final class PageMetatagIntegrationTest extends KernelTestBase {
   protected function setUp(): void {
     parent::setUp();
     $this->installConfig(['system']);
-    $this->installEntitySchema('path_alias');
-    $this->installEntitySchema('xb_page');
+    $this->installPageEntitySchema();
     $this->installEntitySchema('file');
     $this->installSchema('file', 'file_usage');
     $this->installEntitySchema('media');

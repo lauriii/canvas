@@ -11,42 +11,59 @@ describe('Empty canvas', () => {
     cy.drupalUninstall();
   });
 
-  it('can add a component to an empty canvas', () => {
-    cy.loadURLandWaitForXBLoaded({ url: 'xb/node/2' });
+  // @todo test 'xb/page', 'xb/page/2' once XB router isn't tied to URL path
+  //   matching the /xb/{entity_type}/{entity_id} pattern and relies only on
+  //   what exists in `drupalSettings.xb` instead.
+  //   Fix after https://www.drupal.org/project/experience_builder/issues/3489775
+  const testCases = ['xb/node/2', 'xb/xb_page/2'];
 
-    // Confirm there is nothing in the canvas.
-    cy.get('.xb--viewport-overlay [data-xb-component-id]').should('not.exist');
+  testCases.forEach((testCase) => {
+    it(`${testCase} can add a component to an empty canvas`, () => {
+      cy.loadURLandWaitForXBLoaded({ url: testCase });
 
-    // For good measure, also confirm the content of the hero component is not
-    // in the canvas.
-    cy.waitForElementContentNotInIframe('div', 'There goes my hero');
+      // Confirm there is nothing in the canvas.
+      cy.get('.xb--viewport-overlay [data-xb-component-id]').should(
+        'not.exist',
+      );
 
-    cy.get('[data-xb-component-id="sdc.experience_builder.my-hero"]').should(
-      'not.exist',
-    );
-    cy.openLibraryPanel();
+      // For good measure, also confirm the content of the hero component is not
+      // in the canvas.
+      cy.waitForElementContentNotInIframe('div', 'There goes my hero');
 
-    // This is the component to be dragged in.
-    cy.get('[data-xb-component-id="sdc.experience_builder.my-hero"]').should(
-      'exist',
-    );
+      cy.get('[data-xb-component-id="sdc.experience_builder.my-hero"]').should(
+        'not.exist',
+      );
+      cy.openLibraryPanel();
 
-    // Get the layout destination so the Hero component can be dragged to it.
-    cy.get('.xb--viewport-overlay > div')
-      .first()
-      .then(($destination) => {
-        cy.get(
-          '[data-xb-component-id="sdc.experience_builder.my-hero"]',
-        ).realDnd($destination, { scrollBehavior: false });
+      // This is the component to be dragged in.
+      cy.get('[data-xb-component-id="sdc.experience_builder.my-hero"]').should(
+        'exist',
+      );
+
+      // Get the layout destination so the Hero component can be dragged to it.
+      cy.get('.xb--viewport-overlay > div')
+        .first()
+        .then(($destination) => {
+          cy.get(
+            '[data-xb-component-id="sdc.experience_builder.my-hero"]',
+          ).realDnd($destination);
+        });
+      // eslint-disable-next-line cypress/no-unnecessary-waiting
+      cy.wait(10000);
+      cy.log('The hero component is now in the iframe');
+      cy.getIframeBody().within(() => {
+        cy.get('[data-xb-component-id="experience_builder:my-hero"]').should(
+          'have.length',
+          1,
+        );
       });
+      cy.waitForElementContentInIframe('div', 'There goes my hero');
 
-    // The Hero component is now in the iframe.
-    cy.waitForElementContentInIframe('div', 'There goes my hero');
-
-    // The two overlays now have one component.
-    cy.get('.xb--viewport-overlay [data-xb-component-id]').should(
-      'have.length',
-      2,
-    );
+      // The two overlays now have one component.
+      cy.get('.xb--viewport-overlay [data-xb-component-id]').should(
+        'have.length',
+        2,
+      );
+    });
   });
 });

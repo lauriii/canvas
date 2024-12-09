@@ -7,8 +7,11 @@ namespace Drupal\Tests\experience_builder\Kernel\Entity;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\experience_builder\Entity\Page;
 use Drupal\KernelTests\KernelTestBase;
-use Drupal\Tests\experience_builder\Traits\PageTrait;
+use Drupal\Tests\experience_builder\Kernel\Traits\PageTrait;
 
+/**
+ * @group experience_builder
+ */
 final class PageAccessControlHandlerTest extends KernelTestBase {
 
   use PageTrait;
@@ -34,7 +37,7 @@ final class PageAccessControlHandlerTest extends KernelTestBase {
    * @dataProvider accessCheckProvider
    */
   public function testAccess(array $permissions, string $op, bool $expected_result): void {
-    $this->installEntitySchema('xb_page');
+    $this->installPageEntitySchema();
 
     $access_handler = $this->container->get('entity_type.manager')->getAccessControlHandler('xb_page');
     self::assertNotNull($access_handler);
