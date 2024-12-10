@@ -39,7 +39,7 @@ include:
     # - Minor or Major latests - `ref: 1.x-latest` or `ref: 1.0.x-latest` - Get the latest additions within a minor (mostly bugfixes) or major (bugs and new features).
     # - Fixed tag - `ref: 1.0.1` - Set the value to a known tag. This will not get any updates.
     # If you change the default value of ref, you should set the _CURL_TEMPLATES_REF variable in the variables section to be the same as set here.
-    ref: 1.5.x-latest
+    ref: $_GITLAB_TEMPLATES_REF
     file:
       - "/includes/include.drupalci.main.yml"
       # For Drupal 7, remove the above line and uncomment the below.
@@ -63,19 +63,19 @@ stages:
 # Docs at https://git.drupalcode.org/project/gitlab_templates/-/blob/main/includes/include.drupalci.variables.yml
 ################
 variables:
-  # Experience Builder aims to match Drupal 11's minimum PHP and MySQL versions even in its Drupal 10 support.
-  CORE_PHP_MIN: '8.3'
-  # Opt in to testing $CORE_MAJOR_DEVELOPMENT (currently Drupal 11).
-  OPT_IN_TEST_NEXT_MAJOR: '1'
+  # Opt in to testing Drupal 11.1. @todo Remove when 11.1.0 is released.
+  CORE_STABLE: '11.1.x-dev'
+
+  # Opt in to testing Drupal 10.4 on PHP 8.3.
+  OPT_IN_TEST_PREVIOUS_MAJOR: '1'
+  CORE_PREVIOUS_STABLE: '10.4.x-dev'
+  CORE_PREVIOUS_PHP_MIN: '8.3'
 
   # Show env variables always while Drupal 11 is in flux and GitLab CI templates are flaky too.
   _SHOW_ENVIRONMENT_VARIABLES: 1
 
 # This module wants to strictly comply with Drupal core's word use standards.
 cspell:
-  # Match Drupal 11's rules, not 10.3's.
-  needs:
-    - "composer (next major)"
   allow_failure: false
 
 # @todo Remove when https://www.drupal.org/project/gitlab_templates/issues/3452183 lands.
@@ -129,8 +129,6 @@ composer-lint:
     - *manual-rule
 
 phpcs:
-  needs:
-    - "composer (next major)"
   allow_failure: false
   # @todo Remove when https://www.drupal.org/project/gitlab_templates/issues/3452183 lands.
   rules:
@@ -177,9 +175,6 @@ phpcs-rules-match-drupal-11:
   # Allow this to fail, to avoid disrupting XB's CI when upstream changes.
   allow_failure: true
 stylelint:
-  # Match Drupal 11's rules, not 10.3's.
-  needs:
-    - "composer (next major)"
   allow_failure: false
   # @todo Remove when https://www.drupal.org/project/gitlab_templates/issues/3452183 lands.
   rules:
@@ -195,20 +190,6 @@ stylelint:
     - *is-push-rule
     - *php-files-change-rule
     - *manual-rule
-# Sadly, changes to `.phpstan-base` do not affect derivatives that themselves override `rules`… 😬
-phpstan (next major):
-  # @todo Remove when https://www.drupal.org/project/gitlab_templates/issues/3452183 lands.
-  rules:
-    - *is-push-rule
-    - *php-files-change-rule
-    - *manual-rule
-
-# We're choosing to not use `OPT_IN_TEST_NEXT_MINOR` but instead force the default CI build job to use Drupal 10.3.
-composer:
-  variables:
-    # Test not against the current minor, but the next minor.
-    DRUPAL_CORE: $CORE_NEXT_MINOR
-    IGNORE_PROJECT_DRUPAL_CORE_VERSION: 1
 
 phpunit:
   parallel:
@@ -238,7 +219,7 @@ phpunit:
     - *SDC-files-change-rule
     - *manual-rule
 # Sadly, changes to `phpunit` do not affect derivatives that themselves override `rules`… 😬
-phpunit (next major):
+phpunit (previous major):
   # @todo Remove when https://www.drupal.org/project/gitlab_templates/issues/3452183 lands.
   rules:
     - *is-push-rule
@@ -324,7 +305,7 @@ UI eslint:
   before_script:
     - echo -e "\e[0Ksection_start:`date +%s`:Cypress-deps[collapsed=true]\r\e[0KInstall Cypress dependencies."
     - sudo apt-get -y update
-    - sudo apt-get -y install libgtk2.0-0 libgtk-3-0 libgbm-dev libnotify-dev libnss3 libxss1 libasound2 libxtst6 xauth xvfb
+    - sudo apt-get -y install libgtk2.0-0t64 libgtk-3-0t64 libgbm-dev libnotify-dev libnss3 libxss1 libasound2t64 libxtst6 xauth xvfb
     - echo -e "\e[0Ksection_end:`date +%s`:Cypress-deps\r\e[0K"
     #
     # Copied from `.nightwatch-base`, but converted to use GitLab CI references.
