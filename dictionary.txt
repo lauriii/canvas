@@ -6,6 +6,7 @@ CODEOWNERS
 devizzent
 drupalcode
 drupaldev
+endapply
 entityviewdisplay
 hyperscriptification
 hyperscriptified
