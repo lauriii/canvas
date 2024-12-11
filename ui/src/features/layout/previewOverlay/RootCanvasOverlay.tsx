@@ -20,7 +20,7 @@ const RootCanvasOverlay: React.FC<RootCanvasOverlayProps> = (props) => {
   const { iframeRef } = props;
   const layout = useAppSelector(selectLayout);
   const rootCanvasOverlayRef = useRef(null);
-  const elementRect = useSyncElementSize(iframeRef.current, 'root');
+  const elementRect = useSyncElementSize(iframeRef.current, 'content');
   const canvasViewPortScale = useAppSelector(selectCanvasViewPortScale);
   const [overlayStyles, setOverlayStyles] = useState({});
   const targetSlot = useAppSelector(selectTargetSlot);
@@ -32,7 +32,7 @@ const RootCanvasOverlay: React.FC<RootCanvasOverlayProps> = (props) => {
     }
 
     const elementInsideIframe = iframeDocument.querySelector(
-      `[data-xb-uuid="root"]`,
+      `[data-xb-uuid="content"]`,
     );
     if (!elementInsideIframe) {
       return;
@@ -52,23 +52,23 @@ const RootCanvasOverlay: React.FC<RootCanvasOverlayProps> = (props) => {
     <div
       ref={rootCanvasOverlayRef}
       className={clsx(styles.rootCanvasOverlay, {
-        [styles.dropTarget]: 'root' === targetSlot,
+        [styles.dropTarget]: 'content' === targetSlot,
       })}
       style={overlayStyles}
     >
-      {layout.children.map((component) => (
+      {layout.components.map((component) => (
         <ComponentOverlay
           key={component.uuid}
           iframeRef={iframeRef}
           component={component}
-          parentComponent={{ uuid: 'root' }}
+          parentRegion={layout}
         />
       ))}
-      {targetSlot === 'root' && (
+      {targetSlot === 'content' && (
         <div className={clsx(styles.xbNameTag, styles.xbNameTagSlot)}>
           <NameTag
-            name={'Root'}
-            componentUuid={'root'}
+            name={'Content region'}
+            componentUuid={'content'}
             selected={true}
             nodeType={'root'}
           />

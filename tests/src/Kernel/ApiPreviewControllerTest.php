@@ -36,13 +36,15 @@ final class ApiPreviewControllerTest extends KernelTestBase {
   public function testEmpty(): void {
     $this->request(Request::create('/api/preview/node/1', content: json_encode([
       'layout' => [
-        'children' => [],
+        'nodeType' => 'region',
+        'name' => 'content',
+        'components' => [],
       ],
       'model' => [],
     ], JSON_THROW_ON_ERROR)));
 
     // Check that the root level is structured correctly.
-    $root = $this->cssSelect('main div.xb--sortable-list[data-xb-uuid="root"]');
+    $root = $this->cssSelect('main div.xb--sortable-list[data-xb-uuid="content"]');
     $this->assertNotEmpty($root);
     $this->assertCount(0, $root[0]);
   }
@@ -55,7 +57,7 @@ final class ApiPreviewControllerTest extends KernelTestBase {
     $this->request(Request::create('/api/preview/node/1', content: $content));
 
     // Check that each level is structured correctly.
-    $root = $this->cssSelect('main div.xb--sortable-list[data-xb-uuid="root"]');
+    $root = $this->cssSelect('main div.xb--sortable-list[data-xb-uuid="content"]');
     $this->assertNotEmpty($root);
     $this->assertGreaterThan(0, $root[0]->count());
     $uuids = $this->assertStructure($root[0]->children());

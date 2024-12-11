@@ -12,13 +12,17 @@ import {
 import clsx from 'clsx';
 import NameTag from '@/features/layout/preview/NameTag';
 import ComponentOverlay from '@/features/layout/previewOverlay/ComponentOverlay';
-import type { LayoutNode } from '@/features/layout/layoutModelSlice';
+import type {
+  ComponentNode,
+  SlotNode,
+} from '@/features/layout/layoutModelSlice';
 import { getDistanceBetweenElements } from '@/utils/function-utils';
 import useGetComponentName from '@/hooks/useGetComponentName';
 
 const SlotOverlay: React.FC<SlotOverlayProps> = (props) => {
   const { slot, parentComponent, iframeRef } = props;
-  const elementRect = useSyncElementSize(iframeRef.current, slot.uuid);
+  const slotId = slot.id;
+  const elementRect = useSyncElementSize(iframeRef.current, slotId);
   const [elementOffset, setElementOffset] = useState({
     horizontalDistance: 0,
     verticalDistance: 0,
@@ -41,7 +45,7 @@ const SlotOverlay: React.FC<SlotOverlayProps> = (props) => {
 
     // Use querySelector to find the element inside the iframe
     const elementInsideIframe = iframeDocument.querySelector(
-      `[data-xb-uuid="${slot.uuid}"]`,
+      `[data-xb-uuid="${slotId}"]`,
     );
     const parentElementInsideIframe = iframeDocument.querySelector(
       `[data-xb-uuid="${parentComponent.uuid}"]`,
@@ -61,15 +65,15 @@ const SlotOverlay: React.FC<SlotOverlayProps> = (props) => {
         paddingBottom: computedStyle.paddingBottom,
       });
     }
-  }, [slot.uuid, elementRect, iframeRef, parentComponent.uuid]);
+  }, [elementRect, iframeRef, parentComponent.uuid, slotId]);
 
   return (
     <div
       aria-label={`${parentComponentName}: ${slotName}`}
       className={clsx('slotOverlay', styles.slotOverlay, {
-        [styles.selected]: slot.uuid === selectedComponent,
-        [styles.hovered]: slot.uuid === hoveredComponent,
-        [styles.dropTarget]: slot.uuid === targetSlot,
+        [styles.selected]: slotId === selectedComponent,
+        [styles.hovered]: slotId === hoveredComponent,
+        [styles.dropTarget]: slotId === targetSlot,
       })}
       data-xb-type="slot"
       style={{
@@ -79,25 +83,25 @@ const SlotOverlay: React.FC<SlotOverlayProps> = (props) => {
         left: elementOffset.horizontalDistance * canvasViewPortScale,
       }}
     >
-      {targetSlot === slot.uuid && (
+      {targetSlot === slotId && (
         <div
           ref={nameTagElRef}
           className={clsx(styles.xbNameTag, styles.xbNameTagSlot)}
         >
           <NameTag
             name={slotName}
-            componentUuid={slot.uuid}
-            selected={selectedComponent === slot.uuid}
+            componentUuid={slotId}
+            selected={selectedComponent === slotId}
             nodeType={slot.nodeType}
           />
         </div>
       )}
 
-      {slot.children.map((childComponent: LayoutNode) => (
+      {slot.components.map((childComponent: ComponentNode) => (
         <ComponentOverlay
           key={childComponent.uuid}
           iframeRef={iframeRef}
-          parentComponent={slot}
+          parentSlot={slot}
           component={childComponent}
         />
       ))}
@@ -106,9 +110,9 @@ const SlotOverlay: React.FC<SlotOverlayProps> = (props) => {
 };
 
 export interface SlotOverlayProps {
-  slot: any;
+  slot: SlotNode;
   iframeRef: React.RefObject<HTMLIFrameElement>;
-  parentComponent: any;
+  parentComponent: ComponentNode;
 }
 
 export default SlotOverlay;

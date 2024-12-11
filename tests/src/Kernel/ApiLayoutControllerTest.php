@@ -38,17 +38,16 @@ class ApiLayoutControllerTest extends KernelTestBase {
     $this->assertArrayHasKey('layout', $json);
 
     $layout = $json['layout'];
-    $this->assertSame('root', $layout['uuid']);
-    $this->assertSame('root', $layout['nodeType']);
-    $this->assertSame('root', $layout['name']);
-    $this->assertArrayHasKey('children', $layout);
+    $this->assertSame('region', $layout['nodeType']);
+    $this->assertSame('content', $layout['name']);
+    $this->assertArrayHasKey('components', $layout);
 
     // @todo recurse through the tree
-    foreach ($layout['children'] as $child) {
-      $this->assertArrayHasKey('uuid', $child);
+    foreach ($layout['components'] as $child) {
       $this->assertArrayHasKey('nodeType', $child);
+      $this->assertArrayHasKey('uuid', $child);
       $this->assertArrayHasKey('type', $child);
-      $this->assertArrayHasKey('children', $child);
+      $this->assertArrayHasKey('slots', $child);
 
       // @todo check non SDC components
       $this->assertSame('component', $child['nodeType']);

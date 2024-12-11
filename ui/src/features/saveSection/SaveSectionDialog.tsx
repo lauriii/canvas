@@ -16,7 +16,10 @@ import {
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { selectSelectedComponent } from '@/features/ui/uiSlice';
 import { selectLayout, selectModel } from '@/features/layout/layoutModelSlice';
-import { findNodeByUuid, recurseNodes } from '@/features/layout/layoutUtils';
+import {
+  findComponentByUuid,
+  recurseNodes,
+} from '@/features/layout/layoutUtils';
 import { useSaveSectionMutation } from '@/services/sections';
 import type { FetchBaseQueryError } from '@reduxjs/toolkit/query/react';
 import type { SerializedError } from '@reduxjs/toolkit';
@@ -51,7 +54,7 @@ const SaveSectionDialog: React.FC = () => {
   const selectedComponent = useAppSelector(selectSelectedComponent);
   const model = useAppSelector(selectModel);
   const layout = useAppSelector(selectLayout);
-  const selectedNode = findNodeByUuid(layout, selectedComponent || '');
+  const selectedNode = findComponentByUuid(layout, selectedComponent || '');
   const selectedComponentName = useGetComponentName(selectedNode);
   const [sectionName, setSectionName] = useState('My section');
   const [
@@ -85,7 +88,7 @@ const SaveSectionDialog: React.FC = () => {
     let modelsToSave = {
       [selectedComponent]: model[selectedComponent],
     };
-    const thisNode = findNodeByUuid(layout, selectedComponent);
+    const thisNode = findComponentByUuid(layout, selectedComponent);
     if (!thisNode) {
       return;
     }
@@ -97,11 +100,7 @@ const SaveSectionDialog: React.FC = () => {
     });
 
     saveSection({
-      layout: {
-        nodeType: 'root',
-        uuid: 'root',
-        children: [thisNode],
-      },
+      layout: [thisNode],
       model: modelsToSave,
       name: sectionName,
     });

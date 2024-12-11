@@ -10,7 +10,7 @@ import {
 } from '@/features/layout/layoutModelSlice';
 import { debounce } from 'lodash';
 import { useGetComponentsQuery } from '@/services/components';
-import { findNodeByUuid } from '@/features/layout/layoutUtils';
+import { findComponentByUuid } from '@/features/layout/layoutUtils';
 import './InputBehaviors.css';
 import type { PropsValues, InputMessage, InputUIData } from '@/types/Form';
 import { getDefaultValue, getPropsValues } from '@/components/form/formUtil';
@@ -36,7 +36,7 @@ const InputBehaviors = (OriginalInput: React.FC) => {
     const setFormState = useContext(FormDispatchContext);
     const { data: components } = useGetComponentsQuery();
     const layout = useAppSelector(selectLayout);
-    const node = findNodeByUuid(layout, selectedComponent);
+    const node = findComponentByUuid(layout, selectedComponent);
     const selectedComponentType = node ? (node.type as string) : 'noop';
     const inputAndUiData: InputUIData = {
       selectedComponent,

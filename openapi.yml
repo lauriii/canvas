@@ -38,20 +38,18 @@ paths:
                 emptyComponentTree:
                   value:
                     layout:
-                      uuid: root
-                      nodeType: root
-                      name: root
-                      children: []
+                      nodeType: region
+                      name: content
+                      components: []
                     model: {}
                 componentTreeWithSingleComponent:
                   value:
                     layout:
-                      uuid: root
-                      nodeType: root
-                      name: root
-                      children:
-                        - uuid: bce8d97e-8d44-4609-adc3-5e1015342b49
-                          nodeType: component
+                      nodeType: region
+                      name: content
+                      components:
+                        - nodeType: component
+                          uuid: bce8d97e-8d44-4609-adc3-5e1015342b49
                           type: 'sdc_test:my-cta'
                     model:
                       bce8d97e-8d44-4609-adc3-5e1015342b49:
@@ -65,7 +63,7 @@ paths:
                   - model
                 properties:
                   layout:
-                    $ref: '#/components/schemas/Layout'
+                    $ref: '#/components/schemas/LayoutSlot'
                   model:
                     $ref: '#/components/schemas/Model'
   '/api/preview/{entityTypeId}/{entityId}':
@@ -463,37 +461,64 @@ components:
         dynamic_prop_source_candidates:
           type: object
       additionalProperties: false
-    Layout:
-      title: layout
+    LayoutComponent:
+      title: LayoutComponent
       type: object
       required:
-        - uuid
         - nodeType
+        - uuid
+        - type
+        - slots
       additionalProperties: false
       properties:
-        uuid:
-          type: string
-          description: The UUID of the layout
         nodeType:
           type: string
-          description: The layout type
+          enum: [component]
+          description: The layout node type
+        uuid:
+          type: string
+          description: The UUID of the component instance
         type:
           type: string
         name:
           type: string
-          description: The name of the layout
-        children:
+          description: The name of the component instance
+        slots:
           type: array
-          description: Array of layouts
+          description: Array of slots
           items:
-            $ref: '#/components/schemas/Layout'
+            $ref: '#/components/schemas/LayoutSlot'
+    LayoutSlot:
+      title: LayoutSlot
+      type: object
+      required:
+        - nodeType
+        - name
+        - components
+      additionalProperties: false
+      properties:
+        nodeType:
+          type: string
+          enum: [region, slot]
+          description: The layout node type
+        id:
+          type: string
+          description: A unique identifier for the slot
+        name:
+          type: string
+          description: The name of the slot
+        components:
+          type: array
+          description: Array of components
+          items:
+            $ref: '#/components/schemas/LayoutComponent'
     LayoutPreview:
       title: LayoutPreview
       type: object
       additionalProperties: false
       properties:
         layout:
-          $ref: '#/components/schemas/Layout'
+          $ref: '#/components/schemas/LayoutSlot'
         model:
           $ref: '#/components/schemas/Model'
     AutoSaveEntry:

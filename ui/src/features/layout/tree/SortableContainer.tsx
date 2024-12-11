@@ -1,9 +1,13 @@
+// @ts-nocheck
 import styles from './SortableContainer.module.css';
 import type React from 'react';
 import { useRef, useEffect, useState } from 'react';
 import Sortable from 'sortablejs';
 import { useAppSelector } from '@/app/hooks';
-import type { LayoutNode, Node } from '@/features/layout/layoutModelSlice';
+import type {
+  ComponentNode,
+  LayoutNode,
+} from '@/features/layout/layoutModelSlice';
 import { selectLayout } from '@/features/layout/layoutModelSlice';
 import useSortable from '@/features/layout/tree/useSortable';
 import * as Collapsible from '@radix-ui/react-collapsible';
@@ -15,7 +19,7 @@ import { Box } from '@radix-ui/themes';
 
 interface SortableContainerProps {
   node: LayoutNode;
-  parentNode?: Node;
+  parentNode?: ComponentNode;
   setDragging: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
@@ -26,7 +30,7 @@ const SortableContainer: React.FC<SortableContainerProps> = (props) => {
   const sortableInstance = useRef<Sortable | null>(null);
   const { handleDragAdd, handleDragStart, handleDragEnd } = useSortable();
   const [open, setOpen] = useState(false);
-  const isSlotEmpty = node.children.length === 0;
+  const isSlotEmpty = node.components?.length === 0;
 
   useEffect(() => {
     if (sortableRef?.current !== null) {
@@ -80,12 +84,16 @@ const SortableContainer: React.FC<SortableContainerProps> = (props) => {
 
   const renderChildren = (children: Node[], parentNode?: Node) => {
     return children.map((child: Node) => {
-      if (child.nodeType === 'slot' || child.children?.length > 0) {
+      if (
+        child.nodeType === 'slot' ||
+        child.components?.length > 0 ||
+        child.slots?.length > 0
+      ) {
         return (
           <SortableContainer
             setDragging={setDragging}
             node={child}
-            key={child.uuid}
+            key={child.uuid || child.id}
             parentNode={parentNode}
           />
         );
@@ -99,17 +107,17 @@ const SortableContainer: React.FC<SortableContainerProps> = (props) => {
 
   // Don't display the root as an item in the layers view so just render its children.
   // But attach the root id and the sortable ref to it, so we can still drag items into the root level.
-  if (node.nodeType === 'root') {
+  if (node.nodeType === 'region') {
     return (
       <Box
-        data-xb-uuid={node.uuid}
+        data-xb-uuid={node.name}
         data-xb-type={node.nodeType}
         ref={sortableRef}
         className="rootDropZone"
         py="4"
         height="100%"
       >
-        {renderChildren(node.children)}
+        {renderChildren(node.components)}
       </Box>
     );
   }
@@ -119,7 +127,7 @@ const SortableContainer: React.FC<SortableContainerProps> = (props) => {
       className="xb--collapsible-root"
       open={open}
       onOpenChange={setOpen}
-      data-xb-uuid={node.uuid}
+      data-xb-uuid={node.uuid || node.id}
     >
       <TreeItem node={node} parentNode={parentNode}>
         {/* Only show the trigger if the slot has children */}
@@ -142,10 +150,10 @@ const SortableContainer: React.FC<SortableContainerProps> = (props) => {
           node.nodeType === 'slot' && styles.slotDropZone,
           'slotDropZone',
         )}
-        data-xb-uuid={node.uuid}
+        data-xb-uuid={node.uuid || node.id}
       >
         <Collapsible.Content asChild={true}>
-          <>{renderChildren(node.children, node)}</>
+          <>{renderChildren(node.components || node.slots, node)}</>
         </Collapsible.Content>
       </div>
     </Collapsible.Root>

@@ -12,7 +12,10 @@ import {
   setSelectedComponent,
   unsetHoveredComponent,
 } from '@/features/ui/uiSlice';
-import type { Node } from '@/features/layout/layoutModelSlice';
+import type {
+  LayoutChildNode,
+  LayoutNode,
+} from '@/features/layout/layoutModelSlice';
 import { selectLayout } from '@/features/layout/layoutModelSlice';
 import { getNodeDepth } from '@/features/layout/layoutUtils';
 import type { CollapsibleTriggerProps } from '@radix-ui/react-collapsible';
@@ -20,9 +23,9 @@ import ComponentContextMenu from '@/features/layout/preview/ComponentContextMenu
 import useGetComponentName from '@/hooks/useGetComponentName';
 
 interface TreeItemProps {
-  node: Node;
+  node: LayoutChildNode;
   children?: false | React.ReactElement<CollapsibleTriggerProps>;
-  parentNode?: Node;
+  parentNode?: LayoutNode;
 }
 
 const TreeItem: React.FC<TreeItemProps> = ({ node, children, parentNode }) => {
@@ -33,21 +36,25 @@ const TreeItem: React.FC<TreeItemProps> = ({ node, children, parentNode }) => {
   const isSlot = node.nodeType === 'slot';
   const nodeName = useGetComponentName(node, isSlot ? parentNode : undefined);
 
+  // TODO refactor of this file should remove this ts-ignore once Slots and Component rendering is correctly separated out.
+  //@ts-ignore
+  const nodeId = node.uuid || node.id || node.name;
+
   const IconComponent = isSlot ? BoxModelIcon : ComponentInstanceIcon;
   // Calculate the padding left value based on the depth of the node in the tree.
-  const paddingLeftValue = getNodeDepth(layout, node.uuid) * 15;
+  const paddingLeftValue = getNodeDepth(layout, nodeId) * 15;
 
   function handleItemClick(event: React.MouseEvent<HTMLDivElement>) {
     if (isSlot) {
       return;
     }
     event.stopPropagation();
-    dispatch(setSelectedComponent(node.uuid));
+    dispatch(setSelectedComponent(nodeId));
   }
 
   function handleItemMouseEnter(event: React.MouseEvent<HTMLDivElement>) {
     event.stopPropagation();
-    dispatch(setHoveredComponent(node.uuid));
+    dispatch(setHoveredComponent(nodeId));
   }
 
   function handleItemMouseLeave(event: React.MouseEvent<HTMLDivElement>) {
@@ -78,7 +85,7 @@ const TreeItem: React.FC<TreeItemProps> = ({ node, children, parentNode }) => {
       <Box>
         <div className={clsx(styles.inline)}>
           <IconComponent className={clsx(styles.icon, 'icon')} />
-          <Text size="1" id={`layer-${node.uuid}-name`}>
+          <Text size="1" id={`layer-${nodeId}-name`}>
             {nodeName}
           </Text>
         </div>
@@ -91,23 +98,23 @@ const TreeItem: React.FC<TreeItemProps> = ({ node, children, parentNode }) => {
       className={clsx(
         'treeItem',
         {
-          [styles.selected]: selectedComponent === node.uuid,
-          [styles.hovered]: hoveredComponent === node.uuid,
+          [styles.selected]: selectedComponent === nodeId,
+          [styles.hovered]: hoveredComponent === nodeId,
         },
         styles.treeItem,
       )}
       style={{
         paddingLeft: `${paddingLeftValue}px`,
       }}
-      data-xb-uuid={node.uuid}
+      data-xb-uuid={nodeId}
       data-xb-type={node.nodeType}
-      data-xb-selected={selectedComponent === node.uuid}
+      data-xb-selected={selectedComponent === nodeId}
       onClick={handleItemClick}
       onMouseEnter={handleItemMouseEnter}
       onMouseLeave={handleItemMouseLeave}
       onDragStart={handleItemDragStart}
       onContextMenu={handleContextMenu}
-      aria-labelledby={`layer-${node.uuid}-name`}
+      aria-labelledby={`layer-${nodeId}-name`}
     >
       {!isSlot ? (
         <ComponentContextMenu component={node}>{treeItem}</ComponentContextMenu>

@@ -28,14 +28,8 @@ trait ClientServerConversionTrait {
    */
   private static function clientLayoutToServerTree(array $layout) : array {
     // Transform client-side representation to server-side representation.
-    $tree = self::doClientLayoutToServerTree(
-      layout: $layout,
-      // Empty component tree to populate using $layout.
-      // @see \Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure
-      tree: [ComponentTreeStructure::ROOT_UUID => []],
-      // The entire component tree is nested under the reserved root UUID.
-      parent_uuid: ComponentTreeStructure::ROOT_UUID,
-    );
+    // The entire component tree is nested under the reserved root UUID.
+    $tree = self::doClientSlotToServerTree($layout, [], ComponentTreeStructure::ROOT_UUID);
 
     // Validate it.
     $definition = DataDefinition::create('component_tree_structure');
@@ -47,36 +41,41 @@ trait ClientServerConversionTrait {
   }
 
   /**
-   * phpcs:ignore Drupal.Commenting.DataTypeNamespace.DataTypeNamespace
-   * @return ComponentTreeStructureArray
+   * @phpstan-return ComponentTreeStructureArray
    */
-  private static function doClientLayoutToServerTree(array $layout, ?string $parent_uuid = NULL, ?string $parent_slot = NULL, ?array $tree = NULL) : array {
-    foreach ($layout['children'] as $child) {
-      if ($child['nodeType'] === 'slot') {
-        // @todo This indicates the client model does not quite make sense: SDC slots do NOT have UUIDs, but names! Fix in https://www.drupal.org/project/experience_builder/issues/3467954.
-        $tree = self::doClientLayoutToServerTree($child, $parent_uuid, $child['name'], $tree);
-        continue;
-      }
+  private static function doClientSlotToServerTree(array $layout, array $tree, string $parent_uuid): array {
+    // Regions have no name.
+    $name = $layout['nodeType'] === 'slot' ? $layout['name'] : NULL;
 
-      // Root level.
-      if (!isset($parent_slot)) {
-        $tree[$parent_uuid][] = [
-          'uuid' => $child['uuid'],
-          'component' => $child['type'],
-        ];
-      }
-      // All other levels.
-      else {
-        $tree[$parent_uuid][$parent_slot][] = [
-          'uuid' => $child['uuid'],
-          'component' => $child['type'],
-        ];
-      }
-      if (!empty($child['children'])) {
-        $tree = self::doClientLayoutToServerTree($child, $child['uuid'], NULL, $tree);
-      }
+    foreach ($layout['components'] as $component) {
+      $tree = self::doClientComponentToServerTree($component, $tree, $parent_uuid, $name);
     }
-    assert(!is_null($tree));
+
+    return $tree;
+  }
+
+  /**
+   * @phpstan-return ComponentTreeStructureArray
+   */
+  private static function doClientComponentToServerTree(array $layout, array $tree, string $parent_uuid, ?string $parent_slot): array {
+    $component = [
+      'uuid' => $layout['uuid'],
+      'component' => $layout['type'],
+    ];
+
+    // Root level.
+    if (!isset($parent_slot)) {
+      $tree[$parent_uuid][] = $component;
+    }
+    // All other levels.
+    else {
+      $tree[$parent_uuid][$parent_slot][] = $component;
+    }
+
+    foreach ($layout['slots'] as $slot) {
+      $tree = self::doClientSlotToServerTree($slot, $tree, $layout['uuid']);
+    }
+
     return $tree;
   }
 

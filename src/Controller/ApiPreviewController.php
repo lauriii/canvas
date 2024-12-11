@@ -42,7 +42,7 @@ final class ApiPreviewController {
     if (isset($renderable[ComponentTreeStructure::ROOT_UUID])) {
       $build = self::wrapComponentsForPreview($renderable[ComponentTreeStructure::ROOT_UUID]);
     }
-    $build['#prefix'] = '<div class="xb--sortable-list" data-xb-uuid="root">';
+    $build['#prefix'] = '<div class="xb--sortable-list" data-xb-uuid="content">';
     $build['#suffix'] = '</div>';
     $build['#attached']['library'][] = 'experience_builder/preview';
     return $build;
@@ -65,7 +65,7 @@ final class ApiPreviewController {
         foreach ($build[$uuid]['#slots'] as $slot_name => $slot) {
           $build[$uuid]['#slots'][$slot_name] = self::wrapComponentsForPreview($slot);
           $build[$uuid]['#slots'][$slot_name]['#prefix'] = sprintf('<div class="xb--sortable-list" data-xb-uuid="%s" data-xb-component-id="slot"%s>',
-            $uuid . '-slot-' . $slot_name,
+            $uuid . '/' . $slot_name,
             (array_key_exists('#plain_text', $build[$uuid]['#slots'][$slot_name]) || array_key_exists('#markup', $build[$uuid]['#slots'][$slot_name]))
               ? ' data-xb-slot-is-empty'
               : ''

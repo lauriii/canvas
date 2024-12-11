@@ -3,10 +3,11 @@
 // Need to use the React-specific entry point to import createApi
 import { createApi } from '@reduxjs/toolkit/query/react';
 import { baseQuery } from '@/services/baseQuery';
-import type {
-  ComponentModels,
-  RootNode,
-} from '@/features/layout/layoutModelSlice';
+import type { LayoutModelPiece } from '@/features/layout/layoutModelSlice';
+
+interface SaveSectionData extends LayoutModelPiece {
+  name: string;
+}
 
 const mockSections = {
   fakeSection2: {
@@ -16,46 +17,41 @@ const mockSections = {
     js_footer: '',
     js_header: '',
     layoutModel: {
-      layout: {
-        nodeType: 'root',
-        name: 'root',
-        uuid: 'root',
-        children: [
-          {
-            uuid: 'abcde',
-            nodeType: 'component',
-            type: 'sdc.experience_builder.two_column',
-            children: [
-              {
-                uuid: 'two-column-uuid-slot-column_one',
-                name: 'column_one',
-                nodeType: 'slot',
-                children: [
-                  {
-                    uuid: 'fghij',
-                    nodeType: 'component',
-                    type: 'sdc.experience_builder.my-hero',
-                    children: [],
-                  },
-                ],
-              },
-              {
-                uuid: 'two-column-uuid-slot-column_two',
-                name: 'column_two',
-                nodeType: 'slot',
-                children: [
-                  {
-                    uuid: 'klmno',
-                    nodeType: 'component',
-                    type: 'sdc.experience_builder.my-hero',
-                    children: [],
-                  },
-                ],
-              },
-            ],
-          },
-        ],
-      },
+      layout: [
+        {
+          uuid: 'abcde',
+          nodeType: 'component',
+          type: 'sdc.experience_builder.two_column',
+          slots: [
+            {
+              id: 'abcde/column_one',
+              name: 'column_one',
+              nodeType: 'slot',
+              components: [
+                {
+                  uuid: 'fghij',
+                  nodeType: 'component',
+                  type: 'sdc.experience_builder.my-hero',
+                  slots: [],
+                },
+              ],
+            },
+            {
+              id: 'abcde/column_two',
+              name: 'column_two',
+              nodeType: 'slot',
+              components: [
+                {
+                  uuid: 'klmno',
+                  nodeType: 'component',
+                  type: 'sdc.experience_builder.my-hero',
+                  slots: [],
+                },
+              ],
+            },
+          ],
+        },
+      ],
       model: {
         abcde: {
           width: 50,
@@ -107,10 +103,7 @@ export const sectionApi = createApi({
     getSections: builder.query<any, void>({
       query: () => `/xb/api/config/pattern`,
     }),
-    saveSection: builder.mutation<
-      { html: string },
-      { layout: RootNode; model: ComponentModels; name: string }
-    >({
+    saveSection: builder.mutation<{ html: string }, SaveSectionData>({
       query: (body) => ({
         url: '/xb/api/config/pattern',
         method: 'POST',

@@ -49,10 +49,11 @@ function usePreviewSortable(iframe: HTMLIFrameElement | null): {
         return;
       }
 
-      const receivingParentPath =
-        ev.to.dataset.xbRoot === 'true'
-          ? []
-          : findNodePathByUuid(layout, ev.to.dataset.xbUuid);
+      const receivingParentPath = findNodePathByUuid(
+        layout,
+        ev.to.dataset.xbUuid,
+      );
+
       if (receivingParentPath) {
         const newPath: number[] = [
           ...receivingParentPath,

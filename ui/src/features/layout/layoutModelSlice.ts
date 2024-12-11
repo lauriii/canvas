@@ -5,54 +5,68 @@ import type { Component } from '@/types/Component';
 import type { UUID } from '@/types/UUID';
 import type { PayloadAction } from '@reduxjs/toolkit';
 import { createSlice } from '@reduxjs/toolkit';
-import _ from 'lodash';
 import type { StateWithHistory } from 'redux-undo';
 import { v4 as uuidv4 } from 'uuid';
 import {
-  findNodeByUuid,
+  findComponentByUuid,
   findNodePathByUuid,
   insertNodeAtPath,
   moveNodeToPath,
   recurseNodes,
-  removeNodeByUuid,
+  removeComponentByUuid,
   replaceUUIDsAndUpdateModel,
 } from './layoutUtils';
 
-export interface RootNode {
-  name?: string;
-  nodeType: 'root';
-  uuid: 'root';
-  children: Node[];
+export enum NodeType {
+  Region = 'region',
+  Component = 'component',
+  Slot = 'slot',
 }
 
-export interface Node {
-  name?: string;
+export interface RegionNode {
+  name: string;
+  nodeType: NodeType.Region;
+  components: ComponentNode[];
+}
+
+export interface ComponentNode {
+  nodeType: NodeType.Component;
   uuid: UUID;
-  nodeType: 'slot' | 'component';
-  type?: string;
-  children: Node[];
-  props?: {} | undefined;
+  type: string;
+  slots: SlotNode[];
 }
 
-export type LayoutNode = RootNode | Node;
+export interface SlotNode {
+  nodeType: NodeType.Slot;
+  id: string;
+  name: string;
+  components: ComponentNode[];
+}
+
+export type LayoutNode = RegionNode | ComponentNode | SlotNode;
+export type LayoutChildNode = ComponentNode | SlotNode;
 
 export interface RootLayoutModel {
-  layout: RootNode;
+  layout: RegionNode;
   model: ComponentModels;
 }
+
+export interface LayoutModelPiece {
+  layout: ComponentNode[];
+  model: ComponentModels;
+}
+
+export type ComponentModels = Record<string, ComponentModel>;
 
 export interface LayoutModelSliceState extends RootLayoutModel {
   initialized: boolean;
 }
 
-export type ComponentModels = Record<string, ComponentModel>;
-
 export const initialState: LayoutModelSliceState = {
   layout: {
-    uuid: 'root',
-    nodeType: 'root',
-    name: 'root',
-    children: [],
+    nodeType: NodeType.Region,
+    name: 'content',
+    components: [],
   },
   model: {},
   initialized: false,
@@ -80,7 +94,7 @@ type DuplicateNodePayload = {
 
 type InsertMultipleNodesPayload = {
   to: number[] | undefined;
-  layoutModel: RootLayoutModel;
+  layoutModel: LayoutModelPiece;
   /**
    * Pass an optional UUID that will be assigned to the last, top level node being inserted. Allows you to define the UUID
    * so that you can then do something with the newly inserted node using that UUID.
@@ -95,7 +109,7 @@ type AddNewNodePayload = {
 
 type AddNewSectionPayload = {
   to: number[] | undefined;
-  layoutModel: RootLayoutModel;
+  layoutModel: LayoutModelPiece;
 };
 
 type SortNodePayload = {
@@ -117,25 +131,37 @@ export const layoutModelSlice = createSlice({
   initialState,
   reducers: (create) => ({
     deleteNode: create.reducer((state, action: PayloadAction<string>) => {
-      const deletedComponent = findNodeByUuid(state.layout, action.payload);
+      const deletedComponent = findComponentByUuid(
+        state.layout,
+        action.payload,
+      );
+
       const removableModelsUuids = [action.payload];
       if (deletedComponent) {
-        recurseNodes(deletedComponent, (node: LayoutNode) => {
+        recurseNodes(deletedComponent, (node: ComponentNode) => {
           removableModelsUuids.push(node.uuid);
         });
       }
       for (const uuid of removableModelsUuids) {
         if (state.model[uuid]) delete state.model[uuid];
       }
-      state.layout = removeNodeByUuid(state.layout, action.payload) as RootNode;
+
+      state.layout = removeComponentByUuid(state.layout, action.payload);
     }),
     duplicateNode: create.reducer(
       (state, action: PayloadAction<DuplicateNodePayload>) => {
         const { uuid } = action.payload;
-        const nodeToDuplicate = findNodeByUuid(state.layout, uuid);
+        const nodeToDuplicate = findComponentByUuid(state.layout, uuid);
 
         if (!nodeToDuplicate) {
           console.error(`Cannot duplicate ${uuid}. Check the uuid is valid.`);
+          return;
+        }
+
+        if (nodeToDuplicate.nodeType !== 'component') {
+          console.error(
+            `Cannot duplicate Slots or Regions. Check the uuid ${uuid} is a valid Component.`,
+          );
           return;
         }
 
@@ -159,7 +185,7 @@ export const layoutModelSlice = createSlice({
           state.layout,
           nodePath,
           updatedNode,
-        ) as RootNode;
+        ) as RegionNode;
       },
     ),
     moveNode: create.reducer(
@@ -187,13 +213,13 @@ export const layoutModelSlice = createSlice({
         }
 
         let updatedModel: ComponentModels = { ...state.model };
-        let newLayout: RootNode = _.cloneDeep(state.layout);
-        const rootNode = layoutModel.layout;
+        let newLayout: RegionNode = JSON.parse(JSON.stringify(state.layout));
+        const components = layoutModel.layout;
         const model = layoutModel.model;
 
         // Loop through each node in reverse order to maintain the correct insert positions
-        for (let i = rootNode.children.length - 1; i >= 0; i--) {
-          const node = rootNode.children[i];
+        for (let i = components.length - 1; i >= 0; i--) {
+          const node = components[i];
           const specifyUUID = i === 0;
           const { updatedNode, updatedModel: nodeUpdatedModel } =
             replaceUUIDsAndUpdateModel(
@@ -219,11 +245,13 @@ export const layoutModelSlice = createSlice({
           return;
         }
 
-        const cloneNode = _.cloneDeep(findNodeByUuid(state.layout, uuid));
+        const cloneNode = JSON.parse(
+          JSON.stringify(findComponentByUuid(state.layout, uuid)),
+        );
         const nodePath = findNodePathByUuid(state.layout, uuid);
         if (cloneNode && nodePath) {
           const insertPosition = [...nodePath.slice(0, -1), to];
-          const newLayout = removeNodeByUuid(state.layout, uuid);
+          const newLayout = removeComponentByUuid(state.layout, uuid);
 
           state.layout = insertNodeAtPath(newLayout, insertPosition, cloneNode);
         }
@@ -239,7 +267,9 @@ export const layoutModelSlice = createSlice({
           return;
         }
 
-        const cloneNode = _.cloneDeep(findNodeByUuid(state.layout, uuid));
+        const cloneNode = JSON.parse(
+          JSON.stringify(findComponentByUuid(state.layout, uuid)),
+        );
         const nodePath = findNodePathByUuid(state.layout, uuid);
         if (cloneNode && nodePath) {
           const newPos =
@@ -247,7 +277,7 @@ export const layoutModelSlice = createSlice({
               ? nodePath[nodePath.length - 1] + 1
               : Math.max(0, nodePath[nodePath.length - 1] - 1);
           const insertPosition = [...nodePath.slice(0, -1), newPos];
-          const newLayout = removeNodeByUuid(state.layout, uuid);
+          const newLayout = removeComponentByUuid(state.layout, uuid);
 
           state.layout = insertNodeAtPath(newLayout, insertPosition, cloneNode);
         }
@@ -291,7 +321,7 @@ export const addNewComponentToLayout =
     }
 
     const initialData: ComponentModel = {};
-    const children: Node[] = [];
+    const slots: SlotNode[] = [];
     const uuid = uuidv4();
 
     // Populate the model data with the default values
@@ -307,28 +337,24 @@ export const addNewComponentToLayout =
     // Create empty slots in the layout data for each child slot the component has
     if (payload.component?.metadata?.slots) {
       Object.keys(payload.component.metadata.slots).forEach((name) => {
-        children.push({
-          uuid: `-slot-${name}`,
+        slots.push({
+          id: `${uuid}/${name}`,
           name: name,
-          nodeType: 'slot',
-          children: [],
+          nodeType: NodeType.Slot,
+          components: [],
         });
       });
     }
 
-    const layoutModel: RootLayoutModel = {
-      layout: {
-        children: [
-          {
-            children,
-            nodeType: 'component',
-            type: payload.component.id,
-            uuid: uuid,
-          },
-        ],
-        nodeType: 'root',
-        uuid: 'root',
-      },
+    const layoutModel: LayoutModelPiece = {
+      layout: [
+        {
+          slots,
+          nodeType: NodeType.Component,
+          type: payload.component.id,
+          uuid: uuid,
+        },
+      ],
       model: {
         [uuid]: initialData,
       },

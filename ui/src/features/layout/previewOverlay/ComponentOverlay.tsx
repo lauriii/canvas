@@ -23,15 +23,20 @@ import {
   getSortableGroupName,
   isDropTargetInSlotAllowedByEdgeDistance,
 } from '@/features/sortable/sortableUtils';
-import type { LayoutNode } from '@/features/layout/layoutModelSlice';
+import type {
+  ComponentNode,
+  RegionNode,
+  SlotNode,
+} from '@/features/layout/layoutModelSlice';
 import ComponentContextMenu from '@/features/layout/preview/ComponentContextMenu';
 import { getDistanceBetweenElements } from '@/utils/function-utils';
 import useGetComponentName from '@/hooks/useGetComponentName';
 
 export interface ComponentOverlayProps {
-  component: any;
+  component: ComponentNode;
   iframeRef: React.RefObject<HTMLIFrameElement>;
-  parentComponent: any;
+  parentSlot?: SlotNode;
+  parentRegion?: RegionNode;
 }
 
 function moveElement(
@@ -68,7 +73,7 @@ function moveElement(
 }
 
 const ComponentOverlay: React.FC<ComponentOverlayProps> = (props) => {
-  const { component, parentComponent, iframeRef } = props;
+  const { component, parentSlot, parentRegion, iframeRef } = props;
   const rect = useSyncElementSize(iframeRef.current, component.uuid);
   const [elementOffset, setElementOffset] = useState({
     horizontalDistance: 0,
@@ -98,7 +103,7 @@ const ComponentOverlay: React.FC<ComponentOverlayProps> = (props) => {
       `[data-xb-uuid="${component.uuid}"]:not([data-xb-overlay="true"])`,
     );
     const parentElementInsideIframe = iframeDocument.querySelector(
-      `[data-xb-uuid="${parentComponent.uuid}"]`,
+      `[data-xb-uuid="${parentSlot?.id || parentRegion?.name}"]`,
     );
 
     if (parentElementInsideIframe && elementInsideIframe.current) {
@@ -112,7 +117,7 @@ const ComponentOverlay: React.FC<ComponentOverlayProps> = (props) => {
       // left when the preview updates.
       setInitialized(true);
     }
-  }, [component.uuid, iframeRef, parentComponent.uuid, rect]);
+  }, [component.uuid, iframeRef, parentSlot?.id, parentRegion?.name, rect]);
 
   function handleComponentClick(event: React.MouseEvent<HTMLElement>) {
     event.stopPropagation();
@@ -232,9 +237,9 @@ const ComponentOverlay: React.FC<ComponentOverlayProps> = (props) => {
           }}
           data-xb-overlay="true"
         >
-          {component.children.map((slot: LayoutNode) => (
+          {component.slots.map((slot: SlotNode) => (
             <SlotOverlay
-              key={slot.uuid}
+              key={slot.name}
               iframeRef={iframeRef}
               parentComponent={component}
               slot={slot}

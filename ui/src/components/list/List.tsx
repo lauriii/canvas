@@ -11,7 +11,7 @@ import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { Box, Flex, Spinner } from '@radix-ui/themes';
 import clsx from 'clsx';
 import ListItem from '@/components/list/ListItem';
-import type { LayoutModelSliceState } from '@/features/layout/layoutModelSlice';
+import type { LayoutModelPiece } from '@/features/layout/layoutModelSlice';
 import { isDropTargetInSlotAllowedByEdgeDistance } from '@/features/sortable/sortableUtils';
 
 export interface ListProps {
@@ -34,7 +34,7 @@ export interface ComponentListItem extends ListItemBase {
   field_data: Record<string, any>;
 }
 export interface SectionListItem extends ListItemBase {
-  layoutModel: LayoutModelSliceState;
+  layoutModel: LayoutModelPiece;
 }
 
 interface ListData {

@@ -78,7 +78,7 @@ export function isDropTargetInSlotAllowedByEdgeDistance(
   const isFirstInSlot = ev.related === slotComponents[0];
   const isLastInSlot = ev.related === slotComponents[slotComponents.length - 1];
   // Check if we're targeting the root instead of a slot inside a component.
-  const isRoot = ev.to.getAttribute('data-xb-uuid') === 'root';
+  const isRoot = ev.to.getAttribute('data-xb-uuid') === 'content';
 
   // If the component we're currently hovering over is the first or last component in a slot, and the slot is not the
   // root, make sure that we don't allow the position as a drop target unless we're within a specified distance from

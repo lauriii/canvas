@@ -300,7 +300,7 @@ describe('Perform CRUD operations on components', () => {
       'data-state',
       'active',
     );
-    cy.get('[data-xb-uuid="root"]').findByText('Hero').should('not.exist');
+    cy.get('[data-xb-uuid="content"]').findByText('Hero').should('not.exist');
     cy.get('.primaryPanelContent').findByText('Two Column').click();
     cy.findByLabelText('Column Width').should('exist');
     cy.findAllByLabelText('Add section')

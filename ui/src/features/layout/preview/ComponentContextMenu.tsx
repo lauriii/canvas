@@ -10,7 +10,7 @@ import {
   unsetHoveredComponent,
   unsetSelectedComponent,
 } from '@/features/ui/uiSlice';
-import type { Node } from '@/features/layout/layoutModelSlice';
+import type { ComponentNode } from '@/features/layout/layoutModelSlice';
 import {
   deleteNode,
   duplicateNode,
@@ -21,7 +21,7 @@ import useGetComponentName from '@/hooks/useGetComponentName';
 
 interface ComponentContextMenuProps {
   children: ReactNode;
-  component: Node;
+  component: ComponentNode;
 }
 
 const ComponentContextMenu: React.FC<ComponentContextMenuProps> = (props) => {

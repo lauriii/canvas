@@ -1,87 +1,87 @@
 {
   "layout": {
-    "uuid": "root",
-    "nodeType": "root",
-    "name": "root",
-    "children": [
+    "nodeType": "region",
+    "name": "content",
+    "components": [
       {
-        "uuid": "dynamic-image-udf7d",
         "nodeType": "component",
+        "uuid": "dynamic-image-udf7d",
         "type": "experience_builder:image",
-        "children": [
+        "slots": [
           {
-            "name": "slot",
             "nodeType": "slot",
-            "uuid": "05fa13be-8291-4955-aa89-32351f68e776",
-            "children": [
+            "id": "dynamic-image-udf7d/slot",
+            "name": "slot",
+            "components": [
               {
-                "uuid": "static-static-card1ab",
                 "nodeType": "component",
-                "type": "sdc_test:my-cta"
+                "uuid": "static-static-card1ab",
+                "type": "sdc_test:my-cta",
+                "slots": []
               }
             ]
           }
         ]
       },
       {
-        "uuid": "dynamic-static-card2df",
         "nodeType": "component",
-        "type": "sdc_test:my-cta"
+        "uuid": "dynamic-static-card2df",
+        "type": "sdc_test:my-cta",
+        "slots": []
       },
       {
-        "uuid": "dynamic-dynamic-card3rr",
         "nodeType": "component",
+        "uuid": "dynamic-dynamic-card3rr",
         "type": "sdc_test:my-cta",
-        "children": [
+        "slots": [
           {
-            "name": "slot_2",
             "nodeType": "slot",
-            "uuid": "0dea13be-8291-4955-aa89-32351f68e776",
-            "children": [
-
-            ]
+            "id": "dynamic-dynamic-card3rr/slot_2",
+            "name": "slot_2",
+            "components": []
           }
         ]
       },
       {
-        "uuid": "dynamic-image-static-imageStyle-something7d",
         "nodeType": "component",
-        "type": "experience_builder:image"
+        "uuid": "dynamic-image-static-imageStyle-something7d",
+        "type": "experience_builder:image",
+        "slots": []
       },
       {
         "nodeType": "component",
-        "type": "sdc.experience_builder.two_column",
         "uuid": "ee07d472-a754-4427-b6d4-acfc6f92bbdc",
-        "children": [
+        "type": "sdc.experience_builder.two_column",
+        "slots": [
           {
-            "uuid": "ee07d472-a754-4427-b6d4-acfc6f92bbdc-slot-column_one",
-            "name": "column_one",
             "nodeType": "slot",
-            "children": [
+            "id": "ee07d472-a754-4427-b6d4-acfc6f92bbdc/column_one",
+            "name": "column_one",
+            "components": [
               {
-                "children": [],
                 "nodeType": "component",
                 "type": "sdc.experience_builder.my-section",
-                "uuid": "6f3224e2-cb61-46e4-a9e4-35b4d18f0a82"
+                "uuid": "6f3224e2-cb61-46e4-a9e4-35b4d18f0a82",
+                "slots": []
               }
             ]
           },
           {
-            "uuid": "ee07d472-a754-4427-b6d4-acfc6f92bbdc-slot-column_two",
-            "name": "column_two",
             "nodeType": "slot",
-            "children": [
+            "id": "ee07d472-a754-4427-b6d4-acfc6f92bbdc/column_two",
+            "name": "column_two",
+            "components": [
               {
-                "children": [],
                 "nodeType": "component",
+                "uuid": "3b709ed2-99d3-4db2-869d-ca426f69fbb9",
                 "type": "sdc.experience_builder.heading",
-                "uuid": "3b709ed2-99d3-4db2-869d-ca426f69fbb9"
+                "slots": []
               },
               {
-                "children": [],
                 "nodeType": "component",
+                "uuid": "eaa37ee1-7d50-4041-b04c-c80bdbac3412",
                 "type": "sdc.experience_builder.my-hero",
-                "uuid": "eaa37ee1-7d50-4041-b04c-c80bdbac3412"
+                "slots": []
               }
             ]
           }

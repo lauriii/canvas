@@ -44,10 +44,10 @@ class UiFixturesValidationTest extends UnitTestCase {
 
     // Assert the main layout structure.
     $this->assertArrayHasKey('layout', $uiFixture);
-    $this->assertDataCompliesWithApiSpecification($uiFixture['layout'], 'Layout');
+    $this->assertDataCompliesWithApiSpecification($uiFixture['layout'], 'LayoutSlot');
 
-    // Assert the layout children recursively.
-    $this->assertLayoutChildren($uiFixture['layout']['children']);
+    // Assert the layout components recursively.
+    $this->assertLayoutComponents($uiFixture['layout']['components']);
 
     // Assert the model structure.
     $this->assertArrayHasKey('model', $uiFixture);
@@ -55,16 +55,31 @@ class UiFixturesValidationTest extends UnitTestCase {
   }
 
   /**
-   * Helper function to traverse the layout children and validate them.
+   * Helper function to traverse the layout components and validate them.
    *
-   * @param array $children
-   *   Array of layout children.
+   * @param array $components
+   *   Array of layout components.
    */
-  protected function assertLayoutChildren(array $children): void {
-    foreach ($children as $child) {
-      $this->assertDataCompliesWithApiSpecification($child, 'Layout');
-      if (!empty($child['children'])) {
-        $this->assertLayoutChildren($child['children']);
+  protected function assertLayoutComponents(array $components): void {
+    foreach ($components as $component) {
+      $this->assertDataCompliesWithApiSpecification($component, 'LayoutComponent');
+      if (!empty($component['slots'])) {
+        $this->assertLayoutSlots($component['slots']);
+      }
+    }
+  }
+
+  /**
+   * Helper function to traverse the layout slots and validate them.
+   *
+   * @param array $slots
+   *   Array of layout slots.
+   */
+  protected function assertLayoutSlots(array $slots): void {
+    foreach ($slots as $child) {
+      $this->assertDataCompliesWithApiSpecification($child, 'LayoutSlot');
+      if (!empty($child['slots'])) {
+        $this->assertLayoutComponents($child['slots']);
       }
     }
   }

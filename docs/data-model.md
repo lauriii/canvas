@@ -39,6 +39,7 @@ to one of us! 😊 🙏
 - `field type`: metadata plus a class defining the `field prop`s that exist on this field type, requires a `field instance` to be used
 - `field widget`: see [`Redux-integrated field widgets` doc](redux-integrated-field-widgets.md)
 - `SDC`: see [`XB Components` doc](components.md)
+- `theme region`: see [`XB Config Management` doc](config-management.md)
 - `view mode`: view modes lets a `content entity` be displayed in multiple ways
 
 ### 1.2 XB terminology
@@ -46,6 +47,7 @@ to one of us! 😊 🙏
 - `component`: see [`XB Components` doc](components.md)
 - `Component config entity`: see [`XB Config Management` doc](config-management.md)
 - `component instance`: a UUID uniquely identifying this instance + component + values for each required `component prop` (if any) + optionally values for its `component slot`s (if any)
+- `component node`: one of the node types in the UI data model, representing a `component instance` in the `component tree`
 - `component prop`: see [`XB Components` doc](components.md)
 - `component slot`: see [`XB Components` doc](components.md)
 - `component tree`: a tree of `component instance`s, by placing >=1 `component instance`s in a particular order in another `component instance`'s slot
@@ -61,6 +63,8 @@ to one of us! 😊 🙏
   - `static prop source`: a `prop source` powered by a `conjured field` (i.e. `unstructured data`)
   - `dynamic prop source`: a `prop source` powered by a `base field` or `bundle field` (i.e. `structured data`)
   - TBD: `remote prop source`: a `prop source` powered by a remote source ("external data"), i.e. data stored outside Drupal
+- `region node`: one of the node types in the UI data model, representing a `theme region`'s `component tree`
+- `slot node`: one of the node types in the UI data model, representing a `component instance`'s `component slot`
 - `structured data`: the data model defined by a Site Builder in a `content type`, and whose smallest units are `field props` — queryable by Views
 - `unstructured data`: the ad-hoc data used to populate `component prop`s that are not populated using `unstructured data` — NOT queryable by Views, this should be minimized/discouraged
 - `XB field`: an instance of the `component tree field type`
@@ -377,3 +381,208 @@ To hydrate the stored `component tree`:
 
 To render the stored `component tree`, it must first be hydrated it (see above), after which it can be
 converted to a render array.
+
+### 3.4 UI Data Model: communicating a `component tree` to the front end
+
+All prior sections refer to the data model that is _stored_ (on the back end). But what makes sense on the back end does
+not necessarily make sense on the front end:
+- the back end must integrate with many (server-side) Drupal subsystems, and it should as much as possible avoid
+  burdening the front end with those implementation details
+- the front end has different data structure needs, specifically the need for highly frequent changes, including
+  concurrent ones during collaborative real-time editing
+
+The front end needs the `component tree` to generate a preview that the end
+user can modify and interact with. For this we split the tree into `layout`
+and `model` parts. The `layout` represents the tree's overall structure
+and the `model` represents data for each `component` within that tree.
+The `model` is stored as a flat structure so it can more easily be queried
+by the front end.
+
+The front end `layout` is a set of nodes, where each node can be one of the
+following types, represented by the `nodeType` key:
+
+- `'component'` which represents a `component instance`
+- `'slot'` which represents a `component slot` in a `component instance`.
+- `'region'` which represents a separate `theme region` in the user interface.
+
+Each node in the `component tree` is described with a `nodeType` key which is one of the above 3 strings.
+
+The top level of the `layout` structure is an array of zero or more `region` nodes.
+
+#### 3.4.1 `component node`s
+
+A `component node` represents a single `component instance` in the `component tree` and
+will contain zero or more `component slot`s.
+
+`component node`s have the following keys
+- `uuid`: a unique identifier for the `component instance`.
+- `type`: a string containing a `Component config entity` ID that this instantiates
+- `slots`: an object of `slot node`s if any of the `component slot`s of this `component instance` are populated
+
+An example simple `component instance` of a `component` with no `component slot`s:
+```json
+{
+  "nodeType": "component",
+  "id": "380aaa26-5678-4c86-9b32-12161ea34196",
+  "type": "sdc.experience_builder.heading",
+  "slots": []
+}
+```
+
+#### 3.4.2 `slot node`s
+
+A `slot node` must be the child of a `component node`.
+
+`slot node`s have the following keys
+- `name`: a human-readable name that may be displayed to the user.
+- `components`: an array of `component node`s that represent the top-level `component instances` for this `component slot`
+- `id`: a unique ID made up of the `uuid` of the parent component followed by the `component slot` name, separated by a slash.
+
+```json
+{
+  "nodeType": "slot",
+  "id": "380aaa26-5678-4c86-9b32-12161ea34196/column_one",
+  "name": "Column one",
+  "components": []
+}
+```
+
+#### 3.4.3 `region node`s
+
+A `region node` can only exist at the top level in the `layout` tree and can be
+thought of as a special case of a `slot` that applies to the page rather than
+a `component`. Just like a `slot node`, it can contain zero or more `component node`s.
+
+`region node`s have the following keys
+- `id` is the identifier of the `theme region`.
+- `name`: a human-readable name that may be displayed to the user.
+- `components`: an array of `component node`s that represent the top-level `component instances` for this `theme region`
+
+The `theme region` with the ID of `content` is treated specially by the server, and assumed to contain
+the `content entity`. The front end should not need to do anything special
+here except perhaps default to editing the `content` region (but perhaps the
+server should express this default via a flag somewhere?).
+
+```json
+{
+  "nodeType": "region",
+  "id": "content",
+  "name": "Content",
+  "components": []
+}
+```
+
+#### 3.4.4 The complete API response
+
+The API response contains two top level keys:
+
+- `layout`: the `component tree` described above, using the 3 layout tree node types
+- `model`: an array of model data for each `component node` in the tree, keyed by the
+UUID of the `component instance`.
+
+(What if the model and layout get out of sync? We could theoretically have
+UUIDs that don't have model values, or model values that are orphaned and
+don't have corresponding components in the layout. The server side's validation logic forbids saving in this case.)
+
+A complete example, with three `region node`s:
+* A `'header'` region with a single component instance.
+* A `'content'` region with multiple, nested component instances a tree.
+* An empty `'footer'` region.
+
+```json
+{
+  "layout": [
+    {
+      "nodeType": "region",
+      "id": "header",
+      "name": "Header",
+      "components": [
+        {
+          "nodeType": "component",
+          "id": "a164fa84-0460-40b0-a428-bf332b4a792a",
+          "type": "block.system_branding_block",
+          "slots": []
+        }
+      ]
+    },
+    {
+      "nodeType": "region",
+      "id": "content",
+      "name": "Content",
+      "components": [
+        {
+          "nodeType": "component",
+          "id": "97fb7bb9-4c8e-4fdc-87a8-c39ac9e8e618",
+          "type": "sdc.experience_builder.two_column",
+          "slots": [
+            {
+              "nodeType": "slot",
+              "id": "97fb7bb9-4c8e-4fdc-87a8-c39ac9e8e618/column_one",
+              "components": [
+                {
+                  "nodeType": "component",
+                  "id": "e8ecc571-0221-40d8-9ab2-262389fabd58",
+                  "type": "sdc.experience_builder.heading",
+                  "slots": []
+                },
+                {
+                  "nodeType": "component",
+                  "id": "baf231e8-b214-4e3e-93d3-5d3f03a1eae9",
+                  "type": "sdc.experience_builder.druplicon",
+                  "slots": []
+                }
+              ]
+            },
+            {
+              "nodeType": "slot",
+              "id": "97fb7bb9-4c8e-4fdc-87a8-c39ac9e8e618/column_two",
+              "components": [
+                {
+                  "nodeType": "component",
+                  "id": "39648574-b937-4a5a-b1b2-9db0f30ae315",
+                  "type": "sdc.experience_builder.one_column",
+                  "slots": [
+                    {
+                      "nodeType": "slot",
+                      "id": "39648574-b937-4a5a-b1b2-9db0f30ae315/content",
+                      "components": [
+                        {
+                          "nodeType": "component",
+                          "id": "a1cfa9f1-0088-45d9-b837-39571485b75e",
+                          "type": "sdc.experience_builder.my-hero",
+                          "slots": []
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "nodeType": "region",
+      "id": "footer",
+      "name": "Footer",
+      "components": []
+    }
+  ],
+  "model": {
+    "a164fa84-0460-40b0-a428-bf332b4a792a": {},
+    "97fb7bb9-4c8e-4fdc-87a8-c39ac9e8e618": {},
+    "e8ecc571-0221-40d8-9ab2-262389fabd58": {
+      "text": "Heading",
+      "style": "primary",
+      "element": "h1"
+    },
+    "baf231e8-b214-4e3e-93d3-5d3f03a1eae9": {},
+    "39648574-b937-4a5a-b1b2-9db0f30ae315": {},
+    "a1cfa9f1-0088-45d9-b837-39571485b75e": {
+      "heading": "Hero",
+      "subheading": "My subheading"
+    }
+  }
+}
+```

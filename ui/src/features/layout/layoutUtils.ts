@@ -1,100 +1,153 @@
-import _ from 'lodash';
+import { NodeType } from './layoutModelSlice';
 import type {
   ComponentModels,
+  ComponentNode,
   LayoutNode,
-  Node,
-  RootNode,
+  LayoutChildNode,
+  RegionNode,
+  SlotNode,
 } from './layoutModelSlice';
 import { v4 as uuidv4 } from 'uuid';
 
 type NodeFunction = (
-  node: LayoutNode,
+  node: ComponentNode,
   index: number,
-  parent: LayoutNode,
+  parent: LayoutChildNode,
 ) => void;
+
+// The children of Slots and Regions are in components[] but Components' children are always in slots[].
+function getChildKeyByType(type: NodeType): 'slots' | 'components' {
+  return type === 'component' ? 'slots' : 'components';
+}
+
+function getNodeIdentifier(node: LayoutNode): string {
+  switch (node.nodeType) {
+    case NodeType.Slot:
+      return node.id;
+    case NodeType.Component:
+      return node.uuid;
+    case NodeType.Region:
+      return node.name;
+    default:
+      throw new Error('Unknown node type');
+  }
+}
 
 /**
  * Recursively run one or multiple functions against a node and all its descendants.
- * @param node - A layout or layout node.
- * @param functionOrFunctions - A function or an array of functions to run on a node and all of its child nodes.
- * Each function is passed 3 parameters: the node, its index, and its direct parent.
+ * @param node - The top LayoutChildNode (a Component or a Slot) from which the recursion will start.
+ * @param functionOrFunctions - A function or an array of functions to run on a LayoutChildNode and all of its descendant nodes.
+ * Each function is passed 3 parameters: the LayoutChildNode, its index, and its direct parent.
  */
 export function recurseNodes(
-  node: LayoutNode | LayoutNode[],
+  node: LayoutChildNode,
   functionOrFunctions: NodeFunction | NodeFunction[] = [],
 ): void {
-  let functionsToRun: NodeFunction[] = _.castArray(functionOrFunctions);
-  let children: LayoutNode[] = Array.isArray(node) ? node : node.children || [];
+  const childKey = getChildKeyByType(node.nodeType);
+  let functionsToRun: NodeFunction[] = Array.isArray(functionOrFunctions)
+    ? functionOrFunctions
+    : [functionOrFunctions];
+  let children: LayoutChildNode[];
+
+  if (childKey === 'slots' && 'slots' in node) {
+    children = node.slots;
+  } else if (childKey === 'components' && 'components' in node) {
+    children = node.components;
+  } else {
+    children = [];
+  }
 
   // Loop backwards in case the array is modified by the passed function/functions
   for (let index = children.length - 1; index >= 0; index--) {
     const child = children[index];
 
-    functionsToRun.forEach((func) => {
-      if (typeof func === 'function') {
-        func(child, index, node as LayoutNode);
-      }
-    });
-
-    if (child.children && child.children.length) {
-      recurseNodes(child, functionOrFunctions);
+    if (child.nodeType === 'component') {
+      functionsToRun.forEach((func) => {
+        if (typeof func === 'function') {
+          func(child, index, node);
+        }
+      });
     }
+
+    recurseNodes(child, functionOrFunctions);
   }
 }
 
 /**
- * Find a node by its UUID.
- * @param node - The starting node to search from.
- * @param uuid - The UUID of the node to find.
- * @returns The found node or null if not found.
+ * Find a Component by its UUID.
+ * @param root - The starting node to search from.
+ * @param uuid - The id of the node to find.
+ * @returns The found component or null if not found.
  */
-export function findNodeByUuid(node: LayoutNode, uuid: string): Node | null {
-  if (node.uuid === uuid) {
-    if (node.nodeType === 'root') {
-      return null;
-    }
-    return node;
-  }
-  if (node.children) {
-    for (const child of node.children) {
-      const result = findNodeByUuid(child, uuid);
-      if (result) {
-        return result;
+export function findComponentByUuid(
+  root: RegionNode,
+  uuid: string,
+): ComponentNode | null {
+  const recurseComponents = (
+    components: ComponentNode[],
+  ): ComponentNode | null => {
+    for (const component of components) {
+      if (component.uuid === uuid) {
+        return component;
+      }
+      const foundInSlots = recurseSlots(component.slots);
+      if (foundInSlots) {
+        return foundInSlots;
       }
     }
-  }
-  return null;
+    return null;
+  };
+
+  const recurseSlots = (slots: SlotNode[]): ComponentNode | null => {
+    for (const slot of slots) {
+      const foundInComponents = recurseComponents(slot.components);
+      if (foundInComponents) {
+        return foundInComponents;
+      }
+    }
+    return null;
+  };
+
+  return recurseComponents(root.components);
 }
 
 /**
  * Find the path to a node by its UUID.
  * @param node - The starting node to search from.
- * @param uuid - The UUID of the node to find.
+ * @param id - The UUID of the node to find.
  * @param path - The current path (used internally for recursion).
  * @returns The path to the node as an array of indices, or null if not found.
  */
 export function findNodePathByUuid(
   node: LayoutNode,
-  uuid: string | undefined,
+  id: string | undefined,
   path: number[] = [],
 ): number[] | null {
-  if (!uuid) {
-    console.error('No uuid provided to findNodePathByUuid.');
+  if (!id) {
+    console.error('No id provided to findNodePathByUuid.');
     return null;
   }
-  if (node.uuid === uuid) {
+
+  const nodeId = getNodeIdentifier(node);
+
+  if (nodeId === id) {
     return path;
   }
 
-  if (node.children) {
-    for (let i = 0; i < node.children.length; i++) {
-      const child = node.children[i];
-      // Recursively search in the child node, appending the current index to the path
-      const result = findNodePathByUuid(child, uuid, path.concat(i));
-      // If the result is not null, the node has been found in the subtree
-      if (result !== null) {
-        return result;
-      }
+  const childKey = getChildKeyByType(node.nodeType);
+  let children: LayoutChildNode[] = [];
+
+  if (childKey === 'slots' && 'slots' in node) {
+    children = node.slots;
+  } else if (childKey === 'components' && 'components' in node) {
+    children = node.components;
+  }
+
+  for (let i = 0; i < children.length; i++) {
+    const child = children[i];
+    const result = findNodePathByUuid(child, id, path.concat(i));
+    if (result !== null) {
+      return result;
     }
   }
 
@@ -103,25 +156,41 @@ export function findNodePathByUuid(
 }
 
 /**
- * Remove a node by its UUID.
- * @param node - The starting node to search from.
+ * Remove a node from a Region by its UUID.
+ * @param node - The parent RegionNode.
  * @param uuid - The UUID of the node to remove.
- * @returns A deep clone of the node with the node matching the uuid removed.
+ * @returns A deep clone of the RegionNode with the node matching the uuid removed.
  */
-export function removeNodeByUuid<T extends LayoutNode>(
-  node: T,
+export function removeComponentByUuid(
+  node: RegionNode,
   uuid: string,
-): T {
-  const newState = _.cloneDeep(node);
+): RegionNode {
+  const newState = JSON.parse(JSON.stringify(node));
+
   const path = findNodePathByUuid(newState, uuid);
 
   if (path) {
-    const lodashPath = path.map((index) => `children[${index}]`).join('.');
-    const parentPath = lodashPath.split('.').slice(0, -1).join('.');
-    const i = path[path.length - 1];
-    const parent = parentPath ? _.get(newState, parentPath) : newState;
-    if (parent && parent.children) {
-      parent.children.splice(i, 1);
+    let currentNode: LayoutChildNode = newState;
+    let parent: LayoutNode = node;
+    let childIndex: number | null = null;
+
+    path.forEach((idx, i) => {
+      const childKey = i % 2 === 0 ? 'components' : 'slots';
+
+      parent = currentNode;
+      childIndex = idx;
+      if (childKey === 'components' && 'components' in currentNode) {
+        currentNode = currentNode.components[idx];
+      } else if (childKey === 'slots' && 'slots' in currentNode) {
+        currentNode = currentNode.slots[idx];
+      } else {
+        throw new Error('Invalid tree structure encountered.');
+      }
+    });
+
+    // Remove the node from its parent's components list
+    if (parent && childIndex !== null && 'components' in parent) {
+      parent.components.splice(childIndex, 1);
     }
   }
 
@@ -138,9 +207,9 @@ export function removeNodeByUuid<T extends LayoutNode>(
 export function insertNodeAtPath<T extends LayoutNode>(
   layoutNode: T,
   path: number[],
-  newNode: Node,
+  newNode: LayoutChildNode,
 ): T {
-  const newState = _.cloneDeep(layoutNode);
+  const newState = JSON.parse(JSON.stringify(layoutNode));
 
   if (path.length === 0) {
     throw new Error(
@@ -148,26 +217,35 @@ export function insertNodeAtPath<T extends LayoutNode>(
     );
   }
 
+  const childKey = getChildKeyByType(newState.nodeType);
+
+  let children: LayoutChildNode[] = [];
+
+  if (childKey === 'slots' && 'slots' in newState) {
+    children = newState.slots;
+  } else if (childKey === 'components' && 'components' in newState) {
+    children = newState.components;
+  }
+
   // Base case: if the path has only one element, insert the new node at the specified index
   if (path.length === 1) {
-    newState.children = newState.children || [];
-    newState.children.splice(path[0], 0, newNode);
+    children.splice(path[0], 0, newNode);
     return newState;
   }
 
   // Recursive case: navigate down the path
   const [currentIndex, ...restOfPath] = path;
-  newState.children = newState.children || [];
-  if (!newState.children[currentIndex]) {
+
+  if (!children[currentIndex]) {
     throw new Error('Path must resolve to a node in the tree.');
   }
 
   // Recursively insert the node at the remaining path and update the child node
-  newState.children[currentIndex] = insertNodeAtPath(
-    newState.children[currentIndex],
+  children[currentIndex] = insertNodeAtPath(
+    children[currentIndex],
     restOfPath,
     newNode,
-  ) as Node;
+  );
 
   return newState;
 }
@@ -175,21 +253,21 @@ export function insertNodeAtPath<T extends LayoutNode>(
 /**
  * Move a node to a new path.
  * @param rootNode - The root node of the layout.
- * @param uuid - The UUID of the node to move.
+ * @param uuid - The UUID of the component to move.
  * @param path - The path to move the node to.
  * @returns A deep clone of the `rootNode` with the node matching the `uuid` moved to the `path`.
  */
 export function moveNodeToPath(
-  rootNode: RootNode,
+  rootNode: RegionNode,
   uuid: string,
   path: number[],
-): RootNode {
-  const child = findNodeByUuid(rootNode, uuid);
+): RegionNode {
+  const child = findComponentByUuid(rootNode, uuid);
   if (!child) {
     throw new Error(`Node with UUID ${uuid} not found.`);
   }
   // Make a clone of the node that is being moved.
-  const clone = _.cloneDeep(child);
+  const clone = JSON.parse(JSON.stringify(child));
   // flag the original node for deletion
   child.uuid = child.uuid + '_remove';
 
@@ -197,7 +275,7 @@ export function moveNodeToPath(
   const newState = insertNodeAtPath(rootNode, path, clone);
 
   // Remove the original node by finding it by uuid (which is now `${child.uuid}_remove`)
-  return removeNodeByUuid(newState, child.uuid);
+  return removeComponentByUuid(newState, child.uuid);
 }
 
 /**
@@ -206,7 +284,10 @@ export function moveNodeToPath(
  * @param uuid - The UUID of the node to check.
  * @returns {boolean | null} - Returns if node is a child or not and null if the node is not found.
  */
-export function isChildNode(layoutNode: LayoutNode, uuid: string) {
+export function isChildNode(
+  layoutNode: LayoutNode,
+  uuid: string,
+): boolean | null {
   const path = findNodePathByUuid(layoutNode, uuid);
   if (path !== null) {
     return path && path.length > 1;
@@ -231,51 +312,64 @@ export function getNodeDepth(layoutNode: LayoutNode, uuid: string | undefined) {
 
 /**
  * Replace UUIDs in a layout node and its corresponding model.
- * @param node - The layout node to update.
- * @param model - The corresponding model to update.
- * @param newUUID - Optionally specify the UUID of the new node and its model.
+ * @param component - The component to update. Can have slots, child components etc
+ * @param model - The corresponding model object to update. Should contain models for component and all children.
+ * @param newUUID - Optionally specify the UUID of the new Component.
  * @returns An updated model and an updated state.
  */
 export function replaceUUIDsAndUpdateModel(
-  node: Node,
+  component: ComponentNode,
   model: ComponentModels,
   newUUID?: string,
 ): {
-  updatedNode: Node;
+  updatedNode: ComponentNode;
   updatedModel: ComponentModels;
 } {
   const oldToNewUUIDMap: Record<string, string> = {};
   const updatedModel: ComponentModels = {};
 
-  const replaceUUIDs = (
-    node: Node,
-    parentUuid?: string,
-    newUuid?: string,
-  ): Node => {
-    const newNode: Node = { ...node, uuid: newUuid || uuidv4() };
-    if (newNode.nodeType === 'slot') {
-      newNode.uuid = `${parentUuid}-slot-${newNode.name}`;
-    }
+  const replaceUUIDsInComponents = (
+    components: ComponentNode[],
+    newUUID?: string,
+  ): ComponentNode[] => {
+    return components.map((component, i) => {
+      const newUuid = i === 0 && newUUID ? newUUID : uuidv4();
+      const newComponent: ComponentNode = { ...component, uuid: newUuid };
 
-    oldToNewUUIDMap[node.uuid] = newNode.uuid;
+      oldToNewUUIDMap[component.uuid] = newComponent.uuid;
 
-    // Recursively process children
-    if (newNode.children) {
-      newNode.children = newNode.children.map((child) =>
-        replaceUUIDs(child, newNode.uuid),
+      newComponent.slots = replaceUUIDsInSlots(
+        newComponent.slots,
+        newComponent.uuid,
       );
-    }
 
-    return newNode;
+      return newComponent;
+    });
   };
 
-  const updatedNode = replaceUUIDs(node, undefined, newUUID);
+  const replaceUUIDsInSlots = (
+    slots: SlotNode[],
+    parentUuid?: string,
+  ): SlotNode[] => {
+    return slots.map((slot) => {
+      const newSlot: SlotNode = {
+        ...slot,
+        id: `${parentUuid}/${slot.name}`,
+      };
+
+      newSlot.components = replaceUUIDsInComponents(newSlot.components);
+
+      return newSlot;
+    });
+  };
+
+  const updatedNode = replaceUUIDsInComponents([component], newUUID)[0];
 
   // Update the model keys
   for (const oldUUID in model) {
     const newUUID = oldToNewUUIDMap[oldUUID];
     if (newUUID) {
-      updatedModel[newUUID] = _.cloneDeep(model[oldUUID]);
+      updatedModel[newUUID] = JSON.parse(JSON.stringify(model[oldUUID]));
     }
   }
 

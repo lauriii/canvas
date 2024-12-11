@@ -4,13 +4,13 @@ import type { RootLayoutModel } from '@/features/layout/layoutModelSlice';
 import { baseQuery } from '@/services/baseQuery';
 import type {
   ComponentModels,
-  RootNode,
+  RegionNode,
 } from '@/features/layout/layoutModelSlice';
 
 export interface LayoutRequest {
   entityId: string;
   entityType: string;
-  layout: RootNode;
+  layout: RegionNode;
   model: ComponentModels;
 }
 

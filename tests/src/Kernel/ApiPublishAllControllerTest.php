@@ -78,7 +78,7 @@ class ApiPublishAllControllerTest extends KernelTestBase {
 
     // Auto-save node 2 with only the heading.
     unset($validClientJson['model'][self::TEST_IMAGE_UUID]);
-    unset($validClientJson['layout']['children'][1]);
+    unset($validClientJson['layout']['components'][1]);
     // And an invalid prop.
     $validClientJson['model'][self::TEST_HEADING_UUID]['style'] = 'flared';
 

@@ -30,8 +30,8 @@ describe('Set layout model', () => {
 
 describe('Delete node', () => {
   it('Should delete node', () => {
-    expect(layout.layout.children).to.have.length(5);
-    expect(layout.layout.children.map((item) => item.uuid)).to.deep.equal([
+    expect(layout.layout.components).to.have.length(5);
+    expect(layout.layout.components.map((item) => item.uuid)).to.deep.equal([
       'dynamic-image-udf7d',
       'dynamic-static-card2df',
       'dynamic-dynamic-card3rr',
@@ -42,8 +42,8 @@ describe('Delete node', () => {
       layout,
       deleteNode('dynamic-static-card2df'),
     );
-    cy.wrap(state.layout.children).should('have.length', 4);
-    expect(state.layout.children.map((item) => item.uuid)).to.deep.equal([
+    cy.wrap(state.layout.components).should('have.length', 4);
+    expect(state.layout.components.map((item) => item.uuid)).to.deep.equal([
       'dynamic-image-udf7d',
       'dynamic-dynamic-card3rr',
       'dynamic-image-static-imageStyle-something7d',
@@ -66,8 +66,8 @@ describe('Delete node', () => {
       layout,
       deleteNode('ee07d472-a754-4427-b6d4-acfc6f92bbdc'),
     );
-    cy.wrap(state.layout.children).should('have.length', 4);
-    expect(state.layout.children.map((item) => item.uuid)).to.deep.equal([
+    cy.wrap(state.layout.components).should('have.length', 4);
+    expect(state.layout.components.map((item) => item.uuid)).to.deep.equal([
       'dynamic-image-udf7d',
       'dynamic-static-card2df',
       'dynamic-dynamic-card3rr',
@@ -96,16 +96,16 @@ describe('Delete node', () => {
 
 describe('Move node', () => {
   it('Should move node', () => {
-    cy.wrap(layout.layout.children[0].children[0].children).should(
+    cy.wrap(layout.layout.components[0].slots[0].components).should(
       'have.length',
       1,
     );
-    cy.wrap(layout.layout.children[2].children[0].children).should(
+    cy.wrap(layout.layout.components[2].slots[0].components).should(
       'have.length',
       0,
     );
     expect(
-      layout.layout.children[0].children[0].children[0].uuid,
+      layout.layout.components[0].slots[0].components[0].uuid,
     ).to.deep.equal('static-static-card1ab');
     const state = layoutModelSlice.reducer(
       layout,
@@ -114,16 +114,16 @@ describe('Move node', () => {
         to: [2, 0, 1],
       }),
     );
-    cy.wrap(state.layout.children[0].children[0].children).should(
+    cy.wrap(state.layout.components[0].slots[0].components).should(
       'have.length',
       0,
     );
-    cy.wrap(state.layout.children[2].children[0].children).should(
+    cy.wrap(state.layout.components[2].slots[0].components).should(
       'have.length',
       1,
     );
     expect(
-      state.layout.children[2].children[0].children.map((item) => item.uuid),
+      state.layout.components[2].slots[0].components.map((item) => item.uuid),
     ).to.deep.equal(['static-static-card1ab']);
   });
 });
@@ -187,26 +187,25 @@ describe('Duplicate node', () => {
       initialState,
       setLayoutModel({
         layout: {
-          uuid: 'root',
-          nodeType: 'root',
-          name: 'root',
-          children: [
+          nodeType: 'region',
+          name: 'content',
+          components: [
             {
               uuid: 'original-node',
               nodeType: 'component',
               name: 'Original Node',
-              children: [
+              slots: [
                 {
-                  uuid: 'child-1',
-                  nodeType: 'component',
-                  name: 'Child 1',
-                  children: [],
+                  id: 'original-node/child1',
+                  nodeType: 'slot',
+                  name: 'Slot 1',
+                  components: [],
                 },
                 {
-                  uuid: 'child-2',
-                  nodeType: 'component',
-                  name: 'Child 2',
-                  children: [],
+                  id: 'original-node/child2',
+                  nodeType: 'slot',
+                  name: 'Slot 2',
+                  components: [],
                 },
               ],
             },
@@ -223,28 +222,28 @@ describe('Duplicate node', () => {
       duplicateNode({ uuid: nodeToDuplicateUUID }),
     );
 
-    const originalNode = initialStateWithLayout.layout.children.find(
+    const originalNode = initialStateWithLayout.layout.components.find(
       (node) => node.uuid === nodeToDuplicateUUID,
     );
-    const newNode = stateAfterDuplication.layout.children.find(
+    const newNode = stateAfterDuplication.layout.components.find(
       (node) => node.uuid !== nodeToDuplicateUUID,
     );
 
     // Ensure the new node is a duplicate and has a different UUID
     expect(newNode).to.not.be.undefined;
     expect(newNode.uuid).to.not.equal(nodeToDuplicateUUID);
-    expect(newNode.name).to.equal(originalNode.name);
+    expect(newNode.type).to.equal(originalNode.type);
     expect(newNode.nodeType).to.equal(originalNode.nodeType);
-    expect(newNode.children.length).to.equal(originalNode.children.length);
+    expect(newNode.slots.length).to.equal(originalNode.slots.length);
 
     // Verify each child node's UUID in the new node
-    originalNode.children.forEach((originalChild, index) => {
-      const newChild = newNode.children[index];
+    originalNode.slots.forEach((originalChild, index) => {
+      const newChild = newNode.slots[index];
       expect(newChild).to.not.be.undefined;
-      expect(newChild.uuid).to.not.equal(originalChild.uuid);
+      expect(newChild.id).to.not.equal(originalChild.id);
       expect(newChild.name).to.equal(originalChild.name);
       expect(newChild.nodeType).to.equal(originalChild.nodeType);
-      expect(newChild.children).to.deep.equal(originalChild.children);
+      expect(newChild.components).to.deep.equal(originalChild.components);
     });
 
     // Verify the model for the new node and its children

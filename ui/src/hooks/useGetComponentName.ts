@@ -1,9 +1,15 @@
 import { useGetComponentsQuery } from '@/services/components';
 import { useCallback } from 'react';
-import type { Node } from '@/features/layout/layoutModelSlice';
+import type {
+  LayoutChildNode,
+  LayoutNode,
+} from '@/features/layout/layoutModelSlice';
 import type { Component } from '@/types/Component';
 
-const useGetComponentName = (node: Node | null, parentNode?: Node | null) => {
+const useGetComponentName = (
+  node: LayoutChildNode | null,
+  parentNode?: LayoutNode | null,
+) => {
   const { data: components } = useGetComponentsQuery();
 
   const findPresentationSlotName = (
@@ -24,7 +30,7 @@ const useGetComponentName = (node: Node | null, parentNode?: Node | null) => {
     if (components) {
       if (node.nodeType === 'slot') {
         name = 'Slot';
-        if (parentNode) {
+        if (parentNode && 'type' in parentNode) {
           if (parentNode.type) {
             const parentComponent = components?.[parentNode.type];
             name = findPresentationSlotName(node.name, parentComponent);

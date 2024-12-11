@@ -12,6 +12,7 @@ import {
   setActivePanel,
 } from '@/features/ui/primaryPanelSlice';
 import useHidePanelClasses from '@/hooks/useHidePanelClasses';
+import ErrorBoundary from '@/components/error/ErrorBoundary';
 
 export const PrimaryPanel = () => {
   const layout = useAppSelector(selectLayout);
@@ -60,7 +61,9 @@ export const PrimaryPanel = () => {
                 value={'layers'}
                 className={styles.layersTabContent}
               >
-                <SortableContainer setDragging={setDragging} node={layout} />
+                <ErrorBoundary>
+                  <SortableContainer setDragging={setDragging} node={layout} />
+                </ErrorBoundary>
               </Tabs.Content>
               <Tabs.Content value={'library'}>
                 <Library />

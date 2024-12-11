@@ -49,10 +49,9 @@ final class ApiLayoutController {
 
     // @todo This now returns a mixture of pure tree structure with hydrated props values. Re-assess.
     $full_layout = [
-      'uuid' => 'root',
-      'nodeType' => 'root',
-      'name' => 'root',
-      'children' => $layout,
+      'nodeType' => 'region',
+      'name' => 'content',
+      'components' => $layout,
     ];
     return new JsonResponse([
       // Maps to the `tree` property of the XB field type.
@@ -75,11 +74,10 @@ final class ApiLayoutController {
     // @todo tree recursion/slot support — this only supports a flat list — do this in https://www.drupal.org/project/experience_builder/issues/3446722
     foreach ($tree_tier as ['uuid' => $component_instance_uuid, 'component' => $component_type]) {
       $component_instance = [
-        'uuid' => $component_instance_uuid,
-        // Note: the UI expects slots in this component to be defined as `nodeType: slot`.
         'nodeType' => 'component',
+        'uuid' => $component_instance_uuid,
         'type' => $component_type,
-        'children' => [],
+        'slots' => [],
       ];
       if (isset($hydrated[$component_instance_uuid])) {
         $model[$component_instance_uuid] = $hydrated[$component_instance_uuid]['props'];
@@ -87,14 +85,13 @@ final class ApiLayoutController {
       if (isset($full_tree[$component_instance_uuid])) {
         foreach ($full_tree[$component_instance_uuid] as $slot_name => $slot_children) {
           $component_instance_slot = [
-            // @todo The client expects a UUID for slots, but we don't have one.
-            'uuid' => $component_instance_uuid . '-slot-' . $slot_name,
-            'name' => $slot_name,
             'nodeType' => 'slot',
-            'children' => [],
+            'id' => $component_instance_uuid . '/' . $slot_name,
+            'name' => $slot_name,
+            'components' => [],
           ];
-          $this->buildLayout($component_instance_slot['children'], $model, $item, $slot_children, $hydrated[$component_instance_uuid]['slots'][$slot_name]);
-          $component_instance['children'][] = $component_instance_slot;
+          $this->buildLayout($component_instance_slot['components'], $model, $item, $slot_children, $hydrated[$component_instance_uuid]['slots'][$slot_name]);
+          $component_instance['slots'][] = $component_instance_slot;
         }
       }
       $layout[] = $component_instance;

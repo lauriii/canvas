@@ -23,8 +23,24 @@ describe('isChildNode', () => {
 describe('replaceUUIDsAndUpdateModel', () => {
   it('should replace UUIDs and update the model correctly', () => {
     cy.then(() => {
-      const inputNode = layout.layout;
+      const inputLayout = layout.layout;
+
       const inputModel = layout.model;
+
+      const inputNode = {
+        nodeType: 'component',
+        uuid: '3cf2625f-a0a8-4c97-85c0-06df16239c21',
+        type: 'sdc.foo-bar',
+        slots: [
+          {
+            nodeType: 'slot',
+            name: 'mySlot',
+            id: '3cf2625f-a0a8-4c97-85c0-06df16239c21/mySlot',
+            components: inputLayout.components,
+          },
+        ],
+      };
+      expect(inputNode.uuid).to.equal('3cf2625f-a0a8-4c97-85c0-06df16239c21');
 
       const { updatedNode, updatedModel } = replaceUUIDsAndUpdateModel(
         inputNode,
@@ -34,20 +50,24 @@ describe('replaceUUIDsAndUpdateModel', () => {
       expect(updatedNode.uuid).not.to.equal(inputNode.uuid);
 
       function checkUUIDs(oldNode, newNode) {
-        expect(newNode.uuid).not.to.equal(oldNode.uuid);
-        if (oldNode.children && newNode.children) {
-          expect(newNode.children.length).to.equal(oldNode.children.length);
-          oldNode.children.forEach((oldChild, index) => {
-            checkUUIDs(oldChild, newNode.children[index]);
+        if (oldNode.nodeType === 'slot') {
+          expect(newNode.id).not.to.equal(oldNode.id);
+          expect(newNode.components.length).to.equal(oldNode.components.length);
+          oldNode.components.forEach((oldSlot, index) => {
+            checkUUIDs(oldSlot, newNode.components[index]);
+          });
+        } else {
+          expect(newNode.uuid).not.to.equal(oldNode.uuid);
+          expect(newNode.slots.length).to.equal(oldNode.slots.length);
+          oldNode.slots.forEach((oldSlot, index) => {
+            checkUUIDs(oldSlot, newNode.slots[index]);
           });
         }
       }
 
       checkUUIDs(inputNode, updatedNode);
 
-      expect(Object.keys(updatedModel).length).to.equal(
-        Object.keys(inputModel).length,
-      );
+      expect(Object.keys(updatedModel).length).to.equal(9);
 
       Object.keys(updatedModel).forEach((newUUID) => {
         const oldUUID = Object.keys(inputModel).find(
@@ -59,19 +79,30 @@ describe('replaceUUIDsAndUpdateModel', () => {
         expect(newUUID).not.to.equal(oldUUID);
       });
 
-      expect(updatedNode.children).to.have.length(5);
-      expect(updatedNode.children[0].children).to.have.length(1);
-      expect(updatedNode.children[0].children[0].children).to.have.length(1);
-      expect(updatedNode.children[2].children).to.have.length(1);
-      expect(updatedNode.children[2].children[0].children).to.have.length(0);
+      expect(updatedNode.slots).to.have.length(1);
+      expect(updatedNode.slots[0].components).to.have.length(5);
+      expect(updatedNode.slots[0].components[0].slots).to.have.length(1);
+      cy.log(updatedNode);
+      expect(updatedNode.slots[0].components[4].slots).to.have.length(2);
+      expect(
+        updatedNode.slots[0].components[4].slots[1].components,
+      ).to.have.length(2);
 
       // Check if node types and component types are preserved
-      expect(updatedNode.nodeType).to.equal('root');
-      expect(updatedNode.children[0].type).to.equal('experience_builder:image');
-      expect(updatedNode.children[1].type).to.equal('sdc_test:my-cta');
+      expect(updatedNode.type).to.equal('sdc.foo-bar');
+      expect(updatedNode.slots[0].components[0].type).to.equal(
+        'experience_builder:image',
+      );
+      expect(updatedNode.slots[0].components[1].type).to.equal(
+        'sdc_test:my-cta',
+      );
 
-      expect(updatedNode.children[2].type).to.equal('sdc_test:my-cta');
-      expect(updatedNode.children[3].type).to.equal('experience_builder:image');
+      expect(updatedNode.slots[0].components[2].type).to.equal(
+        'sdc_test:my-cta',
+      );
+      expect(updatedNode.slots[0].components[3].type).to.equal(
+        'experience_builder:image',
+      );
 
       // Check if model data is preserved
       Object.keys(updatedModel).forEach((newUUID) => {

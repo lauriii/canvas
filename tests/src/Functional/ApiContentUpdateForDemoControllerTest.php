@@ -123,7 +123,7 @@ final class ApiContentUpdateForDemoControllerTest extends FunctionalTestBase {
 
     // Make a client request with layout using a missing component.
     $invalid_tree_client_json = $valid_client_json;
-    $invalid_tree_client_json['layout']['children'][1]['type'] = 'sdc.experience_builder.missing_component';
+    $invalid_tree_client_json['layout']['components'][1]['type'] = 'sdc.experience_builder.missing_component';
     $this->assertClientRequest(
       $node2,
       $invalid_tree_client_json,

@@ -4,11 +4,14 @@ import {
   setSelectedComponent,
 } from '@/features/ui/uiSlice';
 import {
-  findNodeByUuid,
+  findComponentByUuid,
   findNodePathByUuid,
   recurseNodes,
 } from '@/features/layout/layoutUtils';
-import type { LayoutNode } from '@/features/layout/layoutModelSlice';
+import type {
+  ComponentNode,
+  LayoutModelPiece,
+} from '@/features/layout/layoutModelSlice';
 import {
   insertNodes,
   selectLayout,
@@ -27,13 +30,13 @@ function useCopyPasteComponents(): CopyPasteFunctions {
   const layout = useAppSelector(selectLayout);
   const copySelectedComponent = () => {
     if (selectedComponent) {
-      const copiedComponent = findNodeByUuid(layout, selectedComponent);
+      const copiedComponent = findComponentByUuid(layout, selectedComponent);
       if (!copiedComponent) {
         return;
       }
       // Recursively get ALL the model data for not just the selected component but also all of its children.
       const copiedModels = { [selectedComponent]: model[selectedComponent] };
-      recurseNodes(copiedComponent, (node: LayoutNode) => {
+      recurseNodes(copiedComponent, (node: ComponentNode) => {
         copiedModels[node.uuid] = model[node.uuid];
       });
 
@@ -41,12 +44,8 @@ function useCopyPasteComponents(): CopyPasteFunctions {
         'copiedComponent',
         JSON.stringify({
           model: copiedModels,
-          layout: {
-            nodeType: 'root',
-            uuid: 'root',
-            children: [copiedComponent],
-          },
-        }),
+          layout: [copiedComponent],
+        } as LayoutModelPiece),
       );
     }
   };
