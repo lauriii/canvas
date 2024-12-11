@@ -59,6 +59,13 @@ experience_builder.api.preview:
       entity:
         type: entity:{entity_type}
 
+experience_builder.api.autosave_collection:
+  path: '/xb/api/autosave'
+  defaults:
+    _controller: 'Drupal\experience_builder\Controller\ApiPendingChangesController'
+  requirements:
+    _permission: 'access administration pages'
+
 entity.component.delete_form:
   path: '/admin/structure/component/delete/{component}'
   defaults:

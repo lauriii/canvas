@@ -8,6 +8,7 @@ use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Render\Element;
 use Drupal\Core\TypedData\TypedDataManagerInterface;
+use Drupal\experience_builder\AutoSave\AutoSaveManager;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
 use Symfony\Component\HttpFoundation\Request;
@@ -25,16 +26,17 @@ final class HardcodedPropsComponentTreeItem extends ComponentTreeItem {
 final class ApiPreviewController {
 
   use ClientServerConversionTrait;
-  use NotTheGoodAutoSaveTrait;
 
   public function __construct(
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly TypedDataManagerInterface $typedDataManager,
+    private readonly AutoSaveManager $autoSaveManager,
   ) {}
 
   public function __invoke(Request $request, EntityInterface $entity): array {
-    $this->doAutoSave($entity, $request);
-    ['layout' => $layout, 'model' => $model] = json_decode($request->getContent(), TRUE);
+    $body = json_decode($request->getContent(), TRUE);
+    $this->autoSaveManager->save($entity, $body);
+    ['layout' => $layout, 'model' => $model] = $body;
     $renderable = $this->clientLayoutAndModelToXbField($layout, $model)->toRenderable();
 
     if (isset($renderable[ComponentTreeStructure::ROOT_UUID])) {

@@ -42,6 +42,9 @@ services:
     parent: logger.channel_base
     arguments: ['experience_builder']
   Drupal\experience_builder\ClientDataToEntityConverter: {}
+  Drupal\experience_builder\AutoSave\AutoSaveManager: {}
+  Drupal\experience_builder\AutoSave\AutoSaveTempStoreFactory:
+    parent: tempstore.shared
 
   # Event subscribers.
   experience_builder.openapi.http_request_validator.subscriber:
@@ -96,3 +99,4 @@ services:
   Drupal\experience_builder\Controller\ComponentStatusController: {}
   Drupal\experience_builder\Controller\ExperienceBuilderController: {}
   Drupal\experience_builder\Controller\ApiPublishAllController: {}
+  Drupal\experience_builder\Controller\ApiPendingChangesController: {}

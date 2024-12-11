@@ -28,7 +28,8 @@ class ApiLayoutControllerTest extends KernelTestBase {
 
   public function test(): void {
     $node = Node::load(1);
-    $controller = new ApiLayoutController();
+    /** @var \Drupal\experience_builder\Controller\ApiLayoutController $controller */
+    $controller = \Drupal::classResolver(ApiLayoutController::class);
     assert($node instanceof FieldableEntityInterface);
     $response = $controller($node);
 

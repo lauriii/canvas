@@ -4,18 +4,20 @@ declare(strict_types=1);
 
 namespace Drupal\xb_e2e_support\Controller;
 
+use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Entity\EntityInterface;
-use Drupal\experience_builder\Controller\NotTheGoodAutoSaveTrait;
+use Drupal\experience_builder\AutoSave\AutoSaveManager;
 use Symfony\Component\HttpFoundation\JsonResponse;
 
-class AutoSaveController {
+class AutoSaveController extends ControllerBase {
 
-  // @todo Remove the use of this trait or remove this entire test module in
-  //   https://drupal.org/i/3489743.
-  use NotTheGoodAutoSaveTrait;
+  public function __construct(
+    private readonly AutoSaveManager $autoSaveManager,
+  ) {
+  }
 
   public function clearAutoSave(EntityInterface $entity): JsonResponse {
-    $this->getTempStore()->delete($this->getAutoSaveKey($entity));
+    $this->autoSaveManager->delete($entity);
     return new JsonResponse(['message' => 'Auto-save cleared']);
   }
 

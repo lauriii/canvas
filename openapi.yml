@@ -321,7 +321,9 @@ paths:
     post:
       requestBody:
         content:
-          application/json: {}
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PublishAllRequest'
       responses:
         '200':
           description: Successful publish
@@ -354,9 +356,64 @@ paths:
                 properties:
                   errors:
                     type: array
-                    description: Error descriptions
+                    description: Error items
                     items:
-                      type: string
+                      type: object
+                      schema:
+                        $ref: '#/components/schemas/Error'
+  /xb/api/autosave:
+    get:
+      responses:
+        '200':
+          description: All current auto-save entries
+          content:
+            application/json:
+              examples:
+                multipleEntries:
+                  value:
+                    'node:1:en':
+                      data:
+                        layout:
+                          uuid: root
+                          nodeType: root
+                          name: root
+                          children:
+                            - uuid: bce8d97e-8d44-4609-adc3-5e1015342b49
+                              nodeType: component
+                              type: 'sdc_test:my-cta'
+                        model:
+                          bce8d97e-8d44-4609-adc3-5e1015342b49:
+                            text: 'hello, world!'
+                            href: 'https://drupal.org'
+                            name: My Test CTA Component
+                      langcode: en
+                      entity_type: node
+                      entity_id: 1
+                      label: Home page
+                      owner: 1
+                    'node:2:en':
+                      data:
+                        layout:
+                          uuid: root
+                          nodeType: root
+                          name: root
+                          children:
+                            - uuid: 694446dd-fc32-4f6c-a2b3-e6fa8521cbeb
+                              nodeType: component
+                              type: 'sdc_test:my-cta'
+                        model:
+                          694446dd-fc32-4f6c-a2b3-e6fa8521cbeb:
+                            text: Read more
+                            href: 'https://example.org'
+                            name: Read more link
+                      langcode: en
+                      entity_type: node
+                      entity_id: 1
+                      label: Home page
+                      owner: 1
+              schema:
+                $ref: '#/components/schemas/AutoSaveCollection'
+
 components:
   schemas:
     Component:
@@ -439,6 +496,126 @@ components:
           $ref: '#/components/schemas/Layout'
         model:
           $ref: '#/components/schemas/Model'
+    AutoSaveEntry:
+      title: Auto Save Entry
+      type: object
+      additionalProperties: false
+      properties:
+        data:
+          $ref: '#/components/schemas/LayoutPreview'
+        owner:
+          type: object
+          title: Owner details
+          description: Details of the last user to save the entry
+          examples:
+            Logged in user:
+              name: 'Garrett Bobby Ferguson, Jr'
+              avatar: /sites/default/files/user-pictures/garrett.jpg
+              uri: /user/12
+              id: 12
+          properties:
+            name:
+              type: string
+              title: User's name
+            avatar:
+              type: string
+              title: URL to user's avatar picture
+            uri:
+              type: string
+              title: URL to user's profile page
+            id:
+              type: integer
+              title: User ID
+        updated:
+          type: integer
+          title: Updated timestamp
+          description: Unix timestamp for auto-save entry last updated time
+          example: 1732763679
+        entity_type:
+          type: string
+          title: Entity Type ID
+          example: node
+        langcode:
+          type: string
+          title: Language code
+          example: en
+        data_hash:
+          type: string
+          title: Hash of the item's data
+          example: 4711efecf75d2d1a
+        entity_id:
+          type:
+            - string
+            - integer
+          title: Entity ID
+          description: ID of the entity
+          example: 3
+        label:
+          type: string
+          title: Entity label
+          description: Label of the entity
+          example: Home page
+    AutoSaveCollection:
+      schema:
+        type: object
+        # @todo Add key validation for the format in {entity_type}:{entity_id}:{langcode} https://drupal.org/i/3471064.
+        additionalProperties:
+          $ref: '#/components/schemas/AutoSaveEntry'
+    PublishAllRequest:
+      schema:
+        type: object
+        # @todo Add key validation for the format in {entity_type}:{entity_id}:{langcode} https://drupal.org/i/3471064.
+        additionalProperties:
+          type: object
+          title: Entries to publish
+          description: >
+            The body should be an object with keys that match unpublished
+            entries and a data-hash property for each item.
+          properties:
+            data_hash:
+              type: string
+              title: Expected hash for this item
+    Error:
+      schema:
+        type: object
+        required:
+          - detail
+          - source
+        properties:
+          detail:
+            type: string
+            title: Error description
+            example: I can't let you do that Dave
+          source:
+            type: object
+            required:
+              - pointer
+            properties:
+              pointer:
+                type: string
+                title: Pointer/path to source of error
+                example: title.0.value
+          code:
+            type: int
+            title: Error code
+            example: 1
+          meta:
+            type: object
+            properties:
+              entity_type:
+                type: string
+                example: node
+                title: Entity Type ID
+              entity_id:
+                type:
+                  - string
+                  - integer
+                example: 3
+                title: Entity ID
+              label:
+                type: string
+                example: Spring sale now on
+                title: Item label
     Model:
       title: model
       type: object

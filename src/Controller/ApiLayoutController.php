@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\experience_builder\Controller;
 
 use Drupal\Core\Entity\FieldableEntityInterface;
+use Drupal\experience_builder\AutoSave\AutoSaveManager;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeHydrated;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
@@ -12,14 +13,15 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 
 final class ApiLayoutController {
 
-  use NotTheGoodAutoSaveTrait;
+  public function __construct(private readonly AutoSaveManager $autoSaveManager) {
+  }
 
   public function __invoke(FieldableEntityInterface $entity): JsonResponse {
     if ($entity->getEntityTypeId() !== 'xb_page' && $entity->bundle() !== 'article') {
       throw new \LogicException('For now, this assumes the entity is an xb_page or an article node!');
     }
 
-    if ($body = $this->getAutoSaveData($entity)) {
+    if ($body = $this->autoSaveManager->getAutoSaveData($entity)) {
       return new JsonResponse($body);
     }
 

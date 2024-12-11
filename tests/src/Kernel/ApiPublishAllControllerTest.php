@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace Drupal\Tests\experience_builder\Kernel;
 
 use Drupal\Core\Url;
+use Drupal\experience_builder\AutoSave\AutoSaveManager;
+use Drupal\experience_builder\Controller\ApiPendingChangesController;
 use Drupal\experience_builder\Controller\ApiPublishAllController;
-use Drupal\experience_builder\Controller\NotTheGoodAutoSaveTrait;
+use Drupal\experience_builder\Controller\ErrorCodesEnum;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\node\Entity\Node;
@@ -20,7 +22,6 @@ use Symfony\Component\HttpFoundation\Response;
 
 class ApiPublishAllControllerTest extends KernelTestBase {
 
-  use NotTheGoodAutoSaveTrait;
   use RequestTrait;
   use XBFieldTrait;
   use UserCreationTrait;
@@ -36,7 +37,10 @@ class ApiPublishAllControllerTest extends KernelTestBase {
   }
 
   public function test(): void {
-    self::assertNoAutoSaveData();
+    /** @var \Drupal\experience_builder\AutoSave\AutoSaveManager $autoSave */
+    $autoSave = \Drupal::service(AutoSaveManager::class);
+    $this->setUpCurrentUser(permissions: ['access administration pages']);
+    $this->assertNoAutoSaveData();
     $node1 = Node::create([
       'type' => 'article',
       'title' => '5 amazing uses for old toothbrushes',
@@ -63,7 +67,6 @@ class ApiPublishAllControllerTest extends KernelTestBase {
     self::assertSame(SAVED_NEW, $node2->save());
     $this->assertNodeXbField($node2, [], []);
 
-    $this->setUpCurrentUser(permissions: ['access administration pages']);
     $validClientJson = $this->getValidClientJson();
 
     // Auto-save node 1.
@@ -81,16 +84,11 @@ class ApiPublishAllControllerTest extends KernelTestBase {
 
     // \Drupal\experience_builder\Controller\ApiPreviewController will not work
     // with invalid data so we need to use the NotTheGoodAutoSaveTrait directly.
-    // @todo Replace this with a call the auto-save service in
-    //   https://drupal.org/i/3489743. In https://drupal.org/i/3485878 we could
-    //   also replace this by using the 'experience_builder.api.preview'
-    //   route as we do above.
-    $request = Request::create('', 'POST', [], [], [], [], (string) json_encode($validClientJson));
-    $this->doAutoSave($node2, $request);
+    // @todo In https://drupal.org/i/3485878 we could also replace this by using
+    //   the 'experience_builder.api.preview' route as we do above.
+    $autoSave->save($node2, $validClientJson);
 
-    $controller = \Drupal::service(ApiPublishAllController::class);
-    $response = $controller();
-    self::assertInstanceOf(JsonResponse::class, $response);
+    $response = $this->makePublishAllRequest();
     $json = json_decode($response->getContent() ?: '', TRUE);
     self::assertEquals(Response::HTTP_UNPROCESSABLE_ENTITY, $response->getStatusCode());
     self::assertEquals([
@@ -121,8 +119,72 @@ class ApiPublishAllControllerTest extends KernelTestBase {
     ])->toString(), content: (string) json_encode($validClientJson)));
     self::assertEquals(Response::HTTP_OK, $response->getStatusCode());
 
-    $response = $controller();
-    self::assertInstanceOf(JsonResponse::class, $response);
+    $auto_save_data = $this->getAutoSaveStatesFromServer();
+    $node1_auto_save_key = 'node:' . $node1->id() . ':en';
+    self::assertArrayHasKey($node1_auto_save_key, $auto_save_data);
+
+    // Make publish requests that have missing, extra, and out-dated auto-save
+    // information.
+    $missing_auto_save_data = $auto_save_data;
+    unset($missing_auto_save_data[$node1_auto_save_key]);
+    $response = $this->makePublishAllRequest($missing_auto_save_data);
+    self::assertSame(Response::HTTP_CONFLICT, $response->getStatusCode());
+    self::assertEquals([
+      'errors' => [
+      [
+        'detail' => ErrorCodesEnum::MissingItemInPublishRequest->getMessage(),
+        'source' => [
+          'pointer' => $node1_auto_save_key,
+        ],
+        'code' => ErrorCodesEnum::MissingItemInPublishRequest->value,
+        'meta' => [
+          'entity_type' => 'node',
+          'entity_id' => $node1->id(),
+          'label' => $node1->label(),
+        ],
+      ],
+      ],
+    ], \json_decode($response->getContent() ?: '', TRUE, flags: JSON_THROW_ON_ERROR));
+
+    $extra_auto_save_data = $auto_save_data;
+    $extra_key = 'node:' . (((int) $node2->id()) + 1) . ':en';
+    $extra_auto_save_data[$extra_key] = $auto_save_data[$node1_auto_save_key];
+    $response = $this->makePublishAllRequest($extra_auto_save_data);
+    self::assertSame(Response::HTTP_CONFLICT, $response->getStatusCode());
+    self::assertEquals([
+      'errors' => [
+      [
+        'detail' => ErrorCodesEnum::UnexpectedItemInPublishRequest->getMessage(),
+        'source' => [
+          'pointer' => $extra_key,
+        ],
+        'code' => ErrorCodesEnum::UnexpectedItemInPublishRequest->value,
+      ],
+      ],
+    ], \json_decode($response->getContent() ?: '', TRUE, flags: JSON_THROW_ON_ERROR));
+
+    $out_dated_auto_save_data = $auto_save_data;
+    $out_dated_auto_save_data[$node1_auto_save_key]['data_hash'] = 'old-hash';
+    $response = $this->makePublishAllRequest($out_dated_auto_save_data);
+    self::assertSame(Response::HTTP_CONFLICT, $response->getStatusCode());
+    self::assertEquals([
+      'errors' => [
+      [
+        'detail' => ErrorCodesEnum::UnmatchedItemInPublishRequest->getMessage(),
+        'source' => [
+          'pointer' => $node1_auto_save_key,
+        ],
+        'code' => ErrorCodesEnum::UnmatchedItemInPublishRequest->value,
+        'meta' => [
+          'entity_type' => 'node',
+          'entity_id' => $node1->id(),
+          'label' => $node1->label(),
+        ],
+      ],
+      ],
+    ], \json_decode($response->getContent() ?: '', TRUE, flags: JSON_THROW_ON_ERROR));
+
+    $response = $this->makePublishAllRequest();
     $json = json_decode($response->getContent() ?: '', TRUE);
     self::assertEquals(Response::HTTP_OK, $response->getStatusCode());
     self::assertEquals(['message' => 'Successfully published 2 items.'], $json);
@@ -137,16 +199,36 @@ class ApiPublishAllControllerTest extends KernelTestBase {
     );
     // Ensure that after the nodes have been published their auto-save data is
     // removed.
-    self::assertNoAutoSaveData();
+    $this->assertNoAutoSaveData();
   }
 
-  protected static function assertNoAutoSaveData(): void {
-    $controller = \Drupal::service(ApiPublishAllController::class);
-    $response = $controller();
-    self::assertInstanceOf(JsonResponse::class, $response);
+  protected function assertNoAutoSaveData(): void {
+    $response = $this->makePublishAllRequest([]);
     $json = json_decode($response->getContent() ?: '', TRUE);
     self::assertEquals(Response::HTTP_NO_CONTENT, $response->getStatusCode());
     self::assertEquals(['message' => 'No items to publish.'], $json);
+  }
+
+  protected function makePublishAllRequest(?array $data = NULL): JsonResponse {
+    if (is_null($data)) {
+      $data = $this->getAutoSaveStatesFromServer();
+    }
+    $controller = \Drupal::service(ApiPublishAllController::class);
+    $request = Request::create(
+      Url::fromRoute('experience_builder.api.publish_all')->toString(),
+      content: (string) json_encode($data)
+    );
+    return $controller($request);
+  }
+
+  protected function getAutoSaveStatesFromServer(): array {
+    $auto_save_controller = \Drupal::service(ApiPendingChangesController::class);
+    $response = $auto_save_controller();
+    assert($response instanceof JsonResponse);
+    $content = $response->getContent();
+    assert(is_string($content));
+    $auto_saves = json_decode($content, TRUE);
+    return $auto_saves;
   }
 
 }
