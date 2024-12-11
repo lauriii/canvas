@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Drupal\Tests\experience_builder\Kernel;
+namespace Drupal\Tests\experience_builder\Kernel\Entity;
 
 use Drupal\experience_builder\Entity\Page;
 use Drupal\file\Entity\File;
@@ -14,6 +14,7 @@ use Drupal\Tests\experience_builder\Kernel\Traits\PageTrait;
 
 /**
  * @group experience_builder
+ * @requires function Drupal\metatag\MetatagManager::tagsFromEntity
  */
 final class PageMetatagIntegrationTest extends KernelTestBase {
 

@@ -77,6 +77,14 @@
 /src/Plugin/Field/FieldType/
 /tests/src/Kernel/Plugin/Field/FieldType/
 
+# Issues: https://www.drupal.org/project/issues/experience_builder?component=Page
+[Page] @mglaman
+/src/Entity/Routing/
+/src/Entity/Page*
+/tests/modules/xb_test_page/
+/tests/src/Kernel/Entity/Routing
+/tests/src/Kernel/Entity/Page*
+/tests/src/Kernel/Traits/Page*
 
 # ⚠️
 # ⚠️ Highly experimental new concepts ⚠️
