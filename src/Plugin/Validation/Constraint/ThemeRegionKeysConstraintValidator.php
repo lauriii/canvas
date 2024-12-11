@@ -41,10 +41,7 @@ final class ThemeRegionKeysConstraintValidator extends ConstraintValidator imple
    * @throws \Symfony\Component\Validator\Exception\UnexpectedTypeException
    *   Thrown when the given constraint is not supported by this validator.
    */
-  // @phpcs:disable
-  // @phpstan-ignore-next-line
-  public function validate($sequence, Constraint $constraint): void {
-    // @phpcs:enable
+  public function validate(mixed $sequence, Constraint $constraint): void {
     if (!$constraint instanceof ThemeRegionKeysConstraint) {
       throw new UnexpectedTypeException($constraint, ThemeRegionKeysConstraint::class);
     }

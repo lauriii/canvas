@@ -20,7 +20,7 @@ class StringPartsConstraintValidator extends ConstraintValidator {
   /**
    * {@inheritdoc}
    */
-  public function validate(mixed $value, Constraint $constraint) {
+  public function validate(mixed $value, Constraint $constraint): void {
     if (!is_string($value)) {
       throw new UnexpectedTypeException($value, 'string');
     }

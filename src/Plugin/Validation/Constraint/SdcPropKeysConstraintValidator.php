@@ -43,10 +43,7 @@ final class SdcPropKeysConstraintValidator extends ConstraintValidator implement
    * @throws \Symfony\Component\Validator\Exception\UnexpectedTypeException
    *   Thrown when the given constraint is not supported by this validator.
    */
-  // @phpcs:disable
-  // @phpstan-ignore-next-line
-  public function validate($mapping, Constraint $constraint) {
-    // @phpcs:enable
+  public function validate(mixed $mapping, Constraint $constraint): void {
     if (!$constraint instanceof SdcPropKeysConstraint) {
       throw new UnexpectedTypeException($constraint, __NAMESPACE__ . '\SdcPropKeysConstraint');
     }
