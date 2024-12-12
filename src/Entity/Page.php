@@ -8,6 +8,8 @@ use Drupal\Core\Entity\EditorialContentEntityBase;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Field\BaseFieldDefinition;
 use Drupal\media\Entity\MediaType;
+use Drupal\user\EntityOwnerInterface;
+use Drupal\user\EntityOwnerTrait;
 
 /**
  * Defines the page entity class.
@@ -68,6 +70,7 @@ use Drupal\media\Entity\MediaType;
  *     "label" = "title",
  *     "langcode" = "langcode",
  *     "published" = "status",
+ *     "owner" = "owner",
  *   },
  *   revision_metadata_keys = {
  *     "revision_user" = "revision_user",
@@ -76,7 +79,9 @@ use Drupal\media\Entity\MediaType;
  *   },
  * )
  */
-final class Page extends EditorialContentEntityBase {
+final class Page extends EditorialContentEntityBase implements EntityOwnerInterface {
+
+  use EntityOwnerTrait;
 
   /**
    * {@inheritdoc}
@@ -84,6 +89,7 @@ final class Page extends EditorialContentEntityBase {
   public static function baseFieldDefinitions(EntityTypeInterface $entity_type): array {
     /** @var \Drupal\Core\Field\BaseFieldDefinition[] $fields */
     $fields = parent::baseFieldDefinitions($entity_type);
+    $fields += self::ownerBaseFieldDefinitions($entity_type);
     $fields['title'] = BaseFieldDefinition::create('string')
       ->setLabel(t('Title'))
       ->setTranslatable(TRUE)
