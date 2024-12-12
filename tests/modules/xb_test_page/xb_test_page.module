@@ -31,6 +31,7 @@ function xb_test_page_xb_page_view(array &$build): void {
   $build['#attached']['drupalSettings']['xb_test_page'] = [
     'foo' => 'Bar',
   ];
+  $build['#attached']['library'][] = 'core/drupalSettings';
   $build['xb_test_page_markup'] = [
     '#markup' => '<div id="xb-test-page-markup">xb_test_page_xb_page_view markup</div>',
   ];

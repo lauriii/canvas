@@ -1,9 +1,6 @@
 $schema: https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json
 name: Section
 description: A text/image section with inline styles for testing purposes
-libraryOverrides:
-  dependencies:
-    - core/once
 props:
   type: object
   required:
