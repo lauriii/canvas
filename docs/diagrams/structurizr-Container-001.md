@@ -14,7 +14,7 @@ graph LR
     4["<div style='font-weight: bold'>Back-End Developer</div><div style='font-size: 70%; margin-top: 0px'>[Person]</div>"]
     style 4 fill:#ff0000,stroke:#b20000,color:#ffffff
 
-    subgraph 5 [Drupal + XB]
+    subgraph 5 ["Drupal + XB"]
       style 5 fill:#ffffff,stroke:#0b4884,color:#0b4884
 
       10("<div style='font-weight: bold'>XB admin UI</div><div style='font-size: 70%; margin-top: 0px'>[Container]</div><div style='font-size: 80%; margin-top:10px'>Define design system and how<br />it is available for Content<br />Creators by opting in SDCs,<br />defining field types for SDC<br />props, defining default<br />layout, defining Content<br />Creator’s freedom…</div>")

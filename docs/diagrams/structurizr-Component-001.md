@@ -23,7 +23,7 @@ graph TB
     click 44 https://www.drupal.org/project/experience_builder/issues/3454094 "https://www.drupal.org/project/experience_builder/issues/3454094"
     style 44 fill:#008000,stroke:#005900,color:#ffffff
 
-    subgraph 12 [XB-specific Config]
+    subgraph 12 ["XB-specific Config"]
       style 12 fill:#ffffff,stroke:#b27300,color:#b27300
 
       14("<div style='font-weight: bold'>XB Component</div><div style='font-size: 70%; margin-top: 0px'>[Component: Config entity]</div><div style='font-size: 80%; margin-top:10px'>Declares how to make a<br />type=Element or<br />type=Component available<br />within XB.</div>")
