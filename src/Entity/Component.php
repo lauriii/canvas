@@ -6,6 +6,7 @@ namespace Drupal\experience_builder\Entity;
 
 use Drupal\Core\Config\Entity\ConfigEntityBase;
 use Drupal\Core\Plugin\DefaultSingleLazyPluginCollection;
+use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\experience_builder\ComponentSource\ComponentSourceInterface;
 use Drupal\experience_builder\ComponentSource\ComponentSourceManager;
 use Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\SingleDirectoryComponent;
@@ -49,6 +50,7 @@ use Drupal\experience_builder\PropSource\StaticPropSource;
  *      "label",
  *      "id",
  *      "source",
+ *      "category",
  *      "settings",
  *    },
 *     constraints = {
@@ -76,6 +78,11 @@ final class Component extends ConfigEntityBase implements ComponentInterface {
   protected string $source;
 
   /**
+   * The human-readable category of the component.
+   */
+  protected string|TranslatableMarkup|null $category;
+
+  /**
    * The source plugin settings.
    */
   protected array $settings = [];
@@ -90,6 +97,18 @@ final class Component extends ConfigEntityBase implements ComponentInterface {
    */
   public function id(): string {
     return $this->id;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getCategory(): string|TranslatableMarkup {
+    // TRICKY: this PHP class allows this value to be `NULL` to avoid
+    // \Drupal\Core\Config\Entity\ConfigEntityBase::set() triggering a PHP Type
+    // error. Fortunately, all XB config entities have strict config schema
+    // validation. Thanks to validation, NULL is absent from the return type.
+    assert($this->category !== NULL);
+    return $this->category;
   }
 
   /**

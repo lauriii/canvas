@@ -52,6 +52,7 @@ class ComponentValidationTest extends ConfigEntityValidationTestBase {
 
     $this->entity = Component::create([
       'id' => 'sdc.sdc_test.my-cta',
+      'category' => 'Test',
       'source' => 'sdc',
       'settings' => [
         'plugin_id' => 'sdc_test:my-cta',
@@ -168,6 +169,20 @@ class ComponentValidationTest extends ConfigEntityValidationTestBase {
   public function testRequiredPropertyKeysMissing(?array $additional_expected_validation_errors_when_missing = NULL): void {
     $additional_expected_validation_errors_when_missing['settings']['id'] = 'This validation constraint is configured to inspect the properties <em class="placeholder">%parent.source, %parent.settings.plugin_id</em>, but some do not exist: <em class="placeholder">%parent.settings.plugin_id</em>.';
     parent::testRequiredPropertyKeysMissing($additional_expected_validation_errors_when_missing);
+  }
+
+  /**
+   * @dataProvider providerTestCategory
+   */
+  public function testCategory(?string $category, array $errors): void {
+    $this->entity->set('category', $category);
+    $this->assertValidationErrors($errors);
+  }
+
+  public function providerTestCategory(): \Generator {
+    yield 'valid string' => ['foo', []];
+    yield 'empty string' => ['', ['category' => 'This value should not be blank.']];
+    yield 'null' => [NULL, ['category' => 'This value should not be null.']];
   }
 
 }

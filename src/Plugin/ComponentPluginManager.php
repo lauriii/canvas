@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\experience_builder\Plugin;
 
+use Drupal\Component\Plugin\CategorizingPluginManagerInterface;
 use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Config\Schema\SchemaIncompleteException;
@@ -11,6 +12,7 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Extension\ThemeHandlerInterface;
 use Drupal\Core\File\FileSystemInterface;
+use Drupal\Core\Plugin\CategorizingPluginManagerTrait;
 use Drupal\Core\State\StateInterface;
 use Drupal\Core\Theme\Component\ComponentMetadata;
 use Drupal\Core\Theme\Component\ComponentValidator;
@@ -29,7 +31,9 @@ use Drupal\experience_builder\PropShape\StorablePropShape;
  *
  * @see \Drupal\experience_builder\Entity\Component
  */
-class ComponentPluginManager extends CoreComponentPluginManager {
+class ComponentPluginManager extends CoreComponentPluginManager implements CategorizingPluginManagerInterface {
+
+  use CategorizingPluginManagerTrait;
 
   const REASONS_STATE_KEY = 'experience_builder:component:reasons';
 
@@ -133,6 +137,11 @@ class ComponentPluginManager extends CoreComponentPluginManager {
       return TRUE;
     }
 
+    if ($plugin_definition['category'] == 'Elements') {
+      $this->reasons[$plugin_definition['id']] = 'Component uses the reserved "Elements" category';
+      return FALSE;
+    }
+
     if (isset($plugin_definition['props']['required'])) {
       foreach ($plugin_definition['props']['required'] as $prop) {
         // Every required prop must have >=1 example.
@@ -210,6 +219,26 @@ class ComponentPluginManager extends CoreComponentPluginManager {
       }
     }
     $this->state->set($this::REASONS_STATE_KEY, $this->reasons);
+  }
+
+  /**
+   * @todo remove when https://www.drupal.org/project/drupal/issues/3474533 lands
+   *
+   * @param array $definition
+   * @param string $plugin_id
+   */
+  public function processDefinition(&$definition, $plugin_id): void {
+    parent::processDefinition($definition, $plugin_id);
+    $this->processDefinitionCategory($definition);
+  }
+
+  /**
+   * @todo remove when https://www.drupal.org/project/drupal/issues/3474533 lands
+   *
+   * @param array $definition
+   */
+  protected function processDefinitionCategory(&$definition): void {
+    $definition['category'] = $definition['group'] ?? $this->t('Other');
   }
 
 }

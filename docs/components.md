@@ -53,6 +53,7 @@ For an `SDC` to be compatible/eligible for use in XB, it:
 - MUST have `example` for each required prop
 - MUST have only props for whose `prop shape`s a `static prop source` can be found (see [`XB Data model`, section 3.1.2.b](./data-model.md#3.1.2.b))
 - MUST not have `status` value `obsolete`
+- SHOULD have a `category`; if not specified, the fallback value "Other" will be used
 
 These checks are implemented in `\Drupal\experience_builder\Plugin\ComponentPluginManager::componentMeetsRequirements()`.
 

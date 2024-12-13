@@ -97,6 +97,7 @@ class ComponentTest extends KernelTestBase {
     $module_component = Component::create([
       'id' => self::MODULE_CONFIG_ENTITY_ID,
       'label' => self::LABEL,
+      'category' => self::LABEL,
       'source' => SingleDirectoryComponent::SOURCE_PLUGIN_ID,
       'settings' => [
         'plugin_id' => self::MODULE_COMPONENT_ID,

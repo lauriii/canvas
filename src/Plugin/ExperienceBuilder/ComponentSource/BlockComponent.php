@@ -144,13 +144,13 @@ final class BlockComponent extends ComponentSourceBase implements ContainerFacto
    * {@inheritdoc}
    */
   public function getClientSideInfo(ComponentEntity $component, ?bool $cache_tags = TRUE): array {
-    $definition = $this->blockManager->getDefinition($this->configuration['plugin_id']);
     $build = $this->renderComponent([], $component->uuid());
 
     // @todo Determine what other values this must return, do we need a value object? Decide in https://www.drupal.org/project/experience_builder/issues/3484678
     return [
       'id' => $component->id(),
-      'name' => (string) $definition['admin_label'],
+      'name' => (string) $component->label(),
+      'category' => (string) $component->getCategory(),
       'source' => (string) $this->t('Block'),
       // @todo Allow components to pass build arrays back?
       'default_markup' => $this->renderer->render($build),

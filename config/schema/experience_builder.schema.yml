@@ -38,6 +38,9 @@ experience_builder.component.*:
         PluginExists:
           manager: Drupal\experience_builder\ComponentSource\ComponentSourceManager
           interface: '\Drupal\experience_builder\ComponentSource\ComponentSourceInterface'
+    category:
+      type: required_label
+      label: 'Category'
     settings:
       type: experience_builder.component_source_settings.[%parent.source]
 

@@ -318,7 +318,8 @@ final class SingleDirectoryComponent extends ComponentSourceBase implements Comp
 
     return [
       'id' => $component->id(),
-      'name' => $component_plugin->metadata->name,
+      'name' => (string) $component->label(),
+      'category' => (string) $component->getCategory(),
       'source' => (string) $this->getSourceLabel(),
       // A pre-rendered version of the component is provided so no requests
       // are needed when adding it to the layout which includes a default markup,
@@ -391,6 +392,7 @@ final class SingleDirectoryComponent extends ComponentSourceBase implements Comp
     return ComponentEntity::create([
       'id' => self::convertMachineNameToId($component_plugin->getPluginId()),
       'label' => $component_plugin->getPluginDefinition()['name'] ?? $component_plugin->getPluginId(),
+      'category' => $component_plugin->getPluginDefinition()['category'],
       'source' => self::SOURCE_PLUGIN_ID,
       'settings' => [
         'plugin_id' => $component_plugin->getPluginId(),
