@@ -111,6 +111,8 @@ final class ComponentPropsForm extends FormBase {
       // @todo Design is undefined for the DynamicPropSource UX. Related: https://www.drupal.org/project/experience_builder/issues/3459234
       // @todo Design is undefined for the AdaptedPropSource UX.
     }
+    $form['#pre_render'][] = [FormIdPreRender::class, 'addFormId'];
+    $form['#attributes']['data-form-id'] = $this->getFormId();
     return $form;
   }
 

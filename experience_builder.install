@@ -23,6 +23,7 @@ function experience_builder_install(): void {
     \Drupal::service('entity_display.repository')
       ->getViewDisplay('node', 'article')
       ->setComponent('field_xb_demo', [
+        'label' => 'hidden',
         'type' => 'experience_builder_naive_render_sdc_tree',
         // The image field has weight -1 by default.
         'weight' => -2,

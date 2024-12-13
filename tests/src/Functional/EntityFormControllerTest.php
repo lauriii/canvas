@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\Tests\experience_builder\Functional;
 
 use Drupal\user\Entity\User;
+use Symfony\Component\DomCrawler\Crawler;
 
 /**
  * @coversDefaultClass \Drupal\experience_builder\Controller\EntityFormController
@@ -68,19 +69,20 @@ class EntityFormControllerTest extends FunctionalTestBase {
   private function assertFormResponse(string $path, bool $expected_menu_element): void {
     $response = $this->drupalGet($path);
     $this->assertSession()->statusCodeEquals(200);
-    $expected_start = '<template data-hyperscriptify><drupal-form attributes="' . htmlspecialchars(
-      '{"class":["node-article-form","node-form"],"data-drupal-selector":"node-article-form","enctype":"multipart\/form-data"',
-      ENT_QUOTES,
-    );
     $parsed_response = json_decode($response, TRUE);
-    $this->assertStringStartsWith($expected_start, $parsed_response['html']);
-    $menu_form_element_html_snippet = '<drupal-input attributes="' . htmlspecialchars(
-      '{"data-drupal-selector":"edit-menu-title"',
-      ENT_QUOTES,
-    );
-    $expected_menu_element ?
-      $this->assertStringContainsString($menu_form_element_html_snippet, $parsed_response['html']) :
-      $this->assertStringNotContainsString($menu_form_element_html_snippet, $parsed_response['html']);
+    $html = $parsed_response['html'];
+
+    $crawler = new Crawler($html);
+    self::assertCount(1, $crawler->filter('template[data-hyperscriptify]'));
+    $form = $crawler->filter('drupal-form');
+    self::assertCount(1, $form);
+
+    $attributes = \json_decode($form->attr('attributes') ?? '{}', TRUE, flags: JSON_THROW_ON_ERROR);
+    self::assertEquals(['node-article-form', 'node-form'], $attributes['class']);
+    self::assertEquals('node-article-form', $attributes['data-drupal-selector']);
+    self::assertEquals('multipart/form-data', $attributes['enctype']);
+
+    self::assertGreaterThanOrEqual($expected_menu_element ? 1 : 0, $crawler->filter('div[data-drupal-selector="edit-menu"] drupal-input[attributes*="edit-menu-title"]')->count());
   }
 
 }

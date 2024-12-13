@@ -10,6 +10,13 @@ import type { InputUIData, PropsValues } from '@/types/Form';
 import Ajv from 'ajv';
 // @ts-ignore
 import addDraft2019 from 'ajv-formats-draft2019';
+import type { FormId } from '@/features/form/formStateSlice';
+import {
+  clearFieldError,
+  setFieldError,
+  setFieldValue,
+} from '@/features/form/formStateSlice';
+import type { AppDispatch } from '@/app/store';
 const ajv = new Ajv();
 addDraft2019(ajv);
 
@@ -65,26 +72,35 @@ const shouldSkipJsonValidation = (
  *   An object usually generated on render in inputBehaviors.tsx.
  *   The specific properties required by this function:
  *     - selectedComponent {string}: the id of the selected component within the model.
- *     - setInputMessages {function}: React state updater for input-specific messages.
  *     - setInputValue {function}: React state updater for the input value.
- *     - setInputValue {function}: React state updater for the form state.
  * @param {function} storeUpdateCallback
  *   The function created in inputBehaviors that updates the Redux store based on form state.
+ * @param {function} dispatch
+ *   Function dispatch.
+ * @param {Record<string, any>} allValues
+ *   Current values.
  */
 export function inputBehaviorOnChange(
   e: React.ChangeEvent,
   attributes: PropsValues,
   inputAndUiData: InputUIData,
   storeUpdateCallback: (arg0: PropsValues) => void,
+  dispatch: AppDispatch,
+  allValues: Record<string, any>,
 ) {
-  const { selectedComponent, setInputMessages, setInputValue, setFormState } =
-    inputAndUiData;
-  if (setInputMessages) {
-    setInputMessages([]);
-  }
+  const { selectedComponent, setInputValue } = inputAndUiData;
   const target = e.target as HTMLInputElement | HTMLSelectElement;
   const schemas = getPropSchemas(inputAndUiData);
   const propName = toPropName(attributes.name, selectedComponent);
+  const formId = attributes['data-form-id'] as FormId;
+  if (formId) {
+    dispatch(
+      clearFieldError({
+        formId,
+        fieldName: attributes.name,
+      }),
+    );
+  }
 
   // If parsing results in a number that is not NaN, return the number, otherwise return the original string
   const value = parseValue(
@@ -93,10 +109,19 @@ export function inputBehaviorOnChange(
     schemas?.[propName],
   );
 
-  // Update the value of the input - which belongs to just this instance
-  // of inputBehaviors.
+  // Update the value of the input in the local state.
   if (setInputValue) {
     setInputValue(value);
+  }
+  // Update the value of the input in the Redux store.
+  if (formId) {
+    dispatch(
+      setFieldValue({
+        formId,
+        fieldName: attributes.name,
+        value,
+      }),
+    );
   }
 
   // Check if the input is valid before continuing.
@@ -110,11 +135,7 @@ export function inputBehaviorOnChange(
       target.form instanceof HTMLFormElement
     ) {
       if (!shouldSkipJsonValidation(attributes.name, target, inputAndUiData)) {
-        const [valid] = jsonValidate(
-          toPropName(attributes.name, selectedComponent),
-          value,
-          inputAndUiData,
-        );
+        const [valid] = jsonValidate(propName, value, inputAndUiData);
         if (!valid) {
           return;
         }
@@ -122,15 +143,8 @@ export function inputBehaviorOnChange(
     }
   }
 
-  // In addition, update the Context-stored Form State, which is aware
-  // of all form values plus additional metadata.
-  if (setFormState) {
-    setFormState((prior: PropsValues[]) => {
-      const newState: PropsValues[] = { ...prior, [target.name]: value };
-      storeUpdateCallback(newState);
-      return newState;
-    });
-  }
+  // @todo this really belongs in a listener middleware?
+  storeUpdateCallback({ ...allValues, [attributes.name]: value });
 }
 
 /**
@@ -145,16 +159,20 @@ export function inputBehaviorOnChange(
  *   The specific properties required by this function:
  *     - selectedComponent {string}: the id of the selected component within the model.
  *     - setInputMessages {function}: React state updater for input-specific messages.
+ * @param {AppDispatch} dispatch
+ *   Dispatch function.
  */
 export function inputBehaviorOnBlur(
   e: React.FocusEvent,
   attributes: PropsValues,
   inputAndUiData: InputUIData,
+  dispatch: AppDispatch,
 ) {
-  const { setInputMessages, selectedComponent } = inputAndUiData;
+  const { selectedComponent } = inputAndUiData;
   const target = e.target as HTMLInputElement | HTMLSelectElement;
   const schemas = getPropSchemas(inputAndUiData);
   const propName = toPropName(attributes.name, selectedComponent);
+  const formId = attributes['data-form-id'] as FormId;
   const value = parseValue(
     target.value,
     target as HTMLInputElement,
@@ -172,10 +190,15 @@ export function inputBehaviorOnBlur(
           inputAndUiData,
         );
         if (!valid) {
-          if (validate?.errors && !!setInputMessages) {
-            setInputMessages([
-              { type: 'error', message: ajv.errorsText(validate.errors) },
-            ]);
+          if (validate?.errors && formId) {
+            dispatch(
+              setFieldError({
+                type: 'error',
+                message: ajv.errorsText(validate.errors),
+                formId,
+                fieldName: attributes.name,
+              }),
+            );
           }
         }
         return valid;

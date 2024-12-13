@@ -264,7 +264,7 @@ export function getPropsValues(
             `Attempt to update ${propId} with value from ${key}, but could not parse sub field.`,
           );
         }
-      } else {
+      } else if (formState[key] !== null) {
         // If this condition is met, it's a single value responding to a single prop.
         newObject[propId] = formState[key];
       }

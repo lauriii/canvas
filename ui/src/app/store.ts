@@ -1,8 +1,22 @@
-import type { Action, Middleware, ThunkAction } from '@reduxjs/toolkit';
-import { combineSlices, configureStore } from '@reduxjs/toolkit';
+import type {
+  Action,
+  Middleware,
+  ThunkAction,
+  TypedStartListening,
+} from '@reduxjs/toolkit';
+import { isAnyOf } from '@reduxjs/toolkit';
+import {
+  combineSlices,
+  configureStore,
+  createListenerMiddleware,
+} from '@reduxjs/toolkit';
 import { setupListeners } from '@reduxjs/toolkit/query';
 import { v4 as uuidv4 } from 'uuid';
-import { uiSlice } from '@/features/ui/uiSlice';
+import {
+  selectSelectedComponent,
+  setSelectedComponent,
+  uiSlice,
+} from '@/features/ui/uiSlice';
 import { primaryPanelSlice } from '@/features/ui/primaryPanelSlice';
 import { dialogSlice } from '@/features/ui/dialogSlice';
 import { componentApi } from '@/services/components';
@@ -15,6 +29,10 @@ import { pageDataFormApi } from '@/services/pageDataForm';
 import { configurationSlice } from '@/features/configuration/configurationSlice';
 import { sectionApi } from '@/services/sections';
 import { setLatestUndoRedoActionId } from '@/features/ui/uiSlice';
+import {
+  clearFieldValues,
+  formStateSlice,
+} from '@/features/form/formStateSlice';
 
 // `combineSlices` automatically combines the reducers using
 // their `reducerPath`s, therefore we no longer need to call `combineReducers`.
@@ -37,6 +55,7 @@ const rootReducer = combineSlices(
   configurationSlice,
   primaryPanelSlice,
   dialogSlice,
+  formStateSlice,
 );
 // Infer the `RootState` type from the root reducer
 export type RootState = ReturnType<typeof rootReducer>;
@@ -67,8 +86,25 @@ export const makeStore = (preloadedState?: Partial<RootState>) => {
     reducer: rootReducer,
     // Adding the api middleware enables caching, invalidation, polling,
     // and other useful features of `rtk-query`.
-    middleware: (getDefaultMiddleware) =>
-      getDefaultMiddleware().concat(
+    middleware: (getDefaultMiddleware) => {
+      const clearFormStateComponents = createListenerMiddleware();
+      const startClearFormStateListening =
+        clearFormStateComponents.startListening as TypedStartListening<
+          RootState,
+          AppDispatch
+        >;
+      startClearFormStateListening({
+        matcher: isAnyOf(setSelectedComponent),
+        effect: (action, listenerApi) => {
+          if (
+            selectSelectedComponent(listenerApi.getOriginalState()) !==
+            action.payload
+          ) {
+            listenerApi.dispatch(clearFieldValues('component_props_form'));
+          }
+        },
+      });
+      return getDefaultMiddleware().concat(
         componentApi.middleware,
         sectionApi.middleware,
         layoutApi.middleware,
@@ -76,7 +112,9 @@ export const makeStore = (preloadedState?: Partial<RootState>) => {
         dummyPropsFormApi.middleware,
         pageDataFormApi.middleware,
         undoRedoActionIdMiddleware,
-      ),
+        clearFormStateComponents.middleware,
+      );
+    },
     preloadedState,
   });
   // configure listeners using the provided defaults

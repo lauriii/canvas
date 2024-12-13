@@ -50,6 +50,7 @@ class TranslationTest extends FunctionalTestBase {
     \Drupal::service('entity_display.repository')
       ->getViewDisplay('node', 'article')
       ->setComponent('field_xb_test', [
+        'label' => 'hidden',
         'type' => 'experience_builder_naive_render_sdc_tree',
       ])
       ->save();

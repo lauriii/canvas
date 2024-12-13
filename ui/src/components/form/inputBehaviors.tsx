@@ -1,6 +1,5 @@
-import { useState, useContext, useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useState } from 'react';
 import type * as React from 'react';
-import { FormDispatchContext } from './components/drupal/DrupalForm';
 import { selectSelectedComponent } from '@/features/ui/uiSlice';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import {
@@ -12,12 +11,18 @@ import { debounce } from 'lodash';
 import { useGetComponentsQuery } from '@/services/components';
 import { findComponentByUuid } from '@/features/layout/layoutUtils';
 import './InputBehaviors.css';
-import type { PropsValues, InputMessage, InputUIData } from '@/types/Form';
+import type { PropsValues, InputUIData } from '@/types/Form';
 import { getDefaultValue, getPropsValues } from '@/components/form/formUtil';
 import {
   inputBehaviorOnChange,
   inputBehaviorOnBlur,
 } from '@/components/form/inputBehaviorsEventCallbacks';
+import type { FormId } from '@/features/form/formStateSlice';
+import {
+  selectFieldError,
+  selectFormValues,
+  setFieldValue,
+} from '@/features/form/formStateSlice';
 
 // Wraps all form elements to provide common functionality and subscribe to the
 // parent form's context.
@@ -32,8 +37,6 @@ const InputBehaviors = (OriginalInput: React.FC) => {
     const { attributes, options, value, ...passProps } = properties;
     const defaultValue = getDefaultValue(options, attributes, value);
     const [inputValue, setInputValue] = useState(defaultValue || '');
-    const [inputMessages, setInputMessages] = useState<InputMessage[]>([]);
-    const setFormState = useContext(FormDispatchContext);
     const { data: components } = useGetComponentsQuery();
     const layout = useAppSelector(selectLayout);
     const node = findComponentByUuid(layout, selectedComponent);
@@ -47,10 +50,18 @@ const InputBehaviors = (OriginalInput: React.FC) => {
       model,
       inputValue,
       setInputValue,
-      inputMessages,
-      setInputMessages,
-      setFormState,
     };
+    const formValues = useAppSelector((state) =>
+      selectFormValues(state, attributes['data-form-id']),
+    );
+    const formId = attributes['data-form-id'] as FormId;
+    const fieldIdentifier = {
+      formId,
+      fieldName: attributes.name,
+    };
+    const fieldError = useAppSelector((state) =>
+      selectFieldError(state, fieldIdentifier),
+    );
     const formStateToStore = (newFormState: PropsValues) => {
       const { propsValues, selectedModel } = getPropsValues(
         newFormState,
@@ -87,14 +98,14 @@ const InputBehaviors = (OriginalInput: React.FC) => {
             },
           }),
         );
-      } else if (attributes.name && setFormState) {
-        // Note that checkbox is cast to bool to match the server prop
-        // type requirements.
-        setFormState((prior: object) => ({
-          ...prior,
-          [attributes.name]:
-            attributes.type === 'checkbox' ? !!inputValue : inputValue,
-        }));
+      } else if (attributes.name && formId) {
+        dispatch(
+          setFieldValue({
+            formId,
+            fieldName: attributes.name,
+            value: attributes.type === 'checkbox' ? !!inputValue : inputValue,
+          }),
+        );
       }
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
@@ -123,10 +134,17 @@ const InputBehaviors = (OriginalInput: React.FC) => {
           attributes,
           inputAndUiData,
           storeUpdateCallback,
+          dispatch,
+          formValues,
         );
       };
       attributes.onBlur = (e: React.FocusEvent) => {
-        const valid = inputBehaviorOnBlur(e, attributes, inputAndUiData);
+        const valid = inputBehaviorOnBlur(
+          e,
+          attributes,
+          inputAndUiData,
+          dispatch,
+        );
         if (!valid) {
           attributes['data-invalid-prop-value'] = 'true';
         }
@@ -152,12 +170,11 @@ const InputBehaviors = (OriginalInput: React.FC) => {
           attributes={attributes}
           options={options}
         />
-        {inputMessages.length > 0 &&
-          inputMessages.map((message) => (
-            <span data-prop-message>
-              {`${message.type === 'error' ? '❌ ' : ''}${message.message}`}
-            </span>
-          ))}
+        {fieldError && (
+          <span data-prop-message>
+            {`${fieldError.type === 'error' ? '❌ ' : ''}${fieldError.message}`}
+          </span>
+        )}
       </>
     );
   }

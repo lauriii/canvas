@@ -17,6 +17,7 @@ use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Url;
 use Drupal\datetime\Plugin\Field\FieldType\DateTimeItem;
 use Drupal\experience_builder\Entity\Component;
+use Drupal\experience_builder\Form\FormIdPreRender;
 use Drupal\experience_builder\InternalXbFieldNameResolver;
 use Drupal\experience_builder\Plugin\ComponentPluginManager;
 use Drupal\Core\Validation\Plugin\Validation\Constraint\FullyValidatableConstraint;
@@ -95,6 +96,9 @@ function experience_builder_form_alter(array &$form, FormStateInterface $form_st
   if ($route_name === 'experience_builder.api.entity_form') {
     // Hide submit buttons on the entity form accessed via the XB app.
     $form['actions']['#access'] = FALSE;
+    // Add form ID to elements.
+    $form['#pre_render'][] = [FormIdPreRender::class, 'addFormId'];
+    $form['#attributes']['data-form-id'] = 'page_data_form';
   }
 }
 
