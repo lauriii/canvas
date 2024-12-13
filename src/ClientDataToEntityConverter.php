@@ -32,7 +32,6 @@ class ClientDataToEntityConverter {
   ) {}
 
   public function convert(array $client_data, FieldableEntityInterface $entity): EntityConstraintViolationListInterface {
-    assert($entity->hasField('field_xb_demo'));
     // @todo Security hardening: any key besides `layout` and `model` should trigger an error response.
     // @todo Allow more keys when allowing data other than the XB component tree to be edited through the XB UI! See the `2.1. Content editing of meta fields` requirement, due for the 0.2 milestone: https://www.drupal.org/project/experience_builder/issues/3455753
     ['layout' => $layout, 'model' => $model] = $client_data;
@@ -42,7 +41,8 @@ class ClientDataToEntityConverter {
       return new EntityConstraintViolationList($entity, iterator_to_array($violations));
     }
 
-    $item = $entity->get('field_xb_demo')->first();
+    $field_name = InternalXbFieldNameResolver::getXbFieldName($entity);
+    $item = $entity->get($field_name)->first();
     assert($item instanceof ComponentTreeItem);
     $item->setValue([
       'tree' => json_encode($tree, JSON_UNESCAPED_UNICODE | JSON_FORCE_OBJECT),
@@ -56,10 +56,10 @@ class ClientDataToEntityConverter {
     // @see ::clientModelToServerProps()
     $transformed_violations = new EntityConstraintViolationList($entity, array_map(
       fn (ConstraintViolationInterface $v) => match (TRUE) {
-        str_starts_with($v->getPropertyPath(), 'field_xb_demo.0.tree[' . ComponentTreeStructure::ROOT_UUID . ']') => self::violationWithPropertyPathReplacePrefix($v, 'field_xb_demo.0.tree[' . ComponentTreeStructure::ROOT_UUID . ']', 'layout.children'),
+        str_starts_with($v->getPropertyPath(), "$field_name.0.tree[" . ComponentTreeStructure::ROOT_UUID . "]") => self::violationWithPropertyPathReplacePrefix($v, "$field_name.0.tree[" . ComponentTreeStructure::ROOT_UUID . ']', 'layout.children'),
         // @todo Perform a more complex transformation to accurately point to non-root-level components, OR remove the need for that in https://www.drupal.org/project/experience_builder/issues/3467954
-        str_starts_with($v->getPropertyPath(), 'field_xb_demo.0.tree') => self::violationWithPropertyPathReplacePrefix($v, "field_xb_demo.0.tree", 'layout'),
-        str_starts_with($v->getPropertyPath(), 'field_xb_demo.0.props') => self::violationWithPropertyPathReplacePrefix($v, "field_xb_demo.0.props", 'model'),
+        str_starts_with($v->getPropertyPath(), "$field_name.0.tree") => self::violationWithPropertyPathReplacePrefix($v, "$field_name.0.tree", 'layout'),
+        str_starts_with($v->getPropertyPath(), "$field_name.0.props") => self::violationWithPropertyPathReplacePrefix($v, "$field_name.0.props", 'model'),
         default => $v,
       },
       iterator_to_array($original_entity_violations),

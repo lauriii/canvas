@@ -6,6 +6,7 @@ namespace Drupal\experience_builder\Controller;
 
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\experience_builder\AutoSave\AutoSaveManager;
+use Drupal\experience_builder\InternalXbFieldNameResolver;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeHydrated;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
@@ -17,20 +18,10 @@ final class ApiLayoutController {
   }
 
   public function __invoke(FieldableEntityInterface $entity): JsonResponse {
-    if ($entity->getEntityTypeId() !== 'xb_page' && $entity->bundle() !== 'article') {
-      throw new \LogicException('For now, this assumes the entity is an xb_page or an article node!');
-    }
-
     if ($body = $this->autoSaveManager->getAutoSaveData($entity)) {
       return new JsonResponse($body);
     }
-
-    if ($entity->getEntityTypeId() === 'xb_page') {
-      $field_name = 'components';
-    }
-    else {
-      $field_name = 'field_xb_demo';
-    }
+    $field_name = InternalXbFieldNameResolver::getXbFieldName($entity);
     $item = $entity->get($field_name)->first();
     assert($item instanceof ComponentTreeItem);
     $tree = $item->get('tree');

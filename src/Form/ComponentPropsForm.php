@@ -9,6 +9,7 @@ use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Theme\ComponentPluginManager;
 use Drupal\experience_builder\Entity\Component;
+use Drupal\experience_builder\InternalXbFieldNameResolver;
 use Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\SingleDirectoryComponent;
 use Drupal\experience_builder\PropSource\PropSource;
 use Drupal\experience_builder\PropSource\StaticPropSource;
@@ -62,11 +63,12 @@ final class ComponentPropsForm extends FormBase {
     $stored_prop_sources = json_decode($props, TRUE)[$component_instance_uuid];
     $component_id = json_decode($this->getRequest()->get('tree'), TRUE)['type'];
 
-    // ⚠️ This is HORRIBLY HACKY and will go away! ☺️
-    // @see \Drupal\experience_builder\Controller\ApiLayoutController
-    if (!$entity || ($entity->getEntityTypeId() !== 'xb_page' && $entity->bundle() !== 'article')) {
-      throw new \LogicException('For now, this assumes the entity is an xb_page or an article node!');
+    if (is_null($entity)) {
+      throw new \UnexpectedValueException('The $entity parameter should never be NULL.');
     }
+    // We just need to verify that the entity has a XB field
+    // so that component form can be displayed.
+    InternalXbFieldNameResolver::getXbFieldName($entity);
 
     $component = Component::load($component_id);
     assert($component !== NULL);
