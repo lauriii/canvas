@@ -80,7 +80,9 @@
 # Issues: https://www.drupal.org/project/issues/experience_builder?component=Page
 [Page] @mglaman
 /src/Entity/Routing/
-/src/Entity/Page*
+/src/Entity/Page.php
+/src/Entity/PageAccessControlHandler.php
+/src/Entity/PageViewBuilder.php
 /tests/modules/xb_test_page/
 /tests/src/Kernel/Entity/Routing
 /tests/src/Kernel/Entity/Page*

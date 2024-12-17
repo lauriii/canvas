@@ -6,6 +6,7 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Render\PageDisplayVariantSelectionEvent;
 use Drupal\Core\Render\RenderEvents;
 use Drupal\Core\Theme\ThemeManagerInterface;
+use Drupal\experience_builder\Entity\PageTemplate;
 use Drupal\experience_builder\Plugin\DisplayVariant\PageTemplateDisplayVariant;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
@@ -36,7 +37,7 @@ final class RenderEventsSubscriber implements EventSubscriberInterface {
       ->load($active_theme_name);
 
     // For this theme, an Experience Builder PageTemplate config entity exists.
-    if ($page_template) {
+    if ($page_template instanceof PageTemplate && $page_template->status()) {
       $event->setPluginId('experience_builder_page_template_display');
       $event->setPluginConfiguration([
         PageTemplateDisplayVariant::PAGE_TEMPLATE_CONFIG_ENTITY_KEY => $page_template,

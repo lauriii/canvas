@@ -19,6 +19,7 @@ use Drupal\datetime\Plugin\Field\FieldType\DateTimeItem;
 use Drupal\experience_builder\Entity\Component;
 use Drupal\experience_builder\Form\FormIdPreRender;
 use Drupal\experience_builder\InternalXbFieldNameResolver;
+use Drupal\experience_builder\Entity\PageTemplate;
 use Drupal\experience_builder\Plugin\ComponentPluginManager;
 use Drupal\Core\Validation\Plugin\Validation\Constraint\FullyValidatableConstraint;
 use Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\BlockComponent;
@@ -363,4 +364,49 @@ function experience_builder_entity_base_field_info(EntityTypeInterface $entity_t
 
   }
   return $fields;
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter() for system_theme_settings.
+ */
+function experience_builder_form_system_theme_settings_alter(array &$form, FormStateInterface $form_state): void {
+  if (empty($form_state->getBuildInfo()['args'][0])) {
+    // Do not alter the "Global settings" tab.
+    return;
+  }
+
+  $theme = $form_state->getBuildInfo()['args'][0];
+  $page_template = PageTemplate::load($theme);
+  $enabled = $page_template && $page_template->status();
+
+  $form['experience_builder'] = [
+    '#type' => 'details',
+    '#title' => t('Experience Builder'),
+    '#weight' => -1,
+    '#open' => TRUE,
+  ];
+  $form['experience_builder']['use_xb'] = [
+    '#type' => 'checkbox',
+    '#title' => t('Use Experience Builder for page templates in this theme.'),
+    '#default_value' => $enabled,
+  ];
+
+  array_unshift($form['#submit'], 'experience_builder_form_system_theme_settings_submit');
+}
+
+function experience_builder_form_system_theme_settings_submit(array &$form, FormStateInterface $form_state): void {
+  $theme = $form_state->getBuildInfo()['args'][0];
+  $page_template = PageTemplate::load($theme);
+  $enable = $form_state->getValue('use_xb');
+
+  if ($enable) {
+    $page_template ??= PageTemplate::createFromBlockLayout($theme);
+    $page_template->enable()->save();
+  }
+  elseif ($page_template) {
+    $page_template->disable()->save();
+  }
+
+  // Avoid polluting the theme settings config entity.
+  $form_state->unsetValue('use_xb');
 }

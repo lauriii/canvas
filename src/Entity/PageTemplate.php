@@ -6,6 +6,7 @@ namespace Drupal\experience_builder\Entity;
 
 use Drupal\Core\Config\Entity\ConfigEntityBase;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
+use Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\BlockComponent;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemInstantiatorTrait;
 
@@ -100,6 +101,62 @@ final class PageTemplate extends ConfigEntityBase implements XbHttpApiEligibleCo
     }
 
     return $this;
+  }
+
+  /**
+   * Creates a page template entity based on the block layout of a theme.
+   *
+   * @param string $theme
+   *   The theme to use.
+   *
+   * @return static
+   */
+  public static function createFromBlockLayout(string $theme): static {
+    $blocks = \Drupal::service('entity_type.manager')->getStorage('block')->loadByProperties(['theme' => $theme]);
+    $regions = [];
+    foreach ($blocks as $block) {
+      $component_id = BlockComponent::componentIdFromBlockPluginId($block->getPluginId());
+      if (!Component::load($component_id)) {
+        // This block isn't supported by XB.
+        // @see \experience_builder_block_alter().
+        continue;
+      }
+      // We can't key these by component ID because you can place the same
+      // block twice with different settings.
+      $regions[$block->getRegion()][] = [
+        'component' => $component_id,
+        'settings' => $block->get('settings'),
+        'uuid' => $block->uuid(),
+      ];
+    }
+
+    $theme_info = \Drupal::service('theme_handler')->getTheme($theme);
+    $region_names = array_keys($theme_info->info['regions']);
+    $component_trees = array_fill_keys($region_names, NULL);
+    foreach ($region_names as $region) {
+      if (isset($regions[$region])) {
+        $component_trees[$region] = [
+          'tree' => json_encode([
+            ComponentTreeStructure::ROOT_UUID => array_map(
+              static fn(array $block) => \array_intersect_key($block, \array_flip([
+                'component',
+                'uuid',
+              ])),
+              $regions[$region],
+            ),
+          ]),
+          'props' => \json_encode(\array_reduce($regions[$region], static fn(array $carry, array $block) => $carry + [
+            $block['uuid'] => $block['settings'],
+          ],
+            [])),
+        ];
+      }
+    }
+
+    return static::create([
+      'theme' => $theme,
+      'component_trees' => $component_trees,
+    ]);
   }
 
 }

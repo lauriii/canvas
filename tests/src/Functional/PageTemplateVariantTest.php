@@ -77,7 +77,7 @@ class PageTemplateVariantTest extends BrowserTestBase {
         'expression' => 'ℹ︎string␟value',
       ];
     };
-    PageTemplate::create([
+    $pageTemplate = PageTemplate::create([
       'theme' => $this->defaultTheme,
       'component_trees' => [
         'sidebar_first' => NULL,
@@ -85,11 +85,20 @@ class PageTemplateVariantTest extends BrowserTestBase {
         'content' => [
           'tree' => self::encodeXBData([
             ComponentTreeStructure::ROOT_UUID => [
-              ['uuid' => 'uuid-in-root', 'component' => 'sdc.xb_test_sdc.props-no-slots'],
+              [
+                'uuid' => 'uuid-in-root',
+                'component' => 'sdc.xb_test_sdc.props-no-slots',
+              ],
               ['uuid' => 'uuid-main', 'component' => 'block.system_main_block'],
               ['uuid' => 'uuid-title', 'component' => 'block.page_title_block'],
-              ['uuid' => 'uuid-messages', 'component' => 'block.system_messages_block'],
-              ['uuid' => 'uuid-in-root-another', 'component' => 'sdc.xb_test_sdc.props-no-slots'],
+              [
+                'uuid' => 'uuid-messages',
+                'component' => 'block.system_messages_block',
+              ],
+              [
+                'uuid' => 'uuid-in-root-another',
+                'component' => 'sdc.xb_test_sdc.props-no-slots',
+              ],
             ],
           ]),
           'props' => self::encodeXBData([
@@ -111,7 +120,8 @@ class PageTemplateVariantTest extends BrowserTestBase {
         'page_bottom' => NULL,
         'breadcrumb' => NULL,
       ],
-    ])->save();
+    ]);
+    $pageTemplate->save();
     // ⚠️ In the future, we may want to reduce the number of cache tags and rely
     // solely on the XB PageTemplate config entity's cache tag. That would
     // require intersecting every XB Component config entity cache tag
@@ -127,6 +137,12 @@ class PageTemplateVariantTest extends BrowserTestBase {
       'sdc.xb_test_sdc.props-no-slots',
     ]));
     $this->assertSession()->pageTextNotContains('Powered by Drupal');
+
+    // 6. If the Experience Builder PageTemplate config entity is disabled,
+    // BlockPageVariant is used once again.
+    $pageTemplate->disable()->save();
+    $this->assertPageDisplayVariant(BlockPageVariant::class, [$block]);
+    $this->assertSession()->pageTextContains('Powered by Drupal');
   }
 
   private function assertPageDisplayVariant(string $expected_page_display_variant_class, array $expected_cacheable_dependencies): void {

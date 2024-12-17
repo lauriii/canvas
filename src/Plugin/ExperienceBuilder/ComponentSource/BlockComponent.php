@@ -66,6 +66,19 @@ final class BlockComponent extends ComponentSourceBase implements ContainerFacto
   }
 
   /**
+   * Generate a component ID given a block plugin ID.
+   *
+   * @param string $pluginId
+   *   Block plugin ID.
+   *
+   * @return string
+   *   Generated component ID.
+   */
+  public static function componentIdFromBlockPluginId(string $pluginId): string {
+    return 'block.' . \str_replace(':', '.', $pluginId);
+  }
+
+  /**
    * {@inheritdoc}
    */
   public function getComponentPluginDefinition(): array {
@@ -137,7 +150,16 @@ final class BlockComponent extends ComponentSourceBase implements ContainerFacto
    */
   public function hydrateComponent(string $uuid, ComponentTreeItem $item): array {
     // @todo What are "props" in terms of blocks? Define in https://www.drupal.org/project/experience_builder/issues/3484666
-    return ['settings' => []];
+    $props = $item->get('props');
+    $json = $props->getValue();
+    \assert(\is_string($json));
+    try {
+      $settings = \array_diff_key(\json_decode($json, TRUE, flags: JSON_THROW_ON_ERROR)[$uuid] ?? [], \array_flip(['id']));
+    }
+    catch (\JsonException) {
+      $settings = [];
+    }
+    return ['settings' => $settings];
   }
 
   /**
