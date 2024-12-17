@@ -92,7 +92,11 @@ paths:
         - $ref: '#/components/parameters/entityTypeId'
         - $ref: '#/components/parameters/entityId'
       requestBody:
-        $ref: '#/components/requestBodies/Layout'
+        content:
+          application/json:
+            schema:
+              type: object
+              properties: {}
       responses:
         '200':
           description: Saved entity successfully

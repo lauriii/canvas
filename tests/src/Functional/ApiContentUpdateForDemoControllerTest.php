@@ -103,7 +103,7 @@ final class ApiContentUpdateForDemoControllerTest extends FunctionalTestBase {
     $response = $this->makeApiRequest(
       'PATCH',
       Url::fromUri('base:/xb/api/content-update/node/' . $node->id()),
-      []
+      ['headers' => ['Content-Type' => 'application/json'], 'body' => json_encode(new \stdClass())],
     );
     $contents = (string) $response->getBody();
     $this->assertJson($contents, "Response is not valid JSON: $contents");
