@@ -26,7 +26,6 @@ export const layoutApi = createApi({
       query: ({ entityId, entityType, layout, model }) => ({
         url: `/xb/api/content-update/${entityType}/${entityId}`,
         method: 'PATCH',
-        body: { layout, model },
       }),
     }),
   }),

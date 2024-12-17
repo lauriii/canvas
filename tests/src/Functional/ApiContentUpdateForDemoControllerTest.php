@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace Drupal\Tests\experience_builder\Functional;
 
 use Drupal\Core\Url;
+use Drupal\experience_builder\AutoSave\AutoSaveManager;
 use Drupal\node\Entity\Node;
 use Drupal\Tests\ApiRequestTrait;
 use Drupal\Tests\experience_builder\Traits\TestDataUtilitiesTrait;
 use Drupal\Tests\experience_builder\Traits\XBFieldTrait;
-use GuzzleHttp\RequestOptions;
 
 final class ApiContentUpdateForDemoControllerTest extends FunctionalTestBase {
 
@@ -99,10 +99,11 @@ final class ApiContentUpdateForDemoControllerTest extends FunctionalTestBase {
   }
 
   private function assertClientRequest(Node $node, array $client_json, int $expected_status, array $expected_json): void {
+    $this->container->get(AutoSaveManager::class)->save($node, $client_json);
     $response = $this->makeApiRequest(
       'PATCH',
       Url::fromUri('base:/xb/api/content-update/node/' . $node->id()),
-      [RequestOptions::JSON => $client_json]
+      []
     );
     $contents = (string) $response->getBody();
     $this->assertJson($contents, "Response is not valid JSON: $contents");

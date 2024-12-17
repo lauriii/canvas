@@ -6,9 +6,9 @@ namespace Drupal\experience_builder\Controller;
 
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Entity\RevisionableInterface;
+use Drupal\experience_builder\AutoSave\AutoSaveManager;
 use Drupal\experience_builder\ClientDataToEntityConverter;
 use Symfony\Component\HttpFoundation\JsonResponse;
-use Symfony\Component\HttpFoundation\Request;
 
 /**
  * Controller exposing HTTP API for updating Content entities using an XB field.
@@ -27,10 +27,13 @@ final class ApiContentUpdateForDemoController extends ApiControllerBase {
 
   public function __construct(
     private readonly ClientDataToEntityConverter $clientDataToEntityConverter,
+    private readonly AutoSaveManager $autoSaveManager,
   ) {}
 
-  public function __invoke(Request $request, FieldableEntityInterface $entity): JsonResponse {
-    $violations = $this->clientDataToEntityConverter->convert(json_decode($request->getContent(), TRUE), $entity);
+  public function __invoke(FieldableEntityInterface $entity): JsonResponse {
+    $auto_save = $this->autoSaveManager->getAutoSaveData($entity);
+    assert(is_array($auto_save));
+    $violations = $this->clientDataToEntityConverter->convert($auto_save, $entity);
     if ($validation_errors_response = self::createJsonResponseFromViolations($violations)) {
       return $validation_errors_response;
     }
@@ -44,11 +47,12 @@ final class ApiContentUpdateForDemoController extends ApiControllerBase {
    * @return \Symfony\Component\HttpFoundation\JsonResponse
    * @throws \Drupal\Core\Entity\EntityStorageException
    */
-  protected static function save(FieldableEntityInterface $entity): JsonResponse {
+  protected function save(FieldableEntityInterface $entity): JsonResponse {
     if ($entity instanceof RevisionableInterface) {
       $entity->setNewRevision();
     }
     $entity->save();
+    $this->autoSaveManager->delete($entity);
     return new JsonResponse(data: ['message' => 'Saved successfully.'], status: 200);
   }
 
