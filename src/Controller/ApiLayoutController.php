@@ -29,14 +29,12 @@ final class ApiLayoutController {
 
     $hydrated = $item->get('hydrated');
     assert($hydrated instanceof ComponentTreeHydrated);
-    $hydrated_json = $hydrated->getValue()->getContent();
-    assert(is_string($hydrated_json));
 
     $layout = [];
     $model = [];
     $decoded_tree = json_decode($tree->getValue(), TRUE);
 
-    $this->buildLayout($layout, $model, $item, $decoded_tree[ComponentTreeStructure::ROOT_UUID], json_decode($hydrated_json, TRUE)[ComponentTreeStructure::ROOT_UUID]);
+    $this->buildLayout($layout, $model, $item, $decoded_tree[ComponentTreeStructure::ROOT_UUID], $hydrated->getValue()->getTree()[ComponentTreeStructure::ROOT_UUID]);
 
     // @todo This now returns a mixture of pure tree structure with hydrated props values. Re-assess.
     $full_layout = [

@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Drupal\experience_builder\Plugin\DataType;
 
 use Drupal\Core\Cache\CacheableDependencyInterface;
-use Drupal\Core\Cache\CacheableJsonResponse;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Entity\Plugin\DataType\EntityAdapter;
 use Drupal\Core\Render\RenderableInterface;
@@ -14,12 +13,11 @@ use Drupal\Core\TypedData\Attribute\DataType;
 use Drupal\Core\TypedData\TypedData;
 use Drupal\experience_builder\ComponentSource\ComponentSourceWithSlotsInterface;
 use Drupal\experience_builder\Entity\Component;
+use Drupal\experience_builder\HydratedTree;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
 
 /**
  * @todo Do we need multiple variations of this? See \Drupal\datetime\DateTimeComputed for an example where there's *settings*
- *
- * @phpstan-type ComponentTreeHydratedValue \Drupal\Core\Cache\CacheableJsonResponse
  */
 #[DataType(
   id: "component_tree_hydrated",
@@ -30,10 +28,8 @@ class ComponentTreeHydrated extends TypedData implements CacheableDependencyInte
 
   /**
    * {@inheritdoc}
-   *
-   * @phpstan-return ComponentTreeHydratedValue
    */
-  public function getValue(): CacheableJsonResponse {
+  public function getValue(): HydratedTree {
     $item = $this->getParent();
     assert($item instanceof ComponentTreeItem);
     $tree = $item->get('tree');
@@ -45,6 +41,7 @@ class ComponentTreeHydrated extends TypedData implements CacheableDependencyInte
     // essentially means getting the values for each component instance, while
     // ignoring their slots. The result: a flat list of hydrated components, but
     // with all slots empty.
+    // @todo This should use ::loadMultiple for performance sake.
     foreach ($tree->getComponentInstanceUuids() as $uuid) {
       $component_id = $tree->getComponentId($uuid);
       $component = Component::load($component_id);
@@ -71,9 +68,10 @@ class ComponentTreeHydrated extends TypedData implements CacheableDependencyInte
       unset($hydrated[$uuid]);
     }
 
-    return (new CacheableJsonResponse())
-      ->addCacheableDependency($this->getCacheability())
-      ->setData([ComponentTreeStructure::ROOT_UUID => $hydrated]);
+    return new HydratedTree(
+      [ComponentTreeStructure::ROOT_UUID => $hydrated],
+      $this->getCacheability(),
+    );
   }
 
   /**
@@ -97,11 +95,9 @@ class ComponentTreeHydrated extends TypedData implements CacheableDependencyInte
 
     $build = [];
     // @see \Drupal\Core\Entity\EntityViewBuilder::getBuildDefaults()
-    $renderable_component_tree->getCacheableMetadata()->applyTo($build);
+    CacheableMetadata::createFromObject($renderable_component_tree)->applyTo($build);
 
-    $json = $renderable_component_tree->getContent();
-    assert(is_string($json));
-    $hydrated = json_decode($json, TRUE);
+    $hydrated = $renderable_component_tree->getTree();
 
     assert(array_keys($hydrated) === [ComponentTreeStructure::ROOT_UUID]);
     return self::renderify($hydrated);

@@ -31,9 +31,8 @@ use Drupal\experience_builder\ShapeMatcher\FieldForComponentSuggester;
  * @see https://git.drupalcode.org/project/metatag/-/blob/2.0.x/src/Plugin/Field/FieldType/MetatagFieldItem.php
  *
  * @phpstan-import-type ComponentConfigEntityId from \Drupal\experience_builder\Entity\Component
- * @phpstan-import-type ComponentTreeHydratedValue from \Drupal\experience_builder\Plugin\DataType\ComponentTreeHydrated
  *
- * @property ComponentTreeHydratedValue $hydrated
+ * @property \Drupal\experience_builder\HydratedTree $hydrated
  */
 #[FieldType(
   id: "component_tree",

@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\experience_builder\Kernel\Entity;
 
-use Drupal\Component\Serialization\Json;
 use Drupal\experience_builder\Entity\Page;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
@@ -166,7 +165,7 @@ final class PageTest extends KernelTestBase {
           ],
         ],
       ],
-      Json::decode($components->hydrated->getContent() ?: '')
+      $components->hydrated->getTree()
     );
   }
 
