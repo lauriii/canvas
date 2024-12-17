@@ -11,6 +11,7 @@ use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\node\Entity\Node;
 use Drupal\Tests\experience_builder\TestSite\XBTestSetup;
+use Drupal\Tests\experience_builder\Traits\ConstraintViolationsTestTrait;
 use Drupal\Tests\experience_builder\Traits\ContribStrictConfigSchemaTestTrait;
 use Drupal\Tests\experience_builder\Traits\TestDataUtilitiesTrait;
 use Drupal\Tests\experience_builder\Traits\XBFieldTrait;
@@ -21,6 +22,7 @@ class ClientServerConversionTraitTest extends KernelTestBase {
   use ClientServerConversionTrait;
   use TestDataUtilitiesTrait;
   use ContribStrictConfigSchemaTestTrait;
+  use ConstraintViolationsTestTrait;
 
   private EntityTypeManagerInterface $entityTypeManager;
 
@@ -71,6 +73,39 @@ class ClientServerConversionTraitTest extends KernelTestBase {
     $node1->validate();
     $node1->save();
     $this->assertValidJsonUpdateNode($node1);
+  }
+
+  public function testConvertClientToServerErrors(): void {
+    $valid_client_json = $this->getValidClientJson();
+
+    $invalid_image_client_json = $valid_client_json;
+    $invalid_image_client_json['model'][self::TEST_IMAGE_UUID]['image']['src'] = '/not/a/real/url';
+    $this->assertConversionErrors(
+      $invalid_image_client_json,
+      ['model.' . self::TEST_IMAGE_UUID . '.image.src' => "File '/not/a/real/url' not found."],
+    );
+
+    $unreferenced_file_client_json = $valid_client_json;
+    $unreferenced_src = $this->getSrcPropertyFromFile($this->unreferencedImage);
+    $unreferenced_file_client_json['model'][self::TEST_IMAGE_UUID]['image']['src'] = $unreferenced_src;
+    $this->assertConversionErrors(
+      $unreferenced_file_client_json,
+      ['model.' . self::TEST_IMAGE_UUID . '.image.src' => "No media entity found that uses file '$unreferenced_src'."]
+    );
+
+    $invalid_tree_client_json = $valid_client_json;
+    $invalid_tree_client_json['layout']['components'][1]['type'] = 'sdc.experience_builder.missing_component';
+    $this->assertConversionErrors(
+      $invalid_tree_client_json,
+      ['layout.children[1]' => 'The component <em class="placeholder">sdc.experience_builder.missing_component</em> does not exist.']
+    );
+  }
+
+  private function assertConversionErrors(array $client_json, array $errors): void {
+    [$tree, $props, $violations] = $this->convertClientToServer($client_json['layout'], $client_json['model']);
+    $this->assertNull($tree);
+    $this->assertNull($props);
+    $this->assertSame($errors, $this->violationsToArray($violations));
   }
 
 }
