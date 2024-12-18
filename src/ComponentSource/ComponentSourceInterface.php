@@ -8,7 +8,10 @@ use Drupal\Component\Plugin\ConfigurableInterface;
 use Drupal\Component\Plugin\DependentPluginInterface;
 use Drupal\Component\Plugin\DerivativeInspectionInterface;
 use Drupal\Component\Plugin\PluginInspectionInterface;
+use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Plugin\ContextAwarePluginInterface;
+use Drupal\Core\Plugin\PluginFormInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\experience_builder\Entity\Component;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
@@ -32,7 +35,7 @@ use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
  * @phpstan-import-type ComponentClientSideTypeAny from \Drupal\experience_builder\Controller\ApiComponentsController
  * @phpstan-import-type ComponentClientSideTypeSdc from \Drupal\experience_builder\Controller\ApiComponentsController
  */
-interface ComponentSourceInterface extends PluginInspectionInterface, DerivativeInspectionInterface, ConfigurableInterface, DependentPluginInterface, ContextAwarePluginInterface {
+interface ComponentSourceInterface extends PluginInspectionInterface, DerivativeInspectionInterface, ConfigurableInterface, PluginFormInterface, DependentPluginInterface, ContextAwarePluginInterface {
 
   /**
    * Gets the source plugin dependencies.
@@ -115,5 +118,24 @@ interface ComponentSourceInterface extends PluginInspectionInterface, Derivative
    * @todo Refine in https://www.drupal.org/project/experience_builder/issues/3484678
    */
   public function getClientSideInfo(Component $component, ?bool $cache_tags = TRUE): array;
+
+  /**
+   * Configuration form constructor.
+   *
+   * @param array $form
+   *   An associative array containing the initial structure of the plugin form.
+   * @param \Drupal\Core\Form\FormStateInterface $form_state
+   *   The current state of the form.
+   * @param string $component_instance_uuid
+   *   The component instance UUID.
+   * @param \Drupal\Core\Entity\EntityInterface|null $entity
+   *   The host entity.
+   * @param array $settings
+   *   The component configuration entity settings.
+   *
+   * @return array
+   *   The form structure.
+   */
+  public function buildConfigurationForm(array $form, FormStateInterface $form_state, string $component_instance_uuid = '', ?EntityInterface $entity = NULL, array $settings = []): array;
 
 }

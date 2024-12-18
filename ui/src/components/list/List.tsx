@@ -32,6 +32,7 @@ export interface ListItemBase {
 }
 export interface ComponentListItem extends ListItemBase {
   field_data: Record<string, any>;
+  source: string;
 }
 export interface SectionListItem extends ListItemBase {
   layoutModel: LayoutModelPiece;

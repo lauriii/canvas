@@ -74,10 +74,10 @@ entity.component.delete_form:
   requirements:
     _entity_access: 'component.delete'
 
-experience_builder.api.component_props_form:
+experience_builder.api.component_inputs_form:
   path: '/xb-field-form/{entity_type}/{entity}'
   defaults:
-    _form: '\Drupal\experience_builder\Form\ComponentPropsForm'
+    _form: '\Drupal\experience_builder\Form\ComponentInputsForm'
     _title: 'Component Props Form'
   requirements:
     _permission: 'access administration pages'

@@ -279,7 +279,7 @@ function experience_builder_block_alter(array &$definitions): void {
           'plugin_id' => $id,
           // We are using strict config schema validation, so we need to provide valid settings for each block.
           'settings' => [
-            // @todo if we need ID here can we merge settings with the parent and drop plugin_id?
+              // @todo if we need ID here can we merge settings with the parent and drop plugin_id?
             'id' => $id,
             'label' => (string) $definition['admin_label'],
             'label_display' => FALSE,

@@ -88,6 +88,132 @@ class XBTestSetup implements TestSetupInterface {
 
     $field_definitions = \Drupal::service('entity_field.manager')->getFieldDefinitions('node', 'article');
     $image_field_sample_value = ImageItem::generateSampleValue($field_definitions['field_hero']);
+    $tree = [
+      ComponentTreeStructure::ROOT_UUID => [
+        [
+          'uuid' => 'two-column-uuid',
+          'component' => 'sdc.experience_builder.two_column',
+        ],
+      ],
+      'two-column-uuid' => [
+        'column_one' => [
+          [
+            'uuid' => 'dynamic-image-udf7d',
+            'component' => 'sdc.experience_builder.image',
+          ],
+          [
+            'uuid' => 'static-static-card1ab',
+            'component' => 'sdc.experience_builder.my-hero',
+          ],
+        ],
+        'column_two' => [
+          [
+            'uuid' => 'dynamic-static-card2df',
+            'component' => 'sdc.experience_builder.my-hero',
+          ],
+          [
+            'uuid' => 'dynamic-dynamic-card3rr',
+            'component' => 'sdc.experience_builder.my-hero',
+          ],
+          [
+            'uuid' => 'dynamic-image-static-imageStyle-something7d',
+            'component' => 'sdc.experience_builder.image',
+          ],
+        ],
+      ],
+    ];
+
+    $props = [
+      'two-column-uuid' => [
+        'width' => [
+          'sourceType' => 'static:field_item:list_integer',
+          'value' => 50,
+          'expression' => 'ℹ︎list_integer␟value',
+          'sourceTypeSettings' => [
+            'storage' => [
+              'allowed_values' => [
+                [
+                  'value' => 25,
+                  'label' => '25',
+                ],
+                [
+                  'value' => 33,
+                  'label' => '33',
+                ],
+                [
+                  'value' => 50,
+                  'label' => '50',
+                ],
+                [
+                  'value' => 66,
+                  'label' => '66',
+                ],
+                [
+                  'value' => 75,
+                  'label' => '75',
+                ],
+              ],
+            ],
+          ],
+        ],
+      ],
+      'dynamic-static-card2df' => [
+        'heading' => [
+          'sourceType' => 'dynamic',
+          'expression' => 'ℹ︎␜entity:node:article␝title␞␟value',
+        ],
+        'cta1href' => [
+          'sourceType' => 'static:field_item:uri',
+          'value' => 'https://drupal.org',
+          'expression' => 'ℹ︎uri␟value',
+        ],
+      ],
+      'static-static-card1ab' => [
+        'heading' => [
+          'sourceType' => 'static:field_item:string',
+          'value' => 'hello, world!',
+          'expression' => 'ℹ︎string␟value',
+        ],
+        'cta1href' => [
+          'sourceType' => 'static:field_item:uri',
+          'value' => 'https://drupal.org',
+          'expression' => 'ℹ︎uri␟value',
+        ],
+      ],
+      'dynamic-dynamic-card3rr' => [
+        'heading' => [
+          'sourceType' => 'dynamic',
+          'expression' => 'ℹ︎␜entity:node:article␝title␞␟value',
+        ],
+        'cta1href' => [
+          'sourceType' => 'dynamic',
+          'expression' => 'ℹ︎␜entity:node:article␝field_hero␞␟entity␜␜entity:file␝uri␞␟value',
+        ],
+      ],
+      'dynamic-image-udf7d' => [
+        'image' => [
+          'sourceType' => 'dynamic',
+          'expression' => 'ℹ︎␜entity:node:article␝field_hero␞␟{src↝entity␜␜entity:file␝uri␞␟url,alt↠alt,width↠width,height↠height}',
+        ],
+      ],
+      'dynamic-image-static-imageStyle-something7d' => [
+        'image' => [
+          'sourceType' => 'adapter:image_apply_style',
+          'adapterInputs' => [
+            'image' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:article␝field_hero␞␟{src↝entity␜␜entity:file␝uri␞0␟value,alt↠alt,width↠width,height↠height}',
+            ],
+            'imageStyle' => [
+              'sourceType' => 'static:field_item:string',
+              'value' => 'thumbnail',
+              'expression' => 'ℹ︎string␟value',
+            ],
+          ],
+        ],
+      ],
+      'cea4c5b3-7921-4c6f-b388-da921bd1496d' => [],
+    ];
     $node = Node::create([
       'type' => 'article',
       'title' => 'XB Needs This For The Time Being',
@@ -95,139 +221,35 @@ class XBTestSetup implements TestSetupInterface {
       // @todo Add E2E test coverage for starting with an empty canvas in
       //   https://drupal.org/i/3474257.
       'field_xb_demo' => [
-        'tree' => json_encode([
-          ComponentTreeStructure::ROOT_UUID => [
-            [
-              'uuid' => 'two-column-uuid',
-              'component' => 'sdc.experience_builder.two_column',
-            ],
-          ],
-          'two-column-uuid' => [
-            'column_one' => [
-              [
-                'uuid' => 'dynamic-image-udf7d',
-                'component' => 'sdc.experience_builder.image',
-              ],
-              [
-                'uuid' => 'static-static-card1ab',
-                'component' => 'sdc.experience_builder.my-hero',
-              ],
-            ],
-            'column_two' => [
-              [
-                'uuid' => 'dynamic-static-card2df',
-                'component' => 'sdc.experience_builder.my-hero',
-              ],
-              [
-                'uuid' => 'dynamic-dynamic-card3rr',
-                'component' => 'sdc.experience_builder.my-hero',
-              ],
-              [
-                'uuid' => 'dynamic-image-static-imageStyle-something7d',
-                'component' => 'sdc.experience_builder.image',
-              ],
-            ],
-          ],
-        ]),
-        'props' => json_encode([
-          'two-column-uuid' => [
-            'width' => [
-              'sourceType' => 'static:field_item:list_integer',
-              'value' => 50,
-              'expression' => 'ℹ︎list_integer␟value',
-              'sourceTypeSettings' => [
-                'storage' => [
-                  'allowed_values' => [
-                    [
-                      'value' => 25,
-                      'label' => '25',
-                    ],
-                    [
-                      'value' => 33,
-                      'label' => '33',
-                    ],
-                    [
-                      'value' => 50,
-                      'label' => '50',
-                    ],
-                    [
-                      'value' => 66,
-                      'label' => '66',
-                    ],
-                    [
-                      'value' => 75,
-                      'label' => '75',
-                    ],
-                  ],
-                ],
-              ],
-            ],
-          ],
-          'dynamic-static-card2df' => [
-            'heading' => [
-              'sourceType' => 'dynamic',
-              'expression' => 'ℹ︎␜entity:node:article␝title␞␟value',
-            ],
-            'cta1href' => [
-              'sourceType' => 'static:field_item:uri',
-              'value' => 'https://drupal.org',
-              'expression' => 'ℹ︎uri␟value',
-            ],
-          ],
-          'static-static-card1ab' => [
-            'heading' => [
-              'sourceType' => 'static:field_item:string',
-              'value' => 'hello, world!',
-              'expression' => 'ℹ︎string␟value',
-            ],
-            'cta1href' => [
-              'sourceType' => 'static:field_item:uri',
-              'value' => 'https://drupal.org',
-              'expression' => 'ℹ︎uri␟value',
-            ],
-          ],
-          'dynamic-dynamic-card3rr' => [
-            'heading' => [
-              'sourceType' => 'dynamic',
-              'expression' => 'ℹ︎␜entity:node:article␝title␞␟value',
-            ],
-            'cta1href' => [
-              'sourceType' => 'dynamic',
-              'expression' => 'ℹ︎␜entity:node:article␝field_hero␞␟entity␜␜entity:file␝uri␞␟value',
-            ],
-          ],
-          'dynamic-image-udf7d' => [
-            'image' => [
-              'sourceType' => 'dynamic',
-              'expression' => 'ℹ︎␜entity:node:article␝field_hero␞␟{src↝entity␜␜entity:file␝uri␞␟url,alt↠alt,width↠width,height↠height}',
-            ],
-          ],
-          'dynamic-image-static-imageStyle-something7d' => [
-            'image' => [
-              'sourceType' => 'adapter:image_apply_style',
-              'adapterInputs' => [
-                'image' => [
-                  'sourceType' => 'dynamic',
-                  'expression' => 'ℹ︎␜entity:node:article␝field_hero␞␟{src↝entity␜␜entity:file␝uri␞0␟value,alt↠alt,width↠width,height↠height}',
-                ],
-                'imageStyle' => [
-                  'sourceType' => 'static:field_item:string',
-                  'value' => 'thumbnail',
-                  'expression' => 'ℹ︎string␟value',
-                ],
-              ],
-            ],
-          ],
-        ]),
+        'tree' => json_encode($tree),
+        'props' => json_encode($props),
       ],
     ]);
-    $node->save();
 
+    $node->save();
     $empty_node = Node::create([
       'type' => 'article',
       'title' => 'I am an empty node',
     ]);
     $empty_node->save();
+
+    $tree['two-column-uuid']['column_one'][] = [
+      'uuid' => 'cea4c5b3-7921-4c6f-b388-da921bd1496d',
+      'component' => 'block.system_menu_block.admin',
+    ];
+    $props['cea4c5b3-7921-4c6f-b388-da921bd1496d'] = [];
+    $node = Node::create([
+      'type' => 'article',
+      'title' => 'XB With a block in the layout',
+      'field_hero' => $image_field_sample_value,
+      // @todo Add E2E test coverage for starting with an empty canvas in
+      //   https://drupal.org/i/3474257.
+      'field_xb_demo' => [
+        'tree' => json_encode($tree),
+        'props' => json_encode($props),
+      ],
+    ]);
+    $node->save();
 
     $page = Page::create([
       'title' => 'Homepage',

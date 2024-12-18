@@ -190,7 +190,7 @@ describe('Perform CRUD operations on components', () => {
 
     // The drawer contains a component edit form.
     cy.get(
-      '[class*="contextualPanel"] [data-drupal-selector="component-props-form"]',
+      '[class*="contextualPanel"] [data-drupal-selector="component-inputs-form"]',
     ).then(($form) => {
       expect($form).to.exist;
       $form.find('label').each((index, label) => {

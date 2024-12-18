@@ -5,11 +5,14 @@ declare(strict_types=1);
 namespace Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource;
 
 use Drupal\Core\Asset\AttachedAssets;
+use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Entity\TypedData\EntityDataDefinition;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Extension\ThemeHandlerInterface;
 use Drupal\Core\Field\FieldTypePluginManagerInterface;
 use Drupal\Core\Field\WidgetPluginManager;
+use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Plugin\Component;
 use Drupal\Core\Plugin\Component as ComponentPlugin;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
@@ -31,8 +34,12 @@ use Drupal\experience_builder\PropExpressions\StructuredData\FieldTypeObjectProp
 use Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldPropExpression;
 use Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldTypePropExpression;
 use Drupal\experience_builder\PropShape\PropShape;
+use Drupal\experience_builder\PropSource\PropSource;
+use Drupal\experience_builder\PropSource\StaticPropSource;
 use Drupal\experience_builder\ShapeMatcher\FieldForComponentSuggester;
 use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\RequestStack;
 
 /**
  * Defines a component source based on single-directory components.
@@ -78,6 +85,7 @@ final class SingleDirectoryComponent extends ComponentSourceBase implements Comp
     private readonly AssetRenderer $assetRenderer,
     private readonly FieldForComponentSuggester $fieldForComponentSuggester,
     private readonly RendererInterface $renderer,
+    private readonly RequestStack $requestStack,
   ) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
   }
@@ -99,6 +107,7 @@ final class SingleDirectoryComponent extends ComponentSourceBase implements Comp
       $container->get(AssetRenderer::class),
       $container->get(FieldForComponentSuggester::class),
       $container->get(RendererInterface::class),
+      $container->get(RequestStack::class),
     );
   }
 
@@ -244,6 +253,71 @@ final class SingleDirectoryComponent extends ComponentSourceBase implements Comp
    */
   public function validateComponentProperties(array $propertyValues = []): void {
     $this->componentValidator->validateProps($propertyValues, $this->getComponentPlugin());
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function buildConfigurationForm(array $form, FormStateInterface $form_state, string $component_instance_uuid = '', ?EntityInterface $entity = NULL, array $settings = []): array {
+    assert($entity instanceof FieldableEntityInterface);
+
+    // @todo The source plugin should not need to know about the request.
+    // This should probably be injected into form state in a controller,
+    // but until we have a second plugin that manages a configuration form
+    // it is hard to say what the best approach is.
+    // Fix this in https://www.drupal.org/project/experience_builder/issues/3491978
+    $request = $this->requestStack->getCurrentRequest();
+    assert($request instanceof Request);
+
+    $stored_prop_sources = json_decode($request->get('props'), TRUE)[$component_instance_uuid];
+
+    $component_schema = $this->getSchema();
+
+    // Allow form alterations specific to XB component prop forms (currently
+    // only "static prop sources").
+    $form_state->set('is_xb_static_prop_source', TRUE);
+
+    // Prevent form submission while specifying values for component props,
+    // because changes are saved via Redux instead of a traditional submit.
+    // @see ui/src/components/form/inputBehaviors.tsx
+    // @see https://developer.mozilla.org/en-US/docs/Web/HTML/Element/form#method
+    $form['#method'] = 'dialog';
+
+    $form['#parents'] = ['xb_component_props', $component_instance_uuid];
+    foreach ($stored_prop_sources as $sdc_prop_name => $prop_source_array) {
+      $source = PropSource::parse($prop_source_array);
+      if ($source instanceof StaticPropSource) {
+        // 1. If the given static prop source matches the *current* field type
+        // configuration, use the configured widget.
+        // 2. Worst case: fall back to the default widget for this field type.
+        // @todo Implement 2. in https://www.drupal.org/project/experience_builder/issues/3463996
+        $field_widget_plugin_id = NULL;
+        if ($source->getSourceType() === 'static:field_item:' . $settings['props'][$sdc_prop_name]['field_type']) {
+          $field_widget_plugin_id = $settings['props'][$sdc_prop_name]['field_widget'];
+        }
+        assert(isset($component_schema['properties'][$sdc_prop_name]['title']));
+        $label = $component_schema['properties'][$sdc_prop_name]['title'];
+        $is_required = isset($component_schema['required']) && in_array($sdc_prop_name, $component_schema['required'], TRUE);
+        $form[$sdc_prop_name] = $source->formTemporaryRemoveThisExclamationExclamationExclamation($field_widget_plugin_id, $sdc_prop_name, $label, $is_required, $entity, $form, $form_state);
+      }
+      // @todo Design is undefined for the DynamicPropSource UX. Related: https://www.drupal.org/project/experience_builder/issues/3459234
+      // @todo Design is undefined for the AdaptedPropSource UX.
+    }
+    return $form;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function validateConfigurationForm(array &$form, FormStateInterface $form_state): void {
+    // @todo Implementation.
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function submitConfigurationForm(array &$form, FormStateInterface $form_state): void {
+    // @todo Implementation.
   }
 
   /**

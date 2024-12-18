@@ -37,6 +37,7 @@ export interface Component {
   // `field_data` is specific to the SDC Component type.
   // @see https://www.drupal.org/project/experience_builder/issues/3475584
   field_data?: FieldData;
+  source: string;
 }
 
 export interface ComponentsList {

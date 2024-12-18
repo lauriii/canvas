@@ -41,7 +41,7 @@ function experience_builder_field_widget_single_element_media_library_widget_for
   // the media library is opened for a field widget of a field instance on the
   // host entity type. That is not true for XB's "static prop sources".
   // @see \Drupal\experience_builder\PropSource\StaticPropSource
-  // @see \Drupal\experience_builder\Form\ComponentPropsForm::buildForm()
+  // @see \Drupal\experience_builder\Form\ComponentInputsForm::buildForm()
   if ($form_state->get('is_xb_static_prop_source') !== TRUE) {
     return;
   }

@@ -12,7 +12,7 @@ export interface FormState {
 }
 
 export interface FormStateSliceState {
-  component_props_form: FormState;
+  component_inputs_form: FormState;
   page_data_form: FormState;
 }
 
@@ -22,7 +22,7 @@ const emptyFormState = {
 };
 
 const initialState: FormStateSliceState = {
-  component_props_form: emptyFormState,
+  component_inputs_form: emptyFormState,
   page_data_form: emptyFormState,
 };
 

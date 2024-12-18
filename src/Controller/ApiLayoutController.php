@@ -68,7 +68,7 @@ final class ApiLayoutController {
         'type' => $component_type,
         'slots' => [],
       ];
-      if (isset($hydrated[$component_instance_uuid])) {
+      if (isset($hydrated[$component_instance_uuid]['props'])) {
         $model[$component_instance_uuid] = $hydrated[$component_instance_uuid]['props'];
       }
       if (isset($full_tree[$component_instance_uuid])) {

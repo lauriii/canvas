@@ -132,6 +132,7 @@ const DummyPropsEditForm: React.FC<DummyPropsEditFormProps> = () => {
   const [dynamicStaticCardQueryString, setDynamicStaticCardQueryString] =
     useState('');
   const [emptyProp, setEmptyProp] = useState(false);
+  const [componentSource, setComponentSource] = useState('');
 
   useEffect(() => {
     if (error) {
@@ -205,6 +206,7 @@ const DummyPropsEditForm: React.FC<DummyPropsEditFormProps> = () => {
       latestUndoRedoActionId,
     });
     setDynamicStaticCardQueryString(`?${query.toString()}`);
+    setComponentSource(components?.[selectedComponentType]?.source || '');
   }, [
     components,
     error,
@@ -221,7 +223,7 @@ const DummyPropsEditForm: React.FC<DummyPropsEditFormProps> = () => {
         <DummyPropsEditFormRenderer
           dynamicStaticCardQueryString={dynamicStaticCardQueryString}
         />
-        {emptyProp && emptyProp ? (
+        {componentSource === 'Module component' && emptyProp ? (
           <Text size="4">This component has no props.</Text>
         ) : (
           ''

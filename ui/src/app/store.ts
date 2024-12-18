@@ -100,7 +100,7 @@ export const makeStore = (preloadedState?: Partial<RootState>) => {
             selectSelectedComponent(listenerApi.getOriginalState()) !==
             action.payload
           ) {
-            listenerApi.dispatch(clearFieldValues('component_props_form'));
+            listenerApi.dispatch(clearFieldValues('component_inputs_form'));
           }
         },
       });

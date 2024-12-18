@@ -31,7 +31,7 @@ final class XBThemeNegotiator implements ThemeNegotiatorInterface {
    * @var string[]
    */
   private static $routes = [
-    'experience_builder.api.component_props_form',
+    'experience_builder.api.component_inputs_form',
     'experience_builder.api.entity_form',
   ];
 

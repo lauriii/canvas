@@ -12,7 +12,7 @@ use Drupal\media_library\MediaLibraryState;
 /**
  * The media library opener for XB props.
  *
- * @see \Drupal\experience_builder\Form\ComponentPropsForm
+ * @see \Drupal\experience_builder\Form\ComponentInputsForm
  * @see experience_builder_field_widget_single_element_media_library_widget_form_alter()
  *
  * @internal

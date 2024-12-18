@@ -45,6 +45,7 @@ function semi_coupled_render_template(string $template_file, array $variables): 
   if ($file_contents === FALSE) {
     $file_contents = '';
   }
+
   $info = Json::decode($file_contents);
   $props = [];
   $slots = [];
@@ -196,7 +197,6 @@ function _semi_coupled_collect_props(array &$props, array &$slots, array $prop_t
       }
       elseif ($type === 'string') {
         try {
-          // @phpstan-ignore cast.string
           $value = (string) $variable;
         }
         // @phpstan-ignore catch.neverThrown
@@ -227,10 +227,10 @@ function _semi_coupled_collect_props(array &$props, array &$slots, array $prop_t
  * @param string $index_in_js_format
  *   The index of the where in $variables our data might be.
  *
- * @return array|string|object|null
+ * @return mixed
  *   Essentially $variables[~$index_in] or $variables->{~$index_in}.
  */
-function _semi_coupled_get_variable(array|object $variables, string $index_in_js_format): array|string|object|bool|null {
+function _semi_coupled_get_variable(array|object $variables, string $index_in_js_format): mixed {
   // The lookup information we have is camelCased, but the values are likely
   // in snake case, so we create a snake case formatted index.
   $index_in_php_format = _semi_coupled_snake_case($index_in_js_format);
