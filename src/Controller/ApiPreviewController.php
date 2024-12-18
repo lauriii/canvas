@@ -35,9 +35,20 @@ final class ApiPreviewController {
 
   public function __invoke(Request $request, EntityInterface $entity): array {
     $body = json_decode($request->getContent(), TRUE);
+    // @todo Remove regions other than content and store them in a page-template
+    // auto-save entry.
+    // @see https://www.drupal.org/project/experience_builder/issues/3494114
     $this->autoSaveManager->save($entity, $body);
     ['layout' => $layout, 'model' => $model] = $body;
-    $renderable = $this->clientLayoutAndModelToXbField($layout, $model)->toRenderable();
+
+    // @todo Handle additional regions in preview.
+    // @see https://www.drupal.org/project/experience_builder/issues/3494114
+    foreach ($layout as $region) {
+      if ($region['uuid'] === 'content') {
+        $renderable = $this->clientLayoutAndModelToXbField($region, $model)->toRenderable();
+        break;
+      }
+    }
 
     if (isset($renderable[ComponentTreeStructure::ROOT_UUID])) {
       $build = self::wrapComponentsForPreview($renderable[ComponentTreeStructure::ROOT_UUID]);

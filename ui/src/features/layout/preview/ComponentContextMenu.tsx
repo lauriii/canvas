@@ -18,6 +18,7 @@ import {
 } from '@/features/layout/layoutModelSlice';
 import { setDialogOpen } from '@/features/ui/dialogSlice';
 import useGetComponentName from '@/hooks/useGetComponentName';
+import ComponentContextMenuRegions from '@/features/layout/preview/ComponentContextMenuRegions';
 
 interface ComponentContextMenuProps {
   children: ReactNode;
@@ -131,6 +132,7 @@ const ComponentContextMenu: React.FC<ComponentContextMenuProps> = (props) => {
             </ContextMenu.Item>
           </ContextMenu.SubContent>
         </ContextMenu.Sub>
+        <ComponentContextMenuRegions />
         <ContextMenu.Separator />
         <ContextMenu.Item shortcut="⌫" color="red" onClick={handleDeleteClick}>
           Delete

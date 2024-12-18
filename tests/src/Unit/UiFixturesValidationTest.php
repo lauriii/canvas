@@ -44,10 +44,10 @@ class UiFixturesValidationTest extends UnitTestCase {
 
     // Assert the main layout structure.
     $this->assertArrayHasKey('layout', $uiFixture);
-    $this->assertDataCompliesWithApiSpecification($uiFixture['layout'], 'LayoutSlot');
+    $this->assertDataCompliesWithApiSpecification($uiFixture['layout'][0], 'LayoutSlot');
 
     // Assert the layout components recursively.
-    $this->assertLayoutComponents($uiFixture['layout']['components']);
+    $this->assertLayoutComponents($uiFixture['layout'][0]['components']);
 
     // Assert the model structure.
     $this->assertArrayHasKey('model', $uiFixture);

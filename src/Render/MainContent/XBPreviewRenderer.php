@@ -9,6 +9,7 @@ use Drupal\Core\Controller\TitleResolverInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Render\AttachmentsInterface;
 use Drupal\Core\Render\AttachmentsResponseProcessorInterface;
+use Drupal\Core\Render\Element;
 use Drupal\Core\Render\MainContent\HtmlRenderer;
 use Drupal\Core\Render\RenderCacheInterface;
 use Drupal\Core\Render\RendererInterface;
@@ -68,6 +69,21 @@ final class XBPreviewRenderer extends HtmlRenderer {
     return new JsonResponse([
       'html' => $response->getContent(),
     ]);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  protected function prepare(array $main_content, Request $request, RouteMatchInterface $route_match) {
+    [$page, $title] = parent::prepare($main_content, $request, $route_match);
+    foreach (Element::children($page) as $region) {
+      if ($region === 'content') {
+        continue;
+      }
+      $page[$region]['#prefix'] = '<div class="xb--sortable-list" data-xb-uuid="' . $region . '">';
+      $page[$region]['#suffix'] = '</div>';
+    }
+    return [$page, $title];
   }
 
   /**

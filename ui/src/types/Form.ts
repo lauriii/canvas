@@ -17,7 +17,7 @@ export interface InputUIData {
   selectedComponent: string;
   components: ComponentsList | undefined;
   selectedComponentType: string;
-  layout: LayoutNode;
+  layout: Array<LayoutNode>;
   model?: ComponentModels;
   node?: LayoutNode | null;
   inputValue?: any;

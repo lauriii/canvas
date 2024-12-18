@@ -11,6 +11,9 @@ dotenv.config();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+const viewportHeight = 1080;
+const viewportWidth = 1920;
+
 const getCoreDir = () => {
   let count = 0;
   let path = 'core';
@@ -42,6 +45,27 @@ export default defineConfig({
     baseUrl: process.env.BASE_URL,
     setupNodeEvents(on, config) {
       installLogsPrinter(on);
+      on('before:browser:launch', (browser, launchOptions) => {
+        if (browser.name === 'chrome' && browser.isHeadless) {
+          launchOptions.args.push(
+            `--window-size=${viewportWidth},${viewportHeight}`,
+          );
+          launchOptions.args.push('--force-device-scale-factor=1');
+        }
+
+        if (browser.name === 'electron' && browser.isHeadless) {
+          launchOptions.preferences.width = viewportWidth;
+          launchOptions.preferences.height = viewportHeight;
+        }
+
+        if (browser.name === 'firefox' && browser.isHeadless) {
+          launchOptions.args.push(`--width=${viewportWidth}`);
+          launchOptions.args.push(`--height=${viewportHeight}`);
+        }
+
+        return launchOptions;
+      });
+
       on('task', {
         log(message) {
           console.log(message);
@@ -83,8 +107,8 @@ export default defineConfig({
     supportFile: 'tests/support/e2e.js',
     downloadsFolder: 'tests/downloads',
     screenshotsFolder: 'tests/screenshots',
-    viewportHeight: 1080,
-    viewportWidth: 1920,
+    viewportHeight,
+    viewportWidth,
   },
 
   component: {

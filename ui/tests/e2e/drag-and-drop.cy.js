@@ -97,7 +97,8 @@ describe('Drag and drop functionality in the Layers menu', () => {
 
     cy.log('Drag image component out of the slot and to the root level.');
     cy.get('.treeItem[data-xb-uuid="dynamic-image-udf7d"]').realDnd(
-      '.rootDropZone[data-xb-type="region"]',
+      '.rootDropZone[data-xb-type="region"][data-xb-uuid="content"]',
+      { position: 'top' },
     );
 
     assertPageStateAfterFirstDrag();
@@ -142,7 +143,8 @@ describe('Drag and drop functionality in the Layers menu', () => {
 
     cy.log('Drag image component out of the slot and to the root level.');
     cy.get('.treeItem[data-xb-uuid="dynamic-image-udf7d"]').realDnd(
-      '.rootDropZone[data-xb-type="region"]',
+      '.rootDropZone[data-xb-type="region"][data-xb-uuid="content"]',
+      { position: 'top' },
     );
     assertPageStateAfterFirstDrag();
 

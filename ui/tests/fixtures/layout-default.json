@@ -1,94 +1,96 @@
 {
-  "layout": {
-    "nodeType": "region",
-    "name": "content",
-    "components": [
-      {
-        "nodeType": "component",
-        "uuid": "dynamic-image-udf7d",
-        "type": "experience_builder:image",
-        "slots": [
-          {
-            "nodeType": "slot",
-            "id": "dynamic-image-udf7d/slot",
-            "name": "slot",
-            "components": [
-              {
-                "nodeType": "component",
-                "uuid": "static-static-card1ab",
-                "type": "sdc_test:my-cta",
-                "slots": []
-              }
-            ]
-          }
-        ]
-      },
-      {
-        "nodeType": "component",
-        "uuid": "dynamic-static-card2df",
-        "type": "sdc_test:my-cta",
-        "slots": []
-      },
-      {
-        "nodeType": "component",
-        "uuid": "dynamic-dynamic-card3rr",
-        "type": "sdc_test:my-cta",
-        "slots": [
-          {
-            "nodeType": "slot",
-            "id": "dynamic-dynamic-card3rr/slot_2",
-            "name": "slot_2",
-            "components": []
-          }
-        ]
-      },
-      {
-        "nodeType": "component",
-        "uuid": "dynamic-image-static-imageStyle-something7d",
-        "type": "experience_builder:image",
-        "slots": []
-      },
-      {
-        "nodeType": "component",
-        "uuid": "ee07d472-a754-4427-b6d4-acfc6f92bbdc",
-        "type": "sdc.experience_builder.two_column",
-        "slots": [
-          {
-            "nodeType": "slot",
-            "id": "ee07d472-a754-4427-b6d4-acfc6f92bbdc/column_one",
-            "name": "column_one",
-            "components": [
-              {
-                "nodeType": "component",
-                "type": "sdc.experience_builder.my-section",
-                "uuid": "6f3224e2-cb61-46e4-a9e4-35b4d18f0a82",
-                "slots": []
-              }
-            ]
-          },
-          {
-            "nodeType": "slot",
-            "id": "ee07d472-a754-4427-b6d4-acfc6f92bbdc/column_two",
-            "name": "column_two",
-            "components": [
-              {
-                "nodeType": "component",
-                "uuid": "3b709ed2-99d3-4db2-869d-ca426f69fbb9",
-                "type": "sdc.experience_builder.heading",
-                "slots": []
-              },
-              {
-                "nodeType": "component",
-                "uuid": "eaa37ee1-7d50-4041-b04c-c80bdbac3412",
-                "type": "sdc.experience_builder.my-hero",
-                "slots": []
-              }
-            ]
-          }
-        ]
-      }
-    ]
-  },
+  "layout": [
+    {
+      "nodeType": "region",
+      "name": "content",
+      "components": [
+        {
+          "nodeType": "component",
+          "uuid": "dynamic-image-udf7d",
+          "type": "experience_builder:image",
+          "slots": [
+            {
+              "nodeType": "slot",
+              "id": "dynamic-image-udf7d/slot",
+              "name": "slot",
+              "components": [
+                {
+                  "nodeType": "component",
+                  "uuid": "static-static-card1ab",
+                  "type": "sdc_test:my-cta",
+                  "slots": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "nodeType": "component",
+          "uuid": "dynamic-static-card2df",
+          "type": "sdc_test:my-cta",
+          "slots": []
+        },
+        {
+          "nodeType": "component",
+          "uuid": "dynamic-dynamic-card3rr",
+          "type": "sdc_test:my-cta",
+          "slots": [
+            {
+              "nodeType": "slot",
+              "id": "dynamic-dynamic-card3rr/slot_2",
+              "name": "slot_2",
+              "components": []
+            }
+          ]
+        },
+        {
+          "nodeType": "component",
+          "uuid": "dynamic-image-static-imageStyle-something7d",
+          "type": "experience_builder:image",
+          "slots": []
+        },
+        {
+          "nodeType": "component",
+          "uuid": "ee07d472-a754-4427-b6d4-acfc6f92bbdc",
+          "type": "sdc.experience_builder.two_column",
+          "slots": [
+            {
+              "nodeType": "slot",
+              "id": "ee07d472-a754-4427-b6d4-acfc6f92bbdc/column_one",
+              "name": "column_one",
+              "components": [
+                {
+                  "nodeType": "component",
+                  "type": "sdc.experience_builder.my-section",
+                  "uuid": "6f3224e2-cb61-46e4-a9e4-35b4d18f0a82",
+                  "slots": []
+                }
+              ]
+            },
+            {
+              "nodeType": "slot",
+              "id": "ee07d472-a754-4427-b6d4-acfc6f92bbdc/column_two",
+              "name": "column_two",
+              "components": [
+                {
+                  "nodeType": "component",
+                  "uuid": "3b709ed2-99d3-4db2-869d-ca426f69fbb9",
+                  "type": "sdc.experience_builder.heading",
+                  "slots": []
+                },
+                {
+                  "nodeType": "component",
+                  "uuid": "eaa37ee1-7d50-4041-b04c-c80bdbac3412",
+                  "type": "sdc.experience_builder.my-hero",
+                  "slots": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
   "model": {
     "dynamic-image-udf7d": {
       "image": {

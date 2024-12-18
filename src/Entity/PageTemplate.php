@@ -12,7 +12,7 @@ use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemInstantiat
 
 /**
  * @ConfigEntityType(
- *    id = "page_template",
+ *    id = \Drupal\experience_builder\Entity\PageTemplate::PLUGIN_ID,
  *    label = @Translation("Page template"),
  *    label_singular = @Translation("page template"),
  *    label_plural = @Translation("page templates"),
@@ -32,6 +32,7 @@ use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemInstantiat
  */
 final class PageTemplate extends ConfigEntityBase implements XbHttpApiEligibleConfigEntityInterface {
 
+  public const PLUGIN_ID = 'page_template';
   use ComponentTreeItemInstantiatorTrait;
 
   /**

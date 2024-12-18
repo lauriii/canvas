@@ -16,7 +16,7 @@ const NameTag: React.FC<NameTagProps> = (props) => {
     <div
       className={clsx(styles.nameTag, {
         [styles.selected]: selected,
-        [styles.slot]: nodeType === 'slot',
+        [styles.slot]: nodeType === 'slot' || nodeType === 'region',
         [styles.root]: nodeType === 'root',
       })}
     >

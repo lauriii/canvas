@@ -103,7 +103,7 @@ const ComponentOverlay: React.FC<ComponentOverlayProps> = (props) => {
       `[data-xb-uuid="${component.uuid}"]:not([data-xb-overlay="true"])`,
     );
     const parentElementInsideIframe = iframeDocument.querySelector(
-      `[data-xb-uuid="${parentSlot?.id || parentRegion?.name}"]`,
+      `[data-xb-uuid="${parentSlot?.id || parentRegion?.uuid}"]`,
     );
 
     if (parentElementInsideIframe && elementInsideIframe.current) {
@@ -117,7 +117,7 @@ const ComponentOverlay: React.FC<ComponentOverlayProps> = (props) => {
       // left when the preview updates.
       setInitialized(true);
     }
-  }, [component.uuid, iframeRef, parentSlot?.id, parentRegion?.name, rect]);
+  }, [component.uuid, iframeRef, parentSlot?.id, parentRegion?.uuid, rect]);
 
   function handleComponentClick(event: React.MouseEvent<HTMLElement>) {
     event.stopPropagation();

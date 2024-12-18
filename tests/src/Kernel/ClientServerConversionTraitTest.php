@@ -18,13 +18,28 @@ use Drupal\Tests\experience_builder\Traits\XBFieldTrait;
 
 class ClientServerConversionTraitTest extends KernelTestBase {
 
-  use XBFieldTrait;
+  use XBFieldTrait {
+    getValidClientJson as traitGetValidClientJson;
+  }
+
   use ClientServerConversionTrait;
   use TestDataUtilitiesTrait;
   use ContribStrictConfigSchemaTestTrait;
   use ConstraintViolationsTestTrait;
 
   private EntityTypeManagerInterface $entityTypeManager;
+
+  /**
+   * {@inheritdoc}
+   */
+  private function getValidClientJson(): array {
+    $json = $this->traitGetValidClientJson();
+    $content_region = \array_values(\array_filter($json['layout'], static fn(array $region) => $region['uuid'] === 'content'));
+    return [
+      'layout' => reset($content_region),
+      'model' => $json['model'],
+    ];
+  }
 
   public function setUp(): void {
     parent::setUp();

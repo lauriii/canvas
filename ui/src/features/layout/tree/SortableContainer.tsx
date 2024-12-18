@@ -16,6 +16,7 @@ import { TriangleDownIcon, TriangleRightIcon } from '@radix-ui/react-icons';
 import clsx from 'clsx';
 import { getNodeDepth } from '@/features/layout/layoutUtils';
 import { Box } from '@radix-ui/themes';
+import RegionItem from '@/features/layout/tree/RegionItem';
 
 interface SortableContainerProps {
   node: LayoutNode;
@@ -109,16 +110,18 @@ const SortableContainer: React.FC<SortableContainerProps> = (props) => {
   // But attach the root id and the sortable ref to it, so we can still drag items into the root level.
   if (node.nodeType === 'region') {
     return (
-      <Box
-        data-xb-uuid={node.name}
-        data-xb-type={node.nodeType}
-        ref={sortableRef}
-        className="rootDropZone"
-        py="4"
-        height="100%"
-      >
-        {renderChildren(node.components)}
-      </Box>
+      <>
+        <RegionItem region={node.name} />
+        <Box
+          data-xb-uuid={node.uuid}
+          data-xb-type={node.nodeType}
+          ref={sortableRef}
+          className="rootDropZone"
+          py="4"
+        >
+          {renderChildren(node.components, node)}
+        </Box>
+      </>
     );
   }
 

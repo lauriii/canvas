@@ -3,6 +3,10 @@
   color: var(--blue-9);
 }
 
+.regionItem {
+  color: var(--grass-8)
+}
+
 .treeItem {
   height: 35px;
   padding: 0.4rem;

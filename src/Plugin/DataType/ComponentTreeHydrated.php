@@ -47,9 +47,10 @@ class ComponentTreeHydrated extends TypedData implements CacheableDependencyInte
       $component = Component::load($component_id);
       assert($component instanceof Component);
 
+      $source = $component->getComponentSource();
       $hydrated[$uuid] = [
         'component' => $component_id,
-      ] + $component->getComponentSource()->hydrateComponent($uuid, $item);
+      ] + $source->hydrateComponent($source->getExplicitInput($uuid, $item));
     }
 
     // Transform the flat list of hydrated components into a hydrated component

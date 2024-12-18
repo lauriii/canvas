@@ -38,19 +38,22 @@ paths:
                 emptyComponentTree:
                   value:
                     layout:
-                      nodeType: region
-                      name: content
-                      components: []
+                      - nodeType: region
+                        name: content
+                        components: []
                     model: {}
                 componentTreeWithSingleComponent:
                   value:
                     layout:
-                      nodeType: region
-                      name: content
-                      components:
-                        - nodeType: component
-                          uuid: bce8d97e-8d44-4609-adc3-5e1015342b49
-                          type: 'sdc_test:my-cta'
+                      - nodeType: region
+                        name: header
+                        components: []
+                      - nodeType: region
+                        name: content
+                        components:
+                          - nodeType: component
+                            uuid: bce8d97e-8d44-4609-adc3-5e1015342b49
+                            type: 'sdc_test:my-cta'
                     model:
                       bce8d97e-8d44-4609-adc3-5e1015342b49:
                         text: 'hello, world!'
@@ -63,7 +66,12 @@ paths:
                   - model
                 properties:
                   layout:
-                    $ref: '#/components/schemas/LayoutSlot'
+                    type: array
+                    description: Layout regions
+                    items:
+                      type: object
+                      schema:
+                        $ref: '#/components/schemas/LayoutSlot'
                   model:
                     $ref: '#/components/schemas/Model'
   '/api/preview/{entityTypeId}/{entityId}':
@@ -527,7 +535,12 @@ components:
       additionalProperties: false
       properties:
         layout:
-          $ref: '#/components/schemas/LayoutSlot'
+          type: array
+          description: Layout regions
+          items:
+            type: object
+            schema:
+              $ref: '#/components/schemas/LayoutSlot'
         model:
           $ref: '#/components/schemas/Model'
     AutoSaveEntry:

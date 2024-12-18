@@ -29,6 +29,9 @@ final class ApiPreviewControllerTest extends KernelTestBase {
   protected function setUp(): void {
     parent::setUp();
     $this->container->get('module_installer')->install(['system']);
+    $this->container->get('theme_installer')->install(['stark']);
+    $this->container->get('config.factory')->getEditable('system.theme')->set('default', 'stark')->save();
+
     (new XBTestSetup())->setup();
     $this->setUpCurrentUser([], ['access administration pages']);
   }
@@ -36,9 +39,12 @@ final class ApiPreviewControllerTest extends KernelTestBase {
   public function testEmpty(): void {
     $this->request(Request::create('/api/preview/node/1', content: json_encode([
       'layout' => [
-        'nodeType' => 'region',
-        'name' => 'content',
-        'components' => [],
+        [
+          'nodeType' => 'region',
+          'name' => 'Content',
+          'components' => [],
+          'uuid' => 'content',
+        ],
       ],
       'model' => [],
     ], JSON_THROW_ON_ERROR)));
@@ -89,7 +95,6 @@ final class ApiPreviewControllerTest extends KernelTestBase {
         case 'xb--sortable-list':
           $this->assertNotEmpty((string) $item->attributes()->{'data-xb-uuid'});
           $this->assertNotEquals(ComponentTreeStructure::ROOT_UUID, $item->attributes()->{'data-xb-uuid'});
-          $this->assertSame('slot', (string) $item->attributes()->{'data-xb-component-id'});
           break;
       }
 

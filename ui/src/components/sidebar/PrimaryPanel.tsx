@@ -4,6 +4,7 @@ import { Box, Flex, ScrollArea, Tabs } from '@radix-ui/themes';
 import { useState } from 'react';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import Panel from '../Panel';
+import type { LayoutNode } from '@/features/layout/layoutModelSlice';
 import { selectLayout } from '@/features/layout/layoutModelSlice';
 import SortableContainer from '@/features/layout/tree/SortableContainer';
 import Library from '@/components/sidebar/Library';
@@ -62,7 +63,13 @@ export const PrimaryPanel = () => {
                 className={styles.layersTabContent}
               >
                 <ErrorBoundary>
-                  <SortableContainer setDragging={setDragging} node={layout} />
+                  {layout.map((node: LayoutNode, ix: number) => (
+                    <SortableContainer
+                      key={ix}
+                      setDragging={setDragging}
+                      node={node}
+                    />
+                  ))}
                 </ErrorBoundary>
               </Tabs.Content>
               <Tabs.Content value={'library'}>

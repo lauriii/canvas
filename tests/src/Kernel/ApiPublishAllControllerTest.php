@@ -78,12 +78,12 @@ class ApiPublishAllControllerTest extends KernelTestBase {
 
     // Auto-save node 2 with only the heading.
     unset($validClientJson['model'][self::TEST_IMAGE_UUID]);
-    unset($validClientJson['layout']['components'][1]);
+    unset($validClientJson['layout'][0]['components'][1]);
     // And an invalid prop.
     $validClientJson['model'][self::TEST_HEADING_UUID]['style'] = 'flared';
 
     // \Drupal\experience_builder\Controller\ApiPreviewController will not work
-    // with invalid data so we need to use the NotTheGoodAutoSaveTrait directly.
+    // with invalid data so we need to use the manager directly.
     // @todo In https://drupal.org/i/3485878 we could also replace this by using
     //   the 'experience_builder.api.preview' route as we do above.
     $autoSave->save($node2, $validClientJson);

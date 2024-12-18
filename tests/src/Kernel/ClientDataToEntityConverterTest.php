@@ -14,7 +14,9 @@ use Drupal\Tests\experience_builder\Traits\XBFieldTrait;
 
 class ClientDataToEntityConverterTest extends KernelTestBase {
 
-  use XBFieldTrait;
+  use XBFieldTrait {
+    getValidClientJson as traitGetValidClientJson;
+  }
   use ConstraintViolationsTestTrait;
 
   public function setUp(): void {
@@ -22,6 +24,18 @@ class ClientDataToEntityConverterTest extends KernelTestBase {
     $this->container->get('module_installer')->install(['system']);
     (new XBTestSetup())->setup();
     $this->setUpImages();
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  private function getValidClientJson(): array {
+    $json = $this->traitGetValidClientJson();
+    $content_region = \array_values(\array_filter($json['layout'], static fn(array $region) => $region['uuid'] === 'content'));
+    return [
+      'layout' => reset($content_region),
+      'model' => $json['model'],
+    ];
   }
 
   public function testConvert(): void {

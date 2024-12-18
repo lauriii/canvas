@@ -1,12 +1,12 @@
-import { NodeType } from './layoutModelSlice';
 import type {
   ComponentModels,
   ComponentNode,
-  LayoutNode,
   LayoutChildNode,
+  LayoutNode,
   RegionNode,
   SlotNode,
 } from './layoutModelSlice';
+import { NodeType } from './layoutModelSlice';
 import { v4 as uuidv4 } from 'uuid';
 
 type NodeFunction = (
@@ -27,7 +27,7 @@ function getNodeIdentifier(node: LayoutNode): string {
     case NodeType.Component:
       return node.uuid;
     case NodeType.Region:
-      return node.name;
+      return node.uuid;
     default:
       throw new Error('Unknown node type');
   }
@@ -75,12 +75,12 @@ export function recurseNodes(
 
 /**
  * Find a Component by its UUID.
- * @param root - The starting node to search from.
+ * @param roots - The starting node to search from.
  * @param uuid - The id of the node to find.
  * @returns The found component or null if not found.
  */
 export function findComponentByUuid(
-  root: RegionNode,
+  roots: Array<RegionNode>,
   uuid: string,
 ): ComponentNode | null {
   const recurseComponents = (
@@ -108,18 +108,24 @@ export function findComponentByUuid(
     return null;
   };
 
-  return recurseComponents(root.components);
+  for (const root of roots) {
+    const found = recurseComponents(root.components);
+    if (found) {
+      return found;
+    }
+  }
+  return null;
 }
 
 /**
  * Find the path to a node by its UUID.
- * @param node - The starting node to search from.
+ * @param nodes - The nodes to search through.
  * @param id - The UUID of the node to find.
  * @param path - The current path (used internally for recursion).
  * @returns The path to the node as an array of indices, or null if not found.
  */
 export function findNodePathByUuid(
-  node: LayoutNode,
+  nodes: Array<LayoutNode>,
   id: string | undefined,
   path: number[] = [],
 ): number[] | null {
@@ -128,24 +134,21 @@ export function findNodePathByUuid(
     return null;
   }
 
-  const nodeId = getNodeIdentifier(node);
+  for (let i = 0; i < nodes.length; i++) {
+    const node = nodes[i];
+    const nodeId = getNodeIdentifier(node);
 
-  if (nodeId === id) {
-    return path;
-  }
-
-  const childKey = getChildKeyByType(node.nodeType);
-  let children: LayoutChildNode[] = [];
-
-  if (childKey === 'slots' && 'slots' in node) {
-    children = node.slots;
-  } else if (childKey === 'components' && 'components' in node) {
-    children = node.components;
-  }
-
-  for (let i = 0; i < children.length; i++) {
-    const child = children[i];
-    const result = findNodePathByUuid(child, id, path.concat(i));
+    if (nodeId === id) {
+      return path.concat(i);
+    }
+    const childKey = getChildKeyByType(node.nodeType);
+    let children: LayoutChildNode[] = [];
+    if (childKey === 'slots' && 'slots' in node) {
+      children = node.slots;
+    } else if (childKey === 'components' && 'components' in node) {
+      children = node.components;
+    }
+    const result = findNodePathByUuid(children, id, path.concat(i));
     if (result !== null) {
       return result;
     }
@@ -157,21 +160,25 @@ export function findNodePathByUuid(
 
 /**
  * Remove a node from a Region by its UUID.
- * @param node - The parent RegionNode.
+ * @param nodes - The root RegionNodes.
  * @param uuid - The UUID of the node to remove.
- * @returns A deep clone of the RegionNode with the node matching the uuid removed.
+ * @returns A deep clone of the RegionNodes with the node matching the uuid removed.
  */
 export function removeComponentByUuid(
-  node: RegionNode,
+  nodes: Array<RegionNode>,
   uuid: string,
-): RegionNode {
-  const newState = JSON.parse(JSON.stringify(node));
+): Array<RegionNode> {
+  const newState = JSON.parse(JSON.stringify(nodes));
 
   const path = findNodePathByUuid(newState, uuid);
 
   if (path) {
-    let currentNode: LayoutChildNode = newState;
-    let parent: LayoutNode = node;
+    const rootIndex = path.shift();
+    if (rootIndex === undefined) {
+      throw new Error(`Component with ID ${uuid} not found`);
+    }
+    let parent: LayoutNode = newState[rootIndex];
+    let currentNode: LayoutNode = parent;
     let childIndex: number | null = null;
 
     path.forEach((idx, i) => {
@@ -252,17 +259,17 @@ export function insertNodeAtPath<T extends LayoutNode>(
 
 /**
  * Move a node to a new path.
- * @param rootNode - The root node of the layout.
+ * @param rootNodes - The root node of the layout.
  * @param uuid - The UUID of the component to move.
  * @param path - The path to move the node to.
  * @returns A deep clone of the `rootNode` with the node matching the `uuid` moved to the `path`.
  */
 export function moveNodeToPath(
-  rootNode: RegionNode,
+  rootNodes: Array<RegionNode>,
   uuid: string,
   path: number[],
-): RegionNode {
-  const child = findComponentByUuid(rootNode, uuid);
+): Array<RegionNode> {
+  const child = findComponentByUuid(rootNodes, uuid);
   if (!child) {
     throw new Error(`Node with UUID ${uuid} not found.`);
   }
@@ -272,7 +279,15 @@ export function moveNodeToPath(
   child.uuid = child.uuid + '_remove';
 
   // Insert the clone at toPath
-  const newState = insertNodeAtPath(rootNode, path, clone);
+  const rootIndex = path.shift();
+  if (rootIndex === undefined) {
+    throw new Error(
+      'Path should be at least two items long, starting from the root region',
+    );
+  }
+  const root = rootNodes[rootIndex];
+  const newState = rootNodes;
+  newState[rootIndex] = insertNodeAtPath(root, path, clone);
 
   // Remove the original node by finding it by uuid (which is now `${child.uuid}_remove`)
   return removeComponentByUuid(newState, child.uuid);
@@ -280,17 +295,17 @@ export function moveNodeToPath(
 
 /**
  * Checks if a node is a child of another node.
- * @param layoutNode - The root node.
+ * @param layout - The root node.
  * @param uuid - The UUID of the node to check.
  * @returns {boolean | null} - Returns if node is a child or not and null if the node is not found.
  */
 export function isChildNode(
-  layoutNode: LayoutNode,
+  layout: Array<LayoutNode>,
   uuid: string,
 ): boolean | null {
-  const path = findNodePathByUuid(layoutNode, uuid);
+  const path = findNodePathByUuid(layout, uuid);
   if (path !== null) {
-    return path && path.length > 1;
+    return path && path.length > 2;
   } else {
     return null;
   }
@@ -298,12 +313,15 @@ export function isChildNode(
 
 /**
  * Get the depth of the node in the layout tree from the root.
- * @param layoutNode - The root node.
+ * @param layoutNodes - The root node.
  * @param uuid - The UUID of the node to check.
  * @returns Depth of a node as an integer.
  */
-export function getNodeDepth(layoutNode: LayoutNode, uuid: string | undefined) {
-  const path = findNodePathByUuid(layoutNode, uuid);
+export function getNodeDepth(
+  layoutNodes: Array<LayoutNode>,
+  uuid: string | undefined,
+) {
+  const path = findNodePathByUuid(layoutNodes, uuid);
   if (path) {
     return path.length - 1;
   }

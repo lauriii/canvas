@@ -38,9 +38,9 @@ class ApiLayoutControllerTest extends KernelTestBase {
     $json = json_decode($response->getContent() ?: '', TRUE);
     $this->assertArrayHasKey('layout', $json);
 
-    $layout = $json['layout'];
+    $layout = $json['layout'][0];
     $this->assertSame('region', $layout['nodeType']);
-    $this->assertSame('content', $layout['name']);
+    $this->assertSame('Content', $layout['name']);
     $this->assertArrayHasKey('components', $layout);
 
     // @todo recurse through the tree

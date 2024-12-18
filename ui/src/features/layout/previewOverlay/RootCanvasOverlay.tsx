@@ -1,6 +1,7 @@
 import type React from 'react';
 import { useEffect, useRef, useState } from 'react';
 import { useAppSelector } from '@/app/hooks';
+import type { RegionNode } from '@/features/layout/layoutModelSlice';
 import { selectLayout } from '@/features/layout/layoutModelSlice';
 import ComponentOverlay from '@/features/layout/previewOverlay/ComponentOverlay';
 import styles from './PreviewOverlay.module.css';
@@ -56,14 +57,16 @@ const RootCanvasOverlay: React.FC<RootCanvasOverlayProps> = (props) => {
       })}
       style={overlayStyles}
     >
-      {layout.components.map((component) => (
-        <ComponentOverlay
-          key={component.uuid}
-          iframeRef={iframeRef}
-          component={component}
-          parentRegion={layout}
-        />
-      ))}
+      {layout.map((node: RegionNode) =>
+        node.components.map((component) => (
+          <ComponentOverlay
+            key={component.uuid}
+            iframeRef={iframeRef}
+            component={component}
+            parentRegion={node}
+          />
+        )),
+      )}
       {targetSlot === 'content' && (
         <div className={clsx(styles.xbNameTag, styles.xbNameTagSlot)}>
           <NameTag

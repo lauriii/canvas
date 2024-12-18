@@ -10,7 +10,7 @@ import type {
 export interface LayoutRequest {
   entityId: string;
   entityType: string;
-  layout: RegionNode;
+  layout: Array<RegionNode>;
   model: ComponentModels;
 }
 

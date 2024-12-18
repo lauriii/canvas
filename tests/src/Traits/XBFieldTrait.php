@@ -189,20 +189,23 @@ trait XBFieldTrait {
   private function getValidClientJson(): array {
     return [
       'layout' => [
-        'nodeType' => 'region',
-        'name' => 'content',
-        'components' => [
-          [
-            'nodeType' => 'component',
-            'uuid' => self::TEST_HEADING_UUID,
-            'type' => 'sdc.experience_builder.heading',
-            'slots' => [],
-          ],
-          [
-            'nodeType' => 'component',
-            'uuid' => self::TEST_IMAGE_UUID,
-            'type' => 'sdc.experience_builder.image',
-            'slots' => [],
+        [
+          'nodeType' => 'region',
+          'name' => 'Content',
+          'uuid' => 'content',
+          'components' => [
+            [
+              'nodeType' => 'component',
+              'uuid' => self::TEST_HEADING_UUID,
+              'type' => 'sdc.experience_builder.heading',
+              'slots' => [],
+            ],
+            [
+              'nodeType' => 'component',
+              'uuid' => self::TEST_IMAGE_UUID,
+              'type' => 'sdc.experience_builder.image',
+              'slots' => [],
+            ],
           ],
         ],
       ],

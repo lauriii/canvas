@@ -31,6 +31,7 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 final class BlockComponent extends ComponentSourceBase implements ContainerFactoryPluginInterface {
 
   public const SOURCE_PLUGIN_ID = 'block';
+  public const EXPLICIT_INPUT_NAME = 'settings';
 
   /**
    * Constructs a new BlockComponent.
@@ -127,7 +128,7 @@ final class BlockComponent extends ComponentSourceBase implements ContainerFacto
    */
   public function renderComponent(array $inputs, string $componentUuid): array {
     $block = $this->getComponentPlugin();
-    foreach ($inputs['settings'] ?? [] as $key => $value) {
+    foreach ($inputs[self::EXPLICIT_INPUT_NAME] ?? [] as $key => $value) {
       $block->setConfigurationValue($key, $value);
     }
 
@@ -150,8 +151,8 @@ final class BlockComponent extends ComponentSourceBase implements ContainerFacto
   /**
    * {@inheritdoc}
    */
-  public function hydrateComponent(string $uuid, ComponentTreeItem $item): array {
-    // @todo What are "props" in terms of blocks? Define in https://www.drupal.org/project/experience_builder/issues/3484666
+  public function getExplicitInput(string $uuid, ComponentTreeItem $item): array {
+    // @todo What are "props" in terms of blocks? Define in https://www.drupal.org/project/experience_builder/issues/3484666. Rename ComponentPropsValues to ComponentExplicitInputs.
     $props = $item->get('props');
     $json = $props->getValue();
     \assert(\is_string($json));
@@ -161,7 +162,14 @@ final class BlockComponent extends ComponentSourceBase implements ContainerFacto
     catch (\JsonException) {
       $settings = [];
     }
-    return ['settings' => $settings];
+    return $settings;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function hydrateComponent(array $explicit_input): array {
+    return [self::EXPLICIT_INPUT_NAME => $explicit_input];
   }
 
   /**

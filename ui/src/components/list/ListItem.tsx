@@ -53,9 +53,10 @@ const ListItem: React.FC<{
         } else {
           // If the selected node is in the root level, then the new node should
           // be added as a sibling.
-          // Example: A path [2] means a node is the 3rd root level node.
-          // Therefore, the newly inserted node's path should be [3].
-          newPath[0] += 1;
+          // Example: A path [1][2] means a node is the 3rd node inside the
+          // second region. Therefore, the newly inserted node's path should be
+          // [1][3].
+          newPath[1] += 1;
         }
 
         if (type === 'component') {

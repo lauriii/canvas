@@ -7,6 +7,7 @@ import twigToJSXComponentMap from '@/components/form/twig-to-jsx-component-map';
 import propsify from '@/local_packages/hyperscriptify/propsify/standard/index.js';
 import parseHyperscriptifyTemplate from '@/utils/parse-hyperscriptify-template';
 import { useAppSelector } from '@/app/hooks';
+import type { RegionNode } from '@/features/layout/layoutModelSlice';
 import { selectModel, selectLayout } from '@/features/layout/layoutModelSlice';
 import {
   selectSelectedComponent,
@@ -138,7 +139,13 @@ const DummyPropsEditForm: React.FC<DummyPropsEditFormProps> = () => {
     if (error) {
       showBoundary(error);
     }
-    if (!components || !selectedComponent || layout.components.length === 0) {
+    if (
+      !components ||
+      !selectedComponent ||
+      layout.filter(
+        (regionNode: RegionNode) => regionNode.components.length > 0,
+      ).length === 0
+    ) {
       return;
     }
     const preparedModel: PreparedModel = { [selectedComponent]: {} };

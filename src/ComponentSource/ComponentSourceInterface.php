@@ -81,7 +81,7 @@ interface ComponentSourceInterface extends PluginInspectionInterface, Derivative
    * Renders a component for the given instance.
    *
    * @param array $inputs
-   *   Component inputs.
+   *   Component inputs — both implicit and explicit.
    * @param string $componentUuid
    *   Component UUID.
    *
@@ -91,11 +91,24 @@ interface ComponentSourceInterface extends PluginInspectionInterface, Derivative
   public function renderComponent(array $inputs, string $componentUuid): array;
 
   /**
-   * Hydrates a component with any data, including slots.
+   * Retrieves the component instance's explicit (possibly empty) input.
+   *
+   * @todo Add ::getImplicitInput() in https://www.drupal.org/project/experience_builder/issues/3485502 — SDCs don't have implicit inputs, but Block plugins do: contexts
+   */
+  public function getExplicitInput(string $uuid, ComponentTreeItem $item): array;
+
+  /**
+   * Hydrates a component with its explicit input plus slots (if any).
+   *
+   * Note that the result contains the default slot value, because this method
+   * only handles a single component instance, not a component tree. Populating
+   * slots with component instance happens later.
    *
    * @return array{'slots'?: array<string, string>}
+   *
+   * @see \Drupal\experience_builder\ComponentSource\ComponentSourceWithSlotsInterface::setSlots()
    */
-  public function hydrateComponent(string $uuid, ComponentTreeItem $item): array;
+  public function hydrateComponent(array $explicit_input): array;
 
   /**
    * Gets the plugin definition.

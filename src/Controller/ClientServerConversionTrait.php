@@ -44,6 +44,8 @@ trait ClientServerConversionTrait {
    * @phpstan-return ComponentTreeStructureArray
    */
   private static function doClientSlotToServerTree(array $layout, array $tree, string $parent_uuid): array {
+    assert(isset($layout['nodeType']));
+
     // Regions have no name.
     $name = $layout['nodeType'] === 'slot' ? $layout['name'] : NULL;
 
@@ -58,6 +60,9 @@ trait ClientServerConversionTrait {
    * @phpstan-return ComponentTreeStructureArray
    */
   private static function doClientComponentToServerTree(array $layout, array $tree, string $parent_uuid, ?string $parent_slot): array {
+    assert(isset($layout['nodeType']));
+    assert($layout['nodeType'] === 'component');
+
     $component = [
       'uuid' => $layout['uuid'],
       'component' => $layout['type'],

@@ -36,7 +36,7 @@ describe('replaceUUIDsAndUpdateModel', () => {
             nodeType: 'slot',
             name: 'mySlot',
             id: '3cf2625f-a0a8-4c97-85c0-06df16239c21/mySlot',
-            components: inputLayout.components,
+            components: inputLayout[0].components,
           },
         ],
       };

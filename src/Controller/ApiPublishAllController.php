@@ -91,7 +91,14 @@ class ApiPublishAllController extends ApiControllerBase {
     foreach ($all_auto_saves as $auto_save) {
       $entity = $this->entityTypeManager->getStorage($auto_save['entity_type'])->load($auto_save['entity_id']);
       assert($entity instanceof FieldableEntityInterface);
-      $violations = $this->clientDataToEntityConverter->convert($auto_save['data'], $entity);
+      // Pluck out only the content region.
+      // @todo Remove this once auto-save data excludes global regions.
+      // @see https://www.drupal.org/project/experience_builder/issues/3494114
+      $content_region = \array_values(\array_filter($auto_save['data']['layout'], static fn(array $region) => $region['uuid'] === 'content'));
+      $violations = $this->clientDataToEntityConverter->convert([
+        'layout' => reset($content_region),
+        'model' => $auto_save['data']['model'],
+      ], $entity);
       if ($violations->count() > 0) {
         $violationSets[] = $violations;
       }

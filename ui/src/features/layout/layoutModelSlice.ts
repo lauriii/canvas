@@ -25,6 +25,7 @@ export enum NodeType {
 
 export interface RegionNode {
   name: string;
+  uuid: UUID;
   nodeType: NodeType.Region;
   components: ComponentNode[];
 }
@@ -47,7 +48,7 @@ export type LayoutNode = RegionNode | ComponentNode | SlotNode;
 export type LayoutChildNode = ComponentNode | SlotNode;
 
 export interface RootLayoutModel {
-  layout: RegionNode;
+  layout: Array<RegionNode>;
   model: ComponentModels;
 }
 
@@ -63,11 +64,14 @@ export interface LayoutModelSliceState extends RootLayoutModel {
 }
 
 export const initialState: LayoutModelSliceState = {
-  layout: {
-    nodeType: NodeType.Region,
-    name: 'content',
-    components: [],
-  },
+  layout: [
+    {
+      nodeType: NodeType.Region,
+      name: 'content',
+      components: [],
+      uuid: 'content',
+    },
+  ],
   model: {},
   initialized: false,
 };
@@ -181,11 +185,20 @@ export const layoutModelSlice = createSlice({
           return;
         }
         nodePath[nodePath.length - 1]++;
-        state.layout = insertNodeAtPath(
-          state.layout,
+        const rootIndex = nodePath.shift();
+        if (rootIndex === undefined) {
+          throw new Error(
+            'Path should be at least two items long, starting from the root region',
+          );
+        }
+        const root = state.layout[rootIndex];
+        const newState = state.layout;
+        newState[rootIndex] = insertNodeAtPath(
+          root,
           nodePath,
           updatedNode,
         ) as RegionNode;
+        state.layout = newState;
       },
     ),
     moveNode: create.reducer(
@@ -213,9 +226,19 @@ export const layoutModelSlice = createSlice({
         }
 
         let updatedModel: ComponentModels = { ...state.model };
-        let newLayout: RegionNode = JSON.parse(JSON.stringify(state.layout));
+        let newLayout: Array<RegionNode> = JSON.parse(
+          JSON.stringify(state.layout),
+        );
         const components = layoutModel.layout;
         const model = layoutModel.model;
+
+        const rootIndex = to.shift();
+        if (rootIndex === undefined) {
+          throw new Error(
+            'Path should be at least two items long, starting from the root region',
+          );
+        }
+        let regionRoot = newLayout[rootIndex];
 
         // Loop through each node in reverse order to maintain the correct insert positions
         for (let i = components.length - 1; i >= 0; i--) {
@@ -228,11 +251,11 @@ export const layoutModelSlice = createSlice({
               specifyUUID ? useUUID : undefined,
             );
           updatedModel = { ...updatedModel, ...nodeUpdatedModel };
-          newLayout = insertNodeAtPath(newLayout, to, updatedNode);
+          regionRoot = insertNodeAtPath(regionRoot, to, updatedNode);
         }
 
         state.model = updatedModel;
-        state.layout = newLayout;
+        state.layout[rootIndex] = regionRoot;
       },
     ),
     sortNode: create.reducer(
@@ -249,11 +272,21 @@ export const layoutModelSlice = createSlice({
           JSON.stringify(findComponentByUuid(state.layout, uuid)),
         );
         const nodePath = findNodePathByUuid(state.layout, uuid);
+        const rootIndex = nodePath?.shift() || undefined;
+        if (rootIndex === undefined) {
+          throw new Error(
+            'Path should be at least two items long, starting from the root region',
+          );
+        }
         if (cloneNode && nodePath) {
           const insertPosition = [...nodePath.slice(0, -1), to];
           const newLayout = removeComponentByUuid(state.layout, uuid);
 
-          state.layout = insertNodeAtPath(newLayout, insertPosition, cloneNode);
+          state.layout[rootIndex] = insertNodeAtPath(
+            newLayout[rootIndex],
+            insertPosition,
+            cloneNode,
+          );
         }
       },
     ),
@@ -271,6 +304,12 @@ export const layoutModelSlice = createSlice({
           JSON.stringify(findComponentByUuid(state.layout, uuid)),
         );
         const nodePath = findNodePathByUuid(state.layout, uuid);
+        const rootIndex = nodePath?.shift() || undefined;
+        if (rootIndex === undefined) {
+          throw new Error(
+            'Path should be at least two items long, starting from the root region',
+          );
+        }
         if (cloneNode && nodePath) {
           const newPos =
             direction === 'down'
@@ -279,7 +318,11 @@ export const layoutModelSlice = createSlice({
           const insertPosition = [...nodePath.slice(0, -1), newPos];
           const newLayout = removeComponentByUuid(state.layout, uuid);
 
-          state.layout = insertNodeAtPath(newLayout, insertPosition, cloneNode);
+          state.layout[rootIndex] = insertNodeAtPath(
+            newLayout[rootIndex],
+            insertPosition,
+            cloneNode,
+          );
         }
       },
     ),

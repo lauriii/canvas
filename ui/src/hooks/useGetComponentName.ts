@@ -28,20 +28,19 @@ const useGetComponentName = (
     }
     let name: string = node.nodeType;
     if (components) {
-      if (node.nodeType === 'slot') {
-        name = 'Slot';
-        if (parentNode && 'type' in parentNode) {
-          if (parentNode.type) {
-            const parentComponent = components?.[parentNode.type];
-            name = findPresentationSlotName(node.name, parentComponent);
-          }
-        }
-      }
       if (node.nodeType === 'component') {
         if (node.type) {
           name = components[node.type]?.name || 'Component';
         } else {
           name = 'Component';
+        }
+      } else {
+        name = node.name || 'Slot';
+        if (parentNode && 'type' in parentNode) {
+          if (parentNode.type) {
+            const parentComponent = components?.[parentNode.type];
+            name = findPresentationSlotName(node.name, parentComponent);
+          }
         }
       }
     }
