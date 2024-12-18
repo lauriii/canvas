@@ -142,7 +142,16 @@ final class BlockComponent extends ComponentSourceBase implements ContainerFacto
     }
 
     // @todo access checking and everything in \Drupal\layout_builder\EventSubscriber\BlockComponentRenderArray::onBuildRender
-    $build = $block->build();
+    // @todo This render array might be refactored in https://www.drupal.org/node/2931040
+    $build = [
+      '#theme' => 'block',
+      '#configuration' => $block->getConfiguration(),
+      '#plugin_id' => $block->getPluginId(),
+      '#base_plugin_id' => $block->getBaseId(),
+      '#derivative_plugin_id' => $block->getDerivativeId(),
+    ];
+
+    $build['content'] = $block->build();
     $build['#cache']['tags'][] = 'config:experience_builder.component.' . self::SOURCE_PLUGIN_ID . '.' . $this->configuration['plugin_id'];
 
     return $build;

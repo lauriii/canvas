@@ -35,6 +35,7 @@ class ComponentTreeHydratedTest extends KernelTestBase {
     'datetime',
     'file',
     'image',
+    'media',
     'options',
     'path',
     'link',
@@ -46,6 +47,10 @@ class ComponentTreeHydratedTest extends KernelTestBase {
    */
   protected function setUp(): void {
     parent::setUp();
+    $this->config('system.site')
+      ->set('name', 'XB Test Site')
+      ->set('slogan', 'Experience Builder Test Site')
+      ->save();
     $this->generateComponentConfig();
   }
 
@@ -82,7 +87,10 @@ class ComponentTreeHydratedTest extends KernelTestBase {
     $this->assertSame($expected_value, $hydrated_value->getTree());
     $renderable = $hydrated->toRenderable();
     $this->assertEquals($expected_renderable, $renderable);
-    $this->assertSame($expected_html, (string) $this->container->get(RendererInterface::class)->renderInIsolation($renderable));
+    $html = (string) $this->container->get(RendererInterface::class)->renderInIsolation($renderable);
+    // Strip trailing whitespace to make heredocs easier to write.
+    $html = preg_replace('/ +$/m', '', $html);
+    $this->assertSame($expected_html, $html);
     $this->assertSame($expected_cache_tags, array_values(CacheableMetadata::createFromRenderArray($renderable)->getCacheTags()));
   }
 
@@ -94,6 +102,14 @@ class ComponentTreeHydratedTest extends KernelTestBase {
         'expression' => 'ℹ︎string␟value',
       ];
     };
+
+    // @todo Remove when minimum version is Drupal 11.1 following https://www.drupal.org/project/drupal/issues/3379725
+    $additional = version_compare(\Drupal::VERSION, '11.1', '>=') ? [] : [
+      'status' => TRUE,
+      'info' => '',
+      'view_mode' => '',
+      'context_mapping' => [],
+    ];
 
     yield 'empty component tree' => [
       'tree' => [
@@ -207,19 +223,44 @@ HTML,
       'expected_renderable' => [
         ComponentTreeStructure::ROOT_UUID => [
           'uuid-in-root' => [
-            'site_logo' => [
-              '#theme' => "image",
-              '#uri' => NULL,
-              '#alt' => 'Home',
-              '#access' => TRUE,
+            '#theme' => 'block',
+            '#configuration' => [
+              'id' => 'system_branding_block',
+              'label' => '',
+              'label_display' => FALSE,
+              'provider' => 'system',
+              'use_site_logo' => TRUE,
+              'use_site_name' => TRUE,
+              'use_site_slogan' => TRUE,
+              'plugin_id' => 'system_branding_block',
+              'settings' => [
+                'id' => 'system_branding_block',
+                'label' => 'Site branding',
+                'label_display' => '',
+                'provider' => 'system',
+                'use_site_logo' => TRUE,
+                'use_site_name' => TRUE,
+                'use_site_slogan' => TRUE,
+              ] + $additional,
             ],
-            'site_name' => [
-              '#markup' => NULL,
-              '#access' => TRUE,
-            ],
-            'site_slogan' => [
-              '#markup' => NULL,
-              '#access' => TRUE,
+            '#plugin_id' => 'system_branding_block',
+            '#base_plugin_id' => 'system_branding_block',
+            '#derivative_plugin_id' => NULL,
+            'content' => [
+              'site_logo' => [
+                '#theme' => "image",
+                '#uri' => NULL,
+                '#alt' => 'Home',
+                '#access' => TRUE,
+              ],
+              'site_name' => [
+                '#markup' => 'XB Test Site',
+                '#access' => TRUE,
+              ],
+              'site_slogan' => [
+                '#markup' => 'Experience Builder Test Site',
+                '#access' => TRUE,
+              ],
             ],
             '#cache' => [
               'tags' => ['config:experience_builder.component.block.system_branding_block'],
@@ -228,7 +269,12 @@ HTML,
         ],
       ],
       'expected_html' => <<<HTML
-<img alt="Home" />
+<div>
+
+
+          <a href="/" rel="home">XB Test Site</a>
+    Experience Builder Test Site
+</div>
 
 HTML,
       'expected_cache_tags' => [
@@ -553,19 +599,44 @@ HTML,
                               ],
                             ],
                             'uuid-block' => [
-                              'site_logo' => [
-                                '#theme' => 'image',
-                                '#uri' => NULL,
-                                '#alt' => 'Home',
-                                '#access' => TRUE,
+                              '#theme' => 'block',
+                              '#configuration' => [
+                                'id' => 'system_branding_block',
+                                'label' => '',
+                                'label_display' => FALSE,
+                                'provider' => 'system',
+                                'use_site_logo' => TRUE,
+                                'use_site_name' => TRUE,
+                                'use_site_slogan' => TRUE,
+                                'plugin_id' => 'system_branding_block',
+                                'settings' => [
+                                  'id' => 'system_branding_block',
+                                  'label' => 'Site branding',
+                                  'label_display' => '',
+                                  'provider' => 'system',
+                                  'use_site_logo' => TRUE,
+                                  'use_site_name' => TRUE,
+                                  'use_site_slogan' => TRUE,
+                                ] + $additional,
                               ],
-                              'site_name' => [
-                                '#markup' => NULL,
-                                '#access' => TRUE,
-                              ],
-                              'site_slogan' => [
-                                '#markup' => NULL,
-                                '#access' => TRUE,
+                              '#plugin_id' => 'system_branding_block',
+                              '#base_plugin_id' => 'system_branding_block',
+                              '#derivative_plugin_id' => NULL,
+                              'content' => [
+                                'site_logo' => [
+                                  '#theme' => 'image',
+                                  '#uri' => NULL,
+                                  '#alt' => 'Home',
+                                  '#access' => TRUE,
+                                ],
+                                'site_name' => [
+                                  '#markup' => 'XB Test Site',
+                                  '#access' => TRUE,
+                                ],
+                                'site_slogan' => [
+                                  '#markup' => 'Experience Builder Test Site',
+                                  '#access' => TRUE,
+                                ],
                               ],
                               '#cache' => [
                                 'tags' => ['config:experience_builder.component.block.system_branding_block'],
@@ -607,7 +678,12 @@ HTML,
         <!-- xb-slot-start-the_body --><!-- xb-start-uuid-level-3 --><div  data-component-id="xb_test_sdc:props-no-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
   <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;"><!-- xb-prop-start-heading -->Hello, from slot level 3!<!-- xb-prop-end-heading --></h1>
 </div>
-<!-- xb-end-uuid-level-3 --><img alt="Home" />
+<!-- xb-end-uuid-level-3 --><div>
+
+
+          <a href="/" rel="home">XB Test Site</a>
+    Experience Builder Test Site
+</div>
 <!-- xb-start-uuid-last-in-tree --><div  data-component-id="xb_test_sdc:props-no-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
   <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;"><!-- xb-prop-start-heading -->Hello, from slot &lt;LAST ONE&gt;!<!-- xb-prop-end-heading --></h1>
 </div>

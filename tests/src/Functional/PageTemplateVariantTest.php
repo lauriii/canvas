@@ -18,12 +18,14 @@ use Drupal\Tests\BrowserTestBase;
 use Drupal\Tests\experience_builder\Traits\ContribStrictConfigSchemaTestTrait;
 use Drupal\Tests\experience_builder\Traits\GenerateComponentConfigTrait;
 use Drupal\Tests\experience_builder\Traits\TestDataUtilitiesTrait;
+use Drupal\Tests\system\Functional\Cache\AssertPageCacheContextsAndTagsTrait;
 
 /**
  * @group experience_builder
  */
 class PageTemplateVariantTest extends BrowserTestBase {
 
+  use AssertPageCacheContextsAndTagsTrait;
   use ContribStrictConfigSchemaTestTrait;
   use GenerateComponentConfigTrait;
   use TestDataUtilitiesTrait;
@@ -133,7 +135,7 @@ class PageTemplateVariantTest extends BrowserTestBase {
     $this->assertPageDisplayVariant(PageTemplateDisplayVariant::class, Component::loadMultiple([
       'block.page_title_block',
       'block.system_main_block',
-      'block.page_title_block',
+      'block.system_messages_block',
       'sdc.xb_test_sdc.props-no-slots',
     ]));
     $this->assertSession()->pageTextNotContains('Powered by Drupal');
@@ -184,12 +186,17 @@ class PageTemplateVariantTest extends BrowserTestBase {
       default => throw new \OutOfRangeException(),
     };
 
-    sort($expected_cache_tags);
-
     $this->rebuildAll();
     $this->drupalGet('');
-    $this->assertSession()->responseHeaderEquals('X-Drupal-Cache-Tags', implode(' ', $expected_cache_tags));
-    $this->assertSession()->responseHeaderEquals('X-Drupal-Cache-Contexts', 'languages:language_interface theme url.path url.query_args user.permissions user.roles:authenticated');
+    $this->assertCacheTags($expected_cache_tags, FALSE);
+    $this->assertCacheContexts([
+      'languages:language_interface',
+      'theme',
+      'url.path',
+      'url.query_args',
+      'user.permissions',
+      'user.roles:authenticated',
+    ], NULL, FALSE);
     $this->assertSession()->responseHeaderEquals('X-Drupal-Cache-Max-Age', '-1 (Permanent)');
     $this->assertSession()->responseHeaderEquals('X-Drupal-Dynamic-Cache', 'MISS');
     $this->assertSession()->responseHeaderEquals('X-Drupal-Cache', 'MISS');

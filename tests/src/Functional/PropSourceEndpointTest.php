@@ -101,6 +101,19 @@ class PropSourceEndpointTest extends BrowserTestBase {
     $this->assertSession()->responseHeaderEquals('X-Drupal-Cache', 'UNCACHEABLE (request policy)');
 
     $data = Json::decode($page->getText());
+    foreach ($data as $id => $component) {
+      $this->assertArrayHasKey('id', $component);
+      $this->assertSame($id, $component['id']);
+      $this->assertArrayHasKey('name', $component);
+      $this->assertArrayHasKey('category', $component);
+      $this->assertArrayHasKey('source', $component);
+      $this->assertArrayHasKey('default_markup', $component);
+      $this->assertArrayHasKey('css', $component);
+      $this->assertArrayHasKey('js_header', $component);
+      $this->assertArrayHasKey('js_footer', $component);
+    }
+    $this->assertStringStartsWith('<nav role="navigation"', $data['block.system_menu_block.main']['default_markup']);
+
     $data = array_intersect_key(
       $data,
       [

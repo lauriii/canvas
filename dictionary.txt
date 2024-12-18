@@ -8,6 +8,7 @@ drupalcode
 drupaldev
 endapply
 entityviewdisplay
+heredocs
 hyperscriptification
 hyperscriptified
 hyperscriptify

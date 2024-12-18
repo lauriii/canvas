@@ -129,8 +129,7 @@ final class PageViewBuilderTest extends KernelTestBase {
       (string) $this->cssSelect('[data-component-id="xb_test_sdc:props-slots"] h1')[0]
     );
 
-    self::assertStringContainsString('<img alt="Home" />', $this->getRawContent());
-    self::assertStringContainsString('XB Test Site', $this->getTextContent());
+    self::assertStringContainsString('<a href="/" rel="home">XB Test Site</a>', $this->getRawContent());
     self::assertStringContainsString('Experience Builder Test Site', $this->getTextContent());
 
     // Verify `xb_test_page_xb_page_view` output was ignored, but attachments
