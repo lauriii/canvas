@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react';
 import Tooltip from './Tooltip';
 import { IconButton } from '@radix-ui/themes';
 import { InfoCircledIcon } from '@radix-ui/react-icons';
+import Avatar from '@/components/Avatar';
 
 const meta: Meta<typeof Tooltip> = {
   title: 'Components/Tooltip',
@@ -39,5 +40,27 @@ export const WithLongText: Story = {
         <InfoCircledIcon />
       </IconButton>
     ),
+  },
+};
+
+// cSpell:disable
+export const WithAvatar: Story = {
+  args: {
+    content: 'Dries Buytaert',
+    children: (
+      <Avatar
+        name={'Dries Buytaert'}
+        imageUrl={
+          'https://www.drupal.org/files/styles/grid-2-2x-square/public/user-pictures/picture-1-1401055330.jpg?itok=E9No1cHd,'
+        }
+      />
+    ),
+  },
+};
+
+export const WithAvatarWithoutImage: Story = {
+  args: {
+    content: 'Dries Buytaert',
+    children: <Avatar name={'Dries Buytaert'} />,
   },
 };

@@ -29,6 +29,21 @@ import '@radix-ui/themes/tokens/colors/green.css';
 import '@radix-ui/themes/tokens/colors/purple.css';
 import '@radix-ui/themes/tokens/colors/sand.css';
 import '@radix-ui/themes/tokens/colors/red.css';
+import '@radix-ui/themes/tokens/colors/violet.css';
+import '@radix-ui/themes/tokens/colors/gold.css';
+import '@radix-ui/themes/tokens/colors/sky.css';
+import '@radix-ui/themes/tokens/colors/mint.css';
+import '@radix-ui/themes/tokens/colors/lime.css';
+import '@radix-ui/themes/tokens/colors/yellow.css';
+import '@radix-ui/themes/tokens/colors/amber.css';
+import '@radix-ui/themes/tokens/colors/orange.css';
+import '@radix-ui/themes/tokens/colors/bronze.css';
+import '@radix-ui/themes/tokens/colors/jade.css';
+import '@radix-ui/themes/tokens/colors/cyan.css';
+import '@radix-ui/themes/tokens/colors/indigo.css';
+import '@radix-ui/themes/tokens/colors/iris.css';
+import '@radix-ui/themes/tokens/colors/pink.css';
+import '@radix-ui/themes/tokens/colors/ruby.css';
 
 // Components and utilities
 import '@radix-ui/themes/components.css';

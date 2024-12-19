@@ -26,7 +26,7 @@
     "cy:run:record": "cypress run --record",
     "cy:open": "cypress open",
     "cy:component": "cypress run --component --browser electron",
-    "storybook": "storybook dev -p 6006",
+    "storybook": "storybook dev --port 6006",
     "build-storybook": "storybook build"
   },
   "dependencies": {
@@ -44,6 +44,7 @@
     "clsx": "^2.1.1",
     "cypress-axe": "^1.5.0",
     "cypress-real-events": "^1.13.0",
+    "date-fns": "^4.1.0",
     "dotenv": "^16.4.5",
     "lodash": "^4.17.21",
     "lodash-es": "^4.17.21",

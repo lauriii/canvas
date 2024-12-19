@@ -8,4 +8,7 @@
   --sidebar-right-width: 296px;
   --sidebar-space-side: var(--topbar-space-above);
   --component-insert-menu-width: 262px;
+  --publish-review-width: 373px;
+  --publish-review-max-width: 600px;
+  --publish-review-max-height: 690px;
 }
