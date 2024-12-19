@@ -116,6 +116,7 @@ class ComponentValidationTest extends ConfigEntityValidationTestBase {
 
   /**
    * Machine name of \Drupal\experience_builder\Entity\Component needs to be joined with +.
+   *
    * @param $length
    *
    * @return string

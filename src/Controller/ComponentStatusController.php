@@ -14,6 +14,7 @@ use Symfony\Component\HttpFoundation\RedirectResponse;
 
 /**
  * Not every unavailable/disabled SDC will have Component entity, so we're using a controller instead of EntityListBuilder for this.
+ *
  * @see \Drupal\experience_builder\Plugin\ComponentPluginManager::setCachedDefinitions()
  *
  * @todo Ensure reasons are translated.

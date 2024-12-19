@@ -70,6 +70,7 @@ class TranslationTest extends FunctionalTestBase {
 
   /**
    * Data provider for testTranslation().
+   *
    * @return array<array{0: array, 1: bool}>
    */
   public static function translationDataProvider(): array {

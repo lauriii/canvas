@@ -60,22 +60,28 @@
     <exclude name="Drupal.Commenting.DocComment.MissingShort"/>
     <exclude name="Drupal.Commenting.DocComment.ParamNotFirst"/>
     <exclude name="Drupal.Commenting.DocComment.ShortNotCapital"/>
-    <exclude name="Drupal.Commenting.DocComment.SpacingBeforeTags"/>
   </rule>
   <rule ref="Drupal.Commenting.DocCommentAlignment"/>
   <rule ref="Drupal.Commenting.DocCommentLongArraySyntax"/>
   <rule ref="Drupal.Commenting.DocCommentStar"/>
   <rule ref="Drupal.Commenting.FileComment"/>
-
   <rule ref="Drupal.Commenting.FunctionComment">
-    <exclude name="Drupal.Commenting.FunctionComment.InvalidNoReturn"/>
-    <exclude name="Drupal.Commenting.FunctionComment.Missing"/>
-    <exclude name="Drupal.Commenting.FunctionComment.MissingReturnComment"/>
     <exclude name="Drupal.Commenting.FunctionComment.ParamCommentFullStop"/>
     <exclude name="Drupal.Commenting.FunctionComment.TypeHintMissing"/>
   </rule>
+  <rule ref="Drupal.Commenting.FunctionComment.Missing">
+    <include-pattern>core/modules/*/Plugin/views/filter/*</include-pattern>
+    <include-pattern>core/modules/*/Plugin/views/access/*</include-pattern>
+    <include-pattern>core/modules/*/Plugin/views/cache/*</include-pattern>
+    <include-pattern>core/modules/*/Plugin/views/query/*</include-pattern>
+    <include-pattern>core/modules/*/Plugin/views/sort/*</include-pattern>
+    <exclude-pattern>*/tests/*</exclude-pattern>
+  </rule>
   <rule ref="Drupal.Commenting.FunctionComment.MissingParamType">
     <include-pattern>core/lib/Component/*</include-pattern>
+  </rule>
+  <rule ref="Drupal.Commenting.FunctionComment.MissingReturnComment">
+    <include-pattern>core/lib/Drupal/Core/[a-e]*/*</include-pattern>
   </rule>
   <rule ref="Drupal.Commenting.GenderNeutralComment"/>
   <rule ref="Drupal.Commenting.HookComment"/>
@@ -90,8 +96,11 @@
   <rule ref="Drupal.Commenting.TodoComment" />
   <rule ref="Drupal.Commenting.VariableComment">
     <!-- Sniff for: DuplicateVar, EmptyVar, IncorrectVarType, InlineVariableName, WrongStyle -->
-    <exclude name="Drupal.Commenting.VariableComment.Missing"/>
     <exclude name="Drupal.Commenting.VariableComment.MissingVar"/>
+  </rule>
+  <rule ref="Drupal.Commenting.VariableComment.Missing">
+    <exclude-pattern>./core/tests/*</exclude-pattern>
+    <exclude-pattern>./core/*/tests/*</exclude-pattern>
   </rule>
   <rule ref="Drupal.ControlStructures.ControlSignature"/>
   <rule ref="Drupal.ControlStructures.ElseIf"/>
@@ -122,9 +131,7 @@
   <rule ref="Drupal.Scope.MethodScope"/>
   <rule ref="Drupal.Semantics.EmptyInstall"/>
   <rule ref="Drupal.Semantics.FunctionAlias"/>
-  <rule ref="Drupal.Semantics.FunctionT">
-    <exclude name="Drupal.Semantics.FunctionT.NotLiteralString"/>
-  </rule>
+  <rule ref="Drupal.Semantics.FunctionT"/>
   <rule ref="Drupal.Semantics.FunctionTriggerError"/>
   <rule ref="Drupal.Semantics.FunctionWatchdog"/>
   <rule ref="Drupal.Semantics.InstallHooks"/>
@@ -149,7 +156,6 @@
   <rule ref="DrupalPractice.CodeAnalysis.VariableAnalysis">
     <exclude-pattern>*/Functional/*</exclude-pattern>
     <exclude-pattern>*/FunctionalJavascript/*</exclude-pattern>
-    <exclude-pattern>*/core/tests/*</exclude-pattern>
     <exclude-pattern>*/core/profiles/*/tests/*</exclude-pattern>
     <!-- Do not run this sniff on API files or transliteration data. -->
     <exclude-pattern>*.api.php</exclude-pattern>
@@ -253,6 +259,7 @@
   <rule ref="PSR2.Namespaces.UseDeclaration"/>
 
   <!-- SlevomatCodingStandard sniffs -->
+  <rule ref="SlevomatCodingStandard.Classes.BackedEnumTypeSpacing"/>
   <rule ref="SlevomatCodingStandard.Commenting.ForbiddenAnnotations">
     <properties>
       <property name="forbiddenAnnotations" type="array">

@@ -43,6 +43,7 @@ class ComponentPluginManager extends CoreComponentPluginManager implements Categ
 
   /**
    * {@inheritdoc}
+   *
    * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entityTypeManager
    * @param \Drupal\Core\State\StateInterface $state
    */

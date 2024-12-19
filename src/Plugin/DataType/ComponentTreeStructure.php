@@ -266,6 +266,7 @@ class ComponentTreeStructure extends TypedData {
    * Retrieves the list of unique component config entity IDs used.
    *
    * Sibling method on ComponentPropsValues:
+   *
    * @see \Drupal\experience_builder\Plugin\DataType\ComponentPropsValues::getPropSourceTypePrefixList()
    *
    * @return array<ComponentConfigEntityId>

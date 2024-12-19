@@ -120,6 +120,7 @@ final class Component extends ConfigEntityBase implements ComponentInterface {
 
   /**
    * {@inheritdoc}
+   *
    * @throws \Drupal\Core\Config\Schema\SchemaIncompleteException
    */
   public function save() {
@@ -237,6 +238,7 @@ final class Component extends ConfigEntityBase implements ComponentInterface {
    * {@inheritdoc}
    *
    * Override the parent to enforce the string return type.
+   *
    * @see \Drupal\Core\Entity\EntityStorageBase::create
    */
   public function uuid(): string {

@@ -442,6 +442,7 @@ final class SingleDirectoryComponent extends ComponentSourceBase implements Comp
    * Converts an SDC plugin machine name into a config entity ID.
    *
    * The naming convention for SDC plugin components is [module/theme]:[component machine name]. Colon is invalid config entity name, so we replace it with '.'.
+   *
    * @see https://www.drupal.org/docs/develop/theming-drupal/using-single-directory-components/api-for-single-directory-components
    *
    * @param string $machine_name

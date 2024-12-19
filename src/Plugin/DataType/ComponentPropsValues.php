@@ -110,6 +110,7 @@ class ComponentPropsValues extends TypedData implements \Stringable {
    * Retrieves the list of unique types of prop sources used.
    *
    * Sibling method on ComponentTreeStructure:
+   *
    * @see \Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure::getComponentIdList()
    *
    * @return string[]
