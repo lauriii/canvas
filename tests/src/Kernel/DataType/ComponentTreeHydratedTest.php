@@ -196,7 +196,8 @@ class ComponentTreeHydratedTest extends KernelTestBase {
         <!-- xb-slot-start-the_footer -->Example value for &lt;strong&gt;the_footer&lt;/strong&gt;.<!-- xb-slot-end-the_footer -->
     </div>
   <div class="component--props-slots--colophon">
-    <!-- xb-slot-start-the_colophon --><!-- xb-slot-end-the_colophon -->  </div>
+        <!-- xb-slot-start-the_colophon --><!-- xb-slot-end-the_colophon -->
+    </div>
 </div>
 <!-- xb-end-uuid-in-root -->
 HTML,
@@ -437,7 +438,8 @@ HTML,
         <!-- xb-slot-start-the_footer -->Example value for &lt;strong&gt;the_footer&lt;/strong&gt;.<!-- xb-slot-end-the_footer -->
     </div>
   <div class="component--props-slots--colophon">
-    <!-- xb-slot-start-the_colophon --><!-- xb-slot-end-the_colophon -->  </div>
+        <!-- xb-slot-start-the_colophon --><!-- xb-slot-end-the_colophon -->
+    </div>
 </div>
 <!-- xb-end-uuid-in-root -->
 HTML,
@@ -693,7 +695,8 @@ HTML,
         <!-- xb-slot-start-the_footer -->Example value for &lt;strong&gt;the_footer&lt;/strong&gt;.<!-- xb-slot-end-the_footer -->
     </div>
   <div class="component--props-slots--colophon">
-    <!-- xb-slot-start-the_colophon --><!-- xb-slot-end-the_colophon -->  </div>
+        <!-- xb-slot-start-the_colophon --><!-- xb-slot-end-the_colophon -->
+    </div>
 </div>
 <!-- xb-end-uuid-level-2 --><!-- xb-slot-end-the_body -->
     </div>
@@ -701,7 +704,8 @@ HTML,
         <!-- xb-slot-start-the_footer -->Example value for &lt;strong&gt;the_footer&lt;/strong&gt;.<!-- xb-slot-end-the_footer -->
     </div>
   <div class="component--props-slots--colophon">
-    <!-- xb-slot-start-the_colophon --><!-- xb-slot-end-the_colophon -->  </div>
+        <!-- xb-slot-start-the_colophon --><!-- xb-slot-end-the_colophon -->
+    </div>
 </div>
 <!-- xb-end-uuid-level-1 --><!-- xb-slot-end-the_body -->
     </div>
@@ -709,7 +713,8 @@ HTML,
         <!-- xb-slot-start-the_footer -->Example value for &lt;strong&gt;the_footer&lt;/strong&gt;.<!-- xb-slot-end-the_footer -->
     </div>
   <div class="component--props-slots--colophon">
-    <!-- xb-slot-start-the_colophon --><!-- xb-slot-end-the_colophon -->  </div>
+        <!-- xb-slot-start-the_colophon --><!-- xb-slot-end-the_colophon -->
+    </div>
 </div>
 <!-- xb-end-uuid-in-root -->
 HTML,

@@ -116,6 +116,7 @@ cspell:
   - changes:
       - components
       - schema.json
+      - "**/*.twig"
     when: on_success
 
 # @todo Remove when https://www.drupal.org/project/gitlab_templates/issues/3452183 lands.
