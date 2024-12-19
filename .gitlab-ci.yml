@@ -353,16 +353,19 @@ UI eslint:
     expire_in: 6 mos
     paths:
       - ui/tests/screenshots/**/*.png
+    reports:
+      junit:
+        - ui/junit-*.xml
 
 cypress E2E:
   extends: .cypress-base
   script:
-    - CYPRESS_CACHE_FOLDER=./cycache node ./node_modules/.bin/cypress run --browser electron
+    - CYPRESS_CACHE_FOLDER=./cycache node ./node_modules/.bin/cypress run --browser electron --reporter junit --reporter-options "mochaFile=junit-[hash].xml"
 
 cypress unit:
   extends: .cypress-base
   script:
-    - CYPRESS_CACHE_FOLDER=./cycache node ./node_modules/.bin/cypress run --component --browser electron
+    - CYPRESS_CACHE_FOLDER=./cycache node ./node_modules/.bin/cypress run --component --browser electron --reporter junit --reporter-options "mochaFile=junit-[hash].xml"
   rules:
     - *is-push-rule
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"

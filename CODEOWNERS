@@ -124,7 +124,7 @@
 # DX
 #
 
-[DX: CI] @wimleers
+[DX: CI] @wimleers @bnjmnm @larowlan @longwave
 /.gitlab-ci.yml
 
 [DX: JS] @balintbrews @bnjmnm @jessebaker @hooroomoo
