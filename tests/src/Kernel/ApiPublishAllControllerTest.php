@@ -51,8 +51,9 @@ class ApiPublishAllControllerTest extends KernelTestBase {
         'props' => '{}',
       ],
     ]);
+    $node1_original_title = (string) $node1->getTitle();
     self::assertSame(SAVED_NEW, $node1->save());
-    $this->assertNodeXbField($node1, [], []);
+    $this->assertNodeValues($node1, [], [], $node1_original_title);
 
     $node2 = Node::create([
       'type' => 'article',
@@ -65,7 +66,8 @@ class ApiPublishAllControllerTest extends KernelTestBase {
       ],
     ]);
     self::assertSame(SAVED_NEW, $node2->save());
-    $this->assertNodeXbField($node2, [], []);
+    $node2_original_title = (string) $node2->getTitle();
+    $this->assertNodeValues($node2, [], [], $node2_original_title);
 
     $validClientJson = $this->getValidClientJson();
 
@@ -101,15 +103,15 @@ class ApiPublishAllControllerTest extends KernelTestBase {
           'meta' => [
             'entity_type' => 'node',
             'entity_id' => $node2->id(),
-            'label' => $node2->label(),
+            'label' => 'The updated title.',
           ],
         ],
       ],
     ], $json);
     // Ensure that neither the valid nor invalid node gets updated if one is
     // invalid.
-    $this->assertNodeXbField($node1, [], []);
-    $this->assertNodeXbField($node2, [], []);
+    $this->assertNodeValues($node1, [], [], $node1_original_title);
+    $this->assertNodeValues($node2, [], [], $node2_original_title);
 
     // Fix the error.
     $validClientJson['model'][self::TEST_HEADING_UUID]['style'] = 'primary';
@@ -190,12 +192,13 @@ class ApiPublishAllControllerTest extends KernelTestBase {
     self::assertEquals(['message' => 'Successfully published 2 items.'], $json);
 
     $this->assertValidJsonUpdateNode($node1);
-    $this->assertNodeXbField(
+    $this->assertNodeValues(
       $node2,
       [
         'sdc.experience_builder.heading',
       ],
-      [self::TEST_HEADING_UUID => $this->getValidConvertedProps()[self::TEST_HEADING_UUID]]
+      [self::TEST_HEADING_UUID => $this->getValidConvertedProps()[self::TEST_HEADING_UUID]],
+      'The updated title.'
     );
     // Ensure that after the nodes have been published their auto-save data is
     // removed.

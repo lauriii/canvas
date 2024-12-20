@@ -42,7 +42,7 @@ final class ApiContentUpdateForDemoControllerTest extends FunctionalTestBase {
 
   public function testSave(): void {
     $node1 = $this->createTestNode();
-    $this->assertNodeXbField($node1, [], []);
+    $this->assertNodeValues($node1, [], [], (string) $node1->getTitle());
     $valid_client_json = $this->getValidClientJson();
     // Make a valid client request.
     $this->assertClientRequest(
@@ -54,7 +54,8 @@ final class ApiContentUpdateForDemoControllerTest extends FunctionalTestBase {
     $this->assertValidJsonUpdateNode($node1);
 
     $node2 = $this->createTestNode();
-    $this->assertNodeXbField($node2, [], []);
+    $node2_original_title = (string) $node2->getTitle();
+    $this->assertNodeValues($node2, [], [], $node2_original_title);
 
     // Make a request with invalid heading properties.
     $invalid_heading_client_json = $valid_client_json;
@@ -75,7 +76,7 @@ final class ApiContentUpdateForDemoControllerTest extends FunctionalTestBase {
       ]
     );
     // Ensure none of the entities have been saved.
-    $this->assertNodeXbField($node2, [], []);
+    $this->assertNodeValues($node2, [], [], $node2_original_title);
     $this->assertValidJsonUpdateNode($node1);
 
     // Make request with all properties missing for the heading component.

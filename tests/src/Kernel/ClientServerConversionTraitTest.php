@@ -87,7 +87,16 @@ class ClientServerConversionTraitTest extends KernelTestBase {
     ]);
     $node1->validate();
     $node1->save();
-    $this->assertValidJsonUpdateNode($node1);
+    // Ensure the field has been updated.
+    $this->assertNodeValues(
+      $node1,
+      [
+        'sdc.experience_builder.heading',
+        'sdc.experience_builder.image',
+      ],
+      $this->getValidConvertedProps(),
+      '5 amazing uses for old toothbrushes'
+    );
   }
 
   public function testConvertClientToServerErrors(): void {

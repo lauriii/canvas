@@ -98,6 +98,7 @@ class ApiPublishAllController extends ApiControllerBase {
       $violations = $this->clientDataToEntityConverter->convert([
         'layout' => reset($content_region),
         'model' => $auto_save['data']['model'],
+        'entity_form_fields' => $auto_save['data']['entity_form_fields'],
       ], $entity);
       if ($violations->count() > 0) {
         $violationSets[] = $violations;

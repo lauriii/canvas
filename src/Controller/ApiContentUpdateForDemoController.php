@@ -40,6 +40,7 @@ final class ApiContentUpdateForDemoController extends ApiControllerBase {
     $violations = $this->clientDataToEntityConverter->convert([
       'layout' => reset($content_region),
       'model' => $auto_save['model'],
+      'entity_form_fields' => $auto_save['entity_form_fields'],
     ], $entity);
     if ($validation_errors_response = self::createJsonResponseFromViolations($violations)) {
       return $validation_errors_response;

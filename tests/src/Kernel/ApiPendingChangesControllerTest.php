@@ -135,7 +135,11 @@ final class ApiPendingChangesControllerTest extends KernelTestBase {
         'uri' => $account1->toUrl()->toString(),
       ],
       'label' => $account1content->label(),
-      'data_hash' => \hash('xxh64', \serialize($data)),
+      // @todo Because the client currently doesn't send 'entity_form_fields'
+      //   this key is added in
+      //   \Drupal\experience_builder\AutoSave\AutoSaveManager::save(). Remove
+      //   in https://www.drupal.org/i/3487484.
+      'data_hash' => \hash('xxh64', \serialize(array_merge(['entity_form_fields' => []], $data))),
     ], \array_diff_key($content['node:1:en'], \array_flip(['updated'])));
     self::assertEquals([
       'langcode' => 'en',
@@ -148,7 +152,11 @@ final class ApiPendingChangesControllerTest extends KernelTestBase {
         'uri' => $account2->toUrl()->toString(),
       ],
       'label' => $account2content->label(),
-      'data_hash' => \hash('xxh64', \serialize($emptyData)),
+      // @todo Because the client currently doesn't send 'entity_form_fields'
+      //   this key is added in
+      //   \Drupal\experience_builder\AutoSave\AutoSaveManager::save(). Remove
+      //   in https://www.drupal.org/i/3487484.
+      'data_hash' => \hash('xxh64', \serialize(array_merge(['entity_form_fields' => []], $emptyData))),
     ], \array_diff_key($content['node:2:en'], \array_flip(['updated'])));
     $anonAccount = User::load(0);
     self::assertInstanceOf(AccountInterface::class, $anonAccount);
@@ -167,7 +175,11 @@ final class ApiPendingChangesControllerTest extends KernelTestBase {
         'uri' => $anonAccount->toUrl()->toString(),
       ],
       'label' => $anonAccountContent->label(),
-      'data_hash' => \hash('xxh64', \serialize($emptyData)),
+      // @todo Because the client currently doesn't send 'entity_form_fields'
+      //   this key is added in
+      //   \Drupal\experience_builder\AutoSave\AutoSaveManager::save(). Remove
+      //   in https://www.drupal.org/i/3487484.
+      'data_hash' => \hash('xxh64', \serialize(array_merge(['entity_form_fields' => []], $emptyData))),
     ], \array_diff_key($content[$anonContentIdentifier], \array_flip(['updated'])));
     $this->assertDataCompliesWithApiSpecification($content, 'AutoSaveCollection');
   }

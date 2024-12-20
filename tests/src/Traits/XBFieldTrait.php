@@ -152,7 +152,7 @@ trait XBFieldTrait {
     return $file;
   }
 
-  private function assertNodeXbField(Node $node, array $expected_component_ids, array $expected_props): void {
+  private function assertNodeValues(Node $node, array $expected_component_ids, array $expected_props, string $title): void {
     $nid = $node->id();
     // Reset the node to ensure we're not getting a cached version.
     $this->container->get('entity_type.manager')
@@ -160,6 +160,7 @@ trait XBFieldTrait {
       ->resetCache([$nid]);
     $node = Node::load($nid);
     $this->assertInstanceOf(Node::class, $node);
+    $this->assertSame($title, (string) $node->getTitle());
     $item = $node->get('field_xb_demo')[0];
     $this->assertInstanceOf(ComponentTreeItem::class, $item);
     $tree = $item->get('tree');
@@ -224,6 +225,13 @@ trait XBFieldTrait {
           ],
         ],
       ],
+      'entity_form_fields' => [
+        'title' => [
+            [
+              'value' => 'The updated title.',
+            ],
+        ],
+      ],
     ];
   }
 
@@ -235,13 +243,14 @@ trait XBFieldTrait {
 
   private function assertValidJsonUpdateNode(Node $node): void {
     // Ensure the field has been updated.
-    $this->assertNodeXbField(
+    $this->assertNodeValues(
       $node,
       [
         'sdc.experience_builder.heading',
         'sdc.experience_builder.image',
       ],
-      $this->getValidConvertedProps()
+      $this->getValidConvertedProps(),
+      'The updated title.'
     );
 
   }

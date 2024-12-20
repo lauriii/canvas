@@ -28,6 +28,9 @@ class AutoSaveManager {
   }
 
   public function save(EntityInterface $entity, array $data): void {
+    // @todo Currently the client does not send the `entity_form_fields` key but PHPUnit tests do. Remove this when the client sends it
+    //   in https://www.drupal.org/i/3487484.
+    $data = array_merge(['entity_form_fields' => []], $data);
     // @todo We need to combine entity-field data here and update fields the
     // user can access - https://drupal.org/i/3488368
     $key = $this->getAutoSaveKey($entity);
