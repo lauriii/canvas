@@ -59,7 +59,7 @@ final class XBPreviewRenderer extends HtmlRenderer {
    *
    * @see \Drupal\Core\EventSubscriber\HtmlResponseSubscriber
    */
-  public function renderResponse(array $main_content, Request $request, RouteMatchInterface $route_match): JsonResponse {
+  public function renderResponse(array $main_content, Request $request, RouteMatchInterface $route_match, array $additionalData = []): JsonResponse {
     $response = parent::renderResponse($main_content, $request, $route_match);
     assert($response instanceof AttachmentsInterface);
     $response = $this->attachmentsResponseProcessor->processAttachments($response);
@@ -68,7 +68,7 @@ final class XBPreviewRenderer extends HtmlRenderer {
     // @todo Expose warnings and errors to the XB UI: https://www.drupal.org/project/experience_builder/issues/3489302#comment-15877293
     return new JsonResponse([
       'html' => $response->getContent(),
-    ]);
+    ] + $additionalData);
   }
 
   /**

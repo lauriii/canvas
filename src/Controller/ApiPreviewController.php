@@ -11,6 +11,7 @@ use Drupal\Core\TypedData\TypedDataManagerInterface;
 use Drupal\experience_builder\AutoSave\AutoSaveManager;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
+use Drupal\experience_builder\Render\PreviewEnvelope;
 use Symfony\Component\HttpFoundation\Request;
 
 // phpcs:disable
@@ -33,7 +34,7 @@ final class ApiPreviewController {
     private readonly AutoSaveManager $autoSaveManager,
   ) {}
 
-  public function __invoke(Request $request, EntityInterface $entity): array {
+  public function __invoke(Request $request, EntityInterface $entity): PreviewEnvelope {
     $body = json_decode($request->getContent(), TRUE);
     // @todo Remove regions other than content and store them in a page-template
     // auto-save entry.
@@ -56,7 +57,7 @@ final class ApiPreviewController {
     $build['#prefix'] = '<div class="xb--sortable-list" data-xb-uuid="content">';
     $build['#suffix'] = '</div>';
     $build['#attached']['library'][] = 'experience_builder/preview';
-    return $build;
+    return new PreviewEnvelope($build);
   }
 
   private static function wrapComponentsForPreview(array $build): array {

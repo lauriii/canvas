@@ -25,9 +25,7 @@ services:
       $jsCollectionRenderer: '@asset.js.collection_renderer'
     tags:
       - { name: render.main_content_renderer, format: xb_template }
-  Drupal\experience_builder\Render\MainContent\XBPreviewRenderer:
-    tags:
-      - { name: render.main_content_renderer, format: xb_preview }
+  Drupal\experience_builder\Render\MainContent\XBPreviewRenderer: { }
   Drupal\experience_builder\Plugin\ComponentPluginManager:
     decorates: Drupal\Core\Theme\ComponentPluginManager
     parent: Drupal\Core\Theme\ComponentPluginManager
@@ -69,6 +67,7 @@ services:
     class: Drupal\experience_builder\EventSubscriber\XbRouteOptionsEventSubscriber
     tags:
       - { name: 'event_subscriber' }
+  Drupal\experience_builder\EventSubscriber\PreviewEnvelopeViewSubscriber: {}
   experience_builder.theme_negotiator.xb:
     class: Drupal\experience_builder\Theme\XBThemeNegotiator
     tags:
