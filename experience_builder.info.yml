@@ -17,6 +17,9 @@ core_version_requirement: ^10.4 || ^11.1
 php: 8.3
 configure: entity.component.collection
 dependencies:
+  # XB's "page template" functionality is an integral part of XB. To allow that to function, this (currently) needs >=1 main content, title and messages block plugins.
+  # @see docs/config-management.md, section 3.2 `PageTemplate config entity`
+  - drupal:block
   # To support datetime prop shapes.
   # @see https://json-schema.org/understanding-json-schema/reference/string#dates-and-times
   # @see \Drupal\datetime\Plugin\Field\FieldType\DateTimeItem

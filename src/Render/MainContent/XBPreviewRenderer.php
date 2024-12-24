@@ -34,6 +34,8 @@ use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
  */
 final class XBPreviewRenderer extends HtmlRenderer {
 
+  public const PREVIEW_WRAPPER_FORMAT = 'xb_preview';
+
   public function __construct(
     TitleResolverInterface $title_resolver,
     #[Autowire(service: 'plugin.manager.display_variant')]

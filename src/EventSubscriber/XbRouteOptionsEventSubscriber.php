@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\experience_builder\EventSubscriber;
 
+use Drupal\Core\EventSubscriber\MainContentViewSubscriber;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpKernel\Event\RequestEvent;
@@ -32,7 +33,7 @@ final class XbRouteOptionsEventSubscriber implements EventSubscriberInterface {
     // @see \Drupal\experience_builder\Render\MainContent\XBTemplateRenderer
     $route_object = $this->routeMatch->getRouteObject();
     if (!is_null($route_object) && $wrapper_format = $route_object->getOption('_wrapper_format')) {
-      $event->getRequest()->query->set('_wrapper_format', $wrapper_format);
+      $event->getRequest()->query->set(MainContentViewSubscriber::WRAPPER_FORMAT, $wrapper_format);
     }
   }
 

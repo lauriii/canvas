@@ -9,7 +9,9 @@ use Drupal\experience_builder\AutoSave\AutoSaveManager;
 use Drupal\experience_builder\Controller\ApiPendingChangesController;
 use Drupal\experience_builder\Controller\ApiPublishAllController;
 use Drupal\experience_builder\Controller\ErrorCodesEnum;
+use Drupal\experience_builder\Entity\PageTemplate;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
+use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\node\Entity\Node;
 use Drupal\Tests\experience_builder\TestSite\XBTestSetup;
@@ -36,7 +38,15 @@ class ApiPublishAllControllerTest extends KernelTestBase {
     $this->setUpImages();
   }
 
-  public function test(): void {
+  public static function providerCases(): iterable {
+    yield 'without_global' => [FALSE];
+    yield 'with_global' => [TRUE];
+  }
+
+  /**
+   * @dataProvider providerCases
+   */
+  public function test(bool $withGlobal = FALSE): void {
     /** @var \Drupal\experience_builder\AutoSave\AutoSaveManager $autoSave */
     $autoSave = \Drupal::service(AutoSaveManager::class);
     $this->setUpCurrentUser(permissions: ['access administration pages']);
@@ -71,6 +81,51 @@ class ApiPublishAllControllerTest extends KernelTestBase {
 
     $validClientJson = $this->getValidClientJson();
 
+    // Add some global elements.
+    if ($withGlobal) {
+      $template = PageTemplate::createFromBlockLayout('stark');
+      $template->enable()->save();
+      $regions_without_breadcrumbs = [
+        'sidebar_first',
+        'sidebar_second',
+        'primary_menu',
+        'secondary_menu',
+        'footer',
+        'highlighted',
+        'help',
+        'page_top',
+        'page_bottom',
+      ];
+      foreach ($regions_without_breadcrumbs as $region) {
+        $validClientJson['layout'][] = [
+          "components" => [],
+          "name" => $region,
+          "nodeType" => "region",
+          "id" => $region,
+        ];
+      }
+      $validClientJson['layout'][] = [
+        "components" => [
+          [
+            "nodeType" => "component",
+            "slots" => [],
+            "type" => "block.page_title_block",
+            "uuid" => "c3f3c22c-c22e-4bb6-ad16-635f069148e4",
+          ],
+        ],
+        "name" => "Header",
+        "nodeType" => "region",
+        "id" => "header",
+      ];
+      $validClientJson['model'] += [
+        "c3f3c22c-c22e-4bb6-ad16-635f069148e4" => [
+          "label" => "Page title",
+          "label_display" => "0",
+          "provider" => "core",
+        ],
+      ];
+    }
+
     // Auto-save node 1.
     $response = $this->request(Request::create(Url::fromRoute('experience_builder.api.preview', [
       'entity_type' => 'node',
@@ -93,28 +148,48 @@ class ApiPublishAllControllerTest extends KernelTestBase {
     $response = $this->makePublishAllRequest();
     $json = json_decode($response->getContent() ?: '', TRUE);
     self::assertEquals(Response::HTTP_UNPROCESSABLE_ENTITY, $response->getStatusCode());
-    self::assertEquals([
-      'errors' => [
-        [
-          'detail' => 'Does not have a value in the enumeration ["primary","secondary"]',
-          'source' => [
-            'pointer' => 'model.' . self::TEST_HEADING_UUID . '.style',
-          ],
-          'meta' => [
-            'entity_type' => 'node',
-            'entity_id' => $node2->id(),
-            'label' => 'The updated title.',
-          ],
-        ],
+    $errors[] = [
+      'detail' => 'Does not have a value in the enumeration ["primary","secondary"]',
+      'source' => [
+        'pointer' => 'model.' . self::TEST_HEADING_UUID . '.style',
       ],
-    ], $json);
+      'meta' => [
+        'entity_type' => 'node',
+        'entity_id' => $node2->id(),
+        'label' => 'The updated title.',
+      ],
+    ];
+    if ($withGlobal) {
+      $errors[] = [
+        'detail' => 'Configuration for the region "<em class="placeholder">breadcrumb</em>" (<em class="placeholder">breadcrumb</em>) is missing.',
+        'source' => [
+          'pointer' => 'component_trees',
+        ],
+      ];
+    }
+    self::assertEquals($errors, $json['errors']);
     // Ensure that neither the valid nor invalid node gets updated if one is
     // invalid.
     $this->assertNodeValues($node1, [], [], $node1_original_title);
     $this->assertNodeValues($node2, [], [], $node2_original_title);
+    if ($withGlobal) {
+      $template = PageTemplate::load('stark');
+      self::assertInstanceOf(PageTemplate::class, $template);
+      $trees = iterator_to_array($template->getComponentTrees());
+      self::assertArrayNotHasKey('header', $trees);
+      self::assertInstanceOf(ComponentTreeItem::class, $trees['highlighted']);
+    }
 
-    // Fix the error.
+    // Fix the error(s).
     $validClientJson['model'][self::TEST_HEADING_UUID]['style'] = 'primary';
+    if ($withGlobal) {
+      $validClientJson['layout'][] = [
+        "components" => [],
+        "name" => 'breadcrumb',
+        "nodeType" => "region",
+        "id" => 'breadcrumb',
+      ];
+    }
     $response = $this->request(Request::create(Url::fromRoute('experience_builder.api.preview', [
       'entity_type' => 'node',
       'entity' => $node2->id(),
@@ -189,7 +264,7 @@ class ApiPublishAllControllerTest extends KernelTestBase {
     $response = $this->makePublishAllRequest();
     $json = json_decode($response->getContent() ?: '', TRUE);
     self::assertEquals(Response::HTTP_OK, $response->getStatusCode());
-    self::assertEquals(['message' => 'Successfully published 2 items.'], $json);
+    self::assertEquals(['message' => \sprintf('Successfully published %d items.', $withGlobal ? 3 : 2)], $json);
 
     $this->assertValidJsonUpdateNode($node1);
     $this->assertNodeValues(
@@ -200,6 +275,15 @@ class ApiPublishAllControllerTest extends KernelTestBase {
       [self::TEST_HEADING_UUID => $this->getValidConvertedProps()[self::TEST_HEADING_UUID]],
       'The updated title.'
     );
+
+    if ($withGlobal) {
+      $template = PageTemplate::load('stark');
+      self::assertInstanceOf(PageTemplate::class, $template);
+      $trees = iterator_to_array($template->getComponentTrees());
+      self::assertInstanceOf(ComponentTreeItem::class, $trees['header']);
+      self::assertArrayNotHasKey('highlighted', $trees);
+    }
+
     // Ensure that after the nodes have been published their auto-save data is
     // removed.
     $this->assertNoAutoSaveData();

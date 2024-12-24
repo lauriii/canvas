@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Drupal\experience_builder\Controller;
 
-use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Theme\ThemeManagerInterface;
 use Drupal\experience_builder\AutoSave\AutoSaveManager;
@@ -17,35 +16,62 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 
 final class ApiLayoutController {
 
+  private array $regions;
+
   public function __construct(
     private readonly AutoSaveManager $autoSaveManager,
     private readonly ThemeManagerInterface $themeManager,
-    private readonly EntityTypeManagerInterface $entityTypeManager,
   ) {}
 
   public function __invoke(FieldableEntityInterface $entity): JsonResponse {
+    $template = PageTemplate::forActiveTheme();
+    $theme = $this->themeManager->getActiveTheme()->getName();
+    $this->regions = system_region_list($theme);
+
+    // Ensure the Content region always exists.
+    $this->regions['content'] ??= t('Content');
+
     if ($body = $this->autoSaveManager->getAutoSaveData($entity)) {
-      // @todo Once auto-save stores regions other than content separately,
-      // we will need to add global regions here.
-      // @see https://www.drupal.org/project/experience_builder/issues/3494114
-      return new JsonResponse($body);
+      ['layout' => $layout, 'model' => $model] = $body;
+
+      // Override the full page template, if we have one.
+      if ($template && $body = $this->autoSaveManager->getAutoSaveData($template)) {
+        $layout = array_merge($layout, $body['layout']);
+        $model += $body['model'];
+      }
     }
-    $field_name = InternalXbFieldNameResolver::getXbFieldName($entity);
-    $item = $entity->get($field_name)->first();
-    assert($item instanceof ComponentTreeItem);
-    $tree = $item->get('tree');
-    assert($tree instanceof ComponentTreeStructure);
+    else {
+      $model = [];
 
-    $hydrated = $item->get('hydrated');
-    assert($hydrated instanceof ComponentTreeHydrated);
+      // Build the content region.
+      $field_name = InternalXbFieldNameResolver::getXbFieldName($entity);
+      $tree = $entity->get($field_name)->first();
+      assert($tree instanceof ComponentTreeItem);
+      $layout = [$this->buildRegion('content', $tree, $model)];
 
-    $layout = [];
-    $model = [];
-    $decoded_tree = json_decode($tree->getValue(), TRUE);
+      // If there is a template, build the other regions.
+      if ($template) {
+        $draft_template = $this->autoSaveManager->getAutoSaveData($template);
+        if ($draft_template === NULL) {
+          foreach ($template->getComponentTrees() as $region => $tree) {
+            if ($region === 'content') {
+              continue;
+            }
+            $layout[] = $this->buildRegion($region, $tree, $model);
+          }
+        }
+        else {
+          $layout = array_merge($layout, $draft_template['layout']);
+          $model += $draft_template['model'];
+        }
+      }
+    }
 
-    $this->buildLayout($layout, $model, $item, $decoded_tree[ComponentTreeStructure::ROOT_UUID], $hydrated->getValue()->getTree()[ComponentTreeStructure::ROOT_UUID]);
-
-    $layout = $this->addGlobalRegions($layout, $model);
+    if ($template) {
+      // Ensure all regions exist, and reorder the layout to match theme order.
+      $layout = array_combine(array_map(static fn($region) => $region['id'], $layout), $layout);
+      $layout = array_map(fn(string $region) => $layout[$region] ?? $this->buildRegion($region), array_keys($this->regions));
+    }
 
     return new JsonResponse([
       // Maps to the `tree` property of the XB field type.
@@ -61,7 +87,29 @@ final class ApiLayoutController {
     ]);
   }
 
-  private function buildLayout(array &$layout, array &$model, ComponentTreeItem $item, array $tree_tier, array $hydrated): void {
+  private function buildRegion(string $id, ?ComponentTreeItem $item = NULL, ?array &$model = NULL): array {
+    if ($item) {
+      $tree = $item->get('tree');
+      assert($tree instanceof ComponentTreeStructure);
+      $hydrated = $item->get('hydrated');
+      assert($hydrated instanceof ComponentTreeHydrated);
+      $decoded_tree = json_decode($tree->getValue(), TRUE);
+      $components = $this->buildLayout($model, $item, $decoded_tree[ComponentTreeStructure::ROOT_UUID], $hydrated->getValue()->getTree()[ComponentTreeStructure::ROOT_UUID]);
+    }
+    else {
+      $components = [];
+    }
+
+    return [
+      'nodeType' => 'region',
+      'id' => $id,
+      'name' => $this->regions[$id],
+      'components' => $components,
+    ];
+  }
+
+  private function buildLayout(array &$model, ComponentTreeItem $item, array $tree_tier, array $hydrated): array {
+    $layout = [];
     $tree = $item->get('tree');
     assert($tree instanceof ComponentTreeStructure);
     $full_tree = json_decode($tree->getValue(), TRUE);
@@ -79,75 +127,15 @@ final class ApiLayoutController {
       }
       if (isset($full_tree[$component_instance_uuid])) {
         foreach ($full_tree[$component_instance_uuid] as $slot_name => $slot_children) {
-          $component_instance_slot = [
+          $component_instance['slots'][] = [
             'nodeType' => 'slot',
             'id' => $component_instance_uuid . '/' . $slot_name,
             'name' => $slot_name,
-            'components' => [],
+            'components' => $this->buildLayout($model, $item, $slot_children, $hydrated[$component_instance_uuid]['slots'][$slot_name]),
           ];
-          $this->buildLayout($component_instance_slot['components'], $model, $item, $slot_children, $hydrated[$component_instance_uuid]['slots'][$slot_name]);
-          $component_instance['slots'][] = $component_instance_slot;
         }
       }
       $layout[] = $component_instance;
-    }
-  }
-
-  private function addGlobalRegions(array $main, array &$model): array {
-    $theme = $this->themeManager->getActiveTheme();
-    $template = $this->entityTypeManager->getStorage(PageTemplate::PLUGIN_ID)->load($theme->getName());
-    $region_names = \system_region_list($theme->getName());
-    $layout = [];
-    if ($template instanceof PageTemplate && $template->status()) {
-      // We have an enabled template, let's use that.
-      foreach ($template->getComponentTrees() as $region => $item) {
-        if ($region === 'content') {
-          $layout[] = [
-            'uuid' => $region,
-            'nodeType' => 'region',
-            'name' => $region_names[$region],
-            'components' => $main,
-          ];
-          continue;
-        }
-        $region_layout = [];
-        \assert($item instanceof ComponentTreeItem);
-        $tree = $item->get('tree');
-        \assert($tree instanceof ComponentTreeStructure);
-        $decoded_tree = \json_decode($tree->getValue(), TRUE);
-        $hydrated = $item->get('hydrated');
-        \assert($hydrated instanceof ComponentTreeHydrated);
-        $this->buildLayout($region_layout, $model, $item, $decoded_tree[ComponentTreeStructure::ROOT_UUID], $hydrated->getValue()->getTree()[ComponentTreeStructure::ROOT_UUID]);
-        $layout[] = [
-          'uuid' => $region,
-          'nodeType' => 'region',
-          'name' => $region_names[$region],
-          'components' => $region_layout,
-        ];
-      }
-      return $layout;
-    }
-
-    // Fallback to empty regions.
-    $regions = $theme->getRegions();
-    if (\count($regions) === 0) {
-      // We need to support at least a content region.
-      $layout[] = [
-        'uuid' => 'content',
-        'nodeType' => 'region',
-        'name' => t('Content'),
-        'components' => $main,
-      ];
-      return $layout;
-    }
-
-    foreach ($regions as $region) {
-      $layout[] = [
-        'uuid' => $region,
-        'nodeType' => 'region',
-        'name' => $region_names[$region],
-        'components' => $region == 'content' ? $main : [],
-      ];
     }
     return $layout;
   }

@@ -4,6 +4,7 @@ namespace Drupal\experience_builder\AutoSave;
 
 use Drupal\Core\Cache\CacheTagsInvalidatorInterface;
 use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Entity\TranslatableInterface;
 
 /**
@@ -30,7 +31,9 @@ class AutoSaveManager {
   public function save(EntityInterface $entity, array $data): void {
     // @todo Currently the client does not send the `entity_form_fields` key but PHPUnit tests do. Remove this when the client sends it
     //   in https://www.drupal.org/i/3487484.
-    $data = array_merge(['entity_form_fields' => []], $data);
+    if ($entity instanceof FieldableEntityInterface) {
+      $data += ['entity_form_fields' => []];
+    }
     // @todo We need to combine entity-field data here and update fields the
     // user can access - https://drupal.org/i/3488368
     $key = $this->getAutoSaveKey($entity);

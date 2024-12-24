@@ -6,6 +6,7 @@ namespace Drupal\Tests\experience_builder\Kernel\Config;
 
 use Drupal\Core\Extension\ThemeInstallerInterface;
 use Drupal\experience_builder\Entity\PageTemplate;
+use Drupal\experience_builder\Exception\ConstraintViolationException;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 use Drupal\KernelTests\Core\Config\ConfigEntityValidationTestBase;
 use Drupal\Tests\experience_builder\Traits\BetterConfigDependencyManagerTrait;
@@ -375,6 +376,58 @@ class PageTemplateValidationTest extends ConfigEntityValidationTestBase {
       ],
       'expected_messages' => [
         'component_trees' => "The 'dynamic' prop source type must be absent.",
+      ],
+    ];
+  }
+
+  /**
+   * .
+   *
+   * @dataProvider providerInvalid
+   */
+  public function testInvalidAutoSave(array $autoSaveData): void {
+    $this->expectException(ConstraintViolationException::class);
+    $entity = PageTemplate::create([
+      'theme' => 'stark',
+    ]);
+    $entity->forAutoSaveData($autoSaveData);
+  }
+
+  public static function providerInvalid(): iterable {
+    yield 'missing component type' => [
+      [
+        'layout' => [[
+          "components" => [
+          [
+            "nodeType" => "component",
+            "slots" => [],
+            "uuid" => "c3f3c22c-c22e-4bb6-ad16-635f069148e4",
+          ],
+          ],
+          "name" => "Header",
+          "nodeType" => "region",
+          "id" => "header",
+        ],
+        ],
+        'model' => [],
+      ],
+    ];
+    yield 'missing component uuid' => [
+      [
+        'layout' => [[
+          "components" => [
+          [
+            "nodeType" => "component",
+            "slots" => [],
+            "type" => "block.page_title_block",
+          ],
+          ],
+          "name" => "Header",
+          "nodeType" => "region",
+          "id" => "header",
+        ],
+        ],
+        'model' => [],
       ],
     ];
   }

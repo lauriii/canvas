@@ -9,6 +9,7 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Render\Element;
 use Drupal\Core\TypedData\TypedDataManagerInterface;
 use Drupal\experience_builder\AutoSave\AutoSaveManager;
+use Drupal\experience_builder\Entity\PageTemplate;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\experience_builder\Render\PreviewEnvelope;
@@ -36,20 +37,34 @@ final class ApiPreviewController {
 
   public function __invoke(Request $request, EntityInterface $entity): PreviewEnvelope {
     $body = json_decode($request->getContent(), TRUE);
-    // @todo Remove regions other than content and store them in a page-template
-    // auto-save entry.
-    // @see https://www.drupal.org/project/experience_builder/issues/3494114
-    $this->autoSaveManager->save($entity, $body);
     ['layout' => $layout, 'model' => $model] = $body;
 
-    // @todo Handle additional regions in preview.
-    // @see https://www.drupal.org/project/experience_builder/issues/3494114
-    foreach ($layout as $region) {
-      if ($region['uuid'] === 'content') {
-        $renderable = $this->clientLayoutAndModelToXbField($region, $model)->toRenderable();
-        break;
+    // Save the content region.
+    // @todo Store model values for content vs global regions only with their
+    // respective entities.
+    // @see https://www.drupal.org/project/experience_builder/issues/3495598
+    foreach ($layout as $key => $region) {
+      if ($region['id'] === 'content') {
+        $this->autoSaveManager->save($entity, [
+          'layout' => [$region],
+          'model' => $model,
+          'entity_form_fields' => $body['entity_form_fields'] ?? [],
+        ]);
+        $content = $region;
+        unset($layout[$key]);
       }
     }
+
+    // Save the global regions if the page template is active.
+    if ($template = PageTemplate::forActiveTheme()) {
+      $this->autoSaveManager->save($template, [
+        'layout' => \array_values($layout),
+        'model' => $model,
+      ]);
+    }
+
+    assert(isset($content));
+    $renderable = $this->clientLayoutAndModelToXbField($content, $model)->toRenderable();
 
     if (isset($renderable[ComponentTreeStructure::ROOT_UUID])) {
       $build = self::wrapComponentsForPreview($renderable[ComponentTreeStructure::ROOT_UUID]);
@@ -60,7 +75,7 @@ final class ApiPreviewController {
     return new PreviewEnvelope($build);
   }
 
-  private static function wrapComponentsForPreview(array $build): array {
+  public static function wrapComponentsForPreview(array $build): array {
     foreach (Element::children($build) as $uuid) {
       $build[$uuid] = self::wrapComponentsForPreview($build[$uuid]);
 
@@ -136,6 +151,13 @@ final class ApiPreviewController {
    */
   public function getLabel(EntityInterface $entity): string {
     return (string) $entity->label();
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  protected function entityTypeManager(): EntityTypeManagerInterface {
+    return $this->entityTypeManager;
   }
 
 }

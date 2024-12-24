@@ -12,11 +12,13 @@ use Drupal\Core\StreamWrapper\PublicStream;
 use Drupal\Core\Url;
 use Drupal\experience_builder\AutoSave\AutoSaveManager;
 use Drupal\experience_builder\Controller\ApiPendingChangesController;
+use Drupal\experience_builder\Entity\PageTemplate;
 use Drupal\file\Entity\File;
 use Drupal\image\ImageStyleInterface;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\node\Entity\Node;
 use Drupal\node\NodeInterface;
+use Drupal\Tests\block\Traits\BlockCreationTrait;
 use Drupal\Tests\experience_builder\TestSite\XBTestSetup;
 use Drupal\Tests\experience_builder\Traits\OpenApiSpecTrait;
 use Drupal\Tests\user\Traits\UserCreationTrait;
@@ -33,6 +35,7 @@ final class ApiPendingChangesControllerTest extends KernelTestBase {
 
   use UserCreationTrait;
   use OpenApiSpecTrait;
+  use BlockCreationTrait;
 
   /**
    * {@inheritdoc}
@@ -55,11 +58,15 @@ final class ApiPendingChangesControllerTest extends KernelTestBase {
     $permissions = ['access administration pages'];
     $emptyData = [
       'layout' => [
-        'uuid' => '533b26c8-a0f7-49a9-963e-fc7f20478116',
-        'nodeType' => 'root',
-        'children' => [],
+        [
+          'id' => 'content',
+          'nodeType' => 'region',
+          'name' => 'Content',
+          'components' => [],
+        ],
       ],
       'model' => [],
+      'entity_form_fields' => [],
     ];
     $anonAccountContent = Node::create([
       'type' => 'article',
@@ -87,10 +94,39 @@ final class ApiPendingChangesControllerTest extends KernelTestBase {
     $sampleData = \file_get_contents(\dirname(__DIR__, 3) . '/ui/tests/fixtures/layout-default.json');
     self::assertNotFalse($sampleData);
     $data = \json_decode($sampleData, TRUE);
+    $data += ['entity_form_fields' => []];
     // Full data.
     $account1content = Node::load(1);
     \assert($account1content instanceof NodeInterface);
     $autoSave->save($account1content, $data);
+    // Save a draft of the page template.
+    $template = PageTemplate::createFromBlockLayout('stark')->enable();
+    $template->save();
+    $templateData = [
+      'layout' => [
+        [
+          "components" => [
+            [
+              "nodeType" => "component",
+              "slots" => [],
+              "type" => "block.page_title_block",
+              "uuid" => "c3f3c22c-c22e-4bb6-ad16-635f069148e4",
+            ],
+          ],
+          "name" => "Highlighted",
+          "nodeType" => "region",
+          "id" => "highlighted",
+        ],
+      ],
+      'model' => [
+        "c3f3c22c-c22e-4bb6-ad16-635f069148e4" => [
+          "label" => "Page title",
+          "label_display" => "0",
+          "provider" => "core",
+        ],
+      ],
+    ];
+    $autoSave->save($template, $templateData);
     // Empty data.
     $account2content = Node::load(2);
     \assert($account2content instanceof NodeInterface);
@@ -106,19 +142,23 @@ final class ApiPendingChangesControllerTest extends KernelTestBase {
     self::assertContains('config:user.settings', $response->getCacheableMetadata()->getCacheTags());
     $content = \json_decode($response->getContent() ?: '{}', TRUE);
     $anonContentIdentifier = \sprintf('node:%d:en', $anonAccountContent->id());
+    $pageTemplateId = PageTemplate::PLUGIN_ID . ':stark';
     self::assertEquals([
       'node:1:en',
       'node:2:en',
       $anonContentIdentifier,
+      $pageTemplateId,
     ], \array_keys($content));
     // We don't assert the exact value of these because of clock-drift during
     // the test, asserting their presence is enough.
     \assert(\is_array($content['node:1:en']));
     \assert(\is_array($content['node:2:en']));
+    \assert(\is_array($content[$pageTemplateId]));
     \assert(\is_array($content[$anonContentIdentifier]));
     self::assertArrayHasKey('updated', $content['node:1:en']);
     self::assertArrayHasKey('updated', $content['node:2:en']);
     self::assertArrayHasKey('updated', $content[$anonContentIdentifier]);
+    self::assertArrayHasKey('updated', $content[$pageTemplateId]);
     $imageStyle = \Drupal::entityTypeManager()->getStorage('image_style')->load(ApiPendingChangesController::AVATAR_IMAGE_STYLE);
     self::assertInstanceOf(ImageStyleInterface::class, $imageStyle);
     $avatarUrl = $imageStyle->buildUrl($fileUri);
@@ -135,11 +175,7 @@ final class ApiPendingChangesControllerTest extends KernelTestBase {
         'uri' => $account1->toUrl()->toString(),
       ],
       'label' => $account1content->label(),
-      // @todo Because the client currently doesn't send 'entity_form_fields'
-      //   this key is added in
-      //   \Drupal\experience_builder\AutoSave\AutoSaveManager::save(). Remove
-      //   in https://www.drupal.org/i/3487484.
-      'data_hash' => \hash('xxh64', \serialize(array_merge(['entity_form_fields' => []], $data))),
+      'data_hash' => \hash('xxh64', \serialize($data)),
     ], \array_diff_key($content['node:1:en'], \array_flip(['updated'])));
     self::assertEquals([
       'langcode' => 'en',
@@ -152,11 +188,7 @@ final class ApiPendingChangesControllerTest extends KernelTestBase {
         'uri' => $account2->toUrl()->toString(),
       ],
       'label' => $account2content->label(),
-      // @todo Because the client currently doesn't send 'entity_form_fields'
-      //   this key is added in
-      //   \Drupal\experience_builder\AutoSave\AutoSaveManager::save(). Remove
-      //   in https://www.drupal.org/i/3487484.
-      'data_hash' => \hash('xxh64', \serialize(array_merge(['entity_form_fields' => []], $emptyData))),
+      'data_hash' => \hash('xxh64', \serialize($emptyData)),
     ], \array_diff_key($content['node:2:en'], \array_flip(['updated'])));
     $anonAccount = User::load(0);
     self::assertInstanceOf(AccountInterface::class, $anonAccount);
@@ -175,12 +207,21 @@ final class ApiPendingChangesControllerTest extends KernelTestBase {
         'uri' => $anonAccount->toUrl()->toString(),
       ],
       'label' => $anonAccountContent->label(),
-      // @todo Because the client currently doesn't send 'entity_form_fields'
-      //   this key is added in
-      //   \Drupal\experience_builder\AutoSave\AutoSaveManager::save(). Remove
-      //   in https://www.drupal.org/i/3487484.
-      'data_hash' => \hash('xxh64', \serialize(array_merge(['entity_form_fields' => []], $emptyData))),
+      'data_hash' => \hash('xxh64', \serialize($emptyData)),
     ], \array_diff_key($content[$anonContentIdentifier], \array_flip(['updated'])));
+    self::assertEquals([
+      'langcode' => NULL,
+      'entity_type' => $template->getEntityTypeId(),
+      'entity_id' => $template->id(),
+      'owner' => [
+        'id' => $account1->id(),
+        'name' => $account1->getDisplayName(),
+        'avatar' => $avatarUrl,
+        'uri' => $account1->toUrl()->toString(),
+      ],
+      'label' => 'Stark global template',
+      'data_hash' => \hash('xxh64', \serialize($templateData)),
+    ], \array_diff_key($content[$pageTemplateId], \array_flip(['updated'])));
     $this->assertDataCompliesWithApiSpecification($content, 'AutoSaveCollection');
   }
 

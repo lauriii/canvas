@@ -8,8 +8,11 @@ use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Display\Attribute\PageDisplayVariant;
 use Drupal\Core\Display\PageVariantInterface;
 use Drupal\Core\Display\VariantBase;
+use Drupal\Core\Render\Element;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
+use Drupal\experience_builder\Controller\ApiPreviewController;
 use Drupal\experience_builder\Entity\PageTemplate;
+use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
 
 /**
@@ -54,6 +57,11 @@ final class PageTemplateDisplayVariant extends VariantBase implements PageVarian
    * @var string
    */
   const PAGE_TEMPLATE_CONFIG_ENTITY_KEY = 'page_template';
+
+  /**
+   * Flag markup as needing wrapping.
+   */
+  const WRAP_MARKUP = 'wrap_markup';
 
   /**
    * The render array representing the main page content.
@@ -132,6 +140,17 @@ final class PageTemplateDisplayVariant extends VariantBase implements PageVarian
     }
 
     CacheableMetadata::createFromObject($page_template)->applyTo($build);
+
+    if ($this->configuration[static::WRAP_MARKUP] ?? FALSE) {
+      foreach (Element::children($build) as $region) {
+        if ($region === 'content') {
+          continue;
+        }
+        if (\array_key_exists(ComponentTreeStructure::ROOT_UUID, $build[$region])) {
+          $build[$region] = ApiPreviewController::wrapComponentsForPreview($build[$region][ComponentTreeStructure::ROOT_UUID]);
+        }
+      }
+    }
 
     return $build;
   }

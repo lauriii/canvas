@@ -113,7 +113,7 @@ const SortableContainer: React.FC<SortableContainerProps> = (props) => {
       <>
         <RegionItem region={node.name} />
         <Box
-          data-xb-uuid={node.uuid}
+          data-xb-uuid={node.id}
           data-xb-type={node.nodeType}
           ref={sortableRef}
           className="rootDropZone"

@@ -1,5 +1,6 @@
 import '@testing-library/cypress/add-commands.js';
 import { realDnd } from './realDnd.js';
+import { onlyVisibleChars } from './utils.js';
 
 // This selector gets the preview iframe ensuring that it is initialized and that it is the currently active/swapped in element.
 const initializedReadyPreviewIframeSelector =
@@ -88,6 +89,15 @@ Cypress.Commands.add(
     });
   },
 );
+
+Cypress.Commands.add('drupalEnableThemeForXb', (themeMachineName) => {
+  cy.drupalLoginAsAdmin(() => {
+    cy.drupalRelativeURL(`admin/appearance/settings/${themeMachineName}`);
+    cy.get(`input[name="use_xb"]`).click();
+    cy.get('form').submit('#system-theme-settings');
+    cy.get(`input[name="use_xb"]`).should('be.checked');
+  });
+});
 
 Cypress.Commands.add('drupalXbInstall', () => {
   cy.task('log', `The setup file ${Cypress.env('setupFile')}`);
@@ -637,9 +647,9 @@ Cypress.Commands.add('getElementScaledDimensions', ($item) => {
 
 Cypress.Commands.add(
   'clickComponentInPreview',
-  (componentName, index = 0, viewportSize = 'lg') => {
+  (componentName, index = 0, viewportSize = 'lg', regionId = 'content') => {
     cy.get(
-      `#xbPreviewOverlay .xb--viewport-overlay[data-xb-viewport-size="${viewportSize}"]`,
+      `#xbPreviewOverlay .xb--viewport-overlay[data-xb-viewport-size="${viewportSize}"]  .xb--region-overlay__${regionId}`,
     )
       .findAllByLabelText(componentName)
       .eq(index)
@@ -649,10 +659,10 @@ Cypress.Commands.add(
 
 Cypress.Commands.add(
   'getComponentInPreview',
-  (componentName, index = 0, viewportSize = 'lg') => {
+  (componentName, index = 0, viewportSize = 'lg', regionId = 'content') => {
     return cy
       .get(
-        `#xbPreviewOverlay .xb--viewport-overlay[data-xb-viewport-size="${viewportSize}"]`,
+        `#xbPreviewOverlay .xb--viewport-overlay[data-xb-viewport-size="${viewportSize}"] .xb--region-overlay__${regionId}`,
       )
       .findAllByLabelText(componentName)
       .eq(index);
@@ -800,4 +810,118 @@ Cypress.Commands.add(
 Cypress.Commands.add('toggleToggle', { prevSubject: 'element' }, (subject) => {
   cy.wrap(subject).click();
   return cy.wrap(subject);
+});
+
+Cypress.Commands.add('editHeroComponent', () => {
+  // The right panel has opened.
+  cy.findByTestId('xb-contextual-panel').should('exist');
+
+  const expectedLabels = [
+    'Heading',
+    'Sub-heading',
+    'CTA 1 text',
+    'CTA 1 link',
+    'CTA 2 text',
+  ];
+
+  // The drawer contains a component edit form.
+  cy.get(
+    '[class*="contextualPanel"] [data-drupal-selector="component-inputs-form"]',
+  ).within(() => {
+    cy.findAllByLabelText('Heading').should('exist');
+  });
+
+  cy.get(
+    '[class*="contextualPanel"] [data-drupal-selector="component-inputs-form"]',
+  ).then(($form) => {
+    expect($form).to.exist;
+    $form.find('label').each((index, label) => {
+      expect(label.textContent).to.equal(expectedLabels[index]);
+    });
+  });
+
+  cy.findByLabelText('Heading')
+    .should('have.value', 'hello, world!')
+    .invoke('attr', 'type')
+    .should('eq', 'text');
+
+  cy.findByLabelText('CTA 1 link').should('have.value', 'https://drupal.org');
+
+  const heroSelectors = {
+    Heading: '.my-hero__heading',
+    'Sub-heading': 'h1 ~ p',
+    'CTA 1 text': '.my-hero__cta:first-child',
+    'CTA 2 text': '.my-hero__cta:last-child',
+  };
+  const heroBefore = {
+    Heading: 'hello, world!',
+    'Sub-heading': '',
+    'CTA 1 text': '',
+    'CTA 2 text': '',
+  };
+
+  // Confirm the current values of the first "My Hero" component so we can
+  // be certain these values later change.
+  cy.testInIframe(
+    '[data-xb-component-id="experience_builder:my-hero"]',
+    (heroes) => {
+      const hero = heroes[0];
+      Object.entries(heroSelectors).forEach(([prop, selector]) => {
+        const heroText = onlyVisibleChars(
+          hero.querySelector(selector).textContent,
+        );
+        if (heroBefore[prop]) {
+          expect(heroText, `${prop} should be ${heroBefore[prop]}`).to.equal(
+            heroBefore[prop],
+          );
+        } else {
+          expect(heroText, `${prop} should be empty but it is "${heroText}"`).to
+            .be.empty;
+        }
+      });
+      expect(
+        hero.querySelector(heroSelectors['CTA 1 text']).getAttribute('href'),
+      ).to.equal('https://drupal.org');
+    },
+  );
+
+  const newValues = {
+    Heading: 'You parked your car',
+    'Sub-heading': 'Over the sidewalk',
+    'CTA 1 text': 'ponytail',
+    'CTA 2 text': 'stuck',
+    'CTA 1 link': 'https://hoobastank.com',
+  };
+
+  // Monitor the endpoint that processes changed values in the prop edit form.
+  cy.intercept('POST', '**/api/preview/node/1').as('getPreview');
+  expectedLabels.forEach((label) => {
+    // Type a new value into a given input.
+    cy.findByLabelText(label).focus();
+    cy.findByLabelText(label).clear();
+    cy.findByLabelText(label).type(newValues[label]);
+    // Wait for completion of the request triggered by our typing. This
+    // ensures that the `testInIframe` ~10 lines down is working with an iframe that
+    // has fully responded to these value changes.
+    cy.wait('@getPreview');
+    // Confirm React is properly handling form state by confirming the input
+    // has the value we typed into it.
+    cy.findByLabelText(label).should('have.value', newValues[label]);
+  });
+
+  // New values were typed into the prop form inputs, now enter the iframe
+  // and confirm the component reflects these new values.
+  cy.waitForElementContentInIframe(heroSelectors.Heading, newValues.Heading);
+  cy.waitForElementContentInIframe(
+    heroSelectors['Sub-heading'],
+    newValues['Sub-heading'],
+  );
+  cy.waitForElementContentInIframe(
+    heroSelectors['CTA 1 text'],
+    newValues['CTA 1 text'],
+  );
+  cy.waitForElementContentInIframe(
+    heroSelectors['CTA 2 text'],
+    newValues['CTA 2 text'],
+  );
 });

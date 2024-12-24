@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\experience_builder\Kernel;
 
+use Drupal\experience_builder\Entity\PageTemplate;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\Tests\experience_builder\TestSite\XBTestSetup;
 use Drupal\Tests\user\Traits\UserCreationTrait;
 use Drupal\Tests\experience_builder\Kernel\Traits\RequestTrait;
+use Symfony\Component\DomCrawler\Crawler;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -28,7 +30,7 @@ final class ApiPreviewControllerTest extends KernelTestBase {
    */
   protected function setUp(): void {
     parent::setUp();
-    $this->container->get('module_installer')->install(['system']);
+    $this->container->get('module_installer')->install(['system', 'block']);
     $this->container->get('theme_installer')->install(['stark']);
     $this->container->get('config.factory')->getEditable('system.theme')->set('default', 'stark')->save();
 
@@ -43,7 +45,7 @@ final class ApiPreviewControllerTest extends KernelTestBase {
           'nodeType' => 'region',
           'name' => 'Content',
           'components' => [],
-          'uuid' => 'content',
+          'id' => 'content',
         ],
       ],
       'model' => [],
@@ -68,6 +70,25 @@ final class ApiPreviewControllerTest extends KernelTestBase {
     $this->assertGreaterThan(0, $root[0]->count());
     $uuids = $this->assertStructure($root[0]->children());
     $this->assertSame(array_keys($model), $uuids);
+  }
+
+  public function testWithGlobal(): void {
+    $template = PageTemplate::createFromBlockLayout('stark');
+    $template->enable()->save();
+
+    // Load the test data from the layout controller.
+    $content = $this->parentRequest(Request::create('/api/layout/node/1'))->getContent();
+    $this->assertIsString($content);
+    $json = json_decode($content, TRUE);
+    $highlightedRegion = \array_filter($json['layout'], static fn (array $region) => ($region['id'] ?? NULL) === 'highlighted');
+    self::assertCount(1, $highlightedRegion);
+    self::assertGreaterThanOrEqual(1, \count(\reset($highlightedRegion)['components']));
+    $this->request(Request::create('/api/preview/node/1', content: $content));
+
+    // Check that regions exist and are wrapped.
+    $crawler = new Crawler($this->content);
+    self::assertCount(1, $crawler->filter('.xb--sortable-list[data-xb-uuid="content"]'));
+    self::assertCount(1, $crawler->filter('.xb--sortable-list[data-xb-uuid="highlighted"]'));
   }
 
   /**

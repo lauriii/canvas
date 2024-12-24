@@ -33,12 +33,8 @@ final class ApiContentUpdateForDemoController extends ApiControllerBase {
   public function __invoke(FieldableEntityInterface $entity): JsonResponse {
     $auto_save = $this->autoSaveManager->getAutoSaveData($entity);
     assert(is_array($auto_save));
-    // Pluck out only the content region.
-    // @todo Remove this once auto-save data excludes global regions.
-    // @see https://www.drupal.org/project/experience_builder/issues/3494114
-    $content_region = \array_values(\array_filter($auto_save['layout'], static fn(array $region) => $region['uuid'] === 'content'));
     $violations = $this->clientDataToEntityConverter->convert([
-      'layout' => reset($content_region),
+      'layout' => reset($auto_save['layout']),
       'model' => $auto_save['model'],
       'entity_form_fields' => $auto_save['entity_form_fields'],
     ], $entity);

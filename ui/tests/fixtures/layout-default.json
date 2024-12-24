@@ -2,7 +2,8 @@
   "layout": [
     {
       "nodeType": "region",
-      "name": "content",
+      "name": "Content",
+      "id": "content",
       "components": [
         {
           "nodeType": "component",

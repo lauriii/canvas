@@ -34,7 +34,7 @@ class ClientServerConversionTraitTest extends KernelTestBase {
    */
   private function getValidClientJson(): array {
     $json = $this->traitGetValidClientJson();
-    $content_region = \array_values(\array_filter($json['layout'], static fn(array $region) => $region['uuid'] === 'content'));
+    $content_region = \array_values(\array_filter($json['layout'], static fn(array $region) => $region['id'] === 'content'));
     return [
       'layout' => reset($content_region),
       'model' => $json['model'],
@@ -130,6 +130,13 @@ class ClientServerConversionTraitTest extends KernelTestBase {
     $this->assertNull($tree);
     $this->assertNull($props);
     $this->assertSame($errors, $this->violationsToArray($violations));
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  protected function entityTypeManager(): EntityTypeManagerInterface {
+    return $this->entityTypeManager;
   }
 
 }

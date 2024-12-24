@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Drupal\experience_builder\Controller;
 
-use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Field\Plugin\Field\FieldType\EntityReferenceItemInterface;
 use Drupal\Core\StreamWrapper\PublicStream;
 use Drupal\Core\TypedData\DataDefinition;
 use Drupal\experience_builder\Entity\Component;
 use Drupal\experience_builder\InvalidRequestBodyValue;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
+use Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\SingleDirectoryComponent;
 use Symfony\Component\Validator\ConstraintViolation;
 use Symfony\Component\Validator\ConstraintViolationInterface;
 use Symfony\Component\Validator\ConstraintViolationList;
@@ -20,6 +20,8 @@ use Symfony\Component\Validator\ConstraintViolationList;
  * @phpstan-import-type ComponentTreeStructureArray from \Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure
  */
 trait ClientServerConversionTrait {
+
+  abstract protected function entityTypeManager();
 
   /**
    * @todo Refactor/remove in https://www.drupal.org/project/experience_builder/issues/3467954.
@@ -49,6 +51,10 @@ trait ClientServerConversionTrait {
     // Regions have no name.
     $name = $layout['nodeType'] === 'slot' ? $layout['name'] : NULL;
 
+    if (!\array_key_exists($parent_uuid, $tree)) {
+      // Ensure the root level parent is set even if there are no components.
+      $tree[$parent_uuid] = [];
+    }
     foreach ($layout['components'] as $component) {
       $tree = self::doClientComponentToServerTree($component, $tree, $parent_uuid, $name);
     }
@@ -63,10 +69,10 @@ trait ClientServerConversionTrait {
     assert(isset($layout['nodeType']));
     assert($layout['nodeType'] === 'component');
 
-    $component = [
-      'uuid' => $layout['uuid'],
-      'component' => $layout['type'],
-    ];
+    $component = \array_filter([
+      'uuid' => $layout['uuid'] ?? NULL,
+      'component' => $layout['type'] ?? NULL,
+    ]);
 
     // Root level.
     if (!isset($parent_slot)) {
@@ -92,6 +98,8 @@ trait ClientServerConversionTrait {
     $component_tree_structure = new ComponentTreeStructure($definition, 'component_tree_structure');
     $component_tree_structure->setValue(json_encode($tree, JSON_UNESCAPED_UNICODE));
 
+    // Remove irrelevant model data (e.g. from page template).
+    $model = \array_intersect_key($model, \array_flip($component_tree_structure->getComponentInstanceUuids()));
     $props = [];
     $violation_list = new ConstraintViolationList();
     foreach ($model as $uuid => $client_props) {
@@ -111,7 +119,7 @@ trait ClientServerConversionTrait {
   /**
    * @return array{0: array<string, \Drupal\experience_builder\PropSource\StaticPropSource>, 1: \Symfony\Component\Validator\ConstraintViolationListInterface}
    *
-   * @todo Refactor in https://www.drupal.org/project/experience_builder/issues/3484666, because that issue introduces storing inputs for Block-sourced Components.
+   * @todo Refactor in https://www.drupal.org/project/experience_builder/issues/3495126, because that issue introduces storing inputs for Block-sourced Components.
    * @todo Refactor to use the Symfony denormalizer infrastructure?
    */
   private function createPropsForComponent(string $component_instance_uuid, string $component, array $client_props): array {
@@ -119,6 +127,15 @@ trait ClientServerConversionTrait {
     $props = [];
     $component_entity = Component::load($component);
     assert($component_entity instanceof Component);
+    if (!$component_entity->getComponentSource() instanceof SingleDirectoryComponent) {
+      // @todo Ask the component source how it would like to handle this.
+      // @see https://www.drupal.org/project/experience_builder/issues/3495126
+      return [$client_props, $violation_list];
+    }
+    // @todo All of the validation conversion logic below is specific to SDC
+    // components AND specifically static prop sources. Move it behind the SDC
+    // component source plugin and add support for dynamic prop sources.
+    // @see https://www.drupal.org/project/experience_builder/issues/3495126
     foreach ($client_props as $prop => $prop_value) {
       $static_source = $component_entity->getDefaultStaticPropSource($prop);
       $updated_static_source = $static_source->withValue($prop_value);
@@ -155,8 +172,6 @@ trait ClientServerConversionTrait {
    *   https://drupal.org/i/3473336.
    */
   private function findTargetForProps(array $prop_value, string $target_type): int {
-    assert($this->entityTypeManager instanceof EntityTypeManagerInterface);
-
     if ($target_type !== 'media' && $target_type !== 'file') {
       // Once the 'target_id' is saved the target type won't be needed.
       throw new InvalidRequestBodyValue("Unsupported target type '$target_type'.");
@@ -170,7 +185,7 @@ trait ClientServerConversionTrait {
 
     // Load the file entity using the 'uri'. 'filename' will not always work
     // because the file name can be changed in the uri.
-    $files = $this->entityTypeManager->getStorage('file')->loadByProperties(['uri' => $drupal_uri]);
+    $files = $this->entityTypeManager()->getStorage('file')->loadByProperties(['uri' => $drupal_uri]);
     $file = reset($files);
     if (!$file) {
       throw new InvalidRequestBodyValue("File '$src' not found.", 'src');
@@ -181,7 +196,7 @@ trait ClientServerConversionTrait {
     }
 
     // TRICKY: this is tightly coupled to `media_library_storage_prop_shape_alter()`!
-    $query = $this->entityTypeManager->getStorage('media')->getQuery()->condition('field_media_image.target_id', $file_id)->accessCheck();
+    $query = $this->entityTypeManager()->getStorage('media')->getQuery()->condition('field_media_image.target_id', $file_id)->accessCheck();
     $media_ids = $query->execute();
     assert(is_array($media_ids));
     if (empty($media_ids)) {

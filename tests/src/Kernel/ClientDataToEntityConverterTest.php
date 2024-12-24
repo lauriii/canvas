@@ -51,7 +51,7 @@ class ClientDataToEntityConverterTest extends KernelTestBase {
    */
   private function getValidClientJson(): array {
     $json = $this->traitGetValidClientJson();
-    $content_region = \array_values(\array_filter($json['layout'], static fn(array $region) => $region['uuid'] === 'content'));
+    $content_region = \array_values(\array_filter($json['layout'], static fn(array $region) => $region['id'] === 'content'));
     return [
       'layout' => reset($content_region),
       'model' => $json['model'],

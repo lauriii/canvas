@@ -27,7 +27,7 @@ function getNodeIdentifier(node: LayoutNode): string {
     case NodeType.Component:
       return node.uuid;
     case NodeType.Region:
-      return node.uuid;
+      return node.id;
     default:
       throw new Error('Unknown node type');
   }

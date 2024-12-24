@@ -193,7 +193,7 @@ trait XBFieldTrait {
         [
           'nodeType' => 'region',
           'name' => 'Content',
-          'uuid' => 'content',
+          'id' => 'content',
           'components' => [
             [
               'nodeType' => 'component',

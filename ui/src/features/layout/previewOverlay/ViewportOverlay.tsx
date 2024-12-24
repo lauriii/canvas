@@ -12,9 +12,10 @@ import {
   selectDragging,
   selectPanning,
 } from '@/features/ui/uiSlice';
-import RootCanvasOverlay from '@/features/layout/previewOverlay/RootCanvasOverlay';
+import RegionOverlay from '@/features/layout/previewOverlay/RegionOverlay';
 import clsx from 'clsx';
 import type { ViewPortSize } from '@/features/layout/preview/Viewport';
+import { selectLayout } from '@/features/layout/layoutModelSlice';
 
 interface ViewportOverlayProps {
   iframeRef: React.RefObject<HTMLIFrameElement>;
@@ -32,6 +33,7 @@ const ViewportOverlay: React.FC<ViewportOverlayProps> = (props) => {
   const positionDivRef = useRef(null);
   const canvasViewPortScale = useAppSelector(selectCanvasViewPortScale);
   const { isDragging } = useAppSelector(selectDragging);
+  const layout = useAppSelector(selectLayout);
   const [rect, setRect] = useState<Rect | null>(null);
   const { isPanning } = useAppSelector(selectPanning);
 
@@ -85,7 +87,13 @@ const ViewportOverlay: React.FC<ViewportOverlayProps> = (props) => {
         pointerEvents: isDragging ? 'none' : 'all',
       }}
     >
-      <RootCanvasOverlay iframeRef={iframeRef} />
+      {layout.map((region) => (
+        <RegionOverlay
+          iframeRef={iframeRef}
+          regionId={region.id}
+          regionName={region.name}
+        />
+      ))}
     </div>,
     portalRoot,
   );

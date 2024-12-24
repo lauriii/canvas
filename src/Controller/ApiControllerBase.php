@@ -43,7 +43,7 @@ class ApiControllerBase {
   /**
    * Creates a JSON:API-style error response from a set of entity violations.
    *
-   * @param \Drupal\Core\Entity\EntityConstraintViolationListInterface $violationSets
+   * @param \Symfony\Component\Validator\ConstraintViolationListInterface ...$violationSets
    *   The violations sets.
    *
    * @return \Symfony\Component\HttpFoundation\JsonResponse|null
@@ -53,16 +53,19 @@ class ApiControllerBase {
    * @see https://jsonapi.org/format/#document-top-level
    * @see https://jsonapi.org/format/#error-objects
    */
-  protected static function createJsonResponseFromViolationSets(EntityConstraintViolationListInterface ...$violationSets): ?JsonResponse {
-    $violationSets = \array_filter($violationSets, static fn (EntityConstraintViolationListInterface $violationList): bool => $violationList->count() > 0);
+  protected static function createJsonResponseFromViolationSets(ConstraintViolationListInterface ...$violationSets): ?JsonResponse {
+    $violationSets = \array_filter($violationSets, static fn (ConstraintViolationListInterface $violationList): bool => $violationList->count() > 0);
     if (\count($violationSets) === 0) {
       return NULL;
     }
 
     return new JsonResponse(status: 422, data: [
-      'errors' => \array_reduce($violationSets, static fn(array $carry, EntityConstraintViolationListInterface $violationList): array => [
+      'errors' => \array_reduce($violationSets, static fn(array $carry, ConstraintViolationListInterface $violationList): array => [
         ...$carry,
-        ...\array_map(static fn(ConstraintViolationInterface $violation) => self::violationToJsonApiStyleErrorObject($violation, $violationList->getEntity()), \iterator_to_array($violationList)),
+        ...\array_map(static fn(ConstraintViolationInterface $violation) => self::violationToJsonApiStyleErrorObject(
+          $violation,
+          $violationList instanceof EntityConstraintViolationListInterface ? $violationList->getEntity() : NULL,
+        ), \iterator_to_array($violationList)),
       ], []),
     ]);
   }

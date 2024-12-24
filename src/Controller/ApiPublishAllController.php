@@ -2,11 +2,14 @@
 
 namespace Drupal\experience_builder\Controller;
 
+use Drupal\Core\Config\TypedConfigManagerInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\StringTranslation\PluralTranslatableMarkup;
 use Drupal\experience_builder\AutoSave\AutoSaveManager;
 use Drupal\experience_builder\ClientDataToEntityConverter;
+use Drupal\experience_builder\Entity\PageTemplate;
+use Drupal\experience_builder\Exception\ConstraintViolationException;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -15,6 +18,7 @@ class ApiPublishAllController extends ApiControllerBase {
 
   public function __construct(
     private readonly EntityTypeManagerInterface $entityTypeManager,
+    private readonly TypedConfigManagerInterface $typedConfigManager,
     private readonly ClientDataToEntityConverter $clientDataToEntityConverter,
     private readonly AutoSaveManager $autoSaveManager,
   ) {}
@@ -90,20 +94,34 @@ class ApiPublishAllController extends ApiControllerBase {
     $entities = [];
     foreach ($all_auto_saves as $auto_save) {
       $entity = $this->entityTypeManager->getStorage($auto_save['entity_type'])->load($auto_save['entity_id']);
-      assert($entity instanceof FieldableEntityInterface);
-      // Pluck out only the content region.
-      // @todo Remove this once auto-save data excludes global regions.
-      // @see https://www.drupal.org/project/experience_builder/issues/3494114
-      $content_region = \array_values(\array_filter($auto_save['data']['layout'], static fn(array $region) => $region['uuid'] === 'content'));
-      $violations = $this->clientDataToEntityConverter->convert([
-        'layout' => reset($content_region),
-        'model' => $auto_save['data']['model'],
-        'entity_form_fields' => $auto_save['data']['entity_form_fields'],
-      ], $entity);
+      if ($entity instanceof PageTemplate) {
+        try {
+          $entity = $entity->forAutoSaveData($auto_save['data']);
+        }
+        catch (ConstraintViolationException $e) {
+          $violationSets[] = $e->getConstraintViolationList();
+          continue;
+        }
+        $entity->enforceIsNew(FALSE);
+        // @todo Use a violation list that allows keeping track of the entity
+        // context.
+        // @see https://www.drupal.org/project/drupal/issues/3495599
+        $violations = $this->typedConfigManager->createFromNameAndData($entity->getConfigDependencyName(), $entity->toArray())->validate();
+      }
+      else {
+        assert($entity instanceof FieldableEntityInterface);
+        // Pluck out only the content region.
+        $content_region = \array_values(\array_filter($auto_save['data']['layout'], static fn(array $region) => $region['id'] === 'content'));
+        $violations = $this->clientDataToEntityConverter->convert([
+          'layout' => reset($content_region),
+          'model' => $auto_save['data']['model'],
+          'entity_form_fields' => $auto_save['data']['entity_form_fields'],
+        ], $entity);
+      }
+      $entities[] = $entity;
       if ($violations->count() > 0) {
         $violationSets[] = $violations;
       }
-      $entities[] = $entity;
     }
     if (\count($violationSets) > 0) {
       $validation_errors_response = self::createJsonResponseFromViolationSets(...$violationSets);

@@ -16,18 +16,6 @@ use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
 use Symfony\Component\Validator\ConstraintViolation;
 use Symfony\Component\Validator\ConstraintViolationInterface;
 
-// phpcs:disable
-// @todo Remove this — this was added to keep the logic here simple until it is evolved to support all ComponentSource plugins' inputs.
-final class InvalidRequestBodyValue extends \Exception {
-  public function __construct(
-    string $message,
-    public readonly ?string $propertyPath = NULL,
-  ) {
-    $this->message = $message;
-  }
-}
-// phpcs:enable
-
 class ClientDataToEntityConverter {
 
   use ClientServerConversionTrait;
@@ -165,6 +153,13 @@ class ClientDataToEntityConverter {
       }
     }
     return $violations_list;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  protected function entityTypeManager(): EntityTypeManagerInterface {
+    return $this->entityTypeManager;
   }
 
 }

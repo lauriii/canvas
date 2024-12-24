@@ -1,9 +1,10 @@
 // cspell:ignore uuidv
-import type { AppDispatch } from '@/app/store';
+import type { AppDispatch, RootState } from '@/app/store';
 import { setSelectedComponent } from '@/features/ui/uiSlice';
 import type { Component } from '@/types/Component';
 import type { UUID } from '@/types/UUID';
 import type { PayloadAction } from '@reduxjs/toolkit';
+import { createSelector } from '@reduxjs/toolkit';
 import { createSlice } from '@reduxjs/toolkit';
 import type { StateWithHistory } from 'redux-undo';
 import { v4 as uuidv4 } from 'uuid';
@@ -25,7 +26,7 @@ export enum NodeType {
 
 export interface RegionNode {
   name: string;
-  uuid: UUID;
+  id: string;
   nodeType: NodeType.Region;
   components: ComponentNode[];
 }
@@ -69,7 +70,7 @@ export const initialState: LayoutModelSliceState = {
       nodeType: NodeType.Region,
       name: 'content',
       components: [],
-      uuid: 'content',
+      id: 'content',
     },
   ],
   model: {},
@@ -459,3 +460,16 @@ export const selectHistory = (state: StateWithHistoryWrapper) =>
   state.layoutModel;
 export const selectInitialized = (state: StateWithHistoryWrapper) =>
   state.layoutModel.present.initialized;
+const selectRegion = (state: RootState, regionName: string) => regionName;
+
+export const selectLayoutForRegion = createSelector(
+  [selectLayout, selectRegion],
+  (layout: Array<RegionNode>, regionName: string) =>
+    layout.find((region) => region.id === regionName) ||
+    ({
+      components: [],
+      name: regionName,
+      id: regionName,
+      nodeType: 'region',
+    } as RegionNode),
+);

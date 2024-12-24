@@ -121,6 +121,12 @@ class ComponentPropsValues extends TypedData implements \Stringable {
     $source_type_prefixes = [];
     foreach ($this->propsValues as $raw_prop_sources) {
       foreach ($raw_prop_sources as $raw_prop_source) {
+        if (!\is_array($raw_prop_source) || !\array_key_exists('sourceType', $raw_prop_source)) {
+          // This isn't an SDC component.
+          // @todo Move this logic into SDC component source.
+          // @see https://www.drupal.org/project/experience_builder/issues/3467954
+          continue;
+        }
         $source_type_prefixes[] = explode(':', $raw_prop_source['sourceType'])[0];
       }
     }

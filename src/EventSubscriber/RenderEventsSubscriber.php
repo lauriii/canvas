@@ -2,11 +2,11 @@
 
 namespace Drupal\experience_builder\EventSubscriber;
 
-use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Render\PageDisplayVariantSelectionEvent;
 use Drupal\Core\Render\RenderEvents;
-use Drupal\Core\Theme\ThemeManagerInterface;
+use Drupal\experience_builder\AutoSave\AutoSaveManager;
 use Drupal\experience_builder\Entity\PageTemplate;
+use Drupal\experience_builder\Exception\ConstraintViolationException;
 use Drupal\experience_builder\Plugin\DisplayVariant\PageTemplateDisplayVariant;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
@@ -18,8 +18,7 @@ use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 final class RenderEventsSubscriber implements EventSubscriberInterface {
 
   public function __construct(
-    private readonly ThemeManagerInterface $themeManager,
-    private readonly EntityTypeManagerInterface $entityTypeManager,
+    private readonly AutoSaveManager $autoSaveManager,
   ) {}
 
   /**
@@ -31,18 +30,30 @@ final class RenderEventsSubscriber implements EventSubscriberInterface {
    * @see \Drupal\experience_builder\Plugin\DisplayVariant\PageTemplateDisplayVariant
    */
   public function onSelectPageDisplayVariant(PageDisplayVariantSelectionEvent $event): void {
-    $active_theme_name = $this->themeManager->getActiveTheme()->getName();
-    $page_template = $this->entityTypeManager
-      ->getStorage('page_template')
-      ->load($active_theme_name);
-
-    // For this theme, an Experience Builder PageTemplate config entity exists.
-    if ($page_template instanceof PageTemplate && $page_template->status()) {
-      $event->setPluginId('experience_builder_page_template_display');
-      $event->setPluginConfiguration([
-        PageTemplateDisplayVariant::PAGE_TEMPLATE_CONFIG_ENTITY_KEY => $page_template,
-      ]);
+    $page_template = PageTemplate::forActiveTheme();
+    if (!$page_template) {
+      // No active page template for this theme.
+      return;
     }
+
+    // If we're previewing a page, see if we have an auto-save version to use.
+    $preview = $event->getRouteMatch()->getRouteName() === 'experience_builder.api.preview';
+    if ($preview && $autoSaveData = $this->autoSaveManager->getAutoSaveData($page_template)) {
+      // Generate a new template based on the auto-saved data.
+      try {
+        $page_template = $page_template->forAutoSaveData($autoSaveData)->enable();
+      }
+      catch (ConstraintViolationException) {
+        // The autosave entry is invalid, we don't use it and instead fallback
+        // to the saved version.
+      }
+    }
+
+    $event->setPluginId('experience_builder_page_template_display');
+    $event->setPluginConfiguration([
+      PageTemplateDisplayVariant::PAGE_TEMPLATE_CONFIG_ENTITY_KEY => $page_template,
+      PageTemplateDisplayVariant::WRAP_MARKUP => $preview,
+    ]);
   }
 
   /**

@@ -5,10 +5,17 @@ declare(strict_types=1);
 namespace Drupal\experience_builder\Entity;
 
 use Drupal\Core\Config\Entity\ConfigEntityBase;
+use Drupal\Core\Extension\ThemeExtensionList;
+use Drupal\Core\StringTranslation\TranslatableMarkup;
+use Drupal\Core\TypedData\DataDefinition;
+use Drupal\experience_builder\Controller\ClientServerConversionTrait;
+use Drupal\experience_builder\Exception\ConstraintViolationException;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 use Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\BlockComponent;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemInstantiatorTrait;
+use Drupal\experience_builder\PropSource\PropSourceBase;
+use Symfony\Component\Validator\ConstraintViolationList;
 
 /**
  * @ConfigEntityType(
@@ -34,6 +41,7 @@ final class PageTemplate extends ConfigEntityBase implements XbHttpApiEligibleCo
 
   public const PLUGIN_ID = 'page_template';
   use ComponentTreeItemInstantiatorTrait;
+  use ClientServerConversionTrait;
 
   /**
    * The theme that this defines the XB Page Template for.
@@ -51,6 +59,81 @@ final class PageTemplate extends ConfigEntityBase implements XbHttpApiEligibleCo
    *   a `tree` + `props` key-value pair.
    */
   protected ?array $component_trees;
+
+  /**
+   * {@inheritdoc}
+   */
+  public function label(): TranslatableMarkup {
+    return new TranslatableMarkup('@theme global template', ['@theme' => \Drupal::service(ThemeExtensionList::class)->getName($this->theme)]);
+  }
+
+  /**
+   * Creates a page template instance for the given auto-save data.
+   *
+   * @param array $autoSaveData
+   *   Autosave data with 'layout' and 'model' keys.
+   *
+   * @return static
+   *   New instance with given values.
+   *
+   * @throws \Drupal\experience_builder\Exception\ConstraintViolationException
+   *   If violations exist and $throwOnViolations is TRUE.
+   */
+  public function forAutoSaveData(array $autoSaveData): static {
+    $values = $this->toArray();
+    // We always keep the original content region, that holds the main content
+    // block.
+    $treeItems = \array_intersect_key($values['component_trees'] ?? [], \array_flip(['content']));
+    $allViolations = new ConstraintViolationList();
+    foreach ($autoSaveData['layout'] as $region) {
+      [$tree, $violations] = self::clientLayoutToServerTree($region);
+      $allViolations->addAll($violations);
+      if ($tree === NULL) {
+        continue;
+      }
+
+      if (\count($tree[ComponentTreeStructure::ROOT_UUID]) === 0) {
+        // Empty region.
+        $treeItems[$region['id']] = NULL;
+        continue;
+      }
+
+      // @todo This probably should be a method on ComponentTreeStructure, we
+      // have the same code in several places.
+      $definition = DataDefinition::create('component_tree_structure');
+      $component_tree_structure = new ComponentTreeStructure($definition, 'component_tree_structure');
+      $component_tree_structure->setValue(json_encode($tree, JSON_UNESCAPED_UNICODE));
+
+      [$client_props, $violations] = $this->clientModelToServerProps($tree, \array_intersect_key($autoSaveData['model'], \array_flip($component_tree_structure->getComponentInstanceUuids())));
+      $allViolations->addAll($violations);
+      if ($client_props === NULL) {
+        continue;
+      }
+
+      $server_props = [];
+      foreach ($client_props as $component_instance_uuid => $component_instance_props) {
+        foreach ($component_instance_props as $prop_name => $prop_source) {
+          if ($prop_source instanceof PropSourceBase) {
+            // @todo This is clunky and should probably be handled by the
+            // component source plugin.
+            $server_props[$component_instance_uuid][$prop_name] = json_decode((string) $prop_source, TRUE);
+            continue;
+          }
+          $server_props[$component_instance_uuid][$prop_name] = $prop_source;
+        }
+      }
+
+      $treeItems[$region['id']] = [
+        'tree' => \json_encode($tree),
+        'props' => \json_encode($server_props),
+      ];
+    }
+    if ($allViolations->count() > 0) {
+      throw ConstraintViolationException::forViolationList($allViolations);
+    }
+    $values['component_trees'] = $treeItems;
+    return static::create($values);
+  }
 
   /**
    * {@inheritdoc}
@@ -102,6 +185,19 @@ final class PageTemplate extends ConfigEntityBase implements XbHttpApiEligibleCo
     }
 
     return $this;
+  }
+
+  /**
+   * Loads the page template entity for the active theme.
+   *
+   * @return static|null
+   *   The page template entity, or NULL if none is active.
+   */
+  public static function forActiveTheme(): ?static {
+    $theme = \Drupal::service('theme.manager')->getActiveTheme()->getName();
+    $template = \Drupal::service('entity_type.manager')->getStorage(PageTemplate::PLUGIN_ID)->load($theme);
+    assert($template instanceof PageTemplate || $template === NULL);
+    return $template && $template->status() ? $template : NULL;
   }
 
   /**

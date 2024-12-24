@@ -12,6 +12,7 @@ use Drupal\image\Plugin\Field\FieldType\ImageItem;
 use Drupal\media\Entity\Media;
 use Drupal\node\Entity\Node;
 use Drupal\node\Entity\NodeType;
+use Drupal\Tests\block\Traits\BlockCreationTrait;
 use Drupal\Tests\image\Kernel\ImageFieldCreationTrait;
 use Drupal\Tests\media\Traits\MediaTypeCreationTrait;
 use Drupal\Tests\RandomGeneratorTrait;
@@ -26,6 +27,7 @@ class XBTestSetup implements TestSetupInterface {
   use RandomGeneratorTrait;
   use TestFileCreationTrait;
   use ImageFieldCreationTrait;
+  use BlockCreationTrait;
 
   public function setup(): void {
     $config_factory = \Drupal::configFactory();
@@ -39,7 +41,15 @@ class XBTestSetup implements TestSetupInterface {
 
     $module_installer = \Drupal::service('module_installer');
     assert($module_installer instanceof ModuleInstallerInterface);
-    $module_installer->install(['node', 'media']);
+    $module_installer->install(['node', 'media', 'block']);
+    $theme = 'stark';
+    \Drupal::service('theme_installer')->install([$theme]);
+    \Drupal::service('config.factory')->getEditable('system.theme')->set('default', $theme)->save();
+    \Drupal::service('theme.manager')->resetActiveTheme();
+    // Place the page title block.
+    $this->placeBlock('page_title_block', ['region' => 'highlighted']);
+    $this->placeBlock('system_messages_block');
+    $this->placeBlock('system_main_block');
 
     $type = NodeType::create([
       'type' => 'article',
