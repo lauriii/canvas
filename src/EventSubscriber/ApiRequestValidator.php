@@ -36,6 +36,11 @@ final class ApiRequestValidator extends ApiMessageValidatorBase {
     $psr7_request = $this->httpMessageFactory
       ->createRequest($event->getRequest());
 
+    // Normalize the path.
+    $uri = $psr7_request->getUri();
+    $path = substr_replace($uri->getPath(), '/', 0, strlen(base_path()));
+    $psr7_request = $psr7_request->withUri($uri->withPath($path));
+
     $validator->validate($psr7_request);
   }
 

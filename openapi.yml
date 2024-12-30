@@ -100,11 +100,7 @@ paths:
         - $ref: '#/components/parameters/entityTypeId'
         - $ref: '#/components/parameters/entityId'
       requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              properties: {}
+        $ref: '#/components/requestBodies/Layout'
       responses:
         '200':
           description: Saved entity successfully
@@ -543,6 +539,8 @@ components:
               $ref: '#/components/schemas/LayoutSlot'
         model:
           $ref: '#/components/schemas/Model'
+        entity_form_fields:
+          type: object
     AutoSaveEntry:
       title: Auto Save Entry
       type: object
