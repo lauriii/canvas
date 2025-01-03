@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\experience_builder\Kernel;
 
-use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\experience_builder\Controller\ClientServerConversionTrait;
 use Drupal\experience_builder\Entity\Pattern;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
@@ -27,8 +26,6 @@ class ClientServerConversionTraitTest extends KernelTestBase {
   use ContribStrictConfigSchemaTestTrait;
   use ConstraintViolationsTestTrait;
 
-  private EntityTypeManagerInterface $entityTypeManager;
-
   /**
    * {@inheritdoc}
    */
@@ -46,7 +43,6 @@ class ClientServerConversionTraitTest extends KernelTestBase {
     $this->container->get('module_installer')->install(['system']);
     (new XBTestSetup())->setup();
     $this->setUpImages();
-    $this->entityTypeManager = $this->container->get('entity_type.manager');
   }
 
   public function testConvertClientToServer(): void {
@@ -130,13 +126,6 @@ class ClientServerConversionTraitTest extends KernelTestBase {
     $this->assertNull($tree);
     $this->assertNull($props);
     $this->assertSame($errors, $this->violationsToArray($violations));
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  protected function entityTypeManager(): EntityTypeManagerInterface {
-    return $this->entityTypeManager;
   }
 
 }

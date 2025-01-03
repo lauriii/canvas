@@ -155,11 +155,4 @@ class ClientDataToEntityConverter {
     return $violations_list;
   }
 
-  /**
-   * {@inheritdoc}
-   */
-  protected function entityTypeManager(): EntityTypeManagerInterface {
-    return $this->entityTypeManager;
-  }
-
 }

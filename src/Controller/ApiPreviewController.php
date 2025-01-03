@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Drupal\experience_builder\Controller;
 
 use Drupal\Core\Entity\EntityInterface;
-use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Render\Element;
 use Drupal\Core\TypedData\TypedDataManagerInterface;
 use Drupal\experience_builder\AutoSave\AutoSaveManager;
@@ -30,7 +29,6 @@ final class ApiPreviewController {
   use ClientServerConversionTrait;
 
   public function __construct(
-    private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly TypedDataManagerInterface $typedDataManager,
     private readonly AutoSaveManager $autoSaveManager,
   ) {}
@@ -151,13 +149,6 @@ final class ApiPreviewController {
    */
   public function getLabel(EntityInterface $entity): string {
     return (string) $entity->label();
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  protected function entityTypeManager(): EntityTypeManagerInterface {
-    return $this->entityTypeManager;
   }
 
 }

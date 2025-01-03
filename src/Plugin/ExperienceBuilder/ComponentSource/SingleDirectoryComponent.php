@@ -6,17 +6,20 @@ namespace Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource;
 
 use Drupal\Core\Asset\AttachedAssets;
 use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Entity\TypedData\EntityDataDefinition;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Extension\ThemeHandlerInterface;
 use Drupal\Core\Field\FieldTypePluginManagerInterface;
+use Drupal\Core\Field\Plugin\Field\FieldType\EntityReferenceItemInterface;
 use Drupal\Core\Field\WidgetPluginManager;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Plugin\Component;
 use Drupal\Core\Plugin\Component as ComponentPlugin;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\Core\Render\RendererInterface;
+use Drupal\Core\StreamWrapper\PublicStream;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\Theme\Component\ComponentValidator;
 use Drupal\Core\Theme\ComponentPluginManager;
@@ -26,6 +29,7 @@ use Drupal\experience_builder\Attribute\ComponentSource;
 use Drupal\experience_builder\ComponentSource\ComponentSourceBase;
 use Drupal\experience_builder\ComponentSource\ComponentSourceWithSlotsInterface;
 use Drupal\experience_builder\Entity\Component as ComponentEntity;
+use Drupal\experience_builder\InvalidRequestBodyValue;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\experience_builder\PropExpressions\Component\ComponentPropExpression;
 use Drupal\experience_builder\PropExpressions\StructuredData\FieldObjectPropsExpression;
@@ -40,6 +44,8 @@ use Drupal\experience_builder\ShapeMatcher\FieldForComponentSuggester;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
+use Symfony\Component\Validator\ConstraintViolation;
+use Symfony\Component\Validator\ConstraintViolationList;
 
 /**
  * Defines a component source based on single-directory components.
@@ -87,6 +93,7 @@ final class SingleDirectoryComponent extends ComponentSourceBase implements Comp
     private readonly FieldForComponentSuggester $fieldForComponentSuggester,
     private readonly RendererInterface $renderer,
     private readonly RequestStack $requestStack,
+    private readonly EntityTypeManagerInterface $entityTypeManager,
   ) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
   }
@@ -109,6 +116,7 @@ final class SingleDirectoryComponent extends ComponentSourceBase implements Comp
       $container->get(FieldForComponentSuggester::class),
       $container->get(RendererInterface::class),
       $container->get(RequestStack::class),
+      $container->get(EntityTypeManagerInterface::class),
     );
   }
 
@@ -572,6 +580,83 @@ final class SingleDirectoryComponent extends ComponentSourceBase implements Comp
     }
 
     return $props;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function createPropsForComponent(string $component_instance_uuid, ComponentEntity $component, array $client_props): array {
+    $props = [];
+    $violation_list = new ConstraintViolationList();
+
+    foreach ($client_props as $prop => $prop_value) {
+      $static_source = $component->getDefaultStaticPropSource($prop);
+      $updated_static_source = $static_source->withValue($prop_value);
+      if ($static_source->fieldItem instanceof EntityReferenceItemInterface) {
+        $target_type = $static_source->fieldItem->getFieldDefinition()->getSetting('target_type');
+        try {
+          $target_id = $this->findTargetForProps($prop_value, $target_type);
+        }
+        catch (InvalidRequestBodyValue $invalid) {
+          $violation_list->add(new ConstraintViolation(
+            $invalid->getMessage(),
+            NULL,
+            [],
+            $client_props,
+            $invalid->propertyPath
+              ? "model.$component_instance_uuid.$prop.{$invalid->propertyPath}"
+              : "model.$component_instance_uuid.$prop",
+            $prop_value,
+          ));
+          continue;
+        }
+        $updated_static_source = $updated_static_source->withValue(
+          array_diff_key($updated_static_source->getValue(), ['src' => NULL, 'target_id' => NULL])
+          + ['target_id' => $target_id]
+        );
+      }
+      $props[$prop] = $updated_static_source;
+    }
+
+    return [$props, $violation_list];
+  }
+
+  /**
+   * @todo Remove this function in favor of the client sending the target id in
+   *   https://drupal.org/i/3473336.
+   */
+  private function findTargetForProps(array $prop_value, string $target_type): int {
+    if ($target_type !== 'media' && $target_type !== 'file') {
+      // Once the 'target_id' is saved the target type won't be needed.
+      throw new InvalidRequestBodyValue("Unsupported target type '$target_type'.");
+    }
+    $src = $prop_value['src'];
+
+    // Only consider public files until we save 'target_id' in the client model.
+    $base_path = '/' . PublicStream::basePath() . '/';
+    $relative_path = substr($src, strlen($base_path));
+    $drupal_uri = 'public://' . $relative_path;
+
+    // Load the file entity using the 'uri'. 'filename' will not always work
+    // because the file name can be changed in the uri.
+    $files = $this->entityTypeManager->getStorage('file')->loadByProperties(['uri' => $drupal_uri]);
+    $file = reset($files);
+    if (!$file) {
+      throw new InvalidRequestBodyValue("File '$src' not found.", 'src');
+    }
+    $file_id = $file->id();
+    if ($target_type === 'file') {
+      return (int) $file_id;
+    }
+
+    // TRICKY: this is tightly coupled to `media_library_storage_prop_shape_alter()`!
+    $query = $this->entityTypeManager->getStorage('media')->getQuery()->condition('field_media_image.target_id', $file_id)->accessCheck();
+    $media_ids = $query->execute();
+    assert(is_array($media_ids));
+    if (empty($media_ids)) {
+      throw new InvalidRequestBodyValue("No media entity found that uses file '$src'.", 'src');
+    }
+    return (int) array_pop($media_ids);
   }
 
 }

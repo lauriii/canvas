@@ -4,13 +4,9 @@ declare(strict_types=1);
 
 namespace Drupal\experience_builder\Controller;
 
-use Drupal\Core\Field\Plugin\Field\FieldType\EntityReferenceItemInterface;
-use Drupal\Core\StreamWrapper\PublicStream;
 use Drupal\Core\TypedData\DataDefinition;
 use Drupal\experience_builder\Entity\Component;
-use Drupal\experience_builder\InvalidRequestBodyValue;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
-use Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\SingleDirectoryComponent;
 use Symfony\Component\Validator\ConstraintViolation;
 use Symfony\Component\Validator\ConstraintViolationInterface;
 use Symfony\Component\Validator\ConstraintViolationList;
@@ -20,8 +16,6 @@ use Symfony\Component\Validator\ConstraintViolationList;
  * @phpstan-import-type ComponentTreeStructureArray from \Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure
  */
 trait ClientServerConversionTrait {
-
-  abstract protected function entityTypeManager();
 
   /**
    * @todo Refactor/remove in https://www.drupal.org/project/experience_builder/issues/3467954.
@@ -103,8 +97,9 @@ trait ClientServerConversionTrait {
     $props = [];
     $violation_list = new ConstraintViolationList();
     foreach ($model as $uuid => $client_props) {
-      $component = $component_tree_structure->getComponentId($uuid);
-      [$props[$uuid], $violations_for_component_instance] = $this->createPropsForComponent($uuid, $component, $client_props);
+      $component = Component::load($component_tree_structure->getComponentId($uuid));
+      assert($component instanceof Component);
+      [$props[$uuid], $violations_for_component_instance] = $component->getComponentSource()->createPropsForComponent($uuid, $component, $client_props);
       foreach ($violations_for_component_instance as $violation) {
         // We use ::add here rather than ::addAll because ::addAll doesn't reset
         // the internal groupings in EntityConstraintViolationList whereas ::add
@@ -114,95 +109,6 @@ trait ClientServerConversionTrait {
       }
     }
     return [$props, $violation_list];
-  }
-
-  /**
-   * @return array{0: array<string, \Drupal\experience_builder\PropSource\StaticPropSource>, 1: \Symfony\Component\Validator\ConstraintViolationListInterface}
-   *
-   * @todo Refactor in https://www.drupal.org/project/experience_builder/issues/3495126, because that issue introduces storing inputs for Block-sourced Components.
-   * @todo Refactor to use the Symfony denormalizer infrastructure?
-   */
-  private function createPropsForComponent(string $component_instance_uuid, string $component, array $client_props): array {
-    $violation_list = new ConstraintViolationList();
-    $props = [];
-    $component_entity = Component::load($component);
-    assert($component_entity instanceof Component);
-    if (!$component_entity->getComponentSource() instanceof SingleDirectoryComponent) {
-      // @todo Ask the component source how it would like to handle this.
-      // @see https://www.drupal.org/project/experience_builder/issues/3495126
-      return [$client_props, $violation_list];
-    }
-    // @todo All of the validation conversion logic below is specific to SDC
-    // components AND specifically static prop sources. Move it behind the SDC
-    // component source plugin and add support for dynamic prop sources.
-    // @see https://www.drupal.org/project/experience_builder/issues/3495126
-    foreach ($client_props as $prop => $prop_value) {
-      $static_source = $component_entity->getDefaultStaticPropSource($prop);
-      $updated_static_source = $static_source->withValue($prop_value);
-      if ($static_source->fieldItem instanceof EntityReferenceItemInterface) {
-        $target_type = $static_source->fieldItem->getFieldDefinition()->getSetting('target_type');
-        try {
-          $target_id = $this->findTargetForProps($prop_value, $target_type);
-        }
-        catch (InvalidRequestBodyValue $invalid) {
-          $violation_list->add(new ConstraintViolation(
-            $invalid->getMessage(),
-            NULL,
-            [],
-            $client_props,
-            $invalid->propertyPath
-              ? "model.$component_instance_uuid.$prop.{$invalid->propertyPath}"
-              : "model.$component_instance_uuid.$prop",
-            $prop_value,
-          ));
-          continue;
-        }
-        $updated_static_source = $updated_static_source->withValue(
-          array_diff_key($updated_static_source->getValue(), ['src' => NULL, 'target_id' => NULL])
-          + ['target_id' => $target_id]
-        );
-      }
-      $props[$prop] = $updated_static_source;
-    }
-    return [$props, $violation_list];
-  }
-
-  /**
-   * @todo Remove this function in favor of the client sending the target id in
-   *   https://drupal.org/i/3473336.
-   */
-  private function findTargetForProps(array $prop_value, string $target_type): int {
-    if ($target_type !== 'media' && $target_type !== 'file') {
-      // Once the 'target_id' is saved the target type won't be needed.
-      throw new InvalidRequestBodyValue("Unsupported target type '$target_type'.");
-    }
-    $src = $prop_value['src'];
-
-    // Only consider public files until we save 'target_id' in the client model.
-    $base_path = '/' . PublicStream::basePath() . '/';
-    $relative_path = substr($src, strlen($base_path));
-    $drupal_uri = 'public://' . $relative_path;
-
-    // Load the file entity using the 'uri'. 'filename' will not always work
-    // because the file name can be changed in the uri.
-    $files = $this->entityTypeManager()->getStorage('file')->loadByProperties(['uri' => $drupal_uri]);
-    $file = reset($files);
-    if (!$file) {
-      throw new InvalidRequestBodyValue("File '$src' not found.", 'src');
-    }
-    $file_id = $file->id();
-    if ($target_type === 'file') {
-      return (int) $file_id;
-    }
-
-    // TRICKY: this is tightly coupled to `media_library_storage_prop_shape_alter()`!
-    $query = $this->entityTypeManager()->getStorage('media')->getQuery()->condition('field_media_image.target_id', $file_id)->accessCheck();
-    $media_ids = $query->execute();
-    assert(is_array($media_ids));
-    if (empty($media_ids)) {
-      throw new InvalidRequestBodyValue("No media entity found that uses file '$src'.", 'src');
-    }
-    return (int) array_pop($media_ids);
   }
 
   /**
