@@ -1,0 +1,41 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Drupal\Tests\experience_builder\Functional;
+
+use Drupal\Core\DefaultContent\Finder;
+use Drupal\Core\DefaultContent\Importer;
+use Drupal\Core\Entity\EntityRepositoryInterface;
+use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
+use Drupal\Tests\BrowserTestBase;
+
+/**
+ * @group experience_builder
+ */
+class DefaultContentImportTest extends BrowserTestBase {
+
+  /**
+   * {@inheritdoc}
+   */
+  protected static $modules = ['experience_builder'];
+
+  /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
+
+  public function testImportDefaultContentWithXbData(): void {
+    $finder = new Finder(__DIR__ . '/../../fixtures');
+    $this->container->get(Importer::class)->importContent($finder);
+
+    // The imported page should have some XB data.
+    /** @var \Drupal\experience_builder\Entity\Page $page */
+    $page = $this->container->get(EntityRepositoryInterface::class)
+      ->loadEntityByUuid('xb_page', '20354d7a-e4fe-47af-8ff6-187bca92f3f7');
+    $xb_field = $page->get('components')->first();
+    $this->assertInstanceOf(ComponentTreeItem::class, $xb_field);
+    $this->assertFalse($xb_field->isEmpty());
+  }
+
+}

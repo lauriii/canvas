@@ -194,6 +194,16 @@ class ComponentTreeItem extends FieldItemBase implements RenderableInterface {
   /**
    * {@inheritdoc}
    */
+  public function onChange(mixed $property_name, $notify = TRUE): void {
+    if ($property_name === 'tree' || $property_name === 'props') {
+      $this->values[$property_name] = $this->get($property_name)->getValue();
+    }
+    parent::onChange($property_name, $notify);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function setValue($values, $notify = TRUE): void {
     // This field type does not want either:
     // - the parent FieldItemBase::setValue()'s behavior, which assigns $values
