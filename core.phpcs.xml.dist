@@ -75,13 +75,24 @@
     <include-pattern>core/modules/*/Plugin/views/cache/*</include-pattern>
     <include-pattern>core/modules/*/Plugin/views/query/*</include-pattern>
     <include-pattern>core/modules/*/Plugin/views/sort/*</include-pattern>
+    <include-pattern>core/modules/*/Plugin/views/display/*</include-pattern>
+    <include-pattern>core/modules/*/Plugin/views/exposed_form/*</include-pattern>
+    <include-pattern>core/modules/*/Plugin/views/field/*</include-pattern>
+    <include-pattern>core/modules/*/Plugin/views/pager/*</include-pattern>
+    <include-pattern>core/modules/*/Plugin/views/style/*</include-pattern>
+    <include-pattern>*/Database/*</include-pattern>
     <exclude-pattern>*/tests/*</exclude-pattern>
   </rule>
   <rule ref="Drupal.Commenting.FunctionComment.MissingParamType">
     <include-pattern>core/lib/Component/*</include-pattern>
+    <include-pattern>core/includes/*</include-pattern>
+    <include-pattern>core/*/*Database*/*</include-pattern>
+    <include-pattern>*/*/views/*</include-pattern>
+    <include-pattern>*/*/views_ui/*</include-pattern>
   </rule>
   <rule ref="Drupal.Commenting.FunctionComment.MissingReturnComment">
-    <include-pattern>core/lib/Drupal/Core/[a-e]*/*</include-pattern>
+    <include-pattern>core/lib/Drupal/Core/*</include-pattern>
+    <include-pattern>core/lib/Drupal/Component/*</include-pattern>
   </rule>
   <rule ref="Drupal.Commenting.GenderNeutralComment"/>
   <rule ref="Drupal.Commenting.HookComment"/>
@@ -101,6 +112,7 @@
   <rule ref="Drupal.Commenting.VariableComment.Missing">
     <exclude-pattern>./core/tests/*</exclude-pattern>
     <exclude-pattern>./core/*/tests/*</exclude-pattern>
+    <include-pattern>core/modules/*/tests/modules/*</include-pattern>
   </rule>
   <rule ref="Drupal.ControlStructures.ControlSignature"/>
   <rule ref="Drupal.ControlStructures.ElseIf"/>
@@ -154,8 +166,7 @@
 
   <!-- Drupal Practice sniffs -->
   <rule ref="DrupalPractice.CodeAnalysis.VariableAnalysis">
-    <exclude-pattern>*/Functional/*</exclude-pattern>
-    <exclude-pattern>*/FunctionalJavascript/*</exclude-pattern>
+    <exclude-pattern>*/core/tests/*</exclude-pattern>
     <exclude-pattern>*/core/profiles/*/tests/*</exclude-pattern>
     <!-- Do not run this sniff on API files or transliteration data. -->
     <exclude-pattern>*.api.php</exclude-pattern>
@@ -178,6 +189,7 @@
   <rule ref="DrupalPractice.Objects.GlobalFunction">
     <include-pattern>*/Plugin/*</include-pattern>
     <include-pattern>*/ListBuilder/*</include-pattern>
+    <include-pattern>*/tests/*/Form/*</include-pattern>
   </rule>
 
   <!-- Generic sniffs -->

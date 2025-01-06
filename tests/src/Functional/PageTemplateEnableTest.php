@@ -74,7 +74,7 @@ class PageTemplateEnableTest extends BrowserTestBase {
     ]);
     $this->assertSame(\array_values($expected_regions), array_keys($trees));
 
-    foreach ($trees as $region => $field) {
+    foreach ($trees as $field) {
       $tree = $field->toArray();
       $this->assertJson($tree['tree']);
       $tree = json_decode($tree['tree'], TRUE);
