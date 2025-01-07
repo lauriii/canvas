@@ -61,10 +61,9 @@
 /docs/config-management.md
 /docs/diagrams/config-management.md
 /config/schema/
+# TRICKY: files for content entities should be explicitly listed in their own sections, see `[Page]` for an example.
 /src/Entity/
-/tests/src/Kernel/Entity/ComponentValidationTest.php
-/tests/src/Kernel/Entity/PageTemplateValidationTest.php
-/tests/src/Kernel/ComponentTest.php
+/tests/src/Kernel/Config/
 
 # Issues: https://www.drupal.org/project/issues/experience_builder?component=Data+model
 [Data model] @effulgentsia @tedbow @wimleers
@@ -84,8 +83,7 @@
 /src/Entity/PageAccessControlHandler.php
 /src/Entity/PageViewBuilder.php
 /tests/modules/xb_test_page/
-/tests/src/Kernel/Entity/Routing
-/tests/src/Kernel/Entity/Page*
+/tests/src/Kernel/Entity/
 /tests/src/Kernel/Traits/Page*
 
 # ⚠️

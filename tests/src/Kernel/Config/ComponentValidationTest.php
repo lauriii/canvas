@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Drupal\Tests\experience_builder\Kernel\Entity;
+namespace Drupal\Tests\experience_builder\Kernel\Config;
 
 use Drupal\experience_builder\Entity\Component;
 use Drupal\KernelTests\Core\Config\ConfigEntityValidationTestBase;
