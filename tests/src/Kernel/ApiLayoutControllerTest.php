@@ -128,6 +128,28 @@ class ApiLayoutControllerTest extends KernelTestBase {
         "uuid" => "c3f3c22c-c22e-4bb6-ad16-635f069148e4",
       ],
     ], reset($highlightedRegion)['components']);
+
+    // Now let's remove the draft of the page template but retain that of the
+    // node.
+    $autoSave->delete($template);
+    // We should still see the global regions.
+    $response = $controller($node1);
+    self::assertInstanceOf(JsonResponse::class, $response);
+    $json = \json_decode($response->getContent() ?: '', TRUE);
+    self::assertArrayHasKey('layout', $json);
+    $highlightedRegion = \array_filter($json['layout'], static fn (array $region) => ($region['id'] ?? NULL) === 'highlighted');
+    self::assertCount(1, $highlightedRegion);
+    // @see \Drupal\Tests\experience_builder\TestSite\XBTestSetup::setup()
+    self::assertEquals([
+      [
+        "nodeType" => "component",
+        "slots" => [],
+        "type" => "block.page_title_block",
+      ],
+    ],
+      // Filter out the UUID as that is added randomly by creating the block
+      // in the setup class.
+      \array_map(static fn(array $component) => \array_diff_key($component, \array_flip(['uuid'])), \current($highlightedRegion)['components']));
   }
 
   protected function assertRegions(int $count): void {

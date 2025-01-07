@@ -40,12 +40,6 @@ final class ApiLayoutController {
 
     if ($body = $this->autoSaveManager->getAutoSaveData($entity)) {
       ['layout' => $layout, 'model' => $model] = $body;
-
-      // Override the full page template, if we have one.
-      if ($template && $body = $this->autoSaveManager->getAutoSaveData($template)) {
-        $layout = array_merge($layout, $body['layout']);
-        $model += $body['model'];
-      }
     }
     else {
       $model = [];
@@ -55,26 +49,10 @@ final class ApiLayoutController {
       $tree = $entity->get($field_name)->first();
       assert($tree instanceof ComponentTreeItem);
       $layout = [$this->buildRegion('content', $tree, $model)];
-
-      // If there is a template, build the other regions.
-      if ($template) {
-        $draft_template = $this->autoSaveManager->getAutoSaveData($template);
-        if ($draft_template === NULL) {
-          foreach ($template->getComponentTrees() as $region => $tree) {
-            if ($region === 'content') {
-              continue;
-            }
-            $layout[] = $this->buildRegion($region, $tree, $model);
-          }
-        }
-        else {
-          $layout = array_merge($layout, $draft_template['layout']);
-          $model += $draft_template['model'];
-        }
-      }
     }
 
     if ($template) {
+      $this->addGlobalRegions($template, $model, $layout);
       // Ensure all regions exist, and reorder the layout to match theme order.
       $layout = array_combine(array_map(static fn($region) => $region['id'], $layout), $layout);
       $layout = array_map(fn(string $region) => $layout[$region] ?? $this->buildRegion($region), array_keys($this->regions));
@@ -166,6 +144,21 @@ final class ApiLayoutController {
     // widget's structure.
     // @see \Drupal\experience_builder\Controller\EntityFormController::form
     return Query::parse(\http_build_query(\array_intersect_key($form_state->getValues(), $entity->toArray())));
+  }
+
+  private function addGlobalRegions(PageTemplate $template, array &$model, array &$layout): void {
+    $draft_template = $this->autoSaveManager->getAutoSaveData($template);
+    if ($draft_template === NULL) {
+      foreach ($template->getComponentTrees() as $region => $tree) {
+        if ($region === 'content') {
+          continue;
+        }
+        $layout[] = $this->buildRegion($region, $tree, $model);
+      }
+      return;
+    }
+    $layout = \array_merge($layout, $draft_template['layout']);
+    $model += $draft_template['model'];
   }
 
 }
