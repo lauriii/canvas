@@ -120,7 +120,7 @@ final class PageTemplate extends ConfigEntityBase implements XbHttpApiEligibleCo
           if ($prop_source instanceof PropSourceBase) {
             // @todo This is clunky and should probably be handled by the
             // component source plugin.
-            $server_props[$component_instance_uuid][$prop_name] = json_decode((string) $prop_source, TRUE);
+            $server_props[$component_instance_uuid][$prop_name] = $prop_source->toArray();
             continue;
           }
           $server_props[$component_instance_uuid][$prop_name] = $prop_source;

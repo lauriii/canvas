@@ -33,12 +33,11 @@ final class DynamicPropSource extends PropSourceBase {
   /**
    * {@inheritdoc}
    */
-  public function __toString(): string {
-    // @phpstan-ignore-next-line
-    return json_encode([
+  public function toArray(): array {
+    return [
       'sourceType' => $this->getSourceType(),
       'expression' => (string) $this->expression,
-    ], JSON_UNESCAPED_UNICODE);
+    ];
   }
 
   /**

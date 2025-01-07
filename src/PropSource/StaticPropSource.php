@@ -51,7 +51,7 @@ final class StaticPropSource extends PropSourceBase {
   /**
    * {@inheritdoc}
    */
-  public function __toString(): string {
+  public function toArray(): array {
     $array_representation = [
       'sourceType' => $this->getSourceType(),
       'value' => $this->getValue(),
@@ -63,8 +63,8 @@ final class StaticPropSource extends PropSourceBase {
     if ($this->fieldInstanceSettings !== NULL) {
       $array_representation['sourceTypeSettings']['instance'] = $this->fieldInstanceSettings;
     }
-    // @phpstan-ignore-next-line
-    return json_encode($array_representation, JSON_UNESCAPED_UNICODE);
+
+    return $array_representation;
   }
 
   private static function conjureFieldItem(FieldTypePropExpression|FieldTypeObjectPropsExpression|ReferenceFieldTypePropExpression $expression, ?array $field_storage_settings, ?array $field_instance_settings): FieldItemInterface {

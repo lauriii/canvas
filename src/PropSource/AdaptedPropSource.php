@@ -39,21 +39,20 @@ final class AdaptedPropSource extends PropSourceBase {
   /**
    * {@inheritdoc}
    */
-  public function __toString(): string {
-    // @phpstan-ignore-next-line
-    return json_encode([
+  public function toArray(): array {
+    return [
       'sourceType' => $this->getSourceType(),
       'adapterInputs' => array_combine(
         array_keys($this->adapter_inputs),
         array_map(
-          fn (PropSourceBase $source): array => json_decode((string) $source, TRUE),
+          fn (PropSourceBase $source): array => $source->toArray(),
           array_map(
             fn (string $input_name): PropSourceBase => $this->getInputPropSource($input_name),
             array_keys($this->adapter_inputs)
           )
         ),
       ),
-    ], JSON_UNESCAPED_UNICODE);
+    ];
   }
 
   /**

@@ -159,7 +159,7 @@ trait ClientServerConversionTrait {
     $props_prepared_for_saving = [];
     foreach ($props as $component_instance_uuid => $component_instance_props) {
       foreach ($component_instance_props as $prop_name => $prop_source) {
-        $props_prepared_for_saving[$component_instance_uuid][$prop_name] = json_decode((string) $prop_source, TRUE);
+        $props_prepared_for_saving[$component_instance_uuid][$prop_name] = $prop_source->toArray();
       }
     }
 

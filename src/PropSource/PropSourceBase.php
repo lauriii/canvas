@@ -8,8 +8,9 @@ use Drupal\Core\Entity\FieldableEntityInterface;
 
 /**
  * @phpstan-type PropSourceTypePrefix 'static'|'dynamic'|'adapter'
- * @phpstan-import-type PropSourceArray from PropSource
- * @phpstan-import-type AdaptedPropSourceArray from PropSource
+ * @phpstan-type PropSourceArray array{sourceType: string, expression: string, value?: mixed|array<string, mixed>}
+ * TRICKY: adapters can be chained/nested, PHPStan does not allow expressing that.
+ * @phpstan-type AdaptedPropSourceArray array{sourceType: string, adapterInputs: array<string, mixed>}
  */
 abstract class PropSourceBase implements \Stringable {
 
@@ -27,5 +28,19 @@ abstract class PropSourceBase implements \Stringable {
   abstract public static function getSourceTypePrefix(): string;
 
   abstract public function getSourceType(): string;
+
+  /**
+   * Gets the array representation.
+   *
+   * @return PropSourceArray|AdaptedPropSourceArray
+   */
+  abstract public function toArray(): array;
+
+  /**
+   * {@inheritdoc}
+   */
+  public function __toString(): string {
+    return json_encode($this->toArray(), JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
+  }
 
 }

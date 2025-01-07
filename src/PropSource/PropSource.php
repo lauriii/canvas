@@ -5,9 +5,8 @@ declare(strict_types=1);
 namespace Drupal\experience_builder\PropSource;
 
 /**
- * @phpstan-type PropSourceArray array{sourceType: string, expression: string, value?: mixed|array<string, mixed>}
- * TRICKY: adapters can be chained/nested, PHPStan does not allow expressing that.
- * @phpstan-type AdaptedPropSourceArray array{sourceType: string, adapterInputs: array<string, mixed>}
+ * @phpstan-import-type PropSourceArray from PropSourceBase
+ * @phpstan-import-type AdaptedPropSourceArray from PropSourceBase
  */
 final class PropSource {
 
