@@ -116,7 +116,16 @@ function usePreviewSortable(iframe: HTMLIFrameElement | null): {
 
   const handleDragAdd = useCallback(
     (ev: Sortable.SortableEvent) => {
-      updateData(ev, false);
+      if ('originalEvent' in ev) {
+        const originalEvent: DragEvent = ev.originalEvent as DragEvent;
+        // dataTransfer.dropEffect will be 'none' if the dragend event is fired by hitting escape or releasing mouse on
+        // an invalid drop area. If it's 'none', remove the dropped item from the DOM and don't call updateData.
+        if (originalEvent.dataTransfer?.dropEffect !== 'none') {
+          updateData(ev, false);
+        } else {
+          ev.item.remove();
+        }
+      }
     },
     [updateData],
   );
