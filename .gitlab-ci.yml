@@ -63,15 +63,12 @@ stages:
 # Docs at https://git.drupalcode.org/project/gitlab_templates/-/blob/main/includes/include.drupalci.variables.yml
 ################
 variables:
-  # Opt in to testing Drupal 11.1. @todo Remove when 11.1.0 is released.
-  CORE_STABLE: '11.1.x-dev'
 
-  # Opt in to testing Drupal 10.4 on PHP 8.3.
+  # Opt in to testing Drupal 10 on PHP 8.3.
   OPT_IN_TEST_PREVIOUS_MAJOR: '1'
-  CORE_PREVIOUS_STABLE: '10.4.x-dev'
   CORE_PREVIOUS_PHP_MIN: '8.3'
 
-  # Show env variables always while Drupal 11 is in flux and GitLab CI templates are flaky too.
+  # Show env variables always to help with debugging.
   _SHOW_ENVIRONMENT_VARIABLES: 1
 
 # This module wants to strictly comply with Drupal core's word use standards.
