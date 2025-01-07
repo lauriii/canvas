@@ -22,7 +22,10 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 
 /**
- * Main content renderer for XB endpoints returning preview markup.
+ * A *private* main content renderer for XB endpoints returning preview markup.
+ *
+ * It is private because it is not exposed as a `render.main_content_renderer`-
+ * tagged service. Used only by PreviewEnvelopeViewSubscriber.
  *
  * Overrides the default HTML renderer to remove the page_top and page_bottom
  * regions, to remove the toolbar and any other extraneous markup in previews,
@@ -31,10 +34,10 @@ use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
  * Unlike XBTemplateRenderer the output of this renderer is intended to be
  * displayed in an iframe, so assets are included in the HTML instead of being
  * handled separately.
+ *
+ * @see \Drupal\experience_builder\EventSubscriber\PreviewEnvelopeViewSubscriber::onViewPreviewEnvelope
  */
 final class XBPreviewRenderer extends HtmlRenderer {
-
-  public const PREVIEW_WRAPPER_FORMAT = 'xb_preview';
 
   public function __construct(
     TitleResolverInterface $title_resolver,
