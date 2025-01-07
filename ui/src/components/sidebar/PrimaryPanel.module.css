@@ -40,9 +40,6 @@
   flex-direction: column;
   height: 100%;
 }
-.scrollArea [data-radix-scroll-area-viewport] > * {
-  max-width: 100%;
-}
 
 .layersTabContent {
   height: 100%;

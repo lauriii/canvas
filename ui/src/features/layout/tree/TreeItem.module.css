@@ -4,7 +4,7 @@
 }
 
 .regionItem {
-  color: var(--grass-8)
+  color: var(--grass-8);
 }
 
 .treeItem {
@@ -12,6 +12,7 @@
   padding: 0.4rem;
   list-style-type: none;
   cursor: pointer;
+  white-space: nowrap;
   &.hovered {
     color: initial;
     background-color: var(--gray-3);

@@ -49,7 +49,7 @@ export const PrimaryPanel = () => {
               Library
             </Tabs.Trigger>
           </Tabs.List>
-          <ScrollArea scrollbars="vertical" className={styles.scrollArea}>
+          <ScrollArea scrollbars="both" className={styles.scrollArea}>
             <Box
               px="4"
               className={clsx(
