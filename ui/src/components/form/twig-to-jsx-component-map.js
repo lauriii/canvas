@@ -12,6 +12,7 @@ import {
   DrupalContainerTextFormatFilterHelp,
   DrupalContainerTextFormatFilterWrapper,
 } from '@/components/form/components/drupal/DrupalContainerTextFormat';
+import { DrupalRadioGroup } from '@/components/form/components/drupal/DrupalRadio';
 
 // This is where we map the Drupal Twig templates to the corresponding JSX component.
 // @see experience_builder_theme_suggestions_alter()
@@ -33,6 +34,7 @@ const twigToJSXComponentMap = {
   'drupal-input': DrupalInput,
   'drupal-input--checkbox--inwidget-boolean-checkbox': DrupalToggle,
   'drupal-input--url': DrupalInput,
+  'drupal-radios': DrupalRadioGroup,
   'drupal-select': DrupalSelect,
   'drupal-textarea': DrupalTextArea,
   'drupal-vertical-tabs': DrupalVerticalTabs,

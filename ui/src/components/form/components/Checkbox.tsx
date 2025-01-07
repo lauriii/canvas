@@ -3,14 +3,20 @@ import { Checkbox as RadixThemesCheckbox } from '@radix-ui/themes';
 import type { Attributes } from '@/types/DrupalAttribute';
 
 const Checkbox = ({
-  defaultChecked = false,
+  checked = false,
+  onCheckedChange,
   attributes = {},
 }: {
-  defaultChecked?: boolean;
+  checked?: boolean;
+  onCheckedChange?: (checked: boolean) => void;
   attributes?: Attributes;
 }) => {
   return (
-    <RadixThemesCheckbox defaultChecked={defaultChecked} {...attributes} />
+    <RadixThemesCheckbox
+      checked={checked}
+      onCheckedChange={onCheckedChange}
+      {...attributes}
+    />
   );
 };
 

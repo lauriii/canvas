@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Drupal\experience_builder\Controller;
 
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
+use Drupal\Core\Form\FormBuilderInterface;
 use Drupal\Core\Theme\ThemeManagerInterface;
 use Drupal\experience_builder\AutoSave\AutoSaveManager;
 use Drupal\experience_builder\Entity\PageTemplate;
@@ -12,15 +14,20 @@ use Drupal\experience_builder\InternalXbFieldNameResolver;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeHydrated;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
+use GuzzleHttp\Psr7\Query;
 use Symfony\Component\HttpFoundation\JsonResponse;
 
 final class ApiLayoutController {
+
+  use EntityFormTrait;
 
   private array $regions;
 
   public function __construct(
     private readonly AutoSaveManager $autoSaveManager,
     private readonly ThemeManagerInterface $themeManager,
+    private readonly EntityTypeManagerInterface $entityTypeManager,
+    private readonly FormBuilderInterface $formBuilder,
   ) {}
 
   public function __invoke(FieldableEntityInterface $entity): JsonResponse {
@@ -84,6 +91,7 @@ final class ApiLayoutController {
       // If the model is empty return an empty object to ensure it is encoded as
       // an object and not empty array.
       'model' => empty($model) ? new \stdClass() : $model,
+      'data' => $this->getEntityData($entity),
     ]);
   }
 
@@ -138,6 +146,26 @@ final class ApiLayoutController {
       $layout[] = $component_instance;
     }
     return $layout;
+  }
+
+  private function getEntityData(FieldableEntityInterface $entity): array {
+    // @todo Try to return this from the form controller instead.
+    // @see https://www.drupal.org/project/experience_builder/issues/3496875
+    // This mirrors a lot of the logic of EntityFormController::form. We want
+    // the entity data in the same shape as form state for an entity form so
+    // that if matches that of the form built by EntityFormController::form.
+    // @see \Drupal\experience_builder\Controller\EntityFormController::form
+    $form = $this->entityTypeManager->getFormObject($entity->getEntityTypeId(), 'default');
+    $form_state = $this->buildFormState($form, $entity, 'default');
+    $this->formBuilder->buildForm($form, $form_state);
+    // Collapse form values into the respective element name, e.g.
+    // ['title' => ['value' => 'Node title']] becomes
+    // ['title[0][value]' => 'Node title'. This keeps the data sent in the same
+    // shape as the 'name' attributes on each of the form elements built by the
+    // form element and avoids needing to smooth out the idiosyncrasies of each
+    // widget's structure.
+    // @see \Drupal\experience_builder\Controller\EntityFormController::form
+    return Query::parse(\http_build_query(\array_intersect_key($form_state->getValues(), $entity->toArray())));
   }
 
 }

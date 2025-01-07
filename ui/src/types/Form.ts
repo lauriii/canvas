@@ -20,6 +20,4 @@ export interface InputUIData {
   layout: Array<LayoutNode>;
   model?: ComponentModels;
   node?: LayoutNode | null;
-  inputValue?: any;
-  setInputValue?: React.Dispatch<React.SetStateAction<any>>;
 }

@@ -2,7 +2,7 @@ import styles from './PagePreview.module.css';
 import { usePostPreviewMutation } from '@/services/preview';
 import { useAppSelector } from '@/app/hooks';
 import {
-  selectInitialized,
+  selectLayoutInitialized,
   selectLayout,
   selectModel,
 } from '@/features/layout/layoutModelSlice';
@@ -12,7 +12,7 @@ import { useParams } from 'react-router-dom';
 import { AlertDialog, Button, Flex } from '@radix-ui/themes';
 const PagePreview = () => {
   const layout = useAppSelector(selectLayout);
-  const initialized = useAppSelector(selectInitialized);
+  const initialized = useAppSelector(selectLayoutInitialized);
   const model = useAppSelector(selectModel);
   const [frameSrcDoc, setFrameSrcDoc] = useState('');
   const [postPreview] = usePostPreviewMutation();

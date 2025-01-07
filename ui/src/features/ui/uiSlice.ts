@@ -23,6 +23,8 @@ export enum CanvasMode {
   EDIT = 'edit',
 }
 
+export type UndoRedoType = 'layoutModel' | 'pageData';
+
 export interface uiSliceState {
   pending: boolean;
   dragging: DraggingStatus;
@@ -34,6 +36,8 @@ export interface uiSliceState {
   latestUndoRedoActionId: string;
   firstLoadComplete: boolean;
   canvasMode: CanvasMode;
+  undoStack: Array<UndoRedoType>;
+  redoStack: Array<UndoRedoType>;
 }
 
 type UpdateViewportPayload = {
@@ -61,6 +65,8 @@ export const initialState: uiSliceState = {
     y: 0,
     scale: 1,
   },
+  undoStack: [],
+  redoStack: [],
   latestUndoRedoActionId: '',
   firstLoadComplete: false,
   canvasMode: CanvasMode.EDIT,
@@ -124,6 +130,29 @@ export const uiSlice = createAppSlice({
   initialState,
   // The `reducers` field lets us define reducers and generate associated actions
   reducers: (create) => ({
+    pushUndo: create.reducer((state, action: PayloadAction<UndoRedoType>) => {
+      state.undoStack.push(action.payload);
+      state.redoStack = [];
+    }),
+    performUndoOrRedo: create.reducer(
+      // Take care of moving undo/redo types:
+      // * from the undo stack to the redo stack in the case of an UNDO action;
+      // * from the redo stack to the undo stack in the case of a REDO action.
+      (state, action: PayloadAction<boolean>) => {
+        const isUndo = action.payload;
+        const undoStack = [...state.undoStack];
+        const redoStack = [...state.redoStack];
+        if (isUndo && undoStack.length > 0) {
+          redoStack.unshift(undoStack.pop() as UndoRedoType);
+          return { ...state, undoStack, redoStack };
+        }
+        // Move the last redo state into the undo stack.
+        if (redoStack.length > 0) {
+          undoStack.push(redoStack.shift() as UndoRedoType);
+        }
+        return { ...state, undoStack, redoStack };
+      },
+    ),
     setPending: create.reducer((state, action: PayloadAction<boolean>) => {
       state.pending = action.payload;
     }),
@@ -219,6 +248,10 @@ export const uiSlice = createAppSlice({
   // You can define your selectors here. These selectors receive the slice
   // state as their first argument.
   selectors: {
+    selectUndoType: (ui): UndoRedoType | undefined =>
+      ui.undoStack[ui.undoStack.length - 1] || undefined,
+    selectRedoType: (ui): UndoRedoType | undefined =>
+      ui.redoStack[0] || undefined,
     selectPanning: (ui): PanningStatus => {
       return ui.panning;
     },
@@ -273,6 +306,8 @@ export const {
   setFirstLoadComplete,
   setCanvasModeEditing,
   setCanvasModeInteractive,
+  pushUndo,
+  performUndoOrRedo,
 } = uiSlice.actions;
 
 // Selectors returned by `slice.selectors` take the root state as their first argument.
@@ -287,4 +322,13 @@ export const {
   selectLatestUndoRedoActionId,
   selectFirstLoadComplete,
   selectCanvasMode,
+  selectUndoType,
+  selectRedoType,
 } = uiSlice.selectors;
+
+export const uiSliceReducer = uiSlice.reducer;
+
+export const UndoRedoActionCreators = {
+  undo: (type: UndoRedoType) => ({ type: `@@redux-undo/${type}_UNDO` }),
+  redo: (type: UndoRedoType) => ({ type: `@@redux-undo/${type}_REDO` }),
+};

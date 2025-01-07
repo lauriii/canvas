@@ -5,7 +5,7 @@ import { useAppSelector } from '@/app/hooks';
 import {
   selectLayout,
   selectModel,
-  selectInitialized,
+  selectLayoutInitialized,
 } from '@/features/layout/layoutModelSlice';
 import { usePostPreviewMutation } from '@/services/preview';
 import Viewport from '@/features/layout/preview/Viewport';
@@ -28,7 +28,7 @@ type PreviewSizeKey = keyof typeof previewSizes;
 
 const Preview: React.FC<PreviewProps> = () => {
   const layout = useAppSelector(selectLayout);
-  const initialized = useAppSelector(selectInitialized);
+  const initialized = useAppSelector(selectLayoutInitialized);
   const model = useAppSelector(selectModel);
   const [frameSrcDoc, setFrameSrcDoc] = useState('');
   const [postPreview, { isLoading: isFetching }] = usePostPreviewMutation();

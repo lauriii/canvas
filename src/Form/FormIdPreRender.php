@@ -28,4 +28,20 @@ final class FormIdPreRender {
     return $element;
   }
 
+  /**
+   * Adds a data-ajax attribute to elements.
+   *
+   * @param array $element
+   *   Element to add attribute to.
+   * @param string $form_id
+   *   Form ID.
+   */
+  public static function addAjaxAttribute(array &$element, string $form_id): void {
+    $element['#attributes']['data-ajax'] = TRUE;
+    $element['#attributes']['data-form-id'] = $form_id;
+    foreach (Element::children($element) as $key) {
+      self::addAjaxAttribute($element[$key], $form_id);
+    }
+  }
+
 }

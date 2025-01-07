@@ -12,6 +12,7 @@ use Drupal\Core\Block\BlockManagerInterface;
 use Drupal\Core\Block\BlockPluginInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Entity\TypedData\EntityDataDefinition;
+use Drupal\Core\EventSubscriber\AjaxResponseSubscriber;
 use Drupal\Core\Field\BaseFieldDefinition;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Url;
@@ -100,6 +101,12 @@ function experience_builder_form_alter(array &$form, FormStateInterface $form_st
     // Add form ID to elements.
     $form['#pre_render'][] = [FormIdPreRender::class, 'addFormId'];
     $form['#attributes']['data-form-id'] = 'page_data_form';
+    if (\Drupal::request()->get(AjaxResponseSubscriber::AJAX_REQUEST_PARAMETER) !== NULL) {
+      // Add the data-ajax flag and manually add the form ID as pre render
+      // callbacks aren't fired during AJAX rendering because the whole form is
+      // not rendered, just the returned elements.
+      FormIdPreRender::addAjaxAttribute($form, 'page_data_form');
+    }
   }
 }
 

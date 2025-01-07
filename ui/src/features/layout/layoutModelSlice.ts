@@ -456,9 +456,9 @@ export const selectLayout = (state: StateWithHistoryWrapper) =>
   state.layoutModel.present.layout;
 export const selectModel = (state: StateWithHistoryWrapper) =>
   state.layoutModel.present.model;
-export const selectHistory = (state: StateWithHistoryWrapper) =>
+export const selectLayoutHistory = (state: StateWithHistoryWrapper) =>
   state.layoutModel;
-export const selectInitialized = (state: StateWithHistoryWrapper) =>
+export const selectLayoutInitialized = (state: StateWithHistoryWrapper) =>
   state.layoutModel.present.initialized;
 const selectRegion = (state: RootState, regionName: string) => regionName;
 

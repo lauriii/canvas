@@ -1,21 +1,31 @@
 // cspell:ignore redoable
 import { Button } from '@radix-ui/themes';
-import { ActionCreators } from 'redux-undo';
 import { ResetIcon } from '@radix-ui/react-icons';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
-import { selectHistory } from '@/features/layout/layoutModelSlice';
+import { selectLayoutHistory } from '@/features/layout/layoutModelSlice';
+import { selectPageDataHistory } from '@/features/pageData/pageDataSlice';
 import { useHotkeys } from 'react-hotkeys-hook';
 import { useEffect } from 'react';
+import { UndoRedoActionCreators } from '@/features/ui/uiSlice';
+import { selectUndoType, selectRedoType } from '@/features/ui/uiSlice';
 
 const UndoRedo = () => {
   const dispatch = useAppDispatch();
-  const layoutModel = useAppSelector(selectHistory);
-  const isUndoable = layoutModel.past.length > 1;
-  const isRedoable = layoutModel.future.length > 0;
+  const layoutModel = useAppSelector(selectLayoutHistory);
+  const pageData = useAppSelector(selectPageDataHistory);
+  const undoType = useAppSelector(selectUndoType);
+  const redoType = useAppSelector(selectRedoType);
+  const isUndoable = layoutModel.past.length > 1 || pageData.past.length > 1;
+  const isRedoable =
+    layoutModel.future.length > 0 || pageData.future.length > 0;
   const dispatchUndo = () =>
-    isUndoable ? dispatch(ActionCreators.undo()) : null;
+    isUndoable && undoType
+      ? dispatch(UndoRedoActionCreators.undo(undoType))
+      : null;
   const dispatchRedo = () =>
-    isRedoable ? dispatch(ActionCreators.redo()) : null;
+    isRedoable && redoType
+      ? dispatch(UndoRedoActionCreators.redo(redoType))
+      : null;
   // The useHotKeys hook listens to the parent document.
   useHotkeys('mod+z', () => dispatchUndo()); // 'mod' listens for cmd on Mac and ctrl on Windows.
   useHotkeys(['meta+shift+z', 'ctrl+y'], () => dispatchRedo()); // Mac redo is cmd+shift+z, Windows redo is ctrl+y.

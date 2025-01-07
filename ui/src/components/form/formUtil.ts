@@ -35,6 +35,47 @@ export function getPropSchemas(inputAndUiData: InputUIData) {
 }
 
 /**
+ * Determines if JSON Validation should be skipped.
+ * Ideally, this function can be removed at some point. It's here because the
+ * schema validation currently only works for props managed by one form element.
+ *
+ * @param {string} name
+ *   The name attribute of the form element.
+ * @param target
+ *   The HTMLFormElement being validated.
+ * @param {InputUIData} inputAndUiData
+ *   An object usually generated on render in inputBehaviors.tsx.
+ *   The specific properties required by this function:
+ *   - selectedComponent {string}: the id of the selected component within the model.
+ *
+ * @return {boolean} true if JSON Validation should be skipped.
+ */
+export const shouldSkipJsonValidation = (
+  name: string,
+  target: HTMLInputElement,
+  inputAndUiData: InputUIData,
+): boolean => {
+  if (!(target.form instanceof HTMLFormElement)) {
+    return true;
+  }
+  const { selectedComponent } = inputAndUiData;
+  const formData = new FormData(target.form);
+  const formState = Object.fromEntries(formData);
+  const { multipleInputsSingleValue } = propInputData(
+    formState,
+    inputAndUiData,
+  );
+
+  if (multipleInputsSingleValue.includes(toPropName(name, selectedComponent))) {
+    console.warn(
+      `Input ${toPropName(name, selectedComponent)} is part of a single value prop that corresponds to multiple form fields. This is not yet supported and JSON Schema validation is skipped.`,
+    );
+    return true;
+  }
+  return false;
+};
+
+/**
  * Validates data against a JSON Schema
  * @param {string} schemaName
  *   The schema name.
@@ -314,4 +355,34 @@ export function getPropsValues(
   });
 
   return { propsValues, selectedModel };
+}
+
+// @todo Remove this in favor of https://www.drupal.org/i/3497759.
+// This function was written for radios where the wrapper element doesn't have
+// a name attribute, but we want to handle the input values at that level,
+// because we want to maintain the value for the radio group.
+// @see ui/src/components/form/components/drupal/DrupalRadio.tsx
+// @see ui/src/components/form/components/Radio.tsx
+// This is a naïve and fragile implementation, we really shouldn't be relying on
+// the ID to determine the name attribute.
+export function getNameAttributeBasedOnId(id: string) {
+  // Remove the 'edit-' prefix
+  const withoutPrefix = id.replace(/^edit-/, '');
+
+  // Check if there's a field delta in the ID (e.g., comment-0-status)
+  const match = withoutPrefix.match(/^(.+?)-(\d+)-(.+)$/);
+
+  if (match) {
+    // If we have a delta, format as field_name[delta][property]
+    const [, fieldName, delta, property] = match;
+    // Convert dashes to underscores in both in the field name and property.
+    const cleanFieldName = fieldName.replace(/-/g, '_');
+    const cleanProperty = property.replace(/-/g, '_');
+    return `${cleanFieldName}[${delta}][${cleanProperty}]`;
+  } else {
+    // If no delta, default to field_name[0][value]. Big assumption, may not hold off in all cases.
+    // Convert dashes to underscores in the field name.
+    const fieldName = withoutPrefix.replace(/-/g, '_');
+    return `${fieldName}[0][value]`;
+  }
 }

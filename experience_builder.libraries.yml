@@ -55,6 +55,7 @@ drupal.ajax:
     - core/once
     - core/tabbable
     - core/loadjs
+    - core/drupal.announce
 
 drupal.dialog.ajax:
   version: VERSION

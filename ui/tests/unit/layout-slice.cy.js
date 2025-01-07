@@ -1,5 +1,5 @@
 import {
-  selectHistory,
+  selectLayoutHistory,
   deleteNode,
   moveNode,
   layoutModelSlice,
@@ -8,7 +8,12 @@ import {
   duplicateNode,
 } from '@/features/layout/layoutModelSlice';
 import { makeStore } from '@/app/store';
-import { ActionCreators } from 'redux-undo';
+import {
+  selectUndoType,
+  UndoRedoActionCreators,
+  initialState as uiInitialState,
+} from '@/features/ui/uiSlice';
+import { setPageData } from '@/features/pageData/pageDataSlice';
 
 let layout;
 before('Load fixture', function () {
@@ -134,14 +139,15 @@ describe('Undo/redo', () => {
   it('Should support undo when past state exists', () => {
     const store = makeStore({
       layoutModel: { present: layout, past: [initialState], future: [] },
+      ui: uiInitialState,
     });
-    let state = selectHistory(store.getState());
+    let state = selectLayoutHistory(store.getState());
     expect(state.present).to.eq(layout);
     cy.wrap(state.past).should('have.length', 1);
     cy.wrap(state.future).should('have.length', 0);
-    store.dispatch(ActionCreators.undo());
+    store.dispatch(UndoRedoActionCreators.undo('layoutModel'));
 
-    state = selectHistory(store.getState());
+    state = selectLayoutHistory(store.getState());
     expect(state.present).to.eq(initialState);
     cy.wrap(state.past).should('have.length', 0);
     cy.wrap(state.future).should('have.length', 1);
@@ -149,18 +155,19 @@ describe('Undo/redo', () => {
   it('Should support redo when future state exists', () => {
     const store = makeStore({
       layoutModel: { present: layout, past: [initialState], future: [] },
+      ui: uiInitialState,
     });
-    let state = selectHistory(store.getState());
+    let state = selectLayoutHistory(store.getState());
     expect(state.present).to.eq(layout);
-    store.dispatch(ActionCreators.undo());
+    store.dispatch(UndoRedoActionCreators.undo('layoutModel'));
 
-    state = selectHistory(store.getState());
+    state = selectLayoutHistory(store.getState());
     expect(state.present).to.eq(initialState);
     cy.wrap(state.past).should('have.length', 0);
     cy.wrap(state.future).should('have.length', 1);
-    store.dispatch(ActionCreators.redo());
+    store.dispatch(UndoRedoActionCreators.redo('layoutModel'));
 
-    state = selectHistory(store.getState());
+    state = selectLayoutHistory(store.getState());
     expect(state.present).to.eq(layout);
     cy.wrap(state.past).should('have.length', 1);
     cy.wrap(state.future).should('have.length', 0);
@@ -168,16 +175,51 @@ describe('Undo/redo', () => {
   it('Should not support undo of initial load', () => {
     const store = makeStore({
       layoutModel: { present: initialState, past: [], future: [] },
+      ui: uiInitialState,
     });
-    let state = selectHistory(store.getState());
+    let state = selectLayoutHistory(store.getState());
     expect(state.present).to.eq(initialState);
     cy.wrap(state.past).should('have.length', 0);
     cy.wrap(state.future).should('have.length', 0);
     store.dispatch(setLayoutModel(layout));
+    const undoType = selectUndoType(store.getState());
+    expect(undoType).to.eq('layoutModel');
 
-    state = selectHistory(store.getState());
+    state = selectLayoutHistory(store.getState());
     expect(state.present.layout).to.deep.equal(layout.layout);
     expect(state.present.model).to.deep.equal(layout.model);
+    cy.wrap(state.past).should('have.length', 0);
+    cy.wrap(state.future).should('have.length', 0);
+  });
+  it('Should prune future state if undo type changes', () => {
+    const store = makeStore({
+      layoutModel: { present: layout, past: [initialState], future: [] },
+      pageData: {
+        present: { title: [{ value: 'Title' }] },
+        past: [{}],
+        future: [],
+      },
+      ui: uiInitialState,
+    });
+    let state = selectLayoutHistory(store.getState());
+    expect(state.present).to.deep.equal(layout);
+
+    state = selectLayoutHistory(store.getState());
+    cy.wrap(state.past).should('have.length', 1);
+    cy.wrap(state.future).should('have.length', 0);
+
+    store.dispatch(UndoRedoActionCreators.undo('layoutModel'));
+    state = selectLayoutHistory(store.getState());
+    expect(state.present).to.deep.equal(initialState);
+    cy.wrap(state.past).should('have.length', 0);
+    cy.wrap(state.future).should('have.length', 1);
+
+    store.dispatch(setPageData({}));
+    const undoType = selectUndoType(store.getState());
+    expect(undoType).to.eq('pageData');
+
+    state = selectLayoutHistory(store.getState());
+    expect(state.present).to.deep.equal(initialState);
     cy.wrap(state.past).should('have.length', 0);
     cy.wrap(state.future).should('have.length', 0);
   });

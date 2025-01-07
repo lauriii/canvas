@@ -42,6 +42,7 @@ paths:
                         name: content
                         components: []
                     model: {}
+                    data: {}
                 componentTreeWithSingleComponent:
                   value:
                     layout:
@@ -58,12 +59,44 @@ paths:
                       bce8d97e-8d44-4609-adc3-5e1015342b49:
                         text: 'hello, world!'
                         href: 'https://drupal.org'
-                        name: My Test CTA Component
+                    data:
+                      changed: '1734481105'
+                      'body[0][summary]': ''
+                      'body[0][value]': ''
+                      'body[0][format]': basic_html
+                      'comment[0][status]': '2'
+                      'created[0][value][date]': '2024-12-18'
+                      'created[0][value][time]': '00:18:25'
+                      'field_hero[0][target_id]': '1'
+                      'field_hero[0][alt]': 'A man walks a border collie along a beach.'
+                      'field_hero[0][title]': ''
+                      'field_hero[0][width]': '207'
+                      'field_hero[0][height]': '475'
+                      'field_hero[0][fids][0]': '1'
+                      'field_hero[0][display]': '0'
+                      'field_hero[0][description]': ''
+                      'field_hero[0][upload]': ''
+                      'field_image[0][display]': '0'
+                      'field_image[0][description]': ''
+                      'field_image[0][upload]': ''
+                      'field_image[0][alt]': ''
+                      'field_image[0][title]': ''
+                      'path[0][alias]': ''
+                      'path[0][source]': /node/1
+                      'path[0][langcode]': en
+                      'promote[value]': '1'
+                      'status[value]': '1'
+                      'sticky[value]': '0'
+                      'title[0][value]': 'XB Needs This For The Time Being'
+                      'uid[0][target_id]': 'Anonymous (0)'
+                      'langcode[0][value]': en
+                      'revision_log[0][value]': ''
               schema:
                 type: object
                 required:
                   - layout
                   - model
+                  - data
                 properties:
                   layout:
                     type: array
@@ -74,6 +107,9 @@ paths:
                         $ref: '#/components/schemas/LayoutSlot'
                   model:
                     $ref: '#/components/schemas/Model'
+                  data:
+                    type: object
+                    description: The full entity data.
   '/api/preview/{entityTypeId}/{entityId}':
     post:
       parameters:

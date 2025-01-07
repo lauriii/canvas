@@ -222,6 +222,9 @@ class ApiLayoutControllerTest extends KernelTestBase {
         ],
       ], $region['components']);
     }
+
+    $this->assertArrayHasKey('data', $json);
+    $this->assertSame($node->label(), $json['data']['title[0][value]']);
   }
 
   public function testFieldException(): void {

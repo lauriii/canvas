@@ -3,13 +3,19 @@ import clsx from 'clsx';
 import { a2p } from '@/local_packages/utils.js';
 
 import Checkbox from '@/components/form/components/Checkbox';
-import Radio from '@/components/form/components/Radio';
-import TextField from '@/components/form/components/TextField';
 import InputBehaviors from '@/components/form/inputBehaviors';
+import TextField from '@/components/form/components/TextField';
+import { DrupalRadioItem } from '@/components/form/components/drupal/DrupalRadio';
 
 import type { Attributes } from '@/types/DrupalAttribute';
 
-const DrupalInput = ({ attributes = {} }: { attributes?: Attributes }) => {
+const DrupalInput = ({
+  attributes = {},
+}: {
+  attributes?: Attributes & {
+    onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  };
+}) => {
   switch (attributes?.type) {
     case 'checkbox': {
       // Ensure the following attributes don't get passed to the `<Checkbox>`
@@ -25,7 +31,16 @@ const DrupalInput = ({ attributes = {} }: { attributes?: Attributes }) => {
       //     form to submit on click.
       return (
         <Checkbox
-          defaultChecked={attributes.checked === 'checked'}
+          checked={!!attributes.checked}
+          onCheckedChange={(value: boolean) => {
+            const syntheticEvent = {
+              target: {
+                checked: value,
+                name: attributes.name,
+              },
+            } as unknown as React.ChangeEvent<HTMLInputElement>;
+            attributes?.onChange?.(syntheticEvent);
+          }}
           attributes={a2p(
             attributes,
             {},
@@ -35,12 +50,7 @@ const DrupalInput = ({ attributes = {} }: { attributes?: Attributes }) => {
       );
     }
     case 'radio':
-      return (
-        <Radio
-          value={attributes.value?.toString() || ''}
-          attributes={a2p(attributes)}
-        />
-      );
+      return <DrupalRadioItem attributes={attributes} />;
     case 'hidden':
     case 'submit':
       // The a2p() process converts 'value to 'defaultValue', which is typically

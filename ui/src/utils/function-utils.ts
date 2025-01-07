@@ -11,7 +11,7 @@ export const preventHover = (event: any) => {
 
 export function parseValue(
   value: any,
-  element: HTMLInputElement,
+  element: HTMLInputElement | HTMLSelectElement,
   schema: PropsValues | null,
 ) {
   if (schema?.type === 'string') {
@@ -22,7 +22,7 @@ export function parseValue(
     return isNaN(parsed) ? value : parsed;
   }
   if (element && Object.prototype.hasOwnProperty.call(element, 'checked')) {
-    return element.checked;
+    return (element as HTMLInputElement).checked;
   }
   if (value === '') {
     return value;

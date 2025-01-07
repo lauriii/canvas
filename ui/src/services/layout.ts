@@ -6,6 +6,7 @@ import type {
   ComponentModels,
   RegionNode,
 } from '@/features/layout/layoutModelSlice';
+import { setPageData } from '@/features/pageData/pageDataSlice';
 
 export interface LayoutRequest {
   entityId: string;
@@ -19,8 +20,18 @@ export const layoutApi = createApi({
   reducerPath: 'layoutApi',
   baseQuery,
   endpoints: (builder) => ({
-    getLayoutById: builder.query<RootLayoutModel, string>({
+    getLayoutById: builder.query<RootLayoutModel & { data: {} }, string>({
       query: (nodeId) => `api/layout/{entity_type}/${nodeId}`,
+      async onQueryStarted(id, { dispatch, queryFulfilled }) {
+        try {
+          const {
+            data: { data },
+          } = await queryFulfilled;
+          dispatch(setPageData(data));
+        } catch (err) {
+          dispatch(setPageData({}));
+        }
+      },
     }),
     saveLayoutById: builder.mutation<RootLayoutModel, LayoutRequest>({
       query: ({ entityId, entityType, layout, model }) => ({
