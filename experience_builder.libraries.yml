@@ -33,7 +33,6 @@ ajax.hyperscriptify:
 # @see https://www.drupal.org/node/2987444#mr3609-note158377
 # @todo Remove this when https://www.drupal.org/node/1945262 updates `olivero/drupal.message`.
 drupal.ajax:
-  version: VERSION
   js:
     /core/misc/ajax.js: { }
   css:
@@ -58,7 +57,6 @@ drupal.ajax:
     - core/drupal.announce
 
 drupal.dialog.ajax:
-  version: VERSION
   js:
     /core/misc/dialog/dialog.ajax.js: {}
   dependencies:
