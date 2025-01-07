@@ -129,14 +129,7 @@ final class XbPropVisitor implements NodeVisitorInterface {
           $node,
           new XbWrapperNode($name, FALSE, $line_number),
         ];
-        if (\class_exists('\Twig\Node\Nodes')) {
-          // Twig >= 3.15.
-          // @todo Remove this wrapping if when Experience Builder requires
-          //   Drupal >=11.1: then it is always the case.
-          return new Nodes($nodes);
-        }
-        // Twig < 3.15.
-        return new Node($nodes);
+        return new Nodes($nodes);
       }
     }
     return $node;

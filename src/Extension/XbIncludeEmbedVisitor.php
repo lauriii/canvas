@@ -6,7 +6,7 @@ namespace Drupal\experience_builder\Extension;
 
 use Twig\Environment;
 use Twig\Node\EmbedNode;
-use Twig\Node\Expression\NameExpression;
+use Twig\Node\Expression\Variable\ContextVariable;
 use Twig\Node\IncludeNode;
 use Twig\Node\Node;
 use Twig\Node\Nodes;
@@ -36,21 +36,14 @@ final class XbIncludeEmbedVisitor implements NodeVisitorInterface {
     $line_number = $node->getTemplateLine();
     $nodes = [
       new TextNode('<!-- xb-start-', $line_number),
-      new PrintNode(new NameExpression('xb_uuid', $line_number), $line_number),
+      new PrintNode(new ContextVariable('xb_uuid', $line_number), $line_number),
       new TextNode(' -->', $line_number),
       $node,
       new TextNode('<!-- xb-end-', $line_number),
-      new PrintNode(new NameExpression('xb_uuid', $line_number), $line_number),
+      new PrintNode(new ContextVariable('xb_uuid', $line_number), $line_number),
       new TextNode(' -->', $line_number),
     ];
-    if (\class_exists('\Twig\Node\Nodes')) {
-      // Twig >= 3.15.
-      // @todo Remove this wrapping if when Experience Builder requires
-      //   Drupal >=11.1: then it is always the case.
-      return new Nodes($nodes);
-    }
-    // Twig < 3.15.
-    return new Node($nodes);
+    return new Nodes($nodes);
   }
 
   /**
