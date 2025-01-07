@@ -4,17 +4,16 @@ namespace Drupal\experience_builder;
 
 use Drupal\Core\Access\AccessException;
 use Drupal\Core\Entity\EntityConstraintViolationList;
-use Drupal\Core\Entity\EntityConstraintViolationListInterface;
 use Drupal\Core\Entity\EntityDisplayRepositoryInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Field\FieldItemListInterface;
 use Drupal\Core\Form\FormState;
 use Drupal\experience_builder\Controller\ClientServerConversionTrait;
+use Drupal\experience_builder\Exception\ConstraintViolationException;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
 use Symfony\Component\Validator\ConstraintViolation;
-use Symfony\Component\Validator\ConstraintViolationInterface;
 
 class ClientDataToEntityConverter {
 
@@ -25,43 +24,37 @@ class ClientDataToEntityConverter {
     private readonly EntityDisplayRepositoryInterface $entityDisplayRepository,
   ) {}
 
-  public function convert(array $client_data, FieldableEntityInterface $entity): EntityConstraintViolationListInterface {
+  public function convert(array $client_data, FieldableEntityInterface $entity): void {
     // @todo Security hardening: any key besides `layout`, `model` and `entity_form_fields` should trigger an error response.
     ['layout' => $layout, 'model' => $model, 'entity_form_fields' => $entity_form_fields] = $client_data;
-
-    [$tree, $props, $violations] = $this->convertClientToServer($layout, $model);
-    if ($violations->count() > 0) {
-      return new EntityConstraintViolationList($entity, iterator_to_array($violations));
-    }
 
     $field_name = InternalXbFieldNameResolver::getXbFieldName($entity);
     $item = $entity->get($field_name)->first();
     assert($item instanceof ComponentTreeItem);
-    $item->setValue([
-      'tree' => json_encode($tree, JSON_UNESCAPED_UNICODE | JSON_FORCE_OBJECT),
-      'props' => json_encode($props, JSON_UNESCAPED_UNICODE),
-    ]);
-    $violations = $this->setEntityFields($entity, $entity_form_fields);
-    if ($violations->count() > 0) {
-      return $violations;
+
+    try {
+      $item->setValue($this->convertClientToServer($layout, $model));
     }
+    catch (ConstraintViolationException $e) {
+      // @todo Remove iterator_to_array() after https://www.drupal.org/project/drupal/issues/3497677
+      throw new ConstraintViolationException(new EntityConstraintViolationList($entity, iterator_to_array($e->getConstraintViolationList())));
+    }
+
+    $this->setEntityFields($entity, $entity_form_fields);
     $original_entity_violations = $entity->validate();
     // Validation happens using the server-side representation, but the
     // error message should use the client-side representation received in
     // the request body.
     // @see ::clientLayoutToServerTree()
     // @see ::clientModelToServerProps()
-    $transformed_violations = new EntityConstraintViolationList($entity, array_map(
-      fn (ConstraintViolationInterface $v) => match (TRUE) {
-        str_starts_with($v->getPropertyPath(), "$field_name.0.tree[" . ComponentTreeStructure::ROOT_UUID . "]") => self::violationWithPropertyPathReplacePrefix($v, "$field_name.0.tree[" . ComponentTreeStructure::ROOT_UUID . ']', 'layout.children'),
-        // @todo Perform a more complex transformation to accurately point to non-root-level components, OR remove the need for that in https://www.drupal.org/project/experience_builder/issues/3467954
-        str_starts_with($v->getPropertyPath(), "$field_name.0.tree") => self::violationWithPropertyPathReplacePrefix($v, "$field_name.0.tree", 'layout'),
-        str_starts_with($v->getPropertyPath(), "$field_name.0.props") => self::violationWithPropertyPathReplacePrefix($v, "$field_name.0.props", 'model'),
-        default => $v,
-      },
-      iterator_to_array($original_entity_violations),
-    ));
-    return $transformed_violations;
+    if ($original_entity_violations->count()) {
+      // @todo Remove iterator_to_array() after https://www.drupal.org/project/drupal/issues/3497677
+      throw (new ConstraintViolationException(new EntityConstraintViolationList($entity, iterator_to_array($original_entity_violations))))->renamePropertyPaths([
+        "$field_name.0.tree[" . ComponentTreeStructure::ROOT_UUID . "]" => 'layout.children',
+        "$field_name.0.tree" => 'layout',
+        "$field_name.0.props" => 'model',
+      ]);
+    }
   }
 
   /**
@@ -108,7 +101,7 @@ class ClientDataToEntityConverter {
     throw new AccessException("The current user is not allowed to update the field '$field_name'.");
   }
 
-  private function setEntityFields(FieldableEntityInterface $entity, array $entity_form_fields): EntityConstraintViolationListInterface {
+  private function setEntityFields(FieldableEntityInterface $entity, array $entity_form_fields): void {
     // Create a form state from the received entity fields.
     $form_state = new FormState();
     $form_state->set('entity', $entity);
@@ -152,7 +145,9 @@ class ClientDataToEntityConverter {
         $violations_list->add(new ConstraintViolation($e->getMessage(), $e->getMessage(), [], $field_value, "entity_form_fields.$field_name", $field_value));
       }
     }
-    return $violations_list;
+    if ($violations_list->count()) {
+      throw new ConstraintViolationException($violations_list);
+    }
   }
 
 }

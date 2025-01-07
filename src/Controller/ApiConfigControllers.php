@@ -13,6 +13,7 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\GeneratedUrl;
 use Drupal\Core\Url;
 use Drupal\experience_builder\Entity\XbHttpApiEligibleConfigEntityInterface;
+use Drupal\experience_builder\Exception\ConstraintViolationException;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
@@ -103,9 +104,7 @@ final class ApiConfigControllers extends ApiControllerBase {
       ->getStorage($xb_config_entity_type_id)
       ->create($denormalized);
     assert($xb_config_entity instanceof XbHttpApiEligibleConfigEntityInterface);
-    if ($validation_errors_response = self::createJsonResponseFromViolations($xb_config_entity->getTypedData()->validate())) {
-      return $validation_errors_response;
-    }
+    $this->validate($xb_config_entity);
 
     // Save the XB config entity, respond with a 201.
     $xb_config_entity->save();
@@ -139,9 +138,7 @@ final class ApiConfigControllers extends ApiControllerBase {
     foreach ($denormalized as $property_name => $property_value) {
       $xb_config_entity->set($property_name, $property_value);
     }
-    if ($validation_errors_response = self::createJsonResponseFromViolations($xb_config_entity->getTypedData()->validate())) {
-      return $validation_errors_response;
-    }
+    $this->validate($xb_config_entity);
 
     // Save the XB config entity, respond with a 200.
     $xb_config_entity->save();
@@ -149,6 +146,13 @@ final class ApiConfigControllers extends ApiControllerBase {
     assert($xb_config_entity_type instanceof ConfigEntityTypeInterface);
     $normalization = self::normalizeConfigEntities($xb_config_entity_type, [$xb_config_entity])[0];
     return new JsonResponse(status: 200, data: $normalization);
+  }
+
+  private function validate(XbHttpApiEligibleConfigEntityInterface $xb_config_entity): void {
+    $violations = $xb_config_entity->getTypedData()->validate();
+    if ($violations->count()) {
+      throw new ConstraintViolationException($violations);
+    }
   }
 
   /**

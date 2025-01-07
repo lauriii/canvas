@@ -86,9 +86,11 @@ final class PageTemplate extends ConfigEntityBase implements XbHttpApiEligibleCo
     $treeItems = \array_intersect_key($values['component_trees'] ?? [], \array_flip(['content']));
     $allViolations = new ConstraintViolationList();
     foreach ($autoSaveData['layout'] as $region) {
-      [$tree, $violations] = self::clientLayoutToServerTree($region);
-      $allViolations->addAll($violations);
-      if ($tree === NULL) {
+      try {
+        $tree = self::clientLayoutToServerTree($region);
+      }
+      catch (ConstraintViolationException $e) {
+        $allViolations->addAll($e->getConstraintViolationList());
         continue;
       }
 
@@ -104,9 +106,11 @@ final class PageTemplate extends ConfigEntityBase implements XbHttpApiEligibleCo
       $component_tree_structure = new ComponentTreeStructure($definition, 'component_tree_structure');
       $component_tree_structure->setValue(json_encode($tree, JSON_UNESCAPED_UNICODE));
 
-      [$client_props, $violations] = $this->clientModelToServerProps($tree, \array_intersect_key($autoSaveData['model'], \array_flip($component_tree_structure->getComponentInstanceUuids())));
-      $allViolations->addAll($violations);
-      if ($client_props === NULL) {
+      try {
+        $client_props = $this->clientModelToServerProps($tree, \array_intersect_key($autoSaveData['model'], \array_flip($component_tree_structure->getComponentInstanceUuids())));
+      }
+      catch (ConstraintViolationException $e) {
+        $allViolations->addAll($e->getConstraintViolationList());
         continue;
       }
 
@@ -129,7 +133,7 @@ final class PageTemplate extends ConfigEntityBase implements XbHttpApiEligibleCo
       ];
     }
     if ($allViolations->count() > 0) {
-      throw ConstraintViolationException::forViolationList($allViolations);
+      throw new ConstraintViolationException($allViolations);
     }
     $values['component_trees'] = $treeItems;
     return static::create($values);

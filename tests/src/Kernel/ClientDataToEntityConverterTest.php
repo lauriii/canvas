@@ -5,11 +5,13 @@ declare(strict_types=1);
 namespace Drupal\Tests\experience_builder\Kernel;
 
 use Drupal\Core\DependencyInjection\ContainerBuilder;
+use Drupal\Core\Entity\EntityConstraintViolationList;
 use Drupal\Core\Field\FieldItemListInterface;
 use Drupal\Core\Field\Plugin\Field\FieldWidget\StringTextfieldWidget;
 use Drupal\Core\Field\WidgetPluginManager;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\experience_builder\ClientDataToEntityConverter;
+use Drupal\experience_builder\Exception\ConstraintViolationException;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\node\Entity\Node;
@@ -169,14 +171,18 @@ class ClientDataToEntityConverterTest extends KernelTestBase {
         }
       }
     }
-    $violations = $this->container->get(ClientDataToEntityConverter::class)->convert($client_json, $node);
-    $this->assertSame($node->id(), $violations->getEntity()->id());
-    $this->assertSame($expected_errors, self::violationsToArray($violations));
-    $this->assertSame($expected_title, (string) $node->getTitle());
-    if ($violations->count() === 0) {
+    try {
+      $this->container->get(ClientDataToEntityConverter::class)->convert($client_json, $node);
       // If no violations occurred, the node should be valid.
       $this->assertCount(0, $node->validate());
       $this->assertSame(SAVED_UPDATED, $node->save());
+    }
+    catch (ConstraintViolationException $e) {
+      $violations = $e->getConstraintViolationList();
+      $this->assertInstanceOf(EntityConstraintViolationList::class, $violations);
+      $this->assertSame($node->id(), $violations->getEntity()->id());
+      $this->assertSame($expected_errors, self::violationsToArray($violations));
+      $this->assertSame($expected_title, (string) $node->getTitle());
     }
 
     // Ensure the unchanged fields are not updated.

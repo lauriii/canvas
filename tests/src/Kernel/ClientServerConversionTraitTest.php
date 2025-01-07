@@ -6,6 +6,7 @@ namespace Drupal\Tests\experience_builder\Kernel;
 
 use Drupal\experience_builder\Controller\ClientServerConversionTrait;
 use Drupal\experience_builder\Entity\Pattern;
+use Drupal\experience_builder\Exception\ConstraintViolationException;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\node\Entity\Node;
@@ -47,9 +48,8 @@ class ClientServerConversionTraitTest extends KernelTestBase {
 
   public function testConvertClientToServer(): void {
     ['layout' => $layout, 'model' => $model] = $this->getValidClientJson();
-    [$tree, $props, $violations] = $this->convertClientToServer($layout, $model);
-    $this->assertCount(0, $violations);
-    $this->assertSame($this->getValidConvertedProps(), $props);
+    $converted_item = $this->convertClientToServer($layout, $model);
+    $this->assertSame($this->getValidConvertedProps(), json_decode($converted_item['props'], TRUE));
     $this->assertSame([
       ComponentTreeStructure::ROOT_UUID => [
         [
@@ -61,12 +61,7 @@ class ClientServerConversionTraitTest extends KernelTestBase {
           'component' => 'sdc.experience_builder.image',
         ],
       ],
-    ], $tree);
-
-    $converted_item = [
-      'tree' => self::encodeXBData($tree),
-      'props' => self::encodeXBData($props),
-    ];
+    ], json_decode($converted_item['tree'], TRUE));
 
     // Ensure convert 'tree' and 'props' can be used both to create both a
     // config entity and a content entity field value.
@@ -122,10 +117,13 @@ class ClientServerConversionTraitTest extends KernelTestBase {
   }
 
   private function assertConversionErrors(array $client_json, array $errors): void {
-    [$tree, $props, $violations] = $this->convertClientToServer($client_json['layout'], $client_json['model']);
-    $this->assertNull($tree);
-    $this->assertNull($props);
-    $this->assertSame($errors, $this->violationsToArray($violations));
+    try {
+      $this->convertClientToServer($client_json['layout'], $client_json['model']);
+      $this->fail();
+    }
+    catch (ConstraintViolationException $e) {
+      $this->assertSame($errors, $this->violationsToArray($e->getConstraintViolationList()));
+    }
   }
 
 }

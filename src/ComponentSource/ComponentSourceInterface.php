@@ -152,10 +152,11 @@ interface ComponentSourceInterface extends PluginInspectionInterface, Derivative
   public function buildConfigurationForm(array $form, FormStateInterface $form_state, string $component_instance_uuid = '', ?EntityInterface $entity = NULL, array $settings = []): array;
 
   /**
-   * @return array{0: array<string, \Drupal\experience_builder\PropSource\StaticPropSource>, 1: \Symfony\Component\Validator\ConstraintViolationListInterface}
+   * @return array<string, \Drupal\experience_builder\PropSource\StaticPropSource>
+   * @throws \Drupal\experience_builder\Exception\ConstraintViolationException
    *
    * @todo Refactor to use the Symfony denormalizer infrastructure?
    */
-  public function createPropsForComponent(string $component_instance_uuid, Component $component, array $client_props);
+  public function createPropsForComponent(string $component_instance_uuid, Component $component, array $client_props): array;
 
 }

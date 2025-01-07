@@ -33,14 +33,11 @@ final class ApiContentUpdateForDemoController extends ApiControllerBase {
   public function __invoke(FieldableEntityInterface $entity): JsonResponse {
     $auto_save = $this->autoSaveManager->getAutoSaveData($entity);
     assert(is_array($auto_save));
-    $violations = $this->clientDataToEntityConverter->convert([
+    $this->clientDataToEntityConverter->convert([
       'layout' => reset($auto_save['layout']),
       'model' => $auto_save['model'],
       'entity_form_fields' => $auto_save['entity_form_fields'],
     ], $entity);
-    if ($validation_errors_response = self::createJsonResponseFromViolations($violations)) {
-      return $validation_errors_response;
-    }
 
     return self::save($entity);
   }

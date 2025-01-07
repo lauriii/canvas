@@ -19,7 +19,6 @@ use Drupal\experience_builder\Entity\Component;
 use Drupal\experience_builder\Entity\Component as ComponentEntity;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
 use Symfony\Component\DependencyInjection\ContainerInterface;
-use Symfony\Component\Validator\ConstraintViolationList;
 
 /**
  * Defines a component source based on block plugins.
@@ -228,8 +227,8 @@ final class BlockComponent extends ComponentSourceBase implements ContainerFacto
   /**
    * {@inheritdoc}
    */
-  public function createPropsForComponent(string $component_instance_uuid, Component $component, array $client_props) {
-    return [$client_props, new ConstraintViolationList()];
+  public function createPropsForComponent(string $component_instance_uuid, Component $component, array $client_props): array {
+    return $client_props;
   }
 
 }

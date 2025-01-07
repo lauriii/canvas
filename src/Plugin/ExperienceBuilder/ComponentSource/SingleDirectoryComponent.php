@@ -29,6 +29,7 @@ use Drupal\experience_builder\Attribute\ComponentSource;
 use Drupal\experience_builder\ComponentSource\ComponentSourceBase;
 use Drupal\experience_builder\ComponentSource\ComponentSourceWithSlotsInterface;
 use Drupal\experience_builder\Entity\Component as ComponentEntity;
+use Drupal\experience_builder\Exception\ConstraintViolationException;
 use Drupal\experience_builder\InvalidRequestBodyValue;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\experience_builder\PropExpressions\Component\ComponentPropExpression;
@@ -618,7 +619,11 @@ final class SingleDirectoryComponent extends ComponentSourceBase implements Comp
       $props[$prop] = $updated_static_source;
     }
 
-    return [$props, $violation_list];
+    if ($violation_list->count()) {
+      throw new ConstraintViolationException($violation_list);
+    }
+
+    return $props;
   }
 
   /**

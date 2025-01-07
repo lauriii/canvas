@@ -93,47 +93,50 @@ class ApiPublishAllController extends ApiControllerBase {
     $violationSets = [];
     $entities = [];
     foreach ($all_auto_saves as $auto_save) {
-      $entity = $this->entityTypeManager->getStorage($auto_save['entity_type'])->load($auto_save['entity_id']);
-      if ($entity instanceof PageTemplate) {
-        try {
+      $entity = $this->entityTypeManager->getStorage($auto_save['entity_type'])
+        ->load($auto_save['entity_id']);
+
+      try {
+        if ($entity instanceof PageTemplate) {
           $entity = $entity->forAutoSaveData($auto_save['data']);
+          $entity->enforceIsNew(FALSE);
+          $this->validatePageTemplate($entity);
         }
-        catch (ConstraintViolationException $e) {
-          $violationSets[] = $e->getConstraintViolationList();
-          continue;
+        else {
+          assert($entity instanceof FieldableEntityInterface);
+          // Pluck out only the content region.
+          $content_region = \array_values(\array_filter($auto_save['data']['layout'], static fn(array $region) => $region['id'] === 'content'));
+          $this->clientDataToEntityConverter->convert([
+            'layout' => reset($content_region),
+            'model' => $auto_save['data']['model'],
+            'entity_form_fields' => $auto_save['data']['entity_form_fields'],
+          ], $entity);
         }
-        $entity->enforceIsNew(FALSE);
-        // @todo Use a violation list that allows keeping track of the entity
-        // context.
-        // @see https://www.drupal.org/project/drupal/issues/3495599
-        $violations = $this->typedConfigManager->createFromNameAndData($entity->getConfigDependencyName(), $entity->toArray())->validate();
+
+        $entities[] = $entity;
       }
-      else {
-        assert($entity instanceof FieldableEntityInterface);
-        // Pluck out only the content region.
-        $content_region = \array_values(\array_filter($auto_save['data']['layout'], static fn(array $region) => $region['id'] === 'content'));
-        $violations = $this->clientDataToEntityConverter->convert([
-          'layout' => reset($content_region),
-          'model' => $auto_save['data']['model'],
-          'entity_form_fields' => $auto_save['data']['entity_form_fields'],
-        ], $entity);
-      }
-      $entities[] = $entity;
-      if ($violations->count() > 0) {
-        $violationSets[] = $violations;
+      catch (ConstraintViolationException $e) {
+        $violationSets[] = $e->getConstraintViolationList();
       }
     }
-    if (\count($violationSets) > 0) {
-      $validation_errors_response = self::createJsonResponseFromViolationSets(...$violationSets);
-      if ($validation_errors_response !== NULL) {
-        return $validation_errors_response;
-      }
+    if ($validation_errors_response = self::createJsonResponseFromViolationSets(...$violationSets)) {
+      return $validation_errors_response;
     }
     foreach ($entities as $entity) {
       $entity->save();
       $this->autoSaveManager->delete($entity);
     }
     return new JsonResponse(data: ['message' => new PluralTranslatableMarkup(\count($all_auto_saves), 'Successfully published 1 item.', 'Successfully published @count items.')], status: 200);
+  }
+
+  private function validatePageTemplate(PageTemplate $entity): void {
+    // @todo Use a violation list that allows keeping track of the entity
+    // context.
+    // @see https://www.drupal.org/project/drupal/issues/3495599
+    $violations = $this->typedConfigManager->createFromNameAndData($entity->getConfigDependencyName(), $entity->toArray())->validate();
+    if ($violations->count() > 0) {
+      throw new ConstraintViolationException($violations);
+    }
   }
 
 }

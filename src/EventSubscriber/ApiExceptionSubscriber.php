@@ -5,15 +5,18 @@ namespace Drupal\experience_builder\EventSubscriber;
 use Drupal\Core\Cache\CacheableDependencyInterface;
 use Drupal\Core\Cache\CacheableJsonResponse;
 use Drupal\Core\Config\ConfigFactoryInterface;
+use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\ParamConverter\ParamNotConvertedException;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Session\AccountInterface;
+use Drupal\experience_builder\Exception\ConstraintViolationException;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Event\ExceptionEvent;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 use Symfony\Component\HttpKernel\KernelEvents;
+use Symfony\Component\Validator\ConstraintViolationInterface;
 
 /**
  * Handle exceptions for Experience Builder API routes.
@@ -56,8 +59,16 @@ final class ApiExceptionSubscriber implements EventSubscriberInterface {
         default => Response::HTTP_INTERNAL_SERVER_ERROR,
       };
 
-      // Generate a JSON response with a message when the status is not 404
-      if ($status !== 404) {
+      if ($exception instanceof ConstraintViolationException) {
+        $status = Response::HTTP_UNPROCESSABLE_ENTITY;
+        $response['errors'] = array_map(
+          fn($violation) => self::violationToJsonApiStyleErrorObject($violation),
+          iterator_to_array($exception->getConstraintViolationList())
+        );
+      }
+
+      // Generate a JSON response with a message when the status is not 404 or 422.
+      if ($status !== Response::HTTP_NOT_FOUND && $status !== Response::HTTP_UNPROCESSABLE_ENTITY) {
         $response['message'] = $exception->getMessage();
       }
 
@@ -97,6 +108,43 @@ final class ApiExceptionSubscriber implements EventSubscriberInterface {
     // Lower than the priority of \Drupal\Core\EventSubscriber\ExceptionJsonSubscriber.
     $events[KernelEvents::EXCEPTION][] = ['onException', 50];
     return $events;
+  }
+
+  /**
+   * Transforms a constraint violation to a JSON:API-style error object.
+   *
+   * @param \Symfony\Component\Validator\ConstraintViolationInterface $violation
+   *   A validation constraint violation.
+   * @param \Drupal\Core\Entity\FieldableEntityInterface|null $entity
+   *   An associated entity if appropriate.
+   *
+   * @return array{'detail': string, 'source': array{'pointer': string}}
+   *   A subset of a JSON:API error object.
+   *
+   * @see https://jsonapi.org/format/#error-objects
+   * @see \Drupal\jsonapi\Normalizer\UnprocessableHttpEntityExceptionNormalizer
+   */
+  public static function violationToJsonApiStyleErrorObject(
+    ConstraintViolationInterface $violation,
+    ?FieldableEntityInterface $entity = NULL,
+  ): array {
+    $meta = [];
+    if ($entity !== NULL) {
+      $meta = [
+        'meta' => [
+          'entity_type' => $entity->getEntityTypeId(),
+          'entity_id' => $entity->id(),
+          'label' => $entity->label(),
+        ],
+      ];
+    }
+    return [
+      'detail' => (string) $violation->getMessage(),
+      'source' => [
+        // @todo Correctly convert to a JSON pointer.
+        'pointer' => $violation->getPropertyPath(),
+      ],
+    ] + $meta;
   }
 
 }
