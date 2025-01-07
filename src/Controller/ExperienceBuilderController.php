@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\experience_builder\Controller;
 
 use Drupal\Core\Asset\AttachedAssets;
+use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Render\HtmlResponse;
 use Drupal\Core\Theme\ThemeManagerInterface;
@@ -15,6 +16,7 @@ final class ExperienceBuilderController {
   public function __construct(
     private readonly AssetRenderer $assetRenderer,
     protected ThemeManagerInterface $themeManager,
+    protected readonly ConfigFactoryInterface $configFactory,
   ) {}
 
   private const HTML = <<<HTML
@@ -40,6 +42,7 @@ HTML;
       ...$this->themeManager->getActiveTheme()->getLibraries(),
     ];
     $assets = (new AttachedAssets())->setLibraries($libraries);
+    $demo_mode = $this->configFactory->get('experience_builder.settings')->get('demo_mode');
 
     return (new HtmlResponse(self::HTML))->setAttachments([
       'library' => [
@@ -50,6 +53,7 @@ HTML;
           'base' => \sprintf('xb/%s/%s', $entity_type, $entity?->id()),
           'entityType' => $entity_type,
           'entity' => $entity?->id(),
+          'demo_mode' => $demo_mode,
           // Allow for perfect component previews, by letting the client side
           // know what global assets to load in component preview <iframe>s.
           // @see ui/src/components/ComponentPreview.tsx

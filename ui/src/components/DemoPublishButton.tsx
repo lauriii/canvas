@@ -10,9 +10,17 @@ import {
 import { selectLayout, selectModel } from '@/features/layout/layoutModelSlice';
 import { useEffect, useState } from 'react';
 
+interface XbGlobals {
+  drupalSettings?: {
+    xb: {
+      demo_mode: boolean;
+    };
+  };
+}
 const PUBLISHED = 'published';
 const SAVING = 'saving';
 const PUBLISH = 'publish';
+const { drupalSettings } = window as XbGlobals;
 
 /**
  * 🚧🚧 Rough version of the Publish toolbar button to temporarily connect the UI to the save functionality on the API.
@@ -28,6 +36,7 @@ const DemoPublishButton = () => {
   const [publishStatus, setPublishStatus] = useState(PUBLISH);
   const [saveLayout, { isLoading, isSuccess, isError }] =
     useSaveLayoutByIdMutation();
+  const demoMode = drupalSettings?.xb.demo_mode;
 
   function handlePublishClick() {
     saveLayout({ entityId, entityType, layout, model });
@@ -53,7 +62,7 @@ const DemoPublishButton = () => {
   return (
     <Button
       variant="solid"
-      disabled={publishStatus === SAVING}
+      disabled={publishStatus === SAVING || demoMode}
       color={publishStatus === PUBLISHED ? 'green' : 'blue'}
       onClick={handlePublishClick}
     >
