@@ -81,6 +81,9 @@ use Drupal\experience_builder\ShapeMatcher\FieldForComponentSuggester;
     ],
   ],
   cardinality: 1,
+  // @todo Revisit this prior to 1.0.
+  // @see https://www.drupal.org/project/experience_builder/issues/3497926
+  no_ui: TRUE,
 )]
 class ComponentTreeItem extends FieldItemBase implements RenderableInterface {
 
