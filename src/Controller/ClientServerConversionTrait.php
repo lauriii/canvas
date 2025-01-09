@@ -22,10 +22,13 @@ trait ClientServerConversionTrait {
    * @phpstan-return ComponentTreeStructureArray
    * @throws \Drupal\experience_builder\Exception\ConstraintViolationException
    */
-  private static function clientLayoutToServerTree(array $layout): array {
+  private static function clientLayoutToServerTree(array $layout, bool $validate = TRUE): array {
     // Transform client-side representation to server-side representation.
     // The entire component tree is nested under the reserved root UUID.
     $tree = self::doClientSlotToServerTree($layout, [], ComponentTreeStructure::ROOT_UUID);
+    if (!$validate) {
+      return $tree;
+    }
 
     // Validate it.
     $definition = DataDefinition::create('component_tree_structure');

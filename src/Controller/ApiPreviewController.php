@@ -9,7 +9,6 @@ use Drupal\Core\Render\Element;
 use Drupal\Core\TypedData\TypedDataManagerInterface;
 use Drupal\experience_builder\AutoSave\AutoSaveManager;
 use Drupal\experience_builder\Entity\PageTemplate;
-use Drupal\experience_builder\Exception\ConstraintViolationException;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\experience_builder\Render\PreviewEnvelope;
@@ -125,13 +124,8 @@ final class ApiPreviewController {
       'data_definition' => $field_item_definition,
     ]);
 
-    try {
-      $tree = self::clientLayoutToServerTree($layout);
-    }
-    catch (ConstraintViolationException) {
-      // @todo Handle violations in https://www.drupal.org/project/experience_builder/issues/3485878
-      $tree = NULL;
-    }
+    // @todo Handle validation in https://www.drupal.org/project/experience_builder/issues/3485878
+    $tree = self::clientLayoutToServerTree($layout, FALSE);
 
     // This uses a partial override of the XB field type, because the client is
     // sending explicit prop values in its `model`, not prop sources. Use these

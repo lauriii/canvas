@@ -57,6 +57,45 @@ final class ApiPreviewControllerTest extends KernelTestBase {
     $this->assertCount(0, $root[0]);
   }
 
+  public function testMissingSlot(): void {
+    $this->request(Request::create('/api/preview/node/1', content: json_encode([
+      'layout' => [
+        [
+          'nodeType' => 'region',
+          'name' => 'Content',
+          'components' => [
+            [
+              'nodeType' => 'component',
+              'slots' => [
+                [
+                  'components' => [],
+                  'id' => 'c4074d1f-149a-4662-aaf3-615151531cf6/content',
+                  'name' => 'content',
+                  'nodeType' => 'slot',
+                ],
+              ],
+              'type' => 'sdc.experience_builder.one_column',
+              'uuid' => 'c4074d1f-149a-4662-aaf3-615151531cf6',
+            ],
+          ],
+          'id' => 'content',
+        ],
+      ],
+      'model' => [
+        'c4074d1f-149a-4662-aaf3-615151531cf6' => [
+          'width' => 'full',
+        ],
+      ],
+    ], JSON_THROW_ON_ERROR)));
+
+    // Check that the root level is structured correctly.
+    $root = $this->cssSelect('main div.xb--sortable-list[data-xb-uuid="content"]');
+    $this->assertNotEmpty($root);
+    $this->assertGreaterThan(0, $root[0]->count());
+    $uuids = $this->assertStructure($root[0]->children());
+    $this->assertSame(['c4074d1f-149a-4662-aaf3-615151531cf6'], $uuids);
+  }
+
   public function test(): void {
     // Load the test data from the layout controller.
     $content = $this->parentRequest(Request::create('/api/layout/node/1'))->getContent();
