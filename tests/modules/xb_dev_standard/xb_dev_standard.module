@@ -1,0 +1,52 @@
+<?php
+
+declare(strict_types=1);
+
+use Drupal\Core\Url;
+use Drupal\experience_builder\InternalXbFieldNameResolver;
+
+/**
+ * Implements hook_toolbar().
+ */
+function xb_dev_standard_toolbar(): array {
+  $user = \Drupal::currentUser();
+
+  $items = [];
+  $items['experience_builder'] = [
+    '#cache' => [
+      'contexts' => [
+        'user.permissions',
+        'url',
+      ],
+    ],
+  ];
+
+  // @see experience_builder.routing.yml
+  // ⚠️ This is HORRIBLY HACKY way to provide a XB link for articles using `field_xb_demo` and will go away! ☺️
+  if ($user->hasPermission('access administration pages')) {
+    $node = \Drupal::routeMatch()->getParameter('node');
+    if ($node) {
+      try {
+        InternalXbFieldNameResolver::getXbFieldName($node);
+      }
+      catch (\LogicException) {
+        return $items;
+      }
+      $items['experience_builder'] += [
+        '#type' => 'toolbar_item',
+        'tab' => [
+          '#type' => 'link',
+          '#title' => t('Experience Builder: %title', ['%title' => $node->label()]),
+          '#url' => Url::fromRoute('experience_builder.experience_builder', ['entity_type' => 'node', 'entity' => $node->id()]),
+          '#attributes' => [
+            'title' => t('Experience Builder'),
+            'class' => ['toolbar-icon', 'toolbar-icon-edit'],
+          ],
+        ],
+        '#weight' => 1000,
+      ];
+    }
+  }
+
+  return $items;
+}

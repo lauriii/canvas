@@ -1,0 +1,22 @@
+<?php
+
+declare(strict_types=1);
+
+use Drupal\node\Entity\NodeType;
+
+/**
+ * Implements hook_install().
+ */
+function xb_dev_standard_install(): void {
+  if (NodeType::load('article')) {
+    \Drupal::service('entity_display.repository')
+      ->getViewDisplay('node', 'article')
+      ->setComponent('field_xb_demo', [
+        'label' => 'hidden',
+        'type' => 'experience_builder_naive_render_sdc_tree',
+        // The image field has weight -1 by default.
+        'weight' => -2,
+      ])
+      ->save();
+  }
+}

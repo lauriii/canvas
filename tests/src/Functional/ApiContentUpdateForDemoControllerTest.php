@@ -20,7 +20,7 @@ final class ApiContentUpdateForDemoControllerTest extends FunctionalTestBase {
   /**
    * {@inheritdoc}
    */
-  protected static $modules = ['experience_builder'];
+  protected static $modules = ['experience_builder', 'xb_dev_standard'];
 
   /**
    * {@inheritdoc}

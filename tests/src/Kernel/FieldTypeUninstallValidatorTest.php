@@ -31,8 +31,6 @@ final class FieldTypeUninstallValidatorTest extends KernelTestBase {
   use NodeCreationTrait;
   use TestDataUtilitiesTrait;
 
-  private const XB_FIELD_UNINSTALL_ERROR = 'The <em class="placeholder">Experience Builder</em> field type is used in the following fields: node.field_xb_demo, node.field_xb_test';
-
   protected function setUp(): void {
     parent::setUp();
     // Clone the current connection and replace the current prefix.
@@ -87,7 +85,7 @@ final class FieldTypeUninstallValidatorTest extends KernelTestBase {
     // is dependency for 'experience_builder' we should get an error because
     // of the XB fields.
     $this->assertUninstallFailureReasons(
-      [self::XB_FIELD_UNINSTALL_ERROR],
+      ['The <em class="placeholder">Experience Builder</em> field type is used in the following field: node.field_xb_test'],
       // Ensure 'link' is not in the error message.
       'link'
     );
@@ -153,7 +151,7 @@ final class FieldTypeUninstallValidatorTest extends KernelTestBase {
     // is dependency for 'experience_builder' we should get an error because
     // of the XB fields.
     $this->assertUninstallFailureReasons(
-      [self::XB_FIELD_UNINSTALL_ERROR],
+      ['The <em class="placeholder">Experience Builder</em> field type is used in the following fields: node.field_xb_test, taxonomy_term.field_tag_test'],
       // Ensure 'link' is not in the error message.
       'link'
     );
@@ -174,9 +172,9 @@ final class FieldTypeUninstallValidatorTest extends KernelTestBase {
     catch (ModuleUninstallValidatorException $exception) {
       if ($reasons) {
         $this->assertSame($reasons, array_unique($reasons));
-        $this->assertStringContainsString(
+        $this->assertSame(
           'The following reasons prevent the modules from being uninstalled: ' . implode(', ', $reasons),
-          $exception->getMessage()
+          strtok($exception->getMessage(), ';'),
         );
       }
       if ($not_contains) {

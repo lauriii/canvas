@@ -2,7 +2,7 @@
 1. Drupal 11 (preferably a clone for Git archeology: `git clone https://git.drupalcode.org/project/drupal.git` — 10.3 will work too).
 2. `composer require drush/drush`
 3. `drush si standard`
-4. `drush pm:install experience_builder`
+4. `drush pm:install experience_builder xb_dev_standard`
 5. Build the front end: `cd modules/contrib/experience_builder/ui` and then either
     * With Node.js available: `npm install && npm run build`
     * With Docker available: `docker build --output dist .`

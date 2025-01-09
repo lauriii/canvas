@@ -2,7 +2,6 @@
 
 declare(strict_types=1);
 
-use Drupal\node\Entity\NodeType;
 use Drupal\Core\Extension\ThemeInstallerInterface;
 
 /**
@@ -13,23 +12,6 @@ function experience_builder_install(): void {
   // @see \Drupal\experience_builder\Theme\XBThemeNegotiator
   // @see \Drupal\Core\Theme\ThemeNegotiator::determineActiveTheme()
   \Drupal::service(ThemeInstallerInterface::class)->install(['xb_stark']);
-
-  // Automatically set up the Standard install profile's "article" content type
-  // to demo/test Experience Builder.
-  if (!\Drupal::moduleHandler()->moduleExists('node')) {
-    return;
-  }
-  if (NodeType::load('article')) {
-    \Drupal::service('entity_display.repository')
-      ->getViewDisplay('node', 'article')
-      ->setComponent('field_xb_demo', [
-        'label' => 'hidden',
-        'type' => 'experience_builder_naive_render_sdc_tree',
-        // The image field has weight -1 by default.
-        'weight' => -2,
-      ])
-      ->save();
-  }
 
   // Cache flush ensures the contextual form works.
   drupal_flush_all_caches();

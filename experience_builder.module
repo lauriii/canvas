@@ -15,11 +15,9 @@ use Drupal\Core\Entity\TypedData\EntityDataDefinition;
 use Drupal\Core\EventSubscriber\AjaxResponseSubscriber;
 use Drupal\Core\Field\BaseFieldDefinition;
 use Drupal\Core\Form\FormStateInterface;
-use Drupal\Core\Url;
 use Drupal\datetime\Plugin\Field\FieldType\DateTimeItem;
 use Drupal\experience_builder\Entity\Component;
 use Drupal\experience_builder\Form\FormIdPreRender;
-use Drupal\experience_builder\InternalXbFieldNameResolver;
 use Drupal\experience_builder\Entity\PageTemplate;
 use Drupal\experience_builder\Plugin\ComponentPluginManager;
 use Drupal\Core\Validation\Plugin\Validation\Constraint\FullyValidatableConstraint;
@@ -41,52 +39,6 @@ require_once __DIR__ . '/experience_builder.semi_coupled_theme_engine.inc';
 require_once __DIR__ . '/experience_builder.shape_matching.inc';
 
 require_once __DIR__ . '/experience_builder.force_render_with_twig.inc';
-
-/**
- * Implements hook_toolbar().
- */
-function experience_builder_toolbar(): array {
-  $user = \Drupal::currentUser();
-
-  $items = [];
-  $items['experience_builder'] = [
-    '#cache' => [
-      'contexts' => [
-        'user.permissions',
-        'url',
-      ],
-    ],
-  ];
-
-  // @see experience_builder.routing.yml
-  // ⚠️ This is HORRIBLY HACKY way to provide a XB link for articles using `field_xb_demo` and will go away! ☺️
-  if ($user->hasPermission('access administration pages')) {
-    $node = \Drupal::routeMatch()->getParameter('node');
-    if ($node) {
-      try {
-        InternalXbFieldNameResolver::getXbFieldName($node);
-      }
-      catch (\LogicException) {
-        return $items;
-      }
-      $items['experience_builder'] += [
-        '#type' => 'toolbar_item',
-        'tab' => [
-          '#type' => 'link',
-          '#title' => t('Experience Builder: %title', ['%title' => $node->label()]),
-          '#url' => Url::fromRoute('experience_builder.experience_builder', ['entity_type' => 'node', 'entity' => $node->id()]),
-          '#attributes' => [
-            'title' => t('Experience Builder'),
-            'class' => ['toolbar-icon', 'toolbar-icon-edit'],
-          ],
-        ],
-        '#weight' => 1000,
-      ];
-    }
-  }
-
-  return $items;
-}
 
 /**
  * Implements hook_form_alter().

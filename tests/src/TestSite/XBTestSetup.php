@@ -93,6 +93,7 @@ class XBTestSetup implements TestSetupInterface {
     ])->save();
     $module_installer->install([
       'experience_builder',
+      'xb_dev_standard',
       'xb_e2e_support',
     ]);
 

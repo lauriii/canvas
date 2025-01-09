@@ -50,6 +50,7 @@ services:
           # Enable the module.
           vendor/bin/drush --yes pm:install \
             experience_builder \
+            xb_dev_standard \
             media_library \
             components
 
