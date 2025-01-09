@@ -211,12 +211,6 @@ final class SingleDirectoryComponent extends ComponentSourceBase implements Comp
   public function renderComponent(array $inputs, string $componentUuid): array {
     return [
       '#type' => 'component',
-      '#cache' => [
-        'tags' => [
-          // @see \Drupal\Core\Config\Entity\ConfigEntityBase::getCacheTagsToInvalidate()
-          'config:experience_builder.component.' . self::convertMachineNameToId($this->configuration['plugin_id']),
-        ],
-      ],
       '#component' => $this->configuration['plugin_id'],
       '#props' => ($inputs[self::EXPLICIT_INPUT_NAME] ?? []) + [
         'xb_uuid' => $componentUuid,

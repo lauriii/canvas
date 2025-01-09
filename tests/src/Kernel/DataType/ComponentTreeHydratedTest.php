@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\experience_builder\Kernel\DataType;
 
+use Drupal\Core\Access\AccessResultAllowed;
+use Drupal\Core\Cache\Cache;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Render\RendererInterface;
 use Drupal\Core\TypedData\TypedDataManagerInterface;
@@ -162,6 +164,8 @@ class ComponentTreeHydratedTest extends KernelTestBase {
             '#type' => 'component',
             '#cache' => [
               'tags' => ['config:experience_builder.component.sdc.xb_test_sdc.props-slots'],
+              'contexts' => [],
+              'max-age' => Cache::PERMANENT,
             ],
             '#component' => 'xb_test_sdc:props-slots',
             '#props' => [
@@ -224,6 +228,7 @@ HTML,
       'expected_renderable' => [
         ComponentTreeStructure::ROOT_UUID => [
           'uuid-in-root' => [
+            '#access' => new AccessResultAllowed(),
             '#theme' => 'block',
             '#configuration' => [
               'id' => 'system_branding_block',
@@ -247,6 +252,7 @@ HTML,
             '#plugin_id' => 'system_branding_block',
             '#base_plugin_id' => 'system_branding_block',
             '#derivative_plugin_id' => NULL,
+            '#id' => 'uuid-in-root',
             'content' => [
               'site_logo' => [
                 '#theme' => "image",
@@ -265,12 +271,14 @@ HTML,
             ],
             '#cache' => [
               'tags' => ['config:experience_builder.component.block.system_branding_block'],
+              'contexts' => [],
+              'max-age' => Cache::PERMANENT,
             ],
           ],
         ],
       ],
       'expected_html' => <<<HTML
-<div>
+<div id="block-uuid-in-root">
 
 
           <a href="/" rel="home">XB Test Site</a>
@@ -316,6 +324,8 @@ HTML,
             '#type' => 'component',
             '#cache' => [
               'tags' => ['config:experience_builder.component.sdc.xb_test_sdc.props-no-slots'],
+              'contexts' => [],
+              'max-age' => Cache::PERMANENT,
             ],
             '#component' => 'xb_test_sdc:props-no-slots',
             '#props' => [
@@ -328,6 +338,8 @@ HTML,
             '#type' => 'component',
             '#cache' => [
               'tags' => ['config:experience_builder.component.sdc.xb_test_sdc.props-no-slots'],
+              'contexts' => [],
+              'max-age' => Cache::PERMANENT,
             ],
             '#component' => 'xb_test_sdc:props-no-slots',
             '#props' => [
@@ -395,6 +407,8 @@ HTML,
             '#type' => 'component',
             '#cache' => [
               'tags' => ['config:experience_builder.component.sdc.xb_test_sdc.props-slots'],
+              'contexts' => [],
+              'max-age' => Cache::PERMANENT,
             ],
             '#component' => 'xb_test_sdc:props-slots',
             '#props' => [
@@ -412,6 +426,8 @@ HTML,
                   '#type' => 'component',
                   '#cache' => [
                     'tags' => ['config:experience_builder.component.sdc.xb_test_sdc.props-no-slots'],
+                    'contexts' => [],
+                    'max-age' => Cache::PERMANENT,
                   ],
                   '#component' => 'xb_test_sdc:props-no-slots',
                   '#props' => [
@@ -537,6 +553,8 @@ HTML,
             '#type' => 'component',
             '#cache' => [
               'tags' => ['config:experience_builder.component.sdc.xb_test_sdc.props-slots'],
+              'contexts' => [],
+              'max-age' => Cache::PERMANENT,
             ],
             '#component' => 'xb_test_sdc:props-slots',
             '#props' => [
@@ -554,6 +572,8 @@ HTML,
                   '#type' => 'component',
                   '#cache' => [
                     'tags' => ['config:experience_builder.component.sdc.xb_test_sdc.props-slots'],
+                    'contexts' => [],
+                    'max-age' => Cache::PERMANENT,
                   ],
                   '#component' => 'xb_test_sdc:props-slots',
                   '#props' => [
@@ -575,6 +595,8 @@ HTML,
                         '#type' => 'component',
                         '#cache' => [
                           'tags' => ['config:experience_builder.component.sdc.xb_test_sdc.props-slots'],
+                          'contexts' => [],
+                          'max-age' => Cache::PERMANENT,
                         ],
                         '#component' => 'xb_test_sdc:props-slots',
                         '#props' => [
@@ -592,6 +614,8 @@ HTML,
                               '#type' => 'component',
                               '#cache' => [
                                 'tags' => ['config:experience_builder.component.sdc.xb_test_sdc.props-no-slots'],
+                                'contexts' => [],
+                                'max-age' => Cache::PERMANENT,
                               ],
                               '#component' => 'xb_test_sdc:props-no-slots',
                               '#props' => [
@@ -601,6 +625,7 @@ HTML,
                               ],
                             ],
                             'uuid-block' => [
+                              '#access' => new AccessResultAllowed(),
                               '#theme' => 'block',
                               '#configuration' => [
                                 'id' => 'system_branding_block',
@@ -624,6 +649,7 @@ HTML,
                               '#plugin_id' => 'system_branding_block',
                               '#base_plugin_id' => 'system_branding_block',
                               '#derivative_plugin_id' => NULL,
+                              '#id' => 'uuid-block',
                               'content' => [
                                 'site_logo' => [
                                   '#theme' => 'image',
@@ -642,12 +668,16 @@ HTML,
                               ],
                               '#cache' => [
                                 'tags' => ['config:experience_builder.component.block.system_branding_block'],
+                                'contexts' => [],
+                                'max-age' => Cache::PERMANENT,
                               ],
                             ],
                             'uuid-last-in-tree' => [
                               '#type' => 'component',
                               '#cache' => [
                                 'tags' => ['config:experience_builder.component.sdc.xb_test_sdc.props-no-slots'],
+                                'contexts' => [],
+                                'max-age' => Cache::PERMANENT,
                               ],
                               '#component' => 'xb_test_sdc:props-no-slots',
                               '#props' => [
@@ -680,7 +710,7 @@ HTML,
         <!-- xb-slot-start-the_body --><!-- xb-start-uuid-level-3 --><div  data-component-id="xb_test_sdc:props-no-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
   <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;"><!-- xb-prop-start-heading -->Hello, from slot level 3!<!-- xb-prop-end-heading --></h1>
 </div>
-<!-- xb-end-uuid-level-3 --><div>
+<!-- xb-end-uuid-level-3 --><div id="block-uuid-block">
 
 
           <a href="/" rel="home">XB Test Site</a>

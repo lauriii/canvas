@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource;
 
+use Drupal\Core\Access\AccessResultInterface;
 use Drupal\Core\Block\BlockManagerInterface;
 use Drupal\Core\Block\BlockPluginInterface;
 use Drupal\Core\Block\MainContentBlockPluginInterface;
@@ -11,7 +12,9 @@ use Drupal\Core\Block\TitleBlockPluginInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
+use Drupal\Core\Render\Element;
 use Drupal\Core\Render\RendererInterface;
+use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\experience_builder\Attribute\ComponentSource;
 use Drupal\experience_builder\ComponentSource\ComponentSourceBase;
@@ -45,6 +48,10 @@ final class BlockComponent extends ComponentSourceBase implements ContainerFacto
    *   Plugin definition.
    * @param \Drupal\Core\Block\BlockManagerInterface $blockManager
    *   Block plugin manager.
+   * @param \Drupal\Core\Render\RendererInterface $renderer
+   *   The renderer.
+   * @param \Drupal\Core\Session\AccountInterface $currentUser
+   *   The current user.
    */
   public function __construct(
     array $configuration,
@@ -52,6 +59,7 @@ final class BlockComponent extends ComponentSourceBase implements ContainerFacto
     array $plugin_definition,
     private readonly BlockManagerInterface $blockManager,
     private readonly RendererInterface $renderer,
+    private readonly AccountInterface $currentUser,
   ) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
   }
@@ -66,6 +74,7 @@ final class BlockComponent extends ComponentSourceBase implements ContainerFacto
       $plugin_definition,
       $container->get(BlockManagerInterface::class),
       $container->get(RendererInterface::class),
+      $container->get(AccountInterface::class),
     );
   }
 
@@ -142,20 +151,32 @@ final class BlockComponent extends ComponentSourceBase implements ContainerFacto
       \Fiber::suspend($block);
     }
 
-    // @todo access checking and everything in \Drupal\layout_builder\EventSubscriber\BlockComponentRenderArray::onBuildRender
+    // @todo preview fallback handling (in case of no access or emptiness) in https://drupal.org/i/3497990
+    // @see \Drupal\layout_builder\EventSubscriber\BlockComponentRenderArray::onBuildRender()
+    $access = $block->access($this->currentUser, TRUE);
+    assert($access instanceof AccessResultInterface);
+    if (!$access->isAllowed()) {
+      return ['#access' => $access];
+    }
+
+    $content = $block->build();
+    if (Element::isEmpty($content)) {
+      $content['#access'] = $access;
+      return $content;
+    }
+
     // @todo This render array might be refactored in https://www.drupal.org/node/2931040
-    $build = [
+    // @see \Drupal\block\BlockViewBuilder::buildPreRenderableBlock
+    return [
+      '#access' => $access,
       '#theme' => 'block',
       '#configuration' => $block->getConfiguration(),
       '#plugin_id' => $block->getPluginId(),
       '#base_plugin_id' => $block->getBaseId(),
       '#derivative_plugin_id' => $block->getDerivativeId(),
+      '#id' => $componentUuid,
+      'content' => $content,
     ];
-
-    $build['content'] = $block->build();
-    $build['#cache']['tags'][] = 'config:experience_builder.component.' . self::SOURCE_PLUGIN_ID . '.' . $this->configuration['plugin_id'];
-
-    return $build;
   }
 
   /**

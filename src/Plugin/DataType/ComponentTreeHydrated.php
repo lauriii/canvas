@@ -122,6 +122,15 @@ class ComponentTreeHydrated extends TypedData implements CacheableDependencyInte
         $source = $component->getComponentSource();
         $build[$component_subtree_uuid][$component_instance_uuid] = $source->renderComponent($component_instance, $component_instance_uuid);
 
+        // Associate the `Component` config entity cache tag with every rendered
+        // component instance — remove the need for each `ComponentSource`
+        // plugin to do this in an awkward way in their `::renderComponent()`.
+        // This also associates any cache contexts and max-age; both may be used
+        // for dynamic config overrides.
+        CacheableMetadata::createFromRenderArray($build[$component_subtree_uuid][$component_instance_uuid])
+          ->addCacheableDependency($component)
+          ->applyTo($build[$component_subtree_uuid][$component_instance_uuid]);
+
         // Figure out the slots, if there are any.
         if ($source instanceof ComponentSourceWithSlotsInterface  && !empty($component_instance['slots'])) {
           $slots = [];

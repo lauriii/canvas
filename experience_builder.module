@@ -273,8 +273,9 @@ function experience_builder_block_alter(array &$definitions): void {
           break;
         }
       }
-      // @todo Remove the PageTitleBlock and SystemMessagesBlock special cases: make it fully validatable upstream in Drupal core. It is exempted here because of its crucial role in \Drupal\experience_builder\Entity\PageTemplate.
-      if (!empty($settings) && !$fullyValidatable && $id !== 'page_title_block' && $id !== 'system_messages_block') {
+      // @todo Remove the PageTitleBlock and SystemMessagesBlock special cases: make it fully validatable upstream in Drupal core. They are exempted here because of its crucial role in \Drupal\experience_builder\Entity\PageTemplate. Alternatively, this can be removed once XB requires Drupal 11.
+      // @todo Remove the LocalActionsBlock special case: it is necessary to be able to test BlockPluginInterface::access() support *and* it has the exact same trivial settings as the two crucial blocks above. Alternatively, this can be removed once XB requires Drupal 11.
+      if (!empty($settings) && !$fullyValidatable && $id !== 'page_title_block' && $id !== 'system_messages_block' && $id != 'local_actions_block') {
         continue;
       }
       $component = Component::create([

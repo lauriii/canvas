@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\experience_builder\Functional;
 
+use Behat\Mink\Element\NodeElement;
 use Drupal\block\Entity\Block;
 use Drupal\block\Plugin\DisplayVariant\BlockPageVariant;
 use Drupal\Core\Cache\CacheableDependencyInterface;
@@ -38,13 +39,13 @@ class PageTemplateVariantTest extends BrowserTestBase {
   public function test(): void {
     // 1. Baseline Drupal: SimplePageVariant.
     $this->assertPageDisplayVariant(SimplePageVariant::class, []);
-    $this->assertSession()->pageTextNotContains('Powered by Drupal');
+    $this->assertSame([], $this->getRenderedBlockIds());
 
     // 2. Block module installed: BlockPageVariant is used instead, but no
     // additional things appear on the page and hence no additional cache tags.
     $this->container->get(ModuleInstallerInterface::class)->install(['block']);
     $this->assertPageDisplayVariant(BlockPageVariant::class, []);
-    $this->assertSession()->pageTextNotContains('Powered by Drupal');
+    $this->assertSame([], $this->getRenderedBlockIds());
 
     // 3. Once a Block config entity is created for the default theme, its block
     // plugin's render output appears and its cache tags appear.
@@ -56,7 +57,7 @@ class PageTemplateVariantTest extends BrowserTestBase {
     ]);
     $block->save();
     $this->assertPageDisplayVariant(BlockPageVariant::class, [$block]);
-    $this->assertSession()->pageTextContains('Powered by Drupal');
+    $this->assertSame([$block->id()], $this->getRenderedBlockIds());
 
     // 4. Experience Builder module installed: nothing changes.
     // @see \Drupal\experience_builder\Plugin\DisplayVariant\PageTemplateDisplayVariant
@@ -68,7 +69,7 @@ class PageTemplateVariantTest extends BrowserTestBase {
     $this->rebuildContainer();
     $this->generateComponentConfig();
     $this->assertPageDisplayVariant(BlockPageVariant::class, [$block]);
-    $this->assertSession()->pageTextContains('Powered by Drupal');
+    $this->assertSame([$block->id()], $this->getRenderedBlockIds());
 
     // 5. Once an Experience Builder PageTemplate config entity is created for
     // the default theme, XB's PageTemplateDisplayVariant is used instead.
@@ -92,6 +93,8 @@ class PageTemplateVariantTest extends BrowserTestBase {
                 'component' => 'sdc.xb_test_sdc.props-no-slots',
               ],
               ['uuid' => 'uuid-main', 'component' => 'block.system_main_block'],
+              ['uuid' => 'uuid-local-actions', 'component' => 'block.local_actions_block'],
+              ['uuid' => 'uuid-inaccessible', 'component' => 'block.user_login_block'],
               ['uuid' => 'uuid-title', 'component' => 'block.page_title_block'],
               [
                 'uuid' => 'uuid-messages',
@@ -134,20 +137,25 @@ class PageTemplateVariantTest extends BrowserTestBase {
     // OPTIMIZATION.
     $this->assertPageDisplayVariant(PageTemplateDisplayVariant::class, Component::loadMultiple([
       'block.page_title_block',
+      'block.local_actions_block',
       'block.system_main_block',
       'block.system_messages_block',
+      'block.user_login_block',
       'sdc.xb_test_sdc.props-no-slots',
-    ]));
-    $this->assertSession()->pageTextNotContains('Powered by Drupal');
+    ]), [], ['route']);
+    $this->assertSame([
+      'uuid-main',
+      'uuid-title',
+    ], $this->getRenderedBlockIds());
 
     // 6. If the Experience Builder PageTemplate config entity is disabled,
     // BlockPageVariant is used once again.
     $pageTemplate->disable()->save();
     $this->assertPageDisplayVariant(BlockPageVariant::class, [$block]);
-    $this->assertSession()->pageTextContains('Powered by Drupal');
+    $this->assertSame([$block->id()], $this->getRenderedBlockIds());
   }
 
-  private function assertPageDisplayVariant(string $expected_page_display_variant_class, array $expected_cacheable_dependencies): void {
+  private function assertPageDisplayVariant(string $expected_page_display_variant_class, array $expected_cacheable_dependencies, array $expected_additional_cache_tags = [], array $expected_additional_cache_contexts = []): void {
     $expected_baseline_cache_tags = [
       // These 3 cache tags originate from \Drupal\user\Form\UserLoginForm.
       'CACHE_MISS_IF_UNCACHEABLE_HTTP_METHOD:form',
@@ -166,7 +174,10 @@ class PageTemplateVariantTest extends BrowserTestBase {
     $expected_cache_tags = match ($expected_page_display_variant_class) {
       // Only the baseline cache tags: SimplePageVariant has no configurability,
       // hence it depends on no additional context, hence no added cache tags.
-      SimplePageVariant::class => $expected_baseline_cache_tags,
+      SimplePageVariant::class => [
+        ...$expected_baseline_cache_tags,
+        ...$expected_additional_cache_tags,
+      ],
       BlockPageVariant::class => [
         ...$expected_baseline_cache_tags,
         // The `config:block_list` cache tag appears on top of the baseline.
@@ -175,6 +186,7 @@ class PageTemplateVariantTest extends BrowserTestBase {
         // appears.
         ...(!empty($expected_cacheable_dependencies) ? ['block_view'] : []),
         ...$expected_dependency_cacheability->getCacheTags(),
+        ...$expected_additional_cache_tags,
       ],
       // The `config:experience_builder.page_template.stark` cache tag appears
       // on top of the baseline.
@@ -182,6 +194,7 @@ class PageTemplateVariantTest extends BrowserTestBase {
         ...$expected_baseline_cache_tags,
         'config:experience_builder.page_template.stark',
         ...$expected_dependency_cacheability->getCacheTags(),
+        ...$expected_additional_cache_tags,
       ],
       default => throw new \OutOfRangeException(),
     };
@@ -189,17 +202,28 @@ class PageTemplateVariantTest extends BrowserTestBase {
     $this->rebuildAll();
     $this->drupalGet('');
     $this->assertCacheTags($expected_cache_tags, FALSE);
-    $this->assertCacheContexts([
+    $this->assertCacheContexts(array_merge([
       'languages:language_interface',
       'theme',
       'url.path',
       'url.query_args',
       'user.permissions',
       'user.roles:authenticated',
-    ], NULL, FALSE);
+    ], $expected_additional_cache_contexts), NULL, FALSE);
     $this->assertSession()->responseHeaderEquals('X-Drupal-Cache-Max-Age', '-1 (Permanent)');
     $this->assertSession()->responseHeaderEquals('X-Drupal-Dynamic-Cache', 'MISS');
     $this->assertSession()->responseHeaderEquals('X-Drupal-Cache', 'MISS');
+  }
+
+  /**
+   * @see template_preprocess_block()
+   * @return string[]
+   */
+  private function getRenderedBlockIds(): array {
+    return array_map(
+      fn (NodeElement $e) => substr((string) $e->getAttribute('id'), strlen('block-')),
+      $this->getSession()->getPage()->findAll('css', '[id^=block-]')
+    );
   }
 
 }

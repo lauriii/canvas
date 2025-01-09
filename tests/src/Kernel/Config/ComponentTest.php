@@ -7,6 +7,7 @@ namespace Drupal\Tests\experience_builder\Kernel\Config;
 use Drupal\Core\Field\Plugin\Field\FieldWidget\OptionsSelectWidget;
 use Drupal\Core\Field\Plugin\Field\FieldWidget\StringTextfieldWidget;
 use Drupal\Core\Field\Plugin\Field\FieldWidget\UriWidget;
+use Drupal\Core\Menu\Plugin\Block\LocalActionsBlock;
 use Drupal\Core\State\StateInterface;
 use Drupal\Core\Theme\ComponentPluginManager as CoreComponentPluginManager;
 use Drupal\experience_builder\Plugin\ComponentPluginManager;
@@ -346,7 +347,7 @@ class ComponentTest extends KernelTestBase {
           'compatible' => FALSE,
         ],
         'block.local_actions_block' => [
-          'compatible' => $version > 10,
+          'compatible' => TRUE,
         ],
         'block.local_tasks_block' => [
           'compatible' => TRUE,
@@ -391,7 +392,7 @@ class ComponentTest extends KernelTestBase {
       'classes' => array_filter([
         'Drupal\Core\Plugin\Component',
         'Drupal\Core\Block\Plugin\Block\PageTitleBlock',
-        $version > 10 ? 'Drupal\Core\Menu\Plugin\Block\LocalActionsBlock' : '',
+        LocalActionsBlock::class,
         'Drupal\Core\Menu\Plugin\Block\LocalTasksBlock',
         'Drupal\system\Plugin\Block\SystemBrandingBlock',
         'Drupal\system\Plugin\Block\SystemBreadcrumbBlock',

@@ -79,6 +79,10 @@ class PropSourceEndpointTest extends BrowserTestBase {
       'url.query_args:_wrapper_format',
       'user.node_grants:view',
       'user.roles:authenticated',
+      // The user_login_block is rendered as the anonymous user because for the
+      // authenticated user it is empty.
+      // @see \Drupal\experience_builder\Controller\ApiComponentsController::getCacheableClientSideInfo()
+      'user.roles:anonymous',
     ];
 
     // @todo Require Drupal 11, then this can be removed.

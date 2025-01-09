@@ -149,10 +149,10 @@ final class ApiComponentsController {
       $this->rendererConfig['auto_placeholder_conditions']['contexts']
     );
 
-    // If problematic cache contexts are present, attempt to re-render in a way
-    // that the Component preview is strongly cacheable while still
-    // sufficiently accurate.
-    if (!empty($problematic_cache_contexts)) {
+    // If problematic cache contexts are present or if the markup is empty,
+    // attempt to re-render in a way that the Component preview is strongly
+    // cacheable while still sufficiently accurate.
+    if (!empty($problematic_cache_contexts) || empty($info['default_markup'])) {
       $ignorable_cache_contexts = ['session', 'user'];
 
       if (array_diff($problematic_cache_contexts, $ignorable_cache_contexts)) {
