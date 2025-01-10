@@ -1,6 +1,5 @@
 $schema: https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json
-name: Hero
-description: A test component with props and slots
+name: XB test SDC with props and slots
 props:
   type: object
   required:

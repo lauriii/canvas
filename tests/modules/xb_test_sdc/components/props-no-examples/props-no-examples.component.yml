@@ -1,6 +1,6 @@
 $schema: https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json
-name: Hero
-description: A test component with props but no slots
+name: XB test SDC with props but no examples
+description: Incompatible component, the heading property is required but has no example
 props:
   type: object
   required:
