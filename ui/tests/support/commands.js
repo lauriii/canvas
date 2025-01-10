@@ -13,6 +13,13 @@ const commandAsWebserver = (command) => {
   return command;
 };
 
+Cypress.Commands.add('debugPause', (message = '') => {
+  if (Cypress.env('debugPauses')) {
+    cy.log(`Debug Pause: ${message}`);
+    cy.pause();
+  }
+});
+
 Cypress.Commands.add(
   'drupalCreateUser',
   ({ name, password, permissions = [] }, callback) => {
@@ -354,6 +361,7 @@ Cypress.Commands.add(
       log: false,
     });
     cy.log(`Preview '${iframeSelector}' initialized and has content document.`);
+    cy.debugPause('previewReady');
     return cy.get('@iframe');
   },
 );
@@ -654,6 +662,7 @@ Cypress.Commands.add(
       .findAllByLabelText(componentName)
       .eq(index)
       .click({ scrollBehavior: 'center' });
+    cy.debugPause(`Click Component in Preview: ${componentName} ${index}`);
   },
 );
 

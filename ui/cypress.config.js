@@ -40,6 +40,9 @@ export default defineConfig({
     testWebserverUser: process.env.DRUPAL_TEST_WEBSERVER_USER,
     args: minimist(process.argv),
     setupFile: path.resolve('../tests/src/TestSite/XBTestSetup.php'),
+    // Set this to true to enable our custom debugPause Cypress command,
+    // otherwise this has no effect.
+    debugPauses: false,
   },
   e2e: {
     baseUrl: process.env.BASE_URL,
