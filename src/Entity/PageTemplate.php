@@ -31,6 +31,7 @@ use Symfony\Component\Validator\ConstraintViolationList;
  *    config_export = {
  *      "theme",
  *      "component_trees",
+ *      "editable",
  *    },
  *    lookup_keys = {
  *      "theme",
@@ -61,6 +62,15 @@ final class PageTemplate extends ConfigEntityBase implements XbHttpApiEligibleCo
   protected ?array $component_trees;
 
   /**
+   * Editable flag for each region.
+   *
+   * Keys are region names, values are boolean.
+   *
+   * @see experience_builder_form_system_theme_settings_alter()
+   */
+  protected ?array $editable;
+
+  /**
    * {@inheritdoc}
    */
   public function label(): TranslatableMarkup {
@@ -86,6 +96,11 @@ final class PageTemplate extends ConfigEntityBase implements XbHttpApiEligibleCo
     $treeItems = \array_intersect_key($values['component_trees'] ?? [], \array_flip(['content']));
     $allViolations = new ConstraintViolationList();
     foreach ($autoSaveData['layout'] as $region) {
+      // Ignore auto-saved regions that are no longer editable.
+      if (!$this->isEditableRegion($region['id'])) {
+        continue;
+      }
+
       try {
         $tree = self::clientLayoutToServerTree($region);
       }
@@ -128,15 +143,26 @@ final class PageTemplate extends ConfigEntityBase implements XbHttpApiEligibleCo
       }
 
       $treeItems[$region['id']] = [
-        'tree' => \json_encode($tree),
-        'props' => \json_encode($server_props),
+        'tree' => \json_encode($tree, JSON_UNESCAPED_UNICODE | JSON_FORCE_OBJECT | JSON_THROW_ON_ERROR),
+        'props' => \json_encode($server_props, JSON_UNESCAPED_UNICODE | JSON_FORCE_OBJECT | JSON_THROW_ON_ERROR),
       ];
     }
     if ($allViolations->count() > 0) {
       throw new ConstraintViolationException($allViolations);
     }
-    $values['component_trees'] = $treeItems;
-    return static::create($values);
+
+    // Fall back to the stored component tree for regions that are either:
+    // - not editable
+    // - editable, but absent from the auto-saved data (because the region was
+    //   not yet editable at the time of auto-saving)
+    $values['component_trees'] = $treeItems + $this->component_trees;
+
+    $autosaved_page_template = static::create($values);
+    $violations = $autosaved_page_template->getTypedData()->validate();
+    if ($violations->count()) {
+      throw new ConstraintViolationException($violations);
+    }
+    return $autosaved_page_template;
   }
 
   /**
@@ -165,6 +191,23 @@ final class PageTemplate extends ConfigEntityBase implements XbHttpApiEligibleCo
       $xb_component_tree->setValue($component_tree);
       yield $region_name => $xb_component_tree;
     }
+  }
+
+  /**
+   * @return string[]
+   *   The theme regions that are marked as editable in this page template.
+   */
+  public function getEditableRegions(): array {
+    return array_keys(array_filter($this->get('editable')));
+  }
+
+  /**
+   * @param string $region_name
+   *   A region in this page template's theme.
+   */
+  public function isEditableRegion(string $region_name): bool {
+    assert(array_key_exists($region_name, system_region_list(\Drupal::service('theme_handler')->getTheme($this->theme))));
+    return in_array($region_name, $this->getEditableRegions(), TRUE);
   }
 
   /**
@@ -257,6 +300,8 @@ final class PageTemplate extends ConfigEntityBase implements XbHttpApiEligibleCo
     return static::create([
       'theme' => $theme,
       'component_trees' => $component_trees,
+      // All regions are editable by default.
+      'editable' => array_fill_keys($region_names, TRUE),
     ]);
   }
 

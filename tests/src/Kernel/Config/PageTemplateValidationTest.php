@@ -10,6 +10,7 @@ use Drupal\experience_builder\Exception\ConstraintViolationException;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 use Drupal\KernelTests\Core\Config\ConfigEntityValidationTestBase;
 use Drupal\Tests\experience_builder\Traits\BetterConfigDependencyManagerTrait;
+use Drupal\Tests\experience_builder\Traits\ConstraintViolationsTestTrait;
 use Drupal\Tests\experience_builder\Traits\GenerateComponentConfigTrait;
 use Drupal\Tests\experience_builder\Traits\TestDataUtilitiesTrait;
 
@@ -18,6 +19,7 @@ class PageTemplateValidationTest extends ConfigEntityValidationTestBase {
   use BetterConfigDependencyManagerTrait;
   use GenerateComponentConfigTrait;
   use TestDataUtilitiesTrait;
+  use ConstraintViolationsTestTrait;
 
   /**
    * {@inheritdoc}
@@ -87,6 +89,20 @@ class PageTemplateValidationTest extends ConfigEntityValidationTestBase {
         'page_bottom' => NULL,
         'breadcrumb' => NULL,
       ],
+      'editable' => [
+        'sidebar_first' => TRUE,
+        'sidebar_second' => TRUE,
+        'content' => TRUE,
+        'header' => TRUE,
+        'primary_menu' => TRUE,
+        'secondary_menu' => TRUE,
+        'footer' => TRUE,
+        'highlighted' => FALSE,
+        'help' => FALSE,
+        'page_top' => TRUE,
+        'page_bottom' => TRUE,
+        'breadcrumb' => TRUE,
+      ],
     ]);
     $this->entity->save();
   }
@@ -150,12 +166,11 @@ class PageTemplateValidationTest extends ConfigEntityValidationTestBase {
     $this->container->get(ThemeInstallerInterface::class)->install([
       'olivero',
     ]);
-    // If we don't also change the `component_trees` value here, we will get
-    // additional validation errors, because `theme` determines what key-value
-    // pairs are expected under `component_trees`.
-    // Given that this config entity type has only a single immutable property
-    // (`theme`), setting a valid corresponding `component_trees` value prevents
-    // that distraction.
+    // If we don't also change the `component_trees` and `editable` values here,
+    // we will get additional validation errors, because `theme` determines what
+    // key-value are expected. Given that this config entity type has only a
+    // single immutable property (`theme`), setting a valid corresponding values
+    // prevents that distraction.
     // @see core/themes/olivero/olivero.info.yml
     $this->entity->set('component_trees', [
       'header' => NULL,
@@ -180,6 +195,21 @@ class PageTemplateValidationTest extends ConfigEntityValidationTestBase {
       'content_below' => NULL,
       'footer_top' => NULL,
       'footer_bottom' => NULL,
+    ]);
+    $this->entity->set('editable', [
+      'header' => TRUE,
+      'primary_menu' => TRUE,
+      'secondary_menu' => TRUE,
+      'hero' => TRUE,
+      'highlighted' => TRUE,
+      'breadcrumb' => TRUE,
+      'social' => TRUE,
+      'content_above' => TRUE,
+      'content' => TRUE,
+      'sidebar' => TRUE,
+      'content_below' => TRUE,
+      'footer_top' => TRUE,
+      'footer_bottom' => TRUE,
     ]);
     parent::testImmutableProperties([
       'theme' => 'olivero',
@@ -381,20 +411,94 @@ class PageTemplateValidationTest extends ConfigEntityValidationTestBase {
   }
 
   /**
-   * .
-   *
-   * @dataProvider providerInvalid
+   * @dataProvider providerInvalidEditable
+   * @covers \Drupal\experience_builder\Plugin\Validation\Constraint\ThemeRegionKeysConstraintValidator
    */
-  public function testInvalidAutoSave(array $autoSaveData): void {
-    $this->expectException(ConstraintViolationException::class);
-    $entity = PageTemplate::create([
-      'theme' => 'stark',
-    ]);
-    $entity->forAutoSaveData($autoSaveData);
+  public function testInvalidEditable(array $editable, array $expected_messages): void {
+    $this->entity->set('editable', $editable);
+    $this->assertValidationErrors($expected_messages);
   }
 
-  public static function providerInvalid(): iterable {
-    yield 'missing component type' => [
+  public static function providerInvalidEditable(): \Generator {
+    yield "missing `content` and `highlighted` regions" => [
+      'editable' => [
+        'sidebar_first' => TRUE,
+        'sidebar_second' => TRUE,
+        'header' => FALSE,
+        'primary_menu' => FALSE,
+        'secondary_menu' => FALSE,
+        'footer' => TRUE,
+        'help' => FALSE,
+        'page_top' => FALSE,
+        'page_bottom' => FALSE,
+        'breadcrumb' => FALSE,
+      ],
+      'expected_messages' => [
+        'editable' => [
+          'Configuration for the region "<em class="placeholder">content</em>" (<em class="placeholder">content</em>) is missing.',
+          'Configuration for the region "<em class="placeholder">highlighted</em>" (<em class="placeholder">highlighted</em>) is missing.',
+        ],
+      ],
+    ];
+
+    // @todo Add validation constraint to tighten this. Not urgent because \Drupal\experience_builder\Controller\ApiLayoutController::__invoke() ignores `content: false`, and pretends it's `content: true`.
+    yield "🐛 required `content` region marked as non-editable" => [
+      'editable' => [
+        'sidebar_first' => TRUE,
+        'sidebar_second' => TRUE,
+        'header' => FALSE,
+        'primary_menu' => FALSE,
+        'secondary_menu' => FALSE,
+        'footer' => TRUE,
+        'help' => FALSE,
+        'page_top' => FALSE,
+        'page_bottom' => FALSE,
+        'breadcrumb' => FALSE,
+        'highlighted' => FALSE,
+        'content' => FALSE,
+      ],
+      'expected_messages' => [],
+    ];
+
+    yield "invalid value" => [
+      'editable' => [
+        'sidebar_first' => TRUE,
+        'sidebar_second' => TRUE,
+        'header' => FALSE,
+        'primary_menu' => FALSE,
+        'secondary_menu' => FALSE,
+        'footer' => TRUE,
+        'help' => FALSE,
+        'page_top' => FALSE,
+        'page_bottom' => FALSE,
+        'breadcrumb' => FALSE,
+        'highlighted' => NULL,
+        'content' => FALSE,
+      ],
+      'expected_messages' => [
+        'editable.highlighted' => 'This value should not be null.',
+      ],
+    ];
+  }
+
+  /**
+   * .
+   *
+   * @dataProvider providerForAutoSaveData
+   */
+  public function testForAutoSaveData(array $autoSaveData, array $expected_errors): void {
+    try {
+      assert($this->entity instanceof PageTemplate);
+      $this->entity->forAutoSaveData($autoSaveData);
+      $this->assertSame([], $expected_errors);
+    }
+    catch (ConstraintViolationException $e) {
+      $this->assertSame($expected_errors, self::violationsToArray($e->getConstraintViolationList()));
+    }
+  }
+
+  public static function providerForAutoSaveData(): iterable {
+    yield 'INVALID: missing component type' => [
       [
         'layout' => [[
           "components" => [
@@ -411,8 +515,11 @@ class PageTemplateValidationTest extends ConfigEntityValidationTestBase {
         ],
         'model' => [],
       ],
+      [
+        '[a548b48d-58a8-4077-aa04-da9405a6f418][0][component]' => 'This field is missing.',
+      ],
     ];
-    yield 'missing component uuid' => [
+    yield 'INVALID: missing component' => [
       [
         'layout' => [[
           "components" => [
@@ -429,6 +536,29 @@ class PageTemplateValidationTest extends ConfigEntityValidationTestBase {
         ],
         'model' => [],
       ],
+      [
+        '[a548b48d-58a8-4077-aa04-da9405a6f418][0][uuid]' => 'This field is missing.',
+      ],
+    ];
+    yield 'VALID: single valid region node; other regions missing — these are restored automatically from the stored PageTemplate' => [
+      [
+        'layout' => [[
+          "components" => [
+            [
+              "nodeType" => "component",
+              "slots" => [],
+              "type" => "block.page_title_block",
+              "uuid" => "c3f3c22c-c22e-4bb6-ad16-635f069148e4",
+            ],
+          ],
+          "name" => "Header",
+          "nodeType" => "region",
+          "id" => "header",
+        ],
+        ],
+        'model' => [],
+      ],
+      [],
     ];
   }
 

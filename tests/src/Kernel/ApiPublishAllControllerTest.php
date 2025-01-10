@@ -159,20 +159,16 @@ class ApiPublishAllControllerTest extends KernelTestBase {
         'label' => 'The updated title.',
       ],
     ];
-    if ($withGlobal) {
-      $errors[] = [
-        'detail' => 'Configuration for the region "<em class="placeholder">breadcrumb</em>" (<em class="placeholder">breadcrumb</em>) is missing.',
-        'source' => [
-          'pointer' => 'component_trees',
-        ],
-      ];
-    }
     self::assertEquals($errors, $json['errors']);
     // Ensure that neither the valid nor invalid node gets updated if one is
     // invalid.
     $this->assertNodeValues($node1, [], [], $node1_original_title);
     $this->assertNodeValues($node2, [], [], $node2_original_title);
     if ($withGlobal) {
+      // Note: no additional error appears for the invalid auto-saved layout for
+      // the PageTemplate, because missing regions are automatically added from
+      // the active/stored PageTemplate.
+      // @see \Drupal\experience_builder\Entity\PageTemplate::forAutoSaveData()
       $template = PageTemplate::load('stark');
       self::assertInstanceOf(PageTemplate::class, $template);
       $trees = iterator_to_array($template->getComponentTrees());
@@ -180,16 +176,8 @@ class ApiPublishAllControllerTest extends KernelTestBase {
       self::assertInstanceOf(ComponentTreeItem::class, $trees['highlighted']);
     }
 
-    // Fix the error(s).
+    // Fix the error.
     $validClientJson['model'][self::TEST_HEADING_UUID]['style'] = 'primary';
-    if ($withGlobal) {
-      $validClientJson['layout'][] = [
-        "components" => [],
-        "name" => 'breadcrumb',
-        "nodeType" => "region",
-        "id" => 'breadcrumb',
-      ];
-    }
     $response = $this->request(Request::create(Url::fromRoute('experience_builder.api.preview', [
       'entity_type' => 'node',
       'entity' => $node2->id(),

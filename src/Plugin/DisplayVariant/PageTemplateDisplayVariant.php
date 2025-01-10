@@ -146,6 +146,11 @@ final class PageTemplateDisplayVariant extends VariantBase implements PageVarian
         if ($region === 'content') {
           continue;
         }
+        // Do not wrap regions marked as not editable; this causes visible
+        // whitespace.
+        if (!$page_template->isEditableRegion($region)) {
+          continue;
+        }
         if (\array_key_exists(ComponentTreeStructure::ROOT_UUID, $build[$region])) {
           $build[$region] = ApiPreviewController::wrapComponentsForPreview($build[$region][ComponentTreeStructure::ROOT_UUID]);
         }

@@ -350,6 +350,27 @@ function experience_builder_form_system_theme_settings_alter(array &$form, FormS
     '#title' => t('Use Experience Builder for page templates in this theme.'),
     '#default_value' => $enabled,
   ];
+  $regions = system_region_list($theme);
+  $form['experience_builder']['editable'] = [
+    '#type' => 'checkboxes',
+    '#title' => t('Exposed regions'),
+    '#options' => $regions,
+    '#states' => [
+      'visible' => [
+        ':input[name="use_xb"]' => ['checked' => TRUE],
+      ],
+    ],
+    '#default_value' => $page_template
+      ? $page_template->getEditableRegions()
+      : array_keys($regions),
+  ];
+  // The `content` region is a special case:
+  // - it's the only region guaranteed to exist in every theme
+  // - Experience Builder's UI does not allow adding component instances to it;
+  //   it is always treated as only containing the main content block.
+  // @see \Drupal\Core\Block\MainContentBlockPluginInterface
+  $form['experience_builder']['editable']['content'] = ['#disabled' => TRUE];
+  $form['experience_builder']['editable']['#description'] = t('Checked regions can be modified via Experience Builder. The <q>Content</q> region contains "the main content" on any route and cannot be modified further.');
 
   array_unshift($form['#submit'], 'experience_builder_form_system_theme_settings_submit');
 }
@@ -358,10 +379,18 @@ function experience_builder_form_system_theme_settings_submit(array &$form, Form
   $theme = $form_state->getBuildInfo()['args'][0];
   $page_template = PageTemplate::load($theme);
   $enable = $form_state->getValue('use_xb');
+  $editable = $form_state->getValue('editable');
 
   if ($enable) {
     $page_template ??= PageTemplate::createFromBlockLayout($theme);
-    $page_template->enable()->save();
+    $page_template->enable()
+      ->set('editable',
+        // Checked checkboxes (even if disabled) get their (string) names.
+        array_fill_keys(array_keys(array_filter($editable)), TRUE) +
+        // Unchecked checkboxes get an integer zero.
+        array_fill_keys(array_keys(array_filter($editable, fn ($v) => $v === 0)), FALSE)
+      )
+      ->save();
   }
   elseif ($page_template) {
     $page_template->disable()->save();
@@ -369,4 +398,5 @@ function experience_builder_form_system_theme_settings_submit(array &$form, Form
 
   // Avoid polluting the theme settings config entity.
   $form_state->unsetValue('use_xb');
+  $form_state->unsetValue('editable');
 }

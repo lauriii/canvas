@@ -125,6 +125,20 @@ class PageTemplateVariantTest extends BrowserTestBase {
         'page_bottom' => NULL,
         'breadcrumb' => NULL,
       ],
+      'editable' => [
+        'sidebar_first' => FALSE,
+        'sidebar_second' => FALSE,
+        'content' => TRUE,
+        'header' => FALSE,
+        'primary_menu' => FALSE,
+        'secondary_menu' => FALSE,
+        'footer' => FALSE,
+        'highlighted' => FALSE,
+        'help' => FALSE,
+        'page_top' => FALSE,
+        'page_bottom' => FALSE,
+        'breadcrumb' => FALSE,
+      ],
     ]);
     $pageTemplate->save();
     // ⚠️ In the future, we may want to reduce the number of cache tags and rely

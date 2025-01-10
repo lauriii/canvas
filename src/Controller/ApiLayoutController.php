@@ -53,9 +53,12 @@ final class ApiLayoutController {
 
     if ($template) {
       $this->addGlobalRegions($template, $model, $layout);
-      // Ensure all regions exist, and reorder the layout to match theme order.
-      $layout = array_combine(array_map(static fn($region) => $region['id'], $layout), $layout);
-      $layout = array_map(fn(string $region) => $layout[$region] ?? $this->buildRegion($region), array_keys($this->regions));
+      $layout_keyed_by_region = array_combine(array_map(static fn($region) => $region['id'], $layout), $layout);
+      // Reorder the layout to match theme order.
+      $layout = array_values(array_replace(
+        array_intersect_key($this->regions, $layout_keyed_by_region),
+        $layout_keyed_by_region
+      ));
     }
 
     return new JsonResponse([
@@ -147,16 +150,43 @@ final class ApiLayoutController {
   }
 
   private function addGlobalRegions(PageTemplate $template, array &$model, array &$layout): void {
+    $active_component_trees = iterator_to_array($template->getComponentTrees());
+    // Only expose regions marked as editable in the `layout` for the client.
+    $editable_regions = $template->getEditableRegions();
+
     $draft_template = $this->autoSaveManager->getAutoSaveData($template);
     if ($draft_template === NULL) {
-      foreach ($template->getComponentTrees() as $region => $tree) {
+      foreach ($editable_regions as $region) {
         if ($region === 'content') {
           continue;
         }
-        $layout[] = $this->buildRegion($region, $tree, $model);
+        $layout[] = $this->buildRegion($region, $active_component_trees[$region] ?? NULL, $model);
       }
       return;
     }
+
+    // An auto-save may have occurred when a region was either editable or not,
+    // and that may now have changed. Make sure it always matches the currently
+    // editable regions.
+    $draft_layout_region_nodes = array_filter($draft_template['layout'], fn (array $layout_node): bool => $layout_node['nodeType'] === 'region');
+    $autosaved_regions = array_column($draft_layout_region_nodes, 'id');
+    $missing_regions_in_auto_save = array_diff($editable_regions, $autosaved_regions);
+    foreach ($missing_regions_in_auto_save as $region) {
+      if ($region === 'content') {
+        continue;
+      }
+      $layout[] = $this->buildRegion($region, $active_component_trees[$region] ?? NULL, $model);
+    }
+    $extraneous_regions_in_auto_save = array_diff($autosaved_regions, $editable_regions);
+    foreach ($extraneous_regions_in_auto_save as $region) {
+      foreach ($draft_template['layout'] as $index => $region_node) {
+        if ($region_node['id'] === $region) {
+          unset($draft_template['layout'][$index]);
+          // @todo In principle, $model should be updated too, to omit props for components in the omitted regions. There's no consequences yet for not doing that though.
+        }
+      }
+    }
+
     $layout = \array_merge($layout, $draft_template['layout']);
     $model += $draft_template['model'];
   }

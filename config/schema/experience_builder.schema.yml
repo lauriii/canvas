@@ -108,6 +108,17 @@ experience_builder.page_template.*:
         nullable: true
         # All non-empty regions must have a component tree defined.
         type: experience_builder.component_tree
+    # There must be an editable flag for each region in this theme.
+    editable:
+      type: sequence
+      orderby: key
+      constraints:
+        # Each theme has a different set of regions. For an XB Page Template to be complete and considered valid, every
+        # region must be explicitly present.
+        KeyForEveryThemeRegion: "%parent.theme"
+        # @todo Add validation constraint that ensures that the `content` region is set to `true`.
+      sequence:
+        type: boolean
 
 # The config equivalent of a ComponentTreeItem, validated by the same constraint.
 # @todo Use this in https://www.drupal.org/project/experience_builder/issues/3455629

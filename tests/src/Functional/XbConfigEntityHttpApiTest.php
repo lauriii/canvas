@@ -110,6 +110,20 @@ class XbConfigEntityHttpApiTest extends BrowserTestBase {
         'breadcrumb' => NULL,
         // 🐛 The `content` and `help` regions were forgotten!
       ],
+      'editable' => [
+        'sidebar_first' => FALSE,
+        'sidebar_second' => FALSE,
+        'header' => FALSE,
+        'primary_menu' => TRUE,
+        'secondary_menu' => TRUE,
+        'footer' => TRUE,
+        'page_top' => TRUE,
+        'page_bottom' => TRUE,
+        'breadcrumb' => TRUE,
+        'content' => TRUE,
+        'help' => TRUE,
+        // 🐛 The `highlighted` regions was forgotten!
+      ],
     ];
     $request_options = [
       RequestOptions::JSON => $page_template_to_send,
@@ -125,6 +139,10 @@ class XbConfigEntityHttpApiTest extends BrowserTestBase {
           'detail' => 'Configuration for the region "<em class="placeholder">help</em>" (<em class="placeholder">help</em>) is missing.',
           'source' => ['pointer' => 'component_trees'],
         ],
+        [
+          'detail' => 'Configuration for the region "<em class="placeholder">highlighted</em>" (<em class="placeholder">highlighted</em>) is missing.',
+          'source' => ['pointer' => 'editable'],
+        ],
       ],
     ], $body);
 
@@ -137,6 +155,7 @@ class XbConfigEntityHttpApiTest extends BrowserTestBase {
         ],
       ]),
     ];
+    $page_template_to_send['editable']['highlighted'] = FALSE;
     $request_options = [
       RequestOptions::JSON => $page_template_to_send,
     ];
@@ -218,6 +237,20 @@ class XbConfigEntityHttpApiTest extends BrowserTestBase {
         'secondary_menu' => NULL,
         'sidebar_first' => NULL,
         'sidebar_second' => NULL,
+      ],
+      'editable' => [
+        'breadcrumb' => TRUE,
+        'content' => TRUE,
+        'footer' => TRUE,
+        'header' => FALSE,
+        'help' => TRUE,
+        'highlighted' => FALSE,
+        'page_bottom' => TRUE,
+        'page_top' => TRUE,
+        'primary_menu' => TRUE,
+        'secondary_menu' => TRUE,
+        'sidebar_first' => FALSE,
+        'sidebar_second' => FALSE,
       ],
     ];
     $request_options = [
