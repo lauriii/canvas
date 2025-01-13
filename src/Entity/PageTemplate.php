@@ -38,7 +38,7 @@ use Symfony\Component\Validator\ConstraintViolationList;
  *    }
  *  )
  */
-final class PageTemplate extends ConfigEntityBase implements XbHttpApiEligibleConfigEntityInterface {
+final class PageTemplate extends ConfigEntityBase {
 
   public const PLUGIN_ID = 'page_template';
   use ComponentTreeItemInstantiatorTrait;

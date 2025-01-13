@@ -75,6 +75,10 @@ This uses the terms defined above.
 A HTTP API is provided to list, read, create, update and delete _some_ of these config entities. This HTTP API is
 designed to only be used by XB's (client-side) UI.
 
+This covers only config entities that are explicitly excluded from auto-saving/workspaces — for those entities, XB's
+"Publish all" functionality is used; separate HTTP requests per entity in a set of changes must be avoided for both UX
+and data consistency reasons.
+
 XB intentionally does not use Drupal core's [JSON:API module](https://jsonapi.org/), because:
 -  requiring the Drupal JSON:API module to be installed is excessive
 -  XB's HTTP API does not need pagination support
@@ -142,8 +146,10 @@ One `PageTemplate config entity` may be created per Drupal theme. This allows us
 requirement [`41. Conditional display of components`](https://docs.google.com/spreadsheets/d/1OpETAzprh6DWjpTsZG55LWgldWV_D8jNe9AM73jNaZo/edit?gid=1721130122#gid=1721130122&range=B53),
 which will be XB's generalized equivalent to Drupal core's Block module's "visibility conditions".
 
-⚠️ This means it is currently not possible to have a draft/non-live `PageTemplate config entity` (just like is the case
-for "Block Layout" functionality). This will be covered in the future by XB's product requirements [`37. Revisionable templates`](https://docs.google.com/spreadsheets/d/1OpETAzprh6DWjpTsZG55LWgldWV_D8jNe9AM73jNaZo/edit?gid=1721130122#gid=1721130122&range=B49)
+⚠️ Since [#3494114](https://drupal.org/node/3494114), if an auto-saved modification to the active theme's `PageTemplate
+config entity` occurred, then XB previews will use that instead of the stored/active config entity. This means it is
+currently only possible to have one draft/non-live `PageTemplate config entity`. This will be covered in the future by
+XB's product requirements [`37. Revisionable templates`](https://docs.google.com/spreadsheets/d/1OpETAzprh6DWjpTsZG55LWgldWV_D8jNe9AM73jNaZo/edit?gid=1721130122#gid=1721130122&range=B49)
 and [`55. Workspaces`](https://docs.google.com/spreadsheets/d/1OpETAzprh6DWjpTsZG55LWgldWV_D8jNe9AM73jNaZo/edit?gid=1721130122#gid=1721130122&range=B62).
 
 Once a theme has an XB `PageTemplate config entity` defined, it overrides the block layout (if any).
@@ -162,7 +168,6 @@ rely on the Block module to provide the intended administrative User Experience,
 See `\Drupal\block\Plugin\DisplayVariant\BlockPageVariant`.
 
 ⚠️ Still to be built:
-- a UI to configure `PageTemplate` config entities
 - support for blocks-as-components in general
 
 
