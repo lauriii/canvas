@@ -54,13 +54,17 @@ describe('Operate on components in global regions', () => {
       .find('[data-xb-uuid="static-static-card1ab"] h1')
       .first()
       .then(($h1) => {
-        cy.wrap($h1).trigger('mouseover');
         // While in the iframe, get the dimensions of the component so we can
         // compare the outline dimensions to it
-        const $item = $h1.closest('.xb--sortable-item');
+        const $item = $h1.closest('[data-xb-uuid]');
         lgPreviewRect = $item[0].getBoundingClientRect();
       });
 
+    cy.getComponentInPreview('Hero', 0, 'lg', 'highlighted').then(
+      ($component) => {
+        cy.wrap($component).trigger('mouseover');
+      },
+    );
     cy.getComponentInPreview('Hero', 0, 'lg', 'highlighted')
       .should(($outline) => {
         expect($outline).to.exist;

@@ -13,6 +13,8 @@ import ViewportToolbar from '@/features/layout/preview/ViewportToolbar';
 import IframeSwapper from '@/features/layout/preview/IframeSwapper';
 import usePreviewSortable from '@/hooks/usePreviewSortable';
 import ViewportOverlay from '@/features/layout/previewOverlay/ViewportOverlay';
+import { useComponentHtmlMap } from '@/hooks/useComponentHtmlMap';
+import ComponentHtmlMapContext from '@/features/layout/preview/ComponentHtmlMapContext';
 
 export type ViewPortSize = 'lg' | 'sm';
 export interface ViewportProps {
@@ -33,9 +35,11 @@ const Viewport: React.FC<ViewportProps> = (props) => {
   const previewContainerRef = useRef<HTMLDivElement>(null);
   const dispatch = useAppDispatch();
   const canvasMode = useAppSelector(selectCanvasMode);
+  const { slotsMap, componentsMap } = useComponentHtmlMap(iframeRef.current);
 
   const { enableSortables, disableSortables } = usePreviewSortable(
     iframeRef.current,
+    slotsMap,
   );
 
   useSyncIframeHeightToContent(
@@ -85,28 +89,35 @@ const Viewport: React.FC<ViewportProps> = (props) => {
 
   return (
     <div>
-      <ViewportToolbar size={size} name={name} width={width} height={height} />
-      <div className={styles.previewContainer} ref={previewContainerRef}>
-        {showProgressIndicator && (
-          <>
-            <Progress
-              aria-label="Loading Preview"
-              className={styles.progress}
-              duration="1s"
-            />
-          </>
-        )}
-        <IframeSwapper
-          ref={iframeRef}
-          srcDocument={frameSrcDoc}
+      <ComponentHtmlMapContext.Provider value={{ slotsMap, componentsMap }}>
+        <ViewportToolbar
           size={size}
-          setIsReloading={setIsReloading}
-          interactive={canvasMode === CanvasMode.INTERACTIVE}
+          name={name}
+          width={width}
+          height={height}
         />
-        {canvasMode === CanvasMode.EDIT && (
-          <ViewportOverlay iframeRef={iframeRef} size={size} />
-        )}
-      </div>
+        <div className={styles.previewContainer} ref={previewContainerRef}>
+          {showProgressIndicator && (
+            <>
+              <Progress
+                aria-label="Loading Preview"
+                className={styles.progress}
+                duration="1s"
+              />
+            </>
+          )}
+          <IframeSwapper
+            ref={iframeRef}
+            srcDocument={frameSrcDoc}
+            size={size}
+            setIsReloading={setIsReloading}
+            interactive={canvasMode === CanvasMode.INTERACTIVE}
+          />
+          {canvasMode === CanvasMode.EDIT && (
+            <ViewportOverlay iframeRef={iframeRef} size={size} />
+          )}
+        </div>
+      </ComponentHtmlMapContext.Provider>
     </div>
   );
 };

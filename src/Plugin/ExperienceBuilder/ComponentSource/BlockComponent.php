@@ -13,6 +13,7 @@ use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\Core\Render\Element;
+use Drupal\Core\Render\Markup;
 use Drupal\Core\Render\RendererInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
@@ -229,6 +230,13 @@ final class BlockComponent extends ComponentSourceBase implements ContainerFacto
    */
   public function getClientSideInfo(ComponentEntity $component, ?bool $cache_tags = TRUE): array {
     $build = $this->renderComponent([], $component->uuid());
+    // @see Match the wrapping that happens in \Drupal\experience_builder\Plugin\DataType\ComponentTreeHydrated::renderify().
+    // @todo Remove this in https://www.drupal.org/project/experience_builder/issues/3484678
+    // Wrap each rendered component instance in HTML comments that allow the
+    // client side to identify it.
+    $component_config_entity_uuid = $component->uuid();
+    $build['#prefix'] = Markup::create("<!-- xb-start-$component_config_entity_uuid -->");
+    $build['#suffix'] = Markup::create("<!-- xb-end-$component_config_entity_uuid -->");
 
     // @todo Determine what other values this must return, do we need a value object? Decide in https://www.drupal.org/project/experience_builder/issues/3484678
     return [

@@ -26,7 +26,7 @@ describe('Experience Builder canvas controls/navigation', () => {
         const element = $h1;
         cy.wrap(element).trigger('mouseover');
         cy.wrap(element)
-          .closest('.xb--sortable-item')
+          .closest('[data-xb-uuid]')
           .then(($item) => {
             const rect = $item[0].getBoundingClientRect();
             cy.wrap(rect).as('initialComponentRect');
@@ -59,7 +59,7 @@ describe('Experience Builder canvas controls/navigation', () => {
       .then(($h1) => {
         cy.wrap($h1).trigger('mouseover');
         cy.wrap($h1)
-          .closest('.xb--sortable-item')
+          .closest('[data-xb-uuid]')
           .then(($item) => {
             // Calculate component height and width by scale value - as by default component's dimensions are not changing on zoom
             cy.getElementScaledDimensions($item[0]).then((dimensions) => {
@@ -102,7 +102,7 @@ describe('Experience Builder canvas controls/navigation', () => {
       .then(($h1) => {
         cy.wrap($h1).trigger('mouseover', { force: true });
         cy.wrap($h1)
-          .closest('.xb--sortable-item')
+          .closest('[data-xb-uuid]')
           .then(($item) => {
             // Calculate component height and width by scale value - as by default component's dimensions are not changing on zoom
             cy.getElementScaledDimensions($item[0]).then((dimensions) => {

@@ -39,8 +39,9 @@ const RegionOverlay: React.FC<RegionOverlayProps> = ({
     }
 
     const elementInsideIframe = iframeDocument.querySelector(
-      `[data-xb-uuid="${regionId}"]`,
+      `[data-xb-region="${regionId}"]`,
     );
+
     if (!elementInsideIframe) {
       return;
     }

@@ -91,6 +91,7 @@ const ViewportOverlay: React.FC<ViewportOverlayProps> = (props) => {
         <RegionOverlay
           iframeRef={iframeRef}
           regionId={region.id}
+          key={region.id}
           regionName={region.name}
         />
       ))}

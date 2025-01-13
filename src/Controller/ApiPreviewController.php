@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Drupal\experience_builder\Controller;
 
 use Drupal\Core\Entity\EntityInterface;
-use Drupal\Core\Render\Element;
 use Drupal\Core\TypedData\TypedDataManagerInterface;
 use Drupal\experience_builder\AutoSave\AutoSaveManager;
 use Drupal\experience_builder\Entity\PageTemplate;
@@ -65,41 +64,13 @@ final class ApiPreviewController {
     $renderable = $this->clientLayoutAndModelToXbField($content, $model)->toRenderable();
 
     if (isset($renderable[ComponentTreeStructure::ROOT_UUID])) {
-      $build = self::wrapComponentsForPreview($renderable[ComponentTreeStructure::ROOT_UUID]);
+      $build = $renderable[ComponentTreeStructure::ROOT_UUID];
     }
-    $build['#prefix'] = '<div class="xb--sortable-list" data-xb-uuid="content">';
+    // @todo Remove/replace this in https://www.drupal.org/project/experience_builder/issues/3499364
+    $build['#prefix'] = '<div data-xb-uuid="content" data-xb-region="content">';
     $build['#suffix'] = '</div>';
     $build['#attached']['library'][] = 'experience_builder/preview';
     return new PreviewEnvelope($build);
-  }
-
-  public static function wrapComponentsForPreview(array $build): array {
-    foreach (Element::children($build) as $uuid) {
-      $build[$uuid] = self::wrapComponentsForPreview($build[$uuid]);
-
-      if (isset($build[$uuid]['#component'])) {
-        // @todo where is data-xb-component-id used in the client? how does this affect non-SDC components?
-        $build[$uuid]['#prefix'] = sprintf('<div class="xb--sortable-item" data-xb-uuid="%s" data-xb-component-id="%s">', $uuid, $build[$uuid]['#component']);
-      }
-      else {
-        $build[$uuid]['#prefix'] = sprintf('<div class="xb--sortable-item" data-xb-uuid="%s">', $uuid);
-      }
-      $build[$uuid]['#suffix'] = '</div>';
-
-      if (isset($build[$uuid]['#slots'])) {
-        foreach ($build[$uuid]['#slots'] as $slot_name => $slot) {
-          $build[$uuid]['#slots'][$slot_name] = self::wrapComponentsForPreview($slot);
-          $build[$uuid]['#slots'][$slot_name]['#prefix'] = sprintf('<div class="xb--sortable-list" data-xb-uuid="%s" data-xb-component-id="slot"%s>',
-            $uuid . '/' . $slot_name,
-            (array_key_exists('#plain_text', $build[$uuid]['#slots'][$slot_name]) || array_key_exists('#markup', $build[$uuid]['#slots'][$slot_name]))
-              ? ' data-xb-slot-is-empty'
-              : ''
-          );
-          $build[$uuid]['#slots'][$slot_name]['#suffix'] = '</div>';
-        }
-      }
-    }
-    return $build;
   }
 
   /**

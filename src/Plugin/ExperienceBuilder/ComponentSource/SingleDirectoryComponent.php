@@ -18,6 +18,7 @@ use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Plugin\Component;
 use Drupal\Core\Plugin\Component as ComponentPlugin;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
+use Drupal\Core\Render\Markup;
 use Drupal\Core\Render\RendererInterface;
 use Drupal\Core\StreamWrapper\PublicStream;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
@@ -252,7 +253,6 @@ final class SingleDirectoryComponent extends ComponentSourceBase implements Comp
       // logic but still results in an empty slot.
       // @see https://www.drupal.org/node/3391702
       // @see \Drupal\Core\Render\Element\ComponentElement::generateComponentTemplate()
-      // @see \Drupal\experience_builder\Controller\ApiPreviewController::wrapComponentsForPreview()
       $hydrated['slots'] = array_map(fn($slot) => $slot['examples'][0] ?? '', $slots);
     }
 
@@ -397,6 +397,14 @@ final class SingleDirectoryComponent extends ComponentSourceBase implements Comp
 
     // @todo return this as a single build array and let the controller render and extract assets? Decide in https://www.drupal.org/project/experience_builder/issues/3484678
     $build = $this->renderComponent([self::EXPLICIT_INPUT_NAME => $default_props_for_default_markup], $component->uuid());
+    // @see Match the wrapping that happens in \Drupal\experience_builder\Plugin\DataType\ComponentTreeHydrated::renderify().
+    // @todo Remove this in https://www.drupal.org/project/experience_builder/issues/3484678
+    // Wrap each rendered component instance in HTML comments that allow the
+    // client side to identify it.
+    $component_config_entity_uuid = $component->uuid();
+    $build['#prefix'] = Markup::create("<!-- xb-start-$component_config_entity_uuid -->");
+    $build['#suffix'] = Markup::create("<!-- xb-end-$component_config_entity_uuid -->");
+
     if (!$cache_tags) {
       unset($build['#cache']);
     }

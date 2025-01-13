@@ -1,7 +1,7 @@
 import type React from 'react';
-import { useEffect, useRef, useState } from 'react';
+import { useContext } from 'react';
+import { useEffect, useRef, useState, useMemo } from 'react';
 import styles from './PreviewOverlay.module.css';
-import useSyncElementSize from '@/hooks/useSyncElementSize';
 import { useAppSelector } from '@/app/hooks';
 import {
   selectCanvasViewPortScale,
@@ -18,11 +18,24 @@ import type {
 } from '@/features/layout/layoutModelSlice';
 import { getDistanceBetweenElements } from '@/utils/function-utils';
 import useGetComponentName from '@/hooks/useGetComponentName';
+import useSyncPreviewElementSize from '@/hooks/useSyncPreviewElementSize';
+import ComponentHtmlMapContext from '@/features/layout/preview/ComponentHtmlMapContext';
+
+export interface SlotOverlayProps {
+  slot: SlotNode;
+  iframeRef: React.RefObject<HTMLIFrameElement>;
+  parentComponent: ComponentNode;
+}
 
 const SlotOverlay: React.FC<SlotOverlayProps> = (props) => {
   const { slot, parentComponent, iframeRef } = props;
+  const { slotsMap, componentsMap } = useContext(ComponentHtmlMapContext);
   const slotId = slot.id;
-  const elementRect = useSyncElementSize(iframeRef.current, slotId);
+  const slotElementArray = useMemo(() => {
+    const element = slotsMap[slot.id]?.element;
+    return element ? [element] : null;
+  }, [slotsMap, slot.id]);
+  const elementRect = useSyncPreviewElementSize(slotElementArray);
   const [elementOffset, setElementOffset] = useState({
     horizontalDistance: 0,
     verticalDistance: 0,
@@ -44,12 +57,10 @@ const SlotOverlay: React.FC<SlotOverlayProps> = (props) => {
     }
 
     // Use querySelector to find the element inside the iframe
-    const elementInsideIframe = iframeDocument.querySelector(
-      `[data-xb-uuid="${slotId}"]`,
-    );
-    const parentElementInsideIframe = iframeDocument.querySelector(
-      `[data-xb-uuid="${parentComponent.uuid}"]`,
-    );
+    const elementInsideIframe = slotsMap[slotId]?.element;
+
+    const parentElementInsideIframe =
+      componentsMap[parentComponent.uuid]?.elements[0];
     if (!elementInsideIframe) {
       return;
     }
@@ -65,7 +76,14 @@ const SlotOverlay: React.FC<SlotOverlayProps> = (props) => {
         paddingBottom: computedStyle.paddingBottom,
       });
     }
-  }, [elementRect, iframeRef, parentComponent.uuid, slotId]);
+  }, [
+    componentsMap,
+    slotsMap,
+    elementRect,
+    iframeRef,
+    parentComponent.uuid,
+    slotId,
+  ]);
 
   return (
     <div
@@ -108,11 +126,5 @@ const SlotOverlay: React.FC<SlotOverlayProps> = (props) => {
     </div>
   );
 };
-
-export interface SlotOverlayProps {
-  slot: SlotNode;
-  iframeRef: React.RefObject<HTMLIFrameElement>;
-  parentComponent: ComponentNode;
-}
 
 export default SlotOverlay;

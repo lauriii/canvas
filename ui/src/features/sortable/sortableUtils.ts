@@ -112,3 +112,59 @@ export function getSortableGroupName(el: HTMLElement): string {
   }
   return name;
 }
+
+/**
+ * Returns true if the drop target is between two elements that share the same data-xb-uuid. This occurs
+ * when an XB component has multiple top-level elements in its template.
+ * @param ev
+ */
+export function isDropTargetBetweenTwoElementsOfSameComponent(
+  ev: SortableMoveEvent,
+): boolean {
+  /**
+   * Finds the next or previous sibling (based on `direction`) of `element` but discounts sortable clone/ghost elements.
+   * @param element
+   * @param direction
+   */
+  function getValidSibling(
+    element: HTMLElement,
+    direction: 'previous' | 'next',
+  ): Element | null {
+    let sibling =
+      direction === 'previous'
+        ? element.previousElementSibling
+        : element.nextElementSibling;
+
+    while (
+      sibling &&
+      (sibling.classList.contains('xb--sortable-clone') ||
+        sibling.classList.contains('xb--sortable-ghost'))
+    ) {
+      sibling =
+        direction === 'previous'
+          ? sibling.previousElementSibling
+          : sibling.nextElementSibling;
+    }
+    return sibling;
+  }
+
+  const prev = ev.willInsertAfter
+    ? ev.related
+    : getValidSibling(ev.related, 'previous');
+  const next = ev.willInsertAfter
+    ? getValidSibling(ev.related, 'next')
+    : ev.related;
+
+  // if both are null, we are dropping into an empty sortable container - allow it.
+  if (
+    !prev?.getAttribute('data-xb-uuid') &&
+    !next?.getAttribute('data-xb-uuid')
+  ) {
+    return false;
+  }
+
+  // if the uuids match (and are not both null), we are between two elements of the same component - don't allow it.
+  return (
+    prev?.getAttribute('data-xb-uuid') === next?.getAttribute('data-xb-uuid')
+  );
+}

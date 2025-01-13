@@ -1,7 +1,7 @@
 import type React from 'react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useContext, useRef, useState } from 'react';
 import styles from './PreviewOverlay.module.css';
-import useSyncElementSize from '@/hooks/useSyncElementSize';
+import useSyncPreviewElementSize from '@/hooks/useSyncPreviewElementSize';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import {
   selectCanvasViewPortScale,
@@ -21,6 +21,7 @@ import SlotOverlay from '@/features/layout/previewOverlay/SlotOverlay';
 import {
   customSortableDragImage,
   getSortableGroupName,
+  isDropTargetBetweenTwoElementsOfSameComponent,
   isDropTargetInSlotAllowedByEdgeDistance,
 } from '@/features/sortable/sortableUtils';
 import type {
@@ -31,6 +32,7 @@ import type {
 import ComponentContextMenu from '@/features/layout/preview/ComponentContextMenu';
 import { getDistanceBetweenElements } from '@/utils/function-utils';
 import useGetComponentName from '@/hooks/useGetComponentName';
+import ComponentHtmlMapContext from '@/features/layout/preview/ComponentHtmlMapContext';
 
 export interface ComponentOverlayProps {
   component: ComponentNode;
@@ -39,42 +41,62 @@ export interface ComponentOverlayProps {
   parentRegion?: RegionNode;
 }
 
-function moveElement(
-  element: HTMLElement,
+// Moves 1 or more DOM elements to a new parent DOM element.
+function moveDomElements(
+  elements: HTMLElement | HTMLElement[],
   newParent: HTMLElement,
   newIndex: number,
 ): void {
-  if (!element || !newParent) {
-    console.error('Element or new parent does not exist.');
+  if (!elements || !newParent) {
+    console.error('Elements or new parent does not exist.');
     return;
   }
 
-  const currentParent = element.parentNode as HTMLElement;
+  // Ensure elements is always treated as an array
+  const elementArray = Array.isArray(elements) ? elements : [elements];
 
-  // Remove the element from its current parent if it has one
-  if (currentParent) {
-    currentParent.removeChild(element);
+  // Validate all elements
+  for (const element of elementArray) {
+    if (!element.parentNode) {
+      console.error('One of the elements does not have a parent.');
+      return;
+    }
   }
 
+  // Ensure the new index is within a valid range
   const children = Array.from(newParent.children);
-
-  // Ensure the new index is within valid range
   if (newIndex < 0 || newIndex > children.length) {
     console.error('New index is out of bounds.');
     return;
   }
 
-  // Insert the element at the new position
-  if (newIndex === children.length) {
-    newParent.appendChild(element);
-  } else {
-    newParent.insertBefore(element, children[newIndex]);
-  }
+  // Move each element to the new parent
+  elementArray.forEach((element, i) => {
+    const currentParent = element.parentNode as HTMLElement;
+
+    // Remove the element from its current parent
+    if (currentParent) {
+      currentParent.removeChild(element);
+    }
+
+    // Calculate the adjusted index for each subsequent element
+    const adjustedIndex = Math.min(newIndex + i, children.length);
+
+    // Insert the element at the new position
+    if (adjustedIndex === children.length) {
+      newParent.appendChild(element);
+    } else {
+      newParent.insertBefore(element, children[adjustedIndex]);
+    }
+  });
 }
 
 const ComponentOverlay: React.FC<ComponentOverlayProps> = (props) => {
   const { component, parentSlot, parentRegion, iframeRef } = props;
-  const rect = useSyncElementSize(iframeRef.current, component.uuid);
+  const { slotsMap, componentsMap } = useContext(ComponentHtmlMapContext);
+  const rect = useSyncPreviewElementSize(
+    componentsMap[component.uuid]?.elements,
+  );
   const [elementOffset, setElementOffset] = useState({
     horizontalDistance: 0,
     verticalDistance: 0,
@@ -88,36 +110,48 @@ const ComponentOverlay: React.FC<ComponentOverlayProps> = (props) => {
   const { isDragging } = useAppSelector(selectDragging);
   const sortableContainerRef = useRef<HTMLDivElement | null>(null);
   const sortableInstance = useRef<Sortable | null>(null);
-  const elementInsideIframe = useRef<HTMLElement | null>(null);
+  const elementsInsideIframe = useRef<HTMLElement[] | []>([]);
   const name = useGetComponentName(component);
 
   useEffect(() => {
     const iframeDocument = iframeRef.current?.contentDocument;
-    if (!iframeDocument) {
+    if (!iframeDocument || !componentsMap[component.uuid]) {
       return;
     }
 
-    // Find the element inside the iframe - :not data-xb-overlay because that is the ghost element
-    // that has been dropped from the ComponentOverlay when moving components.
-    elementInsideIframe.current = iframeDocument.querySelector(
-      `[data-xb-uuid="${component.uuid}"]:not([data-xb-overlay="true"])`,
-    );
-    const parentElementInsideIframe = iframeDocument.querySelector(
-      `[data-xb-uuid="${parentSlot?.id || parentRegion?.id}"]`,
-    );
+    elementsInsideIframe.current = componentsMap[component.uuid]?.elements;
 
-    if (parentElementInsideIframe && elementInsideIframe.current) {
+    let parentElementInsideIframe = null;
+    if (parentRegion?.id) {
+      parentElementInsideIframe = iframeDocument.querySelector(
+        `[data-xb-region="${parentRegion.id}"]`,
+      );
+    }
+    if (parentSlot?.id) {
+      parentElementInsideIframe = slotsMap[parentSlot.id].element;
+    }
+
+    if (parentElementInsideIframe && elementsInsideIframe.current.length) {
       setElementOffset(
         getDistanceBetweenElements(
           parentElementInsideIframe,
-          elementInsideIframe.current,
+          // @todo Potential bug: an element amongst the elementsInsideIframe array other than the first could be further to the top/left than the first element.
+          elementsInsideIframe.current[0],
         ),
       );
       // Only set this to true once the offset has been correctly calculated to avoid the border flickering to the top
       // left when the preview updates.
       setInitialized(true);
     }
-  }, [component.uuid, iframeRef, parentSlot?.id, parentRegion?.id, rect]);
+  }, [
+    slotsMap,
+    componentsMap,
+    rect,
+    component.uuid,
+    iframeRef,
+    parentSlot?.id,
+    parentRegion?.id,
+  ]);
 
   function handleComponentClick(event: React.MouseEvent<HTMLElement>) {
     event.stopPropagation();
@@ -151,32 +185,40 @@ const ComponentOverlay: React.FC<ComponentOverlayProps> = (props) => {
           dataIdAttr: 'data-xb-uuid',
           animation: 0,
           ghostClass: 'xb--sortable-ghost',
-          draggable: '.xb--sortable-item',
+          draggable: '[data-xb-uuid]',
           onMove: (
             ev: Sortable.MoveEvent,
             originalEvent: Event | { clientX: number; clientY: number },
           ) => {
+            if (isDropTargetBetweenTwoElementsOfSameComponent(ev)) {
+              return false;
+            }
+
             return isDropTargetInSlotAllowedByEdgeDistance(ev, originalEvent);
           },
           onStart: () => {
             dispatch(setPreviewDragging(true));
             // Set opacity on the real dragged element and make it not draggable so it doesn't interfere with the indexing.
-            elementInsideIframe.current?.classList.add('xb--sortable-clone');
-            elementInsideIframe.current?.setAttribute('draggable', 'false');
+            elementsInsideIframe.current?.forEach((el) => {
+              el.classList.add('xb--sortable-clone');
+              el.setAttribute('draggable', 'false');
+            });
           },
           onEnd: (e) => {
             // Optimistically move the DOM element inside the iFrame to the new location so it updates immediately
             // even if the new doc takes a while to come back from the back end.
             if (
-              elementInsideIframe.current &&
+              elementsInsideIframe.current &&
               getSortableGroupName(e.to) === 'layout'
             ) {
               if (e.to !== undefined && e.newIndex !== undefined) {
-                moveElement(elementInsideIframe.current, e.to, e.newIndex);
+                moveDomElements(elementsInsideIframe.current, e.to, e.newIndex);
               }
             }
-            elementInsideIframe.current?.classList.remove('xb--sortable-clone');
-            elementInsideIframe.current?.removeAttribute('draggable');
+            elementsInsideIframe.current?.forEach((el) => {
+              el.classList.remove('xb--sortable-clone');
+              el.removeAttribute('draggable');
+            });
 
             // When dragging, the original item is dragged off into the canvas, and SortableJS puts a clone in its place.
             // After dragging we swap the original item back so that React doesn't lose its reference to it.

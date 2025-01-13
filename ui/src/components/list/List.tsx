@@ -12,7 +12,10 @@ import { Box, Flex, Spinner } from '@radix-ui/themes';
 import clsx from 'clsx';
 import ListItem from '@/components/list/ListItem';
 import type { LayoutModelPiece } from '@/features/layout/layoutModelSlice';
-import { isDropTargetInSlotAllowedByEdgeDistance } from '@/features/sortable/sortableUtils';
+import {
+  isDropTargetBetweenTwoElementsOfSameComponent,
+  isDropTargetInSlotAllowedByEdgeDistance,
+} from '@/features/sortable/sortableUtils';
 
 export interface ListProps {
   items: ListData | undefined;
@@ -67,6 +70,9 @@ const List: React.FC<ListProps> = (props) => {
       ev: Sortable.MoveEvent,
       originalEvent: Event | { clientX: number; clientY: number },
     ) => {
+      if (isDropTargetBetweenTwoElementsOfSameComponent(ev)) {
+        return false;
+      }
       // Prevent placing a component by dragging too close to the top or bottom edge of a slot.
       return isDropTargetInSlotAllowedByEdgeDistance(ev, originalEvent);
     },

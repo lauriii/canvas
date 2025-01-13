@@ -116,7 +116,8 @@ class PropSourceEndpointTest extends BrowserTestBase {
       $this->assertArrayHasKey('js_header', $component);
       $this->assertArrayHasKey('js_footer', $component);
     }
-    $this->assertStringStartsWith('<nav role="navigation"', $data['block.system_menu_block.main']['default_markup']);
+    $this->assertStringStartsWith('<!-- xb-start-', $data['block.system_menu_block.main']['default_markup']);
+    $this->assertStringContainsString('--><nav role="navigation"', $data['block.system_menu_block.main']['default_markup']);
 
     $data = array_intersect_key(
       $data,

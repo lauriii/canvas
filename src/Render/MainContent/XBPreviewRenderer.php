@@ -85,7 +85,8 @@ final class XBPreviewRenderer extends HtmlRenderer {
       if ($region === 'content') {
         continue;
       }
-      $page[$region]['#prefix'] = '<div class="xb--sortable-list" data-xb-uuid="' . $region . '">';
+      // @todo Remove/replace this in https://www.drupal.org/project/experience_builder/issues/3499364
+      $page[$region]['#prefix'] = '<div data-xb-region="' . $region . '" data-xb-uuid="' . $region . '">';
       $page[$region]['#suffix'] = '</div>';
     }
     return [$page, $title];

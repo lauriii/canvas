@@ -122,7 +122,8 @@ describe('Perform CRUD operations on components', () => {
         cy.wrap($h1).trigger('mouseover');
         // While in the iframe, get the dimensions of the component so we can
         // compare the outline dimensions to it
-        const $item = $h1.closest('.xb--sortable-item');
+
+        const $item = $h1.closest('[data-xb-uuid]');
         lgPreviewRect = $item[0].getBoundingClientRect();
       });
 
@@ -153,7 +154,7 @@ describe('Perform CRUD operations on components', () => {
       .then((clicked) => {
         // While in the iframe, get the dimensions of the component so we can
         // compare the outline dimensions to it
-        const item = clicked.closest('.xb--sortable-item');
+        const item = clicked.closest('[data-xb-uuid]');
         smPreviewRect = item[0].getBoundingClientRect();
       });
 
@@ -293,26 +294,18 @@ describe('Perform CRUD operations on components', () => {
     cy.loadURLandWaitForXBLoaded();
 
     // Check there are three heroes initially.
-    cy.testInIframe(
-      '[data-xb-component-id="experience_builder:my-hero"]',
-      (myHeroComponent) => {
-        expect(myHeroComponent.length).to.equal(3);
-      },
-    );
+    cy.getComponentInPreview('Hero', 1).should('exist');
+    cy.getComponentInPreview('Hero', 2).should('exist');
 
     // Select the component and ensure it's focused
     cy.clickComponentInPreview('Hero');
 
-    cy.getIframeBody().realType('{del}');
+    cy.realPress('{del}');
     cy.previewReady();
 
     // Check there are two heroes after deleting
-    cy.testInIframe(
-      '[data-xb-component-id="experience_builder:my-hero"]',
-      (myHeroComponent) => {
-        expect(myHeroComponent.length).to.equal(2);
-      },
-    );
+    cy.getComponentInPreview('Hero', 1).should('exist');
+    cy.getComponentInPreview('Hero', 2).should('not.exist');
 
     cy.getIframeBody()
       .find('[data-component-id="experience_builder:two_column"]')

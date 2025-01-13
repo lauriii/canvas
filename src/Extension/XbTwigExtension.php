@@ -16,7 +16,6 @@ final class XbTwigExtension extends AbstractExtension {
    */
   public function getNodeVisitors() {
     return [
-      new XbIncludeEmbedVisitor(),
       new XbPropVisitor(),
     ];
   }

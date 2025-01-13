@@ -19,10 +19,10 @@ This file is included as an attached Drupal library and as such is subject to CS
   --xb--sortable-empty-height: 40px;
 }
 
-.xb--preview-dragging .xb--sortable-list {
+.xb--preview-dragging [data-xb-slot-id] {
   min-height: 2rem;
 }
-.xb--sortable-list {
+[data-xb-slot-id], [data-xb-region] {
   position: relative;
   display: flow-root; /* Prevent margin collapse from content inside */
 }

@@ -52,7 +52,6 @@ final class RenderEventsSubscriber implements EventSubscriberInterface {
     $event->setPluginId('experience_builder_page_template_display');
     $event->setPluginConfiguration([
       PageTemplateDisplayVariant::PAGE_TEMPLATE_CONFIG_ENTITY_KEY => $page_template,
-      PageTemplateDisplayVariant::WRAP_MARKUP => $preview,
     ]);
   }
 

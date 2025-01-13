@@ -7,6 +7,7 @@ namespace Drupal\experience_builder\Plugin\DataType;
 use Drupal\Core\Cache\CacheableDependencyInterface;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Entity\Plugin\DataType\EntityAdapter;
+use Drupal\Core\Render\Markup;
 use Drupal\Core\Render\RenderableInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\TypedData\Attribute\DataType;
@@ -121,6 +122,11 @@ class ComponentTreeHydrated extends TypedData implements CacheableDependencyInte
         assert($component instanceof Component);
         $source = $component->getComponentSource();
         $build[$component_subtree_uuid][$component_instance_uuid] = $source->renderComponent($component_instance, $component_instance_uuid);
+
+        // Wrap each rendered component instance in HTML comments that allow the
+        // client side to identify it.
+        $build[$component_subtree_uuid][$component_instance_uuid]['#prefix'] = Markup::create("<!-- xb-start-$component_instance_uuid -->");
+        $build[$component_subtree_uuid][$component_instance_uuid]['#suffix'] = Markup::create("<!-- xb-end-$component_instance_uuid -->");
 
         // Associate the `Component` config entity cache tag with every rendered
         // component instance — remove the need for each `ComponentSource`

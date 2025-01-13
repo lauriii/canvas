@@ -27,7 +27,6 @@ final class XbTwigExtensionTest extends KernelTestBase {
 
   /**
    * @covers \Drupal\experience_builder\Extension\XbTwigExtension
-   * @covers \Drupal\experience_builder\Extension\XbIncludeEmbedVisitor
    * @covers \Drupal\experience_builder\Extension\XbPropVisitor
    */
   public function testExtension(): void {
@@ -52,20 +51,18 @@ final class XbTwigExtensionTest extends KernelTestBase {
     $crawler = new Crawler($out);
     $h1 = $crawler->filter(\sprintf('h1:contains("%s")', $heading));
     self::assertCount(1, $h1);
-    self::assertStringStartsWith(\sprintf('<!-- xb-start-%s -->', $uuid), $out);
-    self::assertStringEndsWith(\sprintf('<!-- xb-end-%s -->', $uuid), $out);
 
     $h1Text = $h1->html();
-    self::assertStringStartsWith('<!-- xb-prop-start-heading -->', $h1Text);
-    self::assertStringEndsWith('<!-- xb-prop-end-heading -->', $h1Text);
+    self::assertMatchesRegularExpression('/^<!-- xb-prop-start-(.*)\/heading -->/', $h1Text);
+    self::assertMatchesRegularExpression('/xb-prop-end-(.*)\/heading -->$/', $h1Text);
 
     $bodySlot = $crawler->filter('.component--props-slots--body');
     self::assertCount(1, $bodySlot);
     // Normalize whitespace.
     $bodyHtml = \trim(\preg_replace('/\s+/', ' ', $bodySlot->html()) ?: '');
     self::assertStringContainsString($body, $bodyHtml);
-    self::assertStringStartsWith('<!-- xb-slot-start-the_body -->', $bodyHtml);
-    self::assertStringEndsWith('<!-- xb-slot-end-the_body -->', $bodyHtml);
+    self::assertMatchesRegularExpression('/^<!-- xb-slot-start-(.*)\/the_body -->/', $bodyHtml);
+    self::assertMatchesRegularExpression('/xb-slot-end-(.*)\/the_body -->$/', $bodyHtml);
   }
 
 }

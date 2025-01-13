@@ -71,6 +71,13 @@ The overlaid components handle interactions like hover, click, drag, and right-c
 ### 5. Portals
 It was a [requirement](https://www.drupal.org/project/experience_builder/issues/3469672) that zooming the canvas should not also scale the XB UI. If a user zooms way out, we don't want the component's name in the UI to become illegibly small! To avoid these scaling issues, the `<ViewportOverlay>` uses a React portal to render into a `<div id="xbPreviewOverlay">` that exists above the element that scales when a user zooms the canvas.
 
+
+## Data Model and HTML Mapping
+
+When the server renders HTML, each region ([tbd](https://www.drupal.org/project/experience_builder/issues/3499364)), component, and slot displayed in the preview is annotated with HTML comments. This approach (as opposed to wrapping with HTML elements) ensures that the DOM structure remains unchanged, so CSS selectors and other functionalities are not affected by the introduction of rendered markup from XB.
+
+Whenever a new version of the HTML is received from the server, the `<Viewport>` component generates a map. This map links each component's UUID and slot ID to the corresponding HTML element(s) in the preview. This is accomplished using the `useComponentHtmlMap` hook. This hook updates a React Context, which stores the map and is utilized by the overlay React components.
+
 ## Drag-and-drop
 While this implementation was designed to prevent users from interacting with the content in the `<iframe>` one aspect that could not be worked around is handling drag-and-drop interactions.
 

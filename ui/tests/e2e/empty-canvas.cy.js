@@ -59,7 +59,7 @@ describe('Empty canvas', () => {
     );
     cy.waitForElementContentInIframe('div', 'There goes my hero');
     cy.getIframeBody().within(() => {
-      cy.get('[data-xb-component-id="experience_builder:my-hero"]').should(
+      cy.get('[data-component-id="experience_builder:my-hero"]').should(
         'have.length',
         1,
       );
@@ -110,7 +110,7 @@ describe('Empty canvas', () => {
     );
     cy.waitForElementContentInIframe('div', 'There goes my hero');
     cy.getIframeBody().within(() => {
-      cy.get('[data-xb-component-id="experience_builder:my-hero"]').should(
+      cy.get('[data-component-id="experience_builder:my-hero"]').should(
         'have.length',
         1,
       );

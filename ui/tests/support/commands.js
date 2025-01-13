@@ -661,7 +661,7 @@ Cypress.Commands.add(
     )
       .findAllByLabelText(componentName)
       .eq(index)
-      .click({ scrollBehavior: 'center' });
+      .click({ scrollBehavior: 'center', force: true });
     cy.debugPause(`Click Component in Preview: ${componentName} ${index}`);
   },
 );
@@ -871,28 +871,26 @@ Cypress.Commands.add('editHeroComponent', () => {
 
   // Confirm the current values of the first "My Hero" component so we can
   // be certain these values later change.
-  cy.testInIframe(
-    '[data-xb-component-id="experience_builder:my-hero"]',
-    (heroes) => {
-      const hero = heroes[0];
-      Object.entries(heroSelectors).forEach(([prop, selector]) => {
-        const heroText = onlyVisibleChars(
-          hero.querySelector(selector).textContent,
+  cy.pause();
+  cy.testInIframe('.my-hero__container', (heroes) => {
+    const hero = heroes[0];
+    Object.entries(heroSelectors).forEach(([prop, selector]) => {
+      const heroText = onlyVisibleChars(
+        hero.querySelector(selector).textContent,
+      );
+      if (heroBefore[prop]) {
+        expect(heroText, `${prop} should be ${heroBefore[prop]}`).to.equal(
+          heroBefore[prop],
         );
-        if (heroBefore[prop]) {
-          expect(heroText, `${prop} should be ${heroBefore[prop]}`).to.equal(
-            heroBefore[prop],
-          );
-        } else {
-          expect(heroText, `${prop} should be empty but it is "${heroText}"`).to
-            .be.empty;
-        }
-      });
-      expect(
-        hero.querySelector(heroSelectors['CTA 1 text']).getAttribute('href'),
-      ).to.equal('https://drupal.org');
-    },
-  );
+      } else {
+        expect(heroText, `${prop} should be empty but it is "${heroText}"`).to
+          .be.empty;
+      }
+    });
+    expect(
+      hero.querySelector(heroSelectors['CTA 1 text']).getAttribute('href'),
+    ).to.equal('https://drupal.org');
+  });
 
   const newValues = {
     Heading: 'You parked your car',

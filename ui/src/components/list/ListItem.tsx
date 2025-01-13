@@ -39,44 +39,45 @@ const ListItem: React.FC<{
   >();
 
   const clickToInsertHandler = (newId: string) => {
+    let path: number[] | null = [0];
     if (isEnabled) {
-      const path = findNodePathByUuid(layout, originUUID);
-      if (path) {
-        const newPath = [...path];
-        // First check if the selected node is a component (node with parent) or
-        // a section (node without parent).
-        if (originLayoutItemType === LayoutItemType.COMPONENT) {
-          // Example: A path [0, 2] means a node is the 3rd child of the 1st parent.
-          // So when a new node is added, it should be added as the 4th child of the 1st parent.
-          // Therefore, the newly inserted node's path would be [0, 3].
-          newPath[newPath.length - 1] += 1;
-        } else {
-          // If the selected node is in the root level, then the new node should
-          // be added as a sibling.
-          // Example: A path [1][2] means a node is the 3rd node inside the
-          // second region. Therefore, the newly inserted node's path should be
-          // [1][3].
-          newPath[1] += 1;
-        }
-
-        if (type === 'component') {
-          dispatch(
-            addNewComponentToLayout({
-              to: newPath,
-              component: item as ComponentListItem,
-            }),
-          );
-        } else if (type === 'section') {
-          dispatch(
-            addNewSectionToLayout({
-              to: newPath,
-              layoutModel: (item as SectionListItem).layoutModel,
-            }),
-          );
-        }
-
-        dispatch(disableClickToInsert());
+      path = findNodePathByUuid(layout, originUUID);
+    }
+    if (path) {
+      const newPath = [...path];
+      // First check if the selected node is a component (node with parent) or
+      // a section (node without parent).
+      if (originLayoutItemType === LayoutItemType.COMPONENT) {
+        // Example: A path [0, 2] means a node is the 3rd child of the 1st parent.
+        // So when a new node is added, it should be added as the 4th child of the 1st parent.
+        // Therefore, the newly inserted node's path would be [0, 3].
+        newPath[newPath.length - 1] += 1;
+      } else {
+        // If the selected node is in the root level, then the new node should
+        // be added as a sibling.
+        // Example: A path [1][2] means a node is the 3rd node inside the
+        // second region. Therefore, the newly inserted node's path should be
+        // [1][3].
+        newPath[1] += 1;
       }
+
+      if (type === 'component') {
+        dispatch(
+          addNewComponentToLayout({
+            to: newPath,
+            component: item as ComponentListItem,
+          }),
+        );
+      } else if (type === 'section') {
+        dispatch(
+          addNewSectionToLayout({
+            to: newPath,
+            layoutModel: (item as SectionListItem).layoutModel,
+          }),
+        );
+      }
+
+      dispatch(disableClickToInsert());
     }
   };
 

@@ -16,9 +16,7 @@ describe('Media Library', () => {
   it('Can open the media library widget in a props form', () => {
     cy.drupalLogin('xbUser', 'xbUser');
     cy.loadURLandWaitForXBLoaded();
-    cy.waitForElementInIframe(
-      '[data-xb-component-id="experience_builder:image"]',
-    );
+    cy.getComponentInPreview('Image', 0);
 
     cy.findByTestId('xb-contextual-panel--page-data').should(
       'have.attr',
@@ -50,9 +48,7 @@ describe('Media Library', () => {
     cy.get(
       '[class*="contextualPanel"] article .js-media-library-item-preview img[alt="The bones equal dollars"]',
     ).should('exist');
-    cy.waitForElementInIframe(
-      '[data-xb-component-id="experience_builder:image"] img[alt="The bones equal dollars"]',
-    );
+    cy.waitForElementInIframe('img[alt="The bones equal dollars"]');
 
     // Use the Media Library widget an additional time. This effectively
     // confirms that XBTemplateRenderer is not loading JS assets that already
@@ -77,7 +73,7 @@ describe('Media Library', () => {
       '[class*="contextualPanel"] article .js-media-library-item-preview img[alt="My barber may have been looking at a picture of a dog"]',
     ).should('exist');
     cy.waitForElementInIframe(
-      '[data-xb-component-id="experience_builder:image"] img[alt="My barber may have been looking at a picture of a dog"]',
+      'img[alt="My barber may have been looking at a picture of a dog"]',
     );
   });
 });

@@ -91,7 +91,7 @@ describe('Copy and paste a node using keyboard shortcuts', () => {
     cy.clickComponentInPreview('Hero', 2);
 
     cy.realPress(['Meta', 'v']);
-    cy.waitForElementInIframe('.column-two .xb--sortable-item:nth-child(4)');
+    cy.waitForElementInIframe('.column-two [data-xb-uuid]:nth-child(4)');
     cy.getIframeBody().findAllByText('hello, world!').should('have.length', 2);
   });
 

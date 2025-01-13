@@ -37,11 +37,11 @@ describe.skip('Component slots functionality', () => {
     cy.waitForElementContentInIframe('div', 'This is column 1 content');
     cy.waitForElementContentInIframe('div', 'This is column 2 content');
     cy.getIframeBody().within(() => {
-      cy.get('[data-xb-component-id="experience_builder:two_column"]').should(
+      cy.get('[data-component-id="experience_builder:two_column"]').should(
         'have.length',
         2,
       );
-      cy.get('[data-xb-component-id="experience_builder:two_column"]')
+      cy.get('[data-component-id="experience_builder:two_column"]')
         .first()
         .findByText('hello, world!');
     });
@@ -62,11 +62,11 @@ describe.skip('Component slots functionality', () => {
     cy.waitForElementContentNotInIframe('div', 'This is column 1 content');
     cy.waitForElementContentInIframe('div', 'This is column 2 content');
     cy.getIframeBody().within(() => {
-      cy.get('[data-xb-component-id="experience_builder:two_column"]').should(
+      cy.get('[data-component-id="experience_builder:two_column"]').should(
         'have.length',
         2,
       );
-      cy.get('[data-xb-component-id="experience_builder:two_column"]')
+      cy.get('[data-component-id="experience_builder:two_column"]')
         .eq(1)
         .findByText('hello, world!');
     });
@@ -90,14 +90,14 @@ describe.skip('Component slots functionality', () => {
     cy.waitForElementContentNotInIframe('div', 'This is column 1 content');
     cy.waitForElementContentNotInIframe('div', 'This is column 2 content');
     cy.getIframeBody().within(() => {
-      cy.get('[data-xb-component-id="experience_builder:two_column"]').should(
+      cy.get('[data-component-id="experience_builder:two_column"]').should(
         'have.length',
         2,
       );
-      cy.get('[data-xb-component-id="experience_builder:two_column"]')
+      cy.get('[data-component-id="experience_builder:two_column"]')
         .eq(1)
         .findByText('hello, world!');
-      cy.get('[data-xb-component-id="experience_builder:two_column"]')
+      cy.get('[data-component-id="experience_builder:two_column"]')
         .eq(1)
         .findByText('Our Mission')
         .should('exist');

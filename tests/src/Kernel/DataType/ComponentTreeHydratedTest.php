@@ -7,6 +7,7 @@ namespace Drupal\Tests\experience_builder\Kernel\DataType;
 use Drupal\Core\Access\AccessResultAllowed;
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Cache\CacheableMetadata;
+use Drupal\Core\Render\Markup;
 use Drupal\Core\Render\RendererInterface;
 use Drupal\Core\TypedData\TypedDataManagerInterface;
 use Drupal\experience_builder\HydratedTree;
@@ -187,20 +188,22 @@ class ComponentTreeHydratedTest extends KernelTestBase {
                 '#plain_text' => '',
               ],
             ],
+            '#prefix' => Markup::create('<!-- xb-start-uuid-in-root -->'),
+            '#suffix' => Markup::create('<!-- xb-end-uuid-in-root -->'),
           ],
         ],
       ],
       'expected_html' => <<<HTML
 <!-- xb-start-uuid-in-root --><div  data-component-id="xb_test_sdc:props-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
-  <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;"><!-- xb-prop-start-heading -->Hello, world!<!-- xb-prop-end-heading --></h1>
+  <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;"><!-- xb-prop-start-uuid-in-root/heading -->Hello, world!<!-- xb-prop-end-uuid-in-root/heading --></h1>
   <div class="component--props-slots--body">
-        <!-- xb-slot-start-the_body --><p>Example value for <strong>the_body</strong> slot in <strong>prop-slots</strong> component.</p><!-- xb-slot-end-the_body -->
+        <!-- xb-slot-start-uuid-in-root/the_body --><p>Example value for <strong>the_body</strong> slot in <strong>prop-slots</strong> component.</p><!-- xb-slot-end-uuid-in-root/the_body -->
     </div>
   <div class="component--props-slots--footer">
-        <!-- xb-slot-start-the_footer -->Example value for &lt;strong&gt;the_footer&lt;/strong&gt;.<!-- xb-slot-end-the_footer -->
+        <!-- xb-slot-start-uuid-in-root/the_footer -->Example value for &lt;strong&gt;the_footer&lt;/strong&gt;.<!-- xb-slot-end-uuid-in-root/the_footer -->
     </div>
   <div class="component--props-slots--colophon">
-        <!-- xb-slot-start-the_colophon --><!-- xb-slot-end-the_colophon -->
+        <!-- xb-slot-start-uuid-in-root/the_colophon --><!-- xb-slot-end-uuid-in-root/the_colophon -->
     </div>
 </div>
 <!-- xb-end-uuid-in-root -->
@@ -274,17 +277,20 @@ HTML,
               'contexts' => [],
               'max-age' => Cache::PERMANENT,
             ],
+            '#prefix' => '',
+            '#suffix' => '',
+
           ],
         ],
       ],
       'expected_html' => <<<HTML
-<div id="block-uuid-in-root">
+<!-- xb-start-uuid-in-root --><div id="block-uuid-in-root">
 
 
           <a href="/" rel="home">XB Test Site</a>
     Experience Builder Test Site
 </div>
-
+<!-- xb-end-uuid-in-root -->
 HTML,
       'expected_cache_tags' => [
         'config:experience_builder.component.block.system_branding_block',
@@ -333,6 +339,8 @@ HTML,
               'xb_uuid' => 'uuid-in-root',
               'xb_slot_ids' => [],
             ],
+            '#prefix' => Markup::create('<!-- xb-start-uuid-in-root -->'),
+            '#suffix' => Markup::create('<!-- xb-end-uuid-in-root -->'),
           ],
           'uuid-in-root-another' => [
             '#type' => 'component',
@@ -347,15 +355,17 @@ HTML,
               'xb_uuid' => 'uuid-in-root-another',
               'xb_slot_ids' => [],
             ],
+            '#prefix' => Markup::create('<!-- xb-start-uuid-in-root-another -->'),
+            '#suffix' => Markup::create('<!-- xb-end-uuid-in-root-another -->'),
           ],
         ],
       ],
       'expected_html' => <<<HTML
 <!-- xb-start-uuid-in-root --><div  data-component-id="xb_test_sdc:props-no-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
-  <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;"><!-- xb-prop-start-heading -->Hello, world!<!-- xb-prop-end-heading --></h1>
+  <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;"><!-- xb-prop-start-uuid-in-root/heading -->Hello, world!<!-- xb-prop-end-uuid-in-root/heading --></h1>
 </div>
 <!-- xb-end-uuid-in-root --><!-- xb-start-uuid-in-root-another --><div  data-component-id="xb_test_sdc:props-no-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
-  <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;"><!-- xb-prop-start-heading -->Hello, another world!<!-- xb-prop-end-heading --></h1>
+  <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;"><!-- xb-prop-start-uuid-in-root-another/heading -->Hello, another world!<!-- xb-prop-end-uuid-in-root-another/heading --></h1>
 </div>
 <!-- xb-end-uuid-in-root-another -->
 HTML,
@@ -435,26 +445,30 @@ HTML,
                     'xb_uuid' => 'uuid-in-slot',
                     'xb_slot_ids' => [],
                   ],
+                  '#prefix' => Markup::create('<!-- xb-start-uuid-in-slot -->'),
+                  '#suffix' => Markup::create('<!-- xb-end-uuid-in-slot -->'),
                 ],
               ],
             ],
+            '#prefix' => Markup::create('<!-- xb-start-uuid-in-root -->'),
+            '#suffix' => Markup::create('<!-- xb-end-uuid-in-root -->'),
           ],
         ],
       ],
       'expected_html' => <<<HTML
 <!-- xb-start-uuid-in-root --><div  data-component-id="xb_test_sdc:props-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
-  <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;"><!-- xb-prop-start-heading -->Hello, world!<!-- xb-prop-end-heading --></h1>
+  <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;"><!-- xb-prop-start-uuid-in-root/heading -->Hello, world!<!-- xb-prop-end-uuid-in-root/heading --></h1>
   <div class="component--props-slots--body">
-        <!-- xb-slot-start-the_body --><!-- xb-start-uuid-in-slot --><div  data-component-id="xb_test_sdc:props-no-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
-  <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;"><!-- xb-prop-start-heading -->Hello, from a slot!<!-- xb-prop-end-heading --></h1>
+        <!-- xb-slot-start-uuid-in-root/the_body --><!-- xb-start-uuid-in-slot --><div  data-component-id="xb_test_sdc:props-no-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
+  <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;"><!-- xb-prop-start-uuid-in-slot/heading -->Hello, from a slot!<!-- xb-prop-end-uuid-in-slot/heading --></h1>
 </div>
-<!-- xb-end-uuid-in-slot --><!-- xb-slot-end-the_body -->
+<!-- xb-end-uuid-in-slot --><!-- xb-slot-end-uuid-in-root/the_body -->
     </div>
   <div class="component--props-slots--footer">
-        <!-- xb-slot-start-the_footer -->Example value for &lt;strong&gt;the_footer&lt;/strong&gt;.<!-- xb-slot-end-the_footer -->
+        <!-- xb-slot-start-uuid-in-root/the_footer -->Example value for &lt;strong&gt;the_footer&lt;/strong&gt;.<!-- xb-slot-end-uuid-in-root/the_footer -->
     </div>
   <div class="component--props-slots--colophon">
-        <!-- xb-slot-start-the_colophon --><!-- xb-slot-end-the_colophon -->
+        <!-- xb-slot-start-uuid-in-root/the_colophon --><!-- xb-slot-end-uuid-in-root/the_colophon -->
     </div>
 </div>
 <!-- xb-end-uuid-in-root -->
@@ -623,6 +637,8 @@ HTML,
                                 'xb_uuid' => 'uuid-level-3',
                                 'xb_slot_ids' => [],
                               ],
+                              '#prefix' => Markup::create('<!-- xb-start-uuid-level-3 -->'),
+                              '#suffix' => Markup::create('<!-- xb-end-uuid-level-3 -->'),
                             ],
                             'uuid-block' => [
                               '#access' => new AccessResultAllowed(),
@@ -671,6 +687,8 @@ HTML,
                                 'contexts' => [],
                                 'max-age' => Cache::PERMANENT,
                               ],
+                              '#prefix' => Markup::create('<!-- xb-start-uuid-block -->'),
+                              '#suffix' => Markup::create('<!-- xb-end-uuid-block -->'),
                             ],
                             'uuid-last-in-tree' => [
                               '#type' => 'component',
@@ -685,65 +703,73 @@ HTML,
                                 'xb_uuid' => 'uuid-last-in-tree',
                                 'xb_slot_ids' => [],
                               ],
+                              '#prefix' => Markup::create('<!-- xb-start-last-in-tree -->'),
+                              '#suffix' => Markup::create('<!-- xb-end-uuid-last-in-tree -->'),
                             ],
                           ],
                         ],
+                        '#prefix' => Markup::create('<!-- xb-start-uuid-level-2 -->'),
+                        '#suffix' => Markup::create('<!-- xb-end-uuid-level-2 -->'),
                       ],
                     ],
                   ],
+                  '#prefix' => Markup::create('<!-- xb-start-uuid-level-1 -->'),
+                  '#suffix' => Markup::create('<!-- xb-end-uuid-level-1 -->'),
                 ],
               ],
             ],
+            '#prefix' => Markup::create('<!-- xb-start-uuid-in-root -->'),
+            '#suffix' => Markup::create('<!-- xb-end-uuid-in-root -->'),
           ],
         ],
       ],
       'expected_html' => <<<HTML
 <!-- xb-start-uuid-in-root --><div  data-component-id="xb_test_sdc:props-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
-  <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;"><!-- xb-prop-start-heading -->Hello, world!<!-- xb-prop-end-heading --></h1>
+  <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;"><!-- xb-prop-start-uuid-in-root/heading -->Hello, world!<!-- xb-prop-end-uuid-in-root/heading --></h1>
   <div class="component--props-slots--body">
-        <!-- xb-slot-start-the_body --><!-- xb-start-uuid-level-1 --><div  data-component-id="xb_test_sdc:props-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
-  <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;"><!-- xb-prop-start-heading -->Hello, from slot level 1!<!-- xb-prop-end-heading --></h1>
+        <!-- xb-slot-start-uuid-in-root/the_body --><!-- xb-start-uuid-level-1 --><div  data-component-id="xb_test_sdc:props-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
+  <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;"><!-- xb-prop-start-uuid-level-1/heading -->Hello, from slot level 1!<!-- xb-prop-end-uuid-level-1/heading --></h1>
   <div class="component--props-slots--body">
-        <!-- xb-slot-start-the_body --><!-- xb-start-uuid-level-2 --><div  data-component-id="xb_test_sdc:props-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
-  <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;"><!-- xb-prop-start-heading -->Hello, from slot level 2!<!-- xb-prop-end-heading --></h1>
+        <!-- xb-slot-start-uuid-level-1/the_body --><!-- xb-start-uuid-level-2 --><div  data-component-id="xb_test_sdc:props-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
+  <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;"><!-- xb-prop-start-uuid-level-2/heading -->Hello, from slot level 2!<!-- xb-prop-end-uuid-level-2/heading --></h1>
   <div class="component--props-slots--body">
-        <!-- xb-slot-start-the_body --><!-- xb-start-uuid-level-3 --><div  data-component-id="xb_test_sdc:props-no-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
-  <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;"><!-- xb-prop-start-heading -->Hello, from slot level 3!<!-- xb-prop-end-heading --></h1>
+        <!-- xb-slot-start-uuid-level-2/the_body --><!-- xb-start-uuid-level-3 --><div  data-component-id="xb_test_sdc:props-no-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
+  <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;"><!-- xb-prop-start-uuid-level-3/heading -->Hello, from slot level 3!<!-- xb-prop-end-uuid-level-3/heading --></h1>
 </div>
-<!-- xb-end-uuid-level-3 --><div id="block-uuid-block">
+<!-- xb-end-uuid-level-3 --><!-- xb-start-uuid-block --><div id="block-uuid-block">
 
 
           <a href="/" rel="home">XB Test Site</a>
     Experience Builder Test Site
 </div>
-<!-- xb-start-uuid-last-in-tree --><div  data-component-id="xb_test_sdc:props-no-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
-  <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;"><!-- xb-prop-start-heading -->Hello, from slot &lt;LAST ONE&gt;!<!-- xb-prop-end-heading --></h1>
+<!-- xb-end-uuid-block --><!-- xb-start-uuid-last-in-tree --><div  data-component-id="xb_test_sdc:props-no-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
+  <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;"><!-- xb-prop-start-uuid-last-in-tree/heading -->Hello, from slot &lt;LAST ONE&gt;!<!-- xb-prop-end-uuid-last-in-tree/heading --></h1>
 </div>
-<!-- xb-end-uuid-last-in-tree --><!-- xb-slot-end-the_body -->
+<!-- xb-end-uuid-last-in-tree --><!-- xb-slot-end-uuid-level-2/the_body -->
     </div>
   <div class="component--props-slots--footer">
-        <!-- xb-slot-start-the_footer -->Example value for &lt;strong&gt;the_footer&lt;/strong&gt;.<!-- xb-slot-end-the_footer -->
+        <!-- xb-slot-start-uuid-level-2/the_footer -->Example value for &lt;strong&gt;the_footer&lt;/strong&gt;.<!-- xb-slot-end-uuid-level-2/the_footer -->
     </div>
   <div class="component--props-slots--colophon">
-        <!-- xb-slot-start-the_colophon --><!-- xb-slot-end-the_colophon -->
+        <!-- xb-slot-start-uuid-level-2/the_colophon --><!-- xb-slot-end-uuid-level-2/the_colophon -->
     </div>
 </div>
-<!-- xb-end-uuid-level-2 --><!-- xb-slot-end-the_body -->
+<!-- xb-end-uuid-level-2 --><!-- xb-slot-end-uuid-level-1/the_body -->
     </div>
   <div class="component--props-slots--footer">
-        <!-- xb-slot-start-the_footer -->Example value for &lt;strong&gt;the_footer&lt;/strong&gt;.<!-- xb-slot-end-the_footer -->
+        <!-- xb-slot-start-uuid-level-1/the_footer -->Example value for &lt;strong&gt;the_footer&lt;/strong&gt;.<!-- xb-slot-end-uuid-level-1/the_footer -->
     </div>
   <div class="component--props-slots--colophon">
-        <!-- xb-slot-start-the_colophon --><!-- xb-slot-end-the_colophon -->
+        <!-- xb-slot-start-uuid-level-1/the_colophon --><!-- xb-slot-end-uuid-level-1/the_colophon -->
     </div>
 </div>
-<!-- xb-end-uuid-level-1 --><!-- xb-slot-end-the_body -->
+<!-- xb-end-uuid-level-1 --><!-- xb-slot-end-uuid-in-root/the_body -->
     </div>
   <div class="component--props-slots--footer">
-        <!-- xb-slot-start-the_footer -->Example value for &lt;strong&gt;the_footer&lt;/strong&gt;.<!-- xb-slot-end-the_footer -->
+        <!-- xb-slot-start-uuid-in-root/the_footer -->Example value for &lt;strong&gt;the_footer&lt;/strong&gt;.<!-- xb-slot-end-uuid-in-root/the_footer -->
     </div>
   <div class="component--props-slots--colophon">
-        <!-- xb-slot-start-the_colophon --><!-- xb-slot-end-the_colophon -->
+        <!-- xb-slot-start-uuid-in-root/the_colophon --><!-- xb-slot-end-uuid-in-root/the_colophon -->
     </div>
 </div>
 <!-- xb-end-uuid-in-root -->

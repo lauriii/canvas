@@ -19,10 +19,13 @@ describe('Block form with details elements', () => {
     cy.get('#cea4c5b3-7921-4c6f-b388-da921bd1496d-name').should((blockName) => {
       expect(blockName).to.have.text('Administration');
     });
+    // @todo not 100% sure but it looks like adding a block results in the
+    // overlays having 0 width 0 height.
     cy.get(
       '[data-xb-viewport-size="lg"] [data-xb-component-id="block.system_menu_block.admin"] .xb--component-controls button',
     ).realClick({
       scrollBehavior: false,
+      force: true,
     });
 
     // Confirm that an element in the block settings form is present.

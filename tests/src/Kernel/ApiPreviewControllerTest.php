@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Drupal\Tests\experience_builder\Kernel;
 
 use Drupal\experience_builder\Entity\PageTemplate;
-use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\Tests\experience_builder\TestSite\XBTestSetup;
 use Drupal\Tests\user\Traits\UserCreationTrait;
@@ -52,7 +51,7 @@ final class ApiPreviewControllerTest extends KernelTestBase {
     ], JSON_THROW_ON_ERROR)));
 
     // Check that the root level is structured correctly.
-    $root = $this->cssSelect('main div.xb--sortable-list[data-xb-uuid="content"]');
+    $root = $this->cssSelect('main div[data-xb-region][data-xb-uuid="content"]');
     $this->assertNotEmpty($root);
     $this->assertCount(0, $root[0]);
   }
@@ -89,11 +88,12 @@ final class ApiPreviewControllerTest extends KernelTestBase {
     ], JSON_THROW_ON_ERROR)));
 
     // Check that the root level is structured correctly.
-    $root = $this->cssSelect('main div.xb--sortable-list[data-xb-uuid="content"]');
+    $root = $this->cssSelect('main div[data-xb-region="content"]');
+
     $this->assertNotEmpty($root);
     $this->assertGreaterThan(0, $root[0]->count());
-    $uuids = $this->assertStructure($root[0]->children());
-    $this->assertSame(['c4074d1f-149a-4662-aaf3-615151531cf6'], $uuids);
+    preg_match_all('/(xb-start-)(.*?)[\/ \t](.*?)(-->)(.*?)/', $root[0]->asXML() ?: '', $slot_and_component_comments);
+    $this->assertSame(['c4074d1f-149a-4662-aaf3-615151531cf6'], $slot_and_component_comments[2]);
   }
 
   public function test(): void {
@@ -104,11 +104,12 @@ final class ApiPreviewControllerTest extends KernelTestBase {
     $this->request(Request::create('/api/preview/node/1', content: $content));
 
     // Check that each level is structured correctly.
-    $root = $this->cssSelect('main div.xb--sortable-list[data-xb-uuid="content"]');
+    $root = $this->cssSelect('main div[data-xb-region][data-xb-uuid="content"]');
     $this->assertNotEmpty($root);
     $this->assertGreaterThan(0, $root[0]->count());
-    $uuids = $this->assertStructure($root[0]->children());
-    $this->assertSame(array_keys($model), $uuids);
+    preg_match_all('/(xb-start-)(.*?)[\/ \t](.*?)(-->)(.*?)/', $root[0]->asXML() ?: '', $slot_and_component_comments);
+    $this->assertCount(6, $slot_and_component_comments[2]);
+    $this->assertSame(array_keys($model), $slot_and_component_comments[2]);
   }
 
   public function testWithGlobal(): void {
@@ -126,8 +127,8 @@ final class ApiPreviewControllerTest extends KernelTestBase {
 
     // Check that regions exist and are wrapped.
     $crawler = new Crawler($this->content);
-    self::assertCount(1, $crawler->filter('.xb--sortable-list[data-xb-uuid="content"]'));
-    self::assertCount(1, $crawler->filter('.xb--sortable-list[data-xb-uuid="highlighted"]'));
+    self::assertCount(1, $crawler->filter('[data-xb-uuid="content"]'));
+    self::assertCount(1, $crawler->filter('[data-xb-uuid="highlighted"]'));
   }
 
   /**
@@ -139,31 +140,6 @@ final class ApiPreviewControllerTest extends KernelTestBase {
     $this->assertIsString($content);
     $this->setRawContent(json_decode($content, TRUE)['html']);
     return $response;
-  }
-
-  private function assertStructure(\SimpleXMLElement $items): array {
-    $uuids = [];
-    foreach ($items as $item) {
-      switch ((string) $item->attributes()->class) {
-        case 'xb--sortable-item':
-          $this->assertNotEmpty((string) $item->attributes()->{'data-xb-uuid'});
-          $uuids[] = (string) $item->attributes()->{'data-xb-uuid'};
-          $this->assertNotEquals(ComponentTreeStructure::ROOT_UUID, $item->attributes()->{'data-xb-uuid'});
-          $this->assertNotEmpty((string) $item->attributes()->{'data-xb-component-id'});
-          break;
-
-        case 'xb--sortable-list':
-          $this->assertNotEmpty((string) $item->attributes()->{'data-xb-uuid'});
-          $this->assertNotEquals(ComponentTreeStructure::ROOT_UUID, $item->attributes()->{'data-xb-uuid'});
-          break;
-      }
-
-      if ($item->count()) {
-        $uuids = array_merge($uuids, $this->assertStructure($item->children()));
-      }
-    }
-
-    return $uuids;
   }
 
 }

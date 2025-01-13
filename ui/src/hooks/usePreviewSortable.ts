@@ -13,12 +13,17 @@ import { setTargetSlot, unsetTargetSlot } from '@/features/ui/uiSlice';
 import { findNodePathByUuid } from '@/features/layout/layoutUtils';
 import { useGetComponentsQuery } from '@/services/components';
 import { useGetDummySectionsQuery } from '@/services/sections';
+import type { SlotsMap } from '@/types/AnnotationMaps';
+import { insertPlaceholderIfMatchingComments } from '@/utils/function-utils';
 
 /**
  * This hook initializes the SortableJS implementation to allow for drag and drop interactions within the preview iFrames.
  */
 
-function usePreviewSortable(iframe: HTMLIFrameElement | null): {
+function usePreviewSortable(
+  iframe: HTMLIFrameElement | null,
+  slotsMap: SlotsMap,
+): {
   destroySortables: () => void;
   disableSortables: () => void;
   enableSortables: () => void;
@@ -51,7 +56,7 @@ function usePreviewSortable(iframe: HTMLIFrameElement | null): {
 
       const receivingParentPath = findNodePathByUuid(
         layout,
-        ev.to.dataset.xbUuid,
+        ev.to.dataset.xbSlotId || ev.to.dataset.xbUuid, // Slot || region
       );
 
       if (receivingParentPath) {
@@ -132,8 +137,8 @@ function usePreviewSortable(iframe: HTMLIFrameElement | null): {
 
   const handleChange = useCallback(
     (ev: Sortable.SortableEvent) => {
-      if (ev.to.dataset.xbUuid) {
-        dispatch(setTargetSlot(ev.to.dataset.xbUuid));
+      if (ev.to.dataset.xbSlotId) {
+        dispatch(setTargetSlot(ev.to.dataset.xbSlotId));
       } else {
         dispatch(unsetTargetSlot());
       }
@@ -174,10 +179,13 @@ function usePreviewSortable(iframe: HTMLIFrameElement | null): {
 
     const initSortableList = (listEl: HTMLElement) => {
       // if listEl is empty, insert an empty placeholder div that we can style.
-      if (!listEl.hasChildNodes()) {
-        const placeholderDiv = document.createElement('div');
-        placeholderDiv.classList.add('xb--sortable-slot-empty-placeholder');
-        listEl.appendChild(placeholderDiv);
+      if (!listEl.children.length) {
+        if (listEl.hasAttribute('data-xb-region')) {
+          const placeholderDiv = document.createElement('div');
+          placeholderDiv.classList.add('xb--sortable-slot-empty-placeholder');
+          listEl.appendChild(placeholderDiv);
+        }
+        insertPlaceholderIfMatchingComments(listEl);
       }
       // Initialize SortableJS on the elements inside the iframe
       const sortableInstance = Sortable.create(listEl, {
@@ -212,15 +220,26 @@ function usePreviewSortable(iframe: HTMLIFrameElement | null): {
     if (!iframeDocumentRef.current) {
       return;
     }
-    const sortableLists =
+
+    // This is just the main region/content/root sortable now.
+    const sortableRegions =
       iframeDocumentRef.current.querySelectorAll<HTMLElement>(
-        '.xb--sortable-list',
+        '[data-xb-region]',
       );
 
-    sortableLists.forEach((sortableList) => {
+    const sortableSlots = Object.entries(slotsMap).map(([slotId, slot]) => {
+      return slot.element;
+    });
+
+    const sortableParentElements = [
+      ...Array.from(sortableRegions),
+      ...sortableSlots,
+    ];
+
+    sortableParentElements.forEach((sortableList) => {
       initSortableList(sortableList);
     });
-  }, [iframe, handleDragAdd, handleChange]);
+  }, [iframe, slotsMap, handleDragAdd, handleChange]);
 
   useEffect(() => {
     modelRef.current = model;
