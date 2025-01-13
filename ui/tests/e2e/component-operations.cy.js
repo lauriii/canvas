@@ -330,4 +330,32 @@ describe('Perform CRUD operations on components', () => {
       .findAllByLabelText('Two Column')
       .should('not.exist');
   });
+
+  it('Can add a component with empty slots via the Add section button', () => {
+    cy.loadURLandWaitForXBLoaded();
+    // Assert there is an existing two column SDC on the page already.
+    cy.findByTestId('xb-primary-panel').within(() => {
+      cy.findAllByText('Two Column').should('have.length', 1);
+    });
+    cy.get('.primaryPanelContent').findByText('Two Column').click();
+    cy.findAllByLabelText('Add section')
+      .first()
+      .click({ scrollBehavior: 'center' });
+    // Check the active panel is the library panel.
+    cy.get('[data-testid="xb-primary-panel--library"]').should(
+      'have.attr',
+      'data-state',
+      'active',
+    );
+    cy.get('.primaryPanelContent').should('contain.text', 'Sections');
+    // Click on Two Column inside menu.
+    cy.get('.primaryPanelContent').findByText('Two Column').click();
+    cy.waitForElementContentInIframe('div', 'This is column 1 content');
+    cy.waitForElementContentInIframe('div', 'This is column 2 content');
+    cy.openLayersPanel();
+    // Assert that a second two column SDC has been added.
+    cy.findByTestId('xb-primary-panel').within(() => {
+      cy.findAllByText('Two Column').should('have.length', 2);
+    });
+  });
 });
