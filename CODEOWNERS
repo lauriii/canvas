@@ -9,7 +9,7 @@
 # Client side.
 #
 
-[UI] @balintbrews @bnjmnm @jessebaker @hooroomoo
+[UI] @balintbrews @bnjmnm @jessebaker @hooroomoo @larowlan
 /ui/
 
 [UI utils] @balintbrews @bnjmnm @jessebaker @hooroomoo @effulgentsia
@@ -20,7 +20,7 @@
 #
 
 # Issues: https://www.drupal.org/project/issues/search/experience_builder?issue_tags=openapi
-[OpenAPI] @traviscarden
+[OpenAPI] @traviscarden @larowlan
 /openapi.yml
 /src/EventSubscriber/ApiMessageValidatorBase.php
 /src/EventSubscriber/ApiRequestValidator.php
@@ -39,7 +39,7 @@
 /experience_builder.semi_coupled_theme_engine.inc
 
 # Issues: https://www.drupal.org/project/issues/experience_builder?component=Redux-integrated+field+widgets
-[Redux-integrated field widgets] @bnjmnm @effulgentsia @wimleers
+[Redux-integrated field widgets] @bnjmnm @effulgentsia @wimleers @larowlan
 /ui/src/components/form/inputBehaviors.tsx
 /tests/src/Cypress/cypress/e2e/media-library.cy.js
 /tests/src/Cypress/cypress/e2e/prop-types.cy.js
@@ -53,11 +53,11 @@
 #
 
 # The default for the back-end, with more specific code owners for specific areas.
-[Page Builder back-end] @wimleers @f.mazeikis @tedbow @effulgentsia
+[Page Builder back-end] @wimleers @f.mazeikis @tedbow @effulgentsia @larowlan
 /src/
 
 # Issues: https://www.drupal.org/project/issues/experience_builder?component=Config+management
-[Config management] @f.mazeikis @wimleers
+[Config management] @f.mazeikis @wimleers @larowlan
 /docs/config-management.md
 /docs/diagrams/config-management.md
 /config/schema/
