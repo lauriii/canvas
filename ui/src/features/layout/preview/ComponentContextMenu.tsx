@@ -132,7 +132,7 @@ const ComponentContextMenu: React.FC<ComponentContextMenuProps> = (props) => {
             </ContextMenu.Item>
           </ContextMenu.SubContent>
         </ContextMenu.Sub>
-        <ComponentContextMenuRegions />
+        <ComponentContextMenuRegions component={component} />
         <ContextMenu.Separator />
         <ContextMenu.Item shortcut="⌫" color="red" onClick={handleDeleteClick}>
           Delete

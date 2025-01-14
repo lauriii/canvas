@@ -2,12 +2,16 @@
 import {
   isChildNode,
   replaceUUIDsAndUpdateModel,
+  findParentRegion,
 } from '@/features/layout/layoutUtils';
 
-let layout;
+let layout, regionsLayout;
 before('Load fixture', function () {
   cy.fixture('layout-default.json').then((data) => {
     layout = data;
+  });
+  cy.fixture('layout-regions.json').then((data) => {
+    regionsLayout = data;
   });
 });
 
@@ -125,6 +129,31 @@ describe('replaceUUIDsAndUpdateModel', () => {
           expect(componentData).to.have.all.keys('text', 'href', 'name');
         }
       });
+    });
+  });
+
+  describe('findParentRegion', () => {
+    it('should find the correct parent region for a given UUID', () => {
+      // Test for a component directly in a region
+      const headerRegion = findParentRegion(
+        regionsLayout.layout,
+        '13ea974f-cf74-406a-9171-dad5f96e805f',
+      );
+      expect(headerRegion.id).to.equal('header');
+
+      // Test for a component in nested slots
+      const contentRegion = findParentRegion(
+        regionsLayout.layout,
+        '8afbb203-ae72-4155-8319-8c7b1915787a',
+      );
+      expect(contentRegion.id).to.equal('content');
+
+      // Test for a non-existent UUID
+      const nonExistentRegion = findParentRegion(
+        regionsLayout.layout,
+        'non-existent-uuid',
+      );
+      expect(nonExistentRegion).to.be.undefined;
     });
   });
 });

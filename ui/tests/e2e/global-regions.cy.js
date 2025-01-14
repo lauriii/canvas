@@ -1,16 +1,61 @@
 describe('Operate on components in global regions', () => {
   before(() => {
     cy.drupalXbInstall();
+    cy.drupalEnableTheme('olivero');
+    cy.drupalEnableThemeForXb('olivero');
+  });
+
+  beforeEach(() => {
+    cy.drupalLogin('xbUser', 'xbUser');
   });
 
   after(() => {
     cy.drupalUninstall();
   });
 
+  it('Can move components between global regions', () => {
+    cy.loadURLandWaitForXBLoaded();
+    cy.findByTestId('xb-primary-panel').as('layersTree');
+
+    cy.log('Move "Breadcrumbs" component UP into the Highlighted Region');
+    cy.get('@layersTree').findByText('Breadcrumbs').trigger('contextmenu');
+    cy.findByText('Move to global region').click();
+
+    cy.findByText('Highlighted', { selector: '[role="menuitem"]' }).click();
+
+    cy.log(
+      '"Breadcrumbs" component should now be the LAST child in the Highlighted region',
+    );
+    cy.get('@layersTree')
+      .findByText('Breadcrumbs')
+      .parents('.treeItem')
+      .then(($div) => {
+        // Assert that the div is the last child of its new parent region.
+        expect($div.is(':last-child')).to.be.true;
+      });
+
+    cy.log(
+      'Move "User account menu" component DOWN into the Highlighted Region',
+    );
+    cy.get('@layersTree')
+      .findByText('User account menu')
+      .trigger('contextmenu');
+    cy.findByText('Move to global region').click();
+
+    cy.findByText('Highlighted', { selector: '[role="menuitem"]' }).click();
+    cy.log(
+      '"User account menu" component should now be the FIRST child in the Highlighted region',
+    );
+    cy.get('@layersTree')
+      .findByText('User account menu')
+      .parents('.treeItem')
+      .then(($div) => {
+        // Assert that the div is the first child of its new parent region.
+        expect($div.is(':first-child')).to.be.true;
+      });
+  });
+
   it('Can interact with components in global regions', () => {
-    cy.drupalEnableTheme('olivero');
-    cy.drupalEnableThemeForXb('olivero');
-    cy.drupalLogin('xbUser', 'xbUser');
     cy.loadURLandWaitForXBLoaded();
 
     cy.get('#xbPreviewOverlay .xb--viewport-overlay')

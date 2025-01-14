@@ -393,3 +393,35 @@ export function replaceUUIDsAndUpdateModel(
 
   return { updatedNode, updatedModel };
 }
+
+/**
+ * Takes an array of RegionNodes and the UUID of a component and returns the region node that contains a ComponentNode
+ * that matches the UUID.
+ * @param layout - an array of RegionNode
+ * @param uuid - a uuid of a component somewhere in the layout
+ */
+export function findParentRegion(
+  layout: RegionNode[],
+  uuid: string,
+): RegionNode | undefined {
+  function findInSlots(slots: SlotNode[], uuid: string): boolean {
+    for (const slot of slots) {
+      for (const component of slot.components) {
+        if (component.uuid === uuid || findInSlots(component.slots, uuid)) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  for (const region of layout) {
+    for (const component of region.components) {
+      if (component.uuid === uuid || findInSlots(component.slots, uuid)) {
+        return region;
+      }
+    }
+  }
+
+  return undefined;
+}
