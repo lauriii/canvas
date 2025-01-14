@@ -12,7 +12,7 @@ import {
 import { setTargetSlot, unsetTargetSlot } from '@/features/ui/uiSlice';
 import { findNodePathByUuid } from '@/features/layout/layoutUtils';
 import { useGetComponentsQuery } from '@/services/components';
-import { useGetDummySectionsQuery } from '@/services/sections';
+import { useGetSectionsQuery } from '@/services/sections';
 import type { SlotsMap } from '@/types/AnnotationMaps';
 import { insertPlaceholderIfMatchingComments } from '@/utils/function-utils';
 
@@ -32,8 +32,7 @@ function usePreviewSortable(
   const model = useAppSelector(selectModel);
   const dispatch = useAppDispatch();
   const { data: components } = useGetComponentsQuery();
-  // TODO update to use the real section query once it works.
-  const { data: sections } = useGetDummySectionsQuery();
+  const { data: sections } = useGetSectionsQuery();
   const modelRef = useRef(model);
   const iframeDocumentRef = useRef<Document | null>(null);
   const componentsRef = useRef(components);

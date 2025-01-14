@@ -4,16 +4,22 @@ declare(strict_types=1);
 
 namespace Drupal\experience_builder\Controller;
 
-use Drupal\Component\Assertion\Inspector;
+use Drupal\Core\Asset\AttachedAssets;
 use Drupal\Core\Cache\CacheableJsonResponse;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Config\Entity\ConfigEntityTypeInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
-use Drupal\Core\GeneratedUrl;
+use Drupal\Core\Render\RendererInterface;
 use Drupal\Core\Url;
+use Drupal\experience_builder\AssetRenderer;
+use Drupal\experience_builder\Entity\Pattern;
 use Drupal\experience_builder\Entity\XbHttpApiEligibleConfigEntityInterface;
 use Drupal\experience_builder\Exception\ConstraintViolationException;
+use Drupal\experience_builder\Plugin\DataType\ComponentTreeHydrated;
+use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
+use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
+use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemInstantiatorTrait;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
@@ -29,8 +35,13 @@ use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
  */
 final class ApiConfigControllers extends ApiControllerBase {
 
+  use ClientServerConversionTrait;
+  use ComponentTreeItemInstantiatorTrait;
+
   public function __construct(
     private readonly EntityTypeManagerInterface $entityTypeManager,
+    private readonly RendererInterface $renderer,
+    private readonly AssetRenderer $assetRenderer,
   ) {}
 
   /**
@@ -53,38 +64,19 @@ final class ApiConfigControllers extends ApiControllerBase {
       ->addCacheTags($xb_config_entity_type->getListCacheTags());
     /** @var array<\Drupal\experience_builder\Entity\XbHttpApiEligibleConfigEntityInterface> $config_entities */
     $config_entities = $this->entityTypeManager->getStorage($xb_config_entity_type_id)->loadMultiple();
+    $normalizations = [];
+    foreach ($config_entities as $key => &$entity) {
+      $normalizations[$key] = $this->normalize($entity);
+    }
 
-    $normalizations = self::normalizeConfigEntities($xb_config_entity_type, $config_entities);
-
-    // Ensure each normalized config entity is identical to the response at the
-    // "individual" config entity XB HTTP API route, but point to it.
-    $individual_urls = array_map(
-      fn (string $entity) => Url::fromRoute('experience_builder.api.config.get', [
-        'xb_config_entity_type_id' => $xb_config_entity_type_id,
-        'xb_config_entity' => $entity,
-      ])
-        ->toString(TRUE),
-      array_keys($normalizations),
-    );
-    $urls_cacheability = new CacheableMetadata();
-    array_reduce(
-      $individual_urls,
-      fn (CacheableMetadata $cacheability, GeneratedUrl $url) => $cacheability->addCacheableDependency($url),
-      $urls_cacheability
-    );
-
-    return (new CacheableJsonResponse(array_combine(
-      array_map(fn (GeneratedUrl $url): string => $url->getGeneratedUrl(), $individual_urls),
-      $normalizations,
-    )))
-      ->addCacheableDependency($query_cacheability)
-      ->addCacheableDependency($urls_cacheability);
+    return (new CacheableJsonResponse($normalizations))
+      ->addCacheableDependency($query_cacheability);
   }
 
   public function get(Request $request, XbHttpApiEligibleConfigEntityInterface $xb_config_entity): CacheableJsonResponse {
     $xb_config_entity_type = $xb_config_entity->getEntityType();
     assert($xb_config_entity_type instanceof ConfigEntityTypeInterface);
-    $normalization = self::normalizeConfigEntities($xb_config_entity_type, [$xb_config_entity])[0];
+    $normalization = $this->normalize($xb_config_entity);
     return (new CacheableJsonResponse(status: 200, data: $normalization))
       ->addCacheableDependency($xb_config_entity);
   }
@@ -96,19 +88,26 @@ final class ApiConfigControllers extends ApiControllerBase {
 
     // Decode, then denormalize.
     $decoded = self::decode($request);
-    // ⚠️ For now, there's no denormalization. This may change in the future.
-    $denormalized = $decoded;
+    $denormalized = $this->denormalize($xb_config_entity_type_id, $decoded);
 
     // Create an in-memory config entity and validate it.
     $xb_config_entity = $this->entityTypeManager
       ->getStorage($xb_config_entity_type_id)
       ->create($denormalized);
     assert($xb_config_entity instanceof XbHttpApiEligibleConfigEntityInterface);
-    $this->validate($xb_config_entity);
+    try {
+      $this->validate($xb_config_entity);
+    }
+    catch (ConstraintViolationException $e) {
+      throw $e->renamePropertyPaths([
+        'component_tree.props' => 'model',
+        'component_tree' => 'layout',
+      ]);
+    }
 
     // Save the XB config entity, respond with a 201.
     $xb_config_entity->save();
-    $normalization = self::normalizeConfigEntities($xb_config_entity_type, [$xb_config_entity])[0];
+    $normalization = $this->normalize($xb_config_entity);
     return new JsonResponse(status: 201, data: $normalization, headers: [
       'Location' => Url::fromRoute(
         'experience_builder.api.config.get',
@@ -131,20 +130,27 @@ final class ApiConfigControllers extends ApiControllerBase {
   public function patch(Request $request, XbHttpApiEligibleConfigEntityInterface $xb_config_entity): JsonResponse {
     // Decode, then denormalize.
     $decoded = self::decode($request);
-    // ⚠️ For now, there's no denormalization. This may change in the future.
-    $denormalized = $decoded;
+    $denormalized = $this->denormalize($xb_config_entity->getEntityTypeId(), $decoded);
 
     // Modify the loaded entity using the denormalized data and validate it.
     foreach ($denormalized as $property_name => $property_value) {
       $xb_config_entity->set($property_name, $property_value);
     }
-    $this->validate($xb_config_entity);
+    try {
+      $this->validate($xb_config_entity);
+    }
+    catch (ConstraintViolationException $e) {
+      throw $e->renamePropertyPaths([
+        'component_tree.props' => 'model',
+        'component_tree' => 'layout',
+      ]);
+    }
 
     // Save the XB config entity, respond with a 200.
     $xb_config_entity->save();
     $xb_config_entity_type = $xb_config_entity->getEntityType();
     assert($xb_config_entity_type instanceof ConfigEntityTypeInterface);
-    $normalization = self::normalizeConfigEntities($xb_config_entity_type, [$xb_config_entity])[0];
+    $normalization = $this->normalize($xb_config_entity);
     return new JsonResponse(status: 200, data: $normalization);
   }
 
@@ -153,51 +159,6 @@ final class ApiConfigControllers extends ApiControllerBase {
     if ($violations->count()) {
       throw new ConstraintViolationException($violations);
     }
-  }
-
-  /**
-   * Normalizes all config entities of a given config entity type.
-   *
-   * Associates the config entity type's list cache contexts and tags, because
-   * the given list of config entities is assumed to be the complete list.
-   *
-   * @param \Drupal\Core\Config\Entity\ConfigEntityTypeInterface $config_entity_type
-   *   The config entity type whose config entities are being normalized.
-   * @param \Drupal\experience_builder\Entity\XbHttpApiEligibleConfigEntityInterface[] $config_entities
-   *   All config entities stored for the given config entity type.
-   *
-   * @return array
-   *   An array containing the normalization of each config entity, in the same
-   *   order, with the same keys.
-   */
-  private static function normalizeConfigEntities(ConfigEntityTypeInterface $config_entity_type, array $config_entities): array {
-    assert(Inspector::assertAll(fn ($v) => get_class($v) === $config_entity_type->getClass(), $config_entities));
-    // All exportable config entity properties should be present in the
-    // normalization because they may be edited, with the exception of the
-    // immutable properties.
-    $editable_config_entity_properties = array_diff(
-      $config_entity_type->get('config_export'),
-      $config_entity_type->getConstraints()['ImmutableProperties'],
-    );
-
-    $cacheability = new CacheableMetadata();
-    $normalizations = array_map(
-    // Exclude not only `_core`, but really everything that is not part of the
-    // explicit export. For example: `dependencies` should not be listed here,
-    // because it is not a concern for the XB UI to create/edit/delete
-    // PageTemplate config entities.
-    // @see \Drupal\serialization\Normalizer\ConfigEntityNormalizer
-      fn (XbHttpApiEligibleConfigEntityInterface $c) => array_intersect_key(
-        $c->toArray(),
-        array_flip($editable_config_entity_properties)
-      ),
-      $config_entities
-    );
-    $cacheability
-      ->addCacheContexts($config_entity_type->getListCacheContexts())
-      ->addCacheTags($config_entity_type->getListCacheTags());
-
-    return $normalizations;
   }
 
   /**
@@ -227,6 +188,123 @@ final class ApiConfigControllers extends ApiControllerBase {
     }
 
     return $data;
+  }
+
+  private function denormalize(string $xb_config_entity_type_id, array $data): array {
+    return match ($xb_config_entity_type_id) {
+      'pattern' => $this->denormalizePattern($data),
+      default => $data,
+    };
+  }
+
+  /**
+   * @todo Move to \Symfony\Component\Serializer\Normalizer\DenormalizerInterface implementation.
+   */
+  private function denormalizePattern(array $data): array {
+    ['layout' => $layout, 'model' => $model, 'name' => $label] = $data;
+    ['tree' => $tree, 'props' => $props] = $this->convertClientToServer($layout, $model);
+
+    return [
+      'label' => $label,
+      'component_tree' => [
+        'tree' => $tree,
+        'props' => $props,
+      ],
+    ];
+  }
+
+  private function normalize(XbHttpApiEligibleConfigEntityInterface $entity): array {
+    return match(TRUE) {
+      $entity instanceof Pattern => $this->normalizePattern($entity),
+      TRUE => [],
+    };
+  }
+
+  /**
+   * @see docs/adr/0005-Keep-the-front-end-simple.md
+   */
+  private function normalizePattern(Pattern $pattern): array {
+    $item = $pattern->getComponentTree();
+    assert($item instanceof ComponentTreeItem);
+    ['layout' => $layout, 'model' => $model] = $this->convertComponentTreeItemToLayoutModel($item);
+    $build = $pattern->getComponentTree()->toRenderable();
+    $default_markup = $this->renderer->renderInIsolation($build);
+    $assets = AttachedAssets::createFromRenderArray($build);
+    return [
+      'layoutModel' => [
+        'layout' => $layout,
+        'model' => $model,
+      ],
+      'name' => $pattern->label(),
+      'id' => $pattern->id(),
+      // A pre-rendered version of the Pattern is provided so no requests
+      // are needed when adding it to the layout which includes a default
+      // markup, CSS files, JS files in the header and JS files in the
+      // footer.
+      // @see \Drupal\experience_builder\ComponentSource\ComponentSourceInterface::getClientSideInfo()
+      'default_markup' => $default_markup,
+      'css' => $this->assetRenderer->renderCssAssets($assets),
+      'js_header' => $this->assetRenderer->renderJsHeaderAssets($assets),
+      'js_footer' => $this->assetRenderer->renderJsFooterAssets($assets),
+    ];
+  }
+
+  /**
+   * Converts server side data shape into client side data shape.
+   *
+   * @param \Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem $item
+   *
+   * @return array{'layout': array{'uuid': string, 'nodeType': 'component', 'type': 'string', 'slots': array}, 'model': array<string, array>}
+   *
+   * @todo Follow up issue to extract this logic into a trait: https://www.drupal.org/project/experience_builder/issues/3499632
+   */
+  private function convertComponentTreeItemToLayoutModel(ComponentTreeItem $item): array {
+    assert($item instanceof ComponentTreeItem);
+    $tree = $item->get('tree');
+    assert($tree instanceof ComponentTreeStructure);
+    $hydrated = $item->get('hydrated');
+    assert($hydrated instanceof ComponentTreeHydrated);
+
+    $layout = [];
+    $model = [];
+    $decoded_tree = json_decode($tree->getValue(), TRUE);
+
+    $this->buildLayoutAndModel($layout, $model, $item, $decoded_tree[ComponentTreeStructure::ROOT_UUID], $hydrated->getValue()->getTree()[ComponentTreeStructure::ROOT_UUID]);
+
+    return [
+      'layout' => $layout,
+      'model' => $model,
+    ];
+  }
+
+  private function buildLayoutAndModel(array &$layout, array &$model, ComponentTreeItem $item, array $tree_tier, array $hydrated): void {
+    $tree = $item->get('tree');
+    assert($tree instanceof ComponentTreeStructure);
+    $full_tree = json_decode($tree->getValue(), TRUE);
+    foreach ($tree_tier as ['uuid' => $component_instance_uuid, 'component' => $component_type]) {
+      $component_instance = [
+        'uuid' => $component_instance_uuid,
+        'nodeType' => 'component',
+        'type' => $component_type,
+        'slots' => [],
+      ];
+      if (isset($hydrated[$component_instance_uuid])) {
+        $model[$component_instance_uuid] = $hydrated[$component_instance_uuid]['props'] ?? [];
+      }
+      if (isset($full_tree[$component_instance_uuid])) {
+        foreach ($full_tree[$component_instance_uuid] as $slot_name => $slot_children) {
+          $component_instance_slot = [
+            'id' => $component_instance_uuid . '/' . $slot_name,
+            'name' => $slot_name,
+            'nodeType' => 'slot',
+            'components' => [],
+          ];
+          $this->buildLayoutAndModel($component_instance_slot['components'], $model, $item, $slot_children, $hydrated[$component_instance_uuid]['slots'][$slot_name]);
+          $component_instance['slots'][] = $component_instance_slot;
+        }
+      }
+      $layout[] = $component_instance;
+    }
   }
 
 }

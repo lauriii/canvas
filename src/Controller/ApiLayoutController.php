@@ -76,6 +76,9 @@ final class ApiLayoutController {
     ]);
   }
 
+  /**
+   * @todo Follow up issue to extract this logic into a trait: https://www.drupal.org/project/experience_builder/issues/3499632
+   */
   private function buildRegion(string $id, ?ComponentTreeItem $item = NULL, ?array &$model = NULL): array {
     if ($item) {
       $tree = $item->get('tree');
@@ -97,6 +100,9 @@ final class ApiLayoutController {
     ];
   }
 
+  /**
+   * @todo Follow up issue to extract this logic into a trait: https://www.drupal.org/project/experience_builder/issues/3499632
+   */
   private function buildLayout(array &$model, ComponentTreeItem $item, array $tree_tier, array $hydrated): array {
     $layout = [];
     $tree = $item->get('tree');

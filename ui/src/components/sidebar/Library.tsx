@@ -14,7 +14,6 @@ import {
 } from '@/features/ui/primaryPanelSlice';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import ErrorBoundary from '@/components/error/ErrorBoundary';
-import DummySectionList from '@/components/list/DummySectionList';
 
 const Library = () => {
   const openItems = useAppSelector(selectOpenLayoutItems);
@@ -62,7 +61,6 @@ const Library = () => {
             Sections
           </AccordionTrigger>
           <Accordion.Content>
-            <DummySectionList />
             <ErrorBoundary title="An unexpected error has occurred while fetching section templates.">
               <SectionList />
             </ErrorBoundary>

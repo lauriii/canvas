@@ -3,7 +3,6 @@
 declare(strict_types=1);
 
 use Drupal\Core\Url;
-use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 use Drupal\system\Entity\Menu;
 use Drupal\Tests\ApiRequestTrait;
 use Drupal\Tests\BrowserTestBase;
@@ -71,6 +70,7 @@ class XbConfigEntityHttpApiTest extends BrowserTestBase {
    * @see \Drupal\experience_builder\Entity\Pattern
    */
   public function testPattern(): void {
+    // cspell:ignore testpatternpleaseignore
     $base = rtrim(base_path(), '/');
     $list_url = Url::fromUri('base:/xb/api/config/pattern');
 
@@ -85,76 +85,100 @@ class XbConfigEntityHttpApiTest extends BrowserTestBase {
     $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.permissions'], ['config:pattern_list', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
     $this->assertSame([], $body);
 
-    // Create a Pattern via the XB HTTP API, but forget crucial data: 422.
+    // Create a Pattern via the XB HTTP API, but forget crucial data that causes
+    // the required shape to be violated: 500, courtesy of OpenAPI.
     $pattern_to_send = [
-      'id' => 'test',
-      'label' => 'Test pattern, please ignore',
-      'component_tree' => NULL,
+      'name' => 'Test pattern, please ignore',
+      'layout' => NULL,
+      'model' => NULL,
     ];
     $request_options = [
-      RequestOptions::JSON => $pattern_to_send,
+      RequestOptions::HEADERS => [
+        'Content-Type' => 'application/json',
+      ],
+      // TRICKY: this intentionally avoids using RequestOptions::JSON because
+      // that encodes `'props' => []` as `'props': []`, whereas the server side
+      // expects `'props': {}`.
+      // @see \Drupal\Tests\experience_builder\Traits\TestDataUtilitiesTrait::encodeXBData()
+      RequestOptions::BODY => self::encodeXBData($pattern_to_send),
     ];
+    $body = $this->assertExpectedResponse('POST', $list_url, $request_options, 500, NULL, NULL, NULL, NULL);
+    $this->assertSame([
+      'message' => 'Body does not match schema for content-type "application/json" for Request [post /xb/api/config/pattern]',
+    ], $body);
+
+    // Add missing crucial data, but leave a requires shape violation: 500,
+    // courtesy of OpenAPI.
+    $pattern_to_send['layout'] = [
+      [
+        'uuid' => 'uuid-in-root',
+        'nodeType' => 'component',
+        'type' => 'sdc.xb_test_sdc.props-no-slots',
+        'slots' => [],
+      ],
+      [
+        'uuid' => 'uuid-in-root-another',
+        'nodeType' => 'component',
+        'type' => 'sdc.xb_test_sdc.props-no-slots',
+        'slots' => [],
+      ],
+    ];
+    $request_options[RequestOptions::BODY] = self::encodeXBData($pattern_to_send);
+    $body = $this->assertExpectedResponse('POST', $list_url, $request_options, 500, NULL, NULL, NULL, NULL);
+    $this->assertSame([
+      'message' => 'Body does not match schema for content-type "application/json" for Request [post /xb/api/config/pattern]',
+    ], $body);
+
+    // Meet data shape requirements, but violate internal consistency for
+    // `model` (`props` on server side): 422 (i.e. validation constraint
+    // violation).
+    $pattern_to_send['model'] = [];
+    $request_options[RequestOptions::BODY] = self::encodeXBData($pattern_to_send);
     $body = $this->assertExpectedResponse('POST', $list_url, $request_options, 422, NULL, NULL, NULL, NULL);
     $this->assertSame([
       'errors' => [
         [
-          'detail' => 'This value should not be null.',
-          'source' => ['pointer' => 'component_tree'],
+          'detail' => 'The required properties are missing.',
+          'source' => ['pointer' => 'model.uuid-in-root'],
+        ],
+        [
+          'detail' => 'The required properties are missing.',
+          'source' => ['pointer' => 'model.uuid-in-root-another'],
         ],
       ],
     ], $body);
 
-    // Add missing crucial data, but still make a mistake: 422.
-    $pattern_to_send['component_tree']['tree'] = self::encodeXBData([
-      ComponentTreeStructure::ROOT_UUID => [
-        ['uuid' => 'uuid-in-root', 'component' => 'sdc.xb_test_sdc.props-no-slots'],
-        ['uuid' => 'uuid-in-root-another', 'component' => 'sdc.xb_test_sdc.props-no-slots'],
+    // Meet data shape requirements, but violate internal consistency for
+    // `layout` (`tree` on server side): 422 (i.e. validation constraint
+    // violation).
+    $generate_static_prop_source = function (string $label): array {
+      return [
+        'sourceType' => 'static:field_item:string',
+        'value' => "Hello, $label!",
+        'expression' => 'ℹ︎string␟value',
+      ];
+    };
+    $pattern_to_send['model'] = [
+      'uuid-in-root' => [
+        'heading' => $generate_static_prop_source('world'),
       ],
-    ]);
-    $request_options = [
-      RequestOptions::JSON => $pattern_to_send,
+      'uuid-in-root-another' => [
+        'heading' => $generate_static_prop_source('another world'),
+      ],
     ];
-    $body = $this->assertExpectedResponse('POST', $list_url, $request_options, 422, NULL, NULL, NULL, NULL);
-    $this->assertSame([
-      'errors' => [
-        [
-          'detail' => '\'props\' is a required key.',
-          'source' => ['pointer' => 'component_tree'],
-        ],
-        [
-          'detail' => 'The array must contain a "props" key.',
-          'source' => ['pointer' => 'component_tree'],
-        ],
-      ],
-    ], $body);
-
-    // Add missing crucial data, but use disallowed component blocks: 422.
-    $pattern_to_send['component_tree']['tree'] = self::encodeXBData([
-      ComponentTreeStructure::ROOT_UUID => [
-        ['uuid' => 'uuid-main', 'component' => 'block.system_main_block'],
-        ['uuid' => 'uuid-title', 'component' => 'block.page_title_block'],
-        ['uuid' => 'uuid-messages', 'component' => 'block.system_messages_block'],
-      ],
-    ]);
-    $pattern_to_send['component_tree']['props'] = self::encodeXBData([]);
-
-    $request_options = [
-      RequestOptions::JSON => $pattern_to_send,
+    $pattern_to_send['layout'][] = [
+      'uuid' => 'uuid-main',
+      'nodeType' => 'component',
+      'type' => 'block.system_main_block',
+      'slots' => [],
     ];
+    $request_options[RequestOptions::BODY] = self::encodeXBData($pattern_to_send);
     $body = $this->assertExpectedResponse('POST', $list_url, $request_options, 422, NULL, NULL, NULL, NULL);
     $this->assertSame([
       'errors' => [
         [
           'detail' => 'The \'Drupal\Core\Block\MainContentBlockPluginInterface\' component interface must be absent.',
-          'source' => ['pointer' => 'component_tree'],
-        ],
-        [
-          'detail' => 'The \'Drupal\Core\Block\MessagesBlockPluginInterface\' component interface must be absent.',
-          'source' => ['pointer' => 'component_tree'],
-        ],
-        [
-          'detail' => 'The \'Drupal\Core\Block\TitleBlockPluginInterface\' component interface must be absent.',
-          'source' => ['pointer' => 'component_tree'],
+          'source' => ['pointer' => 'layout'],
         ],
       ],
     ], $body);
@@ -164,106 +188,167 @@ class XbConfigEntityHttpApiTest extends BrowserTestBase {
     $this->assertSame([], $body);
 
     // Create a Pattern via the XB HTTP API, correctly: 201.
-    $pattern_to_send['component_tree']['tree'] = self::encodeXBData([
-      ComponentTreeStructure::ROOT_UUID => [
-        ['uuid' => 'uuid-in-root', 'component' => 'sdc.xb_test_sdc.props-no-slots'],
-        ['uuid' => 'uuid-in-root-another', 'component' => 'sdc.xb_test_sdc.props-no-slots'],
-      ],
-    ]);
-    $pattern_to_send['component_tree']['props'] = [];
-    $generate_static_prop_source = function (string $label): array {
-      return [
-        'sourceType' => 'static:field_item:string',
-        'value' => "Hello, $label!",
-        'expression' => 'ℹ︎string␟value',
-      ];
-    };
-    $pattern_to_send['component_tree']['props'] = self::encodeXBData([
-      'uuid-in-root' => [
-        'heading' => $generate_static_prop_source('world'),
-      ],
-      'uuid-in-root-another' => [
-        'heading' => $generate_static_prop_source('another world'),
-      ],
-    ]);
-    // Note how the key-value pairs under `component_tree` are sorted by key.
-    $expected_pattern_normalization = [
-      'label' => 'Test pattern, please ignore',
-      'component_tree' => [
-        'tree' => self::encodeXBData([
-          ComponentTreeStructure::ROOT_UUID => [
-            ['uuid' => 'uuid-in-root', 'component' => 'sdc.xb_test_sdc.props-no-slots'],
-            ['uuid' => 'uuid-in-root-another', 'component' => 'sdc.xb_test_sdc.props-no-slots'],
-          ],
-        ]),
-        'props' => self::encodeXBData([
-          'uuid-in-root' => [
-            'heading' => $generate_static_prop_source('world'),
-          ],
-          'uuid-in-root-another' => [
-            'heading' => $generate_static_prop_source('another world'),
-          ],
-        ]),
-      ],
-    ];
-    $request_options = [
-      RequestOptions::JSON => $pattern_to_send,
-    ];
+    array_pop($pattern_to_send['layout']);
+    $request_options[RequestOptions::BODY] = self::encodeXBData($pattern_to_send);
     $body = $this->assertExpectedResponse('POST', $list_url, $request_options, 201, NULL, NULL, NULL, NULL, [
       'Location' => [
-        "$base/xb/api/config/pattern/test",
+        "$base/xb/api/config/pattern/testpatternpleaseignore",
       ],
     ]);
+    $expected_pattern_normalization = [
+      'layoutModel' => [
+        'layout' => [
+          [
+            'uuid' => 'uuid-in-root',
+            'nodeType' => 'component',
+            'type' => 'sdc.xb_test_sdc.props-no-slots',
+            'slots' => [],
+          ],
+          [
+            'uuid' => 'uuid-in-root-another',
+            'nodeType' => 'component',
+            'type' => 'sdc.xb_test_sdc.props-no-slots',
+            'slots' => [],
+          ],
+        ],
+        'model' => [
+          'uuid-in-root' => [
+            'heading' => 'Hello, world!',
+          ],
+          'uuid-in-root-another' => [
+            'heading' => 'Hello, another world!',
+          ],
+        ],
+      ],
+      'name' => 'Test pattern, please ignore',
+      'id' => 'testpatternpleaseignore',
+      'default_markup' => '<!-- xb-start-uuid-in-root --><div  data-component-id="xb_test_sdc:props-no-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
+  <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;"><!-- xb-prop-start-uuid-in-root/heading -->Hello, world!<!-- xb-prop-end-uuid-in-root/heading --></h1>
+</div>
+<!-- xb-end-uuid-in-root --><!-- xb-start-uuid-in-root-another --><div  data-component-id="xb_test_sdc:props-no-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
+  <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;"><!-- xb-prop-start-uuid-in-root-another/heading -->Hello, another world!<!-- xb-prop-end-uuid-in-root-another/heading --></h1>
+</div>
+<!-- xb-end-uuid-in-root-another -->',
+      'css' => '',
+      'js_header' => '',
+      'js_footer' => '',
+    ];
     $this->assertSame($expected_pattern_normalization, $body);
 
-    // Re-retrieve list: 200, non-empty list. Dynamic Page Cache miss.
-    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.permissions'], ['config:pattern_list', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
-    $this->assertSame([
-      "$base/xb/api/config/pattern/test" => $expected_pattern_normalization,
-    ], $body);
-    // Use the individual URL in the list response body.
-    $individual_body = $this->assertExpectedResponse('GET', Url::fromUri('base:' . substr(array_keys($body)[0], strlen($base))), [], 200, ['user.permissions'], ['config:experience_builder.pattern.test', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
-    $this->assertSame($expected_pattern_normalization, $individual_body);
-
-    // Modify a Pattern incorrectly: 422.
-    $temp_copy = $pattern_to_send['component_tree']['tree'];
-    $pattern_to_send['component_tree']['tree'] = '{}';
-    $request_options = [
-      RequestOptions::JSON => $pattern_to_send,
+    // Create a (more realistic) Pattern with nested components, but missing
+    // prop: 422.
+    $nested_components_pattern = $pattern_to_send;
+    $nested_components_pattern['name'] = 'Nested';
+    $nested_components_pattern['layout'] = [
+      [
+        'nodeType' => 'component',
+        'slots' => [
+          [
+            'components' => [
+              [
+                'uuid' => 'uuid-in-root',
+                'nodeType' => 'component',
+                'type' => 'sdc.xb_test_sdc.props-no-slots',
+                'slots' => [],
+              ],
+              [
+                'uuid' => 'uuid-in-root-another',
+                'nodeType' => 'component',
+                'type' => 'sdc.xb_test_sdc.props-no-slots',
+                'slots' => [],
+              ],
+            ],
+            'id' => 'c4074d1f-149a-4662-aaf3-615151531cf6/content',
+            'name' => 'content',
+            'nodeType' => 'slot',
+          ],
+        ],
+        'type' => 'sdc.experience_builder.one_column',
+        'uuid' => 'c4074d1f-149a-4662-aaf3-615151531cf6',
+      ],
     ];
-    $body = $this->assertExpectedResponse('PATCH', Url::fromUri('base:/xb/api/config/pattern/test'), $request_options, 422, NULL, NULL, NULL, NULL);
+    $request_options[RequestOptions::BODY] = self::encodeXBData($nested_components_pattern);
+    $body = $this->assertExpectedResponse('POST', $list_url, $request_options, 422, NULL, NULL, NULL, NULL);
     $this->assertSame([
       'errors' => [
         [
-          'detail' => 'The root UUID is missing.',
-          'source' => ['pointer' => 'component_tree.tree[a548b48d-58a8-4077-aa04-da9405a6f418]'],
+          'detail' => 'The required properties are missing.',
+          'source' => ['pointer' => 'model.c4074d1f-149a-4662-aaf3-615151531cf6'],
         ],
       ],
     ], $body);
 
-    $pattern_to_send['component_tree']['tree'] = $temp_copy;
-
-    // Modify a Pattern correctly: 200.
-    $request_options = [
-      RequestOptions::JSON => $pattern_to_send,
+    // Add missing missing prop: 201.
+    $nested_components_pattern['model']['c4074d1f-149a-4662-aaf3-615151531cf6'] = [
+      'width' => 'full',
     ];
-    $body = $this->assertExpectedResponse('PATCH', Url::fromUri('base:/xb/api/config/pattern/test'), $request_options, 200, NULL, NULL, NULL, NULL);
-    $this->assertSame($expected_pattern_normalization, $body);
+    $request_options[RequestOptions::BODY] = self::encodeXBData($nested_components_pattern);
+    $this->assertExpectedResponse('POST', $list_url, $request_options, 201, NULL, NULL, NULL, NULL, [
+      'Location' => [
+        "$base/xb/api/config/pattern/nested",
+      ],
+    ]);
+
+    // Delete the nested Pattern via the XB HTTP API: 204.
+    $this->assertExpectedResponse('DELETE', Url::fromUri('base:/xb/api/config/pattern/nested'), [], 204, NULL, NULL, NULL, NULL);
 
     // Re-retrieve list: 200, non-empty list. Dynamic Page Cache miss.
     $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.permissions'], ['config:pattern_list', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
     $this->assertSame([
-      "$base/xb/api/config/pattern/test" => $expected_pattern_normalization,
+      "testpatternpleaseignore" => $expected_pattern_normalization,
+    ], $body);
+    // Use the individual URL in the list response body.
+    $individual_body = $this->assertExpectedResponse('GET', Url::fromUri('base:/xb/api/config/pattern/testpatternpleaseignore'), [], 200, ['user.permissions'], ['config:experience_builder.pattern.testpatternpleaseignore', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
+    $expected_individual_body_normalization = $expected_pattern_normalization;
+    $expected_individual_body_normalization['js_footer'] = str_replace('xb\/api\/config\/pattern', 'xb\/api\/config\/pattern\/testpatternpleaseignore', $expected_pattern_normalization['js_footer']);
+    $this->assertSame($expected_individual_body_normalization, $individual_body);
+
+    // Modify a Pattern incorrectly (shape-wise): 500.
+    $request_options[RequestOptions::BODY] = self::encodeXBData([
+      'name' => $pattern_to_send['name'],
+      'layout' => $pattern_to_send['layout'],
+      'model' => NULL,
+    ]);
+    $body = $this->assertExpectedResponse('PATCH', Url::fromUri('base:/xb/api/config/pattern/testpatternpleaseignore'), $request_options, 500, NULL, NULL, NULL, NULL);
+    $this->assertSame([
+      'message' => 'Body does not match schema for content-type "application/json" for Request [patch /xb/api/config/pattern/{configEntityId}]',
     ], $body);
 
-    // Delete the sole Pattern via the XB HTTP API: 204.
-    $body = $this->assertExpectedResponse('DELETE', Url::fromUri('base:/xb/api/config/pattern/test'), [], 204, NULL, NULL, NULL, NULL);
-    $this->assertNull($body);
+    // Modify a Pattern incorrectly (consistency-wise): 422.
+    $request_options[RequestOptions::BODY] = self::encodeXBData([
+      'name' => $pattern_to_send['name'],
+      'layout' => $pattern_to_send['layout'],
+      'model' => array_slice($pattern_to_send['model'], 1),
+    ]);
+    $body = $this->assertExpectedResponse('PATCH', Url::fromUri('base:/xb/api/config/pattern/testpatternpleaseignore'), $request_options, 422, NULL, NULL, NULL, NULL);
+    $this->assertSame([
+      'errors' => [
+        [
+          'detail' => 'The required properties are missing.',
+          'source' => ['pointer' => 'model.uuid-in-root'],
+        ],
+      ],
+    ], $body);
+
+    // Modify a Pattern correctly: 200.
+    $request_options[RequestOptions::BODY] = self::encodeXBData($pattern_to_send);
+    $body = $this->assertExpectedResponse('PATCH', Url::fromUri('base:/xb/api/config/pattern/testpatternpleaseignore'), $request_options, 200, NULL, NULL, NULL, NULL);
+    $this->assertSame($expected_individual_body_normalization, $body);
 
     // Re-retrieve list: 200, non-empty list. Dynamic Page Cache miss.
     $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.permissions'], ['config:pattern_list', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
+    $this->assertSame([
+      "testpatternpleaseignore" => $expected_pattern_normalization,
+    ], $body);
+
+    // Delete the sole remaining Pattern via the XB HTTP API: 204.
+    $body = $this->assertExpectedResponse('DELETE', Url::fromUri('base:/xb/api/config/pattern/testpatternpleaseignore'), [], 204, NULL, NULL, NULL, NULL);
+    $this->assertNull($body);
+
+    // Re-retrieve list: 200, empty list. Dynamic Page Cache miss.
+    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.permissions'], ['config:pattern_list', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
     $this->assertSame([], $body);
-    $individual_body = $this->assertExpectedResponse('GET', Url::fromUri('base:/xb/api/config/pattern/test'), [], 404, NULL, NULL, 'UNCACHEABLE (request policy)', 'UNCACHEABLE (no cacheability)');
+    $individual_body = $this->assertExpectedResponse('GET', Url::fromUri('base:/xb/api/config/pattern/testpatternpleaseignore'), [], 404, NULL, NULL, 'UNCACHEABLE (request policy)', 'UNCACHEABLE (no cacheability)');
     $this->assertSame([], $individual_body);
 
     // This was now tested full circle! ✅

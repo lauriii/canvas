@@ -36,8 +36,6 @@ describe('Undo/Redo functionality', () => {
       'data-state',
       'active',
     );
-    cy.get('.primaryPanelContent').should('contain.text', 'Sections');
-    cy.get('.primaryPanelContent').findByText('Fake Section 2');
     cy.intercept('POST', '**/api/preview/node/1').as('getPreview');
 
     // Click on the menu item with data-xb-name="Hero" inside menu.

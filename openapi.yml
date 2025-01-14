@@ -1,3 +1,6 @@
+#file: noinspection YAMLSchemaValidation
+# ^ To suppress false positive validation errors in PhpStorm.
+
 # For readability and to prevent needless merge conflicts, follow all possible
 # conventions in the official OpenAPI specification and documentation, including
 # the order of fixed fields like paths and components, spacing, and quoting of
@@ -18,14 +21,19 @@
 #   any.
 
 openapi: 3.1.0
+
 info:
   title: Experience Builder
   description: API Spec for Experience Builder
   version: 0.x
 
+# @see https://spec.openapis.org/oas/v3.1.0.html#paths-object
+# @see https://spec.openapis.org/oas/v3.1.0.html#path-item-object
 paths:
   '/api/layout/{entityTypeId}/{entityId}':
+    description: TODO
     get:
+      description: TODO
       parameters:
         - $ref: '#/components/parameters/entityTypeId'
         - $ref: '#/components/parameters/entityId'
@@ -68,7 +76,7 @@ paths:
                       'created[0][value][date]': '2024-12-18'
                       'created[0][value][time]': '00:18:25'
                       'field_hero[0][target_id]': '1'
-                      'field_hero[0][alt]': 'A man walks a border collie along a beach.'
+                      'field_hero[0][alt]': A man walks a border collie along a beach.
                       'field_hero[0][title]': ''
                       'field_hero[0][width]': '207'
                       'field_hero[0][height]': '475'
@@ -87,8 +95,8 @@ paths:
                       'promote[value]': '1'
                       'status[value]': '1'
                       'sticky[value]': '0'
-                      'title[0][value]': 'XB Needs This For The Time Being'
-                      'uid[0][target_id]': 'Anonymous (0)'
+                      'title[0][value]': XB Needs This For The Time Being
+                      'uid[0][target_id]': Anonymous (0)
                       'langcode[0][value]': en
                       'revision_log[0][value]': ''
               schema:
@@ -111,7 +119,9 @@ paths:
                     type: object
                     description: The full entity data.
   '/api/preview/{entityTypeId}/{entityId}':
+    description: TODO
     post:
+      description: TODO
       parameters:
         - $ref: '#/components/parameters/entityTypeId'
         - $ref: '#/components/parameters/entityId'
@@ -131,7 +141,9 @@ paths:
                     type: string
                     description: The HTML preview.
   '/xb/api/content-update/{entityTypeId}/{entityId}':
+    description: TODO
     patch:
+      description: TODO
       parameters:
         - $ref: '#/components/parameters/entityTypeId'
         - $ref: '#/components/parameters/entityId'
@@ -153,7 +165,9 @@ paths:
                     items:
                       type: string
   /xb-components:
+    description: TODO
     get:
+      description: TODO
       responses:
         '200':
           description: All available components
@@ -222,10 +236,12 @@ paths:
                   '^\\[a-zA-Z0-9_-]:[a-zA-Z0-9_-]$':
                     $ref: '#/components/schemas/Component'
   '/xb-field-form/{entityTypeId}/{entityId}':
+    description: TODO
     parameters:
       - $ref: '#/components/parameters/entityTypeId'
       - $ref: '#/components/parameters/entityId'
     get:
+      description: TODO
       responses:
         '200':
           description: Component props form
@@ -258,6 +274,7 @@ paths:
                       Stringified settings info structured for use by `settings`
                       AJAX command
     post:
+      description: TODO
       parameters:
         # @see \Drupal\Core\Form\FormBuilderInterface::AJAX_FORM_REQUEST
         # @see \Drupal\Core\Form\EventSubscriber\FormAjaxSubscriber
@@ -303,8 +320,9 @@ paths:
         '200':
           $ref: '#/components/responses/FormResponse'
   '/xb/api/entity-form/{entityTypeId}/{entityId}':
-    description: Fetches the entity form with the "default" form mode
+    description: TODO
     get:
+      description: Fetches the entity form with the "default" form mode
       parameters:
         - $ref: '#/components/parameters/entityTypeId'
         - $ref: '#/components/parameters/entityId'
@@ -312,7 +330,9 @@ paths:
         '200':
           $ref: '#/components/responses/FormResponse'
   /xb/api/log-error:
+    description: TODO
     post:
+      description: TODO
       requestBody:
         description: Log an error message with a specified log level.
         content:
@@ -348,7 +368,8 @@ paths:
                 properties:
                   status:
                     type: string
-                    example: Error logged successfully
+                    examples:
+                      - Error logged successfully
                     description: The success message returned after logging the error.
         '400':
           description: Invalid request payload
@@ -361,7 +382,9 @@ paths:
                     type: string
                     description: Error description
   /xb/api/publish-all:
+    description: TODO
     post:
+      description: TODO
       requestBody:
         content:
           application/json:
@@ -378,7 +401,8 @@ paths:
                   message:
                     type: string
                     title: Success message
-                    example: Successfully published 3 items
+                    examples:
+                      - Successfully published 3 items
         '204':
           description: No items to publish
           content:
@@ -389,7 +413,8 @@ paths:
                   message:
                     type: string
                     title: Status message
-                    example: No items to publish
+                    examples:
+                      - No items to publish
         '422':
           description: Validation errors exist
           content:
@@ -405,7 +430,9 @@ paths:
                       schema:
                         $ref: '#/components/schemas/Error'
   /xb/api/autosave:
+    description: TODO
     get:
+      description: TODO
       responses:
         '200':
           description: All current auto-save entries
@@ -456,8 +483,120 @@ paths:
                       owner: 1
               schema:
                 $ref: '#/components/schemas/AutoSaveCollection'
+  /xb/api/config/pattern:
+    description: TODO
+    get:
+      description: TODO
+      responses:
+        '200':
+          description: Collection of Sections/Patterns
+          content:
+            application/json:
+              schema:
+                type: object
+                minProperties: 0
+                patternProperties:
+                  '^\\[a-zA-Z0-9_-]$':
+                    $ref: '#/components/schemas/PatternPreview'
+    post:
+      description: TODO
+      requestBody:
+        description: Create new Pattern/Section.
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  description: Human-readable Pattern/Section label
+                layout:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/LayoutComponent'
+                model:
+                  $ref: '#/components/schemas/Model'
+      responses:
+        '201':
+          description: Successful save of Section/Pattern
+          content:
+            application/json:
+              examples:
+                mySectionPattern:
+                  value:
+                    layoutModel:
+                      layout:
+                        - uuid: 0b755464-281c-4487-82a0-ece34a9b1121
+                          nodeType: component
+                          type: sdc.experience_builder.my-section
+                          slots: []
+                      model:
+                        0b755464-281c-4487-82a0-ece34a9b1121:
+                          text: >-
+                            Our mission is to deliver the best products and
+                            services to our customers. We strive to exceed
+                            expectations and continuously improve our offerings.
+                    name: Section
+                    id: section
+                    default_markup: >-
+                      <!-- xb-start-0b755464-281c-4487-82a0-ece34a9b1121 --><div
+                      class="my-section__wrapper">
+                        <div class="my-section__content-wrapper">
+                          <h2 class="my-section__h2">Our Mission</h2>
+                          <p class="my-section__paragraph">
+                            <!-- xb-prop-start-text -->Our mission is to deliver the best products and services to our customers. We strive to exceed expectations and continuously improve our offerings.<!-- xb-prop-end-text -->
+                          </p>
+                          <p class="my-section__paragraph">
+                            Join us on our journey to innovation and excellence. Your satisfaction is our priority.
+                          </p>
+                        </div>
+                        <div class="my-section__image-wrapper">
+                          <img alt="Placeholder Image" class="my-section__img" width="500" height="500">
+                        </div>
+                      </div> <!-- xb-end-0b755464-281c-4487-82a0-ece34a9b1121
+                      -->
+                    css: >
+                      <link rel="stylesheet" media="all"
+                      href="/sites/default/files/css/css.css" />
+                    js_header: ''
+                    js_footer: ''
+              schema:
+                $ref: '#/components/schemas/PatternPreview'
+  '/xb/api/config/pattern/{configEntityId}':
+    description: TODO
+    get:
+      description: TODO
+      parameters:
+        - $ref: '#/components/parameters/configEntityId'
+      responses:
+        '200':
+          description: Individual Section/Pattern
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PatternPreview'
+    patch:
+      description: TODO
+      requestBody:
+        description: Update specific Pattern/Section.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Pattern'
+      parameters:
+        - $ref: '#/components/parameters/configEntityId'
+      responses:
+        '200':
+          description: Individual Section/Pattern
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PatternPreview'
 
+# @see https://spec.openapis.org/oas/v3.1.0.html#components-object
 components:
+  # @see https://spec.openapis.org/oas/v3.1.0.html#schema-object
   schemas:
     Component:
       title: Component
@@ -522,7 +661,8 @@ components:
       properties:
         nodeType:
           type: string
-          enum: [component]
+          enum:
+            - component
           description: The layout node type
         uuid:
           type: string
@@ -548,7 +688,9 @@ components:
       properties:
         nodeType:
           type: string
-          enum: [region, slot]
+          enum:
+            - region
+            - slot
           description: The layout node type
         id:
           type: string
@@ -589,20 +731,24 @@ components:
           title: Owner details
           description: Details of the last user to save the entry
           examples:
-            Logged in user:
-              name: 'Garrett Bobby Ferguson, Jr'
-              avatar: /sites/default/files/user-pictures/garrett.jpg
-              uri: /user/12
-              id: 12
+            - Logged in user:
+                name: 'Garrett Bobby Ferguson, Jr'
+                avatar: /sites/default/files/user-pictures/garrett.jpg
+                uri: /user/12
+                id: 12
           properties:
             name:
               type: string
               title: User's name
             avatar:
               type: string
+              format: uri
+              nullable: true
               title: URL to user's avatar picture
             uri:
               type: string
+              format: uri
+              nullable: true
               title: URL to user's profile page
             id:
               type: integer
@@ -611,95 +757,165 @@ components:
           type: integer
           title: Updated timestamp
           description: Unix timestamp for auto-save entry last updated time
-          example: 1732763679
+          examples:
+            - 1732763679
         entity_type:
           type: string
           title: Entity Type ID
-          example: node
+          examples:
+            - node
         langcode:
           type: string
           title: Language code
-          example: en
+          nullable: true
+          examples:
+            - en
         data_hash:
           type: string
           title: Hash of the item's data
-          example: 4711efecf75d2d1a
+          examples:
+            - 4711efecf75d2d1a
         entity_id:
           type:
             - string
             - integer
           title: Entity ID
           description: ID of the entity
-          example: 3
+          examples:
+            - 3
         label:
           type: string
           title: Entity label
           description: Label of the entity
-          example: Home page
+          examples:
+            - Home page
     AutoSaveCollection:
-      schema:
-        type: object
-        # @todo Add key validation for the format in {entity_type}:{entity_id}:{langcode} https://drupal.org/i/3471064.
-        additionalProperties:
-          $ref: '#/components/schemas/AutoSaveEntry'
+      type: object
+      # @todo Add key validation for the format in {entity_type}:{entity_id}:{langcode} https://drupal.org/i/3471064.
+      additionalProperties:
+        $ref: '#/components/schemas/AutoSaveEntry'
     PublishAllRequest:
-      schema:
+      type: object
+      # @todo Add key validation for the format in {entity_type}:{entity_id}:{langcode} https://drupal.org/i/3471064.
+      additionalProperties:
         type: object
-        # @todo Add key validation for the format in {entity_type}:{entity_id}:{langcode} https://drupal.org/i/3471064.
-        additionalProperties:
-          type: object
-          title: Entries to publish
-          description: >
-            The body should be an object with keys that match unpublished
-            entries and a data-hash property for each item.
-          properties:
-            data_hash:
-              type: string
-              title: Expected hash for this item
-    Error:
-      schema:
-        type: object
-        required:
-          - detail
-          - source
+        title: Entries to publish
+        description: >
+          The body should be an object with keys that match unpublished
+          entries and a data-hash property for each item.
         properties:
-          detail:
+          data_hash:
             type: string
-            title: Error description
-            example: I can't let you do that Dave
-          source:
-            type: object
-            required:
-              - pointer
-            properties:
-              pointer:
-                type: string
-                title: Pointer/path to source of error
-                example: title.0.value
-          code:
-            type: int
-            title: Error code
-            example: 1
-          meta:
-            type: object
-            properties:
-              entity_type:
-                type: string
-                example: node
-                title: Entity Type ID
-              entity_id:
-                type:
-                  - string
-                  - integer
-                example: 3
-                title: Entity ID
-              label:
-                type: string
-                example: Spring sale now on
-                title: Item label
+            title: Expected hash for this item
+    Error:
+      type: object
+      required:
+        - detail
+        - source
+      properties:
+        detail:
+          type: string
+          title: Error description
+          examples:
+            - I can't let you do that Dave
+        source:
+          type: object
+          required:
+            - pointer
+          properties:
+            pointer:
+              type: string
+              title: Pointer/path to source of error
+              examples:
+                - title.0.value
+        code:
+          type: integer
+          title: Error code
+          examples:
+            - 1
+        meta:
+          type: object
+          properties:
+            entity_type:
+              type: string
+              examples:
+                - node
+              title: Entity Type ID
+            entity_id:
+              type:
+                - string
+                - integer
+              examples:
+                - 3
+              title: Entity ID
+            label:
+              type: string
+              examples:
+                - Spring sale now on
+              title: Item label
     Model:
       title: model
       type: object
+    PatternPreview:
+      title: 'Pattern with generated ID and preview metadata (default markup + CSS + JS)'
+      description: '@see \Drupal\experience_builder\Controller\ApiConfigControllers::normalizePattern()'
+      type: object
+      required:
+        - layoutModel
+        - name
+        - id
+        - default_markup
+        - css
+        - js_header
+        - js_footer
+      additionalProperties: false
+      properties:
+        layoutModel:
+          type: object
+          properties:
+            layout:
+              type: array
+              items:
+                $ref: '#/components/schemas/LayoutComponent'
+              minItems: 1
+            model:
+              $ref: '#/components/schemas/Model'
+          additionalProperties: false
+        name:
+          type: string
+          description: Human-readable Pattern/Section label
+        id:
+          type: string
+          description: The ID that was auto-generated from the given name.
+        default_markup:
+          type: string
+        css:
+          type: string
+        js_header:
+          type: string
+        js_footer:
+          type: string
+    Pattern:
+      title: Pattern
+      description: '@see \Drupal\experience_builder\Controller\ApiConfigControllers::denormalizePattern()'
+      type: object
+      required:
+        - name
+        - layout
+        - model
+      properties:
+        name:
+          type: string
+          description: Human-readable Pattern/Section label
+        layout:
+          type: array
+          items:
+            $ref: '#/components/schemas/LayoutComponent'
+          minItems: 1
+        model:
+          $ref: '#/components/schemas/Model'
+      additionalProperties: false
+  # @see https://spec.openapis.org/oas/v3.1.0.html#response-object
   responses:
     FormResponse:
       description: The form
@@ -715,8 +931,8 @@ components:
               - html
             properties:
               html:
-                schema:
-                  type: string
+                type: string
+  # @see https://spec.openapis.org/oas/v3.1.0.html#parameter-object
   parameters:
     entityTypeId:
       name: entityTypeId
@@ -736,6 +952,17 @@ components:
       examples:
         arbitraryEntityId:
           value: 42
+    configEntityId:
+      name: configEntityId
+      in: path
+      required: true
+      description: Config entity ID
+      schema:
+        type: string
+      examples:
+        arbitraryEntityId:
+          value: section_fg4n3m0b
+  # @see https://spec.openapis.org/oas/v3.1.0.html#header-object
   requestBodies:
     Layout:
       content:

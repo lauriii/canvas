@@ -25,7 +25,19 @@ trait ClientServerConversionTrait {
   private static function clientLayoutToServerTree(array $layout, bool $validate = TRUE): array {
     // Transform client-side representation to server-side representation.
     // The entire component tree is nested under the reserved root UUID.
-    $tree = self::doClientSlotToServerTree($layout, [], ComponentTreeStructure::ROOT_UUID);
+    // Top level of elements in component tree are regions, except for Patterns/Sections.
+    if (isset($layout['nodeType']) && $layout['nodeType'] === 'region') {
+      $tree = self::doClientSlotToServerTree($layout, [], ComponentTreeStructure::ROOT_UUID);
+    }
+    // For patterns/sections, the top level is array of components.
+    else {
+      $tree = [];
+      foreach ($layout as $component) {
+        assert($component['nodeType'] === 'component');
+        $tree = self::doClientComponentToServerTree($component, $tree, ComponentTreeStructure::ROOT_UUID, NULL);
+      }
+    }
+
     if (!$validate) {
       return $tree;
     }

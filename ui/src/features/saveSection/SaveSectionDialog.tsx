@@ -126,12 +126,6 @@ const SaveSectionDialog: React.FC = () => {
   return (
     <Dialog.Root open={saveAsSection} onOpenChange={handleOpenChange}>
       <Dialog.Content maxWidth="550px">
-        <Text size="1">
-          <strong>
-            This is currently only a proof of concept, saving will fail until
-            the endpoint is fully implemented.
-          </strong>
-        </Text>
         <Dialog.Title>Add new section</Dialog.Title>
         <Dialog.Description size="2" mb="4">
           Save "{selectedComponentName}" as a section. Unlike components,

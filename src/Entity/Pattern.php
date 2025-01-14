@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Drupal\experience_builder\Entity;
 
+use Drupal\Component\Utility\Random;
 use Drupal\Core\Config\Entity\ConfigEntityBase;
+use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemInstantiatorTrait;
@@ -78,6 +80,39 @@ final class Pattern extends ConfigEntityBase implements XbHttpApiEligibleConfigE
     // @todo Revisit this in https://www.drupal.org/project/experience_builder/issues/3484666, where the above MIGHT change.
 
     return $this;
+  }
+
+  public static function preCreate(EntityStorageInterface $storage, array &$values) {
+    $values['id'] = self::generateId($values['label']);
+    parent::preCreate($storage, $values);
+  }
+
+  /**
+   * Generates a valid ID from the given label.
+   */
+  private static function generateId(string $label): string {
+    $id = mb_strtolower($label);
+
+    $id = preg_replace('@[^a-z0-9_.]+@', '', $id);
+    assert(is_string($id));
+    // Furthermore remove any characters that are not alphanumerical from the
+    // beginning and end of the transliterated string.
+    $id = preg_replace('@^([^a-z0-9]+)|([^a-z0-9]+)$@', '', $id);
+    assert(is_string($id));
+    assert(is_string($id));
+    if (strlen($id) > 23) {
+      $id = substr($id, 0, 23);
+    }
+    assert(is_string($id));
+
+    $query = \Drupal::entityTypeManager()->getStorage('pattern')->getQuery()->accessCheck(FALSE);
+    $ids = $query->execute();
+    $id_exists = in_array($id, $ids, TRUE);
+    if ($id_exists) {
+      $id = $id . '_' . (new Random())->machineName(8);
+    }
+
+    return $id;
   }
 
 }

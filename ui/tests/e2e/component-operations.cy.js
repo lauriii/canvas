@@ -1,11 +1,6 @@
-import { onlyVisibleChars } from '../support/utils.js';
-
 describe('Perform CRUD operations on components', () => {
-  before(() => {
-    cy.drupalXbInstall();
-  });
-
   beforeEach(() => {
+    cy.drupalXbInstall();
     cy.drupalLogin('xbUser', 'xbUser');
   });
 
@@ -182,65 +177,108 @@ describe('Perform CRUD operations on components', () => {
   });
 
   it('Performs basic interaction with the Add section button', () => {
+    const clickDefault = {
+      force: true,
+      scrollBehavior: false,
+    };
+
+    cy.viewport(2000, 1320);
     cy.loadURLandWaitForXBLoaded();
-
-    // Check there are three heroes initially.
-    cy.testInIframe(
-      '[data-component-id="experience_builder:my-hero"]',
-      (myHeroComponent) => {
-        expect(myHeroComponent.length).to.equal(3);
-      },
-    );
-    // Check that the layers menu is initially open
-    cy.get('[data-testid="xb-primary-panel--layers"]').should(
-      'have.attr',
-      'data-state',
-      'active',
-    );
-    cy.get('[data-xb-uuid="content"]').findByText('Hero').should('not.exist');
-    cy.get('.primaryPanelContent').findByText('Two Column').click();
-    cy.findByLabelText('Column Width').should('exist');
-    cy.findAllByLabelText('Add section')
-      .first()
-      .click({ scrollBehavior: 'center' });
-
-    // Check the active panel is the library panel.
-    cy.get('[data-testid="xb-primary-panel--library"]').should(
-      'have.attr',
-      'data-state',
-      'active',
-    );
-    cy.get('.primaryPanelContent').should('contain.text', 'Sections');
-    // Click on Fake Section 2 inside menu.
-    cy.get('.primaryPanelContent').findByText('Fake Section 2').click();
-    cy.waitForElementContentInIframe('div', 'A hero in slot 1!');
-    cy.testInIframe(
-      '[data-component-id="experience_builder:my-hero"]',
-      (components) => {
-        expect(components.length).to.equal(5);
-      },
-    );
-    cy.testInIframe(
-      '[data-component-id="experience_builder:my-hero"] h1',
-      (components) => {
-        const heroText1 = onlyVisibleChars(components[3].textContent);
-        const heroText2 = onlyVisibleChars(components[4].textContent);
-        expect(heroText1).to.equal('A hero in slot 1!');
-        expect(heroText2).to.equal('A hero in slot 2!');
-      },
-    );
-
+    cy.get(
+      '[data-xb-viewport-size="lg"] [aria-label="Two Column: Column One"]',
+    ).realClick({ position: 'bottom' });
     cy.log(
-      'The newly added Two Column component from the section should be selected',
+      'Save the entire node 1 layout as a section, so it can be added to a different node.',
     );
+
+    // First remove the two image components because they will otherwise crash
+    // due to the test not creating them in a way that allows the media entity
+    // to be found based on filename.
+    cy.get(
+      '[data-xb-viewport-size="lg"] [data-xb-component-id="sdc.experience_builder.image"]',
+    )
+      .first()
+      .trigger('contextmenu', clickDefault);
+    cy.findByText('Delete').click({
+      force: true,
+      scrollBehavior: false,
+    });
+    cy.get(
+      '[data-xb-viewport-size="lg"] [data-xb-component-id="sdc.experience_builder.image"]',
+    )
+      .first()
+      .trigger('contextmenu', clickDefault);
+    cy.findByText('Delete').click({
+      force: true,
+      scrollBehavior: false,
+    });
+    cy.get(
+      '[data-xb-viewport-size="lg"] [aria-label="Two Column: Column One"]',
+    ).trigger('contextmenu', {
+      ...clickDefault,
+      position: 'bottom',
+    });
+    cy.findByText('Create section').click(clickDefault); // Section name
+    cy.findByLabelText('Section name').clear();
+    cy.findByLabelText('Section name').type('The Entire Node 1');
+    cy.findByText('Add to Library').click({ scrollBehavior: false });
+
+    cy.openLibraryPanel();
+    cy.get('.primaryPanelContent').within(() => {
+      cy.findByText('Sections').click(clickDefault);
+      cy.findByText('The Entire Node 1').should('exist');
+    });
+    cy.get('.primaryPanelContent')
+      .as('panel')
+      .should('contain.text', 'The Entire Node 1');
+
+    cy.loadURLandWaitForXBLoaded({ url: 'xb/node/2' });
+    cy.get('#edit-title-0-value').should('exist');
+    cy.waitForElementContentNotInIframe('div', 'There goes my hero');
+    cy.openLibraryPanel();
+    // Add a single component so the 'Add section' button can appear when it is
+    // clicked.
+    cy.get('[data-xb-component-id="sdc.experience_builder.my-hero"]').should(
+      'exist',
+    );
+
+    // Ensure the element that can receive component drops is present.
+    cy.waitForElementInIframe('.xb--sortable-slot-empty-placeholder');
+
+    cy.getIframeBody().then(($iframe) => {
+      cy.get($iframe.find('.xb--sortable-slot-empty-placeholder')).then(
+        ($destination) => {
+          cy.get(
+            '[data-xb-component-id="sdc.experience_builder.my-hero"]',
+          ).realDnd($destination);
+        },
+      );
+    });
+    cy.waitForElementContentInIframe('div', 'There goes my hero');
+
+    // There should be one Hero added.
+    cy.get(
+      '[data-xb-viewport-size="lg"] [data-xb-component-id="sdc.experience_builder.my-hero"]',
+    ).should('have.length', 1);
+    cy.findAllByLabelText('Add section').first().click(clickDefault);
+
+    // Add the section that was created earlier in this test.
+    cy.get('.primaryPanelContent').within(() => {
+      cy.findByText('The Entire Node 1').should('exist');
+      cy.findByText('The Entire Node 1').click(clickDefault);
+    });
+
+    // After adding the section, there should be four Hero components.
+    cy.get(
+      '[data-xb-viewport-size="lg"] [data-xb-component-id="sdc.experience_builder.my-hero"]',
+    ).should('have.length', 4);
+
+    // The Two Column component that is the top level element of the section
+    // should be the currently selected layer.
     cy.openLayersPanel();
     cy.findByTestId('xb-primary-panel').within(() => {
-      cy.findAllByText('Two Column').should('have.length', 2);
-      cy.log(
-        'The second (new) Two Column should be selected (check that it has a parent treeItem with the data-xb-selected attr)',
-      );
+      cy.findAllByText('Two Column').should('have.length', 1);
       cy.findAllByText('Two Column')
-        .eq(1)
         .parents('.treeItem')
         .should('have.attr', 'data-xb-selected', 'true');
     });

@@ -63,14 +63,6 @@ class ClientServerConversionTraitTest extends KernelTestBase {
       ],
     ], json_decode($converted_item['tree'], TRUE));
 
-    // Ensure convert 'tree' and 'props' can be used both to create both a
-    // config entity and a content entity field value.
-    Pattern::create([
-      'id' => 'test_pattern',
-      'label' => 'Test Pattern',
-      'component_tree' => $converted_item,
-    ])->save();
-
     $node1 = Node::create([
       'type' => 'article',
       'title' => '5 amazing uses for old toothbrushes',
@@ -88,6 +80,29 @@ class ClientServerConversionTraitTest extends KernelTestBase {
       $this->getValidConvertedProps(),
       '5 amazing uses for old toothbrushes'
     );
+
+    ['layout' => $layout, 'model' => $model] = $this->getValidPatternJson();
+    $converted_item = $this->convertClientToServer($layout, $model);
+    $this->assertSame($this->getValidConvertedProps(), json_decode($converted_item['props'], TRUE));
+    $this->assertSame([
+      ComponentTreeStructure::ROOT_UUID => [
+        [
+          'uuid' => self::TEST_HEADING_UUID,
+          'component' => 'sdc.experience_builder.heading',
+        ],
+        [
+          'uuid' => self::TEST_IMAGE_UUID,
+          'component' => 'sdc.experience_builder.image',
+        ],
+      ],
+    ], json_decode($converted_item['tree'], TRUE));
+
+    Pattern::create([
+      'id' => 'test_pattern',
+      'label' => 'Test Pattern',
+      'component_tree' => $converted_item,
+    ])->save();
+
   }
 
   public function testConvertClientToServerErrors(): void {
@@ -124,6 +139,40 @@ class ClientServerConversionTraitTest extends KernelTestBase {
     catch (ConstraintViolationException $e) {
       $this->assertSame($errors, $this->violationsToArray($e->getConstraintViolationList()));
     }
+  }
+
+  protected function getValidPatternJson(): array {
+    return [
+      'layout' => [
+        [
+          'nodeType' => 'component',
+          'uuid' => self::TEST_HEADING_UUID,
+          'type' => 'sdc.experience_builder.heading',
+          'slots' => [],
+        ],
+        [
+          'nodeType' => 'component',
+          'uuid' => self::TEST_IMAGE_UUID,
+          'type' => 'sdc.experience_builder.image',
+          'slots' => [],
+        ],
+      ],
+      'model' => [
+        self::TEST_HEADING_UUID => [
+          'text' => 'This is a random heading.',
+          'style' => 'primary',
+          'element' => 'h1',
+        ],
+        self::TEST_IMAGE_UUID => [
+          'image' => [
+            'src' => $this->getSrcPropertyFromFile($this->referencedImage),
+            'alt' => 'This is a random image.',
+            'width' => 100,
+            'height' => 100,
+          ],
+        ],
+      ],
+    ];
   }
 
 }
