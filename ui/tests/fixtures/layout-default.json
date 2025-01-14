@@ -7,12 +7,12 @@
       "components": [
         {
           "nodeType": "component",
-          "uuid": "dynamic-image-udf7d",
+          "uuid": "static-image-udf7d",
           "type": "experience_builder:image",
           "slots": [
             {
               "nodeType": "slot",
-              "id": "dynamic-image-udf7d/slot",
+              "id": "static-image-udf7d/slot",
               "name": "slot",
               "components": [
                 {
@@ -27,18 +27,18 @@
         },
         {
           "nodeType": "component",
-          "uuid": "dynamic-static-card2df",
+          "uuid": "static-static-card2df",
           "type": "sdc_test:my-cta",
           "slots": []
         },
         {
           "nodeType": "component",
-          "uuid": "dynamic-dynamic-card3rr",
+          "uuid": "static-static-card3rr",
           "type": "sdc_test:my-cta",
           "slots": [
             {
               "nodeType": "slot",
-              "id": "dynamic-dynamic-card3rr/slot_2",
+              "id": "static-static-card3rr/slot_2",
               "name": "slot_2",
               "components": []
             }
@@ -46,7 +46,7 @@
         },
         {
           "nodeType": "component",
-          "uuid": "dynamic-image-static-imageStyle-something7d",
+          "uuid": "static-image-static-imageStyle-something7d",
           "type": "experience_builder:image",
           "slots": []
         },
@@ -93,7 +93,7 @@
     }
   ],
   "model": {
-    "dynamic-image-udf7d": {
+    "static-image-udf7d": {
       "image": {
         "src": "public://2024-07/framer.png",
         "alt": "asd",
@@ -107,17 +107,17 @@
       "href": "https://drupal.org",
       "name": "My Test CTA Component"
     },
-    "dynamic-static-card2df": {
+    "static-static-card2df": {
       "text": "Art",
       "href": "https://drupal.org",
       "name": "My Test CTA Component"
     },
-    "dynamic-dynamic-card3rr": {
+    "static-static-card3rr": {
       "text": "Art",
       "href": "public://2024-07/framer.png",
       "name": "My Test CTA Component"
     },
-    "dynamic-image-static-imageStyle-something7d": {
+    "static-image-static-imageStyle-something7d": {
       "image": {
         "src": "http://experience-builder.ddev.site/sites/default/files/styles/thumbnail/public/2024-07/framer.png.webp?itok=k9sN8Fqf",
         "alt": "asd",

@@ -99,6 +99,13 @@ class XBTestSetup implements TestSetupInterface {
 
     $field_definitions = \Drupal::service('entity_field.manager')->getFieldDefinitions('node', 'article');
     $image_field_sample_value = ImageItem::generateSampleValue($field_definitions['field_hero']);
+    \assert(\is_array($image_field_sample_value) && \array_key_exists('target_id', $image_field_sample_value));
+    $hero_reference = Media::create([
+      'bundle' => 'image',
+      'name' => 'Hero image',
+      'field_media_image' => $image_field_sample_value,
+    ]);
+    $hero_reference->save();
     $tree = [
       ComponentTreeStructure::ROOT_UUID => [
         [
@@ -109,7 +116,7 @@ class XBTestSetup implements TestSetupInterface {
       'two-column-uuid' => [
         'column_one' => [
           [
-            'uuid' => 'dynamic-image-udf7d',
+            'uuid' => 'static-image-udf7d',
             'component' => 'sdc.experience_builder.image',
           ],
           [
@@ -119,21 +126,43 @@ class XBTestSetup implements TestSetupInterface {
         ],
         'column_two' => [
           [
-            'uuid' => 'dynamic-static-card2df',
+            'uuid' => 'static-static-card2df',
             'component' => 'sdc.experience_builder.my-hero',
           ],
           [
-            'uuid' => 'dynamic-dynamic-card3rr',
+            'uuid' => 'static-static-card3rr',
             'component' => 'sdc.experience_builder.my-hero',
           ],
           [
-            'uuid' => 'dynamic-image-static-imageStyle-something7d',
+            'uuid' => 'static-image-static-imageStyle-something7d',
             'component' => 'sdc.experience_builder.image',
           ],
         ],
       ],
     ];
 
+    // @phpstan-ignore-next-line
+    $fileUrl = File::load($image_field_sample_value['target_id'])->createFileUrl(FALSE);
+    $static_image_prop_source = [
+      'sourceType' => 'static:field_item:entity_reference',
+      'value' => [
+        'alt' => 'This is a random image.',
+        'width' => 100,
+        'height' => 100,
+        'target_id' => (int) $hero_reference->id(),
+      ],
+      // This expression resolves `src` to the image's public URL.
+      'expression' => 'ℹ︎entity_reference␟{src↝entity␜␜entity:media:image␝field_media_image␞␟entity␜␜entity:file␝uri␞␟url,alt↝entity␜␜entity:media:image␝field_media_image␞␟alt,width↝entity␜␜entity:media:image␝field_media_image␞␟width,height↝entity␜␜entity:media:image␝field_media_image␞␟height}',
+      'sourceTypeSettings' => [
+        'storage' => ['target_type' => 'media'],
+        'instance' => [
+          'handler' => 'default:media',
+          'handler_settings' => [
+            'target_bundles' => ['image' => 'image'],
+          ],
+        ],
+      ],
+    ];
     $props = [
       'two-column-uuid' => [
         'width' => [
@@ -168,10 +197,11 @@ class XBTestSetup implements TestSetupInterface {
           ],
         ],
       ],
-      'dynamic-static-card2df' => [
+      'static-static-card2df' => [
         'heading' => [
-          'sourceType' => 'dynamic',
-          'expression' => 'ℹ︎␜entity:node:article␝title␞␟value',
+          'sourceType' => 'static:field_item:string',
+          'value' => 'XB Needs This For The Time Being',
+          'expression' => 'ℹ︎string␟value',
         ],
         'cta1href' => [
           'sourceType' => 'static:field_item:uri',
@@ -191,30 +221,29 @@ class XBTestSetup implements TestSetupInterface {
           'expression' => 'ℹ︎uri␟value',
         ],
       ],
-      'dynamic-dynamic-card3rr' => [
+      'static-static-card3rr' => [
         'heading' => [
-          'sourceType' => 'dynamic',
-          'expression' => 'ℹ︎␜entity:node:article␝title␞␟value',
+          'sourceType' => 'static:field_item:string',
+          'value' => 'XB Needs This For The Time Being',
+          'expression' => 'ℹ︎string␟value',
         ],
         'cta1href' => [
-          'sourceType' => 'dynamic',
-          'expression' => 'ℹ︎␜entity:node:article␝field_hero␞␟entity␜␜entity:file␝uri␞␟value',
+          'sourceType' => 'static:field_item:uri',
+          'value' => $fileUrl,
+          'expression' => 'ℹ︎uri␟value',
         ],
       ],
-      'dynamic-image-udf7d' => [
-        'image' => [
-          'sourceType' => 'dynamic',
-          'expression' => 'ℹ︎␜entity:node:article␝field_hero␞␟{src↝entity␜␜entity:file␝uri␞␟url,alt↠alt,width↠width,height↠height}',
-        ],
+      'static-image-udf7d' => [
+        'image' => $static_image_prop_source,
       ],
-      'dynamic-image-static-imageStyle-something7d' => [
+      'static-image-static-imageStyle-something7d' => [
         'image' => [
           'sourceType' => 'adapter:image_apply_style',
           'adapterInputs' => [
+            // This expression resolves `src` to the image's stream wrapper URI.
             'image' => [
-              'sourceType' => 'dynamic',
-              'expression' => 'ℹ︎␜entity:node:article␝field_hero␞␟{src↝entity␜␜entity:file␝uri␞0␟value,alt↠alt,width↠width,height↠height}',
-            ],
+              'expression' => 'ℹ︎entity_reference␟{src↝entity␜␜entity:media:image␝field_media_image␞␟entity␜␜entity:file␝uri␞␟value,alt↝entity␜␜entity:media:image␝field_media_image␞␟alt,width↝entity␜␜entity:media:image␝field_media_image␞␟width,height↝entity␜␜entity:media:image␝field_media_image␞␟height}',
+            ] + $static_image_prop_source,
             'imageStyle' => [
               'sourceType' => 'static:field_item:string',
               'value' => 'thumbnail',

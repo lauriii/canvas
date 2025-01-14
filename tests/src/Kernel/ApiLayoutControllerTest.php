@@ -203,7 +203,7 @@ class ApiLayoutControllerTest extends KernelTestBase {
               'components' => [
                 [
                   'nodeType' => 'component',
-                  'uuid' => 'dynamic-image-udf7d',
+                  'uuid' => 'static-image-udf7d',
                   'type' => 'sdc.experience_builder.image',
                   'slots' => [],
                 ],
@@ -222,19 +222,19 @@ class ApiLayoutControllerTest extends KernelTestBase {
               'components' => [
                 [
                   'nodeType' => 'component',
-                  'uuid' => 'dynamic-static-card2df',
+                  'uuid' => 'static-static-card2df',
                   'type' => 'sdc.experience_builder.my-hero',
                   'slots' => [],
                 ],
                 [
                   'nodeType' => 'component',
-                  'uuid' => 'dynamic-dynamic-card3rr',
+                  'uuid' => 'static-static-card3rr',
                   'type' => 'sdc.experience_builder.my-hero',
                   'slots' => [],
                 ],
                 [
                   'nodeType' => 'component',
-                  'uuid' => 'dynamic-image-static-imageStyle-something7d',
+                  'uuid' => 'static-image-static-imageStyle-something7d',
                   'type' => 'sdc.experience_builder.image',
                   'slots' => [],
                 ],

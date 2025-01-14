@@ -15,7 +15,7 @@ describe('Routing', () => {
     // Ideally the UUID would get its value dynamically, but that value can
     // only be accessed reliably in a command callback, and visiting a url
     // can't happen in that scope.
-    const uuid = 'dynamic-dynamic-card3rr';
+    const uuid = 'static-static-card3rr';
     cy.intercept('GET', '**/api/layout/node/1').as('getLayout');
     cy.intercept('POST', '**/api/preview/node/1').as('getPreview');
     cy.intercept('GET', '**/xb-field-form/node/1?**').as('getPropsForm');

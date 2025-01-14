@@ -96,7 +96,7 @@ describe('Drag and drop functionality in the Layers menu', () => {
     assertInitialPageState();
 
     cy.log('Drag image component out of the slot and to the root level.');
-    cy.get('.treeItem[data-xb-uuid="dynamic-image-udf7d"]').realDnd(
+    cy.get('.treeItem[data-xb-uuid="static-image-udf7d"]').realDnd(
       '.rootDropZone[data-xb-type="region"][data-xb-uuid="content"]',
       { position: 'top' },
     );
@@ -109,8 +109,8 @@ describe('Drag and drop functionality in the Layers menu', () => {
         .parents('.treeItem')
         .findByLabelText('Expand component tree')
         .click();
-      cy.get('.treeItem[data-xb-uuid="dynamic-image-udf7d"]').realDnd(
-        '[data-xb-uuid="dynamic-static-card2df"]',
+      cy.get('.treeItem[data-xb-uuid="static-image-udf7d"]').realDnd(
+        '[data-xb-uuid="static-static-card2df"]',
         { position: 'bottom' },
       );
     });
@@ -142,7 +142,7 @@ describe('Drag and drop functionality in the Layers menu', () => {
     assertInitialPageState();
 
     cy.log('Drag image component out of the slot and to the root level.');
-    cy.get('.treeItem[data-xb-uuid="dynamic-image-udf7d"]').realDnd(
+    cy.get('.treeItem[data-xb-uuid="static-image-udf7d"]').realDnd(
       '.rootDropZone[data-xb-type="region"][data-xb-uuid="content"]',
       { position: 'top' },
     );

@@ -37,21 +37,21 @@ describe('Delete node', () => {
   it('Should delete node', () => {
     expect(layout.layout[0].components).to.have.length(5);
     expect(layout.layout[0].components.map((item) => item.uuid)).to.deep.equal([
-      'dynamic-image-udf7d',
-      'dynamic-static-card2df',
-      'dynamic-dynamic-card3rr',
-      'dynamic-image-static-imageStyle-something7d',
+      'static-image-udf7d',
+      'static-static-card2df',
+      'static-static-card3rr',
+      'static-image-static-imageStyle-something7d',
       'ee07d472-a754-4427-b6d4-acfc6f92bbdc',
     ]);
     let state = layoutModelSlice.reducer(
       layout,
-      deleteNode('dynamic-static-card2df'),
+      deleteNode('static-static-card2df'),
     );
     cy.wrap(state.layout[0].components).should('have.length', 4);
     expect(state.layout[0].components.map((item) => item.uuid)).to.deep.equal([
-      'dynamic-image-udf7d',
-      'dynamic-dynamic-card3rr',
-      'dynamic-image-static-imageStyle-something7d',
+      'static-image-udf7d',
+      'static-static-card3rr',
+      'static-image-static-imageStyle-something7d',
       'ee07d472-a754-4427-b6d4-acfc6f92bbdc',
     ]);
 
@@ -73,10 +73,10 @@ describe('Delete node', () => {
     );
     cy.wrap(state.layout[0].components).should('have.length', 4);
     expect(state.layout[0].components.map((item) => item.uuid)).to.deep.equal([
-      'dynamic-image-udf7d',
-      'dynamic-static-card2df',
-      'dynamic-dynamic-card3rr',
-      'dynamic-image-static-imageStyle-something7d',
+      'static-image-udf7d',
+      'static-static-card2df',
+      'static-static-card3rr',
+      'static-image-static-imageStyle-something7d',
     ]);
     // To be double sure: check if all UUIDs of nested component(Two Column) should not exist after deletion
     cy.wrap(Object.keys(state.model)).then((items) => {
@@ -90,11 +90,11 @@ describe('Delete node', () => {
       });
     });
     expect(Object.keys(state.model)).to.deep.equal([
-      'dynamic-image-udf7d',
+      'static-image-udf7d',
       'static-static-card1ab',
-      'dynamic-static-card2df',
-      'dynamic-dynamic-card3rr',
-      'dynamic-image-static-imageStyle-something7d',
+      'static-static-card2df',
+      'static-static-card3rr',
+      'static-image-static-imageStyle-something7d',
     ]);
   });
 });
