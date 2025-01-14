@@ -38,7 +38,7 @@ final class OpenApiSpecValidationTest extends UnitTestCase {
     $vendor_directory = $finder->getVendorDir();
 
     if ($vendor_directory) {
-      $document_location = $vendor_directory . '/devizzent/cebe-php-openapi/schemas/openapi-v3.1.json';
+      $document_location = __DIR__ . '/../../../openapi-v3.1.json';
       if (file_exists($document_location)) {
         $this->documentLocation = $document_location;
       }
@@ -48,7 +48,7 @@ final class OpenApiSpecValidationTest extends UnitTestCase {
     }
 
     if (!$this->documentLocation) {
-      throw new \Exception(sprintf('Could not find OpenAPI 3.0 schema at %s.', implode(' or ', $tested_paths)));
+      throw new \Exception(sprintf('Could not find OpenAPI schema at %s.', implode(' or ', $tested_paths)));
     }
   }
 
