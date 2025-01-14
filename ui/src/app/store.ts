@@ -37,6 +37,8 @@ import {
   formStateSlice,
 } from '@/features/form/formStateSlice';
 import type { UnknownAction } from 'redux';
+import { pendingChangesApi } from '@/services/pendingChangesApi';
+import { postPreviewSignalSlice } from '@/components/review/PublishReview.slice';
 
 // Reducer enhancer to decorate undoable aware reducers and unset future state
 // if an action is performed on another undoable slice.
@@ -104,6 +106,8 @@ const rootReducer = combineSlices(
   dialogSlice,
   uiSlice,
   formStateSlice,
+  pendingChangesApi,
+  postPreviewSignalSlice,
 );
 // Infer the `RootState` type from the root reducer
 export type RootState = ReturnType<typeof rootReducer>;
@@ -168,6 +172,7 @@ export const makeStore = (preloadedState?: Partial<RootState>) => {
         pageDataFormApi.middleware,
         undoRedoActionIdMiddleware,
         clearFormStateComponents.middleware,
+        pendingChangesApi.middleware,
       );
     },
     preloadedState,

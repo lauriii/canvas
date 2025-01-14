@@ -5,12 +5,14 @@ import {
   CubeIcon,
   FileIcon,
 } from '@radix-ui/react-icons';
+import { useState } from 'react';
 import * as Popover from '@radix-ui/react-popover';
 import { differenceInMonths, format, formatDistanceToNow } from 'date-fns';
 import { kebabCase } from 'lodash';
 import Panel from '@/components/Panel';
 import Tooltip from '@/components/Tooltip';
 import styles from './PublishReview.module.css';
+import type { PendingChange } from '@/services/pendingChangesApi';
 
 export const DEFAULT_TITLE = 'Unpublished changes';
 export const DEFAULT_BUTTON_TEXT = 'Publish all changes';
@@ -38,33 +40,26 @@ export enum IconType {
   FILE = 'file',
 }
 
-type Owner = {
-  name: string;
-  avatar?: string;
-};
-
-type UnpublishedChange = {
-  label: string;
+type UnpublishedChange = PendingChange & {
   icon: IconType;
-  updated: number;
-  owner: Owner;
 };
 
-export type UnpublishedChanges = UnpublishedChange[] | undefined;
+export type UnpublishedChanges = UnpublishedChange[];
 
 interface PublishReviewProps {
-  title: string;
-  changes?: UnpublishedChanges;
-  buttonText: string;
-  onPublishClick: () => void;
+  title?: string;
+  changes: UnpublishedChanges;
+  buttonText?: string;
+  onPublishClick?: () => void;
+  onOpenChangeCallback: () => void;
 }
 
 const PublishReview: React.FC<PublishReviewProps> = ({
   title = DEFAULT_TITLE,
   changes,
-  buttonText = DEFAULT_BUTTON_TEXT,
-  onPublishClick,
+  onOpenChangeCallback,
 }) => {
+  const [isOpen, setIsOpen] = useState<boolean>(false);
   function triggerButtonText() {
     if (!changes || changes.length === 0) {
       return 'Publish';
@@ -75,14 +70,23 @@ const PublishReview: React.FC<PublishReviewProps> = ({
     return `Review ${changes.length} changes`;
   }
 
+  const onOpenChangeHandler = (open: boolean): void => {
+    setIsOpen(open);
+    if (open) onOpenChangeCallback();
+  };
+
   return (
-    <Popover.Root>
+    <Popover.Root open={isOpen} onOpenChange={onOpenChangeHandler}>
       <Popover.Trigger asChild>
-        <Button variant="solid" disabled={!changes || !changes.length}>
+        <Button
+          variant="solid"
+          disabled={!changes || !changes.length}
+          data-testid="xb-publish-review"
+        >
           {triggerButtonText()}
         </Button>
       </Popover.Trigger>
-      <Popover.Content asChild>
+      <Popover.Content asChild data-testid="xb-publish-reviews-content">
         <Panel className={styles.content}>
           <Flex mb="5" align="center" justify="between" width="100%">
             <Box>
@@ -95,17 +99,6 @@ const PublishReview: React.FC<PublishReviewProps> = ({
             </Box>
           </Flex>
           <ChangeList changes={changes} />
-          <Flex mt="1" justify="end" align="center" width="100%">
-            <Box mt="3">
-              <Button
-                disabled={!onPublishClick || !changes || !changes.length}
-                variant="solid"
-                onClick={onPublishClick}
-              >
-                {buttonText}
-              </Button>
-            </Box>
-          </Flex>
         </Panel>
       </Popover.Content>
     </Popover.Root>
@@ -118,7 +111,7 @@ const ChangeList = (props: { changes: UnpublishedChanges }) => {
   if (!changes?.length) return null;
 
   return (
-    <ul className={styles.changeList}>
+    <ul className={styles.changeList} data-testid="pending-changes-list">
       {changes.map((change: UnpublishedChange, index: number) => (
         <ChangeRow
           key={`${kebabCase(change.label + change.updated)}`}
@@ -138,7 +131,7 @@ export const ChangeRow = (props: {
   const initial = change.owner.name.trim().charAt(0).toUpperCase();
   const avatarColor = getAvatarInitialColor(index);
   return (
-    <li className={styles.changeRow}>
+    <li className={styles.changeRow} data-testid="pending-change-row">
       <Flex as="div" direction="row" align="center" justify="between" gap="4">
         {/* Left Section */}
         <Flex as="div" direction="row" align="center" gap="2">
@@ -155,6 +148,7 @@ export const ChangeRow = (props: {
         >
           <Text>{getTimeAgo(change.updated)}</Text>
           <Tooltip
+            side="left"
             content={change.owner.name}
             children={
               <Avatar
@@ -182,9 +176,9 @@ export const ChangeRow = (props: {
 const ChangeIcon = (props: { icon: IconType }) => {
   const { icon } = props;
   return icon === IconType.COMPONENT1 ? (
-    <Component1Icon />
+    <Component1Icon className={styles.component1Icon} />
   ) : icon === IconType.CUBE ? (
-    <CubeIcon />
+    <CubeIcon className={styles.cubeIcon} />
   ) : icon === IconType.FILE ? (
     <FileIcon />
   ) : (
@@ -215,6 +209,7 @@ const getTimeAgo = (timestamp: number) => {
 
   // Define a mapping for units
   const unitMappings: Record<string, string> = {
+    'less than a minute': 'a moment',
     ' seconds': 's',
     ' second': 's',
     ' minutes': 'm',
@@ -240,5 +235,4 @@ const getAvatarInitialColor = (index: number): FallbackColor => {
 
   return colors[index % colors.length];
 };
-
 export default PublishReview;

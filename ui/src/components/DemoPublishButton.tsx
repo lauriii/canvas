@@ -65,6 +65,7 @@ const DemoPublishButton = () => {
       disabled={publishStatus === SAVING || demoMode}
       color={publishStatus === PUBLISHED ? 'green' : 'blue'}
       onClick={handlePublishClick}
+      data-testid="xb-publish-button"
     >
       {publishStatus === PUBLISH && 'Publish'}
       {publishStatus === SAVING && (

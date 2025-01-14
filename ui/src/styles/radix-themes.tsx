@@ -44,6 +44,7 @@ import '@radix-ui/themes/tokens/colors/indigo.css';
 import '@radix-ui/themes/tokens/colors/iris.css';
 import '@radix-ui/themes/tokens/colors/pink.css';
 import '@radix-ui/themes/tokens/colors/ruby.css';
+import '@radix-ui/themes/tokens/colors/grass.css';
 
 // Components and utilities
 import '@radix-ui/themes/components.css';

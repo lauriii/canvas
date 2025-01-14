@@ -6,9 +6,11 @@ import styles from './Tooltip.module.css';
 const TooltipComponent = ({
   children,
   content,
+  side = 'right',
 }: {
   children: ReactElement;
   content: string;
+  side?: 'right' | 'top' | 'bottom' | 'left' | undefined;
 }) => {
   return (
     <Tooltip.Provider>
@@ -16,7 +18,7 @@ const TooltipComponent = ({
         <Tooltip.Trigger>{children}</Tooltip.Trigger>
         <Tooltip.Portal>
           <Tooltip.Content
-            side="right"
+            side={side}
             className={clsx('TooltipContent', styles.TooltipContent)}
           >
             {content}

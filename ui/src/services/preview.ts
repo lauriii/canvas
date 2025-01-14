@@ -1,5 +1,6 @@
 import { createApi } from '@reduxjs/toolkit/query/react';
 import { baseQuery } from '@/services/baseQuery';
+import { setPostPreviewCompleted } from '@/components/review/PublishReview.slice';
 
 // Define a service using a base URL and expected endpoints
 export const previewApi = createApi({
@@ -15,6 +16,14 @@ export const previewApi = createApi({
         method: 'POST',
         body,
       }),
+      async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+        try {
+          await queryFulfilled;
+          dispatch(setPostPreviewCompleted(true));
+        } catch (error) {
+          console.error('An error occurred while getting preview', error);
+        }
+      },
     }),
   }),
 });

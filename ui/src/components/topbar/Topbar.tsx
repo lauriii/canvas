@@ -8,6 +8,7 @@ import { EyeNoneIcon, EyeOpenIcon } from '@radix-ui/react-icons';
 import { useLocation, useNavigate } from 'react-router-dom';
 import clsx from 'clsx';
 import DemoPublishButton from '@/components/DemoPublishButton';
+import UnpublishedChanges from '@/components/review/UnpublishedChanges';
 
 const Topbar = () => {
   const navigate = useNavigate();
@@ -85,6 +86,7 @@ const Topbar = () => {
               </Button>
             )}
             <DemoPublishButton />
+            <UnpublishedChanges />
           </Flex>
         </Flex>
       </Panel>

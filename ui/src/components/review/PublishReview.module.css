@@ -1,12 +1,14 @@
 .content {
+  position: relative;
+  left: -10px;
   width: var(--publish-review-width);
   max-width: var(--publish-review-max-width);
   max-height: var(--publish-review-max-height);
-  margin-top: var(--space-4);
+  margin-top: var(--space-5);
   padding: var(--space-4);
   animation-duration: 400ms;
   animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
-  border-radius: var(--radius-6);
+  border-radius: var(--radius-4);
   will-change: transform, opacity;
   &[data-state="open"][data-side="top"] {
     animation-name: slide-down-and-fade;
@@ -49,6 +51,14 @@
   font-size: var(--font-size-1);
   font-weight: var(--font-weight-regular);
   line-height: var(--line-height-1);
+}
+
+.component1Icon{
+  color: var(--grass-8);
+}
+
+.cubeIcon{
+  color: var(--purple-9);
 }
 
 .changeRowRight {
