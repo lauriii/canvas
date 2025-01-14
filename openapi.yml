@@ -147,8 +147,6 @@ paths:
       parameters:
         - $ref: '#/components/parameters/entityTypeId'
         - $ref: '#/components/parameters/entityId'
-      requestBody:
-        $ref: '#/components/requestBodies/Layout'
       responses:
         '200':
           description: Saved entity successfully
@@ -706,6 +704,10 @@ components:
     LayoutPreview:
       title: LayoutPreview
       type: object
+      # @todo Require 'entity_form_fields' in https://drupal.org/i/3495752.
+      required:
+        - layout
+        - model
       additionalProperties: false
       properties:
         layout:
