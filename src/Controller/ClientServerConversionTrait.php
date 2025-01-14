@@ -161,6 +161,7 @@ trait ClientServerConversionTrait {
     // @todo Make this double `foreach` unnecessary by making StaticPropSource implementing __serialize()?
     $props_prepared_for_saving = [];
     foreach ($props as $component_instance_uuid => $component_instance_props) {
+      $props_prepared_for_saving[$component_instance_uuid] = [];
       foreach ($component_instance_props as $prop_name => $prop_source) {
         $props_prepared_for_saving[$component_instance_uuid][$prop_name] = $prop_source->toArray();
       }
@@ -168,7 +169,7 @@ trait ClientServerConversionTrait {
 
     return [
       'tree' => json_encode($tree, JSON_UNESCAPED_UNICODE | JSON_FORCE_OBJECT | JSON_THROW_ON_ERROR),
-      'props' => json_encode($props_prepared_for_saving, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR),
+      'props' => json_encode($props_prepared_for_saving, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR | JSON_FORCE_OBJECT),
     ];
   }
 

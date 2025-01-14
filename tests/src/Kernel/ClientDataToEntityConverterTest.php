@@ -69,6 +69,24 @@ class ClientDataToEntityConverterTest extends KernelTestBase {
       'The updated title.'
     );
 
+    $single_propless_component_client_json = $valid_client_json;
+    $single_propless_component_client_json['layout']['components'] = [
+      [
+        'nodeType' => 'component',
+        'uuid' => '4ad36179-a9bd-4bc8-8a4a-241e73dbed25',
+        'type' => 'sdc.experience_builder.druplicon',
+        'slots' => [],
+      ],
+    ];
+    $single_propless_component_client_json['model'] = [
+      '4ad36179-a9bd-4bc8-8a4a-241e73dbed25' => [],
+    ];
+    $this->assertConvert(
+      $single_propless_component_client_json,
+      [],
+      'The updated title.'
+    );
+
     $unreferenced_file_client_json = $valid_client_json;
     $unreferenced_src = $this->getSrcPropertyFromFile($this->unreferencedImage);
     $unreferenced_file_client_json['model'][self::TEST_IMAGE_UUID]['image']['src'] = $unreferenced_src;
