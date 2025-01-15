@@ -13,7 +13,7 @@ describe('Primary panel', () => {
 
   it('Should ensure the library panel is scrollable', () => {
     // Stub the HTTP request to return many components to make scrolling necessary
-    cy.intercept('GET', '**/xb-components', {
+    cy.intercept('GET', '**/xb/api/config/component', {
       statusCode: 200,
       body: Array(50)
         .fill()

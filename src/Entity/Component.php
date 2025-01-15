@@ -6,7 +6,9 @@ namespace Drupal\experience_builder\Entity;
 
 use Drupal\Core\Config\Entity\ConfigEntityBase;
 use Drupal\Core\Plugin\DefaultSingleLazyPluginCollection;
+use Drupal\Core\Render\Markup;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
+use Drupal\experience_builder\ClientSideRepresentation;
 use Drupal\experience_builder\ComponentSource\ComponentSourceInterface;
 use Drupal\experience_builder\ComponentSource\ComponentSourceManager;
 use Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\SingleDirectoryComponent;
@@ -60,7 +62,7 @@ use Drupal\experience_builder\PropSource\StaticPropSource;
  *
  * @phpstan-type ComponentConfigEntityId string
  */
-final class Component extends ConfigEntityBase implements ComponentInterface {
+final class Component extends ConfigEntityBase implements ComponentInterface, XbHttpApiEligibleConfigEntityInterface {
 
   /**
    * The component entity ID.
@@ -244,6 +246,45 @@ final class Component extends ConfigEntityBase implements ComponentInterface {
   public function uuid(): string {
     /** @var string */
     return parent::uuid();
+  }
+
+  /**
+   * {@inheritdoc}
+   *
+   * This corresponds to `Component` in openapi.yml.
+   *
+   * @see ui/src/types/Component.ts
+   * @see docs/adr/0005-Keep-the-front-end-simple.md
+   */
+  public function normalizeForClientSide(): ClientSideRepresentation {
+    $info = $this->getComponentSource()->getClientSideInfo($this);
+
+    $build = $info['build'];
+    unset($info['build']);
+
+    // Wrap each rendered component instance in HTML comments that allow the
+    // client side to identify it.
+    // @see \Drupal\experience_builder\Plugin\DataType\ComponentTreeHydrated::renderify()
+    $component_config_entity_uuid = $this->uuid();
+    $build['#prefix'] = Markup::create("<!-- xb-start-$component_config_entity_uuid -->");
+    $build['#suffix'] = Markup::create("<!-- xb-end-$component_config_entity_uuid -->");
+
+    $info += [
+      'id' => $this->id(),
+      'name' => (string) $this->label(),
+      'category' => (string) $this->getCategory(),
+      'source' => (string) $this->getComponentSource()->getPluginDefinition()['label'],
+    ];
+
+    return (new ClientSideRepresentation(
+      values: $info + [
+        'id' => $this->id(),
+        'name' => (string) $this->label(),
+        'category' => (string) $this->getCategory(),
+        'source' => (string) $this->getComponentSource()->getPluginDefinition()['label'],
+      ],
+      preview: $build,
+    ))->addCacheableDependency($this);
   }
 
 }

@@ -11,14 +11,6 @@ experience_builder.experience_builder:
       entity:
         type: entity:{entity_type}
 
-experience_builder.api.components:
-  path: '/xb-components'
-  defaults:
-    _controller: 'Drupal\experience_builder\Controller\ApiComponentsController'
-    _title: 'Components'
-  requirements:
-    _permission: 'access administration pages'
-
 experience_builder.api.layout:
   path: '/api/layout/{entity_type}/{entity}'
   defaults:
@@ -123,7 +115,7 @@ experience_builder.api.config.list:
     _controller: 'Drupal\experience_builder\Controller\ApiConfigControllers::list'
   requirements:
     _permission: 'access administration pages'
-    xb_config_entity_type_id: '(page_template|pattern)'
+    xb_config_entity_type_id: '(component|pattern)'
   methods: [GET]
 experience_builder.api.config.get:
   path: '/xb/api/config/{xb_config_entity_type_id}/{xb_config_entity}'
@@ -131,7 +123,7 @@ experience_builder.api.config.get:
     _controller: 'Drupal\experience_builder\Controller\ApiConfigControllers::get'
   requirements:
     _permission: 'access administration pages'
-    xb_config_entity_type_id: '(page_template|pattern)'
+    xb_config_entity_type_id: '(pattern)'
   options:
     parameters:
       xb_config_entity:
@@ -143,7 +135,7 @@ experience_builder.api.config.patch:
     _controller: 'Drupal\experience_builder\Controller\ApiConfigControllers::patch'
   requirements:
     _permission: 'access administration pages'
-    xb_config_entity_type_id: '(page_template|pattern)'
+    xb_config_entity_type_id: '(pattern)'
   options:
     parameters:
       xb_config_entity:
@@ -155,7 +147,7 @@ experience_builder.api.config.delete:
     _controller: 'Drupal\experience_builder\Controller\ApiConfigControllers::delete'
   requirements:
     _permission: 'access administration pages'
-    xb_config_entity_type_id: '(page_template|pattern)'
+    xb_config_entity_type_id: '(pattern)'
   options:
     parameters:
       xb_config_entity:
@@ -167,7 +159,7 @@ experience_builder.api.config.post:
     _controller: 'Drupal\experience_builder\Controller\ApiConfigControllers::post'
   requirements:
     _permission: 'access administration pages'
-    xb_config_entity_type_id: '(page_template|pattern)'
+    xb_config_entity_type_id: '(pattern)'
   methods: [POST]
 
 experience_builder.component.status:

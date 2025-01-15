@@ -15,6 +15,7 @@ use Drupal\Core\Entity\TypedData\EntityDataDefinition;
 use Drupal\Core\EventSubscriber\AjaxResponseSubscriber;
 use Drupal\Core\Field\BaseFieldDefinition;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\datetime\Plugin\Field\FieldType\DateTimeItem;
 use Drupal\experience_builder\Entity\Component;
 use Drupal\experience_builder\Form\FormIdPreRender;
@@ -232,7 +233,7 @@ function experience_builder_block_alter(array &$definitions): void {
       }
       $component = Component::create([
         'id' => $component_id,
-        'label' => (string) $definition['admin_label'],
+        'label' => (string) new TranslatableMarkup('@label block', ['@label' => $definition['admin_label']]),
         'category' => (string) $definition['category'],
         'source' => BlockComponent::SOURCE_PLUGIN_ID,
         'settings' => [

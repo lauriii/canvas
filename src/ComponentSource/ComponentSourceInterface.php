@@ -32,8 +32,6 @@ use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
  * @see \Drupal\experience_builder\Attribute\ComponentSource
  * @see \Drupal\experience_builder\ComponentSource\ComponentSourceBase
  * @see \Drupal\experience_builder\ComponentSource\ComponentSourceManager
- * @phpstan-import-type ComponentClientSideTypeAny from \Drupal\experience_builder\Controller\ApiComponentsController
- * @phpstan-import-type ComponentClientSideTypeSdc from \Drupal\experience_builder\Controller\ApiComponentsController
  */
 interface ComponentSourceInterface extends PluginInspectionInterface, DerivativeInspectionInterface, ConfigurableInterface, PluginFormInterface, DependentPluginInterface, ContextAwarePluginInterface {
 
@@ -124,13 +122,13 @@ interface ComponentSourceInterface extends PluginInspectionInterface, Derivative
    * @param \Drupal\experience_builder\Entity\Component $component
    *   A component config entity that uses this source.
    *
-   * @phpstan-return ComponentClientSideTypeAny|ComponentClientSideTypeSdc
-   *   Metadata for the client side.
+   * @return array{'source'?: string, 'build': array<string, mixed>}
+   *   Client side metadata including a build array for the default markup.
    *
    * @see \Drupal\experience_builder\Controller\ApiComponentsController
    * @todo Refine in https://www.drupal.org/project/experience_builder/issues/3484678
    */
-  public function getClientSideInfo(Component $component, ?bool $cache_tags = TRUE): array;
+  public function getClientSideInfo(Component $component): array;
 
   /**
    * Configuration form constructor.

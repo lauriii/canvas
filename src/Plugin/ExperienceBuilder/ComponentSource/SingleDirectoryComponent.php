@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource;
 
-use Drupal\Core\Asset\AttachedAssets;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
@@ -18,14 +17,11 @@ use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Plugin\Component;
 use Drupal\Core\Plugin\Component as ComponentPlugin;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
-use Drupal\Core\Render\Markup;
-use Drupal\Core\Render\RendererInterface;
 use Drupal\Core\StreamWrapper\PublicStream;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\Theme\Component\ComponentValidator;
 use Drupal\Core\Theme\ComponentPluginManager;
 use Drupal\Core\Theme\ExtensionType;
-use Drupal\experience_builder\AssetRenderer;
 use Drupal\experience_builder\Attribute\ComponentSource;
 use Drupal\experience_builder\ComponentSource\ComponentSourceBase;
 use Drupal\experience_builder\ComponentSource\ComponentSourceWithSlotsInterface;
@@ -51,8 +47,6 @@ use Symfony\Component\Validator\ConstraintViolationList;
 
 /**
  * Defines a component source based on single-directory components.
- *
- * @phpstan-import-type ComponentClientSideTypeSdc from \Drupal\experience_builder\Controller\ApiComponentsController
  */
 #[ComponentSource(
   id: self::SOURCE_PLUGIN_ID,
@@ -91,9 +85,7 @@ final class SingleDirectoryComponent extends ComponentSourceBase implements Comp
     private readonly ComponentValidator $componentValidator,
     private readonly FieldTypePluginManagerInterface $fieldTypePluginManager,
     private readonly WidgetPluginManager $fieldWidgetPluginManager,
-    private readonly AssetRenderer $assetRenderer,
     private readonly FieldForComponentSuggester $fieldForComponentSuggester,
-    private readonly RendererInterface $renderer,
     private readonly RequestStack $requestStack,
     private readonly EntityTypeManagerInterface $entityTypeManager,
   ) {
@@ -114,9 +106,7 @@ final class SingleDirectoryComponent extends ComponentSourceBase implements Comp
       $container->get(ComponentValidator::class),
       $container->get(FieldTypePluginManagerInterface::class),
       $container->get('plugin.manager.field.widget'),
-      $container->get(AssetRenderer::class),
       $container->get(FieldForComponentSuggester::class),
-      $container->get(RendererInterface::class),
       $container->get(RequestStack::class),
       $container->get(EntityTypeManagerInterface::class),
     );
@@ -216,6 +206,11 @@ final class SingleDirectoryComponent extends ComponentSourceBase implements Comp
       '#props' => ($inputs[self::EXPLICIT_INPUT_NAME] ?? []) + [
         'xb_uuid' => $componentUuid,
         'xb_slot_ids' => \array_keys($this->getSlotDefinitions()),
+      ],
+      '#attached' => [
+        'library' => [
+          'core/components.' . str_replace(':', '--', $this->configuration['plugin_id']),
+        ],
       ],
     ];
   }
@@ -333,10 +328,8 @@ final class SingleDirectoryComponent extends ComponentSourceBase implements Comp
 
   /**
    * {@inheritdoc}
-   *
-   * @phpstan-return ComponentClientSideTypeSdc
    */
-  public function getClientSideInfo(ComponentEntity $component, ?bool $cache_tags = TRUE): array {
+  public function getClientSideInfo(ComponentEntity $component): array {
     $component_plugin = $this->getComponentPlugin();
     assert($component_plugin instanceof Component);
     $keyed_choices = [];
@@ -395,38 +388,9 @@ final class SingleDirectoryComponent extends ComponentSourceBase implements Comp
       $keyed_choices[$component_prop->propName]['jsonSchema'] = $prop_shape->resolvedSchema;
     }
 
-    // @todo return this as a single build array and let the controller render and extract assets? Decide in https://www.drupal.org/project/experience_builder/issues/3484678
-    $build = $this->renderComponent([self::EXPLICIT_INPUT_NAME => $default_props_for_default_markup], $component->uuid());
-    // @see Match the wrapping that happens in \Drupal\experience_builder\Plugin\DataType\ComponentTreeHydrated::renderify().
-    // @todo Remove this in https://www.drupal.org/project/experience_builder/issues/3484678
-    // Wrap each rendered component instance in HTML comments that allow the
-    // client side to identify it.
-    $component_config_entity_uuid = $component->uuid();
-    $build['#prefix'] = Markup::create("<!-- xb-start-$component_config_entity_uuid -->");
-    $build['#suffix'] = Markup::create("<!-- xb-end-$component_config_entity_uuid -->");
-
-    if (!$cache_tags) {
-      unset($build['#cache']);
-    }
-    $assets = AttachedAssets::createFromRenderArray([
-      '#attached' => [
-        // @see \Drupal\Core\Plugin\Component::getLibraryName()
-        'library' => ['core/components.' . str_replace(':', '--', $component_plugin->getPluginId())],
-      ],
-    ]);
-
     return [
-      'id' => $component->id(),
-      'name' => (string) $component->label(),
-      'category' => (string) $component->getCategory(),
       'source' => (string) $this->getSourceLabel(),
-      // A pre-rendered version of the component is provided so no requests
-      // are needed when adding it to the layout which includes a default markup,
-      // CSS files, JS files in the header and JS files in the footer.
-      'default_markup' => $this->renderer->render($build),
-      'css' => $this->assetRenderer->renderCssAssets($assets),
-      'js_header' => $this->assetRenderer->renderJsHeaderAssets($assets),
-      'js_footer' => $this->assetRenderer->renderJsFooterAssets($assets),
+      'build' => $this->renderComponent([self::EXPLICIT_INPUT_NAME => $default_props_for_default_markup], $component->uuid()),
       // Additional data only needed for SDCs.
       // @todo UI does not use any other metadata - should `slots` move to top level?
       'metadata' => ['slots' => $this->getSlotDefinitions()],

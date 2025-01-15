@@ -44,7 +44,7 @@ class PropSourceEndpointTest extends BrowserTestBase {
     ]);
     $node->save();
     $this->drupalLogin($this->rootUser);
-    $this->drupalGet('xb-components');
+    $this->drupalGet('xb/api/config/component');
 
     $expected_tags = [
       'CACHE_MISS_IF_UNCACHEABLE_HTTP_METHOD:form',
@@ -74,9 +74,8 @@ class PropSourceEndpointTest extends BrowserTestBase {
     $expected_contexts = [
       'languages:language_content',
       'route',
-      'url.path.is_front',
-      'url.path.parent',
-      'url.query_args:_wrapper_format',
+      'url.path',
+      'url.query_args',
       'user.node_grants:view',
       'user.roles:authenticated',
       // The user_login_block is rendered as the anonymous user because for the
@@ -100,7 +99,7 @@ class PropSourceEndpointTest extends BrowserTestBase {
     // available to anonymous users).
     $this->assertSession()->responseHeaderEquals('X-Drupal-Dynamic-Cache', 'MISS');
     $this->assertSession()->responseHeaderEquals('X-Drupal-Cache', 'UNCACHEABLE (request policy)');
-    $this->drupalGet('xb-components');
+    $this->drupalGet('xb/api/config/component');
     $this->assertSession()->responseHeaderEquals('X-Drupal-Dynamic-Cache', 'HIT');
     $this->assertSession()->responseHeaderEquals('X-Drupal-Cache', 'UNCACHEABLE (request policy)');
 

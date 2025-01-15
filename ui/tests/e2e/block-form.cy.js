@@ -17,7 +17,7 @@ describe('Block form with details elements', () => {
     cy.loadURLandWaitForXBLoaded({ url: 'xb/node/3' });
 
     cy.get('#cea4c5b3-7921-4c6f-b388-da921bd1496d-name').should((blockName) => {
-      expect(blockName).to.have.text('Administration');
+      expect(blockName).to.have.text('Administration block');
     });
     // @todo not 100% sure but it looks like adding a block results in the
     // overlays having 0 width 0 height.

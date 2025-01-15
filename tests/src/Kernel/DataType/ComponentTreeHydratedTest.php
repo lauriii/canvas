@@ -190,6 +190,11 @@ class ComponentTreeHydratedTest extends KernelTestBase {
             ],
             '#prefix' => Markup::create('<!-- xb-start-uuid-in-root -->'),
             '#suffix' => Markup::create('<!-- xb-end-uuid-in-root -->'),
+            '#attached' => [
+              'library' => [
+                'core/components.xb_test_sdc--props-slots',
+              ],
+            ],
           ],
         ],
       ],
@@ -279,7 +284,6 @@ HTML,
             ],
             '#prefix' => '',
             '#suffix' => '',
-
           ],
         ],
       ],
@@ -341,6 +345,11 @@ HTML,
             ],
             '#prefix' => Markup::create('<!-- xb-start-uuid-in-root -->'),
             '#suffix' => Markup::create('<!-- xb-end-uuid-in-root -->'),
+            '#attached' => [
+              'library' => [
+                'core/components.xb_test_sdc--props-no-slots',
+              ],
+            ],
           ],
           'uuid-in-root-another' => [
             '#type' => 'component',
@@ -357,6 +366,11 @@ HTML,
             ],
             '#prefix' => Markup::create('<!-- xb-start-uuid-in-root-another -->'),
             '#suffix' => Markup::create('<!-- xb-end-uuid-in-root-another -->'),
+            '#attached' => [
+              'library' => [
+                'core/components.xb_test_sdc--props-no-slots',
+              ],
+            ],
           ],
         ],
       ],
@@ -447,11 +461,21 @@ HTML,
                   ],
                   '#prefix' => Markup::create('<!-- xb-start-uuid-in-slot -->'),
                   '#suffix' => Markup::create('<!-- xb-end-uuid-in-slot -->'),
+                  '#attached' => [
+                    'library' => [
+                      'core/components.xb_test_sdc--props-no-slots',
+                    ],
+                  ],
                 ],
               ],
             ],
             '#prefix' => Markup::create('<!-- xb-start-uuid-in-root -->'),
             '#suffix' => Markup::create('<!-- xb-end-uuid-in-root -->'),
+            '#attached' => [
+              'library' => [
+                'core/components.xb_test_sdc--props-slots',
+              ],
+            ],
           ],
         ],
       ],
@@ -639,6 +663,11 @@ HTML,
                               ],
                               '#prefix' => Markup::create('<!-- xb-start-uuid-level-3 -->'),
                               '#suffix' => Markup::create('<!-- xb-end-uuid-level-3 -->'),
+                              '#attached' => [
+                                'library' => [
+                                  'core/components.xb_test_sdc--props-no-slots',
+                                ],
+                              ],
                             ],
                             'uuid-block' => [
                               '#access' => new AccessResultAllowed(),
@@ -705,21 +734,41 @@ HTML,
                               ],
                               '#prefix' => Markup::create('<!-- xb-start-last-in-tree -->'),
                               '#suffix' => Markup::create('<!-- xb-end-uuid-last-in-tree -->'),
+                              '#attached' => [
+                                'library' => [
+                                  'core/components.xb_test_sdc--props-no-slots',
+                                ],
+                              ],
                             ],
                           ],
                         ],
                         '#prefix' => Markup::create('<!-- xb-start-uuid-level-2 -->'),
                         '#suffix' => Markup::create('<!-- xb-end-uuid-level-2 -->'),
+                        '#attached' => [
+                          'library' => [
+                            'core/components.xb_test_sdc--props-slots',
+                          ],
+                        ],
                       ],
                     ],
                   ],
                   '#prefix' => Markup::create('<!-- xb-start-uuid-level-1 -->'),
                   '#suffix' => Markup::create('<!-- xb-end-uuid-level-1 -->'),
+                  '#attached' => [
+                    'library' => [
+                      'core/components.xb_test_sdc--props-slots',
+                    ],
+                  ],
                 ],
               ],
             ],
             '#prefix' => Markup::create('<!-- xb-start-uuid-in-root -->'),
             '#suffix' => Markup::create('<!-- xb-end-uuid-in-root -->'),
+            '#attached' => [
+              'library' => [
+                'core/components.xb_test_sdc--props-slots',
+              ],
+            ],
           ],
         ],
       ],

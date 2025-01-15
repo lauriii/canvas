@@ -83,7 +83,7 @@ XB intentionally does not use Drupal core's [JSON:API module](https://jsonapi.or
 -  requiring the Drupal JSON:API module to be installed is excessive
 -  XB's HTTP API does not need pagination support
 -  XB tracks all available Components as config entities, but those actually do not need to be exposed in full; there's
-   no need to modify them from the  client-side UI, and there already is the `/xb-components` controller for that which
+   no need to modify them from the  client-side UI, and there already is `Component::normalizeForClientSide()` which
    enriches it with additional metadata, matching the UI's needs
 - XB's HTTP API does not need to surface relationships between XB's config entities — that mostly makes sense for
   _content entity_ relationships (i.e. "entity references")

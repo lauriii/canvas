@@ -89,7 +89,6 @@ services:
       - { name: twig.extension }
 
   # Controllers.
-  Drupal\experience_builder\Controller\ApiComponentsController: {}
   Drupal\experience_builder\Controller\ApiConfigControllers: ~
   Drupal\experience_builder\Controller\ApiLayoutController: {}
   Drupal\experience_builder\Controller\ApiLogController: {}

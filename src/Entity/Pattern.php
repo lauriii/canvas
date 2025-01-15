@@ -7,6 +7,8 @@ namespace Drupal\experience_builder\Entity;
 use Drupal\Component\Utility\Random;
 use Drupal\Core\Config\Entity\ConfigEntityBase;
 use Drupal\Core\Entity\EntityStorageInterface;
+use Drupal\experience_builder\ClientSideRepresentation;
+use Drupal\experience_builder\Controller\ApiConfigControllers;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemInstantiatorTrait;
@@ -113,6 +115,26 @@ final class Pattern extends ConfigEntityBase implements XbHttpApiEligibleConfigE
     }
 
     return $id;
+  }
+
+  /**
+   * {@inheritdoc}
+   *
+   * This corresponds to `PatternPreview` in openapi.yml.
+   *
+   * @see docs/adr/0005-Keep-the-front1-end-simple.md
+   */
+  public function normalizeForClientSide(): ClientSideRepresentation {
+    $item = $this->getComponentTree();
+    assert($item instanceof ComponentTreeItem);
+    return (new ClientSideRepresentation(
+      values: [
+        'layoutModel' => ApiConfigControllers::convertComponentTreeItemToLayoutModel($item),
+        'name' => $this->label(),
+        'id' => $this->id(),
+      ],
+      preview: $item->toRenderable(),
+    ))->addCacheableDependency($this);
   }
 
 }

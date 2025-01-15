@@ -178,7 +178,7 @@ const DummyPropsEditForm: React.FC<DummyPropsEditFormProps> = () => {
       preparedModel[selectedComponent][propName] = {};
       // The sourceType of the prop is required by the component edit form. This
       // information is provided to the UI in the components list returned by
-      // /xb-components.
+      // /xb/api/config/component.
       if (propData.sourceType) {
         preparedModel[selectedComponent as keyof PreparedModel][
           propName
@@ -192,7 +192,7 @@ const DummyPropsEditForm: React.FC<DummyPropsEditFormProps> = () => {
       }
       // The expression of the prop is required by the component edit form. This
       // information is provided to the UI in the components list returned by
-      // /xb-components.
+      // /xb/api/config/component.
       if (propData.expression) {
         preparedModel[selectedComponent as keyof PreparedModel][
           propName

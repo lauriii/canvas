@@ -9,7 +9,7 @@ export const componentApi = createApi({
   baseQuery,
   endpoints: (builder) => ({
     getComponents: builder.query<ComponentsList, void>({
-      query: () => `xb-components`,
+      query: () => `xb/api/config/component`,
     }),
   }),
 });

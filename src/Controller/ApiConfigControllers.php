@@ -4,22 +4,26 @@ declare(strict_types=1);
 
 namespace Drupal\experience_builder\Controller;
 
-use Drupal\Core\Asset\AttachedAssets;
+use Drupal\Core\Cache\Cache;
 use Drupal\Core\Cache\CacheableJsonResponse;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Config\Entity\ConfigEntityTypeInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Render\RenderContext;
 use Drupal\Core\Render\RendererInterface;
+use Drupal\Core\Session\AccountSwitcherInterface;
+use Drupal\Core\Session\AnonymousUserSession;
 use Drupal\Core\Url;
 use Drupal\experience_builder\AssetRenderer;
-use Drupal\experience_builder\Entity\Pattern;
+use Drupal\experience_builder\ClientSideRepresentation;
 use Drupal\experience_builder\Entity\XbHttpApiEligibleConfigEntityInterface;
 use Drupal\experience_builder\Exception\ConstraintViolationException;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeHydrated;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemInstantiatorTrait;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
@@ -32,6 +36,7 @@ use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
  *   and associated routes may change at any time.
  *
  * @see \Drupal\experience_builder\Entity\XbHttpApiEligibleConfigEntityInterface
+ * @see \Drupal\experience_builder\ClientSideRepresentation
  */
 final class ApiConfigControllers extends ApiControllerBase {
 
@@ -42,6 +47,9 @@ final class ApiConfigControllers extends ApiControllerBase {
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly RendererInterface $renderer,
     private readonly AssetRenderer $assetRenderer,
+    #[Autowire(param: 'renderer.config')]
+    private readonly array $rendererConfig,
+    private readonly AccountSwitcherInterface $accountSwitcher,
   ) {}
 
   /**
@@ -53,6 +61,17 @@ final class ApiConfigControllers extends ApiControllerBase {
     }
   }
 
+  /**
+   * Returns a list of enabled XB config entities in client representation.
+   *
+   * This controller provides a critical response for the XB UI. Therefore it
+   * should hence be as fast and cacheable as possible. High-cardinality cache
+   * contexts (such as 'user' and 'session') result in poor cacheability.
+   * Fortunately, these cache contexts only are present for the markup used for
+   * previewing XB Components. So XB chooses to sacrifice accuracy of the
+   * preview slightly to be able to guarantee strong cacheability and fast
+   * responses.
+   */
   public function list(string $xb_config_entity_type_id): CacheableJsonResponse {
     $xb_config_entity_type = $this->entityTypeManager->getDefinition($xb_config_entity_type_id);
     assert($xb_config_entity_type instanceof ConfigEntityTypeInterface);
@@ -65,20 +84,47 @@ final class ApiConfigControllers extends ApiControllerBase {
     /** @var array<\Drupal\experience_builder\Entity\XbHttpApiEligibleConfigEntityInterface> $config_entities */
     $config_entities = $this->entityTypeManager->getStorage($xb_config_entity_type_id)->loadMultiple();
     $normalizations = [];
+    $normalizations_cacheability = new CacheableMetadata();
     foreach ($config_entities as $key => &$entity) {
-      $normalizations[$key] = $this->normalize($entity);
+      // Omit disabled Components, Patterns and other config entities: if they
+      // have been disabled, it's to avoid new uses of them. Only in the server-
+      // side admin UI should it be possible to see (and re-enable) them.
+      if (!$entity->status()) {
+        continue;
+      }
+      $representation = $this->normalize($entity);
+      $normalizations[$key] = $representation->values;
+      $normalizations_cacheability->addCacheableDependency($representation);
+    }
+
+    // Ignore the cache tags for individual XB config entities, because this
+    // response lists them, so the list cache tag is sufficient and the rest is
+    // pointless noise.
+    // @see \Drupal\Core\Entity\EntityTypeInterface::getListCacheTags()
+    $normalizations_cacheability->setCacheTags(array_filter(
+      $normalizations_cacheability->getCacheTags(),
+      fn (string $tag): bool => !str_starts_with($tag, 'config:experience_builder.' . $xb_config_entity_type_id),
+    ));
+
+    // Set a minimum cache time of one hour, because this is only a preview.
+    // (Cache tag invalidations will still result in an immediate update.)
+    $max_age = $normalizations_cacheability->getCacheMaxAge();
+    if ($max_age !== Cache::PERMANENT) {
+      $normalizations_cacheability->setCacheMaxAge(max($max_age, 3600));
     }
 
     return (new CacheableJsonResponse($normalizations))
-      ->addCacheableDependency($query_cacheability);
+      ->addCacheableDependency($query_cacheability)
+      ->addCacheableDependency($normalizations_cacheability);
   }
 
   public function get(Request $request, XbHttpApiEligibleConfigEntityInterface $xb_config_entity): CacheableJsonResponse {
     $xb_config_entity_type = $xb_config_entity->getEntityType();
     assert($xb_config_entity_type instanceof ConfigEntityTypeInterface);
-    $normalization = $this->normalize($xb_config_entity);
-    return (new CacheableJsonResponse(status: 200, data: $normalization))
-      ->addCacheableDependency($xb_config_entity);
+    $representation = $this->normalize($xb_config_entity);
+    return (new CacheableJsonResponse(status: 200, data: $representation->values))
+      ->addCacheableDependency($xb_config_entity)
+      ->addCacheableDependency($representation);
   }
 
   public function post(string $xb_config_entity_type_id, Request $request): JsonResponse {
@@ -107,8 +153,8 @@ final class ApiConfigControllers extends ApiControllerBase {
 
     // Save the XB config entity, respond with a 201.
     $xb_config_entity->save();
-    $normalization = $this->normalize($xb_config_entity);
-    return new JsonResponse(status: 201, data: $normalization, headers: [
+    $representation = $this->normalize($xb_config_entity);
+    return new JsonResponse(status: 201, data: $representation->values, headers: [
       'Location' => Url::fromRoute(
         'experience_builder.api.config.get',
         [
@@ -150,8 +196,8 @@ final class ApiConfigControllers extends ApiControllerBase {
     $xb_config_entity->save();
     $xb_config_entity_type = $xb_config_entity->getEntityType();
     assert($xb_config_entity_type instanceof ConfigEntityTypeInterface);
-    $normalization = $this->normalize($xb_config_entity);
-    return new JsonResponse(status: 200, data: $normalization);
+    $representation = $this->normalize($xb_config_entity);
+    return new JsonResponse(status: 200, data: $representation->values);
   }
 
   private function validate(XbHttpApiEligibleConfigEntityInterface $xb_config_entity): void {
@@ -213,40 +259,64 @@ final class ApiConfigControllers extends ApiControllerBase {
     ];
   }
 
-  private function normalize(XbHttpApiEligibleConfigEntityInterface $entity): array {
-    return match(TRUE) {
-      $entity instanceof Pattern => $this->normalizePattern($entity),
-      TRUE => [],
-    };
-  }
-
   /**
-   * @see docs/adr/0005-Keep-the-front-end-simple.md
+   * Normalizes this config entity, ensuring strong cacheability.
+   *
+   * Strong cacheability is "ensured" by accepting imperfect previews, when
+   * those previews are highly dynamic.
    */
-  private function normalizePattern(Pattern $pattern): array {
-    $item = $pattern->getComponentTree();
-    assert($item instanceof ComponentTreeItem);
-    ['layout' => $layout, 'model' => $model] = $this->convertComponentTreeItemToLayoutModel($item);
-    $build = $pattern->getComponentTree()->toRenderable();
-    $default_markup = $this->renderer->renderInIsolation($build);
-    $assets = AttachedAssets::createFromRenderArray($build);
-    return [
-      'layoutModel' => [
-        'layout' => $layout,
-        'model' => $model,
-      ],
-      'name' => $pattern->label(),
-      'id' => $pattern->id(),
-      // A pre-rendered version of the Pattern is provided so no requests
-      // are needed when adding it to the layout which includes a default
-      // markup, CSS files, JS files in the header and JS files in the
-      // footer.
-      // @see \Drupal\experience_builder\ComponentSource\ComponentSourceInterface::getClientSideInfo()
-      'default_markup' => $default_markup,
-      'css' => $this->assetRenderer->renderCssAssets($assets),
-      'js_header' => $this->assetRenderer->renderJsHeaderAssets($assets),
-      'js_footer' => $this->assetRenderer->renderJsFooterAssets($assets),
-    ];
+  private function normalize(XbHttpApiEligibleConfigEntityInterface $entity): ClientSideRepresentation {
+    // TRICKY: some components may (erroneously!) bubble cacheability even
+    // when just constructing a render array. For maximum ecosystem
+    // compatibility, account for this, and catch the bubbled cacheability.
+    // @see \Drupal\views\Plugin\Block\ViewsBlock::build()
+    $get_representation = function (XbHttpApiEligibleConfigEntityInterface $entity): ClientSideRepresentation {
+      $context = new RenderContext();
+      $representation = $this->renderer->executeInRenderContext(
+        $context,
+        fn () => $entity->normalizeForClientSide()->renderPreviewIfAny($this->renderer, $this->assetRenderer),
+      );
+      assert($representation instanceof ClientSideRepresentation);
+      if (!$context->isEmpty()) {
+        $leaked_cacheability = $context->pop();
+        $representation->addCacheableDependency($leaked_cacheability);
+      }
+      return $representation;
+    };
+
+    $representation = $get_representation($entity);
+
+    // Use core's `renderer.config` container parameter to determine which cache
+    // contexts are considered poorly cacheable.
+    $problematic_cache_contexts = array_intersect(
+      $representation->getCacheContexts(),
+      $this->rendererConfig['auto_placeholder_conditions']['contexts']
+    );
+
+    // If problematic cache contexts are present or if the markup is empty,
+    // attempt to re-render in a way that the Component preview is strongly
+    // cacheable while still sufficiently accurate.
+    if (!empty($problematic_cache_contexts) || empty($representation->values['default_markup'])) {
+      $ignorable_cache_contexts = ['session', 'user'];
+
+      if (array_diff($problematic_cache_contexts, $ignorable_cache_contexts)) {
+        throw new \LogicException(sprintf('No PHP API exists yet to allow specifying a technique to avoid the `%s` cache context(s) while still generating an acceptable preview', implode(',', $problematic_cache_contexts)));
+      }
+
+      try {
+        $this->accountSwitcher->switchTo(new AnonymousUserSession());
+        $representation = $get_representation($entity);
+        // Ignore these cache contexts if they still exist, because it's been
+        // re-rendered as the anonymous user. If they still exist, they are safe
+        // to ignore for preview purposes.
+        $representation->removeCacheContexts($ignorable_cache_contexts);
+      }
+      finally {
+        $this->accountSwitcher->switchBack();
+      }
+    }
+
+    return $representation;
   }
 
   /**
@@ -258,7 +328,7 @@ final class ApiConfigControllers extends ApiControllerBase {
    *
    * @todo Follow up issue to extract this logic into a trait: https://www.drupal.org/project/experience_builder/issues/3499632
    */
-  private function convertComponentTreeItemToLayoutModel(ComponentTreeItem $item): array {
+  public static function convertComponentTreeItemToLayoutModel(ComponentTreeItem $item): array {
     assert($item instanceof ComponentTreeItem);
     $tree = $item->get('tree');
     assert($tree instanceof ComponentTreeStructure);
@@ -269,7 +339,7 @@ final class ApiConfigControllers extends ApiControllerBase {
     $model = [];
     $decoded_tree = json_decode($tree->getValue(), TRUE);
 
-    $this->buildLayoutAndModel($layout, $model, $item, $decoded_tree[ComponentTreeStructure::ROOT_UUID], $hydrated->getValue()->getTree()[ComponentTreeStructure::ROOT_UUID]);
+    self::buildLayoutAndModel($layout, $model, $item, $decoded_tree[ComponentTreeStructure::ROOT_UUID], $hydrated->getValue()->getTree()[ComponentTreeStructure::ROOT_UUID]);
 
     return [
       'layout' => $layout,
@@ -277,7 +347,7 @@ final class ApiConfigControllers extends ApiControllerBase {
     ];
   }
 
-  private function buildLayoutAndModel(array &$layout, array &$model, ComponentTreeItem $item, array $tree_tier, array $hydrated): void {
+  private static function buildLayoutAndModel(array &$layout, array &$model, ComponentTreeItem $item, array $tree_tier, array $hydrated): void {
     $tree = $item->get('tree');
     assert($tree instanceof ComponentTreeStructure);
     $full_tree = json_decode($tree->getValue(), TRUE);
@@ -299,7 +369,7 @@ final class ApiConfigControllers extends ApiControllerBase {
             'nodeType' => 'slot',
             'components' => [],
           ];
-          $this->buildLayoutAndModel($component_instance_slot['components'], $model, $item, $slot_children, $hydrated[$component_instance_uuid]['slots'][$slot_name]);
+          self::buildLayoutAndModel($component_instance_slot['components'], $model, $item, $slot_children, $hydrated[$component_instance_uuid]['slots'][$slot_name]);
           $component_instance['slots'][] = $component_instance_slot;
         }
       }

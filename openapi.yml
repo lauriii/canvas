@@ -162,7 +162,7 @@ paths:
                     description: Error descriptions
                     items:
                       type: string
-  /xb-components:
+  /xb/api/config/component:
     description: TODO
     get:
       description: TODO
@@ -619,8 +619,10 @@ components:
         # @see \Drupal\Core\Theme\Component\ComponentMetadata
         metadata:
           type: object
+          description: SDC metadata
         field_data:
           type: object
+          description: the StaticPropSources to use for each SDC prop
           # Keys are props for this SDC. Only required SDC props are required here.
           additionalProperties:
             type: object
@@ -644,8 +646,10 @@ components:
                   - object
         default_markup:
           type: string
+          description: "without providing user input, this is what Component's markup would look like — used to preview the Component prior to placing it"
         dynamic_prop_source_candidates:
           type: object
+          description: the DynamicPropSources that match each
       additionalProperties: false
     LayoutComponent:
       title: LayoutComponent

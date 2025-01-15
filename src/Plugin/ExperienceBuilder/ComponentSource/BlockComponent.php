@@ -8,13 +8,12 @@ use Drupal\Core\Access\AccessResultInterface;
 use Drupal\Core\Block\BlockManagerInterface;
 use Drupal\Core\Block\BlockPluginInterface;
 use Drupal\Core\Block\MainContentBlockPluginInterface;
+use Drupal\Core\Block\MessagesBlockPluginInterface;
 use Drupal\Core\Block\TitleBlockPluginInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\Core\Render\Element;
-use Drupal\Core\Render\Markup;
-use Drupal\Core\Render\RendererInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\experience_builder\Attribute\ComponentSource;
@@ -49,8 +48,6 @@ final class BlockComponent extends ComponentSourceBase implements ContainerFacto
    *   Plugin definition.
    * @param \Drupal\Core\Block\BlockManagerInterface $blockManager
    *   Block plugin manager.
-   * @param \Drupal\Core\Render\RendererInterface $renderer
-   *   The renderer.
    * @param \Drupal\Core\Session\AccountInterface $currentUser
    *   The current user.
    */
@@ -59,7 +56,6 @@ final class BlockComponent extends ComponentSourceBase implements ContainerFacto
     string $plugin_id,
     array $plugin_definition,
     private readonly BlockManagerInterface $blockManager,
-    private readonly RendererInterface $renderer,
     private readonly AccountInterface $currentUser,
   ) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
@@ -74,7 +70,6 @@ final class BlockComponent extends ComponentSourceBase implements ContainerFacto
       $plugin_id,
       $plugin_definition,
       $container->get(BlockManagerInterface::class),
-      $container->get(RendererInterface::class),
       $container->get(AccountInterface::class),
     );
   }
@@ -147,7 +142,7 @@ final class BlockComponent extends ComponentSourceBase implements ContainerFacto
     // @see \Drupal\experience_builder\Plugin\DisplayVariant\PageTemplateDisplayVariant::build()
     if ($block instanceof MainContentBlockPluginInterface || $block instanceof TitleBlockPluginInterface) {
       if (\Fiber::getCurrent() === NULL) {
-        throw new \LogicException();
+        throw new \LogicException(sprintf('The %s block plugin does not support previews.', $block->getPluginId()));
       }
       \Fiber::suspend($block);
     }
@@ -228,29 +223,19 @@ final class BlockComponent extends ComponentSourceBase implements ContainerFacto
   /**
    * {@inheritdoc}
    */
-  public function getClientSideInfo(ComponentEntity $component, ?bool $cache_tags = TRUE): array {
-    $build = $this->renderComponent([], $component->uuid());
-    // @see Match the wrapping that happens in \Drupal\experience_builder\Plugin\DataType\ComponentTreeHydrated::renderify().
-    // @todo Remove this in https://www.drupal.org/project/experience_builder/issues/3484678
-    // Wrap each rendered component instance in HTML comments that allow the
-    // client side to identify it.
-    $component_config_entity_uuid = $component->uuid();
-    $build['#prefix'] = Markup::create("<!-- xb-start-$component_config_entity_uuid -->");
-    $build['#suffix'] = Markup::create("<!-- xb-end-$component_config_entity_uuid -->");
+  public function getClientSideInfo(ComponentEntity $component): array {
+    // These 3 block plugin interfaces cannot be previewed (regardless of which
+    // implementation) because they depend on the global context.
+    // @see `type: experience_builder.page_template.*`'s `component_trees.tree.presence`
+    $block_plugin = $this->getComponentPlugin();
+    if ($block_plugin instanceof MainContentBlockPluginInterface
+        || $block_plugin instanceof TitleBlockPluginInterface
+        || $block_plugin instanceof MessagesBlockPluginInterface
+    ) {
+      return ['build' => []];
+    }
 
-    // @todo Determine what other values this must return, do we need a value object? Decide in https://www.drupal.org/project/experience_builder/issues/3484678
-    return [
-      'id' => $component->id(),
-      'name' => (string) $component->label(),
-      'category' => (string) $component->getCategory(),
-      'source' => (string) $this->t('Block'),
-      // @todo Allow components to pass build arrays back?
-      'default_markup' => $this->renderer->render($build),
-      // @todo CSS and JS
-      'css' => '',
-      'js_header' => '',
-      'js_footer' => '',
-    ];
+    return ['build' => $this->renderComponent([], $component->uuid())];
   }
 
   /**
