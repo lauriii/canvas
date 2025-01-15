@@ -4,22 +4,28 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\experience_builder\Kernel;
 
+use Drupal\content_moderation\Permissions;
 use Drupal\Core\DependencyInjection\ContainerBuilder;
 use Drupal\Core\Entity\EntityConstraintViolationList;
+use Drupal\Core\Extension\ModuleInstallerInterface;
 use Drupal\Core\Field\FieldItemListInterface;
 use Drupal\Core\Field\Plugin\Field\FieldWidget\StringTextfieldWidget;
 use Drupal\Core\Field\WidgetPluginManager;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Session\AccountInterface;
 use Drupal\experience_builder\ClientDataToEntityConverter;
 use Drupal\experience_builder\Exception\ConstraintViolationException;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\node\Entity\Node;
+use Drupal\Tests\content_moderation\Traits\ContentModerationTestTrait;
 use Drupal\Tests\experience_builder\TestSite\XBTestSetup;
 use Drupal\Tests\experience_builder\Traits\ConstraintViolationsTestTrait;
 use Drupal\Tests\experience_builder\Traits\XBFieldTrait;
 use Drupal\Tests\user\Traits\UserCreationTrait;
+use Drupal\user\Entity\Role;
 use Drupal\user\Entity\User;
+use Drupal\user\RoleInterface;
 
 class ClientDataToEntityConverterTest extends KernelTestBase {
 
@@ -28,6 +34,7 @@ class ClientDataToEntityConverterTest extends KernelTestBase {
   }
   use ConstraintViolationsTestTrait;
   use UserCreationTrait;
+  use ContentModerationTestTrait;
 
   private User $otherUser;
 
@@ -61,7 +68,29 @@ class ClientDataToEntityConverterTest extends KernelTestBase {
     ];
   }
 
-  public function testConvert(): void {
+  /**
+   * @testWith [false]
+   *           [true]
+   */
+  public function testConvert(bool $with_content_moderation = FALSE): void {
+    if ($with_content_moderation) {
+      $this->container->get(ModuleInstallerInterface::class)->install(['content_moderation']);
+      $workflow = $this->createEditorialWorkflow();
+      $this->addEntityTypeAndBundleToWorkflow($workflow, 'node', 'article');
+      $permissions = \array_keys(\Drupal::classResolver(Permissions::class)->transitionPermissions());
+      $xb_role = Role::load('xb');
+      \assert($xb_role instanceof RoleInterface);
+      foreach ($permissions as $permission) {
+        $xb_role->grantPermission($permission)->save();
+      }
+    }
+    $account = $this->createUser(values: [
+      'roles' => [
+        'xb',
+      ],
+    ]);
+    \assert($account instanceof AccountInterface);
+    $this->setCurrentUser($account);
     $valid_client_json = $this->getValidClientJson();
     $this->assertConvert(
       $valid_client_json,
@@ -115,7 +144,11 @@ class ClientDataToEntityConverterTest extends KernelTestBase {
     );
 
     // If the client tries to update a field the user does not have access to edit, the violation should be returned.
-    $this->setupCurrentUser([], ['access administration pages']);
+    $permissions = ['access administration pages'];
+    if ($with_content_moderation) {
+      $permissions[] = 'use editorial transition create_new_draft';
+    }
+    $this->setupCurrentUser([], $permissions);
     $test_node = $this->createTestNode();
     $this->assertFalse($test_node->get('sticky')->access('edit'));
     $this->assertTrue($test_node->get('sticky')->access('view'));
@@ -214,6 +247,12 @@ class ClientDataToEntityConverterTest extends KernelTestBase {
     $cloned = $node->createDuplicate();
     foreach ($unchanged_fields as $field_name) {
       $cloned->get($field_name)->setValue($client_json['entity_form_fields'][$field_name]);
+      if ($field_name === 'vid' && \Drupal::moduleHandler()->moduleExists('content_moderation')) {
+        // Content moderation forces a new revision and hence the revision ID
+        // will be incremented.
+        self::assertGreaterThan((int) $client_json['entity_form_fields'][$field_name], (int) $node->getRevisionId());
+        continue;
+      }
       $this->assertTrue($cloned->get($field_name)->equals($node->get($field_name)), "The field '$field_name' was not updated.");
     }
   }

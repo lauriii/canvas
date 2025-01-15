@@ -110,6 +110,7 @@ class ClientDataToEntityConverter {
     }
     $form_object = $this->entityTypeManager->getFormObject($entity->getEntityTypeId(), 'default');
     $form_object->setEntity($entity);
+    $form_state->setFormObject($form_object);
     $entity_form = $form_object->buildForm([], $form_state);
 
     // Copied from \Drupal\Core\Entity\ContentEntityForm::copyFormValuesToEntity().
