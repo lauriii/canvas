@@ -48,7 +48,9 @@ class ApiPublishAllController extends ApiControllerBase {
             'entity_type',
             'entity_id',
             'label',
-          ])),
+          ])) + [
+            'autosave_key' => $key,
+          ],
         ];
       }
       return new JsonResponse(data: ['errors' => $errors], status: Response::HTTP_CONFLICT);
@@ -69,7 +71,9 @@ class ApiPublishAllController extends ApiControllerBase {
             'entity_type',
             'entity_id',
             'label',
-          ])),
+          ])) + [
+            'autosave_key' => $key,
+          ],
         ], $unmatched_keys),
       ], status: Response::HTTP_CONFLICT);
     }
@@ -119,7 +123,7 @@ class ApiPublishAllController extends ApiControllerBase {
         $violationSets[] = $e->getConstraintViolationList();
       }
     }
-    if ($validation_errors_response = self::createJsonResponseFromViolationSets(...$violationSets)) {
+    if ($validation_errors_response = self::createJsonResponseFromViolationSets($this->autoSaveManager, ...$violationSets)) {
       return $validation_errors_response;
     }
     foreach ($entities as $entity) {

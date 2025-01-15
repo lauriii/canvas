@@ -157,6 +157,7 @@ class ApiPublishAllControllerTest extends KernelTestBase {
         'entity_type' => 'node',
         'entity_id' => $node2->id(),
         'label' => 'The updated title.',
+        'autosave_key' => $autoSave->getAutoSaveKey($node2),
       ],
     ];
     self::assertEquals($errors, $json['errors']);
@@ -206,6 +207,7 @@ class ApiPublishAllControllerTest extends KernelTestBase {
           'entity_type' => 'node',
           'entity_id' => $node1->id(),
           'label' => $node1->label(),
+          'autosave_key' => $autoSave->getAutoSaveKey($node1),
         ],
       ],
       ],
@@ -244,6 +246,7 @@ class ApiPublishAllControllerTest extends KernelTestBase {
           'entity_type' => 'node',
           'entity_id' => $node1->id(),
           'label' => $node1->label(),
+          'autosave_key' => $autoSave->getAutoSaveKey($node1),
         ],
       ],
       ],

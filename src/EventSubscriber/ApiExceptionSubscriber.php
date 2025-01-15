@@ -9,6 +9,7 @@ use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\ParamConverter\ParamNotConvertedException;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Session\AccountInterface;
+use Drupal\experience_builder\AutoSave\AutoSaveManager;
 use Drupal\experience_builder\Exception\ConstraintViolationException;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -27,6 +28,7 @@ final class ApiExceptionSubscriber implements EventSubscriberInterface {
     private readonly RouteMatchInterface $routeMatch,
     private readonly ConfigFactoryInterface $configFactory,
     private readonly AccountInterface $currentUser,
+    private readonly AutoSaveManager $autoSaveManager,
   ) {}
 
   /**
@@ -62,7 +64,7 @@ final class ApiExceptionSubscriber implements EventSubscriberInterface {
       if ($exception instanceof ConstraintViolationException) {
         $status = Response::HTTP_UNPROCESSABLE_ENTITY;
         $response['errors'] = array_map(
-          fn($violation) => self::violationToJsonApiStyleErrorObject($violation),
+          fn($violation) => self::violationToJsonApiStyleErrorObject($violation, autoSave: $this->autoSaveManager),
           iterator_to_array($exception->getConstraintViolationList())
         );
       }
@@ -117,6 +119,8 @@ final class ApiExceptionSubscriber implements EventSubscriberInterface {
    *   A validation constraint violation.
    * @param \Drupal\Core\Entity\FieldableEntityInterface|null $entity
    *   An associated entity if appropriate.
+   * @param \Drupal\experience_builder\AutoSave\AutoSaveManager|null $autoSave
+   *   Autosave manager.
    *
    * @return array{'detail': string, 'source': array{'pointer': string}}
    *   A subset of a JSON:API error object.
@@ -127,15 +131,17 @@ final class ApiExceptionSubscriber implements EventSubscriberInterface {
   public static function violationToJsonApiStyleErrorObject(
     ConstraintViolationInterface $violation,
     ?FieldableEntityInterface $entity = NULL,
+    ?AutoSaveManager $autoSave = NULL,
   ): array {
     $meta = [];
     if ($entity !== NULL) {
       $meta = [
-        'meta' => [
+        'meta' => \array_filter([
           'entity_type' => $entity->getEntityTypeId(),
           'entity_id' => $entity->id(),
           'label' => $entity->label(),
-        ],
+          'autosave_key' => $autoSave?->getAutoSaveKey($entity),
+        ]),
       ];
     }
     return [

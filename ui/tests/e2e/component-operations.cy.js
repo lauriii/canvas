@@ -4,7 +4,7 @@ describe('Perform CRUD operations on components', () => {
     cy.drupalLogin('xbUser', 'xbUser');
   });
 
-  after(() => {
+  afterEach(() => {
     cy.drupalUninstall();
   });
 

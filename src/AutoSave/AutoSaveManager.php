@@ -50,7 +50,7 @@ class AutoSaveManager {
     $this->cacheTagsInvalidator->invalidateTags([self::CACHE_TAG]);
   }
 
-  protected function getAutoSaveKey(EntityInterface $entity): string {
+  public function getAutoSaveKey(EntityInterface $entity): string {
     // @todo Make use of https://www.drupal.org/project/drupal/issues/3026957
     // @todo This will likely to also take into account the workspace ID.
     if ($entity instanceof TranslatableInterface) {

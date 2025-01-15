@@ -3,6 +3,7 @@
 namespace Drupal\experience_builder\Controller;
 
 use Drupal\Core\Entity\EntityConstraintViolationListInterface;
+use Drupal\experience_builder\AutoSave\AutoSaveManager;
 use Drupal\experience_builder\EventSubscriber\ApiExceptionSubscriber;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Validator\ConstraintViolationInterface;
@@ -17,6 +18,8 @@ class ApiControllerBase {
   /**
    * Creates a JSON:API-style error response from a set of entity violations.
    *
+   * @param \Drupal\experience_builder\AutoSave\AutoSaveManager $autoSave
+   *   Auto save manager, to allow associating a validation error with an auto-save entry.
    * @param \Symfony\Component\Validator\ConstraintViolationListInterface ...$violationSets
    *   The violations sets.
    *
@@ -27,7 +30,7 @@ class ApiControllerBase {
    * @see https://jsonapi.org/format/#document-top-level
    * @see https://jsonapi.org/format/#error-objects
    */
-  protected static function createJsonResponseFromViolationSets(ConstraintViolationListInterface ...$violationSets): ?JsonResponse {
+  protected static function createJsonResponseFromViolationSets(AutoSaveManager $autoSave, ConstraintViolationListInterface ...$violationSets): ?JsonResponse {
     $violationSets = \array_filter($violationSets, static fn (ConstraintViolationListInterface $violationList): bool => $violationList->count() > 0);
     if (\count($violationSets) === 0) {
       return NULL;
@@ -39,6 +42,7 @@ class ApiControllerBase {
         ...\array_map(static fn(ConstraintViolationInterface $violation) => ApiExceptionSubscriber::violationToJsonApiStyleErrorObject(
           $violation,
           $violationList instanceof EntityConstraintViolationListInterface ? $violationList->getEntity() : NULL,
+          $autoSave
         ), \iterator_to_array($violationList)),
       ], []),
     ]);

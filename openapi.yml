@@ -841,6 +841,11 @@ components:
             - 1
         meta:
           type: object
+          required:
+            - entity_type
+            - entity_id
+            - entity_label
+            - autosave_key
           properties:
             entity_type:
               type: string
@@ -859,6 +864,12 @@ components:
               examples:
                 - Spring sale now on
               title: Item label
+            autosave_key:
+              type: string
+              examples:
+                - 'node:4:en'
+              title: The corresponding key in the pending changes API
+          additionalProperties: false
     Model:
       title: model
       type: object
