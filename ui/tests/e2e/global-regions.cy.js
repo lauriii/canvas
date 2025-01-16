@@ -18,7 +18,9 @@ describe('Operate on components in global regions', () => {
     cy.findByTestId('xb-primary-panel').as('layersTree');
 
     cy.log('Move "Breadcrumbs" component UP into the Highlighted Region');
-    cy.get('@layersTree').findByText('Breadcrumbs').trigger('contextmenu');
+    cy.get('@layersTree')
+      .findByText('Breadcrumbs block')
+      .trigger('contextmenu');
     cy.findByText('Move to global region').click();
 
     cy.findByText('Highlighted', { selector: '[role="menuitem"]' }).click();
@@ -27,7 +29,7 @@ describe('Operate on components in global regions', () => {
       '"Breadcrumbs" component should now be the LAST child in the Highlighted region',
     );
     cy.get('@layersTree')
-      .findByText('Breadcrumbs')
+      .findByText('Breadcrumbs block')
       .parents('.treeItem')
       .then(($div) => {
         // Assert that the div is the last child of its new parent region.
@@ -38,7 +40,7 @@ describe('Operate on components in global regions', () => {
       'Move "User account menu" component DOWN into the Highlighted Region',
     );
     cy.get('@layersTree')
-      .findByText('User account menu')
+      .findByText('User account menu block')
       .trigger('contextmenu');
     cy.findByText('Move to global region').click();
 
@@ -47,7 +49,7 @@ describe('Operate on components in global regions', () => {
       '"User account menu" component should now be the FIRST child in the Highlighted region',
     );
     cy.get('@layersTree')
-      .findByText('User account menu')
+      .findByText('User account menu block')
       .parents('.treeItem')
       .then(($div) => {
         // Assert that the div is the first child of its new parent region.
@@ -80,12 +82,14 @@ describe('Operate on components in global regions', () => {
 
     cy.get('@layersTree').findAllByText('Hero').click();
 
+    cy.intercept('POST', '**/api/preview/node/1').as('getPreview');
     cy.log(
       'Drag static hero component out of the content region into the highlighted region.',
     );
     cy.get('.treeItem[data-xb-uuid="static-static-card1ab"]').realDnd(
       '.rootDropZone[data-xb-type="region"][data-xb-uuid="highlighted"]',
     );
+    cy.wait('@getPreview');
 
     // One hero should remain in content region.
     cy.clickComponentInPreview('Hero');
