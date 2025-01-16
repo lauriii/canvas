@@ -40,6 +40,12 @@ DDEV setup is fully automated through our custom add-on: https://github.com/Trav
   - Use `npm run cy:open` to run e2e with the (very helpful) Cypress GUI test runner (do that in its own terminal). This runs the test in a visible browser.
   - Use `npm run cy:run` to run the same e2e tests in the terminal (this is also the command used by Gitlab CI). This runs the test in a "headless" browser.
 
+#### Debugging E2E Tests
+For debugging purposes, if you would like the tests to pause during key events, you can set the `debugPauses` config setting to true in ui/cypress.config.js.
+Currently, this will pause the tests when a component is clicked in the preview, `clickComponentInPreview()`, and when the preview is ready, `previewReady()`.
+
+You can add the `cy.debugPause()` command anywhere else you want to pause the test and log a message. The command accepts a message to log and calls [cy.pause()](https://docs.cypress.io/api/commands/pause).
+
 ## Testing Strategy
 Our testing strategy leverages [Cypress.io](https://www.cypress.io) for both end-to-end (e2e) and component testing, integrated with [Testing Library](https://testing-library.com/) to ensure robust and maintainable tests.
 
