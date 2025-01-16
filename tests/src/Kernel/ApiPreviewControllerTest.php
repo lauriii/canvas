@@ -48,6 +48,7 @@ final class ApiPreviewControllerTest extends KernelTestBase {
         ],
       ],
       'model' => [],
+      'entity_form_fields' => [],
     ], JSON_THROW_ON_ERROR)));
 
     // Check that the root level is structured correctly.
@@ -85,6 +86,7 @@ final class ApiPreviewControllerTest extends KernelTestBase {
           'width' => 'full',
         ],
       ],
+      'entity_form_fields' => [],
     ], JSON_THROW_ON_ERROR)));
 
     // Check that the root level is structured correctly.

@@ -10,10 +10,12 @@ import { useCallback, useEffect, useState } from 'react';
 import { useErrorBoundary } from 'react-error-boundary';
 import { useParams } from 'react-router-dom';
 import { AlertDialog, Button, Flex } from '@radix-ui/themes';
+import { selectPageData } from '@/features/pageData/pageDataSlice';
 const PagePreview = () => {
   const layout = useAppSelector(selectLayout);
   const initialized = useAppSelector(selectLayoutInitialized);
   const model = useAppSelector(selectModel);
+  const entity_form_fields = useAppSelector(selectPageData);
   const [frameSrcDoc, setFrameSrcDoc] = useState('');
   const [postPreview] = usePostPreviewMutation();
   const { showBoundary } = useErrorBoundary();
@@ -24,7 +26,11 @@ const PagePreview = () => {
   useEffect(() => {
     const sendPreviewRequest = async () => {
       try {
-        const result = await postPreview({ layout, model }).unwrap();
+        const result = await postPreview({
+          layout,
+          model,
+          entity_form_fields,
+        }).unwrap();
         setFrameSrcDoc(result.html);
       } catch (err) {
         showBoundary(err);
@@ -33,7 +39,14 @@ const PagePreview = () => {
     if (initialized) {
       sendPreviewRequest().then(() => {});
     }
-  }, [layout, model, postPreview, initialized, showBoundary]);
+  }, [
+    layout,
+    model,
+    postPreview,
+    entity_form_fields,
+    initialized,
+    showBoundary,
+  ]);
 
   useEffect(() => {
     if (width === 'full') {

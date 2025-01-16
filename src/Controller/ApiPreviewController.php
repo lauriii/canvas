@@ -34,6 +34,9 @@ final class ApiPreviewController {
 
   public function __invoke(Request $request, EntityInterface $entity): PreviewEnvelope {
     $body = json_decode($request->getContent(), TRUE);
+    \assert(\array_key_exists('model', $body));
+    \assert(\array_key_exists('layout', $body));
+    \assert(\array_key_exists('entity_form_fields', $body));
     ['layout' => $layout, 'model' => $model] = $body;
 
     // Save the content region.
@@ -45,7 +48,7 @@ final class ApiPreviewController {
         $this->autoSaveManager->save($entity, [
           'layout' => [$region],
           'model' => $model,
-          'entity_form_fields' => $body['entity_form_fields'] ?? [],
+          'entity_form_fields' => $body['entity_form_fields'],
         ]);
         $content = $region;
         unset($layout[$key]);
@@ -61,6 +64,12 @@ final class ApiPreviewController {
     }
 
     assert(isset($content));
+    // @todo Use converter to convert this to a proper tree item after
+    // https://www.drupal.org/i/3493941 and https://www.drupal.org/i/3493943.
+    // The conversion logic in the backend does not support dynamic components
+    // yet, so we work with a hardcoded props item for the sake of this
+    // controller.
+    // @see \Drupal\experience_builder\Controller\ClientServerConversionTrait::findTargetForProps
     $renderable = $this->clientLayoutAndModelToXbField($content, $model)->toRenderable();
 
     if (isset($renderable[ComponentTreeStructure::ROOT_UUID])) {

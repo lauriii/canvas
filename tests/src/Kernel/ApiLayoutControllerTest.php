@@ -107,6 +107,9 @@ class ApiLayoutControllerTest extends KernelTestBase {
     $sampleData = \file_get_contents(\dirname(__DIR__, 3) . '/ui/tests/fixtures/layout-default.json');
     self::assertNotFalse($sampleData);
     $data = \json_decode($sampleData, TRUE);
+    // Update the page title.
+    $new_title = $this->getRandomGenerator()->sentences(10);
+    $data['entity_form_fields']['title[0][value]'] = $new_title;
     $node1 = Node::load(1);
     \assert($node1 instanceof NodeInterface);
     $autoSave->save($node1, $data);
@@ -128,6 +131,7 @@ class ApiLayoutControllerTest extends KernelTestBase {
         "uuid" => "c3f3c22c-c22e-4bb6-ad16-635f069148e4",
       ],
     ], reset($highlightedRegion)['components']);
+    self::assertEquals($new_title, $json['entity_form_fields']['title[0][value]']);
 
     // Now let's remove the draft of the page template but retain that of the
     // node.
@@ -245,8 +249,8 @@ class ApiLayoutControllerTest extends KernelTestBase {
       ], $region['components']);
     }
 
-    $this->assertArrayHasKey('data', $json);
-    $this->assertSame($node->label(), $json['data']['title[0][value]']);
+    $this->assertArrayHasKey('entity_form_fields', $json);
+    $this->assertSame($node->label(), $json['entity_form_fields']['title[0][value]']);
   }
 
   public function testFieldException(): void {

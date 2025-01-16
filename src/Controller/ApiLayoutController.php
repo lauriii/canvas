@@ -39,11 +39,11 @@ final class ApiLayoutController {
     $this->regions['content'] ??= t('Content');
 
     if ($body = $this->autoSaveManager->getAutoSaveData($entity)) {
-      ['layout' => $layout, 'model' => $model] = $body;
+      ['layout' => $layout, 'model' => $model, 'entity_form_fields' => $entity_form_fields] = $body;
     }
     else {
       $model = [];
-
+      $entity_form_fields = $this->getEntityData($entity);
       // Build the content region.
       $field_name = InternalXbFieldNameResolver::getXbFieldName($entity);
       $tree = $entity->get($field_name)->first();
@@ -72,7 +72,7 @@ final class ApiLayoutController {
       // If the model is empty return an empty object to ensure it is encoded as
       // an object and not empty array.
       'model' => empty($model) ? new \stdClass() : $model,
-      'data' => $this->getEntityData($entity),
+      'entity_form_fields' => $entity_form_fields,
     ]);
   }
 

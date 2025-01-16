@@ -3,16 +3,19 @@
 namespace Drupal\experience_builder;
 
 use Drupal\Core\Access\AccessException;
+use Drupal\Core\Entity\EntityChangedInterface;
 use Drupal\Core\Entity\EntityConstraintViolationList;
-use Drupal\Core\Entity\EntityDisplayRepositoryInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Field\FieldItemListInterface;
+use Drupal\Core\Form\FormBuilderInterface;
 use Drupal\Core\Form\FormState;
+use Drupal\Core\TypedData\Plugin\DataType\Timestamp;
 use Drupal\experience_builder\Controller\ClientServerConversionTrait;
 use Drupal\experience_builder\Exception\ConstraintViolationException;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
+use Drupal\file\Plugin\Field\FieldType\FileItem;
 use Symfony\Component\Validator\ConstraintViolation;
 
 class ClientDataToEntityConverter {
@@ -21,11 +24,14 @@ class ClientDataToEntityConverter {
 
   public function __construct(
     private readonly EntityTypeManagerInterface $entityTypeManager,
-    private readonly EntityDisplayRepositoryInterface $entityDisplayRepository,
+    private readonly FormBuilderInterface $formBuilder,
   ) {}
 
   public function convert(array $client_data, FieldableEntityInterface $entity): void {
-    // @todo Security hardening: any key besides `layout`, `model` and `entity_form_fields` should trigger an error response.
+    $expected_keys = ['layout', 'model', 'entity_form_fields'];
+    if (!empty(array_diff_key($client_data, array_flip($expected_keys)))) {
+      throw new \LogicException();
+    }
     ['layout' => $layout, 'model' => $model, 'entity_form_fields' => $entity_form_fields] = $client_data;
 
     $field_name = InternalXbFieldNameResolver::getXbFieldName($entity);
@@ -105,31 +111,100 @@ class ClientDataToEntityConverter {
     // Create a form state from the received entity fields.
     $form_state = new FormState();
     $form_state->set('entity', $entity);
-    foreach ($entity_form_fields as $field_name => $field_value) {
-      $form_state->setValue($field_name, $field_value);
-    }
-    $form_object = $this->entityTypeManager->getFormObject($entity->getEntityTypeId(), 'default');
-    $form_object->setEntity($entity);
-    $form_state->setFormObject($form_object);
-    $entity_form = $form_object->buildForm([], $form_state);
+    // Expand form values from their respective element name, e.g.
+    // ['title[0][value]' => 'Node title'] becomes
+    // ['title' => ['value' => 'Node title']].
+    // @see \Drupal\experience_builder\Controller\ApiLayoutController::getEntityData
+    \parse_str(\http_build_query($entity_form_fields), $entity_form_fields);
+    // Filter out form fields that are not entity fields.
+    $entity_form_fields = array_filter($entity_form_fields, static fn (string|int $key): bool => is_string($key) && $entity->hasField($key), ARRAY_FILTER_USE_KEY);
+    // Checkboxes are unique in that the browser doesn't submit a value when the
+    // field is unchecked. We need to remove these from the field values when
+    // that is the case.
+    $boolean_fields = \array_keys(\array_filter(
+      $entity->getFields(),
+      static fn (FieldItemListInterface $fieldItemList): bool => $fieldItemList->getFieldDefinition()->getType() === 'boolean'
+    ));
 
-    // Copied from \Drupal\Core\Entity\ContentEntityForm::copyFormValuesToEntity().
-    $form_display = $this->entityDisplayRepository->getFormDisplay($entity->getEntityTypeId(), $entity->bundle(), 'default');
-    // Use the regular form display logic to set the field values on the entity.
-    $extracted = $form_display->extractFormValues($entity, $entity_form, $form_state);
-    // Then extract the values of fields that are not rendered through widgets,
-    // by simply copying from top-level form values. This leaves the fields
-    // that are not being edited within this form untouched.
-    foreach ($form_state->getValues() as $name => $values) {
-      if ($entity->hasField($name) && !isset($extracted[$name])) {
-        $entity->set($name, $values);
+    // Handle quirks of managed file elements.
+    // @todo Remove this when
+    // https://www.drupal.org/project/drupal/issues/3498054 is fixed.
+    $file_fields = \array_keys(\array_filter(
+      $entity->getFields(),
+      static fn (FieldItemListInterface $fieldItemList): bool => \is_a($fieldItemList->getItemDefinition()->getClass(), FileItem::class, TRUE)
+    ));
+    foreach (\array_intersect_key($entity_form_fields, \array_flip($file_fields)) as $field_name => $values) {
+      if (!\is_array($values)) {
+        continue;
+      }
+      foreach ($values as $delta => $value) {
+        // @see \Drupal\file\Element\ManagedFile::valueCallback
+        if (\array_key_exists('fids', $value) && \is_array($value['fids'])) {
+          $entity_form_fields[$field_name][$delta]['fids'] = \implode(' ', $value['fids']);
+        }
       }
     }
+    $entity_form_fields = \array_filter($entity_form_fields, static fn (array|string $value, string|int $key): bool => !\in_array($key, $boolean_fields, TRUE) || $value !== ['value' => '0'], ARRAY_FILTER_USE_BOTH);
+    $form_object = $this->entityTypeManager->getFormObject($entity->getEntityTypeId(), 'default');
+    $form_object->setEntity($entity);
+    // Flag this as a programmatic build of the entity form - but do not flag
+    // the form as submitted, as we don't want to execute submit handlers such
+    // as ::save that would save the entity.
+    $form_state
+      // Set form object
+      ->setFormObject($form_object)
+      // Flag that we want to process input.
+      ->setProcessInput()
+      // But that the build is programmed (which bypasses caches etc).
+      ->setProgrammed()
+      // With the values provided from the front-end.
+      ->setUserInput($entity_form_fields);
+    $form = $this->formBuilder->buildForm($form_object, $form_state);
+    // Now trigger the form level submit handler.
+    $form_object->submitForm($form, $form_state);
+    // And retrieve the updated entity.
+    $updated_entity = $form_object->getEntity();
+    \assert($updated_entity instanceof FieldableEntityInterface);
+    $form_updated_changed_field = FALSE;
+    foreach (\array_intersect_key($updated_entity->getFields(), $entity_form_fields) as $name => $items) {
+      // Only update values for fields the user submitted.
+      if (!\is_string($name) || !$entity->hasField($name)) {
+        continue;
+      }
+      $entity->set($name, $items->getValue());
+      // TRICKY: We call `$form_object->submitForm($form, $form_state);` which will most likely call
+      // . \Drupal\Core\Entity\ContentEntityForm::submitForm() which will call
+      // \Drupal\Core\Entity\EntityChangedInterface::setChangedTime().
+      // \Drupal\Core\Field\ChangedFieldItemList::hasAffectingChanges accounts for this
+      // by always returning FALSE. But we can't use `hasAffectingChanges` for checking equality
+      // when considering field access because other modules might allow other changes.
+      // We need to remember if the 'changed' field was updated in the form. If it was, we
+      // can skip checking access to the field because we know it was updated by the form
+      // not the client input, and we want to keep the change the form made. This also
+      // allows us to check access in the edge case where the entity form has overridden
+      // \Drupal\Core\Form\FormInterface::submitForm() to not call
+      // \Drupal\Core\Entity\EntityChangedInterface::setChangedTime().
+      // @see \Drupal\Core\Entity\ContentEntityForm::updateChangedTime()
+      // @see \Drupal\Core\Field\ChangedFieldItemList::hasAffectingChanges()
+      if ($entity instanceof EntityChangedInterface && $name === 'changed') {
+        $changed_timestamp = $items->first()?->get('value');
+        assert($changed_timestamp instanceof Timestamp);
+        $changed_timestamp_int = $changed_timestamp->getCastedValue();
+        assert(is_int($changed_timestamp_int));
+        $form_updated_changed_field = $changed_timestamp_int !== ((int) $entity_form_fields['changed']);
+      }
+    }
+
     $original_entity = $this->entityTypeManager->getStorage($entity->getEntityTypeId())->loadUnchanged($entity->id());
     assert($original_entity instanceof FieldableEntityInterface);
     $violations_list = new EntityConstraintViolationList($entity);
-    // Copied from \Drupal\jsonapi\Controller\EntityResource::updateEntityField().
+    // Copied from \Drupal\jsonapi\Controller\EntityResource::updateEntityField()
+    // but with the additional special-casing for `changed`.
     foreach ($entity_form_fields as $field_name => $field_value) {
+      \assert(\is_string($field_name));
+      if ($field_name === 'changed' && $form_updated_changed_field) {
+        continue;
+      }
       try {
         $original_field = $original_entity->get($field_name);
         // The field value on `$entity` will have been set in the call to

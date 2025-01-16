@@ -20,14 +20,17 @@ export const layoutApi = createApi({
   reducerPath: 'layoutApi',
   baseQuery,
   endpoints: (builder) => ({
-    getLayoutById: builder.query<RootLayoutModel & { data: {} }, string>({
+    getLayoutById: builder.query<
+      RootLayoutModel & { entity_form_fields: {} },
+      string
+    >({
       query: (nodeId) => `api/layout/{entity_type}/${nodeId}`,
       async onQueryStarted(id, { dispatch, queryFulfilled }) {
         try {
           const {
-            data: { data },
+            data: { entity_form_fields },
           } = await queryFulfilled;
-          dispatch(setPageData(data));
+          dispatch(setPageData(entity_form_fields));
         } catch (err) {
           dispatch(setPageData({}));
         }

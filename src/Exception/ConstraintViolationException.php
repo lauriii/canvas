@@ -13,7 +13,7 @@ use Symfony\Component\Validator\ConstraintViolationListInterface;
 final class ConstraintViolationException extends \Exception {
 
   public function __construct(protected ConstraintViolationListInterface $constraintViolationList, string $message = 'Validation errors exist') {
-    parent::__construct($message);
+    parent::__construct("$message:\n $this->constraintViolationList");
   }
 
   public function renamePropertyPaths(array $map): self {

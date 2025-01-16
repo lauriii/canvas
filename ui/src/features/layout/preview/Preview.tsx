@@ -9,6 +9,7 @@ import {
 } from '@/features/layout/layoutModelSlice';
 import { usePostPreviewMutation } from '@/services/preview';
 import Viewport from '@/features/layout/preview/Viewport';
+import { selectPageData } from '@/features/pageData/pageDataSlice';
 
 interface PreviewProps {}
 
@@ -30,6 +31,7 @@ const Preview: React.FC<PreviewProps> = () => {
   const layout = useAppSelector(selectLayout);
   const initialized = useAppSelector(selectLayoutInitialized);
   const model = useAppSelector(selectModel);
+  const entity_form_fields = useAppSelector(selectPageData);
   const [frameSrcDoc, setFrameSrcDoc] = useState('');
   const [postPreview, { isLoading: isFetching }] = usePostPreviewMutation();
   const { showBoundary } = useErrorBoundary();
@@ -38,7 +40,11 @@ const Preview: React.FC<PreviewProps> = () => {
     const sendPreviewRequest = async () => {
       try {
         // Trigger the mutation
-        const result = await postPreview({ layout, model }).unwrap();
+        const result = await postPreview({
+          layout,
+          model,
+          entity_form_fields,
+        }).unwrap();
         // Handle the successful response here
         setFrameSrcDoc(result.html);
       } catch (err) {
@@ -48,7 +54,14 @@ const Preview: React.FC<PreviewProps> = () => {
     if (initialized) {
       sendPreviewRequest().then(() => {});
     }
-  }, [layout, model, postPreview, initialized, showBoundary]);
+  }, [
+    layout,
+    model,
+    postPreview,
+    entity_form_fields,
+    initialized,
+    showBoundary,
+  ]);
 
   return (
     <>

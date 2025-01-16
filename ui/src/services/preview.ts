@@ -9,7 +9,7 @@ export const previewApi = createApi({
   endpoints: (builder) => ({
     postPreview: builder.mutation<
       { html: string },
-      { layout: any; model: any }
+      { layout: any; model: any; entity_form_fields: any }
     >({
       query: (body) => ({
         url: 'api/preview/{entity_type}/{entity_id}',

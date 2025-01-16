@@ -149,5 +149,8 @@
       "cta1href": "https://example.com",
       "cta2": "Click"
     }
+  },
+  "entity_form_fields": {
+    "title[0][value]": "This is the page title"
   }
 }

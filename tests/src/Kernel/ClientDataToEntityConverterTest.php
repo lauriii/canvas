@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\experience_builder\Kernel;
 
+use Drupal\Component\Datetime\Time;
 use Drupal\content_moderation\Permissions;
 use Drupal\Core\DependencyInjection\ContainerBuilder;
 use Drupal\Core\Entity\EntityConstraintViolationList;
@@ -15,6 +16,7 @@ use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\experience_builder\ClientDataToEntityConverter;
 use Drupal\experience_builder\Exception\ConstraintViolationException;
+use Drupal\experience_builder\Controller\EntityFormTrait;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\node\Entity\Node;
@@ -25,6 +27,7 @@ use Drupal\Tests\experience_builder\Traits\XBFieldTrait;
 use Drupal\Tests\user\Traits\UserCreationTrait;
 use Drupal\user\Entity\Role;
 use Drupal\user\Entity\User;
+use GuzzleHttp\Psr7\Query;
 use Drupal\user\RoleInterface;
 
 class ClientDataToEntityConverterTest extends KernelTestBase {
@@ -34,6 +37,7 @@ class ClientDataToEntityConverterTest extends KernelTestBase {
   }
   use ConstraintViolationsTestTrait;
   use UserCreationTrait;
+  use EntityFormTrait;
   use ContentModerationTestTrait;
 
   private User $otherUser;
@@ -53,6 +57,8 @@ class ClientDataToEntityConverterTest extends KernelTestBase {
     $definition = $container->getDefinition('plugin.manager.field.widget');
     $definition->setClass(TestWidgetManager::class);
     $container->setDefinition('plugin.manager.field.widget', $definition);
+    $container->getDefinition('datetime.time')
+      ->setClass(TestTime::class);
   }
 
   /**
@@ -92,6 +98,8 @@ class ClientDataToEntityConverterTest extends KernelTestBase {
     \assert($account instanceof AccountInterface);
     $this->setCurrentUser($account);
     $valid_client_json = $this->getValidClientJson();
+    // The client may not filter out form inputs that are not entity fields.
+    $valid_client_json['entity_form_fields']['field_image_0_upload_button'] = 'Not an entity field input';
     $this->assertConvert(
       $valid_client_json,
       [],
@@ -149,16 +157,15 @@ class ClientDataToEntityConverterTest extends KernelTestBase {
       $permissions[] = 'use editorial transition create_new_draft';
     }
     $this->setupCurrentUser([], $permissions);
+    $limited_user = \Drupal::currentUser();
+    $limited_user_id = $limited_user->id();
+    $new_author = \sprintf('%s (%d)', $limited_user->getDisplayName(), $limited_user_id);
     $test_node = $this->createTestNode();
     $this->assertFalse($test_node->get('sticky')->access('edit'));
     $this->assertTrue($test_node->get('sticky')->access('view'));
     $this->assertFalse($test_node->isSticky());
     $invalid_field_access_client_json = $valid_client_json;
-    $invalid_field_access_client_json['entity_form_fields']['sticky'] = [
-      [
-        'value' => TRUE,
-      ],
-    ];
+    $invalid_field_access_client_json['entity_form_fields']['sticky[value]'] = TRUE;
     $this->assertConvert(
       $invalid_field_access_client_json,
       ['entity_form_fields.sticky' => "The current user is not allowed to update the field 'sticky'."],
@@ -168,11 +175,7 @@ class ClientDataToEntityConverterTest extends KernelTestBase {
 
     // If the client sends a field the user does not have access to edit, but the field value is the same as the current value no violation should be returned.
     $no_field_access_field_unchanged_client_json = $valid_client_json;
-    $no_field_access_field_unchanged_client_json['entity_form_fields']['sticky'] = [
-      [
-        'value' => FALSE,
-      ],
-    ];
+    $no_field_access_field_unchanged_client_json['entity_form_fields']['sticky[value]'] = FALSE;
     $this->assertConvert(
       $no_field_access_field_unchanged_client_json,
       [],
@@ -180,13 +183,37 @@ class ClientDataToEntityConverterTest extends KernelTestBase {
       $this->createTestNode()
     );
 
+    // If the client has elevated permissions, they can update protected fields.
+    $permissions = ['administer nodes'];
+    if ($with_content_moderation) {
+      $permissions[] = 'use editorial transition create_new_draft';
+    }
+    $this->setupCurrentUser([], $permissions);
+    $test_node = $this->createTestNode();
+    self::assertTrue($test_node->get('sticky')->access('edit'));
+    self::assertTrue($test_node->get('sticky')->access('view'));
+    self::assertFalse($test_node->isSticky());
+    self::assertEquals(3, (int) $test_node->getOwnerId());
+    self::assertNotEquals(3, $limited_user->id());
+    $protected_field_updated_json = $valid_client_json;
+    $protected_field_updated_json['entity_form_fields']['sticky[value]'] = TRUE;
+    // Test a form element that is more complex and features a validate callback
+    // that changes the form value - e.g. EntityAutocomplete element.
+    // @see \Drupal\Core\Entity\Element\EntityAutocomplete::validateEntityAutocomplete
+    $protected_field_updated_json['entity_form_fields']['uid[0][target_id]'] = $new_author;
+    $this->assertConvert(
+      $protected_field_updated_json,
+      [],
+      'The updated title.',
+      $test_node
+    );
+    self::assertTrue($test_node->isSticky());
+    self::assertGreaterThan(0, $limited_user->id());
+    self::assertEquals($limited_user_id, (int) $test_node->getOwnerId());
+
     // Ensure that the entity values are passed through the widget.
     $modify_title_client_json = $valid_client_json;
-    $modify_title_client_json['entity_form_fields']['title'] = [
-      [
-        'value' => 'Hey widget, modify me!',
-      ],
-    ];
+    $modify_title_client_json['entity_form_fields']['title[0][value]'] = 'Hey widget, modify me!';
     $this->assertConvert(
       $modify_title_client_json,
       [],
@@ -205,36 +232,48 @@ class ClientDataToEntityConverterTest extends KernelTestBase {
 
   protected function assertConvert(array $client_json, array $expected_errors, string $expected_title, ?Node $node = NULL): void {
     $node = $node ?? $this->createTestNode();
+    // \Drupal\experience_builder\ClientDataToEntityConverter::convert() will
+    // automatically update the `changed` field because it creates a form object
+    // submits the form. We ensure the request time will be greater than the original
+    // node 'changed' time.
+    // @see \Drupal\Core\Entity\ContentEntityForm::updateChangedTime().
+    // @see \Drupal\experience_builder\ClientDataToEntityConverter::checkPatchFieldAccess().
+    TestTime::$offset += 1;
+    $original_node_changed = $node->getChangedTime();
     // Set entity fields to ensure the client will be able to send unchanged
     // fields.
-    $unchanged_fields = [];
-    foreach ($node->getFields() as $field) {
-      assert($field instanceof FieldItemListInterface);
-      $field_name = $field->getName();
-      if ($field_name === 'field_xb_demo' ||
-        ($field_name === 'created' && !\Drupal::currentUser()->hasPermission('administer nodes'))) {
-        continue;
-      }
-      if (!isset($client_json['entity_form_fields'][$field_name])) {
-        $client_json['entity_form_fields'][$field_name] = $node->get($field_name)->getValue();
-        if ($field_name !== 'revision_timestamp') {
-          $unchanged_fields[] = $field_name;
-        }
-      }
+    $form = \Drupal::entityTypeManager()->getFormObject($node->getEntityTypeId(), 'default');
+    $form_state = $this->buildFormState($form, $node, 'default');
+    \Drupal::formBuilder()->buildForm($form, $form_state);
+    $node_values = \array_reduce(\array_filter($node->getFields(), static fn(FieldItemListInterface $field) => !$field->isEmpty()), static fn(array $carry, FieldItemListInterface $field) => [
+      ...$carry,
+      $field->getName() => $field->getValue(),
+    ], []);
+    unset($node_values['field_xb_demo']);
+    if (!\Drupal::currentUser()->hasPermission('create url aliases')) {
+      unset($node_values['path']);
     }
     try {
+      if (!\Drupal::currentUser()->hasPermission('administer nodes')) {
+        unset($node_values['created']);
+      }
+      $values = Query::parse(\http_build_query(\array_intersect_key($form_state->getValues(), $node_values)));
+      $client_json['entity_form_fields'] += $values;
+      \parse_str(\http_build_query(\array_diff_key($values, $client_json['entity_form_fields'])), $unchanged_fields);
       $this->container->get(ClientDataToEntityConverter::class)->convert($client_json, $node);
+      self::assertCount(0, $expected_errors);
       // If no violations occurred, the node should be valid.
       $this->assertCount(0, $node->validate());
       $this->assertSame(SAVED_UPDATED, $node->save());
+      $this->assertGreaterThan($original_node_changed, $node->getChangedTime());
     }
     catch (ConstraintViolationException $e) {
       $violations = $e->getConstraintViolationList();
       $this->assertInstanceOf(EntityConstraintViolationList::class, $violations);
       $this->assertSame($node->id(), $violations->getEntity()->id());
       $this->assertSame($expected_errors, self::violationsToArray($violations));
-      $this->assertSame($expected_title, (string) $node->getTitle());
     }
+    $this->assertSame($expected_title, (string) $node->getTitle());
 
     // Ensure the unchanged fields are not updated.
     // TRICKY: We can't directly compare `$client_json['entity_form_fields'][$field_name]`
@@ -246,6 +285,7 @@ class ClientDataToEntityConverterTest extends KernelTestBase {
     // these differences.
     $cloned = $node->createDuplicate();
     foreach ($unchanged_fields as $field_name) {
+      \assert(\is_string($field_name));
       $cloned->get($field_name)->setValue($client_json['entity_form_fields'][$field_name]);
       if ($field_name === 'vid' && \Drupal::moduleHandler()->moduleExists('content_moderation')) {
         // Content moderation forces a new revision and hence the revision ID
@@ -302,6 +342,27 @@ class TestStringTextfieldWidget extends StringTextfieldWidget {
       $values[0]['value'] = 'Modified!';
     }
     return $values;
+  }
+
+}
+
+/**
+ * A test-only implementation of the time service.
+ */
+class TestTime extends Time {
+
+  /**
+   * An offset to add to the request time.
+   *
+   * @var int
+   */
+  public static int $offset = 0;
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getRequestTime() {
+    return parent::getRequestTime() + static::$offset;
   }
 
 }

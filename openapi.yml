@@ -50,7 +50,7 @@ paths:
                         name: content
                         components: []
                     model: {}
-                    data: {}
+                    entity_form_fields: {}
                 componentTreeWithSingleComponent:
                   value:
                     layout:
@@ -67,7 +67,7 @@ paths:
                       bce8d97e-8d44-4609-adc3-5e1015342b49:
                         text: 'hello, world!'
                         href: 'https://drupal.org'
-                    data:
+                    entity_form_fields:
                       changed: '1734481105'
                       'body[0][summary]': ''
                       'body[0][value]': ''
@@ -104,7 +104,7 @@ paths:
                 required:
                   - layout
                   - model
-                  - data
+                  - entity_form_fields
                 properties:
                   layout:
                     type: array
@@ -115,7 +115,7 @@ paths:
                         $ref: '#/components/schemas/LayoutSlot'
                   model:
                     $ref: '#/components/schemas/Model'
-                  data:
+                  entity_form_fields:
                     type: object
                     description: The full entity data.
   '/api/preview/{entityTypeId}/{entityId}':

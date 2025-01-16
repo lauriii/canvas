@@ -226,11 +226,7 @@ trait XBFieldTrait {
         ],
       ],
       'entity_form_fields' => [
-        'title' => [
-            [
-              'value' => 'The updated title.',
-            ],
-        ],
+        'title[0][value]' => 'The updated title.',
       ],
     ];
   }
