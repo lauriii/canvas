@@ -58,3 +58,15 @@ This will auto-update `docs/diagrams/structurizr-*.md`.
 # Data Model Diagram
 
 To edit: either modify locally, or copy/paste `docs/diagrams/*.md` (not the ones with the `structurizr-` prefix) into <https://mermaid.live/edit> for easy previewing!
+
+# Developer Tips & Tricks
+
+## 1. Inspecting the rendered preview markup
+There is a secret keyboard shortcut that is very helpful for debugging the HTML inside the iFrame.
+
+If you press and hold the `V` key, the React app will 'disappear' until you release the `V` key.
+
+If you press & hold the `V` key and then click on the iFrame (focusing into it),  then the V key can be released and the UI will remain hidden. Once hidden, it becomes much easier to use the browser's developer tools to inspect elements inside the iFrame.
+
+You can then click (focus) outside the iFrame and tap the `V` key once more to return the UI.
+
