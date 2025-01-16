@@ -276,7 +276,7 @@ final class Component extends ConfigEntityBase implements ComponentInterface, Xb
       'source' => (string) $this->getComponentSource()->getPluginDefinition()['label'],
     ];
 
-    return (new ClientSideRepresentation(
+    return ClientSideRepresentation::create(
       values: $info + [
         'id' => $this->id(),
         'name' => (string) $this->label(),
@@ -284,7 +284,7 @@ final class Component extends ConfigEntityBase implements ComponentInterface, Xb
         'source' => (string) $this->getComponentSource()->getPluginDefinition()['label'],
       ],
       preview: $build,
-    ))->addCacheableDependency($this);
+    )->addCacheableDependency($this);
   }
 
 }

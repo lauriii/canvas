@@ -18,18 +18,25 @@ final class ClientSideRepresentation implements RefinableCacheableDependencyInte
   use RefinableCacheableDependencyTrait;
 
   /**
+   * Factory method.
+   */
+  public static function create(array $values, ?array $preview): self {
+    assert(!array_key_exists('default_markup', $values));
+    assert(!array_key_exists('css', $values));
+    assert(!array_key_exists('js_header', $values));
+    assert(!array_key_exists('js_footer', $values));
+    return new self($values, $preview);
+  }
+
+  /**
    * @param array|null $preview
    *   Optional, will be expanded to `default_markup` + `css` + `js_header` +
    *   `js_footer` in $values.
    */
-  public function __construct(
+  private function __construct(
     public readonly array $values,
     public readonly ?array $preview,
   ) {
-    assert(!array_key_exists('default_markup', $this->values));
-    assert(!array_key_exists('css', $this->values));
-    assert(!array_key_exists('js_header', $this->values));
-    assert(!array_key_exists('js_footer', $this->values));
   }
 
   public function renderPreviewIfAny(RendererInterface $renderer, AssetRenderer $asset_renderer): ClientSideRepresentation {
@@ -45,7 +52,7 @@ final class ClientSideRepresentation implements RefinableCacheableDependencyInte
     // are needed when adding it to the layout which includes a default
     // markup, CSS files, JS files in the header and JS files in the
     // footer.
-    return (new ClientSideRepresentation(
+    return (new self(
       values: $this->values + [
         'default_markup' => $default_markup,
         'css' => $asset_renderer->renderCssAssets($assets),

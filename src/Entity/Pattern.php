@@ -127,14 +127,14 @@ final class Pattern extends ConfigEntityBase implements XbHttpApiEligibleConfigE
   public function normalizeForClientSide(): ClientSideRepresentation {
     $item = $this->getComponentTree();
     assert($item instanceof ComponentTreeItem);
-    return (new ClientSideRepresentation(
+    return ClientSideRepresentation::create(
       values: [
         'layoutModel' => ApiConfigControllers::convertComponentTreeItemToLayoutModel($item),
         'name' => $this->label(),
         'id' => $this->id(),
       ],
       preview: $item->toRenderable(),
-    ))->addCacheableDependency($this);
+    )->addCacheableDependency($this);
   }
 
 }
