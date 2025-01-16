@@ -7,6 +7,9 @@
  * Other hook implementations live in include files.
  */
 
+// @todo Re-evaluate this when A) tagging a stable release, B) https://www.drupal.org/project/drupal/issues/3398033 is fixed in Drupal core.
+ini_set('assert.active', 1);
+
 use Drupal\Component\Serialization\Json;
 use Drupal\Core\Block\BlockManagerInterface;
 use Drupal\Core\Block\BlockPluginInterface;
