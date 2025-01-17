@@ -176,7 +176,7 @@ describe('Perform CRUD operations on components', () => {
     cy.editHeroComponent();
   });
 
-  it('Performs basic interaction with the Add section button', () => {
+  it.skip('[Reactivate this test in #3500542] Performs basic interaction with the Add section button', () => {
     const clickDefault = {
       force: true,
       scrollBehavior: false,

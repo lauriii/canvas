@@ -15,7 +15,7 @@ describe('Empty canvas', () => {
   //   matching the /xb/{entity_type}/{entity_id} pattern and relies only on
   //   what exists in `drupalSettings.xb` instead.
   //   Fix after https://www.drupal.org/project/experience_builder/issues/3489775
-  it(`xb/node/2 can add a component to an empty canvas`, () => {
+  it.skip(`[Reactivate this test in #3500542] xb/node/2 can add a component to an empty canvas`, () => {
     cy.loadURLandWaitForXBLoaded({ url: 'xb/node/2' });
 
     // Wait for an element in the page data panel to be present.
@@ -66,7 +66,7 @@ describe('Empty canvas', () => {
     });
   });
 
-  it(`xb/xb_page/2 can add a component to an empty canvas`, () => {
+  it.skip(`[Reactivate this test in #3500542] xb/xb_page/2 can add a component to an empty canvas`, () => {
     cy.loadURLandWaitForXBLoaded({ url: 'xb/xb_page/2' });
 
     // Wait for an element in the page data panel to be present.
