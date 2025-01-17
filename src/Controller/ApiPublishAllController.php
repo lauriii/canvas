@@ -123,7 +123,7 @@ class ApiPublishAllController extends ApiControllerBase {
         $violationSets[] = $e->getConstraintViolationList();
       }
     }
-    if ($validation_errors_response = self::createJsonResponseFromViolationSets($this->autoSaveManager, ...$violationSets)) {
+    if ($validation_errors_response = self::createJsonResponseFromViolationSets(...$violationSets)) {
       return $validation_errors_response;
     }
     foreach ($entities as $entity) {
