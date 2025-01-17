@@ -21,6 +21,17 @@ const rawBaseQuery = (appConfiguration: AppConfiguration) => {
   const { baseUrl } = appConfiguration;
   const defaultQuery = fetchBaseQuery({
     baseUrl,
+    prepareHeaders: async (headers, api) => {
+      if (api.type === 'mutation') {
+        const csrfResponse = await fetch(`${baseUrl}session/token`);
+        if (csrfResponse.ok) {
+          const csrfToken = await csrfResponse.text();
+          headers.set('X-CSRF-Token', csrfToken);
+        } else {
+          console.error('Failed to generate the CSRF token.');
+        }
+      }
+    },
   });
   return async (
     arg: string | FetchArgs,

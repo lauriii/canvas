@@ -10,6 +10,7 @@ use Drupal\node\Entity\Node;
 use Drupal\Tests\ApiRequestTrait;
 use Drupal\Tests\experience_builder\Traits\TestDataUtilitiesTrait;
 use Drupal\Tests\experience_builder\Traits\XBFieldTrait;
+use GuzzleHttp\RequestOptions;
 
 final class ApiContentUpdateForDemoControllerTest extends FunctionalTestBase {
 
@@ -43,13 +44,24 @@ final class ApiContentUpdateForDemoControllerTest extends FunctionalTestBase {
   public function testSave(): void {
     $node1 = $this->createTestNode();
     $this->assertNodeValues($node1, [], [], (string) $node1->getTitle());
+    // Make a valid client request without the CSRF token.
+    $response = $this->makeApiRequest(
+      'PATCH',
+      Url::fromUri('base:/xb/api/content-update/node/' . $node1->id()),
+      [RequestOptions::HEADERS => ['Content-Type' => 'application/json']],
+    );
+    $this->assertSame(403, $response->getStatusCode());
+    $this->assertSame(
+      ['message' => 'X-CSRF-Token request header is missing'],
+      json_decode((string) $response->getBody(), TRUE)
+    );
+    // Now, make a valid client request with CSRF token.
     $valid_client_json = $this->getValidClientJson();
-    // Make a valid client request.
     $this->assertClientRequest(
       $node1,
       $valid_client_json,
       200,
-      ['message' => 'Saved successfully.']
+      ['message' => 'Saved successfully.'],
     );
     $this->assertValidJsonUpdateNode($node1);
 
@@ -73,7 +85,7 @@ final class ApiContentUpdateForDemoControllerTest extends FunctionalTestBase {
             ],
           ],
         ],
-      ]
+      ],
     );
     // Ensure none of the entities have been saved.
     $this->assertNodeValues($node2, [], [], $node2_original_title);
@@ -95,7 +107,7 @@ final class ApiContentUpdateForDemoControllerTest extends FunctionalTestBase {
             ],
           ],
         ],
-      ]
+      ],
     );
   }
 
@@ -104,7 +116,13 @@ final class ApiContentUpdateForDemoControllerTest extends FunctionalTestBase {
     $response = $this->makeApiRequest(
       'PATCH',
       Url::fromUri('base:/xb/api/content-update/node/' . $node->id()),
-      [],
+      [
+        RequestOptions::HEADERS => [
+          'Content-Type' => 'application/json',
+          'X-CSRF-Token' => $this->drupalGet('session/token'),
+        ],
+        RequestOptions::BODY => json_encode(new \stdClass()),
+      ],
     );
     $contents = (string) $response->getBody();
     $this->assertJson($contents, "Response is not valid JSON: $contents");

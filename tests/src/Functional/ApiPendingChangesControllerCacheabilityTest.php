@@ -85,6 +85,7 @@ final class ApiPendingChangesControllerCacheabilityTest extends FunctionalTestBa
     // cache.
     $node2 = Node::load(2);
     \assert($node2 instanceof NodeInterface);
+    $token = $this->drupalGet('session/token');
 
     $response = $this->makeApiRequest(
       'POST',
@@ -92,7 +93,10 @@ final class ApiPendingChangesControllerCacheabilityTest extends FunctionalTestBa
         'entity_type' => 'node',
         'entity' => $node2->id(),
       ]),
-      [RequestOptions::JSON => $this->getValidClientJson()]
+      [
+        RequestOptions::JSON => $this->getValidClientJson(),
+        RequestOptions::HEADERS => ['X-CSRF-Token' => $token],
+      ]
     );
     self::assertEquals(Response::HTTP_OK, $response->getStatusCode());
 

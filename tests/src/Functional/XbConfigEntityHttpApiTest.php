@@ -85,6 +85,18 @@ class XbConfigEntityHttpApiTest extends BrowserTestBase {
     $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.permissions'], ['config:pattern_list', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
     $this->assertSame([], $body);
 
+    // Send a POST request without the CSRF token.
+    $request_options = [
+      RequestOptions::HEADERS => [
+        'Content-Type' => 'application/json',
+      ],
+    ];
+    $response = $this->makeApiRequest('POST', $list_url, $request_options);
+    $this->assertSame(403, $response->getStatusCode());
+    $this->assertSame([
+      'message' => "X-CSRF-Token request header is missing",
+    ], json_decode((string) $response->getBody(), TRUE));
+
     // Create a Pattern via the XB HTTP API, but forget crucial data that causes
     // the required shape to be violated: 500, courtesy of OpenAPI.
     $pattern_to_send = [
@@ -92,16 +104,11 @@ class XbConfigEntityHttpApiTest extends BrowserTestBase {
       'layout' => NULL,
       'model' => NULL,
     ];
-    $request_options = [
-      RequestOptions::HEADERS => [
-        'Content-Type' => 'application/json',
-      ],
-      // TRICKY: this intentionally avoids using RequestOptions::JSON because
-      // that encodes `'props' => []` as `'props': []`, whereas the server side
-      // expects `'props': {}`.
-      // @see \Drupal\Tests\experience_builder\Traits\TestDataUtilitiesTrait::encodeXBData()
-      RequestOptions::BODY => self::encodeXBData($pattern_to_send),
-    ];
+    // TRICKY: this intentionally avoids using RequestOptions::JSON because
+    // that encodes `'props' => []` as `'props': []`, whereas the server side
+    // expects `'props': {}`.
+    // @see \Drupal\Tests\experience_builder\Traits\TestDataUtilitiesTrait::encodeXBData()
+    $request_options[RequestOptions::BODY] = self::encodeXBData($pattern_to_send);
     $body = $this->assertExpectedResponse('POST', $list_url, $request_options, 500, NULL, NULL, NULL, NULL);
     $this->assertSame([
       'message' => 'Body does not match schema for content-type "application/json" for Request [post /xb/api/config/pattern]',
@@ -361,6 +368,7 @@ class XbConfigEntityHttpApiTest extends BrowserTestBase {
    * @throws \JsonException
    */
   private function assertExpectedResponse(string $method, Url $url, array $request_options, int $expected_status, ?array $expected_cache_contexts, ?array $expected_cache_tags, ?string $expected_page_cache, ?string $expected_dynamic_page_cache, array $additional_expected_response_headers = []): ?array {
+    $request_options['headers']['X-CSRF-Token'] = $this->drupalGet('session/token');
     $response = $this->makeApiRequest($method, $url, $request_options);
     $body = (string) $response->getBody();
     $this->assertSame($expected_status, $response->getStatusCode(), $body);
