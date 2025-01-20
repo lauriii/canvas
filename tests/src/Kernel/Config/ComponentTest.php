@@ -102,7 +102,7 @@ class ComponentTest extends KernelTestBase {
       'source' => SingleDirectoryComponent::SOURCE_PLUGIN_ID,
       'settings' => [
         'plugin_id' => self::MODULE_COMPONENT_ID,
-        'props' => [
+        'prop_field_definitions' => [
           'text' => [
             // @see \Drupal\Core\Field\Plugin\Field\FieldType\StringItem
             'field_type' => 'string',
@@ -415,12 +415,12 @@ class ComponentTest extends KernelTestBase {
     $initial_components = Component::loadMultiple();
     $this->assertNotEmpty($initial_components);
     $this->assertArrayHasKey('sdc.experience_builder.image', $initial_components);
-    $this->assertSame('image', $initial_components['sdc.experience_builder.image']->get('settings')['props']['image']['field_type']);
+    $this->assertSame('image', $initial_components['sdc.experience_builder.image']->get('settings')['prop_field_definitions']['image']['field_type']);
 
     $this->midTestSetUp();
     $updated_component = Component::load('sdc.experience_builder.image');
     assert($updated_component instanceof Component);
-    $this->assertSame('entity_reference', $updated_component->get('settings')['props']['image']['field_type']);
+    $this->assertSame('entity_reference', $updated_component->get('settings')['prop_field_definitions']['image']['field_type']);
   }
 
   public function testObsoleteStatusHandling(): void {

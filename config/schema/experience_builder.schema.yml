@@ -159,7 +159,7 @@ experience_builder.component_source_settings.sdc:
         PluginExists:
           manager: plugin.manager.sdc
           interface: 'Drupal\Core\Plugin\PluginBase'
-    props:
+    prop_field_definitions:
       type: sequence
       orderby: key
       constraints:
@@ -229,7 +229,7 @@ experience_builder.component_source_settings.block:
         PluginExists:
           manager: plugin.manager.block
           interface: Drupal\Core\Block\BlockPluginInterface
-    settings:
+    default_settings:
       type: block.settings.[%parent.plugin_id]
 
 field.value.component_tree:

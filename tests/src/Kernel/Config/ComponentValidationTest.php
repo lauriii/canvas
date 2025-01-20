@@ -40,7 +40,7 @@ class ComponentValidationTest extends ConfigEntityValidationTestBase {
   protected static array $propertiesWithRequiredKeys = [
     'settings' => [
       "'plugin_id' is a required key because source is sdc (see config schema type experience_builder.component_source_settings.sdc).",
-      "'props' is a required key because source is sdc (see config schema type experience_builder.component_source_settings.sdc).",
+      "'prop_field_definitions' is a required key because source is sdc (see config schema type experience_builder.component_source_settings.sdc).",
     ],
   ];
 
@@ -56,7 +56,7 @@ class ComponentValidationTest extends ConfigEntityValidationTestBase {
       'source' => 'sdc',
       'settings' => [
         'plugin_id' => 'sdc_test:my-cta',
-        'props' => [
+        'prop_field_definitions' => [
           'text' => [
             // @see \Drupal\Core\Field\Plugin\Field\FieldType\StringItem
             'field_type' => 'string',

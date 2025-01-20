@@ -247,7 +247,7 @@ HTML,
               'use_site_name' => TRUE,
               'use_site_slogan' => TRUE,
               'plugin_id' => 'system_branding_block',
-              'settings' => [
+              'default_settings' => [
                 'id' => 'system_branding_block',
                 'label' => 'Site branding',
                 'label_display' => '',
@@ -681,7 +681,7 @@ HTML,
                                 'use_site_name' => TRUE,
                                 'use_site_slogan' => TRUE,
                                 'plugin_id' => 'system_branding_block',
-                                'settings' => [
+                                'default_settings' => [
                                   'id' => 'system_branding_block',
                                   'label' => 'Site branding',
                                   'label_display' => '',

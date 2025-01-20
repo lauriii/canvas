@@ -181,8 +181,8 @@ final class Component extends ConfigEntityBase implements ComponentInterface, Xb
    *   The prop source object.
    */
   public function getDefaultStaticPropSource(string $prop_name): StaticPropSource {
-    assert(isset($this->settings['props']));
-    assert(is_array($this->settings['props']));
+    assert(isset($this->settings['prop_field_definitions']));
+    assert(is_array($this->settings['prop_field_definitions']));
 
     $source = $this->getComponentSource();
     // @todo handle non-SDC plugin sources, see https://www.drupal.org/project/experience_builder/issues/3484666
@@ -192,15 +192,15 @@ final class Component extends ConfigEntityBase implements ComponentInterface, Xb
     }
 
     $sdc_prop_source = [
-      'sourceType' => 'static:field_item:' . $this->settings['props'][$prop_name]['field_type'],
-      'value' => $this->settings['props'][$prop_name]['default_value'],
-      'expression' => $this->settings['props'][$prop_name]['expression'],
+      'sourceType' => 'static:field_item:' . $this->settings['prop_field_definitions'][$prop_name]['field_type'],
+      'value' => $this->settings['prop_field_definitions'][$prop_name]['default_value'],
+      'expression' => $this->settings['prop_field_definitions'][$prop_name]['expression'],
     ];
-    if (array_key_exists('field_storage_settings', $this->settings['props'][$prop_name])) {
-      $sdc_prop_source['sourceTypeSettings']['storage'] = $this->settings['props'][$prop_name]['field_storage_settings'];
+    if (array_key_exists('field_storage_settings', $this->settings['prop_field_definitions'][$prop_name])) {
+      $sdc_prop_source['sourceTypeSettings']['storage'] = $this->settings['prop_field_definitions'][$prop_name]['field_storage_settings'];
     }
-    if (array_key_exists('field_instance_settings', $this->settings['props'][$prop_name])) {
-      $sdc_prop_source['sourceTypeSettings']['instance'] = $this->settings['props'][$prop_name]['field_instance_settings'];
+    if (array_key_exists('field_instance_settings', $this->settings['prop_field_definitions'][$prop_name])) {
+      $sdc_prop_source['sourceTypeSettings']['instance'] = $this->settings['prop_field_definitions'][$prop_name]['field_instance_settings'];
     }
 
     return StaticPropSource::parse($sdc_prop_source);

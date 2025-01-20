@@ -154,9 +154,9 @@ final class SingleDirectoryComponent extends ComponentSourceBase implements Comp
   public function getDependencies(array $settings): array {
     $dependencies = $this->calculateDependencies();
 
-    assert(isset($settings[self::EXPLICIT_INPUT_NAME]));
-    assert(is_array($settings[self::EXPLICIT_INPUT_NAME]));
-    foreach ($settings[self::EXPLICIT_INPUT_NAME] ?? [] as ['field_type' => $field_type, 'field_widget' => $field_widget]) {
+    assert(isset($settings['prop_field_definitions']));
+    assert(is_array($settings['prop_field_definitions']));
+    foreach ($settings['prop_field_definitions'] as ['field_type' => $field_type, 'field_widget' => $field_widget]) {
       // TRICKY: `field_type` (and `field_widget`) may not be set if no field
       // types match this SDC prop shape.
       if ($field_type === NULL) {
@@ -298,8 +298,8 @@ final class SingleDirectoryComponent extends ComponentSourceBase implements Comp
         // 2. Worst case: fall back to the default widget for this field type.
         // @todo Implement 2. in https://www.drupal.org/project/experience_builder/issues/3463996
         $field_widget_plugin_id = NULL;
-        if ($source->getSourceType() === 'static:field_item:' . $settings['props'][$sdc_prop_name]['field_type']) {
-          $field_widget_plugin_id = $settings['props'][$sdc_prop_name]['field_widget'];
+        if ($source->getSourceType() === 'static:field_item:' . $settings['prop_field_definitions'][$sdc_prop_name]['field_type']) {
+          $field_widget_plugin_id = $settings['prop_field_definitions'][$sdc_prop_name]['field_widget'];
         }
         assert(isset($component_schema['properties'][$sdc_prop_name]['title']));
         $label = $component_schema['properties'][$sdc_prop_name]['title'];
@@ -460,7 +460,7 @@ final class SingleDirectoryComponent extends ComponentSourceBase implements Comp
       'source' => self::SOURCE_PLUGIN_ID,
       'settings' => [
         'plugin_id' => $component_plugin->getPluginId(),
-        self::EXPLICIT_INPUT_NAME => $props,
+        'prop_field_definitions' => $props,
       ],
       'status' => $status,
     ]);
@@ -481,7 +481,7 @@ final class SingleDirectoryComponent extends ComponentSourceBase implements Comp
     assert(is_array($component_plugin->metadata->schema));
 
     $settings = $component->get('settings');
-    $settings[self::EXPLICIT_INPUT_NAME] = self::getPropsForComponentPlugin($component_plugin);
+    $settings['prop_field_definitions'] = self::getPropsForComponentPlugin($component_plugin);
     $component->set('settings', $settings);
 
     return $component;
