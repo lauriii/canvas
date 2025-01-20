@@ -57,7 +57,7 @@ describe('Operate on components in global regions', () => {
       });
   });
 
-  it.skip('[Reactivate this test in #3500542] Can interact with components in global regions', () => {
+  it('Can interact with components in global regions', () => {
     cy.loadURLandWaitForXBLoaded();
 
     cy.get('#xbPreviewOverlay .xb--viewport-overlay')

@@ -176,7 +176,7 @@ describe('Perform CRUD operations on components', () => {
     cy.editHeroComponent();
   });
 
-  it.skip('[Reactivate this test in #3500542] Performs basic interaction with the Add section button', () => {
+  it('Performs basic interaction with the Add section button', () => {
     const clickDefault = {
       force: true,
       scrollBehavior: false,
@@ -244,16 +244,9 @@ describe('Perform CRUD operations on components', () => {
 
     // Ensure the element that can receive component drops is present.
     cy.waitForElementInIframe('.xb--sortable-slot-empty-placeholder');
-
-    cy.getIframeBody().then(($iframe) => {
-      cy.get($iframe.find('.xb--sortable-slot-empty-placeholder')).then(
-        ($destination) => {
-          cy.get(
-            '[data-xb-component-id="sdc.experience_builder.my-hero"]',
-          ).realDnd($destination);
-        },
-      );
-    });
+    cy.get(
+      '[data-xb-component-id="sdc.experience_builder.my-hero"]',
+    ).realClick();
     cy.waitForElementContentInIframe('div', 'There goes my hero');
 
     // There should be one Hero added.

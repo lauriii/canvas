@@ -13,7 +13,7 @@ describe('Publish button', () => {
     cy.drupalUninstall();
   });
 
-  it.skip(`[Reactivate this test in #3500542] Adds a component, and attempts to publish changes using the publish button`, () => {
+  it(`Adds a component, and attempts to publish changes using the publish button`, () => {
     cy.loadURLandWaitForXBLoaded({ url: 'xb/xb_page/2' });
 
     // Wait for an element in the page data panel to be present.
@@ -38,16 +38,9 @@ describe('Publish button', () => {
     );
 
     cy.waitForElementInIframe('.xb--sortable-slot-empty-placeholder');
-
-    cy.getIframeBody().then(($iframe) => {
-      cy.get($iframe.find('.xb--sortable-slot-empty-placeholder')).then(
-        ($destination) => {
-          cy.get(
-            '[data-xb-component-id="sdc.experience_builder.my-hero"]',
-          ).realDnd($destination);
-        },
-      );
-    });
+    cy.get(
+      '[data-xb-component-id="sdc.experience_builder.my-hero"]',
+    ).realClick();
 
     cy.log('The hero component is now in the iframe');
 

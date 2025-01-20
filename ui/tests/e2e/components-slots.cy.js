@@ -15,7 +15,7 @@ describe.skip('Component slots functionality', () => {
     cy.drupalUninstall();
   });
 
-  it.skip('[Reactivate this test in #3500542] Can add a component with slots and then add components into those slots', () => {
+  it('Can add a component with slots and then add components into those slots', () => {
     cy.loadURLandWaitForXBLoaded();
     // Set the viewport to be 4k to ensure the full canvas is visible without scrolling because
     // the scrolling messes up the realDnd command.

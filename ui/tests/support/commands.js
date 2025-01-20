@@ -871,7 +871,6 @@ Cypress.Commands.add('editHeroComponent', () => {
 
   // Confirm the current values of the first "My Hero" component so we can
   // be certain these values later change.
-  cy.pause();
   cy.testInIframe('.my-hero__container', (heroes) => {
     const hero = heroes[0];
     Object.entries(heroSelectors).forEach(([prop, selector]) => {
