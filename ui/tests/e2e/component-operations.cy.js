@@ -219,18 +219,30 @@ describe('Perform CRUD operations on components', () => {
       position: 'bottom',
     });
     cy.findByText('Create section').click(clickDefault); // Section name
-    cy.findByLabelText('Section name').clear();
-    cy.findByLabelText('Section name').type('The Entire Node 1');
+
+    // Typing into the section name input does not work instantly, so attempt
+    // changing the section name until the input value properly updates.
+    // This delay is short enough that no end user could possibly encounter it,
+    // but it can occur within these tests.
+    const sectionName = 'The Entire Node 1';
+    cy.findByLabelText('Section name').should(($sectionInput) => {
+      cy.devices.keyboard.type({
+        $el: $sectionInput,
+        chars: `{selectall}${sectionName}`,
+      });
+      expect($sectionInput).to.have.value(sectionName);
+    });
+
     cy.findByText('Add to Library').click({ scrollBehavior: false });
 
     cy.openLibraryPanel();
     cy.get('.primaryPanelContent').within(() => {
       cy.findByText('Sections').click(clickDefault);
-      cy.findByText('The Entire Node 1').should('exist');
+      cy.findByText(sectionName).should('exist');
     });
     cy.get('.primaryPanelContent')
       .as('panel')
-      .should('contain.text', 'The Entire Node 1');
+      .should('contain.text', sectionName);
 
     cy.loadURLandWaitForXBLoaded({ url: 'xb/node/2' });
     cy.get('#edit-title-0-value').should('exist');
@@ -257,8 +269,8 @@ describe('Perform CRUD operations on components', () => {
 
     // Add the section that was created earlier in this test.
     cy.get('.primaryPanelContent').within(() => {
-      cy.findByText('The Entire Node 1').should('exist');
-      cy.findByText('The Entire Node 1').click(clickDefault);
+      cy.findByText(sectionName).should('exist');
+      cy.findByText(sectionName).click(clickDefault);
     });
 
     // After adding the section, there should be four Hero components.
