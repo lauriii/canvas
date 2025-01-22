@@ -14,7 +14,6 @@ use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 use Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\BlockComponent;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemInstantiatorTrait;
-use Drupal\experience_builder\PropSource\PropSourceBase;
 use Symfony\Component\Validator\ConstraintViolationList;
 
 /**
@@ -122,29 +121,16 @@ final class PageTemplate extends ConfigEntityBase {
       $component_tree_structure->setValue(json_encode($tree, JSON_UNESCAPED_UNICODE));
 
       try {
-        $client_props = $this->clientModelToServerProps($tree, \array_intersect_key($autoSaveData['model'], \array_flip($component_tree_structure->getComponentInstanceUuids())));
+        $props = $this->clientModelToInput($tree, \array_intersect_key($autoSaveData['model'], \array_flip($component_tree_structure->getComponentInstanceUuids())));
       }
       catch (ConstraintViolationException $e) {
         $allViolations->addAll($e->getConstraintViolationList());
         continue;
       }
 
-      $server_props = [];
-      foreach ($client_props as $component_instance_uuid => $component_instance_props) {
-        foreach ($component_instance_props as $prop_name => $prop_source) {
-          if ($prop_source instanceof PropSourceBase) {
-            // @todo This is clunky and should probably be handled by the
-            // component source plugin.
-            $server_props[$component_instance_uuid][$prop_name] = $prop_source->toArray();
-            continue;
-          }
-          $server_props[$component_instance_uuid][$prop_name] = $prop_source;
-        }
-      }
-
       $treeItems[$region['id']] = [
         'tree' => \json_encode($tree, JSON_UNESCAPED_UNICODE | JSON_FORCE_OBJECT | JSON_THROW_ON_ERROR),
-        'props' => \json_encode($server_props, JSON_UNESCAPED_UNICODE | JSON_FORCE_OBJECT | JSON_THROW_ON_ERROR),
+        'props' => \json_encode($props, JSON_UNESCAPED_UNICODE | JSON_FORCE_OBJECT | JSON_THROW_ON_ERROR),
       ];
     }
     if ($allViolations->count() > 0) {
@@ -269,7 +255,12 @@ final class PageTemplate extends ConfigEntityBase {
       // block twice with different settings.
       $regions[$block->getRegion()][] = [
         'component' => $component_id,
-        'settings' => $block->get('settings'),
+        'settings' => \array_diff_key($block->get('settings'), \array_flip([
+          // Remove these as they can be calculated and hence need not be
+          // stored.
+          'id',
+          'provider',
+        ])),
         'uuid' => $block->uuid(),
       ];
     }

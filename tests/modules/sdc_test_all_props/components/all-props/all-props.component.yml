@@ -199,7 +199,7 @@ props:
       # @todo Remove in https://www.drupal.org/project/drupal/issues/3352063 — should not be necessary, but removing this causes \Drupal\Core\Theme\Component\ComponentMetadata::parseSchemaInfo() to generate `type = ['', 'object'] 🐛
       type: object
       examples:
-        - src: https://placehold.co/600x400.png
+        - src: /sites/default/files/600x400.png
           alt: 'Boring placeholder'
           width: 600
           height: 400

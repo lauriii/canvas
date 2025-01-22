@@ -18,6 +18,7 @@ trait XBFieldTrait {
 
   private const TEST_HEADING_UUID = '8f1971f7-68e0-442f-98f2-c541bb071046';
   private const TEST_IMAGE_UUID = '13ad853b-7a5a-4bd7-a33e-559d7a07579d';
+  private const TEST_BLOCK = '4a03b39a-daea-424e-8507-09e182aafa31';
 
   private File $referencedImage;
   private File $unreferencedImage;
@@ -117,6 +118,13 @@ trait XBFieldTrait {
           ],
         ],
       ],
+      self::TEST_BLOCK => [
+        'use_site_logo' => TRUE,
+        'use_site_name' => TRUE,
+        'use_site_slogan' => FALSE,
+        'label' => '',
+        'label_display' => FALSE,
+      ],
     ];
   }
 
@@ -140,7 +148,7 @@ trait XBFieldTrait {
     $media->save();
     assert($media instanceof Media);
     $this->mediaEntity = $media;
-    $this->unreferencedImage = $this->createFileEntity($test_image_files[2]);
+    $this->unreferencedImage = $this->createFileEntity($test_image_files[3]);
   }
 
   private static function createFileEntity(object $test_image): File {
@@ -207,6 +215,12 @@ trait XBFieldTrait {
               'type' => 'sdc.experience_builder.image',
               'slots' => [],
             ],
+            [
+              'nodeType' => 'component',
+              'uuid' => self::TEST_BLOCK,
+              'type' => 'block.system_branding_block',
+              'slots' => [],
+            ],
           ],
         ],
       ],
@@ -223,6 +237,16 @@ trait XBFieldTrait {
             'width' => 100,
             'height' => 100,
           ],
+        ],
+        self::TEST_BLOCK => [
+          'use_site_logo' => TRUE,
+          'use_site_name' => TRUE,
+          'use_site_slogan' => FALSE,
+          'label' => '',
+          'label_display' => FALSE,
+          // The 'provider' key is here to test that it is correctly removed.
+          // @see BlockComponent::clientModelToInput()
+          'provider' => 'system',
         ],
       ],
       'entity_form_fields' => [
@@ -244,6 +268,7 @@ trait XBFieldTrait {
       [
         'sdc.experience_builder.heading',
         'sdc.experience_builder.image',
+        'block.system_branding_block',
       ],
       $this->getValidConvertedProps(),
       'The updated title.'

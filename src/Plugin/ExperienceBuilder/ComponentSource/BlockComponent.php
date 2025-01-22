@@ -10,7 +10,9 @@ use Drupal\Core\Block\BlockPluginInterface;
 use Drupal\Core\Block\MainContentBlockPluginInterface;
 use Drupal\Core\Block\MessagesBlockPluginInterface;
 use Drupal\Core\Block\TitleBlockPluginInterface;
+use Drupal\Core\Config\TypedConfigManagerInterface;
 use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\Core\Render\Element;
@@ -20,6 +22,9 @@ use Drupal\experience_builder\Attribute\ComponentSource;
 use Drupal\experience_builder\ComponentSource\ComponentSourceBase;
 use Drupal\experience_builder\Entity\Component;
 use Drupal\experience_builder\Entity\Component as ComponentEntity;
+use Drupal\experience_builder\Exception\ConstraintViolationException;
+use Drupal\experience_builder\MissingComponentPropsException;
+use Drupal\experience_builder\Plugin\DataType\ComponentPropsValues;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -57,6 +62,7 @@ final class BlockComponent extends ComponentSourceBase implements ContainerFacto
     array $plugin_definition,
     private readonly BlockManagerInterface $blockManager,
     private readonly AccountInterface $currentUser,
+    private readonly TypedConfigManagerInterface $typedConfigManager,
   ) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
   }
@@ -71,6 +77,7 @@ final class BlockComponent extends ComponentSourceBase implements ContainerFacto
       $plugin_definition,
       $container->get(BlockManagerInterface::class),
       $container->get(AccountInterface::class),
+      $container->get(TypedConfigManagerInterface::class),
     );
   }
 
@@ -179,17 +186,18 @@ final class BlockComponent extends ComponentSourceBase implements ContainerFacto
    * {@inheritdoc}
    */
   public function getExplicitInput(string $uuid, ComponentTreeItem $item): array {
-    // @todo What are "props" in terms of blocks? Define in https://www.drupal.org/project/experience_builder/issues/3484666. Rename ComponentPropsValues to ComponentExplicitInputs.
+    // @todo Rename this in https://www.drupal.org/i/3500997
     $props = $item->get('props');
-    $json = $props->getValue();
-    \assert(\is_string($json));
+    assert($props instanceof ComponentPropsValues);
     try {
-      $settings = \array_diff_key(\json_decode($json, TRUE, flags: JSON_THROW_ON_ERROR)[$uuid] ?? [], \array_flip(['id']));
+      return $props->getValues($uuid);
     }
-    catch (\JsonException) {
-      $settings = [];
+    catch (MissingComponentPropsException) {
+      // There is no input for this component. That should only be the case for
+      // block plugins without any settings.
+      assert(empty($this->getComponentPlugin()->defaultConfiguration()));
+      return [];
     }
-    return $settings;
   }
 
   /**
@@ -202,8 +210,22 @@ final class BlockComponent extends ComponentSourceBase implements ContainerFacto
   /**
    * {@inheritdoc}
    */
-  public function buildConfigurationForm(array $form, FormStateInterface $form_state, string $component_instance_uuid = '', ?EntityInterface $entity = NULL, array $settings = []): array {
-    return $this->getComponentPlugin()->blockForm($form, $form_state);
+  public function buildConfigurationForm(
+    array $form,
+    FormStateInterface $form_state,
+    string $component_instance_uuid = '',
+    array $client_model = [],
+    ?EntityInterface $entity = NULL,
+    array $settings = [],
+  ): array {
+    $blockPlugin = $this->getComponentPlugin();
+    if ($client_model) {
+      $blockPlugin->setConfiguration($client_model);
+    }
+    $form = $blockPlugin->blockForm($form, $form_state);
+    // @todo Remove in https://www.drupal.org/project/experience_builder/issues/3500152
+    $form['#attributes']['data-form-id'] = 'block_form';
+    return $form;
   }
 
   /**
@@ -241,8 +263,41 @@ final class BlockComponent extends ComponentSourceBase implements ContainerFacto
   /**
    * {@inheritdoc}
    */
-  public function createPropsForComponent(string $component_instance_uuid, Component $component, array $client_props): array {
-    return $client_props;
+  public function clientModelToInput(string $component_instance_uuid, Component $component, array $client_model): array {
+    $block_plugin = $this->getComponentPlugin();
+    $plugin_id = $block_plugin->getPluginId();
+    // @todo Remove this in https://www.drupal.org/project/experience_builder/issues/3500994#comment-15951774 — the client should send the right data.
+    $defaults = $component->get('settings')['default_settings'];
+    if (\version_compare(\Drupal::VERSION, '11.0', '<')) {
+      // In Drupal 10, block setting schemas are conflated with the block
+      // config entity and the block content plugin and hence include keys that
+      // are irrelevant to valid block settings.
+      // @see https://drupal.org/i/2274175
+      $defaults += [
+        'info' => '',
+        'status' => TRUE,
+        'view_mode' => 'default',
+        'context_mapping' => [],
+      ];
+    }
+    // @todo Move this validation logic into `::validateComponentInput()` in https://drupal.org/i/3500997
+    $typed_data = $this->typedConfigManager->createFromNameAndData('block.settings.' . $plugin_id, $client_model + $defaults);
+    $violations = $typed_data->validate();
+    if ($violations->count()) {
+      throw (new ConstraintViolationException($violations))->renamePropertyPaths(['' => \sprintf('model.%s.', $component_instance_uuid)]);
+    }
+    // We don't need to store these as they can be recalculated based on the
+    // plugin ID.
+    $input = $client_model;
+    unset($input['provider'], $input['id']);
+    return $input;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function validateComponentInput(array $inputValues, string $component_instance_uuid, ?FieldableEntityInterface $entity): void {
+    // @todo Implement this in https://drupal.org/i/3500997, which will also allow refactoring ::clientModelToInput() to call this.
   }
 
 }

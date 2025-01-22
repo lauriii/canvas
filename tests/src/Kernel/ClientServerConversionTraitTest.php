@@ -60,6 +60,10 @@ class ClientServerConversionTraitTest extends KernelTestBase {
           'uuid' => self::TEST_IMAGE_UUID,
           'component' => 'sdc.experience_builder.image',
         ],
+        [
+          'uuid' => self::TEST_BLOCK,
+          'component' => 'block.system_branding_block',
+        ],
       ],
     ], json_decode($converted_item['tree'], TRUE));
 
@@ -76,6 +80,7 @@ class ClientServerConversionTraitTest extends KernelTestBase {
       [
         'sdc.experience_builder.heading',
         'sdc.experience_builder.image',
+        'block.system_branding_block',
       ],
       $this->getValidConvertedProps(),
       '5 amazing uses for old toothbrushes'
@@ -93,6 +98,10 @@ class ClientServerConversionTraitTest extends KernelTestBase {
         [
           'uuid' => self::TEST_IMAGE_UUID,
           'component' => 'sdc.experience_builder.image',
+        ],
+        [
+          'uuid' => self::TEST_BLOCK,
+          'component' => 'block.system_branding_block',
         ],
       ],
     ], json_decode($converted_item['tree'], TRUE));
@@ -129,6 +138,13 @@ class ClientServerConversionTraitTest extends KernelTestBase {
       $invalid_tree_client_json,
       ['layout.children[1]' => 'The component <em class="placeholder">sdc.experience_builder.missing_component</em> does not exist.']
     );
+
+    $invalid_block_settings = $valid_client_json;
+    $invalid_block_settings['model'][self::TEST_BLOCK]['use_site_slogan'] = ['this is not a boolean'];
+    $this->assertConversionErrors(
+      $invalid_block_settings,
+      ['model.' . self::TEST_BLOCK . '.use_site_slogan' => 'This value should be of the correct primitive type.'],
+    );
   }
 
   private function assertConversionErrors(array $client_json, array $errors): void {
@@ -156,6 +172,12 @@ class ClientServerConversionTraitTest extends KernelTestBase {
           'type' => 'sdc.experience_builder.image',
           'slots' => [],
         ],
+        [
+          'nodeType' => 'component',
+          'uuid' => self::TEST_BLOCK,
+          'type' => 'block.system_branding_block',
+          'slots' => [],
+        ],
       ],
       'model' => [
         self::TEST_HEADING_UUID => [
@@ -170,6 +192,13 @@ class ClientServerConversionTraitTest extends KernelTestBase {
             'width' => 100,
             'height' => 100,
           ],
+        ],
+        self::TEST_BLOCK => [
+          'use_site_logo' => TRUE,
+          'use_site_name' => TRUE,
+          'use_site_slogan' => FALSE,
+          'label' => '',
+          'label_display' => FALSE,
         ],
       ],
     ];

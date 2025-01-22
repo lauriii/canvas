@@ -21,7 +21,14 @@ final class Evaluator {
     // @see \Drupal\datetime\Plugin\Field\FieldType\DateTimeItem::DATETIME_TYPE_DATETIME
     // @see \Drupal\datetime\Plugin\Field\FieldType\DateTimeItemInterface::DATETIME_STORAGE_FORMAT
     // @see https://ijmacd.github.io/rfc3339-iso8601/
-    if ($expr instanceof FieldTypePropExpression && $expr->fieldType === 'datetime' && $entity_or_field instanceof FieldItemInterface && $entity_or_field->getFieldDefinition()->getFieldStorageDefinition()->getSetting('datetime_type') === DateTimeItem::DATETIME_TYPE_DATETIME) {
+    if ($expr instanceof FieldTypePropExpression &&
+      $expr->fieldType === 'datetime' &&
+      $entity_or_field instanceof FieldItemInterface &&
+      $entity_or_field->getFieldDefinition()->getFieldStorageDefinition()->getSetting('datetime_type') === DateTimeItem::DATETIME_TYPE_DATETIME &&
+      // Don't intervene if the result is already in iso8601 format - this
+      // includes a trailing offset, or using the Z flag.
+      !\preg_match('/(Z|[+-](?:2[0-3]|[01][0-9])(?::?[0-5][0-9])?)$/', $result)) {
+
       return $result . 'Z';
     }
     return $result;

@@ -78,14 +78,14 @@ final class ValidComponentTreeConstraintValidator extends ConstraintValidator im
 
     // Validate that each prop source resolves into a value that is considered
     // valid by the destination SDC prop.
-    // @todo This will need to evolve when supporting non-SDC component types in https://www.drupal.org/project/experience_builder/issues/3454519
+    // @todo This will need to evolve when supporting non-SDC component types in https://www.drupal.org/project/experience_builder/issues/3500997
     foreach ($tree->getComponentInstanceUuids() as $component_instance_uuid) {
       $component_id = $tree->getComponentId($component_instance_uuid);
       $component_entity = Component::load($component_id);
       if ($component_entity instanceof Component && $component_entity->getComponentSource() instanceof SingleDirectoryComponent) {
         try {
           $component = $component_entity->getComponentSource()->getComponentPlugin();
-          $props_values = $value->resolveComponentProps($component_instance_uuid);
+          $props_values = $component_entity->getComponentSource()->getExplicitInput($component_instance_uuid, $value);
           $this->componentValidator->validateProps($props_values, $component);
         }
         catch (ComponentNotFoundException) {

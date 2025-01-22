@@ -14,6 +14,8 @@ In the rest of this document, `Experience Builder` will be written as `XB`.
 ### 1.2 XB terminology
 
 - `component`: a component generates markup (and might attach CSS + JS), potentially based on some input. ⚠️ This is currently limited to `SDC`s, but that _will_ change. So: read this more broadly. ⚠️
+- `Component Source Plugin`: `component`s have a translation layer (per `component type`) between the `Component` config entity and the actual plugin that
+  accepts input and generates output, e.g. `SingleDirectoryComponent` (`sdc`-prefixed) and `BlockComponent` (`block`-prefixed).
 - `component prop`: each component may in its metadata define 0 or more props, each prop accepts structured data conforming to the shape defined in the `component`'s metadata
 - `component slot`: each component may in its metadata define 0 or more slots, each slot accepts >=0 component instances in a particular order
 - `component type`: the mechanism through which a `component` is defined (currently only `SDC` and `Block`)
@@ -45,7 +47,14 @@ This uses the terms defined above.
 
 ### 3.1 `SDC` `component`s
 
-#### 3.1.1 Criteria for `SDC` `component`s
+#### 3.1.1 Inputs & instantiation UX for `SDC` `component`s
+`SDC` `component`s specify the accepted inputs ("props") and their shapes in a `*.component.yml` file. The shapes (and
+semantics!) are defined using JSON schema. Defaults are present as an `example`, which is a feature of JSON schema.
+
+`SDC` DOES NOT provide an input UX, so its `Component Source Plugin` must do so on its behalf; and does so by matching
+available field types against the JSON schema of its inputs ("props").
+
+#### 3.1.2 Criteria for `SDC` `component`s
 
 For an `SDC` to be compatible/eligible for use in XB, it:
 - MUST always have schema, even for theme `SDC`s
@@ -76,7 +85,16 @@ It does not make sense to surface the config entities, because:
 
 Therefore, it only makes sense to surface _block plugins_ as XB `component`s.
 
-#### 3.2.1 Criteria for `Block` `component`s
+#### 3.1.1 Inputs & instantiation UX for `Block` `component`s
+
+`Block` `component`s specify the accepted inputs and their shapes in `*.component.yml` file. The shapes are defined
+using config schema (`type: block.settings.<PLUGIN ID>`). Defaults are present as the `::defaultConfiguration()` method
+on the PHP plugin class.
+
+`Block` DOES provide an input UX (`BlockPluginInterface::buildConfigurationForm()`), so its `Component Source Plugin`
+simply reuses that.
+
+#### 3.2.2 Criteria for `Block` `component`s
 
 For a `Block` to be compatible/eligible for use in XB it:
  - MUST have fully validatable block plugin settings config schema via the `FullyValidatable` constraint

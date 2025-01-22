@@ -50,6 +50,7 @@ to one of us! 😊 🙏
 - `component node`: one of the node types in the UI data model, representing a `component instance` in the `component tree`
 - `component prop`: see [`XB Components` doc](components.md)
 - `component slot`: see [`XB Components` doc](components.md)
+- `Component Source Plugin`: see [`XB Components` doc](components.md)
 - `component tree`: a tree of `component instance`s, by placing >=1 `component instance`s in a particular order in another `component instance`'s slot
 - `component tree field type`: XB's field type that allows storing a `component tree` ⚠️ This is currently limited to the "default" `view mode`, and hence one component tree per `content entity`. ⚠️
 - `component tree root`: the root of the `component tree` is the special case: it does not exist in another `component`, but it behaves the same as any other `component slot`
@@ -79,13 +80,19 @@ This adds to the product requirements listed in [`XB Components` doc](components
 (There are [more](https://docs.google.com/spreadsheets/d/1OpETAzprh6DWjpTsZG55LWgldWV_D8jNe9AM73jNaZo/edit?gid=1721130122#gid=1721130122), but these in particular affect XB's data model.)
 
 - MUST have validation logic that generates consistent validation error messages for either content (a `component tree` created by the Content Creator and stored in a `content entity`) or config (a `component tree` created by the Site Builder and stored in a `content type template`)
-- MUST allow continuing to use existing Drupal functionality (notably: `field type`s and `field widget`s)
+- MUST allow continuing to use existing Drupal functionality (notably: `field type`s and `field widget`s for `Component Source Plugin`s that do not have their own input UX)
 - SHOULD encourage Content Creators to use `structured data` whenever possible, `unstructured data` should be minimized except where necessary
 - MUST be able to facilitate changes in `component prop`s (i.e. schema changes, that may result in a changed `prop shape`)
 - MUST support both symmetric and asymmetric translations (same vs different `layout` per translation, respectively)
 - SHOULD facilitate real-time collaborative editing
 
 ## 3. Implementation
+
+⚠️ Most of this section is no longer accurate starting with <https://www.drupal.org/project/experience_builder/issues/3499919>,
+i.e. in the issue where SDC was no longer the only component type which is supported end-to-end. Follow-up issues such as
+<https://www.drupal.org/project/experience_builder/issues/3500994> and
+<https://www.drupal.org/project/experience_builder/issues/3500997> will generalize both low-level terminology as well as
+infrastructure that was SDC-specific until now! ⚠️
 
 This uses the terms defined above.
 

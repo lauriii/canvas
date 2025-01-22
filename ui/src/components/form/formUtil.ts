@@ -268,7 +268,7 @@ export function getPropsValues(
     propsWithObjectValues,
   } = propInputData(formState, inputAndUiData);
   const keys = Object.keys(formState).filter((key) =>
-    key.includes('xb_component_props['),
+    key.includes(`xb_component_props[${selectedComponent}][`),
   );
   // Iterate through every item in form state that corresponds to
   // a component prop to create propsValues, which will ultimately be

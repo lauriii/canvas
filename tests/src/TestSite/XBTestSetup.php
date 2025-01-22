@@ -41,7 +41,7 @@ class XBTestSetup implements TestSetupInterface {
 
     $module_installer = \Drupal::service('module_installer');
     assert($module_installer instanceof ModuleInstallerInterface);
-    $module_installer->install(['node', 'media', 'block']);
+    $module_installer->install(['node', 'media', 'block', 'file']);
     $theme = 'stark';
     \Drupal::service('theme_installer')->install([$theme]);
     \Drupal::service('config.factory')->getEditable('system.theme')->set('default', $theme)->save();
@@ -65,16 +65,23 @@ class XBTestSetup implements TestSetupInterface {
     $this->createMediaType('image', ['id' => 'image', 'label' => 'Image']);
     $test_image_files = $this->getTestFiles('image');
     $first_image_file = $test_image_files[0];
-    File::create([
+    $file1 = File::create([
       // @phpstan-ignore-next-line
       'uri' => $first_image_file->uri,
-    ])->save();
+    ]);
+    $file1->save();
+    $second_image_file = $test_image_files[1];
+    $file2 = File::create([
+      // @phpstan-ignore-next-line
+      'uri' => $second_image_file->uri,
+    ]);
+    $file2->save();
     Media::create([
       'bundle' => 'image',
       'name' => 'The bones are their money',
       'field_media_image' => [
         [
-          'target_id' => 1,
+          'target_id' => $file1->id(),
           'alt' => 'The bones equal dollars',
           'title' => 'Bones are the skeletons money',
         ],
@@ -85,7 +92,7 @@ class XBTestSetup implements TestSetupInterface {
       'name' => 'Sorry I resemble a dog',
       'field_media_image' => [
         [
-          'target_id' => 1,
+          'target_id' => $file2->id(),
           'alt' => 'My barber may have been looking at a picture of a dog',
           'title' => 'When he gave me this haircut',
         ],
@@ -94,7 +101,9 @@ class XBTestSetup implements TestSetupInterface {
     $module_installer->install([
       'experience_builder',
       'xb_dev_standard',
+      'xb_test_sdc',
       'xb_e2e_support',
+      'system',
     ]);
 
     $field_definitions = \Drupal::service('entity_field.manager')->getFieldDefinitions('node', 'article');
@@ -277,9 +286,16 @@ class XBTestSetup implements TestSetupInterface {
       'uuid' => 'cea4c5b3-7921-4c6f-b388-da921bd1496d',
       'component' => 'block.system_menu_block.admin',
     ];
-    $props['cea4c5b3-7921-4c6f-b388-da921bd1496d'] = [];
+    $props['cea4c5b3-7921-4c6f-b388-da921bd1496d'] = [
+      'label' => 'Administration',
+      'label_display' => FALSE,
+      'level' => 1,
+      'depth' => 0,
+      'expand_all_items' => FALSE,
+    ];
     $node = Node::create([
       'type' => 'article',
+      'path' => ['alias' => '/the-one-with-a-block'],
       'title' => 'XB With a block in the layout',
       'field_hero' => $image_field_sample_value,
       // @todo Add E2E test coverage for starting with an empty canvas in
@@ -332,15 +348,18 @@ class XBTestSetup implements TestSetupInterface {
     $xb_role = Role::create([
       'id' => 'xb',
       'label' => 'xb',
+      'permissions' => [
+        'access administration pages',
+        'access content',
+        'administer media',
+        'access media overview',
+        'view media',
+        'create media',
+        'create article content',
+        'administer xb_page',
+        'administer url aliases',
+      ],
     ]);
-    $xb_role->grantPermission('access administration pages');
-    $xb_role->grantPermission('access content');
-    $xb_role->grantPermission('administer media');
-    $xb_role->grantPermission('access media overview');
-    $xb_role->grantPermission('view media');
-    $xb_role->grantPermission('create media');
-    $xb_role->grantPermission('create article content');
-    $xb_role->grantPermission('administer xb_page');
     $xb_role->save();
 
     $xb_user = User::create();

@@ -12,6 +12,7 @@ use Drupal\Core\Theme\ComponentPluginManager;
 use Drupal\experience_builder\Entity\Component;
 use Drupal\experience_builder\InternalXbFieldNameResolver;
 use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\HttpFoundation\Request;
 
 /**
  * Allows editing the prop sources for a component.
@@ -70,16 +71,19 @@ final class ComponentInputsForm extends FormBase {
     assert($component !== NULL);
     $component_instance_uuid = $this->getRequest()->get('selected');
 
-    $form = $component->getComponentSource()->buildConfigurationForm($form, $form_state, $component_instance_uuid, $entity, $component->get('settings'));
+    $request = $this->requestStack->getCurrentRequest();
+    \assert($request instanceof Request);
 
+    $client_model = json_decode($request->get('props'), TRUE);
+
+    $form = $component->getComponentSource()->buildConfigurationForm($form, $form_state, $component_instance_uuid, $client_model, $entity, $component->get('settings'));
+    assert(isset($form['#attributes']['data-form-id']));
     $form['#pre_render'][] = [FormIdPreRender::class, 'addFormId'];
-    $form_id = $this->getFormId();
-    $form['#attributes']['data-form-id'] = $form_id;
     if ($this->getRequest()->get(AjaxResponseSubscriber::AJAX_REQUEST_PARAMETER) !== NULL) {
       // Add the data-ajax flag and manually add the form ID as pre render
       // callbacks aren't fired during AJAX rendering because the whole form is
       // not rendered, just the returned elements.
-      FormIdPreRender::addAjaxAttribute($form, $form_id);
+      FormIdPreRender::addAjaxAttribute($form, $form['#attributes']['data-form-id']);
     }
     return $form;
   }

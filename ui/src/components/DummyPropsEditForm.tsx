@@ -16,21 +16,16 @@ import {
 import { useGetComponentsQuery } from '@/services/components';
 import { findComponentByUuid } from '@/features/layout/layoutUtils';
 import { useDrupalBehaviors } from '@/hooks/useDrupalBehaviors';
+import type { FieldData } from '@/types/Component';
 
 interface PropData {
-  sourceType?: string;
+  sourceType: string;
   sourceTypeSettings?: object;
-  expression?: string;
-  value?: any;
-}
-
-interface PropDataCollection {
-  [key: string]: PropData;
+  expression: string;
+  value: any;
 }
 interface PreparedModel {
-  [x: string]: {
-    [x: string]: PropData;
-  };
+  [x: string]: PropData | string;
 }
 interface DummyPropsEditFormRendererProps {
   dynamicStaticCardQueryString: string;
@@ -148,8 +143,6 @@ const DummyPropsEditForm: React.FC<DummyPropsEditFormProps> = () => {
     ) {
       return;
     }
-    const preparedModel: PreparedModel = { [selectedComponent]: {} };
-    const selectedModel = model[selectedComponent];
     const node = findComponentByUuid(layout, selectedComponent);
     if (!node) {
       return;
@@ -158,51 +151,41 @@ const DummyPropsEditForm: React.FC<DummyPropsEditFormProps> = () => {
 
     // This is metadata about the props of the SDC being edited. This is specific
     // to the SDC *type* but unconcerned with this SDC *instance*.
-    const selectedComponentFieldData: PropDataCollection =
+    const selectedComponentFieldData: FieldData =
       components[selectedComponentType]?.['field_data'] || {};
 
     // Check if this component has any props or not.
+    let preparedModel: PreparedModel;
     if (Object.keys(selectedComponentFieldData).length === 0) {
       setDynamicStaticCardQueryString('');
       setEmptyProp(true);
+      preparedModel = model[selectedComponent] as PreparedModel;
     } else {
       setEmptyProp(false);
-    }
-
-    // The prepared model combines prop values from the model and prop metadata
-    // from the SDC definition.
-    for (const [thePropName, propData] of Object.entries(
-      selectedComponentFieldData,
-    )) {
-      const propName: string = thePropName;
-      preparedModel[selectedComponent][propName] = {};
-      // The sourceType of the prop is required by the component edit form. This
-      // information is provided to the UI in the components list returned by
-      // /xb/api/config/component.
-      if (propData.sourceType) {
-        preparedModel[selectedComponent as keyof PreparedModel][
-          propName
-        ].sourceType = propData.sourceType;
+      // The prepared model combines prop values from the model and prop metadata
+      // from the SDC definition.
+      preparedModel = {};
+      for (const [propName, propData] of Object.entries(
+        selectedComponentFieldData,
+      )) {
+        preparedModel[propName] = {
+          // The current value of the prop, or an empty string so the `value` is at
+          // least present.
+          value: model[selectedComponent][propName] || '',
+          // The sourceType of the prop is required by the component edit form. This
+          // information is provided to the UI in the components list returned by
+          // /xb/api/config/component.
+          sourceType: propData.sourceType,
+          // Some sourceTypes may have additional settings (e.g. for indicating valid choices in an SDC's `enum`.)
+          ...(propData.sourceTypeSettings && {
+            sourceTypeSettings: propData.sourceTypeSettings,
+          }),
+          // The expression of the prop is required by the component edit form. This
+          // information is provided to the UI in the components list returned by
+          // /xb/api/config/component.
+          expression: propData.expression,
+        };
       }
-      // Some sourceTypes may have additional settings (e.g. for indicating valid choices in an SDC's `enum`.)
-      if (propData.sourceTypeSettings) {
-        preparedModel[selectedComponent as keyof PreparedModel][
-          propName
-        ].sourceTypeSettings = propData.sourceTypeSettings;
-      }
-      // The expression of the prop is required by the component edit form. This
-      // information is provided to the UI in the components list returned by
-      // /xb/api/config/component.
-      if (propData.expression) {
-        preparedModel[selectedComponent as keyof PreparedModel][
-          propName
-        ].expression = propData.expression;
-      }
-
-      // The current value of the prop, or an empty string so the `value` is at
-      // least present.
-      preparedModel[selectedComponent as keyof PreparedModel][propName].value =
-        selectedModel[propName] || '';
     }
 
     const tree = findComponentByUuid(layout, selectedComponent);

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\Tests\experience_builder\Kernel\Plugin\Field\FieldType;
 
 use Drupal\Core\Field\BaseFieldDefinition;
+use Drupal\experience_builder\Entity\Component;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\KernelTests\KernelTestBase;
@@ -177,8 +178,9 @@ class ComponentTreeItemTest extends KernelTestBase {
   }
 
   /**
-   * @covers \Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem::resolveComponentProps
+   * @covers \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\SingleDirectoryComponent::getExplicitInput()
    * @dataProvider providerComponentResolving
+   * @todo Move this to unit test coverage for \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\SingleDirectoryComponent in https://www.drupal.org/i/3501290
    */
   public function testComponentResolving(array $component_item_value, array $expected_props_for_uuids): void {
     $this->container->get('module_installer')->install(['xb_test_config_node_article']);
@@ -191,7 +193,13 @@ class ComponentTreeItemTest extends KernelTestBase {
     $this->assertInstanceOf(ComponentTreeItem::class, $xb_field_item);
     $actual_props = array_combine(
       array_keys($expected_props_for_uuids),
-      array_map(fn (string $uuid) => $xb_field_item->resolveComponentProps($uuid), array_keys($expected_props_for_uuids))
+      array_map(
+        // @phpstan-ignore-next-line
+        fn (string $uuid) => Component::load($xb_field_item->get('tree')->getComponentId($uuid))
+          ->getComponentSource()
+          ->getExplicitInput($uuid, $xb_field_item),
+        array_keys($expected_props_for_uuids)
+      )
     );
     $this->assertSame($expected_props_for_uuids, $actual_props);
   }

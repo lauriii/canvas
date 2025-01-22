@@ -51,10 +51,4 @@ abstract class ComponentSourceBase extends PluginBase implements ComponentSource
     return $definition;
   }
 
-  /**
-   * {@inheritdoc}
-   */
-  public function validateComponentProperties(array $propertyValues = []): void {
-  }
-
 }

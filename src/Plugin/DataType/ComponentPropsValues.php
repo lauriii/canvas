@@ -9,9 +9,6 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\TypedData\Attribute\DataType;
 use Drupal\Core\TypedData\TypedData;
 use Drupal\experience_builder\MissingComponentPropsException;
-use Drupal\experience_builder\PropSource\PropSource;
-use Drupal\experience_builder\PropSource\PropSourceBase;
-use Drupal\experience_builder\PropSource\StaticPropSource;
 
 /**
  * @todo Implement ListInterface because it conceptually fits, but … what does it get us?
@@ -90,23 +87,6 @@ class ComponentPropsValues extends TypedData implements \Stringable {
   }
 
   /**
-   * @param string $component_instance_uuid
-   *   The UUID of a placed component instance.
-   *
-   * @return array<string, \Drupal\experience_builder\PropSource\PropSourceBase>
-   */
-  public function getComponentPropsSources(string $component_instance_uuid): array {
-    if (!array_key_exists($component_instance_uuid, $this->propsValues)) {
-      throw new MissingComponentPropsException($component_instance_uuid);
-    }
-
-    return array_map(
-      fn (array $prop_source): PropSourceBase => PropSource::parse($prop_source),
-      $this->propsValues[$component_instance_uuid]
-    );
-  }
-
-  /**
    * Retrieves the list of unique types of prop sources used.
    *
    * Sibling method on ComponentTreeStructure:
@@ -134,34 +114,22 @@ class ComponentPropsValues extends TypedData implements \Stringable {
   }
 
   /**
-   * Validates that static prop sources store a denormalized value.
+   * Gets the values for a given component instance.
    *
-   * @return void
+   * @param string $component_instance_uuid
+   *   Component instance UUID.
    *
-   * @throws \LogicException
+   * @return array<string, array<string, array|string>>
    *
-   * @see \Drupal\experience_builder\PropSource\StaticPropSource::denormalizeValue()
+   * @throws \Drupal\Core\TypedData\Exception\MissingDataException
+   * @throws \Drupal\experience_builder\MissingComponentPropsException
    */
-  public function ensureMinimalPropSourceRepresentations(): void {
-    foreach ($this->propsValues as $component_instance_uuid => $raw_prop_sources) {
-      foreach ($raw_prop_sources as $component_prop_name => $raw_prop_source) {
-        if (str_starts_with($raw_prop_source['sourceType'], 'static:')) {
-          try {
-            StaticPropSource::isMinimalRepresentation($raw_prop_source);
-          }
-          catch (\LogicException $e) {
-            throw new \LogicException(
-              previous: $e,
-              message: sprintf("For component `%s`, prop `%s`, an invalid field property value was detected: %s.",
-                $component_instance_uuid,
-                $component_prop_name,
-                $e->getMessage(),
-              )
-            );
-          }
-        }
-      }
+  public function getValues(string $component_instance_uuid): array {
+    if (!array_key_exists($component_instance_uuid, $this->propsValues)) {
+      throw new MissingComponentPropsException($component_instance_uuid);
     }
+
+    return $this->propsValues[$component_instance_uuid];
   }
 
 }

@@ -1,12 +1,15 @@
-describe('Block form with details elements', () => {
+describe('Block form', () => {
   before(() => {
     cy.drupalXbInstall();
+    cy.drupalEnableTheme('olivero');
+    cy.drupalEnableThemeForXb('olivero');
+    cy.viewport(2000, 1320);
   });
 
   beforeEach(() => {
-    cy.viewport(2000, 1320);
     cy.drupalSession();
     cy.drupalLogin('xbUser', 'xbUser');
+    cy.loadURLandWaitForXBLoaded({ url: 'xb/node/3' });
   });
 
   after(() => {
@@ -14,8 +17,6 @@ describe('Block form with details elements', () => {
   });
 
   it('Block settings form with details element', () => {
-    cy.loadURLandWaitForXBLoaded({ url: 'xb/node/3' });
-
     cy.get('#cea4c5b3-7921-4c6f-b388-da921bd1496d-name').should((blockName) => {
       expect(blockName).to.have.text('Administration block');
     });
@@ -43,5 +44,60 @@ describe('Block form with details elements', () => {
     cy.get('[data-testid="xb-contextual-panel"] #edit-level').should(
       'not.exist',
     );
+  });
+
+  it('Block settings form values are stored and the preview is updated', () => {
+    cy.clickComponentInPreview('Site branding block', 0, 'lg', 'header');
+    cy.waitForElementContentInIframe('div.site-branding__inner', 'Drupal');
+
+    cy.findByLabelText('Site name').as('siteName');
+    // Radix replaces checkboxes with buttons
+    // @todo should assertToggleState() deal with this? but the aria-checked property is not correct
+    cy.get('@siteName')
+      .should('exist')
+      .and('have.attr', 'data-state', 'checked');
+    cy.get('@siteName').toggleToggle();
+    cy.get('@siteName').should('have.attr', 'data-state', 'unchecked');
+    cy.waitForElementContentNotInIframe('div.site-branding__inner', 'Drupal');
+
+    cy.get('@siteName').toggleToggle();
+    cy.get('@siteName').should('have.attr', 'data-state', 'checked');
+    cy.waitForElementContentInIframe('div.site-branding__inner', 'Drupal');
+
+    // Turn off the site name again.
+    cy.get('@siteName').toggleToggle();
+
+    // Now move this component to the content region so it is stored in the node.
+    cy.findByTestId('xb-primary-panel').as('layersTree');
+    cy.get('@layersTree')
+      .findByText('Site branding block')
+      .trigger('contextmenu');
+    cy.findByText('Move to global region').click();
+    cy.findByText('Content', { selector: '[role="menuitem"]' }).click();
+
+    // The component should now be in the content region.
+    cy.getComponentInPreview('Site branding block').should('exist');
+
+    // Publish the page with the new component.
+    cy.intercept('PATCH', '**/xb/api/content-update/node/3').as('publish');
+    cy.findByTestId('xb-topbar').findByText('Publish').should('exist').click();
+    // Add logged output of any validation errors.
+    cy.wait('@publish').then(console.log);
+    cy.findByTestId('xb-topbar').findByText('Published').should('exist');
+
+    // Reload the page to confirm the component has been added.
+    cy.loadURLandWaitForXBLoaded({ url: 'xb/node/3' });
+
+    // We should see the saved component.
+    cy.clickComponentInPreview('Site branding block');
+    cy.waitForElementContentNotInIframe('div.site-branding__inner', 'Drupal');
+
+    // And it should have the saved configuration.
+    cy.findByLabelText('Site name').as('siteName');
+    // Radix replaces checkboxes with buttons
+    // @todo should assertToggleState() deal with this? but the aria-checked property is not correct
+    cy.get('@siteName')
+      .should('exist')
+      .and('have.attr', 'data-state', 'unchecked');
   });
 });

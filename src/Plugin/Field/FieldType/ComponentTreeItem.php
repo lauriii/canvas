@@ -20,7 +20,6 @@ use Drupal\experience_builder\Entity\Component;
 use Drupal\experience_builder\Plugin\DataType\ComponentPropsValues;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeHydrated;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
-use Drupal\experience_builder\PropSource\PropSourceBase;
 use Drupal\experience_builder\ShapeMatcher\FieldForComponentSuggester;
 
 /**
@@ -250,12 +249,26 @@ class ComponentTreeItem extends FieldItemBase implements RenderableInterface {
     $props = $this->get('props');
     assert($props instanceof ComponentPropsValues);
 
-    $props->ensureMinimalPropSourceRepresentations();
+    $tree = $this->get('tree');
+    assert($tree instanceof ComponentTreeStructure);
+    $component_instance_uuids = $tree->getComponentInstanceUuids();
+    $entity = $this->getRoot() === $this ? NULL : $this->getEntity();
+    foreach ($component_instance_uuids as $component_instance_uuid) {
+      $component_id = $tree->getComponentId($component_instance_uuid);
+      $source = Component::load($component_id)?->getComponentSource();
+      if ($source === NULL) {
+        throw new \LogicException(\sprintf('Unable to load component plugin with ID "%s".', $component_id));
+      }
+      // Ensure that only ever valid inputs for component instances in an XB
+      // field are saved. When a field is saved that somehow was not validated,
+      // this will catch that.
+      // @see \Drupal\experience_builder\Plugin\Validation\Constraint\ValidComponentTreeConstraintValidator
+      $source->validateComponentInput($props->getValues($component_instance_uuid), $component_instance_uuid, $entity);
+    }
 
     // This *internal-only* validation does not need to happen using validation
     // constraints because it does not validate user input: it only helps ensure
     // that the logic of this field type is correct.
-    $component_instance_uuids = $tree->getComponentInstanceUuids();
     if (array_intersect($component_instance_uuids, $props->getComponentInstanceUuids()) !== $component_instance_uuids) {
       throw new \LogicException(sprintf('The component UUIDs in the tree and props values do not match! Put a breakpoint here and figure out why.'));
     }
@@ -263,39 +276,6 @@ class ComponentTreeItem extends FieldItemBase implements RenderableInterface {
     // @todo Omit defaults that are stored at the content type template level, e.g. in core.entity_view_display.node.article.default.yml
     // $template_tree = '@todo';
     // $template_props = '@todo';
-  }
-
-  /**
-   * @param string $component_instance_uuid
-   *
-   * @return array<string, mixed>
-   */
-  public function resolveComponentProps(string $component_instance_uuid): array {
-    $props = $this->get('props');
-    assert($props instanceof ComponentPropsValues);
-    $entity = $this->getRoot() === $this ? NULL : $this->getEntity();
-    $tree = $this->get('tree');
-    assert($tree instanceof ComponentTreeStructure);
-    if (!self::componentHasProps($tree->getComponentId($component_instance_uuid))) {
-      return [];
-    }
-
-    return array_map(
-      fn (PropSourceBase $s): mixed => $s->evaluate($entity),
-      $props->getComponentPropsSources($component_instance_uuid)
-    );
-  }
-
-  /**
-   * phpcs:ignore Drupal.Commenting.DataTypeNamespace.DataTypeNamespace
-   * @param ComponentConfigEntityId $component_id
-   *   A Component config entity ID.
-   *
-   * @return bool
-   */
-  protected static function componentHasProps(string $component_id): bool {
-    $component = Component::load($component_id)?->getComponentSource()?->getComponentPlugin();
-    return !empty($component->metadata->schema['properties']);
   }
 
   /**

@@ -106,7 +106,7 @@ trait ClientServerConversionTrait {
    * @return array<string, array<string, \Drupal\experience_builder\PropSource\StaticPropSource>>
    * @throws \Drupal\experience_builder\Exception\ConstraintViolationException
    */
-  private function clientModelToServerProps(array $tree, array $model): array {
+  private function clientModelToInput(array $tree, array $model): array {
     $definition = DataDefinition::create('component_tree_structure');
     $component_tree_structure = new ComponentTreeStructure($definition, 'component_tree_structure');
     $component_tree_structure->setValue(json_encode($tree, JSON_UNESCAPED_UNICODE));
@@ -115,11 +115,11 @@ trait ClientServerConversionTrait {
     $model = \array_intersect_key($model, \array_flip($component_tree_structure->getComponentInstanceUuids()));
     $props = [];
     $violation_list = new ConstraintViolationList();
-    foreach ($model as $uuid => $client_props) {
+    foreach ($model as $uuid => $client_model) {
       $component = Component::load($component_tree_structure->getComponentId($uuid));
       assert($component instanceof Component);
       try {
-        $props[$uuid] = $component->getComponentSource()->createPropsForComponent($uuid, $component, $client_props);
+        $props[$uuid] = $component->getComponentSource()->clientModelToInput($uuid, $component, $client_model);
       }
       catch (ConstraintViolationException $e) {
         foreach ($e->getConstraintViolationList() as $violation) {
@@ -161,7 +161,7 @@ trait ClientServerConversionTrait {
     // ⚠️ TRICKY: in order to denormalize `model`, `layout` must already been
     // been denormalized to `tree`, because only those values in `model` that
     // are for actually existing XB components can be denormalized.
-    $props = $this->clientModelToServerProps($tree, $model);
+    $props = $this->clientModelToInput($tree, $model);
 
     // Update the entity, validate and save.
     // Note: constructing ComponentTreeStructure from `layout` and
@@ -170,18 +170,9 @@ trait ClientServerConversionTrait {
     // @see \Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem
     // @see \Drupal\experience_builder\Plugin\Validation\Constraint\ValidComponentTreeConstraintValidator
     // @see \Drupal\experience_builder\Plugin\Validation\Constraint\ComponentTreeMeetsRequirementsConstraintValidator
-    // @todo Make this double `foreach` unnecessary by making StaticPropSource implementing __serialize()?
-    $props_prepared_for_saving = [];
-    foreach ($props as $component_instance_uuid => $component_instance_props) {
-      $props_prepared_for_saving[$component_instance_uuid] = [];
-      foreach ($component_instance_props as $prop_name => $prop_source) {
-        $props_prepared_for_saving[$component_instance_uuid][$prop_name] = $prop_source->toArray();
-      }
-    }
-
     return [
       'tree' => json_encode($tree, JSON_UNESCAPED_UNICODE | JSON_FORCE_OBJECT | JSON_THROW_ON_ERROR),
-      'props' => json_encode($props_prepared_for_saving, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR | JSON_FORCE_OBJECT),
+      'props' => json_encode($props, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR | JSON_FORCE_OBJECT),
     ];
   }
 

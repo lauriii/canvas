@@ -224,7 +224,9 @@ HTML,
           ['uuid' => 'uuid-in-root', 'component' => 'block.system_branding_block'],
         ],
       ],
-      'props' => [],
+      'props' => [
+        'uuid-in-root' => [],
+      ],
       'expected_value' => [
         ComponentTreeStructure::ROOT_UUID => [
           'uuid-in-root' => [
@@ -536,6 +538,7 @@ HTML,
         'uuid-level-1' => ['heading' => $generate_static_prop_source('from slot level 1')],
         'uuid-last-in-tree' => ['heading' => $generate_static_prop_source('from slot <LAST ONE>')],
         'uuid-level-2' => ['heading' => $generate_static_prop_source('from slot level 2')],
+        'uuid-block' => [],
       ],
       'expected_value' => [
         // Note how these are sequentially ordered.

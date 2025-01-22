@@ -28,6 +28,7 @@ use Drupal\experience_builder\ComponentSource\ComponentSourceWithSlotsInterface;
 use Drupal\experience_builder\Entity\Component as ComponentEntity;
 use Drupal\experience_builder\Exception\ConstraintViolationException;
 use Drupal\experience_builder\InvalidRequestBodyValue;
+use Drupal\experience_builder\Plugin\DataType\ComponentPropsValues;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\experience_builder\PropExpressions\Component\ComponentPropExpression;
 use Drupal\experience_builder\PropExpressions\StructuredData\FieldObjectPropsExpression;
@@ -40,8 +41,6 @@ use Drupal\experience_builder\PropSource\PropSource;
 use Drupal\experience_builder\PropSource\StaticPropSource;
 use Drupal\experience_builder\ShapeMatcher\FieldForComponentSuggester;
 use Symfony\Component\DependencyInjection\ContainerInterface;
-use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\Validator\ConstraintViolation;
 use Symfony\Component\Validator\ConstraintViolationList;
 
@@ -86,7 +85,6 @@ final class SingleDirectoryComponent extends ComponentSourceBase implements Comp
     private readonly FieldTypePluginManagerInterface $fieldTypePluginManager,
     private readonly WidgetPluginManager $fieldWidgetPluginManager,
     private readonly FieldForComponentSuggester $fieldForComponentSuggester,
-    private readonly RequestStack $requestStack,
     private readonly EntityTypeManagerInterface $entityTypeManager,
   ) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
@@ -107,7 +105,6 @@ final class SingleDirectoryComponent extends ComponentSourceBase implements Comp
       $container->get(FieldTypePluginManagerInterface::class),
       $container->get('plugin.manager.field.widget'),
       $container->get(FieldForComponentSuggester::class),
-      $container->get(RequestStack::class),
       $container->get(EntityTypeManagerInterface::class),
     );
   }
@@ -233,7 +230,19 @@ final class SingleDirectoryComponent extends ComponentSourceBase implements Comp
    * {@inheritdoc}
    */
   public function getExplicitInput(string $uuid, ComponentTreeItem $item): array {
-    return $item->resolveComponentProps($uuid);
+    if (empty($this->getComponentPlugin()->metadata->schema['properties'])) {
+      return [];
+    }
+    $entity = $item->getRoot() === $item ? NULL : $item->getEntity();
+    // @todo Rename this in https://www.drupal.org/i/3500997
+    $props = $item->get('props');
+    assert($props instanceof ComponentPropsValues);
+    $values = $props->getValues($uuid);
+    return array_map(
+      // @phpstan-ignore-next-line
+      fn (array $prop_source): mixed => PropSource::parse($prop_source)->evaluate($entity),
+      $values,
+    );
   }
 
   /**
@@ -257,26 +266,44 @@ final class SingleDirectoryComponent extends ComponentSourceBase implements Comp
   /**
    * {@inheritdoc}
    */
-  public function validateComponentProperties(array $propertyValues = []): void {
-    $this->componentValidator->validateProps($propertyValues, $this->getComponentPlugin());
+  public function validateComponentInput(array $inputValues, string $component_instance_uuid, ?FieldableEntityInterface $entity): void {
+    foreach ($inputValues as $component_prop_name => $raw_prop_source) {
+      if (str_starts_with($raw_prop_source['sourceType'], 'static:')) {
+        try {
+          StaticPropSource::isMinimalRepresentation($raw_prop_source);
+        }
+        catch (\LogicException $e) {
+          throw new \LogicException(
+            message: sprintf("For component `%s`, prop `%s`, an invalid field property value was detected: %s.",
+              $component_instance_uuid,
+              $component_prop_name,
+              $e->getMessage(),
+            ),
+            previous: $e
+          );
+        }
+      }
+    }
+    $resolvedInputValues = array_map(
+      // @phpstan-ignore-next-line
+      fn (array $prop_source): mixed => PropSource::parse($prop_source)->evaluate($entity),
+      $inputValues,
+    );
+    $this->componentValidator->validateProps($resolvedInputValues, $this->getComponentPlugin());
   }
 
   /**
    * {@inheritdoc}
    */
-  public function buildConfigurationForm(array $form, FormStateInterface $form_state, string $component_instance_uuid = '', ?EntityInterface $entity = NULL, array $settings = []): array {
+  public function buildConfigurationForm(
+    array $form,
+    FormStateInterface $form_state,
+    string $component_instance_uuid = '',
+    array $client_model = [],
+    ?EntityInterface $entity = NULL,
+    array $settings = [],
+  ): array {
     assert($entity instanceof FieldableEntityInterface);
-
-    // @todo The source plugin should not need to know about the request.
-    // This should probably be injected into form state in a controller,
-    // but until we have a second plugin that manages a configuration form
-    // it is hard to say what the best approach is.
-    // Fix this in https://www.drupal.org/project/experience_builder/issues/3491978
-    $request = $this->requestStack->getCurrentRequest();
-    assert($request instanceof Request);
-
-    $stored_prop_sources = json_decode($request->get('props'), TRUE)[$component_instance_uuid];
-
     $component_schema = $this->getSchema();
 
     // Allow form alterations specific to XB component prop forms (currently
@@ -290,7 +317,7 @@ final class SingleDirectoryComponent extends ComponentSourceBase implements Comp
     $form['#method'] = 'dialog';
 
     $form['#parents'] = ['xb_component_props', $component_instance_uuid];
-    foreach ($stored_prop_sources as $sdc_prop_name => $prop_source_array) {
+    foreach ($client_model as $sdc_prop_name => $prop_source_array) {
       $source = PropSource::parse($prop_source_array);
       if ($source instanceof StaticPropSource) {
         // 1. If the given static prop source matches the *current* field type
@@ -309,6 +336,10 @@ final class SingleDirectoryComponent extends ComponentSourceBase implements Comp
       // @todo Design is undefined for the DynamicPropSource UX. Related: https://www.drupal.org/project/experience_builder/issues/3459234
       // @todo Design is undefined for the AdaptedPropSource UX.
     }
+
+    // @todo Remove in https://www.drupal.org/project/experience_builder/issues/3500152
+    $form['#attributes']['data-form-id'] = 'component_inputs_form';
+
     return $form;
   }
 
@@ -558,11 +589,11 @@ final class SingleDirectoryComponent extends ComponentSourceBase implements Comp
   /**
    * {@inheritdoc}
    */
-  public function createPropsForComponent(string $component_instance_uuid, ComponentEntity $component, array $client_props): array {
+  public function clientModelToInput(string $component_instance_uuid, ComponentEntity $component, array $client_model): array {
     $props = [];
     $violation_list = new ConstraintViolationList();
 
-    foreach ($client_props as $prop => $prop_value) {
+    foreach ($client_model as $prop => $prop_value) {
       $static_source = $component->getDefaultStaticPropSource($prop);
       $updated_static_source = $static_source->withValue($prop_value);
       if ($static_source->fieldItem instanceof EntityReferenceItemInterface) {
@@ -575,7 +606,7 @@ final class SingleDirectoryComponent extends ComponentSourceBase implements Comp
             $invalid->getMessage(),
             NULL,
             [],
-            $client_props,
+            $client_model,
             $invalid->propertyPath
               ? "model.$component_instance_uuid.$prop.{$invalid->propertyPath}"
               : "model.$component_instance_uuid.$prop",
@@ -588,7 +619,7 @@ final class SingleDirectoryComponent extends ComponentSourceBase implements Comp
           + ['target_id' => $target_id]
         );
       }
-      $props[$prop] = $updated_static_source;
+      $props[$prop] = $updated_static_source->toArray();
     }
 
     if ($violation_list->count()) {
@@ -612,11 +643,23 @@ final class SingleDirectoryComponent extends ComponentSourceBase implements Comp
     // Only consider public files until we save 'target_id' in the client model.
     $base_path = '/' . PublicStream::basePath() . '/';
     $relative_path = substr($src, strlen($base_path));
-    $drupal_uri = 'public://' . $relative_path;
+    $drupal_uris = ['public://' . $relative_path];
+
+    // This might be an image style from the adapted image input, in which
+    // case the image will be in the format `files/styles/{style}/{url}`.
+    if (str_contains($src, 'files/styles/thumbnail') && preg_match('@/files/styles/thumbnail/public/(.*).webp@', $src, $matches)) {
+      $drupal_uris[] = 'public://' . $matches[1];
+    }
+    if (preg_match('@/sites/.*/files/(.*)$@', $src, $matches)) {
+      // This could also be running in a sub-directory, for example in CI.
+      // Let's just match on sites/default/files or
+      // sites/simpletest/{testid}/files.
+      $drupal_uris[] = 'public://' . $matches[1];
+    }
 
     // Load the file entity using the 'uri'. 'filename' will not always work
     // because the file name can be changed in the uri.
-    $files = $this->entityTypeManager->getStorage('file')->loadByProperties(['uri' => $drupal_uri]);
+    $files = $this->entityTypeManager->getStorage('file')->loadByProperties(['uri' => $drupal_uris]);
     $file = reset($files);
     if (!$file) {
       throw new InvalidRequestBodyValue("File '$src' not found.", 'src');

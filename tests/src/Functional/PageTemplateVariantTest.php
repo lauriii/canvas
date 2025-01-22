@@ -113,6 +113,12 @@ class PageTemplateVariantTest extends BrowserTestBase {
             'uuid-in-root-another' => [
               'heading' => $generate_static_prop_source('another world'),
             ],
+            // Note how there is no input for the user login block, the main
+            // content block, but there is for all others.
+            // @see \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\BlockComponent::getExplicitInput()
+            'uuid-local-actions' => [],
+            'uuid-title' => [],
+            'uuid-messages' => [],
           ]),
         ],
         'header' => NULL,

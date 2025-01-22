@@ -9,6 +9,7 @@ use Drupal\Component\Plugin\DependentPluginInterface;
 use Drupal\Component\Plugin\DerivativeInspectionInterface;
 use Drupal\Component\Plugin\PluginInspectionInterface;
 use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Plugin\ContextAwarePluginInterface;
 use Drupal\Core\Plugin\PluginFormInterface;
@@ -139,22 +140,48 @@ interface ComponentSourceInterface extends PluginInspectionInterface, Derivative
    *   The current state of the form.
    * @param string $component_instance_uuid
    *   The component instance UUID.
+   * @param array $client_model
+   *   Current client model values for the component from the incoming request.
    * @param \Drupal\Core\Entity\EntityInterface|null $entity
-   *   The host entity.
+   *   The host entity (for evaluated input).
    * @param array $settings
    *   The component configuration entity settings.
    *
    * @return array
    *   The form structure.
    */
-  public function buildConfigurationForm(array $form, FormStateInterface $form_state, string $component_instance_uuid = '', ?EntityInterface $entity = NULL, array $settings = []): array;
+  public function buildConfigurationForm(
+    array $form,
+    FormStateInterface $form_state,
+    string $component_instance_uuid = '',
+    array $client_model = [],
+    ?EntityInterface $entity = NULL,
+    array $settings = [],
+  ): array;
 
   /**
-   * @return array<string, \Drupal\experience_builder\PropSource\StaticPropSource>
+   * @return array<string, \Drupal\experience_builder\PropSource\StaticPropSource|mixed>
    * @throws \Drupal\experience_builder\Exception\ConstraintViolationException
    *
    * @todo Refactor to use the Symfony denormalizer infrastructure?
    */
-  public function createPropsForComponent(string $component_instance_uuid, Component $component, array $client_props): array;
+  public function clientModelToInput(string $component_instance_uuid, Component $component, array $client_model): array;
+
+  /**
+   * Validates component input.
+   *
+   * @param array $inputValues
+   *   Input values stored for this component.
+   * @param string $component_instance_uuid
+   *   Component instance UUID.
+   * @param \Drupal\Core\Entity\FieldableEntityInterface|null $entity
+   *   Host entity.
+   *
+   * @throws \Exception
+   *   When the input is invalid.
+   *
+   * @todo Make this return a constraint violation list in https://drupal.org/i/3500997
+   */
+  public function validateComponentInput(array $inputValues, string $component_instance_uuid, ?FieldableEntityInterface $entity): void;
 
 }

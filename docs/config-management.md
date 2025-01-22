@@ -41,9 +41,8 @@ to one of us! 😊 🙏
 - `component`: see [`XB Components` doc](components.md)
 - `Component config entity`: `component`s available for use in XB are tracked as config entities. They correspond 1:1 to eligible
   `SDC`s and `Block`s.
-- `Component Source Plugin`: `component`s have a translation layer (per `component type`) between the `Component` config entity and the actual plugin that
-  generates output, e.g. `SingleDirectoryComponent` (`sdc`-prefixed) and `BlockComponent` (`block`-prefixed).
 - `component prop`: see [`XB Components` doc](components.md)
+- `Component Source Plugin`: see [`XB Components` doc](components.md)
 - `component slot`: see [`XB Components` doc](components.md)
 - `component type`: see [`XB Components` doc](components.md)
 - `component tree`: see [`XB Data Model` doc](data-model.md)
@@ -96,6 +95,7 @@ See the `experience_builder.api.config.*` routes.
 See:
 - `\Drupal\experience_builder\Entity\Component`
 - `\Drupal\experience_builder\Plugin\ComponentPluginManager`
+- `\Drupal\experience_builder\ComponentSource\ComponentSourceInterface`
 
 One `Component config entity` is [automatically created (and updated](https://www.drupal.org/project/experience_builder/issues/3463999)
 per `component` that is present and meets the criteria (see [`XB Components` doc, section 3.1.1](components.md#3.1.1)).
@@ -105,10 +105,13 @@ When a `component` does not meet the criteria, the _reasons_ for that are tracke
 The `Component` config entity contains:
 - the `component` ID, with the prefix (the first ID part) identifying the `Component Source Plugin`, and the
   remainder being used by that plugin (typically to allow a `Component Source Plugin` to provide >1 `component`)
-- the `source`: a `Component Source Plugin` ID. ⚠️ This will eventually become extensible; currently only `sdc` or `block`.
+- the `source`: a `Component Source Plugin` ID.
 - the `settings`: each `Component Source Plugin` MAY need to store component settings, and each has different needs:
-  - `SDC` component type: `props`, to configure what field type, widget and so on to use to store and edit the SDC's props.
-  - `Block` component type: `settings`, to store block settings, if any. For example: which menu to display in a menu block.
+  - `SDC` component type: `prop_field_definitions`, to configure what field type, widget and so on to use to store and
+     edit the SDC's props.
+  - `Block` component type: `default_settings`, to store the default block plugin settings, if any. For example: hide
+     the site slogan whenever the "site branding" block is placed. Not to be confused with the settings specified per
+     `component instance`, which override those defaults.
 - the `status`: `true` conveys it is available for XB Content Creators, `false` conveys it once was available, but not
   anymore (either because it was explicitly disabled by the Site Builder, or because the underlying SDC was marked as
   "obsolete"). Existing content can then continue to use disabled `Component`s (in other words: nothing breaks), while

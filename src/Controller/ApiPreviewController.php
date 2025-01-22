@@ -10,27 +10,21 @@ use Drupal\experience_builder\AutoSave\AutoSaveManager;
 use Drupal\experience_builder\Entity\PageTemplate;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
+use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemInstantiatorTrait;
 use Drupal\experience_builder\Render\PreviewEnvelope;
 use Symfony\Component\HttpFoundation\Request;
-
-// phpcs:disable
-// @todo Remove this — this was added to avoid breaking the client while finalizing the server.
-final class HardcodedPropsComponentTreeItem extends ComponentTreeItem {
-  public array $hardcoded_props = [];
-  public function resolveComponentProps(string $component_instance_uuid): array {
-    return $this->hardcoded_props[$component_instance_uuid];
-  }
-}
-// phpcs:enable
 
 final class ApiPreviewController {
 
   use ClientServerConversionTrait;
+  use ComponentTreeItemInstantiatorTrait;
 
   public function __construct(
-    private readonly TypedDataManagerInterface $typedDataManager,
+    TypedDataManagerInterface $typedDataManager,
     private readonly AutoSaveManager $autoSaveManager,
-  ) {}
+  ) {
+    $this->typedDataManager = $typedDataManager;
+  }
 
   public function __invoke(Request $request, EntityInterface $entity): PreviewEnvelope {
     $body = json_decode($request->getContent(), TRUE);
@@ -95,27 +89,16 @@ final class ApiPreviewController {
    *   https://www.drupal.org/project/experience_builder/issues/3467954.
    */
   private function clientLayoutAndModelToXbField(array $layout, array $model): ComponentTreeItem {
-    $field_item_definition = $this->typedDataManager->createDataDefinition('field_item:component_tree');
-    // @phpstan-ignore-next-line
-    $field_item_definition->setClass(HardcodedPropsComponentTreeItem::class);
-    $component_tree_field_item = $this->typedDataManager->createInstance('field_item:component_tree', [
-      'name' => NULL,
-      'parent' => NULL,
-      'data_definition' => $field_item_definition,
-    ]);
+    $component_tree_field_item = $this->createDanglingComponentTree();
 
     // @todo Handle validation in https://www.drupal.org/project/experience_builder/issues/3485878
     $tree = self::clientLayoutToServerTree($layout, FALSE);
 
-    // This uses a partial override of the XB field type, because the client is
-    // sending explicit prop values in its `model`, not prop sources. Use these
-    // directly.
-    // @see \Drupal\experience_builder\Controller\HardcodedPropsComponentTreeItem::resolveComponentProps()
-    assert($component_tree_field_item instanceof HardcodedPropsComponentTreeItem);
+    $props = $this->clientModelToInput($tree, $model);
     $component_tree_field_item->setValue([
       'tree' => json_encode($tree, JSON_UNESCAPED_UNICODE | JSON_FORCE_OBJECT),
+      'props' => json_encode($props, JSON_UNESCAPED_UNICODE | JSON_FORCE_OBJECT),
     ]);
-    $component_tree_field_item->hardcoded_props = $model;
 
     return $component_tree_field_item;
   }

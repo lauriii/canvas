@@ -50,6 +50,7 @@ final class ApiPendingChangesControllerTest extends KernelTestBase {
    */
   protected function setUp(): void {
     parent::setUp();
+    $this->installConfig('system');
     (new XBTestSetup())->setup();
     $this->installConfig(['test_user_config', 'experience_builder']);
   }

@@ -13,6 +13,8 @@ export interface FormState {
 
 export interface FormStateSliceState {
   component_inputs_form: FormState;
+  // @todo Remove in https://www.drupal.org/project/experience_builder/issues/3500152
+  block_form: FormState;
   page_data_form: FormState;
 }
 
@@ -23,6 +25,7 @@ const emptyFormState = {
 
 const initialState: FormStateSliceState = {
   component_inputs_form: emptyFormState,
+  block_form: emptyFormState,
   page_data_form: emptyFormState,
 };
 

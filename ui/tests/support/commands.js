@@ -590,7 +590,8 @@ Cypress.Commands.add('loadURLandWaitForXBLoaded', (options = {}) => {
   const { url = 'xb/node/1', clearAutoSave = true } = options;
 
   if (clearAutoSave) {
-    cy.clearAutoSave();
+    const [, entityType, entityId] = url.split('/');
+    cy.clearAutoSave(entityType, entityId);
   }
   cy.drupalRelativeURL(url);
 
