@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\experience_builder\Controller;
 
 use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\TypedData\TypedDataManagerInterface;
 use Drupal\experience_builder\AutoSave\AutoSaveManager;
 use Drupal\experience_builder\Entity\PageTemplate;
@@ -64,7 +65,8 @@ final class ApiPreviewController {
     // yet, so we work with a hardcoded props item for the sake of this
     // controller.
     // @see \Drupal\experience_builder\Controller\ClientServerConversionTrait::findTargetForProps
-    $renderable = $this->clientLayoutAndModelToXbField($content, $model)->toRenderable();
+    \assert($entity instanceof FieldableEntityInterface);
+    $renderable = $this->clientLayoutAndModelToXbField($content, $model, $entity)->toRenderable();
 
     if (isset($renderable[ComponentTreeStructure::ROOT_UUID])) {
       $build = $renderable[ComponentTreeStructure::ROOT_UUID];
@@ -88,13 +90,13 @@ final class ApiPreviewController {
    * @todo Refactor/remove in
    *   https://www.drupal.org/project/experience_builder/issues/3467954.
    */
-  private function clientLayoutAndModelToXbField(array $layout, array $model): ComponentTreeItem {
+  private function clientLayoutAndModelToXbField(array $layout, array $model, FieldableEntityInterface $entity): ComponentTreeItem {
     $component_tree_field_item = $this->createDanglingComponentTree();
 
     // @todo Handle validation in https://www.drupal.org/project/experience_builder/issues/3485878
     $tree = self::clientLayoutToServerTree($layout, FALSE);
 
-    $props = $this->clientModelToInput($tree, $model);
+    $props = $this->clientModelToInput($tree, $model, $entity);
     $component_tree_field_item->setValue([
       'tree' => json_encode($tree, JSON_UNESCAPED_UNICODE | JSON_FORCE_OBJECT),
       'props' => json_encode($props, JSON_UNESCAPED_UNICODE | JSON_FORCE_OBJECT),

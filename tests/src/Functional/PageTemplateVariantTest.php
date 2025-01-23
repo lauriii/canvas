@@ -116,9 +116,18 @@ class PageTemplateVariantTest extends BrowserTestBase {
             // Note how there is no input for the user login block, the main
             // content block, but there is for all others.
             // @see \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\BlockComponent::getExplicitInput()
-            'uuid-local-actions' => [],
-            'uuid-title' => [],
-            'uuid-messages' => [],
+            'uuid-local-actions' => [
+              'label' => '',
+              'label_display' => FALSE,
+            ],
+            'uuid-title' => [
+              'label' => '',
+              'label_display' => FALSE,
+            ],
+            'uuid-messages' => [
+              'label' => '',
+              'label_display' => FALSE,
+            ],
           ]),
         ],
         'header' => NULL,

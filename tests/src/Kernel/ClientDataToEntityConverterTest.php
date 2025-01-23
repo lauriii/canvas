@@ -129,7 +129,15 @@ class ClientDataToEntityConverterTest extends KernelTestBase {
     $unreferenced_file_client_json['model'][self::TEST_IMAGE_UUID]['image']['src'] = $unreferenced_src;
     $this->assertConvert(
       $unreferenced_file_client_json,
-      ['model.' . self::TEST_IMAGE_UUID . '.image.src' => "No media entity found that uses file '$unreferenced_src'."],
+      [
+        // Transformation from client model to input failed.
+        // @see \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\SingleDirectoryComponent::findTargetForProps()
+        'model.' . self::TEST_IMAGE_UUID . '.image.src' => "No media entity found that uses file '$unreferenced_src'.",
+        // The failed transformation above results in an empty value for the
+        // entire SDC prop. Which then fails SDC validation.
+        // @see \Drupal\Core\Theme\Component\ComponentValidator::validateProps()
+        'model.' . self::TEST_IMAGE_UUID . '.image' => 'The property image is required',
+      ],
       // The error above happens in `\Drupal\experience_builder\Controller\ClientServerConversionTrait::convertClientToServer()`
       // therefore the title, as well as other entity fields will not be updated.
       'The original title.'
@@ -140,7 +148,9 @@ class ClientDataToEntityConverterTest extends KernelTestBase {
     $this->assertConvert(
       $invalid_heading_client_json,
       ['model.' . self::TEST_HEADING_UUID . '.style' => 'Does not have a value in the enumeration ["primary","secondary"]'],
-      'The updated title.',
+      // The error above happens in `\Drupal\experience_builder\Controller\ClientServerConversionTrait::convertClientToServer()`
+      // therefore the title, as well as other entity fields will not be updated.
+      'The original title.',
     );
 
     $invalid_missing_heading_props_client_json = $valid_client_json;

@@ -39,7 +39,7 @@ class ClientDataToEntityConverter {
     assert($item instanceof ComponentTreeItem);
 
     try {
-      $item->setValue($this->convertClientToServer($layout, $model));
+      $item->setValue($this->convertClientToServer($layout, $model, $entity));
     }
     catch (ConstraintViolationException $e) {
       // @todo Remove iterator_to_array() after https://www.drupal.org/project/drupal/issues/3497677

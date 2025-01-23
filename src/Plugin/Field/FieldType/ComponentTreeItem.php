@@ -21,6 +21,9 @@ use Drupal\experience_builder\Plugin\DataType\ComponentPropsValues;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeHydrated;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 use Drupal\experience_builder\ShapeMatcher\FieldForComponentSuggester;
+use Symfony\Component\Validator\ConstraintViolation;
+use Symfony\Component\Validator\ConstraintViolationInterface;
+use Symfony\Component\Validator\ConstraintViolationList;
 
 /**
  * Plugin implementation of the 'component_tree' field type.
@@ -253,17 +256,42 @@ class ComponentTreeItem extends FieldItemBase implements RenderableInterface {
     assert($tree instanceof ComponentTreeStructure);
     $component_instance_uuids = $tree->getComponentInstanceUuids();
     $entity = $this->getRoot() === $this ? NULL : $this->getEntity();
+    $violations = new ConstraintViolationList();
     foreach ($component_instance_uuids as $component_instance_uuid) {
       $component_id = $tree->getComponentId($component_instance_uuid);
       $source = Component::load($component_id)?->getComponentSource();
       if ($source === NULL) {
-        throw new \LogicException(\sprintf('Unable to load component plugin with ID "%s".', $component_id));
+        $violations->add(new ConstraintViolation(
+          \sprintf('Unable to load component plugin with ID "%s".', $component_id),
+          NULL,
+          [],
+          NULL,
+          "props.$component_instance_uuid",
+          NULL,
+        ));
+        continue;
       }
       // Ensure that only ever valid inputs for component instances in an XB
       // field are saved. When a field is saved that somehow was not validated,
       // this will catch that.
       // @see \Drupal\experience_builder\Plugin\Validation\Constraint\ValidComponentTreeConstraintValidator
-      $source->validateComponentInput($props->getValues($component_instance_uuid), $component_instance_uuid, $entity);
+      $component_violations = $source->validateComponentInput($props->getValues($component_instance_uuid), $component_instance_uuid, $entity);
+      if ($component_violations->count() > 0) {
+        // @todo Remove the foreach and use ::addAll once
+        // https://www.drupal.org/project/drupal/issues/3490588 has been resolved.
+        foreach ($component_violations as $violation) {
+          $violations->add($violation);
+        }
+      }
+    }
+    if ($violations->count() > 0) {
+      throw new \LogicException(
+        \implode("\n", \array_map(
+            static fn(ConstraintViolationInterface $violation) => \sprintf('%s: %s', $violation->getPropertyPath(), $violation->getMessage()),
+            \iterator_to_array($violations)
+          )
+        )
+      );
     }
 
     // This *internal-only* validation does not need to happen using validation

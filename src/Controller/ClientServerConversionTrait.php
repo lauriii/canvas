@@ -4,10 +4,13 @@ declare(strict_types=1);
 
 namespace Drupal\experience_builder\Controller;
 
+use Drupal\Core\Entity\EntityConstraintViolationList;
+use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\TypedData\DataDefinition;
 use Drupal\experience_builder\Entity\Component;
 use Drupal\experience_builder\Exception\ConstraintViolationException;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
+use Drupal\experience_builder\Validation\ConstraintPropertyPathTranslatorTrait;
 use Symfony\Component\Validator\ConstraintViolationList;
 
 /**
@@ -15,6 +18,8 @@ use Symfony\Component\Validator\ConstraintViolationList;
  * @phpstan-import-type ComponentTreeStructureArray from \Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure
  */
 trait ClientServerConversionTrait {
+
+  use ConstraintPropertyPathTranslatorTrait;
 
   /**
    * @todo Refactor/remove in https://www.drupal.org/project/experience_builder/issues/3467954.
@@ -106,7 +111,7 @@ trait ClientServerConversionTrait {
    * @return array<string, array<string, \Drupal\experience_builder\PropSource\StaticPropSource>>
    * @throws \Drupal\experience_builder\Exception\ConstraintViolationException
    */
-  private function clientModelToInput(array $tree, array $model): array {
+  private function clientModelToInput(array $tree, array $model, ?FieldableEntityInterface $entity = NULL): array {
     $definition = DataDefinition::create('component_tree_structure');
     $component_tree_structure = new ComponentTreeStructure($definition, 'component_tree_structure');
     $component_tree_structure->setValue(json_encode($tree, JSON_UNESCAPED_UNICODE));
@@ -114,19 +119,23 @@ trait ClientServerConversionTrait {
     // Remove irrelevant model data (e.g. from page template).
     $model = \array_intersect_key($model, \array_flip($component_tree_structure->getComponentInstanceUuids()));
     $props = [];
-    $violation_list = new ConstraintViolationList();
+    $violation_list = $entity ? new EntityConstraintViolationList($entity) : new ConstraintViolationList();
     foreach ($model as $uuid => $client_model) {
       $component = Component::load($component_tree_structure->getComponentId($uuid));
       assert($component instanceof Component);
-      try {
-        $props[$uuid] = $component->getComponentSource()->clientModelToInput($uuid, $component, $client_model);
-      }
-      catch (ConstraintViolationException $e) {
-        foreach ($e->getConstraintViolationList() as $violation) {
-          // We use ::add here rather than ::addAll because ::addAll doesn't reset
-          // the internal groupings in EntityConstraintViolationList whereas ::add
-          // does.
-          // @todo Remove this comment and change this foreach loop to a single ::addAll() call after https://drupal.org/i/3490588 lands.
+      $source = $component->getComponentSource();
+      // First we transform the incoming client model into input values using
+      // the source plugin.
+      $props[$uuid] = $source->clientModelToInput($uuid, $component, $client_model, $violation_list);
+      // Then we ensure the input values are valid using the source plugin.
+      $component_violations = $this->translateConstraintPropertyPathsAndRoot(
+        ['props.' => 'model.'],
+        $source->validateComponentInput($props[$uuid], $uuid, $entity)
+      );
+      if ($component_violations->count() > 0) {
+        // @todo Remove the foreach and use ::addAll once
+        // https://www.drupal.org/project/drupal/issues/3490588 has been resolved.
+        foreach ($component_violations as $violation) {
           $violation_list->add($violation);
         }
       }
@@ -141,7 +150,7 @@ trait ClientServerConversionTrait {
    * @return array{tree: string, props: string}
    * @throws \Drupal\experience_builder\Exception\ConstraintViolationException
    */
-  protected function convertClientToServer(array $layout, array $model): array {
+  protected function convertClientToServer(array $layout, array $model, ?FieldableEntityInterface $entity = NULL): array {
     // Denormalize the `layout` the client sent into a value that the server-
     // side ComponentTreeStructure expects, abort early if it is invalid.
     // (This is the value for the `tree` field prop on the XB field type.)
@@ -161,7 +170,7 @@ trait ClientServerConversionTrait {
     // ⚠️ TRICKY: in order to denormalize `model`, `layout` must already been
     // been denormalized to `tree`, because only those values in `model` that
     // are for actually existing XB components can be denormalized.
-    $props = $this->clientModelToInput($tree, $model);
+    $props = $this->clientModelToInput($tree, $model, $entity);
 
     // Update the entity, validate and save.
     // Note: constructing ComponentTreeStructure from `layout` and

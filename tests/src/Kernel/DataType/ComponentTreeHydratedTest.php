@@ -225,13 +225,25 @@ HTML,
         ],
       ],
       'props' => [
-        'uuid-in-root' => [],
+        'uuid-in-root' => [
+          'label' => '',
+          'label_display' => FALSE,
+          'use_site_logo' => TRUE,
+          'use_site_name' => TRUE,
+          'use_site_slogan' => TRUE,
+        ],
       ],
       'expected_value' => [
         ComponentTreeStructure::ROOT_UUID => [
           'uuid-in-root' => [
             'component' => 'block.system_branding_block',
-            'settings' => [],
+            'settings' => [
+              'label' => '',
+              'label_display' => FALSE,
+              'use_site_logo' => TRUE,
+              'use_site_name' => TRUE,
+              'use_site_slogan' => TRUE,
+            ],
           ],
         ],
       ],
@@ -538,7 +550,13 @@ HTML,
         'uuid-level-1' => ['heading' => $generate_static_prop_source('from slot level 1')],
         'uuid-last-in-tree' => ['heading' => $generate_static_prop_source('from slot <LAST ONE>')],
         'uuid-level-2' => ['heading' => $generate_static_prop_source('from slot level 2')],
-        'uuid-block' => [],
+        'uuid-block' => [
+          'label' => '',
+          'label_display' => FALSE,
+          'use_site_logo' => TRUE,
+          'use_site_name' => TRUE,
+          'use_site_slogan' => TRUE,
+        ],
       ],
       'expected_value' => [
         // Note how these are sequentially ordered.
@@ -570,7 +588,13 @@ HTML,
                             ],
                             'uuid-block' => [
                               'component' => 'block.system_branding_block',
-                              'settings' => [],
+                              'settings' => [
+                                'label' => '',
+                                'label_display' => FALSE,
+                                'use_site_logo' => TRUE,
+                                'use_site_name' => TRUE,
+                                'use_site_slogan' => TRUE,
+                              ],
                             ],
                             'uuid-last-in-tree' => [
                               'component' => 'sdc.xb_test_sdc.props-no-slots',

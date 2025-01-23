@@ -77,6 +77,14 @@ class PageTemplateValidationTest extends ConfigEntityValidationTestBase {
             'uuid-in-root-another' => [
               'heading' => $generate_static_prop_source('another world'),
             ],
+            'uuid-messages' => [
+              'label' => '',
+              'label_display' => FALSE,
+            ],
+            'uuid-title' => [
+              'label' => '',
+              'label_display' => FALSE,
+            ],
           ]),
         ],
         'header' => NULL,
@@ -187,7 +195,16 @@ class PageTemplateValidationTest extends ConfigEntityValidationTestBase {
             ['uuid' => 'uuid-messages', 'component' => 'block.system_messages_block'],
           ],
         ]),
-        'props' => '{}',
+        'props' => self::encodeXBData([
+          'uuid-messages' => [
+            'label' => '',
+            'label_display' => FALSE,
+          ],
+          'uuid-title' => [
+            'label' => '',
+            'label_display' => FALSE,
+          ],
+        ]),
       ],
       'content_above' => NULL,
       'content' => NULL,
@@ -260,7 +277,14 @@ class PageTemplateValidationTest extends ConfigEntityValidationTestBase {
               ['uuid' => 'uuid-messages', 'component' => 'block.system_messages_block'],
             ],
           ]),
-          'props' => '{}',
+          'props' => self::encodeXBData(
+            [
+              'uuid-messages' => [
+                'label' => '',
+                'label_display' => FALSE,
+              ],
+            ],
+          ),
         ],
         'header' => NULL,
         'content' => NULL,
@@ -289,7 +313,18 @@ class PageTemplateValidationTest extends ConfigEntityValidationTestBase {
               ['uuid' => 'uuid-messages', 'component' => 'block.system_messages_block'],
             ],
           ]),
-          'props' => '{}',
+          'props' => self::encodeXBData(
+            [
+              'uuid-messages' => [
+                'label' => '',
+                'label_display' => FALSE,
+              ],
+              'uuid-title' => [
+                'label' => '',
+                'label_display' => FALSE,
+              ],
+            ],
+          ),
         ],
         'header' => NULL,
         'primary_menu' => NULL,
@@ -317,7 +352,18 @@ class PageTemplateValidationTest extends ConfigEntityValidationTestBase {
               ['uuid' => 'uuid-messages', 'component' => 'block.system_messages_block'],
             ],
           ]),
-          'props' => '{}',
+          'props' => self::encodeXBData(
+            [
+              'uuid-messages' => [
+                'label' => '',
+                'label_display' => FALSE,
+              ],
+              'uuid-title' => [
+                'label' => '',
+                'label_display' => FALSE,
+              ],
+            ],
+          ),
         ],
         'header' => NULL,
         'primary_menu' => NULL,
@@ -347,7 +393,18 @@ class PageTemplateValidationTest extends ConfigEntityValidationTestBase {
               ['uuid' => 'uuid-messages', 'component' => 'block.system_messages_block'],
             ],
           ]),
-          'props' => '{}',
+          'props' => self::encodeXBData(
+            [
+              'uuid-messages' => [
+                'label' => '',
+                'label_display' => FALSE,
+              ],
+              'uuid-title' => [
+                'label' => '',
+                'label_display' => FALSE,
+              ],
+            ],
+          ),
         ],
         'content' => NULL,
         'header' => NULL,
@@ -377,7 +434,18 @@ class PageTemplateValidationTest extends ConfigEntityValidationTestBase {
               ['uuid' => 'uuid-messages', 'component' => 'block.system_messages_block'],
             ],
           ]),
-          'props' => '{}',
+          'props' => self::encodeXBData(
+            [
+              'uuid-messages' => [
+                'label' => '',
+                'label_display' => FALSE,
+              ],
+              'uuid-title' => [
+                'label' => '',
+                'label_display' => FALSE,
+              ],
+            ],
+          ),
         ],
         'content' => NULL,
         'header' => NULL,
@@ -556,7 +624,12 @@ class PageTemplateValidationTest extends ConfigEntityValidationTestBase {
           "id" => "header",
         ],
         ],
-        'model' => [],
+        'model' => [
+          'c3f3c22c-c22e-4bb6-ad16-635f069148e4' => [
+            'label' => '',
+            'label_display' => FALSE,
+          ],
+        ],
       ],
       [],
     ];

@@ -73,6 +73,12 @@ class PatternValidationTest extends ConfigEntityValidationTestBase {
           ],
         ]),
         'props' => self::encodeXBData([
+          'local_tasks' => [
+            'label_display' => FALSE,
+            'primary' => TRUE,
+            'secondary' => TRUE,
+            'label' => '',
+          ],
           'uuid-in-root' => [
             'heading' => $generate_static_prop_source('world'),
           ],
@@ -220,11 +226,28 @@ class PatternValidationTest extends ConfigEntityValidationTestBase {
             ['uuid' => 'block-invalid', 'component' => 'block.page_title_block'],
           ],
         ]),
-        'props' => self::encodeXBData([]),
+        'props' => self::encodeXBData([
+          'block-valid' => [
+            'use_site_logo' => TRUE,
+            'use_site_name' => TRUE,
+            'use_site_slogan' => TRUE,
+            'label' => '',
+            'label_display' => FALSE,
+          ],
+          'block-invalid' => [],
+        ]),
       ],
-      'expected_messages' => [
-        'component_tree' => 'The \'Drupal\Core\Block\TitleBlockPluginInterface\' component interface must be absent.',
-      ],
+      'expected_messages' => version_compare(\Drupal::VERSION, '11', '>=')
+        ? [
+          'component_tree' => 'The \'Drupal\Core\Block\TitleBlockPluginInterface\' component interface must be absent.',
+          'component_tree.props.block-invalid.' => [
+            "'label' is a required key.",
+            "'label_display' is a required key.",
+          ],
+        ]
+        : [
+          'component_tree' => 'The \'Drupal\Core\Block\TitleBlockPluginInterface\' component interface must be absent.',
+        ],
     ];
   }
 

@@ -134,7 +134,13 @@ final class PageTest extends KernelTestBase {
               'expression' => 'ℹ︎string␟value',
             ],
           ],
-          'component-block' => [],
+          'component-block' => [
+            'use_site_logo' => TRUE,
+            'use_site_name' => TRUE,
+            'use_site_slogan' => TRUE,
+            'label_display' => FALSE,
+            'label' => '',
+          ],
         ]),
       ],
     ]);
@@ -161,7 +167,13 @@ final class PageTest extends KernelTestBase {
           ],
           'component-block' => [
             'component' => 'block.system_branding_block',
-            'settings' => [],
+            'settings' => [
+              'use_site_logo' => TRUE,
+              'use_site_name' => TRUE,
+              'use_site_slogan' => TRUE,
+              'label_display' => FALSE,
+              'label' => '',
+            ],
           ],
         ],
       ],

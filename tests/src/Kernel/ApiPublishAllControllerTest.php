@@ -156,7 +156,8 @@ class ApiPublishAllControllerTest extends KernelTestBase {
       'meta' => [
         'entity_type' => 'node',
         'entity_id' => $node2->id(),
-        'label' => 'The updated title.',
+        // The label should not be updated if model validation failed.
+        'label' => $node2_original_title,
         'autosave_key' => $autoSave->getAutoSaveKey($node2),
       ],
     ];

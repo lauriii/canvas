@@ -16,6 +16,7 @@ use Drupal\Core\Plugin\PluginFormInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\experience_builder\Entity\Component;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
+use Symfony\Component\Validator\ConstraintViolationListInterface;
 
 /**
  * Defines an interface for component source plugins.
@@ -90,6 +91,11 @@ interface ComponentSourceInterface extends PluginInspectionInterface, Derivative
   public function renderComponent(array $inputs, string $componentUuid): array;
 
   /**
+   * Whether this component requires explicit input or not.
+   */
+  public function requiresExplicitInput(): bool;
+
+  /**
    * Retrieves the component instance's explicit (possibly empty) input.
    *
    * @todo Add ::getImplicitInput() in https://www.drupal.org/project/experience_builder/issues/3485502 — SDCs don't have implicit inputs, but Block plugins do: contexts
@@ -160,12 +166,22 @@ interface ComponentSourceInterface extends PluginInspectionInterface, Derivative
   ): array;
 
   /**
+   *
+   * @param string $component_instance_uuid
+   *   Component instance UUID.
+   * @param \Drupal\experience_builder\Entity\Component $component
+   *   Component for this instance.
+   * @param array $client_model
+   *   Client model for this component.
+   * @param \Symfony\Component\Validator\ConstraintViolationListInterface $violations
+   *   Violation constraint list, use ::addViolation to add violations detected
+   *   during conversion.
+   *
    * @return array<string, \Drupal\experience_builder\PropSource\StaticPropSource|mixed>
-   * @throws \Drupal\experience_builder\Exception\ConstraintViolationException
    *
    * @todo Refactor to use the Symfony denormalizer infrastructure?
    */
-  public function clientModelToInput(string $component_instance_uuid, Component $component, array $client_model): array;
+  public function clientModelToInput(string $component_instance_uuid, Component $component, array $client_model, ConstraintViolationListInterface $violations): array;
 
   /**
    * Validates component input.
@@ -177,11 +193,9 @@ interface ComponentSourceInterface extends PluginInspectionInterface, Derivative
    * @param \Drupal\Core\Entity\FieldableEntityInterface|null $entity
    *   Host entity.
    *
-   * @throws \Exception
-   *   When the input is invalid.
-   *
-   * @todo Make this return a constraint violation list in https://drupal.org/i/3500997
+   * @return \Symfony\Component\Validator\ConstraintViolationListInterface
+   *   Any violations.
    */
-  public function validateComponentInput(array $inputValues, string $component_instance_uuid, ?FieldableEntityInterface $entity): void;
+  public function validateComponentInput(array $inputValues, string $component_instance_uuid, ?FieldableEntityInterface $entity): ConstraintViolationListInterface;
 
 }

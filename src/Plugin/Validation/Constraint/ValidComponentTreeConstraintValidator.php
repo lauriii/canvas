@@ -5,16 +5,13 @@ declare(strict_types=1);
 namespace Drupal\experience_builder\Plugin\Validation\Constraint;
 
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
-use Drupal\Core\Render\Component\Exception\ComponentNotFoundException;
-use Drupal\Core\Render\Component\Exception\InvalidComponentException;
-use Drupal\Core\Theme\Component\ComponentValidator;
 use Drupal\Core\TypedData\TypedDataManagerInterface;
 use Drupal\experience_builder\MissingComponentPropsException;
-use Drupal\experience_builder\MissingHostEntityException;
 use Drupal\experience_builder\Entity\Component;
+use Drupal\experience_builder\Plugin\DataType\ComponentPropsValues;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
-use Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\SingleDirectoryComponent;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
+use Drupal\experience_builder\Validation\ConstraintPropertyPathTranslatorTrait;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\Validator\Constraint;
 use Symfony\Component\Validator\ConstraintValidator;
@@ -22,19 +19,17 @@ use Symfony\Component\Validator\ConstraintValidator;
 final class ValidComponentTreeConstraintValidator extends ConstraintValidator implements ContainerInjectionInterface {
 
   use ConfigComponentTreeTrait;
+  use ConstraintPropertyPathTranslatorTrait;
 
   public function __construct(
-    private readonly ComponentValidator $componentValidator,
-    private readonly TypedDataManagerInterface $typedDataManager,
-  ) {
-  }
+    protected readonly TypedDataManagerInterface $typedDataManager,
+  ) {}
 
   /**
    * {@inheritdoc}
    */
   public static function create(ContainerInterface $container): self {
     return new static(
-      $container->get(ComponentValidator::class),
       $container->get(TypedDataManagerInterface::class),
     );
   }
@@ -71,6 +66,12 @@ final class ValidComponentTreeConstraintValidator extends ConstraintValidator im
     else {
       $component_tree_type = 'content';
     }
+
+    $host_entity = NULL;
+    if ($component_tree_type === 'content' && $value->getParent() !== NULL) {
+      $host_entity = $value->getEntity();
+    }
+
     $tree = $value->get('tree');
     if (!$tree instanceof ComponentTreeStructure) {
       throw new \UnexpectedValueException(sprintf('The tree field must contain a ComponentTreeStructure object, found %s.', gettype($tree)));
@@ -78,68 +79,56 @@ final class ValidComponentTreeConstraintValidator extends ConstraintValidator im
 
     // Validate that each prop source resolves into a value that is considered
     // valid by the destination SDC prop.
-    // @todo This will need to evolve when supporting non-SDC component types in https://www.drupal.org/project/experience_builder/issues/3500997
     foreach ($tree->getComponentInstanceUuids() as $component_instance_uuid) {
       $component_id = $tree->getComponentId($component_instance_uuid);
       $component_entity = Component::load($component_id);
-      if ($component_entity instanceof Component && $component_entity->getComponentSource() instanceof SingleDirectoryComponent) {
-        try {
-          $component = $component_entity->getComponentSource()->getComponentPlugin();
-          $props_values = $component_entity->getComponentSource()->getExplicitInput($component_instance_uuid, $value);
-          $this->componentValidator->validateProps($props_values, $component);
-        }
-        catch (ComponentNotFoundException) {
-          // The violation for a missing component will be added in the validation
-          // of the tree structure.
-          // @see \Drupal\experience_builder\Plugin\Validation\Constraint\ComponentTreeStructureConstraintValidator
-        }
-        catch (MissingComponentPropsException $e) {
+      if (!$component_entity) {
+        // TRICKY: ignore missing Component config entities; that's the
+        // responsibility of another validator.
+        // @see \Drupal\experience_builder\Plugin\Validation\Constraint\ComponentTreeStructureConstraintValidator::validateComponentInstance()
+        // @todo Refactor this away after https://www.drupal.org/project/drupal/issues/2820364 is fixed.
+        continue;
+      }
+      $component_source = $component_entity->getComponentSource();
+
+      // Get the stored explicit input. Only add a violation error if the
+      // Component in its current definition requires explicit input. (Silently
+      // ignore stored inputs that are no longer required per Postel's law.)
+      // @see https://en.wikipedia.org/wiki/Robustness_principle
+      try {
+        $props = $value->get('props');
+        assert($props instanceof ComponentPropsValues);
+        $stored_explicit_input = $props->getValues($component_instance_uuid);
+      }
+      catch (MissingComponentPropsException $e) {
+        if ($component_source->requiresExplicitInput()) {
           $this->context->buildViolation('The required properties are missing.')
             ->atPath(sprintf('props.%s', $e->componentInstanceUuid))
             ->addViolation();
+          continue;
         }
-        catch (InvalidComponentException $e) {
-          // Deconstruct the multi-part exception message constructed by SDC.
-          // @see \Drupal\Core\Theme\Component\ComponentValidator::validateProps()
-          $errors = explode("\n", $e->getMessage());
-          foreach ($errors as $error) {
-            // An example error:
-            // @code
-            // [style] Does not have a value in the enumeration ["primary","secondary"]
-            // @endcode
-            // In that string, `[style]` is the bracket-enclosed SDC prop name
-            // for which an error occurred. This string must be parsed.
-            $sdc_prop_name_closing_bracket_pos = strpos($error, ']', 1);
-            assert($sdc_prop_name_closing_bracket_pos !== FALSE);
-            // This extracts `style` and the subsequent error message from the
-            // example string above.
-            $prop_name = substr($error, 1, $sdc_prop_name_closing_bracket_pos - 1);
-            $prop_error_message = substr($error, $sdc_prop_name_closing_bracket_pos + 2);
-            $this->context->buildViolation($prop_error_message)
-              ->atPath("props.$component_instance_uuid.$prop_name")
-              ->addViolation();
-          }
+        else {
+          // Fall back to empty input.
+          $stored_explicit_input = [];
         }
-        catch (MissingHostEntityException $e) {
-          // DynamicPropSources cannot be validated in isolation, only in the
-          // context of a host content entity.
-          if ($component_tree_type === 'config') {
-            // Silence this exception until this config is used in a content
-            // entity.
-          }
-          // Some component props may not be resolvable yet because required
-          // fields do not yet have values specified.
-          // @see https://www.drupal.org/project/drupal/issues/2820364
-          // @see \Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem::postSave()
-          elseif ($value->getEntity()->isNew()) {
-            // Silence this exception until the required field is populated.
-          }
-          else {
-            // The required field must be populated now (this branch can only be
-            // hit when the entity already exists and hence all required fields
-            // must have values already), so do not silence the exception.
-            throw $e;
-          }
+      }
+
+      assert(is_array($stored_explicit_input));
+      $component_violations = $this->translateConstraintPropertyPathsAndRoot(
+        ['' => $this->context->getPropertyPath() . '.'],
+        $component_source->validateComponentInput(
+          inputValues: $stored_explicit_input,
+          component_instance_uuid: $component_instance_uuid,
+          entity: $host_entity,
+        ),
+        // We need to ensure the validation root context is transferred over.
+        $this->context->getRoot()
+      );
+      if ($component_violations->count() > 0) {
+        // @todo Remove the foreach and use ::addAll once
+        // https://www.drupal.org/project/drupal/issues/3490588 has been resolved.
+        foreach ($component_violations as $violation) {
+          $this->context->getViolations()->add($violation);
         }
       }
     }

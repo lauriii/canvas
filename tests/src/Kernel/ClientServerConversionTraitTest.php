@@ -121,7 +121,15 @@ class ClientServerConversionTraitTest extends KernelTestBase {
     $invalid_image_client_json['model'][self::TEST_IMAGE_UUID]['image']['src'] = '/not/a/real/url';
     $this->assertConversionErrors(
       $invalid_image_client_json,
-      ['model.' . self::TEST_IMAGE_UUID . '.image.src' => "File '/not/a/real/url' not found."],
+      [
+        // Transformation from client model to input failed.
+        // @see \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\SingleDirectoryComponent::findTargetForProps()
+        'model.' . self::TEST_IMAGE_UUID . '.image.src' => "File '/not/a/real/url' not found.",
+        // The failed transformation above results in an empty value for the
+        // entire SDC prop. Which then fails SDC validation.
+        // @see \Drupal\Core\Theme\Component\ComponentValidator::validateProps()
+        'model.' . self::TEST_IMAGE_UUID . '.image' => 'The property image is required',
+      ],
     );
 
     $unreferenced_file_client_json = $valid_client_json;
@@ -129,7 +137,15 @@ class ClientServerConversionTraitTest extends KernelTestBase {
     $unreferenced_file_client_json['model'][self::TEST_IMAGE_UUID]['image']['src'] = $unreferenced_src;
     $this->assertConversionErrors(
       $unreferenced_file_client_json,
-      ['model.' . self::TEST_IMAGE_UUID . '.image.src' => "No media entity found that uses file '$unreferenced_src'."]
+      [
+        // Transformation from client model to input failed.
+        // @see \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\SingleDirectoryComponent::findTargetForProps()
+        'model.' . self::TEST_IMAGE_UUID . '.image.src' => "No media entity found that uses file '$unreferenced_src'.",
+        // The failed transformation above results in an empty value for the
+        // entire SDC prop. Which then fails SDC validation.
+        // @see \Drupal\Core\Theme\Component\ComponentValidator::validateProps()
+        'model.' . self::TEST_IMAGE_UUID . '.image' => 'The property image is required',
+      ]
     );
 
     $invalid_tree_client_json = $valid_client_json;

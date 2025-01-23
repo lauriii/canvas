@@ -17,6 +17,8 @@ use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Plugin\Component;
 use Drupal\Core\Plugin\Component as ComponentPlugin;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
+use Drupal\Core\Render\Component\Exception\ComponentNotFoundException;
+use Drupal\Core\Render\Component\Exception\InvalidComponentException;
 use Drupal\Core\StreamWrapper\PublicStream;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\Theme\Component\ComponentValidator;
@@ -26,8 +28,8 @@ use Drupal\experience_builder\Attribute\ComponentSource;
 use Drupal\experience_builder\ComponentSource\ComponentSourceBase;
 use Drupal\experience_builder\ComponentSource\ComponentSourceWithSlotsInterface;
 use Drupal\experience_builder\Entity\Component as ComponentEntity;
-use Drupal\experience_builder\Exception\ConstraintViolationException;
 use Drupal\experience_builder\InvalidRequestBodyValue;
+use Drupal\experience_builder\MissingHostEntityException;
 use Drupal\experience_builder\Plugin\DataType\ComponentPropsValues;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\experience_builder\PropExpressions\Component\ComponentPropExpression;
@@ -43,6 +45,7 @@ use Drupal\experience_builder\ShapeMatcher\FieldForComponentSuggester;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\Validator\ConstraintViolation;
 use Symfony\Component\Validator\ConstraintViolationList;
+use Symfony\Component\Validator\ConstraintViolationListInterface;
 
 /**
  * Defines a component source based on single-directory components.
@@ -230,7 +233,7 @@ final class SingleDirectoryComponent extends ComponentSourceBase implements Comp
    * {@inheritdoc}
    */
   public function getExplicitInput(string $uuid, ComponentTreeItem $item): array {
-    if (empty($this->getComponentPlugin()->metadata->schema['properties'])) {
+    if (!$this->requiresExplicitInput()) {
       return [];
     }
     $entity = $item->getRoot() === $item ? NULL : $item->getEntity();
@@ -266,30 +269,107 @@ final class SingleDirectoryComponent extends ComponentSourceBase implements Comp
   /**
    * {@inheritdoc}
    */
-  public function validateComponentInput(array $inputValues, string $component_instance_uuid, ?FieldableEntityInterface $entity): void {
+  public function requiresExplicitInput(): bool {
+    return !empty($this->getComponentPlugin()->metadata->schema['properties']);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function validateComponentInput(array $inputValues, string $component_instance_uuid, ?FieldableEntityInterface $entity): ConstraintViolationListInterface {
+    $violations = new ConstraintViolationList();
     foreach ($inputValues as $component_prop_name => $raw_prop_source) {
       if (str_starts_with($raw_prop_source['sourceType'], 'static:')) {
         try {
           StaticPropSource::isMinimalRepresentation($raw_prop_source);
         }
         catch (\LogicException $e) {
-          throw new \LogicException(
-            message: sprintf("For component `%s`, prop `%s`, an invalid field property value was detected: %s.",
+          $violations->add(new ConstraintViolation(
+            sprintf("For component `%s`, prop `%s`, an invalid field property value was detected: %s.",
               $component_instance_uuid,
               $component_prop_name,
-              $e->getMessage(),
-            ),
-            previous: $e
-          );
+              $e->getMessage()),
+            NULL,
+            [],
+            $entity,
+            "props.$component_instance_uuid.$component_prop_name",
+            $raw_prop_source,
+          ));
         }
       }
     }
-    $resolvedInputValues = array_map(
+    try {
+      $resolvedInputValues = array_map(
       // @phpstan-ignore-next-line
-      fn (array $prop_source): mixed => PropSource::parse($prop_source)->evaluate($entity),
-      $inputValues,
-    );
-    $this->componentValidator->validateProps($resolvedInputValues, $this->getComponentPlugin());
+        fn(array $prop_source): mixed => PropSource::parse($prop_source)
+          ->evaluate($entity),
+        $inputValues,
+      );
+    }
+    catch (MissingHostEntityException $e) {
+      // DynamicPropSources cannot be validated in isolation, only in the
+      // context of a host content entity.
+      if ($entity === NULL) {
+        // This case can only be hit when using a DynamicPropSource
+        // inappropriately, which is validated elsewhere.
+        // @see \Drupal\experience_builder\Plugin\Validation\Constraint\ComponentTreeMeetsRequirementsConstraintValidator
+        return $violations;
+      }
+      // Some component props may not be resolvable yet because required
+      // fields do not yet have values specified.
+      // @see https://www.drupal.org/project/drupal/issues/2820364
+      // @see \Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem::postSave()
+      elseif ($entity->isNew()) {
+        // Silence this exception until the required field is populated.
+        return $violations;
+      }
+      else {
+        // The required field must be populated now (this branch can only be
+        // hit when the entity already exists and hence all required fields
+        // must have values already), so do not silence the exception.
+        throw $e;
+      }
+    }
+
+    try {
+      $this->componentValidator->validateProps($resolvedInputValues, $this->getComponentPlugin());
+    }
+    catch (ComponentNotFoundException) {
+      // The violation for a missing component will be added in the validation
+      // of the tree structure.
+      // @see \Drupal\experience_builder\Plugin\Validation\Constraint\ComponentTreeStructureConstraintValidator
+    }
+    catch (InvalidComponentException $e) {
+      // Deconstruct the multi-part exception message constructed by SDC.
+      // @see \Drupal\Core\Theme\Component\ComponentValidator::validateProps()
+      $errors = explode("\n", $e->getMessage());
+      foreach ($errors as $error) {
+        // An example error:
+        // @code
+        // [style] Does not have a value in the enumeration ["primary","secondary"]
+        // @endcode
+        // In that string, `[style]` is the bracket-enclosed SDC prop name
+        // for which an error occurred. This string must be parsed.
+        $sdc_prop_name_closing_bracket_pos = strpos($error, ']', 1);
+        assert($sdc_prop_name_closing_bracket_pos !== FALSE);
+        // This extracts `style` and the subsequent error message from the
+        // example string above.
+        $prop_name = substr($error, 1, $sdc_prop_name_closing_bracket_pos - 1);
+        $prop_error_message = substr($error, $sdc_prop_name_closing_bracket_pos + 2);
+
+        $violations->add(
+          new ConstraintViolation(
+            $prop_error_message,
+            NULL,
+            [],
+            $entity,
+            "props.$component_instance_uuid.$prop_name",
+            $resolvedInputValues[$prop_name] ?? NULL,
+          )
+        );
+      }
+    }
+    return $violations;
   }
 
   /**
@@ -589,9 +669,8 @@ final class SingleDirectoryComponent extends ComponentSourceBase implements Comp
   /**
    * {@inheritdoc}
    */
-  public function clientModelToInput(string $component_instance_uuid, ComponentEntity $component, array $client_model): array {
+  public function clientModelToInput(string $component_instance_uuid, ComponentEntity $component, array $client_model, ConstraintViolationListInterface $violations): array {
     $props = [];
-    $violation_list = new ConstraintViolationList();
 
     foreach ($client_model as $prop => $prop_value) {
       $static_source = $component->getDefaultStaticPropSource($prop);
@@ -602,7 +681,7 @@ final class SingleDirectoryComponent extends ComponentSourceBase implements Comp
           $target_id = $this->findTargetForProps($prop_value, $target_type);
         }
         catch (InvalidRequestBodyValue $invalid) {
-          $violation_list->add(new ConstraintViolation(
+          $violations->add(new ConstraintViolation(
             $invalid->getMessage(),
             NULL,
             [],
@@ -615,15 +694,11 @@ final class SingleDirectoryComponent extends ComponentSourceBase implements Comp
           continue;
         }
         $updated_static_source = $updated_static_source->withValue(
-          array_diff_key($updated_static_source->getValue(), ['src' => NULL, 'target_id' => NULL])
+          array_diff_key($updated_static_source->getValue(), \array_flip(['src', 'target_id']))
           + ['target_id' => $target_id]
         );
       }
       $props[$prop] = $updated_static_source->toArray();
-    }
-
-    if ($violation_list->count()) {
-      throw new ConstraintViolationException($violation_list);
     }
 
     return $props;

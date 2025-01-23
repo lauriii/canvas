@@ -22,11 +22,13 @@ use Drupal\experience_builder\Attribute\ComponentSource;
 use Drupal\experience_builder\ComponentSource\ComponentSourceBase;
 use Drupal\experience_builder\Entity\Component;
 use Drupal\experience_builder\Entity\Component as ComponentEntity;
-use Drupal\experience_builder\Exception\ConstraintViolationException;
 use Drupal\experience_builder\MissingComponentPropsException;
 use Drupal\experience_builder\Plugin\DataType\ComponentPropsValues;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
+use Drupal\experience_builder\Validation\ConstraintPropertyPathTranslatorTrait;
 use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\Validator\ConstraintViolationList;
+use Symfony\Component\Validator\ConstraintViolationListInterface;
 
 /**
  * Defines a component source based on block plugins.
@@ -38,6 +40,8 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
   label: new TranslatableMarkup('Blocks')
 )]
 final class BlockComponent extends ComponentSourceBase implements ContainerFactoryPluginInterface {
+
+  use ConstraintPropertyPathTranslatorTrait;
 
   public const SOURCE_PLUGIN_ID = 'block';
   public const EXPLICIT_INPUT_NAME = 'settings';
@@ -185,6 +189,13 @@ final class BlockComponent extends ComponentSourceBase implements ContainerFacto
   /**
    * {@inheritdoc}
    */
+  public function requiresExplicitInput(): bool {
+    return !empty($this->getComponentPlugin()->defaultConfiguration());
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function getExplicitInput(string $uuid, ComponentTreeItem $item): array {
     // @todo Rename this in https://www.drupal.org/i/3500997
     $props = $item->get('props');
@@ -195,7 +206,7 @@ final class BlockComponent extends ComponentSourceBase implements ContainerFacto
     catch (MissingComponentPropsException) {
       // There is no input for this component. That should only be the case for
       // block plugins without any settings.
-      assert(empty($this->getComponentPlugin()->defaultConfiguration()));
+      assert(!$this->requiresExplicitInput());
       return [];
     }
   }
@@ -263,32 +274,25 @@ final class BlockComponent extends ComponentSourceBase implements ContainerFacto
   /**
    * {@inheritdoc}
    */
-  public function clientModelToInput(string $component_instance_uuid, Component $component, array $client_model): array {
-    $block_plugin = $this->getComponentPlugin();
-    $plugin_id = $block_plugin->getPluginId();
+  public function clientModelToInput(string $component_instance_uuid, Component $component, array $client_model, ConstraintViolationListInterface $violations): array {
     // @todo Remove this in https://www.drupal.org/project/experience_builder/issues/3500994#comment-15951774 — the client should send the right data.
     $defaults = $component->get('settings')['default_settings'];
     if (\version_compare(\Drupal::VERSION, '11.0', '<')) {
       // In Drupal 10, block setting schemas are conflated with the block
       // config entity and the block content plugin and hence include keys that
-      // are irrelevant to valid block settings.
+      // are irrelevant to valid block settings. Let's make sure they don't end
+      // up in stored input.
       // @see https://drupal.org/i/2274175
-      $defaults += [
-        'info' => '',
-        'status' => TRUE,
-        'view_mode' => 'default',
-        'context_mapping' => [],
-      ];
-    }
-    // @todo Move this validation logic into `::validateComponentInput()` in https://drupal.org/i/3500997
-    $typed_data = $this->typedConfigManager->createFromNameAndData('block.settings.' . $plugin_id, $client_model + $defaults);
-    $violations = $typed_data->validate();
-    if ($violations->count()) {
-      throw (new ConstraintViolationException($violations))->renamePropertyPaths(['' => \sprintf('model.%s.', $component_instance_uuid)]);
+      $defaults = \array_diff_key($defaults, \array_flip([
+        'info',
+        'status',
+        'view_mode',
+        'context_mapping',
+      ]));
     }
     // We don't need to store these as they can be recalculated based on the
     // plugin ID.
-    $input = $client_model;
+    $input = $client_model + $defaults;
     unset($input['provider'], $input['id']);
     return $input;
   }
@@ -296,8 +300,33 @@ final class BlockComponent extends ComponentSourceBase implements ContainerFacto
   /**
    * {@inheritdoc}
    */
-  public function validateComponentInput(array $inputValues, string $component_instance_uuid, ?FieldableEntityInterface $entity): void {
-    // @todo Implement this in https://drupal.org/i/3500997, which will also allow refactoring ::clientModelToInput() to call this.
+  public function validateComponentInput(array $inputValues, string $component_instance_uuid, ?FieldableEntityInterface $entity): ConstraintViolationListInterface {
+    if (!$this->requiresExplicitInput()) {
+      return new ConstraintViolationList();
+    }
+    $block_plugin = $this->getComponentPlugin();
+    $plugin_id = $block_plugin->getPluginId();
+    $definition = $block_plugin->getPluginDefinition();
+    \assert(\is_array($definition));
+    // We don't store these, but they're needed for validation.
+    $inputValues += [
+      'id' => $plugin_id,
+      'provider' => $definition['provider'] ?? 'system',
+    ];
+    if (\version_compare(\Drupal::VERSION, '11.0', '<')) {
+      // In Drupal 10, block setting schemas are conflated with the block
+      // config entity and the block content plugin and hence include keys that
+      // are irrelevant to valid block settings.
+      // @see https://drupal.org/i/2274175
+      $inputValues += [
+        'info' => '',
+        'status' => TRUE,
+        'view_mode' => 'default',
+        'context_mapping' => [],
+      ];
+    }
+    $typed_data = $this->typedConfigManager->createFromNameAndData('block.settings.' . $plugin_id, $inputValues);
+    return $this->translateConstraintPropertyPathsAndRoot(['' => \sprintf('props.%s.', $component_instance_uuid)], $typed_data->validate());
   }
 
 }

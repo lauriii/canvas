@@ -332,7 +332,13 @@ class XBTestSetup implements TestSetupInterface {
               'expression' => 'ℹ︎string␟value',
             ],
           ],
-          'component-block' => [],
+          'component-block' => [
+            'label' => '',
+            'label_display' => FALSE,
+            'use_site_logo' => TRUE,
+            'use_site_name' => TRUE,
+            'use_site_slogan' => TRUE,
+          ],
         ]),
       ],
     ]);
