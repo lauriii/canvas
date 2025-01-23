@@ -1,4 +1,5 @@
 import { Box, Button, Flex, Text, Avatar } from '@radix-ui/themes';
+import CmsIcon from '@assets/icons/cms.svg?react';
 import {
   Component1Icon,
   Cross2Icon,
@@ -35,6 +36,7 @@ enum FallbackColor {
 }
 
 export enum IconType {
+  CMS = 'cms',
   COMPONENT1 = 'component1',
   CUBE = 'cube',
   FILE = 'file',
@@ -175,15 +177,19 @@ export const ChangeRow = (props: {
 
 const ChangeIcon = (props: { icon: IconType }) => {
   const { icon } = props;
-  return icon === IconType.COMPONENT1 ? (
-    <Component1Icon className={styles.component1Icon} />
-  ) : icon === IconType.CUBE ? (
-    <CubeIcon className={styles.cubeIcon} />
-  ) : icon === IconType.FILE ? (
-    <FileIcon />
-  ) : (
-    ''
-  );
+  if (icon === IconType.CMS) {
+    return <CmsIcon className={styles.cmsIcon} />;
+  }
+  if (icon === IconType.COMPONENT1) {
+    return <Component1Icon className={styles.component1Icon} />;
+  }
+  if (icon === IconType.CUBE) {
+    return <CubeIcon className={styles.cubeIcon} />;
+  }
+  if (icon === IconType.FILE) {
+    return <FileIcon className={styles.fileIcon} />;
+  }
+  return '';
 };
 
 /*

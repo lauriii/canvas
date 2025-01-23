@@ -13,7 +13,7 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "jsx": "react-jsx",
-    "types": ["vitest/globals"],
+    "types": ["vitest/globals", "vite-plugin-svgr/client"],
     "baseUrl": ".",
     "paths": {
       "@/*": ["src/*"],

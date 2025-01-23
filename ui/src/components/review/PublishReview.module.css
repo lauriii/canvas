@@ -53,12 +53,22 @@
   line-height: var(--line-height-1);
 }
 
+.cmsIcon{
+  width: 15px;
+  height: 15px;
+  color: var(--gray-10);
+}
+
 .component1Icon{
-  color: var(--grass-8);
+  color: var(--purple-9);
 }
 
 .cubeIcon{
-  color: var(--purple-9);
+  color: var(--grass-8);
+}
+
+.fileIcon{
+  color: var(--gray-10);
 }
 
 .changeRowRight {

@@ -40,7 +40,10 @@ const UnpublishedChanges = () => {
     if (entityType === 'page') {
       return IconType.FILE;
     }
-    return IconType.COMPONENT1;
+    if (entityType === 'js_component') {
+      return IconType.COMPONENT1;
+    }
+    return IconType.CMS;
   };
 
   const pendingChanges = !isEmpty(changes)
