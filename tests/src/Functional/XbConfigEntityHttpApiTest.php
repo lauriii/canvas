@@ -111,10 +111,10 @@ class XbConfigEntityHttpApiTest extends BrowserTestBase {
     $request_options[RequestOptions::BODY] = self::encodeXBData($pattern_to_send);
     $body = $this->assertExpectedResponse('POST', $list_url, $request_options, 500, NULL, NULL, NULL, NULL);
     $this->assertSame([
-      'message' => 'Body does not match schema for content-type "application/json" for Request [post /xb/api/config/pattern]',
-    ], $body);
+      'message' => 'Body does not match schema for content-type "application/json" for Request [post /xb/api/config/pattern]. [Keyword validation failed: Value cannot be null in layout]',
+    ], $body, 'Fails with missing data.');
 
-    // Add missing crucial data, but leave a requires shape violation: 500,
+    // Add missing crucial data, but leave a required shape violation: 500,
     // courtesy of OpenAPI.
     $pattern_to_send['layout'] = [
       [
@@ -133,8 +133,8 @@ class XbConfigEntityHttpApiTest extends BrowserTestBase {
     $request_options[RequestOptions::BODY] = self::encodeXBData($pattern_to_send);
     $body = $this->assertExpectedResponse('POST', $list_url, $request_options, 500, NULL, NULL, NULL, NULL);
     $this->assertSame([
-      'message' => 'Body does not match schema for content-type "application/json" for Request [post /xb/api/config/pattern]',
-    ], $body);
+      'message' => 'Body does not match schema for content-type "application/json" for Request [post /xb/api/config/pattern]. [Keyword validation failed: Value cannot be null in model]',
+    ], $body, 'Fails with invalid shape.');
 
     // Meet data shape requirements, but violate internal consistency for
     // `model` (`props` on server side): 422 (i.e. validation constraint
@@ -318,8 +318,8 @@ class XbConfigEntityHttpApiTest extends BrowserTestBase {
     ]);
     $body = $this->assertExpectedResponse('PATCH', Url::fromUri('base:/xb/api/config/pattern/testpatternpleaseignore'), $request_options, 500, NULL, NULL, NULL, NULL);
     $this->assertSame([
-      'message' => 'Body does not match schema for content-type "application/json" for Request [patch /xb/api/config/pattern/{configEntityId}]',
-    ], $body);
+      'message' => 'Body does not match schema for content-type "application/json" for Request [patch /xb/api/config/pattern/{configEntityId}]. [Keyword validation failed: Value cannot be null in model]',
+    ], $body, 'Fails with an invalid pattern.');
 
     // Modify a Pattern incorrectly (consistency-wise): 422.
     $request_options[RequestOptions::BODY] = self::encodeXBData([

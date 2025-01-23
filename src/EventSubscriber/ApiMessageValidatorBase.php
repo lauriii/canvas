@@ -6,8 +6,8 @@ namespace Drupal\experience_builder\EventSubscriber;
 
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Routing\RouteMatchInterface;
+use Drupal\experience_builder\Utility\ExceptionHelper;
 use League\OpenAPIValidation\PSR7\Exception\NoPath;
-use League\OpenAPIValidation\PSR7\Exception\Validation\AddressValidationFailed;
 use League\OpenAPIValidation\PSR7\Exception\ValidationFailed;
 use League\OpenAPIValidation\PSR7\ValidatorBuilder;
 use Psr\Log\LoggerInterface;
@@ -169,12 +169,9 @@ abstract class ApiMessageValidatorBase implements EventSubscriberInterface {
    * Logs a validation failure.
    */
   protected function logFailure(ValidationFailed $e): void {
-    // AddressValidationFailed provides additional helpful details.
-    // @see https://github.com/thephpleague/openapi-psr7-validator/pull/184
-    $message = $e instanceof AddressValidationFailed
-      ? $e->getVerboseMessage()
-      : $e->getMessage();
-    $this->logger->debug($message);
+    $this->logger->debug(
+      ExceptionHelper::getVerboseMessage($e)
+    );
   }
 
 }

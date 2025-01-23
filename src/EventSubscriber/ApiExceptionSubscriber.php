@@ -11,6 +11,7 @@ use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\experience_builder\AutoSave\AutoSaveManager;
 use Drupal\experience_builder\Exception\ConstraintViolationException;
+use Drupal\experience_builder\Utility\ExceptionHelper;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
@@ -70,7 +71,7 @@ final class ApiExceptionSubscriber implements EventSubscriberInterface {
 
       // Generate a JSON response with a message when the status is not 404 or 422.
       if ($status !== Response::HTTP_NOT_FOUND && $status !== Response::HTTP_UNPROCESSABLE_ENTITY) {
-        $response['message'] = $exception->getMessage();
+        $response['message'] = ExceptionHelper::getVerboseMessage($exception);
       }
 
       // Generate a JSON response containing details when the status is 500, if
