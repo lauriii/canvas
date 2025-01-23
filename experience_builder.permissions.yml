@@ -1,4 +1,6 @@
 administer components:
   title: 'Administer components'
+administer code components:
+  title: 'Administer code components'
 administer xb_page:
   title: 'Administer pages'

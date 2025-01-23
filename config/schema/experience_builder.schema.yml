@@ -44,6 +44,108 @@ experience_builder.component.*:
     settings:
       type: experience_builder.component_source_settings.[%parent.source]
 
+# The \Drupal\experience_builder\Entity\JavaScriptComponent config aims to provide metadata compatible with SDC.
+# Hence the data it contains consists of two parts:
+# 1. The metadata key-value pairs aim to match SDC's schema precisely, expressed in a directory's *.component.yml file.
+#    (Additional restrictions are in place, to disallow props that use types that are not yet supported.)
+# 2. The sole metadata key-value pair for metadata that SDC does not have: `status`, which tracks whether this
+#    Code Component should be available in XB's component library or not.
+# 3. The code key-value pairs must be able to match what SDC achieves using the directory's Twig+CSS+JS files.
+experience_builder.js_component.*:
+  type: config_entity
+  constraints:
+    FullyValidatable: ~
+  mapping:
+    # Change the label of the `status` key-value pair inherited from `type: config_entity` to track whether this
+    # component should be exposed in Experience Builder's component library or not. (See its ComponentSource plugin.)
+    status:
+      label: "Available in Experience Builder's component library"
+    # See core/assets/schemas/v1/metadata-full.schema.json#properties.machineName
+    machineName:
+      type: machine_name
+      label: 'Machine Name'
+      constraints:
+        Regex:
+          pattern: '/^[a-z]([a-zA-Z0-9_-]*[a-zA-Z0-9])*$/'
+          message: 'The %value machine name is not valid.'
+    # See core/assets/schemas/v1/metadata-full.schema.json#properties.name
+    name:
+      type: required_label
+      label: 'Name'
+    # See core/assets/schemas/v1/metadata-full.schema.json#properties.props.properties.required
+    required:
+      type: sequence
+      label: 'Required props'
+      sequence:
+        type: string
+        label: 'Prop'
+        # This MUST be one of the keys available at %parent.props. Rather than repeating that validation logic here, let
+        # the JsComponentHasValidSdcMetadata constraint take care of that.
+        constraints: {}
+    # See core/assets/schemas/v1/metadata-full.schema.json#properties.props
+    props:
+      type: sequence
+      sequence:
+        type: mapping
+        mapping:
+          title:
+            type: string
+            label: 'Name'
+          type:
+            type: string
+            label: 'Type'
+            constraints:
+              Choice:
+                # Not all JSON Schema basic types make sense (for example: `null`).
+                # @see https://json-schema.org/understanding-json-schema/reference/type
+                - 'string'
+                - 'number'
+                - 'integer'
+                - 'boolean'
+                # @todo Consider adding `array` after https://www.drupal.org/i/3467870 is fixed.
+                # @todo Consider adding `object`, but defining _arbitrary_ object shapes is not yet supported.
+                # @see \Drupal\experience_builder\JsonSchemaInterpreter\SdcPropJsonSchemaType::computeStorablePropShape()
+          examples:
+            type: sequence
+            label: 'Examples'
+            sequence:
+              type: string
+          enum:
+            requiredKey: false
+            type: sequence
+            sequence:
+              type: string
+    # See core/assets/schemas/v1/metadata-full.schema.json#properties.slots
+    slots:
+      type: sequence
+      sequence:
+        # See core/assets/schemas/v1/metadata-full.schema.json#$defs.slotDefinition
+        type: mapping
+        mapping:
+          title:
+            type: string
+            label: Title
+          description:
+            type: string
+            label: Description
+          examples:
+            type: sequence
+            sequence:
+              type: string
+    # JS and CSS is compiled and validated in browser, no further validation is required here.
+    source_code_js:
+      type: string
+      label: 'JavaScript Source code'
+    source_code_css:
+      type: string
+      label: 'CSS Source code'
+    compiled_js:
+      type: string
+      label: 'Compiled JavaScript'
+    compiled_css:
+      type: string
+      label: 'Compiled CSS'
+
 # At most a single entity of this type is allowed to exist. If it exists, it *replaces* the theme's `page.html.twig`.
 experience_builder.global_page_template.*:
   type: config_entity

@@ -1,0 +1,62 @@
+<?php
+
+declare(strict_types = 1);
+
+namespace Drupal\experience_builder\Plugin\Validation\Constraint;
+
+use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
+use Drupal\Core\Render\Component\Exception\InvalidComponentException;
+use Drupal\Core\Theme\Component\ComponentValidator;
+use Drupal\experience_builder\Entity\JavaScriptComponent;
+use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\Validator\Constraint;
+use Symfony\Component\Validator\ConstraintValidator;
+use Symfony\Component\Validator\Exception\UnexpectedTypeException;
+use Symfony\Component\Validator\Exception\UnexpectedValueException;
+
+/**
+ * @internal
+ */
+final class JsComponentHasValidSdcMetadataConstraintValidator extends ConstraintValidator implements ContainerInjectionInterface {
+
+  public function __construct(
+    private readonly ComponentValidator $componentValidator,
+  ) {}
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function create(ContainerInterface $container): static {
+    return new static(
+      $container->get(ComponentValidator::class),
+    );
+  }
+
+  /**
+   * {@inheritdoc}
+   *
+   * @throws \Symfony\Component\Validator\Exception\UnexpectedTypeException
+   *   Thrown when the given constraint is not supported by this validator.
+   * @throws \Symfony\Component\Validator\Exception\UnexpectedValueException
+   *   Thrown when the given value is not supported by this validator.
+   */
+  public function validate(mixed $data, Constraint $constraint): void {
+    if (!$constraint instanceof JsComponentHasValidSdcMetadataConstraint) {
+      throw new UnexpectedTypeException($constraint, JsComponentHasValidSdcMetadataConstraint::class);
+    }
+
+    if (!$data instanceof JavaScriptComponent) {
+      throw new UnexpectedValueException($data, JavaScriptComponent::class);
+    }
+
+    $equivalent_sdc_definition = $data->toSdcDefinition();
+    try {
+      $result = $this->componentValidator->validateDefinition($equivalent_sdc_definition, TRUE);
+      assert($result === TRUE);
+    }
+    catch (InvalidComponentException $e) {
+      $this->context->addViolation($e->getMessage());
+    }
+  }
+
+}
