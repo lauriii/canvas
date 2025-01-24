@@ -160,6 +160,8 @@ export const makeStore = (preloadedState?: Partial<RootState>) => {
             action.payload
           ) {
             listenerApi.dispatch(clearFieldValues('component_inputs_form'));
+            // @todo Remove in www.drupal.org/project/experience_builder/issues/3500152
+            listenerApi.dispatch(clearFieldValues('block_form'));
           }
         },
       });

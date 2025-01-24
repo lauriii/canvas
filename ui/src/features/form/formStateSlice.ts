@@ -23,7 +23,7 @@ const emptyFormState = {
   errors: {},
 };
 
-const initialState: FormStateSliceState = {
+export const initialState: FormStateSliceState = {
   component_inputs_form: emptyFormState,
   block_form: emptyFormState,
   page_data_form: emptyFormState,
@@ -77,7 +77,7 @@ export const formStateSlice = createSlice({
     clearFieldError: create.reducer(
       (state, action: PayloadAction<ClearFieldErrorPayload>) => {
         delete state[action.payload.formId].errors[action.payload.fieldName];
-        return { ...state };
+        return state;
       },
     ),
     setFieldValue: create.reducer(
