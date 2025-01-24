@@ -37,7 +37,7 @@ const UnpublishedChanges = () => {
     if (entityType === 'page_template') {
       return IconType.CUBE;
     }
-    if (entityType === 'page') {
+    if (entityType === 'xb_page') {
       return IconType.FILE;
     }
     if (entityType === 'js_component') {
