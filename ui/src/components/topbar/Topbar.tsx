@@ -1,6 +1,6 @@
 import * as Menubar from '@radix-ui/react-menubar';
 import styles from './Topbar.module.css';
-import { Button, Flex, SegmentedControl, Text } from '@radix-ui/themes';
+import { Button, Flex, SegmentedControl } from '@radix-ui/themes';
 import Panel from '@/components/Panel';
 import UndoRedo from '@/components/UndoRedo';
 import DropIcon from '@assets/icons/drop.svg';
@@ -9,6 +9,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import clsx from 'clsx';
 import DemoPublishButton from '@/components/DemoPublishButton';
 import UnpublishedChanges from '@/components/review/UnpublishedChanges';
+import PageInfo from '../pageInfo/PageInfo';
 
 const Topbar = () => {
   const navigate = useNavigate();
@@ -36,7 +37,7 @@ const Topbar = () => {
         px="6"
       >
         <Flex height="100%" align="center" justify="between">
-          <Flex gap="5" align="center">
+          <Flex gap="5" align="center" justify="start" minWidth="18em">
             <a href="/" className={styles.logo}>
               <img src={DropIcon} alt="Drupal icon" />
             </a>
@@ -45,11 +46,11 @@ const Topbar = () => {
             {/*<AddMenu />*/}
           </Flex>
 
-          <Text size="2" weight="medium">
-            Site name
-          </Text>
+          <Flex gap="5" align="center" width="full" justify="center">
+            <PageInfo />
+          </Flex>
 
-          <Flex gap="4" align="center">
+          <Flex gap="4" align="center" justify="end">
             {!isPreview && <UndoRedo />}
             {isPreview && (
               <>
