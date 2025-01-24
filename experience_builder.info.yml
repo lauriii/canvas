@@ -1,17 +1,5 @@
 name: Experience Builder
 description: Empowers content creators to build experiences by composing components, with as much freedom as site builders allow, all without needing to write code.
-# REQUIRED READING:
-# - https://www.drupal.org/project/sdc
-# - https://www.drupal.org/project/sdc_display
-# - https://www.drupal.org/project/nomarkup
-# - https://www.drupal.org/project/component_library
-# - https://www.drupal.org/project/ui_suite
-# - https://www.drupal.org/project/ideas/issues/2702061
-# SDC schema, component prop types in general:
-# - https://stackoverflow.com/questions/34334376/json-schema-for-array-of-tuples
-# - https://docs.easyblocks.io/essentials/custom-types
-# Transforming from one type to another (field type to SDC prop type — at minimum):
-# - https://docs.digibee.com/documentation/components/tools/transformer-jolt/transformer-getting-to-know-jolt
 type: module
 core_version_requirement: ^10.4 || ^11.1
 php: 8.3

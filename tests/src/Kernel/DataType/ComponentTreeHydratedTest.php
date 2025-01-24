@@ -60,7 +60,7 @@ class ComponentTreeHydratedTest extends KernelTestBase {
   /**
    * @dataProvider provider
    */
-  public function test(array $tree, array $props, array $expected_value, array $expected_renderable, string $expected_html, array $expected_cache_tags): void {
+  public function test(array $tree, array $inputs, array $expected_value, array $expected_renderable, string $expected_html, array $expected_cache_tags): void {
     $typed_data_manager = $this->container->get(TypedDataManagerInterface::class);
     $field_item_definition = $typed_data_manager->createDataDefinition('field_item:component_tree');
     $component_tree_field_item = $typed_data_manager->createInstance('field_item:component_tree', [
@@ -71,7 +71,7 @@ class ComponentTreeHydratedTest extends KernelTestBase {
     assert($component_tree_field_item instanceof ComponentTreeItem);
     $component_tree_field_item->setValue([
       'tree' => json_encode($tree, JSON_UNESCAPED_UNICODE | JSON_FORCE_OBJECT),
-      'props' => json_encode($props, JSON_UNESCAPED_UNICODE | JSON_FORCE_OBJECT),
+      'inputs' => json_encode($inputs, JSON_UNESCAPED_UNICODE | JSON_FORCE_OBJECT),
     ]);
 
     // Every test case must be valid.
@@ -118,7 +118,7 @@ class ComponentTreeHydratedTest extends KernelTestBase {
       'tree' => [
         ComponentTreeStructure::ROOT_UUID => [],
       ],
-      'props' => [],
+      'inputs' => [],
       'expected_value' => [
         ComponentTreeStructure::ROOT_UUID => [],
       ],
@@ -133,7 +133,7 @@ class ComponentTreeHydratedTest extends KernelTestBase {
           ['uuid' => 'uuid-in-root', 'component' => 'sdc.xb_test_sdc.props-slots'],
         ],
       ],
-      'props' => [
+      'inputs' => [
         'uuid-in-root' => [
           'heading' => $generate_static_prop_source('world'),
         ],
@@ -224,7 +224,7 @@ HTML,
           ['uuid' => 'uuid-in-root', 'component' => 'block.system_branding_block'],
         ],
       ],
-      'props' => [
+      'inputs' => [
         'uuid-in-root' => [
           'label' => '',
           'label_display' => FALSE,
@@ -322,7 +322,7 @@ HTML,
           ['uuid' => 'uuid-in-root-another', 'component' => 'sdc.xb_test_sdc.props-no-slots'],
         ],
       ],
-      'props' => [
+      'inputs' => [
         'uuid-in-root' => [
           'heading' => $generate_static_prop_source('world'),
         ],
@@ -413,7 +413,7 @@ HTML,
           ],
         ],
       ],
-      'props' => [
+      'inputs' => [
         'uuid-in-root' => [
           'heading' => $generate_static_prop_source('world'),
         ],
@@ -541,7 +541,7 @@ HTML,
           ['uuid' => 'uuid-in-root', 'component' => 'sdc.xb_test_sdc.props-slots'],
         ],
       ],
-      'props' => [
+      'inputs' => [
         // Note how these are NOT sequentially ordered, but in a different way.
         'uuid-in-root' => [
           'heading' => $generate_static_prop_source('world'),

@@ -242,7 +242,7 @@ paths:
       description: TODO
       responses:
         '200':
-          description: Component props form
+          description: Component inputs form
           content:
             application/json:
               schema:

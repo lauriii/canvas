@@ -23,7 +23,7 @@ use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
 #[DataType(
   id: "component_tree_hydrated",
   label: new TranslatableMarkup("Hydrated component tree"),
-  description: new TranslatableMarkup("Computed from tree structure + props values"),
+  description: new TranslatableMarkup("Computed from tree structure + input values"),
 )]
 class ComponentTreeHydrated extends TypedData implements CacheableDependencyInterface, RenderableInterface {
 
@@ -175,7 +175,7 @@ class ComponentTreeHydrated extends TypedData implements CacheableDependencyInte
    *   The cacheability of the computed value.
    */
   private function getCacheability(): CacheableMetadata {
-    // @todo Once bundle-level defaults for `tree` + `props` are supported, this should also include cacheability of whatever config that is stored in.
+    // @todo Once bundle-level defaults for `tree` + `inputs` are supported, this should also include cacheability of whatever config that is stored in.
     // @see \Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem::preSave()
 
     $root = $this->getRoot();

@@ -49,7 +49,7 @@ final class Pattern extends ConfigEntityBase implements XbHttpApiEligibleConfigE
   /**
    * Component tree.
    *
-   * @var ?array{'props': array, 'tree': array}
+   * @var ?array{'inputs': array, 'tree': array}
    */
   protected ?array $component_tree;
 
@@ -74,11 +74,11 @@ final class Pattern extends ConfigEntityBase implements XbHttpApiEligibleConfigE
     assert($tree instanceof ComponentTreeStructure);
     $this->addDependencies($tree->getDependencies());
 
-    // TRICKY: in theory, dependencies must also be calculated for the `props`
+    // TRICKY: in theory, dependencies must also be calculated for the `inputs`
     // field prop. But, currently it can only contain StaticPropSources, and the
     // dependencies for those are tracked in the Component config entity.
     // @see \Drupal\experience_builder\Entity\Component::calculateDependencies()
-    // @todo Revisit this when allowing more complex values in `props`, that are not dictated by/captured in the Component config entity.
+    // @todo Revisit this when allowing more complex values in `inputs`, that are not dictated by/captured in the Component config entity.
     // @todo Revisit this in https://www.drupal.org/project/experience_builder/issues/3484666, where the above MIGHT change.
 
     return $this;

@@ -106,7 +106,7 @@ class PageTemplateVariantTest extends BrowserTestBase {
               ],
             ],
           ]),
-          'props' => self::encodeXBData([
+          'inputs' => self::encodeXBData([
             'uuid-in-root' => [
               'heading' => $generate_static_prop_source('world'),
             ],

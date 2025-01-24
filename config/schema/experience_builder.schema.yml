@@ -189,7 +189,7 @@ experience_builder.page_template.*:
           nested: true
           # Only StaticPropSources may be used, because the Page Template cannot rely on an entity of a particular type
           # and bundle to be present on every route.
-          props:
+          inputs:
             absence:
               - dynamic
               - adapter
@@ -238,10 +238,10 @@ experience_builder.component_tree:
       label: 'A component tree without props values.'
       constraints:
         ComponentTreeStructure: []
-    # @see \Drupal\experience_builder\Plugin\DataType\ComponentPropsValues
-    props:
+    # @see \Drupal\experience_builder\Plugin\DataType\ComponentInputs
+    inputs:
       type: string
-      label: 'Prop values for each component in the component tree'
+      label: 'Input values for each component in the component tree'
 
 experience_builder.component_source_settings.sdc:
   constraints:
@@ -342,7 +342,7 @@ field.value.component_tree:
     # type plugin.
     # @see \Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem
     ComponentTreeMeetRequirements:
-      props:
+      inputs:
         absence:
           - dynamic
           - adapter
@@ -377,7 +377,7 @@ experience_builder.pattern.*:
         ComponentTreeMeetRequirements:
           # Only StaticPropSources may be used, because a Pattern cannot rely on an entity of a particular type
           # and bundle to be present everywhere it is inserted/used.
-          props:
+          inputs:
             absence:
               - dynamic
               - adapter

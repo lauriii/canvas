@@ -265,7 +265,7 @@ class ApiPublishAllControllerTest extends KernelTestBase {
         'sdc.experience_builder.heading',
         'block.system_branding_block',
       ],
-      \array_intersect_key($this->getValidConvertedProps(), \array_flip([self::TEST_HEADING_UUID, self::TEST_BLOCK])),
+      \array_intersect_key($this->getValidConvertedInputs(), \array_flip([self::TEST_HEADING_UUID, self::TEST_BLOCK])),
       'The updated title.'
     );
 

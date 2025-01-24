@@ -49,7 +49,7 @@ class ClientServerConversionTraitTest extends KernelTestBase {
   public function testConvertClientToServer(): void {
     ['layout' => $layout, 'model' => $model] = $this->getValidClientJson();
     $converted_item = $this->convertClientToServer($layout, $model);
-    $this->assertSame($this->getValidConvertedProps(), json_decode($converted_item['props'], TRUE));
+    $this->assertSame($this->getValidConvertedInputs(), json_decode($converted_item['inputs'], TRUE));
     $this->assertSame([
       ComponentTreeStructure::ROOT_UUID => [
         [
@@ -82,13 +82,13 @@ class ClientServerConversionTraitTest extends KernelTestBase {
         'sdc.experience_builder.image',
         'block.system_branding_block',
       ],
-      $this->getValidConvertedProps(),
+      $this->getValidConvertedInputs(),
       '5 amazing uses for old toothbrushes'
     );
 
     ['layout' => $layout, 'model' => $model] = $this->getValidPatternJson();
     $converted_item = $this->convertClientToServer($layout, $model);
-    $this->assertSame($this->getValidConvertedProps(), json_decode($converted_item['props'], TRUE));
+    $this->assertSame($this->getValidConvertedInputs(), json_decode($converted_item['inputs'], TRUE));
     $this->assertSame([
       ComponentTreeStructure::ROOT_UUID => [
         [

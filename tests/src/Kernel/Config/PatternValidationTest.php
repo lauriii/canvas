@@ -41,9 +41,9 @@ class PatternValidationTest extends ConfigEntityValidationTestBase {
   protected static array $propertiesWithRequiredKeys = [
     'component_tree' => [
       "'tree' is a required key.",
-      "'props' is a required key.",
+      "'inputs' is a required key.",
       'The array must contain a "tree" key.',
-      'The array must contain a "props" key.',
+      'The array must contain an "inputs" key.',
     ],
   ];
 
@@ -72,7 +72,7 @@ class PatternValidationTest extends ConfigEntityValidationTestBase {
             ['uuid' => 'local_tasks', 'component' => 'block.local_tasks_block'],
           ],
         ]),
-        'props' => self::encodeXBData([
+        'inputs' => self::encodeXBData([
           'local_tasks' => [
             'label_display' => FALSE,
             'primary' => TRUE,
@@ -189,9 +189,9 @@ class PatternValidationTest extends ConfigEntityValidationTestBase {
       'expected_messages' => [
         'component_tree' => [
           '\'tree\' is a required key.',
-          '\'props\' is a required key.',
+          '\'inputs\' is a required key.',
           'The array must contain a "tree" key.',
-          'The array must contain a "props" key.',
+          'The array must contain an "inputs" key.',
         ],
       ],
     ];
@@ -203,7 +203,7 @@ class PatternValidationTest extends ConfigEntityValidationTestBase {
             ['uuid' => 'uuid-in-root', 'component' => 'sdc.xb_test_sdc.props-no-slots'],
           ],
         ]),
-        'props' => self::encodeXBData([
+        'inputs' => self::encodeXBData([
           'uuid-in-root' => [
             'heading' => [
               'sourceType' => 'dynamic',
@@ -226,7 +226,7 @@ class PatternValidationTest extends ConfigEntityValidationTestBase {
             ['uuid' => 'block-invalid', 'component' => 'block.page_title_block'],
           ],
         ]),
-        'props' => self::encodeXBData([
+        'inputs' => self::encodeXBData([
           'block-valid' => [
             'use_site_logo' => TRUE,
             'use_site_name' => TRUE,
@@ -240,7 +240,7 @@ class PatternValidationTest extends ConfigEntityValidationTestBase {
       'expected_messages' => version_compare(\Drupal::VERSION, '11', '>=')
         ? [
           'component_tree' => 'The \'Drupal\Core\Block\TitleBlockPluginInterface\' component interface must be absent.',
-          'component_tree.props.block-invalid.' => [
+          'component_tree.inputs.block-invalid.' => [
             "'label' is a required key.",
             "'label_display' is a required key.",
           ],

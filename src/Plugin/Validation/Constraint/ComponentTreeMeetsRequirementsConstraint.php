@@ -43,7 +43,7 @@ class ComponentTreeMeetsRequirementsConstraint extends SymfonyConstraint {
   public string $propSourceTypeAbsenceMessage = "The '@prop_source_type_prefix' prop source type must be absent.";
 
   /**
-   * Requirements for component tree's prop sources: absence and/or presence.
+   * Requirements for component tree's inputs: absence and/or presence.
    *
    * Accepts for both `absence` and `presence` either NULL (no requirement) or a
    * list of:
@@ -53,7 +53,7 @@ class ComponentTreeMeetsRequirementsConstraint extends SymfonyConstraint {
    *
    * @see \Drupal\experience_builder\PropSource\PropSourceBase::getSourceTypePrefix()
    */
-  public array $props;
+  public array $inputs;
 
   /**
    * Requirements for component tree's components: absence and/or presence.
@@ -83,7 +83,7 @@ class ComponentTreeMeetsRequirementsConstraint extends SymfonyConstraint {
     // Match the constraint option validation logic in ::normalizeOptions(), but
     // for the nested key-value pairs.
     $missing_nested_options = [];
-    foreach (['tree', 'props'] as $option) {
+    foreach (['tree', 'inputs'] as $option) {
       foreach (['absence', 'presence'] as $nested_option) {
         if (!array_key_exists('absence', $this->$option)) {
           $missing_nested_options[] = "$option.$nested_option";
@@ -94,7 +94,7 @@ class ComponentTreeMeetsRequirementsConstraint extends SymfonyConstraint {
       throw new MissingOptionsException(sprintf('The options "%s" must be set for constraint "%s".', implode('", "', array_keys($missing_nested_options)), static::class), array_keys($missing_nested_options));
     }
 
-    // Verify sensible values are present for $this->props: an array of source
+    // Verify sensible values are present for $this->inputs: an array of source
     // type prefixes, or NULL if there is no requirement.
     $supported_prop_source_types = [
       StaticPropSource::getSourceTypePrefix(),
@@ -102,21 +102,21 @@ class ComponentTreeMeetsRequirementsConstraint extends SymfonyConstraint {
       AdaptedPropSource::getSourceTypePrefix(),
     ];
     foreach (['absence', 'presence'] as $nested_option) {
-      if ($this->props[$nested_option] === NULL) {
+      if ($this->inputs[$nested_option] === NULL) {
         continue;
       }
-      if (!is_array($this->props[$nested_option])) {
+      if (!is_array($this->inputs[$nested_option])) {
         throw new InvalidArgumentException(sprintf(
           'The option "%s" must be an array of source type prefixes. Supported source type prefixes are: "%s".',
-          "props.$nested_option",
+          "inputs.$nested_option",
           implode('", "', $supported_prop_source_types),
         ));
       }
-      $invalid_values = array_diff($this->props[$nested_option], $supported_prop_source_types);
+      $invalid_values = array_diff($this->inputs[$nested_option], $supported_prop_source_types);
       if ($invalid_values) {
         throw new InvalidArgumentException(sprintf(
           'The option "%s" specifies the invalid source type prefixes "%s". Supported source type prefixes are: "%s".',
-          "props.$nested_option",
+          "inputs.$nested_option",
           implode('", "', $invalid_values),
           implode('", "', $supported_prop_source_types),
         ));
@@ -146,7 +146,7 @@ class ComponentTreeMeetsRequirementsConstraint extends SymfonyConstraint {
    * {@inheritdoc}
    */
   public function getRequiredOptions(): array {
-    return ['props', 'tree'];
+    return ['inputs', 'tree'];
   }
 
 }

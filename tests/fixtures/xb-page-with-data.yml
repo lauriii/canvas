@@ -16,7 +16,7 @@ default:
   components:
     -
       tree: '{"a548b48d-58a8-4077-aa04-da9405a6f418": []}'
-      props: '{}'
+      inputs: '{}'
   created:
     -
       value: 1735191284

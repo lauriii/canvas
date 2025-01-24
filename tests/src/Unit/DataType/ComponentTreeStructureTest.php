@@ -71,7 +71,7 @@ class ComponentTreeStructureTest extends UnitTestCase {
    */
   public function testGetComponentIdMissing(): void {
     $this->expectException(\OutOfRangeException::class);
-    $this->expectExceptionMessage('No component stored for uuid-missing. Caused by either incorrect logic or `props` being out of sync with `tree`.');
+    $this->expectExceptionMessage('No component stored for uuid-missing. Caused by either incorrect logic or `inputs` being out of sync with `tree`.');
     $this->getTestComponentTreeStructure()->getComponentId('uuid-missing');
   }
 

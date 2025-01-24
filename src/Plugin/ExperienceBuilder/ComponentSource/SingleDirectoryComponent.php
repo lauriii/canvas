@@ -30,7 +30,7 @@ use Drupal\experience_builder\ComponentSource\ComponentSourceWithSlotsInterface;
 use Drupal\experience_builder\Entity\Component as ComponentEntity;
 use Drupal\experience_builder\InvalidRequestBodyValue;
 use Drupal\experience_builder\MissingHostEntityException;
-use Drupal\experience_builder\Plugin\DataType\ComponentPropsValues;
+use Drupal\experience_builder\Plugin\DataType\ComponentInputs;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\experience_builder\PropExpressions\Component\ComponentPropExpression;
 use Drupal\experience_builder\PropExpressions\StructuredData\FieldObjectPropsExpression;
@@ -237,10 +237,9 @@ final class SingleDirectoryComponent extends ComponentSourceBase implements Comp
       return [];
     }
     $entity = $item->getRoot() === $item ? NULL : $item->getEntity();
-    // @todo Rename this in https://www.drupal.org/i/3500997
-    $props = $item->get('props');
-    assert($props instanceof ComponentPropsValues);
-    $values = $props->getValues($uuid);
+    $inputs = $item->get('inputs');
+    assert($inputs instanceof ComponentInputs);
+    $values = $inputs->getValues($uuid);
     return array_map(
       // @phpstan-ignore-next-line
       fn (array $prop_source): mixed => PropSource::parse($prop_source)->evaluate($entity),
@@ -292,7 +291,7 @@ final class SingleDirectoryComponent extends ComponentSourceBase implements Comp
             NULL,
             [],
             $entity,
-            "props.$component_instance_uuid.$component_prop_name",
+            "inputs.$component_instance_uuid.$component_prop_name",
             $raw_prop_source,
           ));
         }
@@ -315,8 +314,8 @@ final class SingleDirectoryComponent extends ComponentSourceBase implements Comp
         // @see \Drupal\experience_builder\Plugin\Validation\Constraint\ComponentTreeMeetsRequirementsConstraintValidator
         return $violations;
       }
-      // Some component props may not be resolvable yet because required
-      // fields do not yet have values specified.
+      // Some component inputs (SDC props) may not be resolvable yet because\
+      // required fields do not yet have values specified.
       // @see https://www.drupal.org/project/drupal/issues/2820364
       // @see \Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem::postSave()
       elseif ($entity->isNew()) {
@@ -363,7 +362,7 @@ final class SingleDirectoryComponent extends ComponentSourceBase implements Comp
             NULL,
             [],
             $entity,
-            "props.$component_instance_uuid.$prop_name",
+            "inputs.$component_instance_uuid.$prop_name",
             $resolvedInputValues[$prop_name] ?? NULL,
           )
         );
@@ -386,11 +385,11 @@ final class SingleDirectoryComponent extends ComponentSourceBase implements Comp
     assert($entity instanceof FieldableEntityInterface);
     $component_schema = $this->getSchema();
 
-    // Allow form alterations specific to XB component prop forms (currently
+    // Allow form alterations specific to XB component inputs forms (currently
     // only "static prop sources").
     $form_state->set('is_xb_static_prop_source', TRUE);
 
-    // Prevent form submission while specifying values for component props,
+    // Prevent form submission while specifying values for component inputs,
     // because changes are saved via Redux instead of a traditional submit.
     // @see ui/src/components/form/inputBehaviors.tsx
     // @see https://developer.mozilla.org/en-US/docs/Web/HTML/Element/form#method

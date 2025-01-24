@@ -118,7 +118,7 @@ trait ClientServerConversionTrait {
 
     // Remove irrelevant model data (e.g. from page template).
     $model = \array_intersect_key($model, \array_flip($component_tree_structure->getComponentInstanceUuids()));
-    $props = [];
+    $inputs = [];
     $violation_list = $entity ? new EntityConstraintViolationList($entity) : new ConstraintViolationList();
     foreach ($model as $uuid => $client_model) {
       $component = Component::load($component_tree_structure->getComponentId($uuid));
@@ -126,11 +126,11 @@ trait ClientServerConversionTrait {
       $source = $component->getComponentSource();
       // First we transform the incoming client model into input values using
       // the source plugin.
-      $props[$uuid] = $source->clientModelToInput($uuid, $component, $client_model, $violation_list);
+      $inputs[$uuid] = $source->clientModelToInput($uuid, $component, $client_model, $violation_list);
       // Then we ensure the input values are valid using the source plugin.
       $component_violations = $this->translateConstraintPropertyPathsAndRoot(
-        ['props.' => 'model.'],
-        $source->validateComponentInput($props[$uuid], $uuid, $entity)
+        ['inputs.' => 'model.'],
+        $source->validateComponentInput($inputs[$uuid], $uuid, $entity)
       );
       if ($component_violations->count() > 0) {
         // @todo Remove the foreach and use ::addAll once
@@ -143,11 +143,11 @@ trait ClientServerConversionTrait {
     if ($violation_list->count()) {
       throw new ConstraintViolationException($violation_list);
     }
-    return $props;
+    return $inputs;
   }
 
   /**
-   * @return array{tree: string, props: string}
+   * @return array{tree: string, inputs: string}
    * @throws \Drupal\experience_builder\Exception\ConstraintViolationException
    */
   protected function convertClientToServer(array $layout, array $model, ?FieldableEntityInterface $entity = NULL): array {
@@ -164,24 +164,24 @@ trait ClientServerConversionTrait {
     }
 
     // Denormalize the `model` the client sent into a value that the server-side
-    // ComponentPropsValues expects, and abort early if it is invalid.
-    // (This is the value for the `props` field prop on the XB field type.)
-    // @see \Drupal\experience_builder\Plugin\DataType\ComponentPropsValues
+    // ComponentInputs expects, and abort early if it is invalid.
+    // (This is the value for the `inputs` field prop on the XB field type.)
+    // @see \Drupal\experience_builder\Plugin\DataType\ComponentInputs
     // ⚠️ TRICKY: in order to denormalize `model`, `layout` must already been
     // been denormalized to `tree`, because only those values in `model` that
     // are for actually existing XB components can be denormalized.
-    $props = $this->clientModelToInput($tree, $model, $entity);
+    $inputs = $this->clientModelToInput($tree, $model, $entity);
 
     // Update the entity, validate and save.
     // Note: constructing ComponentTreeStructure from `layout` and
-    // ComponentPropsValues from `model` also included validation. But that
+    // ComponentInputs from `model` also included validation. But that
     // included only structural validation, not semantical validation.
     // @see \Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem
     // @see \Drupal\experience_builder\Plugin\Validation\Constraint\ValidComponentTreeConstraintValidator
     // @see \Drupal\experience_builder\Plugin\Validation\Constraint\ComponentTreeMeetsRequirementsConstraintValidator
     return [
       'tree' => json_encode($tree, JSON_UNESCAPED_UNICODE | JSON_FORCE_OBJECT | JSON_THROW_ON_ERROR),
-      'props' => json_encode($props, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR | JSON_FORCE_OBJECT),
+      'inputs' => json_encode($inputs, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR | JSON_FORCE_OBJECT),
     ];
   }
 

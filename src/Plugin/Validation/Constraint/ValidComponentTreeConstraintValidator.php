@@ -6,9 +6,9 @@ namespace Drupal\experience_builder\Plugin\Validation\Constraint;
 
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
 use Drupal\Core\TypedData\TypedDataManagerInterface;
-use Drupal\experience_builder\MissingComponentPropsException;
+use Drupal\experience_builder\MissingComponentInputsException;
 use Drupal\experience_builder\Entity\Component;
-use Drupal\experience_builder\Plugin\DataType\ComponentPropsValues;
+use Drupal\experience_builder\Plugin\DataType\ComponentInputs;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\experience_builder\Validation\ConstraintPropertyPathTranslatorTrait;
@@ -59,7 +59,7 @@ final class ValidComponentTreeConstraintValidator extends ConstraintValidator im
     // infrastructure is available, so conjure one from $value if not already.
     if (!$value instanceof ComponentTreeItem) {
       assert(array_key_exists('tree', $value));
-      assert(array_key_exists('props', $value));
+      assert(array_key_exists('inputs', $value));
       $component_tree_type = 'config';
       $value = $this->conjureFieldItemObject($value);
     }
@@ -96,14 +96,14 @@ final class ValidComponentTreeConstraintValidator extends ConstraintValidator im
       // ignore stored inputs that are no longer required per Postel's law.)
       // @see https://en.wikipedia.org/wiki/Robustness_principle
       try {
-        $props = $value->get('props');
-        assert($props instanceof ComponentPropsValues);
-        $stored_explicit_input = $props->getValues($component_instance_uuid);
+        $inputs = $value->get('inputs');
+        assert($inputs instanceof ComponentInputs);
+        $stored_explicit_input = $inputs->getValues($component_instance_uuid);
       }
-      catch (MissingComponentPropsException $e) {
+      catch (MissingComponentInputsException $e) {
         if ($component_source->requiresExplicitInput()) {
           $this->context->buildViolation('The required properties are missing.')
-            ->atPath(sprintf('props.%s', $e->componentInstanceUuid))
+            ->atPath(sprintf('inputs.%s', $e->componentInstanceUuid))
             ->addViolation();
           continue;
         }
@@ -137,7 +137,7 @@ final class ValidComponentTreeConstraintValidator extends ConstraintValidator im
   /**
    * Validates that the two required key-value pairs are present.
    *
-   * @param array{tree?: string, props?: string} $raw_component_tree_values
+   * @param array{tree?: string, inputs?: string} $raw_component_tree_values
    *
    * @return bool
    *   TRUE when valid, FALSE when not. Indicates whether to validate further.
@@ -148,8 +148,8 @@ final class ValidComponentTreeConstraintValidator extends ConstraintValidator im
       $this->context->addViolation('The array must contain a "tree" key.');
       $is_valid = FALSE;
     }
-    if (!array_key_exists('props', $raw_component_tree_values)) {
-      $this->context->addViolation('The array must contain a "props" key.');
+    if (!array_key_exists('inputs', $raw_component_tree_values)) {
+      $this->context->addViolation('The array must contain an "inputs" key.');
       $is_valid = FALSE;
     }
     return $is_valid;

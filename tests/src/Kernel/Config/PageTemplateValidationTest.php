@@ -70,7 +70,7 @@ class PageTemplateValidationTest extends ConfigEntityValidationTestBase {
               ['uuid' => 'uuid-messages', 'component' => 'block.system_messages_block'],
             ],
           ]),
-          'props' => self::encodeXBData([
+          'inputs' => self::encodeXBData([
             'uuid-in-root' => [
               'heading' => $generate_static_prop_source('world'),
             ],
@@ -195,7 +195,7 @@ class PageTemplateValidationTest extends ConfigEntityValidationTestBase {
             ['uuid' => 'uuid-messages', 'component' => 'block.system_messages_block'],
           ],
         ]),
-        'props' => self::encodeXBData([
+        'inputs' => self::encodeXBData([
           'uuid-messages' => [
             'label' => '',
             'label_display' => FALSE,
@@ -277,7 +277,7 @@ class PageTemplateValidationTest extends ConfigEntityValidationTestBase {
               ['uuid' => 'uuid-messages', 'component' => 'block.system_messages_block'],
             ],
           ]),
-          'props' => self::encodeXBData(
+          'inputs' => self::encodeXBData(
             [
               'uuid-messages' => [
                 'label' => '',
@@ -313,7 +313,7 @@ class PageTemplateValidationTest extends ConfigEntityValidationTestBase {
               ['uuid' => 'uuid-messages', 'component' => 'block.system_messages_block'],
             ],
           ]),
-          'props' => self::encodeXBData(
+          'inputs' => self::encodeXBData(
             [
               'uuid-messages' => [
                 'label' => '',
@@ -352,7 +352,7 @@ class PageTemplateValidationTest extends ConfigEntityValidationTestBase {
               ['uuid' => 'uuid-messages', 'component' => 'block.system_messages_block'],
             ],
           ]),
-          'props' => self::encodeXBData(
+          'inputs' => self::encodeXBData(
             [
               'uuid-messages' => [
                 'label' => '',
@@ -393,7 +393,7 @@ class PageTemplateValidationTest extends ConfigEntityValidationTestBase {
               ['uuid' => 'uuid-messages', 'component' => 'block.system_messages_block'],
             ],
           ]),
-          'props' => self::encodeXBData(
+          'inputs' => self::encodeXBData(
             [
               'uuid-messages' => [
                 'label' => '',
@@ -434,7 +434,7 @@ class PageTemplateValidationTest extends ConfigEntityValidationTestBase {
               ['uuid' => 'uuid-messages', 'component' => 'block.system_messages_block'],
             ],
           ]),
-          'props' => self::encodeXBData(
+          'inputs' => self::encodeXBData(
             [
               'uuid-messages' => [
                 'label' => '',
@@ -462,7 +462,7 @@ class PageTemplateValidationTest extends ConfigEntityValidationTestBase {
               ['uuid' => 'uuid-in-root', 'component' => 'sdc.xb_test_sdc.props-no-slots'],
             ],
           ]),
-          'props' => self::encodeXBData([
+          'inputs' => self::encodeXBData([
             'uuid-in-root' => [
               'heading' => [
                 'sourceType' => 'dynamic',

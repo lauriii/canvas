@@ -66,8 +66,8 @@ final class ApiLayoutController {
       // @see \Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure
       // @todo Settle on final names and get in sync.
       'layout' => $layout,
-      // Maps to the `props` property of the XB field type,.
-      // @see \Drupal\experience_builder\Plugin\DataType\ComponentPropsValues
+      // Maps to the `inputs` property of the XB field type.
+      // @see \Drupal\experience_builder\Plugin\DataType\ComponentInputs
       // @todo Settle on final names and get in sync.
       // If the model is empty return an empty object to ensure it is encoded as
       // an object and not empty array.
@@ -188,7 +188,7 @@ final class ApiLayoutController {
       foreach ($draft_template['layout'] as $index => $region_node) {
         if ($region_node['id'] === $region) {
           unset($draft_template['layout'][$index]);
-          // @todo In principle, $model should be updated too, to omit props for components in the omitted regions. There's no consequences yet for not doing that though.
+          // @todo In principle, $model should be updated too, to omit inputs for components in the omitted regions. There's no consequences yet for not doing that though.
         }
       }
     }

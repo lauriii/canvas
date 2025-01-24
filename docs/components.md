@@ -16,12 +16,12 @@ In the rest of this document, `Experience Builder` will be written as `XB`.
 - `component`: a component generates markup (and might attach CSS + JS), potentially based on some input. ⚠️ This is currently limited to `SDC`s, but that _will_ change. So: read this more broadly. ⚠️
 - `Component Source Plugin`: `component`s have a translation layer (per `component type`) between the `Component` config entity and the actual plugin that
   accepts input and generates output, e.g. `SingleDirectoryComponent` (`sdc`-prefixed) and `BlockComponent` (`block`-prefixed).
-- `component prop`: each component may in its metadata define 0 or more props, each prop accepts structured data conforming to the shape defined in the `component`'s metadata
+- `component input`: either `explicit component input` or `implicit component input`, this is the catch-all for both
 - `component slot`: each component may in its metadata define 0 or more slots, each slot accepts >=0 component instances in a particular order
-- `component type`: the mechanism through which a `component` is defined (currently only `SDC` and `Block`)
-  - TBD: inputs for non-`SDC` components may be modeled as `component prop`s or not
-  - TBD: the `Block` component type needs to support [_contexts_](https://www.drupal.org/docs/drupal-apis/plugin-api/plugin-contexts#s-context-on-blocks), unclear how that will be surfaced in XB; initially, only block plugins that do not require contexts are supported
-- `prop shape`: a normalized representation of the schema for a `component prop`, without metadata that does not affect the _shape_: a title or description does not affect what values _fit into this shape_
+- `component type`: the ID of a `Component Source Plugin` — currently either "sdc" or "block"
+- `explicit component input`: each `component` may in its metadata define 0 or more explicit inputs to be provided by the person placing an instance of this `component`, each input accepts structured data conforming to the shape defined in the `component`'s (`ComponentSourcePlugin`-specific) metadata
+- `implicit component input`: in contrast with a `explicit component input`, an implicit input is not provided by the person placing an instance: it is implicitly present: it is provided by other content displayed on the current route, by the request context (e.g. URL query string, current user …) or by the environment (e.g. time of day).
+  - ⚠️This is not yet supported. the `Block` component type needs it to support [_contexts_](https://www.drupal.org/docs/drupal-apis/plugin-api/plugin-contexts#s-context-on-blocks), unclear how that will be surfaced in XB; initially, only block plugins that do not require contexts are supported.
 
 ## 2. Product requirements
 
@@ -48,11 +48,15 @@ This uses the terms defined above.
 ### 3.1 `SDC` `component`s
 
 #### 3.1.1 Inputs & instantiation UX for `SDC` `component`s
-`SDC` `component`s specify the accepted inputs ("props") and their shapes in a `*.component.yml` file. The shapes (and
-semantics!) are defined using JSON schema. Defaults are present as an `example`, which is a feature of JSON schema.
+`SDC` `component`s specify the accepted explicit inputs ("props") and their shapes in a `*.component.yml` file. The
+shapes (and  semantics!) are defined using JSON schema. Defaults are present as an `example`, which is a feature of JSON
+schema.
+
+`SDC` `component`s DO NOT accept implicit inputs.
 
 `SDC` DOES NOT provide an input UX, so its `Component Source Plugin` must do so on its behalf; and does so by matching
-available field types against the JSON schema of its inputs ("props").
+available field types against the JSON schema of its explicit inputs ("props"). For details, see the [`XB Shape Matching
+into Field Types` doc](shape-matching-into-field-types.md).
 
 #### 3.1.2 Criteria for `SDC` `component`s
 
@@ -60,14 +64,12 @@ For an `SDC` to be compatible/eligible for use in XB, it:
 - MUST always have schema, even for theme `SDC`s
 - MUST have `title` for each prop
 - MUST have `example` for each required prop
-- MUST have only props for whose `prop shape`s a `static prop source` can be found (see [`XB Data model`, section 3.1.2.b](./data-model.md#3.1.2.b))
+- MUST have only props for whose `prop shape`s a `static prop source` can be found (see the [`XB Shape Matching into Field
+  Types` doc, section 3.1.2.b](shape-matching-into-field-types.md#3.1.2.b).
 - MUST not have `status` value `obsolete`
 - SHOULD have a `category`; if not specified, the fallback value "Other" will be used
 
 These checks are implemented in `\Drupal\experience_builder\Plugin\ComponentPluginManager::componentMeetsRequirements()`.
-
-These criteria are what allow significant other pieces to be built on top of it, specifically the entirety of
-[`XB Data model`, section 3.1: "from Front-End Developer to an XB data model that empowers the Content Creator](./data-model.md#3.1).
 
 _Note:_ this list of criteria is not final, it will keep evolving _at least_ until a `1.0` release of XB.
 
@@ -87,9 +89,11 @@ Therefore, it only makes sense to surface _block plugins_ as XB `component`s.
 
 #### 3.1.1 Inputs & instantiation UX for `Block` `component`s
 
-`Block` `component`s specify the accepted inputs and their shapes in `*.component.yml` file. The shapes are defined
-using config schema (`type: block.settings.<PLUGIN ID>`). Defaults are present as the `::defaultConfiguration()` method
-on the PHP plugin class.
+`Block` `component`s specify the accepted explicit inputs and their shapes in `*.schema.yml` file. The shapes are
+defined  using config schema (`type: block.settings.<PLUGIN ID>`). Defaults are present as the
+`::defaultConfiguration()` method  on the PHP plugin class.
+
+`Block` `component`s specify the accepted explicit inputs
 
 `Block` DOES provide an input UX (`BlockPluginInterface::buildConfigurationForm()`), so its `Component Source Plugin`
 simply reuses that.

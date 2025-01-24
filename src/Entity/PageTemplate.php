@@ -56,7 +56,7 @@ final class PageTemplate extends ConfigEntityBase {
    * Keys are region names, values are either:
    * - if empty: `NULL`
    * - otherwise: a `type: experience_builder.component_tree`, which consists of
-   *   a `tree` + `props` key-value pair.
+   *   a `tree` + `inputs` key-value pair.
    */
   protected ?array $component_trees;
 
@@ -121,7 +121,7 @@ final class PageTemplate extends ConfigEntityBase {
       $component_tree_structure->setValue(json_encode($tree, JSON_UNESCAPED_UNICODE));
 
       try {
-        $props = $this->clientModelToInput($tree, \array_intersect_key($autoSaveData['model'], \array_flip($component_tree_structure->getComponentInstanceUuids())));
+        $inputs = $this->clientModelToInput($tree, \array_intersect_key($autoSaveData['model'], \array_flip($component_tree_structure->getComponentInstanceUuids())));
       }
       catch (ConstraintViolationException $e) {
         $allViolations->addAll($e->getConstraintViolationList());
@@ -130,7 +130,7 @@ final class PageTemplate extends ConfigEntityBase {
 
       $treeItems[$region['id']] = [
         'tree' => \json_encode($tree, JSON_UNESCAPED_UNICODE | JSON_FORCE_OBJECT | JSON_THROW_ON_ERROR),
-        'props' => \json_encode($props, JSON_UNESCAPED_UNICODE | JSON_FORCE_OBJECT | JSON_THROW_ON_ERROR),
+        'inputs' => \json_encode($inputs, JSON_UNESCAPED_UNICODE | JSON_FORCE_OBJECT | JSON_THROW_ON_ERROR),
       ];
     }
     if ($allViolations->count() > 0) {
@@ -209,11 +209,11 @@ final class PageTemplate extends ConfigEntityBase {
       assert($tree instanceof ComponentTreeStructure);
       $this->addDependencies($tree->getDependencies());
 
-      // TRICKY: in theory, dependencies must also be calculated for the `props`
-      // field prop. But, currently it can only contain StaticPropSources, and
+      // TRICKY: in theory, dependencies must also be calculated for the `inputs`
+      // field prop. But, currently it can only contain StaticPropSources, and the
       // the dependencies for those are tracked in the Component config entity.
       // @see \Drupal\experience_builder\Entity\Component::calculateDependencies()
-      // @todo Revisit this when allowing more complex values in `props`, that are not dictated by/captured in the Component config entity.
+      // @todo Revisit this when allowing more complex values in `inputs`, that are not dictated by/captured in the Component config entity.
       // @todo Revisit this in https://www.drupal.org/project/experience_builder/issues/3484666, where the above MIGHT change.
     }
 
@@ -280,7 +280,7 @@ final class PageTemplate extends ConfigEntityBase {
               $regions[$region],
             ),
           ]),
-          'props' => \json_encode(\array_reduce($regions[$region], static fn(array $carry, array $block) => $carry + [
+          'inputs' => \json_encode(\array_reduce($regions[$region], static fn(array $carry, array $block) => $carry + [
             $block['uuid'] => $block['settings'],
           ],
             [])),

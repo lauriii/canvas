@@ -17,7 +17,7 @@ use Drupal\Core\Render\RenderableInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\TypedData\DataDefinition;
 use Drupal\experience_builder\Entity\Component;
-use Drupal\experience_builder\Plugin\DataType\ComponentPropsValues;
+use Drupal\experience_builder\Plugin\DataType\ComponentInputs;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeHydrated;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 use Drupal\experience_builder\ShapeMatcher\FieldForComponentSuggester;
@@ -49,7 +49,7 @@ use Symfony\Component\Validator\ConstraintViolationList;
       // a decision that should be made at the Content Type Template level by a
       // Site Builder, not by each Content Creator.
       // @see https://www.drupal.org/project/experience_builder/issues/3455629
-      'props' => [
+      'inputs' => [
         'absence' => [
           'dynamic',
           'adapter',
@@ -73,8 +73,8 @@ use Symfony\Component\Validator\ConstraintViolationList;
   // @see docs/data-model.md
   // @see content_translation_field_info_alter()
   column_groups: [
-    'props' => [
-      'label' => new TranslatableMarkup('Component property values'),
+    'inputs' => [
+      'label' => new TranslatableMarkup('Component input values'),
       'translatable' => TRUE,
     ],
     'tree' => [
@@ -130,8 +130,8 @@ class ComponentTreeItem extends FieldItemBase implements RenderableInterface {
           'sqlite_type' => 'text',
           'not null' => FALSE,
         ],
-        'props' => [
-          'description' => 'The prop values for each component in the component tree.',
+        'inputs' => [
+          'description' => 'The inputs for each component in the component tree.',
           'type' => 'json',
           'pgsql_type' => 'jsonb',
           'mysql_type' => 'json',
@@ -152,15 +152,15 @@ class ComponentTreeItem extends FieldItemBase implements RenderableInterface {
    */
   public static function propertyDefinitions(FieldStorageDefinitionInterface $field_definition) {
     $properties['tree'] = DataDefinition::create('component_tree_structure')
-      ->setLabel(new TranslatableMarkup('A component tree without props values.'))
+      ->setLabel(new TranslatableMarkup('A component tree without input values.'))
       ->setRequired(TRUE);
 
-    $properties['props'] = DataDefinition::create('component_props_values')
-      ->setLabel(new TranslatableMarkup('Prop values for each component in the component tree'))
+    $properties['inputs'] = DataDefinition::create('component_inputs')
+      ->setLabel(new TranslatableMarkup('Input values for each component in the component tree'))
       ->setRequired(TRUE);
 
     $properties['hydrated'] = DataDefinition::create('component_tree_hydrated')
-      ->setLabel(new TranslatableMarkup('The hydrated component tree: structure + props values combined — provides render tree for client side or render array for server side.'))
+      ->setLabel(new TranslatableMarkup('The hydrated component tree: structure + inputs combined — provides render tree for client side or render array for server side.'))
       ->setComputed(TRUE)
       ->setInternal(FALSE)
       ->setReadOnly(TRUE)
@@ -173,12 +173,12 @@ class ComponentTreeItem extends FieldItemBase implements RenderableInterface {
    * {@inheritdoc}
    */
   public function isEmpty() {
-    // If either `tree` or `props` is not set, consider this not empty, because
+    // If either `tree` or `inputs` is not set, consider this not empty, because
     // it is not empty in a *valid* way. If considered empty, the
     // NotNullConstraintValidator would apply some magic that prevents detailed
     // validation.
     // @see \Drupal\Core\Validation\Plugin\Validation\Constraint\NotNullConstraintValidator::validate()
-    if ($this->get('tree')->getValue() === NULL || $this->get('props')->getValue() === NULL) {
+    if ($this->get('tree')->getValue() === NULL || $this->get('inputs')->getValue() === NULL) {
       return FALSE;
     }
 
@@ -200,7 +200,7 @@ class ComponentTreeItem extends FieldItemBase implements RenderableInterface {
    * {@inheritdoc}
    */
   public function onChange(mixed $property_name, $notify = TRUE): void {
-    if ($property_name === 'tree' || $property_name === 'props') {
+    if ($property_name === 'tree' || $property_name === 'inputs') {
       $this->values[$property_name] = $this->get($property_name)->getValue();
     }
     parent::onChange($property_name, $notify);
@@ -216,7 +216,7 @@ class ComponentTreeItem extends FieldItemBase implements RenderableInterface {
     // - the grandparent Map::setValue() removes key-value pairs from
     //   $this->values that are assigned to a n on-computed property.
     // Both of those behaviors prevent strict validation. Instead, perform *no*
-    // magic transformations, just respect the `tree` and `props` key-value
+    // magic transformations, just respect the `tree` and `inputs` key-value
     // pairs, if they are provided.
     if (is_array($values)) {
       // Store the exact values passed in to be assigned to the contained
@@ -226,13 +226,13 @@ class ComponentTreeItem extends FieldItemBase implements RenderableInterface {
       if (array_key_exists('tree', $values)) {
         $this->set('tree', $values['tree'], FALSE);
       }
-      if (array_key_exists('props', $values)) {
-        $this->set('props', $values['props'], FALSE);
+      if (array_key_exists('inputs', $values)) {
+        $this->set('inputs', $values['inputs'], FALSE);
       }
     }
 
     // If they are missing, fall back to the default value of the non-computed
-    // properties `tree` and `props`. This avoids a *repeated* validation error:
+    // properties `tree` and `inputs`. This avoids a *repeated* validation error:
     // if there already is a validation error for a missing key, another
     // validation error for an invalid value is not helpful.
     // @see \Drupal\experience_builder\Plugin\Validation\Constraint\ValidComponentTreeConstraintValidator
@@ -249,8 +249,8 @@ class ComponentTreeItem extends FieldItemBase implements RenderableInterface {
   public function preSave(): void {
     $tree = $this->get('tree');
     assert($tree instanceof ComponentTreeStructure);
-    $props = $this->get('props');
-    assert($props instanceof ComponentPropsValues);
+    $inputs = $this->get('inputs');
+    assert($inputs instanceof ComponentInputs);
 
     $tree = $this->get('tree');
     assert($tree instanceof ComponentTreeStructure);
@@ -266,7 +266,7 @@ class ComponentTreeItem extends FieldItemBase implements RenderableInterface {
           NULL,
           [],
           NULL,
-          "props.$component_instance_uuid",
+          "inputs.$component_instance_uuid",
           NULL,
         ));
         continue;
@@ -275,7 +275,7 @@ class ComponentTreeItem extends FieldItemBase implements RenderableInterface {
       // field are saved. When a field is saved that somehow was not validated,
       // this will catch that.
       // @see \Drupal\experience_builder\Plugin\Validation\Constraint\ValidComponentTreeConstraintValidator
-      $component_violations = $source->validateComponentInput($props->getValues($component_instance_uuid), $component_instance_uuid, $entity);
+      $component_violations = $source->validateComponentInput($inputs->getValues($component_instance_uuid), $component_instance_uuid, $entity);
       if ($component_violations->count() > 0) {
         // @todo Remove the foreach and use ::addAll once
         // https://www.drupal.org/project/drupal/issues/3490588 has been resolved.
@@ -297,13 +297,13 @@ class ComponentTreeItem extends FieldItemBase implements RenderableInterface {
     // This *internal-only* validation does not need to happen using validation
     // constraints because it does not validate user input: it only helps ensure
     // that the logic of this field type is correct.
-    if (array_intersect($component_instance_uuids, $props->getComponentInstanceUuids()) !== $component_instance_uuids) {
-      throw new \LogicException(sprintf('The component UUIDs in the tree and props values do not match! Put a breakpoint here and figure out why.'));
+    if (array_intersect($component_instance_uuids, $inputs->getComponentInstanceUuids()) !== $component_instance_uuids) {
+      throw new \LogicException(sprintf('The component UUIDs in the tree and inputs values do not match! Put a breakpoint here and figure out why.'));
     }
 
     // @todo Omit defaults that are stored at the content type template level, e.g. in core.entity_view_display.node.article.default.yml
     // $template_tree = '@todo';
-    // $template_props = '@todo';
+    // $template_inputs = '@todo';
   }
 
   /**

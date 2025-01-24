@@ -41,12 +41,12 @@ to one of us! 😊 🙏
 - `component`: see [`XB Components` doc](components.md)
 - `Component config entity`: `component`s available for use in XB are tracked as config entities. They correspond 1:1 to eligible
   `SDC`s and `Block`s.
-- `component prop`: see [`XB Components` doc](components.md)
+- `component input`: see [`XB Components` doc](components.md)
 - `Component Source Plugin`: see [`XB Components` doc](components.md)
 - `component slot`: see [`XB Components` doc](components.md)
 - `component type`: see [`XB Components` doc](components.md)
 - `component tree`: see [`XB Data Model` doc](data-model.md)
-- `content type template`: the default `component tree` for a particular `content type`, which typically includes assigning the smallest units of `structured data` to particular `component prop`s, and uses `configuration entity dependencies` to ensure the necessary `component`s are present
+- `content type template`: the default `component tree` for a particular `content type`, which typically includes assigning the smallest units of `structured data` to particular `component input`s, and uses `configuration entity dependencies` to ensure the necessary `component`s are present
 - `PageTemplate config entity`: stores a `component tree` for every `theme region` in a given Drupal theme
 - `Pattern config entity`: stores a `component tree` that allows Ambitious Site Builders to save common component composition patterns for Content Creators to reuse
 - `structured data`: see [`XB Data Model` doc](data-model.md)
@@ -122,7 +122,7 @@ The `Component` config entity contains:
 
 These config entities are therefore the foundations that enable XB to work reliably, and allow:
 - auditing (listing which components are available to XB and reasons why components are unavailable, tracking changes in
-  computed `field type` and `field widget` for a component prop — see [`XB Data model`, section 3.1.2.b](./data-model#3.1.2.b))
+  computed `field type` and `field widget` for a `component input` — see [`XB Data model`, section 3.1.2.b](./data-model#3.1.2.b))
 - dependency-checking (this config entity's dependencies on other modules, as well as other config entities depending on
   this config entity, but also ensuring the necessary code is present, such as `field type` and `field widget` plugins)
 - exporting, importing, synchronizing from one environment or site to another

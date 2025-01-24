@@ -105,8 +105,8 @@ class XbConfigEntityHttpApiTest extends BrowserTestBase {
       'model' => NULL,
     ];
     // TRICKY: this intentionally avoids using RequestOptions::JSON because
-    // that encodes `'props' => []` as `'props': []`, whereas the server side
-    // expects `'props': {}`.
+    // that encodes `'inputs' => []` as `'inputs': []`, whereas the server side
+    // expects `'inputs': {}`.
     // @see \Drupal\Tests\experience_builder\Traits\TestDataUtilitiesTrait::encodeXBData()
     $request_options[RequestOptions::BODY] = self::encodeXBData($pattern_to_send);
     $body = $this->assertExpectedResponse('POST', $list_url, $request_options, 500, NULL, NULL, NULL, NULL);
@@ -137,7 +137,7 @@ class XbConfigEntityHttpApiTest extends BrowserTestBase {
     ], $body, 'Fails with invalid shape.');
 
     // Meet data shape requirements, but violate internal consistency for
-    // `model` (`props` on server side): 422 (i.e. validation constraint
+    // `model` (`inputs` on server side): 422 (i.e. validation constraint
     // violation).
     $pattern_to_send['model'] = [];
     $request_options[RequestOptions::BODY] = self::encodeXBData($pattern_to_send);

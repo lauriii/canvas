@@ -36,7 +36,8 @@ class ComponentTreeItemTest extends KernelTestBase {
     'sdc',
     'sdc_test',
     'xb_test_sdc',
-    // Modules providing field types + widgets for the component props defaults.
+    // Modules providing field types + widgets for the SDC Components'
+    // `prop_field_definitions`.
     'file',
     'image',
     'options',
@@ -73,7 +74,7 @@ class ComponentTreeItemTest extends KernelTestBase {
               ['uuid' => 'dynamic-image-static-imageStyle-something7d', 'component' => 'sdc.experience_builder.image'],
             ],
           ]),
-          'props' => json_encode([
+          'inputs' => json_encode([
             'dynamic-static-card2df' => [
               'text' => [
                 'sourceType' => 'dynamic',
@@ -143,7 +144,7 @@ class ComponentTreeItemTest extends KernelTestBase {
     $test_cases['invalid tree: the main content block is only allowed in PageTemplate'][] = [
       'field_xb_test.0' => "The 'Drupal\Core\Block\MainContentBlockPluginInterface' component interface must be absent.",
     ];
-    $test_cases['invalid values using dynamic props'][] = [
+    $test_cases['invalid values using dynamic inputs'][] = [
       'field_xb_test.0' => "The 'dynamic' prop source type must be absent.",
     ];
     $test_cases['invalid tree structure, uuid at top of data structure is not in the tree, also has empty slots'][] = [
@@ -152,24 +153,24 @@ class ComponentTreeItemTest extends KernelTestBase {
         'Dangling component subtree. This component subtree claims to be for a component instance with UUID <em class="placeholder">other-uuid</em>, but no such component instance can be found.',
       ],
     ];
-    $test_cases['missing components, using dynamic props'][] = [
+    $test_cases['missing components, using dynamic inputs'][] = [
       'field_xb_test.0' => "The 'dynamic' prop source type must be absent.",
       "field_xb_test.0.tree[$root_uuid][0]" => 'The component <em class="placeholder">sdc.sdc_test.missing</em> does not exist.',
       "field_xb_test.0.tree[$root_uuid][1]" => 'The component <em class="placeholder">sdc.sdc_test.missing-also</em> does not exist.',
     ];
-    $test_cases['missing components, using only static props'][] = [
+    $test_cases['missing components, using only static inputs'][] = [
       "field_xb_test.0.tree[$root_uuid][0]" => 'The component <em class="placeholder">sdc.sdc_test.missing</em> does not exist.',
     ];
-    $test_cases['props invalid, using dynamic props'][] = [
-      'field_xb_test.0.props.dynamic-static-card2df.heading' => 'The property heading is required',
-      'field_xb_test.0.props.dynamic-static-card3.heading' => 'The property heading is required',
+    $test_cases['inputs invalid, using dynamic inputs'][] = [
+      'field_xb_test.0.inputs.dynamic-static-card2df.heading' => 'The property heading is required',
+      'field_xb_test.0.inputs.dynamic-static-card3.heading' => 'The property heading is required',
       'field_xb_test.0' => "The 'dynamic' prop source type must be absent.",
     ];
-    $test_cases['props invalid, using only static props'][] = [
-      'field_xb_test.0.props.static-card2df.heading' => 'The property heading is required',
+    $test_cases['inputs invalid, using only static inputs'][] = [
+      'field_xb_test.0.inputs.static-card2df.heading' => 'The property heading is required',
     ];
-    $test_cases['missing props key'][] = [
-      'field_xb_test.0' => 'The array must contain a "props" key.',
+    $test_cases['missing inputs key'][] = [
+      'field_xb_test.0' => 'The array must contain an "inputs" key.',
     ];
     $test_cases['missing tree key'][] = [
       'field_xb_test.0' => 'The array must contain a "tree" key.',
@@ -212,7 +213,7 @@ class ComponentTreeItemTest extends KernelTestBase {
     // without an exception.
     $test_cases['invalid tree structure, uuid at top of data structure is not in the tree, also has empty slots'] = $invalid_test_cases['invalid tree structure, uuid at top of data structure is not in the tree, also has empty slots'];
     $test_cases['invalid tree structure, uuid at top of data structure is not in the tree, also has empty slots'][] = [];
-    $test_cases['valid values using static props'][] = [
+    $test_cases['valid values using static inputs'][] = [
       'dynamic-static-card2df' => [
         'heading' => 'They say I am static, but I want to believe I can change!',
       ],

@@ -271,7 +271,7 @@ export function getPropsValues(
     key.includes(`xb_component_props[${selectedComponent}][`),
   );
   // Iterate through every item in form state that corresponds to
-  // a component prop to create propsValues, which will ultimately be
+  // a component input to create propsValues, which will ultimately be
   // used to update this component's model.
   const propsValues: PropsValues = keys.reduce(
     (newObject: PropsValues, key) => {

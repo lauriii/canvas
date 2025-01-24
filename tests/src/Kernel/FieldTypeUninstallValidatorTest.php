@@ -195,7 +195,7 @@ final class FieldTypeUninstallValidatorTest extends KernelTestBase {
         ],
       ]),
     ];
-    $props = [
+    $inputs = [
       'dynamic-static-card2df' => [
         'text' => [
           'sourceType' => 'static:field_item:string',
@@ -205,7 +205,7 @@ final class FieldTypeUninstallValidatorTest extends KernelTestBase {
       ],
     ];
     if ($include_link) {
-      $props['dynamic-static-card2df']['href'] = [
+      $inputs['dynamic-static-card2df']['href'] = [
         'sourceType' => 'static:field_item:link',
         'value' => [
           'uri' => 'https://drupal.org',
@@ -215,7 +215,7 @@ final class FieldTypeUninstallValidatorTest extends KernelTestBase {
         'expression' => 'ℹ︎link␟uri',
       ];
     }
-    $component_tree_item['props'] = self::encodeXBData($props);
+    $component_tree_item['inputs'] = self::encodeXBData($inputs);
     return $component_tree_item;
   }
 

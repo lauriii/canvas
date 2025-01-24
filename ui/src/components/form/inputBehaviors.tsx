@@ -239,7 +239,7 @@ const InputBehaviorsCommon = ({
 };
 
 // Provides a higher order component to wrap a form element that is part of the
-// component props form.
+// component inputs form.
 const InputBehaviorsComponentPropsForm = (
   OriginalInput: React.FC,
   props: React.ComponentProps<any>,

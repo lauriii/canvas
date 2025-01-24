@@ -146,7 +146,7 @@ final class ApiConfigControllers extends ApiControllerBase {
     }
     catch (ConstraintViolationException $e) {
       throw $e->renamePropertyPaths([
-        'component_tree.props' => 'model',
+        'component_tree.inputs' => 'model',
         'component_tree' => 'layout',
       ]);
     }
@@ -187,7 +187,7 @@ final class ApiConfigControllers extends ApiControllerBase {
     }
     catch (ConstraintViolationException $e) {
       throw $e->renamePropertyPaths([
-        'component_tree.props' => 'model',
+        'component_tree.inputs' => 'model',
         'component_tree' => 'layout',
       ]);
     }
@@ -248,13 +248,13 @@ final class ApiConfigControllers extends ApiControllerBase {
    */
   private function denormalizePattern(array $data): array {
     ['layout' => $layout, 'model' => $model, 'name' => $label] = $data;
-    ['tree' => $tree, 'props' => $props] = $this->convertClientToServer($layout, $model);
+    ['tree' => $tree, 'inputs' => $inputs] = $this->convertClientToServer($layout, $model);
 
     return [
       'label' => $label,
       'component_tree' => [
         'tree' => $tree,
-        'props' => $props,
+        'inputs' => $inputs,
       ],
     ];
   }

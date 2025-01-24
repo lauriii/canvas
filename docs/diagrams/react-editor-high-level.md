@@ -17,7 +17,7 @@ state "React Component: Preview " as react_preview
 
 
     state editor {
-        User --> sidebar : Configures Component props via
+        User --> sidebar : Configures Component inputs via
         User --> tree : Arranges Components via
         User --> preview : Arranges Components via
 

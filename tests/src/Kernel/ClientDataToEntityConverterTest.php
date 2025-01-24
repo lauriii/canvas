@@ -317,7 +317,7 @@ class ClientDataToEntityConverterTest extends KernelTestBase {
         'tree' => json_encode([
           ComponentTreeStructure::ROOT_UUID => [],
         ]),
-        'props' => '{}',
+        'inputs' => '{}',
       ],
       'revision_log' => [
         [

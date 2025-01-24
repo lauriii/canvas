@@ -9,7 +9,7 @@ use Twig\Compiler;
 use Twig\Node\Node;
 
 /**
- * Defines a twig node for wrapping component props and slots.
+ * Defines a twig node for wrapping SDC props and slots.
  */
 #[YieldReady]
 final class XbWrapperNode extends Node {

@@ -64,7 +64,7 @@ use Drupal\Core\TypedData\TypedData;
 #[DataType(
   id: "component_tree_structure",
   label: new TranslatableMarkup("Component tree structure"),
-  description: new TranslatableMarkup("The structure of the component tree: without props values"),
+  description: new TranslatableMarkup("The structure of the component tree: without input values"),
   constraints: [
     "ComponentTreeStructure" => [],
   ]
@@ -253,7 +253,7 @@ class ComponentTreeStructure extends TypedData {
    */
   public function getComponentId(string $component_instance_uuid): string {
     if (!in_array($component_instance_uuid, $this->getComponentInstanceUuids(), TRUE)) {
-      throw new \OutOfRangeException(sprintf('No component stored for %s. Caused by either incorrect logic or `props` being out of sync with `tree`.', $component_instance_uuid));
+      throw new \OutOfRangeException(sprintf('No component stored for %s. Caused by either incorrect logic or `inputs` being out of sync with `tree`.', $component_instance_uuid));
     }
     $components = $this->getComponents();
 
@@ -265,9 +265,9 @@ class ComponentTreeStructure extends TypedData {
   /**
    * Retrieves the list of unique component config entity IDs used.
    *
-   * Sibling method on ComponentPropsValues:
+   * Sibling method on ComponentInputs:
    *
-   * @see \Drupal\experience_builder\Plugin\DataType\ComponentPropsValues::getPropSourceTypePrefixList()
+   * @see \Drupal\experience_builder\Plugin\DataType\ComponentInputs::getPropSourceTypePrefixList()
    *
    * @return array<ComponentConfigEntityId>
    *   A list of IDs of all unique Component config entities used in this

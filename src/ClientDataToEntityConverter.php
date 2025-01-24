@@ -51,14 +51,13 @@ class ClientDataToEntityConverter {
     // Validation happens using the server-side representation, but the
     // error message should use the client-side representation received in
     // the request body.
-    // @see ::clientLayoutToServerTree()
-    // @see ::clientModelToServerProps()
+    // @see ::convertClientToServer()
     if ($original_entity_violations->count()) {
       // @todo Remove iterator_to_array() after https://www.drupal.org/project/drupal/issues/3497677
       throw (new ConstraintViolationException(new EntityConstraintViolationList($entity, iterator_to_array($original_entity_violations))))->renamePropertyPaths([
         "$field_name.0.tree[" . ComponentTreeStructure::ROOT_UUID . "]" => 'layout.children',
         "$field_name.0.tree" => 'layout',
-        "$field_name.0.props" => 'model',
+        "$field_name.0.inputs" => 'model',
       ]);
     }
   }

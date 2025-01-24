@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\experience_builder\Traits;
 
-use Drupal\experience_builder\Plugin\DataType\ComponentPropsValues;
+use Drupal\experience_builder\Plugin\DataType\ComponentInputs;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\file\Entity\File;
@@ -24,7 +24,7 @@ trait XBFieldTrait {
   private File $unreferencedImage;
   private Media $mediaEntity;
 
-  protected function getValidConvertedProps(): array {
+  protected function getValidConvertedInputs(): array {
     return [
       self::TEST_HEADING_UUID => [
         'text' => [
@@ -160,7 +160,7 @@ trait XBFieldTrait {
     return $file;
   }
 
-  private function assertNodeValues(Node $node, array $expected_component_ids, array $expected_props, string $title): void {
+  private function assertNodeValues(Node $node, array $expected_component_ids, array $expected_inputs, string $title): void {
     $nid = $node->id();
     // Reset the node to ensure we're not getting a cached version.
     $this->container->get('entity_type.manager')
@@ -174,16 +174,16 @@ trait XBFieldTrait {
     $tree = $item->get('tree');
     $this->assertInstanceOf(ComponentTreeStructure::class, $tree);
     $this->assertSame($expected_component_ids, $tree->getComponentIdList());
-    $props = $item->get('props');
-    $this->assertInstanceOf(ComponentPropsValues::class, $props);
-    $props = json_decode((string) $props, TRUE);
+    $inputs = $item->get('inputs');
+    $this->assertInstanceOf(ComponentInputs::class, $inputs);
+    $inputs = json_decode((string) $inputs, TRUE);
     // @todo Replace with a single call to
     //   `\PHPUnit\Framework\Assert::assertEqualsCanonicalizing` in
     //  https://drupal.org/i/3486414. Currently that does not work in all
     //  databases.
-    self::recursiveKsort($props);
-    self::recursiveKsort($expected_props);
-    $this->assertSame($expected_props, $props);
+    self::recursiveKsort($inputs);
+    self::recursiveKsort($expected_inputs);
+    $this->assertSame($expected_inputs, $inputs);
   }
 
   private static function recursiveKsort(array &$array): void {
@@ -270,7 +270,7 @@ trait XBFieldTrait {
         'sdc.experience_builder.image',
         'block.system_branding_block',
       ],
-      $this->getValidConvertedProps(),
+      $this->getValidConvertedInputs(),
       'The updated title.'
     );
 

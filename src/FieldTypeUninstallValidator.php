@@ -132,10 +132,10 @@ final class FieldTypeUninstallValidator implements ModuleUninstallValidatorInter
       if (empty($default)) {
         continue;
       }
-      // @todo Refactor to use \Drupal\experience_builder\Plugin\DataType\ComponentPropsValues directly.
+      // @todo Refactor to use \Drupal\experience_builder\Plugin\DataType\ComponentInputs directly.
       // @todo Refactor to use \Drupal\experience_builder\PropSource\PropSourceBase too, perhaps.
-      $default_props = $default[0]['props'];
-      foreach (json_decode($default_props, TRUE) as $default_prop_values) {
+      $default_inputs = $default[0]['inputs'];
+      foreach (json_decode($default_inputs, TRUE) as $default_prop_values) {
         foreach ($default_prop_values as $default_prop_value) {
           if (isset($default_prop_value['expression']) && is_string($default_prop_value['expression']) && str_starts_with($default_prop_value['expression'], $field_type_prop_expression_prefix)) {
             $fields_using_provided_field[] = $component_field->getName();
@@ -195,8 +195,7 @@ final class FieldTypeUninstallValidator implements ModuleUninstallValidatorInter
         $revision_table = $table_mapping->getRevisionTable();
       }
       $table = $revision_table ?? $base_table;
-      $column_name = $table_mapping->getFieldColumnName($component_field_storage,
-        'props');
+      $column_name = $table_mapping->getFieldColumnName($component_field_storage, 'inputs');
       $select = $this->database->select($table);
       $select->fields($table, ['entity_id', 'revision_id']);
 

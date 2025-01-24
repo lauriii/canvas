@@ -61,10 +61,6 @@ final class ApiPreviewController {
     assert(isset($content));
     // @todo Use converter to convert this to a proper tree item after
     // https://www.drupal.org/i/3493941 and https://www.drupal.org/i/3493943.
-    // The conversion logic in the backend does not support dynamic components
-    // yet, so we work with a hardcoded props item for the sake of this
-    // controller.
-    // @see \Drupal\experience_builder\Controller\ClientServerConversionTrait::findTargetForProps
     \assert($entity instanceof FieldableEntityInterface);
     $renderable = $this->clientLayoutAndModelToXbField($content, $model, $entity)->toRenderable();
 
@@ -96,10 +92,10 @@ final class ApiPreviewController {
     // @todo Handle validation in https://www.drupal.org/project/experience_builder/issues/3485878
     $tree = self::clientLayoutToServerTree($layout, FALSE);
 
-    $props = $this->clientModelToInput($tree, $model, $entity);
+    $inputs = $this->clientModelToInput($tree, $model, $entity);
     $component_tree_field_item->setValue([
       'tree' => json_encode($tree, JSON_UNESCAPED_UNICODE | JSON_FORCE_OBJECT),
-      'props' => json_encode($props, JSON_UNESCAPED_UNICODE | JSON_FORCE_OBJECT),
+      'inputs' => json_encode($inputs, JSON_UNESCAPED_UNICODE | JSON_FORCE_OBJECT),
     ]);
 
     return $component_tree_field_item;

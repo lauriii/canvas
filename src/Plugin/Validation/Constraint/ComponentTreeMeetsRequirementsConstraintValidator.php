@@ -85,7 +85,7 @@ final class ComponentTreeMeetsRequirementsConstraintValidator extends Constraint
     $detected_prop_source_prefixes = array_reduce(
       array_map(
         // @phpstan-ignore-next-line
-        fn(ComponentTreeItem $component_tree): array => $component_tree->get('props')->getPropSourceTypePrefixList(),
+        fn(ComponentTreeItem $component_tree): array => $component_tree->get('inputs')->getPropSourceTypePrefixList(),
         $component_trees
       ),
       fn(array $unique_values, array $current_values): array => array_unique([...$unique_values, ...$current_values]),
@@ -93,15 +93,15 @@ final class ComponentTreeMeetsRequirementsConstraintValidator extends Constraint
     );
     sort($detected_prop_source_prefixes);
 
-    foreach (['tree:component_ids', 'tree:component_interfaces', 'props'] as $aspect_to_check) {
+    foreach (['tree:component_ids', 'tree:component_interfaces', 'inputs:prop_sources'] as $aspect_to_check) {
       $actual_unique_values = match($aspect_to_check) {
-        'props' => $detected_prop_source_prefixes,
+        'inputs:prop_sources' => $detected_prop_source_prefixes,
         'tree:component_ids' => $detected_component_ids,
         'tree:component_interfaces' => $detected_component_interfaces,
       };
       foreach (['absence', 'presence'] as $nested_option) {
         $requirement_values = match($aspect_to_check) {
-          'props' => $constraint->props[$nested_option],
+          'inputs:prop_sources' => $constraint->inputs[$nested_option],
           // Distinguish between the two kinds of restrictions supported by this
           // validation constraint: Component (config entity) IDs and Component
           // (plugin) interfaces.
@@ -122,13 +122,13 @@ final class ComponentTreeMeetsRequirementsConstraintValidator extends Constraint
           foreach ($intersection as $forbidden_value) {
             $this->context
               ->buildViolation(match($aspect_to_check) {
-                'props' => $constraint->propSourceTypeAbsenceMessage,
+                'inputs:prop_sources' => $constraint->propSourceTypeAbsenceMessage,
                 'tree:component_ids' => $constraint->componentAbsenceMessage,
                 'tree:component_interfaces' => $constraint->componentInterfaceAbsenceMessage,
               })
               ->setParameter(
                 match($aspect_to_check) {
-                  'props' => '@prop_source_type_prefix',
+                  'inputs:prop_sources' => '@prop_source_type_prefix',
                   'tree:component_ids' => '@component_id',
                   'tree:component_interfaces' => '@component_interface',
                 },
@@ -144,13 +144,13 @@ final class ComponentTreeMeetsRequirementsConstraintValidator extends Constraint
           foreach ($missing_values as $missing_value) {
             $this->context
               ->buildViolation(match($aspect_to_check) {
-                'props' => $constraint->propSourceTypePresenceMessage,
+                'inputs:prop_sources' => $constraint->propSourceTypePresenceMessage,
                 'tree:component_ids' => $constraint->componentPresenceMessage,
                 'tree:component_interfaces' => $constraint->componentInterfacePresenceMessage,
               })
               ->setParameter(
                 match($aspect_to_check) {
-                  'props' => '@prop_source_type_prefix',
+                  'inputs:prop_sources' => '@prop_source_type_prefix',
                   'tree:component_ids' => '@component_id',
                   'tree:component_interfaces' => '@component_interface',
                 },

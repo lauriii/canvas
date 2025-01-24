@@ -24,7 +24,7 @@ final class StructuredDataPropExpression {
     //   entity context or not.
     // - The last either is a `}` or not. If it is, this is an expression for a
     //   prop, that using JSON Schema terminology, is of `type: object`, i.e. is
-    //   not for a scalar (SDC) component prop, but an object component prop.
+    //   not for a scalar SDC prop, but an object SDC prop.
     $root_expr_symbol_first = mb_substr(self::withoutPrefix($root_expr), 0, 1);
     $root_expr_symbol_last = mb_substr($root_expr, -1, 1);
 

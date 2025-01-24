@@ -65,7 +65,7 @@ experience_builder.api.component_inputs_form:
   path: '/xb-field-form/{entity_type}/{entity}'
   defaults:
     _form: 'Drupal\experience_builder\Form\ComponentInputsForm'
-    _title: 'Component Props Form'
+    _title: 'Component Inputs Form'
   requirements:
     _permission: 'access administration pages'
   options:

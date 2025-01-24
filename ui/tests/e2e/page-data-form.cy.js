@@ -45,7 +45,7 @@ describe('Page data form', () => {
     cy.get('button[aria-label="Redo"]').should('be.enabled');
 
     cy.intercept('POST', '**/api/preview/node/1').as('getPreview');
-    // Switch back to component props form.
+    // Switch back to component inputs form.
     cy.clickComponentInPreview('Hero');
     cy.findByTestId('xb-contextual-panel--settings').click();
     cy.get(

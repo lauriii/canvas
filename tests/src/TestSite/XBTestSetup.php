@@ -172,7 +172,7 @@ class XBTestSetup implements TestSetupInterface {
         ],
       ],
     ];
-    $props = [
+    $inputs = [
       'two-column-uuid' => [
         'width' => [
           'sourceType' => 'static:field_item:list_integer',
@@ -271,7 +271,7 @@ class XBTestSetup implements TestSetupInterface {
       //   https://drupal.org/i/3474257.
       'field_xb_demo' => [
         'tree' => json_encode($tree),
-        'props' => json_encode($props),
+        'inputs' => json_encode($inputs),
       ],
     ]);
 
@@ -286,7 +286,7 @@ class XBTestSetup implements TestSetupInterface {
       'uuid' => 'cea4c5b3-7921-4c6f-b388-da921bd1496d',
       'component' => 'block.system_menu_block.admin',
     ];
-    $props['cea4c5b3-7921-4c6f-b388-da921bd1496d'] = [
+    $inputs['cea4c5b3-7921-4c6f-b388-da921bd1496d'] = [
       'label' => 'Administration',
       'label_display' => FALSE,
       'level' => 1,
@@ -302,7 +302,7 @@ class XBTestSetup implements TestSetupInterface {
       //   https://drupal.org/i/3474257.
       'field_xb_demo' => [
         'tree' => json_encode($tree),
-        'props' => json_encode($props),
+        'inputs' => json_encode($inputs),
       ],
     ]);
     $node->save();
@@ -324,7 +324,7 @@ class XBTestSetup implements TestSetupInterface {
             ],
           ],
         ]),
-        'props' => \json_encode([
+        'inputs' => \json_encode([
           'component-sdc' => [
             'heading' => [
               'sourceType' => 'static:field_item:string',

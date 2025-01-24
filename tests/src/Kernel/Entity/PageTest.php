@@ -32,7 +32,8 @@ final class PageTest extends KernelTestBase {
     'sdc',
     'sdc_test',
     'xb_test_sdc',
-    // Modules providing field types + widgets for the component props defaults.
+    // Modules providing field types + widgets for the SDC Components'
+    // `prop_field_definitions`.
     'file',
     'image',
     'options',
@@ -126,7 +127,7 @@ final class PageTest extends KernelTestBase {
             ],
           ],
         ]),
-        'props' => self::encodeXBData([
+        'inputs' => self::encodeXBData([
           'component-sdc' => [
             'heading' => [
               'sourceType' => 'static:field_item:string',

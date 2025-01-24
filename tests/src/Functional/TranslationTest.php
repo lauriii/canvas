@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\experience_builder\Functional;
 
-use Drupal\experience_builder\Plugin\DataType\ComponentPropsValues;
+use Drupal\experience_builder\Plugin\DataType\ComponentInputs;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\node\Entity\Node;
@@ -78,12 +78,12 @@ class TranslationTest extends FunctionalTestBase {
       // In the symmetric case, the 'tree' property is not translatable. This
       // means every translation has the same components but can have different
       // properties.
-      'symmetric' => [['props'], TRUE],
-      // In the asymmetric case, both 'tree' and 'props' property are
+      'symmetric' => [['inputs'], TRUE],
+      // In the asymmetric case, both 'tree' and 'inputs' properties are
       // translatable. This means every translation can have different components
       // and properties for those components. There no connection at all between
       // the components in the different translations.
-      'asymmetric' => [['tree', 'props'], FALSE],
+      'asymmetric' => [['tree', 'inputs'], FALSE],
       // This case tests when the field is not translatable, but it is used on
       // an entity that has translations. In this case, the components and their
       // properties are shared between the translations.
@@ -113,7 +113,7 @@ class TranslationTest extends FunctionalTestBase {
     $this->drupalGet('admin/config/regional/content-language');
     if ($field_is_translatable) {
       $page->checkField('settings[node][article][fields][field_xb_test]');
-      foreach (['tree', 'props'] as $field_property) {
+      foreach (['tree', 'inputs'] as $field_property) {
         in_array($field_property, $translatable_properties)
           ? $page->checkField("settings[node][article][columns][field_xb_test][$field_property]")
           : $page->uncheckField("settings[node][article][columns][field_xb_test][$field_property]");
@@ -147,13 +147,13 @@ class TranslationTest extends FunctionalTestBase {
 
     $hero_component = $assert_session->elementExists('css', 'article [data-component-id="experience_builder:my-hero"]');
     if ($field_is_translatable) {
-      // If the field is translatable updating props in the default translation
+      // If the field is translatable updating inputs in the default translation
       // should not have updated the French translation.
       $this->assertSame('bonjour, monde!', $hero_component->getText());
       $assert_session->pageTextNotContains('hello, new world!');
     }
     else {
-      // If the field is not translatable updating props in the default translation
+      // If the field is not translatable updating inputs in the default translation
       // should have also updated the French translation.
       $assert_session->pageTextNotContains('bonjour');
       $this->assertSame('hello, new world!', $hero_component->getText());
@@ -185,23 +185,23 @@ class TranslationTest extends FunctionalTestBase {
     $translation->save();
     $translation = $node->getTranslation('fr');
     assert($node->get('field_xb_test')[0] instanceof ComponentTreeItem);
-    $props = $node->get('field_xb_test')[0]->get('props');
-    $this->assertInstanceOf(ComponentPropsValues::class, $props);
-    $original_props_value = $props->getValue();
+    $inputs = $node->get('field_xb_test')[0]->get('inputs');
+    $this->assertInstanceOf(ComponentInputs::class, $inputs);
+    $original_inputs_value = $inputs->getValue();
 
-    // In both the Symmetric and Asymmetric translation cases, the `props` field
+    // In both the Symmetric and Asymmetric translation cases, the `inputs` property
     // is translatable and this should only change the translation.
-    $french_prop = str_replace('hello, world!', 'bonjour, monde!', $original_props_value);
+    $french_prop = str_replace('hello, world!', 'bonjour, monde!', $original_inputs_value);
     assert($translation->get('field_xb_test')[0] instanceof ComponentTreeItem);
-    $translation->get('field_xb_test')[0]->set('props', $french_prop);
+    $translation->get('field_xb_test')[0]->set('inputs', $french_prop);
     $translation->save();
 
-    $updated_props_value = str_replace('hello, world!', 'hello, new world!', $original_props_value);
-    // In both the Symmetric and Asymmetric cases, the `props` field is
+    $updated_inputs_value = str_replace('hello, world!', 'hello, new world!', $original_inputs_value);
+    // In both the Symmetric and Asymmetric cases, the `inputs` property is
     // translatable and this should only change the original. If the field is
     // not translatable, this should change both the original and the
     // translation.
-    $node->get('field_xb_test')[0]->set('props', $updated_props_value);
+    $node->get('field_xb_test')[0]->set('inputs', $updated_inputs_value);
     $tree = $node->get('field_xb_test')[0]->get('tree');
     $this->assertInstanceOf(ComponentTreeStructure::class, $tree);
     $tree_value = $tree->getValue();
