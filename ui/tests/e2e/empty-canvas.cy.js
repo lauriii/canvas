@@ -4,6 +4,7 @@ describe('Empty canvas', () => {
     // demonstrated to be the only reliable way to get tests after the first
     // passing consistently. This occurs regardless of which test runs first.
     cy.drupalXbInstall();
+    cy.drupalInstallModule('metatag', true);
     cy.drupalLogin('xbUser', 'xbUser');
   });
 
@@ -64,6 +65,11 @@ describe('Empty canvas', () => {
 
     // Wait for an element in the page data panel to be present.
     cy.get('#edit-title-0-value').should('exist');
+
+    cy.get('#edit-seo-settings').should('exist');
+    cy.get('#edit-seo-settings #edit-image-wrapper').should('exist');
+    cy.get('#edit-seo-settings #edit-metatags-0-basic-title').should('exist');
+    cy.get('#edit-seo-settings #edit-description-wrapper').should('exist');
 
     // Confirm there is nothing in the canvas.
     cy.get('.xb--viewport-overlay [data-xb-component-id]').should('not.exist');

@@ -36,7 +36,7 @@ use Drupal\user\EntityOwnerTrait;
  *     "view_builder" = "Drupal\experience_builder\Entity\PageViewBuilder",
  *     "views_data" = "Drupal\Core\Entity\EntityViewsData",
  *     "form" = {
- *       "default" = "Drupal\Core\Entity\ContentEntityForm",
+ *       "default" = "Drupal\experience_builder\Entity\XbPageForm",
  *       "delete" = "Drupal\Core\Entity\ContentEntityDeleteForm",
  *       "revision-delete" = \Drupal\Core\Entity\Form\RevisionDeleteForm::class,
  *       "revision-revert" = \Drupal\Core\Entity\Form\RevisionRevertForm::class,

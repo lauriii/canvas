@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\experience_builder\Kernel\Entity;
 
+use Drupal\experience_builder\Controller\EntityFormController;
 use Drupal\experience_builder\Entity\Page;
 use Drupal\file\Entity\File;
 use Drupal\KernelTests\KernelTestBase;
@@ -139,6 +140,22 @@ final class PageMetatagIntegrationTest extends KernelTestBase {
   private static function assertMetatags(Page $page, array $expected): void {
     $metatags = metatag_get_tags_from_route($page);
     self::assertEquals($expected, $metatags['#attached']['html_head']);
+  }
+
+  public function testSeoSettingsForm(): void {
+    $this->container->get('module_installer')->install(['metatag']);
+    $page = Page::create([
+      'title' => 'Test page',
+      'description' => 'This is a test page.',
+      'path' => ['alias' => '/test-page'],
+      'components' => [],
+    ]);
+    self::assertSaveWithoutViolations($page);
+    $sut = new EntityFormController();
+    $form = $sut->form('xb_page', $page, 'default');
+    self::assertArrayHasKey('image', $form['seo_settings']);
+    self::assertArrayHasKey('description', $form['seo_settings']);
+    self::assertEquals('seo_settings', $form['metatags']['widget'][0]['basic']['title']['#group']);
   }
 
 }
