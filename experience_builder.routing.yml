@@ -34,6 +34,15 @@ experience_builder.api.content.update:
       entity:
         type: entity:{entity_type}
 
+# @todo https://www.drupal.org/i/3498525 should generalize this to all eligible content entity types by using a route callback
+experience_builder.api.content.create:
+  path: '/xb/api/content-create/xb_page'
+  defaults:
+    _controller: 'Drupal\experience_builder\Controller\ApiContentCreateXbPage'
+  requirements:
+    _entity_create_access: 'xb_page:xb_page'
+  methods: ['POST']
+
 experience_builder.api.preview:
   path: '/api/preview/{entity_type}/{entity}'
   defaults:

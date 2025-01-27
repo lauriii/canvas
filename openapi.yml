@@ -162,6 +162,38 @@ paths:
                     description: Error descriptions
                     items:
                       type: string
+  '/xb/api/content-create/xb_page':
+    description: TODO
+    post:
+      description: TODO
+      responses:
+        '201':
+          description: Created entity successfully
+          content:
+            application/json:
+              examples:
+                newXbPageContentEntity:
+                  value:
+                    entity_type: xb_page
+                    id: '123'
+              schema:
+                type: object
+                required:
+                  - entity_type
+                  - entity_id
+                properties:
+                  entity_type:
+                    type: string
+                    description: The entity type ID
+                    examples:
+                      - xb_page
+                      - node
+                  entity_id:
+                    type: string
+                    description: The ID of the created content entity
+                    examples:
+                      - '42'
+                      - 'stringAreAlsoPossible'
   /xb/api/config/component:
     description: TODO
     get:

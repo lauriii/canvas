@@ -12,7 +12,7 @@ use Drupal\user\UserInterface;
 use GuzzleHttp\RequestOptions;
 
 /**
- * @covers \Drupal\experience_builder\Controller\ApiConfigListController
+ * @covers \Drupal\experience_builder\Controller\ApiConfigControllers
  * @group experience_builder
  * @internal
  */
