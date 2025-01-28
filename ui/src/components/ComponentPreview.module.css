@@ -2,10 +2,11 @@
   visibility: hidden;
   overflow: hidden;
   transform-origin: 0 0;
-  border-radius: 16px;
-  box-shadow: rgba(0, 0, 0, 0.4) 4px 5px 13px 2px;
+  box-shadow: var(--shadow-5);
+  will-change: transform, opacity;
 }
 .IFrame {
   min-height: 100%;
+  pointer-events: none;
   border: 0;
 }

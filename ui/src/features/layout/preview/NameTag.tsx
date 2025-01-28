@@ -1,6 +1,12 @@
 import styles from './NameTag.module.css';
 import clsx from 'clsx';
-import { BoxModelIcon } from '@radix-ui/react-icons';
+import { BoxModelIcon, Component1Icon, CubeIcon } from '@radix-ui/react-icons';
+
+const VARIANTS = {
+  component: <Component1Icon width={10} height={10} />,
+  root: <CubeIcon width={10} height={10} />,
+  slot: <BoxModelIcon width={10} height={10} />,
+};
 
 interface NameTagProps {
   name: string;
@@ -20,7 +26,7 @@ const NameTag: React.FC<NameTagProps> = (props) => {
         [styles.root]: nodeType === 'root',
       })}
     >
-      <BoxModelIcon width={10} height={10} />
+      {VARIANTS[nodeType as keyof typeof VARIANTS]}
       <span id={`${componentUuid}-name`}>{name}</span>
     </div>
   );

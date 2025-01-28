@@ -17,21 +17,17 @@ export function customSortableDragImage(
     customDragImage.style.cssText = `
               all: unset;
               font-family: var(--default-font-family);
-              background-color: #166bfd;
+              background-color: #8e4ec6;
               font-size: 12px;
               line-height: 12px;
               color: #fff;
               width: 200px;
               height: 20px;
-              padding: 5px 10px;
-              border: 2px solid transparent;
-              border-right: 2px solid rgba(0,0,0,0.2);
-              border-bottom: 2px solid rgba(0,0,0,0.2);
-              box-shadow: 2px 2px black;
-              opacity: 0.7;
+              padding: 5px 16px;
+              border-radius: 8px;
               position: absolute;
               display: flex;
-              justify-content: center;
+              justify-content: start;
               align-items: center;
               top: -9999px;
               pointer-events: none;

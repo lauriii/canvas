@@ -1,13 +1,8 @@
 import type React from 'react';
 import { useState } from 'react';
-import clsx from 'clsx';
-import { Flex, Box, Text } from '@radix-ui/themes';
-import {
-  BoxModelIcon,
-  TriangleDownIcon,
-  TriangleRightIcon,
-} from '@radix-ui/react-icons';
-import styles from './Layers.module.css';
+import { Flex, Box } from '@radix-ui/themes';
+import SidebarNode from '@/components/sidebar/SidebarNode';
+import { TriangleDownIcon, TriangleRightIcon } from '@radix-ui/react-icons';
 
 import type {
   ComponentNode,
@@ -60,38 +55,38 @@ const SlotLayer: React.FC<SlotLayerProps> = ({ slot, indent, parentNode }) => {
         onOpenChange={setOpen}
         data-xb-uuid={slotId}
       >
-        <Flex
-          py="2"
-          pl="2"
-          align="center"
+        <SidebarNode
+          id={`layer-${slotId}-name`}
           onMouseEnter={handleItemMouseEnter}
           onMouseLeave={handleItemMouseLeave}
-          className={clsx(styles.layer, styles.slotLayer)}
-        >
-          <Box
-            width={`calc(${indent} * var(--space-2))`}
-            className="xb-layer-indent"
-          />
-          <Box width="var(--space-4)" mr="1">
-            {slot.components.length > 0 ? (
-              <Box>
-                <Collapsible.Trigger asChild={true}>
-                  <button aria-label={open ? `Collapse slot` : `Expand slot`}>
-                    {open ? <TriangleDownIcon /> : <TriangleRightIcon />}
-                  </button>
-                </Collapsible.Trigger>
+          title={slotName}
+          variant="slot"
+          open={open}
+          leadingContent={
+            <Flex>
+              <Box
+                width={`calc(${indent} * var(--space-2))`}
+                className="xb-layer-indent"
+              />
+              <Box width="var(--space-4)" mr="1">
+                {slot.components.length > 0 ? (
+                  <Box>
+                    <Collapsible.Trigger asChild={true}>
+                      <button
+                        aria-label={open ? `Collapse slot` : `Expand slot`}
+                      >
+                        {open ? <TriangleDownIcon /> : <TriangleRightIcon />}
+                      </button>
+                    </Collapsible.Trigger>
+                  </Box>
+                ) : (
+                  <Box />
+                )}
               </Box>
-            ) : (
-              <Box />
-            )}
-          </Box>
-          <Box width="var(--space-4)" mr="2">
-            <BoxModelIcon className={clsx(styles.icon, styles.slotIcon)} />
-          </Box>
-          <Text size="1" id={`layer-${slotId}-name`}>
-            {slotName}
-          </Text>
-        </Flex>
+            </Flex>
+          }
+        />
+
         {slot.components.length > 0 ? (
           <CollapsibleContent>
             <SortableContainer slotId={slotId} indent={indent + 1}>

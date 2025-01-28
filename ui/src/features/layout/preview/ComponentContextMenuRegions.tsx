@@ -1,6 +1,6 @@
 // cspell:ignore CCMR
-import { ContextMenu } from '@radix-ui/themes';
 import type React from 'react';
+import { UnifiedMenu } from '@/components/UnifiedMenu';
 import { useCallback, useMemo } from 'react';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import type {
@@ -15,7 +15,7 @@ interface CCMRProps {
   component: ComponentNode;
 }
 
-const ComponentContextMenuRegions: React.FC<CCMRProps> = (props) => {
+const ComponentUnifiedMenuRegions: React.FC<CCMRProps> = (props) => {
   const { component } = props;
   const dispatch = useAppDispatch();
   const layout = useAppSelector(selectLayout);
@@ -47,21 +47,21 @@ const ComponentContextMenuRegions: React.FC<CCMRProps> = (props) => {
   );
 
   return (
-    <ContextMenu.Sub>
-      <ContextMenu.SubTrigger>Move to global region</ContextMenu.SubTrigger>
-      <ContextMenu.SubContent>
+    <UnifiedMenu.Sub>
+      <UnifiedMenu.SubTrigger>Move to global region</UnifiedMenu.SubTrigger>
+      <UnifiedMenu.SubContent>
         {layout.map((region, ix) => (
-          <ContextMenu.Item
+          <UnifiedMenu.Item
             key={region.id}
             onClick={() => handleMoveClick(ix, region)}
             disabled={region.id === parentRegion?.id}
           >
             {region.name}
-          </ContextMenu.Item>
+          </UnifiedMenu.Item>
         ))}
-      </ContextMenu.SubContent>
-    </ContextMenu.Sub>
+      </UnifiedMenu.SubContent>
+    </UnifiedMenu.Sub>
   );
 };
 
-export default ComponentContextMenuRegions;
+export default ComponentUnifiedMenuRegions;

@@ -2,6 +2,7 @@ import type React from 'react';
 import { useEffect } from 'react';
 import styles from './ComponentPreview.module.css';
 import clsx from 'clsx';
+import Panel from '@/components/Panel';
 import type {
   ComponentListItem,
   SectionListItem,
@@ -114,7 +115,7 @@ const ComponentPreview: React.FC<ComponentPreviewProps> = ({
   };
 
   return (
-    <div className={clsx('Wrapper', styles.Wrapper)}>
+    <Panel className={styles.Wrapper}>
       <iframe
         title={component.name}
         width={defaultIframeWidth}
@@ -124,7 +125,7 @@ const ComponentPreview: React.FC<ComponentPreviewProps> = ({
         className={clsx('IFrame', styles.IFrame)}
         onLoad={iframeOnLoadHandler}
       />
-    </div>
+    </Panel>
   );
 };
 

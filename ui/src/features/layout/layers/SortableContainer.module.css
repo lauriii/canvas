@@ -14,7 +14,7 @@
   margin-left: var(--space-2) !important;
   padding: 0 !important;
   outline: 1px solid #fff !important;
-  background-color: var(--blue-9) !important;
+  background-color: var(--color-outline-component) !important;
   & * {
     visibility: hidden !important;
   }

@@ -14,7 +14,7 @@ This file is included as an attached Drupal library and as such is subject to CS
   --xb--space-2: 8px;
   --xb--radius-1: 3px;
   --xb--radius-2: 4px;
-  --xb--blue-9: #176bfd;
+  --xb--purple-9: #8e4ec6;
   --xb--blue-slot-bg: #CCEDF9;
   --xb--sortable-empty-height: 40px;
 }
@@ -55,7 +55,7 @@ This file is included as an attached Drupal library and as such is subject to CS
   margin: 0;
   padding: 0;
   border-radius: var(--xb--radius-1);
-  background-color: var(--xb--blue-9);
+  background-color: var(--xb--purple-9);
 }
 .xb--sortable-ghost * {
   display: none;

@@ -6,10 +6,9 @@ import type {
 import { useState } from 'react';
 import clsx from 'clsx';
 import styles from '@/components/list/List.module.css';
-import menuStyles from '@/components/topbar/add/AddMenu.module.css';
 import { customSortableDragImage } from '@/features/sortable/sortableUtils';
 import * as Tooltip from '@radix-ui/react-tooltip';
-import { Text } from '@radix-ui/themes';
+import { Theme } from '@radix-ui/themes';
 import { findNodePathByUuid } from '@/features/layout/layoutUtils';
 import {
   disableClickToInsert,
@@ -23,6 +22,7 @@ import {
 } from '@/features/layout/layoutModelSlice';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import ComponentPreview from '@/components/ComponentPreview';
+import SidebarNode from '@/components/sidebar/SidebarNode';
 import { useNavigationUtils } from '@/hooks/useNavigationUtils';
 
 const ListItem: React.FC<{
@@ -100,9 +100,7 @@ const ListItem: React.FC<{
       data-xb-name={item.name}
       data-xb-type={type}
       className={clsx(
-        'listItem',
         styles.listItem,
-        menuStyles.MenubarItem,
         // Highlight the first item in the list when click to insert is enabled to
         // let the user know that they can click to insert the item.
         // index === 0 && isEnabled ? styles.outline : null,
@@ -115,27 +113,29 @@ const ListItem: React.FC<{
     >
       <Tooltip.Provider>
         <Tooltip.Root delayDuration={0}>
-          <Tooltip.Trigger
-            asChild={true}
-            className={clsx(
-              'ComponentPreviewTrigger',
-              styles.ComponentPreviewTrigger,
-            )}
-          >
-            <Text size="1">{item.name}</Text>
+          <Tooltip.Trigger asChild>
+            <SidebarNode
+              title={item.name}
+              variant={
+                type === 'component' &&
+                (item as ComponentListItem).source === 'Blocks'
+                  ? 'blockComponent'
+                  : type
+              }
+            />
           </Tooltip.Trigger>
           <Tooltip.Portal>
             <Tooltip.Content
               side="right"
+              sideOffset={24}
               align="start"
-              className={clsx(
-                'ComponentPreviewContent',
-                styles.ComponentPreviewContent,
-              )}
+              className={styles.componentPreviewTooltipContent}
             >
-              {previewingComponent && (
-                <ComponentPreview componentListItem={previewingComponent} />
-              )}
+              <Theme>
+                {previewingComponent && (
+                  <ComponentPreview componentListItem={previewingComponent} />
+                )}
+              </Theme>
             </Tooltip.Content>
           </Tooltip.Portal>
         </Tooltip.Root>

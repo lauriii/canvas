@@ -1,0 +1,107 @@
+.default {
+  --bg-hover: var(--purple-3);
+  --bg-selected: var(--purple-9);
+  --bg-hover-dots: var(--purple-5);
+  --bg-selected-dots-hover: var(--purple-11);
+
+  height: var(--space-6);
+  cursor: default;
+  color: var(--slate-12);
+  border-radius: var(--radius-4);
+
+  .icon {
+    color: var(--bg-selected);
+  }
+
+  .title {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  .dots {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 2px;
+    color: var(--slate-12);
+    border-radius: var(--radius-2);
+
+    &:hover {
+      cursor: pointer;
+      background-color: var(--bg-hover-dots);
+    }
+  }
+
+  &.hovered {
+    background-color: var(--bg-hover);
+  }
+
+  &:hover {
+    background-color: var(--bg-hover);
+
+    .dots {
+      display: flex;
+    }
+  }
+
+  &.selected {
+    color: white;
+    background-color: var(--bg-selected);
+
+    .icon {
+      color: white;
+    }
+
+    .dots {
+      color: white;
+
+      &:hover {
+        color: white;
+        background-color: var(--bg-selected-dots-hover);
+      }
+    }
+  }
+}
+
+.open {
+  border-radius: var(--radius-4) var(--radius-4) 0 0;
+}
+
+.componentVariant {
+  composes: default;
+}
+
+.codeComponentVariant {
+  composes: default;
+}
+
+.blockComponentVariant {
+  composes: default;
+}
+
+.sectionVariant {
+  composes: default;
+}
+
+.slotVariant {
+  composes: default;
+}
+
+.codeVariant {
+  --bg-hover: var(--blue-3);
+  --bg-selected: var(--blue-9);
+  --bg-hover-dots: var(--blue-5);
+  --bg-selected-dots-hover: var(--blue-11);
+
+  composes: default;
+}
+
+.regionVariant {
+  --bg-hover: var(--grass-3);
+  --bg-selected: var(--grass-9);
+  --bg-hover-dots: var(--grass-5);
+  --bg-selected-dots-hover: var(--grass-11);
+
+  composes: default;
+}

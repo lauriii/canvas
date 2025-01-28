@@ -49,11 +49,11 @@
   }
 
   &.selected {
-    outline: 1px dashed var(--blue-9);
+    outline: 1px dashed var(--color-outline-component);
   }
 
   &.hovered {
-    outline: 1px solid var(--blue-9);
+    outline: 1px solid var(--color-outline-component);
   }
 
   &.selected:not(.dragging),

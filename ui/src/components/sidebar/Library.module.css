@@ -1,0 +1,11 @@
+.accordionDetails:not(:last-child) {
+  margin-bottom: var(--space-4);
+  padding-bottom: var(--space-4);
+  border-bottom: 1px solid var(--slate-6);
+}
+
+.accordionDetailsTrigger {
+  /* @see ui/src/components/form/components/AccordionAndDetails.module.css */
+  /* The trigger is taller by default, so it looks better on the page data form. */
+  height: var(--space-6);
+}

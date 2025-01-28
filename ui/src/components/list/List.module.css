@@ -4,10 +4,7 @@
 }
 
 .listItem {
-  /* 15px is the width of the arrow icon */
-  padding: 0 0.5em 0 calc(0.5em + 15px);
   cursor: grab;
-  font-size: 14px;
 }
 
 .outline {
@@ -22,15 +19,18 @@
   width: 100%;
 }
 
-.ComponentPreviewContent {
-  position: absolute;
-  user-select: none;
-  color: white;
-  border-radius: 4px;
-  will-change: transform, opacity;
+.componentPreviewTooltipContent {
+  transform-origin: var(--radix-tooltip-content-transform-origin);
+  animation: slide-from-left-and-fade-in 200ms ease-out;
 }
 
-.ComponentPreviewTrigger {
-  width: 100%;
-  padding: 14px 0;
+@keyframes slide-from-left-and-fade-in {
+  from {
+    transform: translateX(-24px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
 }

@@ -46,7 +46,8 @@ export const PrimaryPanel = () => {
           </Tabs.List>
           <ScrollArea scrollbars="both" className={styles.scrollArea}>
             <Box
-              px="2"
+              px="4"
+              pt="4"
               className={clsx(
                 'primaryPanelContent',
                 styles.primaryPanelContent,

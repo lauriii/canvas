@@ -2,11 +2,13 @@ import type React from 'react';
 import type { ReactNode } from 'react';
 import { useCallback, useEffect } from 'react';
 import { ContextMenu } from '@radix-ui/themes';
+import { UnifiedMenu } from '@/components/UnifiedMenu';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import {
   selectCanvasViewPort,
   unsetHoveredComponent,
 } from '@/features/ui/uiSlice';
+import type { UnifiedMenuType } from '@/components/UnifiedMenu';
 import type { ComponentNode } from '@/features/layout/layoutModelSlice';
 import {
   deleteNode,
@@ -24,8 +26,11 @@ interface ComponentContextMenuProps {
   component: ComponentNode;
 }
 
-const ComponentContextMenu: React.FC<ComponentContextMenuProps> = (props) => {
-  const { children, component } = props;
+export const ComponentContextMenuContent: React.FC<
+  Pick<ComponentContextMenuProps, 'component'> & {
+    menuType?: UnifiedMenuType;
+  }
+> = ({ component, menuType = 'context' }) => {
   const dispatch = useAppDispatch();
   const componentName = useGetComponentName(component);
   const canvasViewPort = useAppSelector(selectCanvasViewPort);
@@ -96,48 +101,62 @@ const ComponentContextMenu: React.FC<ComponentContextMenuProps> = (props) => {
   }, [canvasViewPort]);
 
   return (
+    <UnifiedMenu.Content
+      aria-label={`Context menu for ${componentName}`}
+      menuType={menuType}
+      align="start"
+      side="right"
+    >
+      <UnifiedMenu.Label>{componentName}</UnifiedMenu.Label>
+      <UnifiedMenu.Item onClick={handleSelectClick}>Edit</UnifiedMenu.Item>
+      <UnifiedMenu.Item onClick={handleDuplicateClick} shortcut="⌘ D">
+        Duplicate
+      </UnifiedMenu.Item>
+      <UnifiedMenu.Item onClick={handleDuplicateClick} shortcut="⌘ C">
+        Copy
+      </UnifiedMenu.Item>
+      <UnifiedMenu.Item onClick={handleDuplicateClick} shortcut="⌘ V">
+        Paste
+      </UnifiedMenu.Item>
+      <UnifiedMenu.Separator />
+      <UnifiedMenu.Item onClick={handleCreateSectionClick}>
+        Create section
+      </UnifiedMenu.Item>
+      <UnifiedMenu.Separator />
+
+      <UnifiedMenu.Sub>
+        <UnifiedMenu.SubTrigger>Move</UnifiedMenu.SubTrigger>
+        <UnifiedMenu.SubContent>
+          <UnifiedMenu.Item onClick={handleMoveUpClick}>
+            Move up
+          </UnifiedMenu.Item>
+          <UnifiedMenu.Item onClick={handleMoveDownClick}>
+            Move down
+          </UnifiedMenu.Item>
+
+          <UnifiedMenu.Separator />
+          <UnifiedMenu.Item onClick={() => alert('Todo')}>
+            Move into
+          </UnifiedMenu.Item>
+        </UnifiedMenu.SubContent>
+      </UnifiedMenu.Sub>
+      <ComponentContextMenuRegions component={component} />
+      <UnifiedMenu.Separator />
+      <UnifiedMenu.Item shortcut="⌫" color="red" onClick={handleDeleteClick}>
+        Delete
+      </UnifiedMenu.Item>
+    </UnifiedMenu.Content>
+  );
+};
+
+const ComponentContextMenu: React.FC<ComponentContextMenuProps> = ({
+  children,
+  component,
+}) => {
+  return (
     <ContextMenu.Root>
       <ContextMenu.Trigger>{children}</ContextMenu.Trigger>
-      <ContextMenu.Content aria-label={`Context menu for ${componentName}`}>
-        <ContextMenu.Label>{componentName}</ContextMenu.Label>
-        <ContextMenu.Item onClick={handleSelectClick}>Edit</ContextMenu.Item>
-        <ContextMenu.Item onClick={handleDuplicateClick} shortcut="⌘ D">
-          Duplicate
-        </ContextMenu.Item>
-        <ContextMenu.Item onClick={handleDuplicateClick} shortcut="⌘ C">
-          Copy
-        </ContextMenu.Item>
-        <ContextMenu.Item onClick={handleDuplicateClick} shortcut="⌘ V">
-          Paste
-        </ContextMenu.Item>
-        <ContextMenu.Separator />
-        <ContextMenu.Item onClick={handleCreateSectionClick}>
-          Create section
-        </ContextMenu.Item>
-        <ContextMenu.Separator />
-
-        <ContextMenu.Sub>
-          <ContextMenu.SubTrigger>Move</ContextMenu.SubTrigger>
-          <ContextMenu.SubContent>
-            <ContextMenu.Item onClick={handleMoveUpClick}>
-              Move up
-            </ContextMenu.Item>
-            <ContextMenu.Item onClick={handleMoveDownClick}>
-              Move down
-            </ContextMenu.Item>
-
-            <ContextMenu.Separator />
-            <ContextMenu.Item onClick={() => alert('Todo')}>
-              Move into
-            </ContextMenu.Item>
-          </ContextMenu.SubContent>
-        </ContextMenu.Sub>
-        <ComponentContextMenuRegions component={component} />
-        <ContextMenu.Separator />
-        <ContextMenu.Item shortcut="⌫" color="red" onClick={handleDeleteClick}>
-          Delete
-        </ContextMenu.Item>
-      </ContextMenu.Content>
+      <ComponentContextMenuContent component={component} />
     </ContextMenu.Root>
   );
 };

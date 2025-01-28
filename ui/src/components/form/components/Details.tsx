@@ -3,7 +3,7 @@ import { useState } from 'react';
 import clsx from 'clsx';
 import * as Collapsible from '@radix-ui/react-collapsible';
 import { Box, Flex, Text } from '@radix-ui/themes';
-import { ChevronDownIcon } from '@radix-ui/react-icons';
+import { ChevronRightIcon } from '@radix-ui/react-icons';
 
 import type { ReactNode } from 'react';
 import type { Attributes } from '@/types/DrupalAttribute';
@@ -30,7 +30,7 @@ const Details = ({
             <Text size="2" weight="medium" {...summaryAttributes}>
               {title}
             </Text>
-            <ChevronDownIcon className={styles.chevron} aria-hidden />
+            <ChevronRightIcon className={styles.chevron} aria-hidden />
           </button>
         </Collapsible.Trigger>
       </Flex>

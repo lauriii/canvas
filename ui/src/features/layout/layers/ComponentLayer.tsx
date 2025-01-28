@@ -1,13 +1,8 @@
 import type React from 'react';
 import { useState } from 'react';
-import clsx from 'clsx';
-import { Flex, Box, Text } from '@radix-ui/themes';
-import {
-  ComponentInstanceIcon,
-  TriangleDownIcon,
-  TriangleRightIcon,
-} from '@radix-ui/react-icons';
-import styles from './Layers.module.css';
+import { Box, Flex } from '@radix-ui/themes';
+import { TriangleDownIcon, TriangleRightIcon } from '@radix-ui/react-icons';
+import SidebarNode from '@/components/sidebar/SidebarNode';
 import { customSortableDragImage } from '@/features/sortable/sortableUtils';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import {
@@ -21,12 +16,16 @@ import type {
 } from '@/features/layout/layoutModelSlice';
 import type { CollapsibleTriggerProps } from '@radix-ui/react-collapsible';
 import { CollapsibleContent } from '@radix-ui/react-collapsible';
-import ComponentContextMenu from '@/features/layout/preview/ComponentContextMenu';
+import ComponentContextMenu, {
+  ComponentContextMenuContent,
+} from '@/features/layout/preview/ComponentContextMenu';
 import useGetComponentName from '@/hooks/useGetComponentName';
 import * as Collapsible from '@radix-ui/react-collapsible';
 import SlotLayer from '@/features/layout/layers/SlotLayer';
 import { useNavigationUtils } from '@/hooks/useNavigationUtils';
 import { useParams } from 'react-router-dom';
+import styles from './ComponentLayer.module.css';
+import clsx from 'clsx';
 
 interface ComponentLayerProps {
   component: ComponentNode;
@@ -91,52 +90,55 @@ const ComponentLayer: React.FC<ComponentLayerProps> = ({
           onOpenChange={setOpen}
           data-xb-uuid={component.uuid}
         >
-          <Flex
-            py="2"
-            pl="2"
-            align="start"
+          <SidebarNode
+            id={`layer-${componentId}-name`}
             onMouseEnter={handleItemMouseEnter}
             onMouseLeave={handleItemMouseLeave}
-            className={clsx(
-              'xb-drag-handle',
-              {
-                [styles.selected]: selectedComponent === componentId,
-                [styles.hovered]: hoveredComponent === componentId,
-              },
-              styles.layer,
-              styles.componentLayer,
-            )}
-          >
-            <Box
-              width={`calc(${indent} * var(--space-2))`}
-              className="xb-layer-indent"
-            />
-            <Box width="var(--space-4)" mr="1">
-              {component.slots.length > 0 ? (
-                <Collapsible.Trigger asChild={true}>
-                  <button
-                    aria-label={
-                      open ? `Collapse component tree` : `Expand component tree`
-                    }
-                  >
-                    {open ? <TriangleDownIcon /> : <TriangleRightIcon />}
-                  </button>
-                </Collapsible.Trigger>
-              ) : (
-                <Box />
-              )}
-            </Box>
-            <Box width="var(--space-4)" mr="2">
-              <ComponentInstanceIcon
-                className={clsx(styles.componentIcon, 'xb-componentIcon')}
+            className="xb-drag-handle"
+            title={nodeName}
+            variant="component"
+            hovered={hoveredComponent === componentId}
+            selected={selectedComponent === componentId}
+            open={open}
+            dropdownMenuContent={
+              <ComponentContextMenuContent
+                component={component}
+                menuType="dropdown"
               />
-            </Box>
-            <Text size="1" id={`layer-${componentId}-name`}>
-              {nodeName}
-            </Text>
-          </Flex>
+            }
+            leadingContent={
+              <Flex>
+                <Box
+                  width={`calc(${indent} * var(--space-2))`}
+                  className="xb-layer-indent"
+                />
+                <Box width="var(--space-4)" mr="1">
+                  {component.slots.length > 0 ? (
+                    <Collapsible.Trigger asChild={true}>
+                      <button
+                        aria-label={
+                          open
+                            ? `Collapse component tree`
+                            : `Expand component tree`
+                        }
+                      >
+                        {open ? <TriangleDownIcon /> : <TriangleRightIcon />}
+                      </button>
+                    </Collapsible.Trigger>
+                  ) : (
+                    <Box />
+                  )}
+                </Box>
+              </Flex>
+            }
+          />
           {component.slots.length > 0 && (
-            <CollapsibleContent>
+            <CollapsibleContent
+              className={clsx(
+                selectedComponent === componentId &&
+                  styles.componentChildrenSelected,
+              )}
+            >
               {component.slots.map((slot) => (
                 <SlotLayer
                   key={slot.id}

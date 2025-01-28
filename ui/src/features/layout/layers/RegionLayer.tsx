@@ -1,14 +1,13 @@
-import { CubeIcon } from '@radix-ui/react-icons';
-import { Box, Flex, Text } from '@radix-ui/themes';
-import styles from './Layers.module.css';
+import { Box } from '@radix-ui/themes';
+import SidebarNode from '@/components/sidebar/SidebarNode';
 import type { RegionNode } from '@/features/layout/layoutModelSlice';
 import ComponentLayer from '@/features/layout/layers/ComponentLayer';
 import { useCallback } from 'react';
-import clsx from 'clsx';
 import SortableContainer from '@/features/layout/layers/SortableContainer';
 import { useNavigationUtils } from '@/hooks/useNavigationUtils';
 import { useNavigate, useParams } from 'react-router-dom';
 import { DEFAULT_REGION } from '@/features/ui/uiSlice';
+
 const RegionLayer: React.FC<{ region: RegionNode }> = ({ region }) => {
   const { regionId: focusedRegion = DEFAULT_REGION } = useParams();
   const { setSelectedRegion } = useNavigationUtils();
@@ -32,29 +31,23 @@ const RegionLayer: React.FC<{ region: RegionNode }> = ({ region }) => {
 
   return (
     <Box>
-      <Flex
-        p="2"
-        align="center"
+      <SidebarNode
         onDoubleClick={handleRegionClick}
         onMouseDown={handleMouseDown}
-        className={clsx(styles.layer, styles.regionLayer, {
-          [styles.selected]: focusedRegion === region.id,
-        })}
-      >
-        <Box width="var(--space-4)" mr="2">
-          <CubeIcon className={styles.regionIcon} />
-        </Box>
-        <Text size="1">{region.name}</Text>
-      </Flex>
+        title={region.name}
+        variant="region"
+        open={region.id === focusedRegion}
+      />
+
       {region.id === focusedRegion && (
-        <Box className="region-children">
+        <Box>
           <SortableContainer slotId={region.id} indent={0}>
             {region.components.map((component) => (
               <ComponentLayer
                 key={component.uuid}
                 component={component}
                 parentNode={region}
-                indent={0}
+                indent={1}
               />
             ))}
           </SortableContainer>

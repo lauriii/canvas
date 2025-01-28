@@ -1,9 +1,12 @@
 .trigger {
   height: var(--space-7);
-  color: var(--slate-11);
-  &:hover {
-    cursor: pointer;
-    background-color: var(--sand-2);
+  color: var(--slate-12);
+}
+
+.trigger:hover {
+  cursor: pointer;
+  .chevron {
+    color: var(--blue-9);
   }
 }
 
@@ -11,10 +14,10 @@
   overflow: hidden;
 
   &[data-state="open"] {
-    animation: slide-down 300ms cubic-bezier(0.87, 0, 0.13, 1);
+    animation: slide-down 200ms ease-in-out;
   }
   &[data-state="closed"] {
-    animation: slide-up 300ms cubic-bezier(0.87, 0, 0.13, 1);
+    animation: slide-up 200ms ease-in-out;
   }
 }
 
@@ -29,27 +32,31 @@
 }
 
 .chevron {
-  transition: transform 300ms cubic-bezier(0.87, 0, 0.13, 1);
+  transition: transform 300ms ease-in-out;
   color: var(--slate-12);
   .trigger[data-state="open"] > & {
-    transform: rotate(180deg);
+    transform: rotate(90deg);
   }
 }
 
 @keyframes slide-down {
   from {
     height: 0;
+    opacity: 0;
   }
   to {
     height: var(--content-height);
+    opacity: 1;
   }
 }
 
 @keyframes slide-up {
   from {
     height: var(--content-height);
+    opacity: 1;
   }
   to {
     height: 0;
+    opacity: 0;
   }
 }

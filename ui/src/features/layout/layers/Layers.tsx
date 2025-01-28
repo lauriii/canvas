@@ -24,7 +24,7 @@ const Layers: React.FC<LayersProps> = () => {
   }
 
   return (
-    <Box my="3">
+    <Box>
       {displayedRegions.map((region) => (
         <RegionLayer region={region} key={region.id} />
       ))}
