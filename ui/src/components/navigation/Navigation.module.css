@@ -1,0 +1,13 @@
+.search {
+  flex-grow: 1;
+}
+.path {
+  color: var(--gray-11)
+}
+
+.item {
+  border-radius: var(--radius-3);
+}
+.item:hover {
+  background: var(--slate-a3)
+}

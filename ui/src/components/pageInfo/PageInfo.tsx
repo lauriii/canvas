@@ -18,6 +18,9 @@ import type { ReactElement } from 'react';
 import { DEFAULT_REGION } from '@/features/ui/uiSlice';
 import { Link, useParams } from 'react-router-dom';
 import { selectLayout } from '@/features/layout/layoutModelSlice';
+import Navigation from '@/components/navigation/Navigation';
+import { selectEntityId } from '@/features/configuration/configurationSlice';
+import { handleNonWorkingBtn } from '@/utils/function-utils';
 
 interface PageType {
   [key: string]: ReactElement;
@@ -36,6 +39,7 @@ const PageInfo = () => {
   const focusedRegionName = layout.find(
     (region) => region.id === focusedRegion,
   )?.name;
+  const entityId = useAppSelector(selectEntityId);
   const entity_form_fields = useAppSelector(selectPageData);
   // @todo stop hardcoding `title` and `status` after https://www.drupal.org/i/3501847
   const title = entity_form_fields['title[0][value]'];
@@ -49,16 +53,39 @@ const PageInfo = () => {
       {focusedRegion === DEFAULT_REGION ? (
         <Popover.Root>
           <Popover.Trigger>
-            <Button color="gray" variant="soft" size="1">
+            <Button
+              color="gray"
+              variant="soft"
+              data-testid="xb-navigation-button"
+            >
               <Flex gap="2" align="center">
                 {iconMap['Page']}
                 {title}
-                <ChevronDownIcon />{' '}
+                <ChevronDownIcon />
               </Flex>
             </Button>
           </Popover.Trigger>
           <Popover.Content size="2" maxWidth="400px">
-            {/* todo place navigation component from https://www.drupal.org/i/3500054 */}
+            {/* @todo load data in https://www.drupal.org/i/3502820 */}
+            {/* @todo add onNewPage handler in https://www.drupal.org/i/3502819 */}
+            <Navigation
+              loading={false}
+              items={[
+                {
+                  title,
+                  path: '',
+                  status: published,
+                  id: entityId,
+                },
+              ]}
+              onNewPage={handleNonWorkingBtn}
+              onSearch={handleNonWorkingBtn}
+              onSelect={handleNonWorkingBtn}
+              onRename={handleNonWorkingBtn}
+              onDuplicate={handleNonWorkingBtn}
+              onSetHomepage={handleNonWorkingBtn}
+              onDelete={handleNonWorkingBtn}
+            />
           </Popover.Content>
         </Popover.Root>
       ) : (
