@@ -14,7 +14,6 @@ import {
   setDialogClosed,
 } from '@/features/ui/dialogSlice';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
-import { selectSelectedComponent } from '@/features/ui/uiSlice';
 import { selectLayout, selectModel } from '@/features/layout/layoutModelSlice';
 import {
   findComponentByUuid,
@@ -25,6 +24,7 @@ import type { FetchBaseQueryError } from '@reduxjs/toolkit/query/react';
 import type { SerializedError } from '@reduxjs/toolkit';
 import ErrorCard from '@/components/error/ErrorCard';
 import useGetComponentName from '@/hooks/useGetComponentName';
+import { useParams } from 'react-router-dom';
 
 interface ErrorData {
   message?: string;
@@ -51,7 +51,7 @@ function getErrorMessage(error: FetchBaseQueryError | SerializedError): string {
 const SaveSectionDialog: React.FC = () => {
   const { saveAsSection } = useAppSelector(selectDialogOpen);
   const dispatch = useAppDispatch();
-  const selectedComponent = useAppSelector(selectSelectedComponent);
+  const { componentId: selectedComponent } = useParams();
   const model = useAppSelector(selectModel);
   const layout = useAppSelector(selectLayout);
   const selectedNode = findComponentByUuid(layout, selectedComponent || '');

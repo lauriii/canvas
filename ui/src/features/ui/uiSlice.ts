@@ -18,6 +18,8 @@ export interface CanvasViewPort {
   scale: number;
 }
 
+export const DEFAULT_REGION = 'content' as const;
+
 export enum CanvasMode {
   INTERACTIVE = 'interactive',
   EDIT = 'edit',
@@ -29,7 +31,6 @@ export interface uiSliceState {
   pending: boolean;
   dragging: DraggingStatus;
   panning: PanningStatus;
-  selectedComponent: string | undefined; //uuid of component
   hoveredComponent: string | undefined; //uuid of component
   targetSlot: string | undefined; //uuid of slot being hovered when dragging
   canvasViewport: CanvasViewPort;
@@ -57,7 +58,6 @@ export const initialState: uiSliceState = {
   panning: {
     isPanning: false,
   },
-  selectedComponent: undefined,
   hoveredComponent: undefined,
   targetSlot: undefined,
   canvasViewport: {
@@ -173,11 +173,6 @@ export const uiSlice = createAppSlice({
     setIsPanning: create.reducer((state, action: PayloadAction<boolean>) => {
       state.panning.isPanning = action.payload;
     }),
-    setSelectedComponent: create.reducer(
-      (state, action: PayloadAction<string>) => {
-        state.selectedComponent = action.payload;
-      },
-    ),
     setHoveredComponent: create.reducer(
       (state, action: PayloadAction<string>) => {
         state.hoveredComponent = action.payload;
@@ -185,9 +180,6 @@ export const uiSlice = createAppSlice({
     ),
     setTargetSlot: create.reducer((state, action: PayloadAction<string>) => {
       state.targetSlot = action.payload;
-    }),
-    unsetSelectedComponent: create.reducer((state) => {
-      state.selectedComponent = undefined;
     }),
     unsetHoveredComponent: create.reducer((state) => {
       state.hoveredComponent = undefined;
@@ -258,9 +250,6 @@ export const uiSlice = createAppSlice({
     selectDragging: (ui): DraggingStatus => {
       return ui.dragging;
     },
-    selectSelectedComponent: (ui): string | undefined => {
-      return ui.selectedComponent;
-    },
     selectHoveredComponent: (ui): string | undefined => {
       return ui.hoveredComponent;
     },
@@ -292,10 +281,8 @@ export const {
   setPreviewDragging,
   setListDragging,
   setIsPanning,
-  setSelectedComponent,
   setHoveredComponent,
   setTargetSlot,
-  unsetSelectedComponent,
   unsetHoveredComponent,
   unsetTargetSlot,
   setCanvasViewPort,
@@ -314,7 +301,6 @@ export const {
 export const {
   selectDragging,
   selectPanning,
-  selectSelectedComponent,
   selectHoveredComponent,
   selectTargetSlot,
   selectCanvasViewPort,

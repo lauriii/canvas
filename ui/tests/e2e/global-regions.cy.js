@@ -13,44 +13,61 @@ describe('Operate on components in global regions', () => {
     cy.drupalUninstall();
   });
 
+  it('Can focus on global regions and see their child components', () => {
+    cy.loadURLandWaitForXBLoaded();
+    cy.focusRegion('Content Above');
+    cy.get('.spotlight').should('exist');
+    cy.get('.spotlight')
+      .children()
+      .first()
+      .should('have.css', 'pointer-events', 'all');
+
+    cy.get('.spotlight')
+      .findByTestId('xb-region-spotlight-highlight')
+      .should('have.css', 'pointer-events', 'none');
+
+    cy.log(
+      'The overlay for the content region should not be rendering any component overlays inside it!',
+    );
+    cy.get('.xb--region-overlay__content').first().should('be.empty');
+  });
+
   it('Can move components between global regions', () => {
     cy.loadURLandWaitForXBLoaded();
     cy.findByTestId('xb-primary-panel').as('layersTree');
 
+    cy.focusRegion('Breadcrumb');
+
     cy.log('Move "Breadcrumbs" component UP into the Highlighted Region');
-    cy.get('@layersTree')
-      .findByText('Breadcrumbs block')
-      .trigger('contextmenu');
-    cy.findByText('Move to global region').click();
+    cy.sendComponentToRegion('Breadcrumbs block', 'Highlighted');
 
-    cy.findByText('Highlighted', { selector: '[role="menuitem"]' }).click();
-
+    cy.returnToContentRegion();
+    cy.focusRegion('Highlighted');
     cy.log(
       '"Breadcrumbs" component should now be the LAST child in the Highlighted region',
     );
     cy.get('@layersTree')
-      .findByText('Breadcrumbs block')
-      .parents('.treeItem')
+      .findByLabelText('Breadcrumbs block')
+      .parent()
       .then(($div) => {
         // Assert that the div is the last child of its new parent region.
         expect($div.is(':last-child')).to.be.true;
       });
-
+    cy.returnToContentRegion();
     cy.log(
       'Move "User account menu" component DOWN into the Highlighted Region',
     );
-    cy.get('@layersTree')
-      .findByText('User account menu block')
-      .trigger('contextmenu');
-    cy.findByText('Move to global region').click();
+    cy.focusRegion('Secondary menu');
+    cy.sendComponentToRegion('User account menu block', 'Highlighted');
+    cy.returnToContentRegion();
 
-    cy.findByText('Highlighted', { selector: '[role="menuitem"]' }).click();
+    cy.focusRegion('Highlighted');
     cy.log(
       '"User account menu" component should now be the FIRST child in the Highlighted region',
     );
     cy.get('@layersTree')
-      .findByText('User account menu block')
-      .parents('.treeItem')
+      .findByLabelText('User account menu block')
+      .parent()
       .then(($div) => {
         // Assert that the div is the first child of its new parent region.
         expect($div.is(':first-child')).to.be.true;
@@ -66,17 +83,8 @@ describe('Operate on components in global regions', () => {
     cy.get('.primaryPanelContent').as('layersTree');
 
     // Open the layers in the Tree.
-    cy.get('@layersTree')
-      .findByText('Two Column')
-      .parents('.treeItem')
-      .findByLabelText('Expand component tree')
-      .click();
-    cy.get('@layersTree')
-      .findAllByText('Column One')
-      .first()
-      .parents('.treeItem')
-      .findByLabelText('Expand component tree')
-      .click();
+    cy.expandComponentLayer('Two Column');
+    cy.expandSlotLayer('Column One');
     cy.get('@layersTree').findAllByText('Image').should('be.visible');
     cy.get('@layersTree').findAllByText('Hero').should('be.visible');
 
@@ -86,13 +94,12 @@ describe('Operate on components in global regions', () => {
     cy.log(
       'Drag static hero component out of the content region into the highlighted region.',
     );
-    cy.get('.treeItem[data-xb-uuid="static-static-card1ab"]').realDnd(
-      '.rootDropZone[data-xb-type="region"][data-xb-uuid="highlighted"]',
-    );
+    cy.sendComponentToRegion('Hero', 'Highlighted');
     cy.wait('@getPreview');
 
     // One hero should remain in content region.
     cy.clickComponentInPreview('Hero');
+    cy.focusRegion('Highlighted');
     // But a hero component should now be in highlighted region too.
     cy.clickComponentInPreview('Hero', 0, 'lg', 'highlighted');
 

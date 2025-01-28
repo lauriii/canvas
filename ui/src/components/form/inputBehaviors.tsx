@@ -1,9 +1,6 @@
 import { useEffect, useCallback, useState } from 'react';
 import type * as React from 'react';
-import {
-  selectSelectedComponent,
-  selectLatestUndoRedoActionId,
-} from '@/features/ui/uiSlice';
+import { selectLatestUndoRedoActionId } from '@/features/ui/uiSlice';
 import {
   getDefaultValue,
   getNameAttributeBasedOnId,
@@ -33,6 +30,7 @@ import Ajv from 'ajv';
 import addDraft2019 from 'ajv-formats-draft2019';
 import { selectPageData, setPageData } from '@/features/pageData/pageDataSlice';
 import type { FormId } from '@/features/form/formStateSlice';
+import { selectCurrentComponent } from '@/features/form/formStateSlice';
 import {
   selectFieldError,
   selectFormValues,
@@ -245,7 +243,14 @@ const InputBehaviorsComponentPropsForm = (
   props: React.ComponentProps<any>,
 ): React.ReactElement => {
   const dispatch = useAppDispatch();
-  const selectedComponent = useAppSelector(selectSelectedComponent) || 'noop';
+  /**
+   * @todo #3502484 useParams() should be used here to replace getting the value from currentComponent in the formStateSlice
+   * Hyperscriptify re-creates the React component for the media library when Drupal ajax completes does not wrap the
+   * rendering in the correct React Router context so we can't get the selected component ID from the url in inputBehaviors.tsx.
+   * We already have a workaround for this for the Redux provider, could we do the same for the React Router context?
+   */
+  const currentComponent = useAppSelector(selectCurrentComponent);
+  const selectedComponent = currentComponent || 'noop';
   const model = useAppSelector(selectModel);
   const selectedModel = { ...model[selectedComponent] };
   const { attributes } = props;
@@ -427,7 +432,9 @@ const InputBehaviorsBlockSettingsForm = (
   props: React.ComponentProps<any>,
 ): React.ReactElement => {
   const dispatch = useAppDispatch();
-  const selectedComponent = useAppSelector(selectSelectedComponent) || 'noop';
+
+  const currentComponent = useAppSelector(selectCurrentComponent);
+  const selectedComponent = currentComponent || 'noop';
   const latestUndoRedoActionId = useAppSelector(selectLatestUndoRedoActionId);
   const { attributes } = props;
 

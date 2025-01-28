@@ -10,17 +10,10 @@ import {
 import { selectLayout, selectModel } from '@/features/layout/layoutModelSlice';
 import { useEffect, useState } from 'react';
 
-interface XbGlobals {
-  drupalSettings?: {
-    xb: {
-      demo_mode: boolean;
-    };
-  };
-}
 const PUBLISHED = 'published';
 const SAVING = 'saving';
 const PUBLISH = 'publish';
-const { drupalSettings } = window as XbGlobals;
+const { drupalSettings } = window;
 
 /**
  * 🚧🚧 Rough version of the Publish toolbar button to temporarily connect the UI to the save functionality on the API.

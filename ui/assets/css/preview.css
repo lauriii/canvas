@@ -22,8 +22,10 @@ This file is included as an attached Drupal library and as such is subject to CS
 .xb--preview-dragging [data-xb-slot-id] {
   min-height: 2rem;
 }
-[data-xb-slot-id], [data-xb-region] {
-  position: relative;
+
+/* @todo #3499364 the [data-xb-region] > .region may no longer be required */
+[data-xb-slot-id], [data-xb-region], [data-xb-region] > .region {
+  position: relative; /* required for the .xb--sortable-ghost absolute positioning to work */
   display: flow-root; /* Prevent margin collapse from content inside */
 }
 
@@ -75,7 +77,8 @@ This file is included as an attached Drupal library and as such is subject to CS
   opacity: 0.2;
 }
 
-[data-xb-uuid="content"] {
+/* @todo #3499364 this only works for the content region, needs to work for other regions */
+[data-xb-uuid="content"], .region {
   /* Provide "space" for SortableJS at the top and bottom as drop targets. */
   margin: -40px 0;
   padding: 40px 0;

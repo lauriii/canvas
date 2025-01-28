@@ -3,29 +3,33 @@ import styles from './ContextualPanel.module.css';
 import type React from 'react';
 import { useEffect } from 'react';
 import { useState } from 'react';
-import { selectSelectedComponent } from '@/features/ui/uiSlice';
-import { useAppSelector } from '@/app/hooks';
 import Panel from '@/components/Panel';
 import ErrorBoundary from '@/components/error/ErrorBoundary';
 import PageDataForm from '@/components/PageDataForm';
 import clsx from 'clsx';
 import useHidePanelClasses from '@/hooks/useHidePanelClasses';
-import { Outlet } from 'react-router-dom';
+import { Outlet, useParams } from 'react-router-dom';
+import { useAppDispatch } from '@/app/hooks';
+import { setCurrentComponent } from '@/features/form/formStateSlice';
 
 interface ContextualPanelProps {}
 
 const ContextualPanel: React.FC<ContextualPanelProps> = () => {
-  const selectedComponent = useAppSelector(selectSelectedComponent);
+  const { componentId: selectedComponent } = useParams();
+  const dispatch = useAppDispatch();
+
   const [activePanel, setActivePanel] = useState('pageData');
   const offRightClasses = useHidePanelClasses('right');
 
   useEffect(() => {
     if (selectedComponent) {
+      dispatch(setCurrentComponent(selectedComponent));
       setActivePanel('settings');
     } else {
+      dispatch(setCurrentComponent(''));
       setActivePanel('pageData');
     }
-  }, [selectedComponent]);
+  }, [dispatch, selectedComponent]);
 
   return (
     <Panel

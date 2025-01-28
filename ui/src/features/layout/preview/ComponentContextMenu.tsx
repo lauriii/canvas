@@ -5,10 +5,7 @@ import { ContextMenu } from '@radix-ui/themes';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import {
   selectCanvasViewPort,
-  selectSelectedComponent,
-  setSelectedComponent,
   unsetHoveredComponent,
-  unsetSelectedComponent,
 } from '@/features/ui/uiSlice';
 import type { ComponentNode } from '@/features/layout/layoutModelSlice';
 import {
@@ -19,6 +16,8 @@ import {
 import { setDialogOpen } from '@/features/ui/dialogSlice';
 import useGetComponentName from '@/hooks/useGetComponentName';
 import ComponentContextMenuRegions from '@/features/layout/preview/ComponentContextMenuRegions';
+import { useNavigationUtils } from '@/hooks/useNavigationUtils';
+import { useParams } from 'react-router-dom';
 
 interface ComponentContextMenuProps {
   children: ReactNode;
@@ -30,23 +29,24 @@ const ComponentContextMenu: React.FC<ComponentContextMenuProps> = (props) => {
   const dispatch = useAppDispatch();
   const componentName = useGetComponentName(component);
   const canvasViewPort = useAppSelector(selectCanvasViewPort);
-  const selectedComponent = useAppSelector(selectSelectedComponent);
+  const { componentId: selectedComponent } = useParams();
+  const { setSelectedComponent, unsetSelectedComponent } = useNavigationUtils();
   const componentUuid = component.uuid;
 
   const handleDeleteClick = useCallback(() => {
     if (componentUuid) {
       dispatch(deleteNode(componentUuid));
-      dispatch(unsetSelectedComponent());
+      unsetSelectedComponent();
     }
     dispatch(unsetHoveredComponent());
-  }, [dispatch, componentUuid]);
+  }, [componentUuid, dispatch, unsetSelectedComponent]);
 
   const handleSelectClick = useCallback(() => {
     dispatch(unsetHoveredComponent());
     if (componentUuid) {
-      dispatch(setSelectedComponent(componentUuid));
+      setSelectedComponent(componentUuid);
     }
-  }, [dispatch, componentUuid]);
+  }, [dispatch, componentUuid, setSelectedComponent]);
 
   const handleDuplicateClick = useCallback(() => {
     dispatch(unsetHoveredComponent());
@@ -72,11 +72,11 @@ const ComponentContextMenu: React.FC<ComponentContextMenuProps> = (props) => {
     (e: React.MouseEvent<HTMLElement>) => {
       e.stopPropagation();
       if (componentUuid !== selectedComponent) {
-        dispatch(setSelectedComponent(componentUuid));
+        setSelectedComponent(componentUuid);
       }
       dispatch(setDialogOpen('saveAsSection'));
     },
-    [componentUuid, dispatch, selectedComponent],
+    [componentUuid, dispatch, selectedComponent, setSelectedComponent],
   );
 
   const closeContextMenu = () => {

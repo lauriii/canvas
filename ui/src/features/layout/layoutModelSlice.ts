@@ -1,6 +1,5 @@
 // cspell:ignore uuidv
 import type { AppDispatch, RootState } from '@/app/store';
-import { setSelectedComponent } from '@/features/ui/uiSlice';
 import type { Component } from '@/types/Component';
 import type { UUID } from '@/types/UUID';
 import type { PayloadAction } from '@reduxjs/toolkit';
@@ -359,7 +358,8 @@ export const layoutModelSlice = createSlice({
 });
 
 export const addNewComponentToLayout =
-  (payload: AddNewNodePayload) => (dispatch: AppDispatch) => {
+  (payload: AddNewNodePayload, setSelectedComponent: Function) =>
+  (dispatch: AppDispatch) => {
     if (!payload.to || !payload.component) {
       return;
     }
@@ -411,11 +411,12 @@ export const addNewComponentToLayout =
         useUUID: uuid,
       }),
     );
-    dispatch(setSelectedComponent(uuid));
+    setSelectedComponent(uuid);
   };
 
 export const addNewSectionToLayout =
-  (payload: AddNewSectionPayload) => (dispatch: AppDispatch) => {
+  (payload: AddNewSectionPayload, setSelectedComponent: Function) =>
+  (dispatch: AppDispatch) => {
     const uuid = uuidv4();
 
     const { to, layoutModel } = payload;
@@ -431,7 +432,7 @@ export const addNewSectionToLayout =
         useUUID: uuid,
       }),
     );
-    dispatch(setSelectedComponent(uuid));
+    setSelectedComponent(uuid);
   };
 
 // Action creators are generated for each case reducer function.

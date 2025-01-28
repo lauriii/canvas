@@ -15,24 +15,11 @@ import type { EnhancedStore } from '@reduxjs/toolkit';
 import '@/styles/radix-themes';
 import '@/styles/index.css';
 
-interface XbSettings {
-  path: { baseUrl: string };
-  xb: {
-    base: string;
-    entityType: string;
-    entity: string;
-  };
-}
-
 interface ProviderComponentProps {
   store: EnhancedStore;
 }
 
-interface XbGlobals {
-  drupalSettings?: XbSettings;
-}
-
-const { drupalSettings } = window as XbGlobals;
+const { drupalSettings } = window;
 const { Drupal } = window as any;
 
 const container = document.getElementById('experience-builder');

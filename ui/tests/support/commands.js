@@ -932,3 +932,38 @@ Cypress.Commands.add('editHeroComponent', () => {
     newValues['CTA 2 text'],
   );
 });
+
+Cypress.Commands.add('expandComponentLayer', (componentName) => {
+  cy.get('.primaryPanelContent').as('layersTree');
+  // Open the component in the Tree of layers.
+  cy.get('@layersTree')
+    .findByLabelText(componentName)
+    .findByLabelText('Expand component tree')
+    .click();
+});
+
+Cypress.Commands.add('expandSlotLayer', (slotName) => {
+  cy.get('.primaryPanelContent').as('layersTree');
+  // Open the slot in the Tree of layers.
+  cy.get('@layersTree')
+    .findAllByLabelText(slotName)
+    .first()
+    .findByLabelText('Expand slot')
+    .click();
+});
+Cypress.Commands.add('focusRegion', (regionName) => {
+  cy.get('.primaryPanelContent').as('layersTree');
+  // Focus the region
+  cy.get('@layersTree').findByText(regionName).dblclick();
+});
+Cypress.Commands.add('returnToContentRegion', () => {
+  cy.findByTestId('xb-topbar')
+    .findByLabelText('Back to Content region')
+    .click();
+});
+Cypress.Commands.add('sendComponentToRegion', (componentName, regionName) => {
+  cy.get('@layersTree').findByText(componentName).trigger('contextmenu');
+  cy.findByText('Move to global region').click();
+
+  cy.findByText(regionName, { selector: '[role="menuitem"]' }).click();
+});

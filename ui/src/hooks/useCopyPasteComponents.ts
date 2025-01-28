@@ -1,9 +1,5 @@
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import {
-  selectSelectedComponent,
-  setSelectedComponent,
-} from '@/features/ui/uiSlice';
-import {
   findComponentByUuid,
   findNodePathByUuid,
   recurseNodes,
@@ -18,6 +14,8 @@ import {
   selectModel,
 } from '@/features/layout/layoutModelSlice';
 import { v4 as uuidv4 } from 'uuid';
+import { useNavigationUtils } from '@/hooks/useNavigationUtils';
+import { useParams } from 'react-router-dom';
 
 interface CopyPasteFunctions {
   copySelectedComponent: () => void;
@@ -25,9 +23,10 @@ interface CopyPasteFunctions {
 }
 function useCopyPasteComponents(): CopyPasteFunctions {
   const dispatch = useAppDispatch();
-  const selectedComponent = useAppSelector(selectSelectedComponent);
+  const { componentId: selectedComponent } = useParams();
   const model = useAppSelector(selectModel);
   const layout = useAppSelector(selectLayout);
+  const { setSelectedComponent } = useNavigationUtils();
   const copySelectedComponent = () => {
     if (selectedComponent) {
       const copiedComponent = findComponentByUuid(layout, selectedComponent);
@@ -81,7 +80,7 @@ function useCopyPasteComponents(): CopyPasteFunctions {
         useUUID: assignedUUID,
       }),
     );
-    dispatch(setSelectedComponent(assignedUUID));
+    setSelectedComponent(assignedUUID);
   };
 
   return { pasteAfterSelectedComponent, copySelectedComponent };

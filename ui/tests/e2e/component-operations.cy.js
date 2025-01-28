@@ -283,9 +283,11 @@ describe('Perform CRUD operations on components', () => {
     cy.openLayersPanel();
     cy.findByTestId('xb-primary-panel').within(() => {
       cy.findAllByText('Two Column').should('have.length', 1);
-      cy.findAllByText('Two Column')
-        .parents('.treeItem')
-        .should('have.attr', 'data-xb-selected', 'true');
+      cy.findAllByLabelText('Two Column').should(
+        'have.attr',
+        'data-xb-selected',
+        'true',
+      );
     });
   });
 

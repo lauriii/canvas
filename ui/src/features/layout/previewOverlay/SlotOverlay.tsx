@@ -1,12 +1,10 @@
 import type React from 'react';
-import { useContext } from 'react';
 import { useEffect, useRef, useState, useMemo } from 'react';
 import styles from './PreviewOverlay.module.css';
 import { useAppSelector } from '@/app/hooks';
 import {
   selectCanvasViewPortScale,
   selectHoveredComponent,
-  selectSelectedComponent,
   selectTargetSlot,
 } from '@/features/ui/uiSlice';
 import clsx from 'clsx';
@@ -19,7 +17,8 @@ import type {
 import { getDistanceBetweenElements } from '@/utils/function-utils';
 import useGetComponentName from '@/hooks/useGetComponentName';
 import useSyncPreviewElementSize from '@/hooks/useSyncPreviewElementSize';
-import ComponentHtmlMapContext from '@/features/layout/preview/ComponentHtmlMapContext';
+import { useDataToHtmlMapValue } from '@/features/layout/preview/DataToHtmlMapContext';
+import { useParams } from 'react-router-dom';
 
 export interface SlotOverlayProps {
   slot: SlotNode;
@@ -29,7 +28,7 @@ export interface SlotOverlayProps {
 
 const SlotOverlay: React.FC<SlotOverlayProps> = (props) => {
   const { slot, parentComponent, iframeRef } = props;
-  const { slotsMap, componentsMap } = useContext(ComponentHtmlMapContext);
+  const { componentsMap, slotsMap } = useDataToHtmlMapValue();
   const slotId = slot.id;
   const slotElementArray = useMemo(() => {
     const element = slotsMap[slot.id]?.element;
@@ -42,7 +41,7 @@ const SlotOverlay: React.FC<SlotOverlayProps> = (props) => {
     paddingTop: '0px',
     paddingBottom: '0px',
   });
-  const selectedComponent = useAppSelector(selectSelectedComponent);
+  const { componentId: selectedComponent } = useParams();
   const hoveredComponent = useAppSelector(selectHoveredComponent);
   const targetSlot = useAppSelector(selectTargetSlot);
   const canvasViewPortScale = useAppSelector(selectCanvasViewPortScale);
@@ -101,7 +100,7 @@ const SlotOverlay: React.FC<SlotOverlayProps> = (props) => {
         left: elementOffset.horizontalDistance * canvasViewPortScale,
       }}
     >
-      {targetSlot === slotId && (
+      {(targetSlot === slotId || hoveredComponent === slotId) && (
         <div
           ref={nameTagElRef}
           className={clsx(styles.xbNameTag, styles.xbNameTagSlot)}

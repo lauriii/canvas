@@ -10,24 +10,8 @@ import type {
 interface ComponentPreviewProps {
   componentListItem: ComponentListItem | SectionListItem;
 }
-interface XbGlobals {
-  drupalSettings?: {
-    xb: {
-      base: string;
-      entityType: string;
-      entity: string;
-      global_assets: {
-        css: string;
-        js_header: string;
-        js_footer: string;
-      };
-    };
-    path: {
-      baseUrl: string;
-    };
-  };
-}
-const { drupalSettings } = window as XbGlobals;
+
+const { drupalSettings } = window;
 
 const ComponentPreview: React.FC<ComponentPreviewProps> = ({
   componentListItem,
@@ -68,7 +52,7 @@ const ComponentPreview: React.FC<ComponentPreviewProps> = ({
 			    overflow: hidden;
 			    display: inline-block;
 			    min-width: 120px;
-			    
+
 			    &.empty {
                   min-height: 100px;
                   background-color: #DDD;

@@ -35,7 +35,7 @@ const useSortable = () => {
         // Moving a node from one parent to another
         const receivingParentPath = findNodePathByUuid(
           layout,
-          ev.to.dataset.xbUuid,
+          ev.to.dataset.xbSlotId,
         );
         if (receivingParentPath) {
           const newPath: number[] = [

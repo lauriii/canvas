@@ -1,5 +1,5 @@
 import type React from 'react';
-import { useEffect, useContext, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import styles from './PreviewOverlay.module.css';
 import useSyncPreviewElementSize from '@/hooks/useSyncPreviewElementSize';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
@@ -8,9 +8,7 @@ import {
   selectDragging,
   setPreviewDragging,
   selectHoveredComponent,
-  selectSelectedComponent,
   setHoveredComponent,
-  setSelectedComponent,
   unsetHoveredComponent,
 } from '@/features/ui/uiSlice';
 import clsx from 'clsx';
@@ -32,7 +30,9 @@ import type {
 import ComponentContextMenu from '@/features/layout/preview/ComponentContextMenu';
 import { getDistanceBetweenElements } from '@/utils/function-utils';
 import useGetComponentName from '@/hooks/useGetComponentName';
-import ComponentHtmlMapContext from '@/features/layout/preview/ComponentHtmlMapContext';
+import { useDataToHtmlMapValue } from '@/features/layout/preview/DataToHtmlMapContext';
+import { useNavigationUtils } from '@/hooks/useNavigationUtils';
+import { useParams } from 'react-router-dom';
 
 export interface ComponentOverlayProps {
   component: ComponentNode;
@@ -93,7 +93,7 @@ function moveDomElements(
 
 const ComponentOverlay: React.FC<ComponentOverlayProps> = (props) => {
   const { component, parentSlot, parentRegion, iframeRef } = props;
-  const { slotsMap, componentsMap } = useContext(ComponentHtmlMapContext);
+  const { componentsMap, slotsMap, regionsMap } = useDataToHtmlMapValue();
   const rect = useSyncPreviewElementSize(
     componentsMap[component.uuid]?.elements,
   );
@@ -102,10 +102,11 @@ const ComponentOverlay: React.FC<ComponentOverlayProps> = (props) => {
     verticalDistance: 0,
   });
   const [initialized, setInitialized] = useState(false);
-  const selectedComponent = useAppSelector(selectSelectedComponent);
+  const { componentId: selectedComponent } = useParams();
   const hoveredComponent = useAppSelector(selectHoveredComponent);
   const canvasViewPortScale = useAppSelector(selectCanvasViewPortScale);
   const dispatch = useAppDispatch();
+  const { setSelectedComponent } = useNavigationUtils();
   const nameTagElRef = useRef<HTMLDivElement | null>(null);
   const { isDragging } = useAppSelector(selectDragging);
   const sortableContainerRef = useRef<HTMLDivElement | null>(null);
@@ -123,9 +124,7 @@ const ComponentOverlay: React.FC<ComponentOverlayProps> = (props) => {
 
     let parentElementInsideIframe = null;
     if (parentRegion?.id) {
-      parentElementInsideIframe = iframeDocument.querySelector(
-        `[data-xb-region="${parentRegion.id}"]`,
-      );
+      parentElementInsideIframe = regionsMap[parentRegion.id]?.element;
     }
     if (parentSlot?.id) {
       parentElementInsideIframe = slotsMap[parentSlot.id].element;
@@ -151,11 +150,12 @@ const ComponentOverlay: React.FC<ComponentOverlayProps> = (props) => {
     iframeRef,
     parentSlot?.id,
     parentRegion?.id,
+    regionsMap,
   ]);
 
   function handleComponentClick(event: React.MouseEvent<HTMLElement>) {
     event.stopPropagation();
-    dispatch(setSelectedComponent(component.uuid));
+    setSelectedComponent(component.uuid);
   }
 
   function handleItemMouseOver(event: React.MouseEvent<HTMLDivElement>) {
@@ -172,7 +172,7 @@ const ComponentOverlay: React.FC<ComponentOverlayProps> = (props) => {
     if (event.key === 'Enter' || event.key === ' ') {
       event.preventDefault(); // Prevents scrolling when space is pressed
       event.stopPropagation(); // Prevents key firing on a parent component
-      dispatch(setSelectedComponent(component.uuid));
+      setSelectedComponent(component.uuid);
     }
   }
 

@@ -26,15 +26,13 @@ describe('Drag and drop functionality in the Layers menu', () => {
 
     // Open the layers in the Tree.
     cy.get('@layersTree')
-      .findByText('Two Column')
-      .parents('.treeItem')
+      .findByLabelText('Two Column')
       .findByLabelText('Expand component tree')
       .click();
     cy.get('@layersTree')
-      .findAllByText('Column One')
+      .findAllByLabelText('Column One')
       .first()
-      .parents('.treeItem')
-      .findByLabelText('Expand component tree')
+      .findByLabelText('Expand slot')
       .click();
     cy.get('@layersTree').findAllByText('Image').should('be.visible');
     cy.get('@layersTree').findAllByText('Hero').should('be.visible');
@@ -67,12 +65,11 @@ describe('Drag and drop functionality in the Layers menu', () => {
     cy.get('@layersTree').within(() => {
       cy.findAllByText('Column One')
         .first()
-        .closest('.xb--collapsible-root')
         .within(() => {
           cy.findAllByText('Image').should('not.exist');
         });
       cy.checkSiblings(
-        cy.findByLabelText('Two Column').parents('.xb--collapsible-root'),
+        cy.findByLabelText('Two Column'),
         cy.findByLabelText('Image'),
       );
     });
@@ -96,20 +93,20 @@ describe('Drag and drop functionality in the Layers menu', () => {
     assertInitialPageState();
 
     cy.log('Drag image component out of the slot and to the root level.');
-    cy.get('.treeItem[data-xb-uuid="static-image-udf7d"]').realDnd(
-      '.rootDropZone[data-xb-type="region"][data-xb-uuid="content"]',
-      { position: 'top' },
-    );
+    cy.get('@layersTree').within(() => {
+      cy.findByLabelText('Image').realDnd('[data-xb-slot-id="content"]', {
+        position: 'top',
+      });
+    });
 
     assertPageStateAfterFirstDrag();
 
     // Next, drag the image component from the root level to column two's slot.
     cy.get('@layersTree').within(() => {
-      cy.findAllByText('Column Two')
-        .parents('.treeItem')
-        .findByLabelText('Expand component tree')
+      cy.findAllByLabelText('Column Two')
+        .findByLabelText('Expand slot')
         .click();
-      cy.get('.treeItem[data-xb-uuid="static-image-udf7d"]').realDnd(
+      cy.findByLabelText('Image').realDnd(
         '[data-xb-uuid="static-static-card2df"]',
         { position: 'bottom' },
       );
@@ -118,11 +115,9 @@ describe('Drag and drop functionality in the Layers menu', () => {
     // After dragging, check that the image is now in column two's slot in the layers menu and preview.
     cy.log('Image component exists in the second slot in the layers panel');
     cy.get('@layersTree').within(() => {
-      cy.findAllByText('Column Two')
-        .closest('.xb--collapsible-root')
-        .within(() => {
-          cy.findAllByText('Image');
-        });
+      cy.findAllByLabelText('Column Two').within(() => {
+        cy.findAllByLabelText('Image');
+      });
       // Ensure there is only one Image and we didn't clone it or anything!
       cy.findAllByLabelText('Image').should('have.length', 1);
     });
@@ -142,10 +137,11 @@ describe('Drag and drop functionality in the Layers menu', () => {
     assertInitialPageState();
 
     cy.log('Drag image component out of the slot and to the root level.');
-    cy.get('.treeItem[data-xb-uuid="static-image-udf7d"]').realDnd(
-      '.rootDropZone[data-xb-type="region"][data-xb-uuid="content"]',
-      { position: 'top' },
-    );
+    cy.get('@layersTree').within(() => {
+      cy.findByLabelText('Image').realDnd('[data-xb-slot-id="content"]', {
+        position: 'top',
+      });
+    });
     assertPageStateAfterFirstDrag();
 
     // Hit the undo button.

@@ -47,6 +47,7 @@ describe('Block form', () => {
   });
 
   it('Block settings form values are stored and the preview is updated', () => {
+    cy.focusRegion('Header');
     cy.clickComponentInPreview('Site branding block', 0, 'lg', 'header');
     cy.waitForElementContentInIframe('div.site-branding__inner', 'Drupal');
 
@@ -68,12 +69,8 @@ describe('Block form', () => {
     cy.get('@siteName').toggleToggle();
 
     // Now move this component to the content region so it is stored in the node.
-    cy.findByTestId('xb-primary-panel').as('layersTree');
-    cy.get('@layersTree')
-      .findByText('Site branding block')
-      .trigger('contextmenu');
-    cy.findByText('Move to global region').click();
-    cy.findByText('Content', { selector: '[role="menuitem"]' }).click();
+    cy.sendComponentToRegion('Site branding block', 'Content');
+    cy.returnToContentRegion();
 
     // The component should now be in the content region.
     cy.getComponentInPreview('Site branding block').should('exist');
@@ -83,7 +80,9 @@ describe('Block form', () => {
     cy.findByTestId('xb-topbar').findByText('Publish').should('exist').click();
     // Add logged output of any validation errors.
     cy.wait('@publish').then(console.log);
-    cy.findByTestId('xb-topbar').findByText('Published').should('exist');
+    cy.findByTestId('xb-topbar')
+      .findByText('Published', { selector: 'button' })
+      .should('exist');
 
     // Reload the page to confirm the component has been added.
     cy.loadURLandWaitForXBLoaded({ url: 'xb/node/3' });

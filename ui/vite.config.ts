@@ -11,10 +11,7 @@ export default defineConfig(({ command, mode }) => {
     define: {
       __APP_ENV__: JSON.stringify(env.APP_ENV),
     },
-    plugins: [
-      react(),
-      svgr(),
-    ],
+    plugins: [react(), svgr()],
     server: {
       // open: true,
       fs: {

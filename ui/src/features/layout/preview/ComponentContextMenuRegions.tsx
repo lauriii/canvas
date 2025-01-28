@@ -52,6 +52,7 @@ const ComponentContextMenuRegions: React.FC<CCMRProps> = (props) => {
       <ContextMenu.SubContent>
         {layout.map((region, ix) => (
           <ContextMenu.Item
+            key={region.id}
             onClick={() => handleMoveClick(ix, region)}
             disabled={region.id === parentRegion?.id}
           >

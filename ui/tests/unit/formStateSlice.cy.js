@@ -5,10 +5,10 @@ import {
   setFieldValue,
   clearFieldValues,
   clearFieldError,
+  setCurrentComponent,
 } from '@/features/form/formStateSlice';
 
 import { makeStore } from '@/app/store';
-import { setSelectedComponent } from '@/features/ui/uiSlice';
 
 const formId = 'component_inputs_form';
 const fieldName = 'b741';
@@ -99,7 +99,7 @@ describe('Form state slice 🔪', () => {
     expect(store.getState().formState.component_inputs_form.values).to.deep.eq({
       b741: "Okay, let's ride",
     });
-    store.dispatch(setSelectedComponent('clench-the-moment'));
+    store.dispatch(setCurrentComponent('clench-the-moment'));
     expect(store.getState().formState.component_inputs_form.values).to.deep.eq(
       {},
     );

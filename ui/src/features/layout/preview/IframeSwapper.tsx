@@ -102,6 +102,7 @@ const IFrameSwapper = forwardRef<HTMLIFrameElement, IFrameSwapperProps>(
           data-xb-swap-active={whichActive === 0 ? 'true' : 'false'}
           title={whichActive === 0 ? 'Preview' : 'Inactive preview'}
           data-xb-iframe="A"
+          scrolling="no"
           {...commonIFrameProps}
         ></iframe>
         <iframe
@@ -110,6 +111,7 @@ const IFrameSwapper = forwardRef<HTMLIFrameElement, IFrameSwapperProps>(
           data-xb-swap-active={whichActive === 1 ? 'true' : 'false'}
           title={whichActive === 1 ? 'Preview' : 'Inactive preview'}
           data-xb-iframe="B"
+          scrolling="no"
           {...commonIFrameProps}
         ></iframe>
       </>

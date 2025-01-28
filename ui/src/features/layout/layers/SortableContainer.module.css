@@ -1,0 +1,40 @@
+/* !important is needed here to override SortableJS styles. */
+.xbCustomGhost {
+  /* To ensure the absolutely positioned ghost is indented correctly it must be indented
+  by the sum of 2 icons, their spacing and the indent-depth */
+  --icon-width-indent: var(--space-4);
+  --icon-padding-indent: var(--space-2);
+  --icon-padding-indent-sm: var(--space-1);
+
+  position: absolute !important;
+  z-index: 1 !important;
+  right: var(--space-1) !important;
+  left: calc((var(--indent-depth) * var(--space-2)) + var(--icon-width-indent) + var(--icon-padding-indent-sm) + var(--icon-width-indent) + var(--icon-padding-indent));
+  height: 2px !important;
+  margin-left: var(--space-2) !important;
+  padding: 0 !important;
+  outline: 1px solid #fff !important;
+  background-color: var(--blue-9) !important;
+  & * {
+    visibility: hidden !important;
+  }
+}
+
+.xbSortableContainer {
+  min-height: var(--space-2);
+}
+
+/* !important is needed here to override SortableJS styles. */
+.xbCustomClone {
+  display: block !important;
+  opacity: 0.6 !important;
+}
+
+/* Provide "space" for SortableJS at the top and bottom as drop targets. */
+.slotDropZone {
+  margin: -20px 0;
+  padding: 20px 0;
+}
+.treeItem.dragging .selected {
+  font-size: 20px;
+}

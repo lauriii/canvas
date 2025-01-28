@@ -6,16 +6,15 @@ import hyperscriptify from '@/local_packages/hyperscriptify';
 import twigToJSXComponentMap from '@/components/form/twig-to-jsx-component-map';
 import propsify from '@/local_packages/hyperscriptify/propsify/standard/index.js';
 import parseHyperscriptifyTemplate from '@/utils/parse-hyperscriptify-template';
-import { useAppSelector } from '@/app/hooks';
+import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import type { RegionNode } from '@/features/layout/layoutModelSlice';
 import { selectModel, selectLayout } from '@/features/layout/layoutModelSlice';
-import {
-  selectSelectedComponent,
-  selectLatestUndoRedoActionId,
-} from '@/features/ui/uiSlice';
+import { selectLatestUndoRedoActionId } from '@/features/ui/uiSlice';
 import { useGetComponentsQuery } from '@/services/components';
 import { findComponentByUuid } from '@/features/layout/layoutUtils';
 import { useDrupalBehaviors } from '@/hooks/useDrupalBehaviors';
+import { useParams } from 'react-router-dom';
+import { clearFieldValues } from '@/features/form/formStateSlice';
 import type { FieldData } from '@/types/Component';
 
 interface PropData {
@@ -38,7 +37,7 @@ const DummyPropsEditFormRenderer: React.FC<DummyPropsEditFormRendererProps> = (
   const { dynamicStaticCardQueryString } = props;
   const { currentData, error, originalArgs, isFetching } =
     useGetDummyPropsFormQuery(dynamicStaticCardQueryString);
-  const selectedComponent = useAppSelector(selectSelectedComponent);
+  const { componentId: selectedComponent } = useParams();
   const { showBoundary } = useErrorBoundary();
 
   const [jsxFormContent, setJsxFormContent] =
@@ -118,17 +117,22 @@ const DummyPropsEditFormRenderer: React.FC<DummyPropsEditFormRendererProps> = (
 };
 
 const DummyPropsEditForm: React.FC<DummyPropsEditFormProps> = () => {
+  const dispatch = useAppDispatch();
   const model = useAppSelector(selectModel);
   const layout = useAppSelector(selectLayout);
   const { data: components, error } = useGetComponentsQuery();
   const { showBoundary } = useErrorBoundary();
-  const selectedComponent = useAppSelector(selectSelectedComponent);
+  const { componentId: selectedComponent } = useParams();
   const latestUndoRedoActionId = useAppSelector(selectLatestUndoRedoActionId);
 
   const [dynamicStaticCardQueryString, setDynamicStaticCardQueryString] =
     useState('');
   const [emptyProp, setEmptyProp] = useState(false);
   const [componentSource, setComponentSource] = useState('');
+
+  useEffect(() => {
+    dispatch(clearFieldValues('component_inputs_form'));
+  }, [dispatch, selectedComponent]);
 
   useEffect(() => {
     if (error) {

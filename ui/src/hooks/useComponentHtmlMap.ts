@@ -1,19 +1,18 @@
-import { useEffect, useState } from 'react';
-import type { ComponentsMap, SlotsMap } from '@/types/AnnotationMaps';
-import { mapComponents, mapSlots } from '@/utils/function-utils';
+import { useEffect } from 'react';
+import { mapComponents, mapRegions, mapSlots } from '@/utils/function-utils';
+import { useDataToHtmlMapUpdater } from '@/features/layout/preview/DataToHtmlMapContext';
 
 export function useComponentHtmlMap(iframe: HTMLIFrameElement | null) {
-  const [componentsMap, setComponentsMap] = useState<ComponentsMap>({});
-  const [slotsMap, setSlotsMap] = useState<SlotsMap>({});
+  const { updateRegionsMap, updateComponentsMap, updateSlotsMap } =
+    useDataToHtmlMapUpdater();
 
   useEffect(() => {
     const iframeDocument = iframe?.contentDocument;
     if (!iframeDocument) {
       return;
     }
-    setSlotsMap(mapSlots(iframeDocument));
-    setComponentsMap(mapComponents(iframeDocument));
-  }, [iframe]);
-
-  return { componentsMap, slotsMap };
+    updateRegionsMap(mapRegions(iframeDocument));
+    updateComponentsMap(mapComponents(iframeDocument));
+    updateSlotsMap(mapSlots(iframeDocument));
+  }, [iframe, updateComponentsMap, updateRegionsMap, updateSlotsMap]);
 }

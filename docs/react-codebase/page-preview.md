@@ -16,7 +16,7 @@ Preview.tsx
       ├─ <iframe[data-xb-iframe="A">
       ├─ <iframe[data-xb-iframe="B"]>
    ├─ ViewportOverlay.tsx
-      ├─ RootCanvasOverlay.tsx
+      ├─ regionOverlay.tsx
          ├─ ComponentOverlay.tsx // a nested structure of Components and Slots matching the layout/structure of the page.
             ├─ SlotOverlay.tsx
 ```

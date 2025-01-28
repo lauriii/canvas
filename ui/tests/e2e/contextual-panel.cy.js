@@ -36,7 +36,7 @@ describe('Contextual panel', () => {
     // Wait for the preview iframe to load and render something that confirms it is ready.
     cy.get('iframe[data-xb-preview]').should('exist');
     // Right-click on the element in primary content menu that should trigger the context menu.
-    cy.get('[data-xb-uuid="content"]')
+    cy.get('.primaryPanelContent')
       .findByText('Two Column')
       .first()
       .trigger('contextmenu');
@@ -52,9 +52,7 @@ describe('Contextual panel', () => {
       cy.findByText('Move').should('be.visible');
       cy.findByText('Delete').click();
     });
-    cy.get('[data-xb-uuid="content"]')
-      .findByText('Two Column')
-      .should('not.exist');
+    cy.get('.primaryPanelContent').findByText('Two Column').should('not.exist');
   });
 
   it('should duplicate the element on clicking the "Duplicate" button', () => {

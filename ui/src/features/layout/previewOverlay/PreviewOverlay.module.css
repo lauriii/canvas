@@ -16,22 +16,25 @@
   position: absolute;
   transition: opacity 0.1s ease-in-out;
   opacity: 1;
+
   &.isPanning {
     transition: none;
     opacity: 0;
   }
 }
 
-.rootCanvasOverlay {
+.regionOverlay {
   position: absolute;
+
   &.dropTarget::before {
     position: absolute;
+    display: block;
     content: "";
     pointer-events: none;
     outline: 1px dashed var(--color-outline-root);
-    /* Offset extra drop target spacing added in ui/assets/css/preview.css. */
-    inset: var(--drop-target-spacing) 0;
+    inset: var(--drop-target-spacing) 0; /* Offset extra drop target spacing added in ui/assets/css/preview.css. */
   }
+
   &.dropTarget .xbNameTagSlot {
     top: calc(var(--name-tag-vertical-offset) + var(--drop-target-spacing));
     display: block;
@@ -40,15 +43,19 @@
 
 .componentOverlay {
   position: absolute;
+
   > span {
     display: none;
   }
+
   &.selected {
     outline: 1px dashed var(--blue-9);
   }
+
   &.hovered {
     outline: 1px solid var(--blue-9);
   }
+
   &.selected:not(.dragging),
   &.hovered:not(.dragging),
   &:focus-visible:not(.dragging) {
@@ -56,22 +63,38 @@
       display: block;
     }
   }
+
   &.dragging {
     outline: none;
+
     .xbNameTag,
     .xbAddSectionButton {
       display: none;
     }
+
     .xbNameTagSlot {
       display: block;
     }
   }
 }
+
 .slotOverlay {
   position: absolute;
+
   &.dropTarget {
     outline: 1px dashed var(--color-outline-slot);
     outline-offset: -1px;
+  }
+
+  &.hovered {
+    outline: 1px solid var(--purple-9);
+  }
+
+  &.hovered:not(.dragging),
+  &:focus-visible:not(.dragging) {
+    > .xbNameTag {
+      display: block;
+    }
   }
 }
 
@@ -85,6 +108,7 @@
   white-space: nowrap;
   opacity: 1;
 }
+
 .xbNameTag {
   position: absolute;
   z-index: 2;
@@ -92,6 +116,7 @@
   display: none;
   opacity: 1;
 }
+
 .sortableItem {
   width: 100%;
   height: 100%;

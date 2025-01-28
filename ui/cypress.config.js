@@ -31,6 +31,7 @@ const getCoreDir = () => {
 
 export default defineConfig({
   chromeWebSecurity: false,
+  // watchForFileChanges: false,
   env: {
     baseUrl: process.env.BASE_URL,
     dbUrl: process.env.DB_URL,

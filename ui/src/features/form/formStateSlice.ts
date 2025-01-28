@@ -11,11 +11,15 @@ export interface FormState {
   errors: Record<string, InputMessage>;
 }
 
-export interface FormStateSliceState {
+export interface FormStateSliceFormsState {
   component_inputs_form: FormState;
   // @todo Remove in https://www.drupal.org/project/experience_builder/issues/3500152
   block_form: FormState;
   page_data_form: FormState;
+}
+
+export interface FormStateSliceState extends FormStateSliceFormsState {
+  currentComponent: string | undefined;
 }
 
 const emptyFormState = {
@@ -24,12 +28,15 @@ const emptyFormState = {
 };
 
 export const initialState: FormStateSliceState = {
+  currentComponent: undefined,
   component_inputs_form: emptyFormState,
   block_form: emptyFormState,
   page_data_form: emptyFormState,
 };
 
-export type FormId = keyof FormStateSliceState;
+type ComponentId = string;
+
+export type FormId = keyof FormStateSliceFormsState;
 
 type SetFieldErrorPayload = {
   formId: FormId;
@@ -53,6 +60,14 @@ export const formStateSlice = createSlice({
   name: 'formState',
   initialState,
   reducers: (create) => ({
+    setCurrentComponent: create.reducer(
+      (state, action: PayloadAction<ComponentId>) => ({
+        ...state,
+        currentComponent: action.payload,
+        component_inputs_form: { errors: {}, values: {} },
+        block_form: { errors: {}, values: {} },
+      }),
+    ),
     clearFieldValues: create.reducer(
       (state, action: PayloadAction<FormId>) => ({
         ...state,
@@ -93,6 +108,9 @@ export const formStateSlice = createSlice({
       }),
     ),
   }),
+  selectors: {
+    selectCurrentComponent: (state) => state.currentComponent,
+  },
 });
 
 export interface FieldIdentifier {
@@ -125,7 +143,10 @@ export const selectFieldError = createSelector(
     formState[identifiers.formId]?.errors[identifiers.fieldName] || null,
 );
 
+export const { selectCurrentComponent } = formStateSlice.selectors;
+
 export const {
+  setCurrentComponent,
   setFieldError,
   setFieldValue,
   clearFieldError,

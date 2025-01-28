@@ -45,7 +45,6 @@ const Topbar = () => {
             {/*   https://www.drupal.org/project/experience_builder/issues/3482393 */}
             {/*<AddMenu />*/}
           </Flex>
-
           <Flex gap="5" align="center" width="full" justify="center">
             <PageInfo />
           </Flex>

@@ -1,0 +1,35 @@
+import type React from 'react';
+import { Box } from '@radix-ui/themes';
+import { useAppSelector } from '@/app/hooks';
+
+import { selectLayout } from '@/features/layout/layoutModelSlice';
+import RegionLayer from '@/features/layout/layers/RegionLayer';
+import { DEFAULT_REGION } from '@/features/ui/uiSlice';
+import { useParams } from 'react-router-dom';
+
+interface LayersProps {}
+
+const Layers: React.FC<LayersProps> = () => {
+  const regions = useAppSelector(selectLayout);
+  const { regionId: focusedRegion = DEFAULT_REGION } = useParams();
+
+  let displayedRegions = regions.filter((region) => {
+    return region.components.length > 0 || region.id === DEFAULT_REGION;
+  });
+
+  if (focusedRegion !== DEFAULT_REGION) {
+    displayedRegions = displayedRegions.filter((region) => {
+      return region.id === focusedRegion;
+    });
+  }
+
+  return (
+    <Box my="3">
+      {displayedRegions.map((region) => (
+        <RegionLayer region={region} key={region.id} />
+      ))}
+    </Box>
+  );
+};
+
+export default Layers;

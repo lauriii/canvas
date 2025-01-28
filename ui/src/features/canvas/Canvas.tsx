@@ -14,15 +14,15 @@ import {
   setCanvasViewPort,
   selectPanning,
   setIsPanning,
-  selectSelectedComponent,
   selectFirstLoadComplete,
-  unsetSelectedComponent,
   setCanvasModeEditing,
   setCanvasModeInteractive,
 } from '@/features/ui/uiSlice';
 import PreviewOverlay from '@/features/layout/previewOverlay/PreviewOverlay';
 import { deleteNode } from '../layout/layoutModelSlice';
 import useCopyPasteComponents from '@/hooks/useCopyPasteComponents';
+import { useParams } from 'react-router-dom';
+import { useNavigationUtils } from '@/hooks/useNavigationUtils';
 
 const Canvas = () => {
   const dispatch = useAppDispatch();
@@ -38,7 +38,8 @@ const Canvas = () => {
   const { isPanning } = useAppSelector(selectPanning);
   const [modifierKeyPressed, setModifierKeyPressed] = useState(false);
   const modifierKeyPressedRef = useRef(false);
-  const selectedComponent = useAppSelector(selectSelectedComponent);
+  const { componentId: selectedComponent } = useParams();
+  const { unsetSelectedComponent } = useNavigationUtils();
   const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const middleMouseDownRef = useRef(middleMouseDown);
   const { copySelectedComponent, pasteAfterSelectedComponent } =
@@ -70,7 +71,7 @@ const Canvas = () => {
   useHotkeys(['Backspace', 'Delete'], () => {
     if (selectedComponent) {
       dispatch(deleteNode(selectedComponent));
-      dispatch(unsetSelectedComponent());
+      unsetSelectedComponent();
     }
   });
   useHotkeys('mod+c', () => {

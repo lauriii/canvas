@@ -1,15 +1,5 @@
-import type {
-  Action,
-  Middleware,
-  ThunkAction,
-  TypedStartListening,
-} from '@reduxjs/toolkit';
-import { isAnyOf } from '@reduxjs/toolkit';
-import {
-  combineSlices,
-  configureStore,
-  createListenerMiddleware,
-} from '@reduxjs/toolkit';
+import type { Action, Middleware, ThunkAction } from '@reduxjs/toolkit';
+import { combineSlices, configureStore } from '@reduxjs/toolkit';
 import { setupListeners } from '@reduxjs/toolkit/query';
 import { v4 as uuidv4 } from 'uuid';
 import type { UndoRedoType } from '@/features/ui/uiSlice';
@@ -26,16 +16,8 @@ import { dummyPropsFormApi } from '@/services/dummyPropsForm';
 import { pageDataFormApi } from '@/services/pageDataForm';
 import { configurationSlice } from '@/features/configuration/configurationSlice';
 import { sectionApi } from '@/services/sections';
-import {
-  setSelectedComponent,
-  selectSelectedComponent,
-  setLatestUndoRedoActionId,
-  uiSlice,
-} from '@/features/ui/uiSlice';
-import {
-  clearFieldValues,
-  formStateSlice,
-} from '@/features/form/formStateSlice';
+import { setLatestUndoRedoActionId, uiSlice } from '@/features/ui/uiSlice';
+import { formStateSlice } from '@/features/form/formStateSlice';
 import type { UnknownAction } from 'redux';
 import { pendingChangesApi } from '@/services/pendingChangesApi';
 import { postPreviewSignalSlice } from '@/components/review/PublishReview.slice';
@@ -146,25 +128,6 @@ export const makeStore = (preloadedState?: Partial<RootState>) => {
     // Adding the api middleware enables caching, invalidation, polling,
     // and other useful features of `rtk-query`.
     middleware: (getDefaultMiddleware) => {
-      const clearFormStateComponents = createListenerMiddleware();
-      const startClearFormStateListening =
-        clearFormStateComponents.startListening as TypedStartListening<
-          RootState,
-          AppDispatch
-        >;
-      startClearFormStateListening({
-        matcher: isAnyOf(setSelectedComponent),
-        effect: (action, listenerApi) => {
-          if (
-            selectSelectedComponent(listenerApi.getOriginalState()) !==
-            action.payload
-          ) {
-            listenerApi.dispatch(clearFieldValues('component_inputs_form'));
-            // @todo Remove in www.drupal.org/project/experience_builder/issues/3500152
-            listenerApi.dispatch(clearFieldValues('block_form'));
-          }
-        },
-      });
       return getDefaultMiddleware().concat(
         componentApi.middleware,
         sectionApi.middleware,
@@ -173,7 +136,6 @@ export const makeStore = (preloadedState?: Partial<RootState>) => {
         dummyPropsFormApi.middleware,
         pageDataFormApi.middleware,
         undoRedoActionIdMiddleware,
-        clearFormStateComponents.middleware,
         pendingChangesApi.middleware,
       );
     },

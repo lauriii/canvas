@@ -4,13 +4,16 @@ import { useAppSelector } from '@/app/hooks';
 import { selectLayoutForRegion } from '@/features/layout/layoutModelSlice';
 import ComponentOverlay from '@/features/layout/previewOverlay/ComponentOverlay';
 import styles from './PreviewOverlay.module.css';
-import useSyncElementSize from '@/hooks/useSyncElementSize';
 import {
+  DEFAULT_REGION,
   selectCanvasViewPortScale,
   selectTargetSlot,
 } from '@/features/ui/uiSlice';
 import NameTag from '@/features/layout/preview/NameTag';
 import clsx from 'clsx';
+import { useDataToHtmlMapValue } from '@/features/layout/preview/DataToHtmlMapContext';
+import useSyncPreviewElementSize from '@/hooks/useSyncPreviewElementSize';
+import { useParams } from 'react-router-dom';
 
 interface RegionOverlayProps {
   iframeRef: React.RefObject<HTMLIFrameElement>;
@@ -26,22 +29,17 @@ const RegionOverlay: React.FC<RegionOverlayProps> = ({
   const layout = useAppSelector((state) =>
     selectLayoutForRegion(state, regionId),
   );
-  const rootCanvasOverlayRef = useRef(null);
-  const elementRect = useSyncElementSize(iframeRef.current, regionId);
+  const regionOverlayRef = useRef(null);
+  const { regionsMap } = useDataToHtmlMapValue();
+  const { regionId: focusedRegion = DEFAULT_REGION } = useParams();
+  const elementRect = useSyncPreviewElementSize(regionsMap[regionId]?.element);
   const canvasViewPortScale = useAppSelector(selectCanvasViewPortScale);
   const [overlayStyles, setOverlayStyles] = useState({});
   const targetSlot = useAppSelector(selectTargetSlot);
+  const disableRegion = focusedRegion !== regionId;
 
   useEffect(() => {
-    const iframeDocument = iframeRef.current?.contentDocument;
-    if (!iframeDocument) {
-      return;
-    }
-
-    const elementInsideIframe = iframeDocument.querySelector(
-      `[data-xb-region="${regionId}"]`,
-    );
-
+    const elementInsideIframe = regionsMap[regionId]?.element;
     if (!elementInsideIframe) {
       return;
     }
@@ -53,14 +51,15 @@ const RegionOverlay: React.FC<RegionOverlayProps> = ({
       height: `${elementRect.height * canvasViewPortScale}px`,
       paddingTop: `${parseFloat(computedStyle.paddingTop) * canvasViewPortScale}px`,
       paddingBottom: `${parseFloat(computedStyle.paddingBottom) * canvasViewPortScale}px`,
+      pointerEvents: disableRegion ? 'none' : 'inherit',
     });
-  }, [elementRect, canvasViewPortScale, iframeRef, regionId]);
+  }, [elementRect, canvasViewPortScale, regionId, disableRegion, regionsMap]);
 
   return (
     <div
-      ref={rootCanvasOverlayRef}
+      ref={regionOverlayRef}
       className={clsx(
-        styles.rootCanvasOverlay,
+        styles.regionOverlay,
         {
           [styles.dropTarget]: regionId === targetSlot,
         },
@@ -68,23 +67,27 @@ const RegionOverlay: React.FC<RegionOverlayProps> = ({
       )}
       style={overlayStyles}
     >
-      {layout.components.map((component) => (
-        <ComponentOverlay
-          key={component.uuid}
-          iframeRef={iframeRef}
-          component={component}
-          parentRegion={layout}
-        />
-      ))}
-      {targetSlot === regionId && (
-        <div className={clsx(styles.xbNameTag, styles.xbNameTagSlot)}>
-          <NameTag
-            name={`${regionName} region`}
-            componentUuid={regionId}
-            selected={true}
-            nodeType={'root'}
-          />
-        </div>
+      {!disableRegion && (
+        <>
+          {layout.components.map((component) => (
+            <ComponentOverlay
+              key={component.uuid}
+              iframeRef={iframeRef}
+              component={component}
+              parentRegion={layout}
+            />
+          ))}
+          {targetSlot === regionId && (
+            <div className={clsx(styles.xbNameTag, styles.xbNameTagSlot)}>
+              <NameTag
+                name={`${regionName} region`}
+                componentUuid={regionId}
+                selected={true}
+                nodeType={'root'}
+              />
+            </div>
+          )}
+        </>
       )}
     </div>
   );

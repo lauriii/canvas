@@ -9,12 +9,18 @@ import {
   selectModel,
   sortNode,
 } from '@/features/layout/layoutModelSlice';
-import { setTargetSlot, unsetTargetSlot } from '@/features/ui/uiSlice';
+import {
+  DEFAULT_REGION,
+  setTargetSlot,
+  unsetTargetSlot,
+} from '@/features/ui/uiSlice';
 import { findNodePathByUuid } from '@/features/layout/layoutUtils';
 import { useGetComponentsQuery } from '@/services/components';
 import { useGetSectionsQuery } from '@/services/sections';
-import type { SlotsMap } from '@/types/AnnotationMaps';
+import type { RegionsMap, SlotsMap } from '@/types/AnnotationMaps';
 import { insertPlaceholderIfMatchingComments } from '@/utils/function-utils';
+import { useNavigationUtils } from '@/hooks/useNavigationUtils';
+import { useParams } from 'react-router-dom';
 
 /**
  * This hook initializes the SortableJS implementation to allow for drag and drop interactions within the preview iFrames.
@@ -23,6 +29,7 @@ import { insertPlaceholderIfMatchingComments } from '@/utils/function-utils';
 function usePreviewSortable(
   iframe: HTMLIFrameElement | null,
   slotsMap: SlotsMap,
+  regionsMap: RegionsMap,
 ): {
   destroySortables: () => void;
   disableSortables: () => void;
@@ -34,10 +41,11 @@ function usePreviewSortable(
   const { data: components } = useGetComponentsQuery();
   const { data: sections } = useGetSectionsQuery();
   const modelRef = useRef(model);
-  const iframeDocumentRef = useRef<Document | null>(null);
   const componentsRef = useRef(components);
   const sectionsRef = useRef(sections);
   const sortableInstancesRef = useRef<Sortable[]>([]);
+  const { setSelectedComponent } = useNavigationUtils();
+  const { regionId: selectedRegion = DEFAULT_REGION } = useParams();
 
   const updateData = useCallback(
     (ev: Sortable.SortableEvent, sort: boolean) => {
@@ -94,50 +102,61 @@ function usePreviewSortable(
             }
 
             dispatch(
-              addNewComponentToLayout({
-                to: newPath,
-                component:
-                  componentsRef?.current?.[ev.clone.dataset.xbComponentId],
-              }),
+              addNewComponentToLayout(
+                {
+                  to: newPath,
+                  component:
+                    componentsRef?.current?.[ev.clone.dataset.xbComponentId],
+                },
+                setSelectedComponent,
+              ),
             );
           } else if (type === 'section') {
             // Adding a section template.
             ev.item.innerHTML = '<p>Loading section...</p>';
             dispatch(
-              addNewSectionToLayout({
-                to: newPath,
-                layoutModel:
-                  sectionsRef?.current?.[ev.clone.dataset.xbComponentId]
-                    .layoutModel,
-              }),
+              addNewSectionToLayout(
+                {
+                  to: newPath,
+                  layoutModel:
+                    sectionsRef?.current?.[ev.clone.dataset.xbComponentId]
+                      .layoutModel,
+                },
+                setSelectedComponent,
+              ),
             );
           }
         }
       }
     },
-    [dispatch, layout],
+    [dispatch, layout, setSelectedComponent],
   );
 
   const handleDragAdd = useCallback(
     (ev: Sortable.SortableEvent) => {
       if ('originalEvent' in ev) {
+        // @todo there is a bug here somewhere - drag and drop inside regions sometimes updates the dom but doesn't trigger
+        // the preview to re-render on the server size which gets things out of sync.
         const originalEvent: DragEvent = ev.originalEvent as DragEvent;
         // dataTransfer.dropEffect will be 'none' if the dragend event is fired by hitting escape or releasing mouse on
         // an invalid drop area. If it's 'none', remove the dropped item from the DOM and don't call updateData.
         if (originalEvent.dataTransfer?.dropEffect !== 'none') {
           updateData(ev, false);
         } else {
+          dispatch(unsetTargetSlot());
           ev.item.remove();
         }
       }
     },
-    [updateData],
+    [dispatch, updateData],
   );
 
   const handleChange = useCallback(
     (ev: Sortable.SortableEvent) => {
       if (ev.to.dataset.xbSlotId) {
         dispatch(setTargetSlot(ev.to.dataset.xbSlotId));
+      } else if (ev.to.dataset.xbRegion) {
+        dispatch(setTargetSlot(ev.to.dataset.xbRegion));
       } else {
         dispatch(unsetTargetSlot());
       }
@@ -214,31 +233,27 @@ function usePreviewSortable(
       sortableInstancesRef.current.push(sortableInstance);
     };
 
-    iframeDocumentRef.current = iframe.contentDocument;
-
-    if (!iframeDocumentRef.current) {
-      return;
-    }
-
-    // This is just the main region/content/root sortable now.
-    const sortableRegions =
-      iframeDocumentRef.current.querySelectorAll<HTMLElement>(
-        '[data-xb-region]',
-      );
-
-    const sortableSlots = Object.entries(slotsMap).map(([slotId, slot]) => {
+    const sortableSlots = Object.entries(slotsMap).map(([, slot]) => {
       return slot.element;
     });
+    const sortableRegion = regionsMap[selectedRegion]?.element;
 
-    const sortableParentElements = [
-      ...Array.from(sortableRegions),
-      ...sortableSlots,
-    ];
+    const sortableParentElements = [...sortableSlots];
+    if (sortableRegion) {
+      sortableParentElements.push(sortableRegion);
+    }
 
-    sortableParentElements.forEach((sortableList) => {
-      initSortableList(sortableList);
+    sortableParentElements.forEach((sortableEl) => {
+      initSortableList(sortableEl);
     });
-  }, [iframe, slotsMap, handleDragAdd, handleChange]);
+  }, [
+    iframe?.srcdoc,
+    slotsMap,
+    regionsMap,
+    selectedRegion,
+    handleDragAdd,
+    handleChange,
+  ]);
 
   useEffect(() => {
     modelRef.current = model;

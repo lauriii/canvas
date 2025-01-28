@@ -30,4 +30,9 @@
     flex: 0 1 67%;
     max-width: 67%;
   }
+
+  .width-75 {
+    flex: 0 1 75%;
+    max-width: 75%;
+  }
 }

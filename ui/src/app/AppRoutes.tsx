@@ -30,6 +30,14 @@ const AppRoutes: React.FC<AppRoutesInterface> = ({ basePath }) => {
             element: <Editor />,
             children: [
               {
+                path: '/editor/region/:regionId/component/:componentId',
+                element: <DummyPropsEditForm />,
+              },
+              {
+                path: '/editor/region/:regionId',
+                element: <DummyPropsEditForm />,
+              },
+              {
                 path: '/editor/component/:componentId',
                 element: <DummyPropsEditForm />,
               },

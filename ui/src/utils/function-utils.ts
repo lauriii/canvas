@@ -1,5 +1,9 @@
 import type { PropsValues } from '@/types/Form';
-import type { SlotsMap, ComponentsMap } from '@/types/AnnotationMaps';
+import type {
+  SlotsMap,
+  ComponentsMap,
+  RegionsMap,
+} from '@/types/AnnotationMaps';
 
 export function handleNonWorkingBtn(): void {
   alert('Not yet supported.');
@@ -191,6 +195,43 @@ export function mapComponents(document: Document): ComponentsMap {
   }
 
   return componentMap;
+}
+
+export function mapRegions(document: Document): RegionsMap {
+  const regionMap: RegionsMap = {};
+  // @todo #3499364 This should be using HTML comments rather than a div[data-xb-region] to denote a region in the HTML
+  document
+    .querySelectorAll<HTMLElement>('[data-xb-region]')
+    .forEach((regionEl) => {
+      if (regionEl.dataset?.xbRegion) {
+        // @todo #3499364 this can hopefully go away once regions are wrapped with HTML comments. Right now the content region
+        // has its children directly inside, all other regions contain a div.region which contains the child components.
+        if (
+          regionEl.firstElementChild &&
+          regionEl.firstElementChild.classList.contains('region')
+        ) {
+          // @todo #3499364 this is a workaround for the current way regions are wrapped.
+          regionEl.firstElementChild.setAttribute(
+            'data-xb-uuid',
+            regionEl.dataset.xbRegion,
+          );
+          regionEl.firstElementChild.setAttribute(
+            'data-xb-region',
+            regionEl.dataset.xbRegion,
+          );
+          regionMap[regionEl.dataset.xbRegion] = {
+            element: regionEl.firstElementChild as HTMLElement,
+            regionId: regionEl.dataset.xbRegion,
+          };
+        } else {
+          regionMap[regionEl.dataset.xbRegion] = {
+            element: regionEl,
+            regionId: regionEl.dataset.xbRegion,
+          };
+        }
+      }
+    });
+  return regionMap;
 }
 
 // <!-- xb-start-4737d23d-fa9a-4670-9807-ebf61e049076 -->

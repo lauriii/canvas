@@ -9,6 +9,7 @@ import {
 } from '@/features/layout/layoutModelSlice';
 import { usePostPreviewMutation } from '@/services/preview';
 import Viewport from '@/features/layout/preview/Viewport';
+import ComponentHtmlMapProvider from '@/features/layout/preview/DataToHtmlMapContext';
 import { selectPageData } from '@/features/pageData/pageDataSlice';
 
 interface PreviewProps {}
@@ -68,15 +69,16 @@ const Preview: React.FC<PreviewProps> = () => {
       {Object.keys(previewSizes).map((size) => {
         const key = size as PreviewSizeKey;
         return (
-          <Viewport
-            key={key}
-            size={key}
-            name={previewSizes[key].name}
-            height={previewSizes[key].height}
-            width={previewSizes[key].width}
-            frameSrcDoc={frameSrcDoc}
-            isFetching={isFetching}
-          />
+          <ComponentHtmlMapProvider key={key}>
+            <Viewport
+              size={key}
+              name={previewSizes[key].name}
+              height={previewSizes[key].height}
+              width={previewSizes[key].width}
+              frameSrcDoc={frameSrcDoc}
+              isFetching={isFetching}
+            />
+          </ComponentHtmlMapProvider>
         );
       })}
     </>

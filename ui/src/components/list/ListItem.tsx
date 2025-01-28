@@ -23,6 +23,7 @@ import {
 } from '@/features/layout/layoutModelSlice';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import ComponentPreview from '@/components/ComponentPreview';
+import { useNavigationUtils } from '@/hooks/useNavigationUtils';
 
 const ListItem: React.FC<{
   item: ComponentListItem | SectionListItem;
@@ -37,6 +38,7 @@ const ListItem: React.FC<{
   const [previewingComponent, setPreviewingComponent] = useState<
     ComponentListItem | SectionListItem
   >();
+  const { setSelectedComponent } = useNavigationUtils();
 
   const clickToInsertHandler = (newId: string) => {
     let path: number[] | null = [0];
@@ -63,17 +65,23 @@ const ListItem: React.FC<{
 
       if (type === 'component') {
         dispatch(
-          addNewComponentToLayout({
-            to: newPath,
-            component: item as ComponentListItem,
-          }),
+          addNewComponentToLayout(
+            {
+              to: newPath,
+              component: item as ComponentListItem,
+            },
+            setSelectedComponent,
+          ),
         );
       } else if (type === 'section') {
         dispatch(
-          addNewSectionToLayout({
-            to: newPath,
-            layoutModel: (item as SectionListItem).layoutModel,
-          }),
+          addNewSectionToLayout(
+            {
+              to: newPath,
+              layoutModel: (item as SectionListItem).layoutModel,
+            },
+            setSelectedComponent,
+          ),
         );
       }
 

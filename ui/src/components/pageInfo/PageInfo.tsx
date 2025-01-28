@@ -1,4 +1,10 @@
-import { Component1Icon, FileIcon, StackIcon } from '@radix-ui/react-icons';
+import {
+  ChevronLeftIcon,
+  Component1Icon,
+  CubeIcon,
+  FileIcon,
+  StackIcon,
+} from '@radix-ui/react-icons';
 import {
   Badge,
   Button,
@@ -9,6 +15,9 @@ import {
 import { useAppSelector } from '@/app/hooks';
 import { selectPageData } from '@/features/pageData/pageDataSlice';
 import type { ReactElement } from 'react';
+import { DEFAULT_REGION } from '@/features/ui/uiSlice';
+import { Link, useParams } from 'react-router-dom';
+import { selectLayout } from '@/features/layout/layoutModelSlice';
 
 interface PageType {
   [key: string]: ReactElement;
@@ -22,6 +31,11 @@ const iconMap: PageType = {
 };
 
 const PageInfo = () => {
+  const { regionId: focusedRegion = DEFAULT_REGION } = useParams();
+  const layout = useAppSelector(selectLayout);
+  const focusedRegionName = layout.find(
+    (region) => region.id === focusedRegion,
+  )?.name;
   const entity_form_fields = useAppSelector(selectPageData);
   // @todo stop hardcoding `title` and `status` after https://www.drupal.org/i/3501847
   const title = entity_form_fields['title[0][value]'];
@@ -32,21 +46,36 @@ const PageInfo = () => {
 
   return (
     <Flex gap="2" align="center">
-      <Popover.Root>
-        <Popover.Trigger>
-          <Button color="gray" variant="soft">
-            <Flex gap="2" align="center">
-              {iconMap['Page']}
-              {title}
-              <ChevronDownIcon />{' '}
-            </Flex>
-          </Button>
-        </Popover.Trigger>
-        <Popover.Content size="2" maxWidth="400px">
-          {/* todo place navigation component from https://www.drupal.org/i/3500054 */}
-        </Popover.Content>
-      </Popover.Root>
-      <Badge size="2" color={published ? 'lime' : 'yellow'} variant="solid">
+      {focusedRegion === DEFAULT_REGION ? (
+        <Popover.Root>
+          <Popover.Trigger>
+            <Button color="gray" variant="soft" size="1">
+              <Flex gap="2" align="center">
+                {iconMap['Page']}
+                {title}
+                <ChevronDownIcon />{' '}
+              </Flex>
+            </Button>
+          </Popover.Trigger>
+          <Popover.Content size="2" maxWidth="400px">
+            {/* todo place navigation component from https://www.drupal.org/i/3500054 */}
+          </Popover.Content>
+        </Popover.Root>
+      ) : (
+        <Link
+          to={{
+            pathname: '/editor',
+          }}
+          aria-label="Back to Content region"
+        >
+          <Badge color="grass" size="2">
+            <ChevronLeftIcon /> <CubeIcon />
+            {focusedRegionName}
+          </Badge>
+        </Link>
+      )}
+
+      <Badge size="1" color={published ? 'lime' : 'yellow'} variant="solid">
         {published ? 'Published' : 'Draft'}
       </Badge>
     </Flex>

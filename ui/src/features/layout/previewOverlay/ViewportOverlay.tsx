@@ -72,6 +72,8 @@ const ViewportOverlay: React.FC<ViewportOverlayProps> = (props) => {
 
   if (!portalRoot || !rect) return null;
 
+  // This overlay is portalled and rendered higher up the DOM tree to ensure that when the canvas is zoomed, the UI
+  // rendered inside the overlay does not also scale. We don't want tiny text in the UI when a user zooms out for instance.
   return ReactDOM.createPortal(
     <div
       ref={positionDivRef}
