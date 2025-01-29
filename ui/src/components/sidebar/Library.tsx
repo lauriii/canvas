@@ -12,12 +12,13 @@ import {
   LayoutItemType,
 } from '@/features/ui/primaryPanelSlice';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
-
+import { useNavigate } from 'react-router-dom';
 import styles from './Library.module.css';
 
 const Library = () => {
   const openItems = useAppSelector(selectOpenLayoutItems);
   const dispatch = useAppDispatch();
+  const navigate = useNavigate();
 
   const onClickHandler = (nodeType: string) => {
     // If the item is already open, close it
@@ -26,6 +27,11 @@ const Library = () => {
     } else {
       dispatch(setOpenLayoutItem(nodeType));
     }
+  };
+
+  const openCodeEditor = () => {
+    // Replace hardcoded id in route with real id after #3499931.
+    navigate('/code-editor/code/placeholder_foo_id');
   };
 
   return (
@@ -52,6 +58,14 @@ const Library = () => {
           <ErrorBoundary title="An unexpected error has occurred while fetching components.">
             <ComponentList />
           </ErrorBoundary>
+        </AccordionDetails>
+        <AccordionDetails
+          title="Code"
+          value="code"
+          onTriggerClick={() => onClickHandler('code')}
+        >
+          {/* Code components to be added #3499947 */}
+          <button onClick={openCodeEditor}>Placeholder item</button>
         </AccordionDetails>
       </AccordionRoot>
     </div>

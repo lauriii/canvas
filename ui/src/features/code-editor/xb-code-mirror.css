@@ -1,0 +1,5 @@
+/* Style overrides for code mirror in XB. */
+
+.xb-code-mirror-editor .cm-gutters {
+  background-color: var( --slate-2);
+}

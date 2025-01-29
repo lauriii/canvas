@@ -1,0 +1,12 @@
+.scrollArea {
+  border: 1px solid var( --slate-6);
+  border-radius: var(--radius-3);
+}
+
+.tabList {
+  box-shadow: none!important; /* Override default box shadow from Radix */
+}
+
+.tabRoot {
+  padding-top: 35px;
+}

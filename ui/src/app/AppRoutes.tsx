@@ -9,6 +9,8 @@ import PagePreview from '@/features/pagePreview/PagePreview';
 import Editor from '@/features/editor/Editor';
 import DummyPropsEditForm from '@/components/DummyPropsEditForm';
 import type React from 'react';
+import MosaicContainer from '@/features/code-editor/MosaicContainer';
+import PrimaryPanel from '@/components/sidebar/PrimaryPanel';
 
 interface AppRoutesInterface {
   basePath: string;
@@ -50,6 +52,26 @@ const AppRoutes: React.FC<AppRoutesInterface> = ({ basePath }) => {
           {
             path: '/preview/',
             element: <Navigate to="/preview/full" replace />,
+          },
+          {
+            // Opens the code editor for an item under 'Code'.
+            path: '/code-editor/code/:componentId',
+            element: (
+              <>
+                <PrimaryPanel />
+                <MosaicContainer />
+              </>
+            ),
+          },
+          {
+            // Opens the code editor for an item under 'Components'.
+            path: '/code-editor/component/:componentId',
+            element: (
+              <>
+                <PrimaryPanel />
+                <MosaicContainer />
+              </>
+            ),
           },
         ],
       },
