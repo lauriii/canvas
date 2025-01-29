@@ -339,10 +339,14 @@ describe('Perform CRUD operations on components', () => {
     cy.findAllByLabelText('Add component')
       .first()
       .click({ scrollBehavior: 'center' });
-    cy.get('.primaryPanelContent').findByText('My First Code Component').click();
+    cy.get('.primaryPanelContent')
+      .findByText('My First Code Component')
+      .click();
     // @todo Make the test code component have meaningful markup and then assert details about its preview in https://www.drupal.org/i/3499988
     cy.log('The newly added code component should be selected');
-    cy.findAllByLabelText('My First Code Component', { selector: '.componentOverlay' })
+    cy.findAllByLabelText('My First Code Component', {
+      selector: '.componentOverlay',
+    })
       .eq(0)
       .should('have.attr', 'data-xb-selected', 'true');
   });
