@@ -49,6 +49,8 @@ describe('Primary panel', () => {
       '.primaryPanelContent [data-xb-component-id="sdc.experience_builder.image"]';
     const heroSelect =
       '.primaryPanelContent [data-xb-component-id="sdc.experience_builder.my-hero"]';
+    const codeComponentSelect =
+      '.primaryPanelContent [data-xb-component-id="js.my-cta"]';
 
     // Hover over "Image" and a preview should appear.
     cy.get(`${imageSelect}`).should('exist').realHover();
@@ -77,5 +79,10 @@ describe('Primary panel', () => {
           'rgb(0, 123, 255)',
         );
       });
+
+    // Hover over "My First Code Component" and a preview should appear and
+    // result in an accurate preview.
+    cy.get(`${codeComponentSelect}`).should('exist').realHover();
+    // @todo Make the test code component have meaningful markup and then assert details about its preview in https://www.drupal.org/i/3499988
   });
 });

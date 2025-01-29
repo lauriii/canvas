@@ -4,12 +4,12 @@ namespace Drupal\experience_builder\Controller;
 
 use Drupal\Core\Messenger\MessengerInterface;
 use Drupal\Core\Render\Markup;
-use Drupal\Core\State\StateInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\Url;
+use Drupal\experience_builder\ComponentDoesNotMeetRequirementsException;
+use Drupal\experience_builder\ComponentIncompatibilityReasonRepository;
 use Drupal\experience_builder\Entity\Component;
 use Drupal\experience_builder\Plugin\ComponentPluginManager;
-use Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\SingleDirectoryComponent;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 
 /**
@@ -18,7 +18,6 @@ use Symfony\Component\HttpFoundation\RedirectResponse;
  * @see \Drupal\experience_builder\Plugin\ComponentPluginManager::setCachedDefinitions()
  *
  * @todo Ensure reasons are translated.
- * @todo Handle non SDC components, see https://www.drupal.org/project/experience_builder/issues/3484672
  */
 final class ComponentStatusController {
 
@@ -29,7 +28,7 @@ final class ComponentStatusController {
    */
   public function __construct(
     private readonly ComponentPluginManager $componentPluginManager,
-    private readonly StateInterface $state,
+    private readonly ComponentIncompatibilityReasonRepository $reasonRepository,
     private readonly MessengerInterface $messenger,
   ) {}
 
@@ -39,7 +38,7 @@ final class ComponentStatusController {
     $this->componentPluginManager->clearCachedDefinitions();
     $this->componentPluginManager->getDefinitions();
 
-    $reasons = $this->state->get(ComponentPluginManager::REASONS_STATE_KEY);
+    $reasons = $this->reasonRepository->getReasons();
     $rows = [];
     $header = [
       [
@@ -52,17 +51,19 @@ final class ComponentStatusController {
         'data' => $this->t('Reason'),
       ],
     ];
-    foreach ($reasons as $component => $reason) {
-      $component_entity = Component::load(SingleDirectoryComponent::convertMachineNameToId($component));
-      $status = $component_entity instanceof Component && !$component_entity->status() ? $this->t('Disabled') : $this->t('Incompatible');
+    foreach ($reasons as $source_reasons) {
+      foreach ($source_reasons as $component_id => $reason) {
+        $component_entity = Component::load($component_id);
+        $status = $component_entity instanceof Component && !$component_entity->status() ? $this->t('Disabled') : $this->t('Incompatible');
 
-      $rows[] = [
-        'data' => [
-          $component,
-          $status,
-          Markup::create($reason),
-        ],
-      ];
+        $rows[] = [
+          'data' => [
+            $component_id,
+            $status,
+            Markup::create($reason),
+          ],
+        ];
+      }
     }
 
     return [
@@ -87,29 +88,31 @@ final class ComponentStatusController {
   public function performOperation(Component $component, string $op) {
     assert(in_array($op, ['enable', 'disable']));
 
-    $reasons = $this->state->get(ComponentPluginManager::REASONS_STATE_KEY);
+    $component_id = $component->id();
+    $source = $component->getComponentSource();
+    $source_plugin_id = $source->getPluginId();
     if ($op === 'disable') {
       $component->disable()->save();
-      $reasons[$component->getComponentPluginId()] = 'Manually disabled';
+      $this->reasonRepository->storeReason($source_plugin_id, $component_id, 'Manually disabled');
     }
     elseif ($op === 'enable') {
-      $component_plugin = $this->componentPluginManager->getDefinition($component->getComponentPluginId());
-      if ($this->componentPluginManager->componentMeetsRequirements($component_plugin)) {
+      try {
+        $source->checkRequirements();
         $component->enable()->save();
-        unset($reasons[$component->getComponentPluginId()]);
+        $this->reasonRepository->removeReason($source_plugin_id, $component_id);
       }
-      else {
+      catch (ComponentDoesNotMeetRequirementsException $e) {
         $this->messenger->addError($this->t('The component %component does not meet requirements: %reason', [
-          "%component" => $component->id(),
-          "%reason" => $reasons[$component->getComponentPluginId()],
+          "%component" => $component_id,
+          "%reason" => $e->getMessage(),
         ]));
+        $this->reasonRepository->storeReason($source_plugin_id, $component_id, $e->getMessage());
         return new RedirectResponse(Url::fromRoute('entity.component.collection')->toString());
       }
     }
-    $this->state->set(ComponentPluginManager::REASONS_STATE_KEY, $reasons);
 
     $this->messenger->addStatus($this->t('The component %component has been updated', [
-      "%component" => $component->id(),
+      "%component" => $component_id,
     ]));
     return new RedirectResponse(Url::fromRoute('entity.component.collection')->toString());
   }

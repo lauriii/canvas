@@ -319,7 +319,8 @@ describe('Perform CRUD operations on components', () => {
       'active',
     );
     cy.get('.primaryPanelContent').should('contain.text', 'Components');
-    // Click Hero
+    // Click the "Hero" SDC-sourced Component.
+    // @see \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\SingleDirectoryComponent
     cy.get('.primaryPanelContent').findByText('Hero').click();
     cy.waitForElementContentInIframe('div', 'There goes my hero');
     cy.testInIframe(
@@ -330,6 +331,18 @@ describe('Perform CRUD operations on components', () => {
     );
     cy.log('The newly added Hero component should be selected');
     cy.findAllByLabelText('Hero', { selector: '.componentOverlay' })
+      .eq(0)
+      .should('have.attr', 'data-xb-selected', 'true');
+
+    // Click the "My First Code Component" JS-sourced Component.
+    // @see \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\JsComponent
+    cy.findAllByLabelText('Add component')
+      .first()
+      .click({ scrollBehavior: 'center' });
+    cy.get('.primaryPanelContent').findByText('My First Code Component').click();
+    // @todo Make the test code component have meaningful markup and then assert details about its preview in https://www.drupal.org/i/3499988
+    cy.log('The newly added code component should be selected');
+    cy.findAllByLabelText('My First Code Component', { selector: '.componentOverlay' })
       .eq(0)
       .should('have.attr', 'data-xb-selected', 'true');
   });

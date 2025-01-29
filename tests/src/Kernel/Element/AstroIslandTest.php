@@ -1,0 +1,265 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Drupal\Tests\experience_builder\Element;
+
+use Drupal\Component\Serialization\Json;
+use Drupal\Component\Utility\Crypt;
+use Drupal\Component\Utility\DeprecationHelper;
+use Drupal\Core\Asset\AssetResolverInterface;
+use Drupal\Core\Asset\AttachedAssets;
+use Drupal\Core\Asset\LibraryDiscoveryInterface;
+use Drupal\Core\Cache\CacheCollectorInterface;
+use Drupal\Core\Extension\ExtensionPathResolver;
+use Drupal\Core\Render\BubbleableMetadata;
+use Drupal\Core\Site\Settings;
+use Drupal\Core\StreamWrapper\StreamWrapperInterface;
+use Drupal\Core\StreamWrapper\StreamWrapperManagerInterface;
+use Drupal\experience_builder\Element\AstroIsland;
+use Drupal\experience_builder\Entity\JavaScriptComponent;
+use Drupal\KernelTests\KernelTestBase;
+use Drupal\Tests\experience_builder\Traits\CrawlerTrait;
+use Drupal\Tests\user\Traits\UserCreationTrait;
+
+/**
+ * Tests Island.
+ *
+ * @covers \Drupal\experience_builder\Element\AstroIsland
+ * @group JavaScriptComponents
+ * @group experience_builder
+ */
+final class AstroIslandTest extends KernelTestBase {
+
+  use CrawlerTrait;
+  use UserCreationTrait;
+
+  /**
+   * {@inheritdoc}
+   */
+  protected static $modules = ['experience_builder', 'user', 'system'];
+
+  /**
+   * {@inheritdoc}
+   */
+  protected function setUp(): void {
+    parent::setUp();
+    $this->installEntitySchema('user');
+    $this->installConfig(['system']);
+  }
+
+  /**
+   * Covers AstroIsland.
+   */
+  public function testAstroIsland(): void {
+    // @todo Add an access control handler and a view permission.
+    $this->setUpCurrentUser(permissions: ['administer code components']);
+    $css = '.test{display:none;}';
+    $js = 'console.log("Test")';
+    $css_hash = Crypt::hmacBase64($css, Settings::getHashSalt());
+    $js_hash = Crypt::hmacBase64($js, Settings::getHashSalt());
+    $component = JavaScriptComponent::create([
+      'machineName' => $this->randomMachineName(),
+      'name' => $this->getRandomGenerator()->sentences(5),
+      'status' => TRUE,
+      'props' => [
+        'text' => [
+          'type' => 'string',
+          'title' => 'Title',
+          'examples' => ['Press', 'Submit now'],
+        ],
+        'count' => [
+          'type' => 'integer',
+          'title' => 'Count',
+          'examples' => [1, 2],
+        ],
+      ],
+      'slots' => [
+        'default' => [
+          'title' => 'result',
+          'description' => 'Result',
+          'examples' => [
+            'You win a pony 🐴!',
+            'Have a pony! 🐴',
+          ],
+        ],
+        'error' => [
+          'title' => 'error',
+          'description' => 'Error',
+          'examples' => [
+            'Oh no Dave, no ponies for you',
+            'Not with those shoes mate',
+          ],
+        ],
+      ],
+      'source_code_js' => $js,
+      'source_code_css' => '.test { display: none; }',
+      'compiled_js' => $js,
+      'compiled_css' => $css,
+    ]);
+    $component->save();
+
+    $discovery = DeprecationHelper::backwardsCompatibleCall(
+      \Drupal::VERSION,
+      '11.1',
+      fn () => \Drupal::service(LibraryDiscoveryInterface::class),
+      // @phpstan-ignore-next-line
+      fn () => \Drupal::service('library.discovery.collector'),
+    );
+    assert($discovery instanceof CacheCollectorInterface);
+    self::assertArrayHasKey('astro_island.' . $component->id(), $discovery->get('experience_builder'));
+    self::assertStringEqualsFile('assets://astro-island/' . $css_hash . '.css', $css);
+    self::assertStringEqualsFile('assets://astro-island/' . $js_hash . '.js', $js);
+
+    $uid = $this->randomMachineName();
+    $props = [
+      'text' => 'Win a pony',
+      'count' => '3',
+    ];
+    $island = [
+      '#type' => AstroIsland::PLUGIN_ID,
+      '#uuid' => $uid,
+      '#component' => $component->id(),
+      '#props' => $props,
+      '#slots' => [
+        'default' => ['#markup' => '<em>3 ponies won this week!</em>'],
+        'error' => 'No pony for you!',
+      ],
+      '#framework' => 'preact',
+    ];
+
+    $metadata = new BubbleableMetadata();
+    $crawler = $this->crawlerForRenderArray($island, $metadata);
+    $element = $crawler->filter('astro-island');
+    self::assertCount(1, $element);
+
+    self::assertEquals($uid, $element->attr('uid'));
+    self::assertEquals('default', $element->attr('component-export'));
+    self::assertEquals('', $element->attr('ssr'));
+    self::assertEquals('only', $element->attr('client'));
+    self::assertJsonStringEqualsJsonString(Json::encode($props), $element->attr('props') ?? '');
+    self::assertJsonStringEqualsJsonString(Json::encode([
+      'name' => $component->label(),
+      'value' => $island['#framework'],
+    ]), $element->attr('opts') ?? '');
+
+    $asset_wrapper = $this->container->get(StreamWrapperManagerInterface::class)->getViaScheme('assets');
+    \assert($asset_wrapper instanceof StreamWrapperInterface);
+    \assert(\method_exists($asset_wrapper, 'getDirectoryPath'));
+    $directory_path = $asset_wrapper->getDirectoryPath();
+    $js_filename = \sprintf('/%s/astro-island/%s.js', $directory_path, $js_hash);
+    self::assertEquals($js_filename, $element->attr('component-url'));
+
+    // Assumes that we emit the astro JS to astro-bundles/client.js within the
+    // project.
+    $xb_directory = $this->container->get(ExtensionPathResolver::class)->getPath('module', 'experience_builder');
+    self::assertEquals(\sprintf('/%s/js/astro-bundles/client.js', $xb_directory), $element->attr('renderer-url'));
+
+    $metadata->applyTo($island);
+    $asset_resolver = \Drupal::service(AssetResolverInterface::class);
+    assert($asset_resolver instanceof AssetResolverInterface);
+    $css_asset = $asset_resolver->getCssAssets(AttachedAssets::createFromRenderArray($island), FALSE);
+    self::assertEquals(\sprintf('%s/astro-island/%s.css', $directory_path, $css_hash), reset($css_asset)['data']);
+
+    $slots = $element->filter('astro-slot');
+    self::assertCount(2, $slots);
+
+    $default_slot = $slots->first();
+    self::assertNull($default_slot->attr('name'));
+    $em = $default_slot->filter('em');
+    self::assertCount(1, $em);
+    self::assertEquals('3 ponies won this week!', $em->text());
+
+    $error_slot = $slots->last();
+    self::assertEquals('error', $error_slot->attr('name'));
+    self::assertEquals('No pony for you!', $error_slot->text());
+
+    // Should still work without slots, props, framework and UUID.
+    unset($island['#slots'], $island['#props'], $island['#uuid'], $island['#framework']);
+    // And with a preview flag.
+    $island['#preview'] = TRUE;
+    $crawler = $this->crawlerForRenderArray($island);
+    $element = $crawler->filter('astro-island');
+    self::assertCount(1, $element);
+    self::assertNotNull($element->attr('uid'));
+    self::assertJsonStringEqualsJsonString('{}', $element->attr('props') ?? '');
+    self::assertCount(0, $element->filter('astro-slot'));
+    self::assertJsonStringEqualsJsonString(Json::encode([
+      'name' => $component->label(),
+      'value' => 'preact',
+    ]), $element->attr('opts') ?? '');
+    self::assertEquals(\sprintf('/%s/astro-island/%s.js?preview=1', $directory_path, $js_hash), $element->attr('component-url'));
+  }
+
+  /**
+   * Ensure no library is created or attached if no CSS is present.
+   */
+  public function testEmptyCss(): void {
+    $this->setUpCurrentUser(permissions: ['administer code components']);
+    $component = JavaScriptComponent::create([
+      'machineName' => $this->randomMachineName(),
+      'name' => $this->getRandomGenerator()->sentences(5),
+      'status' => TRUE,
+      'props' => [],
+      'slots' => [],
+      'source_code_js' => '',
+      'source_code_css' => '',
+      'compiled_js' => '',
+      // Whitespace only CSS should be ignored.
+      'compiled_css' => "\n  \n",
+    ]);
+    $component->save();
+
+    $discovery = DeprecationHelper::backwardsCompatibleCall(
+      \Drupal::VERSION,
+      '11.1',
+      fn () => \Drupal::service(LibraryDiscoveryInterface::class),
+      // @phpstan-ignore-next-line
+      fn () => \Drupal::service('library.discovery.collector'),
+    );
+    assert($discovery instanceof CacheCollectorInterface);
+    self::assertArrayNotHasKey('astro_island.' . $component->id(), $discovery->get('experience_builder'));
+
+    $island = [
+      '#type' => AstroIsland::PLUGIN_ID,
+      '#component' => $component->id(),
+    ];
+    $metadata = new BubbleableMetadata();
+    $this->crawlerForRenderArray($island, $metadata);
+    self::assertSame([
+      'library' => [
+        'experience_builder/astro.hydration',
+      ],
+    ], $metadata->getAttachments());
+  }
+
+  /**
+   * Covers AstroIsland.
+   */
+  public function testInvalidElement(): void {
+    // Missing key.
+    $crawler = $this->crawlerForRenderArray([
+      '#type' => AstroIsland::PLUGIN_ID,
+    ]);
+    self::assertEquals('You must pass a #component_id for an element of #type astro_island', $crawler->text());
+
+    // No such component.
+    $crawler = $this->crawlerForRenderArray([
+      '#type' => AstroIsland::PLUGIN_ID,
+      '#component' => 'zero_sum',
+    ]);
+    self::assertEquals('Could not load component with ID zero_sum', $crawler->text());
+
+    $component = JavaScriptComponent::create([
+      'machineName' => $this->randomMachineName(),
+    ]);
+    $component->save();
+    // No access.
+    $crawler = $this->crawlerForRenderArray([
+      '#type' => AstroIsland::PLUGIN_ID,
+      '#component' => $component->id(),
+    ]);
+    self::assertEquals('No access to view component with ID ' . $component->id(), $crawler->text());
+  }
+
+}

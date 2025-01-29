@@ -11,8 +11,6 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\experience_builder\ClientSideRepresentation;
 use Drupal\experience_builder\ComponentSource\ComponentSourceInterface;
 use Drupal\experience_builder\ComponentSource\ComponentSourceManager;
-use Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\SingleDirectoryComponent;
-use Drupal\experience_builder\PropSource\StaticPropSource;
 
 /**
  * @todo Update these docs in https://drupal.org/i/3454519 to reflect changes.
@@ -22,7 +20,7 @@ use Drupal\experience_builder\PropSource\StaticPropSource;
  *
  *
  * @ConfigEntityType(
- *    id = "component",
+ *    id = \Drupal\experience_builder\Entity\Component::ENTITY_TYPE_ID,
  *    label = @Translation("Component"),
  *    label_singular = @Translation("component"),
  *    label_plural = @Translation("components"),
@@ -63,6 +61,8 @@ use Drupal\experience_builder\PropSource\StaticPropSource;
  * @phpstan-type ComponentConfigEntityId string
  */
 final class Component extends ConfigEntityBase implements ComponentInterface, XbHttpApiEligibleConfigEntityInterface {
+
+  public const ENTITY_TYPE_ID = 'component';
 
   /**
    * The component entity ID.
@@ -166,44 +166,9 @@ final class Component extends ConfigEntityBase implements ComponentInterface, Xb
    */
   public static function getClasses(array $ids): array {
     return array_values(array_unique(array_filter(array_map(
-      fn (string $id): string => Component::load($id)?->getComponentSource()?->getComponentPluginDefinition()['class'] ?? '',
-      $ids
+      static fn (Component $component): ?string => $component->getComponentSource()->getReferencedPluginClass(),
+      Component::loadMultiple($ids)
     ))));
-  }
-
-  /**
-   * Build the default prop source for a prop.
-   *
-   * @param string $prop_name
-   *   The prop name.
-   *
-   * @return \Drupal\experience_builder\PropSource\StaticPropSource
-   *   The prop source object.
-   */
-  public function getDefaultStaticPropSource(string $prop_name): StaticPropSource {
-    assert(isset($this->settings['prop_field_definitions']));
-    assert(is_array($this->settings['prop_field_definitions']));
-
-    $source = $this->getComponentSource();
-    // @todo handle non-SDC plugin sources, see https://www.drupal.org/project/experience_builder/issues/3484666
-    assert($source instanceof SingleDirectoryComponent);
-    if (!array_key_exists($prop_name, $source->getSchema()['properties'] ?? [])) {
-      throw new \OutOfRangeException(sprintf("'%s' is not a prop on the '%s' component.", $prop_name, $this->getComponentPluginId()));
-    }
-
-    $sdc_prop_source = [
-      'sourceType' => 'static:field_item:' . $this->settings['prop_field_definitions'][$prop_name]['field_type'],
-      'value' => $this->settings['prop_field_definitions'][$prop_name]['default_value'],
-      'expression' => $this->settings['prop_field_definitions'][$prop_name]['expression'],
-    ];
-    if (array_key_exists('field_storage_settings', $this->settings['prop_field_definitions'][$prop_name])) {
-      $sdc_prop_source['sourceTypeSettings']['storage'] = $this->settings['prop_field_definitions'][$prop_name]['field_storage_settings'];
-    }
-    if (array_key_exists('field_instance_settings', $this->settings['prop_field_definitions'][$prop_name])) {
-      $sdc_prop_source['sourceTypeSettings']['instance'] = $this->settings['prop_field_definitions'][$prop_name]['field_instance_settings'];
-    }
-
-    return StaticPropSource::parse($sdc_prop_source);
   }
 
   /**
@@ -223,10 +188,6 @@ final class Component extends ConfigEntityBase implements ComponentInterface, Xb
     return array_filter([
       'settings' => $this->sourcePluginCollection(),
     ]);
-  }
-
-  public function getComponentPluginId(): string {
-    return $this->settings['plugin_id'];
   }
 
   /**
@@ -285,6 +246,23 @@ final class Component extends ConfigEntityBase implements ComponentInterface, Xb
       ],
       preview: $build,
     )->addCacheableDependency($this);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getSettings(): array {
+    return $this->settings;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function setSettings(array $settings): self {
+    $this->settings = $settings;
+    // Reset the source plugin collection.
+    $this->sourcePluginCollection?->setConfiguration($this->settings);
+    return $this;
   }
 
 }

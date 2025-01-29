@@ -11,6 +11,7 @@ use Drupal\KernelTests\Core\Config\ConfigEntityValidationTestBase;
  * Tests validation of JavaScriptComponent entities.
  *
  * @group experience_builder
+ * @group JavaScriptComponents
  */
 class JavaScriptComponentValidationTest extends ConfigEntityValidationTestBase {
 
@@ -68,7 +69,6 @@ class JavaScriptComponentValidationTest extends ConfigEntityValidationTestBase {
    */
   public function testEntityShapes(array $shape, array $expected_errors): void {
     $this->entity = JavaScriptComponent::create($shape);
-    $this->entity->save();
     $this->assertValidationErrors($expected_errors);
   }
 

@@ -19,7 +19,6 @@ final class ComponentListBuilder extends ConfigEntityListBuilder {
   public function buildHeader(): array {
     $header['id'] = $this->t('ID');
     $header['label'] = $this->t('Label');
-    $header['component'] = $this->t('Component identifier');
     $header['component_source'] = $this->t('Component type');
     $header['component_label'] = $this->t('Component name');
     return $header + parent::buildHeader();
@@ -33,7 +32,6 @@ final class ComponentListBuilder extends ConfigEntityListBuilder {
 
     $row['id'] = $entity->id();
     $row['label'] = $entity->label();
-    $row['component'] = $entity->getComponentPluginId();
     $source = $entity->getComponentSource();
     $row['component_source'] = $source->getPluginDefinition()['label'];
     $row['component_label'] = $source->getComponentDescription();

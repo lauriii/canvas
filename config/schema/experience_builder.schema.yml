@@ -89,7 +89,7 @@ experience_builder.js_component.*:
         type: mapping
         mapping:
           title:
-            type: string
+            type: required_label
             label: 'Name'
           type:
             type: string
@@ -105,6 +105,10 @@ experience_builder.js_component.*:
                 # @todo Consider adding `array` after https://www.drupal.org/i/3467870 is fixed.
                 # @todo Consider adding `object`, but defining _arbitrary_ object shapes is not yet supported.
                 # @see \Drupal\experience_builder\JsonSchemaInterpreter\SdcPropJsonSchemaType::computeStorablePropShape()
+          description:
+            requiredKey: false
+            type: label
+            label: 'Human readable description for the component'
           examples:
             type: sequence
             label: 'Examples'
@@ -115,6 +119,25 @@ experience_builder.js_component.*:
             type: sequence
             sequence:
               type: string
+          format:
+            requiredKey: false
+            type: string
+            label: 'Format'
+            constraints:
+              Choice:
+                # Experience Builder does not (yet) have a field type+widget for every possible JSON Schema format; also
+                # note that the official JSON Schema spec only defines string formats, but formats for other types are
+                # possible in principle.
+                # @see https://json-schema.org/understanding-json-schema/reference/type#built-in-formats
+                - date-time
+                - date
+                - email
+                - idn-email
+                - uri
+                - uri-reference
+                - iri
+                - iri-reference
+                # @see Drupal\experience_builder\JsonSchemaInterpreter\JsonSchemaStringFormat::computeStorablePropShape()
     # See core/assets/schemas/v1/metadata-full.schema.json#properties.slots
     slots:
       type: sequence
@@ -246,7 +269,7 @@ experience_builder.component_tree:
 experience_builder.component_source_settings.sdc:
   constraints:
     FullyValidatable: ~
-  type: mapping
+  type: experience_builder.generated_field_explicit_input_ux
   label: 'SDC component settings'
   mapping:
     # @see \Drupal\Core\Plugin\Component::$machineName
@@ -262,10 +285,40 @@ experience_builder.component_source_settings.sdc:
           manager: plugin.manager.sdc
           interface: 'Drupal\Core\Plugin\PluginBase'
     prop_field_definitions:
-      type: sequence
-      orderby: key
       constraints:
         KeyForEverySdcProp: "%parent.plugin_id"
+
+# The structure that all ComponentSource-specific per-Component config entity settings MUST adhere to. (Because
+# the `experience_builder.component_source_settings.*` type's `id` key-value pair assumes `settings.plugin_id` to exist
+# to guarantee the Component config entity ID is consistent.)
+# Each ComponentSource MUST provide a specific override that:
+# - MUST override both labels
+# - MUST add appropriate validation constraints to `plugin_id`
+# - MAY add more key-value pairs to the mapping — and then add appropriate validation constraints for those
+# - MUST mark the entire subtype as being fully validatable
+experience_builder.component_source_settings.*:
+  type: mapping
+  label: 'Source-specific component settings'
+  mapping:
+    # @todo Rename this to `source_local_id` or something like that in https://www.drupal.org/project/experience_builder/issues/3502982
+    plugin_id:
+      type: string
+      label: 'The intra-source ID of this component in this source'
+      constraints: {}
+
+# @see \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase
+# Each ComponentSource that extends GeneratedFieldExplicitInputUxComponentSourceBase MUST provide an override that:
+# - MUST override the top-level label
+# - MUST add appropriate validation constraints to `plugin_id`
+# - MAY add more key-value pairs to the mapping — and then add appropriate validation constraints for those
+# - MUST mark the entire subtype as being fully validatable
+experience_builder.generated_field_explicit_input_ux:
+  type: experience_builder.component_source_settings.*
+  label: 'Baseline component settings for ComponentSource plugins that extend GeneratedFieldExplicitInputUxComponentSourceBase'
+  mapping:
+    prop_field_definitions:
+      type: sequence
+      orderby: key
       sequence:
         type: mapping
         # For each SDC prop, first a field type must be picked from the list of possible choices provided by \Drupal\experience_builder\ShapeMatcher\FieldForComponentSuggester
@@ -312,6 +365,28 @@ experience_builder.component_source_settings.sdc:
             # @todo Add `StructuredDataPropExpression` validation constraint that fails if StructuredDataPropExpression::fromString() fails
             # StructuredDataPropExpression: [field_type]
 
+experience_builder.component_source_settings.js:
+  constraints:
+    FullyValidatable: ~
+  type: experience_builder.generated_field_explicit_input_ux
+  label: 'Code component settings'
+  mapping:
+    # This is actually not a plugin ID, but the ID of a JavaScriptComponent config entity. But as far as config schema
+    # validation is concerned, it may as well be. It is required to exist by `experience_builder.component.*:id`.
+    # @todo Rename this to `source_local_id` or something like that in https://www.drupal.org/project/experience_builder/issues/3502982
+    plugin_id:
+      label: 'JS Component ID'
+      constraints:
+        ConfigExists:
+          prefix: experience_builder.js_component.
+    prop_field_definitions:
+      constraints:
+        # There must be a key for every `prop` in the corresponding \Drupal\experience_builder\Entity\JavaScriptComponent::$props.
+        SequenceKeysMustMatch:
+          configPrefix: experience_builder.js_component.
+          configName: '%parent.plugin_id'
+          propertyPathToSequence: props
+
 # This is similar to Block config entities, but different:
 # - Block config entities are tied to a particular theme + region (and have a weight to convey position in a region), Block-Plugins-as-XB-Components are not
 # - Block config entities have visibility conditions that determines the visibility of that particular "placed block", Block-Plugins-as-XB-Components do not
@@ -321,11 +396,10 @@ experience_builder.component_source_settings.sdc:
 experience_builder.component_source_settings.block:
   constraints:
     FullyValidatable: ~
-  type: mapping
+  type: experience_builder.component_source_settings.*
   label: 'Block component settings'
   mapping:
     plugin_id:
-      type: string
       label: 'Block plugin ID'
       constraints:
         PluginExists:

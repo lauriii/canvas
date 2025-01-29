@@ -18,7 +18,7 @@ In the rest of this document, `Experience Builder` will be written as `XB`.
   accepts input and generates output, e.g. `SingleDirectoryComponent` (`sdc`-prefixed) and `BlockComponent` (`block`-prefixed).
 - `component input`: either `explicit component input` or `implicit component input`, this is the catch-all for both
 - `component slot`: each component may in its metadata define 0 or more slots, each slot accepts >=0 component instances in a particular order
-- `component type`: the ID of a `Component Source Plugin` — currently either "sdc" or "block"
+- `component type`: the ID of a `Component Source Plugin` — currently either "sdc", "block" or "js"
 - `explicit component input`: each `component` may in its metadata define 0 or more explicit inputs to be provided by the person placing an instance of this `component`, each input accepts structured data conforming to the shape defined in the `component`'s (`ComponentSourcePlugin`-specific) metadata
 - `implicit component input`: in contrast with a `explicit component input`, an implicit input is not provided by the person placing an instance: it is implicitly present: it is provided by other content displayed on the current route, by the request context (e.g. URL query string, current user …) or by the environment (e.g. time of day).
   - ⚠️This is not yet supported. the `Block` component type needs it to support [_contexts_](https://www.drupal.org/docs/drupal-apis/plugin-api/plugin-contexts#s-context-on-blocks), unclear how that will be surfaced in XB; initially, only block plugins that do not require contexts are supported.
@@ -69,7 +69,7 @@ For an `SDC` to be compatible/eligible for use in XB, it:
 - MUST not have `status` value `obsolete`
 - SHOULD have a `category`; if not specified, the fallback value "Other" will be used
 
-These checks are implemented in `\Drupal\experience_builder\Plugin\ComponentPluginManager::componentMeetsRequirements()`.
+These checks are implemented in `\Drupal\experience_builder\ComponentMetadataRequirementsChecker`.
 
 _Note:_ this list of criteria is not final, it will keep evolving _at least_ until a `1.0` release of XB.
 
@@ -87,7 +87,7 @@ It does not make sense to surface the config entities, because:
 
 Therefore, it only makes sense to surface _block plugins_ as XB `component`s.
 
-#### 3.1.1 Inputs & instantiation UX for `Block` `component`s
+#### 3.2.1 Inputs & instantiation UX for `Block` `component`s
 
 `Block` `component`s specify the accepted explicit inputs and their shapes in `*.schema.yml` file. The shapes are
 defined  using config schema (`type: block.settings.<PLUGIN ID>`). Defaults are present as the
@@ -117,11 +117,34 @@ The Drupal core Layout Builder module is block-centric. A migration from Layout 
 Layout Builder's data model is centered around 1) layout plugins, 2) blocks. Layout plugins are used to arrange instances of blocks in a particular layout. But while all documentation and UI pieces
 refer to "blocks" and not "block plugins", under the hood, they actually _are_ block plugins! See `type: layout_builder.component` in `layout_builder.schema.yml`. Many details are still to be figured out for that, but that is for later.
 
-### 3.3 Other `component type`s
+
+
+### 3.3 `JS` `component`s (aka "code components")
+
+#### 3.3.1 Inputs & instantiation UX for `JS` `component`s
+
+`JS` `component`s specify the accepted explicit inputs ("props") and their shapes in the underlying
+`JavaScriptComponent config entity`, using the exact same format (JSON schema) as `SDC` `component`s (see [section
+3.1.1 above](#3.1.1)). See [section 3.2 `JavaScriptComponent config entity` in the `XB Config Management`
+doc](config-management.md#3.2) for all details.
+
+`JS` DOES NOT provide an input UX, so its `Component Source Plugin` must do so on its behalf; and does so by matching
+available field types against the JSON schema of its explicit inputs ("props"). For details, see the [`XB Shape Matching
+into Field Types` doc](shape-matching-into-field-types.md). (It shares this infrastructure with the `SDC` `Component
+Source Plugin`.)
+
+#### 3.3.2 Criteria for `JS` `component`s
+
+There aren't any, because the validation logic for the `JavaScriptComponent config entity` type prevents saving a `JS`
+`component` whose inputs XB cannot generate an input UX for: it imposes the same criteria as for `SDC` `component`s (see
+[section 3.1.2 above](#3.1.2)).
+
+
+### 3.4 Other `component type`s
 
 Nothing yet, this will change when we [support other `component type`s later](https://www.drupal.org/project/experience_builder/issues/3454519).
 
-### 3.4 Categorization
+### 3.5 Categorization
 
 Each `component` can be categorized in order to group them in the UI. Some `component type`s have shared categories, as follows:
 

@@ -13,6 +13,7 @@ use Drupal\media\Entity\Media;
 use Drupal\node\Entity\Node;
 use Drupal\node\Entity\NodeType;
 use Drupal\Tests\block\Traits\BlockCreationTrait;
+use Drupal\Tests\experience_builder\Traits\CreateTestJsComponentTrait;
 use Drupal\Tests\image\Kernel\ImageFieldCreationTrait;
 use Drupal\Tests\media\Traits\MediaTypeCreationTrait;
 use Drupal\Tests\RandomGeneratorTrait;
@@ -28,6 +29,7 @@ class XBTestSetup implements TestSetupInterface {
   use TestFileCreationTrait;
   use ImageFieldCreationTrait;
   use BlockCreationTrait;
+  use CreateTestJsComponentTrait;
 
   public function setup(): void {
     $config_factory = \Drupal::configFactory();
@@ -105,6 +107,8 @@ class XBTestSetup implements TestSetupInterface {
       'xb_e2e_support',
       'system',
     ]);
+
+    $this->createMyCtaComponentFromSdc();
 
     $field_definitions = \Drupal::service('entity_field.manager')->getFieldDefinitions('node', 'article');
     $image_field_sample_value = ImageItem::generateSampleValue($field_definitions['field_hero']);
@@ -357,6 +361,7 @@ class XBTestSetup implements TestSetupInterface {
       'permissions' => [
         'access administration pages',
         'access content',
+        'administer code components',
         'administer media',
         'access media overview',
         'view media',

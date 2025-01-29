@@ -6,6 +6,7 @@ use Drupal\Component\Serialization\Json;
 use Drupal\node\Entity\Node;
 use Drupal\Tests\BrowserTestBase;
 use Drupal\Tests\system\Functional\Cache\AssertPageCacheContextsAndTagsTrait;
+use Drupal\Tests\experience_builder\Traits\CreateTestJsComponentTrait;
 
 /**
  * The functional test equivalent of FieldForComponentSuggesterTest.
@@ -17,6 +18,7 @@ use Drupal\Tests\system\Functional\Cache\AssertPageCacheContextsAndTagsTrait;
 class PropSourceEndpointTest extends BrowserTestBase {
 
   use AssertPageCacheContextsAndTagsTrait;
+  use CreateTestJsComponentTrait;
 
   /**
    * {@inheritdoc}
@@ -37,6 +39,8 @@ class PropSourceEndpointTest extends BrowserTestBase {
   protected $profile = 'standard';
 
   public function test(): void {
+    $this->createMyCtaComponentFromSdc();
+
     $page = $this->getSession()->getPage();
     $node = Node::create([
       'type' => 'article',
@@ -124,9 +128,10 @@ class PropSourceEndpointTest extends BrowserTestBase {
         'sdc.experience_builder.image' => TRUE,
         'sdc.experience_builder.my-hero' => TRUE,
         'sdc.sdc_test_all_props.all-props' => TRUE,
+        'js.my-cta' => TRUE,
       ],
     );
-    $this->assertCount(3, $data);
+    $this->assertCount(4, $data);
     $expected = $this->getExpected();
     foreach ($data as $sdc => $prop_sources) {
       $this->assertSame($expected[$sdc]['dynamic_prop_source_candidates'], $data[$sdc]['dynamic_prop_source_candidates']);
@@ -142,6 +147,11 @@ class PropSourceEndpointTest extends BrowserTestBase {
    */
   public function getExpected(): array {
     return [
+      'js.my-cta' => [
+        'id' => 'js.my-cta',
+        // @todo Update to expect candidates in https://www.drupal.org/i/3503038
+        'dynamic_prop_source_candidates' => [],
+      ],
       'sdc.experience_builder.image' => [
         'id' => 'sdc.experience_builder.image',
         'dynamic_prop_source_candidates' => [

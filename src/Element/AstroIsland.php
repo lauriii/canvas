@@ -1,0 +1,172 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Drupal\experience_builder\Element;
+
+use Drupal\Component\Utility\Html;
+use Drupal\Component\Uuid\UuidInterface;
+use Drupal\Core\Access\AccessResult;
+use Drupal\Core\Asset\LibraryDiscoveryInterface;
+use Drupal\Core\Cache\CacheableMetadata;
+use Drupal\Core\File\FileUrlGeneratorInterface;
+use Drupal\Core\Render\Attribute\RenderElement;
+use Drupal\Core\Render\Element\RenderElementBase;
+use Drupal\experience_builder\Entity\JavaScriptComponent;
+
+/**
+ * Provides a render element for an Astro island web component.
+ *
+ * Properties:
+ * - #uuid: A unique ID for this island.
+ * - #component: Machine name of a JavaScriptComponent entity to hydrate into
+ *   the island.
+ * - #props: Array of properties for the JavaScript component where the keys are
+ *   the prop names and the values are the prop values. Only values that can be
+ *   serialized to JSON are supported - such as scalar values or objects that
+ *   implement \JsonSerializable.
+ *   #slots: Array of child slots for the JavaScript component. The slots are
+ *   keyed by their name. In the case of frameworks like React and Preact that
+ *   only support a single child slot, this slot should be named 'default'. The
+ *   values represent the content to be rendered into the slot and should be
+ *   valid render arrays or a string. String values will be treated as plain
+ *   text.
+ * - #preview: A boolean to indicate whether the rendered component should use
+ *   the draft version. Defaults to FALSE.
+ * - #framework: Name of the framework to use when rehydrating. Only 'preact' is
+ *   supported at present.
+ *
+ * Usage example:
+ * @code
+ * $build['recital_final'] = [
+ *   '#type' => 'astro_island',
+ *   '#uuid' => 'da6bf2a2-3d4b-42a2-bb05-03a0e33a2d79',
+ *   '#component' => 'jazz_hands_elite',
+ *   '#props' => [
+ *     'oscillation_size' => 'extremely_animated',
+ *     'oscillations' => 12,
+ *     'finale_routine' => ['jump:large', 'splits:full', 'fist_pump'],
+ *    ],
+ *   '#slots' => [
+ *     'default' => "We're off to the regionals Janet!',
+ *    ],
+ * ];
+ * @endcode
+ */
+#[RenderElement(self::PLUGIN_ID)]
+final class AstroIsland extends RenderElementBase {
+
+  public const PLUGIN_ID = 'astro_island';
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getInfo() {
+    return [
+      '#pre_render' => [
+        [static::class, 'preRenderIsland'],
+      ],
+      '#slots' => [],
+      '#props' => [],
+      '#framework' => 'preact',
+      '#preview' => FALSE,
+    ];
+  }
+
+  /**
+   * Pre-render callback.
+   */
+  public static function preRenderIsland(array $element): array {
+    $component_id = $element['#component'] ?? NULL;
+    if ($component_id === NULL) {
+      return ['#plain_text' => \sprintf('You must pass a #component_id for an element of #type %s', self::PLUGIN_ID)];
+    }
+    $component = JavaScriptComponent::load($component_id);
+    if ($component === NULL) {
+      return ['#plain_text' => \sprintf('Could not load component with ID %s', $component_id)];
+    }
+    \assert($component instanceof JavaScriptComponent);
+    $access = $component->access('view', return_as_object: TRUE);
+    \assert($access instanceof AccessResult);
+    $cache = CacheableMetadata::createFromObject($access);
+    if (!$access->isAllowed()) {
+      $build = [
+        '#plain_text' => \sprintf('No access to view component with ID %s', $component_id),
+      ];
+      $cache->applyTo($build);
+      return $build;
+    }
+
+    $component_url = \Drupal::service(FileUrlGeneratorInterface::class)->generateString($component->getJsPath());
+    if ($element['#preview'] ?? FALSE) {
+      $component_url .= '?preview=1';
+    }
+
+    $client = \Drupal::service(LibraryDiscoveryInterface::class)->getLibraryByName('experience_builder', 'astro.client');
+    assert(isset($client['js'][0]['data']) && count($client['js']) === 1);
+    $renderer_url = base_path() . $client['js'][0]['data'];
+
+    $build = [
+      '#type' => 'inline_template',
+      // Generate a template by turning slots into named variables.
+      '#template' => self::generateTemplate(\array_keys($element['#slots'] ?? [])),
+      '#context' => [
+        // Prefix all context variables with __aie to avoid collisions with
+        // slots.
+        '__aie_uuid' => $element['#uuid'] ?? \Drupal::service(UuidInterface::class)->generate(),
+        '__aie_component_url' => $component_url,
+        '__aie_renderer' => $renderer_url,
+        '__aie_props' => \json_encode(\array_diff_key($element['#props'] ?? [], \array_flip(['xb_uuid', 'xb_slot_ids'])), JSON_FORCE_OBJECT | JSON_THROW_ON_ERROR),
+        '__aie_opts' => \json_encode([
+          'name' => $component->label(),
+          'value' => $element['#framework'] ?? 'preact',
+        ], JSON_THROW_ON_ERROR),
+        // Add slots as named variables so the point they're printed can be
+        // wrapped by XbWrapperNode and any passed meta props to enable
+        // XbWrapperNode to wrap slots with HTML comments.
+      ] + \array_map(static fn(array|string $slot) => \is_array($slot) ? $slot : ['#plain_text' => $slot], $element['#slots'] ?? []) +
+      \array_intersect_key($element['#props'] ?? [], \array_flip(['xb_uuid', 'xb_slot_ids'])),
+      '#attached' => [
+        'library' => ['experience_builder/astro.hydration'],
+      ],
+    ];
+    if ($component->hasCss()) {
+      $build['#attached']['library'][] = 'experience_builder/astro_island.' . $component->id();
+    }
+    $cache->applyTo($build);
+    // Return this as a new child element so that process callbacks are executed
+    // for the new render array.
+    $element['inline-template'] = $build;
+    return $element;
+  }
+
+  /**
+   * Builds inline template.
+   *
+   * @param string[]|int[] $slot_names
+   *   Slot names.
+   *
+   * @return string
+   */
+  protected static function generateTemplate(array $slot_names): string {
+    $template = '<astro-island uid="{{ __aie_uuid }}"
+        component-url="{{ __aie_component_url }}"
+        component-export="default"
+        renderer-url="{{ __aie_renderer }}"
+        props="{{ __aie_props }}"
+        ssr="" client="only"
+        opts="{{ __aie_opts }}">';
+    foreach ($slot_names as $slot_name) {
+      // Prevent XSS via malicious render array.
+      $escaped_slot_name = Html::escape((string) $slot_name);
+      if ($slot_name === 'default') {
+        $template .= \sprintf('<astro-slot>{{ %s }}</astro-slot>', $escaped_slot_name);
+        continue;
+      }
+      $template .= \sprintf('<astro-slot name="%s">{{ %s }}</astro-slot>', $escaped_slot_name, $escaped_slot_name);
+    }
+    $template .= '</astro-island>';
+    return $template;
+  }
+
+}

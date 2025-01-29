@@ -5,7 +5,12 @@ declare(strict_types=1);
 namespace Drupal\Tests\experience_builder\Kernel\Config;
 
 use Drupal\experience_builder\Entity\Component;
+use Drupal\experience_builder\Entity\JavaScriptComponent;
+use Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\BlockComponent;
+use Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\JsComponent;
+use Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\SingleDirectoryComponent;
 use Drupal\KernelTests\Core\Config\ConfigEntityValidationTestBase;
+use Symfony\Component\Yaml\Yaml;
 
 /**
  * Tests validation of component entities.
@@ -39,7 +44,7 @@ class ComponentValidationTest extends ConfigEntityValidationTestBase {
    */
   protected static array $propertiesWithRequiredKeys = [
     'settings' => [
-      "'plugin_id' is a required key because source is sdc (see config schema type experience_builder.component_source_settings.sdc).",
+      "'plugin_id' is a required key.",
       "'prop_field_definitions' is a required key because source is sdc (see config schema type experience_builder.component_source_settings.sdc).",
     ],
   ];
@@ -53,7 +58,7 @@ class ComponentValidationTest extends ConfigEntityValidationTestBase {
     $this->entity = Component::create([
       'id' => 'sdc.sdc_test.my-cta',
       'category' => 'Test',
-      'source' => 'sdc',
+      'source' => SingleDirectoryComponent::SOURCE_PLUGIN_ID,
       'settings' => [
         'plugin_id' => 'sdc_test:my-cta',
         'prop_field_definitions' => [
@@ -92,6 +97,119 @@ class ComponentValidationTest extends ConfigEntityValidationTestBase {
       'label' => 'Test',
     ]);
     $this->entity->save();
+  }
+
+  /**
+   * @covers `type: experience_builder.component_source_settings.*`
+   * @covers `type: experience_builder.generated_field_explicit_input_ux`
+   * @covers `type: experience_builder.component_source_settings.sdc`
+   * @covers `type: experience_builder.component_source_settings.js`
+   * @covers `type: experience_builder.component_source_settings.block`
+   *
+   * - `experience_builder.generated_field_explicit_input_ux` extends the
+   * fallback `experience_builder.component_source_settings.*`
+   * - The "sdc" and "js" ones both extend
+   *   `experience_builder.component_source_settings.*`
+   * - The "block" one extends the fallback one.
+   *
+   * This test method is aimed to test the ComponentSource-specific settings
+   */
+  public function testComponentSourceSpecificSettings(): void {
+    // @see \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\SingleDirectoryComponent
+    assert($this->entity instanceof Component);
+    $invalid_settings_due_to_missing_prop_field_definition = $this->entity->getSettings();
+    unset($invalid_settings_due_to_missing_prop_field_definition['prop_field_definitions']['target']);
+    $this->entity->setSettings($invalid_settings_due_to_missing_prop_field_definition);
+    $this->assertValidationErrors([
+      'settings.prop_field_definitions' => 'Configuration for the SDC prop "<em class="placeholder">Target</em>" (<em class="placeholder">target</em>) is missing.',
+    ]);
+
+    // @see \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\JsComponent
+    // Create a "code component" that has the same explicit inputs as the
+    // `sdc_test:my-cta`.
+    $sdc_yaml = Yaml::parseFile($this->root . '/core/modules/system/tests/modules/sdc_test/components/my-cta/my-cta.component.yml');
+    $props = array_diff_key(
+      $sdc_yaml['props']['properties'],
+      // SDC has special infrastructure for a prop named "attributes".
+      array_flip(['attributes']),
+    );
+    // The `sdc_test:my-cta` SDC does not actually meet the requirements.
+    $props['href']['examples'][] = 'https://example.com';
+    $props['target']['examples'][] = '_blank';
+    JavaScriptComponent::create([
+      'machineName' => 'my-cta',
+      'name' => $this->getRandomGenerator()->sentences(5),
+      'status' => FALSE,
+      'props' => $props,
+      'required' => $sdc_yaml['props']['required'],
+      'source_code_js' => '',
+      'source_code_css' => '',
+      'compiled_js' => '',
+      'compiled_css' => '',
+    ])->save();
+    assert($this->entity instanceof Component);
+    $this->entity = Component::create([
+      'id' => 'js.my-cta',
+      'category' => 'Test',
+      'source' => JsComponent::SOURCE_PLUGIN_ID,
+      'settings' => [
+        'plugin_id' => 'my-cta',
+        'prop_field_definitions' => array_diff_key(
+          $this->entity->getSettings()['prop_field_definitions'],
+          array_flip(['target']),
+        ),
+      ],
+      'label' => 'Test',
+    ]);
+    $this->assertValidationErrors([
+      'settings.prop_field_definitions' => "'target' is a required key.",
+    ]);
+
+    // @see \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\BlockComponent
+    $this->enableModules(['block']);
+    $this->installConfig(['system']);
+    $defaults = [];
+
+    if (\version_compare(\Drupal::VERSION, '11.0', '<')) {
+      // In Drupal 10, block setting schemas are conflated with the block
+      // config entity and the block content plugin and hence include keys that
+      // are irrelevant to valid block settings. Let's make sure they don't end
+      // up in stored input.
+      // @see https://drupal.org/i/2274175
+      $defaults = [
+        'info' => '',
+        'status' => TRUE,
+        'view_mode' => 'default',
+        'context_mapping' => [],
+      ];
+    }
+    $this->entity = Component::create([
+      'id' => 'block.system_branding_block',
+      'category' => 'Test',
+      'source' => BlockComponent::SOURCE_PLUGIN_ID,
+      'settings' => [
+        'plugin_id' => 'system_branding_block',
+        'default_settings' => [
+          // For `type: block_settings`.
+          'id' => 'system_branding_block',
+          'provider' => 'system',
+          'label' => 'Site branding',
+          // For `type: block.settings.system_branding_block`, which extends the
+          // above.
+          // @see \Drupal\system\Plugin\Block\SystemBrandingBlock::defaultConfiguration()
+          'use_site_logo' => TRUE,
+          'use_site_name' => FALSE,
+          // But intentionally omitted `use_site_slogan`, which SHOULD trigger a
+          // validation error.
+          // 'use_site_slogan' => FALSE,
+          'label_display' => FALSE,
+        ] + $defaults,
+      ],
+      'label' => 'Test',
+    ]);
+    $this->assertValidationErrors([
+      'settings.default_settings' => "'use_site_slogan' is a required key because settings.plugin_id is system_branding_block (see config schema type block.settings.system_branding_block).",
+    ]);
   }
 
   /**
@@ -148,6 +266,7 @@ class ComponentValidationTest extends ConfigEntityValidationTestBase {
       ],
       'source' => [
         'id' => "Expected 'test.sdc_test.my-cta', not 'sdc.sdc_test.my-cta'. Format: '&lt;%parent.source&gt;.&lt;%parent.settings.plugin_id&gt;'.",
+        'settings' => "'prop_field_definitions' is an unknown key because source is test (see config schema type experience_builder.component_source_settings.*).",
         'source' => "The 'test' plugin does not exist.",
       ],
     ];
@@ -180,7 +299,7 @@ class ComponentValidationTest extends ConfigEntityValidationTestBase {
     $this->assertValidationErrors($errors);
   }
 
-  public function providerTestCategory(): \Generator {
+  public static function providerTestCategory(): \Generator {
     yield 'valid string' => ['foo', []];
     yield 'empty string' => ['', ['category' => 'This value should not be blank.']];
     yield 'null' => [NULL, ['category' => 'This value should not be null.']];

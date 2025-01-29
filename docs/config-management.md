@@ -134,7 +134,40 @@ UI routes:
 - unavailable `component`s: `/admin/structure/component/status`
 
 
-### 3.2 `PageTemplate config entity`
+### 3.2 `JavaScriptComponent config entity`
+
+See:
+- `\Drupal\experience_builder\Entity\JavaScriptComponent`
+- `\Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\JsComponent`
+- `\Drupal\experience_builder\Plugin\Validation\Constraint\JsComponentHasValidSdcMetadataConstraintValidator`
+- `type: experience_builder.js_component.*`
+
+A `JavaScriptComponent config entity` (UI label: _code components_) can be created by Ambitious Site Builders to create
+so-called components in the browser, without the need for learning how to create `SDC`s, and most importantly: without
+the need for deploying new or updated modules or themes.
+
+The intent is to make it as easy and frictionless as possible to create such _code components_, while also ensuring that
+they can easily be synced from one Drupal instance (_environment_) to another (per requirement
+[`14. Configuration management`](https://docs.google.com/spreadsheets/d/1OpETAzprh6DWjpTsZG55LWgldWV_D8jNe9AM73jNaZo/edit?gid=1721130122#gid=1721130122&range=B25)).
+
+Of course, such in-browser created _code components_ must also be able to accept inputs. Rather than reinventing the
+wheel, the same _schema_ for defining explicit inputs as that of `SDC` is adopted here. But to be able to guarantee that
+for every valid `JavaScript Component config entity` a working auto-generated input UX can be guaranteed, additional
+restrictions are applied during validation:
+- Not all JSON Schema "types" are allowed; only scalar/primitive ones: `string`, `number`, `integer` and `boolean`. See
+  the `Choice` constraint applied to each "prop"'s type.
+- Similarly, not all JSON Schema "formats" are allowed. See the corresponding `Choice` constraint.
+
+Once a _code component_ is considered ready for use by its creator, it can be exposed as an XB `component` (which under
+the hood involves creating a sibling `Component config entity` — see [section 3.1](#3.1) above). This is made possible
+by the `JS` `Component Source Plugin`.
+
+To the Content Creator, then, the input UX of an `SDC`-sourced `component` and a `JS`-sourced `component` with the same
+"props" (the name used for the `explicit component input` of both of those `Component Source Plugin`s) must be
+_indistinguishable_ from each other — despite one relying on Twig and the other only on JS.
+
+
+### 3.3 `PageTemplate config entity`
 
 See:
 - `\Drupal\experience_builder\Entity\PageTemplate`
@@ -174,7 +207,7 @@ See `\Drupal\block\Plugin\DisplayVariant\BlockPageVariant`.
 - support for blocks-as-components in general
 
 
-### 3.3 `Pattern config entity`
+### 3.4 `Pattern config entity`
 
 See:
 - `\Drupal\experience_builder\Entity\Pattern`
@@ -189,7 +222,6 @@ only be visible in any subsequent uses of it. (Similar to how Drupal Recipes beh
 ⚠️ Still to be built:
 - a UI to create `Pattern config entities` [exists](https://www.drupal.org/project/experience_builder/issues/3459229) already, but it does not yet save to the server side, that is still to be implemented in <https://www.drupal.org/project/experience_builder/issues/3486203>
 
-
-### 3.4 Other configuration entities
+### 3.5 Other configuration entities
 
 Nothing yet, this will change when support for [`content type template`s is added later](https://www.drupal.org/project/experience_builder/issues/3455629)

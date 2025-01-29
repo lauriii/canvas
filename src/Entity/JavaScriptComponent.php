@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Drupal\experience_builder\Entity;
 
+use Drupal\Component\Utility\Crypt;
 use Drupal\Core\Config\Entity\ConfigEntityBase;
+use Drupal\Core\Site\Settings;
 use Drupal\experience_builder\ClientSideRepresentation;
 
 /**
@@ -15,6 +17,9 @@ use Drupal\experience_builder\ClientSideRepresentation;
  *   label_plural = @Translation("code components"),
  *   label_collection = @Translation("Code components"),
  *   admin_permission = "administer code components",
+ *   handlers = {
+ *     "storage" = \Drupal\experience_builder\EntityHandlers\JavascriptComponentStorage::class,
+ *   },
  *   entity_keys = {
  *     "id" = "machineName",
  *     "label" = "name",
@@ -24,6 +29,7 @@ use Drupal\experience_builder\ClientSideRepresentation;
  *     "machineName",
  *     "name",
  *     "props",
+ *     "required",
  *     "slots",
  *     "source_code_js",
  *     "source_code_css",
@@ -112,7 +118,7 @@ final class JavaScriptComponent extends ConfigEntityBase implements XbHttpApiEli
   }
 
   /**
-   * Code components are Twig-defined but still aim to match SDC closely.
+   * Code components are not Twig-defined but still aim to match SDC closely.
    *
    * TRICKY: while `props` and `slots` are already individually validated
    * against the JSON schema, the overall structure must also be valid in a way
@@ -140,7 +146,8 @@ final class JavaScriptComponent extends ConfigEntityBase implements XbHttpApiEli
       // that allow this to be considered a valid SDC definition.
       'library' => [],
       'path' => '',
-      'template' => '',
+      // This needs to be non empty.
+      'template' => 'phony',
     ];
     // Slots are optional. Setting the `slots` key to an empty array is invalid.
     // @see \Drupal\experience_builder\Plugin\Validation\Constraint\JsComponentHasValidSdcMetadataConstraintValidator
@@ -154,6 +161,49 @@ final class JavaScriptComponent extends ConfigEntityBase implements XbHttpApiEli
       $definition['props']['required'] = $this->required;
     }
     return $definition;
+  }
+
+  public function getCompiledJs(): string {
+    return $this->compiled_js ?? '';
+  }
+
+  public function getCompiledCss(): string {
+    return $this->compiled_css ?? '';
+  }
+
+  public function hasCss(): bool {
+    return trim($this->getCompiledCss()) !== '';
+  }
+
+  public function getJsPath(): string {
+    $hash = Crypt::hmacBase64($this->getCompiledJs(), Settings::getHashSalt());
+    return 'assets://astro-island/' . $hash . '.js';
+  }
+
+  public function getCssPath(): string {
+    $hash = Crypt::hmacBase64($this->getCompiledCss(), Settings::getHashSalt());
+    return 'assets://astro-island/' . $hash . '.css';
+  }
+
+  /**
+   * Sets value for props.
+   *
+   * @param array<string, array{type: string, format?: string, examples?: string|array<string>, title: string}> $props
+   *   Value for Props.
+   */
+  public function setProps(array $props): self {
+    $this->props = $props;
+    return $this;
+  }
+
+  /**
+   * Gets required props.
+   *
+   * @return array
+   *   Required props.
+   */
+  public function getRequiredProps(): array {
+    return $this->required ?? [];
   }
 
 }

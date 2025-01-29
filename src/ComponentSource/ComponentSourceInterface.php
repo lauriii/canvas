@@ -52,22 +52,18 @@ interface ComponentSourceInterface extends PluginInspectionInterface, Derivative
   public function getDependencies(array $settings): array;
 
   /**
-   * Gets the definition of the component plugin.
+   * Gets referenced plugin classes for this instance.
    *
-   * @return array
-   *   The component plugin definition.
+   * This is used in validation to allow component tree items to limit the type
+   * of plugins that can be referenced. For example, the main content block
+   * can't be referenced by a content entity's component tree.
+   *
+   * @return class-string|null
+   *   An FQCN of any plugin classes that this source plugin is referencing. For
+   *   example a block source plugin might return the block plugin class it is
+   *   referencing here.
    */
-  public function getComponentPluginDefinition(): array;
-
-  /**
-   * Gets the component plugin.
-   *
-   * @return \Drupal\Core\Plugin\Component|\Drupal\Core\Block\BlockPluginInterface
-   *   The component plugin definition.
-   *
-   * @todo Decide what to do about the return type here
-   */
-  public function getComponentPlugin();
+  public function getReferencedPluginClass(): ?string;
 
   /**
    * Gets a description of the component.
@@ -197,5 +193,13 @@ interface ComponentSourceInterface extends PluginInspectionInterface, Derivative
    *   Any violations.
    */
   public function validateComponentInput(array $inputValues, string $component_instance_uuid, ?FieldableEntityInterface $entity): ConstraintViolationListInterface;
+
+  /**
+   * Checks if component meets requirements.
+   *
+   * @throws \Drupal\experience_builder\ComponentDoesNotMeetRequirementsException
+   *   When the component does not meet requirements.
+   */
+  public function checkRequirements(): void;
 
 }

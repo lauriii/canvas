@@ -13,7 +13,6 @@ use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Extension\ThemeHandlerInterface;
 use Drupal\Core\File\FileSystemInterface;
 use Drupal\Core\Plugin\CategorizingPluginManagerTrait;
-use Drupal\Core\State\StateInterface;
 use Drupal\Core\Theme\Component\ComponentMetadata;
 use Drupal\Core\Theme\Component\ComponentValidator;
 use Drupal\Core\Theme\Component\SchemaCompatibilityChecker;
@@ -21,10 +20,10 @@ use Drupal\Core\Theme\ComponentNegotiator;
 use Drupal\Core\Theme\ComponentPluginManager as CoreComponentPluginManager;
 use Drupal\Core\Theme\ExtensionType;
 use Drupal\Core\Theme\ThemeManagerInterface;
+use Drupal\experience_builder\ComponentDoesNotMeetRequirementsException;
+use Drupal\experience_builder\ComponentIncompatibilityReasonRepository;
+use Drupal\experience_builder\ComponentMetadataRequirementsChecker;
 use Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\SingleDirectoryComponent;
-use Drupal\experience_builder\PropExpressions\Component\ComponentPropExpression;
-use Drupal\experience_builder\PropShape\PropShape;
-use Drupal\experience_builder\PropShape\StorablePropShape;
 
 /**
  * Decorator that auto-creates/updates an Experience Builder Component entity per SDC.
@@ -35,18 +34,10 @@ class ComponentPluginManager extends CoreComponentPluginManager implements Categ
 
   use CategorizingPluginManagerTrait;
 
-  const REASONS_STATE_KEY = 'experience_builder:component:reasons';
-
   protected static bool $isRecursing = FALSE;
 
   protected array $reasons;
 
-  /**
-   * {@inheritdoc}
-   *
-   * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entityTypeManager
-   * @param \Drupal\Core\State\StateInterface $state
-   */
   public function __construct(
     ModuleHandlerInterface $module_handler,
     ThemeHandlerInterface $themeHandler,
@@ -59,7 +50,7 @@ class ComponentPluginManager extends CoreComponentPluginManager implements Categ
     ComponentValidator $componentValidator,
     string $appRoot,
     protected readonly EntityTypeManagerInterface $entityTypeManager,
-    protected readonly StateInterface $state,
+    protected readonly ComponentIncompatibilityReasonRepository $reasonRepository,
   ) {
     parent::__construct($module_handler, $themeHandler, $cacheBackend, $configFactory, $themeManager, $componentNegotiator, $fileSystem, $compatibilityChecker, $componentValidator, $appRoot);
   }
@@ -86,24 +77,30 @@ class ComponentPluginManager extends CoreComponentPluginManager implements Categ
     self::$isRecursing = TRUE;
 
     $components = $this->entityTypeManager->getStorage('component')->loadMultiple();
-    $this->reasons = $this->state->get($this::REASONS_STATE_KEY, []);
+    $reasons = $this->reasonRepository->getReasons()[SingleDirectoryComponent::SOURCE_PLUGIN_ID] ?? [];
+    $definition_ids = \array_map(static fn (string $plugin_id) => SingleDirectoryComponent::convertMachineNameToId($plugin_id), \array_keys($definitions));
     foreach ($definitions as $machine_name => $plugin_definition) {
       // Update all components, even those that do not meet the requirements.
       // (Because those components may already be in use!)
-      if (array_key_exists(SingleDirectoryComponent::convertMachineNameToId($machine_name), $components)) {
+      $component_id = SingleDirectoryComponent::convertMachineNameToId($machine_name);
+      if (array_key_exists($component_id, $components)) {
         $component_plugin = $this->createInstance($machine_name);
         $component = SingleDirectoryComponent::updateConfigEntity($component_plugin);
         if (isset($component_plugin->metadata->status) && $component_plugin->metadata->status === 'obsolete') {
-          $this->reasons[$component_plugin->getPluginId()] = 'Component has "obsolete" status';
+          $reasons[$component_id] = 'Component has "obsolete" status';
           $component->disable();
         }
       }
       else {
-        if (!self::componentMeetsRequirements($plugin_definition)) {
+        try {
+          $this->componentMeetsRequirements($plugin_definition);
+          $component_plugin = $this->createInstance($machine_name);
+          $component = SingleDirectoryComponent::createConfigEntity($component_plugin);
+        }
+        catch (ComponentDoesNotMeetRequirementsException $e) {
+          $reasons[$component_id] = $e->getMessage();
           continue;
         }
-        $component_plugin = $this->createInstance($machine_name);
-        $component = SingleDirectoryComponent::createConfigEntity($component_plugin);
       }
       try {
         $component->save();
@@ -114,76 +111,29 @@ class ComponentPluginManager extends CoreComponentPluginManager implements Categ
         }
       }
     }
-    $this->updateReasons($definitions);
+    $this->reasonRepository->updateReasons(SingleDirectoryComponent::SOURCE_PLUGIN_ID, \array_intersect_key($reasons, \array_flip($definition_ids)));
     self::$isRecursing = FALSE;
 
     return $definitions;
   }
 
-  public function componentMeetsRequirements(array $plugin_definition): bool {
-    // XB always requires schema, even for theme components.
-    // @see \Drupal\Core\Theme\ComponentPluginManager::shouldEnforceSchemas()
-    // @see \Drupal\Core\Theme\Component\ComponentMetadata::parseSchemaInfo()
-    if (empty($plugin_definition['props'])) {
-      $this->reasons[$plugin_definition['id']] = 'Component has no props schema';
-      return FALSE;
-    }
+  public function componentMeetsRequirements(array $plugin_definition): void {
+    // @todo Try to remove this method in https://www.drupal.org/project/experience_builder/issues/3502988
     if (isset($plugin_definition['status']) && $plugin_definition['status'] === 'obsolete') {
-      $this->reasons[$plugin_definition['id']] = 'Component has "obsolete" status';
-      return FALSE;
+      throw new ComponentDoesNotMeetRequirementsException('Component has "obsolete" status');
     }
     // Special case exception for 'all-props' SDC.
     // (This is used to develop support for more prop shapes.)
     if ($plugin_definition['id'] === 'sdc_test_all_props:all-props') {
-      return TRUE;
+      return;
     }
 
-    if ($plugin_definition['category'] == 'Elements') {
-      $this->reasons[$plugin_definition['id']] = 'Component uses the reserved "Elements" category';
-      return FALSE;
-    }
-
-    if (isset($plugin_definition['props']['required'])) {
-      foreach ($plugin_definition['props']['required'] as $prop) {
-        // Every required prop must have >=1 example.
-        if (empty($plugin_definition['props']['properties'][$prop]['examples'])) {
-          $this->reasons[$plugin_definition['id']] = sprintf('Prop "%s" is required, but does not have example value', $prop);
-          return FALSE;
-        }
-      }
-    }
-    if (isset($plugin_definition['props']['properties'])) {
-      foreach ($plugin_definition['props']['properties'] as $prop_name => $prop) {
-        if ($prop_name === 'attributes') {
-          continue;
-        }
-        // Every prop must have a title.
-        if (!isset($prop['title'])) {
-          $this->reasons[$plugin_definition['id']] = sprintf('Prop "%s" must have title', $prop_name);
-          return FALSE;
-        }
-        // Every prop must have a StorablePropShape.
-        if (!$this->propHasStorablePropShape($prop_name, $plugin_definition)) {
-          return FALSE;
-        }
-      }
-    }
-    return TRUE;
-  }
-
-  protected function propHasStorablePropShape(string $prop_name, array $plugin_definition): bool {
-    $metadata = self::createComponentMetadataFromPluginDefinition($plugin_definition);
-    $component_prop_expression = new ComponentPropExpression($plugin_definition['id'], $prop_name);
-    $prop_shape = PropShape::getComponentPropsForMetadata($plugin_definition['id'], $metadata)[(string) $component_prop_expression];
-    $storable_prop_shape = $prop_shape->getStorage();
-    if ($storable_prop_shape instanceof StorablePropShape) {
-      return TRUE;
-    }
-    $this->reasons[$plugin_definition['id']] = sprintf('Experience Builder does not know of a field type/widget to allow populating the <code>%s</code> prop, with the shape <code>%s</code>.', $prop_name, json_encode($prop_shape->schema, JSON_UNESCAPED_SLASHES));
-    return FALSE;
+    $required = $plugin_definition['props']['required'] ?? [];
+    ComponentMetadataRequirementsChecker::check($plugin_definition['id'], self::createComponentMetadataFromPluginDefinition($plugin_definition), $required);
   }
 
   protected static function createComponentMetadataFromPluginDefinition(array $plugin_definition): ComponentMetadata {
+    // @todo Try to remove this method in https://www.drupal.org/project/experience_builder/issues/3502988
     // Copied logic from ComponentPluginManager::shouldEnforceSchema() as it is set to private visibility.
     // @see \Drupal\Core\Theme\ComponentPluginManager::shouldEnforceSchemas()
     if (isset($plugin_definition['extension_type']) && $plugin_definition['extension_type'] !== ExtensionType::Theme) {
@@ -202,24 +152,6 @@ class ComponentPluginManager extends CoreComponentPluginManager implements Categ
     );
 
     return $metadata;
-  }
-
-  /**
-   * Checks reasons stored in State API an ensures no stale entries for non-existing SDC are kept.
-   *
-   * @todo Store reasons as value object that captures all the reasons component fails to meet requirements in https://www.drupal.org/project/experience_builder/issues/3473275
-   *
-   * @param array<string, \Drupal\Core\Plugin\Component> $definitions
-   *
-   * @return void
-   */
-  protected function updateReasons(array $definitions) : void {
-    foreach (array_keys($this->reasons) as $plugin_id) {
-      if (!array_key_exists($plugin_id, $definitions)) {
-        unset($this->reasons[$plugin_id]);
-      }
-    }
-    $this->state->set($this::REASONS_STATE_KEY, $this->reasons);
   }
 
   /**

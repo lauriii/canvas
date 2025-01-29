@@ -17,10 +17,12 @@ use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Entity\TypedData\EntityDataDefinition;
 use Drupal\Core\EventSubscriber\AjaxResponseSubscriber;
 use Drupal\Core\Field\BaseFieldDefinition;
+use Drupal\Core\File\FileUrlGeneratorInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\datetime\Plugin\Field\FieldType\DateTimeItem;
 use Drupal\experience_builder\Entity\Component;
+use Drupal\experience_builder\Entity\JavaScriptComponent;
 use Drupal\experience_builder\Form\FormIdPreRender;
 use Drupal\experience_builder\Entity\PageTemplate;
 use Drupal\experience_builder\Plugin\ComponentPluginManager;
@@ -403,4 +405,17 @@ function experience_builder_form_system_theme_settings_submit(array &$form, Form
   // Avoid polluting the theme settings config entity.
   $form_state->unsetValue('use_xb');
   $form_state->unsetValue('editable');
+}
+
+function experience_builder_library_info_build(): array {
+  $libraries = [];
+  $url_generator = \Drupal::service(FileUrlGeneratorInterface::class);
+  foreach (JavaScriptComponent::loadMultiple() as $component) {
+    if ($component->hasCss()) {
+      $library_name = "astro_island." . $component->id();
+      $component_url = $url_generator->generateString($component->getCssPath());
+      $libraries[$library_name]['css']['component'][$component_url] = [];
+    }
+  }
+  return $libraries;
 }

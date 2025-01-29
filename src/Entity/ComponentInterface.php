@@ -30,4 +30,20 @@ interface ComponentInterface extends ConfigEntityInterface, EntityWithPluginColl
    */
   public function getComponentSource(): ComponentSourceInterface;
 
+  /**
+   * Gets component settings.
+   *
+   * @return array
+   *   Component Settings.
+   */
+  public function getSettings(): array;
+
+  /**
+   * Sets component settings.
+   *
+   * @param array $settings
+   *   Component Settings.
+   */
+  public function setSettings(array $settings): self;
+
 }

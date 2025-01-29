@@ -9,7 +9,8 @@
       "modules/same_page_preview/**",
       "modules/xb_vite/**",
       "docs/diagrams/**",
-      "ui/src/local_packages/**"
+      "ui/src/local_packages/**",
+      "js/astro-bundles/**"
     ],
     "ignoreRegExpList": [
       "ℹ\uFE0E.*"

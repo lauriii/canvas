@@ -8,30 +8,31 @@ use Drupal\Core\Field\Plugin\Field\FieldWidget\OptionsSelectWidget;
 use Drupal\Core\Field\Plugin\Field\FieldWidget\StringTextfieldWidget;
 use Drupal\Core\Field\Plugin\Field\FieldWidget\UriWidget;
 use Drupal\Core\Menu\Plugin\Block\LocalActionsBlock;
-use Drupal\Core\State\StateInterface;
 use Drupal\Core\Theme\ComponentPluginManager as CoreComponentPluginManager;
+use Drupal\experience_builder\ComponentIncompatibilityReasonRepository;
+use Drupal\experience_builder\Entity\JavaScriptComponent;
 use Drupal\experience_builder\Plugin\ComponentPluginManager;
 use Drupal\experience_builder\Entity\Component;
+use Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\JsComponent;
 use Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\SingleDirectoryComponent;
 use Drupal\experience_builder\PropSource\StaticPropSource;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\Tests\experience_builder\Traits\ContribStrictConfigSchemaTestTrait;
 use Drupal\Tests\experience_builder\Traits\GenerateComponentConfigTrait;
 use Drupal\user\Plugin\Block\UserLoginBlock;
+use Symfony\Component\Yaml\Yaml;
 
 class ComponentTest extends KernelTestBase {
 
   use ContribStrictConfigSchemaTestTrait;
   use GenerateComponentConfigTrait;
 
-  const MODULE_COMPONENT_ID = 'sdc_test:my-cta';
-  const MODULE_CONFIG_ENTITY_ID = 'sdc.sdc_test.my-cta';
   const MISSING_COMPONENT_ID = 'experience_builder:missing-component';
   const MISSING_CONFIG_ENTITY_ID = 'sdc.experience_builder.missing-component';
   const LABEL = 'Test Component';
 
   protected CoreComponentPluginManager $componentPluginManager;
-  protected StateInterface $state;
+  protected ComponentIncompatibilityReasonRepository $repository;
 
   /**
    * {@inheritdoc}
@@ -56,7 +57,7 @@ class ComponentTest extends KernelTestBase {
   protected function setUp(): void {
     parent::setUp();
     $this->componentPluginManager = $this->container->get(ComponentPluginManager::class);
-    $this->state = $this->container->get('state');
+    $this->repository = $this->container->get(ComponentIncompatibilityReasonRepository::class);
   }
 
   protected function midTestSetUp(): void {
@@ -92,16 +93,80 @@ class ComponentTest extends KernelTestBase {
     $this->installEntitySchema('filter_format');
   }
 
-  public function testComponentCreation(): void {
+  public function providerComponentCreation(): array {
+    return [
+      'sdc' => [
+        'component_config_entity_id' => 'sdc.sdc_test.my-cta',
+        'source' => SingleDirectoryComponent::SOURCE_PLUGIN_ID,
+        'source_internal_id' => 'sdc_test:my-cta',
+        'expected_config_dependencies' => [
+          'module' => [
+            // Reason: field type + widget.
+            'options',
+            // Reason: SDC.
+            'sdc_test',
+          ],
+        ],
+      ],
+      'js' => [
+        'component_config_entity_id' => 'js.my-cta',
+        'source' => JsComponent::SOURCE_PLUGIN_ID,
+        'source_internal_id' => 'my-cta',
+        'expected_additional_config_dependencies' => [
+          'config' => [
+            'experience_builder.js_component.my-cta',
+          ],
+          'module' => [
+            // Reason: field type + widget.
+            'options',
+          ],
+        ],
+      ],
+    ];
+  }
+
+  /**
+   * @dataProvider providerComponentCreation
+   */
+  public function testComponentCreation(string $component_config_entity_id, string $source, string $source_internal_id, array $expected_config_dependencies): void {
+    if ($source === JsComponent::SOURCE_PLUGIN_ID) {
+      $this->assertEmpty(JavaScriptComponent::loadMultiple());
+
+      // Create a "code component" that has the same explicit inputs as the
+      // `sdc_test:my-cta`.
+      $sdc_yaml = Yaml::parseFile($this->root . '/core/modules/system/tests/modules/sdc_test/components/my-cta/my-cta.component.yml');
+      $props = array_diff_key(
+        $sdc_yaml['props']['properties'],
+        // SDC has special infrastructure for a prop named "attributes".
+        array_flip(['attributes']),
+      );
+      // The `sdc_test:my-cta` SDC does not actually meet the requirements.
+      $props['href']['examples'][] = 'https://example.com';
+      $props['target']['examples'][] = '_blank';
+
+      $js_component = JavaScriptComponent::create([
+        'machineName' => 'my-cta',
+        'name' => $this->getRandomGenerator()->sentences(5),
+        'status' => FALSE,
+        'props' => $props,
+        'required' => $sdc_yaml['props']['required'],
+        'source_code_js' => '',
+        'source_code_css' => '',
+        'compiled_js' => '',
+        'compiled_css' => '',
+      ]);
+      $js_component->save();
+    }
+
     $this->assertEmpty(Component::loadMultiple());
 
     $module_component = Component::create([
-      'id' => self::MODULE_CONFIG_ENTITY_ID,
+      'id' => $component_config_entity_id,
       'label' => self::LABEL,
       'category' => self::LABEL,
-      'source' => SingleDirectoryComponent::SOURCE_PLUGIN_ID,
+      'source' => $source,
       'settings' => [
-        'plugin_id' => self::MODULE_COMPONENT_ID,
+        'plugin_id' => $source_internal_id,
         'prop_field_definitions' => [
           'text' => [
             // @see \Drupal\Core\Field\Plugin\Field\FieldType\StringItem
@@ -139,24 +204,28 @@ class ComponentTest extends KernelTestBase {
     $module_component->save();
 
     $this->assertNotEmpty(Component::loadMultiple());
-    $this->assertSame(['module' => ['options', 'sdc_test']], $module_component->getDependencies());
-    $this->assertSame(self::MODULE_COMPONENT_ID, $module_component->getComponentPluginId());
-    $this->assertSame(self::MODULE_CONFIG_ENTITY_ID, $module_component->id());
-    $this->assertSame(self::MODULE_COMPONENT_ID, $module_component->getComponentSource()->getConfiguration()['plugin_id']);
+    $this->assertSame($expected_config_dependencies, $module_component->getDependencies());
+    $this->assertSame($component_config_entity_id, $module_component->id());
+    $this->assertSame($source_internal_id, $module_component->getComponentSource()->getConfiguration()['plugin_id']);
 
-    $text_default_static_prop_source = $module_component->getDefaultStaticPropSource('text');
+    // Use reflection to test the private ::getDefaultStaticPropSource() method.
+    $source = $module_component->getComponentSource();
+    $private_method = new \ReflectionMethod($source, 'getDefaultStaticPropSource');
+    $private_method->setAccessible(TRUE);
+
+    $text_default_static_prop_source = $private_method->invoke($source, 'text');
     $this->assertInstanceOf(StaticPropSource::class, $text_default_static_prop_source);
     $this->assertSame('static:field_item:string', $text_default_static_prop_source->getSourceType());
     $this->assertInstanceOf(StringTextfieldWidget::class, $text_default_static_prop_source->getWidget('text', $this->randomString(), NULL));
     $this->assertSame('{"sourceType":"static:field_item:string","value":"Hello, world!","expression":"ℹ︎string␟value"}', (string) $text_default_static_prop_source);
 
-    $href_default_static_prop_source = $module_component->getDefaultStaticPropSource('href');
+    $href_default_static_prop_source = $private_method->invoke($source, 'href');
     $this->assertInstanceOf(StaticPropSource::class, $href_default_static_prop_source);
     $this->assertSame('static:field_item:uri', $href_default_static_prop_source->getSourceType());
     $this->assertInstanceOf(UriWidget::class, $href_default_static_prop_source->getWidget('href', $this->randomString(), NULL));
     $this->assertSame('{"sourceType":"static:field_item:uri","value":"https:\/\/drupal.org","expression":"ℹ︎uri␟value"}', (string) $href_default_static_prop_source);
 
-    $target_default_static_prop_source = $module_component->getDefaultStaticPropSource('target');
+    $target_default_static_prop_source = $private_method->invoke($source, 'target');
     $this->assertInstanceOf(StaticPropSource::class, $target_default_static_prop_source);
     $this->assertSame('static:field_item:list_string', $target_default_static_prop_source->getSourceType());
     $this->assertInstanceOf(OptionsSelectWidget::class, $target_default_static_prop_source->getWidget('target', $this->randomString(), NULL));
@@ -185,14 +254,14 @@ class ComponentTest extends KernelTestBase {
     // hooks that would normally do this.
     $this->generateComponentConfig();
 
-    $reasons = $this->state->get(ComponentPluginManager::REASONS_STATE_KEY, []);
+    $reasons = $this->repository->getReasons()[SingleDirectoryComponent::SOURCE_PLUGIN_ID] ?? [];
     $expected_plugins = [];
     foreach ($components as $component_id => $component_entity) {
       [$type, $plugin_id] = explode('.', $component_id, 2);
       $plugin_id = str_replace('.', ':', $plugin_id);
       $expected_plugins[$type][] = $plugin_id;
       $this->assertSame($component_entity['compatible'], Component::load($component_id) instanceof Component, $plugin_id . ' and modules: ' . implode(', ', $modules));
-      $this->assertSame($component_entity['reason'] ?? NULL, isset($reasons[$plugin_id]) ? (string) $reasons[$plugin_id] : NULL, $plugin_id);
+      $this->assertSame($component_entity['reason'] ?? NULL, isset($reasons[$component_id]) ? (string) $reasons[$component_id] : NULL, $plugin_id);
     }
 
     $this->assertEqualsCanonicalizing($expected_plugins['sdc'], array_keys($this->componentPluginManager->getDefinitions()));
@@ -415,12 +484,12 @@ class ComponentTest extends KernelTestBase {
     $initial_components = Component::loadMultiple();
     $this->assertNotEmpty($initial_components);
     $this->assertArrayHasKey('sdc.experience_builder.image', $initial_components);
-    $this->assertSame('image', $initial_components['sdc.experience_builder.image']->get('settings')['prop_field_definitions']['image']['field_type']);
+    $this->assertSame('image', $initial_components['sdc.experience_builder.image']->getSettings()['prop_field_definitions']['image']['field_type']);
 
     $this->midTestSetUp();
     $updated_component = Component::load('sdc.experience_builder.image');
     assert($updated_component instanceof Component);
-    $this->assertSame('entity_reference', $updated_component->get('settings')['prop_field_definitions']['image']['field_type']);
+    $this->assertSame('entity_reference', $updated_component->getSettings()['prop_field_definitions']['image']['field_type']);
   }
 
   public function testObsoleteStatusHandling(): void {

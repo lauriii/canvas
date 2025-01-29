@@ -101,14 +101,14 @@ final class BlockComponent extends ComponentSourceBase implements ContainerFacto
   /**
    * {@inheritdoc}
    */
-  public function getComponentPluginDefinition(): array {
-    return $this->blockManager->getDefinition($this->configuration['plugin_id']);
+  public function getReferencedPluginClass(): ?string {
+    return $this->blockManager->getDefinition($this->configuration['plugin_id'])['class'];
   }
 
   /**
    * {@inheritdoc}
    */
-  public function getComponentPlugin(): BlockPluginInterface {
+  protected function getBlockPlugin(): BlockPluginInterface {
     // @todo this should probably use DefaultSingleLazyPluginCollection
     $block = $this->blockManager->createInstance($this->configuration['plugin_id'], $this->configuration);
     assert($block instanceof BlockPluginInterface);
@@ -119,7 +119,7 @@ final class BlockComponent extends ComponentSourceBase implements ContainerFacto
    * {@inheritdoc}
    */
   public function calculateDependencies(): array {
-    return $this->getComponentPlugin()->calculateDependencies() ?? [];
+    return $this->getBlockPlugin()->calculateDependencies() ?? [];
   }
 
   /**
@@ -133,7 +133,7 @@ final class BlockComponent extends ComponentSourceBase implements ContainerFacto
    * {@inheritdoc}
    */
   public function getComponentDescription(): TranslatableMarkup {
-    $pluginDefinition = $this->getComponentPlugin()->getPluginDefinition() ?? [];
+    $pluginDefinition = $this->getBlockPlugin()->getPluginDefinition() ?? [];
     assert(is_array($pluginDefinition));
     return new TranslatableMarkup('Block: %name', [
       '%name' => $pluginDefinition['admin_label'] ?? new TranslatableMarkup('Invalid/broken'),
@@ -144,7 +144,7 @@ final class BlockComponent extends ComponentSourceBase implements ContainerFacto
    * {@inheritdoc}
    */
   public function renderComponent(array $inputs, string $componentUuid): array {
-    $block = $this->getComponentPlugin();
+    $block = $this->getBlockPlugin();
     foreach ($inputs[self::EXPLICIT_INPUT_NAME] ?? [] as $key => $value) {
       $block->setConfigurationValue($key, $value);
     }
@@ -190,7 +190,7 @@ final class BlockComponent extends ComponentSourceBase implements ContainerFacto
    * {@inheritdoc}
    */
   public function requiresExplicitInput(): bool {
-    return !empty($this->getComponentPlugin()->defaultConfiguration());
+    return !empty($this->getBlockPlugin()->defaultConfiguration());
   }
 
   /**
@@ -228,7 +228,7 @@ final class BlockComponent extends ComponentSourceBase implements ContainerFacto
     ?EntityInterface $entity = NULL,
     array $settings = [],
   ): array {
-    $blockPlugin = $this->getComponentPlugin();
+    $blockPlugin = $this->getBlockPlugin();
     if ($client_model) {
       $blockPlugin->setConfiguration($client_model);
     }
@@ -259,7 +259,7 @@ final class BlockComponent extends ComponentSourceBase implements ContainerFacto
     // These 3 block plugin interfaces cannot be previewed (regardless of which
     // implementation) because they depend on the global context.
     // @see `type: experience_builder.page_template.*`'s `component_trees.tree.presence`
-    $block_plugin = $this->getComponentPlugin();
+    $block_plugin = $this->getBlockPlugin();
     if ($block_plugin instanceof MainContentBlockPluginInterface
         || $block_plugin instanceof TitleBlockPluginInterface
         || $block_plugin instanceof MessagesBlockPluginInterface
@@ -303,7 +303,7 @@ final class BlockComponent extends ComponentSourceBase implements ContainerFacto
     if (!$this->requiresExplicitInput()) {
       return new ConstraintViolationList();
     }
-    $block_plugin = $this->getComponentPlugin();
+    $block_plugin = $this->getBlockPlugin();
     $plugin_id = $block_plugin->getPluginId();
     $definition = $block_plugin->getPluginDefinition();
     \assert(\is_array($definition));
@@ -326,6 +326,13 @@ final class BlockComponent extends ComponentSourceBase implements ContainerFacto
     }
     $typed_data = $this->typedConfigManager->createFromNameAndData('block.settings.' . $plugin_id, $inputValues);
     return $this->translateConstraintPropertyPathsAndRoot(['' => \sprintf('inputs.%s.', $component_instance_uuid)], $typed_data->validate());
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function checkRequirements(): void {
+    // @todo Move logic from experience_builder_block_alter here in https://www.drupal.org/project/experience_builder/issues/3491032
   }
 
 }

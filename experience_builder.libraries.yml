@@ -24,6 +24,22 @@ ajax.hyperscriptify:
   js:
     js/ajax.hyperscriptify.js: {}
 
+astro.client:
+  js:
+    js/astro-bundles/client.js: {}
+  license:
+    name: MIT
+    url: https://raw.githubusercontent.com/withastro/astro/refs/heads/main/LICENSE
+    gpl-compatible: true
+
+astro.hydration:
+  js:
+    js/astro-bundles/hydration.js: {}
+  license:
+    name: MIT
+    url: https://raw.githubusercontent.com/withastro/astro/refs/heads/main/LICENSE
+    gpl-compatible: true
+
 # This is a workaround until https://www.drupal.org/node/1945262 is in core.
 # When 'core/drupal.ajax' is added as an XB dependency, it sometimes causes unwanted Olivero
 # assets to load onto the XB page which affects XB styling due to 'drupal.message' having 'olivero/global-styling' in
