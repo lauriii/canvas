@@ -238,6 +238,177 @@ paths:
                     examples:
                       - '42'
                       - 'stringAreAlsoPossible'
+  /xb/api/config/xb_asset_library:
+    description: Endpoints for managing asset libraries.
+    get:
+      description: Retrieves all available asset libraries.
+      responses:
+        '200':
+          description: All available asset libraries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: string
+                      description: Asset library ID
+                    label:
+                      type: string
+                      description: Human-readable label
+                    css:
+                      type: object
+                      description: CSS
+                      nullable: true
+                      properties:
+                        original:
+                          type: string
+                          description: Original CSS as entered by the human author
+                        compiled:
+                          type: string
+                          description: Compiled CSS code, compiled from the original
+                    js:
+                      type: object
+                      description: JS
+                      nullable: true
+                      properties:
+                        original:
+                          type: string
+                          description: Original JS as entered by the human author
+                        compiled:
+                          type: string
+                          description: Compiled JS code, compiled from the original
+              examples:
+                global_asset_library:
+                  value:
+                    - id: "global"
+                      label: "Global Asset Library"
+                      css:
+                        original: "body { background-color: #fff; }"
+                        compiled: "body{background-color:#fff}"
+                      js:
+                        original: "console.log('Hello, world!');"
+                        compiled: "console.log('Hello, world!');"
+    post:
+      description: Creates a new Asset Library.
+      requestBody:
+        description: Creates a new Asset Library.
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - id
+                - label
+              properties:
+                id:
+                  type: string
+                  description: Asset library ID
+                label:
+                  type: string
+                  description: Human-readable label
+                css:
+                  type: object
+                  description: CSS
+                  nullable: true
+                  properties:
+                    original:
+                      type: string
+                      description: Original CSS as entered by the human author
+                    compiled:
+                      type: string
+                      description: Compiled CSS code, compiled from the original
+                js:
+                  type: object
+                  description: JS
+                  nullable: true
+                  properties:
+                    original:
+                      type: string
+                      description: Original JS as entered by the human author
+                    compiled:
+                      type: string
+                      description: Compiled JS code, compiled from the original
+            examples:
+              example:
+                value:
+                  id: "global"
+                  label: "Global Asset Library"
+                  css:
+                    original: "body { background-color: #fff; }"
+                    compiled: "body{background-color:#fff}"
+                  js:
+                    original: "console.log('Hello, world!');"
+                    compiled: "console.log('Hello, world!');"
+      responses:
+        '201':
+          description: Created entity successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssetLibrary'
+              examples:
+                singleAssetLibrary:
+                  value:
+                    id: "global"
+                    label: "Global Asset Library"
+                    css:
+                      original: "body { background-color: #fff; }"
+                      compiled: "body{background-color:#fff}"
+                    js:
+                      original: "console.log('Hello, world!');"
+                      compiled: "console.log('Hello, world!');"
+  '/xb/api/config/xb_asset_library/{configEntityId}':
+    description: Endpoints for managing a specific asset library.
+    get:
+      description: Retrieves details of a specific asset library.
+      parameters:
+        - $ref: '#/components/parameters/configEntityId'
+      responses:
+        '200':
+          description: Individual Asset Library
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssetLibrary'
+              examples:
+                singleAssetLibrary:
+                  value:
+                    id: "global"
+                    label: "Global Asset Library"
+                    css:
+                      original: "body { background-color: #fff; }"
+                      compiled: "body{background-color:#fff}"
+                    js:
+                      original: "console.log('Hello, world!');"
+                      compiled: "console.log('Hello, world!');"
+    patch:
+      description: Updates a specific Asset Library.
+      requestBody:
+        description: Update specific Asset Library.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AssetLibrary'
+      parameters:
+        - $ref: '#/components/parameters/configEntityId'
+      responses:
+        '200':
+          description: Individual Asset Library
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssetLibrary'
+    delete:
+      description: Deletes an Asset Library.
+      parameters:
+        - $ref: '#/components/parameters/configEntityId'
+      responses:
+        '204':
+          description: Deleted individual Asset Library
   /xb/api/config/component:
     description: TODO
     get:
@@ -988,6 +1159,45 @@ components:
           data_hash:
             type: string
             title: Expected hash for this item
+    AssetLibrary:
+      title: Asset Library
+      type: object
+      required:
+        - id
+        - label
+      properties:
+        id:
+          type: string
+          description: Asset library ID
+        label:
+          type: string
+          description: Human-readable label
+        css:
+          type: object
+          description: CSS
+          nullable: true
+          required:
+            - original
+            - compiled
+          additionalProperties: false
+          properties:
+            original:
+              type: string
+              description: Original CSS as entered by the human author
+            compiled:
+              type: string
+              description: Compiled CSS code, compiled from the original
+        js:
+          type: object
+          description: JS
+          nullable: true
+          properties:
+            original:
+              type: string
+              description: Original JS as entered by the human author
+            compiled:
+              type: string
+              description: Compiled JS code, compiled from the original
     Error:
       type: object
       required:

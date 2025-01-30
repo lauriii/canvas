@@ -77,6 +77,8 @@ final class XbTwigExtensionTest extends KernelTestBase {
             ],
           ],
         ],
+        'css' => [],
+        'js' => [],
       ])->save(),
       default => fn() => NULL,
     })($component_id);

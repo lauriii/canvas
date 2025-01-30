@@ -92,10 +92,14 @@ final class AstroIslandTest extends KernelTestBase {
           ],
         ],
       ],
-      'source_code_js' => $js,
-      'source_code_css' => '.test { display: none; }',
-      'compiled_js' => $js,
-      'compiled_css' => $css,
+      'js' => [
+        'original' => $js,
+        'compiled' => $js,
+      ],
+      'css' => [
+        'original' => '.test { display: none; }',
+        'compiled' => $css,
+      ],
     ]);
     $component->save();
 
@@ -159,7 +163,7 @@ final class AstroIslandTest extends KernelTestBase {
     $asset_resolver = \Drupal::service(AssetResolverInterface::class);
     assert($asset_resolver instanceof AssetResolverInterface);
     $css_asset = $asset_resolver->getCssAssets(AttachedAssets::createFromRenderArray($island), FALSE);
-    self::assertEquals(\sprintf('%s/astro-island/%s.css', $directory_path, $css_hash), reset($css_asset)['data']);
+    self::assertEquals(\sprintf('assets://astro-island/%s.css', $css_hash), reset($css_asset)['data']);
 
     $slots = $element->filter('astro-slot');
     self::assertCount(2, $slots);
@@ -202,11 +206,12 @@ final class AstroIslandTest extends KernelTestBase {
       'status' => TRUE,
       'props' => [],
       'slots' => [],
-      'source_code_js' => '',
-      'source_code_css' => '',
-      'compiled_js' => '',
-      // Whitespace only CSS should be ignored.
-      'compiled_css' => "\n  \n",
+      'js' => ['original' => '', 'compiled' => ''],
+      'css' => [
+        'original' => '',
+        // Whitespace only CSS should be ignored.
+        'compiled' => "\n  \n",
+      ],
     ]);
     $component->save();
 
@@ -252,6 +257,8 @@ final class AstroIslandTest extends KernelTestBase {
 
     $component = JavaScriptComponent::create([
       'machineName' => $this->randomMachineName(),
+      'css' => [],
+      'js' => [],
     ]);
     $component->save();
     // No access.

@@ -150,10 +150,8 @@ class ComponentTest extends KernelTestBase {
         'status' => FALSE,
         'props' => $props,
         'required' => $sdc_yaml['props']['required'],
-        'source_code_js' => '',
-        'source_code_css' => '',
-        'compiled_js' => '',
-        'compiled_css' => '',
+        'js' => ['original' => '', 'compiled' => ''],
+        'css' => ['original' => '', 'compiled' => ''],
       ]);
       $js_component->save();
     }

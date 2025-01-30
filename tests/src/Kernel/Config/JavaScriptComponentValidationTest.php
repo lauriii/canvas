@@ -24,6 +24,22 @@ class JavaScriptComponentValidationTest extends ConfigEntityValidationTestBase {
 
   /**
    * {@inheritdoc}
+   *
+   * @phpstan-ignore property.defaultValue
+   */
+  protected static array $propertiesWithRequiredKeys = [
+    'css' => [
+      "'original' is a required key.",
+      "'compiled' is a required key.",
+    ],
+    'js' => [
+      "'original' is a required key.",
+      "'compiled' is a required key.",
+    ],
+  ];
+
+  /**
+   * {@inheritdoc}
    */
   protected function setUp(): void {
     parent::setUp();
@@ -49,10 +65,14 @@ class JavaScriptComponentValidationTest extends ConfigEntityValidationTestBase {
           ],
         ],
       ],
-      'source_code_js' => 'console.log("Test")',
-      'source_code_css' => '.test { display: none; }',
-      'compiled_js' => 'console.log("Test")',
-      'compiled_css' => '.test{display:none;}',
+      'js' => [
+        'original' => 'console.log("Test")',
+        'compiled' => 'console.log("Test")',
+      ],
+      'css' => [
+        'original' => '.test { display: none; }',
+        'compiled' => '.test{display:none;}',
+      ],
     ]);
     $this->entity->save();
   }
@@ -80,14 +100,18 @@ class JavaScriptComponentValidationTest extends ConfigEntityValidationTestBase {
           'name' => 'Test',
           'props' => [],
           'slots' => [],
-          'source_code_js' => NULL,
-          'source_code_css' => '.test { display: none; }',
-          'compiled_js' => NULL,
-          'compiled_css' => '.test{display:none;}',
+          'js' => [
+            'original' => NULL,
+            'compiled' => NULL,
+          ],
+          'css' => [
+            'original' => '.test { display: none; }',
+            'compiled' => '.test{display:none;}',
+          ],
         ],
         [
-          'source_code_js' => 'This value should not be null.',
-          'compiled_js' => 'This value should not be null.',
+          'js.compiled' => 'This value should not be null.',
+          'js.original' => 'This value should not be null.',
         ],
       ],
       'Invalid: Unknown prop type' => [
@@ -107,10 +131,14 @@ class JavaScriptComponentValidationTest extends ConfigEntityValidationTestBase {
             ],
           ],
           'slots' => [],
-          'source_code_js' => 'console.log("Test")',
-          'source_code_css' => '.test { display: none; }',
-          'compiled_js' => 'console.log("Test")',
-          'compiled_css' => '.test{display:none;}',
+          'js' => [
+            'original' => 'console.log("Test")',
+            'compiled' => 'console.log("Test")',
+          ],
+          'css' => [
+            'original' => '.test { display: none; }',
+            'compiled' => '.test{display:none;}',
+          ],
         ],
         [
           '' => 'Unable to find class/interface "unknown" specified in the prop "mixed_up_prop" for the component "experience_builder:test-unknown-prop-type".',
@@ -123,10 +151,14 @@ class JavaScriptComponentValidationTest extends ConfigEntityValidationTestBase {
           'name' => 'Test',
           'props' => [],
           'slots' => [],
-          'source_code_js' => 'console.log("Test")',
-          'source_code_css' => '.test { display: none; }',
-          'compiled_js' => 'console.log("Test")',
-          'compiled_css' => '.test{display:none;}',
+          'js' => [
+            'original' => 'console.log("Test")',
+            'compiled' => 'console.log("Test")',
+          ],
+          'css' => [
+            'original' => '.test { display: none; }',
+            'compiled' => '.test{display:none;}',
+          ],
         ],
         [],
       ],
@@ -161,10 +193,14 @@ class JavaScriptComponentValidationTest extends ConfigEntityValidationTestBase {
             'integer',
           ],
           'slots' => [],
-          'source_code_js' => 'console.log("Test")',
-          'source_code_css' => '.test { display: none; }',
-          'compiled_js' => 'console.log("Test")',
-          'compiled_css' => '.test{display:none;}',
+          'js' => [
+            'original' => 'console.log("Test")',
+            'compiled' => 'console.log("Test")',
+          ],
+          'css' => [
+            'original' => '.test { display: none; }',
+            'compiled' => '.test{display:none;}',
+          ],
         ],
         [],
       ],
@@ -183,10 +219,14 @@ class JavaScriptComponentValidationTest extends ConfigEntityValidationTestBase {
             'does_not_exist',
           ],
           'slots' => [],
-          'source_code_js' => 'console.log("Test")',
-          'source_code_css' => '.test { display: none; }',
-          'compiled_js' => 'console.log("Test")',
-          'compiled_css' => '.test{display:none;}',
+          'js' => [
+            'original' => 'console.log("Test")',
+            'compiled' => 'console.log("Test")',
+          ],
+          'css' => [
+            'original' => '.test { display: none; }',
+            'compiled' => '.test{display:none;}',
+          ],
         ],
         [
           // ⚠️ SDC does not complain about this!
@@ -205,10 +245,14 @@ class JavaScriptComponentValidationTest extends ConfigEntityValidationTestBase {
               'examples' => ['Press', 'Submit now'],
             ],
           ],
-          'source_code_js' => 'console.log("Test")',
-          'source_code_css' => '.test { display: none; }',
-          'compiled_js' => 'console.log("Test")',
-          'compiled_css' => '.test{display:none;}',
+          'js' => [
+            'original' => 'console.log("Test")',
+            'compiled' => 'console.log("Test")',
+          ],
+          'css' => [
+            'original' => '.test { display: none; }',
+            'compiled' => '.test{display:none;}',
+          ],
         ],
         [],
       ],
@@ -229,10 +273,14 @@ class JavaScriptComponentValidationTest extends ConfigEntityValidationTestBase {
             ],
           ],
           'slots' => [],
-          'source_code_js' => 'console.log("Test")',
-          'source_code_css' => '.test { display: none; }',
-          'compiled_js' => 'console.log("Test")',
-          'compiled_css' => '.test{display:none;}',
+          'js' => [
+            'original' => 'console.log("Test")',
+            'compiled' => 'console.log("Test")',
+          ],
+          'css' => [
+            'original' => '.test { display: none; }',
+            'compiled' => '.test{display:none;}',
+          ],
         ],
         [],
       ],
@@ -243,10 +291,14 @@ class JavaScriptComponentValidationTest extends ConfigEntityValidationTestBase {
           'name' => 'Test',
           'props' => [],
           'slots' => [],
-          'source_code_js' => '',
-          'source_code_css' => '',
-          'compiled_js' => '',
-          'compiled_css' => '',
+          'js' => [
+            'original' => '',
+            'compiled' => '',
+          ],
+          'css' => [
+            'original' => '',
+            'compiled' => '',
+          ],
         ],
         [],
       ],

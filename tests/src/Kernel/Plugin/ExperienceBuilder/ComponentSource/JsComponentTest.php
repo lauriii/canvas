@@ -63,10 +63,14 @@ final class JsComponentTest extends KernelTestBase {
       ],
       'required' => ['title'],
       'slots' => [],
-      'source_code_js' => 'console.log("hey");',
-      'source_code_css' => '.test { display: none; }',
-      'compiled_js' => 'console.log("hey");',
-      'compiled_css' => '.test { display: none; }',
+      'css' => [
+        'original' => '.test { display: none; }',
+        'compiled' => '.test{display:none;}',
+      ],
+      'js' => [
+        'original' => 'console.log( "hey" );',
+        'compiled' => 'console.log("hey");',
+      ],
     ]);
     $js_component->save();
     $component = Component::load(JsComponent::componentIdFromJavascriptComponentId((string) $js_component->id()));

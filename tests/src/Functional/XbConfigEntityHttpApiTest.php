@@ -70,32 +70,16 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
    */
   public function testPattern(): void {
     // cspell:ignore testpatternpleaseignore
+    $this->assertAuthenticationAndAuthorization('pattern');
+
     $base = rtrim(base_path(), '/');
-    $list_url = Url::fromUri('base:/xb/api/config/pattern');
+    $list_url = Url::fromUri("base:/xb/api/config/pattern");
 
-    // Anonymously: 403.
-    $body = $this->assertExpectedResponse('GET', $list_url, [], 403, ['user.permissions'], ['4xx-response', 'config:user.role.anonymous', 'http_response'], 'MISS', NULL);
-    $this->assertSame([
-      'message' => "The 'access administration pages' permission is required.",
-    ], $body);
-
-    // Authenticated & authorized: 200, but empty list.
-    $this->drupalLogin($this->httpApiUser);
-    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.permissions'], ['config:pattern_list', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
-    $this->assertSame([], $body);
-
-    // Send a POST request without the CSRF token.
     $request_options = [
       RequestOptions::HEADERS => [
         'Content-Type' => 'application/json',
       ],
     ];
-    $response = $this->makeApiRequest('POST', $list_url, $request_options);
-    $this->assertSame(403, $response->getStatusCode());
-    $this->assertSame([
-      'message' => "X-CSRF-Token request header is missing",
-    ], json_decode((string) $response->getBody(), TRUE));
-
     // Create a Pattern via the XB HTTP API, but forget crucial data that causes
     // the required shape to be violated: 500, courtesy of OpenAPI.
     $pattern_to_send = [
@@ -364,31 +348,16 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
    * @see \Drupal\experience_builder\Entity\JavaScriptComponent
    */
   public function testJavaScriptComponent(): void {
+    $this->assertAuthenticationAndAuthorization('js_component');
+
     $base = rtrim(base_path(), '/');
     $list_url = Url::fromUri('base:/xb/api/config/js_component');
 
-    // Anonymously: 403.
-    $body = $this->assertExpectedResponse('GET', $list_url, [], 403, ['user.permissions'], ['4xx-response', 'config:user.role.anonymous', 'http_response'], 'MISS', NULL);
-    $this->assertSame([
-      'message' => "The 'access administration pages' permission is required.",
-    ], $body);
-
-    // Authenticated & authorized: 200, but empty list.
-    $this->drupalLogin($this->httpApiUser);
-    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.permissions'], ['config:js_component_list', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
-    $this->assertSame([], $body);
-
-    // Send a POST request without the CSRF token.
     $request_options = [
       RequestOptions::HEADERS => [
         'Content-Type' => 'application/json',
       ],
     ];
-    $response = $this->makeApiRequest('POST', $list_url, $request_options);
-    $this->assertSame(403, $response->getStatusCode());
-    $this->assertSame([
-      'message' => "X-CSRF-Token request header is missing",
-    ], json_decode((string) $response->getBody(), TRUE));
 
     // Create a Code Component via the XB HTTP API, but forget crucial data: 500, courtesy of OpenAPI.
     $code_component_to_send = [];
@@ -629,6 +598,105 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
     $this->assertSame([], $body);
     $individual_body = $this->assertExpectedResponse('GET', Url::fromUri('base:/xb/api/config/js_component/test'), [], 404, NULL, NULL, 'UNCACHEABLE (request policy)', 'UNCACHEABLE (no cacheability)');
     $this->assertSame([], $individual_body);
+  }
+
+  public function testAssetLibrary(): void {
+    $this->assertAuthenticationAndAuthorization('xb_asset_library');
+
+    $base = rtrim(base_path(), '/');
+    $list_url = Url::fromUri("base:/xb/api/config/xb_asset_library");
+
+    $request_options = [
+      RequestOptions::HEADERS => [
+        'Content-Type' => 'application/json',
+      ],
+    ];
+
+    // Create an Asset Library via the XB HTTP API, but forget crucial data that causes
+    // the required shape to be violated: 500, courtesy of OpenAPI.
+    $asset_library_to_send = [
+      'id' => 'global',
+      'label' => NULL,
+      'css' => NULL,
+      'js' => NULL,
+    ];
+    $request_options[RequestOptions::BODY] = self::encodeXBData($asset_library_to_send);
+    $body = $this->assertExpectedResponse('POST', $list_url, $request_options, 500, NULL, NULL, NULL, NULL);
+    $this->assertSame([
+      'message' => 'Body does not match schema for content-type "application/json" for Request [post /xb/api/config/xb_asset_library]. [Keyword validation failed: Value cannot be null in label]',
+    ], $body, 'Fails with missing data.');
+
+    // Add missing crucial data, but leave a required shape violation: 500,
+    // courtesy of OpenAPI.
+    $asset_library_to_send['label'] = 'Test Asset Library';
+    $asset_library_to_send['css'] = [
+      'original' => 'body { background-color: #000; }',
+      'compiled' => NULL,
+    ];
+    $request_options[RequestOptions::BODY] = self::encodeXBData($asset_library_to_send);
+    $body = $this->assertExpectedResponse('POST', $list_url, $request_options, 500, NULL, NULL, NULL, NULL);
+    $this->assertSame([
+      'message' => 'Body does not match schema for content-type "application/json" for Request [post /xb/api/config/xb_asset_library]. [Keyword validation failed: Value cannot be null in css->compiled]',
+    ], $body, 'Fails with invalid shape.');
+
+    // Meet data shape requirements, but violate internal consistency for
+    // `id`: 422 (i.e. validation constraint violation).
+    $asset_library_to_send['css']['compiled'] = 'body{background-color:#000}';
+    $asset_library_to_send['id'] = 'not_global';
+    $request_options[RequestOptions::BODY] = self::encodeXBData($asset_library_to_send);
+    $body = $this->assertExpectedResponse('POST', $list_url, $request_options, 422, NULL, NULL, NULL, NULL);
+    $this->assertSame([
+      'errors' => [
+        [
+          'detail' => 'The <em class="placeholder">&quot;not_global&quot;</em> machine name is not valid.',
+          'source' => ['pointer' => 'id'],
+        ],
+      ],
+    ], $body);
+
+    // Meet data shape requirements correctly: 201.
+    $asset_library_to_send['id'] = 'global';
+    $request_options[RequestOptions::BODY] = self::encodeXBData($asset_library_to_send);
+    $body = $this->assertExpectedResponse('POST', $list_url, $request_options, 201, NULL, NULL, NULL, NULL, [
+      'Location' => [
+        "$base/xb/api/config/xb_asset_library/global",
+      ],
+    ]);
+    $this->assertSame($asset_library_to_send, $body);
+
+    // Delete the Asset Library via the XB HTTP API: 204.
+    $this->assertExpectedResponse('DELETE', Url::fromUri('base:/xb/api/config/xb_asset_library/global'), [], 204, NULL, NULL, NULL, NULL);
+
+    // Re-retrieve list: 200, empty list. Dynamic Page Cache miss.
+    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.permissions'], ['config:xb_asset_library_list', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
+    $this->assertSame([], $body);
+  }
+
+  private function assertAuthenticationAndAuthorization(string $entity_type_id): void {
+    $list_url = Url::fromUri("base:/xb/api/config/$entity_type_id");
+
+    // Anonymously: 403.
+    $body = $this->assertExpectedResponse('GET', $list_url, [], 403, ['user.permissions'], ['4xx-response', 'config:user.role.anonymous', 'http_response'], 'MISS', NULL);
+    $this->assertSame([
+      'message' => "The 'access administration pages' permission is required.",
+    ], $body);
+
+    // Authenticated & authorized: 200, but empty list.
+    $this->drupalLogin($this->httpApiUser);
+    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.permissions'], ["config:{$entity_type_id}_list", 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
+    $this->assertSame([], $body);
+
+    // Send a POST request without the CSRF token.
+    $request_options = [
+      RequestOptions::HEADERS => [
+        'Content-Type' => 'application/json',
+      ],
+    ];
+    $response = $this->makeApiRequest('POST', $list_url, $request_options);
+    $this->assertSame(403, $response->getStatusCode());
+    $this->assertSame([
+      'message' => "X-CSRF-Token request header is missing",
+    ], json_decode((string) $response->getBody(), TRUE));
   }
 
 }

@@ -155,19 +155,12 @@ experience_builder.js_component.*:
             type: sequence
             sequence:
               type: string
-    # JS and CSS is compiled and validated in browser, no further validation is required here.
-    source_code_js:
-      type: string
-      label: 'JavaScript Source code'
-    source_code_css:
-      type: string
-      label: 'CSS Source code'
-    compiled_js:
-      type: string
-      label: 'Compiled JavaScript'
-    compiled_css:
-      type: string
-      label: 'Compiled CSS'
+    js:
+      type: experience_builder.compilable_code
+      label: 'JS'
+    css:
+      type: experience_builder.compilable_code
+      label: 'CSS'
 
 # At most a single entity of this type is allowed to exist. If it exists, it *replaces* the theme's `page.html.twig`.
 experience_builder.global_page_template.*:
@@ -475,3 +468,48 @@ experience_builder.settings:
     demo_mode:
       type: boolean
       label: 'Experience Builder demo mode'
+experience_builder.xb_asset_library.*:
+  type: config_entity
+  constraints:
+    FullyValidatable: ~
+  mapping:
+    id:
+      type: machine_name
+      label: 'Asset library ID'
+      constraints:
+        Regex:
+          # ℹ️ Initially, only one such config entity is allowed. Later, one per theme. Later still, additional ones. Details TBD.
+          pattern: '/^global+$/'
+          message: "The %value machine name is not valid."
+    label:
+      type: required_label
+      label: 'Human-readable label'
+    # If not `null`, will be stored on the filesystem at public://xb/HASH.css
+    # to ensure aggregated CSS is never stale.
+    css:
+      type: experience_builder.compilable_code
+      label: 'CSS'
+      # The asset library may contain only JS, no CSS.
+      nullable: true
+    # If not `null`, will be stored on the filesystem at public://xb/HASH.js
+    # to ensure aggregated JS is never stale.
+    js:
+      type: experience_builder.compilable_code
+      label: 'JS'
+      # The asset library may contain only CSS, no JS.
+      nullable: true
+
+experience_builder.compilable_code:
+  type: mapping
+  label: 'Compilable code'
+  constraints:
+    # Compilation and validation are assumed to happen on the client side. Server-side validation then is neither
+    # possible nor necessary.
+    FullyValidatable: ~
+  mapping:
+    original:
+      type: text
+      label: 'Original source code as entered by the human author'
+    compiled:
+      type: text
+      label: 'The compiled result'

@@ -9,7 +9,7 @@ services:
   Drupal\experience_builder\ShapeMatcher\FieldForComponentSuggester:
     public: true
   Drupal\experience_builder\ComponentIncompatibilityReasonRepository: {}
-  Drupal\experience_builder\JavaScriptComponentAssetManager: {}
+  Drupal\experience_builder\AssetManager: {}
   Drupal\experience_builder\JsonSchemaDefinitionsStreamwrapper:
     public: true
     tags:
@@ -76,7 +76,7 @@ services:
       - { name: theme_negotiator }
   Drupal\experience_builder\EventSubscriber\RenderEventsSubscriber: ~
   Drupal\experience_builder\EventSubscriber\ApiExceptionSubscriber: ~
-  Drupal\experience_builder\EventSubscriber\JavaScriptComponentAssetGenerator: {}
+  Drupal\experience_builder\EventSubscriber\AssetGenerator: {}
   Drupal\experience_builder\PathProcessor\ExperienceBuilderPathProcessor:
     tags:
       - { name: path_processor_inbound, priority: 200 }

@@ -81,10 +81,14 @@ final class JavascriptComponentStorageTest extends KernelTestBase {
       'props' => $props,
       'required' => ['title'],
       'slots' => [],
-      'source_code_js' => 'console.log("hey");',
-      'source_code_css' => '.test { display: none; }',
-      'compiled_js' => 'console.log("hey");',
-      'compiled_css' => '.test { display: none; }',
+      'js' => [
+        'original' => 'console.log("hey");',
+        'compiled' => 'console.log("hey");',
+      ],
+      'css' => [
+        'original' => '.test { display: none; }',
+        'compiled' => '.test { display: none; }',
+      ],
     ]);
     $this->assertSame([
       'props.title' => "'examples' is a required key.",

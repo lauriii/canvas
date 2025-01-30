@@ -4,14 +4,12 @@ declare(strict_types=1);
 
 namespace Drupal\experience_builder\Entity;
 
-use Drupal\Component\Utility\Crypt;
 use Drupal\Core\Config\Entity\ConfigEntityBase;
-use Drupal\Core\Site\Settings;
 use Drupal\experience_builder\ClientSideRepresentation;
 
 /**
  * @ConfigEntityType(
- *   id = "js_component",
+ *   id = \Drupal\experience_builder\Entity\JavaScriptComponent::ENTITY_TYPE_ID,
  *   label = @Translation("Code component"),
  *   label_singular = @Translation("code component"),
  *   label_plural = @Translation("code components"),
@@ -31,17 +29,20 @@ use Drupal\experience_builder\ClientSideRepresentation;
  *     "props",
  *     "required",
  *     "slots",
- *     "source_code_js",
- *     "source_code_css",
- *     "compiled_js",
- *     "compiled_css",
+ *     "js",
+ *     "css",
  *   },
  *   constraints = {
  *     "JsComponentHasValidSdcMetadata" = null,
  *   },
  * )
  */
-final class JavaScriptComponent extends ConfigEntityBase implements XbHttpApiEligibleConfigEntityInterface {
+final class JavaScriptComponent extends ConfigEntityBase implements XbHttpApiEligibleConfigEntityInterface, XbAssetInterface {
+
+  use XbAssetLibraryTrait;
+
+  public const string ENTITY_TYPE_ID = 'js_component';
+  private const string ASSETS_DIRECTORY = 'assets://astro-island/';
 
   /**
    * The component machine name.
@@ -71,26 +72,6 @@ final class JavaScriptComponent extends ConfigEntityBase implements XbHttpApiEli
   protected ?array $slots = [];
 
   /**
-   * The JS source code of the component.
-   */
-  protected ?string $source_code_js;
-
-  /**
-   * The CSS source code of the component.
-   */
-  protected ?string $source_code_css;
-
-  /**
-   * The compiled JavaScript that runs the component.
-   */
-  protected ?string $compiled_js;
-
-  /**
-   * The compiled CSS that styles the component.
-   */
-  protected ?string $compiled_css;
-
-  /**
    * {@inheritdoc}
    */
   public function id() {
@@ -105,6 +86,11 @@ final class JavaScriptComponent extends ConfigEntityBase implements XbHttpApiEli
    * @see docs/adr/0005-Keep-the-front-end-simple.md
    */
   public function normalizeForClientSide(): ClientSideRepresentation {
+    // TRICKY: config entity properties may allow NULL, but only valid, saved
+    // config entities are ever normalized: those that have passed validation
+    // against config schema.
+    assert(is_array($this->js));
+    assert(is_array($this->css));
     return ClientSideRepresentation::create(
       values: [
         'machineName' => $this->id(),
@@ -113,10 +99,10 @@ final class JavaScriptComponent extends ConfigEntityBase implements XbHttpApiEli
         'props' => $this->props,
         'required' => $this->required,
         'slots' => $this->slots,
-        'source_code_js' => $this->source_code_js,
-        'source_code_css' => $this->source_code_css,
-        'compiled_js' => $this->compiled_js,
-        'compiled_css' => $this->compiled_css,
+        'source_code_js' => $this->js['original'] ?? '',
+        'source_code_css' => $this->css['original'] ?? '',
+        'compiled_js' => $this->js['compiled'] ?? '',
+        'compiled_css' => $this->css['compiled'] ?? '',
       ],
       preview: [
         '#markup' => '@todo Make something 🆒 in https://www.drupal.org/project/experience_builder/issues/3498889',
@@ -129,7 +115,7 @@ final class JavaScriptComponent extends ConfigEntityBase implements XbHttpApiEli
    *
    * @see docs/adr/0005-Keep-the-front-end-simple.md
    *
-   * @return array{'machineName': string, 'name': string, 'status': boolean, 'required': array<int, string>, 'props': array, 'slots': array, 'source_code_js': string, 'source_code_css': string, 'compiled_js': string, 'compiled_css': string}
+   * @return array{'machineName': string, 'name': string, 'status': boolean, 'required': array<int, string>, 'props': array, 'slots': array, 'js': array{'original': string, 'compiled': string}, 'css': array{'original': string, 'compiled': string}}
    */
   public static function denormalizeFromClientSide(array $data): array {
     return [
@@ -141,10 +127,14 @@ final class JavaScriptComponent extends ConfigEntityBase implements XbHttpApiEli
       'required' => $data['required'] ?? [],
       'props' => $data['props'] ?? [],
       'slots' => $data['slots'] ?? [],
-      'source_code_js' => $data['source_code_js'] ?? '',
-      'source_code_css' => $data['source_code_css'] ?? '',
-      'compiled_js' => $data['compiled_js'] ?? '',
-      'compiled_css' => $data['compiled_css'] ?? '',
+      'js' => [
+        'original' => $data['source_code_js'] ?? '',
+        'compiled' => $data['compiled_js'] ?? '',
+      ],
+      'css' => [
+        'original' => $data['source_code_css'] ?? '',
+        'compiled' => $data['compiled_css'] ?? '',
+      ],
     ];
   }
 
@@ -192,28 +182,6 @@ final class JavaScriptComponent extends ConfigEntityBase implements XbHttpApiEli
       $definition['props']['required'] = $this->required;
     }
     return $definition;
-  }
-
-  public function getCompiledJs(): string {
-    return $this->compiled_js ?? '';
-  }
-
-  public function getCompiledCss(): string {
-    return $this->compiled_css ?? '';
-  }
-
-  public function hasCss(): bool {
-    return trim($this->getCompiledCss()) !== '';
-  }
-
-  public function getJsPath(): string {
-    $hash = Crypt::hmacBase64($this->getCompiledJs(), Settings::getHashSalt());
-    return 'assets://astro-island/' . $hash . '.js';
-  }
-
-  public function getCssPath(): string {
-    $hash = Crypt::hmacBase64($this->getCompiledCss(), Settings::getHashSalt());
-    return 'assets://astro-island/' . $hash . '.css';
   }
 
   /**

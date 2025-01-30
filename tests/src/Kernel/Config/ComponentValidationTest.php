@@ -142,10 +142,8 @@ class ComponentValidationTest extends ConfigEntityValidationTestBase {
       'status' => FALSE,
       'props' => $props,
       'required' => $sdc_yaml['props']['required'],
-      'source_code_js' => '',
-      'source_code_css' => '',
-      'compiled_js' => '',
-      'compiled_css' => '',
+      'js' => ['original' => '', 'compiled' => ''],
+      'css' => ['original' => '', 'compiled' => ''],
     ])->save();
     assert($this->entity instanceof Component);
     $this->entity = Component::create([

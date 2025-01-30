@@ -9,21 +9,21 @@ use Drupal\Core\Cache\CacheCollectorInterface;
 use Drupal\Core\File\FileExists;
 use Drupal\Core\File\FileSystemInterface;
 use Drupal\Core\Asset\LibraryDiscoveryInterface;
-use Drupal\experience_builder\Entity\JavaScriptComponent;
+use Drupal\experience_builder\Entity\XbAssetInterface;
 
 /**
- * JavaScript component asset manager service.
+ * Asset manager service.
  */
-final class JavaScriptComponentAssetManager {
+final class AssetManager {
 
   public function __construct(
     private readonly FileSystemInterface $fileSystem,
     private readonly LibraryDiscoveryInterface $libraryDiscovery,
   ) {}
 
-  public function generateFiles(JavaScriptComponent $component): void {
-    $this->write($component->getCssPath(), $component->getCompiledCss());
-    $this->write($component->getJsPath(), $component->getCompiledJs());
+  public function generateFiles(XbAssetInterface $component): void {
+    $this->write($component->getCssPath(), $component->getCss());
+    $this->write($component->getJsPath(), $component->getJs());
 
     DeprecationHelper::backwardsCompatibleCall(
       \Drupal::VERSION,

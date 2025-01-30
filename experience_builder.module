@@ -17,10 +17,10 @@ use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Entity\TypedData\EntityDataDefinition;
 use Drupal\Core\EventSubscriber\AjaxResponseSubscriber;
 use Drupal\Core\Field\BaseFieldDefinition;
-use Drupal\Core\File\FileUrlGeneratorInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\datetime\Plugin\Field\FieldType\DateTimeItem;
+use Drupal\experience_builder\Entity\AssetLibrary;
 use Drupal\experience_builder\Entity\Component;
 use Drupal\experience_builder\Entity\JavaScriptComponent;
 use Drupal\experience_builder\Form\FormIdPreRender;
@@ -409,13 +409,27 @@ function experience_builder_form_system_theme_settings_submit(array &$form, Form
 
 function experience_builder_library_info_build(): array {
   $libraries = [];
-  $url_generator = \Drupal::service(FileUrlGeneratorInterface::class);
+
+  foreach (AssetLibrary::loadMultiple() as $library) {
+    $library_name = "asset_library." . $library->id();
+    if ($library->hasCss()) {
+      $libraries[$library_name]['css']['theme'][$library->getCssPath()] = [];
+    }
+    if ($library->hasJs()) {
+      $libraries[$library_name]['js'][$library->getJsPath()] = [];
+    }
+  }
+
   foreach (JavaScriptComponent::loadMultiple() as $component) {
     if ($component->hasCss()) {
       $library_name = "astro_island." . $component->id();
-      $component_url = $url_generator->generateString($component->getCssPath());
-      $libraries[$library_name]['css']['component'][$component_url] = [];
+      $libraries[$library_name]['css']['component'][$component->getCssPath()] = [];
     }
   }
+
   return $libraries;
+}
+
+function experience_builder_page_attachments(array &$page): void {
+  $page['#attached']['library'][] = 'experience_builder/asset_library.global';
 }
