@@ -362,6 +362,277 @@ class XbConfigEntityHttpApiTest extends BrowserTestBase {
   }
 
   /**
+   * @see \Drupal\experience_builder\Entity\JavaScriptComponent
+   */
+  public function testJavaScriptComponent(): void {
+    $base = rtrim(base_path(), '/');
+    $list_url = Url::fromUri('base:/xb/api/config/js_component');
+
+    // Anonymously: 403.
+    $body = $this->assertExpectedResponse('GET', $list_url, [], 403, ['user.permissions'], ['4xx-response', 'config:user.role.anonymous', 'http_response'], 'MISS', NULL);
+    $this->assertSame([
+      'message' => "The 'access administration pages' permission is required.",
+    ], $body);
+
+    // Authenticated & authorized: 200, but empty list.
+    $this->drupalLogin($this->httpApiUser);
+    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.permissions'], ['config:js_component_list', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
+    $this->assertSame([], $body);
+
+    // Send a POST request without the CSRF token.
+    $request_options = [
+      RequestOptions::HEADERS => [
+        'Content-Type' => 'application/json',
+      ],
+    ];
+    $response = $this->makeApiRequest('POST', $list_url, $request_options);
+    $this->assertSame(403, $response->getStatusCode());
+    $this->assertSame([
+      'message' => "X-CSRF-Token request header is missing",
+    ], json_decode((string) $response->getBody(), TRUE));
+
+    // Create a Code Component via the XB HTTP API, but forget crucial data: 500, courtesy of OpenAPI.
+    $code_component_to_send = [];
+    $request_options[RequestOptions::BODY] = self::encodeXBData($code_component_to_send);
+    $body = $this->assertExpectedResponse('POST', $list_url, $request_options, 500, NULL, NULL, NULL, NULL);
+    $this->assertSame([
+      'message' => 'Body does not match schema for content-type "application/json" for Request [post /xb/api/config/js_component]. [Keyword validation failed: Required property \'name\' must be present in the object in name]',
+    ], $body, 'Fails with missing data.');
+
+    // Add most missing crucial data, but leave a required shape violation: 500,
+    // courtesy of OpenAPI.
+    $code_component_to_send = [
+      'machineName' => 'test',
+      'name' => 'Test Code Component',
+      'props' => [],
+      'slots' => [],
+      'source_code_js' => NULL,
+      'source_code_css' => NULL,
+      'compiled_js' => NULL,
+      'compiled_css' => NULL,
+    ];
+    $request_options[RequestOptions::BODY] = self::encodeXBData($code_component_to_send);
+    $body = $this->assertExpectedResponse('POST', $list_url, $request_options, 500, NULL, NULL, NULL, NULL);
+    $this->assertSame([
+      'message' => 'Body does not match schema for content-type "application/json" for Request [post /xb/api/config/js_component]. [Keyword validation failed: Required property \'status\' must be present in the object in status]',
+    ], $body, 'Fails with invalid shape.');
+    $code_component_to_send['status'] = FALSE;
+    $request_options[RequestOptions::BODY] = self::encodeXBData($code_component_to_send);
+    $body = $this->assertExpectedResponse('POST', $list_url, $request_options, 500, NULL, NULL, NULL, NULL);
+    $this->assertSame([
+      'message' => 'Body does not match schema for content-type "application/json" for Request [post /xb/api/config/js_component]. [Keyword validation failed: Value cannot be null in source_code_js]',
+    ], $body, 'Fails with invalid shape.');
+
+    // Meet data shape requirements, but violate internal consistency for
+    // `props`: 422 (i.e. validation constraint violation).
+    $code_component_to_send = [
+      'machineName' => 'test',
+      'name' => 'Test Code Component',
+      'status' => FALSE,
+      'required' => [],
+      'props' => [
+        'incorrect' => [
+          'type' => 'test',
+        ],
+      ],
+      'slots' => [],
+      'source_code_js' => '',
+      'source_code_css' => '',
+      'compiled_js' => '',
+      'compiled_css' => '',
+    ];
+    $request_options[RequestOptions::BODY] = self::encodeXBData($code_component_to_send);
+    $body = $this->assertExpectedResponse('POST', $list_url, $request_options, 422, NULL, NULL, NULL, NULL);
+    $this->assertSame([
+      'errors' => [
+        [
+          'detail' => 'Unable to find class/interface "test" specified in the prop "incorrect" for the component "experience_builder:test".',
+          'source' => ['pointer' => ''],
+        ],
+        [
+          'detail' => "'title' is a required key.",
+          'source' => ['pointer' => 'props.incorrect'],
+        ],
+        [
+          'detail' => '\'examples\' is a required key.',
+          'source' => ['pointer' => 'props.incorrect'],
+        ],
+        [
+          'detail' => 'The value you selected is not a valid choice.',
+          'source' => ['pointer' => 'props.incorrect.type'],
+        ],
+      ],
+    ], $body);
+
+    // Re-retrieve list: 200, unchanged, but now is a Dynamic Page Cache hit.
+    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.permissions'], ['config:js_component_list', 'http_response'], 'UNCACHEABLE (request policy)', 'HIT');
+    $this->assertSame([], $body);
+
+    // Create a Code Component via the XB HTTP API, correctly: 201.
+    $code_component_to_send = [
+      'machineName' => 'test',
+      'name' => 'Test',
+      'status' => FALSE,
+      'required' => [
+        'string',
+        'integer',
+      ],
+      'props' => [
+        'string' => [
+          'type' => 'string',
+          'title' => 'Title',
+          'examples' => ['Press', 'Submit now'],
+        ],
+        'boolean' => [
+          'type' => 'boolean',
+          'title' => 'Truth',
+          'examples' => [TRUE, FALSE],
+        ],
+        'integer' => [
+          'type' => 'integer',
+          'title' => 'Integer',
+          'examples' => [23, 10, 2024],
+        ],
+        'number' => [
+          'type' => 'number',
+          'title' => 'Number',
+          'examples' => [3.14],
+        ],
+      ],
+      'slots' => [],
+      'source_code_js' => 'console.log("Test")',
+      'source_code_css' => '.test { display: none; }',
+      'compiled_js' => 'console.log("Test")',
+      'compiled_css' => '.test{display:none;}',
+    ];
+    $request_options[RequestOptions::BODY] = self::encodeXBData($code_component_to_send);
+    $body = $this->assertExpectedResponse('POST', $list_url, $request_options, 201, NULL, NULL, NULL, NULL, [
+      'Location' => [
+        "$base/xb/api/config/js_component/test",
+      ],
+    ]);
+    $expected_component = [
+      'machineName' => 'test',
+      'name' => 'Test',
+      'status' => FALSE,
+      'props' => [
+        'string' => [
+          'title' => 'Title',
+          'type' => 'string',
+          'examples' => ['Press', 'Submit now'],
+        ],
+        'boolean' => [
+          'title' => 'Truth',
+          'type' => 'boolean',
+          'examples' => ['1', ''],
+        ],
+        'integer' => [
+          'title' => 'Integer',
+          'type' => 'integer',
+          'examples' => ['23', '10', '2024'],
+        ],
+        'number' => [
+          'title' => 'Number',
+          'type' => 'number',
+          'examples' => ['3.14'],
+        ],
+      ],
+      'required' => [
+        'string',
+        'integer',
+      ],
+      'slots' => [],
+      'source_code_js' => 'console.log("Test")',
+      'source_code_css' => '.test { display: none; }',
+      'compiled_js' => 'console.log("Test")',
+      'compiled_css' => '.test{display:none;}',
+      'default_markup' => '@todo Make something 🆒 in https://www.drupal.org/project/experience_builder/issues/3498889',
+      'css' => '',
+      'js_header' => '',
+      'js_footer' => '',
+    ];
+    $this->assertSame($expected_component, $body);
+
+    // Modify a JavaScriptComponent incorrectly (shape-wise): 500.
+    $request_options[RequestOptions::BODY] = self::encodeXBData([
+      'machineName' => $code_component_to_send['machineName'],
+    ]);
+    $body = $this->assertExpectedResponse('PATCH', Url::fromUri('base:/xb/api/config/js_component/test'), $request_options, 500, NULL, NULL, NULL, NULL);
+    $this->assertSame([
+      'message' => 'Body does not match schema for content-type "application/json" for Request [patch /xb/api/config/js_component/{configEntityId}]. [Keyword validation failed: Required property \'name\' must be present in the object in name]',
+    ], $body, 'Fails with an invalid code component.');
+
+    // Modify a Code Component incorrectly (consistency-wise): 422.
+    $request_options[RequestOptions::BODY] = self::encodeXBData([
+      'name' => 'Updated name',
+      'machineName' => $code_component_to_send['machineName'],
+      'required' => [
+        'string',
+        'integer',
+      ],
+      'status' => TRUE,
+      'props' => [
+        'integer' => [
+          'title' => 'Integer',
+          'type' => 'fake',
+          'examples' => ['23', '10', '2024'],
+        ],
+      ],
+      'slots' => [],
+      'source_code_js' => 'console.log("Test")',
+      'source_code_css' => '.test { display: none; }',
+      'compiled_js' => 'console.log("Test")',
+      'compiled_css' => '.test{display:none;}',
+    ]);
+    $body = $this->assertExpectedResponse('PATCH', Url::fromUri('base:/xb/api/config/js_component/test'), $request_options, 422, NULL, NULL, NULL, NULL);
+    $this->assertSame([
+      'errors' => [
+        [
+          'detail' => 'Unable to find class/interface "fake" specified in the prop "integer" for the component "experience_builder:test".',
+          'source' => ['pointer' => ''],
+        ],
+        [
+          'detail' => 'The value you selected is not a valid choice.',
+          'source' => ['pointer' => 'props.integer.type'],
+        ],
+      ],
+    ], $body);
+
+    // Modify a Code Component correctly: 200.
+    $request_options[RequestOptions::BODY] = self::encodeXBData($code_component_to_send);
+    $body = $this->assertExpectedResponse('PATCH', Url::fromUri('base:/xb/api/config/js_component/test'), $request_options, 200, NULL, NULL, NULL, NULL);
+    $this->assertSame($expected_component, $body);
+
+    // Re-retrieve list: 200, non-empty list, despite `status` of entity being
+    // `false`. Dynamic Page Cache miss.
+    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['languages:language_interface', 'theme', 'user.permissions'], ['config:js_component_list', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
+    $this->assertSame(['test' => $expected_component], $body);
+
+    // Modify a Code Component incorrectly (consistency-wise): 422.
+    // @todo This currently returns a 200 response! https://www.drupal.org/i/3500043 will disallow PATCHing this if > 0 uses of this component exist.
+    $code_component_to_send['status'] = TRUE;
+    $expected_component['status'] = TRUE;
+    $request_options[RequestOptions::BODY] = self::encodeXBData($code_component_to_send);
+    $body = $this->assertExpectedResponse('PATCH', Url::fromUri('base:/xb/api/config/js_component/test'), $request_options, 200, NULL, NULL, NULL, NULL);
+    $this->assertSame($expected_component, $body);
+
+    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['languages:language_interface', 'user.permissions', 'theme'], ['config:js_component_list', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
+    $this->assertSame([
+      'test' => $expected_component,
+    ], $body);
+
+    // Delete the 'test' Code Component via the XB HTTP API: 204.
+    $body = $this->assertExpectedResponse('DELETE', Url::fromUri('base:/xb/api/config/js_component/test'), [], 204, NULL, NULL, NULL, NULL);
+    $this->assertNull($body);
+
+    // Re-retrieve list: 200, empty list. Dynamic Page Cache miss.
+    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.permissions'], ['config:js_component_list', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
+    $this->assertSame([], $body);
+    $individual_body = $this->assertExpectedResponse('GET', Url::fromUri('base:/xb/api/config/js_component/test'), [], 404, NULL, NULL, 'UNCACHEABLE (request policy)', 'UNCACHEABLE (no cacheability)');
+    $this->assertSame([], $individual_body);
+  }
+
+  /**
    * @return ?array
    *   The decoded JSON response, or NULL if there is no body.
    *

@@ -97,12 +97,19 @@ final class JavaScriptComponent extends ConfigEntityBase implements XbHttpApiEli
     return $this->machineName;
   }
 
+  /**
+   * {@inheritdoc}
+   *
+   * This corresponds to `CodeComponent` in openapi.yml.
+   *
+   * @see docs/adr/0005-Keep-the-front-end-simple.md
+   */
   public function normalizeForClientSide(): ClientSideRepresentation {
     return ClientSideRepresentation::create(
       values: [
         'machineName' => $this->id(),
         'name' => (string) $this->label(),
-        'inLibrary' => $this->status(),
+        'status' => $this->status(),
         'props' => $this->props,
         'required' => $this->required,
         'slots' => $this->slots,
@@ -115,6 +122,30 @@ final class JavaScriptComponent extends ConfigEntityBase implements XbHttpApiEli
         '#markup' => '@todo Make something 🆒 in https://www.drupal.org/project/experience_builder/issues/3498889',
       ],
     )->addCacheableDependency($this);
+  }
+
+  /**
+   * This corresponds to `CodeComponent` in openapi.yml.
+   *
+   * @see docs/adr/0005-Keep-the-front-end-simple.md
+   *
+   * @return array{'machineName': string, 'name': string, 'status': boolean, 'required': array<int, string>, 'props': array, 'slots': array, 'source_code_js': string, 'source_code_css': string, 'compiled_js': string, 'compiled_css': string}
+   */
+  public static function denormalizeFromClientSide(array $data): array {
+    return [
+      'machineName' => $data['machineName'],
+      'name' => $data['name'],
+      'status' => $data['status'],
+      // Only the (machine) name and status should be required, because creating
+      // a code component in the UI starts out with only knowing that.
+      'required' => $data['required'] ?? [],
+      'props' => $data['props'] ?? [],
+      'slots' => $data['slots'] ?? [],
+      'source_code_js' => $data['source_code_js'] ?? '',
+      'source_code_css' => $data['source_code_css'] ?? '',
+      'compiled_js' => $data['compiled_js'] ?? '',
+      'compiled_css' => $data['compiled_css'] ?? '',
+    ];
   }
 
   /**

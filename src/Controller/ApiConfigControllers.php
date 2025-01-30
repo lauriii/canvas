@@ -40,7 +40,6 @@ use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
  */
 final class ApiConfigControllers extends ApiControllerBase {
 
-  use ClientServerConversionTrait;
   use ComponentTreeItemInstantiatorTrait;
 
   public function __construct(
@@ -89,7 +88,10 @@ final class ApiConfigControllers extends ApiControllerBase {
       // Omit disabled Components, Patterns and other config entities: if they
       // have been disabled, it's to avoid new uses of them. Only in the server-
       // side admin UI should it be possible to see (and re-enable) them.
-      if (!$entity->status()) {
+      // DO NOT do this for config entity types that mark `status` as an entity
+      // key: that is how they signal that this config entity property is
+      // intended to be editable.
+      if (!$entity->status() && $xb_config_entity_type->getKey('status') === FALSE) {
         continue;
       }
       $representation = $this->normalize($entity);
@@ -134,7 +136,7 @@ final class ApiConfigControllers extends ApiControllerBase {
 
     // Decode, then denormalize.
     $decoded = self::decode($request);
-    $denormalized = $this->denormalize($xb_config_entity_type_id, $decoded);
+    $denormalized = $xb_config_entity_type->getClass()::denormalizeFromClientSide($decoded);
 
     // Create an in-memory config entity and validate it.
     $xb_config_entity = $this->entityTypeManager
@@ -176,7 +178,7 @@ final class ApiConfigControllers extends ApiControllerBase {
   public function patch(Request $request, XbHttpApiEligibleConfigEntityInterface $xb_config_entity): JsonResponse {
     // Decode, then denormalize.
     $decoded = self::decode($request);
-    $denormalized = $this->denormalize($xb_config_entity->getEntityTypeId(), $decoded);
+    $denormalized = $xb_config_entity::denormalizeFromClientSide($decoded);
 
     // Modify the loaded entity using the denormalized data and validate it.
     foreach ($denormalized as $property_name => $property_value) {
@@ -234,29 +236,6 @@ final class ApiConfigControllers extends ApiControllerBase {
     }
 
     return $data;
-  }
-
-  private function denormalize(string $xb_config_entity_type_id, array $data): array {
-    return match ($xb_config_entity_type_id) {
-      'pattern' => $this->denormalizePattern($data),
-      default => $data,
-    };
-  }
-
-  /**
-   * @todo Move to \Symfony\Component\Serializer\Normalizer\DenormalizerInterface implementation.
-   */
-  private function denormalizePattern(array $data): array {
-    ['layout' => $layout, 'model' => $model, 'name' => $label] = $data;
-    ['tree' => $tree, 'inputs' => $inputs] = $this->convertClientToServer($layout, $model);
-
-    return [
-      'label' => $label,
-      'component_tree' => [
-        'tree' => $tree,
-        'inputs' => $inputs,
-      ],
-    ];
   }
 
   /**

@@ -111,7 +111,7 @@ trait ClientServerConversionTrait {
    * @return array<string, array<string, \Drupal\experience_builder\PropSource\StaticPropSource>>
    * @throws \Drupal\experience_builder\Exception\ConstraintViolationException
    */
-  private function clientModelToInput(array $tree, array $model, ?FieldableEntityInterface $entity = NULL): array {
+  private static function clientModelToInput(array $tree, array $model, ?FieldableEntityInterface $entity = NULL): array {
     $definition = DataDefinition::create('component_tree_structure');
     $component_tree_structure = new ComponentTreeStructure($definition, 'component_tree_structure');
     $component_tree_structure->setValue(json_encode($tree, JSON_UNESCAPED_UNICODE));
@@ -128,7 +128,7 @@ trait ClientServerConversionTrait {
       // the source plugin.
       $inputs[$uuid] = $source->clientModelToInput($uuid, $component, $client_model, $violation_list);
       // Then we ensure the input values are valid using the source plugin.
-      $component_violations = $this->translateConstraintPropertyPathsAndRoot(
+      $component_violations = self::translateConstraintPropertyPathsAndRoot(
         ['inputs.' => 'model.'],
         $source->validateComponentInput($inputs[$uuid], $uuid, $entity)
       );
@@ -150,7 +150,7 @@ trait ClientServerConversionTrait {
    * @return array{tree: string, inputs: string}
    * @throws \Drupal\experience_builder\Exception\ConstraintViolationException
    */
-  protected function convertClientToServer(array $layout, array $model, ?FieldableEntityInterface $entity = NULL): array {
+  protected static function convertClientToServer(array $layout, array $model, ?FieldableEntityInterface $entity = NULL): array {
     // Denormalize the `layout` the client sent into a value that the server-
     // side ComponentTreeStructure expects, abort early if it is invalid.
     // (This is the value for the `tree` field prop on the XB field type.)
@@ -170,7 +170,7 @@ trait ClientServerConversionTrait {
     // ⚠️ TRICKY: in order to denormalize `model`, `layout` must already been
     // been denormalized to `tree`, because only those values in `model` that
     // are for actually existing XB components can be denormalized.
-    $inputs = $this->clientModelToInput($tree, $model, $entity);
+    $inputs = self::clientModelToInput($tree, $model, $entity);
 
     // Update the entity, validate and save.
     // Note: constructing ComponentTreeStructure from `layout` and

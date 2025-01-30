@@ -250,6 +250,15 @@ final class Component extends ConfigEntityBase implements ComponentInterface, Xb
 
   /**
    * {@inheritdoc}
+   *
+   * @see docs/config-management.md#3.1
+   */
+  public static function denormalizeFromClientSide(array $data): array {
+    throw new \LogicException('Not supported: read-only for the client side, mutable only on the server side.');
+  }
+
+  /**
+   * {@inheritdoc}
    */
   public function getSettings(): array {
     return $this->settings;

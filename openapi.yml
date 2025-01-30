@@ -623,7 +623,59 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PatternPreview'
-
+  /xb/api/config/js_component/{configEntityId}:
+    description: Code Component endpoints
+    get:
+      description: Gets Code Component
+      parameters:
+        - $ref: '#/components/parameters/configEntityId'
+      responses:
+        '200':
+          description: Individual Code Component
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CodeComponent'
+    patch:
+      description: Updates Code Component
+      parameters:
+        - $ref: '#/components/parameters/configEntityId'
+      requestBody:
+        description: Updates individual Code Component
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CodeComponent'
+      responses:
+        '200':
+          description: Updated individual Code Component
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CodeComponent'
+    delete:
+      description: Deletes Code Component
+      parameters:
+        - $ref: '#/components/parameters/configEntityId'
+      responses:
+        '204':
+          description: Deleted individual Code Component
+  /xb/api/config/js_component:
+    post:
+      description: TODO
+      requestBody:
+        description: Create new Code Component
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CodeComponent'
+      responses:
+        '201':
+          description: Successful creation of individual Code Component
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CodeComponent'
 # @see https://spec.openapis.org/oas/v3.1.0.html#components-object
 components:
   # @see https://spec.openapis.org/oas/v3.1.0.html#schema-object
@@ -683,6 +735,51 @@ components:
           type: object
           description: the DynamicPropSources that match each
       additionalProperties: false
+    CodeComponent:
+      title: Code Component
+      type: object
+      required:
+        - name
+        - machineName
+        - status
+      properties:
+        machineName:
+          type: string
+          description: Machine name
+        name:
+          type: string
+          description: Human-readable code component label
+        required:
+          type: array
+          items:
+            type: string
+        props:
+          $ref: 'https://json-schema.org/draft-04/schema'
+        slots:
+          type: array
+          items:
+            type: object
+            properties:
+              title:
+                type: string
+                label: Title
+              description:
+                type: string
+                label: Description
+              examples:
+                type: array
+                items:
+                  type: string
+        status:
+          type: boolean
+        source_code_js:
+          type: string
+        source_code_css:
+          type: string
+        compiled_js:
+          type: string
+        compiled_css:
+          type: string
     LayoutComponent:
       title: LayoutComponent
       type: object
@@ -1010,7 +1107,7 @@ components:
         type: string
       examples:
         arbitraryEntityId:
-          value: section_fg4n3m0b
+          value: hopefully_meaningful_name
   # @see https://spec.openapis.org/oas/v3.1.0.html#header-object
   requestBodies:
     Layout:

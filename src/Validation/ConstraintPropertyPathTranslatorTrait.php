@@ -14,7 +14,7 @@ use Symfony\Component\Validator\ConstraintViolationListInterface;
  */
 trait ConstraintPropertyPathTranslatorTrait {
 
-  protected function translateConstraintPropertyPathsAndRoot(array $map, ConstraintViolationListInterface $violations, mixed $newRoot = NULL): ConstraintViolationListInterface {
+  protected static function translateConstraintPropertyPathsAndRoot(array $map, ConstraintViolationListInterface $violations, mixed $newRoot = NULL): ConstraintViolationListInterface {
     foreach ($map as $prefix_original => $prefix_new) {
       foreach ($violations as $key => $v) {
         if (str_starts_with($v->getPropertyPath(), $prefix_original)) {

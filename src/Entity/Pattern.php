@@ -9,6 +9,7 @@ use Drupal\Core\Config\Entity\ConfigEntityBase;
 use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\experience_builder\ClientSideRepresentation;
 use Drupal\experience_builder\Controller\ApiConfigControllers;
+use Drupal\experience_builder\Controller\ClientServerConversionTrait;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemInstantiatorTrait;
@@ -35,6 +36,7 @@ use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemInstantiat
 final class Pattern extends ConfigEntityBase implements XbHttpApiEligibleConfigEntityInterface {
 
   use ComponentTreeItemInstantiatorTrait;
+  use ClientServerConversionTrait;
 
   /**
    * Pattern entity ID.
@@ -122,7 +124,7 @@ final class Pattern extends ConfigEntityBase implements XbHttpApiEligibleConfigE
    *
    * This corresponds to `PatternPreview` in openapi.yml.
    *
-   * @see docs/adr/0005-Keep-the-front1-end-simple.md
+   * @see docs/adr/0005-Keep-the-front-end-simple.md
    */
   public function normalizeForClientSide(): ClientSideRepresentation {
     $item = $this->getComponentTree();
@@ -135,6 +137,26 @@ final class Pattern extends ConfigEntityBase implements XbHttpApiEligibleConfigE
       ],
       preview: $item->toRenderable(),
     )->addCacheableDependency($this);
+  }
+
+  /**
+   * {@inheritdoc}
+   *
+   * This corresponds to `Pattern` in openapi.yml.
+   *
+   * @see docs/adr/0005-Keep-the-front-end-simple.md
+   */
+  public static function denormalizeFromClientSide(array $data): array {
+    ['layout' => $layout, 'model' => $model, 'name' => $label] = $data;
+    ['tree' => $tree, 'inputs' => $inputs] = self::convertClientToServer($layout, $model);
+
+    return [
+      'label' => $label,
+      'component_tree' => [
+        'tree' => $tree,
+        'inputs' => $inputs,
+      ],
+    ];
   }
 
 }

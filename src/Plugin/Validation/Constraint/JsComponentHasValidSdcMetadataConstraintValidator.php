@@ -57,6 +57,9 @@ final class JsComponentHasValidSdcMetadataConstraintValidator extends Constraint
     catch (InvalidComponentException $e) {
       $this->context->addViolation($e->getMessage());
     }
+    // The validator is stateful, reset it so that subsequent validation does
+    // not return the previous errors.
+    $this->componentValidator->setValidator(NULL);
   }
 
 }
