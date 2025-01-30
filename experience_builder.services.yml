@@ -97,7 +97,7 @@ services:
   Drupal\experience_builder\Controller\ApiLogController: {}
   Drupal\experience_builder\Controller\ApiPreviewController: {}
   Drupal\experience_builder\Controller\ApiContentUpdateForDemoController: {}
-  Drupal\experience_builder\Controller\ApiContentCreateXbPage: {}
+  Drupal\experience_builder\Controller\ApiContentControllers: {}
   Drupal\experience_builder\Controller\ComponentStatusController: {}
   Drupal\experience_builder\Controller\ExperienceBuilderController: {}
   Drupal\experience_builder\Controller\ApiPublishAllController: {}

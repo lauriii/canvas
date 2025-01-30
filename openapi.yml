@@ -30,6 +30,50 @@ info:
 # @see https://spec.openapis.org/oas/v3.1.0.html#paths-object
 # @see https://spec.openapis.org/oas/v3.1.0.html#path-item-object
 paths:
+  '/xb/api/content/xb_page':
+    get:
+      description: Provides api for page listing.
+      responses:
+        200:
+          description: Page list generated successfully.
+          content:
+            application/json:
+              schema:
+                type: object
+                minProperties: 0
+                additionalProperties: false
+                patternProperties:
+                  '^[0-9]$':
+                    type: object
+                    required:
+                      - id
+                      - title
+                      - status
+                      - path
+                    properties:
+                      id:
+                        type: integer
+                        description: The page ID.
+                      title:
+                        type: string
+                        description: The page title.
+                      status:
+                        type: boolean
+                        description: The page status.
+              examples:
+                pageList:
+                  value:
+                    '1':
+                      id: 1
+                      title: Home
+                      status: true
+                      path: /home
+                    '2':
+                      id: 2
+                      title: About
+                      status: false
+                      path: /about
+
   '/api/layout/{entityTypeId}/{entityId}':
     description: TODO
     get:

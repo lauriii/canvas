@@ -38,7 +38,7 @@ experience_builder.api.content.update:
 experience_builder.api.content.create:
   path: '/xb/api/content-create/xb_page'
   defaults:
-    _controller: 'Drupal\experience_builder\Controller\ApiContentCreateXbPage'
+    _controller: 'Drupal\experience_builder\Controller\ApiContentControllers::post'
   requirements:
     _entity_create_access: 'xb_page:xb_page'
   methods: ['POST']
@@ -69,6 +69,16 @@ entity.component.delete_form:
     _title: 'Delete component'
   requirements:
     _entity_access: 'component.delete'
+
+# @todo https://www.drupal.org/i/3498525 should generalize this to all eligible content entity types by using a route callback
+experience_builder.api.content.list:
+  path: '/xb/api/content/xb_page'
+  defaults:
+    _controller: 'Drupal\experience_builder\Controller\ApiContentControllers::list'
+  requirements:
+    # @todo update in https://www.drupal.org/i/3502048
+    _permission: 'administer xb_page'
+  methods: [GET]
 
 experience_builder.api.component_inputs_form:
   path: '/xb-field-form/{entity_type}/{entity}'

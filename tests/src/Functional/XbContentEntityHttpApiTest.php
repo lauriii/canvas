@@ -5,20 +5,17 @@ declare(strict_types=1);
 namespace Drupal\Tests\experience_builder\Functional;
 
 use Drupal\Core\Url;
-use Drupal\Tests\ApiRequestTrait;
-use Drupal\Tests\BrowserTestBase;
+use Drupal\experience_builder\Entity\Page;
 use Drupal\user\Entity\Role;
 use Drupal\user\UserInterface;
 use GuzzleHttp\RequestOptions;
 
 /**
- * @covers \Drupal\experience_builder\Controller\ApiContentCreateXbPage
+ * @covers \Drupal\experience_builder\Controller\ApiContentControllers
  * @group experience_builder
  * @internal
  */
-final class XbContentEntityHttpApiTest extends BrowserTestBase {
-
-  use ApiRequestTrait;
+final class XbContentEntityHttpApiTest extends HttpApiTestBase {
 
   /**
    * {@inheritdoc}
@@ -32,7 +29,29 @@ final class XbContentEntityHttpApiTest extends BrowserTestBase {
    */
   protected $defaultTheme = 'stark';
 
-  public function test(): void {
+  /**
+   * {@inheritdoc}
+   */
+  protected function setUp(): void {
+    parent::setUp();
+    Page::create([
+      'title' => "Page 1",
+      'status' => TRUE,
+      'path' => ['alias' => "/page-1"],
+    ])->save();
+    Page::create([
+      'title' => "Page 2",
+      'status' => FALSE,
+      'path' => ['alias' => "/page-2"],
+    ])->save();
+    Page::create([
+      'title' => "Page 3",
+      'status' => TRUE,
+      'path' => ['alias' => "/page-3"],
+    ])->save();
+  }
+
+  public function testPost(): void {
     $url = Url::fromUri('base:/xb/api/content-create/xb_page');
     $request_options = [
       RequestOptions::HEADERS => [
@@ -66,9 +85,58 @@ final class XbContentEntityHttpApiTest extends BrowserTestBase {
     $response = $this->makeApiRequest('POST', $url, $request_options);
     $this->assertSame(201, $response->getStatusCode());
     $this->assertSame(
-      '{"entity_type":"xb_page","entity_id":"1"}',
+      '{"entity_type":"xb_page","entity_id":"4"}',
       (string) $response->getBody()
     );
+  }
+
+  public function testList(): void {
+    $url = Url::fromUri('base:/xb/api/content/xb_page');
+
+    // Anonymously: 403.
+    $body = $this->assertExpectedResponse('GET', $url, [], 403, ['user.permissions'], ['4xx-response', 'config:user.role.anonymous', 'http_response'], 'MISS', NULL);
+    $this->assertSame([
+      'message' => "The 'administer xb_page' permission is required.",
+    ], $body);
+
+    // User without permission.
+    $user = $this->createUser(['access content'], 'access_content_user');
+    assert($user instanceof UserInterface);
+    $this->drupalLogin($user);
+    $body = $this->assertExpectedResponse('GET', $url, [], 403, ['user.permissions'], ['4xx-response', 'http_response'], 'UNCACHEABLE (request policy)', NULL);
+    $this->assertSame([
+      'message' => "The 'administer xb_page' permission is required.",
+    ], $body);
+
+    // Authenticated, authorized: 200.
+    $user = $this->createUser(['administer xb_page'], 'administer_xb_page_user');
+    assert($user instanceof UserInterface);
+    $this->drupalLogin($user);
+    $body = $this->assertExpectedResponse('GET', $url, [], 200, ['user.permissions'], ['http_response', 'xb_page_list'], 'UNCACHEABLE (request policy)', 'MISS');
+    $this->assertEquals(
+      [
+        '1' => [
+          'id' => 1,
+          'title' => 'Page 1',
+          'status' => TRUE,
+          'path' => base_path() . 'page-1',
+        ],
+        '2' => [
+          'id' => 2,
+          'title' => 'Page 2',
+          'status' => FALSE,
+          'path' => base_path() . 'page-2',
+        ],
+        '3' => [
+          'id' => 3,
+          'title' => 'Page 3',
+          'status' => TRUE,
+          'path' => base_path() . 'page-3',
+        ],
+      ],
+      $body
+    );
+    $this->assertExpectedResponse('GET', $url, [], 200, ['user.permissions'], ['http_response', 'xb_page_list'], 'UNCACHEABLE (request policy)', 'HIT');
   }
 
 }
