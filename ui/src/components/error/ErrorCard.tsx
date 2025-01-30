@@ -24,7 +24,9 @@ const ErrorCard: React.FC<{
       <Callout.Text>
         <strong>{title}</strong>
       </Callout.Text>
-      <Callout.Text>{error}</Callout.Text>
+      <Box overflow="hidden">
+        <Callout.Text>{error}</Callout.Text>
+      </Box>
       {resetErrorBoundary && (
         <Box mt="1">
           <Button data-testid="xb-error-reset" onClick={resetErrorBoundary}>

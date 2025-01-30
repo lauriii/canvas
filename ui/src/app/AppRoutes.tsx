@@ -10,6 +10,7 @@ import Editor from '@/features/editor/Editor';
 import DummyPropsEditForm from '@/components/DummyPropsEditForm';
 import type React from 'react';
 import MosaicContainer from '@/features/code-editor/MosaicContainer';
+import CodeComponentDialogs from '@/features/code-editor/dialogs/CodeComponentDialogs';
 import PrimaryPanel from '@/components/sidebar/PrimaryPanel';
 
 interface AppRoutesInterface {
@@ -60,6 +61,7 @@ const AppRoutes: React.FC<AppRoutesInterface> = ({ basePath }) => {
               <>
                 <PrimaryPanel />
                 <MosaicContainer />
+                <CodeComponentDialogs />
               </>
             ),
           },
@@ -70,6 +72,7 @@ const AppRoutes: React.FC<AppRoutesInterface> = ({ basePath }) => {
               <>
                 <PrimaryPanel />
                 <MosaicContainer />
+                <CodeComponentDialogs />
               </>
             ),
           },

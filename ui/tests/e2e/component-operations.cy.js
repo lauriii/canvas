@@ -233,7 +233,7 @@ describe('Perform CRUD operations on components', () => {
       expect($sectionInput).to.have.value(sectionName);
     });
 
-    cy.findByText('Add to Library').click({ scrollBehavior: false });
+    cy.findByText('Add to library').click({ scrollBehavior: false });
 
     cy.openLibraryPanel();
     cy.get('.primaryPanelContent').within(() => {

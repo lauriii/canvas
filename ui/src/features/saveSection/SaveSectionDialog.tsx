@@ -1,13 +1,7 @@
 import type React from 'react';
 import { useCallback, useEffect, useState } from 'react';
-import {
-  Button,
-  Dialog,
-  Flex,
-  Spinner,
-  Text,
-  TextField,
-} from '@radix-ui/themes';
+import { Flex, TextField } from '@radix-ui/themes';
+import Dialog, { DialogFieldLabel } from '@/components/Dialog';
 import {
   selectDialogOpen,
   setDialogOpen,
@@ -22,7 +16,6 @@ import {
 import { useSaveSectionMutation } from '@/services/sections';
 import type { FetchBaseQueryError } from '@reduxjs/toolkit/query/react';
 import type { SerializedError } from '@reduxjs/toolkit';
-import ErrorCard from '@/components/error/ErrorCard';
 import useGetComponentName from '@/hooks/useGetComponentName';
 import { useParams } from 'react-router-dom';
 
@@ -124,59 +117,43 @@ const SaveSectionDialog: React.FC = () => {
   }
 
   return (
-    <Dialog.Root open={saveAsSection} onOpenChange={handleOpenChange}>
-      <Dialog.Content maxWidth="550px">
-        <Dialog.Title>Add new section</Dialog.Title>
-        <Dialog.Description size="2" mb="4">
-          Save "{selectedComponentName}" as a section. Unlike components,
-          sections are independent and can be customized without affecting other
-          instances.
-        </Dialog.Description>
-
-        <Flex direction="column" gap="3">
-          <label>
-            <Text as="div" size="2" mb="1" weight="bold">
-              Section name
-            </Text>
-            <TextField.Root
-              value={sectionName}
-              onChange={handleInputChange}
-              placeholder="Enter a name for your section"
-              id="sectionName"
-              name="sectionName"
-            />
-          </label>
-          {isError && (
-            <>
-              <ErrorCard
-                title="Save failed!"
-                error={getErrorMessage(error)}
-                resetButtonText="Try again"
-                resetErrorBoundary={handleSaveClick}
-              ></ErrorCard>
-            </>
-          )}
-        </Flex>
-
-        <Flex gap="3" mt="4" justify="center">
-          {isSaving && (
-            <Button disabled={true}>
-              <Spinner /> Saving&hellip;
-            </Button>
-          )}
-          {!isSaving && (
-            <Button onClick={handleSaveClick} disabled={isError}>
-              Add to Library
-            </Button>
-          )}
-          <Dialog.Close>
-            <Button variant="soft" color="gray">
-              Cancel
-            </Button>
-          </Dialog.Close>
-        </Flex>
-      </Dialog.Content>
-    </Dialog.Root>
+    <Dialog
+      open={saveAsSection}
+      onOpenChange={handleOpenChange}
+      title="Add new section"
+      description={`Save "${selectedComponentName}" as a section. Unlike components, sections are independent and can be customized without affecting other instances.`}
+      error={
+        isError
+          ? {
+              title: 'Failed to save section',
+              message: getErrorMessage(error),
+              resetButtonText: 'Try again',
+              onReset: handleSaveClick,
+            }
+          : undefined
+      }
+      footer={{
+        cancelText: 'Cancel',
+        confirmText: 'Add to library',
+        onConfirm: handleSaveClick,
+        isConfirmDisabled: !sectionName.trim(),
+        isConfirmLoading: isSaving,
+      }}
+    >
+      <Flex direction="column" gap="2">
+        <label>
+          <DialogFieldLabel>Section name</DialogFieldLabel>
+          <TextField.Root
+            value={sectionName}
+            onChange={handleInputChange}
+            placeholder="Enter a name"
+            id="sectionName"
+            name="sectionName"
+            size="1"
+          />
+        </label>
+      </Flex>
+    </Dialog>
   );
 };
 

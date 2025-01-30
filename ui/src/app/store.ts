@@ -6,6 +6,7 @@ import type { UndoRedoType } from '@/features/ui/uiSlice';
 import { performUndoOrRedo, pushUndo } from '@/features/ui/uiSlice';
 import { primaryPanelSlice } from '@/features/ui/primaryPanelSlice';
 import { dialogSlice } from '@/features/ui/dialogSlice';
+import { codeComponentDialogSlice } from '@/features/ui/codeComponentDialogSlice';
 import { componentApi } from '@/services/components';
 import { layoutApi } from '@/services/layout';
 import { previewApi } from '@/services/preview';
@@ -16,6 +17,7 @@ import { dummyPropsFormApi } from '@/services/dummyPropsForm';
 import { pageDataFormApi } from '@/services/pageDataForm';
 import { configurationSlice } from '@/features/configuration/configurationSlice';
 import { sectionApi } from '@/services/sections';
+import { codeComponentApi } from '@/services/codeComponents';
 import { setLatestUndoRedoActionId, uiSlice } from '@/features/ui/uiSlice';
 import { formStateSlice } from '@/features/form/formStateSlice';
 import type { UnknownAction } from 'redux';
@@ -79,6 +81,7 @@ const rootReducer = combineSlices(
   },
   componentApi,
   sectionApi,
+  codeComponentApi,
   layoutApi,
   previewApi,
   dummyPropsFormApi,
@@ -86,6 +89,7 @@ const rootReducer = combineSlices(
   configurationSlice,
   primaryPanelSlice,
   dialogSlice,
+  codeComponentDialogSlice,
   uiSlice,
   formStateSlice,
   pendingChangesApi,
@@ -131,6 +135,7 @@ export const makeStore = (preloadedState?: Partial<RootState>) => {
       return getDefaultMiddleware().concat(
         componentApi.middleware,
         sectionApi.middleware,
+        codeComponentApi.middleware,
         layoutApi.middleware,
         previewApi.middleware,
         dummyPropsFormApi.middleware,

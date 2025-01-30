@@ -3,10 +3,10 @@ import { Mosaic, MosaicWindow } from 'react-mosaic-component';
 import './xb-react-mosaic-component.css';
 import { useState } from 'react';
 import JavaScriptEditor from '@/features/code-editor/JavaScriptEditor';
-import { ScrollArea, Tabs } from '@radix-ui/themes';
+import { Button, Callout, Flex, ScrollArea, Tabs } from '@radix-ui/themes';
+import { InfoCircledIcon, LayoutIcon } from '@radix-ui/react-icons';
 import GlobalCssEditor from '@/features/code-editor/GlobalCssEditor';
 import CssEditor from '@/features/code-editor/CssEditor';
-import WindowLayoutIcon from '@assets/icons/code-editor/window-layout.svg?react';
 import styles from './MosaicContainer.module.css';
 import './xb-code-mirror.css';
 
@@ -34,6 +34,19 @@ const fullEditorLayout: MosaicNode<string> = {
   splitPercentage: 100,
 };
 
+const NotSupported = () => {
+  return (
+    <Flex direction="column" align="center" justify="center" height="100%">
+      <Callout.Root size="1" variant="surface" color="gray">
+        <Callout.Icon>
+          <InfoCircledIcon />
+        </Callout.Icon>
+        <Callout.Text>This feature is not yet supported.</Callout.Text>
+      </Callout.Root>
+    </Flex>
+  );
+};
+
 const MosaicContainer = () => {
   const [layout, setLayout] = useState<MosaicNode<string>>(defaultLayout);
   const [activeTab, setActiveTab] = useState('js');
@@ -48,10 +61,16 @@ const MosaicContainer = () => {
         onValueChange={tabChangeHandler}
         value={activeTab}
       >
-        <Tabs.List className={styles.tabList}>
-          <Tabs.Trigger value="js">JavaScript</Tabs.Trigger>
-          <Tabs.Trigger value="css">CSS</Tabs.Trigger>
-          <Tabs.Trigger value="global-css">Global CSS</Tabs.Trigger>
+        <Tabs.List size="1" className={styles.tabList}>
+          <Tabs.Trigger value="js" className={styles.tabTrigger}>
+            JavaScript
+          </Tabs.Trigger>
+          <Tabs.Trigger value="css" className={styles.tabTrigger}>
+            CSS
+          </Tabs.Trigger>
+          <Tabs.Trigger value="global-css" className={styles.tabTrigger}>
+            Global CSS
+          </Tabs.Trigger>
         </Tabs.List>
       </Tabs.Root>
     );
@@ -64,12 +83,14 @@ const MosaicContainer = () => {
 
     return (
       <div className="mosaic-toggle-layout">
-        <button
+        <Button
           onClick={toggleLayout}
           aria-label="Toggle button for code editor view"
+          variant="ghost"
+          color="gray"
         >
-          <WindowLayoutIcon />
-        </button>
+          <LayoutIcon />
+        </Button>
       </div>
     );
   };
@@ -111,7 +132,7 @@ const MosaicContainer = () => {
                   title="Preview"
                   draggable={false}
                 >
-                  <p>(Not yet supported)</p>
+                  <NotSupported />
                 </MosaicWindow>
               );
             case 'Component Data':
@@ -122,7 +143,7 @@ const MosaicContainer = () => {
                   title="Component data"
                   draggable={false}
                 >
-                  <p>(Not yet supported)</p>
+                  <NotSupported />
                 </MosaicWindow>
               );
             default:

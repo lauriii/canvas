@@ -2,6 +2,7 @@ import Canvas from '@/features/canvas/Canvas';
 import PrimaryPanel from '@/components/sidebar/PrimaryPanel';
 import ZoomControl from '@/components/zoom/ZoomControl';
 import SaveSectionDialog from '@/features/saveSection/SaveSectionDialog';
+import CodeComponentDialogs from '@/features/code-editor/dialogs/CodeComponentDialogs';
 import ContextualPanel from '@/components/panel/ContextualPanel';
 import { useEffect } from 'react';
 import { setFirstLoadComplete } from '@/features/ui/uiSlice';
@@ -24,6 +25,7 @@ const Editor = () => {
       <div id="menuBarContainer"></div>
       <div id="menuBarSubmenuContainer"></div>
       <SaveSectionDialog />
+      <CodeComponentDialogs />
     </>
   );
 };

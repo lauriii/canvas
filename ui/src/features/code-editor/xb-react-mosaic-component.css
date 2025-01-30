@@ -95,8 +95,7 @@
   display: flex;
   overflow: hidden;
   flex-direction: column;
-  box-shadow: var(--shadow-4)
-
+  box-shadow: var(--shadow-4);
 }
 
 .mosaic-window .mosaic-window-toolbar,
@@ -115,18 +114,19 @@
 
 .xb-mosaic-window-editor .mosaic-window-body {
   padding-right: var(--editor-space-side);
-  padding-left:  var(--editor-space-side);
+  padding-left: var(--editor-space-side);
+}
+
+.mosaic-window-controls {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
 }
 
 .mosaic-window-controls .mosaic-toggle-layout {
   position: absolute;
-  top: 8px;
+  top: calc(var(--editor-space-side) + var(--space-1));
   right: var(--editor-space-side);
-}
-
-.mosaic-toggle-layout button svg:hover {
-  border-radius: var(--radius-4);
-  background-color: var(--gray-3);
 }
 
 .mosaic-window-title {
@@ -137,7 +137,8 @@
   padding-left: var(--editor-space-side);
   white-space: nowrap;
   text-overflow: ellipsis;
-  font-weight: 500;
+  font-size: var(--font-size-2);
+  font-weight: var(--font-weight-medium);
 }
 
 .xb-mosaic-window-preview .mosaic-window-title,
@@ -146,8 +147,15 @@
   align-items: center;
 }
 
-.xb-mosaic-window-editor .mosaic-window-title {
+.xb-mosaic-window-editor .mosaic-window-title,
+.xb-mosaic-window-preview .mosaic-window-title,
+.xb-mosaic-window-component-data .mosaic-window-title {
   margin-top: var(--editor-space-side);
+}
+
+.xb-mosaic-window-preview .mosaic-window-title,
+.xb-mosaic-window-component-data .mosaic-window-title {
+  height: auto;
 }
 
 .mosaic-window .mosaic-window-body,
