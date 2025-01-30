@@ -3,7 +3,12 @@ import { combineSlices, configureStore } from '@reduxjs/toolkit';
 import { setupListeners } from '@reduxjs/toolkit/query';
 import { v4 as uuidv4 } from 'uuid';
 import type { UndoRedoType } from '@/features/ui/uiSlice';
-import { performUndoOrRedo, pushUndo } from '@/features/ui/uiSlice';
+import {
+  performUndoOrRedo,
+  pushUndo,
+  setLatestUndoRedoActionId,
+  uiSlice,
+} from '@/features/ui/uiSlice';
 import { primaryPanelSlice } from '@/features/ui/primaryPanelSlice';
 import { dialogSlice } from '@/features/ui/dialogSlice';
 import { codeComponentDialogSlice } from '@/features/ui/codeComponentDialogSlice';
@@ -18,11 +23,11 @@ import { pageDataFormApi } from '@/services/pageDataForm';
 import { configurationSlice } from '@/features/configuration/configurationSlice';
 import { sectionApi } from '@/services/sections';
 import { codeComponentApi } from '@/services/codeComponents';
-import { setLatestUndoRedoActionId, uiSlice } from '@/features/ui/uiSlice';
 import { formStateSlice } from '@/features/form/formStateSlice';
 import type { UnknownAction } from 'redux';
 import { pendingChangesApi } from '@/services/pendingChangesApi';
 import { postPreviewSignalSlice } from '@/components/review/PublishReview.slice';
+import { contentListApi } from '@/services/contentList';
 
 // Reducer enhancer to decorate undoable aware reducers and unset future state
 // if an action is performed on another undoable slice.
@@ -94,6 +99,7 @@ const rootReducer = combineSlices(
   formStateSlice,
   pendingChangesApi,
   postPreviewSignalSlice,
+  contentListApi,
 );
 // Infer the `RootState` type from the root reducer
 export type RootState = ReturnType<typeof rootReducer>;
@@ -142,6 +148,7 @@ export const makeStore = (preloadedState?: Partial<RootState>) => {
         pageDataFormApi.middleware,
         undoRedoActionIdMiddleware,
         pendingChangesApi.middleware,
+        contentListApi.middleware,
       );
     },
     preloadedState,

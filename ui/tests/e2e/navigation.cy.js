@@ -38,9 +38,6 @@ describe('Navigation functionality', () => {
     cy.findByTestId(navigationContentTestId)
       .should('exist')
       .and('contain.text', 'Homepage')
-      // @todo other pages will be listed in https://www.drupal.org/i/3500052
-      //    this ensures the test fails when it is working, so we can assert the
-      //    other pages are listed.
-      .and('not.contain.text', 'Empty Page');
+      .and('contain.text', 'Empty Page');
   });
 });

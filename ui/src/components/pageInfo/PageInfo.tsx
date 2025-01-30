@@ -15,12 +15,14 @@ import {
 import { useAppSelector } from '@/app/hooks';
 import { selectPageData } from '@/features/pageData/pageDataSlice';
 import type { ReactElement } from 'react';
+import { useEffect } from 'react';
 import { DEFAULT_REGION } from '@/features/ui/uiSlice';
 import { Link, useParams } from 'react-router-dom';
 import { selectLayout } from '@/features/layout/layoutModelSlice';
 import Navigation from '@/components/navigation/Navigation';
-import { selectEntityId } from '@/features/configuration/configurationSlice';
 import { handleNonWorkingBtn } from '@/utils/function-utils';
+import { useGetContentListQuery } from '@/services/contentList';
+import { useErrorBoundary } from 'react-error-boundary';
 
 interface PageType {
   [key: string]: ReactElement;
@@ -34,12 +36,12 @@ const iconMap: PageType = {
 };
 
 const PageInfo = () => {
+  const { showBoundary } = useErrorBoundary();
   const { regionId: focusedRegion = DEFAULT_REGION } = useParams();
   const layout = useAppSelector(selectLayout);
   const focusedRegionName = layout.find(
     (region) => region.id === focusedRegion,
   )?.name;
-  const entityId = useAppSelector(selectEntityId);
   const entity_form_fields = useAppSelector(selectPageData);
   // @todo stop hardcoding `title` and `status` after https://www.drupal.org/i/3501847
   const title = entity_form_fields['title[0][value]'];
@@ -47,6 +49,18 @@ const PageInfo = () => {
   const published =
     entity_form_fields['status[value]'] === '1' ||
     entity_form_fields['status[value]'] === true;
+
+  const {
+    data: pageItems,
+    isLoading: isPageItemsLoading,
+    error: isPageItemsError,
+  } = useGetContentListQuery('xb_page');
+
+  useEffect(() => {
+    if (isPageItemsError) {
+      showBoundary(isPageItemsError);
+    }
+  }, [isPageItemsError, showBoundary]);
 
   return (
     <Flex gap="2" align="center">
@@ -69,15 +83,8 @@ const PageInfo = () => {
             {/* @todo load data in https://www.drupal.org/i/3502820 */}
             {/* @todo add onNewPage handler in https://www.drupal.org/i/3502819 */}
             <Navigation
-              loading={false}
-              items={[
-                {
-                  title,
-                  path: '',
-                  status: published,
-                  id: entityId,
-                },
-              ]}
+              loading={isPageItemsLoading}
+              items={pageItems || []}
               onNewPage={handleNonWorkingBtn}
               onSearch={handleNonWorkingBtn}
               onSelect={handleNonWorkingBtn}
