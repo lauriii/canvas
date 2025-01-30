@@ -22,6 +22,8 @@ import { selectLayout } from '@/features/layout/layoutModelSlice';
 import Navigation from '@/components/navigation/Navigation';
 import { handleNonWorkingBtn } from '@/utils/function-utils';
 import { useGetContentListQuery } from '@/services/contentList';
+import { useCreateContentMutation } from '@/services/contentCreate';
+import { useNavigationUtils } from '@/hooks/useNavigationUtils';
 import { useErrorBoundary } from 'react-error-boundary';
 
 interface PageType {
@@ -37,6 +39,7 @@ const iconMap: PageType = {
 
 const PageInfo = () => {
   const { showBoundary } = useErrorBoundary();
+  const { setEditorEntity } = useNavigationUtils();
   const { regionId: focusedRegion = DEFAULT_REGION } = useParams();
   const layout = useAppSelector(selectLayout);
   const focusedRegionName = layout.find(
@@ -53,14 +56,43 @@ const PageInfo = () => {
   const {
     data: pageItems,
     isLoading: isPageItemsLoading,
-    error: isPageItemsError,
+    error: pageItemsError,
   } = useGetContentListQuery('xb_page');
 
+  const [
+    createContent,
+    {
+      data: createContentData,
+      error: createContentError,
+      isSuccess: isCreateContentSuccess,
+    },
+  ] = useCreateContentMutation();
+  function handleNewPage() {
+    createContent({
+      entityType: 'xb_page',
+    });
+  }
+
   useEffect(() => {
-    if (isPageItemsError) {
-      showBoundary(isPageItemsError);
+    if (isCreateContentSuccess) {
+      setEditorEntity(
+        createContentData.entity_type,
+        createContentData.entity_id,
+      );
     }
-  }, [isPageItemsError, showBoundary]);
+  }, [isCreateContentSuccess, createContentData, setEditorEntity]);
+
+  useEffect(() => {
+    if (pageItemsError) {
+      showBoundary(pageItemsError);
+    }
+  }, [pageItemsError, showBoundary]);
+
+  useEffect(() => {
+    if (createContentError) {
+      showBoundary(createContentError);
+    }
+  }, [createContentError, showBoundary]);
 
   return (
     <Flex gap="2" align="center">
@@ -81,11 +113,10 @@ const PageInfo = () => {
           </Popover.Trigger>
           <Popover.Content size="2" maxWidth="400px">
             {/* @todo load data in https://www.drupal.org/i/3502820 */}
-            {/* @todo add onNewPage handler in https://www.drupal.org/i/3502819 */}
             <Navigation
               loading={isPageItemsLoading}
               items={pageItems || []}
-              onNewPage={handleNonWorkingBtn}
+              onNewPage={handleNewPage}
               onSearch={handleNonWorkingBtn}
               onSelect={handleNonWorkingBtn}
               onRename={handleNonWorkingBtn}

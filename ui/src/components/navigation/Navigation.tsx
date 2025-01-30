@@ -217,14 +217,17 @@ const Navigation = ({
         </form>
         <DropdownMenu.Root>
           <DropdownMenu.Trigger>
-            <Button variant="soft">
+            <Button variant="soft" data-testid="xb-navigation-new-button">
               <PlusIcon />
               New
               <DropdownMenu.TriggerIcon />
             </Button>
           </DropdownMenu.Trigger>
           <DropdownMenu.Content>
-            <DropdownMenu.Item onClick={onNewPage}>
+            <DropdownMenu.Item
+              onClick={onNewPage}
+              data-testid="xb-navigation-new-page-button"
+            >
               <FileIcon />
               New page
             </DropdownMenu.Item>

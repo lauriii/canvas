@@ -1,5 +1,7 @@
 const navigationButtonTestId = 'xb-navigation-button';
 const navigationContentTestId = 'xb-navigation-content';
+const navigationNewButtonTestId = 'xb-navigation-new-button';
+const navigationNewPageButtonTestId = 'xb-navigation-new-page-button';
 
 describe('Navigation functionality', () => {
   before(() => {
@@ -39,5 +41,15 @@ describe('Navigation functionality', () => {
       .should('exist')
       .and('contain.text', 'Homepage')
       .and('contain.text', 'Empty Page');
+  });
+
+  it('Clicking "New page" creates a new page and navigates to it', () => {
+    cy.loadURLandWaitForXBLoaded({ url: 'xb/xb_page/1' });
+
+    cy.findByTestId(navigationButtonTestId).click();
+    cy.findByTestId(navigationNewButtonTestId).click();
+    cy.findByTestId(navigationNewPageButtonTestId).click();
+    cy.url().should('not.contain', '/xb/xb_page/1');
+    cy.url().should('contain', '/xb/xb_page/3');
   });
 });

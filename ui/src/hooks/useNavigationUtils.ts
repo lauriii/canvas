@@ -46,5 +46,18 @@ export function useNavigationUtils() {
     [navigate],
   );
 
-  return { setSelectedComponent, unsetSelectedComponent, setSelectedRegion };
+  // @todo revisit approach (like using routing) in https://www.drupal.org/i/3502887
+  const setEditorEntity = useCallback(
+    (entityType: string, entityId: string) => {
+      window.location.href = `/xb/${entityType}/${entityId}`;
+    },
+    [],
+  );
+
+  return {
+    setSelectedComponent,
+    unsetSelectedComponent,
+    setSelectedRegion,
+    setEditorEntity,
+  };
 }

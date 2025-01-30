@@ -15,6 +15,7 @@ import { codeComponentDialogSlice } from '@/features/ui/codeComponentDialogSlice
 import { componentApi } from '@/services/components';
 import { layoutApi } from '@/services/layout';
 import { previewApi } from '@/services/preview';
+import { contentCreateApi } from '@/services/contentCreate';
 import undoable from 'redux-undo';
 import { layoutModelReducer } from '@/features/layout/layoutModelSlice';
 import { pageDataReducer } from '@/features/pageData/pageDataSlice';
@@ -89,6 +90,7 @@ const rootReducer = combineSlices(
   codeComponentApi,
   layoutApi,
   previewApi,
+  contentCreateApi,
   dummyPropsFormApi,
   pageDataFormApi,
   configurationSlice,
@@ -144,6 +146,7 @@ export const makeStore = (preloadedState?: Partial<RootState>) => {
         codeComponentApi.middleware,
         layoutApi.middleware,
         previewApi.middleware,
+        contentCreateApi.middleware,
         dummyPropsFormApi.middleware,
         pageDataFormApi.middleware,
         undoRedoActionIdMiddleware,
