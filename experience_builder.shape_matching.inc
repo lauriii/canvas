@@ -16,7 +16,6 @@ use Drupal\experience_builder\Plugin\Field\FieldTypeOverride\FileUriItemOverride
 use Drupal\experience_builder\Plugin\Field\FieldTypeOverride\ImageItemOverride;
 use Drupal\experience_builder\Plugin\Field\FieldTypeOverride\LinkItemOverride;
 use Drupal\experience_builder\Plugin\Field\FieldTypeOverride\ListIntegerItemOverride;
-use Drupal\experience_builder\Plugin\Field\FieldTypeOverride\PathItemOverride;
 use Drupal\experience_builder\Plugin\Field\FieldTypeOverride\StringItemOverride;
 use Drupal\experience_builder\Plugin\Field\FieldTypeOverride\StringLongItemOverride;
 use Drupal\experience_builder\Plugin\Field\FieldTypeOverride\TextItemOverride;
@@ -73,9 +72,6 @@ function experience_builder_field_info_alter(array &$info): void {
   }
   if (!empty($info['list_integer'])) {
     $info['list_integer']['class'] = ListIntegerItemOverride::class;
-  }
-  if (!empty($info['path'])) {
-    $info['path']['class'] = PathItemOverride::class;
   }
   if (!empty($info['string'])) {
     $info['string']['class'] = StringItemOverride::class;
