@@ -136,6 +136,24 @@ class PropSourceEndpointTest extends BrowserTestBase {
     foreach ($data as $sdc => $prop_sources) {
       $this->assertSame($expected[$sdc]['dynamic_prop_source_candidates'], $data[$sdc]['dynamic_prop_source_candidates']);
     }
+    $extractValue = [
+      'mainProperty' => [],
+    ];
+    self::assertEquals([
+      'heading' => $extractValue,
+      'subheading' => $extractValue,
+      'cta1' => $extractValue,
+      'cta1href' => ['link' => []],
+      'cta2' => $extractValue,
+    ], $data['sdc.experience_builder.my-hero']['transforms']);
+    self::assertEquals($extractValue + ['dateTime' => []], $data['sdc.sdc_test_all_props.all-props']['transforms']['test_string_format_date']);
+    self::assertEquals($extractValue + ['dateTime' => []], $data['sdc.sdc_test_all_props.all-props']['transforms']['test_string_format_date_time']);
+    self::assertEquals([
+      'mainProperty' => ['list' => FALSE],
+    ], $data['sdc.sdc_test_all_props.all-props']['transforms']['test_bool']);
+    self::assertEquals([], $data['sdc.sdc_test_all_props.all-props']['transforms']['test_integer_enum']);
+    self::assertEquals($extractValue, $data['sdc.sdc_test_all_props.all-props']['transforms']['test_integer']);
+    self::assertEquals(['link' => []], $data['sdc.sdc_test_all_props.all-props']['transforms']['test_string_format_uri']);
   }
 
   /**

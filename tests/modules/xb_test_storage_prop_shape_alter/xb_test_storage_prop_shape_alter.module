@@ -19,3 +19,14 @@ function xb_test_storage_prop_shape_alter_storage_prop_shape_alter(CandidateStor
     $storable_prop_shape->fieldWidget = 'uri';
   }
 }
+
+/**
+ * Implements hook_field_widget_info_alter().
+ */
+function xb_test_storage_prop_shape_alter_field_widget_info_alter(array &$info): void {
+  $info['uri']['xb'] = [
+    'transforms' => [
+      'mainProperty' => [],
+    ],
+  ];
+}

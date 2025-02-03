@@ -89,6 +89,7 @@ export default inputBehaviors(Input);
 - Client-side validation based on the [JSON Schema definition](https://json-schema.org/understanding-json-schema) of each `component input`.
 - Value changes are also written to the form's `FormStateContext`, which is a single state object that
 keeps track of all values in the form.
+- Applies 'transforms' in order to map the data from the form structure to the expected value
 
 
 ### 3.3 The spectrum of `HTML form control element` → `component input` flows
@@ -153,3 +154,138 @@ Ideally the solutions for the above would be ones where the custom per-field-typ
 The server can still provide data that dictates front-end functionality. It's something we're already doing in the props form by performing client-side validation based on server-provided JSON Schemas.
 
 One possible direction for a generic solution: <https://git.drupalcode.org/issue/experience_builder-3463842/-/compare/0.x...3463842-outline-of-possible-generic-solution>.
+
+### 3.4 Transforms
+
+[Transforms](../ui/src/utils/transforms.ts) are applied on a per-widget basis. Transforms are named functions and may or may not take optional configuration.
+For each property, the component list may provide a list of transforms and their respective configuration.
+When a property is edited in the UI, the transforms are applied in sequence in order to take the value input by the user and the HTML form structure and transform it to the expected SDC prop value.
+As transforms are specific to each widget, on the Drupal side we implement `hook_field_widget_info_alter()` and add additional metadata to each widget's plugin definition.
+See [`experience_builder_field_widget_info_alter`](../experience_builder.redux_integrated_field_widgets.inc) for an example.
+If your module provides a custom widget, you should implement this hook and add the transforms required in a similar fashion.
+
+Built-in transforms include:
+- `mainProperty` - which takes configuration of the `name` and an optional `list` boolean
+- `firstRecord` - which will return all child values for the first record in a list
+- `mediaSelection` - which will return 'selection' from input form values
+- `dateTime` - which will combine child `date` and `time` fields into a valid ISO-8601 datetime string
+
+* Example *
+Let's say you have a widget plugin with ID 'trousers' for a field named `zipper`. When the form is built, the widget's form
+element ends up with the following HTML input:
+
+```html
+<input name="zipper[0][lizard]" type="text" />
+```
+
+In the Redux [form state slice](../ui/src/features/form/formStateSlice.ts) the value will be saved as follows:
+
+```json
+{
+   "zipper[0][lizard]": "the user entered value"
+}
+```
+In order to transform this into a prop with the value `"the user entered value"` you would apply the following transform
+
+```php
+function hook_field_widget_info_alter(array &$info): void {
+  $info['trousers']['xb']['transforms'] = [
+    'mainProperty' => [
+      'name' => 'lizard',
+    ]
+  ];
+}
+```
+
+If however, your input does not contain a list like so:
+
+```json
+{
+   "zipper[lizard]": "the user entered value"
+}
+```
+
+you could pass `false` for the `list` option to this transform
+
+```php
+function hook_field_widget_info_alter(array &$info): void {
+  $info['trousers']['xb']['transforms'] = [
+    'mainProperty' => [
+      'name' => 'lizard',
+      'list' => FALSE,
+    ]
+  ];
+}
+```
+
+If your HTML input is much flatter, like that from the `options_select` widget, then you do not need to provide a transform at all.
+
+```html
+<input name="zipper" type="text" />
+```
+
+#### 3.4.1 Defining your own transform
+
+If the built-in transforms are not suitable for your widget, you can define your own using a JavaScript file in your module.
+
+Create a new JS file and define your transform and then add it to the global `Drupal.xbTransforms`:
+
+```javascript
+// my_module/js/noodles-or-pasta-transform.js
+((Drupal) => {
+  const noodlesOrPastaTransform = (value, options, fieldData) => {
+    // Options are as defined in widget plugin definitions (see below).
+    const { useNoodles = false } = options;
+    if (useNoodles && 'noodles' in value) {
+      return value.noodles;
+    }
+    // Field storage settings mapped from the prop shape are also available, so
+    // if the HTML structure depends on instance or storage settings for the
+    // field type, you can return a different value. For an example of this see
+    // the dateTime transform in transforms.ts in the experience_builder
+    // codebase.
+    if (fieldData.sourceTypeSettings.storage.type === 'spaghetti') {
+      return 'spaghetti';
+    }
+    if ('pasta' in value) {
+      return value.pasta;
+    }
+    return null;
+  }
+  Drupal.xbTransforms.noodlesOrPasta = noodlesOrPastaTransform;
+})(Drupal)
+```
+
+Then create a `*.libraries.yml` file in your module and declare this asset library.
+
+Make sure the library name uses `xb.transform` in its prefix.
+
+```yml
+# my_module.libraries.yml
+xb.transform.noodlesOrPasta:
+  js:
+    js/noodles-or-pasta-transform.js: {  }
+  dependencies:
+    # Depends on global Drupal object
+    - core/drupal
+    # And needs to be loaded after the xb-ui behavior
+    - experience_builder/xb-ui
+```
+
+Experience builder will automatically attach any libraries that use the `xb.transform` prefix to the page builder UI.
+- see [experience_builder_library_info_alter](../experience_builder.redux_integrated_field_widgets.inc) and [\Drupal\experience_builder\Controller\ExperienceBuilderController](../src/Controller/ExperienceBuilderController.php)
+
+```php
+function hook_field_widget_info_alter(array &$info): void {
+  $info['noodles']['xb']['transforms'] = [
+    'noodlesOrPasta' => [
+      // The options you define here will be passed as the options parameter to
+      // your transform function.
+      'noodles' => TRUE,
+    ]
+  ];
+  $info['pasta']['xb']['transforms'] = [
+    'noodlesOrPasta' => []
+  ];
+}
+```

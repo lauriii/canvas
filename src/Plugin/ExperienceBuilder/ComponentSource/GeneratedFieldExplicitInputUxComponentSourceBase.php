@@ -332,6 +332,7 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
     $form['#method'] = 'dialog';
 
     $form['#parents'] = ['xb_component_props', $component_instance_uuid];
+    $prop_field_definitions = $settings['prop_field_definitions'];
     foreach ($client_model as $sdc_prop_name => $prop_source_array) {
       $source = PropSource::parse($prop_source_array);
       if ($source instanceof StaticPropSource) {
@@ -340,8 +341,9 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
         // 2. Worst case: fall back to the default widget for this field type.
         // @todo Implement 2. in https://www.drupal.org/project/experience_builder/issues/3463996
         $field_widget_plugin_id = NULL;
-        if ($source->getSourceType() === 'static:field_item:' . $settings['prop_field_definitions'][$sdc_prop_name]['field_type']) {
-          $field_widget_plugin_id = $settings['prop_field_definitions'][$sdc_prop_name]['field_widget'];
+        $prop_field_definition = $prop_field_definitions[$sdc_prop_name];
+        if ($source->getSourceType() === 'static:field_item:' . $prop_field_definition['field_type']) {
+          $field_widget_plugin_id = $prop_field_definition['field_widget'];
         }
         assert(isset($component_schema['properties'][$sdc_prop_name]['title']));
         $label = $component_schema['properties'][$sdc_prop_name]['title'];
@@ -385,6 +387,9 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
       : [];
     $dynamic_prop_source_candidates = [];
     $default_props_for_default_markup = [];
+    $transforms = [];
+    $settings = $component->getSettings();
+    $prop_field_definitions = $settings['prop_field_definitions'];
     foreach (PropShape::getComponentProps($component_plugin) as $component_prop_expression => $prop_shape) {
       $storable_prop_shape = $prop_shape->getStorage();
       // @todo Remove this once every SDC prop shape can be stored.
@@ -394,18 +399,19 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
       }
       $static_prop_source = $storable_prop_shape->toStaticPropSource();
       $component_prop = ComponentPropExpression::fromString($component_prop_expression);
+      $prop_name = $component_prop->propName;
       if (isset($suggestions[$component_prop_expression])) {
-        $dynamic_prop_source_candidates[$component_prop->propName] = array_map(
+        $dynamic_prop_source_candidates[$prop_name] = array_map(
           fn(FieldPropExpression|FieldObjectPropsExpression|ReferenceFieldPropExpression $expr) => (string) $expr,
           $suggestions[$component_prop_expression]['instances']
         );
       }
-      $keyed_choices[$component_prop->propName] = [
+      $keyed_choices[$prop_name] = [
         'expression' => (string) $storable_prop_shape->fieldTypeProp,
         'sourceType' => $static_prop_source->getSourceType(),
-        'required' => in_array($component_prop->propName, $component_plugin->metadata->schema['required'] ?? [], TRUE),
+        'required' => in_array($prop_name, $component_plugin->metadata->schema['required'] ?? [], TRUE),
       ];
-      $prop_info = ($component_plugin->metadata->schema['properties'] ?? [])[$component_prop->propName];
+      $prop_info = ($component_plugin->metadata->schema['properties'] ?? [])[$prop_name];
       // Defaults are guaranteed to exist for required props, may exist for
       // optional props. When an optional prop has no default value, the value
       // stored as the default in the Component config entity is NULL.
@@ -422,20 +428,43 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
         }
       }
       else {
-        $default_value = $this->getDefaultStaticPropSource($component_prop->propName)
+        $default_value = $this->getDefaultStaticPropSource($prop_name)
           ->evaluate(NULL);
       }
       if ($default_value !== NULL) {
-        $keyed_choices[$component_prop->propName]['default_values'] = $default_value;
-        $default_props_for_default_markup[$component_prop->propName] = $default_value;
+        $keyed_choices[$prop_name]['default_values'] = $default_value;
+        $default_props_for_default_markup[$prop_name] = $default_value;
       }
       if ($storable_prop_shape->fieldStorageSettings !== NULL) {
-        $keyed_choices[$component_prop->propName]['sourceTypeSettings']['storage'] = $storable_prop_shape->fieldStorageSettings;
+        $keyed_choices[$prop_name]['sourceTypeSettings']['storage'] = $storable_prop_shape->fieldStorageSettings;
       }
       if ($storable_prop_shape->fieldInstanceSettings !== NULL) {
-        $keyed_choices[$component_prop->propName]['sourceTypeSettings']['instance'] = $storable_prop_shape->fieldInstanceSettings;
+        $keyed_choices[$prop_name]['sourceTypeSettings']['instance'] = $storable_prop_shape->fieldInstanceSettings;
       }
-      $keyed_choices[$component_prop->propName]['jsonSchema'] = $prop_shape->resolvedSchema;
+      $keyed_choices[$prop_name]['jsonSchema'] = $prop_shape->resolvedSchema;
+
+      // Build transforms from widget metadata.
+      $field_widget_plugin_id = NULL;
+      $prop_field_definition = $prop_field_definitions[$prop_name];
+      if ($static_prop_source->getSourceType() === 'static:field_item:' . $prop_field_definition['field_type']) {
+        $field_widget_plugin_id = $prop_field_definition['field_widget'];
+      }
+      if ($field_widget_plugin_id === NULL) {
+        continue;
+      }
+      $widget_definition = $this->fieldWidgetPluginManager->getDefinition($field_widget_plugin_id);
+      if (\array_key_exists('xb', $widget_definition) && \array_key_exists('transforms', $widget_definition['xb'])) {
+        $transforms[$prop_name] = $widget_definition['xb']['transforms'];
+      }
+      else {
+        throw new \LogicException(sprintf(
+          "Experience Builder determined the `%s` field widget plugin must be used to populate the `%s` prop on the `%s` component. However, no `xb.transforms` metadata is defined on the field widget plugin definition. This makes it impossible for this widget to work. Please define the missing metadata. See %s for guidance.",
+          $field_widget_plugin_id,
+          $component_prop->componentName,
+          $component_prop->propName,
+          'https://git.drupalcode.org/project/experience_builder/-/raw/0.x/experience_builder.api.php?ref_type=heads',
+        ));
+      }
     }
 
     return [
@@ -446,6 +475,7 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
       'metadata' => ['slots' => $this->getSlotDefinitions()],
       'field_data' => $keyed_choices,
       'dynamic_prop_source_candidates' => $dynamic_prop_source_candidates,
+      'transforms' => $transforms,
     ];
   }
 

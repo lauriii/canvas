@@ -17,6 +17,7 @@ class HookStoragePropAlterTest extends PropShapeRepositoryTest {
    */
   protected static $modules = [
     // @see xb_test_storage_prop_shape_alter_storage_prop_shape_alter()
+    // @see xb_test_storage_prop_shape_alter_field_widget_info_alter()
     'xb_test_storage_prop_shape_alter',
   ];
 

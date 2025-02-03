@@ -84,10 +84,49 @@ function hook_storage_prop_shape_alter(CandidateStorablePropShape $storable_prop
   // The `type: string, format: duration` JSON schema does not have a field type
   // in Drupal core that supports that shape. A contrib module could add support
   // for it.
+  // ⚠️ Any field widget that is used must have `xb.transforms` defined on the
+  // field widget's plugin definition. See hook_field_widget_info_alter().
   if ($storable_prop_shape->fieldTypeProp === NULL && $storable_prop_shape->shape->schema == ['type' => 'string', 'format' => 'duration']) {
     $storable_prop_shape->fieldTypeProp = new FieldTypePropExpression('contrib_duration_field', 'value');
     $storable_prop_shape->fieldWidget = 'fancy_duration_widget';
   }
+}
+
+/**
+ * Implements hook_field_widget_info_alter().
+ *
+ * Any field widgets defined to be used in hook_storage_prop_shape_alter() MUST
+ * have a corresponding `xb.transforms` defined in their plugin definition.
+ *
+ * These "transforms" allow a field widget's value to be extracted on the client
+ * side, resulting in the instantaneous previews XB users expect.
+ *
+ * XB's list of available field widget transforms:
+ * - mainProperty
+ * - firstRecord
+ * - dateTime
+ * - mediaSelection
+ * - link
+ *
+ * @see docs/redux-integrated-field-widgets.md
+ * @see experience_builder_field_widget_info_alter()
+ */
+function hook_field_widget_info_alter(array &$info): void {
+  $info['options_buttons']['xb'] = [
+    'transforms' => [
+      // @todo Analyze the field widget PHP code, assign appropriate transforms.
+    ],
+  ];
+  $info['link_default']['xb'] = [
+    'transforms' => [
+      // @todo Analyze the field widget PHP code, assign appropriate transforms.
+    ],
+  ];
+  $info['fancy_duration_widget']['xb'] = [
+    'transforms' => [
+      // @todo Analyze the field widget PHP code, assign appropriate transforms.
+    ],
+  ];
 }
 
 /**

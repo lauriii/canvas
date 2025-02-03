@@ -1,0 +1,203 @@
+import { getPropsValues, formStateToObject } from '@/components/form/formUtil';
+
+let formState = {
+  'xb_component_props[all-props][heading][0][value]': 'hello, world!',
+  'xb_component_props[all-props][subheading][0][value]': '',
+  'xb_component_props[all-props][cta1][0][value]': '',
+  'xb_component_props[all-props][cta1href][0][uri]': 'https://drupal.org',
+  'xb_component_props[all-props][cta1href][0][title]': 'Do it',
+  'xb_component_props[all-props][cta2][0][value]': '',
+  'xb_component_props[all-props][a_boolean][value]': true,
+  'xb_component_props[all-props][options_select]': 'fine thx',
+  'xb_component_props[all-props][unchecked_boolean][value]': false,
+  'xb_component_props[all-props][date][0][value][date]': '2025-02-02',
+  'xb_component_props[all-props][datetime][0][value][date]': '2025-01-31',
+  'xb_component_props[all-props][datetime][0][value][time]': '20:30:33',
+  'xb_component_props[all-props][email][0][value]': 'bob@example.com',
+  'xb_component_props[all-props][number][0][value]': 123,
+  'xb_component_props[all-props][float][0][value]': 123.45,
+  'xb_component_props[all-props][textarea][0][value]': `Hi there
+Multiline
+Value`,
+  'xb_component_props[all-props][linkNoTitle][0][uri]': 'http://example.com',
+  'xb_component_props[all-props][linkNoTitleEmpty][0][uri]': '',
+  'xb_component_props[all-props][media][selection][0][target_id]': 3,
+  form_build_id: 'this-is-a-form-build-id',
+  form_token: 'this-is-a-form-token',
+  form_id: 'component_inputs_form',
+};
+let inputAndUiData = {
+  selectedComponent: 'all-props',
+  selectedComponentType: 'sdc.sdc_test_all_props.all-props',
+  layout: [],
+  components: {
+    'sdc.sdc_test_all_props.all-props': {
+      field_data: {
+        a_boolean: {
+          jsonSchema: {
+            type: 'boolean',
+          },
+        },
+        unchecked_boolean: {
+          jsonSchema: {
+            type: 'boolean',
+          },
+        },
+        number: {
+          jsonSchema: {
+            type: 'integer',
+          },
+        },
+        float: {
+          jsonSchema: {
+            type: 'number',
+          },
+        },
+        datetime: {
+          sourceTypeSettings: {
+            instance: {},
+            storage: {
+              datetime_type: 'datetime',
+            },
+          },
+        },
+        date: {
+          sourceTypeSettings: {
+            instance: {},
+            storage: {
+              datetime_type: 'date',
+            },
+          },
+        },
+        cta1href: {
+          sourceTypeSettings: {
+            instance: {
+              // Simulate a title.
+              title: 1,
+            },
+            storage: {},
+          },
+        },
+        linkNoTitle: {
+          sourceTypeSettings: {
+            instance: {
+              title: 0,
+            },
+            storage: {},
+          },
+        },
+        linkNoTitleEmpty: {
+          sourceTypeSettings: {
+            instance: {
+              title: 0,
+            },
+            storage: {},
+          },
+        },
+      },
+      // This metadata is defined in PHP and is duplicated here to improve testability.
+      // ⚠️ This should be kept in sync! ⚠️
+      // @see experience_builder_field_widget_info_alter()
+      // @see media_library_field_widget_info_alter()
+      transforms: {
+        heading: { mainProperty: {} },
+        subheading: { mainProperty: {} },
+        cta1: { mainProperty: {} },
+        cta1href: { link: {} },
+        linkNoTitle: { link: {} },
+        linkNoTitleEmpty: { link: {} },
+        cta2: { mainProperty: {} },
+        textarea: { mainProperty: {} },
+        number: { mainProperty: {} },
+        float: { mainProperty: {} },
+        email: { mainProperty: {} },
+        a_boolean: {
+          mainProperty: { list: false },
+        },
+        unchecked_boolean: {
+          mainProperty: { list: false },
+        },
+        datetime: {
+          mainProperty: {},
+          dateTime: {},
+        },
+        date: {
+          mainProperty: {},
+          dateTime: {},
+        },
+        media: {
+          mediaSelection: {},
+          mainProperty: { name: 'target_id' },
+        },
+      },
+    },
+  },
+};
+describe('Form state to object', () => {
+  it('Should transform flat structure into a nested object', () => {
+    const asObject = formStateToObject(formState, 'all-props');
+    expect(asObject).to.deep.equal({
+      heading: [{ value: 'hello, world!' }],
+      subheading: [{ value: '' }],
+      cta1: [{ value: '' }],
+      cta1href: [{ uri: 'https://drupal.org', title: 'Do it' }],
+      cta2: [{ value: '' }],
+      linkNoTitle: [{ uri: 'http://example.com' }],
+      linkNoTitleEmpty: [{ uri: '' }],
+      a_boolean: { value: 'true' },
+      unchecked_boolean: { value: 'false' },
+      date: [
+        {
+          value: {
+            date: '2025-02-02',
+          },
+        },
+      ],
+      datetime: [
+        {
+          value: {
+            date: '2025-01-31',
+            time: '20:30:33',
+          },
+        },
+      ],
+      options_select: 'fine thx',
+      email: [{ value: 'bob@example.com' }],
+      number: [{ value: '123' }],
+      float: [{ value: '123.45' }],
+      textarea: [
+        {
+          value: `Hi there
+Multiline
+Value`,
+        },
+      ],
+      media: {
+        selection: [{ target_id: '3' }],
+      },
+    });
+  });
+});
+
+describe('Get prop values from form state', () => {
+  it('Should transform values from form state', () => {
+    const { propsValues } = getPropsValues(formState, inputAndUiData);
+    expect(propsValues).to.deep.equal({
+      a_boolean: true,
+      unchecked_boolean: false,
+      heading: 'hello, world!',
+      cta1href: { uri: 'https://drupal.org', title: 'Do it' },
+      linkNoTitle: 'http://example.com',
+      textarea: `Hi there
+Multiline
+Value`,
+      email: 'bob@example.com',
+      number: 123,
+      float: 123.45,
+      options_select: 'fine thx',
+      date: '2025-02-02',
+      datetime: '2025-01-31T20:30:33.000Z',
+      media: '3',
+    });
+  });
+});

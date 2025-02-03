@@ -20,6 +20,35 @@ xb-ui:
     - core/internal.jquery.form
     - experience_builder/ajax.hyperscriptify
 
+# @see \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase
+xb.transform.mainProperty:
+  dependencies:
+    # Each transform must be added to the global `Drupal.xbTransforms`.
+    - core/drupal
+    # Experience Builder's natively provided transforms are part of its build.
+    # @see ui/src/utils/transforms.ts
+    - experience_builder/xb-ui
+xb.transform.firstRecord:
+  dependencies:
+    - core/drupal
+    - experience_builder/xb-ui
+xb.transform.dateTime:
+  dependencies:
+    - core/drupal
+    - experience_builder/xb-ui
+xb.transform.mediaSelection:
+  dependencies:
+    - core/drupal
+    - experience_builder/xb-ui
+xb.transform.cast:
+  dependencies:
+    - core/drupal
+    - experience_builder/xb-ui
+xb.transform.link:
+  dependencies:
+    - core/drupal
+    - experience_builder/xb-ui
+
 ajax.hyperscriptify:
   js:
     js/ajax.hyperscriptify.js: {}

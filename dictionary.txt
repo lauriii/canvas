@@ -6,6 +6,7 @@ Carden
 CODEOWNERS
 codespaces
 devizzent
+diaclone
 drupalcode
 drupaldev
 endapply

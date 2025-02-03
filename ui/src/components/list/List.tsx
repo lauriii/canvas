@@ -16,6 +16,7 @@ import {
   isDropTargetBetweenTwoElementsOfSameComponent,
   isDropTargetInSlotAllowedByEdgeDistance,
 } from '@/features/sortable/sortableUtils';
+import type { TransformConfig } from '@/utils/transforms';
 
 export interface ListProps {
   items: ListData | undefined;
@@ -36,6 +37,7 @@ export interface ListItemBase {
 export interface ComponentListItem extends ListItemBase {
   field_data: Record<string, any>;
   source: string;
+  transforms: TransformConfig;
 }
 export interface SectionListItem extends ListItemBase {
   layoutModel: LayoutModelPiece;

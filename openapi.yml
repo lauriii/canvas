@@ -426,6 +426,15 @@ paths:
                       name: Call to Action
                       source: Module component
                       category: Buttons
+                      transforms:
+                        text:
+                          extractMainPropertyName:
+                            mainPropertyName: value
+                        href:
+                          extractMainPropertyName:
+                            mainPropertyName: value
+                        target:
+                          passThrough: {  }
                       metadata:
                         path: >-
                           core/modules/system/tests/modules/sdc_test/components/my-cta
@@ -902,6 +911,7 @@ components:
         - name
         - id
         - category
+        - transforms
         - metadata
         - field_data
         - default_markup
@@ -915,6 +925,9 @@ components:
         category:
           type: string
           description: The component category
+        transforms:
+          type: object
+          description: Transform configuration
         # @see \Drupal\Core\Theme\Component\ComponentMetadata
         metadata:
           type: object

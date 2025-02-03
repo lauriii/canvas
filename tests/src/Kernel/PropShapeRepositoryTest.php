@@ -6,6 +6,7 @@ namespace Drupal\Tests\experience_builder\Kernel;
 
 use Drupal\Core\Entity\TypedData\EntityDataDefinition;
 use Drupal\Core\Field\WidgetInterface;
+use Drupal\Core\Field\WidgetPluginManager;
 use Drupal\Core\Form\FormState;
 use Drupal\datetime\Plugin\Field\FieldType\DateTimeItem;
 use Drupal\experience_builder\JsonSchemaInterpreter\JsonSchemaStringFormat;
@@ -527,6 +528,30 @@ class PropShapeRepositoryTest extends KernelTestBase {
 
       // @todo Remove this, find better solution.
       drupal_static_reset('options_allowed_values');
+    }
+  }
+
+  /**
+   * @depends testStorablePropShapes
+   * @param \Drupal\experience_builder\PropShape\StorablePropShape[] $storable_prop_shapes
+   *
+   * @covers \experience_builder_field_widget_info_alter
+   */
+  public function testAllWidgetsForPropShapesHaveTransforms(array $storable_prop_shapes): void {
+    self::assertNotEmpty($storable_prop_shapes);
+    $widget_manager = $this->container->get('plugin.manager.field.widget');
+    \assert($widget_manager instanceof WidgetPluginManager);
+    $definitions = $widget_manager->getDefinitions();
+    foreach ($storable_prop_shapes as $storable_prop_shape) {
+      // A static prop source can be generated.
+      $prop_source = $storable_prop_shape->toStaticPropSource();
+      self::assertInstanceOf(StaticPropSource::class, $prop_source);
+
+      $widget_plugin_id = $storable_prop_shape->fieldWidget;
+      self::assertArrayHasKey($widget_plugin_id, $definitions);
+      $definition = $definitions[$widget_plugin_id];
+      self::assertArrayHasKey('xb', $definition, \sprintf('Found transform for %s', $widget_plugin_id));
+      self::assertArrayHasKey('transforms', $definition['xb']);
     }
   }
 

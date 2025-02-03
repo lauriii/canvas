@@ -36,3 +36,12 @@ function xb_test_page_xb_page_view(array &$build): void {
     '#markup' => '<div id="xb-test-page-markup">xb_test_page_xb_page_view markup</div>',
   ];
 }
+
+function xb_test_page_field_widget_info_alter(array &$info): void {
+  // @see \Drupal\Tests\experience_builder\Kernel\LibraryInfoAlterTest::testTransformMounting()
+  $info['non_existent_widget']['xb'] = [
+    'transforms' => [
+      'diaclone' => [],
+    ],
+  ];
+}

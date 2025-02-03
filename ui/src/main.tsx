@@ -11,6 +11,7 @@ import twigToJSXComponentMap from '@/components/form/twig-to-jsx-component-map';
 import hyperscriptify from '@/local_packages/hyperscriptify';
 import propsify from '@/local_packages/hyperscriptify/propsify/standard';
 import type { EnhancedStore } from '@reduxjs/toolkit';
+import transforms from '@/utils/transforms';
 
 import '@/styles/radix-themes';
 import '@/styles/index.css';
@@ -56,6 +57,8 @@ if (container) {
 
   // Make the list of twig-to-JSX components available to Drupal behaviors.
   Drupal.JSXComponents = twigToJSXComponentMap;
+
+  Drupal.xbTransforms = transforms;
 
   // Make this application's hyperscriptify functionality available to
   // Drupal behaviors.

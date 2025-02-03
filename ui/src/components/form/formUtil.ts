@@ -5,6 +5,10 @@ import Ajv from 'ajv';
 import type { ValidateFunction } from 'ajv';
 import type * as React from 'react';
 import addFormats from 'ajv-formats';
+import type { ParsedQs } from 'qs';
+import type { Transforms } from '@/utils/transforms';
+import transforms from '@/utils/transforms';
+import qs from 'qs';
 // @ts-ignore
 import addDraft2019 from 'ajv-formats-draft2019';
 const ajv = new Ajv();
@@ -239,6 +243,26 @@ export function getDefaultValue(
     : attributes?.value || value || null;
 }
 
+type QueryValue = undefined | string | ParsedQs | (string | ParsedQs)[];
+export const isParsedQ = (parsed: QueryValue): parsed is ParsedQs => {
+  return typeof parsed === 'object';
+};
+
+export const formStateToObject = (
+  formState: PropsValues,
+  componentId: string,
+): PropsValues => {
+  const params = new URLSearchParams();
+  Object.entries(formState).forEach(([key, value]) => {
+    params.append(key, value);
+  });
+  const parsed = qs.parse(params.toString());
+  if (isParsedQ(parsed.xb_component_props)) {
+    return parsed.xb_component_props[componentId] as PropsValues;
+  }
+  return {};
+};
+
 /**
  * Takes a formState and provides an object keyed by prop name with the
  * corresponding prop values.
@@ -261,78 +285,75 @@ export function getPropsValues(
 ) {
   const { selectedComponent, model, components, selectedComponentType } =
     inputAndUiData;
+  const { propsWithObjectValues } = propInputData(formState, inputAndUiData);
+
   const selectedModel = model ? { ...model[selectedComponent] } : {};
-  const {
-    propsWithSourceStorageSettings,
-    multipleInputsSingleValue,
-    propsWithObjectValues,
-  } = propInputData(formState, inputAndUiData);
-  const keys = Object.keys(formState).filter((key) =>
-    key.includes(`xb_component_props[${selectedComponent}][`),
-  );
+  const transformConfig = components?.[selectedComponentType].transforms || {};
+  const fieldData = components?.[selectedComponentType]?.field_data || {};
   // Iterate through every item in form state that corresponds to
   // a component input to create propsValues, which will ultimately be
   // used to update this component's model.
-  const propsValues: PropsValues = keys.reduce(
-    (newObject: PropsValues, key) => {
-      // Extract the corresponding prop id from the form element name.
-      const propId = toPropName(key, selectedComponent);
-      if (propsWithObjectValues[propId]) {
-        // If this condition is met, it means the prop value is stored as
-        // an object. `propsWithObjectValues[propId]` will have the schema
-        // that can be referenced to determine how to shape the form data
-        // into the object expected by the back end.
-        console.warn(
-          `The field ${propId} does not yet support updating the preview on change. It will soon.`,
-        );
-      } else if (multipleInputsSingleValue.includes(propId) && key.length) {
-        // If this condition is met it means the field is part of a group
-        // of fields that are collectively associated with a single prop value
-        // (such as separate date and time fields -> single datetime value).
-
-        // Get the sub-field name such as 'date' or 'time' in a datetime
-        // widget.
-        const subFieldParts: string[] = key.length ? key.split('][') : [''];
-        const lastItem = subFieldParts.at(-1);
-        const subField = lastItem ? lastItem.replace(']', '') : '';
-        if (!newObject[propId]) {
-          newObject[propId] = {};
-        }
-        if (subField.length) {
-          newObject[propId][subField] = formState[key];
-        } else {
-          console.warn(
-            `Attempt to update ${propId} with value from ${key}, but could not parse sub field.`,
+  const { Drupal } = (window as any) || {
+    Drupal: { xbTransforms: transforms },
+  };
+  const transformsList: Transforms = Drupal?.xbTransforms || transforms;
+  const propsValues = Object.entries(
+    formStateToObject(formState, selectedComponent),
+  ).reduce((carry: PropsValues, [key, value]) => {
+    // @todo Do away with this when we no longer need to special case media.
+    //  - https://www.drupal.org/node/3499550
+    if (key in propsWithObjectValues) {
+      // If this condition is met, it means the prop value is stored as
+      // an object. `propsWithObjectValues[propId]` will have the schema
+      // that can be referenced to determine how to shape the form data
+      // into the object expected by the back end.
+      console.warn(
+        `The field ${key} does not yet support updating the preview on change. It will soon.`,
+      );
+      return carry;
+    }
+    if (key in transformConfig) {
+      let fieldTransforms = transformConfig[key];
+      // Internally to formStateToObject we make use of the `qs` npm package and
+      // URLSearchParams to convert nested named form elements into a nested
+      // structure. Because URLSearchParams converts all values to strings so
+      // they can be represented in a URL, we need to take care to cast some
+      // values back to their expected type. This is not dissimilar to how PHP
+      // receives multipart form data in so far as everything is seen as a
+      // string value.
+      // @see formStateToObject
+      const propType = fieldData[key]?.jsonSchema?.type ?? 'string';
+      if (['boolean', 'number', 'integer'].includes(propType)) {
+        // Push an additional 'cast' transform to the end of the transforms for
+        // this prop.
+        fieldTransforms = {
+          ...fieldTransforms,
+          cast: { to: propType },
+        };
+      }
+      // Apply each transform in sequence.
+      const transformed = Object.entries(fieldTransforms).reduce(
+        (transformed: any, [transformer, config]) => {
+          return transformsList[transformer as keyof Transforms](
+            transformed,
+            config as any,
+            fieldData[key] as any,
           );
-        }
-      } else if (formState[key] !== null) {
-        // If this condition is met, it's a single value responding to a single prop.
-        newObject[propId] = formState[key];
+        },
+        value,
+      );
+      if (transformed === null) {
+        // Ignore null values.
+        return carry;
       }
+      return {
+        ...carry,
+        [key]: transformed,
+      };
+    }
 
-      return newObject;
-    },
-    {},
-  );
-
-  // If a prop has source storage settings, the value may require additional
-  // modification to meet its schema requirements.
-  Object.entries(propsWithSourceStorageSettings).forEach(
-    ([fieldName, storageSettings]) => {
-      if (storageSettings?.datetime_type === 'datetime') {
-        const dateField: PropsValues = propsValues[fieldName];
-        try {
-          const isoTime = new Date(
-            `${dateField.date} ${dateField.time}+0000`,
-          ).toISOString();
-          propsValues[fieldName] = `${isoTime}`;
-        } catch (err) {
-          delete propsValues[fieldName as keyof PropsValues];
-          delete selectedModel[fieldName as keyof ComponentModel];
-        }
-      }
-    },
-  );
+    return { ...carry, [key]: value };
+  }, {});
 
   Object.entries(propsValues).forEach(([fieldName, value]) => {
     const fieldData: FieldDataItem | undefined =
@@ -340,7 +361,8 @@ export function getPropsValues(
 
     // @todo below is special-casing for enum fields but we will need to do
     // this for many more use cases, so this should probably be moved to its
-    // own utility once we have more use cases.
+    // own utility once we have more use cases. Could we represent this with a
+    // transform?
     if (fieldData?.jsonSchema?.enum) {
       if (!fieldData.jsonSchema.enum.includes(value)) {
         delete propsValues[fieldName as keyof PropsValues];

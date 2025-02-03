@@ -10,6 +10,7 @@ use Drupal\experience_builder\PropShape\StorablePropShape;
 
 /**
  * @covers media_library_storage_prop_shape_alter()
+ * @covers media_library_field_widget_info_alter()
  */
 class MediaLibraryHookStoragePropAlterTest extends PropShapeRepositoryTest {
 

@@ -9,6 +9,7 @@
  */
 
 use Drupal\Component\Serialization\Json;
+use Drupal\Core\Asset\LibraryDiscoveryInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\file\Entity\File;
 use Drupal\media\Entity\Media;
@@ -28,6 +29,28 @@ function experience_builder_library_info_alter(array &$libraries, string $extens
         $libraries['drupal.ajax']['js']['misc/ajax.js']['preprocess'] = FALSE;
       }
     }
+  }
+  if ($extension === 'experience_builder') {
+    // We need to dynamically create a 'transforms' library by compiling a list
+    // of all module defined transforms - which are libraries prefixed with
+    // xb.transform.
+    $discovery = \Drupal::service(LibraryDiscoveryInterface::class);
+    \assert($discovery instanceof LibraryDiscoveryInterface);
+    $dependencies = [];
+    foreach (\array_keys(\Drupal::moduleHandler()->getModuleList()) as $module) {
+      if ($module === 'experience_builder') {
+        // Avoid an infinite loop ♻️.
+        continue;
+      }
+      $module_transforms = \array_filter(\array_keys($discovery->getLibrariesByExtension($module)), static fn (string $library_name) => \str_starts_with($library_name, 'xb.transform'));
+      $dependencies = \array_merge($dependencies, \array_map(static fn (string $library_name) => \sprintf('%s/%s', $module, $library_name), $module_transforms));
+    }
+    $dependencies[] = 'experience_builder/xb-ui';
+    $libraries['transforms'] = [
+      'dependencies' => $dependencies,
+      'js' => [],
+      'css' => [],
+    ];
   }
 }
 
@@ -104,5 +127,50 @@ function experience_builder_preprocess_media_library_item__widget(array &$variab
     ], ['src' => '', 'alt' => '', 'width' => '', 'height' => '']);
 
     $variables["content"]["remove_button"]["#attributes"]['data-media-file'] = Json::encode($prepared);
+  }
+}
+
+/**
+ * Implements hook_field_widget_info_alter().
+ */
+function experience_builder_field_widget_info_alter(array &$info): void {
+  $map = [
+    'boolean_checkbox' => [
+      'mainProperty' => [
+        'list' => FALSE,
+      ],
+    ],
+    'datetime_default' => [
+      'mainProperty' => [],
+      'dateTime' => [],
+    ],
+    'email_default' => [
+      'mainProperty' => [],
+    ],
+    'image_image' => [
+      'mainProperty' => ['name' => 'fids'],
+    ],
+    'link_default' => [
+      'link' => [],
+    ],
+    'number' => [
+      'mainProperty' => [],
+    ],
+    'options_select' => [
+      // Deliberately empty, as we don't need any transformation here - but - we
+      // want transforms to be applied client-side because when options_select is
+      // used for an integer, we want to have a cast transform applied.
+    ],
+    'string_textarea' => [
+      'mainProperty' => [],
+    ],
+    'string_textfield' => [
+      'mainProperty' => [],
+    ],
+  ];
+  foreach ($map as $widget_id => $transforms) {
+    if (\array_key_exists($widget_id, $info)) {
+      $info[$widget_id]['xb']['transforms'] = $transforms;
+    }
   }
 }

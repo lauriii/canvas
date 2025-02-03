@@ -1,3 +1,5 @@
+import type { TransformConfig } from '@/utils/transforms';
+
 export interface FieldData {
   [key: string]: FieldDataItem;
 }
@@ -7,8 +9,10 @@ export interface FieldDataItem {
   sourceType: string;
   sourceTypeSettings?: {
     storage?: object;
+    instance?: object;
   };
   jsonSchema?: {
+    type: 'number' | 'integer' | 'string' | 'boolean' | 'array' | 'object';
     properties?: object;
     enum?: any[];
   };
@@ -38,6 +42,7 @@ export interface Component {
   // @see https://www.drupal.org/project/experience_builder/issues/3475584
   field_data?: FieldData;
   source: string;
+  transforms: TransformConfig;
 }
 
 export interface ComponentsList {
