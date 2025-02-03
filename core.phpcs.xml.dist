@@ -54,11 +54,8 @@
       ContentAfterOpen, SpacingBeforeShort, TagValueIndent, ShortStartSpace,
       SpacingAfter, LongNotCapital, ShortFullStop, TagGroupSpacing, Empty,
       TagsNotGrouped, ParamGroup -->
-    <!-- ParamNotFirst still not decided for PHPUnit-based tests.
-      @see https://www.drupal.org/node/2253915 -->
     <exclude name="Drupal.Commenting.DocComment.LongFullStop"/>
     <exclude name="Drupal.Commenting.DocComment.MissingShort"/>
-    <exclude name="Drupal.Commenting.DocComment.ParamNotFirst"/>
     <exclude name="Drupal.Commenting.DocComment.ShortNotCapital"/>
   </rule>
   <rule ref="Drupal.Commenting.DocCommentAlignment"/>
@@ -67,9 +64,9 @@
   <rule ref="Drupal.Commenting.FileComment"/>
   <rule ref="Drupal.Commenting.FunctionComment">
     <exclude name="Drupal.Commenting.FunctionComment.ParamCommentFullStop"/>
-    <exclude name="Drupal.Commenting.FunctionComment.TypeHintMissing"/>
   </rule>
   <rule ref="Drupal.Commenting.FunctionComment.Missing">
+    <include-pattern>core/modules/*/Plugin/views/argument/*</include-pattern>
     <include-pattern>core/modules/*/Plugin/views/filter/*</include-pattern>
     <include-pattern>core/modules/*/Plugin/views/access/*</include-pattern>
     <include-pattern>core/modules/*/Plugin/views/cache/*</include-pattern>
@@ -81,18 +78,18 @@
     <include-pattern>core/modules/*/Plugin/views/pager/*</include-pattern>
     <include-pattern>core/modules/*/Plugin/views/style/*</include-pattern>
     <include-pattern>*/Database/*</include-pattern>
-    <exclude-pattern>*/tests/*</exclude-pattern>
+    <include-pattern>*/FunctionalJavascript/*</include-pattern>
   </rule>
-  <rule ref="Drupal.Commenting.FunctionComment.MissingParamType">
-    <include-pattern>core/lib/Component/*</include-pattern>
-    <include-pattern>core/includes/*</include-pattern>
-    <include-pattern>core/*/*Database*/*</include-pattern>
-    <include-pattern>*/*/views/*</include-pattern>
-    <include-pattern>*/*/views_ui/*</include-pattern>
-  </rule>
+  <rule ref="Drupal.Commenting.FunctionComment.MissingParamType"/>
   <rule ref="Drupal.Commenting.FunctionComment.MissingReturnComment">
     <include-pattern>core/lib/Drupal/Core/*</include-pattern>
     <include-pattern>core/lib/Drupal/Component/*</include-pattern>
+  </rule>
+  <rule ref="Drupal.Commenting.FunctionComment.MissingReturnComment">
+    <exclude-pattern>core/lib/Drupal/Core/*</exclude-pattern>
+    <exclude-pattern>core/lib/Drupal/Component/*</exclude-pattern>
+    <exclude-pattern>core/tests/*</exclude-pattern>
+    <exclude-pattern>core/*/tests/*</exclude-pattern>
   </rule>
   <rule ref="Drupal.Commenting.GenderNeutralComment"/>
   <rule ref="Drupal.Commenting.HookComment"/>
@@ -105,14 +102,10 @@
   <rule ref="Drupal.Commenting.InlineVariableComment"/>
   <rule ref="Drupal.Commenting.PostStatementComment"/>
   <rule ref="Drupal.Commenting.TodoComment" />
-  <rule ref="Drupal.Commenting.VariableComment">
-    <!-- Sniff for: DuplicateVar, EmptyVar, IncorrectVarType, InlineVariableName, WrongStyle -->
-    <exclude name="Drupal.Commenting.VariableComment.MissingVar"/>
-  </rule>
-  <rule ref="Drupal.Commenting.VariableComment.Missing">
-    <exclude-pattern>./core/tests/*</exclude-pattern>
-    <exclude-pattern>./core/*/tests/*</exclude-pattern>
-    <include-pattern>core/modules/*/tests/modules/*</include-pattern>
+  <rule ref="Drupal.Commenting.VariableComment"/>
+  <rule ref="Drupal.Commenting.VariableComment.MissingVar">
+    <include-pattern>core/modules/*/tests/*</include-pattern>
+    <include-pattern>core/profiles/*/tests/*</include-pattern>
   </rule>
   <rule ref="Drupal.ControlStructures.ControlSignature"/>
   <rule ref="Drupal.ControlStructures.ElseIf"/>
@@ -191,6 +184,9 @@
     <include-pattern>*/ListBuilder/*</include-pattern>
     <include-pattern>*/tests/*/Form/*</include-pattern>
     <include-pattern>*/modules/system/tests/modules/*</include-pattern>
+    <include-pattern>*/Kernel*/*</include-pattern>
+    <include-pattern>*/tests/*/Functional*/*</include-pattern>
+    <include-pattern>./core/lib/*</include-pattern>
   </rule>
 
   <!-- Generic sniffs -->

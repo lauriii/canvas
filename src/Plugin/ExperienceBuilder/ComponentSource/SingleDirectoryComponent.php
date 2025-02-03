@@ -183,8 +183,6 @@ final class SingleDirectoryComponent extends GeneratedFieldExplicitInputUxCompon
    *
    * The naming convention for SDC plugin components is [module/theme]:[component machine name]. Colon is invalid config entity name, so we replace it with '.'.
    *
-   * @see https://www.drupal.org/docs/develop/theming-drupal/using-single-directory-components/api-for-single-directory-components
-   *
    * @param string $machine_name
    *   The SDC plugin.
    *
@@ -192,6 +190,7 @@ final class SingleDirectoryComponent extends GeneratedFieldExplicitInputUxCompon
    *   The config entity ID.
    *
    * @see \Drupal\Core\Plugin\Component::$machineName
+   * @see https://www.drupal.org/docs/develop/theming-drupal/using-single-directory-components/api-for-single-directory-components
    */
   public static function convertMachineNameToId(string $machine_name): string {
     assert(str_contains($machine_name, ':'));

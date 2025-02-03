@@ -232,10 +232,6 @@ class ComponentValidationTest extends ConfigEntityValidationTestBase {
 
   /**
    * Machine name of \Drupal\experience_builder\Entity\Component needs to be joined with +.
-   *
-   * @param $length
-   *
-   * @return string
    */
   protected function randomMachineName($length = 8): string {
     return 'sdc.' . parent::randomMachineName(intdiv($length, 2)) . '.' . parent::randomMachineName(intdiv($length, 2));

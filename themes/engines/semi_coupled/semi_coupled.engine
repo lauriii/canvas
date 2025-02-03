@@ -135,7 +135,7 @@ function _semi_coupled_build_html_tag(string $name, array $props, array $slots, 
  * @param array $prop_types
  *   Prop names and definition as defined by the 'props' config in the JSON
  *   returned by the `--xb.html.twig` template being rendered
- * @param $variables
+ * @param array|object $variables
  *   The variables array provided to the template or a subset of it.
  * @param array $parents
  *   Keeps track of where within the $variables array we are accessing.
