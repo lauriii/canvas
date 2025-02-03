@@ -11,7 +11,6 @@ import {
 } from '@radix-ui/react-icons';
 import { useLocation, useNavigate } from 'react-router-dom';
 import clsx from 'clsx';
-import DemoPublishButton from '@/components/DemoPublishButton';
 import UnpublishedChanges from '@/components/review/UnpublishedChanges';
 import PageInfo from '../pageInfo/PageInfo';
 
@@ -110,7 +109,6 @@ const Topbar = () => {
                 <EyeOpenIcon /> Preview
               </Button>
             )}
-            <DemoPublishButton />
             <UnpublishedChanges />
           </Flex>
         </Flex>

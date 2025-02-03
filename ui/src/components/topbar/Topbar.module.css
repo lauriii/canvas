@@ -35,20 +35,3 @@
   width: auto;
   height: var(--icon-height);
 }
-
-.loading {
-  padding-right: 10px;
-}
-.loading::after {
-  position: absolute;
-  overflow: hidden;
-  width: 0;
-  content: "\2026";
-  animation: ellipsis steps(4, end) 900ms infinite;
-}
-
-@keyframes ellipsis {
-  to {
-    width: 1.25em;
-  }
-}

@@ -27,7 +27,7 @@ import { codeComponentApi } from '@/services/codeComponents';
 import { formStateSlice } from '@/features/form/formStateSlice';
 import type { UnknownAction } from 'redux';
 import { pendingChangesApi } from '@/services/pendingChangesApi';
-import { postPreviewSignalSlice } from '@/components/review/PublishReview.slice';
+import { publishReviewSlice } from '@/components/review/PublishReview.slice';
 import { contentListApi } from '@/services/contentList';
 
 // Reducer enhancer to decorate undoable aware reducers and unset future state
@@ -100,7 +100,7 @@ const rootReducer = combineSlices(
   uiSlice,
   formStateSlice,
   pendingChangesApi,
-  postPreviewSignalSlice,
+  publishReviewSlice,
   contentListApi,
 );
 // Infer the `RootState` type from the root reducer

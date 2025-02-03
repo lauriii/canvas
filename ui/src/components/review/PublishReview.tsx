@@ -1,9 +1,19 @@
-import { Box, Button, Flex, Text, Avatar } from '@radix-ui/themes';
+import {
+  Box,
+  Button,
+  Flex,
+  Text,
+  Avatar,
+  Tooltip,
+  Callout,
+  Heading,
+} from '@radix-ui/themes';
 import CmsIcon from '@assets/icons/cms.svg?react';
 import {
   Component1Icon,
   Cross2Icon,
   CubeIcon,
+  FaceIcon,
   FileIcon,
 } from '@radix-ui/react-icons';
 import { useState } from 'react';
@@ -11,9 +21,13 @@ import * as Popover from '@radix-ui/react-popover';
 import { differenceInMonths, format, formatDistanceToNow } from 'date-fns';
 import { kebabCase } from 'lodash';
 import Panel from '@/components/Panel';
-import Tooltip from '@/components/Tooltip';
+
 import styles from './PublishReview.module.css';
-import type { PendingChange } from '@/services/pendingChangesApi';
+import type {
+  ErrorResponse,
+  PendingChange,
+} from '@/services/pendingChangesApi';
+import ReviewErrors from '@/components/review/ReviewErrors';
 
 export const DEFAULT_TITLE = 'Unpublished changes';
 export const DEFAULT_BUTTON_TEXT = 'Publish all changes';
@@ -51,20 +65,52 @@ export type UnpublishedChanges = UnpublishedChange[];
 interface PublishReviewProps {
   title?: string;
   changes: UnpublishedChanges;
+  errors?: ErrorResponse | undefined;
   buttonText?: string;
-  onPublishClick?: () => void;
-  onOpenChangeCallback: () => void;
+  onPublishClick: () => void;
+  onOpenChangeCallback: (open: boolean) => void;
+  isPublishing: boolean;
+}
+
+// @todo https://www.drupal.org/i/3501449 - this colour randomizer should be replaced with a proper solution
+const colors = Object.values(FallbackColor);
+const usernameColorMap: Map<number, FallbackColor> = new Map();
+// Initialize colorIndex with a random starting point
+let colorIndex = Math.floor(Math.random() * colors.length);
+
+/**
+ * Function to get a consistent color for a given username
+ * @param userId
+ */
+function getAvatarInitialColor(userId: number): FallbackColor {
+  // Return the cached color if it exists
+  if (usernameColorMap.has(userId)) {
+    return usernameColorMap.get(userId)!;
+  }
+
+  const color = colors[colorIndex];
+  // Store the color in the map for future reference
+  usernameColorMap.set(userId, color);
+  // Increment the color index, wrapping around if necessary
+  colorIndex = (colorIndex + 1) % colors.length;
+
+  return color;
 }
 
 const PublishReview: React.FC<PublishReviewProps> = ({
   title = DEFAULT_TITLE,
   changes,
+  errors,
+  buttonText = DEFAULT_BUTTON_TEXT,
+  onPublishClick,
   onOpenChangeCallback,
+  isPublishing,
 }) => {
   const [isOpen, setIsOpen] = useState<boolean>(false);
+
   function triggerButtonText() {
     if (!changes || changes.length === 0) {
-      return 'Publish';
+      return 'No changes';
     }
     if (changes.length === 1) {
       return 'Review 1 change';
@@ -74,7 +120,7 @@ const PublishReview: React.FC<PublishReviewProps> = ({
 
   const onOpenChangeHandler = (open: boolean): void => {
     setIsOpen(open);
-    if (open) onOpenChangeCallback();
+    onOpenChangeCallback(open);
   };
 
   return (
@@ -92,7 +138,9 @@ const PublishReview: React.FC<PublishReviewProps> = ({
         <Panel className={styles.content}>
           <Flex mb="5" align="center" justify="between" width="100%">
             <Box>
-              <Text className={styles.headingTitle}>{title}</Text>
+              <Heading as="h3" size="2" className={styles.headingTitle}>
+                {title}
+              </Heading>
             </Box>
             <Box>
               <Popover.Close className={styles.close} aria-label="Close">
@@ -100,7 +148,37 @@ const PublishReview: React.FC<PublishReviewProps> = ({
               </Popover.Close>
             </Box>
           </Flex>
-          <ChangeList changes={changes} />
+          {(!changes || changes.length === 0) && (
+            <Callout.Root color="green">
+              <Callout.Icon>
+                <FaceIcon />
+              </Callout.Icon>
+              <Callout.Text>All changes published!</Callout.Text>
+            </Callout.Root>
+          )}
+          {changes?.length > 0 && (
+            <>
+              <ChangeList changes={changes} />
+              <ReviewErrors errorState={errors} />
+            </>
+          )}
+          <Flex mt="1" justify="end" align="center" width="100%">
+            <Box mt="3">
+              <Button
+                disabled={
+                  !onPublishClick || isPublishing || !changes || !changes.length
+                }
+                variant="solid"
+                onClick={onPublishClick}
+              >
+                {isPublishing ? (
+                  <span className={styles.loading}>Publishing</span>
+                ) : (
+                  buttonText
+                )}
+              </Button>
+            </Box>
+          </Flex>
         </Panel>
       </Popover.Content>
     </Popover.Root>
@@ -129,18 +207,21 @@ export const ChangeRow = (props: {
   change: UnpublishedChange;
   index: number;
 }) => {
-  const { change, index } = props;
+  const { change } = props;
   const initial = change.owner.name.trim().charAt(0).toUpperCase();
-  const avatarColor = getAvatarInitialColor(index);
+  const avatarColor = getAvatarInitialColor(change.owner.id);
+  const date = new Date(change.updated * 1000);
+  const color = change.hasConflict ? 'red' : undefined;
+  const weight = change.hasConflict ? 'bold' : 'regular';
   return (
     <li className={styles.changeRow} data-testid="pending-change-row">
       <Flex as="div" direction="row" align="center" justify="between" gap="4">
-        {/* Left Section */}
         <Flex as="div" direction="row" align="center" gap="2">
           <ChangeIcon icon={change.icon} />
-          <Text>{change.label}</Text>
+          <Text color={color} weight={weight}>
+            {change.label}
+          </Text>
         </Flex>
-        {/* Right Section */}
         <Flex
           as="div"
           direction="row"
@@ -148,11 +229,11 @@ export const ChangeRow = (props: {
           gap="2"
           className={styles.changeRowRight}
         >
-          <Text>{getTimeAgo(change.updated)}</Text>
-          <Tooltip
-            side="left"
-            content={change.owner.name}
-            children={
+          <Tooltip content={date.toLocaleString()}>
+            <Text>{getTimeAgo(change.updated)}</Text>
+          </Tooltip>
+          <Tooltip content={`By ${change.owner.name}`}>
+            <Box>
               <Avatar
                 highContrast
                 size="1"
@@ -167,8 +248,8 @@ export const ChangeRow = (props: {
                       color: avatarColor,
                     })}
               />
-            }
-          />
+            </Box>
+          </Tooltip>
         </Flex>
       </Flex>
     </li>
@@ -234,11 +315,4 @@ const getTimeAgo = (timestamp: number) => {
   );
 };
 
-const getAvatarInitialColor = (index: number): FallbackColor => {
-  const colors: FallbackColor[] = Object.values(
-    FallbackColor,
-  ) as FallbackColor[];
-
-  return colors[index % colors.length];
-};
 export default PublishReview;

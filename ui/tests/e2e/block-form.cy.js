@@ -76,12 +76,22 @@ describe('Block form', () => {
     cy.getComponentInPreview('Site branding block').should('exist');
 
     // Publish the page with the new component.
-    cy.intercept('PATCH', '**/xb/api/content-update/node/3').as('publish');
-    cy.findByTestId('xb-topbar').findByText('Publish').should('exist').click();
+    cy.intercept('POST', '**/xb/api/publish-all').as('publish');
+
+    // Extra long timeout here, because the poll to get changes is every 10 seconds.
+    cy.findByText('Review 1 change', { timeout: '11000' }).click();
+
+    cy.findByTestId('xb-publish-reviews-content').within(() => {
+      cy.findByText('XB With a block in the layout');
+      cy.findByText('Publish all changes').click();
+      cy.findByText('Publishing').should('exist');
+      cy.findByText('Publishing').should('not.exist');
+    });
+
     // Add logged output of any validation errors.
     cy.wait('@publish').then(console.log);
     cy.findByTestId('xb-topbar')
-      .findByText('Published', { selector: 'button' })
+      .findByText('No changes', { selector: 'button' })
       .should('exist');
 
     // Reload the page to confirm the component has been added.

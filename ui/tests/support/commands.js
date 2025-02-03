@@ -320,7 +320,7 @@ Cypress.Commands.add('drupalUserIsLoggedIn', (callback) => {
 
 Cypress.Commands.add('clearAutoSave', (type = 'node', id = '1') => {
   cy.request({
-    method: 'GET', // Use POST if your endpoint requires it
+    method: 'GET',
     url: `/xb-test/clear-auto-save/${type}/${id}`,
   }).then((response) => {
     expect(response.status).to.eq(200);
