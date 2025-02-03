@@ -3,13 +3,19 @@ import styles from './Topbar.module.css';
 import { Button, Flex, SegmentedControl } from '@radix-ui/themes';
 import Panel from '@/components/Panel';
 import UndoRedo from '@/components/UndoRedo';
-import DropIcon from '@assets/icons/drop.svg';
-import { EyeNoneIcon, EyeOpenIcon } from '@radix-ui/react-icons';
+import DropIcon from '@assets/icons/drop.svg?react';
+import {
+  ChevronLeftIcon,
+  EyeNoneIcon,
+  EyeOpenIcon,
+} from '@radix-ui/react-icons';
 import { useLocation, useNavigate } from 'react-router-dom';
 import clsx from 'clsx';
 import DemoPublishButton from '@/components/DemoPublishButton';
 import UnpublishedChanges from '@/components/review/UnpublishedChanges';
 import PageInfo from '../pageInfo/PageInfo';
+
+const PREVIOUS_URL_STORAGE_KEY = 'XBPreviousURL';
 
 const Topbar = () => {
   const navigate = useNavigate();
@@ -28,6 +34,9 @@ const Topbar = () => {
     navigate(`/preview/${val}`);
   }
 
+  const backHref =
+    window.sessionStorage.getItem(PREVIOUS_URL_STORAGE_KEY) ?? '/';
+
   return (
     <Menubar.Root data-testid="xb-topbar" asChild>
       <Panel
@@ -37,14 +46,30 @@ const Topbar = () => {
         px="6"
       >
         <Flex height="100%" align="center" justify="between">
-          <Flex gap="5" align="center" justify="start" minWidth="18em">
-            <a href="/" className={styles.logo}>
-              <img src={DropIcon} alt="Drupal icon" />
+          <Button
+            asChild={true}
+            variant="ghost"
+            color="gray"
+            size="3"
+            data-testid="xb-back-button"
+          >
+            <a href={backHref} aria-labelledby="back-to-previous-label">
+              <Flex gap="1" align="center" pr="1">
+                <span className="visually-hidden" id="back-to-previous-label">
+                  Exit Experience Builder
+                </span>
+                <ChevronLeftIcon />
+                <DropIcon
+                  className={styles.drupalLogo}
+                  height="22"
+                  width="auto"
+                />
+              </Flex>
             </a>
-            {/* @todo: Keep the <AddMenu/> code to reuse for displaying module components.*/}
-            {/*   https://www.drupal.org/project/experience_builder/issues/3482393 */}
-            {/*<AddMenu />*/}
-          </Flex>
+          </Button>
+          {/* @todo: Keep the <AddMenu/> code to reuse for displaying module components.*/}
+          {/*   https://www.drupal.org/project/experience_builder/issues/3482393 */}
+          {/*<AddMenu />*/}
           <Flex gap="5" align="center" width="full" justify="center">
             <PageInfo />
           </Flex>

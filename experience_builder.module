@@ -430,6 +430,12 @@ function experience_builder_library_info_build(): array {
   return $libraries;
 }
 
+/**
+ * Implements hook_page_attachments().
+ */
 function experience_builder_page_attachments(array &$page): void {
   $page['#attached']['library'][] = 'experience_builder/asset_library.global';
+
+  // Adds `track_navigation` library to all pages, to allow XB's "Back" link to know which URL to go back to.
+  $page['#attached']['library'][] = 'experience_builder/track_navigation';
 }

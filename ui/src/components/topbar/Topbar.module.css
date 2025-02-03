@@ -2,10 +2,7 @@
   --icon-height: 22px;
 
   position: fixed;
-  top: var(--topbar-space-above);
-  right: var(--topbar-space-side);
-  bottom: var(--topbar-space-below);
-  left: var(--topbar-space-side);
+  inset: var(--topbar-space-above) var(--topbar-space-side) var(--topbar-space-below) var(--topbar-space-side);
   height: var(--topbar-height);
   transition:
     top 0.2s cubic-bezier(0.4, 0, 0.6, 1),
@@ -15,7 +12,6 @@
   transition-delay: 0.1s;
   border-radius: var(--radius-6);
   box-shadow: var(--shadow-3);
-
   &.inPreview {
     top: 0;
     right: 0;
@@ -35,12 +31,9 @@
   }
 }
 
-.logo {
+.drupalLogo {
+  width: auto;
   height: var(--icon-height);
-  & img {
-    width: auto;
-    height: 100%;
-  }
 }
 
 .loading {

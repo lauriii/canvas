@@ -52,4 +52,38 @@ describe('Navigation functionality', () => {
     cy.url().should('not.contain', '/xb/xb_page/1');
     cy.url().should('contain', '/xb/xb_page/3');
   });
+
+  it('Clicking the back button navigates to last visited page', () => {
+    const BASE_URL = `${Cypress.config().baseUrl}/`;
+    const CONFIG_PAGE_URL = `${BASE_URL}admin/config`;
+    // visit the base URL
+    cy.visit(BASE_URL);
+
+    // Store the current URL
+    cy.url().then((previousUrl) => {
+      cy.loadURLandWaitForXBLoaded();
+      cy.findByLabelText('Exit Experience Builder').click();
+      // Check if the URL is the previous URL
+      cy.url().should('eq', previousUrl);
+    });
+
+    // visit the base URL
+    cy.visit(CONFIG_PAGE_URL);
+
+    // Store the current URL
+    cy.url().then((previousUrl) => {
+      cy.loadURLandWaitForXBLoaded();
+
+      cy.findByLabelText('Exit Experience Builder').should(
+        'have.attr',
+        'href',
+        CONFIG_PAGE_URL,
+      );
+
+      cy.findByLabelText('Exit Experience Builder').click();
+
+      // Check if the URL is the previous URL
+      cy.url().should('eq', previousUrl);
+    });
+  });
 });
