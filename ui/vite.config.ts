@@ -20,6 +20,16 @@ export default defineConfig(({ command, mode }) => {
         strict: false,
       },
       origin: env.VITE_SERVER_ORIGIN || 'http://localhost:5173', // Origin for the generated asset URLs.
+      headers: {
+        // Allow the dev server to be accessed from any origin (unless it's
+        // restricted by the VITE_SERVER_CORS_ALLOW_ORIGIN environment
+        // variable), because development setups may vary.
+        // These settings are insecure for production use.
+        'Access-Control-Allow-Origin': env.VITE_SERVER_CORS_ALLOW_ORIGIN || '*',
+        'Access-Control-Allow-Methods': 'GET',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+        'Referrer-Policy': '*',
+      },
     },
     test: {
       globals: true,

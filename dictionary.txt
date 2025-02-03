@@ -4,6 +4,7 @@ autolayout
 basepath
 Carden
 CODEOWNERS
+codespaces
 devizzent
 drupalcode
 drupaldev
