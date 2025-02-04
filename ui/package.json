@@ -1,5 +1,7 @@
 {
-  "name": "vite-template-redux",
+  "name": "@drupal/experience_builder",
+  "description": "A React application powering the Experience Builder UI.",
+  "homepage": "https://www.drupal.org/project/experience_builder",
   "private": true,
   "version": "0.0.0",
   "engines": {
