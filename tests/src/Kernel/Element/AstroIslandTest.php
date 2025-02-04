@@ -154,10 +154,8 @@ final class AstroIslandTest extends KernelTestBase {
     $js_filename = \sprintf('/%s/astro-island/%s.js', $directory_path, $js_hash);
     self::assertEquals($js_filename, $element->attr('component-url'));
 
-    // Assumes that we emit the astro JS to astro-bundles/client.js within the
-    // project.
     $xb_directory = $this->container->get(ExtensionPathResolver::class)->getPath('module', 'experience_builder');
-    self::assertEquals(\sprintf('/%s/js/astro-bundles/client.js', $xb_directory), $element->attr('renderer-url'));
+    self::assertEquals(\sprintf('/%s/ui/lib/astro-hydration/dist/client.js', $xb_directory), $element->attr('renderer-url'));
 
     $metadata->applyTo($island);
     $asset_resolver = \Drupal::service(AssetResolverInterface::class);

@@ -3,6 +3,7 @@
   "description": "A React application powering the Experience Builder UI.",
   "homepage": "https://www.drupal.org/project/experience_builder",
   "private": true,
+  "workspaces": ["lib/astro-hydration"],
   "version": "0.0.0",
   "engines": {
     "node": "^20.0.0"
@@ -11,7 +12,8 @@
   "scripts": {
     "drupaldev": "VITE_DRUPAL=true vite",
     "start": "vite",
-    "build": "npm run type-check && vite build",
+    "build": "npm run type-check && vite build && npm run build:astro",
+    "build:astro": "npm run build -w lib/astro-hydration",
     "preview": "vite preview",
     "test": "vitest run",
     "prettier:fix": "prettier .. --write --config ../.prettierrc.json --ignore-path ../.prettierignore",

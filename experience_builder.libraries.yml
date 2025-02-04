@@ -55,7 +55,7 @@ ajax.hyperscriptify:
 
 astro.client:
   js:
-    js/astro-bundles/client.js: {}
+    ui/lib/astro-hydration/dist/client.js: {}
   license:
     name: MIT
     url: https://raw.githubusercontent.com/withastro/astro/refs/heads/main/LICENSE
@@ -63,7 +63,7 @@ astro.client:
 
 astro.hydration:
   js:
-    js/astro-bundles/hydration.js: {}
+    ui/lib/astro-hydration/dist/hydration.js: {}
   license:
     name: MIT
     url: https://raw.githubusercontent.com/withastro/astro/refs/heads/main/LICENSE

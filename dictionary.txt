@@ -1,5 +1,6 @@
 adrs
 apikey
+astrojs
 autolayout
 basepath
 Carden
@@ -18,6 +19,7 @@ hyperscriptify
 hyperscriptifying
 inwidget
 JSONified
+jsxs
 leftbar
 metacharacter
 Nygard
@@ -35,6 +37,7 @@ structurizr
 subroute
 toolset
 topbar
+tsconfigs
 Validatable
 drupalcode
 renderify

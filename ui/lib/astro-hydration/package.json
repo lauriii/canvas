@@ -1,0 +1,13 @@
+{
+  "name": "@drupal/experience_builder-astro-hydration",
+  "type": "module",
+  "version": "0.0.0",
+  "scripts": {
+    "build": "astro build && node extract-hydration-script.js"
+  },
+  "dependencies": {
+    "@astrojs/preact": "^4.0.3",
+    "astro": "^5.2.2",
+    "preact": "^10.25.4"
+  }
+}

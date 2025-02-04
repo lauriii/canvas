@@ -202,6 +202,9 @@ stylelint:
     - *manual-rule
 
 phpunit:
+  needs:
+    - composer
+    - UI
   parallel:
     # @see https://www.drupal.org/node/3444548
     matrix:
@@ -230,6 +233,9 @@ phpunit:
     - *manual-rule
 # Sadly, changes to `phpunit` do not affect derivatives that themselves override `rules`… 😬
 phpunit (previous major):
+  needs:
+    - 'composer (previous major)'
+    - UI
   # @todo Remove when https://www.drupal.org/project/gitlab_templates/issues/3452183 lands.
   rules:
     - *is-push-rule
@@ -264,10 +270,12 @@ UI:
     - npm ci
     # Verify building the entire app succeeds — this first runs the TypeScript Compiler.
     - npm run build
-    # @todo In the future, when `ui/dist` is committed, verify here that it matches.
+    # @todo In the future, when `ui/dist` and `ui/lib/astro-hydration/dist` are
+    # committed, verify here that they match.
   artifacts:
     paths:
       - ui/dist
+      - ui/lib/astro-hydration/dist
       # TRICKY: necessary for the `Cypress` job to be able to run `cypress install`.
       - ui/node_modules
 
