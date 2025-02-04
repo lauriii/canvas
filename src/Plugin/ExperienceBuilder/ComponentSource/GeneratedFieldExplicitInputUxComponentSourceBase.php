@@ -204,6 +204,14 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
   /**
    * {@inheritdoc}
    */
+  public function inputToClientModel(array $explicit_input): array {
+    // @todo Update this in https://www.drupal.org/i/3493941 to return both the *stored* ("source") and *evaluated* ("resolved") representations.
+    return $explicit_input;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function requiresExplicitInput(): bool {
     return !empty($this->getSdcPlugin()->metadata->schema['properties']);
   }

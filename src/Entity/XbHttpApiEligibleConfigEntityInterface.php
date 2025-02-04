@@ -20,6 +20,7 @@ interface XbHttpApiEligibleConfigEntityInterface extends ConfigEntityInterface {
    * @return \Drupal\experience_builder\ClientSideRepresentation
    *
    * @see openapi.yml
+   * @see \Drupal\experience_builder\ComponentSource\ComponentSourceInterface::inputToClientModel()
    */
   public function normalizeForClientSide(): ClientSideRepresentation;
 

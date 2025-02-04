@@ -112,6 +112,21 @@ interface ComponentSourceInterface extends PluginInspectionInterface, Derivative
   public function hydrateComponent(array $explicit_input): array;
 
   /**
+   * Normalizes explicit inputs to the data model expected by the client.
+   *
+   * Note that the result MUST NOT contain slot information.
+   *
+   * @param array $explicit_input
+   *
+   * @return array
+   *
+   * @see openapi.yml
+   * @see ::clientModelToInput()
+   * @see \Drupal\experience_builder\Entity\XbHttpApiEligibleConfigEntityInterface::normalizeForClientSide
+   */
+  public function inputToClientModel(array $explicit_input): array;
+
+  /**
    * Gets the plugin definition.
    *
    * @return array
@@ -176,6 +191,7 @@ interface ComponentSourceInterface extends PluginInspectionInterface, Derivative
    * @return array<string, \Drupal\experience_builder\PropSource\StaticPropSource|mixed>
    *
    * @todo Refactor to use the Symfony denormalizer infrastructure?
+   * @see ::inputToClientModel()
    */
   public function clientModelToInput(string $component_instance_uuid, Component $component, array $client_model, ConstraintViolationListInterface $violations): array;
 

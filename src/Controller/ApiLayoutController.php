@@ -9,9 +9,9 @@ use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Form\FormBuilderInterface;
 use Drupal\Core\Theme\ThemeManagerInterface;
 use Drupal\experience_builder\AutoSave\AutoSaveManager;
+use Drupal\experience_builder\Entity\Component;
 use Drupal\experience_builder\Entity\PageTemplate;
 use Drupal\experience_builder\InternalXbFieldNameResolver;
-use Drupal\experience_builder\Plugin\DataType\ComponentTreeHydrated;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
 use GuzzleHttp\Psr7\Query;
@@ -83,10 +83,8 @@ final class ApiLayoutController {
     if ($item) {
       $tree = $item->get('tree');
       assert($tree instanceof ComponentTreeStructure);
-      $hydrated = $item->get('hydrated');
-      assert($hydrated instanceof ComponentTreeHydrated);
       $decoded_tree = json_decode($tree->getValue(), TRUE);
-      $components = $this->buildLayout($model, $item, $decoded_tree[ComponentTreeStructure::ROOT_UUID], $hydrated->getValue()->getTree()[ComponentTreeStructure::ROOT_UUID]);
+      $components = $this->buildLayout($model, $item, $decoded_tree[ComponentTreeStructure::ROOT_UUID]);
     }
     else {
       $components = [];
@@ -101,9 +99,9 @@ final class ApiLayoutController {
   }
 
   /**
-   * @todo Follow up issue to extract this logic into a trait: https://www.drupal.org/project/experience_builder/issues/3499632
+   * @todo Follow up issue to extract this logic into a trait: https://www.drupal.org/project/experience_builder/issues /3499632
    */
-  private function buildLayout(array &$model, ComponentTreeItem $item, array $tree_tier, array $hydrated): array {
+  private function buildLayout(array &$model, ComponentTreeItem $item, array $tree_tier): array {
     $layout = [];
     $tree = $item->get('tree');
     assert($tree instanceof ComponentTreeStructure);
@@ -115,18 +113,28 @@ final class ApiLayoutController {
         'type' => $component_type,
         'slots' => [],
       ];
-      if (isset($hydrated[$component_instance_uuid])) {
-        // @todo This needs to be smarter than checking props or settings.
-        // Fix in https://drupal.org/i/3494684.
-        $model[$component_instance_uuid] = $hydrated[$component_instance_uuid]['props'] ?? $hydrated[$component_instance_uuid]['settings'];
+
+      // Use ComponentSourceInterface::inputToClientModel() to map the server-
+      // stored `inputs` data to the client-side `model`.
+      // @see \Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem::propertyDefinitions()
+      // @see \Drupal\experience_builder\Plugin\DataType\ComponentInputs
+      // @see ui/src/types/Component.ts
+      // @todo Update these comments to point to `SimpleComponent` and `ComponentWithFieldData` in https://www.drupal.org/i/3493941
+      $component_id = $tree->getComponentId($component_instance_uuid);
+      $component = Component::load($component_id);
+      assert($component instanceof Component);
+      $source = $component->getComponentSource();
+      if ($source->requiresExplicitInput()) {
+        $model[$component_instance_uuid] = $source->inputToClientModel($source->getExplicitInput($component_instance_uuid, $item));
       }
+
       if (isset($full_tree[$component_instance_uuid])) {
         foreach ($full_tree[$component_instance_uuid] as $slot_name => $slot_children) {
           $component_instance['slots'][] = [
             'nodeType' => 'slot',
             'id' => $component_instance_uuid . '/' . $slot_name,
             'name' => $slot_name,
-            'components' => $this->buildLayout($model, $item, $slot_children, $hydrated[$component_instance_uuid]['slots'][$slot_name]),
+            'components' => $this->buildLayout($model, $item, $slot_children),
           ];
         }
       }

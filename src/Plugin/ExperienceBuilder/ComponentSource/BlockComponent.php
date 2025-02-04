@@ -220,6 +220,13 @@ final class BlockComponent extends ComponentSourceBase implements ContainerFacto
   /**
    * {@inheritdoc}
    */
+  public function inputToClientModel(array $explicit_input): array {
+    return $explicit_input;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function buildConfigurationForm(
     array $form,
     FormStateInterface $form_state,
