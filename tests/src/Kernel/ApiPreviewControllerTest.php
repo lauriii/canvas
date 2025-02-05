@@ -83,7 +83,37 @@ final class ApiPreviewControllerTest extends KernelTestBase {
       ],
       'model' => [
         'c4074d1f-149a-4662-aaf3-615151531cf6' => [
-          'width' => 'full',
+          'resolved' => [
+            'width' => 'full',
+          ],
+          'source' => [
+            'width' => [
+              'sourceType' => 'static:field_item:list_string',
+              'expression' => 'ℹ︎list_string␟value',
+              'sourceTypeSettings' => [
+                'storage' => [
+                  'allowed_values' => [
+                    [
+                      'value' => 'full',
+                      'label' => 'full',
+                    ],
+                    [
+                      'value' => 'wide',
+                      'label' => 'wide',
+                    ],
+                    [
+                      'value' => 'normal',
+                      'label' => 'normal',
+                    ],
+                    [
+                      'value' => 'narrow',
+                      'label' => 'narrow',
+                    ],
+                  ],
+                ],
+              ],
+            ],
+          ],
         ],
       ],
       'entity_form_fields' => [],

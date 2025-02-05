@@ -47,7 +47,12 @@ describe('Block form', () => {
   });
 
   it('Block settings form values are stored and the preview is updated', () => {
+    // Delete the image that uses an adapted source.
+    cy.clickComponentInPreview('Image', 1);
+    cy.realType('{del}');
+
     cy.focusRegion('Header');
+
     cy.clickComponentInPreview('Site branding block', 0, 'lg', 'header');
     cy.waitForElementContentInIframe('div.site-branding__inner', 'Drupal');
 

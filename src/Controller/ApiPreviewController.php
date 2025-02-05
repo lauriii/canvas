@@ -6,26 +6,21 @@ namespace Drupal\experience_builder\Controller;
 
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
-use Drupal\Core\TypedData\TypedDataManagerInterface;
 use Drupal\experience_builder\AutoSave\AutoSaveManager;
 use Drupal\experience_builder\Entity\PageTemplate;
+use Drupal\experience_builder\InternalXbFieldNameResolver;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
-use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemInstantiatorTrait;
 use Drupal\experience_builder\Render\PreviewEnvelope;
 use Symfony\Component\HttpFoundation\Request;
 
 final class ApiPreviewController {
 
   use ClientServerConversionTrait;
-  use ComponentTreeItemInstantiatorTrait;
 
   public function __construct(
-    TypedDataManagerInterface $typedDataManager,
     private readonly AutoSaveManager $autoSaveManager,
-  ) {
-    $this->typedDataManager = $typedDataManager;
-  }
+  ) {}
 
   public function __invoke(Request $request, EntityInterface $entity): PreviewEnvelope {
     $body = json_decode($request->getContent(), TRUE);
@@ -87,7 +82,9 @@ final class ApiPreviewController {
    *   https://www.drupal.org/project/experience_builder/issues/3467954.
    */
   private function clientLayoutAndModelToXbField(array $layout, array $model, FieldableEntityInterface $entity): ComponentTreeItem {
-    $component_tree_field_item = $this->createDanglingComponentTree();
+    $field_name = InternalXbFieldNameResolver::getXbFieldName($entity);
+    $component_tree_field_item = $entity->get($field_name)->first();
+    \assert($component_tree_field_item instanceof ComponentTreeItem);
 
     // @todo Handle validation in https://www.drupal.org/project/experience_builder/issues/3485878
     $tree = self::clientLayoutToServerTree($layout, FALSE);

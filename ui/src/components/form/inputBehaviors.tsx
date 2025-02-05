@@ -8,7 +8,12 @@ import {
   toPropName,
 } from '@/components/form/formUtil';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
+import type {
+  ResolvedValues,
+  Sources,
+} from '@/features/layout/layoutModelSlice';
 import {
+  isEvaluatedComponentModel,
   selectLayout,
   selectModel,
   updateNodeModelForce,
@@ -39,6 +44,8 @@ import {
   clearFieldError,
 } from '@/features/form/formStateSlice';
 import type { ErrorObject } from 'ajv/dist/types';
+import type { Component } from '@/types/Component';
+import { componentHasFieldData } from '@/types/Component';
 
 const ajv = new Ajv();
 addDraft2019(ajv);
@@ -266,15 +273,81 @@ const InputBehaviorsComponentPropsForm = (
     node,
     model,
   };
+  const component = components?.[selectedComponentType];
+
+  const syncPropSourcesToResolvedValues = (
+    sources: Sources,
+    component: Component,
+    resolvedValues: ResolvedValues,
+  ): Sources => {
+    if (!componentHasFieldData(component)) {
+      return sources;
+    }
+    const fieldData = component.field_data;
+
+    // We need to include a source entry for any props with a resolved value.
+    // We don't store a source entry for empty values, so once the value is no
+    // longer empty we need to populate the source data for it from the
+    // prop source defaults for this component.
+    const missingProps = Object.keys(fieldData).filter(
+      (key) => !(key in sources) && Object.keys(resolvedValues).includes(key),
+    );
+
+    // Likewise, if a resolved value is now empty, we need to remove it from
+    // the source data so it is not evaluated server side.
+    const emptyProps = Object.keys(fieldData).filter(
+      (key) => !Object.keys(resolvedValues).includes(key) && key in sources,
+    );
+
+    return missingProps.reduce(
+      (carry: Sources, propName: string) => ({
+        ...carry,
+        // Add in the missing source.
+        [propName]: fieldData[propName],
+      }),
+      Object.entries(sources).reduce((carry: Sources, [propName, source]) => {
+        if (emptyProps.includes(propName)) {
+          // Ignore this source as the value is now empty.
+          return carry;
+        }
+        return {
+          ...carry,
+          [propName]: source,
+        };
+      }, {}),
+    );
+  };
+
   const formStateToStore = (newFormState: PropsValues) => {
     const { propsValues, selectedModel } = getPropsValues(
       newFormState,
       inputAndUiData,
     );
+
+    const resolved = { ...selectedModel.resolved, ...propsValues };
+    if (isEvaluatedComponentModel(selectedModel) && component) {
+      dispatch(
+        updateNodeModelForce({
+          uuid: selectedComponent,
+          model: {
+            source: syncPropSourcesToResolvedValues(
+              selectedModel.source,
+              component,
+              resolved,
+            ),
+            resolved,
+          },
+        }),
+      );
+      return;
+    }
     dispatch(
       updateNodeModelForce({
         uuid: selectedComponent,
-        model: { ...selectedModel, ...propsValues },
+        model: {
+          ...selectedModel,
+          resolved,
+        },
       }),
     );
   };
@@ -290,17 +363,46 @@ const InputBehaviorsComponentPropsForm = (
       // @see media_library_storage_prop_shape_alter()
       // @see experience_builder_preprocess_media_library_item__widget()
       const image = JSON.parse(attributes['data-media-file']);
+      const propName = attributes['data-prop-name'];
+      const componentUuid = attributes['data-component-uuid'];
       image.width = Number(image.width);
       image.height = Number(image.height);
-      dispatch(
-        updateNodeModelForce({
-          uuid: selectedComponent,
-          model: {
-            ...selectedModel,
-            image,
-          },
-        }),
-      );
+      const resolved = {
+        ...selectedModel.resolved,
+        [propName]: {
+          ...(selectedModel.resolved[propName] || {}),
+          ...image,
+        },
+      };
+      if (componentUuid !== selectedComponent) {
+        // The selected component has changed in the time it took to fetch the
+        // input form, we can ignore this.
+        // This whole function goes away in https://drupal.org/i/3499550 🎉.
+        return;
+      }
+      if (isEvaluatedComponentModel(selectedModel) && component) {
+        dispatch(
+          updateNodeModelForce({
+            uuid: selectedComponent,
+            model: {
+              source: syncPropSourcesToResolvedValues(
+                selectedModel.source,
+                component,
+                resolved,
+              ),
+              resolved,
+            },
+          }),
+        );
+        return;
+      }
+      updateNodeModelForce({
+        uuid: selectedComponent,
+        model: {
+          ...selectedModel,
+          resolved,
+        },
+      });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -452,7 +554,7 @@ const InputBehaviorsBlockSettingsForm = (
     dispatch(
       updateNodeModelForce({
         uuid: selectedComponent,
-        model: values,
+        model: { resolved: values },
       }),
     );
   };

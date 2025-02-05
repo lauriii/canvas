@@ -1,6 +1,7 @@
 // cspell:ignore uuidv
 import type { AppDispatch, RootState } from '@/app/store';
 import type { Component } from '@/types/Component';
+import { componentHasFieldData } from '@/types/Component';
 import type { UUID } from '@/types/UUID';
 import type { PayloadAction } from '@reduxjs/toolkit';
 import { createSelector } from '@reduxjs/toolkit';
@@ -107,8 +108,8 @@ type InsertMultipleNodesPayload = {
 };
 
 type AddNewNodePayload = {
-  to: number[] | undefined;
-  component: Component | undefined;
+  to: number[];
+  component: Component;
 };
 
 type AddNewSectionPayload = {
@@ -126,9 +127,59 @@ type UpdateNodePayload = {
   model: {};
 };
 
-export interface ComponentModel {
-  [key: string]: string | boolean | [] | number | {};
+type AnyValue = string | boolean | [] | number | {} | null;
+
+// @see \Drupal\experience_builder\PropSource\PropSource::parse()
+interface BasePropSource {
+  sourceType: string;
 }
+// @see \Drupal\experience_builder\PropSource\DynamicPropSource
+export interface DynamicPropSource extends BasePropSource {
+  expression: string;
+}
+
+// @see \Drupal\experience_builder\PropSource\StaticPropSource
+export interface StaticPropSource extends BasePropSource {
+  expression: string;
+  // This can be omitted if it duplicates the resolved value. There are some
+  // scenarios where the resolved value will differ from the source value, e.g.
+  // a media reference - in that case the source value will be the target ID,
+  // whilst the resolved value will be the image URI or similar.
+  value?: AnyValue;
+  sourceTypeSettings: Record<string, AnyValue>;
+}
+
+// @see \Drupal\experience_builder\PropSource\AdaptedPropSource
+export interface AdaptedPropSource extends BasePropSource {
+  adapterInputs: Record<string, PropSource>;
+}
+
+export type PropSource =
+  | AdaptedPropSource
+  | StaticPropSource
+  | DynamicPropSource;
+
+export type ResolvedValues = Record<string, AnyValue>;
+
+export interface ComponentModel {
+  name: string;
+  // The props that are used to render previews and will be used for client-side
+  // preview updates (when they're supported).
+  resolved: ResolvedValues;
+}
+
+export type Sources = Record<string, PropSource>;
+
+export interface EvaluatedComponentModel extends ComponentModel {
+  // Source props/expressions needed by the server.
+  source: Sources;
+}
+
+export const isEvaluatedComponentModel = (
+  model: ComponentModel,
+): model is EvaluatedComponentModel => {
+  return 'source' in model;
+};
 
 export const layoutModelSlice = createSlice({
   name: 'layoutModel',
@@ -360,27 +411,45 @@ export const layoutModelSlice = createSlice({
 export const addNewComponentToLayout =
   (payload: AddNewNodePayload, setSelectedComponent: Function) =>
   (dispatch: AppDispatch) => {
-    if (!payload.to || !payload.component) {
-      return;
-    }
+    const { to, component } = payload;
+    // Populate the model data with the default values
+    const buildInitialData = (component: Component): ComponentModel => {
+      if (componentHasFieldData(component)) {
+        const initialData: EvaluatedComponentModel = {
+          name: component.name,
+          resolved: {},
+          source: {},
+        };
+        Object.keys(component.field_data).forEach((propName) => {
+          const prop = component.field_data[propName];
+          // These will be needed when we support client-side preview updates.
+          // @todo default values will be split into resolved/source in https://www.drupal.org/i/3493943, this will use the resolved value when that occurs.
+          initialData.resolved[propName] = prop.default_values;
+          // These are the values the server needs.
+          initialData.source[propName] = {
+            expression: prop.expression,
+            sourceType: prop.sourceType,
+            // @todo omit this in https://www.drupal.org/i/3493943 if it matches the resolved default value
+            value: prop.default_values,
+            // @todo Consider omitting this in https://www.drupal.org/i/3463996, to send less data.
+            sourceTypeSettings: prop.sourceTypeSettings || undefined,
+          };
+        });
+        return initialData;
+      }
+      return {
+        name: component.name,
+        resolved: {},
+      };
+    };
 
-    const initialData: ComponentModel = {};
     const slots: SlotNode[] = [];
     const uuid = uuidv4();
 
-    // Populate the model data with the default values
-    if (payload.component?.field_data) {
-      Object.keys(payload.component.field_data).forEach((propName) => {
-        if (payload.component?.field_data?.[propName]?.['default_values']) {
-          initialData[propName] =
-            payload.component?.field_data[propName]['default_values'];
-        }
-      });
-    }
-
-    // Create empty slots in the layout data for each child slot the component has
-    if (payload.component?.metadata?.slots) {
-      Object.keys(payload.component.metadata.slots).forEach((name) => {
+    if (componentHasFieldData(component)) {
+      // Create empty slots in the layout data for each child slot the component
+      // has.
+      Object.keys(component.metadata.slots || []).forEach((name) => {
         slots.push({
           id: `${uuid}/${name}`,
           name: name,
@@ -395,18 +464,18 @@ export const addNewComponentToLayout =
         {
           slots,
           nodeType: NodeType.Component,
-          type: payload.component.id,
+          type: component.id,
           uuid: uuid,
         },
       ],
       model: {
-        [uuid]: initialData,
+        [uuid]: buildInitialData(component),
       },
     };
 
     dispatch(
       insertNodes({
-        to: payload.to,
+        to,
         layoutModel,
         useUUID: uuid,
       }),

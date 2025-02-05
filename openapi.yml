@@ -109,8 +109,17 @@ paths:
                             type: 'sdc_test:my-cta'
                     model:
                       bce8d97e-8d44-4609-adc3-5e1015342b49:
-                        text: 'hello, world!'
-                        href: 'https://drupal.org'
+                        resolved:
+                          text: 'hello, world!'
+                          href: 'https://drupal.org'
+                        name: My Test CTA Component
+                        source:
+                          text:
+                            sourceType: static:field_item:string,
+                            expression: 'ℹ︎string␟value'
+                          href:
+                            sourceType: static:field_item:uri,
+                            expression: 'ℹ︎uri␟value'
                     entity_form_fields:
                       changed: '1734481105'
                       'body[0][summary]': ''
@@ -707,9 +716,17 @@ paths:
                               type: 'sdc_test:my-cta'
                         model:
                           bce8d97e-8d44-4609-adc3-5e1015342b49:
-                            text: 'hello, world!'
-                            href: 'https://drupal.org'
+                            resolved:
+                              text: 'hello, world!'
+                              href: 'https://drupal.org'
                             name: My Test CTA Component
+                            source:
+                              text:
+                                sourceType: static:field_item:string,
+                                expression: 'ℹ︎string␟value'
+                              href:
+                                sourceType: static:field_item:uri,
+                                expression: 'ℹ︎uri␟value'
                       langcode: en
                       entity_type: node
                       entity_id: 1
@@ -727,9 +744,17 @@ paths:
                               type: 'sdc_test:my-cta'
                         model:
                           694446dd-fc32-4f6c-a2b3-e6fa8521cbeb:
-                            text: Read more
-                            href: 'https://example.org'
                             name: Read more link
+                            resolved:
+                              text: Read more
+                              href: 'https://example.org'
+                            source:
+                              text:
+                                sourceType: static:field_item:string,
+                                expression: 'ℹ︎string␟value'
+                              href:
+                                sourceType: static:field_item:uri,
+                                expression: 'ℹ︎uri␟value'
                       langcode: en
                       entity_type: node
                       entity_id: 1

@@ -188,8 +188,7 @@ interface ComponentSourceInterface extends PluginInspectionInterface, Derivative
    *   Violation constraint list, use ::addViolation to add violations detected
    *   during conversion.
    *
-   * @return array<string, \Drupal\experience_builder\PropSource\StaticPropSource|mixed>
-   *
+   * @return array<string, \Drupal\experience_builder\PropSource\PropSourceBase|mixed>
    * @todo Refactor to use the Symfony denormalizer infrastructure?
    * @see ::inputToClientModel()
    */

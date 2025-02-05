@@ -22,6 +22,11 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 class ApiLayoutControllerTest extends KernelTestBase {
 
   /**
+   * Allows format=uri to be stored using URI field type.
+   */
+  protected static $modules = ['xb_test_storage_prop_shape_alter'];
+
+  /**
    * {@inheritdoc}
    */
   protected function setUp(): void {
@@ -251,6 +256,24 @@ class ApiLayoutControllerTest extends KernelTestBase {
 
     $this->assertArrayHasKey('entity_form_fields', $json);
     $this->assertSame($node->label(), $json['entity_form_fields']['title[0][value]']);
+
+    self::assertEquals([
+      'resolved' => [
+        'heading' => $node->label(),
+        'cta1href' => 'https://drupal.org',
+      ],
+      'source' => [
+        'heading' => [
+          'sourceType' => 'static:field_item:string',
+          'expression' => 'ℹ︎string␟value',
+
+        ],
+        'cta1href' => [
+          'sourceType' => 'static:field_item:uri',
+          'expression' => 'ℹ︎uri␟value',
+        ],
+      ],
+    ], $json['model']['static-static-card2df']);
   }
 
   public function testFieldException(): void {

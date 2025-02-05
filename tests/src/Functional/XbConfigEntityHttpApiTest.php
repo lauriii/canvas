@@ -150,10 +150,20 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
     };
     $pattern_to_send['model'] = [
       'uuid-in-root' => [
-        'heading' => $generate_static_prop_source('world'),
+        'resolved' => [
+          'heading' => $generate_static_prop_source('world')['value'],
+        ],
+        'source' => [
+          'heading' => $generate_static_prop_source('world'),
+        ],
       ],
       'uuid-in-root-another' => [
-        'heading' => $generate_static_prop_source('another world'),
+        'resolved' => [
+          'heading' => $generate_static_prop_source('another world')['value'],
+        ],
+        'source' => [
+          'heading' => $generate_static_prop_source('another world'),
+        ],
       ],
     ];
     $pattern_to_send['layout'][] = [
@@ -203,10 +213,26 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
         ],
         'model' => [
           'uuid-in-root' => [
-            'heading' => 'Hello, world!',
+            'resolved' => [
+              'heading' => 'Hello, world!',
+            ],
+            'source' => [
+              'heading' => [
+                'sourceType' => 'static:field_item:string',
+                'expression' => 'ℹ︎string␟value',
+              ],
+            ],
           ],
           'uuid-in-root-another' => [
-            'heading' => 'Hello, another world!',
+            'resolved' => [
+              'heading' => 'Hello, another world!',
+            ],
+            'source' => [
+              'heading' => [
+                'sourceType' => 'static:field_item:string',
+                'expression' => 'ℹ︎string␟value',
+              ],
+            ],
           ],
         ],
       ],
@@ -270,7 +296,37 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
 
     // Add missing missing prop: 201.
     $nested_components_pattern['model']['c4074d1f-149a-4662-aaf3-615151531cf6'] = [
-      'width' => 'full',
+      'resolved' => [
+        'width' => 'full',
+      ],
+      'source' => [
+        'width' => [
+          'sourceType' => 'static:field_item:list_string',
+          'expression' => 'ℹ︎list_string␟value',
+          'sourceTypeSettings' => [
+            'storage' => [
+              'allowed_values' => [
+                [
+                  'value' => 'full',
+                  'label' => 'full',
+                ],
+                [
+                  'value' => 'wide',
+                  'label' => 'wide',
+                ],
+                [
+                  'value' => 'normal',
+                  'label' => 'normal',
+                ],
+                [
+                  'value' => 'narrow',
+                  'label' => 'narrow',
+                ],
+              ],
+            ],
+          ],
+        ],
+      ],
     ];
     $request_options[RequestOptions::BODY] = self::encodeXBData($nested_components_pattern);
     $this->assertExpectedResponse('POST', $list_url, $request_options, 201, NULL, NULL, NULL, NULL, [

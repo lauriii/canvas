@@ -16,7 +16,9 @@ final class ApiContentUpdateForDemoControllerTest extends FunctionalTestBase {
 
   use ApiRequestTrait;
   use TestDataUtilitiesTrait;
-  use XBFieldTrait;
+  use XBFieldTrait {
+    getValidClientJson as traitGetValidClientJson;
+  }
 
   /**
    * {@inheritdoc}
@@ -56,14 +58,14 @@ final class ApiContentUpdateForDemoControllerTest extends FunctionalTestBase {
       json_decode((string) $response->getBody(), TRUE)
     );
     // Now, make a valid client request with CSRF token.
-    $valid_client_json = $this->getValidClientJson();
+    $valid_client_json = $this->getValidClientJson(FALSE);
     $this->assertClientRequest(
       $node1,
       $valid_client_json,
       200,
       ['message' => 'Saved successfully.'],
     );
-    $this->assertValidJsonUpdateNode($node1);
+    $this->assertValidJsonUpdateNode($node1, FALSE);
 
     $node2 = $this->createTestNode();
     $node2_original_title = (string) $node2->getTitle();
@@ -71,7 +73,13 @@ final class ApiContentUpdateForDemoControllerTest extends FunctionalTestBase {
 
     // Make a request with invalid heading properties.
     $invalid_heading_client_json = $valid_client_json;
-    $invalid_heading_client_json['model'][self::TEST_HEADING_UUID]['style'] = 'not-a-style';
+    $invalid_heading_client_json['model'][self::TEST_HEADING_UUID]['resolved']['style'] = 'not-a-style';
+    $suffix = '';
+    if (\version_compare(\Drupal::VERSION, '11.2', '>=') || \version_compare(\Drupal::VERSION, '11.2-dev', '>=')) {
+      // The format of component violation messages changed in Drupal 11.2.
+      // @see https://drupal.org/i/3462700
+      $suffix = '. The provided value is: "not-a-style".';
+    }
     $this->assertClientRequest(
       $node2,
       $invalid_heading_client_json,
@@ -79,7 +87,7 @@ final class ApiContentUpdateForDemoControllerTest extends FunctionalTestBase {
       [
         'errors' => [
           [
-            'detail' => 'Does not have a value in the enumeration ["primary","secondary"]',
+            'detail' => 'Does not have a value in the enumeration ["primary","secondary"]' . $suffix,
             'source' => [
               'pointer' => 'model.' . self::TEST_HEADING_UUID . '.style',
             ],
@@ -89,7 +97,7 @@ final class ApiContentUpdateForDemoControllerTest extends FunctionalTestBase {
     );
     // Ensure none of the entities have been saved.
     $this->assertNodeValues($node2, [], [], $node2_original_title);
-    $this->assertValidJsonUpdateNode($node1);
+    $this->assertValidJsonUpdateNode($node1, FALSE);
 
     // Make request with all properties missing for the heading component.
     $invalid_missing_heading_props_client_json = $valid_client_json;

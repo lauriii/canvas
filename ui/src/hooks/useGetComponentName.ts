@@ -5,6 +5,7 @@ import type {
   LayoutNode,
 } from '@/features/layout/layoutModelSlice';
 import type { Component } from '@/types/Component';
+import { componentHasFieldData } from '@/types/Component';
 
 const useGetComponentName = (
   node: LayoutChildNode | null,
@@ -16,7 +17,11 @@ const useGetComponentName = (
     slotName: string | undefined,
     parentComponent: Component,
   ) => {
-    if (slotName && parentComponent?.metadata?.slots) {
+    if (
+      slotName &&
+      componentHasFieldData(parentComponent) &&
+      parentComponent.metadata.slots
+    ) {
       return parentComponent.metadata.slots[slotName].title;
     }
     return 'Slot';

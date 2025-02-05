@@ -94,6 +94,12 @@ class PropSourceEndpointTest extends BrowserTestBase {
       $expected_tags = array_diff($expected_tags, ['config:search.settings']);
     }
 
+    $this->assertSame(200, $this->getSession()->getStatusCode(), match($this->getSession()->getStatusCode()) {
+      // Show the fatal error message in the failing test output.
+      // @see \Drupal\experience_builder\EventSubscriber\ApiExceptionSubscriber
+      500 => json_decode($page->getContent())->message,
+      default => $page->getContent(),
+    });
     $this->assertCacheTags($expected_tags);
     $this->assertCacheContexts($expected_contexts);
     $this->assertSession()->responseHeaderEquals('X-Drupal-Cache-Max-Age', '3600');

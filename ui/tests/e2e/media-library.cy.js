@@ -24,7 +24,9 @@ describe('Media Library', () => {
       'active',
     );
 
-    cy.clickComponentInPreview('Image', 1);
+    // There are two images here, the second one is making use of an image
+    // adapter which we don't support yet. We have to use the first one instead.
+    cy.clickComponentInPreview('Image', 0);
 
     cy.findByTestId('xb-contextual-panel--settings').should(
       'have.attr',
@@ -33,6 +35,10 @@ describe('Media Library', () => {
     );
 
     cy.get('div[role="dialog"]').should('not.exist');
+    // Click the remove button to reveal the open button.
+    cy.get(`[class*="contextualPanel"]`)
+      .findByLabelText('Remove Default placeholder image')
+      .click();
     cy.get(
       '[class*="contextualPanel"] .js-media-library-open-button[data-once="drupal-ajax"]',
     )
@@ -52,11 +58,16 @@ describe('Media Library', () => {
 
     // Use the Media Library widget an additional time. This effectively
     // confirms that XBTemplateRenderer is not loading JS assets that already
-    // exist on the page.
+    // exist on the page. Click to the second image to change the form, then
+    // click back again.
+    cy.clickComponentInPreview('Image', 1);
     cy.clickComponentInPreview('Image');
 
     cy.get('[class*="contextualPanel"]').should('exist');
     cy.get('div[role="dialog"]').should('not.exist');
+    cy.get('[class*="contextualPanel"]')
+      .findByLabelText('Remove The bones are their money')
+      .click();
     cy.get(
       '[class*="contextualPanel"] .js-media-library-open-button[data-once="drupal-ajax"]',
     )

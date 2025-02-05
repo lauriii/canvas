@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useErrorBoundary } from 'react-error-boundary';
 import { Spinner, Text } from '@radix-ui/themes';
 import { useGetDummyPropsFormQuery } from '@/services/dummyPropsForm';
@@ -7,7 +7,11 @@ import twigToJSXComponentMap from '@/components/form/twig-to-jsx-component-map';
 import propsify from '@/local_packages/hyperscriptify/propsify/standard/index.js';
 import parseHyperscriptifyTemplate from '@/utils/parse-hyperscriptify-template';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
-import type { RegionNode } from '@/features/layout/layoutModelSlice';
+import type {
+  RegionNode,
+  ComponentModel,
+  EvaluatedComponentModel,
+} from '@/features/layout/layoutModelSlice';
 import { selectModel, selectLayout } from '@/features/layout/layoutModelSlice';
 import { selectLatestUndoRedoActionId } from '@/features/ui/uiSlice';
 import { useGetComponentsQuery } from '@/services/components';
@@ -16,16 +20,9 @@ import { useDrupalBehaviors } from '@/hooks/useDrupalBehaviors';
 import { useParams } from 'react-router-dom';
 import { clearFieldValues } from '@/features/form/formStateSlice';
 import type { FieldData } from '@/types/Component';
+import type { Component } from '@/types/Component';
+import { componentHasFieldData } from '@/types/Component';
 
-interface PropData {
-  sourceType: string;
-  sourceTypeSettings?: object;
-  expression: string;
-  value: any;
-}
-interface PreparedModel {
-  [x: string]: PropData | string;
-}
 interface DummyPropsEditFormRendererProps {
   dynamicStaticCardQueryString: string;
 }
@@ -132,6 +129,39 @@ const DummyPropsEditForm: React.FC<DummyPropsEditFormProps> = () => {
   const [emptyProp, setEmptyProp] = useState(false);
   const [componentSource, setComponentSource] = useState('');
 
+  const buildPreparedModel = (
+    model: ComponentModel,
+    component: Component,
+  ): ComponentModel => {
+    if (!componentHasFieldData(component)) {
+      return model;
+    }
+    // The prepared model combines prop values from the model and prop metadata
+    // from the SDC definition.
+    const fieldData = component.field_data;
+    const missingProps = Object.keys(fieldData).filter(
+      (key) => !(key in model.resolved),
+    );
+
+    const preparedModel: EvaluatedComponentModel = {
+      ...model,
+    } as EvaluatedComponentModel;
+    missingProps.forEach((propName: string) => {
+      preparedModel.source = {
+        ...preparedModel.source,
+        [propName]: fieldData[propName],
+      };
+
+      // The current value of the prop, or an empty string so the `value` is at
+      // least present.
+      preparedModel.resolved = {
+        ...preparedModel.resolved,
+        [propName]: model.resolved[propName] || '',
+      };
+    });
+    return preparedModel;
+  };
+
   useEffect(() => {
     dispatch(clearFieldValues('component_inputs_form'));
   }, [dispatch, selectedComponent]);
@@ -149,6 +179,7 @@ const DummyPropsEditForm: React.FC<DummyPropsEditFormProps> = () => {
     ) {
       return;
     }
+    const selectedModel = model[selectedComponent];
     const node = findComponentByUuid(layout, selectedComponent);
     if (!node) {
       return;
@@ -157,42 +188,22 @@ const DummyPropsEditForm: React.FC<DummyPropsEditFormProps> = () => {
 
     // This is metadata about the props of the SDC being edited. This is specific
     // to the SDC *type* but unconcerned with this SDC *instance*.
-    const selectedComponentFieldData: FieldData =
-      components[selectedComponentType]?.['field_data'] || {};
+    const component = components[selectedComponentType];
+    const selectedComponentFieldData: FieldData = componentHasFieldData(
+      component,
+    )
+      ? component.field_data
+      : {};
 
     // Check if this component has any props or not.
-    let preparedModel: PreparedModel;
     if (Object.keys(selectedComponentFieldData).length === 0) {
       setDynamicStaticCardQueryString('');
       setEmptyProp(true);
-      preparedModel = model[selectedComponent] as PreparedModel;
     } else {
       setEmptyProp(false);
-      // The prepared model combines prop values from the model and prop metadata
-      // from the SDC definition.
-      preparedModel = {};
-      for (const [propName, propData] of Object.entries(
-        selectedComponentFieldData,
-      )) {
-        preparedModel[propName] = {
-          // The current value of the prop, or an empty string so the `value` is at
-          // least present.
-          value: model[selectedComponent][propName] || '',
-          // The sourceType of the prop is required by the component edit form. This
-          // information is provided to the UI in the components list returned by
-          // /xb/api/config/component.
-          sourceType: propData.sourceType,
-          // Some sourceTypes may have additional settings (e.g. for indicating valid choices in an SDC's `enum`.)
-          ...(propData.sourceTypeSettings && {
-            sourceTypeSettings: propData.sourceTypeSettings,
-          }),
-          // The expression of the prop is required by the component edit form. This
-          // information is provided to the UI in the components list returned by
-          // /xb/api/config/component.
-          expression: propData.expression,
-        };
-      }
     }
+
+    const preparedModel = buildPreparedModel(selectedModel, component);
 
     const tree = findComponentByUuid(layout, selectedComponent);
     const query = new URLSearchParams({

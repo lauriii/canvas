@@ -64,8 +64,8 @@ class ClientDataToEntityConverterTest extends KernelTestBase {
   /**
    * {@inheritdoc}
    */
-  private function getValidClientJson(): array {
-    $json = $this->traitGetValidClientJson();
+  private function getValidClientJson(bool $dynamic_image = TRUE): array {
+    $json = $this->traitGetValidClientJson($dynamic_image);
     $content_region = \array_values(\array_filter($json['layout'], static fn(array $region) => $region['id'] === 'content'));
     return [
       'layout' => reset($content_region),
@@ -97,7 +97,7 @@ class ClientDataToEntityConverterTest extends KernelTestBase {
     ]);
     \assert($account instanceof AccountInterface);
     $this->setCurrentUser($account);
-    $valid_client_json = $this->getValidClientJson();
+    $valid_client_json = $this->getValidClientJson(FALSE);
     // The client may not filter out form inputs that are not entity fields.
     $valid_client_json['entity_form_fields']['field_image_0_upload_button'] = 'Not an entity field input';
     $this->assertConvert(
@@ -126,7 +126,13 @@ class ClientDataToEntityConverterTest extends KernelTestBase {
 
     $unreferenced_file_client_json = $valid_client_json;
     $unreferenced_src = $this->getSrcPropertyFromFile($this->unreferencedImage);
-    $unreferenced_file_client_json['model'][self::TEST_IMAGE_UUID]['image']['src'] = $unreferenced_src;
+    $unreferenced_file_client_json['model'][self::TEST_IMAGE_UUID]['resolved']['image']['src'] = $unreferenced_src;
+    $suffix = '';
+    if (\version_compare(\Drupal::VERSION, '11.2', '>=') || \version_compare(\Drupal::VERSION, '11.2-dev', '>=')) {
+      // The format of component violation messages changed in Drupal 11.2.
+      // @see https://drupal.org/i/3462700
+      $suffix = '.';
+    }
     $this->assertConvert(
       $unreferenced_file_client_json,
       [
@@ -136,7 +142,7 @@ class ClientDataToEntityConverterTest extends KernelTestBase {
         // The failed transformation above results in an empty value for the
         // entire SDC prop. Which then fails SDC validation.
         // @see \Drupal\Core\Theme\Component\ComponentValidator::validateProps()
-        'model.' . self::TEST_IMAGE_UUID . '.image' => 'The property image is required',
+        'model.' . self::TEST_IMAGE_UUID . '.image' => 'The property image is required' . $suffix,
       ],
       // The error above happens in `\Drupal\experience_builder\Controller\ClientServerConversionTrait::convertClientToServer()`
       // therefore the title, as well as other entity fields will not be updated.
@@ -144,10 +150,16 @@ class ClientDataToEntityConverterTest extends KernelTestBase {
     );
 
     $invalid_heading_client_json = $valid_client_json;
-    $invalid_heading_client_json['model'][self::TEST_HEADING_UUID]['style'] = 'not-a-style';
+    $invalid_heading_client_json['model'][self::TEST_HEADING_UUID]['resolved']['style'] = 'not-a-style';
+    $suffix = '';
+    if (\version_compare(\Drupal::VERSION, '11.2', '>=') || \version_compare(\Drupal::VERSION, '11.2-dev', '>=')) {
+      // The format of component violation messages changed in Drupal 11.2.
+      // @see https://drupal.org/i/3462700
+      $suffix = '. The provided value is: "not-a-style".';
+    }
     $this->assertConvert(
       $invalid_heading_client_json,
-      ['model.' . self::TEST_HEADING_UUID . '.style' => 'Does not have a value in the enumeration ["primary","secondary"]'],
+      ['model.' . self::TEST_HEADING_UUID . '.style' => 'Does not have a value in the enumeration ["primary","secondary"]' . $suffix],
       // The error above happens in `\Drupal\experience_builder\Controller\ClientServerConversionTrait::convertClientToServer()`
       // therefore the title, as well as other entity fields will not be updated.
       'The original title.',

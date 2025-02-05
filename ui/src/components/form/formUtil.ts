@@ -1,4 +1,5 @@
 import type { FieldDataItem } from '@/types/Component';
+import { componentHasFieldData } from '@/types/Component';
 import type { InputUIData, PropsValues } from '@/types/Form';
 import type { ComponentModel } from '@/features/layout/layoutModelSlice';
 import Ajv from 'ajv';
@@ -28,8 +29,9 @@ addDraft2019(ajv);
 export function getPropSchemas(inputAndUiData: InputUIData) {
   const { components, selectedComponentType } = inputAndUiData;
   const propSchemas: PropsValues = {};
-  if (components?.[selectedComponentType]?.['field_data']) {
-    Object.entries(components[selectedComponentType]['field_data']).forEach(
+  const component = components?.[selectedComponentType];
+  if (componentHasFieldData(component)) {
+    Object.entries(component.field_data).forEach(
       ([propName, fieldData]: [string, FieldDataItem]) => {
         propSchemas[propName] = fieldData.jsonSchema;
       },
@@ -192,8 +194,9 @@ export function propInputData(
   const propsWithSourceStorageSettings: PropsValues = {};
   // OpenAPI already ensures this exists, but the condition check is here
   // to soothe Typescript.
-  if (components?.[selectedComponentType]?.['field_data']) {
-    Object.entries(components[selectedComponentType]['field_data']).forEach(
+  const component = components?.[selectedComponentType];
+  if (componentHasFieldData(component)) {
+    Object.entries(component.field_data).forEach(
       // @ts-ignore
       ([field_name, field]: [string, FieldDataItem]) => {
         if (field.jsonSchema?.properties) {
@@ -287,9 +290,16 @@ export function getPropsValues(
     inputAndUiData;
   const { propsWithObjectValues } = propInputData(formState, inputAndUiData);
 
-  const selectedModel = model ? { ...model[selectedComponent] } : {};
-  const transformConfig = components?.[selectedComponentType].transforms || {};
-  const fieldData = components?.[selectedComponentType]?.field_data || {};
+  const selectedModel = model
+    ? { ...model[selectedComponent] }
+    : ({} as ComponentModel);
+  const component = components?.[selectedComponentType];
+  const transformConfig = componentHasFieldData(component)
+    ? component.transforms
+    : {};
+  const fieldData = componentHasFieldData(component)
+    ? component.field_data
+    : {};
   // Iterate through every item in form state that corresponds to
   // a component input to create propsValues, which will ultimately be
   // used to update this component's model.
@@ -357,7 +367,9 @@ export function getPropsValues(
 
   Object.entries(propsValues).forEach(([fieldName, value]) => {
     const fieldData: FieldDataItem | undefined =
-      components?.[selectedComponentType]?.['field_data']?.[fieldName];
+      (componentHasFieldData(component)
+        ? component.field_data[fieldName]
+        : undefined) || undefined;
 
     // @todo below is special-casing for enum fields but we will need to do
     // this for many more use cases, so this should probably be moved to its
@@ -366,13 +378,17 @@ export function getPropsValues(
     if (fieldData?.jsonSchema?.enum) {
       if (!fieldData.jsonSchema.enum.includes(value)) {
         delete propsValues[fieldName as keyof PropsValues];
-        delete selectedModel[fieldName as keyof ComponentModel];
+        const resolved = { ...selectedModel.resolved };
+        delete resolved[fieldName as keyof ComponentModel['resolved']];
+        selectedModel.resolved = resolved;
       }
     }
     // If the value is an empty string, don't store it at all.
     if (value === '') {
       delete propsValues[fieldName as keyof PropsValues];
-      delete selectedModel[fieldName as keyof ComponentModel];
+      const resolved = { ...selectedModel.resolved };
+      delete resolved[fieldName as keyof ComponentModel['resolved']];
+      selectedModel.resolved = resolved;
     }
   });
 

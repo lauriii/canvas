@@ -108,16 +108,16 @@ trait ClientServerConversionTrait {
   }
 
   /**
-   * @return array<string, array<string, \Drupal\experience_builder\PropSource\StaticPropSource>>
+   * @return array<string, array<string, \Drupal\experience_builder\PropSource\PropSourceBase>>
    * @throws \Drupal\experience_builder\Exception\ConstraintViolationException
    */
-  private static function clientModelToInput(array $tree, array $model, ?FieldableEntityInterface $entity = NULL): array {
+  private static function clientModelToInput(array $tree, array $full_model, ?FieldableEntityInterface $entity = NULL): array {
     $definition = DataDefinition::create('component_tree_structure');
     $component_tree_structure = new ComponentTreeStructure($definition, 'component_tree_structure');
     $component_tree_structure->setValue(json_encode($tree, JSON_UNESCAPED_UNICODE));
 
     // Remove irrelevant model data (e.g. from page template).
-    $model = \array_intersect_key($model, \array_flip($component_tree_structure->getComponentInstanceUuids()));
+    $model = \array_intersect_key($full_model, \array_flip($component_tree_structure->getComponentInstanceUuids()));
     $inputs = [];
     $violation_list = $entity ? new EntityConstraintViolationList($entity) : new ConstraintViolationList();
     foreach ($model as $uuid => $client_model) {

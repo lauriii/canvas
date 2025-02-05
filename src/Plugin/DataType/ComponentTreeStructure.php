@@ -10,6 +10,8 @@ use Drupal\Component\Utility\SortArray;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\TypedData\Attribute\DataType;
 use Drupal\Core\TypedData\TypedData;
+use Drupal\experience_builder\ComponentSource\ComponentSourceInterface;
+use Drupal\experience_builder\Entity\Component;
 
 /**
  * The component tree structure's data structure is optimized for efficiency.
@@ -83,6 +85,7 @@ class ComponentTreeStructure extends TypedData {
   /**
    * The parsed data value.
    *
+   * @phpcs:ignore
    * @var ComponentTreeStructureArray
    *
    * @todo The value 'component' key stored is a machine name of Component plugin though XB only allows users to select Component config entities.
@@ -246,6 +249,7 @@ class ComponentTreeStructure extends TypedData {
    * @param string $component_instance_uuid
    *   The UUID of a placed component instance.
    *
+   * @phpcs:ignore
    * @return ComponentConfigEntityId
    *   A Component config entity ID.
    *
@@ -289,6 +293,24 @@ class ComponentTreeStructure extends TypedData {
       $dependencies['config'][] = 'experience_builder.component.' . $component_id;
     }
     return $dependencies;
+  }
+
+  /**
+   * Gets component source for given instance UUID.
+   *
+   * @param string $component_instance_uuid
+   *   Instance UUID.
+   *
+   * @return \Drupal\experience_builder\ComponentSource\ComponentSourceInterface|null
+   *   Source plugin for given component instance.
+   */
+  public function getComponentSource(string $component_instance_uuid): ?ComponentSourceInterface {
+    $component_id = $this->getComponentId($component_instance_uuid);
+    $component = Component::load($component_id);
+    if ($component instanceof Component) {
+      return $component->getComponentSource();
+    }
+    return NULL;
   }
 
 }

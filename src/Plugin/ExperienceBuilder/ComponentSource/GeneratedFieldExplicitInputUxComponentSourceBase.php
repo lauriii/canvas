@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource;
 
+use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
@@ -37,6 +38,8 @@ use Drupal\experience_builder\PropSource\PropSource;
 use Drupal\experience_builder\PropSource\StaticPropSource;
 use Drupal\experience_builder\ShapeMatcher\FieldForComponentSuggester;
 use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 use Symfony\Component\Validator\ConstraintViolation;
 use Symfony\Component\Validator\ConstraintViolationList;
 use Symfony\Component\Validator\ConstraintViolationListInterface;
@@ -176,7 +179,7 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
     assert($inputs instanceof ComponentInputs);
     $values = $inputs->getValues($uuid);
     return array_map(
-    // @phpstan-ignore-next-line
+      // @phpstan-ignore-next-line
       fn(array $prop_source): mixed => PropSource::parse($prop_source)
         ->evaluate($entity),
       $values,
@@ -205,8 +208,33 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
    * {@inheritdoc}
    */
   public function inputToClientModel(array $explicit_input): array {
-    // @todo Update this in https://www.drupal.org/i/3493941 to return both the *stored* ("source") and *evaluated* ("resolved") representations.
-    return $explicit_input;
+    // @see PropSourceComponent type-script definition.
+    // @see EvaluatedComponentModel type-script definition.
+    $model = [
+      'resolved' => $explicit_input,
+      'source' => [],
+    ];
+
+    foreach ($explicit_input as $prop_name => $value) {
+      $prop_source = $this->getDefaultStaticPropSource($prop_name);
+      $source = $prop_source->toArray();
+      try {
+        // @todo To support DynamicPropSource, \Drupal\experience_builder\ComponentSource\ComponentSourceInterface::inputToClientModel() will need to be updated to allow a host entity to be passed in.
+        $value = $prop_source->evaluate(NULL);
+      }
+      catch (\OutOfRangeException) {
+        // This was a dynamic prop source, but is missing the data it needs.
+        // Try to fall-back to the default value.
+        $value = \array_key_exists('value', $source) ? $source['value'] : NULL;
+      }
+      // Don't duplicate value if the resolved value matches the static value.
+      if (\array_key_exists('value', $source) && $value === $source['value']) {
+        unset($source['value']);
+      }
+      $model['source'][$prop_name] = $source;
+    }
+
+    return $model;
   }
 
   /**
@@ -300,6 +328,12 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
         $prop_name = substr($error, 1, $sdc_prop_name_closing_bracket_pos - 1);
         $prop_error_message = substr($error, $sdc_prop_name_closing_bracket_pos + 2);
 
+        if ((\version_compare(\Drupal::VERSION, '11.2', '>=') || \version_compare(\Drupal::VERSION, '11.2-dev', '>=')) && \str_contains($prop_name, '/')) {
+          // From Drupal 11.2 the exception message also includes the component
+          // ID.
+          // @see https://drupal.org/i/3462700
+          [, $prop_name] = \explode('/', $prop_name);
+        }
         $violations->add(
           new ConstraintViolation(
             $prop_error_message,
@@ -341,25 +375,54 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
 
     $form['#parents'] = ['xb_component_props', $component_instance_uuid];
     $prop_field_definitions = $settings['prop_field_definitions'];
-    foreach ($client_model as $sdc_prop_name => $prop_source_array) {
-      $source = PropSource::parse($prop_source_array);
-      if ($source instanceof StaticPropSource) {
-        // 1. If the given static prop source matches the *current* field type
-        // configuration, use the configured widget.
-        // 2. Worst case: fall back to the default widget for this field type.
-        // @todo Implement 2. in https://www.drupal.org/project/experience_builder/issues/3463996
-        $field_widget_plugin_id = NULL;
-        $prop_field_definition = $prop_field_definitions[$sdc_prop_name];
-        if ($source->getSourceType() === 'static:field_item:' . $prop_field_definition['field_type']) {
-          $field_widget_plugin_id = $prop_field_definition['field_widget'];
-        }
-        assert(isset($component_schema['properties'][$sdc_prop_name]['title']));
-        $label = $component_schema['properties'][$sdc_prop_name]['title'];
-        $is_required = isset($component_schema['required']) && in_array($sdc_prop_name, $component_schema['required'], TRUE);
-        $form[$sdc_prop_name] = $source->formTemporaryRemoveThisExclamationExclamationExclamation($field_widget_plugin_id, $sdc_prop_name, $label, $is_required, $entity, $form, $form_state);
+
+    $component = $form['#component'];
+    \assert($component instanceof ComponentEntity);
+    // To ensure the order of the fields always matches the order of the schema
+    // we loop over the properties from the schema, but first we have to
+    // exclude props that aren't storable.
+    $component_plugin = $this->getSdcPlugin();
+    $storable_props = [];
+
+    foreach (PropShape::getComponentProps($component_plugin) as $component_prop_expression => $prop_shape) {
+      $storable_prop_shape = $prop_shape->getStorage();
+      // @todo Remove this once every SDC prop shape can be stored. See PropShapeRepositoryTest::getExpectedUnstorablePropShapes()
+      // @todo Create a status report that lists which SDC prop shapes are not storable.
+      if (!$storable_prop_shape) {
+        continue;
       }
-      // @todo Design is undefined for the DynamicPropSource UX. Related: https://www.drupal.org/project/experience_builder/issues/3459234
-      // @todo Design is undefined for the AdaptedPropSource UX.
+      $component_prop = ComponentPropExpression::fromString($component_prop_expression);
+      $storable_props[] = $component_prop->propName;
+    }
+    foreach ($storable_props as $sdc_prop_name) {
+      $prop_source_array = $client_model[$sdc_prop_name] ?? NULL;
+      if ($prop_source_array === NULL) {
+        // The client didn't send this prop but should. This is an error OR the
+        // data has been tampered with.
+        throw HttpException::fromStatusCode(Response::HTTP_BAD_REQUEST);
+      }
+      $source = PropSource::parse($prop_source_array);
+      $disabled = FALSE;
+      if (!$source instanceof StaticPropSource) {
+        // @todo Design is undefined for the DynamicPropSource UX. Related: https://www.drupal.org/project/experience_builder/issues/3459234
+        // @todo Design is undefined for the AdaptedPropSource UX.
+        // Fallback to a disabled version of the static version.
+        $source = $this->getDefaultStaticPropSource($sdc_prop_name)->withValue($prop_source_array['value'] ?? NULL);
+        $disabled = TRUE;
+      }
+      // 1. If the given static prop source matches the *current* field type
+      // configuration, use the configured widget.
+      // 2. Worst case: fall back to the default widget for this field type.
+      // @todo Implement 2. in https://www.drupal.org/project/experience_builder/issues/3463996
+      $field_widget_plugin_id = NULL;
+      if ($source->getSourceType() === 'static:field_item:' . $prop_field_definitions[$sdc_prop_name]['field_type']) {
+        $field_widget_plugin_id = $prop_field_definitions[$sdc_prop_name]['field_widget'];
+      }
+      assert(isset($component_schema['properties'][$sdc_prop_name]['title']));
+      $label = $component_schema['properties'][$sdc_prop_name]['title'];
+      $is_required = isset($component_schema['required']) && in_array($sdc_prop_name, $component_schema['required'], TRUE);
+      $form[$sdc_prop_name] = $source->formTemporaryRemoveThisExclamationExclamationExclamation($field_widget_plugin_id, $sdc_prop_name, $label, $is_required, $entity, $form, $form_state);
+      $form[$sdc_prop_name]['#disabled'] = $disabled;
     }
 
     // @todo Remove in https://www.drupal.org/project/experience_builder/issues/3500152
@@ -388,7 +451,6 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
   public function getClientSideInfo(ComponentEntity $component): array {
     $component_plugin = $this->getSdcPlugin();
     assert($component_plugin instanceof SdcPlugin);
-    $keyed_choices = [];
     // @todo Refactor away this instanceof check in https://www.drupal.org/i/3503038
     $suggestions = $this instanceof SingleDirectoryComponent
       ? $this->fieldForComponentSuggester->suggest($component_plugin->getPluginId(), EntityDataDefinition::create('node', 'article'))
@@ -398,10 +460,11 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
     $transforms = [];
     $settings = $component->getSettings();
     $prop_field_definitions = $settings['prop_field_definitions'];
+    $field_data_partial = [];
     foreach (PropShape::getComponentProps($component_plugin) as $component_prop_expression => $prop_shape) {
       $storable_prop_shape = $prop_shape->getStorage();
-      // @todo Remove this once every SDC prop shape can be stored.
-      // @todo Create a status report that lists which SDC props are not storable.
+      // @todo Remove this once every SDC prop shape can be stored. See PropShapeRepositoryTest::getExpectedUnstorablePropShapes()
+      // @todo Create a status report that lists which SDC prop shapes are not storable.
       if (!$storable_prop_shape) {
         continue;
       }
@@ -414,11 +477,6 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
           $suggestions[$component_prop_expression]['instances']
         );
       }
-      $keyed_choices[$prop_name] = [
-        'expression' => (string) $storable_prop_shape->fieldTypeProp,
-        'sourceType' => $static_prop_source->getSourceType(),
-        'required' => in_array($prop_name, $component_plugin->metadata->schema['required'] ?? [], TRUE),
-      ];
       $prop_info = ($component_plugin->metadata->schema['properties'] ?? [])[$prop_name];
       // Defaults are guaranteed to exist for required props, may exist for
       // optional props. When an optional prop has no default value, the value
@@ -439,17 +497,14 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
         $default_value = $this->getDefaultStaticPropSource($prop_name)
           ->evaluate(NULL);
       }
+      $field_data_partial[$prop_name] = [
+        'required' => in_array($prop_name, $component_plugin->metadata->schema['required'] ?? [], TRUE),
+        'jsonSchema' => $prop_shape->resolvedSchema,
+      ];
       if ($default_value !== NULL) {
-        $keyed_choices[$prop_name]['default_values'] = $default_value;
+        $field_data_partial[$prop_name]['default_values'] = $default_value;
         $default_props_for_default_markup[$prop_name] = $default_value;
       }
-      if ($storable_prop_shape->fieldStorageSettings !== NULL) {
-        $keyed_choices[$prop_name]['sourceTypeSettings']['storage'] = $storable_prop_shape->fieldStorageSettings;
-      }
-      if ($storable_prop_shape->fieldInstanceSettings !== NULL) {
-        $keyed_choices[$prop_name]['sourceTypeSettings']['instance'] = $storable_prop_shape->fieldInstanceSettings;
-      }
-      $keyed_choices[$prop_name]['jsonSchema'] = $prop_shape->resolvedSchema;
 
       // Build transforms from widget metadata.
       $field_widget_plugin_id = NULL;
@@ -475,13 +530,27 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
       }
     }
 
+    // Avoid duplicating logic: reuse ::inputToClientModel(), add missing data.
+    // Note how ::inputToClientModel() returns a shape for the client's
+    // `EvaluatedComponentModel`. Its 'source' key is almost identical to the
+    // client's `FieldData`: keys are prop names, values are `StaticPropSource`s
+    // and *that* overlaps significantly with `FieldDataItem` (which allows
+    // arbitrary additional keys).
+    // @see EvaluatedComponentModel type-script definition.
+    // @see FieldData type-script definition.
+    // @see StaticPropSource type-script definition.
+    $field_data = NestedArray::mergeDeep(
+      $field_data_partial,
+      $this->inputToClientModel($default_props_for_default_markup)['source'],
+    );
+
     return [
       'source' => (string) $this->getSourceLabel(),
       'build' => $this->renderComponent([self::EXPLICIT_INPUT_NAME => $default_props_for_default_markup], $component->uuid()),
       // Additional data only needed for SDCs.
       // @todo UI does not use any other metadata - should `slots` move to top level?
       'metadata' => ['slots' => $this->getSlotDefinitions()],
-      'field_data' => $keyed_choices,
+      'field_data' => $field_data,
       'dynamic_prop_source_candidates' => $dynamic_prop_source_candidates,
       'transforms' => $transforms,
     ];
@@ -569,11 +638,27 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
   public function clientModelToInput(string $component_instance_uuid, ComponentEntity $component, array $client_model, ConstraintViolationListInterface $violations): array {
     $props = [];
 
-    foreach ($client_model as $prop => $prop_value) {
-      $static_source = $this->getDefaultStaticPropSource($prop);
-      $updated_static_source = $static_source->withValue($prop_value);
-      if ($static_source->fieldItem instanceof EntityReferenceItemInterface) {
-        $target_type = $static_source->fieldItem->getFieldDefinition()->getSetting('target_type');
+    foreach (($client_model['resolved'] ?? []) as $prop => $prop_value) {
+      try {
+        // @see PropSourceComponent type-script definition.
+        // @see EvaluatedComponentModel type-script definition.
+        // @todo We may not universally do this in the future to allow for
+        // transformed values, e.g. for an image field the source value
+        // might be a target_id whilst the resolved value might be the
+        // image's alt, src, height and width properties. This will change
+        // in https://drupal.org/i/3493942.
+        // Undo what ::inputToClientModel() did: restore the omitted `'value'`.
+        $reconstructed_prop_source = ['value' => $prop_value] + $client_model['source'][$prop];
+        // @phpstan-ignore-next-line
+        $source = PropSource::parse($reconstructed_prop_source);
+      }
+      catch (\LogicException) {
+        // Invalid client data has been passed - fallback to an empty default
+        // static prop source.
+        $source = $this->getDefaultStaticPropSource($prop)->withValue([]);
+      }
+      if ($source instanceof StaticPropSource && $source->fieldItem instanceof EntityReferenceItemInterface) {
+        $target_type = $source->fieldItem->getFieldDefinition()->getSetting('target_type');
         try {
           $target_id = $this->findTargetForProps($prop_value, $target_type);
         }
@@ -590,12 +675,13 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
           ));
           continue;
         }
-        $updated_static_source = $updated_static_source->withValue(
-          array_diff_key($updated_static_source->getValue(), \array_flip(['src', 'target_id']))
+
+        $source = $source->withValue(
+          array_diff_key($source->getValue(), \array_flip(['src', 'target_id']))
           + ['target_id' => $target_id]
         );
       }
-      $props[$prop] = $updated_static_source->toArray();
+      $props[$prop] = $source->toArray();
     }
 
     return $props;

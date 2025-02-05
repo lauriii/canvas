@@ -87,10 +87,72 @@ export default inputBehaviors(Input);
 `inputBehaviors` automatically takes care of several things:
 - Value changes update the `Redux` store. This means it can update the `component tree` preview in real time and it is tracked by XB's undo history.
 - Client-side validation based on the [JSON Schema definition](https://json-schema.org/understanding-json-schema) of each `component input`.
-- Value changes are also written to the form's `FormStateContext`, which is a single state object that
-keeps track of all values in the form.
+- Value changes are also written to the [formState slice](../ui/src/features/form/formStateSlice.ts)
 - Applies 'transforms' in order to map the data from the form structure to the expected value
 
+#### 3.2.1 Source vs resolved input
+
+Some components have a different representations for the source and resolved form of their input. For example, an Image SDC
+might have an `image` property with a `prop source` that is stored as a reference to a media entity
+but via a `prop expression` this might evaluate to an object with keys `src`, `alt`, `width` and `height`.
+The client-side representation of the data model keeps track of both the source and resolved values.
+In the case of `SDC` and `JS` `components`, the source will take the form of an array representation
+of the `prop source`. e.g. for a "text" `field item` this might be
+
+```
+"text": {
+  "sourceType": "static:field_item:string",
+  "expression": "..."
+},
+```
+
+And the resolved would be the value in the field
+
+```
+"text": "hello, world!",
+```
+
+Ordinarily a `static prop source` needs a value key in order to be evaluated. In cases where the resolved value duplicates
+the `prop source`'s value for the "value" key, this can be omitted. When the source is evaluated, the resolved value will be merged with the other
+source values.
+
+There are some `prop source`s where the expression used means the resolved value is entirely different to that of the source value, such as the media example above.
+
+In that case, the source values should include the actual value.
+
+```
+"image": {
+  "sourceType": "static:field_item:entity_reference",
+  "value": {
+    "target_id": 3
+  },
+  "expression": "...",
+  "sourceTypeSettings": {
+    "storage": {
+      "target_type": "media"
+    },
+    "instance": {
+      "handler": "default:media",
+      "handler_settings": {
+        "target_bundles": {
+          "image": "image"
+        }
+      }
+    }
+  }
+}
+```
+
+which when evaluated resolves to
+
+```
+"image": {
+  "src": "public://2024-07/framer.png",
+  "alt": "asd",
+  "width": 518,
+  "height": 1118
+}
+```
 
 ### 3.3 The spectrum of `HTML form control element` → `component input` flows
 

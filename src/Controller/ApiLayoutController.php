@@ -9,7 +9,7 @@ use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Form\FormBuilderInterface;
 use Drupal\Core\Theme\ThemeManagerInterface;
 use Drupal\experience_builder\AutoSave\AutoSaveManager;
-use Drupal\experience_builder\Entity\Component;
+use Drupal\experience_builder\ComponentSource\ComponentSourceInterface;
 use Drupal\experience_builder\Entity\PageTemplate;
 use Drupal\experience_builder\InternalXbFieldNameResolver;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
@@ -118,12 +118,12 @@ final class ApiLayoutController {
       // stored `inputs` data to the client-side `model`.
       // @see \Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem::propertyDefinitions()
       // @see \Drupal\experience_builder\Plugin\DataType\ComponentInputs
-      // @see ui/src/types/Component.ts
-      // @todo Update these comments to point to `SimpleComponent` and `ComponentWithFieldData` in https://www.drupal.org/i/3493941
-      $component_id = $tree->getComponentId($component_instance_uuid);
-      $component = Component::load($component_id);
-      assert($component instanceof Component);
-      $source = $component->getComponentSource();
+      // @see SimpleComponent type-script definition.
+      // @see ComponentModel type-script definition.
+      // @see PropSourceComponent type-script definition.
+      // @see EvaluatedComponentModel type-script definition.
+      $source = $tree->getComponentSource($component_instance_uuid);
+      \assert($source instanceof ComponentSourceInterface);
       if ($source->requiresExplicitInput()) {
         $model[$component_instance_uuid] = $source->inputToClientModel($source->getExplicitInput($component_instance_uuid, $item));
       }

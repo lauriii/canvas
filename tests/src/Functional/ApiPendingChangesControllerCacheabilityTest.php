@@ -36,7 +36,6 @@ final class ApiPendingChangesControllerCacheabilityTest extends FunctionalTestBa
    */
   protected static $modules = [
     'dynamic_page_cache',
-    'experience_builder',
   ];
 
   /**
@@ -61,7 +60,7 @@ final class ApiPendingChangesControllerCacheabilityTest extends FunctionalTestBa
     self::assertInstanceOf(AccountInterface::class, $account1);
     $this->drupalLogin($account1);
     /** @var \Drupal\experience_builder\AutoSave\AutoSaveManager $autoSave */
-    $autoSave = $this->container->get(AutoSaveManager::class);
+    $autoSave = \Drupal::service(AutoSaveManager::class);
     $sampleData = \file_get_contents(\dirname(__DIR__, 3) . '/ui/tests/fixtures/layout-default.json');
     self::assertNotFalse($sampleData);
     $data = \json_decode($sampleData, TRUE);

@@ -57,10 +57,10 @@ final class StaticPropSource extends PropSourceBase {
       'value' => $this->getValue(),
       'expression' => (string) $this->expression,
     ];
-    if ($this->fieldStorageSettings !== NULL) {
+    if ($this->fieldStorageSettings !== NULL && $this->fieldStorageSettings !== []) {
       $array_representation['sourceTypeSettings']['storage'] = $this->fieldStorageSettings;
     }
-    if ($this->fieldInstanceSettings !== NULL) {
+    if ($this->fieldInstanceSettings !== NULL && $this->fieldInstanceSettings !== []) {
       $array_representation['sourceTypeSettings']['instance'] = $this->fieldInstanceSettings;
     }
 

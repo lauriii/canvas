@@ -24,17 +24,13 @@ trait XBFieldTrait {
   private File $unreferencedImage;
   private Media $mediaEntity;
 
-  protected function getValidConvertedInputs(): array {
+  protected function getValidConvertedInputs(bool $dynamic_image = TRUE): array {
     return [
       self::TEST_HEADING_UUID => [
         'text' => [
           'sourceType' => 'static:field_item:string',
           'value' => 'This is a random heading.',
           'expression' => 'ℹ︎string␟value',
-          'sourceTypeSettings' => [
-            'storage' => [],
-            'instance' => [],
-          ],
         ],
         'style' => [
           'sourceType' => 'static:field_item:list_string',
@@ -53,7 +49,6 @@ trait XBFieldTrait {
                 ],
               ],
             ],
-            'instance' => [],
           ],
         ],
         'element' => [
@@ -93,19 +88,17 @@ trait XBFieldTrait {
                 ],
               ],
             ],
-            'instance' => [],
           ],
         ],
       ],
-      self::TEST_IMAGE_UUID => [
+      self::TEST_IMAGE_UUID => $dynamic_image ? [
+        'image' => [
+          'sourceType' => 'dynamic',
+          'expression' => 'ℹ︎␜entity:node:article␝field_hero␞␟{src↝entity␜␜entity:file␝uri␞␟url,alt↠alt,width↠width,height↠height}',
+        ],
+      ] : [
         'image' => [
           'sourceType' => 'static:field_item:entity_reference',
-          'value' => [
-            'alt' => 'This is a random image.',
-            'width' => 100,
-            'height' => 100,
-            'target_id' => (int) $this->mediaEntity->id(),
-          ],
           'expression' => 'ℹ︎entity_reference␟{src↝entity␜␜entity:media:image␝field_media_image␞␟entity␜␜entity:file␝uri␞␟url,alt↝entity␜␜entity:media:image␝field_media_image␞␟alt,width↝entity␜␜entity:media:image␝field_media_image␞␟width,height↝entity␜␜entity:media:image␝field_media_image␞␟height}',
           'sourceTypeSettings' => [
             'storage' => ['target_type' => 'media'],
@@ -115,6 +108,12 @@ trait XBFieldTrait {
                 'target_bundles' => ['image' => 'image'],
               ],
             ],
+          ],
+          'value' => [
+            'target_id' => (int) $this->mediaEntity->id(),
+            'alt' => 'This is a random image.',
+            'width' => 100,
+            'height' => 100,
           ],
         ],
       ],
@@ -195,7 +194,7 @@ trait XBFieldTrait {
     }
   }
 
-  private function getValidClientJson(): array {
+  private function getValidClientJson(bool $dynamic_image = TRUE): array {
     return [
       'layout' => [
         [
@@ -226,28 +225,126 @@ trait XBFieldTrait {
       ],
       'model' => [
         self::TEST_HEADING_UUID => [
-          'text' => 'This is a random heading.',
-          'style' => 'primary',
-          'element' => 'h1',
-        ],
-        self::TEST_IMAGE_UUID => [
-          'image' => [
-            'src' => $this->getSrcPropertyFromFile($this->referencedImage),
-            'alt' => 'This is a random image.',
-            'width' => 100,
-            'height' => 100,
+          'resolved' => [
+            'text' => 'This is a random heading.',
+            'style' => 'primary',
+            'element' => 'h1',
+          ],
+          'source' => [
+            'text' => [
+              'sourceType' => 'static:field_item:string',
+              'expression' => 'ℹ︎string␟value',
+            ],
+            'style' => [
+              'sourceType' => 'static:field_item:list_string',
+              'expression' => 'ℹ︎list_string␟value',
+              'sourceTypeSettings' => [
+                'storage' => [
+                  'allowed_values' => [
+                    [
+                      'value' => 'primary',
+                      'label' => 'primary',
+                    ],
+                    [
+                      'value' => 'secondary',
+                      'label' => 'secondary',
+                    ],
+                  ],
+                ],
+              ],
+            ],
+            'element' => [
+              'sourceType' => 'static:field_item:list_string',
+              'expression' => 'ℹ︎list_string␟value',
+              'sourceTypeSettings' => [
+                'storage' => [
+                  'allowed_values' => [
+                    [
+                      'value' => 'div',
+                      'label' => 'div',
+                    ],
+                    [
+                      'value' => 'h1',
+                      'label' => 'h1',
+                    ],
+                    [
+                      'value' => 'h2',
+                      'label' => 'h2',
+                    ],
+                    [
+                      'value' => 'h3',
+                      'label' => 'h3',
+                    ],
+                    [
+                      'value' => 'h4',
+                      'label' => 'h4',
+                    ],
+                    [
+                      'value' => 'h5',
+                      'label' => 'h5',
+                    ],
+                    [
+                      'value' => 'h6',
+                      'label' => 'h6',
+                    ],
+                  ],
+                ],
+              ],
+            ],
           ],
         ],
         self::TEST_BLOCK => [
-          'use_site_logo' => TRUE,
-          'use_site_name' => TRUE,
-          'use_site_slogan' => FALSE,
-          'label' => '',
-          'label_display' => FALSE,
-          // The 'provider' key is here to test that it is correctly removed.
-          // @see BlockComponent::clientModelToInput()
-          'provider' => 'system',
+          'resolved' => [
+            'use_site_logo' => TRUE,
+            'use_site_name' => TRUE,
+            'use_site_slogan' => FALSE,
+            'label' => '',
+            'label_display' => FALSE,
+            // The 'provider' key is here to test that it is correctly removed.
+            // @see BlockComponent::clientModelToInput()
+            'provider' => 'system',
+          ],
         ],
+        self::TEST_IMAGE_UUID => ($dynamic_image ? [
+          'resolved' => [
+            'image' => [
+              'src' => $this->getSrcPropertyFromFile($this->referencedImage),
+              'alt' => 'This is a random image.',
+              'width' => 100,
+              'height' => 100,
+            ],
+          ],
+          'source' => [
+            'image' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:article␝field_hero␞␟{src↝entity␜␜entity:file␝uri␞␟url,alt↠alt,width↠width,height↠height}',
+            ],
+          ],
+        ] : [
+          'resolved' => [
+            'image' => [
+              'src' => $this->getSrcPropertyFromFile($this->referencedImage),
+              'alt' => 'This is a random image.',
+              'width' => 100,
+              'height' => 100,
+            ],
+          ],
+          'source' => [
+            'image' => [
+              'sourceType' => 'static:field_item:entity_reference',
+              'expression' => 'ℹ︎entity_reference␟{src↝entity␜␜entity:media:image␝field_media_image␞␟entity␜␜entity:file␝uri␞␟url,alt↝entity␜␜entity:media:image␝field_media_image␞␟alt,width↝entity␜␜entity:media:image␝field_media_image␞␟width,height↝entity␜␜entity:media:image␝field_media_image␞␟height}',
+              'sourceTypeSettings' => [
+                'storage' => ['target_type' => 'media'],
+                'instance' => [
+                  'handler' => 'default:media',
+                  'handler_settings' => [
+                    'target_bundles' => ['image' => 'image'],
+                  ],
+                ],
+              ],
+            ],
+          ],
+        ]),
       ],
       'entity_form_fields' => [
         'title[0][value]' => 'The updated title.',
@@ -261,7 +358,7 @@ trait XBFieldTrait {
     return $src;
   }
 
-  private function assertValidJsonUpdateNode(Node $node): void {
+  private function assertValidJsonUpdateNode(Node $node, bool $dynamic_image = TRUE): void {
     // Ensure the field has been updated.
     $this->assertNodeValues(
       $node,
@@ -270,7 +367,7 @@ trait XBFieldTrait {
         'sdc.experience_builder.image',
         'block.system_branding_block',
       ],
-      $this->getValidConvertedInputs(),
+      $this->getValidConvertedInputs($dynamic_image),
       'The updated title.'
     );
 

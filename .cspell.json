@@ -5,6 +5,7 @@
     "globRoot": ".",
     "minWordLength": 4,
     "ignorePaths": [
+      "ui/tests/fixtures/layout-default.json",
       "CODEOWNERS",
       "modules/same_page_preview/**",
       "modules/xb_vite/**",

@@ -259,7 +259,7 @@ class ComponentTreeItem extends FieldItemBase implements RenderableInterface {
     $violations = new ConstraintViolationList();
     foreach ($component_instance_uuids as $component_instance_uuid) {
       $component_id = $tree->getComponentId($component_instance_uuid);
-      $source = Component::load($component_id)?->getComponentSource();
+      $source = $tree->getComponentSource($component_instance_uuid);
       if ($source === NULL) {
         $violations->add(new ConstraintViolation(
           \sprintf('Unable to load component plugin with ID "%s".', $component_id),

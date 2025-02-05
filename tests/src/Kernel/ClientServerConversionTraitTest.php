@@ -30,8 +30,8 @@ class ClientServerConversionTraitTest extends KernelTestBase {
   /**
    * {@inheritdoc}
    */
-  private function getValidClientJson(): array {
-    $json = $this->traitGetValidClientJson();
+  private function getValidClientJson(bool $dynamic_image = TRUE): array {
+    $json = $this->traitGetValidClientJson($dynamic_image);
     $content_region = \array_values(\array_filter($json['layout'], static fn(array $region) => $region['id'] === 'content'));
     return [
       'layout' => reset($content_region),
@@ -47,9 +47,10 @@ class ClientServerConversionTraitTest extends KernelTestBase {
   }
 
   public function testConvertClientToServer(): void {
-    ['layout' => $layout, 'model' => $model] = $this->getValidClientJson();
+    ['layout' => $layout, 'model' => $model] = $this->getValidClientJson(FALSE);
     $converted_item = $this->convertClientToServer($layout, $model);
-    $this->assertSame($this->getValidConvertedInputs(), json_decode($converted_item['inputs'], TRUE));
+    $expected_inputs = $this->getValidConvertedInputs(FALSE);
+    self::assertEqualsCanonicalizing($expected_inputs, json_decode($converted_item['inputs'], TRUE));
     $this->assertSame([
       ComponentTreeStructure::ROOT_UUID => [
         [
@@ -82,13 +83,13 @@ class ClientServerConversionTraitTest extends KernelTestBase {
         'sdc.experience_builder.image',
         'block.system_branding_block',
       ],
-      $this->getValidConvertedInputs(),
+      $expected_inputs,
       '5 amazing uses for old toothbrushes'
     );
 
     ['layout' => $layout, 'model' => $model] = $this->getValidPatternJson();
     $converted_item = $this->convertClientToServer($layout, $model);
-    $this->assertSame($this->getValidConvertedInputs(), json_decode($converted_item['inputs'], TRUE));
+    self::assertEqualsCanonicalizing($this->getValidConvertedInputs(FALSE), json_decode($converted_item['inputs'], TRUE));
     $this->assertSame([
       ComponentTreeStructure::ROOT_UUID => [
         [
@@ -118,7 +119,33 @@ class ClientServerConversionTraitTest extends KernelTestBase {
     $valid_client_json = $this->getValidClientJson();
 
     $invalid_image_client_json = $valid_client_json;
-    $invalid_image_client_json['model'][self::TEST_IMAGE_UUID]['image']['src'] = '/not/a/real/url';
+    $invalid_image_client_json['model'][self::TEST_IMAGE_UUID]['resolved']['image']['src'] = '/not/a/real/url';
+    // The sample json sends this as a dynamic prop based on the hero field,
+    // let's switch it to a static source.
+    $invalid_image_client_json['model'][self::TEST_IMAGE_UUID]['source']['image'] = [
+      'sourceType' => 'static:field_item:entity_reference',
+      'expression' => 'ℹ︎entity_reference␟{src↝entity␜␜entity:media:image␝field_media_image␞␟entity␜␜entity:file␝uri␞␟url,alt↝entity␜␜entity:media:image␝field_media_image␞␟alt,width↝entity␜␜entity:media:image␝field_media_image␞␟width,height↝entity␜␜entity:media:image␝field_media_image␞␟height}',
+      'sourceTypeSettings' =>
+        [
+          'storage' => [
+            'target_type' => 'media',
+          ],
+          'instance' => [
+            'handler' => 'default:media',
+            'handler_settings' => [
+              'target_bundles' => [
+                'image' => 'image',
+              ],
+            ],
+          ],
+        ],
+    ];
+    $suffix = '';
+    if (\version_compare(\Drupal::VERSION, '11.2', '>=') || \version_compare(\Drupal::VERSION, '11.2-dev', '>=')) {
+      // The format of component violation messages changed in Drupal 11.2.
+      // @see https://drupal.org/i/3462700
+      $suffix = '.';
+    }
     $this->assertConversionErrors(
       $invalid_image_client_json,
       [
@@ -128,13 +155,21 @@ class ClientServerConversionTraitTest extends KernelTestBase {
         // The failed transformation above results in an empty value for the
         // entire SDC prop. Which then fails SDC validation.
         // @see \Drupal\Core\Theme\Component\ComponentValidator::validateProps()
-        'model.' . self::TEST_IMAGE_UUID . '.image' => 'The property image is required',
+        'model.' . self::TEST_IMAGE_UUID . '.image' => 'The property image is required' . $suffix,
       ],
     );
 
     $unreferenced_file_client_json = $valid_client_json;
     $unreferenced_src = $this->getSrcPropertyFromFile($this->unreferencedImage);
-    $unreferenced_file_client_json['model'][self::TEST_IMAGE_UUID]['image']['src'] = $unreferenced_src;
+    // Copy the static source settings from the previous invalid json.
+    $unreferenced_file_client_json['model'][self::TEST_IMAGE_UUID] = $invalid_image_client_json['model'][self::TEST_IMAGE_UUID];
+    $unreferenced_file_client_json['model'][self::TEST_IMAGE_UUID]['resolved']['image']['src'] = $unreferenced_src;
+    $suffix = '';
+    if (\version_compare(\Drupal::VERSION, '11.2', '>=') || \version_compare(\Drupal::VERSION, '11.2-dev', '>=')) {
+      // The format of component violation messages changed in Drupal 11.2.
+      // @see https://drupal.org/i/3462700
+      $suffix = '.';
+    }
     $this->assertConversionErrors(
       $unreferenced_file_client_json,
       [
@@ -144,7 +179,7 @@ class ClientServerConversionTraitTest extends KernelTestBase {
         // The failed transformation above results in an empty value for the
         // entire SDC prop. Which then fails SDC validation.
         // @see \Drupal\Core\Theme\Component\ComponentValidator::validateProps()
-        'model.' . self::TEST_IMAGE_UUID . '.image' => 'The property image is required',
+        'model.' . self::TEST_IMAGE_UUID . '.image' => 'The property image is required' . $suffix,
       ]
     );
 
@@ -156,7 +191,7 @@ class ClientServerConversionTraitTest extends KernelTestBase {
     );
 
     $invalid_block_settings = $valid_client_json;
-    $invalid_block_settings['model'][self::TEST_BLOCK]['use_site_slogan'] = ['this is not a boolean'];
+    $invalid_block_settings['model'][self::TEST_BLOCK]['resolved']['use_site_slogan'] = ['this is not a boolean'];
     $this->assertConversionErrors(
       $invalid_block_settings,
       ['model.' . self::TEST_BLOCK . '.use_site_slogan' => 'This value should be of the correct primitive type.'],
@@ -197,24 +232,107 @@ class ClientServerConversionTraitTest extends KernelTestBase {
       ],
       'model' => [
         self::TEST_HEADING_UUID => [
-          'text' => 'This is a random heading.',
-          'style' => 'primary',
-          'element' => 'h1',
+          'resolved' => [
+            'text' => 'This is a random heading.',
+            'style' => 'primary',
+            'element' => 'h1',
+          ],
+          'source' => [
+            'text' => [
+              'sourceType' => 'static:field_item:string',
+              'expression' => 'ℹ︎string␟value',
+            ],
+            'style' => [
+              'sourceType' => 'static:field_item:list_string',
+              'expression' => 'ℹ︎list_string␟value',
+              'sourceTypeSettings' => [
+                'storage' => [
+                  'allowed_values' => [
+                    [
+                      'value' => 'primary',
+                      'label' => 'primary',
+                    ],
+                    [
+                      'value' => 'secondary',
+                      'label' => 'secondary',
+                    ],
+                  ],
+                ],
+              ],
+            ],
+            'element' => [
+              'sourceType' => 'static:field_item:list_string',
+              'expression' => 'ℹ︎list_string␟value',
+              'sourceTypeSettings' => [
+                'storage' => [
+                  'allowed_values' => [
+                    [
+                      'value' => 'div',
+                      'label' => 'div',
+                    ],
+                    [
+                      'value' => 'h1',
+                      'label' => 'h1',
+                    ],
+                    [
+                      'value' => 'h2',
+                      'label' => 'h2',
+                    ],
+                    [
+                      'value' => 'h3',
+                      'label' => 'h3',
+                    ],
+                    [
+                      'value' => 'h4',
+                      'label' => 'h4',
+                    ],
+                    [
+                      'value' => 'h5',
+                      'label' => 'h5',
+                    ],
+                    [
+                      'value' => 'h6',
+                      'label' => 'h6',
+                    ],
+                  ],
+                ],
+              ],
+            ],
+          ],
         ],
         self::TEST_IMAGE_UUID => [
-          'image' => [
-            'src' => $this->getSrcPropertyFromFile($this->referencedImage),
-            'alt' => 'This is a random image.',
-            'width' => 100,
-            'height' => 100,
+          'resolved' => [
+            'image' => [
+              'src' => $this->getSrcPropertyFromFile($this->referencedImage),
+              'alt' => 'This is a random image.',
+              'width' => 100,
+              'height' => 100,
+            ],
+          ],
+          'source' => [
+            'image' => [
+              'sourceType' => 'static:field_item:entity_reference',
+              'expression' => 'ℹ︎entity_reference␟{src↝entity␜␜entity:media:image␝field_media_image␞␟entity␜␜entity:file␝uri␞␟url,alt↝entity␜␜entity:media:image␝field_media_image␞␟alt,width↝entity␜␜entity:media:image␝field_media_image␞␟width,height↝entity␜␜entity:media:image␝field_media_image␞␟height}',
+              'sourceTypeSettings' => [
+                'storage' => ['target_type' => 'media'],
+                'instance' => [
+                  'handler' => 'default:media',
+                  'handler_settings' => [
+                    'target_bundles' => ['image' => 'image'],
+                  ],
+                ],
+              ],
+            ],
           ],
         ],
         self::TEST_BLOCK => [
-          'use_site_logo' => TRUE,
-          'use_site_name' => TRUE,
-          'use_site_slogan' => FALSE,
-          'label' => '',
-          'label_display' => FALSE,
+          'resolved' => [
+            'use_site_logo' => TRUE,
+            'use_site_name' => TRUE,
+            'use_site_slogan' => FALSE,
+            'label' => '',
+            'label_display' => FALSE,
+          ],
         ],
       ],
     ];

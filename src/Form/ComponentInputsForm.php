@@ -13,6 +13,7 @@ use Drupal\experience_builder\Entity\Component;
 use Drupal\experience_builder\InternalXbFieldNameResolver;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\Validator\ConstraintViolationList;
 
 /**
  * Allows editing the prop sources for a component.
@@ -74,7 +75,6 @@ final class ComponentInputsForm extends FormBase {
 
     $request = $this->requestStack->getCurrentRequest();
     \assert($request instanceof Request);
-
     $props = $request->get('form_xb_props');
     $client_model = json_decode($props, TRUE);
 
@@ -94,7 +94,15 @@ final class ComponentInputsForm extends FormBase {
       '#value' => $props,
     ];
 
-    $form = $component->getComponentSource()->buildConfigurationForm($form, $form_state, $component_instance_uuid, $client_model, $entity, $component->get('settings'));
+    $violations = new ConstraintViolationList();
+    $inputs = $component->getComponentSource()->clientModelToInput($component_instance_uuid, $component, $client_model, $violations);
+    // Don't complain about invalid received values except to developers.
+    // @see https://en.wikipedia.org/wiki/Robustness_principle
+    assert($violations->count() === 0);
+
+    $form['#component'] = $component;
+
+    $form = $component->getComponentSource()->buildConfigurationForm($form, $form_state, $component_instance_uuid, $inputs, $entity, $component->get('settings'));
     assert(isset($form['#attributes']['data-form-id']));
     $form['#pre_render'][] = [FormIdPreRender::class, 'addFormId'];
     if ($this->getRequest()->get(AjaxResponseSubscriber::AJAX_REQUEST_PARAMETER) !== NULL) {

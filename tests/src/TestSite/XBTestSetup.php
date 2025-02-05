@@ -162,7 +162,7 @@ class XBTestSetup implements TestSetupInterface {
         'alt' => 'This is a random image.',
         'width' => 100,
         'height' => 100,
-        'target_id' => (int) $hero_reference->id(),
+        'target_id' => 3,
       ],
       // This expression resolves `src` to the image's public URL.
       'expression' => 'ℹ︎entity_reference␟{src↝entity␜␜entity:media:image␝field_media_image␞␟entity␜␜entity:file␝uri␞␟url,alt↝entity␜␜entity:media:image␝field_media_image␞␟alt,width↝entity␜␜entity:media:image␝field_media_image␞␟width,height↝entity␜␜entity:media:image␝field_media_image␞␟height}',
@@ -283,6 +283,7 @@ class XBTestSetup implements TestSetupInterface {
     $empty_node = Node::create([
       'type' => 'article',
       'title' => 'I am an empty node',
+      'field_hero' => $image_field_sample_value,
     ]);
     $empty_node->save();
 

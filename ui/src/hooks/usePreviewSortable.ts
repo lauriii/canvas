@@ -101,16 +101,19 @@ function usePreviewSortable(
               }
             }
 
-            dispatch(
-              addNewComponentToLayout(
-                {
-                  to: newPath,
-                  component:
-                    componentsRef?.current?.[ev.clone.dataset.xbComponentId],
-                },
-                setSelectedComponent,
-              ),
-            );
+            const currentElement =
+              componentsRef?.current?.[ev.clone.dataset.xbComponentId];
+            if (currentElement !== undefined) {
+              dispatch(
+                addNewComponentToLayout(
+                  {
+                    to: newPath,
+                    component: currentElement,
+                  },
+                  setSelectedComponent,
+                ),
+              );
+            }
           } else if (type === 'section') {
             // Adding a section template.
             ev.item.innerHTML = '<p>Loading section...</p>';

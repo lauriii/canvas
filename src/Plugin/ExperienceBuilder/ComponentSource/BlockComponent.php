@@ -221,7 +221,9 @@ final class BlockComponent extends ComponentSourceBase implements ContainerFacto
    * {@inheritdoc}
    */
   public function inputToClientModel(array $explicit_input): array {
-    return $explicit_input;
+    // @see SimpleComponent type-script definition.
+    // @see ComponentModel type-script definition.
+    return ['resolved' => $explicit_input];
   }
 
   /**
@@ -298,7 +300,7 @@ final class BlockComponent extends ComponentSourceBase implements ContainerFacto
     }
     // We don't need to store these as they can be recalculated based on the
     // plugin ID.
-    $input = $client_model + $defaults;
+    $input = ($client_model['resolved'] ?? []) + $defaults;
     unset($input['provider'], $input['id']);
     return $input;
   }

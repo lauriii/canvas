@@ -54,6 +54,7 @@ class ApiPublishAllControllerTest extends KernelTestBase {
     $node1 = Node::create([
       'type' => 'article',
       'title' => '5 amazing uses for old toothbrushes',
+      'field_hero' => $this->referencedImage,
       'field_xb_demo' => [
         'tree' => json_encode([
           ComponentTreeStructure::ROOT_UUID => [],
@@ -79,7 +80,7 @@ class ApiPublishAllControllerTest extends KernelTestBase {
     $node2_original_title = (string) $node2->getTitle();
     $this->assertNodeValues($node2, [], [], $node2_original_title);
 
-    $validClientJson = $this->getValidClientJson();
+    $validClientJson = $this->getValidClientJson(FALSE);
 
     // Add some global elements.
     if ($withGlobal) {
@@ -137,7 +138,7 @@ class ApiPublishAllControllerTest extends KernelTestBase {
     unset($validClientJson['model'][self::TEST_IMAGE_UUID]);
     unset($validClientJson['layout'][0]['components'][1]);
     // And an invalid prop.
-    $validClientJson['model'][self::TEST_HEADING_UUID]['style'] = 'flared';
+    $validClientJson['model'][self::TEST_HEADING_UUID]['resolved']['style'] = 'flared';
 
     // \Drupal\experience_builder\Controller\ApiPreviewController will not work
     // with invalid data so we need to use the manager directly.
@@ -148,8 +149,14 @@ class ApiPublishAllControllerTest extends KernelTestBase {
     $response = $this->makePublishAllRequest();
     $json = json_decode($response->getContent() ?: '', TRUE);
     self::assertEquals(Response::HTTP_UNPROCESSABLE_ENTITY, $response->getStatusCode());
+    $suffix = '';
+    if (\version_compare(\Drupal::VERSION, '11.2', '>=') || \version_compare(\Drupal::VERSION, '11.2-dev', '>=')) {
+      // The format of component violation messages changed in Drupal 11.2.
+      // @see https://drupal.org/i/3462700
+      $suffix = '. The provided value is: "flared".';
+    }
     $errors[] = [
-      'detail' => 'Does not have a value in the enumeration ["primary","secondary"]',
+      'detail' => 'Does not have a value in the enumeration ["primary","secondary"]' . $suffix,
       'source' => [
         'pointer' => 'model.' . self::TEST_HEADING_UUID . '.style',
       ],
@@ -179,7 +186,7 @@ class ApiPublishAllControllerTest extends KernelTestBase {
     }
 
     // Fix the error.
-    $validClientJson['model'][self::TEST_HEADING_UUID]['style'] = 'primary';
+    $validClientJson['model'][self::TEST_HEADING_UUID]['resolved']['style'] = 'primary';
     $response = $this->request(Request::create(Url::fromRoute('experience_builder.api.preview', [
       'entity_type' => 'node',
       'entity' => $node2->id(),
@@ -258,7 +265,7 @@ class ApiPublishAllControllerTest extends KernelTestBase {
     self::assertEquals(Response::HTTP_OK, $response->getStatusCode());
     self::assertEquals(['message' => \sprintf('Successfully published %d items.', $withGlobal ? 3 : 2)], $json);
 
-    $this->assertValidJsonUpdateNode($node1);
+    $this->assertValidJsonUpdateNode($node1, FALSE);
     $this->assertNodeValues(
       $node2,
       [

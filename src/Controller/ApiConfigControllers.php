@@ -17,6 +17,7 @@ use Drupal\Core\Session\AnonymousUserSession;
 use Drupal\Core\Url;
 use Drupal\experience_builder\AssetRenderer;
 use Drupal\experience_builder\ClientSideRepresentation;
+use Drupal\experience_builder\ComponentSource\ComponentSourceInterface;
 use Drupal\experience_builder\Entity\XbHttpApiEligibleConfigEntityInterface;
 use Drupal\experience_builder\Exception\ConstraintViolationException;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeHydrated;
@@ -318,7 +319,7 @@ final class ApiConfigControllers extends ApiControllerBase {
     $model = [];
     $decoded_tree = json_decode($tree->getValue(), TRUE);
 
-    self::buildLayoutAndModel($layout, $model, $item, $decoded_tree[ComponentTreeStructure::ROOT_UUID], $hydrated->getValue()->getTree()[ComponentTreeStructure::ROOT_UUID]);
+    self::buildLayoutAndModel($layout, $model, $item, $decoded_tree[ComponentTreeStructure::ROOT_UUID]);
 
     return [
       'layout' => $layout,
@@ -326,7 +327,7 @@ final class ApiConfigControllers extends ApiControllerBase {
     ];
   }
 
-  private static function buildLayoutAndModel(array &$layout, array &$model, ComponentTreeItem $item, array $tree_tier, array $hydrated): void {
+  private static function buildLayoutAndModel(array &$layout, array &$model, ComponentTreeItem $item, array $tree_tier): void {
     $tree = $item->get('tree');
     assert($tree instanceof ComponentTreeStructure);
     $full_tree = json_decode($tree->getValue(), TRUE);
@@ -337,9 +338,21 @@ final class ApiConfigControllers extends ApiControllerBase {
         'type' => $component_type,
         'slots' => [],
       ];
-      if (isset($hydrated[$component_instance_uuid])) {
-        $model[$component_instance_uuid] = $hydrated[$component_instance_uuid]['props'] ?? [];
+
+      // Use ComponentSourceInterface::inputToClientModel() to map the server-
+      // stored `inputs` data to the client-side `model`.
+      // @see \Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem::propertyDefinitions()
+      // @see \Drupal\experience_builder\Plugin\DataType\ComponentInputs
+      // @see SimpleComponent type-script definition.
+      // @see ComponentModel type-script definition.
+      // @see PropSourceComponent type-script definition.
+      // @see EvaluatedComponentModel type-script definition.
+      $source = $tree->getComponentSource($component_instance_uuid);
+      \assert($source instanceof ComponentSourceInterface);
+      if ($source->requiresExplicitInput()) {
+        $model[$component_instance_uuid] = $source->inputToClientModel($source->getExplicitInput($component_instance_uuid, $item));
       }
+
       if (isset($full_tree[$component_instance_uuid])) {
         foreach ($full_tree[$component_instance_uuid] as $slot_name => $slot_children) {
           $component_instance_slot = [
@@ -348,7 +361,7 @@ final class ApiConfigControllers extends ApiControllerBase {
             'nodeType' => 'slot',
             'components' => [],
           ];
-          self::buildLayoutAndModel($component_instance_slot['components'], $model, $item, $slot_children, $hydrated[$component_instance_uuid]['slots'][$slot_name]);
+          self::buildLayoutAndModel($component_instance_slot['components'], $model, $item, $slot_children);
           $component_instance['slots'][] = $component_instance_slot;
         }
       }

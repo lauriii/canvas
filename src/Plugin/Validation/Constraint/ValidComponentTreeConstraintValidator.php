@@ -7,7 +7,6 @@ namespace Drupal\experience_builder\Plugin\Validation\Constraint;
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
 use Drupal\Core\TypedData\TypedDataManagerInterface;
 use Drupal\experience_builder\MissingComponentInputsException;
-use Drupal\experience_builder\Entity\Component;
 use Drupal\experience_builder\Plugin\DataType\ComponentInputs;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
@@ -80,16 +79,14 @@ final class ValidComponentTreeConstraintValidator extends ConstraintValidator im
     // Validate that each prop source resolves into a value that is considered
     // valid by the destination SDC prop.
     foreach ($tree->getComponentInstanceUuids() as $component_instance_uuid) {
-      $component_id = $tree->getComponentId($component_instance_uuid);
-      $component_entity = Component::load($component_id);
-      if (!$component_entity) {
+      $component_source = $tree->getComponentSource($component_instance_uuid);
+      if ($component_source === NULL) {
         // TRICKY: ignore missing Component config entities; that's the
         // responsibility of another validator.
         // @see \Drupal\experience_builder\Plugin\Validation\Constraint\ComponentTreeStructureConstraintValidator::validateComponentInstance()
         // @todo Refactor this away after https://www.drupal.org/project/drupal/issues/2820364 is fixed.
         continue;
       }
-      $component_source = $component_entity->getComponentSource();
 
       // Get the stored explicit input. Only add a violation error if the
       // Component in its current definition requires explicit input. (Silently

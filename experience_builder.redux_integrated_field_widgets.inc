@@ -103,6 +103,8 @@ function experience_builder_preprocess_media_library_item__widget(array &$variab
   $offset = strpos($variables['element']['remove_button']['#name'], $string_split) + strlen($string_split);
   $associated_field_name = substr($variables['element']['remove_button']['#name'], $offset);
   $variables['content']['remove_button']['#attributes']['data-media-field-name'] = $associated_field_name;
+  $variables['content']['remove_button']['#attributes']['data-prop-name'] = $variables['element']['#parents'][2];
+  $variables['content']['remove_button']['#attributes']['data-component-uuid'] = $variables['element']['#parents'][1];
   if ($media_id) {
     $media = Media::load($media_id);
     if (is_null($media)) {
