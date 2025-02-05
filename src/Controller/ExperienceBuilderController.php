@@ -46,17 +46,25 @@ HTML;
 
   public function __invoke(string $entity_type, ?EntityInterface $entity) : HtmlResponse {
     assert($this->validateTransformAssetLibraries());
-    $libraries = [
-      'experience_builder/xb-ui',
+
+    // List of libraries to load in the preview iframe.
+    $preview_libraries = [
       'system/base',
       ...$this->themeManager->getActiveTheme()->getLibraries(),
-      ...$this->getTransformAssetLibraries(),
     ];
-    $assets = (new AttachedAssets())->setLibraries($libraries);
+    // Assets for the preview <iframe>s. They will be rendered by
+    // \Drupal\experience_builder\AssetRenderer and added to `drupalSettings` in
+    // the response. They are used when rendering the preview <iframe>s.
+    // @see ui/src/components/ComponentPreview.tsx
+    $preview_assets = (new AttachedAssets())->setLibraries($preview_libraries);
+
     $demo_mode = $this->configFactory->get('experience_builder.settings')->get('demo_mode');
 
     return (new HtmlResponse(self::HTML))->setAttachments([
-      'library' => $libraries,
+      'library' => [
+        'experience_builder/xb-ui',
+        ...$this->getTransformAssetLibraries(),
+      ],
       'drupalSettings' => [
         'xb' => [
           'base' => \sprintf('xb/%s/%s', $entity_type, $entity?->id()),
@@ -67,9 +75,9 @@ HTML;
           // know what global assets to load in component preview <iframe>s.
           // @see ui/src/components/ComponentPreview.tsx
           'global_assets' => [
-            'css' => $this->assetRenderer->renderCssAssets($assets),
-            'js_header' => $this->assetRenderer->renderJsHeaderAssets($assets),
-            'js_footer' => $this->assetRenderer->renderJsFooterAssets($assets),
+            'css' => $this->assetRenderer->renderCssAssets($preview_assets),
+            'js_header' => $this->assetRenderer->renderJsHeaderAssets($preview_assets),
+            'js_footer' => $this->assetRenderer->renderJsFooterAssets($preview_assets),
           ],
         ],
       ],
