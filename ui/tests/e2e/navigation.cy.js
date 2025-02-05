@@ -53,6 +53,17 @@ describe('Navigation functionality', () => {
     cy.url().should('contain', '/xb/xb_page/3');
   });
 
+  it('Clicking page title navigates to edit page', () => {
+    cy.loadURLandWaitForXBLoaded({ url: 'xb/xb_page/1' });
+
+    cy.findByTestId(navigationButtonTestId).click();
+    cy.contains('div', '/test-page').click();
+    cy.url().should('contain', '/xb/xb_page/2');
+    cy.findByTestId(navigationButtonTestId).click();
+    cy.contains('div', '/homepage').click();
+    cy.url().should('contain', '/xb/xb_page/1');
+  });
+
   it('Clicking the back button navigates to last visited page', () => {
     const BASE_URL = `${Cypress.config().baseUrl}/`;
     const CONFIG_PAGE_URL = `${BASE_URL}admin/config`;

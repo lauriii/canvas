@@ -25,6 +25,7 @@ import { useGetContentListQuery } from '@/services/contentList';
 import { useCreateContentMutation } from '@/services/contentCreate';
 import { useNavigationUtils } from '@/hooks/useNavigationUtils';
 import { useErrorBoundary } from 'react-error-boundary';
+import type { ContentStub } from '@/types/Content';
 
 interface PageType {
   [key: string]: ReactElement;
@@ -73,6 +74,11 @@ const PageInfo = () => {
     });
   }
 
+  // @todo https://www.drupal.org/i/3498525 should generalize this to all eligible content entity types.
+  function handleOnSelect(item: ContentStub) {
+    setEditorEntity('xb_page', String(item.id));
+  }
+
   useEffect(() => {
     if (isCreateContentSuccess) {
       setEditorEntity(
@@ -118,7 +124,7 @@ const PageInfo = () => {
               items={pageItems || []}
               onNewPage={handleNewPage}
               onSearch={handleNonWorkingBtn}
-              onSelect={handleNonWorkingBtn}
+              onSelect={handleOnSelect}
               onRename={handleNonWorkingBtn}
               onDuplicate={handleNonWorkingBtn}
               onSetHomepage={handleNonWorkingBtn}
