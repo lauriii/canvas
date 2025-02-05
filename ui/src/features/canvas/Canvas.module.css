@@ -1,6 +1,6 @@
 .canvasPane {
   position: fixed;
-  inset: 0;
+  inset: var(--topbar-height) 0 0 0;
   overflow: scroll;
   background: var(--gray-8);
 }

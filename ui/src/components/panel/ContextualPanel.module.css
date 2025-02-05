@@ -1,6 +1,6 @@
 .contextualPanel {
   position: fixed;
-  top: calc(var(--topbar-height) + var(--topbar-space-above) + var(--topbar-space-below));
+  top: calc(var(--topbar-height) + var(--topbar-space-below));
   right: var(--topbar-space-side);
   width: var(--sidebar-right-width);
   height: var(--sidebar-height);

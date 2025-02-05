@@ -1,8 +1,8 @@
 .root {
-  --icon-height: 22px;
+  --icon-height: 24px;
 
   position: fixed;
-  inset: var(--topbar-space-above) var(--topbar-space-side) var(--topbar-space-below) var(--topbar-space-side);
+  inset: var(--topbar-space-above) 0 var(--topbar-space-below) 0;
   height: var(--topbar-height);
   transition:
     top 0.2s cubic-bezier(0.4, 0, 0.6, 1),
@@ -10,8 +10,11 @@
     right 0.2s cubic-bezier(0.4, 0, 0.6, 1),
     opacity 2s ease-out;
   transition-delay: 0.1s;
-  border-radius: var(--radius-6);
   box-shadow: var(--shadow-3);
+  /* Double selection of .root so the specificity overrides Radix's panel styles. */
+  &.root {
+    border-radius: 0;
+  }
   &.inPreview {
     top: 0;
     right: 0;
@@ -30,8 +33,13 @@
     }
   }
 }
-
-.drupalLogo {
-  width: auto;
-  height: var(--icon-height);
+/* Select the class twice for precedence over the Radix .rt-reset. */
+.topBarButton.topBarButton {
+  margin: 0;
 }
+
+.verticalDivider {
+  height: 16px;
+  border-right: 1px solid var(--gray-a6);
+}
+

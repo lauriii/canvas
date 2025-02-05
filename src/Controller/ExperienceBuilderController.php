@@ -37,9 +37,30 @@ final class ExperienceBuilderController {
   <css-placeholder token="CSS-HERE-PLEASE">
   <js-placeholder token="JS-HERE-PLEASE">
   <title>Drupal Experience Builder</title>
+  <style>
+    .experience-builder-loading {
+      font-family: sans-serif;
+      opacity: 0.5;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      inset: 0;
+      position: fixed;
+      animation: pulseLoading 2s infinite;
+    }
+
+    @keyframes pulseLoading {
+      0%, 100% {
+          opacity: 1;
+      }
+      50% {
+          opacity: 0.5;
+      }
+    }
+  </style>
 </head>
 <body>
-  <div id="experience-builder" class="experience-builder-container">Loading Experience Builder…</div>
+  <div id="experience-builder" class="experience-builder-container"><div class="experience-builder-loading">Loading Experience Builder…</div></div>
 </body>
 </html>
 HTML;

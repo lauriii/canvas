@@ -8,6 +8,8 @@ import { useHotkeys } from 'react-hotkeys-hook';
 import { useEffect } from 'react';
 import { UndoRedoActionCreators } from '@/features/ui/uiSlice';
 import { selectUndoType, selectRedoType } from '@/features/ui/uiSlice';
+import clsx from 'clsx';
+import styles from '@/components/topbar/Topbar.module.css';
 
 const UndoRedo = () => {
   const dispatch = useAppDispatch();
@@ -50,24 +52,30 @@ const UndoRedo = () => {
   return (
     <>
       <Button
-        variant="outline"
+        variant="ghost"
         color="gray"
-        highContrast
+        size="2"
+        className={clsx(styles.topBarButton)}
         onClick={() => dispatchUndo()}
         disabled={!isUndoable}
         aria-label="Undo"
       >
-        <ResetIcon /> Undo
+        <ResetIcon height="24" width="auto" />
       </Button>
       <Button
-        variant="outline"
+        variant="ghost"
         color="gray"
-        highContrast
+        size="2"
+        className={clsx(styles.topBarButton)}
         onClick={() => dispatchRedo()}
         disabled={!isRedoable}
         aria-label="Redo"
       >
-        <ResetIcon style={{ transform: 'scaleX(-1)' }} /> Redo
+        <ResetIcon
+          height="24"
+          width="auto"
+          style={{ transform: 'scaleX(-1)' }}
+        />
       </Button>
     </>
   );
