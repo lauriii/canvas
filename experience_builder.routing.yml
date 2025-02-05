@@ -96,6 +96,11 @@ experience_builder.api.component_inputs_form:
     parameters:
       entity:
         type: entity:{entity_type}
+  methods:
+    # Used by XB UI to generate this form
+    - PATCH
+    # Used by Drupal's AJAX system.
+    - POST
 
 experience_builder.api.entity_form:
   path: '/xb/api/entity-form/{entity_type}/{entity}/{entity_form_mode}'

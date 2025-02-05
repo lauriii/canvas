@@ -494,7 +494,7 @@ paths:
     parameters:
       - $ref: '#/components/parameters/entityTypeId'
       - $ref: '#/components/parameters/entityId'
-    get:
+    patch:
       description: TODO
       responses:
         '200':

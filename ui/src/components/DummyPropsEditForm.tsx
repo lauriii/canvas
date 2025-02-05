@@ -68,7 +68,9 @@ const DummyPropsEditFormRenderer: React.FC<DummyPropsEditFormRendererProps> = (
     // Instead we rely on fresh data from RTK Query to re-render, and we grab
     // the values from the arg that was passed to the API call which produced
     // the current data.
-    const componentId = new URLSearchParams(originalArgs).get('selected');
+    const componentId = new URLSearchParams(originalArgs).get(
+      'form_xb_selected',
+    );
     const latestUndoRedoActionId = new URLSearchParams(originalArgs).get(
       'latestUndoRedoActionId',
     );
@@ -194,9 +196,9 @@ const DummyPropsEditForm: React.FC<DummyPropsEditFormProps> = () => {
 
     const tree = findComponentByUuid(layout, selectedComponent);
     const query = new URLSearchParams({
-      tree: JSON.stringify(tree),
-      props: JSON.stringify(preparedModel),
-      selected: selectedComponent,
+      form_xb_tree: JSON.stringify(tree),
+      form_xb_props: JSON.stringify(preparedModel),
+      form_xb_selected: selectedComponent,
       latestUndoRedoActionId,
     });
     setDynamicStaticCardQueryString(`?${query.toString()}`);

@@ -12,7 +12,14 @@ export const dummyPropsFormApi = createApi({
       query: (queryString) => {
         const fullQueryString = addAjaxPageState(queryString);
         return {
-          url: `xb-field-form/{entity_type}/{entity_id}?${fullQueryString}`,
+          url: `xb-field-form/{entity_type}/{entity_id}`,
+          // We use PATCH to keep this distinct from AJAX form submissions which
+          // use POST.
+          method: 'PATCH',
+          body: fullQueryString,
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
         };
       },
       transformResponse: processResponseAssets,

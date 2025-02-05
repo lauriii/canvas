@@ -66,15 +66,33 @@ final class ComponentInputsForm extends FormBase {
     // so that component form can be displayed.
     InternalXbFieldNameResolver::getXbFieldName($entity);
 
-    $component_id = json_decode($this->getRequest()->get('tree'), TRUE)['type'];
+    $tree = $this->getRequest()->get('form_xb_tree');
+    $component_id = json_decode($tree, TRUE)['type'];
     $component = Component::load($component_id);
     assert($component !== NULL);
-    $component_instance_uuid = $this->getRequest()->get('selected');
+    $component_instance_uuid = $this->getRequest()->get('form_xb_selected');
 
     $request = $this->requestStack->getCurrentRequest();
     \assert($request instanceof Request);
 
-    $client_model = json_decode($request->get('props'), TRUE);
+    $props = $request->get('form_xb_props');
+    $client_model = json_decode($props, TRUE);
+
+    // Make sure these get sent in subsequent AJAX requests.
+    // Note: they're prefixed with `form_` to avoid storage in the UI state.
+    // @see ui/src/components/form/inputBehaviors.tsx
+    $form['form_xb_selected'] = [
+      '#type' => 'hidden',
+      '#value' => $component_instance_uuid,
+    ];
+    $form['form_xb_tree'] = [
+      '#type' => 'hidden',
+      '#value' => $tree,
+    ];
+    $form['form_xb_props'] = [
+      '#type' => 'hidden',
+      '#value' => $props,
+    ];
 
     $form = $component->getComponentSource()->buildConfigurationForm($form, $form_state, $component_instance_uuid, $client_model, $entity, $component->get('settings'));
     assert(isset($form['#attributes']['data-form-id']));

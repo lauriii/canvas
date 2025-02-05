@@ -18,7 +18,7 @@ describe('Routing', () => {
     const uuid = 'static-static-card3rr';
     cy.intercept('GET', '**/api/layout/node/1').as('getLayout');
     cy.intercept('POST', '**/api/preview/node/1').as('getPreview');
-    cy.intercept('GET', '**/xb-field-form/node/1?**').as('getPropsForm');
+    cy.intercept('PATCH', '**/xb-field-form/node/1').as('getPropsForm');
     cy.drupalRelativeURL(`xb/node/1/editor/component/${uuid}`);
 
     cy.wait('@getLayout');
