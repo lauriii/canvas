@@ -5,6 +5,7 @@ import {
 } from '@reduxjs/toolkit';
 import type { RootState } from '@/app/store';
 import type { InputMessage } from '@/types/Form';
+import { FORM_TYPES } from '@/features/form/constants';
 
 export interface FormState {
   values: Record<string, any>;
@@ -12,10 +13,8 @@ export interface FormState {
 }
 
 export interface FormStateSliceFormsState {
-  component_inputs_form: FormState;
-  // @todo Remove in https://www.drupal.org/project/experience_builder/issues/3500152
-  block_form: FormState;
-  page_data_form: FormState;
+  [FORM_TYPES.COMPONENT_INPUTS_FORM]: FormState;
+  [FORM_TYPES.ENTITY_FORM]: FormState;
 }
 
 export interface FormStateSliceState extends FormStateSliceFormsState {
@@ -29,9 +28,8 @@ const emptyFormState = {
 
 export const initialState: FormStateSliceState = {
   currentComponent: undefined,
-  component_inputs_form: emptyFormState,
-  block_form: emptyFormState,
-  page_data_form: emptyFormState,
+  [FORM_TYPES.COMPONENT_INPUTS_FORM]: emptyFormState,
+  [FORM_TYPES.ENTITY_FORM]: emptyFormState,
 };
 
 type ComponentId = string;
@@ -64,8 +62,7 @@ export const formStateSlice = createSlice({
       (state, action: PayloadAction<ComponentId>) => ({
         ...state,
         currentComponent: action.payload,
-        component_inputs_form: { errors: {}, values: {} },
-        block_form: { errors: {}, values: {} },
+        [FORM_TYPES.COMPONENT_INPUTS_FORM]: { errors: {}, values: {} },
       }),
     ),
     clearFieldValues: create.reducer(

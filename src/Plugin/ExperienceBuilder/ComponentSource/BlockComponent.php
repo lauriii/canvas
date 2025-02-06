@@ -18,6 +18,9 @@ use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\Core\Render\Element;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
+use Drupal\Core\TypedData\ComplexDataInterface;
+use Drupal\Core\TypedData\Plugin\DataType\BooleanData;
+use Drupal\Core\TypedData\TypedDataInterface;
 use Drupal\experience_builder\Attribute\ComponentSource;
 use Drupal\experience_builder\ComponentSource\ComponentSourceBase;
 use Drupal\experience_builder\Entity\Component;
@@ -241,9 +244,7 @@ final class BlockComponent extends ComponentSourceBase implements ContainerFacto
     if ($client_model) {
       $blockPlugin->setConfiguration($client_model);
     }
-    $form = $blockPlugin->blockForm($form, $form_state);
-    // @todo Remove in https://www.drupal.org/project/experience_builder/issues/3500152
-    $form['#attributes']['data-form-id'] = 'block_form';
+    $form += $blockPlugin->blockForm($form, $form_state);
     return $form;
   }
 
@@ -298,11 +299,35 @@ final class BlockComponent extends ComponentSourceBase implements ContainerFacto
         'context_mapping',
       ]));
     }
+    $input = $this->fixBooleansUsingConfigSchema($client_model['resolved'] ?? []);
     // We don't need to store these as they can be recalculated based on the
     // plugin ID.
-    $input = ($client_model['resolved'] ?? []) + $defaults;
+    $input += $defaults;
     unset($input['provider'], $input['id']);
     return $input;
+  }
+
+  /**
+   * @todo Remove this in https://www.drupal.org/project/experience_builder/issues/3500795 when we start passing types for block config options.
+   */
+  private function fixBooleansUsingConfigSchema(array $resolved_client_model): array {
+    $block_plugin = $this->getBlockPlugin();
+    $plugin_id = $block_plugin->getPluginId();
+    $typed_data = $this->typedConfigManager->createFromNameAndData('block.settings.' . $plugin_id, $resolved_client_model);
+    \assert($typed_data instanceof ComplexDataInterface);
+    $boolean = \array_filter($typed_data->getProperties(), fn(TypedDataInterface $property) => $property instanceof BooleanData);
+    foreach ($boolean as $property) {
+      $property_name = $property->getName();
+      \assert($property_name !== NULL);
+      if (\array_key_exists($property_name, $resolved_client_model)) {
+        if (is_bool($resolved_client_model[$property_name]) || !\in_array($resolved_client_model[$property_name], ['true', 'false'], TRUE)) {
+          // Already a boolean or something that shouldn't be converted to one.
+          continue;
+        }
+        $resolved_client_model[$property_name] = $resolved_client_model[$property_name] === 'true';
+      }
+    }
+    return $resolved_client_model;
   }
 
   /**

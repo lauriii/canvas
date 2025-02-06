@@ -23,7 +23,7 @@ describe('Block form', () => {
     cy.clickComponentInPreview('Administration block');
 
     // Confirm that an element in the block settings form is present.
-    cy.get('[data-testid="xb-contextual-panel"] #edit-menu-levels > button')
+    cy.get('[data-testid="xb-contextual-panel"] button:contains("Menu levels")')
       .as('menuLevelDisclose')
       .should('exist');
 
@@ -36,14 +36,16 @@ describe('Block form', () => {
     // Click the disclosure button and confirm the level edit element is now
     // present.
     cy.get('@menuLevelDisclose').realClick({ scrollBehavior: false });
-    cy.get('[data-testid="xb-contextual-panel"] #edit-level').should('exist');
+    cy.get('[data-testid="xb-contextual-panel"]')
+      .findByLabelText('Initial visibility level')
+      .should('exist');
 
     // Click the disclosure button again and confirm the level edit elem
     // no longer present.
     cy.get('@menuLevelDisclose').realClick({ scrollBehavior: false });
-    cy.get('[data-testid="xb-contextual-panel"] #edit-level').should(
-      'not.exist',
-    );
+    cy.get('[data-testid="xb-contextual-panel"]')
+      .findByLabelText('Initial visibility level')
+      .should('not.exist');
   });
 
   it('Block settings form values are stored and the preview is updated', () => {

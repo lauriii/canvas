@@ -87,13 +87,6 @@ describe('Form state slice 🔪', () => {
             b741: "Okay, let's ride",
           },
         },
-        // @todo Remove in www.drupal.org/project/experience_builder/issues/3500152
-        block_form: {
-          errors: {},
-          values: {
-            birth: 4000,
-          },
-        },
       },
     });
     expect(store.getState().formState.component_inputs_form.values).to.deep.eq({
@@ -103,7 +96,5 @@ describe('Form state slice 🔪', () => {
     expect(store.getState().formState.component_inputs_form.values).to.deep.eq(
       {},
     );
-    // @todo Remove in www.drupal.org/project/experience_builder/issues/3500152
-    expect(store.getState().formState.block_form.values).to.deep.eq({});
   });
 });

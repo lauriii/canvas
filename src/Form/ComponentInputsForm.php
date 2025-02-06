@@ -8,7 +8,8 @@ use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\EventSubscriber\AjaxResponseSubscriber;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
-use Drupal\Core\Theme\ComponentPluginManager;
+use Drupal\Core\Render\Element;
+use Drupal\Core\Render\ElementInfoManagerInterface;
 use Drupal\experience_builder\Entity\Component;
 use Drupal\experience_builder\InternalXbFieldNameResolver;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -20,19 +21,10 @@ use Symfony\Component\Validator\ConstraintViolationList;
  */
 final class ComponentInputsForm extends FormBase {
 
-  /**
-   * The component plugin manager.
-   *
-   * @var \Drupal\Core\Theme\ComponentPluginManager
-   */
-  protected $componentPluginManager;
-
   public function __construct(
-    ComponentPluginManager $componentPluginManager,
+    private ElementInfoManagerInterface $elementInfoManager,
   ) {
-    // Unable to use property injection due to extending a class that does not
-    // use it.
-    $this->componentPluginManager = $componentPluginManager;
+
   }
 
   /**
@@ -40,7 +32,7 @@ final class ComponentInputsForm extends FormBase {
    */
   public static function create(ContainerInterface $container): static {
     return new static(
-      $container->get(ComponentPluginManager::class),
+      $container->get(ElementInfoManagerInterface::class),
     );
   }
 
@@ -94,6 +86,12 @@ final class ComponentInputsForm extends FormBase {
       '#value' => $props,
     ];
 
+    // Prevent form submission while specifying values for component inputs,
+    // because changes are saved via Redux instead of a traditional submit.
+    // @see ui/src/components/form/inputBehaviors.tsx
+    // @see https://developer.mozilla.org/en-US/docs/Web/HTML/Element/form#method
+    $form['#method'] = 'dialog';
+
     $violations = new ConstraintViolationList();
     $inputs = $component->getComponentSource()->clientModelToInput($component_instance_uuid, $component, $client_model, $violations);
     // Don't complain about invalid received values except to developers.
@@ -101,9 +99,14 @@ final class ComponentInputsForm extends FormBase {
     assert($violations->count() === 0);
 
     $form['#component'] = $component;
+    $form['#attributes']['data-form-id'] = 'component_inputs_form';
 
-    $form = $component->getComponentSource()->buildConfigurationForm($form, $form_state, $component_instance_uuid, $inputs, $entity, $component->get('settings'));
-    assert(isset($form['#attributes']['data-form-id']));
+    $parents = ['xb_component_props', $component_instance_uuid];
+    $sub_form = ['#parents' => $parents, '#component' => $component];
+    $form['xb_component_props'][$component_instance_uuid] = $this->applyElementParents(
+      $component->getComponentSource()->buildConfigurationForm($sub_form, $form_state, $component_instance_uuid, $inputs, $entity, $component->get('settings')),
+      $parents
+    );
     $form['#pre_render'][] = [FormIdPreRender::class, 'addFormId'];
     if ($this->getRequest()->get(AjaxResponseSubscriber::AJAX_REQUEST_PARAMETER) !== NULL) {
       // Add the data-ajax flag and manually add the form ID as pre render
@@ -119,6 +122,30 @@ final class ComponentInputsForm extends FormBase {
    */
   public function submitForm(array &$form, FormStateInterface $form_state): void {
     // @todo implement submitForm() method.
+  }
+
+  public function applyElementParents(array $element, array $parents): array {
+    foreach (Element::children($element) as $child) {
+      if (\array_key_exists('#parents', $element[$child]) && $element[$child]['#parents'] !== $parents) {
+        // Ignore elements with existing, but different parents.
+        continue;
+      }
+      $this_parents = $parents;
+      if ($this->elementHasInput($element[$child])) {
+        $this_parents[] = $child;
+      }
+      $element[$child]['#parents'] = $this_parents;
+      $element[$child] = $this->applyElementParents($element[$child], $this_parents);
+    }
+    return $element;
+  }
+
+  public function elementHasInput(array $element): bool {
+    $type = $element['#type'] ?? NULL;
+    if ($type === NULL) {
+      return FALSE;
+    }
+    return $this->elementInfoManager->getInfoProperty($type, '#input', FALSE);
   }
 
 }

@@ -46,15 +46,10 @@ import {
 import type { ErrorObject } from 'ajv/dist/types';
 import type { Component } from '@/types/Component';
 import { componentHasFieldData } from '@/types/Component';
+import { FORM_TYPES } from '@/features/form/constants';
 
 const ajv = new Ajv();
 addDraft2019(ajv);
-
-export const FORM_TYPES = {
-  COMPONENT_PROPS_FORM: 'component_inputs_form' as const,
-  BLOCK_FORM: 'block_form' as const,
-  ENTITY_FORM: 'page_data_form' as const,
-};
 
 type ValidationResult = {
   valid: boolean;
@@ -526,69 +521,6 @@ const InputBehaviorsEntityForm = (
   );
 };
 
-// Provides a higher order component to wrap a form element that is part of the
-// block settings form.
-// @todo Remove this in https://www.drupal.org/project/experience_builder/issues/3500152
-const InputBehaviorsBlockSettingsForm = (
-  OriginalInput: React.FC,
-  props: React.ComponentProps<any>,
-): React.ReactElement => {
-  const dispatch = useAppDispatch();
-
-  const currentComponent = useAppSelector(selectCurrentComponent);
-  const selectedComponent = currentComponent || 'noop';
-  const latestUndoRedoActionId = useAppSelector(selectLatestUndoRedoActionId);
-  const { attributes } = props;
-
-  const formStateToStore = (newFormState: PropsValues) => {
-    const values = Object.keys(newFormState).reduce(
-      (acc: Record<string, any>, key) => {
-        if (!key.startsWith('form_')) {
-          return { ...acc, [key]: newFormState[key] };
-        }
-        return acc;
-      },
-      {},
-    );
-
-    dispatch(
-      updateNodeModelForce({
-        uuid: selectedComponent,
-        model: { resolved: values },
-      }),
-    );
-  };
-
-  const parseNewValue = (e: React.ChangeEvent) => {
-    const target = e.target as HTMLInputElement;
-    if (target.value) {
-      return target.value;
-    }
-    if ('checked' in target) {
-      return target.checked;
-    }
-    return null;
-  };
-
-  const validateNewValue = (e: React.ChangeEvent, newValue: any) => {
-    // @todo implement this in https://drupal.org/i/3500795
-    return { valid: true, errors: null };
-  };
-
-  return (
-    <InputBehaviorsCommon
-      key={`${attributes?.name}-${latestUndoRedoActionId}`}
-      OriginalInput={OriginalInput}
-      props={props}
-      callbacks={{
-        commitFormState: formStateToStore,
-        parseNewValue,
-        validateNewValue,
-      }}
-    />
-  );
-};
-
 // Provides a higher order component to wrap a form element that will map to
 // a more specific higher order component depending on the element's form ID.
 const InputBehaviors = (OriginalInput: React.FC) => {
@@ -598,8 +530,7 @@ const InputBehaviors = (OriginalInput: React.FC) => {
     const { attributes } = props;
     const formId = attributes['data-form-id'] as FormId;
     const FORM_INPUT_BEHAVIORS: Record<FormId, InputBehaviorsForm> = {
-      [FORM_TYPES.COMPONENT_PROPS_FORM]: InputBehaviorsComponentPropsForm,
-      [FORM_TYPES.BLOCK_FORM]: InputBehaviorsBlockSettingsForm,
+      [FORM_TYPES.COMPONENT_INPUTS_FORM]: InputBehaviorsComponentPropsForm,
       [FORM_TYPES.ENTITY_FORM]: InputBehaviorsEntityForm,
     };
 

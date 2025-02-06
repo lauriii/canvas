@@ -367,13 +367,6 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
     // only "static prop sources").
     $form_state->set('is_xb_static_prop_source', TRUE);
 
-    // Prevent form submission while specifying values for component inputs,
-    // because changes are saved via Redux instead of a traditional submit.
-    // @see ui/src/components/form/inputBehaviors.tsx
-    // @see https://developer.mozilla.org/en-US/docs/Web/HTML/Element/form#method
-    $form['#method'] = 'dialog';
-
-    $form['#parents'] = ['xb_component_props', $component_instance_uuid];
     $prop_field_definitions = $settings['prop_field_definitions'];
 
     $component = $form['#component'];
@@ -424,9 +417,6 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
       $form[$sdc_prop_name] = $source->formTemporaryRemoveThisExclamationExclamationExclamation($field_widget_plugin_id, $sdc_prop_name, $label, $is_required, $entity, $form, $form_state);
       $form[$sdc_prop_name]['#disabled'] = $disabled;
     }
-
-    // @todo Remove in https://www.drupal.org/project/experience_builder/issues/3500152
-    $form['#attributes']['data-form-id'] = 'component_inputs_form';
 
     return $form;
   }
