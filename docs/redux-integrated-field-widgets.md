@@ -88,7 +88,8 @@ export default inputBehaviors(Input);
 - Value changes update the `Redux` store. This means it can update the `component tree` preview in real time and it is tracked by XB's undo history.
 - Client-side validation based on the [JSON Schema definition](https://json-schema.org/understanding-json-schema) of each `component input`.
 - Value changes are also written to the [formState slice](../ui/src/features/form/formStateSlice.ts)
-- Applies 'transforms' in order to map the data from the form structure to the expected value
+- Applies 'transforms' (see [3.4 Transforms](#34-transforms)) in order to map the data from the form structure to the expected value
+
 
 #### 3.2.1 Source vs resolved input
 
@@ -167,7 +168,8 @@ tame, because each combination across all 6 axes must work correctly:
 2. **List `prop shape`s ("array" in JSON schema):** the same as above, but 2 or more times, in a `field item list` ("multiple cardinality")
 3. **Computed `field prop`s:** a `field item` that has >=1 _computed_ `field prop`s, _if_ needed by the `component input`.
    For example: `\Drupal\text\Plugin\Field\FieldType\TextLongItem` has a `processed` computed `field prop`.
-4. **HTML form structure of a `field widget`:** a `field widget`'s use of `HTML form control element`s for a single `field item`:
+4. **HTML form structure of a `field widget`:** a `field widget`'s use of `HTML form control element`s for a single
+   `field item`. This is solved using the [3.4 Transforms](#34-transforms) infrastructure.
   - 1:1: one `HTML form control element` to one `field prop`.
     For example: `\Drupal\Core\Field\Plugin\Field\FieldWidget\NumberWidget::formElement()`.
   - N:1: multiple `HTML form control element` to one `field prop`.
@@ -175,7 +177,7 @@ tame, because each combination across all 6 axes must work correctly:
     and "time" `HTML form control element`s.
   - 1:N: one `HTML form control element` to multiple `field prop`s.
     For example: `\Drupal\image\Plugin\Field\FieldWidget\ImageWidget::formElement()` uses `<input type="file">` and
-    populates the following `field prop`s: target_id`, `width` and `height`.
+    populates the following `field prop`s: `target_id`, `width` and `height`.
 5. **AJAX**: a `field widget`'s reliance on AJAX or not. (Often for _computed_ `field prop`s, but not always.)
    For example: `\Drupal\Core\Field\Plugin\Field\FieldWidget\EntityReferenceAutocompleteWidget::formElement()`.
 6. **Multi-value `field widget`s**: some `field widget`s natively support multiple values, without the need
@@ -187,14 +189,14 @@ tame, because each combination across all 6 axes must work correctly:
 
 Supported:
 
-| ?   | Field props | List | Computed | HTML | AJAX | Multi |                 Example | Issue to add support                                                         |
-|-----|:------------|:----:|:--------:|:----:|:----:|:-----:|------------------------:|:-----------------------------------------------------------------------------|
-| 🟢️ | single      |  N   |    N     | 1:1  |  N   |   N   |          `NumberWidget` | \                                                                            |
-| 🟡️ | single      |  N   |    N     | N:1  |  N   |   N   | `DateTimeDefaultWidget` | \                                                                            |
-| 🔴 | multiple    |  N   |    N     | 1:1  |  N   |   N   |           `ImageWidget` | \                                                                            |
-| ∅  | multiple    |  N   |    N     | N:1  |  N   |   N   |         Does not exist? | \                                                                            |
-| 🔴 | multiple    |  Y   |    N     | 1:1  |  N   |   N   |                         | [#3467870](https://www.drupal.org/project/experience_builder/issues/3467870) |
-| 🔴 | multiple    |  Y   |    N     | 1:1  |  N   |   N   |                         | [#3467870](https://www.drupal.org/project/experience_builder/issues/3467870) |
+| ?   | Field props | List | Computed | HTML | AJAX | Multi |                 Example | Infrastructure | Issue to add support                                                         |
+|-----|:------------|:----:|:--------:|:----:|:----:|:-----:|------------------------:|----------------|:-----------------------------------------------------------------------------|
+| 🟢️ | single      |  N   |    N     | 1:1  |  N   |   N   |          `NumberWidget` | \              | \                                                                            |
+| 🟢️ | single      |  N   |    N     | N:1  |  N   |   N   | `DateTimeDefaultWidget` | Transforms     | \                                                                            |
+| 🔴 | multiple    |  N   |    N     | 1:1  |  N   |   N   |           `ImageWidget` |                | [#3499550](https://www.drupal.org/project/experience_builder/issues/3499550) |
+| ∅  | multiple    |  N   |    N     | N:1  |  N   |   N   |         Does not exist? |                | \                                                                            |
+| 🔴 | multiple    |  Y   |    N     | 1:1  |  N   |   N   |                         |                | [#3467870](https://www.drupal.org/project/experience_builder/issues/3467870) |
+| 🔴 | multiple    |  Y   |    N     | 1:1  |  N   |   N   |                         |                | [#3467870](https://www.drupal.org/project/experience_builder/issues/3467870) |
 
 Legend:
 - 🟢 = supported
@@ -202,10 +204,6 @@ Legend:
 - 🔴 = not supported yet.
 
 _⚠️The table is incomplete: many permutations are missing!_
-
-… with currently one-off workarounds for:
-- `MediaLibraryWidget`: There is a hacky band-aid solution for the AJAX reliance, but there needs to be a more robust way to handle this. See `experience_builder_field_widget_single_element_media_library_widget_form_alter()` + `experience_builder_preprocess_media_library_item__widget()` + `inputBehaviors.tsx`.
-- `DateTimeDefaultWidget`: There is a hacky band-aid solution for this in `inputBehaviors` to demonstrate what kind of conversion is necessary, but it's not at all scalable and probably should happen more server side.
 
 How to interpret the above table?
 - If a given `component input` has a simple, single value `prop shape` — such as a string, number, or boolean, the relationship to its corresponding `HTML form control element` is straightforward: a "first name" prop that stores a string is easily synchronized with a "first name" `<input type="text">` where that value can be changed. These types of props already work well with XB.
