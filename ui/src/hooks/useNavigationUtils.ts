@@ -52,7 +52,7 @@ export function useNavigationUtils() {
   // @todo revisit approach (like using routing) in https://www.drupal.org/i/3502887
   const setEditorEntity = useCallback(
     (entityType: string, entityId: string) => {
-      window.location.href = `${baseUrl}/xb/${entityType}/${entityId}`;
+      window.location.href = `${baseUrl}xb/${entityType}/${entityId}`;
     },
     [baseUrl],
   );
