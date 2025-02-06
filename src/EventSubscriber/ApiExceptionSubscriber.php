@@ -17,6 +17,7 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Event\ExceptionEvent;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\HttpKernel\KernelEvents;
 use Symfony\Component\Validator\ConstraintViolationInterface;
 
@@ -53,25 +54,42 @@ final class ApiExceptionSubscriber implements EventSubscriberInterface {
     // might allow this to be simplified.
     $route_name = $this->routeMatch->getRouteName() ?? ($previous_exception instanceof ParamNotConvertedException ? $previous_exception->getRouteName() : NULL);
     if (str_starts_with($route_name ?? '', 'experience_builder.api.')) {
-      $response = [];
       $exception = $event->getThrowable();
 
       $status = match (TRUE) {
         $exception instanceof HttpExceptionInterface => $exception->getStatusCode(),
+        $exception instanceof ConstraintViolationException => Response::HTTP_UNPROCESSABLE_ENTITY,
         default => Response::HTTP_INTERNAL_SERVER_ERROR,
       };
 
-      if ($exception instanceof ConstraintViolationException) {
-        $status = Response::HTTP_UNPROCESSABLE_ENTITY;
-        $response['errors'] = array_map(
-          fn($violation) => self::violationToJsonApiStyleErrorObject($violation),
-          iterator_to_array($exception->getConstraintViolationList())
-        );
+      // Client-side error responses.
+      // @see https://jsonapi.org/format/#error-objects
+      if ($status >= 400 && $status < 500) {
+        $response = match (TRUE) {
+          $exception instanceof ConstraintViolationException => [
+            'errors' => array_map(
+              fn($violation) => self::violationToJsonApiStyleErrorObject($violation),
+              iterator_to_array($exception->getConstraintViolationList())
+            ),
+          ],
+          // A 404 for a a route parameter that could not be upcasted is not
+          // worth a verbose Symfony message: that's simply an entity that does
+          // not exist.
+          $exception instanceof NotFoundHttpException && $previous_exception instanceof ParamNotConvertedException => [],
+          default => [
+            'errors' => [
+              0 => ExceptionHelper::getVerboseMessage($exception),
+            ],
+          ],
+        };
       }
-
-      // Generate a JSON response with a message when the status is not 404 or 422.
-      if ($status !== Response::HTTP_NOT_FOUND && $status !== Response::HTTP_UNPROCESSABLE_ENTITY) {
-        $response['message'] = ExceptionHelper::getVerboseMessage($exception);
+      // Server-side error responses.
+      // @todo Make these also use JSON:API-style error responses?
+      else {
+        assert($status >= 500);
+        $response = [
+          'message' => ExceptionHelper::getVerboseMessage($exception),
+        ];
       }
 
       // Generate a JSON response containing details when the status is 500, if

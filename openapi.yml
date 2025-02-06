@@ -369,6 +369,12 @@ paths:
                     js:
                       original: "console.log('Hello, world!');"
                       compiled: "console.log('Hello, world!');"
+        '409':
+          description: Asset Library with same ID already exists.
+          $ref: '#/components/responses/ClientErrorResponse'
+        '422':
+          description: Validation errors exist
+          $ref: '#/components/responses/ClientErrorResponse'
   '/xb/api/config/xb_asset_library/{configEntityId}':
     description: Endpoints for managing a specific asset library.
     get:
@@ -679,19 +685,7 @@ paths:
                     examples:
                       - No items to publish
         '422':
-          description: Validation errors exist
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  errors:
-                    type: array
-                    description: Error items
-                    items:
-                      type: object
-                      schema:
-                        $ref: '#/components/schemas/Error'
+          $ref: '#/components/responses/ClientErrorResponse'
   /xb/api/autosave:
     description: TODO
     get:
@@ -785,7 +779,14 @@ paths:
           application/json:
             schema:
               type: object
+              required:
+                - name
+                - layout
+                - model
               properties:
+                id:
+                  type: string
+                  description: The ID — if none is provided, this will be auto-generated from the given name.
                 name:
                   type: string
                   description: Human-readable Pattern/Section label
@@ -841,6 +842,12 @@ paths:
                     js_footer: ''
               schema:
                 $ref: '#/components/schemas/PatternPreview'
+        '409':
+          description: Section/Pattern with same ID already exists.
+          $ref: '#/components/responses/ClientErrorResponse'
+        '422':
+          description: Validation errors exist
+          $ref: '#/components/responses/ClientErrorResponse'
   '/xb/api/config/pattern/{configEntityId}':
     description: TODO
     get:
@@ -925,6 +932,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CodeComponent'
+        '409':
+          description: Code Component with same ID already exists.
+          $ref: '#/components/responses/ClientErrorResponse'
+        '422':
+          description: Validation errors exist
+          $ref: '#/components/responses/ClientErrorResponse'
 # @see https://spec.openapis.org/oas/v3.1.0.html#components-object
 components:
   # @see https://spec.openapis.org/oas/v3.1.0.html#schema-object
@@ -1326,7 +1339,7 @@ components:
           description: Human-readable Pattern/Section label
         id:
           type: string
-          description: The ID that was auto-generated from the given name.
+          description: The ID (possibly auto-generated from the given name).
         default_markup:
           type: string
         css:
@@ -1372,6 +1385,22 @@ components:
             properties:
               html:
                 type: string
+    ClientErrorResponse:
+      description: Errors in response to the client's request.
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - errors
+            properties:
+              errors:
+                type: array
+                description: Error items
+                items:
+                  type: object
+                  schema:
+                    $ref: '#/components/schemas/Error'
   # @see https://spec.openapis.org/oas/v3.1.0.html#parameter-object
   parameters:
     entityTypeId:

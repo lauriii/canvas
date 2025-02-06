@@ -87,7 +87,9 @@ final class Pattern extends ConfigEntityBase implements XbHttpApiEligibleConfigE
   }
 
   public static function preCreate(EntityStorageInterface $storage, array &$values) {
-    $values['id'] = self::generateId($values['label']);
+    if (!array_key_exists('id', $values)) {
+      $values['id'] = self::generateId($values['label']);
+    }
     parent::preCreate($storage, $values);
   }
 
@@ -150,13 +152,15 @@ final class Pattern extends ConfigEntityBase implements XbHttpApiEligibleConfigE
     ['layout' => $layout, 'model' => $model, 'name' => $label] = $data;
     ['tree' => $tree, 'inputs' => $inputs] = self::convertClientToServer($layout, $model);
 
+    $other_values = array_diff_key($data, array_flip(['layout', 'model', 'name']));
+
     return [
       'label' => $label,
       'component_tree' => [
         'tree' => $tree,
         'inputs' => $inputs,
       ],
-    ];
+    ] + $other_values;
   }
 
 }

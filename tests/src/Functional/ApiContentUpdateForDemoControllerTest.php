@@ -54,7 +54,7 @@ final class ApiContentUpdateForDemoControllerTest extends FunctionalTestBase {
     );
     $this->assertSame(403, $response->getStatusCode());
     $this->assertSame(
-      ['message' => 'X-CSRF-Token request header is missing'],
+      ['errors' => ['X-CSRF-Token request header is missing']],
       json_decode((string) $response->getBody(), TRUE)
     );
     // Now, make a valid client request with CSRF token.

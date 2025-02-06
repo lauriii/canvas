@@ -251,6 +251,17 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
     ];
     $this->assertSame($expected_pattern_normalization, $body);
 
+    // Creating a Pattern with an already-in-use ID: 409.
+    $request_options[RequestOptions::BODY] = self::encodeXBData(
+      ['id' => 'testpatternpleaseignore'] + $pattern_to_send
+    );
+    $body = $this->assertExpectedResponse('POST', $list_url, $request_options, 409, NULL, NULL, NULL, NULL);
+    $this->assertSame([
+      'errors' => [
+        "'pattern' entity with ID 'testpatternpleaseignore' already exists.",
+      ],
+    ], $body);
+
     // Create a (more realistic) Pattern with nested components, but missing
     // prop: 422.
     $nested_components_pattern = $pattern_to_send;
@@ -577,6 +588,15 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
     ];
     $this->assertSame($expected_component, $body);
 
+    // Creating a JavaScriptComponent with an already-in-use ID: 409.
+    $request_options[RequestOptions::BODY] = self::encodeXBData($code_component_to_send);
+    $body = $this->assertExpectedResponse('POST', $list_url, $request_options, 409, NULL, NULL, NULL, NULL);
+    $this->assertSame([
+      'errors' => [
+        "'js_component' entity with ID 'test' already exists.",
+      ],
+    ], $body);
+
     // Modify a JavaScriptComponent incorrectly (shape-wise): 500.
     $request_options[RequestOptions::BODY] = self::encodeXBData([
       'machineName' => $code_component_to_send['machineName'],
@@ -718,7 +738,14 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
         "$base/xb/api/config/xb_asset_library/global",
       ],
     ]);
-    $this->assertSame($asset_library_to_send, $body);
+
+    // Creating an Asset Library with an already-in-use ID: 409.
+    $body = $this->assertExpectedResponse('POST', $list_url, $request_options, 409, NULL, NULL, NULL, NULL);
+    $this->assertSame([
+      'errors' => [
+        "'xb_asset_library' entity with ID 'global' already exists.",
+      ],
+    ], $body);
 
     // Delete the Asset Library via the XB HTTP API: 204.
     $this->assertExpectedResponse('DELETE', Url::fromUri('base:/xb/api/config/xb_asset_library/global'), [], 204, NULL, NULL, NULL, NULL);
@@ -734,7 +761,9 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
     // Anonymously: 403.
     $body = $this->assertExpectedResponse('GET', $list_url, [], 403, ['user.permissions'], ['4xx-response', 'config:user.role.anonymous', 'http_response'], 'MISS', NULL);
     $this->assertSame([
-      'message' => "The 'access administration pages' permission is required.",
+      'errors' => [
+        "The 'access administration pages' permission is required.",
+      ],
     ], $body);
 
     // Authenticated & authorized: 200, but empty list.
@@ -751,7 +780,9 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
     $response = $this->makeApiRequest('POST', $list_url, $request_options);
     $this->assertSame(403, $response->getStatusCode());
     $this->assertSame([
-      'message' => "X-CSRF-Token request header is missing",
+      'errors' => [
+        "X-CSRF-Token request header is missing",
+      ],
     ], json_decode((string) $response->getBody(), TRUE));
   }
 

@@ -8,6 +8,7 @@ use Drupal\Core\Cache\Cache;
 use Drupal\Core\Cache\CacheableJsonResponse;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Config\Entity\ConfigEntityTypeInterface;
+use Drupal\Core\Entity\EntityStorageException;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Render\RenderContext;
@@ -28,6 +29,7 @@ use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
+use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
 
 /**
@@ -154,8 +156,14 @@ final class ApiConfigControllers extends ApiControllerBase {
       ]);
     }
 
-    // Save the XB config entity, respond with a 201.
-    $xb_config_entity->save();
+    // Save the XB config entity, respond with a 201 if success. Else 409.
+    try {
+      $xb_config_entity->save();
+    }
+    catch (EntityStorageException $e) {
+      throw new ConflictHttpException($e->getMessage());
+    }
+
     $representation = $this->normalize($xb_config_entity);
     return new JsonResponse(status: 201, data: $representation->values, headers: [
       'Location' => Url::fromRoute(

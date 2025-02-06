@@ -66,7 +66,7 @@ final class XbContentEntityHttpApiTest extends HttpApiTestBase {
     $response = $this->makeApiRequest('POST', $url, $request_options);
     $this->assertSame(403, $response->getStatusCode());
     $this->assertSame(
-      ['message' => 'X-CSRF-Token request header is missing'],
+      ['errors' => ['X-CSRF-Token request header is missing']],
       json_decode((string) $response->getBody(), TRUE)
     );
 
@@ -75,7 +75,7 @@ final class XbContentEntityHttpApiTest extends HttpApiTestBase {
     $response = $this->makeApiRequest('POST', $url, $request_options);
     $this->assertSame(403, $response->getStatusCode());
     $this->assertSame(
-      ['message' => "The 'administer xb_page' permission is required."],
+      ['errors' => ["The 'administer xb_page' permission is required."]],
       json_decode((string) $response->getBody(), TRUE)
     );
 
@@ -96,7 +96,9 @@ final class XbContentEntityHttpApiTest extends HttpApiTestBase {
     // Anonymously: 403.
     $body = $this->assertExpectedResponse('GET', $url, [], 403, ['user.permissions'], ['4xx-response', 'config:user.role.anonymous', 'http_response'], 'MISS', NULL);
     $this->assertSame([
-      'message' => "The 'administer xb_page' permission is required.",
+      'errors' => [
+        "The 'administer xb_page' permission is required.",
+      ],
     ], $body);
 
     // User without permission.
@@ -105,7 +107,9 @@ final class XbContentEntityHttpApiTest extends HttpApiTestBase {
     $this->drupalLogin($user);
     $body = $this->assertExpectedResponse('GET', $url, [], 403, ['user.permissions'], ['4xx-response', 'http_response'], 'UNCACHEABLE (request policy)', NULL);
     $this->assertSame([
-      'message' => "The 'administer xb_page' permission is required.",
+      'errors' => [
+        "The 'administer xb_page' permission is required.",
+      ],
     ], $body);
 
     // Authenticated, authorized: 200.
