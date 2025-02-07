@@ -193,28 +193,6 @@ paths:
                   html:
                     type: string
                     description: The HTML preview.
-  '/xb/api/content-update/{entityTypeId}/{entityId}':
-    description: TODO
-    patch:
-      description: TODO
-      parameters:
-        - $ref: '#/components/parameters/entityTypeId'
-        - $ref: '#/components/parameters/entityId'
-      responses:
-        '200':
-          description: Saved entity successfully
-        '400':
-          description: Invalid request payload
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  errors:
-                    type: array
-                    description: Error descriptions
-                    items:
-                      type: string
   '/xb/api/content-create/xb_page':
     description: TODO
     post:

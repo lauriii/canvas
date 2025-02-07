@@ -36,15 +36,9 @@ export const layoutApi = createApi({
         }
       },
     }),
-    saveLayoutById: builder.mutation<RootLayoutModel, LayoutRequest>({
-      query: ({ entityId, entityType, layout, model }) => ({
-        url: `/xb/api/content-update/${entityType}/${entityId}`,
-        method: 'PATCH',
-      }),
-    }),
   }),
 });
 
 // Export hooks for usage in functional layout, which are
 // auto-generated based on the defined endpoints
-export const { useGetLayoutByIdQuery, useSaveLayoutByIdMutation } = layoutApi;
+export const { useGetLayoutByIdQuery } = layoutApi;
