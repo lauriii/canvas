@@ -643,6 +643,8 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
     ], $body);
 
     // Modify a Code Component correctly: 200.
+    $code_component_to_send['name'] = 'Test, and test again';
+    $expected_component['name'] = $code_component_to_send['name'];
     $request_options[RequestOptions::BODY] = self::encodeXBData($code_component_to_send);
     $body = $this->assertExpectedResponse('PATCH', Url::fromUri('base:/xb/api/config/js_component/test'), $request_options, 200, NULL, NULL, NULL, NULL);
     $this->assertSame($expected_component, $body);
