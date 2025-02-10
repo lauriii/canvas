@@ -69,6 +69,26 @@ final class XBTemplateRenderer implements MainContentRendererInterface {
     //
     // @see https://github.com/effulgentsia/hyperscriptify
     $assets = AttachedAssets::createFromRenderArray($main_content);
+
+    // A few Drupal asset libraries need XB-specific variants, because of:
+    // - some assets in the library conflict
+    // - the library is requested by `xb_stark` but should be rendered by the
+    //   current admin theme, so we account for the admin theme's library extend
+    //   and overrides.
+    // @see experience_builder_dialog_library_customize()
+    // This is performed here instead of library_info_alter() as this
+    // information is cached per-theme and this distinction needs to be made
+    // only in XB contexts.
+    $libraries_replace = [
+      'core/drupal.dialog' => 'experience_builder/xb.dialog',
+      'core/drupal.ajax' => 'experience_builder/xb.drupal.ajax',
+    ];
+    foreach ($libraries_replace as $original => $replacement) {
+      if ($index = array_search($original, $assets->libraries)) {
+        $assets->libraries[$index] = $replacement;
+      }
+    }
+
     $query = $request->query->all();
 
     // This is effectively the same as the ajax_page_state query parameter
@@ -92,10 +112,13 @@ final class XBTemplateRenderer implements MainContentRendererInterface {
       }
     }
 
+    $already_loaded_libraries = isset($ajax_page_state['libraries']) ? explode(',', $ajax_page_state['libraries']) : [];
+    // If a library is to be replaced by an XB version, add it to the already
+    // loaded libraries array so there's no attempt to load it via AJAX.
+    $already_loaded_libraries = array_unique([...$already_loaded_libraries, ...array_keys($libraries_replace)]);
+
     $assets
-      ->setAlreadyLoadedLibraries(
-        isset($ajax_page_state['libraries']) ? explode(',', $ajax_page_state['libraries']) : [],
-      );
+      ->setAlreadyLoadedLibraries($already_loaded_libraries);
 
     // Collect CSS, JS and settings, which are added as properties to the JSON
     // response so the client can add them to the page using Drupal.Ajax()

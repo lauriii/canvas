@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\experience_builder\Controller;
 
+use Drupal\Component\Utility\Html;
 use Drupal\Core\Asset\AttachedAssets;
 use Drupal\Core\Asset\LibraryDiscoveryInterface;
 use Drupal\Core\Config\ConfigFactoryInterface;
@@ -11,6 +12,8 @@ use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Field\WidgetPluginManager;
 use Drupal\Core\Render\HtmlResponse;
+use Drupal\Core\Render\RendererInterface;
+use Drupal\Core\Template\Attribute;
 use Drupal\Core\Theme\ThemeManagerInterface;
 use Drupal\experience_builder\AssetRenderer;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
@@ -25,11 +28,12 @@ final class ExperienceBuilderController {
     protected readonly WidgetPluginManager $fieldWidgetPluginManager,
     private readonly ModuleHandlerInterface $moduleHandler,
     private readonly LibraryDiscoveryInterface $libraryDiscovery,
+    private readonly RendererInterface $renderer,
   ) {}
 
   private const HTML = <<<HTML
 <!doctype html>
-<html lang="en">
+<html {{ attributes }}>
 <head>
   <meta charset="UTF-8">
   <meta name="viewport"
@@ -68,11 +72,23 @@ HTML;
   public function __invoke(string $entity_type, ?EntityInterface $entity) : HtmlResponse {
     assert($this->validateTransformAssetLibraries());
 
+    // TRICKY: don't use core/modules/system/templates/html.html.twig nor that
+    // of a theme, because those include the skip link, which assumes the
+    // presence of #main-content, which does not exist in the XB UI.
+    $html = [
+      '#type' => 'inline_template',
+      '#template' => self::HTML,
+      '#context' => [
+        'attributes' => $this->getHtmlTagAttributes(),
+      ],
+    ];
+    $html = $this->renderer->renderInIsolation($html);
     // List of libraries to load in the preview iframe.
     $preview_libraries = [
       'system/base',
       ...$this->themeManager->getActiveTheme()->getLibraries(),
     ];
+
     // Assets for the preview <iframe>s. They will be rendered by
     // \Drupal\experience_builder\AssetRenderer and added to `drupalSettings` in
     // the response. They are used when rendering the preview <iframe>s.
@@ -81,7 +97,7 @@ HTML;
 
     $demo_mode = $this->configFactory->get('experience_builder.settings')->get('demo_mode');
 
-    return (new HtmlResponse(self::HTML))->setAttachments([
+    return (new HtmlResponse((string) $html))->setAttachments([
       'library' => [
         'experience_builder/xb-ui',
         ...$this->getTransformAssetLibraries(),
@@ -114,6 +130,36 @@ HTML;
         'scripts' => '<js-placeholder token="JS-HERE-PLEASE">',
       ],
     ]);
+  }
+
+  /**
+   * Computes the attributes to set on the <html> tag.
+   *
+   * @return \Drupal\Core\Template\Attribute
+   */
+  private function getHtmlTagAttributes(): Attribute {
+    // Create a temporary rendered html element so we can extract the attributes
+    // and add them to this response. This ensures things like langcode and text
+    // direction are added to the html tag as expected.
+    // @see template_preprocess_html()
+    // @see hook_preprocess_html()
+    $html_stub = [
+      '#theme' => 'html',
+      'page' => [],
+    ];
+    $other_html = Html::load((string) $this->renderer->render($html_stub));
+
+    // Get item 1 so it is the <html> rendered by Drupal, and not the one that
+    // the DOMDocument returned by HTML::load() wraps everything in.
+    $element = $other_html->getElementsByTagName('html')->item(1);
+
+    $attributes = new Attribute();
+    if ($element) {
+      foreach (($element?->attributes ?? []) as $attribute) {
+        $attributes->setAttribute($attribute->name, $attribute->value);
+      }
+    }
+    return $attributes;
   }
 
   /**

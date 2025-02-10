@@ -11,6 +11,8 @@
 use Drupal\Component\Serialization\Json;
 use Drupal\Core\Asset\LibraryDiscoveryInterface;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Routing\CurrentRouteMatch;
+use Drupal\Core\Url;
 use Drupal\file\Entity\File;
 use Drupal\media\Entity\Media;
 use Drupal\media_library\MediaLibraryState;
@@ -52,6 +54,17 @@ function experience_builder_library_info_alter(array &$libraries, string $extens
       'css' => [],
     ];
   }
+  if ($extension === 'media_library') {
+    // Typically, it's safe to assume the base libraries of a theme are present,
+    // but we can't do this in Experience Builder. Here, the Media Library
+    // dialog renders with the Admin Theme, but is triggered from a page
+    // rendered by the xb_stark theme.
+    // @see \Drupal\experience_builder\Theme\XBThemeNegotiator
+    // This is mitigated by attaching a dynamically built library that contains
+    // the default CSS of the admin theme.
+    // @see experience_builder_dialog_library_customize()
+    $libraries['ui']['dependencies'][] = 'experience_builder/xb.scoped.admin.css';
+  }
 }
 
 /**
@@ -85,6 +98,30 @@ function experience_builder_field_widget_single_element_media_library_widget_for
       'field_widget_id' => $old->getOpenerParameters()['field_widget_id'],
     ]
   );
+  $request_stack = \Drupal::service('request_stack');
+  $current_route = new CurrentRouteMatch($request_stack);
+  $parameters = $current_route->getParameters();
+  if ($entity = $parameters->get('entity')) {
+    $parameters->set('entity', $entity->id());
+  }
+
+  /** @var string $route_name */
+  $route_name = $current_route->getRouteName();
+  $query = \Drupal::request()->query->all();
+  $query['ajax_form'] = TRUE;
+  $query['use_admin_theme'] = TRUE;
+
+  // This is the existing AJAX URL with the additional use_admin_theme query
+  // argument that is used by XBAdminThemeNegotiator to determine if the admin
+  // theme should be used for rendering
+  $url = Url::fromRoute($route_name, [...$parameters->all(), ...$query]);
+  $form['open_button']['#ajax']['url'] = $url;
+
+  // Add a property to be used by the AjaxCommands.add_css override in
+  // ajax.hyperscriptify.js that will identify the CSS as something that should
+  // be scoped inside the dialog only.
+  $form['open_button']['#ajax']['useAdminTheme'] = TRUE;
+  $form['open_button']['#ajax']['scopeSelector'] = '.media-library-widget-modal';
 }
 
 /**

@@ -11,7 +11,8 @@
       "modules/xb_vite/**",
       "docs/diagrams/**",
       "ui/src/local_packages/**",
-      "js/astro-bundles/**"
+      "js/astro-bundles/**",
+      "js/assets/**"
     ],
     "ignoreRegExpList": [
       "ℹ\uFE0E.*"

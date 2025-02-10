@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 namespace Drupal\experience_builder\Theme;
 
+use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Routing\RouteMatchInterface;
+use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\Theme\ThemeNegotiatorInterface;
+use Symfony\Component\HttpFoundation\RequestStack;
 
 /**
  * Determines the theme to be used for specific Experience Builder (XB) routes.
@@ -25,6 +28,13 @@ use Drupal\Core\Theme\ThemeNegotiatorInterface;
  */
 final class XBThemeNegotiator implements ThemeNegotiatorInterface {
 
+  use StringTranslationTrait;
+
+  public function __construct(
+    private readonly RequestStack $requestStack,
+    private readonly ConfigFactoryInterface $configFactory,
+  ) {}
+
   /**
    * The routes that this theme negotiator applies to.
    *
@@ -40,13 +50,22 @@ final class XBThemeNegotiator implements ThemeNegotiatorInterface {
    */
   public function applies(RouteMatchInterface $route_match) {
     $route_name = $route_match->getRouteName() ?? '';
-    return in_array($route_name, self::$routes, TRUE);
+    $use_admin_theme = (bool) $this->requestStack->getCurrentRequest()?->query->has('use_admin_theme');
+    $use_xb_stark = in_array($route_name, self::$routes, TRUE);
+    return $use_xb_stark || $use_admin_theme;
   }
 
   /**
    * {@inheritdoc}
    */
   public function determineActiveTheme(RouteMatchInterface $route_match) {
+    $triggering_element_value = $this->requestStack->getCurrentRequest()?->get('_triggering_element_value');
+    $still_in_media_library = $triggering_element_value !== (string) $this->t('Insert selected');
+
+    if ($this->requestStack->getCurrentRequest()?->query->has('use_admin_theme') && $still_in_media_library) {
+      return $this->configFactory->get('system.theme')->get('admin');
+    }
+    $this->requestStack->getCurrentRequest()?->query->remove('use_admin_theme');
     return 'xb_stark';
   }
 

@@ -3,3 +3,4 @@ modules/xb_vite/**/*
 ui/**/*
 # Astro is an external library used for XB's Code Component functionality.
 js/astro-bundles/*
+js/assets/**/*

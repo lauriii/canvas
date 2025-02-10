@@ -32,7 +32,7 @@ const processResponseAssets = async (response: any, meta: any) => {
       console.error(e);
     }
   }
-  if (js && js.length) {
+  if (js && Object.values(js).length) {
     try {
       await Drupal.AjaxCommands.prototype['add_js'](
         {
@@ -42,7 +42,7 @@ const processResponseAssets = async (response: any, meta: any) => {
         {
           command: 'add_js',
           status: 'success',
-          data: js,
+          data: Object.values(js),
         },
       );
     } catch (e) {

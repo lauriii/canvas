@@ -10,15 +10,33 @@ xb-ui:
   dependencies:
     - core/drupal
     - core/drupalSettings
-    # @todo Replace this with core/drupal.ajax once https://www.drupal.org/node/1945262 updates `olivero/drupal.message`.
-    # @see library definition for more information.
-    - experience_builder/drupal.ajax
+    # This library is largely core/drupal.ajax but takes into account admin
+    # theme overrides. Is generated in experience_builder_library_info_build().
+    - experience_builder/xb.drupal.ajax
     - core/drupal.states
     # The libraries below might be unnecessary but here for the trial & error phase
     - system/base
     - experience_builder/drupal.dialog.ajax
     - core/internal.jquery.form
     - experience_builder/ajax.hyperscriptify
+    - experience_builder/ajax.custom
+
+ajax.custom:
+  js:
+    js/ajax.command.customizations.js: {}
+  dependencies:
+    - core/drupal
+    - experience_builder/csstree
+
+csstree:
+  remote: https://github.com/csstree/csstree
+  version: 3.1.0
+  license:
+    name: MIT
+    url: https://raw.githubusercontent.com/csstree/csstree/refs/heads/master/LICENSE
+    gpl-compatible: true
+  js:
+    js/assets/css-tree.js: { minified: true }
 
 # @see \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase
 xb.transform.mainProperty:
@@ -69,38 +87,6 @@ astro.hydration:
     url: https://raw.githubusercontent.com/withastro/astro/refs/heads/main/LICENSE
     gpl-compatible: true
 
-# This is a workaround until https://www.drupal.org/node/1945262 is in core.
-# When 'core/drupal.ajax' is added as an XB dependency, it sometimes causes unwanted Olivero
-# assets to load onto the XB page which affects XB styling due to 'drupal.message' having 'olivero/global-styling' in
-# its chain of dependencies. To prevent this, we are adding a copy of the 'core/drupal.ajax' library without
-# drupal.message.
-# @see https://git.drupalcode.org/project/experience_builder/-/merge_requests/154#note_356130
-# @see https://www.drupal.org/node/2987444#mr3609-note158377
-# @todo Remove this when https://www.drupal.org/node/1945262 updates `olivero/drupal.message`.
-drupal.ajax:
-  js:
-    /core/misc/ajax.js: { }
-  css:
-    component:
-      /core/misc/components/ajax-progress.module.css: { weight: -10 }
-
-  drupalSettings:
-    # These placeholder values will be set by system_js_settings_alter().
-    ajaxPageState:
-      libraries: null
-      theme: null
-      theme_token: null
-    ajaxTrustedUrl: { }
-  dependencies:
-    - core/jquery
-    - core/drupal
-    - core/drupalSettings
-    - core/drupal.progress
-    - core/once
-    - core/tabbable
-    - core/loadjs
-    - core/drupal.announce
-
 drupal.dialog.ajax:
   js:
     /core/misc/dialog/dialog.ajax.js: {}
@@ -108,10 +94,12 @@ drupal.dialog.ajax:
     - core/jquery
     - core/drupal
     - core/drupalSettings
-    # Use this file's drupal.ajax instead of core/drupal.ajax.
-    - experience_builder/drupal.ajax
-    - core/drupal.dialog
     - core/tabbable
+    # The following are created in experience_builder_library_info_build()
+    # and are largely the same as the core libraries but with admin theme
+    # overrides.
+    - experience_builder/xb.dialog
+    - experience_builder/xb.drupal.ajax
 
 preview:
   css:

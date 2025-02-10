@@ -419,6 +419,46 @@ function experience_builder_form_system_theme_settings_submit(array &$form, Form
   $form_state->unsetValue('editable');
 }
 
+/**
+ * Creates XB-specific versions of any core-owned dependencies.
+ *
+ * The XB specific versions are largely the same as the core versions, but take
+ * into account overrides specified by the admin theme.
+ *
+ * @param array $main_new_library
+ *   The library having its dependencies evaluated and possibly replaced.
+ * @param array $added_libraries
+ *   All the new libraries being created by library_info_build().
+ * @param array $xb_replacing_cores
+ *   Every key is a core library and the value its XB-specific version.
+ * @param array $dependencies_to_check
+ *   An array of dependencies to check and potentially create XB versions of.
+ * @param array $existing_libraries
+ *   An array of library definitions with admin theme overrides applied.
+ * @param string $prefix
+ *   Optional argument that makes it possible to check non-core libraries.
+ *
+ * @internal
+ */
+function _experience_builder_convert_dependencies(array &$main_new_library, array &$added_libraries, array &$xb_replacing_cores, array $dependencies_to_check, array $existing_libraries, string $prefix = 'core/'): void {
+  foreach ($dependencies_to_check as $key => $dependency_name) {
+    if (str_starts_with($dependency_name, $prefix) && !isset($xb_replacing_cores[$dependency_name])) {
+      $library_name_without_extension = substr($dependency_name, strlen($prefix));
+      $dependency_definition = $existing_libraries[$library_name_without_extension];
+      $new_library_name = "xb.$library_name_without_extension";
+      $xb_replacing_cores[$dependency_name] = $new_library_name;
+      $added_libraries[$new_library_name] = $dependency_definition;
+      $main_new_library['dependencies'][] = 'experience_builder/' . $new_library_name;
+      unset($main_new_library['dependencies'][$key]);
+      $more_dependencies = $dependency_definition['dependencies'] ?? [];
+      _experience_builder_convert_dependencies($main_new_library, $added_libraries, $xb_replacing_cores, $more_dependencies, $existing_libraries, $prefix);
+    }
+  }
+}
+
+/**
+ * Implements hook_library_info_build().
+ */
 function experience_builder_library_info_build(): array {
   $libraries = [];
 
@@ -436,6 +476,143 @@ function experience_builder_library_info_build(): array {
     if ($component->hasCss()) {
       $library_name = "astro_island." . $component->id();
       $libraries[$library_name]['css']['component'][$component->getCssPath()] = [];
+    }
+  }
+
+  $theme_config = \Drupal::config('system.theme');
+  $admin_theme_name = $theme_config->get('admin') ?: $theme_config->get('default');
+  if (\Drupal::service('theme_handler')->themeExists($admin_theme_name)) {
+    $libraries += experience_builder_dialog_library_customize($admin_theme_name);
+  }
+
+  return $libraries;
+}
+
+/**
+ * Customize core/drupal.dialog for Experience Builder.
+ *
+ * Creates a customized version of core/drupal.dialog that accounts for the
+ * admin theme's overrides and extends. A dedicated library is created instead
+ * of altering the existing one to avoid issues of library info being cached
+ * too broadly, and so themes such as xb_stark can use the admin theme's
+ * dialog styling without it being the active theme during the request.
+ *
+ * @param string $admin_theme_name
+ *   The admin theme to customize for.
+ */
+function experience_builder_dialog_library_customize(string $admin_theme_name): array {
+  $libraries = [];
+
+  // Set the active theme to the admin theme, then build the core libraries as
+  // processed by that theme.
+  $active_admin_theme = \Drupal::service('theme.initialization')->getActiveThemeByName($admin_theme_name);
+  $actual_active_theme = \Drupal::service('theme.manager')->getActiveTheme();
+  \Drupal::service('theme.manager')->setActiveTheme($active_admin_theme);
+  $core_libraries_via_admin_theme = \Drupal::service('library.discovery.parser')->buildByExtension('core');
+  $admin_theme_library_definitions = \Drupal::service('library.discovery.parser')->buildByExtension($admin_theme_name);
+  \Drupal::service('theme.manager')->setActiveTheme($actual_active_theme);
+
+  // This array keeps track of the core libraries that will have XB equivalents.
+  $xb_replacing_cores = ['core/drupal.dialog' => 'xb.dialog', 'core/drupal.ajax' => 'xb.ajax'];
+
+  $dialog_library_definition = $core_libraries_via_admin_theme['drupal.dialog'];
+  _experience_builder_convert_dependencies($dialog_library_definition, $libraries, $xb_replacing_cores, $dialog_library_definition['dependencies'], $core_libraries_via_admin_theme);
+
+  $ajax_library_definition = $core_libraries_via_admin_theme['drupal.ajax'];
+
+  // Depending on the message library results in Olivero bringing in a firehose
+  // of dependencies we don't want, and in some cases like the navigation JS,
+  // will cause errors due to the JS expecting elements that aren't present.
+  $ajax_library_definition['dependencies'] = array_diff($ajax_library_definition['dependencies'], ['core/drupal.message']);
+  $ajax_library_definition['js'][] = [...$ajax_library_definition['js'][0], 'data' => 'core/misc/message.js'];
+  $ajax_library_definition['dependencies'][] = 'core/drupal.announce';
+  _experience_builder_convert_dependencies($ajax_library_definition, $libraries, $xb_replacing_cores, $ajax_library_definition['dependencies'], $core_libraries_via_admin_theme);
+  $libraries['xb.drupal.ajax'] = $ajax_library_definition;
+
+  // Now that we've created every library requiring an XB-specific version, go
+  // through the dependencies declared by each and swap out any remaining core
+  // versions that should be summoning the XB versions instead.
+  $dependencies_already_added = [];
+  foreach ($libraries as &$library) {
+    if (!isset($library['dependencies'])) {
+      continue;
+    }
+    foreach ($library['dependencies'] as $key => $dependency) {
+      if (isset($xb_replacing_cores[$dependency]) && !in_array($dependency, $dependencies_already_added)) {
+        $dependencies_already_added[] = $dependency;
+        $library['dependencies'][$key] = 'experience_builder/' . $xb_replacing_cores[$dependency];
+      }
+    }
+  }
+  $libraries['xb.dialog'] = $dialog_library_definition;
+
+  // An additional library will be created with the admin theme's default
+  // assets. This library will be added as part of a dialog open request and
+  // the CSS will be scoped so it applied only within the dialog.
+  $libraries['xb.scoped.admin.css'] = [
+    'css' => [],
+    'js' => [],
+    'dependencies' => [],
+  ];
+  $admin_theme_default_libraries = $active_admin_theme->getLibraries();
+  foreach ($admin_theme_default_libraries as $library_name) {
+    if (str_starts_with($library_name, $admin_theme_name . '/')) {
+      $internal_library_name = str_replace($admin_theme_name . '/', '', $library_name);
+      $library_we_need = $admin_theme_library_definitions[(string) $internal_library_name] ?? [];
+      if (isset($library_we_need['css'])) {
+        $css = array_map(fn($item) => [...$item, 'data' => './' . $item['data'], 'preprocess' => FALSE], $library_we_need['css']);
+        $libraries['xb.scoped.admin.css']['css'] = array_merge(
+          $libraries['xb.scoped.admin.css']['css'],
+          $css,
+        );
+      }
+    }
+  }
+
+  // Convert the CSS assets to the concern-grouped structure expected by a
+  // library definition.
+  $group_css_ids = [
+    CSS_COMPONENT => 'component',
+    CSS_BASE => 'base',
+    CSS_LAYOUT => 'layout',
+    CSS_STATE => 'state',
+    CSS_THEME => 'theme',
+  ];
+  foreach ($libraries as &$definition) {
+    $grouped_css = [];
+    foreach ($definition['css'] as $css) {
+      // The 'weight' key is used to represent the groupings in libraries.yml
+      // for css. The 'group' key is used for CSS_AGGREGATE_THEME or
+      // CSS_AGGREGATE_DEFAULT constants. Some of these are altered further
+      // after they're built and may not correspond to one of the original
+      // constants, so we fall back to 'component'. We cast to an int because
+      // some weights could have been altered to floats to add extra precision.
+      $group = $group_css_ids[(int) $css['weight']] ?? 'component';
+      // Add to a group and index by filename. Make the path absolute since it
+      // is referencing core assets in a library owned by experience builder.
+      // We can use an empty array and let the parser fill out the rest of the
+      // detail.
+      $grouped_css[$group]['/' . $css['data']] = [];
+    }
+    $definition['css'] = $grouped_css;
+
+    $grouped_js = [];
+
+    foreach ($definition['js'] as $js) {
+      // Index by asset name. Make the paths absolute as they are referencing
+      // core in a library owned by experience builder.
+      $grouped_js['/' . $js['data']] = $js;
+      // The data property is no longer needed.
+      unset($grouped_js[$js['data']]['data']);
+    }
+
+    $definition['js'] = $grouped_js;
+  }
+
+  $extends = $active_admin_theme->getLibrariesExtend();
+  foreach ($xb_replacing_cores as $library_name => $new_library_name) {
+    if (isset($extends[$library_name])) {
+      $libraries['xb.dialog']['dependencies'] = array_merge($libraries['xb.dialog']['dependencies'], $extends[$library_name]);
     }
   }
 
