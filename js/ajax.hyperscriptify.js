@@ -87,11 +87,26 @@
             })
           }
         } else {
+          // Keep track of any input elements that have been updated by this
+          // ajax request.
+          const updatedInputElements = [];
           // Otherwise, search for the component inside a context.
          [...context.querySelectorAll(`${componentName}:not([data-drupal-scriptified])`)].forEach(component => {
            if (!component.hasAttribute('data-drupal-scriptified')) {
              const container =  Drupal.HyperscriptifyAdditional(Drupal.Hyperscriptify(component),component);
              component.setAttribute('data-drupal-scriptified', true)
+             Drupal.attachBehaviors(container, {...settings, doNotReinvoke: true});
+
+             // The element has informed hyperscriptification and is no longer
+             // needed in the DOM.
+             setTimeout(() => component.remove())
+
+             // We have attributes here that mean this likely a form field and
+             // there are React props, push this element into the list of
+             // updated input elements.
+             if (component.hasAttribute('attributes')) {
+               updatedInputElements.push(component)
+             }
              attachBehaviorsCalled = true;
              attachBehaviorsAfterAjaxing(container, settings);
              // The element has informed hyperscriptification and is no longer
@@ -99,6 +114,10 @@
              setTimeout(() => component.remove())
            }
          })
+         if (updatedInputElements.length > 0) {
+           // Notify the application that form fields have changed.
+           Drupal.HyperscriptifyUpdateStore(updatedInputElements)
+         }
         }
       });
 

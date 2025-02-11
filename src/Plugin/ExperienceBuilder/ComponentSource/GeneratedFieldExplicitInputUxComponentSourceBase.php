@@ -647,8 +647,12 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
         // static prop source.
         $source = $this->getDefaultStaticPropSource($prop)->withValue([]);
       }
-      if ($source instanceof StaticPropSource && $source->fieldItem instanceof EntityReferenceItemInterface) {
-        $target_type = $source->fieldItem->getFieldDefinition()->getSetting('target_type');
+      if ($source instanceof StaticPropSource && $source->fieldItem instanceof EntityReferenceItemInterface &&
+        // @todo Remove in https://www.drupal.org/i/3501902
+        //   and/or https://www.drupal.org/i/3493943
+        \is_array($prop_value)) {
+        $target_type = $source->fieldItem->getFieldDefinition()
+          ->getSetting('target_type');
         try {
           $target_id = $this->findTargetForProps($prop_value, $target_type);
         }
@@ -678,8 +682,9 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
   }
 
   /**
-   * @todo Remove this function in favor of the client sending the target id in
-   *   https://drupal.org/i/3473336.
+   * @todo This now is only for default values as the client now sends the
+   *  target ID - Remove in https://www.drupal.org/i/3501902 and/or
+   *  https://www.drupal.org/i/3493943
    */
   private function findTargetForProps(array $prop_value, string $target_type): int {
     if ($target_type !== 'media' && $target_type !== 'file') {

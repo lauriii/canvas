@@ -142,7 +142,7 @@ function media_library_field_widget_info_alter(array &$info): void {
   $info['media_library_widget']['xb'] = [
     'transforms' => [
       'mediaSelection' => [],
-      'mainProperty' => [],
+      'mainProperty' => ['name' => 'target_id'],
     ],
   ];
 }

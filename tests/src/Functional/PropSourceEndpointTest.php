@@ -160,6 +160,7 @@ class PropSourceEndpointTest extends BrowserTestBase {
     self::assertEquals([], $data['sdc.sdc_test_all_props.all-props']['transforms']['test_integer_enum']);
     self::assertEquals($extractValue, $data['sdc.sdc_test_all_props.all-props']['transforms']['test_integer']);
     self::assertEquals(['link' => []], $data['sdc.sdc_test_all_props.all-props']['transforms']['test_string_format_uri']);
+    self::assertEquals(['mediaSelection' => [], 'mainProperty' => ['name' => 'target_id']], $data['sdc.sdc_test_all_props.all-props']['transforms']['test_object_drupal_image']);
   }
 
   /**

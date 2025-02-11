@@ -8,13 +8,10 @@
  * @see docs/redux-integrated-field-widgets.md
  */
 
-use Drupal\Component\Serialization\Json;
 use Drupal\Core\Asset\LibraryDiscoveryInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Routing\CurrentRouteMatch;
 use Drupal\Core\Url;
-use Drupal\file\Entity\File;
-use Drupal\media\Entity\Media;
 use Drupal\media_library\MediaLibraryState;
 
 /**
@@ -122,51 +119,6 @@ function experience_builder_field_widget_single_element_media_library_widget_for
   // be scoped inside the dialog only.
   $form['open_button']['#ajax']['useAdminTheme'] = TRUE;
   $form['open_button']['#ajax']['scopeSelector'] = '.media-library-widget-modal';
-}
-
-/**
- * Implements hook_preprocess_media_library_item__widget().
- *
- * Retrieves the typed data contained by the selected Media entity (if it uses
- * an `image` media source), and makes it available to the XB UI as a
- * `data-media-file` attribute.
- *
- * @see media_library_storage_prop_shape_alter()
- * @todo Revisit in https://www.drupal.org/project/experience_builder/issues/3463842
- */
-function experience_builder_preprocess_media_library_item__widget(array &$variables): void {
-  $media_id = $variables['element']['remove_button']['#media_id'] ?? NULL;
-  $string_split = 'media-library-remove-button-';
-  $offset = strpos($variables['element']['remove_button']['#name'], $string_split) + strlen($string_split);
-  $associated_field_name = substr($variables['element']['remove_button']['#name'], $offset);
-  $variables['content']['remove_button']['#attributes']['data-media-field-name'] = $associated_field_name;
-  $variables['content']['remove_button']['#attributes']['data-prop-name'] = $variables['element']['#parents'][2];
-  $variables['content']['remove_button']['#attributes']['data-component-uuid'] = $variables['element']['#parents'][1];
-  if ($media_id) {
-    $media = Media::load($media_id);
-    if (is_null($media)) {
-      return;
-    }
-    $field = $media->get('field_media_' . $media->bundle());
-    $fid = $field->getValue()[0]['target_id'];
-    $media_file = File::load($fid);
-    $value = $field->getValue()[0];
-    if (is_null($media_file) || is_null($value)) {
-      return;
-    }
-    // For now, this only supports image media.
-    // @see media_library_storage_prop_shape_alter()
-    if ($media->bundle() !== 'image') {
-      return;
-    }
-    $prepared = array_intersect_key([
-      ...$value,
-      // @todo Figure out how to remove these hard-coded assumptions in https://www.drupal.org/project/experience_builder/issues/3463842 — this is assuming `type: string, format: uri-reference` (or more specifically: `$ref: json-schema-definitions://experience_builder.module/image-uri`)
-      'src' => $media_file->createFileUrl(),
-    ], ['src' => '', 'alt' => '', 'width' => '', 'height' => '']);
-
-    $variables["content"]["remove_button"]["#attributes"]['data-media-file'] = Json::encode($prepared);
-  }
 }
 
 /**

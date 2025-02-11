@@ -37,7 +37,7 @@ final class RenderEventsSubscriber implements EventSubscriberInterface {
     }
 
     // If we're previewing a page, see if we have an auto-save version to use.
-    $preview = $event->getRouteMatch()->getRouteName() === 'experience_builder.api.preview';
+    $preview = $event->getRouteMatch()->getRouteObject()?->getOption('_xb_use_template_draft');
     if ($preview && $autoSaveData = $this->autoSaveManager->getAutoSaveData($page_template)) {
       // Generate a new template based on the auto-saved data.
       try {

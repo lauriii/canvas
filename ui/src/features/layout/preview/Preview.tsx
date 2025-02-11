@@ -1,5 +1,5 @@
 import type React from 'react';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useErrorBoundary } from 'react-error-boundary';
 import { useAppSelector } from '@/app/hooks';
 import {
@@ -7,10 +7,15 @@ import {
   selectModel,
   selectLayoutInitialized,
 } from '@/features/layout/layoutModelSlice';
-import { usePostPreviewMutation } from '@/services/preview';
+import {
+  selectUpdateComponentLoadingState,
+  usePostPreviewMutation,
+} from '@/services/preview';
 import Viewport from '@/features/layout/preview/Viewport';
 import ComponentHtmlMapProvider from '@/features/layout/preview/DataToHtmlMapContext';
 import { selectPageData } from '@/features/pageData/pageDataSlice';
+import { selectPreviewHtml } from '@/features/pagePreview/previewSlice';
+import { useParams } from 'react-router-dom';
 
 interface PreviewProps {}
 
@@ -32,28 +37,27 @@ const Preview: React.FC<PreviewProps> = () => {
   const layout = useAppSelector(selectLayout);
   const initialized = useAppSelector(selectLayoutInitialized);
   const model = useAppSelector(selectModel);
+  const { componentId: selectedComponent } = useParams();
+  const selectedComponentId = selectedComponent || 'noop';
   const entity_form_fields = useAppSelector(selectPageData);
-  const [frameSrcDoc, setFrameSrcDoc] = useState('');
   const [postPreview, { isLoading: isFetching }] = usePostPreviewMutation();
+  const isPatching = useAppSelector((state) =>
+    selectUpdateComponentLoadingState(state, selectedComponentId),
+  );
+  const frameSrcDoc = useAppSelector(selectPreviewHtml);
   const { showBoundary } = useErrorBoundary();
 
   useEffect(() => {
     const sendPreviewRequest = async () => {
       try {
         // Trigger the mutation
-        const result = await postPreview({
-          layout,
-          model,
-          entity_form_fields,
-        }).unwrap();
-        // Handle the successful response here
-        setFrameSrcDoc(result.html);
+        await postPreview({ layout, model, entity_form_fields }).unwrap();
       } catch (err) {
         showBoundary(err);
       }
     };
     if (initialized) {
-      sendPreviewRequest().then(() => {});
+      sendPreviewRequest();
     }
   }, [
     layout,
@@ -76,7 +80,7 @@ const Preview: React.FC<PreviewProps> = () => {
               height={previewSizes[key].height}
               width={previewSizes[key].width}
               frameSrcDoc={frameSrcDoc}
-              isFetching={isFetching}
+              isFetching={isFetching || isPatching}
             />
           </ComponentHtmlMapProvider>
         );

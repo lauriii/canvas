@@ -173,7 +173,7 @@ class ClientDataToEntityConverterTest extends KernelTestBase {
       'The updated title.',
     );
 
-    // If the client tries to update a field the user does not have access to edit, the violation should be returned.
+    // If the client tries to update a field the user does not have access to edit, the field should remain unchanged.
     $permissions = ['access administration pages'];
     if ($with_content_moderation) {
       $permissions[] = 'use editorial transition create_new_draft';
@@ -190,20 +190,28 @@ class ClientDataToEntityConverterTest extends KernelTestBase {
     $invalid_field_access_client_json['entity_form_fields']['sticky[value]'] = TRUE;
     $this->assertConvert(
       $invalid_field_access_client_json,
-      ['entity_form_fields.sticky' => "The current user is not allowed to update the field 'sticky'."],
+      [],
       'The updated title.',
       $test_node
     );
+    // The field value should remain unchanged.
+    $this->assertFalse($test_node->isSticky());
 
     // If the client sends a field the user does not have access to edit, but the field value is the same as the current value no violation should be returned.
     $no_field_access_field_unchanged_client_json = $valid_client_json;
     $no_field_access_field_unchanged_client_json['entity_form_fields']['sticky[value]'] = FALSE;
+    $test_node = $this->createTestNode();
+    $this->assertFalse($test_node->get('sticky')->access('edit'));
+    $this->assertTrue($test_node->get('sticky')->access('view'));
+    $this->assertFalse($test_node->isSticky());
     $this->assertConvert(
       $no_field_access_field_unchanged_client_json,
       [],
       'The updated title.',
-      $this->createTestNode()
+      $test_node
     );
+    // The field value should remain unchanged.
+    $this->assertFalse($test_node->isSticky());
 
     // If the client has elevated permissions, they can update protected fields.
     $permissions = ['administer nodes'];

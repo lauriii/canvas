@@ -128,10 +128,12 @@ class ApiPublishAllControllerTest extends KernelTestBase {
     }
 
     // Auto-save node 1.
-    $response = $this->request(Request::create(Url::fromRoute('experience_builder.api.preview', [
+    $response = $this->request(Request::create(Url::fromRoute('experience_builder.api.layout.post', [
       'entity_type' => 'node',
       'entity' => $node1->id(),
-    ])->toString(), content: (string) json_encode($validClientJson)));
+    ])->toString(), method: 'POST', server: [
+      'CONTENT_TYPE' => 'application/json',
+    ], content: (string) json_encode($validClientJson)));
     self::assertEquals(Response::HTTP_OK, $response->getStatusCode());
 
     // Auto-save node 2 with only the heading.
@@ -143,7 +145,7 @@ class ApiPublishAllControllerTest extends KernelTestBase {
     // \Drupal\experience_builder\Controller\ApiPreviewController will not work
     // with invalid data so we need to use the manager directly.
     // @todo In https://drupal.org/i/3485878 we could also replace this by using
-    //   the 'experience_builder.api.preview' route as we do above.
+    //   the 'experience_builder.api.layout.post' route as we do above.
     $autoSave->save($node2, $validClientJson);
 
     $response = $this->makePublishAllRequest();
@@ -187,10 +189,12 @@ class ApiPublishAllControllerTest extends KernelTestBase {
 
     // Fix the error.
     $validClientJson['model'][self::TEST_HEADING_UUID]['resolved']['style'] = 'primary';
-    $response = $this->request(Request::create(Url::fromRoute('experience_builder.api.preview', [
+    $response = $this->request(Request::create(Url::fromRoute('experience_builder.api.layout.post', [
       'entity_type' => 'node',
       'entity' => $node2->id(),
-    ])->toString(), content: (string) json_encode($validClientJson)));
+    ])->toString(), method: 'POST', server: [
+      'CONTENT_TYPE' => 'application/json',
+    ], content: (string) json_encode($validClientJson)));
     self::assertEquals(Response::HTTP_OK, $response->getStatusCode());
 
     $auto_save_data = $this->getAutoSaveStatesFromServer();

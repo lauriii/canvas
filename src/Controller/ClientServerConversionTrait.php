@@ -26,6 +26,8 @@ trait ClientServerConversionTrait {
    *
    * @phpstan-return ComponentTreeStructureArray
    * @throws \Drupal\experience_builder\Exception\ConstraintViolationException
+   *
+   * @todo remove the validate flag in https://www.drupal.org/i/3505018.
    */
   private static function clientLayoutToServerTree(array $layout, bool $validate = TRUE): array {
     // Transform client-side representation to server-side representation.
@@ -149,15 +151,17 @@ trait ClientServerConversionTrait {
   /**
    * @return array{tree: string, inputs: string}
    * @throws \Drupal\experience_builder\Exception\ConstraintViolationException
+   *
+   * @todo remove the validate flag in https://www.drupal.org/i/3505018.
    */
-  protected static function convertClientToServer(array $layout, array $model, ?FieldableEntityInterface $entity = NULL): array {
+  protected static function convertClientToServer(array $layout, array $model, ?FieldableEntityInterface $entity = NULL, bool $validate = TRUE): array {
     // Denormalize the `layout` the client sent into a value that the server-
     // side ComponentTreeStructure expects, abort early if it is invalid.
     // (This is the value for the `tree` field prop on the XB field type.)
     // @see \Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure
     // @see \Drupal\experience_builder\Plugin\Validation\Constraint\ComponentTreeStructureConstraintValidator
     try {
-      $tree = self::clientLayoutToServerTree($layout);
+      $tree = self::clientLayoutToServerTree($layout, $validate);
     }
     catch (ConstraintViolationException $e) {
       throw $e->renamePropertyPaths(["[" . ComponentTreeStructure::ROOT_UUID . "]" => 'layout.children']);

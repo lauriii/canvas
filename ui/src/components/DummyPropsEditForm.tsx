@@ -12,6 +12,7 @@ import type {
   ComponentModel,
   EvaluatedComponentModel,
 } from '@/features/layout/layoutModelSlice';
+import { isEvaluatedComponentModel } from '@/features/layout/layoutModelSlice';
 import { selectModel, selectLayout } from '@/features/layout/layoutModelSlice';
 import { selectLatestUndoRedoActionId } from '@/features/ui/uiSlice';
 import { useGetComponentsQuery } from '@/services/components';
@@ -22,6 +23,15 @@ import { clearFieldValues } from '@/features/form/formStateSlice';
 import type { FieldData } from '@/types/Component';
 import type { Component } from '@/types/Component';
 import { componentHasFieldData } from '@/types/Component';
+import type { AjaxUpdateFormStateEvent } from '@/types/Ajax';
+import { AJAX_UPDATE_FORM_STATE_EVENT } from '@/types/Ajax';
+import type { InputUIData } from '@/types/Form';
+import {
+  selectUpdateComponentLoadingState,
+  useUpdateComponentMutation,
+} from '@/services/preview';
+import { getPropsValues } from '@/components/form/formUtil';
+import { syncPropSourcesToResolvedValues } from '@/components/form/inputBehaviors';
 
 interface DummyPropsEditFormRendererProps {
   dynamicStaticCardQueryString: string;
@@ -32,8 +42,6 @@ const DummyPropsEditFormRenderer: React.FC<DummyPropsEditFormRendererProps> = (
   props,
 ) => {
   const { dynamicStaticCardQueryString } = props;
-  const { currentData, error, originalArgs, isFetching } =
-    useGetDummyPropsFormQuery(dynamicStaticCardQueryString);
   const { componentId: selectedComponent } = useParams();
   const { showBoundary } = useErrorBoundary();
 
@@ -43,6 +51,28 @@ const DummyPropsEditFormRenderer: React.FC<DummyPropsEditFormRendererProps> = (
     null,
   );
   const formRef = useRef(null);
+  const selectedComponentId = selectedComponent || 'noop';
+  const skip = useAppSelector((state) =>
+    selectUpdateComponentLoadingState(state, selectedComponentId),
+  );
+  const { currentData, error, originalArgs, isFetching } =
+    useGetDummyPropsFormQuery(dynamicStaticCardQueryString, { skip });
+  const model = useAppSelector(selectModel);
+  const { data: components } = useGetComponentsQuery();
+  const layout = useAppSelector(selectLayout);
+  const node = findComponentByUuid(layout, selectedComponentId);
+  const selectedComponentType = node ? (node.type as string) : 'noop';
+  const inputAndUiData: InputUIData = {
+    selectedComponent: selectedComponentId,
+    components,
+    selectedComponentType,
+    layout,
+    node,
+    model,
+  };
+  const [patchComponent] = useUpdateComponentMutation({
+    fixedCacheKey: selectedComponentId,
+  });
 
   useEffect(() => {
     if (error) {
@@ -65,10 +95,9 @@ const DummyPropsEditFormRenderer: React.FC<DummyPropsEditFormRendererProps> = (
     // Instead we rely on fresh data from RTK Query to re-render, and we grab
     // the values from the arg that was passed to the API call which produced
     // the current data.
-    const componentId = new URLSearchParams(originalArgs).get(
-      'form_xb_selected',
-    );
-    const latestUndoRedoActionId = new URLSearchParams(originalArgs).get(
+    const originalUrlSearchParams = new URLSearchParams(originalArgs);
+    const componentId = originalUrlSearchParams.get('form_xb_selected');
+    const latestUndoRedoActionId = originalUrlSearchParams.get(
       'latestUndoRedoActionId',
     );
     setCurrentComponentId(componentId);
@@ -96,6 +125,67 @@ const DummyPropsEditFormRenderer: React.FC<DummyPropsEditFormRendererProps> = (
     );
   }, [currentData, originalArgs]);
 
+  // Listen for updates to form state from ajax.
+  useEffect(() => {
+    const ajaxUpdateFormStateListener: (
+      e: AjaxUpdateFormStateEvent,
+    ) => void = ({ detail }) => {
+      const { updates, formId } = detail;
+      // We only care about the component inputs form, not the entity form.
+      if (formId === 'component_inputs_form') {
+        // Apply transforms for form state.
+        const { propsValues: values, selectedModel } = getPropsValues(
+          updates,
+          inputAndUiData,
+        );
+
+        if (Object.keys(values).length === 0) {
+          // Nothing has changed, no need to patch.
+          return;
+        }
+        // And then send data to backend - this will:
+        // a) Trigger server side validation/transformation
+        // b) Update both the preview and the model - see the pessimistic update
+        //    in onQueryStarted in preview.ts
+        const resolved = { ...selectedModel.resolved, ...values };
+        const component = components?.[selectedComponentType];
+        if (isEvaluatedComponentModel(selectedModel) && component) {
+          patchComponent({
+            componentInstanceUuid: selectedComponentId,
+            componentType: selectedComponentType,
+            model: {
+              source: syncPropSourcesToResolvedValues(
+                selectedModel.source,
+                component,
+                resolved,
+              ),
+              resolved,
+            },
+          });
+          return;
+        }
+        patchComponent({
+          componentInstanceUuid: selectedComponentId,
+          componentType: selectedComponentType,
+          model: {
+            ...selectedModel,
+            resolved,
+          },
+        });
+      }
+    };
+    document.addEventListener(
+      AJAX_UPDATE_FORM_STATE_EVENT,
+      ajaxUpdateFormStateListener as unknown as EventListener,
+    );
+    return () => {
+      document.removeEventListener(
+        AJAX_UPDATE_FORM_STATE_EVENT,
+        ajaxUpdateFormStateListener as unknown as EventListener,
+      );
+    };
+  });
+
   // Any time this form changes, process it through Drupal behaviors the same
   // way it would be if it were added to the DOM by Drupal AJAX. This allows
   // Drupal functionality like Autocomplete work in this React-rendered form.
@@ -110,7 +200,15 @@ const DummyPropsEditFormRenderer: React.FC<DummyPropsEditFormRendererProps> = (
       {/* Wrap the JSX form in a ref, so we can send it as a stable DOM element
           argument to Drupal.attachBehaviors() anytime jsxFormContent changes.
           See the useEffect just above this. */}
-      <div ref={formRef}>{jsxFormContent}</div>
+      {/* Don't accept pointer events while the component is updating */}
+      <div
+        style={{
+          pointerEvents: skip ? 'none' : 'all',
+        }}
+        ref={formRef}
+      >
+        {jsxFormContent}
+      </div>
     </Spinner>
   );
 };

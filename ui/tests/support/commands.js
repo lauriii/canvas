@@ -901,7 +901,8 @@ Cypress.Commands.add('editHeroComponent', () => {
   };
 
   // Monitor the endpoint that processes changed values in the prop edit form.
-  cy.intercept('POST', '**/api/preview/node/1').as('getPreview');
+  cy.intercept('POST', '**/api/layout/node/1').as('getPreview');
+  cy.intercept('PATCH', '**/api/layout/node/1').as('patchPreview');
   expectedLabels.forEach((label) => {
     // Type a new value into a given input.
     cy.findByLabelText(label).focus();
@@ -910,7 +911,7 @@ Cypress.Commands.add('editHeroComponent', () => {
     // Wait for completion of the request triggered by our typing. This
     // ensures that the `testInIframe` ~10 lines down is working with an iframe that
     // has fully responded to these value changes.
-    cy.wait('@getPreview');
+    cy.wait('@patchPreview');
     // Confirm React is properly handling form state by confirming the input
     // has the value we typed into it.
     cy.findByLabelText(label).should('have.value', newValues[label]);

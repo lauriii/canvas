@@ -16,10 +16,10 @@ use Drupal\Tests\experience_builder\TestSite\XBTestSetup;
 use Symfony\Component\HttpFoundation\JsonResponse;
 
 /**
- * @coversDefaultClass \Drupal\experience_builder\Controller\ApiLayoutController
+ * @covers \Drupal\experience_builder\Controller\ApiLayoutController::get()
  * @group experience_builder
  */
-class ApiLayoutControllerTest extends KernelTestBase {
+class ApiLayoutControllerGetTest extends KernelTestBase {
 
   /**
    * Allows format=uri to be stored using URI field type.
@@ -90,7 +90,7 @@ class ApiLayoutControllerTest extends KernelTestBase {
 
     // Draft of highlighted region in global template should be returned even if
     // there is no autosave data for the node.
-    $response = $controller($node1);
+    $response = $controller->get($node1);
     self::assertInstanceOf(JsonResponse::class, $response);
     $json = \json_decode($response->getContent() ?: '', TRUE);
     self::assertArrayHasKey('layout', $json);
@@ -118,7 +118,7 @@ class ApiLayoutControllerTest extends KernelTestBase {
     $node1 = Node::load(1);
     \assert($node1 instanceof NodeInterface);
     $autoSave->save($node1, $data);
-    $response = $controller($node1);
+    $response = $controller->get($node1);
 
     self::assertInstanceOf(JsonResponse::class, $response);
     $json = \json_decode($response->getContent() ?: '', TRUE);
@@ -142,7 +142,7 @@ class ApiLayoutControllerTest extends KernelTestBase {
     // node.
     $autoSave->delete($template);
     // We should still see the global regions.
-    $response = $controller($node1);
+    $response = $controller->get($node1);
     self::assertInstanceOf(JsonResponse::class, $response);
     $json = \json_decode($response->getContent() ?: '', TRUE);
     self::assertArrayHasKey('layout', $json);
@@ -166,7 +166,7 @@ class ApiLayoutControllerTest extends KernelTestBase {
     /** @var \Drupal\experience_builder\Controller\ApiLayoutController $controller */
     $controller = \Drupal::classResolver(ApiLayoutController::class);
     assert($node instanceof FieldableEntityInterface);
-    $response = $controller($node);
+    $response = $controller->get($node);
 
     $this->assertInstanceOf(JsonResponse::class, $response);
     $json = json_decode($response->getContent() ?: '', TRUE);
@@ -291,7 +291,7 @@ class ApiLayoutControllerTest extends KernelTestBase {
     $controller = \Drupal::classResolver(ApiLayoutController::class);
     $this->expectException(\LogicException::class);
     $this->expectExceptionMessage('For now XB only works if the entity is an xb_page or an article node! Other entity types and bundles must be tested before they are supported, to help see https://drupal.org/i/3493675.');
-    $controller($node);
+    $controller->get($node);
   }
 
 }

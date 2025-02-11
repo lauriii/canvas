@@ -13,6 +13,7 @@ use League\OpenAPIValidation\PSR7\ValidatorBuilder;
 use Psr\Log\LoggerInterface;
 use Symfony\Bridge\PsrHttpMessage\HttpMessageFactoryInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Event\RequestEvent;
 use Symfony\Component\HttpKernel\Event\ResponseEvent;
 
@@ -65,7 +66,7 @@ abstract class ApiMessageValidatorBase implements EventSubscriberInterface {
    *    See docblock on {@see self::validate()}.
    */
   public function onMessage(RequestEvent|ResponseEvent $event): void {
-    if (!$this->shouldValidate()) {
+    if (!$this->shouldValidate($event->getRequest())) {
       return;
     }
 
@@ -89,10 +90,11 @@ abstract class ApiMessageValidatorBase implements EventSubscriberInterface {
   /**
    * Determines whether the message should be validated.
    */
-  private function shouldValidate(): bool {
+  private function shouldValidate(Request $request): bool {
     return !$this->isProd()
       && $this->isExperienceBuilderMessage()
-      && $this->isValidationEnabled();
+      && $this->isValidationEnabled()
+      && !$request->headers->has('X-NO-OPENAPI-VALIDATION');
   }
 
   /**

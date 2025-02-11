@@ -27,7 +27,10 @@ class ClientDataToEntityConverter {
     private readonly FormBuilderInterface $formBuilder,
   ) {}
 
-  public function convert(array $client_data, FieldableEntityInterface $entity): void {
+  /**
+   * @todo remove the validate flag in https://www.drupal.org/i/3505018.
+   */
+  public function convert(array $client_data, FieldableEntityInterface $entity, bool $validate = TRUE): void {
     $expected_keys = ['layout', 'model', 'entity_form_fields'];
     if (!empty(array_diff_key($client_data, array_flip($expected_keys)))) {
       throw new \LogicException();
@@ -39,7 +42,7 @@ class ClientDataToEntityConverter {
     assert($item instanceof ComponentTreeItem);
 
     try {
-      $item->setValue($this->convertClientToServer($layout, $model, $entity));
+      $item->setValue($this->convertClientToServer($layout, $model, $entity, $validate));
     }
     catch (ConstraintViolationException $e) {
       // @todo Remove iterator_to_array() after https://www.drupal.org/project/drupal/issues/3497677
@@ -52,7 +55,7 @@ class ClientDataToEntityConverter {
     // error message should use the client-side representation received in
     // the request body.
     // @see ::convertClientToServer()
-    if ($original_entity_violations->count()) {
+    if ($original_entity_violations->count() && $validate) {
       // @todo Remove iterator_to_array() after https://www.drupal.org/project/drupal/issues/3497677
       throw (new ConstraintViolationException(new EntityConstraintViolationList($entity, iterator_to_array($original_entity_violations))))->renamePropertyPaths([
         "$field_name.0.tree[" . ComponentTreeStructure::ROOT_UUID . "]" => 'layout.children',
@@ -126,8 +129,7 @@ class ClientDataToEntityConverter {
     ));
 
     // Handle quirks of managed file elements.
-    // @todo Remove this when
-    // https://www.drupal.org/project/drupal/issues/3498054 is fixed.
+    // @todo Remove this when https://www.drupal.org/project/drupal/issues/3498054 is fixed.
     $file_fields = \array_keys(\array_filter(
       $entity->getFields(),
       static fn (FieldItemListInterface $fieldItemList): bool => \is_a($fieldItemList->getItemDefinition()->getClass(), FileItem::class, TRUE)
@@ -156,6 +158,8 @@ class ClientDataToEntityConverter {
       ->setProcessInput()
       // But that the build is programmed (which bypasses caches etc).
       ->setProgrammed()
+      // But access checks should still be accounted for.
+      ->setProgrammedBypassAccessCheck(FALSE)
       // With the values provided from the front-end.
       ->setUserInput($entity_form_fields);
     $form = $this->formBuilder->buildForm($form_object, $form_state);

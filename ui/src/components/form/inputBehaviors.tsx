@@ -6,6 +6,9 @@ import {
   getNameAttributeBasedOnId,
   jsonValidate,
   toPropName,
+  getPropSchemas,
+  shouldSkipJsonValidation,
+  getPropsValues,
 } from '@/components/form/formUtil';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import type {
@@ -16,7 +19,6 @@ import {
   isEvaluatedComponentModel,
   selectLayout,
   selectModel,
-  updateNodeModelForce,
 } from '@/features/layout/layoutModelSlice';
 import { parseValue } from '@/utils/function-utils';
 import { debounce } from 'lodash';
@@ -24,11 +26,7 @@ import { useGetComponentsQuery } from '@/services/components';
 import { findComponentByUuid } from '@/features/layout/layoutUtils';
 import './InputBehaviors.css';
 import type { PropsValues, InputUIData } from '@/types/Form';
-import {
-  getPropsValues,
-  getPropSchemas,
-  shouldSkipJsonValidation,
-} from '@/components/form/formUtil';
+
 import type { Attributes } from '@/types/DrupalAttribute';
 import Ajv from 'ajv';
 // @ts-ignore
@@ -47,6 +45,7 @@ import type { ErrorObject } from 'ajv/dist/types';
 import type { Component } from '@/types/Component';
 import { componentHasFieldData } from '@/types/Component';
 import { FORM_TYPES } from '@/features/form/constants';
+import { useUpdateComponentMutation } from '@/services/preview';
 
 const ajv = new Ajv();
 addDraft2019(ajv);
@@ -244,7 +243,6 @@ const InputBehaviorsComponentPropsForm = (
   OriginalInput: React.FC,
   props: React.ComponentProps<any>,
 ): React.ReactElement => {
-  const dispatch = useAppDispatch();
   /**
    * @todo #3502484 useParams() should be used here to replace getting the value from currentComponent in the formStateSlice
    * Hyperscriptify re-creates the React component for the media library when Drupal ajax completes does not wrap the
@@ -254,7 +252,6 @@ const InputBehaviorsComponentPropsForm = (
   const currentComponent = useAppSelector(selectCurrentComponent);
   const selectedComponent = currentComponent || 'noop';
   const model = useAppSelector(selectModel);
-  const selectedModel = { ...model[selectedComponent] };
   const { attributes } = props;
   const { data: components } = useGetComponentsQuery();
   const layout = useAppSelector(selectLayout);
@@ -270,137 +267,47 @@ const InputBehaviorsComponentPropsForm = (
   };
   const component = components?.[selectedComponentType];
 
-  const syncPropSourcesToResolvedValues = (
-    sources: Sources,
-    component: Component,
-    resolvedValues: ResolvedValues,
-  ): Sources => {
-    if (!componentHasFieldData(component)) {
-      return sources;
-    }
-    const fieldData = component.field_data;
-
-    // We need to include a source entry for any props with a resolved value.
-    // We don't store a source entry for empty values, so once the value is no
-    // longer empty we need to populate the source data for it from the
-    // prop source defaults for this component.
-    const missingProps = Object.keys(fieldData).filter(
-      (key) => !(key in sources) && Object.keys(resolvedValues).includes(key),
-    );
-
-    // Likewise, if a resolved value is now empty, we need to remove it from
-    // the source data so it is not evaluated server side.
-    const emptyProps = Object.keys(fieldData).filter(
-      (key) => !Object.keys(resolvedValues).includes(key) && key in sources,
-    );
-
-    return missingProps.reduce(
-      (carry: Sources, propName: string) => ({
-        ...carry,
-        // Add in the missing source.
-        [propName]: fieldData[propName],
-      }),
-      Object.entries(sources).reduce((carry: Sources, [propName, source]) => {
-        if (emptyProps.includes(propName)) {
-          // Ignore this source as the value is now empty.
-          return carry;
-        }
-        return {
-          ...carry,
-          [propName]: source,
-        };
-      }, {}),
-    );
-  };
+  const [patchComponent] = useUpdateComponentMutation({
+    fixedCacheKey: selectedComponent,
+  });
 
   const formStateToStore = (newFormState: PropsValues) => {
-    const { propsValues, selectedModel } = getPropsValues(
+    // Apply (client-side) transforms for form state.
+    const { propsValues: values, selectedModel } = getPropsValues(
       newFormState,
       inputAndUiData,
     );
 
-    const resolved = { ...selectedModel.resolved, ...propsValues };
+    // And then send data to backend - this will:
+    // a) Trigger server-side validation/transformation (massaging of widget values)
+    // b) Update both the preview and the model - see the pessimistic update
+    //    in onQueryStarted in preview.ts
+    // @see \Drupal\Core\Field\WidgetInterface::massageFormValues()
+    const resolved = { ...selectedModel.resolved, ...values };
     if (isEvaluatedComponentModel(selectedModel) && component) {
-      dispatch(
-        updateNodeModelForce({
-          uuid: selectedComponent,
-          model: {
-            source: syncPropSourcesToResolvedValues(
-              selectedModel.source,
-              component,
-              resolved,
-            ),
+      patchComponent({
+        componentInstanceUuid: selectedComponent,
+        componentType: selectedComponentType,
+        model: {
+          source: syncPropSourcesToResolvedValues(
+            selectedModel.source,
+            component,
             resolved,
-          },
-        }),
-      );
-      return;
-    }
-    dispatch(
-      updateNodeModelForce({
-        uuid: selectedComponent,
-        model: {
-          ...selectedModel,
-          resolved,
-        },
-      }),
-    );
-  };
-
-  // Include the input's default value in the form state on init - including
-  // when an element is added via AJAX.
-  useEffect(() => {
-    const isMediaPreview =
-      attributes['data-media-file'] && attributes['data-media-field-name'];
-    if (isMediaPreview) {
-      // @todo this is assuming the media is an image. This will eventually
-      //  need to accommodate all media types.
-      // @see media_library_storage_prop_shape_alter()
-      // @see experience_builder_preprocess_media_library_item__widget()
-      const image = JSON.parse(attributes['data-media-file']);
-      const propName = attributes['data-prop-name'];
-      const componentUuid = attributes['data-component-uuid'];
-      image.width = Number(image.width);
-      image.height = Number(image.height);
-      const resolved = {
-        ...selectedModel.resolved,
-        [propName]: {
-          ...(selectedModel.resolved[propName] || {}),
-          ...image,
-        },
-      };
-      if (componentUuid !== selectedComponent) {
-        // The selected component has changed in the time it took to fetch the
-        // input form, we can ignore this.
-        // This whole function goes away in https://drupal.org/i/3499550 🎉.
-        return;
-      }
-      if (isEvaluatedComponentModel(selectedModel) && component) {
-        dispatch(
-          updateNodeModelForce({
-            uuid: selectedComponent,
-            model: {
-              source: syncPropSourcesToResolvedValues(
-                selectedModel.source,
-                component,
-                resolved,
-              ),
-              resolved,
-            },
-          }),
-        );
-        return;
-      }
-      updateNodeModelForce({
-        uuid: selectedComponent,
-        model: {
-          ...selectedModel,
+          ),
           resolved,
         },
       });
+      return;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    patchComponent({
+      componentInstanceUuid: selectedComponent,
+      componentType: selectedComponentType,
+      model: {
+        ...selectedModel,
+        resolved,
+      },
+    });
+  };
 
   const parseNewValue = (e: React.ChangeEvent) => {
     const schemas = getPropSchemas(inputAndUiData);
@@ -549,3 +456,46 @@ const InputBehaviors = (OriginalInput: React.FC) => {
 };
 
 export default InputBehaviors;
+
+export const syncPropSourcesToResolvedValues = (
+  sources: Sources,
+  component: Component,
+  resolvedValues: ResolvedValues,
+): Sources => {
+  if (!componentHasFieldData(component)) {
+    return sources;
+  }
+  const fieldData = component.field_data;
+
+  // We need to include a source entry for any props with a resolved value.
+  // We don't store a source entry for empty values, so once the value is no
+  // longer empty we need to populate the source data for it from the
+  // prop source defaults for this component.
+  const missingProps = Object.keys(fieldData).filter(
+    (key) => !(key in sources) && Object.keys(resolvedValues).includes(key),
+  );
+
+  // Likewise, if a resolved value is now empty, we need to remove it from
+  // the source data so it is not evaluated server side.
+  const emptyProps = Object.keys(fieldData).filter(
+    (key) => !Object.keys(resolvedValues).includes(key) && key in sources,
+  );
+
+  return missingProps.reduce(
+    (carry: Sources, propName: string) => ({
+      ...carry,
+      // Add in the missing source.
+      [propName]: fieldData[propName],
+    }),
+    Object.entries(sources).reduce((carry: Sources, [propName, source]) => {
+      if (emptyProps.includes(propName)) {
+        // Ignore this source as the value is now empty.
+        return carry;
+      }
+      return {
+        ...carry,
+        [propName]: source,
+      };
+    }, {}),
+  );
+};

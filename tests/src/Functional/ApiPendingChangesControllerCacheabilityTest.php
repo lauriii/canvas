@@ -88,7 +88,7 @@ final class ApiPendingChangesControllerCacheabilityTest extends FunctionalTestBa
 
     $response = $this->makeApiRequest(
       'POST',
-      Url::fromRoute('experience_builder.api.preview', [
+      Url::fromRoute('experience_builder.api.layout.post', [
         'entity_type' => 'node',
         'entity' => $node2->id(),
       ]),

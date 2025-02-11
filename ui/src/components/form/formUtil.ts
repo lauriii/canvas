@@ -288,8 +288,6 @@ export function getPropsValues(
 ) {
   const { selectedComponent, model, components, selectedComponentType } =
     inputAndUiData;
-  const { propsWithObjectValues } = propInputData(formState, inputAndUiData);
-
   const selectedModel = model
     ? { ...model[selectedComponent] }
     : ({} as ComponentModel);
@@ -310,18 +308,6 @@ export function getPropsValues(
   const propsValues = Object.entries(
     formStateToObject(formState, selectedComponent),
   ).reduce((carry: PropsValues, [key, value]) => {
-    // @todo Do away with this when we no longer need to special case media.
-    //  - https://www.drupal.org/node/3499550
-    if (key in propsWithObjectValues) {
-      // If this condition is met, it means the prop value is stored as
-      // an object. `propsWithObjectValues[propId]` will have the schema
-      // that can be referenced to determine how to shape the form data
-      // into the object expected by the back end.
-      console.warn(
-        `The field ${key} does not yet support updating the preview on change. It will soon.`,
-      );
-      return carry;
-    }
     if (key in transformConfig) {
       let fieldTransforms = transformConfig[key];
       // Internally to formStateToObject we make use of the `qs` npm package and

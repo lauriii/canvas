@@ -14,10 +14,10 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * @coversDefaultClass \Drupal\experience_builder\Controller\ApiPreviewController
+ * @covers \Drupal\experience_builder\Controller\ApiLayoutController::post()
  * @group experience_builder
  */
-final class ApiPreviewControllerTest extends KernelTestBase {
+final class ApiLayoutControllerPostTest extends KernelTestBase {
 
   use RequestTrait {
     request as parentRequest;
@@ -34,11 +34,11 @@ final class ApiPreviewControllerTest extends KernelTestBase {
     $this->container->get('config.factory')->getEditable('system.theme')->set('default', 'stark')->save();
 
     (new XBTestSetup())->setup();
-    $this->setUpCurrentUser([], ['access administration pages']);
+    $this->setUpCurrentUser([], ['access administration pages', 'administer url aliases']);
   }
 
   public function testEmpty(): void {
-    $this->request(Request::create('/api/preview/node/1', content: json_encode([
+    $this->request(Request::create('/api/layout/node/1', method: 'POST', content: json_encode([
       'layout' => [
         [
           'nodeType' => 'region',
@@ -58,7 +58,7 @@ final class ApiPreviewControllerTest extends KernelTestBase {
   }
 
   public function testMissingSlot(): void {
-    $this->request(Request::create('/api/preview/node/1', content: json_encode([
+    $this->request(Request::create('/api/layout/node/1', method: 'POST', content: json_encode([
       'layout' => [
         [
           'nodeType' => 'region',
@@ -133,7 +133,7 @@ final class ApiPreviewControllerTest extends KernelTestBase {
     $content = $this->parentRequest(Request::create('/api/layout/node/1'))->getContent();
     $this->assertIsString($content);
     $model = json_decode($content, TRUE)['model'];
-    $this->request(Request::create('/api/preview/node/1', content: $content));
+    $this->request(Request::create('/api/layout/node/1', method: 'POST', content: $content));
 
     // Check that each level is structured correctly.
     $root = $this->cssSelect('main div[data-xb-region][data-xb-uuid="content"]');
@@ -155,7 +155,7 @@ final class ApiPreviewControllerTest extends KernelTestBase {
     $highlightedRegion = \array_filter($json['layout'], static fn (array $region) => ($region['id'] ?? NULL) === 'highlighted');
     self::assertCount(1, $highlightedRegion);
     self::assertGreaterThanOrEqual(1, \count(\reset($highlightedRegion)['components']));
-    $this->request(Request::create('/api/preview/node/1', content: $content));
+    $this->request(Request::create('/api/layout/node/1', method: 'POST', content: $content));
 
     // Check that regions exist and are wrapped.
     $crawler = new Crawler($this->content);
@@ -167,6 +167,7 @@ final class ApiPreviewControllerTest extends KernelTestBase {
    * Unwrap the JSON response so we can perform assertions on it.
    */
   protected function request(Request $request): Response {
+    $request->headers->set('Content-Type', 'application/json');
     $response = $this->parentRequest($request);
     $content = $response->getContent();
     $this->assertIsString($content);

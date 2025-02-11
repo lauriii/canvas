@@ -74,6 +74,8 @@ export const initialState: LayoutModelSliceState = {
     },
   ],
   model: {},
+  // @todo should this be renamed to 'updatePreview' as that seems to be the
+  // only use case at this point. https://www.drupal.org/project/experience_builder/issues/3504983
   initialized: false,
 };
 
@@ -120,11 +122,6 @@ type AddNewSectionPayload = {
 type SortNodePayload = {
   uuid: string | undefined;
   to: number | undefined;
-};
-
-type UpdateNodePayload = {
-  uuid: string | undefined;
-  model: {};
 };
 
 type AnyValue = string | boolean | [] | number | {} | null;
@@ -202,6 +199,8 @@ export const layoutModelSlice = createSlice({
       }
 
       state.layout = removeComponentByUuid(state.layout, action.payload);
+      // Flag a preview update.
+      state.initialized = true;
     }),
     duplicateNode: create.reducer(
       (state, action: PayloadAction<DuplicateNodePayload>) => {
@@ -250,6 +249,8 @@ export const layoutModelSlice = createSlice({
           updatedNode,
         ) as RegionNode;
         state.layout = newState;
+        // Flag a preview update.
+        state.initialized = true;
       },
     ),
     moveNode: create.reducer(
@@ -263,6 +264,8 @@ export const layoutModelSlice = createSlice({
         }
 
         state.layout = moveNodeToPath(state.layout, uuid, to);
+        // Flag a preview update.
+        state.initialized = true;
       },
     ),
     insertNodes: create.reducer(
@@ -307,6 +310,8 @@ export const layoutModelSlice = createSlice({
 
         state.model = updatedModel;
         state.layout[rootIndex] = regionRoot;
+        // Flag a preview update.
+        state.initialized = true;
       },
     ),
     sortNode: create.reducer(
@@ -338,6 +343,8 @@ export const layoutModelSlice = createSlice({
             insertPosition,
             cloneNode,
           );
+          // Flag a preview update.
+          state.initialized = true;
         }
       },
     ),
@@ -374,6 +381,8 @@ export const layoutModelSlice = createSlice({
             insertPosition,
             cloneNode,
           );
+          // Flag a preview update.
+          state.initialized = true;
         }
       },
     ),
@@ -383,26 +392,6 @@ export const layoutModelSlice = createSlice({
         state.layout = layout;
         state.model = model;
         state.initialized = initialized;
-      },
-    ),
-    updateNodeModel: create.reducer(
-      (state, action: PayloadAction<UpdateNodePayload>) => {
-        const { uuid, model } = action.payload;
-        const randomData = { randomProp: 'random' };
-        if (uuid) {
-          state.model[uuid] = { ...state.model[uuid], ...model, ...randomData };
-        }
-      },
-    ),
-    // Nearly identical to updateNodeModel above, but makes it possible to
-    // remove props by not including the prior state.model[uuid] in the value
-    // update.
-    updateNodeModelForce: create.reducer(
-      (state, action: PayloadAction<UpdateNodePayload>) => {
-        const { uuid, model } = action.payload;
-        if (uuid) {
-          state.model[uuid] = { ...(model as ComponentModel) };
-        }
       },
     ),
   }),
@@ -513,8 +502,6 @@ export const {
   shiftNode,
   sortNode,
   insertNodes,
-  updateNodeModel,
-  updateNodeModelForce,
 } = layoutModelSlice.actions;
 
 export const layoutModelReducer = layoutModelSlice.reducer;

@@ -11,16 +11,48 @@ experience_builder.experience_builder:
       entity:
         type: entity:{entity_type}
 
-experience_builder.api.layout:
+experience_builder.api.layout.get:
   path: '/api/layout/{entity_type}/{entity}'
   defaults:
-    _controller: 'Drupal\experience_builder\Controller\ApiLayoutController'
+    _controller: 'Drupal\experience_builder\Controller\ApiLayoutController::get'
   requirements:
     _permission: 'access administration pages'
   options:
     parameters:
       entity:
         type: entity:{entity_type}
+  methods: [GET]
+
+experience_builder.api.layout.post:
+  path: '/api/layout/{entity_type}/{entity}'
+  defaults:
+    _controller: 'Drupal\experience_builder\Controller\ApiLayoutController::post'
+    # We need a title callback because we use the HTML renderer to generate the preview.
+    _title_callback: 'Drupal\experience_builder\Controller\ApiLayoutController::getLabel'
+  requirements:
+    _permission: 'access administration pages'
+  options:
+    _xb_use_template_draft: 'TRUE'
+    parameters:
+      entity:
+        type: entity:{entity_type}
+  methods: [POST]
+
+experience_builder.api.layout.patch:
+  path: '/api/layout/{entity_type}/{entity}'
+  defaults:
+    _controller: 'Drupal\experience_builder\Controller\ApiLayoutController::patch'
+    # We need a title callback because we use the HTML renderer to generate the preview.
+    _title_callback: 'Drupal\experience_builder\Controller\ApiLayoutController::getLabel'
+  requirements:
+    _permission: 'access administration pages'
+    _format: json
+  options:
+    _xb_use_template_draft: 'TRUE'
+    parameters:
+      entity:
+        type: entity:{entity_type}
+  methods: [PATCH]
 
 # @todo https://www.drupal.org/i/3498525 should generalize this to all eligible content entity types by using a route callback
 experience_builder.api.content.create:
@@ -30,18 +62,6 @@ experience_builder.api.content.create:
   requirements:
     _entity_create_access: 'xb_page:xb_page'
   methods: ['POST']
-
-experience_builder.api.preview:
-  path: '/api/preview/{entity_type}/{entity}'
-  defaults:
-    _controller: 'Drupal\experience_builder\Controller\ApiPreviewController'
-    _title_callback: 'Drupal\experience_builder\Controller\ApiPreviewController::getLabel'
-  requirements:
-    _permission: 'access administration pages'
-  options:
-    parameters:
-      entity:
-        type: entity:{entity_type}
 
 experience_builder.api.autosave_collection:
   path: '/xb/api/autosave'

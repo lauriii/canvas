@@ -44,7 +44,8 @@ describe('Page data form', () => {
     cy.get('@layersTree').findByText('Two Column').should('exist');
     cy.get('button[aria-label="Redo"]').should('be.enabled');
 
-    cy.intercept('POST', '**/api/preview/node/1').as('getPreview');
+    cy.intercept('POST', '**/api/layout/node/1').as('getPreview');
+    cy.intercept('PATCH', '**/api/layout/node/1').as('patchPreview');
     // Switch back to component inputs form.
     cy.clickComponentInPreview('Hero');
     cy.findByTestId('xb-contextual-panel--settings').click();
@@ -56,7 +57,7 @@ describe('Page data form', () => {
     cy.get('@heroTitle').should('have.value', 'hello, world!');
     cy.get('@heroTitle').focus();
     cy.get('@heroTitle').type('{selectall}This is a new hero title');
-    cy.wait('@getPreview');
+    cy.wait('@patchPreview');
     // Editing a component field should push that onto the undo state.
     cy.get('button[aria-label="Undo"]').should('be.enabled');
 

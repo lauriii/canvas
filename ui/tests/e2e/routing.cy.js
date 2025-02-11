@@ -17,7 +17,7 @@ describe('Routing', () => {
     // can't happen in that scope.
     const uuid = 'static-static-card3rr';
     cy.intercept('GET', '**/api/layout/node/1').as('getLayout');
-    cy.intercept('POST', '**/api/preview/node/1').as('getPreview');
+    cy.intercept('POST', '**/api/layout/node/1').as('getPreview');
     cy.intercept('PATCH', '**/xb-field-form/node/1').as('getPropsForm');
     cy.drupalRelativeURL(`xb/node/1/editor/component/${uuid}`);
 
@@ -45,7 +45,7 @@ describe('Routing', () => {
   });
 
   it('has the expected performance', () => {
-    cy.intercept('POST', '**/api/preview/node/1').as('getPreview');
+    cy.intercept('POST', '**/api/layout/node/1').as('getPreview');
 
     cy.visit('/xb/node/1');
     cy.wait('@getPreview').its('response.statusCode').should('eq', 200);

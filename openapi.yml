@@ -171,10 +171,52 @@ paths:
                   entity_form_fields:
                     type: object
                     description: The full entity data.
-  '/api/preview/{entityTypeId}/{entityId}':
-    description: TODO
+    patch:
+      description: >
+        Update a single component and return a preview as well
+        as the updated model, entity_fields and layout. The
+        new layout is stored as an auto-save entry (until such
+        time as it is published)
+      parameters:
+        - $ref: '#/components/parameters/entityTypeId'
+        - $ref: '#/components/parameters/entityId'
+      requestBody:
+        $ref: '#/components/requestBodies/PatchLayout'
+      responses:
+        '200':
+          description: Stored new values and generated preview successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - html
+                  - entity_form_fields
+                  - model
+                  - layout
+                properties:
+                  html:
+                    type: string
+                    description: The HTML preview.
+                  layout:
+                    type: array
+                    description: Layout regions
+                    items:
+                      type: object
+                      schema:
+                        $ref: '#/components/schemas/LayoutSlot'
+                  model:
+                    $ref: '#/components/schemas/Model'
+                  entity_form_fields:
+                    type: object
+                    description: The full entity data.
+
     post:
-      description: TODO
+      description: >
+        Update the layout, model or entity field values
+        and return a preview as well. The new layout is
+        stored as an auto-save entry (until such time as
+        it is published)
       parameters:
         - $ref: '#/components/parameters/entityTypeId'
         - $ref: '#/components/parameters/entityId'
@@ -182,7 +224,7 @@ paths:
         $ref: '#/components/requestBodies/Layout'
       responses:
         '200':
-          description: Generated preview successfully
+          description: Stored new values and generated preview successfully
           content:
             application/json:
               schema:
@@ -1416,3 +1458,51 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/LayoutPreview'
+    PatchLayout:
+      content:
+        application/json:
+          examples:
+            componentWithPropSources:
+              value:
+                componentInstanceUuid: bce8d97e-8d44-4609-adc3-5e1015342b49
+                componentType: 'sdc_test:my-cta'
+                model:
+                  resolved:
+                    text: 'hello, world!'
+                    href: 'https://drupal.org'
+                  source:
+                    text:
+                      sourceType: static:field_item:string,
+                      expression: 'ℹ︎string␟value'
+                    href:
+                      sourceType: static:field_item:uri,
+                      expression: 'ℹ︎uri␟value'
+          schema:
+            title: Patch layout
+            type: object
+            required:
+              - componentInstanceUuid
+              - componentType
+              - model
+            additionalProperties: false
+            properties:
+              model:
+                title: Model
+                description: New model values (client-side terminology) aka inputs (server-side terminology) for the updated component instance
+                type: object
+                required:
+                  - resolved
+                additionalProperties: false
+                properties:
+                  resolved:
+                    type: object
+                    title: Resolved model/input values, keyed by input names
+                  source:
+                    type: object
+                    title: Optional source values in the case of a component type that uses prop sources.
+              componentInstanceUuid:
+                type: string
+                description: The UUID of the component instance to update
+              componentType:
+                type: string
+                description: The component type (Component config entity ID) of the updated component instance

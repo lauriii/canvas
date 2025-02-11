@@ -15,6 +15,7 @@ import transforms from '@/utils/transforms';
 
 import '@/styles/radix-themes';
 import '@/styles/index.css';
+import { AJAX_UPDATE_FORM_STATE_EVENT } from '@/types/Ajax';
 
 interface ProviderComponentProps {
   store: EnhancedStore;
@@ -92,6 +93,54 @@ if (container) {
       ),
     );
     return container;
+  };
+
+  /**
+   * A global function that can be called to notify the application that inputs
+   * have been changed via an AJAX response.
+   *
+   * @param {HTMLElement[]} updatedInputs - The updated elements
+   */
+  Drupal.HyperscriptifyUpdateStore = (updatedInputs: Array<HTMLElement>) => {
+    let formId: string | null = null;
+    const updates = updatedInputs
+      .map((el) => {
+        // For each element, parse out its attributes. These are JSON sent by
+        // the xb_stark.theme with the semi_coupled theme engine.
+        return JSON.parse(el.getAttribute('attributes') || '{}');
+      })
+      // Build a key-value pair of input names and values.
+      .reduce((carry, attributes) => {
+        if (
+          // Collect inputs that have all the 'name', 'value', 'data-ajax' and
+          // 'data-form-id' attributes set.
+          'name' in attributes &&
+          'value' in attributes &&
+          'data-ajax' in attributes &&
+          'data-form-id' in attributes
+        ) {
+          if (formId === null) {
+            // This is the first element so let's make note of the form that
+            // triggered the AJAX event.
+            formId = attributes['data-form-id'];
+          }
+          return {
+            // Push this element's name and value into the key value pair.
+            ...carry,
+            [attributes.name]: attributes.value,
+          };
+        }
+        return carry;
+      }, {});
+    if (Object.values(updates).length > 0) {
+      // At least one input name and value pair exists, so fire a custom event
+      // so that any component in the tree can react to the ajax update.
+      // @todo Consider interacting directly with the store https://www.drupal.org/i/3505039
+      const event = new CustomEvent(AJAX_UPDATE_FORM_STATE_EVENT, {
+        detail: { updates, formId },
+      });
+      document.dispatchEvent(event);
+    }
   };
 } else {
   throw new Error(
