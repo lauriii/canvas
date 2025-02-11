@@ -10,11 +10,15 @@ const ErrorCard: React.FC<{
   error?: string;
   resetErrorBoundary?: () => void;
   resetButtonText?: string;
+  asChild?: boolean;
+  children?: React.ReactNode;
 }> = ({
   title = DEFAULT_TITLE,
   error,
   resetErrorBoundary,
   resetButtonText = DEFAULT_RESET_BUTTON_TEXT,
+  asChild = false,
+  children,
 }) => (
   <Box data-testid="xb-error-card" maxWidth="520px" mt="4">
     <Callout.Root color="red" role="alert">
@@ -25,7 +29,7 @@ const ErrorCard: React.FC<{
         <strong>{title}</strong>
       </Callout.Text>
       <Box overflow="hidden">
-        <Callout.Text>{error}</Callout.Text>
+        {asChild ? children : <Callout.Text>{error}</Callout.Text>}
       </Box>
       {resetErrorBoundary && (
         <Box mt="1">

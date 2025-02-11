@@ -1,24 +1,15 @@
 import CodeMirror from '@uiw/react-codemirror';
 import { javascript } from '@codemirror/lang-javascript';
 import { githubLight } from '@uiw/codemirror-theme-github';
-import { useState } from 'react';
+import { useAppDispatch, useAppSelector } from '@/app/hooks';
+import { selectJs, setJs } from '@/features/code-editor/codeEditorSlice';
 
 const JavaScriptEditor = () => {
-  const exampleString = `const Example = () => {
-  return (
-    <div>
-      <h1>Hello, World!</h1>
-      <p>This is a JSX component.</p>
-    </div>
-  );
-};
-
-export default MyComponent;
-`;
-  const [value, setValue] = useState(exampleString);
+  const dispatch = useAppDispatch();
+  const value = useAppSelector(selectJs);
 
   function onChangeHandler(value: string) {
-    setValue(value);
+    dispatch(setJs(value));
   }
   return (
     <CodeMirror

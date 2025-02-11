@@ -30,6 +30,7 @@ import type { UnknownAction } from 'redux';
 import { pendingChangesApi } from '@/services/pendingChangesApi';
 import { publishReviewSlice } from '@/components/review/PublishReview.slice';
 import { contentListApi } from '@/services/contentList';
+import codeEditorSlice from '@/features/code-editor/codeEditorSlice';
 
 // Reducer enhancer to decorate undoable aware reducers and unset future state
 // if an action is performed on another undoable slice.
@@ -104,6 +105,7 @@ const rootReducer = combineSlices(
   pendingChangesApi,
   publishReviewSlice,
   contentListApi,
+  codeEditorSlice,
 );
 // Infer the `RootState` type from the root reducer
 export type RootState = ReturnType<typeof rootReducer>;

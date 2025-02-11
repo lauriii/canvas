@@ -2,13 +2,14 @@ import type { MosaicNode } from 'react-mosaic-component';
 import { Mosaic, MosaicWindow } from 'react-mosaic-component';
 import './xb-react-mosaic-component.css';
 import { useState } from 'react';
-import JavaScriptEditor from '@/features/code-editor/JavaScriptEditor';
+import JavaScriptEditor from '@/features/code-editor/editors/JavaScriptEditor';
 import { Button, Callout, Flex, ScrollArea, Tabs } from '@radix-ui/themes';
 import { InfoCircledIcon, LayoutIcon } from '@radix-ui/react-icons';
-import GlobalCssEditor from '@/features/code-editor/GlobalCssEditor';
-import CssEditor from '@/features/code-editor/CssEditor';
+import GlobalCssEditor from '@/features/code-editor/editors/GlobalCssEditor';
+import CssEditor from '@/features/code-editor/editors/CssEditor';
 import styles from './MosaicContainer.module.css';
 import './xb-code-mirror.css';
+import Preview from '@/features/code-editor/Preview';
 
 const defaultLayout: MosaicNode<string> = {
   direction: 'row',
@@ -100,7 +101,13 @@ const MosaicContainer = () => {
       <Mosaic
         value={layout}
         mosaicId={''}
-        onChange={(newNode) => setLayout(newNode as MosaicNode<string>)}
+        onChange={(newNode) => {
+          window.dispatchEvent(new Event('mosaicOnChange'));
+          setLayout(newNode as MosaicNode<string>);
+        }}
+        onRelease={() => {
+          window.dispatchEvent(new Event('mosaicOnRelease'));
+        }}
         renderTile={(id: string, path: any[]) => {
           switch (id) {
             case 'Editor':
@@ -132,7 +139,7 @@ const MosaicContainer = () => {
                   title="Preview"
                   draggable={false}
                 >
-                  <NotSupported />
+                  <Preview />
                 </MosaicWindow>
               );
             case 'Component Data':

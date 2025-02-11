@@ -1,13 +1,15 @@
 import CodeMirror from '@uiw/react-codemirror';
 import { githubLight } from '@uiw/codemirror-theme-github';
-import { useState } from 'react';
 import { css } from '@codemirror/lang-css';
+import { useAppDispatch, useAppSelector } from '@/app/hooks';
+import { selectCss, setCss } from '@/features/code-editor/codeEditorSlice';
 
-const GlobalCssEditor = () => {
-  const [value, setValue] = useState('.global { color: blue; }');
+const CssEditor = () => {
+  const dispatch = useAppDispatch();
+  const value = useAppSelector(selectCss);
 
   function onChangeHandler(value: string) {
-    setValue(value);
+    dispatch(setCss(value));
   }
   return (
     <CodeMirror
@@ -20,4 +22,4 @@ const GlobalCssEditor = () => {
   );
 };
 
-export default GlobalCssEditor;
+export default CssEditor;

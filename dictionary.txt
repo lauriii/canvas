@@ -18,6 +18,7 @@ hyperscriptification
 hyperscriptified
 hyperscriptify
 hyperscriptifying
+importmap
 inwidget
 JSONified
 jsxs

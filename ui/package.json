@@ -3,7 +3,9 @@
   "description": "A React application powering the Experience Builder UI.",
   "homepage": "https://www.drupal.org/project/experience_builder",
   "private": true,
-  "workspaces": ["lib/astro-hydration"],
+  "workspaces": [
+    "lib/astro-hydration"
+  ],
   "version": "0.0.0",
   "engines": {
     "node": "^20.0.0"
@@ -44,11 +46,13 @@
     "@radix-ui/react-tooltip": "^1.1.1",
     "@radix-ui/themes": "^3.0.4",
     "@reduxjs/toolkit": "^2.0.1",
+    "@swc/wasm-web": "^1.10.14",
     "@uiw/codemirror-theme-github": "^4.23.7",
     "@uiw/react-codemirror": "^4.23.7",
     "ajv": "^8.17.1",
     "ajv-formats": "^3.0.1",
     "ajv-formats-draft2019": "^1.6.1",
+    "babylon": "^6.18.0",
     "clsx": "^2.1.1",
     "cypress-axe": "^1.5.0",
     "cypress-real-events": "^1.13.0",
@@ -56,6 +60,7 @@
     "dotenv": "^16.4.5",
     "lodash": "^4.17.21",
     "lodash-es": "^4.17.21",
+    "markdown-to-jsx": "^7.7.3",
     "qs": "^6.14.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
@@ -67,6 +72,7 @@
     "react-router-dom": "^6.25.0",
     "redux-undo": "^1.1.0",
     "sortablejs": "^1.15.2",
+    "tailwindcss-in-browser": "^0.1.3",
     "uuid": "^9.0.1"
   },
   "devDependencies": {
@@ -84,6 +90,7 @@
     "@testing-library/jest-dom": "^6.2.0",
     "@testing-library/react": "^14.1.2",
     "@testing-library/user-event": "^14.5.2",
+    "@types/babylon": "^6.16.9",
     "@types/lodash": "^4.17.0",
     "@types/qs": "^6.9.18",
     "@types/react": "^18.2.47",
