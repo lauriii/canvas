@@ -13,6 +13,7 @@ use GuzzleHttp\RequestOptions;
 
 /**
  * @covers \Drupal\experience_builder\Controller\ApiConfigControllers
+ * @covers \Drupal\experience_builder\Controller\ApiConfigAutoSaveControllers
  * @group experience_builder
  * @internal
  */
@@ -419,6 +420,7 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
 
     $base = rtrim(base_path(), '/');
     $list_url = Url::fromUri('base:/xb/api/config/js_component');
+    $auto_save_url = Url::fromUri("base:/xb/api/config/auto-save/js_component/test");
 
     $request_options = [
       RequestOptions::HEADERS => [
@@ -587,6 +589,9 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
       'js_footer' => '',
     ];
     $this->assertSame($expected_component, $body);
+    // Confirm no auto-save entity has been created.
+    $this->assertExpectedResponse('GET', $auto_save_url, $request_options, 204, ['user.permissions'], ['experience_builder__autosave', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
+    $this->assertExpectedResponse('GET', $auto_save_url, $request_options, 204, ['user.permissions'], ['experience_builder__autosave', 'http_response'], 'UNCACHEABLE (request policy)', 'HIT');
 
     // Creating a JavaScriptComponent with an already-in-use ID: 409.
     $request_options[RequestOptions::BODY] = self::encodeXBData($code_component_to_send);
@@ -662,6 +667,13 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
     $body = $this->assertExpectedResponse('PATCH', Url::fromUri('base:/xb/api/config/js_component/test'), $request_options, 200, NULL, NULL, NULL, NULL);
     $this->assertSame($expected_component, $body);
 
+    // Create an auto-save entry for this config entity, to verify that neither
+    // the "list" nor the "individual" API responses tested here are affected by
+    // it.
+    $auto_save_data = $code_component_to_send;
+    $auto_save_data['name'] = 'Auto-save title, should not affect GET requests';
+    $this->assertAutoSave($auto_save_data, 'js_component', 'test');
+
     $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['languages:language_interface', 'user.permissions', 'theme'], ['config:js_component_list', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
     $this->assertSame([
       'test' => $expected_component,
@@ -683,6 +695,7 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
 
     $base = rtrim(base_path(), '/');
     $list_url = Url::fromUri("base:/xb/api/config/xb_asset_library");
+    $auto_save_url = Url::fromUri("base:/xb/api/config/auto-save/xb_asset_library/global");
 
     $request_options = [
       RequestOptions::HEADERS => [
@@ -740,6 +753,13 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
         "$base/xb/api/config/xb_asset_library/global",
       ],
     ]);
+    $this->assertSame($body, $asset_library_to_send);
+    // Confirm no auto-save entity has been created.
+    $this->assertExpectedResponse('GET', $auto_save_url, $request_options, 204, ['user.permissions'], ['experience_builder__autosave', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
+    $this->assertExpectedResponse('GET', $auto_save_url, $request_options, 204, ['user.permissions'], ['experience_builder__autosave', 'http_response'], 'UNCACHEABLE (request policy)', 'HIT');
+
+    // @todo Test that creating an auto-save entry for the 'global' does not
+    //   affect the GET request in https:/drupal.org/i/3505224.
 
     // Creating an Asset Library with an already-in-use ID: 409.
     $body = $this->assertExpectedResponse('POST', $list_url, $request_options, 409, NULL, NULL, NULL, NULL);

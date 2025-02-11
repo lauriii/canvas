@@ -5,6 +5,7 @@ namespace Drupal\experience_builder\AutoSave;
 use Drupal\Core\Cache\CacheTagsInvalidatorInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\TranslatableInterface;
+use Drupal\experience_builder\AutoSaveData;
 
 /**
  * Defines a class for storing and retrieving auto-save data.
@@ -51,16 +52,16 @@ class AutoSaveManager {
     return $entity->getEntityTypeId() . ':' . $entity->id();
   }
 
-  public function getAutoSaveData(EntityInterface $entity): ?array {
+  public function getAutoSaveData(EntityInterface $entity): AutoSaveData {
     $auto_save_data = $this->getTempStore()->get($this->getAutoSaveKey($entity));
     if (\is_null($auto_save_data)) {
-      return NULL;
+      return new AutoSaveData(NULL);
     }
 
     \assert(\is_array($auto_save_data));
     \assert(\array_key_exists('data', $auto_save_data));
-    /** @var array */
-    return $auto_save_data['data'];
+    \assert(\is_array($auto_save_data['data']));
+    return new AutoSaveData($auto_save_data['data']);
   }
 
   /**

@@ -141,6 +141,30 @@ experience_builder.api.log_error:
     _permission: 'access administration pages'
   methods: ['POST']
 
+experience_builder.api.config.auto-save.get:
+  path: '/xb/api/config/auto-save/{xb_config_entity_type_id}/{xb_config_entity}'
+  defaults:
+    _controller: 'Drupal\experience_builder\Controller\ApiConfigAutoSaveControllers::get'
+  requirements:
+    _permission: 'access administration pages'
+    xb_config_entity_type_id: '(js_component|xb_asset_library)'
+  options:
+    parameters:
+      xb_config_entity:
+        type: entity:{xb_config_entity_type_id}
+  methods: [GET]
+experience_builder.api.config.auto-save.patch:
+  path: '/xb/api/config/auto-save/{xb_config_entity_type_id}/{xb_config_entity}'
+  defaults:
+    _controller: 'Drupal\experience_builder\Controller\ApiConfigAutoSaveControllers::patch'
+  requirements:
+    _permission: 'access administration pages'
+    xb_config_entity_type_id: '(js_component|xb_asset_library)'
+  options:
+    parameters:
+      xb_config_entity:
+        type: entity:{xb_config_entity_type_id}
+  methods: [PATCH]
 experience_builder.api.config.list:
   path: '/xb/api/config/{xb_config_entity_type_id}'
   defaults:

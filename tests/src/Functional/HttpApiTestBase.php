@@ -4,13 +4,19 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\experience_builder\Functional;
 
+use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Url;
+use Drupal\experience_builder\AutoSave\AutoSaveManager;
 use Drupal\Tests\ApiRequestTrait;
 use Drupal\Tests\BrowserTestBase;
+use Drupal\Tests\experience_builder\Traits\TestDataUtilitiesTrait;
+use GuzzleHttp\RequestOptions;
 
 abstract class HttpApiTestBase extends BrowserTestBase {
 
   use ApiRequestTrait;
+  use TestDataUtilitiesTrait;
 
   /**
    * @return ?array
@@ -57,6 +63,36 @@ abstract class HttpApiTestBase extends BrowserTestBase {
     $json = json_decode($body, associative: TRUE, flags: JSON_THROW_ON_ERROR);
 
     return $json;
+  }
+
+  /**
+   * Asserts the given data can be auto-saved (and retrieved) correctly.
+   */
+  protected function assertAutoSave(array $data_to_autosave, string $entity_type_id, string $entity_id): void {
+    $request_options = [
+      RequestOptions::HEADERS => [
+        'Content-Type' => 'application/json',
+      ],
+    ];
+    $auto_save_url = Url::fromUri("base:/xb/api/config/auto-save/$entity_type_id/$entity_id");
+    $request_options[RequestOptions::JSON] = $data_to_autosave;
+    $patch_response = $this->assertExpectedResponse('PATCH', $auto_save_url, $request_options, 200, NULL, NULL, NULL, NULL);
+    $this->assertSame([], $patch_response);
+
+    // First GET request: 200 aka auto-save retrieved successfully.
+    unset($request_options[RequestOptions::JSON]);
+    $auto_save_data = $this->assertExpectedResponse('GET', $auto_save_url, $request_options, 200, ['user.permissions'], ['experience_builder__autosave', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
+    $this->assertSame($data_to_autosave, $auto_save_data);
+    // Repeat the same request: 200, but now is a Dynamic Page Cache hit.
+    $auto_save_data = $this->assertExpectedResponse('GET', $auto_save_url, $request_options, 200, ['user.permissions'], ['experience_builder__autosave', 'http_response'], 'UNCACHEABLE (request policy)', 'HIT');
+    $this->assertSame($data_to_autosave, $auto_save_data);
+
+    // The expected array must also match what the AutoSaveManager currently contains.
+    $storage = $this->container->get(EntityTypeManagerInterface::class)->getStorage($entity_type_id);
+    $entity = $storage->loadUnchanged($entity_id);
+    assert($entity instanceof EntityInterface);
+    $data = $this->container->get(AutoSaveManager::class)->getAutoSaveData($entity)->data;
+    $this->assertSame($data_to_autosave, $data);
   }
 
 }

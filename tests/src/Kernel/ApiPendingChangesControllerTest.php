@@ -12,6 +12,8 @@ use Drupal\Core\StreamWrapper\PublicStream;
 use Drupal\Core\Url;
 use Drupal\experience_builder\AutoSave\AutoSaveManager;
 use Drupal\experience_builder\Controller\ApiPendingChangesController;
+use Drupal\experience_builder\Entity\AssetLibrary;
+use Drupal\experience_builder\Entity\JavaScriptComponent;
 use Drupal\experience_builder\Entity\PageTemplate;
 use Drupal\file\Entity\File;
 use Drupal\image\ImageStyleInterface;
@@ -133,6 +135,54 @@ final class ApiPendingChangesControllerTest extends KernelTestBase {
     \assert($account2content instanceof NodeInterface);
     $this->setCurrentUser($account2);
     $autoSave->save($account2content, $emptyData);
+    $code_component = JavaScriptComponent::create(
+      [
+        'machineName' => 'test_code',
+        'name' => 'Test',
+        'status' => TRUE,
+        'props' => [
+          'text' => [
+            'type' => 'string',
+            'title' => 'Title',
+            'examples' => ['Press', 'Submit now'],
+          ],
+        ],
+        'slots' => [
+          'test-slot' => [
+            'title' => 'test',
+            'description' => 'Title',
+            'examples' => [
+              'Test 1',
+              'Test 2',
+            ],
+          ],
+        ],
+        'js' => [
+          'original' => 'console.log("Test")',
+          'compiled' => 'console.log("Test")',
+        ],
+        'css' => [
+          'original' => '.test { display: none; }',
+          'compiled' => '.test{display:none;}',
+        ],
+      ]
+    );
+    $this->assertSame(SAVED_NEW, $code_component->save());
+    $autoSave->save($code_component, ['dummy' => 'js_component: auto-save data is not validated']);
+    $library = AssetLibrary::create([
+      'id' => 'global',
+      'label' => 'Test',
+      'css' => [
+        'original' => '.test { display: none; }',
+        'compiled' => '.test{display:none;}',
+      ],
+      'js' => [
+        'original' => 'console.log( "Test" )',
+        'compiled' => 'console.log("Test")',
+      ],
+    ]);
+    $this->assertSame(SAVED_NEW, $library->save());
+    $autoSave->save($library, ['dummy' => 'xb_asset_library: auto-save data is not validated']);
     $request = Request::create(Url::fromRoute('experience_builder.api.autosave_collection')->toString());
     $response = $this->container->get(HttpKernelInterface::class)->handle($request);
     self::assertInstanceOf(CacheableJsonResponse::class, $response);
@@ -145,10 +195,12 @@ final class ApiPendingChangesControllerTest extends KernelTestBase {
     $anonContentIdentifier = \sprintf('node:%d:en', $anonAccountContent->id());
     $pageTemplateId = PageTemplate::PLUGIN_ID . ':stark';
     self::assertEquals([
+      'js_component:test_code',
       'node:1:en',
       'node:2:en',
       $anonContentIdentifier,
       $pageTemplateId,
+      'xb_asset_library:global',
     ], \array_keys($content));
     // We don't assert the exact value of these because of clock-drift during
     // the test, asserting their presence is enough.
@@ -156,10 +208,14 @@ final class ApiPendingChangesControllerTest extends KernelTestBase {
     \assert(\is_array($content['node:2:en']));
     \assert(\is_array($content[$pageTemplateId]));
     \assert(\is_array($content[$anonContentIdentifier]));
+    \assert(\is_array($content['js_component:test_code']));
+    \assert(\is_array($content['xb_asset_library:global']));
     self::assertArrayHasKey('updated', $content['node:1:en']);
     self::assertArrayHasKey('updated', $content['node:2:en']);
     self::assertArrayHasKey('updated', $content[$anonContentIdentifier]);
     self::assertArrayHasKey('updated', $content[$pageTemplateId]);
+    self::assertArrayHasKey('updated', $content['js_component:test_code']);
+    self::assertArrayHasKey('updated', $content['xb_asset_library:global']);
     $imageStyle = \Drupal::entityTypeManager()->getStorage('image_style')->load(ApiPendingChangesController::AVATAR_IMAGE_STYLE);
     self::assertInstanceOf(ImageStyleInterface::class, $imageStyle);
     $avatarUrl = $imageStyle->buildUrl($fileUri);
@@ -223,6 +279,32 @@ final class ApiPendingChangesControllerTest extends KernelTestBase {
       'label' => 'Stark global template',
       'data_hash' => \hash('xxh64', \serialize($templateData)),
     ], \array_diff_key($content[$pageTemplateId], \array_flip(['updated'])));
+    self::assertEquals([
+      'langcode' => NULL,
+      'entity_type' => $code_component->getEntityTypeId(),
+      'entity_id' => $code_component->id(),
+      'owner' => [
+        'id' => $account2->id(),
+        'name' => $account2->getDisplayName(),
+        'avatar' => NULL,
+        'uri' => $account2->toUrl()->toString(),
+      ],
+      'label' => $code_component->label(),
+      'data_hash' => \hash('xxh64', \serialize(['dummy' => 'js_component: auto-save data is not validated'])),
+    ], \array_diff_key($content['js_component:test_code'], \array_flip(['updated'])));
+    self::assertEquals([
+      'langcode' => NULL,
+      'entity_type' => $library->getEntityTypeId(),
+      'entity_id' => $library->id(),
+      'owner' => [
+        'id' => $account2->id(),
+        'name' => $account2->getDisplayName(),
+        'avatar' => NULL,
+        'uri' => $account2->toUrl()->toString(),
+      ],
+      'label' => $library->label(),
+      'data_hash' => \hash('xxh64', \serialize(['dummy' => 'xb_asset_library: auto-save data is not validated'])),
+    ], \array_diff_key($content['xb_asset_library:global'], \array_flip(['updated'])));
     $this->assertDataCompliesWithApiSpecification($content, 'AutoSaveCollection');
   }
 

@@ -28,9 +28,7 @@ use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemInstantiat
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
-use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
 
 /**
  * Controllers exposing HTTP API for interacting with XB's Config entity types.
@@ -216,35 +214,6 @@ final class ApiConfigControllers extends ApiControllerBase {
     if ($violations->count()) {
       throw new ConstraintViolationException($violations);
     }
-  }
-
-  /**
-   * Decodes a request whose body contains JSON.
-   *
-   * @return array
-   *   The parsed JSON from the request body.
-   *
-   * @throws \Symfony\Component\HttpKernel\Exception\BadRequestHttpException
-   *   Thrown if the request body cannot be decoded, or when no request body was
-   *   provided with a POST or PATCH request.
-   * @throws \Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException
-   *   Thrown if the request body cannot be denormalized.
-   *
-   * @todo Introduce a custom Content-Type and validate that request header too, see \Drupal\jsonapi\JsonapiServiceProvider for inspiration.
-   */
-  private static function decode(Request $request): array {
-    $body = (string) $request->getContent();
-
-    if (empty($body)) {
-      throw new BadRequestHttpException('Empty request body.');
-    }
-
-    $data = json_decode($body, TRUE);
-    if ($data === NULL) {
-      throw new UnprocessableEntityHttpException('Request body contains invalid JSON.');
-    }
-
-    return $data;
   }
 
   /**

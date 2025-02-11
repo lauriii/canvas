@@ -49,7 +49,7 @@ final class ApiLayoutController {
     // Ensure the Content region always exists.
     $this->regions['content'] ??= t('Content');
 
-    if ($body = $this->autoSaveManager->getAutoSaveData($entity)) {
+    if ($body = $this->autoSaveManager->getAutoSaveData($entity)->data) {
       ['layout' => $layout, 'model' => $model, 'entity_form_fields' => $entity_form_fields] = $body;
     }
     else {
@@ -194,7 +194,7 @@ final class ApiLayoutController {
     // Only expose regions marked as editable in the `layout` for the client.
     $editable_regions = $template->getEditableRegions();
 
-    $draft_template = $this->autoSaveManager->getAutoSaveData($template);
+    $draft_template = $this->autoSaveManager->getAutoSaveData($template)->data;
     if ($draft_template === NULL) {
       foreach ($editable_regions as $region) {
         if ($region === 'content') {
@@ -254,7 +254,7 @@ final class ApiLayoutController {
     $theme = $this->themeManager->getActiveTheme()->getName();
     $this->regions = system_region_list($theme);
 
-    $data = $this->autoSaveManager->getAutoSaveData($entity);
+    $data = $this->autoSaveManager->getAutoSaveData($entity)->data;
     if ($data === NULL) {
       // There are no changes (everything is published), read back the original
       // model.
