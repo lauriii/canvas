@@ -1,6 +1,9 @@
 langcode: en
 status: true
-dependencies: {  }
+dependencies:
+  enforced:
+    module:
+      - experience_builder
 name: xb_avatar
 label: 'Experience Builder Avatar'
 effects:
