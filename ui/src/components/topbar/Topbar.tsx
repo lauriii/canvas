@@ -18,7 +18,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import clsx from 'clsx';
 import UnpublishedChanges from '@/components/review/UnpublishedChanges';
 import PageInfo from '../pageInfo/PageInfo';
-import ExtensionsList from '@/components/extensionsPopover/ExtensionsList';
+import ExtensionsList from '@/components/extensions/ExtensionsList';
 import type React from 'react';
 import { handleNonWorkingBtn } from '@/utils/function-utils';
 import TopbarPopover from '@/components/topbar/menu/TopbarPopover';

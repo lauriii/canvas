@@ -3,13 +3,15 @@ import type { PayloadAction } from '@reduxjs/toolkit';
 
 export interface DialogSliceState {
   saveAsSection: boolean;
+  extension: boolean;
 }
 
 const initialState: DialogSliceState = {
   saveAsSection: false,
+  extension: false,
 };
 
-type UpdateDialogPayload = 'saveAsSection'; // only one dialog so far
+type UpdateDialogPayload = keyof DialogSliceState;
 
 export const dialogSlice = createAppSlice({
   name: 'dialog',

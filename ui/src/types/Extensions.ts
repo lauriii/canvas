@@ -1,7 +1,9 @@
-export interface Extension {
+export interface ExtensionDefinition {
   name: string;
-  imgSrc: string;
   id: string;
+  description: string;
+  imgSrc: string;
 }
 
-export type ExtensionsList = Extension[];
+export type ExtensionsList = ExtensionDefinition[];
+export type ActiveExtension = ExtensionDefinition | null;

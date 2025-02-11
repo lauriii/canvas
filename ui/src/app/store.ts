@@ -23,6 +23,7 @@ import { dummyPropsFormApi } from '@/services/dummyPropsForm';
 import { pageDataFormApi } from '@/services/pageDataForm';
 import { configurationSlice } from '@/features/configuration/configurationSlice';
 import { sectionApi } from '@/services/sections';
+import { extensionsSlice } from '@/features/extensions/extensionsSlice';
 import { extensionsApi } from '@/services/extensions';
 import { codeComponentApi } from '@/services/codeComponents';
 import { formStateSlice } from '@/features/form/formStateSlice';
@@ -102,6 +103,7 @@ const rootReducer = combineSlices(
   codeComponentDialogSlice,
   uiSlice,
   formStateSlice,
+  extensionsSlice,
   pendingChangesApi,
   publishReviewSlice,
   contentListApi,

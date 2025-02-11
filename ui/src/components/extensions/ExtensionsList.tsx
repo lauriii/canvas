@@ -1,6 +1,6 @@
 import { Flex, Heading, Link, Grid, Spinner } from '@radix-ui/themes';
 import { ExternalLinkIcon } from '@radix-ui/react-icons';
-import ExtensionButton from '@/components/extensionsPopover/ExtensionButton';
+import ExtensionButton from '@/components/extensions/ExtensionButton';
 import { handleNonWorkingBtn } from '@/utils/function-utils';
 import type React from 'react';
 import { useGetExtensionsQuery } from '@/services/extensions';

@@ -7,6 +7,7 @@ import ContextualPanel from '@/components/panel/ContextualPanel';
 import { useEffect } from 'react';
 import { setFirstLoadComplete } from '@/features/ui/uiSlice';
 import { useAppDispatch } from '@/app/hooks';
+import ExtensionDialog from '@/components/extensions/ExtensionDialog';
 const Editor = () => {
   const dispatch = useAppDispatch();
 
@@ -26,6 +27,7 @@ const Editor = () => {
       <div id="menuBarSubmenuContainer"></div>
       <SaveSectionDialog />
       <CodeComponentDialogs />
+      <ExtensionDialog />
     </>
   );
 };

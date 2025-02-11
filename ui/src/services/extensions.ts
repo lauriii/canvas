@@ -10,26 +10,31 @@ const kittenBase64 =
 const dummyExtensionsList = [
   {
     name: 'Extension 1',
+    description: 'a description of extension 1',
     imgSrc: kittenBase64,
     id: 'extension1',
   },
   {
     name: 'Extension with longer name 2',
+    description: 'a description of extension 2',
     imgSrc: kittenBase64,
     id: 'extension2',
   },
   {
     name: 'Extension 3',
+    description: 'a description of extension 3',
     imgSrc: kittenBase64,
     id: 'extension3',
   },
   {
     name: 'Extension 4',
+    description: 'a description of extension 4',
     imgSrc: kittenBase64,
     id: 'extension4',
   },
   {
     name: 'Extension name 5',
+    description: 'a description of extension 5',
     imgSrc: kittenBase64,
     id: 'extension5',
   },
