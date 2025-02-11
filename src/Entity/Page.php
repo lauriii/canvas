@@ -143,11 +143,7 @@ final class Page extends EditorialContentEntityBase implements EntityOwnerInterf
       ->setDescription(t('The time the page was created.'))
       ->setTranslatable(TRUE)
       ->setRevisionable(TRUE)
-      ->setDefaultValueCallback(self::class . '::getRequestTime')
-      ->setDisplayOptions('form', [
-        'type' => 'datetime_timestamp',
-      ])
-      ->setDisplayConfigurable('form', TRUE);
+      ->setDefaultValueCallback(self::class . '::getRequestTime');
     $fields['changed'] = BaseFieldDefinition::create('changed')
       ->setLabel(t('Changed'))
       ->setDescription(t('The time the page was last edited.'))
