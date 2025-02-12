@@ -261,7 +261,6 @@ class PageTemplateValidationTest extends ConfigEntityValidationTestBase {
         'component_trees' => [
           'Configuration for the region "<em class="placeholder">content</em>" (<em class="placeholder">content</em>) is missing.',
           "The 'Drupal\Core\Block\MainContentBlockPluginInterface' component interface must be present.",
-          "The 'Drupal\Core\Block\TitleBlockPluginInterface' component interface must be present.",
           "The 'Drupal\Core\Block\MessagesBlockPluginInterface' component interface must be present.",
         ],
       ],
@@ -273,7 +272,6 @@ class PageTemplateValidationTest extends ConfigEntityValidationTestBase {
         'sidebar_second' => [
           'tree' => self::encodeXBData([
             ComponentTreeStructure::ROOT_UUID => [
-              ['uuid' => 'uuid-main', 'component' => 'block.system_main_block'],
               ['uuid' => 'uuid-messages', 'component' => 'block.system_messages_block'],
             ],
           ]),
@@ -298,7 +296,7 @@ class PageTemplateValidationTest extends ConfigEntityValidationTestBase {
         'breadcrumb' => NULL,
       ],
       'expected_messages' => [
-        'component_trees' => "The 'Drupal\Core\Block\TitleBlockPluginInterface' component interface must be present.",
+        'component_trees' => "The 'Drupal\Core\Block\MainContentBlockPluginInterface' component interface must be present.",
       ],
     ];
 

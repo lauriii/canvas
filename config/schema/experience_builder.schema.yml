@@ -217,8 +217,6 @@ experience_builder.page_template.*:
             presence:
               # In core: `block.system_main_block`. Contrib/custom modules may add additional implementations.
               - Drupal\Core\Block\MainContentBlockPluginInterface
-              # In core: `block.page_title_block`. Contrib/custom modules may add additional implementations.
-              - Drupal\Core\Block\TitleBlockPluginInterface
               # In core: `block.system_messages_block`. Contrib/custom modules may add additional implementations.
               - Drupal\Core\Block\MessagesBlockPluginInterface
       sequence:
