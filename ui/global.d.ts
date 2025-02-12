@@ -10,6 +10,7 @@ interface DrupalSettings {
     };
     selected_component: string;
     demo_mode: boolean;
+    xbModulePath: string;
   };
   path: {
     baseUrl: string;

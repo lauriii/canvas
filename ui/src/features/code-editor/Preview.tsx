@@ -128,7 +128,17 @@ const Preview = () => {
   useEffect(() => {
     const importAndRunSwcOnMount = async () => {
       try {
-        await initSwc();
+        // When served in production, the wasm asset URLs need to be relative to the Drupal web root, so
+        // we pass that in to the initSwc function.
+        if (import.meta.env.MODE === 'production') {
+          const { drupalSettings } = window;
+          const { xbModulePath } = drupalSettings.xb;
+          const { baseUrl } = drupalSettings.path;
+          const pathToWasm = `${baseUrl}${xbModulePath}/ui/dist/assets/wasm_bg.wasm`;
+          await initSwc(pathToWasm);
+        } else {
+          await initSwc();
+        }
         setInitialized(true);
       } catch (error) {
         console.error('Failed to initialize SWC:', error);

@@ -96,6 +96,7 @@ HTML;
     $preview_assets = (new AttachedAssets())->setLibraries($preview_libraries);
 
     $demo_mode = $this->configFactory->get('experience_builder.settings')->get('demo_mode');
+    $xb_module_path = $this->moduleHandler->getModule('experience_builder')->getPath();
 
     return (new HtmlResponse((string) $html))->setAttachments([
       'library' => [
@@ -116,6 +117,7 @@ HTML;
             'js_header' => $this->assetRenderer->renderJsHeaderAssets($preview_assets),
             'js_footer' => $this->assetRenderer->renderJsFooterAssets($preview_assets),
           ],
+          'xbModulePath' => $xb_module_path,
         ],
       ],
       // This *could* use the \Drupal\Core\Asset\AssetResolverInterface services
