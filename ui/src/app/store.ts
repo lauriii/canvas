@@ -30,9 +30,9 @@ import { formStateSlice } from '@/features/form/formStateSlice';
 import type { UnknownAction } from 'redux';
 import { pendingChangesApi } from '@/services/pendingChangesApi';
 import { publishReviewSlice } from '@/components/review/PublishReview.slice';
-import { contentListApi } from '@/services/contentList';
 import codeEditorSlice from '@/features/code-editor/codeEditorSlice';
 import { previewSlice } from '@/features/pagePreview/previewSlice';
+import { contentApi } from '@/services/content';
 
 // Reducer enhancer to decorate undoable aware reducers and unset future state
 // if an action is performed on another undoable slice.
@@ -107,7 +107,7 @@ const rootReducer = combineSlices(
   extensionsSlice,
   pendingChangesApi,
   publishReviewSlice,
-  contentListApi,
+  contentApi,
   codeEditorSlice,
   previewSlice,
 );
@@ -160,7 +160,7 @@ export const makeStore = (preloadedState?: Partial<RootState>) => {
         pageDataFormApi.middleware,
         undoRedoActionIdMiddleware,
         pendingChangesApi.middleware,
-        contentListApi.middleware,
+        contentApi.middleware,
       );
     },
     preloadedState,

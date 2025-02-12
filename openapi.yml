@@ -267,8 +267,18 @@ paths:
                     examples:
                       - '42'
                       - 'stringAreAlsoPossible'
+  '/xb/api/content-delete/{entityTypeId}/{entityId}':
+    description: Endpoint for deleting content entities.
+    delete:
+      description: Deletes a content entity.
+      parameters:
+        - $ref: '#/components/parameters/entityTypeId'
+        - $ref: '#/components/parameters/entityId'
+      responses:
+        '204':
+          description: Content deleted successfully
   /xb/api/config/xb_asset_library:
-    description: Endpoints for managing asset libraries.
+    description: Endpoint for managing asset libraries.
     get:
       description: Retrieves all available asset libraries.
       responses:
@@ -396,7 +406,7 @@ paths:
           description: Validation errors exist
           $ref: '#/components/responses/ClientErrorResponse'
   '/xb/api/config/xb_asset_library/{configEntityId}':
-    description: Endpoints for managing a specific asset library.
+    description: Endpoint for managing a specific asset library.
     get:
       description: Retrieves details of a specific asset library.
       parameters:

@@ -6,6 +6,7 @@ namespace Drupal\experience_builder\Controller;
 
 use Drupal\Core\Cache\CacheableJsonResponse;
 use Drupal\Core\Cache\CacheableMetadata;
+use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\Query\QueryInterface;
 use Drupal\Core\Render\RenderContext;
@@ -45,6 +46,22 @@ final class ApiContentControllers {
       'entity_type' => $page->getEntityTypeId(),
       'entity_id' => $page->id(),
     ], RESPONSE::HTTP_CREATED);
+  }
+
+  /**
+   * Deletes entity.
+   *
+   * @param \Drupal\Core\Entity\ContentEntityInterface $xb_page
+   *   Entity to delete.
+   *
+   * @return \Symfony\Component\HttpFoundation\JsonResponse
+   *   Response.
+   *
+   * @throws \Drupal\Core\Entity\EntityStorageException
+   */
+  public function delete(ContentEntityInterface $xb_page): JsonResponse {
+    $xb_page->delete();
+    return new JsonResponse(status: Response::HTTP_NO_CONTENT);
   }
 
   /**

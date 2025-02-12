@@ -64,6 +64,36 @@ describe('Navigation functionality', () => {
     cy.url().should('contain', '/xb/xb_page/1');
   });
 
+  it('Deleting pages through navigation', () => {
+    cy.loadURLandWaitForXBLoaded({ url: 'xb/xb_page/1' });
+
+    // Intercept the DELETE request
+    cy.intercept('DELETE', '**/xb/api/content-delete/xb_page/*').as(
+      'deletePage',
+    );
+
+    // Intercept the GET request to the list endpoint
+    cy.intercept('GET', '**/xb/api/content/xb_page').as('getList');
+
+    cy.findByTestId(navigationButtonTestId).click();
+    cy.findByLabelText('Page options for Empty Page').click();
+    cy.contains('div.rt-BaseMenuItem', 'Delete page').click();
+    cy.contains('button', 'Delete page').click();
+
+    // Wait for the DELETE request to be made and assert it
+    cy.wait('@deletePage').its('response.statusCode').should('eq', 204);
+
+    // Wait for the GET request to the list endpoint which should be triggered by the deletion of a page.
+    cy.wait('@getList').its('response.statusCode').should('eq', 200);
+
+    cy.loadURLandWaitForXBLoaded({ url: 'xb/xb_page/1' });
+    cy.findByTestId(navigationButtonTestId).click();
+    cy.findByTestId(navigationContentTestId)
+      .should('exist')
+      .and('contain.text', 'Homepage')
+      .and('not.contain.text', 'Test page');
+  });
+
   it('Clicking the back button navigates to last visited page', () => {
     const BASE_URL = `${Cypress.config().baseUrl}/`;
     const CONFIG_PAGE_URL = `${BASE_URL}admin/config`;

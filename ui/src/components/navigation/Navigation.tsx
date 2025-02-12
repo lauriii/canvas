@@ -66,7 +66,9 @@ const ContentGroup = ({
               </Flex>
               <DropdownMenu.Root>
                 <DropdownMenu.Trigger>
-                  <DotsVerticalIcon />
+                  <DotsVerticalIcon
+                    aria-label={`Page options for ${item.title}`}
+                  />
                 </DropdownMenu.Trigger>
                 <DropdownMenu.Content>
                   <DropdownMenu.Item

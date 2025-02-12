@@ -59,26 +59,9 @@ final class XbContentEntityHttpApiTest extends HttpApiTestBase {
       ],
     ];
 
-    // Authenticated but unauthorized: 403 due to missing CSRF token.
-    $user = $this->createUser([]);
-    assert($user instanceof UserInterface);
-    $this->drupalLogin($user);
-    $response = $this->makeApiRequest('POST', $url, $request_options);
-    $this->assertSame(403, $response->getStatusCode());
-    $this->assertSame(
-      ['errors' => ['X-CSRF-Token request header is missing']],
-      json_decode((string) $response->getBody(), TRUE)
-    );
+    $this->assertAuthenticationAndAuthorization($url, 'POST');
 
-    // Authenticated but unauthorized: 403 due to missing permission.
     $request_options['headers']['X-CSRF-Token'] = $this->drupalGet('session/token');
-    $response = $this->makeApiRequest('POST', $url, $request_options);
-    $this->assertSame(403, $response->getStatusCode());
-    $this->assertSame(
-      ['errors' => ["The 'administer xb_page' permission is required."]],
-      json_decode((string) $response->getBody(), TRUE)
-    );
-
     // Authenticated, authorized, with CSRF token: 201.
     // @phpstan-ignore-next-line
     Role::load('authenticated')->grantPermission('administer xb_page')->save();
@@ -93,24 +76,7 @@ final class XbContentEntityHttpApiTest extends HttpApiTestBase {
   public function testList(): void {
     $url = Url::fromUri('base:/xb/api/content/xb_page');
 
-    // Anonymously: 403.
-    $body = $this->assertExpectedResponse('GET', $url, [], 403, ['user.permissions'], ['4xx-response', 'config:user.role.anonymous', 'http_response'], 'MISS', NULL);
-    $this->assertSame([
-      'errors' => [
-        "The 'administer xb_page' permission is required.",
-      ],
-    ], $body);
-
-    // User without permission.
-    $user = $this->createUser(['access content'], 'access_content_user');
-    assert($user instanceof UserInterface);
-    $this->drupalLogin($user);
-    $body = $this->assertExpectedResponse('GET', $url, [], 403, ['user.permissions'], ['4xx-response', 'http_response'], 'UNCACHEABLE (request policy)', NULL);
-    $this->assertSame([
-      'errors' => [
-        "The 'administer xb_page' permission is required.",
-      ],
-    ], $body);
+    $this->assertAuthenticationAndAuthorization($url, 'GET');
 
     // Authenticated, authorized: 200.
     $user = $this->createUser(['administer xb_page'], 'administer_xb_page_user');
@@ -141,6 +107,55 @@ final class XbContentEntityHttpApiTest extends HttpApiTestBase {
       $body
     );
     $this->assertExpectedResponse('GET', $url, [], 200, ['user.permissions'], ['http_response', 'xb_page_list'], 'UNCACHEABLE (request policy)', 'HIT');
+  }
+
+  public function testDelete(): void {
+    $url = Url::fromUri('base:/xb/api/content-delete/xb_page/1');
+    $request_options = [
+      RequestOptions::HEADERS => [
+        'Content-Type' => 'application/json',
+      ],
+    ];
+
+    $this->assertAuthenticationAndAuthorization($url, 'DELETE');
+
+    $request_options['headers']['X-CSRF-Token'] = $this->drupalGet('session/token');
+    // Authenticated, authorized, with CSRF token: 204.
+    // @phpstan-ignore-next-line
+    Role::load('authenticated')->grantPermission('administer xb_page')->save();
+    $response = $this->makeApiRequest('DELETE', $url, $request_options);
+    $this->assertSame(204, $response->getStatusCode());
+    $this->assertNull(\Drupal::entityTypeManager()->getStorage('xb_page')->load(1));
+  }
+
+  private function assertAuthenticationAndAuthorization(Url $url, string $method): void {
+    $request_options = [
+      RequestOptions::HEADERS => [
+        'Content-Type' => 'application/json',
+      ],
+    ];
+
+    // Authenticated but unauthorized: 403 due to missing CSRF token.
+    $user = $this->createUser([]);
+    assert($user instanceof UserInterface);
+    $this->drupalLogin($user);
+    if ($method !== 'GET') {
+      $response = $this->makeApiRequest($method, $url, $request_options);
+      $this->assertSame(403, $response->getStatusCode());
+      $this->assertSame(
+        ['errors' => ['X-CSRF-Token request header is missing']],
+        json_decode((string) $response->getBody(), TRUE)
+      );
+    }
+
+    // Authenticated but unauthorized: 403 due to missing permission.
+    $request_options['headers']['X-CSRF-Token'] = $this->drupalGet('session/token');
+    $response = $this->makeApiRequest($method, $url, $request_options);
+    $this->assertSame(403, $response->getStatusCode());
+    $this->assertSame(
+      ['errors' => ["The 'administer xb_page' permission is required."]],
+      json_decode((string) $response->getBody(), TRUE)
+    );
   }
 
 }

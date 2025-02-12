@@ -21,8 +21,9 @@ import { Link, useParams } from 'react-router-dom';
 import { selectLayout } from '@/features/layout/layoutModelSlice';
 import Navigation from '@/components/navigation/Navigation';
 import { handleNonWorkingBtn } from '@/utils/function-utils';
-import { useGetContentListQuery } from '@/services/contentList';
+import { useGetContentListQuery } from '@/services/content';
 import { useCreateContentMutation } from '@/services/contentCreate';
+import { useDeleteContentMutation } from '@/services/content';
 import { useNavigationUtils } from '@/hooks/useNavigationUtils';
 import { useErrorBoundary } from 'react-error-boundary';
 import type { ContentStub } from '@/types/Content';
@@ -74,6 +75,16 @@ const PageInfo = () => {
     });
   }
 
+  const [deleteContent, { error: deleteContentError }] =
+    useDeleteContentMutation();
+
+  function handleDeletePage(item: ContentStub) {
+    deleteContent({
+      entityType: 'xb_page',
+      entityId: String(item.id),
+    });
+  }
+
   // @todo https://www.drupal.org/i/3498525 should generalize this to all eligible content entity types.
   function handleOnSelect(item: ContentStub) {
     setEditorEntity('xb_page', String(item.id));
@@ -99,6 +110,12 @@ const PageInfo = () => {
       showBoundary(createContentError);
     }
   }, [createContentError, showBoundary]);
+
+  useEffect(() => {
+    if (deleteContentError) {
+      showBoundary(deleteContentError);
+    }
+  }, [deleteContentError, showBoundary]);
 
   return (
     <Flex gap="2" align="center">
@@ -128,7 +145,7 @@ const PageInfo = () => {
               onRename={handleNonWorkingBtn}
               onDuplicate={handleNonWorkingBtn}
               onSetHomepage={handleNonWorkingBtn}
-              onDelete={handleNonWorkingBtn}
+              onDelete={handleDeletePage}
             />
           </Popover.Content>
         </Popover.Root>
