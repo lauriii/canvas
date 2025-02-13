@@ -1,0 +1,85 @@
+import { useAppDispatch, useAppSelector } from '@/app/hooks';
+import { Callout, Box, Flex, TextField } from '@radix-ui/themes';
+import { QuestionMarkCircledIcon } from '@radix-ui/react-icons';
+import {
+  addSlot,
+  removeSlot,
+  reorderSlots,
+  selectSlots,
+  updateSlot,
+} from '@/features/code-editor/codeEditorSlice';
+import FormPropTypeSlot from '@/features/code-editor/component-data/forms/FormPropTypeSlot';
+import SortableList from '@/features/code-editor/component-data/SortableList';
+import {
+  FormElement,
+  Label,
+} from '@/features/code-editor/component-data/FormElement';
+import type { CodeComponentSlot } from '@/types/CodeComponent';
+
+export default function Slots() {
+  const dispatch = useAppDispatch();
+  const slots = useAppSelector(selectSlots);
+
+  const handleAddSlot = () => {
+    dispatch(addSlot());
+  };
+
+  const handleRemoveSlot = (slotId: string) => {
+    dispatch(removeSlot({ slotId }));
+  };
+
+  const handleReorder = (oldIndex: number, newIndex: number) => {
+    dispatch(reorderSlots({ oldIndex, newIndex }));
+  };
+
+  const renderSlotContent = (slot: CodeComponentSlot) => (
+    <Flex direction="column" flexGrow="1">
+      <Box mb="4" width="100%" flexShrink="0" flexGrow="1">
+        <FormElement>
+          <Label htmlFor={`slot-name-${slot.id}`}>Slot name</Label>
+          <TextField.Root
+            id={`slot-name-${slot.id}`}
+            placeholder="Enter a name"
+            value={slot.name}
+            size="1"
+            onChange={(e) =>
+              dispatch(
+                updateSlot({
+                  id: slot.id,
+                  updates: { name: e.target.value },
+                }),
+              )
+            }
+          />
+        </FormElement>
+      </Box>
+      <FormPropTypeSlot id={slot.id} example={slot.example} />
+    </Flex>
+  );
+
+  return (
+    <>
+      <Box flexGrow="1" px="4" pt="4" maxWidth="500px" mx="auto">
+        <Callout.Root size="1" variant="surface" color="gray">
+          <Callout.Icon>
+            <QuestionMarkCircledIcon />
+          </Callout.Icon>
+          <Callout.Text>
+            Slots allow you to place other components inside of your component.
+          </Callout.Text>
+        </Callout.Root>
+      </Box>
+      <SortableList
+        items={slots}
+        onAdd={handleAddSlot}
+        onReorder={handleReorder}
+        onRemove={handleRemoveSlot}
+        renderContent={renderSlotContent}
+        getItemId={(item) => item.id}
+        data-testid="slot"
+        moveAriaLabel="Move slot"
+        removeAriaLabel="Remove slot"
+      />
+    </>
+  );
+}

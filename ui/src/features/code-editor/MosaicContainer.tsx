@@ -3,13 +3,14 @@ import { Mosaic, MosaicWindow } from 'react-mosaic-component';
 import './xb-react-mosaic-component.css';
 import { useState } from 'react';
 import JavaScriptEditor from '@/features/code-editor/editors/JavaScriptEditor';
-import { Button, Callout, Flex, ScrollArea, Tabs } from '@radix-ui/themes';
-import { InfoCircledIcon, LayoutIcon } from '@radix-ui/react-icons';
+import { Button, ScrollArea, Tabs } from '@radix-ui/themes';
+import { LayoutIcon } from '@radix-ui/react-icons';
 import GlobalCssEditor from '@/features/code-editor/editors/GlobalCssEditor';
 import CssEditor from '@/features/code-editor/editors/CssEditor';
 import styles from './MosaicContainer.module.css';
 import './xb-code-mirror.css';
 import Preview from '@/features/code-editor/Preview';
+import ComponentData from '@/features/code-editor/component-data/ComponentData';
 
 const defaultLayout: MosaicNode<string> = {
   direction: 'row',
@@ -17,7 +18,7 @@ const defaultLayout: MosaicNode<string> = {
   second: {
     direction: 'column',
     first: 'Preview',
-    second: 'Component Data',
+    second: 'Component data',
     splitPercentage: 50,
   },
   splitPercentage: 60,
@@ -29,23 +30,10 @@ const fullEditorLayout: MosaicNode<string> = {
   second: {
     direction: 'column',
     first: 'Preview',
-    second: 'Component Data',
+    second: 'Component data',
     splitPercentage: 50,
   },
   splitPercentage: 100,
-};
-
-const NotSupported = () => {
-  return (
-    <Flex direction="column" align="center" justify="center" height="100%">
-      <Callout.Root size="1" variant="surface" color="gray">
-        <Callout.Icon>
-          <InfoCircledIcon />
-        </Callout.Icon>
-        <Callout.Text>This feature is not yet supported.</Callout.Text>
-      </Callout.Root>
-    </Flex>
-  );
 };
 
 const MosaicContainer = () => {
@@ -142,7 +130,7 @@ const MosaicContainer = () => {
                   <Preview />
                 </MosaicWindow>
               );
-            case 'Component Data':
+            case 'Component data':
               return (
                 <MosaicWindow<string>
                   className="xb-mosaic-window-component-data"
@@ -150,7 +138,7 @@ const MosaicContainer = () => {
                   title="Component data"
                   draggable={false}
                 >
-                  <NotSupported />
+                  <ComponentData />
                 </MosaicWindow>
               );
             default:

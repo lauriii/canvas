@@ -1,0 +1,21 @@
+.panel {
+  flex-shrink: 0;
+  border-radius: var(--radius-4);
+  background-color: white;
+  box-shadow: var(--shadow-2);
+}
+
+.moveRemoveControls {
+  --button-ghost-padding-x: var(--space-1) !important;
+}
+
+.moveControl {
+  cursor: grab !important;
+  &:active {
+    cursor: grabbing;
+  }
+}
+
+.sortableGhost {
+  opacity: 0.5;
+}

@@ -8,8 +8,11 @@ describe('<Preview /> for code editor', () => {
     const store = makeStore({
       codeEditor: {
         js: `
-        export default function MyComponent() {
-          return <div id="hello">Hello World</div>;
+        export default function MyComponent({ title, initialCount, isVisible, additionalContent }) {
+          if (!isVisible) {
+            return null;
+          }
+          return <div id="hello">{ title } { initialCount + 1 } { additionalContent }</div>;
         }
       `,
         css: `
@@ -18,6 +21,29 @@ describe('<Preview /> for code editor', () => {
           font-size: 24px;
         }
       `,
+        props: [
+          {
+            name: 'Title',
+            type: 'string',
+            example: 'Hello World',
+          },
+          {
+            name: 'Initial count',
+            type: 'number',
+            example: 1,
+          },
+          {
+            name: 'Is visible',
+            type: 'boolean',
+            example: true,
+          },
+        ],
+        slots: [
+          {
+            name: 'Additional content',
+            example: '<span>!</span>',
+          },
+        ],
       },
     });
     cy.mount(
@@ -33,7 +59,7 @@ describe('<Preview /> for code editor', () => {
       '#hello',
       (el) => {
         const computedStyle = window.getComputedStyle(el);
-        expect(el.textContent).to.equal('Hello World');
+        expect(el.textContent).to.equal('Hello World 2 !');
         expect(computedStyle.fontSize).to.equal('24px');
         expect(computedStyle.color).to.equal('rgb(0, 0, 255)');
       },

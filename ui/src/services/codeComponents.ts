@@ -48,6 +48,16 @@ export const codeComponentApi = createApi({
       }),
       invalidatesTags: [{ type: 'CodeComponents', id: 'LIST' }],
     }),
+    updateAutoSave: builder.mutation<
+      void,
+      { entityTypeId: string; configEntityId: string; data: any }
+    >({
+      query: ({ entityTypeId, configEntityId, data }) => ({
+        url: `xb/api/config/auto-save/${entityTypeId}/${configEntityId}`,
+        method: 'PATCH',
+        body: data,
+      }),
+    }),
   }),
 });
 
@@ -57,4 +67,5 @@ export const {
   useCreateCodeComponentMutation,
   useUpdateCodeComponentMutation,
   useDeleteCodeComponentMutation,
+  useUpdateAutoSaveMutation,
 } = codeComponentApi;

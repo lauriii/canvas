@@ -59,17 +59,13 @@ describe('Block form', () => {
     cy.waitForElementContentInIframe('div.site-branding__inner', 'Drupal');
 
     cy.findByLabelText('Site name').as('siteName');
-    // Radix replaces checkboxes with buttons
-    // @todo should assertToggleState() deal with this? but the aria-checked property is not correct
-    cy.get('@siteName')
-      .should('exist')
-      .and('have.attr', 'data-state', 'checked');
+    cy.get('@siteName').assertToggleState(true);
     cy.get('@siteName').toggleToggle();
-    cy.get('@siteName').should('have.attr', 'data-state', 'unchecked');
+    cy.get('@siteName').assertToggleState(false);
     cy.waitForElementContentNotInIframe('div.site-branding__inner', 'Drupal');
 
     cy.get('@siteName').toggleToggle();
-    cy.get('@siteName').should('have.attr', 'data-state', 'checked');
+    cy.get('@siteName').assertToggleState(true);
     cy.waitForElementContentInIframe('div.site-branding__inner', 'Drupal');
 
     // Turn off the site name again.
@@ -110,10 +106,6 @@ describe('Block form', () => {
 
     // And it should have the saved configuration.
     cy.findByLabelText('Site name').as('siteName');
-    // Radix replaces checkboxes with buttons
-    // @todo should assertToggleState() deal with this? but the aria-checked property is not correct
-    cy.get('@siteName')
-      .should('exist')
-      .and('have.attr', 'data-state', 'unchecked');
+    cy.get('@siteName').assertToggleState(false);
   });
 });

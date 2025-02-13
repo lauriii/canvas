@@ -1,4 +1,5 @@
 import '@testing-library/cypress/add-commands.js';
+import { realType } from 'cypress-real-events'; // eslint-disable-line no-unused-vars
 import { realDnd } from './realDnd.js';
 import { onlyVisibleChars } from './utils.js';
 
@@ -807,7 +808,7 @@ Cypress.Commands.add(
           'data-state',
           expectedState ? 'checked' : 'unchecked',
         )
-        .and('have.attr', 'aria-checked', expectedState ? 'checked' : 'false');
+        .and('have.attr', 'aria-checked', expectedState ? 'true' : 'false');
     });
     return cy.wrap(subject);
   },

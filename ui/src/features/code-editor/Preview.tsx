@@ -6,6 +6,8 @@ import {
   selectJs,
   selectCss,
   selectGlobalCss,
+  selectProps,
+  selectSlots,
 } from '@/features/code-editor/codeEditorSlice';
 import { parse } from 'babylon';
 import type { File } from 'babel-types';
@@ -15,6 +17,7 @@ import ErrorCard from '@/components/error/ErrorCard';
 import mdFile from './missingDefaultExportMessage.md';
 import { ScrollArea } from '@radix-ui/themes';
 import Markdown from 'markdown-to-jsx';
+import { camelCase } from 'lodash';
 
 const swcConfig: Options = {
   jsc: {
@@ -55,6 +58,8 @@ const Preview = () => {
   const js = useAppSelector(selectJs);
   const css = useAppSelector(selectCss);
   const globalCss = useAppSelector(selectGlobalCss);
+  const props = useAppSelector(selectProps);
+  const slots = useAppSelector(selectSlots);
   const [compiledJs, setCompiledJs] = useState<string>('');
   const [compiledCss, setCompiledCss] = useState<string>('');
   const [compiledTailwindCss, setCompiledTailwindCss] = useState<string>('');
@@ -66,8 +71,26 @@ const Preview = () => {
   const [markdown, setMarkdown] = useState('');
   const [isCompileError, setIsCompileError] = useState(false);
 
-  // Replace with actual props in [#3500017].
-  const props = '';
+  const propsArray = props
+    .filter((prop) => prop.name) // Filter out props with no name.
+    .map((prop) => {
+      const value = prop.example;
+      if (prop.type === 'string') {
+        // If the prop is a string, wrap it in quotes.
+        return `${camelCase(prop.name)}: '${value}'`;
+      }
+      return `${camelCase(prop.name)}: ${value}`;
+    });
+  const slotsArray = slots
+    .filter((slot) => slot.name) // Filter out slots with no name.
+    .map(
+      (slot) => `${camelCase(slot.name)}: h('Fragment', {
+          dangerouslySetInnerHTML: {
+            __html: '${slot?.example?.replace(/[\r\n]+/g, '')}'
+          }
+        })`,
+    );
+  const propsString = `{${[...propsArray, ...slotsArray].join(',')}}`;
   const iframeSrcDoc = `
     <script type="importmap">
         ${JSON.stringify(importMap)}
@@ -77,7 +100,7 @@ const Preview = () => {
     <script type="module">
       import { h, render } from 'preact';
       ${compiledJs}
-      render(h(${defaultExportName}, ${props}), document.getElementById('xb-code-editor-preview-root'));
+      render(h(${defaultExportName}, ${propsString}), document.getElementById('xb-code-editor-preview-root'));
     </script>
     <div id="xb-code-editor-preview-root"></div>`;
 
