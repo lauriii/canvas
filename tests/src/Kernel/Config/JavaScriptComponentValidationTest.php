@@ -381,8 +381,14 @@ class JavaScriptComponentValidationTest extends ConfigEntityValidationTestBase {
     // 'dash-separated' is valid machine name for component but not for config
     // entity.
     if ($this->entity->id() !== 'dash-separated' && $expected_messages === $invalid_id_messages) {
+      $separator = '/n';
+      if (\version_compare(\Drupal::VERSION, '11.1.2', '>=')) {
+        // The format of component violation messages changed in Drupal 11.1.2.
+        // @see https://drupal.org/i/3462700
+        $separator = "\n";
+      }
       $expected_messages[''] = [
-        '[id] Does not match the regex pattern ^[a-z]([a-zA-Z0-9_-]*[a-zA-Z0-9])*:[a-z]([a-zA-Z0-9_-]*[a-zA-Z0-9])*$/n[machineName] Does not match the regex pattern ^[a-z]([a-zA-Z0-9_-]*[a-zA-Z0-9])*$',
+        '[id] Does not match the regex pattern ^[a-z]([a-zA-Z0-9_-]*[a-zA-Z0-9])*:[a-z]([a-zA-Z0-9_-]*[a-zA-Z0-9])*$' . $separator . '[machineName] Does not match the regex pattern ^[a-z]([a-zA-Z0-9_-]*[a-zA-Z0-9])*$',
         $expected_messages[''],
       ];
     }

@@ -152,8 +152,8 @@ class ApiPublishAllControllerTest extends KernelTestBase {
     $json = json_decode($response->getContent() ?: '', TRUE);
     self::assertEquals(Response::HTTP_UNPROCESSABLE_ENTITY, $response->getStatusCode());
     $suffix = '';
-    if (\version_compare(\Drupal::VERSION, '11.2', '>=') || \version_compare(\Drupal::VERSION, '11.2-dev', '>=')) {
-      // The format of component violation messages changed in Drupal 11.2.
+    if (\version_compare(\Drupal::VERSION, '11.1.2', '>=')) {
+      // The format of component violation messages changed in Drupal 11.1.2.
       // @see https://drupal.org/i/3462700
       $suffix = '. The provided value is: "flared".';
     }

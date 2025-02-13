@@ -24,6 +24,7 @@ JSONified
 jsxs
 leftbar
 metacharacter
+mymodule
 Nygard
 Nygard's
 Postel

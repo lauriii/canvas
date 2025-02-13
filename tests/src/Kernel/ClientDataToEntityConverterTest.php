@@ -128,8 +128,8 @@ class ClientDataToEntityConverterTest extends KernelTestBase {
     $unreferenced_src = $this->getSrcPropertyFromFile($this->unreferencedImage);
     $unreferenced_file_client_json['model'][self::TEST_IMAGE_UUID]['resolved']['image']['src'] = $unreferenced_src;
     $suffix = '';
-    if (\version_compare(\Drupal::VERSION, '11.2', '>=') || \version_compare(\Drupal::VERSION, '11.2-dev', '>=')) {
-      // The format of component violation messages changed in Drupal 11.2.
+    if (\version_compare(\Drupal::VERSION, '11.1.2', '>=')) {
+      // The format of component violation messages changed in Drupal 11.1.2.
       // @see https://drupal.org/i/3462700
       $suffix = '.';
     }
@@ -152,8 +152,8 @@ class ClientDataToEntityConverterTest extends KernelTestBase {
     $invalid_heading_client_json = $valid_client_json;
     $invalid_heading_client_json['model'][self::TEST_HEADING_UUID]['resolved']['style'] = 'not-a-style';
     $suffix = '';
-    if (\version_compare(\Drupal::VERSION, '11.2', '>=') || \version_compare(\Drupal::VERSION, '11.2-dev', '>=')) {
-      // The format of component violation messages changed in Drupal 11.2.
+    if (\version_compare(\Drupal::VERSION, '11.1.2', '>=')) {
+      // The format of component violation messages changed in Drupal 11.1.2.
       // @see https://drupal.org/i/3462700
       $suffix = '. The provided value is: "not-a-style".';
     }

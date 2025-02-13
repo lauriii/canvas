@@ -141,8 +141,8 @@ class ClientServerConversionTraitTest extends KernelTestBase {
         ],
     ];
     $suffix = '';
-    if (\version_compare(\Drupal::VERSION, '11.2', '>=') || \version_compare(\Drupal::VERSION, '11.2-dev', '>=')) {
-      // The format of component violation messages changed in Drupal 11.2.
+    if (\version_compare(\Drupal::VERSION, '11.1.2', '>=')) {
+      // The format of component violation messages changed in Drupal 11.1.2.
       // @see https://drupal.org/i/3462700
       $suffix = '.';
     }
@@ -165,8 +165,8 @@ class ClientServerConversionTraitTest extends KernelTestBase {
     $unreferenced_file_client_json['model'][self::TEST_IMAGE_UUID] = $invalid_image_client_json['model'][self::TEST_IMAGE_UUID];
     $unreferenced_file_client_json['model'][self::TEST_IMAGE_UUID]['resolved']['image']['src'] = $unreferenced_src;
     $suffix = '';
-    if (\version_compare(\Drupal::VERSION, '11.2', '>=') || \version_compare(\Drupal::VERSION, '11.2-dev', '>=')) {
-      // The format of component violation messages changed in Drupal 11.2.
+    if (\version_compare(\Drupal::VERSION, '11.1.2', '>=')) {
+      // The format of component violation messages changed in Drupal 11.1.2.
       // @see https://drupal.org/i/3462700
       $suffix = '.';
     }
