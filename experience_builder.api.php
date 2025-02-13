@@ -111,7 +111,7 @@ function hook_storage_prop_shape_alter(CandidateStorablePropShape $storable_prop
  * @see docs/redux-integrated-field-widgets.md
  * @see experience_builder_field_widget_info_alter()
  */
-function hook_field_widget_info_alter(array &$info): void {
+function mymodule_field_widget_info_alter(array &$info): void {
   $info['options_buttons']['xb'] = [
     'transforms' => [
       // @todo Analyze the field widget PHP code, assign appropriate transforms.
