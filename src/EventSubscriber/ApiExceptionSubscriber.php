@@ -5,7 +5,7 @@ namespace Drupal\experience_builder\EventSubscriber;
 use Drupal\Core\Cache\CacheableDependencyInterface;
 use Drupal\Core\Cache\CacheableJsonResponse;
 use Drupal\Core\Config\ConfigFactoryInterface;
-use Drupal\Core\Entity\FieldableEntityInterface;
+use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\ParamConverter\ParamNotConvertedException;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Session\AccountInterface;
@@ -135,7 +135,7 @@ final class ApiExceptionSubscriber implements EventSubscriberInterface {
    *
    * @param \Symfony\Component\Validator\ConstraintViolationInterface $violation
    *   A validation constraint violation.
-   * @param \Drupal\Core\Entity\FieldableEntityInterface|null $entity
+   * @param \Drupal\Core\Entity\EntityInterface|null $entity
    *   An associated entity if appropriate.
    *
    * @return array{'detail': string, 'source': array{'pointer': string}}
@@ -146,7 +146,7 @@ final class ApiExceptionSubscriber implements EventSubscriberInterface {
    */
   public static function violationToJsonApiStyleErrorObject(
     ConstraintViolationInterface $violation,
-    ?FieldableEntityInterface $entity = NULL,
+    ?EntityInterface $entity = NULL,
   ): array {
     $meta = [];
     if ($entity !== NULL) {

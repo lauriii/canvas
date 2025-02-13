@@ -4,7 +4,7 @@ namespace Drupal\experience_builder;
 
 use Drupal\Core\Access\AccessException;
 use Drupal\Core\Entity\EntityChangedInterface;
-use Drupal\Core\Entity\EntityConstraintViolationList;
+use Drupal\experience_builder\Entity\EntityConstraintViolationList;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Field\FieldItemListInterface;

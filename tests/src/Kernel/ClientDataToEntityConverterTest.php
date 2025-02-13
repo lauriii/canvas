@@ -7,7 +7,7 @@ namespace Drupal\Tests\experience_builder\Kernel;
 use Drupal\Component\Datetime\Time;
 use Drupal\content_moderation\Permissions;
 use Drupal\Core\DependencyInjection\ContainerBuilder;
-use Drupal\Core\Entity\EntityConstraintViolationList;
+use Drupal\experience_builder\Entity\EntityConstraintViolationList;
 use Drupal\Core\Extension\ModuleInstallerInterface;
 use Drupal\Core\Field\FieldItemListInterface;
 use Drupal\Core\Field\Plugin\Field\FieldWidget\StringTextfieldWidget;
@@ -300,7 +300,7 @@ class ClientDataToEntityConverterTest extends KernelTestBase {
     catch (ConstraintViolationException $e) {
       $violations = $e->getConstraintViolationList();
       $this->assertInstanceOf(EntityConstraintViolationList::class, $violations);
-      $this->assertSame($node->id(), $violations->getEntity()->id());
+      $this->assertSame($node->id(), $violations->entity->id());
       $this->assertSame($expected_errors, self::violationsToArray($violations));
     }
     $this->assertSame($expected_title, (string) $node->getTitle());

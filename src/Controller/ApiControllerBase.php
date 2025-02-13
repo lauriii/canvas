@@ -2,7 +2,7 @@
 
 namespace Drupal\experience_builder\Controller;
 
-use Drupal\Core\Entity\EntityConstraintViolationListInterface;
+use Drupal\experience_builder\Entity\EntityConstraintViolationList;
 use Drupal\experience_builder\EventSubscriber\ApiExceptionSubscriber;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -70,7 +70,7 @@ class ApiControllerBase {
         ...$carry,
         ...\array_map(static fn(ConstraintViolationInterface $violation) => ApiExceptionSubscriber::violationToJsonApiStyleErrorObject(
           $violation,
-          $violationList instanceof EntityConstraintViolationListInterface ? $violationList->getEntity() : NULL,
+          $violationList instanceof EntityConstraintViolationList ? $violationList->entity : NULL,
         ), \iterator_to_array($violationList)),
       ], []),
     ]);

@@ -8,7 +8,9 @@ use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\StringTranslation\PluralTranslatableMarkup;
 use Drupal\experience_builder\AutoSave\AutoSaveManager;
 use Drupal\experience_builder\ClientDataToEntityConverter;
+use Drupal\experience_builder\Entity\EntityConstraintViolationList;
 use Drupal\experience_builder\Entity\PageTemplate;
+use Drupal\experience_builder\Entity\XbHttpApiEligibleConfigEntityInterface;
 use Drupal\experience_builder\Exception\ConstraintViolationException;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -56,9 +58,9 @@ class ApiPublishAllController extends ApiControllerBase {
       return new JsonResponse(data: ['errors' => $errors], status: Response::HTTP_CONFLICT);
     }
     // Check the data hashes.
-    $unmatched_keys = \array_filter(\array_keys($expected_auto_saves), function ($key) use ($expected_auto_saves, $all_auto_saves) {
+    $unmatched_keys = \array_values(\array_filter(\array_keys($expected_auto_saves), function ($key) use ($expected_auto_saves, $all_auto_saves) {
       return !\hash_equals($expected_auto_saves[$key]['data_hash'], $all_auto_saves[$key]['data_hash']);
-    });
+    }));
     if ($unmatched_keys) {
       return new JsonResponse(data: [
         'errors' => \array_map(static fn(string $key) => [
@@ -105,6 +107,17 @@ class ApiPublishAllController extends ApiControllerBase {
           $entity = $entity->forAutoSaveData($auto_save['data']);
           $entity->enforceIsNew(FALSE);
           $this->validatePageTemplate($entity);
+        }
+        elseif ($entity instanceof XbHttpApiEligibleConfigEntityInterface) {
+          $original_entity = clone $entity;
+          $denormalized = $entity::denormalizeFromClientSide($auto_save['data']);
+          foreach ($denormalized as $property_name => $property_value) {
+            $entity->set($property_name, $property_value);
+          }
+          $violations = $entity->getTypedData()->validate();
+          if ($violations->count() > 0) {
+            throw new ConstraintViolationException(new EntityConstraintViolationList($original_entity, iterator_to_array($violations)));
+          }
         }
         else {
           assert($entity instanceof FieldableEntityInterface);

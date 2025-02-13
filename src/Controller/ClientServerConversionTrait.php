@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\experience_builder\Controller;
 
-use Drupal\Core\Entity\EntityConstraintViolationList;
+use Drupal\experience_builder\Entity\EntityConstraintViolationList;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\TypedData\DataDefinition;
 use Drupal\experience_builder\Entity\Component;

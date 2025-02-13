@@ -9,6 +9,8 @@ use Drupal\experience_builder\AutoSave\AutoSaveManager;
 use Drupal\experience_builder\Controller\ApiPendingChangesController;
 use Drupal\experience_builder\Controller\ApiPublishAllController;
 use Drupal\experience_builder\Controller\ErrorCodesEnum;
+use Drupal\experience_builder\Entity\AssetLibrary;
+use Drupal\experience_builder\Entity\JavaScriptComponent;
 use Drupal\experience_builder\Entity\PageTemplate;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
@@ -47,6 +49,9 @@ class ApiPublishAllControllerTest extends KernelTestBase {
    * @dataProvider providerCases
    */
   public function test(bool $withGlobal = FALSE): void {
+    $entity_type_manager = $this->container->get('entity_type.manager');
+    $code_component_storage = $entity_type_manager->getStorage(JavaScriptComponent::ENTITY_TYPE_ID);
+    $library_storage = $entity_type_manager->getStorage(AssetLibrary::ENTITY_TYPE_ID);
     /** @var \Drupal\experience_builder\AutoSave\AutoSaveManager $autoSave */
     $autoSave = \Drupal::service(AutoSaveManager::class);
     $this->setUpCurrentUser(permissions: ['access administration pages']);
@@ -79,6 +84,42 @@ class ApiPublishAllControllerTest extends KernelTestBase {
     self::assertSame(SAVED_NEW, $node2->save());
     $node2_original_title = (string) $node2->getTitle();
     $this->assertNodeValues($node2, [], [], $node2_original_title);
+
+    $code_component = JavaScriptComponent::create([
+      'machineName' => 'test-component',
+      'name' => 'Original JavaScriptComponent name',
+      'status' => TRUE,
+      'props' => [
+        'text' => [
+          'type' => 'string',
+          'title' => 'Title',
+          'examples' => ['Press', 'Submit now'],
+        ],
+      ],
+      'js' => [
+        'original' => 'console.log("Test")',
+        'compiled' => 'console.log("Test")',
+      ],
+      'css' => [
+        'original' => '.test { display: none; }',
+        'compiled' => '.test{display:none;}',
+      ],
+    ]);
+    $this->assertSame(SAVED_NEW, $code_component->save());
+
+    $library = AssetLibrary::create([
+      'id' => 'global',
+      'label' => 'Original AssetLibrary name',
+      'css' => [
+        'original' => '.test { display: none; }',
+        'compiled' => '.test{display:none;}',
+      ],
+      'js' => [
+        'original' => 'console.log( "Test" )',
+        'compiled' => 'console.log("Test")',
+      ],
+    ]);
+    $this->assertSame(SAVED_NEW, $library->save());
 
     $validClientJson = $this->getValidClientJson(FALSE);
 
@@ -142,11 +183,30 @@ class ApiPublishAllControllerTest extends KernelTestBase {
     // And an invalid prop.
     $validClientJson['model'][self::TEST_HEADING_UUID]['resolved']['style'] = 'flared';
 
-    // \Drupal\experience_builder\Controller\ApiPreviewController will not work
-    // with invalid data so we need to use the manager directly.
-    // @todo In https://drupal.org/i/3485878 we could also replace this by using
-    //   the 'experience_builder.api.layout.post' route as we do above.
+    // This is testing ApiPublishAllController, not auto-saving itself. So use
+    // the auto-save manager directly.
     $autoSave->save($node2, $validClientJson);
+
+    $invalid_client_code_component_data = $code_component->normalizeForClientSide()->values;
+    $invalid_client_code_component_data['name'] = 'New name';
+    $invalid_client_code_component_data['props'] = [
+      'mixed_up_prop' => [
+        'type' => 'unknown',
+        'title' => 'Title',
+        'enum' => [
+          'Press',
+          'Click',
+          'Submit',
+        ],
+        'examples' => ['Press', 'Submit now'],
+      ],
+    ];
+    $autoSave->save($code_component, $invalid_client_code_component_data);
+
+    $invalid_library_data = $library->normalizeForClientSide()->values;
+    $invalid_library_data['label'] = 'New label';
+    $invalid_library_data['css']['original'] = NULL;
+    $autoSave->save($library, $invalid_library_data);
 
     $response = $this->makePublishAllRequest();
     $json = json_decode($response->getContent() ?: '', TRUE);
@@ -157,6 +217,32 @@ class ApiPublishAllControllerTest extends KernelTestBase {
       // @see https://drupal.org/i/3462700
       $suffix = '. The provided value is: "flared".';
     }
+    $errors[] = [
+      'detail' => 'Unable to find class/interface "unknown" specified in the prop "mixed_up_prop" for the component "experience_builder:test-component".',
+      'source' => [
+        'pointer' => '',
+      ],
+      'meta' => [
+        'entity_type' => JavaScriptComponent::ENTITY_TYPE_ID,
+        'entity_id' => $code_component->id(),
+        // The label should not be updated if model validation failed.
+        'label' => $code_component->label(),
+        'autosave_key' => $autoSave->getAutoSaveKey($code_component),
+      ],
+    ];
+    $errors[] = [
+      'detail' => 'The value you selected is not a valid choice.',
+      'source' => [
+        'pointer' => 'props.mixed_up_prop.type',
+      ],
+      'meta' => [
+        'entity_type' => JavaScriptComponent::ENTITY_TYPE_ID,
+        'entity_id' => $code_component->id(),
+        // The label should not be updated if model validation failed.
+        'label' => $code_component->label(),
+        'autosave_key' => $autoSave->getAutoSaveKey($code_component),
+      ],
+    ];
     $errors[] = [
       'detail' => 'Does not have a value in the enumeration ["primary","secondary"]' . $suffix,
       'source' => [
@@ -170,11 +256,29 @@ class ApiPublishAllControllerTest extends KernelTestBase {
         'autosave_key' => $autoSave->getAutoSaveKey($node2),
       ],
     ];
+    $errors[] = [
+      'detail' => 'This value should not be null.',
+      'source' => [
+        'pointer' => 'css.original',
+      ],
+      'meta' => [
+        'entity_type' => AssetLibrary::ENTITY_TYPE_ID,
+        'entity_id' => $library->id(),
+        // The label should not be updated if model validation failed.
+        'label' => $library->label(),
+        'autosave_key' => $autoSave->getAutoSaveKey($library),
+      ],
+    ];
+
     self::assertEquals($errors, $json['errors']);
     // Ensure that neither the valid nor invalid node gets updated if one is
     // invalid.
     $this->assertNodeValues($node1, [], [], $node1_original_title);
     $this->assertNodeValues($node2, [], [], $node2_original_title);
+    // Ensure the code component is not updated.
+    $this->assertEquals('Original JavaScriptComponent name', $code_component_storage->loadUnchanged($code_component->id())?->label());
+    $this->assertEquals('Original AssetLibrary name', $library_storage->loadUnchanged($library->id())?->label());
+
     if ($withGlobal) {
       // Note: no additional error appears for the invalid auto-saved layout for
       // the PageTemplate, because missing regions are automatically added from
@@ -187,7 +291,7 @@ class ApiPublishAllControllerTest extends KernelTestBase {
       self::assertInstanceOf(ComponentTreeItem::class, $trees['highlighted']);
     }
 
-    // Fix the error.
+    // Fix the errors.
     $validClientJson['model'][self::TEST_HEADING_UUID]['resolved']['style'] = 'primary';
     $response = $this->request(Request::create(Url::fromRoute('experience_builder.api.layout.post', [
       'entity_type' => 'node',
@@ -196,6 +300,12 @@ class ApiPublishAllControllerTest extends KernelTestBase {
       'CONTENT_TYPE' => 'application/json',
     ], content: (string) json_encode($validClientJson)));
     self::assertEquals(Response::HTTP_OK, $response->getStatusCode());
+    $updated_code_component_data = $code_component->normalizeForClientSide()->values;
+    $updated_code_component_data['name'] = 'New new JavaScriptComponent name';
+    $autoSave->save($code_component, $updated_code_component_data);
+    $updated_library_data = $library->normalizeForClientSide()->values;
+    $updated_library_data['label'] = 'New new AssetLibrary label';
+    $autoSave->save($library, $updated_library_data);
 
     $auto_save_data = $this->getAutoSaveStatesFromServer();
     $node1_auto_save_key = 'node:' . $node1->id() . ':en';
@@ -248,26 +358,26 @@ class ApiPublishAllControllerTest extends KernelTestBase {
     self::assertSame(Response::HTTP_CONFLICT, $response->getStatusCode());
     self::assertEquals([
       'errors' => [
-      [
-        'detail' => ErrorCodesEnum::UnmatchedItemInPublishRequest->getMessage(),
-        'source' => [
-          'pointer' => $node1_auto_save_key,
+        [
+          'detail' => ErrorCodesEnum::UnmatchedItemInPublishRequest->getMessage(),
+          'source' => [
+            'pointer' => $node1_auto_save_key,
+          ],
+          'code' => ErrorCodesEnum::UnmatchedItemInPublishRequest->value,
+          'meta' => [
+            'entity_type' => 'node',
+            'entity_id' => $node1->id(),
+            'label' => $node1->label(),
+            'autosave_key' => $autoSave->getAutoSaveKey($node1),
+          ],
         ],
-        'code' => ErrorCodesEnum::UnmatchedItemInPublishRequest->value,
-        'meta' => [
-          'entity_type' => 'node',
-          'entity_id' => $node1->id(),
-          'label' => $node1->label(),
-          'autosave_key' => $autoSave->getAutoSaveKey($node1),
-        ],
-      ],
       ],
     ], \json_decode($response->getContent() ?: '', TRUE, flags: JSON_THROW_ON_ERROR));
 
     $response = $this->makePublishAllRequest();
     $json = json_decode($response->getContent() ?: '', TRUE);
     self::assertEquals(Response::HTTP_OK, $response->getStatusCode());
-    self::assertEquals(['message' => \sprintf('Successfully published %d items.', $withGlobal ? 3 : 2)], $json);
+    self::assertEquals(['message' => \sprintf('Successfully published %d items.', $withGlobal ? 5 : 4)], $json);
 
     $this->assertValidJsonUpdateNode($node1, FALSE);
     $this->assertNodeValues(
@@ -279,6 +389,9 @@ class ApiPublishAllControllerTest extends KernelTestBase {
       \array_intersect_key($this->getValidConvertedInputs(), \array_flip([self::TEST_HEADING_UUID, self::TEST_BLOCK])),
       'The updated title.'
     );
+
+    $this->assertSame('New new JavaScriptComponent name', $code_component_storage->loadUnchanged($code_component->id())?->label());
+    $this->assertSame('New new AssetLibrary label', $library_storage->loadUnchanged($library->id())?->label());
 
     if ($withGlobal) {
       $template = PageTemplate::load('stark');
