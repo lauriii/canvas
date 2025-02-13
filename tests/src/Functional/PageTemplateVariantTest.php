@@ -15,7 +15,6 @@ use Drupal\experience_builder\Entity\Component;
 use Drupal\experience_builder\Entity\PageTemplate;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 use Drupal\experience_builder\Plugin\DisplayVariant\PageTemplateDisplayVariant;
-use Drupal\Tests\BrowserTestBase;
 use Drupal\Tests\experience_builder\Traits\ContribStrictConfigSchemaTestTrait;
 use Drupal\Tests\experience_builder\Traits\GenerateComponentConfigTrait;
 use Drupal\Tests\experience_builder\Traits\TestDataUtilitiesTrait;
@@ -24,7 +23,7 @@ use Drupal\Tests\system\Functional\Cache\AssertPageCacheContextsAndTagsTrait;
 /**
  * @group experience_builder
  */
-class PageTemplateVariantTest extends BrowserTestBase {
+class PageTemplateVariantTest extends FunctionalTestBase {
 
   use AssertPageCacheContextsAndTagsTrait;
   use ContribStrictConfigSchemaTestTrait;

@@ -13,6 +13,17 @@ abstract class FunctionalTestBase extends BrowserTestBase {
 
   use TestFileCreationTrait;
 
+  protected function setUp(): void {
+    parent::setUp();
+    if ($this->container->get('module_handler')->moduleExists('experience_builder')) {
+      $response_validator = $this->container->get('experience_builder.openapi.http_response_validator.subscriber');
+      $request_validator = $this->container->get('experience_builder.openapi.http_request_validator.subscriber');
+      if (!($request_validator->isValidationEnabled() && $response_validator->isValidationEnabled())) {
+        $this->fail('OpenAPI validation must be enabled to run functional tests. See the CONTRIBUTING.md file.');
+      }
+    }
+  }
+
   protected function createTestNode(): Node {
     $nodes = $this->container->get('entity_type.manager')->getStorage('node')->loadMultiple();
     $expected_nid = count($nodes) + 1;

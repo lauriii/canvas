@@ -9,13 +9,12 @@ use Drupal\Core\Url;
 use Drupal\experience_builder\Entity\Component;
 use Drupal\experience_builder\Entity\PageTemplate;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
-use Drupal\Tests\BrowserTestBase;
 use Drupal\Tests\experience_builder\Traits\GenerateComponentConfigTrait;
 
 /**
  * @group experience_builder
  */
-class PageTemplateEnableTest extends BrowserTestBase {
+class PageTemplateEnableTest extends FunctionalTestBase {
 
   use GenerateComponentConfigTrait;
 

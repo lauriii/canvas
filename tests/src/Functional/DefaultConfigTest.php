@@ -2,16 +2,17 @@
 
 declare(strict_types=1);
 
+namespace Drupal\Tests\experience_builder\Functional;
+
 use Drupal\Core\Config\FileStorage;
 use Drupal\Core\Config\InstallStorage;
 use Drupal\Core\Config\StorageInterface;
 use Drupal\KernelTests\AssertConfigTrait;
-use Drupal\Tests\BrowserTestBase;
 
 /**
  * @group experience_builder
  */
-class DefaultConfigTest extends BrowserTestBase {
+class DefaultConfigTest extends FunctionalTestBase {
 
   use AssertConfigTrait;
 

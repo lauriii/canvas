@@ -8,12 +8,11 @@ use Drupal\Core\DefaultContent\Finder;
 use Drupal\Core\DefaultContent\Importer;
 use Drupal\Core\Entity\EntityRepositoryInterface;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
-use Drupal\Tests\BrowserTestBase;
 
 /**
  * @group experience_builder
  */
-class DefaultContentImportTest extends BrowserTestBase {
+class DefaultContentImportTest extends FunctionalTestBase {
 
   /**
    * {@inheritdoc}

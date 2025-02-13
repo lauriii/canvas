@@ -2,9 +2,10 @@
 
 declare(strict_types=1);
 
+namespace Drupal\Tests\experience_builder\Functional;
+
 use Drupal\Component\Serialization\Json;
 use Drupal\node\Entity\Node;
-use Drupal\Tests\BrowserTestBase;
 use Drupal\Tests\system\Functional\Cache\AssertPageCacheContextsAndTagsTrait;
 use Drupal\Tests\experience_builder\Traits\CreateTestJsComponentTrait;
 
@@ -15,7 +16,7 @@ use Drupal\Tests\experience_builder\Traits\CreateTestJsComponentTrait;
  * @group experience_builder
  * @internal
  */
-class PropSourceEndpointTest extends BrowserTestBase {
+class PropSourceEndpointTest extends FunctionalTestBase {
 
   use AssertPageCacheContextsAndTagsTrait;
   use CreateTestJsComponentTrait;
