@@ -8,7 +8,7 @@ import {
 } from '@/features/layout/layoutModelSlice';
 import { useCallback, useEffect, useState } from 'react';
 import { useErrorBoundary } from 'react-error-boundary';
-import { useParams } from 'react-router-dom';
+import useXbParams from '@/hooks/useXbParams';
 import { AlertDialog, Button, Flex } from '@radix-ui/themes';
 import { selectPageData } from '@/features/pageData/pageDataSlice';
 import { selectPreviewHtml } from '@/features/pagePreview/previewSlice';
@@ -21,7 +21,7 @@ const PagePreview = () => {
   const [postPreview] = usePostPreviewMutation();
   const { showBoundary } = useErrorBoundary();
   const [widthVal, setWidthVal] = useState('100%');
-  const { width } = useParams();
+  const { width } = useXbParams();
   const [linkIntercepted, setLinkIntercepted] = useState('');
 
   useEffect(() => {

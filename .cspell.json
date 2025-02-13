@@ -11,6 +11,8 @@
       "modules/xb_vite/**",
       "docs/diagrams/**",
       "ui/src/local_packages/**",
+      "tests/modules/xb_test_extension/ui/dist/**",
+      "tests/modules/xb_test_semi_coupled/semicoupled_app/dist/**",
       "js/astro-bundles/**",
       "js/assets/**"
     ],

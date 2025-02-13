@@ -128,18 +128,6 @@ const Dialog = ({
   );
 };
 
-// const DialogContent = ({
-//   title,
-//   description,
-//   children,
-//   error,
-//   footer,
-// }: any) => (
-//   <>
-//
-//   </>
-// );
-
 const DialogFieldLabel = ({ children }: { children: React.ReactNode }) => {
   return (
     <Text as="label" size="1" weight="bold" className={styles.fieldLabel}>

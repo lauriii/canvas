@@ -8,6 +8,7 @@ import type {
 } from './layoutModelSlice';
 import { NodeType } from './layoutModelSlice';
 import { v4 as uuidv4 } from 'uuid';
+import { setXbDrupalSetting } from '@/features/drupal/drupalUtil';
 
 type NodeFunction = (
   node: ComponentNode,
@@ -425,3 +426,21 @@ export function findParentRegion(
 
   return undefined;
 }
+
+// Add the utils provided here to drupalSettings, so extensions have access to
+// them.
+const layoutUtils = {
+  getChildKeyByType,
+  getNodeIdentifier,
+  recurseNodes,
+  findComponentByUuid,
+  removeComponentByUuid,
+  findNodePathByUuid,
+  insertNodeAtPath,
+  moveNodeToPath,
+  isChildNode,
+  getNodeDepth,
+  replaceUUIDsAndUpdateModel,
+  findParentRegion,
+};
+setXbDrupalSetting('layoutUtils', layoutUtils);

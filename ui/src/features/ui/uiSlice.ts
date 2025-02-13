@@ -31,6 +31,7 @@ export interface uiSliceState {
   pending: boolean;
   dragging: DraggingStatus;
   panning: PanningStatus;
+  readOnlySelectedComponent: string | undefined;
   hoveredComponent: string | undefined; //uuid of component
   targetSlot: string | undefined; //uuid of slot being hovered when dragging
   canvasViewport: CanvasViewPort;
@@ -58,6 +59,7 @@ export const initialState: uiSliceState = {
   panning: {
     isPanning: false,
   },
+  readOnlySelectedComponent: undefined,
   hoveredComponent: undefined,
   targetSlot: undefined,
   canvasViewport: {
@@ -170,6 +172,14 @@ export const uiSlice = createAppSlice({
       state.dragging.isDragging = action.payload;
       state.dragging.listDragging = action.payload;
     }),
+    _setReadOnlySelectedComponent: create.reducer(
+      (state, action: PayloadAction<string | undefined>) => {
+        // Store the selected component ID (readOnlySelectedComponent) in Redux to allow Hyperscriptify
+        // and extensions to access the value from the store (they are unable to access the value from the Router).
+        // Updated when the URL params are changed but setting it from elsewhere will NOT update the URL!
+        state.readOnlySelectedComponent = action.payload;
+      },
+    ),
     setIsPanning: create.reducer((state, action: PayloadAction<boolean>) => {
       state.panning.isPanning = action.payload;
     }),
@@ -281,6 +291,7 @@ export const {
   setPreviewDragging,
   setListDragging,
   setIsPanning,
+  _setReadOnlySelectedComponent,
   setHoveredComponent,
   setTargetSlot,
   unsetHoveredComponent,

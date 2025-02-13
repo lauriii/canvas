@@ -17,7 +17,8 @@ import { selectPageData } from '@/features/pageData/pageDataSlice';
 import type { ReactElement } from 'react';
 import { useEffect } from 'react';
 import { DEFAULT_REGION } from '@/features/ui/uiSlice';
-import { Link, useParams } from 'react-router-dom';
+import { Link } from 'react-router-dom';
+import useXbParams from '@/hooks/useXbParams';
 import { selectLayout } from '@/features/layout/layoutModelSlice';
 import Navigation from '@/components/navigation/Navigation';
 import { handleNonWorkingBtn } from '@/utils/function-utils';
@@ -42,7 +43,7 @@ const iconMap: PageType = {
 const PageInfo = () => {
   const { showBoundary } = useErrorBoundary();
   const { setEditorEntity } = useNavigationUtils();
-  const { regionId: focusedRegion = DEFAULT_REGION } = useParams();
+  const { regionId: focusedRegion = DEFAULT_REGION } = useXbParams();
   const layout = useAppSelector(selectLayout);
   const focusedRegionName = layout.find(
     (region) => region.id === focusedRegion,

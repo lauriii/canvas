@@ -1,3 +1,5 @@
+import type { PropsValues } from '@/types/Form';
+
 interface DrupalSettings {
   xb: {
     base: string;
@@ -8,7 +10,8 @@ interface DrupalSettings {
       js_header: string;
       js_footer: string;
     };
-    selected_component: string;
+    layoutUtils: PropsValues;
+    navUtils: PropsValues;
     demo_mode: boolean;
     xbModulePath: string;
   };
@@ -17,6 +20,8 @@ interface DrupalSettings {
   };
 }
 
-interface Window {
-  drupalSettings: DrupalSettings;
+declare global {
+  interface Window {
+    drupalSettings: DrupalSettings;
+  }
 }

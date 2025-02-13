@@ -15,7 +15,7 @@ import {
 } from '@/features/layout/layoutModelSlice';
 import { v4 as uuidv4 } from 'uuid';
 import { useNavigationUtils } from '@/hooks/useNavigationUtils';
-import { useParams } from 'react-router-dom';
+import useXbParams from '@/hooks/useXbParams';
 
 interface CopyPasteFunctions {
   copySelectedComponent: () => void;
@@ -23,7 +23,7 @@ interface CopyPasteFunctions {
 }
 function useCopyPasteComponents(): CopyPasteFunctions {
   const dispatch = useAppDispatch();
-  const { componentId: selectedComponent } = useParams();
+  const { componentId: selectedComponent } = useXbParams();
   const model = useAppSelector(selectModel);
   const layout = useAppSelector(selectLayout);
   const { setSelectedComponent } = useNavigationUtils();

@@ -1,11 +1,16 @@
+import useXbParams from '@/hooks/useXbParams';
 import { useAppSelector } from '@/app/hooks';
 import { selectBaseUrl } from '@/features/configuration/configurationSlice';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { DEFAULT_REGION } from '@/features/ui/uiSlice';
 import { useCallback } from 'react';
+import { findParentRegion } from '@/features/layout/layoutUtils';
+import { selectLayout } from '@/features/layout/layoutModelSlice';
 
+const { drupalSettings } = window;
 export function useNavigationUtils() {
-  const { regionId } = useParams();
+  const { regionId } = useXbParams();
+  const layout = useAppSelector(selectLayout);
   const navigate = useNavigate();
   const baseUrl = useAppSelector(selectBaseUrl);
 
@@ -13,16 +18,17 @@ export function useNavigationUtils() {
     (componentUuid: string) => {
       const baseUrl = '/editor';
       let destinationUrl = `${baseUrl}`;
+      const parentRegion = findParentRegion(layout, componentUuid);
 
-      if (regionId) {
-        destinationUrl = `${baseUrl}/region/${regionId}/component/${componentUuid}`;
+      if (parentRegion && parentRegion.id !== DEFAULT_REGION) {
+        destinationUrl = `${baseUrl}/region/${parentRegion.id}/component/${componentUuid}`;
       } else {
         destinationUrl = `${baseUrl}/component/${componentUuid}`;
       }
 
       navigate(destinationUrl);
     },
-    [navigate, regionId],
+    [layout, navigate],
   );
   const unsetSelectedComponent = useCallback(() => {
     const baseUrl = '/editor';
@@ -56,11 +62,12 @@ export function useNavigationUtils() {
     },
     [baseUrl],
   );
-
-  return {
+  const navUtils = {
     setSelectedComponent,
     unsetSelectedComponent,
     setSelectedRegion,
     setEditorEntity,
   };
+  drupalSettings.xb.navUtils = navUtils;
+  return navUtils;
 }

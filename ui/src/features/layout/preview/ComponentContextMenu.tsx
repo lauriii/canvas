@@ -19,7 +19,7 @@ import { setDialogOpen } from '@/features/ui/dialogSlice';
 import useGetComponentName from '@/hooks/useGetComponentName';
 import ComponentContextMenuRegions from '@/features/layout/preview/ComponentContextMenuRegions';
 import { useNavigationUtils } from '@/hooks/useNavigationUtils';
-import { useParams } from 'react-router-dom';
+import useXbParams from '@/hooks/useXbParams';
 
 interface ComponentContextMenuProps {
   children: ReactNode;
@@ -34,7 +34,7 @@ export const ComponentContextMenuContent: React.FC<
   const dispatch = useAppDispatch();
   const componentName = useGetComponentName(component);
   const canvasViewPort = useAppSelector(selectCanvasViewPort);
-  const { componentId: selectedComponent } = useParams();
+  const { componentId: selectedComponent } = useXbParams();
   const { setSelectedComponent, unsetSelectedComponent } = useNavigationUtils();
   const componentUuid = component.uuid;
 

@@ -5,13 +5,13 @@ import { useAppSelector } from '@/app/hooks';
 import { selectLayout } from '@/features/layout/layoutModelSlice';
 import RegionLayer from '@/features/layout/layers/RegionLayer';
 import { DEFAULT_REGION } from '@/features/ui/uiSlice';
-import { useParams } from 'react-router-dom';
+import useXbParams from '@/hooks/useXbParams';
 
 interface LayersProps {}
 
 const Layers: React.FC<LayersProps> = () => {
   const regions = useAppSelector(selectLayout);
-  const { regionId: focusedRegion = DEFAULT_REGION } = useParams();
+  const { regionId: focusedRegion = DEFAULT_REGION } = useXbParams();
 
   let displayedRegions = regions.filter((region) => {
     return region.components.length > 0 || region.id === DEFAULT_REGION;

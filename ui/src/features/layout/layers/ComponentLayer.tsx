@@ -23,7 +23,7 @@ import useGetComponentName from '@/hooks/useGetComponentName';
 import * as Collapsible from '@radix-ui/react-collapsible';
 import SlotLayer from '@/features/layout/layers/SlotLayer';
 import { useNavigationUtils } from '@/hooks/useNavigationUtils';
-import { useParams } from 'react-router-dom';
+import useXbParams from '@/hooks/useXbParams';
 import styles from './ComponentLayer.module.css';
 import clsx from 'clsx';
 
@@ -39,7 +39,7 @@ const ComponentLayer: React.FC<ComponentLayerProps> = ({
   indent,
 }) => {
   const dispatch = useAppDispatch();
-  const { componentId: selectedComponent } = useParams();
+  const { componentId: selectedComponent } = useXbParams();
   const hoveredComponent = useAppSelector(selectHoveredComponent);
   const [open, setOpen] = useState(false);
   const { setSelectedComponent } = useNavigationUtils();

@@ -1,6 +1,8 @@
 modules/xb_vite/**/*
 # The UI is written in TypeScript and React, and has its own linting.
 ui/**/*
+**/bundle.js
+**/rollup.config.js
 # Astro is an external library used for XB's Code Component functionality.
 js/astro-bundles/*
 js/assets/**/*

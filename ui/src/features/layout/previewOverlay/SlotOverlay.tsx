@@ -18,7 +18,7 @@ import { getDistanceBetweenElements } from '@/utils/function-utils';
 import useGetComponentName from '@/hooks/useGetComponentName';
 import useSyncPreviewElementSize from '@/hooks/useSyncPreviewElementSize';
 import { useDataToHtmlMapValue } from '@/features/layout/preview/DataToHtmlMapContext';
-import { useParams } from 'react-router-dom';
+import useXbParams from '@/hooks/useXbParams';
 
 export interface SlotOverlayProps {
   slot: SlotNode;
@@ -41,7 +41,7 @@ const SlotOverlay: React.FC<SlotOverlayProps> = (props) => {
     paddingTop: '0px',
     paddingBottom: '0px',
   });
-  const { componentId: selectedComponent } = useParams();
+  const { componentId: selectedComponent } = useXbParams();
   const hoveredComponent = useAppSelector(selectHoveredComponent);
   const targetSlot = useAppSelector(selectTargetSlot);
   const canvasViewPortScale = useAppSelector(selectCanvasViewPortScale);

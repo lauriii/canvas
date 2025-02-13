@@ -8,6 +8,7 @@ import { createSelector } from '@reduxjs/toolkit';
 import { createSlice } from '@reduxjs/toolkit';
 import type { StateWithHistory } from 'redux-undo';
 import { v4 as uuidv4 } from 'uuid';
+import { setXbDrupalSetting } from '@/features/drupal/drupalUtil';
 import {
   findComponentByUuid,
   findNodePathByUuid,
@@ -530,3 +531,12 @@ export const selectLayoutForRegion = createSelector(
       nodeType: 'region',
     } as RegionNode),
 );
+
+// Add some of the functionality offered here to drupalSettings, so extensions
+// can use it.
+const layoutUtils = {
+  addNewComponentToLayout,
+  addNewSectionToLayout,
+  selectLayoutForRegion,
+};
+setXbDrupalSetting('layoutUtils', layoutUtils);

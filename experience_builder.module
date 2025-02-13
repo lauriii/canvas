@@ -18,6 +18,7 @@ use Drupal\Core\Entity\TypedData\EntityDataDefinition;
 use Drupal\Core\EventSubscriber\AjaxResponseSubscriber;
 use Drupal\Core\Field\BaseFieldDefinition;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Plugin\Discovery\YamlDiscovery;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\datetime\Plugin\Field\FieldType\DateTimeItem;
 use Drupal\experience_builder\Entity\AssetLibrary;
@@ -485,7 +486,36 @@ function experience_builder_library_info_build(): array {
     $libraries += experience_builder_dialog_library_customize($admin_theme_name);
   }
 
+  _experience_builder_build_extension_libraries($libraries);
+
   return $libraries;
+}
+
+/**
+ * Adds libraries that extend Experience Builder to a centralized library.
+ *
+ * @param array $libraries
+ *   The libraries array.
+ *
+ * @return void
+ */
+function _experience_builder_build_extension_libraries(array &$libraries): void {
+  $libraries_discovery = new YamlDiscovery('libraries', \Drupal::service('module_handler')->getModuleDirectories());
+
+  // Any library with a 'xbExtension' drupalSettings will be added.
+  $xb_extensions = array_reduce($libraries_discovery->getDefinitions(), function ($carry, $item) {
+    if (isset($item['drupalSettings']['xbExtension'])) {
+      $carry[] = $item['provider'] . '/' . $item['id'];
+    }
+    return $carry;
+  }, []);
+
+  // Add the libraries as dependencies of experience_builder/extensions.
+  if (!empty($xb_extensions)) {
+    $libraries['extensions'] = [
+      'dependencies' => $xb_extensions,
+    ];
+  }
 }
 
 /**

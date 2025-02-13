@@ -13,7 +13,7 @@ import NameTag from '@/features/layout/preview/NameTag';
 import clsx from 'clsx';
 import { useDataToHtmlMapValue } from '@/features/layout/preview/DataToHtmlMapContext';
 import useSyncPreviewElementSize from '@/hooks/useSyncPreviewElementSize';
-import { useParams } from 'react-router-dom';
+import useXbParams from '@/hooks/useXbParams';
 
 interface RegionOverlayProps {
   iframeRef: React.RefObject<HTMLIFrameElement>;
@@ -31,7 +31,7 @@ const RegionOverlay: React.FC<RegionOverlayProps> = ({
   );
   const regionOverlayRef = useRef(null);
   const { regionsMap } = useDataToHtmlMapValue();
-  const { regionId: focusedRegion = DEFAULT_REGION } = useParams();
+  const { regionId: focusedRegion = DEFAULT_REGION } = useXbParams();
   const elementRect = useSyncPreviewElementSize(regionsMap[regionId]?.element);
   const canvasViewPortScale = useAppSelector(selectCanvasViewPortScale);
   const [overlayStyles, setOverlayStyles] = useState({});

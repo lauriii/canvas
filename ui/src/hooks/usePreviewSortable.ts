@@ -20,7 +20,7 @@ import { useGetSectionsQuery } from '@/services/sections';
 import type { RegionsMap, SlotsMap } from '@/types/AnnotationMaps';
 import { insertPlaceholderIfMatchingComments } from '@/utils/function-utils';
 import { useNavigationUtils } from '@/hooks/useNavigationUtils';
-import { useParams } from 'react-router-dom';
+import useXbParams from '@/hooks/useXbParams';
 
 /**
  * This hook initializes the SortableJS implementation to allow for drag and drop interactions within the preview iFrames.
@@ -45,7 +45,7 @@ function usePreviewSortable(
   const sectionsRef = useRef(sections);
   const sortableInstancesRef = useRef<Sortable[]>([]);
   const { setSelectedComponent } = useNavigationUtils();
-  const { regionId: selectedRegion = DEFAULT_REGION } = useParams();
+  const { regionId: selectedRegion = DEFAULT_REGION } = useXbParams();
 
   const updateData = useCallback(
     (ev: Sortable.SortableEvent, sort: boolean) => {

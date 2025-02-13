@@ -101,6 +101,7 @@ HTML;
     return (new HtmlResponse((string) $html))->setAttachments([
       'library' => [
         'experience_builder/xb-ui',
+        'experience_builder/extensions',
         ...$this->getTransformAssetLibraries(),
       ],
       'drupalSettings' => [

@@ -5,11 +5,12 @@ import ComponentLayer from '@/features/layout/layers/ComponentLayer';
 import { useCallback } from 'react';
 import SortableContainer from '@/features/layout/layers/SortableContainer';
 import { useNavigationUtils } from '@/hooks/useNavigationUtils';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+import useXbParams from '@/hooks/useXbParams';
 import { DEFAULT_REGION } from '@/features/ui/uiSlice';
 
 const RegionLayer: React.FC<{ region: RegionNode }> = ({ region }) => {
-  const { regionId: focusedRegion = DEFAULT_REGION } = useParams();
+  const { regionId: focusedRegion = DEFAULT_REGION } = useXbParams();
   const { setSelectedRegion } = useNavigationUtils();
   const navigate = useNavigate();
 

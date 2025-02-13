@@ -8,14 +8,15 @@ import ErrorBoundary from '@/components/error/ErrorBoundary';
 import PageDataForm from '@/components/PageDataForm';
 import clsx from 'clsx';
 import useHidePanelClasses from '@/hooks/useHidePanelClasses';
-import { Outlet, useParams } from 'react-router-dom';
+import { Outlet } from 'react-router-dom';
+import useXbParams from '@/hooks/useXbParams';
 import { useAppDispatch } from '@/app/hooks';
 import { setCurrentComponent } from '@/features/form/formStateSlice';
 
 interface ContextualPanelProps {}
 
 const ContextualPanel: React.FC<ContextualPanelProps> = () => {
-  const { componentId: selectedComponent } = useParams();
+  const { componentId: selectedComponent } = useXbParams();
   const dispatch = useAppDispatch();
 
   const [activePanel, setActivePanel] = useState('pageData');

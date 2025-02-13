@@ -21,8 +21,8 @@ import {
 import PreviewOverlay from '@/features/layout/previewOverlay/PreviewOverlay';
 import { deleteNode } from '../layout/layoutModelSlice';
 import useCopyPasteComponents from '@/hooks/useCopyPasteComponents';
-import { useParams } from 'react-router-dom';
 import { useNavigationUtils } from '@/hooks/useNavigationUtils';
+import useXbParams from '@/hooks/useXbParams';
 
 const Canvas = () => {
   const dispatch = useAppDispatch();
@@ -38,7 +38,7 @@ const Canvas = () => {
   const { isPanning } = useAppSelector(selectPanning);
   const [modifierKeyPressed, setModifierKeyPressed] = useState(false);
   const modifierKeyPressedRef = useRef(false);
-  const { componentId: selectedComponent } = useParams();
+  const { componentId: selectedComponent } = useXbParams();
   const { unsetSelectedComponent } = useNavigationUtils();
   const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const middleMouseDownRef = useRef(middleMouseDown);

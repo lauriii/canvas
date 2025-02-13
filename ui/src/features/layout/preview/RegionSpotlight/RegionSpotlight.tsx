@@ -2,13 +2,13 @@ import { useEffect, useState } from 'react';
 import { useDataToHtmlMapValue } from '@/features/layout/preview/DataToHtmlMapContext';
 import { DEFAULT_REGION, selectDragging } from '@/features/ui/uiSlice';
 import { Spotlight } from '@/components/spotlight/Spotlight';
-import { useParams } from 'react-router-dom';
+import useXbParams from '@/hooks/useXbParams';
 import { useAppSelector } from '@/app/hooks';
 type Props = {};
 
 export const RegionSpotlight = (props: Props) => {
   const { regionsMap } = useDataToHtmlMapValue();
-  const { regionId: focusedRegion = DEFAULT_REGION } = useParams();
+  const { regionId: focusedRegion = DEFAULT_REGION } = useXbParams();
   const [spotlight, setSpotlight] = useState(false);
   const [rect, setRect] = useState<DOMRect | null>(null);
   const { isDragging } = useAppSelector(selectDragging);

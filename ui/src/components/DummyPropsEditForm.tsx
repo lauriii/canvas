@@ -18,7 +18,7 @@ import { selectLatestUndoRedoActionId } from '@/features/ui/uiSlice';
 import { useGetComponentsQuery } from '@/services/components';
 import { findComponentByUuid } from '@/features/layout/layoutUtils';
 import { useDrupalBehaviors } from '@/hooks/useDrupalBehaviors';
-import { useParams } from 'react-router-dom';
+import useXbParams from '@/hooks/useXbParams';
 import { clearFieldValues } from '@/features/form/formStateSlice';
 import type { FieldData } from '@/types/Component';
 import type { Component } from '@/types/Component';
@@ -42,7 +42,7 @@ const DummyPropsEditFormRenderer: React.FC<DummyPropsEditFormRendererProps> = (
   props,
 ) => {
   const { dynamicStaticCardQueryString } = props;
-  const { componentId: selectedComponent } = useParams();
+  const { componentId: selectedComponent } = useXbParams();
   const { showBoundary } = useErrorBoundary();
 
   const [jsxFormContent, setJsxFormContent] =
@@ -219,7 +219,7 @@ const DummyPropsEditForm: React.FC<DummyPropsEditFormProps> = () => {
   const layout = useAppSelector(selectLayout);
   const { data: components, error } = useGetComponentsQuery();
   const { showBoundary } = useErrorBoundary();
-  const { componentId: selectedComponent } = useParams();
+  const { componentId: selectedComponent } = useXbParams();
   const latestUndoRedoActionId = useAppSelector(selectLatestUndoRedoActionId);
 
   const [dynamicStaticCardQueryString, setDynamicStaticCardQueryString] =

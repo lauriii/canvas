@@ -17,7 +17,7 @@ import { useSaveSectionMutation } from '@/services/sections';
 import type { FetchBaseQueryError } from '@reduxjs/toolkit/query/react';
 import type { SerializedError } from '@reduxjs/toolkit';
 import useGetComponentName from '@/hooks/useGetComponentName';
-import { useParams } from 'react-router-dom';
+import useXbParams from '@/hooks/useXbParams';
 
 interface ErrorData {
   message?: string;
@@ -44,7 +44,7 @@ function getErrorMessage(error: FetchBaseQueryError | SerializedError): string {
 const SaveSectionDialog: React.FC = () => {
   const { saveAsSection } = useAppSelector(selectDialogOpen);
   const dispatch = useAppDispatch();
-  const { componentId: selectedComponent } = useParams();
+  const { componentId: selectedComponent } = useXbParams();
   const model = useAppSelector(selectModel);
   const layout = useAppSelector(selectLayout);
   const selectedNode = findComponentByUuid(layout, selectedComponent || '');

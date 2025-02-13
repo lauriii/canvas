@@ -1,7 +1,11 @@
 import React from 'react';
+import ReactDom from 'react-dom';
 import type { FC, ReactHTMLElement } from 'react';
 import { createRoot } from 'react-dom/client';
 import { Provider } from 'react-redux';
+// eslint-disable-next-line @typescript-eslint/no-restricted-imports
+import * as ReactRedux from 'react-redux';
+import * as ReduxToolkit from '@reduxjs/toolkit';
 import AppRoutes from '@/app/AppRoutes';
 import { makeStore } from '@/app/store';
 import { Theme } from '@radix-ui/themes';
@@ -16,6 +20,22 @@ import transforms from '@/utils/transforms';
 import '@/styles/radix-themes';
 import '@/styles/index.css';
 import { AJAX_UPDATE_FORM_STATE_EVENT } from '@/types/Ajax';
+
+declare global {
+  interface Window {
+    React: typeof React;
+    ReactDom: typeof ReactDom;
+    Redux: typeof ReactRedux;
+    ReduxToolkit: typeof ReduxToolkit;
+  }
+}
+
+// Provide these dependencies as globals so extensions do not have redundant and
+// potentially conflicting dependencies.
+window.React = React;
+window.ReactDom = ReactDom;
+window.Redux = ReactRedux;
+window.ReduxToolkit = ReduxToolkit;
 
 interface ProviderComponentProps {
   store: EnhancedStore;
@@ -39,6 +59,10 @@ if (container) {
     routerRoot = `${routerRoot}${drupalSettings.xb.base}`;
   }
   const store = makeStore({ configuration: appConfiguration });
+
+  // Make the store available to extensions.
+  (drupalSettings as any).xb.store = store;
+
   root.render(
     <React.StrictMode>
       <Theme

@@ -32,7 +32,7 @@ import { getDistanceBetweenElements } from '@/utils/function-utils';
 import useGetComponentName from '@/hooks/useGetComponentName';
 import { useDataToHtmlMapValue } from '@/features/layout/preview/DataToHtmlMapContext';
 import { useNavigationUtils } from '@/hooks/useNavigationUtils';
-import { useParams } from 'react-router-dom';
+import useXbParams from '@/hooks/useXbParams';
 
 export interface ComponentOverlayProps {
   component: ComponentNode;
@@ -102,7 +102,7 @@ const ComponentOverlay: React.FC<ComponentOverlayProps> = (props) => {
     verticalDistance: 0,
   });
   const [initialized, setInitialized] = useState(false);
-  const { componentId: selectedComponent } = useParams();
+  const { componentId: selectedComponent } = useXbParams();
   const hoveredComponent = useAppSelector(selectHoveredComponent);
   const canvasViewPortScale = useAppSelector(selectCanvasViewPortScale);
   const dispatch = useAppDispatch();

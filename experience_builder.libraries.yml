@@ -20,6 +20,8 @@ xb-ui:
     - core/internal.jquery.form
     - experience_builder/ajax.hyperscriptify
     - experience_builder/ajax.custom
+  drupalSettings:
+    xb: { layoutUtils: [], navUtils: [] }
 
 ajax.custom:
   js:

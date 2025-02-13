@@ -1,0 +1,11 @@
+app:
+  version: 1.0
+  header: true
+  js:
+    ui/dist/bundle.js:
+      attributes: { type: module }
+  drupalSettings:
+    xbExtension:
+      testExtension: { id: 'experience-builder-test-extension', name: 'XB Test Extension' }
+  dependencies:
+    - experience_builder/ui

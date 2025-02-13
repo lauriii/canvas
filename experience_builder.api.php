@@ -53,6 +53,36 @@ use Drupal\experience_builder\PropShape\CandidateStorablePropShape;
  * @see \Drupal\experience_builder\PropExpressions\StructuredData\StructuredDataPropExpressionInterface
  * @see https://github.com/SixArm/usv
  *
+ *
+ * @section xb_extensions XB Extensions
+ *
+ * XB Extensions makes additional functionalities and customization points
+ * available for extending the Experience Builder module.
+ *
+ * Any library with `drupalSettings.xbExtension` will be identified as an
+ * Experience Builder extension and will be loaded with the UI. Be sure
+ * to add `experience_builder/ui` as a dependency.
+ * So, your `*.libraries.yml` file should contain an entry that looks similar to this:
+ * @code
+ * app:
+ *  header: true
+ *  js:
+ *    path/to/your/xb/extension/something.js:
+ *      attributes: { type: module }
+ *  drupalSettings:
+ *    xbExtension:
+ *      testExtension: { id: 'experience-builder-test-extension', name: 'XB Test Extension' }
+ *  dependencies:
+ *    - experience_builder/ui
+ *
+ * @see tests/modules/xb_test_extension/ui/index.jsx for how to wrap your
+ * React Application so it has access to Experience Builder UI APIs
+ * @see tests/modules/xb_test_extension/ui/components/ConceptProver.jsx for
+ * examples of how these APIs can be used to access info about and make
+ * changes to content in the UI.
+ *
+ * This functionality is currently experimental and a more formal API will be available in future versions.
+ *
  * @}
  */
 
