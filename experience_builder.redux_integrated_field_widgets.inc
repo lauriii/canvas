@@ -70,6 +70,35 @@ function experience_builder_library_info_alter(array &$libraries, string $extens
  * @see \Drupal\experience_builder\MediaLibraryXbPropOpener
  */
 function experience_builder_field_widget_single_element_media_library_widget_form_alter(array &$form, FormStateInterface $form_state, array $context): void {
+  if (\Drupal::service('theme.manager')->getActiveTheme()->getName() === 'xb_stark') {
+    // The following configures the open button to trigger a dialog rendered by
+    // the admin theme.
+    $request_stack = \Drupal::service('request_stack');
+    $current_route = new CurrentRouteMatch($request_stack);
+    $parameters = $current_route->getParameters();
+    if ($entity = $parameters->get('entity')) {
+      $parameters->set('entity', $entity->id());
+    }
+
+    /** @var string $route_name */
+    $route_name = $current_route->getRouteName();
+    $query = \Drupal::request()->query->all();
+    $query['ajax_form'] = TRUE;
+    $query['use_admin_theme'] = TRUE;
+
+    // This is the existing AJAX URL with the additional use_admin_theme query
+    // argument that is used by XBAdminThemeNegotiator to determine if the admin
+    // theme should be used for rendering
+    $url = Url::fromRoute($route_name, [...$parameters->all(), ...$query]);
+    $form['open_button']['#ajax']['url'] = $url;
+
+    // Add a property to be used by the AjaxCommands.add_css override in
+    // ajax.hyperscriptify.js that will identify the CSS as something that should
+    // be scoped inside the dialog only.
+    $form['open_button']['#ajax']['useAdminTheme'] = TRUE;
+    $form['open_button']['#ajax']['scopeSelector'] = '.media-library-widget-modal';
+  }
+
   // Use an XB-specific media library opener, because the default opener assumes
   // the media library is opened for a field widget of a field instance on the
   // host entity type. That is not true for XB's "static prop sources".
@@ -95,30 +124,6 @@ function experience_builder_field_widget_single_element_media_library_widget_for
       'field_widget_id' => $old->getOpenerParameters()['field_widget_id'],
     ]
   );
-  $request_stack = \Drupal::service('request_stack');
-  $current_route = new CurrentRouteMatch($request_stack);
-  $parameters = $current_route->getParameters();
-  if ($entity = $parameters->get('entity')) {
-    $parameters->set('entity', $entity->id());
-  }
-
-  /** @var string $route_name */
-  $route_name = $current_route->getRouteName();
-  $query = \Drupal::request()->query->all();
-  $query['ajax_form'] = TRUE;
-  $query['use_admin_theme'] = TRUE;
-
-  // This is the existing AJAX URL with the additional use_admin_theme query
-  // argument that is used by XBAdminThemeNegotiator to determine if the admin
-  // theme should be used for rendering
-  $url = Url::fromRoute($route_name, [...$parameters->all(), ...$query]);
-  $form['open_button']['#ajax']['url'] = $url;
-
-  // Add a property to be used by the AjaxCommands.add_css override in
-  // ajax.hyperscriptify.js that will identify the CSS as something that should
-  // be scoped inside the dialog only.
-  $form['open_button']['#ajax']['useAdminTheme'] = TRUE;
-  $form['open_button']['#ajax']['scopeSelector'] = '.media-library-widget-modal';
 }
 
 /**
