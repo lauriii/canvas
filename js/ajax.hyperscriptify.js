@@ -25,14 +25,16 @@
        *   The element to send through behaviors.
        * @param {object} theSettings
        *   Additional settings.
+       * @param {number} timeout
+       *   Duration of setTimeout before attachBehaviors is called.
        */
-      const attachBehaviorsAfterAjaxing = (theContext, theSettings) => {
+      const attachBehaviorsAfterAjaxing = (theContext, theSettings, timeout = 0) => {
         // If no AJAX operations are taking place, behaviors will be attached at
         // the end of the stack.
         if (!isAjaxing()) {
           setTimeout(() => {
             Drupal.attachBehaviors(theContext, {...theSettings, doNotReinvoke: true});
-          })
+          }, timeout)
         } else {
           // If AJAX operations are occurring, set up an interval that will run
           // until AJAX operations have stopped, after which behaviors are
@@ -41,7 +43,7 @@
             if (!isAjaxing()) {
               setTimeout(() => {
                 Drupal.attachBehaviors(theContext, {...theSettings, doNotReinvoke: true});
-              })
+              }, timeout)
               clearInterval(interval)
             }
           });
@@ -124,7 +126,10 @@
       // If Drupal.attachBehaviors has not yet been called, but the context is inside
       // the contextual panel, it will be called here.
       if (!attachBehaviorsCalled && context?.closest && context.closest('[data-testid="xb-contextual-panel"]')) {
-        attachBehaviorsAfterAjaxing(context, settings);
+        // @todo Change the 30ms arbitrary wait to one that is based on the
+        // actual (currently unknown) reason the wait is needed.
+        // https://drupal.org/i/3506241
+        attachBehaviorsAfterAjaxing(context, settings, 30);
       }
     }
   }
