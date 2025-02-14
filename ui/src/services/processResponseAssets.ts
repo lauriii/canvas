@@ -1,3 +1,5 @@
+import type { PropsValues } from '@/types/Form';
+
 const { Drupal } = window as any;
 
 /**
@@ -33,18 +35,26 @@ const processResponseAssets = async (response: any, meta: any) => {
     }
   }
   if (js && Object.values(js).length) {
+    // Although ajax_page_state does a good job preventing assets from
+    // reloading, there are race conditions that can result in assets being
+    // requested despite already being present, and this check prevents the
+    // duplicate addition from occurring.
+    const jsToAdd = Object.values(js as PropsValues[]).filter(
+      (asset) => !document.querySelector(`script[src="${asset.src}"]`),
+    );
     try {
-      await Drupal.AjaxCommands.prototype['add_js'](
-        {
-          instanceIndex: Drupal.ajax.instances.length + 1,
-          selector: 'head',
-        },
-        {
-          command: 'add_js',
-          status: 'success',
-          data: Object.values(js),
-        },
-      );
+      jsToAdd.length &&
+        (await Drupal.AjaxCommands.prototype['add_js'](
+          {
+            instanceIndex: Drupal.ajax.instances.length + 1,
+            selector: 'head',
+          },
+          {
+            command: 'add_js',
+            status: 'success',
+            data: jsToAdd,
+          },
+        ));
     } catch (e) {
       console.error(e);
     }

@@ -7,6 +7,8 @@ namespace Drupal\Tests\experience_builder\TestSite;
 use Drupal\Core\Extension\ModuleInstallerInterface;
 use Drupal\experience_builder\Entity\Page;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
+use Drupal\field\Entity\FieldConfig;
+use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\file\Entity\File;
 use Drupal\image\Plugin\Field\FieldType\ImageItem;
 use Drupal\media\Entity\Media;
@@ -267,6 +269,35 @@ class XBTestSetup implements TestSetupInterface {
       ],
       'cea4c5b3-7921-4c6f-b388-da921bd1496d' => [],
     ];
+
+    // Add a Media Library field to the article content type so we can
+    // confirm it works in both page data and context forms.
+    FieldStorageConfig::create([
+      'field_name' => 'media_image_field',
+      'entity_type' => 'node',
+      'type' => 'entity_reference',
+      'settings' => [
+        'target_type' => 'media',
+      ],
+    ])->save();
+    FieldConfig::create([
+      'label' => 'A Media Image Field',
+      'field_name' => 'media_image_field',
+      'entity_type' => 'node',
+      'bundle' => 'article',
+      'field_type' => 'entity_reference',
+      'required' => FALSE,
+      'settings' => [],
+    ])->save();
+    $display_repository = \Drupal::service('entity_display.repository');
+    $display_repository->getFormDisplay('node', 'article')
+      ->setComponent('media_image_field', [
+        'type' => 'media_library_widget',
+        'region' => 'content',
+        'settings' => [],
+      ])
+      ->save();
+
     $node = Node::create([
       'type' => 'article',
       'title' => 'XB Needs This For The Time Being',

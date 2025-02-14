@@ -118,6 +118,7 @@ final class ApiLayoutControllerPatchTest extends KernelTestBase {
       'field_hero[0][display]',
       'field_hero[0][description]',
       'field_hero[0][upload]',
+      'media_image_field[media_library_selection]',
       'path[0][alias]',
       'path[0][source]',
       'path[0][langcode]',
