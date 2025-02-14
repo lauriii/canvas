@@ -30,253 +30,405 @@ info:
 # @see https://spec.openapis.org/oas/v3.1.0.html#paths-object
 # @see https://spec.openapis.org/oas/v3.1.0.html#path-item-object
 paths:
-  '/xb/api/content/xb_page':
+  /xb/api/autosaves/pending:
+    description: TODO
     get:
-      description: Provides api for page listing.
+      description: TODO
       responses:
-        200:
-          description: Page list generated successfully.
+        '200':
+          description: All current auto-save entries
+          content:
+            application/json:
+              examples:
+                multipleEntries:
+                  value:
+                    node:1:en:
+                      owner:
+                        name: Garrett Bobby Ferguson, Jr
+                        avatar: /sites/default/files/user-pictures/garrett.jpg
+                        uri: /user/12
+                        id: 12
+                      updated: 1732763679
+                      entity_type: node
+                      langcode: en
+                      data_hash: 4711efecf75d2d1a
+                      entity_id: 1
+                      label: Home page
+                    xb_asset_library:global:
+                      owner:
+                        name: Gracie Dog
+                        avatar: /sites/default/files/user-pictures/good-dog.jpg
+                        uri: /user/13
+                        id: 13
+                      updated: 1732763680
+                      entity_type: xb_asset_library
+                      langcode: NULL
+                      data_hash: 4711efecf75d2d1b
+                      entity_id: global
+                      label: Global asset library
+                    js_component:hero:
+                      owner:
+                        name: Mark Scout
+                        avatar: /sites/default/files/user-pictures/severed.jpg
+                        uri: /user/16
+                        id: 16
+                      updated: 1732763680
+                      entity_type: js_component
+                      langcode: NULL
+                      data_hash: 4711efecf75d2d1b
+                      entity_id: hero
+                      label: Hero component
+
+              schema:
+                $ref: '#/components/schemas/AutoSaveCollection'
+  /xb/api/autosaves/publish:
+    description: TODO
+    post:
+      description: TODO
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PublishAllRequest'
+      responses:
+        '200':
+          description: Successful publish
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    title: Success message
+                    examples:
+                      - Successfully published 3 items
+        '204':
+          description: No items to publish
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    title: Status message
+                    examples:
+                      - No items to publish
+        '422':
+          $ref: '#/components/responses/ClientErrorResponse'
+  /xb/api/config/auto-save/{entityTypeId}/{configEntityId}:
+    description: Auto-save endpoints
+    get:
+      description: Gets an auto-save state
+      parameters:
+        - $ref: '#/components/parameters/configEntityId'
+      responses:
+        '200':
+          description: Individual auto-save state
+          content:
+            application/json:
+              schema:
+                type: object
+    patch:
+      description: Updates an auto-save state
+      parameters:
+        - $ref: '#/components/parameters/configEntityId'
+      requestBody:
+        description: Updates individual auto-save state
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '400':
+          description: Empty auto-save state.
+        '422':
+          description: Invalid auto-save state.
+        '200':
+          description: Auto-save state updated successfully.
+  /xb/api/config/component:
+    description: TODO
+    get:
+      description: TODO
+      responses:
+        '200':
+          description: All available components
+          content:
+            application/json:
+              examples:
+                singleAvailableComponent:
+                  value:
+                    'sdc_test:my-cta':
+                      id: 'sdc_test:my-cta'
+                      name: Call to Action
+                      source: Module component
+                      category: Buttons
+                      transforms:
+                        text:
+                          extractMainPropertyName:
+                            mainPropertyName: value
+                        href:
+                          extractMainPropertyName:
+                            mainPropertyName: value
+                        target:
+                          passThrough: {  }
+                      metadata:
+                        path: >-
+                          core/modules/system/tests/modules/sdc_test/components/my-cta
+                        documentation: >-
+                          No documentation found. Add a README.md in your
+                          component directory.
+                        status: stable
+                        machineName: my-cta
+                        name: Call to Action
+                        group: All Components
+                        schema:
+                          type: object
+                          required:
+                            - text
+                          properties:
+                            text:
+                              type:
+                                - string
+                                - object
+                              title: Title
+                              description: The title for the cta
+                              examples:
+                                - Press
+                                - Submit now
+                            href:
+                              type:
+                                - string
+                                - object
+                              title: URL
+                              format: uri
+                            target:
+                              type:
+                                - string
+                                - object
+                              title: Target
+                              enum:
+                                - ''
+                                - _blank
+                            attributes:
+                              type:
+                                - Drupal\Core\Template\Attribute
+                                - object
+                              name: Attributes
+                          additionalProperties: false
+                      description: Call to action link.
+                      mandatorySchemas: true
+                      slots: []
+              schema:
+                type: object
+                minProperties: 1
+                # @see \Drupal\Core\Plugin\Component::$machineName
+                patternProperties:
+                  '^\\[a-zA-Z0-9_-]:[a-zA-Z0-9_-]$':
+                    $ref: '#/components/schemas/Component'
+  /xb/api/config/js_component:
+    get:
+      description: Collection of Code Components
+      responses:
+        '200':
+          description: Collection of Code Components
           content:
             application/json:
               schema:
                 type: object
                 minProperties: 0
-                additionalProperties: false
                 patternProperties:
-                  '^[0-9]$':
-                    type: object
-                    required:
-                      - id
-                      - title
-                      - status
-                      - path
-                    properties:
-                      id:
-                        type: integer
-                        description: The page ID.
-                      title:
-                        type: string
-                        description: The page title.
-                      status:
-                        type: boolean
-                        description: The page status.
+                  '^\\[a-zA-Z0-9_-]$':
+                    $ref: '#/components/schemas/CodeComponent'
+    post:
+      description: TODO
+      requestBody:
+        description: Create new Code Component
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CodeComponent'
+      responses:
+        '201':
+          description: Successful creation of individual Code Component
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CodeComponent'
+        '409':
+          description: Code Component with same ID already exists.
+          $ref: '#/components/responses/ClientErrorResponse'
+        '422':
+          description: Validation errors exist
+          $ref: '#/components/responses/ClientErrorResponse'
+  /xb/api/config/js_component/{configEntityId}:
+    description: Code Component endpoints
+    delete:
+      description: Deletes Code Component
+      parameters:
+        - $ref: '#/components/parameters/configEntityId'
+      responses:
+        '204':
+          description: Deleted individual Code Component
+    get:
+      description: Gets Code Component
+      parameters:
+        - $ref: '#/components/parameters/configEntityId'
+      responses:
+        '200':
+          description: Individual Code Component
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CodeComponent'
+    patch:
+      description: Updates Code Component
+      parameters:
+        - $ref: '#/components/parameters/configEntityId'
+      requestBody:
+        description: Updates individual Code Component
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CodeComponent'
+      responses:
+        '200':
+          description: Updated individual Code Component
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CodeComponent'
+  /xb/api/config/pattern:
+    description: TODO
+    get:
+      description: TODO
+      responses:
+        '200':
+          description: Collection of Sections/Patterns
+          content:
+            application/json:
+              schema:
+                type: object
+                minProperties: 0
+                patternProperties:
+                  '^\\[a-zA-Z0-9_-]$':
+                    $ref: '#/components/schemas/PatternPreview'
+    post:
+      description: TODO
+      requestBody:
+        description: Create new Pattern/Section.
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - layout
+                - model
+              properties:
+                id:
+                  type: string
+                  description: The ID — if none is provided, this will be auto-generated from the given name.
+                name:
+                  type: string
+                  description: Human-readable Pattern/Section label
+                layout:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/LayoutComponent'
+                model:
+                  $ref: '#/components/schemas/Model'
+      responses:
+        '201':
+          description: Successful save of Section/Pattern
+          content:
+            application/json:
               examples:
-                pageList:
+                mySectionPattern:
                   value:
-                    '1':
-                      id: 1
-                      title: Home
-                      status: true
-                      path: /home
-                    '2':
-                      id: 2
-                      title: About
-                      status: false
-                      path: /about
-
-  '/api/layout/{entityTypeId}/{entityId}':
+                    layoutModel:
+                      layout:
+                        - uuid: 0b755464-281c-4487-82a0-ece34a9b1121
+                          nodeType: component
+                          type: sdc.experience_builder.my-section
+                          slots: []
+                      model:
+                        0b755464-281c-4487-82a0-ece34a9b1121:
+                          text: >-
+                            Our mission is to deliver the best products and
+                            services to our customers. We strive to exceed
+                            expectations and continuously improve our offerings.
+                    name: Section
+                    id: section
+                    default_markup: >-
+                      <!-- xb-start-0b755464-281c-4487-82a0-ece34a9b1121 --><div
+                      class="my-section__wrapper">
+                        <div class="my-section__content-wrapper">
+                          <h2 class="my-section__h2">Our Mission</h2>
+                          <p class="my-section__paragraph">
+                            <!-- xb-prop-start-text -->Our mission is to deliver the best products and services to our customers. We strive to exceed expectations and continuously improve our offerings.<!-- xb-prop-end-text -->
+                          </p>
+                          <p class="my-section__paragraph">
+                            Join us on our journey to innovation and excellence. Your satisfaction is our priority.
+                          </p>
+                        </div>
+                        <div class="my-section__image-wrapper">
+                          <img alt="Placeholder Image" class="my-section__img" width="500" height="500">
+                        </div>
+                      </div> <!-- xb-end-0b755464-281c-4487-82a0-ece34a9b1121
+                      -->
+                    css: >
+                      <link rel="stylesheet" media="all"
+                      href="/sites/default/files/css/css.css" />
+                    js_header: ''
+                    js_footer: ''
+              schema:
+                $ref: '#/components/schemas/PatternPreview'
+        '409':
+          description: Section/Pattern with same ID already exists.
+          $ref: '#/components/responses/ClientErrorResponse'
+        '422':
+          description: Validation errors exist
+          $ref: '#/components/responses/ClientErrorResponse'
+  '/xb/api/config/pattern/{configEntityId}':
     description: TODO
     get:
       description: TODO
       parameters:
-        - $ref: '#/components/parameters/entityTypeId'
-        - $ref: '#/components/parameters/entityId'
+        - $ref: '#/components/parameters/configEntityId'
       responses:
         '200':
-          description: The layout
+          description: Individual Section/Pattern
           content:
             application/json:
-              examples:
-                emptyComponentTree:
-                  value:
-                    layout:
-                      - nodeType: region
-                        name: content
-                        components: []
-                    model: {}
-                    entity_form_fields: {}
-                componentTreeWithSingleComponent:
-                  value:
-                    layout:
-                      - nodeType: region
-                        name: header
-                        components: []
-                      - nodeType: region
-                        name: content
-                        components:
-                          - nodeType: component
-                            uuid: bce8d97e-8d44-4609-adc3-5e1015342b49
-                            type: 'sdc_test:my-cta'
-                    model:
-                      bce8d97e-8d44-4609-adc3-5e1015342b49:
-                        resolved:
-                          text: 'hello, world!'
-                          href: 'https://drupal.org'
-                        name: My Test CTA Component
-                        source:
-                          text:
-                            sourceType: static:field_item:string,
-                            expression: 'ℹ︎string␟value'
-                          href:
-                            sourceType: static:field_item:uri,
-                            expression: 'ℹ︎uri␟value'
-                    entity_form_fields:
-                      changed: '1734481105'
-                      'body[0][summary]': ''
-                      'body[0][value]': ''
-                      'body[0][format]': basic_html
-                      'comment[0][status]': '2'
-                      'created[0][value][date]': '2024-12-18'
-                      'created[0][value][time]': '00:18:25'
-                      'field_hero[0][target_id]': '1'
-                      'field_hero[0][alt]': A man walks a border collie along a beach.
-                      'field_hero[0][title]': ''
-                      'field_hero[0][width]': '207'
-                      'field_hero[0][height]': '475'
-                      'field_hero[0][fids][0]': '1'
-                      'field_hero[0][display]': '0'
-                      'field_hero[0][description]': ''
-                      'field_hero[0][upload]': ''
-                      'field_image[0][display]': '0'
-                      'field_image[0][description]': ''
-                      'field_image[0][upload]': ''
-                      'field_image[0][alt]': ''
-                      'field_image[0][title]': ''
-                      'path[0][alias]': ''
-                      'path[0][source]': /node/1
-                      'path[0][langcode]': en
-                      'promote[value]': '1'
-                      'status[value]': '1'
-                      'sticky[value]': '0'
-                      'title[0][value]': XB Needs This For The Time Being
-                      'uid[0][target_id]': Anonymous (0)
-                      'langcode[0][value]': en
-                      'revision_log[0][value]': ''
               schema:
-                type: object
-                required:
-                  - layout
-                  - model
-                  - entity_form_fields
-                properties:
-                  layout:
-                    type: array
-                    description: Layout regions
-                    items:
-                      type: object
-                      schema:
-                        $ref: '#/components/schemas/LayoutSlot'
-                  model:
-                    $ref: '#/components/schemas/Model'
-                  entity_form_fields:
-                    type: object
-                    description: The full entity data.
+                $ref: '#/components/schemas/PatternPreview'
     patch:
-      description: >
-        Update a single component and return a preview as well
-        as the updated model, entity_fields and layout. The
-        new layout is stored as an auto-save entry (until such
-        time as it is published)
-      parameters:
-        - $ref: '#/components/parameters/entityTypeId'
-        - $ref: '#/components/parameters/entityId'
-      requestBody:
-        $ref: '#/components/requestBodies/PatchLayout'
-      responses:
-        '200':
-          description: Stored new values and generated preview successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                required:
-                  - html
-                  - entity_form_fields
-                  - model
-                  - layout
-                properties:
-                  html:
-                    type: string
-                    description: The HTML preview.
-                  layout:
-                    type: array
-                    description: Layout regions
-                    items:
-                      type: object
-                      schema:
-                        $ref: '#/components/schemas/LayoutSlot'
-                  model:
-                    $ref: '#/components/schemas/Model'
-                  entity_form_fields:
-                    type: object
-                    description: The full entity data.
-
-    post:
-      description: >
-        Update the layout, model or entity field values
-        and return a preview as well. The new layout is
-        stored as an auto-save entry (until such time as
-        it is published)
-      parameters:
-        - $ref: '#/components/parameters/entityTypeId'
-        - $ref: '#/components/parameters/entityId'
-      requestBody:
-        $ref: '#/components/requestBodies/Layout'
-      responses:
-        '200':
-          description: Stored new values and generated preview successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                required:
-                  - html
-                properties:
-                  html:
-                    type: string
-                    description: The HTML preview.
-  '/xb/api/content-create/xb_page':
-    description: TODO
-    post:
       description: TODO
+      requestBody:
+        description: Update specific Pattern/Section.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Pattern'
+      parameters:
+        - $ref: '#/components/parameters/configEntityId'
       responses:
-        '201':
-          description: Created entity successfully
+        '200':
+          description: Individual Section/Pattern
           content:
             application/json:
-              examples:
-                newXbPageContentEntity:
-                  value:
-                    entity_type: xb_page
-                    id: '123'
               schema:
-                type: object
-                required:
-                  - entity_type
-                  - entity_id
-                properties:
-                  entity_type:
-                    type: string
-                    description: The entity type ID
-                    examples:
-                      - xb_page
-                      - node
-                  entity_id:
-                    type: string
-                    description: The ID of the created content entity
-                    examples:
-                      - '42'
-                      - 'stringAreAlsoPossible'
-  '/xb/api/content-delete/{entityTypeId}/{entityId}':
-    description: Endpoint for deleting content entities.
+                $ref: '#/components/schemas/PatternPreview'
     delete:
-      description: Deletes a content entity.
+      description: Deletes a Section/Pattern.
       parameters:
-        - $ref: '#/components/parameters/entityTypeId'
-        - $ref: '#/components/parameters/entityId'
+        - $ref: '#/components/parameters/configEntityId'
       responses:
         '204':
-          description: Content deleted successfully
+          description: Deleted individual Section/Pattern.
   /xb/api/config/xb_asset_library:
     description: Endpoint for managing asset libraries.
     get:
@@ -454,87 +606,89 @@ paths:
       responses:
         '204':
           description: Deleted individual Asset Library
-  /xb/api/config/component:
-    description: TODO
+  '/xb/api/content/xb_page':
     get:
+      description: Provides api for page listing.
+      responses:
+        200:
+          description: Page list generated successfully.
+          content:
+            application/json:
+              schema:
+                type: object
+                minProperties: 0
+                additionalProperties: false
+                patternProperties:
+                  '^[0-9]$':
+                    type: object
+                    required:
+                      - id
+                      - title
+                      - status
+                      - path
+                    properties:
+                      id:
+                        type: integer
+                        description: The page ID.
+                      title:
+                        type: string
+                        description: The page title.
+                      status:
+                        type: boolean
+                        description: The page status.
+              examples:
+                pageList:
+                  value:
+                    '1':
+                      id: 1
+                      title: Home
+                      status: true
+                      path: /home
+                    '2':
+                      id: 2
+                      title: About
+                      status: false
+                      path: /about
+    post:
       description: TODO
       responses:
-        '200':
-          description: All available components
+        '201':
+          description: Created entity successfully
           content:
             application/json:
               examples:
-                singleAvailableComponent:
+                newXbPageContentEntity:
                   value:
-                    'sdc_test:my-cta':
-                      id: 'sdc_test:my-cta'
-                      name: Call to Action
-                      source: Module component
-                      category: Buttons
-                      transforms:
-                        text:
-                          extractMainPropertyName:
-                            mainPropertyName: value
-                        href:
-                          extractMainPropertyName:
-                            mainPropertyName: value
-                        target:
-                          passThrough: {  }
-                      metadata:
-                        path: >-
-                          core/modules/system/tests/modules/sdc_test/components/my-cta
-                        documentation: >-
-                          No documentation found. Add a README.md in your
-                          component directory.
-                        status: stable
-                        machineName: my-cta
-                        name: Call to Action
-                        group: All Components
-                        schema:
-                          type: object
-                          required:
-                            - text
-                          properties:
-                            text:
-                              type:
-                                - string
-                                - object
-                              title: Title
-                              description: The title for the cta
-                              examples:
-                                - Press
-                                - Submit now
-                            href:
-                              type:
-                                - string
-                                - object
-                              title: URL
-                              format: uri
-                            target:
-                              type:
-                                - string
-                                - object
-                              title: Target
-                              enum:
-                                - ''
-                                - _blank
-                            attributes:
-                              type:
-                                - Drupal\Core\Template\Attribute
-                                - object
-                              name: Attributes
-                          additionalProperties: false
-                      description: Call to action link.
-                      mandatorySchemas: true
-                      slots: []
+                    entity_type: xb_page
+                    id: '123'
               schema:
                 type: object
-                minProperties: 1
-                # @see \Drupal\Core\Plugin\Component::$machineName
-                patternProperties:
-                  '^\\[a-zA-Z0-9_-]:[a-zA-Z0-9_-]$':
-                    $ref: '#/components/schemas/Component'
-  '/xb-field-form/{entityTypeId}/{entityId}':
+                required:
+                  - entity_type
+                  - entity_id
+                properties:
+                  entity_type:
+                    type: string
+                    description: The entity type ID
+                    examples:
+                      - xb_page
+                      - node
+                  entity_id:
+                    type: string
+                    description: The ID of the created content entity
+                    examples:
+                      - '42'
+                      - 'stringAreAlsoPossible'
+  '/xb/api/content/xb_page/{entityId}':
+    description: Endpoint for deleting content entities.
+    delete:
+      description: Deletes a content entity.
+      parameters:
+        - $ref: '#/components/parameters/entityId'
+      responses:
+        '204':
+          description: Content deleted successfully
+  '/xb/api/form/component-instance/{entityTypeId}/{entityId}':
     description: TODO
     parameters:
       - $ref: '#/components/parameters/entityTypeId'
@@ -602,7 +756,47 @@ paths:
               schema:
                 type: object
                 description: A Drupal AJAX response.
-  '/xb/api/entity-form/{entityTypeId}/{entityId}/{entityFormMode}':
+  '/xb/api/form/content-entity/{entityTypeId}/{entityId}':
+    description: TODO
+    get:
+      description: Fetches the entity form with the "default" form mode
+      parameters:
+        - $ref: '#/components/parameters/entityTypeId'
+        - $ref: '#/components/parameters/entityId'
+      responses:
+        '200':
+          $ref: '#/components/responses/FormResponse'
+    post:
+      description: AJAX updates for this form.
+      parameters:
+        # @see \Drupal\Core\Form\FormBuilderInterface::AJAX_FORM_REQUEST
+        # @see \Drupal\Core\Form\EventSubscriber\FormAjaxSubscriber
+        # @see \Drupal\Core\EventSubscriber\AjaxResponseSubscriber
+        - in: query
+          name: ajax_form
+          required: true
+          schema:
+            type: integer
+            enum:
+              - 1
+        # @see \Drupal\experience_builder\Render\MainContent\XBTemplateRenderer
+        - in: query
+          name: _wrapper_format
+          required: true
+          schema:
+            type: string
+            enum:
+              - xb_template
+              - drupal_ajax
+      responses:
+        '200':
+          description: AJAX updates
+          content:
+            application/json:
+              schema:
+                type: object
+                description: A Drupal AJAX response.
+  '/xb/api/form/content-entity/{entityTypeId}/{entityId}/{entityFormMode}':
     description: Fetches the entity form with the specified form mode
     get:
       parameters:
@@ -618,16 +812,197 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/FormResponse'
-  '/xb/api/entity-form/{entityTypeId}/{entityId}':
+    post:
+      description: AJAX updates for this form.
+      parameters:
+        # @see \Drupal\Core\Form\FormBuilderInterface::AJAX_FORM_REQUEST
+        # @see \Drupal\Core\Form\EventSubscriber\FormAjaxSubscriber
+        # @see \Drupal\Core\EventSubscriber\AjaxResponseSubscriber
+        - in: query
+          name: ajax_form
+          required: true
+          schema:
+            type: integer
+            enum:
+              - 1
+        # @see \Drupal\experience_builder\Render\MainContent\XBTemplateRenderer
+        - in: query
+          name: _wrapper_format
+          required: true
+          schema:
+            type: string
+            enum:
+              - xb_template
+              - drupal_ajax
+      responses:
+        '200':
+          description: AJAX updates
+          content:
+            application/json:
+              schema:
+                type: object
+                description: A Drupal AJAX response.
+  '/xb/api/layout/{entityTypeId}/{entityId}':
     description: TODO
     get:
-      description: Fetches the entity form with the "default" form mode
+      description: TODO
       parameters:
         - $ref: '#/components/parameters/entityTypeId'
         - $ref: '#/components/parameters/entityId'
       responses:
         '200':
-          $ref: '#/components/responses/FormResponse'
+          description: The layout
+          content:
+            application/json:
+              examples:
+                emptyComponentTree:
+                  value:
+                    layout:
+                      - nodeType: region
+                        name: content
+                        components: []
+                    model: {}
+                    entity_form_fields: {}
+                componentTreeWithSingleComponent:
+                  value:
+                    layout:
+                      - nodeType: region
+                        name: header
+                        components: []
+                      - nodeType: region
+                        name: content
+                        components:
+                          - nodeType: component
+                            uuid: bce8d97e-8d44-4609-adc3-5e1015342b49
+                            type: 'sdc_test:my-cta'
+                    model:
+                      bce8d97e-8d44-4609-adc3-5e1015342b49:
+                        resolved:
+                          text: 'hello, world!'
+                          href: 'https://drupal.org'
+                        name: My Test CTA Component
+                        source:
+                          text:
+                            sourceType: static:field_item:string,
+                            expression: 'ℹ︎string␟value'
+                          href:
+                            sourceType: static:field_item:uri,
+                            expression: 'ℹ︎uri␟value'
+                    entity_form_fields:
+                      changed: '1734481105'
+                      'body[0][summary]': ''
+                      'body[0][value]': ''
+                      'body[0][format]': basic_html
+                      'comment[0][status]': '2'
+                      'created[0][value][date]': '2024-12-18'
+                      'created[0][value][time]': '00:18:25'
+                      'field_hero[0][target_id]': '1'
+                      'field_hero[0][alt]': A man walks a border collie along a beach.
+                      'field_hero[0][title]': ''
+                      'field_hero[0][width]': '207'
+                      'field_hero[0][height]': '475'
+                      'field_hero[0][fids][0]': '1'
+                      'field_hero[0][display]': '0'
+                      'field_hero[0][description]': ''
+                      'field_hero[0][upload]': ''
+                      'field_image[0][display]': '0'
+                      'field_image[0][description]': ''
+                      'field_image[0][upload]': ''
+                      'field_image[0][alt]': ''
+                      'field_image[0][title]': ''
+                      'path[0][alias]': ''
+                      'path[0][source]': /node/1
+                      'path[0][langcode]': en
+                      'promote[value]': '1'
+                      'status[value]': '1'
+                      'sticky[value]': '0'
+                      'title[0][value]': XB Needs This For The Time Being
+                      'uid[0][target_id]': Anonymous (0)
+                      'langcode[0][value]': en
+                      'revision_log[0][value]': ''
+              schema:
+                type: object
+                required:
+                  - layout
+                  - model
+                  - entity_form_fields
+                properties:
+                  layout:
+                    type: array
+                    description: Layout regions
+                    items:
+                      type: object
+                      schema:
+                        $ref: '#/components/schemas/LayoutSlot'
+                  model:
+                    $ref: '#/components/schemas/Model'
+                  entity_form_fields:
+                    type: object
+                    description: The full entity data.
+    patch:
+      description: >
+        Update a single component and return a preview as well
+        as the updated model, entity_fields and layout. The
+        new layout is stored as an auto-save entry (until such
+        time as it is published)
+      parameters:
+        - $ref: '#/components/parameters/entityTypeId'
+        - $ref: '#/components/parameters/entityId'
+      requestBody:
+        $ref: '#/components/requestBodies/PatchLayout'
+      responses:
+        '200':
+          description: Stored new values and generated preview successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - html
+                  - entity_form_fields
+                  - model
+                  - layout
+                properties:
+                  html:
+                    type: string
+                    description: The HTML preview.
+                  layout:
+                    type: array
+                    description: Layout regions
+                    items:
+                      type: object
+                      schema:
+                        $ref: '#/components/schemas/LayoutSlot'
+                  model:
+                    $ref: '#/components/schemas/Model'
+                  entity_form_fields:
+                    type: object
+                    description: The full entity data.
+
+    post:
+      description: >
+        Update the layout, model or entity field values
+        and return a preview as well. The new layout is
+        stored as an auto-save entry (until such time as
+        it is published)
+      parameters:
+        - $ref: '#/components/parameters/entityTypeId'
+        - $ref: '#/components/parameters/entityId'
+      requestBody:
+        $ref: '#/components/requestBodies/Layout'
+      responses:
+        '200':
+          description: Stored new values and generated preview successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - html
+                properties:
+                  html:
+                    type: string
+                    description: The HTML preview.
   /xb/api/log-error:
     description: TODO
     post:
@@ -680,305 +1055,6 @@ paths:
                   error:
                     type: string
                     description: Error description
-  /xb/api/autosaves/publish:
-    description: TODO
-    post:
-      description: TODO
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/PublishAllRequest'
-      responses:
-        '200':
-          description: Successful publish
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    title: Success message
-                    examples:
-                      - Successfully published 3 items
-        '204':
-          description: No items to publish
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    title: Status message
-                    examples:
-                      - No items to publish
-        '422':
-          $ref: '#/components/responses/ClientErrorResponse'
-  /xb/api/autosaves/pending:
-    description: TODO
-    get:
-      description: TODO
-      responses:
-        '200':
-          description: All current auto-save entries
-          content:
-            application/json:
-              examples:
-                multipleEntries:
-                  value:
-                    node:1:en:
-                      owner:
-                        name: Garrett Bobby Ferguson, Jr
-                        avatar: /sites/default/files/user-pictures/garrett.jpg
-                        uri: /user/12
-                        id: 12
-                      updated: 1732763679
-                      entity_type: node
-                      langcode: en
-                      data_hash: 4711efecf75d2d1a
-                      entity_id: 1
-                      label: Home page
-                    xb_asset_library:global:
-                      owner:
-                        name: Gracie Dog
-                        avatar: /sites/default/files/user-pictures/good-dog.jpg
-                        uri: /user/13
-                        id: 13
-                      updated: 1732763680
-                      entity_type: xb_asset_library
-                      langcode: NULL
-                      data_hash: 4711efecf75d2d1b
-                      entity_id: global
-                      label: Global asset library
-                    js_component:hero:
-                      owner:
-                        name: Mark Scout
-                        avatar: /sites/default/files/user-pictures/severed.jpg
-                        uri: /user/16
-                        id: 16
-                      updated: 1732763680
-                      entity_type: js_component
-                      langcode: NULL
-                      data_hash: 4711efecf75d2d1b
-                      entity_id: hero
-                      label: Hero component
-
-              schema:
-                $ref: '#/components/schemas/AutoSaveCollection'
-  /xb/api/config/pattern:
-    description: TODO
-    get:
-      description: TODO
-      responses:
-        '200':
-          description: Collection of Sections/Patterns
-          content:
-            application/json:
-              schema:
-                type: object
-                minProperties: 0
-                patternProperties:
-                  '^\\[a-zA-Z0-9_-]$':
-                    $ref: '#/components/schemas/PatternPreview'
-    post:
-      description: TODO
-      requestBody:
-        description: Create new Pattern/Section.
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - name
-                - layout
-                - model
-              properties:
-                id:
-                  type: string
-                  description: The ID — if none is provided, this will be auto-generated from the given name.
-                name:
-                  type: string
-                  description: Human-readable Pattern/Section label
-                layout:
-                  type: array
-                  items:
-                    $ref: '#/components/schemas/LayoutComponent'
-                model:
-                  $ref: '#/components/schemas/Model'
-      responses:
-        '201':
-          description: Successful save of Section/Pattern
-          content:
-            application/json:
-              examples:
-                mySectionPattern:
-                  value:
-                    layoutModel:
-                      layout:
-                        - uuid: 0b755464-281c-4487-82a0-ece34a9b1121
-                          nodeType: component
-                          type: sdc.experience_builder.my-section
-                          slots: []
-                      model:
-                        0b755464-281c-4487-82a0-ece34a9b1121:
-                          text: >-
-                            Our mission is to deliver the best products and
-                            services to our customers. We strive to exceed
-                            expectations and continuously improve our offerings.
-                    name: Section
-                    id: section
-                    default_markup: >-
-                      <!-- xb-start-0b755464-281c-4487-82a0-ece34a9b1121 --><div
-                      class="my-section__wrapper">
-                        <div class="my-section__content-wrapper">
-                          <h2 class="my-section__h2">Our Mission</h2>
-                          <p class="my-section__paragraph">
-                            <!-- xb-prop-start-text -->Our mission is to deliver the best products and services to our customers. We strive to exceed expectations and continuously improve our offerings.<!-- xb-prop-end-text -->
-                          </p>
-                          <p class="my-section__paragraph">
-                            Join us on our journey to innovation and excellence. Your satisfaction is our priority.
-                          </p>
-                        </div>
-                        <div class="my-section__image-wrapper">
-                          <img alt="Placeholder Image" class="my-section__img" width="500" height="500">
-                        </div>
-                      </div> <!-- xb-end-0b755464-281c-4487-82a0-ece34a9b1121
-                      -->
-                    css: >
-                      <link rel="stylesheet" media="all"
-                      href="/sites/default/files/css/css.css" />
-                    js_header: ''
-                    js_footer: ''
-              schema:
-                $ref: '#/components/schemas/PatternPreview'
-        '409':
-          description: Section/Pattern with same ID already exists.
-          $ref: '#/components/responses/ClientErrorResponse'
-        '422':
-          description: Validation errors exist
-          $ref: '#/components/responses/ClientErrorResponse'
-  '/xb/api/config/pattern/{configEntityId}':
-    description: TODO
-    get:
-      description: TODO
-      parameters:
-        - $ref: '#/components/parameters/configEntityId'
-      responses:
-        '200':
-          description: Individual Section/Pattern
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PatternPreview'
-    patch:
-      description: TODO
-      requestBody:
-        description: Update specific Pattern/Section.
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/Pattern'
-      parameters:
-        - $ref: '#/components/parameters/configEntityId'
-      responses:
-        '200':
-          description: Individual Section/Pattern
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PatternPreview'
-  /xb/api/config/js_component/{configEntityId}:
-    description: Code Component endpoints
-    get:
-      description: Gets Code Component
-      parameters:
-        - $ref: '#/components/parameters/configEntityId'
-      responses:
-        '200':
-          description: Individual Code Component
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/CodeComponent'
-    patch:
-      description: Updates Code Component
-      parameters:
-        - $ref: '#/components/parameters/configEntityId'
-      requestBody:
-        description: Updates individual Code Component
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CodeComponent'
-      responses:
-        '200':
-          description: Updated individual Code Component
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/CodeComponent'
-    delete:
-      description: Deletes Code Component
-      parameters:
-        - $ref: '#/components/parameters/configEntityId'
-      responses:
-        '204':
-          description: Deleted individual Code Component
-  /xb/api/config/js_component:
-    post:
-      description: TODO
-      requestBody:
-        description: Create new Code Component
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CodeComponent'
-      responses:
-        '201':
-          description: Successful creation of individual Code Component
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/CodeComponent'
-        '409':
-          description: Code Component with same ID already exists.
-          $ref: '#/components/responses/ClientErrorResponse'
-        '422':
-          description: Validation errors exist
-          $ref: '#/components/responses/ClientErrorResponse'
-  /xb/api/config/auto-save/{entityTypeId}/{configEntityId}:
-    description: Auto-save endpoints
-    get:
-      description: Gets an auto-save state
-      parameters:
-        - $ref: '#/components/parameters/configEntityId'
-      responses:
-        '200':
-          description: Individual auto-save state
-          content:
-            application/json:
-              schema:
-                type: object
-    patch:
-      description: Updates an auto-save state
-      parameters:
-        - $ref: '#/components/parameters/configEntityId'
-      requestBody:
-        description: Updates individual auto-save state
-        content:
-          application/json:
-            schema:
-              type: object
-      responses:
-        '400':
-          description: Empty auto-save state.
-        '422':
-          description: Invalid auto-save state.
-        '200':
-          description: Auto-save state updated successfully.
 # @see https://spec.openapis.org/oas/v3.1.0.html#components-object
 components:
   # @see https://spec.openapis.org/oas/v3.1.0.html#schema-object

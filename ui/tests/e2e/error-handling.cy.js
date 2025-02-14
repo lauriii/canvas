@@ -17,7 +17,7 @@ describe('Error handling', () => {
     // Note the times: 1 option, which ensures the request is only intercepted
     // once.
     cy.intercept(
-      { url: '**/api/layout/node/1', times: 1, method: 'POST' },
+      { url: '**/xb/api/layout/node/1', times: 1, method: 'POST' },
       { statusCode: 418 },
     );
     cy.drupalRelativeURL('xb/node/1');

@@ -18,7 +18,7 @@ export const contentCreateApi = createApi({
       CreateContentRequest
     >({
       query: ({ entityType }) => ({
-        url: `/xb/api/content-create/${entityType}`,
+        url: `/xb/api/content/${entityType}`,
         method: 'POST',
       }),
     }),

@@ -36,22 +36,12 @@ final class XBThemeNegotiator implements ThemeNegotiatorInterface {
   ) {}
 
   /**
-   * The routes that this theme negotiator applies to.
-   *
-   * @var string[]
-   */
-  private static $routes = [
-    'experience_builder.api.component_inputs_form',
-    'experience_builder.api.entity_form',
-  ];
-
-  /**
    * {@inheritdoc}
    */
   public function applies(RouteMatchInterface $route_match) {
     $route_name = $route_match->getRouteName() ?? '';
     $use_admin_theme = (bool) $this->requestStack->getCurrentRequest()?->query->has('use_admin_theme');
-    $use_xb_stark = in_array($route_name, self::$routes, TRUE);
+    $use_xb_stark = str_starts_with($route_name, 'experience_builder.api.form.');
     return $use_xb_stark || $use_admin_theme;
   }
 

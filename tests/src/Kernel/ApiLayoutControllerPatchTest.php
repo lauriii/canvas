@@ -48,7 +48,7 @@ final class ApiLayoutControllerPatchTest extends KernelTestBase {
   public function testInvalid(string $message, string $exception, array $content): void {
     $this->expectException($exception);
     $this->expectExceptionMessage($message);
-    $this->parentRequest(Request::create('/api/layout/node/1', method: 'PATCH', server: [
+    $this->parentRequest(Request::create('/xb/api/layout/node/1', method: 'PATCH', server: [
       'CONTENT_TYPE' => 'application/json',
       'HTTP_X_NO_OPENAPI_VALIDATION' => 'turned off because we want to validate the prod response here',
     ], content: \json_encode($content, JSON_FORCE_OBJECT | JSON_THROW_ON_ERROR)));
@@ -104,7 +104,7 @@ final class ApiLayoutControllerPatchTest extends KernelTestBase {
       $template->enable()->save();
     }
     // Load the test data from the layout controller.
-    $content = $this->parentRequest(Request::create('/api/layout/node/1'))->getContent();
+    $content = $this->parentRequest(Request::create('/xb/api/layout/node/1'))->getContent();
     self::assertIsString($content);
     // Check that the client only receives field data they have access to.
     // @see ApiLayoutController::filterFormValues()
@@ -131,7 +131,7 @@ final class ApiLayoutControllerPatchTest extends KernelTestBase {
 
     if ($withAutoSave) {
       // Perform a POST first to trigger an auto-save entry.
-      $response = $this->request(Request::create('/api/layout/node/1', method: 'POST', content: $content));
+      $response = $this->request(Request::create('/xb/api/layout/node/1', method: 'POST', content: $content));
       self::assertEquals(Response::HTTP_OK, $response->getStatusCode());
     }
 
@@ -145,7 +145,7 @@ final class ApiLayoutControllerPatchTest extends KernelTestBase {
     self::assertNotEquals($media->id(), $model['static-image-udf7d']['resolved']['image']);
 
     // Now patch the layout.
-    $response = $this->request(Request::create('/api/layout/node/1', method: 'PATCH', content: \json_encode([
+    $response = $this->request(Request::create('/xb/api/layout/node/1', method: 'PATCH', content: \json_encode([
       'model' => [
         'resolved' => [
           'image' => $media->id(),

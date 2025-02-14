@@ -1,97 +1,3 @@
-experience_builder.experience_builder:
-  path: '/xb/{entity_type}/{entity}'
-  defaults:
-    _controller: 'Drupal\experience_builder\Controller\ExperienceBuilderController'
-    _title: 'Experience Builder'
-    entity: NULL
-  requirements:
-    _permission: 'access administration pages'
-  options:
-    parameters:
-      entity:
-        type: entity:{entity_type}
-
-experience_builder.api.layout.get:
-  path: '/api/layout/{entity_type}/{entity}'
-  defaults:
-    _controller: 'Drupal\experience_builder\Controller\ApiLayoutController::get'
-  requirements:
-    _permission: 'access administration pages'
-  options:
-    parameters:
-      entity:
-        type: entity:{entity_type}
-  methods: [GET]
-
-experience_builder.api.layout.post:
-  path: '/api/layout/{entity_type}/{entity}'
-  defaults:
-    _controller: 'Drupal\experience_builder\Controller\ApiLayoutController::post'
-    # We need a title callback because we use the HTML renderer to generate the preview.
-    _title_callback: 'Drupal\experience_builder\Controller\ApiLayoutController::getLabel'
-  requirements:
-    _permission: 'access administration pages'
-  options:
-    _xb_use_template_draft: 'TRUE'
-    parameters:
-      entity:
-        type: entity:{entity_type}
-  methods: [POST]
-
-# @todo https://www.drupal.org/i/3498525 should generalize this to all eligible content entity types by using a route callback
-experience_builder.api.content.delete:
-  path: '/xb/api/content-delete/xb_page/{xb_page}'
-  defaults:
-    _controller: 'Drupal\experience_builder\Controller\ApiContentControllers::delete'
-  requirements:
-    _entity_access: 'xb_page.delete'
-  options:
-    parameters:
-      xb_page:
-        type: entity:xb_page
-  methods: ['DELETE']
-
-experience_builder.api.layout.patch:
-  path: '/api/layout/{entity_type}/{entity}'
-  defaults:
-    _controller: 'Drupal\experience_builder\Controller\ApiLayoutController::patch'
-    # We need a title callback because we use the HTML renderer to generate the preview.
-    _title_callback: 'Drupal\experience_builder\Controller\ApiLayoutController::getLabel'
-  requirements:
-    _permission: 'access administration pages'
-    _format: json
-  options:
-    _xb_use_template_draft: 'TRUE'
-    parameters:
-      entity:
-        type: entity:{entity_type}
-  methods: [PATCH]
-
-# @todo https://www.drupal.org/i/3498525 should generalize this to all eligible content entity types by using a route callback
-experience_builder.api.content.create:
-  path: '/xb/api/content-create/xb_page'
-  defaults:
-    _controller: 'Drupal\experience_builder\Controller\ApiContentControllers::post'
-  requirements:
-    _entity_create_access: 'xb_page:xb_page'
-  methods: ['POST']
-
-experience_builder.api.autosave.get:
-  path: '/xb/api/autosaves/pending'
-  defaults:
-    _controller: 'Drupal\experience_builder\Controller\ApiAutoSaveController::get'
-  requirements:
-    _permission: 'access administration pages'
-  methods: [GET]
-
-experience_builder.api.autosave.post:
-  path: '/xb/api/autosaves/publish'
-  defaults:
-    _controller: 'Drupal\experience_builder\Controller\ApiAutoSaveController::post'
-  requirements:
-    _permission: 'access administration pages'
-  methods: [POST]
-
 entity.component.delete_form:
   path: '/admin/structure/component/delete/{component}'
   defaults:
@@ -99,69 +5,37 @@ entity.component.delete_form:
     _title: 'Delete component'
   requirements:
     _entity_access: 'component.delete'
-
-# @todo https://www.drupal.org/i/3498525 should generalize this to all eligible content entity types by using a route callback
-experience_builder.api.content.list:
-  path: '/xb/api/content/xb_page'
+entity.component.disable:
+  path: '/admin/structure/component/{component}/disable'
   defaults:
-    _controller: 'Drupal\experience_builder\Controller\ApiContentControllers::list'
+    _controller: 'Drupal\experience_builder\Controller\ComponentStatusController::performOperation'
+    op: disable
   requirements:
-    # @todo update in https://www.drupal.org/i/3502048
-    _permission: 'administer xb_page'
-  methods: [GET]
-
-experience_builder.api.component_inputs_form:
-  path: '/xb-field-form/{entity_type}/{entity}'
+    _entity_access: 'component.disable'
+    _csrf_token: 'TRUE'
+entity.component.enable:
+  path: '/admin/structure/component/{component}/enable'
   defaults:
-    _form: 'Drupal\experience_builder\Form\ComponentInputsForm'
-    _title: 'Component Inputs Form'
+    _controller: 'Drupal\experience_builder\Controller\ComponentStatusController::performOperation'
+    op: enable
   requirements:
-    _permission: 'access administration pages'
-  options:
-    # The XB equivalent of requesting an AJAX response using `?_wrapper_format`.
-    # @see Drupal.Ajax.AJAX_REQUEST_PARAMETER
-    # @see \Drupal\Core\Ajax\AjaxResponse
-    # @see \Drupal\experience_builder\Render\MainContent\XBTemplateRenderer
-    _wrapper_format: 'xb_template'
-    parameters:
-      entity:
-        type: entity:{entity_type}
-  methods:
-    # Used by XB UI to generate this form
-    - PATCH
-    # Used by Drupal's AJAX system.
-    - POST
+    _entity_access: 'component.enable'
+    _csrf_token: 'TRUE'
 
-experience_builder.api.entity_form:
-  path: '/xb/api/entity-form/{entity_type}/{entity}/{entity_form_mode}'
+experience_builder.api.autosave.get:
+  path: '/xb/api/autosaves/pending'
   defaults:
-    # It is not possible to use '_entity_form' as a default because form mode is not taken into account.
-    # When '_entity_form' is used as a default with 2 parts, for example 'node.default', the 2nd part is the form
-    # operation, not form mode.
-    # @see \Drupal\Core\Entity\Enhancer\EntityRouteEnhancer::enhanceEntityForm
-    # @see \Drupal\Core\Entity\HtmlEntityFormController::getFormObject
-    _controller: 'Drupal\experience_builder\Controller\EntityFormController::form'
-    _title: 'Entity Form'
-    entity_form_mode: default
+    _controller: 'Drupal\experience_builder\Controller\ApiAutoSaveController::get'
   requirements:
     _permission: 'access administration pages'
-  options:
-    # The XB equivalent of requesting an AJAX response using `?_wrapper_format`.
-    # @see Drupal.Ajax.AJAX_REQUEST_PARAMETER
-    # @see \Drupal\Core\Ajax\AjaxResponse
-    # @see \Drupal\experience_builder\Render\MainContent\XBTemplateRenderer
-    _wrapper_format: 'xb_template'
-    parameters:
-      entity:
-        type: entity:{entity_type}
-
-experience_builder.api.log_error:
-  path: '/xb/api/log-error'
+  methods: ['GET']
+experience_builder.api.autosave.post:
+  path: '/xb/api/autosaves/publish'
   defaults:
-    _controller: 'Drupal\experience_builder\Controller\ApiLogController'
+    _controller: 'Drupal\experience_builder\Controller\ApiAutoSaveController::post'
   requirements:
     _permission: 'access administration pages'
-  methods: ['POST']
+  methods: [POST]
 
 experience_builder.api.config.auto-save.get:
   path: '/xb/api/config/auto-save/{xb_config_entity_type_id}/{xb_config_entity}'
@@ -187,14 +61,19 @@ experience_builder.api.config.auto-save.patch:
       xb_config_entity:
         type: entity:{xb_config_entity_type_id}
   methods: [PATCH]
-experience_builder.api.config.list:
-  path: '/xb/api/config/{xb_config_entity_type_id}'
+
+experience_builder.api.config.delete:
+  path: '/xb/api/config/{xb_config_entity_type_id}/{xb_config_entity}'
   defaults:
-    _controller: 'Drupal\experience_builder\Controller\ApiConfigControllers::list'
+    _controller: 'Drupal\experience_builder\Controller\ApiConfigControllers::delete'
   requirements:
     _permission: 'access administration pages'
-    xb_config_entity_type_id: '(component|pattern|js_component|xb_asset_library)'
-  methods: [GET]
+    xb_config_entity_type_id: '(pattern|js_component|xb_asset_library)'
+  options:
+    parameters:
+      xb_config_entity:
+        type: entity:{xb_config_entity_type_id}
+  methods: [DELETE]
 experience_builder.api.config.get:
   path: '/xb/api/config/{xb_config_entity_type_id}/{xb_config_entity}'
   defaults:
@@ -206,6 +85,14 @@ experience_builder.api.config.get:
     parameters:
       xb_config_entity:
         type: entity:{xb_config_entity_type_id}
+  methods: [GET]
+experience_builder.api.config.list:
+  path: '/xb/api/config/{xb_config_entity_type_id}'
+  defaults:
+    _controller: 'Drupal\experience_builder\Controller\ApiConfigControllers::list'
+  requirements:
+    _permission: 'access administration pages'
+    xb_config_entity_type_id: '(component|pattern|js_component|xb_asset_library)'
   methods: [GET]
 experience_builder.api.config.patch:
   path: '/xb/api/config/{xb_config_entity_type_id}/{xb_config_entity}'
@@ -219,18 +106,6 @@ experience_builder.api.config.patch:
       xb_config_entity:
         type: entity:{xb_config_entity_type_id}
   methods: [PATCH]
-experience_builder.api.config.delete:
-  path: '/xb/api/config/{xb_config_entity_type_id}/{xb_config_entity}'
-  defaults:
-    _controller: 'Drupal\experience_builder\Controller\ApiConfigControllers::delete'
-  requirements:
-    _permission: 'access administration pages'
-    xb_config_entity_type_id: '(pattern|js_component|xb_asset_library)'
-  options:
-    parameters:
-      xb_config_entity:
-        type: entity:{xb_config_entity_type_id}
-  methods: [DELETE]
 experience_builder.api.config.post:
   path: '/xb/api/config/{xb_config_entity_type_id}'
   defaults:
@@ -240,6 +115,136 @@ experience_builder.api.config.post:
     xb_config_entity_type_id: '(pattern|js_component|xb_asset_library)'
   methods: [POST]
 
+# @todo https://www.drupal.org/i/3498525 should generalize this to all eligible content entity types by using a route callback
+experience_builder.api.content.create:
+  path: '/xb/api/content/xb_page'
+  defaults:
+    _controller: 'Drupal\experience_builder\Controller\ApiContentControllers::post'
+  requirements:
+    _entity_create_access: 'xb_page:xb_page'
+  methods: ['POST']
+# @todo https://www.drupal.org/i/3498525 should generalize this to all eligible content entity types by using a route callback
+experience_builder.api.content.delete:
+  path: '/xb/api/content/xb_page/{xb_page}'
+  defaults:
+    _controller: 'Drupal\experience_builder\Controller\ApiContentControllers::delete'
+  requirements:
+    _entity_access: 'xb_page.delete'
+  options:
+    parameters:
+      xb_page:
+        type: entity:xb_page
+  methods: ['DELETE']
+# @todo https://www.drupal.org/i/3498525 should generalize this to all eligible content entity types by using a route callback
+experience_builder.api.content.list:
+  path: '/xb/api/content/xb_page'
+  defaults:
+    _controller: 'Drupal\experience_builder\Controller\ApiContentControllers::list'
+  requirements:
+    # @todo update in https://www.drupal.org/i/3502048
+    _permission: 'administer xb_page'
+  methods: [GET]
+
+# Forms: component instance and content entity.
+# @see \Drupal\experience_builder\Theme\XBThemeNegotiator::applies()
+experience_builder.api.form.component_inputs:
+  path: '/xb/api/form/component-instance/{entity_type}/{entity}'
+  defaults:
+    _form: 'Drupal\experience_builder\Form\ComponentInputsForm'
+    _title: 'Component Inputs Form'
+  requirements:
+    _permission: 'access administration pages'
+  options:
+    # The XB equivalent of requesting an AJAX response using `?_wrapper_format`.
+    # @see Drupal.Ajax.AJAX_REQUEST_PARAMETER
+    # @see \Drupal\Core\Ajax\AjaxResponse
+    # @see \Drupal\experience_builder\Render\MainContent\XBTemplateRenderer
+    _wrapper_format: 'xb_template'
+    parameters:
+      entity:
+        type: entity:{entity_type}
+  methods:
+    # Used by XB UI to generate this form.
+    - PATCH
+    # Used by Drupal's AJAX system.
+    - POST
+experience_builder.api.form.content_entity:
+  path: '/xb/api/form/content-entity/{entity_type}/{entity}/{entity_form_mode}'
+  defaults:
+    # It is not possible to use '_entity_form' as a default because form mode is not taken into account.
+    # When '_entity_form' is used as a default with 2 parts, for example 'node.default', the 2nd part is the form
+    # operation, not form mode.
+    # @see \Drupal\Core\Entity\Enhancer\EntityRouteEnhancer::enhanceEntityForm
+    # @see \Drupal\Core\Entity\HtmlEntityFormController::getFormObject
+    _controller: 'Drupal\experience_builder\Controller\EntityFormController::form'
+    _title: 'Entity Form'
+    entity_form_mode: default
+  requirements:
+    _permission: 'access administration pages'
+  options:
+    # The XB equivalent of requesting an AJAX response using `?_wrapper_format`.
+    # @see Drupal.Ajax.AJAX_REQUEST_PARAMETER
+    # @see \Drupal\Core\Ajax\AjaxResponse
+    # @see \Drupal\experience_builder\Render\MainContent\XBTemplateRenderer
+    _wrapper_format: 'xb_template'
+    parameters:
+      entity:
+        type: entity:{entity_type}
+  methods:
+    # Used by XB UI to generate this form.
+    - GET
+    # Used by Drupal's AJAX system.
+    - POST
+
+experience_builder.api.layout.get:
+  path: '/xb/api/layout/{entity_type}/{entity}'
+  defaults:
+    _controller: 'Drupal\experience_builder\Controller\ApiLayoutController::get'
+  requirements:
+    _permission: 'access administration pages'
+  options:
+    parameters:
+      entity:
+        type: entity:{entity_type}
+  methods: [GET]
+experience_builder.api.layout.patch:
+  path: '/xb/api/layout/{entity_type}/{entity}'
+  defaults:
+    _controller: 'Drupal\experience_builder\Controller\ApiLayoutController::patch'
+    # We need a title callback because we use the HTML renderer to generate the preview.
+    _title_callback: 'Drupal\experience_builder\Controller\ApiLayoutController::getLabel'
+  requirements:
+    _permission: 'access administration pages'
+    _format: json
+  options:
+    _xb_use_template_draft: 'TRUE'
+    parameters:
+      entity:
+        type: entity:{entity_type}
+  methods: [PATCH]
+experience_builder.api.layout.post:
+  path: '/xb/api/layout/{entity_type}/{entity}'
+  defaults:
+    _controller: 'Drupal\experience_builder\Controller\ApiLayoutController::post'
+    # We need a title callback because we use the HTML renderer to generate the preview.
+    _title_callback: 'Drupal\experience_builder\Controller\ApiLayoutController::getLabel'
+  requirements:
+    _permission: 'access administration pages'
+  options:
+    _xb_use_template_draft: 'TRUE'
+    parameters:
+      entity:
+        type: entity:{entity_type}
+  methods: [POST]
+
+experience_builder.api.log_error:
+  path: '/xb/api/log-error'
+  defaults:
+    _controller: 'Drupal\experience_builder\Controller\ApiLogController'
+  requirements:
+    _permission: 'access administration pages'
+  methods: ['POST']
+
 experience_builder.component.status:
   path: '/admin/structure/component/status'
   defaults:
@@ -248,20 +253,15 @@ experience_builder.component.status:
   requirements:
     _permission: 'access administration pages'
 
-entity.component.enable:
-  path: '/admin/structure/component/{component}/enable'
+experience_builder.experience_builder:
+  path: '/xb/{entity_type}/{entity}'
   defaults:
-    _controller: 'Drupal\experience_builder\Controller\ComponentStatusController::performOperation'
-    op: enable
+    _controller: 'Drupal\experience_builder\Controller\ExperienceBuilderController'
+    _title: 'Experience Builder'
+    entity: NULL
   requirements:
-    _entity_access: 'component.enable'
-    _csrf_token: 'TRUE'
-
-entity.component.disable:
-  path: '/admin/structure/component/{component}/disable'
-  defaults:
-    _controller: 'Drupal\experience_builder\Controller\ComponentStatusController::performOperation'
-    op: disable
-  requirements:
-    _entity_access: 'component.disable'
-    _csrf_token: 'TRUE'
+    _permission: 'access administration pages'
+  options:
+    parameters:
+      entity:
+        type: entity:{entity_type}

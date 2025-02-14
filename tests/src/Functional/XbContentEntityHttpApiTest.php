@@ -52,7 +52,7 @@ final class XbContentEntityHttpApiTest extends HttpApiTestBase {
   }
 
   public function testPost(): void {
-    $url = Url::fromUri('base:/xb/api/content-create/xb_page');
+    $url = Url::fromUri('base:/xb/api/content/xb_page');
     $request_options = [
       RequestOptions::HEADERS => [
         'Content-Type' => 'application/json',
@@ -110,7 +110,7 @@ final class XbContentEntityHttpApiTest extends HttpApiTestBase {
   }
 
   public function testDelete(): void {
-    $url = Url::fromUri('base:/xb/api/content-delete/xb_page/1');
+    $url = Url::fromUri('base:/xb/api/content/xb_page/1');
     $request_options = [
       RequestOptions::HEADERS => [
         'Content-Type' => 'application/json',

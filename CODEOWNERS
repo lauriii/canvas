@@ -21,7 +21,6 @@
 
 # Issues: https://www.drupal.org/project/issues/search/experience_builder?issue_tags=openapi
 [OpenAPI] @traviscarden @larowlan
-/openapi.yml
 /src/EventSubscriber/ApiMessageValidatorBase.php
 /src/EventSubscriber/ApiRequestValidator.php
 /src/EventSubscriber/ApiResponseValidator.php
@@ -135,3 +134,4 @@
 [DX: PHP] @effulgentsia @wimleers @larowlan
 /phpcs.xml
 /phpstan.neon
+/tests/src/Unit/DxRouteConsistencyTest.php

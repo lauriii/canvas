@@ -38,7 +38,7 @@ final class ApiLayoutControllerPostTest extends KernelTestBase {
   }
 
   public function testEmpty(): void {
-    $this->request(Request::create('/api/layout/node/1', method: 'POST', content: json_encode([
+    $this->request(Request::create('/xb/api/layout/node/1', method: 'POST', content: json_encode([
       'layout' => [
         [
           'nodeType' => 'region',
@@ -58,7 +58,7 @@ final class ApiLayoutControllerPostTest extends KernelTestBase {
   }
 
   public function testMissingSlot(): void {
-    $this->request(Request::create('/api/layout/node/1', method: 'POST', content: json_encode([
+    $this->request(Request::create('/xb/api/layout/node/1', method: 'POST', content: json_encode([
       'layout' => [
         [
           'nodeType' => 'region',
@@ -130,10 +130,10 @@ final class ApiLayoutControllerPostTest extends KernelTestBase {
 
   public function test(): void {
     // Load the test data from the layout controller.
-    $content = $this->parentRequest(Request::create('/api/layout/node/1'))->getContent();
+    $content = $this->parentRequest(Request::create('/xb/api/layout/node/1'))->getContent();
     $this->assertIsString($content);
     $model = json_decode($content, TRUE)['model'];
-    $this->request(Request::create('/api/layout/node/1', method: 'POST', content: $content));
+    $this->request(Request::create('/xb/api/layout/node/1', method: 'POST', content: $content));
 
     // Check that each level is structured correctly.
     $root = $this->cssSelect('main div[data-xb-region][data-xb-uuid="content"]');
@@ -149,13 +149,13 @@ final class ApiLayoutControllerPostTest extends KernelTestBase {
     $template->enable()->save();
 
     // Load the test data from the layout controller.
-    $content = $this->parentRequest(Request::create('/api/layout/node/1'))->getContent();
+    $content = $this->parentRequest(Request::create('/xb/api/layout/node/1'))->getContent();
     $this->assertIsString($content);
     $json = json_decode($content, TRUE);
     $highlightedRegion = \array_filter($json['layout'], static fn (array $region) => ($region['id'] ?? NULL) === 'highlighted');
     self::assertCount(1, $highlightedRegion);
     self::assertGreaterThanOrEqual(1, \count(\reset($highlightedRegion)['components']));
-    $this->request(Request::create('/api/layout/node/1', method: 'POST', content: $content));
+    $this->request(Request::create('/xb/api/layout/node/1', method: 'POST', content: $content));
 
     // Check that regions exist and are wrapped.
     $crawler = new Crawler($this->content);

@@ -36,7 +36,7 @@ describe('Undo/Redo functionality', () => {
       'data-state',
       'active',
     );
-    cy.intercept('POST', '**/api/layout/node/1').as('getPreview');
+    cy.intercept('POST', '**/xb/api/layout/node/1').as('getPreview');
 
     // Click on the menu item with data-xb-name="Hero" inside menu.
     cy.get('.primaryPanelContent [data-xb-name="Hero"]').click();

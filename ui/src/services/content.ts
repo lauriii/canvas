@@ -25,7 +25,7 @@ export const contentApi = createApi({
     }),
     deleteContent: builder.mutation<void, DeleteContentRequest>({
       query: ({ entityType, entityId }) => ({
-        url: `/xb/api/content-delete/${entityType}/${entityId}`,
+        url: `/xb/api/content/${entityType}/${entityId}`,
         method: 'DELETE',
       }),
       invalidatesTags: [{ type: 'Content', id: 'LIST' }],

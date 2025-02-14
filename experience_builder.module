@@ -54,7 +54,7 @@ function experience_builder_form_alter(array &$form, FormStateInterface $form_st
   experience_builder_force_render_with_twig_form_alter($form, $form_state, $form_id);
 
   $route_name = \Drupal::routeMatch()->getRouteName();
-  if ($route_name === 'experience_builder.api.entity_form') {
+  if ($route_name === 'experience_builder.api.form.content_entity') {
     // Hide submit buttons on the entity form accessed via the XB app.
     $form['actions']['#access'] = FALSE;
     // Add form ID to elements.

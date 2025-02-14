@@ -16,9 +16,11 @@ describe('Routing', () => {
     // only be accessed reliably in a command callback, and visiting a url
     // can't happen in that scope.
     const uuid = 'static-static-card3rr';
-    cy.intercept('GET', '**/api/layout/node/1').as('getLayout');
-    cy.intercept('POST', '**/api/layout/node/1').as('getPreview');
-    cy.intercept('PATCH', '**/xb-field-form/node/1').as('getPropsForm');
+    cy.intercept('GET', '**/xb/api/layout/node/1').as('getLayout');
+    cy.intercept('POST', '**/xb/api/layout/node/1').as('getPreview');
+    cy.intercept('PATCH', '**/xb/api/form/component-instance/node/1').as(
+      'getPropsForm',
+    );
     cy.drupalRelativeURL(`xb/node/1/editor/component/${uuid}`);
 
     cy.wait('@getLayout');
@@ -45,7 +47,7 @@ describe('Routing', () => {
   });
 
   it('has the expected performance', () => {
-    cy.intercept('POST', '**/api/layout/node/1').as('getPreview');
+    cy.intercept('POST', '**/xb/api/layout/node/1').as('getPreview');
 
     cy.visit('/xb/node/1');
     cy.wait('@getPreview').its('response.statusCode').should('eq', 200);

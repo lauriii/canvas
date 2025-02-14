@@ -68,9 +68,7 @@ describe('Navigation functionality', () => {
     cy.loadURLandWaitForXBLoaded({ url: 'xb/xb_page/1' });
 
     // Intercept the DELETE request
-    cy.intercept('DELETE', '**/xb/api/content-delete/xb_page/*').as(
-      'deletePage',
-    );
+    cy.intercept('DELETE', '**/xb/api/content/xb_page/*').as('deletePage');
 
     // Intercept the GET request to the list endpoint
     cy.intercept('GET', '**/xb/api/content/xb_page').as('getList');

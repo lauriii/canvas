@@ -24,7 +24,7 @@ export const layoutApi = createApi({
       RootLayoutModel & { entity_form_fields: {} },
       string
     >({
-      query: (nodeId) => `api/layout/{entity_type}/${nodeId}`,
+      query: (nodeId) => `xb/api/layout/{entity_type}/${nodeId}`,
       async onQueryStarted(id, { dispatch, queryFulfilled }) {
         try {
           const {
