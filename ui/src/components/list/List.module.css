@@ -7,10 +7,6 @@
   cursor: grab;
 }
 
-.outline {
-  border: 1px solid var(--color-outline-component);
-}
-
 .listContainer {
   position: relative;
   display: flex;

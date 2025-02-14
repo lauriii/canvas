@@ -5,14 +5,6 @@ export interface PrimaryPanelState {
   activePanel: string;
   isHidden: boolean;
   openLayoutItems: string[];
-  clickToInsertState: ClickToInsertState;
-}
-
-interface ClickToInsertState {
-  isEnabled: boolean;
-  // The uuid of the element that the user clicked on to insert a new node.
-  originUUID: string | undefined;
-  originLayoutItemType: LayoutItemType;
 }
 
 export enum LayoutItemType {
@@ -26,11 +18,6 @@ const initialState: PrimaryPanelState = {
   isHidden: false,
   // Open the component dropdown by default.
   openLayoutItems: [LayoutItemType.COMPONENT],
-  clickToInsertState: {
-    isEnabled: false,
-    originUUID: undefined,
-    originLayoutItemType: LayoutItemType.UNDEFINED,
-  },
 };
 
 export const primaryPanelSlice = createAppSlice({
@@ -54,18 +41,6 @@ export const primaryPanelSlice = createAppSlice({
         );
       },
     ),
-    enableClickToInsert: create.reducer(
-      (state, action: PayloadAction<ClickToInsertState>) => {
-        state.clickToInsertState.isEnabled = action.payload.isEnabled;
-        state.clickToInsertState.originUUID = action.payload.originUUID;
-        state.clickToInsertState.originLayoutItemType =
-          action.payload.originLayoutItemType;
-      },
-    ),
-    disableClickToInsert: create.reducer((state) => {
-      state.clickToInsertState.isEnabled = false;
-      state.clickToInsertState.originUUID = undefined;
-    }),
   }),
   selectors: {
     selectActivePanel: (primaryPanel): string => {
@@ -74,24 +49,13 @@ export const primaryPanelSlice = createAppSlice({
     selectOpenLayoutItems: (primaryPanel): string[] => {
       return primaryPanel.openLayoutItems;
     },
-    selectClickToInsertState: (primaryPanel): ClickToInsertState => {
-      return primaryPanel.clickToInsertState;
-    },
   },
 });
 
 // Action creators are generated for each case reducer function.
-export const {
-  setActivePanel,
-  setOpenLayoutItem,
-  enableClickToInsert,
-  disableClickToInsert,
-  setCloseLayoutItem,
-} = primaryPanelSlice.actions;
+export const { setActivePanel, setOpenLayoutItem, setCloseLayoutItem } =
+  primaryPanelSlice.actions;
 
 // Selectors returned by `slice.selectors` take the root state as their first argument.
-export const {
-  selectActivePanel,
-  selectOpenLayoutItems,
-  selectClickToInsertState,
-} = primaryPanelSlice.selectors;
+export const { selectActivePanel, selectOpenLayoutItems } =
+  primaryPanelSlice.selectors;

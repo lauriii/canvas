@@ -176,7 +176,7 @@ describe('Perform CRUD operations on components', () => {
     cy.editHeroComponent();
   });
 
-  it('Performs basic interaction with the Add section button', () => {
+  it('Can create and add section', () => {
     const clickDefault = {
       force: true,
       scrollBehavior: false,
@@ -234,6 +234,8 @@ describe('Perform CRUD operations on components', () => {
     });
 
     cy.findByText('Add to library').click({ scrollBehavior: false });
+    // The dialog should close
+    cy.findByLabelText('Section name').should('not.exist');
 
     cy.openLibraryPanel();
     cy.get('.primaryPanelContent').within(() => {
@@ -248,8 +250,7 @@ describe('Perform CRUD operations on components', () => {
     cy.get('#edit-title-0-value').should('exist');
     cy.waitForElementContentNotInIframe('div', 'There goes my hero');
     cy.openLibraryPanel();
-    // Add a single component so the 'Add section' button can appear when it is
-    // clicked.
+
     cy.get('[data-xb-component-id="sdc.experience_builder.my-hero"]').should(
       'exist',
     );
@@ -265,9 +266,10 @@ describe('Perform CRUD operations on components', () => {
     cy.get(
       '[data-xb-viewport-size="lg"] [data-xb-component-id="sdc.experience_builder.my-hero"]',
     ).should('have.length', 1);
-    cy.findAllByLabelText('Add section').first().click(clickDefault);
 
     // Add the section that was created earlier in this test.
+    cy.openLibraryPanel();
+    cy.findByText('Sections').click();
     cy.get('.primaryPanelContent').within(() => {
       cy.findByText(sectionName).should('exist');
       cy.findByText(sectionName).click(clickDefault);
@@ -291,7 +293,7 @@ describe('Perform CRUD operations on components', () => {
     });
   });
 
-  it('Can add component via the Add component button', () => {
+  it('Can add component by clicking component in library', () => {
     cy.loadURLandWaitForXBLoaded();
 
     // Check there are three heroes initially.
@@ -301,23 +303,10 @@ describe('Perform CRUD operations on components', () => {
         expect(myHeroComponent.length).to.equal(3);
       },
     );
-    // Check that the layers menu is initially open
-    cy.get('[data-testid="xb-primary-panel--layers"]').should(
-      'have.attr',
-      'data-state',
-      'active',
-    );
-    cy.clickComponentInPreview('Image');
 
-    cy.findAllByLabelText('Add component')
-      .first()
-      .click({ scrollBehavior: 'center' });
-    // Check the active panel is the library panel.
-    cy.get('[data-testid="xb-primary-panel--library"]').should(
-      'have.attr',
-      'data-state',
-      'active',
-    );
+    cy.clickComponentInPreview('Image');
+    cy.openLibraryPanel();
+
     cy.get('.primaryPanelContent').should('contain.text', 'Components');
     // Click the "Hero" SDC-sourced Component.
     // @see \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\SingleDirectoryComponent
@@ -336,9 +325,6 @@ describe('Perform CRUD operations on components', () => {
 
     // Click the "My First Code Component" JS-sourced Component.
     // @see \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\JsComponent
-    cy.findAllByLabelText('Add component')
-      .first()
-      .click({ scrollBehavior: 'center' });
     cy.get('.primaryPanelContent')
       .findByText('My First Code Component')
       .click();
@@ -386,23 +372,14 @@ describe('Perform CRUD operations on components', () => {
       .should('not.exist');
   });
 
-  it('Can add a component with empty slots via the Add section button', () => {
+  it('Can add a component with empty slots', () => {
     cy.loadURLandWaitForXBLoaded();
     // Assert there is an existing two column SDC on the page already.
     cy.findByTestId('xb-primary-panel').within(() => {
       cy.findAllByText('Two Column').should('have.length', 1);
     });
     cy.get('.primaryPanelContent').findByText('Two Column').click();
-    cy.findAllByLabelText('Add section')
-      .first()
-      .click({ scrollBehavior: 'center' });
-    // Check the active panel is the library panel.
-    cy.get('[data-testid="xb-primary-panel--library"]').should(
-      'have.attr',
-      'data-state',
-      'active',
-    );
-    cy.get('.primaryPanelContent').should('contain.text', 'Sections');
+    cy.openLibraryPanel();
     // Click on Two Column inside menu.
     cy.get('.primaryPanelContent').findByText('Two Column').click();
     cy.waitForElementContentInIframe('div', 'This is column 1 content');

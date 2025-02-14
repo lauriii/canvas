@@ -13,7 +13,6 @@ import {
 } from '@/features/ui/uiSlice';
 import clsx from 'clsx';
 import NameTag from '@/features/layout/preview/NameTag';
-import AddButton from '@/features/layout/preview/AddButton';
 import Sortable from 'sortablejs';
 import SlotOverlay from '@/features/layout/previewOverlay/SlotOverlay';
 import {
@@ -304,11 +303,6 @@ const ComponentOverlay: React.FC<ComponentOverlayProps> = (props) => {
                 nodeType={component.nodeType}
               />
             </div>
-            {selectedComponent === component.uuid && (
-              <div className={clsx(styles.xbAddSectionButton)}>
-                <AddButton elementId={component.uuid} />
-              </div>
-            )}
           </div>
         </div>
       </div>

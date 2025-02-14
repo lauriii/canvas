@@ -26,17 +26,8 @@ describe('Undo/Redo functionality', () => {
       },
     );
     cy.get('.primaryPanelContent').findByText('Two Column').click();
-    cy.findAllByLabelText('Add section')
-      .first()
-      .click({ scrollBehavior: 'center' });
-
-    // Confirm that the menu opens the Section dropdown.
-    cy.get('[data-testid="xb-primary-panel--library"]').should(
-      'have.attr',
-      'data-state',
-      'active',
-    );
     cy.intercept('POST', '**/xb/api/layout/node/1').as('getPreview');
+    cy.openLibraryPanel();
 
     // Click on the menu item with data-xb-name="Hero" inside menu.
     cy.get('.primaryPanelContent [data-xb-name="Hero"]').click();

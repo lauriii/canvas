@@ -23,7 +23,6 @@ describe.skip('Component slots functionality', () => {
     cy.get('[data-xb-uuid="root"]').findByText('Two Column').click();
 
     cy.log('Add a Two Column component at the bottom of the page');
-    cy.findAllByText('Add section').first().click();
     cy.findByText('Default components').click();
     cy.get('.MenubarSubContent').within(() => {
       cy.findByText('Two Column').click();

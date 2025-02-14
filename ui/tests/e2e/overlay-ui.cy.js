@@ -33,19 +33,12 @@ describe('Experience Builder overlay UI interactions', () => {
 
     cy.clickComponentInPreview('Hero');
 
-    cy.log(
-      'After selecting a "child" component it should show its label and the "add component" button.',
-    );
+    cy.log('After selecting a "child" component it should show its label.');
     cy.get('@desktopPreviewOverlay').within(() => {
       cy.findByText('Two Column').should('not.be.visible');
       cy.findAllByText('Hero').should('have.length', 3);
       cy.findAllByText('Hero').filter(':visible').should('have.length', 1);
       cy.findAllByText('Image').should('have.length', 2).and('not.be.visible');
-      cy.findAllByLabelText('Hero')
-        .eq(0)
-        .within(() => {
-          cy.findByText('Add component');
-        });
     });
 
     cy.log(

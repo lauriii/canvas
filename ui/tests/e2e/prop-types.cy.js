@@ -63,14 +63,7 @@ describe('Prop types editing', () => {
     cy.loadURLandWaitForXBLoaded();
     cy.get('.primaryPanelContent').findByText('Two Column').click();
     cy.findByLabelText('Column Width').should('exist');
-    cy.findAllByLabelText('Add section')
-      .first()
-      .click({ scrollBehavior: 'center' });
-    cy.get('[data-testid="xb-primary-panel--library"]').should(
-      'have.attr',
-      'data-state',
-      'active',
-    );
+    cy.openLibraryPanel();
     cy.get('.primaryPanelContent').findByText('All props').click();
     cy.openLayersPanel();
     cy.clickComponentInLayersView('All props');

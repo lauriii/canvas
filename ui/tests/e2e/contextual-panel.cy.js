@@ -263,10 +263,9 @@ describe('Contextual panel', () => {
     // Ensure enum/select required field does not have None option
     // Click on the first image component
     cy.clickComponentInPreview('Image');
-    // Click on the Add component button of image component
-    cy.findAllByLabelText('Add component')
-      .first()
-      .click({ scrollBehavior: false });
+
+    cy.openLibraryPanel();
+
     // Click Heading in the side menu
     cy.get('.primaryPanelContent').findByText('Heading').click();
     // Check if heading component has been added in the preview

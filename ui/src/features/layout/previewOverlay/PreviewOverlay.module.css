@@ -67,8 +67,7 @@
   &.dragging {
     outline: none;
 
-    .xbNameTag,
-    .xbAddSectionButton {
+    .xbNameTag {
       display: none;
     }
 
@@ -96,17 +95,6 @@
       display: block;
     }
   }
-}
-
-.xbAddSectionButton {
-  position: absolute;
-  z-index: 3;
-  bottom: 0;
-  left: 50%;
-  display: block;
-  transform: translate(-50%, 50%);
-  white-space: nowrap;
-  opacity: 1;
 }
 
 .xbNameTag {
