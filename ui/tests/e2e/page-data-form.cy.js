@@ -31,7 +31,8 @@ describe('Page data form', () => {
       .findByLabelText('Title')
       .as('titleField');
     cy.get('@titleField').focus();
-    cy.get('@titleField').type('{selectall}This is a new title');
+    cy.get('@titleField').clear();
+    cy.get('@titleField').type('This is a new title');
     cy.get('@titleField').should('have.value', 'This is a new title');
     cy.get('button[aria-label="Undo"]').should('be.enabled');
     cy.get('button[aria-label="Redo"]').should('be.disabled');
@@ -56,7 +57,8 @@ describe('Page data form', () => {
       .as('heroTitle');
     cy.get('@heroTitle').should('have.value', 'hello, world!');
     cy.get('@heroTitle').focus();
-    cy.get('@heroTitle').type('{selectall}This is a new hero title');
+    cy.get('@heroTitle').clear();
+    cy.get('@heroTitle').type('This is a new hero title');
     cy.wait('@patchPreview');
     // Editing a component field should push that onto the undo state.
     cy.get('button[aria-label="Undo"]').should('be.enabled');
@@ -87,7 +89,9 @@ describe('Page data form', () => {
       .should('have.value', 'XB Needs This For The Time Being');
 
     cy.get('@titleField').focus();
-    cy.get('@titleField').type('{selectall}This is a new title');
+    cy.get('@titleField').clear();
+    cy.get('@titleField').should('have.value', '');
+    cy.get('@titleField').type('This is a new title');
     cy.get('@titleField').should('have.value', 'This is a new title');
     cy.get('button[aria-label="Undo"]').should('be.enabled');
     cy.get('button[aria-label="Redo"]').should('be.disabled');
