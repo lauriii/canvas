@@ -76,12 +76,21 @@ experience_builder.api.content.create:
     _entity_create_access: 'xb_page:xb_page'
   methods: ['POST']
 
-experience_builder.api.autosave_collection:
-  path: '/xb/api/autosave'
+experience_builder.api.autosave.get:
+  path: '/xb/api/autosaves/pending'
   defaults:
-    _controller: 'Drupal\experience_builder\Controller\ApiPendingChangesController'
+    _controller: 'Drupal\experience_builder\Controller\ApiAutoSaveController::get'
   requirements:
     _permission: 'access administration pages'
+  methods: [GET]
+
+experience_builder.api.autosave.post:
+  path: '/xb/api/autosaves/publish'
+  defaults:
+    _controller: 'Drupal\experience_builder\Controller\ApiAutoSaveController::post'
+  requirements:
+    _permission: 'access administration pages'
+  methods: [POST]
 
 entity.component.delete_form:
   path: '/admin/structure/component/delete/{component}'
@@ -256,11 +265,3 @@ entity.component.disable:
   requirements:
     _entity_access: 'component.disable'
     _csrf_token: 'TRUE'
-
-experience_builder.api.publish_all:
-  path: '/xb/api/publish-all'
-  defaults:
-    _controller: 'Drupal\experience_builder\Controller\ApiPublishAllController'
-  requirements:
-    _permission: 'access administration pages'
-  methods: [POST]

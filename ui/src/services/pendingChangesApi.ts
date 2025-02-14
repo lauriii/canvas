@@ -66,14 +66,14 @@ export const pendingChangesApi = createApi({
   baseQuery,
   endpoints: (builder) => ({
     getAllPendingChanges: builder.query<PendingChanges, void>({
-      query: () => `/xb/api/autosave`,
+      query: () => `/xb/api/autosaves/pending`,
     }),
     publishAllPendingChanges: builder.mutation<
       SuccessResponse | ErrorResponse,
       PendingChanges
     >({
       query: (body) => ({
-        url: `/xb/api/publish-all`,
+        url: `/xb/api/autosaves/publish`,
         method: 'POST',
         body,
       }),

@@ -17,16 +17,16 @@ use GuzzleHttp\RequestOptions;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * Tests cacheability of ApiPendingChangesController.
+ * Tests cacheability of ApiAutoSaveController.
  *
  * We cannot test this in a kernel test because the cache request policy
  * prevents caching as the request is seen as coming from the command line.
  *
  * @see \Drupal\Core\PageCache\RequestPolicy\CommandLineOrUnsafeMethod
- * @coversDefaultClass \Drupal\experience_builder\Controller\ApiPendingChangesController
+ * @coversDefaultClass \Drupal\experience_builder\Controller\ApiAutoSaveController
  * @group experience_builder
  */
-final class ApiPendingChangesControllerCacheabilityTest extends FunctionalTestBase {
+final class ApiAutoSaveControllerCacheabilityTest extends FunctionalTestBase {
 
   use ApiRequestTrait;
   use XBFieldTrait;
@@ -68,7 +68,7 @@ final class ApiPendingChangesControllerCacheabilityTest extends FunctionalTestBa
     $node1 = Node::load(1);
     \assert($node1 instanceof NodeInterface);
     $autoSave->save($node1, $data);
-    $url = Url::fromRoute('experience_builder.api.autosave_collection');
+    $url = Url::fromRoute('experience_builder.api.autosave.get');
     $this->drupalGet($url);
     $this->assertSession()->responseHeaderEquals(DynamicPageCacheSubscriber::HEADER, 'MISS');
     $content = \json_decode($this->getSession()->getPage()->getContent() ?: '{}', TRUE);

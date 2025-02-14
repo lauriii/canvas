@@ -680,7 +680,7 @@ paths:
                   error:
                     type: string
                     description: Error description
-  /xb/api/publish-all:
+  /xb/api/autosaves/publish:
     description: TODO
     post:
       description: TODO
@@ -716,7 +716,7 @@ paths:
                       - No items to publish
         '422':
           $ref: '#/components/responses/ClientErrorResponse'
-  /xb/api/autosave:
+  /xb/api/autosaves/pending:
     description: TODO
     get:
       description: TODO

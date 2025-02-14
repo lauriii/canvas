@@ -4,40 +4,315 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\experience_builder\Kernel;
 
+use Drupal\Core\Cache\CacheableJsonResponse;
+use Drupal\Core\File\FileExists;
+use Drupal\Core\File\FileSystemInterface;
+use Drupal\Core\Session\AccountInterface;
+use Drupal\Core\StreamWrapper\PublicStream;
 use Drupal\Core\Url;
 use Drupal\experience_builder\AutoSave\AutoSaveManager;
-use Drupal\experience_builder\Controller\ApiPendingChangesController;
-use Drupal\experience_builder\Controller\ApiPublishAllController;
+use Drupal\experience_builder\Controller\ApiAutoSaveController;
 use Drupal\experience_builder\Controller\ErrorCodesEnum;
 use Drupal\experience_builder\Entity\AssetLibrary;
 use Drupal\experience_builder\Entity\JavaScriptComponent;
 use Drupal\experience_builder\Entity\PageTemplate;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
+use Drupal\file\Entity\File;
+use Drupal\image\ImageStyleInterface;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\node\Entity\Node;
+use Drupal\node\NodeInterface;
+use Drupal\Tests\block\Traits\BlockCreationTrait;
+use Drupal\Tests\experience_builder\Kernel\Traits\RequestTrait;
 use Drupal\Tests\experience_builder\TestSite\XBTestSetup;
+use Drupal\Tests\experience_builder\Traits\OpenApiSpecTrait;
 use Drupal\Tests\experience_builder\Traits\XBFieldTrait;
 use Drupal\Tests\user\Traits\UserCreationTrait;
-use Drupal\Tests\experience_builder\Kernel\Traits\RequestTrait;
+use Drupal\user\Entity\User;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 
-class ApiPublishAllControllerTest extends KernelTestBase {
+/**
+ * @coversDefaultClass \Drupal\experience_builder\Controller\ApiAutoSaveController
+ * @group experience_builder
+ */
+final class ApiAutoSaveControllerTest extends KernelTestBase {
 
+  use UserCreationTrait;
+  use OpenApiSpecTrait;
+  use BlockCreationTrait;
   use RequestTrait;
   use XBFieldTrait;
-  use UserCreationTrait;
+
+  /**
+   * {@inheritdoc}
+   */
+  protected static $modules = [
+    'system',
+    'test_user_config',
+  ];
 
   /**
    * {@inheritdoc}
    */
   protected function setUp(): void {
     parent::setUp();
-    $this->container->get('module_installer')->install(['system']);
+    $this->installConfig('system');
     (new XBTestSetup())->setup();
-    $this->setUpImages();
+  }
+
+  public function testApiAutoSaveControllerGet(): void {
+    $this->installConfig(['test_user_config']);
+    $permissions = ['access administration pages'];
+    $emptyData = [
+      'layout' => [
+        [
+          'id' => 'content',
+          'nodeType' => 'region',
+          'name' => 'Content',
+          'components' => [],
+        ],
+      ],
+      'model' => [],
+      'entity_form_fields' => [],
+    ];
+    $anonAccountContent = Node::create([
+      'type' => 'article',
+      'title' => 'Anon, empty',
+    ]);
+    $anonAccountContent->save();
+    /** @var \Drupal\experience_builder\AutoSave\AutoSaveManager $autoSave */
+    $autoSave = $this->container->get(AutoSaveManager::class);
+    $autoSave->save($anonAccountContent, $emptyData);
+
+    // Add user picture field.
+    $fileUri = 'public://image-2.jpg';
+    \Drupal::service(FileSystemInterface::class)->copy(\Drupal::root() . '/core/tests/fixtures/files/image-2.jpg', PublicStream::basePath(), FileExists::Replace);
+    $picture = File::create([
+      'uri' => $fileUri,
+      'status' => TRUE,
+    ]);
+
+    $account1 = $this->createUser($permissions, values: ['user_picture' => $picture]);
+    self::assertInstanceOf(AccountInterface::class, $account1);
+
+    $account2 = $this->createUser($permissions);
+    self::assertInstanceOf(AccountInterface::class, $account2);
+    $this->setCurrentUser($account1);
+    $sampleData = \file_get_contents(\dirname(__DIR__, 3) . '/ui/tests/fixtures/layout-default.json');
+    self::assertNotFalse($sampleData);
+    $data = \json_decode($sampleData, TRUE);
+    $data += ['entity_form_fields' => []];
+    // Full data.
+    $account1content = Node::load(1);
+    \assert($account1content instanceof NodeInterface);
+    $autoSave->save($account1content, $data);
+    // Save a draft of the page template.
+    $template = PageTemplate::createFromBlockLayout('stark')->enable();
+    $template->save();
+    $templateData = [
+      'layout' => [
+        [
+          "components" => [
+            [
+              "nodeType" => "component",
+              "slots" => [],
+              "type" => "block.page_title_block",
+              "uuid" => "c3f3c22c-c22e-4bb6-ad16-635f069148e4",
+            ],
+          ],
+          "name" => "Highlighted",
+          "nodeType" => "region",
+          "id" => "highlighted",
+        ],
+      ],
+      'model' => [
+        "c3f3c22c-c22e-4bb6-ad16-635f069148e4" => [
+          "label" => "Page title",
+          "label_display" => "0",
+          "provider" => "core",
+        ],
+      ],
+    ];
+    $autoSave->save($template, $templateData);
+    // Empty data.
+    $account2content = Node::load(2);
+    \assert($account2content instanceof NodeInterface);
+    $this->setCurrentUser($account2);
+    $autoSave->save($account2content, $emptyData);
+    $code_component = JavaScriptComponent::create(
+      [
+        'machineName' => 'test_code',
+        'name' => 'Test',
+        'status' => TRUE,
+        'props' => [
+          'text' => [
+            'type' => 'string',
+            'title' => 'Title',
+            'examples' => ['Press', 'Submit now'],
+          ],
+        ],
+        'slots' => [
+          'test-slot' => [
+            'title' => 'test',
+            'description' => 'Title',
+            'examples' => [
+              'Test 1',
+              'Test 2',
+            ],
+          ],
+        ],
+        'js' => [
+          'original' => 'console.log("Test")',
+          'compiled' => 'console.log("Test")',
+        ],
+        'css' => [
+          'original' => '.test { display: none; }',
+          'compiled' => '.test{display:none;}',
+        ],
+      ]
+    );
+    $this->assertSame(SAVED_NEW, $code_component->save());
+    $autoSave->save($code_component, ['dummy' => 'js_component: auto-save data is not validated']);
+    $library = AssetLibrary::create([
+      'id' => 'global',
+      'label' => 'Test',
+      'css' => [
+        'original' => '.test { display: none; }',
+        'compiled' => '.test{display:none;}',
+      ],
+      'js' => [
+        'original' => 'console.log( "Test" )',
+        'compiled' => 'console.log("Test")',
+      ],
+    ]);
+    $this->assertSame(SAVED_NEW, $library->save());
+    $autoSave->save($library, ['dummy' => 'xb_asset_library: auto-save data is not validated']);
+    $request = Request::create(Url::fromRoute('experience_builder.api.autosave.get')->toString());
+    $response = $this->request($request);
+    self::assertInstanceOf(CacheableJsonResponse::class, $response);
+    self::assertEquals(Response::HTTP_OK, $response->getStatusCode());
+    self::assertContains(AutoSaveManager::CACHE_TAG, $response->getCacheableMetadata()->getCacheTags());
+    self::assertCount(0, \array_diff($account1->getCacheTags(), $response->getCacheableMetadata()->getCacheTags()));
+    self::assertCount(0, \array_diff($account1->getCacheContexts(), $response->getCacheableMetadata()->getCacheContexts()));
+    self::assertContains('config:user.settings', $response->getCacheableMetadata()->getCacheTags());
+    $content = \json_decode($response->getContent() ?: '{}', TRUE);
+    $anonContentIdentifier = \sprintf('node:%d:en', $anonAccountContent->id());
+    $pageTemplateId = PageTemplate::PLUGIN_ID . ':stark';
+    self::assertEquals([
+      'js_component:test_code',
+      'node:1:en',
+      'node:2:en',
+      $anonContentIdentifier,
+      $pageTemplateId,
+      'xb_asset_library:global',
+    ], \array_keys($content));
+    // We don't assert the exact value of these because of clock-drift during
+    // the test, asserting their presence is enough.
+    \assert(\is_array($content['node:1:en']));
+    \assert(\is_array($content['node:2:en']));
+    \assert(\is_array($content[$pageTemplateId]));
+    \assert(\is_array($content[$anonContentIdentifier]));
+    \assert(\is_array($content['js_component:test_code']));
+    \assert(\is_array($content['xb_asset_library:global']));
+    self::assertArrayHasKey('updated', $content['node:1:en']);
+    self::assertArrayHasKey('updated', $content['node:2:en']);
+    self::assertArrayHasKey('updated', $content[$anonContentIdentifier]);
+    self::assertArrayHasKey('updated', $content[$pageTemplateId]);
+    self::assertArrayHasKey('updated', $content['js_component:test_code']);
+    self::assertArrayHasKey('updated', $content['xb_asset_library:global']);
+    $imageStyle = \Drupal::entityTypeManager()->getStorage('image_style')->load(ApiAutoSaveController::AVATAR_IMAGE_STYLE);
+    self::assertInstanceOf(ImageStyleInterface::class, $imageStyle);
+    $avatarUrl = $imageStyle->buildUrl($fileUri);
+    // Smoke test this is of the expected format.
+    self::assertStringContainsString(\sprintf('/styles/%s/public/image-2.jpg', ApiAutoSaveController::AVATAR_IMAGE_STYLE), $avatarUrl);
+    self::assertEquals([
+      'langcode' => 'en',
+      'entity_type' => $account1content->getEntityTypeId(),
+      'entity_id' => $account1content->id(),
+      'owner' => [
+        'id' => $account1->id(),
+        'name' => $account1->getDisplayName(),
+        'avatar' => $avatarUrl,
+        'uri' => $account1->toUrl()->toString(),
+      ],
+      'label' => $account1content->label(),
+      'data_hash' => \hash('xxh64', \serialize($data)),
+    ], \array_diff_key($content['node:1:en'], \array_flip(['updated'])));
+    self::assertEquals([
+      'langcode' => 'en',
+      'entity_type' => $account2content->getEntityTypeId(),
+      'entity_id' => $account2content->id(),
+      'owner' => [
+        'id' => $account2->id(),
+        'name' => $account2->getDisplayName(),
+        'avatar' => NULL,
+        'uri' => $account2->toUrl()->toString(),
+      ],
+      'label' => $account2content->label(),
+      'data_hash' => \hash('xxh64', \serialize($emptyData)),
+    ], \array_diff_key($content['node:2:en'], \array_flip(['updated'])));
+    $anonAccount = User::load(0);
+    self::assertInstanceOf(AccountInterface::class, $anonAccount);
+    self::assertEquals([
+      'langcode' => 'en',
+      'entity_type' => $anonAccountContent->getEntityTypeId(),
+      'entity_id' => $anonAccountContent->id(),
+      // This should not leak the anonymous user implementation details -
+      // AutoSaveTempSTore uses a random hash that is stored in the session as
+      // the owner ID for anonymous users.
+      // @see \Drupal\experience_builder\AutoSave\AutoSaveTempStoreFactory::get
+      'owner' => [
+        'id' => 0,
+        'name' => $anonAccount->getDisplayName(),
+        'avatar' => NULL,
+        'uri' => $anonAccount->toUrl()->toString(),
+      ],
+      'label' => $anonAccountContent->label(),
+      'data_hash' => \hash('xxh64', \serialize($emptyData)),
+    ], \array_diff_key($content[$anonContentIdentifier], \array_flip(['updated'])));
+    self::assertEquals([
+      'langcode' => NULL,
+      'entity_type' => $template->getEntityTypeId(),
+      'entity_id' => $template->id(),
+      'owner' => [
+        'id' => $account1->id(),
+        'name' => $account1->getDisplayName(),
+        'avatar' => $avatarUrl,
+        'uri' => $account1->toUrl()->toString(),
+      ],
+      'label' => 'Stark global template',
+      'data_hash' => \hash('xxh64', \serialize($templateData)),
+    ], \array_diff_key($content[$pageTemplateId], \array_flip(['updated'])));
+    self::assertEquals([
+      'langcode' => NULL,
+      'entity_type' => $code_component->getEntityTypeId(),
+      'entity_id' => $code_component->id(),
+      'owner' => [
+        'id' => $account2->id(),
+        'name' => $account2->getDisplayName(),
+        'avatar' => NULL,
+        'uri' => $account2->toUrl()->toString(),
+      ],
+      'label' => $code_component->label(),
+      'data_hash' => \hash('xxh64', \serialize(['dummy' => 'js_component: auto-save data is not validated'])),
+    ], \array_diff_key($content['js_component:test_code'], \array_flip(['updated'])));
+    self::assertEquals([
+      'langcode' => NULL,
+      'entity_type' => $library->getEntityTypeId(),
+      'entity_id' => $library->id(),
+      'owner' => [
+        'id' => $account2->id(),
+        'name' => $account2->getDisplayName(),
+        'avatar' => NULL,
+        'uri' => $account2->toUrl()->toString(),
+      ],
+      'label' => $library->label(),
+      'data_hash' => \hash('xxh64', \serialize(['dummy' => 'xb_asset_library: auto-save data is not validated'])),
+    ], \array_diff_key($content['xb_asset_library:global'], \array_flip(['updated'])));
+    $this->assertDataCompliesWithApiSpecification($content, 'AutoSaveCollection');
   }
 
   public static function providerCases(): iterable {
@@ -48,7 +323,8 @@ class ApiPublishAllControllerTest extends KernelTestBase {
   /**
    * @dataProvider providerCases
    */
-  public function test(bool $withGlobal = FALSE): void {
+  public function testApiAutoSaveControllerPost(bool $withGlobal = FALSE): void {
+    $this->setUpImages();
     $entity_type_manager = $this->container->get('entity_type.manager');
     $code_component_storage = $entity_type_manager->getStorage(JavaScriptComponent::ENTITY_TYPE_ID);
     $library_storage = $entity_type_manager->getStorage(AssetLibrary::ENTITY_TYPE_ID);
@@ -183,8 +459,8 @@ class ApiPublishAllControllerTest extends KernelTestBase {
     // And an invalid prop.
     $validClientJson['model'][self::TEST_HEADING_UUID]['resolved']['style'] = 'flared';
 
-    // This is testing ApiPublishAllController, not auto-saving itself. So use
-    // the auto-save manager directly.
+    // This is testing ApiAutoSaveController, not auto-saving itself. So use the
+    // auto-save manager directly.
     $autoSave->save($node2, $validClientJson);
 
     $invalid_client_code_component_data = $code_component->normalizeForClientSide()->values;
@@ -417,17 +693,17 @@ class ApiPublishAllControllerTest extends KernelTestBase {
     if (is_null($data)) {
       $data = $this->getAutoSaveStatesFromServer();
     }
-    $controller = \Drupal::service(ApiPublishAllController::class);
+    $controller = \Drupal::service(ApiAutoSaveController::class);
     $request = Request::create(
-      Url::fromRoute('experience_builder.api.publish_all')->toString(),
+      Url::fromRoute('experience_builder.api.autosave.post')->toString(),
       content: (string) json_encode($data)
     );
-    return $controller($request);
+    return $controller->post($request);
   }
 
   protected function getAutoSaveStatesFromServer(): array {
-    $auto_save_controller = \Drupal::service(ApiPendingChangesController::class);
-    $response = $auto_save_controller();
+    $auto_save_controller = \Drupal::service(ApiAutoSaveController::class);
+    $response = $auto_save_controller->get();
     assert($response instanceof JsonResponse);
     $content = $response->getContent();
     assert(is_string($content));

@@ -194,7 +194,7 @@ final class ApiConfigAutoSaveControllersTest extends HttpApiTestBase {
         'label' => $entity->label(),
       ],
     ];
-    $body = $this->assertExpectedResponse('GET', Url::fromUri("base:/xb/api/autosave"), $request_options, 200, ['user.permissions'], ['config:user.settings', 'experience_builder__autosave', 'http_response', 'user:2'], 'UNCACHEABLE (request policy)', 'MISS');
+    $body = $this->assertExpectedResponse('GET', Url::fromUri("base:/xb/api/autosaves/pending"), $request_options, 200, ['user.permissions'], ['config:user.settings', 'experience_builder__autosave', 'http_response', 'user:2'], 'UNCACHEABLE (request policy)', 'MISS');
     $id = array_keys($expected_list)[0];
     assert(isset($body[$id]['updated']));
     unset($body[$id]['updated']);

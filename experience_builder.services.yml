@@ -101,5 +101,4 @@ services:
   Drupal\experience_builder\Controller\ApiContentControllers: {}
   Drupal\experience_builder\Controller\ComponentStatusController: {}
   Drupal\experience_builder\Controller\ExperienceBuilderController: {}
-  Drupal\experience_builder\Controller\ApiPublishAllController: {}
-  Drupal\experience_builder\Controller\ApiPendingChangesController: {}
+  Drupal\experience_builder\Controller\ApiAutoSaveController: {}

@@ -79,7 +79,7 @@ describe('Block form', () => {
     cy.getComponentInPreview('Site branding block').should('exist');
 
     // Publish the page with the new component.
-    cy.intercept('POST', '**/xb/api/publish-all').as('publish');
+    cy.intercept('POST', '**/xb/api/autosaves/publish').as('publish');
 
     // Extra long timeout here, because the poll to get changes is every 10 seconds.
     cy.findByText('Review 1 change', { timeout: '11000' }).click();
