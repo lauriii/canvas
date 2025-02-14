@@ -114,14 +114,15 @@ HTML;
           'base' => \sprintf('xb/%s/%s', $entity_type, $entity?->id()),
           'entityType' => $entity_type,
           'entity' => $entity?->id(),
-          'demo_mode' => $demo_mode,
+          'entityTypeKeys' => $entity?->getEntityType()->getKeys(),
+          'demoMode' => $demo_mode,
           // Allow for perfect component previews, by letting the client side
           // know what global assets to load in component preview <iframe>s.
           // @see ui/src/components/ComponentPreview.tsx
-          'global_assets' => [
+          'globalAssets' => [
             'css' => $this->assetRenderer->renderCssAssets($preview_assets),
-            'js_header' => $this->assetRenderer->renderJsHeaderAssets($preview_assets),
-            'js_footer' => $this->assetRenderer->renderJsFooterAssets($preview_assets),
+            'jsHeader' => $this->assetRenderer->renderJsHeaderAssets($preview_assets),
+            'jsFooter' => $this->assetRenderer->renderJsFooterAssets($preview_assets),
           ],
           'xbModulePath' => $xb_module_path,
         ],

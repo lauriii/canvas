@@ -5,15 +5,16 @@ interface DrupalSettings {
     base: string;
     entityType: string;
     entity: string;
-    global_assets: {
+    globalAssets: {
       css: string;
-      js_header: string;
-      js_footer: string;
+      jsHeader: string;
+      jsFooter: string;
     };
     layoutUtils: PropsValues;
     navUtils: PropsValues;
-    demo_mode: boolean;
     xbModulePath: string;
+    selectedComponent: string;
+    demoMode: boolean;
   };
   path: {
     baseUrl: string;

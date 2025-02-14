@@ -64,7 +64,7 @@ final class ExperienceBuilderControllerTest extends KernelTestBase {
     ])->toString();
     self::assertEquals("/xb/$entity_type", $add_url);
     $this->request(Request::create($add_url));
-    $this->assertExperienceBuilderMount($entity_type, '');
+    $this->assertExperienceBuilderMount($entity_type);
 
     $storage = $this->container->get('entity_type.manager')->getStorage($entity_type);
     $sut = $storage->create($values);
@@ -77,7 +77,7 @@ final class ExperienceBuilderControllerTest extends KernelTestBase {
     self::assertEquals("/xb/$entity_type/{$sut->id()}", $edit_url);
     $this->request(Request::create($edit_url));
 
-    $this->assertExperienceBuilderMount($entity_type, $sut->id());
+    $this->assertExperienceBuilderMount($entity_type, $sut);
   }
 
   public static function entityData(): array {

@@ -23,11 +23,11 @@ const ComponentPreview: React.FC<ComponentPreviewProps> = ({
   const defaultPreviewWidth = 300;
   const defaultPreviewHeight = 200;
 
-  const css = drupalSettings?.xb.global_assets.css + component.css;
+  const css = drupalSettings?.xb.globalAssets.css + component.css;
   const js_footer =
-    drupalSettings?.xb.global_assets.js_footer + component.js_footer;
+    drupalSettings?.xb.globalAssets.jsFooter + component.js_footer;
   const js_header =
-    drupalSettings?.xb.global_assets.js_header + component.js_header;
+    drupalSettings?.xb.globalAssets.jsHeader + component.js_header;
 
   const markup = component.default_markup;
   const base_url = window.location.origin + drupalSettings?.path.baseUrl;
