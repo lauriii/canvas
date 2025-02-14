@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Drupal\Core\Extension\ThemeInstallerInterface;
+use Drupal\experience_builder\AutoSave\AutoSaveManager;
 use Drupal\file\FileRepositoryInterface;
 use Drupal\media\Entity\Media;
 use Drupal\media\Entity\MediaType;
@@ -52,6 +53,17 @@ function experience_builder_module_preinstall(string $module): void {
   // @see \Drupal\Core\Extension\ModuleInstaller::install()
   // @todo Remove this after https://www.drupal.org/project/drupal/issues/3352063 lands.
   \Drupal::service('stream_wrapper_manager')->register();
+}
+
+/**
+ * Implements hook_module_preuninstall().
+ */
+function experience_builder_module_preuninstall(string $module, bool $is_syncing): void {
+  if ($module !== 'experience_builder') {
+    return;
+  }
+
+  \Drupal::service(AutoSaveManager::class)->deleteAll();
 }
 
 /**

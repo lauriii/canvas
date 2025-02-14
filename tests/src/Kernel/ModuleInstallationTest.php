@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\experience_builder\Kernel;
 
+use Drupal\entity_test\Entity\EntityTest;
+use Drupal\experience_builder\AutoSave\AutoSaveManager;
 use Drupal\KernelTests\KernelTestBase;
 
 /**
@@ -13,6 +15,17 @@ use Drupal\KernelTests\KernelTestBase;
  */
 final class ModuleInstallationTest extends KernelTestBase {
 
+  protected static $modules = ['system', 'user', 'entity_test'];
+
+  /**
+   * {@inheritdoc}
+   */
+  protected function setUp(): void {
+    parent::setUp();
+    $this->installSchema('user', ['users_data']);
+    $this->installEntitySchema('entity_test');
+  }
+
   public function testModuleInstallation(): void {
     self::assertFalse($this->container->get('module_handler')->moduleExists('experience_builder'));
     self::assertFalse($this->container->get('theme_handler')->themeExists('xb_stark'));
@@ -21,9 +34,20 @@ final class ModuleInstallationTest extends KernelTestBase {
     self::assertTrue($this->container->get('module_handler')->moduleExists('experience_builder'));
     $this->assertTXbStarkThemeExists();
 
+    $test_entity = EntityTest::create([
+      'name' => 'Test entity',
+    ]);
+    $test_entity->save();
+
+    /** @var \Drupal\experience_builder\AutoSave\AutoSaveManager $autoSave */
+    $autoSave = \Drupal::service(AutoSaveManager::class);
+    $autoSave->save($test_entity, []);
+    self::assertCount(1, $autoSave->getAllAutoSaveList());
+
     $this->container->get('module_installer')->uninstall(['experience_builder']);
     self::assertFalse($this->container->get('module_handler')->moduleExists('experience_builder'));
     $this->assertTXbStarkThemeExists();
+    self::assertCount(0, $autoSave->getAllAutoSaveList(), 'Auto-save items are removed after uninstallation.');
 
     // Installing the module after uninstallation does not lead to errors.
     $this->container->get('module_installer')->install(['experience_builder']);

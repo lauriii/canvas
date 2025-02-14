@@ -27,4 +27,11 @@ final class AutoSaveTempStore extends SharedTempStore {
     return $this->storage->getAll();
   }
 
+  /**
+   * Deletes all auto-saved items from storage.
+   */
+  public function deleteAll(): void {
+    $this->storage->deleteAll();
+  }
+
 }

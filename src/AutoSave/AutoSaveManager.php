@@ -85,4 +85,9 @@ class AutoSaveManager {
     $this->getTempStore()->delete($this->getAutoSaveKey($entity));
   }
 
+  public function deleteAll(): void {
+    $this->cacheTagsInvalidator->invalidateTags([self::CACHE_TAG]);
+    $this->getTempStore()->deleteAll();
+  }
+
 }
