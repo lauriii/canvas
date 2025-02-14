@@ -491,6 +491,59 @@ function experience_builder_library_info_build(): array {
   return $libraries;
 }
 
+function _experience_builder_dependency_chain(array &$all_dependencies, array $all_libraries, array $dependencies_to_check, string $admin_theme_name): void {
+  foreach ($dependencies_to_check as $dependency) {
+    if (str_starts_with($dependency, $admin_theme_name . '/') && !in_array($dependency, $all_dependencies)) {
+      $all_dependencies[] = $dependency;
+      /** @var string $internal_dependency_name */
+      $internal_dependency_name = str_replace($admin_theme_name . '/', '', $dependency);
+      if (isset($all_libraries[$internal_dependency_name]['dependencies'])) {
+        _experience_builder_dependency_chain($all_dependencies, $all_libraries, $all_libraries[$internal_dependency_name]['dependencies'], $admin_theme_name);
+      }
+    }
+  }
+}
+
+function _experience_builder_base_library_build(array &$libraries, array $default_libraries, string $theme_name, array $all_library_definitions): void {
+  foreach ($default_libraries as $library_name) {
+    if (str_starts_with($library_name, $theme_name . '/')) {
+      $internal_library_name = str_replace($theme_name . '/', '', $library_name);
+      $library_we_need = $all_library_definitions[(string) $internal_library_name] ?? [];
+      if (isset($library_we_need['css'])) {
+        $css = array_map(fn($item) => [
+          ...$item,
+          'data' => './' . $item['data'],
+          'preprocess' => FALSE,
+        ], $library_we_need['css']);
+        $libraries['xb.scoped.admin.css']['css'] = array_merge(
+          $libraries['xb.scoped.admin.css']['css'],
+          $css,
+        );
+      }
+      if (isset($library_we_need['dependencies'])) {
+        $all_dependencies = [];
+        _experience_builder_dependency_chain($all_dependencies, $all_library_definitions, $library_we_need['dependencies'], $theme_name);
+        foreach ($all_dependencies as $dependency) {
+          /** @var string $internal_dependency_name */
+          $internal_dependency_name = str_replace($theme_name . '/', '', $dependency);
+          $dependee_library = $all_library_definitions[$internal_dependency_name];
+          if (isset($dependee_library['css'])) {
+            $css = array_map(fn($item) => [
+              ...$item,
+              'data' => './' . $item['data'],
+              'preprocess' => FALSE,
+            ], $dependee_library['css']);
+            $libraries['xb.scoped.admin.css']['css'] = array_merge(
+              $libraries['xb.scoped.admin.css']['css'],
+              $css,
+            );
+          }
+        }
+      }
+    }
+  }
+}
+
 /**
  * Adds libraries that extend Experience Builder to a centralized library.
  *
@@ -585,6 +638,13 @@ function experience_builder_dialog_library_customize(string $admin_theme_name): 
     'dependencies' => [],
   ];
   $admin_theme_default_libraries = $active_admin_theme->getLibraries();
+  $base_theme_extensions = $active_admin_theme->getBaseThemeExtensions();
+  foreach ($base_theme_extensions as $theme_name => $base_theme_extension) {
+    $active_base_theme = \Drupal::service('theme.initialization')->getActiveThemeByName($theme_name);
+    $base_theme_default_libraries = $active_base_theme->getLibraries();
+    $base_theme_library_definitions = \Drupal::service('library.discovery.parser')->buildByExtension($theme_name);
+    _experience_builder_base_library_build($libraries, $base_theme_default_libraries, $theme_name, $base_theme_library_definitions);
+  }
   foreach ($admin_theme_default_libraries as $library_name) {
     if (str_starts_with($library_name, $admin_theme_name . '/')) {
       $internal_library_name = str_replace($admin_theme_name . '/', '', $library_name);
@@ -595,6 +655,22 @@ function experience_builder_dialog_library_customize(string $admin_theme_name): 
           $libraries['xb.scoped.admin.css']['css'],
           $css,
         );
+      }
+      if (isset($library_we_need['dependencies'])) {
+        $all_dependencies = [];
+        _experience_builder_dependency_chain($all_dependencies, $admin_theme_library_definitions, $library_we_need['dependencies'], $admin_theme_name);
+        foreach ($all_dependencies as $dependency) {
+          /** @var string $internal_dependency_name */
+          $internal_dependency_name = str_replace($admin_theme_name . '/', '', $dependency);
+          $dependee_library = $admin_theme_library_definitions[$internal_dependency_name];
+          if (isset($dependee_library['css'])) {
+            $css = array_map(fn($item) => [...$item, 'data' => './' . $item['data'], 'preprocess' => FALSE], $dependee_library['css']);
+            $libraries['xb.scoped.admin.css']['css'] = array_merge(
+              $libraries['xb.scoped.admin.css']['css'],
+              $css,
+            );
+          }
+        }
       }
     }
   }

@@ -8,6 +8,7 @@
  * @see docs/redux-integrated-field-widgets.md
  */
 
+use Drupal\Component\Serialization\Json;
 use Drupal\Core\Asset\LibraryDiscoveryInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Routing\CurrentRouteMatch;
@@ -97,6 +98,11 @@ function experience_builder_field_widget_single_element_media_library_widget_for
     // be scoped inside the dialog only.
     $form['open_button']['#ajax']['useAdminTheme'] = TRUE;
     $form['open_button']['#ajax']['scopeSelector'] = '.media-library-widget-modal';
+    $form['open_button']['#ajax']['selectorsToSkip'] = Json::encode([
+      '.media-library-widget-modal',
+      '.media-library-wrapper',
+      '.ui-dialog',
+    ]);
   }
 
   // Use an XB-specific media library opener, because the default opener assumes

@@ -1,3 +1,7 @@
+// Note that in the styles, several instances of `background` are accompanied
+// by `background-size` in order to trigger the variable replacement that
+// happens when CSS shorthand declarations are accompanied by longhand operating
+// within the same style areas.
 const testCss = {
   assortment: `
   .dialog {
@@ -47,12 +51,15 @@ const testCss = {
   }
   .whitespace {
     background: var( --color-foo );
+    background-size: 100% 100%;
   }
   .default-values {
     background: var(--color-gone, var(--color-beep));
+    background-size: 100% 100%;
   }
   .nested-whitespace-and-default {
-     background: var( --color-nah , var( --color-nope, var(--color-noop , var(--color-bop ) )));
+    background: var( --color-nah , var( --color-nope, var(--color-noop , var(--color-bop ) )));
+    background-size: 100% 100%;
   }
   `,
 };
@@ -154,9 +161,9 @@ describe('The Scope CSS utility', () => {
       );
       expect(
         usesVarsStylesheet.cssRules[0].cssText,
-        'CSS variable with value is replaced with the value in the sheet provided by scope_css()',
+        'CSS variable with value keeps its value as it is not in shorthand declaration with adjacent conflicting longhand',
       ).to.equal(
-        '@scope (.cool-scope) {\n  .variable-ordinary { color: rgb(17, 34, 51); }\n}',
+        '@scope (.cool-scope) {\n  .variable-ordinary { color: var(--color-foo); }\n}',
       );
       expect(
         usesVarsStylesheet.cssRules[1].cssText,
@@ -166,9 +173,9 @@ describe('The Scope CSS utility', () => {
       );
       expect(
         usesVarsStylesheet.cssRules[2].cssText,
-        'shorthand with an existing variable has the variable replaced with its actual value',
+        'shorthand with an existing variable has the variable call intact because there is no conflicting longhand for background',
       ).to.equal(
-        '@scope (.cool-scope) {\n  .variable-shorthand { background: 50% 50% no-repeat rgb(34, 51, 68); }\n}',
+        '@scope (.cool-scope) {\n  .variable-shorthand { background: no-repeat var(--color-bar) 50% 50%; }\n}',
       );
       expect(
         usesVarsStylesheet.cssRules[3].cssText,
@@ -192,19 +199,19 @@ describe('The Scope CSS utility', () => {
         usesVarsStylesheet.cssRules[6].cssText,
         'Variable replacement can handle whitespace',
       ).to.equal(
-        '@scope (.cool-scope) {\n  .whitespace { background: rgb(17, 34, 51); }\n}',
+        '@scope (.cool-scope) {\n  .whitespace { background: 0% 0% / 100% 100% rgb(17, 34, 51); }\n}',
       );
       expect(
         usesVarsStylesheet.cssRules[7].cssText,
         'Variable placement can handle default values',
       ).to.equal(
-        '@scope (.cool-scope) {\n  .default-values { background: var(--color-gone,#8899AA); }\n}',
+        '@scope (.cool-scope) {\n  .default-values { background: 0% 0% / 100% 100% rgb(136, 153, 170); }\n}',
       );
       expect(
         usesVarsStylesheet.cssRules[8].cssText,
         'Variable replacement can handle default values many levels deep with random whitespace scattered throughout',
       ).to.equal(
-        '@scope (.cool-scope) {\n  .nested-whitespace-and-default { background: var(--color-nah,#BBCCDD); }\n}',
+        '@scope (.cool-scope) {\n  .nested-whitespace-and-default { background: 0% 0% / 100% 100% rgb(187, 204, 221); }\n}',
       );
     });
   });

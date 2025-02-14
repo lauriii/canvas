@@ -14,6 +14,7 @@ use Drupal\Core\Field\WidgetPluginManager;
 use Drupal\Core\Render\HtmlResponse;
 use Drupal\Core\Render\RendererInterface;
 use Drupal\Core\Template\Attribute;
+use Drupal\Core\Theme\ThemeInitializationInterface;
 use Drupal\Core\Theme\ThemeManagerInterface;
 use Drupal\experience_builder\AssetRenderer;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
@@ -29,11 +30,12 @@ final class ExperienceBuilderController {
     private readonly ModuleHandlerInterface $moduleHandler,
     private readonly LibraryDiscoveryInterface $libraryDiscovery,
     private readonly RendererInterface $renderer,
+    private readonly ThemeInitializationInterface $themeInitialization,
   ) {}
 
   private const HTML = <<<HTML
 <!doctype html>
-<html {{ attributes }}>
+<html {{ html_attributes }}>
 <head>
   <meta charset="UTF-8">
   <meta name="viewport"
@@ -63,7 +65,7 @@ final class ExperienceBuilderController {
     }
   </style>
 </head>
-<body>
+<body {{ body_attributes }}>
   <div id="experience-builder" class="experience-builder-container"><div class="experience-builder-loading">Loading Experience Builder…</div></div>
 </body>
 </html>
@@ -71,18 +73,21 @@ HTML;
 
   public function __invoke(string $entity_type, ?EntityInterface $entity) : HtmlResponse {
     assert($this->validateTransformAssetLibraries());
-
     // TRICKY: don't use core/modules/system/templates/html.html.twig nor that
     // of a theme, because those include the skip link, which assumes the
     // presence of #main-content, which does not exist in the XB UI.
+    [$html_attributes, $body_attributes] = $this->getHtmlAndBodyAttributes();
     $html = [
       '#type' => 'inline_template',
       '#template' => self::HTML,
       '#context' => [
-        'attributes' => $this->getHtmlTagAttributes(),
+        'body_attributes' => $body_attributes,
+        'html_attributes' => $html_attributes,
       ],
     ];
+
     $html = $this->renderer->renderInIsolation($html);
+
     // List of libraries to load in the preview iframe.
     $preview_libraries = [
       'system/base',
@@ -136,11 +141,16 @@ HTML;
   }
 
   /**
-   * Computes the attributes to set on the <html> tag.
+   * Computes the attributes to set on the <html> and <body> tags.
    *
-   * @return \Drupal\Core\Template\Attribute
+   * @return array{\Drupal\Core\Template\Attribute, \Drupal\Core\Template\Attribute}
    */
-  private function getHtmlTagAttributes(): Attribute {
+  private function getHtmlAndBodyAttributes(): array {
+    $theme_config = $this->configFactory->get('system.theme');
+    $admin_theme_name = $theme_config->get('admin') ?: $theme_config->get('default');
+    $active_admin_theme = $this->themeInitialization->getActiveThemeByName($admin_theme_name);
+    $actual_active_theme = $this->themeManager->getActiveTheme();
+    $this->themeManager->setActiveTheme($active_admin_theme);
     // Create a temporary rendered html element so we can extract the attributes
     // and add them to this response. This ensures things like langcode and text
     // direction are added to the html tag as expected.
@@ -152,17 +162,26 @@ HTML;
     ];
     $other_html = Html::load((string) $this->renderer->render($html_stub));
 
-    // Get item 1 so it is the <html> rendered by Drupal, and not the one that
-    // the DOMDocument returned by HTML::load() wraps everything in.
-    $element = $other_html->getElementsByTagName('html')->item(1);
+    // Get item 1 so it is the <html> and <body> tags rendered by Drupal, vs
+    // the ones the DOMDocument returned by HTML::load() wraps everything in.
+    $html_element = $other_html->getElementsByTagName('html')->item(1);
+    $body_element = $other_html->getElementsByTagName('body')->item(1);
 
-    $attributes = new Attribute();
-    if ($element) {
-      foreach (($element?->attributes ?? []) as $attribute) {
-        $attributes->setAttribute($attribute->name, $attribute->value);
+    $html_attributes = new Attribute();
+    $body_attributes = new Attribute();
+
+    if ($html_element) {
+      foreach (($html_element?->attributes ?? []) as $attribute) {
+        $html_attributes->setAttribute($attribute->name, $attribute->value);
       }
     }
-    return $attributes;
+    if ($body_element) {
+      foreach (($body_element?->attributes ?? []) as $attribute) {
+        $body_attributes->setAttribute($attribute->name, $attribute->value);
+      }
+    }
+    $this->themeManager->setActiveTheme($actual_active_theme);
+    return [$html_attributes, $body_attributes];
   }
 
   /**

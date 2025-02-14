@@ -5,6 +5,36 @@
 
 /* global csstree */
 (function (Drupal, csstree) {
+  // Keeps track of shorthand properties and their corresponding longhand
+  // properties.
+  const shorthands = {
+    "margin": ["margin-top", "margin-right", "margin-bottom", "margin-left"],
+    "margin-inline": ["margin-inline-start", "margin-inline-end"],
+    "margin-block": ["margin-block-start", "margin-block-end"],
+    "padding": ["padding-top", "padding-right", "padding-bottom", "padding-left"],
+    "padding-inline": ["padding-inline-start", "padding-inline-end"],
+    "padding-block": ["padding-block-start", "padding-block-end"],
+    "border": ["border-width", "border-style", "border-color"],
+    "border-radius": ["border-top-left-radius", "border-top-right-radius", "border-bottom-right-radius", "border-bottom-left-radius"],
+    "background": ["background-color", "background-image", "background-repeat", "background-attachment", "background-position", "background-size"],
+    "font": ["font-style", "font-variant", "font-weight", "font-size", "line-height", "font-family"],
+    "list-style": ["list-style-type", "list-style-position", "list-style-image"],
+    "animation": ["animation-name", "animation-duration", "animation-timing-function", "animation-delay", "animation-iteration-count", "animation-direction", "animation-fill-mode", "animation-play-state"],
+    "transition": ["transition-property", "transition-duration", "transition-timing-function", "transition-delay"],
+    "flex": ["flex-grow", "flex-shrink", "flex-basis"],
+    "grid": ["grid-template", "grid-template-rows", "grid-template-columns", "grid-template-areas", "grid-auto-rows", "grid-auto-columns", "grid-auto-flow", "grid-column-gap", "grid-row-gap"],
+    "place-content": ["align-content", "justify-content"],
+    "place-items": ["align-items", "justify-items"],
+    "place-self": ["align-self", "justify-self"],
+    "overflow": ["overflow-x", "overflow-y"],
+    "columns": ["column-width", "column-count"],
+    "outline": ["outline-width", "outline-style", "outline-color"],
+    "inset": ["top", "bottom", "right", "left"],
+    "inset-block": ["inset-block-end", "inset-block-start"],
+    "inset-inline": ["inset-inline-end", "inset-inline-start"],
+    "mask": ["mask-clip", "mask-composite", "mask-image", "mask-mode", "mask-origin", "mask-position", "mask-repeat", "mask-size"],
+  };
+
   /**
    *
    * @param {object} styleSheetData
@@ -12,18 +42,25 @@
    * @param scopeSelector
    * @return {Promise<boolean>}
    */
-  const scopeCss = async function(styleSheetData, scopeSelector) {
+  const scopeCss = async function(styleSheetData, scopeSelector, selectorsToSkip) {
     let css = ''
+
+    // Keeps track of variable values declared in this stylesheet. This is for
+    // instances where the variable is used within the same file, thus
+    // window.getComputedStyle() has no effect.
+    const variableValueCache = {}
+
+    // If the asset was already added this way, there is no need to
+    // do it again.
+    if (document.querySelector(`[data-dialog-style-from="${styleSheetData.href}"]`)) {
+      return;
+    }
+
     try {
       const res = await fetch(styleSheetData.href)
       css = await res.text();
     } catch(err) {
       console.warn(`Could not fetch ${styleSheetData.href}`, err)
-    }
-    // If the asset was already added this way, there is no need to
-    // do it again.
-    if (document.querySelector(`[data-dialog-style-from="${styleSheetData.href}"]`)) {
-      return;
     }
 
     const styleElement = document.createElement('style')
@@ -45,57 +82,125 @@
     const updateVariableNode = (node) => {
       const documentComputedStyles = window.getComputedStyle(document.documentElement);
 
-      // Checks if the node is a call to var().
-      if (node.type === 'Function' && node.name === 'var') {
-        // If this is a variable with a default value, process the
-        // default and replace any var() calls with values when they are
-        // available.
-        if (node?.children?.head?.next?.data?.type === 'Operator' &&
-          node?.children?.head?.next?.data?.value === ',' &&
-          node?.children?.head?.next?.next?.data &&
-          node?.children?.head?.next?.next?.data.type === 'Raw') {
-          // If the current node met the above condition, then the value at this
-          // position is the value of the CSS variable fallback.
-          const {value} = node.children.head.next.next.data;
+      // Keep track of any fallback values found in case a primary value does
+      // not resolve. The var() call will be replaced with the value of the
+      // fallback.
+      let fallback = null;
 
-          // The CSS variable fallback exists in the AST as a raw string that
-          // might contain one or more CSS variables. Get every CSS variable in
-          // this string.
-          const matches = value.matchAll(/var\((\s)*(--[_a-zA-Z]+[_a-zA-Z0-9-]*)/gm);
-          const variables = [...matches].map((aMatch) => aMatch?.[2])
+      // If this is a variable with a default value, process the
+      // default and replace any var() calls with values when they are
+      // available.
+      if (node?.children?.head?.next?.data?.type === 'Operator' &&
+        node?.children?.head?.next?.data?.value === ',' &&
+        node?.children?.head?.next?.next?.data &&
+        node?.children?.head?.next?.next?.data.type === 'Raw') {
+        // If the current node met the above condition, then the value at this
+        // position is the value of the CSS variable fallback.
+        const {value} = node.children.head.next.next.data;
 
-          // Limit the array to only variables that can be resolved to values.
-          const variablesWithValues = variables.filter((vr) => documentComputedStyles.getPropertyValue(vr))
+        // The CSS variable fallback exists in the AST as a raw string that
+        // might contain one or more CSS variables. Get every CSS variable in
+        // this string.
+        const matches = value.matchAll(/var\((\s)*(--[_a-zA-Z]+[_a-zA-Z0-9-]*)/gm);
+        const variables = [...matches].map((aMatch) => aMatch?.[2])
 
-          // Replace the call to var() with the value of the first variable that
-          // can be resolved.
-          if (variablesWithValues.length > 0) {
-            node.children.head.next.next.data.value = documentComputedStyles.getPropertyValue(variablesWithValues[0]);
+        // Limit the array to only variables that can be resolved to values.
+        const variablesWithValues = variables.filter((vr) => documentComputedStyles.getPropertyValue(vr))
+
+        // Replace the call to var() with the value of the first variable that
+        // can be resolved.
+        if (variablesWithValues.length > 0) {
+          fallback = documentComputedStyles.getPropertyValue(variablesWithValues[0]);
+          if (fallback) {
+            node.children.head.next.next.data.value = fallback;
           }
         }
+      }
 
-        // Get the CSS variable name and see if it can be resolved to a value.
-        const varName = node?.children?.head?.data?.name;
-        const cssVarValue = documentComputedStyles.getPropertyValue(varName);
-        if (cssVarValue) {
-          // Convert the CSS variable value into AST.
-          const valueAst = csstree.parse(cssVarValue, {context: 'value'});
+      // Get the CSS variable name and see if it can be resolved to a value.
+      const varName = node?.children?.head?.data?.name;
+      let cssVarValue = documentComputedStyles.getPropertyValue(varName) || variableValueCache?.[varName];
+      let depth = 0
 
-          // Replace the var() calling node with the actual value.
-          if (valueAst?.children?.head?.data) {
-            // Replace individual properties so prototype properties such as
-            // position in the AST tree are preserved.
-            Object.entries(valueAst.children.head.data).forEach(([key, value]) => {
-              node[key] = value;
-            })
-          }
+      // Account for variables that are referencing other variables.
+      while (cssVarValue && cssVarValue.trim().includes('var(') && depth < 5) {
+        const varTree = csstree.parse(cssVarValue, {context: 'value'})
+        const valueNode = csstree.find(varTree, (node) => node.type === 'Identifier' && node.name.startsWith('--'));
+        if (valueNode?.name) {
+          depth += 1;
+          cssVarValue = documentComputedStyles.getPropertyValue(valueNode.name) || variableValueCache?.[valueNode.name]
+        } else {
+          cssVarValue = false;
+        }
+      }
+
+      if (cssVarValue || fallback) {
+        // Convert the CSS variable value into AST.
+        const valueAst = csstree.parse(cssVarValue || fallback, {context: 'value'});
+
+        // If the value AST has a `next` property, it is a structure too
+        // complex to handle the way we currently replace the AST node.
+        // This is most commonly found with box shadow and gradient values.
+        // @todo Find a way to replace the AST node that can handle this
+        // kind of value.
+        const hasNextPleaseSkip = valueAst?.children?.head?.next;
+
+        // Replace the var() calling node with the actual value.
+        if (valueAst?.children?.head?.data && !hasNextPleaseSkip) {
+          // Replace individual properties so prototype properties such as
+          // position in the AST tree are preserved.
+          Object.entries(valueAst.children.head.data).forEach(([key, value]) => {
+            node[key] = value;
+          })
         }
       }
     }
 
-    // Traverse the AST tree and check every node for variable processing.
-    csstree.walk(ast, (node) => {
-      updateVariableNode(node)
+    // Get the values of all variables declared in this file in case they are
+    // needed within the same file (because same file means computed properties
+    // are not yet available).
+    csstree.findAll(ast, (node) =>
+      node.type === 'Declaration' && node?.property.startsWith('--')
+    ).forEach((declarationNode) => {
+      variableValueCache[declarationNode.property || '-'] = csstree.generate(declarationNode.value)
+    });
+
+    // Traverse the AST tree and check for nodes that might need variables
+    // replaces with actual values due to their use in a shorthand declaration
+    // accompanied by one or more sibling longhand equivalents.
+    let currentDeclaration = '';
+    let hasConflictingLonghand = false
+    csstree.walk(ast, (node, item, list) => {
+      if (node.type === 'Declaration') {
+        currentDeclaration = node.property;
+      }
+      // If this is the first declaration in a set of them.
+      if (node.type === 'Declaration' && item && !item.prev) {
+        const declarations = [];
+        // Find the names of all sibling declarations and add them to the
+        // declarations array.
+        list
+          .filter((item) => item.type === 'Declaration')
+          .forEach((item) => declarations.push(item.property))
+
+        // Find any shorthand declarations present in this group.
+        const shorthandDeclarations = declarations.filter((declaration) => Object.keys(shorthands).includes(declaration))
+
+        // True if the group has any longhand declarations that are also
+        // modifiable by one of the existing shorthand ones.
+        hasConflictingLonghand = shorthandDeclarations.some(
+          (shorthandDeclaration) => declarations.some(
+            (declaration) => shorthands[shorthandDeclaration].includes(declaration)
+          )
+        )
+      }
+      // If this is a variable function and the current declaration is CSS
+      // shorthand, and we have identified it as having sibling longhand
+      // declarations that effect the same styles, we must replace the variable
+      // call with the actual value.
+      if (Object.keys(shorthands).includes(currentDeclaration) && hasConflictingLonghand && node.type === 'Function' && node.name === 'var') {
+        updateVariableNode(node)
+      }
     })
 
     // Create a CSS string from the ast with processed variables.
@@ -115,12 +220,54 @@
      *   The CSS rule as a string.
      */
     const processRule = (rule) =>  {
+      let {cssText} = rule;
+
       // If @scope is not supported it's best to use the default CSS despite it
       // introducing a risk of styles leaking. Without @scope, we run into
       // situations where the selector-fenced styles override styles that are
       // essential to functionality such as visibility state.
       if (typeof CSSScopeRule === 'undefined') {
-        return rule.cssText;
+        return cssText;
+      }
+
+      // Create an AST tree of the rule so we can identify various use cases.
+      const ruleTree = csstree.parse(cssText);
+
+      // If the CSS has relative URLs, make them absolute.
+      const urls = csstree.findAll(ruleTree, (node, item, list) =>
+        node.type === 'Url' && node.value.startsWith('.')
+      );
+      if (urls.length) {
+        const pathParts = styleSheetData.href.split('/').filter((part) => part !== '' && part !== '.');
+        urls.forEach((url) => {
+          if (url.value.startsWith('./')) {
+            const urlNoPathPrefix = url.value.replace('./', '');
+            const newUrl = `/${pathParts.slice(0, -1).join('/')}/${urlNoPathPrefix}`;
+            cssText = cssText.replace(url.value, newUrl)
+          }
+          if (url.value.startsWith('../')) {
+            const countUpDirs = (url.value.match(/\.\./g) || []).length;
+            const urlNoPathPrefix = url.value.replaceAll('../', '');
+            const newUrl = `/${pathParts.slice(0, -1 - countUpDirs).join('/')}/${urlNoPathPrefix}`;
+            cssText = cssText.replace(url.value, newUrl);
+          }
+        })
+      }
+
+      // If the rule defines a CSS variable anywhere within, do not scope it.
+      const declaresVars = csstree.findAll(ruleTree, (node) =>
+        node.type === 'Declaration' && node.property.startsWith('--')
+      );
+      if (declaresVars.length) {
+        return cssText
+      }
+
+      // If the rule begins with a media query, do not scope it.
+      const atRules = csstree.findAll(ruleTree, (node) =>
+        node.type === 'Atrule'
+      );
+      if (atRules.length) {
+        return cssText;
       }
 
       // The topLevelSelectors accounts for selectors that are supposed
@@ -134,8 +281,14 @@
       })
 
       // If a rule is scoped to root, return the unaltered string.
-      if (rule.cssText.includes(':root') || rule.cssText.startsWith(scopeSelector)) {
-        return rule.cssText;
+      if (rule.cssText.includes(':root')) {
+        return cssText;
+      }
+
+      // If the rule begins with the scopeSelector or the default dialog class,
+      // it is effectively wrapped already, return the unaltered string.
+      if (selectorsToSkip && selectorsToSkip.some(selector => rule.cssText.startsWith(selector))) {
+        return cssText;
       }
 
       // If the rule begins with a higher level selector that needs
@@ -145,11 +298,11 @@
         topLevelSelectors.filter((possibleSelector) => rule.cssText.startsWith(possibleSelector))
       if (beginsWithTopLevel.length) {
         const selector = beginsWithTopLevel[0].match(/[^\s]+/);
-        return rule.cssText.replace(selector, `${selector} ${scopeSelector}`)
+        return cssText.replace(selector, `@scope(${selector}) ${scopeSelector}`)
       }
 
       // Otherwise, return the rule as string scoped within `scopeSelector`.
-      return `@scope(${scopeSelector}) { ${rule.cssText} }`;
+      return `@scope(${scopeSelector}) { ${cssText} }`;
     }
 
     // Make the dialog-scoped CSS the contents of the style element.
@@ -198,27 +351,32 @@
           // applied within the dialog. `.ui-dialog` is the default class.
           // @see \Drupal\Core\Ajax\OpenDialogCommand::$dialogOptions
           const scopeSelector = ajax?.scopeSelector || '.ui-dialog';
+          const selectorsToSkip = ajax?.selectorsToSkip ? JSON.parse(ajax.selectorsToSkip) : [];
 
-          // Although it's typically discouraged to use await within loops, it
-          // is done here to ensure every stylesheet in the list is fully
-          // added to the DOM before the process begins for the next one in
-          // the array. By using Promise.all(), we run into scenarios where
-          // the process looks for CSS variables that are not yet available.
-          // Having the CSS variables already loaded is necessary due to
-          // limitations of CSSStyleSheet() not being able to parse styles
-          // that use CSS variables in shorthand in a style that also includes
-          // a longhand property of that shorthand. The workaround is
-          // populating those values via JavaScript.
-          response.data.reduce(async (promise, styleSheetData) => {
-            // Wait for the prior call to scopeCss to complete so the loading
-            // order is preserved;
-            await promise;
-            await scopeCss(styleSheetData, scopeSelector)
-          }, Promise.resolve());
+          return new Promise((resolve) => {
+            // Although it's typically discouraged to use await within loops, it
+            // is done here to ensure every stylesheet in the list is fully
+            // added to the DOM before the process begins for the next one in
+            // the array. By using Promise.all(), we run into scenarios where
+            // the process looks for CSS variables that are not yet available.
+            // Having the CSS variables already loaded is necessary due to
+            // limitations of CSSStyleSheet() not being able to parse styles
+            // that use CSS variables in shorthand in a style that also includes
+            // a longhand property of that shorthand. The workaround is
+            // populating those values via JavaScript.
+            response.data.reduce(async (promise, styleSheetData, index) => {
+              // Wait for the prior call to scopeCss to complete so the loading
+              // order is preserved;
+              await promise;
+              await scopeCss(styleSheetData, scopeSelector, selectorsToSkip);
 
-          // Return a resolved promise to match the return type of the method
-          // being overridden.
-          return Promise.resolve();
+              // When the last item is completed, resolve the promise so the
+              // AJAX dialog opens with the scoped CSS already present.
+              if (response.data.length === index + 1) {
+                resolve();
+              }
+            }, Promise.resolve());
+          })
         }
 
         // If the CSS assets were not designated to be scoped within an admin
