@@ -76,7 +76,11 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
         ],
       ],
       'model' => [],
-      'entity_form_fields' => [],
+      'entity_form_fields' => [
+        // Ensure that if the form title is empty, the saved title will be
+        // returned.
+        'title[0][value]' => '',
+      ],
     ];
     $anonAccountContent = Node::create([
       'type' => 'article',
@@ -105,7 +109,10 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     self::assertNotFalse($sampleData);
     $data = \json_decode($sampleData, TRUE);
     $data += ['entity_form_fields' => []];
-    // Full data.
+    // Update the page title.
+    $new_title = $this->getRandomGenerator()->sentences(10);
+    $data['entity_form_fields']['title[0][value]'] = $new_title;
+
     $account1content = Node::load(1);
     \assert($account1content instanceof NodeInterface);
     $autoSave->save($account1content, $data);
@@ -238,7 +245,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
         'avatar' => $avatarUrl,
         'uri' => $account1->toUrl()->toString(),
       ],
-      'label' => $account1content->label(),
+      'label' => $new_title,
       'data_hash' => \hash('xxh64', \serialize($data)),
     ], \array_diff_key($content['node:1:en'], \array_flip(['updated'])));
     self::assertEquals([
@@ -604,7 +611,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
         'meta' => [
           'entity_type' => 'node',
           'entity_id' => $node1->id(),
-          'label' => $node1->label(),
+          'label' => $validClientJson['entity_form_fields']['title[0][value]'],
           'autosave_key' => $autoSave->getAutoSaveKey($node1),
         ],
       ],
@@ -643,7 +650,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
           'meta' => [
             'entity_type' => 'node',
             'entity_id' => $node1->id(),
-            'label' => $node1->label(),
+            'label' => $validClientJson['entity_form_fields']['title[0][value]'],
             'autosave_key' => $autoSave->getAutoSaveKey($node1),
           ],
         ],

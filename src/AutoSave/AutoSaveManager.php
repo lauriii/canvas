@@ -36,11 +36,17 @@ class AutoSaveManager {
       'data' => $data,
       'data_hash' => \hash('xxh64', \serialize($data)),
       'langcode' => $entity instanceof TranslatableInterface ? $entity->language()->getId() : NULL,
-      // @todo Update label from incoming entity data once it exists.
-      'label' => (string) $entity->label(),
+      'label' => self::getLabelToSave($entity, $data),
     ];
     $this->getTempStore()->set($key, $auto_save_data);
     $this->cacheTagsInvalidator->invalidateTags([self::CACHE_TAG]);
+  }
+
+  public static function getLabelToSave(EntityInterface $entity, array $data): string {
+    $key = \sprintf("%s[0][value]", $entity->getEntityType()->getKey('label'));
+    return empty($data['entity_form_fields'][$key]) ?
+      (string) $entity->label() :
+      (string) $data['entity_form_fields'][$key];
   }
 
   public static function getAutoSaveKey(EntityInterface $entity): string {
