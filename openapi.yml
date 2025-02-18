@@ -223,10 +223,12 @@ paths:
               schema:
                 type: object
                 minProperties: 1
+                # @todo Validate the property keys match the
+                #   '^\\[a-zA-Z0-9_-]:[a-zA-Z0-9_-]$' pattern in
+                #    https://drupal.org/i/3506543.
                 # @see \Drupal\Core\Plugin\Component::$machineName
-                patternProperties:
-                  '^\\[a-zA-Z0-9_-]:[a-zA-Z0-9_-]$':
-                    $ref: '#/components/schemas/Component'
+                additionalProperties:
+                  $ref: '#/components/schemas/Component'
   /xb/api/config/js_component:
     get:
       description: Collection of Code Components
@@ -238,9 +240,10 @@ paths:
               schema:
                 type: object
                 minProperties: 0
-                patternProperties:
-                  '^\\[a-zA-Z0-9_-]$':
-                    $ref: '#/components/schemas/CodeComponent'
+                # @todo Validate the property keys match the '^\\[a-zA-Z0-9_-]$'
+                #   pattern in https://drupal.org/i/3506543.
+                additionalProperties:
+                  $ref: '#/components/schemas/CodeComponent'
     post:
       description: TODO
       requestBody:
@@ -311,9 +314,10 @@ paths:
               schema:
                 type: object
                 minProperties: 0
-                patternProperties:
-                  '^\\[a-zA-Z0-9_-]$':
-                    $ref: '#/components/schemas/PatternPreview'
+                # @todo Validate the property keys match the '^\\[a-zA-Z0-9_-]$'
+                #  pattern in https://drupal.org/i/3506543.
+                additionalProperties:
+                  $ref: '#/components/schemas/PatternPreview'
     post:
       description: TODO
       requestBody:
@@ -617,25 +621,25 @@ paths:
               schema:
                 type: object
                 minProperties: 0
-                additionalProperties: false
-                patternProperties:
-                  '^[0-9]$':
-                    type: object
-                    required:
-                      - id
-                      - title
-                      - status
-                      - path
-                    properties:
-                      id:
-                        type: integer
-                        description: The page ID.
-                      title:
-                        type: string
-                        description: The page title.
-                      status:
-                        type: boolean
-                        description: The page status.
+                # @todo Validate the property keys match the '^[0-9]$' pattern
+                #   in https://drupal.org/i/3506543.
+                additionalProperties:
+                  type: object
+                  required:
+                    - id
+                    - title
+                    - status
+                    - path
+                  properties:
+                    id:
+                      type: integer
+                      description: The page ID.
+                    title:
+                      type: string
+                      description: The page title.
+                    status:
+                      type: boolean
+                      description: The page status.
               examples:
                 pageList:
                   value:
@@ -1059,6 +1063,8 @@ paths:
 components:
   # @see https://spec.openapis.org/oas/v3.1.0.html#schema-object
   schemas:
+    # Update ensure required and optional properties are present in
+    #    https://drupal.org/i/3507427.
     Component:
       title: Component
       type: object
@@ -1066,9 +1072,6 @@ components:
         - name
         - id
         - category
-        - transforms
-        - metadata
-        - field_data
         - default_markup
       properties:
         name:
@@ -1117,7 +1120,6 @@ components:
         dynamic_prop_source_candidates:
           type: object
           description: the DynamicPropSources that match each
-      additionalProperties: false
     CodeComponent:
       title: Code Component
       type: object
@@ -1325,12 +1327,12 @@ components:
             - Home page
     AutoSaveCollection:
       type: object
-      # @todo Add key validation for the format in {entity_type}:{entity_id}:{langcode} https://drupal.org/i/3471064.
+      # @todo Add key validation for the format in {entity_type}:{entity_id}:{langcode} https://drupal.org/i/3506543.
       additionalProperties:
         $ref: '#/components/schemas/AutoSaveEntry'
     PublishAllRequest:
       type: object
-      # @todo Add key validation for the format in {entity_type}:{entity_id}:{langcode} https://drupal.org/i/3471064.
+      # @todo Add key validation for the format in {entity_type}:{entity_id}:{langcode} https://drupal.org/i/3506543.
       additionalProperties:
         type: object
         title: Entries to publish

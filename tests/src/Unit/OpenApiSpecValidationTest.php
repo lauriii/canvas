@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\experience_builder\Unit;
 
+use Drupal\Component\Serialization\Yaml;
 use Drupal\Tests\experience_builder\Traits\OpenApiSpecTrait;
 use Drupal\Tests\UnitTestCase;
 use DrupalFinder\DrupalFinderComposerRuntime;
@@ -65,6 +66,15 @@ final class OpenApiSpecValidationTest extends UnitTestCase {
     $this->assertTrue($validator->isValid(), implode(array_map(function (array $error) {
       return sprintf('%s:%s%s', $error['property'], $error['message'], \PHP_EOL);
     }, $validator->getErrors())));
+  }
+
+  public function testForbidPatternProperties(): void {
+    $file = file_get_contents(__DIR__ . '/../../../openapi.yml');
+    assert(!empty($file));
+    $encoded = json_encode(Yaml::decode($file));
+    assert(is_string($encoded));
+    // Check the encoded string to allow 'patternProperties' in comments.
+    $this->assertFalse(str_contains($encoded, 'patternProperties'), '`patternProperties` in the the openapi.yml file is not supported use `additionalProperties` instead.');
   }
 
 }
