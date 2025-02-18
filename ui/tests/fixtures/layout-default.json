@@ -7,18 +7,24 @@
       "components": [
         {
           "nodeType": "component",
-          "uuid": "static-image-udf7d",
-          "type": "experience_builder:image",
+          "uuid": "a7470350-deb2-4d9f-982c-464d356403d4",
+          "type": "sdc.experience_builder.two_column",
           "slots": [
             {
               "nodeType": "slot",
-              "id": "static-image-udf7d/slot",
-              "name": "slot",
+              "id": "a7470350-deb2-4d9f-982c-464d356403d4/column_one",
+              "name": "column_one",
               "components": [
                 {
                   "nodeType": "component",
                   "uuid": "static-static-card1ab",
-                  "type": "sdc_test:my-cta",
+                  "type": "sdc.sdc_test.my-cta",
+                  "slots": []
+                },
+                {
+                  "nodeType": "component",
+                  "uuid": "static-image-udf7d",
+                  "type": "sdc.experience_builder.image",
                   "slots": []
                 }
               ]
@@ -28,26 +34,19 @@
         {
           "nodeType": "component",
           "uuid": "static-static-card2df",
-          "type": "sdc_test:my-cta",
+          "type": "sdc.sdc_test.my-cta",
           "slots": []
         },
         {
           "nodeType": "component",
           "uuid": "static-static-card3rr",
-          "type": "sdc_test:my-cta",
-          "slots": [
-            {
-              "nodeType": "slot",
-              "id": "static-static-card3rr/slot_2",
-              "name": "slot_2",
-              "components": []
-            }
-          ]
+          "type": "sdc.sdc_test.my-cta",
+          "slots": []
         },
         {
           "nodeType": "component",
           "uuid": "static-image-static-imageStyle-something7d",
-          "type": "experience_builder:image",
+          "type": "sdc.experience_builder.image",
           "slots": []
         },
         {
@@ -148,8 +147,8 @@
     },
     "static-static-card2df": {
       "resolved": {
-        "text": "Art",
-        "href": "https://drupal.org"
+        "heading": "Art",
+        "cta1href": "https://drupal.org"
       },
       "source": {
         "heading": {
@@ -165,8 +164,8 @@
     },
     "static-static-card3rr": {
       "resolved": {
-        "text": "Art",
-        "href": "public://2024-07/framer.png"
+        "heading": "Art",
+        "cta1href": "public://2024-07/framer.png"
       },
       "source": {
         "heading": {
@@ -264,20 +263,18 @@
         }
       }
     },
+    "a7470350-deb2-4d9f-982c-464d356403d4": {
+      "width": 50
+    },
     "6f3224e2-cb61-46e4-a9e4-35b4d18f0a82": {
       "name": "Section",
       "resolved": {
-        "text": "Our mission is to deliver the best products and services to our customers. We strive to exceed expectations and continuously improve our offerings.",
-        "href": "https://drupal.org"
+        "text": "Our mission is to deliver the best products and services to our customers. We strive to exceed expectations and continuously improve our offerings."
       },
       "source": {
         "text": {
           "sourceType": "static:field_item:string",
           "expression": "\u2139\ufe0estring\u241fvalue"
-        },
-        "href": {
-          "sourceType": "static:field_item:uri",
-          "expression": "\u2139\ufe0euri\u241fvalue"
         }
       }
     },
