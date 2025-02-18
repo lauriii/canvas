@@ -21,7 +21,7 @@ export default function FormPropTypeSlot({
     <Box flexGrow="1">
       <Divider />
       <FormElement>
-        <Label>Example HTML value</Label>
+        <Label>Example HTML/JSX value</Label>
         <div className={styles.editorWrapper}>
           <CodeMirror
             data-testid={`slot-example-${id}`}

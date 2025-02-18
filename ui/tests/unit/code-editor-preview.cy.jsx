@@ -59,7 +59,7 @@ describe('<Preview /> for code editor', () => {
       '#hello',
       (el) => {
         const computedStyle = window.getComputedStyle(el);
-        expect(el.textContent).to.equal('Hello World 2 !');
+        expect(el.innerHTML).to.equal('Hello World 2 <span>!</span>');
         expect(computedStyle.fontSize).to.equal('24px');
         expect(computedStyle.color).to.equal('rgb(0, 0, 255)');
       },

@@ -82,14 +82,16 @@ const Preview = () => {
       return `${camelCase(prop.name)}: ${value}`;
     });
   const slotsArray = slots
-    .filter((slot) => slot.name) // Filter out slots with no name.
-    .map(
-      (slot) => `${camelCase(slot.name)}: h('Fragment', {
-          dangerouslySetInnerHTML: {
-            __html: '${slot?.example?.replace(/[\r\n]+/g, '')}'
-          }
-        })`,
-    );
+    .filter((slot) => slot.name && slot.example)
+    .map((slot) => {
+      const slotName = camelCase(slot.name);
+      // Each slot example value is turned into a Preact component. The h()
+      // function is Preact's version of React's createElement() function, which
+      // will render the slot's example value.
+      // @see compile()
+      return `${slotName}: h(${slotName} || null)`;
+    });
+
   const propsString = `{${[...propsArray, ...slotsArray].join(',')}}`;
   const iframeSrcDoc = `
     <script type="importmap">
@@ -130,7 +132,15 @@ const Preview = () => {
       return;
     }
     try {
-      const result = transformSync(js, swcConfig);
+      const jsForSlots = slots
+        .filter((slot) => slot.name && slot.example)
+        .map((slot) => {
+          // Wrap the slot's example value in a function so that it can be
+          // rendered by Preact.
+          return `function ${camelCase(slot.name)}() { return (${slot.example as string});}`;
+        })
+        .join('\n');
+      const result = transformSync(`${js}\n${jsForSlots}`, swcConfig);
       const twCssResult = await buildCSS(js, globalCss);
       const cssResult = await transformCss(css);
       setCompiledTailwindCss(twCssResult);
@@ -146,7 +156,7 @@ const Preview = () => {
       setIsCompileError(true);
       console.error('Compilation error:', error);
     }
-  }, [initialized, js, css, globalCss]);
+  }, [initialized, js, css, globalCss, slots]);
 
   useEffect(() => {
     const importAndRunSwcOnMount = async () => {

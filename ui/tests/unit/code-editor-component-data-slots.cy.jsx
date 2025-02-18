@@ -37,7 +37,7 @@ describe('Component data / slots in code editor', () => {
     cy.findByText('Add').click();
 
     cy.findByLabelText('Slot name').should('exist');
-    cy.findByText('Example HTML value').should('exist');
+    cy.findByText('Example HTML/JSX value').should('exist');
 
     cy.log('Checking first slot in store with default values');
     cy.wrap(store).then((store) => {
