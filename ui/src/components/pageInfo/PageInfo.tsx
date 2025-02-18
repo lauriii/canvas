@@ -1,5 +1,6 @@
 import {
   ChevronLeftIcon,
+  CodeIcon,
   Component1Icon,
   CubeIcon,
   FileIcon,
@@ -43,7 +44,12 @@ const iconMap: PageType = {
 const PageInfo = () => {
   const { showBoundary } = useErrorBoundary();
   const { setEditorEntity } = useNavigationUtils();
-  const { regionId: focusedRegion = DEFAULT_REGION } = useXbParams();
+  const {
+    regionId: focusedRegion = DEFAULT_REGION,
+    codeComponentId: codeComponentName = null,
+  } = useXbParams();
+
+  const isCodeEditor = codeComponentName !== null;
   const layout = useAppSelector(selectLayout);
   const focusedRegionName = layout.find(
     (region) => region.id === focusedRegion,
@@ -120,7 +126,7 @@ const PageInfo = () => {
 
   return (
     <Flex gap="2" align="center">
-      {focusedRegion === DEFAULT_REGION ? (
+      {focusedRegion === DEFAULT_REGION && !isCodeEditor ? (
         <Popover.Root>
           <Popover.Trigger>
             <Button
@@ -157,9 +163,10 @@ const PageInfo = () => {
           }}
           aria-label="Back to Content region"
         >
-          <Badge color="grass" size="2">
-            <ChevronLeftIcon /> <CubeIcon />
-            {focusedRegionName}
+          <Badge color={isCodeEditor ? 'sky' : 'grass'} size="2">
+            <ChevronLeftIcon />
+            {isCodeEditor ? <CodeIcon /> : <CubeIcon />}
+            {isCodeEditor ? codeComponentName : focusedRegionName}
           </Badge>
         </Link>
       )}

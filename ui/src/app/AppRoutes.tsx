@@ -56,7 +56,7 @@ const AppRoutes: React.FC<AppRoutesInterface> = ({ basePath }) => {
           },
           {
             // Opens the code editor for an item under 'Code'.
-            path: '/code-editor/code/:componentId',
+            path: '/code-editor/code/:codeComponentId',
             element: (
               <>
                 <PrimaryPanel />
@@ -67,7 +67,7 @@ const AppRoutes: React.FC<AppRoutesInterface> = ({ basePath }) => {
           },
           {
             // Opens the code editor for an item under 'Components'.
-            path: '/code-editor/component/:componentId',
+            path: '/code-editor/component/:codeComponentId',
             element: (
               <>
                 <PrimaryPanel />
