@@ -15,9 +15,8 @@ use Drupal\experience_builder\Controller\ApiAutoSaveController;
 use Drupal\experience_builder\Controller\ErrorCodesEnum;
 use Drupal\experience_builder\Entity\AssetLibrary;
 use Drupal\experience_builder\Entity\JavaScriptComponent;
-use Drupal\experience_builder\Entity\PageTemplate;
+use Drupal\experience_builder\Entity\PageRegion;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
-use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\file\Entity\File;
 use Drupal\image\ImageStyleInterface;
 use Drupal\KernelTests\KernelTestBase;
@@ -27,6 +26,7 @@ use Drupal\Tests\block\Traits\BlockCreationTrait;
 use Drupal\Tests\experience_builder\Kernel\Traits\RequestTrait;
 use Drupal\Tests\experience_builder\TestSite\XBTestSetup;
 use Drupal\Tests\experience_builder\Traits\OpenApiSpecTrait;
+use Drupal\Tests\experience_builder\Traits\TestDataUtilitiesTrait;
 use Drupal\Tests\experience_builder\Traits\XBFieldTrait;
 use Drupal\Tests\user\Traits\UserCreationTrait;
 use Drupal\user\Entity\User;
@@ -45,6 +45,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
   use BlockCreationTrait;
   use RequestTrait;
   use XBFieldTrait;
+  use TestDataUtilitiesTrait;
 
   /**
    * {@inheritdoc}
@@ -116,10 +117,10 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     $account1content = Node::load(1);
     \assert($account1content instanceof NodeInterface);
     $autoSave->save($account1content, $data);
-    // Save a draft of the page template.
-    $template = PageTemplate::createFromBlockLayout('stark')->enable();
-    $template->save();
-    $templateData = [
+    // Save a draft of the page region.
+    $region = PageRegion::createFromBlockLayout('stark')['stark.highlighted']->enable();
+    $region->save();
+    $regionData = [
       'layout' => [
         [
           "components" => [
@@ -132,7 +133,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
           ],
           "name" => "Highlighted",
           "nodeType" => "region",
-          "id" => "highlighted",
+          "id" => "stark.highlighted",
         ],
       ],
       'model' => [
@@ -143,7 +144,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
         ],
       ],
     ];
-    $autoSave->save($template, $templateData);
+    $autoSave->save($region, $regionData);
     // Empty data.
     $account2content = Node::load(2);
     \assert($account2content instanceof NodeInterface);
@@ -207,27 +208,26 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     self::assertContains('config:user.settings', $response->getCacheableMetadata()->getCacheTags());
     $content = \json_decode($response->getContent() ?: '{}', TRUE);
     $anonContentIdentifier = \sprintf('node:%d:en', $anonAccountContent->id());
-    $pageTemplateId = PageTemplate::PLUGIN_ID . ':stark';
     self::assertEquals([
       'js_component:test_code',
       'node:1:en',
       'node:2:en',
       $anonContentIdentifier,
-      $pageTemplateId,
+      'page_region:stark.highlighted',
       'xb_asset_library:global',
     ], \array_keys($content));
     // We don't assert the exact value of these because of clock-drift during
     // the test, asserting their presence is enough.
     \assert(\is_array($content['node:1:en']));
     \assert(\is_array($content['node:2:en']));
-    \assert(\is_array($content[$pageTemplateId]));
+    \assert(\is_array($content['page_region:stark.highlighted']));
     \assert(\is_array($content[$anonContentIdentifier]));
     \assert(\is_array($content['js_component:test_code']));
     \assert(\is_array($content['xb_asset_library:global']));
     self::assertArrayHasKey('updated', $content['node:1:en']);
     self::assertArrayHasKey('updated', $content['node:2:en']);
     self::assertArrayHasKey('updated', $content[$anonContentIdentifier]);
-    self::assertArrayHasKey('updated', $content[$pageTemplateId]);
+    self::assertArrayHasKey('updated', $content['page_region:stark.highlighted']);
     self::assertArrayHasKey('updated', $content['js_component:test_code']);
     self::assertArrayHasKey('updated', $content['xb_asset_library:global']);
     $imageStyle = \Drupal::entityTypeManager()->getStorage('image_style')->load(ApiAutoSaveController::AVATAR_IMAGE_STYLE);
@@ -282,17 +282,17 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     ], \array_diff_key($content[$anonContentIdentifier], \array_flip(['updated'])));
     self::assertEquals([
       'langcode' => NULL,
-      'entity_type' => $template->getEntityTypeId(),
-      'entity_id' => $template->id(),
+      'entity_type' => $region->getEntityTypeId(),
+      'entity_id' => $region->id(),
       'owner' => [
         'id' => $account1->id(),
         'name' => $account1->getDisplayName(),
         'avatar' => $avatarUrl,
         'uri' => $account1->toUrl()->toString(),
       ],
-      'label' => 'Stark global template',
-      'data_hash' => \hash('xxh64', \serialize($templateData)),
-    ], \array_diff_key($content[$pageTemplateId], \array_flip(['updated'])));
+      'label' => 'Highlighted region in the Stark theme',
+      'data_hash' => \hash('xxh64', \serialize($regionData)),
+    ], \array_diff_key($content['page_region:stark.highlighted'], \array_flip(['updated'])));
     self::assertEquals([
       'langcode' => NULL,
       'entity_type' => $code_component->getEntityTypeId(),
@@ -408,27 +408,8 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
 
     // Add some global elements.
     if ($withGlobal) {
-      $template = PageTemplate::createFromBlockLayout('stark');
-      $template->enable()->save();
-      $regions_without_breadcrumbs = [
-        'sidebar_first',
-        'sidebar_second',
-        'primary_menu',
-        'secondary_menu',
-        'footer',
-        'highlighted',
-        'help',
-        'page_top',
-        'page_bottom',
-      ];
-      foreach ($regions_without_breadcrumbs as $region) {
-        $validClientJson['layout'][] = [
-          "components" => [],
-          "name" => $region,
-          "nodeType" => "region",
-          "id" => $region,
-        ];
-      }
+      $page_region = PageRegion::createFromBlockLayout('stark')['stark.header'];
+      $page_region->enable()->save();
       $validClientJson['layout'][] = [
         "components" => [
           [
@@ -440,7 +421,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
         ],
         "name" => "Header",
         "nodeType" => "region",
-        "id" => "header",
+        "id" => $page_region->get('region'),
       ];
       $validClientJson['model'] += [
         "c3f3c22c-c22e-4bb6-ad16-635f069148e4" => [
@@ -566,12 +547,13 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
       // Note: no additional error appears for the invalid auto-saved layout for
       // the PageTemplate, because missing regions are automatically added from
       // the active/stored PageTemplate.
-      // @see \Drupal\experience_builder\Entity\PageTemplate::forAutoSaveData()
-      $template = PageTemplate::load('stark');
-      self::assertInstanceOf(PageTemplate::class, $template);
-      $trees = iterator_to_array($template->getComponentTrees());
-      self::assertArrayNotHasKey('header', $trees);
-      self::assertInstanceOf(ComponentTreeItem::class, $trees['highlighted']);
+      // @see \Drupal\experience_builder\Entity\PageRegion::forAutoSaveData()
+      $page_region = PageRegion::load('stark.header');
+      self::assertInstanceOf(PageRegion::class, $page_region);
+      self::assertSame([
+        'tree' => self::encodeXBData([ComponentTreeStructure::ROOT_UUID => []]),
+        'inputs' => self::encodeXBData([]),
+      ], $page_region->getComponentTree()->toArray());
     }
 
     // Fix the errors.
@@ -677,11 +659,12 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     $this->assertSame('New new AssetLibrary label', $library_storage->loadUnchanged($library->id())?->label());
 
     if ($withGlobal) {
-      $template = PageTemplate::load('stark');
-      self::assertInstanceOf(PageTemplate::class, $template);
-      $trees = iterator_to_array($template->getComponentTrees());
-      self::assertInstanceOf(ComponentTreeItem::class, $trees['header']);
-      self::assertArrayNotHasKey('highlighted', $trees);
+      $page_region = PageRegion::load('stark.header');
+      self::assertInstanceOf(PageRegion::class, $page_region);
+      $tree = $page_region->getComponentTree()->get('tree');
+      assert($tree instanceof ComponentTreeStructure);
+      self::assertSame(['block.page_title_block'], $tree->getComponentIdList());
+      self::assertSame(['c3f3c22c-c22e-4bb6-ad16-635f069148e4'], $tree->getComponentInstanceUuids());
     }
 
     // Ensure that after the nodes have been published their auto-save data is

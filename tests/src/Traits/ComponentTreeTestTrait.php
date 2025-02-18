@@ -47,16 +47,6 @@ trait ComponentTreeTestTrait {
 
   protected static function getInvalidTreeTestCases(): array {
     return [
-      'invalid tree: the main content block is only allowed in PageTemplate' => [
-        [
-          'tree' => self::encodeXBData([
-            ComponentTreeStructure::ROOT_UUID => [
-              ['uuid' => 'uuid-main', 'component' => 'block.system_main_block'],
-            ],
-          ]),
-          'inputs' => '{}',
-        ],
-      ],
       'invalid values using dynamic inputs' => [
         [
           'tree' => self::encodeXBData([

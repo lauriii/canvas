@@ -68,7 +68,7 @@ const UnpublishedChanges = () => {
   };
 
   const getIconType = (entityType: string) => {
-    if (entityType === 'page_template') {
+    if (entityType === 'page_region') {
       return IconType.CUBE;
     }
     if (entityType === 'xb_page') {

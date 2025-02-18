@@ -6,15 +6,18 @@ namespace Drupal\Tests\experience_builder\Functional;
 
 use Drupal\Component\Uuid\Uuid;
 use Drupal\Core\Url;
-use Drupal\experience_builder\Entity\Component;
-use Drupal\experience_builder\Entity\PageTemplate;
+use Drupal\experience_builder\Entity\PageRegion;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
+use Drupal\Tests\BrowserTestBase;
 use Drupal\Tests\experience_builder\Traits\GenerateComponentConfigTrait;
 
 /**
  * @group experience_builder
+ * @covers \experience_builder_form_system_theme_settings_alter()
+ * @covers \experience_builder_form_system_theme_settings_submit()
+ * @covers \Drupal\experience_builder\Entity\PageRegion::createFromBlockLayout()
  */
-class PageTemplateEnableTest extends FunctionalTestBase {
+class XbPageVariantEnableTest extends BrowserTestBase {
 
   use GenerateComponentConfigTrait;
 
@@ -43,38 +46,41 @@ class PageTemplateEnableTest extends FunctionalTestBase {
     $this->assertSession()->fieldExists('use_xb');
 
     // We start with no templates.
-    $this->assertEmpty(PageTemplate::loadMultiple());
+    $this->assertEmpty(PageRegion::loadMultiple());
 
     // No template is created if we do not enable XB.
     $this->submitForm(['use_xb' => FALSE], 'Save configuration');
-    $this->assertEmpty(PageTemplate::loadMultiple());
+    $this->assertEmpty(PageRegion::loadMultiple());
 
-    // A template is created when we enable XB.
+    // Regions are created when we enable XB.
     $this->submitForm(['use_xb' => TRUE], 'Save configuration');
-    $templates = PageTemplate::loadMultiple();
-    $this->assertCount(1, $templates);
-    $this->assertArrayHasKey('olivero', $templates);
-    $template = $templates['olivero'];
-    $this->assertTrue($template->status());
+    $regions = PageRegion::loadMultiple();
+    $this->assertCount(12, $regions);
 
-    // Check the template is created correctly.
-    $trees = iterator_to_array($template->getComponentTrees());
-    $expected_regions = \array_filter([
-      'breadcrumb',
-      'content',
-      'content_above',
-      // System powered by block is not fully validatable until Drupal 11.
-      // @see https://www.drupal.org/project/drupal/issues/3379725
-      Component::load('block.system_powered_by_block') ? 'footer_bottom' : NULL,
-      'header',
-      'highlighted',
-      'primary_menu',
-      'secondary_menu',
+    // Check the regions are created correctly.
+    $expected_page_region_ids = \array_filter([
+      'olivero.breadcrumb',
+      'olivero.content_above',
+      'olivero.content_below',
+      'olivero.footer_bottom',
+      'olivero.footer_top',
+      'olivero.header',
+      'olivero.hero',
+      'olivero.highlighted',
+      'olivero.primary_menu',
+      'olivero.secondary_menu',
+      'olivero.sidebar',
+      'olivero.social',
     ]);
-    $this->assertSame(\array_values($expected_regions), array_keys($trees));
+    $regions_with_component_tree = [];
+    foreach ($regions as $region) {
+      if ($data = $region->getComponentTree()->toArray()) {
+        $regions_with_component_tree[$region->id()] = $data;
+      }
+    }
+    $this->assertSame(\array_values($expected_page_region_ids), array_keys($regions_with_component_tree));
 
-    foreach ($trees as $field) {
-      $tree = $field->toArray();
+    foreach ($regions_with_component_tree as $tree) {
       $this->assertJson($tree['tree']);
       $tree = json_decode($tree['tree'], TRUE);
       $this->assertArrayHasKey(ComponentTreeStructure::ROOT_UUID, $tree);
@@ -91,9 +97,11 @@ class PageTemplateEnableTest extends FunctionalTestBase {
     // The template is disabled again when we disable XB.
     $this->drupalGet('/admin/appearance/settings/olivero');
     $this->submitForm(['use_xb' => FALSE], 'Save configuration');
-    $template = PageTemplate::load('olivero');
-    $this->assertInstanceOf(PageTemplate::class, $template);
-    $this->assertFalse($template->status());
+    $regions = PageRegion::loadMultiple();
+    $this->assertCount(12, $regions);
+    foreach ($regions as $region) {
+      $this->assertFalse($region->status());
+    }
 
     $this->drupalGet($front);
     $this->assertSession()->statusCodeEquals(200);

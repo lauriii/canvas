@@ -47,7 +47,7 @@ to one of us! 😊 🙏
 - `component type`: see [`XB Components` doc](components.md)
 - `component tree`: see [`XB Data Model` doc](data-model.md)
 - `content type template`: the default `component tree` for a particular `content type`, which typically includes assigning the smallest units of `structured data` to particular `component input`s, and uses `configuration entity dependencies` to ensure the necessary `component`s are present
-- `PageTemplate config entity`: stores a `component tree` for every `theme region` in a given Drupal theme
+- `PageRegion config entity`: stores a `component tree` for every `theme region` in a given Drupal theme
 - `Pattern config entity`: stores a `component tree` that allows Ambitious Site Builders to save common component composition patterns for Content Creators to reuse
 - `structured data`: see [`XB Data Model` doc](data-model.md)
 - `unstructured data`: see [`XB Data Model` doc](data-model.md)
@@ -167,44 +167,34 @@ To the Content Creator, then, the input UX of an `SDC`-sourced `component` and a
 _indistinguishable_ from each other — despite one relying on Twig and the other only on JS.
 
 
-### 3.3 `PageTemplate config entity`
+### 3.3 `PageRegion config entity`
 
 See:
-- `\Drupal\experience_builder\Entity\PageTemplate`
-- `\Drupal\experience_builder\Plugin\DisplayVariant\PageTemplateDisplayVariant`
+- `\Drupal\experience_builder\Entity\PageRegion`
+- `\Drupal\experience_builder\Plugin\DisplayVariant\XbPageVariant`
 
-One `PageTemplate config entity` may be created per Drupal theme. This allows using XB instead of the Block module's
+Multiple `PageRegion config entities` may be created per Drupal theme: one per region, except the `content` region. This allows using XB instead of the Block module's
 "Block Layout" functionality (at `/admin/structure/block`) to populate the `theme region`s of the Drupal theme's
 `page.html.twig`.
 
-⚠️ This means it is currently not possible to have a a different `PageTemplate config entity` per route/URL/…, which the
+⚠️ This means it is currently not possible to have a a different `PageRegion config entity` per route/URL/…, which the
 "Block Layout" functionality solved using "visibility conditions". This will be covered in the future by XB's product
 requirement [`41. Conditional display of components`](https://docs.google.com/spreadsheets/d/1OpETAzprh6DWjpTsZG55LWgldWV_D8jNe9AM73jNaZo/edit?gid=1721130122#gid=1721130122&range=B53),
 which will be XB's generalized equivalent to Drupal core's Block module's "visibility conditions".
 
-⚠️ Since [#3494114](https://drupal.org/node/3494114), if an auto-saved modification to the active theme's `PageTemplate
+⚠️ Since [#3494114](https://drupal.org/node/3494114), if an auto-saved modification to the active theme's `PageRegion
 config entity` occurred, then XB previews will use that instead of the stored/active config entity. This means it is
-currently only possible to have one draft/non-live `PageTemplate config entity`. This will be covered in the future by
+currently only possible to have one draft/non-live `PageRegion config entity` per theme region. This will be covered in the future by
 XB's product requirements [`37. Revisionable templates`](https://docs.google.com/spreadsheets/d/1OpETAzprh6DWjpTsZG55LWgldWV_D8jNe9AM73jNaZo/edit?gid=1721130122#gid=1721130122&range=B49)
 and [`55. Workspaces`](https://docs.google.com/spreadsheets/d/1OpETAzprh6DWjpTsZG55LWgldWV_D8jNe9AM73jNaZo/edit?gid=1721130122#gid=1721130122&range=B62).
 
-Once a theme has an XB `PageTemplate config entity` defined, it overrides the block layout (if any).
-Strict validation is imposed on a `PageTemplate config entity`, to ensure that essential information is displayed as
-expected:
-1. exactly one `component` is present that implements `MainContentBlockPluginInterface`, to ensure the content of the
-   route controller is displayed on the page
-2. exactly one `component` is present that implements `TitleBlockPluginInterface`, to ensure the title of the route
-   controller is displayed on the page
-2. exactly one `component` is present that implements `MessagesBlockPluginInterface`, to ensure messages are displayed
-   on the page
+Once a theme has >=1 XB _enabled_ `PageRegion config entity`, then the block layout (if any) is not used, and XB's
+`PageVariantInterface` implementation is used instead.
 
 That means that when this is used, the Block module is in principle unnecessary. However, Drupal admin themes typically
 rely on the Block module to provide the intended administrative User Experience, which makes that impractical.
 
 See `\Drupal\block\Plugin\DisplayVariant\BlockPageVariant`.
-
-⚠️ Still to be built:
-- support for blocks-as-components in general
 
 
 ### 3.4 `Pattern config entity`

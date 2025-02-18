@@ -36,9 +36,12 @@ trait ClientServerConversionTrait {
     if (isset($layout['nodeType']) && $layout['nodeType'] === 'region') {
       $tree = self::doClientSlotToServerTree($layout, [], ComponentTreeStructure::ROOT_UUID);
     }
-    // For patterns/sections, the top level is array of components.
+    // For Patterns and PageRegions, the top level is array of components. A
+    // Pattern is guaranteed to be non-empty, but a PageRegion is not.
     else {
-      $tree = [];
+      $tree = [
+        ComponentTreeStructure::ROOT_UUID => [],
+      ];
       foreach ($layout as $component) {
         assert($component['nodeType'] === 'component');
         $tree = self::doClientComponentToServerTree($component, $tree, ComponentTreeStructure::ROOT_UUID, NULL);
@@ -118,7 +121,7 @@ trait ClientServerConversionTrait {
     $component_tree_structure = new ComponentTreeStructure($definition, 'component_tree_structure');
     $component_tree_structure->setValue(json_encode($tree, JSON_UNESCAPED_UNICODE));
 
-    // Remove irrelevant model data (e.g. from page template).
+    // Remove irrelevant model data (e.g. from page regions).
     $model = \array_intersect_key($full_model, \array_flip($component_tree_structure->getComponentInstanceUuids()));
     $inputs = [];
     $violation_list = $entity ? new EntityConstraintViolationList($entity) : new ConstraintViolationList();

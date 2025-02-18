@@ -12,9 +12,9 @@ use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Extension\ModuleInstallerInterface;
 use Drupal\Core\Render\Plugin\DisplayVariant\SimplePageVariant;
 use Drupal\experience_builder\Entity\Component;
-use Drupal\experience_builder\Entity\PageTemplate;
+use Drupal\experience_builder\Entity\PageRegion;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
-use Drupal\experience_builder\Plugin\DisplayVariant\PageTemplateDisplayVariant;
+use Drupal\experience_builder\Plugin\DisplayVariant\XbPageVariant;
 use Drupal\Tests\experience_builder\Traits\ContribStrictConfigSchemaTestTrait;
 use Drupal\Tests\experience_builder\Traits\GenerateComponentConfigTrait;
 use Drupal\Tests\experience_builder\Traits\TestDataUtilitiesTrait;
@@ -22,8 +22,9 @@ use Drupal\Tests\system\Functional\Cache\AssertPageCacheContextsAndTagsTrait;
 
 /**
  * @group experience_builder
+ * @covers \Drupal\experience_builder\Plugin\DisplayVariant\XbPageVariant
  */
-class PageTemplateVariantTest extends FunctionalTestBase {
+class XbPageVariantTest extends FunctionalTestBase {
 
   use AssertPageCacheContextsAndTagsTrait;
   use ContribStrictConfigSchemaTestTrait;
@@ -59,7 +60,7 @@ class PageTemplateVariantTest extends FunctionalTestBase {
     $this->assertSame([$block->id()], $this->getRenderedBlockIds());
 
     // 4. Experience Builder module installed: nothing changes.
-    // @see \Drupal\experience_builder\Plugin\DisplayVariant\PageTemplateDisplayVariant
+    // @see \Drupal\experience_builder\Plugin\DisplayVariant\XbPageVariant
     $this->container->get(ModuleInstallerInterface::class)->install([
       'experience_builder',
       // Install module that provides test SDCs.
@@ -70,8 +71,8 @@ class PageTemplateVariantTest extends FunctionalTestBase {
     $this->assertPageDisplayVariant(BlockPageVariant::class, [$block]);
     $this->assertSame([$block->id()], $this->getRenderedBlockIds());
 
-    // 5. Once an Experience Builder PageTemplate config entity is created for
-    // the default theme, XB's PageTemplateDisplayVariant is used instead.
+    // 5. Once >=1 enabled Experience Builder PageRegion config entity is
+    // created for the default theme, XB's XbPageVariant is used instead.
     $generate_static_prop_source = function (string $label): array {
       return [
         'sourceType' => 'static:field_item:string',
@@ -79,106 +80,77 @@ class PageTemplateVariantTest extends FunctionalTestBase {
         'expression' => 'ℹ︎string␟value',
       ];
     };
-    $pageTemplate = PageTemplate::create([
+    $pageRegion = PageRegion::create([
       'theme' => $this->defaultTheme,
-      'component_trees' => [
-        'sidebar_first' => NULL,
-        'sidebar_second' => NULL,
-        'content' => [
-          'tree' => self::encodeXBData([
-            ComponentTreeStructure::ROOT_UUID => [
-              [
-                'uuid' => 'uuid-in-root',
-                'component' => 'sdc.xb_test_sdc.props-no-slots',
-              ],
-              ['uuid' => 'uuid-main', 'component' => 'block.system_main_block'],
-              ['uuid' => 'uuid-local-actions', 'component' => 'block.local_actions_block'],
-              ['uuid' => 'uuid-inaccessible', 'component' => 'block.user_login_block'],
-              ['uuid' => 'uuid-title', 'component' => 'block.page_title_block'],
-              [
-                'uuid' => 'uuid-messages',
-                'component' => 'block.system_messages_block',
-              ],
-              [
-                'uuid' => 'uuid-in-root-another',
-                'component' => 'sdc.xb_test_sdc.props-no-slots',
-              ],
+      'region' => 'sidebar_first',
+      'component_tree' => [
+        'tree' => self::encodeXBData([
+          ComponentTreeStructure::ROOT_UUID => [
+            [
+              'uuid' => 'uuid-in-root',
+              'component' => 'sdc.xb_test_sdc.props-no-slots',
             ],
-          ]),
-          'inputs' => self::encodeXBData([
-            'uuid-in-root' => [
-              'heading' => $generate_static_prop_source('world'),
+            ['uuid' => 'uuid-local-actions', 'component' => 'block.local_actions_block'],
+            ['uuid' => 'uuid-inaccessible', 'component' => 'block.user_login_block'],
+            ['uuid' => 'uuid-title', 'component' => 'block.page_title_block'],
+            [
+              'uuid' => 'uuid-messages',
+              'component' => 'block.system_messages_block',
             ],
-            'uuid-in-root-another' => [
-              'heading' => $generate_static_prop_source('another world'),
+            [
+              'uuid' => 'uuid-in-root-another',
+              'component' => 'sdc.xb_test_sdc.props-no-slots',
             ],
-            // Note how there is no input for the user login block, the main
-            // content block, but there is for all others.
-            // @see \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\BlockComponent::getExplicitInput()
-            'uuid-local-actions' => [
-              'label' => '',
-              'label_display' => FALSE,
-            ],
-            'uuid-title' => [
-              'label' => '',
-              'label_display' => FALSE,
-            ],
-            'uuid-messages' => [
-              'label' => '',
-              'label_display' => FALSE,
-            ],
-          ]),
-        ],
-        'header' => NULL,
-        'primary_menu' => NULL,
-        'secondary_menu' => NULL,
-        'footer' => NULL,
-        'highlighted' => NULL,
-        'help' => NULL,
-        'page_top' => NULL,
-        'page_bottom' => NULL,
-        'breadcrumb' => NULL,
-      ],
-      'editable' => [
-        'sidebar_first' => FALSE,
-        'sidebar_second' => FALSE,
-        'content' => TRUE,
-        'header' => FALSE,
-        'primary_menu' => FALSE,
-        'secondary_menu' => FALSE,
-        'footer' => FALSE,
-        'highlighted' => FALSE,
-        'help' => FALSE,
-        'page_top' => FALSE,
-        'page_bottom' => FALSE,
-        'breadcrumb' => FALSE,
+          ],
+        ]),
+        'inputs' => self::encodeXBData([
+          'uuid-in-root' => [
+            'heading' => $generate_static_prop_source('world'),
+          ],
+          'uuid-in-root-another' => [
+            'heading' => $generate_static_prop_source('another world'),
+          ],
+          // Note how there is no input for the user login block, the main
+          // content block, but there is for all others.
+          // @see \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\BlockComponent::getExplicitInput()
+          'uuid-local-actions' => [
+            'label' => '',
+            'label_display' => FALSE,
+          ],
+          'uuid-title' => [
+            'label' => '',
+            'label_display' => FALSE,
+          ],
+          'uuid-messages' => [
+            'label' => '',
+            'label_display' => FALSE,
+          ],
+        ]),
       ],
     ]);
-    $pageTemplate->save();
+    $pageRegion->save();
     // ⚠️ In the future, we may want to reduce the number of cache tags and rely
-    // solely on the XB PageTemplate config entity's cache tag. That would
+    // solely on the XB PageRegion config entity's list cache tag. That would
     // require intersecting every XB Component config entity cache tag
     // invalidation against all XB PageTemplate config entities that depend
     // it, and then invalidating *those* cache tags. Since the number of
-    // PageTemplate config entities is small (one per installed front-end theme)
+    // PageRegion config entities is relatively small (one per region per theme)
     // this should be totally plausible. FOR NOW THIS WOULD BE PREMATURE
     // OPTIMIZATION.
-    $this->assertPageDisplayVariant(PageTemplateDisplayVariant::class, Component::loadMultiple([
+    $this->assertPageDisplayVariant(XbPageVariant::class, Component::loadMultiple([
       'block.page_title_block',
       'block.local_actions_block',
-      'block.system_main_block',
       'block.system_messages_block',
       'block.user_login_block',
       'sdc.xb_test_sdc.props-no-slots',
     ]), [], ['route']);
     $this->assertSame([
-      'uuid-main',
       'uuid-title',
     ], $this->getRenderedBlockIds());
 
-    // 6. If the Experience Builder PageTemplate config entity is disabled,
+    // 6. If all Experience Builder PageRegion config entities are disabled,
     // BlockPageVariant is used once again.
-    $pageTemplate->disable()->save();
+    $pageRegion->disable()->save();
     $this->assertPageDisplayVariant(BlockPageVariant::class, [$block]);
     $this->assertSame([$block->id()], $this->getRenderedBlockIds());
   }
@@ -216,11 +188,11 @@ class PageTemplateVariantTest extends FunctionalTestBase {
         ...$expected_dependency_cacheability->getCacheTags(),
         ...$expected_additional_cache_tags,
       ],
-      // The `config:experience_builder.page_template.stark` cache tag appears
-      // on top of the baseline.
-      PageTemplateDisplayVariant::class => [
+      // The `config:experience_builder.page_region.stark.sidebar_first` cache tag
+      // appears on top of the baseline.
+      XbPageVariant::class => [
         ...$expected_baseline_cache_tags,
-        'config:experience_builder.page_template.stark',
+        'config:experience_builder.page_region.stark.sidebar_first',
         ...$expected_dependency_cacheability->getCacheTags(),
         ...$expected_additional_cache_tags,
       ],

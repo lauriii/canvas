@@ -5,9 +5,9 @@ namespace Drupal\experience_builder\EventSubscriber;
 use Drupal\Core\Render\PageDisplayVariantSelectionEvent;
 use Drupal\Core\Render\RenderEvents;
 use Drupal\experience_builder\AutoSave\AutoSaveManager;
-use Drupal\experience_builder\Entity\PageTemplate;
+use Drupal\experience_builder\Entity\PageRegion;
 use Drupal\experience_builder\Exception\ConstraintViolationException;
-use Drupal\experience_builder\Plugin\DisplayVariant\PageTemplateDisplayVariant;
+use Drupal\experience_builder\Plugin\DisplayVariant\XbPageVariant;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
 /**
@@ -22,36 +22,40 @@ final class RenderEventsSubscriber implements EventSubscriberInterface {
   ) {}
 
   /**
-   * Selects the Experience Builder PageTemplate page display variant.
+   * Selects the Experience Builder page display variant.
    *
    * @param \Drupal\Core\Render\PageDisplayVariantSelectionEvent $event
    *   The event to process.
    *
-   * @see \Drupal\experience_builder\Plugin\DisplayVariant\PageTemplateDisplayVariant
+   * @see \Drupal\experience_builder\Plugin\DisplayVariant\XbPageVariant
    */
   public function onSelectPageDisplayVariant(PageDisplayVariantSelectionEvent $event): void {
-    $page_template = PageTemplate::forActiveTheme();
-    if (!$page_template) {
-      // No active page template for this theme.
+    $regions = PageRegion::loadForActiveTheme();
+    if (empty($regions)) {
+      // No active page regions for this theme.
       return;
     }
 
     // If we're previewing a page, see if we have an auto-save version to use.
     $preview = $event->getRouteMatch()->getRouteObject()?->getOption('_xb_use_template_draft');
-    if ($preview && $autoSaveData = $this->autoSaveManager->getAutoSaveData($page_template)->data) {
-      // Generate a new template based on the auto-saved data.
-      try {
-        $page_template = $page_template->forAutoSaveData($autoSaveData)->enable();
-      }
-      catch (ConstraintViolationException) {
-        // The autosave entry is invalid, we don't use it and instead fallback
-        // to the saved version.
+    if ($preview) {
+      foreach ($regions as &$region) {
+        $autoSaveData = $this->autoSaveManager->getAutoSaveData($region)->data;
+        if ($autoSaveData) {
+          try {
+            $region = $region->forAutoSaveData($autoSaveData);
+          }
+          catch (ConstraintViolationException) {
+            // The autosave entry is invalid, we don't use it and instead fallback
+            // to the saved version.
+          }
+        }
       }
     }
 
-    $event->setPluginId('experience_builder_page_template_display');
+    $event->setPluginId(XbPageVariant::PLUGIN_ID);
     $event->setPluginConfiguration([
-      PageTemplateDisplayVariant::PAGE_TEMPLATE_CONFIG_ENTITY_KEY => $page_template,
+      XbPageVariant::REGION_CONFIG_ENTITIES_KEY => $regions,
     ]);
   }
 

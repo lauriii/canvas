@@ -148,9 +148,6 @@ class ComponentTreeItemTest extends KernelTestBase {
     $test_cases = static::getValidTreeTestCases();
     array_walk($test_cases, fn(array &$test_case) => $test_case[] = []);
     $test_cases = array_merge($test_cases, static::getInvalidTreeTestCases());
-    $test_cases['invalid tree: the main content block is only allowed in PageTemplate'][] = [
-      'field_xb_test.0' => "The 'Drupal\Core\Block\MainContentBlockPluginInterface' component interface must be absent.",
-    ];
     $test_cases['invalid values using dynamic inputs'][] = [
       'field_xb_test.0' => "The 'dynamic' prop source type must be absent.",
     ];

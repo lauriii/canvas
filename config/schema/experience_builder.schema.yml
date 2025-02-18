@@ -162,29 +162,41 @@ experience_builder.js_component.*:
       type: experience_builder.compilable_code
       label: 'CSS'
 
-# At most a single entity of this type is allowed to exist. If it exists, it *replaces* the theme's `page.html.twig`.
-experience_builder.global_page_template.*:
+experience_builder.page_region.*:
   type: config_entity
   constraints:
     FullyValidatable: ~
   mapping:
-    # A single component tree.
-    component_tree:
-      # @todo This MUST contain a single XB Component that points to the title block, main content block and messages block
-      # @see \Drupal\Core\Block\MainContentBlockPluginInterface
-      # @see \Drupal\Core\Block\TitleBlockPluginInterface
-      # @see \Drupal\Core\Block\MessagesBlockPluginInterface
-      # @todo Blocked on Blocks-as-XB-Components: https://www.drupal.org/project/experience_builder/issues/3475584
-      type: experience_builder.component_tree
-      label: 'The component tree that represents the default page'
-
-# Otherwise, an Experience Builder Page Template can be created per installed theme, and stores component trees for each
-# region in a theme's `page.html.twig`.
-experience_builder.page_template.*:
-  type: config_entity
-  constraints:
-    FullyValidatable: ~
-  mapping:
+    status:
+      label: 'Editable'
+    id:
+      # This ID intentionally does not use `type: machine_name`, because it is a composite ID that is better validated
+      # using the `StringParts` constraint than the `RegEx` constraint.
+      type: string
+      label: 'ID'
+      constraints:
+        StringParts:
+          separator: .
+          reservedCharacters: []
+          parts:
+            - '%parent.theme'
+            - '%parent.region'
+        Length:
+          # @see \Drupal\Core\Config\Entity\ConfigEntityStorage::MAX_ID_LENGTH
+          max: 166
+    region:
+      type: string
+      label: 'Theme region'
+      constraints:
+        # @see https://www.drupal.org/docs/develop/theming-drupal/adding-regions-to-a-theme#s-adding-regions-to-your-info-file
+        Regex: '/^[a-z]+[a-z0-9_]+$/'
+        Length:
+          max: 64
+        ThemeRegionExists: '%parent.theme'
+        # @see \Drupal\experience_builder\Plugin\DisplayVariant\XbPageVariant::MAIN_CONTENT_REGION
+        NotEqualTo:
+          value: 'content'
+          message: 'The "content" region must always render the main content (returned by the controller of the matched route) and hence cannot contain a component tree.'
     # Regions are theme-specific.
     theme:
       type: string
@@ -193,48 +205,25 @@ experience_builder.page_template.*:
         NotBlank: [ ]
         ExtensionName: [ ]
         ExtensionExists: theme
-    # There must be a component tree (or null) specified for each region in this theme.
-    component_trees:
-      type: sequence
-      orderby: key
+    component_tree:
+      type: experience_builder.component_tree
       constraints:
-        # Each theme has a different set of regions. For an XB Page Template to be complete and considered valid, every
-        # region must be explicitly present.
-        KeyForEveryThemeRegion: "%parent.theme"
         ComponentTreeMeetRequirements:
-          nested: true
-          # Only StaticPropSources may be used, because the Page Template cannot rely on an entity of a particular type
+          # Only StaticPropSources may be used, because the Page Region cannot rely on an entity of a particular type
           # and bundle to be present on every route.
           inputs:
             absence:
               - dynamic
               - adapter
             presence: ~
-          # Somewhere in one one the component trees, 3 block plugins MUST be present, because they are essential.
-          # @see \Drupal\experience_builder\Plugin\DisplayVariant\PageTemplateDisplayVariant
           tree:
             absence: ~
-            presence:
-              # In core: `block.system_main_block`. Contrib/custom modules may add additional implementations.
-              - Drupal\Core\Block\MainContentBlockPluginInterface
-              # In core: `block.system_messages_block`. Contrib/custom modules may add additional implementations.
-              - Drupal\Core\Block\MessagesBlockPluginInterface
+            presence: ~
       sequence:
         # A region that is left empty may be `null`.
         nullable: true
         # All non-empty regions must have a component tree defined.
         type: experience_builder.component_tree
-    # There must be an editable flag for each region in this theme.
-    editable:
-      type: sequence
-      orderby: key
-      constraints:
-        # Each theme has a different set of regions. For an XB Page Template to be complete and considered valid, every
-        # region must be explicitly present.
-        KeyForEveryThemeRegion: "%parent.theme"
-        # @todo Add validation constraint that ensures that the `content` region is set to `true`.
-      sequence:
-        type: boolean
 
 # The config equivalent of a ComponentTreeItem, validated by the same constraint.
 # @todo Use this in https://www.drupal.org/project/experience_builder/issues/3455629
@@ -414,7 +403,6 @@ field.value.component_tree:
         presence: ~
       tree:
         absence:
-          - Drupal\Core\Block\MainContentBlockPluginInterface
           - Drupal\Core\Block\TitleBlockPluginInterface
           - Drupal\Core\Block\MessagesBlockPluginInterface
         presence: ~
@@ -449,11 +437,10 @@ experience_builder.pattern.*:
             presence: ~
           tree:
             absence:
-              # Components implementing either of these 3 interfaces are only
-              # allowed to live at the PageTemplate level.
-              # @see \Drupal\experience_builder\Entity\PageTemplate
-              # @see `type: experience_builder.page_template.*`
-              - Drupal\Core\Block\MainContentBlockPluginInterface
+              # Components implementing either of these 2 interfaces are only
+              # allowed to live at the PageRegion level.
+              # @see \Drupal\experience_builder\Entity\PageRegion
+              # @see `type: experience_builder.page_region.*`
               - Drupal\Core\Block\TitleBlockPluginInterface
               - Drupal\Core\Block\MessagesBlockPluginInterface
             presence: ~

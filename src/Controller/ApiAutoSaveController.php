@@ -16,9 +16,10 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\experience_builder\AutoSave\AutoSaveManager;
 use Drupal\experience_builder\ClientDataToEntityConverter;
 use Drupal\experience_builder\Entity\EntityConstraintViolationList;
-use Drupal\experience_builder\Entity\PageTemplate;
+use Drupal\experience_builder\Entity\PageRegion;
 use Drupal\experience_builder\Entity\XbHttpApiEligibleConfigEntityInterface;
 use Drupal\experience_builder\Exception\ConstraintViolationException;
+use Drupal\experience_builder\Plugin\DisplayVariant\XbPageVariant;
 use Drupal\image\Entity\ImageStyle;
 use Drupal\user\UserInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -163,10 +164,10 @@ final class ApiAutoSaveController extends ApiControllerBase {
         ->load($auto_save['entity_id']);
 
       try {
-        if ($entity instanceof PageTemplate) {
+        if ($entity instanceof PageRegion) {
           $entity = $entity->forAutoSaveData($auto_save['data']);
           $entity->enforceIsNew(FALSE);
-          $this->validatePageTemplate($entity);
+          $this->validatePageRegion($entity);
         }
         elseif ($entity instanceof XbHttpApiEligibleConfigEntityInterface) {
           $original_entity = clone $entity;
@@ -182,7 +183,7 @@ final class ApiAutoSaveController extends ApiControllerBase {
         else {
           assert($entity instanceof FieldableEntityInterface);
           // Pluck out only the content region.
-          $content_region = \array_values(\array_filter($auto_save['data']['layout'], static fn(array $region) => $region['id'] === 'content'));
+          $content_region = \array_values(\array_filter($auto_save['data']['layout'], static fn(array $region) => $region['id'] === XbPageVariant::MAIN_CONTENT_REGION));
           $this->clientDataToEntityConverter->convert([
             'layout' => reset($content_region),
             'model' => $auto_save['data']['model'],
@@ -233,7 +234,7 @@ final class ApiAutoSaveController extends ApiControllerBase {
     return $imageStyle->buildUrl($uri);
   }
 
-  private function validatePageTemplate(PageTemplate $entity): void {
+  private function validatePageRegion(PageRegion $entity): void {
     // @todo Use a violation list that allows keeping track of the entity
     // context.
     // @see https://www.drupal.org/project/drupal/issues/3495599

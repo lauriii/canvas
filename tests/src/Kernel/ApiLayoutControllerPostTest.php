@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\experience_builder\Kernel;
 
-use Drupal\experience_builder\Entity\PageTemplate;
+use Drupal\experience_builder\Entity\PageRegion;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\Tests\experience_builder\TestSite\XBTestSetup;
 use Drupal\Tests\user\Traits\UserCreationTrait;
@@ -145,8 +145,10 @@ final class ApiLayoutControllerPostTest extends KernelTestBase {
   }
 
   public function testWithGlobal(): void {
-    $template = PageTemplate::createFromBlockLayout('stark');
-    $template->enable()->save();
+    $regions = PageRegion::createFromBlockLayout('stark');
+    foreach ($regions as $region) {
+      $region->save();
+    }
 
     // Load the test data from the layout controller.
     $content = $this->parentRequest(Request::create('/xb/api/layout/node/1'))->getContent();

@@ -15,9 +15,10 @@ use Drupal\experience_builder\AutoSave\AutoSaveManager;
 use Drupal\experience_builder\ClientDataToEntityConverter;
 use Drupal\experience_builder\ComponentSource\ComponentSourceInterface;
 use Drupal\experience_builder\Entity\Component;
-use Drupal\experience_builder\Entity\PageTemplate;
+use Drupal\experience_builder\Entity\PageRegion;
 use Drupal\experience_builder\InternalXbFieldNameResolver;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
+use Drupal\experience_builder\Plugin\DisplayVariant\XbPageVariant;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\experience_builder\Render\PreviewEnvelope;
 use GuzzleHttp\Psr7\Query;
@@ -32,6 +33,7 @@ final class ApiLayoutController {
   use EntityFormTrait;
 
   private array $regions;
+  private array $regionsClientSideIds;
 
   public function __construct(
     private readonly AutoSaveManager $autoSaveManager,
@@ -39,15 +41,30 @@ final class ApiLayoutController {
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly FormBuilderInterface $formBuilder,
     private readonly ClientDataToEntityConverter $converter,
-  ) {}
+  ) {
+    $theme = $this->themeManager->getActiveTheme()->getName();
+    $theme_regions = system_region_list($theme);
+
+    // The PageRegion config entities get a corresponding `nodeType: region` in
+    // the client-side representation. Their IDs match that of the server-side
+    // PageRegion config entities. With the exception of the special-cased
+    // `content` region, because that is the only region guaranteed to exist
+    // across all themes, and for which no PageRegion config entity is allowed
+    // to exist.
+    // @see \Drupal\system\Controller\SystemController::themesPage()
+    $server_side_ids = array_map(
+      fn (string $region_name): string => $region_name === XbPageVariant::MAIN_CONTENT_REGION
+        ? XbPageVariant::MAIN_CONTENT_REGION
+        : "$theme.$region_name",
+      array_keys($theme_regions)
+    );
+    $this->regionsClientSideIds = array_combine($server_side_ids, array_keys($theme_regions));
+    $this->regions = array_combine($server_side_ids, $theme_regions);
+    assert(array_key_exists(XbPageVariant::MAIN_CONTENT_REGION, $this->regions));
+  }
 
   public function get(FieldableEntityInterface $entity): JsonResponse {
-    $template = PageTemplate::forActiveTheme();
-    $theme = $this->themeManager->getActiveTheme()->getName();
-    $this->regions = system_region_list($theme);
-
-    // Ensure the Content region always exists.
-    $this->regions['content'] ??= t('Content');
+    $regions = PageRegion::loadForActiveTheme();
 
     if ($body = $this->autoSaveManager->getAutoSaveData($entity)->data) {
       ['layout' => $layout, 'model' => $model, 'entity_form_fields' => $entity_form_fields] = $body;
@@ -59,15 +76,15 @@ final class ApiLayoutController {
       $field_name = InternalXbFieldNameResolver::getXbFieldName($entity);
       $tree = $entity->get($field_name)->first();
       assert($tree instanceof ComponentTreeItem);
-      $layout = [$this->buildRegion('content', $tree, $model)];
+      $layout = [$this->buildRegion(XbPageVariant::MAIN_CONTENT_REGION, $tree, $model)];
     }
 
-    if ($template) {
-      $this->addGlobalRegions($template, $model, $layout);
+    if ($regions) {
+      $this->addGlobalRegions($regions, $model, $layout);
       $layout_keyed_by_region = array_combine(array_map(static fn($region) => $region['id'], $layout), $layout);
       // Reorder the layout to match theme order.
       $layout = array_values(array_replace(
-        array_intersect_key($this->regions, $layout_keyed_by_region),
+        array_intersect_key(array_flip($this->regionsClientSideIds), $layout_keyed_by_region),
         $layout_keyed_by_region
       ));
     }
@@ -103,7 +120,7 @@ final class ApiLayoutController {
 
     return [
       'nodeType' => 'region',
-      'id' => $id,
+      'id' => $this->regionsClientSideIds[$id],
       'name' => $this->regions[$id],
       'components' => $components,
     ];
@@ -189,46 +206,28 @@ final class ApiLayoutController {
     return $values;
   }
 
-  private function addGlobalRegions(PageTemplate $template, array &$model, array &$layout): void {
-    $active_component_trees = iterator_to_array($template->getComponentTrees());
+  private function addGlobalRegions(array $regions, array &$model, array &$layout): void {
     // Only expose regions marked as editable in the `layout` for the client.
-    $editable_regions = $template->getEditableRegions();
-
-    $draft_template = $this->autoSaveManager->getAutoSaveData($template)->data;
-    if ($draft_template === NULL) {
-      foreach ($editable_regions as $region) {
-        if ($region === 'content') {
-          continue;
-        }
-        $layout[] = $this->buildRegion($region, $active_component_trees[$region] ?? NULL, $model);
+    foreach ($regions as $id => $region) {
+      assert($region instanceof PageRegion);
+      assert($region->status() === TRUE);
+      // Use auto-save data for each PageRegion config entity if available.
+      if ($draft_region = $this->autoSaveManager->getAutoSaveData($region)->data) {
+        $layout[] = [
+          'nodeType' => 'region',
+          'id' => $this->regionsClientSideIds[$id],
+          'name' => $this->regions[$id],
+          'components' => $draft_region['layout'],
+        ];
+        $model += $draft_region['model'];
       }
-      return;
-    }
-
-    // An auto-save may have occurred when a region was either editable or not,
-    // and that may now have changed. Make sure it always matches the currently
-    // editable regions.
-    $draft_layout_region_nodes = array_filter($draft_template['layout'], fn (array $layout_node): bool => $layout_node['nodeType'] === 'region');
-    $autosaved_regions = array_column($draft_layout_region_nodes, 'id');
-    $missing_regions_in_auto_save = array_diff($editable_regions, $autosaved_regions);
-    foreach ($missing_regions_in_auto_save as $region) {
-      if ($region === 'content') {
-        continue;
-      }
-      $layout[] = $this->buildRegion($region, $active_component_trees[$region] ?? NULL, $model);
-    }
-    $extraneous_regions_in_auto_save = array_diff($autosaved_regions, $editable_regions);
-    foreach ($extraneous_regions_in_auto_save as $region) {
-      foreach ($draft_template['layout'] as $index => $region_node) {
-        if ($region_node['id'] === $region) {
-          unset($draft_template['layout'][$index]);
-          // @todo In principle, $model should be updated too, to omit inputs for components in the omitted regions. There's no consequences yet for not doing that though.
-        }
+      // Otherwise fall back to the currently live PageRegion config entity.
+      // (Note: this automatically ignores auto-saves for PageRegions that were
+      // editable at the time, but no longer are.)
+      else {
+        $layout[] = $this->buildRegion($id, $region->getComponentTree(), $model);
       }
     }
-
-    $layout = \array_merge($layout, $draft_template['layout']);
-    $model += $draft_template['model'];
   }
 
   /**
@@ -251,9 +250,6 @@ final class ApiLayoutController {
       'model' => $model,
     ] = $body;
 
-    $theme = $this->themeManager->getActiveTheme()->getName();
-    $this->regions = system_region_list($theme);
-
     $data = $this->autoSaveManager->getAutoSaveData($entity)->data;
     if ($data === NULL) {
       // There are no changes (everything is published), read back the original
@@ -264,7 +260,7 @@ final class ApiLayoutController {
       $field_name = InternalXbFieldNameResolver::getXbFieldName($entity);
       $tree = $entity->get($field_name)->first();
       assert($tree instanceof ComponentTreeItem);
-      $data['layout'] = [$this->buildRegion('content', $tree, $data['model'])];
+      $data['layout'] = [$this->buildRegion(XbPageVariant::MAIN_CONTENT_REGION, $tree, $data['model'])];
     }
     if (!\array_key_exists('model', $data)) {
       throw new NotFoundHttpException('Missing model');
@@ -280,13 +276,13 @@ final class ApiLayoutController {
     \assert($entity instanceof FieldableEntityInterface);
 
     $data['model'][$componentInstanceUuid] = $model;
-    $template = PageTemplate::forActiveTheme();
-    if ($template) {
-      $this->addGlobalRegions($template, $model, $data['layout']);
+    $regions = PageRegion::loadForActiveTheme();
+    if (!empty($regions)) {
+      $this->addGlobalRegions($regions, $data['model'], $data['layout']);
       $layout_keyed_by_region = array_combine(array_map(static fn($region) => $region['id'], $data['layout']), $data['layout']);
       // Reorder the layout to match theme order.
       $data['layout'] = array_values(array_replace(
-        array_intersect_key($this->regions, $layout_keyed_by_region),
+        array_intersect_key(array_flip($this->regionsClientSideIds), $layout_keyed_by_region),
         $layout_keyed_by_region
       ));
     }
@@ -309,28 +305,31 @@ final class ApiLayoutController {
   private function buildPreviewRenderable(array $body, EntityInterface $entity): array {
     ['layout' => $layout, 'model' => $model] = $body;
 
-    // Save the content region.
-    // @todo Store model values for content vs global regions only with their
-    // respective entities.
-    // @see https://www.drupal.org/project/experience_builder/issues/3495598
-    foreach ($layout as $key => $region) {
-      if ($region['id'] === 'content') {
+    $page_regions = PageRegion::loadForActiveTheme();
+    $page_regions = array_combine(
+      array_map(fn (PageRegion $r) => $r->get('region'), $page_regions),
+      $page_regions,
+    );
+    foreach ($layout as $region_node) {
+      $client_side_region_id = $region_node['id'];
+      // Save the content region.
+      if ($client_side_region_id === XbPageVariant::MAIN_CONTENT_REGION) {
         $this->autoSaveManager->save($entity, [
-          'layout' => [$region],
+          'layout' => [$region_node],
           'model' => $model,
           'entity_form_fields' => $body['entity_form_fields'],
         ]);
-        $content = $region;
-        unset($layout[$key]);
+        $content = $region_node;
       }
-    }
-
-    // Save the global regions if the page template is active.
-    if ($template = PageTemplate::forActiveTheme()) {
-      $this->autoSaveManager->save($template, [
-        'layout' => \array_values($layout),
-        'model' => $model,
-      ]);
+      // Save the global region if it has a corresponding enabled PageRegion.
+      elseif (array_key_exists($client_side_region_id, $page_regions)) {
+        $page_region = $page_regions[$client_side_region_id];
+        $this->autoSaveManager->save($page_region, [
+          'layout' => $region_node['components'],
+          // @todo In principle, $model should be updated too, to omit inputs for components in other regions.
+          'model' => $model,
+        ]);
+      }
     }
 
     assert(isset($content));

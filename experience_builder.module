@@ -13,6 +13,7 @@ ini_set('assert.active', 1);
 use Drupal\Component\Serialization\Json;
 use Drupal\Core\Block\BlockManagerInterface;
 use Drupal\Core\Block\BlockPluginInterface;
+use Drupal\Core\Block\MainContentBlockPluginInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Entity\TypedData\EntityDataDefinition;
 use Drupal\Core\EventSubscriber\AjaxResponseSubscriber;
@@ -25,9 +26,10 @@ use Drupal\experience_builder\Entity\AssetLibrary;
 use Drupal\experience_builder\Entity\Component;
 use Drupal\experience_builder\Entity\JavaScriptComponent;
 use Drupal\experience_builder\Form\FormIdPreRender;
-use Drupal\experience_builder\Entity\PageTemplate;
+use Drupal\experience_builder\Entity\PageRegion;
 use Drupal\experience_builder\Plugin\ComponentPluginManager;
 use Drupal\Core\Validation\Plugin\Validation\Constraint\FullyValidatableConstraint;
+use Drupal\experience_builder\Plugin\DisplayVariant\XbPageVariant;
 use Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\BlockComponent;
 use Drupal\experience_builder\PropExpressions\StructuredData\FieldPropExpression;
 use Drupal\experience_builder\PropExpressions\StructuredData\FieldTypeObjectPropsExpression;
@@ -233,6 +235,11 @@ function experience_builder_block_alter(array &$definitions): void {
       // @todo is this a not going to become performance bottle neck on BlockPlugin heavy sites?
       $block = \Drupal::service('plugin.manager.block')->createInstance($id);
       assert($block instanceof BlockPluginInterface);
+      // The main content is rendered in a fixed position.
+      // @see \Drupal\experience_builder\Plugin\DisplayVariant\XbPageVariant::build()
+      if ($block instanceof MainContentBlockPluginInterface) {
+        continue;
+      }
       $settings = $block->defaultConfiguration();
       $data_definition = \Drupal::service('config.typed')->createFromNameAndData('block.settings.' . $id, $settings);
       // We currently support only block plugins with no settings, or if they do
@@ -355,9 +362,8 @@ function experience_builder_form_system_theme_settings_alter(array &$form, FormS
   }
 
   $theme = $form_state->getBuildInfo()['args'][0];
-  $page_template = PageTemplate::load($theme);
-  $enabled = $page_template && $page_template->status();
-
+  $page_regions = PageRegion::loadForTheme($theme);
+  $enabled = !empty($page_regions);
   $form['experience_builder'] = [
     '#type' => 'details',
     '#title' => t('Experience Builder'),
@@ -369,50 +375,76 @@ function experience_builder_form_system_theme_settings_alter(array &$form, FormS
     '#title' => t('Use Experience Builder for page templates in this theme.'),
     '#default_value' => $enabled,
   ];
-  $regions = system_region_list($theme);
+  $possible_page_region_ids = array_combine(
+    array_map(
+      fn (string $region_name): string => "$theme.$region_name",
+      array_keys(system_region_list($theme)),
+    ),
+    system_region_list($theme),
+  );
   $form['experience_builder']['editable'] = [
     '#type' => 'checkboxes',
     '#title' => t('Exposed regions'),
-    '#options' => $regions,
+    '#options' => $possible_page_region_ids,
     '#states' => [
       'visible' => [
         ':input[name="use_xb"]' => ['checked' => TRUE],
       ],
     ],
-    '#default_value' => $page_template
-      ? $page_template->getEditableRegions()
-      : array_keys($regions),
+    '#default_value' => !empty($page_regions)
+      ? array_keys($page_regions)
+      : array_keys($possible_page_region_ids),
   ];
-  // The `content` region is a special case:
-  // - it's the only region guaranteed to exist in every theme
-  // - Experience Builder's UI does not allow adding component instances to it;
-  //   it is always treated as only containing the main content block.
-  // @see \Drupal\Core\Block\MainContentBlockPluginInterface
-  $form['experience_builder']['editable']['content'] = ['#disabled' => TRUE];
+  // The `content` region is a special case.
+  // @see \Drupal\experience_builder\Plugin\DisplayVariant\XbPageVariant::MAIN_CONTENT_REGION
+  $form['experience_builder']['editable'][$theme . '.' . XbPageVariant::MAIN_CONTENT_REGION] = ['#disabled' => TRUE];
   $form['experience_builder']['editable']['#description'] = t('Checked regions can be modified via Experience Builder. The <q>Content</q> region contains "the main content" on any route and cannot be modified further.');
 
+  array_unshift($form['#validate'], 'experience_builder_form_system_theme_settings_validate');
   array_unshift($form['#submit'], 'experience_builder_form_system_theme_settings_submit');
+}
+
+function experience_builder_form_system_theme_settings_validate(array &$form, FormStateInterface $form_state): void {
+  $enable = $form_state->getValue('use_xb');
+  $editable = $form_state->getValue('editable');
+  if ($enable && empty(array_filter($editable))) {
+    $form_state->setErrorByName('editable', t('At least one region must be enabled for Experience Builder to use Experience Builder for page templates in this theme.'));
+  }
 }
 
 function experience_builder_form_system_theme_settings_submit(array &$form, FormStateInterface $form_state): void {
   $theme = $form_state->getBuildInfo()['args'][0];
-  $page_template = PageTemplate::load($theme);
   $enable = $form_state->getValue('use_xb');
   $editable = $form_state->getValue('editable');
-
+  $existing_page_regions = PageRegion::loadForTheme($theme, TRUE);
   if ($enable) {
-    $page_template ??= PageTemplate::createFromBlockLayout($theme);
-    $page_template->enable()
-      ->set('editable',
-        // Checked checkboxes (even if disabled) get their (string) names.
-        array_fill_keys(array_keys(array_filter($editable)), TRUE) +
-        // Unchecked checkboxes get an integer zero.
-        array_fill_keys(array_keys(array_filter($editable, fn ($v) => $v === 0)), FALSE)
-      )
-      ->save();
+    // When enabling: ensure every theme region gets a PageRegion config entity.
+    $page_regions_generated_from_block_layout = PageRegion::createFromBlockLayout($theme);
+    foreach ($editable as $key => $value) {
+      // The `content` region never gets a PageRegion config entity.
+      if ($key === $theme . '.' . XbPageVariant::MAIN_CONTENT_REGION) {
+        continue;
+      }
+
+      // Update existing PageRegion config entity's if it exists: mark editable
+      // or not based on the checkbox value.
+      if (array_key_exists($key, $existing_page_regions)) {
+        $existing_page_regions[$key]->setStatus((bool) $value)->save();
+        continue;
+      }
+
+      // Otherwise, create a PageRegion config, but only for editable regions.
+      if ($value) {
+        $page_regions_generated_from_block_layout[$key]->enable()->save();
+      }
+    }
   }
-  elseif ($page_template) {
-    $page_template->disable()->save();
+  else {
+    // When disabling: of the PageRegion config entities that exist, disable the
+    // ones that are enabled (aka "editable").
+    foreach ($existing_page_regions as $region) {
+      $region->disable()->save();
+    }
   }
 
   // Avoid polluting the theme settings config entity.

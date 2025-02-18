@@ -18,7 +18,7 @@ use Symfony\Component\Validator\Exception\UnexpectedValueException;
 /**
  * @internal
  */
-final class ThemeRegionKeysConstraintValidator extends ConstraintValidator implements ContainerInjectionInterface {
+final class ThemeRegionExistsConstraintValidator extends ConstraintValidator implements ContainerInjectionInterface {
 
   public function __construct(
     private readonly ThemeExtensionList $themeExtensionList,
@@ -41,16 +41,16 @@ final class ThemeRegionKeysConstraintValidator extends ConstraintValidator imple
    * @throws \Symfony\Component\Validator\Exception\UnexpectedTypeException
    *   Thrown when the given constraint is not supported by this validator.
    */
-  public function validate(mixed $sequence, Constraint $constraint): void {
-    if (!$constraint instanceof ThemeRegionKeysConstraint) {
-      throw new UnexpectedTypeException($constraint, ThemeRegionKeysConstraint::class);
+  public function validate(mixed $region, Constraint $constraint): void {
+    if (!$constraint instanceof ThemeRegionExistsConstraint) {
+      throw new UnexpectedTypeException($constraint, ThemeRegionExistsConstraint::class);
     }
 
-    if ($sequence === NULL) {
+    if ($region === NULL) {
       return;
     }
-    elseif (!is_array($sequence)) {
-      throw new UnexpectedValueException($sequence, 'sequence');
+    elseif (!is_string($region)) {
+      throw new UnexpectedValueException($region, 'string');
     }
 
     // Resolve any dynamic tokens, like %parent, in the specified theme.
@@ -65,24 +65,13 @@ final class ThemeRegionKeysConstraintValidator extends ConstraintValidator imple
       return;
     }
     $active_theme = $this->themeInitialization->getActiveTheme($theme);
-    $expected_keys = $active_theme->getRegions();
+    $valid_regions = $active_theme->getRegions();
 
-    foreach ($expected_keys as $expected_key) {
-      if (!array_key_exists($expected_key, $sequence)) {
-        $this->context->buildViolation($constraint->missingRequiredKeyMessage)
-          // @todo ActiveTheme provides no way to get the region label! 😬
-          ->setParameter('%key_label', $expected_key)
-          ->setParameter('%key', $expected_key)
-          ->addViolation();
-      }
-    }
-
-    $invalid_keys = array_diff(array_keys($sequence), $expected_keys);
-    foreach ($invalid_keys as $key) {
-      $this->context->buildViolation($constraint->invalidKeyMessage)
-        ->setParameter('%key', $key)
-        ->atPath((string) $key)
-        ->setInvalidValue($key)
+    if (!in_array($region, $valid_regions, TRUE)) {
+      $this->context->buildViolation($constraint->message)
+        ->setParameter('@region', $region)
+        ->setParameter('@theme', $theme_name)
+        ->setInvalidValue($region)
         ->addViolation();
     }
   }

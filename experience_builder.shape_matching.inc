@@ -24,6 +24,7 @@ use Drupal\experience_builder\Plugin\Field\FieldTypeOverride\UriItemOverride;
 use Drupal\experience_builder\Plugin\Validation\Constraint\StringSemanticsConstraint;
 use Symfony\Component\Validator\Constraints\Hostname;
 use Symfony\Component\Validator\Constraints\Ip;
+use Symfony\Component\Validator\Constraints\NotEqualTo;
 
 /**
  * Implements hook_validation_constraint_alter().
@@ -50,6 +51,14 @@ function experience_builder_validation_constraint_alter(array &$definitions): vo
       'type' => 'string',
       'provider' => 'core',
       'id' => 'Ip',
+    ];
+    // @see `type: experience_builder.page_region.*`
+    $definitions['NotEqualTo'] = [
+      'label' => 'Not equal to',
+      'class' => NotEqualTo::class,
+      'type' => 'string',
+      'provider' => 'core',
+      'id' => 'NotEqualTo',
     ];
   }
 }

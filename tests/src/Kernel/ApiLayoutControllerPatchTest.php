@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Drupal\Tests\experience_builder\Kernel;
 
 use Drupal\Core\File\FileUrlGeneratorInterface;
-use Drupal\experience_builder\Entity\PageTemplate;
+use Drupal\experience_builder\Entity\PageRegion;
 use Drupal\file\FileInterface;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\media\MediaInterface;
@@ -100,8 +100,10 @@ final class ApiLayoutControllerPatchTest extends KernelTestBase {
    */
   public function test(bool $withAutoSave = FALSE, bool $withGlobal = FALSE): void {
     if ($withGlobal) {
-      $template = PageTemplate::createFromBlockLayout('stark');
-      $template->enable()->save();
+      $regions = PageRegion::createFromBlockLayout('stark');
+      foreach ($regions as $region) {
+        $region->save();
+      }
     }
     // Load the test data from the layout controller.
     $content = $this->parentRequest(Request::create('/xb/api/layout/node/1'))->getContent();
@@ -164,14 +166,18 @@ final class ApiLayoutControllerPatchTest extends KernelTestBase {
     self::assertNotEmpty($root);
     $globalElements = [];
     if ($withGlobal) {
+      $sidebar_first = $this->cssSelect('div[data-xb-region][data-xb-uuid="sidebar_first"]');
+      self::assertNotEmpty($sidebar_first);
+      \preg_match_all('/(xb-start-)(.*?)[\/ \t](.*?)(-->)(.*?)/', $sidebar_first[0]->asXML() ?: '', $comments);
+      $globalElements = $comments[2];
       $highlighted = $this->cssSelect('div[data-xb-region][data-xb-uuid="highlighted"]');
       self::assertNotEmpty($highlighted);
       \preg_match_all('/(xb-start-)(.*?)[\/ \t](.*?)(-->)(.*?)/', $highlighted[0]->asXML() ?: '', $comments);
-      $globalElements = $comments[2];
+      $globalElements = [...$globalElements, ...$comments[2]];
     }
     self::assertGreaterThan(0, $root[0]->count());
     \preg_match_all('/(xb-start-)(.*?)[\/ \t](.*?)(-->)(.*?)/', $root[0]->asXML() ?: '', $comments);
-    self::assertCount($withGlobal ? 7 : 6, \array_merge($comments[2], $globalElements));
+    self::assertCount($withGlobal ? 8 : 6, \array_merge($comments[2], $globalElements));
     if ($withGlobal) {
       self::assertSame(\array_keys($model), \array_merge($comments[2], $globalElements));
     }

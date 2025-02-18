@@ -18,10 +18,10 @@ use Symfony\Component\Validator\Exception\MissingOptionsException;
  *
  * Examples:
  * - content entities and ContentTypeTemplate config entities MAY use
- *   DynamicPropSources, but PageTemplate and Pattern config entities MUST NOT
+ *   DynamicPropSources, but PageRegion and Pattern config entities MUST NOT
  * - content entities, ContentTypeTemplate and Pattern config entities MUST NOT
- *   use any "main content", "title" or "messages" blocks, but a PageTemplate
- *   config entity MUST have one of each
+ *   use any "title" or "messages" blocks, but a PageRegion config entity MAY do
+ *   so.
  *
  * Assumes valid component trees.
  *

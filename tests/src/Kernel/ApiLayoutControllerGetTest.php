@@ -7,7 +7,8 @@ namespace Drupal\Tests\experience_builder\Kernel;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\experience_builder\AutoSave\AutoSaveManager;
 use Drupal\experience_builder\Controller\ApiLayoutController;
-use Drupal\experience_builder\Entity\PageTemplate;
+use Drupal\experience_builder\Entity\PageRegion;
+use Drupal\experience_builder\Plugin\DisplayVariant\XbPageVariant;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\node\Entity\Node;
 use Drupal\node\Entity\NodeType;
@@ -36,7 +37,8 @@ class ApiLayoutControllerGetTest extends KernelTestBase {
   }
 
   public function test(): void {
-    // By default, there is only the Content region.
+    // By default, there is only the "content" region in the client-side
+    // representation.
     $this->assertRegions(1);
 
     // Enable Stark and set it as the default theme.
@@ -44,34 +46,35 @@ class ApiLayoutControllerGetTest extends KernelTestBase {
     $this->container->get('theme_installer')->install([$theme]);
     $this->container->get('config.factory')->getEditable('system.theme')->set('default', $theme)->save();
     $this->container->get('theme.manager')->resetActiveTheme();
-    $template = PageTemplate::createFromBlockLayout($theme);
 
-    // Check that all the regions are present.
-    $template->enable()->save();
+    $regions = PageRegion::createFromBlockLayout($theme);
+    // Check that all the theme regions get a corresponding PageRegion config
+    // entity (except the "content" region).
+    $this->assertCount(11, $regions);
+    foreach ($regions as $region) {
+      $region->save();
+    }
+
+    // … but the corresponding client-side representation contains one more (the
+    // "content" region).
     $this->assertRegions(12);
 
-    // Disable the template and check that only the Content region is present.
-    $template->disable()->save();
-    $this->assertRegions(1);
+    // Disable a PageRegion to make it non-editable, and check that only 11
+    // regions are present in the client-side representation.
+    $regions['stark.highlighted']->disable()->save();
+    $this->assertRegions(11);
 
-    // Store a draft in the autosave manager and confirm that is returned.
-    $template->enable()->save();
+    // Store a draft region in the autosave manager and confirm that is returned.
+    $regions['stark.highlighted']->enable()->save();
     /** @var \Drupal\experience_builder\AutoSave\AutoSaveManager $autoSave */
     $autoSave = $this->container->get(AutoSaveManager::class);
-    $templateData = [
+    $layoutData = [
       'layout' => [
         [
-          "components" => [
-            [
-              "nodeType" => "component",
-              "slots" => [],
-              "type" => "block.page_title_block",
-              "uuid" => "c3f3c22c-c22e-4bb6-ad16-635f069148e4",
-            ],
-          ],
-          "name" => "Highlighted",
-          "nodeType" => "region",
-          "id" => "highlighted",
+          "nodeType" => "component",
+          "slots" => [],
+          "type" => "block.page_title_block",
+          "uuid" => "c3f3c22c-c22e-4bb6-ad16-635f069148e4",
         ],
       ],
       'model' => [
@@ -82,7 +85,7 @@ class ApiLayoutControllerGetTest extends KernelTestBase {
         ],
       ],
     ];
-    $autoSave->save($template, $templateData);
+    $autoSave->save($regions['stark.highlighted'], $layoutData);
     /** @var \Drupal\experience_builder\Controller\ApiLayoutController $controller */
     $controller = \Drupal::classResolver(ApiLayoutController::class);
     $node1 = Node::load(1);
@@ -138,9 +141,9 @@ class ApiLayoutControllerGetTest extends KernelTestBase {
     ], reset($highlightedRegion)['components']);
     self::assertEquals($new_title, $json['entity_form_fields']['title[0][value]']);
 
-    // Now let's remove the draft of the page template but retain that of the
+    // Now let's remove the draft of the page region but retain that of the
     // node.
-    $autoSave->delete($template);
+    $autoSave->delete($regions['stark.highlighted']);
     // We should still see the global regions.
     $response = $controller->get($node1);
     self::assertInstanceOf(JsonResponse::class, $response);
@@ -194,7 +197,22 @@ class ApiLayoutControllerGetTest extends KernelTestBase {
           \array_map(static fn(array $component) => \array_diff_key($component, \array_flip(['uuid'])), $region['components']));
         continue;
       }
-      if ($region['id'] !== 'content') {
+      if ($region['id'] === 'sidebar_first') {
+        // @see \Drupal\Tests\experience_builder\TestSite\XBTestSetup::setup()
+        // @see \Drupal\experience_builder\Entity\PageRegion::createFromBlockLayout()
+        $this->assertEquals([
+          [
+            "nodeType" => "component",
+            "slots" => [],
+            "type" => "block.system_messages_block",
+          ],
+        ],
+          // Filter out the UUID as that is added randomly by creating the block
+          // in the setup class.
+          \array_map(static fn(array $component) => \array_diff_key($component, \array_flip(['uuid'])), $region['components']));
+        continue;
+      }
+      if ($region['id'] !== XbPageVariant::MAIN_CONTENT_REGION) {
         $this->assertEmpty($region['components']);
         continue;
       }

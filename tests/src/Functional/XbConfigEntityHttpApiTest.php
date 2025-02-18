@@ -178,8 +178,8 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
     $this->assertSame([
       'errors' => [
         [
-          'detail' => 'The \'Drupal\Core\Block\MainContentBlockPluginInterface\' component interface must be absent.',
-          'source' => ['pointer' => 'layout'],
+          'detail' => 'The component <em class="placeholder">block.system_main_block</em> does not exist.',
+          'source' => ['pointer' => 'layout.children[2]'],
         ],
       ],
     ], $body);

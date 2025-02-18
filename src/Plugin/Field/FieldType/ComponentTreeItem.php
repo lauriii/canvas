@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Drupal\experience_builder\Plugin\Field\FieldType;
 
 use Drupal\Component\Serialization\Json;
-use Drupal\Core\Block\MainContentBlockPluginInterface;
 use Drupal\Core\Block\MessagesBlockPluginInterface;
 use Drupal\Core\Block\TitleBlockPluginInterface;
 use Drupal\Core\Entity\TypedData\EntityDataDefinitionInterface;
@@ -58,11 +57,10 @@ use Symfony\Component\Validator\ConstraintViolationList;
       ],
       'tree' => [
         'absence' => [
-          // Components implementing either of these 3 interfaces are only
-          // allowed to live at the PageTemplate level.
-          // @see \Drupal\experience_builder\Entity\PageTemplate
-          // @see `type: experience_builder.page_template.*`
-          MainContentBlockPluginInterface::class,
+          // Components implementing either of these 2 interfaces are only
+          // allowed to live at the PageRegion level.
+          // @see \Drupal\experience_builder\Entity\PageRegion
+          // @see `type: experience_builder.page_region.*`
           TitleBlockPluginInterface::class,
           MessagesBlockPluginInterface::class,
         ],

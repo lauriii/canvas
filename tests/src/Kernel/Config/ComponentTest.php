@@ -264,7 +264,11 @@ class ComponentTest extends KernelTestBase {
 
     $this->assertEqualsCanonicalizing($expected_plugins['sdc'], array_keys($this->componentPluginManager->getDefinitions()));
     if (in_array('block', $modules)) {
-      $this->assertEqualsCanonicalizing($expected_plugins['block'], array_keys($this->container->get('plugin.manager.block')->getDefinitions()));
+      $all_installed_block_plugin_ids = array_keys($this->container->get('plugin.manager.block')->getDefinitions());
+      $this->assertEqualsCanonicalizing($expected_plugins['block'], array_diff($all_installed_block_plugin_ids, [
+        // @see \experience_builder_block_alter()
+        'system_main_block',
+      ]));
     }
 
     $this->assertEqualsCanonicalizing($classes, Component::getClasses(array_keys($components)));
@@ -428,9 +432,6 @@ class ComponentTest extends KernelTestBase {
         'block.system_breadcrumb_block' => [
           'compatible' => TRUE,
         ],
-        'block.system_main_block' => [
-          'compatible' => TRUE,
-        ],
         'block.system_messages_block' => [
           'compatible' => TRUE,
         ],
@@ -463,7 +464,6 @@ class ComponentTest extends KernelTestBase {
         'Drupal\Core\Menu\Plugin\Block\LocalTasksBlock',
         'Drupal\system\Plugin\Block\SystemBrandingBlock',
         'Drupal\system\Plugin\Block\SystemBreadcrumbBlock',
-        'Drupal\system\Plugin\Block\SystemMainBlock',
         'Drupal\system\Plugin\Block\SystemMessagesBlock',
         $version > 10 ? 'Drupal\system\Plugin\Block\SystemPoweredByBlock' : '',
         'Drupal\system\Plugin\Block\SystemMenuBlock',

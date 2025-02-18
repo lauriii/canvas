@@ -15,6 +15,7 @@ use Drupal\Core\Render\RenderCacheInterface;
 use Drupal\Core\Render\RendererInterface;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Theme\ThemeManagerInterface;
+use Drupal\experience_builder\Plugin\DisplayVariant\XbPageVariant;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -82,7 +83,7 @@ final class XBPreviewRenderer extends HtmlRenderer {
   protected function prepare(array $main_content, Request $request, RouteMatchInterface $route_match) {
     [$page, $title] = parent::prepare($main_content, $request, $route_match);
     foreach (Element::children($page) as $region) {
-      if ($region === 'content') {
+      if ($region === XbPageVariant::MAIN_CONTENT_REGION) {
         continue;
       }
       // @todo Remove/replace this in https://www.drupal.org/project/experience_builder/issues/3499364
