@@ -130,25 +130,6 @@ final class Component extends ConfigEntityBase implements ComponentInterface, Xb
   }
 
   /**
-   * {@inheritdoc}
-   */
-  public function calculateDependencies() {
-    parent::calculateDependencies();
-
-    // @todo parent method seems to do this anyway, fix in https://www.drupal.org/project/experience_builder/issues/3484673
-    $dependencies = $this->getComponentSource()->getDependencies($this->settings);
-    foreach ($dependencies as $type => $providers) {
-      foreach ($providers as $provider) {
-        if ($this->providerExists($provider)) {
-          $this->addDependency($type, $provider);
-        }
-      }
-    }
-
-    return $this;
-  }
-
-  /**
    * Gets the unique (plugin) interfaces for passed Component config entity IDs.
    *
    * @param array<ComponentConfigEntityId> $ids

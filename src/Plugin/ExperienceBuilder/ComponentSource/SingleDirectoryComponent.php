@@ -126,15 +126,16 @@ final class SingleDirectoryComponent extends GeneratedFieldExplicitInputUxCompon
    * {@inheritdoc}
    */
   public function calculateDependencies(): array {
+    $dependencies = parent::calculateDependencies();
     $component = $this->getComponentPlugin();
     $provider = $component->getBaseId();
     if ($this->moduleHandler->moduleExists($provider)) {
-      return ['module' => [$provider]];
+      $dependencies['module'][] = $provider;
     }
     if ($this->themeHandler->themeExists($provider)) {
-      return ['theme' => [$provider]];
+      $dependencies['theme'][] = $provider;
     }
-    return [];
+    return $dependencies;
   }
 
   /**

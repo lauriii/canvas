@@ -128,13 +128,6 @@ final class BlockComponent extends ComponentSourceBase implements ContainerFacto
   /**
    * {@inheritdoc}
    */
-  public function getDependencies(array $settings): array {
-    return $this->calculateDependencies();
-  }
-
-  /**
-   * {@inheritdoc}
-   */
   public function getComponentDescription(): TranslatableMarkup {
     $pluginDefinition = $this->getBlockPlugin()->getPluginDefinition() ?? [];
     assert(is_array($pluginDefinition));

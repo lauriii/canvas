@@ -38,20 +38,6 @@ use Symfony\Component\Validator\ConstraintViolationListInterface;
 interface ComponentSourceInterface extends PluginInspectionInterface, DerivativeInspectionInterface, ConfigurableInterface, PluginFormInterface, DependentPluginInterface, ContextAwarePluginInterface {
 
   /**
-   * Gets the source plugin dependencies.
-   *
-   * @param array $settings
-   *   The key-value pairs stored in a Component config entity's "settings"
-   *   property.
-   *
-   * @return array
-   *   An array of dependencies, keyed by provider.
-   *
-   * @todo Refactor/clean this up in https://www.drupal.org/project/experience_builder/issues/3484673.
-   */
-  public function getDependencies(array $settings): array;
-
-  /**
    * Gets referenced plugin classes for this instance.
    *
    * This is used in validation to allow component tree items to limit the type

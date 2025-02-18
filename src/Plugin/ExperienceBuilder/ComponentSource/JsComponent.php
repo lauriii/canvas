@@ -67,12 +67,10 @@ final class JsComponent extends GeneratedFieldExplicitInputUxComponentSourceBase
    * {@inheritdoc}
    */
   public function calculateDependencies(): array {
+    $dependencies = parent::calculateDependencies();
     // @todo Add the global asset library in https://www.drupal.org/project/experience_builder/issues/3499933.
-    return [
-      'config' => [
-        $this->getJavaScriptComponent()->getConfigDependencyName(),
-      ],
-    ];
+    $dependencies['config'][] = $this->getJavaScriptComponent()->getConfigDependencyName();
+    return $dependencies;
   }
 
   /**

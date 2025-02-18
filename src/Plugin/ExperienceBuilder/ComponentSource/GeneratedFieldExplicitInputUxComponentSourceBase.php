@@ -111,12 +111,11 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
   /**
    * {@inheritdoc}
    */
-  public function getDependencies(array $settings): array {
-    $dependencies = $this->calculateDependencies();
-
-    assert(isset($settings['prop_field_definitions']));
-    assert(is_array($settings['prop_field_definitions']));
-    foreach ($settings['prop_field_definitions'] as ['field_type' => $field_type, 'field_widget' => $field_widget]) {
+  public function calculateDependencies(): array {
+    assert(array_key_exists('prop_field_definitions', $this->configuration));
+    assert(is_array($this->configuration['prop_field_definitions']));
+    $dependencies = [];
+    foreach ($this->configuration['prop_field_definitions'] as ['field_type' => $field_type, 'field_widget' => $field_widget]) {
       // TRICKY: `field_type` (and `field_widget`) may not be set if no field
       // types match this SDC prop shape.
       if ($field_type === NULL) {
