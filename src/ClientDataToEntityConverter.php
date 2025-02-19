@@ -42,7 +42,11 @@ class ClientDataToEntityConverter {
     assert($item instanceof ComponentTreeItem);
 
     try {
-      $item->setValue($this->convertClientToServer($layout, $model, $entity, $validate));
+      assert(count(array_intersect(['nodeType', 'id', 'name', 'components'], array_keys($layout))) === 4);
+      assert($layout['nodeType'] === 'region');
+      assert($layout['id'] === 'content');
+      assert(is_array($layout['components']));
+      $item->setValue($this->convertClientToServer($layout['components'], $model, $entity, $validate));
     }
     catch (ConstraintViolationException $e) {
       // @todo Remove iterator_to_array() after https://www.drupal.org/project/drupal/issues/3497677

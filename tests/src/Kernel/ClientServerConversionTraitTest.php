@@ -32,9 +32,14 @@ class ClientServerConversionTraitTest extends KernelTestBase {
    */
   private function getValidClientJson(bool $dynamic_image = TRUE): array {
     $json = $this->traitGetValidClientJson($dynamic_image);
-    $content_region = \array_values(\array_filter($json['layout'], static fn(array $region) => $region['id'] === 'content'));
+    // @see \Drupal\experience_builder\ClientDataToEntityConverter::convert()
+    $content_region = \array_values(\array_filter($json['layout'], static fn(array $region) => $region['id'] === 'content'))[0];
+    assert(count(array_intersect(['nodeType', 'id', 'name', 'components'], array_keys($content_region))) === 4);
+    assert($content_region['nodeType'] === 'region');
+    assert($content_region['id'] === 'content');
+    assert(is_array($content_region['components']));
     return [
-      'layout' => reset($content_region),
+      'layout' => $content_region['components'],
       'model' => $json['model'],
     ];
   }
@@ -184,7 +189,7 @@ class ClientServerConversionTraitTest extends KernelTestBase {
     );
 
     $invalid_tree_client_json = $valid_client_json;
-    $invalid_tree_client_json['layout']['components'][1]['type'] = 'sdc.experience_builder.missing_component';
+    $invalid_tree_client_json['layout'][1]['type'] = 'sdc.experience_builder.missing_component';
     $this->assertConversionErrors(
       $invalid_tree_client_json,
       ['layout.children[1]' => 'The component <em class="placeholder">sdc.experience_builder.missing_component</em> does not exist.']
