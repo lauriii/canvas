@@ -7,11 +7,8 @@ namespace Drupal\Tests\experience_builder\Kernel;
 use Drupal\Core\File\FileUrlGeneratorInterface;
 use Drupal\experience_builder\Entity\PageRegion;
 use Drupal\file\FileInterface;
-use Drupal\KernelTests\KernelTestBase;
 use Drupal\media\MediaInterface;
-use Drupal\Tests\experience_builder\Kernel\Traits\RequestTrait;
 use Drupal\Tests\experience_builder\TestSite\XBTestSetup;
-use Drupal\Tests\user\Traits\UserCreationTrait;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
@@ -21,12 +18,7 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
  * @covers \Drupal\experience_builder\Controller\ApiLayoutController::patch()
  * @group experience_builder
  */
-final class ApiLayoutControllerPatchTest extends KernelTestBase {
-
-  use RequestTrait {
-    request as parentRequest;
-  }
-  use UserCreationTrait;
+final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
 
   /**
    * {@inheritdoc}
@@ -133,7 +125,7 @@ final class ApiLayoutControllerPatchTest extends KernelTestBase {
 
     if ($withAutoSave) {
       // Perform a POST first to trigger an auto-save entry.
-      $response = $this->request(Request::create('/xb/api/layout/node/1', method: 'POST', content: $content));
+      $response = $this->request(Request::create('/xb/api/layout/node/1', method: 'POST', content: $this->filterLayoutForPost($content)));
       self::assertEquals(Response::HTTP_OK, $response->getStatusCode());
     }
 
@@ -197,22 +189,6 @@ final class ApiLayoutControllerPatchTest extends KernelTestBase {
     yield 'fresh state, global' => [FALSE, TRUE];
     yield 'existing autosave, no global' => [TRUE, FALSE];
     yield 'existing autosave, global' => [TRUE, TRUE];
-  }
-
-  private static function decodeResponse(Response $response): array {
-    self::assertIsString($response->getContent());
-    self::assertJson($response->getContent());
-    return \json_decode($response->getContent(), TRUE);
-  }
-
-  /**
-   * Unwrap the JSON response so we can perform assertions on it.
-   */
-  protected function request(Request $request): Response {
-    $request->headers->set('Content-Type', 'application/json');
-    $response = $this->parentRequest($request);
-    $this->setRawContent(static::decodeResponse($response)['html']);
-    return $response;
   }
 
 }

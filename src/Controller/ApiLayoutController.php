@@ -6,6 +6,8 @@ namespace Drupal\experience_builder\Controller;
 
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Entity\EntityPublishedInterface;
+use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Form\FormBuilderInterface;
@@ -63,11 +65,22 @@ final class ApiLayoutController {
     assert(array_key_exists(XbPageVariant::MAIN_CONTENT_REGION, $this->regions));
   }
 
-  public function get(FieldableEntityInterface $entity): JsonResponse {
+  private function contentEntityIsConsideredNew(string $current_entity_label, EntityTypeInterface $entity_type): bool {
+    return $current_entity_label == ApiContentControllers::defaultTitle($entity_type);
+  }
+
+  public function get(FieldableEntityInterface&EntityPublishedInterface $entity): JsonResponse {
     $regions = PageRegion::loadForActiveTheme();
+
+    $content_entity_type = $entity->getEntityType();
 
     if ($body = $this->autoSaveManager->getAutoSaveData($entity)->data) {
       ['layout' => $layout, 'model' => $model, 'entity_form_fields' => $entity_form_fields] = $body;
+      $label_field_input_name = sprintf("%s[0][value]", $content_entity_type->getKey('label'));
+      $is_new = $this->contentEntityIsConsideredNew($entity_form_fields[$label_field_input_name], $content_entity_type);
+      // @see \Drupal\Core\Entity\EntityPublishedTrait::publishedBaseFieldDefinitions()
+      $published_field_input_name = sprintf("%s[value]", $entity->getEntityType()->getKey('published'));
+      $is_published = $entity_form_fields[$published_field_input_name] == '1';
     }
     else {
       $model = [];
@@ -77,6 +90,8 @@ final class ApiLayoutController {
       $tree = $entity->get($field_name)->first();
       assert($tree instanceof ComponentTreeItem);
       $layout = [$this->buildRegion(XbPageVariant::MAIN_CONTENT_REGION, $tree, $model)];
+      $is_new = $this->contentEntityIsConsideredNew((string) $entity->label(), $content_entity_type);
+      $is_published = $entity->isPublished();
     }
 
     if ($regions) {
@@ -101,6 +116,8 @@ final class ApiLayoutController {
       // an object and not empty array.
       'model' => empty($model) ? new \stdClass() : $model,
       'entity_form_fields' => $entity_form_fields,
+      'isNew' => $is_new,
+      'isPublished' => $is_published,
     ]);
   }
 

@@ -5,24 +5,15 @@ declare(strict_types=1);
 namespace Drupal\Tests\experience_builder\Kernel;
 
 use Drupal\experience_builder\Entity\PageRegion;
-use Drupal\KernelTests\KernelTestBase;
 use Drupal\Tests\experience_builder\TestSite\XBTestSetup;
-use Drupal\Tests\user\Traits\UserCreationTrait;
-use Drupal\Tests\experience_builder\Kernel\Traits\RequestTrait;
 use Symfony\Component\DomCrawler\Crawler;
 use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\HttpFoundation\Response;
 
 /**
  * @covers \Drupal\experience_builder\Controller\ApiLayoutController::post()
  * @group experience_builder
  */
-final class ApiLayoutControllerPostTest extends KernelTestBase {
-
-  use RequestTrait {
-    request as parentRequest;
-  }
-  use UserCreationTrait;
+final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
 
   /**
    * {@inheritdoc}
@@ -133,7 +124,7 @@ final class ApiLayoutControllerPostTest extends KernelTestBase {
     $content = $this->parentRequest(Request::create('/xb/api/layout/node/1'))->getContent();
     $this->assertIsString($content);
     $model = json_decode($content, TRUE)['model'];
-    $this->request(Request::create('/xb/api/layout/node/1', method: 'POST', content: $content));
+    $this->request(Request::create('/xb/api/layout/node/1', method: 'POST', content: $this->filterLayoutForPost($content)));
 
     // Check that each level is structured correctly.
     $root = $this->cssSelect('main div[data-xb-region][data-xb-uuid="content"]');
@@ -157,24 +148,12 @@ final class ApiLayoutControllerPostTest extends KernelTestBase {
     $highlightedRegion = \array_filter($json['layout'], static fn (array $region) => ($region['id'] ?? NULL) === 'highlighted');
     self::assertCount(1, $highlightedRegion);
     self::assertGreaterThanOrEqual(1, \count(\reset($highlightedRegion)['components']));
-    $this->request(Request::create('/xb/api/layout/node/1', method: 'POST', content: $content));
+    $this->request(Request::create('/xb/api/layout/node/1', method: 'POST', content: $this->filterLayoutForPost($content)));
 
     // Check that regions exist and are wrapped.
     $crawler = new Crawler($this->content);
     self::assertCount(1, $crawler->filter('[data-xb-uuid="content"]'));
     self::assertCount(1, $crawler->filter('[data-xb-uuid="highlighted"]'));
-  }
-
-  /**
-   * Unwrap the JSON response so we can perform assertions on it.
-   */
-  protected function request(Request $request): Response {
-    $request->headers->set('Content-Type', 'application/json');
-    $response = $this->parentRequest($request);
-    $content = $response->getContent();
-    $this->assertIsString($content);
-    $this->setRawContent(json_decode($content, TRUE)['html']);
-    return $response;
   }
 
 }

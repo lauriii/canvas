@@ -6,12 +6,13 @@ namespace Drupal\experience_builder\Controller;
 
 use Drupal\Core\Cache\CacheableJsonResponse;
 use Drupal\Core\Cache\CacheableMetadata;
+use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\Query\QueryInterface;
 use Drupal\Core\Render\RenderContext;
 use Drupal\Core\Render\RendererInterface;
-use Drupal\Core\StringTranslation\StringTranslationTrait;
+use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -25,8 +26,6 @@ use Symfony\Component\HttpFoundation\Response;
  */
 final class ApiContentControllers {
 
-  use StringTranslationTrait;
-
   public function __construct(
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly RendererInterface $renderer,
@@ -36,14 +35,16 @@ final class ApiContentControllers {
     // Note: this intentionally does not catch content entity type storage
     // handler exceptions: the generic XB API exception subscriber handles them.
     // @see \Drupal\experience_builder\EventSubscriber\ApiExceptionSubscriber
+    $entity_type = $this->entityTypeManager->getDefinition('xb_page');
+    assert($entity_type instanceof EntityTypeInterface);
     $page = $this->entityTypeManager->getStorage('xb_page')->create([
-      'title' => $this->t('Untitled page'),
+      'title' => static::defaultTitle($entity_type),
       'status' => FALSE,
     ]);
     $page->save();
 
     return new JsonResponse([
-      'entity_type' => $page->getEntityTypeId(),
+      'entity_type' => $entity_type->id(),
       'entity_id' => $page->id(),
     ], RESPONSE::HTTP_CREATED);
   }
@@ -128,6 +129,10 @@ final class ApiContentControllers {
       $query_cacheability->addCacheableDependency($context->pop());
     }
     return $results;
+  }
+
+  public static function defaultTitle(EntityTypeInterface $entity_type): TranslatableMarkup {
+    return new TranslatableMarkup('Untitled @singular_entity_type_label', ['@singular_entity_type_label' => $entity_type->getSingularLabel()]);
   }
 
 }

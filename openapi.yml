@@ -867,6 +867,8 @@ paths:
                         components: []
                     model: {}
                     entity_form_fields: {}
+                    isNew: true
+                    isPublished: false
                 componentTreeWithSingleComponent:
                   value:
                     layout:
@@ -924,12 +926,16 @@ paths:
                       'uid[0][target_id]': Anonymous (0)
                       'langcode[0][value]': en
                       'revision_log[0][value]': ''
+                    isNew: false
+                    isPublished: true
               schema:
                 type: object
                 required:
                   - layout
                   - model
                   - entity_form_fields
+                  - isNew
+                  - isPublished
                 properties:
                   layout:
                     type: array
@@ -943,6 +949,16 @@ paths:
                   entity_form_fields:
                     type: object
                     description: The full entity data.
+                  isNew:
+                    type: boolean
+                    # @see \Drupal\experience_builder\Controller\ApiLayoutController::contentEntityIsConsideredNew()
+                    # @see https://www.drupal.org/project/experience_builder/issues/3505118#comment-15982801
+                    description: Whether the edited content entity is considered new.
+                  isPublished:
+                    type: boolean
+                    # @see \Drupal\Core\Entity\EntityPublishedInterface
+                    # @see https://www.drupal.org/project/experience_builder/issues/3505118#comment-15982801
+                    description: Whether the edited content entity is marked as published.
     patch:
       description: >
         Update a single component and return a preview as well

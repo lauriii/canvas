@@ -7,20 +7,21 @@ namespace Drupal\Tests\experience_builder\Kernel;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\experience_builder\AutoSave\AutoSaveManager;
 use Drupal\experience_builder\Controller\ApiLayoutController;
+use Drupal\experience_builder\Entity\Page;
 use Drupal\experience_builder\Entity\PageRegion;
 use Drupal\experience_builder\Plugin\DisplayVariant\XbPageVariant;
-use Drupal\KernelTests\KernelTestBase;
 use Drupal\node\Entity\Node;
 use Drupal\node\Entity\NodeType;
 use Drupal\node\NodeInterface;
 use Drupal\Tests\experience_builder\TestSite\XBTestSetup;
 use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\Request;
 
 /**
  * @covers \Drupal\experience_builder\Controller\ApiLayoutController::get()
  * @group experience_builder
  */
-class ApiLayoutControllerGetTest extends KernelTestBase {
+class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
 
   /**
    * Allows format=uri to be stored using URI field type.
@@ -118,6 +119,7 @@ class ApiLayoutControllerGetTest extends KernelTestBase {
     // Update the page title.
     $new_title = $this->getRandomGenerator()->sentences(10);
     $data['entity_form_fields']['title[0][value]'] = $new_title;
+    $data['entity_form_fields']['status[value]'] = (string) TRUE;
     $node1 = Node::load(1);
     \assert($node1 instanceof NodeInterface);
     $autoSave->save($node1, $data);
@@ -292,6 +294,31 @@ class ApiLayoutControllerGetTest extends KernelTestBase {
         ],
       ],
     ], $json['model']['static-static-card2df']);
+  }
+
+  public function testStatusFlags(): void {
+    $this->setUpCurrentUser(permissions: ['access administration pages', 'administer xb_page']);
+
+    $content = $this->parentRequest(Request::create('/xb/api/content/xb_page', method: 'POST'))->getContent();
+    self::assertIsString($content);
+    $entity_id = (int) json_decode($content, TRUE)['entity_id'];
+    $entity = Page::load($entity_id);
+    self::assertInstanceOf(Page::class, $entity);
+    $this->assertStatusFlags($entity_id, TRUE, FALSE);
+
+    $entity->set('title', 'Here we go')->save();
+    $this->assertStatusFlags($entity_id, FALSE, FALSE);
+
+    $entity->setPublished()->save();
+    $this->assertStatusFlags($entity_id, FALSE, TRUE);
+  }
+
+  private function assertStatusFlags(int $entity_id, bool $isNew, bool $isPublished): void {
+    $content = $this->parentRequest(Request::create('/xb/api/layout/xb_page/' . $entity_id))->getContent();
+    self::assertIsString($content);
+    $json = json_decode($content, TRUE);
+    self::assertSame($isNew, $json['isNew']);
+    self::assertSame($isPublished, $json['isPublished']);
   }
 
   public function testFieldException(): void {
