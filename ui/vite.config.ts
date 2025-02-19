@@ -58,6 +58,5 @@ export default defineConfig(({ command, mode }) => {
       // https://github.com/vitejs/vite/issues/8427 is fixed.
       exclude: ['@swc/wasm-web', 'tailwindcss-in-browser'],
     },
-    assetsInclude: ['**/*.md'],
   };
 });

@@ -14,9 +14,8 @@ import type { File } from 'babel-types';
 import buildCSS, { transformCss } from 'tailwindcss-in-browser';
 import styles from './Preview.module.css';
 import ErrorCard from '@/components/error/ErrorCard';
-import mdFile from './missingDefaultExportMessage.md';
+import MissingDefaultExportMessage from './errors/MissingDefaultExportMessage';
 import { ScrollArea } from '@radix-ui/themes';
-import Markdown from 'markdown-to-jsx';
 import { camelCase } from 'lodash';
 
 const swcConfig: Options = {
@@ -68,7 +67,6 @@ const Preview = () => {
     useState(false);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const parentRef = useRef<HTMLDivElement>(null);
-  const [markdown, setMarkdown] = useState('');
   const [isCompileError, setIsCompileError] = useState(false);
 
   const propsArray = props
@@ -178,9 +176,6 @@ const Preview = () => {
       }
     };
     importAndRunSwcOnMount();
-    fetch(mdFile)
-      .then((res) => res.text())
-      .then((text) => setMarkdown(text));
   }, []);
 
   useEffect(() => {
@@ -235,7 +230,7 @@ const Preview = () => {
       title="Error: Component is missing a default export."
       asChild={true}
     >
-      <Markdown>{markdown}</Markdown>
+      <MissingDefaultExportMessage />
     </ErrorCard>
   );
 
