@@ -130,14 +130,6 @@ final class Page extends EditorialContentEntityBase implements EntityOwnerInterf
       ])
       ->setDisplayConfigurable('form', TRUE)
       ->setComputed(TRUE);
-    $fields['status']
-      ->setDisplayOptions('form', [
-        'type' => 'boolean_checkbox',
-        'settings' => [
-          'display_label' => TRUE,
-        ],
-      ])
-      ->setDisplayConfigurable('form', TRUE);
     $fields['created'] = BaseFieldDefinition::create('created')
       ->setLabel(t('Authored on'))
       ->setDescription(t('The time the page was created.'))

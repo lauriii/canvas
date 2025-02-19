@@ -84,7 +84,7 @@ class ClientServerConversionTraitTest extends KernelTestBase {
         'block.system_branding_block',
       ],
       $expected_inputs,
-      '5 amazing uses for old toothbrushes'
+      ['title' => '5 amazing uses for old toothbrushes']
     );
 
     ['layout' => $layout, 'model' => $model] = $this->getValidPatternJson();

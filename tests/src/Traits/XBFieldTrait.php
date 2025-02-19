@@ -159,7 +159,7 @@ trait XBFieldTrait {
     return $file;
   }
 
-  private function assertNodeValues(Node $node, array $expected_component_ids, array $expected_inputs, string $title): void {
+  private function assertNodeValues(Node $node, array $expected_component_ids, array $expected_inputs, array $expected_field_values): void {
     $nid = $node->id();
     // Reset the node to ensure we're not getting a cached version.
     $this->container->get('entity_type.manager')
@@ -167,7 +167,9 @@ trait XBFieldTrait {
       ->resetCache([$nid]);
     $node = Node::load($nid);
     $this->assertInstanceOf(Node::class, $node);
-    $this->assertSame($title, (string) $node->getTitle());
+    foreach ($expected_field_values as $field_name => $value) {
+      $this->assertSame($value, $node->get($field_name)->value);
+    }
     $item = $node->get('field_xb_demo')[0];
     $this->assertInstanceOf(ComponentTreeItem::class, $item);
     $tree = $item->get('tree');
@@ -368,7 +370,10 @@ trait XBFieldTrait {
         'block.system_branding_block',
       ],
       $this->getValidConvertedInputs($dynamic_image),
-      'The updated title.'
+      [
+        'title' => 'The updated title.',
+        'status' => '1',
+      ]
     );
 
   }

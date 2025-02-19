@@ -16,7 +16,7 @@ class EntityFormControllerTest extends FunctionalTestBase {
   /**
    * {@inheritdoc}
    */
-  protected static $modules = ['experience_builder'];
+  protected static $modules = ['experience_builder', 'xb_dev_standard'];
 
   /**
    * {@inheritdoc}
@@ -30,6 +30,7 @@ class EntityFormControllerTest extends FunctionalTestBase {
 
   /**
    * @covers ::form
+   * @covers experience_builder_entity_form_display_alter
    */
   public function testForm(): void {
     $assert = $this->assertSession();
@@ -71,6 +72,10 @@ class EntityFormControllerTest extends FunctionalTestBase {
     $this->assertSession()->statusCodeEquals(200);
     $parsed_response = json_decode($response, TRUE);
     $html = $parsed_response['html'];
+
+    // Ensure the `status` field has been removed.
+    // @see \experience_builder_entity_form_display_alter()
+    $this->assertStringNotContainsString('edit-status-value', $html);
 
     $crawler = new Crawler($html);
     self::assertCount(1, $crawler->filter('template[data-hyperscriptify]'));

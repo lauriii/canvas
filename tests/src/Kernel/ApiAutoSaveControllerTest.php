@@ -15,6 +15,7 @@ use Drupal\experience_builder\Controller\ApiAutoSaveController;
 use Drupal\experience_builder\Controller\ErrorCodesEnum;
 use Drupal\experience_builder\Entity\AssetLibrary;
 use Drupal\experience_builder\Entity\JavaScriptComponent;
+use Drupal\experience_builder\Entity\Page;
 use Drupal\experience_builder\Entity\PageRegion;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 use Drupal\file\Entity\File;
@@ -335,6 +336,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     $entity_type_manager = $this->container->get('entity_type.manager');
     $code_component_storage = $entity_type_manager->getStorage(JavaScriptComponent::ENTITY_TYPE_ID);
     $library_storage = $entity_type_manager->getStorage(AssetLibrary::ENTITY_TYPE_ID);
+    $page_storage = $entity_type_manager->getStorage('xb_page');
     /** @var \Drupal\experience_builder\AutoSave\AutoSaveManager $autoSave */
     $autoSave = \Drupal::service(AutoSaveManager::class);
     $this->setUpCurrentUser(permissions: ['access administration pages']);
@@ -342,6 +344,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     $node1 = Node::create([
       'type' => 'article',
       'title' => '5 amazing uses for old toothbrushes',
+      'status' => FALSE,
       'field_hero' => $this->referencedImage,
       'field_xb_demo' => [
         'tree' => json_encode([
@@ -352,7 +355,9 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     ]);
     $node1_original_title = (string) $node1->getTitle();
     self::assertSame(SAVED_NEW, $node1->save());
-    $this->assertNodeValues($node1, [], [], $node1_original_title);
+    // The 'status' field is expected as `0` and not FALSE because the boolean
+    // base field will return an integer value.
+    $this->assertNodeValues($node1, [], [], ['title' => $node1_original_title, 'status' => '0']);
 
     $node2 = Node::create([
       'type' => 'article',
@@ -366,7 +371,9 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     ]);
     self::assertSame(SAVED_NEW, $node2->save());
     $node2_original_title = (string) $node2->getTitle();
-    $this->assertNodeValues($node2, [], [], $node2_original_title);
+    // The 'status' field is expected as `1` and not TRUE because the boolean
+    // base field will return an integer value.
+    $this->assertNodeValues($node2, [], [], ['title' => $node2_original_title, 'status' => '1']);
 
     $code_component = JavaScriptComponent::create([
       'machineName' => 'test-component',
@@ -405,6 +412,15 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     $this->assertSame(SAVED_NEW, $library->save());
 
     $validClientJson = $this->getValidClientJson(FALSE);
+
+    $page = Page::create([
+      'title' => 'Test page',
+      'status' => FALSE,
+      'components' => [],
+    ]);
+    $this->assertSame(SAVED_NEW, $page->save());
+    $this->assertFalse($page->isPublished());
+    $autoSave->save($page, $validClientJson);
 
     // Add some global elements.
     if ($withGlobal) {
@@ -535,13 +551,12 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     ];
 
     self::assertEquals($errors, $json['errors']);
-    // Ensure that neither the valid nor invalid node gets updated if one is
-    // invalid.
-    $this->assertNodeValues($node1, [], [], $node1_original_title);
-    $this->assertNodeValues($node2, [], [], $node2_original_title);
-    // Ensure the code component is not updated.
+    // Ensure none of the entities are updated if one is invalid.
+    $this->assertNodeValues($node1, [], [], ['title' => $node1_original_title, 'status' => '0']);
+    $this->assertNodeValues($node2, [], [], ['title' => $node2_original_title, 'status' => '1']);
     $this->assertEquals('Original JavaScriptComponent name', $code_component_storage->loadUnchanged($code_component->id())?->label());
     $this->assertEquals('Original AssetLibrary name', $library_storage->loadUnchanged($library->id())?->label());
+    $this->assertSame('Test page', $page_storage->loadUnchanged($page->id())?->label());
 
     if ($withGlobal) {
       // Note: no additional error appears for the invalid auto-saved layout for
@@ -642,7 +657,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     $response = $this->makePublishAllRequest();
     $json = json_decode($response->getContent() ?: '', TRUE);
     self::assertEquals(Response::HTTP_OK, $response->getStatusCode());
-    self::assertEquals(['message' => \sprintf('Successfully published %d items.', $withGlobal ? 5 : 4)], $json);
+    self::assertEquals(['message' => \sprintf('Successfully published %d items.', $withGlobal ? 6 : 5)], $json);
 
     $this->assertValidJsonUpdateNode($node1, FALSE);
     $this->assertNodeValues(
@@ -652,8 +667,16 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
         'block.system_branding_block',
       ],
       \array_intersect_key($this->getValidConvertedInputs(), \array_flip([self::TEST_HEADING_UUID, self::TEST_BLOCK])),
-      'The updated title.'
+      [
+        'title' => 'The updated title.',
+        'status' => '1',
+      ]
     );
+
+    $page = $page_storage->loadUnchanged($page->id());
+    assert($page instanceof Page);
+    $this->assertTrue($page->isPublished());
+    $this->assertSame('The updated title.', $page->label());
 
     $this->assertSame('New new JavaScriptComponent name', $code_component_storage->loadUnchanged($code_component->id())?->label());
     $this->assertSame('New new AssetLibrary label', $library_storage->loadUnchanged($library->id())?->label());

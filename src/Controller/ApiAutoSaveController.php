@@ -8,6 +8,7 @@ use Drupal\Core\Cache\CacheableJsonResponse;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Config\TypedConfigManagerInterface;
+use Drupal\Core\Entity\EntityPublishedInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\File\FileUrlGeneratorInterface;
@@ -182,6 +183,11 @@ final class ApiAutoSaveController extends ApiControllerBase {
         }
         else {
           assert($entity instanceof FieldableEntityInterface);
+
+          if ($entity instanceof EntityPublishedInterface) {
+            $entity->setPublished();
+          }
+
           // Pluck out only the content region.
           $content_region = \array_values(\array_filter($auto_save['data']['layout'], static fn(array $region) => $region['id'] === XbPageVariant::MAIN_CONTENT_REGION));
           $this->clientDataToEntityConverter->convert([
