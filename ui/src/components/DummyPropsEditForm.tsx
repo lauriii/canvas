@@ -249,13 +249,6 @@ const DummyPropsEditForm: React.FC<DummyPropsEditFormProps> = () => {
         ...preparedModel.source,
         [propName]: fieldData[propName],
       };
-
-      // The current value of the prop, or an empty string so the `value` is at
-      // least present.
-      preparedModel.resolved = {
-        ...preparedModel.resolved,
-        [propName]: model.resolved[propName] || '',
-      };
     });
     return preparedModel;
   };

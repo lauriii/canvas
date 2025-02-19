@@ -8,6 +8,7 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\Validation\Attribute\Constraint;
 use Drupal\experience_builder\PropSource\AdaptedPropSource;
 use Drupal\experience_builder\PropSource\DynamicPropSource;
+use Drupal\experience_builder\PropSource\UrlPreviewPropSource;
 use Drupal\experience_builder\PropSource\StaticPropSource;
 use Symfony\Component\Validator\Constraint as SymfonyConstraint;
 use Symfony\Component\Validator\Exception\InvalidArgumentException;
@@ -100,6 +101,7 @@ class ComponentTreeMeetsRequirementsConstraint extends SymfonyConstraint {
       StaticPropSource::getSourceTypePrefix(),
       DynamicPropSource::getSourceTypePrefix(),
       AdaptedPropSource::getSourceTypePrefix(),
+      UrlPreviewPropSource::getSourceTypePrefix(),
     ];
     foreach (['absence', 'presence'] as $nested_option) {
       if ($this->inputs[$nested_option] === NULL) {

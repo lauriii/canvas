@@ -189,7 +189,7 @@ final class ApiLayoutControllerPatchTest extends KernelTestBase {
     \assert(is_string($fileUri));
     $image_url = $this->container->get(FileUrlGeneratorInterface::class)->generateString($fileUri);
     $images = $this->cssSelect(\sprintf('img[src="%s"]', $image_url));
-    self::assertCount(1, $images);
+    self::assertCount(2, $images);
   }
 
   public static function providerValid(): iterable {

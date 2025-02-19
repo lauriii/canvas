@@ -15,10 +15,12 @@ use Drupal\Core\Theme\Component\ComponentValidator;
 use Drupal\Core\Theme\ComponentPluginManager;
 use Drupal\Core\Theme\ExtensionType;
 use Drupal\experience_builder\Attribute\ComponentSource;
+use Drupal\experience_builder\ComponentSource\UrlRewriteInterface;
 use Drupal\experience_builder\Entity\Component as ComponentEntity;
 use Drupal\experience_builder\Plugin\ComponentPluginManager as XbComponentPluginManager;
 use Drupal\experience_builder\ShapeMatcher\FieldForComponentSuggester;
 use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\Filesystem\Path;
 
 /**
  * Defines a component source based on single-directory components.
@@ -27,7 +29,7 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
   id: self::SOURCE_PLUGIN_ID,
   label: new TranslatableMarkup('Single-Directory Components')
 )]
-final class SingleDirectoryComponent extends GeneratedFieldExplicitInputUxComponentSourceBase {
+final class SingleDirectoryComponent extends GeneratedFieldExplicitInputUxComponentSourceBase implements UrlRewriteInterface {
 
   public const SOURCE_PLUGIN_ID = 'sdc';
 
@@ -272,6 +274,40 @@ final class SingleDirectoryComponent extends GeneratedFieldExplicitInputUxCompon
     $definition = $component_plugin->getPluginDefinition();
     \assert(\is_array($definition));
     $this->componentPluginManager->componentMeetsRequirements($definition);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function rewriteExampleUrl(string $url): string {
+    $parsed_url = parse_url($url);
+    \assert(\is_array($parsed_url));
+    if (array_intersect_key($parsed_url, array_flip(['scheme', 'host']))) {
+      return $url;
+    }
+
+    \assert(isset($parsed_url['path']));
+    $path = ltrim($parsed_url['path'], '/');
+    $template_path = $this->getSdcPlugin()->getTemplatePath();
+    \assert(\is_string($template_path));
+    $referenced_asset_path = Path::canonicalize(dirname($template_path) . '/' . $path);
+    if (is_file($referenced_asset_path)) {
+      // SDC example values pointing to assets included in the SDC.
+      // For example, an "avatar" SDC that shows an image, and:
+      // - the example value is `avatar.png`
+      // - the SDC contains a file called `avatar.png`
+      // - this returns `/path/to/drupal/path/to/sdc/avatar.png`, resulting in a
+      //   working preview.
+      return \base_path() . $referenced_asset_path;
+    }
+
+    // SDC example values pointing to sample locations, not actual assets.
+    // For example, a "call to action" SDC that points to a destination, and:
+    // - the example value is `adopt-a-llama`
+    // - this returns `/path/to/drupal/adopt-a-llama`, resulting in a
+    //   reasonable preview, even though there is unlikely to be a page on the
+    //   site with the `adapt-a-llama` path.
+    return \base_path() . $path;
   }
 
 }

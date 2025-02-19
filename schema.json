@@ -53,7 +53,7 @@
       "title": "Image URL",
       "type": "string",
       "format": "uri-reference",
-      "pattern": "^(/|https?://).*\\.(png|gif|jpg|jpeg|webp)(\\?.*)?(#.*)?$"
+      "pattern": "^(/|https?://)?.*\\.(png|gif|jpg|jpeg|webp)(\\?.*)?(#.*)?$"
     },
     "heading": {
       "title": "Heading",

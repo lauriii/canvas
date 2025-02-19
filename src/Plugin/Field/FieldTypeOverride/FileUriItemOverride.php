@@ -32,7 +32,7 @@ class FileUriItemOverride extends FileUriItem {
       // required. Hence this value is guaranteed to exist.
       ->setRequired(TRUE)
       // The ComputedFileUrl data type generates a browser-accessible URL.
-      ->addConstraint('Regex', ['pattern' => "/^(\/|https?:\/\/)/"]);
+      ->addConstraint('Regex', ['pattern' => "/^(\/|https?:\/\/)?/"]);
     return $properties;
   }
 

@@ -52,6 +52,7 @@ use Symfony\Component\Validator\ConstraintViolationList;
         'absence' => [
           'dynamic',
           'adapter',
+          'url-preview',
         ],
         'presence' => NULL,
       ],

@@ -7,11 +7,12 @@ namespace Drupal\experience_builder\PropSource;
 /**
  * @phpstan-import-type PropSourceArray from PropSourceBase
  * @phpstan-import-type AdaptedPropSourceArray from PropSourceBase
+ * @phpstan-import-type UrlPreviewPropSourceArray from PropSourceBase
  */
 final class PropSource {
 
   /**
-   * @param PropSourceArray|AdaptedPropSourceArray $prop_source
+   * @param PropSourceArray|AdaptedPropSourceArray|UrlPreviewPropSourceArray $prop_source
    */
   public static function parse(array $prop_source): PropSourceBase {
     $source_type_prefix = strstr($prop_source['sourceType'], PropSourceBase::SOURCE_TYPE_PREFIX_SEPARATOR, TRUE);
@@ -20,6 +21,15 @@ final class PropSource {
     // @see \Drupal\experience_builder\PropSource\DynamicPropSource::__toString()
     if ($source_type_prefix === FALSE) {
       $source_type_prefix = $prop_source['sourceType'];
+    }
+
+    // The UrlPreviewPropSource is the exceptional exception: it is never used
+    // for storage, only for falling back to default values not expressible as
+    // StaticPropSources during preview rendering.
+    // @see \Drupal\experience_builder\Controller\ApiPreviewController
+    // @see \Drupal\experience_builder\ComponentSource\UrlRewriteInterface
+    if ($source_type_prefix === UrlPreviewPropSource::getSourceTypePrefix()) {
+      return UrlPreviewPropSource::parse($prop_source);
     }
 
     // The AdaptedPropSource is the exception: it composes multiple other prop

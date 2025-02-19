@@ -116,7 +116,7 @@ trait ClientServerConversionTrait {
    * @return array<string, array<string, \Drupal\experience_builder\PropSource\PropSourceBase>>
    * @throws \Drupal\experience_builder\Exception\ConstraintViolationException
    */
-  private static function clientModelToInput(array $tree, array $full_model, ?FieldableEntityInterface $entity = NULL): array {
+  private static function clientModelToInput(array $tree, array $full_model, ?FieldableEntityInterface $entity = NULL, bool $validate = TRUE): array {
     $definition = DataDefinition::create('component_tree_structure');
     $component_tree_structure = new ComponentTreeStructure($definition, 'component_tree_structure');
     $component_tree_structure->setValue(json_encode($tree, JSON_UNESCAPED_UNICODE));
@@ -124,7 +124,10 @@ trait ClientServerConversionTrait {
     // Remove irrelevant model data (e.g. from page regions).
     $model = \array_intersect_key($full_model, \array_flip($component_tree_structure->getComponentInstanceUuids()));
     $inputs = [];
-    $violation_list = $entity ? new EntityConstraintViolationList($entity) : new ConstraintViolationList();
+    $violation_list = NULL;
+    if ($validate) {
+      $violation_list = $entity ? new EntityConstraintViolationList($entity) : new ConstraintViolationList();
+    }
     foreach ($model as $uuid => $client_model) {
       $component = Component::load($component_tree_structure->getComponentId($uuid));
       assert($component instanceof Component);
@@ -132,20 +135,22 @@ trait ClientServerConversionTrait {
       // First we transform the incoming client model into input values using
       // the source plugin.
       $inputs[$uuid] = $source->clientModelToInput($uuid, $component, $client_model, $violation_list);
-      // Then we ensure the input values are valid using the source plugin.
-      $component_violations = self::translateConstraintPropertyPathsAndRoot(
-        ['inputs.' => 'model.'],
-        $source->validateComponentInput($inputs[$uuid], $uuid, $entity)
-      );
-      if ($component_violations->count() > 0) {
-        // @todo Remove the foreach and use ::addAll once
-        // https://www.drupal.org/project/drupal/issues/3490588 has been resolved.
-        foreach ($component_violations as $violation) {
-          $violation_list->add($violation);
+      if ($validate) {
+        // Then we ensure the input values are valid using the source plugin.
+        $component_violations = self::translateConstraintPropertyPathsAndRoot(
+          ['inputs.' => 'model.'],
+          $source->validateComponentInput($inputs[$uuid], $uuid, $entity)
+        );
+        if ($component_violations->count() > 0) {
+          // @todo Remove the foreach and use ::addAll once
+          // https://www.drupal.org/project/drupal/issues/3490588 has been resolved.
+          foreach ($component_violations as $violation) {
+            $violation_list->add($violation);
+          }
         }
       }
     }
-    if ($violation_list->count()) {
+    if ($validate && $violation_list->count()) {
       throw new ConstraintViolationException($violation_list);
     }
     return $inputs;
@@ -177,7 +182,7 @@ trait ClientServerConversionTrait {
     // ⚠️ TRICKY: in order to denormalize `model`, `layout` must already been
     // been denormalized to `tree`, because only those values in `model` that
     // are for actually existing XB components can be denormalized.
-    $inputs = self::clientModelToInput($tree, $model, $entity);
+    $inputs = self::clientModelToInput($tree, $model, $entity, $validate);
 
     // Update the entity, validate and save.
     // Note: constructing ComponentTreeStructure from `layout` and

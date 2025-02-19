@@ -7,17 +7,18 @@ namespace Drupal\experience_builder\PropSource;
 use Drupal\Core\Entity\FieldableEntityInterface;
 
 /**
- * @phpstan-type PropSourceTypePrefix 'static'|'dynamic'|'adapter'
+ * @phpstan-type PropSourceTypePrefix 'static'|'dynamic'|'adapter'|'url-preview'
  * @phpstan-type PropSourceArray array{sourceType: string, expression: string, value?: mixed|array<string, mixed>, sourceTypeSettings?: array{instance?: array<string, mixed>, storage?: array<string, mixed>}}
  * TRICKY: adapters can be chained/nested, PHPStan does not allow expressing that.
  * @phpstan-type AdaptedPropSourceArray array{sourceType: string, adapterInputs: array<string, mixed>}
+ * @phpstan-type UrlPreviewPropSourceArray array{sourceType: string, value: mixed}
  */
 abstract class PropSourceBase implements \Stringable {
 
   const SOURCE_TYPE_PREFIX_SEPARATOR = ':';
 
   /**
-   * @param PropSourceArray|AdaptedPropSourceArray $sdc_prop_source
+   * @param PropSourceArray|AdaptedPropSourceArray|UrlPreviewPropSourceArray $sdc_prop_source
    */
   abstract public static function parse(array $sdc_prop_source): static;
 
@@ -32,7 +33,7 @@ abstract class PropSourceBase implements \Stringable {
   /**
    * Gets the array representation.
    *
-   * @return PropSourceArray|AdaptedPropSourceArray
+   * @return PropSourceArray|AdaptedPropSourceArray|UrlPreviewPropSourceArray
    */
   abstract public function toArray(): array;
 

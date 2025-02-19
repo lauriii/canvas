@@ -681,6 +681,31 @@ Cypress.Commands.add(
 );
 
 Cypress.Commands.add(
+  'waitForComponentNotInPreview',
+  (
+    componentName,
+    iframeSelector = initializedReadyPreviewIframeSelector,
+    customTimeout,
+  ) => {
+    cy.document().then((doc) => {
+      cy.get(true, {
+        timeout: customTimeout || Cypress.config('defaultCommandTimeout'),
+      }).should(() => {
+        const frameContent = doc
+          .querySelector(iframeSelector)
+          ?.contentWindow?.document?.body.querySelector(
+            `[aria-label="${componentName}"]`,
+          );
+        expect(
+          !!frameContent,
+          `'${componentName}' was found in iframe '${iframeSelector}'`,
+        ).not.to.equal(true);
+      });
+    });
+  },
+);
+
+Cypress.Commands.add(
   'clickComponentInLayersView',
   (componentName, index = 0) => {
     cy.get('.primaryPanelContent')

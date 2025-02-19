@@ -31,6 +31,8 @@ use Symfony\Component\Validator\ConstraintViolationListInterface;
  * - a block plugin component source — which renders the a block and needs
  *   settings for the block plugin
  *
+ * @phpstan-import-type PropSourceArray from \Drupal\experience_builder\PropSource\PropSourceBase
+ *
  * @see \Drupal\experience_builder\Attribute\ComponentSource
  * @see \Drupal\experience_builder\ComponentSource\ComponentSourceBase
  * @see \Drupal\experience_builder\ComponentSource\ComponentSourceManager
@@ -126,7 +128,7 @@ interface ComponentSourceInterface extends PluginInspectionInterface, Derivative
    * @param \Drupal\experience_builder\Entity\Component $component
    *   A component config entity that uses this source.
    *
-   * @return array{'source'?: string, 'build': array<string, mixed>}
+   * @return array{'source'?: string, 'build': array<string, mixed>, field_data?: array<string, array>}
    *   Client side metadata including a build array for the default markup.
    *
    * @see \Drupal\experience_builder\Controller\ApiComponentsController
@@ -168,17 +170,17 @@ interface ComponentSourceInterface extends PluginInspectionInterface, Derivative
    *   Component instance UUID.
    * @param \Drupal\experience_builder\Entity\Component $component
    *   Component for this instance.
-   * @param array $client_model
+   * @param array{source: array<string, PropSourceArray>, resolved: array<string, mixed>} $client_model
    *   Client model for this component.
-   * @param \Symfony\Component\Validator\ConstraintViolationListInterface $violations
-   *   Violation constraint list, use ::addViolation to add violations detected
-   *   during conversion.
+   * @param \Symfony\Component\Validator\ConstraintViolationListInterface|null $violations
+   *   If validation should be performed, a violation constraint list, or NULL
+   *   otherwise. Use ::addViolation to add violations detected during conversion.
    *
    * @return array<string, \Drupal\experience_builder\PropSource\PropSourceBase|mixed>
    * @todo Refactor to use the Symfony denormalizer infrastructure?
    * @see ::inputToClientModel()
    */
-  public function clientModelToInput(string $component_instance_uuid, Component $component, array $client_model, ConstraintViolationListInterface $violations): array;
+  public function clientModelToInput(string $component_instance_uuid, Component $component, array $client_model, ?ConstraintViolationListInterface $violations = NULL): array;
 
   /**
    * Validates component input.

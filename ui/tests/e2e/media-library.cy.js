@@ -37,7 +37,7 @@ describe('Media Library', () => {
     cy.get('div[role="dialog"]').should('not.exist');
     // Click the remove button to reveal the open button.
     cy.get(`[class*="contextualPanel"]`)
-      .findByLabelText('Remove Default placeholder image')
+      .findByLabelText('Remove Hero image')
       .click();
     cy.get(
       '[class*="contextualPanel"] .js-media-library-open-button[data-once="drupal-ajax"]',

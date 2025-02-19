@@ -34,6 +34,8 @@ use Drupal\experience_builder\PropExpressions\StructuredData\FieldTypeObjectProp
 use Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldPropExpression;
 use Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldTypePropExpression;
 use Drupal\experience_builder\PropShape\PropShape;
+use Drupal\experience_builder\PropShape\StorablePropShape;
+use Drupal\experience_builder\PropSource\UrlPreviewPropSource;
 use Drupal\experience_builder\PropSource\PropSource;
 use Drupal\experience_builder\PropSource\StaticPropSource;
 use Drupal\experience_builder\ShapeMatcher\FieldForComponentSuggester;
@@ -227,6 +229,10 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
         $value = \array_key_exists('value', $source) ? $source['value'] : NULL;
       }
       // Don't duplicate value if the resolved value matches the static value.
+      // TRICKY: it's thanks to the condition in this if-branch NOT being met
+      // that it's possible for the preview ('resolved') to not match the input
+      // ('source'): the source will retain its own value, even if that is the
+      // empty array in for example the case of a default image.
       if (\array_key_exists('value', $source) && $value === $source['value']) {
         unset($source['value']);
       }
@@ -397,9 +403,9 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
       if (!$source instanceof StaticPropSource) {
         // @todo Design is undefined for the DynamicPropSource UX. Related: https://www.drupal.org/project/experience_builder/issues/3459234
         // @todo Design is undefined for the AdaptedPropSource UX.
-        // Fallback to a disabled version of the static version.
+        // Fall back to the static version, disabled for now where the design is undefined.
+        $disabled = !$source instanceof UrlPreviewPropSource;
         $source = $this->getDefaultStaticPropSource($sdc_prop_name)->withValue($prop_source_array['value'] ?? NULL);
-        $disabled = TRUE;
       }
       // 1. If the given static prop source matches the *current* field type
       // configuration, use the configured widget.
@@ -459,6 +465,8 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
       $static_prop_source = $storable_prop_shape->toStaticPropSource();
       $component_prop = ComponentPropExpression::fromString($component_prop_expression);
       $prop_name = $component_prop->propName;
+      // @todo Why have both $static_prop_source and $default_static_prop_source? This is confusing. At minimum, it needs to be documented what the differences are.
+      $default_static_prop_source = $this->getDefaultStaticPropSource($prop_name);
       if (isset($suggestions[$component_prop_expression])) {
         $dynamic_prop_source_candidates[$prop_name] = array_map(
           fn(FieldPropExpression|FieldObjectPropsExpression|ReferenceFieldPropExpression $expr) => (string) $expr,
@@ -482,15 +490,39 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
         }
       }
       else {
-        $default_value = $this->getDefaultStaticPropSource($prop_name)
-          ->evaluate(NULL);
+        $default_value = $default_static_prop_source->evaluate(NULL);
       }
+
+      // Determine the default:
+      // - resolved value (used for the preview of the component)
+      // - source value (used to populate
+      // Typically, they are different representations of the same value:
+      // - resolved: value conforming to an SDC prop shape
+      // - source: value as stored by the corresponding storable prop shape, so
+      //   in an instance of a field type, which can either be a single field
+      //   prop (for field types with a single property) or an array of field
+      //   props (for field types with >1 properties)
+      // @see \Drupal\experience_builder\PropShape\PropShape
+      // @see \Drupal\experience_builder\PropShape\StorablePropShape
+      // @see \Drupal\Core\Field\FieldItemInterface::propertyDefinitions()
+      // @see ::exampleValueRequiresEntity()
+      // @todo https://www.drupal.org/project/experience_builder/issues/3493943 will introduce the same 'resolved' vs 'source' split for *default values* that https://www.drupal.org/project/experience_builder/issues/3493941 already introduced for *user-entered values*. This code leaps ahead of that.
+      $default_resolved_value = $default_value;
+      $default_source_value = $default_static_prop_source->getValue();
+
       $field_data_partial[$prop_name] = [
         'required' => in_array($prop_name, $component_plugin->metadata->schema['required'] ?? [], TRUE),
         'jsonSchema' => $prop_shape->resolvedSchema,
       ];
       if ($default_value !== NULL) {
-        $field_data_partial[$prop_name]['default_values'] = $default_value;
+        // When both the preview ('resolved') and the input ('source') match,
+        // pass the 'source' value to the client. Otherwise, omit it.
+        // @todo https://www.drupal.org/project/experience_builder/issues/3493943
+        // @see ::clientModelToInput()
+        $preview_matches_default_input = empty($default_resolved_value) == empty($default_source_value);
+        if ($preview_matches_default_input) {
+          $field_data_partial[$prop_name]['default_values'] = $default_value;
+        }
         $default_props_for_default_markup[$prop_name] = $default_value;
       }
 
@@ -571,24 +603,9 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
       // @see https://json-schema.org/learn/getting-started-step-by-step#required
       $is_required = in_array($cpe->propName, $component_plugin->metadata->schema['required'] ?? [], TRUE);
 
-      $skip_prop = FALSE;
       $storable_prop_shape = $prop_shape->getStorage();
       if (is_null($storable_prop_shape)) {
         continue;
-      }
-
-      if ($storable_prop_shape->fieldTypeProp instanceof FieldTypeObjectPropsExpression) {
-        // @todo Add support for default images: /components/image/image.component.yml.
-        if ($storable_prop_shape->fieldTypeProp->fieldType === 'entity_reference') {
-          $skip_prop = TRUE;
-        }
-        else {
-          foreach ($storable_prop_shape->fieldTypeProp->objectPropsToFieldTypeProps as $field_type_prop) {
-            if ($field_type_prop instanceof ReferenceFieldTypePropExpression) {
-              $skip_prop = TRUE;
-            }
-          }
-        }
       }
       $static_prop_source = $storable_prop_shape->toStaticPropSource();
 
@@ -599,9 +616,11 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
         'field_widget' => $storable_prop_shape->fieldWidget,
         'expression' => (string) $storable_prop_shape->fieldTypeProp,
         // TRICKY: need to transform to the array structure that depends on the
-        // field type.
+        // field type. Do not store a default value for field types that
+        // reference entities, because that would require those entities to be
+        // created.
         // @see `type: field.storage_settings.*`
-        'default_value' => $skip_prop ? [] : $static_prop_source->withValue(
+        'default_value' => self::exampleValueRequiresEntity($storable_prop_shape) ? [] : $static_prop_source->withValue(
           $is_required
             // Example guaranteed to exist if a required prop.
             ? $component_plugin->metadata->schema['properties'][$cpe->propName]['examples'][0]
@@ -621,12 +640,75 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
   }
 
   /**
+   * Whether this storable prop shape needs a (referenceable) entity created.
+   *
+   * TRICKY: SDCs whose storable prop shape uses an entity reference CAN NOT
+   * ever have a default value specified in their corresponding Component config
+   * entity.
+   *
+   * It is in fact possible to transform the example value in the SDC into a
+   * corresponding real (saved) entity in Drupal, but that would pollute the
+   * data stored in Drupal (the nodes, the media, …) with what would be
+   * perceived as a nonsensical value.
+   *
+   * To avoid this pollution, we allow such SDC props to not specify a default
+   * value for its StorablePropShape stored in the Component config entity.
+   * To offer an equivalently smooth experience, with the specified example
+   * value, XB instead is able to generate valid values for rendering a preview
+   * of the SDC.
+   *
+   * Typical examples:
+   * - an SDC prop accepting an image, i.e.
+   *   `json-schema-definitions://experience_builder.module/image`. But other
+   * - an SDC prop accepting a URL for a link, i.e.
+   *   `type: string, format: uri-reference`
+   *
+   * Currently, this has only been necessary for URLs. More may be needed in the
+   * future.
+   *
+   * @see \Drupal\experience_builder\PropSource\UrlPreviewPropSource
+   * @see \Drupal\experience_builder\ComponentSource\UrlRewriteInterface
+   */
+  public static function exampleValueRequiresEntity(StorablePropShape $storable_prop_shape): bool {
+    if ($storable_prop_shape->fieldTypeProp instanceof FieldTypeObjectPropsExpression) {
+      if ($storable_prop_shape->fieldTypeProp->fieldType === 'entity_reference') {
+        return TRUE;
+      }
+      else {
+        foreach ($storable_prop_shape->fieldTypeProp->objectPropsToFieldTypeProps as $field_type_prop) {
+          if ($field_type_prop instanceof ReferenceFieldTypePropExpression) {
+            return TRUE;
+          }
+        }
+      }
+    }
+    return FALSE;
+  }
+
+  /**
    * {@inheritdoc}
    */
-  public function clientModelToInput(string $component_instance_uuid, ComponentEntity $component, array $client_model, ConstraintViolationListInterface $violations): array {
+  public function clientModelToInput(string $component_instance_uuid, ComponentEntity $component, array $client_model, ?ConstraintViolationListInterface $violations = NULL): array {
     $props = [];
 
-    foreach (($client_model['resolved'] ?? []) as $prop => $prop_value) {
+    foreach (($client_model['source'] ?? []) as $prop => $prop_source) {
+      if ($violations === NULL && !\array_key_exists($prop, $client_model['resolved'])) {
+        // Valueless prop, for the case where only a default is provided for the
+        // preview, not for storing.
+        // @see ::exampleValueRequiresEntity()
+        // @see ::getClientSideInfo()
+        $client_side_info = $this->getClientSideInfo($component);
+        assert(isset($client_side_info['field_data'][$prop]['jsonSchema']));
+        $source = new UrlPreviewPropSource(
+          value: $client_side_info['build']['#props'][$prop],
+          jsonSchema: $client_side_info['field_data'][$prop]['jsonSchema'],
+          componentId: $component->id(),
+        );
+        $props[$prop] = $source->toArray();
+        continue;
+      }
+
+      $prop_value = $client_model['resolved'][$prop] ?? NULL;
       try {
         // @see PropSourceComponent type-script definition.
         // @see EvaluatedComponentModel type-script definition.
@@ -636,9 +718,8 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
         // image's alt, src, height and width properties. This will change
         // in https://drupal.org/i/3493942.
         // Undo what ::inputToClientModel() did: restore the omitted `'value'`.
-        $reconstructed_prop_source = ['value' => $prop_value] + $client_model['source'][$prop];
-        // @phpstan-ignore-next-line
-        $source = PropSource::parse($reconstructed_prop_source);
+        $prop_source['value'] = $prop_value;
+        $source = PropSource::parse($prop_source);
       }
       catch (\LogicException) {
         // Invalid client data has been passed - fallback to an empty default
@@ -655,16 +736,18 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
           $target_id = $this->findTargetForProps($prop_value, $target_type);
         }
         catch (InvalidRequestBodyValue $invalid) {
-          $violations->add(new ConstraintViolation(
-            $invalid->getMessage(),
-            NULL,
-            [],
-            $client_model,
-            $invalid->propertyPath
-              ? "model.$component_instance_uuid.$prop.{$invalid->propertyPath}"
-              : "model.$component_instance_uuid.$prop",
-            $prop_value,
-          ));
+          if ($violations !== NULL) {
+            $violations->add(new ConstraintViolation(
+              $invalid->getMessage(),
+              NULL,
+              [],
+              $client_model,
+              $invalid->propertyPath
+                ? "model.$component_instance_uuid.$prop.{$invalid->propertyPath}"
+                : "model.$component_instance_uuid.$prop",
+              $prop_value,
+            ));
+          }
           continue;
         }
 

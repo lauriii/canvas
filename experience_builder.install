@@ -4,9 +4,6 @@ declare(strict_types=1);
 
 use Drupal\Core\Extension\ThemeInstallerInterface;
 use Drupal\experience_builder\AutoSave\AutoSaveManager;
-use Drupal\file\FileRepositoryInterface;
-use Drupal\media\Entity\Media;
-use Drupal\media\Entity\MediaType;
 
 /**
  * Implements hook_install().
@@ -19,23 +16,6 @@ function experience_builder_install(): void {
 
   // Cache flush ensures the contextual form works.
   drupal_flush_all_caches();
-
-  // Create a file and media to use as a default value for items of type
-  // $ref: json-schema-definitions://experience_builder.module/image.
-  $file = \Drupal::service(FileRepositoryInterface::class)->writeData(\file_get_contents(__DIR__ . '/images/600x400.png') ?: '', 'public://600x400.png');
-  if (MediaType::load('image')) {
-    Media::create([
-      'bundle' => 'image',
-      'name' => 'Default placeholder image',
-      'field_media_image' => [
-        [
-          'target_id' => $file->id(),
-          'alt' => 'Placeholder image',
-          'title' => 'Placeholder image',
-        ],
-      ],
-    ])->save();
-  }
 }
 
 /**

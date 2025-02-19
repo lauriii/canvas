@@ -390,4 +390,23 @@ describe('Perform CRUD operations on components', () => {
       cy.findAllByText('Two Column').should('have.length', 2);
     });
   });
+
+  it('Can add an image component with a preview but empty input', () => {
+    cy.loadURLandWaitForXBLoaded();
+
+    // Delete the two existing image components.
+    cy.clickComponentInPreview('Image');
+    cy.realPress('{del}');
+    cy.clickComponentInPreview('Image');
+    cy.realPress('{del}');
+
+    cy.waitForComponentNotInPreview('Image');
+
+    cy.openLibraryPanel();
+    cy.get('.primaryPanelContent').findByText('Image').click();
+    // Check the default image src is set.
+    cy.waitForElementInIframe(
+      'img[src*="/experience_builder/components/image/600x400.png"]',
+    );
+  });
 });
