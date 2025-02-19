@@ -4,10 +4,17 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\experience_builder\Kernel;
 
+use Drupal\Component\Serialization\Json;
+use Drupal\Core\Cache\MemoryCache\MemoryCacheInterface;
+use Drupal\Core\Config\ConfigFactoryInterface;
+use Drupal\experience_builder\AutoSave\AutoSaveManager;
+use Drupal\experience_builder\Entity\JavaScriptComponent;
 use Drupal\experience_builder\Entity\PageRegion;
+use Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\JsComponent;
 use Drupal\Tests\experience_builder\TestSite\XBTestSetup;
 use Symfony\Component\DomCrawler\Crawler;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
 
 /**
  * @covers \Drupal\experience_builder\Controller\ApiLayoutController::post()
@@ -154,6 +161,130 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
     $crawler = new Crawler($this->content);
     self::assertCount(1, $crawler->filter('[data-xb-uuid="content"]'));
     self::assertCount(1, $crawler->filter('[data-xb-uuid="highlighted"]'));
+  }
+
+  public function testWithDraftCodeComponent(): void {
+    // @todo Add an access control handler and a view permission.
+    $this->setUpCurrentUser([], [
+      'access administration pages',
+      'administer url aliases',
+      'administer code components',
+    ]);
+
+    // Create the saved (published) javascript component.
+    $saved_component_values = [
+      'machineName' => 'hey_there',
+      'name' => 'Hey there',
+      'status' => TRUE,
+      'props' => [
+        'name' => [
+          'type' => 'string',
+          'title' => 'Name',
+          'examples' => ['Garry'],
+        ],
+      ],
+      'slots' => [],
+      'js' => [
+        'original' => 'console.log("Hey there")',
+        'compiled' => 'console.log("Hey there")',
+      ],
+      'css' => [
+        'original' => '',
+        'compiled' => '',
+      ],
+    ];
+    $code_component = JavaScriptComponent::create($saved_component_values);
+    $code_component->save();
+    $saved_component_values['props']['voice'] = [
+      'type' => 'string',
+      'enum' => [
+        'polite',
+        'shouting',
+        'toddler on a sugar high',
+      ],
+      'title' => 'Voice',
+      'examples' => ['polite'],
+    ];
+    $saved_component_values['name'] = 'Here comes the';
+    // But store an overridden version in autosave (draft).
+    /** @var \Drupal\experience_builder\AutoSave\AutoSaveManager $autoSave */
+    $autoSave = $this->container->get(AutoSaveManager::class);
+    $autoSave->save($code_component, $saved_component_values);
+
+    // Load the test data from the layout controller.
+    $content = $this->parentRequest(Request::create('/xb/api/layout/node/1'))->getContent() ?: '';
+    $this->assertJson($content);
+    $json = json_decode($content, TRUE, JSON_THROW_ON_ERROR);
+
+    // Add the code component into the layout.
+    $uuid = 'ccf36def-3f87-4b7d-bc20-8f8594274818';
+    $json['layout'][0]['components'][] = [
+      'nodeType' => 'component',
+      'uuid' => $uuid,
+      'type' => JsComponent::componentIdFromJavascriptComponentId((string) $code_component->id()),
+      'slots' => [],
+    ];
+    $props = [
+      'name' => 'Hot stepper',
+      'voice' => 'shouting',
+    ];
+    $json['model'][$uuid] = [
+      'resolved' => $props,
+      'source' => [
+        'name' => [
+          'sourceType' => 'static:field_item:string',
+          'expression' => 'ℹ︎string␟value',
+        ],
+        'voice' => [
+          'sourceType' => 'static:field_item:list_string',
+          'expression' => 'ℹ︎list_string␟value',
+          'sourceTypeSettings' => [
+            'storage' => [
+              'allowed_values' => [
+                ['value' => 'polite', 'label' => 'polite'],
+                ['value' => 'shouting', 'label' => 'shouting'],
+                ['value' => 'toddler on a sugar high', 'label' => 'toddler on a sugar high'],
+              ],
+            ],
+          ],
+        ],
+      ],
+    ];
+
+    // Invalidate any static caches.
+    $cache = $this->container->get(MemoryCacheInterface::class);
+    \assert($cache instanceof MemoryCacheInterface);
+    $cache->invalidateTags([\sprintf('entity.memory_cache:%s', JavaScriptComponent::ENTITY_TYPE_ID)]);
+    $this->container->get(ConfigFactoryInterface::class)->reset();
+
+    $this->request(Request::create('/xb/api/layout/node/1', method: 'POST', content: \json_encode($json, JSON_THROW_ON_ERROR)));
+    // Check that regions exist and are wrapped.
+    $crawler = new Crawler($this->content);
+    $content_region = $crawler->filter('[data-xb-uuid="content"]');
+    self::assertCount(1, $content_region);
+    $element = $content_region->filter('astro-island');
+    self::assertCount(1, $element);
+
+    self::assertEquals($uuid, $element->attr('uid'));
+    // Should see the new (draft) props.
+    self::assertJsonStringEqualsJsonString(Json::encode($props), $element->attr('props') ?? '');
+    // And the new component label.
+    self::assertJsonStringEqualsJsonString(Json::encode([
+      'name' => 'Here comes the',
+      'value' => 'preact',
+    ]), $element->attr('opts') ?? '');
+  }
+
+  /**
+   * Unwrap the JSON response so we can perform assertions on it.
+   */
+  protected function request(Request $request): Response {
+    $request->headers->set('Content-Type', 'application/json');
+    $response = $this->parentRequest($request);
+    $content = $response->getContent();
+    $this->assertIsString($content);
+    $this->setRawContent(json_decode($content, TRUE)['html']);
+    return $response;
   }
 
 }

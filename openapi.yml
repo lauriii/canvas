@@ -1259,6 +1259,10 @@ components:
           $ref: '#/components/schemas/Model'
         entity_form_fields:
           type: object
+        isNew:
+          type: boolean
+        isPublished:
+          type: boolean
     AutoSaveEntry:
       title: Auto Save Entry
       type: object

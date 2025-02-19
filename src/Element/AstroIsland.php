@@ -97,6 +97,7 @@ final class AstroIsland extends RenderElementBase {
       return $build;
     }
 
+    $valid_props = $component->getProps() ?? [];
     $component_url = \Drupal::service(FileUrlGeneratorInterface::class)->generateString($component->getJsPath());
     if ($element['#preview'] ?? FALSE) {
       $component_url .= '?preview=1';
@@ -116,7 +117,7 @@ final class AstroIsland extends RenderElementBase {
         '__aie_uuid' => $element['#uuid'] ?? \Drupal::service(UuidInterface::class)->generate(),
         '__aie_component_url' => $component_url,
         '__aie_renderer' => $renderer_url,
-        '__aie_props' => \json_encode(\array_diff_key($element['#props'] ?? [], \array_flip(['xb_uuid', 'xb_slot_ids'])), JSON_FORCE_OBJECT | JSON_THROW_ON_ERROR),
+        '__aie_props' => \json_encode(\array_intersect_key($element['#props'] ?? [], $valid_props), JSON_FORCE_OBJECT | JSON_THROW_ON_ERROR),
         '__aie_opts' => \json_encode([
           'name' => $component->label(),
           'value' => $element['#framework'] ?? 'preact',

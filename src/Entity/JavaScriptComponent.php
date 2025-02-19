@@ -205,4 +205,14 @@ final class JavaScriptComponent extends ConfigEntityBase implements XbHttpApiEli
     return $this->required ?? [];
   }
 
+  /**
+   * Gets component props.
+   *
+   * @return array|null
+   *   Component props.
+   */
+  public function getProps(): ?array {
+    return $this->props;
+  }
+
 }

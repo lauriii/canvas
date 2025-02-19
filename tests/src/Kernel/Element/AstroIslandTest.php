@@ -124,7 +124,9 @@ final class AstroIslandTest extends KernelTestBase {
       '#type' => AstroIsland::PLUGIN_ID,
       '#uuid' => $uid,
       '#component' => $component->id(),
-      '#props' => $props,
+      '#props' => $props + [
+        'this' => 'is not a valid prop so should be ignored',
+      ],
       '#slots' => [
         'default' => ['#markup' => '<em>3 ponies won this week!</em>'],
         'error' => 'No pony for you!',

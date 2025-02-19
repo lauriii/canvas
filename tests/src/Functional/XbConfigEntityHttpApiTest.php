@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\Tests\experience_builder\Functional;
 
 use Drupal\Core\Url;
+use Drupal\experience_builder\AutoSave\AutoSaveManager;
 use Drupal\system\Entity\Menu;
 use Drupal\Tests\experience_builder\Traits\ContribStrictConfigSchemaTestTrait;
 use Drupal\Tests\experience_builder\Traits\TestDataUtilitiesTrait;
@@ -656,7 +657,16 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
 
     // Re-retrieve list: 200, non-empty list, despite `status` of entity being
     // `false`. Dynamic Page Cache miss.
-    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['languages:language_interface', 'theme', 'user.permissions'], ['config:js_component_list', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
+    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, [
+      'languages:language_interface',
+      'theme',
+      'user.permissions',
+      'route',
+    ], [
+      'config:js_component_list',
+      'http_response',
+      AutoSaveManager::CACHE_TAG,
+    ], 'UNCACHEABLE (request policy)', 'MISS');
     $this->assertSame(['test' => $expected_component], $body);
 
     // Modify a Code Component incorrectly (consistency-wise): 422.
@@ -674,7 +684,16 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
     $auto_save_data['name'] = 'Auto-save title, should not affect GET requests';
     $this->assertAutoSave($auto_save_data, 'js_component', 'test');
 
-    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['languages:language_interface', 'user.permissions', 'theme'], ['config:js_component_list', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
+    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, [
+      'languages:language_interface',
+      'theme',
+      'user.permissions',
+      'route',
+    ], [
+      'config:js_component_list',
+      'http_response',
+      AutoSaveManager::CACHE_TAG,
+    ], 'UNCACHEABLE (request policy)', 'MISS');
     $this->assertSame([
       'test' => $expected_component,
     ], $body);
