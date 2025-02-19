@@ -17,6 +17,19 @@ import ErrorCard from '@/components/error/ErrorCard';
 import MissingDefaultExportMessage from './errors/MissingDefaultExportMessage';
 import { ScrollArea } from '@radix-ui/themes';
 import { camelCase } from 'lodash';
+import { parsePropValue } from '@/features/code-editor/utils';
+
+const XB_MODULE_UI_PATH = (() => {
+  const { drupalSettings } = window;
+  if (!drupalSettings) {
+    return '';
+  }
+  const { xbModulePath } = drupalSettings.xb;
+  const { baseUrl } = drupalSettings.path;
+  return `${baseUrl}${xbModulePath}/ui` as const;
+})();
+
+const PREVIEW_LIB_PATH = 'dist/assets/code-editor-preview.js' as const;
 
 const swcConfig: Options = {
   jsc: {
@@ -59,70 +72,47 @@ const Preview = () => {
   const globalCss = useAppSelector(selectGlobalCss);
   const props = useAppSelector(selectProps);
   const slots = useAppSelector(selectSlots);
-  const [compiledJs, setCompiledJs] = useState<string>('');
+  const [previewData, setPreviewData] = useState<string>('');
   const [compiledCss, setCompiledCss] = useState<string>('');
   const [compiledTailwindCss, setCompiledTailwindCss] = useState<string>('');
-  const [defaultExportName, setDefaultExportName] = useState<string>('');
   const [isDefaultExportMissingError, setIsDefaultExportMissingError] =
     useState(false);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const parentRef = useRef<HTMLDivElement>(null);
   const [isCompileError, setIsCompileError] = useState(false);
 
-  const propsArray = props
-    .filter((prop) => prop.name) // Filter out props with no name.
-    .map((prop) => {
-      const value = prop.example;
-      if (prop.type === 'string') {
-        // If the prop is a string, wrap it in quotes.
-        return `${camelCase(prop.name)}: '${value}'`;
-      }
-      return `${camelCase(prop.name)}: ${value}`;
-    });
-  const slotsArray = slots
-    .filter((slot) => slot.name && slot.example)
-    .map((slot) => {
-      const slotName = camelCase(slot.name);
-      // Each slot example value is turned into a Preact component. The h()
-      // function is Preact's version of React's createElement() function, which
-      // will render the slot's example value.
-      // @see compile()
-      return `${slotName}: h(${slotName} || null)`;
-    });
-
-  const propsString = `{${[...propsArray, ...slotsArray].join(',')}}`;
   const iframeSrcDoc = `
-    <script type="importmap">
-        ${JSON.stringify(importMap)}
-    </script>
-     <style>${compiledCss}</style>
-     <style>${compiledTailwindCss}</style>
-    <script type="module">
-      import { h, render } from 'preact';
-      ${compiledJs}
-      render(h(${defaultExportName}, ${propsString}), document.getElementById('xb-code-editor-preview-root'));
-    </script>
-    <div id="xb-code-editor-preview-root"></div>`;
+    <html>
+      <head>
+        <script type="importmap">
+          ${JSON.stringify(importMap)}
+        </script>
+        <style>${compiledCss}</style>
+        <style>${compiledTailwindCss}</style>
+        <script id="xb-code-editor-preview-data" type="application/json">
+          ${previewData}
+        </script>
+        <script type="module" src="${XB_MODULE_UI_PATH}/${PREVIEW_LIB_PATH}"></script>
+      </head>
+      <body>
+        <div id="xb-code-editor-preview-root"></div>
+      </body>
+    </html>`;
 
-  // Sets the name of the default export component from the JS AST
-  // which is needed to render the component in the code editor preview iframe.
-  const getDefaultExportNameFromAST = (ast: File) => {
+  // Verifies that the component's JS code has a default export.
+  const hasDefaultExport = (ast: File) => {
     for (const node of ast.program.body) {
       if (node.type === 'ExportDefaultDeclaration') {
         // Case when JS is a function default export.
         if (node.declaration.type === 'FunctionDeclaration') {
-          setDefaultExportName(node.declaration.id.name);
-          setIsDefaultExportMissingError(false);
-          return;
+          return true;
         } else if ('name' in node.declaration) {
           // Case when JS is an arrow function default export.
-          setDefaultExportName(node.declaration.name);
-          setIsDefaultExportMissingError(false);
-          return;
+          return true;
         }
       }
     }
-    setIsDefaultExportMissingError(true);
+    return false;
   };
 
   const compile = useCallback(async () => {
@@ -135,7 +125,7 @@ const Preview = () => {
         .map((slot) => {
           // Wrap the slot's example value in a function so that it can be
           // rendered by Preact.
-          return `function ${camelCase(slot.name)}() { return (${slot.example as string});}`;
+          return `export function ${camelCase(slot.name)}() { return (${slot.example as string});}`;
         })
         .join('\n');
       const result = transformSync(`${js}\n${jsForSlots}`, swcConfig);
@@ -147,14 +137,41 @@ const Preview = () => {
         sourceType: 'module',
         plugins: ['jsx'],
       });
-      getDefaultExportNameFromAST(ast);
-      setCompiledJs(result.code);
+      if (hasDefaultExport(ast)) {
+        setIsDefaultExportMissingError(false);
+      } else {
+        setIsDefaultExportMissingError(true);
+      }
+      // The following data is going to be embedded in the iframe as a JSON
+      // object. It is used by a script that we load inside the iframe to
+      // render the component. The script is loaded via an `src` attribute
+      // instead of being added to the iframe inline because of Content
+      // Security Policy (CSP) restrictions.
+      // @see ui/lib/code-editor-preview.js
+      let propValues = {} as Record<string, any>;
+      props
+        .filter((prop) => prop.name)
+        .forEach((prop) => {
+          propValues[camelCase(prop.name)] = parsePropValue(prop);
+        });
+      const slotNames = slots
+        .filter((slot) => slot.name && slot.example)
+        .map((slot) => camelCase(slot.name));
+      setPreviewData(
+        JSON.stringify({
+          compiledJsUrl: URL.createObjectURL(
+            new Blob([result.code], { type: 'text/javascript' }),
+          ),
+          propValues,
+          slotNames,
+        }),
+      );
       setIsCompileError(false);
     } catch (error: any) {
       setIsCompileError(true);
       console.error('Compilation error:', error);
     }
-  }, [initialized, js, css, globalCss, slots]);
+  }, [initialized, js, css, globalCss, props, slots]);
 
   useEffect(() => {
     const importAndRunSwcOnMount = async () => {
@@ -162,11 +179,7 @@ const Preview = () => {
         // When served in production, the wasm asset URLs need to be relative to the Drupal web root, so
         // we pass that in to the initSwc function.
         if (import.meta.env.MODE === 'production') {
-          const { drupalSettings } = window;
-          const { xbModulePath } = drupalSettings.xb;
-          const { baseUrl } = drupalSettings.path;
-          const pathToWasm = `${baseUrl}${xbModulePath}/ui/dist/assets/wasm_bg.wasm`;
-          await initSwc(pathToWasm);
+          await initSwc(`${XB_MODULE_UI_PATH}/ui/dist/assets/wasm_bg.wasm`);
         } else {
           await initSwc();
         }

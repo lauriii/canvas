@@ -3,6 +3,14 @@ import Preview from '@/features/code-editor/Preview';
 import { makeStore } from '@/app/store';
 
 describe('<Preview /> for code editor', () => {
+  let previewScript;
+  before(() => {
+    // Load the preview script content.
+    cy.readFile('lib/code-editor-preview.js').then((content) => {
+      previewScript = content;
+    });
+  });
+
   it('renders simple JS and CSS in the preview iframe', () => {
     // Mock JavaScript and CSS in the Redux store
     const store = makeStore({
@@ -51,6 +59,20 @@ describe('<Preview /> for code editor', () => {
         <Preview />
       </Provider>,
     );
+
+    // Compiling the JS code in the preview is debounced to one second.
+    // When that happens, the iframe is re-rendered. Waiting here to inject
+    // the preview script. It's normally added in the iframe's markup
+    // in a <script> tag with `src`, but since this is a component test, that
+    // won't work.
+    cy.wait(2000); // eslint-disable-line cypress/no-unnecessary-waiting
+    cy.getIframe('[data-xb-iframe="xb-code-editor-preview"]').then((doc) => {
+      const script = doc.createElement('script');
+      script.type = 'module';
+      script.textContent = previewScript;
+      doc.head.appendChild(script);
+    });
+
     cy.waitForElementInIframe(
       '#hello',
       '[data-xb-iframe="xb-code-editor-preview"]',

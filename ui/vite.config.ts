@@ -2,6 +2,7 @@ import { loadEnv, defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import svgr from 'vite-plugin-svgr';
 import path from 'path';
+import fs from 'fs';
 // https://vitejs.dev/config/
 
 export default defineConfig(({ command, mode }) => {
@@ -11,7 +12,22 @@ export default defineConfig(({ command, mode }) => {
     define: {
       __APP_ENV__: JSON.stringify(env.APP_ENV),
     },
-    plugins: [react(), svgr()],
+    plugins: [
+      react(),
+      svgr(),
+      {
+        // Copy the code editor preview script to the dist directory when the
+        // app is built.
+        // @see ui/lib/code-editor-preview.js
+        name: 'copy-code-editor-preview',
+        writeBundle() {
+          fs.copyFileSync(
+            'lib/code-editor-preview.js',
+            'dist/assets/code-editor-preview.js',
+          );
+        },
+      },
+    ],
     server: {
       // open: true,
       fs: {
