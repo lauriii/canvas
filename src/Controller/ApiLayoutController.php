@@ -73,14 +73,12 @@ final class ApiLayoutController {
     $regions = PageRegion::loadForActiveTheme();
 
     $content_entity_type = $entity->getEntityType();
+    $is_published = $entity->isPublished();
 
     if ($body = $this->autoSaveManager->getAutoSaveData($entity)->data) {
       ['layout' => $layout, 'model' => $model, 'entity_form_fields' => $entity_form_fields] = $body;
       $label_field_input_name = sprintf("%s[0][value]", $content_entity_type->getKey('label'));
       $is_new = $this->contentEntityIsConsideredNew($entity_form_fields[$label_field_input_name], $content_entity_type);
-      // @see \Drupal\Core\Entity\EntityPublishedTrait::publishedBaseFieldDefinitions()
-      $published_field_input_name = sprintf("%s[value]", $entity->getEntityType()->getKey('published'));
-      $is_published = $entity_form_fields[$published_field_input_name] == '1';
     }
     else {
       $model = [];
@@ -91,7 +89,6 @@ final class ApiLayoutController {
       assert($tree instanceof ComponentTreeItem);
       $layout = [$this->buildRegion(XbPageVariant::MAIN_CONTENT_REGION, $tree, $model)];
       $is_new = $this->contentEntityIsConsideredNew((string) $entity->label(), $content_entity_type);
-      $is_published = $entity->isPublished();
     }
 
     if ($regions) {
