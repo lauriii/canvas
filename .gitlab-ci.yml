@@ -116,6 +116,11 @@ cspell:
       - "**/*.twig"
     when: on_success
 
+.ui-fixture-files-change-rule: &UI-fixures-files-change-rule
+  - changes:
+      - ui/tests/fixtures/**/*
+    when: on_success
+
 # @todo Remove when https://www.drupal.org/project/gitlab_templates/issues/3452183 lands.
 composer-lint:
   rules:
@@ -230,6 +235,7 @@ phpunit:
     - *module-metadata-files-change-rule
     - *module-config-files-change-rule
     - *SDC-files-change-rule
+    - *UI-fixures-files-change-rule
     - *manual-rule
 # Sadly, changes to `phpunit` do not affect derivatives that themselves override `rules`… 😬
 phpunit (previous major):
@@ -243,6 +249,7 @@ phpunit (previous major):
     - *module-metadata-files-change-rule
     - *module-config-files-change-rule
     - *SDC-files-change-rule
+    - *UI-fixures-files-change-rule
     - *manual-rule
 
 eslint:
@@ -380,6 +387,7 @@ cypress unit:
         - ui/tsconfig.json
         - ui/tsconfig.node.json
         - ui/tests/unit/**/*
+    - *UI-fixures-files-change-rule
     - *manual-rule
 
 🗺️ C4 model diagrams:
