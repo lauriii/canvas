@@ -14,12 +14,11 @@ import {
   initialState as uiInitialState,
 } from '@/features/ui/uiSlice';
 import { setPageData } from '@/features/pageData/pageDataSlice';
+import layoutFixture from '../fixtures/layout-default.json';
 
 let layout;
-before('Load fixture', function () {
-  cy.fixture('layout-default.json').then((data) => {
-    layout = data;
-  });
+beforeEach(() => {
+  layout = layoutFixture;
 });
 
 describe('Set layout model', () => {
@@ -37,7 +36,7 @@ describe('Delete node', () => {
   it('Should delete node', () => {
     expect(layout.layout[0].components).to.have.length(5);
     expect(layout.layout[0].components.map((item) => item.uuid)).to.deep.equal([
-      'static-image-udf7d',
+      'a7470350-deb2-4d9f-982c-464d356403d4',
       'static-static-card2df',
       'static-static-card3rr',
       'static-image-static-imageStyle-something7d',
@@ -47,9 +46,9 @@ describe('Delete node', () => {
       layout,
       deleteNode('static-static-card2df'),
     );
-    cy.wrap(state.layout[0].components).should('have.length', 4);
+    expect(state.layout[0].components.length).to.eq(4);
     expect(state.layout[0].components.map((item) => item.uuid)).to.deep.equal([
-      'static-image-udf7d',
+      'a7470350-deb2-4d9f-982c-464d356403d4',
       'static-static-card3rr',
       'static-image-static-imageStyle-something7d',
       'ee07d472-a754-4427-b6d4-acfc6f92bbdc',
@@ -57,58 +56,47 @@ describe('Delete node', () => {
 
     // Delete node with children
     // Check if all UUIDs of nested component(Two Column) exists before deletion
-    cy.wrap(Object.keys(state.model)).then((items) => {
-      [
-        'ee07d472-a754-4427-b6d4-acfc6f92bbdc',
-        '6f3224e2-cb61-46e4-a9e4-35b4d18f0a82',
-        '3b709ed2-99d3-4db2-869d-ca426f69fbb9',
-        'eaa37ee1-7d50-4041-b04c-c80bdbac3412',
-      ].forEach((element) => {
-        expect(items).to.include(element);
-      });
-    });
+    const childUuids = [
+      'ee07d472-a754-4427-b6d4-acfc6f92bbdc',
+      '6f3224e2-cb61-46e4-a9e4-35b4d18f0a82',
+      '3b709ed2-99d3-4db2-869d-ca426f69fbb9',
+      'eaa37ee1-7d50-4041-b04c-c80bdbac3412',
+    ];
+    expect(
+      Object.keys(state.model).filter((item) => childUuids.includes(item))
+        .length,
+    ).to.eq(4);
     state = layoutModelSlice.reducer(
       layout,
       deleteNode('ee07d472-a754-4427-b6d4-acfc6f92bbdc'),
     );
-    cy.wrap(state.layout[0].components).should('have.length', 4);
+    expect(state.layout[0].components.length).to.eq(4);
     expect(state.layout[0].components.map((item) => item.uuid)).to.deep.equal([
-      'static-image-udf7d',
+      'a7470350-deb2-4d9f-982c-464d356403d4',
       'static-static-card2df',
       'static-static-card3rr',
       'static-image-static-imageStyle-something7d',
     ]);
     // To be double sure: check if all UUIDs of nested component(Two Column) should not exist after deletion
-    cy.wrap(Object.keys(state.model)).then((items) => {
-      [
-        'ee07d472-a754-4427-b6d4-acfc6f92bbdc',
-        '6f3224e2-cb61-46e4-a9e4-35b4d18f0a82',
-        '3b709ed2-99d3-4db2-869d-ca426f69fbb9',
-        'eaa37ee1-7d50-4041-b04c-c80bdbac3412',
-      ].forEach((element) => {
-        expect(items).to.not.include(element);
-      });
-    });
+    expect(
+      Object.keys(state.model).filter((item) => childUuids.includes(item))
+        .length,
+    ).to.eq(0);
     expect(Object.keys(state.model)).to.deep.equal([
       'static-image-udf7d',
       'static-static-card1ab',
       'static-static-card2df',
       'static-static-card3rr',
       'static-image-static-imageStyle-something7d',
+      'a7470350-deb2-4d9f-982c-464d356403d4',
     ]);
   });
 });
 
 describe('Move node', () => {
   it('Should move node', () => {
-    cy.wrap(layout.layout[0].components[0].slots[0].components).should(
-      'have.length',
-      1,
-    );
-    cy.wrap(layout.layout[0].components[2].slots[0].components).should(
-      'have.length',
-      0,
-    );
+    expect(layout.layout[0].components[0].slots[0].components.length).to.eq(2);
+    expect(layout.layout[0].components[4].slots[0].components.length).to.eq(1);
     expect(
       layout.layout[0].components[0].slots[0].components[0].uuid,
     ).to.deep.equal('static-static-card1ab');
@@ -116,22 +104,19 @@ describe('Move node', () => {
       layout,
       moveNode({
         uuid: 'static-static-card1ab',
-        to: [0, 2, 0, 1],
+        to: [0, 4, 0, 1],
       }),
     );
-    cy.wrap(state.layout[0].components[0].slots[0].components).should(
-      'have.length',
-      0,
-    );
-    cy.wrap(state.layout[0].components[2].slots[0].components).should(
-      'have.length',
-      1,
-    );
+    expect(state.layout[0].components[0].slots[0].components.length).to.eq(1);
+    expect(state.layout[0].components[4].slots[0].components.length).to.eq(2);
     expect(
-      state.layout[0].components[2].slots[0].components.map(
+      state.layout[0].components[4].slots[0].components.map(
         (item) => item.uuid,
       ),
-    ).to.deep.equal(['static-static-card1ab']);
+    ).to.deep.equal([
+      '6f3224e2-cb61-46e4-a9e4-35b4d18f0a82',
+      'static-static-card1ab',
+    ]);
   });
 });
 
@@ -143,14 +128,14 @@ describe('Undo/redo', () => {
     });
     let state = selectLayoutHistory(store.getState());
     expect(state.present).to.eq(layout);
-    cy.wrap(state.past).should('have.length', 1);
-    cy.wrap(state.future).should('have.length', 0);
+    expect(state.past.length).to.eq(1);
+    expect(state.future.length).to.eq(0);
     store.dispatch(UndoRedoActionCreators.undo('layoutModel'));
 
     state = selectLayoutHistory(store.getState());
     expect(state.present).to.eq(initialState);
-    cy.wrap(state.past).should('have.length', 0);
-    cy.wrap(state.future).should('have.length', 1);
+    expect(state.past.length).to.eq(0);
+    expect(state.future.length).to.eq(1);
   });
   it('Should support redo when future state exists', () => {
     const store = makeStore({
@@ -163,14 +148,14 @@ describe('Undo/redo', () => {
 
     state = selectLayoutHistory(store.getState());
     expect(state.present).to.eq(initialState);
-    cy.wrap(state.past).should('have.length', 0);
-    cy.wrap(state.future).should('have.length', 1);
+    expect(state.past.length).to.eq(0);
+    expect(state.future.length).to.eq(1);
     store.dispatch(UndoRedoActionCreators.redo('layoutModel'));
 
     state = selectLayoutHistory(store.getState());
     expect(state.present).to.eq(layout);
-    cy.wrap(state.past).should('have.length', 1);
-    cy.wrap(state.future).should('have.length', 0);
+    expect(state.past.length).to.eq(1);
+    expect(state.future.length).to.eq(0);
   });
   it('Should not support undo of initial load', () => {
     const store = makeStore({
@@ -179,8 +164,8 @@ describe('Undo/redo', () => {
     });
     let state = selectLayoutHistory(store.getState());
     expect(state.present).to.eq(initialState);
-    cy.wrap(state.past).should('have.length', 0);
-    cy.wrap(state.future).should('have.length', 0);
+    expect(state.past.length).to.eq(0);
+    expect(state.future.length).to.eq(0);
     store.dispatch(setLayoutModel(layout));
     const undoType = selectUndoType(store.getState());
     expect(undoType).to.eq('layoutModel');
@@ -188,8 +173,8 @@ describe('Undo/redo', () => {
     state = selectLayoutHistory(store.getState());
     expect(state.present.layout).to.deep.equal(layout.layout);
     expect(state.present.model).to.deep.equal(layout.model);
-    cy.wrap(state.past).should('have.length', 0);
-    cy.wrap(state.future).should('have.length', 0);
+    expect(state.past.length).to.eq(0);
+    expect(state.future.length).to.eq(0);
   });
   it('Should prune future state if undo type changes', () => {
     const store = makeStore({
@@ -205,14 +190,14 @@ describe('Undo/redo', () => {
     expect(state.present).to.deep.equal(layout);
 
     state = selectLayoutHistory(store.getState());
-    cy.wrap(state.past).should('have.length', 1);
-    cy.wrap(state.future).should('have.length', 0);
+    expect(state.past.length).to.eq(1);
+    expect(state.future.length).to.eq(0);
 
     store.dispatch(UndoRedoActionCreators.undo('layoutModel'));
     state = selectLayoutHistory(store.getState());
     expect(state.present).to.deep.equal(initialState);
-    cy.wrap(state.past).should('have.length', 0);
-    cy.wrap(state.future).should('have.length', 1);
+    expect(state.past.length).to.eq(0);
+    expect(state.future.length).to.eq(1);
 
     store.dispatch(setPageData({}));
     const undoType = selectUndoType(store.getState());
@@ -220,8 +205,8 @@ describe('Undo/redo', () => {
 
     state = selectLayoutHistory(store.getState());
     expect(state.present).to.deep.equal(initialState);
-    cy.wrap(state.past).should('have.length', 0);
-    cy.wrap(state.future).should('have.length', 0);
+    expect(state.past.length).to.eq(0);
+    expect(state.future.length).to.eq(0);
   });
 });
 describe('Duplicate node', () => {
