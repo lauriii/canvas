@@ -35,6 +35,7 @@ use Drupal\experience_builder\ClientSideRepresentation;
  *   constraints = {
  *     "JsComponentHasValidSdcMetadata" = null,
  *   },
+ *   xb_visible_when_disabled = TRUE
  * )
  */
 final class JavaScriptComponent extends ConfigEntityBase implements XbHttpApiEligibleConfigEntityInterface, XbAssetInterface {

@@ -6,6 +6,7 @@ namespace Drupal\Tests\experience_builder\Functional;
 
 use Drupal\Core\Url;
 use Drupal\experience_builder\AutoSave\AutoSaveManager;
+use Drupal\experience_builder\Entity\Pattern;
 use Drupal\system\Entity\Menu;
 use Drupal\Tests\experience_builder\Traits\ContribStrictConfigSchemaTestTrait;
 use Drupal\Tests\experience_builder\Traits\TestDataUtilitiesTrait;
@@ -399,6 +400,17 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
     $this->assertSame([
       "testpatternpleaseignore" => $expected_pattern_normalization,
     ], $body);
+
+    // Disable the pattern.
+    Pattern::load('testpatternpleaseignore')?->disable()->save();
+    // Assert that it no longer shows in the list.
+    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, [
+      'user.permissions',
+    ], [
+      'config:pattern_list',
+      'http_response',
+    ], 'UNCACHEABLE (request policy)', 'MISS');
+    $this->assertSame([], $body);
 
     // Delete the sole remaining Pattern via the XB HTTP API: 204.
     $body = $this->assertExpectedResponse('DELETE', Url::fromUri('base:/xb/api/config/pattern/testpatternpleaseignore'), [], 204, NULL, NULL, NULL, NULL);

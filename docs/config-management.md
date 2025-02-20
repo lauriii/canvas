@@ -160,11 +160,40 @@ restrictions are applied during validation:
 
 Once a _code component_ is considered ready for use by its creator, it can be exposed as an XB `component` (which under
 the hood involves creating a sibling `Component config entity` — see [section 3.1](#3.1) above). This is made possible
-by the `JS` `Component Source Plugin`.
+by the `JS` `Component Source Plugin`. Section `3.2.1` below describes this in detail.
 
 To the Content Creator, then, the input UX of an `SDC`-sourced `component` and a `JS`-sourced `component` with the same
 "props" (the name used for the `explicit component input` of both of those `Component Source Plugin`s) must be
 _indistinguishable_ from each other — despite one relying on Twig and the other only on JS.
+
+
+#### 3.2.1 _Code components_ can be either _internal_ or _exposed_, and can have a _working copy_
+
+Every `JavaScriptComponent config entity` has a `status` key-value pair, just like every config entity. This determines
+whether the _code component_ defined by the config entity is _internal_ or _exposed_:
+
+![The intended XB UI impact of "internal" vs "exposed".](./images/internal vs exposed.png)
+
+When the `JavaScriptComponent config entity` is modified to:
+- `status === false` ⇒
+  - If a corresponding `Component config entity` does not exist yet, it remains that way.
+  - If a corresponding `Component config entity` already exists, it gets _its_ `status` set to `false` too.
+  - The end result is: Content Creators CAN NOT instantiate this _code component_.
+  - **This is "internal" in the diagram.**
+- `status === true` =>
+  - If a corresponding `Component config entity` does not exist yet, it is created (and has its `status` set to `true`).
+  - If a corresponding `Component config entity` already exists, it gets its `status` set to `true` if it isn’t already.
+  - The end result is: Content Creators CAN instantiate this _code component_.
+  - **This is "exposed" in the diagram.**
+
+(It does not matter how this modification happens: using server-side code, or through the client using XB's internal
+HTTP API or server-side code. See `\Drupal\experience_builder\EntityHandlers\JavascriptComponentStorage::createOrUpdateComponentEntity()`.)
+
+Finally:
+- The saved `JavaScriptComponent config entity` is considered the "Published" version of a _code component_.
+- The "Working copy" in the diagram refers to the auto-save for a `JavaScriptComponent config entity`. This automatically
+overrides the "Published" (saved) version on certain routes, thanks to a conditional config override. (See
+`\Drupal\experience_builder\Config\XbConfigOverrides`.)
 
 
 ### 3.3 `PageRegion config entity`

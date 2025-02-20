@@ -28,9 +28,6 @@ use Drupal\experience_builder\ComponentSource\ComponentSourceManager;
  *    admin_permission = "administer components",
  *    handlers = {
  *      "list_builder" = "Drupal\experience_builder\Form\ComponentListBuilder",
- *      "form" = {
- *        "delete" = "Drupal\Core\Entity\EntityDeleteForm"
- *      },
  *      "route_provider" = {
  *        "html" = "\Drupal\Core\Entity\Routing\AdminHtmlRouteProvider",
  *      }
@@ -41,7 +38,6 @@ use Drupal\experience_builder\ComponentSource\ComponentSourceManager;
  *      "status" = "status",
  *    },
  *    links = {
- *      "delete-form" = "/admin/structure/component/delete/{id}",
  *      "collection" = "/admin/structure/component",
  *      "enable" = "/admin/structure/component/{id}/enable",
  *      "disable" = "/admin/structure/component/{id}/disable",

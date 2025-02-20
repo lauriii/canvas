@@ -78,23 +78,22 @@ final class ApiConfigControllers extends ApiControllerBase {
     self::ensureXbConfigEntityType($xb_config_entity_type);
 
     // Load the queried config entities: a list of all of them.
+    $storage = $this->entityTypeManager->getStorage($xb_config_entity_type_id);
+    $query = $storage->getQuery()->accessCheck(TRUE);
+    // Entity types can opt in to have disabled entities included in lists.
+    if (!$xb_config_entity_type->get('xb_visible_when_disabled')) {
+      $query->condition('status', TRUE);
+    }
+    /** @var array<\Drupal\experience_builder\Entity\XbHttpApiEligibleConfigEntityInterface> $config_entities */
+    $config_entities = $storage->loadMultiple($query->execute());
+
     $query_cacheability = (new CacheableMetadata())
       ->addCacheContexts($xb_config_entity_type->getListCacheContexts())
       ->addCacheTags($xb_config_entity_type->getListCacheTags());
-    /** @var array<\Drupal\experience_builder\Entity\XbHttpApiEligibleConfigEntityInterface> $config_entities */
-    $config_entities = $this->entityTypeManager->getStorage($xb_config_entity_type_id)->loadMultiple();
+
     $normalizations = [];
     $normalizations_cacheability = new CacheableMetadata();
     foreach ($config_entities as $key => &$entity) {
-      // Omit disabled Components, Patterns and other config entities: if they
-      // have been disabled, it's to avoid new uses of them. Only in the server-
-      // side admin UI should it be possible to see (and re-enable) them.
-      // DO NOT do this for config entity types that mark `status` as an entity
-      // key: that is how they signal that this config entity property is
-      // intended to be editable.
-      if (!$entity->status() && $xb_config_entity_type->getKey('status') === FALSE) {
-        continue;
-      }
       $representation = $this->normalize($entity);
       $normalizations[$key] = $representation->values;
       $normalizations_cacheability->addCacheableDependency($representation);

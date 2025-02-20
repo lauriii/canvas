@@ -4,12 +4,15 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\experience_builder\Kernel\Config;
 
+use Drupal\Core\Entity\EntityListBuilderInterface;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Field\Plugin\Field\FieldWidget\OptionsSelectWidget;
 use Drupal\Core\Field\Plugin\Field\FieldWidget\StringTextfieldWidget;
 use Drupal\Core\Field\Plugin\Field\FieldWidget\UriWidget;
 use Drupal\Core\Menu\Plugin\Block\LocalActionsBlock;
 use Drupal\Core\Theme\ComponentPluginManager as CoreComponentPluginManager;
 use Drupal\experience_builder\ComponentIncompatibilityReasonRepository;
+use Drupal\experience_builder\Entity\ComponentInterface;
 use Drupal\experience_builder\Entity\JavaScriptComponent;
 use Drupal\experience_builder\Plugin\ComponentPluginManager;
 use Drupal\experience_builder\Entity\Component;
@@ -17,6 +20,7 @@ use Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\JsCompone
 use Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\SingleDirectoryComponent;
 use Drupal\experience_builder\PropSource\StaticPropSource;
 use Drupal\KernelTests\KernelTestBase;
+use Drupal\system\Plugin\Block\ClearCacheBlock;
 use Drupal\Tests\experience_builder\Traits\ContribStrictConfigSchemaTestTrait;
 use Drupal\Tests\experience_builder\Traits\GenerateComponentConfigTrait;
 use Drupal\user\Plugin\Block\UserLoginBlock;
@@ -49,6 +53,7 @@ class ComponentTest extends KernelTestBase {
     'path',
     'link',
     'system',
+    'user',
   ];
 
   /**
@@ -93,7 +98,7 @@ class ComponentTest extends KernelTestBase {
     $this->installEntitySchema('filter_format');
   }
 
-  public function providerComponentCreation(): array {
+  public static function providerComponentCreation(): array {
     return [
       'sdc' => [
         'component_config_entity_id' => 'sdc.sdc_test.my-cta',
@@ -112,7 +117,7 @@ class ComponentTest extends KernelTestBase {
         'component_config_entity_id' => 'js.my-cta',
         'source' => JsComponent::SOURCE_PLUGIN_ID,
         'source_internal_id' => 'my-cta',
-        'expected_additional_config_dependencies' => [
+        'expected_config_dependencies' => [
           'config' => [
             'experience_builder.js_component.my-cta',
           ],
@@ -265,6 +270,9 @@ class ComponentTest extends KernelTestBase {
     $this->assertEqualsCanonicalizing($expected_plugins['sdc'], array_keys($this->componentPluginManager->getDefinitions()));
     if (in_array('block', $modules)) {
       $all_installed_block_plugin_ids = array_keys($this->container->get('plugin.manager.block')->getDefinitions());
+      if (\class_exists(ClearCacheBlock::class)) {
+        $expected_plugins['block'][] = 'system_clear_cache_block';
+      }
       $this->assertEqualsCanonicalizing($expected_plugins['block'], array_diff($all_installed_block_plugin_ids, [
         // @see \experience_builder_block_alter()
         'system_main_block',
@@ -355,7 +363,7 @@ class ComponentTest extends KernelTestBase {
     yield 'initial set of components from experience_builder and sdc_test' => [
       'modules' => [],
       'components' => $defaults,
-      'interfaces' => [
+      'classes' => [
         'Drupal\Core\Plugin\Component',
       ],
     ];
@@ -378,7 +386,7 @@ class ComponentTest extends KernelTestBase {
           'reason' => 'Prop "heading" is required, but does not have example value',
         ],
       ],
-      'interfaces' => [
+      'classes' => [
         'Drupal\Core\Plugin\Component',
       ],
     ];
@@ -404,7 +412,7 @@ class ComponentTest extends KernelTestBase {
           'reason' => 'Prop "heading" is required, but does not have example value',
         ],
       ],
-      'interfaces' => [
+      'classes' => [
         'Drupal\Core\Plugin\Component',
       ],
     ];
@@ -507,6 +515,24 @@ class ComponentTest extends KernelTestBase {
     $component = Component::load($component->id());
     assert($component instanceof Component);
     $this->assertFalse($component->status());
+  }
+
+  public function testOperations(): void {
+    $list_builder = $this->container->get(EntityTypeManagerInterface::class)->getListBuilder(Component::ENTITY_TYPE_ID);
+    \assert($list_builder instanceof EntityListBuilderInterface);
+    $this->componentPluginManager->getDefinitions();
+    $component = Component::load('sdc.experience_builder.image');
+    \assert($component instanceof ComponentInterface);
+    $operations = $list_builder->getOperations($component);
+    self::assertArrayHasKey('disable', $operations);
+    self::assertArrayNotHasKey('enable', $operations);
+    self::assertArrayNotHasKey('delete', $operations);
+
+    $component->disable()->save();
+    $operations = $list_builder->getOperations($component);
+    self::assertArrayNotHasKey('disable', $operations);
+    self::assertArrayHasKey('enable', $operations);
+    self::assertArrayNotHasKey('delete', $operations);
   }
 
 }

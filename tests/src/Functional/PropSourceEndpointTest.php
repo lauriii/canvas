@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\Tests\experience_builder\Functional;
 
 use Drupal\Component\Serialization\Json;
+use Drupal\experience_builder\Entity\Component;
 use Drupal\node\Entity\Node;
 use Drupal\Tests\system\Functional\Cache\AssertPageCacheContextsAndTagsTrait;
 use Drupal\Tests\experience_builder\Traits\CreateTestJsComponentTrait;
@@ -41,6 +42,7 @@ class PropSourceEndpointTest extends FunctionalTestBase {
 
   public function test(): void {
     $this->createMyCtaComponentFromSdc();
+    $this->disableToolsMenuBlockComponent();
 
     $page = $this->getSession()->getPage();
     $node = Node::create([
@@ -56,13 +58,11 @@ class PropSourceEndpointTest extends FunctionalTestBase {
       'announcements_feed:feed',
       'comment_list',
       'config:component_list',
-      'config:node_type_list',
       'config:search.settings',
       'config:system.menu.account',
       'config:system.menu.admin',
       'config:system.menu.footer',
       'config:system.menu.main',
-      'config:system.menu.tools',
       'config:system.site',
       'config:views.view.comments_recent',
       'config:views.view.content_recent',
@@ -115,6 +115,7 @@ class PropSourceEndpointTest extends FunctionalTestBase {
     $this->assertSession()->responseHeaderEquals('X-Drupal-Cache', 'UNCACHEABLE (request policy)');
 
     $data = Json::decode($page->getText());
+    self::assertArrayNotHasKey('block.system_menu_block.tools', $data);
     foreach ($data as $id => $component) {
       $this->assertArrayHasKey('id', $component);
       $this->assertSame($id, $component['id']);
@@ -285,6 +286,10 @@ class PropSourceEndpointTest extends FunctionalTestBase {
         ],
       ],
     ];
+  }
+
+  private function disableToolsMenuBlockComponent(): void {
+    Component::load('block.system_menu_block.tools')?->disable()->save();
   }
 
 }
