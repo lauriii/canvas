@@ -24,9 +24,12 @@ use Symfony\Component\HttpFoundation\Request;
 class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
 
   /**
-   * Allows format=uri to be stored using URI field type.
+   * {@inheritdoc}
    */
-  protected static $modules = ['xb_test_storage_prop_shape_alter'];
+  protected static $modules = [
+    // Allows format=uri to be stored using URI field type.
+    'xb_test_storage_prop_shape_alter',
+  ];
 
   /**
    * {@inheritdoc}

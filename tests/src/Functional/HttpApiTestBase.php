@@ -12,6 +12,11 @@ use Drupal\Tests\ApiRequestTrait;
 use Drupal\Tests\experience_builder\Traits\TestDataUtilitiesTrait;
 use GuzzleHttp\RequestOptions;
 
+/**
+ * Base class for functional tests of XB's internal HTTP API.
+ *
+ * Provides helper methods for making API requests and asserting response cacheability.
+ */
 abstract class HttpApiTestBase extends FunctionalTestBase {
 
   use ApiRequestTrait;

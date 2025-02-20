@@ -9,6 +9,11 @@ use Drupal\node\Entity\Node;
 use Drupal\Tests\BrowserTestBase;
 use Drupal\Tests\TestFileCreationTrait;
 
+/**
+ * Base class for functional tests of XB, ensures OpenAPI validation is active.
+ *
+ * Provides common setup and helper methods for functional tests.
+ */
 abstract class FunctionalTestBase extends BrowserTestBase {
 
   use TestFileCreationTrait;

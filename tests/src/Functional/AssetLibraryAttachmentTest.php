@@ -7,6 +7,9 @@ namespace Drupal\Tests\experience_builder\Functional;
 use Drupal\Core\File\FileUrlGeneratorInterface;
 use Drupal\experience_builder\Entity\AssetLibrary;
 
+/**
+ * Tests AssetLibrary config entities' generated assets load successfully.
+ */
 final class AssetLibraryAttachmentTest extends FunctionalTestBase {
 
   /**
