@@ -29,6 +29,7 @@ services:
             drupal/components
 
           # Install Drupal on the site.
+          rm -f $DRUPAL_DOCROOT/sites/default/settings.php
           php -d memory_limit=-1 \
             vendor/bin/drush.php \
             --yes \
@@ -37,9 +38,9 @@ services:
             --account-pass=admin \
             site:install standard
 
-          # Add tugboat URLs to the Drupal trusted host patterns.
-          echo "\$settings['trusted_host_patterns'] = ['\.tugboatqa\.com\$'];" >> $DOCROOT/sites/default/settings.php
-          echo "if (PHP_SAPI === 'cli') {\n  ini_set('memory_limit', '-1');\n}" >> $DOCROOT/sites/default/settings.php
+          # Require settings.local.php increase CLI memory limit, add trusted
+          # host patterns, and allow for enabling hidden xb_dev_standard module.
+          echo "require_once '$TUGBOAT_ROOT/.tugboat/settings.local.php';" >> $DOCROOT/sites/default/settings.php
 
           # Set up the files directory permissions.
           mkdir -p $DRUPAL_DOCROOT/sites/default/files
@@ -85,7 +86,7 @@ services:
         - npm --prefix $DRUPAL_COMPOSER_ROOT/web/themes/contrib/demo_design_system run build
         - npm --prefix $DRUPAL_COMPOSER_ROOT/web/themes/contrib/demo_design_system/starshot_demo ci
         - npm --prefix $DRUPAL_COMPOSER_ROOT/web/themes/contrib/demo_design_system/starshot_demo run build
-        - chgrp -R www-data $DRUPAL_COMPOSER_ROOT/web/themes/contrib/demo_design_system
+        - chgrp -R www-data $TUGBOAT_ROOT/ui/dist $DRUPAL_COMPOSER_ROOT/web/themes/contrib/demo_design_system
 
         # Warm Drupal caches
         - 'curl --silent --header "Host: $TUGBOAT_DEFAULT_SERVICE_URL_HOST" http://localhost > /dev/null'
