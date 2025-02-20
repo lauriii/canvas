@@ -73,21 +73,6 @@ HTML;
 
   public function __invoke(string $entity_type, ?EntityInterface $entity) : HtmlResponse {
     assert($this->validateTransformAssetLibraries());
-    // TRICKY: don't use core/modules/system/templates/html.html.twig nor that
-    // of a theme, because those include the skip link, which assumes the
-    // presence of #main-content, which does not exist in the XB UI.
-    [$html_attributes, $body_attributes] = $this->getHtmlAndBodyAttributes();
-    $html = [
-      '#type' => 'inline_template',
-      '#template' => self::HTML,
-      '#context' => [
-        'body_attributes' => $body_attributes,
-        'html_attributes' => $html_attributes,
-      ],
-    ];
-
-    $html = $this->renderer->renderInIsolation($html);
-
     // List of libraries to load in the preview iframe.
     $preview_libraries = [
       'system/base',
@@ -103,7 +88,7 @@ HTML;
     $demo_mode = $this->configFactory->get('experience_builder.settings')->get('demo_mode');
     $xb_module_path = $this->moduleHandler->getModule('experience_builder')->getPath();
 
-    return (new HtmlResponse((string) $html))->setAttachments([
+    return (new HtmlResponse($this->buildHtml()))->setAttachments([
       'library' => [
         'experience_builder/xb-ui',
         'experience_builder/extensions',
@@ -127,11 +112,6 @@ HTML;
           'xbModulePath' => $xb_module_path,
         ],
       ],
-      // This *could* use the \Drupal\Core\Asset\AssetResolverInterface services
-      // directly, but it's simpler to shape the attachments data in the shape
-      // that all other Drupal pages are rendered. That allows reusing core
-      // infrastructure.
-      // @see \Drupal\Core\Render\HtmlResponseAttachmentsProcessor
       // Note: the tokens here are under our control, and this accepts no user
       // input. Hence these hardcoded tokens are fine.
       'html_response_attachment_placeholders' => [
@@ -142,11 +122,19 @@ HTML;
   }
 
   /**
-   * Computes the attributes to set on the <html> and <body> tags.
+   * Sets the <html> and <body> attributes on the static HTML.
    *
-   * @return array{\Drupal\Core\Template\Attribute, \Drupal\Core\Template\Attribute}
+   * Replaces:
+   * - `{{ html_attributes }}`
+   * - `{{ body_attributes }}`
+   *
+   * Does not replace (handled by HtmlResponseAttachmentsProcessor):
+   * - `<css-placeholder token="CSS-HERE-PLEASE">`
+   * - `<js-placeholder token="JS-HERE-PLEASE">`
+   *
+   * @see \Drupal\Core\Render\HtmlResponseAttachmentsProcessor
    */
-  private function getHtmlAndBodyAttributes(): array {
+  private function buildHtml(): string {
     $theme_config = $this->configFactory->get('system.theme');
     $admin_theme_name = $theme_config->get('admin') ?: $theme_config->get('default');
     $active_admin_theme = $this->themeInitialization->getActiveThemeByName($admin_theme_name);
@@ -182,7 +170,18 @@ HTML;
       }
     }
     $this->themeManager->setActiveTheme($actual_active_theme);
-    return [$html_attributes, $body_attributes];
+    // TRICKY: don't use core/modules/system/templates/html.html.twig nor that
+    // of a theme, because those include the skip link, which assumes the
+    // presence of #main-content, which does not exist in the XB UI.
+    $build = [
+      '#type' => 'inline_template',
+      '#template' => self::HTML,
+      '#context' => [
+        'body_attributes' => $body_attributes,
+        'html_attributes' => $html_attributes,
+      ],
+    ];
+    return (string) $this->renderer->renderInIsolation($build);
   }
 
   /**
