@@ -29,6 +29,9 @@ import { useDeleteContentMutation } from '@/services/content';
 import { useNavigationUtils } from '@/hooks/useNavigationUtils';
 import { useErrorBoundary } from 'react-error-boundary';
 import type { ContentStub } from '@/types/Content';
+import clsx from 'clsx';
+import styles from '@/components/topbar/menu/TopbarPopover.module.css';
+import Panel from '@/components/Panel';
 
 interface PageType {
   [key: string]: ReactElement;
@@ -132,6 +135,7 @@ const PageInfo = () => {
             <Button
               color="gray"
               variant="soft"
+              size="1"
               data-testid="xb-navigation-button"
             >
               <Flex gap="2" align="center">
@@ -141,19 +145,27 @@ const PageInfo = () => {
               </Flex>
             </Button>
           </Popover.Trigger>
-          <Popover.Content size="2" maxWidth="400px">
-            {/* @todo load data in https://www.drupal.org/i/3502820 */}
-            <Navigation
-              loading={isPageItemsLoading}
-              items={pageItems || []}
-              onNewPage={handleNewPage}
-              onSearch={handleNonWorkingBtn}
-              onSelect={handleOnSelect}
-              onRename={handleNonWorkingBtn}
-              onDuplicate={handleNonWorkingBtn}
-              onSetHomepage={handleNonWorkingBtn}
-              onDelete={handleDeletePage}
-            />
+          <Popover.Content
+            size="2"
+            width="100vw"
+            maxWidth="400px"
+            asChild
+            align="center"
+          >
+            <Panel className={clsx(styles.content, 'xb-app')}>
+              {/* @todo load data in https://www.drupal.org/i/3502820 */}
+              <Navigation
+                loading={isPageItemsLoading}
+                items={pageItems || []}
+                onNewPage={handleNewPage}
+                onSearch={handleNonWorkingBtn}
+                onSelect={handleOnSelect}
+                onRename={handleNonWorkingBtn}
+                onDuplicate={handleNonWorkingBtn}
+                onSetHomepage={handleNonWorkingBtn}
+                onDelete={handleDeletePage}
+              />
+            </Panel>
           </Popover.Content>
         </Popover.Root>
       ) : (

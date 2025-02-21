@@ -7,7 +7,18 @@
 
 .item {
   border-radius: var(--radius-3);
+   .optionsButton:not([data-state="open"]) {
+    visibility: hidden;
+   }
 }
-.item:hover {
-  background: var(--slate-a3)
+.item:hover,
+.item:focus-within {
+  background: var(--slate-a3);
+  .optionsButton {
+    visibility: visible;
+  }
+}
+
+.pageLink {
+  cursor: pointer;
 }

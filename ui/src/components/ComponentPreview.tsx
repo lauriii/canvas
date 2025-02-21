@@ -115,7 +115,7 @@ const ComponentPreview: React.FC<ComponentPreviewProps> = ({
   };
 
   return (
-    <Panel className={styles.Wrapper}>
+    <Panel className={clsx(styles.Wrapper, 'xb-app')}>
       <iframe
         title={component.name}
         width={defaultIframeWidth}

@@ -1,14 +1,12 @@
 .xb-app {
   --topbar-height: 60px;
   --topbar-space-above: 0px;
-  --topbar-space-below: 10px;
-  --sidebar-space-side: 10px;
+  --topbar-space-below: 16px;
+  --sidebar-space-side: 16px;
   --sidebar-height: calc(100vh - var(--topbar-height) - var(--topbar-space-above) - var(--topbar-space-below) * 2);
   --sidebar-left-width: 296px;
   --sidebar-right-width: 296px;
   --component-insert-menu-width: 262px;
   --extension-menu-width: 373px;
-  --publish-review-width: 373px;
-  --publish-review-max-width: 600px;
-  --publish-review-max-height: 690px;
+  --panel-border-radius: var(--radius-6);
 }

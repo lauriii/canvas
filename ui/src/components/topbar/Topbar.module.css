@@ -10,10 +10,9 @@
     right 0.2s cubic-bezier(0.4, 0, 0.6, 1),
     opacity 2s ease-out;
   transition-delay: 0.1s;
-  box-shadow: var(--shadow-3);
-  /* Double selection of .root so the specificity overrides Radix's panel styles. */
+  /* double selector and important because this particular panel doesn't want the big rounded corners. */
   &.root {
-    border-radius: 0;
+    border-radius: 0 !important;
   }
   &.inPreview {
     top: 0;

@@ -74,6 +74,7 @@ describe('Navigation functionality', () => {
     cy.intercept('GET', '**/xb/api/content/xb_page').as('getList');
 
     cy.findByTestId(navigationButtonTestId).click();
+    cy.findByText('Empty Page').realHover();
     cy.findByLabelText('Page options for Empty Page').click();
     cy.contains('div.rt-BaseMenuItem', 'Delete page').click();
     cy.contains('button', 'Delete page').click();

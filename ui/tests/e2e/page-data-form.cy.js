@@ -34,9 +34,10 @@ describe('Page data form', () => {
     cy.get('@titleField').clear();
     cy.get('@titleField').type('This is a new title');
     cy.get('@titleField').should('have.value', 'This is a new title');
+    cy.get('@titleField').blur();
     cy.get('button[aria-label="Undo"]').should('be.enabled');
     cy.get('button[aria-label="Redo"]').should('be.disabled');
-    cy.get('button[aria-label="Undo"]').click();
+    cy.realPress(['Meta', 'Z']);
     cy.get('@titleField').should(
       'have.value',
       'XB Needs This For The Time Being',
@@ -67,17 +68,18 @@ describe('Page data form', () => {
     // state for the page data form.
     cy.get('button[aria-label="Redo"]').should('be.disabled');
     cy.get('@heroTitle').should('have.value', 'This is a new hero title');
-    cy.get('button[aria-label="Undo"]').click();
+    cy.get('@heroTitle').blur();
+    cy.realPress(['Meta', 'Z']);
     cy.get('@heroTitle').should('have.value', 'hello, world!');
     cy.get('button[aria-label="Undo"]').should('be.disabled');
     cy.get('@layersTree').findByText('Two Column').should('exist');
     cy.get('button[aria-label="Redo"]').should('be.enabled');
-    cy.get('button[aria-label="Redo"]').click();
+    cy.realPress(['Meta', 'Shift', 'Z']);
     cy.get('@heroTitle').should('have.value', 'This is a new hero title');
     cy.get('button[aria-label="Undo"]').should('be.enabled');
     cy.get('button[aria-label="Redo"]').should('be.disabled');
 
-    cy.get('button[aria-label="Undo"]').click();
+    cy.realPress(['Meta', 'Z']);
     cy.get('@heroTitle').should('have.value', 'hello, world!');
     cy.get('button[aria-label="Redo"]').should('be.enabled');
 

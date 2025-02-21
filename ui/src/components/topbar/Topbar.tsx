@@ -52,7 +52,7 @@ const Topbar = () => {
         className={clsx(styles.root, {
           [styles.inPreview]: isPreview,
         })}
-        px="3"
+        px="4"
       >
         <Grid columns="3" gap="3" width="auto" height="100%">
           <Flex align="center" justify="start" gap="2">

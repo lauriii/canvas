@@ -17,15 +17,15 @@
 }
 
 .xb-mosaic-window-editor {
-  border-radius: var(--radius-4);
+  border-radius: var(--panel-border-radius);
 }
 
 .xb-mosaic-window-preview {
-  border-radius: var(--radius-4) var(--radius-4) 0 0;
+  border-radius: var(--panel-border-radius) var(--panel-border-radius) 0 0;
 }
 
 .xb-mosaic-window-component-data {
-  border-radius: 0 0 var(--radius-4) var(--radius-4);
+  border-radius: 0 0 var(--panel-border-radius) var(--panel-border-radius);
 }
 
 .mosaic-root {

@@ -39,7 +39,8 @@ describe('Undo/Redo functionality', () => {
         expect(myHeroComponent.length).to.equal(4);
       },
     );
-    cy.get('button[aria-label="Undo"]').click();
+    // Undo
+    cy.realPress(['Meta', 'Z']);
     cy.wait('@getPreview');
 
     // Assert that the component was deleted from the layout.
@@ -50,8 +51,8 @@ describe('Undo/Redo functionality', () => {
       },
     );
 
-    // Click the Redo button.
-    cy.get('button[aria-label="Redo"]').click();
+    // Redo.
+    cy.realPress(['Meta', 'Shift', 'Z']);
     cy.wait('@getPreview');
 
     // Assert that the component was again added to the layout.
@@ -90,6 +91,9 @@ describe('Undo/Redo functionality', () => {
     cy.findByTestId(/^xb-component-form-.*/)
       .findByLabelText('Heading')
       .type(' two');
+    cy.findByTestId(/^xb-component-form-.*/)
+      .findByLabelText('Heading')
+      .blur();
     // Disable the no-unnecessary-waiting eslint rule below because we need to wait
     // for the debounce to finish to ensure the undo history is updated.
     cy.wait(500); // eslint-disable-line cypress/no-unnecessary-waiting
@@ -97,22 +101,22 @@ describe('Undo/Redo functionality', () => {
       .findByLabelText('Heading')
       .should('have.value', 'hello, world! one two');
 
-    // Click the Undo button, see if the value is "hello, world! one".
-    cy.get('button[aria-label="Undo"]').click();
+    // Undo, see if the value is "hello, world! one".
+    cy.realPress(['Meta', 'Z']);
     cy.findByLabelText('Heading').should((input) => {
       expect(input).to.have.value('hello, world! one');
     });
 
-    // Click the Redo button, see if the value is "hello, world! one two".
-    cy.get('button[aria-label="Redo"]').click();
+    // Redo, see if the value is "hello, world! one two".
+    cy.realPress(['Meta', 'Shift', 'Z']);
 
     cy.findByLabelText('Heading').should((input) => {
       expect(input).to.have.value('hello, world! one two');
     });
 
-    // Click the Undo button twice, see if the value is "hello, world!".
-    cy.get('button[aria-label="Undo"]').click();
-    cy.get('button[aria-label="Undo"]').click();
+    // Undo twice, see if the value is "hello, world!".
+    cy.realPress(['Meta', 'Z']);
+    cy.realPress(['Meta', 'Z']);
     cy.findByLabelText('Heading').should((input) => {
       expect(input).to.have.value('hello, world!');
     });

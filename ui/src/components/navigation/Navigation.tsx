@@ -3,8 +3,11 @@ import {
   AlertDialog,
   Box,
   Button,
+  Callout,
   DropdownMenu,
   Flex,
+  Heading,
+  IconButton,
   ScrollArea,
   Text,
   TextField,
@@ -13,8 +16,10 @@ import {
   Component1Icon,
   DotsVerticalIcon,
   FileIcon,
+  InfoCircledIcon,
   MagnifyingGlassIcon,
   PlusIcon,
+  ChevronDownIcon,
 } from '@radix-ui/react-icons';
 import styles from './Navigation.module.css';
 import type { FormEvent } from 'react';
@@ -37,11 +42,20 @@ const ContentGroup = ({
   onDelete?: (page: ContentStub) => void;
 }) => {
   if (items.length === 0) {
-    return <p>No pages found</p>;
+    return (
+      <Callout.Root size="1" color="gray">
+        <Callout.Icon>
+          <InfoCircledIcon />
+        </Callout.Icon>
+        <Callout.Text>No pages found.</Callout.Text>
+      </Callout.Root>
+    );
   }
   return (
     <div>
-      <Text color="gray">{title}</Text>
+      <Heading as="h5" size="1" color="gray">
+        {title}
+      </Heading>
       <Flex direction="column" gap="2" mt="2">
         {items.map((item) => {
           return (
@@ -50,25 +64,35 @@ const ContentGroup = ({
               align={'center'}
               mr="4"
               p="1"
+              pr="2"
               className={styles.item}
               key={item.id}
             >
               <Flex
+                className={styles.pageLink}
                 flexGrow="1"
                 onClick={onSelect ? () => onSelect(item) : undefined}
               >
                 <Box px="3">
                   <FileIcon />
                 </Box>
-                <Box flexGrow="1">
-                  {item.title} <span className={styles.path}>{item.path}</span>
-                </Box>
+                <Flex flexGrow="1" align="center">
+                  <Text as="span" size="1">
+                    {item.title}{' '}
+                    <span className={styles.path}>{item.path}</span>
+                  </Text>
+                </Flex>
               </Flex>
               <DropdownMenu.Root>
                 <DropdownMenu.Trigger>
-                  <DotsVerticalIcon
+                  <IconButton
+                    variant="ghost"
+                    color="gray"
+                    className={styles.optionsButton}
                     aria-label={`Page options for ${item.title}`}
-                  />
+                  >
+                    <DotsVerticalIcon />
+                  </IconButton>
                 </DropdownMenu.Trigger>
                 <DropdownMenu.Content>
                   <DropdownMenu.Item
@@ -210,7 +234,7 @@ const Navigation = ({
             id="xb-navigation-search"
             placeholder="Search…"
             radius="medium"
-            size="2"
+            size="1"
           >
             <TextField.Slot>
               <MagnifyingGlassIcon height="16" width="16" />
@@ -219,10 +243,14 @@ const Navigation = ({
         </form>
         <DropdownMenu.Root>
           <DropdownMenu.Trigger>
-            <Button variant="soft" data-testid="xb-navigation-new-button">
+            <Button
+              variant="soft"
+              data-testid="xb-navigation-new-button"
+              size="1"
+            >
               <PlusIcon />
               New
-              <DropdownMenu.TriggerIcon />
+              <ChevronDownIcon />
             </Button>
           </DropdownMenu.Trigger>
           <DropdownMenu.Content>

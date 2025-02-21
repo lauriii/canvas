@@ -7,6 +7,7 @@ import {
   Tooltip,
   Callout,
   Heading,
+  ScrollArea,
 } from '@radix-ui/themes';
 import CmsIcon from '@assets/icons/cms.svg?react';
 import {
@@ -17,7 +18,7 @@ import {
   FileIcon,
 } from '@radix-ui/react-icons';
 import { useState } from 'react';
-import * as Popover from '@radix-ui/react-popover';
+import { Popover } from '@radix-ui/themes';
 import { differenceInMonths, format, formatDistanceToNow } from 'date-fns';
 import { kebabCase } from 'lodash';
 import Panel from '@/components/Panel';
@@ -28,6 +29,7 @@ import type {
   PendingChange,
 } from '@/services/pendingChangesApi';
 import ReviewErrors from '@/components/review/ReviewErrors';
+import clsx from 'clsx';
 
 export const DEFAULT_TITLE = 'Unpublished changes';
 export const DEFAULT_BUTTON_TEXT = 'Publish all changes';
@@ -125,7 +127,7 @@ const PublishReview: React.FC<PublishReviewProps> = ({
 
   return (
     <Popover.Root open={isOpen} onOpenChange={onOpenChangeHandler}>
-      <Popover.Trigger asChild>
+      <Popover.Trigger>
         <Button
           variant="solid"
           disabled={!changes || !changes.length}
@@ -134,9 +136,14 @@ const PublishReview: React.FC<PublishReviewProps> = ({
           {triggerButtonText()}
         </Button>
       </Popover.Trigger>
-      <Popover.Content asChild data-testid="xb-publish-reviews-content">
-        <Panel className={styles.content}>
-          <Flex mb="5" align="center" justify="between" width="100%">
+      <Popover.Content
+        asChild
+        data-testid="xb-publish-reviews-content"
+        width="100vw"
+        maxWidth="400px"
+      >
+        <Panel className={clsx(styles.content, 'xb-app')}>
+          <Flex pb="2" align="center" justify="between" width="100%">
             <Box>
               <Heading as="h3" size="2" className={styles.headingTitle}>
                 {title}
@@ -148,21 +155,30 @@ const PublishReview: React.FC<PublishReviewProps> = ({
               </Popover.Close>
             </Box>
           </Flex>
-          {(!changes || changes.length === 0) && (
-            <Callout.Root color="green">
-              <Callout.Icon>
-                <FaceIcon />
-              </Callout.Icon>
-              <Callout.Text>All changes published!</Callout.Text>
-            </Callout.Root>
-          )}
-          {changes?.length > 0 && (
-            <>
-              <ChangeList changes={changes} />
-              <ReviewErrors errorState={errors} />
-            </>
-          )}
-          <Flex mt="1" justify="end" align="center" width="100%">
+          <Box mr="-4">
+            <ScrollArea
+              style={{ maxHeight: '380px', width: '100%' }}
+              type="scroll"
+            >
+              <Box pr="4" pt="2">
+                {(!changes || changes.length === 0) && (
+                  <Callout.Root color="green">
+                    <Callout.Icon>
+                      <FaceIcon />
+                    </Callout.Icon>
+                    <Callout.Text>All changes published!</Callout.Text>
+                  </Callout.Root>
+                )}
+                {changes?.length > 0 && (
+                  <>
+                    <ChangeList changes={changes} />
+                    <ReviewErrors errorState={errors} />
+                  </>
+                )}
+              </Box>
+            </ScrollArea>
+          </Box>
+          <Flex justify="end" align="center" width="100%">
             <Box mt="3">
               <Button
                 disabled={

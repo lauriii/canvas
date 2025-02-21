@@ -145,11 +145,11 @@ describe('Drag and drop functionality in the Layers menu', () => {
     assertPageStateAfterFirstDrag();
 
     // Hit the undo button.
-    cy.get('button[aria-label="Undo"]').click();
+    cy.realPress(['Meta', 'Z']);
     assertInitialPageState();
 
     // Hit Redo
-    cy.get('button[aria-label="Redo"]').click();
+    cy.realPress(['Meta', 'Shift', 'Z']);
     assertPageStateAfterFirstDrag();
   });
 });

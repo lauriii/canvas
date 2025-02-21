@@ -21,7 +21,7 @@ const TopbarPopover: React.FC<TopbarPopoverProps> = ({
       <Tooltip content={tooltip}>
         <Popover.Trigger>{trigger}</Popover.Trigger>
       </Tooltip>
-      <Popover.Content asChild>
+      <Popover.Content asChild width="100vw" maxWidth="400px">
         <Panel className={clsx(styles.content, 'xb-app')}>{children}</Panel>
       </Popover.Content>
     </Popover.Root>
