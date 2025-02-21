@@ -7,7 +7,7 @@ import type React from 'react';
 export interface DialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  title: string;
+  title: string | React.ReactNode;
   modal?: boolean;
   description?: React.ReactNode;
   children?: React.ReactNode;

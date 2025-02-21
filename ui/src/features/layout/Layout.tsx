@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useErrorBoundary } from 'react-error-boundary';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
-import { useGetLayoutByIdQuery } from '@/services/layout';
+import { useGetLayoutByIdQuery } from '@/services/componentAndLayout';
 import { setLayoutModel } from './layoutModelSlice';
 import { selectEntityId } from '@/features/configuration/configurationSlice';
 

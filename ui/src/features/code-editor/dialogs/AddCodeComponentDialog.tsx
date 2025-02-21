@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Flex, TextField } from '@radix-ui/themes';
-import { useCreateCodeComponentMutation } from '@/services/codeComponents';
+import { useCreateCodeComponentMutation } from '@/services/componentAndLayout';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import {
   closeAllDialogs,

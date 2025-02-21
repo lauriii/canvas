@@ -15,7 +15,7 @@ import type {
 import { isEvaluatedComponentModel } from '@/features/layout/layoutModelSlice';
 import { selectModel, selectLayout } from '@/features/layout/layoutModelSlice';
 import { selectLatestUndoRedoActionId } from '@/features/ui/uiSlice';
-import { useGetComponentsQuery } from '@/services/components';
+import { useGetComponentsQuery } from '@/services/componentAndLayout';
 import { findComponentByUuid } from '@/features/layout/layoutUtils';
 import { useDrupalBehaviors } from '@/hooks/useDrupalBehaviors';
 import useXbParams from '@/hooks/useXbParams';

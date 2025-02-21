@@ -1,4 +1,4 @@
-import { useGetComponentsQuery } from '@/services/components';
+import { useGetComponentsQuery } from '@/services/componentAndLayout';
 import { useCallback } from 'react';
 import type {
   LayoutChildNode,

@@ -13,7 +13,7 @@ import { setXbDrupalSetting } from '@/features/drupal/drupalUtil';
 type NodeFunction = (
   node: ComponentNode,
   index: number,
-  parent: LayoutChildNode,
+  parent: LayoutNode,
 ) => void;
 
 // The children of Slots and Regions are in components[] but Components' children are always in slots[].
@@ -36,12 +36,12 @@ function getNodeIdentifier(node: LayoutNode): string {
 
 /**
  * Recursively run one or multiple functions against a node and all its descendants.
- * @param node - The top LayoutChildNode (a Component or a Slot) from which the recursion will start.
- * @param functionOrFunctions - A function or an array of functions to run on a LayoutChildNode and all of its descendant nodes.
- * Each function is passed 3 parameters: the LayoutChildNode, its index, and its direct parent.
+ * @param node - The top LayoutNode (a Component or a Slot or a Region) from which the recursion will start.
+ * @param functionOrFunctions - A function or an array of functions to run on a LayoutNode and all of its descendant nodes.
+ * Each function is passed 3 parameters: the LayoutNode, its index, and its direct parent.
  */
 export function recurseNodes(
-  node: LayoutChildNode,
+  node: LayoutNode,
   functionOrFunctions: NodeFunction | NodeFunction[] = [],
 ): void {
   const childKey = getChildKeyByType(node.nodeType);
@@ -427,6 +427,31 @@ export function findParentRegion(
   return undefined;
 }
 
+/**
+ * Checks if a component exists in a layout.
+ * @param layout - an array of RegionNode
+ * @param componentId - id of the component entity
+ */
+export function componentExistsInLayout(
+  layout: RegionNode[],
+  componentId: string,
+): boolean {
+  let exists = false;
+  const checkComponent = (node: ComponentNode) => {
+    if (node.type === componentId) {
+      exists = true;
+    }
+  };
+
+  for (const region of layout) {
+    recurseNodes(region, checkComponent);
+    if (exists) {
+      break;
+    }
+  }
+  return exists;
+}
+
 // Add the utils provided here to drupalSettings, so extensions have access to
 // them.
 const layoutUtils = {
@@ -442,5 +467,6 @@ const layoutUtils = {
   getNodeDepth,
   replaceUUIDsAndUpdateModel,
   findParentRegion,
+  componentExistsInLayout,
 };
 setXbDrupalSetting('layoutUtils', layoutUtils);

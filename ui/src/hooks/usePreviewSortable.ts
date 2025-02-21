@@ -15,7 +15,7 @@ import {
   unsetTargetSlot,
 } from '@/features/ui/uiSlice';
 import { findNodePathByUuid } from '@/features/layout/layoutUtils';
-import { useGetComponentsQuery } from '@/services/components';
+import { useGetComponentsQuery } from '@/services/componentAndLayout';
 import { useGetSectionsQuery } from '@/services/sections';
 import type { RegionsMap, SlotsMap } from '@/types/AnnotationMaps';
 import { insertPlaceholderIfMatchingComments } from '@/utils/function-utils';

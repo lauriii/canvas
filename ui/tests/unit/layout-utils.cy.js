@@ -3,6 +3,7 @@ import {
   isChildNode,
   replaceUUIDsAndUpdateModel,
   findParentRegion,
+  componentExistsInLayout,
 } from '@/features/layout/layoutUtils';
 import layoutFixture from '../fixtures/layout-default.json';
 import regionsLayoutFixture from '../fixtures/layout-regions.json';
@@ -151,6 +152,111 @@ describe('replaceUUIDsAndUpdateModel', () => {
         'non-existent-uuid',
       );
       expect(nonExistentRegion).to.be.undefined;
+    });
+  });
+
+  describe('componentExistsInLayout', () => {
+    it('should return true if the component exists in the layout', () => {
+      const layout = [
+        {
+          nodeType: 'region',
+          id: 'region-1',
+          components: [
+            {
+              nodeType: 'component',
+              uuid: 'component-1',
+              type: 'js.other',
+              slots: [],
+            },
+          ],
+        },
+        {
+          nodeType: 'region',
+          id: 'region-2',
+          components: [
+            {
+              nodeType: 'component',
+              uuid: 'component-2',
+              type: 'js.other',
+              slots: [],
+            },
+            {
+              nodeType: 'component',
+              uuid: 'component-3',
+              type: 'js.counter',
+              slots: [],
+            },
+          ],
+        },
+      ];
+
+      const result = componentExistsInLayout(layout, 'js.counter');
+      expect(result).to.be.true;
+    });
+
+    it('should return false if the component does not exist in the layout', () => {
+      const layout = [
+        {
+          nodeType: 'region',
+          id: 'region-1',
+          components: [
+            {
+              nodeType: 'component',
+              uuid: 'component-1',
+              type: 'js.other',
+              slots: [],
+            },
+          ],
+        },
+        {
+          nodeType: 'region',
+          id: 'region-2',
+          components: [
+            {
+              nodeType: 'component',
+              uuid: 'component-2',
+              type: 'js.other',
+              slots: [],
+            },
+          ],
+        },
+      ];
+
+      const result = componentExistsInLayout(layout, 'js.counter');
+      expect(result).to.be.false;
+    });
+
+    it('should return true if the component exists in nested slots', () => {
+      const layout = [
+        {
+          nodeType: 'region',
+          id: 'region-1',
+          components: [
+            {
+              nodeType: 'component',
+              uuid: 'component-1',
+              type: 'js.other',
+              slots: [
+                {
+                  nodeType: 'slot',
+                  id: 'slot-1',
+                  name: 'slot-1',
+                  components: [
+                    {
+                      nodeType: 'component',
+                      uuid: 'component-2',
+                      type: 'js.counter',
+                      slots: [],
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ];
+      const result = componentExistsInLayout(layout, 'js.counter');
+      expect(result).to.be.true;
     });
   });
 });

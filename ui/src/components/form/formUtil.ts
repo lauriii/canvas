@@ -22,7 +22,7 @@ addDraft2019(ajv);
  *   An object usually generated on render in inputBehaviors.tsx.
  *   The specific properties required by this function:
  *   - components {ComponentsList|undefined}: the list of all available components,
- *     managed by `services/componentApi`
+ *     managed by `services/componentAndLayoutApi`
  *   - selectedComponentType {string}: the `type` property of the currently
  *     selected component.
  */
@@ -146,7 +146,7 @@ export function toPropName(inputName: string, selectedComponent: string) {
  *   An object usually generated on render in inputBehaviors.tsx.
  *   The specific properties required by this function:
  *   - components {ComponentsList|undefined}: the list of all available components,
- *     managed by `services/componentApi`
+ *     managed by `services/componentAndLayoutApi`
  *   - selectedComponentType {string}: the `type` property of the currently
  *     selected component.
  *   - selectedComponent {string}: the id of the selected component within the model.
@@ -276,7 +276,7 @@ export const formStateToObject = (
  *   An object usually generated on render in inputBehaviors.tsx.
  *   The specific properties required by this function:
  *   - components {ComponentsList|undefined}: the list of all available components,
- *     managed by `services/componentApi`
+ *     managed by `services/componentAndLayoutApi`
  *   - selectedComponentType {string}: the `type` property of the currently
  *     selected component.
  *   - selectedComponent {string}: the id of the selected component within the model.

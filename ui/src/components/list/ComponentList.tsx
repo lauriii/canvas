@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useErrorBoundary } from 'react-error-boundary';
-import { useGetComponentsQuery } from '@/services/components';
+import { useGetComponentsQuery } from '@/services/componentAndLayout';
 import List from '@/components/list/List';
 import { toArray } from 'lodash';
 

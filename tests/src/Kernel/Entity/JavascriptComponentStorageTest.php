@@ -148,10 +148,13 @@ final class JavascriptComponentStorageTest extends KernelTestBase {
       'title' => 'What sort of noodles do you like?',
       'examples' => ['Soba', 'Wheat', 'Pool'],
     ];
+    $new_name = 'Will you accept my name?';
+    $js_component->set('name', $new_name);
     $js_component->setProps($props)->save();
 
     $component = \Drupal::entityTypeManager()->getStorage(Component::ENTITY_TYPE_ID)->loadUnchanged($component_id);
     \assert($component instanceof ComponentInterface);
+    self::assertEquals($new_name, $component->label());
     self::assertEquals(['noodles', 'title'], \array_keys($component->getSettings()['prop_field_definitions']));
   }
 

@@ -5,7 +5,7 @@ import { useErrorBoundary } from 'react-error-boundary';
 import { ContextMenu, Flex, Spinner } from '@radix-ui/themes';
 import SidebarNode from '@/components/sidebar/SidebarNode';
 import UnifiedMenu from '@/components/UnifiedMenu';
-import { useGetCodeComponentsQuery } from '@/services/codeComponents';
+import { useGetCodeComponentsQuery } from '@/services/componentAndLayout';
 import {
   openDeleteDialog,
   openRenameDialog,

@@ -19,6 +19,7 @@ import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import ComponentPreview from '@/components/ComponentPreview';
 import SidebarNode from '@/components/sidebar/SidebarNode';
 import { useNavigationUtils } from '@/hooks/useNavigationUtils';
+import ExposedJsComponent from '@/components/list/ExposedJsComponent';
 import useXbParams from '@/hooks/useXbParams';
 import { DEFAULT_REGION } from '@/features/ui/uiSlice';
 
@@ -77,6 +78,26 @@ const ListItem: React.FC<{
     setPreviewingComponent(component);
   };
 
+  const renderItem = () => {
+    if (
+      type === 'component' &&
+      (item as ComponentListItem).source === 'Code component'
+    ) {
+      return <ExposedJsComponent component={item as ComponentListItem} />;
+    }
+    return (
+      <SidebarNode
+        title={item.name}
+        variant={
+          type === 'component' &&
+          (item as ComponentListItem).source === 'Blocks'
+            ? 'blockComponent'
+            : type
+        }
+      />
+    );
+  };
+
   return (
     <div
       key={item.id}
@@ -92,17 +113,7 @@ const ListItem: React.FC<{
     >
       <Tooltip.Provider>
         <Tooltip.Root delayDuration={0}>
-          <Tooltip.Trigger asChild>
-            <SidebarNode
-              title={item.name}
-              variant={
-                type === 'component' &&
-                (item as ComponentListItem).source === 'Blocks'
-                  ? 'blockComponent'
-                  : type
-              }
-            />
-          </Tooltip.Trigger>
+          <Tooltip.Trigger asChild>{renderItem()}</Tooltip.Trigger>
           <Tooltip.Portal>
             <Tooltip.Content
               side="right"

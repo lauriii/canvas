@@ -8,7 +8,7 @@ import {
 } from '@/features/layout/layoutModelSlice';
 import { setTreeDragging } from '@/features/ui/uiSlice';
 import { findNodePathByUuid } from '@/features/layout/layoutUtils';
-import { useGetComponentsQuery } from '@/services/components';
+import { useGetComponentsQuery } from '@/services/componentAndLayout';
 
 // Hooks for handling sortable drag and drop.
 const useSortable = () => {

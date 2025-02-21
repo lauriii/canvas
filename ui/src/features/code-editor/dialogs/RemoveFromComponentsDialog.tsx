@@ -1,5 +1,4 @@
-import { useState, useEffect } from 'react';
-import { Flex, TextField } from '@radix-ui/themes';
+import { useEffect } from 'react';
 import { useUpdateCodeComponentMutation } from '@/services/componentAndLayout';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import {
@@ -7,21 +6,17 @@ import {
   selectDialogStates,
   selectSelectedCodeComponent,
 } from '@/features/ui/codeComponentDialogSlice';
-import Dialog, { DialogFieldLabel } from '@/components/Dialog';
+import Dialog from '@/components/Dialog';
 
-const RenameCodeComponentDialog = () => {
+// This handles the dialog for removing a JS component from components. This changes
+// the component from being "exposed" to "internal".
+const RemoveFromComponentsDialog = () => {
   const selectedComponent = useAppSelector(selectSelectedCodeComponent);
-  const [componentName, setComponentName] = useState('');
   const [updateCodeComponent, { isLoading, isSuccess, isError, error, reset }] =
     useUpdateCodeComponentMutation();
   const dispatch = useAppDispatch();
-  const { isRenameDialogOpen } = useAppSelector(selectDialogStates);
-
-  useEffect(() => {
-    if (selectedComponent) {
-      setComponentName(selectedComponent.name);
-    }
-  }, [selectedComponent]);
+  const { isRemoveFromComponentsDialogOpen } =
+    useAppSelector(selectDialogStates);
 
   const handleSave = async () => {
     if (!selectedComponent) return;
@@ -32,14 +27,13 @@ const RenameCodeComponentDialog = () => {
         // @todo: Only send wanted changes in the PATCH request when
         //   https://www.drupal.org/project/experience_builder/issues/3508140 is fixed.
         ...selectedComponent,
-        name: componentName,
+        status: false,
       },
     });
   };
 
   const handleOpenChange = (open: boolean) => {
     if (!open) {
-      setComponentName('');
       reset();
       dispatch(closeAllDialogs());
     }
@@ -47,29 +41,38 @@ const RenameCodeComponentDialog = () => {
 
   useEffect(() => {
     if (isSuccess) {
-      setComponentName('');
       dispatch(closeAllDialogs());
     }
   }, [isSuccess, dispatch]);
 
   useEffect(() => {
     if (isError) {
-      console.error('Failed to rename component:', error);
+      console.error('Failed to remove from components:', error);
     }
   }, [isError, error]);
 
   return (
     <Dialog
-      open={isRenameDialogOpen}
+      open={isRemoveFromComponentsDialogOpen}
       onOpenChange={handleOpenChange}
-      title="Rename component"
+      title="Remove from components"
+      description={
+        <>
+          This component will be moved to the <b>Code</b> section and will no
+          longer be available to use on the page.
+          <br />
+          <br />
+          You can re-add it to <b>Components</b> from the <b>Code</b> section at
+          any time.
+        </>
+      }
       error={
         isError
           ? {
-              title: 'Failed to rename component',
+              title: 'Failed to remove from components',
               message: `An error ${
                 'status' in error ? '(HTTP ' + error.status + ')' : ''
-              } occurred while renaming the component. Please check the browser console for more details.`,
+              } occurred while removing from components. Please check the browser console for more details.`,
               resetButtonText: 'Try again',
               onReset: handleSave,
             }
@@ -77,24 +80,14 @@ const RenameCodeComponentDialog = () => {
       }
       footer={{
         cancelText: 'Cancel',
-        confirmText: 'Rename',
+        confirmText: 'Remove',
         onConfirm: handleSave,
-        isConfirmDisabled:
-          !componentName.trim() || componentName === selectedComponent?.name,
+        isConfirmDisabled: false,
         isConfirmLoading: isLoading,
+        isDanger: true,
       }}
-    >
-      <Flex direction="column" gap="2">
-        <DialogFieldLabel>Component name</DialogFieldLabel>
-        <TextField.Root
-          value={componentName}
-          onChange={(e) => setComponentName(e.target.value)}
-          placeholder="Enter a new name"
-          size="1"
-        />
-      </Flex>
-    </Dialog>
+    />
   );
 };
 
-export default RenameCodeComponentDialog;
+export default RemoveFromComponentsDialog;

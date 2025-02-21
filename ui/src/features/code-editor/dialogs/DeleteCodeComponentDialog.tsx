@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useDeleteCodeComponentMutation } from '@/services/codeComponents';
+import { useDeleteCodeComponentMutation } from '@/services/componentAndLayout';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import {
   closeAllDialogs,
@@ -38,7 +38,7 @@ const DeleteCodeComponentDialog = () => {
 
   useEffect(() => {
     if (isError) {
-      console.error('Failed to delete code component:', error);
+      console.error('Failed to delete component:', error);
     }
   }, [isError, error]);
 
@@ -48,15 +48,15 @@ const DeleteCodeComponentDialog = () => {
     <Dialog
       open={isDeleteDialogOpen}
       onOpenChange={handleOpenChange}
-      title="Delete code component"
+      title="Delete component"
       description={`Are you sure you want to delete "${selectedComponent.name}"? This action cannot be undone.`}
       error={
         isError
           ? {
-              title: 'Failed to delete code component',
+              title: 'Failed to delete component',
               message: `An error ${
                 'status' in error ? '(HTTP ' + error.status + ')' : ''
-              } occurred while deleting the code component. Please check the browser console for more details.`,
+              } occurred while deleting the component. Please check the browser console for more details.`,
               resetButtonText: 'Try again',
               onReset: handleDelete,
             }

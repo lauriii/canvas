@@ -27,7 +27,7 @@ const ConceptProver = () => {
 
   // Get the available components list from the redux store.
   const availableComponents = useSelector((state) => {
-    return state?.componentsApi?.queries['getComponents(undefined)']?.data;
+    return state?.componentAndLayoutApi?.queries['getComponents(undefined)']?.data;
   });
 
   // Create a dropdown with every available component as options.

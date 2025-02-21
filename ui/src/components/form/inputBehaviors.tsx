@@ -22,7 +22,7 @@ import {
 } from '@/features/layout/layoutModelSlice';
 import { parseValue } from '@/utils/function-utils';
 import { debounce } from 'lodash';
-import { useGetComponentsQuery } from '@/services/components';
+import { useGetComponentsQuery } from '@/services/componentAndLayout';
 import { findComponentByUuid } from '@/features/layout/layoutUtils';
 import './InputBehaviors.css';
 import type { PropsValues, InputUIData } from '@/types/Form';

@@ -12,8 +12,6 @@ import {
 import { primaryPanelSlice } from '@/features/ui/primaryPanelSlice';
 import { dialogSlice } from '@/features/ui/dialogSlice';
 import { codeComponentDialogSlice } from '@/features/ui/codeComponentDialogSlice';
-import { componentApi } from '@/services/components';
-import { layoutApi } from '@/services/layout';
 import { previewApi } from '@/services/preview';
 import { contentCreateApi } from '@/services/contentCreate';
 import undoable from 'redux-undo';
@@ -25,7 +23,7 @@ import { configurationSlice } from '@/features/configuration/configurationSlice'
 import { sectionApi } from '@/services/sections';
 import { extensionsSlice } from '@/features/extensions/extensionsSlice';
 import { extensionsApi } from '@/services/extensions';
-import { codeComponentApi } from '@/services/codeComponents';
+import { componentAndLayoutApi } from '@/services/componentAndLayout';
 import { formStateSlice } from '@/features/form/formStateSlice';
 import type { UnknownAction } from 'redux';
 import { pendingChangesApi } from '@/services/pendingChangesApi';
@@ -89,11 +87,9 @@ const rootReducer = combineSlices(
       'pageData',
     ),
   },
-  componentApi,
   sectionApi,
   extensionsApi,
-  codeComponentApi,
-  layoutApi,
+  componentAndLayoutApi,
   previewApi,
   contentCreateApi,
   dummyPropsFormApi,
@@ -149,11 +145,9 @@ export const makeStore = (preloadedState?: Partial<RootState>) => {
     // and other useful features of `rtk-query`.
     middleware: (getDefaultMiddleware) => {
       return getDefaultMiddleware().concat(
-        componentApi.middleware,
         sectionApi.middleware,
         extensionsApi.middleware,
-        codeComponentApi.middleware,
-        layoutApi.middleware,
+        componentAndLayoutApi.middleware,
         previewApi.middleware,
         contentCreateApi.middleware,
         dummyPropsFormApi.middleware,

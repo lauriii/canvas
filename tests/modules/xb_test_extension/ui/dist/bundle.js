@@ -2122,8 +2122,8 @@
 
     // Get the available components list from the redux store.
     var availableComponents = useSelector(function (state) {
-      var _state$componentsApi;
-      return state === null || state === void 0 || (_state$componentsApi = state.componentsApi) === null || _state$componentsApi === void 0 || (_state$componentsApi = _state$componentsApi.queries['getComponents(undefined)']) === null || _state$componentsApi === void 0 ? void 0 : _state$componentsApi.data;
+      var _state$componentAndLa;
+      return state === null || state === void 0 || (_state$componentAndLa = state.componentAndLayoutApi) === null || _state$componentAndLa === void 0 || (_state$componentAndLa = _state$componentAndLa.queries['getComponents(undefined)']) === null || _state$componentAndLa === void 0 ? void 0 : _state$componentAndLa.data;
     });
 
     // Create a dropdown with every available component as options.
