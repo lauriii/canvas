@@ -179,7 +179,7 @@ const Preview = () => {
         // When served in production, the wasm asset URLs need to be relative to the Drupal web root, so
         // we pass that in to the initSwc function.
         if (import.meta.env.MODE === 'production') {
-          await initSwc(`${XB_MODULE_UI_PATH}/ui/dist/assets/wasm_bg.wasm`);
+          await initSwc(`${XB_MODULE_UI_PATH}/dist/assets/wasm_bg.wasm`);
         } else {
           await initSwc();
         }
