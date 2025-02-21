@@ -449,12 +449,13 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
     $suggestions = $this instanceof SingleDirectoryComponent
       ? $this->fieldForComponentSuggester->suggest($component_plugin->getPluginId(), EntityDataDefinition::create('node', 'article'))
       : [];
-    $dynamic_prop_source_candidates = [];
+    $prop_field_definitions = $component->getSettings()['prop_field_definitions'];
+
+    $field_data = [];
     $default_props_for_default_markup = [];
+    $unpopulated_props_for_default_markup = [];
+    $dynamic_prop_source_candidates = [];
     $transforms = [];
-    $settings = $component->getSettings();
-    $prop_field_definitions = $settings['prop_field_definitions'];
-    $field_data_partial = [];
     foreach (PropShape::getComponentProps($component_plugin) as $component_prop_expression => $prop_shape) {
       $storable_prop_shape = $prop_shape->getStorage();
       // @todo Remove this once every SDC prop shape can be stored. See PropShapeRepositoryTest::getExpectedUnstorablePropShapes()
@@ -462,35 +463,14 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
       if (!$storable_prop_shape) {
         continue;
       }
-      $static_prop_source = $storable_prop_shape->toStaticPropSource();
+
       $component_prop = ComponentPropExpression::fromString($component_prop_expression);
       $prop_name = $component_prop->propName;
-      // @todo Why have both $static_prop_source and $default_static_prop_source? This is confusing. At minimum, it needs to be documented what the differences are.
-      $default_static_prop_source = $this->getDefaultStaticPropSource($prop_name);
       if (isset($suggestions[$component_prop_expression])) {
         $dynamic_prop_source_candidates[$prop_name] = array_map(
           fn(FieldPropExpression|FieldObjectPropsExpression|ReferenceFieldPropExpression $expr) => (string) $expr,
           $suggestions[$component_prop_expression]['instances']
         );
-      }
-      $prop_info = ($component_plugin->metadata->schema['properties'] ?? [])[$prop_name];
-      // Defaults are guaranteed to exist for required props, may exist for
-      // optional props. When an optional prop has no default value, the value
-      // stored as the default in the Component config entity is NULL.
-      // @see \Drupal\experience_builder\ComponentMetadataRequirementsChecker
-      $is_image = isset($prop_info['$ref']) && $prop_info['$ref'] === 'json-schema-definitions://experience_builder.module/image';
-      // @todo Add support for default images in SDCs: /components/image/image.component.yml. (And entity references in general.)
-      // @see \Drupal\experience_builder\Entity\Component::getDefaultsForComponentPlugin
-      $is_datetime = isset($prop_info['format']) && $prop_info['format'] === 'date-time';
-      // @todo DateTimeItem stores information in a format that clashes with JSON schema's, and it has no automatic conversion. Figure out a better solution for both this and \Drupal\experience_builder\PropExpressions\StructuredData\Evaluator::evaluate().
-      $default_value = NULL;
-      if (($is_image || $is_datetime)) {
-        if (isset($prop_info['examples']) && is_array($prop_info['examples']) && !empty($prop_info['examples'])) {
-          $default_value = $prop_info['examples'][0];
-        }
-      }
-      else {
-        $default_value = $default_static_prop_source->evaluate(NULL);
       }
 
       // Determine the default:
@@ -507,27 +487,78 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
       // @see \Drupal\Core\Field\FieldItemInterface::propertyDefinitions()
       // @see ::exampleValueRequiresEntity()
       // @todo https://www.drupal.org/project/experience_builder/issues/3493943 will introduce the same 'resolved' vs 'source' split for *default values* that https://www.drupal.org/project/experience_builder/issues/3493941 already introduced for *user-entered values*. This code leaps ahead of that.
-      $default_resolved_value = $default_value;
-      $default_source_value = $default_static_prop_source->getValue();
 
-      $field_data_partial[$prop_name] = [
+      // Inspect the Component config entity to check for the presence of a
+      // default value.
+      // Defaults are guaranteed to exist for required props, may exist for
+      // optional props. When an optional prop has no default value, the value
+      // stored as the default in the Component config entity is NULL.
+      // @see \Drupal\experience_builder\ComponentMetadataRequirementsChecker
+      assert(self::exampleValueRequiresEntity($storable_prop_shape) === ($this->configuration['prop_field_definitions'][$prop_name]['default_value'] === []));
+      $default_source_value = $this->configuration['prop_field_definitions'][$prop_name]['default_value'];
+      $has_default_source_value = match ($default_source_value) {
+        // NULL is stored to signal this is an optional SDC prop without an
+        // example value.
+        NULL => FALSE,
+        // The empty array is stored to signal this is an SDC prop (optional or
+        // required) whose example value would need an entity to be created,
+        // which is not allowed.
+        // @see ::exampleValueRequiresEntity()
+        [] => FALSE,
+        // In all other cases, a default value is present.
+        default => TRUE,
+      };
+
+      // Compute the default 'resolved' value, which will be used to:
+      // - generate the preview of the component
+      // - populate the client-side (data) `model`
+      // … which in both cases boils down to: "this value is passed directly
+      // into the SDC".
+      if ($has_default_source_value) {
+        // Use the stored default, if any. This is required for all required SDC
+        // props, optional for all optional SDC props.
+        $default_resolved_value = $this->getDefaultStaticPropSource($prop_name)->evaluate(NULL);
+      }
+      // One special case: example values that require a Drupal entity to
+      // exist. In these cases (for either required or optional SDC props),
+      // fall back to the literal example value in the SDC.
+      elseif (self::exampleValueRequiresEntity($storable_prop_shape)) {
+        // An example is present in the SDC metadata, it just cannot be mapped
+        // to a default value in the prop source.
+        assert(!is_null($component_plugin->metadata->schema));
+        $default_resolved_value = $component_plugin->metadata->schema['properties'][$prop_name]['examples'][0];
+      }
+      else {
+        $default_resolved_value = NULL;
+      }
+
+      // Collect the 'resolved' values for all SDC props, to generate a preview
+      // ("default markup").
+      if ($default_resolved_value !== NULL) {
+        $default_props_for_default_markup[$prop_name] = $default_resolved_value;
+      }
+      // Track those SDC props without a 'resolved' value (because an example
+      // value is missing, which is allowed for optional SDC props), because it
+      // will still be necessary to generate the necessary 'source' information
+      // for them (to send to ComponentInputsForm).
+      else {
+        $unpopulated_props_for_default_markup[$prop_name] = NULL;
+      }
+
+      // Gather the information that the client will pass to the server to
+      // generate a form.
+      // @see \Drupal\experience_builder\Form\ComponentInputsForm
+      $field_data[$prop_name] = [
         'required' => in_array($prop_name, $component_plugin->metadata->schema['required'] ?? [], TRUE),
         'jsonSchema' => $prop_shape->resolvedSchema,
       ];
-      if ($default_value !== NULL) {
-        // When both the preview ('resolved') and the input ('source') match,
-        // pass the 'source' value to the client. Otherwise, omit it.
-        // @todo https://www.drupal.org/project/experience_builder/issues/3493943
-        // @see ::clientModelToInput()
-        $preview_matches_default_input = empty($default_resolved_value) == empty($default_source_value);
-        if ($preview_matches_default_input) {
-          $field_data_partial[$prop_name]['default_values'] = $default_value;
-        }
-        $default_props_for_default_markup[$prop_name] = $default_value;
+      if ($has_default_source_value) {
+        $field_data[$prop_name]['default_values'] = $default_source_value;
       }
 
       // Build transforms from widget metadata.
       $field_widget_plugin_id = NULL;
+      $static_prop_source = $storable_prop_shape->toStaticPropSource();
       $prop_field_definition = $prop_field_definitions[$prop_name];
       if ($static_prop_source->getSourceType() === 'static:field_item:' . $prop_field_definition['field_type']) {
         $field_widget_plugin_id = $prop_field_definition['field_widget'];
@@ -560,8 +591,9 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
     // @see FieldData type-script definition.
     // @see StaticPropSource type-script definition.
     $field_data = NestedArray::mergeDeep(
-      $field_data_partial,
+      $field_data,
       $this->inputToClientModel($default_props_for_default_markup)['source'],
+      $this->inputToClientModel($unpopulated_props_for_default_markup)['source'],
     );
 
     return [
