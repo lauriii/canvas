@@ -265,6 +265,7 @@ function experience_builder_block_alter(array &$definitions): void {
         'label' => (string) new TranslatableMarkup('@label block', ['@label' => $definition['admin_label']]),
         'category' => (string) $definition['category'],
         'source' => BlockComponent::SOURCE_PLUGIN_ID,
+        'provider' => $definition['provider'],
         'settings' => [
           'plugin_id' => $id,
           // We are using strict config schema validation, so we need to provide valid default settings for each block.

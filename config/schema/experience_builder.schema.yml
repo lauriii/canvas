@@ -28,6 +28,15 @@ experience_builder.component.*:
         Length:
           # @see \Drupal\Core\Config\Entity\ConfigEntityStorage::MAX_ID_LENGTH
           max: 166
+    provider:
+      type: string
+      label: 'Name of the module or theme providing this component, or null if provided via something else'
+      nullable: true
+      constraints:
+        NotBlank:
+          allowNull: true
+        ExtensionName: []
+        Callback: ['\Drupal\experience_builder\Entity\Component', providerExists]
     source:
       type: string
       label: 'Source plugin'

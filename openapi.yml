@@ -164,6 +164,7 @@ paths:
                       name: Call to Action
                       source: Module component
                       category: Buttons
+                      library: extension_components
                       transforms:
                         text:
                           extractMainPropertyName:
@@ -1089,6 +1090,7 @@ components:
         - id
         - category
         - default_markup
+        - library
       properties:
         name:
           type: string
@@ -1099,6 +1101,18 @@ components:
         category:
           type: string
           description: The component category
+        library:
+          type: string
+          description: Library ID
+          enum:
+            # Provided by Experience Builder
+            - elements
+            # Provided by Modules
+            - extension_components
+            # Blocks
+            - dynamic_components
+            # SDCs from the Active Theme + JavaScript Code Components
+            - primary_components
         transforms:
           type: object
           description: Transform configuration

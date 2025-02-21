@@ -20,7 +20,8 @@ use Drupal\experience_builder\Entity\JavaScriptComponent;
  */
 #[ComponentSource(
   id: self::SOURCE_PLUGIN_ID,
-  label: new TranslatableMarkup('Code Components')
+  label: new TranslatableMarkup('Code Components'),
+  supportsImplicitInputs: FALSE,
 )]
 final class JsComponent extends GeneratedFieldExplicitInputUxComponentSourceBase {
 
@@ -146,6 +147,7 @@ final class JsComponent extends GeneratedFieldExplicitInputUxComponentSourceBase
       'id' => self::SOURCE_PLUGIN_ID . '.' . $js_component->id(),
       'label' => $js_component->label(),
       'category' => '@todo',
+      'provider' => NULL,
       'source' => self::SOURCE_PLUGIN_ID,
       'settings' => [
         // @todo rename plugin_id in https://www.drupal.org/project/experience_builder/issues/3502982

@@ -139,6 +139,7 @@ final class JavascriptComponentStorageTest extends KernelTestBase {
 
     $component = Component::load($component_id);
     self::assertInstanceOf(ComponentInterface::class, $component);
+    self::assertNull($component->get('provider'));
     self::assertEquals(['title'], \array_keys($component->getSettings()['prop_field_definitions']));
 
     // Now update the js component and confirm we update the matching component.

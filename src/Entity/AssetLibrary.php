@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Drupal\experience_builder\Entity;
 
+use Drupal\Core\Cache\RefinableCacheableDependencyInterface;
 use Drupal\Core\Config\Entity\ConfigEntityBase;
+use Drupal\Core\Entity\Query\QueryInterface;
 use Drupal\experience_builder\ClientSideRepresentation;
 
 /**
@@ -71,6 +73,13 @@ final class AssetLibrary extends ConfigEntityBase implements XbHttpApiEligibleCo
    */
   public static function denormalizeFromClientSide(array $data): array {
     return $data;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function refineListQuery(QueryInterface &$query, RefinableCacheableDependencyInterface $cacheability): void {
+    // Nothing to do.
   }
 
 }

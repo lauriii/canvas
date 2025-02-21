@@ -27,7 +27,8 @@ use Symfony\Component\Filesystem\Path;
  */
 #[ComponentSource(
   id: self::SOURCE_PLUGIN_ID,
-  label: new TranslatableMarkup('Single-Directory Components')
+  label: new TranslatableMarkup('Single-Directory Components'),
+  supportsImplicitInputs: FALSE,
 )]
 final class SingleDirectoryComponent extends GeneratedFieldExplicitInputUxComponentSourceBase implements UrlRewriteInterface {
 
@@ -219,6 +220,7 @@ final class SingleDirectoryComponent extends GeneratedFieldExplicitInputUxCompon
       'label' => $component_plugin->getPluginDefinition()['name'] ?? $component_plugin->getPluginId(),
       'category' => $component_plugin->getPluginDefinition()['category'],
       'source' => self::SOURCE_PLUGIN_ID,
+      'provider' => $component_plugin->getPluginDefinition()['provider'],
       'settings' => [
         'plugin_id' => $component_plugin->getPluginId(),
         'prop_field_definitions' => $props,

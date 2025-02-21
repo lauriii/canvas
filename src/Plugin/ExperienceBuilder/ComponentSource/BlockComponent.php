@@ -39,7 +39,10 @@ use Symfony\Component\Validator\ConstraintViolationListInterface;
  */
 #[ComponentSource(
   id: self::SOURCE_PLUGIN_ID,
-  label: new TranslatableMarkup('Blocks')
+  label: new TranslatableMarkup('Blocks'),
+  // While XB does not support context mappings yet, Block plugins also can
+  // contain logic and perform e.g. database queries that fetch data to present.
+  supportsImplicitInputs: TRUE,
 )]
 final class BlockComponent extends ComponentSourceBase implements ContainerFactoryPluginInterface {
 

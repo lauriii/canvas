@@ -93,7 +93,12 @@ Therefore, it only makes sense to surface _block plugins_ as XB `component`s.
 defined  using config schema (`type: block.settings.<PLUGIN ID>`). Defaults are present as the
 `::defaultConfiguration()` method  on the PHP plugin class.
 
-`Block` `component`s specify the accepted explicit inputs
+`Block` `component`s DO accept implicit inputs, in two ways even:
+1. Logic in the block plugin can fetch data — through database queries, HTTP requests, anything.
+2. Contexts. Not yet supported. (⚠️ handling contexts is still TBD in [#3485502](https://www.drupal.org/project/experience_builder/issues/3485502))
+
+`Block` `component`s specify the accepted explicit inputs. They typically allow influencing the logic in the block
+plugin. These explicit inputs can hence be seen as knobs and levers to adjust what the underlying block plugin does.
 
 `Block` DOES provide an input UX (`BlockPluginInterface::buildConfigurationForm()`), so its `Component Source Plugin`
 simply reuses that.
@@ -127,6 +132,8 @@ refer to "blocks" and not "block plugins", under the hood, they actually _are_ b
 `JavaScriptComponent config entity`, using the exact same format (JSON schema) as `SDC` `component`s (see [section
 3.1.1 above](#3.1.1)). See [section 3.2 `JavaScriptComponent config entity` in the `XB Config Management`
 doc](config-management.md#3.2) for all details.
+
+`JS` `component`s DO NOT accept implicit inputs.
 
 `JS` DOES NOT provide an input UX, so its `Component Source Plugin` must do so on its behalf; and does so by matching
 available field types against the JSON schema of its explicit inputs ("props"). For details, see the [`XB Shape Matching

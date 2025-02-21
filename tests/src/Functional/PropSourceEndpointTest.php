@@ -58,12 +58,14 @@ class PropSourceEndpointTest extends FunctionalTestBase {
       'announcements_feed:feed',
       'comment_list',
       'config:component_list',
+      'config:core.extension',
       'config:search.settings',
       'config:system.menu.account',
       'config:system.menu.admin',
       'config:system.menu.footer',
       'config:system.menu.main',
       'config:system.site',
+      'config:system.theme',
       'config:views.view.comments_recent',
       'config:views.view.content_recent',
       'config:views.view.who_s_new',
@@ -122,6 +124,7 @@ class PropSourceEndpointTest extends FunctionalTestBase {
       $this->assertArrayHasKey('name', $component);
       $this->assertArrayHasKey('category', $component);
       $this->assertArrayHasKey('source', $component);
+      $this->assertArrayHasKey('library', $component, $id);
       $this->assertArrayHasKey('default_markup', $component);
       $this->assertArrayHasKey('css', $component);
       $this->assertArrayHasKey('js_header', $component);
@@ -129,6 +132,10 @@ class PropSourceEndpointTest extends FunctionalTestBase {
     }
     $this->assertStringStartsWith('<!-- xb-start-', $data['block.system_menu_block.main']['default_markup']);
     $this->assertStringContainsString('--><nav role="navigation"', $data['block.system_menu_block.main']['default_markup']);
+
+    // Stark has no SDCs.
+    $this->assertSame('stark', $this->config('system.theme')->get('default'));
+    $this->assertArrayNotHasKey('sdc.olivero.teaser', $data);
 
     $data = array_intersect_key(
       $data,
@@ -163,6 +170,28 @@ class PropSourceEndpointTest extends FunctionalTestBase {
     self::assertEquals($extractValue, $data['sdc.sdc_test_all_props.all-props']['transforms']['test_integer']);
     self::assertEquals(['link' => []], $data['sdc.sdc_test_all_props.all-props']['transforms']['test_string_format_uri']);
     self::assertEquals(['mediaSelection' => [], 'mainProperty' => ['name' => 'target_id']], $data['sdc.sdc_test_all_props.all-props']['transforms']['test_object_drupal_image']);
+
+    // Olivero does have an SDC, and it's enabled, but it is omitted because the
+    // default theme is Stark.
+    $this->assertInstanceOf(Component::class, Component::load('sdc.olivero.teaser'));
+    $this->assertTrue(Component::load('sdc.olivero.teaser')->status());
+    $this->assertSame('olivero', Component::load('sdc.olivero.teaser')->get('provider'));
+
+    // Change the default theme from Stark to Olivero, and observe the impact on
+    // the list of Components returned.
+    \Drupal::configFactory()->getEditable('system.theme')->set('default', 'olivero')->save();
+    $this->rebuildAll();
+    $this->drupalGet('xb/api/config/component');
+    $data = Json::decode($page->getText());
+    $this->assertSession()->responseHeaderEquals('X-Drupal-Dynamic-Cache', 'MISS');
+    $this->assertSession()->responseHeaderEquals('X-Drupal-Cache', 'UNCACHEABLE (request policy)');
+    // Olivero does have an SDC!
+    $this->assertSame('olivero', $this->config('system.theme')->get('default'));
+    $this->assertArrayHasKey('sdc.olivero.teaser', $data);
+    // Repeated request is again a Dynamic Page Cache hit.
+    $this->drupalGet('xb/api/config/component');
+    $this->assertSession()->responseHeaderEquals('X-Drupal-Dynamic-Cache', 'HIT');
+    $this->assertSession()->responseHeaderEquals('X-Drupal-Cache', 'UNCACHEABLE (request policy)');
   }
 
   /**

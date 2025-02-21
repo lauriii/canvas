@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace Drupal\experience_builder\Entity;
 
 use Drupal\Component\Utility\Random;
+use Drupal\Core\Cache\RefinableCacheableDependencyInterface;
 use Drupal\Core\Config\Entity\ConfigEntityBase;
 use Drupal\Core\Entity\EntityStorageInterface;
+use Drupal\Core\Entity\Query\QueryInterface;
 use Drupal\experience_builder\ClientSideRepresentation;
 use Drupal\experience_builder\Controller\ApiConfigControllers;
 use Drupal\experience_builder\Controller\ClientServerConversionTrait;
@@ -161,6 +163,13 @@ final class Pattern extends ConfigEntityBase implements XbHttpApiEligibleConfigE
         'inputs' => $inputs,
       ],
     ] + $other_values;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function refineListQuery(QueryInterface &$query, RefinableCacheableDependencyInterface $cacheability): void {
+    // Nothing to do.
   }
 
 }

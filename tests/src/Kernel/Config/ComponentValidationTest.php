@@ -52,6 +52,13 @@ class ComponentValidationTest extends ConfigEntityValidationTestBase {
   /**
    * {@inheritdoc}
    */
+  protected static array $propertiesWithOptionalValues = [
+    'provider',
+  ];
+
+  /**
+   * {@inheritdoc}
+   */
   protected function setUp(): void {
     parent::setUp();
 

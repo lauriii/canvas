@@ -84,12 +84,13 @@ final class ApiConfigControllers extends ApiControllerBase {
     if (!$xb_config_entity_type->get('xb_visible_when_disabled')) {
       $query->condition('status', TRUE);
     }
-    /** @var array<\Drupal\experience_builder\Entity\XbHttpApiEligibleConfigEntityInterface> $config_entities */
-    $config_entities = $storage->loadMultiple($query->execute());
 
     $query_cacheability = (new CacheableMetadata())
       ->addCacheContexts($xb_config_entity_type->getListCacheContexts())
       ->addCacheTags($xb_config_entity_type->getListCacheTags());
+    $xb_config_entity_type->getClass()::refineListQuery($query, $query_cacheability);
+    /** @var array<\Drupal\experience_builder\Entity\XbHttpApiEligibleConfigEntityInterface> $config_entities */
+    $config_entities = $storage->loadMultiple($query->execute());
 
     $normalizations = [];
     $normalizations_cacheability = new CacheableMetadata();

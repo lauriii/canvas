@@ -25,6 +25,7 @@ final class ComponentSource extends Plugin {
   public function __construct(
     public readonly string $id,
     public readonly TranslatableMarkup $label,
+    public readonly bool $supportsImplicitInputs,
     public readonly ?string $deriver = NULL,
   ) {
   }

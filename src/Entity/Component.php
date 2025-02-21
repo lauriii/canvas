@@ -4,7 +4,11 @@ declare(strict_types=1);
 
 namespace Drupal\experience_builder\Entity;
 
+use Drupal\Core\Cache\RefinableCacheableDependencyInterface;
 use Drupal\Core\Config\Entity\ConfigEntityBase;
+use Drupal\Core\Entity\Query\QueryInterface;
+use Drupal\Core\Extension\ModuleHandlerInterface;
+use Drupal\Core\Extension\ThemeHandlerInterface;
 use Drupal\Core\Plugin\DefaultSingleLazyPluginCollection;
 use Drupal\Core\Render\Markup;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
@@ -46,6 +50,7 @@ use Drupal\experience_builder\ComponentSource\ComponentSourceManager;
  *      "label",
  *      "id",
  *      "source",
+ *      "provider",
  *      "category",
  *      "settings",
  *    },
@@ -74,6 +79,16 @@ final class Component extends ConfigEntityBase implements ComponentInterface, Xb
    * The source plugin ID.
    */
   protected string $source;
+
+  /**
+   * The provider of this component: a valid module or theme name, or NULL.
+   *
+   * NULL must be used to signal it's not provided by an extension. This is used
+   * for "code components" for example — which are provided by entities.
+   *
+   * @see \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\JsComponent
+   */
+  protected ?string $provider;
 
   /**
    * The human-readable category of the component.
@@ -168,10 +183,17 @@ final class Component extends ConfigEntityBase implements ComponentInterface, Xb
   }
 
   /**
-   * {@inheritdoc}
+   * Works around the `ExtensionExists` constraint requiring a fixed type.
+   *
+   * @see \Drupal\Core\Extension\Plugin\Validation\Constraint\ExtensionExistsConstraintValidator
+   * @see https://www.drupal.org/node/3353397
    */
-  protected function providerExists(string $provider): bool {
-    return $this->moduleHandler()->moduleExists($provider) || $this->themeHandler()->themeExists($provider);
+  public static function providerExists(?string $provider): bool {
+    if (is_null($provider)) {
+      return TRUE;
+    }
+    $container = \Drupal::getContainer();
+    return $container->get(ModuleHandlerInterface::class)->moduleExists($provider) || $container->get(ThemeHandlerInterface::class)->themeExists($provider);
   }
 
   /**
@@ -206,23 +228,60 @@ final class Component extends ConfigEntityBase implements ComponentInterface, Xb
     $component_config_entity_uuid = $this->uuid();
     $build['#prefix'] = Markup::create("<!-- xb-start-$component_config_entity_uuid -->");
     $build['#suffix'] = Markup::create("<!-- xb-end-$component_config_entity_uuid -->");
-
-    $info += [
-      'id' => $this->id(),
-      'name' => (string) $this->label(),
-      'category' => (string) $this->getCategory(),
-      'source' => (string) $this->getComponentSource()->getPluginDefinition()['label'],
-    ];
-
     return ClientSideRepresentation::create(
       values: $info + [
         'id' => $this->id(),
         'name' => (string) $this->label(),
+        'library' => $this->computeUiLibrary()->value,
         'category' => (string) $this->getCategory(),
         'source' => (string) $this->getComponentSource()->getPluginDefinition()['label'],
       ],
       preview: $build,
     )->addCacheableDependency($this);
+  }
+
+  /**
+   * Uses heuristics to compute the appropriate "library" in the XB UI.
+   *
+   * Each Component appears in a well-defined "library" in the XB UI. This is a
+   * set of heuristics with a particular decision tree.
+   *
+   * @see https://www.drupal.org/project/experience_builder/issues/3498419#comment-15997505
+   */
+  private function computeUiLibrary(): LibraryEnum {
+    $config = \Drupal::configFactory()->loadMultiple(['core.extension', 'system.theme']);
+    $installed_modules = [
+      'core',
+      ...array_keys($config['core.extension']->get('module')),
+    ];
+    // @see \Drupal\Core\Extension\ThemeHandler::getDefault()
+    $default_theme = $config['system.theme']->get('default');
+
+    // 1. Is the component dynamic (consumes implicit inputs/context or has
+    // logic)?
+    if ($this->getComponentSource()->getPluginDefinition()['supportsImplicitInputs']) {
+      return LibraryEnum::DynamicComponents;
+    }
+
+    // 2. Is the component provided by a module?
+    if (in_array($this->provider, $installed_modules, TRUE)) {
+      return $this->provider === 'experience_builder'
+        // 2.B Is the providing module XB?
+        ? LibraryEnum::Elements
+        : LibraryEnum::ExtensionComponents;
+    }
+
+    // 3. Is the component provided by the default theme (or its base theme)?
+    if ($this->provider === $default_theme) {
+      return LibraryEnum::PrimaryComponents;
+    }
+
+    // 4. Is the component provided by neither a theme nor a module?
+    if ($this->provider === NULL) {
+      return LibraryEnum::PrimaryComponents;
+    }
+
+    throw new \LogicException('A Component is being normalized that belongs in no XB UI library.');
   }
 
   /**
@@ -232,6 +291,34 @@ final class Component extends ConfigEntityBase implements ComponentInterface, Xb
    */
   public static function denormalizeFromClientSide(array $data): array {
     throw new \LogicException('Not supported: read-only for the client side, mutable only on the server side.');
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function refineListQuery(QueryInterface &$query, RefinableCacheableDependencyInterface $cacheability): void {
+    $container = \Drupal::getContainer();
+    $theme_handler = $container->get(ThemeHandlerInterface::class);
+    $installed_themes = array_keys($theme_handler->listInfo());
+    $default_theme = $theme_handler->getDefault();
+
+    // Omit Components provided by installed-but-not-default themes. This keeps
+    // all other Components:
+    // - module-provided ones
+    // - default theme-provided
+    // - provided by something else than an extension, such as an entity.
+    $or_group = $query->orConditionGroup()
+      ->condition('provider', operator: 'NOT IN', value: array_diff($installed_themes, [$default_theme]))
+      ->condition('provider', operator: 'IS NULL');
+    $query->condition($or_group);
+
+    // Reflect the conditions added to the query in the cacheability.
+    $cacheability->addCacheTags([
+      // The set of installed themes is stored in the `core.extension` config.
+      'config:core.extension',
+      // The default theme is stored in the `system.theme` config.
+      'config:system.theme',
+    ]);
   }
 
   /**

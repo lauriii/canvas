@@ -103,6 +103,7 @@ class ComponentTest extends KernelTestBase {
       'sdc' => [
         'component_config_entity_id' => 'sdc.sdc_test.my-cta',
         'source' => SingleDirectoryComponent::SOURCE_PLUGIN_ID,
+        'provider' => 'sdc_test',
         'source_internal_id' => 'sdc_test:my-cta',
         'expected_config_dependencies' => [
           'module' => [
@@ -116,6 +117,7 @@ class ComponentTest extends KernelTestBase {
       'js' => [
         'component_config_entity_id' => 'js.my-cta',
         'source' => JsComponent::SOURCE_PLUGIN_ID,
+        'provider' => NULL,
         'source_internal_id' => 'my-cta',
         'expected_config_dependencies' => [
           'config' => [
@@ -133,7 +135,7 @@ class ComponentTest extends KernelTestBase {
   /**
    * @dataProvider providerComponentCreation
    */
-  public function testComponentCreation(string $component_config_entity_id, string $source, string $source_internal_id, array $expected_config_dependencies): void {
+  public function testComponentCreation(string $component_config_entity_id, string $source, ?string $provider, string $source_internal_id, array $expected_config_dependencies): void {
     if ($source === JsComponent::SOURCE_PLUGIN_ID) {
       $this->assertEmpty(JavaScriptComponent::loadMultiple());
 
@@ -168,6 +170,7 @@ class ComponentTest extends KernelTestBase {
       'label' => self::LABEL,
       'category' => self::LABEL,
       'source' => $source,
+      'provider' => $provider,
       'settings' => [
         'plugin_id' => $source_internal_id,
         'prop_field_definitions' => [

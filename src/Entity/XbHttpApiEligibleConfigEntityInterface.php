@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Drupal\experience_builder\Entity;
 
+use Drupal\Core\Cache\RefinableCacheableDependencyInterface;
 use Drupal\Core\Config\Entity\ConfigEntityInterface;
+use Drupal\Core\Entity\Query\QueryInterface;
 use Drupal\experience_builder\ClientSideRepresentation;
 
 /**
@@ -32,5 +34,18 @@ interface XbHttpApiEligibleConfigEntityInterface extends ConfigEntityInterface {
    * @see openapi.yml
    */
   public static function denormalizeFromClientSide(array $data): array;
+
+  /**
+   * Allows the config entity query that generates the listing to be refined.
+   *
+   * @param \Drupal\Core\Entity\Query\QueryInterface $query
+   *   The config entity query to refine, passed by reference.
+   * @param \Drupal\Core\Cache\RefinableCacheableDependencyInterface $cacheability
+   *   The cacheability of the given query, to be refined to match the
+   *   refinements made to the query.
+   *
+   * @return void
+   */
+  public static function refineListQuery(QueryInterface &$query, RefinableCacheableDependencyInterface $cacheability): void;
 
 }
