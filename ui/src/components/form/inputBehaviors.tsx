@@ -377,7 +377,7 @@ const InputBehaviorsEntityForm = (
       attributes.value = newValue;
     }
     if (attributes.type === 'checkbox') {
-      attributes.checked = !!newValue;
+      attributes.checked = Boolean(Number(newValue));
     }
   }
 
