@@ -65,7 +65,7 @@
 /tests/src/Kernel/Config/
 
 # Issues: https://www.drupal.org/project/issues/experience_builder?component=Data+model
-[Data model] @effulgentsia @tedbow @wimleers
+[Data model] @effulgentsia @tedbow @wimleers @larowlan
 /docs/data-model.md
 /docs/diagrams/data-model.md
 # data type
