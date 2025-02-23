@@ -538,6 +538,21 @@ HTML,
     $module_dir = dirname(__DIR__, 4);
     $parts = explode(\DIRECTORY_SEPARATOR, $module_dir);
     $modules_index = \array_search('modules', $parts);
+    if ($modules_index === FALSE) {
+      // On CI, the project folder is installed outside the webroot and
+      // symlinked inside it. In that case __DIR__ does not include modules in
+      // a parent path. However, there is a convenient DRUPAL_PROJECT_FOLDER
+      // environment variable that gives us the symlinked path. We can use that
+      // to work out where the module is installed relative to the Drupal root.
+      // We don't have access to the Drupal root from the kernel here because
+      // we're in a static data provider and do not have access to the kernel.
+      $module_dir = getenv('DRUPAL_PROJECT_FOLDER');
+      if ($module_dir === FALSE) {
+        throw new \Exception('Cannot detect the modules directory.');
+      }
+      $parts = explode(\DIRECTORY_SEPARATOR, $module_dir);
+      $modules_index = \array_search('modules', $parts);
+    }
     \assert($modules_index !== FALSE);
     // This should now be 'modules/custom/experience_builder',
     // 'modules/experience_builder' or 'modules/contrib/experience_builder'
@@ -876,7 +891,7 @@ HTML,
         component-url="::SITE_DIR_BASE_URL::/files/astro-island/STNRn46UCAs1xJCb2kgPiEOEZp0R24B5qjtHOsyYT-g.js"
         component-export="default"
         renderer-url="::XB_DIR_BASE_URL::/ui/lib/astro-hydration/dist/client.js"
-        props="{&quot;text&quot;:&quot;Hello, from a \&quot;code component\&quot;!&quot;}"
+        props="{&quot;text&quot;:[&quot;raw&quot;,&quot;Hello, from a \&quot;code component\&quot;!&quot;]}"
         ssr="" client="only"
         opts="{&quot;name&quot;:&quot;My First Code Component&quot;,&quot;value&quot;:&quot;preact&quot;}"></astro-island><!-- xb-end-uuid-js-component --><!-- xb-start-uuid-last-in-tree --><div  data-component-id="xb_test_sdc:props-no-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
   <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;"><!-- xb-prop-start-uuid-last-in-tree/heading -->Hello, from slot &lt;LAST ONE&gt;!<!-- xb-prop-end-uuid-last-in-tree/heading --></h1>

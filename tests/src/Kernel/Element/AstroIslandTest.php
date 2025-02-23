@@ -150,7 +150,10 @@ final class AstroIslandTest extends KernelTestBase {
     self::assertEquals('default', $element->attr('component-export'));
     self::assertEquals('', $element->attr('ssr'));
     self::assertEquals('only', $element->attr('client'));
-    self::assertJsonStringEqualsJsonString(Json::encode($props), $element->attr('props') ?? '');
+    self::assertJsonStringEqualsJsonString(Json::encode([
+      'text' => ['raw', 'Win a pony'],
+      'count' => ['raw', '3'],
+    ]), $element->attr('props') ?? '');
     self::assertJsonStringEqualsJsonString(Json::encode([
       'name' => $component->label(),
       'value' => $island['#framework'],

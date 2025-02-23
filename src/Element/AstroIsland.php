@@ -116,23 +116,38 @@ final class AstroIsland extends RenderElementBase {
     assert(isset($client['js'][0]['data']) && count($client['js']) === 1);
     $renderer_url = base_path() . $client['js'][0]['data'];
 
+    $mapped_props = \array_map(static fn(mixed $prop_value): array => [
+      'raw',
+      $prop_value,
+    ],
+      \array_intersect_key($element['#props'], $valid_props)
+    );
+    if (\count($mapped_props) === 0) {
+      // We must always represent props as an object in JSON notation. We can't
+      // use the JSON_FORCE_OBJECT flag because that will force
+      // ['raw', $prop_value] to be an object too. So in the case where there
+      // are no props, we need to use \stdClass so that is represented as {}
+      // instead of [] in JSON.
+      $mapped_props = new \stdClass();
+    }
     $build = [
       '#type' => 'inline_template',
       // Generate a template by turning slots into named variables.
       '#template' => self::generateTemplate(\array_keys($element['#slots'] ?? [])),
       '#context' => [
-        // Prefix all context variables with __aie to avoid collisions with
-        // slots.
-        '__aie_uuid' => $element['#uuid'] ?? \Drupal::service(UuidInterface::class)->generate(),
+          // Prefix all context variables with __aie to avoid collisions with
+          // slots.
+        '__aie_uuid' => $element['#uuid'] ?? \Drupal::service(UuidInterface::class)
+          ->generate(),
         '__aie_component_url' => $component_url,
         '__aie_renderer' => $renderer_url,
-        '__aie_props' => \json_encode(\array_intersect_key($element['#props'] ?? [], $valid_props), JSON_FORCE_OBJECT | JSON_THROW_ON_ERROR),
+        '__aie_props' => \json_encode($mapped_props, JSON_THROW_ON_ERROR),
         '__aie_opts' => \json_encode([
           'name' => $component->label(),
           'value' => $element['#framework'] ?? 'preact',
         ], JSON_THROW_ON_ERROR),
-        // Add slots as named variables so the point they're printed can be
-        // wrapped by XbWrapperNode and any passed meta props to enable
+          // Add slots as named variables so the point they're printed can be
+          // wrapped by XbWrapperNode and any passed meta props to enable
         // XbWrapperNode to wrap slots with HTML comments.
       ] + \array_map(static fn(array|string $slot) => \is_array($slot) ? $slot : ['#plain_text' => $slot], $element['#slots'] ?? []) +
       \array_intersect_key($element['#props'] ?? [], \array_flip(['xb_uuid', 'xb_slot_ids'])),

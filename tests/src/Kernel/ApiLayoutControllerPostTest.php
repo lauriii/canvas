@@ -267,7 +267,10 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
 
     self::assertEquals($uuid, $element->attr('uid'));
     // Should see the new (draft) props.
-    self::assertJsonStringEqualsJsonString(Json::encode($props), $element->attr('props') ?? '');
+    self::assertJsonStringEqualsJsonString(Json::encode(\array_map(static fn(mixed $value): array => [
+      'raw',
+      $value,
+    ], $props)), $element->attr('props') ?? '');
     // And the new component label.
     self::assertJsonStringEqualsJsonString(Json::encode([
       'name' => 'Here comes the',

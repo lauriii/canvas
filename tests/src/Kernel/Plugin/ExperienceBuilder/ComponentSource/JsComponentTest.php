@@ -95,7 +95,10 @@ final class JsComponentTest extends KernelTestBase {
 
     // Note that ::renderComponent adds both xb_uuid and xb_slot_ids props but
     // they should not be present as props in the astro-island element.
-    self::assertJsonStringEqualsJsonString(Json::encode($props), $element->attr('props') ?? '');
+    self::assertJsonStringEqualsJsonString(Json::encode(\array_map(static fn(mixed $value): array => [
+      'raw',
+      $value,
+    ], $props)), $element->attr('props') ?? '');
   }
 
 }
