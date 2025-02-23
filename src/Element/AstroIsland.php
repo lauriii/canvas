@@ -35,6 +35,11 @@ use Drupal\experience_builder\Entity\JavaScriptComponent;
  *   the draft version. Defaults to FALSE.
  * - #framework: Name of the framework to use when rehydrating. Only 'preact' is
  *   supported at present.
+ * - #import_maps: Keyed array of importmap entries where the keys are the bare
+ *   import names and the values are the resolved URL.
+ *
+ * @see \Drupal\experience_builder\Render\ImportMapResponseAttachmentsProcessor::processAttachments
+ * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Element/script/type/importmap
  *
  * Usage example:
  * @code
@@ -50,6 +55,10 @@ use Drupal\experience_builder\Entity\JavaScriptComponent;
  *   '#slots' => [
  *     'default' => "We're off to the regionals Janet!',
  *    ],
+ *   '#import_maps' => [
+ *     'preact' => '/path/to/preact.js',
+ *     'emoji' => '/path/to/emoji.js',
+ *   ],
  * ];
  * @endcode
  */
@@ -138,6 +147,13 @@ final class AstroIsland extends RenderElementBase {
     // Return this as a new child element so that process callbacks are executed
     // for the new render array.
     $element['inline-template'] = $build;
+    // Scope any import-maps.
+    if (\array_key_exists('#import_maps', $element)) {
+      // Convert these to attachments that can be processed.
+      // @see \Drupal\experience_builder\Render\ImportMapResponseAttachmentsProcessor::processAttachments
+      // This ensures that each component can use its own version of imports.
+      $element['#attached']['import_maps'][] = [$component_url => $element['#import_maps']];
+    }
     return $element;
   }
 

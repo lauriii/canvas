@@ -535,6 +535,14 @@ HTML,
       ],
     ];
 
+    $module_dir = dirname(__DIR__, 4);
+    $parts = explode(\DIRECTORY_SEPARATOR, $module_dir);
+    $modules_index = \array_search('modules', $parts);
+    \assert($modules_index !== FALSE);
+    // This should now be 'modules/custom/experience_builder',
+    // 'modules/experience_builder' or 'modules/contrib/experience_builder'
+    // depending on what folder this file is in.
+    $path = '/' . \ltrim(\implode(\DIRECTORY_SEPARATOR, \array_slice($parts, $modules_index)), '/');
     yield 'component tree with complex nesting' => [
       'tree' => [
         // Note how these are NOT sequentially ordered.
@@ -776,6 +784,11 @@ HTML,
                                 'tags' => ['config:experience_builder.component.js.my-cta'],
                                 'contexts' => [],
                                 'max-age' => Cache::PERMANENT,
+                              ],
+                              '#import_maps' => [
+                                'preact' => \sprintf('%s/ui/lib/astro-hydration/dist/preact.module.js', $path),
+                                'preact/hooks' => \sprintf('%s/ui/lib/astro-hydration/dist/hooks.module.js', $path),
+                                'react/jsx-runtime' => \sprintf('%s/ui/lib/astro-hydration/dist/jsxRuntime.module.js', $path),
                               ],
                               '#component' => 'my-cta',
                               '#props' => [

@@ -22,11 +22,15 @@ trait CrawlerTrait {
    * @param \Drupal\Core\Render\BubbleableMetadata|null $metadata
    *   (optional) Bubbleable metadata to add render dependencies to.
    */
-  protected function crawlerForRenderArray(array $build, ?BubbleableMetadata $metadata = NULL): Crawler {
+  protected function crawlerForRenderArray(array &$build, ?BubbleableMetadata $metadata = NULL): Crawler {
     $renderer = \Drupal::service(RendererInterface::class);
     \assert($renderer instanceof RendererInterface);
     $context = new RenderContext();
-    $out = (string) $renderer->executeInRenderContext($context, fn () => $renderer->render($build));
+    // We don't use an arrow function here as we want $build to be modified by
+    // reference and that isn't possible with an arrow function.
+    $out = (string) $renderer->executeInRenderContext($context, function () use (&$build, $renderer) {
+      return $renderer->render($build);
+    });
     if ($metadata && !$context->isEmpty()) {
       $metadata->addCacheableDependency($context->pop());
     }

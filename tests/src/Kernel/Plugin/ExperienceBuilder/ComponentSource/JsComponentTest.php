@@ -85,9 +85,10 @@ final class JsComponentTest extends KernelTestBase {
     $source = $this->component->getComponentSource();
     \assert($source instanceof JsComponent);
     $props = ['title' => 'Title'];
-    $crawler = $this->crawlerForRenderArray($source->renderComponent([
+    $island = $source->renderComponent([
       'props' => $props,
-    ], 'some-uuid'));
+    ], 'some-uuid');
+    $crawler = $this->crawlerForRenderArray($island);
 
     $element = $crawler->filter('astro-island');
     self::assertCount(1, $element);

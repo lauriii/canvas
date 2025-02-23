@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource;
 
 use Drupal\Core\Config\Entity\ConfigEntityStorageInterface;
+use Drupal\Core\Extension\ExtensionPathResolver;
 use Drupal\Core\Plugin\Component as SdcPlugin;
 use Drupal\Core\Render\Component\Exception\InvalidComponentException;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
@@ -14,6 +15,7 @@ use Drupal\experience_builder\ComponentMetadataRequirementsChecker;
 use Drupal\experience_builder\Entity\Component as ComponentEntity;
 use Drupal\experience_builder\Entity\ComponentInterface;
 use Drupal\experience_builder\Entity\JavaScriptComponent;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * Defines a component source based on XB JavaScript Component config entities.
@@ -26,6 +28,14 @@ use Drupal\experience_builder\Entity\JavaScriptComponent;
 final class JsComponent extends GeneratedFieldExplicitInputUxComponentSourceBase {
 
   public const SOURCE_PLUGIN_ID = 'js';
+
+  protected ExtensionPathResolver $extensionPathResolver;
+
+  public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition) {
+    $instance = parent::create($container, $configuration, $plugin_id, $plugin_definition);
+    $instance->extensionPathResolver = $container->get(ExtensionPathResolver::class);
+    return $instance;
+  }
 
   /**
    * {@inheritdoc}
@@ -93,9 +103,19 @@ final class JsComponent extends GeneratedFieldExplicitInputUxComponentSourceBase
    * {@inheritdoc}
    */
   public function renderComponent(array $inputs, string $componentUuid): array {
+    $base_path = \base_path();
+    $xb_path = $this->extensionPathResolver->getPath('module', 'experience_builder');
     return [
       '#type' => 'astro_island',
       '#uuid' => $componentUuid,
+      '#import_maps' => [
+        // @todo Add any additional imports from the component itself - see
+        // https://www.drupal.org/project/experience_builder/issues/3500761 for
+        // proof of concept.
+        'preact' => \sprintf('%s%s/ui/lib/astro-hydration/dist/preact.module.js', $base_path, $xb_path),
+        'preact/hooks' => \sprintf('%s%s/ui/lib/astro-hydration/dist/hooks.module.js', $base_path, $xb_path),
+        'react/jsx-runtime' => \sprintf('%s%s/ui/lib/astro-hydration/dist/jsxRuntime.module.js', $base_path, $xb_path),
+      ],
       // @todo Rename plugin ID in https://www.drupal.org/project/experience_builder/issues/3502982
       '#component' => $this->configuration['plugin_id'],
       '#props' => ($inputs[self::EXPLICIT_INPUT_NAME] ?? []) + [

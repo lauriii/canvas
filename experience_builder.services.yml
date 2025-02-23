@@ -106,3 +106,12 @@ services:
   Drupal\experience_builder\Controller\ComponentStatusController: {}
   Drupal\experience_builder\Controller\ExperienceBuilderController: {}
   Drupal\experience_builder\Controller\ApiAutoSaveController: {}
+
+  Drupal\experience_builder\Render\ImportMapResponseAttachmentsProcessor:
+    public: false
+    decorates: html_response.attachments_processor
+    # We want to go before any other decorators (e.g. bigpipe) so we can
+    # remove 'import_maps' as this is not supported by other attachment
+    # processors
+    decoration_priority: -100
+    arguments: ['@.inner']

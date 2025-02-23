@@ -127,16 +127,23 @@ final class AstroIslandTest extends KernelTestBase {
       '#props' => $props + [
         'this' => 'is not a valid prop so should be ignored',
       ],
+      '#import_maps' => [
+        'some' => 'import/map.js',
+      ],
       '#slots' => [
         'default' => ['#markup' => '<em>3 ponies won this week!</em>'],
         'error' => 'No pony for you!',
       ],
       '#framework' => 'preact',
     ];
+    $original_island = $island;
 
     $metadata = new BubbleableMetadata();
     $crawler = $this->crawlerForRenderArray($island, $metadata);
     $element = $crawler->filter('astro-island');
+    self::assertEquals([
+      [$element->attr('component-url') => ['some' => 'import/map.js']],
+    ], $island['#attached']['import_maps']);
     self::assertCount(1, $element);
 
     self::assertEquals($uid, $element->attr('uid'));
@@ -179,6 +186,7 @@ final class AstroIslandTest extends KernelTestBase {
     self::assertEquals('No pony for you!', $error_slot->text());
 
     // Should still work without slots, props, framework and UUID.
+    $island = $original_island;
     unset($island['#slots'], $island['#props'], $island['#uuid'], $island['#framework']);
     // And with a preview flag.
     $island['#preview'] = TRUE;
@@ -243,16 +251,18 @@ final class AstroIslandTest extends KernelTestBase {
    */
   public function testInvalidElement(): void {
     // Missing key.
-    $crawler = $this->crawlerForRenderArray([
+    $island = [
       '#type' => AstroIsland::PLUGIN_ID,
-    ]);
+    ];
+    $crawler = $this->crawlerForRenderArray($island);
     self::assertEquals('You must pass a #component_id for an element of #type astro_island', $crawler->text());
 
     // No such component.
-    $crawler = $this->crawlerForRenderArray([
+    $island = [
       '#type' => AstroIsland::PLUGIN_ID,
       '#component' => 'zero_sum',
-    ]);
+    ];
+    $crawler = $this->crawlerForRenderArray($island);
     self::assertEquals('Could not load component with ID zero_sum', $crawler->text());
 
     $component = JavaScriptComponent::create([
@@ -262,10 +272,11 @@ final class AstroIslandTest extends KernelTestBase {
     ]);
     $component->save();
     // No access.
-    $crawler = $this->crawlerForRenderArray([
+    $island = [
       '#type' => AstroIsland::PLUGIN_ID,
       '#component' => $component->id(),
-    ]);
+    ];
+    $crawler = $this->crawlerForRenderArray($island);
     self::assertEquals('No access to view component with ID ' . $component->id(), $crawler->text());
   }
 
