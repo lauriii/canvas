@@ -1,13 +1,19 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import initSwc, { transformSync } from '@swc/wasm-web';
 import type { Options } from '@swc/wasm-web';
-import { useAppSelector } from '@/app/hooks';
+import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import {
-  selectJs,
-  selectCss,
-  selectGlobalCss,
+  selectCompiledCss,
+  selectHasCompletedFirstCompilation,
   selectProps,
   selectSlots,
+  selectSourceCodeCss,
+  selectSourceCodeGlobalCss,
+  selectSourceCodeJs,
+  setCompiledCss,
+  setCompiledJs,
+  setHasCompletedFirstCompilation,
+  selectName,
 } from '@/features/code-editor/codeEditorSlice';
 import { parse } from 'babylon';
 import type { File } from 'babel-types';
@@ -16,7 +22,7 @@ import styles from './Preview.module.css';
 import ErrorCard from '@/components/error/ErrorCard';
 import MissingDefaultExportMessage from './errors/MissingDefaultExportMessage';
 import { ScrollArea } from '@radix-ui/themes';
-import { camelCase } from 'lodash';
+import { getPropMachineName } from '@/features/code-editor/utils';
 import { parsePropValue } from '@/features/code-editor/utils';
 
 const XB_MODULE_UI_PATH = (() => {
@@ -65,16 +71,20 @@ const importMap = {
 };
 
 const Preview = () => {
+  const dispatch = useAppDispatch();
   const lastInvocationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const [initialized, setInitialized] = useState(false);
-  const js = useAppSelector(selectJs);
-  const css = useAppSelector(selectCss);
-  const globalCss = useAppSelector(selectGlobalCss);
+  const [isSwcInitialized, setIsSwcInitialized] = useState(false);
+  const componentName = useAppSelector(selectName);
+  const hasCompletedFirstCompilation = useAppSelector(
+    selectHasCompletedFirstCompilation,
+  );
+  const sourceCodeJs = useAppSelector(selectSourceCodeJs);
+  const sourceCodeCss = useAppSelector(selectSourceCodeCss);
+  const compiledCss = useAppSelector(selectCompiledCss);
+  const sourceCodeGlobalCss = useAppSelector(selectSourceCodeGlobalCss);
   const props = useAppSelector(selectProps);
   const slots = useAppSelector(selectSlots);
   const [previewData, setPreviewData] = useState<string>('');
-  const [compiledCss, setCompiledCss] = useState<string>('');
-  const [compiledTailwindCss, setCompiledTailwindCss] = useState<string>('');
   const [isDefaultExportMissingError, setIsDefaultExportMissingError] =
     useState(false);
   const iframeRef = useRef<HTMLIFrameElement>(null);
@@ -88,7 +98,6 @@ const Preview = () => {
           ${JSON.stringify(importMap)}
         </script>
         <style>${compiledCss}</style>
-        <style>${compiledTailwindCss}</style>
         <script id="xb-code-editor-preview-data" type="application/json">
           ${previewData}
         </script>
@@ -98,6 +107,16 @@ const Preview = () => {
         <div id="xb-code-editor-preview-root"></div>
       </body>
     </html>`;
+
+  const fallbackCompiledJs = `
+    import { jsx as _jsx } from "react/jsx-runtime";
+    export default function() {
+      return /*#__PURE__*/ _jsx("div", {
+          dangerouslySetInnerHTML: {
+              __html: '<!-- The component ${componentName} failed to compile. -->'
+          }
+      });
+    }`;
 
   // Verifies that the component's JS code has a default export.
   const hasDefaultExport = (ast: File) => {
@@ -115,63 +134,89 @@ const Preview = () => {
     return false;
   };
 
-  const compile = useCallback(async () => {
-    if (!initialized || !js) {
-      return;
-    }
-    try {
-      const jsForSlots = slots
-        .filter((slot) => slot.name && slot.example)
-        .map((slot) => {
-          // Wrap the slot's example value in a function so that it can be
-          // rendered by Preact.
-          return `export function ${camelCase(slot.name)}() { return (${slot.example as string});}`;
-        })
-        .join('\n');
-      const result = transformSync(`${js}\n${jsForSlots}`, swcConfig);
-      const twCssResult = await buildCSS(js, globalCss);
-      const cssResult = await transformCss(css);
-      setCompiledTailwindCss(twCssResult);
-      setCompiledCss(cssResult);
-      const ast = parse(js, {
-        sourceType: 'module',
-        plugins: ['jsx'],
-      });
-      if (hasDefaultExport(ast)) {
-        setIsDefaultExportMissingError(false);
-      } else {
-        setIsDefaultExportMissingError(true);
+  const compile = useCallback(
+    async () => {
+      if (!isSwcInitialized || !sourceCodeJs) {
+        return;
       }
-      // The following data is going to be embedded in the iframe as a JSON
-      // object. It is used by a script that we load inside the iframe to
-      // render the component. The script is loaded via an `src` attribute
-      // instead of being added to the iframe inline because of Content
-      // Security Policy (CSP) restrictions.
-      // @see ui/lib/code-editor-preview.js
-      let propValues = {} as Record<string, any>;
-      props
-        .filter((prop) => prop.name)
-        .forEach((prop) => {
-          propValues[camelCase(prop.name)] = parsePropValue(prop);
+      try {
+        const jsForSlots = slots
+          .filter((slot) => slot.name && slot.example)
+          .map((slot) => {
+            // Wrap the slot's example value in a function so that it can be
+            // rendered by Preact.
+            return `export function ${getPropMachineName(slot.name)}() { return (${slot.example as string});}`;
+          })
+          .join('\n');
+        const result = transformSync(
+          `${sourceCodeJs}\n${jsForSlots}`,
+          swcConfig,
+        );
+        const twCssResult = await buildCSS(sourceCodeJs, sourceCodeGlobalCss);
+        const cssResult = await transformCss(sourceCodeCss);
+        dispatch(setCompiledCss(twCssResult + cssResult));
+        const ast = parse(sourceCodeJs, {
+          sourceType: 'module',
+          plugins: ['jsx'],
         });
-      const slotNames = slots
-        .filter((slot) => slot.name && slot.example)
-        .map((slot) => camelCase(slot.name));
-      setPreviewData(
-        JSON.stringify({
-          compiledJsUrl: URL.createObjectURL(
-            new Blob([result.code], { type: 'text/javascript' }),
-          ),
-          propValues,
-          slotNames,
-        }),
-      );
-      setIsCompileError(false);
-    } catch (error: any) {
-      setIsCompileError(true);
-      console.error('Compilation error:', error);
-    }
-  }, [initialized, js, css, globalCss, props, slots]);
+        if (hasDefaultExport(ast)) {
+          setIsDefaultExportMissingError(false);
+        } else {
+          setIsDefaultExportMissingError(true);
+        }
+        // The following data is going to be embedded in the iframe as a JSON
+        // object. It is used by a script that we load inside the iframe to
+        // render the component. The script is loaded via an `src` attribute
+        // instead of being added to the iframe inline because of Content
+        // Security Policy (CSP) restrictions.
+        // @see ui/lib/code-editor-preview.js
+        let propValues = {} as Record<string, any>;
+        props
+          .filter((prop) => prop.name)
+          .forEach((prop) => {
+            propValues[getPropMachineName(prop.name)] = parsePropValue(prop);
+          });
+        const slotNames = slots
+          .filter((slot) => slot.name && slot.example)
+          .map((slot) => getPropMachineName(slot.name));
+        setPreviewData(
+          JSON.stringify({
+            compiledJsUrl: URL.createObjectURL(
+              new Blob([result.code], { type: 'text/javascript' }),
+            ),
+            propValues,
+            slotNames,
+          }),
+        );
+        dispatch(setCompiledJs(result.code));
+        setIsCompileError(false);
+        if (!hasCompletedFirstCompilation) {
+          dispatch(setHasCompletedFirstCompilation(true));
+        }
+      } catch (error: any) {
+        // Saving a fallback compiled JS in case of compilation error. Not doing
+        // this would simply keep the previous compiled JS.
+        dispatch(setCompiledJs(fallbackCompiledJs));
+        setIsCompileError(true);
+        if (!hasCompletedFirstCompilation) {
+          dispatch(setHasCompletedFirstCompilation(true));
+        }
+        console.error('Compilation error:', error);
+      }
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [
+      // Intentionally left out: hasCompletedFirstCompilation,
+      dispatch,
+      fallbackCompiledJs,
+      isSwcInitialized,
+      props,
+      slots,
+      sourceCodeCss,
+      sourceCodeGlobalCss,
+      sourceCodeJs,
+    ],
+  );
 
   useEffect(() => {
     const importAndRunSwcOnMount = async () => {
@@ -183,7 +228,7 @@ const Preview = () => {
         } else {
           await initSwc();
         }
-        setInitialized(true);
+        setIsSwcInitialized(true);
       } catch (error) {
         console.error('Failed to initialize SWC:', error);
       }
@@ -191,20 +236,30 @@ const Preview = () => {
     importAndRunSwcOnMount();
   }, []);
 
-  useEffect(() => {
-    if (lastInvocationTimeoutRef.current) {
-      clearTimeout(lastInvocationTimeoutRef.current);
-    }
-    lastInvocationTimeoutRef.current = setTimeout(() => {
-      void compile();
-    }, 1000);
-
-    return () => {
+  useEffect(
+    () => {
       if (lastInvocationTimeoutRef.current) {
         clearTimeout(lastInvocationTimeoutRef.current);
       }
-    };
-  }, [compile, initialized, js]);
+      lastInvocationTimeoutRef.current = setTimeout(
+        () => {
+          void compile();
+        },
+        // No delay if the component hasn't been compiled yet, which is the case
+        // when the user navigates to a code component's edit page.
+        hasCompletedFirstCompilation ? 1000 : 0,
+      );
+
+      return () => {
+        if (lastInvocationTimeoutRef.current) {
+          clearTimeout(lastInvocationTimeoutRef.current);
+        }
+      };
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [compile, isSwcInitialized, sourceCodeJs],
+    // Intentionally left out: hasCompletedFirstCompilation
+  );
 
   // Add an invisible overlay to the iframe when the Mosaic window is being resized.
   // This prevents the iframe from intercepting mouse events from the parent Mosaic window.
@@ -246,6 +301,12 @@ const Preview = () => {
       <MissingDefaultExportMessage />
     </ErrorCard>
   );
+
+  if (!hasCompletedFirstCompilation) {
+    // If navigating from another code component's edit page, its preview would
+    // be shown briefly before the new component's preview is compiled.
+    return null;
+  }
 
   return (
     <div className={styles.iframeContainer} ref={parentRef}>

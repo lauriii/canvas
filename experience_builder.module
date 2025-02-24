@@ -766,7 +766,7 @@ function experience_builder_dialog_library_customize(string $admin_theme_name): 
  * Implements hook_page_attachments().
  */
 function experience_builder_page_attachments(array &$page): void {
-  $page['#attached']['library'][] = 'experience_builder/asset_library.global';
+  $page['#attached']['library'][] = 'experience_builder/asset_library.' . AssetLibrary::GLOBAL_ID;
 
   // Adds `track_navigation` library to all pages, to allow XB's "Back" link to know which URL to go back to.
   $page['#attached']['library'][] = 'experience_builder/track_navigation';

@@ -61,7 +61,7 @@ export default function SortableList<T>({
       ref={sortableRef}
       direction="column"
       gap="4"
-      p="4"
+      py="4"
       mx="auto"
       maxWidth="500px"
     >

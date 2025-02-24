@@ -14,7 +14,7 @@ import {
   openInLayoutDialog,
 } from '@/features/ui/codeComponentDialogSlice';
 import { useGetCodeComponentQuery } from '@/services/componentAndLayout';
-import type { CodeComponent } from '@/types/CodeComponent';
+import type { CodeComponentSerialized } from '@/types/CodeComponent';
 import { selectLayout } from '@/features/layout/layoutModelSlice';
 import { componentExistsInLayout } from '@/features/layout/layoutUtils';
 import { useErrorBoundary } from 'react-error-boundary';
@@ -47,19 +47,21 @@ const ExposedJsComponent: React.FC<{ component: ComponentListItem }> = (
     if (isComponentInLayout) {
       dispatch(openInLayoutDialog());
     } else {
-      dispatch(openRemoveFromComponentsDialog(jsComponent as CodeComponent));
+      dispatch(
+        openRemoveFromComponentsDialog(jsComponent as CodeComponentSerialized),
+      );
     }
   };
 
   const handleRenameClick = () => {
-    dispatch(openRenameDialog(jsComponent as CodeComponent));
+    dispatch(openRenameDialog(jsComponent as CodeComponentSerialized));
   };
 
   const handleDeleteClick = () => {
     if (isComponentInLayout) {
       dispatch(openInLayoutDialog());
     } else {
-      dispatch(openDeleteDialog(jsComponent as CodeComponent));
+      dispatch(openDeleteDialog(jsComponent as CodeComponentSerialized));
     }
   };
 

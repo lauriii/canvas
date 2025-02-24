@@ -128,9 +128,21 @@ const Dialog = ({
   );
 };
 
-const DialogFieldLabel = ({ children }: { children: React.ReactNode }) => {
+const DialogFieldLabel = ({
+  children,
+  htmlFor,
+}: {
+  children: React.ReactNode;
+  htmlFor: string;
+}) => {
   return (
-    <Text as="label" size="1" weight="bold" className={styles.fieldLabel}>
+    <Text
+      as="label"
+      size="1"
+      weight="bold"
+      className={styles.fieldLabel}
+      htmlFor={htmlFor}
+    >
       {children}
     </Text>
   );

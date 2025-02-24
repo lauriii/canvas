@@ -1,4 +1,5 @@
 import { Provider } from 'react-redux';
+import { getPropMachineName } from '@/features/code-editor/utils';
 import { makeStore } from '@/app/store';
 import {
   addProp,
@@ -186,9 +187,12 @@ describe('Component data / props in code editor', () => {
     // Check that the prop is now required.
     cy.log('Checking updated prop');
     cy.wrap(store).then((store) => {
-      const propId = selectProps(store.getState())[0].id;
+      const propName = selectProps(store.getState())[0].name;
       const required = selectRequired(store.getState());
-      expect(required[0]).to.equal(propId, 'Should have the prop as required');
+      expect(required[0]).to.equal(
+        getPropMachineName(propName),
+        'Should have the prop as required',
+      );
     });
 
     // Toggle the prop as not required.
@@ -343,6 +347,19 @@ describe('Component data / props in code editor', () => {
     cy.findByLabelText('Type').click();
     cy.findByText('Boolean').click();
     cy.findByLabelText('Example value').assertToggleState(false);
+
+    cy.wrap(store).then((store) => {
+      const prop = selectProps(store.getState())[0];
+      expect(prop).to.deep.include(
+        {
+          name: 'Is featured',
+          type: 'boolean',
+          example: 'false',
+        },
+        'Should have the correct prop metadata',
+      );
+    });
+
     cy.findByLabelText('Example value').toggleToggle();
     cy.findByLabelText('Example value').assertToggleState(true);
 

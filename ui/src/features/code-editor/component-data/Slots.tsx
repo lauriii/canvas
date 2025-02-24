@@ -59,7 +59,7 @@ export default function Slots() {
 
   return (
     <>
-      <Box flexGrow="1" px="4" pt="4" maxWidth="500px" mx="auto">
+      <Box flexGrow="1" pt="4" maxWidth="500px" mx="auto">
         <Callout.Root size="1" variant="surface" color="gray">
           <Callout.Icon>
             <QuestionMarkCircledIcon />

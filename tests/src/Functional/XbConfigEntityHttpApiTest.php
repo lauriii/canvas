@@ -6,6 +6,7 @@ namespace Drupal\Tests\experience_builder\Functional;
 
 use Drupal\Core\Url;
 use Drupal\experience_builder\AutoSave\AutoSaveManager;
+use Drupal\experience_builder\Entity\AssetLibrary;
 use Drupal\experience_builder\Entity\Pattern;
 use Drupal\system\Entity\Menu;
 use Drupal\Tests\experience_builder\Traits\ContribStrictConfigSchemaTestTrait;
@@ -722,6 +723,10 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
   }
 
   public function testAssetLibrary(): void {
+    // Delete the library created during install.
+    $library = AssetLibrary::load(AssetLibrary::GLOBAL_ID);
+    \assert($library instanceof AssetLibrary);
+    $library->delete();
     $this->assertAuthenticationAndAuthorization('xb_asset_library');
 
     $base = rtrim(base_path(), '/');

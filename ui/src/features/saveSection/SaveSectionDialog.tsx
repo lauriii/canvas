@@ -142,7 +142,9 @@ const SaveSectionDialog: React.FC = () => {
     >
       <Flex direction="column" gap="2">
         <label>
-          <DialogFieldLabel>Section name</DialogFieldLabel>
+          <DialogFieldLabel htmlFor={'sectionName'}>
+            Section name
+          </DialogFieldLabel>
           <TextField.Root
             value={sectionName}
             onChange={handleInputChange}

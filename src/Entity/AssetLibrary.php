@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace Drupal\experience_builder\Entity;
 
+use Drupal\Core\Cache\Cache;
 use Drupal\Core\Cache\RefinableCacheableDependencyInterface;
 use Drupal\Core\Config\Entity\ConfigEntityBase;
+use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Entity\Query\QueryInterface;
 use Drupal\experience_builder\ClientSideRepresentation;
 
@@ -37,6 +39,8 @@ final class AssetLibrary extends ConfigEntityBase implements XbHttpApiEligibleCo
 
   public const string ENTITY_TYPE_ID = 'xb_asset_library';
   private const string ASSETS_DIRECTORY = 'assets://xb/';
+
+  public const string GLOBAL_ID = 'global';
 
   protected string $id;
 
@@ -80,6 +84,12 @@ final class AssetLibrary extends ConfigEntityBase implements XbHttpApiEligibleCo
    */
   public static function refineListQuery(QueryInterface &$query, RefinableCacheableDependencyInterface $cacheability): void {
     // Nothing to do.
+  }
+
+  public function postSave(EntityStorageInterface $storage, $update = TRUE): void {
+    // Force recalculation of library info.
+    // @see \experience_builder_library_info_build()
+    Cache::invalidateTags(['library_info']);
   }
 
 }

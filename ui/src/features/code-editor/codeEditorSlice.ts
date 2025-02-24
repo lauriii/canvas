@@ -2,76 +2,41 @@ import type { PayloadAction } from '@reduxjs/toolkit';
 import { createSlice } from '@reduxjs/toolkit';
 import { v4 as uuidv4 } from 'uuid';
 import type { RootState } from '@/app/store';
+import { getPropMachineName } from '@/features/code-editor/utils';
 import type {
   CodeComponentProp,
   CodeComponentSlot,
 } from '@/types/CodeComponent';
 
 interface CodeEditorState {
-  css: string;
-  js: string;
-  globalCss: string;
+  isEditorReady: boolean;
+  isGlobalCssEditorReady: boolean;
+  hasCompletedFirstCompilation: boolean;
+  id: string;
+  status: boolean;
+  name: string;
+  sourceCodeCss: string;
+  compiledCss: string;
+  sourceCodeJs: string;
+  compiledJs: string;
+  sourceCodeGlobalCss: string;
   props: CodeComponentProp[];
   slots: CodeComponentSlot[];
   required: string[];
 }
 
-const exampleJs = `import { useState } from 'preact/hooks';
-
-export default function Counter() {
-  const [count, setCount] = useState(0);
-
-  const add = () => setCount(count + 1);
-  const subtract = () => setCount(count - 1);
-
-  return (
-    <div>
-      <div className="rounded-5xl bg-primary shadow-lg p-6 max-w-sm text-center">
-        <h1 className="test-class text-3xl font-bold mb-4">
-          Counter
-        </h1>
-        <p className="px-4 text-center">Contented get distrusts certainty nay are frankness concealed ham. On unaffected resolution on considered of. No thought me husband or colonel forming effects.</p>
-        <div className="flex items-center justify-center space-x-4 py-4">
-          <button
-            className="bg-secondary hover:bg-secondary/80 text-white font-bold py-2 px-4 rounded-full transition duration-150 ease-in-out focus:outline-none shadow"
-            onClick={subtract}
-          >
-            -
-          </button>
-          <pre className="text-4xl font-semibold">{count}</pre>
-          <button
-            className="bg-secondary hover:bg-secondary/80 text-white font-bold py-2 px-4 rounded-full transition duration-150 ease-in-out focus:outline-none shadow"
-            onClick={add}
-          >
-            +
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
-`;
-
-const exampleCss =
-  '.test-class {\n' +
-  '  color: #151515;\n' +
-  '  text-decoration: underline;\n' +
-  '}';
-
-const exampleGlobalCss =
-  '@theme {\n' +
-  '  /* Colors */\n' +
-  '  --color-primary: #a9e5bb;\n' +
-  '  --color-secondary: #3772FF;\n' +
-  '\n' +
-  '  --radius-5xl: 3rem;\n' +
-  '  --spacing-4: 1rem;\n' +
-  ' }';
-
 const initialState: CodeEditorState = {
-  js: exampleJs,
-  css: exampleCss,
-  globalCss: exampleGlobalCss,
+  isEditorReady: false,
+  isGlobalCssEditorReady: false,
+  hasCompletedFirstCompilation: false,
+  id: '',
+  status: false,
+  name: '',
+  sourceCodeJs: '',
+  compiledJs: '',
+  sourceCodeCss: '',
+  compiledCss: '',
+  sourceCodeGlobalCss: '',
   props: [],
   slots: [],
   required: [],
@@ -81,18 +46,90 @@ export const codeEditorSlice = createSlice({
   name: 'codeEditor',
   initialState,
   reducers: (create) => ({
-    setCss: create.reducer((state, action: PayloadAction<string>) => ({
+    initializeCodeEditor: create.reducer(
+      (
+        state,
+        action: PayloadAction<
+          Omit<
+            CodeEditorState,
+            | 'sourceCodeGlobalCss'
+            | 'isEditorReady'
+            | 'isGlobalCssEditorReady'
+            | 'hasCompletedFirstCompilation'
+            | 'compiledJs'
+            | 'compiledCss'
+          >
+        >,
+      ) => {
+        state.isEditorReady = false;
+        state.hasCompletedFirstCompilation = false;
+        state.id = action.payload.id;
+        state.name = action.payload.name;
+        state.sourceCodeJs = action.payload.sourceCodeJs;
+        state.sourceCodeCss = action.payload.sourceCodeCss;
+        // @todo Set sourceCodeGlobalCss
+        state.props = action.payload.props;
+        state.slots = action.payload.slots;
+        state.required = action.payload.required;
+      },
+    ),
+    setIsEditorReady: create.reducer(
+      (state, action: PayloadAction<boolean>) => ({
+        ...state,
+        isEditorReady: action.payload,
+      }),
+    ),
+    setIsGlobalCssEditorReady: create.reducer(
+      (state, action: PayloadAction<boolean>) => ({
+        ...state,
+        isGlobalCssEditorReady: action.payload,
+      }),
+    ),
+    setHasCompletedFirstCompilation: create.reducer(
+      (state, action: PayloadAction<boolean>) => ({
+        ...state,
+        hasCompletedFirstCompilation: action.payload,
+      }),
+    ),
+    resetCodeEditor: create.reducer((state) => {
+      return initialState;
+    }),
+    setId: create.reducer((state, action: PayloadAction<string>) => ({
       ...state,
-      css: action.payload,
+      id: action.payload,
     })),
-    setJs: create.reducer((state, action: PayloadAction<string>) => ({
+    setStatus: create.reducer((state, action: PayloadAction<boolean>) => ({
       ...state,
-      js: action.payload,
+      status: action.payload,
     })),
-    setGlobalCss: create.reducer((state, action: PayloadAction<string>) => ({
+    setName: create.reducer((state, action: PayloadAction<string>) => ({
       ...state,
-      globalCss: action.payload,
+      name: action.payload,
     })),
+    setSourceCodeCss: create.reducer(
+      (state, action: PayloadAction<string>) => ({
+        ...state,
+        sourceCodeCss: action.payload,
+      }),
+    ),
+    setCompiledCss: create.reducer((state, action: PayloadAction<string>) => ({
+      ...state,
+      compiledCss: action.payload,
+    })),
+    setSourceCodeJs: create.reducer((state, action: PayloadAction<string>) => ({
+      ...state,
+      sourceCodeJs: action.payload,
+    })),
+    setCompiledJs: create.reducer((state, action: PayloadAction<string>) => ({
+      ...state,
+      compiledJs: action.payload,
+    })),
+    setSourceCodeGlobalCss: create.reducer(
+      (state, action: PayloadAction<string>) => ({
+        ...state,
+        sourceCodeGlobalCss: action.payload,
+      }),
+    ),
     addProp: (state) => {
       state.props.push({
         id: uuidv4(),
@@ -125,8 +162,13 @@ export const codeEditorSlice = createSlice({
       }>,
     ) => {
       const { propId } = action.payload;
+      const propToRemove = state.props.find((prop) => prop.id === propId);
       state.props = state.props.filter((prop) => prop.id !== propId);
-      state.required = state.required.filter((value) => value !== propId);
+      if (propToRemove) {
+        state.required = state.required.filter(
+          (name) => name !== getPropMachineName(propToRemove.name),
+        );
+      }
     },
     reorderProps: (
       state,
@@ -147,10 +189,14 @@ export const codeEditorSlice = createSlice({
       }>,
     ) => {
       const { propId } = action.payload;
-      if (state.required.includes(propId)) {
-        state.required = state.required.filter((id) => id !== propId);
+      const prop = state.props.find((p) => p.id === propId);
+      if (!prop) return;
+
+      const propName = getPropMachineName(prop.name);
+      if (state.required.includes(propName)) {
+        state.required = state.required.filter((name) => name !== propName);
       } else {
-        state.required.push(propId);
+        state.required.push(propName);
       }
     },
     addSlot: (state) => {
@@ -201,17 +247,42 @@ export const codeEditorSlice = createSlice({
   }),
 });
 
-export const selectCss = (state: RootState) => state.codeEditor.css;
-export const selectGlobalCss = (state: RootState) => state.codeEditor.globalCss;
-export const selectJs = (state: RootState) => state.codeEditor.js;
+export const selectIsEditorReady = (state: RootState) =>
+  state.codeEditor.isEditorReady;
+export const selectIsGlobalCssEditorReady = (state: RootState) =>
+  state.codeEditor.isGlobalCssEditorReady;
+export const selectHasCompletedFirstCompilation = (state: RootState) =>
+  state.codeEditor.hasCompletedFirstCompilation;
+export const selectId = (state: RootState) => state.codeEditor.id;
+export const selectStatus = (state: RootState) => state.codeEditor.status;
+export const selectName = (state: RootState) => state.codeEditor.name;
+export const selectSourceCodeCss = (state: RootState) =>
+  state.codeEditor.sourceCodeCss;
+export const selectCompiledCss = (state: RootState) =>
+  state.codeEditor.compiledCss;
+export const selectSourceCodeGlobalCss = (state: RootState) =>
+  state.codeEditor.sourceCodeGlobalCss;
+export const selectSourceCodeJs = (state: RootState) =>
+  state.codeEditor.sourceCodeJs;
+export const selectCompiledJs = (state: RootState) =>
+  state.codeEditor.compiledJs;
 export const selectProps = (state: RootState) => state.codeEditor.props;
 export const selectRequired = (state: RootState) => state.codeEditor.required;
 export const selectSlots = (state: RootState) => state.codeEditor.slots;
 
 export const {
-  setCss,
-  setJs,
-  setGlobalCss,
+  initializeCodeEditor,
+  setIsEditorReady,
+  setIsGlobalCssEditorReady,
+  setHasCompletedFirstCompilation,
+  resetCodeEditor,
+  setStatus,
+  setName,
+  setSourceCodeCss,
+  setCompiledCss,
+  setSourceCodeJs,
+  setCompiledJs,
+  setSourceCodeGlobalCss,
   addProp,
   updateProp,
   removeProp,

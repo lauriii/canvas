@@ -11,6 +11,12 @@ export interface CodeComponent {
   compiled_css: string;
 }
 
+export interface CodeComponentSerialized
+  extends Omit<CodeComponent, 'props' | 'slots'> {
+  props: Record<string, CodeComponentPropSerialized>;
+  slots: Record<string, CodeComponentSlotSerialized>;
+}
+
 export interface CodeComponentProp {
   id: string;
   name: string;
@@ -19,8 +25,33 @@ export interface CodeComponentProp {
   example?: string;
 }
 
+export interface CodeComponentPropSerialized {
+  title: string;
+  type: 'string' | 'integer' | 'number' | 'boolean';
+  enum?: (string | number)[];
+  examples?: (string | number)[];
+}
+
 export interface CodeComponentSlot {
   id: string;
   name: string;
   example?: string;
+}
+
+export interface CodeComponentSlotSerialized {
+  title: string;
+  examples?: string[];
+}
+
+export interface AssetLibrary {
+  id: string;
+  label: string;
+  css: {
+    original: string;
+    compiled: string;
+  };
+  js: {
+    original: string;
+    compiled: string;
+  };
 }

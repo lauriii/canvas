@@ -23,20 +23,26 @@ final class AssetLibraryAttachmentTest extends FunctionalTestBase {
   protected $defaultTheme = 'stark';
 
   public function test(): void {
-    $library = AssetLibrary::create([
-      'id' => 'global',
-      'label' => 'Test',
-      'css' => [
+    $library = AssetLibrary::load(AssetLibrary::GLOBAL_ID);
+    \assert($library instanceof AssetLibrary);
+    $save = FALSE;
+    if (!$library->hasCss()) {
+      $save = TRUE;
+      $library->set('css', [
         'original' => '.test { display: none; }',
         'compiled' => '.test{display:none;}',
-      ],
-      'js' => [
+      ]);
+    }
+    if (!$library->hasJs()) {
+      $library->set('js', [
         'original' => 'console.log( "Test" )',
         'compiled' => 'console.log("Test")',
-      ],
-    ]);
-    $library->save();
-
+      ]);
+      $save = TRUE;
+    }
+    if ($save) {
+      $library->save();
+    }
     $url_generator = \Drupal::service(FileUrlGeneratorInterface::class);
     $css_path = $url_generator->generateString($library->getCssPath());
     $js_path = $url_generator->generateString($library->getJsPath());

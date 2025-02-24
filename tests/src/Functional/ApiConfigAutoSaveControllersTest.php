@@ -106,6 +106,12 @@ final class ApiConfigAutoSaveControllersTest extends HttpApiTestBase {
    * @dataProvider providerTest
    */
   public function test(string $entity_type_id, array $initial_entity): void {
+    if ($entity_type_id === AssetLibrary::ENTITY_TYPE_ID) {
+      // Delete the library created during install.
+      $library = AssetLibrary::load(AssetLibrary::GLOBAL_ID);
+      \assert($library instanceof AssetLibrary);
+      $library->delete();
+    }
     $entity_type_manager = $this->container->get(EntityTypeManagerInterface::class);
     $storage = $entity_type_manager->getStorage($entity_type_id);
     $definition = $entity_type_manager->getDefinition($entity_type_id);

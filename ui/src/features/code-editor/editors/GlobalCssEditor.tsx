@@ -2,17 +2,20 @@ import CodeMirror from '@uiw/react-codemirror';
 import { githubLight } from '@uiw/codemirror-theme-github';
 import { css } from '@codemirror/lang-css';
 import {
-  selectGlobalCss,
-  setGlobalCss,
+  selectSourceCodeGlobalCss,
+  setSourceCodeGlobalCss,
 } from '@/features/code-editor/codeEditorSlice';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 
-const GlobalCssEditor = () => {
+const GlobalCssEditor = ({ isLoading }: { isLoading: boolean }) => {
   const dispatch = useAppDispatch();
-  const value = useAppSelector(selectGlobalCss);
+  const value = useAppSelector(selectSourceCodeGlobalCss);
 
   function onChangeHandler(value: string) {
-    dispatch(setGlobalCss(value));
+    dispatch(setSourceCodeGlobalCss(value));
+  }
+  if (isLoading) {
+    return null;
   }
   return (
     <CodeMirror

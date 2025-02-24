@@ -11,6 +11,8 @@ import styles from './MosaicContainer.module.css';
 import './xb-code-mirror.css';
 import Preview from '@/features/code-editor/Preview';
 import ComponentData from '@/features/code-editor/component-data/ComponentData';
+import useCodeComponentData from '@/features/code-editor/hooks/useCodeComponentData';
+import useAssetLibraryData from '@/features/code-editor/hooks/useAssetLibraryData';
 
 const defaultLayout: MosaicNode<string> = {
   direction: 'row',
@@ -39,6 +41,9 @@ const fullEditorLayout: MosaicNode<string> = {
 const MosaicContainer = () => {
   const [layout, setLayout] = useState<MosaicNode<string>>(defaultLayout);
   const [activeTab, setActiveTab] = useState('js');
+
+  const { isLoading: isLoadingCodeComponent } = useCodeComponentData();
+  const { isLoading: isLoadingGlobalCss } = useAssetLibraryData();
 
   const TabGroup = () => {
     function tabChangeHandler(selectedTab: string) {
@@ -113,9 +118,15 @@ const MosaicContainer = () => {
                   title="Editor"
                 >
                   <ScrollArea className={styles.scrollArea}>
-                    {activeTab === 'js' && <JavaScriptEditor />}
-                    {activeTab === 'css' && <CssEditor />}
-                    {activeTab === 'global-css' && <GlobalCssEditor />}
+                    {activeTab === 'js' && (
+                      <JavaScriptEditor isLoading={isLoadingCodeComponent} />
+                    )}
+                    {activeTab === 'css' && (
+                      <CssEditor isLoading={isLoadingCodeComponent} />
+                    )}
+                    {activeTab === 'global-css' && (
+                      <GlobalCssEditor isLoading={isLoadingGlobalCss} />
+                    )}
                   </ScrollArea>
                 </MosaicWindow>
               );
@@ -138,7 +149,7 @@ const MosaicContainer = () => {
                   title="Component data"
                   draggable={false}
                 >
-                  <ComponentData />
+                  <ComponentData isLoading={isLoadingCodeComponent} />
                 </MosaicWindow>
               );
             default:

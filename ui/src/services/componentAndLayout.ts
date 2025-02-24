@@ -1,7 +1,6 @@
 import { createApi } from '@reduxjs/toolkit/query/react';
 import { baseQuery } from '@/services/baseQuery';
-
-import type { CodeComponent } from '@/types/CodeComponent';
+import type { CodeComponentSerialized } from '@/types/CodeComponent';
 import type { ComponentsList } from '@/types/Component';
 import type { RootLayoutModel } from '@/features/layout/layoutModelSlice';
 import { setPageData } from '@/features/pageData/pageDataSlice';
@@ -9,7 +8,7 @@ import { setPageData } from '@/features/pageData/pageDataSlice';
 export const componentAndLayoutApi = createApi({
   reducerPath: 'componentAndLayoutApi',
   baseQuery,
-  tagTypes: ['Components', 'CodeComponents', 'Layout'],
+  tagTypes: ['Components', 'CodeComponents', 'CodeComponentAutoSave', 'Layout'],
   endpoints: (builder) => ({
     getComponents: builder.query<ComponentsList, void>({
       query: () => `xb/api/config/component`,
@@ -32,17 +31,20 @@ export const componentAndLayoutApi = createApi({
         }
       },
     }),
-    getCodeComponents: builder.query<Record<string, CodeComponent>, void>({
+    getCodeComponents: builder.query<
+      Record<string, CodeComponentSerialized>,
+      void
+    >({
       query: () => 'xb/api/config/js_component',
       providesTags: () => [{ type: 'CodeComponents', id: 'LIST' }],
     }),
-    getCodeComponent: builder.query<CodeComponent, string>({
+    getCodeComponent: builder.query<CodeComponentSerialized, string>({
       query: (id) => `xb/api/config/js_component/${id}`,
       providesTags: (result, error, id) => [{ type: 'CodeComponents', id }],
     }),
     createCodeComponent: builder.mutation<
-      CodeComponent,
-      Partial<CodeComponent>
+      CodeComponentSerialized,
+      Partial<CodeComponentSerialized>
     >({
       query: (body) => ({
         url: 'xb/api/config/js_component',
@@ -52,8 +54,8 @@ export const componentAndLayoutApi = createApi({
       invalidatesTags: [{ type: 'CodeComponents', id: 'LIST' }],
     }),
     updateCodeComponent: builder.mutation<
-      CodeComponent,
-      { id: string; changes: Partial<CodeComponent> }
+      CodeComponentSerialized,
+      { id: string; changes: Partial<CodeComponentSerialized> }
     >({
       query: ({ id, changes }) => ({
         url: `xb/api/config/js_component/${id}`,
@@ -77,15 +79,24 @@ export const componentAndLayoutApi = createApi({
         { type: 'Components', id: 'LIST' },
       ],
     }),
+    getAutoSave: builder.query<CodeComponentSerialized, string>({
+      query: (id) => `xb/api/config/auto-save/js_component/${id}`,
+      providesTags: (result, error, id) => [
+        { type: 'CodeComponentAutoSave', id },
+      ],
+    }),
     updateAutoSave: builder.mutation<
       void,
-      { entityTypeId: string; configEntityId: string; data: any }
+      { id: string; data: Partial<CodeComponentSerialized> }
     >({
-      query: ({ entityTypeId, configEntityId, data }) => ({
-        url: `xb/api/config/auto-save/${entityTypeId}/${configEntityId}`,
+      query: ({ id, data }) => ({
+        url: `xb/api/config/auto-save/js_component/${id}`,
         method: 'PATCH',
         body: data,
       }),
+      invalidatesTags: (result, error, { id }) => [
+        { type: 'CodeComponentAutoSave', id },
+      ],
     }),
   }),
 });
@@ -98,5 +109,6 @@ export const {
   useCreateCodeComponentMutation,
   useUpdateCodeComponentMutation,
   useDeleteCodeComponentMutation,
+  useGetAutoSaveQuery,
   useUpdateAutoSaveMutation,
 } = componentAndLayoutApi;

@@ -1,13 +1,13 @@
 import { createAppSlice } from '@/app/createAppSlice';
 import type { PayloadAction } from '@reduxjs/toolkit';
-import type { CodeComponent } from '@/types/CodeComponent';
+import type { CodeComponentSerialized } from '@/types/CodeComponent';
 import { createSelector } from '@reduxjs/toolkit';
 
 interface CodeComponentDialogState {
   isAddDialogOpen: boolean;
   isRenameDialogOpen: boolean;
   isDeleteDialogOpen: boolean;
-  selectedCodeComponent: CodeComponent | null;
+  selectedCodeComponent: CodeComponentSerialized | null;
   isRemoveFromComponentsDialogOpen: boolean;
   isInLayoutDialogOpen: boolean;
 }
@@ -34,7 +34,7 @@ export const codeComponentDialogSlice = createAppSlice({
       state.isInLayoutDialogOpen = false;
     }),
     openRenameDialog: create.reducer(
-      (state, action: PayloadAction<CodeComponent>) => {
+      (state, action: PayloadAction<CodeComponentSerialized>) => {
         state.isRenameDialogOpen = true;
         state.isAddDialogOpen = false;
         state.isDeleteDialogOpen = false;
@@ -44,7 +44,7 @@ export const codeComponentDialogSlice = createAppSlice({
       },
     ),
     openDeleteDialog: create.reducer(
-      (state, action: PayloadAction<CodeComponent>) => {
+      (state, action: PayloadAction<CodeComponentSerialized>) => {
         state.isDeleteDialogOpen = true;
         state.isAddDialogOpen = false;
         state.isRenameDialogOpen = false;
@@ -63,7 +63,7 @@ export const codeComponentDialogSlice = createAppSlice({
     }),
     // Only for exposed components.
     openRemoveFromComponentsDialog: create.reducer(
-      (state, action: PayloadAction<CodeComponent>) => {
+      (state, action: PayloadAction<CodeComponentSerialized>) => {
         state.isAddDialogOpen = false;
         state.isRenameDialogOpen = false;
         state.isDeleteDialogOpen = false;
@@ -105,7 +105,7 @@ export const codeComponentDialogSlice = createAppSlice({
         isInLayoutDialogOpen,
       }),
     ),
-    selectSelectedCodeComponent: (state): CodeComponent | null => {
+    selectSelectedCodeComponent: (state): CodeComponentSerialized | null => {
       return state.selectedCodeComponent;
     },
   },

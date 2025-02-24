@@ -185,19 +185,8 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     );
     $this->assertSame(SAVED_NEW, $code_component->save());
     $autoSave->save($code_component, ['dummy' => 'js_component: auto-save data is not validated']);
-    $library = AssetLibrary::create([
-      'id' => 'global',
-      'label' => 'Test',
-      'css' => [
-        'original' => '.test { display: none; }',
-        'compiled' => '.test{display:none;}',
-      ],
-      'js' => [
-        'original' => 'console.log( "Test" )',
-        'compiled' => 'console.log("Test")',
-      ],
-    ]);
-    $this->assertSame(SAVED_NEW, $library->save());
+    $library = AssetLibrary::load(AssetLibrary::GLOBAL_ID);
+    \assert($library instanceof AssetLibrary);
     $autoSave->save($library, ['dummy' => 'xb_asset_library: auto-save data is not validated']);
     $request = Request::create(Url::fromRoute('experience_builder.api.autosave.get')->toString());
     $response = $this->request($request);
@@ -397,19 +386,9 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     ]);
     $this->assertSame(SAVED_NEW, $code_component->save());
 
-    $library = AssetLibrary::create([
-      'id' => 'global',
-      'label' => 'Original AssetLibrary name',
-      'css' => [
-        'original' => '.test { display: none; }',
-        'compiled' => '.test{display:none;}',
-      ],
-      'js' => [
-        'original' => 'console.log( "Test" )',
-        'compiled' => 'console.log("Test")',
-      ],
-    ]);
-    $this->assertSame(SAVED_NEW, $library->save());
+    $library = AssetLibrary::load(AssetLibrary::GLOBAL_ID);
+    \assert($library instanceof AssetLibrary);
+    $originalGlobalLibraryName = $library->label();
 
     $validClientJson = $this->getValidClientJson(FALSE);
 
@@ -555,7 +534,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     $this->assertNodeValues($node1, [], [], ['title' => $node1_original_title, 'status' => '0']);
     $this->assertNodeValues($node2, [], [], ['title' => $node2_original_title, 'status' => '1']);
     $this->assertEquals('Original JavaScriptComponent name', $code_component_storage->loadUnchanged($code_component->id())?->label());
-    $this->assertEquals('Original AssetLibrary name', $library_storage->loadUnchanged($library->id())?->label());
+    $this->assertEquals($originalGlobalLibraryName, $library_storage->loadUnchanged($library->id())?->label());
     $this->assertSame('Test page', $page_storage->loadUnchanged($page->id())?->label());
 
     if ($withGlobal) {

@@ -8,6 +8,7 @@ import {
   selectDialogStates,
 } from '@/features/ui/codeComponentDialogSlice';
 import Dialog, { DialogFieldLabel } from '@/components/Dialog';
+import { setName } from '@/features/code-editor/codeEditorSlice';
 
 const AddCodeComponentDialog = () => {
   const [componentName, setComponentName] = useState('');
@@ -29,6 +30,7 @@ const AddCodeComponentDialog = () => {
       compiled_js: '',
       compiled_css: '',
     });
+    dispatch(setName(componentName));
   };
 
   const handleOpenChange = (open: boolean) => {
@@ -79,8 +81,11 @@ const AddCodeComponentDialog = () => {
       }}
     >
       <Flex direction="column" gap="2">
-        <DialogFieldLabel>Component name</DialogFieldLabel>
+        <DialogFieldLabel htmlFor={'componentName'}>
+          Component name
+        </DialogFieldLabel>
         <TextField.Root
+          id={'componentName'}
           value={componentName}
           onChange={(e) => setComponentName(e.target.value)}
           placeholder="Enter a name"

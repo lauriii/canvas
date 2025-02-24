@@ -11,7 +11,7 @@ import {
   openRenameDialog,
 } from '@/features/ui/codeComponentDialogSlice';
 import { useAppDispatch } from '@/app/hooks';
-import type { CodeComponent } from '@/types/CodeComponent';
+import type { CodeComponentSerialized } from '@/types/CodeComponent';
 import styles from './CodeComponentList.module.css';
 
 const CodeComponentList = () => {
@@ -23,7 +23,7 @@ const CodeComponentList = () => {
   const dispatch = useAppDispatch();
   const { showBoundary } = useErrorBoundary();
   const navigate = useNavigate();
-  const { componentId } = useXbParams();
+  const { codeComponentId: componentId } = useXbParams();
 
   useEffect(() => {
     if (error) {
@@ -35,11 +35,11 @@ const CodeComponentList = () => {
     navigate(`/code-editor/code/${machineName}`);
   };
 
-  const handleRenameClick = (component: CodeComponent) => {
+  const handleRenameClick = (component: CodeComponentSerialized) => {
     dispatch(openRenameDialog(component));
   };
 
-  const handleDeleteClick = (component: CodeComponent) => {
+  const handleDeleteClick = (component: CodeComponentSerialized) => {
     dispatch(openDeleteDialog(component));
   };
 

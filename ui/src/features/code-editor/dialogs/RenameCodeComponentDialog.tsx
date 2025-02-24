@@ -7,10 +7,15 @@ import {
   selectDialogStates,
   selectSelectedCodeComponent,
 } from '@/features/ui/codeComponentDialogSlice';
+import {
+  selectId as selectCodeEditorId,
+  setName as setCodeEditorName,
+} from '@/features/code-editor/codeEditorSlice';
 import Dialog, { DialogFieldLabel } from '@/components/Dialog';
 
 const RenameCodeComponentDialog = () => {
   const selectedComponent = useAppSelector(selectSelectedCodeComponent);
+  const codeEditorId = useAppSelector(selectCodeEditorId);
   const [componentName, setComponentName] = useState('');
   const [updateCodeComponent, { isLoading, isSuccess, isError, error, reset }] =
     useUpdateCodeComponentMutation();
@@ -35,6 +40,9 @@ const RenameCodeComponentDialog = () => {
         name: componentName,
       },
     });
+    if (codeEditorId === selectedComponent.machineName) {
+      dispatch(setCodeEditorName(componentName));
+    }
   };
 
   const handleOpenChange = (open: boolean) => {
@@ -85,8 +93,11 @@ const RenameCodeComponentDialog = () => {
       }}
     >
       <Flex direction="column" gap="2">
-        <DialogFieldLabel>Component name</DialogFieldLabel>
+        <DialogFieldLabel htmlFor={'componentName'}>
+          Component name
+        </DialogFieldLabel>
         <TextField.Root
+          id={'componentName'}
           value={componentName}
           onChange={(e) => setComponentName(e.target.value)}
           placeholder="Enter a new name"

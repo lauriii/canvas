@@ -18,6 +18,7 @@ import {
   Label,
 } from '@/features/code-editor/component-data/FormElement';
 import type { CodeComponentProp } from '@/types/CodeComponent';
+import { getPropMachineName } from '@/features/code-editor/utils';
 
 // The followings are actual types in the JavaScriptComponent config entity
 // schema for props: string, integer, number, boolean.
@@ -56,134 +57,139 @@ export default function Props() {
     dispatch(reorderProps({ oldIndex, newIndex }));
   };
 
-  const renderPropContent = (prop: CodeComponentProp) => (
-    <Flex direction="column" flexGrow="1">
-      <Flex mb="4" gap="4" align="end" width="100%" wrap="wrap">
-        <Box flexShrink="0" flexGrow="1">
-          <FormElement>
-            <Label htmlFor={`prop-name-${prop.id}`}>Prop name</Label>
-            <TextField.Root
-              id={`prop-name-${prop.id}`}
-              placeholder="Enter a name"
-              value={prop.name}
+  const renderPropContent = (prop: CodeComponentProp) => {
+    const propName = getPropMachineName(prop.name);
+    return (
+      <Flex direction="column" flexGrow="1">
+        <Flex mb="4" gap="4" align="end" width="100%" wrap="wrap">
+          <Box flexShrink="0" flexGrow="1">
+            <FormElement>
+              <Label htmlFor={`prop-name-${prop.id}`}>Prop name</Label>
+              <TextField.Root
+                id={`prop-name-${prop.id}`}
+                placeholder="Enter a name"
+                value={prop.name}
+                size="1"
+                onChange={(e) =>
+                  dispatch(
+                    updateProp({
+                      id: prop.id,
+                      updates: { name: e.target.value },
+                    }),
+                  )
+                }
+              />
+            </FormElement>
+          </Box>
+          <Box flexShrink="0" minWidth="120px">
+            <FormElement>
+              <Label htmlFor={`prop-type-${prop.id}`}>Type</Label>
+              <Select.Root
+                value={`${prop.type}${prop.enum ? 'Enum' : ''}`}
+                size="1"
+                onValueChange={(value) => {
+                  const { type, isEnum } = getTypeAndIsEnum(
+                    value as keyof typeof PROP_TYPES,
+                  );
+                  dispatch(
+                    updateProp({
+                      id: prop.id,
+                      updates: {
+                        type: type as CodeComponentProp['type'],
+                        enum: isEnum ? [] : undefined,
+                        example: type === 'boolean' ? 'false' : '',
+                      },
+                    }),
+                  );
+                }}
+              >
+                <Select.Trigger id={`prop-type-${prop.id}`} />
+                <Select.Content>
+                  {Object.entries(PROP_TYPES).map(([key, label]) => (
+                    <Select.Item key={key} value={key}>
+                      {label}
+                    </Select.Item>
+                  ))}
+                </Select.Content>
+              </Select.Root>
+            </FormElement>
+          </Box>
+
+          <Flex direction="column" gap="2">
+            <Label htmlFor={`prop-required-${prop.id}`}>Required</Label>
+            <Switch
+              id={`prop-required-${prop.id}`}
+              checked={required.includes(propName)}
               size="1"
-              onChange={(e) =>
+              mb="1"
+              onCheckedChange={() =>
                 dispatch(
-                  updateProp({
-                    id: prop.id,
-                    updates: { name: e.target.value },
+                  toggleRequired({
+                    propId: prop.id,
                   }),
                 )
               }
             />
-          </FormElement>
-        </Box>
-        <Box flexShrink="0" minWidth="120px">
-          <FormElement>
-            <Label htmlFor={`prop-type-${prop.id}`}>Type</Label>
-            <Select.Root
-              value={`${prop.type}${prop.enum ? 'Enum' : ''}`}
-              size="1"
-              onValueChange={(value) => {
-                const { type, isEnum } = getTypeAndIsEnum(
-                  value as keyof typeof PROP_TYPES,
-                );
-                dispatch(
-                  updateProp({
-                    id: prop.id,
-                    updates: {
-                      type: type as CodeComponentProp['type'],
-                      enum: isEnum ? [] : undefined,
-                      example: '',
-                    },
-                  }),
-                );
-              }}
-            >
-              <Select.Trigger id={`prop-type-${prop.id}`} />
-              <Select.Content>
-                {Object.entries(PROP_TYPES).map(([key, label]) => (
-                  <Select.Item key={key} value={key}>
-                    {label}
-                  </Select.Item>
-                ))}
-              </Select.Content>
-            </Select.Root>
-          </FormElement>
-        </Box>
-
-        <Flex direction="column" gap="2">
-          <Label htmlFor={`prop-required-${prop.id}`}>Required</Label>
-          <Switch
-            id={`prop-required-${prop.id}`}
-            checked={required.includes(prop.id)}
-            size="1"
-            mb="1"
-            onCheckedChange={() =>
-              dispatch(
-                toggleRequired({
-                  propId: prop.id,
-                }),
-              )
-            }
-          />
+          </Flex>
         </Flex>
-      </Flex>
 
-      {(() => {
-        switch (prop.type) {
-          case 'string':
-            return prop.enum ? (
-              <FormPropTypeEnum
-                type="string"
-                id={prop.id}
-                required={required.includes(prop.id)}
-                enum={prop.enum || []}
-                example={prop.example}
-              />
-            ) : (
-              <FormPropTypeTextField id={prop.id} example={prop.example} />
-            );
-          case 'integer':
-            return prop.enum ? (
-              <FormPropTypeEnum
-                type="integer"
-                id={prop.id}
-                required={required.includes(prop.id)}
-                enum={prop.enum || []}
-                example={prop.example}
-              />
-            ) : (
-              <FormPropTypeTextField
-                id={prop.id}
-                example={prop.example}
-                type="integer"
-              />
-            );
-          case 'number':
-            return prop.enum ? (
-              <FormPropTypeEnum
-                type="number"
-                id={prop.id}
-                required={required.includes(prop.id)}
-                enum={prop.enum || []}
-                example={prop.example}
-              />
-            ) : (
-              <FormPropTypeTextField
-                id={prop.id}
-                example={prop.example}
-                type="number"
-              />
-            );
-          case 'boolean':
-            return <FormPropTypeBoolean id={prop.id} example={prop.example} />;
-          default:
-            return null;
-        }
-      })()}
-    </Flex>
-  );
+        {(() => {
+          switch (prop.type) {
+            case 'string':
+              return prop.enum ? (
+                <FormPropTypeEnum
+                  type="string"
+                  id={prop.id}
+                  required={required.includes(propName)}
+                  enum={prop.enum || []}
+                  example={prop.example}
+                />
+              ) : (
+                <FormPropTypeTextField id={prop.id} example={prop.example} />
+              );
+            case 'integer':
+              return prop.enum ? (
+                <FormPropTypeEnum
+                  type="integer"
+                  id={prop.id}
+                  required={required.includes(propName)}
+                  enum={prop.enum || []}
+                  example={prop.example}
+                />
+              ) : (
+                <FormPropTypeTextField
+                  id={prop.id}
+                  example={prop.example}
+                  type="integer"
+                />
+              );
+            case 'number':
+              return prop.enum ? (
+                <FormPropTypeEnum
+                  type="number"
+                  id={prop.id}
+                  required={required.includes(propName)}
+                  enum={prop.enum || []}
+                  example={prop.example}
+                />
+              ) : (
+                <FormPropTypeTextField
+                  id={prop.id}
+                  example={prop.example}
+                  type="number"
+                />
+              );
+            case 'boolean':
+              return (
+                <FormPropTypeBoolean id={prop.id} example={prop.example} />
+              );
+            default:
+              return null;
+          }
+        })()}
+      </Flex>
+    );
+  };
 
   return (
     <SortableList

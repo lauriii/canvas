@@ -1,0 +1,166 @@
+{
+  "deserialized": [
+    {
+      "name": "String with no example value",
+      "type": "string",
+      "example": "",
+      "id": "edd8f3d4-6853-44c7-92db-bbd86d9ba112"
+    },
+    {
+      "name": "String with example value",
+      "type": "string",
+      "example": "Experience Builder",
+      "id": "1c374686-8c73-4a01-8727-a36ff1cc59eb"
+    },
+    {
+      "name": "Integer with no example value",
+      "type": "integer",
+      "example": "",
+      "id": "962e2deb-078e-4436-a3f7-2a628f39bb8a"
+    },
+    {
+      "name": "Integer with example value",
+      "type": "integer",
+      "example": "922",
+      "id": "720d5d79-eeb0-4f15-b29b-1eec6b1f588d"
+    },
+    {
+      "name": "Number with no example value",
+      "type": "number",
+      "example": "",
+      "id": "2cb91003-b280-4f61-bba1-db90d20bb8dc"
+    },
+    {
+      "name": "Number with example value",
+      "type": "number",
+      "example": "9.22",
+      "id": "cb2f9dc3-30c2-4635-8013-79c2659e9808"
+    },
+    {
+      "name": "Boolean with example value (true)",
+      "type": "boolean",
+      "example": "true",
+      "id": "5398f61d-5b99-4142-a438-f0e2cec6c567"
+    },
+    {
+      "name": "Boolean with example value (false)",
+      "type": "boolean",
+      "example": "false",
+      "id": "c717e5e3-be92-4786-94be-75f231b97c96"
+    },
+    {
+      "name": "Text list with no example value",
+      "type": "string",
+      "enum": ["Not Started", "In Progress", "Completed"],
+      "example": "",
+      "id": "aa2e3ece-9431-4db9-a64e-1d2f0699912d"
+    },
+    {
+      "name": "Text list with example value",
+      "type": "string",
+      "enum": ["Not Started", "In Progress", "Completed"],
+      "example": "In Progress",
+      "id": "80c7cc4c-4e84-41fc-a42e-2bfbc19f4a96"
+    },
+    {
+      "name": "Integer list with no example value",
+      "type": "integer",
+      "enum": ["1", "2", "3"],
+      "example": "",
+      "id": "a361cca0-6aca-4d55-907d-10275df8c7fa"
+    },
+    {
+      "name": "Integer list with example value",
+      "type": "integer",
+      "enum": ["1", "2", "3"],
+      "example": "2",
+      "id": "30b57352-8c6c-48b1-a782-8bcbc69d7df7"
+    },
+    {
+      "name": "Number list with no example value",
+      "type": "number",
+      "enum": ["1.1", "2.2", "3.3"],
+      "example": "",
+      "id": "ee5110ad-332b-48f4-b4c8-75e685bbe2ba"
+    },
+    {
+      "name": "Number list with example value",
+      "type": "number",
+      "enum": ["1.1", "2.2", "3.3"],
+      "example": "2.2",
+      "id": "a411ac98-ab57-45f1-9b48-596fa1276f8e"
+    }
+  ],
+  "serialized": {
+    "stringWithNoExampleValue": {
+      "title": "String with no example value",
+      "type": "string"
+    },
+    "stringWithExampleValue": {
+      "title": "String with example value",
+      "type": "string",
+      "examples": ["Experience Builder"]
+    },
+    "integerWithNoExampleValue": {
+      "title": "Integer with no example value",
+      "type": "integer"
+    },
+    "integerWithExampleValue": {
+      "title": "Integer with example value",
+      "type": "integer",
+      "examples": [922]
+    },
+    "numberWithNoExampleValue": {
+      "title": "Number with no example value",
+      "type": "number"
+    },
+    "numberWithExampleValue": {
+      "title": "Number with example value",
+      "type": "number",
+      "examples": [9.22]
+    },
+    "booleanWithExampleValueTrue": {
+      "title": "Boolean with example value (true)",
+      "type": "boolean",
+      "examples": ["true"]
+    },
+    "booleanWithExampleValueFalse": {
+      "title": "Boolean with example value (false)",
+      "type": "boolean",
+      "examples": ["false"]
+    },
+    "textListWithNoExampleValue": {
+      "title": "Text list with no example value",
+      "type": "string",
+      "enum": ["Not Started", "In Progress", "Completed"]
+    },
+    "textListWithExampleValue": {
+      "title": "Text list with example value",
+      "type": "string",
+      "enum": ["Not Started", "In Progress", "Completed"],
+      "examples": ["In Progress"]
+    },
+    "integerListWithNoExampleValue": {
+      "title": "Integer list with no example value",
+      "type": "integer",
+      "enum": [1, 2, 3]
+    },
+    "integerListWithExampleValue": {
+      "title": "Integer list with example value",
+      "type": "integer",
+      "enum": [1, 2, 3],
+      "examples": [2]
+    },
+    "numberListWithNoExampleValue": {
+      "title": "Number list with no example value",
+      "type": "number",
+      "enum": [1.1, 2.2, 3.3]
+    },
+    "numberListWithExampleValue": {
+      "title": "Number list with example value",
+      "type": "number",
+      "enum": [1.1, 2.2, 3.3],
+      "examples": [2.2]
+    }
+  }
+}

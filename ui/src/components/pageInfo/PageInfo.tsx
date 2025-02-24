@@ -21,6 +21,7 @@ import { DEFAULT_REGION } from '@/features/ui/uiSlice';
 import { Link } from 'react-router-dom';
 import useXbParams from '@/hooks/useXbParams';
 import { selectLayout } from '@/features/layout/layoutModelSlice';
+import { selectName } from '@/features/code-editor/codeEditorSlice';
 import Navigation from '@/components/navigation/Navigation';
 import { handleNonWorkingBtn } from '@/utils/function-utils';
 import { useGetContentListQuery } from '@/services/content';
@@ -47,12 +48,10 @@ const iconMap: PageType = {
 const PageInfo = () => {
   const { showBoundary } = useErrorBoundary();
   const { setEditorEntity } = useNavigationUtils();
-  const {
-    regionId: focusedRegion = DEFAULT_REGION,
-    codeComponentId: codeComponentName = null,
-  } = useXbParams();
+  const { regionId: focusedRegion = DEFAULT_REGION } = useXbParams();
+  const codeComponentName = useAppSelector(selectName);
 
-  const isCodeEditor = codeComponentName !== null;
+  const isCodeEditor = codeComponentName !== '';
   const layout = useAppSelector(selectLayout);
   const focusedRegionName = layout.find(
     (region) => region.id === focusedRegion,

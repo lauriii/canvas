@@ -23,6 +23,7 @@ import { configurationSlice } from '@/features/configuration/configurationSlice'
 import { sectionApi } from '@/services/sections';
 import { extensionsSlice } from '@/features/extensions/extensionsSlice';
 import { extensionsApi } from '@/services/extensions';
+import { assetLibraryApi } from '@/services/assetLibrary';
 import { componentAndLayoutApi } from '@/services/componentAndLayout';
 import { formStateSlice } from '@/features/form/formStateSlice';
 import type { UnknownAction } from 'redux';
@@ -89,6 +90,7 @@ const rootReducer = combineSlices(
   },
   sectionApi,
   extensionsApi,
+  assetLibraryApi,
   componentAndLayoutApi,
   previewApi,
   contentCreateApi,
@@ -147,6 +149,7 @@ export const makeStore = (preloadedState?: Partial<RootState>) => {
       return getDefaultMiddleware().concat(
         sectionApi.middleware,
         extensionsApi.middleware,
+        assetLibraryApi.middleware,
         componentAndLayoutApi.middleware,
         previewApi.middleware,
         contentCreateApi.middleware,
