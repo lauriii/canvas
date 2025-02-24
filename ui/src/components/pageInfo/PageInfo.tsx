@@ -30,6 +30,7 @@ import { useDeleteContentMutation } from '@/services/content';
 import { useNavigationUtils } from '@/hooks/useNavigationUtils';
 import { useErrorBoundary } from 'react-error-boundary';
 import type { ContentStub } from '@/types/Content';
+import PageStatus from '@/components/pageStatus/PageStatus';
 import clsx from 'clsx';
 import styles from '@/components/topbar/menu/TopbarPopover.module.css';
 import Panel from '@/components/Panel';
@@ -57,12 +58,8 @@ const PageInfo = () => {
     (region) => region.id === focusedRegion,
   )?.name;
   const entity_form_fields = useAppSelector(selectPageData);
-  // @todo stop hardcoding `title` and `status` after https://www.drupal.org/i/3501847
+  // @todo stop hardcoding `title` after https://www.drupal.org/i/3501847
   const title = entity_form_fields['title[0][value]'];
-  // `status comes as a numeric string from the backend but is a boolean when modified in the editor.
-  const published =
-    entity_form_fields['status[value]'] === '1' ||
-    entity_form_fields['status[value]'] === true;
 
   const {
     data: pageItems,
@@ -182,9 +179,7 @@ const PageInfo = () => {
         </Link>
       )}
 
-      <Badge size="1" color={published ? 'lime' : 'yellow'} variant="solid">
-        {published ? 'Published' : 'Draft'}
-      </Badge>
+      <PageStatus />
     </Flex>
   );
 };

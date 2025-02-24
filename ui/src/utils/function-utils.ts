@@ -4,6 +4,7 @@ import type {
   ComponentsMap,
   RegionsMap,
 } from '@/types/AnnotationMaps';
+import type { PendingChanges } from '@/services/pendingChangesApi';
 
 export function handleNonWorkingBtn(): void {
   alert('Not yet supported.');
@@ -354,4 +355,20 @@ export function getSlotParentElementByIdInHTMLComment(
 
   // Return null if no matching comment is found
   return null;
+}
+
+export function findInChanges(
+  changeList: PendingChanges,
+  entityId: string,
+  entityType: string,
+) {
+  for (const key in changeList) {
+    if (Object.prototype.hasOwnProperty.call(changeList, key)) {
+      const obj = changeList[key];
+      if (obj.entity_id === entityId && obj.entity_type === entityType) {
+        return true;
+      }
+    }
+  }
+  return false;
 }

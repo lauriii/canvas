@@ -81,9 +81,8 @@ describe('Block form', () => {
     // Publish the page with the new component.
     cy.intercept('POST', '**/xb/api/autosaves/publish').as('publish');
 
-    // Extra long timeout here, because the poll to get changes is every 10 seconds.
     // @todo Change this to `1 change` in https://www.drupal.org/i/3502902
-    cy.findByText('Review 13 changes', { timeout: '11000' }).click();
+    cy.findByText('Review 13 changes').click();
 
     cy.findByTestId('xb-publish-reviews-content').within(() => {
       cy.findByText('XB With a block in the layout');

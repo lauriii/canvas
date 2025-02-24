@@ -18,14 +18,16 @@ describe('Publish review functionality', () => {
   it('Can make a change and see changes in the “Review x changes” button', () => {
     cy.loadURLandWaitForXBLoaded();
 
+    cy.findByTestId('xb-topbar').findByText('Published');
     cy.clickComponentInPreview('Hero');
 
     cy.findByTestId(/^xb-component-form-.*/)
       .findByLabelText('Heading')
       .type(' updated');
 
-    // Extra long timeout here, because the poll to get changes is every 10 seconds.
-    cy.findByText('Review 1 change', { timeout: '11000' }).click();
+    cy.findByText('Changed');
+
+    cy.findByText('Review 1 change').click();
 
     cy.visit('/node/1');
 
@@ -33,8 +35,7 @@ describe('Publish review functionality', () => {
 
     cy.loadURLandWaitForXBLoaded({ clearAutoSave: false });
 
-    // Extra long timeout here, because the poll to get changes is every 10 seconds.
-    cy.findByText('Review 1 change', { timeout: '11000' }).click();
+    cy.findByText('Review 1 change').click();
 
     cy.findByTestId('xb-publish-reviews-content').within(() => {
       cy.findByText('XB Needs This For The Time Being');
@@ -55,6 +56,7 @@ describe('Publish review functionality', () => {
     cy.findByTestId('xb-topbar')
       .findByText('No changes', { selector: 'button' })
       .should('exist');
+    cy.findByTestId('xb-topbar').findByText('Published');
 
     cy.log(
       'Make another change and ensure the button still updates say "Review n changes"',
@@ -64,8 +66,8 @@ describe('Publish review functionality', () => {
       .findByLabelText('Heading')
       .type(' updated again');
 
-    // Extra long timeout here, because the poll to get changes is every 10 seconds.
-    cy.findByText('Review 1 change', { timeout: '11000' }).click();
+    cy.findByTestId('xb-topbar').findByText('Changed');
+    cy.findByText('Review 1 change').click();
 
     cy.log('...and make sure the change shows up in the drop-down');
     cy.findByTestId('xb-publish-reviews-content').within(() => {

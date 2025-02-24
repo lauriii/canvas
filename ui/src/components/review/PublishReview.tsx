@@ -72,6 +72,7 @@ interface PublishReviewProps {
   onPublishClick: () => void;
   onOpenChangeCallback: (open: boolean) => void;
   isPublishing: boolean;
+  isFetching: boolean;
 }
 
 // @todo https://www.drupal.org/i/3501449 - this colour randomizer should be replaced with a proper solution
@@ -107,6 +108,7 @@ const PublishReview: React.FC<PublishReviewProps> = ({
   onPublishClick,
   onOpenChangeCallback,
   isPublishing,
+  isFetching,
 }) => {
   const [isOpen, setIsOpen] = useState<boolean>(false);
 
@@ -182,13 +184,19 @@ const PublishReview: React.FC<PublishReviewProps> = ({
             <Box mt="3">
               <Button
                 disabled={
-                  !onPublishClick || isPublishing || !changes || !changes.length
+                  !onPublishClick ||
+                  isPublishing ||
+                  isFetching ||
+                  !changes ||
+                  !changes.length
                 }
                 variant="solid"
                 onClick={onPublishClick}
               >
-                {isPublishing ? (
-                  <span className={styles.loading}>Publishing</span>
+                {isPublishing || isFetching ? (
+                  <span className={styles.loading}>
+                    {isPublishing ? 'Publishing' : 'Please wait'}
+                  </span>
                 ) : (
                   buttonText
                 )}

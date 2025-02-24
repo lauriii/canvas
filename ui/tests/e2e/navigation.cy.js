@@ -51,6 +51,7 @@ describe('Navigation functionality', () => {
     cy.findByTestId(navigationNewPageButtonTestId).click();
     cy.url().should('not.contain', '/xb/xb_page/1');
     cy.url().should('contain', '/xb/xb_page/3');
+    cy.findByTestId('xb-topbar').findByText('Draft');
   });
 
   it('Clicking page title navigates to edit page', () => {

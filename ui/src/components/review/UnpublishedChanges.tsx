@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useErrorBoundary } from 'react-error-boundary';
 import { isEmpty } from 'lodash';
 import type { PendingChange } from '@/services/pendingChangesApi';
@@ -17,6 +17,14 @@ import {
   setPreviousPendingChanges,
   selectErrors,
 } from '@/components/review/PublishReview.slice';
+import { useLazyGetLayoutByIdQuery } from '@/services/componentAndLayout';
+import {
+  selectEntityId,
+  selectEntityType,
+} from '@/features/configuration/configurationSlice';
+import { findInChanges } from '@/utils/function-utils';
+import { selectLayout, selectModel } from '@/features/layout/layoutModelSlice';
+import { selectPageData } from '@/features/pageData/pageDataSlice';
 
 const REFETCH_INTERVAL_MS = 10000;
 
@@ -37,15 +45,32 @@ const UnpublishedChanges = () => {
     pollingInterval: pollingInterval,
     skipPollingIfUnfocused: true,
   });
+  const entityId = useAppSelector(selectEntityId);
+  const entityType = useAppSelector(selectEntityType);
+  const [refetchLayout] = useLazyGetLayoutByIdQuery();
   const dispatch = useAppDispatch();
-
   const { showBoundary } = useErrorBoundary();
+  const layout = useAppSelector(selectLayout);
+  const model = useAppSelector(selectModel);
+  const entity_form_fields = useAppSelector(selectPageData);
 
   useEffect(() => {
     if (error) {
       showBoundary(error);
     }
   }, [error, showBoundary]);
+
+  const manualRefetch = useCallback(() => {
+    // only refetch the list of pending changes if this entity is not already in the list.
+    if (changes && !findInChanges(changes, entityId, entityType)) {
+      refetch();
+    }
+  }, [changes, entityId, entityType, refetch]);
+
+  // if the layout, model or form fields change, immediately check for pending changes
+  useEffect(() => {
+    manualRefetch();
+  }, [layout, model, entity_form_fields, manualRefetch]);
 
   useEffect(() => {
     if (previousPendingChanges) refetch();
@@ -61,9 +86,15 @@ const UnpublishedChanges = () => {
     }
   };
 
-  const onPublishClick = () => {
+  const onPublishClick = async () => {
     if (changes) {
-      publishAllChanges(changes);
+      const isCurrentChanged = findInChanges(changes, entityId, entityType);
+      await publishAllChanges(changes);
+
+      // if the list of changes contained the current entity, then re-fetch it to get the new isPublished/isNew values.
+      if (isCurrentChanged) {
+        refetchLayout(entityId);
+      }
     }
   };
 
@@ -133,6 +164,7 @@ const UnpublishedChanges = () => {
 
   return (
     <PublishReview
+      isFetching={isFetching}
       changes={changesWithIcon}
       errors={errorResponse}
       onOpenChangeCallback={onOpenChangeHandler}

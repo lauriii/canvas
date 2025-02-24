@@ -15,7 +15,11 @@ export const componentAndLayoutApi = createApi({
       providesTags: () => [{ type: 'Components', id: 'LIST' }],
     }),
     getLayoutById: builder.query<
-      RootLayoutModel & { entity_form_fields: {} },
+      RootLayoutModel & {
+        entity_form_fields: {};
+        isNew: boolean;
+        isPublished: boolean;
+      },
       string
     >({
       query: (nodeId) => `xb/api/layout/{entity_type}/${nodeId}`,
@@ -104,6 +108,7 @@ export const componentAndLayoutApi = createApi({
 export const {
   useGetComponentsQuery,
   useGetLayoutByIdQuery,
+  useLazyGetLayoutByIdQuery,
   useGetCodeComponentsQuery,
   useGetCodeComponentQuery,
   useCreateCodeComponentMutation,

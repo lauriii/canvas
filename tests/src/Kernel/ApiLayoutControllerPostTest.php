@@ -14,7 +14,6 @@ use Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\JsCompone
 use Drupal\Tests\experience_builder\TestSite\XBTestSetup;
 use Symfony\Component\DomCrawler\Crawler;
 use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\HttpFoundation\Response;
 
 /**
  * @covers \Drupal\experience_builder\Controller\ApiLayoutController::post()
@@ -276,18 +275,6 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
       'name' => 'Here comes the',
       'value' => 'preact',
     ]), $element->attr('opts') ?? '');
-  }
-
-  /**
-   * Unwrap the JSON response so we can perform assertions on it.
-   */
-  protected function request(Request $request): Response {
-    $request->headers->set('Content-Type', 'application/json');
-    $response = $this->parentRequest($request);
-    $content = $response->getContent();
-    $this->assertIsString($content);
-    $this->setRawContent(json_decode($content, TRUE)['html']);
-    return $response;
   }
 
 }

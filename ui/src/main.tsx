@@ -10,25 +10,16 @@ import AppRoutes from '@/app/AppRoutes';
 import { makeStore } from '@/app/store';
 import { Theme } from '@radix-ui/themes';
 import ErrorBoundary from '@/components/error/ErrorBoundary';
+import { initialState } from '@/features/configuration/configurationSlice';
 import type { AppConfiguration } from '@/features/configuration/configurationSlice';
 import twigToJSXComponentMap from '@/components/form/twig-to-jsx-component-map';
 import hyperscriptify from '@/local_packages/hyperscriptify';
 import propsify from '@/local_packages/hyperscriptify/propsify/standard';
 import type { EnhancedStore } from '@reduxjs/toolkit';
 import transforms from '@/utils/transforms';
-
 import '@/styles/radix-themes';
 import '@/styles/index.css';
 import { AJAX_UPDATE_FORM_STATE_EVENT } from '@/types/Ajax';
-
-declare global {
-  interface Window {
-    React: typeof React;
-    ReactDom: typeof ReactDom;
-    Redux: typeof ReactRedux;
-    ReduxToolkit: typeof ReduxToolkit;
-  }
-}
 
 // Provide these dependencies as globals so extensions do not have redundant and
 // potentially conflicting dependencies.
@@ -47,6 +38,7 @@ const { Drupal } = window as any;
 const container = document.getElementById('experience-builder');
 
 const appConfiguration: AppConfiguration = {
+  ...initialState,
   baseUrl: drupalSettings?.path?.baseUrl || import.meta.env.BASE_URL,
   entityType: drupalSettings?.xb?.entityType || 'node',
   entity: drupalSettings?.xb?.entity || '1',

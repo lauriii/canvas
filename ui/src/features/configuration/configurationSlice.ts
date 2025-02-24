@@ -6,12 +6,16 @@ export interface AppConfiguration {
   baseUrl: string;
   entityType: string;
   entity: string;
+  isNew: boolean;
+  isPublished: boolean;
 }
 
 export const initialState: AppConfiguration = {
   baseUrl: '/',
   entityType: 'none',
   entity: 'none',
+  isNew: true,
+  isPublished: false,
 };
 
 export const configurationSlice = createSlice({
