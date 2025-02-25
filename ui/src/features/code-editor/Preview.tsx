@@ -67,6 +67,11 @@ const importMap = {
     'react/': 'https://esm.sh/preact/compat/',
     'react-dom': 'https://esm.sh/preact/compat',
     'react-dom/': 'https://esm.sh/preact/compat/',
+    // @todo Remove hardcoding and allow components to nominate their own?
+    clsx: 'https://esm.sh/clsx',
+    'class-variance-authority': 'https://esm.sh/class-variance-authority',
+    'tailwind-merge': 'https://esm.sh/tailwind-merge',
+    '@/lib/utils': `${XB_MODULE_UI_PATH}/lib/astro-hydration/dist/utils.js`,
   },
 };
 

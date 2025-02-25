@@ -115,6 +115,12 @@ final class JsComponent extends GeneratedFieldExplicitInputUxComponentSourceBase
         'preact' => \sprintf('%s%s/ui/lib/astro-hydration/dist/preact.module.js', $base_path, $xb_path),
         'preact/hooks' => \sprintf('%s%s/ui/lib/astro-hydration/dist/hooks.module.js', $base_path, $xb_path),
         'react/jsx-runtime' => \sprintf('%s%s/ui/lib/astro-hydration/dist/jsxRuntime.module.js', $base_path, $xb_path),
+        // @todo Remove this hard-coding and calculate it on a per component
+        // basis - see https://drupal.org/i/3500761.
+        'clsx' => \sprintf('%s%s/ui/lib/astro-hydration/dist/clsx.js', $base_path, $xb_path),
+        'class-variance-authority' => \sprintf('%s%s/ui/lib/astro-hydration/dist/class-variance-authority.js', $base_path, $xb_path),
+        'tailwind-merge' => \sprintf('%s%s/ui/lib/astro-hydration/dist/tailwind-merge.js', $base_path, $xb_path),
+        '@/lib/utils' => \sprintf('%s%s/ui/lib/astro-hydration/dist/utils.js', $base_path, $xb_path),
       ],
       // @todo Rename plugin ID in https://www.drupal.org/project/experience_builder/issues/3502982
       '#component' => $this->configuration['plugin_id'],
