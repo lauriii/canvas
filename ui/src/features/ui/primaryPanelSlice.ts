@@ -10,6 +10,7 @@ export interface PrimaryPanelState {
 export enum LayoutItemType {
   SECTION = 'section',
   COMPONENT = 'component',
+  CODE = 'code',
   UNDEFINED = 'undefined',
 }
 

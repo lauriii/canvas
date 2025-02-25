@@ -11,7 +11,10 @@ import type { CodeComponentProp } from '@/types/CodeComponent';
 export default function FormPropTypeBoolean({
   id,
   example,
-}: Pick<CodeComponentProp, 'id' | 'example'>) {
+  isDisabled = false,
+}: Pick<CodeComponentProp, 'id' | 'example'> & {
+  isDisabled: boolean;
+}) {
   const dispatch = useAppDispatch();
 
   return (
@@ -28,6 +31,7 @@ export default function FormPropTypeBoolean({
             )
           }
           size="1"
+          disabled={isDisabled}
         />
       </FormElement>
     </Box>

@@ -19,6 +19,7 @@ interface SortableListProps<T> {
   'data-testid'?: string;
   moveAriaLabel?: string;
   removeAriaLabel?: string;
+  isDisabled?: boolean;
 }
 
 export default function SortableList<T>({
@@ -31,6 +32,7 @@ export default function SortableList<T>({
   'data-testid': dataTestId,
   moveAriaLabel = 'Move item',
   removeAriaLabel = 'Remove item',
+  isDisabled = false,
 }: SortableListProps<T>) {
   const sortableRef = useRef<HTMLDivElement>(null);
   const sortableInstance = useRef<Sortable | null>(null);
@@ -46,6 +48,7 @@ export default function SortableList<T>({
           if (oldIndex === undefined || newIndex === undefined) return;
           onReorder(oldIndex, newIndex);
         },
+        sort: !isDisabled,
       });
     }
 
@@ -54,7 +57,7 @@ export default function SortableList<T>({
         sortableInstance.current.destroy();
       }
     };
-  }, [onReorder]);
+  }, [isDisabled, onReorder]);
 
   return (
     <Flex
@@ -72,11 +75,18 @@ export default function SortableList<T>({
           data-testid={dataTestId ? `${dataTestId}-${index}` : undefined}
           moveAriaLabel={moveAriaLabel}
           removeAriaLabel={removeAriaLabel}
+          isDisabled={isDisabled}
         >
           {renderContent(item)}
         </SortablePanel>
       ))}
-      <Button size="1" variant="soft" mb="4" onClick={onAdd}>
+      <Button
+        size="1"
+        variant="soft"
+        mb="4"
+        onClick={onAdd}
+        disabled={isDisabled}
+      >
         <PlusIcon />
         Add
       </Button>
@@ -90,6 +100,7 @@ interface SortablePanelProps {
   'data-testid'?: string;
   moveAriaLabel?: string;
   removeAriaLabel?: string;
+  isDisabled?: boolean;
 }
 
 function SortablePanel({
@@ -98,6 +109,7 @@ function SortablePanel({
   'data-testid': dataTestId,
   moveAriaLabel,
   removeAriaLabel,
+  isDisabled = false,
 }: SortablePanelProps) {
   return (
     <Flex
@@ -119,6 +131,7 @@ function SortablePanel({
           variant="ghost"
           color="gray"
           className={clsx(styles.moveRemoveControls, styles.moveControl)}
+          disabled={isDisabled}
         >
           <DragHandleDots2Icon />
         </Button>
@@ -128,6 +141,7 @@ function SortablePanel({
           variant="ghost"
           color="red"
           className={styles.moveRemoveControls}
+          disabled={isDisabled}
         >
           <TrashIcon />
         </Button>

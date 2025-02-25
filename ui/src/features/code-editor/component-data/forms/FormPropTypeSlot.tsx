@@ -14,7 +14,8 @@ import styles from './FormPropTypeSlot.module.css';
 export default function FormPropTypeSlot({
   id,
   example,
-}: Pick<CodeComponentSlot, 'id' | 'example'>) {
+  isDisabled = false,
+}: Pick<CodeComponentSlot, 'id' | 'example'> & { isDisabled?: boolean }) {
   const dispatch = useAppDispatch();
 
   return (
@@ -37,6 +38,7 @@ export default function FormPropTypeSlot({
                 }),
               )
             }
+            editable={!isDisabled}
           />
         </div>
       </FormElement>

@@ -6,6 +6,7 @@ import {
   removeSlot,
   reorderSlots,
   selectSlots,
+  selectStatus,
   updateSlot,
 } from '@/features/code-editor/codeEditorSlice';
 import FormPropTypeSlot from '@/features/code-editor/component-data/forms/FormPropTypeSlot';
@@ -19,6 +20,7 @@ import type { CodeComponentSlot } from '@/types/CodeComponent';
 export default function Slots() {
   const dispatch = useAppDispatch();
   const slots = useAppSelector(selectSlots);
+  const componentStatus = useAppSelector(selectStatus);
 
   const handleAddSlot = () => {
     dispatch(addSlot());
@@ -50,10 +52,15 @@ export default function Slots() {
                 }),
               )
             }
+            disabled={componentStatus}
           />
         </FormElement>
       </Box>
-      <FormPropTypeSlot id={slot.id} example={slot.example} />
+      <FormPropTypeSlot
+        id={slot.id}
+        example={slot.example}
+        isDisabled={componentStatus}
+      />
     </Flex>
   );
 
@@ -79,6 +86,7 @@ export default function Slots() {
         data-testid="slot"
         moveAriaLabel="Move slot"
         removeAriaLabel="Remove slot"
+        isDisabled={componentStatus}
       />
     </>
   );

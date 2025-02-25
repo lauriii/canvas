@@ -171,7 +171,7 @@ const MosaicContainer = () => {
                     );
                   }}
                 >
-                  <Preview />
+                  <Preview isLoading={isLoadingCodeComponent} />
                 </MosaicWindow>
               );
             case 'Component data':

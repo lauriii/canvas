@@ -1,11 +1,19 @@
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
-import { Box, Flex, Select, Switch, TextField } from '@radix-ui/themes';
+import {
+  Box,
+  Callout,
+  Flex,
+  Select,
+  Switch,
+  TextField,
+} from '@radix-ui/themes';
 import {
   addProp,
   removeProp,
   reorderProps,
   selectProps,
   selectRequired,
+  selectStatus,
   toggleRequired,
   updateProp,
 } from '@/features/code-editor/codeEditorSlice';
@@ -19,6 +27,7 @@ import {
 } from '@/features/code-editor/component-data/FormElement';
 import type { CodeComponentProp } from '@/types/CodeComponent';
 import { getPropMachineName } from '@/features/code-editor/utils';
+import { InfoCircledIcon } from '@radix-ui/react-icons';
 
 // The followings are actual types in the JavaScriptComponent config entity
 // schema for props: string, integer, number, boolean.
@@ -44,6 +53,7 @@ export default function Props() {
   const dispatch = useAppDispatch();
   const props = useAppSelector(selectProps);
   const required = useAppSelector(selectRequired);
+  const componentStatus = useAppSelector(selectStatus);
 
   const handleAddProp = () => {
     dispatch(addProp());
@@ -78,6 +88,7 @@ export default function Props() {
                     }),
                   )
                 }
+                disabled={componentStatus}
               />
             </FormElement>
           </Box>
@@ -102,6 +113,7 @@ export default function Props() {
                     }),
                   );
                 }}
+                disabled={componentStatus}
               >
                 <Select.Trigger id={`prop-type-${prop.id}`} />
                 <Select.Content>
@@ -129,6 +141,7 @@ export default function Props() {
                   }),
                 )
               }
+              disabled={componentStatus}
             />
           </Flex>
         </Flex>
@@ -143,9 +156,14 @@ export default function Props() {
                   required={required.includes(propName)}
                   enum={prop.enum || []}
                   example={prop.example}
+                  isDisabled={componentStatus}
                 />
               ) : (
-                <FormPropTypeTextField id={prop.id} example={prop.example} />
+                <FormPropTypeTextField
+                  id={prop.id}
+                  example={prop.example}
+                  isDisabled={componentStatus}
+                />
               );
             case 'integer':
               return prop.enum ? (
@@ -155,12 +173,14 @@ export default function Props() {
                   required={required.includes(propName)}
                   enum={prop.enum || []}
                   example={prop.example}
+                  isDisabled={componentStatus}
                 />
               ) : (
                 <FormPropTypeTextField
                   id={prop.id}
                   example={prop.example}
                   type="integer"
+                  isDisabled={componentStatus}
                 />
               );
             case 'number':
@@ -171,17 +191,23 @@ export default function Props() {
                   required={required.includes(propName)}
                   enum={prop.enum || []}
                   example={prop.example}
+                  isDisabled={componentStatus}
                 />
               ) : (
                 <FormPropTypeTextField
                   id={prop.id}
                   example={prop.example}
                   type="number"
+                  isDisabled={componentStatus}
                 />
               );
             case 'boolean':
               return (
-                <FormPropTypeBoolean id={prop.id} example={prop.example} />
+                <FormPropTypeBoolean
+                  id={prop.id}
+                  example={prop.example}
+                  isDisabled={componentStatus}
+                />
               );
             default:
               return null;
@@ -192,16 +218,37 @@ export default function Props() {
   };
 
   return (
-    <SortableList
-      items={props}
-      onAdd={handleAddProp}
-      onReorder={handleReorder}
-      onRemove={handleRemoveProp}
-      renderContent={renderPropContent}
-      getItemId={(item) => item.id}
-      data-testid="prop"
-      moveAriaLabel="Move prop"
-      removeAriaLabel="Remove prop"
-    />
+    <>
+      {/* If a component is exposed, show a callout to inform the user that props and slots are locked */}
+      {componentStatus && (
+        <Box flexGrow="1" pt="4" maxWidth="500px" mx="auto">
+          <Callout.Root size="1" variant="surface">
+            <Callout.Icon>
+              <InfoCircledIcon />
+            </Callout.Icon>
+            <Callout.Text>
+              Props and slots are locked when a component is added to{' '}
+              <b>Components</b>.
+              <br />
+              <br />
+              To modify props and slots, remove the component from{' '}
+              <b>Components</b>.
+            </Callout.Text>
+          </Callout.Root>
+        </Box>
+      )}
+      <SortableList
+        items={props}
+        onAdd={handleAddProp}
+        onReorder={handleReorder}
+        onRemove={handleRemoveProp}
+        renderContent={renderPropContent}
+        getItemId={(item) => item.id}
+        data-testid="prop"
+        moveAriaLabel="Move prop"
+        removeAriaLabel="Remove prop"
+        isDisabled={componentStatus}
+      />
+    </>
   );
 }

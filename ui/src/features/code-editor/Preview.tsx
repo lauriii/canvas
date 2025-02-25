@@ -21,7 +21,7 @@ import buildCSS, { transformCss } from 'tailwindcss-in-browser';
 import styles from './Preview.module.css';
 import ErrorCard from '@/components/error/ErrorCard';
 import MissingDefaultExportMessage from './errors/MissingDefaultExportMessage';
-import { ScrollArea } from '@radix-ui/themes';
+import { ScrollArea, Spinner } from '@radix-ui/themes';
 import { getPropMachineName } from '@/features/code-editor/utils';
 import { parsePropValue } from '@/features/code-editor/utils';
 
@@ -75,7 +75,7 @@ const importMap = {
   },
 };
 
-const Preview = () => {
+const Preview = ({ isLoading = false }: { isLoading?: boolean }) => {
   const dispatch = useAppDispatch();
   const lastInvocationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [isSwcInitialized, setIsSwcInitialized] = useState(false);
@@ -307,34 +307,30 @@ const Preview = () => {
     </ErrorCard>
   );
 
-  if (!hasCompletedFirstCompilation) {
-    // If navigating from another code component's edit page, its preview would
-    // be shown briefly before the new component's preview is compiled.
-    return null;
-  }
-
   return (
-    <div className={styles.iframeContainer} ref={parentRef}>
-      {(isCompileError || isDefaultExportMissingError) && (
-        <ScrollArea>
-          <div className={styles.errorContainer}>
-            {isCompileError && renderCompileError()}
-            {isDefaultExportMissingError && renderExportMissingError()}
-          </div>
-        </ScrollArea>
-      )}
-      {!isDefaultExportMissingError && !isCompileError && (
-        <iframe
-          className={styles.iframe}
-          title="XB Code Editor Preview"
-          ref={iframeRef}
-          height="100%"
-          width="100%"
-          srcDoc={iframeSrcDoc}
-          data-xb-iframe="xb-code-editor-preview"
-        />
-      )}
-    </div>
+    <Spinner loading={isLoading || !hasCompletedFirstCompilation}>
+      <div className={styles.iframeContainer} ref={parentRef}>
+        {(isCompileError || isDefaultExportMissingError) && (
+          <ScrollArea>
+            <div className={styles.errorContainer}>
+              {isCompileError && renderCompileError()}
+              {isDefaultExportMissingError && renderExportMissingError()}
+            </div>
+          </ScrollArea>
+        )}
+        {!isDefaultExportMissingError && !isCompileError && (
+          <iframe
+            className={styles.iframe}
+            title="XB Code Editor Preview"
+            ref={iframeRef}
+            height="100%"
+            width="100%"
+            srcDoc={iframeSrcDoc}
+            data-xb-iframe="xb-code-editor-preview"
+          />
+        )}
+      </div>
+    </Spinner>
   );
 };
 

@@ -56,22 +56,36 @@ const CodeComponentList = () => {
             const menuItems = (
               <>
                 <UnifiedMenu.Item
-                  onClick={() => handleComponentClick(component.machineName)}
+                  onClick={(e: React.MouseEvent<HTMLDivElement>) => {
+                    e.stopPropagation();
+                    handleComponentClick(component.machineName);
+                  }}
                 >
                   Edit
                 </UnifiedMenu.Item>
-                <UnifiedMenu.Item onClick={() => handleRenameClick(component)}>
+                <UnifiedMenu.Item
+                  onClick={(e: React.MouseEvent<HTMLDivElement>) => {
+                    e.stopPropagation();
+                    handleRenameClick(component);
+                  }}
+                >
                   Rename
                 </UnifiedMenu.Item>
                 <UnifiedMenu.Item
-                  onClick={() => handleAddToComponentsClick(component)}
+                  onClick={(e: React.MouseEvent<HTMLDivElement>) => {
+                    e.stopPropagation();
+                    handleAddToComponentsClick(component);
+                  }}
                 >
                   Add to components
                 </UnifiedMenu.Item>
                 <UnifiedMenu.Separator />
                 <UnifiedMenu.Item
                   color="red"
-                  onClick={() => handleDeleteClick(component)}
+                  onClick={(e: React.MouseEvent<HTMLDivElement>) => {
+                    e.stopPropagation();
+                    handleDeleteClick(component);
+                  }}
                 >
                   Delete
                 </UnifiedMenu.Item>

@@ -12,8 +12,10 @@ export default function FormPropTypeTextField({
   id,
   example,
   type = 'string',
+  isDisabled = false,
 }: Pick<CodeComponentProp, 'id' | 'example'> & {
   type?: 'string' | 'integer' | 'number';
+  isDisabled?: boolean;
 }) {
   const dispatch = useAppDispatch();
 
@@ -43,6 +45,7 @@ export default function FormPropTypeTextField({
               }),
             )
           }
+          disabled={isDisabled}
         />
       </FormElement>
     </Box>

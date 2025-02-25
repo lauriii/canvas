@@ -22,9 +22,11 @@ export default function FormPropTypeEnum({
   example: defaultValue,
   required,
   type,
+  isDisabled = false,
 }: Pick<CodeComponentProp, 'id' | 'enum' | 'example'> & {
   required: boolean;
   type: 'string' | 'integer' | 'number';
+  isDisabled: boolean;
 }) {
   const dispatch = useAppDispatch();
   const [localRequired, setLocalRequired] = useState(required);
@@ -75,6 +77,7 @@ export default function FormPropTypeEnum({
           propId={id}
           values={enumValues || []}
           type={type}
+          isDisabled={isDisabled}
           onChange={(values) => {
             dispatch(
               updateProp({
@@ -112,6 +115,7 @@ export default function FormPropTypeEnum({
               value={defaultValue === '' ? NONE_VALUE : defaultValue}
               onValueChange={handleDefaultValueChange}
               size="1"
+              disabled={isDisabled}
             >
               <Select.Trigger id={`prop-enum-default-${id}`} />
               <Select.Content>
@@ -137,11 +141,13 @@ function EnumValuesForm({
   values = [],
   onChange,
   type,
+  isDisabled,
 }: {
   propId: string;
   values: CodeComponentProp['enum'];
   onChange: (values: CodeComponentProp['enum']) => void;
   type: 'string' | 'integer' | 'number';
+  isDisabled: boolean;
 }) {
   const handleAdd = () => {
     onChange([...values, '']);
@@ -179,6 +185,7 @@ function EnumValuesForm({
                     number: 'Enter a number',
                   }[type]
                 }
+                disabled={isDisabled}
               />
             </FormElement>
           </Box>
@@ -188,12 +195,13 @@ function EnumValuesForm({
             color="red"
             variant="soft"
             onClick={() => handleRemove(index)}
+            disabled={isDisabled}
           >
             <TrashIcon />
           </Button>
         </Flex>
       ))}
-      <Button size="1" variant="soft" onClick={handleAdd}>
+      <Button size="1" variant="soft" onClick={handleAdd} disabled={isDisabled}>
         <Flex gap="1" align="center">
           <PlusIcon />
           <Text size="1">Add value</Text>

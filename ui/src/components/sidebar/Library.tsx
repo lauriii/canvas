@@ -59,9 +59,9 @@ const Library = () => {
           </ErrorBoundary>
         </AccordionDetails>
         <AccordionDetails
-          value="code"
+          value={LayoutItemType.CODE}
           title="Code"
-          onTriggerClick={() => onClickHandler('code')}
+          onTriggerClick={() => onClickHandler(LayoutItemType.CODE)}
           className={styles.accordionDetails}
           triggerClassName={styles.accordionDetailsTrigger}
         >

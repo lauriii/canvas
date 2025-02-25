@@ -5,7 +5,6 @@ import { useEffect } from 'react';
 import UnifiedMenu from '@/components/UnifiedMenu';
 import { ContextMenu } from '@radix-ui/themes';
 import styles from '@/features/code-editor/CodeComponentList.module.css';
-import { handleNonWorkingBtn } from '@/utils/function-utils';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import {
   openDeleteDialog,
@@ -18,6 +17,8 @@ import type { CodeComponentSerialized } from '@/types/CodeComponent';
 import { selectLayout } from '@/features/layout/layoutModelSlice';
 import { componentExistsInLayout } from '@/features/layout/layoutUtils';
 import { useErrorBoundary } from 'react-error-boundary';
+import { useNavigate } from 'react-router-dom';
+import useXbParams from '@/hooks/useXbParams';
 
 function removeJsPrefix(input: string): string {
   if (input.startsWith('js.')) {
@@ -36,6 +37,8 @@ const ExposedJsComponent: React.FC<{ component: ComponentListItem }> = (
   const layout = useAppSelector(selectLayout);
   const isComponentInLayout = componentExistsInLayout(layout, component.id);
   const { showBoundary } = useErrorBoundary();
+  const navigate = useNavigate();
+  const { codeComponentId: selectedComponent } = useXbParams();
 
   useEffect(() => {
     if (error) {
@@ -43,7 +46,10 @@ const ExposedJsComponent: React.FC<{ component: ComponentListItem }> = (
     }
   }, [error, showBoundary]);
 
-  const handleRemoveFromComponentsClick = () => {
+  const handleRemoveFromComponentsClick = (
+    e: React.MouseEvent<HTMLDivElement>,
+  ) => {
+    e.stopPropagation();
     if (isComponentInLayout) {
       dispatch(openInLayoutDialog());
     } else {
@@ -53,11 +59,13 @@ const ExposedJsComponent: React.FC<{ component: ComponentListItem }> = (
     }
   };
 
-  const handleRenameClick = () => {
+  const handleRenameClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    e.stopPropagation();
     dispatch(openRenameDialog(jsComponent as CodeComponentSerialized));
   };
 
-  const handleDeleteClick = () => {
+  const handleDeleteClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    e.stopPropagation();
     if (isComponentInLayout) {
       dispatch(openInLayoutDialog());
     } else {
@@ -65,14 +73,17 @@ const ExposedJsComponent: React.FC<{ component: ComponentListItem }> = (
     }
   };
 
+  const handleEditClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    e.stopPropagation();
+    navigate(`/code-editor/component/${machineName}`);
+  };
+
   const menuItems = (
     <>
       <UnifiedMenu.Item onClick={handleRemoveFromComponentsClick}>
         Remove from components
       </UnifiedMenu.Item>
-      <UnifiedMenu.Item onClick={handleNonWorkingBtn}>
-        Edit code
-      </UnifiedMenu.Item>
+      <UnifiedMenu.Item onClick={handleEditClick}>Edit code</UnifiedMenu.Item>
       <UnifiedMenu.Item onClick={handleRenameClick}>Rename</UnifiedMenu.Item>
       <UnifiedMenu.Separator />
       <UnifiedMenu.Item color="red" onClick={handleDeleteClick}>
@@ -92,6 +103,7 @@ const ExposedJsComponent: React.FC<{ component: ComponentListItem }> = (
               {menuItems}
             </UnifiedMenu.Content>
           }
+          selected={machineName === selectedComponent}
         />
       </ContextMenu.Trigger>
       <UnifiedMenu.Content
