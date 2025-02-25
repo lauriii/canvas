@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\experience_builder\Kernel\Config;
 
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\experience_builder\ComponentIncompatibilityReasonRepository;
 use Drupal\experience_builder\Entity\Component;
 use Drupal\experience_builder\Entity\ComponentInterface;
@@ -16,7 +17,8 @@ use Drupal\Tests\user\Traits\UserCreationTrait;
  * Tests JavascriptComponentStorage.
  *
  * @covers \Drupal\experience_builder\EntityHandlers\JavascriptComponentStorage
- * @covers \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\JsComponent
+ * @covers \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\JsComponent::createConfigEntity
+ * @covers \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\JsComponent::updateConfigEntity
  * @group JavaScriptComponents
  * @group experience_builder
  */
@@ -74,9 +76,9 @@ final class JavascriptComponentStorageTest extends AssetLibraryStorageTest {
   }
 
   /**
-   * Covers component creation.
+   * @covers \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\JsComponent::createConfigEntity()
    */
-  public function testComponentEntityCreation(): void {
+  public function testComponentEntityCreation(): array {
     $js_component_id = $this->randomMachineName();
     $component_id = JsComponent::componentIdFromJavascriptComponentId($js_component_id);
     $reason_repository = $this->container->get(ComponentIncompatibilityReasonRepository::class);
@@ -174,10 +176,44 @@ final class JavascriptComponentStorageTest extends AssetLibraryStorageTest {
     $js_component->set('name', $new_name);
     $js_component->setProps($props)->save();
 
-    $component = \Drupal::entityTypeManager()->getStorage(Component::ENTITY_TYPE_ID)->loadUnchanged($component_id);
-    \assert($component instanceof ComponentInterface);
+    $component = $this->loadComponent($component_id);
     self::assertEquals($new_name, $component->label());
     self::assertEquals(['noodles', 'title'], \array_keys($component->getSettings()['prop_field_definitions']));
+
+    return $js_component->toArray();
+  }
+
+  /**
+   * @covers \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\JsComponent::updateConfigEntity()
+   * @depends testComponentEntityCreation
+   */
+  public function testComponentEntityUpdate(array $js_component_values): void {
+    $js_component = JavaScriptComponent::create($js_component_values);
+    $js_component->save();
+    assert(is_string($js_component->id()));
+    $component_id = JsComponent::componentIdFromJavascriptComponentId($js_component->id());
+
+    // Name should carry over.
+    $new_name = $js_component->label() . ' — updated';
+    $js_component->set('name', $new_name)->save();
+    $this->assertSame($new_name, $this->loadComponent($component_id)->label());
+
+    // Status should carry over.
+    $this->assertTrue($js_component->status());
+    $this->assertTrue($this->loadComponent($component_id)->status());
+    $js_component->disable()->save();
+    $this->assertFalse($js_component->status());
+    $this->assertFalse($this->loadComponent($component_id)->status());
+    $js_component->enable()->save();
+    $this->assertTrue($js_component->status());
+    $this->assertTrue($this->loadComponent($component_id)->status());
+  }
+
+  private function loadComponent(string $id): Component {
+    // @phpstan-ignore-next-line
+    return $this->container->get(EntityTypeManagerInterface::class)
+      ->getStorage(Component::ENTITY_TYPE_ID)
+      ->loadUnchanged($id);
   }
 
 }

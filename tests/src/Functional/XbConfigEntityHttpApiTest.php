@@ -6,6 +6,7 @@ namespace Drupal\Tests\experience_builder\Functional;
 
 use Drupal\Core\Url;
 use Drupal\experience_builder\Entity\AssetLibrary;
+use Drupal\experience_builder\Entity\Component;
 use Drupal\experience_builder\Entity\Pattern;
 use Drupal\system\Entity\Menu;
 use Drupal\Tests\experience_builder\Traits\ContribStrictConfigSchemaTestTrait;
@@ -31,6 +32,7 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
     'block',
     'experience_builder',
     'xb_test_sdc',
+    'node',
   ];
 
   /**
@@ -602,6 +604,10 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
       'js_footer' => '',
     ];
     $this->assertSame($expected_component, $body);
+    // Confirm that the code component IS NOT exposed.
+    // @see docs/config-management.md#3.2.1
+    $this->assertExposedCodeComponents([], 'MISS', $request_options);
+    $this->assertExposedCodeComponents([], 'HIT', $request_options);
     // Confirm no auto-save entity has been created.
     $this->assertExpectedResponse('GET', $auto_save_url, $request_options, 204, ['user.permissions'], ['experience_builder__autosave', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
     $this->assertExpectedResponse('GET', $auto_save_url, $request_options, 204, ['user.permissions'], ['experience_builder__autosave', 'http_response'], 'UNCACHEABLE (request policy)', 'HIT');
@@ -678,14 +684,46 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
       'http_response',
     ], 'UNCACHEABLE (request policy)', 'MISS');
     $this->assertSame(['test' => $expected_component], $body);
+    // Confirm that the code component IS STILL NOT exposed, because `status` is
+    // still `FALSE`.
+    // @see docs/config-management.md#3.2.1
+    $this->assertExposedCodeComponents([], 'HIT', $request_options);
 
-    // Modify a Code Component incorrectly (consistency-wise): 422.
-    // @todo This currently returns a 200 response! https://www.drupal.org/i/3500043 will disallow PATCHing this if > 0 uses of this component exist.
+    // Modify a Code Component correctly: 200.
+    // ⚠️This is changing it from `internal` → `exposed`, for the first time,
+    // this must trigger the creation a corresponding `Component` config entity.
+    $this->assertNull(Component::load('js.test'));
+    // @todo https://www.drupal.org/i/3500043 will disallow PATCHing this if > 0 uses of this component exist.
     $code_component_to_send['status'] = TRUE;
     $expected_component['status'] = TRUE;
     $request_options[RequestOptions::BODY] = self::encodeXBData($code_component_to_send);
     $body = $this->assertExpectedResponse('PATCH', Url::fromUri('base:/xb/api/config/js_component/test'), $request_options, 200, NULL, NULL, NULL, NULL);
     $this->assertSame($expected_component, $body);
+    // Confirm that the code component IS exposed, because `status` was just
+    // changed to `TRUE`.
+    // @see docs/config-management.md#3.2.1
+    $this->assertNotNull(Component::load('js.test'));
+    $this->assertExposedCodeComponents(['js.test'], 'MISS', $request_options);
+    $this->assertExposedCodeComponents(['js.test'], 'HIT', $request_options);
+
+    // Modify a Code Component correctly: 200.
+    // ⚠️This is changing it from `exposed` → `internal`. This must cause the
+    // `Component` config entity to continue to exist, but get its `status` to
+    // change to `FALSE`, and cause it to be omitted from the list of available
+    // components for the Content Creator.
+    // @todo https://www.drupal.org/i/3500043 will disallow PATCHing this if > 0 uses of this component exist.
+    $code_component_to_send['status'] = FALSE;
+    $expected_component['status'] = FALSE;
+    $request_options[RequestOptions::BODY] = self::encodeXBData($code_component_to_send);
+    $body = $this->assertExpectedResponse('PATCH', Url::fromUri('base:/xb/api/config/js_component/test'), $request_options, 200, NULL, NULL, NULL, NULL);
+    $this->assertSame($expected_component, $body);
+    // Confirm that the code component IS exposed, because `status` was just
+    // changed to `TRUE`.
+    // @see docs/config-management.md#3.2.1
+    $this->assertNotNull(Component::load('js.test'));
+    $this->assertFalse(Component::load('js.test')->status());
+    $this->assertExposedCodeComponents([], 'MISS', $request_options);
+    $this->assertExposedCodeComponents([], 'HIT', $request_options);
 
     // Create an auto-save entry for this config entity, to verify that neither
     // the "list" nor the "individual" API responses tested here are affected by
@@ -709,6 +747,11 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
     // Delete the 'test' Code Component via the XB HTTP API: 204.
     $body = $this->assertExpectedResponse('DELETE', Url::fromUri('base:/xb/api/config/js_component/test'), [], 204, NULL, NULL, NULL, NULL);
     $this->assertNull($body);
+    // Confirm that the code component IS NOT exposed, because it no longer
+    // exists.
+    // @see docs/config-management.md#3.2.1
+    $this->assertExposedCodeComponents([], 'MISS', $request_options);
+    $this->assertExposedCodeComponents([], 'HIT', $request_options);
 
     // Re-retrieve list: 200, empty list. Dynamic Page Cache miss.
     $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.permissions'], ['config:js_component_list', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
@@ -837,6 +880,48 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
         "X-CSRF-Token request header is missing",
       ],
     ], json_decode((string) $response->getBody(), TRUE));
+  }
+
+  private function assertExposedCodeComponents(array $expected, string $expected_dynamic_page_cache, array $request_options): void {
+    assert(in_array($expected_dynamic_page_cache, ['HIT', 'MISS'], TRUE));
+    $expected_contexts = [
+      'languages:language_content',
+      'languages:language_interface',
+      'route',
+      'theme',
+      'url.path',
+      'url.query_args',
+      'user.node_grants:view',
+      'user.permissions',
+      'user.roles:authenticated',
+      // The user_login_block is rendered as the anonymous user because for the
+      // authenticated user it is empty.
+      // @see \Drupal\experience_builder\Controller\ApiComponentsController::getCacheableClientSideInfo()
+      'user.roles:anonymous',
+    ];
+    $body = $this->assertExpectedResponse('GET', Url::fromUri('base:/xb/api/config/component'), $request_options, 200, $expected_contexts, [
+      'CACHE_MISS_IF_UNCACHEABLE_HTTP_METHOD:form',
+      'config:component_list',
+      'config:core.extension',
+      'config:node_type_list',
+      'config:system.menu.account',
+      'config:system.site',
+      'config:system.theme',
+      'config:views.view.content_recent',
+      'config:views.view.who_s_new',
+      'http_response',
+      'local_task',
+      'node_list',
+      'user:1',
+      'user:2',
+      'user_list',
+    ], 'UNCACHEABLE (request policy)', $expected_dynamic_page_cache);
+    self:self::assertNotNull($body);
+    $component_config_entity_ids = array_keys($body);
+    self::assertSame(
+      $expected,
+      array_values(array_filter($component_config_entity_ids, fn (string $id) => str_starts_with($id, 'js.'))),
+    );
   }
 
 }

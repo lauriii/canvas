@@ -254,6 +254,7 @@ final class JsComponent extends GeneratedFieldExplicitInputUxComponentSourceBase
     $label_key = $component->getEntityType()->getKey('label');
     assert(is_string($label_key));
     $component->set($label_key, $js_component->label());
+    $component->setStatus($js_component->status());
     try {
       $ephemeral_sdc_component = self::buildEphemeralSdcPluginInstance($js_component);
     }
