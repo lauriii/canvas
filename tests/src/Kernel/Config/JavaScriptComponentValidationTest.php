@@ -304,7 +304,7 @@ class JavaScriptComponentValidationTest extends ConfigEntityValidationTestBase {
       ],
       'Valid: image prop' => [
         [
-          'machineName' => 'test-props-no-slots',
+          'machineName' => 'image-prop-no-slots',
           'name' => 'Test',
           'props' => [
             'image' => [
@@ -333,7 +333,7 @@ class JavaScriptComponentValidationTest extends ConfigEntityValidationTestBase {
       ],
       'Invalid: image prop missing examples' => [
         [
-          'machineName' => 'test-props-no-slots',
+          'machineName' => 'image-prop-no-slots-no-examples',
           'name' => 'Test',
           '$ref' => "json-schema-definitions://experience_builder.module/image",
           'props' => [
@@ -361,7 +361,7 @@ class JavaScriptComponentValidationTest extends ConfigEntityValidationTestBase {
       ],
       'Invalid: image prop $ref' => [
         [
-          'machineName' => 'test-props-no-slots',
+          'machineName' => 'image-prop-no-slots-no-ref',
           'name' => 'Test',
           'props' => [
             'image' => [
@@ -388,6 +388,64 @@ class JavaScriptComponentValidationTest extends ConfigEntityValidationTestBase {
         [
           'props.image' => 'Prop "<em class="placeholder">image</em>" has a shape that is unfortunately not supported by Experience Builder.',
         ],
+      ],
+      'Invalid: image prop with incorrect $ref' => [
+        [
+          'machineName' => 'test-props-no-slots',
+          'name' => 'Test',
+          'props' => [
+            'image' => [
+              'title' => 'Image title',
+              'type' => 'object',
+              '$ref' => "json-schema-definitions://experience_builder.module/textarea",
+              'examples' => [
+                'src' => 'https://example.com/image.png',
+                'alt' => 'Alternative text',
+                'width' => 800,
+                'height' => 600,
+              ],
+            ],
+          ],
+          'slots' => [],
+          'js' => [
+            'original' => 'console.log("Test")',
+            'compiled' => 'console.log("Test")',
+          ],
+          'css' => [
+            'original' => '.test { display: none; }',
+            'compiled' => '.test{display:none;}',
+          ],
+        ],
+        [
+          'props.image' => 'Prop "<em class="placeholder">image</em>" has a shape that is unfortunately not supported by Experience Builder.',
+        ],
+      ],
+      'Valid: textarea prop with $ref' => [
+        [
+          'machineName' => 'test-props-no-slots',
+          'name' => 'Test',
+          'props' => [
+            'textarea' => [
+              'title' => 'Textarea',
+              'type' => 'string',
+              '$ref' => "json-schema-definitions://experience_builder.module/textarea",
+              'examples' => [
+                'Simple',
+                'Example',
+              ],
+            ],
+          ],
+          'slots' => [],
+          'js' => [
+            'original' => 'console.log("Test")',
+            'compiled' => 'console.log("Test")',
+          ],
+          'css' => [
+            'original' => '.test { display: none; }',
+            'compiled' => '.test{display:none;}',
+          ],
+        ],
+        [],
       ],
     ];
   }

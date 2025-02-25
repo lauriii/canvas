@@ -127,6 +127,7 @@ experience_builder.js_component.*:
               # @see \Drupal\experience_builder\JsonSchemaInterpreter\SdcPropJsonSchemaType::computeStorablePropShape()
               Choice:
                 - 'json-schema-definitions://experience_builder.module/image'
+                - 'json-schema-definitions://experience_builder.module/textarea'
           description:
             requiredKey: false
             type: label
