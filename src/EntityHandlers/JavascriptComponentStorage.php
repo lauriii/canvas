@@ -5,8 +5,6 @@ declare(strict_types=1);
 namespace Drupal\experience_builder\EntityHandlers;
 
 use Drupal\Core\Config\ConfigInstallerInterface;
-use Drupal\Core\Config\Entity\ConfigEntityStorage;
-use Drupal\Core\Entity\EntityHandlerInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
@@ -20,7 +18,7 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 /**
  * Defines storage handler for JavascriptComponents.
  */
-final class JavascriptComponentStorage extends ConfigEntityStorage implements EntityHandlerInterface {
+final class JavascriptComponentStorage extends XbAssetStorage {
 
   private ConfigInstallerInterface $configInstaller;
   private EntityTypeManagerInterface $entityTypeManager;

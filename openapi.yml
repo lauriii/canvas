@@ -30,6 +30,62 @@ info:
 # @see https://spec.openapis.org/oas/v3.1.0.html#paths-object
 # @see https://spec.openapis.org/oas/v3.1.0.html#path-item-object
 paths:
+  /xb/api/autosaves/css/js_component/{configEntityId}:
+    description: Get draft CSS for a given component
+    get:
+      description: Get draft CSS for a given component
+      parameters:
+        - $ref: '#/components/parameters/configEntityId'
+      responses:
+        '307':
+          description: Redirect to saved version when no draft exists.
+        '200':
+          description: Draft CSS for the component
+          content:
+            text/css:
+              example: '.large {font-size: 3rem;}'
+  /xb/api/autosaves/css/xb_asset_library/{configEntityId}:
+    description: Get draft CSS for given asset library
+    get:
+      description: Get draft CSS for given asset library
+      parameters:
+        - $ref: '#/components/parameters/configEntityId'
+      responses:
+        '307':
+          description: Redirect to saved version when no draft exists.
+        '200':
+          description: Draft CSS for the library
+          content:
+            text/css:
+              example: '.large {font-size: 3rem;}'
+  /xb/api/autosaves/js/js_component/{configEntityId}:
+    description: Get draft JS for a given component
+    get:
+      description: Get draft JS for a given component
+      parameters:
+        - $ref: '#/components/parameters/configEntityId'
+      responses:
+        '307':
+          description: Redirect to saved version when no draft exists.
+        '200':
+          description: Draft JS for the component
+          content:
+            text/javascript:
+              example: 'console.log("hey");'
+  /xb/api/autosaves/js/xb_asset_library/{configEntityId}:
+    description: Get draft JS for given asset library
+    get:
+      description: Get draft JS for given asset library
+      parameters:
+        - $ref: '#/components/parameters/configEntityId'
+      responses:
+        '307':
+          description: Redirect to saved version when no draft exists.
+        '200':
+          description: Draft JS for the library
+          content:
+            text/javascript:
+              example: 'console.log("hey");'
   /xb/api/autosaves/pending:
     description: TODO
     get:

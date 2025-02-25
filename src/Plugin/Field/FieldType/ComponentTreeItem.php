@@ -355,10 +355,10 @@ class ComponentTreeItem extends FieldItemBase implements RenderableInterface {
   /**
    * {@inheritdoc}
    */
-  public function toRenderable(): array {
+  public function toRenderable(bool $isPreview = FALSE): array {
     $hydrated = $this->get('hydrated');
     assert($hydrated instanceof ComponentTreeHydrated);
-    return $hydrated->toRenderable();
+    return $hydrated->toRenderable($isPreview);
   }
 
 }

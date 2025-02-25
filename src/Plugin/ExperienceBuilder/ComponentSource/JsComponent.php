@@ -4,12 +4,17 @@ declare(strict_types=1);
 
 namespace Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource;
 
+use Drupal\Core\Access\AccessResult;
+use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Config\Entity\ConfigEntityStorageInterface;
 use Drupal\Core\Extension\ExtensionPathResolver;
+use Drupal\Core\File\FileUrlGeneratorInterface;
 use Drupal\Core\Plugin\Component as SdcPlugin;
 use Drupal\Core\Render\Component\Exception\InvalidComponentException;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
+use Drupal\Core\Url;
 use Drupal\experience_builder\Attribute\ComponentSource;
+use Drupal\experience_builder\AutoSave\AutoSaveManager;
 use Drupal\experience_builder\ComponentDoesNotMeetRequirementsException;
 use Drupal\experience_builder\ComponentMetadataRequirementsChecker;
 use Drupal\experience_builder\Entity\Component as ComponentEntity;
@@ -30,10 +35,14 @@ final class JsComponent extends GeneratedFieldExplicitInputUxComponentSourceBase
   public const SOURCE_PLUGIN_ID = 'js';
 
   protected ExtensionPathResolver $extensionPathResolver;
+  protected AutoSaveManager $autosaveManager;
+  protected FileUrlGeneratorInterface $fileUrlGenerator;
 
   public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition) {
     $instance = parent::create($container, $configuration, $plugin_id, $plugin_definition);
     $instance->extensionPathResolver = $container->get(ExtensionPathResolver::class);
+    $instance->autosaveManager = $container->get(AutosaveManager::class);
+    $instance->fileUrlGenerator = $container->get(FileUrlGeneratorInterface::class);
     return $instance;
   }
 
@@ -102,10 +111,49 @@ final class JsComponent extends GeneratedFieldExplicitInputUxComponentSourceBase
   /**
    * {@inheritdoc}
    */
-  public function renderComponent(array $inputs, string $componentUuid): array {
+  public function renderComponent(array $inputs, string $componentUuid, bool $isPreview = FALSE): array {
+    $component = $this->getJavaScriptComponent();
+    if ($isPreview) {
+      $autoSave = $this->autosaveManager->getAutoSaveData($component);
+      if (!$autoSave->isEmpty()) {
+        \assert($autoSave->data !== NULL);
+        $component = $component->forAutoSavePreview($autoSave->data);
+      }
+    }
+
+   $access = $component->access('view', return_as_object: TRUE);
+   \assert($access instanceof AccessResult);
+   $cache = CacheableMetadata::createFromObject($access);
+   if (!$access->isAllowed()) {
+     $build = [
+       '#plain_text' => \sprintf('No access to view component with ID %s', $component->id()),
+     ];
+     $cache->applyTo($build);
+     return $build;
+   }
+
+    $component_url = $this->fileUrlGenerator->generateString($component->getJsPath());
+
+    if ($isPreview) {
+      $component_url = Url::fromRoute('experience_builder.api.config.auto-save.get.js', [
+        'xb_config_entity_type_id' => JavaScriptComponent::ENTITY_TYPE_ID,
+        'xb_config_entity' => $component->id(),
+      ])->toString();
+    }
+
+    $build = [];
     $base_path = \base_path();
+    $valid_props = $component->getProps() ?? [];
+    if ($component->hasCss()) {
+      $css_library = 'experience_builder/astro_island.' . $component->id();
+      if ($isPreview) {
+        $css_library .= '.draft';
+      }
+      $build['#attached']['library'][] = $css_library;
+    }
+    $cache->applyTo($build);
     $xb_path = $this->extensionPathResolver->getPath('module', 'experience_builder');
-    return [
+    return $build + [
       '#type' => 'astro_island',
       '#uuid' => $componentUuid,
       '#import_maps' => [
@@ -122,9 +170,9 @@ final class JsComponent extends GeneratedFieldExplicitInputUxComponentSourceBase
         'tailwind-merge' => \sprintf('%s%s/ui/lib/astro-hydration/dist/tailwind-merge.js', $base_path, $xb_path),
         '@/lib/utils' => \sprintf('%s%s/ui/lib/astro-hydration/dist/utils.js', $base_path, $xb_path),
       ],
-      // @todo Rename plugin ID in https://www.drupal.org/project/experience_builder/issues/3502982
-      '#component' => $this->configuration['plugin_id'],
-      '#props' => ($inputs[self::EXPLICIT_INPUT_NAME] ?? []) + [
+      '#name' => $component->label(),
+      '#component_url' => $component_url,
+      '#props' => (\array_intersect_key($inputs[self::EXPLICIT_INPUT_NAME] ?? [], $valid_props)) + [
         'xb_uuid' => $componentUuid,
         'xb_slot_ids' => \array_keys($this->getSlotDefinitions()),
       ],

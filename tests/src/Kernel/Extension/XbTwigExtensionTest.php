@@ -30,6 +30,7 @@ final class XbTwigExtensionTest extends KernelTestBase {
     'xb_test_sdc',
     'user',
     'system',
+    'media',
   ];
 
   /**
@@ -53,6 +54,7 @@ final class XbTwigExtensionTest extends KernelTestBase {
     string $component_id,
     bool $props_handled_by_twig,
     string $slot_selector,
+    array $render_array_additions = [],
   ): void {
     $heading = $this->randomMachineName();
     $uuid = $this->container->get(UuidInterface::class)->generate();
@@ -96,7 +98,7 @@ final class XbTwigExtensionTest extends KernelTestBase {
           '#markup' => $body,
         ],
       ],
-    ];
+    ] + $render_array_additions;
     $out = (string) $this->container->get(RendererInterface::class)->renderInIsolation($build);
     $crawler = new Crawler($out);
     if ($props_handled_by_twig) {
@@ -128,6 +130,7 @@ final class XbTwigExtensionTest extends KernelTestBase {
       'trousers',
       FALSE,
       'astro-slot[name="the_body"]',
+      ['#name' => 'trousers', '#component_url' => 'the/wrong/trousers.js'],
     ];
   }
 

@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\experience_builder\Traits;
 
-use Drupal\Core\Render\BubbleableMetadata;
 use Drupal\Core\Render\RenderContext;
 use Drupal\Core\Render\RendererInterface;
 use Symfony\Component\DomCrawler\Crawler;
@@ -17,12 +16,13 @@ trait CrawlerTrait {
   /**
    * Builds a crawler for a render array.
    *
+   * Bubbled metadata (cacheability and attachments) is available on the given
+   * render array after calling this.
+   *
    * @param array $build
    *   Render array.
-   * @param \Drupal\Core\Render\BubbleableMetadata|null $metadata
-   *   (optional) Bubbleable metadata to add render dependencies to.
    */
-  protected function crawlerForRenderArray(array &$build, ?BubbleableMetadata $metadata = NULL): Crawler {
+  protected function crawlerForRenderArray(array &$build): Crawler {
     $renderer = \Drupal::service(RendererInterface::class);
     \assert($renderer instanceof RendererInterface);
     $context = new RenderContext();
@@ -31,9 +31,6 @@ trait CrawlerTrait {
     $out = (string) $renderer->executeInRenderContext($context, function () use (&$build, $renderer) {
       return $renderer->render($build);
     });
-    if ($metadata && !$context->isEmpty()) {
-      $metadata->addCacheableDependency($context->pop());
-    }
     return new Crawler($out);
   }
 

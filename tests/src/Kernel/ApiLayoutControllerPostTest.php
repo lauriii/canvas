@@ -7,6 +7,7 @@ namespace Drupal\Tests\experience_builder\Kernel;
 use Drupal\Component\Serialization\Json;
 use Drupal\Core\Cache\MemoryCache\MemoryCacheInterface;
 use Drupal\Core\Config\ConfigFactoryInterface;
+use Drupal\Core\Url;
 use Drupal\experience_builder\AutoSave\AutoSaveManager;
 use Drupal\experience_builder\Entity\JavaScriptComponent;
 use Drupal\experience_builder\Entity\PageRegion;
@@ -275,6 +276,10 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
       'name' => 'Here comes the',
       'value' => 'preact',
     ]), $element->attr('opts') ?? '');
+    self::assertEquals(Url::fromRoute('experience_builder.api.config.auto-save.get.js', [
+      'xb_config_entity_type_id' => JavaScriptComponent::ENTITY_TYPE_ID,
+      'xb_config_entity' => 'hey_there',
+    ])->toString(), $element->attr('component-url'));
   }
 
 }

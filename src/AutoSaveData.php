@@ -16,4 +16,8 @@ final class AutoSaveData implements CacheableDependencyInterface {
     $this->cacheTags = [AutoSaveManager::CACHE_TAG];
   }
 
+  public function isEmpty(): bool {
+    return $this->data === NULL;
+  }
+
 }

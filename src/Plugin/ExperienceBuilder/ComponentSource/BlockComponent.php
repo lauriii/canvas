@@ -141,7 +141,7 @@ final class BlockComponent extends ComponentSourceBase implements ContainerFacto
   /**
    * {@inheritdoc}
    */
-  public function renderComponent(array $inputs, string $componentUuid): array {
+  public function renderComponent(array $inputs, string $componentUuid, bool $isPreview = FALSE): array {
     $block = $this->getBlockPlugin();
     foreach ($inputs[self::EXPLICIT_INPUT_NAME] ?? [] as $key => $value) {
       $block->setConfigurationValue($key, $value);

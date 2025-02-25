@@ -68,11 +68,13 @@ interface ComponentSourceInterface extends PluginInspectionInterface, Derivative
    *   Component inputs — both implicit and explicit.
    * @param string $componentUuid
    *   Component UUID.
+   * @param bool $isPreview
+   *   TRUE if is preview.
    *
    * @return array
    *   Render array.
    */
-  public function renderComponent(array $inputs, string $componentUuid): array;
+  public function renderComponent(array $inputs, string $componentUuid, bool $isPreview = FALSE): array;
 
   /**
    * Whether this component requires explicit input or not.

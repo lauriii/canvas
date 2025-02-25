@@ -9,7 +9,6 @@ services:
   Drupal\experience_builder\ShapeMatcher\FieldForComponentSuggester:
     public: true
   Drupal\experience_builder\ComponentIncompatibilityReasonRepository: {}
-  Drupal\experience_builder\AssetManager: {}
   Drupal\experience_builder\JsonSchemaDefinitionsStreamwrapper:
     public: true
     tags:
@@ -35,11 +34,6 @@ services:
   Drupal\experience_builder\ComponentSource\ComponentSourceManager:
     parent: default_plugin_manager
     public: true
-
-  Drupal\experience_builder\Config\XbConfigOverrides:
-    tags:
-      - { name: config.factory.override }
-
   # Utilities.
   Drupal\experience_builder\AssetRenderer: {}
   logger.channel.experience_builder:
@@ -81,7 +75,6 @@ services:
       - { name: theme_negotiator, priority: 1001 }
   Drupal\experience_builder\EventSubscriber\RenderEventsSubscriber: ~
   Drupal\experience_builder\EventSubscriber\ApiExceptionSubscriber: ~
-  Drupal\experience_builder\EventSubscriber\AssetGenerator: {}
   Drupal\experience_builder\PathProcessor\ExperienceBuilderPathProcessor:
     tags:
       - { name: path_processor_inbound, priority: 200 }

@@ -2,16 +2,14 @@
 
 declare(strict_types=1);
 
-namespace Drupal\Tests\experience_builder\Kernel\Entity;
+namespace Drupal\Tests\experience_builder\Kernel\Config;
 
 use Drupal\experience_builder\ComponentIncompatibilityReasonRepository;
 use Drupal\experience_builder\Entity\Component;
 use Drupal\experience_builder\Entity\ComponentInterface;
 use Drupal\experience_builder\Entity\JavaScriptComponent;
 use Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\JsComponent;
-use Drupal\KernelTests\KernelTestBase;
 use Drupal\Tests\experience_builder\Traits\ConstraintViolationsTestTrait;
-use Drupal\Tests\experience_builder\Traits\ContribStrictConfigSchemaTestTrait;
 use Drupal\Tests\user\Traits\UserCreationTrait;
 
 /**
@@ -22,10 +20,9 @@ use Drupal\Tests\user\Traits\UserCreationTrait;
  * @group JavaScriptComponents
  * @group experience_builder
  */
-final class JavascriptComponentStorageTest extends KernelTestBase {
+final class JavascriptComponentStorageTest extends AssetLibraryStorageTest {
 
   use UserCreationTrait;
-  use ContribStrictConfigSchemaTestTrait;
   use ConstraintViolationsTestTrait;
 
   /**
@@ -51,6 +48,29 @@ final class JavascriptComponentStorageTest extends KernelTestBase {
     parent::setUp();
     $this->installEntitySchema('user');
     $this->installConfig(['system']);
+  }
+
+  /**
+   * @covers \Drupal\experience_builder\EntityHandlers\XbAssetStorage::generateFiles()
+   */
+  public function testGeneratedFiles(): void {
+    $js_component = JavaScriptComponent::create([
+      'machineName' => $this->randomMachineName(),
+      'name' => $this->getRandomGenerator()->sentences(5),
+      'status' => FALSE,
+      'props' => [],
+      'required' => [],
+      'slots' => [],
+      'js' => [
+        'original' => 'console.log("hey");',
+        'compiled' => 'console.log("hey");',
+      ],
+      'css' => [
+        'original' => '.test { display: none; }',
+        'compiled' => '.test { display: none; }',
+      ],
+    ]);
+    $this->assertGeneratedFiles($js_component);
   }
 
   /**

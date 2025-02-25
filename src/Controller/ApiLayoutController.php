@@ -356,7 +356,7 @@ final class ApiLayoutController {
     $field_name = InternalXbFieldNameResolver::getXbFieldName($entity);
     $item = $entity->get($field_name)->first();
     assert($item instanceof ComponentTreeItem);
-    $renderable = $item->toRenderable();
+    $renderable = $item->toRenderable(TRUE);
 
     if (isset($renderable[ComponentTreeStructure::ROOT_UUID])) {
       $build = $renderable[ComponentTreeStructure::ROOT_UUID];

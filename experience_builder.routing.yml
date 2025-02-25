@@ -49,6 +49,30 @@ experience_builder.api.config.auto-save.get:
       xb_config_entity:
         type: entity:{xb_config_entity_type_id}
   methods: [GET]
+experience_builder.api.config.auto-save.get.css:
+  path: '/xb/api/autosaves/css/{xb_config_entity_type_id}/{xb_config_entity}'
+  defaults:
+    _controller: 'Drupal\experience_builder\Controller\ApiConfigAutoSaveControllers::getCss'
+  requirements:
+    _permission: 'administer code components'
+    xb_config_entity_type_id: '(js_component|xb_asset_library)'
+  methods: [ 'GET' ]
+  options:
+    parameters:
+      xb_config_entity:
+        type: entity:{xb_config_entity_type_id}
+experience_builder.api.config.auto-save.get.js:
+  path: '/xb/api/autosaves/js/{xb_config_entity_type_id}/{xb_config_entity}'
+  defaults:
+    _controller: 'Drupal\experience_builder\Controller\ApiConfigAutoSaveControllers::getJs'
+  requirements:
+    _permission: 'administer code components'
+    xb_config_entity_type_id: '(js_component|xb_asset_library)'
+  methods: [ 'GET' ]
+  options:
+    parameters:
+      xb_config_entity:
+        type: entity:{xb_config_entity_type_id}
 experience_builder.api.config.auto-save.patch:
   path: '/xb/api/config/auto-save/{xb_config_entity_type_id}/{xb_config_entity}'
   defaults:

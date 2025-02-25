@@ -24,6 +24,7 @@ use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Plugin\Discovery\YamlDiscovery;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
+use Drupal\Core\Url;
 use Drupal\datetime\Plugin\Field\FieldType\DateTimeItem;
 use Drupal\experience_builder\Entity\AssetLibrary;
 use Drupal\experience_builder\Entity\Component;
@@ -500,21 +501,38 @@ function _experience_builder_convert_dependencies(array &$main_new_library, arra
 function experience_builder_library_info_build(): array {
   $libraries = [];
 
-  foreach (AssetLibrary::loadMultiple() as $library) {
+  // @see \Drupal\experience_builder\EntityHandlers\XbAssetStorage::generateFiles()
+  foreach (AssetLibrary::loadMultiple() as $library_id => $library) {
     $library_name = "asset_library." . $library->id();
     if ($library->hasCss()) {
       $libraries[$library_name]['css']['theme'][$library->getCssPath()] = [];
     }
+    $draft_css_url = Url::fromRoute('experience_builder.api.config.auto-save.get.css', [
+      'xb_config_entity_type_id' => AssetLibrary::ENTITY_TYPE_ID,
+      'xb_config_entity' => $library_id,
+    ])->toString();
+    $libraries[$library_name . '.draft']['css']['theme'][$draft_css_url] = [];
     if ($library->hasJs()) {
       $libraries[$library_name]['js'][$library->getJsPath()] = [];
     }
+    $draft_js_url = Url::fromRoute('experience_builder.api.config.auto-save.get.js', [
+      'xb_config_entity_type_id' => AssetLibrary::ENTITY_TYPE_ID,
+      'xb_config_entity' => $library_id,
+    ])->toString();
+    $libraries[$library_name . '.draft']['js'][$draft_js_url] = [];
   }
 
-  foreach (JavaScriptComponent::loadMultiple() as $component) {
+  // @see \Drupal\experience_builder\EntityHandlers\XbAssetStorage::generateFiles()
+  foreach (JavaScriptComponent::loadMultiple() as $component_id => $component) {
+    $library_name = "astro_island." . $component_id;
     if ($component->hasCss()) {
-      $library_name = "astro_island." . $component->id();
       $libraries[$library_name]['css']['component'][$component->getCssPath()] = [];
     }
+    $draft_css_url = Url::fromRoute('experience_builder.api.config.auto-save.get.css', [
+      'xb_config_entity_type_id' => JavaScriptComponent::ENTITY_TYPE_ID,
+      'xb_config_entity' => $component_id,
+    ])->toString();
+    $libraries[$library_name . '.draft']['css']['component'][$draft_css_url] = [];
   }
 
   $theme_config = \Drupal::config('system.theme');

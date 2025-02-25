@@ -19,7 +19,9 @@ use Drupal\experience_builder\ClientSideRepresentation;
  *    label_plural = @Translation("in-browser code libraries"),
  *    label_collection = @Translation("In-browser code libraries"),
  *    admin_permission = "administer code components",
- *    handlers = {},
+ *    handlers = {
+ *      "storage" = \Drupal\experience_builder\EntityHandlers\XbAssetStorage::class,
+ *    },
  *    entity_keys = {
  *      "id" = "id",
  *      "label" = "label",
@@ -33,7 +35,7 @@ use Drupal\experience_builder\ClientSideRepresentation;
  *    }
  *  )
  */
-final class AssetLibrary extends ConfigEntityBase implements XbHttpApiEligibleConfigEntityInterface, XbAssetInterface {
+final class AssetLibrary extends ConfigEntityBase implements XbAssetInterface {
 
   use XbAssetLibraryTrait;
 
@@ -86,8 +88,17 @@ final class AssetLibrary extends ConfigEntityBase implements XbHttpApiEligibleCo
     // Nothing to do.
   }
 
+  /**
+   * {@inheritdoc}
+   */
   public function postSave(EntityStorageInterface $storage, $update = TRUE): void {
-    // Force recalculation of library info.
+    parent::postSave($storage, $update);
+    // The files generated in XbAssetStorage::doSave() have a content-dependent
+    // hash in their name. This has 2 consequences:
+    // 1. Cached responses that referred to an older version, continue to work.
+    // 2. New responses must use the newly generated files, which requires the
+    //    asset library to point to those new files. Hence the library info must
+    //    be recalculated.
     // @see \experience_builder_library_info_build()
     Cache::invalidateTags(['library_info']);
   }

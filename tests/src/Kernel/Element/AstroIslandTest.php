@@ -7,15 +7,10 @@ namespace Drupal\Tests\experience_builder\Element;
 use Drupal\Component\Serialization\Json;
 use Drupal\Component\Utility\Crypt;
 use Drupal\Component\Utility\DeprecationHelper;
-use Drupal\Core\Asset\AssetResolverInterface;
-use Drupal\Core\Asset\AttachedAssets;
 use Drupal\Core\Asset\LibraryDiscoveryInterface;
 use Drupal\Core\Cache\CacheCollectorInterface;
 use Drupal\Core\Extension\ExtensionPathResolver;
-use Drupal\Core\Render\BubbleableMetadata;
 use Drupal\Core\Site\Settings;
-use Drupal\Core\StreamWrapper\StreamWrapperInterface;
-use Drupal\Core\StreamWrapper\StreamWrapperManagerInterface;
 use Drupal\experience_builder\Element\AstroIsland;
 use Drupal\experience_builder\Entity\JavaScriptComponent;
 use Drupal\KernelTests\KernelTestBase;
@@ -37,7 +32,7 @@ final class AstroIslandTest extends KernelTestBase {
   /**
    * {@inheritdoc}
    */
-  protected static $modules = ['experience_builder', 'user', 'system'];
+  protected static $modules = ['experience_builder', 'user', 'system', 'media'];
 
   /**
    * {@inheritdoc}
@@ -120,13 +115,13 @@ final class AstroIslandTest extends KernelTestBase {
       'text' => 'Win a pony',
       'count' => '3',
     ];
+    $component_url = \sprintf('%s/%s.js', $this->randomMachineName(), $this->randomMachineName());
     $island = [
       '#type' => AstroIsland::PLUGIN_ID,
       '#uuid' => $uid,
-      '#component' => $component->id(),
-      '#props' => $props + [
-        'this' => 'is not a valid prop so should be ignored',
-      ],
+      '#component_url' => $component_url,
+      '#name' => $component->label(),
+      '#props' => $props,
       '#import_maps' => [
         'some' => 'import/map.js',
       ],
@@ -138,11 +133,10 @@ final class AstroIslandTest extends KernelTestBase {
     ];
     $original_island = $island;
 
-    $metadata = new BubbleableMetadata();
-    $crawler = $this->crawlerForRenderArray($island, $metadata);
+    $crawler = $this->crawlerForRenderArray($island);
     $element = $crawler->filter('astro-island');
     self::assertEquals([
-      [$element->attr('component-url') => ['some' => 'import/map.js']],
+      [$component_url => ['some' => 'import/map.js']],
     ], $island['#attached']['import_maps']);
     self::assertCount(1, $element);
 
@@ -159,21 +153,10 @@ final class AstroIslandTest extends KernelTestBase {
       'value' => $island['#framework'],
     ]), $element->attr('opts') ?? '');
 
-    $asset_wrapper = $this->container->get(StreamWrapperManagerInterface::class)->getViaScheme('assets');
-    \assert($asset_wrapper instanceof StreamWrapperInterface);
-    \assert(\method_exists($asset_wrapper, 'getDirectoryPath'));
-    $directory_path = $asset_wrapper->getDirectoryPath();
-    $js_filename = \sprintf('/%s/astro-island/%s.js', $directory_path, $js_hash);
-    self::assertEquals($js_filename, $element->attr('component-url'));
+    self::assertEquals($component_url, $element->attr('component-url'));
 
     $xb_directory = $this->container->get(ExtensionPathResolver::class)->getPath('module', 'experience_builder');
     self::assertEquals(\sprintf('/%s/ui/lib/astro-hydration/dist/client.js', $xb_directory), $element->attr('renderer-url'));
-
-    $metadata->applyTo($island);
-    $asset_resolver = \Drupal::service(AssetResolverInterface::class);
-    assert($asset_resolver instanceof AssetResolverInterface);
-    $css_asset = $asset_resolver->getCssAssets(AttachedAssets::createFromRenderArray($island), FALSE);
-    self::assertEquals(\sprintf('assets://astro-island/%s.css', $css_hash), reset($css_asset)['data']);
 
     $slots = $element->filter('astro-slot');
     self::assertCount(2, $slots);
@@ -191,8 +174,6 @@ final class AstroIslandTest extends KernelTestBase {
     // Should still work without slots, props, framework and UUID.
     $island = $original_island;
     unset($island['#slots'], $island['#props'], $island['#uuid'], $island['#framework']);
-    // And with a preview flag.
-    $island['#preview'] = TRUE;
     $crawler = $this->crawlerForRenderArray($island);
     $element = $crawler->filter('astro-island');
     self::assertCount(1, $element);
@@ -203,7 +184,6 @@ final class AstroIslandTest extends KernelTestBase {
       'name' => $component->label(),
       'value' => 'preact',
     ]), $element->attr('opts') ?? '');
-    self::assertEquals(\sprintf('/%s/astro-island/%s.js?preview=1', $directory_path, $js_hash), $element->attr('component-url'));
   }
 
   /**
@@ -238,15 +218,13 @@ final class AstroIslandTest extends KernelTestBase {
 
     $island = [
       '#type' => AstroIsland::PLUGIN_ID,
-      '#component' => $component->id(),
+      '#component_url' => '/lorem/ipsum.js',
+      '#name' => 'placeholder',
     ];
-    $metadata = new BubbleableMetadata();
-    $this->crawlerForRenderArray($island, $metadata);
+    $this->crawlerForRenderArray($island);
     self::assertSame([
-      'library' => [
-        'experience_builder/astro.hydration',
-      ],
-    ], $metadata->getAttachments());
+      'experience_builder/astro.hydration',
+    ], $island['#attached']['library']);
   }
 
   /**
@@ -258,29 +236,15 @@ final class AstroIslandTest extends KernelTestBase {
       '#type' => AstroIsland::PLUGIN_ID,
     ];
     $crawler = $this->crawlerForRenderArray($island);
-    self::assertEquals('You must pass a #component_id for an element of #type astro_island', $crawler->text());
+    self::assertEquals('You must pass a #component_url for an element of #type astro_island', $crawler->text());
 
-    // No such component.
+    // No component name.
     $island = [
       '#type' => AstroIsland::PLUGIN_ID,
-      '#component' => 'zero_sum',
+      '#component_url' => 'zero_sum',
     ];
     $crawler = $this->crawlerForRenderArray($island);
-    self::assertEquals('Could not load component with ID zero_sum', $crawler->text());
-
-    $component = JavaScriptComponent::create([
-      'machineName' => $this->randomMachineName(),
-      'css' => [],
-      'js' => [],
-    ]);
-    $component->save();
-    // No access.
-    $island = [
-      '#type' => AstroIsland::PLUGIN_ID,
-      '#component' => $component->id(),
-    ];
-    $crawler = $this->crawlerForRenderArray($island);
-    self::assertEquals('No access to view component with ID ' . $component->id(), $crawler->text());
+    self::assertEquals('You must pass a #name for an element of #type astro_island', $crawler->text());
   }
 
 }

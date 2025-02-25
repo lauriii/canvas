@@ -159,7 +159,7 @@ final class SingleDirectoryComponent extends GeneratedFieldExplicitInputUxCompon
   /**
    * {@inheritdoc}
    */
-  public function renderComponent(array $inputs, string $componentUuid): array {
+  public function renderComponent(array $inputs, string $componentUuid, bool $isPreview = FALSE): array {
     return [
       '#type' => 'component',
       '#component' => $this->configuration['plugin_id'],

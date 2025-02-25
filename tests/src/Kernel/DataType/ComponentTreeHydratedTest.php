@@ -98,6 +98,12 @@ class ComponentTreeHydratedTest extends KernelTestBase {
     $this->assertInstanceOf(HydratedTree::class, $hydrated_value);
     $this->assertSame($expected_value, $hydrated_value->getTree());
     $renderable = $hydrated->toRenderable();
+    $vfs_site_base_url = base_path() . $this->siteDirectory;
+    \array_walk_recursive($renderable, function (mixed &$value) use ($vfs_site_base_url) {
+      if (\is_string($value)) {
+        $value = \str_replace($vfs_site_base_url, '::SITE_DIR_BASE_URL::', $value);
+      }
+    });
     $this->assertEquals($expected_renderable, $renderable);
     $html = (string) $this->container->get(RendererInterface::class)->renderInIsolation($renderable);
     // Strip trailing whitespace to make heredocs easier to write.
@@ -109,7 +115,6 @@ class ComponentTreeHydratedTest extends KernelTestBase {
     $html = str_replace($xb_dir_root_relative_url, '::XB_DIR_BASE_URL::', $html);
     // Make it easier to write expectations containing root-relative URLs
     // pointing somewhere into the site-specific directory.
-    $vfs_site_base_url = base_path() . $this->siteDirectory;
     $html = str_replace($vfs_site_base_url, '::SITE_DIR_BASE_URL::', $html);
     $this->assertSame($expected_html, $html);
     $this->assertSame($expected_cache_tags, array_values(CacheableMetadata::createFromRenderArray($renderable)->getCacheTags()));
@@ -797,7 +802,9 @@ HTML,
                               '#type' => 'astro_island',
                               '#cache' => [
                                 'tags' => ['config:experience_builder.component.js.my-cta'],
-                                'contexts' => [],
+                                'contexts' => [
+                                  'user.permissions',
+                                ],
                                 'max-age' => Cache::PERMANENT,
                               ],
                               '#import_maps' => [
@@ -809,7 +816,8 @@ HTML,
                                 'tailwind-merge' => \sprintf('%s/ui/lib/astro-hydration/dist/tailwind-merge.js', $path),
                                 '@/lib/utils' => \sprintf('%s/ui/lib/astro-hydration/dist/utils.js', $path),
                               ],
-                              '#component' => 'my-cta',
+                              '#name' => 'My First Code Component',
+                              '#component_url' => '::SITE_DIR_BASE_URL::/files/astro-island/STNRn46UCAs1xJCb2kgPiEOEZp0R24B5qjtHOsyYT-g.js',
                               '#props' => [
                                 'text' => 'Hello, from a "code component"!',
                                 'xb_uuid' => 'uuid-js-component',

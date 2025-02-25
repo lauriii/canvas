@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Drupal\Tests\experience_builder\Functional;
 
 use Drupal\Core\Url;
-use Drupal\experience_builder\AutoSave\AutoSaveManager;
 use Drupal\experience_builder\Entity\AssetLibrary;
 use Drupal\experience_builder\Entity\Pattern;
 use Drupal\system\Entity\Menu;
@@ -674,11 +673,9 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
       'languages:language_interface',
       'theme',
       'user.permissions',
-      'route',
     ], [
       'config:js_component_list',
       'http_response',
-      AutoSaveManager::CACHE_TAG,
     ], 'UNCACHEABLE (request policy)', 'MISS');
     $this->assertSame(['test' => $expected_component], $body);
 
@@ -701,11 +698,9 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
       'languages:language_interface',
       'theme',
       'user.permissions',
-      'route',
     ], [
       'config:js_component_list',
       'http_response',
-      AutoSaveManager::CACHE_TAG,
     ], 'UNCACHEABLE (request policy)', 'MISS');
     $this->assertSame([
       'test' => $expected_component,
