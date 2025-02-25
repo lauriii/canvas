@@ -39,6 +39,7 @@ use Drupal\experience_builder\PropSource\UrlPreviewPropSource;
 use Drupal\experience_builder\PropSource\PropSource;
 use Drupal\experience_builder\PropSource\StaticPropSource;
 use Drupal\experience_builder\ShapeMatcher\FieldForComponentSuggester;
+use Drupal\media\Entity\MediaType;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\HttpException;
@@ -836,7 +837,12 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
     }
 
     // TRICKY: this is tightly coupled to `media_library_storage_prop_shape_alter()`!
-    $query = $this->entityTypeManager->getStorage('media')->getQuery()->condition('field_media_image.target_id', $file_id)->accessCheck();
+    $image_media_type = MediaType::load('image');
+    assert($image_media_type !== NULL);
+    $source_field_definition = $image_media_type->getSource()->getSourceFieldDefinition($image_media_type);
+    assert($source_field_definition !== NULL);
+    $source_field_name = $source_field_definition->getName();
+    $query = $this->entityTypeManager->getStorage('media')->getQuery()->condition("$source_field_name.target_id", $file_id)->accessCheck();
     $media_ids = $query->execute();
     assert(is_array($media_ids));
     if (empty($media_ids)) {

@@ -69,7 +69,7 @@ class ComponentTest extends KernelTestBase {
     // The Standard install profile's "image" media type must be installed when
     // the media_library module gets installed.
     // @see core/profiles/standard/config/optional/media.type.image.yml
-    $this->enableModules(['media']);
+    $this->enableModules(['field', 'file', 'image', 'media']);
     $this->generateComponentConfig();
     $this->setInstallProfile('standard');
     $this->container->get('config.installer')->installOptionalConfig();
