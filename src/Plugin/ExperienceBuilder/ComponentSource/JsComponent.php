@@ -115,7 +115,12 @@ final class JsComponent extends GeneratedFieldExplicitInputUxComponentSourceBase
     $component = $this->getJavaScriptComponent();
     if ($isPreview) {
       $autoSave = $this->autosaveManager->getAutoSaveData($component);
-      if (!$autoSave->isEmpty()) {
+      if ($autoSave->isEmpty()) {
+        // Do NOT consider this a preview if there's no auto-saved draft
+        // version.
+        $isPreview = FALSE;
+      }
+      else {
         \assert($autoSave->data !== NULL);
         $component = $component->forAutoSavePreview($autoSave->data);
       }
