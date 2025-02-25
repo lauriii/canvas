@@ -12,6 +12,8 @@ import {
   selectLayoutHistory,
   initialState,
   insertNodes,
+  setLayoutModel,
+  deleteNode,
 } from '@/features/layout/layoutModelSlice';
 
 let pageData = {
@@ -383,5 +385,101 @@ describe('Undo/redo timeline works across slices', () => {
       'layoutModel',
       'layoutModel',
     ]);
+
+    // Simulate a patch update.
+    store.dispatch(
+      setLayoutModel({
+        ...layoutState.present,
+        initialized: false,
+      }),
+    );
+    layoutState = selectLayoutHistory(store.getState());
+    // Initialized should be false.
+    expect(layoutState.present.initialized).to.eq(false);
+
+    // And another one.
+    // Simulate a patch update.
+    store.dispatch(
+      setLayoutModel({
+        ...layoutState.present,
+        initialized: false,
+      }),
+    );
+    layoutState = selectLayoutHistory(store.getState());
+    // Initialized should be false.
+    expect(layoutState.present.initialized).to.eq(false);
+
+    // Now undo the second one.
+    undoType = selectUndoType(store.getState());
+    expect(undoType).to.eq('layoutModel');
+    store.dispatch(UndoRedoActionCreators.undo(undoType));
+    layoutState = selectLayoutHistory(store.getState());
+    // There should be a future state.
+    expect(layoutState.future.length).to.eq(1);
+    // Initialized should be false.
+    expect(layoutState.present.initialized).to.eq(true);
+    // But so should the future state.
+    expect(
+      layoutState.future.reduce(
+        (carry, item) => carry && item.initialized,
+        true,
+      ),
+    ).to.eq(true);
+
+    // And a subsequent update.
+    store.dispatch(deleteNode('static-static-card1ab'));
+    layoutState = selectLayoutHistory(store.getState());
+    // Initialized should be true as the preview would have been updated.
+    expect(layoutState.present.initialized).to.eq(true);
+
+    // And the setLayoutModel in the past entry should also be true, even though
+    // we passed 'false' when dispatching setLayoutModel.
+    expect(
+      layoutState.past.reduce((carry, item) => carry && item.initialized, true),
+    ).to.eq(true);
+
+    // Then undo the delete operation.
+    undoType = selectUndoType(store.getState());
+    expect(undoType).to.eq('layoutModel');
+    store.dispatch(UndoRedoActionCreators.undo(undoType));
+
+    // Even though the previous entry from setLayoutModel had initialized: false
+    // the undo entry we restored from past should have initialized true, to
+    // trigger a refetch of the preview.
+    layoutState = selectLayoutHistory(store.getState());
+    expect(layoutState.present.initialized).to.eq(true);
+
+    // Now let's undo the setLayoutModel.
+    undoType = selectUndoType(store.getState());
+    expect(undoType).to.eq('layoutModel');
+    store.dispatch(UndoRedoActionCreators.undo(undoType));
+
+    // The next redo should be to set the layout.
+    redoType = selectRedoType(store.getState());
+    expect(redoType).to.eq('layoutModel');
+    layoutState = selectLayoutHistory(store.getState());
+    // We can redo both the setLayoutModel and the delete operation.
+    expect(layoutState.future).to.have.lengthOf(2);
+    // The next redo will be to set the model again, this should include the
+    // static card.
+    expect(
+      Object.keys(layoutState.future[0].model).includes(
+        'static-static-card1ab',
+      ),
+    ).to.eq(true);
+    // The final redo will be to delete the node, this should not include the
+    // static card.
+    expect(
+      Object.keys(layoutState.future[1].model).includes(
+        'static-static-card1ab',
+      ),
+    ).to.eq(false);
+    // A redo of a setLayoutModel should include re-fetching a preview.
+    expect(layoutState.future[0].initialized).to.eq(true);
+    // So should the delete node action.
+    expect(layoutState.future[1].initialized).to.eq(true);
+    // And the undo of the deleteNode 'insertNode' should also have triggered a
+    // re-fetching of the preview so initialized should be true.
+    expect(layoutState.present.initialized).to.eq(true);
   });
 });

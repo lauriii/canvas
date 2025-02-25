@@ -77,9 +77,8 @@ describe('Undo/Redo functionality', () => {
     cy.findByTestId(/^xb-component-form-.*/)
       .findByLabelText('Heading')
       .type(' one');
-    // Disable the no-unnecessary-waiting eslint rule below because we need to wait
-    // for the debounce to finish to ensure the undo history is updated.
-    cy.wait(500); // eslint-disable-line cypress/no-unnecessary-waiting
+
+    cy.waitForElementContentInIframe('.my-hero__heading', 'hello, world! one');
     cy.findByTestId(/^xb-component-form-.*/)
       .findByLabelText('Heading')
       .should('have.value', 'hello, world! one');
@@ -97,22 +96,32 @@ describe('Undo/Redo functionality', () => {
     // Disable the no-unnecessary-waiting eslint rule below because we need to wait
     // for the debounce to finish to ensure the undo history is updated.
     cy.wait(500); // eslint-disable-line cypress/no-unnecessary-waiting
+
     cy.findByTestId(/^xb-component-form-.*/)
       .findByLabelText('Heading')
       .should('have.value', 'hello, world! one two');
+
+    cy.waitForElementContentInIframe(
+      '.my-hero__heading',
+      'hello, world! one two',
+    );
 
     // Undo, see if the value is "hello, world! one".
     cy.realPress(['Meta', 'Z']);
     cy.findByLabelText('Heading').should((input) => {
       expect(input).to.have.value('hello, world! one');
     });
+    cy.waitForElementContentInIframe('.my-hero__heading', 'hello, world! one');
 
     // Redo, see if the value is "hello, world! one two".
     cy.realPress(['Meta', 'Shift', 'Z']);
-
     cy.findByLabelText('Heading').should((input) => {
       expect(input).to.have.value('hello, world! one two');
     });
+    cy.waitForElementContentInIframe(
+      '.my-hero__heading',
+      'hello, world! one two',
+    );
 
     // Undo twice, see if the value is "hello, world!".
     cy.realPress(['Meta', 'Z']);

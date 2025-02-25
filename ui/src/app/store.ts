@@ -15,7 +15,9 @@ import { codeComponentDialogSlice } from '@/features/ui/codeComponentDialogSlice
 import { previewApi } from '@/services/preview';
 import { contentCreateApi } from '@/services/contentCreate';
 import undoable from 'redux-undo';
+import type { LayoutModelSliceState } from '@/features/layout/layoutModelSlice';
 import { layoutModelReducer } from '@/features/layout/layoutModelSlice';
+import type { PageDataState } from '@/features/pageData/pageDataSlice';
 import { pageDataReducer } from '@/features/pageData/pageDataSlice';
 import { dummyPropsFormApi } from '@/services/dummyPropsForm';
 import { pageDataFormApi } from '@/services/pageDataForm';
@@ -37,10 +39,14 @@ import { contentApi } from '@/services/content';
 // if an action is performed on another undoable slice.
 // @see https://redux.js.org/usage/implementing-undo-history#meet-reducer-enhancers
 // @see https://en.wikipedia.org/wiki/History_Eraser
-const historyEraser = (reducer: any, thisType: UndoRedoType) => {
+const historyEraser = <T>(
+  reducer: any,
+  thisType: UndoRedoType,
+  forceStateOnUndoRedo: Partial<T> = {},
+) => {
   return (state: any, action: UnknownAction, ...slices: any[]) => {
     // Pass through to the inner (undoable) reducer.
-    let newState = reducer(state, action, ...slices);
+    const newState = reducer(state, action, ...slices);
     const type = action.type;
     if (
       type === 'ui/pushUndo' &&
@@ -57,7 +63,21 @@ const historyEraser = (reducer: any, thisType: UndoRedoType) => {
       // they are not needed or reachable.
       return { ...newState, future: [] };
     }
-    return newState;
+    if (
+      !type.startsWith(`${thisType}/`) &&
+      !type.startsWith(`@@redux-undo/${thisType}`)
+    ) {
+      return newState;
+    }
+    // For actions in this slice we want to force a certain undo/redo state.
+    return {
+      ...newState,
+      past: newState.past.map((i: T) => ({ ...i, ...forceStateOnUndoRedo })),
+      future: newState.future.map((i: T) => ({
+        ...i,
+        ...forceStateOnUndoRedo,
+      })),
+    };
   };
 };
 
@@ -65,7 +85,7 @@ const historyEraser = (reducer: any, thisType: UndoRedoType) => {
 // their `reducerPath`s, therefore we no longer need to call `combineReducers`.
 const rootReducer = combineSlices(
   {
-    layoutModel: historyEraser(
+    layoutModel: historyEraser<LayoutModelSliceState>(
       undoable(layoutModelReducer, {
         undoType: '@@redux-undo/layoutModel_UNDO',
         redoType: '@@redux-undo/layoutModel_REDO',
@@ -75,8 +95,11 @@ const rootReducer = combineSlices(
         },
       }),
       'layoutModel',
+      // We want any redo/undo actions to trigger a preview update from the
+      // server.
+      { initialized: true },
     ),
-    pageData: historyEraser(
+    pageData: historyEraser<PageDataState>(
       undoable(pageDataReducer, {
         undoType: '@@redux-undo/pageData_UNDO',
         redoType: '@@redux-undo/pageData_REDO',

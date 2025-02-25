@@ -153,7 +153,7 @@ describe('Undo/redo', () => {
     store.dispatch(UndoRedoActionCreators.redo('layoutModel'));
 
     state = selectLayoutHistory(store.getState());
-    expect(state.present).to.eq(layout);
+    expect(state.present).to.deep.eq({ ...layout, initialized: true });
     expect(state.past.length).to.eq(1);
     expect(state.future.length).to.eq(0);
   });
