@@ -37,10 +37,31 @@ export const componentAndLayoutApi = createApi({
     }),
     getCodeComponents: builder.query<
       Record<string, CodeComponentSerialized>,
-      void
+      { status?: boolean } | void
     >({
       query: () => 'xb/api/config/js_component',
       providesTags: () => [{ type: 'CodeComponents', id: 'LIST' }],
+      transformResponse: (
+        response: Record<string, CodeComponentSerialized>,
+        meta,
+        arg,
+      ) => {
+        if (!arg || typeof arg !== 'object' || arg.status === undefined) {
+          // If no filter is provided or arg is undefined, return all components.
+          return response;
+        }
+
+        // Filter components based on status (internal = false/exposed = true).
+        return Object.entries(response).reduce(
+          (filtered, [key, component]) => {
+            if (component.status === arg.status) {
+              filtered[key] = component;
+            }
+            return filtered;
+          },
+          {} as Record<string, CodeComponentSerialized>,
+        );
+      },
     }),
     getCodeComponent: builder.query<CodeComponentSerialized, string>({
       query: (id) => `xb/api/config/js_component/${id}`,

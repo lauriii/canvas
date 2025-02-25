@@ -11,3 +11,9 @@
   padding-right: var(--space-1) !important;
   padding-left: var(--space-1) !important;
 }
+
+.addToComponentsButton {
+  padding-top: var(--editor-space-side);
+  padding-bottom: var(--editor-space-side);
+  border-bottom: 1px solid var(--slate-6);
+}

@@ -1,11 +1,16 @@
 import type { PayloadAction } from '@reduxjs/toolkit';
-import { createSlice } from '@reduxjs/toolkit';
+import { createSlice, createSelector } from '@reduxjs/toolkit';
 import { v4 as uuidv4 } from 'uuid';
 import type { RootState } from '@/app/store';
-import { getPropMachineName } from '@/features/code-editor/utils';
+import {
+  getPropMachineName,
+  serializeProps,
+  serializeSlots,
+} from '@/features/code-editor/utils';
 import type {
   CodeComponentProp,
   CodeComponentSlot,
+  CodeComponentSerialized,
 } from '@/types/CodeComponent';
 
 interface CodeEditorState {
@@ -269,6 +274,44 @@ export const selectCompiledJs = (state: RootState) =>
 export const selectProps = (state: RootState) => state.codeEditor.props;
 export const selectRequired = (state: RootState) => state.codeEditor.required;
 export const selectSlots = (state: RootState) => state.codeEditor.slots;
+
+export const selectCodeComponentSerialized = createSelector(
+  [
+    selectId,
+    selectName,
+    selectStatus,
+    selectProps,
+    selectRequired,
+    selectSlots,
+    selectSourceCodeJs,
+    selectSourceCodeCss,
+    selectCompiledJs,
+    selectCompiledCss,
+  ],
+  (
+    id,
+    name,
+    status,
+    props,
+    required,
+    slots,
+    sourceCodeJs,
+    sourceCodeCss,
+    compiledJs,
+    compiledCss,
+  ): CodeComponentSerialized => ({
+    machineName: id,
+    name,
+    status,
+    props: serializeProps(props),
+    required,
+    slots: serializeSlots(slots),
+    source_code_js: sourceCodeJs,
+    source_code_css: sourceCodeCss,
+    compiled_js: compiledJs,
+    compiled_css: compiledCss,
+  }),
+);
 
 export const {
   initializeCodeEditor,

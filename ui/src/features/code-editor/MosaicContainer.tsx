@@ -3,7 +3,7 @@ import { Mosaic, MosaicWindow } from 'react-mosaic-component';
 import './xb-react-mosaic-component.css';
 import { useState } from 'react';
 import JavaScriptEditor from '@/features/code-editor/editors/JavaScriptEditor';
-import { Button, ScrollArea, Tabs } from '@radix-ui/themes';
+import { Box, Button, ScrollArea, Tabs } from '@radix-ui/themes';
 import { LayoutIcon } from '@radix-ui/react-icons';
 import GlobalCssEditor from '@/features/code-editor/editors/GlobalCssEditor';
 import CssEditor from '@/features/code-editor/editors/CssEditor';
@@ -13,6 +13,12 @@ import Preview from '@/features/code-editor/Preview';
 import ComponentData from '@/features/code-editor/component-data/ComponentData';
 import useCodeComponentData from '@/features/code-editor/hooks/useCodeComponentData';
 import useAssetLibraryData from '@/features/code-editor/hooks/useAssetLibraryData';
+import { openAddToComponentsDialog } from '@/features/ui/codeComponentDialogSlice';
+import { useAppDispatch, useAppSelector } from '@/app/hooks';
+import {
+  selectCodeComponentSerialized,
+  selectStatus,
+} from '@/features/code-editor/codeEditorSlice';
 
 const defaultLayout: MosaicNode<string> = {
   direction: 'row',
@@ -41,6 +47,9 @@ const fullEditorLayout: MosaicNode<string> = {
 const MosaicContainer = () => {
   const [layout, setLayout] = useState<MosaicNode<string>>(defaultLayout);
   const [activeTab, setActiveTab] = useState('js');
+  const dispatch = useAppDispatch();
+  const selectedComponent = useAppSelector(selectCodeComponentSerialized);
+  const componentStatus = useAppSelector(selectStatus);
 
   const { isLoading: isLoadingCodeComponent } = useCodeComponentData();
   const { isLoading: isLoadingGlobalCss } = useAssetLibraryData();
@@ -137,6 +146,30 @@ const MosaicContainer = () => {
                   path={path}
                   title="Preview"
                   draggable={false}
+                  renderToolbar={({ title }) => {
+                    return (
+                      <Box width="100%">
+                        {componentStatus === false && (
+                          <Box px="4">
+                            <Box className={styles.addToComponentsButton}>
+                              <Button
+                                onClick={() => {
+                                  dispatch(
+                                    openAddToComponentsDialog(
+                                      selectedComponent,
+                                    ),
+                                  );
+                                }}
+                              >
+                                Add to components
+                              </Button>
+                            </Box>
+                          </Box>
+                        )}
+                        <div className="mosaic-window-title">{title}</div>
+                      </Box>
+                    );
+                  }}
                 >
                   <Preview />
                 </MosaicWindow>

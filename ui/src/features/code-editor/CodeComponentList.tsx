@@ -9,6 +9,7 @@ import { useGetCodeComponentsQuery } from '@/services/componentAndLayout';
 import {
   openDeleteDialog,
   openRenameDialog,
+  openAddToComponentsDialog,
 } from '@/features/ui/codeComponentDialogSlice';
 import { useAppDispatch } from '@/app/hooks';
 import type { CodeComponentSerialized } from '@/types/CodeComponent';
@@ -19,7 +20,7 @@ const CodeComponentList = () => {
     data: codeComponents,
     error,
     isLoading,
-  } = useGetCodeComponentsQuery();
+  } = useGetCodeComponentsQuery({ status: false });
   const dispatch = useAppDispatch();
   const { showBoundary } = useErrorBoundary();
   const navigate = useNavigate();
@@ -43,6 +44,10 @@ const CodeComponentList = () => {
     dispatch(openDeleteDialog(component));
   };
 
+  const handleAddToComponentsClick = (component: CodeComponentSerialized) => {
+    dispatch(openAddToComponentsDialog(component));
+  };
+
   return (
     <Spinner loading={isLoading}>
       <Flex direction="column" minHeight="var(--space-6)">
@@ -57,6 +62,11 @@ const CodeComponentList = () => {
                 </UnifiedMenu.Item>
                 <UnifiedMenu.Item onClick={() => handleRenameClick(component)}>
                   Rename
+                </UnifiedMenu.Item>
+                <UnifiedMenu.Item
+                  onClick={() => handleAddToComponentsClick(component)}
+                >
+                  Add to components
                 </UnifiedMenu.Item>
                 <UnifiedMenu.Separator />
                 <UnifiedMenu.Item

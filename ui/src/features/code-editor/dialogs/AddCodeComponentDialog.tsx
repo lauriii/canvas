@@ -24,7 +24,9 @@ const AddCodeComponentDialog = () => {
     await createCodeComponent({
       name: componentName,
       machineName: componentName.toLowerCase().replace(/\s+/g, '_'),
-      status: true,
+      // Mark this code component as "internal": do not make it available to Content Creators yet.
+      // @see docs/config-management.md, section 3.2.1
+      status: false,
       source_code_js: '',
       source_code_css: '',
       compiled_js: '',
