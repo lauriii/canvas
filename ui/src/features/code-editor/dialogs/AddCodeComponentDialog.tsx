@@ -80,18 +80,27 @@ const AddCodeComponentDialog = () => {
         isConfirmLoading: isLoading,
       }}
     >
-      <Flex direction="column" gap="2">
-        <DialogFieldLabel htmlFor={'componentName'}>
-          Component name
-        </DialogFieldLabel>
-        <TextField.Root
-          id={'componentName'}
-          value={componentName}
-          onChange={(e) => setComponentName(e.target.value)}
-          placeholder="Enter a name"
-          size="1"
-        />
-      </Flex>
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (componentName.trim()) {
+            handleSave();
+          }
+        }}
+      >
+        <Flex direction="column" gap="2">
+          <DialogFieldLabel htmlFor={'componentName'}>
+            Component name
+          </DialogFieldLabel>
+          <TextField.Root
+            id={'componentName'}
+            value={componentName}
+            onChange={(e) => setComponentName(e.target.value)}
+            placeholder="Enter a name"
+            size="1"
+          />
+        </Flex>
+      </form>
     </Dialog>
   );
 };
