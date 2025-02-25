@@ -1,11 +1,9 @@
 import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 
 /**
- * This hook takes an HTML element or array of HTML elements and returns a state containing the elements dimensions and position.
+ * This hook takes an HTML element or array of HTML elements and returns a state containing the elements' dimensions and position.
  * It uses a mutation observer and resize observer to ensure that even if the element changes size or position at any point
  * the returned values are updated.
- *
- * TODO reinstate the mutation observer if I can find a need for it?
  */
 
 interface Rect {
@@ -21,6 +19,32 @@ function elemIsVisible(elem: HTMLElement) {
     elem.offsetHeight ||
     elem.getClientRects().length
   );
+}
+
+function findParentBody(element: HTMLElement) {
+  let currentElement = element;
+
+  while (currentElement) {
+    if (currentElement.nodeName.toLowerCase() === 'body') {
+      return currentElement; // Found the body element
+    }
+    const parent = currentElement.parentElement;
+    if (!parent) break;
+    currentElement = parent;
+  }
+
+  return null; // Return null if no <body> is found
+}
+
+function isElementObservable(element: HTMLElement) {
+  const style = window.getComputedStyle(element);
+
+  // Check if the element is inline - inline elements to not fire resize events.
+  if (style.display === 'inline') {
+    return false;
+  }
+
+  return elemIsVisible(element);
 }
 
 function getMaxOfArray(numArray: number[]) {
@@ -48,7 +72,7 @@ function useSyncPreviewElementSize(input: HTMLElement[] | HTMLElement | null) {
   });
 
   const resizeObserverRef = useRef<ResizeObserver | null>(null);
-
+  const mutationObserverRef = useRef<MutationObserver | null>(null);
   const elementsRef = useRef<HTMLElement[] | null>(null);
 
   const recalculateBorder = useCallback(() => {
@@ -57,7 +81,7 @@ function useSyncPreviewElementSize(input: HTMLElement[] | HTMLElement | null) {
     const rights: number[] = [];
     const bottoms: number[] = [];
 
-    elementsRef.current?.forEach(function (el, i) {
+    elementsRef.current?.forEach((el) => {
       if (!el) {
         return;
       }
@@ -76,11 +100,13 @@ function useSyncPreviewElementSize(input: HTMLElement[] | HTMLElement | null) {
     const minLeft = getMinOfArray(lefts);
 
     if (elementsRef.current) {
-      setElementRect({
-        top: minTop,
-        left: minLeft,
-        width: getMaxOfArray(rights) - minLeft,
-        height: getMaxOfArray(bottoms) - minTop,
+      requestAnimationFrame(() => {
+        setElementRect({
+          top: minTop,
+          left: minLeft,
+          width: getMaxOfArray(rights) - minLeft,
+          height: getMaxOfArray(bottoms) - minTop,
+        });
       });
     }
   }, []);
@@ -93,14 +119,64 @@ function useSyncPreviewElementSize(input: HTMLElement[] | HTMLElement | null) {
   const init = useCallback(() => {
     // Disconnect existing observers
     resizeObserverRef.current?.disconnect();
+    mutationObserverRef.current?.disconnect();
 
     resizeObserverRef.current = new ResizeObserver((entries) => {
       entries.forEach(() => {
         recalculateBorder();
       });
     });
+
+    mutationObserverRef.current = new MutationObserver((mutationsList) => {
+      mutationsList.forEach((mutation) => {
+        // Calculate the borders immediately
+        recalculateBorder();
+        if (
+          mutation.type === 'attributes' &&
+          mutation.attributeName === 'style'
+        ) {
+          const target = mutation.target;
+          // Calculate borders again after transitionEnd event to take into account the final result/position of css animations
+          target.addEventListener('transitionend', recalculateBorder, {
+            once: true,
+          });
+        }
+      });
+    });
+
     elementsRef.current?.forEach((element) => {
-      resizeObserverRef.current?.observe(element);
+      /**
+       * <astro-island> elements (XB Code Components) are display: inline; and that means you can't observe them with
+       * resizeObserver. Here, if the element we're syncing with can't be observed we traverse up the DOM to find the
+       * first parent that can be and watch that instead
+       */
+      if (isElementObservable(element)) {
+        resizeObserverRef.current?.observe(element);
+      } else {
+        // Traverse up to find an observable parent
+        let parent = element.parentElement;
+        while (parent && !isElementObservable(parent)) {
+          parent = parent.parentElement;
+        }
+
+        if (parent) {
+          resizeObserverRef.current?.observe(parent);
+        } else {
+          console.warn(
+            'Element size cannot be observed because it does not have a valid/observable content rect.',
+          );
+        }
+      }
+
+      // Observe mutations on the body to account for other element's updating that may affect the position of this one
+      const parentBody = findParentBody(element);
+      if (parentBody) {
+        mutationObserverRef.current?.observe(parentBody, {
+          attributes: true,
+          childList: true,
+          subtree: true,
+        });
+      }
     });
   }, [recalculateBorder]);
 
@@ -112,6 +188,7 @@ function useSyncPreviewElementSize(input: HTMLElement[] | HTMLElement | null) {
     return () => {
       // Cleanup observers
       resizeObserverRef.current?.disconnect();
+      mutationObserverRef.current?.disconnect();
     };
   }, [init, elements]);
 
