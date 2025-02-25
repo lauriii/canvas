@@ -96,6 +96,8 @@ experience_builder.js_component.*:
       type: sequence
       sequence:
         type: mapping
+        constraints:
+          IsStorablePropShape: ~
         mapping:
           title:
             type: required_label
@@ -111,9 +113,20 @@ experience_builder.js_component.*:
                 - 'number'
                 - 'integer'
                 - 'boolean'
-                # @todo Consider adding `array` after https://www.drupal.org/i/3467870 is fixed.
-                # @todo Consider adding `object`, but defining _arbitrary_ object shapes is not yet supported.
+                # ⚠️ Defining _arbitrary_ object shapes is not yet supported. Currently only one such shape is
+                # supported: images, which requires `type: object` plus
+                # `$ref: json-schema-definitions://experience_builder.module/image`.
                 # @see \Drupal\experience_builder\JsonSchemaInterpreter\SdcPropJsonSchemaType::computeStorablePropShape()
+                - 'object'
+                # @todo Consider adding `array` after https://www.drupal.org/i/3467870 is fixed.
+          '$ref':
+            requiredKey: false
+            type: string
+            constraints:
+              # All choices listed here must be supported: they must have a corresponding storable prop shape.
+              # @see \Drupal\experience_builder\JsonSchemaInterpreter\SdcPropJsonSchemaType::computeStorablePropShape()
+              Choice:
+                - 'json-schema-definitions://experience_builder.module/image'
           description:
             requiredKey: false
             type: label

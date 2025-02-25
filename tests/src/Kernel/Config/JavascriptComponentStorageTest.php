@@ -134,13 +134,15 @@ final class JavascriptComponentStorageTest extends AssetLibraryStorageTest {
     $props['title']['format'] = 'hostname';
     $js_component->setProps($props);
     $this->assertSame([
+      'props.title' => 'Prop "<em class="placeholder">title</em>" has a shape that is unfortunately not supported by Experience Builder.',
       'props.title.format' => 'The value you selected is not a valid choice.',
     ], self::violationsToArray($js_component->getTypedData()->validate()));
     // @see the `Choice` constraints on `type: experience_builder.js_component.*`'s for prop `type`.
     unset($props['title']['format']);
-    $props['title']['type'] = 'object';
+    $props['title']['type'] = 'array';
     $js_component->setProps($props);
     $this->assertSame([
+      'props.title' => 'Prop "<em class="placeholder">title</em>" has a shape that is unfortunately not supported by Experience Builder.',
       'props.title.type' => 'The value you selected is not a valid choice.',
     ], self::violationsToArray($js_component->getTypedData()->validate()));
 

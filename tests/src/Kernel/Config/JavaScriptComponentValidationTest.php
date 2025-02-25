@@ -302,6 +302,93 @@ class JavaScriptComponentValidationTest extends ConfigEntityValidationTestBase {
         ],
         [],
       ],
+      'Valid: image prop' => [
+        [
+          'machineName' => 'test-props-no-slots',
+          'name' => 'Test',
+          'props' => [
+            'image' => [
+              'title' => 'Image title',
+              'type' => 'object',
+              '$ref' => "json-schema-definitions://experience_builder.module/image",
+              'examples' => [
+                'src' => 'https://example.com/image.png',
+                'alt' => 'Alternative text',
+                'width' => 800,
+                'height' => 600,
+              ],
+            ],
+          ],
+          'slots' => [],
+          'js' => [
+            'original' => 'console.log("Test")',
+            'compiled' => 'console.log("Test")',
+          ],
+          'css' => [
+            'original' => '.test { display: none; }',
+            'compiled' => '.test{display:none;}',
+          ],
+        ],
+        [],
+      ],
+      'Invalid: image prop missing examples' => [
+        [
+          'machineName' => 'test-props-no-slots',
+          'name' => 'Test',
+          '$ref' => "json-schema-definitions://experience_builder.module/image",
+          'props' => [
+            'image' => [
+              'title' => 'Image title',
+              'type' => 'object',
+            ],
+          ],
+          'slots' => [],
+          'js' => [
+            'original' => 'console.log("Test")',
+            'compiled' => 'console.log("Test")',
+          ],
+          'css' => [
+            'original' => '.test { display: none; }',
+            'compiled' => '.test{display:none;}',
+          ],
+        ],
+        [
+          'props.image' => [
+            'Prop "<em class="placeholder">image</em>" has a shape that is unfortunately not supported by Experience Builder.',
+            '\'examples\' is a required key.',
+          ],
+        ],
+      ],
+      'Invalid: image prop $ref' => [
+        [
+          'machineName' => 'test-props-no-slots',
+          'name' => 'Test',
+          'props' => [
+            'image' => [
+              'title' => 'Image title',
+              'type' => 'object',
+              'examples' => [
+                'src' => 'https://example.com/image.png',
+                'alt' => 'Alternative text',
+                'width' => 800,
+                'height' => 600,
+              ],
+            ],
+          ],
+          'slots' => [],
+          'js' => [
+            'original' => 'console.log("Test")',
+            'compiled' => 'console.log("Test")',
+          ],
+          'css' => [
+            'original' => '.test { display: none; }',
+            'compiled' => '.test{display:none;}',
+          ],
+        ],
+        [
+          'props.image' => 'Prop "<em class="placeholder">image</em>" has a shape that is unfortunately not supported by Experience Builder.',
+        ],
+      ],
     ];
   }
 
