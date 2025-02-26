@@ -86,6 +86,9 @@ class AutoSaveManager {
     ], $this->getTempStore()->getAll());
   }
 
+  /**
+   * @see \experience_builder_entity_update()
+   */
   public function delete(EntityInterface $entity): void {
     $this->cacheTagsInvalidator->invalidateTags([self::CACHE_TAG]);
     $this->getTempStore()->delete($this->getAutoSaveKey($entity));

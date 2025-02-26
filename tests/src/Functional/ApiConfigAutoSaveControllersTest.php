@@ -212,7 +212,7 @@ final class ApiConfigAutoSaveControllersTest extends HttpApiTestBase {
     // Assert auto-saving works for:
     // 1. the given *valid* entity values.
     $this->drupalLogin($this->httpApiUser);
-    $this->assertAutoSave($initial_entity, $entity_type_id, $entity_id);
+    $this->performAutoSave($initial_entity, $entity_type_id, $entity_id);
 
     // Assert that draft endpoints can be fetched.
     // Draft CSS/JS should not be available to unprivileged users.
@@ -235,13 +235,13 @@ final class ApiConfigAutoSaveControllersTest extends HttpApiTestBase {
 
     $this->assertSingleConfigAutoSaveList($original_entity, $initial_entity, $this->httpApiUser);
     // 2. the given *valid* entity values, with a garbage key-value pair added
-    $this->assertAutoSave($initial_entity + ['new_key' => 'new_value'], $entity_type_id, $entity_id);
+    $this->performAutoSave($initial_entity + ['new_key' => 'new_value'], $entity_type_id, $entity_id);
     $this->assertSingleConfigAutoSaveList($original_entity, $initial_entity + ['new_key' => 'new_value'], $this->httpApiUser);
     // 3. for an empty array (which obviously would not be a valid entity)
-    $this->assertAutoSave([], $entity_type_id, $entity_id);
+    $this->performAutoSave([], $entity_type_id, $entity_id);
     $this->assertSingleConfigAutoSaveList($original_entity, [], $this->httpApiUser);
     // 4. for pure garbage key-value pairs
-    $this->assertAutoSave(['any_key' => ['any' => 'value']], $entity_type_id, $entity_id);
+    $this->performAutoSave(['any_key' => ['any' => 'value']], $entity_type_id, $entity_id);
     $this->assertSingleConfigAutoSaveList($original_entity, ['any_key' => ['any' => 'value']], $this->httpApiUser);
 
     $this->assertSame($original_entity_array, $storage->loadUnchanged($entity_id)?->toArray(), 'The original entity was not changed by the auto-save.');

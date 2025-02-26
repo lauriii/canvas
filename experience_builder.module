@@ -51,7 +51,7 @@ require_once __DIR__ . '/experience_builder.redux_integrated_field_widgets.inc';
 require_once __DIR__ . '/experience_builder.semi_coupled_theme_engine.inc';
 // @see docs/data-model.md, section 3.1.2
 require_once __DIR__ . '/experience_builder.shape_matching.inc';
-
+require_once __DIR__ . '/experience_builder.auto_save.inc';
 require_once __DIR__ . '/experience_builder.force_render_with_twig.inc';
 
 /**

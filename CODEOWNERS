@@ -85,6 +85,14 @@
 /tests/src/Kernel/Entity/
 /tests/src/Kernel/Traits/Page*
 
+# Issues: https://www.drupal.org/project/issues/experience_builder?component=Auto-save
+[Auto-save] @tedbow @larowlan
+/src/AutoSaveData.php
+/src/AutoSave/
+/tests/src/Functional/*AutoSave*
+# Hook implementations for this functionality.
+/experience_builder.auto_save.inc
+
 # ⚠️
 # ⚠️ Highly experimental new concepts ⚠️
 # ⚠️

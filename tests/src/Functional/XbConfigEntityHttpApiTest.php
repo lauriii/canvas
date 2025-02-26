@@ -689,6 +689,13 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
     // @see docs/config-management.md#3.2.1
     $this->assertExposedCodeComponents([], 'HIT', $request_options);
 
+    // Create an auto-save entry for this config entity, to verify that neither
+    // the "list" nor the "individual" API responses tested here are affected by
+    // it.
+    $auto_save_data = $code_component_to_send;
+    $auto_save_data['name'] = 'Auto-save title, should not affect GET requests';
+    $this->performAutoSave($auto_save_data, 'js_component', 'test');
+
     // Modify a Code Component correctly: 200.
     // ⚠️This is changing it from `internal` → `exposed`, for the first time,
     // this must trigger the creation a corresponding `Component` config entity.
@@ -705,6 +712,8 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
     $this->assertNotNull(Component::load('js.test'));
     $this->assertExposedCodeComponents(['js.test'], 'MISS', $request_options);
     $this->assertExposedCodeComponents(['js.test'], 'HIT', $request_options);
+    // Confirm that there is no auto-save anymore.
+    $this->assertCurrentAutoSave(204, NULL, 'js_component', 'test');
 
     // Modify a Code Component correctly: 200.
     // ⚠️This is changing it from `exposed` → `internal`. This must cause the
@@ -725,13 +734,6 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
     $this->assertExposedCodeComponents([], 'MISS', $request_options);
     $this->assertExposedCodeComponents([], 'HIT', $request_options);
 
-    // Create an auto-save entry for this config entity, to verify that neither
-    // the "list" nor the "individual" API responses tested here are affected by
-    // it.
-    $auto_save_data = $code_component_to_send;
-    $auto_save_data['name'] = 'Auto-save title, should not affect GET requests';
-    $this->assertAutoSave($auto_save_data, 'js_component', 'test');
-
     $body = $this->assertExpectedResponse('GET', $list_url, [], 200, [
       'languages:language_interface',
       'theme',
@@ -744,6 +746,11 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
       'test' => $expected_component,
     ], $body);
 
+    // Create a new auto-save entry.
+    $auto_save_data = $code_component_to_send;
+    $auto_save_data['name'] = 'Auto-save title, should not affect GET requests';
+    $this->performAutoSave($auto_save_data, 'js_component', 'test');
+
     // Delete the 'test' Code Component via the XB HTTP API: 204.
     $body = $this->assertExpectedResponse('DELETE', Url::fromUri('base:/xb/api/config/js_component/test'), [], 204, NULL, NULL, NULL, NULL);
     $this->assertNull($body);
@@ -752,6 +759,8 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
     // @see docs/config-management.md#3.2.1
     $this->assertExposedCodeComponents([], 'MISS', $request_options);
     $this->assertExposedCodeComponents([], 'HIT', $request_options);
+    // Confirm that there is no auto-save anymore.
+    $this->assertCurrentAutoSave(404, NULL, 'js_component', 'test');
 
     // Re-retrieve list: 200, empty list. Dynamic Page Cache miss.
     $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.permissions'], ['config:js_component_list', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');

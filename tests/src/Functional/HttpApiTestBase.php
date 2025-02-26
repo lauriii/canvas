@@ -72,7 +72,7 @@ abstract class HttpApiTestBase extends FunctionalTestBase {
   /**
    * Asserts the given data can be auto-saved (and retrieved) correctly.
    */
-  protected function assertAutoSave(array $data_to_autosave, string $entity_type_id, string $entity_id): void {
+  protected function performAutoSave(array $data_to_autosave, string $entity_type_id, string $entity_id): void {
     $request_options = [
       RequestOptions::HEADERS => [
         'Content-Type' => 'application/json',
@@ -83,20 +83,57 @@ abstract class HttpApiTestBase extends FunctionalTestBase {
     $patch_response = $this->assertExpectedResponse('PATCH', $auto_save_url, $request_options, 200, NULL, NULL, NULL, NULL);
     $this->assertSame([], $patch_response);
 
-    // First GET request: 200 aka auto-save retrieved successfully.
-    unset($request_options[RequestOptions::JSON]);
-    $auto_save_data = $this->assertExpectedResponse('GET', $auto_save_url, $request_options, 200, ['user.permissions'], ['experience_builder__autosave', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
-    $this->assertSame($data_to_autosave, $auto_save_data);
-    // Repeat the same request: 200, but now is a Dynamic Page Cache hit.
-    $auto_save_data = $this->assertExpectedResponse('GET', $auto_save_url, $request_options, 200, ['user.permissions'], ['experience_builder__autosave', 'http_response'], 'UNCACHEABLE (request policy)', 'HIT');
-    $this->assertSame($data_to_autosave, $auto_save_data);
+    $this->assertCurrentAutoSave(200, $data_to_autosave, $entity_type_id, $entity_id);
+  }
+
+  /**
+   * Asserts the current auto-save data for the given entity.
+   */
+  protected function assertCurrentAutoSave(int $expected_status_code, ?array $expected_auto_save, string $entity_type_id, string $entity_id): void {
+    $request_options = [
+      RequestOptions::HEADERS => [
+        'Content-Type' => 'application/json',
+      ],
+    ];
+    $auto_save_url = Url::fromUri("base:/xb/api/config/auto-save/$entity_type_id/$entity_id");
+
+    // First GET request: auto-save retrieved successfully?
+    // - 200 if there is a current auto-save
+    // - 204 if there isn't one
+    // - 404 if this entity does not exist (anymore)
+    if ($expected_status_code < 400) {
+      $auto_save_data = $this->assertExpectedResponse('GET', $auto_save_url, $request_options, $expected_status_code, ['user.permissions'], ['experience_builder__autosave', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
+      $this->assertSame($expected_auto_save, $auto_save_data);
+    }
+    else {
+      $this->assertExpectedResponse('GET', $auto_save_url, $request_options, $expected_status_code, NULL, NULL, 'UNCACHEABLE (request policy)', 'UNCACHEABLE (no cacheability)');
+    }
+
+    if ($expected_status_code < 400) {
+      // Repeat the same request: same status code, but now is a Dynamic Page
+      // Cache hit.
+      $auto_save_data = $this->assertExpectedResponse('GET', $auto_save_url, $request_options, $expected_status_code, ['user.permissions'], ['experience_builder__autosave', 'http_response'], 'UNCACHEABLE (request policy)', 'HIT');
+      $this->assertSame($expected_auto_save, $auto_save_data);
+    }
 
     // The expected array must also match what the AutoSaveManager currently contains.
     $storage = $this->container->get(EntityTypeManagerInterface::class)->getStorage($entity_type_id);
     $entity = $storage->loadUnchanged($entity_id);
+    // When the underlying entity has been deleted, parameter upcasting fails
+    // and a 404 is the result: no auto-saves for deleted entities.
+    if ($expected_status_code === 404) {
+      // The entity is deleted.
+      $this->assertNull($entity);
+      // No corresponding auto-save entries exists.
+      $auto_save_keys = \array_keys($this->container->get(AutoSaveManager::class)->getAllAutoSaveList());
+      // Auto save keys start with the entity type ID and ID, but could also
+      // include a language ID if the entity supports translation.
+      self::assertCount(0, \array_filter($auto_save_keys, static fn (string $key): bool => \str_starts_with($key, "$entity_type_id:$entity_id")));
+      return;
+    }
     assert($entity instanceof EntityInterface);
     $data = $this->container->get(AutoSaveManager::class)->getAutoSaveData($entity)->data;
-    $this->assertSame($data_to_autosave, $data);
+    $this->assertSame($expected_auto_save, $data);
   }
 
 }
