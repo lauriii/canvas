@@ -24,7 +24,6 @@ use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Plugin\Discovery\YamlDiscovery;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
-use Drupal\Core\Url;
 use Drupal\datetime\Plugin\Field\FieldType\DateTimeItem;
 use Drupal\experience_builder\Entity\AssetLibrary;
 use Drupal\experience_builder\Entity\Component;
@@ -512,18 +511,12 @@ function experience_builder_library_info_build(): array {
     if ($library->hasCss()) {
       $libraries[$library_name]['css']['theme'][$library->getCssPath()] = [];
     }
-    $draft_css_url = Url::fromRoute('experience_builder.api.config.auto-save.get.css', [
-      'xb_config_entity_type_id' => AssetLibrary::ENTITY_TYPE_ID,
-      'xb_config_entity' => $library_id,
-    ])->toString();
+    $draft_css_url = \sprintf('/xb/api/autosaves/css/%s/%s', AssetLibrary::ENTITY_TYPE_ID, $library_id);
     $libraries[$library_name . '.draft']['css']['theme'][$draft_css_url] = [];
     if ($library->hasJs()) {
       $libraries[$library_name]['js'][$library->getJsPath()] = [];
     }
-    $draft_js_url = Url::fromRoute('experience_builder.api.config.auto-save.get.js', [
-      'xb_config_entity_type_id' => AssetLibrary::ENTITY_TYPE_ID,
-      'xb_config_entity' => $library_id,
-    ])->toString();
+    $draft_js_url = \sprintf('/xb/api/autosaves/js/%s/%s', AssetLibrary::ENTITY_TYPE_ID, $library_id);
     $libraries[$library_name . '.draft']['js'][$draft_js_url] = [];
   }
 
@@ -533,10 +526,7 @@ function experience_builder_library_info_build(): array {
     if ($component->hasCss()) {
       $libraries[$library_name]['css']['component'][$component->getCssPath()] = [];
     }
-    $draft_css_url = Url::fromRoute('experience_builder.api.config.auto-save.get.css', [
-      'xb_config_entity_type_id' => JavaScriptComponent::ENTITY_TYPE_ID,
-      'xb_config_entity' => $component_id,
-    ])->toString();
+    $draft_css_url = \sprintf('/xb/api/autosaves/css/%s/%s', JavaScriptComponent::ENTITY_TYPE_ID, $component_id);
     $libraries[$library_name . '.draft']['css']['component'][$draft_css_url] = [];
   }
 

@@ -67,8 +67,8 @@ final class ApiLayoutControllerTest extends HttpApiTestBase {
         'compiled' => 'console.log("Hey there")',
       ],
       'css' => [
-        'original' => '',
-        'compiled' => '',
+        'original' => '.foo{color:red}',
+        'compiled' => '.foo{color:red}',
       ],
     ];
     $code_component = JavaScriptComponent::create($saved_component_values);
@@ -87,6 +87,12 @@ final class ApiLayoutControllerTest extends HttpApiTestBase {
     // But store an overridden version in autosave (draft).
     /** @var \Drupal\experience_builder\AutoSave\AutoSaveManager $autoSave */
     $autoSave = $this->container->get(AutoSaveManager::class);
+    // Autosave entries should match the format sent by the client.
+    $saved_component_values['source_code_js'] = $saved_component_values['js']['original'];
+    $saved_component_values['compiled_js'] = $saved_component_values['js']['compiled'];
+    $saved_component_values['source_code_css'] = $saved_component_values['css']['original'];
+    $saved_component_values['compiled_css'] = $saved_component_values['css']['compiled'];
+    unset($saved_component_values['js'], $saved_component_values['css']);
     $autoSave->save($code_component, $saved_component_values);
 
     // Load the test data from the layout controller.
@@ -160,6 +166,13 @@ final class ApiLayoutControllerTest extends HttpApiTestBase {
       'name' => 'Here comes the',
       'value' => 'preact',
     ]), $element->attr('opts') ?? '');
+    // And we should have our style tag.
+    $links = \array_map(static fn (mixed $link) => \parse_url((string) $link, \PHP_URL_PATH), $crawler->filter('link[rel="stylesheet"]')->extract(['href']));
+    $draft_css_url = Url::fromRoute('experience_builder.api.config.auto-save.get.css', [
+      'xb_config_entity_type_id' => JavaScriptComponent::ENTITY_TYPE_ID,
+      'xb_config_entity' => 'hey_there',
+    ])->toString();
+    self::assertContains($draft_css_url, $links);
 
     // Updating the auto-save should invalidate the config cache and cause the
     // new value to be used on a subsequent POST.
