@@ -28,13 +28,30 @@ class AutoSaveManager {
     return $this->tempStoreFactory->get('experience_builder.auto_save', expire: $expire);
   }
 
+  protected function getHashStore(): AutoSaveTempStore {
+    // Store for 30 days.
+    $expire = 86400 * 30;
+    // We need to fetch a new shared temp store from the factory for each
+    // usage because the current user can change in the lifetime of a request.
+    return $this->tempStoreFactory->get('experience_builder.auto_save.hashes', expire: $expire);
+  }
+
   public function save(EntityInterface $entity, array $data): void {
     $key = $this->getAutoSaveKey($entity);
+    $data_hash = self::generateHash($data);
+    $stored_hash = $this->readHash($entity);
+    if ($stored_hash !== NULL && \hash_equals($stored_hash, $data_hash)) {
+      // We've reset back to the original values. Clear the autosave entry but
+      // keep the hash.
+      $this->delete($entity, FALSE);
+      return;
+    }
+
     $auto_save_data = [
       'entity_type' => $entity->getEntityTypeId(),
       'entity_id' => $entity->id(),
       'data' => $data,
-      'data_hash' => \hash('xxh64', \serialize($data)),
+      'data_hash' => $data_hash,
       'langcode' => $entity instanceof TranslatableInterface ? $entity->language()->getId() : NULL,
       'label' => self::getLabelToSave($entity, $data),
     ];
@@ -56,6 +73,15 @@ class AutoSaveManager {
       return $entity->getEntityTypeId() . ':' . $entity->id() . ':' . $entity->language()->getId();
     }
     return $entity->getEntityTypeId() . ':' . $entity->id();
+  }
+
+  public function recordInitialClientSideRepresentation(EntityInterface $entity, array $data): static {
+    $this->getHashStore()->set(self::getAutoSaveKey($entity), self::generateHash($data));
+    return $this;
+  }
+
+  private function readHash(EntityInterface $entity): ?string {
+    return $this->getHashStore()->get(self::getAutoSaveKey($entity));
   }
 
   public function getAutoSaveData(EntityInterface $entity): AutoSaveData {
@@ -89,14 +115,29 @@ class AutoSaveManager {
   /**
    * @see \experience_builder_entity_update()
    */
-  public function delete(EntityInterface $entity): void {
+  public function delete(EntityInterface $entity, bool $resetHash = TRUE): void {
     $this->cacheTagsInvalidator->invalidateTags([self::CACHE_TAG]);
     $this->getTempStore()->delete($this->getAutoSaveKey($entity));
+    if ($resetHash) {
+      $this->getHashStore()->delete($this->getAutoSaveKey($entity));
+    }
   }
 
   public function deleteAll(): void {
     $this->cacheTagsInvalidator->invalidateTags([self::CACHE_TAG]);
     $this->getTempStore()->deleteAll();
+    $this->getHashStore()->deleteAll();
+  }
+
+  private static function generateHash(array $data): string {
+    // We use \json_encode here instead of \serialize because we're not dealing
+    // with PHP Objects and this ensures the representation hashed from PHP is
+    // consistent with the representation transmitted by the client. Some of the
+    // UTF characters we use in expressions are represented differently in JSON
+    // encoding and hence using \serialize would yield two different hashes
+    // depending on whether the hashing occurred before/after transfer from the
+    // client.
+    return \hash('xxh64', \json_encode($data, JSON_THROW_ON_ERROR));
   }
 
 }

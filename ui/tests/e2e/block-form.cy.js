@@ -81,11 +81,14 @@ describe('Block form', () => {
     // Publish the page with the new component.
     cy.intercept('POST', '**/xb/api/autosaves/publish').as('publish');
 
-    // @todo Change this to `1 change` in https://www.drupal.org/i/3502902
-    cy.findByText('Review 13 changes').click();
+    // Extra long timeout here, because the poll to get changes is every 10 seconds.
+    cy.debugPause('Manually check changes in the XB UI');
+    // Both the header region and the node itself should have changes.
+    cy.findByText('Review 2 changes').click();
 
     cy.findByTestId('xb-publish-reviews-content').within(() => {
       cy.findByText('XB With a block in the layout');
+      cy.findByText('Header region in the Olivero theme');
       cy.findByText('Publish all changes').click();
       cy.findByText('Publishing').should('exist');
       cy.findByText('Publishing').should('not.exist');

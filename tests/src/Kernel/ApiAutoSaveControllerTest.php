@@ -26,6 +26,7 @@ use Drupal\node\NodeInterface;
 use Drupal\Tests\block\Traits\BlockCreationTrait;
 use Drupal\Tests\experience_builder\Kernel\Traits\RequestTrait;
 use Drupal\Tests\experience_builder\TestSite\XBTestSetup;
+use Drupal\Tests\experience_builder\Traits\AutoSaveManagerTestTrait;
 use Drupal\Tests\experience_builder\Traits\OpenApiSpecTrait;
 use Drupal\Tests\experience_builder\Traits\TestDataUtilitiesTrait;
 use Drupal\Tests\experience_builder\Traits\XBFieldTrait;
@@ -41,6 +42,7 @@ use Symfony\Component\HttpFoundation\Response;
  */
 final class ApiAutoSaveControllerTest extends KernelTestBase {
 
+  use AutoSaveManagerTestTrait;
   use UserCreationTrait;
   use OpenApiSpecTrait;
   use BlockCreationTrait;
@@ -236,7 +238,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
         'uri' => $account1->toUrl()->toString(),
       ],
       'label' => $new_title,
-      'data_hash' => \hash('xxh64', \serialize($data)),
+      'data_hash' => self::generateAutoSaveHash($data),
     ], \array_diff_key($content['node:1:en'], \array_flip(['updated'])));
     self::assertEquals([
       'langcode' => 'en',
@@ -249,7 +251,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
         'uri' => $account2->toUrl()->toString(),
       ],
       'label' => $account2content->label(),
-      'data_hash' => \hash('xxh64', \serialize($emptyData)),
+      'data_hash' => self::generateAutoSaveHash($emptyData),
     ], \array_diff_key($content['node:2:en'], \array_flip(['updated'])));
     $anonAccount = User::load(0);
     self::assertInstanceOf(AccountInterface::class, $anonAccount);
@@ -268,7 +270,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
         'uri' => $anonAccount->toUrl()->toString(),
       ],
       'label' => $anonAccountContent->label(),
-      'data_hash' => \hash('xxh64', \serialize($emptyData)),
+      'data_hash' => self::generateAutoSaveHash($emptyData),
     ], \array_diff_key($content[$anonContentIdentifier], \array_flip(['updated'])));
     self::assertEquals([
       'langcode' => NULL,
@@ -281,7 +283,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
         'uri' => $account1->toUrl()->toString(),
       ],
       'label' => 'Highlighted region in the Stark theme',
-      'data_hash' => \hash('xxh64', \serialize($regionData)),
+      'data_hash' => self::generateAutoSaveHash($regionData),
     ], \array_diff_key($content['page_region:stark.highlighted'], \array_flip(['updated'])));
     self::assertEquals([
       'langcode' => NULL,
@@ -294,7 +296,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
         'uri' => $account2->toUrl()->toString(),
       ],
       'label' => $code_component->label(),
-      'data_hash' => \hash('xxh64', \serialize(['dummy' => 'js_component: auto-save data is not validated'])),
+      'data_hash' => self::generateAutoSaveHash(['dummy' => 'js_component: auto-save data is not validated']),
     ], \array_diff_key($content['js_component:test_code'], \array_flip(['updated'])));
     self::assertEquals([
       'langcode' => NULL,
@@ -307,7 +309,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
         'uri' => $account2->toUrl()->toString(),
       ],
       'label' => $library->label(),
-      'data_hash' => \hash('xxh64', \serialize(['dummy' => 'xb_asset_library: auto-save data is not validated'])),
+      'data_hash' => self::generateAutoSaveHash(['dummy' => 'xb_asset_library: auto-save data is not validated']),
     ], \array_diff_key($content['xb_asset_library:global'], \array_flip(['updated'])));
     $this->assertDataCompliesWithApiSpecification($content, 'AutoSaveCollection');
   }

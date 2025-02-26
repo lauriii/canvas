@@ -34,6 +34,8 @@ class XBTestSetup implements TestSetupInterface {
   use CreateTestJsComponentTrait;
 
   public function setup(): void {
+    $module_installer = \Drupal::service('module_installer');
+    $module_installer->install(['system', 'user']);
     $config_factory = \Drupal::configFactory();
     $config = $config_factory->getEditable('system.logging');
     $config->set('error_level', ERROR_REPORTING_DISPLAY_VERBOSE);

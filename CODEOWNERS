@@ -89,7 +89,7 @@
 [Auto-save] @tedbow @larowlan
 /src/AutoSaveData.php
 /src/AutoSave/
-/tests/src/Functional/*AutoSave*
+/tests/**/*AutoSave*
 # Hook implementations for this functionality.
 /experience_builder.auto_save.inc
 

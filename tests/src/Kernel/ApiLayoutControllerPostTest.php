@@ -13,6 +13,8 @@ use Drupal\experience_builder\Entity\Component;
 use Drupal\experience_builder\Entity\JavaScriptComponent;
 use Drupal\experience_builder\Entity\PageRegion;
 use Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\JsComponent;
+use Drupal\node\Entity\Node;
+use Drupal\node\NodeInterface;
 use Drupal\Tests\experience_builder\TestSite\XBTestSetup;
 use Symfony\Component\DomCrawler\Crawler;
 use Symfony\Component\HttpFoundation\Request;
@@ -131,8 +133,14 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
     // Load the test data from the layout controller.
     $content = $this->parentRequest(Request::create('/xb/api/layout/node/1'))->getContent();
     $this->assertIsString($content);
-    $model = json_decode($content, TRUE)['model'];
+    $json = json_decode($content, TRUE);
+    $model = $json['model'];
     $this->request(Request::create('/xb/api/layout/node/1', method: 'POST', content: $this->filterLayoutForPost($content)));
+    $autoSave = $this->container->get(AutoSaveManager::class);
+    \assert($autoSave instanceof AutoSaveManager);
+    $node = Node::load(1);
+    \assert($node instanceof NodeInterface);
+    self::assertTrue($autoSave->getAutoSaveData($node)->isEmpty());
 
     // Check that each level is structured correctly.
     $root = $this->cssSelect('main div[data-xb-region][data-xb-uuid="content"]');
@@ -141,6 +149,29 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
     preg_match_all('/(xb-start-)(.*?)[\/ \t](.*?)(-->)(.*?)/', $root[0]->asXML() ?: '', $slot_and_component_comments);
     $this->assertCount(6, $slot_and_component_comments[2]);
     $this->assertSame(array_keys($model), $slot_and_component_comments[2]);
+
+    // Add a new component to the content region.
+    $uuid = '173c4899-a5f7-442a-b008-ea8c925735be';
+    $json['model'][$uuid] = self::getNewHeadingComponentModel();
+    unset($json['isNew']);
+    unset($json['isPublished']);
+    $json['layout'][0]['components'][] = [
+      'nodeType' => 'component',
+      'uuid' => $uuid,
+      'type' => 'sdc.experience_builder.heading',
+      'slots' => [],
+    ];
+    $this->request(Request::create('/xb/api/layout/node/1', method: 'POST', content: \json_encode($json, JSON_THROW_ON_ERROR)));
+    \assert($autoSave instanceof AutoSaveManager);
+    self::assertFalse($autoSave->getAutoSaveData($node)->isEmpty());
+
+    // Now re-fetch the layout to confirm we don't update the hash if an autosave
+    // entry already exists.
+    $content = $this->parentRequest(Request::create('/xb/api/layout/node/1'))->getContent();
+    self::assertIsString($content);
+    $json = json_decode($content, TRUE);
+    self::assertFalse($autoSave->getAutoSaveData($node)->isEmpty());
+    self::assertArrayHasKey($uuid, $json['model']);
   }
 
   public function testWithGlobal(): void {
@@ -157,11 +188,39 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
     self::assertCount(1, $highlightedRegion);
     self::assertGreaterThanOrEqual(1, \count(\reset($highlightedRegion)['components']));
     $this->request(Request::create('/xb/api/layout/node/1', method: 'POST', content: $this->filterLayoutForPost($content)));
+    $autoSave = $this->container->get(AutoSaveManager::class);
+    \assert($autoSave instanceof AutoSaveManager);
+    $node = Node::load(1);
+    \assert($node instanceof NodeInterface);
+    self::assertTrue($autoSave->getAutoSaveData($node)->isEmpty());
+    foreach ($regions as $region) {
+      self::assertTrue($autoSave->getAutoSaveData($region)->isEmpty());
+    }
 
     // Check that regions exist and are wrapped.
     $crawler = new Crawler($this->content);
     self::assertCount(1, $crawler->filter('[data-xb-uuid="content"]'));
     self::assertCount(1, $crawler->filter('[data-xb-uuid="highlighted"]'));
+
+    // Add a new component to a global region.
+    $uuid = '173c4899-a5f7-442a-b008-ea8c925735be';
+    $json['model'][$uuid] = self::getNewHeadingComponentModel();
+    unset($json['isNew']);
+    unset($json['isPublished']);
+    $json['layout'][\key($highlightedRegion)]['components'][] = [
+      'nodeType' => 'component',
+      'uuid' => $uuid,
+      'type' => 'sdc.experience_builder.heading',
+      'slots' => [],
+    ];
+    $this->request(Request::create('/xb/api/layout/node/1', method: 'POST', content: \json_encode($json, JSON_THROW_ON_ERROR)));
+    $autoSave = $this->container->get(AutoSaveManager::class);
+    \assert($autoSave instanceof AutoSaveManager);
+    self::assertTrue($autoSave->getAutoSaveData($node)->isEmpty());
+    foreach ($regions as $region) {
+      \assert($region instanceof PageRegion);
+      self::assertEquals($region->get('region') !== 'highlighted', $autoSave->getAutoSaveData($region)->isEmpty());
+    }
   }
 
   public function testWithDraftCodeComponent(): void {
@@ -281,6 +340,78 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
       'xb_config_entity_type_id' => JavaScriptComponent::ENTITY_TYPE_ID,
       'xb_config_entity' => 'hey_there',
     ])->toString(), $element->attr('component-url'));
+  }
+
+  private static function getNewHeadingComponentModel(): array {
+    return [
+      'resolved' => [
+        'text' => 'This is a random heading.',
+        'style' => 'primary',
+        'element' => 'h1',
+      ],
+      'source' => [
+        'text' => [
+          'sourceType' => 'static:field_item:string',
+          'expression' => 'ℹ︎string␟value',
+        ],
+        'style' => [
+          'sourceType' => 'static:field_item:list_string',
+          'expression' => 'ℹ︎list_string␟value',
+          'sourceTypeSettings' => [
+            'storage' => [
+              'allowed_values' => [
+                [
+                  'value' => 'primary',
+                  'label' => 'primary',
+                ],
+                [
+                  'value' => 'secondary',
+                  'label' => 'secondary',
+                ],
+              ],
+            ],
+          ],
+        ],
+        'element' => [
+          'sourceType' => 'static:field_item:list_string',
+          'expression' => 'ℹ︎list_string␟value',
+          'sourceTypeSettings' => [
+            'storage' => [
+              'allowed_values' => [
+                [
+                  'value' => 'div',
+                  'label' => 'div',
+                ],
+                [
+                  'value' => 'h1',
+                  'label' => 'h1',
+                ],
+                [
+                  'value' => 'h2',
+                  'label' => 'h2',
+                ],
+                [
+                  'value' => 'h3',
+                  'label' => 'h3',
+                ],
+                [
+                  'value' => 'h4',
+                  'label' => 'h4',
+                ],
+                [
+                  'value' => 'h5',
+                  'label' => 'h5',
+                ],
+                [
+                  'value' => 'h6',
+                  'label' => 'h6',
+                ],
+              ],
+            ],
+          ],
+        ],
+      ],
+    ];
   }
 
   /**

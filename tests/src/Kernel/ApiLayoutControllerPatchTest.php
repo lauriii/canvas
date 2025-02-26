@@ -5,9 +5,12 @@ declare(strict_types=1);
 namespace Drupal\Tests\experience_builder\Kernel;
 
 use Drupal\Core\File\FileUrlGeneratorInterface;
+use Drupal\experience_builder\AutoSave\AutoSaveManager;
 use Drupal\experience_builder\Entity\PageRegion;
 use Drupal\file\FileInterface;
 use Drupal\media\MediaInterface;
+use Drupal\node\Entity\Node;
+use Drupal\node\NodeInterface;
 use Drupal\Tests\experience_builder\TestSite\XBTestSetup;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -91,6 +94,9 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
    * @dataProvider providerValid
    */
   public function test(bool $withAutoSave = FALSE, bool $withGlobal = FALSE): void {
+    $autoSave = $this->container->get(AutoSaveManager::class);
+    \assert($autoSave instanceof AutoSaveManager);
+    $regions = [];
     if ($withGlobal) {
       $regions = PageRegion::createFromBlockLayout('stark');
       foreach ($regions as $region) {
@@ -123,10 +129,18 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
 
     $model = json_decode($content, TRUE)['model'];
 
+    $node = Node::load(1);
+    \assert($node instanceof NodeInterface);
     if ($withAutoSave) {
-      // Perform a POST first to trigger an auto-save entry.
+      // Perform a POST first to trigger the auto-save manager being called.
+      // This will not result in an auto-save entry because the content is the
+      // same as the saved version.
       $response = $this->request(Request::create('/xb/api/layout/node/1', method: 'POST', content: $this->filterLayoutForPost($content)));
       self::assertEquals(Response::HTTP_OK, $response->getStatusCode());
+      self::assertTrue($autoSave->getAutoSaveData($node)->isEmpty());
+      foreach ($regions as $region) {
+        self::assertTrue($autoSave->getAutoSaveData($region)->isEmpty());
+      }
     }
 
     // Update the image.
@@ -152,6 +166,11 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
     // The new model should contain the updated value.
     $data = self::decodeResponse($response);
     self::assertEquals($media->id(), $data['model']['static-image-udf7d']['resolved']['image']);
+
+    self::assertFalse($autoSave->getAutoSaveData($node)->isEmpty());
+    foreach ($regions as $region) {
+      self::assertTrue($autoSave->getAutoSaveData($region)->isEmpty());
+    }
 
     // Check that each level is structured correctly.
     $root = $this->cssSelect('main div[data-xb-region][data-xb-uuid="content"]');
@@ -182,6 +201,33 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
     $image_url = $this->container->get(FileUrlGeneratorInterface::class)->generateString($fileUri);
     $images = $this->cssSelect(\sprintf('img[src="%s"]', $image_url));
     self::assertCount(2, $images);
+
+    if ($withGlobal) {
+      $new_label = $this->randomMachineName();
+      // Patch a global component.
+      $globalComponentUuid = reset($globalElements);
+      $response = $this->request(Request::create('/xb/api/layout/node/1', method: 'PATCH', content: \json_encode([
+        'model' => [
+          'resolved' => [
+            'label' => $new_label,
+            'label_display' => '',
+          ],
+        ],
+        'componentType' => 'block.system_messages_block',
+        'componentInstanceUuid' => $globalComponentUuid,
+      ], JSON_THROW_ON_ERROR)));
+
+      // The new model should contain the updated value.
+      $data = self::decodeResponse($response);
+      self::assertEquals($new_label, $data['model'][$globalComponentUuid]['resolved']['label']);
+
+      self::assertFalse($autoSave->getAutoSaveData($node)->isEmpty());
+      foreach ($regions as $region) {
+        // The updated component is in sidebar_first and so autosave should not
+        // be empty.
+        self::assertEquals($region->get('region') !== 'sidebar_first', $autoSave->getAutoSaveData($region)->isEmpty());
+      }
+    }
   }
 
   public static function providerValid(): iterable {

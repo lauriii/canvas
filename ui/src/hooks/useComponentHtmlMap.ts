@@ -8,7 +8,7 @@ export function useComponentHtmlMap(iframe: HTMLIFrameElement | null) {
 
   useEffect(() => {
     const iframeDocument = iframe?.contentDocument;
-    if (!iframeDocument) {
+    if (!iframeDocument || !iframeDocument.body) {
       return;
     }
     updateRegionsMap(mapRegions(iframeDocument));

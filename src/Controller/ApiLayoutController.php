@@ -75,8 +75,12 @@ final class ApiLayoutController {
     $content_entity_type = $entity->getEntityType();
     $is_published = $entity->isPublished();
 
-    if ($body = $this->autoSaveManager->getAutoSaveData($entity)->data) {
+    $autoSaveData = $this->autoSaveManager->getAutoSaveData($entity);
+    if (!$autoSaveData->isEmpty()) {
+      $body = $autoSaveData->data;
+      \assert(\is_array($body));
       ['layout' => $layout, 'model' => $model, 'entity_form_fields' => $entity_form_fields] = $body;
+      $content_layout = $layout[0];
       $label_field_input_name = sprintf("%s[0][value]", $content_entity_type->getKey('label'));
       $is_new = $this->contentEntityIsConsideredNew($entity_form_fields[$label_field_input_name], $content_entity_type);
     }
@@ -87,11 +91,35 @@ final class ApiLayoutController {
       $field_name = InternalXbFieldNameResolver::getXbFieldName($entity);
       $tree = $entity->get($field_name)->first();
       assert($tree instanceof ComponentTreeItem);
-      $layout = [$this->buildRegion(XbPageVariant::MAIN_CONTENT_REGION, $tree, $model)];
+      $content_layout = $this->buildRegion(XbPageVariant::MAIN_CONTENT_REGION, $tree, $model);
+      $layout = [$content_layout];
       $is_new = $this->contentEntityIsConsideredNew((string) $entity->label(), $content_entity_type);
+      // Remember the initial client-side representation of this XB-enabled
+      // content entity (prior to auto-saves existing), to allow detecting when
+      // an auto-save request from the client should actually be stored (i.e.
+      // when changes are detected).
+      $this->autoSaveManager->recordInitialClientSideRepresentation($entity, [
+        'layout' => [$content_layout],
+        'model' => self::extractModelForSubtree($content_layout, $model),
+        'entity_form_fields' => $entity_form_fields,
+      ]);
     }
 
     if ($regions) {
+      // Also remember the initial client-side representation of (editable)
+      // PageRegions without prior auto-saves existing.
+      foreach ($regions as $id => $region) {
+        assert($region instanceof PageRegion);
+        assert($region->status() === TRUE);
+        if ($this->autoSaveManager->getAutoSaveData($region)->isEmpty()) {
+          $region_model = [];
+          $region_layout = $this->buildRegion($id, $region->getComponentTree(), $region_model);
+          $this->autoSaveManager->recordInitialClientSideRepresentation($region, [
+            'layout' => $region_layout['components'],
+            'model' => $region_model,
+          ]);
+        }
+      }
       $this->addGlobalRegions($regions, $model, $layout);
       $layout_keyed_by_region = array_combine(array_map(static fn($region) => $region['id'], $layout), $layout);
       // Reorder the layout to match theme order.
@@ -276,6 +304,16 @@ final class ApiLayoutController {
       assert($tree instanceof ComponentTreeItem);
       $data['layout'] = [$this->buildRegion(XbPageVariant::MAIN_CONTENT_REGION, $tree, $data['model'])];
     }
+    $regions = PageRegion::loadForActiveTheme();
+    if (!empty($regions)) {
+      $this->addGlobalRegions($regions, $data['model'], $data['layout']);
+      $layout_keyed_by_region = array_combine(array_map(static fn($region) => $region['id'], $data['layout']), $data['layout']);
+      // Reorder the layout to match theme order.
+      $data['layout'] = array_values(array_replace(
+        array_intersect_key(array_flip($this->regionsClientSideIds), $layout_keyed_by_region),
+        $layout_keyed_by_region
+      ));
+    }
     if (!\array_key_exists('model', $data)) {
       throw new NotFoundHttpException('Missing model');
     }
@@ -290,16 +328,6 @@ final class ApiLayoutController {
     \assert($entity instanceof FieldableEntityInterface);
 
     $data['model'][$componentInstanceUuid] = $model;
-    $regions = PageRegion::loadForActiveTheme();
-    if (!empty($regions)) {
-      $this->addGlobalRegions($regions, $data['model'], $data['layout']);
-      $layout_keyed_by_region = array_combine(array_map(static fn($region) => $region['id'], $data['layout']), $data['layout']);
-      // Reorder the layout to match theme order.
-      $data['layout'] = array_values(array_replace(
-        array_intersect_key(array_flip($this->regionsClientSideIds), $layout_keyed_by_region),
-        $layout_keyed_by_region
-      ));
-    }
     return new PreviewEnvelope($this->buildPreviewRenderable($data, $entity), $data);
   }
 
@@ -330,7 +358,7 @@ final class ApiLayoutController {
       if ($client_side_region_id === XbPageVariant::MAIN_CONTENT_REGION) {
         $this->autoSaveManager->save($entity, [
           'layout' => [$region_node],
-          'model' => $model,
+          'model' => self::extractModelForSubtree($region_node, $model),
           'entity_form_fields' => $body['entity_form_fields'],
         ]);
         $content = $region_node;
@@ -340,8 +368,7 @@ final class ApiLayoutController {
         $page_region = $page_regions[$client_side_region_id];
         $this->autoSaveManager->save($page_region, [
           'layout' => $region_node['components'],
-          // @todo In principle, $model should be updated too, to omit inputs for components in other regions.
-          'model' => $model,
+          'model' => self::extractModelForSubtree($region_node, $model),
         ]);
       }
     }
@@ -375,6 +402,24 @@ final class ApiLayoutController {
    */
   public function getLabel(EntityInterface $entity): string {
     return (string) $entity->label();
+  }
+
+  private static function extractModelForSubtree(array $initial_layout_node, array $full_model): array {
+    $node_model = [];
+    if ($initial_layout_node['nodeType'] === 'component') {
+      foreach ($initial_layout_node['slots'] as $slot) {
+        $node_model = \array_merge($node_model, self::extractModelForSubtree($slot, $full_model));
+      }
+    }
+    elseif ($initial_layout_node['nodeType'] === 'region' || $initial_layout_node['nodeType'] === 'slot') {
+      foreach ($initial_layout_node['components'] as $component) {
+        if (isset($full_model[$component['uuid']])) {
+          $node_model[$component['uuid']] = $full_model[$component['uuid']];
+        }
+        $node_model = \array_merge($node_model, self::extractModelForSubtree($component, $full_model));
+      }
+    }
+    return $node_model;
   }
 
 }

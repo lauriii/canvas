@@ -13,6 +13,7 @@ use Drupal\Core\Url;
 use Drupal\experience_builder\Entity\AssetLibrary;
 use Drupal\experience_builder\Entity\JavaScriptComponent;
 use Drupal\experience_builder\Entity\XbAssetInterface;
+use Drupal\Tests\experience_builder\Traits\AutoSaveManagerTestTrait;
 use Drupal\Tests\experience_builder\Traits\ContribStrictConfigSchemaTestTrait;
 use Drupal\Tests\experience_builder\Traits\TestDataUtilitiesTrait;
 use Drupal\user\UserInterface;
@@ -27,6 +28,7 @@ final class ApiConfigAutoSaveControllersTest extends HttpApiTestBase {
 
   use TestDataUtilitiesTrait;
   use ContribStrictConfigSchemaTestTrait;
+  use AutoSaveManagerTestTrait;
 
   /**
    * {@inheritdoc}
@@ -264,7 +266,7 @@ final class ApiConfigAutoSaveControllersTest extends HttpApiTestBase {
         'entity_type' => $entity->getEntityTypeId(),
         'entity_id' => $entity->id(),
 
-        'data_hash' => \hash('xxh64', \serialize($auto_save_data)),
+        'data_hash' => self::generateAutoSaveHash($auto_save_data),
         'langcode' => NULL,
         'label' => $entity->label(),
       ],
