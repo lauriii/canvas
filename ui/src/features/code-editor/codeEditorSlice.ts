@@ -69,6 +69,7 @@ export const codeEditorSlice = createSlice({
         state.isEditorReady = false;
         state.hasCompletedFirstCompilation = false;
         state.id = action.payload.id;
+        state.status = action.payload.status;
         state.name = action.payload.name;
         state.sourceCodeJs = action.payload.sourceCodeJs;
         state.sourceCodeCss = action.payload.sourceCodeCss;

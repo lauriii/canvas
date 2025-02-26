@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useUpdateCodeComponentMutation } from '@/services/componentAndLayout';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import {
@@ -6,12 +7,22 @@ import {
   selectDialogStates,
   selectSelectedCodeComponent,
 } from '@/features/ui/codeComponentDialogSlice';
+import {
+  selectId as selectCodeEditorId,
+  setStatus,
+} from '@/features/code-editor/codeEditorSlice';
+import {
+  LayoutItemType,
+  setOpenLayoutItem,
+} from '@/features/ui/primaryPanelSlice';
 import Dialog from '@/components/Dialog';
 
 // This handles the dialog for removing a JS component from components. This changes
 // the component from being "exposed" to "internal".
 const RemoveFromComponentsDialog = () => {
+  const navigate = useNavigate();
   const selectedComponent = useAppSelector(selectSelectedCodeComponent);
+  const isCodeEditorOpen = !!useAppSelector(selectCodeEditorId);
   const [updateCodeComponent, { isLoading, isSuccess, isError, error, reset }] =
     useUpdateCodeComponentMutation();
   const dispatch = useAppDispatch();
@@ -30,6 +41,18 @@ const RemoveFromComponentsDialog = () => {
         status: false,
       },
     });
+
+    if (isCodeEditorOpen) {
+      // If the code editor is open when the component is being set to internal,
+      // also set the status in the codeEditorSlice to internal. While the
+      // `updateCodeComponent` mutation invalidates cache of the code component
+      // data, the code editor won't refetch while it's open.
+      dispatch(setStatus(false));
+      // Navigate to the code editor route that handles internal code components.
+      navigate(`/code-editor/code/${selectedComponent.machineName}`);
+      // Open the "Code" accordion in the primary panel.
+      dispatch(setOpenLayoutItem(LayoutItemType.CODE));
+    }
   };
 
   const handleOpenChange = (open: boolean) => {
