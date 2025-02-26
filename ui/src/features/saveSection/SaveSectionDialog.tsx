@@ -121,7 +121,7 @@ const SaveSectionDialog: React.FC = () => {
       open={saveAsSection}
       onOpenChange={handleOpenChange}
       title="Add new section"
-      description={`Save "${selectedComponentName}" as a section. Unlike components, sections are independent and can be customized without affecting other instances.`}
+      description={`Saving this configuration of "${selectedComponentName}" as a section allows it to be used again later and customized there without affecting other copies.`}
       error={
         isError
           ? {
