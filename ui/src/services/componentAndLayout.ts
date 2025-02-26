@@ -89,6 +89,7 @@ export const componentAndLayoutApi = createApi({
       }),
       invalidatesTags: (result, error, { id }) => [
         { type: 'CodeComponents', id },
+        { type: 'CodeComponentAutoSave', id },
         { type: 'CodeComponents', id: 'LIST' },
         { type: 'Components', id: 'LIST' },
         { type: 'Layout' },
@@ -99,7 +100,9 @@ export const componentAndLayoutApi = createApi({
         url: `xb/api/config/js_component/${id}`,
         method: 'DELETE',
       }),
-      invalidatesTags: [
+      invalidatesTags: (result, error, id) => [
+        { type: 'CodeComponents', id },
+        { type: 'CodeComponentAutoSave', id },
         { type: 'CodeComponents', id: 'LIST' },
         { type: 'Components', id: 'LIST' },
       ],

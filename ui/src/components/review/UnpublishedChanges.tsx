@@ -18,6 +18,7 @@ import {
   selectErrors,
 } from '@/components/review/PublishReview.slice';
 import { useLazyGetLayoutByIdQuery } from '@/services/componentAndLayout';
+import { componentAndLayoutApi } from '@/services/componentAndLayout';
 import {
   selectEntityId,
   selectEntityType,
@@ -89,11 +90,40 @@ const UnpublishedChanges = () => {
   const onPublishClick = async () => {
     if (changes) {
       const isCurrentChanged = findInChanges(changes, entityId, entityType);
+      const changedCodeComponentIds = Object.values(changes)
+        .filter((change) => change.entity_type === 'js_component')
+        .map((change) => change.entity_id);
+
       await publishAllChanges(changes);
 
       // if the list of changes contained the current entity, then re-fetch it to get the new isPublished/isNew values.
       if (isCurrentChanged) {
         refetchLayout(entityId);
+      }
+
+      if (changedCodeComponentIds.length) {
+        // Invalidate cache of all changed code component entities. This is
+        // critical to prevent data loss, which would otherwise occur in the
+        // following scenario:
+        // 1. A code component change is auto-saved, then published.
+        // 2. As a result, the auto-save entry gets deleted on the backend.
+        // 3. The auto-save that occurred previously invalidated the auto-save
+        //    query cache, so fetching data for the code component will correctly
+        //    see the 204 response that is now returned.
+        // 4. That will cause a fallback to the canonical source of the config
+        //    entity. This is why we need to invalidate the cache for those.
+        //    In the absence of this, a stale version would be returned, which
+        //    would get auto-saved if anything changes, resulting to the loss of
+        //    changes in step 1. E.g. with newly created and first-time published
+        //    code components, this would wipe out all data.
+        dispatch(
+          componentAndLayoutApi.util.invalidateTags(
+            changedCodeComponentIds.map((id) => ({
+              type: 'CodeComponents',
+              id,
+            })),
+          ),
+        );
       }
     }
   };
