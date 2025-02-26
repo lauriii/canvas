@@ -95,72 +95,10 @@ experience_builder.js_component.*:
     props:
       type: sequence
       sequence:
-        type: mapping
+        # Define dynamic type using config schema's "child key" functionality.
+        type: experience_builder.json_schema.prop.[type]
         constraints:
           IsStorablePropShape: ~
-        mapping:
-          title:
-            type: required_label
-            label: 'Name'
-          type:
-            type: string
-            label: 'Type'
-            constraints:
-              Choice:
-                # Not all JSON Schema basic types make sense (for example: `null`).
-                # @see https://json-schema.org/understanding-json-schema/reference/type
-                - 'string'
-                - 'number'
-                - 'integer'
-                - 'boolean'
-                # ⚠️ Defining _arbitrary_ object shapes is not yet supported. Currently only one such shape is
-                # supported: images, which requires `type: object` plus
-                # `$ref: json-schema-definitions://experience_builder.module/image`.
-                # @see \Drupal\experience_builder\JsonSchemaInterpreter\SdcPropJsonSchemaType::computeStorablePropShape()
-                - 'object'
-                # @todo Consider adding `array` after https://www.drupal.org/i/3467870 is fixed.
-          '$ref':
-            requiredKey: false
-            type: string
-            constraints:
-              # All choices listed here must be supported: they must have a corresponding storable prop shape.
-              # @see \Drupal\experience_builder\JsonSchemaInterpreter\SdcPropJsonSchemaType::computeStorablePropShape()
-              Choice:
-                - 'json-schema-definitions://experience_builder.module/image'
-                - 'json-schema-definitions://experience_builder.module/textarea'
-          description:
-            requiredKey: false
-            type: label
-            label: 'Human readable description for the component'
-          examples:
-            type: sequence
-            label: 'Examples'
-            sequence:
-              type: string
-          enum:
-            requiredKey: false
-            type: sequence
-            sequence:
-              type: string
-          format:
-            requiredKey: false
-            type: string
-            label: 'Format'
-            constraints:
-              Choice:
-                # Experience Builder does not (yet) have a field type+widget for every possible JSON Schema format; also
-                # note that the official JSON Schema spec only defines string formats, but formats for other types are
-                # possible in principle.
-                # @see https://json-schema.org/understanding-json-schema/reference/type#built-in-formats
-                - date-time
-                - date
-                - email
-                - idn-email
-                - uri
-                - uri-reference
-                - iri
-                - iri-reference
-                # @see Drupal\experience_builder\JsonSchemaInterpreter\JsonSchemaStringFormat::computeStorablePropShape()
     # See core/assets/schemas/v1/metadata-full.schema.json#properties.slots
     slots:
       type: sequence

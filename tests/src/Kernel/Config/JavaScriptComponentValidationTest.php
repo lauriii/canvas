@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\experience_builder\Kernel\Config;
 
+// cspell:ignore sofie
+
 use Drupal\experience_builder\Entity\JavaScriptComponent;
 use Drupal\KernelTests\Core\Config\ConfigEntityValidationTestBase;
 
@@ -20,6 +22,8 @@ class JavaScriptComponentValidationTest extends ConfigEntityValidationTestBase {
    */
   protected static $modules = [
     'experience_builder',
+    // XB's dependencies (the subset that is needed for these tests).
+    'options',
   ];
 
   /**
@@ -75,6 +79,106 @@ class JavaScriptComponentValidationTest extends ConfigEntityValidationTestBase {
       ],
     ]);
     $this->entity->save();
+  }
+
+  /**
+   * @testWith ["string", ["the answer", "Wim", "Sofie", "Jack"], null]
+   *           ["integer", [42, 1988, 1992, 2024], null]
+   *           ["number", [3.14, 1.0], null]
+   *           ["string", ["string", 42, 3.14], ["string", "42", "3.14"]]
+   *           ["number", [42, 0], [42.0, 0.0]]
+   */
+  public function testValidEnumsAndExamples(string $json_schema_type, array $enum_and_examples_both, ?array $expected_typecasting): void {
+    $this->entity->set('props', [
+      'tested_enum_prop' => [
+        'type' => $json_schema_type,
+        'title' => "enum: $json_schema_type",
+        'enum' => $enum_and_examples_both,
+        'examples' => $enum_and_examples_both,
+      ],
+    ]);
+    $this->assertValidationErrors([]);
+    $this->entity->save();
+
+    // The expected output (i.e. after saving) is the input. But in a few cases,
+    // typecasting may occur. For readability, the third parameter is only
+    // required for those cases.
+    $expected = $expected_typecasting ?? $enum_and_examples_both;
+
+    $this->assertSame($expected, $this->entity->get('props')['tested_enum_prop']['enum']);
+    $this->assertSame($expected, $this->entity->get('props')['tested_enum_prop']['examples']);
+  }
+
+  /**
+   * @testWith ["string", ["string", 42, 3.14, null], {"3": "This value should not be null."}]
+   *           ["integer", ["string", 42, 3.14, null], {"0": "This value should be of the correct primitive type.", "2": "This value should be of the correct primitive type.", "3": "This value should not be null."}]
+   *           ["number", ["string", 42, 3.14, null], {"0": "This value should be of the correct primitive type.", "3": "This value should not be null."}]
+   */
+  public function testInvalidEnumsAndExamples(string $json_schema_type, array $enum_and_examples_both, array $expected_validation_errors): void {
+    $this->entity->set('props', [
+      'tested_enum_prop' => [
+        'type' => $json_schema_type,
+        'title' => "enum: $json_schema_type",
+        'enum' => $enum_and_examples_both,
+        'examples' => $enum_and_examples_both,
+      ],
+    ]);
+
+    // The expected validation errors are keyed by the index whose value in the
+    // $enum_and_examples_both array is expected to trigger a validation error.
+    // This is then expanded to expect an explicit validation error for that
+    // same index in both `enum` and `examples`, hence ensuring consistent
+    // validation for both.
+    $expanded_expected_validation_errors = [];
+    foreach ($expected_validation_errors as $index => $expected_validation_error) {
+      $expanded_expected_validation_errors["props.tested_enum_prop.enum.$index"] = $expected_validation_error;
+      $expanded_expected_validation_errors["props.tested_enum_prop.examples.$index"] = $expected_validation_error;
+    }
+    $this->assertValidationErrors($expanded_expected_validation_errors);
+  }
+
+  /**
+   * Tests `type: boolean` validation and edge cases.
+   *
+   * (Cannot be tested generically, like `string`, `integer` and `number`.)
+   */
+  public function testBooleanPropDefinition(): void {
+    // Try using `enum` on a boolean prop.
+    $this->entity->set('props', [
+      'some_boolean' => [
+        'type' => 'boolean',
+        'title' => 'either/or',
+        'enum' => [TRUE, FALSE],
+        'examples' => [TRUE, NULL, FALSE],
+      ],
+    ]);
+    $this->assertValidationErrors([
+      'props.some_boolean' => "'enum' is an unknown key because props.some_boolean.type is boolean (see config schema type experience_builder.json_schema.prop.boolean).",
+      'props.some_boolean.examples.1' => 'This value should not be null.',
+    ]);
+  }
+
+  /**
+   * Tests `type: object` validation and edge cases.
+   *
+   * (Cannot be tested generically, like `string`, `integer` and `number`.)
+   */
+  public function testObjectPropDefinition(): void {
+    $this->entity->set('props', [
+      'some_object' => [
+        'type' => 'object',
+        '$ref' => 'json-schema-definitions://experience_builder.module/image',
+        'title' => $this->randomString(),
+        'enum' => [[], NULL],
+        'examples' => [[], NULL],
+      ],
+    ]);
+    $this->assertValidationErrors([
+      'props.some_object.enum.0' => 'This value should not be blank.',
+      'props.some_object.enum.1' => 'This value should not be null.',
+      'props.some_object.examples.0' => 'This value should not be blank.',
+      'props.some_object.examples.1' => 'This value should not be null.',
+    ]);
   }
 
   /**
@@ -142,6 +246,7 @@ class JavaScriptComponentValidationTest extends ConfigEntityValidationTestBase {
         ],
         [
           '' => 'Unable to find class/interface "unknown" specified in the prop "mixed_up_prop" for the component "experience_builder:test-unknown-prop-type".',
+          'props.mixed_up_prop' => "'enum' is an unknown key because props.mixed_up_prop.type is unknown (see config schema type experience_builder.json_schema.prop.*).",
           'props.mixed_up_prop.type' => 'The value you selected is not a valid choice.',
         ],
       ],
@@ -342,10 +447,12 @@ class JavaScriptComponentValidationTest extends ConfigEntityValidationTestBase {
               'type' => 'object',
               '$ref' => "json-schema-definitions://experience_builder.module/image",
               'examples' => [
-                'src' => 'https://example.com/image.png',
-                'alt' => 'Alternative text',
-                'width' => 800,
-                'height' => 600,
+                [
+                  'src' => 'https://example.com/image.png',
+                  'alt' => 'Alternative text',
+                  'width' => 800,
+                  'height' => 600,
+                ],
               ],
             ],
           ],
@@ -365,11 +472,11 @@ class JavaScriptComponentValidationTest extends ConfigEntityValidationTestBase {
         [
           'machineName' => 'image-prop-no-slots-no-examples',
           'name' => 'Test',
-          '$ref' => "json-schema-definitions://experience_builder.module/image",
           'props' => [
             'image' => [
               'title' => 'Image title',
               'type' => 'object',
+              '$ref' => "json-schema-definitions://experience_builder.module/image",
             ],
           ],
           'slots' => [],
@@ -383,10 +490,7 @@ class JavaScriptComponentValidationTest extends ConfigEntityValidationTestBase {
           ],
         ],
         [
-          'props.image' => [
-            'Prop "<em class="placeholder">image</em>" has a shape that is unfortunately not supported by Experience Builder.',
-            '\'examples\' is a required key.',
-          ],
+          'props.image' => '\'examples\' is a required key.',
         ],
       ],
       'Invalid: image prop $ref' => [
@@ -416,7 +520,10 @@ class JavaScriptComponentValidationTest extends ConfigEntityValidationTestBase {
           ],
         ],
         [
-          'props.image' => 'Prop "<em class="placeholder">image</em>" has a shape that is unfortunately not supported by Experience Builder.',
+          'props.image' => [
+            'Prop "<em class="placeholder">image</em>" has a shape that is unfortunately not supported by Experience Builder.',
+            '\'$ref\' is a required key because props.image.type is object (see config schema type experience_builder.json_schema.prop.object).',
+          ],
         ],
       ],
       'Invalid: image prop with incorrect $ref' => [
@@ -429,10 +536,12 @@ class JavaScriptComponentValidationTest extends ConfigEntityValidationTestBase {
               'type' => 'object',
               '$ref' => "json-schema-definitions://experience_builder.module/textarea",
               'examples' => [
-                'src' => 'https://example.com/image.png',
-                'alt' => 'Alternative text',
-                'width' => 800,
-                'height' => 600,
+                [
+                  'src' => 'https://example.com/image.png',
+                  'alt' => 'Alternative text',
+                  'width' => 800,
+                  'height' => 600,
+                ],
               ],
             ],
           ],
@@ -448,6 +557,7 @@ class JavaScriptComponentValidationTest extends ConfigEntityValidationTestBase {
         ],
         [
           'props.image' => 'Prop "<em class="placeholder">image</em>" has a shape that is unfortunately not supported by Experience Builder.',
+          'props.image.$ref' => 'The value you selected is not a valid choice.',
         ],
       ],
       'Valid: textarea prop with $ref' => [

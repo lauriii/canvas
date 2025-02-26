@@ -512,7 +512,7 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
       'required' => [],
       'props' => [
         'incorrect' => [
-          'type' => 'test',
+          'type' => 'nonsense',
         ],
       ],
       'slots' => [],
@@ -526,16 +526,8 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
     $this->assertSame([
       'errors' => [
         [
-          'detail' => 'Unable to find class/interface "test" specified in the prop "incorrect" for the component "experience_builder:test".',
+          'detail' => 'Unable to find class/interface "nonsense" specified in the prop "incorrect" for the component "experience_builder:test".',
           'source' => ['pointer' => ''],
-        ],
-        [
-          'detail' => "'title' is a required key.",
-          'source' => ['pointer' => 'props.incorrect'],
-        ],
-        [
-          'detail' => '\'examples\' is a required key.',
-          'source' => ['pointer' => 'props.incorrect'],
         ],
         [
           'detail' => 'The value you selected is not a valid choice.',
@@ -576,7 +568,7 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
         'number' => [
           'type' => 'number',
           'title' => 'Number',
-          'examples' => [3.14],
+          'examples' => [3.14, 42],
         ],
       ],
       'slots' => [
@@ -616,17 +608,17 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
         'boolean' => [
           'title' => 'Truth',
           'type' => 'boolean',
-          'examples' => ['1', ''],
+          'examples' => [TRUE, FALSE],
         ],
         'integer' => [
           'title' => 'Integer',
           'type' => 'integer',
-          'examples' => ['23', '10', '2024'],
+          'examples' => [23, 10, 2024],
         ],
         'number' => [
           'title' => 'Number',
           'type' => 'number',
-          'examples' => ['3.14'],
+          'examples' => [3.14, 42],
         ],
       ],
       'required' => [
@@ -683,43 +675,29 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
     ], $body, 'Fails with an invalid code component.');
 
     // Modify a Code Component incorrectly (consistency-wise): 422.
-    $request_options[RequestOptions::BODY] = self::encodeXBData([
-      'name' => 'Updated name',
-      'machineName' => $code_component_to_send['machineName'],
-      'required' => [
-        'string',
-        'integer',
-      ],
-      'status' => TRUE,
-      'props' => [
-        'integer' => [
-          'title' => 'Integer',
-          'type' => 'fake',
-          'examples' => ['23', '10', '2024'],
-        ],
-      ],
-      'slots' => [],
-      'source_code_js' => 'console.log("Test")',
-      'source_code_css' => '.test { display: none; }',
-      'compiled_js' => 'console.log("Test")',
-      'compiled_css' => '.test{display:none;}',
-    ]);
+    $omitted_string_prop_title = $code_component_to_send['props']['string']['title'];
+    unset($code_component_to_send['props']['string']['title']);
+    $omitted_integer_prop_examples = $code_component_to_send['props']['integer']['examples'];
+    unset($code_component_to_send['props']['integer']['examples']);
+    $request_options[RequestOptions::BODY] = self::encodeXBData($code_component_to_send);
     $body = $this->assertExpectedResponse('PATCH', Url::fromUri('base:/xb/api/config/js_component/test'), $request_options, 422, NULL, NULL, NULL, NULL);
     $this->assertSame([
       'errors' => [
         [
-          'detail' => 'Unable to find class/interface "fake" specified in the prop "integer" for the component "experience_builder:test".',
-          'source' => ['pointer' => ''],
+          'detail' => "'title' is a required key.",
+          'source' => ['pointer' => 'props.string'],
         ],
         [
-          'detail' => 'The value you selected is not a valid choice.',
-          'source' => ['pointer' => 'props.integer.type'],
+          'detail' => "'examples' is a required key.",
+          'source' => ['pointer' => 'props.integer'],
         ],
       ],
     ], $body);
 
     // Modify a Code Component correctly: 200.
     $code_component_to_send['name'] = 'Test, and test again';
+    $code_component_to_send['props']['string']['title'] = $omitted_string_prop_title;
+    $code_component_to_send['props']['integer']['examples'] = $omitted_integer_prop_examples;
     $expected_component['name'] = $code_component_to_send['name'];
     $request_options[RequestOptions::BODY] = self::encodeXBData($code_component_to_send);
     $body = $this->assertExpectedResponse('PATCH', Url::fromUri('base:/xb/api/config/js_component/test'), $request_options, 200, NULL, NULL, NULL, NULL);

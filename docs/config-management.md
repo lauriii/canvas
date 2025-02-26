@@ -140,7 +140,9 @@ See:
 - `\Drupal\experience_builder\Entity\JavaScriptComponent`
 - `\Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\JsComponent`
 - `\Drupal\experience_builder\Plugin\Validation\Constraint\JsComponentHasValidSdcMetadataConstraintValidator`
+- `\Drupal\experience_builder\Plugin\Validation\Constraint\IsStorablePropShapeConstraintValidator`
 - `type: experience_builder.js_component.*`
+- `type: experience_builder.json_schema.prop.*`
 
 A `JavaScriptComponent config entity` (UI label: _code components_) can be created by Ambitious Site Builders to create
 so-called components in the browser, without the need for learning how to create `SDC`s, and most importantly: without
@@ -154,9 +156,14 @@ Of course, such in-browser created _code components_ must also be able to accept
 wheel, the same _schema_ for defining explicit inputs as that of `SDC` is adopted here. But to be able to guarantee that
 for every valid `JavaScript Component config entity` a working auto-generated input UX can be guaranteed, additional
 restrictions are applied during validation:
-- Not all JSON Schema "types" are allowed; only scalar/primitive ones: `string`, `number`, `integer` and `boolean`. See
-  the `Choice` constraint applied to each "prop"'s type.
-- Similarly, not all JSON Schema "formats" are allowed. See the corresponding `Choice` constraint.
+- Not all JSON Schema "types" and "formats" are allowed; only ones that XB can generate an input UX for. That means it
+  must have a "storable `prop shape`". See [`section 3.1.2.b in XB Shape Matching into Field Types`
+  doc](shape-matching-into-field-types.md). The `IsStorablePropShapeConstraint` validation constraint checks this. It
+  ensures a good UX for the in-browser _code component_ editor.
+- Fascinatingly, to make these config entities comply with `SDC`'s schema, we must express the _supported subset_ of
+  JSON Schema (supported at all by `SDC`, and then supported by `XB` for the generated input UX) in Drupal's _config
+  schema_! This ensures a good DX for those modifying (exported) configuration by hand.
+  See `config/schema/experience_builder.json_schema.yml`.
 
 Once a _code component_ is considered ready for use by its creator, it can be exposed as an XB `component` (which under
 the hood involves creating a sibling `Component config entity` — see [section 3.1](#3.1) above). This is made possible

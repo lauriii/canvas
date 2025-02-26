@@ -490,6 +490,19 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
       ],
     ];
     $errors[] = [
+      'detail' => "'enum' is an unknown key because props.mixed_up_prop.type is unknown (see config schema type experience_builder.json_schema.prop.*).",
+      'source' => [
+        'pointer' => 'props.mixed_up_prop',
+      ],
+      'meta' => [
+        'entity_type' => JavaScriptComponent::ENTITY_TYPE_ID,
+        'entity_id' => $code_component->id(),
+        // The label should not be updated if model validation failed.
+        'label' => $code_component->label(),
+        'autosave_key' => $autoSave->getAutoSaveKey($code_component),
+      ],
+    ];
+    $errors[] = [
       'detail' => 'The value you selected is not a valid choice.',
       'source' => [
         'pointer' => 'props.mixed_up_prop.type',
