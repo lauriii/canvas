@@ -1229,9 +1229,11 @@ components:
           # @todo Uncomment this in a follow-up MR in https://www.drupal.org/i/3503377
           # $ref: 'https://json-schema.org/draft-04/schema'
         slots:
-          type: array
-          items:
+          type: object
+          additionalProperties:
             type: object
+            required:
+              - title
             properties:
               title:
                 type: string

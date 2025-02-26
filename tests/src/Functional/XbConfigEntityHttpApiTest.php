@@ -475,6 +475,34 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
       'message' => 'Body does not match schema for content-type "application/json" for Request [post /xb/api/config/js_component]. [Keyword validation failed: Value cannot be null in source_code_js]',
     ], $body, 'Fails with invalid shape.');
 
+    $code_component_to_send = [
+      'machineName' => 'test',
+      'status' => TRUE,
+      'name' => 'Test Code Component',
+      'props' => [],
+      'slots' => [
+        'test-slot' => [
+          'description' => 'Title',
+          'examples' => [
+            'Test 1',
+            'Test 2',
+          ],
+        ],
+        'test-slot-only-required' => [
+          'title' => 'test',
+        ],
+      ],
+      'source_code_js' => '',
+      'source_code_css' => '',
+      'compiled_js' => '',
+      'compiled_css' => '',
+    ];
+    $request_options[RequestOptions::BODY] = self::encodeXBData($code_component_to_send);
+    $body = $this->assertExpectedResponse('POST', $list_url, $request_options, 500, NULL, NULL, NULL, NULL);
+    $this->assertSame([
+      'message' => 'Body does not match schema for content-type "application/json" for Request [post /xb/api/config/js_component]. [Keyword validation failed: Required property \'title\' must be present in the object in slots->test-slot->title]',
+    ], $body, 'Fails with invalid shape.');
+
     // Meet data shape requirements, but violate internal consistency for
     // `props`: 422 (i.e. validation constraint violation).
     $code_component_to_send = [
@@ -551,7 +579,19 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
           'examples' => [3.14],
         ],
       ],
-      'slots' => [],
+      'slots' => [
+        'test-slot' => [
+          'title' => 'test',
+          'description' => 'Title',
+          'examples' => [
+            'Test 1',
+            'Test 2',
+          ],
+        ],
+        'test-slot-only-required' => [
+          'title' => 'test',
+        ],
+      ],
       'source_code_js' => 'console.log("Test")',
       'source_code_css' => '.test { display: none; }',
       'compiled_js' => 'console.log("Test")',
@@ -593,7 +633,19 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
         'string',
         'integer',
       ],
-      'slots' => [],
+      'slots' => [
+        'test-slot' => [
+          'title' => 'test',
+          'description' => 'Title',
+          'examples' => [
+            'Test 1',
+            'Test 2',
+          ],
+        ],
+        'test-slot-only-required' => [
+          'title' => 'test',
+        ],
+      ],
       'source_code_js' => 'console.log("Test")',
       'source_code_css' => '.test { display: none; }',
       'compiled_js' => 'console.log("Test")',

@@ -172,9 +172,11 @@ experience_builder.js_component.*:
             type: string
             label: Title
           description:
+            requiredKey: false
             type: string
             label: Description
           examples:
+            requiredKey: false
             type: sequence
             sequence:
               type: string

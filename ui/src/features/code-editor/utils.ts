@@ -98,7 +98,6 @@ export function serializeSlots(slots: CodeComponentSlot[]) {
         ...acc,
         [getPropMachineName(name)]: {
           title: name,
-          description: name,
           ...(example && { examples: [example] }),
         },
       };

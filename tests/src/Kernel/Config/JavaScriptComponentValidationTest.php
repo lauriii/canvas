@@ -284,7 +284,37 @@ class JavaScriptComponentValidationTest extends ConfigEntityValidationTestBase {
         ],
         [],
       ],
-      'Valid: empty JS and CSS, no props, nor slots and "disabled"' => [
+      'Valid: slots (one with description+examples, one without), no props' => [
+        [
+          'machineName' => 'test-slots',
+          'status' => TRUE,
+          'name' => 'Test',
+          'props' => [],
+          'slots' => [
+            'test-slot' => [
+              'title' => 'test',
+              'description' => 'Title',
+              'examples' => [
+                'Test 1',
+                'Test 2',
+              ],
+            ],
+            'test-slot-only-required' => [
+              'title' => 'test',
+            ],
+          ],
+          'js' => [
+            'original' => 'console.log("Test")',
+            'compiled' => 'console.log("Test")',
+          ],
+          'css' => [
+            'original' => '.test { display: none; }',
+            'compiled' => '.test{display:none;}',
+          ],
+        ],
+        [],
+      ],
+      'Valid: empty JS and CSS, no props, and "disabled"' => [
         [
           'machineName' => 'test-no-js-no-css-no-props-nor-slots-and-disabled',
           'status' => FALSE,
@@ -469,12 +499,6 @@ class JavaScriptComponentValidationTest extends ConfigEntityValidationTestBase {
   public function testInvalidSlotIdentifiedByConfigSchema(): void {
     $original_test_slot = $this->entity->get('slots')['test-slot'];
     $this->entity->set('slots', [
-      'test-slot' => array_diff_key($original_test_slot, array_flip(['examples'])),
-    ]);
-    $this->assertValidationErrors([
-      'slots.test-slot' => "'examples' is a required key.",
-    ]);
-    $this->entity->set('slots', [
       '0-slot' => $original_test_slot,
     ]);
     // @todo This test case should have validation errors because '0-slot' is not a valid slot name.
@@ -483,11 +507,7 @@ class JavaScriptComponentValidationTest extends ConfigEntityValidationTestBase {
     $this->assertValidationErrors([]);
     $this->entity->set('slots', ['test-slot' => []]);
     $this->assertValidationErrors([
-      'slots.test-slot' => [
-        "'title' is a required key.",
-        "'description' is a required key.",
-        "'examples' is a required key.",
-      ],
+      'slots.test-slot' => "'title' is a required key.",
     ]);
   }
 

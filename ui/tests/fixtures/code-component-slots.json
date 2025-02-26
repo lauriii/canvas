@@ -13,12 +13,10 @@
   ],
   "serialized": {
     "slotWithNoExampleValue": {
-      "title": "Slot with no example value",
-      "description": "Slot with no example value"
+      "title": "Slot with no example value"
     },
     "slotWithExampleValue": {
       "title": "Slot with example value",
-      "description": "Slot with example value",
       "examples": ["<div>Experience Builder</div>"]
     }
   }
