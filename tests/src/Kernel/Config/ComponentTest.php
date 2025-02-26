@@ -374,6 +374,19 @@ class ComponentTest extends KernelTestBase {
     yield 'installing xb_test_sdc creates props-no-slots and props-slots components' => [
       'modules' => ['xb_test_sdc'],
       'components' => $defaults + [
+        'sdc.xb_test_sdc.image-optional-with-example' => [
+          'compatible' => TRUE,
+        ],
+        'sdc.xb_test_sdc.image-optional-without-example' => [
+          'compatible' => TRUE,
+        ],
+        'sdc.xb_test_sdc.image-required-with-example' => [
+          'compatible' => TRUE,
+        ],
+        'sdc.xb_test_sdc.image-required-without-example' => [
+          'compatible' => FALSE,
+          'reason' => 'Prop "image" is required, but does not have example value',
+        ],
         'sdc.xb_test_sdc.props-no-slots' => [
           'compatible' => TRUE,
         ],
@@ -399,6 +412,19 @@ class ComponentTest extends KernelTestBase {
       'components' => $defaults + [
         'sdc.sdc_test_all_props.all-props' => [
           'compatible' => TRUE,
+        ],
+        'sdc.xb_test_sdc.image-optional-with-example' => [
+          'compatible' => TRUE,
+        ],
+        'sdc.xb_test_sdc.image-optional-without-example' => [
+          'compatible' => TRUE,
+        ],
+        'sdc.xb_test_sdc.image-required-with-example' => [
+          'compatible' => TRUE,
+        ],
+        'sdc.xb_test_sdc.image-required-without-example' => [
+          'compatible' => FALSE,
+          'reason' => 'Prop "image" is required, but does not have example value',
         ],
         'sdc.xb_test_sdc.props-no-slots' => [
           'compatible' => TRUE,

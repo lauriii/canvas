@@ -515,22 +515,21 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
       // - populate the client-side (data) `model`
       // … which in both cases boils down to: "this value is passed directly
       // into the SDC".
+      $default_resolved_value = NULL;
+      // Use the stored default, if any. This is required for all required SDC
+      // props, optional for all optional SDC props.
       if ($has_default_source_value) {
-        // Use the stored default, if any. This is required for all required SDC
-        // props, optional for all optional SDC props.
         $default_resolved_value = $this->getDefaultStaticPropSource($prop_name)->evaluate(NULL);
       }
       // One special case: example values that require a Drupal entity to
       // exist. In these cases (for either required or optional SDC props),
       // fall back to the literal example value in the SDC.
       elseif (self::exampleValueRequiresEntity($storable_prop_shape)) {
-        // An example is present in the SDC metadata, it just cannot be mapped
-        // to a default value in the prop source.
-        assert(!is_null($component_plugin->metadata->schema));
-        $default_resolved_value = $component_plugin->metadata->schema['properties'][$prop_name]['examples'][0];
-      }
-      else {
-        $default_resolved_value = NULL;
+        // An example may be present in the SDC metadata, it just cannot be
+        // mapped to a default value in the prop source.
+        if (isset($component_plugin->metadata->schema['properties'][$prop_name]['examples'][0])) {
+          $default_resolved_value = $component_plugin->metadata->schema['properties'][$prop_name]['examples'][0];
+        }
       }
 
       // Collect the 'resolved' values for all SDC props, to generate a preview
@@ -731,6 +730,10 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
         // @see ::exampleValueRequiresEntity()
         // @see ::getClientSideInfo()
         $client_side_info = $this->getClientSideInfo($component);
+        if (!isset($client_side_info['build']['#props'][$prop])) {
+          // If the prop is not set at all, then no default is provided.
+          continue;
+        }
         assert(isset($client_side_info['field_data'][$prop]['jsonSchema']));
         $source = new UrlPreviewPropSource(
           value: $client_side_info['build']['#props'][$prop],

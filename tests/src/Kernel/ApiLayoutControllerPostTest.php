@@ -9,6 +9,7 @@ use Drupal\Core\Cache\MemoryCache\MemoryCacheInterface;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Url;
 use Drupal\experience_builder\AutoSave\AutoSaveManager;
+use Drupal\experience_builder\Entity\Component;
 use Drupal\experience_builder\Entity\JavaScriptComponent;
 use Drupal\experience_builder\Entity\PageRegion;
 use Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\JsComponent;
@@ -27,7 +28,7 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
    */
   protected function setUp(): void {
     parent::setUp();
-    $this->container->get('module_installer')->install(['system', 'block']);
+    $this->container->get('module_installer')->install(['system', 'block', 'user']);
     $this->container->get('theme_installer')->install(['stark']);
     $this->container->get('config.factory')->getEditable('system.theme')->set('default', 'stark')->save();
 
@@ -280,6 +281,58 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
       'xb_config_entity_type_id' => JavaScriptComponent::ENTITY_TYPE_ID,
       'xb_config_entity' => 'hey_there',
     ])->toString(), $element->attr('component-url'));
+  }
+
+  /**
+   * @testWith ["image-optional-with-example", "<img src=\"https://example.com/cat.jpg\" alt=\"Boring placeholder\" />"]
+   *           ["image-optional-without-example", ""]
+   *           ["image-required-with-example", "<img src=\"https://example.com/cat.jpg\" alt=\"Boring placeholder\" />"]
+   *
+   * Note: `image-required-with-example` is not tested because it does not meet the requirement.
+   * @see \Drupal\Tests\experience_builder\Kernel\Config\ComponentTest::testComponentAutoCreate()
+   */
+  public function testImageComponentPermutations(string $sdc, string $expected_preview_html): void {
+    $content = $this->parentRequest(Request::create('/xb/api/layout/node/1'))->getContent();
+    $this->assertIsString($content);
+    $json = json_decode($content, TRUE);
+
+    $component = Component::load('sdc.xb_test_sdc.' . $sdc);
+    $this->assertInstanceOf(Component::class, $component);
+
+    // Add the image component into the layout.
+    $uuid = '166c9eee-35e9-4795-8c6f-24537728e95e';
+    $json['layout'][0]['components'][] = [
+      'nodeType' => 'component',
+      'uuid' => $uuid,
+      'type' => $component->id(),
+      'slots' => [],
+    ];
+    $json['model'][$uuid] = [
+      'resolved' => [],
+      'source' => [
+        'image' => [
+          'expression' => 'ℹ︎entity_reference␟{src↝entity␜␜entity:media:image␝field_media_image␞␟entity␜␜entity:file␝uri␞␟url,alt↝entity␜␜entity:media:image␝field_media_image␞␟alt,width↝entity␜␜entity:media:image␝field_media_image␞␟width,height↝entity␜␜entity:media:image␝field_media_image␞␟height}',
+          'sourceType' => 'static:field_item:entity_reference',
+          'sourceTypeSettings' => [
+            'instance' => [
+              'handler' => 'default:media',
+              'handler_settings' => [
+                'target_bundles' => [
+                  'image' => 'image',
+                ],
+              ],
+            ],
+            'storage' => [
+              'target_type' => 'media',
+            ],
+          ],
+        ],
+      ],
+    ];
+
+    $this->request(Request::create('/xb/api/layout/node/1', method: 'POST', content: json_encode($json, JSON_THROW_ON_ERROR)));
+    // Ensure the component is rendered using the expected markup.
+    $this->assertRaw('<!-- xb-start-166c9eee-35e9-4795-8c6f-24537728e95e -->' . $expected_preview_html . '<!-- xb-end-166c9eee-35e9-4795-8c6f-24537728e95e -->');
   }
 
 }
