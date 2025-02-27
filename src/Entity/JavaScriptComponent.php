@@ -264,6 +264,7 @@ final class JavaScriptComponent extends ConfigEntityBase implements XbAssetInter
         return [
           'id' => ['type' => 'string'],
           'links' => ['type' => 'array'],
+          'label' => ['type' => 'string'],
         ];
 
       default:

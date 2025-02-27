@@ -26,9 +26,7 @@
         "isCollapsed": false,
         "inActiveTrail": false
       }
-    ]
-  },
-  "slots": {
-    "label": "<div>Main navigation</div>"
+    ],
+    "label": "Main navigation"
   }
 }

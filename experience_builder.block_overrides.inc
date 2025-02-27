@@ -85,11 +85,10 @@ function template_preprocess_menu__as_js_component(array &$variables): void {
   $props = [
     'id' => $block_variables['attributes']['id'],
     'links' => $normalizeLinks($variables['items']),
-  ];
-
-  $slots = [
     'label' => $block_variables['label'] ?: $block_variables['configuration']['label'],
   ];
+
+  $slots = [];
 
   $variables['children'] = _experience_builder_render_js_component_from_block_element(
     $block_variables['elements'],
