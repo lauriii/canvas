@@ -7,7 +7,9 @@ namespace Drupal\experience_builder\Plugin\Validation\Constraint;
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
 use Drupal\Core\Render\Component\Exception\InvalidComponentException;
 use Drupal\Core\Theme\Component\ComponentValidator;
+use Drupal\experience_builder\ComponentDoesNotMeetRequirementsException;
 use Drupal\experience_builder\Entity\JavaScriptComponent;
+use Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\JsComponent;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\Validator\Constraint;
 use Symfony\Component\Validator\ConstraintValidator;
@@ -17,7 +19,7 @@ use Symfony\Component\Validator\Exception\UnexpectedValueException;
 /**
  * @internal
  */
-final class JsComponentHasValidSdcMetadataConstraintValidator extends ConstraintValidator implements ContainerInjectionInterface {
+final class JsComponentHasValidAndSupportedSdcMetadataConstraintValidator extends ConstraintValidator implements ContainerInjectionInterface {
 
   public function __construct(
     private readonly ComponentValidator $componentValidator,
@@ -41,8 +43,8 @@ final class JsComponentHasValidSdcMetadataConstraintValidator extends Constraint
    *   Thrown when the given value is not supported by this validator.
    */
   public function validate(mixed $data, Constraint $constraint): void {
-    if (!$constraint instanceof JsComponentHasValidSdcMetadataConstraint) {
-      throw new UnexpectedTypeException($constraint, JsComponentHasValidSdcMetadataConstraint::class);
+    if (!$constraint instanceof JsComponentHasValidAndSupportedSdcMetadataConstraint) {
+      throw new UnexpectedTypeException($constraint, JsComponentHasValidAndSupportedSdcMetadataConstraint::class);
     }
 
     if (!$data instanceof JavaScriptComponent) {
@@ -56,10 +58,23 @@ final class JsComponentHasValidSdcMetadataConstraintValidator extends Constraint
     }
     catch (InvalidComponentException $e) {
       $this->context->addViolation($e->getMessage());
+      return;
     }
-    // The validator is stateful, reset it so that subsequent validation does
-    // not return the previous errors.
-    $this->componentValidator->setValidator(NULL);
+    finally {
+      // The validator is stateful, reset it so that subsequent validation does
+      // not return the previous errors.
+      $this->componentValidator->setValidator(NULL);
+    }
+
+    // The JavaScriptComponent has *valid* SDC metadata, but does it also meet
+    // XB's additional requirements? Only then is it supported by XB.
+    // @see \Drupal\experience_builder\ComponentMetadataRequirementsChecker::check()
+    try {
+      JsComponent::createConfigEntity($data);
+    }
+    catch (ComponentDoesNotMeetRequirementsException $e) {
+      $this->context->addViolation($e->getMessage());
+    }
   }
 
 }

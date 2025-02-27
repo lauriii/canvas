@@ -38,7 +38,7 @@ use Drupal\experience_builder\ClientSideRepresentation;
  *     "css",
  *   },
  *   constraints = {
- *     "JsComponentHasValidSdcMetadata" = null,
+ *     "JsComponentHasValidAndSupportedSdcMetadata" = null,
  *   },
  *   xb_visible_when_disabled = TRUE
  * )
@@ -194,13 +194,13 @@ final class JavaScriptComponent extends ConfigEntityBase implements XbAssetInter
       'template' => 'phony',
     ];
     // Slots are optional. Setting the `slots` key to an empty array is invalid.
-    // @see \Drupal\experience_builder\Plugin\Validation\Constraint\JsComponentHasValidSdcMetadataConstraintValidator
+    // @see \Drupal\experience_builder\Plugin\Validation\Constraint\JsComponentHasValidAndSupportedSdcMetadataConstraintValidator
     if ($this->slots) {
       $definition['slots'] = $this->slots;
     }
     // Required properties are optional. Setting the `props.required` key to an
     // empty array is invalid.
-    // @see \Drupal\experience_builder\Plugin\Validation\Constraint\JsComponentHasValidSdcMetadataConstraintValidator
+    // @see \Drupal\experience_builder\Plugin\Validation\Constraint\JsComponentHasValidAndSupportedSdcMetadataConstraintValidator
     if ($this->required) {
       $definition['props']['required'] = $this->required;
     }

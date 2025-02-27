@@ -139,7 +139,7 @@ UI routes:
 See:
 - `\Drupal\experience_builder\Entity\JavaScriptComponent`
 - `\Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\JsComponent`
-- `\Drupal\experience_builder\Plugin\Validation\Constraint\JsComponentHasValidSdcMetadataConstraintValidator`
+- `\Drupal\experience_builder\Plugin\Validation\Constraint\JsComponentHasValidAndSupportedSdcMetadataConstraintValidator`
 - `\Drupal\experience_builder\Plugin\Validation\Constraint\IsStorablePropShapeConstraintValidator`
 - `type: experience_builder.js_component.*`
 - `type: experience_builder.json_schema.prop.*`

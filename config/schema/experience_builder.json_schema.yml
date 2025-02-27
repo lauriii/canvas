@@ -41,6 +41,9 @@ experience_builder.json_schema.prop.*:
       type: label
       label: 'Human readable description for the component'
     examples:
+      # This is NOT optional for required props. Rather than repeating that validation logic here, let the
+      # JsComponentHasValidAndSupportedSdcMetadata constraint take care of that.
+      requiredKey: false
       type: sequence
       label: 'Examples'
       sequence:

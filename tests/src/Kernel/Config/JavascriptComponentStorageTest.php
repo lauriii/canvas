@@ -183,7 +183,7 @@ final class JavascriptComponentStorageTest extends AssetLibraryStorageTest {
       ],
     ]);
     $this->assertSame([
-      'props.title' => "'examples' is a required key.",
+      '' => 'Prop "title" is required, but does not have example value',
     ], self::violationsToArray($js_component->getTypedData()->validate()));
 
     // Make it pass validation by adding the missing `examples`, and save it.
@@ -206,7 +206,7 @@ final class JavascriptComponentStorageTest extends AssetLibraryStorageTest {
     $props['title']['format'] = 'hostname';
     $js_component->setProps($props);
     $this->assertSame([
-      'props.title' => 'Prop "<em class="placeholder">title</em>" has a shape that is unfortunately not supported by Experience Builder.',
+      '' => 'Experience Builder does not know of a field type/widget to allow populating the <code>title</code> prop, with the shape <code>{"type":"string","format":"hostname"}</code>.',
       'props.title.format' => 'The value you selected is not a valid choice.',
     ], self::violationsToArray($js_component->getTypedData()->validate()));
     // @see the `Choice` constraints on `type: experience_builder.js_component.*`'s for prop `type`.
@@ -214,7 +214,7 @@ final class JavascriptComponentStorageTest extends AssetLibraryStorageTest {
     $props['title']['type'] = 'array';
     $js_component->setProps($props);
     $this->assertSame([
-      'props.title' => 'Prop "<em class="placeholder">title</em>" has a shape that is unfortunately not supported by Experience Builder.',
+      '' => 'Experience Builder does not know of a field type/widget to allow populating the <code>title</code> prop, with the shape <code>{"type":"array"}</code>.',
       'props.title.type' => 'The value you selected is not a valid choice.',
     ], self::violationsToArray($js_component->getTypedData()->validate()));
 

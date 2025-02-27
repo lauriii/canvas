@@ -297,7 +297,7 @@ final class JsComponent extends GeneratedFieldExplicitInputUxComponentSourceBase
   /**
    * Any valid JavaScript Component config entity can be mapped to SDC metadata.
    *
-   * @see \Drupal\experience_builder\Plugin\Validation\Constraint\JsComponentHasValidSdcMetadataConstraintValidator::validate
+   * @see \Drupal\experience_builder\Plugin\Validation\Constraint\JsComponentHasValidAndSupportedSdcMetadataConstraintValidator::validate
    */
   private static function buildEphemeralSdcPluginInstance(JavaScriptComponent $component): SdcPlugin {
     $definition = $component->toSdcDefinition();

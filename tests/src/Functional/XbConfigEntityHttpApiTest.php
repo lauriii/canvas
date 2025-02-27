@@ -678,19 +678,20 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
     // Modify a Code Component incorrectly (consistency-wise): 422.
     $omitted_string_prop_title = $code_component_to_send['props']['string']['title'];
     unset($code_component_to_send['props']['string']['title']);
-    $omitted_integer_prop_examples = $code_component_to_send['props']['integer']['examples'];
+    $omitted_required_prop_examples = $code_component_to_send['props']['integer']['examples'];
     unset($code_component_to_send['props']['integer']['examples']);
+    unset($code_component_to_send['props']['number']['examples']);
     $request_options[RequestOptions::BODY] = self::encodeXBData($code_component_to_send);
     $body = $this->assertExpectedResponse('PATCH', Url::fromUri('base:/xb/api/config/js_component/test'), $request_options, 422, NULL, NULL, NULL, NULL);
     $this->assertSame([
       'errors' => [
         [
-          'detail' => "'title' is a required key.",
-          'source' => ['pointer' => 'props.string'],
+          'detail' => 'Prop "integer" is required, but does not have example value',
+          'source' => ['pointer' => ''],
         ],
         [
-          'detail' => "'examples' is a required key.",
-          'source' => ['pointer' => 'props.integer'],
+          'detail' => "'title' is a required key.",
+          'source' => ['pointer' => 'props.string'],
         ],
       ],
     ], $body);
@@ -698,8 +699,9 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
     // Modify a Code Component correctly: 200.
     $code_component_to_send['name'] = 'Test, and test again';
     $code_component_to_send['props']['string']['title'] = $omitted_string_prop_title;
-    $code_component_to_send['props']['integer']['examples'] = $omitted_integer_prop_examples;
+    $code_component_to_send['props']['integer']['examples'] = $omitted_required_prop_examples;
     $expected_component['name'] = $code_component_to_send['name'];
+    unset($expected_component['props']['number']['examples']);
     $request_options[RequestOptions::BODY] = self::encodeXBData($code_component_to_send);
     $body = $this->assertExpectedResponse('PATCH', Url::fromUri('base:/xb/api/config/js_component/test'), $request_options, 200, NULL, NULL, NULL, NULL);
     $this->assertSame($expected_component, $body);

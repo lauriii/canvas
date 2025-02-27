@@ -60,6 +60,7 @@ experience_builder.component.*:
 # 2. The sole metadata key-value pair for metadata that SDC does not have: `status`, which tracks whether this
 #    Code Component should be available in XB's component library or not.
 # 3. The code key-value pairs must be able to match what SDC achieves using the directory's Twig+CSS+JS files.
+# @see \Drupal\experience_builder\Plugin\Validation\Constraint\JsComponentHasValidAndSupportedSdcMetadataConstraintValidator
 experience_builder.js_component.*:
   type: config_entity
   constraints:
@@ -103,7 +104,7 @@ experience_builder.js_component.*:
         type: string
         label: 'Prop'
         # This MUST be one of the keys available at %parent.props. Rather than repeating that validation logic here, let
-        # the JsComponentHasValidSdcMetadata constraint take care of that.
+        # the JsComponentHasValidAndSupportedSdcMetadata constraint take care of that.
         constraints: {}
     # See core/assets/schemas/v1/metadata-full.schema.json#properties.props
     props:
@@ -111,8 +112,12 @@ experience_builder.js_component.*:
       sequence:
         # Define dynamic type using config schema's "child key" functionality.
         type: experience_builder.json_schema.prop.[type]
-        constraints:
-          IsStorablePropShape: ~
+        # XB has additional requirements:
+        # - not every prop shape is supported
+        # - every required prop (listed in %parent.required) MUST have >=1 example
+        # Rather than repeating that validation logic here, let the JsComponentHasValidAndSupportedSdcMetadata
+        # constraint take care of that.
+        constraints: { }
     # See core/assets/schemas/v1/metadata-full.schema.json#properties.slots
     slots:
       type: sequence

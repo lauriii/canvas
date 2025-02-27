@@ -23,6 +23,8 @@ class JavaScriptComponentValidationTest extends ConfigEntityValidationTestBase {
   protected static $modules = [
     'experience_builder',
     // XB's dependencies (the subset that is needed for these tests).
+    'file',
+    'image',
     'options',
   ];
 
@@ -86,6 +88,27 @@ class JavaScriptComponentValidationTest extends ConfigEntityValidationTestBase {
       ],
     ]);
     $this->entity->save();
+  }
+
+  /**
+   * @testWith [true, true, []]
+   *           [true, false, {"": "Prop \"silly\" is required, but does not have example value"}]
+   *           [false, true, []]
+   *           [false, false, []]
+   */
+  public function testPropExample(bool $required, bool $has_example, array $expected_validation_errors): void {
+    $test_prop_definition = [
+      'type' => 'boolean',
+      'title' => $this->randomMachineName(),
+      'examples' => [TRUE],
+    ];
+    if (!$has_example) {
+      unset($test_prop_definition['examples']);
+    }
+    $this->entity
+      ->set('required', $required ? ['silly'] : [])
+      ->set('props', ['silly' => $test_prop_definition]);
+    $this->assertValidationErrors($expected_validation_errors);
   }
 
   /**
@@ -475,7 +498,35 @@ class JavaScriptComponentValidationTest extends ConfigEntityValidationTestBase {
         ],
         [],
       ],
-      'Invalid: image prop missing examples' => [
+      'Invalid: required image prop missing examples' => [
+        [
+          'machineName' => 'image-prop-no-slots-no-examples',
+          'name' => 'Test',
+          'required' => [
+            'image',
+          ],
+          'props' => [
+            'image' => [
+              'title' => 'Image title',
+              'type' => 'object',
+              '$ref' => "json-schema-definitions://experience_builder.module/image",
+            ],
+          ],
+          'slots' => [],
+          'js' => [
+            'original' => 'console.log("Test")',
+            'compiled' => 'console.log("Test")',
+          ],
+          'css' => [
+            'original' => '.test { display: none; }',
+            'compiled' => '.test{display:none;}',
+          ],
+        ],
+        [
+          '' => 'Prop "image" is required, but does not have example value',
+        ],
+      ],
+      'Valid: optional image prop missing examples' => [
         [
           'machineName' => 'image-prop-no-slots-no-examples',
           'name' => 'Test',
@@ -496,9 +547,7 @@ class JavaScriptComponentValidationTest extends ConfigEntityValidationTestBase {
             'compiled' => '.test{display:none;}',
           ],
         ],
-        [
-          'props.image' => '\'examples\' is a required key.',
-        ],
+        [],
       ],
       'Invalid: image prop $ref' => [
         [
@@ -509,6 +558,7 @@ class JavaScriptComponentValidationTest extends ConfigEntityValidationTestBase {
               'title' => 'Image title',
               'type' => 'object',
               'examples' => [
+                // @todo this is actually an invalid example, will be detected by https://www.drupal.org/i/3508725
                 'src' => 'https://example.com/image.png',
                 'alt' => 'Alternative text',
                 'width' => 800,
@@ -527,10 +577,8 @@ class JavaScriptComponentValidationTest extends ConfigEntityValidationTestBase {
           ],
         ],
         [
-          'props.image' => [
-            'Prop "<em class="placeholder">image</em>" has a shape that is unfortunately not supported by Experience Builder.',
-            '\'$ref\' is a required key because props.image.type is object (see config schema type experience_builder.json_schema.prop.object).',
-          ],
+          '' => 'Experience Builder does not know of a field type/widget to allow populating the <code>image</code> prop, with the shape <code>{"type":"object"}</code>.',
+          'props.image' => '\'$ref\' is a required key because props.image.type is object (see config schema type experience_builder.json_schema.prop.object).',
         ],
       ],
       'Invalid: image prop with incorrect $ref' => [
@@ -563,7 +611,7 @@ class JavaScriptComponentValidationTest extends ConfigEntityValidationTestBase {
           ],
         ],
         [
-          'props.image' => 'Prop "<em class="placeholder">image</em>" has a shape that is unfortunately not supported by Experience Builder.',
+          '' => 'Experience Builder does not know of a field type/widget to allow populating the <code>image</code> prop, with the shape <code>{"type":"object","$ref":"json-schema-definitions://experience_builder.module/textarea"}</code>.',
           'props.image.$ref' => 'The value you selected is not a valid choice.',
         ],
       ],
@@ -647,12 +695,11 @@ class JavaScriptComponentValidationTest extends ConfigEntityValidationTestBase {
     $this->entity->set('props', $prop_colliding_with_slot);
     $this->assertValidationErrors([
       '' => 'The component "experience_builder:test" declared [test-slot] both as a prop and as a slot. Make sure to use different names.',
-      'props.test-slot' => "'examples' is a required key.",
     ]);
   }
 
   protected function assertValidationErrors(array $expected_messages): void {
-    // JsComponentHasValidSdcMetadata adds additional validation, but
+    // JsComponentHasValidAndSupportedSdcMetadata adds additional validation, but
     // \Drupal\KernelTests\Core\Config\ConfigEntityValidationTestBase::testInvalidMachineNameCharacters()
     // does not provide a way to add additional errors when the machine name is
     // invalid.
