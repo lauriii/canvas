@@ -59,6 +59,7 @@ testid
 toolset
 topbar
 tsconfigs
+ultrawide
 unstorable
 uuidv
 Validatable

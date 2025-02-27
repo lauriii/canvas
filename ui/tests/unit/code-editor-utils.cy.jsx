@@ -66,9 +66,6 @@ chai.Assertion.addMethod('matchDeserializedProps', function (props) {
     return rest;
   });
 
-  console.log('actualWithoutIds', actualWithoutIds);
-  console.log('expectedWithoutIds', expectedWithoutIds);
-
   this.assert(
     chai.util.eql(actualWithoutIds, expectedWithoutIds),
     `expected ${JSON.stringify(actualWithoutIds, null, 2)} to match deserialized props ${JSON.stringify(expectedWithoutIds, null, 2)}`,
@@ -246,6 +243,15 @@ describe('Code editor utilities', () => {
         ]),
       ).to.matchDeserializedProps([14, 15]);
     });
+
+    it('of type image', () => {
+      expect(
+        deserializeProps([
+          serializedPropsFixture.imageWithNoExampleValue,
+          serializedPropsFixture.imageWithExampleValue,
+        ]),
+      ).to.matchDeserializedProps([16, 17]);
+    });
   });
 
   it('serialize slots', () => {
@@ -289,6 +295,13 @@ describe('Code editor preview utilities', () => {
       textAreaWithNoExampleValue: '',
       textAreaWithExampleValue:
         "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged.",
+      imageWithNoExampleValue: '',
+      imageWithExampleValue: {
+        src: 'https://placehold.co/1200x900@2x.png',
+        width: 1200,
+        height: 900,
+        alt: 'Example image placeholder',
+      },
     });
   });
 

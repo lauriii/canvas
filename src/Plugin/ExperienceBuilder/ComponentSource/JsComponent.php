@@ -17,6 +17,7 @@ use Drupal\experience_builder\Attribute\ComponentSource;
 use Drupal\experience_builder\AutoSave\AutoSaveManager;
 use Drupal\experience_builder\ComponentDoesNotMeetRequirementsException;
 use Drupal\experience_builder\ComponentMetadataRequirementsChecker;
+use Drupal\experience_builder\ComponentSource\UrlRewriteInterface;
 use Drupal\experience_builder\Entity\Component as ComponentEntity;
 use Drupal\experience_builder\Entity\ComponentInterface;
 use Drupal\experience_builder\Entity\JavaScriptComponent;
@@ -30,7 +31,7 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
   label: new TranslatableMarkup('Code Components'),
   supportsImplicitInputs: FALSE,
 )]
-final class JsComponent extends GeneratedFieldExplicitInputUxComponentSourceBase {
+final class JsComponent extends GeneratedFieldExplicitInputUxComponentSourceBase implements UrlRewriteInterface {
 
   public const SOURCE_PLUGIN_ID = 'js';
 
@@ -309,6 +310,14 @@ final class JsComponent extends GeneratedFieldExplicitInputUxComponentSourceBase
       $definition['id'],
       $definition,
     );
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function rewriteExampleUrl(string $url): string {
+    // @todo Remove this method/interface implementation in https://www.drupal.org/project/experience_builder/issues/3493943, which will make it obsolete.
+    return $url;
   }
 
 }

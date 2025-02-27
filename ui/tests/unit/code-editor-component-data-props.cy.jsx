@@ -10,6 +10,7 @@ import {
 } from '@/features/code-editor/codeEditorSlice';
 import { Theme } from '@radix-ui/themes';
 import ComponentData from '@/features/code-editor/component-data/ComponentData';
+import { parseExampleSrc as parseImageExampleSrc } from '@/features/code-editor/component-data/forms/FormPropTypeImage';
 
 import '@/styles/radix-themes';
 import '@/styles/index.css';
@@ -808,6 +809,30 @@ describe('Component data / props in code editor', () => {
     cy.wrap(store).then((store) => {
       expect(selectProps(store.getState())[0].example).to.equal('');
     });
+
+    // Change the type to Text area. The example value should be removed.
+    cy.findByLabelText('Type').click();
+    cy.findByText('Text area').click();
+    cy.findByLabelText('Example value').should('have.value', '');
+    cy.wrap(store).then((store) => {
+      expect(selectProps(store.getState())[0].example).to.equal('');
+    });
+
+    // Change type to Image. The example value should be removed.
+    cy.findByLabelText('Type').click();
+    cy.findByText('Image').click();
+    cy.findByLabelText('Example aspect ratio').should(
+      'have.text',
+      '4:3 (Standard)',
+    );
+    cy.wrap(store).then((store) => {
+      expect(selectProps(store.getState())[0].example).to.deep.equal({
+        src: 'https://placehold.co/1200x900@2x.png',
+        width: 1200,
+        height: 900,
+        alt: 'Example image placeholder',
+      });
+    });
   });
 
   it('creates a new text area prop', () => {
@@ -838,6 +863,172 @@ describe('Component data / props in code editor', () => {
         },
         'Should have the correct prop metadata',
       );
+    });
+  });
+
+  it('creates a new image prop', () => {
+    cy.findByText('Add').click();
+
+    cy.findByLabelText('Prop name').type('Image');
+    cy.findByLabelText('Type').click();
+    cy.findByText('Image').click();
+    // Verify the default example values.
+    cy.findByLabelText('Example aspect ratio').should(
+      'have.text',
+      '4:3 (Standard)',
+    );
+    cy.findByLabelText('Pixel density').should(
+      'have.text',
+      '2x (High density)',
+    );
+
+    cy.wrap(store).then((store) => {
+      expect(selectProps(store.getState())[0]).to.deep.include(
+        {
+          type: 'object',
+          example: {
+            src: 'https://placehold.co/1200x900@2x.png',
+            width: 1200,
+            height: 900,
+            alt: 'Example image placeholder',
+          },
+        },
+        'Should have the appropriate type and example value',
+      );
+    });
+
+    // Select the "None" option for the example aspect ratio.
+    cy.findByLabelText('Example aspect ratio').click();
+    cy.findByText('- None -').click();
+    // The pixel density should now be hidden.
+    cy.findByLabelText('Pixel density').should('not.exist');
+    cy.wrap(store).then((store) => {
+      expect(selectProps(store.getState())[0]).to.deep.include(
+        {
+          type: 'object',
+          example: '',
+        },
+        'Should have the appropriate type and example value',
+      );
+    });
+
+    // Set the prop as required.
+    cy.findByLabelText('Required').toggleToggle();
+    // The example aspect ratio and pixel density should now be the default values.
+    cy.findByLabelText('Example aspect ratio').should(
+      'have.text',
+      '4:3 (Standard)',
+    );
+    cy.findByLabelText('Pixel density').should(
+      'have.text',
+      '2x (High density)',
+    );
+    cy.wrap(store).then((store) => {
+      expect(selectProps(store.getState())[0]).to.deep.include(
+        {
+          type: 'object',
+          example: {
+            src: 'https://placehold.co/1200x900@2x.png',
+            width: 1200,
+            height: 900,
+            alt: 'Example image placeholder',
+          },
+        },
+        'Should have the appropriate type and example value',
+      );
+    });
+
+    // Update the aspect ratio.
+    cy.findByLabelText('Example aspect ratio').click();
+    cy.findByText('16:9 (Widescreen)').click();
+    cy.findByLabelText('Example aspect ratio').should(
+      'have.text',
+      '16:9 (Widescreen)',
+    );
+    // Update the pixel density.
+    cy.findByLabelText('Pixel density').click();
+    cy.findByText('3x (Ultra-high density)').click();
+    cy.findByLabelText('Pixel density').should(
+      'have.text',
+      '3x (Ultra-high density)',
+    );
+    cy.wrap(store).then((store) => {
+      expect(selectProps(store.getState())[0]).to.deep.include(
+        {
+          type: 'object',
+          example: {
+            src: 'https://placehold.co/1920x1080@3x.png',
+            width: 1920,
+            height: 1080,
+            alt: 'Example image placeholder',
+          },
+        },
+        'Should have the appropriate type and example value',
+      );
+    });
+
+    // Set the prop as not required, then back to required. The example aspect
+    // ratio and pixel density should be the previous values.
+    cy.findByLabelText('Required').toggleToggle();
+    cy.findByLabelText('Required').toggleToggle();
+    cy.findByLabelText('Example aspect ratio').should(
+      'have.text',
+      '16:9 (Widescreen)',
+    );
+    cy.findByLabelText('Pixel density').should(
+      'have.text',
+      '3x (Ultra-high density)',
+    );
+    cy.wrap(store).then((store) => {
+      expect(selectProps(store.getState())[0]).to.deep.include(
+        {
+          type: 'object',
+          example: {
+            src: 'https://placehold.co/1920x1080@3x.png',
+            width: 1920,
+            height: 1080,
+            alt: 'Example image placeholder',
+          },
+        },
+        'Should have the appropriate type and example value',
+      );
+    });
+  });
+
+  it('parses the image prop example URL', () => {
+    expect(
+      parseImageExampleSrc('https://placehold.co/800x600.png'),
+    ).to.deep.equal({
+      aspectRatio: '4:3', // Fallback to default aspect ratio, size is not known.
+      pixelDensity: '1x', // Matched from URL.
+    });
+
+    expect(
+      parseImageExampleSrc('https://placehold.co/800x600@2x.png'),
+    ).to.deep.equal({
+      aspectRatio: '4:3', // Fallback to default aspect ratio, size is not known.
+      pixelDensity: '2x', // Exact match.
+    });
+
+    expect(
+      parseImageExampleSrc('https://placehold.co/1200x800@4x.png'),
+    ).to.deep.equal({
+      aspectRatio: '3:2',
+      pixelDensity: '2x', // Fallback to default pixel density, density is not known.
+    });
+
+    expect(
+      parseImageExampleSrc('https://placehold.co/1200x800@2x.png'),
+    ).to.deep.equal({
+      aspectRatio: '3:2',
+      pixelDensity: '2x',
+    });
+
+    expect(
+      parseImageExampleSrc('https://placehold.co/2100x900@3x.png'),
+    ).to.deep.equal({
+      aspectRatio: '21:9',
+      pixelDensity: '3x',
     });
   });
 });

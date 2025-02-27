@@ -21,17 +21,24 @@ export interface CodeComponentSerialized
 export interface CodeComponentProp {
   id: string;
   name: string;
-  type: 'string' | 'integer' | 'number' | 'boolean';
+  type: 'string' | 'integer' | 'number' | 'boolean' | 'object';
   enum?: string[];
-  example?: string;
+  example?: string | CodeComponentPropImageExample;
   _ref?: string;
+}
+
+export interface CodeComponentPropImageExample {
+  src: string;
+  width: number;
+  height: number;
+  alt: string;
 }
 
 export interface CodeComponentPropSerialized {
   title: string;
-  type: 'string' | 'integer' | 'number' | 'boolean';
+  type: 'string' | 'integer' | 'number' | 'boolean' | 'object';
   enum?: (string | number)[];
-  examples?: (string | number)[];
+  examples?: (string | number | CodeComponentPropImageExample)[];
   $ref?: string;
 }
 

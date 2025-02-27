@@ -20,15 +20,19 @@ import {
 import FormPropTypeBoolean from '@/features/code-editor/component-data/forms/FormPropTypeBoolean';
 import FormPropTypeEnum from '@/features/code-editor/component-data/forms/FormPropTypeEnum';
 import FormPropTypeTextField from '@/features/code-editor/component-data/forms/FormPropTypeTextField';
+import FormPropTypeTextArea from '@/features/code-editor/component-data/forms/FormPropTypeTextArea';
+import FormPropTypeImage from '@/features/code-editor/component-data/forms/FormPropTypeImage';
 import SortableList from '@/features/code-editor/component-data/SortableList';
 import {
   FormElement,
   Label,
 } from '@/features/code-editor/component-data/FormElement';
-import type { CodeComponentProp } from '@/types/CodeComponent';
+import type {
+  CodeComponentProp,
+  CodeComponentPropImageExample,
+} from '@/types/CodeComponent';
 import { getPropMachineName } from '@/features/code-editor/utils';
 import { InfoCircledIcon } from '@radix-ui/react-icons';
-import FormPropTypeTextArea from '@/features/code-editor/component-data/forms/FormPropTypeTextArea';
 
 type UiPropType = Omit<
   CodeComponentProp,
@@ -57,6 +61,11 @@ const UI_PROP_TYPES: Record<string, UiPropType> = {
   stringEnum: { type: 'string', displayName: 'List: text', isEnum: true },
   integerEnum: { type: 'integer', displayName: 'List: integer', isEnum: true },
   numberEnum: { type: 'number', displayName: 'List: number', isEnum: true },
+  image: {
+    type: 'object',
+    displayName: 'Image',
+    _ref: 'json-schema-definitions://experience_builder.module/image',
+  },
 };
 
 function getUIPropTypeKey(prop: CodeComponentProp) {
@@ -67,9 +76,11 @@ function getUIPropTypeKey(prop: CodeComponentProp) {
     if (prop.type === 'string') {
       return `${prop.type}Long`;
     }
-  } else {
-    return prop.type;
+    if (prop.type === 'object' && prop._ref.includes('image')) {
+      return 'image';
+    }
   }
+  return prop.type;
 }
 
 export default function Props() {
@@ -179,7 +190,7 @@ export default function Props() {
                   id={prop.id}
                   required={required.includes(propName)}
                   enum={prop.enum || []}
-                  example={prop.example}
+                  example={prop.example as string}
                   isDisabled={componentStatus}
                 />
               ) : prop._ref ? (
@@ -192,7 +203,7 @@ export default function Props() {
               ) : (
                 <FormPropTypeTextField
                   id={prop.id}
-                  example={prop.example}
+                  example={prop.example as string}
                   isDisabled={componentStatus}
                 />
               );
@@ -203,13 +214,13 @@ export default function Props() {
                   id={prop.id}
                   required={required.includes(propName)}
                   enum={prop.enum || []}
-                  example={prop.example}
+                  example={prop.example as string}
                   isDisabled={componentStatus}
                 />
               ) : (
                 <FormPropTypeTextField
                   id={prop.id}
-                  example={prop.example}
+                  example={prop.example as string}
                   type="integer"
                   isDisabled={componentStatus}
                 />
@@ -221,13 +232,13 @@ export default function Props() {
                   id={prop.id}
                   required={required.includes(propName)}
                   enum={prop.enum || []}
-                  example={prop.example}
+                  example={prop.example as string}
                   isDisabled={componentStatus}
                 />
               ) : (
                 <FormPropTypeTextField
                   id={prop.id}
-                  example={prop.example}
+                  example={prop.example as string}
                   type="number"
                   isDisabled={componentStatus}
                 />
@@ -236,10 +247,22 @@ export default function Props() {
               return (
                 <FormPropTypeBoolean
                   id={prop.id}
-                  example={prop.example}
+                  example={prop.example as string}
                   isDisabled={componentStatus}
                 />
               );
+            case 'object':
+              if (prop._ref && prop._ref.includes('image')) {
+                return (
+                  <FormPropTypeImage
+                    id={prop.id}
+                    example={prop.example as CodeComponentPropImageExample}
+                    isDisabled={componentStatus}
+                    required={required.includes(propName)}
+                  />
+                );
+              }
+              break;
             default:
               return null;
           }

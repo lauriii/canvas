@@ -103,6 +103,25 @@
       "example": "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged.",
       "id": "5e894686-8c73-4a01-8727-a36ff1cc59eb",
       "_ref": "json-schema-definitions://experience_builder.module/textarea"
+    },
+    {
+      "name": "Image with no example value",
+      "type": "object",
+      "_ref": "json-schema-definitions://experience_builder.module/image",
+      "example": "",
+      "id": "af004b63-5f58-4923-be8e-3249dde1b32e"
+    },
+    {
+      "name": "Image with example value",
+      "type": "object",
+      "_ref": "json-schema-definitions://experience_builder.module/image",
+      "example": {
+        "src": "https://placehold.co/1200x900@2x.png",
+        "width": 1200,
+        "height": 900,
+        "alt": "Example image placeholder"
+      },
+      "id": "4ea2a14d-7828-467c-a505-063f006f1ebf"
     }
   ],
   "serialized": {
@@ -186,6 +205,22 @@
       "type": "string",
       "examples": ["Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged."],
       "$ref": "json-schema-definitions://experience_builder.module/textarea"
+    },
+    "imageWithNoExampleValue": {
+      "title": "Image with no example value",
+      "type": "object",
+      "$ref": "json-schema-definitions://experience_builder.module/image"
+    },
+    "imageWithExampleValue": {
+      "title": "Image with example value",
+      "type": "object",
+      "examples": [{
+        "src": "https://placehold.co/1200x900@2x.png",
+        "width": 1200,
+        "height": 900,
+        "alt": "Example image placeholder"
+      }],
+      "$ref": "json-schema-definitions://experience_builder.module/image"
     }
   }
 }

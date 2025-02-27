@@ -8,6 +8,7 @@ import type {
   CodeComponentPropSerialized,
   CodeComponentSlot,
   CodeComponentSlotSerialized,
+  CodeComponentPropImageExample,
 } from '@/types/CodeComponent';
 
 export function getPropMachineName(name: string) {
@@ -184,13 +185,19 @@ export function deserializeProps(
   }
   return Object.entries(props).map(([key, prop]) => {
     const { title, type, examples, enum: enumValues, $ref } = prop;
+    let example: CodeComponentProp['example'] = '';
+    if (examples?.length) {
+      example =
+        type === 'object'
+          ? (examples[0] as unknown as CodeComponentPropImageExample)
+          : String(examples[0]);
+    }
+
     return {
-      // The ID is only used to keep track of the prop in the UI when editing,
-      // reordering, etc.
       id: uuidv4(),
       name: title,
       type,
-      example: examples?.length ? String(examples[0]) : '',
+      example,
       ...(enumValues && { enum: enumValues.map(String) }),
       ...($ref && { _ref: $ref }),
     };

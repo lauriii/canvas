@@ -23,7 +23,8 @@ export default function FormPropTypeEnum({
   required,
   type,
   isDisabled = false,
-}: Pick<CodeComponentProp, 'id' | 'enum' | 'example'> & {
+}: Pick<CodeComponentProp, 'id' | 'enum'> & {
+  example: string;
   required: boolean;
   type: 'string' | 'integer' | 'number';
   isDisabled: boolean;

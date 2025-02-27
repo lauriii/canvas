@@ -13,7 +13,8 @@ export default function FormPropTypeTextField({
   example,
   type = 'string',
   isDisabled = false,
-}: Pick<CodeComponentProp, 'id' | 'example'> & {
+}: Pick<CodeComponentProp, 'id'> & {
+  example: string;
   type?: 'string' | 'integer' | 'number';
   isDisabled?: boolean;
 }) {
