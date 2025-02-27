@@ -64,9 +64,11 @@ export enum CONFLICT_CODE {
 export const pendingChangesApi = createApi({
   reducerPath: 'pendingChangesApi',
   baseQuery,
+  tagTypes: ['PendingChanges'],
   endpoints: (builder) => ({
     getAllPendingChanges: builder.query<PendingChanges, void>({
       query: () => `/xb/api/autosaves/pending`,
+      providesTags: () => [{ type: 'PendingChanges', id: 'LIST' }],
     }),
     publishAllPendingChanges: builder.mutation<
       SuccessResponse | ErrorResponse,

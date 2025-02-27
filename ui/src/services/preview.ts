@@ -8,6 +8,7 @@ import type {
 import { setLayoutModel } from '@/features/layout/layoutModelSlice';
 import { setHtml } from '@/features/pagePreview/previewSlice';
 import type { ConflictError } from '@/services/pendingChangesApi';
+import { pendingChangesApi } from '@/services/pendingChangesApi';
 import { createSelector } from '@reduxjs/toolkit';
 import type { RootState } from '@/app/store';
 
@@ -40,6 +41,11 @@ export const previewApi = createApi({
       }),
       async onQueryStarted(arg, { dispatch, queryFulfilled }) {
         try {
+          dispatch(
+            pendingChangesApi.util.invalidateTags([
+              { type: 'PendingChanges', id: 'LIST' },
+            ]),
+          );
           const { data } = await queryFulfilled;
           const { html } = data;
           // Update our preview slice.
@@ -61,6 +67,11 @@ export const previewApi = createApi({
       }),
       async onQueryStarted(body, { dispatch, queryFulfilled }) {
         try {
+          dispatch(
+            pendingChangesApi.util.invalidateTags([
+              { type: 'PendingChanges', id: 'LIST' },
+            ]),
+          );
           const { data } = await queryFulfilled;
           const { html, layout, model } = data;
           dispatch(setHtml(html));
