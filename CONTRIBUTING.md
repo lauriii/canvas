@@ -71,3 +71,13 @@ If you press & hold the `V` key and then click on the iFrame (focusing into it),
 
 You can then click (focus) outside the iFrame and tap the `V` key once more to return the UI.
 
+# Releases
+
+For now, Experience Builder does _not_ include the built UI in its `git` repository, because it is currently optimized
+for development.
+
+Therefore, every release must build the UI, commit the built UI, and revert it. Similar to Drupal core's releases.
+
+This has been semi-automated: use `sh scripts/tag-release.sh` to be asked what tag to create, and it'll create that tag
+in a (temporary) working directory without touching the Experience Builder `git` repository the command runs from. Prior
+to pushing, you'll be given the opportunity to inspect the result.
