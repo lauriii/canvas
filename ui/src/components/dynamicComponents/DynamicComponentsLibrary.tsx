@@ -54,6 +54,9 @@ const Library: React.FC<LibraryProps> = ({ dynamicComponents }) => {
             onTriggerClick={() => onClickHandler(category.id)}
             className={styles.accordionDetails}
             triggerClassName={styles.accordionDetailsTrigger}
+            summaryAttributes={{
+              'aria-label': `${category.name} dynamic components`,
+            }}
           >
             <ErrorBoundary
               title={`An unexpected error has occurred while fetching ${category.name}.`}

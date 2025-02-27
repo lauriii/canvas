@@ -99,6 +99,7 @@ const Topbar = () => {
                   color="gray"
                   size="2"
                   className={clsx(styles.topBarButton)}
+                  aria-label="Dynamic components"
                 >
                   <CMSIcon height="24" width="auto" />
                 </Button>
