@@ -15,8 +15,8 @@ import {
   setHasCompletedFirstCompilation,
   selectName,
 } from '@/features/code-editor/codeEditorSlice';
-import { parse } from 'babylon';
-import type { File } from 'babel-types';
+import { parse } from '@babel/parser';
+import type { File } from '@babel/types';
 import buildCSS, { transformCss } from 'tailwindcss-in-browser';
 import styles from './Preview.module.css';
 import ErrorCard from '@/components/error/ErrorCard';
