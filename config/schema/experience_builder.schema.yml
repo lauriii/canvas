@@ -94,7 +94,6 @@ experience_builder.js_component.*:
         Choice:
           - system_breadcrumb_block
           - system_menu_block
-          - page_title_block
           - system_branding_block
     # See core/assets/schemas/v1/metadata-full.schema.json#properties.props.properties.required
     required:

@@ -248,13 +248,11 @@ final class JavaScriptComponent extends ConfigEntityBase implements XbAssetInter
    */
   private function getExperimentalHardcodedBlockProps(string $override): ?array {
     switch ($this->block_override) {
-      case 'page_title_block':
-        return [];
-
       case 'system_branding_block':
         return [
           'homeUrl' => ['type' => 'string', 'format' => 'uri-reference'],
           'logo' => ['type' => 'string', 'format' => 'uri-reference'],
+          'siteName' => ['type' => 'string'],
         ];
 
       case 'system_breadcrumb_block':

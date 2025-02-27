@@ -10,6 +10,7 @@ import {
 import {
   initializeCodeEditor,
   resetCodeEditor,
+  selectBlockOverride,
   selectCompiledCss,
   selectCompiledJs,
   selectHasCompletedFirstCompilation,
@@ -47,6 +48,7 @@ const useCodeComponentData = () => {
   const compiledJs = useAppSelector(selectCompiledJs);
   const sourceCodeCss = useAppSelector(selectSourceCodeCss);
   const compiledCss = useAppSelector(selectCompiledCss);
+  const blockOverride = useAppSelector(selectBlockOverride);
   const props = useAppSelector(selectProps);
   const slots = useAppSelector(selectSlots);
   const required = useAppSelector(selectRequired);
@@ -97,6 +99,7 @@ const useCodeComponentData = () => {
         initializeCodeEditor({
           id: componentId,
           status: data.status,
+          blockOverride: data.block_override,
           name: data.name,
           sourceCodeJs: data.source_code_js || '',
           sourceCodeCss: data.source_code_css || '',
@@ -136,6 +139,7 @@ const useCodeComponentData = () => {
                 compiled_js: compiledJs,
                 compiled_css: compiledCss,
               }),
+              block_override: blockOverride,
               props: serializeProps(props),
               slots: serializeSlots(slots),
               required,
@@ -158,6 +162,7 @@ const useCodeComponentData = () => {
     //  - isEditorReady: it would trigger the hook again when its value is updated to true
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [
+      blockOverride,
       compiledCss,
       compiledJs,
       componentId,

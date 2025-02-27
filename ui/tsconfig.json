@@ -17,7 +17,8 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["src/*"],
-      "@assets/*": ["assets/*"]
+      "@assets/*": ["assets/*"],
+      "@experimental/*": ["../experimental/*"]
     },
     "sourceMap": false,
     "inlineSourceMap": true,

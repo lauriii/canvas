@@ -13,6 +13,8 @@ use Drupal\Core\Render\Element\RenderElementBase;
 /**
  * Provides a render element for an Astro island web component.
  *
+ * @see https://docs.astro.build/en/concepts/islands/
+ *
  * Properties:
  * - #uuid: A unique ID for this island.
  * - #component_url: URL of component to hydrate. This will be a JavaScript

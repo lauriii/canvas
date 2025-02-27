@@ -1,6 +1,9 @@
 import { Box, Flex, ScrollArea, Spinner, Tabs } from '@radix-ui/themes';
+import { selectBlockOverride } from '@/features/code-editor/codeEditorSlice';
+import { useAppSelector } from '@/app/hooks';
 import Props from '@/features/code-editor/component-data/Props';
 import Slots from '@/features/code-editor/component-data/Slots';
+import OverrideExampleData from '@/features/code-editor/component-data/OverrideExampleData';
 import ErrorBoundary from '@/components/error/ErrorBoundary';
 import styles from './ComponentData.module.css';
 
@@ -9,6 +12,8 @@ export default function ComponentData({
 }: {
   isLoading?: boolean;
 }) {
+  const blockOverride = useAppSelector(selectBlockOverride);
+
   return (
     <Spinner loading={isLoading}>
       <Box height="100%" pt="4">
@@ -21,13 +26,27 @@ export default function ComponentData({
             <ScrollArea>
               <Box px="4">
                 <Tabs.Content value="props">
-                  <ErrorBoundary title="An unexpected error has occurred while rendering the component's props.">
-                    <Props />
+                  <ErrorBoundary title="An unexpected error has occurred while displaying props.">
+                    {blockOverride ? (
+                      <OverrideExampleData
+                        block={blockOverride as string}
+                        type="props"
+                      />
+                    ) : (
+                      <Props />
+                    )}
                   </ErrorBoundary>
                 </Tabs.Content>
                 <Tabs.Content value="slots">
-                  <ErrorBoundary title="An unexpected error has occurred while rendering the component's slots.">
-                    <Slots />
+                  <ErrorBoundary title="An unexpected error has occurred while displaying slots.">
+                    {blockOverride ? (
+                      <OverrideExampleData
+                        block={blockOverride as string}
+                        type="slots"
+                      />
+                    ) : (
+                      <Slots />
+                    )}
                   </ErrorBoundary>
                 </Tabs.Content>
               </Box>

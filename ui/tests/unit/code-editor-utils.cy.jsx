@@ -3,6 +3,7 @@ import {
   serializeProps,
   serializeSlots,
   deserializeSlots,
+  getPropValuesForPreview,
 } from '@/features/code-editor/utils';
 import fixtureProps from '../fixtures/code-component-props.json';
 import fixtureSlots from '../fixtures/code-component-slots.json';
@@ -265,5 +266,34 @@ describe('Code editor utilities', () => {
         id: undefined,
       });
     });
+  });
+});
+
+describe('Code editor preview utilities', () => {
+  it('extracts values from props for preview', () => {
+    expect(getPropValuesForPreview(deserializedPropsFixture)).to.deep.equal({
+      stringWithNoExampleValue: '',
+      stringWithExampleValue: 'Experience Builder',
+      integerWithNoExampleValue: 0,
+      integerWithExampleValue: 922,
+      numberWithNoExampleValue: 0,
+      numberWithExampleValue: 9.22,
+      booleanWithExampleValueTrue: true,
+      booleanWithExampleValueFalse: false,
+      textListWithNoExampleValue: '',
+      textListWithExampleValue: 'In Progress',
+      integerListWithNoExampleValue: 0,
+      integerListWithExampleValue: 2,
+      numberListWithNoExampleValue: 0,
+      numberListWithExampleValue: 2.2,
+      textAreaWithNoExampleValue: '',
+      textAreaWithExampleValue:
+        "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged.",
+    });
+  });
+
+  it('handles empty props when extracting values for preview', () => {
+    const result = getPropValuesForPreview([]);
+    expect(result).to.deep.equal({});
   });
 });

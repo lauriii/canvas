@@ -2,6 +2,7 @@ export interface CodeComponent {
   machineName: string;
   name: string;
   status: boolean;
+  block_override: string | null;
   props: CodeComponentProp[];
   required: string[];
   slots: any[];
@@ -44,6 +45,8 @@ export interface CodeComponentSlotSerialized {
   title: string;
   examples?: string[];
 }
+
+export type CodeComponentPropPreviewValue = string | number | boolean;
 
 export interface AssetLibrary {
   id: string;

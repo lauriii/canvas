@@ -17,6 +17,7 @@ import { openAddToComponentsDialog } from '@/features/ui/codeComponentDialogSlic
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import {
   selectCodeComponentSerialized,
+  selectBlockOverride,
   selectStatus,
 } from '@/features/code-editor/codeEditorSlice';
 
@@ -50,6 +51,7 @@ const MosaicContainer = () => {
   const dispatch = useAppDispatch();
   const selectedComponent = useAppSelector(selectCodeComponentSerialized);
   const componentStatus = useAppSelector(selectStatus);
+  const blockOverride = useAppSelector(selectBlockOverride);
 
   const { isLoading: isLoadingCodeComponent } = useCodeComponentData();
   const { isLoading: isLoadingGlobalCss } = useAssetLibraryData();
@@ -149,23 +151,24 @@ const MosaicContainer = () => {
                   renderToolbar={({ title }) => {
                     return (
                       <Box width="100%">
-                        {componentStatus === false && (
-                          <Box px="4">
-                            <Box className={styles.addToComponentsButton}>
-                              <Button
-                                onClick={() => {
-                                  dispatch(
-                                    openAddToComponentsDialog(
-                                      selectedComponent,
-                                    ),
-                                  );
-                                }}
-                              >
-                                Add to components
-                              </Button>
+                        {componentStatus === false &&
+                          blockOverride === null && (
+                            <Box px="4">
+                              <Box className={styles.addToComponentsButton}>
+                                <Button
+                                  onClick={() => {
+                                    dispatch(
+                                      openAddToComponentsDialog(
+                                        selectedComponent,
+                                      ),
+                                    );
+                                  }}
+                                >
+                                  Add to components
+                                </Button>
+                              </Box>
                             </Box>
-                          </Box>
-                        )}
+                          )}
                         <div className="mosaic-window-title">{title}</div>
                       </Box>
                     );
@@ -179,7 +182,9 @@ const MosaicContainer = () => {
                 <MosaicWindow<string>
                   className="xb-mosaic-window-component-data"
                   path={path}
-                  title="Component data"
+                  title={
+                    blockOverride ? 'Example component data' : 'Component data'
+                  }
                   draggable={false}
                 >
                   <ComponentData isLoading={isLoadingCodeComponent} />

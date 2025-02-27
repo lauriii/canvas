@@ -5,6 +5,16 @@
         "key": "front_page",
         "text": "Home",
         "url": "/"
+      },
+      {
+        "key": "news",
+        "text": "News",
+        "url": "/news"
+      },
+      {
+        "key": "business",
+        "text": "Business",
+        "url": "/business"
       }
     ]
   }

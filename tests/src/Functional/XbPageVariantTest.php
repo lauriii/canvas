@@ -69,8 +69,6 @@ class XbPageVariantTest extends FunctionalTestBase {
       'experience_builder',
       // Install module that provides test SDCs.
       'xb_test_sdc',
-      // Install module that provides block overrides.
-      'xb_dev_js_blocks',
     ]);
     $this->rebuildContainer();
     $this->generateComponentConfig();
@@ -79,6 +77,7 @@ class XbPageVariantTest extends FunctionalTestBase {
 
     // 5. Once >=1 enabled Experience Builder PageRegion config entity is
     // created for the default theme, XB's XbPageVariant is used instead.
+    $this->config('system.site')->set('slogan', 'JavaScript is the future!')->save();
     $generate_static_prop_source = function (string $label): array {
       return [
         'sourceType' => 'static:field_item:string',
@@ -99,6 +98,7 @@ class XbPageVariantTest extends FunctionalTestBase {
             ['uuid' => 'uuid-local-actions', 'component' => 'block.local_actions_block'],
             ['uuid' => 'uuid-inaccessible', 'component' => 'block.user_login_block'],
             ['uuid' => 'uuid-title', 'component' => 'block.page_title_block'],
+            ['uuid' => 'uuid-branding', 'component' => 'block.system_branding_block'],
             [
               'uuid' => 'uuid-messages',
               'component' => 'block.system_messages_block',
@@ -127,6 +127,13 @@ class XbPageVariantTest extends FunctionalTestBase {
             'label' => '',
             'label_display' => FALSE,
           ],
+          'uuid-branding' => [
+            'label' => '',
+            'label_display' => FALSE,
+            'use_site_logo' => FALSE,
+            'use_site_name' => TRUE,
+            'use_site_slogan' => TRUE,
+          ],
           'uuid-messages' => [
             'label' => '',
             'label_display' => FALSE,
@@ -145,6 +152,7 @@ class XbPageVariantTest extends FunctionalTestBase {
     // OPTIMIZATION.
     $this->assertPageDisplayVariant(XbPageVariant::class, Component::loadMultiple([
       'block.page_title_block',
+      'block.system_branding_block',
       'block.local_actions_block',
       'block.system_messages_block',
       'block.user_login_block',
@@ -152,48 +160,50 @@ class XbPageVariantTest extends FunctionalTestBase {
     ]), [], ['route']);
     $this->assertSame([
       'uuid-title',
+      'uuid-branding',
     ], $this->getRenderedBlockIds());
-    // The page title for the default front page: `Log in`, rendered as a <h1>.
-    $this->assertStringContainsString('<h1>Log in</h1>', $this->getSession()->getPage()->getContent());
+    // The branding block is rendered using Twig, no Astro island found.
+    $assert_session->responseContains('rel="home">Drupal</a>');
+    $assert_session->pageTextContains('JavaScript is the future!');
     $assert_session->elementsCount('css', 'astro-island', 0);
 
-    // 6. Exposing a JavaScriptComponent config entity that overrides a placed
-    // `block`-sourced Component results in that block being rendered
-    // @phpstan-ignore-next-line
-    JavaScriptComponent::load('page_title')->enable()->save();
+    // 6. Creating an exposed JavaScriptComponent config entity that overrides
+    // a placed `block`-sourced Component results in that block being rendered
+    // using an Astro island.
+    $this->container->get(ModuleInstallerInterface::class)->install(['xb_dev_js_blocks']);
     // @todo Add the missing access control handler for JavaScriptComponent and AssetLibrary config entities, where NO permissions should be required as the anonymous user just to view a rendered end result, in https://www.drupal.org/project/experience_builder/issues/3508694
-    // @phpstan-ignore-next-line
-    Role::load('anonymous')
-      ->grantPermission('administer code components')
-      ->save();
+    $role = Role::load('anonymous');
+    $this->assertInstanceOf(Role::class, $role);
+    $role->grantPermission('administer code components')->save();
     $this->assertPageDisplayVariant(
       XbPageVariant::class,
       Component::loadMultiple([
         'block.page_title_block',
+        'block.system_branding_block',
         'block.local_actions_block',
         'block.system_messages_block',
         'block.user_login_block',
         'sdc.xb_test_sdc.props-no-slots',
       ]),
       expected_additional_cache_tags: [
-        // @see tests/modules/xb_dev_js_blocks/config/install/experience_builder.js_component.page_title.yml
+        // @see tests/modules/xb_dev_js_blocks/config/install/experience_builder.js_component.site_branding.yml
         // @phpstan-ignore-next-line
-        ...JavaScriptComponent::load('page_title')->getCacheTags(),
+        ...JavaScriptComponent::load('site_branding')->getCacheTags(),
       ],
       expected_additional_cache_contexts: ['route'],
     );
-    // The page title for the default front page: `Log in`, NOT rendered as a
-    // <h1> anymore, but as an Astro Island web component.
-    $this->assertStringNotContainsString('<h1>Log in</h1>', $this->getSession()->getPage()->getContent());
-    // A single Astro Island web component is now expected, using the page title
-    // component instance UUID.
+    // The branding block is NOT rendered by Twig anymore, Astro island found,
+    // using the branding Block component instance UUID.
+    // @see \Drupal\experience_builder\Element\AstroIsland
+    $assert_session->responseNotContains('rel="home">Drupal</a>');
     $assert_session->elementsCount('css', 'astro-island', 1);
-    $page_title_block_as_js_component = $assert_session->elementExists('css', 'astro-island[uid="uuid-title"]');
-    // One slot is expected: the `title` slot, with the value `Log in`.
-    $slots = $page_title_block_as_js_component->findAll('css', 'template[data-astro-template]');
+    $js_component_block = $assert_session->elementExists('css', 'astro-island[uid="uuid-branding"]');
+    // One slot is expected: the `siteSlogan` slot, with the value `JavaScript
+    // is the future!`.
+    $slots = $js_component_block->findAll('css', 'template[data-astro-template]');
     $this->assertCount(1, $slots);
-    $this->assertSame('title', $slots[0]->getAttribute('data-astro-template'));
-    $this->assertSame('Log in', $slots[0]->getText());
+    $this->assertSame('siteSlogan', $slots[0]->getAttribute('data-astro-template'));
+    $this->assertSame('JavaScript is the future!', $slots[0]->getText());
 
     // 7. If all Experience Builder PageRegion config entities are disabled,
     // BlockPageVariant is used once again.

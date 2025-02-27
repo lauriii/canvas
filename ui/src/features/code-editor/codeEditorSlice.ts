@@ -25,6 +25,7 @@ interface CodeEditorState {
   sourceCodeJs: string;
   compiledJs: string;
   sourceCodeGlobalCss: string;
+  blockOverride: string | null;
   props: CodeComponentProp[];
   slots: CodeComponentSlot[];
   required: string[];
@@ -42,6 +43,7 @@ const initialState: CodeEditorState = {
   sourceCodeCss: '',
   compiledCss: '',
   sourceCodeGlobalCss: '',
+  blockOverride: null,
   props: [],
   slots: [],
   required: [],
@@ -74,6 +76,7 @@ export const codeEditorSlice = createSlice({
         state.sourceCodeJs = action.payload.sourceCodeJs;
         state.sourceCodeCss = action.payload.sourceCodeCss;
         // @todo Set sourceCodeGlobalCss
+        state.blockOverride = action.payload.blockOverride;
         state.props = action.payload.props;
         state.slots = action.payload.slots;
         state.required = action.payload.required;
@@ -272,6 +275,8 @@ export const selectSourceCodeJs = (state: RootState) =>
   state.codeEditor.sourceCodeJs;
 export const selectCompiledJs = (state: RootState) =>
   state.codeEditor.compiledJs;
+export const selectBlockOverride = (state: RootState) =>
+  state.codeEditor.blockOverride;
 export const selectProps = (state: RootState) => state.codeEditor.props;
 export const selectRequired = (state: RootState) => state.codeEditor.required;
 export const selectSlots = (state: RootState) => state.codeEditor.slots;
@@ -281,6 +286,7 @@ export const selectCodeComponentSerialized = createSelector(
     selectId,
     selectName,
     selectStatus,
+    selectBlockOverride,
     selectProps,
     selectRequired,
     selectSlots,
@@ -293,6 +299,7 @@ export const selectCodeComponentSerialized = createSelector(
     id,
     name,
     status,
+    blockOverride,
     props,
     required,
     slots,
@@ -304,6 +311,7 @@ export const selectCodeComponentSerialized = createSelector(
     machineName: id,
     name,
     status,
+    block_override: blockOverride,
     props: serializeProps(props),
     required,
     slots: serializeSlots(slots),

@@ -30,17 +30,6 @@ function experience_builder_theme(): array {
         'rendering_context' => NULL,
       ],
     ],
-    'block__page_title_block__as_js_component' => [
-      'base hook' => 'block',
-      'template' => 'just-children',
-    ],
-    'page_title__as_js_component' => [
-      'base hook' => 'page_title',
-      'template' => 'just-children',
-      'variables' => $common_elements['page_title']['variables'] + [
-        'rendering_context' => NULL,
-      ],
-    ],
     'block__system_branding_block__as_js_component' => [
       'base hook' => 'block',
       'template' => 'just-children',
@@ -112,44 +101,16 @@ function template_preprocess_menu__as_js_component(array &$variables): void {
 /**
  * Implements hook_preprocess_HOOK().
  */
-function experience_builder_preprocess_block__page_title_block__as_js_component(array &$variables): void {
-  $variables['children'] = $variables['content'];
-  $variables['children']['#theme'] = 'page_title__as_js_component';
-  $variables['children']['#rendering_context']['block'] = $variables;
-}
-
-/**
- * Implements hook_preprocess_HOOK().
- */
-function template_preprocess_page_title__as_js_component(array &$variables): void {
-  $block_variables = $variables['rendering_context']['block'];
-
-  $props = [];
-
-  $slots = [
-    'title' => $variables['title'],
-  ];
-
-  $variables['children'] = _experience_builder_render_js_component_from_block_element(
-    $block_variables['elements'],
-    $props,
-    $slots
-  );
-}
-
-/**
- * Implements hook_preprocess_HOOK().
- */
 function experience_builder_preprocess_block__system_branding_block__as_js_component(array &$variables): void {
   $block_variables = $variables;
 
   $props = [
     'homeUrl' => Url::fromRoute('<front>')->toString(),
     'logo' => $block_variables['site_logo'],
+    'siteName' => $block_variables['site_name'],
   ];
 
   $slots = [
-    'siteName' => $block_variables['site_name'],
     'siteSlogan' => $block_variables['site_slogan'],
   ];
 

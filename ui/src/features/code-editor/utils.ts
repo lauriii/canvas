@@ -1,8 +1,10 @@
 import { v4 as uuidv4 } from 'uuid';
 import { camelCase } from 'lodash';
+import getOverrideExampleData from '@/features/code-editor/component-data/getOverrideExampleData';
 
 import type {
   CodeComponentProp,
+  CodeComponentPropPreviewValue,
   CodeComponentPropSerialized,
   CodeComponentSlot,
   CodeComponentSlotSerialized,
@@ -12,7 +14,17 @@ export function getPropMachineName(name: string) {
   return camelCase(name);
 }
 
-export function parsePropValue(prop: CodeComponentProp) {
+/**
+ * Parses a prop value for the code editor preview.
+ *
+ * @see ui/src/features/code-editor/Preview.tsx
+ *
+ * @param prop - The prop to parse.
+ * @returns The parsed prop value.
+ */
+export function parsePropValueForPreview(
+  prop: CodeComponentProp,
+): CodeComponentPropPreviewValue {
   switch (prop.type) {
     case 'integer':
       return Number(prop.example);
@@ -21,8 +33,107 @@ export function parsePropValue(prop: CodeComponentProp) {
     case 'boolean':
       return String(prop.example) === 'true';
     default:
-      return prop.example;
+      return prop.example as string;
   }
+}
+
+/**
+ * Returns prop values for the code editor preview.
+ *
+ * @see ui/src/features/code-editor/Preview.tsx
+ *
+ * @param props - The props to get the values for.
+ * @returns The prop values.
+ */
+export function getPropValuesForPreview(
+  props: CodeComponentProp[],
+): Record<string, CodeComponentPropPreviewValue> {
+  let propValues = {} as Record<string, CodeComponentPropPreviewValue>;
+  props
+    .filter((prop) => prop.name)
+    .forEach((prop) => {
+      propValues[getPropMachineName(prop.name)] =
+        parsePropValueForPreview(prop);
+    });
+  return propValues;
+}
+
+/**
+ * Returns slot names for the code editor preview.
+ *
+ * @see ui/src/features/code-editor/Preview.tsx
+ *
+ * @param slots - The slots to get the names for.
+ * @returns The slot names.
+ */
+export function getSlotNamesForPreview(slots: CodeComponentSlot[]): string[] {
+  return slots
+    .filter((slot) => slot.name && slot.example)
+    .map((slot) => getPropMachineName(slot.name));
+}
+
+/**
+ * Returns prop values for the code editor preview of an override.
+ *
+ * @see ui/src/features/code-editor/Preview.tsx
+ *
+ * @param block - The overridden block to get the prop values for.
+ * @returns The prop values.
+ */
+export function getExamplePropValuesForOverridePreview(block: string) {
+  return getOverrideExampleData(block, 'props') || {};
+}
+
+/**
+ * Returns slot names for the code editor preview of an override.
+ *
+ * @see ui/src/features/code-editor/Preview.tsx
+ *
+ * @param block - The overridden block to get the slot names for.
+ * @returns The slot names.
+ */
+export function getExampleSlotNamesForOverridePreview(block: string) {
+  const data = getOverrideExampleData(block, 'slots');
+  return data ? Object.keys(data) : [];
+}
+
+/**
+ * Returns JS for the code editor preview for slots.
+ *
+ * @see ui/src/features/code-editor/Preview.tsx
+ *
+ * @param slots - The slots to get the JS for.
+ * @returns The JS for the slots.
+ */
+export function getJsForSlotsPreview(slots: CodeComponentSlot[]) {
+  return slots
+    .filter((slot) => slot.name && slot.example)
+    .map((slot) => {
+      // Wrap the slot's example value in a function so that it can be
+      // rendered by Preact.
+      return `export function ${getPropMachineName(slot.name)}() { return (${slot.example as string});}`;
+    })
+    .join('\n');
+}
+
+/**
+ * Returns JS for the code editor preview for example slots of an override.
+ *
+ * @see ui/src/features/code-editor/Preview.tsx
+ *
+ * @param block - The overridden block to get the JS for.
+ * @returns The JS for the example slot.
+ */
+export function getJsForExampleSlotsOverridePreview(block: string) {
+  const data = getOverrideExampleData(block, 'slots');
+  if (!data) {
+    return '';
+  }
+  return Object.keys(data)
+    .map((slot) => {
+      return `export function ${slot}() { return (${data[slot] as string});}`;
+    })
+    .join('\n');
 }
 
 /**

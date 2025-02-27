@@ -116,8 +116,10 @@ final class JavascriptComponentStorage extends XbAssetStorage {
     }
 
     // Before exposing a JavaScriptComponent as an XB Component for the first
-    // time, it must be flagged as being added to XB's component library.
-    if ($entity->status() === FALSE) {
+    // time, it must be flagged as being added to XB's component library, and it
+    // must not be a block override.
+    // ⚠️ The second condition is highly experimental and *will* be refactored.
+    if ($entity->status() === FALSE || $entity->get('block_override') !== NULL) {
       return;
     }
     try {

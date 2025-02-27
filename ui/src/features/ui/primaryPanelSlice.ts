@@ -11,6 +11,7 @@ export enum LayoutItemType {
   SECTION = 'section',
   COMPONENT = 'component',
   CODE = 'code',
+  OVERRIDE = 'override',
   UNDEFINED = 'undefined',
 }
 

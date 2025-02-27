@@ -69,6 +69,17 @@ const Library = () => {
             <CodeComponentList />
           </ErrorBoundary>
         </AccordionDetails>
+        <AccordionDetails
+          value={LayoutItemType.OVERRIDE}
+          title="Overrides"
+          onTriggerClick={() => onClickHandler(LayoutItemType.OVERRIDE)}
+          className={styles.accordionDetails}
+          triggerClassName={styles.accordionDetailsTrigger}
+        >
+          <ErrorBoundary title="An unexpected error has occurred while fetching overrides.">
+            <CodeComponentList type="override" />
+          </ErrorBoundary>
+        </AccordionDetails>
       </AccordionRoot>
     </>
   );

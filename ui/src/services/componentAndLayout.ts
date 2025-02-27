@@ -37,7 +37,7 @@ export const componentAndLayoutApi = createApi({
     }),
     getCodeComponents: builder.query<
       Record<string, CodeComponentSerialized>,
-      { status?: boolean } | void
+      { status?: boolean; override?: boolean } | void
     >({
       query: () => 'xb/api/config/js_component',
       providesTags: () => [{ type: 'CodeComponents', id: 'LIST' }],
@@ -46,15 +46,25 @@ export const componentAndLayoutApi = createApi({
         meta,
         arg,
       ) => {
-        if (!arg || typeof arg !== 'object' || arg.status === undefined) {
+        if (!arg || typeof arg !== 'object') {
           // If no filter is provided or arg is undefined, return all components.
           return response;
         }
 
-        // Filter components based on status (internal = false/exposed = true).
+        const { status = false, override = false } = arg;
+
         return Object.entries(response).reduce(
           (filtered, [key, component]) => {
-            if (component.status === arg.status) {
+            // Filter by override status.
+            const overrideMatch = override
+              ? !!component.block_override // When override=true, keep components WITH block_override
+              : !component.block_override; // When override=false, keep components WITHOUT block_override
+
+            // Filter components based on status (internal=false, exposed=true).
+            const statusMatch = component.status === status;
+
+            // Only include components that match both conditions
+            if (overrideMatch && statusMatch) {
               filtered[key] = component;
             }
             return filtered;

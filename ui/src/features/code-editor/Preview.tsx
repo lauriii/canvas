@@ -3,8 +3,10 @@ import initSwc, { transformSync } from '@swc/wasm-web';
 import type { Options } from '@swc/wasm-web';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import {
+  selectBlockOverride,
   selectCompiledCss,
   selectHasCompletedFirstCompilation,
+  selectName,
   selectProps,
   selectSlots,
   selectSourceCodeCss,
@@ -13,7 +15,6 @@ import {
   setCompiledCss,
   setCompiledJs,
   setHasCompletedFirstCompilation,
-  selectName,
 } from '@/features/code-editor/codeEditorSlice';
 import { parse } from '@babel/parser';
 import type { File } from '@babel/types';
@@ -22,8 +23,14 @@ import styles from './Preview.module.css';
 import ErrorCard from '@/components/error/ErrorCard';
 import MissingDefaultExportMessage from './errors/MissingDefaultExportMessage';
 import { ScrollArea, Spinner } from '@radix-ui/themes';
-import { getPropMachineName } from '@/features/code-editor/utils';
-import { parsePropValue } from '@/features/code-editor/utils';
+import {
+  getExamplePropValuesForOverridePreview,
+  getExampleSlotNamesForOverridePreview,
+  getJsForExampleSlotsOverridePreview,
+  getJsForSlotsPreview,
+  getPropValuesForPreview,
+  getSlotNamesForPreview,
+} from '@/features/code-editor/utils';
 
 const XB_MODULE_UI_PATH = (() => {
   const { drupalSettings } = window;
@@ -80,6 +87,7 @@ const Preview = ({ isLoading = false }: { isLoading?: boolean }) => {
   const lastInvocationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [isSwcInitialized, setIsSwcInitialized] = useState(false);
   const componentName = useAppSelector(selectName);
+  const blockOverride = useAppSelector(selectBlockOverride);
   const hasCompletedFirstCompilation = useAppSelector(
     selectHasCompletedFirstCompilation,
   );
@@ -145,14 +153,9 @@ const Preview = ({ isLoading = false }: { isLoading?: boolean }) => {
         return;
       }
       try {
-        const jsForSlots = slots
-          .filter((slot) => slot.name && slot.example)
-          .map((slot) => {
-            // Wrap the slot's example value in a function so that it can be
-            // rendered by Preact.
-            return `export function ${getPropMachineName(slot.name)}() { return (${slot.example as string});}`;
-          })
-          .join('\n');
+        const jsForSlots = !blockOverride
+          ? getJsForSlotsPreview(slots)
+          : getJsForExampleSlotsOverridePreview(blockOverride);
         const result = transformSync(
           `${sourceCodeJs}\n${jsForSlots}`,
           swcConfig,
@@ -175,15 +178,12 @@ const Preview = ({ isLoading = false }: { isLoading?: boolean }) => {
         // instead of being added to the iframe inline because of Content
         // Security Policy (CSP) restrictions.
         // @see ui/lib/code-editor-preview.js
-        let propValues = {} as Record<string, any>;
-        props
-          .filter((prop) => prop.name)
-          .forEach((prop) => {
-            propValues[getPropMachineName(prop.name)] = parsePropValue(prop);
-          });
-        const slotNames = slots
-          .filter((slot) => slot.name && slot.example)
-          .map((slot) => getPropMachineName(slot.name));
+        const propValues = !blockOverride
+          ? getPropValuesForPreview(props)
+          : getExamplePropValuesForOverridePreview(blockOverride);
+        const slotNames = !blockOverride
+          ? getSlotNamesForPreview(slots)
+          : getExampleSlotNamesForOverridePreview(blockOverride);
         setPreviewData(
           JSON.stringify({
             compiledJsUrl: URL.createObjectURL(
@@ -307,8 +307,14 @@ const Preview = ({ isLoading = false }: { isLoading?: boolean }) => {
     </ErrorCard>
   );
 
+  if (!hasCompletedFirstCompilation) {
+    // If navigating from another code component's edit page, its preview would
+    // be shown briefly before the new component's preview is compiled.
+    return null;
+  }
+
   return (
-    <Spinner loading={isLoading || !hasCompletedFirstCompilation}>
+    <Spinner loading={isLoading}>
       <div className={styles.iframeContainer} ref={parentRef}>
         {(isCompileError || isDefaultExportMissingError) && (
           <ScrollArea>
