@@ -1,0 +1,18 @@
+{
+  "props": {
+    "id": "a-unique-html-id",
+    "links": [
+      {
+        "key": "front_page",
+        "title": "Home",
+        "url": "/",
+        "isExpanded": false,
+        "isCollapsed": false,
+        "inActiveTrail": false
+      }
+    ]
+  },
+  "slots": {
+    "label": "Main navigation"
+  }
+}

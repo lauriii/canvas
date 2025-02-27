@@ -158,17 +158,17 @@ final class AstroIslandTest extends KernelTestBase {
     $xb_directory = $this->container->get(ExtensionPathResolver::class)->getPath('module', 'experience_builder');
     self::assertEquals(\sprintf('/%s/ui/lib/astro-hydration/dist/client.js', $xb_directory), $element->attr('renderer-url'));
 
-    $slots = $element->filter('astro-slot');
+    $slots = $element->filter('template[data-astro-template]');
     self::assertCount(2, $slots);
 
     $default_slot = $slots->first();
-    self::assertNull($default_slot->attr('name'));
+    self::assertSame('', $default_slot->attr('data-astro-template'));
     $em = $default_slot->filter('em');
     self::assertCount(1, $em);
     self::assertEquals('3 ponies won this week!', $em->text());
 
     $error_slot = $slots->last();
-    self::assertEquals('error', $error_slot->attr('name'));
+    self::assertEquals('error', $error_slot->attr('data-astro-template'));
     self::assertEquals('No pony for you!', $error_slot->text());
 
     // Should still work without slots, props, framework and UUID.
@@ -179,7 +179,7 @@ final class AstroIslandTest extends KernelTestBase {
     self::assertCount(1, $element);
     self::assertNotNull($element->attr('uid'));
     self::assertJsonStringEqualsJsonString('{}', $element->attr('props') ?? '');
-    self::assertCount(0, $element->filter('astro-slot'));
+    self::assertCount(0, $element->filter('template[data-astro-template]'));
     self::assertJsonStringEqualsJsonString(Json::encode([
       'name' => $component->label(),
       'value' => 'preact',

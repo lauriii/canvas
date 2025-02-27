@@ -1,0 +1,59 @@
+langcode: en
+status: false
+dependencies: {  }
+machineName: breadcrumb
+name: Breadcrumb
+block_override: system_breadcrumb_block
+required: {  }
+props: {  }
+slots: {  }
+js:
+  original: |-
+    export default function Breadcrumb({ links }) {
+      return (
+        links &&
+          <nav role="navigation" aria-labelledby="system-breadcrumb">
+            <h2 id="system-breadcrumb" className="visually-hidden">Breadcrumb</h2>
+            <ol>
+              { links.map(({ key, text, url }) =>
+                <li key={key}>
+                  { url
+                    ?
+                      <a href={url}>{text}</a>
+                    :
+                      {text}
+                  }
+                </li>
+              )}
+            </ol>
+          </nav>
+      )
+    }
+  compiled: |-
+    import { jsx as _jsx, jsxs as _jsxs } from 'react/jsx-runtime';
+    export default function Breadcrumb({ links }) {
+      return links && /*#__PURE__*/ _jsxs('nav', {
+        role: 'navigation',
+        'aria-labelledby': 'system-breadcrumb',
+        children: [
+          /*#__PURE__*/ _jsx('h2', {
+            id: 'system-breadcrumb',
+            className: 'visually-hidden',
+            children: 'Breadcrumb'
+          }),
+          /*#__PURE__*/ _jsx('ol', {
+            children: links.map(({ key, text, url })=>/*#__PURE__*/ _jsx('li', {
+              children: url ? /*#__PURE__*/ _jsx('a', {
+                href: url,
+                children: text
+              }) : {
+                text
+              }
+            }, key))
+          })
+        ]
+      });
+    }
+css:
+  original: ''
+  compiled: ''

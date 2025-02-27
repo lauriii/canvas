@@ -52,6 +52,8 @@ require_once __DIR__ . '/experience_builder.semi_coupled_theme_engine.inc';
 require_once __DIR__ . '/experience_builder.shape_matching.inc';
 require_once __DIR__ . '/experience_builder.auto_save.inc';
 require_once __DIR__ . '/experience_builder.force_render_with_twig.inc';
+// @see docs/components.md, section 3.3.3
+require_once __DIR__ . '/experience_builder.block_overrides.inc';
 
 /**
  * Implements hook_form_alter().

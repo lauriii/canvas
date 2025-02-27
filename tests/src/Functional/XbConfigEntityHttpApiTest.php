@@ -599,6 +599,7 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
       'machineName' => 'test',
       'name' => 'Test',
       'status' => FALSE,
+      'block_override' => NULL,
       'props' => [
         'string' => [
           'title' => 'Title',
@@ -744,6 +745,15 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
     $this->assertExposedCodeComponents(['js.test'], 'HIT', $request_options);
     // Confirm that there is no auto-save anymore.
     $this->assertCurrentAutoSave(204, NULL, 'js_component', 'test');
+
+    // Modify a Code Component correctly, to test the highly experimental block
+    // override functionality: 200.
+    // ⚠️ This is highly experimental and *will* be refactored.
+    $code_component_to_send['block_override'] = 'system_branding_block';
+    $expected_component['block_override'] = 'system_branding_block';
+    $request_options[RequestOptions::BODY] = self::encodeXBData($code_component_to_send);
+    $body = $this->assertExpectedResponse('PATCH', Url::fromUri('base:/xb/api/config/js_component/test'), $request_options, 200, NULL, NULL, NULL, NULL);
+    $this->assertSame($expected_component, $body);
 
     // Modify a Code Component correctly: 200.
     // ⚠️This is changing it from `exposed` → `internal`. This must cause the

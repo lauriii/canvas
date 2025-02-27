@@ -129,7 +129,7 @@ final class XbTwigExtensionTest extends KernelTestBase {
       AstroIsland::PLUGIN_ID,
       'trousers',
       FALSE,
-      'astro-slot[name="the_body"]',
+      'template[data-astro-template="the_body"]',
       ['#name' => 'trousers', '#component_url' => 'the/wrong/trousers.js'],
     ];
   }

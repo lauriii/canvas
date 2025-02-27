@@ -11,6 +11,7 @@ use Drupal\Core\Block\MessagesBlockPluginInterface;
 use Drupal\Core\Block\TitleBlockPluginInterface;
 use Drupal\Core\Config\TypedConfigManagerInterface;
 use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
@@ -24,6 +25,7 @@ use Drupal\experience_builder\Attribute\ComponentSource;
 use Drupal\experience_builder\ComponentSource\ComponentSourceBase;
 use Drupal\experience_builder\Entity\Component;
 use Drupal\experience_builder\Entity\Component as ComponentEntity;
+use Drupal\experience_builder\Entity\JavaScriptComponent;
 use Drupal\experience_builder\MissingComponentInputsException;
 use Drupal\experience_builder\Plugin\DataType\ComponentInputs;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
@@ -72,6 +74,7 @@ final class BlockComponent extends ComponentSourceBase implements ContainerFacto
     private readonly BlockManagerInterface $blockManager,
     private readonly AccountInterface $currentUser,
     private readonly TypedConfigManagerInterface $typedConfigManager,
+    private readonly EntityTypeManagerInterface $entityTypeManager,
   ) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
   }
@@ -87,6 +90,7 @@ final class BlockComponent extends ComponentSourceBase implements ContainerFacto
       $container->get(BlockManagerInterface::class),
       $container->get(AccountInterface::class),
       $container->get(TypedConfigManagerInterface::class),
+      $container->get(EntityTypeManagerInterface::class),
     );
   }
 
@@ -172,7 +176,7 @@ final class BlockComponent extends ComponentSourceBase implements ContainerFacto
 
     // @todo This render array might be refactored in https://www.drupal.org/node/2931040
     // @see \Drupal\block\BlockViewBuilder::buildPreRenderableBlock
-    return [
+    $build = [
       '#access' => $access,
       '#theme' => 'block',
       '#configuration' => $block->getConfiguration(),
@@ -182,6 +186,34 @@ final class BlockComponent extends ComponentSourceBase implements ContainerFacto
       '#id' => $componentUuid,
       'content' => $content,
     ];
+
+    // ⚠️ Highly experimental: allow a Block plugin's Twig template to be
+    // overridden and rendered using an XB JavaScriptComponent instead.
+    $js_overrides = $this->entityTypeManager
+      ->getStorage(JavaScriptComponent::ENTITY_TYPE_ID)
+      ->loadByProperties([
+        'block_override' => $block->getBaseId(),
+        'status' => TRUE,
+      ]);
+    // ⚠️ This assumes that all such overrides are accessible to all users! If
+    // that were not the case, presentation of the same block would vary between
+    // users, which is unacceptable.
+    // Therefore, this assumes that every user, even anonymous users, can access
+    // the rendered result of the found JavaScriptComponent.
+    // @see \Drupal\experience_builder\Element\AstroIsland::preRenderIsland()
+    // @see https://www.drupal.org/project/experience_builder/issues/3508694
+    if (count($js_overrides) == 1) {
+      $js_component_for_block_base_plugin = reset($js_overrides);
+      assert($js_component_for_block_base_plugin instanceof JavaScriptComponent);
+      $build['#theme'] = 'block__' . strtr($build['#base_plugin_id'], '-', '_') . '__as_js_component';
+      $build['#js_component'] = $js_component_for_block_base_plugin;
+      // Update cacheability.
+      $build['#cache']['tags'] = $js_component_for_block_base_plugin->getCacheTags();
+      $build['#cache']['contexts'] = $js_component_for_block_base_plugin->getCacheContexts();
+      $build['#cache']['max-age'] = $js_component_for_block_base_plugin->getCacheMaxAge();
+    }
+
+    return $build;
   }
 
   /**

@@ -1224,6 +1224,10 @@ components:
           type: array
           items:
             type: string
+        block_override:
+          type: string
+          description: The base ID of the block plugin to override
+          nullable: true
         props:
           type: object
           # @todo Uncomment this in a follow-up MR in https://www.drupal.org/i/3503377

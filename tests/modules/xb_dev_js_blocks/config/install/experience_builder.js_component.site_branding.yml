@@ -1,0 +1,54 @@
+langcode: en
+status: false
+dependencies: {  }
+machineName: site_branding
+name: Site Branding
+block_override: system_branding_block
+required: {  }
+props: {  }
+slots: {  }
+js:
+  original: |-
+    export default function SiteBranding({ homeUrl, logo, siteName, siteSlogan }) {
+      return (
+        <div>
+          {logo &&
+            <a href={homeUrl} rel="home">
+              <img src={logo} alt="Home" fetchpriority="high" />
+            </a>
+          }
+          {siteName &&
+            <a href={homeUrl} rel="home">
+              {siteName}
+            </a>
+          }
+          {siteSlogan}
+        </div>
+      )
+    }
+  compiled: |-
+    import { jsx as _jsx, jsxs as _jsxs } from 'react/jsx-runtime';
+    export default function SiteBranding({ homeUrl, logo, siteName, siteSlogan }) {
+      return /*#__PURE__*/ _jsxs('div', {
+        children: [
+          logo && /*#__PURE__*/ _jsx('a', {
+            href: homeUrl,
+            rel: 'home',
+            children: /*#__PURE__*/ _jsx('img', {
+              src: logo,
+              alt: 'Home',
+              fetchpriority: 'high'
+            })
+          }),
+          siteName && /*#__PURE__*/ _jsx('a', {
+            href: homeUrl,
+            rel: 'home',
+            children: siteName
+          }),
+          siteSlogan
+        ]
+      });
+    }
+css:
+  original: ''
+  compiled: ''

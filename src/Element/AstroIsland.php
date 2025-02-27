@@ -168,10 +168,10 @@ final class AstroIsland extends RenderElementBase {
       // Prevent XSS via malicious render array.
       $escaped_slot_name = Html::escape((string) $slot_name);
       if ($slot_name === 'default') {
-        $template .= \sprintf('<astro-slot>{{ %s }}</astro-slot>', $escaped_slot_name);
+        $template .= \sprintf('<template data-astro-template>{{ %s }}</template>', $escaped_slot_name);
         continue;
       }
-      $template .= \sprintf('<astro-slot name="%s">{{ %s }}</astro-slot>', $escaped_slot_name, $escaped_slot_name);
+      $template .= \sprintf('<template data-astro-template="%s">{{ %s }}</template>', $escaped_slot_name, $escaped_slot_name);
     }
     $template .= '</astro-island>';
     return $template;

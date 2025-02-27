@@ -1,0 +1,7 @@
+name: 'Sample Code Component Overrides'
+type: module
+dependencies:
+  - experience_builder:experience_builder
+  # The 4 sample blocks this provides are all for the system module.
+  - drupal:system
+package: Testing

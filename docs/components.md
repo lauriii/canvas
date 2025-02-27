@@ -22,6 +22,8 @@ In the rest of this document, `Experience Builder` will be written as `XB`.
 - `explicit component input`: each `component` may in its metadata define 0 or more explicit inputs to be provided by the person placing an instance of this `component`, each input accepts structured data conforming to the shape defined in the `component`'s (`ComponentSourcePlugin`-specific) metadata
 - `implicit component input`: in contrast with a `explicit component input`, an implicit input is not provided by the person placing an instance: it is implicitly present: it is provided by other content displayed on the current route, by the request context (e.g. URL query string, current user …) or by the environment (e.g. time of day).
   - ⚠️This is not yet supported. the `Block` component type needs it to support [_contexts_](https://www.drupal.org/docs/drupal-apis/plugin-api/plugin-contexts#s-context-on-blocks), unclear how that will be surfaced in XB; initially, only block plugins that do not require contexts are supported.
+- `block override`: a JavaScript component may be used to override the output of an existing Drupal `Block` plugin.
+  - ⚠️This feature is highly experimental and subject to change.
 
 ## 2. Product requirements
 
@@ -146,6 +148,16 @@ There aren't any, because the validation logic for the `JavaScriptComponent conf
 `component` whose inputs XB cannot generate an input UX for: it imposes the same criteria as for `SDC` `component`s (see
 [section 3.1.2 above](#3.1.2)).
 
+#### 3.3.3 Block overrides ⚠️ warning: experimental!
+
+The `JavaScriptComponent config entity` has a special "block_override" property that, when set, enables the `component`
+declared in the entity to take over the rendering of the specified `Block` plugin ID.
+
+Mapping of block content into props and slots is done by specially named preprocess functions. The existing block plugin
+preprocess function is suffixed with "__as_js_component" and this is called after the other existing preprocess functions.
+
+The data output by each block plugin must currently be mapped on an individual basis. This feature is highly experimental
+and subject to change.
 
 ### 3.4 Other `component type`s
 

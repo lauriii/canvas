@@ -81,6 +81,21 @@ experience_builder.js_component.*:
     name:
       type: required_label
       label: 'Name'
+    # JavaScriptComponents can *optionally* choose to override a Block plugin's Twig template.
+    # ⚠️ This is highly experimental and *will* be refactored.
+    # @see \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\BlockComponent::renderComponent()
+    block_override:
+      requiredKey: false
+      nullable: true
+      type: string
+      # @see \Drupal\Component\Plugin\DerivativeInspectionInterface::getBaseId()
+      label: 'Block plugin base ID'
+      constraints:
+        Choice:
+          - system_breadcrumb_block
+          - system_menu_block
+          - page_title_block
+          - system_branding_block
     # See core/assets/schemas/v1/metadata-full.schema.json#properties.props.properties.required
     required:
       type: sequence

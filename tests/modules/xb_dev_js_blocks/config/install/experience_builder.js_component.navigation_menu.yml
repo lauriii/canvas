@@ -1,0 +1,70 @@
+langcode: en
+status: false
+dependencies: {  }
+machineName: navigation_menu
+name: Navigation Menu
+block_override: system_menu_block
+required: {  }
+props: {  }
+slots: {  }
+js:
+  original: |-
+    export default function NavigationMenu({ id, label, links }) {
+      const headingID = id + '--heading';
+      return (
+        <nav role="navigation" aria-labelledby={headingID}>
+          <h2 id={headingID} className="visually-hidden">{label}</h2>
+          <Menu links={links} />
+        </nav>
+      )
+    }
+
+    function Menu({ links }) {
+      return(
+        <ul>
+          { links.map(({ key, title, url, isExpanded, isCollapsed, inActiveTrail, submenu }) =>
+            <li key={key}>
+              <a href={url}>{title}</a>
+              { submenu && <Menu links={submenu.links} /> }
+            </li>
+          )}
+        </ul>
+      )
+    }
+  compiled: |-
+    import { jsx as _jsx, jsxs as _jsxs } from 'react/jsx-runtime';
+    export default function NavigationMenu({ id, label, links }) {
+      const headingID = id + '--heading';
+      return /*#__PURE__*/ _jsxs('nav', {
+        role: 'navigation',
+        'aria-labelledby': headingID,
+        children: [
+          /*#__PURE__*/ _jsx('h2', {
+            id: headingID,
+            className: 'visually-hidden',
+            children: label
+          }),
+          /*#__PURE__*/ _jsx(Menu, {
+            links: links
+          })
+        ]
+      });
+    }
+    function Menu({ links }) {
+      return /*#__PURE__*/ _jsx('ul', {
+        children: links.map(({ key, title, url, isExpanded, isCollapsed, inActiveTrail, submenu })=>/*#__PURE__*/ _jsxs('li', {
+          children: [
+            /*#__PURE__*/ _jsx('a', {
+              href: url,
+              children: title
+            }),
+            submenu && /*#__PURE__*/ _jsx(Menu, {
+              links: submenu.links
+            })
+          ]
+        }, key))
+      });
+    }
+css:
+  original: ''
+  compiled: ''
