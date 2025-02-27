@@ -905,7 +905,7 @@ HTML,
         renderer-url="::XB_DIR_BASE_URL::/ui/lib/astro-hydration/dist/client.js"
         props="{&quot;text&quot;:[&quot;raw&quot;,&quot;Hello, from a \&quot;code component\&quot;!&quot;]}"
         ssr="" client="only"
-        opts="{&quot;name&quot;:&quot;My First Code Component&quot;,&quot;value&quot;:&quot;preact&quot;}"></astro-island><!-- xb-end-uuid-js-component --><!-- xb-start-uuid-last-in-tree --><div  data-component-id="xb_test_sdc:props-no-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
+        opts="{&quot;name&quot;:&quot;My First Code Component&quot;,&quot;value&quot;:&quot;preact&quot;}"><script type="module" src="::XB_DIR_BASE_URL::/ui/lib/astro-hydration/dist/client.js" blocking="render"></script><script type="module" src="::SITE_DIR_BASE_URL::/files/astro-island/STNRn46UCAs1xJCb2kgPiEOEZp0R24B5qjtHOsyYT-g.js" blocking="render"></script></astro-island><!-- xb-end-uuid-js-component --><!-- xb-start-uuid-last-in-tree --><div  data-component-id="xb_test_sdc:props-no-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
   <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;"><!-- xb-prop-start-uuid-last-in-tree/heading -->Hello, from slot &lt;LAST ONE&gt;!<!-- xb-prop-end-uuid-last-in-tree/heading --></h1>
 </div>
 <!-- xb-end-uuid-last-in-tree --><!-- xb-slot-end-uuid-level-2/the_body -->

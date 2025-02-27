@@ -164,6 +164,18 @@ final class AstroIsland extends RenderElementBase {
         props="{{ __aie_props }}"
         ssr="" client="only"
         opts="{{ __aie_opts }}">';
+
+    // Reduce layout shift by blocking further document rendering until the
+    // renderer-url and component-url scripts are loaded, so that fetching them
+    // doesn't add delay between a rendering with the island blank and the
+    // hydrated rendering. This doesn't eliminate layout shift entirely,
+    // because with Astro's client="only" directive, Astro waits until the
+    // entire page is loaded before hydrating islands.
+    // @todo Investigate if it's possible to hydrate islands immediately
+    //   after the <astro-island> element is parsed rather than on page load.
+    $template .= '<script type="module" src="{{ __aie_renderer }}" blocking="render"></script>';
+    $template .= '<script type="module" src="{{ __aie_component_url }}" blocking="render"></script>';
+
     foreach ($slot_names as $slot_name) {
       // Prevent XSS via malicious render array.
       $escaped_slot_name = Html::escape((string) $slot_name);
