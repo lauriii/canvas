@@ -9,6 +9,48 @@ import { useEffect, useState } from 'react';
 import { useGetLayoutByIdQuery } from '@/services/componentAndLayout';
 import { findInChanges } from '@/utils/function-utils';
 
+export interface PageStatusBadgeProps {
+  isNew: boolean;
+  hasAutosave: boolean;
+  isPublished: boolean;
+}
+
+export const PageStatusBadge: React.FC<PageStatusBadgeProps> = ({
+  isNew,
+  hasAutosave,
+  isPublished,
+}) => {
+  if (isNew) {
+    return (
+      <Badge size="1" variant="solid" color="blue">
+        Draft
+      </Badge>
+    );
+  }
+
+  if (hasAutosave) {
+    return (
+      <Badge size="1" variant="solid" color="amber">
+        Changed
+      </Badge>
+    );
+  }
+
+  if (isPublished) {
+    return (
+      <Badge size="1" variant="solid" color="green">
+        Published
+      </Badge>
+    );
+  }
+
+  return (
+    <Badge size="1" variant="solid" color="gray">
+      Archived
+    </Badge>
+  );
+};
+
 const PageStatus = () => {
   const { data: changes } = useGetAllPendingChangesQuery();
   const entityId = useAppSelector(selectEntityId);
@@ -27,28 +69,11 @@ const PageStatus = () => {
     const { isNew, isPublished } = fetchedLayout;
 
     return (
-      <>
-        {isNew && (
-          <Badge size="1" color="blue" variant="solid">
-            Draft
-          </Badge>
-        )}
-        {!isNew && hasAutosave && (
-          <Badge size="1" color="yellow" variant="solid">
-            Changed
-          </Badge>
-        )}
-        {!isNew && !hasAutosave && isPublished && (
-          <Badge size="1" variant="solid" color="green">
-            Published
-          </Badge>
-        )}
-        {!isNew && !hasAutosave && !isPublished && (
-          <Badge size="1" variant="solid" color="green">
-            Published
-          </Badge>
-        )}
-      </>
+      <PageStatusBadge
+        isPublished={isPublished}
+        isNew={isNew}
+        hasAutosave={hasAutosave}
+      />
     );
   }
 };
