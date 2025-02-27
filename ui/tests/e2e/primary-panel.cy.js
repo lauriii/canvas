@@ -20,7 +20,11 @@ describe('Primary panel', () => {
         .reduce((acc, _, index) => {
           const paddedIndex = String(index + 1).padStart(2, '0');
           const id = `experience_builder:component_${paddedIndex}`;
-          acc[id] = { id, name: `Component ${paddedIndex}` };
+          acc[id] = {
+            id,
+            name: `Component ${paddedIndex}`,
+            library: 'elements',
+          };
           return acc;
         }, {}),
     }).as('getComponents');

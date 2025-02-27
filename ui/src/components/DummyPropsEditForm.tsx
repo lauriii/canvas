@@ -21,7 +21,7 @@ import { useDrupalBehaviors } from '@/hooks/useDrupalBehaviors';
 import useXbParams from '@/hooks/useXbParams';
 import { clearFieldValues } from '@/features/form/formStateSlice';
 import type { FieldData } from '@/types/Component';
-import type { Component } from '@/types/Component';
+import type { XBComponent } from '@/types/Component';
 import { componentHasFieldData } from '@/types/Component';
 import type { AjaxUpdateFormStateEvent } from '@/types/Ajax';
 import { AJAX_UPDATE_FORM_STATE_EVENT } from '@/types/Ajax';
@@ -229,7 +229,7 @@ const DummyPropsEditForm: React.FC<DummyPropsEditFormProps> = () => {
 
   const buildPreparedModel = (
     model: ComponentModel,
-    component: Component,
+    component: XBComponent,
   ): ComponentModel => {
     if (!componentHasFieldData(component)) {
       return model;

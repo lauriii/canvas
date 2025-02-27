@@ -1,8 +1,6 @@
 import type React from 'react';
-import type {
-  ComponentListItem,
-  SectionListItem,
-} from '@/components/list/List';
+import type { XBComponent, JSComponent } from '@/types/Component';
+import type { Section } from '@/types/Section';
 import { useState } from 'react';
 import clsx from 'clsx';
 import styles from '@/components/list/List.module.css';
@@ -24,14 +22,14 @@ import useXbParams from '@/hooks/useXbParams';
 import { DEFAULT_REGION } from '@/features/ui/uiSlice';
 
 const ListItem: React.FC<{
-  item: ComponentListItem | SectionListItem;
+  item: XBComponent | Section;
   type: 'component' | 'section';
 }> = (props) => {
   const { item, type } = props;
   const dispatch = useAppDispatch();
   const layout = useAppSelector(selectLayout);
   const [previewingComponent, setPreviewingComponent] = useState<
-    ComponentListItem | SectionListItem
+    XBComponent | Section
   >();
   const {
     componentId: selectedComponent,
@@ -55,7 +53,7 @@ const ListItem: React.FC<{
           addNewComponentToLayout(
             {
               to: newPath,
-              component: item as ComponentListItem,
+              component: item as XBComponent,
             },
             setSelectedComponent,
           ),
@@ -65,7 +63,7 @@ const ListItem: React.FC<{
           addNewSectionToLayout(
             {
               to: newPath,
-              layoutModel: (item as SectionListItem).layoutModel,
+              layoutModel: (item as Section).layoutModel,
             },
             setSelectedComponent,
           ),
@@ -74,23 +72,22 @@ const ListItem: React.FC<{
     }
   };
 
-  const handleMouseEnter = (component: ComponentListItem | SectionListItem) => {
+  const handleMouseEnter = (component: XBComponent | Section) => {
     setPreviewingComponent(component);
   };
 
   const renderItem = () => {
     if (
       type === 'component' &&
-      (item as ComponentListItem).source === 'Code component'
+      (item as JSComponent).source === 'Code component'
     ) {
-      return <ExposedJsComponent component={item as ComponentListItem} />;
+      return <ExposedJsComponent component={item as JSComponent} />;
     }
     return (
       <SidebarNode
         title={item.name}
         variant={
-          type === 'component' &&
-          (item as ComponentListItem).source === 'Blocks'
+          type === 'component' && (item as XBComponent).source === 'Blocks'
             ? 'blockComponent'
             : type
         }

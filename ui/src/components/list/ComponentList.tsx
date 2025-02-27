@@ -2,10 +2,16 @@ import { useEffect } from 'react';
 import { useErrorBoundary } from 'react-error-boundary';
 import { useGetComponentsQuery } from '@/services/componentAndLayout';
 import List from '@/components/list/List';
-import { toArray } from 'lodash';
 
 const ComponentList = () => {
-  const { data: components, error, isLoading } = useGetComponentsQuery();
+  const {
+    data: components,
+    error,
+    isLoading,
+  } = useGetComponentsQuery({
+    mode: 'exclude',
+    libraries: ['dynamic_components'],
+  });
   const { showBoundary } = useErrorBoundary();
 
   useEffect(() => {
@@ -14,13 +20,9 @@ const ComponentList = () => {
     }
   }, [error, showBoundary]);
 
-  const sortedComponents = components
-    ? toArray(components).sort((a, b) => a.name.localeCompare(b.name))
-    : {};
-
   return (
     <List
-      items={sortedComponents}
+      items={components}
       isLoading={isLoading}
       type="component"
       label="Components"

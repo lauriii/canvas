@@ -1,4 +1,5 @@
 import type React from 'react';
+import { useMemo } from 'react';
 import { useEffect, useRef, useCallback } from 'react';
 import styles from './List.module.css';
 import {
@@ -11,40 +12,18 @@ import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { Box, Flex, Spinner } from '@radix-ui/themes';
 import clsx from 'clsx';
 import ListItem from '@/components/list/ListItem';
-import type { LayoutModelPiece } from '@/features/layout/layoutModelSlice';
 import {
   isDropTargetBetweenTwoElementsOfSameComponent,
   isDropTargetInSlotAllowedByEdgeDistance,
 } from '@/features/sortable/sortableUtils';
-import type { TransformConfig } from '@/utils/transforms';
+import type { ComponentsList } from '@/types/Component';
+import type { SectionsList } from '@/types/Section';
 
 export interface ListProps {
-  items: ListData | undefined;
+  items: ComponentsList | SectionsList | undefined;
   isLoading: boolean;
   type: 'component' | 'section';
   label: string;
-}
-
-export interface ListItemBase {
-  id: string;
-  name: string;
-  metadata: Record<string, any>;
-  default_markup: string;
-  css: string;
-  js_header: string;
-  js_footer: string;
-}
-export interface ComponentListItem extends ListItemBase {
-  field_data: Record<string, any>;
-  source: string;
-  transforms: TransformConfig;
-}
-export interface SectionListItem extends ListItemBase {
-  layoutModel: LayoutModelPiece;
-}
-
-interface ListData {
-  [key: string]: ComponentListItem | SectionListItem;
 }
 
 const List: React.FC<ListProps> = (props) => {
@@ -53,6 +32,15 @@ const List: React.FC<ListProps> = (props) => {
   const sortableInstance = useRef<Sortable | null>(null);
   const listElRef = useRef<HTMLDivElement>(null);
   const { isDragging } = useAppSelector(selectDragging);
+
+  // Sort items and convert to array.
+  const sortedItems = useMemo(() => {
+    return items
+      ? Object.entries(items).sort(([, a], [, b]) =>
+          a.name.localeCompare(b.name),
+        )
+      : [];
+  }, [items]);
 
   const handleDragStart = useCallback(() => {
     dispatch(setListDragging(true));
@@ -124,8 +112,8 @@ const List: React.FC<ListProps> = (props) => {
       <Box className={isDragging ? 'list-dragging' : ''}>
         <Spinner loading={isLoading}>
           <Flex direction="column" width="100%" ref={listElRef}>
-            {items &&
-              Object.entries(items).map(([id, item]) => (
+            {sortedItems &&
+              sortedItems.map(([id, item]) => (
                 <ListItem item={item} key={id} type={type} />
               ))}
           </Flex>

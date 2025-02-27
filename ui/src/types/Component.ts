@@ -23,18 +23,40 @@ export interface FieldDataItem {
   [x: string | number | symbol]: unknown;
 }
 
-export interface SimpleComponent {
-  name: string;
+interface BaseComponent {
   id: string;
+  name: string;
+  library: string;
+  category: string;
+  source: string;
   default_markup: string;
   css: string;
   js_header: string;
   js_footer: string;
-  // The source plugin label.
-  source: string;
 }
 
-export interface PropSourceComponent extends SimpleComponent {
+export type libraryTypes =
+  | 'dynamic_components'
+  | 'primary_components'
+  | 'extension_components'
+  | 'elements';
+
+// For now, these are only Blocks. Later, it will be more.
+export interface DynamicComponent extends BaseComponent {
+  library: 'dynamic_components';
+}
+
+// JSComponent Interface
+export interface JSComponent extends BaseComponent {
+  library: 'primary_components';
+  source: 'Code component';
+  dynamic_prop_source_candidates: any[];
+  transforms: any[];
+}
+
+// PropSourceComponent Interface
+export interface PropSourceComponent extends BaseComponent {
+  library: 'elements' | 'extension_components';
   // @todo rename this to propSources - https://www.drupal.org/project/experience_builder/issues/3504421
   field_data: FieldData;
   metadata: {
@@ -46,20 +68,21 @@ export interface PropSourceComponent extends SimpleComponent {
     };
     [key: string]: any;
   };
-  source: string;
+  dynamic_prop_source_candidates: Record<string, any>;
   transforms: TransformConfig;
 }
+// Union type for any component
+export type XBComponent = DynamicComponent | JSComponent | PropSourceComponent;
 
-export type Component = PropSourceComponent | SimpleComponent;
-
+// ComponentsList representing the API response
 export interface ComponentsList {
-  [key: string]: Component;
+  [key: string]: XBComponent;
 }
 
 /**
  * Type predicate.
  *
- * @param {Component | undefined} component
+ * @param {XBComponent | undefined} component
  *   Component to test.
  *
  * @return boolean
@@ -68,7 +91,7 @@ export interface ComponentsList {
  * @todo rename this to componentHasPropSources in https://www.drupal.org/project/experience_builder/issues/3504421
  */
 export const componentHasFieldData = (
-  component: Component | undefined,
+  component: XBComponent | undefined,
 ): component is PropSourceComponent => {
   return component !== undefined && 'field_data' in component;
 };

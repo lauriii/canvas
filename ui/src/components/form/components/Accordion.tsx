@@ -58,9 +58,14 @@ const AccordionDetails = ({
         className={clsx(styles.trigger, triggerClassName)}
         onClick={onTriggerClick}
       >
-        <Text size="2" weight="medium" {...summaryAttributes}>
-          {title}
-        </Text>
+        {typeof title === 'string' ? (
+          <Text size="2" weight="medium" {...summaryAttributes}>
+            {title}
+          </Text>
+        ) : (
+          title
+        )}
+
         <ChevronRightIcon className={styles.chevron} aria-hidden />
       </Accordion.Trigger>
     </Flex>

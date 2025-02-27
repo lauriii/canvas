@@ -4,7 +4,7 @@ import type {
   LayoutChildNode,
   LayoutNode,
 } from '@/features/layout/layoutModelSlice';
-import type { Component } from '@/types/Component';
+import type { XBComponent } from '@/types/Component';
 import { componentHasFieldData } from '@/types/Component';
 
 const useGetComponentName = (
@@ -15,7 +15,7 @@ const useGetComponentName = (
 
   const findPresentationSlotName = (
     slotName: string | undefined,
-    parentComponent: Component,
+    parentComponent: XBComponent,
   ) => {
     if (
       slotName &&

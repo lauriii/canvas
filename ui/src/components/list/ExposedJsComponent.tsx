@@ -1,4 +1,3 @@
-import type { ComponentListItem } from '@/components/list/List';
 import SidebarNode from '@/components/sidebar/SidebarNode';
 import type React from 'react';
 import { useEffect } from 'react';
@@ -17,6 +16,7 @@ import type { CodeComponentSerialized } from '@/types/CodeComponent';
 import { selectLayout } from '@/features/layout/layoutModelSlice';
 import { componentExistsInLayout } from '@/features/layout/layoutUtils';
 import { useErrorBoundary } from 'react-error-boundary';
+import type { JSComponent } from '@/types/Component';
 import { useNavigate } from 'react-router-dom';
 import useXbParams from '@/hooks/useXbParams';
 
@@ -27,9 +27,7 @@ function removeJsPrefix(input: string): string {
   return input;
 }
 
-const ExposedJsComponent: React.FC<{ component: ComponentListItem }> = (
-  props,
-) => {
+const ExposedJsComponent: React.FC<{ component: JSComponent }> = (props) => {
   const dispatch = useAppDispatch();
   const { component } = props;
   const machineName = removeJsPrefix(component.id);

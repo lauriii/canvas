@@ -1,6 +1,6 @@
 // cspell:ignore uuidv
 import type { AppDispatch, RootState } from '@/app/store';
-import type { Component } from '@/types/Component';
+import type { XBComponent } from '@/types/Component';
 import { componentHasFieldData } from '@/types/Component';
 import type { UUID } from '@/types/UUID';
 import type { PayloadAction } from '@reduxjs/toolkit';
@@ -112,7 +112,7 @@ type InsertMultipleNodesPayload = {
 
 type AddNewNodePayload = {
   to: number[];
-  component: Component;
+  component: XBComponent;
 };
 
 type AddNewSectionPayload = {
@@ -403,7 +403,7 @@ export const addNewComponentToLayout =
   (dispatch: AppDispatch) => {
     const { to, component } = payload;
     // Populate the model data with the default values
-    const buildInitialData = (component: Component): ComponentModel => {
+    const buildInitialData = (component: XBComponent): ComponentModel => {
       if (componentHasFieldData(component)) {
         const initialData: EvaluatedComponentModel = {
           name: component.name,

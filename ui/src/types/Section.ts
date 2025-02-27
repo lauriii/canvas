@@ -1,14 +1,16 @@
-import type { LayoutModelSliceState } from '@/features/layout/layoutModelSlice';
-import type { Component } from '@/types/Component';
+import type { LayoutModelPiece } from '@/features/layout/layoutModelSlice';
 
 export interface Section {
+  layoutModel: LayoutModelPiece;
   name: string;
   id: string;
   default_markup: string;
-  components: Component[];
-  layoutModel: LayoutModelSliceState;
+  css: string;
+  js_header: string;
+  js_footer: string;
 }
 
+// Type for the API response, an object keyed by section ID
 export interface SectionsList {
   [key: string]: Section;
 }

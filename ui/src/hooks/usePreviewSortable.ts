@@ -115,19 +115,23 @@ function usePreviewSortable(
               );
             }
           } else if (type === 'section') {
-            // Adding a section template.
-            ev.item.innerHTML = '<p>Loading section...</p>';
-            dispatch(
-              addNewSectionToLayout(
-                {
-                  to: newPath,
-                  layoutModel:
-                    sectionsRef?.current?.[ev.clone.dataset.xbComponentId]
-                      .layoutModel,
-                },
-                setSelectedComponent,
-              ),
-            );
+            if (
+              sectionsRef?.current?.[ev.clone.dataset.xbComponentId].layoutModel
+            ) {
+              // Adding a section template.
+              ev.item.innerHTML = '<p>Loading section...</p>';
+              dispatch(
+                addNewSectionToLayout(
+                  {
+                    to: newPath,
+                    layoutModel:
+                      sectionsRef.current[ev.clone.dataset.xbComponentId]
+                        .layoutModel,
+                  },
+                  setSelectedComponent,
+                ),
+              );
+            }
           }
         }
       }

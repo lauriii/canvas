@@ -5,7 +5,6 @@ import {
   Flex,
   Grid,
   SegmentedControl,
-  Text,
   Tooltip,
 } from '@radix-ui/themes';
 import Panel from '@/components/Panel';
@@ -19,10 +18,9 @@ import clsx from 'clsx';
 import UnpublishedChanges from '@/components/review/UnpublishedChanges';
 import PageInfo from '../pageInfo/PageInfo';
 import ExtensionsList from '@/components/extensions/ExtensionsList';
-import type React from 'react';
-import { handleNonWorkingBtn } from '@/utils/function-utils';
 import TopbarPopover from '@/components/topbar/menu/TopbarPopover';
 import topBarStyles from '@/components/topbar/Topbar.module.css';
+import DynamicComponents from '@/components/dynamicComponents/DynamicComponents';
 
 const PREVIOUS_URL_STORAGE_KEY = 'XBPreviousURL';
 
@@ -94,23 +92,19 @@ const Topbar = () => {
               <ExtensionsList />
             </TopbarPopover>
             <TopbarPopover
-              tooltip="CMS"
+              tooltip="Dynamic components"
               trigger={
                 <Button
                   variant="ghost"
                   color="gray"
                   size="2"
                   className={clsx(styles.topBarButton)}
-                  onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
-                    e.preventDefault();
-                    handleNonWorkingBtn();
-                  }}
                 >
                   <CMSIcon height="24" width="auto" />
                 </Button>
               }
             >
-              <Text>Not yet supported</Text>
+              <DynamicComponents />
             </TopbarPopover>
           </Flex>
           <Flex align="center" justify="center" gap="2">

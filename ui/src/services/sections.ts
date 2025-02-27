@@ -2,6 +2,7 @@
 import { createApi } from '@reduxjs/toolkit/query/react';
 import { baseQuery } from '@/services/baseQuery';
 import type { LayoutModelPiece } from '@/features/layout/layoutModelSlice';
+import type { SectionsList } from '@/types/Section';
 
 interface SaveSectionData extends LayoutModelPiece {
   name: string;
@@ -13,7 +14,7 @@ export const sectionApi = createApi({
   baseQuery,
   tagTypes: ['Sections'],
   endpoints: (builder) => ({
-    getSections: builder.query<any, void>({
+    getSections: builder.query<SectionsList, void>({
       query: () => `/xb/api/config/pattern`,
       providesTags: () => [{ type: 'Sections', id: 'LIST' }],
     }),

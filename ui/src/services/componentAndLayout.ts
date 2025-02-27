@@ -1,18 +1,40 @@
 import { createApi } from '@reduxjs/toolkit/query/react';
 import { baseQuery } from '@/services/baseQuery';
 import type { CodeComponentSerialized } from '@/types/CodeComponent';
-import type { ComponentsList } from '@/types/Component';
+import type { ComponentsList, libraryTypes } from '@/types/Component';
 import type { RootLayoutModel } from '@/features/layout/layoutModelSlice';
 import { setPageData } from '@/features/pageData/pageDataSlice';
+
+type getComponentsQueryOptions = {
+  libraries: libraryTypes[];
+  mode: 'include' | 'exclude';
+};
 
 export const componentAndLayoutApi = createApi({
   reducerPath: 'componentAndLayoutApi',
   baseQuery,
   tagTypes: ['Components', 'CodeComponents', 'CodeComponentAutoSave', 'Layout'],
   endpoints: (builder) => ({
-    getComponents: builder.query<ComponentsList, void>({
+    getComponents: builder.query<
+      ComponentsList,
+      getComponentsQueryOptions | void
+    >({
       query: () => `xb/api/config/component`,
       providesTags: () => [{ type: 'Components', id: 'LIST' }],
+      transformResponse: (response: ComponentsList, meta, arg) => {
+        if (!arg || !Array.isArray(arg.libraries)) {
+          // If no filter is provided, return all components.
+          return response;
+        }
+
+        // Filter the response based on the include/exclude and the list of library types passed.
+        return Object.fromEntries(
+          Object.entries(response).filter(([, value]) => {
+            const isIncluded = arg.libraries.includes(value.library);
+            return arg.mode === 'include' ? isIncluded : !isIncluded;
+          }),
+        );
+      },
     }),
     getLayoutById: builder.query<
       RootLayoutModel & {

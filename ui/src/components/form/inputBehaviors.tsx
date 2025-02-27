@@ -42,7 +42,7 @@ import {
   clearFieldError,
 } from '@/features/form/formStateSlice';
 import type { ErrorObject } from 'ajv/dist/types';
-import type { Component } from '@/types/Component';
+import type { XBComponent } from '@/types/Component';
 import { componentHasFieldData } from '@/types/Component';
 import { FORM_TYPES } from '@/features/form/constants';
 import { useUpdateComponentMutation } from '@/services/preview';
@@ -462,7 +462,7 @@ export default InputBehaviors;
 
 export const syncPropSourcesToResolvedValues = (
   sources: Sources,
-  component: Component,
+  component: XBComponent,
   resolvedValues: ResolvedValues,
 ): Sources => {
   if (!componentHasFieldData(component)) {

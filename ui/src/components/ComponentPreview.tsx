@@ -3,13 +3,11 @@ import { useEffect } from 'react';
 import styles from './ComponentPreview.module.css';
 import clsx from 'clsx';
 import Panel from '@/components/Panel';
-import type {
-  ComponentListItem,
-  SectionListItem,
-} from '@/components/list/List';
+import type { XBComponent } from '@/types/Component';
+import type { Section } from '@/types/Section';
 
 interface ComponentPreviewProps {
-  componentListItem: ComponentListItem | SectionListItem;
+  componentListItem: XBComponent | Section;
 }
 
 const { drupalSettings } = window;
