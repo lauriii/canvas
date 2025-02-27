@@ -85,8 +85,8 @@ HTML;
     // @see ui/src/components/ComponentPreview.tsx
     $preview_assets = (new AttachedAssets())->setLibraries($preview_libraries);
 
-    $demo_mode = $this->configFactory->get('experience_builder.settings')->get('demo_mode');
     $xb_module_path = $this->moduleHandler->getModule('experience_builder')->getPath();
+    $dev_mode = $this->moduleHandler->moduleExists('xb_dev_mode');
 
     return (new HtmlResponse($this->buildHtml()))->setAttachments([
       'library' => [
@@ -100,7 +100,7 @@ HTML;
           'entityType' => $entity_type,
           'entity' => $entity?->id(),
           'entityTypeKeys' => $entity?->getEntityType()->getKeys(),
-          'demoMode' => $demo_mode,
+          'devMode' => $dev_mode,
           // Allow for perfect component previews, by letting the client side
           // know what global assets to load in component preview <iframe>s.
           // @see ui/src/components/ComponentPreview.tsx

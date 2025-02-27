@@ -21,12 +21,15 @@ import ExtensionsList from '@/components/extensions/ExtensionsList';
 import TopbarPopover from '@/components/topbar/menu/TopbarPopover';
 import topBarStyles from '@/components/topbar/Topbar.module.css';
 import DynamicComponents from '@/components/dynamicComponents/DynamicComponents';
+import { useAppSelector } from '@/app/hooks';
+import { selectDevMode } from '@/features/configuration/configurationSlice';
 
 const PREVIOUS_URL_STORAGE_KEY = 'XBPreviousURL';
 
 const Topbar = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const isDevMode = useAppSelector(selectDevMode);
   const isPreview = location.pathname.includes('/preview');
 
   function handleChangeModeClick() {
@@ -76,21 +79,23 @@ const Topbar = () => {
               </Button>
             </Tooltip>
             <div className={clsx(styles.verticalDivider)}></div>
-            <TopbarPopover
-              tooltip="Extensions"
-              trigger={
-                <Button
-                  variant="ghost"
-                  color="gray"
-                  size="2"
-                  className={clsx(topBarStyles.topBarButton)}
-                >
-                  <ExtensionIcon height="24" width="auto" />
-                </Button>
-              }
-            >
-              <ExtensionsList />
-            </TopbarPopover>
+            {isDevMode && (
+              <TopbarPopover
+                tooltip="Extensions"
+                trigger={
+                  <Button
+                    variant="ghost"
+                    color="gray"
+                    size="2"
+                    className={clsx(topBarStyles.topBarButton)}
+                  >
+                    <ExtensionIcon height="24" width="auto" />
+                  </Button>
+                }
+              >
+                <ExtensionsList />
+              </TopbarPopover>
+            )}
             <TopbarPopover
               tooltip="Dynamic components"
               trigger={

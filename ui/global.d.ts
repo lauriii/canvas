@@ -19,7 +19,7 @@ interface DrupalSettings {
     navUtils: PropsValues;
     xbModulePath: string;
     selectedComponent: string;
-    demoMode: boolean;
+    devMode: boolean;
   };
   path: {
     baseUrl: string;

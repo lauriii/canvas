@@ -431,13 +431,6 @@ experience_builder.pattern.*:
             presence: ~
       type: experience_builder.component_tree
       label: 'The component tree that represents a reusable pattern'
-experience_builder.settings:
-  type: config_object
-  label: 'Experience Builder settings'
-  mapping:
-    demo_mode:
-      type: boolean
-      label: 'Experience Builder demo mode'
 experience_builder.xb_asset_library.*:
   type: config_entity
   constraints:

@@ -42,6 +42,7 @@ const appConfiguration: AppConfiguration = {
   baseUrl: drupalSettings?.path?.baseUrl || import.meta.env.BASE_URL,
   entityType: drupalSettings?.xb?.entityType || 'node',
   entity: drupalSettings?.xb?.entity || '1',
+  devMode: drupalSettings?.xb?.devMode || false,
 };
 
 if (container) {

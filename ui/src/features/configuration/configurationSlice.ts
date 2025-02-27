@@ -8,6 +8,7 @@ export interface AppConfiguration {
   entity: string;
   isNew: boolean;
   isPublished: boolean;
+  devMode: boolean;
 }
 
 export const initialState: AppConfiguration = {
@@ -16,6 +17,7 @@ export const initialState: AppConfiguration = {
   entity: 'none',
   isNew: true,
   isPublished: false,
+  devMode: false,
 };
 
 export const configurationSlice = createSlice({
@@ -39,3 +41,5 @@ export const selectBaseUrl = (state: RootState) => state.configuration.baseUrl;
 export const selectEntityType = (state: RootState) =>
   state.configuration.entityType;
 export const selectEntityId = (state: RootState) => state.configuration.entity;
+
+export const selectDevMode = (state: RootState) => state.configuration.devMode;
