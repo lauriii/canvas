@@ -28,25 +28,48 @@ import {
 import type { CodeComponentProp } from '@/types/CodeComponent';
 import { getPropMachineName } from '@/features/code-editor/utils';
 import { InfoCircledIcon } from '@radix-ui/react-icons';
+import FormPropTypeTextArea from '@/features/code-editor/component-data/forms/FormPropTypeTextArea';
+
+type UiPropType = Omit<
+  CodeComponentProp,
+  'id' | 'example' | 'enum' | 'name'
+> & {
+  displayName: string;
+  isEnum?: boolean;
+};
 
 // The followings are actual types in the JavaScriptComponent config entity
 // schema for props: string, integer, number, boolean.
 // They can all support enums, which is an additional property in the schema.
-// Here we create a consolidated view of the types for the UI.
+//
+// Here is a representation of the types for the UI.
 // @see config/schema/experience_builder.schema.yml#experience_builder.js_component.*.mapping.props
-const PROP_TYPES = {
-  string: 'Text',
-  integer: 'Integer',
-  number: 'Number',
-  boolean: 'Boolean',
-  stringEnum: 'List: text',
-  integerEnum: 'List: integer',
-  numberEnum: 'List: number',
+const UI_PROP_TYPES: Record<string, UiPropType> = {
+  string: { type: 'string', displayName: 'Text' },
+  stringLong: {
+    type: 'string',
+    displayName: 'Text area',
+    _ref: 'json-schema-definitions://experience_builder.module/textarea',
+  },
+  integer: { type: 'integer', displayName: 'Integer' },
+  number: { type: 'number', displayName: 'Number' },
+  boolean: { type: 'boolean', displayName: 'Boolean' },
+  stringEnum: { type: 'string', displayName: 'List: text', isEnum: true },
+  integerEnum: { type: 'integer', displayName: 'List: integer', isEnum: true },
+  numberEnum: { type: 'number', displayName: 'List: number', isEnum: true },
 };
 
-function getTypeAndIsEnum(key: keyof typeof PROP_TYPES) {
-  const [, type, enum_] = key.match(/^(.*?)(Enum)?$/) || [];
-  return { type, isEnum: Boolean(enum_) };
+function getUIPropTypeKey(prop: CodeComponentProp) {
+  if (prop.enum) {
+    return `${prop.type}Enum`;
+  }
+  if (prop._ref) {
+    if (prop.type === 'string') {
+      return `${prop.type}Long`;
+    }
+  } else {
+    return prop.type;
+  }
 }
 
 export default function Props() {
@@ -69,6 +92,7 @@ export default function Props() {
 
   const renderPropContent = (prop: CodeComponentProp) => {
     const propName = getPropMachineName(prop.name);
+    const uiPropTypeKey = getUIPropTypeKey(prop);
     return (
       <Flex direction="column" flexGrow="1">
         <Flex mb="4" gap="4" align="end" width="100%" wrap="wrap">
@@ -96,19 +120,19 @@ export default function Props() {
             <FormElement>
               <Label htmlFor={`prop-type-${prop.id}`}>Type</Label>
               <Select.Root
-                value={`${prop.type}${prop.enum ? 'Enum' : ''}`}
+                value={uiPropTypeKey}
                 size="1"
                 onValueChange={(value) => {
-                  const { type, isEnum } = getTypeAndIsEnum(
-                    value as keyof typeof PROP_TYPES,
-                  );
+                  const uiProp =
+                    UI_PROP_TYPES[value as keyof typeof UI_PROP_TYPES];
                   dispatch(
                     updateProp({
                       id: prop.id,
                       updates: {
-                        type: type as CodeComponentProp['type'],
-                        enum: isEnum ? [] : undefined,
-                        example: type === 'boolean' ? 'false' : '',
+                        type: uiProp.type as CodeComponentProp['type'],
+                        enum: uiProp.isEnum ? [] : undefined,
+                        example: uiProp.type === 'boolean' ? 'false' : '',
+                        _ref: uiProp._ref ? uiProp._ref : undefined,
                       },
                     }),
                   );
@@ -117,9 +141,9 @@ export default function Props() {
               >
                 <Select.Trigger id={`prop-type-${prop.id}`} />
                 <Select.Content>
-                  {Object.entries(PROP_TYPES).map(([key, label]) => (
+                  {Object.entries(UI_PROP_TYPES).map(([key, value]) => (
                     <Select.Item key={key} value={key}>
-                      {label}
+                      {value.displayName}
                     </Select.Item>
                   ))}
                 </Select.Content>
@@ -157,6 +181,13 @@ export default function Props() {
                   enum={prop.enum || []}
                   example={prop.example}
                   isDisabled={componentStatus}
+                />
+              ) : prop._ref ? (
+                <FormPropTypeTextArea
+                  id={prop.id}
+                  example={prop.example}
+                  isDisabled={componentStatus}
+                  _ref={prop._ref}
                 />
               ) : (
                 <FormPropTypeTextField

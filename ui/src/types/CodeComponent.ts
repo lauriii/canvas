@@ -23,6 +23,7 @@ export interface CodeComponentProp {
   type: 'string' | 'integer' | 'number' | 'boolean';
   enum?: string[];
   example?: string;
+  _ref?: string;
 }
 
 export interface CodeComponentPropSerialized {
@@ -30,6 +31,7 @@ export interface CodeComponentPropSerialized {
   type: 'string' | 'integer' | 'number' | 'boolean';
   enum?: (string | number)[];
   examples?: (string | number)[];
+  $ref?: string;
 }
 
 export interface CodeComponentSlot {

@@ -89,6 +89,20 @@
       "enum": ["1.1", "2.2", "3.3"],
       "example": "2.2",
       "id": "a411ac98-ab57-45f1-9b48-596fa1276f8e"
+    },
+    {
+      "name": "Text area with no example value",
+      "type": "string",
+      "example": "",
+      "id": "fgg0f3d4-6853-44c7-92db-bbd86d9ba112",
+      "_ref": "json-schema-definitions://experience_builder.module/textarea"
+    },
+    {
+      "name": "Text area with example value",
+      "type": "string",
+      "example": "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged.",
+      "id": "5e894686-8c73-4a01-8727-a36ff1cc59eb",
+      "_ref": "json-schema-definitions://experience_builder.module/textarea"
     }
   ],
   "serialized": {
@@ -161,6 +175,17 @@
       "type": "number",
       "enum": [1.1, 2.2, 3.3],
       "examples": [2.2]
+    },
+    "textAreaWithNoExampleValue": {
+      "title": "Text area with no example value",
+      "type": "string",
+      "$ref": "json-schema-definitions://experience_builder.module/textarea"
+    },
+    "textAreaWithExampleValue": {
+      "title": "Text area with example value",
+      "type": "string",
+      "examples": ["Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged."],
+      "$ref": "json-schema-definitions://experience_builder.module/textarea"
     }
   }
 }

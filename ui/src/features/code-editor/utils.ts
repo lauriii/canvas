@@ -37,11 +37,12 @@ export function parsePropValue(prop: CodeComponentProp) {
 export function serializeProps(props: CodeComponentProp[]) {
   return props.reduce(
     (acc, prop) => {
-      const { name, type, example, enum: enumValues } = prop;
+      const { name, type, example, enum: enumValues, _ref } = prop;
       const isNumberType = ['integer', 'number'].includes(type);
       const processed: CodeComponentPropSerialized = {
         title: name,
         type,
+        ...(_ref && { $ref: _ref }),
         ...(example && {
           examples: [isNumberType ? Number(example) : example],
         }),
@@ -71,7 +72,7 @@ export function deserializeProps(
     return [];
   }
   return Object.entries(props).map(([key, prop]) => {
-    const { title, type, examples, enum: enumValues } = prop;
+    const { title, type, examples, enum: enumValues, $ref } = prop;
     return {
       // The ID is only used to keep track of the prop in the UI when editing,
       // reordering, etc.
@@ -80,6 +81,7 @@ export function deserializeProps(
       type,
       example: examples?.length ? String(examples[0]) : '',
       ...(enumValues && { enum: enumValues.map(String) }),
+      ...($ref && { _ref: $ref }),
     };
   });
 }

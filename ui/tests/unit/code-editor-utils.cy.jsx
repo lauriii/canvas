@@ -161,6 +161,17 @@ describe('Code editor utilities', () => {
         'numberListWithExampleValue',
       ]);
     });
+    it('of type text area', () => {
+      expect(
+        serializeProps([
+          deserializedPropsFixture[14],
+          deserializedPropsFixture[15],
+        ]),
+      ).to.matchSerializedProps([
+        'textAreaWithNoExampleValue',
+        'textAreaWithExampleValue',
+      ]);
+    });
   });
 
   describe('deserialize props', () => {
@@ -224,6 +235,15 @@ describe('Code editor utilities', () => {
           serializedPropsFixture.numberListWithExampleValue,
         ]),
       ).to.matchDeserializedProps([12, 13]);
+    });
+
+    it('of type text area', () => {
+      expect(
+        deserializeProps([
+          serializedPropsFixture.textAreaWithNoExampleValue,
+          serializedPropsFixture.textAreaWithExampleValue,
+        ]),
+      ).to.matchDeserializedProps([14, 15]);
     });
   });
 

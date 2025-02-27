@@ -809,4 +809,35 @@ describe('Component data / props in code editor', () => {
       expect(selectProps(store.getState())[0].example).to.equal('');
     });
   });
+
+  it('creates a new text area prop', () => {
+    cy.findByText('Add').click();
+
+    cy.findByLabelText('Prop name').type('Description');
+    cy.findByLabelText('Type').click();
+    cy.findByText('Text area').click();
+    cy.findByLabelText('Example value').should(
+      'have.attr',
+      'placeholder',
+      'Enter a text value',
+    );
+    cy.findByLabelText('Example value').type('Your description goes here');
+    cy.findByLabelText('Example value').should(
+      'have.value',
+      'Your description goes here',
+    );
+
+    cy.wrap(store).then((store) => {
+      const prop = selectProps(store.getState())[0];
+      expect(prop).to.deep.include(
+        {
+          name: 'Description',
+          type: 'string',
+          example: 'Your description goes here',
+          _ref: 'json-schema-definitions://experience_builder.module/textarea',
+        },
+        'Should have the correct prop metadata',
+      );
+    });
+  });
 });
