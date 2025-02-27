@@ -8,7 +8,9 @@ use Drupal\Core\Asset\AttachedAssets;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Cache\RefinableCacheableDependencyInterface;
 use Drupal\Core\Cache\RefinableCacheableDependencyTrait;
+use Drupal\Core\Render\BubbleableMetadata;
 use Drupal\Core\Render\RendererInterface;
+use Drupal\experience_builder\Render\ImportMapResponseAttachmentsProcessor;
 
 /**
  * @see \Drupal\jsonapi\Normalizer\Value\CacheableNormalization
@@ -49,6 +51,7 @@ final class ClientSideRepresentation implements RefinableCacheableDependencyInte
     $build = $this->preview;
     $default_markup = $renderer->renderInIsolation($build);
     $assets = AttachedAssets::createFromRenderArray($build);
+    $import_map = ImportMapResponseAttachmentsProcessor::buildHtmlTagForAttachedImportMaps(BubbleableMetadata::createFromRenderArray($build)) ?? [];
 
     // A pre-rendered version of this config entity is provided so no requests
     // are needed when adding it to the layout which includes a default
@@ -58,7 +61,7 @@ final class ClientSideRepresentation implements RefinableCacheableDependencyInte
       values: $this->values + [
         'default_markup' => $default_markup,
         'css' => $asset_renderer->renderCssAssets($assets),
-        'js_header' => $asset_renderer->renderJsHeaderAssets($assets),
+        'js_header' => $renderer->renderInIsolation($import_map) . $asset_renderer->renderJsHeaderAssets($assets),
         'js_footer' => $asset_renderer->renderJsFooterAssets($assets),
       ],
       preview: NULL,

@@ -81,7 +81,11 @@ const ListItem: React.FC<{
       type === 'component' &&
       (item as JSComponent).source === 'Code component'
     ) {
-      return <ExposedJsComponent component={item as JSComponent} />;
+      return (
+        <div>
+          <ExposedJsComponent component={item as JSComponent} />
+        </div>
+      );
     }
     return (
       <SidebarNode

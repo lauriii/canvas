@@ -51,25 +51,10 @@ final class ImportMapResponseAttachmentsProcessor implements AttachmentsResponse
    * {@inheritdoc}
    */
   public function processAttachments(AttachmentsInterface $response) {
-    $original_attachments = $response->getAttachments();
-    $import_maps = $original_attachments['import_maps'] ?? [];
-
-    if (\count($import_maps) > 0) {
-      // Remove the import maps attachment.
+    $import_map = self::buildHtmlTagForAttachedImportMaps($response);
+    if ($import_map) {
+      $original_attachments = $response->getAttachments();
       unset($original_attachments['import_maps']);
-      $map = ['scopes' => []];
-      // Add each entry to the 'scopes' key.
-      // @see https://developer.mozilla.org/en-US/docs/Web/HTML/Element/script/type/importmap#scoped_module_specifier_maps
-      foreach ($import_maps as $entry) {
-        $map['scopes'] += $entry;
-      }
-      // Transform it into a standard script tag.
-      $import_map = [
-        '#type' => 'html_tag',
-        '#tag' => 'script',
-        '#value' => Json::encode($map),
-        '#attributes' => ['type' => 'importmap'],
-      ];
       $original_attachments['html_head'][] = [$import_map, 'xb_import_map'];
       // Set the attachments with the new script tag and without the import_maps
       // entry.
@@ -77,6 +62,29 @@ final class ImportMapResponseAttachmentsProcessor implements AttachmentsResponse
     }
     // Call the decorated attachments processor.
     return $this->htmlResponseAttachmentsProcessor->processAttachments($response);
+  }
+
+  public static function buildHtmlTagForAttachedImportMaps(AttachmentsInterface $something): ?array {
+    $import_maps = $something->getAttachments()['import_maps'] ?? [];
+
+    if (\count($import_maps) === 0) {
+      return NULL;
+    }
+
+    $map = ['scopes' => []];
+    // Add each entry to the 'scopes' key.
+    // @see https://developer.mozilla.org/en-US/docs/Web/HTML/Element/script/type/importmap#scoped_module_specifier_maps
+    foreach ($import_maps as $entry) {
+      $map['scopes'] += $entry;
+    }
+    // Transform it into a standard <script> tag.
+    $import_map = [
+      '#type' => 'html_tag',
+      '#tag' => 'script',
+      '#value' => Json::encode($map),
+      '#attributes' => ['type' => 'importmap'],
+    ];
+    return $import_map;
   }
 
 }
