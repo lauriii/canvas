@@ -27,9 +27,12 @@ function removeJsPrefix(input: string): string {
   return input;
 }
 
-const ExposedJsComponent: React.FC<{ component: JSComponent }> = (props) => {
+const ExposedJsComponent: React.FC<{
+  component: JSComponent;
+  onMenuOpenChange?: (open: boolean) => void;
+}> = (props) => {
   const dispatch = useAppDispatch();
-  const { component } = props;
+  const { component, onMenuOpenChange } = props;
   const machineName = removeJsPrefix(component.id);
   const { data: jsComponent, error } = useGetCodeComponentQuery(machineName);
   const layout = useAppSelector(selectLayout);
@@ -90,7 +93,12 @@ const ExposedJsComponent: React.FC<{ component: JSComponent }> = (props) => {
     </>
   );
   return (
-    <ContextMenu.Root key={component.id}>
+    <ContextMenu.Root
+      key={component.id}
+      onOpenChange={(open) => {
+        onMenuOpenChange?.(open);
+      }}
+    >
       <ContextMenu.Trigger>
         <SidebarNode
           title={component.name}
@@ -102,6 +110,7 @@ const ExposedJsComponent: React.FC<{ component: JSComponent }> = (props) => {
             </UnifiedMenu.Content>
           }
           selected={machineName === selectedComponent}
+          onMenuOpenChange={onMenuOpenChange}
         />
       </ContextMenu.Trigger>
       <UnifiedMenu.Content

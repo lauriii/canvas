@@ -27,6 +27,7 @@ const ListItem: React.FC<{
 }> = (props) => {
   const { item, type } = props;
   const dispatch = useAppDispatch();
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const layout = useAppSelector(selectLayout);
   const [previewingComponent, setPreviewingComponent] = useState<
     XBComponent | Section
@@ -73,7 +74,9 @@ const ListItem: React.FC<{
   };
 
   const handleMouseEnter = (component: XBComponent | Section) => {
-    setPreviewingComponent(component);
+    if (!isMenuOpen) {
+      setPreviewingComponent(component);
+    }
   };
 
   const renderItem = () => {
@@ -83,7 +86,10 @@ const ListItem: React.FC<{
     ) {
       return (
         <div>
-          <ExposedJsComponent component={item as JSComponent} />
+          <ExposedJsComponent
+            component={item as JSComponent}
+            onMenuOpenChange={setIsMenuOpen}
+          />
         </div>
       );
     }
@@ -123,7 +129,7 @@ const ListItem: React.FC<{
               className={styles.componentPreviewTooltipContent}
             >
               <Theme>
-                {previewingComponent && (
+                {previewingComponent && !isMenuOpen && (
                   <ComponentPreview componentListItem={previewingComponent} />
                 )}
               </Theme>

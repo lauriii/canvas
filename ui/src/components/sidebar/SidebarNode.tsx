@@ -38,6 +38,7 @@ const SidebarNode = React.forwardRef<
     dropdownMenuContent?: React.ReactNode;
     open?: boolean;
     className?: string;
+    onMenuOpenChange?: (open: boolean) => void;
   } & React.HTMLAttributes<HTMLDivElement>
 >(
   (
@@ -50,6 +51,7 @@ const SidebarNode = React.forwardRef<
       dropdownMenuContent = null,
       open = false,
       className,
+      onMenuOpenChange,
       ...props
     },
     ref,
@@ -90,7 +92,11 @@ const SidebarNode = React.forwardRef<
           </Flex>
         </Flex>
         {dropdownMenuContent && (
-          <DropdownMenu.Root>
+          <DropdownMenu.Root
+            onOpenChange={(open) => {
+              onMenuOpenChange?.(open);
+            }}
+          >
             <DropdownMenu.Trigger>
               <button aria-label="Open contextual menu">
                 <span className={styles.dots}>
