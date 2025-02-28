@@ -159,6 +159,20 @@ final class JsComponent extends GeneratedFieldExplicitInputUxComponentSourceBase
     }
     $cache->applyTo($build);
     $xb_path = $this->extensionPathResolver->getPath('module', 'experience_builder');
+    // Resource hints.
+    $resource_hints = [
+      'preact/signals' => \sprintf('%s%s/ui/lib/astro-hydration/dist/signals.module.js', $base_path, $xb_path),
+      '@/lib/preload-helper' => \sprintf('%s%s/ui/lib/astro-hydration/dist/preload-helper.js', $base_path, $xb_path),
+    ];
+    foreach ($resource_hints as $url) {
+      $build['#attached']['html_head_link'][] = [
+        [
+          'rel' => 'modulepreload',
+          'fetchpriority' => 'high',
+          'href' => $url,
+        ],
+      ];
+    }
     return $build + [
       '#type' => 'astro_island',
       '#uuid' => $componentUuid,

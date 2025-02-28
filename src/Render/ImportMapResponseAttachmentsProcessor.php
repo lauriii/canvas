@@ -51,9 +51,23 @@ final class ImportMapResponseAttachmentsProcessor implements AttachmentsResponse
    * {@inheritdoc}
    */
   public function processAttachments(AttachmentsInterface $response) {
+    $original_attachments = $response->getAttachments();
+    $import_maps = $original_attachments['import_maps'] ?? [];
+    foreach ($import_maps as $entry) {
+      foreach ($entry as $imports) {
+        foreach ($imports as $import_url) {
+          $original_attachments['html_head_link'][] = [
+            [
+              'rel' => 'modulepreload',
+              'fetchpriority' => 'high',
+              'href' => $import_url,
+            ],
+          ];
+        }
+      }
+    }
     $import_map = self::buildHtmlTagForAttachedImportMaps($response);
     if ($import_map) {
-      $original_attachments = $response->getAttachments();
       unset($original_attachments['import_maps']);
       $original_attachments['html_head'][] = [$import_map, 'xb_import_map'];
       // Set the attachments with the new script tag and without the import_maps

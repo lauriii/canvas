@@ -163,6 +163,9 @@ final class JsComponentTest extends KernelTestBase {
       'draft' => "xb/api/autosaves/css/js_component/$js_component_id",
     };
     self::assertEquals($css_filename, reset($css_asset)['data']);
+    $preloads = \array_column($island['#attached']['html_head_link'], 0);
+    $hrefs = \array_column($preloads, 'href');
+    self::assertContains($js_filename, $hrefs);
   }
 
 }

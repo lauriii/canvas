@@ -147,6 +147,13 @@ final class AstroIsland extends RenderElementBase {
       // This ensures that each component can use its own version of imports.
       $element['#attached']['import_maps'][] = [$component_url => $element['#import_maps']];
     }
+    $element['#attached']['html_head_link'][] = [
+      [
+        'rel' => 'modulepreload',
+        'fetchpriority' => 'high',
+        'href' => $component_url,
+      ],
+    ];
     return $element;
   }
 

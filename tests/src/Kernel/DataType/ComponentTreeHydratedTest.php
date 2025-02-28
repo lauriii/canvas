@@ -816,6 +816,24 @@ HTML,
                                 'tailwind-merge' => \sprintf('%s/ui/lib/astro-hydration/dist/tailwind-merge.js', $path),
                                 '@/lib/utils' => \sprintf('%s/ui/lib/astro-hydration/dist/utils.js', $path),
                               ],
+                              '#attached' => [
+                                'html_head_link' => [
+                                  [
+                                    [
+                                      'rel' => 'modulepreload',
+                                      'fetchpriority' => 'high',
+                                      'href' => \sprintf('%s/ui/lib/astro-hydration/dist/signals.module.js', $path),
+                                    ],
+                                  ],
+                                  [
+                                    [
+                                      'rel' => 'modulepreload',
+                                      'fetchpriority' => 'high',
+                                      'href' => \sprintf('%s/ui/lib/astro-hydration/dist/preload-helper.js', $path),
+                                    ],
+                                  ],
+                                ],
+                              ],
                               '#name' => 'My First Code Component',
                               '#component_url' => '::SITE_DIR_BASE_URL::/files/astro-island/STNRn46UCAs1xJCb2kgPiEOEZp0R24B5qjtHOsyYT-g.js',
                               '#props' => [

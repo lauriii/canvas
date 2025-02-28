@@ -67,6 +67,13 @@ final class ImportMapResponseAttachmentsProcessorTest extends KernelTestBase {
         'chips.js' => ['dips' => 'libs/dips.js'],
       ],
     ], $map);
+    self::assertArrayHasKey('html_head_link', $attachments);
+    $preloads = \array_column($attachments['html_head_link'], 0);
+    $hrefs = \array_column($preloads, 'href');
+    self::assertContains('libs/dazzler.js', $hrefs);
+    self::assertContains('libs/bricks.js', $hrefs);
+    self::assertContains('libs/maker.js', $hrefs);
+    self::assertContains('libs/dips.js', $hrefs);
   }
 
 }
