@@ -329,7 +329,7 @@ export const layoutModelSlice = createSlice({
           JSON.stringify(findComponentByUuid(state.layout, uuid)),
         );
         const nodePath = findNodePathByUuid(state.layout, uuid);
-        const rootIndex = nodePath?.shift() || undefined;
+        const rootIndex = nodePath?.shift() ?? undefined;
         if (rootIndex === undefined) {
           throw new Error(
             'Path should be at least two items long, starting from the root region',
@@ -363,7 +363,7 @@ export const layoutModelSlice = createSlice({
           JSON.stringify(findComponentByUuid(state.layout, uuid)),
         );
         const nodePath = findNodePathByUuid(state.layout, uuid);
-        const rootIndex = nodePath?.shift() || undefined;
+        const rootIndex = nodePath?.shift() ?? undefined;
         if (rootIndex === undefined) {
           throw new Error(
             'Path should be at least two items long, starting from the root region',

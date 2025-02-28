@@ -2,10 +2,12 @@ import {
   selectLayoutHistory,
   deleteNode,
   moveNode,
+  sortNode,
   layoutModelSlice,
   setLayoutModel,
   initialState,
   duplicateNode,
+  shiftNode,
 } from '@/features/layout/layoutModelSlice';
 import { makeStore } from '@/app/store';
 import {
@@ -116,6 +118,91 @@ describe('Move node', () => {
     ).to.deep.equal([
       '6f3224e2-cb61-46e4-a9e4-35b4d18f0a82',
       'static-static-card1ab',
+    ]);
+  });
+});
+
+describe('Sort node', () => {
+  it('Should sort node', () => {
+    expect(layout.layout[0].components[0].slots[0].components[0].uuid).to.eq(
+      'static-static-card1ab',
+    );
+    expect(layout.layout[0].components[0].slots[0].components[1].uuid).to.eq(
+      'static-image-udf7d',
+    );
+    const state = layoutModelSlice.reducer(
+      layout,
+      sortNode({
+        uuid: 'static-static-card1ab',
+        to: 1,
+      }),
+    );
+    expect(state.layout[0].components[0].slots[0].components[0].uuid).to.eq(
+      'static-image-udf7d',
+    );
+    expect(state.layout[0].components[0].slots[0].components[1].uuid).to.eq(
+      'static-static-card1ab',
+    );
+    expect(
+      state.layout[0].components[0].slots[0].components.map(
+        (item) => item.uuid,
+      ),
+    ).to.deep.equal(['static-image-udf7d', 'static-static-card1ab']);
+  });
+});
+
+describe('Shift node down', () => {
+  it('Should shift node', () => {
+    expect(layout.layout[0].components[0].slots[0].components[0].uuid).to.eq(
+      'static-static-card1ab',
+    );
+    expect(layout.layout[0].components[0].slots[0].components[1].uuid).to.eq(
+      'static-image-udf7d',
+    );
+    const state = layoutModelSlice.reducer(
+      layout,
+      shiftNode({
+        uuid: 'static-static-card1ab',
+        direction: 'down',
+      }),
+    );
+    expect(state.layout[0].components[0].slots[0].components[0].uuid).to.eq(
+      'static-image-udf7d',
+    );
+    expect(state.layout[0].components[0].slots[0].components[1].uuid).to.eq(
+      'static-static-card1ab',
+    );
+    expect(
+      state.layout[0].components[0].slots[0].components.map(
+        (item) => item.uuid,
+      ),
+    ).to.deep.equal(['static-image-udf7d', 'static-static-card1ab']);
+  });
+});
+
+describe('Shift node up', () => {
+  it('Should shift node', () => {
+    expect(layout.layout[0].components[3].uuid).to.eq(
+      'static-image-static-imageStyle-something7d',
+    );
+    expect(layout.layout[0].components[2].uuid).to.eq('static-static-card3rr');
+    const state = layoutModelSlice.reducer(
+      layout,
+      shiftNode({
+        uuid: 'static-image-static-imageStyle-something7d',
+        direction: 'up',
+      }),
+    );
+    expect(state.layout[0].components[3].uuid).to.eq('static-static-card3rr');
+    expect(state.layout[0].components[2].uuid).to.eq(
+      'static-image-static-imageStyle-something7d',
+    );
+    expect(state.layout[0].components.map((item) => item.uuid)).to.deep.equal([
+      'a7470350-deb2-4d9f-982c-464d356403d4',
+      'static-static-card2df',
+      'static-image-static-imageStyle-something7d',
+      'static-static-card3rr',
+      'ee07d472-a754-4427-b6d4-acfc6f92bbdc',
     ]);
   });
 });
