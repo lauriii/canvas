@@ -20,9 +20,14 @@ const ExtensionButton: React.FC<ExtensionsPopoverProps> = ({ extension }) => {
     },
     [dispatch, extension],
   );
+  const maxDescriptionLength = 60;
+  const isTrimmed = description.length > maxDescriptionLength;
+  const trimmedDescription = isTrimmed
+    ? description.substring(0, maxDescriptionLength) + '…'
+    : description;
 
   return (
-    <Tooltip content={description}>
+    <Tooltip content={trimmedDescription}>
       <Flex justify="start" align="center" direction="column" asChild>
         <button className={clsx(styles.extensionIcon)} onClick={handleClick}>
           <img alt={name} src={imgSrc} height="42" width="42" />

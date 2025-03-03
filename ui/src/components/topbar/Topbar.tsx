@@ -88,6 +88,7 @@ const Topbar = () => {
                     color="gray"
                     size="2"
                     className={clsx(topBarStyles.topBarButton)}
+                    aria-label="Extensions"
                   >
                     <ExtensionIcon height="24" width="auto" />
                   </Button>

@@ -85,7 +85,7 @@ export const ComponentContextMenuContent: React.FC<
   );
 
   const closeContextMenu = () => {
-    // Todo: There has to be a better way to close the context menu than firing an esc key press.
+    // @todo https://www.drupal.org/i/3506657: There has to be a better way to close the context menu than firing an esc key press.
     const escapeEvent = new KeyboardEvent('keydown', {
       key: 'Escape',
       code: 'Escape',

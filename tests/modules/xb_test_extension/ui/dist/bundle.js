@@ -2097,15 +2097,22 @@
       _useState4 = _slicedToArray(_useState3, 2),
       selectedComponentType = _useState4[0],
       setSelectedComponentType = _useState4[1];
-    // Get the uuid of the selected component from the Redux store.
-    var selectedComponent = useSelector(function (state) {
-      return state.ui.readOnlySelectedComponent;
-    });
 
-    // Get the entire layout model from the redux store.
+    // Get the entire layout model from the Redux store.
     var theLayout = useSelector(function (state) {
       var _state$layoutModel;
       return state === null || state === void 0 || (_state$layoutModel = state.layoutModel) === null || _state$layoutModel === void 0 || (_state$layoutModel = _state$layoutModel.present) === null || _state$layoutModel === void 0 ? void 0 : _state$layoutModel.layout;
+    });
+
+    // Get the available components list from the redux store.
+    var availableComponents = useSelector(function (state) {
+      var _state$componentAndLa;
+      return state === null || state === void 0 || (_state$componentAndLa = state.componentAndLayoutApi) === null || _state$componentAndLa === void 0 || (_state$componentAndLa = _state$componentAndLa.queries['getComponents(undefined)']) === null || _state$componentAndLa === void 0 ? void 0 : _state$componentAndLa.data;
+    });
+
+    // Get the uuid of the selected component from the Redux store.
+    var selectedComponent = useSelector(function (state) {
+      return state.ui.readOnlySelectedComponent;
     });
     var itemsInLayout = [];
     var _flatComponentsList = function flatComponentsList(components) {
@@ -2120,21 +2127,14 @@
       _flatComponentsList(region.components || []);
     });
 
-    // Get the available components list from the redux store.
-    var availableComponents = useSelector(function (state) {
-      var _state$componentAndLa;
-      return state === null || state === void 0 || (_state$componentAndLa = state.componentAndLayoutApi) === null || _state$componentAndLa === void 0 || (_state$componentAndLa = _state$componentAndLa.queries['getComponents(undefined)']) === null || _state$componentAndLa === void 0 ? void 0 : _state$componentAndLa.data;
-    });
-
     // Create a dropdown with every available component as options.
     var componentsSelect = function componentsSelect() {
       return /*#__PURE__*/jsxRuntimeExports.jsx("div", {
         children: /*#__PURE__*/jsxRuntimeExports.jsxs("label", {
-          children: ["Components Available to add:", /*#__PURE__*/jsxRuntimeExports.jsxs("select", {
+          children: ["Components available in library:", /*#__PURE__*/jsxRuntimeExports.jsx("br", {}), /*#__PURE__*/jsxRuntimeExports.jsxs("select", {
             "data-testid": "ex-select-component",
             style: {
-              maxWidth: '250px',
-              marginInlineStart: '12px'
+              maxWidth: '250px'
             },
             onChange: function onChange(e) {
               return setSelectedComponentType(e.target.value);
@@ -2154,7 +2154,8 @@
           }), selectedComponentType && /*#__PURE__*/jsxRuntimeExports.jsx(Button, {
             "data-testid": "ex-insert",
             onClick: function onClick() {
-              var nodePath = [0];
+              // With no selectedComponent we insert the new component right at the top.
+              var nodePath = [0, 0];
               if (selectedComponent) {
                 // The component should be inserted after the selected component,
                 // so increase the path value if the final item by 1.
@@ -2172,12 +2173,9 @@
       });
     };
     var layoutItemsSelect = function layoutItemsSelect() {
-      if (!itemsInLayout) {
-        return '';
-      }
       return /*#__PURE__*/jsxRuntimeExports.jsxs("div", {
         children: [/*#__PURE__*/jsxRuntimeExports.jsxs("label", {
-          children: ["Items in layout:", /*#__PURE__*/jsxRuntimeExports.jsxs("select", {
+          children: ["Items in layout:", /*#__PURE__*/jsxRuntimeExports.jsx("br", {}), /*#__PURE__*/jsxRuntimeExports.jsxs("select", {
             "data-testid": "ex-select-in-layout",
             style: {
               maxWidth: '250px'
@@ -2224,18 +2222,67 @@
         })]
       });
     };
-    return /*#__PURE__*/jsxRuntimeExports.jsx(jsxRuntimeExports.Fragment, {
+    return /*#__PURE__*/jsxRuntimeExports.jsx("div", {
+      style: {
+        backgroundColor: '#c0ffee',
+        border: '1px solid #ccc',
+        bottom: '2rem',
+        padding: '.75rem'
+      },
       children: /*#__PURE__*/jsxRuntimeExports.jsxs("div", {
         children: [layoutItemsSelect(), componentsSelect(), /*#__PURE__*/jsxRuntimeExports.jsxs("div", {
+          style: {
+            marginTop: '1rem'
+          },
           children: [/*#__PURE__*/jsxRuntimeExports.jsx("b", {
             children: "Event: Detect selected element"
-          }), ":", ' ', /*#__PURE__*/jsxRuntimeExports.jsx("span", {
+          }), ":", /*#__PURE__*/jsxRuntimeExports.jsx("br", {}), /*#__PURE__*/jsxRuntimeExports.jsx("small", {
             "data-testid": "ex-selected-element",
             children: selectedComponent
           })]
         })]
       })
     });
+  };
+
+  var EXTENSION_ID = 'experience-builder-test-extension';
+  var _window$1 = window,
+    drupalSettings$2 = _window$1.drupalSettings;
+  drupalSettings$2.xbExtension.testExtension.component = ConceptProver;
+  var ExampleExtension = function ExampleExtension() {
+    var _useState = ReactOriginal.useState(null),
+      _useState2 = _slicedToArray(_useState, 2),
+      portalRoot = _useState2[0],
+      setPortalRoot = _useState2[1];
+
+    // Get the currently active extension from the XB React app's Redux store.
+    var activeExtension = useSelector(function (state) {
+      return state.extensions.activeExtension;
+    });
+    ReactOriginal.useEffect(function () {
+      if (activeExtension !== null && activeExtension !== void 0 && activeExtension.id) {
+        // Wait for a tick here to ensure the div in the extension modal has been rendered so we can portal
+        // our extension into it.
+        requestAnimationFrame(function () {
+          var targetDiv = document.querySelector("#extensionPortalContainer.xb-extension-".concat(activeExtension.id));
+          if (targetDiv) {
+            setPortalRoot(targetDiv);
+          }
+        });
+      }
+    }, [activeExtension]);
+
+    // We don't want to render anything if the Extension is not active in the XB app.
+    if ((activeExtension === null || activeExtension === void 0 ? void 0 : activeExtension.id) !== EXTENSION_ID || !portalRoot) {
+      return null;
+    }
+
+    // This step isn't really necessary in this file, but it demonstrates we can
+    // add the entry point component to drupalSettings, which should make it
+    // possible to eventually manage most of this in the UI app, with the
+    // extension still adding the component to drupalSettings.
+    var ExtensionComponent = drupalSettings$2.xbExtension.testExtension.component;
+    return /*#__PURE__*/require$$0__default["default"].createPortal(/*#__PURE__*/jsxRuntimeExports.jsx(ExtensionComponent, {}), portalRoot);
   };
 
   var _window = window,
@@ -2250,19 +2297,7 @@
   var store = drupalSettings$1.xb.store;
   root.render(/*#__PURE__*/jsxRuntimeExports.jsx(Provider_default, {
     store: store,
-    children: /*#__PURE__*/jsxRuntimeExports.jsx("div", {
-      style: {
-        zIndex: 5000,
-        position: 'fixed',
-        backgroundColor: '#c0ffee',
-        margin: '2rem',
-        border: '3px solid black',
-        bottom: '2rem',
-        padding: '.75rem',
-        maxWidth: '1500px'
-      },
-      children: /*#__PURE__*/jsxRuntimeExports.jsx(ConceptProver, {})
-    })
+    children: /*#__PURE__*/jsxRuntimeExports.jsx(ExampleExtension, {})
   }));
 
 }));

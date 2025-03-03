@@ -2,6 +2,7 @@ describe('extending experience builder', () => {
   before(() => {
     cy.drupalXbInstall();
     cy.drupalInstallModule('xb_test_extension');
+    cy.drupalInstallModule('xb_dev_mode');
   });
 
   after(() => {
@@ -27,6 +28,9 @@ describe('extending experience builder', () => {
         $components.each((index, item) => {
           availableComponents.push(item.textContent.trim());
         });
+
+        cy.findByLabelText('Extensions').click();
+        cy.findByText('XB Test Extension').click();
 
         cy.findByTestId('ex-select-component').then(($select) => {
           const extensionComponents = [];

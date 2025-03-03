@@ -6,6 +6,6 @@ app:
       attributes: { type: module }
   drupalSettings:
     xbExtension:
-      testExtension: { id: 'experience-builder-test-extension', name: 'XB Test Extension' }
+      testExtension: { id: 'experience-builder-test-extension', name: 'XB Test Extension', description: 'Demonstrates many things that an XB extension can do' }
   dependencies:
     - experience_builder/ui

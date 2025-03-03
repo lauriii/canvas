@@ -21,6 +21,7 @@ interface DrupalSettings {
     selectedComponent: string;
     devMode: boolean;
   };
+  xbExtension: object;
   path: {
     baseUrl: string;
   };

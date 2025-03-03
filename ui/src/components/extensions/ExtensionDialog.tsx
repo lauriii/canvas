@@ -2,7 +2,7 @@ import Dialog from '@/components/Dialog';
 import type React from 'react';
 import { useCallback } from 'react';
 
-import { Text } from '@radix-ui/themes';
+import { Box } from '@radix-ui/themes';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import {
   selectDialogOpen,
@@ -45,13 +45,10 @@ const ExtensionDialog: React.FC<ExtensionDialogProps> = () => {
       footer={{ cancelText: 'Close' }}
       description={activeExtension.description}
     >
-      {/* @todo https://www.drupal.org/i/3485692 - render the proof of concept into this div */}
-      <div
+      <Box
         id="extensionPortalContainer"
         className={`xb-extension-${activeExtension.id}`}
-      >
-        <Text as="p">Not yet supported</Text>
-      </div>
+      ></Box>
     </Dialog>
   );
 };

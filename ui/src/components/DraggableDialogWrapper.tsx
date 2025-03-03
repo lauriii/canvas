@@ -94,6 +94,10 @@ const DraggableDialogWrapper: React.FC<DraggableDialogWrapperProps> = ({
         <Theme>
           <Dialog.Content
             className={clsx(styles.DialogContent)}
+            onEscapeKeyDown={(e) => {
+              // @todo https://www.drupal.org/i/3506657: This can be removed once we stop using esc key events to close the context menu.
+              e.preventDefault();
+            }}
             asChild
             style={{
               transform: `translate(${position.x}px, ${position.y}px)`,
