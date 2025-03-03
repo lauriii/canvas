@@ -774,6 +774,31 @@ function experience_builder_dialog_library_customize(string $admin_theme_name): 
     }
   }
 
+  // Theme overrides of core/drupal.dialog are already accounted for, but there
+  // may be non-core drupal.dialog dependencies that have admin theme overrides.
+  $overrides = $active_admin_theme->getLibrariesOverride();
+  foreach ($overrides as $theme_overrides) {
+    foreach ($theme_overrides as $library_name => $override) {
+      if (in_array($library_name, $libraries['xb.dialog']['dependencies'])) {
+        [$library_source, $library_id] = explode('/', $library_name);
+        // Build an admin-theme-overridden version of the dependency.
+        \Drupal::service('theme.manager')->setActiveTheme($active_admin_theme);
+        $the_libraries = \Drupal::service('library.discovery.parser')->buildByExtension($library_source);
+        \Drupal::service('theme.manager')->setActiveTheme($actual_active_theme);
+        // Add the admin-theme-overridden dependency as a new library.
+        $no_slash_library_name = str_replace('/', '.', $library_name);
+        $replacement_library_name = 'xb.' . $no_slash_library_name;
+        $libraries[$replacement_library_name] = $the_libraries[$library_id];
+
+        // Replace the original dependency with the overridden one.
+        $libraries['xb.dialog']['dependencies'] = array_unique(array_map(
+          fn($item) => $item === $library_name ? 'experience_builder/' . $replacement_library_name : $item,
+          $libraries['xb.dialog']['dependencies']
+        ));
+      }
+    }
+  }
+
   return $libraries;
 }
 
