@@ -88,7 +88,7 @@ describe('Block form', () => {
 
     cy.findByTestId('xb-publish-reviews-content').within(() => {
       cy.findByText('XB With a block in the layout');
-      cy.findByText('Header region in the Olivero theme');
+      cy.findByText('Header region');
       cy.findByText('Publish all changes').click();
       cy.findByText('Publishing').should('exist');
       cy.findByText('Publishing').should('not.exist');

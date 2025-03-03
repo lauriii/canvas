@@ -282,7 +282,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
         'avatar' => $avatarUrl,
         'uri' => $account1->toUrl()->toString(),
       ],
-      'label' => 'Highlighted region in the Stark theme',
+      'label' => 'Highlighted region',
       'data_hash' => self::generateAutoSaveHash($regionData),
     ], \array_diff_key($content['page_region:stark.highlighted'], \array_flip(['updated'])));
     self::assertEquals([

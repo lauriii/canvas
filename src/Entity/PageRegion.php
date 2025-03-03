@@ -6,7 +6,6 @@ namespace Drupal\experience_builder\Entity;
 
 use Drupal\Core\Config\Entity\ConfigEntityBase;
 use Drupal\Core\Entity\EntityStorageInterface;
-use Drupal\Core\Extension\ThemeExtensionList;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\TypedData\DataDefinition;
 use Drupal\experience_builder\Controller\ClientServerConversionTrait;
@@ -91,8 +90,7 @@ final class PageRegion extends ConfigEntityBase {
   public function label(): TranslatableMarkup {
     assert(is_string($this->theme));
     $regions = system_region_list($this->theme);
-    return new TranslatableMarkup('@region region in the @theme theme', [
-      '@theme' => \Drupal::service(ThemeExtensionList::class)->getName($this->theme),
+    return new TranslatableMarkup('@region region', [
       '@region' => $regions[$this->get('region')],
     ]);
   }
