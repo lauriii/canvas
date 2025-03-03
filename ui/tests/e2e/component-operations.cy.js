@@ -212,6 +212,7 @@ describe('Perform CRUD operations on components', () => {
       force: true,
       scrollBehavior: false,
     });
+    cy.waitForComponentNotInPreview('Image');
     cy.get(
       '[data-xb-viewport-size="lg"] [aria-label="Two Column: Column One"]',
     ).trigger('contextmenu', {
