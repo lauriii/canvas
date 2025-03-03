@@ -174,7 +174,7 @@ trait XBFieldTrait {
     $this->assertInstanceOf(ComponentTreeItem::class, $item);
     $tree = $item->get('tree');
     $this->assertInstanceOf(ComponentTreeStructure::class, $tree);
-    $this->assertSame($expected_component_ids, $tree->getComponentIdList());
+    self::assertEqualsCanonicalizing($expected_component_ids, $tree->getComponentIdList());
     $inputs = $item->get('inputs');
     $this->assertInstanceOf(ComponentInputs::class, $inputs);
     $inputs = json_decode((string) $inputs, TRUE);

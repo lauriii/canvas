@@ -18,8 +18,14 @@ use Drupal\Tests\experience_builder\Traits\XBFieldTrait;
 
 class ClientServerConversionTraitTest extends KernelTestBase {
 
+  private const TOP_LEVEL_SLOT_COMPONENT_UUID = '8caf6e23-8fb4-4524-bdb6-f57a2a6e7858';
+
+  private const NESTED_SLOT_COMPONENT_UUID = '8caf6e23-8fb4-4524-bdb6-f57a2a6e7859';
+
+
   use XBFieldTrait {
     getValidClientJson as traitGetValidClientJson;
+    getValidConvertedInputs as traitGetValidConvertedInputs;
   }
 
   use ClientServerConversionTrait;
@@ -38,10 +44,79 @@ class ClientServerConversionTraitTest extends KernelTestBase {
     assert($content_region['nodeType'] === 'region');
     assert($content_region['id'] === 'content');
     assert(is_array($content_region['components']));
+    $createComponentWithSlots = fn(string $uuid, array $body_component = []) => [
+      'nodeType' => 'component',
+      'uuid' => $uuid,
+      'type' => 'sdc.xb_test_sdc.props-slots',
+      'slots' => [
+        [
+          'id' => "$uuid/the_body",
+          'name' => 'the_body',
+          'nodeType' => 'slot',
+          'components' => $body_component ? [$body_component] : [],
+        ],
+        [
+          'id' => "$uuid/the_footer",
+          'name' => 'the_footer',
+          'nodeType' => 'slot',
+          'components' => [],
+        ],
+        [
+          'id' => "$uuid/the_colophon",
+          'name' => 'the_colophon',
+          'nodeType' => 'slot',
+          'components' => [],
+        ],
+      ],
+    ];
+    // Add a component with 3 slots.
+    // - 'the_body' slot has a nested component of the same type that has 3 empty slots
+    // - 'the_footer' slot is empty
+    // - 'the_colophon' slot is empty
+    $content_region['components'][] = $createComponentWithSlots(self::TOP_LEVEL_SLOT_COMPONENT_UUID, $createComponentWithSlots(self::NESTED_SLOT_COMPONENT_UUID));
+    $json['model'][self::TOP_LEVEL_SLOT_COMPONENT_UUID] = [
+      'resolved' => [
+        'heading' => 'Is anything really random?',
+      ],
+      'source' => [
+        'heading' => [
+          'sourceType' => 'static:field_item:string',
+          'expression' => 'ℹ︎string␟value',
+        ],
+      ],
+    ];
+    $json['model'][self::NESTED_SLOT_COMPONENT_UUID] = [
+      'resolved' => [
+        'heading' => 'Maybe?',
+      ],
+      'source' => [
+        'heading' => [
+          'sourceType' => 'static:field_item:string',
+          'expression' => 'ℹ︎string␟value',
+        ],
+      ],
+    ];
     return [
       'layout' => $content_region['components'],
       'model' => $json['model'],
     ];
+  }
+
+  protected function getValidConvertedInputs(bool $dynamic_image = TRUE): array {
+    $valid_inputs = $this->traitGetValidConvertedInputs($dynamic_image);
+    // Add the input the for component with nested slots.
+    // @see ::getValidClientJson()
+    $valid_inputs[self::TOP_LEVEL_SLOT_COMPONENT_UUID]['heading'] = [
+      'sourceType' => 'static:field_item:string',
+      'value' => 'Is anything really random?',
+      'expression' => 'ℹ︎string␟value',
+    ];
+    $valid_inputs[self::NESTED_SLOT_COMPONENT_UUID]['heading'] = [
+      'sourceType' => 'static:field_item:string',
+      'value' => 'Maybe?',
+      'expression' => 'ℹ︎string␟value',
+    ];
+    return $valid_inputs;
   }
 
   public function setUp(): void {
@@ -70,6 +145,18 @@ class ClientServerConversionTraitTest extends KernelTestBase {
           'uuid' => self::TEST_BLOCK,
           'component' => 'block.system_branding_block',
         ],
+        [
+          'uuid' => self::TOP_LEVEL_SLOT_COMPONENT_UUID,
+          'component' => 'sdc.xb_test_sdc.props-slots',
+        ],
+      ],
+      self::TOP_LEVEL_SLOT_COMPONENT_UUID => [
+        'the_body' => [
+          [
+            'uuid' => self::NESTED_SLOT_COMPONENT_UUID,
+            'component' => 'sdc.xb_test_sdc.props-slots',
+          ],
+        ],
       ],
     ], json_decode($converted_item['tree'], TRUE));
 
@@ -87,6 +174,7 @@ class ClientServerConversionTraitTest extends KernelTestBase {
         'sdc.experience_builder.heading',
         'sdc.experience_builder.image',
         'block.system_branding_block',
+        'sdc.xb_test_sdc.props-slots',
       ],
       $expected_inputs,
       ['title' => '5 amazing uses for old toothbrushes']
@@ -94,7 +182,7 @@ class ClientServerConversionTraitTest extends KernelTestBase {
 
     ['layout' => $layout, 'model' => $model] = $this->getValidPatternJson();
     $converted_item = $this->convertClientToServer($layout, $model);
-    self::assertEqualsCanonicalizing($this->getValidConvertedInputs(FALSE), json_decode($converted_item['inputs'], TRUE));
+    self::assertEqualsCanonicalizing($this->traitGetValidConvertedInputs(FALSE), json_decode($converted_item['inputs'], TRUE));
     $this->assertSame([
       ComponentTreeStructure::ROOT_UUID => [
         [

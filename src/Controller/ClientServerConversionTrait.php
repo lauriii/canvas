@@ -64,10 +64,6 @@ trait ClientServerConversionTrait {
     // Regions have no name.
     $name = $layout['nodeType'] === 'slot' ? $layout['name'] : NULL;
 
-    if (!\array_key_exists($parent_uuid, $tree)) {
-      // Ensure the root level parent is set even if there are no components.
-      $tree[$parent_uuid] = [];
-    }
     foreach ($layout['components'] as $component) {
       $tree = self::doClientComponentToServerTree($component, $tree, $parent_uuid, $name);
     }
