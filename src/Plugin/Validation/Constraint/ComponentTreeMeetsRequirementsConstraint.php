@@ -69,13 +69,6 @@ class ComponentTreeMeetsRequirementsConstraint extends SymfonyConstraint {
   public array $tree;
 
   /**
-   * Whether an array of component trees is to be validated.
-   *
-   * @var bool
-   */
-  public bool $nested = FALSE;
-
-  /**
    * {@inheritdoc}
    */
   public function __construct(mixed $options = NULL, ?array $groups = NULL, mixed $payload = NULL) {

@@ -7,6 +7,8 @@ namespace Drupal\experience_builder\Plugin\Validation\Constraint;
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
 use Drupal\Core\TypedData\TypedDataManagerInterface;
 use Drupal\experience_builder\Entity\Component;
+use Drupal\experience_builder\Plugin\DataType\ComponentInputs;
+use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\Validator\Constraint;
@@ -37,42 +39,23 @@ final class ComponentTreeMeetsRequirementsConstraintValidator extends Constraint
     if ($value === NULL) {
       return;
     }
-    if ($constraint->nested) {
-      if (!is_array($value)) {
-        throw new \UnexpectedValueException('The value must be an array of component trees.');
-      }
-      // Multiple config-defined component trees.
-      $component_trees = array_map(
-        // @phpstan-ignore-next-line
-        fn(array $child_component_tree): ComponentTreeItem => $this->conjureFieldItemObject($child_component_tree),
-        array_filter($value)
-      );
-    }
-    else {
-      // Regardless of how many component trees the requirements span, always
-      // generate an array of ComponentTreeItem objects, to simplify validation.
-      $component_trees = match (TRUE) {
-        // A single content-defined component tree.
-        $value instanceof ComponentTreeItem => [$value],
-        // A single config-defined component tree.
-        // @phpstan-ignore-next-line
-        is_array($value) => [$this->conjureFieldItemObject($value)],
-        default => throw new \UnexpectedValueException(sprintf('The value must be a ComponentTreeItem object, an array representing a single component tree, found %s.', gettype($value)))
-      };
-    }
-    assert(is_array($component_trees));
+    // Regardless of how many component trees the requirements span, always
+    // generate an array of ComponentTreeItem objects, to simplify validation.
+    $component_tree = match (TRUE) {
+      // A single content-defined component tree.
+      $value instanceof ComponentTreeItem => $value,
+      // A single config-defined component tree.
+      // @phpstan-ignore-next-line
+      is_array($value) => $this->conjureFieldItemObject($value),
+      default => throw new \UnexpectedValueException(sprintf('The value must be a ComponentTreeItem object, an array representing a single component tree, found %s.', gettype($value)))
+    };
+    assert($component_tree instanceof ComponentTreeItem);
 
     // Perform the necessary detections to check against what the constraint
     // options specify.
-    $detected_component_ids = array_reduce(
-      array_map(
-        // @phpstan-ignore-next-line
-        fn(ComponentTreeItem $component_tree): array => $component_tree->get('tree')->getComponentIdList(),
-        $component_trees
-      ),
-      fn(array $unique_values, array $current_values): array => array_unique([...$unique_values, ...$current_values]),
-      []
-    );
+    $tree = $component_tree->get('tree');
+    assert($tree instanceof ComponentTreeStructure);
+    $detected_component_ids = $tree->getComponentIdList();
     sort($detected_component_ids);
     $detected_component_classes = Component::getClasses($detected_component_ids);
     $detected_component_interfaces = [];
@@ -82,15 +65,9 @@ final class ComponentTreeMeetsRequirementsConstraintValidator extends Constraint
     }
     $detected_component_interfaces = array_unique($detected_component_interfaces);
     sort($detected_component_interfaces);
-    $detected_prop_source_prefixes = array_reduce(
-      array_map(
-        // @phpstan-ignore-next-line
-        fn(ComponentTreeItem $component_tree): array => $component_tree->get('inputs')->getPropSourceTypePrefixList(),
-        $component_trees
-      ),
-      fn(array $unique_values, array $current_values): array => array_unique([...$unique_values, ...$current_values]),
-      []
-    );
+    $inputs = $component_tree->get('inputs');
+    assert($inputs instanceof ComponentInputs);
+    $detected_prop_source_prefixes = $inputs->getPropSourceTypePrefixList();
     sort($detected_prop_source_prefixes);
 
     foreach (['tree:component_ids', 'tree:component_interfaces', 'inputs:prop_sources'] as $aspect_to_check) {
