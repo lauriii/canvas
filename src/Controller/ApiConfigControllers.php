@@ -21,7 +21,6 @@ use Drupal\experience_builder\ClientSideRepresentation;
 use Drupal\experience_builder\ComponentSource\ComponentSourceInterface;
 use Drupal\experience_builder\Entity\XbHttpApiEligibleConfigEntityInterface;
 use Drupal\experience_builder\Exception\ConstraintViolationException;
-use Drupal\experience_builder\Plugin\DataType\ComponentTreeHydrated;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemInstantiatorTrait;
@@ -286,15 +285,9 @@ final class ApiConfigControllers extends ApiControllerBase {
    * @todo Follow up issue to extract this logic into a trait: https://www.drupal.org/project/experience_builder/issues/3499632
    */
   public static function convertComponentTreeItemToLayoutModel(ComponentTreeItem $item): array {
-    assert($item instanceof ComponentTreeItem);
-    $tree = $item->get('tree');
-    assert($tree instanceof ComponentTreeStructure);
-    $hydrated = $item->get('hydrated');
-    assert($hydrated instanceof ComponentTreeHydrated);
-
     $layout = [];
     $model = [];
-    $decoded_tree = json_decode($tree->getValue(), TRUE);
+    $decoded_tree = json_decode($item->get('tree')->getValue(), TRUE);
 
     self::buildLayoutAndModel($layout, $model, $item, $decoded_tree[ComponentTreeStructure::ROOT_UUID]);
 
@@ -306,7 +299,6 @@ final class ApiConfigControllers extends ApiControllerBase {
 
   private static function buildLayoutAndModel(array &$layout, array &$model, ComponentTreeItem $item, array $tree_tier): void {
     $tree = $item->get('tree');
-    assert($tree instanceof ComponentTreeStructure);
     $full_tree = json_decode($tree->getValue(), TRUE);
     foreach ($tree_tier as ['uuid' => $component_instance_uuid, 'component' => $component_type]) {
       $component_instance = [

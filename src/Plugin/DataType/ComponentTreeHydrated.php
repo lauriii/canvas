@@ -34,7 +34,6 @@ class ComponentTreeHydrated extends TypedData implements CacheableDependencyInte
     $item = $this->getParent();
     assert($item instanceof ComponentTreeItem);
     $tree = $item->get('tree');
-    assert($tree instanceof ComponentTreeStructure);
 
     $hydrated = [];
 

@@ -679,7 +679,6 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
       $page_region = PageRegion::load('stark.header');
       self::assertInstanceOf(PageRegion::class, $page_region);
       $tree = $page_region->getComponentTree()->get('tree');
-      assert($tree instanceof ComponentTreeStructure);
       self::assertSame(['block.page_title_block'], $tree->getComponentIdList());
       self::assertSame(['c3f3c22c-c22e-4bb6-ad16-635f069148e4'], $tree->getComponentInstanceUuids());
     }

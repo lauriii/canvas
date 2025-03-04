@@ -151,9 +151,7 @@ final class ApiLayoutController {
    */
   private function buildRegion(string $id, ?ComponentTreeItem $item = NULL, ?array &$model = NULL): array {
     if ($item) {
-      $tree = $item->get('tree');
-      assert($tree instanceof ComponentTreeStructure);
-      $decoded_tree = json_decode($tree->getValue(), TRUE);
+      $decoded_tree = json_decode($item->get('tree')->getValue(), TRUE);
       $components = $this->buildLayout($model, $item, $decoded_tree[ComponentTreeStructure::ROOT_UUID]);
     }
     else {
@@ -174,7 +172,6 @@ final class ApiLayoutController {
   private function buildLayout(array &$model, ComponentTreeItem $item, array $tree_tier): array {
     $layout = [];
     $tree = $item->get('tree');
-    assert($tree instanceof ComponentTreeStructure);
     $full_tree = json_decode($tree->getValue(), TRUE);
     foreach ($tree_tier as ['uuid' => $component_instance_uuid, 'component' => $component_type]) {
       $component_instance = [

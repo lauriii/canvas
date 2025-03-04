@@ -27,7 +27,6 @@ use Drupal\experience_builder\Entity\Component;
 use Drupal\experience_builder\Entity\Component as ComponentEntity;
 use Drupal\experience_builder\Entity\JavaScriptComponent;
 use Drupal\experience_builder\MissingComponentInputsException;
-use Drupal\experience_builder\Plugin\DataType\ComponentInputs;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\experience_builder\Validation\ConstraintPropertyPathTranslatorTrait;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -227,10 +226,9 @@ final class BlockComponent extends ComponentSourceBase implements ContainerFacto
    * {@inheritdoc}
    */
   public function getExplicitInput(string $uuid, ComponentTreeItem $item): array {
-    $inputs = $item->get('inputs');
-    assert($inputs instanceof ComponentInputs);
+
     try {
-      return $inputs->getValues($uuid);
+      return $item->get('inputs')->getValues($uuid);
     }
     catch (MissingComponentInputsException) {
       // There is no input for this component. That should only be the case for

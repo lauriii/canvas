@@ -25,7 +25,6 @@ use Drupal\experience_builder\ComponentSource\ComponentSourceWithSlotsInterface;
 use Drupal\experience_builder\Entity\Component as ComponentEntity;
 use Drupal\experience_builder\InvalidRequestBodyValue;
 use Drupal\experience_builder\MissingHostEntityException;
-use Drupal\experience_builder\Plugin\DataType\ComponentInputs;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\experience_builder\PropExpressions\Component\ComponentPropExpression;
 use Drupal\experience_builder\PropExpressions\StructuredData\FieldObjectPropsExpression;
@@ -177,9 +176,7 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
       return [];
     }
     $entity = $item->getRoot() === $item ? NULL : $item->getEntity();
-    $inputs = $item->get('inputs');
-    assert($inputs instanceof ComponentInputs);
-    $values = $inputs->getValues($uuid);
+    $values = $item->get('inputs')->getValues($uuid);
     return array_map(
       // @phpstan-ignore-next-line
       fn(array $prop_source): mixed => PropSource::parse($prop_source)

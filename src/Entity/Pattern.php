@@ -12,7 +12,6 @@ use Drupal\Core\Entity\Query\QueryInterface;
 use Drupal\experience_builder\ClientSideRepresentation;
 use Drupal\experience_builder\Controller\ApiConfigControllers;
 use Drupal\experience_builder\Controller\ClientServerConversionTrait;
-use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemInstantiatorTrait;
 
@@ -74,9 +73,7 @@ final class Pattern extends ConfigEntityBase implements XbHttpApiEligibleConfigE
     parent::calculateDependencies();
 
     $component_tree = $this->getComponentTree();
-    $tree = $component_tree->get('tree');
-    assert($tree instanceof ComponentTreeStructure);
-    $this->addDependencies($tree->getDependencies());
+    $this->addDependencies($component_tree->get('tree')->getDependencies());
 
     // TRICKY: in theory, dependencies must also be calculated for the `inputs`
     // field prop. But, currently it can only contain StaticPropSources, and the
@@ -132,7 +129,6 @@ final class Pattern extends ConfigEntityBase implements XbHttpApiEligibleConfigE
    */
   public function normalizeForClientSide(): ClientSideRepresentation {
     $item = $this->getComponentTree();
-    assert($item instanceof ComponentTreeItem);
     return ClientSideRepresentation::create(
       values: [
         'layoutModel' => ApiConfigControllers::convertComponentTreeItemToLayoutModel($item),

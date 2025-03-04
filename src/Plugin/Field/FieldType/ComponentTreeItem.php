@@ -16,8 +16,6 @@ use Drupal\Core\Render\RenderableInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\TypedData\DataDefinition;
 use Drupal\experience_builder\Entity\Component;
-use Drupal\experience_builder\Plugin\DataType\ComponentInputs;
-use Drupal\experience_builder\Plugin\DataType\ComponentTreeHydrated;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 use Drupal\experience_builder\ShapeMatcher\FieldForComponentSuggester;
 use Symfony\Component\Validator\ConstraintViolation;
@@ -32,6 +30,7 @@ use Symfony\Component\Validator\ConstraintViolationList;
  * @see https://git.drupalcode.org/project/metatag/-/blob/2.0.x/src/Plugin/Field/FieldType/MetatagFieldItem.php
  *
  * @phpstan-import-type ComponentConfigEntityId from \Drupal\experience_builder\Entity\Component
+ * @phpstan-type ComponentTreeItemPropName 'tree'|'inputs'|'hydrated'
  *
  * @property \Drupal\experience_builder\HydratedTree $hydrated
  */
@@ -87,6 +86,20 @@ use Symfony\Component\Validator\ConstraintViolationList;
   no_ui: TRUE,
 )]
 class ComponentTreeItem extends FieldItemBase implements RenderableInterface {
+
+  // phpcs:disable Drupal.Commenting.DataTypeNamespace.DataTypeNamespace
+  /**
+   * {@inheritdoc}
+   *
+   * @param ComponentTreeItemPropName $name
+   *
+   * @return ($name is 'tree' ? \Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure : ($name is 'inputs' ? \Drupal\experience_builder\Plugin\DataType\ComponentInputs : \Drupal\experience_builder\Plugin\DataType\ComponentTreeHydrated))
+   */
+  // phpcs:enable Drupal.Commenting.DataTypeNamespace.DataTypeNamespace
+  public function get($name) {
+    // @phpstan-ignore-next-line
+    return parent::get($name);
+  }
 
   /**
    * {@inheritdoc}
@@ -247,12 +260,8 @@ class ComponentTreeItem extends FieldItemBase implements RenderableInterface {
    */
   public function preSave(): void {
     $tree = $this->get('tree');
-    assert($tree instanceof ComponentTreeStructure);
     $inputs = $this->get('inputs');
-    assert($inputs instanceof ComponentInputs);
 
-    $tree = $this->get('tree');
-    assert($tree instanceof ComponentTreeStructure);
     $component_instance_uuids = $tree->getComponentInstanceUuids();
     $entity = $this->getRoot() === $this ? NULL : $this->getEntity();
     $violations = new ConstraintViolationList();
@@ -335,7 +344,6 @@ class ComponentTreeItem extends FieldItemBase implements RenderableInterface {
     assert($prop_source_suggester instanceof FieldForComponentSuggester);
 
     $tree = $this->get('tree');
-    assert($tree instanceof ComponentTreeStructure);
     $host_entity_type = $this->getEntity()->getTypedData()->getDataDefinition();
     assert($host_entity_type instanceof EntityDataDefinitionInterface);
 
@@ -356,9 +364,7 @@ class ComponentTreeItem extends FieldItemBase implements RenderableInterface {
    * {@inheritdoc}
    */
   public function toRenderable(bool $isPreview = FALSE): array {
-    $hydrated = $this->get('hydrated');
-    assert($hydrated instanceof ComponentTreeHydrated);
-    return $hydrated->toRenderable($isPreview);
+    return $this->get('hydrated')->toRenderable($isPreview);
   }
 
 }

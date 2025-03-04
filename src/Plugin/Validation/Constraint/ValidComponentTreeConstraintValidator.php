@@ -7,7 +7,6 @@ namespace Drupal\experience_builder\Plugin\Validation\Constraint;
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
 use Drupal\Core\TypedData\TypedDataManagerInterface;
 use Drupal\experience_builder\MissingComponentInputsException;
-use Drupal\experience_builder\Plugin\DataType\ComponentInputs;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\experience_builder\Validation\ConstraintPropertyPathTranslatorTrait;
@@ -93,9 +92,7 @@ final class ValidComponentTreeConstraintValidator extends ConstraintValidator im
       // ignore stored inputs that are no longer required per Postel's law.)
       // @see https://en.wikipedia.org/wiki/Robustness_principle
       try {
-        $inputs = $value->get('inputs');
-        assert($inputs instanceof ComponentInputs);
-        $stored_explicit_input = $inputs->getValues($component_instance_uuid);
+        $stored_explicit_input = $value->get('inputs')->getValues($component_instance_uuid);
       }
       catch (MissingComponentInputsException $e) {
         if ($component_source->requiresExplicitInput()) {

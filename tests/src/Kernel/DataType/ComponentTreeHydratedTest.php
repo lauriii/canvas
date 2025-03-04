@@ -10,8 +10,6 @@ use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Render\Markup;
 use Drupal\Core\Render\RendererInterface;
 use Drupal\Core\TypedData\TypedDataManagerInterface;
-use Drupal\experience_builder\HydratedTree;
-use Drupal\experience_builder\Plugin\DataType\ComponentTreeHydrated;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\KernelTests\KernelTestBase;
@@ -93,9 +91,7 @@ class ComponentTreeHydratedTest extends KernelTestBase {
     // 2. Drupal renderable (`::toRenderable()`)
     // 3. the resulting HTML markup.assert($node->field_xb_test[0] instanceof ComponentTreeItem);
     $hydrated = $component_tree_field_item->get('hydrated');
-    assert($hydrated instanceof ComponentTreeHydrated);
     $hydrated_value = $hydrated->getValue();
-    $this->assertInstanceOf(HydratedTree::class, $hydrated_value);
     $this->assertSame($expected_value, $hydrated_value->getTree());
     $renderable = $hydrated->toRenderable();
     $vfs_site_base_url = base_path() . $this->siteDirectory;

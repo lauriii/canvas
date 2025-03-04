@@ -7,8 +7,6 @@ namespace Drupal\experience_builder\Plugin\Validation\Constraint;
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
 use Drupal\Core\TypedData\TypedDataManagerInterface;
 use Drupal\experience_builder\Entity\Component;
-use Drupal\experience_builder\Plugin\DataType\ComponentInputs;
-use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\Validator\Constraint;
@@ -53,9 +51,7 @@ final class ComponentTreeMeetsRequirementsConstraintValidator extends Constraint
 
     // Perform the necessary detections to check against what the constraint
     // options specify.
-    $tree = $component_tree->get('tree');
-    assert($tree instanceof ComponentTreeStructure);
-    $detected_component_ids = $tree->getComponentIdList();
+    $detected_component_ids = $component_tree->get('tree')->getComponentIdList();
     sort($detected_component_ids);
     $detected_component_classes = Component::getClasses($detected_component_ids);
     $detected_component_interfaces = [];
@@ -65,9 +61,7 @@ final class ComponentTreeMeetsRequirementsConstraintValidator extends Constraint
     }
     $detected_component_interfaces = array_unique($detected_component_interfaces);
     sort($detected_component_interfaces);
-    $inputs = $component_tree->get('inputs');
-    assert($inputs instanceof ComponentInputs);
-    $detected_prop_source_prefixes = $inputs->getPropSourceTypePrefixList();
+    $detected_prop_source_prefixes = $component_tree->get('inputs')->getPropSourceTypePrefixList();
     sort($detected_prop_source_prefixes);
 
     foreach (['tree:component_ids', 'tree:component_interfaces', 'inputs:prop_sources'] as $aspect_to_check) {
