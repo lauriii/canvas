@@ -11,6 +11,7 @@ use Drupal\experience_builder\ClientSideRepresentation;
 
 /**
  * @see \Drupal\experience_builder\Controller\ApiConfigControllers
+ * @see \Drupal\experience_builder\Access\XbHttpApiEligibleConfigEntityAccessCheck
  * @internal This interface must be implemented by any Experience Builder config
  *   entity that wants to be exposed via XB's HTTP API for config entities.
  */

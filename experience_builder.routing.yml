@@ -43,6 +43,9 @@ experience_builder.api.config.auto-save.get:
     _controller: 'Drupal\experience_builder\Controller\ApiConfigAutoSaveControllers::get'
   requirements:
     _permission: 'access administration pages'
+    _xb_http_eligible_config_entity: 'TRUE'
+    # Allow a subset: `Component` config entities are read-only via the internal HTTP API, `Pattern` config entities do
+    # not (yet) support auto-save.
     xb_config_entity_type_id: '(js_component|xb_asset_library)'
   options:
     parameters:
@@ -55,6 +58,8 @@ experience_builder.api.config.auto-save.get.css:
     _controller: 'Drupal\experience_builder\Controller\ApiConfigAutoSaveControllers::getCss'
   requirements:
     _permission: 'administer code components'
+    _xb_http_eligible_config_entity: 'TRUE'
+    # Allow a subset: those config entity types that implement XbAssetInterface.
     xb_config_entity_type_id: '(js_component|xb_asset_library)'
   methods: [ 'GET' ]
   options:
@@ -67,6 +72,8 @@ experience_builder.api.config.auto-save.get.js:
     _controller: 'Drupal\experience_builder\Controller\ApiConfigAutoSaveControllers::getJs'
   requirements:
     _permission: 'administer code components'
+    _xb_http_eligible_config_entity: 'TRUE'
+    # Allow a subset: those config entity types that implement XbAssetInterface.
     xb_config_entity_type_id: '(js_component|xb_asset_library)'
   methods: [ 'GET' ]
   options:
@@ -79,6 +86,9 @@ experience_builder.api.config.auto-save.patch:
     _controller: 'Drupal\experience_builder\Controller\ApiConfigAutoSaveControllers::patch'
   requirements:
     _permission: 'access administration pages'
+    _xb_http_eligible_config_entity: 'TRUE'
+    # Allow a subset: `Component` config entities are read-only via the internal HTTP API, `Pattern` config entities do
+    # not (yet) support auto-save.
     xb_config_entity_type_id: '(js_component|xb_asset_library)'
   options:
     parameters:
@@ -92,6 +102,8 @@ experience_builder.api.config.delete:
     _controller: 'Drupal\experience_builder\Controller\ApiConfigControllers::delete'
   requirements:
     _permission: 'access administration pages'
+    _xb_http_eligible_config_entity: 'TRUE'
+    # Allow a subset: `Component` config entities are read-only via the internal HTTP API.
     xb_config_entity_type_id: '(pattern|js_component|xb_asset_library)'
   options:
     parameters:
@@ -104,6 +116,8 @@ experience_builder.api.config.get:
     _controller: 'Drupal\experience_builder\Controller\ApiConfigControllers::get'
   requirements:
     _permission: 'access administration pages'
+    _xb_http_eligible_config_entity: 'TRUE'
+    # Allow a subset: `Component` config entities are read-only via the internal HTTP API.
     xb_config_entity_type_id: '(pattern|js_component|xb_asset_library)'
   options:
     parameters:
@@ -116,6 +130,11 @@ experience_builder.api.config.list:
     _controller: 'Drupal\experience_builder\Controller\ApiConfigControllers::list'
   requirements:
     _permission: 'access administration pages'
+    # Any internal HTTP API-eligible XB config entity type.
+    _xb_http_eligible_config_entity: 'TRUE'
+    # But deter users from trying to access other config entities via this route: this ensures 404 responses rather than
+    # 403.
+    # @see \Drupal\Tests\experience_builder\Functional\XbConfigEntityHttpApiTest::testNonXbConfigEntity()
     xb_config_entity_type_id: '(component|pattern|js_component|xb_asset_library)'
   methods: [GET]
 experience_builder.api.config.patch:
@@ -124,6 +143,8 @@ experience_builder.api.config.patch:
     _controller: 'Drupal\experience_builder\Controller\ApiConfigControllers::patch'
   requirements:
     _permission: 'access administration pages'
+    _xb_http_eligible_config_entity: 'TRUE'
+    # Allow a subset: `Component` config entities are read-only via the internal HTTP API.
     xb_config_entity_type_id: '(pattern|js_component|xb_asset_library)'
   options:
     parameters:
@@ -136,6 +157,8 @@ experience_builder.api.config.post:
     _controller: 'Drupal\experience_builder\Controller\ApiConfigControllers::post'
   requirements:
     _permission: 'access administration pages'
+    _xb_http_eligible_config_entity: 'TRUE'
+    # Allow a subset: `Component` config entities are read-only via the internal HTTP API.
     xb_config_entity_type_id: '(pattern|js_component|xb_asset_library)'
   methods: [POST]
 

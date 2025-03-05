@@ -9,7 +9,6 @@ use Drupal\Core\Cache\CacheableJsonResponse;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Config\Entity\ConfigEntityTypeInterface;
 use Drupal\Core\Entity\EntityStorageException;
-use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Render\RenderContext;
 use Drupal\Core\Render\RendererInterface;
@@ -52,15 +51,6 @@ final class ApiConfigControllers extends ApiControllerBase {
   ) {}
 
   /**
-   * @see experience_builder.routing.yml
-   */
-  private static function ensureXbConfigEntityType(EntityTypeInterface $entity_type): void {
-    if (!is_a($entity_type->getClass(), XbHttpApiEligibleConfigEntityInterface::class, TRUE)) {
-      throw new \LogicException('The route definition must not be in sync with XB config entities that are eligible for use with the HTTP API, because this config entity type is not!');
-    }
-  }
-
-  /**
    * Returns a list of enabled XB config entities in client representation.
    *
    * This controller provides a critical response for the XB UI. Therefore it
@@ -74,7 +64,6 @@ final class ApiConfigControllers extends ApiControllerBase {
   public function list(string $xb_config_entity_type_id): CacheableJsonResponse {
     $xb_config_entity_type = $this->entityTypeManager->getDefinition($xb_config_entity_type_id);
     assert($xb_config_entity_type instanceof ConfigEntityTypeInterface);
-    self::ensureXbConfigEntityType($xb_config_entity_type);
 
     // Load the queried config entities: a list of all of them.
     $storage = $this->entityTypeManager->getStorage($xb_config_entity_type_id);
@@ -132,7 +121,6 @@ final class ApiConfigControllers extends ApiControllerBase {
   public function post(string $xb_config_entity_type_id, Request $request): JsonResponse {
     $xb_config_entity_type = $this->entityTypeManager->getDefinition($xb_config_entity_type_id);
     assert($xb_config_entity_type instanceof ConfigEntityTypeInterface);
-    self::ensureXbConfigEntityType($xb_config_entity_type);
 
     // Decode, then denormalize.
     $decoded = self::decode($request);

@@ -84,6 +84,11 @@ services:
     tags:
       - { name: route_enhancer }
 
+  # Access.
+  Drupal\experience_builder\Access\XbHttpApiEligibleConfigEntityAccessCheck:
+    tags:
+      - { name: access_check, applies_to: _xb_http_eligible_config_entity }
+
   # Twig.
   Drupal\experience_builder\Extension\XbTwigExtension:
     tags:
