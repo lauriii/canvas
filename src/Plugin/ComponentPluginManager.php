@@ -13,16 +13,13 @@ use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Extension\ThemeHandlerInterface;
 use Drupal\Core\File\FileSystemInterface;
 use Drupal\Core\Plugin\CategorizingPluginManagerTrait;
-use Drupal\Core\Theme\Component\ComponentMetadata;
 use Drupal\Core\Theme\Component\ComponentValidator;
 use Drupal\Core\Theme\Component\SchemaCompatibilityChecker;
 use Drupal\Core\Theme\ComponentNegotiator;
 use Drupal\Core\Theme\ComponentPluginManager as CoreComponentPluginManager;
-use Drupal\Core\Theme\ExtensionType;
 use Drupal\Core\Theme\ThemeManagerInterface;
 use Drupal\experience_builder\ComponentDoesNotMeetRequirementsException;
 use Drupal\experience_builder\ComponentIncompatibilityReasonRepository;
-use Drupal\experience_builder\ComponentMetadataRequirementsChecker;
 use Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\SingleDirectoryComponent;
 
 /**
@@ -93,8 +90,8 @@ class ComponentPluginManager extends CoreComponentPluginManager implements Categ
       }
       else {
         try {
-          $this->componentMeetsRequirements($plugin_definition);
           $component_plugin = $this->createInstance($machine_name);
+          SingleDirectoryComponent::componentMeetsRequirements($component_plugin);
           $component = SingleDirectoryComponent::createConfigEntity($component_plugin);
         }
         catch (ComponentDoesNotMeetRequirementsException $e) {
@@ -115,43 +112,6 @@ class ComponentPluginManager extends CoreComponentPluginManager implements Categ
     self::$isRecursing = FALSE;
 
     return $definitions;
-  }
-
-  public function componentMeetsRequirements(array $plugin_definition): void {
-    // @todo Try to remove this method in https://www.drupal.org/project/experience_builder/issues/3502988
-    if (isset($plugin_definition['status']) && $plugin_definition['status'] === 'obsolete') {
-      throw new ComponentDoesNotMeetRequirementsException('Component has "obsolete" status');
-    }
-    // Special case exception for 'all-props' SDC.
-    // (This is used to develop support for more prop shapes.)
-    if ($plugin_definition['id'] === 'sdc_test_all_props:all-props') {
-      return;
-    }
-
-    $required = $plugin_definition['props']['required'] ?? [];
-    ComponentMetadataRequirementsChecker::check($plugin_definition['id'], self::createComponentMetadataFromPluginDefinition($plugin_definition), $required);
-  }
-
-  protected static function createComponentMetadataFromPluginDefinition(array $plugin_definition): ComponentMetadata {
-    // @todo Try to remove this method in https://www.drupal.org/project/experience_builder/issues/3502988
-    // Copied logic from ComponentPluginManager::shouldEnforceSchema() as it is set to private visibility.
-    // @see \Drupal\Core\Theme\ComponentPluginManager::shouldEnforceSchemas()
-    if (isset($plugin_definition['extension_type']) && $plugin_definition['extension_type'] !== ExtensionType::Theme) {
-      $should_enforce_schemas = TRUE;
-    }
-    else {
-      $should_enforce_schemas = \Drupal::service('theme_handler')
-        ->getTheme($plugin_definition['provider'])
-        ?->info['enforce_prop_schemas'] ?? FALSE;
-    }
-
-    $metadata = new ComponentMetadata(
-      $plugin_definition,
-      \Drupal::hasService('kernel') ? \Drupal::root() : DRUPAL_ROOT,
-      (bool) ($should_enforce_schemas)
-    );
-
-    return $metadata;
   }
 
   /**

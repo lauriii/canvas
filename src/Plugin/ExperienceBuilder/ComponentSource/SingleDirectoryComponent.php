@@ -15,9 +15,10 @@ use Drupal\Core\Theme\Component\ComponentValidator;
 use Drupal\Core\Theme\ComponentPluginManager;
 use Drupal\Core\Theme\ExtensionType;
 use Drupal\experience_builder\Attribute\ComponentSource;
+use Drupal\experience_builder\ComponentDoesNotMeetRequirementsException;
+use Drupal\experience_builder\ComponentMetadataRequirementsChecker;
 use Drupal\experience_builder\ComponentSource\UrlRewriteInterface;
 use Drupal\experience_builder\Entity\Component as ComponentEntity;
-use Drupal\experience_builder\Plugin\ComponentPluginManager as XbComponentPluginManager;
 use Drupal\experience_builder\ShapeMatcher\FieldForComponentSuggester;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\Filesystem\Path;
@@ -271,11 +272,24 @@ final class SingleDirectoryComponent extends GeneratedFieldExplicitInputUxCompon
    * {@inheritdoc}
    */
   public function checkRequirements(): void {
-    \assert($this->componentPluginManager instanceof XbComponentPluginManager);
-    $component_plugin = $this->getComponentPlugin();
+    self::componentMeetsRequirements($this->getComponentPlugin());
+  }
+
+  public static function componentMeetsRequirements(ComponentPlugin $component_plugin): void {
     $definition = $component_plugin->getPluginDefinition();
     \assert(\is_array($definition));
-    $this->componentPluginManager->componentMeetsRequirements($definition);
+
+    if (isset($definition['status']) && $definition['status'] === 'obsolete') {
+      throw new ComponentDoesNotMeetRequirementsException('Component has "obsolete" status');
+    }
+    // Special case exception for 'all-props' SDC.
+    // (This is used to develop support for more prop shapes.)
+    if ($definition['id'] === 'sdc_test_all_props:all-props') {
+      return;
+    }
+
+    $required = $definition['props']['required'] ?? [];
+    ComponentMetadataRequirementsChecker::check($definition['id'], $component_plugin->metadata, $required);
   }
 
   /**
