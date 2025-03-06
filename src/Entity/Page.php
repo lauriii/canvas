@@ -34,7 +34,7 @@ use Drupal\user\EntityOwnerTrait;
  *     "storage" = "Drupal\Core\Entity\Sql\SqlContentEntityStorage",
  *     "access" = \Drupal\experience_builder\Entity\PageAccessControlHandler::class,
  *     "view_builder" = "Drupal\experience_builder\Entity\PageViewBuilder",
- *     "views_data" = "Drupal\Core\Entity\EntityViewsData",
+ *     "views_data" = "Drupal\views\EntityViewsData",
  *     "form" = {
  *       "default" = "Drupal\experience_builder\Entity\XbPageForm",
  *       "delete" = "Drupal\Core\Entity\ContentEntityDeleteForm",
