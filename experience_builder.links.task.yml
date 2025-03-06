@@ -7,3 +7,12 @@ experience_builder.component.status:
   description: 'List of disabled Experience Builder components and their status'
   route_name: experience_builder.component.status
   base_route: entity.component.collection
+
+entity.xb_page.canonical:
+  title: 'View'
+  route_name: entity.xb_page.canonical
+  base_route: entity.xb_page.canonical
+entity.xb_page.edit:
+  title: 'Edit'
+  base_route: entity.xb_page.canonical
+  route_name: entity.xb_page.edit_form
