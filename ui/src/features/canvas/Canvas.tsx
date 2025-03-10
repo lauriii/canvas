@@ -23,6 +23,7 @@ import { deleteNode } from '../layout/layoutModelSlice';
 import useCopyPasteComponents from '@/hooks/useCopyPasteComponents';
 import { useNavigationUtils } from '@/hooks/useNavigationUtils';
 import useXbParams from '@/hooks/useXbParams';
+import { useUndoRedo } from '@/hooks/useUndoRedo';
 
 const Canvas = () => {
   const dispatch = useAppDispatch();
@@ -44,6 +45,7 @@ const Canvas = () => {
   const middleMouseDownRef = useRef(middleMouseDown);
   const { copySelectedComponent, pasteAfterSelectedComponent } =
     useCopyPasteComponents();
+  const { isUndoable, dispatchUndo } = useUndoRedo();
 
   useHotkeys(['NumpadAdd', 'Equal'], () => dispatch(canvasViewPortZoomIn()));
   useHotkeys(['Minus', 'NumpadSubtract'], () =>
@@ -257,6 +259,8 @@ const Canvas = () => {
               <ErrorBoundary
                 title="An unexpected error has occurred while rendering preview."
                 variant="alert"
+                onReset={isUndoable ? dispatchUndo : undefined}
+                resetButtonText={isUndoable ? 'Undo last action' : undefined}
               >
                 <Preview />
               </ErrorBoundary>

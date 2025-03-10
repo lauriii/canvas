@@ -42,6 +42,7 @@ Postel
 propless
 propsify
 Pryce's
+redoable
 reduxjs
 renderify
 rightbar

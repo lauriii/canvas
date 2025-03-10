@@ -1,33 +1,13 @@
-// cspell:ignore redoable
+import { useEffect } from 'react';
+import { useHotkeys } from 'react-hotkeys-hook';
 import { Button } from '@radix-ui/themes';
 import { ResetIcon } from '@radix-ui/react-icons';
-import { useAppDispatch, useAppSelector } from '@/app/hooks';
-import { selectLayoutHistory } from '@/features/layout/layoutModelSlice';
-import { selectPageDataHistory } from '@/features/pageData/pageDataSlice';
-import { useHotkeys } from 'react-hotkeys-hook';
-import { useEffect } from 'react';
-import { UndoRedoActionCreators } from '@/features/ui/uiSlice';
-import { selectUndoType, selectRedoType } from '@/features/ui/uiSlice';
-import clsx from 'clsx';
 import styles from '@/components/topbar/Topbar.module.css';
+import { useUndoRedo } from '@/hooks/useUndoRedo';
 
 const UndoRedo = () => {
-  const dispatch = useAppDispatch();
-  const layoutModel = useAppSelector(selectLayoutHistory);
-  const pageData = useAppSelector(selectPageDataHistory);
-  const undoType = useAppSelector(selectUndoType);
-  const redoType = useAppSelector(selectRedoType);
-  const isUndoable = layoutModel.past.length > 1 || pageData.past.length > 1;
-  const isRedoable =
-    layoutModel.future.length > 0 || pageData.future.length > 0;
-  const dispatchUndo = () =>
-    isUndoable && undoType
-      ? dispatch(UndoRedoActionCreators.undo(undoType))
-      : null;
-  const dispatchRedo = () =>
-    isRedoable && redoType
-      ? dispatch(UndoRedoActionCreators.redo(redoType))
-      : null;
+  const { isUndoable, isRedoable, dispatchUndo, dispatchRedo } = useUndoRedo();
+
   // The useHotKeys hook listens to the parent document.
   useHotkeys('mod+z', () => dispatchUndo()); // 'mod' listens for cmd on Mac and ctrl on Windows.
   useHotkeys(['meta+shift+z', 'ctrl+y'], () => dispatchRedo()); // Mac redo is cmd+shift+z, Windows redo is ctrl+y.
@@ -55,7 +35,7 @@ const UndoRedo = () => {
         variant="ghost"
         color="gray"
         size="2"
-        className={clsx(styles.topBarButton)}
+        className={styles.topBarButton}
         onClick={() => dispatchUndo()}
         disabled={!isUndoable}
         aria-label="Undo"
@@ -66,7 +46,7 @@ const UndoRedo = () => {
         variant="ghost"
         color="gray"
         size="2"
-        className={clsx(styles.topBarButton)}
+        className={styles.topBarButton}
         onClick={() => dispatchRedo()}
         disabled={!isRedoable}
         aria-label="Redo"
