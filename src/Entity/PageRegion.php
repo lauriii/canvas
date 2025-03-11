@@ -235,7 +235,7 @@ final class PageRegion extends ConfigEntityBase {
       $component_id = BlockComponent::componentIdFromBlockPluginId($block->getPluginId());
       if (!Component::load($component_id)) {
         // This block isn't supported by XB.
-        // @see \experience_builder_block_alter().
+        // @see \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\BlockComponent::checkRequirements()
         continue;
       }
       $region_name = match ($block->getRegion()) {

@@ -40,7 +40,7 @@ use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
  * Finally, MainContentBlockPluginInterface implementations are prevented from
  * being made available as XB Components.
  *
- * @see experience_builder_block_alter()
+ * @see \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\BlockComponent::checkRequirements()
  *
  * @see docs/components.md
  * @see \Drupal\Core\Render\Element\Page

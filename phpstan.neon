@@ -34,9 +34,11 @@ parameters:
       count: 1
       path: src/PropSource/StaticPropSource.php
     -
-      message: "#^Missing cache backend declaration for performance\\.$#"
-      count: 1
-      path: src/Plugin/ComponentPluginManager.php
+      messages:
+        - "#^Missing cache backend declaration for performance\\.$#"
+      paths:
+        - src/Plugin/BlockManager.php
+        - src/Plugin/ComponentPluginManager.php
     -
       message: "#^Cannot assign offset 'id' to string\\.$#"
       count: 1

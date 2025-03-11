@@ -233,7 +233,7 @@ final class JsComponent extends GeneratedFieldExplicitInputUxComponentSourceBase
       $ephemeral_sdc_component = self::buildEphemeralSdcPluginInstance($js_component);
     }
     catch (InvalidComponentException $e) {
-      throw new ComponentDoesNotMeetRequirementsException($e->getMessage());
+      throw new ComponentDoesNotMeetRequirementsException([$e->getMessage()]);
     }
     ComponentMetadataRequirementsChecker::check((string) $js_component->id(), $ephemeral_sdc_component->metadata, $js_component->getRequiredProps());
     $props = self::getPropsForComponentPlugin($ephemeral_sdc_component);
@@ -274,7 +274,7 @@ final class JsComponent extends GeneratedFieldExplicitInputUxComponentSourceBase
       $ephemeral_sdc_component = self::buildEphemeralSdcPluginInstance($js_component);
     }
     catch (InvalidComponentException $e) {
-      throw new ComponentDoesNotMeetRequirementsException($e->getMessage());
+      throw new ComponentDoesNotMeetRequirementsException([$e->getMessage()]);
     }
     ComponentMetadataRequirementsChecker::check((string) $js_component->id(), $ephemeral_sdc_component->metadata, $js_component->getRequiredProps());
     $settings['prop_field_definitions'] = self::getPropsForComponentPlugin($ephemeral_sdc_component);
@@ -304,7 +304,7 @@ final class JsComponent extends GeneratedFieldExplicitInputUxComponentSourceBase
       $ephemeral_sdc_component = self::buildEphemeralSdcPluginInstance($js_component);
     }
     catch (InvalidComponentException $e) {
-      throw new ComponentDoesNotMeetRequirementsException($e->getMessage());
+      throw new ComponentDoesNotMeetRequirementsException([$e->getMessage()]);
     }
     ComponentMetadataRequirementsChecker::check((string) $js_component->id(), $ephemeral_sdc_component->metadata, $js_component->getRequiredProps());
   }

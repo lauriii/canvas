@@ -690,6 +690,10 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
           'source' => ['pointer' => ''],
         ],
         [
+          'detail' => 'Prop "string" must have title',
+          'source' => ['pointer' => ''],
+        ],
+        [
           'detail' => "'title' is a required key.",
           'source' => ['pointer' => 'props.string'],
         ],

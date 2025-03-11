@@ -132,7 +132,7 @@ final class JavascriptComponentStorage extends XbAssetStorage {
   }
 
   private function handleComponentDoesNotMeetRequirementsException(string $component_id, ComponentDoesNotMeetRequirementsException $e): void {
-    $this->componentIncompatibilityReasonRepository->storeReason(JsComponent::SOURCE_PLUGIN_ID, $component_id, $e->getMessage());
+    $this->componentIncompatibilityReasonRepository->storeReasons(JsComponent::SOURCE_PLUGIN_ID, $component_id, $e->getMessages());
   }
 
 }

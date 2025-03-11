@@ -28,15 +28,16 @@ final class ComponentMetadataRequirementsChecker {
    *   When the component does not meet requirements.
    */
   public static function check(string $component_id, ComponentMetadata $metadata, array $required_props): void {
+    $messages = [];
     // XB always requires schema, even for theme components.
     // @see \Drupal\Core\Theme\ComponentPluginManager::shouldEnforceSchemas()
     // @see \Drupal\Core\Theme\Component\ComponentMetadata::parseSchemaInfo()
     if ($metadata->schema === NULL) {
-      throw new ComponentDoesNotMeetRequirementsException('Component has no props schema');
+      throw new ComponentDoesNotMeetRequirementsException(['Component has no props schema']);
     }
 
     if ($metadata->group == 'Elements') {
-      throw new ComponentDoesNotMeetRequirementsException('Component uses the reserved "Elements" category');
+      $messages[] = 'Component uses the reserved "Elements" category';
     }
 
     $missing_examples = \array_filter(
@@ -44,9 +45,7 @@ final class ComponentMetadataRequirementsChecker {
       static fn (array $property) => empty($property['examples'])
     );
     if (\count($missing_examples) > 0) {
-      throw new ComponentDoesNotMeetRequirementsException(
-        \implode("\n", \array_map(static fn(string $prop) => \sprintf('Prop "%s" is required, but does not have example value', $prop), \array_keys($missing_examples)))
-      );
+      $messages += \array_map(static fn(string $prop) => \sprintf('Prop "%s" is required, but does not have example value', $prop), \array_keys($missing_examples));
     }
 
     $props_for_metadata = PropShape::getComponentPropsForMetadata($component_id, $metadata);
@@ -56,7 +55,7 @@ final class ComponentMetadataRequirementsChecker {
       }
       // Every prop must have a title.
       if (!isset($prop['title'])) {
-        throw new ComponentDoesNotMeetRequirementsException(\sprintf('Prop "%s" must have title', $prop_name));
+        $messages[] = \sprintf('Prop "%s" must have title', $prop_name);
       }
       // Every prop must have a StorablePropShape.
       $component_prop_expression = new ComponentPropExpression($component_id, $prop_name);
@@ -65,7 +64,10 @@ final class ComponentMetadataRequirementsChecker {
       if ($storable_prop_shape instanceof StorablePropShape) {
         continue;
       }
-      throw new ComponentDoesNotMeetRequirementsException(\sprintf('Experience Builder does not know of a field type/widget to allow populating the <code>%s</code> prop, with the shape <code>%s</code>.', $prop_name, json_encode($prop_shape->schema, JSON_UNESCAPED_SLASHES)));
+      $messages[] = \sprintf('Experience Builder does not know of a field type/widget to allow populating the <code>%s</code> prop, with the shape <code>%s</code>.', $prop_name, json_encode($prop_shape->schema, JSON_UNESCAPED_SLASHES));
+    }
+    if (!empty($messages)) {
+      throw new ComponentDoesNotMeetRequirementsException($messages);
     }
   }
 

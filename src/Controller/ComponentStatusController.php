@@ -41,28 +41,27 @@ final class ComponentStatusController {
     $reasons = $this->reasonRepository->getReasons();
     $rows = [];
     $header = [
-      [
-        'data' => $this->t('Component'),
-      ],
-      [
-        'data' => $this->t('Status'),
-      ],
-      [
-        'data' => $this->t('Reason'),
-      ],
+      'id' => $this->t('Component'),
+      'status' => $this->t('Status'),
+      'reason' => $this->t('Reason'),
     ];
     foreach ($reasons as $source_reasons) {
-      foreach ($source_reasons as $component_id => $reason) {
+      foreach ($source_reasons as $component_id => $component_reasons) {
         $component_entity = Component::load($component_id);
         $status = $component_entity instanceof Component && !$component_entity->status() ? $this->t('Disabled') : $this->t('Incompatible');
-
-        $rows[] = [
-          'data' => [
-            $component_id,
-            $status,
-            Markup::create($reason),
-          ],
+        $items = [];
+        $component_reasons = is_string($component_reasons) ? [$component_reasons] : $component_reasons;
+        foreach ($component_reasons as $item) {
+          $items[] = Markup::create($item);
+        }
+        $row = [];
+        $row['id']['data'] = $component_id;
+        $row['status']['data'] = $status;
+        $row['reason']['data'] = [
+          '#theme' => 'item_list',
+          '#items' => $items,
         ];
+        $rows[] = $row;
       }
     }
 
@@ -93,7 +92,7 @@ final class ComponentStatusController {
     $source_plugin_id = $source->getPluginId();
     if ($op === 'disable') {
       $component->disable()->save();
-      $this->reasonRepository->storeReason($source_plugin_id, $component_id, 'Manually disabled');
+      $this->reasonRepository->storeReasons($source_plugin_id, $component_id, ['Manually disabled']);
     }
     elseif ($op === 'enable') {
       try {
@@ -106,7 +105,7 @@ final class ComponentStatusController {
           "%component" => $component_id,
           "%reason" => $e->getMessage(),
         ]));
-        $this->reasonRepository->storeReason($source_plugin_id, $component_id, $e->getMessage());
+        $this->reasonRepository->storeReasons($source_plugin_id, $component_id, $e->getMessages());
         return new RedirectResponse(Url::fromRoute('entity.component.collection')->toString());
       }
     }

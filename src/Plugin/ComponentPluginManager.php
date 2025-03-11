@@ -84,7 +84,7 @@ class ComponentPluginManager extends CoreComponentPluginManager implements Categ
         $component_plugin = $this->createInstance($machine_name);
         $component = SingleDirectoryComponent::updateConfigEntity($component_plugin);
         if (isset($component_plugin->metadata->status) && $component_plugin->metadata->status === 'obsolete') {
-          $reasons[$component_id] = 'Component has "obsolete" status';
+          $reasons[$component_id][] = 'Component has "obsolete" status';
           $component->disable();
         }
       }
@@ -95,7 +95,7 @@ class ComponentPluginManager extends CoreComponentPluginManager implements Categ
           $component = SingleDirectoryComponent::createConfigEntity($component_plugin);
         }
         catch (ComponentDoesNotMeetRequirementsException $e) {
-          $reasons[$component_id] = $e->getMessage();
+          $reasons[$component_id] = $e->getMessages();
           continue;
         }
       }

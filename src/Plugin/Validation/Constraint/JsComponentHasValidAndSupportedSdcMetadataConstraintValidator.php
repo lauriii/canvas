@@ -73,7 +73,9 @@ final class JsComponentHasValidAndSupportedSdcMetadataConstraintValidator extend
       JsComponent::createConfigEntity($data);
     }
     catch (ComponentDoesNotMeetRequirementsException $e) {
-      $this->context->addViolation($e->getMessage());
+      foreach ($e->getMessages() as $message) {
+        $this->context->addViolation($message);
+      }
     }
   }
 

@@ -9,4 +9,16 @@ namespace Drupal\experience_builder;
  */
 final class ComponentDoesNotMeetRequirementsException extends \Exception {
 
+  public function __construct(
+    protected readonly array $messages,
+    int $code = 0,
+    ?\Throwable $previous = NULL,
+  ) {
+    parent::__construct(\implode("\n", $this->messages), $code, $previous);
+  }
+
+  public function getMessages(): array {
+    return $this->messages;
+  }
+
 }

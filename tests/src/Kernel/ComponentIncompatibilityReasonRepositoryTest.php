@@ -27,34 +27,40 @@ final class ComponentIncompatibilityReasonRepositoryTest extends KernelTestBase 
   public function testRepository(): void {
     $repository = $this->container->get(ComponentIncompatibilityReasonRepository::class);
     \assert($repository instanceof ComponentIncompatibilityReasonRepository);
-    $repository->storeReason('sketches', 'house', 'Missing door');
-    $repository->storeReason('sketches', 'dog', 'Missing tail');
-    $repository->storeReason('petra', 'dragon', 'Climate apocalypse');
+    $repository->storeReasons('sketches', 'house', ['Missing door']);
+    $repository->storeReasons('sketches', 'dog', ['Missing tail']);
+    $repository->storeReasons('petra', 'dragon', ['Climate apocalypse', 'Large and scaly']);
     self::assertEquals([
       'sketches' => [
-        'house' => 'Missing door',
-        'dog' => 'Missing tail',
+        'house' => ['Missing door'],
+        'dog' => ['Missing tail'],
       ],
       'petra' => [
-        'dragon' => 'Climate apocalypse',
+        'dragon' => [
+          'Climate apocalypse',
+          'Large and scaly',
+        ],
       ],
     ], $repository->getReasons());
     $repository->removeReason('sketches', 'house');
     self::assertEquals([
       'sketches' => [
-        'dog' => 'Missing tail',
+        'dog' => ['Missing tail'],
       ],
       'petra' => [
-        'dragon' => 'Climate apocalypse',
+        'dragon' => [
+          'Climate apocalypse',
+          'Large and scaly',
+        ],
       ],
     ], $repository->getReasons());
-    $repository->updateReasons('petra', ['converge' => 'Gray snakes slither across country']);
+    $repository->updateReasons('petra', ['converge' => ['Gray snakes slither across country']]);
     self::assertEquals([
       'sketches' => [
-        'dog' => 'Missing tail',
+        'dog' => ['Missing tail'],
       ],
       'petra' => [
-        'converge' => 'Gray snakes slither across country',
+        'converge' => ['Gray snakes slither across country'],
       ],
     ], $repository->getReasons());
   }

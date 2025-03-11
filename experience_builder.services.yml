@@ -31,6 +31,10 @@ services:
     decorates: Drupal\Core\Theme\ComponentPluginManager
     parent: Drupal\Core\Theme\ComponentPluginManager
     arguments: ['@entity_type.manager', '@Drupal\experience_builder\ComponentIncompatibilityReasonRepository']
+  Drupal\experience_builder\Plugin\BlockManager:
+    decorates: Drupal\Core\Block\BlockManagerInterface
+    parent: Drupal\Core\Block\BlockManagerInterface
+    arguments: ['@config.typed', '@Drupal\experience_builder\ComponentIncompatibilityReasonRepository']
   Drupal\experience_builder\ComponentSource\ComponentSourceManager:
     parent: default_plugin_manager
     public: true

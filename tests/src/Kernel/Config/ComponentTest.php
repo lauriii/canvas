@@ -267,7 +267,7 @@ class ComponentTest extends KernelTestBase {
       $plugin_id = str_replace('.', ':', $plugin_id);
       $expected_plugins[$type][] = $plugin_id;
       $this->assertSame($component_entity['compatible'], Component::load($component_id) instanceof Component, $plugin_id . ' and modules: ' . implode(', ', $modules));
-      $this->assertSame($component_entity['reason'] ?? NULL, isset($reasons[$component_id]) ? (string) $reasons[$component_id] : NULL, $plugin_id);
+      $this->assertSame($component_entity['reasons'] ?? NULL, isset($reasons[$component_id]) && !empty($reasons[$component_id]) ? $reasons[$component_id] : NULL, $plugin_id);
     }
 
     $this->assertEqualsCanonicalizing($expected_plugins['sdc'], array_keys($this->componentPluginManager->getDefinitions()));
@@ -277,7 +277,7 @@ class ComponentTest extends KernelTestBase {
         $expected_plugins['block'][] = 'system_clear_cache_block';
       }
       $this->assertEqualsCanonicalizing($expected_plugins['block'], array_diff($all_installed_block_plugin_ids, [
-        // @see \experience_builder_block_alter()
+        // @see \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\BlockComponent::checkRequirements()
         'system_main_block',
       ]));
     }
@@ -289,7 +289,7 @@ class ComponentTest extends KernelTestBase {
     $defaults = [
       'sdc.experience_builder.obsolete' => [
         'compatible' => FALSE,
-        'reason' => 'Component has "obsolete" status',
+        'reasons' => ['Component has "obsolete" status'],
       ],
       'sdc.experience_builder.druplicon' => [
         'compatible' => TRUE,
@@ -314,7 +314,7 @@ class ComponentTest extends KernelTestBase {
       ],
       'sdc.experience_builder.video' => [
         'compatible' => FALSE,
-        'reason' => 'Experience Builder does not know of a field type/widget to allow populating the <code>src</code> prop, with the shape <code>{"type":"string","format":"uri","pattern":"\\\.(mp4|webm)(\\\?.*)?(#.*)?$"}</code>.',
+        'reasons' => ['Experience Builder does not know of a field type/widget to allow populating the <code>src</code> prop, with the shape <code>{"type":"string","format":"uri","pattern":"\\\.(mp4|webm)(\\\?.*)?(#.*)?$"}</code>.'],
       ],
       'sdc.experience_builder.shoe_tab_panel' => [
         'compatible' => TRUE,
@@ -324,7 +324,7 @@ class ComponentTest extends KernelTestBase {
       ],
       'sdc.experience_builder.shoe_button' => [
         'compatible' => FALSE,
-        'reason' => 'Experience Builder does not know of a field type/widget to allow populating the <code>icon</code> prop, with the shape <code>{"type":"object","$ref":"json-schema-definitions://experience_builder.module/shoe-icon"}</code>.',
+        'reasons' => ['Experience Builder does not know of a field type/widget to allow populating the <code>icon</code> prop, with the shape <code>{"type":"object","$ref":"json-schema-definitions://experience_builder.module/shoe-icon"}</code>.'],
       ],
       'sdc.experience_builder.shoe_icon' => [
         'compatible' => TRUE,
@@ -337,7 +337,10 @@ class ComponentTest extends KernelTestBase {
       ],
       'sdc.experience_builder.shoe_details' => [
         'compatible' => FALSE,
-        'reason' => 'Experience Builder does not know of a field type/widget to allow populating the <code>expand_icon</code> prop, with the shape <code>{"type":"object","$ref":"json-schema-definitions://experience_builder.module/shoe-icon"}</code>.',
+        'reasons' => [
+          'Experience Builder does not know of a field type/widget to allow populating the <code>expand_icon</code> prop, with the shape <code>{"type":"object","$ref":"json-schema-definitions://experience_builder.module/shoe-icon"}</code>.',
+          'Experience Builder does not know of a field type/widget to allow populating the <code>collapse_icon</code> prop, with the shape <code>{"type":"object","$ref":"json-schema-definitions://experience_builder.module/shoe-icon"}</code>.',
+        ],
       ],
       'sdc.experience_builder.my-hero' => [
         'compatible' => TRUE,
@@ -347,7 +350,7 @@ class ComponentTest extends KernelTestBase {
       ],
       'sdc.sdc_test.array-to-object' => [
         'compatible' => FALSE,
-        'reason' => 'Experience Builder does not know of a field type/widget to allow populating the <code>testProp</code> prop, with the shape <code>{"type":"object"}</code>.',
+        'reasons' => ['Experience Builder does not know of a field type/widget to allow populating the <code>testProp</code> prop, with the shape <code>{"type":"object"}</code>.'],
       ],
       'sdc.sdc_test.my-button' => [
         'compatible' => TRUE,
@@ -385,7 +388,7 @@ class ComponentTest extends KernelTestBase {
         ],
         'sdc.xb_test_sdc.image-required-without-example' => [
           'compatible' => FALSE,
-          'reason' => 'Prop "image" is required, but does not have example value',
+          'reasons' => ['Prop "image" is required, but does not have example value'],
         ],
         'sdc.xb_test_sdc.props-no-slots' => [
           'compatible' => TRUE,
@@ -395,11 +398,11 @@ class ComponentTest extends KernelTestBase {
         ],
         'sdc.xb_test_sdc.props-no-title' => [
           'compatible' => FALSE,
-          'reason' => 'Prop "heading" must have title',
+          'reasons' => ['Prop "heading" must have title'],
         ],
         'sdc.xb_test_sdc.props-no-examples' => [
           'compatible' => FALSE,
-          'reason' => 'Prop "heading" is required, but does not have example value',
+          'reasons' => ['Prop "heading" is required, but does not have example value'],
         ],
       ],
       'classes' => [
@@ -424,7 +427,7 @@ class ComponentTest extends KernelTestBase {
         ],
         'sdc.xb_test_sdc.image-required-without-example' => [
           'compatible' => FALSE,
-          'reason' => 'Prop "image" is required, but does not have example value',
+          'reasons' => ['Prop "image" is required, but does not have example value'],
         ],
         'sdc.xb_test_sdc.props-no-slots' => [
           'compatible' => TRUE,
@@ -434,11 +437,11 @@ class ComponentTest extends KernelTestBase {
         ],
         'sdc.xb_test_sdc.props-no-title' => [
           'compatible' => FALSE,
-          'reason' => 'Prop "heading" must have title',
+          'reasons' => ['Prop "heading" must have title'],
         ],
         'sdc.xb_test_sdc.props-no-examples' => [
           'compatible' => FALSE,
-          'reason' => 'Prop "heading" is required, but does not have example value',
+          'reasons' => ['Prop "heading" is required, but does not have example value'],
         ],
       ],
       'classes' => [

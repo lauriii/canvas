@@ -23,9 +23,16 @@ final class ComponentIncompatibilityReasonRepository {
     $this->keyValue = $keyValueFactory->get('experience_builder:component:reasons');
   }
 
-  public function storeReason(string $source_plugin_id, string $identifier, string $reason): void {
+  /**
+   * @param string $source_plugin_id
+   * @param string $identifier
+   * @param array<int, string> $reasons
+   *
+   * @return void
+   */
+  public function storeReasons(string $source_plugin_id, string $identifier, array $reasons): void {
     $key = $this->generateKey($source_plugin_id, $identifier);
-    $this->keyValue->set($key, $reason);
+    $this->keyValue->set($key, $reasons);
   }
 
   public function removeReason(string $source_plugin_id, string $identifier): void {

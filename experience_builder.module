@@ -12,9 +12,7 @@ ini_set('assert.active', 1);
 
 use Drupal\Component\Serialization\Json;
 use Drupal\Core\Block\BlockManagerInterface;
-use Drupal\Core\Block\BlockPluginInterface;
 use Drupal\Core\Entity\Display\EntityFormDisplayInterface;
-use Drupal\Core\Block\MainContentBlockPluginInterface;
 use Drupal\Core\Entity\EntityPublishedInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Entity\TypedData\EntityDataDefinition;
@@ -25,14 +23,11 @@ use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Plugin\Discovery\YamlDiscovery;
 use Drupal\datetime\Plugin\Field\FieldType\DateTimeItem;
 use Drupal\experience_builder\Entity\AssetLibrary;
-use Drupal\experience_builder\Entity\Component;
 use Drupal\experience_builder\Entity\JavaScriptComponent;
 use Drupal\experience_builder\Form\FormIdPreRender;
 use Drupal\experience_builder\Entity\PageRegion;
 use Drupal\experience_builder\Plugin\ComponentPluginManager;
-use Drupal\Core\Validation\Plugin\Validation\Constraint\FullyValidatableConstraint;
 use Drupal\experience_builder\Plugin\DisplayVariant\XbPageVariant;
-use Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\BlockComponent;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\experience_builder\PropExpressions\StructuredData\FieldPropExpression;
 use Drupal\experience_builder\PropExpressions\StructuredData\FieldTypeObjectPropsExpression;
@@ -207,88 +202,6 @@ function experience_builder_rebuild(): void {
   \Drupal::service(BlockManagerInterface::class)->getDefinitions();
   // @see \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\SingleDirectoryComponent
   \Drupal::service(ComponentPluginManager::class)->getDefinitions();
-}
-
-/**
- * Implements hook_block_alter().
- */
-function experience_builder_block_alter(array &$definitions): void {
-  static $in_recursion = FALSE;
-  // Ensure we're not in infinite recursion.
-  if ($in_recursion) {
-    return;
-  }
-
-  // @todo Remove when minimum version is Drupal 11.1 following https://www.drupal.org/project/drupal/issues/3379725
-  $additional = version_compare(\Drupal::VERSION, '11.1', '>=') ? [] : [
-    'info' => '',
-    'status' => TRUE,
-    'view_mode' => '',
-    'context_mapping' => [],
-  ];
-
-  // @todo This only handles new & existing Component entities in best case scenario, but does not handle cases where BlockComponent based entities exist, but Block Plugin definition is missing, see https://www.drupal.org/project/experience_builder/issues/3484682
-  foreach ($definitions as $id => $definition) {
-    if ($id === 'broken') {
-      continue;
-    }
-
-    $component_id = 'block.' . str_replace(':', '.', $id);
-    $component = Component::load($component_id);
-    if ($component instanceof Component) {
-      // @todo Update Component entities with BlockComponent source plugin: https://www.drupal.org/project/experience_builder/issues/3484682
-      continue;
-    }
-    else {
-      $in_recursion = TRUE;
-      // @todo This is super ugly, decorate the block plugin manager so we can create instances directly?
-      // @todo is this a not going to become performance bottle neck on BlockPlugin heavy sites?
-      $block = \Drupal::service('plugin.manager.block')->createInstance($id);
-      assert($block instanceof BlockPluginInterface);
-      // The main content is rendered in a fixed position.
-      // @see \Drupal\experience_builder\Plugin\DisplayVariant\XbPageVariant::build()
-      if ($block instanceof MainContentBlockPluginInterface) {
-        continue;
-      }
-      $settings = $block->defaultConfiguration();
-      $data_definition = \Drupal::service('config.typed')->createFromNameAndData('block.settings.' . $id, $settings);
-      // We currently support only block plugins with no settings, or if they do
-      // have settings, they must be fully validatable.
-      $fullyValidatable = FALSE;
-      foreach ($data_definition->getConstraints() as $constraint) {
-        if ($constraint instanceof FullyValidatableConstraint) {
-          $fullyValidatable = TRUE;
-          break;
-        }
-      }
-      // @todo Remove the PageTitleBlock and SystemMessagesBlock special cases: make it fully validatable upstream in Drupal core. They are exempted here because of its crucial role in \Drupal\experience_builder\Entity\PageTemplate. Alternatively, this can be removed once XB requires Drupal 11.
-      // @todo Remove the LocalActionsBlock special case: it is necessary to be able to test BlockPluginInterface::access() support *and* it has the exact same trivial settings as the two crucial blocks above. Alternatively, this can be removed once XB requires Drupal 11.
-      if (!empty($settings) && !$fullyValidatable && $id !== 'page_title_block' && $id !== 'system_messages_block' && $id != 'local_actions_block') {
-        continue;
-      }
-      $component = Component::create([
-        'id' => $component_id,
-        'label' => (string) $definition['admin_label'],
-        'category' => (string) $definition['category'],
-        'source' => BlockComponent::SOURCE_PLUGIN_ID,
-        'provider' => $definition['provider'],
-        'settings' => [
-          'plugin_id' => $id,
-          // We are using strict config schema validation, so we need to provide valid default settings for each block.
-          'default_settings' => [
-              // @todo if we need ID here can we merge settings with the parent and drop plugin_id?
-            'id' => $id,
-            'label' => (string) $definition['admin_label'],
-            'label_display' => FALSE,
-            'provider' => $definition['provider'],
-          ] + $additional + $settings,
-        ],
-        'status' => TRUE,
-      ]);
-      $component->save();
-      $in_recursion = FALSE;
-    }
-  }
 }
 
 /**

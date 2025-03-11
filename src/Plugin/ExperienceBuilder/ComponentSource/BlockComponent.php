@@ -7,6 +7,7 @@ namespace Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource;
 use Drupal\Core\Access\AccessResultInterface;
 use Drupal\Core\Block\BlockManagerInterface;
 use Drupal\Core\Block\BlockPluginInterface;
+use Drupal\Core\Block\MainContentBlockPluginInterface;
 use Drupal\Core\Block\MessagesBlockPluginInterface;
 use Drupal\Core\Block\TitleBlockPluginInterface;
 use Drupal\Core\Config\TypedConfigManagerInterface;
@@ -21,7 +22,9 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\TypedData\ComplexDataInterface;
 use Drupal\Core\TypedData\Plugin\DataType\BooleanData;
 use Drupal\Core\TypedData\TypedDataInterface;
+use Drupal\Core\Validation\Plugin\Validation\Constraint\FullyValidatableConstraint;
 use Drupal\experience_builder\Attribute\ComponentSource;
+use Drupal\experience_builder\ComponentDoesNotMeetRequirementsException;
 use Drupal\experience_builder\ComponentSource\ComponentSourceBase;
 use Drupal\experience_builder\Entity\Component;
 use Drupal\experience_builder\Entity\Component as ComponentEntity;
@@ -388,7 +391,29 @@ final class BlockComponent extends ComponentSourceBase implements ContainerFacto
    * {@inheritdoc}
    */
   public function checkRequirements(): void {
-    // @todo Move logic from experience_builder_block_alter here in https://www.drupal.org/project/experience_builder/issues/3491032
+    $block = $this->getBlockPlugin();
+    // The main content is rendered in a fixed position.
+    // @see \Drupal\experience_builder\Plugin\DisplayVariant\XbPageVariant::build()
+    if ($block instanceof MainContentBlockPluginInterface) {
+      return;
+    }
+    $settings = $block->defaultConfiguration();
+    $data_definition = $this->typedConfigManager->createFromNameAndData('block.settings.' . $block->getPluginId(), $settings);
+    // We currently support only block plugins with no settings, or if they do
+    // have settings, they must be fully validatable.
+    $fullyValidatable = FALSE;
+    foreach ($data_definition->getConstraints() as $constraint) {
+      if ($constraint instanceof FullyValidatableConstraint) {
+        $fullyValidatable = TRUE;
+        break;
+      }
+    }
+
+    // @todo Remove the PageTitleBlock and SystemMessagesBlock special cases: make it fully validatable upstream in Drupal core. They are exempted here because of its crucial role in \Drupal\experience_builder\Entity\PageTemplate. Alternatively, this can be removed once XB requires Drupal 11.
+    // @todo Remove the LocalActionsBlock special case: it is necessary to be able to test BlockPluginInterface::access() support *and* it has the exact same trivial settings as the two crucial blocks above. Alternatively, this can be removed once XB requires Drupal 11.
+    if (!empty($settings) && !$fullyValidatable && !in_array($block->getPluginId(), ['page_title_block', 'system_messages_block', 'local_actions_block'])) {
+      throw new ComponentDoesNotMeetRequirementsException(['Block plugin settings must be fully validatable']);
+    }
   }
 
 }

@@ -280,7 +280,7 @@ final class SingleDirectoryComponent extends GeneratedFieldExplicitInputUxCompon
     \assert(\is_array($definition));
 
     if (isset($definition['status']) && $definition['status'] === 'obsolete') {
-      throw new ComponentDoesNotMeetRequirementsException('Component has "obsolete" status');
+      throw new ComponentDoesNotMeetRequirementsException(['Component has "obsolete" status']);
     }
     // Special case exception for 'all-props' SDC.
     // (This is used to develop support for more prop shapes.)

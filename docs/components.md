@@ -111,7 +111,7 @@ For a `Block` to be compatible/eligible for use in XB it:
  - MUST have fully validatable block plugin settings config schema via the `FullyValidatable` constraint
  - MUST NOT have any required context (⚠️ handling contexts is still TBD in [#3485502](https://www.drupal.org/project/experience_builder/issues/3485502))
 
-These checks are implemented in `experience_builder_block_alter()`.
+These checks are implemented in `\Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\BlockComponent::checkRequirements()`.
 
 _Note:_ this list of criteria is not final, it will keep evolving _at least_ until a `1.0` release of XB.
 
