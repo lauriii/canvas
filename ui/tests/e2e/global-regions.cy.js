@@ -39,7 +39,7 @@ describe('Operate on components in global regions', () => {
     cy.focusRegion('Breadcrumb');
 
     cy.log('Move "Breadcrumbs" component UP into the Highlighted Region');
-    cy.sendComponentToRegion('Breadcrumbs block', 'Highlighted');
+    cy.sendComponentToRegion('Breadcrumbs', 'Highlighted');
 
     cy.returnToContentRegion();
     cy.focusRegion('Highlighted');
@@ -47,7 +47,7 @@ describe('Operate on components in global regions', () => {
       '"Breadcrumbs" component should now be the LAST child in the Highlighted region',
     );
     cy.get('@layersTree')
-      .findByLabelText('Breadcrumbs block')
+      .findByLabelText('Breadcrumbs')
       .parent()
       .then(($div) => {
         // Assert that the div is the last child of its new parent region.
@@ -58,7 +58,7 @@ describe('Operate on components in global regions', () => {
       'Move "User account menu" component DOWN into the Highlighted Region',
     );
     cy.focusRegion('Secondary menu');
-    cy.sendComponentToRegion('User account menu block', 'Highlighted');
+    cy.sendComponentToRegion('User account menu', 'Highlighted');
     cy.returnToContentRegion();
 
     cy.focusRegion('Highlighted');
@@ -66,7 +66,7 @@ describe('Operate on components in global regions', () => {
       '"User account menu" component should now be the FIRST child in the Highlighted region',
     );
     cy.get('@layersTree')
-      .findByLabelText('User account menu block')
+      .findByLabelText('User account menu')
       .parent()
       .then(($div) => {
         // Assert that the div is the first child of its new parent region.

@@ -18,9 +18,9 @@ describe('Block form', () => {
 
   it('Block settings form with details element', () => {
     cy.get('#cea4c5b3-7921-4c6f-b388-da921bd1496d-name').should((blockName) => {
-      expect(blockName).to.have.text('Administration block');
+      expect(blockName).to.have.text('Administration');
     });
-    cy.clickComponentInPreview('Administration block');
+    cy.clickComponentInPreview('Administration');
 
     // Confirm that an element in the block settings form is present.
     cy.get('[data-testid="xb-contextual-panel"] button:contains("Menu levels")')
@@ -55,7 +55,7 @@ describe('Block form', () => {
 
     cy.focusRegion('Header');
 
-    cy.clickComponentInPreview('Site branding block', 0, 'lg', 'header');
+    cy.clickComponentInPreview('Site branding', 0, 'lg', 'header');
     cy.waitForElementContentInIframe('div.site-branding__inner', 'Drupal');
 
     cy.findByLabelText('Site name').as('siteName');
@@ -72,11 +72,11 @@ describe('Block form', () => {
     cy.get('@siteName').toggleToggle();
 
     // Now move this component to the content region so it is stored in the node.
-    cy.sendComponentToRegion('Site branding block', 'Content');
+    cy.sendComponentToRegion('Site branding', 'Content');
     cy.returnToContentRegion();
 
     // The component should now be in the content region.
-    cy.getComponentInPreview('Site branding block').should('exist');
+    cy.getComponentInPreview('Site branding').should('exist');
 
     // Publish the page with the new component.
     cy.intercept('POST', '**/xb/api/autosaves/publish').as('publish');
@@ -104,7 +104,7 @@ describe('Block form', () => {
     cy.loadURLandWaitForXBLoaded({ url: 'xb/node/3' });
 
     // We should see the saved component.
-    cy.clickComponentInPreview('Site branding block');
+    cy.clickComponentInPreview('Site branding');
     cy.waitForElementContentNotInIframe('div.site-branding__inner', 'Drupal');
 
     // And it should have the saved configuration.
