@@ -1,6 +1,5 @@
 import type React from 'react';
-import { useMemo } from 'react';
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, useMemo } from 'react';
 import styles from './List.module.css';
 import {
   selectDragging,
@@ -18,6 +17,8 @@ import {
 } from '@/features/sortable/sortableUtils';
 import type { ComponentsList } from '@/types/Component';
 import type { SectionsList } from '@/types/Section';
+import { v4 as uuidv4 } from 'uuid';
+import { setUniqueListId } from '@/features/ui/primaryPanelSlice';
 
 export interface ListProps {
   items: ComponentsList | SectionsList | undefined;
@@ -53,6 +54,13 @@ const List: React.FC<ListProps> = (props) => {
   const handleDragEnd = useCallback(() => {
     dispatch(setListDragging(false));
     dispatch(unsetTargetSlot());
+    // SortableJS replaces the dragged item with a clone. However, the clone doesn't have the events and react bindings that
+    // the original item has.
+    //
+    // Here we generate a unique ID at the end of the drag operation. This is used as a key to the parent list component
+    // which triggers a re-render so the items in the list are re-rendered with the correct event handlers and bindings.
+    const id = uuidv4();
+    dispatch(setUniqueListId(id));
   }, [dispatch]);
 
   const handleDragMove = useCallback(

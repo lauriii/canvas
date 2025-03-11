@@ -5,6 +5,7 @@ export interface PrimaryPanelState {
   activePanel: string;
   isHidden: boolean;
   openLayoutItems: string[];
+  uniqueListId: string;
 }
 
 export enum LayoutItemType {
@@ -20,6 +21,7 @@ const initialState: PrimaryPanelState = {
   isHidden: false,
   // Open the component dropdown by default.
   openLayoutItems: [LayoutItemType.COMPONENT],
+  uniqueListId: '',
 };
 
 export const primaryPanelSlice = createAppSlice({
@@ -43,6 +45,9 @@ export const primaryPanelSlice = createAppSlice({
         );
       },
     ),
+    setUniqueListId: create.reducer((state, action: PayloadAction<string>) => {
+      state.uniqueListId = action.payload;
+    }),
   }),
   selectors: {
     selectActivePanel: (primaryPanel): string => {
@@ -51,13 +56,20 @@ export const primaryPanelSlice = createAppSlice({
     selectOpenLayoutItems: (primaryPanel): string[] => {
       return primaryPanel.openLayoutItems;
     },
+    selectUniqueListId: (primaryPanel): string => {
+      return primaryPanel.uniqueListId;
+    },
   },
 });
 
 // Action creators are generated for each case reducer function.
-export const { setActivePanel, setOpenLayoutItem, setCloseLayoutItem } =
-  primaryPanelSlice.actions;
+export const {
+  setActivePanel,
+  setOpenLayoutItem,
+  setCloseLayoutItem,
+  setUniqueListId,
+} = primaryPanelSlice.actions;
 
 // Selectors returned by `slice.selectors` take the root state as their first argument.
-export const { selectActivePanel, selectOpenLayoutItems } =
+export const { selectActivePanel, selectOpenLayoutItems, selectUniqueListId } =
   primaryPanelSlice.selectors;

@@ -2,6 +2,8 @@ import { useEffect } from 'react';
 import { useErrorBoundary } from 'react-error-boundary';
 import { useGetComponentsQuery } from '@/services/componentAndLayout';
 import List from '@/components/list/List';
+import { useAppSelector } from '@/app/hooks';
+import { selectUniqueListId } from '@/features/ui/primaryPanelSlice';
 
 const ComponentList = () => {
   const {
@@ -13,6 +15,7 @@ const ComponentList = () => {
     libraries: ['dynamic_components'],
   });
   const { showBoundary } = useErrorBoundary();
+  const id = useAppSelector(selectUniqueListId);
 
   useEffect(() => {
     if (error) {
@@ -26,6 +29,7 @@ const ComponentList = () => {
       isLoading={isLoading}
       type="component"
       label="Components"
+      key={id}
     />
   );
 };
