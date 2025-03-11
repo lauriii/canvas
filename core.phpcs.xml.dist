@@ -29,9 +29,10 @@
   <!-- Only include specific sniffs that pass. This ensures that, if new sniffs are added, HEAD does not fail.-->
 
   <!-- Drupal sniffs -->
-  <rule ref="Drupal.Arrays.Array">
-    <!-- Sniff for these errors: ArrayClosingIndentation, ArrayIndentation, CommaLastItem -->
-    <exclude name="Drupal.Arrays.Array.LongLineDeclaration"/>
+  <rule ref="Drupal.Arrays.Array"/>
+  <rule ref="Drupal.Arrays.Array.LongLineDeclaration">
+    <include-pattern>core/lib/*</include-pattern>
+    <include-pattern>core/modules/*/tests/modules/*</include-pattern>
   </rule>
   <rule ref="Drupal.CSS.ClassDefinitionNameSpacing"/>
   <rule ref="Drupal.CSS.ColourDefinition"/>
@@ -47,6 +48,9 @@
   <rule ref="Drupal.Commenting.ClassComment"/>
   <rule ref="Drupal.Commenting.ClassComment.Missing">
     <include-pattern>*/Functional/*</include-pattern>
+    <include-pattern>*/tests/modules/*</include-pattern>
+    <include-pattern>./core/tests/Drupal/Tests/Core/*</include-pattern>
+    <include-pattern>./core/modules/*</include-pattern>
   </rule>
   <rule ref="Drupal.Commenting.DataTypeNamespace"/>
   <rule ref="Drupal.Commenting.Deprecated"/>
@@ -57,15 +61,15 @@
       TagsNotGrouped, ParamGroup -->
     <exclude name="Drupal.Commenting.DocComment.LongFullStop"/>
     <exclude name="Drupal.Commenting.DocComment.MissingShort"/>
-    <exclude name="Drupal.Commenting.DocComment.ShortNotCapital"/>
+  </rule>
+  <rule ref="Drupal.Commenting.DocComment">
+    <exclude-pattern>core/tests/*</exclude-pattern>
   </rule>
   <rule ref="Drupal.Commenting.DocCommentAlignment"/>
   <rule ref="Drupal.Commenting.DocCommentLongArraySyntax"/>
   <rule ref="Drupal.Commenting.DocCommentStar"/>
   <rule ref="Drupal.Commenting.FileComment"/>
-  <rule ref="Drupal.Commenting.FunctionComment">
-    <exclude name="Drupal.Commenting.FunctionComment.ParamCommentFullStop"/>
-  </rule>
+  <rule ref="Drupal.Commenting.FunctionComment"/>
   <rule ref="Drupal.Commenting.FunctionComment.Missing">
     <include-pattern>core/modules/*/Plugin/views/argument/*</include-pattern>
     <include-pattern>core/modules/*/Plugin/views/filter/*</include-pattern>
@@ -80,24 +84,19 @@
     <include-pattern>core/modules/*/Plugin/views/style/*</include-pattern>
     <include-pattern>*/Database/*</include-pattern>
     <include-pattern>*/FunctionalJavascript/*</include-pattern>
+    <include-pattern>*/Functional/*</include-pattern>
   </rule>
   <rule ref="Drupal.Commenting.FunctionComment.MissingParamType"/>
   <rule ref="Drupal.Commenting.FunctionComment.MissingReturnComment">
     <include-pattern>core/lib/Drupal/Core/*</include-pattern>
     <include-pattern>core/lib/Drupal/Component/*</include-pattern>
     <include-pattern>core/tests/*</include-pattern>
-  </rule>
-  <rule ref="Drupal.Commenting.FunctionComment.MissingReturnComment">
-    <exclude-pattern>core/lib/Drupal/Core/*</exclude-pattern>
-    <exclude-pattern>core/lib/Drupal/Component/*</exclude-pattern>
-    <exclude-pattern>core/tests/*</exclude-pattern>
-    <exclude-pattern>core/*/tests/*</exclude-pattern>
+    <include-pattern>core/*/tests/*</include-pattern>
   </rule>
   <rule ref="Drupal.Commenting.GenderNeutralComment"/>
   <rule ref="Drupal.Commenting.HookComment"/>
   <rule ref="Drupal.Commenting.InlineComment">
     <!-- Sniff for: NoSpaceBefore, SpacingBefore, WrongStyle -->
-    <exclude name="Drupal.Commenting.InlineComment.DocBlock"/>
     <exclude name="Drupal.Commenting.InlineComment.InvalidEndChar"/>
     <exclude name="Drupal.Commenting.InlineComment.SpacingAfter"/>
   </rule>
@@ -132,6 +131,7 @@
   <rule ref="Drupal.NamingConventions.ValidVariableName"/>
   <rule ref="Drupal.NamingConventions.ValidVariableName.LowerCamelName"/>
   <rule ref="Drupal.Scope.MethodScope"/>
+  <rule ref="Drupal.Semantics.ConstantName.ConstantStart"/>
   <rule ref="Drupal.Semantics.EmptyInstall"/>
   <rule ref="Drupal.Semantics.FunctionAlias"/>
   <rule ref="Drupal.Semantics.FunctionT"/>
@@ -175,14 +175,7 @@
   <rule ref="DrupalPractice.Commenting.ExpectedException"/>
   <rule ref="DrupalPractice.General.ExceptionT"/>
   <rule ref="DrupalPractice.InfoFiles.NamespacedDependency"/>
-  <rule ref="DrupalPractice.Objects.GlobalFunction">
-    <include-pattern>*/Plugin/*</include-pattern>
-    <include-pattern>*/ListBuilder/*</include-pattern>
-    <include-pattern>*/tests/*</include-pattern>
-    <include-pattern>./core/lib/*</include-pattern>
-    <include-pattern>./core/modules/*</include-pattern>
-    <include-pattern>*/Hook/*</include-pattern>
-  </rule>
+  <rule ref="DrupalPractice.Objects.GlobalFunction"/>
 
   <!-- Generic sniffs -->
   <rule ref="Generic.Arrays.DisallowLongArraySyntax"/>
@@ -269,6 +262,7 @@
       <property name="forbiddenAnnotations" type="array">
         <element value="@inheritDoc"/>
         <element value="@inheritdoc"/>
+        <element value="@returns"/>
       </property>
     </properties>
   </rule>

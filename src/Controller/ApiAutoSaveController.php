@@ -28,7 +28,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * Handles retrieving and publishing of auto saved changes.
+ * Handles retrieval and publication of autosaved changes.
  */
 final class ApiAutoSaveController extends ApiControllerBase {
 
@@ -101,7 +101,7 @@ final class ApiAutoSaveController extends ApiControllerBase {
   }
 
   /**
-   * Get the auto saved changes.
+   * Gets the autosaved changes.
    */
   public function get(): CacheableJsonResponse {
     $all = $this->autoSaveManager->getAllAutoSaveList();
@@ -142,7 +142,7 @@ final class ApiAutoSaveController extends ApiControllerBase {
   }
 
   /**
-   * Publish the auto saved changes.
+   * Publishes the autosaved changes.
    */
   public function post(Request $request): JsonResponse {
     $expected_auto_saves = \json_decode($request->getContent(), TRUE);

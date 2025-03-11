@@ -134,7 +134,7 @@ abstract class ApiMessageValidatorBase implements EventSubscriberInterface {
    */
   public function isValidationEnabled(): bool {
     // The builder won't be set if league/openapi-psr7-validator is absent.
-    /** @see self::setValidatorBuilder() */
+    /* @see self::setValidatorBuilder() */
     return $this->validatorBuilder instanceof ValidatorBuilder;
   }
 

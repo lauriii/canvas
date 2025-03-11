@@ -34,7 +34,7 @@ function semi_coupled_theme(array $existing, string $type, string $theme, string
 function semi_coupled_render_template(string $template_file, array $variables): string|MarkupInterface {
   // If the template is not provided by the xb_stark theme, render with Twig.
   if (!str_contains($template_file, '/process_as_jsx/')) {
-    /** @phpstan-ignore function.notFound */
+    /* @phpstan-ignore function.notFound */
     return twig_render_template($template_file, $variables);
   }
 
@@ -134,7 +134,7 @@ function _semi_coupled_build_html_tag(string $name, array $props, array $slots, 
  *   The array that slot data will be added to.
  * @param array $prop_types
  *   Prop names and definition as defined by the 'props' config in the JSON
- *   returned by the `--xb.html.twig` template being rendered
+ *   returned by the `--xb.html.twig` template being rendered.
  * @param array|object $variables
  *   The variables array provided to the template or a subset of it.
  * @param array $parents

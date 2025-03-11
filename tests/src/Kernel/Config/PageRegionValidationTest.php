@@ -241,8 +241,6 @@ class PageRegionValidationTest extends ConfigEntityValidationTestBase {
   }
 
   /**
-   * .
-   *
    * @dataProvider providerForAutoSaveData
    */
   public function testForAutoSaveData(array $autoSaveData, array $expected_errors): void {

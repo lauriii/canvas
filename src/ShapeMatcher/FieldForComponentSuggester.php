@@ -8,6 +8,7 @@ use Drupal\Core\Entity\EntityFieldManagerInterface;
 use Drupal\Core\Entity\EntityTypeBundleInfoInterface;
 use Drupal\Core\Entity\TypedData\EntityDataDefinitionInterface;
 use Drupal\Core\Field\FieldDefinitionInterface;
+use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\Theme\ComponentPluginManager;
 use Drupal\experience_builder\JsonSchemaInterpreter\SdcPropJsonSchemaType;
 use Drupal\experience_builder\Plugin\Adapter\AdapterInterface;
@@ -21,6 +22,8 @@ use Drupal\experience_builder\PropShape\PropShape;
  * @todo Rename things for clarity: this handles all props for an SDC simultaneously, SdcPropToFieldTypePropMatcher handles a single prop at a time
  */
 final class FieldForComponentSuggester {
+
+  use StringTranslationTrait;
 
   public function __construct(
     private readonly SdcPropToFieldTypePropMatcher $propMatcher,
@@ -93,7 +96,7 @@ final class FieldForComponentSuggester {
                 : $e->fieldName;
               $field_definition = $field_definitions[$field_name];
               assert($field_definition instanceof FieldDefinitionInterface);
-              return (string) t("This @entity's @field-label", [
+              return (string) $this->t("This @entity's @field-label", [
                 '@entity' => $this->entityTypeBundleInfo->getBundleInfo($host_entity_type_id)[$host_entity_type_bundle]['label'],
                 '@field-label' => $field_definition->getLabel(),
               ]);

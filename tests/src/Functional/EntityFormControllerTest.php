@@ -30,7 +30,7 @@ class EntityFormControllerTest extends FunctionalTestBase {
 
   /**
    * @covers ::form
-   * @covers experience_builder_entity_form_display_alter
+   * @covers \experience_builder_entity_form_display_alter()
    */
   public function testForm(): void {
     $assert = $this->assertSession();
