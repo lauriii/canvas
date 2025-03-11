@@ -130,6 +130,13 @@ class AutoSaveManager {
   }
 
   private static function generateHash(array $data): string {
+    // When called from ::recordInitialClientSideRepresentation() and ::save()
+    // the keys for an individual component are in different orders. This causes
+    // the hash to be different though the data is functionally the same.
+    self::recursiveKsort($data);
+    // @todo Determine if model entries that contain no information besides
+    //   'name' should be removed from the model for hashing purposes in
+    //   https://drupal.org/i/3511447.
     // We use \json_encode here instead of \serialize because we're not dealing
     // with PHP Objects and this ensures the representation hashed from PHP is
     // consistent with the representation transmitted by the client. Some of the
@@ -138,6 +145,15 @@ class AutoSaveManager {
     // depending on whether the hashing occurred before/after transfer from the
     // client.
     return \hash('xxh64', \json_encode($data, JSON_THROW_ON_ERROR));
+  }
+
+  private static function recursiveKsort(array &$array): void {
+    ksort($array);
+    foreach ($array as &$value) {
+      if (is_array($value)) {
+        self::recursiveKsort($value);
+      }
+    }
   }
 
 }

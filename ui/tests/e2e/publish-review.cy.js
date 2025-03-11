@@ -59,6 +59,14 @@ describe('Publish review functionality', () => {
     cy.findByTestId('xb-topbar').findByText('Published');
 
     cy.log(
+      'After publishing and reloading the page, there should be no changes.',
+    );
+    cy.loadURLandWaitForXBLoaded({ clearAutoSave: false });
+    cy.findByTestId('xb-topbar')
+      .findByText('No changes', { selector: 'button' })
+      .should('exist');
+
+    cy.log(
       'Make another change and ensure the button still updates say "Review n changes"',
     );
     cy.clickComponentInPreview('Hero');

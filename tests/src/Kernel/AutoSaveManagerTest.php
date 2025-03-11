@@ -30,6 +30,19 @@ class AutoSaveManagerTest extends KernelTestBase {
 
   protected static $modules = ['xb_test_sdc'];
 
+  private static function recursiveReverseSort(array $data): array {
+    // If $data is associative array reverse it, but preserve the keys.
+    if (!array_is_list($data)) {
+      $data = array_reverse($data, TRUE);
+    }
+    foreach ($data as $key => $value) {
+      if (is_array($value)) {
+        $data[$key] = self::recursiveReverseSort($value);
+      }
+    }
+    return $data;
+  }
+
   /**
    * {@inheritdoc}
    */
@@ -47,9 +60,27 @@ class AutoSaveManagerTest extends KernelTestBase {
     $autoSave->recordInitialClientSideRepresentation($entity, $matching_client_data);
     $autoSave->save($entity, $matching_client_data);
     self::assertTrue($autoSave->getAutoSaveData($entity)->isEmpty());
+    // Reversing the order of the data should not trigger an autosave entry either.
+    $autoSave->save($entity, self::recursiveReverseSort($matching_client_data));
+    self::assertTrue($autoSave->getAutoSaveData($entity)->isEmpty());
 
     $autoSave->save($entity, $updated_client_data);
     self::assertFalse($autoSave->getAutoSaveData($entity)->isEmpty());
+    $autoSaveKey = AutoSaveManager::getAutoSaveKey($entity);
+    $autoSaveEntry = $autoSave->getAllAutoSaveList()[$autoSaveKey];
+    self::assertArrayHasKey('data_hash', $autoSaveEntry);
+    $hashInitial = $autoSaveEntry['data_hash'];
+    self::assertNotEmpty($hashInitial);
+
+    // Reversing the order of the data should result in the exact same hash.
+    $autoSave->save($entity, self::recursiveReverseSort($updated_client_data));
+    self::assertFalse($autoSave->getAutoSaveData($entity)->isEmpty());
+    $autoSaveEntry = $autoSave->getAllAutoSaveList()[$autoSaveKey];
+    self::assertArrayHasKey('data_hash', $autoSaveEntry);
+    $hashReversedData = $autoSaveEntry['data_hash'];
+    self::assertNotEmpty($hashReversedData);
+    self::assertSame($hashInitial, $hashReversedData);
+
     // Resaving the initial state should delete the autosave entry.
     $autoSave->save($entity, $matching_client_data);
     self::assertTrue($autoSave->getAutoSaveData($entity)->isEmpty());

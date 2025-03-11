@@ -123,6 +123,7 @@ class XBTestSetup implements TestSetupInterface {
       'field_media_image' => $image_field_sample_value,
     ]);
     $hero_reference->save();
+    // @todo Add a component without props in https://drupal.org/i/3511447.
     $tree = [
       ComponentTreeStructure::ROOT_UUID => [
         [
