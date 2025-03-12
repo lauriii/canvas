@@ -14,6 +14,7 @@
 // ***********************************************************
 
 // Import commands.js using ES2015 syntax:
+import '@cypress/skip-test/support.js';
 import './commands.js';
 import 'cypress-axe';
 import 'cypress-real-events';
