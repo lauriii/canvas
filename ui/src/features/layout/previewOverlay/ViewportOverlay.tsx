@@ -19,6 +19,7 @@ import { selectLayout } from '@/features/layout/layoutModelSlice';
 
 interface ViewportOverlayProps {
   iframeRef: React.RefObject<HTMLIFrameElement>;
+  previewContainerRef: React.RefObject<HTMLDivElement>;
   size: ViewPortSize;
 }
 interface Rect {
@@ -28,7 +29,7 @@ interface Rect {
   height: Number;
 }
 const ViewportOverlay: React.FC<ViewportOverlayProps> = (props) => {
-  const { iframeRef, size } = props;
+  const { iframeRef, previewContainerRef, size } = props;
   const [portalRoot, setPortalRoot] = useState<HTMLElement | null>(null);
   const positionDivRef = useRef(null);
   const canvasViewPortScale = useAppSelector(selectCanvasViewPortScale);
@@ -40,13 +41,13 @@ const ViewportOverlay: React.FC<ViewportOverlayProps> = (props) => {
   const updateRect = useCallback(() => {
     // The top and left must equal the distance from the parent (positionAnchor, which is always static) to the iFrame.
     // Using getBoundingClientRect takes the scale/transform origin into account whereas .offSet doesn't.
-    if (iframeRef.current) {
+    if (previewContainerRef.current) {
       const parent = document.getElementById('positionAnchor');
       if (!parent) {
         return;
       }
       const parentRect = parent.getBoundingClientRect();
-      const iframeRect = iframeRef.current.getBoundingClientRect();
+      const iframeRect = previewContainerRef.current.getBoundingClientRect();
 
       const newRect = {
         left: iframeRect.left - parentRect.left,
@@ -57,10 +58,10 @@ const ViewportOverlay: React.FC<ViewportOverlayProps> = (props) => {
 
       setRect(newRect);
     }
-  }, [iframeRef]);
+  }, [previewContainerRef]);
 
   useWindowResizeListener(updateRect);
-  useResizeObserver(iframeRef, updateRect);
+  useResizeObserver(previewContainerRef, updateRect);
 
   useEffect(() => {
     const targetDiv = document.getElementById('xbPreviewOverlay');
@@ -68,7 +69,7 @@ const ViewportOverlay: React.FC<ViewportOverlayProps> = (props) => {
       setPortalRoot(targetDiv);
     }
     updateRect();
-  }, [iframeRef, updateRect, canvasViewPortScale]);
+  }, [previewContainerRef, updateRect, canvasViewPortScale]);
 
   if (!portalRoot || !rect) return null;
 

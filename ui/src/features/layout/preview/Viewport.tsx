@@ -113,7 +113,11 @@ const Viewport: React.FC<ViewportProps> = (props) => {
         />
         {canvasMode === CanvasMode.EDIT && (
           <>
-            <ViewportOverlay iframeRef={iframeRef} size={size} />
+            <ViewportOverlay
+              iframeRef={iframeRef}
+              previewContainerRef={previewContainerRef}
+              size={size}
+            />
             <RegionSpotlight />
           </>
         )}
