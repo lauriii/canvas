@@ -560,7 +560,7 @@ function experience_builder_dialog_library_customize(string $admin_theme_name): 
   \Drupal::service('theme.manager')->setActiveTheme($actual_active_theme);
 
   // This array keeps track of the core libraries that will have XB equivalents.
-  $xb_replacing_cores = ['core/drupal.dialog' => 'xb.dialog', 'core/drupal.ajax' => 'xb.ajax'];
+  $xb_replacing_cores = ['core/drupal.dialog' => 'xb.drupal.dialog', 'core/drupal.ajax' => 'xb.drupal.ajax' , 'core/drupal.dialog.ajax' => 'xb.drupal.dialog.ajax'];
 
   $dialog_library_definition = $core_libraries_via_admin_theme['drupal.dialog'];
   _experience_builder_convert_dependencies($dialog_library_definition, $libraries, $xb_replacing_cores, $dialog_library_definition['dependencies'], $core_libraries_via_admin_theme);
@@ -575,6 +575,10 @@ function experience_builder_dialog_library_customize(string $admin_theme_name): 
   $ajax_library_definition['dependencies'][] = 'core/drupal.announce';
   _experience_builder_convert_dependencies($ajax_library_definition, $libraries, $xb_replacing_cores, $ajax_library_definition['dependencies'], $core_libraries_via_admin_theme);
   $libraries['xb.drupal.ajax'] = $ajax_library_definition;
+
+  $ajax_dialog_definition = $core_libraries_via_admin_theme['drupal.dialog.ajax'];
+  _experience_builder_convert_dependencies($ajax_dialog_definition, $libraries, $xb_replacing_cores, $ajax_dialog_definition['dependencies'], $core_libraries_via_admin_theme);
+  $libraries['xb.drupal.dialog.ajax'] = $ajax_dialog_definition;
 
   // Now that we've created every library requiring an XB-specific version, go
   // through the dependencies declared by each and swap out any remaining core
@@ -591,7 +595,7 @@ function experience_builder_dialog_library_customize(string $admin_theme_name): 
       }
     }
   }
-  $libraries['xb.dialog'] = $dialog_library_definition;
+  $libraries['xb.drupal.dialog'] = $dialog_library_definition;
 
   // An additional library will be created with the admin theme's default
   // assets. This library will be added as part of a dialog open request and
@@ -682,7 +686,7 @@ function experience_builder_dialog_library_customize(string $admin_theme_name): 
   $extends = $active_admin_theme->getLibrariesExtend();
   foreach ($xb_replacing_cores as $library_name => $new_library_name) {
     if (isset($extends[$library_name])) {
-      $libraries['xb.dialog']['dependencies'] = array_merge($libraries['xb.dialog']['dependencies'], $extends[$library_name]);
+      $libraries['xb.drupal.dialog']['dependencies'] = array_merge($libraries['xb.drupal.dialog']['dependencies'], $extends[$library_name]);
     }
   }
 
@@ -691,7 +695,7 @@ function experience_builder_dialog_library_customize(string $admin_theme_name): 
   $overrides = $active_admin_theme->getLibrariesOverride();
   foreach ($overrides as $theme_overrides) {
     foreach ($theme_overrides as $library_name => $override) {
-      if (in_array($library_name, $libraries['xb.dialog']['dependencies'])) {
+      if (in_array($library_name, $libraries['xb.drupal.dialog']['dependencies'])) {
         [$library_source, $library_id] = explode('/', $library_name);
         // Build an admin-theme-overridden version of the dependency.
         \Drupal::service('theme.manager')->setActiveTheme($active_admin_theme);
@@ -703,9 +707,9 @@ function experience_builder_dialog_library_customize(string $admin_theme_name): 
         $libraries[$replacement_library_name] = $the_libraries[$library_id];
 
         // Replace the original dependency with the overridden one.
-        $libraries['xb.dialog']['dependencies'] = array_unique(array_map(
+        $libraries['xb.drupal.dialog']['dependencies'] = array_unique(array_map(
           fn($item) => $item === $library_name ? 'experience_builder/' . $replacement_library_name : $item,
-          $libraries['xb.dialog']['dependencies']
+          $libraries['xb.drupal.dialog']['dependencies']
         ));
       }
     }

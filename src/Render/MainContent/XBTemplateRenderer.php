@@ -80,8 +80,9 @@ final class XBTemplateRenderer implements MainContentRendererInterface {
     // information is cached per-theme and this distinction needs to be made
     // only in XB contexts.
     $libraries_replace = [
-      'core/drupal.dialog' => 'experience_builder/xb.dialog',
+      'core/drupal.dialog' => 'experience_builder/xb.drupal.dialog',
       'core/drupal.ajax' => 'experience_builder/xb.drupal.ajax',
+      'core/drupal.dialog.ajax' => 'experience_builder/xb.drupal.dialog.ajax',
     ];
     foreach ($libraries_replace as $original => $replacement) {
       if ($index = array_search($original, $assets->libraries)) {
@@ -113,10 +114,18 @@ final class XBTemplateRenderer implements MainContentRendererInterface {
     }
 
     $already_loaded_libraries = isset($ajax_page_state['libraries']) ? explode(',', $ajax_page_state['libraries']) : [];
-    // If a library is to be replaced by an XB version, add it to the already
-    // loaded libraries array so there's no attempt to load it via AJAX.
-    $already_loaded_libraries = array_unique([...$already_loaded_libraries, ...array_keys($libraries_replace)]);
 
+    // It is necessary to explicitly set a few libraries as already loaded.
+    // Although there is logic to prevent the loading of duplicate assets,
+    // the list of already loaded libraries is maintained per theme, so the
+    // duplication prevention does not account for libraries that were added to
+    // the page by a theme other than xb_stark.
+    $potentially_conflicting_libraries_added_on_xb_load = [
+      'experience_builder/xb.drupal.ajax',
+      'experience_builder/xb.drupal.dialog',
+      'experience_builder/xb.drupal.dialog.ajax',
+    ];
+    $already_loaded_libraries = array_unique([...$already_loaded_libraries, ...$potentially_conflicting_libraries_added_on_xb_load]);
     $assets
       ->setAlreadyLoadedLibraries($already_loaded_libraries);
 

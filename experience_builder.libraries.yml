@@ -10,18 +10,24 @@ xb-ui:
   dependencies:
     - core/drupal
     - core/drupalSettings
-    # This library is largely core/drupal.ajax but takes into account admin
-    # theme overrides. Is generated in experience_builder_library_info_build().
+    # The next three libraries are largely the same as the core libraries they
+    # would be without the 'xb.' in their name, but they take into account theme
+    # overrides.
+    # @see experience_builder_dialog_library_customize()
     - experience_builder/xb.drupal.ajax
+    - experience_builder/xb.drupal.dialog.ajax
     - core/drupal.states
-    # The libraries below might be unnecessary but here for the trial & error phase
     - system/base
-    - experience_builder/drupal.dialog.ajax
     - core/internal.jquery.form
     - experience_builder/ajax.hyperscriptify
     - experience_builder/ajax.custom
   drupalSettings:
     xb: { layoutUtils: [], navUtils: [] }
+
+xb.drupal.dialog.ajax:
+  dependencies:
+    - experience_builder/xb.drupal.dialog
+    - experience_builder/xb.drupal.ajax
 
 ajax.custom:
   js:
@@ -88,20 +94,6 @@ astro.hydration:
     name: MIT
     url: https://raw.githubusercontent.com/withastro/astro/refs/heads/main/LICENSE
     gpl-compatible: true
-
-drupal.dialog.ajax:
-  js:
-    /core/misc/dialog/dialog.ajax.js: {}
-  dependencies:
-    - core/jquery
-    - core/drupal
-    - core/drupalSettings
-    - core/tabbable
-    # The following are created in experience_builder_library_info_build()
-    # and are largely the same as the core libraries but with admin theme
-    # overrides.
-    - experience_builder/xb.dialog
-    - experience_builder/xb.drupal.ajax
 
 preview:
   css:

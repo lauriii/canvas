@@ -41,7 +41,7 @@ final class MediaLibrariesBuildTest extends KernelTestBase {
     \Drupal::theme()->setActiveTheme(\Drupal::service(ThemeInitializationInterface::class)->initTheme('olivero'));
 
     $discovered = $this->container->get(LibraryDiscoveryParser::class)->buildByExtension('experience_builder');
-    self::assertArrayHasKey('xb.dialog', $discovered);
+    self::assertArrayHasKey('xb.drupal.dialog', $discovered);
     self::assertArrayHasKey('xb.drupal.ajax', $discovered);
     self::assertArrayHasKey('xb.scoped.admin.css', $discovered);
     // XB equivalent dependencies for core/drupal.ajax.
@@ -55,7 +55,7 @@ final class MediaLibrariesBuildTest extends KernelTestBase {
     self::assertArrayHasKey('xb.tabbable', $discovered);
 
     $claro_path = $this->container->get(ExtensionPathResolver::class)->getPath('theme', 'claro');
-    $dialog = $discovered['xb.dialog'];
+    $dialog = $discovered['xb.drupal.dialog'];
     // XB's dialog library should include dependencies from the admin theme's
     // libraries extend.
     // @see claro.info.yml

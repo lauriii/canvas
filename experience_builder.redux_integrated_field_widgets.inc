@@ -19,17 +19,6 @@ use Drupal\media_library\MediaLibraryState;
  * Implements hook_library_info_alter().
  */
 function experience_builder_library_info_alter(array &$libraries, string $extension): void {
-  $route_name = \Drupal::routeMatch()->getRouteName();
-  if ($route_name === 'experience_builder.experience_builder') {
-    if ($extension === 'core') {
-      if (isset($libraries['drupal.ajax']['js']['misc/ajax.js'])) {
-        // @todo aggregated JS should still make Drupal.AjaxCommands available
-        // to JS that is not part of that aggregation.
-        // https://drupal.org/i/3471974
-        $libraries['drupal.ajax']['js']['misc/ajax.js']['preprocess'] = FALSE;
-      }
-    }
-  }
   if ($extension === 'experience_builder') {
     // We need to dynamically create a 'transforms' library by compiling a list
     // of all module defined transforms - which are libraries prefixed with

@@ -43,6 +43,11 @@ services:
   logger.channel.experience_builder:
     parent: logger.channel_base
     arguments: ['experience_builder']
+  asset.resolver.experience_builder:
+    public: false
+    class: \Drupal\experience_builder\Asset\AssetResolver
+    decorates: asset.resolver
+    arguments: ['@asset.resolver.experience_builder.inner', '@library.discovery', '@library.dependency_resolver', '@module_handler', '@theme.manager', '@language_manager', '@cache.data', '@theme_handler']
   Drupal\experience_builder\ClientDataToEntityConverter: {}
   Drupal\experience_builder\AutoSave\AutoSaveManager: {}
   Drupal\experience_builder\AutoSave\AutoSaveTempStoreFactory:
