@@ -2,6 +2,7 @@
 
 namespace Drupal\experience_builder\EventSubscriber;
 
+use Drupal\experience_builder\Controller\ApiAutoSaveController;
 use Drupal\Core\Cache\CacheableDependencyInterface;
 use Drupal\Core\Cache\CacheableJsonResponse;
 use Drupal\Core\Config\ConfigFactoryInterface;
@@ -155,7 +156,7 @@ final class ApiExceptionSubscriber implements EventSubscriberInterface {
           'entity_type' => $entity->getEntityTypeId(),
           'entity_id' => $entity->id(),
           'label' => $entity->label(),
-          'autosave_key' => AutoSaveManager::getAutoSaveKey($entity),
+          ApiAutoSaveController::AUTO_SAVE_KEY => AutoSaveManager::getAutoSaveKey($entity),
         ]),
       ];
     }

@@ -46,7 +46,7 @@ final class RenderEventsSubscriber implements EventSubscriberInterface {
             $region = $region->forAutoSaveData($autoSaveData);
           }
           catch (ConstraintViolationException) {
-            // The autosave entry is invalid, we don't use it and instead fallback
+            // The auto-save entry is invalid, we don't use it and instead fallback
             // to the saved version.
           }
         }

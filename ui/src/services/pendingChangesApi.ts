@@ -67,7 +67,7 @@ export const pendingChangesApi = createApi({
   tagTypes: ['PendingChanges'],
   endpoints: (builder) => ({
     getAllPendingChanges: builder.query<PendingChanges, void>({
-      query: () => `/xb/api/autosaves/pending`,
+      query: () => `/xb/api/auto-saves/pending`,
       providesTags: () => [{ type: 'PendingChanges', id: 'LIST' }],
     }),
     publishAllPendingChanges: builder.mutation<
@@ -75,7 +75,7 @@ export const pendingChangesApi = createApi({
       PendingChanges
     >({
       query: (body) => ({
-        url: `/xb/api/autosaves/publish`,
+        url: `/xb/api/auto-saves/publish`,
         method: 'POST',
         body,
       }),

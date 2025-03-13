@@ -5,6 +5,7 @@
     "globRoot": ".",
     "minWordLength": 4,
     "ignorePaths": [
+      "dictionary.txt",
       "ui/tests/fixtures/layout-default.json",
       "CODEOWNERS",
       "modules/same_page_preview/**",

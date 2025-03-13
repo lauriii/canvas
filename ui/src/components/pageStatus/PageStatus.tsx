@@ -11,13 +11,13 @@ import { findInChanges } from '@/utils/function-utils';
 
 export interface PageStatusBadgeProps {
   isNew: boolean;
-  hasAutosave: boolean;
+  hasAutoSave: boolean;
   isPublished: boolean;
 }
 
 export const PageStatusBadge: React.FC<PageStatusBadgeProps> = ({
   isNew,
-  hasAutosave,
+  hasAutoSave,
   isPublished,
 }) => {
   if (isNew) {
@@ -28,7 +28,7 @@ export const PageStatusBadge: React.FC<PageStatusBadgeProps> = ({
     );
   }
 
-  if (hasAutosave) {
+  if (hasAutoSave) {
     return (
       <Badge size="1" variant="solid" color="amber">
         Changed
@@ -55,7 +55,7 @@ const PageStatus = () => {
   const { data: changes } = useGetAllPendingChangesQuery();
   const entityId = useAppSelector(selectEntityId);
   const entityType = useAppSelector(selectEntityType);
-  const [hasAutosave, setHasAutoSave] = useState(false);
+  const [hasAutoSave, setHasAutoSave] = useState(false);
   const { data: fetchedLayout } = useGetLayoutByIdQuery(entityId);
 
   useEffect(() => {
@@ -72,7 +72,7 @@ const PageStatus = () => {
       <PageStatusBadge
         isPublished={isPublished}
         isNew={isNew}
-        hasAutosave={hasAutosave}
+        hasAutoSave={hasAutoSave}
       />
     );
   }

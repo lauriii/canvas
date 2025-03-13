@@ -1,4 +1,4 @@
-describe('Autosave is working', () => {
+describe('Auto-save is working', () => {
   before(() => {
     cy.drupalXbInstall();
   });
@@ -22,7 +22,7 @@ describe('Autosave is working', () => {
     cy.waitForElementContentNotInIframe('div', 'hello, world!');
 
     cy.log(
-      'Refresh the page, without clearing the autosave and confirm the hero is still deleted',
+      'Refresh the page, without clearing the auto-save and confirm the hero is still deleted',
     );
     cy.loadURLandWaitForXBLoaded({ clearAutoSave: false });
     cy.waitForElementContentNotInIframe('div', 'hello, world!');

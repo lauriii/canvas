@@ -8,7 +8,7 @@ export default {
   component: PageStatusBadge,
   argTypes: {
     isNew: { control: 'boolean' },
-    hasAutosave: { control: 'boolean' },
+    hasAutoSave: { control: 'boolean' },
     isPublished: { control: 'boolean' },
   },
 } as Meta;
@@ -20,27 +20,27 @@ const Template: StoryFn<typeof PageStatusBadge> = (
 export const Draft = Template.bind({});
 Draft.args = {
   isNew: true,
-  hasAutosave: false,
+  hasAutoSave: false,
   isPublished: false,
 };
 
 export const Changed = Template.bind({});
 Changed.args = {
   isNew: false,
-  hasAutosave: true,
+  hasAutoSave: true,
   isPublished: false,
 };
 
 export const Published = Template.bind({});
 Published.args = {
   isNew: false,
-  hasAutosave: false,
+  hasAutoSave: false,
   isPublished: true,
 };
 
 export const Archived = Template.bind({});
 Archived.args = {
   isNew: false,
-  hasAutosave: false,
+  hasAutoSave: false,
   isPublished: false,
 };

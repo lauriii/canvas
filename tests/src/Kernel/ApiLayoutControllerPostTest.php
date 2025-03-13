@@ -165,7 +165,7 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
     \assert($autoSave instanceof AutoSaveManager);
     self::assertFalse($autoSave->getAutoSaveData($node)->isEmpty());
 
-    // Now re-fetch the layout to confirm we don't update the hash if an autosave
+    // Now re-fetch the layout to confirm we don't update the hash if an auto-save
     // entry already exists.
     $content = $this->parentRequest(Request::create('/xb/api/layout/node/1'))->getContent();
     self::assertIsString($content);
@@ -266,7 +266,7 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
       'examples' => ['polite'],
     ];
     $saved_component_values['name'] = 'Here comes the';
-    // But store an overridden version in autosave (draft).
+    // But store an overridden version in auto-save (draft).
     /** @var \Drupal\experience_builder\AutoSave\AutoSaveManager $autoSave */
     $autoSave = $this->container->get(AutoSaveManager::class);
     $autoSave->save($code_component, $saved_component_values);

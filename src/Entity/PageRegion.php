@@ -99,7 +99,7 @@ final class PageRegion extends ConfigEntityBase {
    * Creates a page region instance for the given auto-save data.
    *
    * @param array $autoSaveData
-   *   Autosave data with 'layout' and 'model' keys.
+   *   Auto-save data with 'layout' and 'model' keys.
    *
    * @return static
    *   New instance with given values.
@@ -123,17 +123,17 @@ final class PageRegion extends ConfigEntityBase {
     $component_tree_structure->setValue(json_encode($tree, JSON_UNESCAPED_UNICODE));
     $inputs = $this->clientModelToInput($tree, \array_intersect_key($autoSaveData['model'], \array_flip($component_tree_structure->getComponentInstanceUuids())));
 
-    $autosaved_page_region = static::create([
+    $auto_saved_page_region = static::create([
       'component_tree' => [
         'tree' => \json_encode($tree, JSON_UNESCAPED_UNICODE | JSON_FORCE_OBJECT | JSON_THROW_ON_ERROR),
         'inputs' => \json_encode($inputs, JSON_UNESCAPED_UNICODE | JSON_FORCE_OBJECT | JSON_THROW_ON_ERROR),
       ],
     ] + $this->toArray());
-    $violations = $autosaved_page_region->getTypedData()->validate();
+    $violations = $auto_saved_page_region->getTypedData()->validate();
     if ($violations->count()) {
       throw new ConstraintViolationException($violations);
     }
-    return $autosaved_page_region;
+    return $auto_saved_page_region;
   }
 
   /**

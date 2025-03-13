@@ -142,7 +142,7 @@ final class JsComponentTest extends KernelTestBase {
     $js_hash = Crypt::hmacBase64('console.log("hey");', Settings::getHashSalt());
     $js_filename = match ($expected_result) {
       'live' => \sprintf('/%s/astro-island/%s.js', $directory_path, $js_hash),
-      'draft' => "/xb/api/autosaves/js/js_component/$js_component_id",
+      'draft' => \sprintf('/xb/api/auto-saves/js/%s/%s', JavaScriptComponent::ENTITY_TYPE_ID, $js_component_id),
     };
     self::assertEquals($js_filename, $element->attr('component-url'));
     $expected_asset_library = match ($expected_result) {
@@ -160,7 +160,7 @@ final class JsComponentTest extends KernelTestBase {
         'assets://astro-island/%s.css',
         Crypt::hmacBase64('.test{display:none;}', Settings::getHashSalt()),
       ),
-      'draft' => "xb/api/autosaves/css/js_component/$js_component_id",
+      'draft' => "xb/api/auto-saves/css/js_component/$js_component_id",
     };
     self::assertEquals($css_filename, reset($css_asset)['data']);
     $preloads = \array_column($island['#attached']['html_head_link'], 0);

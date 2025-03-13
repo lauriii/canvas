@@ -12,7 +12,7 @@ use Drupal\experience_builder\AutoSaveData;
  */
 class AutoSaveManager {
 
-  public const CACHE_TAG = 'experience_builder__autosave';
+  public const CACHE_TAG = 'experience_builder__auto_save';
 
   public function __construct(
     private readonly AutoSaveTempStoreFactory $tempStoreFactory,
@@ -41,7 +41,7 @@ class AutoSaveManager {
     $data_hash = self::generateHash($data);
     $stored_hash = $this->readHash($entity);
     if ($stored_hash !== NULL && \hash_equals($stored_hash, $data_hash)) {
-      // We've reset back to the original values. Clear the autosave entry but
+      // We've reset back to the original values. Clear the auto-save entry but
       // keep the hash.
       $this->delete($entity, FALSE);
       return;

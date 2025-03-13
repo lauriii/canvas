@@ -270,7 +270,7 @@ final class ApiLayoutController {
   }
 
   /**
-   * PATCH request updates the autosaved model and returns a preview.
+   * PATCH request updates the auto-saved model and returns a preview.
    */
   public function patch(Request $request, FieldableEntityInterface $entity): PreviewEnvelope {
     $body = \json_decode($request->getContent(), TRUE, flags: JSON_THROW_ON_ERROR);

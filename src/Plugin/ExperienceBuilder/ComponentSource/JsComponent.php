@@ -36,13 +36,13 @@ final class JsComponent extends GeneratedFieldExplicitInputUxComponentSourceBase
   public const SOURCE_PLUGIN_ID = 'js';
 
   protected ExtensionPathResolver $extensionPathResolver;
-  protected AutoSaveManager $autosaveManager;
+  protected AutoSaveManager $autoSaveManager;
   protected FileUrlGeneratorInterface $fileUrlGenerator;
 
   public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition) {
     $instance = parent::create($container, $configuration, $plugin_id, $plugin_definition);
     $instance->extensionPathResolver = $container->get(ExtensionPathResolver::class);
-    $instance->autosaveManager = $container->get(AutosaveManager::class);
+    $instance->autoSaveManager = $container->get(AutoSaveManager::class);
     $instance->fileUrlGenerator = $container->get(FileUrlGeneratorInterface::class);
     return $instance;
   }
@@ -115,7 +115,7 @@ final class JsComponent extends GeneratedFieldExplicitInputUxComponentSourceBase
   public function renderComponent(array $inputs, string $componentUuid, bool $isPreview = FALSE): array {
     $component = $this->getJavaScriptComponent();
     if ($isPreview) {
-      $autoSave = $this->autosaveManager->getAutoSaveData($component);
+      $autoSave = $this->autoSaveManager->getAutoSaveData($component);
       if ($autoSave->isEmpty()) {
         // Do NOT consider this a preview if there's no auto-saved draft
         // version.

@@ -22,15 +22,15 @@ entity.component.enable:
     _entity_access: 'component.enable'
     _csrf_token: 'TRUE'
 
-experience_builder.api.autosave.get:
-  path: '/xb/api/autosaves/pending'
+experience_builder.api.auto-save.get:
+  path: '/xb/api/auto-saves/pending'
   defaults:
     _controller: 'Drupal\experience_builder\Controller\ApiAutoSaveController::get'
   requirements:
     _permission: 'access administration pages'
   methods: ['GET']
-experience_builder.api.autosave.post:
-  path: '/xb/api/autosaves/publish'
+experience_builder.api.auto-save.post:
+  path: '/xb/api/auto-saves/publish'
   defaults:
     _controller: 'Drupal\experience_builder\Controller\ApiAutoSaveController::post'
   requirements:
@@ -53,7 +53,7 @@ experience_builder.api.config.auto-save.get:
         type: entity:{xb_config_entity_type_id}
   methods: [GET]
 experience_builder.api.config.auto-save.get.css:
-  path: '/xb/api/autosaves/css/{xb_config_entity_type_id}/{xb_config_entity}'
+  path: '/xb/api/auto-saves/css/{xb_config_entity_type_id}/{xb_config_entity}'
   defaults:
     _controller: 'Drupal\experience_builder\Controller\ApiConfigAutoSaveControllers::getCss'
   requirements:
@@ -67,7 +67,7 @@ experience_builder.api.config.auto-save.get.css:
       xb_config_entity:
         type: entity:{xb_config_entity_type_id}
 experience_builder.api.config.auto-save.get.js:
-  path: '/xb/api/autosaves/js/{xb_config_entity_type_id}/{xb_config_entity}'
+  path: '/xb/api/auto-saves/js/{xb_config_entity_type_id}/{xb_config_entity}'
   defaults:
     _controller: 'Drupal\experience_builder\Controller\ApiConfigAutoSaveControllers::getJs'
   requirements:

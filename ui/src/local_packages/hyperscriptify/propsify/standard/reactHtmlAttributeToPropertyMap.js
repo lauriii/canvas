@@ -29,6 +29,7 @@ const possibleStandardNames = {
   autocorrect: 'autoCorrect',
   autofocus: 'autoFocus',
   autoplay: 'autoPlay',
+  /* cspell:disable-next-line */
   autosave: 'autoSave',
   capture: 'capture',
   cellpadding: 'cellPadding',

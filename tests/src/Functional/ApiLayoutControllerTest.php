@@ -84,10 +84,10 @@ final class ApiLayoutControllerTest extends HttpApiTestBase {
       'examples' => ['polite'],
     ];
     $saved_component_values['name'] = 'Here comes the';
-    // But store an overridden version in autosave (draft).
+    // But store an overridden version in auto-save (draft).
     /** @var \Drupal\experience_builder\AutoSave\AutoSaveManager $autoSave */
     $autoSave = $this->container->get(AutoSaveManager::class);
-    // Autosave entries should match the format sent by the client.
+    // Auto-save entries should match the format sent by the client.
     $saved_component_values['source_code_js'] = $saved_component_values['js']['original'];
     $saved_component_values['compiled_js'] = $saved_component_values['js']['compiled'];
     $saved_component_values['source_code_css'] = $saved_component_values['css']['original'];

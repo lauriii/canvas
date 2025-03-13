@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\experience_builder\Functional;
 
+use Drupal\experience_builder\AutoSave\AutoSaveManager;
 use Behat\Mink\Driver\BrowserKitDriver;
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Entity\EntityInterface;
@@ -271,7 +272,7 @@ final class ApiConfigAutoSaveControllersTest extends HttpApiTestBase {
         'label' => $entity->label(),
       ],
     ];
-    $body = $this->assertExpectedResponse('GET', Url::fromUri("base:/xb/api/autosaves/pending"), $request_options, 200, ['user.permissions'], ['config:user.settings', 'experience_builder__autosave', 'http_response', 'user:2'], 'UNCACHEABLE (request policy)', 'MISS');
+    $body = $this->assertExpectedResponse('GET', Url::fromUri("base:/xb/api/auto-saves/pending"), $request_options, 200, ['user.permissions'], ['config:user.settings', AutoSaveManager::CACHE_TAG, 'http_response', 'user:2'], 'UNCACHEABLE (request policy)', 'MISS');
     $id = array_keys($expected_list)[0];
     assert(isset($body[$id]['updated']));
     unset($body[$id]['updated']);

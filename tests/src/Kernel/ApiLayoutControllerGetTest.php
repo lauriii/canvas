@@ -68,7 +68,7 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
     $regions['stark.highlighted']->disable()->save();
     $this->assertRegions(11);
 
-    // Store a draft region in the autosave manager and confirm that is returned.
+    // Store a draft region in the auto-save manager and confirm that is returned.
     $regions['stark.highlighted']->enable()->save();
     /** @var \Drupal\experience_builder\AutoSave\AutoSaveManager $autoSave */
     $autoSave = $this->container->get(AutoSaveManager::class);
@@ -96,7 +96,7 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
     \assert($node1 instanceof NodeInterface);
 
     // Draft of highlighted region in global template should be returned even if
-    // there is no autosave data for the node.
+    // there is no auto-save data for the node.
     $response = $controller->get($node1);
     self::assertInstanceOf(JsonResponse::class, $response);
     $json = \json_decode($response->getContent() ?: '', TRUE);
@@ -115,7 +115,7 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
       ],
     ], reset($highlightedRegion)['components']);
 
-    // Now let's add an autosave entry for the node.
+    // Now let's add an auto-save entry for the node.
     $sampleData = \file_get_contents(\dirname(__DIR__, 3) . '/ui/tests/fixtures/layout-default.json');
     self::assertNotFalse($sampleData);
     $data = \json_decode($sampleData, TRUE);

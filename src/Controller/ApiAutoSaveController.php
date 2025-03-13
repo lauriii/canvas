@@ -28,10 +28,11 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * Handles retrieval and publication of autosaved changes.
+ * Handles retrieval and publication of auto-saved changes.
  */
 final class ApiAutoSaveController extends ApiControllerBase {
 
+  public const AUTO_SAVE_KEY = 'api_auto_save_key';
   public const AVATAR_IMAGE_STYLE = 'xb_avatar';
 
   public function __construct(
@@ -69,7 +70,7 @@ final class ApiAutoSaveController extends ApiControllerBase {
             'entity_id',
             'label',
           ])) + [
-            'autosave_key' => $key,
+            self::AUTO_SAVE_KEY => $key,
           ],
         ];
       }
@@ -92,7 +93,7 @@ final class ApiAutoSaveController extends ApiControllerBase {
             'entity_id',
             'label',
           ])) + [
-            'autosave_key' => $key,
+            self::AUTO_SAVE_KEY => $key,
           ],
         ], $unmatched_keys),
       ], status: Response::HTTP_CONFLICT);
@@ -101,7 +102,7 @@ final class ApiAutoSaveController extends ApiControllerBase {
   }
 
   /**
-   * Gets the autosaved changes.
+   * Gets the auto-saved changes.
    */
   public function get(): CacheableJsonResponse {
     $all = $this->autoSaveManager->getAllAutoSaveList();
@@ -142,7 +143,7 @@ final class ApiAutoSaveController extends ApiControllerBase {
   }
 
   /**
-   * Publishes the autosaved changes.
+   * Publishes the auto-saved changes.
    */
   public function post(Request $request): JsonResponse {
     $expected_auto_saves = \json_decode($request->getContent(), TRUE);

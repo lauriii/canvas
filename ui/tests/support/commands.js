@@ -585,7 +585,7 @@ Cypress.Commands.add(
  *  * @param {string} options.url
  *  *   The URL you want to visit - defaults to '/xb/node/1'.
  *  * @param {boolean} options.clearAutoSave
- *  *   Can be set to false if you want the autosave data to persist on loading a new page - defaults to true.
+ *  *   Can be set to false if you want the auto-save data to persist on loading a new page - defaults to true.
  *  */
 Cypress.Commands.add('loadURLandWaitForXBLoaded', (options = {}) => {
   const { url = 'xb/node/1', clearAutoSave = true } = options;

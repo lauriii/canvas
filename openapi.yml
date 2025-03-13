@@ -30,7 +30,7 @@ info:
 # @see https://spec.openapis.org/oas/v3.1.0.html#paths-object
 # @see https://spec.openapis.org/oas/v3.1.0.html#path-item-object
 paths:
-  /xb/api/autosaves/css/js_component/{configEntityId}:
+  /xb/api/auto-saves/css/js_component/{configEntityId}:
     description: Get draft CSS for a given component
     get:
       description: Get draft CSS for a given component
@@ -44,7 +44,7 @@ paths:
           content:
             text/css:
               example: '.large {font-size: 3rem;}'
-  /xb/api/autosaves/css/xb_asset_library/{configEntityId}:
+  /xb/api/auto-saves/css/xb_asset_library/{configEntityId}:
     description: Get draft CSS for given asset library
     get:
       description: Get draft CSS for given asset library
@@ -58,7 +58,7 @@ paths:
           content:
             text/css:
               example: '.large {font-size: 3rem;}'
-  /xb/api/autosaves/js/js_component/{configEntityId}:
+  /xb/api/auto-saves/js/js_component/{configEntityId}:
     description: Get draft JS for a given component
     get:
       description: Get draft JS for a given component
@@ -72,7 +72,7 @@ paths:
           content:
             text/javascript:
               example: 'console.log("hey");'
-  /xb/api/autosaves/js/xb_asset_library/{configEntityId}:
+  /xb/api/auto-saves/js/xb_asset_library/{configEntityId}:
     description: Get draft JS for given asset library
     get:
       description: Get draft JS for given asset library
@@ -86,7 +86,7 @@ paths:
           content:
             text/javascript:
               example: 'console.log("hey");'
-  /xb/api/autosaves/pending:
+  /xb/api/auto-saves/pending:
     description: TODO
     get:
       description: TODO
@@ -137,7 +137,7 @@ paths:
 
               schema:
                 $ref: '#/components/schemas/AutoSaveCollection'
-  /xb/api/autosaves/publish:
+  /xb/api/auto-saves/publish:
     description: TODO
     post:
       description: TODO
@@ -1510,7 +1510,7 @@ components:
             - entity_type
             - entity_id
             - entity_label
-            - autosave_key
+            - auto_save_key
           properties:
             entity_type:
               type: string
@@ -1529,7 +1529,7 @@ components:
               examples:
                 - Spring sale now on
               title: Item label
-            autosave_key:
+            auto_save_key:
               type: string
               examples:
                 - 'node:4:en'

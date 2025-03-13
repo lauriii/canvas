@@ -72,18 +72,18 @@ abstract class HttpApiTestBase extends FunctionalTestBase {
   /**
    * Asserts the given data can be auto-saved (and retrieved) correctly.
    */
-  protected function performAutoSave(array $data_to_autosave, string $entity_type_id, string $entity_id): void {
+  protected function performAutoSave(array $data_to_auto_save, string $entity_type_id, string $entity_id): void {
     $request_options = [
       RequestOptions::HEADERS => [
         'Content-Type' => 'application/json',
       ],
     ];
     $auto_save_url = Url::fromUri("base:/xb/api/config/auto-save/$entity_type_id/$entity_id");
-    $request_options[RequestOptions::JSON] = $data_to_autosave;
+    $request_options[RequestOptions::JSON] = $data_to_auto_save;
     $patch_response = $this->assertExpectedResponse('PATCH', $auto_save_url, $request_options, 200, NULL, NULL, NULL, NULL);
     $this->assertSame([], $patch_response);
 
-    $this->assertCurrentAutoSave(200, $data_to_autosave, $entity_type_id, $entity_id);
+    $this->assertCurrentAutoSave(200, $data_to_auto_save, $entity_type_id, $entity_id);
   }
 
   /**
@@ -102,7 +102,7 @@ abstract class HttpApiTestBase extends FunctionalTestBase {
     // - 204 if there isn't one
     // - 404 if this entity does not exist (anymore)
     if ($expected_status_code < 400) {
-      $auto_save_data = $this->assertExpectedResponse('GET', $auto_save_url, $request_options, $expected_status_code, ['user.permissions'], ['experience_builder__autosave', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
+      $auto_save_data = $this->assertExpectedResponse('GET', $auto_save_url, $request_options, $expected_status_code, ['user.permissions'], [AutoSaveManager::CACHE_TAG, 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
       $this->assertSame($expected_auto_save, $auto_save_data);
     }
     else {
@@ -112,7 +112,7 @@ abstract class HttpApiTestBase extends FunctionalTestBase {
     if ($expected_status_code < 400) {
       // Repeat the same request: same status code, but now is a Dynamic Page
       // Cache hit.
-      $auto_save_data = $this->assertExpectedResponse('GET', $auto_save_url, $request_options, $expected_status_code, ['user.permissions'], ['experience_builder__autosave', 'http_response'], 'UNCACHEABLE (request policy)', 'HIT');
+      $auto_save_data = $this->assertExpectedResponse('GET', $auto_save_url, $request_options, $expected_status_code, ['user.permissions'], [AutoSaveManager::CACHE_TAG, 'http_response'], 'UNCACHEABLE (request policy)', 'HIT');
       $this->assertSame($expected_auto_save, $auto_save_data);
     }
 

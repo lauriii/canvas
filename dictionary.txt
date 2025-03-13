@@ -3,6 +3,8 @@ apikey
 astrojs
 atrule
 autolayout
+!autosave # Use "auto-save", "AutoSave", or "auto_save" instead.
+!Autosave # Use "auto-save", "AutoSave", or "auto_save" instead.
 basepath
 Carden
 cebe
@@ -13,7 +15,6 @@ csstree
 devizzent
 dhta
 diaclone
-drupalcode
 drupalcode
 drupaldev
 endapply
@@ -26,7 +27,6 @@ hyperscriptified
 hyperscriptify
 hyperscriptifying
 importmap
-inwidget
 inwidget
 JSONified
 jsxs

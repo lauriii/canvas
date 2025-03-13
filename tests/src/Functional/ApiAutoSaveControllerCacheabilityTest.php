@@ -68,7 +68,7 @@ final class ApiAutoSaveControllerCacheabilityTest extends FunctionalTestBase {
     $node1 = Node::load(1);
     \assert($node1 instanceof NodeInterface);
     $autoSave->save($node1, $data);
-    $url = Url::fromRoute('experience_builder.api.autosave.get');
+    $url = Url::fromRoute('experience_builder.api.auto-save.get');
     $this->drupalGet($url);
     $this->assertSession()->responseHeaderEquals(DynamicPageCacheSubscriber::HEADER, 'MISS');
     $content = \json_decode($this->getSession()->getPage()->getContent() ?: '{}', TRUE);

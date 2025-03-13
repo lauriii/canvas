@@ -190,7 +190,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     $library = AssetLibrary::load(AssetLibrary::GLOBAL_ID);
     \assert($library instanceof AssetLibrary);
     $autoSave->save($library, ['dummy' => 'xb_asset_library: auto-save data is not validated']);
-    $request = Request::create(Url::fromRoute('experience_builder.api.autosave.get')->toString());
+    $request = Request::create(Url::fromRoute('experience_builder.api.auto-save.get')->toString());
     $response = $this->request($request);
     self::assertInstanceOf(CacheableJsonResponse::class, $response);
     self::assertEquals(Response::HTTP_OK, $response->getStatusCode());
@@ -488,7 +488,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
         'entity_id' => $code_component->id(),
         // The label should not be updated if model validation failed.
         'label' => $code_component->label(),
-        'autosave_key' => $autoSave->getAutoSaveKey($code_component),
+        ApiAutoSaveController::AUTO_SAVE_KEY => $autoSave->getAutoSaveKey($code_component),
       ],
     ];
     $errors[] = [
@@ -501,7 +501,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
         'entity_id' => $code_component->id(),
         // The label should not be updated if model validation failed.
         'label' => $code_component->label(),
-        'autosave_key' => $autoSave->getAutoSaveKey($code_component),
+        ApiAutoSaveController::AUTO_SAVE_KEY => $autoSave->getAutoSaveKey($code_component),
       ],
     ];
     $errors[] = [
@@ -514,7 +514,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
         'entity_id' => $code_component->id(),
         // The label should not be updated if model validation failed.
         'label' => $code_component->label(),
-        'autosave_key' => $autoSave->getAutoSaveKey($code_component),
+        ApiAutoSaveController::AUTO_SAVE_KEY => $autoSave->getAutoSaveKey($code_component),
       ],
     ];
     $errors[] = [
@@ -527,7 +527,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
         'entity_id' => $node2->id(),
         // The label should not be updated if model validation failed.
         'label' => $node2_original_title,
-        'autosave_key' => $autoSave->getAutoSaveKey($node2),
+        ApiAutoSaveController::AUTO_SAVE_KEY => $autoSave->getAutoSaveKey($node2),
       ],
     ];
     $errors[] = [
@@ -540,7 +540,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
         'entity_id' => $library->id(),
         // The label should not be updated if model validation failed.
         'label' => $library->label(),
-        'autosave_key' => $autoSave->getAutoSaveKey($library),
+        ApiAutoSaveController::AUTO_SAVE_KEY => $autoSave->getAutoSaveKey($library),
       ],
     ];
 
@@ -603,7 +603,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
           'entity_type' => 'node',
           'entity_id' => $node1->id(),
           'label' => $validClientJson['entity_form_fields']['title[0][value]'],
-          'autosave_key' => $autoSave->getAutoSaveKey($node1),
+          ApiAutoSaveController::AUTO_SAVE_KEY => $autoSave->getAutoSaveKey($node1),
         ],
       ],
       ],
@@ -642,7 +642,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
             'entity_type' => 'node',
             'entity_id' => $node1->id(),
             'label' => $validClientJson['entity_form_fields']['title[0][value]'],
-            'autosave_key' => $autoSave->getAutoSaveKey($node1),
+            ApiAutoSaveController::AUTO_SAVE_KEY => $autoSave->getAutoSaveKey($node1),
           ],
         ],
       ],
@@ -701,7 +701,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     }
     $controller = \Drupal::service(ApiAutoSaveController::class);
     $request = Request::create(
-      Url::fromRoute('experience_builder.api.autosave.post')->toString(),
+      Url::fromRoute('experience_builder.api.auto-save.post')->toString(),
       content: (string) json_encode($data)
     );
     return $controller->post($request);

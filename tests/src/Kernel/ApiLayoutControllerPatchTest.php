@@ -223,7 +223,7 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
 
       self::assertFalse($autoSave->getAutoSaveData($node)->isEmpty());
       foreach ($regions as $region) {
-        // The updated component is in sidebar_first and so autosave should not
+        // The updated component is in sidebar_first and so auto-save should not
         // be empty.
         self::assertEquals($region->get('region') !== 'sidebar_first', $autoSave->getAutoSaveData($region)->isEmpty());
       }
@@ -233,8 +233,8 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
   public static function providerValid(): iterable {
     yield 'fresh state, no global' => [];
     yield 'fresh state, global' => [FALSE, TRUE];
-    yield 'existing autosave, no global' => [TRUE, FALSE];
-    yield 'existing autosave, global' => [TRUE, TRUE];
+    yield 'existing auto-save, no global' => [TRUE, FALSE];
+    yield 'existing auto-save, global' => [TRUE, TRUE];
   }
 
 }

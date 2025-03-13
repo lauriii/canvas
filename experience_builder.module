@@ -425,12 +425,12 @@ function experience_builder_library_info_build(): array {
     if ($library->hasCss()) {
       $libraries[$library_name]['css']['theme'][$library->getCssPath()] = [];
     }
-    $draft_css_url = \sprintf('/xb/api/autosaves/css/%s/%s', AssetLibrary::ENTITY_TYPE_ID, $library_id);
+    $draft_css_url = \sprintf('/xb/api/auto-saves/css/%s/%s', AssetLibrary::ENTITY_TYPE_ID, $library_id);
     $libraries[$library_name . '.draft']['css']['theme'][$draft_css_url] = [];
     if ($library->hasJs()) {
       $libraries[$library_name]['js'][$library->getJsPath()] = [];
     }
-    $draft_js_url = \sprintf('/xb/api/autosaves/js/%s/%s', AssetLibrary::ENTITY_TYPE_ID, $library_id);
+    $draft_js_url = \sprintf('/xb/api/auto-saves/js/%s/%s', AssetLibrary::ENTITY_TYPE_ID, $library_id);
     $libraries[$library_name . '.draft']['js'][$draft_js_url] = [];
   }
 
@@ -440,7 +440,7 @@ function experience_builder_library_info_build(): array {
     if ($component->hasCss()) {
       $libraries[$library_name]['css']['component'][$component->getCssPath()] = [];
     }
-    $draft_css_url = \sprintf('/xb/api/autosaves/css/%s/%s', JavaScriptComponent::ENTITY_TYPE_ID, $component_id);
+    $draft_css_url = \sprintf('/xb/api/auto-saves/css/%s/%s', JavaScriptComponent::ENTITY_TYPE_ID, $component_id);
     $libraries[$library_name . '.draft']['css']['component'][$draft_css_url] = [];
   }
 

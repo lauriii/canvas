@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\experience_builder\Functional;
 
+use Drupal\experience_builder\AutoSave\AutoSaveManager;
 use Drupal\Core\Url;
 use Drupal\experience_builder\Entity\AssetLibrary;
 use Drupal\experience_builder\Entity\Component;
@@ -654,8 +655,8 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
     $this->assertExposedCodeComponents([], 'MISS', $request_options);
     $this->assertExposedCodeComponents([], 'HIT', $request_options);
     // Confirm no auto-save entity has been created.
-    $this->assertExpectedResponse('GET', $auto_save_url, $request_options, 204, ['user.permissions'], ['experience_builder__autosave', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
-    $this->assertExpectedResponse('GET', $auto_save_url, $request_options, 204, ['user.permissions'], ['experience_builder__autosave', 'http_response'], 'UNCACHEABLE (request policy)', 'HIT');
+    $this->assertExpectedResponse('GET', $auto_save_url, $request_options, 204, ['user.permissions'], [AutoSaveManager::CACHE_TAG, 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
+    $this->assertExpectedResponse('GET', $auto_save_url, $request_options, 204, ['user.permissions'], [AutoSaveManager::CACHE_TAG, 'http_response'], 'UNCACHEABLE (request policy)', 'HIT');
 
     // Creating a JavaScriptComponent with an already-in-use ID: 409.
     $request_options[RequestOptions::BODY] = self::encodeXBData($code_component_to_send);
@@ -884,8 +885,8 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
     ]);
     $this->assertSame($body, $asset_library_to_send);
     // Confirm no auto-save entity has been created.
-    $this->assertExpectedResponse('GET', $auto_save_url, $request_options, 204, ['user.permissions'], ['experience_builder__autosave', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
-    $this->assertExpectedResponse('GET', $auto_save_url, $request_options, 204, ['user.permissions'], ['experience_builder__autosave', 'http_response'], 'UNCACHEABLE (request policy)', 'HIT');
+    $this->assertExpectedResponse('GET', $auto_save_url, $request_options, 204, ['user.permissions'], [AutoSaveManager::CACHE_TAG, 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
+    $this->assertExpectedResponse('GET', $auto_save_url, $request_options, 204, ['user.permissions'], [AutoSaveManager::CACHE_TAG, 'http_response'], 'UNCACHEABLE (request policy)', 'HIT');
 
     // @todo Test that creating an auto-save entry for the 'global' does not
     //   affect the GET request in https:/drupal.org/i/3505224.

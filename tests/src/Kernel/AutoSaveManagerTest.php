@@ -60,7 +60,7 @@ class AutoSaveManagerTest extends KernelTestBase {
     $autoSave->recordInitialClientSideRepresentation($entity, $matching_client_data);
     $autoSave->save($entity, $matching_client_data);
     self::assertTrue($autoSave->getAutoSaveData($entity)->isEmpty());
-    // Reversing the order of the data should not trigger an autosave entry either.
+    // Reversing the order of the data should not trigger an auto-save entry either.
     $autoSave->save($entity, self::recursiveReverseSort($matching_client_data));
     self::assertTrue($autoSave->getAutoSaveData($entity)->isEmpty());
 
@@ -81,7 +81,7 @@ class AutoSaveManagerTest extends KernelTestBase {
     self::assertNotEmpty($hashReversedData);
     self::assertSame($hashInitial, $hashReversedData);
 
-    // Resaving the initial state should delete the autosave entry.
+    // Resaving the initial state should delete the auto-save entry.
     $autoSave->save($entity, $matching_client_data);
     self::assertTrue($autoSave->getAutoSaveData($entity)->isEmpty());
   }
@@ -117,7 +117,7 @@ class AutoSaveManagerTest extends KernelTestBase {
     $new_title_client_data['entity_form_fields']['title[0][value]'] = '5 MORE amazing uses for old toothbrushes';
     $this->assertAutoSaveCreated($xb_page, $matching_client_data, $new_title_client_data);
 
-    // Confirm that adding a component triggers an autosave entry.
+    // Confirm that adding a component triggers an auto-save entry.
     $new_component_client_data = $matching_client_data;
     $new_component_client_data['layout'][0]['components'][] = [
       'nodeType' => 'component',
@@ -255,7 +255,7 @@ class AutoSaveManagerTest extends KernelTestBase {
     $new_title_client_data['entity_form_fields']['title[0][value]'] = '5 MORE amazing uses for old toothbrushes';
     $this->assertAutoSaveCreated($node, $matching_client_data, $new_title_client_data);
 
-    // Confirm that adding a component to the node via the client also triggers an autosave entry.
+    // Confirm that adding a component to the node via the client also triggers an auto-save entry.
     $new_component_client_data = $matching_client_data;
     $new_component_client_data['layout'][0]['components'][] = [
       'nodeType' => 'component',
