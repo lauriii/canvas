@@ -55,6 +55,9 @@ describe('Component data / props in code editor', () => {
           name: '',
           type: 'string',
           example: '',
+          derivedType: 'text',
+          format: undefined,
+          $ref: undefined,
         },
         'Should have the correct default prop values',
       );
@@ -71,6 +74,9 @@ describe('Component data / props in code editor', () => {
         {
           name: 'Title',
           example: 'Your title goes here',
+          derivedType: 'text',
+          format: undefined,
+          $ref: undefined,
         },
         'Should have the updated name and example value',
       );
@@ -115,17 +121,26 @@ describe('Component data / props in code editor', () => {
         name: 'Title',
         type: 'string',
         example: 'Your title goes here',
+        format: undefined,
+        $ref: undefined,
+        derivedType: 'text',
       });
       expect(props[1]).to.deep.include({
         name: 'Variant',
         type: 'string',
         enum: ['Alpha', 'Bravo', 'Charlie'],
         example: 'Bravo',
+        format: undefined,
+        $ref: undefined,
+        derivedType: 'listText',
       });
       expect(props[2]).to.deep.include({
         name: 'Featured',
         type: 'boolean',
         example: 'true',
+        format: undefined,
+        $ref: undefined,
+        derivedType: 'boolean',
       });
     });
 
@@ -272,6 +287,8 @@ describe('Component data / props in code editor', () => {
           name: 'Title',
           type: 'string',
           example: 'Your title goes here',
+          format: undefined,
+          $ref: undefined,
         },
         'Should have the correct prop metadata',
       );
@@ -304,6 +321,8 @@ describe('Component data / props in code editor', () => {
           name: 'Count',
           type: 'integer',
           example: '922',
+          format: undefined,
+          $ref: undefined,
         },
         'Should have the correct prop metadata',
       );
@@ -335,6 +354,8 @@ describe('Component data / props in code editor', () => {
           name: 'Percentage',
           type: 'number',
           example: '9.22',
+          format: undefined,
+          $ref: undefined,
         },
         'Should have the correct prop metadata',
       );
@@ -356,6 +377,8 @@ describe('Component data / props in code editor', () => {
           name: 'Is featured',
           type: 'boolean',
           example: 'false',
+          format: undefined,
+          $ref: undefined,
         },
         'Should have the correct prop metadata',
       );
@@ -396,6 +419,8 @@ describe('Component data / props in code editor', () => {
           name: 'Tags',
           type: 'string',
           enum: [],
+          format: undefined,
+          $ref: undefined,
         },
         'Should have the correct prop metadata',
       );
@@ -833,6 +858,14 @@ describe('Component data / props in code editor', () => {
         alt: 'Example image placeholder',
       });
     });
+
+    // Change the type to Link. The example value should be removed.
+    cy.findByLabelText('Type').click();
+    cy.findByText('Link').click();
+    cy.findByLabelText('Example value').should('have.value', '');
+    cy.wrap(store).then((store) => {
+      expect(selectProps(store.getState())[0].example).to.equal('');
+    });
   });
 
   it('creates a new text area prop', () => {
@@ -859,7 +892,8 @@ describe('Component data / props in code editor', () => {
           name: 'Description',
           type: 'string',
           example: 'Your description goes here',
-          _ref: 'json-schema-definitions://experience_builder.module/textarea',
+          format: undefined,
+          $ref: 'json-schema-definitions://experience_builder.module/textarea',
         },
         'Should have the correct prop metadata',
       );
@@ -892,8 +926,10 @@ describe('Component data / props in code editor', () => {
             height: 900,
             alt: 'Example image placeholder',
           },
+          format: undefined,
+          $ref: 'json-schema-definitions://experience_builder.module/image',
         },
-        'Should have the appropriate type and example value',
+        'Should have the appropriate type, example value, and $ref',
       );
     });
 
@@ -907,8 +943,10 @@ describe('Component data / props in code editor', () => {
         {
           type: 'object',
           example: '',
+          format: undefined,
+          $ref: 'json-schema-definitions://experience_builder.module/image',
         },
-        'Should have the appropriate type and example value',
+        'Should have the appropriate type, example value, and $ref',
       );
     });
 
@@ -933,8 +971,10 @@ describe('Component data / props in code editor', () => {
             height: 900,
             alt: 'Example image placeholder',
           },
+          format: undefined,
+          $ref: 'json-schema-definitions://experience_builder.module/image',
         },
-        'Should have the appropriate type and example value',
+        'Should have the appropriate type, example value, and $ref',
       );
     });
 
@@ -962,8 +1002,10 @@ describe('Component data / props in code editor', () => {
             height: 1080,
             alt: 'Example image placeholder',
           },
+          format: undefined,
+          $ref: 'json-schema-definitions://experience_builder.module/image',
         },
-        'Should have the appropriate type and example value',
+        'Should have the appropriate type, example value, and $ref',
       );
     });
 
@@ -989,10 +1031,159 @@ describe('Component data / props in code editor', () => {
             height: 1080,
             alt: 'Example image placeholder',
           },
+          format: undefined,
+          $ref: 'json-schema-definitions://experience_builder.module/image',
         },
-        'Should have the appropriate type and example value',
+        'Should have the appropriate type, example value, and $ref',
       );
     });
+  });
+
+  it('creates a new link prop', () => {
+    cy.findByText('Add').click();
+
+    // Add a new link prop, leaving the Link type as "Relative path".
+    cy.findByLabelText('Prop name').type('Link');
+    cy.findByLabelText('Type').click();
+    cy.findByText('Link').click();
+    cy.findByLabelText('Link type').should('have.text', 'Relative path');
+    cy.findByLabelText('Example value').should(
+      'have.attr',
+      'placeholder',
+      'Enter a path',
+    );
+    cy.findByLabelText('Example value').type('gerbeaud');
+    // Verify the prop metadata.
+    cy.wrap(store).then((store) => {
+      const prop = selectProps(store.getState())[0];
+      expect(prop).to.deep.include(
+        {
+          name: 'Link',
+          type: 'string',
+          example: 'gerbeaud',
+          format: 'uri-reference',
+          $ref: undefined,
+        },
+        'Should have the correct prop metadata',
+      );
+    });
+
+    // Change the Link type to "Full URL".
+    cy.findByLabelText('Link type').click();
+    cy.findByText('Full URL').click();
+    cy.findByLabelText('Example value').should(
+      'have.attr',
+      'placeholder',
+      'Enter a URL',
+    );
+    cy.findByLabelText('Example value').clear();
+    cy.findByLabelText('Example value').type('https://example.com');
+    // Verify the prop metadata.
+    cy.wrap(store).then((store) => {
+      const prop = selectProps(store.getState())[0];
+      expect(prop).to.deep.include(
+        {
+          name: 'Link',
+          type: 'string',
+          example: 'https://example.com',
+          format: 'uri',
+          $ref: undefined,
+        },
+        'Should have the correct prop metadata',
+      );
+    });
+
+    // Change the Link type back to "Relative path".
+    cy.findByLabelText('Link type').click();
+    cy.findByText('Relative path').click();
+    cy.findByLabelText('Example value').should(
+      'have.attr',
+      'placeholder',
+      'Enter a path',
+    );
+    cy.findByLabelText('Example value').clear();
+    cy.findByLabelText('Example value').type('hazelnut');
+    // Verify the prop metadata.
+    cy.wrap(store).then((store) => {
+      const prop = selectProps(store.getState())[0];
+      expect(prop).to.deep.include(
+        {
+          name: 'Link',
+          type: 'string',
+          example: 'hazelnut',
+          format: 'uri-reference',
+          $ref: undefined,
+        },
+        'Should have the correct prop metadata',
+      );
+    });
+  });
+
+  it('validates example value of a link prop', () => {
+    cy.findByText('Add').click();
+
+    cy.findByLabelText('Prop name').type('Link');
+    cy.findByLabelText('Type').click();
+    cy.findByText('Link').click();
+    cy.findByLabelText('Example value').type('gerbeaud');
+    cy.findByLabelText('Example value').blur();
+    cy.findByLabelText('Example value').should(
+      'not.have.attr',
+      'data-invalid-prop-value',
+    );
+
+    cy.findByLabelText('Example value').type(' ^ 0330');
+    cy.findByLabelText('Example value').blur();
+    cy.findByLabelText('Example value').should(
+      'have.attr',
+      'data-invalid-prop-value',
+    );
+
+    // Typing into the field should reset the invalid state.
+    cy.findByLabelText('Example value').type(' ^');
+    cy.findByLabelText('Example value').should(
+      'not.have.attr',
+      'data-invalid-prop-value',
+    );
+
+    cy.findByLabelText('Example value').blur();
+    cy.findByLabelText('Example value').should(
+      'have.attr',
+      'data-invalid-prop-value',
+    );
+
+    // Switch to the full URL type.
+    cy.findByLabelText('Link type').click();
+    cy.findByText('Full URL').click();
+    // The invalid state should be cleared by switching the link type.
+    cy.findByLabelText('Example value').should(
+      'not.have.attr',
+      'data-invalid-prop-value',
+    );
+
+    cy.findByLabelText('Example value').clear();
+    cy.findByLabelText('Example value').type('https://hazelnut.com');
+    cy.findByLabelText('Example value').blur();
+    cy.findByLabelText('Example value').should(
+      'not.have.attr',
+      'data-invalid-prop-value',
+    );
+
+    cy.findByLabelText('Example value').clear();
+    cy.findByLabelText('Example value').type('0203');
+    cy.findByLabelText('Example value').blur();
+    cy.findByLabelText('Example value').should(
+      'have.attr',
+      'data-invalid-prop-value',
+    );
+
+    // An empty value should be valid.
+    cy.findByLabelText('Example value').clear();
+    cy.findByLabelText('Example value').blur();
+    cy.findByLabelText('Example value').should(
+      'not.have.attr',
+      'data-invalid-prop-value',
+    );
   });
 
   it('parses the image prop example URL', () => {

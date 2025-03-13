@@ -252,6 +252,17 @@ describe('Code editor utilities', () => {
         ]),
       ).to.matchDeserializedProps([16, 17]);
     });
+
+    it('of type link', () => {
+      expect(
+        deserializeProps([
+          serializedPropsFixture.relativePathLinkWithNoExampleValue,
+          serializedPropsFixture.relativePathLinkWithExampleValue,
+          serializedPropsFixture.fullUrlLinkWithNoExampleValue,
+          serializedPropsFixture.fullUrlLinkWithExampleValue,
+        ]),
+      ).to.matchDeserializedProps([18, 19, 20, 21]);
+    });
   });
 
   it('serialize slots', () => {
@@ -302,6 +313,10 @@ describe('Code editor preview utilities', () => {
         height: 900,
         alt: 'Example image placeholder',
       },
+      relativePathLinkWithNoExampleValue: '',
+      relativePathLinkWithExampleValue: 'gerbeaud',
+      fullUrlLinkWithNoExampleValue: '',
+      fullUrlLinkWithExampleValue: 'https://hazelnut.com',
     });
   });
 

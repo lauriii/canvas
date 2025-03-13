@@ -1,4 +1,4 @@
-import { Box } from '@radix-ui/themes';
+import { Flex } from '@radix-ui/themes';
 import {
   FormElement,
   Label,
@@ -19,7 +19,7 @@ export default function FormPropTypeSlot({
   const dispatch = useAppDispatch();
 
   return (
-    <Box flexGrow="1">
+    <Flex direction="column" gap="4" flexGrow="1">
       <Divider />
       <FormElement>
         <Label>Example HTML/JSX value</Label>
@@ -42,6 +42,6 @@ export default function FormPropTypeSlot({
           />
         </div>
       </FormElement>
-    </Box>
+    </Flex>
   );
 }

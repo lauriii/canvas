@@ -1,4 +1,4 @@
-import { Box, TextField } from '@radix-ui/themes';
+import { Flex, TextField } from '@radix-ui/themes';
 import {
   FormElement,
   Label,
@@ -21,7 +21,7 @@ export default function FormPropTypeTextField({
   const dispatch = useAppDispatch();
 
   return (
-    <Box flexGrow="1">
+    <Flex direction="column" gap="4" flexGrow="1">
       <Divider />
       <FormElement>
         <Label htmlFor={`prop-example-${id}`}>Example value</Label>
@@ -49,6 +49,6 @@ export default function FormPropTypeTextField({
           disabled={isDisabled}
         />
       </FormElement>
-    </Box>
+    </Flex>
   );
 }

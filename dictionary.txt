@@ -21,6 +21,7 @@ endapply
 entityviewdisplay
 extralight
 fieldtext
+gerbeaud
 heredocs
 hyperscriptification
 hyperscriptified

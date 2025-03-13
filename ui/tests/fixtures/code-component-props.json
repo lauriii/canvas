@@ -4,124 +4,174 @@
       "name": "String with no example value",
       "type": "string",
       "example": "",
-      "id": "edd8f3d4-6853-44c7-92db-bbd86d9ba112"
+      "id": "edd8f3d4-6853-44c7-92db-bbd86d9ba112",
+      "derivedType": "text"
     },
     {
       "name": "String with example value",
       "type": "string",
       "example": "Experience Builder",
-      "id": "1c374686-8c73-4a01-8727-a36ff1cc59eb"
+      "id": "1c374686-8c73-4a01-8727-a36ff1cc59eb",
+      "derivedType": "text"
     },
     {
       "name": "Integer with no example value",
       "type": "integer",
       "example": "",
-      "id": "962e2deb-078e-4436-a3f7-2a628f39bb8a"
+      "id": "962e2deb-078e-4436-a3f7-2a628f39bb8a",
+      "derivedType": "integer"
     },
     {
       "name": "Integer with example value",
       "type": "integer",
       "example": "922",
-      "id": "720d5d79-eeb0-4f15-b29b-1eec6b1f588d"
+      "id": "720d5d79-eeb0-4f15-b29b-1eec6b1f588d",
+      "derivedType": "integer"
     },
     {
       "name": "Number with no example value",
       "type": "number",
       "example": "",
-      "id": "2cb91003-b280-4f61-bba1-db90d20bb8dc"
+      "id": "2cb91003-b280-4f61-bba1-db90d20bb8dc",
+      "derivedType": "number"
     },
     {
       "name": "Number with example value",
       "type": "number",
       "example": "9.22",
-      "id": "cb2f9dc3-30c2-4635-8013-79c2659e9808"
+      "id": "cb2f9dc3-30c2-4635-8013-79c2659e9808",
+      "derivedType": "number"
     },
     {
       "name": "Boolean with example value (true)",
       "type": "boolean",
       "example": "true",
-      "id": "5398f61d-5b99-4142-a438-f0e2cec6c567"
+      "id": "5398f61d-5b99-4142-a438-f0e2cec6c567",
+      "derivedType": "boolean"
     },
     {
       "name": "Boolean with example value (false)",
       "type": "boolean",
       "example": "false",
-      "id": "c717e5e3-be92-4786-94be-75f231b97c96"
+      "id": "c717e5e3-be92-4786-94be-75f231b97c96",
+      "derivedType": "boolean"
     },
     {
       "name": "Text list with no example value",
       "type": "string",
       "enum": ["Not Started", "In Progress", "Completed"],
       "example": "",
-      "id": "aa2e3ece-9431-4db9-a64e-1d2f0699912d"
+      "id": "aa2e3ece-9431-4db9-a64e-1d2f0699912d",
+      "derivedType": "listText"
     },
     {
       "name": "Text list with example value",
       "type": "string",
       "enum": ["Not Started", "In Progress", "Completed"],
       "example": "In Progress",
-      "id": "80c7cc4c-4e84-41fc-a42e-2bfbc19f4a96"
+      "id": "80c7cc4c-4e84-41fc-a42e-2bfbc19f4a96",
+      "derivedType": "listText"
     },
     {
       "name": "Integer list with no example value",
       "type": "integer",
       "enum": ["1", "2", "3"],
       "example": "",
-      "id": "a361cca0-6aca-4d55-907d-10275df8c7fa"
+      "id": "a361cca0-6aca-4d55-907d-10275df8c7fa",
+      "derivedType": "listInteger"
     },
     {
       "name": "Integer list with example value",
       "type": "integer",
       "enum": ["1", "2", "3"],
       "example": "2",
-      "id": "30b57352-8c6c-48b1-a782-8bcbc69d7df7"
+      "id": "30b57352-8c6c-48b1-a782-8bcbc69d7df7",
+      "derivedType": "listInteger"
     },
     {
       "name": "Number list with no example value",
       "type": "number",
       "enum": ["1.1", "2.2", "3.3"],
       "example": "",
-      "id": "ee5110ad-332b-48f4-b4c8-75e685bbe2ba"
+      "id": "ee5110ad-332b-48f4-b4c8-75e685bbe2ba",
+      "derivedType": "listNumber"
     },
     {
       "name": "Number list with example value",
       "type": "number",
       "enum": ["1.1", "2.2", "3.3"],
       "example": "2.2",
-      "id": "a411ac98-ab57-45f1-9b48-596fa1276f8e"
+      "id": "a411ac98-ab57-45f1-9b48-596fa1276f8e",
+      "derivedType": "listNumber"
     },
     {
       "name": "Text area with no example value",
       "type": "string",
       "example": "",
       "id": "fgg0f3d4-6853-44c7-92db-bbd86d9ba112",
-      "_ref": "json-schema-definitions://experience_builder.module/textarea"
+      "derivedType": "textArea",
+      "$ref": "json-schema-definitions://experience_builder.module/textarea"
     },
     {
       "name": "Text area with example value",
       "type": "string",
       "example": "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged.",
       "id": "5e894686-8c73-4a01-8727-a36ff1cc59eb",
-      "_ref": "json-schema-definitions://experience_builder.module/textarea"
+      "derivedType": "textArea",
+      "$ref": "json-schema-definitions://experience_builder.module/textarea"
     },
     {
       "name": "Image with no example value",
       "type": "object",
-      "_ref": "json-schema-definitions://experience_builder.module/image",
+      "$ref": "json-schema-definitions://experience_builder.module/image",
       "example": "",
-      "id": "af004b63-5f58-4923-be8e-3249dde1b32e"
+      "id": "af004b63-5f58-4923-be8e-3249dde1b32e",
+      "derivedType": "image"
     },
     {
       "name": "Image with example value",
       "type": "object",
-      "_ref": "json-schema-definitions://experience_builder.module/image",
+      "$ref": "json-schema-definitions://experience_builder.module/image",
       "example": {
         "src": "https://placehold.co/1200x900@2x.png",
         "width": 1200,
         "height": 900,
         "alt": "Example image placeholder"
       },
-      "id": "4ea2a14d-7828-467c-a505-063f006f1ebf"
+      "id": "4ea2a14d-7828-467c-a505-063f006f1ebf",
+      "derivedType": "image"
+    },
+    {
+      "name": "Relative path link with no example value",
+      "type": "string",
+      "example": "",
+      "format": "uri-reference",
+      "id": "9c71e89f-608b-49af-b0e6-6b4be58b538e",
+      "derivedType": "link"
+    },
+    {
+      "name": "Relative path link with example value",
+      "type": "string",
+      "example": "gerbeaud",
+      "format": "uri-reference",
+      "id": "09f656b3-3d4f-4e5b-8a1a-40f5f92345c2",
+      "derivedType": "link"
+    },
+    {
+      "name": "Full URL link with no example value",
+      "type": "string",
+      "example": "",
+      "format": "uri",
+      "id": "5c93d4ea-7f91-4c77-b4fd-bb1d67d9c88d",
+      "derivedType": "link"
+    },
+    {
+      "name": "Full URL link with example value",
+      "type": "string",
+      "example": "https://hazelnut.com",
+      "format": "uri",
+      "id": "51595746-4e2b-4ac0-81f5-b481e34b3712",
+      "derivedType": "link"
     }
   ],
   "serialized": {
@@ -221,6 +271,28 @@
         "alt": "Example image placeholder"
       }],
       "$ref": "json-schema-definitions://experience_builder.module/image"
+    },
+    "relativePathLinkWithNoExampleValue": {
+      "title": "Relative path link with no example value",
+      "type": "string",
+      "format": "uri-reference"
+    },
+    "relativePathLinkWithExampleValue": {
+      "title": "Relative path link with example value",
+      "type": "string",
+      "examples": ["gerbeaud"],
+      "format": "uri-reference"
+    },
+    "fullUrlLinkWithNoExampleValue": {
+      "title": "Full URL link with no example value",
+      "type": "string",
+      "format": "uri"
+    },
+    "fullUrlLinkWithExampleValue": {
+      "title": "Full URL link with example value",
+      "type": "string",
+      "examples": ["https://hazelnut.com"],
+      "format": "uri"
     }
   }
 }

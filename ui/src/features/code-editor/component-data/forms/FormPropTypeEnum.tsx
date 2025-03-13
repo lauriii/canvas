@@ -71,7 +71,7 @@ export default function FormPropTypeEnum({
   };
 
   return (
-    <Box flexGrow="1">
+    <Flex direction="column" gap="4" flexGrow="1">
       <FormElement>
         <Label htmlFor={`prop-enum-values-${id}`}>Values</Label>
         <EnumValuesForm
@@ -108,7 +108,7 @@ export default function FormPropTypeEnum({
         />
       </FormElement>
       {validEnumValues.length > 0 && (
-        <Box mt="4">
+        <>
           <Divider />
           <FormElement>
             <Label htmlFor={`prop-enum-default-${id}`}>Default value</Label>
@@ -131,9 +131,9 @@ export default function FormPropTypeEnum({
               </Select.Content>
             </Select.Root>
           </FormElement>
-        </Box>
+        </>
       )}
-    </Box>
+    </Flex>
   );
 }
 

@@ -1,3 +1,5 @@
+import type derivedPropTypes from '@/features/code-editor/component-data/derivedPropTypes';
+
 export interface CodeComponent {
   machineName: string;
   name: string;
@@ -24,7 +26,9 @@ export interface CodeComponentProp {
   type: 'string' | 'integer' | 'number' | 'boolean' | 'object';
   enum?: string[];
   example?: string | CodeComponentPropImageExample;
-  _ref?: string;
+  $ref?: string;
+  format?: string;
+  derivedType: (typeof derivedPropTypes)[number]['type'] | null;
 }
 
 export interface CodeComponentPropImageExample {
@@ -40,6 +44,7 @@ export interface CodeComponentPropSerialized {
   enum?: (string | number)[];
   examples?: (string | number | CodeComponentPropImageExample)[];
   $ref?: string;
+  format?: string;
 }
 
 export interface CodeComponentSlot {

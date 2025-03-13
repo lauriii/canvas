@@ -3,17 +3,53 @@ import { componentHasFieldData } from '@/types/Component';
 import type { InputUIData, PropsValues } from '@/types/Form';
 import type { ComponentModel } from '@/features/layout/layoutModelSlice';
 import Ajv from 'ajv';
-import type { ValidateFunction } from 'ajv';
+import type { SchemaObject, ValidateFunction } from 'ajv';
 import type * as React from 'react';
 import addFormats from 'ajv-formats';
 import type { ParsedQs } from 'qs';
 import type { Transforms } from '@/utils/transforms';
 import transforms from '@/utils/transforms';
 import qs from 'qs';
-// @ts-ignore
 import addDraft2019 from 'ajv-formats-draft2019';
 const ajv = new Ajv();
 addDraft2019(ajv);
+
+/**
+ * Tuple containing validation result and validator function.
+ * - [0] {boolean}: If true, then the validation passed
+ * - [1] {ValidationFunction|null} - for returns where [0] is potentially
+ *       false, the validation function is also passed, which can access
+ *       information about the failure.
+ *       @see node_modules/ajv/lib/types::ValidateFunction
+ */
+export type JsonSchemaValidationResult = [boolean, ValidateFunction | null];
+
+/**
+ * Validates data against a JSON Schema.
+ *
+ * @param {any} data
+ *   The data to check against the schema.
+ * @param {SchemaObject} schema
+ *   The schema to validate against.
+ * @return {JsonSchemaValidationResult}
+ */
+export function jsonSchemaValidate(
+  data: any,
+  schema: SchemaObject,
+): JsonSchemaValidationResult {
+  if (schema.format && !ajv.formats[schema.format]) {
+    addFormats(ajv, [schema.format]);
+    if (!ajv.formats[schema.format]) {
+      console.warn(
+        `A field was not validated because the following schema format is not available: ${schema.format} `,
+      );
+      return [true, null];
+    }
+  }
+  const validate = ajv.compile(schema);
+  const valid = validate(data);
+  return [valid, validate];
+}
 
 /**
  * Get an object of array schemas keyed by prop name.
@@ -41,7 +77,8 @@ export function getPropSchemas(inputAndUiData: InputUIData) {
 }
 
 /**
- * Determines if JSON Validation should be skipped.
+ * Determines if JSON Schema validation should be skipped for a prop.
+ *
  * Ideally, this function can be removed at some point. It's here because the
  * schema validation currently only works for props managed by one form element.
  *
@@ -56,7 +93,7 @@ export function getPropSchemas(inputAndUiData: InputUIData) {
  *
  * @return {boolean} true if JSON Validation should be skipped.
  */
-export const shouldSkipJsonValidation = (
+export const shouldSkipPropValidation = (
   name: string,
   target: HTMLInputElement,
   inputAndUiData: InputUIData,
@@ -82,7 +119,8 @@ export const shouldSkipJsonValidation = (
 };
 
 /**
- * Validates data against a JSON Schema
+ * Validates a prop's data against a JSON Schema.
+ *
  * @param {string} schemaName
  *   The schema name.
  * @param {any} data
@@ -91,33 +129,16 @@ export const shouldSkipJsonValidation = (
  *   An object usually generated on render in inputBehaviors.tsx with information
  *   about the form and props. This is needed for passing to getPropSchemas().
  *
- * @return {Array} validation data.
- *   - [0] {boolean}: If true, then the validation passed
- *   - [1] {ValidationFunction|null} - for returns where [0] is potentially
- *         false, the validation function is also passed, which can access
- *         information about the failure.
- *         @see node_modules/ajv/lib/types::ValidateFunction
+ * @return {JsonSchemaValidationResult}
  */
-export function jsonValidate(
+export function validateProp(
   schemaName: string,
   data: any,
   inputAndUiData: InputUIData,
-): [boolean, ValidateFunction | null] {
+): JsonSchemaValidationResult {
   const schemas = getPropSchemas(inputAndUiData);
   if (schemas[schemaName]) {
-    const schema = schemas[schemaName];
-    if (schema.format && !ajv.formats[schema.format]) {
-      addFormats(ajv, [schema.format]);
-      if (!ajv.formats[schema.format]) {
-        console.warn(
-          `A field was not validated because the following schema format is not available: ${schema.format} `,
-        );
-        return [true, null];
-      }
-    }
-    const validate = ajv.compile(schema);
-    const valid = validate(data);
-    return [valid, validate];
+    return jsonSchemaValidate(data, schemas[schemaName]);
   }
   return [true, null];
 }

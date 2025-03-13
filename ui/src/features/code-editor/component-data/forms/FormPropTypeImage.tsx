@@ -138,7 +138,7 @@ export default function FormPropTypeImage({
   }, [aspectRatio, pixelDensity, dispatch, id]);
 
   return (
-    <Box flexGrow="1">
+    <Flex direction="column" gap="4" flexGrow="1">
       <Divider />
       <Flex gap="4" width="100%">
         <Box flexBasis="50%" flexShrink="0">
@@ -189,6 +189,6 @@ export default function FormPropTypeImage({
           </Box>
         )}
       </Flex>
-    </Box>
+    </Flex>
   );
 }

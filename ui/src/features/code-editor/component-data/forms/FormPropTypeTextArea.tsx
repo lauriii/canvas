@@ -1,4 +1,4 @@
-import { Box, TextArea } from '@radix-ui/themes';
+import { Flex, TextArea } from '@radix-ui/themes';
 import {
   FormElement,
   Label,
@@ -12,14 +12,13 @@ export default function FormPropTypeTextArea({
   id,
   example,
   isDisabled = false,
-  _ref,
-}: Pick<CodeComponentProp, 'id' | 'example' | '_ref'> & {
+}: Pick<CodeComponentProp, 'id' | 'example'> & {
   isDisabled?: boolean;
 }) {
   const dispatch = useAppDispatch();
 
   return (
-    <Box flexGrow="1">
+    <Flex direction="column" gap="4" flexGrow="1">
       <Divider />
       <FormElement>
         <Label htmlFor={`prop-example-${id}`}>Example value</Label>
@@ -34,7 +33,6 @@ export default function FormPropTypeTextArea({
                 id,
                 updates: {
                   example: e.target.value,
-                  _ref: _ref,
                 },
               }),
             )
@@ -42,6 +40,6 @@ export default function FormPropTypeTextArea({
           disabled={isDisabled}
         />
       </FormElement>
-    </Box>
+    </Flex>
   );
 }

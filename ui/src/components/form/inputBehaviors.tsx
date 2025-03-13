@@ -4,10 +4,10 @@ import { selectLatestUndoRedoActionId } from '@/features/ui/uiSlice';
 import {
   getDefaultValue,
   getNameAttributeBasedOnId,
-  jsonValidate,
+  validateProp,
   toPropName,
   getPropSchemas,
-  shouldSkipJsonValidation,
+  shouldSkipPropValidation,
   getPropsValues,
 } from '@/components/form/formUtil';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
@@ -321,8 +321,8 @@ const InputBehaviorsComponentPropsForm = (
 
   const validateNewValue = (e: React.ChangeEvent, newValue: any) => {
     const target = e.target as HTMLInputElement;
-    if (!shouldSkipJsonValidation(attributes.name, target, inputAndUiData)) {
-      const [valid, validate] = jsonValidate(
+    if (!shouldSkipPropValidation(attributes.name, target, inputAndUiData)) {
+      const [valid, validate] = validateProp(
         toPropName(attributes.name, selectedComponent),
         newValue,
         inputAndUiData,

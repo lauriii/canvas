@@ -1,6 +1,7 @@
 import { v4 as uuidv4 } from 'uuid';
 import { camelCase } from 'lodash';
 import getOverrideExampleData from '@/features/code-editor/component-data/getOverrideExampleData';
+import derivedPropTypes from '@/features/code-editor/component-data/derivedPropTypes';
 
 import type {
   CodeComponentProp,
@@ -149,18 +150,19 @@ export function getJsForExampleSlotsOverridePreview(block: string) {
 export function serializeProps(props: CodeComponentProp[]) {
   return props.reduce(
     (acc, prop) => {
-      const { name, type, example, enum: enumValues, _ref } = prop;
+      const { name, type, example, enum: enumValues, $ref, format } = prop;
       const isNumberType = ['integer', 'number'].includes(type);
       const processed: CodeComponentPropSerialized = {
         title: name,
         type,
-        ...(_ref && { $ref: _ref }),
         ...(example && {
           examples: [isNumberType ? Number(example) : example],
         }),
         ...(enumValues && {
           enum: isNumberType ? enumValues.map(Number) : enumValues,
         }),
+        ...($ref && { $ref }),
+        ...(format && { format }),
       };
       return { ...acc, [getPropMachineName(name)]: processed };
     },
@@ -184,7 +186,7 @@ export function deserializeProps(
     return [];
   }
   return Object.entries(props).map(([key, prop]) => {
-    const { title, type, examples, enum: enumValues, $ref } = prop;
+    const { title, type, examples, enum: enumValues, $ref, format } = prop;
     let example: CodeComponentProp['example'] = '';
     if (examples?.length) {
       example =
@@ -193,13 +195,18 @@ export function deserializeProps(
           : String(examples[0]);
     }
 
+    const derivedType =
+      derivedPropTypes.find((type) => type.derive(prop))?.type ?? null;
+
     return {
       id: uuidv4(),
       name: title,
       type,
       example,
       ...(enumValues && { enum: enumValues.map(String) }),
-      ...($ref && { _ref: $ref }),
+      ...($ref && { $ref }),
+      ...(format && { format }),
+      derivedType,
     };
   });
 }

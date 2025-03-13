@@ -145,6 +145,9 @@ export const codeEditorSlice = createSlice({
         name: '',
         type: 'string',
         example: '',
+        format: undefined,
+        $ref: undefined,
+        derivedType: 'text',
       });
     },
     updateProp: (

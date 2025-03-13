@@ -20,6 +20,7 @@ import {
 import FormPropTypeBoolean from '@/features/code-editor/component-data/forms/FormPropTypeBoolean';
 import FormPropTypeEnum from '@/features/code-editor/component-data/forms/FormPropTypeEnum';
 import FormPropTypeTextField from '@/features/code-editor/component-data/forms/FormPropTypeTextField';
+import FormPropTypeLink from '@/features/code-editor/component-data/forms/FormPropTypeLink';
 import FormPropTypeTextArea from '@/features/code-editor/component-data/forms/FormPropTypeTextArea';
 import FormPropTypeImage from '@/features/code-editor/component-data/forms/FormPropTypeImage';
 import SortableList from '@/features/code-editor/component-data/SortableList';
@@ -34,54 +35,7 @@ import type {
 import { getPropMachineName } from '@/features/code-editor/utils';
 import { InfoCircledIcon } from '@radix-ui/react-icons';
 
-type UiPropType = Omit<
-  CodeComponentProp,
-  'id' | 'example' | 'enum' | 'name'
-> & {
-  displayName: string;
-  isEnum?: boolean;
-};
-
-// The followings are actual types in the JavaScriptComponent config entity
-// schema for props: string, integer, number, boolean.
-// They can all support enums, which is an additional property in the schema.
-//
-// Here is a representation of the types for the UI.
-// @see config/schema/experience_builder.schema.yml#experience_builder.js_component.*.mapping.props
-const UI_PROP_TYPES: Record<string, UiPropType> = {
-  string: { type: 'string', displayName: 'Text' },
-  stringLong: {
-    type: 'string',
-    displayName: 'Text area',
-    _ref: 'json-schema-definitions://experience_builder.module/textarea',
-  },
-  integer: { type: 'integer', displayName: 'Integer' },
-  number: { type: 'number', displayName: 'Number' },
-  boolean: { type: 'boolean', displayName: 'Boolean' },
-  stringEnum: { type: 'string', displayName: 'List: text', isEnum: true },
-  integerEnum: { type: 'integer', displayName: 'List: integer', isEnum: true },
-  numberEnum: { type: 'number', displayName: 'List: number', isEnum: true },
-  image: {
-    type: 'object',
-    displayName: 'Image',
-    _ref: 'json-schema-definitions://experience_builder.module/image',
-  },
-};
-
-function getUIPropTypeKey(prop: CodeComponentProp) {
-  if (prop.enum) {
-    return `${prop.type}Enum`;
-  }
-  if (prop._ref) {
-    if (prop.type === 'string') {
-      return `${prop.type}Long`;
-    }
-    if (prop.type === 'object' && prop._ref.includes('image')) {
-      return 'image';
-    }
-  }
-  return prop.type;
-}
+import derivedPropTypes from '@/features/code-editor/component-data/derivedPropTypes';
 
 export default function Props() {
   const dispatch = useAppDispatch();
@@ -103,7 +57,6 @@ export default function Props() {
 
   const renderPropContent = (prop: CodeComponentProp) => {
     const propName = getPropMachineName(prop.name);
-    const uiPropTypeKey = getUIPropTypeKey(prop);
     return (
       <Flex direction="column" flexGrow="1">
         <Flex mb="4" gap="4" align="end" width="100%" wrap="wrap">
@@ -131,30 +84,35 @@ export default function Props() {
             <FormElement>
               <Label htmlFor={`prop-type-${prop.id}`}>Type</Label>
               <Select.Root
-                value={uiPropTypeKey}
+                value={prop.derivedType as string}
                 size="1"
                 onValueChange={(value) => {
-                  const uiProp =
-                    UI_PROP_TYPES[value as keyof typeof UI_PROP_TYPES];
-                  dispatch(
-                    updateProp({
-                      id: prop.id,
-                      updates: {
-                        type: uiProp.type as CodeComponentProp['type'],
-                        enum: uiProp.isEnum ? [] : undefined,
-                        example: uiProp.type === 'boolean' ? 'false' : '',
-                        _ref: uiProp._ref ? uiProp._ref : undefined,
-                      },
-                    }),
+                  const selectedPropType = derivedPropTypes.find(
+                    (item) => item.type === value,
                   );
+                  if (selectedPropType) {
+                    dispatch(
+                      updateProp({
+                        id: prop.id,
+                        updates: {
+                          derivedType: value,
+                          example: '',
+                          enum: undefined,
+                          $ref: undefined,
+                          format: undefined,
+                          ...selectedPropType.init,
+                        } as Partial<CodeComponentProp>,
+                      }),
+                    );
+                  }
                 }}
                 disabled={componentStatus}
               >
                 <Select.Trigger id={`prop-type-${prop.id}`} />
                 <Select.Content>
-                  {Object.entries(UI_PROP_TYPES).map(([key, value]) => (
-                    <Select.Item key={key} value={key}>
-                      {value.displayName}
+                  {derivedPropTypes.map((type) => (
+                    <Select.Item key={type.type} value={type.type}>
+                      {type.displayName}
                     </Select.Item>
                   ))}
                 </Select.Content>
@@ -182,65 +140,41 @@ export default function Props() {
         </Flex>
 
         {(() => {
-          switch (prop.type) {
-            case 'string':
-              return prop.enum ? (
-                <FormPropTypeEnum
-                  type="string"
+          switch (prop.derivedType) {
+            case 'text':
+            case 'integer':
+            case 'number':
+              return (
+                <FormPropTypeTextField
                   id={prop.id}
-                  required={required.includes(propName)}
-                  enum={prop.enum || []}
+                  type={prop.type as 'string' | 'number' | 'integer'}
                   example={prop.example as string}
                   isDisabled={componentStatus}
                 />
-              ) : prop._ref ? (
+              );
+            case 'textArea':
+              return (
                 <FormPropTypeTextArea
                   id={prop.id}
                   example={prop.example}
                   isDisabled={componentStatus}
-                  _ref={prop._ref}
                 />
-              ) : (
-                <FormPropTypeTextField
+              );
+            case 'link':
+              return (
+                <FormPropTypeLink
                   id={prop.id}
                   example={prop.example as string}
                   isDisabled={componentStatus}
                 />
               );
-            case 'integer':
-              return prop.enum ? (
-                <FormPropTypeEnum
-                  type="integer"
+            case 'image':
+              return (
+                <FormPropTypeImage
                   id={prop.id}
+                  example={prop.example as CodeComponentPropImageExample}
+                  isDisabled={componentStatus}
                   required={required.includes(propName)}
-                  enum={prop.enum || []}
-                  example={prop.example as string}
-                  isDisabled={componentStatus}
-                />
-              ) : (
-                <FormPropTypeTextField
-                  id={prop.id}
-                  example={prop.example as string}
-                  type="integer"
-                  isDisabled={componentStatus}
-                />
-              );
-            case 'number':
-              return prop.enum ? (
-                <FormPropTypeEnum
-                  type="number"
-                  id={prop.id}
-                  required={required.includes(propName)}
-                  enum={prop.enum || []}
-                  example={prop.example as string}
-                  isDisabled={componentStatus}
-                />
-              ) : (
-                <FormPropTypeTextField
-                  id={prop.id}
-                  example={prop.example as string}
-                  type="number"
-                  isDisabled={componentStatus}
                 />
               );
             case 'boolean':
@@ -251,20 +185,19 @@ export default function Props() {
                   isDisabled={componentStatus}
                 />
               );
-            case 'object':
-              if (prop._ref && prop._ref.includes('image')) {
-                return (
-                  <FormPropTypeImage
-                    id={prop.id}
-                    example={prop.example as CodeComponentPropImageExample}
-                    isDisabled={componentStatus}
-                    required={required.includes(propName)}
-                  />
-                );
-              }
-              break;
-            default:
-              return null;
+            case 'listText':
+            case 'listInteger':
+            case 'listNumber':
+              return (
+                <FormPropTypeEnum
+                  type={prop.type as 'string' | 'number' | 'integer'}
+                  id={prop.id}
+                  required={required.includes(propName)}
+                  enum={prop.enum || []}
+                  example={prop.example as string}
+                  isDisabled={componentStatus}
+                />
+              );
           }
         })()}
       </Flex>
@@ -292,7 +225,7 @@ export default function Props() {
         </Box>
       )}
       <SortableList
-        items={props}
+        items={props.filter((prop) => prop.derivedType !== null)}
         onAdd={handleAddProp}
         onReorder={handleReorder}
         onRemove={handleRemoveProp}
