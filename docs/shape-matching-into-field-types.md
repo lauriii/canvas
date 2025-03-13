@@ -1,3 +1,4 @@
+
 # Experience Builder's Shape Matching into Field Types
 
 In the rest of this document, `Experience Builder` will be written as `XB`.
@@ -136,6 +137,8 @@ See `\Drupal\experience_builder\PropSource\DynamicPropSource`.
 ⚠️ **Multiple** bits of `structured data` may be able to fit into a given `prop shape`. All viable choices are
 suggested by `\Drupal\experience_builder\ShapeMatcher\FieldForComponentSuggester`. The Content Creator or Site Builder
 will choose one.
+
+ℹ️ The completeness of this is tested by `\Drupal\Tests\experience_builder\Kernel\EcosystemSupport\FieldTypeSupportTest`.
 
 ##### 3.1.2.b `unstructured data` → generating `conjured field`s ⇒ `static prop source`
 

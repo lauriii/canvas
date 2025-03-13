@@ -11,8 +11,10 @@ declare(strict_types=1);
  */
 
 use Drupal\Core\Entity\EntityTypeInterface;
+use Drupal\experience_builder\Plugin\Field\FieldTypeOverride\DateRangeItemOverride;
 use Drupal\experience_builder\Plugin\Field\FieldTypeOverride\FileItemOverride;
 use Drupal\experience_builder\Plugin\Field\FieldTypeOverride\FileUriItemOverride;
+use Drupal\experience_builder\Plugin\Field\FieldTypeOverride\FloatItemOverride;
 use Drupal\experience_builder\Plugin\Field\FieldTypeOverride\ImageItemOverride;
 use Drupal\experience_builder\Plugin\Field\FieldTypeOverride\LinkItemOverride;
 use Drupal\experience_builder\Plugin\Field\FieldTypeOverride\ListIntegerItemOverride;
@@ -67,11 +69,17 @@ function experience_builder_validation_constraint_alter(array &$definitions): vo
  * Implements hook_field_info_alter().
  */
 function experience_builder_field_info_alter(array &$info): void {
+  if (!empty($info['daterange'])) {
+    $info['daterange']['class'] = DateRangeItemOverride::class;
+  }
   if (!empty($info['file'])) {
     $info['file']['class'] = FileItemOverride::class;
   }
   if (!empty($info['file_uri'])) {
     $info['file_uri']['class'] = FileUriItemOverride::class;
+  }
+  if (!empty($info['float'])) {
+    $info['float']['class'] = FloatItemOverride::class;
   }
   if (!empty($info['image'])) {
     $info['image']['class'] = ImageItemOverride::class;

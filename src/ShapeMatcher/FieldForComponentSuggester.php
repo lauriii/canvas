@@ -8,8 +8,11 @@ use Drupal\Core\Entity\EntityFieldManagerInterface;
 use Drupal\Core\Entity\EntityTypeBundleInfoInterface;
 use Drupal\Core\Entity\TypedData\EntityDataDefinitionInterface;
 use Drupal\Core\Field\FieldDefinitionInterface;
+use Drupal\Core\Field\TypedData\FieldItemDataDefinitionInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\Theme\ComponentPluginManager;
+use Drupal\Core\TypedData\DataDefinitionInterface;
+use Drupal\Core\TypedData\DataReferenceTargetDefinition;
 use Drupal\experience_builder\JsonSchemaInterpreter\SdcPropJsonSchemaType;
 use Drupal\experience_builder\Plugin\Adapter\AdapterInterface;
 use Drupal\experience_builder\PropExpressions\Component\ComponentPropExpression;
@@ -89,17 +92,47 @@ final class FieldForComponentSuggester {
         $field_definitions = $this->entityFieldManager->getFieldDefinitions($host_entity_type_id, $host_entity_type_bundle);
         $suggestions[$cpe]['instances'] = array_combine(
           array_map(
-          // @todo Defensive edge case: multiple field instances with the same label.
             function (FieldPropExpression|FieldObjectPropsExpression|ReferenceFieldPropExpression $e) use ($field_definitions, $host_entity_type_id, $host_entity_type_bundle) {
               $field_name = $e instanceof ReferenceFieldPropExpression
                 ? $e->referencer->fieldName
                 : $e->fieldName;
               $field_definition = $field_definitions[$field_name];
               assert($field_definition instanceof FieldDefinitionInterface);
-              return (string) $this->t("This @entity's @field-label", [
-                '@entity' => $this->entityTypeBundleInfo->getBundleInfo($host_entity_type_id)[$host_entity_type_bundle]['label'],
-                '@field-label' => $field_definition->getLabel(),
-              ]);
+              assert($field_definition->getItemDefinition() instanceof FieldItemDataDefinitionInterface);
+              // Generate a label for the suggestion:
+              // - one that points to the entity field if ALL field props are
+              //   present in the expression
+              // - one that describes the subset of the entity field otherwise,
+              //   with explicit (developer-friendly, user-overwhelming) info on
+              //   which field props are present vs absent.
+              // To correctly represent this, this must take into account what
+              // SdcPropToFieldTypePropMatcher may or may not match. It will
+              // never match:
+              // - DataReferenceTargetDefinition field props: it considers these
+              //   irrelevant; it's only the twin DataReferenceDefinition that
+              //   is relevant
+              // - props explicitly marked as internal
+              // @see \Drupal\Core\TypedData\DataDefinition::isInternal
+              $used_field_props = (array) static::getUsedFieldProps($e);
+              $relevant_field_props = array_filter(
+                $field_definition->getItemDefinition()->getPropertyDefinitions(),
+                // @phpstan-ignore-next-line
+                fn (DataDefinitionInterface $def) => !$def instanceof DataReferenceTargetDefinition && $def['internal'] !== TRUE,
+              );
+              return match (count($used_field_props)) {
+                count($relevant_field_props) => (string) $this->t("This @entity's @field-label", [
+                  '@entity' => $this->entityTypeBundleInfo->getBundleInfo($host_entity_type_id)[$host_entity_type_bundle]['label'],
+                  '@field-label' => $field_definition->getLabel(),
+                ]),
+                default => (string) $this->t("Subset of this @entity's @field-label: @field-prop-labels-used (@field-prop-used-count of @field-prop-total-count props — absent: @field-prop-labels-absent)", [
+                  '@entity' => $this->entityTypeBundleInfo->getBundleInfo($host_entity_type_id)[$host_entity_type_bundle]['label'],
+                  '@field-label' => $field_definition->getLabel(),
+                  '@field-prop-labels-used' => implode(', ', $used_field_props),
+                  '@field-prop-used-count' => count($used_field_props),
+                  '@field-prop-total-count' => count($relevant_field_props),
+                  '@field-prop-labels-absent' => implode(', ', array_diff(array_keys($relevant_field_props), $used_field_props)),
+                ])
+              };
             },
             $m['instances']
           ),
@@ -119,6 +152,17 @@ final class FieldForComponentSuggester {
     }
 
     return $suggestions;
+  }
+
+  public static function getUsedFieldProps(FieldPropExpression|ReferenceFieldPropExpression|FieldObjectPropsExpression $expr): string|array {
+    return match (get_class($expr)) {
+      FieldPropExpression::class => $expr->propName,
+      ReferenceFieldPropExpression::class => $expr->referencer->propName,
+      FieldObjectPropsExpression::class => array_map(
+        fn (FieldPropExpression|ReferenceFieldPropExpression $obj_expr) => self::getUsedFieldProps($obj_expr),
+        $expr->objectPropsToFieldProps
+      ),
+    };
   }
 
   /**

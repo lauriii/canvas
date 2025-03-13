@@ -230,6 +230,8 @@ Built-in transforms include:
 - `mediaSelection` - which will return 'selection' from input form values
 - `dateTime` - which will combine child `date` and `time` fields into a valid ISO-8601 datetime string
 
+ℹ️ The completeness of this is tested by `\Drupal\Tests\experience_builder\Kernel\EcosystemSupport\FieldWidgetSupportTest`.
+
 * Example *
 Let's say you have a widget plugin with ID 'trousers' for a field named `zipper`. When the form is built, the widget's form
 element ends up with the following HTML input:

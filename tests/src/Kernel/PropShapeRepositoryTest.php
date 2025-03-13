@@ -95,6 +95,7 @@ class PropShapeRepositoryTest extends KernelTestBase {
       new PropShape(['type' => 'integer', 'enum' => [1, 2]]),
       new PropShape(['type' => 'integer', 'maximum' => 2147483648, 'minimum' => -2147483648]),
       new PropShape(['type' => 'integer', 'minimum' => 0]),
+      new PropShape(['type' => 'number']),
       new PropShape(['type' => 'object', '$ref' => 'json-schema-definitions://experience_builder.module/image']),
       new PropShape(['type' => 'object', '$ref' => 'json-schema-definitions://experience_builder.module/shoe-icon']),
       new PropShape(['type' => 'object', '$ref' => 'json-schema-definitions://sdc_test_all_props.module/date-range']),
@@ -188,6 +189,11 @@ class PropShapeRepositoryTest extends KernelTestBase {
         fieldTypeProp: new FieldTypePropExpression('integer', 'value'),
         fieldWidget: 'number',
         fieldStorageSettings: ['min' => 0, 'max' => ''],
+      ),
+      'type=number' => new StorablePropShape(
+        shape: new PropShape(['type' => 'number']),
+        fieldTypeProp: new FieldTypePropExpression('float', 'value'),
+        fieldWidget: 'number',
       ),
       'type=string' => new StorablePropShape(
         shape: new PropShape(['type' => 'string']),

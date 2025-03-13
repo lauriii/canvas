@@ -11,11 +11,13 @@ use Drupal\Core\Entity\Plugin\DataType\EntityAdapter;
 use Drupal\Core\Entity\Plugin\DataType\EntityReference;
 use Drupal\Core\Entity\TypedData\EntityDataDefinition;
 use Drupal\Core\Entity\TypedData\EntityDataDefinitionInterface;
+use Drupal\Core\Field\BaseFieldDefinition;
 use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Field\FieldItemInterface;
 use Drupal\Core\Field\TypedData\FieldItemDataDefinitionInterface;
 use Drupal\Core\TypedData\DataDefinitionInterface;
 use Drupal\Core\TypedData\DataReferenceDefinitionInterface;
+use Drupal\Core\TypedData\DataReferenceTargetDefinition;
 use Drupal\Core\TypedData\Plugin\DataType\BooleanData;
 use Drupal\Core\TypedData\Plugin\DataType\FloatData;
 use Drupal\Core\TypedData\Plugin\DataType\IntegerData;
@@ -231,6 +233,23 @@ final class SdcPropToFieldTypePropMatcher {
       }
       $properties = $this->recurseDataDefinitionInterface($field_definition);
       foreach ($properties as $property_name => $property_definition) {
+        // Never match properties that are:
+        // 1. DataReferenceTargetDefinitions: these are the internal
+        //    implementation detail (typically named `target_id`) powering the
+        //    twin DataReferenceDefinitionInterface (typically named `entity`)
+        // 2. explicitly marked as internal (which means ::isInternal() cannot
+        //    be used, due to its fallback to ::isComputed())
+        // 3. on read-only non-computed base fields: these store non-user data such as the
+        //    monotonically increasing integer entity ID, bundle name, entity
+        //    UUID and so on.
+        //    For now, the "uuid" field, to allow testing that SDC prop shape.
+        // @phpstan-ignore-next-line
+        if ($property_definition instanceof DataReferenceTargetDefinition || $property_definition['internal'] === TRUE) {
+          continue;
+        }
+        if ($field_definition instanceof BaseFieldDefinition && $field_definition->getName() !== 'uuid' && $field_definition->isReadOnly() && !$property_definition->isComputed()) {
+          continue;
+        }
         $is_reference = $this->dataLeafIsReference($property_definition);
         if ($is_reference === NULL) {
           // Neither a reference nor a primitive.
