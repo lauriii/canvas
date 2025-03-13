@@ -127,6 +127,7 @@ const ListItem: React.FC<{
               sideOffset={24}
               align="start"
               className={styles.componentPreviewTooltipContent}
+              onClick={(e) => e.stopPropagation()}
             >
               <Theme>
                 {previewingComponent && !isMenuOpen && (
