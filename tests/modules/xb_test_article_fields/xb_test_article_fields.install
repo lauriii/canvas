@@ -1,0 +1,306 @@
+<?php
+
+/**
+ * @file
+ * Adds fields to the article content type.
+ */
+
+/* cspell:ignore xbt */
+
+declare(strict_types=1);
+
+use Drupal\field\Entity\FieldConfig;
+use Drupal\field\Entity\FieldStorageConfig;
+use Drupal\Core\Entity\Entity\EntityFormDisplay;
+
+/**
+ * Implements hook_install().
+ */
+function xb_test_article_fields_install(): void {
+  $fields = [
+    'field_xbt_comment' => [
+      'type' => 'comment',
+      'label' => 'XB Comments',
+      'settings' => [
+        'comment_type' => 'comment',
+      ],
+      'widget' => [
+        'type' => 'comment_default',
+        'settings' => [],
+      ],
+    ],
+    'field_xbt_daterange_datelist' => [
+      'type' => 'daterange',
+      'label' => 'XB Date Range (Datelist)',
+      'settings' => [
+        'datetime_type' => 'datetime',
+      ],
+      'widget' => [
+        'type' => 'daterange_datelist',
+        'settings' => [
+          'increment' => 15,
+          'date_order' => 'YMD',
+          'time_type' => '24',
+        ],
+      ],
+    ],
+    'field_xbt_daterange_default' => [
+      'type' => 'daterange',
+      'label' => 'XB Date Range (Default)',
+      'settings' => [
+        'datetime_type' => 'datetime',
+      ],
+      'widget' => [
+        'type' => 'daterange_default',
+        'settings' => [
+          'increment' => 15,
+        ],
+      ],
+    ],
+    'field_xbt_datetime_datelist' => [
+      'type' => 'datetime',
+      'label' => 'XB DateTime (Datelist)',
+      'settings' => [
+        'datetime_type' => 'datetime',
+      ],
+      'widget' => [
+        'type' => 'datetime_datelist',
+        'settings' => [
+          'increment' => 15,
+          'date_order' => 'YMD',
+          'time_type' => '24',
+        ],
+      ],
+    ],
+    'field_xbt_datetime_timestamp' => [
+      'type' => 'datetime',
+      'label' => 'XB DateTime (Timestamp)',
+      'settings' => [
+        'datetime_type' => 'datetime',
+      ],
+      'widget' => [
+        'type' => 'datetime_timestamp',
+        'settings' => [],
+      ],
+    ],
+    'field_xbt_entity_ref_auto' => [
+      'type' => 'entity_reference',
+      'label' => 'XB Entity Reference (Autocomplete)',
+      'settings' => [
+        'target_type' => 'node',
+        'handler' => 'default',
+      ],
+      'widget' => [
+        'type' => 'entity_reference_autocomplete',
+        'settings' => [
+          'match_operator' => 'CONTAINS',
+          'match_limit' => 10,
+          'size' => 60,
+          'placeholder' => '',
+        ],
+      ],
+    ],
+    'field_xbt_entity_ref_tags' => [
+      'type' => 'entity_reference',
+      'label' => 'XB Entity Reference (Tags)',
+      'settings' => [
+        'target_type' => 'taxonomy_term',
+        'handler' => 'default',
+      ],
+      'widget' => [
+        'type' => 'entity_reference_autocomplete_tags',
+        'settings' => [
+          'match_operator' => 'CONTAINS',
+          'match_limit' => 10,
+          'size' => 60,
+          'placeholder' => '',
+        ],
+      ],
+    ],
+    'field_xbt_file' => [
+      'type' => 'file',
+      'label' => 'XB File',
+      'settings' => [
+        'file_directory' => 'xb_files',
+      ],
+      'widget' => [
+        'type' => 'file_generic',
+        'settings' => [
+          'progress_indicator' => 'throbber',
+        ],
+      ],
+    ],
+    'field_xbt_language' => [
+      'type' => 'language',
+      'label' => 'XB Language',
+      'settings' => [],
+      'widget' => [
+        'type' => 'language_select',
+        'settings' => [],
+      ],
+    ],
+    'field_xbt_moderation_state' => [
+      'type' => 'string',
+      'label' => 'XB Moderation State',
+      'settings' => [],
+      'widget' => [
+        'type' => 'moderation_state_default',
+        'settings' => [],
+      ],
+    ],
+    'field_xbt_oembed' => [
+      'type' => 'string',
+      'label' => 'XB oEmbed',
+      'settings' => [],
+      'widget' => [
+        'type' => 'oembed_textfield',
+        'settings' => [
+          'size' => 60,
+          'placeholder' => '',
+        ],
+      ],
+    ],
+    'field_xbt_options_buttons' => [
+      'type' => 'list_string',
+      'label' => 'XB Options (Buttons)',
+      'settings' => [
+        'allowed_values' => [
+          'option1' => 'Option 1',
+          'option2' => 'Option 2',
+          'option3' => 'Option 3',
+        ],
+      ],
+      'widget' => [
+        'type' => 'options_buttons',
+        'settings' => [],
+      ],
+    ],
+    'field_xbt_path' => [
+      'type' => 'path',
+      'label' => 'XB Path',
+      'settings' => [],
+      'widget' => [
+        'type' => 'path',
+        'settings' => [
+          'show_uri' => FALSE,
+        ],
+      ],
+    ],
+    'field_xbt_telephone' => [
+      'type' => 'telephone',
+      'label' => 'XB Telephone',
+      'settings' => [],
+      'widget' => [
+        'type' => 'telephone_default',
+        'settings' => [
+          'placeholder' => '',
+        ],
+      ],
+    ],
+    'field_xbt_textarea' => [
+      'type' => 'text_long',
+      'label' => 'XB Text Area',
+      'settings' => [],
+      'widget' => [
+        'type' => 'text_textarea',
+        'settings' => [
+          'rows' => 5,
+          'placeholder' => '',
+        ],
+      ],
+    ],
+    'field_xbt_textarea_summary' => [
+      'type' => 'text_with_summary',
+      'label' => 'XB Text Area with Summary',
+      'settings' => [],
+      'widget' => [
+        'type' => 'text_textarea_with_summary',
+        'settings' => [
+          'rows' => 9,
+          'summary_rows' => 3,
+          'placeholder' => '',
+        ],
+      ],
+    ],
+    'field_xbt_textfield' => [
+      'type' => 'string',
+      'label' => 'XB Text Field',
+      'settings' => [],
+      'widget' => [
+        'type' => 'text_textfield',
+        'settings' => [
+          'size' => 60,
+          'placeholder' => '',
+        ],
+      ],
+    ],
+    'field_xbt_uri' => [
+      'type' => 'uri',
+      'label' => 'XB URI',
+      'settings' => [],
+      'widget' => [
+        'type' => 'uri',
+        'settings' => [
+          'size' => 60,
+          'placeholder' => '',
+        ],
+      ],
+    ],
+  ];
+
+  $form_display = EntityFormDisplay::load('node.article.default');
+  if (!$form_display) {
+    $form_display = EntityFormDisplay::create([
+      'targetEntityType' => 'node',
+      'bundle' => 'article',
+      'mode' => 'default',
+      'status' => TRUE,
+    ]);
+  }
+
+  foreach ($fields as $field_name => $field_info) {
+    if (!FieldStorageConfig::loadByName('node', $field_name)) {
+      FieldStorageConfig::create([
+        'field_name' => $field_name,
+        'entity_type' => 'node',
+        'type' => $field_info['type'],
+        'settings' => $field_info['settings'],
+        'cardinality' => 1,
+      ])->save();
+    }
+
+    if (!FieldConfig::loadByName('node', 'article', $field_name)) {
+      FieldConfig::create([
+        'field_name' => $field_name,
+        'entity_type' => 'node',
+        'bundle' => 'article',
+        'label' => $field_info['label'],
+        'settings' => $field_info['settings'],
+      ])->save();
+    }
+
+    $form_display->setComponent($field_name, [
+      'type' => $field_info['widget']['type'],
+      'settings' => $field_info['widget']['settings'],
+      'weight' => 0,
+    ]);
+  }
+
+  $form_display->save();
+}
+
+/**
+ * Implements hook_uninstall().
+ */
+function xb_test_article_fields_uninstall(): void {
+  $field_storages = \Drupal::entityTypeManager()
+    ->getStorage('field_storage_config')
+    ->loadByProperties(['entity_type' => 'node']);
+
+  // Delete fields that start with 'field_xbt_'.
+  foreach ($field_storages as $field_storage) {
+    if (strpos($field_storage->getName(), 'field_xbt_') === 0) {
+      $field_storage->delete();
+    }
+  }
+}

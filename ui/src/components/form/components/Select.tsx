@@ -1,6 +1,7 @@
 import type { Attributes } from '@/types/DrupalAttribute';
 
 import { Select as SelectRadixThemes } from '@radix-ui/themes';
+import { SELECT_ITEM_EMPTY_STRING } from '@/utils/function-utils';
 
 import styles from './Select.module.css';
 
@@ -28,7 +29,13 @@ const Select = ({
       />
       <SelectRadixThemes.Content>
         {options?.map((option, index) => (
-          <SelectRadixThemes.Item key={index} value={option.value}>
+          // Radix select items can't accept empty strings in the value prop, so
+          // use a placeholder that the onChange callback will convert back to
+          // an empty string when selected.
+          <SelectRadixThemes.Item
+            key={index}
+            value={option.value || SELECT_ITEM_EMPTY_STRING}
+          >
             {option.label}
           </SelectRadixThemes.Item>
         ))}
