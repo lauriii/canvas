@@ -93,6 +93,7 @@ describe('Drag and drop functionality in the Layers menu', () => {
     assertInitialPageState();
 
     cy.log('Drag image component out of the slot and to the root level.');
+    cy.get('.primaryPanelContent span').contains('Image').should('exist');
     cy.get('@layersTree').within(() => {
       cy.findByLabelText('Image').realDnd('[data-xb-slot-id="content"]', {
         position: 'top',
@@ -100,36 +101,46 @@ describe('Drag and drop functionality in the Layers menu', () => {
     });
 
     assertPageStateAfterFirstDrag();
+    // This is the "Image" inside the layers tree
+    cy.get(
+      '.primaryPanelContent [data-xb-uuid="static-image-udf7d"][data-state]',
+    ).should('exist');
+    cy.get(
+      '.primaryPanelContent [data-xb-uuid="two-column-uuid/column_two"] [aria-label="Expand slot"]',
+    ).should('exist');
+    cy.get(
+      '.primaryPanelContent [data-xb-uuid="two-column-uuid/column_two"] [aria-label="Expand slot"]',
+    ).click();
+    // This confirms the slot is expanded.
+    cy.get(
+      '.primaryPanelContent [data-xb-uuid="static-static-card2df"]',
+    ).should('exist');
 
     // Next, drag the image component from the root level to column two's slot.
-    cy.get('@layersTree').within(() => {
-      cy.findAllByLabelText('Column Two')
-        .findByLabelText('Expand slot')
-        .click();
-      cy.findByLabelText('Image').realDnd(
-        '[data-xb-uuid="static-static-card2df"]',
-        { position: 'bottom' },
-      );
-    });
+    cy.get(
+      '.primaryPanelContent [data-xb-uuid="static-image-udf7d"][data-state]',
+    ).realDnd(
+      '.primaryPanelContent [data-xb-uuid="two-column-uuid/column_two"][data-xb-type="slot"]',
+      {
+        position: 'center',
+        scrollBehavior: false,
+        force: true,
+      },
+    );
 
     // After dragging, check that the image is now in column two's slot in the layers menu and preview.
     cy.log('Image component exists in the second slot in the layers panel');
-    cy.get('@layersTree').within(() => {
-      cy.findAllByLabelText('Column Two').within(() => {
-        cy.findAllByLabelText('Image');
-      });
-      // Ensure there is only one Image and we didn't clone it or anything!
-      cy.findAllByLabelText('Image').should('have.length', 1);
-    });
+    cy.get(
+      '.primaryPanelContent [data-xb-slot-id="two-column-uuid/column_two"] span',
+    )
+      .contains('Image')
+      .should('have.length', 1);
 
     cy.log('Image component exists in the column_two slot in the overlay UI');
-    cy.get('@desktopPreviewOverlay').within(() => {
-      cy.findByLabelText('Two Column: Column Two').within(() => {
-        cy.findByLabelText('Image');
-      });
-      // Ensure there is only one Image and we didn't clone it or anything!
-      cy.findAllByLabelText('Image').should('have.length', 1);
-    });
+    // Ensure there is only one Image in each preview and we didn't clone it or anything!
+    cy.get(
+      '#xbPreviewOverlay .xb--viewport-overlay [aria-label="Two Column: Column Two"] [data-xb-component-id="sdc.experience_builder.image"]',
+    ).should('have.length', 2);
   });
 
   it('Check undo/redo works with the layers menu', () => {

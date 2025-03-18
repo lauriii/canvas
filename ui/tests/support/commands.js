@@ -934,6 +934,11 @@ Cypress.Commands.add('editHeroComponent', () => {
     cy.findByLabelText(label).focus();
     cy.findByLabelText(label).clear();
     cy.findByLabelText(label).type(newValues[label]);
+    // If an autocomplete field is updated without choosing an autocomplete
+    // suggestion, it will not update the store + preview until it is blurred.
+    if (label === 'CTA 1 link') {
+      cy.findByLabelText('Heading').focus();
+    }
     // Wait for completion of the request triggered by our typing. This
     // ensures that the `testInIframe` ~10 lines down is working with an iframe that
     // has fully responded to these value changes.

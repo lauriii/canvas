@@ -2,6 +2,8 @@ adrs
 apikey
 astrojs
 atrule
+autocompletesearch
+autocompleteselect
 autolayout
 !autosave # Use "auto-save", "AutoSave", or "auto_save" instead.
 !Autosave # Use "auto-save", "AutoSave", or "auto_save" instead.

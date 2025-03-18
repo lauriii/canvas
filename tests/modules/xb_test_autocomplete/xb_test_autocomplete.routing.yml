@@ -1,0 +1,6 @@
+some.autocomplete.results:
+  path: '/xb-test-autocomplete/result'
+  defaults:
+    _controller: '\Drupal\xb_test_autocomplete\Controller\AutocompleteController::result'
+  requirements:
+    _permission: 'access administration pages'

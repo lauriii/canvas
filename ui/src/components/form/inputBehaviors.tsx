@@ -162,6 +162,15 @@ const InputBehaviorsCommon = ({
       const newValue = parseNewValue(e);
       // Update the value of the input in the local state.
       setInputValue(newValue);
+
+      // The data-xb-no-update indicates we should return early and not update the
+      // store.
+      if (
+        typeof e?.target?.hasAttribute === 'function' &&
+        e.target.hasAttribute('data-xb-no-update')
+      ) {
+        return;
+      }
       // Update the value of the input in the Redux store.
       if (formId) {
         dispatch(

@@ -21,8 +21,13 @@ xb-ui:
     - core/internal.jquery.form
     - experience_builder/ajax.hyperscriptify
     - experience_builder/ajax.custom
+    - experience_builder/autocomplete.extended
   drupalSettings:
     xb: { layoutUtils: [], navUtils: [] }
+
+autocomplete.extended:
+  js:
+    js/autocomplete.extend.js: { }
 
 xb.drupal.dialog.ajax:
   dependencies:

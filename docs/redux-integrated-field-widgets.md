@@ -90,6 +90,10 @@ export default inputBehaviors(Input);
 - Value changes are also written to the [formState slice](../ui/src/features/form/formStateSlice.ts)
 - Applies 'transforms' (see [3.4 Transforms](#34-transforms)) in order to map the data from the form structure to the expected value
 
+*Note:* The presence of the `data-xb-no-update` attribute on an input will stop it
+from updating the [formState slice](../ui/src/features/form/formStateSlice.ts) / applying
+transforms / updating the preview. This can be useful for scenarios such as autocomplete inputs, where there's little benefit in updating the store & preview with partial values and this attribute
+is present while composing, but removed when the final value is present.
 
 #### 3.2.1 Source vs resolved input
 

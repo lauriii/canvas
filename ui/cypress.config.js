@@ -46,6 +46,7 @@ export default defineConfig({
     debugPauses: false,
   },
   e2e: {
+    experimentalRunAllSpecs: true,
     baseUrl: process.env.BASE_URL,
     setupNodeEvents(on, config) {
       installLogsPrinter(on);
