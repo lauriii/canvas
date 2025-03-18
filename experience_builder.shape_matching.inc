@@ -41,7 +41,7 @@ function experience_builder_validation_constraint_alter(array &$definitions): vo
     $definitions['Hostname'] = [
       'label' => 'Hostname',
       'class' => Hostname::class,
-      'type' => 'string',
+      'type' => ['string'],
       'provider' => 'core',
       'id' => 'Hostname',
     ];
@@ -50,7 +50,7 @@ function experience_builder_validation_constraint_alter(array &$definitions): vo
     $definitions['Ip'] = [
       'label' => 'IP address',
       'class' => Ip::class,
-      'type' => 'string',
+      'type' => ['string'],
       'provider' => 'core',
       'id' => 'Ip',
     ];
@@ -58,7 +58,7 @@ function experience_builder_validation_constraint_alter(array &$definitions): vo
     $definitions['NotEqualTo'] = [
       'label' => 'Not equal to',
       'class' => NotEqualTo::class,
-      'type' => 'string',
+      'type' => ['string'],
       'provider' => 'core',
       'id' => 'NotEqualTo',
     ];
