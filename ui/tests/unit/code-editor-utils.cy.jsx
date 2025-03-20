@@ -58,10 +58,12 @@ chai.Assertion.addMethod('matchDeserializedProps', function (props) {
 
   // Compare the rest of the props by removing IDs first
   const actualWithoutIds = this._obj.map((prop) => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { id, ...rest } = prop;
     return rest;
   });
   const expectedWithoutIds = expected.map((prop) => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { id, ...rest } = prop;
     return rest;
   });

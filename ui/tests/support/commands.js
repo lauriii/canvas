@@ -1,5 +1,5 @@
 import '@testing-library/cypress/add-commands.js';
-import { realType } from 'cypress-real-events'; // eslint-disable-line no-unused-vars
+import { realType } from 'cypress-real-events'; // eslint-disable-line  @typescript-eslint/no-unused-vars
 import { realDnd } from './realDnd.js';
 import { onlyVisibleChars } from './utils.js';
 

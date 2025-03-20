@@ -20,6 +20,7 @@ const DrupalSelect = ({
   }[];
 }) => {
   const defaultValue = options?.filter((option) => option.selected)?.[0]?.value;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { value, onChange, ...remainingAttributes } = attributes;
   return (
     <Select

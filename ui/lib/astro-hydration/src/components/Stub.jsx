@@ -1,4 +1,4 @@
-/* eslint-disable no-unused-vars, import/no-anonymous-default-export */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /* Add any additional functions/hooks to expose to in-browser JS components here.
 
   In order to have Astro bundle code with un-minified names, we use dynamic imports in this Stub component.
