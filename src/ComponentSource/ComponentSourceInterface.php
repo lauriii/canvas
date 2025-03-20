@@ -134,7 +134,6 @@ interface ComponentSourceInterface extends PluginInspectionInterface, Derivative
    *   Client side metadata including a build array for the default markup.
    *
    * @see \Drupal\experience_builder\Controller\ApiComponentsController
-   * @todo Refine in https://www.drupal.org/project/experience_builder/issues/3484678
    */
   public function getClientSideInfo(Component $component): array;
 
