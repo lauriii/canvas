@@ -37,14 +37,16 @@ class ComponentTreeHydrated extends TypedData implements CacheableDependencyInte
 
     $hydrated = [];
 
+    // Load all unique Components used in this tree in a single query.
+    $components = Component::loadMultiple($tree->getComponentIdList());
+
     // Hydrate all component instances, but only considering props. This
     // essentially means getting the values for each component instance, while
     // ignoring their slots. The result: a flat list of hydrated components, but
     // with all slots empty.
-    // @todo This should use ::loadMultiple for performance sake.
     foreach ($tree->getComponentInstanceUuids() as $uuid) {
       $component_id = $tree->getComponentId($uuid);
-      $component = Component::load($component_id);
+      $component = $components[$component_id];
       assert($component instanceof Component);
 
       $source = $component->getComponentSource();
