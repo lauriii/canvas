@@ -13,6 +13,7 @@ ini_set('assert.active', 1);
 use Drupal\Component\Serialization\Json;
 use Drupal\Core\Block\BlockManagerInterface;
 use Drupal\Core\Entity\Display\EntityFormDisplayInterface;
+use Drupal\Core\Entity\EntityForm;
 use Drupal\Core\Entity\EntityPublishedInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Entity\TypedData\EntityDataDefinition;
@@ -56,7 +57,8 @@ function experience_builder_form_alter(array &$form, FormStateInterface $form_st
   experience_builder_force_render_with_twig_form_alter($form, $form_state, $form_id);
 
   $route_name = \Drupal::routeMatch()->getRouteName();
-  if ($route_name === 'experience_builder.api.form.content_entity') {
+  $form_object = $form_state->getFormObject();
+  if ($route_name === 'experience_builder.api.form.content_entity' && $form_object instanceof EntityForm) {
     // Hide submit buttons on the entity form accessed via the XB app.
     $form['actions']['#access'] = FALSE;
     // Add form ID to elements.
@@ -409,6 +411,11 @@ function _experience_builder_convert_dependencies(array &$main_new_library, arra
       unset($main_new_library['dependencies'][$key]);
       $more_dependencies = $dependency_definition['dependencies'] ?? [];
       _experience_builder_convert_dependencies($main_new_library, $added_libraries, $xb_replacing_cores, $more_dependencies, $existing_libraries, $prefix);
+      foreach ($added_libraries[$new_library_name]['dependencies'] as $child_dependency) {
+        if (\array_key_exists($child_dependency, $xb_replacing_cores)) {
+          $added_libraries[$new_library_name]['dependencies'][] = 'experience_builder/' . $xb_replacing_cores[$child_dependency];
+        }
+      }
     }
   }
 }

@@ -46,6 +46,8 @@ import type { XBComponent } from '@/types/Component';
 import { componentHasFieldData } from '@/types/Component';
 import { FORM_TYPES } from '@/features/form/constants';
 import { useUpdateComponentMutation } from '@/services/preview';
+import type { AjaxUpdateFormBuildIdEvent } from '@/types/Ajax';
+import { AJAX_UPDATE_FORM_BUILD_ID_EVENT } from '@/types/Ajax';
 
 const ajv = new Ajv();
 addDraft2019(ajv);
@@ -125,6 +127,38 @@ const InputBehaviorsCommon = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  useEffect(() => {
+    // Special handling for the form_build_id which can be updated by an ajax
+    // callback without using hyperscriptify to render a new React component.
+    if (fieldName !== 'form_build_id') {
+      return;
+    }
+    // Listen for changes to the form build ID so we can update that in
+    // our form state and value.
+    const formBuildIdListener = (e: AjaxUpdateFormBuildIdEvent) => {
+      if (e.detail.formId === formId) {
+        dispatch(
+          setFieldValue({
+            formId,
+            fieldName,
+            value: e.detail.newFormBuildId,
+          }),
+        );
+        setInputValue(e.detail.newFormBuildId);
+      }
+    };
+    document.addEventListener(
+      AJAX_UPDATE_FORM_BUILD_ID_EVENT,
+      formBuildIdListener as unknown as EventListener,
+    );
+    return () => {
+      document.removeEventListener(
+        AJAX_UPDATE_FORM_BUILD_ID_EVENT,
+        formBuildIdListener as unknown as EventListener,
+      );
+    };
+  }, [dispatch, fieldName, formId, setInputValue]);
+
   // Use debounce to prevent excessive repaints of the layout.
   const debounceStoreUpdate = debounce(
     commitFormState,
@@ -139,7 +173,11 @@ const InputBehaviorsCommon = ({
     [],
   );
 
-  if (['hidden', 'submit'].includes(attributes.type as string)) {
+  // Don't track the value of hidden fields except for form_build_id.
+  if (
+    ['hidden', 'submit'].includes(attributes.type as string) &&
+    fieldName !== 'form_build_id'
+  ) {
     attributes.readOnly = '';
   } else if (!attributes['data-drupal-uncontrolled']) {
     // If the input is not explicitly set as uncontrolled, its state should
@@ -366,20 +404,27 @@ const InputBehaviorsEntityForm = (
   const dispatch = useAppDispatch();
   const pageData = useAppSelector(selectPageData);
   const latestUndoRedoActionId = useAppSelector(selectLatestUndoRedoActionId);
+  const formState = useAppSelector((state) =>
+    selectFormValues(state, FORM_TYPES.ENTITY_FORM),
+  );
 
   const { attributes } = props;
 
-  if (
-    !['form_id', 'form_build_id', 'form_token', 'changed'].includes(
-      attributes.name,
-    )
-  ) {
-    const newValue =
+  if (!['changed'].includes(attributes.name)) {
+    let newValue =
       pageData[attributes.name || getNameAttributeBasedOnId(attributes.id)] ||
       null;
 
+    if (attributes.name === 'form_build_id' && 'form_build_id' in formState) {
+      // We always take the latest form_build_id value from form state.
+      // We have an event listener in the generic inputBehaviors to react to
+      // the update_build_id Ajax command, but that event can fire while the
+      // input is not yet mounted, which can result in a stale form_build_id
+      // being used.
+      newValue = formState.form_build_id;
+    }
+
     // @todo Handle the revision form elements on nodes.
-    // @todo Handle media fields.
     // @todo Handle `date` and `time` inputs.
 
     if (!['radio', 'hidden', 'submit'].includes(attributes.type as string)) {
@@ -393,10 +438,7 @@ const InputBehaviorsEntityForm = (
   const formStateToStore = (newFormState: PropsValues) => {
     const values = Object.keys(newFormState).reduce(
       (acc: Record<string, any>, key) => {
-        if (
-          !['changed', 'formId', 'formType'].includes(key) &&
-          !key.startsWith('form_')
-        ) {
+        if (!['changed', 'formId', 'formType'].includes(key)) {
           return { ...acc, [key]: newFormState[key] };
         }
         return acc;

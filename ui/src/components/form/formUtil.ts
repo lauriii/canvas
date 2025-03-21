@@ -12,6 +12,7 @@ import transforms from '@/utils/transforms';
 import qs from 'qs';
 import addDraft2019 from 'ajv-formats-draft2019';
 const ajv = new Ajv();
+addFormats(ajv);
 addDraft2019(ajv);
 
 /**

@@ -16,6 +16,14 @@ class ImageItemOverride extends ImageItem {
   /**
    * {@inheritdoc}
    */
+  public static function defaultStorageSettings(): array {
+    // @todo Remove once https://drupal.org/i/3513317 is fixed.
+    return ['display_default' => TRUE] + parent::defaultStorageSettings();
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public static function propertyDefinitions(FieldStorageDefinitionInterface $field_definition) {
     $properties = parent::propertyDefinitions($field_definition);
     $properties['alt']->addConstraint('StringSemantics', StringSemanticsConstraint::PROSE);

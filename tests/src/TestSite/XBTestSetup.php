@@ -62,7 +62,13 @@ class XBTestSetup implements TestSetupInterface {
       'name' => 'Article',
     ]);
     $type->save();
-    $this->createImageField('field_hero', 'node', 'article');
+    $this->createImageField('field_hero', 'node', 'article', storage_settings: [
+      // @todo Remove once https://drupal.org/i/3513317 is fixed.
+      // We cannot rely on the override because experience_builder module is not
+      // yet installed so need to manually specify it here for testing sake.
+      // @see \Drupal\experience_builder\Plugin\Field\FieldTypeOverride\ImageItemOverride::defaultStorageSettings
+      'display_default' => TRUE,
+    ]);
 
     // The `image` media type must be installed before
     // media_library_storage_prop_shape_alter() is invoked, which it is after
@@ -290,7 +296,12 @@ class XBTestSetup implements TestSetupInterface {
       'bundle' => 'article',
       'field_type' => 'entity_reference',
       'required' => FALSE,
-      'settings' => [],
+      'settings' => [
+        'handler' => 'default',
+        'handler_settings' => [
+          'target_bundles' => ['image'],
+        ],
+      ],
     ])->save();
     $display_repository = \Drupal::service('entity_display.repository');
     $display_repository->getFormDisplay('node', 'article')
@@ -401,6 +412,7 @@ class XBTestSetup implements TestSetupInterface {
         'access media overview',
         'view media',
         'create media',
+        'edit any article content',
         'create article content',
         'administer xb_page',
         'administer url aliases',

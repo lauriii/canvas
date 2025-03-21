@@ -50,6 +50,7 @@ final class MediaLibrariesBuildTest extends KernelTestBase {
     self::assertArrayHasKey('xb.drupal', $discovered);
     self::assertArrayHasKey('xb.drupalSettings', $discovered);
     self::assertArrayHasKey('xb.drupal.displace', $discovered);
+    self::assertArrayHasKey('xb.drupal.announce', $discovered);
     self::assertArrayHasKey('xb.once', $discovered);
     self::assertArrayHasKey('xb.drupal.jquery.position', $discovered);
     self::assertArrayHasKey('xb.tabbable', $discovered);
@@ -111,6 +112,9 @@ final class MediaLibrariesBuildTest extends KernelTestBase {
       $actual = \array_column($group_items, 'data');
       self::assertEquals($expected, $actual);
     }
+
+    $announce = $discovered['xb.drupal.announce'];
+    self::assertContains('experience_builder/xb.drupal.debounce', $announce['dependencies']);
   }
 
 }

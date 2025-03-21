@@ -383,6 +383,57 @@
         // theme rendered dialog, use default `add_css` from ajax.js.
         return originalAddCss.apply(this, args);
       }
+
+      /**
+       * Override the update_build_id command to trigger a `ajaxUpdateFormBuildId` event.
+       *
+       * The event properties are:
+       * - `formId`: the ID of the form whose build ID is being updated
+       * - `oldFormBuildId`: the previous build ID
+       * - `newFormBuildId`: the new build ID
+       */
+      const originalUpdateBuildId = Drupal.AjaxCommands.prototype.update_build_id;
+
+      /**
+       * A map to keep track of the association between form build ID and the
+       * form ID.
+       *
+       * @type {{}}
+       */
+      const formBuildIdMap = {};
+
+      const getFormId = (oldId) => {
+        const oldInput = document.querySelector(`input[name="form_build_id"][value="${oldId}"]`);
+        if (oldInput) {
+          // We found an existing input with the old form ID. We can retrieve
+          // the formId from the data-form-id attribute.
+          return oldInput.dataset.formId;
+        }
+        // We may have encountered this form build ID before and have a record
+        // of the form it relates to saved.
+        if (oldId in formBuildIdMap) {
+          return formBuildIdMap[oldId];
+        }
+        return null;
+      }
+
+      Drupal.AjaxCommands.prototype.update_build_id = function(...args) {
+        const [, response] = args;
+        const formId = getFormId(response.old);
+        if (!formId) {
+          return;
+        }
+        // Keep a record of the association between these form build IDs and the
+        // form ID they relate to.
+        formBuildIdMap[response.old] = formId;
+        formBuildIdMap[response.new] = formId;
+        originalUpdateBuildId.apply(this, args);
+        // Notify the application that the form build ID has changed.
+        const event = new CustomEvent('ajaxUpdateFormBuildId', {
+          detail: { oldFormBuildId: response.old, newFormBuildId: response.new, formId }
+        });
+        document.dispatchEvent(event);
+      };
     }
   }
 })(Drupal, csstree);

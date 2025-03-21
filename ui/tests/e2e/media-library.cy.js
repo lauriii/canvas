@@ -1,4 +1,27 @@
-const testMediaLibrary = (cy) => {
+import { queries } from '@testing-library/dom';
+
+const iterations = [
+  {
+    removeText: 'Remove The bones are their money',
+    selectNewText: 'Select Sorry I resemble a dog',
+    removeAriaLabel: 'Remove Sorry I resemble a dog',
+    expectedAlt: 'My barber may have been looking at a picture of a dog',
+  },
+  {
+    removeText: 'Remove Sorry I resemble a dog',
+    selectNewText: 'Select The bones are their money',
+    removeAriaLabel: 'Remove The bones are their money',
+    expectedAlt: 'The bones equal dollars',
+  },
+  {
+    removeText: 'Remove The bones are their money',
+    selectNewText: 'Select Sorry I resemble a dog',
+    removeAriaLabel: 'Remove Sorry I resemble a dog',
+    expectedAlt: 'My barber may have been looking at a picture of a dog',
+  },
+];
+
+const testMediaLibraryInComponentInstanceForm = (cy) => {
   cy.get('div[role="dialog"]').should('exist');
   cy.findByLabelText('Select The bones are their money').check();
   cy.get('button:contains("Insert selected")').click();
@@ -17,27 +40,6 @@ const testMediaLibrary = (cy) => {
   // click back again.
   cy.clickComponentInPreview('Image', 1);
   cy.clickComponentInPreview('Image');
-
-  const iterations = [
-    {
-      removeText: 'Remove The bones are their money',
-      selectNewText: 'Select Sorry I resemble a dog',
-      removeAriaLabel: 'Remove Sorry I resemble a dog',
-      expectedAlt: 'My barber may have been looking at a picture of a dog',
-    },
-    {
-      removeText: 'Remove Sorry I resemble a dog',
-      selectNewText: 'Select The bones are their money',
-      removeAriaLabel: 'Remove The bones are their money',
-      expectedAlt: 'The bones equal dollars',
-    },
-    {
-      removeText: 'Remove The bones are their money',
-      selectNewText: 'Select Sorry I resemble a dog',
-      removeAriaLabel: 'Remove Sorry I resemble a dog',
-      expectedAlt: 'My barber may have been looking at a picture of a dog',
-    },
-  ];
 
   iterations.forEach((step) => {
     cy.get('[class*="contextualPanel"]').should('exist');
@@ -64,9 +66,113 @@ const testMediaLibrary = (cy) => {
   });
 };
 
+const testMediaLibraryInEntityForm = (cy, loadOptions = {}, title) => {
+  cy.drupalLogin('xbUser', 'xbUser');
+  cy.loadURLandWaitForXBLoaded(loadOptions);
+
+  cy.findByTestId('xb-contextual-panel--page-data').should(
+    'have.attr',
+    'data-state',
+    'active',
+  );
+  cy.findByTestId('xb-page-data-form').as('entityForm');
+  // Log all ajax form requests to help with debugging.
+  cy.intercept('POST', '**/xb/api/form/content-entity/**');
+  // Make a record of the starting form build ID for the form
+  cy.get('@entityForm').recordFormBuildId();
+
+  // Perform media operations.
+  iterations.forEach((step, ix) => {
+    cy.findByRole('dialog').should('not.exist');
+    cy.get('@entityForm').findByRole(step.expectedAlt).should('not.exist');
+    if (ix > 0) {
+      cy.intercept('POST', '**/xb/api/layout/**').as('updatePreview');
+      cy.get('@entityForm')
+        .findByRole('button', { name: step.removeText })
+        .should('exist')
+        .click();
+      // Wait for the preview to finish loading.
+      cy.wait('@updatePreview');
+      cy.findByLabelText('Loading Preview').should('not.exist');
+      cy.get('@entityForm').shouldHaveUpdatedFormBuildId();
+    }
+    cy.get('@entityForm')
+      .findByRole('button', { name: 'Add media', timeout: 10000 })
+      .should('not.be.disabled')
+      .click();
+    // The first time the media dialog opens there are a lot of CSS files to
+    // load, and it can take more than the default timeout of 4s.
+    cy.findByRole('dialog', { timeout: 10000 }).as('dialog');
+    cy.get('@entityForm').shouldHaveUpdatedFormBuildId();
+    cy.get('@dialog').findByLabelText(step.selectNewText).check();
+    cy.intercept('POST', '**/xb/api/layout/**').as('updatePreview');
+    cy.get('@dialog')
+      .findByRole('button', {
+        name: 'Insert selected',
+      })
+      .click();
+    cy.findByRole('dialog').should('not.exist');
+    // Wait for the preview to finish loading.
+    cy.wait('@updatePreview', { timeout: 10000 });
+    cy.findByLabelText('Loading Preview').should('not.exist');
+    cy.get('@entityForm').findByAltText(step.expectedAlt).should('exist');
+    cy.get('@entityForm')
+      .findByRole('button', { name: step.removeAriaLabel })
+      .should('exist');
+    cy.get('@entityForm').shouldHaveUpdatedFormBuildId();
+  });
+
+  // Publish changes and make sure image persists.
+  // Wait for any pending changes to refresh.
+  cy.findByRole('button', {
+    name: /Review \d+ change/,
+    timeout: 20000,
+  }).as('review');
+  // We break this up to allow for the pending changes refresh which can disable
+  // the button whilst it is loading.
+  cy.get('@review').click();
+  // Enable extended debug output from failed publishing.
+  cy.intercept('**/xb/api/auto-saves/publish');
+  cy.findByTestId('xb-publish-reviews-content')
+    .as('publishReview')
+    .should('exist');
+  // We put the whole publish review step in a single should so it can be
+  // retried as a group. Unfortunately this requires dropping down to raw
+  // testing library queries because you can't make use of cypress commands
+  // inside a should block.
+  cy.get('@publishReview', { timeout: 10000 }).should(async (element) => {
+    const container = element[0];
+    const entity = await queries.findByText(container, title);
+    expect(entity).to.exist;
+    const button = await queries.findByText(container, 'Publish all changes');
+    expect(button).to.exist;
+    Cypress.$(button).click();
+    const success = await queries.findByText(
+      container,
+      'All changes published!',
+    );
+    expect(success).to.exist;
+    const errors = await queries.queryByText(container, 'Errors');
+    expect(errors).not.to.exist;
+  });
+
+  // Reload the page and ensure the saved value persists.
+  cy.loadURLandWaitForXBLoaded({ ...loadOptions, clearAutoSave: false });
+  const lastStep = iterations.pop();
+  // It can take a bit for the entity form to load, so let's give it a bit
+  // longer.
+  cy.get('@entityForm')
+    .findByAltText(lastStep.expectedAlt, { timeout: 10000 })
+    .should('exist');
+  cy.get('@entityForm')
+    .findByRole('button', { name: lastStep.removeAriaLabel })
+    .should('exist');
+};
+
 describe('Media Library', () => {
   before(() => {
     cy.drupalXbInstall();
+    cy.drupalEnableTheme('claro', true);
   });
 
   beforeEach(() => {
@@ -110,7 +216,7 @@ describe('Media Library', () => {
     )
       .first()
       .click();
-    testMediaLibrary(cy);
+    testMediaLibraryInComponentInstanceForm(cy);
   });
 
   it('Can open the media library widget in an xb_page props form', () => {
@@ -130,6 +236,18 @@ describe('Media Library', () => {
     )
       .first()
       .click();
-    testMediaLibrary(cy);
+    testMediaLibraryInComponentInstanceForm(cy);
+  });
+
+  it('Can open the media library widget on a page data entity form', () => {
+    testMediaLibraryInEntityForm(cy, { url: 'xb/xb_page/2' }, 'Empty Page');
+  });
+
+  it('Can open the media library widget on an article entity form', () => {
+    testMediaLibraryInEntityForm(
+      cy,
+      { url: 'xb/node/2' },
+      'I am an empty node',
+    );
   });
 });

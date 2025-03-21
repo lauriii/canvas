@@ -7,12 +7,22 @@ import twigToJSXComponentMap from '@/components/form/twig-to-jsx-component-map';
 import propsify from '@/local_packages/hyperscriptify/propsify/standard/index.js';
 import parseHyperscriptifyTemplate from '@/utils/parse-hyperscriptify-template';
 import { useDrupalBehaviors } from '@/hooks/useDrupalBehaviors';
+import type { AjaxUpdateFormStateEvent } from '@/types/Ajax';
+import { AJAX_UPDATE_FORM_STATE_EVENT } from '@/types/Ajax';
+import { FORM_TYPES } from '@/features/form/constants';
+import { setPageData } from '@/features/pageData/pageDataSlice';
+import { useAppDispatch, useAppSelector } from '@/app/hooks';
+import { selectFormValues } from '@/features/form/formStateSlice';
 
 const PageDataFormRenderer = () => {
   const { currentData, error, isFetching } = useGetPageDataFormQuery();
   const { showBoundary } = useErrorBoundary();
   const [jsxFormContent, setJsxFormContent] =
     useState<React.ReactElement | null>(null);
+  const dispatch = useAppDispatch();
+  const formState = useAppSelector((state) =>
+    selectFormValues(state, FORM_TYPES.ENTITY_FORM),
+  );
 
   const formRef = useRef<HTMLDivElement>(null);
   useDrupalBehaviors(formRef, jsxFormContent);
@@ -45,6 +55,33 @@ const PageDataFormRenderer = () => {
       </div>,
     );
   }, [currentData]);
+
+  useEffect(() => {
+    const ajaxUpdateFormStateListener: (
+      e: AjaxUpdateFormStateEvent,
+    ) => void = ({ detail }) => {
+      const { updates, formId } = detail;
+      // We only care about the entity form, not the component inputs form.
+      if (formId === FORM_TYPES.ENTITY_FORM) {
+        if (Object.keys(updates).length === 0) {
+          // Nothing has changed, no need to change the state.
+          return;
+        }
+
+        dispatch(setPageData({ ...formState, ...updates }));
+      }
+    };
+    document.addEventListener(
+      AJAX_UPDATE_FORM_STATE_EVENT,
+      ajaxUpdateFormStateListener as unknown as EventListener,
+    );
+    return () => {
+      document.removeEventListener(
+        AJAX_UPDATE_FORM_STATE_EVENT,
+        ajaxUpdateFormStateListener as unknown as EventListener,
+      );
+    };
+  }, [formState, dispatch]);
 
   return (
     <Spinner size="3" loading={isFetching}>

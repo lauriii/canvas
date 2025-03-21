@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\experience_builder\Controller;
 
+use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Entity\ContentEntityForm;
 use Drupal\Core\Entity\Entity\EntityFormDisplay;
 use Drupal\Core\Entity\EntityDisplayBase;
@@ -11,6 +12,7 @@ use Drupal\Core\Entity\EntityFormInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Form\FormState;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Render\Element;
 
 /**
  * Defines a trait containing common methods for entity form controllers.
@@ -58,6 +60,26 @@ trait EntityFormTrait {
     $form_state = new FormState();
     $form->setFormDisplay($form_display, $form_state);
     return $form_state;
+  }
+
+  protected static function filterFormValues(array $values, array $form): array {
+    foreach (Element::children($form) as $child) {
+      $element = $form[$child];
+      $values = self::filterFormValues($values, $element);
+
+      if (isset($element['#access']) && $element['#access'] === FALSE) {
+        NestedArray::unsetValue($values, $element['#parents']);
+      }
+      // Filter out unchecked checkboxes - the browser doesn't submit a value
+      // when the field is unchecked. We need to remove these from the field
+      // values when that is the case.
+      // @see \Drupal\Core\Render\Element\Checkboxes::getCheckedCheckboxes()
+      if (($element['#type'] ?? NULL) === 'checkbox' && empty($element['#default_value']) && empty($element['#value'])) {
+        NestedArray::unsetValue($values, $element['#parents']);
+      }
+    }
+
+    return $values;
   }
 
 }

@@ -599,6 +599,28 @@ Cypress.Commands.add('loadURLandWaitForXBLoaded', (options = {}) => {
   cy.previewReady();
 });
 
+let formBuildId = {};
+
+Cypress.Commands.add('recordFormBuildId', { prevSubject: true }, (subject) => {
+  formBuildId[subject.attr('id')] = subject
+    .find('input[name="form_build_id"]')
+    .val();
+});
+
+Cypress.Commands.add(
+  'shouldHaveUpdatedFormBuildId',
+  {
+    prevSubject: true,
+  },
+  (subject) => {
+    cy.wrap(subject).should((subject) => {
+      const newFormBuildId = subject.find('input[name="form_build_id"]').val();
+      expect(newFormBuildId).not.to.equal(formBuildId[subject.attr('id')]);
+      formBuildId[subject.attr('id')] = newFormBuildId;
+    });
+  },
+);
+
 // Helper function used by the realDnd command.
 Cypress.Commands.add('realDndRaw', realDnd);
 

@@ -137,6 +137,13 @@ class AutoSaveManager {
     // @todo Determine if model entries that contain no information besides
     //   'name' should be removed from the model for hashing purposes in
     //   https://drupal.org/i/3511447.
+    // Remove values that only exist for retrieving form state cache during
+    // entity conversion and should not influence the hash.
+    unset(
+      $data['entity_form_fields']['form_build_id'],
+      $data['entity_form_fields']['form_id'],
+      $data['entity_form_fields']['form_token'],
+    );
     // We use \json_encode here instead of \serialize because we're not dealing
     // with PHP Objects and this ensures the representation hashed from PHP is
     // consistent with the representation transmitted by the client. Some of the

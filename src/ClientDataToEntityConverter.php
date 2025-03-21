@@ -2,8 +2,12 @@
 
 namespace Drupal\experience_builder;
 
+use Drupal\Component\Utility\Crypt;
 use Drupal\Core\Access\AccessException;
+use Drupal\Core\Access\CsrfTokenGenerator;
 use Drupal\Core\Entity\EntityChangedInterface;
+use Drupal\Core\Form\FormCacheInterface;
+use Drupal\experience_builder\Controller\EntityFormTrait;
 use Drupal\experience_builder\Entity\EntityConstraintViolationList;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
@@ -16,21 +20,26 @@ use Drupal\experience_builder\Exception\ConstraintViolationException;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\file\Plugin\Field\FieldType\FileItem;
+use GuzzleHttp\Psr7\Query;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\Validator\ConstraintViolation;
 
 class ClientDataToEntityConverter {
 
   use ClientServerConversionTrait;
+  use EntityFormTrait;
 
   public function __construct(
     private readonly EntityTypeManagerInterface $entityTypeManager,
-    private readonly FormBuilderInterface $formBuilder,
+    #[Autowire(service: FormBuilderInterface::class)]
+    private readonly FormBuilderInterface & FormCacheInterface $formBuilder,
+    private readonly CsrfTokenGenerator $csrfTokenGenerator,
   ) {}
 
   /**
    * @todo remove the validate flag in https://www.drupal.org/i/3505018.
    */
-  public function convert(array $client_data, FieldableEntityInterface $entity, bool $validate = TRUE): void {
+  public function convert(array $client_data, FieldableEntityInterface $entity, bool $validate = TRUE): array {
     $expected_keys = ['layout', 'model', 'entity_form_fields'];
     if (!empty(array_diff_key($client_data, array_flip($expected_keys)))) {
       throw new \LogicException();
@@ -53,7 +62,7 @@ class ClientDataToEntityConverter {
       throw new ConstraintViolationException(new EntityConstraintViolationList($entity, iterator_to_array($e->getConstraintViolationList())));
     }
 
-    $this->setEntityFields($entity, $entity_form_fields);
+    $updated_entity_form_fields = $this->setEntityFields($entity, $entity_form_fields);
     $original_entity_violations = $entity->validate();
     // Validation happens using the server-side representation, but the
     // error message should use the client-side representation received in
@@ -67,6 +76,7 @@ class ClientDataToEntityConverter {
         "$field_name.0.inputs" => 'model',
       ]);
     }
+    return $updated_entity_form_fields;
   }
 
   /**
@@ -113,7 +123,7 @@ class ClientDataToEntityConverter {
     throw new AccessException("The current user is not allowed to update the field '$field_name'.");
   }
 
-  private function setEntityFields(FieldableEntityInterface $entity, array $entity_form_fields): void {
+  private function setEntityFields(FieldableEntityInterface $entity, array $entity_form_fields): array {
     // Create a form state from the received entity fields.
     $form_state = new FormState();
     $form_state->set('entity', $entity);
@@ -122,8 +132,9 @@ class ClientDataToEntityConverter {
     // ['title' => ['value' => 'Node title']].
     // @see \Drupal\experience_builder\Controller\ApiLayoutController::getEntityData
     \parse_str(\http_build_query($entity_form_fields), $entity_form_fields);
-    // Filter out form fields that are not entity fields.
-    $entity_form_fields = array_filter($entity_form_fields, static fn (string|int $key): bool => is_string($key) && $entity->hasField($key), ARRAY_FILTER_USE_KEY);
+    // Filter out form fields that are not entity fields except for form_* keys
+    // needed for form state.
+    $entity_form_fields = array_filter($entity_form_fields, static fn (string|int $key): bool => (is_string($key) && $entity->hasField($key)) || \in_array($key, ['form_build_id', 'form_token', 'form_id']), ARRAY_FILTER_USE_KEY);
     // Checkboxes are unique in that the browser doesn't submit a value when the
     // field is unchecked. We need to remove these from the field values when
     // that is the case.
@@ -131,6 +142,16 @@ class ClientDataToEntityConverter {
       $entity->getFields(),
       static fn (FieldItemListInterface $fieldItemList): bool => $fieldItemList->getFieldDefinition()->getType() === 'boolean'
     ));
+
+    // Form tokens are user session-specific. It may be that a user is
+    // publishing an entity for another user. Therefore, we need to ensure that
+    // the form_token is for the current user.
+    if (\array_key_exists('form_id', $entity_form_fields)) {
+      \assert(\is_string($entity_form_fields['form_id']));
+      // @see \Drupal\Core\Form\FormBuilder::prepareForm
+      $token_value = 'form_token_placeholder_' . Crypt::hashBase64($entity_form_fields['form_id']);
+      $entity_form_fields['form_token'] = $this->csrfTokenGenerator->get($token_value);
+    }
 
     // Handle quirks of managed file elements.
     // @todo Remove this when https://www.drupal.org/project/drupal/issues/3498054 is fixed.
@@ -149,6 +170,7 @@ class ClientDataToEntityConverter {
         }
       }
     }
+
     $entity_form_fields = \array_filter($entity_form_fields, static fn (array|string $value, string|int $key): bool => !\in_array($key, $boolean_fields, TRUE) || $value !== ['value' => '0'], ARRAY_FILTER_USE_BOTH);
     $form_object = $this->entityTypeManager->getFormObject($entity->getEntityTypeId(), 'default');
     $form_object->setEntity($entity);
@@ -166,9 +188,31 @@ class ClientDataToEntityConverter {
       ->setProgrammedBypassAccessCheck(FALSE)
       // With the values provided from the front-end.
       ->setUserInput($entity_form_fields);
+    $ajax_form_build_id = $ajax_submitted_form = NULL;
+    if (\array_key_exists('form_build_id', $entity_form_fields) && \is_string($entity_form_fields['form_build_id'])) {
+      $ajax_submitted_form = $this->formBuilder->getCache($entity_form_fields['form_build_id'], $form_state);
+      $ajax_form_build_id = $entity_form_fields['form_build_id'];
+    }
+
     $form = $this->formBuilder->buildForm($form_object, $form_state);
     // Now trigger the form level submit handler.
     $form_object->submitForm($form, $form_state);
+    if (\array_key_exists('#build_id', $form) &&
+      $ajax_form_build_id !== NULL &&
+      $ajax_submitted_form !== NULL &&
+      $form['#build_id'] !== $ajax_form_build_id) {
+      // This conversion has changed the form state cache and generated a new
+      // form_build_id. The AJAX form in the page however still has a hidden
+      // form field pointing to the old form build ID. This means any further
+      // AJAX interactions in the page data form will send this build ID but the
+      // form cache won't find the corresponding entry because the building and
+      // submission we performed above has created a new form build ID and
+      // removed the form cache entries for the old one. As we're only making
+      // use of form submissions to utilize widgets - we don't want to clear the
+      // form cache for the form_build_id the actual form in the browser is
+      // making use of. So we make sure to re-instate the old form cache entry.
+      $this->formBuilder->setCache($ajax_form_build_id, $ajax_submitted_form, $form_state);
+    }
     // And retrieve the updated entity.
     $updated_entity = $form_object->getEntity();
     \assert($updated_entity instanceof FieldableEntityInterface);
@@ -205,6 +249,8 @@ class ClientDataToEntityConverter {
     $original_entity = $this->entityTypeManager->getStorage($entity->getEntityTypeId())->loadUnchanged($entity->id());
     assert($original_entity instanceof FieldableEntityInterface);
     $violations_list = new EntityConstraintViolationList($entity);
+    // Filter out form_build_id, form_id and form_token.
+    $entity_form_fields = array_filter($entity_form_fields, static fn (string|int $key): bool => is_string($key) && $entity->hasField($key), ARRAY_FILTER_USE_KEY);
     // Copied from \Drupal\jsonapi\Controller\EntityResource::updateEntityField()
     // but with the additional special-casing for `changed`.
     foreach ($entity_form_fields as $field_name => $field_value) {
@@ -231,6 +277,25 @@ class ClientDataToEntityConverter {
     if ($violations_list->count()) {
       throw new ConstraintViolationException($violations_list);
     }
+    // Filter out form values that are not accessible to the client.
+    $values = self::filterFormValues($form_state->getValues(), $form);
+    // Collapse form values into the respective element name, e.g.
+    // ['title' => ['value' => 'Node title']] becomes
+    // ['title[0][value]' => 'Node title'. This keeps the data sent in the same
+    // shape as the 'name' attributes on each of the form elements built by the
+    // form element and avoids needing to smooth out the idiosyncrasies of each
+    // widget's structure.
+    // @see \Drupal\experience_builder\Controller\EntityFormController::form
+    $values = Query::parse(\http_build_query(\array_intersect_key($values, $entity->toArray())));
+    if ($ajax_form_build_id !== NULL) {
+      // Update the form build ID.
+      $values['form_build_id'] = $ajax_form_build_id;
+    }
+    if (\array_key_exists('#form_id', $form)) {
+      // Update the form ID.
+      $values['form_id'] = $form['#form_id'];
+    }
+    return $values;
   }
 
 }

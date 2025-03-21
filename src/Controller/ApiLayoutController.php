@@ -4,14 +4,12 @@ declare(strict_types=1);
 
 namespace Drupal\experience_builder\Controller;
 
-use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityPublishedInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Form\FormBuilderInterface;
-use Drupal\Core\Render\Element;
 use Drupal\Core\Theme\ThemeManagerInterface;
 use Drupal\experience_builder\AutoSave\AutoSaveManager;
 use Drupal\experience_builder\ClientDataToEntityConverter;
@@ -232,19 +230,6 @@ final class ApiLayoutController {
     return Query::parse(\http_build_query(\array_intersect_key($values, $entity->toArray())));
   }
 
-  private static function filterFormValues(array $values, array $form): array {
-    foreach (Element::children($form) as $child) {
-      $element = $form[$child];
-      $values = self::filterFormValues($values, $element);
-
-      if (isset($element['#access']) && $element['#access'] === FALSE) {
-        NestedArray::unsetValue($values, $element['#parents']);
-      }
-    }
-
-    return $values;
-  }
-
   private function addGlobalRegions(array $regions, array &$model, array &$layout): void {
     // Only expose regions marked as editable in the `layout` for the client.
     foreach ($regions as $id => $region) {
@@ -351,13 +336,7 @@ final class ApiLayoutController {
     );
     foreach ($layout as $region_node) {
       $client_side_region_id = $region_node['id'];
-      // Save the content region.
       if ($client_side_region_id === XbPageVariant::MAIN_CONTENT_REGION) {
-        $this->autoSaveManager->save($entity, [
-          'layout' => [$region_node],
-          'model' => self::extractModelForSubtree($region_node, $model),
-          'entity_form_fields' => $body['entity_form_fields'],
-        ]);
         $content = $region_node;
       }
       // Save the global region if it has a corresponding enabled PageRegion.
@@ -372,11 +351,17 @@ final class ApiLayoutController {
 
     assert(isset($content));
     \assert($entity instanceof FieldableEntityInterface);
-    $this->converter->convert([
+    $updated_entity_form_fields = $this->converter->convert([
       'layout' => $content,
       'model' => $model,
       'entity_form_fields' => $body['entity_form_fields'],
     ], $entity, validate: FALSE);
+    // Store the auto-save entry.
+    $this->autoSaveManager->save($entity, [
+      'layout' => [$content],
+      'model' => self::extractModelForSubtree($content, $model),
+      'entity_form_fields' => $updated_entity_form_fields,
+    ]);
     $field_name = InternalXbFieldNameResolver::getXbFieldName($entity);
     $item = $entity->get($field_name)->first();
     assert($item instanceof ComponentTreeItem);
