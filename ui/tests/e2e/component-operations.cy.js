@@ -1,10 +1,14 @@
 describe('Perform CRUD operations on components', () => {
-  beforeEach(() => {
+  before(() => {
     cy.drupalXbInstall();
+  });
+
+  beforeEach(() => {
+    cy.drupalSession();
     cy.drupalLogin('xbUser', 'xbUser');
   });
 
-  afterEach(() => {
+  after(() => {
     cy.drupalUninstall();
   });
 
