@@ -418,8 +418,9 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
    * @testWith ["image-optional-with-example", "<img src=\"https://example.com/cat.jpg\" alt=\"Boring placeholder\" />"]
    *           ["image-optional-without-example", ""]
    *           ["image-required-with-example", "<img src=\"https://example.com/cat.jpg\" alt=\"Boring placeholder\" />"]
+   *           ["image-optional-with-example-and-additional-prop", "<h1><!-- xb-prop-start-166c9eee-35e9-4795-8c6f-24537728e95e/heading -->Heading the right direction?<!-- xb-prop-end-166c9eee-35e9-4795-8c6f-24537728e95e/heading --></h1><img src=\"/XB/MODULE/PATH/tests/modules/xb_test_sdc/components/image-optional-with-example-and-additional-prop/gracie.jpg\" alt=\"A good dog\" width=\"601\" height=\"402\"></img>"]
    *
-   * Note: `image-required-with-example` is not tested because it does not meet the requirement.
+   * Note: `image-required-without-example` is not tested because it does not meet the requirement.
    * @see \Drupal\Tests\experience_builder\Kernel\Config\ComponentTest::testComponentAutoCreate()
    */
   public function testImageComponentPermutations(string $sdc, string $expected_preview_html): void {
@@ -430,7 +431,7 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
     $component = Component::load('sdc.xb_test_sdc.' . $sdc);
     $this->assertInstanceOf(Component::class, $component);
 
-    // Add the image component into the layout.
+    // Add the given SDC to the layout.
     $uuid = '166c9eee-35e9-4795-8c6f-24537728e95e';
     $json['layout'][0]['components'][] = [
       'nodeType' => 'component',
@@ -438,28 +439,26 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
       'type' => $component->id(),
       'slots' => [],
     ];
+    // Populate its client model, and take advantage of the fact that the client
+    // model is allowed to be invalid when previewing: no validation may occur,
+    // to ensure even invalid explicit inputs for component instances result in
+    // a best-effort preview. So, include the superset of all SDC's explicit
+    // input, but never provide a value for the image.
     $json['model'][$uuid] = [
-      'resolved' => [],
+      'resolved' => [
+        'heading' => 'Heading the right direction?',
+      ],
       'source' => [
-        'image' => [
-          'expression' => 'ℹ︎entity_reference␟{src↝entity␜␜entity:media:image␝field_media_image␞␟entity␜␜entity:file␝uri␞␟url,alt↝entity␜␜entity:media:image␝field_media_image␞␟alt,width↝entity␜␜entity:media:image␝field_media_image␞␟width,height↝entity␜␜entity:media:image␝field_media_image␞␟height}',
-          'sourceType' => 'static:field_item:entity_reference',
-          'sourceTypeSettings' => [
-            'instance' => [
-              'handler' => 'default:media',
-              'handler_settings' => [
-                'target_bundles' => [
-                  'image' => 'image',
-                ],
-              ],
-            ],
-            'storage' => [
-              'target_type' => 'media',
-            ],
-          ],
+        // @todo Restore 'image' here in https://www.drupal.org/project/experience_builder/issues/3493943
+        'heading' => [
+          'expression' => 'ℹ︎string␟value',
+          'sourceType' => 'static:field_item:string',
         ],
       ],
     ];
+
+    $module_path = \Drupal::service('extension.list.module')->getPath('experience_builder');
+    $expected_preview_html = str_replace('XB/MODULE/PATH', $module_path, $expected_preview_html);
 
     $this->request(Request::create('/xb/api/layout/node/1', method: 'POST', content: json_encode($json, JSON_THROW_ON_ERROR)));
     // Ensure the component is rendered using the expected markup.

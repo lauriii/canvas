@@ -390,6 +390,9 @@ class ComponentTest extends KernelTestBase {
           'compatible' => FALSE,
           'reasons' => ['Prop "image" is required, but does not have example value'],
         ],
+        'sdc.xb_test_sdc.image-optional-with-example-and-additional-prop' => [
+          'compatible' => TRUE,
+        ],
         'sdc.xb_test_sdc.props-no-slots' => [
           'compatible' => TRUE,
         ],
@@ -428,6 +431,9 @@ class ComponentTest extends KernelTestBase {
         'sdc.xb_test_sdc.image-required-without-example' => [
           'compatible' => FALSE,
           'reasons' => ['Prop "image" is required, but does not have example value'],
+        ],
+        'sdc.xb_test_sdc.image-optional-with-example-and-additional-prop' => [
+          'compatible' => TRUE,
         ],
         'sdc.xb_test_sdc.props-no-slots' => [
           'compatible' => TRUE,

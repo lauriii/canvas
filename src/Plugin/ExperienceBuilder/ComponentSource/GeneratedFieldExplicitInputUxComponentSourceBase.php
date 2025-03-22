@@ -792,7 +792,50 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
       $props[$prop] = $source->toArray();
     }
 
+    // When previewing, fill in the default values missing from the client-side
+    // model. (Not when saving: default values should not be saved.)
+    // @todo Remove this in https://www.drupal.org/i/3493943, because then all props will be passed from the client to the server.
+    if ($violations === NULL) {
+      $props += $this->workaroundAddDefaultValuesMissingFromClientSideModel(array_keys($props), $component);
+    }
+
     return $props;
+  }
+
+  /**
+   * @todo Remove this in https://www.drupal.org/i/3493943, because then all props will appear.
+   */
+  private function workaroundAddDefaultValuesMissingFromClientSideModel(array $received_client_model_source_props, ComponentEntity $component): array {
+    $missing_props = [];
+
+    $client_side_info = $this->getClientSideInfo($component);
+    assert(isset($client_side_info['field_data']));
+    foreach (array_diff_key($client_side_info['field_data'], array_flip($received_client_model_source_props)) as $prop => $field_data) {
+      // Valueless prop, for the case where only a default is provided for the
+      // preview, not for storing.
+      // @see ::exampleValueRequiresEntity()
+      // @see ::getClientSideInfo()
+      if (!isset($client_side_info['build']['#props'][$prop])) {
+        // If the prop is not set at all, then no default is provided.
+        continue;
+      }
+      assert(isset($field_data['jsonSchema']));
+      // This method only generates server-side explicit component inputs for
+      // those props that do not have a default value passed to the client.
+      // (See the `if ($has_default_source_value)` conditional plus
+      // `elseif (self::exampleValueRequiresEntity($storable_prop_shape))`
+      // conditional in ::getClientSideInfo().)
+      if (!array_key_exists('default_values', $client_side_info['field_data'][$prop])) {
+        $source = new UrlPreviewPropSource(
+          value: $client_side_info['build']['#props'][$prop],
+          jsonSchema: $field_data['jsonSchema'],
+          componentId: $component->id(),
+        );
+        $missing_props[$prop] = $source->toArray();
+      }
+    }
+
+    return $missing_props;
   }
 
   /**
