@@ -26,9 +26,20 @@ export const sectionApi = createApi({
       }),
       invalidatesTags: () => [{ type: 'Sections', id: 'LIST' }],
     }),
+    deleteSection: builder.mutation<void, string>({
+      query: (id) => ({
+        url: `/xb/api/config/pattern/${id}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: () => [{ type: 'Sections', id: 'LIST' }],
+    }),
   }),
 });
 
 // Export hooks for usage in functional sections, which are
 // auto-generated based on the defined endpoints
-export const { useGetSectionsQuery, useSaveSectionMutation } = sectionApi;
+export const {
+  useGetSectionsQuery,
+  useSaveSectionMutation,
+  useDeleteSectionMutation,
+} = sectionApi;

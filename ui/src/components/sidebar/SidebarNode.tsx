@@ -92,11 +92,7 @@ const SidebarNode = React.forwardRef<
           </Flex>
         </Flex>
         {dropdownMenuContent && (
-          <DropdownMenu.Root
-            onOpenChange={(open) => {
-              onMenuOpenChange?.(open);
-            }}
-          >
+          <DropdownMenu.Root onOpenChange={onMenuOpenChange}>
             <DropdownMenu.Trigger>
               <button aria-label="Open contextual menu">
                 <span className={styles.dots}>

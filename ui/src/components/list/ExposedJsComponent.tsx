@@ -29,7 +29,7 @@ function removeJsPrefix(input: string): string {
 
 const ExposedJsComponent: React.FC<{
   component: JSComponent;
-  onMenuOpenChange?: (open: boolean) => void;
+  onMenuOpenChange: (open: boolean) => void;
 }> = (props) => {
   const dispatch = useAppDispatch();
   const { component, onMenuOpenChange } = props;
@@ -93,12 +93,7 @@ const ExposedJsComponent: React.FC<{
     </>
   );
   return (
-    <ContextMenu.Root
-      key={component.id}
-      onOpenChange={(open) => {
-        onMenuOpenChange?.(open);
-      }}
-    >
+    <ContextMenu.Root key={component.id} onOpenChange={onMenuOpenChange}>
       <ContextMenu.Trigger>
         <SidebarNode
           title={component.name}

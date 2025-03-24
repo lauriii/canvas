@@ -1,17 +1,31 @@
 import { createAppSlice } from '@/app/createAppSlice';
 import type { PayloadAction } from '@reduxjs/toolkit';
+import type { Section } from '@/types/Section';
 
 export interface DialogSliceState {
   saveAsSection: boolean;
   extension: boolean;
+  deleteSectionConfirm: {
+    open: boolean;
+    data: Section | {};
+  };
 }
 
 const initialState: DialogSliceState = {
   saveAsSection: false,
   extension: false,
+  deleteSectionConfirm: {
+    open: false,
+    data: {},
+  },
 };
 
-type UpdateDialogPayload = keyof DialogSliceState;
+type UpdateDialogPayload = keyof Omit<DialogSliceState, 'deleteSectionConfirm'>;
+
+type UpdateDialogWithDataPayload = {
+  operation: keyof Omit<DialogSliceState, UpdateDialogPayload>;
+  data: any;
+};
 
 export const dialogSlice = createAppSlice({
   name: 'dialog',
@@ -27,6 +41,27 @@ export const dialogSlice = createAppSlice({
         state[action.payload] = false;
       },
     ),
+    setDialogWithDataOpen: create.reducer(
+      (state, action: PayloadAction<UpdateDialogWithDataPayload>) => {
+        state[action.payload.operation] = {
+          open: true,
+          data: action.payload.data,
+        };
+      },
+    ),
+    setDialogWithDataClosed: create.reducer(
+      (
+        state,
+        action: PayloadAction<
+          keyof Omit<DialogSliceState, UpdateDialogPayload>
+        >,
+      ) => {
+        state[action.payload] = {
+          open: false,
+          data: {},
+        };
+      },
+    ),
   }),
   selectors: {
     selectDialogOpen: (dialog): DialogSliceState => {
@@ -35,5 +70,10 @@ export const dialogSlice = createAppSlice({
   },
 });
 
-export const { setDialogOpen, setDialogClosed } = dialogSlice.actions;
+export const {
+  setDialogOpen,
+  setDialogClosed,
+  setDialogWithDataOpen,
+  setDialogWithDataClosed,
+} = dialogSlice.actions;
 export const { selectDialogOpen } = dialogSlice.selectors;

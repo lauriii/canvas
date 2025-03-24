@@ -20,6 +20,7 @@ import { useNavigationUtils } from '@/hooks/useNavigationUtils';
 import ExposedJsComponent from '@/components/list/ExposedJsComponent';
 import useXbParams from '@/hooks/useXbParams';
 import { DEFAULT_REGION } from '@/features/ui/uiSlice';
+import SectionNode from '@/components/list/SectionNode';
 
 const ListItem: React.FC<{
   item: XBComponent | Section;
@@ -80,17 +81,23 @@ const ListItem: React.FC<{
   };
 
   const renderItem = () => {
+    if (type === 'section') {
+      return (
+        <SectionNode
+          section={item as Section}
+          onMenuOpenChange={setIsMenuOpen}
+        />
+      );
+    }
     if (
       type === 'component' &&
       (item as JSComponent).source === 'Code component'
     ) {
       return (
-        <div>
-          <ExposedJsComponent
-            component={item as JSComponent}
-            onMenuOpenChange={setIsMenuOpen}
-          />
-        </div>
+        <ExposedJsComponent
+          component={item as JSComponent}
+          onMenuOpenChange={setIsMenuOpen}
+        />
       );
     }
     return (
@@ -120,7 +127,9 @@ const ListItem: React.FC<{
     >
       <Tooltip.Provider>
         <Tooltip.Root delayDuration={0}>
-          <Tooltip.Trigger asChild>{renderItem()}</Tooltip.Trigger>
+          <Tooltip.Trigger style={{ width: '100%' }}>
+            {renderItem()}
+          </Tooltip.Trigger>
           <Tooltip.Portal>
             <Tooltip.Content
               side="right"
