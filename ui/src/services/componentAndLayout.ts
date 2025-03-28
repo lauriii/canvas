@@ -132,8 +132,29 @@ export const componentAndLayoutApi = createApi({
         url: `xb/api/config/js_component/${id}`,
         method: 'DELETE',
       }),
+      // Manually delete the cache entry for the deleted component.
+      // This is necessary because we need to delete RTK's cache entry for the component. If we do this
+      // by invalidating the cache tag in the invalidatesTags function, getCodeComponent gets called for this deleted component
+      // on a re-render which results in a 404.
+      async onQueryStarted(id, { dispatch, queryFulfilled }) {
+        const deleteCacheEntry = dispatch(
+          componentAndLayoutApi.util.updateQueryData(
+            'getCodeComponent',
+            id,
+            (draft) => {
+              for (const key in draft) {
+                delete (draft as Record<string, any>)[key];
+              }
+            },
+          ),
+        );
+        try {
+          await queryFulfilled;
+        } catch (error) {
+          deleteCacheEntry.undo();
+        }
+      },
       invalidatesTags: (result, error, id) => [
-        { type: 'CodeComponents', id },
         { type: 'CodeComponentAutoSave', id },
         { type: 'CodeComponents', id: 'LIST' },
         { type: 'Components', id: 'LIST' },
