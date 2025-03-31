@@ -20,6 +20,7 @@ import {
   selectRequired,
   selectSlots,
   selectSourceCodeCss,
+  selectSourceCodeGlobalCss,
   selectSourceCodeJs,
   selectStatus,
   setIsEditorReady,
@@ -47,6 +48,7 @@ const useCodeComponentData = () => {
   const sourceCodeJs = useAppSelector(selectSourceCodeJs);
   const compiledJs = useAppSelector(selectCompiledJs);
   const sourceCodeCss = useAppSelector(selectSourceCodeCss);
+  const sourceCodeGlobalCss = useAppSelector(selectSourceCodeGlobalCss);
   const compiledCss = useAppSelector(selectCompiledCss);
   const blockOverride = useAppSelector(selectBlockOverride);
   const props = useAppSelector(selectProps);
@@ -171,6 +173,7 @@ const useCodeComponentData = () => {
       required,
       slots,
       sourceCodeCss,
+      sourceCodeGlobalCss,
       sourceCodeJs,
       status,
     ],
