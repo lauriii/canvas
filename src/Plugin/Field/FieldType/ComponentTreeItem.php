@@ -16,6 +16,7 @@ use Drupal\Core\Render\RenderableInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\TypedData\DataDefinition;
 use Drupal\experience_builder\Entity\Component;
+use Drupal\experience_builder\Plugin\DataType\ComponentInputs;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 use Drupal\experience_builder\ShapeMatcher\FieldForComponentSuggester;
 use Symfony\Component\Validator\ConstraintViolation;
@@ -261,6 +262,7 @@ class ComponentTreeItem extends FieldItemBase implements RenderableInterface {
   public function preSave(): void {
     $tree = $this->get('tree');
     $inputs = $this->get('inputs');
+    assert($inputs instanceof ComponentInputs);
 
     $component_instance_uuids = $tree->getComponentInstanceUuids();
     $entity = $this->getRoot() === $this ? NULL : $this->getEntity();
@@ -305,7 +307,8 @@ class ComponentTreeItem extends FieldItemBase implements RenderableInterface {
     // This *internal-only* validation does not need to happen using validation
     // constraints because it does not validate user input: it only helps ensure
     // that the logic of this field type is correct.
-    if (array_intersect($component_instance_uuids, $inputs->getComponentInstanceUuids()) !== $component_instance_uuids) {
+    $input_required_uuids = array_filter($tree->getComponentInstanceUuids(), static fn(string $uuid) => $tree->getComponentSource($uuid)?->requiresExplicitInput() === TRUE);
+    if (array_intersect($input_required_uuids, $inputs->getComponentInstanceUuids()) !== $input_required_uuids) {
       throw new \LogicException(sprintf('The component UUIDs in the tree and inputs values do not match! Put a breakpoint here and figure out why.'));
     }
 

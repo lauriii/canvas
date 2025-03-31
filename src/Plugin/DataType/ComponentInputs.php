@@ -8,7 +8,9 @@ use Drupal\Component\Serialization\Json;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\TypedData\Attribute\DataType;
 use Drupal\Core\TypedData\TypedData;
+use Drupal\experience_builder\ComponentSource\ComponentSourceInterface;
 use Drupal\experience_builder\MissingComponentInputsException;
+use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
 
 /**
  * @todo Implement ListInterface because it conceptually fits, but … what does it get us?
@@ -125,8 +127,17 @@ class ComponentInputs extends TypedData implements \Stringable {
    * @throws \Drupal\experience_builder\MissingComponentInputsException
    */
   public function getValues(string $component_instance_uuid): array {
+    $item = $this->parent;
+    assert($item instanceof ComponentTreeItem);
+    $tree = $item->get('tree');
+    assert($tree instanceof ComponentTreeStructure);
+    $source = $tree->getComponentSource($component_instance_uuid);
+    \assert($source instanceof ComponentSourceInterface);
     if (!array_key_exists($component_instance_uuid, $this->inputs)) {
-      throw new MissingComponentInputsException($component_instance_uuid);
+      if ($source->requiresExplicitInput()) {
+        throw new MissingComponentInputsException($component_instance_uuid);
+      }
+      return [];
     }
 
     return $this->inputs[$component_instance_uuid];
