@@ -1,17 +1,24 @@
-entity.block_content.collection:
+entity.component.collection:
+  title: 'Components'
+  route_name: entity.component.collection
+  base_route: system.themes_page
+  weight: 200
+
+experience_builder.component.status:
   title: 'Enabled components'
   route_name: entity.component.collection
-  base_route: entity.component.collection
-experience_builder.component.status:
+  parent_id: entity.component.collection
+
+experience_builder.component.status.disabled:
   title: 'Disabled components'
-  description: 'List of disabled Experience Builder components and their status'
   route_name: experience_builder.component.status
-  base_route: entity.component.collection
+  parent_id: entity.component.collection
 
 entity.xb_page.canonical:
   title: 'View'
   route_name: entity.xb_page.canonical
   base_route: entity.xb_page.canonical
+
 entity.xb_page.edit_form:
   title: 'Edit'
   base_route: entity.xb_page.canonical

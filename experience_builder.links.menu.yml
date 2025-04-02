@@ -1,5 +1,0 @@
-entity.component.collection:
-  title: 'Page builder components'
-  parent: system.admin_structure
-  description: 'Create and manage page builder components.'
-  route_name: entity.component.collection

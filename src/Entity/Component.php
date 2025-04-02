@@ -42,9 +42,9 @@ use Drupal\experience_builder\ComponentSource\ComponentSourceManager;
  *      "status" = "status",
  *    },
  *    links = {
- *      "collection" = "/admin/structure/component",
- *      "enable" = "/admin/structure/component/{id}/enable",
- *      "disable" = "/admin/structure/component/{id}/disable",
+ *      "collection" = "/admin/appearance/component",
+ *      "enable" = "/admin/appearance/component/{id}/enable",
+ *      "disable" = "/admin/appearance/component/{id}/disable",
  *    },
  *    config_export = {
  *      "label",

@@ -1,12 +1,12 @@
 entity.component.delete_form:
-  path: '/admin/structure/component/delete/{component}'
+  path: '/admin/appearance/component/delete/{component}'
   defaults:
     _entity_form: 'component.delete'
     _title: 'Delete component'
   requirements:
     _entity_access: 'component.delete'
 entity.component.disable:
-  path: '/admin/structure/component/{component}/disable'
+  path: '/admin/appearance/component/{component}/disable'
   defaults:
     _controller: 'Drupal\experience_builder\Controller\ComponentStatusController::performOperation'
     op: disable
@@ -14,7 +14,7 @@ entity.component.disable:
     _entity_access: 'component.disable'
     _csrf_token: 'TRUE'
 entity.component.enable:
-  path: '/admin/structure/component/{component}/enable'
+  path: '/admin/appearance/component/{component}/enable'
   defaults:
     _controller: 'Drupal\experience_builder\Controller\ComponentStatusController::performOperation'
     op: enable
@@ -61,7 +61,7 @@ experience_builder.api.config.auto-save.get.css:
     _xb_http_eligible_config_entity: 'TRUE'
     # Allow a subset: those config entity types that implement XbAssetInterface.
     xb_config_entity_type_id: '(js_component|xb_asset_library)'
-  methods: [ 'GET' ]
+  methods: ['GET']
   options:
     parameters:
       xb_config_entity:
@@ -75,7 +75,7 @@ experience_builder.api.config.auto-save.get.js:
     _xb_http_eligible_config_entity: 'TRUE'
     # Allow a subset: those config entity types that implement XbAssetInterface.
     xb_config_entity_type_id: '(js_component|xb_asset_library)'
-  methods: [ 'GET' ]
+  methods: ['GET']
   options:
     parameters:
       xb_config_entity:
@@ -293,12 +293,12 @@ experience_builder.api.log_error:
   methods: ['POST']
 
 experience_builder.component.status:
-  path: '/admin/structure/component/status'
+  path: '/admin/appearance/component/status'
   defaults:
     _controller: 'Drupal\experience_builder\Controller\ComponentStatusController'
-    _title:  'Components status'
+    _title: 'Components status'
   requirements:
-    _permission: 'access administration pages'
+    _permission: 'administer themes'
 
 experience_builder.experience_builder:
   path: '/xb/{entity_type}/{entity}'

@@ -130,8 +130,8 @@ These config entities are therefore the foundations that enable XB to work relia
   [`XB Components` doc, section 3.1.1](components.md#3.1.1)).
 
 UI routes:
-- available `component`s: `/admin/structure/component`
-- unavailable `component`s: `/admin/structure/component/status`
+- available `component`s: `/admin/appearance/component`
+- unavailable `component`s: `/admin/appearance/component/status`
 
 
 ### 3.2 `JavaScriptComponent config entity`

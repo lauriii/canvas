@@ -24,7 +24,7 @@ This is important for the DX of the Front-End Developer, as well as for the UX f
 2. _If_ they meet the [documented criteria](../components.md), a [`Component` config entity](../config-management.md) is
    auto-generated (except when syncing configuration of course).
 3. They will be available immediately in the XB UI.
-4. SDCs that do not meet criteria will be listed along with the reason _why_ at `/admin/structure/component/status`.
+4. SDCs that do not meet criteria will be listed along with the reason _why_ at `/admin/appearance/component/status`.
 
 ## Consequences
 
