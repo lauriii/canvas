@@ -23,8 +23,6 @@ const Editor = () => {
       <PrimaryPanel />
       <ContextualPanel />
       <ZoomControl />
-      <div id="menuBarContainer"></div>
-      <div id="menuBarSubmenuContainer"></div>
       <SectionDialogs />
       <CodeComponentDialogs />
       <ExtensionDialog />

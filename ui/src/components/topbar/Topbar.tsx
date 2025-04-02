@@ -156,10 +156,6 @@ const Topbar = () => {
             <UnpublishedChanges />
           </Flex>
         </Grid>
-
-        {/*  /!* @todo: Keep the <AddMenu/> code to reuse for displaying module components.*!/*/}
-        {/*  /!*   https://www.drupal.org/project/experience_builder/issues/3482393 *!/*/}
-        {/*  /!*<AddMenu />*!/*/}
       </Panel>
     </Menubar.Root>
   );

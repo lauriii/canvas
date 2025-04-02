@@ -97,7 +97,6 @@ describe('UI a11y Scan', () => {
   it('a11y scan open props edit form', () => {
     cy.drupalLogin('xbUser', 'xbUser');
     cy.loadURLandWaitForXBLoaded();
-    cy.get('#menuBarContainer').should('be.empty');
     cy.findByTestId('xb-contextual-panel--page-data').should(
       'have.attr',
       'data-state',
