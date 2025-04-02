@@ -35,7 +35,13 @@ export default function propsify(attributes, slots, context) {
       .filter(([key, value]) => value !== '' && isNaN(key))
       // Convert from an array of key/value pairs to a key-indexed object.
       .reduce(
-        (accumulator, [key, value]) => ({ ...accumulator, [key]: value }),
+        (accumulator, [key, value]) => ({
+          ...accumulator,
+          // Capitalize any browser prefixes, otherwise use the regular key.
+          [key.match(/^(webkit|moz|ms|o)[A-Z]\w*/)
+            ? key.charAt(0).toUpperCase() + key.slice(1)
+            : key]: value,
+        }),
         {},
       );
   }

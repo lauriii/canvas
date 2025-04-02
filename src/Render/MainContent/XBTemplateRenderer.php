@@ -16,6 +16,7 @@ use Drupal\Core\Asset\AttachedAssets;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Response;
+use Drupal\Core\Asset\LibraryDiscoveryInterface;
 
 /**
  * Main content renderer for XB endpoints returning React-renderable markup.
@@ -44,8 +45,48 @@ final class XBTemplateRenderer implements MainContentRendererInterface {
     protected RequestStack $requestStack,
     protected ModuleHandlerInterface $moduleHandler,
     protected LanguageManagerInterface $languageManager,
+    protected LibraryDiscoveryInterface $libraryDiscovery,
   ) {
 
+  }
+
+  /**
+   * Recursively identifies library dependencies.
+   *
+   * @param string $library
+   *   The library name in the format 'extension/library_name'.
+   * @param array $collected_dependencies
+   *   Array of already collected dependencies.
+   *
+   * @return array
+   *   Array of all dependencies, including nested ones.
+   */
+  private function resolveLibraryDependencies(string $library, array &$collected_dependencies = []): array {
+    if (in_array($library, $collected_dependencies)) {
+      return [];
+    }
+
+    [$extension, $name] = explode('/', $library, 2);
+    if (!$this->moduleHandler->moduleExists($extension)) {
+      return [];
+    }
+
+    $library_info = $this->libraryDiscovery->getLibraryByName($extension, $name);
+    if (!$library_info || empty($library_info['dependencies'])) {
+      return [];
+    }
+
+    $dependencies = [];
+    foreach ($library_info['dependencies'] as $dependency) {
+      if (!in_array($dependency, $collected_dependencies)) {
+        $collected_dependencies[] = $dependency;
+        $dependencies[] = $dependency;
+        $nested_dependencies = $this->resolveLibraryDependencies($dependency, $collected_dependencies);
+        $dependencies = array_merge($dependencies, $nested_dependencies);
+      }
+    }
+
+    return $dependencies;
   }
 
   /**
@@ -115,17 +156,25 @@ final class XBTemplateRenderer implements MainContentRendererInterface {
 
     $already_loaded_libraries = isset($ajax_page_state['libraries']) ? explode(',', $ajax_page_state['libraries']) : [];
 
-    // It is necessary to explicitly set a few libraries as already loaded.
-    // Although there is logic to prevent the loading of duplicate assets,
-    // the list of already loaded libraries is maintained per theme, so the
-    // duplication prevention does not account for libraries that were added to
-    // the page by a theme other than xb_stark.
     $potentially_conflicting_libraries_added_on_xb_load = [
       'experience_builder/xb.drupal.ajax',
       'experience_builder/xb.drupal.dialog',
       'experience_builder/xb.drupal.dialog.ajax',
+      'core/drupal.ajax',
+      'core/drupal.dialog',
+      'core/drupal.dialog.ajax',
     ];
-    $already_loaded_libraries = array_unique([...$already_loaded_libraries, ...$potentially_conflicting_libraries_added_on_xb_load]);
+
+    // Get all dependencies of the potentially conflicting libraries, including
+    // nested ones.
+    $dependencies_of_the_potential_conflicts = [];
+    $collected_dependencies = [];
+    foreach ($potentially_conflicting_libraries_added_on_xb_load as $library) {
+      $dependencies = $this->resolveLibraryDependencies($library, $collected_dependencies);
+      $dependencies_of_the_potential_conflicts = array_merge($dependencies_of_the_potential_conflicts, $dependencies);
+    }
+
+    $already_loaded_libraries = array_unique([...$already_loaded_libraries, ...$potentially_conflicting_libraries_added_on_xb_load, ...$dependencies_of_the_potential_conflicts]);
     $assets
       ->setAlreadyLoadedLibraries($already_loaded_libraries);
 

@@ -36,12 +36,20 @@ class PreRender implements TrustedCallbackInterface {
     return $element;
   }
 
+  public static function table(array $element): array {
+    if (!empty($element['#tabledrag'])) {
+      $element['#attributes']['data-xb-tabledrag'] = 'true';
+    }
+    return $element;
+  }
+
   /**
    * {@inheritdoc}
    */
   public static function trustedCallbacks() {
     return [
       'verticalTabs',
+      'table',
     ];
   }
 

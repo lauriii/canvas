@@ -19,3 +19,8 @@ code {
 button {
   all: unset;
 }
+
+a.tabledrag-handle .handle.handle {
+  margin: 0 0.5em 0;
+  background-position: 0;
+}

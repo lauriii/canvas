@@ -8,48 +8,6 @@
    */
   Drupal.behaviors.jsxAjaxProcess = {
     attach(context, settings) {
-
-      /**
-       * Checks if Drupal AJAX operations are in progress.
-       *
-       * @return {boolean}
-       *  True if Drupal AJAX operations are in progress.
-       */
-      const isAjaxing = () =>
-        Drupal.ajax.instances.some((instance) => instance && instance.ajaxing === true)
-
-      /**
-       * Attaches behaviors to a context once all
-       *
-       * @param {Element} theContext
-       *   The element to send through behaviors.
-       * @param {object} theSettings
-       *   Additional settings.
-       * @param {number} timeout
-       *   Duration of setTimeout before attachBehaviors is called.
-       */
-      const attachBehaviorsAfterAjaxing = (theContext, theSettings, timeout = 0) => {
-        // If no AJAX operations are taking place, behaviors will be attached at
-        // the end of the stack.
-        if (!isAjaxing()) {
-          setTimeout(() => {
-            Drupal.attachBehaviors(theContext, {...theSettings, doNotReinvoke: true});
-          }, timeout)
-        } else {
-          // If AJAX operations are occurring, set up an interval that will run
-          // until AJAX operations have stopped, after which behaviors are
-          // attached and the interval cleared.
-          const interval = setInterval(() => {
-            if (!isAjaxing()) {
-              setTimeout(() => {
-                Drupal.attachBehaviors(theContext, {...theSettings, doNotReinvoke: true});
-              }, timeout)
-              clearInterval(interval)
-            }
-          });
-        }
-      }
-
       // After hyperscriptifying a context, we send it through Drupal
       // behaviors. The doNotReinvoke flag indicates already-scriptified
       // content that does not need to proceed further.
@@ -69,68 +27,128 @@
           if (fragment.hasAttribute('data-drupal-scriptified')) {
             fragment.innerHTML = '';
           }
-        })
-      })
-
-      let attachBehaviorsCalled = false;
-      Object.keys(Drupal.JSXComponents).forEach(componentName => {
-        // If the top-level element in context is a JSX component
-        if (context.tagName && context.tagName.toLowerCase() === componentName) {
-          if (!context.tagName.toLowerCase().includes('fragment') && !context.hasAttribute('data-drupal-scriptified')) {
-            const container =  Drupal.HyperscriptifyAdditional(Drupal.Hyperscriptify(context), context);
-            context.hidden = true;
-            context.setAttribute('data-drupal-scriptified', true)
-            attachBehaviorsCalled = true;
-            attachBehaviorsAfterAjaxing(container, settings);
-            setTimeout(() => {
-              // The current context has done its job to inform hyperscriptifying.
-              // It is emptied instead of removed so `context` isn't null.
-              context.innerHTML = '';
-            })
-          }
-        } else {
-          // Keep track of any input elements that have been updated by this
-          // ajax request.
-          const updatedInputElements = [];
-          // Otherwise, search for the component inside a context.
-         [...context.querySelectorAll(`${componentName}:not([data-drupal-scriptified])`)].forEach(component => {
-           if (!component.hasAttribute('data-drupal-scriptified')) {
-             const container =  Drupal.HyperscriptifyAdditional(Drupal.Hyperscriptify(component),component);
-             component.setAttribute('data-drupal-scriptified', true)
-             Drupal.attachBehaviors(container, {...settings, doNotReinvoke: true});
-
-             // The element has informed hyperscriptification and is no longer
-             // needed in the DOM.
-             setTimeout(() => component.remove())
-
-             // We have attributes here that mean this likely a form field and
-             // there are React props, push this element into the list of
-             // updated input elements.
-             if (component.hasAttribute('attributes')) {
-               updatedInputElements.push(component)
-             }
-             attachBehaviorsCalled = true;
-             attachBehaviorsAfterAjaxing(container, settings);
-             // The element has informed hyperscriptification and is no longer
-             // needed in the DOM.
-             setTimeout(() => component.remove())
-           }
-         })
-         if (updatedInputElements.length > 0) {
-           // Notify the application that form fields have changed.
-           Drupal.HyperscriptifyUpdateStore(updatedInputElements)
-         }
-        }
+        });
       });
+
+      const componentNames = Object.keys(Drupal.JSXComponents);
+      const allJSXComponentInstances = [
+        ...context.querySelectorAll(componentNames.join()),
+      ];
+
+      // Hyperscriptify is applied to children of the components it processes,
+      // so we only need to identify JSX components that are not children of
+      // other JSX components.
+      let topLevelComponents = allJSXComponentInstances.filter((el) => {
+        return !allJSXComponentInstances.some(
+          (parent) => parent !== el && parent.contains(el),
+        );
+      });
+
+      // Special functionality in situations where tabledrag settings exist and
+      // the context is an AJAX wrapper.
+      // This means we should potentially be hyperscriptifying the entire
+      // tabledrag table, instead individually targeting the custom elements
+      // inside it.
+      if (
+        drupalSettings.tableDrag &&
+        context?.querySelector &&
+        !!context.querySelector(':scope > [data-xb-multiple-values]') &&
+        !!context.querySelector('[data-xb-tabledrag]')
+      ) {
+        context
+          .querySelectorAll('.ajax-new-content')
+          .forEach((ajaxNewContent) => {
+            // If .ajax-new-content is still present, the element was sent to
+            // be hyperscriptified before its show operation had completed, which
+            // can cause the hyperscriptification to occur before the opacity has
+            // fully reverted to the default value. This effectively freezes the
+            // opacity value wherever it happened to be during this operation,
+            // so we instead set it to null.
+            ajaxNewContent.style.opacity = null;
+          });
+        const commonParents = [];
+        // This identifies JSX elements that are children of a tabledrag table
+        // and removes them from the array of elements to hyperscriptify.
+        // At the same time, the parent element of the tabledrag table is added
+        // to the array, so every removed JSX component is still
+        // hyperscriptified as a descendent of the tabledrag table.
+        topLevelComponents = topLevelComponents.filter((el) => {
+          let dragParent = false;
+          // See if any element descends from a tabledrag table.
+          Object.keys(drupalSettings.tableDrag).forEach((dragId) => {
+            if (!dragParent) {
+              dragParent = el.closest(`#${dragId}`);
+            }
+          });
+          // If the element does descend from a tabledrag table, remove it from
+          // the array of elements to hyperscriptify and add the table to an
+          // array of parent elements that should be hyperscriptified instead.
+          if (dragParent) {
+            if (
+              !commonParents.find((subEl) => subEl === dragParent.parentElement)
+            ) {
+              commonParents.push(dragParent.parentElement);
+            }
+            return false;
+          }
+          return true;
+        });
+        topLevelComponents = [...commonParents, ...topLevelComponents];
+      }
+
+      // Component instances with attributes mean they are likely a form field,
+      // so add it to the list of updated input elements so the store can be
+      // updated accordingly after any component rendering occurs.
+      const updatedInputElements = allJSXComponentInstances.filter((el) =>
+        el.hasAttribute('attributes'),
+      );
+
+      // Keeps track of if behaviors have been attached.
+      let attachBehaviorsCalled = false;
+
+      // If the top-level element in context is a JSX component
+      if (
+        context.tagName &&
+        componentNames.includes(context.tagName.toLowerCase())
+      ) {
+        if (
+          !context.tagName.toLowerCase().includes('fragment') &&
+          !context.hasAttribute('data-drupal-scriptified')
+        ) {
+          Drupal.HyperscriptifyAdditional(
+            Drupal.Hyperscriptify(context),
+            context,
+            settings,
+          );
+          attachBehaviorsCalled = true;
+        }
+      } else {
+        topLevelComponents.forEach((component) => {
+          if (!component.hasAttribute('data-drupal-scriptified')) {
+            Drupal.HyperscriptifyAdditional(
+              Drupal.Hyperscriptify(component),
+              component,
+              settings,
+            );
+            attachBehaviorsCalled = true;
+          }
+        });
+      }
+
+      if (updatedInputElements.length > 0) {
+        // Notify the application that form fields have changed.
+        Drupal.HyperscriptifyUpdateStore(updatedInputElements);
+      }
 
       // If Drupal.attachBehaviors has not yet been called, but the context is inside
       // the contextual panel, it will be called here.
-      if (!attachBehaviorsCalled && context?.closest && context.closest('[data-testid="xb-contextual-panel"]')) {
-        // @todo Change the 30ms arbitrary wait to one that is based on the
-        // actual (currently unknown) reason the wait is needed.
-        // https://drupal.org/i/3506241
-        attachBehaviorsAfterAjaxing(context, settings, 30);
+      if (
+        !attachBehaviorsCalled &&
+        context?.closest &&
+        context.closest('[data-testid="xb-contextual-panel"]')
+      ) {
+        Drupal.attachBehaviorsAfterAjaxing(context, settings);
       }
-    }
-  }
+    },
+  };
 })(Drupal);

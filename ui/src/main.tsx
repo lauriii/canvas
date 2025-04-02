@@ -45,6 +45,43 @@ const appConfiguration: AppConfiguration = {
   devMode: drupalSettings?.xb?.devMode || false,
 };
 
+const isAjaxing = () =>
+  Drupal.ajax.instances.some(
+    (instance: { ajaxing: boolean }) => instance && instance.ajaxing === true,
+  );
+
+const attachBehaviorsAfterAjaxing = (
+  theContext: HTMLElement,
+  theSettings: { doNotReinvoke?: boolean },
+) => {
+  const attachTheBehaviors = () => {
+    setTimeout(() => {
+      Drupal.attachBehaviors(theContext, {
+        ...theSettings,
+        doNotReinvoke: true,
+      });
+    });
+  };
+
+  // If no AJAX operations are taking place, behaviors will be attached at
+  // the end of the stack.
+  if (!isAjaxing()) {
+    attachTheBehaviors();
+  } else {
+    // If AJAX operations are occurring, set up an interval that will run
+    // until AJAX operations have stopped, after which behaviors are
+    // attached and the interval cleared.
+    const interval = setInterval(() => {
+      if (!isAjaxing()) {
+        attachTheBehaviors();
+        clearInterval(interval);
+      }
+    });
+  }
+};
+
+Drupal.attachBehaviorsAfterAjaxing = attachBehaviorsAfterAjaxing;
+
 if (container) {
   const root = createRoot(container);
   let routerRoot = appConfiguration.baseUrl;
@@ -95,7 +132,8 @@ if (container) {
   Drupal.HyperscriptifyAdditional = (
     Application: ReactHTMLElement<any>,
     context: HTMLElement,
-  ) => {
+    settings: { doNotReinvoke?: boolean },
+  ): void => {
     const container = document.createElement('div');
     context.after(container);
     const root = createRoot(container);
@@ -103,13 +141,49 @@ if (container) {
     // Wrap the newly rendered content in the Redux provider so it has access
     // to the existing store.
     root.render(
-      React.createElement<ProviderComponentProps>(
-        Provider as FC,
-        { store },
-        Application as ReactHTMLElement<any>,
-      ),
+      <Theme
+        asChild
+        accentColor="blue"
+        hasBackground={false}
+        panelBackground="solid"
+        appearance="light"
+      >
+        {React.createElement<ProviderComponentProps>(
+          Provider as FC,
+          { store },
+          Application as ReactHTMLElement<any>,
+        )}
+      </Theme>,
     );
-    return container;
+    // If the render root already has content, we know it is rendered and can
+    // return it.
+    if (container.innerHTML.length > 0) {
+      context.setAttribute('data-drupal-scriptified', 'true');
+      context.innerHTML = '';
+      attachBehaviorsAfterAjaxing(
+        container,
+        settings as { doNotReinvoke?: boolean },
+      );
+    } else {
+      // If the render root does not have content yet, it isn't yet rendered.
+      // Set an interval to check for content length, and return the element
+      // once it is ready. If the process exceeds an unlikely 600ms, the
+      // empty div will be returned regardless.
+      let attempts = 0;
+      const intervalDuration = 5;
+      const intervalId = setInterval(() => {
+        attempts += 1;
+        if (container.innerHTML.length || attempts * intervalDuration > 600) {
+          clearInterval(intervalId);
+          context.setAttribute('data-drupal-scriptified', 'true');
+          context.innerHTML = '';
+          attachBehaviorsAfterAjaxing(
+            container,
+            settings as { doNotReinvoke?: boolean },
+          );
+        }
+      }, intervalDuration);
+    }
   };
 
   /**

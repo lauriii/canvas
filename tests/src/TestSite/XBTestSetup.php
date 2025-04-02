@@ -49,8 +49,13 @@ class XBTestSetup implements TestSetupInterface {
     assert($module_installer instanceof ModuleInstallerInterface);
     $module_installer->install(['node', 'media', 'block', 'file']);
     $theme = 'stark';
-    \Drupal::service('theme_installer')->install([$theme]);
-    \Drupal::service('config.factory')->getEditable('system.theme')->set('default', $theme)->save();
+    $admin_theme = "claro";
+    \Drupal::service('theme_installer')->install([$theme, $admin_theme]);
+    \Drupal::service('config.factory')
+      ->getEditable('system.theme')
+      ->set('default', $theme)
+      ->set('admin', $admin_theme)
+      ->save();
     \Drupal::service('theme.manager')->resetActiveTheme();
     // Place the page title block.
     $this->placeBlock('page_title_block', ['region' => 'highlighted']);

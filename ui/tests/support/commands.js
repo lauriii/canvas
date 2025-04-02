@@ -153,7 +153,7 @@ Cypress.Commands.add(
   },
 );
 
-Cypress.Commands.add('drupalInstallModule', (module, force, callback) => {
+Cypress.Commands.add('drupalInstallModule', (modules, force, callback) => {
   cy.drupalLoginAsAdmin(() => {
     cy.drupalRelativeURL('/admin/modules');
 
@@ -166,7 +166,14 @@ Cypress.Commands.add('drupalInstallModule', (module, force, callback) => {
       });
     });
 
-    cy.get(`form.system-modules [name="modules[${module}][enable]"]`).check();
+    let moduleList = modules;
+    if (!Array.isArray(modules)) {
+      moduleList = [modules];
+    }
+    moduleList.forEach((module) => {
+      cy.get(`form.system-modules [name="modules[${module}][enable]"]`).check();
+    });
+
     cy.get('form.system-modules').submit();
     if (force) {
       cy.get('body').then(($body) => {
@@ -176,16 +183,18 @@ Cypress.Commands.add('drupalInstallModule', (module, force, callback) => {
       });
     }
     cy.drupalRelativeURL('/admin/modules');
-    cy.get(`form.system-modules [name="modules[${module}][enable]"]`).should(
-      ($checkbox) => {
-        expect($checkbox.is(':checked'), `The ${module} module is installed`).to
-          .be.true;
-        expect(
-          $checkbox.is(':disabled'),
-          `The ${module} install checkbox can not be unchecked`,
-        ).to.be.true;
-      },
-    );
+    moduleList.forEach((module) => {
+      cy.get(`form.system-modules [name="modules[${module}][enable]"]`).should(
+        ($checkbox) => {
+          expect($checkbox.is(':checked'), `The ${module} module is installed`)
+            .to.be.true;
+          expect(
+            $checkbox.is(':disabled'),
+            `The ${module} install checkbox can not be unchecked`,
+          ).to.be.true;
+        },
+      );
+    });
   });
 });
 
@@ -612,8 +621,10 @@ Cypress.Commands.add(
   {
     prevSubject: true,
   },
-  (subject) => {
-    cy.wrap(subject).should((subject) => {
+  (subject, customTimeout) => {
+    cy.wrap(subject, {
+      timeout: customTimeout || Cypress.config('defaultCommandTimeout'),
+    }).should((subject) => {
       const newFormBuildId = subject.find('input[name="form_build_id"]').val();
       expect(newFormBuildId).not.to.equal(formBuildId[subject.attr('id')]);
       formBuildId[subject.attr('id')] = newFormBuildId;

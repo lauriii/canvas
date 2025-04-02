@@ -52,9 +52,7 @@ function xb_test_article_fields_install(): void {
       ],
       'widget' => [
         'type' => 'daterange_default',
-        'settings' => [
-          'increment' => 15,
-        ],
+        'settings' => [],
       ],
     ],
     'field_xbt_datetime_datelist' => [
@@ -134,6 +132,11 @@ function xb_test_article_fields_install(): void {
       'type' => 'language',
       'label' => 'XB Language',
       'settings' => [],
+      'default_value' => [
+        [
+          'value' => \Drupal::languageManager()->getDefaultLanguage()->getId(),
+        ],
+      ],
       'widget' => [
         'type' => 'language_select',
         'settings' => [],
@@ -181,9 +184,7 @@ function xb_test_article_fields_install(): void {
       'settings' => [],
       'widget' => [
         'type' => 'path',
-        'settings' => [
-          'show_uri' => FALSE,
-        ],
+        'settings' => [],
       ],
     ],
     'field_xbt_telephone' => [
@@ -246,6 +247,19 @@ function xb_test_article_fields_install(): void {
         ],
       ],
     ],
+    'field_xbt_unlimited_text' => [
+      'type' => 'string',
+      'label' => 'XB Unlimited Text',
+      'settings' => [],
+      'cardinality' => -1,
+      'widget' => [
+        'type' => 'text_textfield',
+        'settings' => [
+          'size' => 60,
+          'placeholder' => '',
+        ],
+      ],
+    ],
   ];
 
   $form_display = EntityFormDisplay::load('node.article.default');
@@ -258,6 +272,15 @@ function xb_test_article_fields_install(): void {
     ]);
   }
 
+  $do_not_add_to_form_yet = [
+    'field_xbt_language',
+    'field_xbt_options_buttons',
+    'field_xbt_daterange_datelist',
+    'field_xbt_daterange_default',
+    'field_xbt_datetime_timestamp',
+    'field_xbt_datetime_datelist',
+  ];
+
   foreach ($fields as $field_name => $field_info) {
     if (!FieldStorageConfig::loadByName('node', $field_name)) {
       FieldStorageConfig::create([
@@ -265,7 +288,7 @@ function xb_test_article_fields_install(): void {
         'entity_type' => 'node',
         'type' => $field_info['type'],
         'settings' => $field_info['settings'],
-        'cardinality' => 1,
+        'cardinality' => $field_info['cardinality'] ?? 1,
       ])->save();
     }
 
@@ -277,6 +300,10 @@ function xb_test_article_fields_install(): void {
         'label' => $field_info['label'],
         'settings' => $field_info['settings'],
       ])->save();
+    }
+
+    if (in_array($field_name, $do_not_add_to_form_yet)) {
+      continue;
     }
 
     $form_display->setComponent($field_name, [

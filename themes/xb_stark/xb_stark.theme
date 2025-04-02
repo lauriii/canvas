@@ -12,6 +12,9 @@ function xb_stark_element_info_alter(array &$type): void {
   if (isset($type['vertical_tabs'])) {
     $type['vertical_tabs']['#pre_render'][] = [PreRender::class, 'verticalTabs'];
   }
+  if (isset($type['table'])) {
+    $type['table']['#pre_render'][] = [PreRender::class, 'table'];
+  }
 }
 
 function xb_stark_form_node_form_alter(array &$form, FormStateInterface $form_state): void {
@@ -22,4 +25,8 @@ function xb_stark_form_node_form_alter(array &$form, FormStateInterface $form_st
   $form['meta']['#access'] = TRUE;
   $form['revision_information']['#type'] = 'container';
   $form['revision_information']['#group'] = 'meta';
+}
+
+function xb_stark_preprocess_field_multiple_value_form(array &$variables): void {
+  $variables['attributes']['data-xb-multiple-values'] = 'true';
 }

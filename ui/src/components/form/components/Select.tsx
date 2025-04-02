@@ -1,21 +1,26 @@
 import type { Attributes } from '@/types/DrupalAttribute';
+import type { ForwardedRef } from 'react';
 
+import { forwardRef } from 'react';
 import { Select as SelectRadixThemes } from '@radix-ui/themes';
 import { SELECT_ITEM_EMPTY_STRING } from '@/utils/function-utils';
 
 import styles from './Select.module.css';
 
-const Select = ({
-  value,
-  onValueChange,
-  options,
-  attributes,
-}: {
-  value: string;
-  onValueChange: (value: string) => void;
-  options: { value: string; label: string }[];
-  attributes: Attributes;
-}) => {
+const Select = forwardRef(function Select(
+  {
+    value,
+    onValueChange,
+    options,
+    attributes,
+  }: {
+    value: string;
+    onValueChange: (value: string) => void;
+    options: { value: string; label: string }[];
+    attributes: Attributes;
+  },
+  ref: ForwardedRef<HTMLButtonElement>,
+) {
   const { id, ...remainingAttributes } = attributes;
   return (
     <SelectRadixThemes.Root
@@ -26,6 +31,7 @@ const Select = ({
       <SelectRadixThemes.Trigger
         {...(id && { id: id as string })}
         className={styles.trigger}
+        ref={ref}
       />
       <SelectRadixThemes.Content>
         {options?.map((option, index) => (
@@ -42,6 +48,6 @@ const Select = ({
       </SelectRadixThemes.Content>
     </SelectRadixThemes.Root>
   );
-};
+});
 
 export default Select;
