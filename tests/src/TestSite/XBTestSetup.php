@@ -169,12 +169,7 @@ class XBTestSetup implements TestSetupInterface {
     $fileUrl = File::load($image_field_sample_value['target_id'])->createFileUrl(FALSE);
     $static_image_prop_source = [
       'sourceType' => 'static:field_item:entity_reference',
-      'value' => [
-        'alt' => 'This is a random image.',
-        'width' => 100,
-        'height' => 100,
-        'target_id' => 3,
-      ],
+      'value' => ['target_id' => 3],
       // This expression resolves `src` to the image's public URL.
       'expression' => 'ℹ︎entity_reference␟{src↝entity␜␜entity:media:image␝field_media_image␞␟entity␜␜entity:file␝uri␞␟url,alt↝entity␜␜entity:media:image␝field_media_image␞␟alt,width↝entity␜␜entity:media:image␝field_media_image␞␟width,height↝entity␜␜entity:media:image␝field_media_image␞␟height}',
       'sourceTypeSettings' => [
@@ -187,6 +182,24 @@ class XBTestSetup implements TestSetupInterface {
         ],
       ],
     ];
+    $cta1href = [
+      'sourceType' => 'static:field_item:uri',
+      'value' => 'https://drupal.org',
+      'expression' => 'ℹ︎uri␟value',
+    ];
+    $use_uri = \Drupal::moduleHandler()->moduleExists('xb_test_storage_prop_shape_alter');
+    if (!$use_uri) {
+      $cta1href = [
+        'sourceType' => 'static:field_item:link',
+        'sourceTypeSettings' => [
+          'instance' => [
+            'title' => \DRUPAL_DISABLED,
+          ],
+        ],
+        'value' => ['uri' => 'https://drupal.org'],
+        'expression' => 'ℹ︎link␟uri',
+      ];
+    }
     $inputs = [
       'two-column-uuid' => [
         'width' => [
@@ -227,11 +240,7 @@ class XBTestSetup implements TestSetupInterface {
           'value' => 'XB Needs This For The Time Being',
           'expression' => 'ℹ︎string␟value',
         ],
-        'cta1href' => [
-          'sourceType' => 'static:field_item:uri',
-          'value' => 'https://drupal.org',
-          'expression' => 'ℹ︎uri␟value',
-        ],
+        'cta1href' => $cta1href,
       ],
       'static-static-card1ab' => [
         'heading' => [
@@ -239,11 +248,7 @@ class XBTestSetup implements TestSetupInterface {
           'value' => 'hello, world!',
           'expression' => 'ℹ︎string␟value',
         ],
-        'cta1href' => [
-          'sourceType' => 'static:field_item:uri',
-          'value' => 'https://drupal.org',
-          'expression' => 'ℹ︎uri␟value',
-        ],
+        'cta1href' => $cta1href,
       ],
       'static-static-card3rr' => [
         'heading' => [
@@ -252,10 +257,8 @@ class XBTestSetup implements TestSetupInterface {
           'expression' => 'ℹ︎string␟value',
         ],
         'cta1href' => [
-          'sourceType' => 'static:field_item:uri',
-          'value' => $fileUrl,
-          'expression' => 'ℹ︎uri␟value',
-        ],
+          'value' => $use_uri ? $fileUrl : ['uri' => $fileUrl],
+        ] + $cta1href,
       ],
       'static-image-udf7d' => [
         'image' => $static_image_prop_source,

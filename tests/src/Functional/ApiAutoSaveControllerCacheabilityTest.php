@@ -93,7 +93,7 @@ final class ApiAutoSaveControllerCacheabilityTest extends FunctionalTestBase {
         'entity' => $node2->id(),
       ]),
       [
-        RequestOptions::JSON => $this->getValidClientJson(),
+        RequestOptions::JSON => $this->getValidClientJson(FALSE),
         RequestOptions::HEADERS => ['X-CSRF-Token' => $token],
       ]
     );

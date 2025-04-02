@@ -4,26 +4,22 @@ declare(strict_types=1);
 
 namespace Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource;
 
-use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Entity\TypedData\EntityDataDefinition;
 use Drupal\Core\Field\FieldTypePluginManagerInterface;
-use Drupal\Core\Field\Plugin\Field\FieldType\EntityReferenceItemInterface;
 use Drupal\Core\Field\WidgetPluginManager;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Plugin\Component as SdcPlugin;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\Core\Render\Component\Exception\ComponentNotFoundException;
 use Drupal\Core\Render\Component\Exception\InvalidComponentException;
-use Drupal\Core\StreamWrapper\PublicStream;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\Theme\Component\ComponentValidator;
 use Drupal\experience_builder\ComponentSource\ComponentSourceBase;
 use Drupal\experience_builder\ComponentSource\ComponentSourceWithSlotsInterface;
 use Drupal\experience_builder\Entity\Component as ComponentEntity;
-use Drupal\experience_builder\InvalidRequestBodyValue;
 use Drupal\experience_builder\MissingHostEntityException;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\experience_builder\PropExpressions\Component\ComponentPropExpression;
@@ -34,11 +30,10 @@ use Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldPropE
 use Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldTypePropExpression;
 use Drupal\experience_builder\PropShape\PropShape;
 use Drupal\experience_builder\PropShape\StorablePropShape;
-use Drupal\experience_builder\PropSource\UrlPreviewPropSource;
 use Drupal\experience_builder\PropSource\PropSource;
 use Drupal\experience_builder\PropSource\StaticPropSource;
+use Drupal\experience_builder\PropSource\UrlPreviewPropSource;
 use Drupal\experience_builder\ShapeMatcher\FieldForComponentSuggester;
-use Drupal\media\Entity\MediaType;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\HttpException;
@@ -173,23 +168,29 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
    */
   public function getExplicitInput(string $uuid, ComponentTreeItem $item): array {
     if (!$this->requiresExplicitInput()) {
-      return [];
+      return [
+        'resolved' => [],
+        'source' => [],
+      ];
     }
     $entity = $item->getRoot() === $item ? NULL : $item->getEntity();
     $values = $item->get('inputs')->getValues($uuid);
-    return array_map(
+    return [
+      'source' => $values,
+      'resolved' => array_map(
       // @phpstan-ignore-next-line
-      fn(array $prop_source): mixed => PropSource::parse($prop_source)
-        ->evaluate($entity),
-      $values,
-    );
+        fn(array $prop_source): mixed => PropSource::parse($prop_source)
+          ->evaluate($entity),
+        $values,
+      ),
+    ];
   }
 
   /**
    * {@inheritdoc}
    */
   public function hydrateComponent(array $explicit_input): array {
-    $hydrated[self::EXPLICIT_INPUT_NAME] = $explicit_input;
+    $hydrated[self::EXPLICIT_INPUT_NAME] = $explicit_input['resolved'];
 
     if ($slots = $this->getSlotDefinitions()) {
       // Use the first example defined in SDC metadata, if it exists. Otherwise,
@@ -209,32 +210,27 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
   public function inputToClientModel(array $explicit_input): array {
     // @see PropSourceComponent type-script definition.
     // @see EvaluatedComponentModel type-script definition.
-    $model = [
-      'resolved' => $explicit_input,
-      'source' => [],
-    ];
+    $model = $explicit_input;
 
-    foreach ($explicit_input as $prop_name => $value) {
-      $prop_source = $this->getDefaultStaticPropSource($prop_name);
-      $source = $prop_source->toArray();
-      try {
-        // @todo To support DynamicPropSource, \Drupal\experience_builder\ComponentSource\ComponentSourceInterface::inputToClientModel() will need to be updated to allow a host entity to be passed in.
-        $value = $prop_source->evaluate(NULL);
-      }
-      catch (\OutOfRangeException) {
-        // This was a dynamic prop source, but is missing the data it needs.
-        // Try to fall-back to the default value.
-        $value = \array_key_exists('value', $source) ? $source['value'] : NULL;
+    foreach ($explicit_input['resolved'] as $prop_name => $value) {
+      // @see getPropsValues() in formUtil.ts for the equivalent empty string
+      // comparison.
+      if ((\is_scalar($value) && (string) $value === '') ||
+        // @todo Revisit in https://drupal.org/i/3516754
+        (\is_array($value) && $value === [])) {
+        // Don't send empty values. This is consistent with
+        // syncPropSourcesToResolvedValues in the type-script code.
+        unset($model['source'][$prop_name], $model['resolved'][$prop_name]);
+        continue;
       }
       // Don't duplicate value if the resolved value matches the static value.
       // TRICKY: it's thanks to the condition in this if-branch NOT being met
       // that it's possible for the preview ('resolved') to not match the input
       // ('source'): the source will retain its own value, even if that is the
       // empty array in for example the case of a default image.
-      if (\array_key_exists('value', $source) && $value === $source['value']) {
-        unset($source['value']);
+      if (\array_key_exists('value', $model['source'][$prop_name]) && $value === $model['source'][$prop_name]['value']) {
+        unset($model['source'][$prop_name]['value']);
       }
-      $model['source'][$prop_name] = $source;
     }
 
     return $model;
@@ -484,7 +480,6 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
       // @see \Drupal\experience_builder\PropShape\StorablePropShape
       // @see \Drupal\Core\Field\FieldItemInterface::propertyDefinitions()
       // @see ::exampleValueRequiresEntity()
-      // @todo https://www.drupal.org/project/experience_builder/issues/3493943 will introduce the same 'resolved' vs 'source' split for *default values* that https://www.drupal.org/project/experience_builder/issues/3493941 already introduced for *user-entered values*. This code leaps ahead of that.
 
       // Inspect the Component config entity to check for the presence of a
       // default value.
@@ -515,8 +510,9 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
       $default_resolved_value = NULL;
       // Use the stored default, if any. This is required for all required SDC
       // props, optional for all optional SDC props.
+      $default_static_prop_source = $this->getDefaultStaticPropSource($prop_name);
       if ($has_default_source_value) {
-        $default_resolved_value = $this->getDefaultStaticPropSource($prop_name)->evaluate(NULL);
+        $default_resolved_value = $default_static_prop_source->evaluate(NULL);
       }
       // One special case: example values that require a Drupal entity to
       // exist. In these cases (for either required or optional SDC props),
@@ -548,9 +544,10 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
       $field_data[$prop_name] = [
         'required' => in_array($prop_name, $component_plugin->metadata->schema['required'] ?? [], TRUE),
         'jsonSchema' => $prop_shape->resolvedSchema,
-      ];
-      if ($has_default_source_value) {
-        $field_data[$prop_name]['default_values'] = $default_source_value;
+      ] + \array_diff_key($default_static_prop_source->toArray(), \array_flip(['value']));
+      if ($default_resolved_value !== NULL) {
+        $field_data[$prop_name]['default_values']['source'] = $default_source_value;
+        $field_data[$prop_name]['default_values']['resolved'] = $default_resolved_value;
       }
 
       // Build transforms from widget metadata.
@@ -577,21 +574,6 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
         ));
       }
     }
-
-    // Avoid duplicating logic: reuse ::inputToClientModel(), add missing data.
-    // Note how ::inputToClientModel() returns a shape for the client's
-    // `EvaluatedComponentModel`. Its 'source' key is almost identical to the
-    // client's `FieldData`: keys are prop names, values are `StaticPropSource`s
-    // and *that* overlaps significantly with `FieldDataItem` (which allows
-    // arbitrary additional keys).
-    // @see EvaluatedComponentModel type-script definition.
-    // @see FieldData type-script definition.
-    // @see StaticPropSource type-script definition.
-    $field_data = NestedArray::mergeDeep(
-      $field_data,
-      $this->inputToClientModel($default_props_for_default_markup)['source'],
-      $this->inputToClientModel($unpopulated_props_for_default_markup)['source'],
-    );
 
     return [
       'source' => (string) $this->getSourceLabel(),
@@ -721,177 +703,55 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
     $props = [];
 
     foreach (($client_model['source'] ?? []) as $prop => $prop_source) {
-      if ($violations === NULL && !\array_key_exists($prop, $client_model['resolved'])) {
-        // Valueless prop, for the case where only a default is provided for the
-        // preview, not for storing.
-        // @see ::exampleValueRequiresEntity()
-        // @see ::getClientSideInfo()
-        $client_side_info = $this->getClientSideInfo($component);
-        if (!isset($client_side_info['build']['#props'][$prop])) {
-          // If the prop is not set at all, then no default is provided.
-          continue;
-        }
-        assert(isset($client_side_info['field_data'][$prop]['jsonSchema']));
-        $source = new UrlPreviewPropSource(
-          value: $client_side_info['build']['#props'][$prop],
-          jsonSchema: $client_side_info['field_data'][$prop]['jsonSchema'],
-          componentId: $component->id(),
-        );
-        $props[$prop] = $source->toArray();
-        continue;
-      }
-
+      // The client should always provide a resolved value when providing a
+      // corresponding source but may not.
       $prop_value = $client_model['resolved'][$prop] ?? NULL;
       try {
         // @see PropSourceComponent type-script definition.
         // @see EvaluatedComponentModel type-script definition.
-        // @todo We may not universally do this in the future to allow for
-        // transformed values, e.g. for an image field the source value
-        // might be a target_id whilst the resolved value might be the
-        // image's alt, src, height and width properties. This will change
-        // in https://drupal.org/i/3493942.
-        // Undo what ::inputToClientModel() did: restore the omitted `'value'`.
-        $prop_source['value'] = $prop_value;
+        // Undo what ::inputToClientModel() did: restore the omitted `'value'`
+        // in cases where it is the same as the source value.
+        $default_source_value = $this->configuration['prop_field_definitions'][$prop]['default_value'] ?? NULL;
+        if (!\array_key_exists('value', $prop_source)) {
+          $prop_source['value'] = $prop_value;
+        }
         $source = PropSource::parse($prop_source);
+        // Make sure we can evaluate this prop source with the passed values.
+        // @todo Pass the host entity in https://drupal.org/i/3513590
+        $source->evaluate(NULL);
+      }
+      catch (\OutOfRangeException | \OutOfBoundsException) {
+        if (($violations === NULL ||
+          (\array_key_exists('value', $prop_source) && $prop_source['value'] === $default_source_value)) &&
+          !empty($prop_value)) {
+          // Valueless prop, for the case where only a default is provided for
+          // the preview or the initial state of the component inputs form, but
+          // not for storing.
+          // @see ::exampleValueRequiresEntity()
+          // @see ::getClientSideInfo()
+          $client_side_info = $this->getClientSideInfo($component);
+          \assert(isset($client_side_info['field_data'][$prop]['jsonSchema']));
+          $source = new UrlPreviewPropSource(
+            value: $prop_value,
+            jsonSchema: $client_side_info['field_data'][$prop]['jsonSchema'],
+            componentId: $component->id(),
+          );
+          $props[$prop] = $source->toArray();
+          continue;
+        }
+        // If this is a required property without a value, we can leave
+        // subsequent validation to bubble up any errors.
+        continue;
       }
       catch (\LogicException) {
         // Invalid client data has been passed - fallback to an empty default
         // static prop source.
         $source = $this->getDefaultStaticPropSource($prop)->withValue([]);
       }
-      if ($source instanceof StaticPropSource && $source->fieldItem instanceof EntityReferenceItemInterface &&
-        // @todo Remove in https://www.drupal.org/i/3501902
-        //   and/or https://www.drupal.org/i/3493943
-        \is_array($prop_value)) {
-        $target_type = $source->fieldItem->getFieldDefinition()
-          ->getSetting('target_type');
-        try {
-          $target_id = $this->findTargetForProps($prop_value, $target_type);
-        }
-        catch (InvalidRequestBodyValue $invalid) {
-          if ($violations !== NULL) {
-            $violations->add(new ConstraintViolation(
-              $invalid->getMessage(),
-              NULL,
-              [],
-              $client_model,
-              $invalid->propertyPath
-                ? "model.$component_instance_uuid.$prop.{$invalid->propertyPath}"
-                : "model.$component_instance_uuid.$prop",
-              $prop_value,
-            ));
-          }
-          continue;
-        }
-
-        $source = $source->withValue(
-          array_diff_key($source->getValue(), \array_flip(['src', 'target_id']))
-          + ['target_id' => $target_id]
-        );
-      }
       $props[$prop] = $source->toArray();
     }
 
-    // When previewing, fill in the default values missing from the client-side
-    // model. (Not when saving: default values should not be saved.)
-    // @todo Remove this in https://www.drupal.org/i/3493943, because then all props will be passed from the client to the server.
-    if ($violations === NULL) {
-      $props += $this->workaroundAddDefaultValuesMissingFromClientSideModel(array_keys($props), $component);
-    }
-
     return $props;
-  }
-
-  /**
-   * @todo Remove this in https://www.drupal.org/i/3493943, because then all props will appear.
-   */
-  private function workaroundAddDefaultValuesMissingFromClientSideModel(array $received_client_model_source_props, ComponentEntity $component): array {
-    $missing_props = [];
-
-    $client_side_info = $this->getClientSideInfo($component);
-    assert(isset($client_side_info['field_data']));
-    foreach (array_diff_key($client_side_info['field_data'], array_flip($received_client_model_source_props)) as $prop => $field_data) {
-      // Valueless prop, for the case where only a default is provided for the
-      // preview, not for storing.
-      // @see ::exampleValueRequiresEntity()
-      // @see ::getClientSideInfo()
-      if (!isset($client_side_info['build']['#props'][$prop])) {
-        // If the prop is not set at all, then no default is provided.
-        continue;
-      }
-      assert(isset($field_data['jsonSchema']));
-      // This method only generates server-side explicit component inputs for
-      // those props that do not have a default value passed to the client.
-      // (See the `if ($has_default_source_value)` conditional plus
-      // `elseif (self::exampleValueRequiresEntity($storable_prop_shape))`
-      // conditional in ::getClientSideInfo().)
-      if (!array_key_exists('default_values', $client_side_info['field_data'][$prop])) {
-        $source = new UrlPreviewPropSource(
-          value: $client_side_info['build']['#props'][$prop],
-          jsonSchema: $field_data['jsonSchema'],
-          componentId: $component->id(),
-        );
-        $missing_props[$prop] = $source->toArray();
-      }
-    }
-
-    return $missing_props;
-  }
-
-  /**
-   * @todo This now is only for default values as the client now sends the
-   *  target ID - Remove in https://www.drupal.org/i/3501902 and/or
-   *  https://www.drupal.org/i/3493943
-   */
-  private function findTargetForProps(array $prop_value, string $target_type): int {
-    if ($target_type !== 'media' && $target_type !== 'file') {
-      // Once the 'target_id' is saved the target type won't be needed.
-      throw new InvalidRequestBodyValue("Unsupported target type '$target_type'.");
-    }
-    $src = $prop_value['src'];
-
-    // Only consider public files until we save 'target_id' in the client model.
-    $base_path = '/' . PublicStream::basePath() . '/';
-    $relative_path = substr($src, strlen($base_path));
-    $drupal_uris = ['public://' . $relative_path];
-
-    // This might be an image style from the adapted image input, in which
-    // case the image will be in the format `files/styles/{style}/{url}`.
-    if (str_contains($src, 'files/styles/thumbnail') && preg_match('@/files/styles/thumbnail/public/(.*).webp@', $src, $matches)) {
-      $drupal_uris[] = 'public://' . $matches[1];
-    }
-    if (preg_match('@/sites/.*/files/(.*)$@', $src, $matches)) {
-      // This could also be running in a sub-directory, for example in CI.
-      // Let's just match on sites/default/files or
-      // sites/simpletest/{testid}/files.
-      $drupal_uris[] = 'public://' . $matches[1];
-    }
-
-    // Load the file entity using the 'uri'. 'filename' will not always work
-    // because the file name can be changed in the uri.
-    $files = $this->entityTypeManager->getStorage('file')->loadByProperties(['uri' => $drupal_uris]);
-    $file = reset($files);
-    if (!$file) {
-      throw new InvalidRequestBodyValue("File '$src' not found.", 'src');
-    }
-    $file_id = $file->id();
-    if ($target_type === 'file') {
-      return (int) $file_id;
-    }
-
-    // TRICKY: this is tightly coupled to `media_library_storage_prop_shape_alter()`!
-    $image_media_type = MediaType::load('image');
-    assert($image_media_type !== NULL);
-    $source_field_definition = $image_media_type->getSource()->getSourceFieldDefinition($image_media_type);
-    assert($source_field_definition !== NULL);
-    $source_field_name = $source_field_definition->getName();
-    $query = $this->entityTypeManager->getStorage('media')->getQuery()->condition("$source_field_name.target_id", $file_id)->accessCheck();
-    $media_ids = $query->execute();
-    assert(is_array($media_ids));
-    if (empty($media_ids)) {
-      throw new InvalidRequestBodyValue("No media entity found that uses file '$src'.", 'src');
-    }
-    return (int) array_pop($media_ids);
   }
 
 }

@@ -127,6 +127,8 @@ class ClientDataToEntityConverterTest extends KernelTestBase {
     $unreferenced_file_client_json = $valid_client_json;
     $unreferenced_src = $this->getSrcPropertyFromFile($this->unreferencedImage);
     $unreferenced_file_client_json['model'][self::TEST_IMAGE_UUID]['resolved']['image']['src'] = $unreferenced_src;
+    // Remove the valid image reference from source values.
+    unset($unreferenced_file_client_json['model'][self::TEST_IMAGE_UUID]['source']['image']['value']);
     $suffix = '';
     if (\version_compare(\Drupal::VERSION, '11.1.2', '>=')) {
       // The format of component violation messages changed in Drupal 11.1.2.
@@ -136,9 +138,6 @@ class ClientDataToEntityConverterTest extends KernelTestBase {
     $this->assertConvert(
       $unreferenced_file_client_json,
       [
-        // Transformation from client model to input failed.
-        // @see \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\SingleDirectoryComponent::findTargetForProps()
-        'model.' . self::TEST_IMAGE_UUID . '.image.src' => "No media entity found that uses file '$unreferenced_src'.",
         // The failed transformation above results in an empty value for the
         // entire SDC prop. Which then fails SDC validation.
         // @see \Drupal\Core\Theme\Component\ComponentValidator::validateProps()

@@ -78,7 +78,6 @@ final class ApiLayoutController {
       $body = $autoSaveData->data;
       \assert(\is_array($body));
       ['layout' => $layout, 'model' => $model, 'entity_form_fields' => $entity_form_fields] = $body;
-      $content_layout = $layout[0];
       $label_field_input_name = sprintf("%s[0][value]", $content_entity_type->getKey('label'));
       $is_new = $this->contentEntityIsConsideredNew($entity_form_fields[$label_field_input_name], $content_entity_type);
     }

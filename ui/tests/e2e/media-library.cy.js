@@ -41,12 +41,15 @@ const testMediaLibraryInComponentInstanceForm = (cy) => {
   cy.clickComponentInPreview('Image', 1);
   cy.clickComponentInPreview('Image');
 
+  cy.get('[data-testid*="xb-component-form-"]').as('inputForm');
   iterations.forEach((step) => {
     cy.get('[class*="contextualPanel"]').should('exist');
     cy.get('div[role="dialog"]').should('not.exist');
+    cy.get('@inputForm').recordFormBuildId();
     cy.get('[class*="contextualPanel"]')
       .findByLabelText(step.removeText)
       .click();
+    cy.get('@inputForm').shouldHaveUpdatedFormBuildId();
     cy.get(
       '[class*="contextualPanel"] .js-media-library-open-button[data-once="drupal-ajax"]',
     )
@@ -56,6 +59,7 @@ const testMediaLibraryInComponentInstanceForm = (cy) => {
     cy.findByLabelText(step.selectNewText).check();
     cy.get('button:contains("Insert selected")').click();
     cy.get('div[role="dialog"]').should('not.exist');
+    cy.get('@inputForm').shouldHaveUpdatedFormBuildId();
     cy.get(
       `[class*="contextualPanel"] input[aria-label="${step.removeAriaLabel}"]`,
     ).should('exist');
@@ -68,6 +72,13 @@ const testMediaLibraryInComponentInstanceForm = (cy) => {
 
 const testMediaLibraryInEntityForm = (cy, loadOptions = {}, title) => {
   cy.drupalLogin('xbUser', 'xbUser');
+  // Node 1 includes prop sources that make use of adapters, we need to
+  // make sure there are no auto-save entries for that node before we attempt
+  // to publish. This test interacts with that node in the "Can open the media
+  // library widget in an article props form" case which causes an invalid entry
+  // in auto-save that prevents publishing.
+  cy.clearAutoSave('node', 1);
+
   cy.loadURLandWaitForXBLoaded(loadOptions);
 
   cy.findByTestId('xb-contextual-panel--page-data').should(

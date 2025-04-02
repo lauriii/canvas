@@ -209,30 +209,10 @@ class ClientServerConversionTraitTest extends KernelTestBase {
   }
 
   public function testConvertClientToServerErrors(): void {
-    $valid_client_json = $this->getValidClientJson();
+    $valid_client_json = $this->getValidClientJson(FALSE);
 
     $invalid_image_client_json = $valid_client_json;
-    $invalid_image_client_json['model'][self::TEST_IMAGE_UUID]['resolved']['image']['src'] = '/not/a/real/url';
-    // The sample json sends this as a dynamic prop based on the hero field,
-    // let's switch it to a static source.
-    $invalid_image_client_json['model'][self::TEST_IMAGE_UUID]['source']['image'] = [
-      'sourceType' => 'static:field_item:entity_reference',
-      'expression' => 'ℹ︎entity_reference␟{src↝entity␜␜entity:media:image␝field_media_image␞␟entity␜␜entity:file␝uri␞␟url,alt↝entity␜␜entity:media:image␝field_media_image␞␟alt,width↝entity␜␜entity:media:image␝field_media_image␞␟width,height↝entity␜␜entity:media:image␝field_media_image␞␟height}',
-      'sourceTypeSettings' =>
-        [
-          'storage' => [
-            'target_type' => 'media',
-          ],
-          'instance' => [
-            'handler' => 'default:media',
-            'handler_settings' => [
-              'target_bundles' => [
-                'image' => 'image',
-              ],
-            ],
-          ],
-        ],
-    ];
+    unset($invalid_image_client_json['model'][self::TEST_IMAGE_UUID]['source']['image']['value']);
     $suffix = '';
     if (\version_compare(\Drupal::VERSION, '11.1.2', '>=')) {
       // The format of component violation messages changed in Drupal 11.1.2.
@@ -242,38 +222,11 @@ class ClientServerConversionTraitTest extends KernelTestBase {
     $this->assertConversionErrors(
       $invalid_image_client_json,
       [
-        // Transformation from client model to input failed.
-        // @see \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\SingleDirectoryComponent::findTargetForProps()
-        'model.' . self::TEST_IMAGE_UUID . '.image.src' => "File '/not/a/real/url' not found.",
         // The failed transformation above results in an empty value for the
         // entire SDC prop. Which then fails SDC validation.
         // @see \Drupal\Core\Theme\Component\ComponentValidator::validateProps()
         'model.' . self::TEST_IMAGE_UUID . '.image' => 'The property image is required' . $suffix,
       ],
-    );
-
-    $unreferenced_file_client_json = $valid_client_json;
-    $unreferenced_src = $this->getSrcPropertyFromFile($this->unreferencedImage);
-    // Copy the static source settings from the previous invalid json.
-    $unreferenced_file_client_json['model'][self::TEST_IMAGE_UUID] = $invalid_image_client_json['model'][self::TEST_IMAGE_UUID];
-    $unreferenced_file_client_json['model'][self::TEST_IMAGE_UUID]['resolved']['image']['src'] = $unreferenced_src;
-    $suffix = '';
-    if (\version_compare(\Drupal::VERSION, '11.1.2', '>=')) {
-      // The format of component violation messages changed in Drupal 11.1.2.
-      // @see https://drupal.org/i/3462700
-      $suffix = '.';
-    }
-    $this->assertConversionErrors(
-      $unreferenced_file_client_json,
-      [
-        // Transformation from client model to input failed.
-        // @see \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\SingleDirectoryComponent::findTargetForProps()
-        'model.' . self::TEST_IMAGE_UUID . '.image.src' => "No media entity found that uses file '$unreferenced_src'.",
-        // The failed transformation above results in an empty value for the
-        // entire SDC prop. Which then fails SDC validation.
-        // @see \Drupal\Core\Theme\Component\ComponentValidator::validateProps()
-        'model.' . self::TEST_IMAGE_UUID . '.image' => 'The property image is required' . $suffix,
-      ]
     );
 
     $invalid_tree_client_json = $valid_client_json;
@@ -404,6 +357,7 @@ class ClientServerConversionTraitTest extends KernelTestBase {
           ],
           'source' => [
             'image' => [
+              'value' => $this->mediaEntity->id(),
               'sourceType' => 'static:field_item:entity_reference',
               'expression' => 'ℹ︎entity_reference␟{src↝entity␜␜entity:media:image␝field_media_image␞␟entity␜␜entity:file␝uri␞␟url,alt↝entity␜␜entity:media:image␝field_media_image␞␟alt,width↝entity␜␜entity:media:image␝field_media_image␞␟width,height↝entity␜␜entity:media:image␝field_media_image␞␟height}',
               'sourceTypeSettings' => [

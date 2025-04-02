@@ -548,7 +548,24 @@ export const syncPropSourcesToResolvedValues = (
       }
       return {
         ...carry,
-        [propName]: source,
+        [propName]: {
+          ...source,
+          // Set the value from resolved values. This might duplicate the value
+          // in the resolved key for components where the source and resolved
+          // values are the same, however this method is generally called before
+          // a patchComponent request to Drupal which will remove values from
+          // the source key if it duplicates the resolved value. So for a simple
+          // component with e.g. a string property, we would have duplication
+          // here but this would be removed from the model returned from Drupal
+          // during patchComponent and hence the model stored in the redux store
+          // after this request. For a component with an expression such as an
+          // image component - at this point both resolved and source may be a
+          // media entity ID. When patchComponent is called in that instance,
+          // Drupal will retain the media entity ID in the source value, but
+          // return the evaluated expression for the resolved values - e.g. this
+          // might be the src, alt, height and width for the media entity.
+          value: resolvedValues[propName],
+        },
       };
     }, {}),
   );

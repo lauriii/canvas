@@ -202,7 +202,7 @@ class ComponentTreeItemTest extends KernelTestBase {
         // @phpstan-ignore-next-line
         fn (string $uuid) => Component::load($xb_field_item->get('tree')->getComponentId($uuid))
           ->getComponentSource()
-          ->getExplicitInput($uuid, $xb_field_item),
+          ->getExplicitInput($uuid, $xb_field_item)['resolved'],
         array_keys($expected_props_for_uuids)
       )
     );

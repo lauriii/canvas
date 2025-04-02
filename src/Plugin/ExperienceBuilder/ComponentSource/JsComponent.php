@@ -31,7 +31,7 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
   label: new TranslatableMarkup('Code Components'),
   supportsImplicitInputs: FALSE,
 )]
-final class JsComponent extends GeneratedFieldExplicitInputUxComponentSourceBase implements UrlRewriteInterface {
+final class JsComponent extends GeneratedFieldExplicitInputUxComponentSourceBase {
 
   public const SOURCE_PLUGIN_ID = 'js';
 
@@ -324,14 +324,6 @@ final class JsComponent extends GeneratedFieldExplicitInputUxComponentSourceBase
       $definition['id'],
       $definition,
     );
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function rewriteExampleUrl(string $url): string {
-    // @todo Remove this method/interface implementation in https://www.drupal.org/project/experience_builder/issues/3493943, which will make it obsolete.
-    return $url;
   }
 
 }

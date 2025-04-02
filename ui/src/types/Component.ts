@@ -4,6 +4,11 @@ export interface FieldData {
   [key: string]: FieldDataItem;
 }
 
+export interface DefaultValues {
+  resolved: object;
+  source: object;
+}
+
 export interface FieldDataItem {
   expression: string;
   sourceType: string;
@@ -16,10 +21,7 @@ export interface FieldDataItem {
     properties?: object;
     enum?: any[];
   };
-  // @todo Also split this into 'source' and 'resolved' in https://www.drupal.org/i/3493943 — e.g. in the
-  // case of a media image reference the source value would be the media target
-  // ID, whilst the resolved values would be a URI to the image.
-  default_values: object;
+  default_values: DefaultValues;
   [x: string | number | symbol]: unknown;
 }
 

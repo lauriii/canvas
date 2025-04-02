@@ -13,6 +13,7 @@ use Drupal\experience_builder\Entity\Component;
 use Drupal\experience_builder\Entity\JavaScriptComponent;
 use Drupal\experience_builder\Entity\PageRegion;
 use Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\JsComponent;
+use Drupal\file\FileInterface;
 use Drupal\node\Entity\Node;
 use Drupal\node\NodeInterface;
 use Drupal\Tests\experience_builder\TestSite\XBTestSetup;
@@ -417,7 +418,7 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
   /**
    * @testWith ["image-optional-with-example", "<img src=\"https://example.com/cat.jpg\" alt=\"Boring placeholder\" />"]
    *           ["image-optional-without-example", ""]
-   *           ["image-required-with-example", "<img src=\"https://example.com/cat.jpg\" alt=\"Boring placeholder\" />"]
+   *           ["image-required-with-example", "<img src=\"!!REFERENCED_MEDIA!!\" alt=\"The bones equal dollars\" />"]
    *           ["image-optional-with-example-and-additional-prop", "<h1><!-- xb-prop-start-166c9eee-35e9-4795-8c6f-24537728e95e/heading -->Heading the right direction?<!-- xb-prop-end-166c9eee-35e9-4795-8c6f-24537728e95e/heading --></h1><img src=\"/XB/MODULE/PATH/tests/modules/xb_test_sdc/components/image-optional-with-example-and-additional-prop/gracie.jpg\" alt=\"A good dog\" width=\"601\" height=\"402\"></img>"]
    *
    * Note: `image-required-without-example` is not tested because it does not meet the requirement.
@@ -431,6 +432,8 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
     $component = Component::load('sdc.xb_test_sdc.' . $sdc);
     $this->assertInstanceOf(Component::class, $component);
 
+    $client_side = $component->getComponentSource()->getClientSideInfo($component);
+
     // Add the given SDC to the layout.
     $uuid = '166c9eee-35e9-4795-8c6f-24537728e95e';
     $json['layout'][0]['components'][] = [
@@ -439,6 +442,11 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
       'type' => $component->id(),
       'slots' => [],
     ];
+    $reference_media = \Drupal::entityTypeManager()->getStorage('media')->loadByProperties(
+      ['name' => 'The bones are their money'],
+    );
+    self::assertCount(1, $reference_media);
+    $reference_media = \reset($reference_media);
     // Populate its client model, and take advantage of the fact that the client
     // model is allowed to be invalid when previewing: no validation may occur,
     // to ensure even invalid explicit inputs for component instances result in
@@ -447,18 +455,36 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
     $json['model'][$uuid] = [
       'resolved' => [
         'heading' => 'Heading the right direction?',
+        // Resolved will default to the default resolved values.
+        // @see addNewComponentToLayout reducer in typescript code.
+        'image' => $client_side['field_data']['image']['default_values']['resolved'] ?? NULL,
       ],
       'source' => [
-        // @todo Restore 'image' here in https://www.drupal.org/project/experience_builder/issues/3493943
         'heading' => [
           'expression' => 'ℹ︎string␟value',
           'sourceType' => 'static:field_item:string',
+        ],
+        'image' => [
+          'sourceType' => 'static:field_item:entity_reference',
+          'expression' => 'ℹ︎entity_reference␟{src↝entity␜␜entity:media:image␝field_media_image␞␟entity␜␜entity:file␝uri␞␟url,alt↝entity␜␜entity:media:image␝field_media_image␞␟alt,width↝entity␜␜entity:media:image␝field_media_image␞␟width,height↝entity␜␜entity:media:image␝field_media_image␞␟height}',
+          'sourceTypeSettings' => [
+            'storage' => ['target_type' => 'media'],
+            'instance' => [
+              'handler' => 'default:media',
+              'handler_settings' => [
+                'target_bundles' => ['image' => 'image'],
+              ],
+            ],
+          ],
+          'value' => \str_contains($sdc, 'required') ? $reference_media->id() : NULL,
         ],
       ],
     ];
 
     $module_path = \Drupal::service('extension.list.module')->getPath('experience_builder');
     $expected_preview_html = str_replace('XB/MODULE/PATH', $module_path, $expected_preview_html);
+    \assert($reference_media->field_media_image->entity instanceof FileInterface);
+    $expected_preview_html = str_replace('!!REFERENCED_MEDIA!!', $reference_media->field_media_image->entity->createFileUrl(), $expected_preview_html);
 
     $this->request(Request::create('/xb/api/layout/node/1', method: 'POST', content: json_encode($json, JSON_THROW_ON_ERROR)));
     // Ensure the component is rendered using the expected markup.

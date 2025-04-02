@@ -219,25 +219,25 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
         ],
         'model' => [
           'uuid-in-root' => [
+            'source' => [
+              'heading' => [
+                'sourceType' => 'static:field_item:string',
+                'expression' => 'ℹ︎string␟value',
+              ],
+            ],
             'resolved' => [
               'heading' => 'Hello, world!',
             ],
-            'source' => [
-              'heading' => [
-                'sourceType' => 'static:field_item:string',
-                'expression' => 'ℹ︎string␟value',
-              ],
-            ],
           ],
           'uuid-in-root-another' => [
-            'resolved' => [
-              'heading' => 'Hello, another world!',
-            ],
             'source' => [
               'heading' => [
                 'sourceType' => 'static:field_item:string',
                 'expression' => 'ℹ︎string␟value',
               ],
+            ],
+            'resolved' => [
+              'heading' => 'Hello, another world!',
             ],
           ],
         ],

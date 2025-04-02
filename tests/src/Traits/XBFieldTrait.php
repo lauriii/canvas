@@ -111,9 +111,6 @@ trait XBFieldTrait {
           ],
           'value' => [
             'target_id' => (int) $this->mediaEntity->id(),
-            'alt' => 'This is a random image.',
-            'width' => 100,
-            'height' => 100,
           ],
         ],
       ],
@@ -334,6 +331,7 @@ trait XBFieldTrait {
           ],
           'source' => [
             'image' => [
+              'value' => (int) $this->mediaEntity->id(),
               'sourceType' => 'static:field_item:entity_reference',
               'expression' => 'ℹ︎entity_reference␟{src↝entity␜␜entity:media:image␝field_media_image␞␟entity␜␜entity:file␝uri␞␟url,alt↝entity␜␜entity:media:image␝field_media_image␞␟alt,width↝entity␜␜entity:media:image␝field_media_image␞␟width,height↝entity␜␜entity:media:image␝field_media_image␞␟height}',
               'sourceTypeSettings' => [

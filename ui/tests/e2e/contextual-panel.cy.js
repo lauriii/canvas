@@ -163,6 +163,9 @@ describe('Contextual panel', () => {
   it('Handles empty values in required inputs', () => {
     cy.loadURLandWaitForXBLoaded();
 
+    // Extra debug output for component patching.
+    cy.intercept('PATCH', '**/xb/api/layout/node/1');
+
     // Make note of the number of Hero components currently in the preview.
     cy.getIframeBody()
       .find('[data-component-id="experience_builder:my-hero"]')

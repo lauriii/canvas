@@ -8,10 +8,13 @@ use Drupal\Core\File\FileUrlGeneratorInterface;
 use Drupal\experience_builder\AutoSave\AutoSaveManager;
 use Drupal\experience_builder\Entity\PageRegion;
 use Drupal\file\FileInterface;
+use Drupal\image\Entity\ImageStyle;
+use Drupal\image\ImageStyleInterface;
 use Drupal\media\MediaInterface;
 use Drupal\node\Entity\Node;
 use Drupal\node\NodeInterface;
 use Drupal\Tests\experience_builder\TestSite\XBTestSetup;
+use Symfony\Component\DomCrawler\Crawler;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
@@ -153,19 +156,24 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
     self::assertNotEquals($media->id(), $model['static-image-udf7d']['resolved']['image']);
 
     // Now patch the layout.
+    $new_model = $model['static-image-udf7d'];
+    // Reference a new media entity.
+    $new_model['source']['image']['value'] = $media->id();
     $response = $this->request(Request::create('/xb/api/layout/node/1', method: 'PATCH', content: \json_encode([
-      'model' => [
-        'resolved' => [
-          'image' => $media->id(),
-        ],
-      ] + $model['static-image-udf7d'],
+      'model' => $new_model,
       'componentType' => 'sdc.experience_builder.image',
       'componentInstanceUuid' => 'static-image-udf7d',
     ], JSON_THROW_ON_ERROR)));
 
     // The new model should contain the updated value.
     $data = self::decodeResponse($response);
-    self::assertEquals($media->id(), $data['model']['static-image-udf7d']['resolved']['image']);
+    // The updated preview should reference the new image.
+    $file = $media->get('field_media_image')->entity;
+    \assert($file instanceof FileInterface);
+    $fileUri = $file->getFileUri();
+    \assert(is_string($fileUri));
+    $image_url = $this->container->get(FileUrlGeneratorInterface::class)->generateString($fileUri);
+    self::assertEquals($image_url, $data['model']['static-image-udf7d']['resolved']['image']['src']);
 
     self::assertFalse($autoSave->getAutoSaveData($node)->isEmpty());
     foreach ($regions as $region) {
@@ -193,14 +201,18 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
       self::assertSame(\array_keys($model), \array_merge($comments[2], $globalElements));
     }
 
-    // The updated preview should reference the new image.
-    $file = $media->get('field_media_image')->entity;
-    \assert($file instanceof FileInterface);
-    $fileUri = $file->getFileUri();
-    \assert(is_string($fileUri));
-    $image_url = $this->container->get(FileUrlGeneratorInterface::class)->generateString($fileUri);
-    $images = $this->cssSelect(\sprintf('img[src="%s"]', $image_url));
+    // There should be two images, one should reference the media item direct
+    // (static-image-udf7d) and one should reference the thumbnail style
+    // (static-image-static-imageStyle-something7d) because it uses an adapter.
+    // @see \Drupal\experience_builder\Plugin\Adapter\ImageAndStyleAdapter
+    $images = (new Crawler($data['html']))->filter('img')->extract(['src']);
+    $thumbnail = ImageStyle::load('thumbnail');
+    \assert($thumbnail instanceof ImageStyleInterface);
     self::assertCount(2, $images);
+    self::assertEquals([
+      $image_url,
+      $thumbnail->buildUrl($fileUri),
+    ], $images);
 
     if ($withGlobal) {
       $new_label = $this->randomMachineName();

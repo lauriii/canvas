@@ -19,6 +19,13 @@ describe('Publish review functionality', () => {
     cy.loadURLandWaitForXBLoaded();
 
     cy.findByTestId('xb-topbar').findByText('Published');
+
+    // Delete the image that uses an adapted source. This node (1) includes prop
+    // sources that make use of adapters, we need to delete the adapted source
+    // image in order to publish.
+    cy.clickComponentInPreview('Image', 1);
+    cy.realType('{del}');
+
     cy.clickComponentInPreview('Hero');
 
     cy.findByTestId(/^xb-component-form-.*/)
