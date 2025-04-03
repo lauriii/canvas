@@ -455,7 +455,6 @@ class ComponentTest extends KernelTestBase {
       ],
     ];
 
-    [$version] = explode('.', \Drupal::VERSION);
     yield 'installing block creates block components including menus' => [
       // `system` and `user` are the two only required core modules.
       'modules' => ['system', 'user', 'block'],
@@ -482,7 +481,7 @@ class ComponentTest extends KernelTestBase {
           'compatible' => TRUE,
         ],
         'block.system_powered_by_block' => [
-          'compatible' => $version > 10,
+          'compatible' => TRUE,
         ],
         'block.system_menu_block.account' => [
           'compatible' => TRUE,
@@ -511,7 +510,7 @@ class ComponentTest extends KernelTestBase {
         'Drupal\system\Plugin\Block\SystemBrandingBlock',
         'Drupal\system\Plugin\Block\SystemBreadcrumbBlock',
         'Drupal\system\Plugin\Block\SystemMessagesBlock',
-        $version > 10 ? 'Drupal\system\Plugin\Block\SystemPoweredByBlock' : '',
+        'Drupal\system\Plugin\Block\SystemPoweredByBlock',
         'Drupal\system\Plugin\Block\SystemMenuBlock',
         UserLoginBlock::class,
       ]),

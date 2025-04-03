@@ -137,13 +137,6 @@ class ComponentTreeItemTest extends KernelTestBase {
   }
 
   public static function providerInvalidField(): array {
-    $suffix = '';
-    if (\version_compare(\Drupal::VERSION, '11.1.2', '>=')) {
-      // The format of component violation messages changed in Drupal 11.1.2.
-      // @see https://drupal.org/i/3462700
-      $suffix = '.';
-    }
-
     $root_uuid = ComponentTreeStructure::ROOT_UUID;
     $test_cases = static::getValidTreeTestCases();
     array_walk($test_cases, fn(array &$test_case) => $test_case[] = []);
@@ -166,12 +159,12 @@ class ComponentTreeItemTest extends KernelTestBase {
       "field_xb_test.0.tree[$root_uuid][0]" => 'The component <em class="placeholder">sdc.sdc_test.missing</em> does not exist.',
     ];
     $test_cases['inputs invalid, using dynamic inputs'][] = [
-      'field_xb_test.0.inputs.dynamic-static-card2df.heading' => 'The property heading is required' . $suffix,
-      'field_xb_test.0.inputs.dynamic-static-card3.heading' => 'The property heading is required' . $suffix,
+      'field_xb_test.0.inputs.dynamic-static-card2df.heading' => 'The property heading is required.',
+      'field_xb_test.0.inputs.dynamic-static-card3.heading' => 'The property heading is required.',
       'field_xb_test.0' => "The 'dynamic' prop source type must be absent.",
     ];
     $test_cases['inputs invalid, using only static inputs'][] = [
-      'field_xb_test.0.inputs.static-card2df.heading' => 'The property heading is required' . $suffix,
+      'field_xb_test.0.inputs.static-card2df.heading' => 'The property heading is required.',
     ];
     $test_cases['missing inputs key'][] = [
       'field_xb_test.0' => 'The array must contain an "inputs" key.',

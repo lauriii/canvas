@@ -81,10 +81,7 @@ final class MediaLibrariesBuildTest extends KernelTestBase {
     self::assertContains(\sprintf('%s/css/components/ajax-progress.module.css', $claro_path), \array_column($ajax['css'], 'data'));
     // XB specific versions of dependencies.
     self::assertContains('experience_builder/xb.once', $ajax['dependencies']);
-    if (\version_compare(\Drupal::VERSION, '11.0', '>=')) {
-      // This library only exists in D11+.
-      self::assertContains('experience_builder/xb.tabbable', $ajax['dependencies']);
-    }
+    self::assertContains('experience_builder/xb.tabbable', $ajax['dependencies']);
     self::assertContains('experience_builder/xb.drupal.progress', $ajax['dependencies']);
     self::assertContains('experience_builder/xb.loadjs', $ajax['dependencies']);
     self::assertContains('experience_builder/xb.drupal.announce', $ajax['dependencies']);

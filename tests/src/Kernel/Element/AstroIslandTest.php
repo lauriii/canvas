@@ -98,13 +98,7 @@ final class AstroIslandTest extends KernelTestBase {
     ]);
     $component->save();
 
-    $discovery = DeprecationHelper::backwardsCompatibleCall(
-      \Drupal::VERSION,
-      '11.1',
-      fn () => \Drupal::service(LibraryDiscoveryInterface::class),
-      // @phpstan-ignore-next-line
-      fn () => \Drupal::service('library.discovery.collector'),
-    );
+    $discovery = \Drupal::service(LibraryDiscoveryInterface::class);
     assert($discovery instanceof CacheCollectorInterface);
     self::assertArrayHasKey('astro_island.' . $component->id(), $discovery->get('experience_builder'));
     self::assertStringEqualsFile('assets://astro-island/' . $css_hash . '.css', $css);

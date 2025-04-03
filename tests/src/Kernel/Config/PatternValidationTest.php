@@ -237,17 +237,13 @@ class PatternValidationTest extends ConfigEntityValidationTestBase {
           'block-invalid' => [],
         ]),
       ],
-      'expected_messages' => version_compare(\Drupal::VERSION, '11', '>=')
-        ? [
-          'component_tree' => 'The \'Drupal\Core\Block\TitleBlockPluginInterface\' component interface must be absent.',
-          'component_tree.inputs.block-invalid.' => [
-            "'label' is a required key.",
-            "'label_display' is a required key.",
-          ],
-        ]
-        : [
-          'component_tree' => 'The \'Drupal\Core\Block\TitleBlockPluginInterface\' component interface must be absent.',
+      'expected_messages' => [
+        'component_tree' => 'The \'Drupal\Core\Block\TitleBlockPluginInterface\' component interface must be absent.',
+        'component_tree.inputs.block-invalid.' => [
+          "'label' is a required key.",
+          "'label_display' is a required key.",
         ],
+      ],
     ];
   }
 

@@ -472,12 +472,6 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     $response = $this->makePublishAllRequest();
     $json = json_decode($response->getContent() ?: '', TRUE);
     self::assertEquals(Response::HTTP_UNPROCESSABLE_ENTITY, $response->getStatusCode());
-    $suffix = '';
-    if (\version_compare(\Drupal::VERSION, '11.1.2', '>=')) {
-      // The format of component violation messages changed in Drupal 11.1.2.
-      // @see https://drupal.org/i/3462700
-      $suffix = '. The provided value is: "flared".';
-    }
     $errors[] = [
       'detail' => 'Unable to find class/interface "unknown" specified in the prop "mixed_up_prop" for the component "experience_builder:test-component".',
       'source' => [
@@ -518,7 +512,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
       ],
     ];
     $errors[] = [
-      'detail' => 'Does not have a value in the enumeration ["primary","secondary"]' . $suffix,
+      'detail' => 'Does not have a value in the enumeration ["primary","secondary"]. The provided value is: "flared".',
       'source' => [
         'pointer' => 'model.' . self::TEST_HEADING_UUID . '.style',
       ],

@@ -311,19 +311,6 @@ final class BlockComponent extends ComponentSourceBase implements ContainerFacto
   public function clientModelToInput(string $component_instance_uuid, Component $component, array $client_model, ?ConstraintViolationListInterface $violations = NULL): array {
     // @todo Remove this in https://www.drupal.org/project/experience_builder/issues/3500994#comment-15951774 — the client should send the right data.
     $defaults = $component->get('settings')['default_settings'];
-    if (\version_compare(\Drupal::VERSION, '11.0', '<')) {
-      // In Drupal 10, block setting schemas are conflated with the block
-      // config entity and the block content plugin and hence include keys that
-      // are irrelevant to valid block settings. Let's make sure they don't end
-      // up in stored input.
-      // @see https://drupal.org/i/2274175
-      $defaults = \array_diff_key($defaults, \array_flip([
-        'info',
-        'status',
-        'view_mode',
-        'context_mapping',
-      ]));
-    }
     $input = $this->fixBooleansUsingConfigSchema($client_model['resolved'] ?? []);
     // We don't need to store these as they can be recalculated based on the
     // plugin ID.
@@ -371,18 +358,6 @@ final class BlockComponent extends ComponentSourceBase implements ContainerFacto
       'id' => $plugin_id,
       'provider' => $definition['provider'] ?? 'system',
     ];
-    if (\version_compare(\Drupal::VERSION, '11.0', '<')) {
-      // In Drupal 10, block setting schemas are conflated with the block
-      // config entity and the block content plugin and hence include keys that
-      // are irrelevant to valid block settings.
-      // @see https://drupal.org/i/2274175
-      $inputValues += [
-        'info' => '',
-        'status' => TRUE,
-        'view_mode' => 'default',
-        'context_mapping' => [],
-      ];
-    }
     $typed_data = $this->typedConfigManager->createFromNameAndData('block.settings.' . $plugin_id, $inputValues);
     return $this->translateConstraintPropertyPathsAndRoot(['' => \sprintf('inputs.%s.', $component_instance_uuid)], $typed_data->validate());
   }
@@ -409,9 +384,7 @@ final class BlockComponent extends ComponentSourceBase implements ContainerFacto
       }
     }
 
-    // @todo Remove the PageTitleBlock and SystemMessagesBlock special cases: make it fully validatable upstream in Drupal core. They are exempted here because of its crucial role in \Drupal\experience_builder\Entity\PageTemplate. Alternatively, this can be removed once XB requires Drupal 11.
-    // @todo Remove the LocalActionsBlock special case: it is necessary to be able to test BlockPluginInterface::access() support *and* it has the exact same trivial settings as the two crucial blocks above. Alternatively, this can be removed once XB requires Drupal 11.
-    if (!empty($settings) && !$fullyValidatable && !in_array($block->getPluginId(), ['page_title_block', 'system_messages_block', 'local_actions_block'])) {
+    if (!empty($settings) && !$fullyValidatable) {
       throw new ComponentDoesNotMeetRequirementsException(['Block plugin settings must be fully validatable']);
     }
   }

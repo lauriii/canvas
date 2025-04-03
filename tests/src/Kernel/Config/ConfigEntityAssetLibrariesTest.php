@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\experience_builder\Kernel\Config;
 
-use Drupal\Component\Utility\DeprecationHelper;
 use Drupal\Core\Asset\LibraryDiscoveryInterface;
 use Drupal\Core\Cache\CacheCollectorInterface;
 use Drupal\experience_builder\Entity\AssetLibrary;
@@ -39,22 +38,11 @@ final class ConfigEntityAssetLibrariesTest extends KernelTestBase {
   }
 
   private function getXbAssetLibraries(): array {
-    $library_discovery = DeprecationHelper::backwardsCompatibleCall(
-      \Drupal::VERSION,
-      '11.1',
-      fn () => \Drupal::service(LibraryDiscoveryInterface::class),
-      // @phpstan-ignore-next-line
-      fn () => \Drupal::service('library.discovery.collector'),
-    );
+    $library_discovery = \Drupal::service(LibraryDiscoveryInterface::class);
     assert($library_discovery instanceof CacheCollectorInterface);
 
     // Get the (cached) XB asset libraries.
-    $discovered = DeprecationHelper::backwardsCompatibleCall(
-      \Drupal::VERSION,
-      '11.1',
-      fn () => $library_discovery->getLibrariesByExtension('experience_builder'),
-      fn () => $library_discovery->get('experience_builder'),
-    );
+    $discovered = $library_discovery->getLibrariesByExtension('experience_builder');
 
     // Simulate this having been a single request/response, and the response has
     // finished. For cache collectors, the destruct() method is called, which

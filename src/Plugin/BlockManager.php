@@ -51,15 +51,6 @@ final class BlockManager extends CoreBlockManager {
       return $definitions;
     }
 
-    // @todo Remove this in Drupal 11 following https://www.drupal.org/project/drupal/issues/3379725
-    [$version] = explode('.', \Drupal::VERSION);
-    $additional = $version > 10 ? [] : [
-      'info' => '',
-      'status' => TRUE,
-      'view_mode' => '',
-      'context_mapping' => [],
-    ];
-
     foreach ($definitions as $id => $definition) {
       if ($id === 'broken') {
         continue;
@@ -96,7 +87,7 @@ final class BlockManager extends CoreBlockManager {
             'label' => (string) $definition['admin_label'],
             'label_display' => FALSE,
             'provider' => $definition['provider'],
-          ] + $additional + $settings,
+          ] + $settings,
         ],
         'status' => TRUE,
       ]);

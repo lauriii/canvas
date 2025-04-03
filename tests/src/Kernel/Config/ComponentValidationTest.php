@@ -175,19 +175,6 @@ class ComponentValidationTest extends ConfigEntityValidationTestBase {
     $this->installConfig(['system']);
     $defaults = [];
 
-    if (\version_compare(\Drupal::VERSION, '11.0', '<')) {
-      // In Drupal 10, block setting schemas are conflated with the block
-      // config entity and the block content plugin and hence include keys that
-      // are irrelevant to valid block settings. Let's make sure they don't end
-      // up in stored input.
-      // @see https://drupal.org/i/2274175
-      $defaults = [
-        'info' => '',
-        'status' => TRUE,
-        'view_mode' => 'default',
-        'context_mapping' => [],
-      ];
-    }
     $this->entity = Component::create([
       'id' => 'block.system_branding_block',
       'category' => 'Test',

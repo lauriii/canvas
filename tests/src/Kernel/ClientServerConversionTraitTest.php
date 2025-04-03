@@ -213,19 +213,14 @@ class ClientServerConversionTraitTest extends KernelTestBase {
 
     $invalid_image_client_json = $valid_client_json;
     unset($invalid_image_client_json['model'][self::TEST_IMAGE_UUID]['source']['image']['value']);
-    $suffix = '';
-    if (\version_compare(\Drupal::VERSION, '11.1.2', '>=')) {
-      // The format of component violation messages changed in Drupal 11.1.2.
-      // @see https://drupal.org/i/3462700
-      $suffix = '.';
-    }
+
     $this->assertConversionErrors(
       $invalid_image_client_json,
       [
         // The failed transformation above results in an empty value for the
         // entire SDC prop. Which then fails SDC validation.
         // @see \Drupal\Core\Theme\Component\ComponentValidator::validateProps()
-        'model.' . self::TEST_IMAGE_UUID . '.image' => 'The property image is required' . $suffix,
+        'model.' . self::TEST_IMAGE_UUID . '.image' => 'The property image is required.',
       ],
     );
 

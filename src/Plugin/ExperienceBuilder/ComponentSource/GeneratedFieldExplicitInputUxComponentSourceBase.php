@@ -327,9 +327,7 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
         $prop_name = substr($error, 1, $sdc_prop_name_closing_bracket_pos - 1);
         $prop_error_message = substr($error, $sdc_prop_name_closing_bracket_pos + 2);
 
-        if (\version_compare(\Drupal::VERSION, '11.1.2', '>=') && \str_contains($prop_name, '/')) {
-          // From Drupal 11.1.2 the exception message also includes the component ID.
-          // @see https://drupal.org/i/3462700
+        if (\str_contains($prop_name, '/')) {
           [, $prop_name] = \explode('/', $prop_name);
         }
         $violations->add(

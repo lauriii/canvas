@@ -129,19 +129,14 @@ class ClientDataToEntityConverterTest extends KernelTestBase {
     $unreferenced_file_client_json['model'][self::TEST_IMAGE_UUID]['resolved']['image']['src'] = $unreferenced_src;
     // Remove the valid image reference from source values.
     unset($unreferenced_file_client_json['model'][self::TEST_IMAGE_UUID]['source']['image']['value']);
-    $suffix = '';
-    if (\version_compare(\Drupal::VERSION, '11.1.2', '>=')) {
-      // The format of component violation messages changed in Drupal 11.1.2.
-      // @see https://drupal.org/i/3462700
-      $suffix = '.';
-    }
+
     $this->assertConvert(
       $unreferenced_file_client_json,
       [
         // The failed transformation above results in an empty value for the
         // entire SDC prop. Which then fails SDC validation.
         // @see \Drupal\Core\Theme\Component\ComponentValidator::validateProps()
-        'model.' . self::TEST_IMAGE_UUID . '.image' => 'The property image is required' . $suffix,
+        'model.' . self::TEST_IMAGE_UUID . '.image' => 'The property image is required.',
       ],
       // The error above happens in `\Drupal\experience_builder\Controller\ClientServerConversionTrait::convertClientToServer()`
       // therefore the title, as well as other entity fields will not be updated.
@@ -150,15 +145,9 @@ class ClientDataToEntityConverterTest extends KernelTestBase {
 
     $invalid_heading_client_json = $valid_client_json;
     $invalid_heading_client_json['model'][self::TEST_HEADING_UUID]['resolved']['style'] = 'not-a-style';
-    $suffix = '';
-    if (\version_compare(\Drupal::VERSION, '11.1.2', '>=')) {
-      // The format of component violation messages changed in Drupal 11.1.2.
-      // @see https://drupal.org/i/3462700
-      $suffix = '. The provided value is: "not-a-style".';
-    }
     $this->assertConvert(
       $invalid_heading_client_json,
-      ['model.' . self::TEST_HEADING_UUID . '.style' => 'Does not have a value in the enumeration ["primary","secondary"]' . $suffix],
+      ['model.' . self::TEST_HEADING_UUID . '.style' => 'Does not have a value in the enumeration ["primary","secondary"]. The provided value is: "not-a-style".'],
       // The error above happens in `\Drupal\experience_builder\Controller\ClientServerConversionTrait::convertClientToServer()`
       // therefore the title, as well as other entity fields will not be updated.
       'The original title.',

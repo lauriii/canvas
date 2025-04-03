@@ -127,14 +127,6 @@ class ComponentTreeHydratedTest extends KernelTestBase {
       ];
     };
 
-    // @todo Remove when minimum version is Drupal 11.1 following https://www.drupal.org/project/drupal/issues/3379725
-    $additional = version_compare(\Drupal::VERSION, '11.1', '>=') ? [] : [
-      'status' => TRUE,
-      'info' => '',
-      'view_mode' => '',
-      'context_mapping' => [],
-    ];
-
     yield 'empty component tree' => [
       'tree' => [
         ComponentTreeStructure::ROOT_UUID => [],
@@ -290,7 +282,7 @@ HTML,
                 'use_site_logo' => TRUE,
                 'use_site_name' => TRUE,
                 'use_site_slogan' => TRUE,
-              ] + $additional,
+              ],
             ],
             '#plugin_id' => 'system_branding_block',
             '#base_plugin_id' => 'system_branding_block',
@@ -766,7 +758,7 @@ HTML,
                                   'use_site_logo' => TRUE,
                                   'use_site_name' => TRUE,
                                   'use_site_slogan' => TRUE,
-                                ] + $additional,
+                                ],
                               ],
                               '#plugin_id' => 'system_branding_block',
                               '#base_plugin_id' => 'system_branding_block',

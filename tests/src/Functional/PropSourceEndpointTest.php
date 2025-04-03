@@ -91,12 +91,6 @@ class PropSourceEndpointTest extends FunctionalTestBase {
       'user.roles:anonymous',
     ];
 
-    // @todo Require Drupal 11, then this can be removed.
-    if (version_compare(\Drupal::VERSION, '11', '<')) {
-      // On Drupal 10, the `search_form_block` block is not available as an XB Component because its settings are not fully validatable, hence its cache tag does not appear.
-      $expected_tags = array_diff($expected_tags, ['config:search.settings']);
-    }
-
     $this->assertSame(200, $this->getSession()->getStatusCode(), match($this->getSession()->getStatusCode()) {
       // Show the fatal error message in the failing test output.
       // @see \Drupal\experience_builder\EventSubscriber\ApiExceptionSubscriber

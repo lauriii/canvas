@@ -16,8 +16,7 @@ use Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\JsCompone
  * Implements hook_theme().
  */
 function experience_builder_theme(): array {
-  // @phpstan-ignore-next-line
-  $common_elements = version_compare(\Drupal::VERSION, '11.1', '>=') ? ThemeCommonElements::commonElements() : drupal_common_theme();
+  $common_elements = ThemeCommonElements::commonElements();
   return [
     'block__system_menu_block__as_js_component' => [
       'base hook' => 'block',

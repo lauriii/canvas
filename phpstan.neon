@@ -18,9 +18,6 @@ parameters:
     - ui/node_modules
     # This trait decorates core's \Drupal\Core\Test\FunctionalTestSetupTrait::prepareSettings(), which itself triggers a PHPStan warning that core ignores. Match that.
     - tests/src/Traits/ContribStrictConfigSchemaTestTrait.php
-    # @todo Remove these 2 lines when Experience Builder requires Drupal >=11.1; due to Twig API changes it is impossible to satisfy PHPStan on Drupal 10.4 and 11.1 simultaneously.
-    - src/Extension/XbIncludeEmbedVisitor.php
-    - src/Extension/XbPropVisitor.php
   treatPhpDocTypesAsCertain: false
   ignoreErrors:
     - identifier: missingType.iterableValue

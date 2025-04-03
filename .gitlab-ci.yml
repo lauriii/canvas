@@ -63,11 +63,6 @@ stages:
 # Docs at https://git.drupalcode.org/project/gitlab_templates/-/blob/main/includes/include.drupalci.variables.yml
 ################
 variables:
-
-  # Opt in to testing Drupal 10 on PHP 8.3.
-  OPT_IN_TEST_PREVIOUS_MAJOR: '1'
-  CORE_PREVIOUS_PHP_MIN: '8.3'
-
   # Show env variables always to help with debugging.
   _SHOW_ENVIRONMENT_VARIABLES: 1
 
@@ -229,20 +224,6 @@ phpunit:
   # @see https://git.drupalcode.org/issue/gitlab_templates-3447792/-/compare/main...3447792-raise-sqlite-version?from_project_id=96292, when 984abb7b4781559a13078d58bb65f6959fe42179 was the last commit.
   image:
     name: $_CONFIG_DOCKERHUB_ROOT/php-$PHP_VERSION-ubuntu-apache:$_TARGET_PHP_IMAGE_TAG
-  # @todo Remove when https://www.drupal.org/project/gitlab_templates/issues/3452183 lands.
-  rules:
-    - *is-push-rule
-    - *php-files-change-rule
-    - *module-metadata-files-change-rule
-    - *module-config-files-change-rule
-    - *SDC-files-change-rule
-    - *UI-fixures-files-change-rule
-    - *manual-rule
-# Sadly, changes to `phpunit` do not affect derivatives that themselves override `rules`… 😬
-phpunit (previous major):
-  needs:
-    - 'composer (previous major)'
-    - UI
   # @todo Remove when https://www.drupal.org/project/gitlab_templates/issues/3452183 lands.
   rules:
     - *is-push-rule
