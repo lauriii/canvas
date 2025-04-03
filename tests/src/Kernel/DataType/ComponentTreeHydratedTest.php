@@ -10,6 +10,7 @@ use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Render\Markup;
 use Drupal\Core\Render\RendererInterface;
 use Drupal\Core\TypedData\TypedDataManagerInterface;
+use Drupal\experience_builder\Entity\Page;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\KernelTests\KernelTestBase;
@@ -46,6 +47,7 @@ class ComponentTreeHydratedTest extends KernelTestBase {
     'link',
     'system',
     'user',
+    'serialization',
   ];
 
   /**
@@ -91,7 +93,7 @@ class ComponentTreeHydratedTest extends KernelTestBase {
     // 2. Drupal renderable (`::toRenderable()`)
     // 3. the resulting HTML markup.assert($node->field_xb_test[0] instanceof ComponentTreeItem);
     $hydrated = $component_tree_field_item->get('hydrated');
-    $hydrated_value = $hydrated->getValue();
+    $hydrated_value = $hydrated->getHydratedTree();
     $this->assertSame($expected_value, $hydrated_value->getTree());
     $renderable = $hydrated->toRenderable();
     $vfs_site_base_url = base_path() . $this->siteDirectory;
@@ -958,6 +960,14 @@ HTML,
         'config:experience_builder.component.block.system_branding_block',
       ],
     ];
+  }
+
+  /**
+   * Tests an entity with a hydrated tree item can be normalized.
+   */
+  public function testNormalize(): void {
+    $page = Page::create();
+    self::assertIsArray(\Drupal::service('serializer')->normalize($page));
   }
 
 }

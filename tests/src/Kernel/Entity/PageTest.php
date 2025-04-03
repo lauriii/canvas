@@ -178,7 +178,7 @@ final class PageTest extends KernelTestBase {
           ],
         ],
       ],
-      $components->hydrated->getTree()
+      $components->hydrated
     );
   }
 

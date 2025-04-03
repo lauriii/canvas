@@ -30,7 +30,7 @@ class ComponentTreeHydrated extends TypedData implements CacheableDependencyInte
   /**
    * {@inheritdoc}
    */
-  public function getValue(): HydratedTree {
+  public function getValue(): array {
     $item = $this->getParent();
     assert($item instanceof ComponentTreeItem);
     $tree = $item->get('tree');
@@ -70,11 +70,7 @@ class ComponentTreeHydrated extends TypedData implements CacheableDependencyInte
       $hydrated[$parent_uuid]['slots'][$slot][$uuid] = $hydrated[$uuid];
       unset($hydrated[$uuid]);
     }
-
-    return new HydratedTree(
-      [ComponentTreeStructure::ROOT_UUID => $hydrated],
-      $this->getCacheability(),
-    );
+    return [ComponentTreeStructure::ROOT_UUID => $hydrated];
   }
 
   /**
@@ -94,7 +90,7 @@ class ComponentTreeHydrated extends TypedData implements CacheableDependencyInte
     // the source of truth. So we start from a Drupal Render API-agnostic point,
     // and map that into a render array. This guarantees none of this will ever
     // rely on Render API specifics.
-    $renderable_component_tree = $this->getValue();
+    $renderable_component_tree = $this->getHydratedTree();
 
     $build = [];
     // @see \Drupal\Core\Entity\EntityViewBuilder::getBuildDefaults()
@@ -209,6 +205,16 @@ class ComponentTreeHydrated extends TypedData implements CacheableDependencyInte
    */
   public function getCacheMaxAge() {
     return $this->getCacheability()->getCacheMaxAge();
+  }
+
+  /**
+   * Gets the tree as a hydrated tree value object.
+   */
+  public function getHydratedTree(): HydratedTree {
+    return new HydratedTree(
+      $this->getValue(),
+      $this->getCacheability(),
+    );
   }
 
 }
