@@ -24,9 +24,11 @@ import { selectLayout } from '@/features/layout/layoutModelSlice';
 import { selectName } from '@/features/code-editor/codeEditorSlice';
 import Navigation from '@/components/navigation/Navigation';
 import { handleNonWorkingBtn } from '@/utils/function-utils';
-import { useGetContentListQuery } from '@/services/content';
+import {
+  useDeleteContentMutation,
+  useGetContentListQuery,
+} from '@/services/content';
 import { useCreateContentMutation } from '@/services/contentCreate';
-import { useDeleteContentMutation } from '@/services/content';
 import { useNavigationUtils } from '@/hooks/useNavigationUtils';
 import { useErrorBoundary } from 'react-error-boundary';
 import type { ContentStub } from '@/types/Content';
@@ -46,6 +48,8 @@ const iconMap: PageType = {
   GlobalSectionName: <Component1Icon />,
 };
 
+const { drupalSettings } = window;
+
 const PageInfo = () => {
   const { showBoundary } = useErrorBoundary();
   const { setEditorEntity } = useNavigationUtils();
@@ -58,8 +62,8 @@ const PageInfo = () => {
     (region) => region.id === focusedRegion,
   )?.name;
   const entity_form_fields = useAppSelector(selectPageData);
-  // @todo stop hardcoding `title` after https://www.drupal.org/i/3501847
-  const title = entity_form_fields['title[0][value]'];
+  const title =
+    entity_form_fields[`${drupalSettings.xb.entityTypeKeys.label}[0][value]`];
 
   const {
     data: pageItems,
@@ -75,6 +79,7 @@ const PageInfo = () => {
       isSuccess: isCreateContentSuccess,
     },
   ] = useCreateContentMutation();
+
   function handleNewPage() {
     createContent({
       entityType: 'xb_page',

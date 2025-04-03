@@ -26,6 +26,7 @@ import {
 import { findInChanges } from '@/utils/function-utils';
 import { selectLayout, selectModel } from '@/features/layout/layoutModelSlice';
 import { selectPageData } from '@/features/pageData/pageDataSlice';
+import { contentApi } from '@/services/content';
 
 const REFETCH_INTERVAL_MS = 10000;
 
@@ -100,6 +101,11 @@ const UnpublishedChanges = () => {
       if (isCurrentChanged) {
         refetchLayout(entityId);
       }
+
+      // After publishing, the list of other pages might be out of date where the pages' title/alias has been updated.
+      dispatch(
+        contentApi.util.invalidateTags([{ type: 'Content', id: 'LIST' }]),
+      );
 
       if (changedCodeComponentIds.length) {
         // Invalidate cache of all changed code component entities. This is

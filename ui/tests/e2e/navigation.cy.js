@@ -54,6 +54,43 @@ describe('Navigation functionality', () => {
     cy.findByTestId('xb-topbar').findByText('Draft');
   });
 
+  it('Updating the page title in the page data form updates title in the navigation list.', () => {
+    cy.loadURLandWaitForXBLoaded({ url: 'xb/xb_page/1' });
+
+    cy.findByTestId(navigationButtonTestId).click();
+    cy.findByTestId(navigationContentTestId)
+      .should('exist')
+      .and('contain.text', 'Homepage')
+      .and('contain.text', 'Empty Page');
+
+    // Open the page data form by clicking on the "Page data" tab in the sidebar.
+    cy.findByTestId('xb-contextual-panel--page-data').click();
+    cy.findByTestId('xb-page-data-form')
+      .findByLabelText('Title')
+      .should('have.value', 'Homepage');
+
+    // Type a new value into the title field.
+    cy.findByTestId('xb-page-data-form')
+      .findByLabelText('Title')
+      .as('titleField');
+    cy.get('@titleField').focus();
+    cy.get('@titleField').clear();
+    cy.get('@titleField').type('My Awesome Site');
+    cy.get('@titleField').should('have.value', 'My Awesome Site');
+    cy.get('@titleField').blur();
+
+    cy.findByTestId(navigationButtonTestId)
+      .should('exist')
+      .and('have.text', 'My Awesome Site')
+      .and('be.enabled');
+
+    cy.findByTestId(navigationButtonTestId).click();
+    cy.findByTestId(navigationContentTestId)
+      .should('exist')
+      .and('contain.text', 'My Awesome Site')
+      .and('contain.text', 'Empty Page');
+  });
+
   it('Clicking page title navigates to edit page', () => {
     cy.loadURLandWaitForXBLoaded({ url: 'xb/xb_page/1' });
 

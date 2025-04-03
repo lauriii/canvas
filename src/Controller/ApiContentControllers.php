@@ -15,6 +15,7 @@ use Drupal\Core\Render\RendererInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
+use Drupal\experience_builder\AutoSave\AutoSaveManager;
 
 /**
  * HTTP API for interacting with XB-eligible Content entity types.
@@ -29,6 +30,7 @@ final class ApiContentControllers {
   public function __construct(
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly RendererInterface $renderer,
+    private readonly AutoSaveManager $autoSaveManager,
   ) {}
 
   public function post(): JsonResponse {
@@ -89,14 +91,35 @@ final class ApiContentControllers {
     /** @var \Drupal\Core\Entity\EntityPublishedInterface[] $content_entities */
     $content_entities = $storage->loadMultiple($ids);
     $content_list = [];
+
     foreach ($content_entities as $content_entity) {
       $id = (int) $content_entity->id();
       $generated_url = $content_entity->toUrl()->toString(TRUE);
+
+      $autoSaveData = $this->autoSaveManager->getAutoSaveData($content_entity);
+      $autoSavePath = NULL;
+      // @todo Dynamically use the entity 'path' key to determine which field is
+      //   the path in https://drupal.org/i/3503446.
+      $path_form_key = 'path[0][alias]';
+      if (isset($autoSaveData->data['entity_form_fields'][$path_form_key])) {
+        // If an alias is not set in the auto-save data, fall back to the
+        // internal path as any alias in the saved entity will be removed.
+        if (empty($autoSaveData->data['entity_form_fields'][$path_form_key])) {
+          $autoSavePath = '/' . $content_entity->toUrl()->getInternalPath();
+        }
+        else {
+          // The alias user input should always start with '/'.
+          $autoSavePath = $autoSaveData->data['entity_form_fields'][$path_form_key];
+          assert(str_starts_with($autoSavePath, '/'));
+        }
+      }
       $content_list[$id] = [
         'id' => $id,
         'title' => $content_entity->label(),
         'status' => $content_entity->isPublished(),
         'path' => $generated_url->getGeneratedUrl(),
+        'autoSaveLabel' => is_null($autoSaveData->data) ? NULL : AutoSaveManager::getLabelToSave($content_entity, $autoSaveData->data),
+        'autoSavePath' => $autoSavePath,
       ];
       $url_cacheability->addCacheableDependency($generated_url);
     }
@@ -104,6 +127,9 @@ final class ApiContentControllers {
     // @todo add cache contexts for query params when introducing pagination in https://www.drupal.org/i/3502691.
     $json_response->addCacheableDependency($query_cacheability)
       ->addCacheableDependency($url_cacheability);
+    if (isset($autoSaveData)) {
+      $json_response->addCacheableDependency($autoSaveData);
+    }
     return $json_response;
   }
 

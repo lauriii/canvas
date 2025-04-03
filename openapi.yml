@@ -687,6 +687,8 @@ paths:
                     - title
                     - status
                     - path
+                    - autoSaveLabel
+                    - autoSavePath
                   properties:
                     id:
                       type: integer
@@ -697,6 +699,14 @@ paths:
                     status:
                       type: boolean
                       description: The page status.
+                    autoSaveLabel:
+                      type: string
+                      nullable: true
+                      description: The auto-save title.
+                    autoSavePath:
+                      type: string
+                      nullable: true
+                      description: The auto-save path.
               examples:
                 pageList:
                   value:
@@ -705,11 +715,15 @@ paths:
                       title: Home
                       status: true
                       path: /home
+                      autoSaveLabel: Homer
+                      autoSavePath: /updated-path
                     '2':
                       id: 2
                       title: About
                       status: false
                       path: /about
+                      autoSaveLabel: About who?
+                      autoSavePath: /page/1
     post:
       description: TODO
       responses:

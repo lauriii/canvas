@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\Tests\experience_builder\Functional;
 
 use Drupal\Core\Url;
+use Drupal\experience_builder\AutoSave\AutoSaveManager;
 use Drupal\experience_builder\Entity\Page;
 use Drupal\user\Entity\Role;
 use Drupal\user\UserInterface;
@@ -42,7 +43,6 @@ final class XbContentEntityHttpApiTest extends HttpApiTestBase {
     Page::create([
       'title' => "Page 2",
       'status' => FALSE,
-      'path' => ['alias' => "/page-2"],
     ])->save();
     Page::create([
       'title' => "Page 3",
@@ -82,31 +82,121 @@ final class XbContentEntityHttpApiTest extends HttpApiTestBase {
     $user = $this->createUser(['administer xb_page'], 'administer_xb_page_user');
     assert($user instanceof UserInterface);
     $this->drupalLogin($user);
-    $body = $this->assertExpectedResponse('GET', $url, [], 200, ['user.permissions'], ['http_response', 'xb_page_list'], 'UNCACHEABLE (request policy)', 'MISS');
-    $this->assertEquals(
-      [
-        '1' => [
-          'id' => 1,
-          'title' => 'Page 1',
-          'status' => TRUE,
-          'path' => base_path() . 'page-1',
-        ],
-        '2' => [
-          'id' => 2,
-          'title' => 'Page 2',
-          'status' => FALSE,
-          'path' => base_path() . 'page-2',
-        ],
-        '3' => [
-          'id' => 3,
-          'title' => 'Page 3',
-          'status' => TRUE,
-          'path' => base_path() . 'page-3',
-        ],
+    $body = $this->assertExpectedResponse('GET', $url, [], 200, ['user.permissions'], [AutoSaveManager::CACHE_TAG, 'http_response', 'xb_page_list'], 'UNCACHEABLE (request policy)', 'MISS');
+    $no_auto_save_expected_pages = [
+      // Page 1 has a path alias.
+      '1' => [
+        'id' => 1,
+        'title' => 'Page 1',
+        'status' => TRUE,
+        'path' => base_path() . 'page-1',
+        'autoSaveLabel' => NULL,
+        'autoSavePath' => NULL,
       ],
+      // Page 2 has no path alias.
+      '2' => [
+        'id' => 2,
+        'title' => 'Page 2',
+        'status' => FALSE,
+        'path' => base_path() . 'page/2',
+        'autoSaveLabel' => NULL,
+        'autoSavePath' => NULL,
+      ],
+      '3' => [
+        'id' => 3,
+        'title' => 'Page 3',
+        'status' => TRUE,
+        'path' => base_path() . 'page-3',
+        'autoSaveLabel' => NULL,
+        'autoSavePath' => NULL,
+      ],
+    ];
+    $this->assertEquals(
+      $no_auto_save_expected_pages,
       $body
     );
-    $this->assertExpectedResponse('GET', $url, [], 200, ['user.permissions'], ['http_response', 'xb_page_list'], 'UNCACHEABLE (request policy)', 'HIT');
+    $this->assertExpectedResponse('GET', $url, [], 200, ['user.permissions'], [AutoSaveManager::CACHE_TAG, 'http_response', 'xb_page_list'], 'UNCACHEABLE (request policy)', 'HIT');
+
+    $autoSaveManager = $this->container->get(AutoSaveManager::class);
+    $page_1 = Page::load(1);
+    $this->assertInstanceOf(Page::class, $page_1);
+    $autoSaveManager->save(
+      $page_1,
+      [
+        'layout' => [],
+        'model' => [],
+        'entity_form_fields' => [
+          'title[0][value]' => 'The updated title.',
+          'path[0][alias]' => '/the-updated-path',
+        ],
+      ]
+    );
+    $page_2 = Page::load(2);
+    $this->assertInstanceOf(Page::class, $page_2);
+    $autoSaveManager->save(
+      $page_2,
+      [
+        'layout' => [],
+        'model' => [],
+        'entity_form_fields' => [
+          'title[0][value]' => 'The updated title2.',
+          'path[0][alias]' => '/the-new-path',
+        ],
+      ]
+    );
+
+    $body = $this->assertExpectedResponse('GET', $url, [], 200, ['user.permissions'], [AutoSaveManager::CACHE_TAG, 'http_response', 'xb_page_list'], 'UNCACHEABLE (request policy)', 'MISS');
+    $auto_save_expected_pages = $no_auto_save_expected_pages;
+    $auto_save_expected_pages['1']['autoSaveLabel'] = 'The updated title.';
+    $auto_save_expected_pages['1']['autoSavePath'] = '/the-updated-path';
+    $auto_save_expected_pages['2']['autoSaveLabel'] = 'The updated title2.';
+    $auto_save_expected_pages['2']['autoSavePath'] = '/the-new-path';
+    $this->assertEquals(
+      $auto_save_expected_pages,
+      $body
+    );
+    $this->assertExpectedResponse('GET', $url, [], 200, ['user.permissions'], [AutoSaveManager::CACHE_TAG, 'http_response', 'xb_page_list'], 'UNCACHEABLE (request policy)', 'HIT');
+
+    // Confirm that if path alias is empty, the system path is used, not the
+    // existing alias if set.
+    $autoSaveManager->save(
+      $page_1,
+      [
+        'layout' => [],
+        'model' => [],
+        'entity_form_fields' => [
+          'title[0][value]' => 'The updated title.',
+          'path[0][alias]' => '',
+        ],
+      ]
+    );
+    $autoSaveManager->save(
+      $page_2,
+      [
+        'layout' => [],
+        'model' => [],
+        'entity_form_fields' => [
+          'title[0][value]' => 'The updated title2.',
+          'path[0][alias]' => '',
+        ],
+      ]
+    );
+    $body = $this->assertExpectedResponse('GET', $url, [], 200, ['user.permissions'], [AutoSaveManager::CACHE_TAG, 'http_response', 'xb_page_list'], 'UNCACHEABLE (request policy)', 'MISS');
+    $auto_save_expected_pages['1']['autoSavePath'] = '/page/1';
+    $auto_save_expected_pages['2']['autoSavePath'] = '/page/2';
+    $this->assertEquals(
+      $auto_save_expected_pages,
+      $body
+    );
+
+    $autoSaveManager->delete($page_1);
+    $autoSaveManager->delete($page_2);
+    $body = $this->assertExpectedResponse('GET', $url, [], 200, ['user.permissions'], [AutoSaveManager::CACHE_TAG, 'http_response', 'xb_page_list'], 'UNCACHEABLE (request policy)', 'MISS');
+    $this->assertEquals(
+      $no_auto_save_expected_pages,
+      $body
+    );
+    $this->assertExpectedResponse('GET', $url, [], 200, ['user.permissions'], [AutoSaveManager::CACHE_TAG, 'http_response', 'xb_page_list'], 'UNCACHEABLE (request policy)', 'HIT');
   }
 
   public function testDelete(): void {

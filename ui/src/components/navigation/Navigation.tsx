@@ -51,6 +51,7 @@ const ContentGroup = ({
       </Callout.Root>
     );
   }
+
   return (
     <div>
       <Heading as="h5" size="1" color="gray">
@@ -78,8 +79,10 @@ const ContentGroup = ({
                 </Box>
                 <Flex flexGrow="1" align="center">
                   <Text as="span" size="1">
-                    {item.title}{' '}
-                    <span className={styles.path}>{item.path}</span>
+                    {item.autoSaveLabel || item.title}{' '}
+                    <span className={styles.path}>
+                      {item.autoSavePath || item.path}
+                    </span>
                   </Text>
                 </Flex>
               </Flex>

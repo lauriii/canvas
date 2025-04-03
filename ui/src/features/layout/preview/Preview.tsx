@@ -1,7 +1,8 @@
 import type React from 'react';
+import { useRef } from 'react';
 import { useEffect } from 'react';
 import { useErrorBoundary } from 'react-error-boundary';
-import { useAppSelector } from '@/app/hooks';
+import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import {
   selectLayout,
   selectModel,
@@ -16,6 +17,7 @@ import ComponentHtmlMapProvider from '@/features/layout/preview/DataToHtmlMapCon
 import { selectPageData } from '@/features/pageData/pageDataSlice';
 import { selectPreviewHtml } from '@/features/pagePreview/previewSlice';
 import { useParams } from 'react-router-dom';
+import { contentApi } from '@/services/content';
 
 interface PreviewProps {}
 
@@ -31,7 +33,9 @@ const previewSizes = {
     name: 'Mobile',
   },
 };
+const { drupalSettings } = window;
 type PreviewSizeKey = keyof typeof previewSizes;
+const labelFormKey = `${drupalSettings.xb.entityTypeKeys.label}[0][value]`;
 
 const Preview: React.FC<PreviewProps> = () => {
   const layout = useAppSelector(selectLayout);
@@ -44,8 +48,12 @@ const Preview: React.FC<PreviewProps> = () => {
   const isPatching = useAppSelector((state) =>
     selectUpdateComponentLoadingState(state, selectedComponentId),
   );
+  const dispatch = useAppDispatch();
   const frameSrcDoc = useAppSelector(selectPreviewHtml);
   const { showBoundary } = useErrorBoundary();
+  const previousEntityFormTitle = useRef(entity_form_fields[labelFormKey]);
+  // @todo stop hardcoding `path` after https://drupal.org/i/3503446.
+  const previousEntityFormAlias = useRef(entity_form_fields['path[0][alias]']);
 
   useEffect(() => {
     const sendPreviewRequest = async () => {
@@ -57,7 +65,27 @@ const Preview: React.FC<PreviewProps> = () => {
       }
     };
     if (initialized) {
-      sendPreviewRequest();
+      // Specifically when updating the Title or Alias, the page list used in the navigator must be re-fetched so that
+      // it can display those updated values.
+      let invalidatePageList = false;
+      if (
+        entity_form_fields[labelFormKey] !== previousEntityFormTitle.current ||
+        // @todo stop hardcoding `path` after https://drupal.org/i/3503446.
+        entity_form_fields['path[0][alias]'] !== previousEntityFormAlias.current
+      ) {
+        invalidatePageList = true;
+        previousEntityFormTitle.current = entity_form_fields[labelFormKey];
+        // @todo stop hardcoding `path` after https://drupal.org/i/3503446.
+        previousEntityFormAlias.current = entity_form_fields['path[0][alias]'];
+      }
+
+      sendPreviewRequest().then(() => {
+        if (invalidatePageList) {
+          dispatch(
+            contentApi.util.invalidateTags([{ type: 'Content', id: 'LIST' }]),
+          );
+        }
+      });
     }
   }, [
     layout,
@@ -66,6 +94,7 @@ const Preview: React.FC<PreviewProps> = () => {
     entity_form_fields,
     initialized,
     showBoundary,
+    dispatch,
   ]);
 
   return (

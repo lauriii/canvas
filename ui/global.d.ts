@@ -10,6 +10,10 @@ interface DrupalSettings {
     base: string;
     entityType: string;
     entity: string;
+    entityTypeKeys: {
+      id: string;
+      label: string;
+    };
     globalAssets: {
       css: string;
       jsHeader: string;
