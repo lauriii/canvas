@@ -398,6 +398,16 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
     $body = $this->assertExpectedResponse('PATCH', Url::fromUri('base:/xb/api/config/pattern/testpatternpleaseignore'), $request_options, 200, NULL, NULL, NULL, NULL);
     $this->assertSame($expected_individual_body_normalization, $body);
 
+    // Partially modify a Pattern: 200.
+    $pattern_to_send['name'] = 'Updated test pattern name';
+    $expected_individual_body_normalization['name'] = $pattern_to_send['name'];
+    $expected_pattern_normalization['name'] = $pattern_to_send['name'];
+    $request_options[RequestOptions::BODY] = self::encodeXBData([
+      'name' => $pattern_to_send['name'],
+    ]);
+    $body = $this->assertExpectedResponse('PATCH', Url::fromUri('base:/xb/api/config/pattern/testpatternpleaseignore'), $request_options, 200, NULL, NULL, NULL, NULL);
+    $this->assertSame($expected_individual_body_normalization, $body);
+
     // Re-retrieve list: 200, non-empty list. Dynamic Page Cache miss.
     $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['languages:language_interface', 'user.permissions', 'theme'], ['config:experience_builder.component.sdc.xb_test_sdc.props-no-slots', 'config:pattern_list', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
     $this->assertSame([
@@ -669,11 +679,11 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
 
     // Modify a JavaScriptComponent incorrectly (shape-wise): 500.
     $request_options[RequestOptions::BODY] = self::encodeXBData([
-      'machineName' => $code_component_to_send['machineName'],
+      'machineName' => [$code_component_to_send['machineName']],
     ]);
     $body = $this->assertExpectedResponse('PATCH', Url::fromUri('base:/xb/api/config/js_component/test'), $request_options, 500, NULL, NULL, NULL, NULL);
     $this->assertSame([
-      'message' => 'Body does not match schema for content-type "application/json" for Request [patch /xb/api/config/js_component/{configEntityId}]. [Keyword validation failed: Required property \'name\' must be present in the object in name]',
+      'message' => 'Body does not match schema for content-type "application/json" for Request [patch /xb/api/config/js_component/{configEntityId}]. [Value expected to be \'string\', but \'array\' given in machineName]',
     ], $body, 'Fails with an invalid code component.');
 
     // Modify a Code Component incorrectly (consistency-wise): 422.
@@ -708,6 +718,15 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
     $expected_component['name'] = $code_component_to_send['name'];
     unset($expected_component['props']['number']['examples']);
     $request_options[RequestOptions::BODY] = self::encodeXBData($code_component_to_send);
+    $body = $this->assertExpectedResponse('PATCH', Url::fromUri('base:/xb/api/config/js_component/test'), $request_options, 200, NULL, NULL, NULL, NULL);
+    $this->assertSame($expected_component, $body);
+
+    // Partially modify a Code Component: 200
+    $code_component_to_send['name'] = 'Test once again for good luck';
+    $expected_component['name'] = $code_component_to_send['name'];
+    $request_options[RequestOptions::BODY] = self::encodeXBData([
+      'name' => $code_component_to_send['name'],
+    ]);
     $body = $this->assertExpectedResponse('PATCH', Url::fromUri('base:/xb/api/config/js_component/test'), $request_options, 200, NULL, NULL, NULL, NULL);
     $this->assertSame($expected_component, $body);
 
@@ -888,10 +907,19 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
     $this->assertExpectedResponse('GET', $auto_save_url, $request_options, 204, ['user.permissions'], [AutoSaveManager::CACHE_TAG, 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
     $this->assertExpectedResponse('GET', $auto_save_url, $request_options, 204, ['user.permissions'], [AutoSaveManager::CACHE_TAG, 'http_response'], 'UNCACHEABLE (request policy)', 'HIT');
 
+    // Modify the asset library: 200.
+    $asset_library_to_send['label'] = 'Updated asset library label';
+    $request_options[RequestOptions::BODY] = self::encodeXBData([
+      'label' => $asset_library_to_send['label'],
+    ]);
+    $body = $this->assertExpectedResponse('PATCH', Url::fromUri("base:/xb/api/config/xb_asset_library/global"), $request_options, 200, NULL, NULL, NULL, NULL);
+    $this->assertSame($body, $asset_library_to_send);
+
     // @todo Test that creating an auto-save entry for the 'global' does not
     //   affect the GET request in https:/drupal.org/i/3505224.
 
     // Creating an Asset Library with an already-in-use ID: 409.
+    $request_options[RequestOptions::BODY] = self::encodeXBData($asset_library_to_send);
     $body = $this->assertExpectedResponse('POST', $list_url, $request_options, 409, NULL, NULL, NULL, NULL);
     $this->assertSame([
       'errors' => [

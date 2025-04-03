@@ -146,19 +146,37 @@ final class Pattern extends ConfigEntityBase implements XbHttpApiEligibleConfigE
    *
    * @see docs/adr/0005-Keep-the-front-end-simple.md
    */
-  public static function denormalizeFromClientSide(array $data): array {
-    ['layout' => $layout, 'model' => $model, 'name' => $label] = $data;
-    ['tree' => $tree, 'inputs' => $inputs] = self::convertClientToServer($layout, $model);
+  public static function createFromClientSide(array $data): static {
+    $values = [];
+    if (isset($data['id'])) {
+      $values['id'] = $data['id'];
+    }
+    if (isset($data['name'])) {
+      $values['label'] = $data['name'];
+    }
+    $entity = static::create($values);
+    $entity->updateFromClientSide($data);
+    return $entity;
+  }
 
-    $other_values = array_diff_key($data, array_flip(['layout', 'model', 'name']));
+  /**
+   * {@inheritdoc}
+   *
+   * This corresponds to `Pattern` in openapi.yml.
+   *
+   * @see docs/adr/0005-Keep-the-front-end-simple.md
+   */
+  public function updateFromClientSide(array $data): void {
+    if (isset($data['layout']) && isset($data['model'])) {
+      $this->set('component_tree', self::convertClientToServer($data['layout'], $data['model']));
+    }
 
-    return [
-      'label' => $label,
-      'component_tree' => [
-        'tree' => $tree,
-        'inputs' => $inputs,
-      ],
-    ] + $other_values;
+    foreach (array_diff_key($data, array_flip(['layout', 'model'])) as $key => $value) {
+      if ($key == 'name') {
+        $key = 'label';
+      }
+      $this->set($key, $value);
+    }
   }
 
   /**

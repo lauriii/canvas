@@ -28,13 +28,18 @@ interface XbHttpApiEligibleConfigEntityInterface extends ConfigEntityInterface {
   public function normalizeForClientSide(): ClientSideRepresentation;
 
   /**
-   * Denormalizes this config entity from the data model used by the client.
-   *
-   * @return array
+   * Creates a new config entity from the data model used by the client.
    *
    * @see openapi.yml
    */
-  public static function denormalizeFromClientSide(array $data): array;
+  public static function createFromClientSide(array $data): static;
+
+  /**
+   * Updates this config entity from the data model used by the client.
+   *
+   * @see openapi.yml
+   */
+  public function updateFromClientSide(array $data): void;
 
   /**
    * Allows the config entity query that generates the listing to be refined.

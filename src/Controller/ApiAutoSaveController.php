@@ -173,10 +173,7 @@ final class ApiAutoSaveController extends ApiControllerBase {
         }
         elseif ($entity instanceof XbHttpApiEligibleConfigEntityInterface) {
           $original_entity = clone $entity;
-          $denormalized = $entity::denormalizeFromClientSide($auto_save['data']);
-          foreach ($denormalized as $property_name => $property_value) {
-            $entity->set($property_name, $property_value);
-          }
+          $entity->updateFromClientSide($auto_save['data']);
           $violations = $entity->getTypedData()->validate();
           if ($violations->count() > 0) {
             throw new ConstraintViolationException(new EntityConstraintViolationList($original_entity, iterator_to_array($violations)));

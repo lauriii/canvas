@@ -77,8 +77,23 @@ final class AssetLibrary extends ConfigEntityBase implements XbAssetInterface {
    *
    * @see docs/adr/0005-Keep-the-front-end-simple.md
    */
-  public static function denormalizeFromClientSide(array $data): array {
-    return $data;
+  public static function createFromClientSide(array $data): static {
+    $entity = static::create(['id' => $data['id']]);
+    $entity->updateFromClientSide($data);
+    return $entity;
+  }
+
+  /**
+   * {@inheritdoc}
+   *
+   * This corresponds to `AssetLibrary` in openapi.yml.
+   *
+   * @see docs/adr/0005-Keep-the-front-end-simple.md
+   */
+  public function updateFromClientSide(array $data): void {
+    foreach ($data as $key => $value) {
+      $this->set($key, $value);
+    }
   }
 
   /**

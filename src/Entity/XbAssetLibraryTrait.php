@@ -55,15 +55,12 @@ trait XbAssetLibraryTrait {
   public function forAutoSavePreview(array $data): static {
     $draft_entity = clone $this;
     \assert($this instanceof XbHttpApiEligibleConfigEntityInterface);
-    $denormalized = self::denormalizeFromClientSide($data);
     // Note we don't perform any validation here. The primary intent of the
     // denormalized entity here is to render a preview. We don't want validation
     // of other aspects of the config entity to prevent the preview from
     // displaying. This makes it important for code that performs rendering
     // during previewing to be very defensive.
-    foreach ($denormalized as $property_name => $property_value) {
-      $draft_entity->set($property_name, $property_value);
-    }
+    $draft_entity->updateFromClientSide($data);
     return $draft_entity;
   }
 

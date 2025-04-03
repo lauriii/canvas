@@ -122,15 +122,9 @@ final class ApiConfigControllers extends ApiControllerBase {
     $xb_config_entity_type = $this->entityTypeManager->getDefinition($xb_config_entity_type_id);
     assert($xb_config_entity_type instanceof ConfigEntityTypeInterface);
 
-    // Decode, then denormalize.
+    // Create an in-memory config entity.
     $decoded = self::decode($request);
-    $denormalized = $xb_config_entity_type->getClass()::denormalizeFromClientSide($decoded);
-
-    // Create an in-memory config entity and validate it.
-    $xb_config_entity = $this->entityTypeManager
-      ->getStorage($xb_config_entity_type_id)
-      ->create($denormalized);
-    assert($xb_config_entity instanceof XbHttpApiEligibleConfigEntityInterface);
+    $xb_config_entity = $xb_config_entity_type->getClass()::createFromClientSide($decoded);
     try {
       $this->validate($xb_config_entity);
     }
@@ -170,14 +164,8 @@ final class ApiConfigControllers extends ApiControllerBase {
   }
 
   public function patch(Request $request, XbHttpApiEligibleConfigEntityInterface $xb_config_entity): JsonResponse {
-    // Decode, then denormalize.
     $decoded = self::decode($request);
-    $denormalized = $xb_config_entity::denormalizeFromClientSide($decoded);
-
-    // Modify the loaded entity using the denormalized data and validate it.
-    foreach ($denormalized as $property_name => $property_value) {
-      $xb_config_entity->set($property_name, $property_value);
-    }
+    $xb_config_entity->updateFromClientSide($decoded);
     try {
       $this->validate($xb_config_entity);
     }

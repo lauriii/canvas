@@ -125,33 +125,48 @@ final class JavaScriptComponent extends ConfigEntityBase implements XbAssetInter
   }
 
   /**
+   * {@inheritdoc}
+   *
    * This corresponds to `CodeComponent` in openapi.yml.
    *
    * @see docs/adr/0005-Keep-the-front-end-simple.md
-   *
-   * @return array{'machineName': string, 'name': string, 'status': boolean, 'required': array<int, string>, 'props': array, 'slots': array, 'js': array{'original': string, 'compiled': string}, 'css': array{'original': string, 'compiled': string}}
    */
-  public static function denormalizeFromClientSide(array $data): array {
-    return [
-      'machineName' => $data['machineName'],
-      'name' => $data['name'],
-      'status' => $data['status'],
-      // Only the (machine) name and status should be required, because creating
-      // a code component in the UI starts out with only knowing that.
-      'required' => $data['required'] ?? [],
-      'props' => $data['props'] ?? [],
-      'slots' => $data['slots'] ?? [],
-      'js' => [
-        'original' => $data['source_code_js'] ?? '',
-        'compiled' => $data['compiled_js'] ?? '',
-      ],
-      'css' => [
+  public static function createFromClientSide(array $data): static {
+    $entity = static::create(['machineName' => $data['machineName']]);
+    $entity->updateFromClientSide($data);
+    return $entity;
+  }
+
+  /**
+   * {@inheritdoc}
+   *
+   * This corresponds to `CodeComponent` in openapi.yml.
+   *
+   * @see docs/adr/0005-Keep-the-front-end-simple.md
+   */
+  public function updateFromClientSide(array $data): void {
+    foreach (array_intersect_key($data, array_flip(['machineName', 'name', 'status', 'required', 'props', 'slots'])) as $key => $value) {
+      $this->set($key, $value);
+    }
+
+    if (array_key_exists('source_code_css', $data) || array_key_exists('compiled_css', $data)) {
+      $this->set('css', [
         'original' => $data['source_code_css'] ?? '',
         'compiled' => $data['compiled_css'] ?? '',
-      ],
-      // ⚠️ This is highly experimental and *will* be refactored.
-      'block_override' => $data['block_override'] ?? NULL,
-    ];
+      ]);
+    }
+
+    if (array_key_exists('source_code_js', $data) || array_key_exists('compiled_js', $data)) {
+      $this->set('js', [
+        'original' => $data['source_code_js'] ?? '',
+        'compiled' => $data['compiled_js'] ?? '',
+      ]);
+    }
+
+    // ⚠️ This is highly experimental and *will* be refactored.
+    if (array_key_exists('block_override', $data)) {
+      $this->set('block_override', $data['block_override']);
+    }
   }
 
   /**

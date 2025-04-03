@@ -308,7 +308,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CodeComponent'
+              $ref: '#/components/schemas/NewCodeComponent'
       responses:
         '201':
           description: Successful creation of individual Code Component
@@ -382,24 +382,7 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              required:
-                - name
-                - layout
-                - model
-              properties:
-                id:
-                  type: string
-                  description: The ID — if none is provided, this will be auto-generated from the given name.
-                name:
-                  type: string
-                  description: Human-readable Pattern/Section label
-                layout:
-                  type: array
-                  items:
-                    $ref: '#/components/schemas/LayoutComponent'
-                model:
-                  $ref: '#/components/schemas/Model'
+              $ref: '#/components/schemas/NewPattern'
       responses:
         '201':
           description: Successful save of Section/Pattern
@@ -550,39 +533,7 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              required:
-                - id
-                - label
-              properties:
-                id:
-                  type: string
-                  description: Asset library ID
-                label:
-                  type: string
-                  description: Human-readable label
-                css:
-                  type: object
-                  description: CSS
-                  nullable: true
-                  properties:
-                    original:
-                      type: string
-                      description: Original CSS as entered by the human author
-                    compiled:
-                      type: string
-                      description: Compiled CSS code, compiled from the original
-                js:
-                  type: object
-                  description: JS
-                  nullable: true
-                  properties:
-                    original:
-                      type: string
-                      description: Original JS as entered by the human author
-                    compiled:
-                      type: string
-                      description: Compiled JS code, compiled from the original
+              $ref: '#/components/schemas/NewAssetLibrary'
             examples:
               example:
                 value:
@@ -1223,10 +1174,6 @@ components:
     CodeComponent:
       title: Code Component
       type: object
-      required:
-        - name
-        - machineName
-        - status
       properties:
         machineName:
           type: string
@@ -1273,6 +1220,14 @@ components:
           type: string
         compiled_css:
           type: string
+    NewCodeComponent:
+      type: object
+      allOf:
+        - required:
+            - name
+            - machineName
+            - status
+        - $ref: '#/components/schemas/CodeComponent'
     LayoutComponent:
       title: LayoutComponent
       type: object
@@ -1456,9 +1411,6 @@ components:
     AssetLibrary:
       title: Asset Library
       type: object
-      required:
-        - id
-        - label
       properties:
         id:
           type: string
@@ -1492,6 +1444,13 @@ components:
             compiled:
               type: string
               description: Compiled JS code, compiled from the original
+    NewAssetLibrary:
+      type: object
+      allOf:
+        - required:
+            - id
+            - label
+        - $ref: '#/components/schemas/AssetLibrary'
     Error:
       type: object
       required:
@@ -1595,11 +1554,10 @@ components:
       title: Pattern
       description: '@see \Drupal\experience_builder\Controller\ApiConfigControllers::denormalizePattern()'
       type: object
-      required:
-        - name
-        - layout
-        - model
       properties:
+        id:
+          type: string
+          description: The ID — if none is provided, this will be auto-generated from the given name.
         name:
           type: string
           description: Human-readable Pattern/Section label
@@ -1611,6 +1569,14 @@ components:
         model:
           $ref: '#/components/schemas/Model'
       additionalProperties: false
+    NewPattern:
+      type: object
+      allOf:
+        - required:
+            - name
+            - layout
+            - model
+        - $ref: '#/components/schemas/Pattern'
   # @see https://spec.openapis.org/oas/v3.1.0.html#response-object
   responses:
     FormResponse:
