@@ -356,7 +356,14 @@ final class ApiLayoutController {
     $this->autoSaveManager->save($entity, [
       'layout' => [$content],
       'model' => self::extractModelForSubtree($content, $model),
-      'entity_form_fields' => $updated_entity_form_fields,
+      // Store the updated form build ID but leave all other fields as-is.
+      // This allows us to re-submit the values from auto-save when we finally
+      // publish the entity. Some field widgets make transformations to the form
+      // data which cannot be repeated.
+      // @see \Drupal\Core\Field\Plugin\Field\FieldWidget\OptionsWidgetBase::validateElement
+      'entity_form_fields' => \array_filter([
+        'form_build_id' => $updated_entity_form_fields['form_build_id'] ?? NULL,
+      ]) + $body['entity_form_fields'],
     ]);
     $renderable = $this->componentTreeLoader->load($entity)->toRenderable(TRUE);
 

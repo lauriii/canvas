@@ -9,9 +9,11 @@
 
 declare(strict_types=1);
 
+use Drupal\Core\Language\LanguageInterface;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\Core\Entity\Entity\EntityFormDisplay;
+use Drupal\user\Entity\Role;
 
 /**
  * Implements hook_install().
@@ -132,14 +134,12 @@ function xb_test_article_fields_install(): void {
       'type' => 'language',
       'label' => 'XB Language',
       'settings' => [],
-      'default_value' => [
-        [
-          'value' => \Drupal::languageManager()->getDefaultLanguage()->getId(),
-        ],
-      ],
       'widget' => [
         'type' => 'language_select',
         'settings' => [],
+      ],
+      'default_value' => [
+        ['value' => LanguageInterface::LANGCODE_NOT_SPECIFIED],
       ],
     ],
     'field_xbt_moderation_state' => [
@@ -172,6 +172,9 @@ function xb_test_article_fields_install(): void {
           'option2' => 'Option 2',
           'option3' => 'Option 3',
         ],
+      ],
+      'default_value' => [
+        ['value' => 'option2'],
       ],
       'widget' => [
         'type' => 'options_buttons',
@@ -273,11 +276,15 @@ function xb_test_article_fields_install(): void {
   }
 
   $do_not_add_to_form_yet = [
+    // @todo Remove in https://www.drupal.org/project/experience_builder/issues/3516336
     'field_xbt_language',
-    'field_xbt_options_buttons',
+    // @todo Remove in https://www.drupal.org/project/experience_builder/issues/3516338
     'field_xbt_daterange_datelist',
+    // @todo Remove in https://www.drupal.org/project/experience_builder/issues/3516339
     'field_xbt_daterange_default',
+    // @todo Remove in https://www.drupal.org/project/experience_builder/issues/3516340
     'field_xbt_datetime_timestamp',
+    // @todo Remove in https://www.drupal.org/project/experience_builder/issues/3516342
     'field_xbt_datetime_datelist',
   ];
 
@@ -293,13 +300,24 @@ function xb_test_article_fields_install(): void {
     }
 
     if (!FieldConfig::loadByName('node', 'article', $field_name)) {
-      FieldConfig::create([
+      $field_config = [
         'field_name' => $field_name,
         'entity_type' => 'node',
         'bundle' => 'article',
         'label' => $field_info['label'],
         'settings' => $field_info['settings'],
-      ])->save();
+      ];
+
+      // Only add default_value if it's explicitly set
+      if (isset($field_info['default_value'])) {
+        $field_config['default_value'] = $field_info['default_value'];
+      }
+
+      FieldConfig::create($field_config)->save();
+    }
+
+    if (\in_array($field_name, $do_not_add_to_form_yet, TRUE)) {
+      continue;
     }
 
     if (in_array($field_name, $do_not_add_to_form_yet)) {
@@ -313,7 +331,17 @@ function xb_test_article_fields_install(): void {
     ]);
   }
 
+  // Remove the default comment field.
+  $form_display->removeComponent('comment');
+
   $form_display->save();
+  // Grant some permissions.
+  $role = Role::load('xb');
+  if ($role !== NULL) {
+    $role->grantPermission('administer comments');
+    $role->grantPermission('post comments');
+    $role->save();
+  }
 }
 
 /**

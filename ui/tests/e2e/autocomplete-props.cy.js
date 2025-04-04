@@ -3,8 +3,7 @@ import { onlyOn } from '@cypress/skip-test';
 onlyOn('headed', () => {
   describe('Prop with autocomplete', () => {
     before(() => {
-      cy.drupalXbInstall();
-      cy.drupalInstallModule('xb_test_autocomplete');
+      cy.drupalXbInstall(['xb_test_autocomplete']);
     });
 
     beforeEach(() => {

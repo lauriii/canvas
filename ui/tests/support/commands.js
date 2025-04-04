@@ -107,10 +107,12 @@ Cypress.Commands.add('drupalEnableThemeForXb', (themeMachineName) => {
   });
 });
 
-Cypress.Commands.add('drupalXbInstall', () => {
+Cypress.Commands.add('drupalXbInstall', (extraModules = []) => {
   cy.task('log', `The setup file ${Cypress.env('setupFile')}`);
+  cy.task('log', `Extra modules ${extraModules}`);
   cy.drupalInstall({
     setupFile: Cypress.env('setupFile'),
+    extraModules,
   });
 });
 
@@ -121,6 +123,7 @@ Cypress.Commands.add(
       setupFile = '',
       installProfile = 'nightwatch_testing',
       langcode = '',
+      extraModules = [],
     } = {},
     callback,
   ) => {
@@ -128,13 +131,16 @@ Cypress.Commands.add(
     try {
       setupFile = setupFile ? `--setup-file "${setupFile}"` : '';
       installProfile = `--install-profile "${installProfile}"`;
+      extraModules = extraModules.length
+        ? `XB_EXTRA_MODULES=${extraModules.join()}`
+        : '';
       const langcodeOption = langcode ? `--langcode "${langcode}"` : '';
       const dbOption = Cypress.env('dbUrl')
         ? `--db-url ${Cypress.env('dbUrl')}`
         : '';
 
       const installCommand = commandAsWebserver(
-        `php ${Cypress.env('coreDir')}/scripts/test-site.php install ${setupFile} ${installProfile} ${langcodeOption} --base-url ${Cypress.env('baseUrl')} ${dbOption} --json`,
+        `${extraModules} php ${Cypress.env('coreDir')}/scripts/test-site.php install ${setupFile} ${installProfile} ${langcodeOption} --base-url ${Cypress.env('baseUrl')} ${dbOption} --json`,
       );
       cy.exec(installCommand).then((install) => {
         const installData = JSON.parse(install.stdout);

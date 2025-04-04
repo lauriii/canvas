@@ -70,6 +70,7 @@ describe('Block form', () => {
 
     // Turn off the site name again.
     cy.get('@siteName').toggleToggle();
+    cy.waitForElementContentNotInIframe('div.site-branding__inner', 'Drupal');
 
     // Now move this component to the content region so it is stored in the node.
     cy.sendComponentToRegion('Site branding', 'Content');

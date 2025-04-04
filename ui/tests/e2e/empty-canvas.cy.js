@@ -3,8 +3,7 @@ describe('Empty canvas', () => {
     // Unlike most tests, we are installing drupal before each it() as that has
     // demonstrated to be the only reliable way to get tests after the first
     // passing consistently. This occurs regardless of which test runs first.
-    cy.drupalXbInstall();
-    cy.drupalInstallModule('metatag', true);
+    cy.drupalXbInstall(['metatag']);
     cy.drupalLogin('xbUser', 'xbUser');
   });
 

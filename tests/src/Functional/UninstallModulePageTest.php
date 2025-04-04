@@ -59,7 +59,6 @@ class UninstallModulePageTest extends InstallerTestBase {
     if ($field_storage) {
       $field_storage->delete();
     }
-    $this->container->get('router.builder')->rebuild();
 
     $this->drupalGet('admin/modules/uninstall');
     $this->submitForm(['uninstall[experience_builder]' => 1], 'Uninstall');

@@ -59,8 +59,7 @@ onlyOn('headed', () => {
       },
     };
     before(() => {
-      cy.drupalXbInstall();
-      cy.drupalInstallModule('sdc_test_all_props');
+      cy.drupalXbInstall(['sdc_test_all_props']);
       cy.drupalLogin('xbUser', 'xbUser');
     });
     beforeEach(() => {

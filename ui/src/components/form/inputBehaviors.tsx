@@ -3,7 +3,6 @@ import type * as React from 'react';
 import { selectLatestUndoRedoActionId } from '@/features/ui/uiSlice';
 import {
   getDefaultValue,
-  getNameAttributeBasedOnId,
   validateProp,
   toPropName,
   getPropSchemas,
@@ -103,7 +102,7 @@ const InputBehaviorsCommon = ({
   );
 
   const formId = attributes['data-form-id'] as FormId;
-  const fieldName = attributes.name as string;
+  const fieldName = (attributes.name || attributes['data-xb-name']) as string;
   const fieldIdentifier = {
     formId,
     fieldName,
@@ -114,13 +113,25 @@ const InputBehaviorsCommon = ({
 
   // Include the input's default value in the form state on init - including
   // when an element is added via AJAX.
+  const elementType = attributes.type || attributes['data-xb-type'];
   useEffect(() => {
-    if (attributes.name && formId) {
+    if (
+      // Ignore radios in indeterminate (initial unset) state.
+      // @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLInputElement/indeterminate
+      (elementType === 'radios' && inputValue === '') ||
+      // Every individual radio element has a value, but it isn't
+      // the value of the field unless it is checked. The value of the field is
+      // managed by the radios group, not the individual radio elements.
+      elementType === 'radio'
+    ) {
+      return;
+    }
+    if (fieldName && formId) {
       dispatch(
         setFieldValue({
           formId,
           fieldName,
-          value: attributes.type === 'checkbox' ? !!inputValue : inputValue,
+          value: elementType === 'checkbox' ? !!inputValue : inputValue,
         }),
       );
     }
@@ -162,7 +173,7 @@ const InputBehaviorsCommon = ({
   // Use debounce to prevent excessive repaints of the layout.
   const debounceStoreUpdate = debounce(
     commitFormState,
-    ['checkbox', 'radio'].includes(attributes.type as string) ? 0 : 400,
+    ['checkbox', 'radio'].includes(elementType as string) ? 0 : 400,
   );
 
   // Register the debounced store function as a callback so debouncing is
@@ -175,7 +186,7 @@ const InputBehaviorsCommon = ({
 
   // Don't track the value of hidden fields except for form_build_id.
   if (
-    ['hidden', 'submit'].includes(attributes.type as string) &&
+    ['hidden', 'submit'].includes(elementType as string) &&
     fieldName !== 'form_build_id'
   ) {
     attributes.readOnly = '';
@@ -226,7 +237,7 @@ const InputBehaviorsCommon = ({
       }
 
       if (
-        attributes.name &&
+        fieldName &&
         newValue &&
         e.target instanceof HTMLInputElement &&
         e.target.form instanceof HTMLFormElement
@@ -265,10 +276,7 @@ const InputBehaviorsCommon = ({
 
   // The value attribute can remain for hidden and submit inputs, but
   // otherwise dispose of `value`.
-  if (
-    !hasListener &&
-    !['hidden', 'submit'].includes(attributes.type as string)
-  ) {
+  if (!hasListener && !['hidden', 'submit'].includes(elementType as string)) {
     delete attributes.value;
   }
 
@@ -356,9 +364,10 @@ const InputBehaviorsComponentPropsForm = (
     });
   };
 
+  const fieldName = attributes.name || attributes['data-xb-name'];
   const parseNewValue = (e: React.ChangeEvent) => {
     const schemas = getPropSchemas(inputAndUiData);
-    const propName = toPropName(attributes.name, selectedComponent);
+    const propName = toPropName(fieldName, selectedComponent);
     return parseValue(
       (e.target as HTMLInputElement | HTMLSelectElement).value,
       e.target as HTMLInputElement,
@@ -368,9 +377,9 @@ const InputBehaviorsComponentPropsForm = (
 
   const validateNewValue = (e: React.ChangeEvent, newValue: any) => {
     const target = e.target as HTMLInputElement;
-    if (!shouldSkipPropValidation(attributes.name, target, inputAndUiData)) {
+    if (!shouldSkipPropValidation(fieldName, target, inputAndUiData)) {
       const [valid, validate] = validateProp(
-        toPropName(attributes.name, selectedComponent),
+        toPropName(fieldName, selectedComponent),
         newValue,
         inputAndUiData,
       );
@@ -410,10 +419,9 @@ const InputBehaviorsEntityForm = (
 
   const { attributes } = props;
 
-  if (!['changed'].includes(attributes.name)) {
-    let newValue =
-      pageData[attributes.name || getNameAttributeBasedOnId(attributes.id)] ||
-      null;
+  const fieldName = attributes.name || attributes['data-xb-name'];
+  if (!['changed'].includes(fieldName)) {
+    let newValue = pageData[fieldName] || null;
 
     if (attributes.name === 'form_build_id' && 'form_build_id' in formState) {
       // We always take the latest form_build_id value from form state.
@@ -427,10 +435,11 @@ const InputBehaviorsEntityForm = (
     // @todo Handle the revision form elements on nodes.
     // @todo Handle `date` and `time` inputs.
 
-    if (!['radio', 'hidden', 'submit'].includes(attributes.type as string)) {
+    const elementType = attributes.type || attributes['data-xb-type'];
+    if (!['radio', 'hidden', 'submit'].includes(elementType as string)) {
       attributes.value = newValue;
     }
-    if (attributes.type === 'checkbox') {
+    if (elementType === 'checkbox') {
       attributes.checked = Boolean(Number(newValue));
     }
   }

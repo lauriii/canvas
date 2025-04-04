@@ -1,8 +1,6 @@
 describe('extending experience builder', () => {
   before(() => {
-    cy.drupalXbInstall();
-    cy.drupalInstallModule('xb_test_extension');
-    cy.drupalInstallModule('xb_dev_mode');
+    cy.drupalXbInstall(['xb_test_extension', 'xb_dev_mode']);
   });
 
   after(() => {

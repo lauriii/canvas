@@ -436,6 +436,15 @@ class XBTestSetup implements TestSetupInterface {
     $xb_user->enforceIsNew();
     $xb_user->activate();
     $xb_user->save();
+
+    if (getenv('XB_EXTRA_MODULES')) {
+      $modules = \explode(',', getenv('XB_EXTRA_MODULES'));
+      $module_installer->install($modules);
+      // Rebuild the container before the test starts making HTTP requests.
+      $kernel = \Drupal::service('kernel');
+      $kernel->invalidateContainer();
+      $kernel->rebuildContainer();
+    }
   }
 
   /**

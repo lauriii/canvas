@@ -16,3 +16,4 @@ dependencies:
   - drupal:taxonomy
   - drupal:telephone
   - drupal:text
+  - drupal:taxonomy
