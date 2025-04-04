@@ -396,19 +396,34 @@ describe('Perform CRUD operations on components', () => {
     });
   });
 
+  // @todo This is failing on CI only as of https://www.drupal.org/i/3517147.
+  //   Try to restore this test in https://www.drupal.org/i/3517102, which
+  //   appears to be related to whatever is breaking this test.
+
   it('Can add an image component with a preview but empty input', () => {
     cy.loadURLandWaitForXBLoaded();
 
     // Delete the two existing image components.
+    cy.screenshot('1_before-delete-image-1');
     cy.clickComponentInPreview('Image');
     cy.realPress('{del}');
+    cy.screenshot('2_after-delete-image-1');
+    cy.screenshot('3_before-delete-image-2');
     cy.clickComponentInPreview('Image');
     cy.realPress('{del}');
+    cy.screenshot('4_after-delete-image-2');
 
     cy.waitForComponentNotInPreview('Image');
+    cy.screenshot('5_after-deletes-and-iframe-wait');
 
     cy.openLibraryPanel();
+    cy.screenshot('6_panel-opened');
+
     cy.get('.primaryPanelContent').findByText('Image').click();
+    cy.screenshot('7-clicked-on-image');
+
+    cy.intercept('POST', '**/xb/api/layout/node/1').then(cy.log);
+
     // Check the default image src is set.
     cy.waitForElementInIframe(
       'img[src*="/experience_builder/components/image/600x400.png"]',

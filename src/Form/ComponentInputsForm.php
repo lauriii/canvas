@@ -11,7 +11,7 @@ use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Render\Element;
 use Drupal\Core\Render\ElementInfoManagerInterface;
 use Drupal\experience_builder\Entity\Component;
-use Drupal\experience_builder\InternalXbFieldNameResolver;
+use Drupal\experience_builder\Storage\ComponentTreeLoader;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Validator\ConstraintViolationList;
@@ -23,16 +23,21 @@ final class ComponentInputsForm extends FormBase {
 
   public function __construct(
     private ElementInfoManagerInterface $elementInfoManager,
-  ) {
-
-  }
+    // This must be protected so that DependencySerializationTrait, which is
+    // used by the parent class, can access it.
+    protected ComponentTreeLoader $componentTreeLoader,
+  ) {}
 
   /**
    * {@inheritdoc}
    */
   public static function create(ContainerInterface $container): static {
+    $component_tree_loader = $container->get(ComponentTreeLoader::class);
+    assert($component_tree_loader instanceof ComponentTreeLoader);
+
     return new static(
       $container->get(ElementInfoManagerInterface::class),
+      $component_tree_loader,
     );
   }
 
@@ -55,9 +60,7 @@ final class ComponentInputsForm extends FormBase {
     if (is_null($entity)) {
       throw new \UnexpectedValueException('The $entity parameter should never be NULL.');
     }
-    // We just need to verify that the entity has a XB field
-    // so that component form can be displayed.
-    InternalXbFieldNameResolver::getXbFieldName($entity);
+    $this->componentTreeLoader->load($entity);
 
     $tree = $this->getRequest()->get('form_xb_tree');
     $component_id = json_decode($tree, TRUE)['type'];

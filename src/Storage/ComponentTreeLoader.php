@@ -1,0 +1,64 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Drupal\experience_builder\Storage;
+
+use Drupal\Core\Entity\FieldableEntityInterface;
+use Drupal\experience_builder\Entity\ComponentTreeEntityInterface;
+use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
+
+/**
+ * Handles loading a component tree from entities.
+ */
+final class ComponentTreeLoader {
+
+  /**
+   * Loads a component tree from an entity.
+   *
+   * @param \Drupal\experience_builder\Entity\ComponentTreeEntityInterface|\Drupal\Core\Entity\FieldableEntityInterface $entity
+   *   The entity that stores the component tree. If it does not specifically
+   *   implement ComponentTreeEntityInterface, then it is expected to be a
+   *   fieldable entity with at least one field that stores a component tree.
+   *
+   * @return \Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem
+   *   The first item of the entity field that stores the component tree.
+   */
+  public function load(ComponentTreeEntityInterface|FieldableEntityInterface $entity): ComponentTreeItem {
+    if ($entity instanceof ComponentTreeEntityInterface) {
+      return $entity->getComponentTree();
+    }
+    $field_name = self::getXbFieldName($entity);
+    $item = $entity->get($field_name)->first();
+    assert($item instanceof ComponentTreeItem);
+    return $item;
+  }
+
+  /**
+   * Gets the XB field name from the entity.
+   *
+   * @param \Drupal\Core\Entity\FieldableEntityInterface $entity
+   *   The entity.
+   *
+   * @return string
+   *   The XB field name, or throws an exception
+   *   if not found or not supported entity type/bundle.
+   *
+   * @throws \LogicException
+   */
+  private static function getXbFieldName(FieldableEntityInterface $entity): string {
+    // @todo Remove this restriction once other entity types and bundles are
+    //   tested in https://drupal.org/i/3498525.
+    if ($entity->getEntityTypeId() !== 'xb_page' && !($entity->getEntityTypeId() === 'node' && $entity->bundle() === 'article')) {
+      throw new \LogicException('For now XB only works if the entity is an xb_page or an article node! Other entity types and bundles must be tested before they are supported, to help see https://drupal.org/i/3493675.');
+    }
+    $field_definitions = $entity->getFieldDefinitions();
+    foreach ($field_definitions as $field_name => $field_definition) {
+      if (is_a($field_definition->getItemDefinition()->getClass(), ComponentTreeItem::class, TRUE)) {
+        return $field_name;
+      }
+    }
+    throw new \LogicException("This entity does not have an XB field!");
+  }
+
+}

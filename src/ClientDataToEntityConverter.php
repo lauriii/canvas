@@ -18,7 +18,7 @@ use Drupal\Core\TypedData\Plugin\DataType\Timestamp;
 use Drupal\experience_builder\Controller\ClientServerConversionTrait;
 use Drupal\experience_builder\Exception\ConstraintViolationException;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
-use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
+use Drupal\experience_builder\Storage\ComponentTreeLoader;
 use Drupal\file\Plugin\Field\FieldType\FileItem;
 use GuzzleHttp\Psr7\Query;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
@@ -34,6 +34,7 @@ class ClientDataToEntityConverter {
     #[Autowire(service: FormBuilderInterface::class)]
     private readonly FormBuilderInterface & FormCacheInterface $formBuilder,
     private readonly CsrfTokenGenerator $csrfTokenGenerator,
+    private readonly ComponentTreeLoader $componentTreeLoader,
   ) {}
 
   /**
@@ -46,10 +47,7 @@ class ClientDataToEntityConverter {
     }
     ['layout' => $layout, 'model' => $model, 'entity_form_fields' => $entity_form_fields] = $client_data;
 
-    $field_name = InternalXbFieldNameResolver::getXbFieldName($entity);
-    $item = $entity->get($field_name)->first();
-    assert($item instanceof ComponentTreeItem);
-
+    $item = $this->componentTreeLoader->load($entity);
     try {
       assert(count(array_intersect(['nodeType', 'id', 'name', 'components'], array_keys($layout))) === 4);
       assert($layout['nodeType'] === 'region');
@@ -69,6 +67,7 @@ class ClientDataToEntityConverter {
     // the request body.
     // @see ::convertClientToServer()
     if ($original_entity_violations->count() && $validate) {
+      $field_name = $item->getFieldDefinition()->getName();
       // @todo Remove iterator_to_array() after https://www.drupal.org/project/drupal/issues/3497677
       throw (new ConstraintViolationException(new EntityConstraintViolationList($entity, iterator_to_array($original_entity_violations))))->renamePropertyPaths([
         "$field_name.0.tree[" . ComponentTreeStructure::ROOT_UUID . "]" => 'layout.children',

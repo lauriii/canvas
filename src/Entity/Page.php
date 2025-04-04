@@ -7,6 +7,7 @@ namespace Drupal\experience_builder\Entity;
 use Drupal\Core\Entity\EditorialContentEntityBase;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Field\BaseFieldDefinition;
+use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\media\Entity\MediaType;
 use Drupal\user\EntityOwnerInterface;
 use Drupal\user\EntityOwnerTrait;
@@ -79,9 +80,18 @@ use Drupal\user\EntityOwnerTrait;
  *   },
  * )
  */
-final class Page extends EditorialContentEntityBase implements EntityOwnerInterface {
+final class Page extends EditorialContentEntityBase implements EntityOwnerInterface, ComponentTreeEntityInterface {
 
   use EntityOwnerTrait;
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getComponentTree(): ComponentTreeItem {
+    $item = $this->get('components')->first();
+    assert($item instanceof ComponentTreeItem);
+    return $item;
+  }
 
   /**
    * {@inheritdoc}

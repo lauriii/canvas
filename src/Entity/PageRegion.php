@@ -39,7 +39,7 @@ use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemInstantiat
  *    }
  *  )
  */
-final class PageRegion extends ConfigEntityBase {
+final class PageRegion extends ConfigEntityBase implements ComponentTreeEntityInterface {
 
   public const PLUGIN_ID = 'page_region';
   use ComponentTreeItemInstantiatorTrait;
@@ -137,8 +137,7 @@ final class PageRegion extends ConfigEntityBase {
   }
 
   /**
-   * @return \Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem
-   *   One (dangling) component tree.
+   * {@inheritdoc}
    */
   public function getComponentTree(): ComponentTreeItem {
     assert(is_array($this->component_tree));

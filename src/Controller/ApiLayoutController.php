@@ -16,11 +16,11 @@ use Drupal\experience_builder\ClientDataToEntityConverter;
 use Drupal\experience_builder\ComponentSource\ComponentSourceInterface;
 use Drupal\experience_builder\Entity\Component;
 use Drupal\experience_builder\Entity\PageRegion;
-use Drupal\experience_builder\InternalXbFieldNameResolver;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 use Drupal\experience_builder\Plugin\DisplayVariant\XbPageVariant;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\experience_builder\Render\PreviewEnvelope;
+use Drupal\experience_builder\Storage\ComponentTreeLoader;
 use GuzzleHttp\Psr7\Query;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -41,6 +41,7 @@ final class ApiLayoutController {
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly FormBuilderInterface $formBuilder,
     private readonly ClientDataToEntityConverter $converter,
+    private readonly ComponentTreeLoader $componentTreeLoader,
   ) {
     $theme = $this->themeManager->getActiveTheme()->getName();
     $theme_regions = system_region_list($theme);
@@ -85,9 +86,7 @@ final class ApiLayoutController {
       $model = [];
       $entity_form_fields = $this->getEntityData($entity);
       // Build the content region.
-      $field_name = InternalXbFieldNameResolver::getXbFieldName($entity);
-      $tree = $entity->get($field_name)->first();
-      assert($tree instanceof ComponentTreeItem);
+      $tree = $this->componentTreeLoader->load($entity);
       $content_layout = $this->buildRegion(XbPageVariant::MAIN_CONTENT_REGION, $tree, $model);
       $layout = [$content_layout];
       $is_new = $this->contentEntityIsConsideredNew((string) $entity->label(), $content_entity_type);
@@ -280,9 +279,7 @@ final class ApiLayoutController {
       $data['model'] = [];
       $data['entity_form_fields'] = $this->getEntityData($entity);
       // Build the content region.
-      $field_name = InternalXbFieldNameResolver::getXbFieldName($entity);
-      $tree = $entity->get($field_name)->first();
-      assert($tree instanceof ComponentTreeItem);
+      $tree = $this->componentTreeLoader->load($entity);
       $data['layout'] = [$this->buildRegion(XbPageVariant::MAIN_CONTENT_REGION, $tree, $data['model'])];
     }
     $regions = PageRegion::loadForActiveTheme();
@@ -361,10 +358,7 @@ final class ApiLayoutController {
       'model' => self::extractModelForSubtree($content, $model),
       'entity_form_fields' => $updated_entity_form_fields,
     ]);
-    $field_name = InternalXbFieldNameResolver::getXbFieldName($entity);
-    $item = $entity->get($field_name)->first();
-    assert($item instanceof ComponentTreeItem);
-    $renderable = $item->toRenderable(TRUE);
+    $renderable = $this->componentTreeLoader->load($entity)->toRenderable(TRUE);
 
     if (isset($renderable[ComponentTreeStructure::ROOT_UUID])) {
       $build = $renderable[ComponentTreeStructure::ROOT_UUID];

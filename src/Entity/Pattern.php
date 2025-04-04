@@ -34,7 +34,7 @@ use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemInstantiat
  *    },
  *  )
  */
-final class Pattern extends ConfigEntityBase implements XbHttpApiEligibleConfigEntityInterface {
+final class Pattern extends ConfigEntityBase implements XbHttpApiEligibleConfigEntityInterface, ComponentTreeEntityInterface {
 
   use ComponentTreeItemInstantiatorTrait;
   use ClientServerConversionTrait;
@@ -57,8 +57,7 @@ final class Pattern extends ConfigEntityBase implements XbHttpApiEligibleConfigE
   protected ?array $component_tree;
 
   /**
-   * @return \Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem
-   *   One (dangling) component tree.
+   * {@inheritdoc}
    */
   public function getComponentTree(): ComponentTreeItem {
     $component_tree_item = $this->createDanglingComponentTree();

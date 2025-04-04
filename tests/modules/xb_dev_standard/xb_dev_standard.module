@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 use Drupal\Core\Url;
-use Drupal\experience_builder\InternalXbFieldNameResolver;
+use Drupal\experience_builder\Storage\ComponentTreeLoader;
 
 /**
  * Implements hook_toolbar().
@@ -27,7 +27,7 @@ function xb_dev_standard_toolbar(): array {
     $node = \Drupal::routeMatch()->getParameter('node');
     if ($node) {
       try {
-        InternalXbFieldNameResolver::getXbFieldName($node);
+        \Drupal::service(ComponentTreeLoader::class)->load($node);
       }
       catch (\LogicException) {
         return $items;
