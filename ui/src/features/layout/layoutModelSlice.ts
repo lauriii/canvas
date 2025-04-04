@@ -413,12 +413,12 @@ export const addNewComponentToLayout =
         Object.keys(component.field_data).forEach((propName) => {
           const prop = component.field_data[propName];
           // These will be needed when we support client-side preview updates.
-          initialData.resolved[propName] = prop.default_values.resolved;
+          initialData.resolved[propName] = prop.default_values?.resolved || [];
           // These are the values the server needs.
           initialData.source[propName] = {
             expression: prop.expression,
             sourceType: prop.sourceType,
-            value: prop.default_values.source,
+            value: prop.default_values?.source || [],
             // @todo Consider omitting this in https://www.drupal.org/i/3463996, to send less data.
             sourceTypeSettings: prop.sourceTypeSettings || undefined,
           };

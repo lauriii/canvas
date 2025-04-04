@@ -215,9 +215,7 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
     foreach ($explicit_input['resolved'] as $prop_name => $value) {
       // @see getPropsValues() in formUtil.ts for the equivalent empty string
       // comparison.
-      if ((\is_scalar($value) && (string) $value === '') ||
-        // @todo Revisit in https://drupal.org/i/3516754
-        (\is_array($value) && $value === [])) {
+      if ((\is_scalar($value) && (string) $value === '')) {
         // Don't send empty values. This is consistent with
         // syncPropSourcesToResolvedValues in the type-script code.
         unset($model['source'][$prop_name], $model['resolved'][$prop_name]);

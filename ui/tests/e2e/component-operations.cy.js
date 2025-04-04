@@ -429,4 +429,27 @@ describe('Perform CRUD operations on components', () => {
       'img[src*="/experience_builder/components/image/600x400.png"]',
     );
   });
+
+  it('Can add an optional image component with a preview but empty input', () => {
+    cy.drupalInstallModule('sdc_test_all_props');
+    cy.drupalLogin('xbUser', 'xbUser');
+    cy.loadURLandWaitForXBLoaded();
+
+    // Delete the two existing image components.
+    cy.clickComponentInPreview('Image');
+    cy.realPress('{del}');
+    cy.clickComponentInPreview('Image');
+    cy.realPress('{del}');
+
+    cy.waitForComponentNotInPreview('Image');
+
+    cy.openLibraryPanel();
+    cy.get('.primaryPanelContent')
+      .findByText('XB test SDC with optional image and heading')
+      .click();
+    // Check the default image src is set.
+    cy.waitForElementInIframe(
+      'img[src*="/experience_builder/tests/modules/xb_test_sdc/components/image-optional-with-example-and-additional-prop/gracie.jpg"]',
+    );
+  });
 });
