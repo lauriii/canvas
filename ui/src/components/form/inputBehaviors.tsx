@@ -14,6 +14,7 @@ import type {
   ResolvedValues,
   Sources,
 } from '@/features/layout/layoutModelSlice';
+import { setUpdatePreview } from '@/features/layout/layoutModelSlice';
 import {
   isEvaluatedComponentModel,
   selectLayout,
@@ -454,7 +455,8 @@ const InputBehaviorsEntityForm = (
       },
       {},
     );
-
+    // Flag that we need to update the preview.
+    dispatch(setUpdatePreview(true));
     dispatch(setPageData(values));
   };
 

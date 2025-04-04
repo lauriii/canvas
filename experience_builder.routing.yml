@@ -247,9 +247,12 @@ experience_builder.api.layout.get:
   path: '/xb/api/layout/{entity_type}/{entity}'
   defaults:
     _controller: 'Drupal\experience_builder\Controller\ApiLayoutController::get'
+    # We need a title callback because we use the HTML renderer to generate the preview.
+    _title_callback: 'Drupal\experience_builder\Controller\ApiLayoutController::getLabel'
   requirements:
     _permission: 'access administration pages'
   options:
+    _xb_use_template_draft: 'TRUE'
     parameters:
       entity:
         type: entity:{entity_type}

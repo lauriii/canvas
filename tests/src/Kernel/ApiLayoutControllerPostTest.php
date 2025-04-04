@@ -154,8 +154,7 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
     // Add a new component to the content region.
     $uuid = '173c4899-a5f7-442a-b008-ea8c925735be';
     $json['model'][$uuid] = self::getNewHeadingComponentModel();
-    unset($json['isNew']);
-    unset($json['isPublished']);
+    unset($json['isNew'], $json['isPublished'], $json['html']);
     $json['layout'][0]['components'][] = [
       'nodeType' => 'component',
       'uuid' => $uuid,
@@ -206,8 +205,7 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
     // Add a new component to a global region.
     $uuid = '173c4899-a5f7-442a-b008-ea8c925735be';
     $json['model'][$uuid] = self::getNewHeadingComponentModel();
-    unset($json['isNew']);
-    unset($json['isPublished']);
+    unset($json['isNew'], $json['isPublished'], $json['html']);
     $json['layout'][\key($highlightedRegion)]['components'][] = [
       'nodeType' => 'component',
       'uuid' => $uuid,
@@ -318,6 +316,7 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
     $cache->invalidateTags([\sprintf('entity.memory_cache:%s', JavaScriptComponent::ENTITY_TYPE_ID)]);
     $this->container->get(ConfigFactoryInterface::class)->reset();
 
+    unset($json['isNew'], $json['isPublished'], $json['html']);
     $this->request(Request::create('/xb/api/layout/node/1', method: 'POST', content: \json_encode($json, JSON_THROW_ON_ERROR)));
     // Check that regions exist and are wrapped.
     $crawler = new Crawler($this->content);
@@ -486,6 +485,7 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
     \assert($reference_media->field_media_image->entity instanceof FileInterface);
     $expected_preview_html = str_replace('!!REFERENCED_MEDIA!!', $reference_media->field_media_image->entity->createFileUrl(), $expected_preview_html);
 
+    unset($json['html'], $json['isPublished'], $json['isNew']);
     $this->request(Request::create('/xb/api/layout/node/1', method: 'POST', content: json_encode($json, JSON_THROW_ON_ERROR)));
     // Ensure the component is rendered using the expected markup.
     $this->assertRaw('<!-- xb-start-166c9eee-35e9-4795-8c6f-24537728e95e -->' . $expected_preview_html . '<!-- xb-end-166c9eee-35e9-4795-8c6f-24537728e95e -->');

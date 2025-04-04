@@ -2,7 +2,7 @@ import styles from './PagePreview.module.css';
 import { usePostPreviewMutation } from '@/services/preview';
 import { useAppSelector } from '@/app/hooks';
 import {
-  selectLayoutInitialized,
+  selectUpdatePreview,
   selectLayout,
   selectModel,
 } from '@/features/layout/layoutModelSlice';
@@ -14,7 +14,7 @@ import { selectPageData } from '@/features/pageData/pageDataSlice';
 import { selectPreviewHtml } from '@/features/pagePreview/previewSlice';
 const PagePreview = () => {
   const layout = useAppSelector(selectLayout);
-  const initialized = useAppSelector(selectLayoutInitialized);
+  const updatePreview = useAppSelector(selectUpdatePreview);
   const model = useAppSelector(selectModel);
   const entity_form_fields = useAppSelector(selectPageData);
   const frameSrcDoc = useAppSelector(selectPreviewHtml);
@@ -36,7 +36,7 @@ const PagePreview = () => {
         showBoundary(err);
       }
     };
-    if (initialized) {
+    if (updatePreview) {
       sendPreviewRequest().then(() => {});
     }
   }, [
@@ -44,7 +44,7 @@ const PagePreview = () => {
     model,
     postPreview,
     entity_form_fields,
-    initialized,
+    updatePreview,
     showBoundary,
   ]);
 

@@ -62,7 +62,7 @@ export interface LayoutModelPiece {
 export type ComponentModels = Record<string, ComponentModel>;
 
 export interface LayoutModelSliceState extends RootLayoutModel {
-  initialized: boolean;
+  updatePreview: boolean;
 }
 
 export const initialState: LayoutModelSliceState = {
@@ -75,9 +75,7 @@ export const initialState: LayoutModelSliceState = {
     },
   ],
   model: {},
-  // @todo should this be renamed to 'updatePreview' as that seems to be the
-  // only use case at this point. https://www.drupal.org/project/experience_builder/issues/3504983
-  initialized: false,
+  updatePreview: false,
 };
 
 // This wrapper is necessary because when using slices with redux-undo,
@@ -183,6 +181,12 @@ export const layoutModelSlice = createSlice({
   name: 'layoutModel',
   initialState,
   reducers: (create) => ({
+    setUpdatePreview: create.reducer(
+      (state, action: PayloadAction<boolean>) => ({
+        ...state,
+        updatePreview: action.payload,
+      }),
+    ),
     deleteNode: create.reducer((state, action: PayloadAction<string>) => {
       const deletedComponent = findComponentByUuid(
         state.layout,
@@ -201,7 +205,7 @@ export const layoutModelSlice = createSlice({
 
       state.layout = removeComponentByUuid(state.layout, action.payload);
       // Flag a preview update.
-      state.initialized = true;
+      state.updatePreview = true;
     }),
     duplicateNode: create.reducer(
       (state, action: PayloadAction<DuplicateNodePayload>) => {
@@ -251,7 +255,7 @@ export const layoutModelSlice = createSlice({
         ) as RegionNode;
         state.layout = newState;
         // Flag a preview update.
-        state.initialized = true;
+        state.updatePreview = true;
       },
     ),
     moveNode: create.reducer(
@@ -266,7 +270,7 @@ export const layoutModelSlice = createSlice({
 
         state.layout = moveNodeToPath(state.layout, uuid, to);
         // Flag a preview update.
-        state.initialized = true;
+        state.updatePreview = true;
       },
     ),
     insertNodes: create.reducer(
@@ -312,7 +316,7 @@ export const layoutModelSlice = createSlice({
         state.model = updatedModel;
         state.layout[rootIndex] = regionRoot;
         // Flag a preview update.
-        state.initialized = true;
+        state.updatePreview = true;
       },
     ),
     sortNode: create.reducer(
@@ -345,7 +349,7 @@ export const layoutModelSlice = createSlice({
             cloneNode,
           );
           // Flag a preview update.
-          state.initialized = true;
+          state.updatePreview = true;
         }
       },
     ),
@@ -383,16 +387,26 @@ export const layoutModelSlice = createSlice({
             cloneNode,
           );
           // Flag a preview update.
-          state.initialized = true;
+          state.updatePreview = true;
         }
       },
     ),
     setLayoutModel: create.reducer(
       (state, action: PayloadAction<LayoutModelSliceState>) => {
-        const { layout, model, initialized } = action.payload;
+        const { layout, model, updatePreview } = action.payload;
         state.layout = layout;
         state.model = model;
-        state.initialized = initialized;
+        state.updatePreview = updatePreview;
+      },
+    ),
+    // Identical to setLayoutModel but with a different type for ensuring this
+    // doesn't trigger an undo/redo action.
+    setInitialLayoutModel: create.reducer(
+      (state, action: PayloadAction<LayoutModelSliceState>) => {
+        const { layout, model, updatePreview } = action.payload;
+        state.layout = layout;
+        state.model = model;
+        state.updatePreview = updatePreview;
       },
     ),
   }),
@@ -496,10 +510,12 @@ export const addNewSectionToLayout =
 export const {
   deleteNode,
   setLayoutModel,
+  setInitialLayoutModel,
   duplicateNode,
   moveNode,
   shiftNode,
   sortNode,
+  setUpdatePreview,
   insertNodes,
 } = layoutModelSlice.actions;
 
@@ -514,8 +530,8 @@ export const selectModel = (state: StateWithHistoryWrapper) =>
   state.layoutModel.present.model;
 export const selectLayoutHistory = (state: StateWithHistoryWrapper) =>
   state.layoutModel;
-export const selectLayoutInitialized = (state: StateWithHistoryWrapper) =>
-  state.layoutModel.present.initialized;
+export const selectUpdatePreview = (state: StateWithHistoryWrapper) =>
+  state.layoutModel.present.updatePreview;
 const selectRegion = (state: RootState, regionName: string) => regionName;
 
 export const selectLayoutForRegion = createSelector(

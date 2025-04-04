@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\experience_builder\Kernel;
 
-use Drupal\Core\Entity\FieldableEntityInterface;
+use Drupal\Core\Url;
 use Drupal\experience_builder\AutoSave\AutoSaveManager;
 use Drupal\experience_builder\Controller\ApiLayoutController;
 use Drupal\experience_builder\Entity\Page;
@@ -13,7 +13,10 @@ use Drupal\experience_builder\Plugin\DisplayVariant\XbPageVariant;
 use Drupal\node\Entity\Node;
 use Drupal\node\Entity\NodeType;
 use Drupal\node\NodeInterface;
+use Drupal\Tests\experience_builder\Kernel\Traits\RequestTrait;
 use Drupal\Tests\experience_builder\TestSite\XBTestSetup;
+use Drupal\Tests\user\Traits\UserCreationTrait;
+use Symfony\Component\DomCrawler\Crawler;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 
@@ -23,12 +26,16 @@ use Symfony\Component\HttpFoundation\Request;
  */
 class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
 
+  use RequestTrait;
+  use UserCreationTrait;
+
   /**
    * {@inheritdoc}
    */
   protected static $modules = [
     // Allows format=uri to be stored using URI field type.
     'xb_test_storage_prop_shape_alter',
+    'sdc_test',
   ];
 
   /**
@@ -38,12 +45,16 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
     parent::setUp();
     $this->container->get('module_installer')->install(['system']);
     (new XBTestSetup())->setup();
+    $this->setUpCurrentUser([], ['access administration pages']);
   }
 
   public function test(): void {
     // By default, there is only the "content" region in the client-side
     // representation.
-    $this->assertRegions(1);
+    $node = $this->assertRegions(1);
+    /** @var \Drupal\experience_builder\AutoSave\AutoSaveManager $autoSave */
+    $autoSave = $this->container->get(AutoSaveManager::class);
+    self::assertTrue($autoSave->getAutoSaveData($node)->isEmpty());
 
     // Enable Stark and set it as the default theme.
     $theme = 'stark';
@@ -70,8 +81,6 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
 
     // Store a draft region in the auto-save manager and confirm that is returned.
     $regions['stark.highlighted']->enable()->save();
-    /** @var \Drupal\experience_builder\AutoSave\AutoSaveManager $autoSave */
-    $autoSave = $this->container->get(AutoSaveManager::class);
     $layoutData = [
       'layout' => [
         [
@@ -90,14 +99,16 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
       ],
     ];
     $autoSave->save($regions['stark.highlighted'], $layoutData);
-    /** @var \Drupal\experience_builder\Controller\ApiLayoutController $controller */
-    $controller = \Drupal::classResolver(ApiLayoutController::class);
     $node1 = Node::load(1);
     \assert($node1 instanceof NodeInterface);
+    $url = Url::fromRoute('experience_builder.api.layout.get', [
+      'entity' => $node1->id(),
+      'entity_type' => 'node',
+    ]);
 
     // Draft of highlighted region in global template should be returned even if
     // there is no auto-save data for the node.
-    $response = $controller->get($node1);
+    $response = $this->request(Request::create($url->toString()));
     self::assertInstanceOf(JsonResponse::class, $response);
     $json = \json_decode($response->getContent() ?: '', TRUE);
     self::assertArrayHasKey('layout', $json);
@@ -119,6 +130,10 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
     $sampleData = \file_get_contents(\dirname(__DIR__, 3) . '/ui/tests/fixtures/layout-default.json');
     self::assertNotFalse($sampleData);
     $data = \json_decode($sampleData, TRUE);
+    // Remove the adapted image.
+    unset($data['model']['static-image-static-imageStyle-something7d']);
+    unset($data['layout'][0]['components'][3]);
+    $data['layout'][0]['components'] = \array_values($data['layout'][0]['components']);
     // Update the page title.
     $new_title = $this->getRandomGenerator()->sentences(10);
     $data['entity_form_fields']['title[0][value]'] = $new_title;
@@ -126,7 +141,7 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
     $node1 = Node::load(1);
     \assert($node1 instanceof NodeInterface);
     $autoSave->save($node1, $data);
-    $response = $controller->get($node1);
+    $response = $this->request(Request::create($url->toString()));
 
     self::assertInstanceOf(JsonResponse::class, $response);
     $json = \json_decode($response->getContent() ?: '', TRUE);
@@ -150,7 +165,7 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
     // node.
     $autoSave->delete($regions['stark.highlighted']);
     // We should still see the global regions.
-    $response = $controller->get($node1);
+    $response = $this->request(Request::create($url->toString()));
     self::assertInstanceOf(JsonResponse::class, $response);
     $json = \json_decode($response->getContent() ?: '', TRUE);
     self::assertArrayHasKey('layout', $json);
@@ -169,17 +184,24 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
       \array_map(static fn(array $component) => \array_diff_key($component, \array_flip(['uuid'])), \current($highlightedRegion)['components']));
   }
 
-  protected function assertRegions(int $count): void {
+  protected function assertRegions(int $count): NodeInterface {
     $node = Node::load(1);
-    /** @var \Drupal\experience_builder\Controller\ApiLayoutController $controller */
-    $controller = \Drupal::classResolver(ApiLayoutController::class);
-    assert($node instanceof FieldableEntityInterface);
-    $response = $controller->get($node);
+    \assert($node instanceof NodeInterface);
+    $url = Url::fromRoute('experience_builder.api.layout.get', [
+      'entity' => $node->id(),
+      'entity_type' => 'node',
+    ]);
+    // Draft of highlighted region in global template should be returned even if
+    // there is no auto-save data for the node.
+    $response = $this->request(Request::create($url->toString()));
 
     $this->assertInstanceOf(JsonResponse::class, $response);
     $json = json_decode($response->getContent() ?: '', TRUE);
     $this->assertArrayHasKey('layout', $json);
     $this->assertCount($count, $json['layout']);
+    self::assertArrayHasKey('html', $json);
+    $crawler = new Crawler($json['html']);
+    self::assertCount(1, $crawler->filter('main div[data-xb-region][data-xb-uuid="content"]'));
 
     foreach ($json['layout'] as $region) {
       $this->assertArrayHasKey('nodeType', $region);
@@ -297,6 +319,7 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
         ],
       ],
     ], $json['model']['static-static-card2df']);
+    return $node;
   }
 
   public function testStatusFlags(): void {

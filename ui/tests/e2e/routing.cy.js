@@ -17,14 +17,12 @@ describe('Routing', () => {
     // can't happen in that scope.
     const uuid = 'static-static-card3rr';
     cy.intercept('GET', '**/xb/api/layout/node/1').as('getLayout');
-    cy.intercept('POST', '**/xb/api/layout/node/1').as('getPreview');
     cy.intercept('PATCH', '**/xb/api/form/component-instance/node/1').as(
       'getPropsForm',
     );
     cy.drupalRelativeURL(`xb/node/1/editor/component/${uuid}`);
 
     cy.wait('@getLayout');
-    cy.wait('@getPreview');
     cy.wait('@getPropsForm');
     cy.findByTestId(`xb-contextual-panel-${uuid}`).should('exist');
     cy.url().should('contain', `/xb/node/1/editor/component/${uuid}`);
@@ -47,12 +45,14 @@ describe('Routing', () => {
   });
 
   it('has the expected performance', () => {
+    cy.intercept('GET', '**/xb/api/layout/node/1').as('getLayout');
     cy.intercept('POST', '**/xb/api/layout/node/1').as('getPreview');
 
     cy.visit('/xb/node/1');
-    cy.wait('@getPreview').its('response.statusCode').should('eq', 200);
+    cy.wait('@getLayout').its('response.statusCode').should('eq', 200);
 
-    // Assert that only one request was sent
-    cy.get('@getPreview.all').should('have.length', 1);
+    // Assert that only the get layout request was sent
+    cy.get('@getLayout.all').should('have.length', 1);
+    cy.get('@getPreview.all').should('have.length', 0);
   });
 });

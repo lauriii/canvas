@@ -6,7 +6,7 @@ import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import {
   selectLayout,
   selectModel,
-  selectLayoutInitialized,
+  selectUpdatePreview,
 } from '@/features/layout/layoutModelSlice';
 import {
   selectUpdateComponentLoadingState,
@@ -39,7 +39,7 @@ const labelFormKey = `${drupalSettings.xb.entityTypeKeys.label}[0][value]`;
 
 const Preview: React.FC<PreviewProps> = () => {
   const layout = useAppSelector(selectLayout);
-  const initialized = useAppSelector(selectLayoutInitialized);
+  const updatePreview = useAppSelector(selectUpdatePreview);
   const model = useAppSelector(selectModel);
   const { componentId: selectedComponent } = useParams();
   const selectedComponentId = selectedComponent || 'noop';
@@ -64,7 +64,7 @@ const Preview: React.FC<PreviewProps> = () => {
         showBoundary(err);
       }
     };
-    if (initialized) {
+    if (updatePreview) {
       // Specifically when updating the Title or Alias, the page list used in the navigator must be re-fetched so that
       // it can display those updated values.
       let invalidatePageList = false;
@@ -92,7 +92,7 @@ const Preview: React.FC<PreviewProps> = () => {
     model,
     postPreview,
     entity_form_fields,
-    initialized,
+    updatePreview,
     showBoundary,
     dispatch,
   ]);

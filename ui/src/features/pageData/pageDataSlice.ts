@@ -24,10 +24,20 @@ export const pageDataSlice = createSlice({
         ...action.payload,
       };
     }),
+    // Identical to setPageData but just with a different type for ensuring this
+    // doesn't trigger an undo/redo action.
+    setInitialPageData: create.reducer(
+      (state, action: PayloadAction<Values>) => {
+        return {
+          ...state,
+          ...action.payload,
+        };
+      },
+    ),
   }),
 });
 
-export const { setPageData } = pageDataSlice.actions;
+export const { setPageData, setInitialPageData } = pageDataSlice.actions;
 
 export const pageDataReducer = pageDataSlice.reducer;
 

@@ -75,9 +75,9 @@ export const previewApi = createApi({
           const { data } = await queryFulfilled;
           const { html, layout, model } = data;
           dispatch(setHtml(html));
-          // Pass initialized false to prevent a subsequent preview update, we
-          // have the data here.
-          dispatch(setLayoutModel({ layout, model, initialized: false }));
+          // Pass update preview false to prevent a subsequent preview update,
+          // we have the data here.
+          dispatch(setLayoutModel({ layout, model, updatePreview: false }));
         } catch {
           // @todo display errors to the user in https://www.drupal.org/i/3505018.
         }

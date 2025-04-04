@@ -883,6 +883,7 @@ paths:
               examples:
                 emptyComponentTree:
                   value:
+                    html: '<html>The preview would be here</html>'
                     layout:
                       - nodeType: region
                         name: content
@@ -893,6 +894,7 @@ paths:
                     isPublished: false
                 componentTreeWithSingleComponent:
                   value:
+                    html: '<html>The preview would be here</html>'
                     layout:
                       - nodeType: region
                         name: header
@@ -958,7 +960,11 @@ paths:
                   - entity_form_fields
                   - isNew
                   - isPublished
+                  - html
                 properties:
+                  html:
+                    type: string
+                    description: HTML preview of the layout
                   layout:
                     type: array
                     description: Layout regions

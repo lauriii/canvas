@@ -22,7 +22,6 @@ use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\experience_builder\Render\PreviewEnvelope;
 use Drupal\experience_builder\Storage\ComponentTreeLoader;
 use GuzzleHttp\Psr7\Query;
-use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -68,7 +67,7 @@ final class ApiLayoutController {
     return $current_entity_label == ApiContentControllers::defaultTitle($entity_type);
   }
 
-  public function get(FieldableEntityInterface&EntityPublishedInterface $entity): JsonResponse {
+  public function get(FieldableEntityInterface&EntityPublishedInterface $entity): PreviewEnvelope {
     $regions = PageRegion::loadForActiveTheme();
 
     $content_entity_type = $entity->getEntityType();
@@ -125,7 +124,7 @@ final class ApiLayoutController {
       ));
     }
 
-    return new JsonResponse([
+    $data = [
       // Maps to the `tree` property of the XB field type.
       // @see \Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure
       // @todo Settle on final names and get in sync.
@@ -139,7 +138,8 @@ final class ApiLayoutController {
       'entity_form_fields' => $entity_form_fields,
       'isNew' => $is_new,
       'isPublished' => $is_published,
-    ]);
+    ];
+    return new PreviewEnvelope($this->buildPreviewRenderable($data, $entity, FALSE), $data);
   }
 
   /**
@@ -306,23 +306,23 @@ final class ApiLayoutController {
     \assert($entity instanceof FieldableEntityInterface);
 
     $data['model'][$componentInstanceUuid] = $model;
-    return new PreviewEnvelope($this->buildPreviewRenderable($data, $entity), $data);
+    return new PreviewEnvelope($this->buildPreviewRenderable($data, $entity, TRUE), $data);
   }
 
   /**
    * POST request returns a preview, but does not update any stored data.
    *
-   * @todo Remove this in https://www.drupal.org/i/3492061
+   * @todo Remove this in https://drupal.org/i/3492065
    */
   public function post(Request $request, EntityInterface $entity): PreviewEnvelope {
     $body = json_decode($request->getContent(), TRUE);
     \assert(\array_key_exists('model', $body));
     \assert(\array_key_exists('layout', $body));
     \assert(\array_key_exists('entity_form_fields', $body));
-    return new PreviewEnvelope($this->buildPreviewRenderable($body, $entity));
+    return new PreviewEnvelope($this->buildPreviewRenderable($body, $entity, TRUE));
   }
 
-  private function buildPreviewRenderable(array $body, EntityInterface $entity): array {
+  private function buildPreviewRenderable(array $body, EntityInterface $entity, bool $updateAutoSave): array {
     ['layout' => $layout, 'model' => $model] = $body;
 
     $page_regions = PageRegion::loadForActiveTheme();
@@ -349,22 +349,30 @@ final class ApiLayoutController {
     \assert($entity instanceof FieldableEntityInterface);
     $updated_entity_form_fields = $this->converter->convert([
       'layout' => $content,
-      'model' => $model,
+      // An empty model needs to be represented as \stdClass so that it is
+      // correctly json encoded. But we need to convert it to an array before
+      // we can extract it.
+      'model' => (array) $model,
       'entity_form_fields' => $body['entity_form_fields'],
     ], $entity, validate: FALSE);
     // Store the auto-save entry.
-    $this->autoSaveManager->save($entity, [
-      'layout' => [$content],
-      'model' => self::extractModelForSubtree($content, $model),
-      // Store the updated form build ID but leave all other fields as-is.
-      // This allows us to re-submit the values from auto-save when we finally
-      // publish the entity. Some field widgets make transformations to the form
-      // data which cannot be repeated.
-      // @see \Drupal\Core\Field\Plugin\Field\FieldWidget\OptionsWidgetBase::validateElement
-      'entity_form_fields' => \array_filter([
-        'form_build_id' => $updated_entity_form_fields['form_build_id'] ?? NULL,
-      ]) + $body['entity_form_fields'],
-    ]);
+    if ($updateAutoSave) {
+      $this->autoSaveManager->save($entity, [
+        'layout' => [$content],
+        // An empty model needs to be represented as \stdClass so that it is
+        // correctly json encoded. But we need to convert it to an array before
+        // we can extract it.
+        'model' => self::extractModelForSubtree($content, (array) $model),
+        // Store the updated form build ID but leave all other fields as-is.
+        // This allows us to re-submit the values from auto-save when we finally
+        // publish the entity. Some field widgets make transformations to the form
+        // data which cannot be repeated.
+        // @see \Drupal\Core\Field\Plugin\Field\FieldWidget\OptionsWidgetBase::validateElement
+        'entity_form_fields' => \array_filter([
+          'form_build_id' => $updated_entity_form_fields['form_build_id'] ?? NULL,
+        ]) + $body['entity_form_fields'],
+      ]);
+    }
     $renderable = $this->componentTreeLoader->load($entity)->toRenderable(TRUE);
 
     if (isset($renderable[ComponentTreeStructure::ROOT_UUID])) {

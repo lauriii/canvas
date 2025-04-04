@@ -16,9 +16,16 @@ import { previewApi } from '@/services/preview';
 import { contentCreateApi } from '@/services/contentCreate';
 import undoable from 'redux-undo';
 import type { LayoutModelSliceState } from '@/features/layout/layoutModelSlice';
+import {
+  setUpdatePreview,
+  setInitialLayoutModel,
+} from '@/features/layout/layoutModelSlice';
 import { layoutModelReducer } from '@/features/layout/layoutModelSlice';
 import type { PageDataState } from '@/features/pageData/pageDataSlice';
-import { pageDataReducer } from '@/features/pageData/pageDataSlice';
+import {
+  pageDataReducer,
+  setInitialPageData,
+} from '@/features/pageData/pageDataSlice';
 import { dummyPropsFormApi } from '@/services/dummyPropsForm';
 import { pageDataFormApi } from '@/services/pageDataForm';
 import { configurationSlice } from '@/features/configuration/configurationSlice';
@@ -91,13 +98,17 @@ const rootReducer = combineSlices(
         redoType: '@@redux-undo/layoutModel_REDO',
         filter: (action, currentState, previousHistory) => {
           const { present } = previousHistory;
-          return Object.keys(present.model).length > 0;
+          return (
+            Object.keys(present.model).length > 0 &&
+            action.type !== setInitialLayoutModel.type &&
+            action.type !== setUpdatePreview.type
+          );
         },
       }),
       'layoutModel',
       // We want any redo/undo actions to trigger a preview update from the
       // server.
-      { initialized: true },
+      { updatePreview: true },
     ),
     pageData: historyEraser<PageDataState>(
       undoable(pageDataReducer, {
@@ -105,7 +116,10 @@ const rootReducer = combineSlices(
         redoType: '@@redux-undo/pageData_REDO',
         filter: (action, currentState, previousHistory) => {
           const { present } = previousHistory;
-          return Object.keys(present).length > 0;
+          return (
+            Object.keys(present).length > 0 &&
+            action.type !== setInitialPageData.type
+          );
         },
       }),
       'pageData',
@@ -153,6 +167,16 @@ const undoRedoActionIdMiddleware: Middleware<{}, RootState> =
           id,
         },
       });
+    }
+    if (
+      type === setUpdatePreview.type ||
+      type === setInitialLayoutModel.type ||
+      type === setInitialPageData.type
+    ) {
+      // Ignore initial actions that set the state of the model or page data
+      // from the return of API responses. The user should not be able to undo
+      // or redo these actions.
+      return next(action);
     }
     const [slice] = type.split('/');
     if (slice === 'layoutModel' || slice === 'pageData') {

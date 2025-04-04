@@ -99,6 +99,8 @@ final class ApiLayoutControllerTest extends HttpApiTestBase {
     $content = $this->drupalGet('/xb/api/layout/xb_page/1');
     $this->assertJson($content);
     $json = json_decode($content, TRUE, JSON_THROW_ON_ERROR);
+    // These are allowed in GET response but not in POST/PATCH.
+    unset($json['isNew'], $json['isPublished'], $json['html']);
 
     // Add the code component into the layout.
     $uuid = 'ccf36def-3f87-4b7d-bc20-8f8594274818';

@@ -12,11 +12,11 @@ const App: React.FC = () => {
         title="An unexpected error has occurred while fetching layouts."
       >
         <Layout />
+        <ErrorBoundary variant="page">
+          <Outlet />
+        </ErrorBoundary>
+        <Topbar />
       </ErrorBoundary>
-      <ErrorBoundary variant="page">
-        <Outlet />
-      </ErrorBoundary>
-      <Topbar />
     </div>
   );
 };

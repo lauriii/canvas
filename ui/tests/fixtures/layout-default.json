@@ -147,15 +147,15 @@
     },
     "static-static-card2df": {
       "resolved": {
-        "heading": "Art",
-        "cta1href": "https://drupal.org"
+        "text": "Art",
+        "href": "https://drupal.org"
       },
       "source": {
-        "heading": {
+        "text": {
           "sourceType": "static:field_item:string",
           "expression": "\u2139\ufe0estring\u241fvalue"
         },
-        "cta1href": {
+        "href": {
           "sourceType": "static:field_item:uri",
           "expression": "\u2139\ufe0euri\u241fvalue"
         }
@@ -164,15 +164,15 @@
     },
     "static-static-card3rr": {
       "resolved": {
-        "heading": "Art",
-        "cta1href": "public://2024-07/framer.png"
+        "text": "Art",
+        "href": "public://2024-07/framer.png"
       },
       "source": {
-        "heading": {
+        "text": {
           "sourceType": "static:field_item:string",
           "expression": "\u2139\ufe0estring\u241fvalue"
         },
-        "cta1href": {
+        "href": {
           "sourceType": "static:field_item:uri",
           "expression": "\u2139\ufe0euri\u241fvalue"
         }
@@ -264,7 +264,42 @@
       }
     },
     "a7470350-deb2-4d9f-982c-464d356403d4": {
-      "width": 50
+      "name": "Two Column",
+      "resolved": {
+        "width": 50
+      },
+      "source": {
+        "width": {
+          "sourceType": "static:field_item:list_integer",
+          "expression": "\u2139\ufe0elist_integer\u241fvalue",
+          "sourceTypeSettings": {
+            "storage": {
+              "allowed_values": [
+                {
+                  "value": 25,
+                  "label": "25"
+                },
+                {
+                  "value": 33,
+                  "label": "33"
+                },
+                {
+                  "value": 50,
+                  "label": "50"
+                },
+                {
+                  "value": 66,
+                  "label": "66"
+                },
+                {
+                  "value": 75,
+                  "label": "75"
+                }
+              ]
+            }
+          }
+        }
+      }
     },
     "6f3224e2-cb61-46e4-a9e4-35b4d18f0a82": {
       "name": "Section",

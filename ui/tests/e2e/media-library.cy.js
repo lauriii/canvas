@@ -1,5 +1,3 @@
-import { queries } from '@testing-library/dom';
-
 const iterations = [
   {
     removeText: 'Remove The bones are their money',
@@ -133,39 +131,7 @@ const testMediaLibraryInEntityForm = (cy, loadOptions = {}, title) => {
     cy.get('@entityForm').shouldHaveUpdatedFormBuildId();
   });
 
-  // Publish changes and make sure image persists.
-  // Wait for any pending changes to refresh.
-  cy.findByRole('button', {
-    name: /Review \d+ change/,
-    timeout: 20000,
-  }).as('review');
-  // We break this up to allow for the pending changes refresh which can disable
-  // the button whilst it is loading.
-  cy.get('@review').click();
-  // Enable extended debug output from failed publishing.
-  cy.intercept('**/xb/api/auto-saves/publish');
-  cy.findByTestId('xb-publish-reviews-content')
-    .as('publishReview')
-    .should('exist');
-  // We put the whole publish review step in a single should so it can be
-  // retried as a group. Unfortunately this requires dropping down to raw
-  // testing library queries because you can't make use of cypress commands
-  // inside a should block.
-  cy.get('@publishReview', { timeout: 10000 }).should(async (element) => {
-    const container = element[0];
-    const entity = await queries.findByText(container, title);
-    expect(entity).to.exist;
-    const button = await queries.findByText(container, 'Publish all changes');
-    expect(button).to.exist;
-    Cypress.$(button).click();
-    const success = await queries.findByText(
-      container,
-      'All changes published!',
-    );
-    expect(success).to.exist;
-    const errors = await queries.queryByText(container, 'Errors');
-    expect(errors).not.to.exist;
-  });
+  cy.publishAllPendingChanges(title);
 
   // Reload the page and ensure the saved value persists.
   cy.loadURLandWaitForXBLoaded({ ...loadOptions, clearAutoSave: false });

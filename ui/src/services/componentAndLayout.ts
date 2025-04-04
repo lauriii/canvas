@@ -3,11 +3,22 @@ import { baseQuery } from '@/services/baseQuery';
 import type { CodeComponentSerialized } from '@/types/CodeComponent';
 import type { ComponentsList, libraryTypes } from '@/types/Component';
 import type { RootLayoutModel } from '@/features/layout/layoutModelSlice';
-import { setPageData } from '@/features/pageData/pageDataSlice';
+import {
+  setPageData,
+  setInitialPageData,
+} from '@/features/pageData/pageDataSlice';
+import { setHtml } from '@/features/pagePreview/previewSlice';
 
 type getComponentsQueryOptions = {
   libraries: libraryTypes[];
   mode: 'include' | 'exclude';
+};
+
+type LayoutApiResponse = RootLayoutModel & {
+  entity_form_fields: Record<string, any>;
+  isNew: boolean;
+  isPublished: boolean;
+  html: string;
 };
 
 export const componentAndLayoutApi = createApi({
@@ -36,22 +47,16 @@ export const componentAndLayoutApi = createApi({
         );
       },
     }),
-    getLayoutById: builder.query<
-      RootLayoutModel & {
-        entity_form_fields: {};
-        isNew: boolean;
-        isPublished: boolean;
-      },
-      string
-    >({
+    getLayoutById: builder.query<LayoutApiResponse, string>({
       query: (nodeId) => `xb/api/layout/{entity_type}/${nodeId}`,
       providesTags: () => [{ type: 'Layout' }],
       async onQueryStarted(id, { dispatch, queryFulfilled }) {
         try {
           const {
-            data: { entity_form_fields },
+            data: { entity_form_fields, html },
           } = await queryFulfilled;
-          dispatch(setPageData(entity_form_fields));
+          dispatch(setInitialPageData(entity_form_fields));
+          dispatch(setHtml(html));
         } catch (err) {
           dispatch(setPageData({}));
         }
@@ -185,7 +190,6 @@ export const componentAndLayoutApi = createApi({
 export const {
   useGetComponentsQuery,
   useGetLayoutByIdQuery,
-  useLazyGetLayoutByIdQuery,
   useGetCodeComponentsQuery,
   useGetCodeComponentQuery,
   useCreateCodeComponentMutation,

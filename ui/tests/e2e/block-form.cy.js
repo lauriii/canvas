@@ -78,22 +78,17 @@ describe('Block form', () => {
 
     // The component should now be in the content region.
     cy.getComponentInPreview('Site branding').should('exist');
+    cy.waitForElementContentNotInIframe('div.site-branding__inner', 'Drupal');
 
     // Publish the page with the new component.
     cy.intercept('POST', '**/xb/api/auto-saves/publish').as('publish');
 
     // Extra long timeout here, because the poll to get changes is every 10 seconds.
     cy.debugPause('Manually check changes in the XB UI');
-    // Both the header region and the node itself should have changes.
-    cy.findByText('Review 2 changes').click();
-
-    cy.findByTestId('xb-publish-reviews-content').within(() => {
-      cy.findByText('XB With a block in the layout');
-      cy.findByText('Header region');
-      cy.findByText('Publish all changes').click();
-      cy.findByText('Publishing').should('exist');
-      cy.findByText('Publishing').should('not.exist');
-    });
+    cy.publishAllPendingChanges([
+      'XB With a block in the layout',
+      'Header region',
+    ]);
 
     // Add logged output of any validation errors.
     cy.wait('@publish').then(console.log);
@@ -102,7 +97,7 @@ describe('Block form', () => {
       .should('exist');
 
     // Reload the page to confirm the component has been added.
-    cy.loadURLandWaitForXBLoaded({ url: 'xb/node/3' });
+    cy.loadURLandWaitForXBLoaded({ url: 'xb/node/3', clearAutoSave: false });
 
     // We should see the saved component.
     cy.clickComponentInPreview('Site branding');

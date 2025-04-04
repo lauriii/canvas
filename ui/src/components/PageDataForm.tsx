@@ -13,6 +13,7 @@ import { FORM_TYPES } from '@/features/form/constants';
 import { setPageData } from '@/features/pageData/pageDataSlice';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { selectFormValues } from '@/features/form/formStateSlice';
+import { setUpdatePreview } from '@/features/layout/layoutModelSlice';
 
 const PageDataFormRenderer = () => {
   const { currentData, error, isFetching } = useGetPageDataFormQuery();
@@ -68,6 +69,8 @@ const PageDataFormRenderer = () => {
           return;
         }
 
+        // Flag that we need to update the preview.
+        dispatch(setUpdatePreview(true));
         dispatch(setPageData({ ...formState, ...updates }));
       }
     };

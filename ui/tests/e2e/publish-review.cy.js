@@ -42,22 +42,7 @@ describe('Publish review functionality', () => {
 
     cy.loadURLandWaitForXBLoaded({ clearAutoSave: false });
 
-    cy.findByText('Review 1 change').click();
-
-    cy.findByTestId('xb-publish-reviews-content').within(() => {
-      cy.findByText('XB Needs This For The Time Being');
-
-      cy.findByText('Publish all changes').click();
-
-      cy.findByText('Publishing').should('exist');
-      cy.findByText('Publishing').should('not.exist');
-    });
-
-    cy.findByTestId('xb-publish-reviews-content').within(() => {
-      cy.findByText('All changes published!');
-      cy.findByText('Errors').should('not.exist');
-      cy.findByLabelText('Close').click();
-    });
+    cy.publishAllPendingChanges('XB Needs This For The Time Being');
 
     cy.log('After publishing, there should be no changes.');
     cy.findByTestId('xb-topbar')

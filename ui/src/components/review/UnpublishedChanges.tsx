@@ -17,7 +17,6 @@ import {
   setPreviousPendingChanges,
   selectErrors,
 } from '@/components/review/PublishReview.slice';
-import { useLazyGetLayoutByIdQuery } from '@/services/componentAndLayout';
 import { componentAndLayoutApi } from '@/services/componentAndLayout';
 import {
   selectEntityId,
@@ -49,7 +48,6 @@ const UnpublishedChanges = () => {
   });
   const entityId = useAppSelector(selectEntityId);
   const entityType = useAppSelector(selectEntityType);
-  const [refetchLayout] = useLazyGetLayoutByIdQuery();
   const dispatch = useAppDispatch();
   const { showBoundary } = useErrorBoundary();
   const layout = useAppSelector(selectLayout);
@@ -97,9 +95,18 @@ const UnpublishedChanges = () => {
 
       await publishAllChanges(changes);
 
-      // if the list of changes contained the current entity, then re-fetch it to get the new isPublished/isNew values.
       if (isCurrentChanged) {
-        refetchLayout(entityId);
+        // Update the isPublished and isNew status.
+        dispatch(
+          componentAndLayoutApi.util.updateQueryData(
+            'getLayoutById',
+            entityId,
+            (draft) => {
+              draft.isPublished = true;
+              draft.isNew = false;
+            },
+          ),
+        );
       }
 
       // After publishing, the list of other pages might be out of date where the pages' title/alias has been updated.
