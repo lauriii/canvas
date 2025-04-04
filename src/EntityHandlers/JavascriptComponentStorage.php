@@ -83,7 +83,6 @@ final class JavascriptComponentStorage extends XbAssetStorage {
     // @see \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\BlockComponent::renderComponent()
     Cache::invalidateTags(array_reduce(
       $overridden_block_components,
-      // @phpstan-ignore-next-line
       static fn (array $all_cache_tags, Component $component): array => [
         ...$all_cache_tags,
         ...$component->getCacheTagsToInvalidate(),

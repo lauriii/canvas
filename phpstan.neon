@@ -19,6 +19,20 @@ parameters:
     # This trait decorates core's \Drupal\Core\Test\FunctionalTestSetupTrait::prepareSettings(), which itself triggers a PHPStan warning that core ignores. Match that.
     - tests/src/Traits/ContribStrictConfigSchemaTestTrait.php
   treatPhpDocTypesAsCertain: false
+  drupal:
+    entityMapping:
+      xb_asset_library:
+        class: Drupal\experience_builder\Entity\AssetLibrary
+      component:
+        class: Drupal\experience_builder\Entity\Component
+      js_component:
+        class: Drupal\experience_builder\Entity\JavaScriptComponent
+      xb_page:
+        class: Drupal\experience_builder\Entity\Page
+      page_region:
+        class: Drupal\experience_builder\Entity\PageRegion
+      pattern:
+        class: Drupal\experience_builder\Entity\Pattern
   ignoreErrors:
     - identifier: missingType.iterableValue
     - identifier: missingType.generics
