@@ -36,7 +36,10 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
     $this->container->get('config.factory')->getEditable('system.theme')->set('default', 'stark')->save();
 
     (new XBTestSetup())->setup();
-    $this->setUpCurrentUser([], ['access administration pages', 'administer url aliases']);
+    $this->setUpCurrentUser([], [
+      'access administration pages',
+      'administer url aliases',
+    ]);
   }
 
   public function testEmpty(): void {
@@ -223,11 +226,9 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
   }
 
   public function testWithDraftCodeComponent(): void {
-    // @todo Add an access control handler and a view permission.
     $this->setUpCurrentUser([], [
       'access administration pages',
       'administer url aliases',
-      'administer code components',
     ]);
 
     // Create the saved (published) javascript component.

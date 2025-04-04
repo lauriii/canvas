@@ -40,8 +40,6 @@ final class XbTwigExtensionTest extends KernelTestBase {
     parent::setUp();
     $this->installEntitySchema('user');
     $this->installConfig(['system']);
-    // @todo Add an access control handler and a view permission.
-    $this->setUpCurrentUser(permissions: ['administer code components']);
   }
 
   /**

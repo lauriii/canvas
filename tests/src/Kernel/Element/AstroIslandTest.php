@@ -47,8 +47,6 @@ final class AstroIslandTest extends KernelTestBase {
    * Covers AstroIsland.
    */
   public function testAstroIsland(): void {
-    // @todo Add an access control handler and a view permission.
-    $this->setUpCurrentUser(permissions: ['administer code components']);
     $css = '.test{display:none;}';
     $js = 'console.log("Test")';
     $css_hash = Crypt::hmacBase64($css, Settings::getHashSalt());
@@ -184,7 +182,6 @@ final class AstroIslandTest extends KernelTestBase {
    * Ensure no library is created or attached if no CSS is present.
    */
   public function testEmptyCss(): void {
-    $this->setUpCurrentUser(permissions: ['administer code components']);
     $component = JavaScriptComponent::create([
       'machineName' => $this->randomMachineName(),
       'name' => $this->getRandomGenerator()->sentences(5),

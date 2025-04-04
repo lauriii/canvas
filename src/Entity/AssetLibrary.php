@@ -21,6 +21,7 @@ use Drupal\experience_builder\ClientSideRepresentation;
  *    admin_permission = "administer code components",
  *    handlers = {
  *      "storage" = \Drupal\experience_builder\EntityHandlers\XbAssetStorage::class,
+ *      "access" = \Drupal\experience_builder\EntityHandlers\XbConfigEntityAccessControlHandler::class,
  *    },
  *    entity_keys = {
  *      "id" = "id",

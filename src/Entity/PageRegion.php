@@ -23,7 +23,10 @@ use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemInstantiat
  *    label_singular = @Translation("page region"),
  *    label_plural = @Translation("page region"),
  *    label_collection = @Translation("Page region"),
- *    admin_permission = "access administration pages",
+ *    admin_permission = "administer page template",
+ *    handlers = {
+ *      "access" = \Drupal\experience_builder\EntityHandlers\XbConfigEntityAccessControlHandler::class
+ *    },
  *    entity_keys = {
  *      "id" = "id",
  *      "status" = "status",

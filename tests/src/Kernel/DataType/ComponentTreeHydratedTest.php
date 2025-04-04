@@ -61,9 +61,6 @@ class ComponentTreeHydratedTest extends KernelTestBase {
       ->save();
     $this->generateComponentConfig();
     $this->createMyCtaComponentFromSdc();
-    // Permissions are necessary to view code components (at this time).
-    // @see \Drupal\experience_builder\Element\AstroIsland::preRenderIsland()
-    $this->setUpCurrentUser(permissions: ['administer code components']);
   }
 
   /**
@@ -792,9 +789,7 @@ HTML,
                               '#type' => 'astro_island',
                               '#cache' => [
                                 'tags' => ['config:experience_builder.component.js.my-cta'],
-                                'contexts' => [
-                                  'user.permissions',
-                                ],
+                                'contexts' => [],
                                 'max-age' => Cache::PERMANENT,
                               ],
                               '#import_maps' => [
@@ -958,6 +953,9 @@ HTML,
    * Tests an entity with a hydrated tree item can be normalized.
    */
   public function testNormalize(): void {
+    // We need the schema for user as the author entity reference triggers an
+    // attempt to load the anonymous user from the database.
+    $this->installEntitySchema('user');
     $page = Page::create();
     self::assertIsArray(\Drupal::service('serializer')->normalize($page));
   }

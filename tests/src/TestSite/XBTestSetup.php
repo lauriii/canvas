@@ -415,7 +415,6 @@ class XBTestSetup implements TestSetupInterface {
       'permissions' => [
         'access administration pages',
         'access content',
-        'administer code components',
         'administer media',
         'access media overview',
         'view media',
@@ -424,6 +423,9 @@ class XBTestSetup implements TestSetupInterface {
         'create article content',
         'administer xb_page',
         'administer url aliases',
+        'administer code components',
+        'administer patterns',
+        'administer themes',
       ],
     ]);
     $xb_role->save();

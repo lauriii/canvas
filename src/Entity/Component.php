@@ -22,7 +22,6 @@ use Drupal\experience_builder\ComponentSource\ComponentSourceManager;
  * A config entity that exposes SDC components and blocks to the Experience Builder UI.
  * 1. There can be only one Component entity per component plugin.
  *
- *
  * @ConfigEntityType(
  *    id = \Drupal\experience_builder\Entity\Component::ENTITY_TYPE_ID,
  *    label = @Translation("Component"),
@@ -31,6 +30,7 @@ use Drupal\experience_builder\ComponentSource\ComponentSourceManager;
  *    label_collection = @Translation("Components"),
  *    admin_permission = "administer components",
  *    handlers = {
+ *      "access" = \Drupal\experience_builder\EntityHandlers\ContentCreatorVisibleXbConfigEntityAccessControlHandler::class,
  *      "list_builder" = "Drupal\experience_builder\Form\ComponentListBuilder",
  *      "route_provider" = {
  *        "html" = "\Drupal\Core\Entity\Routing\AdminHtmlRouteProvider",

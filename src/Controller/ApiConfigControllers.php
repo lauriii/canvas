@@ -79,6 +79,9 @@ final class ApiConfigControllers extends ApiControllerBase {
     $xb_config_entity_type->getClass()::refineListQuery($query, $query_cacheability);
     /** @var array<\Drupal\experience_builder\Entity\XbHttpApiEligibleConfigEntityInterface> $config_entities */
     $config_entities = $storage->loadMultiple($query->execute());
+    // As config entities do not use sql-storage, we need explicit access check
+    // per https://www.drupal.org/node/3201242.
+    $config_entities = array_filter($config_entities, fn(XbHttpApiEligibleConfigEntityInterface $config_entity) => $config_entity->access('view'));
 
     $normalizations = [];
     $normalizations_cacheability = new CacheableMetadata();
@@ -125,6 +128,7 @@ final class ApiConfigControllers extends ApiControllerBase {
     // Create an in-memory config entity.
     $decoded = self::decode($request);
     $xb_config_entity = $xb_config_entity_type->getClass()::createFromClientSide($decoded);
+    assert($xb_config_entity instanceof XbHttpApiEligibleConfigEntityInterface);
     try {
       $this->validate($xb_config_entity);
     }
@@ -157,7 +161,8 @@ final class ApiConfigControllers extends ApiControllerBase {
   }
 
   public function delete(XbHttpApiEligibleConfigEntityInterface $xb_config_entity): JsonResponse {
-    // @todo First validate that there is no other config depending on this. If there is, respond with a 400, 409, 412 or 422 (TBD).
+    // @todo First validate that there is no other entity depending on this. If there is, respond with a 400, 409, 412 or 422 (TBD).
+    // @todo Permissions take into account config dependencies, but we might have content dependencies depending on it too. See https://www.drupal.org/project/experience_builder/issues/3516839
     // @see https://www.drupal.org/project/drupal/issues/3423459
     $xb_config_entity->delete();
     return new JsonResponse(status: 204, data: NULL);

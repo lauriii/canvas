@@ -2,5 +2,11 @@ administer components:
   title: 'Administer components'
 administer code components:
   title: 'Administer code components'
+  # Restricted as code components allow to execute JavaScript code.
+  restrict access: true
+administer patterns:
+  title: 'Administer sections'
 administer xb_page:
   title: 'Administer pages'
+administer page template:
+  title: 'Administer page template'

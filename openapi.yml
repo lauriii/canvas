@@ -316,6 +316,9 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CodeComponent'
+        '403':
+          description: Access denied response.
+          $ref: '#/components/responses/AuthenticationErrorResponse'
         '409':
           description: Code Component with same ID already exists.
           $ref: '#/components/responses/ClientErrorResponse'
@@ -331,6 +334,9 @@ paths:
       responses:
         '204':
           description: Deleted individual Code Component
+        '403':
+          description: Access denied response.
+          $ref: '#/components/responses/AuthenticationErrorResponse'
     get:
       description: Gets Code Component
       parameters:
@@ -342,6 +348,9 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CodeComponent'
+        '403':
+          description: Access denied response.
+          $ref: '#/components/responses/AuthenticationErrorResponse'
     patch:
       description: Updates Code Component
       parameters:
@@ -359,6 +368,9 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CodeComponent'
+        '403':
+          description: Access denied response.
+          $ref: '#/components/responses/AuthenticationErrorResponse'
   /xb/api/config/pattern:
     description: TODO
     get:
@@ -1602,6 +1614,22 @@ components:
                 type: string
     ClientErrorResponse:
       description: Errors in response to the client's request.
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - errors
+            properties:
+              errors:
+                type: array
+                description: Error items
+                items:
+                  type: object
+                  schema:
+                    $ref: '#/components/schemas/Error'
+    AuthenticationErrorResponse:
+      description: Access denied response.
       content:
         application/json:
           schema:

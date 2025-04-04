@@ -98,6 +98,9 @@ services:
   Drupal\experience_builder\Access\XbHttpApiEligibleConfigEntityAccessCheck:
     tags:
       - { name: access_check, applies_to: _xb_http_eligible_config_entity }
+  Drupal\experience_builder\Access\XbEntityCreateAccessCheck:
+    tags:
+      - { name: access_check, applies_to: _xb_entity_create_access }
 
   # Twig.
   Drupal\experience_builder\Extension\XbTwigExtension:

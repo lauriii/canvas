@@ -171,10 +171,8 @@ class XbPageVariantTest extends FunctionalTestBase {
     // a placed `block`-sourced Component results in that block being rendered
     // using an Astro island.
     $this->container->get(ModuleInstallerInterface::class)->install(['xb_dev_js_blocks']);
-    // @todo Add the missing access control handler for JavaScriptComponent and AssetLibrary config entities, where NO permissions should be required as the anonymous user just to view a rendered end result, in https://www.drupal.org/project/experience_builder/issues/3508694
     $role = Role::load('anonymous');
     $this->assertInstanceOf(Role::class, $role);
-    $role->grantPermission('administer code components')->save();
     $this->assertPageDisplayVariant(
       XbPageVariant::class,
       Component::loadMultiple([

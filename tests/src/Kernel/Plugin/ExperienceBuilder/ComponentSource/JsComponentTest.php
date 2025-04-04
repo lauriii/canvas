@@ -112,16 +112,6 @@ final class JsComponentTest extends KernelTestBase {
     $island = $source->renderComponent([
       'props' => $props,
     ], 'some-uuid', $preview_requested);
-
-    $crawler = $this->crawlerForRenderArray($island);
-    self::assertEquals('No access to view component with ID ' . $js_component_id, $crawler->text());
-
-    // @todo Add an access control handler and a view permission: https://www.drupal.org/i/3508694
-    $this->setUpCurrentUser(permissions: ['administer code components']);
-
-    $island = $source->renderComponent([
-      'props' => $props,
-    ], 'some-uuid', $preview_requested);
     $crawler = $this->crawlerForRenderArray($island);
 
     $element = $crawler->filter('astro-island');

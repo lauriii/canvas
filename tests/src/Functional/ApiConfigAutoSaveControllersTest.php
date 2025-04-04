@@ -95,6 +95,7 @@ final class ApiConfigAutoSaveControllersTest extends HttpApiTestBase {
         ],
         ['compiled_js'],
         ['compiled_css'],
+        "The 'administer code components' permission is required.",
       ],
       AssetLibrary::ENTITY_TYPE_ID => [
         AssetLibrary::ENTITY_TYPE_ID,
@@ -112,6 +113,7 @@ final class ApiConfigAutoSaveControllersTest extends HttpApiTestBase {
         ],
         ['js', 'compiled'],
         ['css', 'compiled'],
+        "The 'administer code components' permission is required.",
       ],
     ];
   }
@@ -124,6 +126,7 @@ final class ApiConfigAutoSaveControllersTest extends HttpApiTestBase {
     array $initial_entity,
     array $compiled_js_path_in_normalization,
     array $compiled_css_path_in_normalization,
+    string $missingPermissionError,
   ): void {
     if ($entity_type_id === AssetLibrary::ENTITY_TYPE_ID) {
       // Delete the library created during install.
@@ -202,13 +205,13 @@ final class ApiConfigAutoSaveControllersTest extends HttpApiTestBase {
     $body = $this->assertExpectedResponse('GET', $auto_save_url, [], 403, ['user.permissions'], ['4xx-response', 'config:user.role.anonymous', 'http_response'], 'MISS', NULL);
     $this->assertSame([
       'errors' => [
-        "The 'access administration pages' permission is required.",
+        $missingPermissionError,
       ],
     ], $body);
     $body = $this->assertExpectedResponse('PATCH', $auto_save_url, [], 403, NULL, NULL, NULL, NULL);
     $this->assertSame([
       'errors' => [
-        "The 'access administration pages' permission is required.",
+        $missingPermissionError,
       ],
     ], $body);
 

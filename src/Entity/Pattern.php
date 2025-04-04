@@ -22,7 +22,10 @@ use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemInstantiat
  *    label_singular = @Translation("pattern"),
  *    label_plural = @Translation("patterns"),
  *    label_collection = @Translation("Patterns"),
- *    admin_permission = "access administration pages",
+ *    admin_permission = "administer patterns",
+ *    handlers = {
+ *      "access" = \Drupal\experience_builder\EntityHandlers\ContentCreatorVisibleXbConfigEntityAccessControlHandler::class
+ *    },
  *    entity_keys = {
  *      "id" = "id",
  *      "label" = "label",

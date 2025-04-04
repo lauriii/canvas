@@ -42,8 +42,8 @@ experience_builder.api.config.auto-save.get:
   defaults:
     _controller: 'Drupal\experience_builder\Controller\ApiConfigAutoSaveControllers::get'
   requirements:
-    _permission: 'access administration pages'
     _xb_http_eligible_config_entity: 'TRUE'
+    _entity_access: 'xb_config_entity.edit'
     # Allow a subset: `Component` config entities are read-only via the internal HTTP API, `Pattern` config entities do
     # not (yet) support auto-save.
     xb_config_entity_type_id: '(js_component|xb_asset_library)'
@@ -57,8 +57,8 @@ experience_builder.api.config.auto-save.get.css:
   defaults:
     _controller: 'Drupal\experience_builder\Controller\ApiConfigAutoSaveControllers::getCss'
   requirements:
-    _permission: 'administer code components'
     _xb_http_eligible_config_entity: 'TRUE'
+    _entity_access: 'xb_config_entity.edit'
     # Allow a subset: those config entity types that implement XbAssetInterface.
     xb_config_entity_type_id: '(js_component|xb_asset_library)'
   methods: ['GET']
@@ -71,8 +71,8 @@ experience_builder.api.config.auto-save.get.js:
   defaults:
     _controller: 'Drupal\experience_builder\Controller\ApiConfigAutoSaveControllers::getJs'
   requirements:
-    _permission: 'administer code components'
     _xb_http_eligible_config_entity: 'TRUE'
+    _entity_access: 'xb_config_entity.edit'
     # Allow a subset: those config entity types that implement XbAssetInterface.
     xb_config_entity_type_id: '(js_component|xb_asset_library)'
   methods: ['GET']
@@ -85,8 +85,8 @@ experience_builder.api.config.auto-save.patch:
   defaults:
     _controller: 'Drupal\experience_builder\Controller\ApiConfigAutoSaveControllers::patch'
   requirements:
-    _permission: 'access administration pages'
     _xb_http_eligible_config_entity: 'TRUE'
+    _entity_access: 'xb_config_entity.edit'
     # Allow a subset: `Component` config entities are read-only via the internal HTTP API, `Pattern` config entities do
     # not (yet) support auto-save.
     xb_config_entity_type_id: '(js_component|xb_asset_library)'
@@ -102,6 +102,7 @@ experience_builder.api.config.delete:
     _controller: 'Drupal\experience_builder\Controller\ApiConfigControllers::delete'
   requirements:
     _permission: 'access administration pages'
+    _entity_access: 'xb_config_entity.delete'
     _xb_http_eligible_config_entity: 'TRUE'
     # Allow a subset: `Component` config entities are read-only via the internal HTTP API.
     xb_config_entity_type_id: '(pattern|js_component|xb_asset_library)'
@@ -115,8 +116,8 @@ experience_builder.api.config.get:
   defaults:
     _controller: 'Drupal\experience_builder\Controller\ApiConfigControllers::get'
   requirements:
-    _permission: 'access administration pages'
     _xb_http_eligible_config_entity: 'TRUE'
+    _entity_access: 'xb_config_entity.view'
     # Allow a subset: `Component` config entities are read-only via the internal HTTP API.
     xb_config_entity_type_id: '(pattern|js_component|xb_asset_library)'
   options:
@@ -129,21 +130,24 @@ experience_builder.api.config.list:
   defaults:
     _controller: 'Drupal\experience_builder\Controller\ApiConfigControllers::list'
   requirements:
-    _permission: 'access administration pages'
+    _permission: 'administer themes'
     # Any internal HTTP API-eligible XB config entity type.
     _xb_http_eligible_config_entity: 'TRUE'
     # But deter users from trying to access other config entities via this route: this ensures 404 responses rather than
     # 403.
     # @see \Drupal\Tests\experience_builder\Functional\XbConfigEntityHttpApiTest::testNonXbConfigEntity()
     xb_config_entity_type_id: '(component|pattern|js_component|xb_asset_library)'
+    # The UI client can fetch all the components the current user has access too, regardless of which kind of XB-enabled
+    # entity you're editing.
+    _user_is_logged_in: 'TRUE'
   methods: [GET]
 experience_builder.api.config.patch:
   path: '/xb/api/config/{xb_config_entity_type_id}/{xb_config_entity}'
   defaults:
     _controller: 'Drupal\experience_builder\Controller\ApiConfigControllers::patch'
   requirements:
-    _permission: 'access administration pages'
     _xb_http_eligible_config_entity: 'TRUE'
+    _entity_access: 'xb_config_entity.update'
     # Allow a subset: `Component` config entities are read-only via the internal HTTP API.
     xb_config_entity_type_id: '(pattern|js_component|xb_asset_library)'
   options:
@@ -156,8 +160,9 @@ experience_builder.api.config.post:
   defaults:
     _controller: 'Drupal\experience_builder\Controller\ApiConfigControllers::post'
   requirements:
-    _permission: 'access administration pages'
     _xb_http_eligible_config_entity: 'TRUE'
+    # @todo: Use _entity_create_access once dynamic entity types are supported. See https://www.drupal.org/project/drupal/issues/3516775
+    _xb_entity_create_access: 'xb_config_entity_type_id'
     # Allow a subset: `Component` config entities are read-only via the internal HTTP API.
     xb_config_entity_type_id: '(pattern|js_component|xb_asset_library)'
   methods: [POST]

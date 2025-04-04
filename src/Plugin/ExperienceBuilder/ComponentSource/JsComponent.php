@@ -127,17 +127,6 @@ final class JsComponent extends GeneratedFieldExplicitInputUxComponentSourceBase
       }
     }
 
-   $access = $component->access('view', return_as_object: TRUE);
-   \assert($access instanceof AccessResult);
-   $cache = CacheableMetadata::createFromObject($access);
-   if (!$access->isAllowed()) {
-     $build = [
-       '#plain_text' => \sprintf('No access to view component with ID %s', $component->id()),
-     ];
-     $cache->applyTo($build);
-     return $build;
-   }
-
     $component_url = $this->fileUrlGenerator->generateString($component->getJsPath());
 
     if ($isPreview) {
@@ -157,7 +146,6 @@ final class JsComponent extends GeneratedFieldExplicitInputUxComponentSourceBase
       }
       $build['#attached']['library'][] = $css_library;
     }
-    $cache->applyTo($build);
     $xb_path = $this->extensionPathResolver->getPath('module', 'experience_builder');
     // Resource hints.
     $resource_hints = [

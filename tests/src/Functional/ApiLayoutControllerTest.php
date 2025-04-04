@@ -34,7 +34,6 @@ final class ApiLayoutControllerTest extends HttpApiTestBase {
   protected $defaultTheme = 'stark';
 
   public function testWithDraftCodeComponent(): void {
-    // @todo Add an access control handler and a view permission.
     $account = $this->createUser([
       'access administration pages',
       'administer url aliases',
