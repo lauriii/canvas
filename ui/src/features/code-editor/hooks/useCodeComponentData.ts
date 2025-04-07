@@ -39,6 +39,7 @@ const useCodeComponentData = () => {
   const dispatch = useAppDispatch();
   const [updateAutoSave] = useUpdateAutoSaveMutation();
   const lastUpdateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const previousComponentIdRef = useRef<string | null>(null);
   const isEditorReady = useAppSelector(selectIsEditorReady);
   const isInitiallyCompiled = useAppSelector(
     selectHasCompletedFirstCompilation,
@@ -56,13 +57,6 @@ const useCodeComponentData = () => {
   const required = useAppSelector(selectRequired);
   const [shouldLoad, setShouldLoad] = useState(false);
 
-  // Load data only if the currently selected code component changes.
-  useEffect(() => {
-    if (componentId) {
-      setShouldLoad(true);
-    }
-  }, [componentId]);
-
   // Get the auto-saved data of the code component if it exists.
   const {
     currentData: dataGetAutoSave,
@@ -78,6 +72,7 @@ const useCodeComponentData = () => {
     currentData: dataGetCodeComponent,
     error: errorGetCodeComponent,
     isFetching: isLoadingGetCodeComponent,
+    isSuccess: isSuccessGetCodeComponent,
   } = useGetCodeComponentQuery(componentId, {
     skip:
       !shouldLoad ||
@@ -97,6 +92,7 @@ const useCodeComponentData = () => {
   // Initialize the code editor with the data.
   useEffect(() => {
     if (!isLoading && data) {
+      setShouldLoad(false);
       dispatch(
         initializeCodeEditor({
           id: componentId,
@@ -111,12 +107,15 @@ const useCodeComponentData = () => {
         }),
       );
     }
-  }, [isLoading, data, dispatch, componentId]);
+  }, [isEditorReady, isLoading, data, dispatch, componentId]);
 
   // Reset the code editor when the component is unmounted.
   useEffect(() => {
     return () => {
       dispatch(resetCodeEditor());
+      // Clean up the ref storing the previous component ID, so when the
+      // component is unmounted, we'll (re-)load the data.
+      previousComponentIdRef.current = null;
     };
   }, [dispatch]);
 
@@ -124,6 +123,23 @@ const useCodeComponentData = () => {
   // Debounce the updates to one second.
   useEffect(
     () => {
+      // Load new data only if the currently selected code component changes.
+      if (componentId && componentId !== previousComponentIdRef.current) {
+        setShouldLoad(true);
+        previousComponentIdRef.current = componentId;
+        return;
+      }
+
+      // Prevent updates if the data is still loading, or new data is about to
+      // be loaded.
+      if (
+        shouldLoad ||
+        isLoading ||
+        (!isSuccessGetAutoSave && !isSuccessGetCodeComponent)
+      ) {
+        return;
+      }
+
       if (lastUpdateTimeoutRef.current) {
         clearTimeout(lastUpdateTimeoutRef.current);
       }
@@ -161,6 +177,7 @@ const useCodeComponentData = () => {
     },
     // Only update the auto-save when relevant parts of the code editor change.
     // Intentionally not including in the dependencies:
+    //  - isLoading: we only need to check to make sure initial data is loaded
     //  - isEditorReady: it would trigger the hook again when its value is updated to true
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [
@@ -168,9 +185,12 @@ const useCodeComponentData = () => {
       compiledCss,
       compiledJs,
       componentId,
+      isSuccessGetCodeComponent,
+      isSuccessGetAutoSave,
       name,
       props,
       required,
+      shouldLoad,
       slots,
       sourceCodeCss,
       sourceCodeGlobalCss,

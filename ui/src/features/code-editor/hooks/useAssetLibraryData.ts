@@ -16,12 +16,13 @@ import {
 
 const ASSET_LIBRARY_ID = 'global';
 
-const useCodeComponentData = () => {
+const useAssetLibraryData = () => {
   const { showBoundary } = useErrorBoundary();
   const { codeComponentId } = useXbParams();
   const dispatch = useAppDispatch();
   const [updateAutoSave] = useUpdateAutoSaveMutation();
   const lastUpdateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const previousComponentIdRef = useRef<string | null>(null);
   const isGlobalCssEditorReady = useAppSelector(selectIsGlobalCssEditorReady);
   const sourceCodeGlobalCss = useAppSelector(selectSourceCodeGlobalCss);
   const [shouldLoad, setShouldLoad] = useState(false);
@@ -48,6 +49,7 @@ const useCodeComponentData = () => {
     currentData: dataGetAssetLibrary,
     error: errorGetAssetLibrary,
     isFetching: isLoadingGetAssetLibrary,
+    isSuccess: isSuccessGetAssetLibrary,
   } = useGetAssetLibraryQuery(ASSET_LIBRARY_ID, {
     skip:
       !shouldLoad ||
@@ -67,6 +69,7 @@ const useCodeComponentData = () => {
   // Initialize the code editor with the data.
   useEffect(() => {
     if (!isLoading && data) {
+      setShouldLoad(false);
       dispatch(setSourceCodeGlobalCss(data.css.original));
     }
   }, [isLoading, data, dispatch]);
@@ -75,6 +78,23 @@ const useCodeComponentData = () => {
   // Debounce the updates to one second.
   useEffect(
     () => {
+      // Load new data only if the currently selected code component changes.
+      if (
+        codeComponentId &&
+        codeComponentId !== previousComponentIdRef.current
+      ) {
+        setShouldLoad(true);
+        previousComponentIdRef.current = codeComponentId;
+        return;
+      }
+
+      if (
+        shouldLoad ||
+        isLoading ||
+        (!isSuccessGetAutoSave && !isSuccessGetAssetLibrary)
+      ) {
+        return;
+      }
       if (lastUpdateTimeoutRef.current) {
         clearTimeout(lastUpdateTimeoutRef.current);
       }
@@ -105,10 +125,23 @@ const useCodeComponentData = () => {
     // Intentionally not including in the dependencies:
     //  - isGlobalCssEditorReady: it would trigger the hook again when its value is updated to true
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [sourceCodeGlobalCss],
+    [
+      codeComponentId,
+      isSuccessGetAssetLibrary,
+      isSuccessGetAutoSave,
+      sourceCodeGlobalCss,
+    ],
   );
+
+  useEffect(() => {
+    return () => {
+      // Clean up the ref storing the previous component ID, so when the
+      // component is unmounted, we'll (re-)load the data.
+      previousComponentIdRef.current = null;
+    };
+  }, [dispatch]);
 
   return { isLoading };
 };
 
-export default useCodeComponentData;
+export default useAssetLibraryData;
