@@ -1,5 +1,3 @@
-import { queries } from '@testing-library/dom';
-
 describe('Entity form field types', () => {
   before(() => {
     cy.drupalXbInstall([
@@ -53,10 +51,13 @@ describe('Entity form field types', () => {
             .as('commentFieldset');
           cy.get('@commentFieldset')
             .findByLabelText('Open', { exact: false })
-            .assertToggleState();
+            .assertToggleState(false);
           cy.get('@commentFieldset')
             .findByText('Open', { exact: false })
             .click();
+          cy.get('@commentFieldset')
+            .findByLabelText('Open', { exact: false })
+            .assertToggleState(true);
         },
         assertData: (response) => {
           expect(response.attributes.field_xbt_comment.status).to.equal(2);
@@ -64,7 +65,9 @@ describe('Entity form field types', () => {
       },
       field_xbt_options_buttons: {
         edit: (cy) => {
-          cy.findByLabelText('Option 2', { exact: false }).assertToggleState();
+          cy.findByLabelText('Option 2', { exact: false }).assertToggleState(
+            true,
+          );
           cy.findByText('Option 3', { exact: false }).click();
         },
         assertData: (response) => {
@@ -73,51 +76,39 @@ describe('Entity form field types', () => {
           );
         },
       },
+      field_xbt_language: {
+        edit: (cy) => {
+          cy.findByLabelText('XB Language')
+            .parent()
+            .find('select')
+            .as('languageSelect');
+          cy.get('@languageSelect').should('have.value', 'und');
+          // Radix renders this as a hidden element with a button to trigger, so
+          // we have to use force.
+          cy.get('@languageSelect').select('English', { force: true });
+          cy.get('@languageSelect').should('have.value', 'en');
+        },
+        assertData: (response) => {
+          expect(response.attributes.field_xbt_language).to.equal('en');
+        },
+      },
     };
 
     // Perform field edits.
     Object.entries(fields).forEach(([key, value]) => {
       cy.log(`Performing edits for ${key}`);
-      cy.intercept('POST', '**/xb/api/layout/**').as('updatePreview');
+      cy.intercept({
+        url: '**/xb/api/layout/node/2',
+        times: 1,
+        method: 'POST',
+      }).as('updatePreview');
       value.edit(cy);
       // Wait for the preview to finish loading.
       cy.wait('@updatePreview');
       cy.findByLabelText('Loading Preview').should('not.exist');
     });
-    // Publish the content.
-    // @todo make use of publishAllChanges once https://drupal.org/i/3492061 is
-    // in.
-    cy.findByRole('button', {
-      name: /Review \d+ change/,
-      timeout: 20000,
-    }).as('review');
-    // We break this up to allow for the pending changes refresh which can disable
-    // the button whilst it is loading.
-    cy.get('@review').click();
-    // Enable extended debug output from failed publishing.
-    cy.intercept('**/xb/api/auto-saves/publish');
-    cy.findByTestId('xb-publish-reviews-content')
-      .as('publishReview')
-      .should('exist');
-    // We put the whole publish review step in a single should so it can be
-    // retried as a group. Unfortunately this requires dropping down to raw
-    // testing library queries because you can't make use of cypress commands
-    // inside a should block.
-    cy.get('@publishReview', { timeout: 10000 }).should(async (element) => {
-      const container = element[0];
-      const entity = await queries.findByText(container, 'I am an empty node');
-      expect(entity).to.exist;
-      const button = await queries.findByText(container, 'Publish all changes');
-      expect(button).to.exist;
-      Cypress.$(button).click();
-      const success = await queries.findByText(
-        container,
-        'All changes published!',
-      );
-      expect(success).to.exist;
-      const errors = await queries.queryByText(container, 'Errors');
-      expect(errors).not.to.exist;
-    });
+
+    cy.publishAllPendingChanges('I am an empty node');
 
     // Request the node over jsonapi.
     cy.request('/jsonapi/node/article').then((response) => {

@@ -9,10 +9,10 @@
 
 declare(strict_types=1);
 
+use Drupal\Core\Entity\Entity\EntityFormDisplay;
 use Drupal\Core\Language\LanguageInterface;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
-use Drupal\Core\Entity\Entity\EntityFormDisplay;
 use Drupal\user\Entity\Role;
 
 /**
@@ -276,8 +276,6 @@ function xb_test_article_fields_install(): void {
   }
 
   $do_not_add_to_form_yet = [
-    // @todo Remove in https://www.drupal.org/project/experience_builder/issues/3516336
-    'field_xbt_language',
     // @todo Remove in https://www.drupal.org/project/experience_builder/issues/3516338
     'field_xbt_daterange_datelist',
     // @todo Remove in https://www.drupal.org/project/experience_builder/issues/3516339
@@ -287,6 +285,8 @@ function xb_test_article_fields_install(): void {
     // @todo Remove in https://www.drupal.org/project/experience_builder/issues/3516342
     'field_xbt_datetime_datelist',
   ];
+
+  $default_values_to_update = [];
 
   foreach ($fields as $field_name => $field_info) {
     if (!FieldStorageConfig::loadByName('node', $field_name)) {
@@ -311,6 +311,7 @@ function xb_test_article_fields_install(): void {
       // Only add default_value if it's explicitly set
       if (isset($field_info['default_value'])) {
         $field_config['default_value'] = $field_info['default_value'];
+        $default_values_to_update[$field_name] = $field_info['default_value'];
       }
 
       FieldConfig::create($field_config)->save();
@@ -333,14 +334,22 @@ function xb_test_article_fields_install(): void {
 
   // Remove the default comment field.
   $form_display->removeComponent('comment');
-
   $form_display->save();
+
   // Grant some permissions.
   $role = Role::load('xb');
   if ($role !== NULL) {
     $role->grantPermission('administer comments');
     $role->grantPermission('post comments');
     $role->save();
+  }
+
+  // Update default values in already created nodes.
+  foreach (\Drupal::entityTypeManager()->getStorage('node')->loadByProperties(['type' => 'article']) as $node) {
+    foreach ($default_values_to_update as $field_name => $default_value) {
+      $node->set($field_name, $default_value);
+    }
+    $node->save();
   }
 }
 
