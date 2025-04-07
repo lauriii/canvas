@@ -22,6 +22,7 @@ use Drupal\Core\Field\BaseFieldDefinition;
 use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Plugin\Discovery\YamlDiscovery;
+use Drupal\Core\Render\Markup;
 use Drupal\datetime\Plugin\Field\FieldType\DateTimeItem;
 use Drupal\experience_builder\Entity\AssetLibrary;
 use Drupal\experience_builder\Entity\JavaScriptComponent;
@@ -49,6 +50,32 @@ require_once __DIR__ . '/experience_builder.auto_save.inc';
 require_once __DIR__ . '/experience_builder.force_render_with_twig.inc';
 // @see docs/components.md, section 3.3.3
 require_once __DIR__ . '/experience_builder.block_overrides.inc';
+
+/**
+ * Implements hook_preprocess_HOOK() for regions.
+ *
+ * @see \Drupal\experience_builder\Render\MainContent\XBPreviewRenderer::prepare()
+ */
+function experience_builder_preprocess_region(array &$variables):void {
+  if (!array_key_exists('#xb_region_preview', $variables['elements'])) {
+    // Nothing to do: this is a region being rendered outside of an XB preview
+    // context.
+    return;
+  }
+
+  $region = $variables['region'];
+  assert(is_string($region) && strlen($region) >= 1);
+
+  $content = (string) $variables['content'];
+
+  // Additional `content-start` and `content-end` comment annotations to surround just the {{ content }} output
+  // to allow XB's UI to more accurately render the region overlays
+  $variables['content'] = Markup::create(<<<HTML
+<!-- xb-region-content-start-$region -->
+$content
+<!-- xb-region-content-end-$region -->
+HTML);
+}
 
 /**
  * Implements hook_form_alter().

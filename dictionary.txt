@@ -49,6 +49,7 @@ redoable
 reduxjs
 renderify
 rightbar
+rightclick
 scriptification
 scriptified
 scriptify

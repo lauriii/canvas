@@ -9,8 +9,7 @@ import useResizeObserver from '@/hooks/useResizeObserver';
 
 import {
   selectCanvasViewPortScale,
-  selectDragging,
-  selectPanning,
+  selectZooming,
 } from '@/features/ui/uiSlice';
 import RegionOverlay from '@/features/layout/previewOverlay/RegionOverlay';
 import clsx from 'clsx';
@@ -33,10 +32,9 @@ const ViewportOverlay: React.FC<ViewportOverlayProps> = (props) => {
   const [portalRoot, setPortalRoot] = useState<HTMLElement | null>(null);
   const positionDivRef = useRef(null);
   const canvasViewPortScale = useAppSelector(selectCanvasViewPortScale);
-  const { isDragging } = useAppSelector(selectDragging);
   const layout = useAppSelector(selectLayout);
   const [rect, setRect] = useState<Rect | null>(null);
-  const { isPanning } = useAppSelector(selectPanning);
+  const isZooming = useAppSelector(selectZooming);
 
   const updateRect = useCallback(() => {
     // The top and left must equal the distance from the parent (positionAnchor, which is always static) to the iFrame.
@@ -56,7 +54,18 @@ const ViewportOverlay: React.FC<ViewportOverlayProps> = (props) => {
         height: iframeRect.height,
       };
 
-      setRect(newRect);
+      setRect((prevState) => {
+        if (
+          !prevState ||
+          prevState.left !== newRect.left ||
+          prevState.top !== newRect.top ||
+          prevState.width !== newRect.width ||
+          prevState.height !== newRect.height
+        ) {
+          return newRect;
+        }
+        return prevState;
+      });
     }
   }, [previewContainerRef]);
 
@@ -79,7 +88,7 @@ const ViewportOverlay: React.FC<ViewportOverlayProps> = (props) => {
     <div
       ref={positionDivRef}
       className={clsx('xb--viewport-overlay', styles.viewportOverlay, {
-        [styles.isPanning]: isPanning,
+        [styles.isZooming]: isZooming,
       })}
       data-xb-viewport-size={size}
       style={{
@@ -87,15 +96,16 @@ const ViewportOverlay: React.FC<ViewportOverlayProps> = (props) => {
         left: `${rect.left}px`,
         width: `${rect.width}px`,
         height: `${rect.height}px`,
-        pointerEvents: isDragging ? 'none' : 'all',
       }}
     >
       {layout.map((region) => (
         <RegionOverlay
           iframeRef={iframeRef}
+          region={region}
           regionId={region.id}
           key={region.id}
           regionName={region.name}
+          size={size}
         />
       ))}
     </div>,

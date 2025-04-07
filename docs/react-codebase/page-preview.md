@@ -74,16 +74,16 @@ It was a [requirement](https://www.drupal.org/project/experience_builder/issues/
 
 ## Data Model and HTML Mapping
 
-When the server renders HTML, each region ([tbd](https://www.drupal.org/project/experience_builder/issues/3499364)), component, and slot displayed in the preview is annotated with HTML comments. This approach (as opposed to wrapping with HTML elements) ensures that the DOM structure remains unchanged, so CSS selectors and other functionalities are not affected by the introduction of rendered markup from XB.
+When the server renders HTML, each region, component, and slot displayed in the preview is annotated with HTML comments. This approach (as opposed to wrapping with HTML elements) ensures that the DOM structure remains unchanged, so CSS selectors and other functionalities are not affected by the introduction of rendered markup from XB.
 
 Whenever a new version of the HTML is received from the server, the `<Viewport>` component generates a map. This map links each component's UUID and slot ID to the corresponding HTML element(s) in the preview. This is accomplished using the `useComponentHtmlMap` hook. This hook updates a React Context, which stores the map and is utilized by the overlay React components.
 
 ## Drag-and-drop
-While this implementation was designed to prevent users from interacting with the content in the `<iframe>` one aspect that could not be worked around is handling drag-and-drop interactions.
+While this implementation is designed to prevent users from interacting with the content in the `<iframe>` one aspect that still does affect elements in the `<iframe>` is showing the state of DOM elements when they are dragged.
 
-On starting a drag operation (e.g. dragging on a new components or moving an existing one in the preview) the `<ComponentOverlay>` will dynamically add a CSS class that disables `pointer-events`. This allows the drop operation to occur inside the `<iframe>`.
+On starting a drag operation (dragging an existing item in the preview overlay) the corresponding DOM element(s) inside the `<iframe>` are assigned a class that causes them to fade out to indicate to the user what they are dragging.
 
-Handling the sort/drop operation in the actual rendered markup was necessary because the [SortableJS library](https://sortablejs.github.io/Sortable) is not compatible with absolutely positioned elements (which our overlay components must be to ensure they are correctly positioned over their corresponding component).
+Handling the drop operation in the overlay first applies a pending class to the DOM element(s) that were dragged but then immediately requests a fresh render of the preview from the server.
 
 ## The future
 It may well become necessary to allow users to interact with the page inside the `<iframe>` in the future. One approach to this might be to introduce a toggleable state that allows a user to switch between a "layout mode" for editing the layout and an "interactive mode" that will allow them to click inside the `<iframe>`.

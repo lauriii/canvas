@@ -721,6 +721,17 @@ Cypress.Commands.add(
 );
 
 Cypress.Commands.add(
+  'getAllComponentsInPreview',
+  (componentName, viewportSize = 'lg', regionId = 'content') => {
+    return cy
+      .get(
+        `#xbPreviewOverlay .xb--viewport-overlay[data-xb-viewport-size="${viewportSize}"] .xb--region-overlay__${regionId}`,
+      )
+      .findAllByLabelText(componentName);
+  },
+);
+
+Cypress.Commands.add(
   'waitForComponentNotInPreview',
   (
     componentName,

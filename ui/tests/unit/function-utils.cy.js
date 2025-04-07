@@ -75,7 +75,7 @@ const pageHTML = `<!DOCTYPE html>
         </div>
     </div>
 <!-- xb-end-ad3eff8e-2180-4be1-a60f-df3f2c5ac393 --><!-- xb-start-49132256-b0c2-4753-9800-fdc147fafae8 --><div data-component-id="experience_builder:one_column" class="width-full" data-xb-slot-id="49132256-b0c2-4753-9800-fdc147fafae8/content" data-xb-uuid="49132256-b0c2-4753-9800-fdc147fafae8">
-      <!-- xb-slot-start-49132256-b0c2-4753-9800-fdc147fafae8/content --><div class="xb--sortable-slot-empty-placeholder"></div><!-- xb-slot-end-49132256-b0c2-4753-9800-fdc147fafae8/content -->
+      <!-- xb-slot-start-49132256-b0c2-4753-9800-fdc147fafae8/content --><div class="xb--slot-empty-placeholder"></div><!-- xb-slot-end-49132256-b0c2-4753-9800-fdc147fafae8/content -->
   </div>
 <!-- xb-end-49132256-b0c2-4753-9800-fdc147fafae8 --></div>
                     </div>
@@ -175,6 +175,7 @@ describe('mapSlots', () => {
         ),
         componentUuid: 'ad3eff8e-2180-4be1-a60f-df3f2c5ac393',
         slotName: 'column_one',
+        stackDirection: 'vertical',
       },
       'ad3eff8e-2180-4be1-a60f-df3f2c5ac393/column_two': {
         element: doc.querySelector(
@@ -182,6 +183,7 @@ describe('mapSlots', () => {
         ),
         componentUuid: 'ad3eff8e-2180-4be1-a60f-df3f2c5ac393',
         slotName: 'column_two',
+        stackDirection: 'vertical',
       },
       '49132256-b0c2-4753-9800-fdc147fafae8/content': {
         element: doc.querySelector(
@@ -189,6 +191,7 @@ describe('mapSlots', () => {
         ),
         componentUuid: '49132256-b0c2-4753-9800-fdc147fafae8',
         slotName: 'content',
+        stackDirection: 'vertical',
       },
     };
 

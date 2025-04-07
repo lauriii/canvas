@@ -16,7 +16,6 @@ use Drupal\node\NodeInterface;
 use Drupal\Tests\experience_builder\Kernel\Traits\RequestTrait;
 use Drupal\Tests\experience_builder\TestSite\XBTestSetup;
 use Drupal\Tests\user\Traits\UserCreationTrait;
-use Symfony\Component\DomCrawler\Crawler;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 
@@ -200,8 +199,8 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
     $this->assertArrayHasKey('layout', $json);
     $this->assertCount($count, $json['layout']);
     self::assertArrayHasKey('html', $json);
-    $crawler = new Crawler($json['html']);
-    self::assertCount(1, $crawler->filter('main div[data-xb-region][data-xb-uuid="content"]'));
+    $content = $this->getRegion('content');
+    $this->assertNotEmpty($content);
 
     foreach ($json['layout'] as $region) {
       $this->assertArrayHasKey('nodeType', $region);

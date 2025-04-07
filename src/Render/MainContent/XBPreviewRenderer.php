@@ -11,6 +11,7 @@ use Drupal\Core\Render\AttachmentsInterface;
 use Drupal\Core\Render\AttachmentsResponseProcessorInterface;
 use Drupal\Core\Render\Element;
 use Drupal\Core\Render\MainContent\HtmlRenderer;
+use Drupal\Core\Render\Markup;
 use Drupal\Core\Render\RenderCacheInterface;
 use Drupal\Core\Render\RendererInterface;
 use Drupal\Core\Routing\RouteMatchInterface;
@@ -86,9 +87,10 @@ final class XBPreviewRenderer extends HtmlRenderer {
       if ($region === XbPageVariant::MAIN_CONTENT_REGION) {
         continue;
       }
-      // @todo Remove/replace this in https://www.drupal.org/project/experience_builder/issues/3499364
-      $page[$region]['#prefix'] = '<div data-xb-region="' . $region . '" data-xb-uuid="' . $region . '">';
-      $page[$region]['#suffix'] = '</div>';
+      $page[$region]['#prefix'] = Markup::create("<!-- xb-region-start-$region -->");
+      $page[$region]['#suffix'] = Markup::create("<!-- xb-region-end-$region -->");
+      // @see experience_builder_preprocess_region()
+      $page[$region]['#xb_region_preview'] = TRUE;
     }
     return [$page, $title];
   }

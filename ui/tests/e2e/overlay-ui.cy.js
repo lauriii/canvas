@@ -11,7 +11,7 @@ describe('Experience Builder overlay UI interactions', () => {
     cy.drupalUninstall();
   });
 
-  it('Can zoom the canvas with the Zoom Controls', () => {
+  it('Component and slot label behavior should work correctly', () => {
     cy.loadURLandWaitForXBLoaded();
     cy.get('#xbPreviewOverlay .xb--viewport-overlay')
       .first()
@@ -26,32 +26,29 @@ describe('Experience Builder overlay UI interactions', () => {
       'Selecting a "parent" component should show its label, but not the label(s) of its children',
     );
     cy.get('@desktopPreviewOverlay').within(() => {
+      // For perf. reasons we only ever render one name tag at a time - because the name tag relies on checking
+      // lots of global state e.g. hoveredComponent or isDragging - having lot of rendered but invisible nameTags is bad.
+      cy.findAllByTestId('xb-name-tag').should('have.length', 1);
       cy.findByText('Two Column').should('be.visible');
-      cy.findAllByText('Hero').should('have.length', 3).and('not.be.visible');
-      cy.findAllByText('Image').should('have.length', 2).and('not.be.visible');
     });
 
     cy.clickComponentInPreview('Hero');
 
     cy.log('After selecting a "child" component it should show its label.');
     cy.get('@desktopPreviewOverlay').within(() => {
-      cy.findByText('Two Column').should('not.be.visible');
-      cy.findAllByText('Hero').should('have.length', 3);
-      cy.findAllByText('Hero').filter(':visible').should('have.length', 1);
-      cy.findAllByText('Image').should('have.length', 2).and('not.be.visible');
+      cy.findAllByTestId('xb-name-tag').should('have.length', 1);
+      cy.findByText('Hero').should('be.visible');
     });
 
     cy.log(
-      'Now hover a different component. The selected name should show, the hovered name should ALSO show.',
+      'Now hover a different component. The selected name should not show, the hovered name only should show.',
     );
     cy.get('@desktopPreviewOverlay').within(() => {
       cy.findAllByLabelText('Image')
         .eq(1)
         .realHover({ scrollBehavior: 'center' });
-      cy.findAllByText('Hero').filter(':visible').should('have.length', 1);
-
-      cy.findAllByText('Image').should('have.length', 2);
-      cy.findAllByText('Image').filter(':visible').should('have.length', 1);
+      cy.findAllByTestId('xb-name-tag').should('have.length', 1);
+      cy.findByText('Image').should('be.visible');
     });
 
     cy.showPanels();

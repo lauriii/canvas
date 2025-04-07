@@ -17,8 +17,8 @@ describe('Block form', () => {
   });
 
   it('Block settings form with details element', () => {
-    cy.get('#cea4c5b3-7921-4c6f-b388-da921bd1496d-name').should((blockName) => {
-      expect(blockName).to.have.text('Administration');
+    cy.getComponentInPreview('Administration').within(() => {
+      cy.get('[data-xb-uuid="cea4c5b3-7921-4c6f-b388-da921bd1496d"]');
     });
     cy.clickComponentInPreview('Administration');
 

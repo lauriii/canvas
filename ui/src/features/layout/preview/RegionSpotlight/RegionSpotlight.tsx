@@ -4,21 +4,20 @@ import { DEFAULT_REGION, selectDragging } from '@/features/ui/uiSlice';
 import { Spotlight } from '@/components/spotlight/Spotlight';
 import useXbParams from '@/hooks/useXbParams';
 import { useAppSelector } from '@/app/hooks';
+import useSyncPreviewElementSize from '@/hooks/useSyncPreviewElementSize';
 type Props = {};
 
 export const RegionSpotlight = (props: Props) => {
   const { regionsMap } = useDataToHtmlMapValue();
   const { regionId: focusedRegion = DEFAULT_REGION } = useXbParams();
   const [spotlight, setSpotlight] = useState(false);
-  const [rect, setRect] = useState<DOMRect | null>(null);
+  const rect = useSyncPreviewElementSize(regionsMap[focusedRegion]?.elements);
   const { isDragging } = useAppSelector(selectDragging);
 
   useEffect(() => {
     if (focusedRegion && regionsMap) {
-      const regionEl = regionsMap[focusedRegion]?.element;
-      if (regionEl && focusedRegion !== DEFAULT_REGION) {
+      if (focusedRegion !== DEFAULT_REGION) {
         setSpotlight(true);
-        setRect(regionEl.getBoundingClientRect());
         return;
       }
     }
@@ -28,10 +27,10 @@ export const RegionSpotlight = (props: Props) => {
   if (spotlight && rect) {
     return (
       <Spotlight
-        top={rect.top + 40}
+        top={rect.top}
         left={rect.left}
         width={rect.width}
-        height={rect.height - 80}
+        height={rect.height}
         blocking={!isDragging}
       />
     );

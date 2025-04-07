@@ -1,6 +1,10 @@
 [data-component-id="experience_builder:one_column"] {
-  .width-full {
+  &.width-full {
+    display: flex;
     overflow: visible;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    justify-content: space-between;
     width: 100vw;
     max-width: 100%;
   }

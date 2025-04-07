@@ -11,11 +11,12 @@ import {
 import useSyncIframeHeightToContent from '@/hooks/useSyncIframeHeightToContent';
 import ViewportToolbar from '@/features/layout/preview/ViewportToolbar';
 import IframeSwapper from '@/features/layout/preview/IframeSwapper';
-import usePreviewSortable from '@/hooks/usePreviewSortable';
+import useRenderPreviewEmptySlotPlaceholders from '@/hooks/useRenderPreviewEmptySlotPlaceholders';
 import ViewportOverlay from '@/features/layout/previewOverlay/ViewportOverlay';
 import { useComponentHtmlMap } from '@/hooks/useComponentHtmlMap';
 import { useDataToHtmlMapValue } from '@/features/layout/preview/DataToHtmlMapContext';
 import { RegionSpotlight } from '@/features/layout/preview/RegionSpotlight/RegionSpotlight';
+import useRenderPreviewEmptyRegionPlaceholder from '@/hooks/useRenderPreviewEmptyRegionPlaceholder';
 
 export type ViewPortSize = 'lg' | 'sm';
 export interface ViewportProps {
@@ -40,11 +41,8 @@ const Viewport: React.FC<ViewportProps> = (props) => {
 
   const { slotsMap, regionsMap } = useDataToHtmlMapValue();
 
-  const { enableSortables, disableSortables } = usePreviewSortable(
-    iframeRef.current,
-    slotsMap,
-    regionsMap,
-  );
+  useRenderPreviewEmptySlotPlaceholders(iframeRef.current, slotsMap);
+  useRenderPreviewEmptyRegionPlaceholder(iframeRef.current, regionsMap);
 
   useSyncIframeHeightToContent(
     iframeRef.current,
@@ -81,15 +79,6 @@ const Viewport: React.FC<ViewportProps> = (props) => {
     iframe.dataset.testXbContentInitialized = 'true';
     dispatch(setFirstLoadComplete(true));
   }, [dispatch, isReloading]);
-
-  useEffect(() => {
-    if (canvasMode === CanvasMode.INTERACTIVE) {
-      disableSortables();
-    }
-    if (canvasMode === CanvasMode.EDIT) {
-      enableSortables();
-    }
-  }, [enableSortables, disableSortables, canvasMode]);
 
   return (
     <div>

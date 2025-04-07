@@ -75,22 +75,25 @@ export function recurseNodes(
 }
 
 /**
- * Find a Component by its UUID.
+ * Find a Component or Slot by a given identifier.
  * @param roots - The starting node to search from.
- * @param uuid - The id of the node to find.
- * @returns The found component or null if not found.
+ * @param identifier - The id of the node to find.
+ * @param type - The type to search for ('component' or 'slot').
+ * @returns The found node or null if not found.
  */
-export function findComponentByUuid(
+function findByIdentifier(
   roots: Array<RegionNode>,
-  uuid: string,
-): ComponentNode | null {
+  identifier: string,
+  type: 'component' | 'slot',
+): ComponentNode | SlotNode | null {
   const recurseComponents = (
     components: ComponentNode[],
-  ): ComponentNode | null => {
+  ): ComponentNode | SlotNode | null => {
     for (const component of components) {
-      if (component.uuid === uuid) {
+      if (type === 'component' && component.uuid === identifier) {
         return component;
       }
+
       const foundInSlots = recurseSlots(component.slots);
       if (foundInSlots) {
         return foundInSlots;
@@ -99,8 +102,11 @@ export function findComponentByUuid(
     return null;
   };
 
-  const recurseSlots = (slots: SlotNode[]): ComponentNode | null => {
+  const recurseSlots = (slots: SlotNode[]): ComponentNode | SlotNode | null => {
     for (const slot of slots) {
+      if (type === 'slot' && slot.id === identifier) {
+        return slot;
+      }
       const foundInComponents = recurseComponents(slot.components);
       if (foundInComponents) {
         return foundInComponents;
@@ -116,6 +122,32 @@ export function findComponentByUuid(
     }
   }
   return null;
+}
+
+/**
+ * Find a Component by its UUID.
+ * @param roots - The starting node to search from.
+ * @param uuid - The uuid of the component to find.
+ * @returns The found component or null if not found.
+ */
+export function findComponentByUuid(
+  roots: Array<RegionNode>,
+  uuid: string,
+): ComponentNode | null {
+  return findByIdentifier(roots, uuid, 'component') as ComponentNode | null;
+}
+
+/**
+ * Find a Slot by its ID.
+ * @param roots - The starting node to search from.
+ * @param id - The id of the slot to find.
+ * @returns The found slot or null if not found.
+ */
+export function findSlotById(
+  roots: Array<RegionNode>,
+  id: string,
+): SlotNode | null {
+  return findByIdentifier(roots, id, 'slot') as SlotNode | null;
 }
 
 /**
@@ -459,6 +491,7 @@ const layoutUtils = {
   getNodeIdentifier,
   recurseNodes,
   findComponentByUuid,
+  findSlotById,
   removeComponentByUuid,
   findNodePathByUuid,
   insertNodeAtPath,

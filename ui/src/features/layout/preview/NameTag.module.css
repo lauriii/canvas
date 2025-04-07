@@ -1,25 +1,20 @@
 .nameTag {
   display: flex;
-  overflow: hidden;
   align-items: center;
   height: 20px;
   padding: 1px 4px;
-  gap: 5px;
   white-space: nowrap;
-  color: var(--color-outline-component);
+  gap: 5px;
+  color: #fff;
   border-radius: 2px;
-  background-color: #fff;
+  background-color: var(--color-outline-component);
   font-size: 12px;
-  &.selected {
-    color: #fff;
-    background-color: var(--color-outline-component);
-  }
+
   &.slot {
-    color: #fff;
     background-color: var(--color-outline-slot);
   }
+
   &.root {
-    color: #fff;
     background-color: var(--color-outline-root);
   }
 }

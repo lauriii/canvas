@@ -21,6 +21,8 @@ use Symfony\Component\DomCrawler\Crawler;
  */
 final class ApiLayoutControllerTest extends HttpApiTestBase {
 
+  const UUID_IN_CONTENT_REGION = '/<!-- xb-region-start-content -->.*(uid="%s").*<!-- xb-region-end-content -->/';
+
   /**
    * {@inheritdoc}
    */
@@ -151,12 +153,12 @@ final class ApiLayoutControllerTest extends HttpApiTestBase {
     $body = (string) $response->getBody();
     $json = \json_decode($body, TRUE, JSON_THROW_ON_ERROR);
     $crawler = new Crawler($json['html']);
-    $content_region = $crawler->filter('[data-xb-uuid="content"]');
-    self::assertCount(1, $content_region);
-    $element = $content_region->filter('astro-island');
+    $element = $crawler->filter('astro-island');
     self::assertCount(1, $element);
-
     self::assertEquals($uuid, $element->attr('uid'));
+    // Validate element is in content region.
+    $this->assertMatchesRegularExpression(sprintf(self::UUID_IN_CONTENT_REGION, $uuid), $element->ancestors()->html());
+
     // Should see the new (draft) props.
     self::assertJsonStringEqualsJsonString(Json::encode(\array_map(static fn(mixed $value): array => [
       'raw',
@@ -188,9 +190,11 @@ final class ApiLayoutControllerTest extends HttpApiTestBase {
     $body = (string) $response->getBody();
     $json = \json_decode($body, TRUE, JSON_THROW_ON_ERROR);
     $crawler = new Crawler($json['html']);
-    $content_region = $crawler->filter('[data-xb-uuid="content"]');
-    self::assertCount(1, $content_region);
-    $element = $content_region->filter('astro-island');
+
+    $element = $crawler->filter('astro-island');
+    // Validate element is in content region.
+    $this->assertMatchesRegularExpression(sprintf(self::UUID_IN_CONTENT_REGION, $uuid), $element->ancestors()->html());
+
     self::assertCount(1, $element);
     self::assertJsonStringEqualsJsonString(Json::encode([
       'name' => 'Rodney',

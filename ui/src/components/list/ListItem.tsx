@@ -4,7 +4,6 @@ import type { Section } from '@/types/Section';
 import { useState } from 'react';
 import clsx from 'clsx';
 import styles from '@/components/list/List.module.css';
-import { customSortableDragImage } from '@/features/sortable/sortableUtils';
 import * as Tooltip from '@radix-ui/react-tooltip';
 import { Theme } from '@radix-ui/themes';
 import { findNodePathByUuid } from '@/features/layout/layoutUtils';
@@ -20,6 +19,7 @@ import { useNavigationUtils } from '@/hooks/useNavigationUtils';
 import ExposedJsComponent from '@/components/list/ExposedJsComponent';
 import useXbParams from '@/hooks/useXbParams';
 import { DEFAULT_REGION } from '@/features/ui/uiSlice';
+import { useDraggable } from '@dnd-kit/core';
 import SectionNode from '@/components/list/SectionNode';
 
 const ListItem: React.FC<{
@@ -38,6 +38,14 @@ const ListItem: React.FC<{
     regionId: focusedRegion = DEFAULT_REGION,
   } = useXbParams();
   const { setSelectedComponent } = useNavigationUtils();
+  const { attributes, listeners, setNodeRef } = useDraggable({
+    id: item.id,
+    data: {
+      origin: 'library',
+      item: item,
+      name: item.name,
+    },
+  });
 
   const clickToInsertHandler = (newId: string) => {
     let path: number[] | null = [0];
@@ -115,14 +123,14 @@ const ListItem: React.FC<{
   return (
     <div
       key={item.id}
+      {...attributes}
+      {...listeners}
+      ref={setNodeRef}
       data-xb-component-id={item.id}
       data-xb-name={item.name}
       data-xb-type={type}
       className={clsx(styles.listItem)}
       onClick={() => clickToInsertHandler(item.id)}
-      onDragStart={(event) =>
-        customSortableDragImage(event, window.document, item.name)
-      }
       onMouseEnter={() => handleMouseEnter(item)}
     >
       <Tooltip.Provider>

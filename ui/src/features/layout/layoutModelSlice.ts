@@ -1,5 +1,5 @@
 // cspell:ignore uuidv
-import type { AppDispatch, RootState } from '@/app/store';
+import type { RootState, AppThunk } from '@/app/store';
 import type { XBComponent } from '@/types/Component';
 import { componentHasFieldData } from '@/types/Component';
 import type { UUID } from '@/types/UUID';
@@ -413,8 +413,8 @@ export const layoutModelSlice = createSlice({
 });
 
 export const addNewComponentToLayout =
-  (payload: AddNewNodePayload, setSelectedComponent: Function) =>
-  (dispatch: AppDispatch) => {
+  (payload: AddNewNodePayload, setSelectedComponent: Function): AppThunk =>
+  (dispatch, getState) => {
     const { to, component } = payload;
     // Populate the model data with the default values
     const buildInitialData = (component: XBComponent): ComponentModel => {
@@ -482,12 +482,17 @@ export const addNewComponentToLayout =
         useUUID: uuid,
       }),
     );
-    setSelectedComponent(uuid);
+
+    // Get the new state immediately after the insertNode action was called so that setSelectedComponent will find
+    // the newly added component.
+    const updatedState = getState();
+    const updatedLayout = selectLayout(updatedState);
+    setSelectedComponent(uuid, updatedLayout);
   };
 
 export const addNewSectionToLayout =
-  (payload: AddNewSectionPayload, setSelectedComponent: Function) =>
-  (dispatch: AppDispatch) => {
+  (payload: AddNewSectionPayload, setSelectedComponent: Function): AppThunk =>
+  (dispatch, getState) => {
     const uuid = uuidv4();
 
     const { to, layoutModel } = payload;
@@ -503,7 +508,12 @@ export const addNewSectionToLayout =
         useUUID: uuid,
       }),
     );
-    setSelectedComponent(uuid);
+
+    // Get the new state immediately after the insertNodes action was called so that setSelectedComponent will find
+    // the newly added component.
+    const updatedState = getState();
+    const updatedLayout = selectLayout(updatedState);
+    setSelectedComponent(uuid, updatedLayout);
   };
 
 // Action creators are generated for each case reducer function.

@@ -1,0 +1,69 @@
+import type React from 'react';
+import { useEffect, useState } from 'react';
+import type { RegionNode } from '@/features/layout/layoutModelSlice';
+import { selectLayout } from '@/features/layout/layoutModelSlice';
+import clsx from 'clsx';
+import styles from '@/features/layout/previewOverlay/PreviewOverlay.module.css';
+import { useDroppable } from '@dnd-kit/core';
+import { useAppSelector } from '@/app/hooks';
+import { CubeIcon } from '@radix-ui/react-icons';
+import { Text } from '@radix-ui/themes';
+
+export interface EmptyRegionDropZoneProps {
+  region: RegionNode;
+  size: string;
+}
+const EmptyRegionDropZone: React.FC<EmptyRegionDropZoneProps> = (props) => {
+  const { region, size } = props;
+  const layout = useAppSelector(selectLayout);
+  const [activeName, setActiveName] = useState('');
+
+  const regionIndex = layout.findIndex((r) => r.id === region.id);
+  const regionPath = [regionIndex, 0];
+
+  const {
+    setNodeRef: setDropRef,
+    isOver,
+    active,
+  } = useDroppable({
+    id: `${region.id}_${size}`,
+    data: {
+      region: region,
+      parentRegion: region,
+      path: regionPath,
+    },
+  });
+
+  useEffect(() => {
+    if (isOver && active) {
+      setActiveName(active.data?.current?.name);
+    } else {
+      setActiveName('');
+    }
+  }, [active, isOver]);
+
+  return (
+    <div className={styles.emptyRegionContainer}>
+      <div
+        className={clsx(styles.emptyRegionDropZone, {
+          [styles.isOver]: isOver,
+        })}
+        ref={setDropRef}
+      >
+        {activeName ? (
+          activeName
+        ) : (
+          <>
+            <CubeIcon />
+            <Text weight={'medium'} mt="2" trim="start">
+              Content region
+            </Text>
+            <div className={styles.regionMessage}>Place items here</div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default EmptyRegionDropZone;

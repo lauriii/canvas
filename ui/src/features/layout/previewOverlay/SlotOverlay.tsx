@@ -1,10 +1,10 @@
 import type React from 'react';
-import { useEffect, useRef, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import styles from './PreviewOverlay.module.css';
 import { useAppSelector } from '@/app/hooks';
 import {
   selectCanvasViewPortScale,
-  selectHoveredComponent,
+  selectIsComponentHovered,
   selectTargetSlot,
 } from '@/features/ui/uiSlice';
 import clsx from 'clsx';
@@ -19,15 +19,19 @@ import useGetComponentName from '@/hooks/useGetComponentName';
 import useSyncPreviewElementSize from '@/hooks/useSyncPreviewElementSize';
 import { useDataToHtmlMapValue } from '@/features/layout/preview/DataToHtmlMapContext';
 import useXbParams from '@/hooks/useXbParams';
+import EmptySlotDropZone from '@/features/layout/previewOverlay/EmptySlotDropZone';
+// import SlotDropZone from '@/features/layout/previewOverlay/SlotDropZone';
 
 export interface SlotOverlayProps {
   slot: SlotNode;
   iframeRef: React.RefObject<HTMLIFrameElement>;
   parentComponent: ComponentNode;
+  size: string;
+  disableDrop: boolean;
 }
 
 const SlotOverlay: React.FC<SlotOverlayProps> = (props) => {
-  const { slot, parentComponent, iframeRef } = props;
+  const { slot, parentComponent, iframeRef, size, disableDrop } = props;
   const { componentsMap, slotsMap } = useDataToHtmlMapValue();
   const slotId = slot.id;
   const slotElementArray = useMemo(() => {
@@ -42,10 +46,11 @@ const SlotOverlay: React.FC<SlotOverlayProps> = (props) => {
     paddingBottom: '0px',
   });
   const { componentId: selectedComponent } = useXbParams();
-  const hoveredComponent = useAppSelector(selectHoveredComponent);
+  const isHovered = useAppSelector((state) => {
+    return selectIsComponentHovered(state, slotId);
+  });
   const targetSlot = useAppSelector(selectTargetSlot);
   const canvasViewPortScale = useAppSelector(selectCanvasViewPortScale);
-  const nameTagElRef = useRef<HTMLDivElement | null>(null);
   const slotName = useGetComponentName(slot, parentComponent);
   const parentComponentName = useGetComponentName(parentComponent);
 
@@ -66,13 +71,26 @@ const SlotOverlay: React.FC<SlotOverlayProps> = (props) => {
     const computedStyle = window.getComputedStyle(elementInsideIframe);
 
     if (parentElementInsideIframe && elementInsideIframe) {
-      setElementOffset({
-        ...getDistanceBetweenElements(
-          parentElementInsideIframe,
-          elementInsideIframe,
-        ),
-        paddingTop: computedStyle.paddingTop,
-        paddingBottom: computedStyle.paddingBottom,
+      setElementOffset((prevOffsets) => {
+        // Only update the state if the offsets actually changes to prevent re-renders
+        const newOffsets = {
+          ...getDistanceBetweenElements(
+            parentElementInsideIframe,
+            elementInsideIframe,
+          ),
+          paddingTop: computedStyle.paddingTop,
+          paddingBottom: computedStyle.paddingBottom,
+        };
+
+        if (
+          prevOffsets.horizontalDistance !== newOffsets.horizontalDistance ||
+          prevOffsets.verticalDistance !== newOffsets.verticalDistance ||
+          prevOffsets.paddingTop !== newOffsets.paddingTop ||
+          prevOffsets.paddingBottom !== newOffsets.paddingBottom
+        ) {
+          return newOffsets;
+        }
+        return prevOffsets;
       });
     }
   }, [
@@ -84,44 +102,79 @@ const SlotOverlay: React.FC<SlotOverlayProps> = (props) => {
     slotId,
   ]);
 
+  const style: React.CSSProperties = useMemo(
+    () => ({
+      height: elementRect.height * canvasViewPortScale,
+      width: elementRect.width * canvasViewPortScale,
+      top: elementOffset.verticalDistance * canvasViewPortScale,
+      left: elementOffset.horizontalDistance * canvasViewPortScale,
+      pointerEvents: 'none',
+    }),
+    [
+      elementRect.height,
+      elementRect.width,
+      canvasViewPortScale,
+      elementOffset.verticalDistance,
+      elementOffset.horizontalDistance,
+    ],
+  );
+
   return (
     <div
-      aria-label={`${parentComponentName}: ${slotName}`}
+      aria-label={`${slotName} (${parentComponentName})`}
       className={clsx('slotOverlay', styles.slotOverlay, {
         [styles.selected]: slotId === selectedComponent,
-        [styles.hovered]: slotId === hoveredComponent,
+        [styles.hovered]: isHovered,
         [styles.dropTarget]: slotId === targetSlot,
       })}
       data-xb-type="slot"
-      style={{
-        height: elementRect.height * canvasViewPortScale,
-        width: elementRect.width * canvasViewPortScale,
-        top: elementOffset.verticalDistance * canvasViewPortScale,
-        left: elementOffset.horizontalDistance * canvasViewPortScale,
-      }}
+      style={style}
     >
-      {(targetSlot === slotId || hoveredComponent === slotId) && (
-        <div
-          ref={nameTagElRef}
-          className={clsx(styles.xbNameTag, styles.xbNameTagSlot)}
-        >
+      {(targetSlot === slotId || isHovered) && (
+        <div className={clsx(styles.xbNameTag, styles.xbNameTagSlot)}>
           <NameTag
-            name={slotName}
-            componentUuid={slotId}
-            selected={selectedComponent === slotId}
+            name={`${slotName} (${parentComponentName})`}
+            id={slotId}
             nodeType={slot.nodeType}
           />
         </div>
       )}
+      {!slot.components.length && !disableDrop && (
+        <EmptySlotDropZone
+          slot={slot}
+          slotName={slotName}
+          size={size}
+          parentComponent={parentComponent}
+        />
+      )}
 
-      {slot.components.map((childComponent: ComponentNode) => (
+      {slot.components.map((childComponent: ComponentNode, index) => (
         <ComponentOverlay
           key={childComponent.uuid}
           iframeRef={iframeRef}
           parentSlot={slot}
           component={childComponent}
+          size={size}
+          index={index}
+          disableDrop={disableDrop}
         />
       ))}
+
+      {/* @todo - these SlotDropZones might become useful in future for handling more complex nested "container" components */}
+      {/*{!disableDrop && (*/}
+      {/*<SlotDropZone*/}
+      {/*  slot={slot}*/}
+      {/*  position="before"*/}
+      {/*  size={size}*/}
+      {/*  parentComponent={parentComponent}*/}
+      {/*/>*/}
+      {/*<SlotDropZone*/}
+      {/*  slot={slot}*/}
+      {/*  position="after"*/}
+      {/*  size={size}*/}
+      {/*  parentComponent={parentComponent}*/}
+      {/*/>*/}
+      {/*)}*/}
     </div>
   );
 };

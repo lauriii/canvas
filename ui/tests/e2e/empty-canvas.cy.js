@@ -38,7 +38,7 @@ describe('Empty canvas', () => {
       'exist',
     );
 
-    cy.waitForElementInIframe('.xb--sortable-slot-empty-placeholder');
+    cy.waitForElementInIframe('.xb--region-empty-placeholder');
     cy.get(
       '[data-xb-component-id="sdc.experience_builder.my-hero"]',
     ).realClick();
@@ -87,7 +87,7 @@ describe('Empty canvas', () => {
       'exist',
     );
 
-    cy.waitForElementInIframe('.xb--sortable-slot-empty-placeholder');
+    cy.waitForElementInIframe('.xb--region-empty-placeholder');
 
     cy.get(
       '[data-xb-component-id="sdc.experience_builder.my-hero"]',

@@ -6,6 +6,7 @@ import { DEFAULT_REGION } from '@/features/ui/uiSlice';
 import { useCallback } from 'react';
 import { findParentRegion } from '@/features/layout/layoutUtils';
 import { selectLayout } from '@/features/layout/layoutModelSlice';
+import type { RegionNode } from '@/features/layout/layoutModelSlice';
 
 const { drupalSettings } = window;
 export function useNavigationUtils() {
@@ -15,10 +16,11 @@ export function useNavigationUtils() {
   const baseUrl = useAppSelector(selectBaseUrl);
 
   const setSelectedComponent = useCallback(
-    (componentUuid: string) => {
+    (componentUuid: string, currentLayoutState?: RegionNode[]) => {
       const baseUrl = '/editor';
       let destinationUrl = `${baseUrl}`;
-      const parentRegion = findParentRegion(layout, componentUuid);
+      const layoutToSearch = currentLayoutState || layout;
+      const parentRegion = findParentRegion(layoutToSearch, componentUuid);
 
       if (parentRegion && parentRegion.id !== DEFAULT_REGION) {
         destinationUrl = `${baseUrl}/region/${parentRegion.id}/component/${componentUuid}`;

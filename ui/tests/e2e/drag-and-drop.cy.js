@@ -52,7 +52,7 @@ describe('Drag and drop functionality in the Layers menu', () => {
 
     cy.log('Image component exists in the first slot in the overlay UI');
     cy.get('@desktopPreviewOverlay').within(() => {
-      cy.findByLabelText('Two Column: Column One').within(() => {
+      cy.findByLabelText('Column One (Two Column)').within(() => {
         cy.findByLabelText('Image');
       });
     });
@@ -78,7 +78,7 @@ describe('Drag and drop functionality in the Layers menu', () => {
       'Image component no longer exists in the first slot in the overlay UI and is now a sibling of Two Column',
     );
     cy.get('@desktopPreviewOverlay').within(() => {
-      cy.findByLabelText('Two Column: Column One').within(() => {
+      cy.findByLabelText('Column One (Two Column)').within(() => {
         cy.findByLabelText('Image').should('not.exist');
       });
       cy.checkSiblings(
@@ -139,7 +139,7 @@ describe('Drag and drop functionality in the Layers menu', () => {
     cy.log('Image component exists in the column_two slot in the overlay UI');
     // Ensure there is only one Image in each preview and we didn't clone it or anything!
     cy.get(
-      '#xbPreviewOverlay .xb--viewport-overlay [aria-label="Two Column: Column Two"] [data-xb-component-id="sdc.experience_builder.image"]',
+      '#xbPreviewOverlay .xb--viewport-overlay [aria-label="Column Two (Two Column)"] [data-xb-component-id="sdc.experience_builder.image"]',
     ).should('have.length', 2);
   });
 

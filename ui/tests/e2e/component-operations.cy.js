@@ -188,9 +188,9 @@ describe('Perform CRUD operations on components', () => {
 
     cy.viewport(2000, 1320);
     cy.loadURLandWaitForXBLoaded();
-    cy.get(
-      '[data-xb-viewport-size="lg"] [aria-label="Two Column: Column One"]',
-    ).realClick({ position: 'bottom' });
+    cy.get('[data-xb-viewport-size="lg"]')
+      .findByLabelText('Two Column')
+      .realClick({ position: 'bottomRight' });
     cy.log(
       'Save the entire node 1 layout as a section, so it can be added to a different node.',
     );
@@ -217,12 +217,10 @@ describe('Perform CRUD operations on components', () => {
       scrollBehavior: false,
     });
     cy.waitForComponentNotInPreview('Image');
-    cy.get(
-      '[data-xb-viewport-size="lg"] [aria-label="Two Column: Column One"]',
-    ).trigger('contextmenu', {
-      ...clickDefault,
-      position: 'bottom',
-    });
+
+    cy.get('[data-xb-viewport-size="lg"]')
+      .findByLabelText('Two Column')
+      .rightclick({ position: 'bottomLeft' });
     cy.findByText('Create section').click(clickDefault); // Section name
 
     // Typing into the section name input does not work instantly, so attempt
@@ -260,8 +258,6 @@ describe('Perform CRUD operations on components', () => {
       'exist',
     );
 
-    // Ensure the element that can receive component drops is present.
-    cy.waitForElementInIframe('.xb--sortable-slot-empty-placeholder');
     cy.get(
       '[data-xb-component-id="sdc.experience_builder.my-hero"]',
     ).realClick();
@@ -347,8 +343,7 @@ describe('Perform CRUD operations on components', () => {
     cy.loadURLandWaitForXBLoaded();
 
     // Check there are three heroes initially.
-    cy.getComponentInPreview('Hero', 1).should('exist');
-    cy.getComponentInPreview('Hero', 2).should('exist');
+    cy.getAllComponentsInPreview('Hero').should('have.length', 3);
 
     // Select the component and ensure it's focused
     cy.clickComponentInPreview('Hero');
@@ -357,8 +352,7 @@ describe('Perform CRUD operations on components', () => {
     cy.previewReady();
 
     // Check there are two heroes after deleting
-    cy.getComponentInPreview('Hero', 1).should('exist');
-    cy.getComponentInPreview('Hero', 2).should('not.exist');
+    cy.getAllComponentsInPreview('Hero').should('have.length', 2);
 
     cy.getIframeBody()
       .find('[data-component-id="experience_builder:two_column"]')
@@ -387,8 +381,11 @@ describe('Perform CRUD operations on components', () => {
     cy.openLibraryPanel();
     // Click on Two Column inside menu.
     cy.get('.primaryPanelContent').findByText('Two Column').click();
-    cy.waitForElementContentInIframe('div', 'This is column 1 content');
-    cy.waitForElementContentInIframe('div', 'This is column 2 content');
+    cy.log(
+      'There should be 4 drop zones - 2 columns in each preview overlay (desktop, mobile)',
+    );
+    cy.findAllByTestId('xb-empty-slot-drop-zone').should('have.length', 4);
+
     cy.openLayersPanel();
     // Assert that a second two column SDC has been added.
     cy.findByTestId('xb-primary-panel').within(() => {

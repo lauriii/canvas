@@ -385,6 +385,9 @@ class ComponentTest extends KernelTestBase {
     yield 'installing xb_test_sdc creates props-no-slots and props-slots components' => [
       'modules' => ['xb_test_sdc'],
       'components' => $defaults + [
+        'sdc.xb_test_sdc.grid-container' => [
+          'compatible' => TRUE,
+        ],
         'sdc.xb_test_sdc.image-optional-with-example' => [
           'compatible' => TRUE,
         ],
@@ -429,6 +432,9 @@ class ComponentTest extends KernelTestBase {
       'modules' => ['xb_test_sdc', 'sdc_test_all_props'],
       'components' => $defaults + [
         'sdc.sdc_test_all_props.all-props' => [
+          'compatible' => TRUE,
+        ],
+        'sdc.xb_test_sdc.grid-container' => [
           'compatible' => TRUE,
         ],
         'sdc.xb_test_sdc.image-optional-with-example' => [

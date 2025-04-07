@@ -12,11 +12,12 @@ import {
   canvasViewPortZoomOut,
   canvasViewPortZoomDelta,
   setCanvasViewPort,
-  selectPanning,
   setIsPanning,
   selectFirstLoadComplete,
   setCanvasModeEditing,
   setCanvasModeInteractive,
+  setIsZooming,
+  selectPanning,
 } from '@/features/ui/uiSlice';
 import PreviewOverlay from '@/features/layout/previewOverlay/PreviewOverlay';
 import { deleteNode } from '../layout/layoutModelSlice';
@@ -36,7 +37,7 @@ const Canvas = () => {
   const firstLoadComplete = useAppSelector(selectFirstLoadComplete);
   const [isVisible, setIsVisible] = useState(false);
   const [middleMouseDown, setMiddleMouseDown] = useState(false);
-  const { isPanning } = useAppSelector(selectPanning);
+  const isPanning = useAppSelector(selectPanning);
   const [modifierKeyPressed, setModifierKeyPressed] = useState(false);
   const modifierKeyPressedRef = useRef(false);
   const { componentId: selectedComponent } = useXbParams();
@@ -177,15 +178,15 @@ const Canvas = () => {
       if (e.ctrlKey) {
         e.preventDefault();
         dispatch(canvasViewPortZoomDelta(e.deltaY));
-        dispatch(setIsPanning(true));
+        dispatch(setIsZooming(true));
 
-        // debounce the setIsPanning(false) so that elements hidden when zooming don't flicker.
+        // debounce the setIsZooming(false) so that elements hidden when zooming don't flicker.
         if (scrollTimeoutRef.current) {
           clearTimeout(scrollTimeoutRef.current);
         }
         scrollTimeoutRef.current = setTimeout(() => {
-          dispatch(setIsPanning(false));
-        }, 500);
+          dispatch(setIsZooming(false));
+        }, 140);
       }
     },
     [dispatch],
@@ -266,10 +267,7 @@ const Canvas = () => {
               </ErrorBoundary>
             </div>
 
-            <PreviewOverlay
-              canvasPaneRef={canvasPaneRef}
-              previewsContainerRef={previewsContainerRef}
-            />
+            <PreviewOverlay />
           </div>
         </div>
       </div>

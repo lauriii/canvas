@@ -15,34 +15,47 @@
 .viewportOverlay {
   position: absolute;
   transition: opacity 0.1s ease-in-out;
+  pointer-events: all;
   opacity: 1;
-
-  &.isPanning {
+  &.isZooming {
     transition: none;
+    pointer-events: none;
     opacity: 0;
   }
 }
 
+
 .regionOverlay {
   position: absolute;
+  outline: 1px solid transparent;
 
-  &.dropTarget::before {
-    position: absolute;
-    display: block;
-    content: "";
+  &.dropTarget {
+    inset: 0;
     pointer-events: none;
     outline: 1px dashed var(--color-outline-root);
-    inset: var(--drop-target-spacing) 0; /* Offset extra drop target spacing added in ui/assets/css/preview.css. */
+    outline-offset: -1px;
   }
 
   &.dropTarget .xbNameTagSlot {
-    top: calc(var(--name-tag-vertical-offset) + var(--drop-target-spacing));
     display: block;
   }
 }
 
 .componentOverlay {
   position: absolute;
+  transition: opacity 0.1s ease-in-out;
+  pointer-events: all;
+  opacity: 0;
+  outline: 1px solid transparent;
+
+  .sortableList {
+    width: 100%;
+    height: 100%;
+  }
+
+  .hidden {
+    display: none;
+  }
 
   > span {
     display: none;
@@ -55,34 +68,18 @@
   &.hovered {
     outline: 1px solid var(--color-outline-component);
   }
-
-  &.selected:not(.dragging),
-  &.hovered:not(.dragging),
-  &:focus-visible:not(.dragging) {
-    > .sortableItem > .xbComponentControls > .xbNameTag {
-      display: block;
-    }
-  }
-
-  &.dragging {
-    outline: none;
-
-    .xbNameTag {
-      display: none;
-    }
-
-    .xbNameTagSlot {
-      display: block;
-    }
-  }
 }
 
 .slotOverlay {
   position: absolute;
+  outline: 1px solid transparent;
 
   &.dropTarget {
     outline: 1px dashed var(--color-outline-slot);
     outline-offset: -1px;
+  }
+  &.dropTarget > .xbNameTag {
+    display: block;
   }
 
   &.hovered {
@@ -97,16 +94,272 @@
   }
 }
 
+/* .emptySlotDropZone { */
+/*  position: absolute; */
+/*  display: flex; */
+/*  align-items: center; */
+/*  justify-content: center; */
+/*  width: calc(100% - 10px); */
+/*  height: calc(100% - 10px); */
+/*  pointer-events: none; */
+/*  color: #fff; */
+/*  border-radius: var(--radius-2); */
+/*  outline: 2px dashed var(--gray-5); */
+/*  background: linear-gradient(to bottom, #ccc, #efefef); */
+/*  font-size: 12px; */
+/*  inset: 5px; */
+
+/*  &.isOver { */
+/*    color: #fff; */
+/*    background: var(--purple-8); */
+/*  } */
+/* } */
+
+.emptySlotContainer,
+.emptyRegionContainer {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  background: none;
+}
+.emptySlotContainer {
+  color: var(--purple-9);
+  border: 1px solid var(--purple-9);
+
+}
+.emptyRegionContainer {
+  color: var(--green-9);
+  border: 1px solid var(--green-9);
+}
+
+.emptyRegionDropZone,
+.emptySlotDropZone {
+  position: absolute;
+  display: flex;
+  overflow: hidden;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  width: calc(100% - 8px);
+  height: calc(100% - 8px);
+  pointer-events: none;
+  background: rgba(255,255,255, 0.3);
+  font-size: 12px;
+  gap: var(--space-1);
+  inset: 4px;
+  backdrop-filter: blur(30px);
+  > div {
+    white-space: nowrap;
+  }
+
+  &.isOver {
+    color: #fff;
+    background: var(--green-8);
+  }
+}
+.emptyRegionDropZone {
+  flex-direction: column;
+  gap: 0;
+  border: 1px dashed var(--green-9);
+  &.isOver {
+    color: #fff;
+    background: var(--green-8);
+  }
+  .regionMessage {
+    color: var(--green-7);
+  }
+}
+.emptySlotDropZone {
+  border: 1px dashed var(--purple-9);
+  &.isOver {
+    color: #fff;
+    background: var(--purple-8);
+  }
+}
+
+.componentDropZone {
+  position: absolute;
+  pointer-events: none;
+  /* background: rgba(255,255,0,0.2); */
+
+  &.isOver {
+    &::after {
+      position: absolute;
+      display: block;
+      content: '';
+      border-radius: 4px;
+      outline: 1px solid #fff;
+      background-color: var(--purple-9);
+    }
+  }
+
+  &.top {
+    top: 0;
+    width: 100%;
+    height: 50%;
+    max-height: 40px;
+
+    &::after {
+      top: 0;
+      width: 100%;
+      height: 3px;
+    }
+  }
+
+  &.bottom {
+    bottom: 0;
+    width: 100%;
+    height: 50%;
+    max-height: 40px;
+
+    &::after {
+      bottom: 0;
+      width: 100%;
+      height: 3px;
+    }
+  }
+
+  &.left {
+    top: 0;
+    left: 0;
+    width: 50%;
+    max-width: 40px;
+    height: 100%;
+
+    &::after {
+      left: 0;
+      width: 3px;
+      height: 100%;
+    }
+  }
+
+  &.right {
+    top: 0;
+    right: 0;
+    width: 50%;
+    max-width: 40px;
+    height: 100%;
+
+    &::after {
+      right: 0;
+      width: 3px;
+      height: 100%;
+    }
+  }
+}
+
+.slotDropZone {
+  position: absolute;
+  pointer-events: none;
+  background: rgba(255, 100, 100, 0.3);
+
+  &.isOver {
+    &::after {
+      position: absolute;
+      display: block;
+      content: '';
+      border-radius: 4px;
+      outline: 1px solid #fff;
+      background-color: var(--orange-9);
+    }
+  }
+
+  &.before {
+    top: -5px;
+    width: 100%;
+    height: 5px;
+
+    &::after {
+      top: 0;
+      width: 100%;
+      height: 3px;
+    }
+  }
+
+  &.after {
+    bottom: -5px;
+    width: 100%;
+    height: 5px;
+
+    &::after {
+      top: 0;
+      width: 100%;
+      height: 3px;
+    }
+  }
+}
+
+.regionDropZone {
+  position: absolute;
+  pointer-events: none;
+  /* background: rgba(255,100,100,0.3); */
+
+  &.isOver {
+    &::after {
+      position: absolute;
+      display: block;
+      content: '';
+      border-radius: 4px;
+      outline: 1px solid #fff;
+      background-color: var(--purple-9);
+    }
+  }
+
+  &.before {
+    top: -15px;
+    width: 100%;
+    height: 15px;
+
+    &::after {
+      bottom: 0;
+      width: 100%;
+      height: 3px;
+    }
+  }
+
+  &.after {
+    bottom: -15px;
+    width: 100%;
+    height: 15px;
+
+    &::after {
+      top: 0;
+      width: 100%;
+      height: 3px;
+    }
+  }
+}
+
 .xbNameTag {
   position: absolute;
-  z-index: 2;
   top: var(--name-tag-vertical-offset);
-  display: none;
-  opacity: 1;
 }
 
 .sortableItem {
   width: 100%;
   height: 100%;
   cursor: grab;
+}
+
+.dragOverlay {
+  pointer-events: none;
+}
+
+.dragOverlay div {
+  display: flex;
+  align-items: center;
+  justify-content: start;
+  width: 200px;
+  height: 32px;
+  padding: 5px 16px;
+  color: #fff;
+  border-radius: 8px;
+  background-color: #8e4ec6;
+  font-family: var(--default-font-family);
+  font-size: 12px;
+  line-height: 12px;
 }

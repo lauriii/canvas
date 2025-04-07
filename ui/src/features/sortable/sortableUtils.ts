@@ -133,7 +133,7 @@ export function isDropTargetBetweenTwoElementsOfSameComponent(
 
     while (
       sibling &&
-      (sibling.classList.contains('xb--sortable-clone') ||
+      (sibling.classList.contains('xb--item-dragging') ||
         sibling.classList.contains('xb--sortable-ghost'))
     ) {
       sibling =

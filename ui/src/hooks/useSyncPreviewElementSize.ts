@@ -98,14 +98,27 @@ function useSyncPreviewElementSize(input: HTMLElement[] | HTMLElement | null) {
 
     const minTop = getMinOfArray(tops);
     const minLeft = getMinOfArray(lefts);
+    const newRect = {
+      top: minTop,
+      left: minLeft,
+      width: getMaxOfArray(rights) - minLeft,
+      height: getMaxOfArray(bottoms) - minTop,
+    };
 
     if (elementsRef.current) {
       requestAnimationFrame(() => {
-        setElementRect({
-          top: minTop,
-          left: minLeft,
-          width: getMaxOfArray(rights) - minLeft,
-          height: getMaxOfArray(bottoms) - minTop,
+        setElementRect((prevRect) => {
+          // Only update if the values have changed so the hook returns the same object preventing components that use
+          // it from re-rendering
+          if (
+            prevRect.top !== newRect.top ||
+            prevRect.left !== newRect.left ||
+            prevRect.width !== newRect.width ||
+            prevRect.height !== newRect.height
+          ) {
+            return newRect;
+          }
+          return prevRect;
         });
       });
     }
@@ -192,7 +205,8 @@ function useSyncPreviewElementSize(input: HTMLElement[] | HTMLElement | null) {
     };
   }, [init, elements]);
 
-  return elementRect;
+  // Use useMemo to return a stable reference
+  return useMemo(() => elementRect, [elementRect]);
 }
 
 export default useSyncPreviewElementSize;

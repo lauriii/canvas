@@ -57,9 +57,9 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
     ], JSON_THROW_ON_ERROR)));
 
     // Check that the root level is structured correctly.
-    $root = $this->cssSelect('main div[data-xb-region][data-xb-uuid="content"]');
+    $root = $this->getRegion('content');
     $this->assertNotEmpty($root);
-    $this->assertCount(0, $root[0]);
+    $this->assertEquals('', $root[0]);
   }
 
   public function testMissingSlot(): void {
@@ -125,11 +125,11 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
     ], JSON_THROW_ON_ERROR)));
 
     // Check that the root level is structured correctly.
-    $root = $this->cssSelect('main div[data-xb-region="content"]');
+    $root = $this->getRegion('content');
 
-    $this->assertNotEmpty($root);
-    $this->assertGreaterThan(0, $root[0]->count());
-    preg_match_all('/(xb-start-)(.*?)[\/ \t](.*?)(-->)(.*?)/', $root[0]->asXML() ?: '', $slot_and_component_comments);
+    $this->assertNotEmpty($root[0]);
+
+    \preg_match_all('/(xb-start-)(.*?)[\/ \t](.*?)(-->)(.*?)/', $root[0], $slot_and_component_comments);
     $this->assertSame(['c4074d1f-149a-4662-aaf3-615151531cf6'], $slot_and_component_comments[2]);
   }
 
@@ -147,10 +147,9 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
     self::assertTrue($autoSave->getAutoSaveData($node)->isEmpty());
 
     // Check that each level is structured correctly.
-    $root = $this->cssSelect('main div[data-xb-region][data-xb-uuid="content"]');
-    $this->assertNotEmpty($root);
-    $this->assertGreaterThan(0, $root[0]->count());
-    preg_match_all('/(xb-start-)(.*?)[\/ \t](.*?)(-->)(.*?)/', $root[0]->asXML() ?: '', $slot_and_component_comments);
+    $contentRegion = $this->getRegion('content');
+    $this->assertNotEmpty($contentRegion);
+    \preg_match_all('/(xb-start-)(.*?)[\/ \t](.*?)(-->)(.*?)/', $contentRegion[0], $slot_and_component_comments);
     $this->assertCount(6, $slot_and_component_comments[2]);
     $this->assertSame(array_keys($model), $slot_and_component_comments[2]);
 
@@ -201,9 +200,10 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
     }
 
     // Check that regions exist and are wrapped.
-    $crawler = new Crawler($this->content);
-    self::assertCount(1, $crawler->filter('[data-xb-uuid="content"]'));
-    self::assertCount(1, $crawler->filter('[data-xb-uuid="highlighted"]'));
+    $contentRegion = $this->getRegion('content');
+    $this->assertNotEmpty($contentRegion);
+    $highlighted = $this->getRegion('highlighted');
+    $this->assertNotEmpty($highlighted);
 
     // Add a new component to a global region.
     $uuid = '173c4899-a5f7-442a-b008-ea8c925735be';
@@ -320,13 +320,15 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
     unset($json['isNew'], $json['isPublished'], $json['html']);
     $this->request(Request::create('/xb/api/layout/node/1', method: 'POST', content: \json_encode($json, JSON_THROW_ON_ERROR)));
     // Check that regions exist and are wrapped.
-    $crawler = new Crawler($this->content);
-    $content_region = $crawler->filter('[data-xb-uuid="content"]');
-    self::assertCount(1, $content_region);
-    $element = $content_region->filter('astro-island');
-    self::assertCount(1, $element);
+    $content_region = $this->getRegion('content');
+    self::assertNotEmpty($content_region);
 
+    $crawler = new Crawler($this->content);
+    $element = $crawler->filter('astro-island');
+    self::assertNotFalse(str_contains($content_region[0], 'astro-island'));
+    self::assertNotFalse(str_contains($content_region[0], $uuid));
     self::assertEquals($uuid, $element->attr('uid'));
+
     // Should see the new (draft) props.
     self::assertJsonStringEqualsJsonString(Json::encode(\array_map(static fn(mixed $value): array => [
       'raw',

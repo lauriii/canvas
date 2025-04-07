@@ -14,16 +14,12 @@
   min-height: fit-content;
   padding: 80vh 80vw;
   transition:
-    background-color 100ms ease-in-out,
     opacity 0.3s ease-in-out;
   opacity: 0;
   background: var(--gray-4);
   box-shadow: var(--shadow-3);
   &.visible {
     opacity: 1;
-  }
-  .isPanning & {
-    background: var(--gray-3);
   }
 }
 .modifierKeyPressed .canvas {
@@ -41,13 +37,5 @@
 .modifierKeyPressed .canvas > *,
 .isPanning .canvas > * {
   user-select: none;
-  pointer-events: none;
-}
-
-.canvasPane.hoveredComponent {
-  overflow: hidden;
-}
-
-.modifierKeyPressed .previewsContainer iframe {
   pointer-events: none;
 }

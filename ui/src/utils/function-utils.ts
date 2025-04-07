@@ -3,6 +3,7 @@ import type {
   SlotsMap,
   ComponentsMap,
   RegionsMap,
+  StackDirection,
 } from '@/types/AnnotationMaps';
 import type { PendingChanges } from '@/services/pendingChangesApi';
 
@@ -112,7 +113,7 @@ export function insertPlaceholderIfMatchingComments(listEl: HTMLElement) {
     // Insert placeholderDiv if there are no elements between the comments
     if (!hasElementsInBetween) {
       const placeholderDiv = document.createElement('div');
-      placeholderDiv.classList.add('xb--sortable-slot-empty-placeholder');
+      placeholderDiv.classList.add('xb--slot-empty-placeholder');
       listEl.insertBefore(placeholderDiv, childNodes[endCommentIndex]);
     }
   }
@@ -142,12 +143,14 @@ export function mapSlots(document: Document): SlotsMap {
       const slotId = `${uuid}/${slotName}`;
 
       // Ensure the parent element exists and is an HTMLElement
-      if (currentNode.parentElement) {
-        currentNode.parentElement.dataset.xbSlotId = slotId;
+      const parentElement = currentNode.parentElement;
+      if (parentElement) {
+        parentElement.dataset.xbSlotId = slotId;
         slotsMap[slotId] = {
-          element: currentNode.parentElement,
+          element: parentElement,
           componentUuid: uuid,
           slotName: slotName,
+          stackDirection: getStackingDirection(parentElement),
         };
       }
     }
@@ -205,40 +208,53 @@ export function mapComponents(document: Document): ComponentsMap {
   return componentMap;
 }
 
+/**
+ * Returns a RegionsMap containing all the regions in the passed `document` keyed by the ID of the region.
+ * @param document
+ */
 export function mapRegions(document: Document): RegionsMap {
   const regionMap: RegionsMap = {};
-  // @todo #3499364 This should be using HTML comments rather than a div[data-xb-region] to denote a region in the HTML
-  document
-    .querySelectorAll<HTMLElement>('[data-xb-region]')
-    .forEach((regionEl) => {
-      if (regionEl.dataset?.xbRegion) {
-        // @todo #3499364 this can hopefully go away once regions are wrapped with HTML comments. Right now the content region
-        // has its children directly inside, all other regions contain a div.region which contains the child components.
-        if (
-          regionEl.firstElementChild &&
-          regionEl.firstElementChild.classList.contains('region')
+  const walker = document.createTreeWalker(
+    document.body,
+    NodeFilter.SHOW_COMMENT,
+  );
+  let currentNode = walker.nextNode();
+  while (currentNode) {
+    const startMatch = /^\s*xb-region-start-([\w-]+)\s*$/.exec(
+      currentNode.nodeValue || '',
+    );
+
+    if (startMatch) {
+      const regionId = startMatch[1];
+      if (regionId === 'content') {
+        // Content region is a special case where the container div.region is the parent of the comment.
+        regionMap[regionId] = {
+          elements: [currentNode.parentElement as HTMLElement],
+          regionId,
+        };
+      } else {
+        regionMap[regionId] = {
+          elements: [],
+          regionId,
+        };
+        let sibling = currentNode.nextSibling;
+        while (
+          sibling &&
+          !(
+            sibling.nodeType === Node.COMMENT_NODE &&
+            sibling.nodeValue?.trim() === `xb-region-end-${regionId}`
+          )
         ) {
-          // @todo #3499364 this is a workaround for the current way regions are wrapped.
-          regionEl.firstElementChild.setAttribute(
-            'data-xb-uuid',
-            regionEl.dataset.xbRegion,
-          );
-          regionEl.firstElementChild.setAttribute(
-            'data-xb-region',
-            regionEl.dataset.xbRegion,
-          );
-          regionMap[regionEl.dataset.xbRegion] = {
-            element: regionEl.firstElementChild as HTMLElement,
-            regionId: regionEl.dataset.xbRegion,
-          };
-        } else {
-          regionMap[regionEl.dataset.xbRegion] = {
-            element: regionEl,
-            regionId: regionEl.dataset.xbRegion,
-          };
+          if (sibling.nodeType === Node.ELEMENT_NODE) {
+            regionMap[regionId].elements.push(sibling as HTMLElement);
+          }
+          sibling = sibling.nextSibling;
         }
       }
-    });
+    }
+    currentNode = walker.nextNode();
+  }
+
   return regionMap;
 }
 
@@ -378,4 +394,50 @@ export function findInChanges(
     }
   }
   return false;
+}
+
+function getStackingDirection(container: HTMLElement): StackDirection {
+  const style = getComputedStyle(container);
+  const display = style.display;
+
+  if (display.includes('flex')) {
+    const flexDirection = style.flexDirection;
+    if (flexDirection === 'row' || flexDirection === 'row-reverse') {
+      return 'horizontal-flex';
+    } else if (
+      flexDirection === 'column' ||
+      flexDirection === 'column-reverse'
+    ) {
+      return 'vertical-flex';
+    }
+  } else if (display.includes('grid')) {
+    const gridTemplateColumns = style.gridTemplateColumns
+      .split(' ')
+      .filter((val) => val !== '0px' && val !== 'auto');
+    const gridTemplateRows = style.gridTemplateRows
+      .split(' ')
+      .filter((val) => val !== '0px' && val !== 'auto');
+
+    // If there is only one column defined, treat it as vertical stacking.
+    if (gridTemplateColumns.length === 1) {
+      return 'vertical-grid';
+    } else if (gridTemplateColumns.length > 1) {
+      return 'horizontal-grid';
+    }
+
+    // If there are multiple rows, consider it vertical stacking.
+    if (gridTemplateRows.length > 1) {
+      return 'vertical-grid';
+    }
+
+    const gridAutoFlow = style.gridAutoFlow;
+    if (gridAutoFlow.includes('row')) {
+      return 'horizontal-grid';
+    } else if (gridAutoFlow.includes('column')) {
+      return 'vertical-grid';
+    }
+  }
+
+  // Default assumption based on common practices
+  return 'vertical';
 }

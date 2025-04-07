@@ -181,21 +181,21 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
     }
 
     // Check that each level is structured correctly.
-    $root = $this->cssSelect('main div[data-xb-region][data-xb-uuid="content"]');
-    self::assertNotEmpty($root);
+    $content = $this->getRegion('content');
+    self::assertNotEmpty($content);
     $globalElements = [];
     if ($withGlobal) {
-      $sidebar_first = $this->cssSelect('div[data-xb-region][data-xb-uuid="sidebar_first"]');
+      $sidebar_first = $this->getRegion('sidebar_first');
       self::assertNotEmpty($sidebar_first);
-      \preg_match_all('/(xb-start-)(.*?)[\/ \t](.*?)(-->)(.*?)/', $sidebar_first[0]->asXML() ?: '', $comments);
+
+      \preg_match_all('/(xb-start-)(.*?)[\/ \t](.*?)(-->)(.*?)/', $sidebar_first[0] ?: '', $comments);
       $globalElements = $comments[2];
-      $highlighted = $this->cssSelect('div[data-xb-region][data-xb-uuid="highlighted"]');
+      $highlighted = $this->getRegion('highlighted');
       self::assertNotEmpty($highlighted);
-      \preg_match_all('/(xb-start-)(.*?)[\/ \t](.*?)(-->)(.*?)/', $highlighted[0]->asXML() ?: '', $comments);
+      \preg_match_all('/(xb-start-)(.*?)[\/ \t](.*?)(-->)(.*?)/', $highlighted[0] ?: '', $comments);
       $globalElements = [...$globalElements, ...$comments[2]];
     }
-    self::assertGreaterThan(0, $root[0]->count());
-    \preg_match_all('/(xb-start-)(.*?)[\/ \t](.*?)(-->)(.*?)/', $root[0]->asXML() ?: '', $comments);
+    \preg_match_all('/(xb-start-)(.*?)[\/ \t](.*?)(-->)(.*?)/', $content[0] ?: '', $comments);
     self::assertCount($withGlobal ? 8 : 6, \array_merge($comments[2], $globalElements));
     if ($withGlobal) {
       self::assertSame(\array_keys($model), \array_merge($comments[2], $globalElements));

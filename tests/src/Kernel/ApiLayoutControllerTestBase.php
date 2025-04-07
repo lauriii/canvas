@@ -12,6 +12,8 @@ use Symfony\Component\HttpFoundation\Response;
 
 class ApiLayoutControllerTestBase extends KernelTestBase {
 
+  const REGION_PATTERN = '/<!-- xb-region-start-%1$s -->([\n\s\S]*)<!-- xb-region-end-%1$s -->/';
+
   use RequestTrait {
     request as parentRequest;
   }
@@ -40,6 +42,27 @@ class ApiLayoutControllerTestBase extends KernelTestBase {
     $json = \json_decode($content, TRUE);
     unset($json['isNew'], $json['isPublished'], $json['html']);
     return \json_encode($json, JSON_THROW_ON_ERROR);
+  }
+
+  /**
+   * Uses regex to find regions "wrapped" by inline HTML comments in content.
+   *
+   * @param string $region
+   *
+   * @return array
+   */
+  protected function getRegion(string $region): array {
+    $matches = [];
+
+    $content = $this->getRawContent() ?: '';
+    // Covers 'application/json' endpoint responses with 'html' property.
+    if (json_validate($content)) {
+      $decoded = \json_decode($content, TRUE);
+      $content = $decoded['html'] ?? $content;
+    }
+
+    \preg_match_all(sprintf(self::REGION_PATTERN, $region), $content, $matches);
+    return $matches[1];
   }
 
 }

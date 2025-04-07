@@ -8,10 +8,6 @@ export interface DraggingStatus {
   previewDragging: boolean;
 }
 
-export interface PanningStatus {
-  isPanning: boolean;
-}
-
 export interface CanvasViewPort {
   x: number;
   y: number;
@@ -29,8 +25,9 @@ export type UndoRedoType = 'layoutModel' | 'pageData';
 
 export interface uiSliceState {
   pending: boolean;
+  zooming: boolean;
   dragging: DraggingStatus;
-  panning: PanningStatus;
+  panning: boolean;
   readOnlySelectedComponent: string | undefined;
   hoveredComponent: string | undefined; //uuid of component
   targetSlot: string | undefined; //uuid of slot being hovered when dragging
@@ -50,15 +47,14 @@ type UpdateViewportPayload = {
 
 export const initialState: uiSliceState = {
   pending: false,
+  zooming: false,
   dragging: {
     isDragging: false,
     treeDragging: false,
     listDragging: false,
     previewDragging: false,
   },
-  panning: {
-    isPanning: false,
-  },
+  panning: false,
   readOnlySelectedComponent: undefined,
   hoveredComponent: undefined,
   targetSlot: undefined,
@@ -181,7 +177,10 @@ export const uiSlice = createAppSlice({
       },
     ),
     setIsPanning: create.reducer((state, action: PayloadAction<boolean>) => {
-      state.panning.isPanning = action.payload;
+      state.panning = action.payload;
+    }),
+    setIsZooming: create.reducer((state, action: PayloadAction<boolean>) => {
+      state.zooming = action.payload;
     }),
     setHoveredComponent: create.reducer(
       (state, action: PayloadAction<string>) => {
@@ -254,14 +253,23 @@ export const uiSlice = createAppSlice({
       ui.undoStack[ui.undoStack.length - 1] || undefined,
     selectRedoType: (ui): UndoRedoType | undefined =>
       ui.redoStack[0] || undefined,
-    selectPanning: (ui): PanningStatus => {
+    selectPanning: (ui): boolean => {
       return ui.panning;
+    },
+    selectZooming: (ui): boolean => {
+      return ui.zooming;
     },
     selectDragging: (ui): DraggingStatus => {
       return ui.dragging;
     },
     selectHoveredComponent: (ui): string | undefined => {
       return ui.hoveredComponent;
+    },
+    selectIsComponentHovered: (ui, uuid): boolean => {
+      return ui.hoveredComponent === uuid;
+    },
+    selectNoComponentIsHovered: (ui): boolean => {
+      return ui.hoveredComponent === undefined;
     },
     selectTargetSlot: (ui): string | undefined => {
       return ui.targetSlot;
@@ -291,6 +299,7 @@ export const {
   setPreviewDragging,
   setListDragging,
   setIsPanning,
+  setIsZooming,
   _setReadOnlySelectedComponent,
   setHoveredComponent,
   setTargetSlot,
@@ -312,7 +321,10 @@ export const {
 export const {
   selectDragging,
   selectPanning,
+  selectZooming,
   selectHoveredComponent,
+  selectIsComponentHovered,
+  selectNoComponentIsHovered,
   selectTargetSlot,
   selectCanvasViewPort,
   selectCanvasViewPortScale,

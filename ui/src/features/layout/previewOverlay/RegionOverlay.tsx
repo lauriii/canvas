@@ -1,6 +1,7 @@
 import type React from 'react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useAppSelector } from '@/app/hooks';
+import type { RegionNode } from '@/features/layout/layoutModelSlice';
 import { selectLayoutForRegion } from '@/features/layout/layoutModelSlice';
 import ComponentOverlay from '@/features/layout/previewOverlay/ComponentOverlay';
 import styles from './PreviewOverlay.module.css';
@@ -14,78 +15,82 @@ import clsx from 'clsx';
 import { useDataToHtmlMapValue } from '@/features/layout/preview/DataToHtmlMapContext';
 import useSyncPreviewElementSize from '@/hooks/useSyncPreviewElementSize';
 import useXbParams from '@/hooks/useXbParams';
+import RegionDropZone from '@/features/layout/previewOverlay/RegionDropZone';
+import EmptyRegionDropZone from '@/features/layout/previewOverlay/EmptyRegionDropZone';
 
 interface RegionOverlayProps {
   iframeRef: React.RefObject<HTMLIFrameElement>;
   regionId: string;
   regionName: string;
+  region: RegionNode;
+  size: string;
 }
 
 const RegionOverlay: React.FC<RegionOverlayProps> = ({
-  regionId,
   iframeRef,
-  regionName,
+  size,
+  region,
 }) => {
   const layout = useAppSelector((state) =>
-    selectLayoutForRegion(state, regionId),
+    selectLayoutForRegion(state, region.id),
   );
-  const regionOverlayRef = useRef(null);
   const { regionsMap } = useDataToHtmlMapValue();
   const { regionId: focusedRegion = DEFAULT_REGION } = useXbParams();
-  const elementRect = useSyncPreviewElementSize(regionsMap[regionId]?.element);
+  const elementRect = useSyncPreviewElementSize(
+    regionsMap[region.id]?.elements,
+  );
   const canvasViewPortScale = useAppSelector(selectCanvasViewPortScale);
   const [overlayStyles, setOverlayStyles] = useState({});
   const targetSlot = useAppSelector(selectTargetSlot);
-  const disableRegion = focusedRegion !== regionId;
+  const disableRegion = focusedRegion !== region.id;
 
   useEffect(() => {
-    const elementInsideIframe = regionsMap[regionId]?.element;
-    if (!elementInsideIframe) {
-      return;
-    }
-    const computedStyle = window.getComputedStyle(elementInsideIframe);
     setOverlayStyles({
       top: `${elementRect.top * canvasViewPortScale}px`,
       left: `${elementRect.left * canvasViewPortScale}px`,
       width: `${elementRect.width * canvasViewPortScale}px`,
       height: `${elementRect.height * canvasViewPortScale}px`,
-      paddingTop: `${parseFloat(computedStyle.paddingTop) * canvasViewPortScale}px`,
-      paddingBottom: `${parseFloat(computedStyle.paddingBottom) * canvasViewPortScale}px`,
-      pointerEvents: disableRegion ? 'none' : 'inherit',
     });
-  }, [elementRect, canvasViewPortScale, regionId, disableRegion, regionsMap]);
+  }, [elementRect, canvasViewPortScale, region.id, disableRegion, regionsMap]);
 
   return (
     <div
-      ref={regionOverlayRef}
       className={clsx(
         styles.regionOverlay,
         {
-          [styles.dropTarget]: regionId === targetSlot,
+          [styles.dropTarget]: region.id === targetSlot,
         },
-        `xb--region-overlay__${regionId}`,
+        `xb--region-overlay__${region.id}`,
       )}
       style={overlayStyles}
     >
       {!disableRegion && (
         <>
-          {layout.components.map((component) => (
+          {layout.components.map((component, index) => (
             <ComponentOverlay
               key={component.uuid}
               iframeRef={iframeRef}
               component={component}
               parentRegion={layout}
+              size={size}
+              index={index}
             />
           ))}
-          {targetSlot === regionId && (
-            <div className={clsx(styles.xbNameTag, styles.xbNameTagSlot)}>
-              <NameTag
-                name={`${regionName} region`}
-                componentUuid={regionId}
-                selected={true}
-                nodeType={'root'}
-              />
-            </div>
+          <div className={clsx(styles.xbNameTag, styles.xbNameTagSlot)}>
+            <NameTag
+              name={`${region.name} region`}
+              id={region.id}
+              nodeType={'root'}
+            />
+          </div>
+          {!region.components.length && (
+            <EmptyRegionDropZone region={region} size={size} />
+          )}
+          {!!region.components.length && (
+            <>
+              <RegionDropZone region={region} position="before" size={size} />
+              <RegionDropZone region={region} position="after" size={size} />
+            </>
           )}
         </>
       )}

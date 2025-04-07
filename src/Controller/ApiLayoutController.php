@@ -10,6 +10,7 @@ use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Form\FormBuilderInterface;
+use Drupal\Core\Render\Markup;
 use Drupal\Core\Theme\ThemeManagerInterface;
 use Drupal\experience_builder\AutoSave\AutoSaveManager;
 use Drupal\experience_builder\ClientDataToEntityConverter;
@@ -378,9 +379,9 @@ final class ApiLayoutController {
     if (isset($renderable[ComponentTreeStructure::ROOT_UUID])) {
       $build = $renderable[ComponentTreeStructure::ROOT_UUID];
     }
-    // @todo Remove/replace this in https://www.drupal.org/project/experience_builder/issues/3499364
-    $build['#prefix'] = '<div data-xb-uuid="content" data-xb-region="content">';
-    $build['#suffix'] = '</div>';
+
+    $build['#prefix'] = Markup::create('<!-- xb-region-start-content -->');
+    $build['#suffix'] = Markup::create('<!-- xb-region-end-content -->');
     $build['#attached']['library'][] = 'experience_builder/preview';
     return $build;
   }
