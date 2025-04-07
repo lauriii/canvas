@@ -149,7 +149,10 @@ const UnpublishedChanges = () => {
       return IconType.FILE;
     }
     if (entityType === 'js_component') {
-      return IconType.COMPONENT1;
+      return IconType.JS_COMPONENT;
+    }
+    if (entityType === 'xb_asset_library') {
+      return IconType.ASSET_LIBRARY;
     }
     return IconType.CMS;
   };

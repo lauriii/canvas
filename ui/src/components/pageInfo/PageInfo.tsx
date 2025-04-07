@@ -1,9 +1,9 @@
 import {
   ChevronLeftIcon,
   CodeIcon,
-  Component1Icon,
   CubeIcon,
   FileIcon,
+  SectionIcon,
   StackIcon,
 } from '@radix-ui/react-icons';
 import {
@@ -44,8 +44,8 @@ interface PageType {
 const iconMap: PageType = {
   Page: <FileIcon />,
   ContentType: <StackIcon />,
-  ComponentName: <Component1Icon />,
-  GlobalSectionName: <Component1Icon />,
+  ComponentName: <CodeIcon />,
+  GlobalSectionName: <SectionIcon />,
 };
 
 const { drupalSettings } = window;

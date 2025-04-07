@@ -11,11 +11,11 @@ import {
 } from '@radix-ui/themes';
 import CmsIcon from '@assets/icons/cms.svg?react';
 import {
-  Component1Icon,
   Cross2Icon,
   CubeIcon,
   FaceIcon,
   FileIcon,
+  CodeIcon,
 } from '@radix-ui/react-icons';
 import { useState } from 'react';
 import { Popover } from '@radix-ui/themes';
@@ -53,7 +53,8 @@ enum FallbackColor {
 
 export enum IconType {
   CMS = 'cms',
-  COMPONENT1 = 'component1',
+  JS_COMPONENT = 'js_component',
+  ASSET_LIBRARY = 'xb_asset_library',
   CUBE = 'cube',
   FILE = 'file',
 }
@@ -285,8 +286,11 @@ const ChangeIcon = (props: { icon: IconType }) => {
   if (icon === IconType.CMS) {
     return <CmsIcon className={styles.cmsIcon} />;
   }
-  if (icon === IconType.COMPONENT1) {
-    return <Component1Icon className={styles.component1Icon} />;
+  if (icon === IconType.JS_COMPONENT) {
+    return <CodeIcon className={styles.codeIcon} />;
+  }
+  if (icon === IconType.ASSET_LIBRARY) {
+    return <CodeIcon className={styles.codeIcon} />;
   }
   if (icon === IconType.CUBE) {
     return <CubeIcon className={styles.cubeIcon} />;

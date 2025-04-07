@@ -26,9 +26,9 @@ const allChanges: UnpublishedChanges = [
   },
   {
     label: 'Navigation',
-    icon: IconType.COMPONENT1,
+    icon: IconType.JS_COMPONENT,
     updated: 1725586200,
-    entity_type: 'node',
+    entity_type: 'js_component',
     data_hash: 'data-hash-2',
     entity_id: 2,
     langcode: 'en',

@@ -13,7 +13,6 @@ import {
   TextField,
 } from '@radix-ui/themes';
 import {
-  Component1Icon,
   DotsVerticalIcon,
   FileIcon,
   InfoCircledIcon,
@@ -263,10 +262,6 @@ const Navigation = ({
             >
               <FileIcon />
               New page
-            </DropdownMenu.Item>
-            <DropdownMenu.Item>
-              <Component1Icon />
-              New component
             </DropdownMenu.Item>
           </DropdownMenu.Content>
         </DropdownMenu.Root>

@@ -37,16 +37,16 @@
   color: var(--gray-10);
 }
 
-.component1Icon{
-  color: var(--purple-9);
-}
-
 .cubeIcon{
   color: var(--grass-8);
 }
 
 .fileIcon{
   color: var(--gray-10);
+}
+
+.codeIcon{
+  color: var(--blue-9);
 }
 
 .changeRowRight {
