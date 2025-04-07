@@ -10,7 +10,12 @@ declare(strict_types=1);
  * @see docs/data-model.md, section 3.1.2.a
  */
 
+use Drupal\Core\Access\AccessResult;
+use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
+use Drupal\Core\Session\AccountInterface;
+use Drupal\editor\EditorInterface;
+use Drupal\filter\FilterFormatInterface;
 use Drupal\experience_builder\Plugin\Field\FieldTypeOverride\DateRangeItemOverride;
 use Drupal\experience_builder\Plugin\Field\FieldTypeOverride\FileItemOverride;
 use Drupal\experience_builder\Plugin\Field\FieldTypeOverride\FileUriItemOverride;
@@ -21,6 +26,8 @@ use Drupal\experience_builder\Plugin\Field\FieldTypeOverride\ListIntegerItemOver
 use Drupal\experience_builder\Plugin\Field\FieldTypeOverride\StringItemOverride;
 use Drupal\experience_builder\Plugin\Field\FieldTypeOverride\StringLongItemOverride;
 use Drupal\experience_builder\Plugin\Field\FieldTypeOverride\TextItemOverride;
+use Drupal\experience_builder\Plugin\Field\FieldTypeOverride\TextLongItemOverride;
+use Drupal\experience_builder\Plugin\Field\FieldTypeOverride\TextWithSummaryItemOverride;
 use Drupal\experience_builder\Plugin\Field\FieldTypeOverride\UuidItemOverride;
 use Drupal\experience_builder\Plugin\Field\FieldTypeOverride\UriItemOverride;
 use Drupal\experience_builder\Plugin\Validation\Constraint\StringSemanticsConstraint;
@@ -99,6 +106,12 @@ function experience_builder_field_info_alter(array &$info): void {
   if (!empty($info['text'])) {
     $info['text']['class'] = TextItemOverride::class;
   }
+  if (!empty($info['text_long'])) {
+    $info['text_long']['class'] = TextLongItemOverride::class;
+  }
+  if (!empty($info['text_with_summary'])) {
+    $info['text_with_summary']['class'] = TextWithSummaryItemOverride::class;
+  }
   if (!empty($info['uuid'])) {
     $info['uuid']['class'] = UuidItemOverride::class;
   }
@@ -124,5 +137,76 @@ function experience_builder_entity_base_field_info_alter(array &$fields, EntityT
   }
   if ($entity_type->id() === 'taxonomy_term') {
     $fields['name']->addPropertyConstraints('value', ['StringSemantics' => StringSemanticsConstraint::PROSE]);
+  }
+}
+
+/**
+ * Implements hook_filter_format_access().
+ *
+ * Prevents any operations on Experience Builder's text formats.
+ */
+function experience_builder_filter_format_access(FilterFormatInterface $format, string $operation, AccountInterface $account): AccessResult {
+  $protected_formats = [
+    'xb_html_inline',
+    'xb_html_block',
+  ];
+  if (in_array($format->id(), $protected_formats, TRUE)) {
+    return AccessResult::forbidden('Experience Builder text formats cannot be modified.')
+      ->addCacheableDependency($format);
+  }
+
+  // No opinion on other formats.
+  return AccessResult::neutral();
+}
+
+/**
+ * Implements hook_editor_access().
+ *
+ * Prevents any operations on Experience Builder's editors.
+ */
+function experience_builder_editor_access(EditorInterface $editor, string $operation, AccountInterface $account): AccessResult {
+  $protected_editors = [
+    'xb_html_inline',
+    'xb_html_block',
+  ];
+  if (in_array($editor->id(), $protected_editors, TRUE)) {
+    return AccessResult::forbidden('Experience Builder editors cannot be modified.')
+      ->addCacheableDependency($editor);
+  }
+
+  // No opinion on other editors.
+  return AccessResult::neutral();
+}
+
+/**
+ * Implements hook_entity_operation_alter().
+ *
+ * Removes all operations for Experience Builder's text formats and editors from list builders.
+ */
+function experience_builder_entity_operation_alter(array &$operations, EntityInterface $entity): void {
+  // Handle FilterFormat entities.
+  if ($entity instanceof FilterFormatInterface) {
+    $protected_formats = [
+      'xb_html_inline',
+      'xb_html_block',
+    ];
+
+    if (in_array($entity->id(), $protected_formats, TRUE)) {
+      // Remove all operations for these text formats.
+      $operations = [];
+    }
+  }
+
+  // Handle Editor entities.
+  if ($entity instanceof EditorInterface) {
+    $protected_editors = [
+      'xb_html_inline',
+      'xb_html_block',
+    ];
+
+    if (in_array($entity->id(), $protected_editors, TRUE)) {
+      // Remove all operations for these editors.
+      $operations = [];
+    }
   }
 }

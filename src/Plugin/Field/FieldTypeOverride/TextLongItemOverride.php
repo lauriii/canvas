@@ -7,7 +7,7 @@ namespace Drupal\experience_builder\Plugin\Field\FieldTypeOverride;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\experience_builder\Plugin\DataTypeOverride\TextProcessedOverride;
 use Drupal\experience_builder\Plugin\Validation\Constraint\StringSemanticsConstraint;
-use Drupal\text\Plugin\Field\FieldType\TextItem;
+use Drupal\text\Plugin\Field\FieldType\TextLongItem;
 
 /**
  * @todo Fix upstream.
@@ -15,7 +15,7 @@ use Drupal\text\Plugin\Field\FieldType\TextItem;
  * Adds StringSemantics constraint to the 'processed' property to handle rich
  * text content with proper semantic typing.
  */
-class TextItemOverride extends TextItem {
+class TextLongItemOverride extends TextLongItem {
 
   /**
    * {@inheritdoc}

@@ -143,7 +143,7 @@ class PropSourceEndpointTest extends FunctionalTestBase {
     $this->assertCount(4, $data);
     $expected = $this->getExpected();
     foreach ($data as $sdc => $prop_sources) {
-      $this->assertSame($expected[$sdc]['dynamic_prop_source_candidates'], $data[$sdc]['dynamic_prop_source_candidates']);
+      $this->assertSame($expected[$sdc]['dynamic_prop_source_candidates'], $data[$sdc]['dynamic_prop_source_candidates'], "$sdc has the expected dynamic prop source candidates.");
     }
     $extractValue = [
       'mainProperty' => [],
@@ -328,6 +328,20 @@ class PropSourceEndpointTest extends FunctionalTestBase {
             "This Article's Authored by" => 'ℹ︎␜entity:node:article␝uid␞␟entity␜␜entity:user␝login␞␟value',
           ],
           'test_object_drupal_image' => [],
+          'test_string_html_inline' => [],
+          'test_string_html_block' => [
+            "Subset of this Article's Body: processed (1 of 5 props — absent: value, format, summary, summary_processed)" => 'ℹ︎␜entity:node:article␝body␞␟processed',
+            "Subset of this Article's Body: summary_processed (1 of 5 props — absent: value, format, processed, summary)" => 'ℹ︎␜entity:node:article␝body␞␟summary_processed',
+            "This Article's Tags" => 'ℹ︎␜entity:node:article␝field_tags␞␟entity␜␜entity:taxonomy_term␝description␞␟processed',
+          ],
+          'test_string_html' => [
+            "Subset of this Article's Body: processed (1 of 5 props — absent: value, format, summary, summary_processed)" => 'ℹ︎␜entity:node:article␝body␞␟processed',
+            "Subset of this Article's Body: summary_processed (1 of 5 props — absent: value, format, processed, summary)" => 'ℹ︎␜entity:node:article␝body␞␟summary_processed',
+            "This Article's Tags" => 'ℹ︎␜entity:node:article␝field_tags␞␟entity␜␜entity:taxonomy_term␝description␞␟processed',
+          ],
+          'test_REQUIRED_string_html_inline' => [],
+          'test_REQUIRED_string_html_block' => [],
+          'test_REQUIRED_string_html' => [],
         ],
       ],
     ];

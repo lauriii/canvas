@@ -471,6 +471,7 @@ final class SdcPropToFieldTypePropMatcher {
     //   e.g.: \Drupal\path_alias\Entity\PathAlias::baseFieldDefinitions()
     // @see \Drupal\Core\TypedData\DataDefinition::addConstraint()
     // @see \Drupal\Core\Field\BaseFieldDefinition::addPropertyConstraints()
+    // @see \Drupal\Core\Field\FieldConfigInterface::addPropertyConstraints()
     // @see \Drupal\Core\Field\FieldItemInterface::propertyDefinitions()
     // @see \Drupal\Core\TypedData\DataDefinitionInterface::getConstraints()
     // @see \Drupal\Core\Validation\Plugin\Validation\Constraint\ComplexDataConstraint

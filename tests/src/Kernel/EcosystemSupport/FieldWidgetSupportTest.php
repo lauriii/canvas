@@ -13,7 +13,7 @@ namespace Drupal\Tests\experience_builder\Kernel\EcosystemSupport;
  */
 final class FieldWidgetSupportTest extends EcosystemSupportTestBase {
 
-  public const COMPLETION = 0.35714285714285715;
+  public const COMPLETION = 0.4642857142857143;
   public const SUPPORTED = [
     'boolean_checkbox',
     'datetime_default',
@@ -25,6 +25,9 @@ final class FieldWidgetSupportTest extends EcosystemSupportTestBase {
     'options_select',
     'string_textarea',
     'string_textfield',
+    'text_textarea',
+    'text_textarea_with_summary',
+    'text_textfield',
   ];
 
   /**

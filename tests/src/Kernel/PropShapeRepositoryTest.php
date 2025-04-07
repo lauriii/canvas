@@ -46,8 +46,10 @@ class PropShapeRepositoryTest extends KernelTestBase {
     'datetime',
     'image',
     'file',
+    'filter',
     'link',
     'options',
+    'text',
   ];
 
   /**
@@ -103,6 +105,9 @@ class PropShapeRepositoryTest extends KernelTestBase {
       new PropShape(['type' => 'string', '$ref' => 'json-schema-definitions://experience_builder.module/heading-element']),
       new PropShape(['type' => 'string', '$ref' => 'json-schema-definitions://experience_builder.module/image-uri']),
       new PropShape(['type' => 'string', '$ref' => 'json-schema-definitions://experience_builder.module/textarea']),
+      new PropShape(['type' => 'string', 'contentMediaType' => 'text/html']),
+      new PropShape(['type' => 'string', 'contentMediaType' => 'text/html', 'x-formatting-context' => 'block']),
+      new PropShape(['type' => 'string', 'contentMediaType' => 'text/html', 'x-formatting-context' => 'inline']),
       new PropShape(['type' => 'string', 'enum' => ['', '_blank']]),
       new PropShape(['type' => 'string', 'enum' => ['', 'base', 'l', 's', 'xs', 'xxs']]),
       new PropShape(['type' => 'string', 'enum' => ['', 'gray', 'primary', 'neutral-soft', 'neutral-medium', 'neutral-loud', 'primary-medium', 'primary-loud', 'black', 'white', 'red', 'gold', 'green']]),
@@ -410,6 +415,36 @@ class PropShapeRepositoryTest extends KernelTestBase {
         shape: new PropShape(['type' => 'string', '$ref' => 'json-schema-definitions://experience_builder.module/textarea']),
         fieldTypeProp: new FieldTypePropExpression('string_long', 'value'),
         fieldWidget: 'string_textarea',
+      ),
+      'type=string&contentMediaType=text/html' => new StorablePropShape(
+        shape: new PropShape(['type' => 'string', 'contentMediaType' => 'text/html']),
+        fieldTypeProp: new FieldTypePropExpression('text_long', 'value'),
+        fieldWidget: 'text_textarea',
+        fieldInstanceSettings: [
+          'allowed_formats' => [
+            'xb_html_block',
+          ],
+        ],
+      ),
+      'type=string&contentMediaType=text/html&x-formatting-context=block' => new StorablePropShape(
+        shape: new PropShape(['type' => 'string', 'contentMediaType' => 'text/html', 'x-formatting-context' => 'block']),
+        fieldTypeProp: new FieldTypePropExpression('text_long', 'value'),
+        fieldWidget: 'text_textarea',
+        fieldInstanceSettings: [
+          'allowed_formats' => [
+            'xb_html_block',
+          ],
+        ],
+      ),
+      'type=string&contentMediaType=text/html&x-formatting-context=inline' => new StorablePropShape(
+        shape: new PropShape(['type' => 'string', 'contentMediaType' => 'text/html', 'x-formatting-context' => 'inline']),
+        fieldTypeProp: new FieldTypePropExpression('text', 'value'),
+        fieldWidget: 'text_textfield',
+        fieldInstanceSettings: [
+          'allowed_formats' => [
+            'xb_html_inline',
+          ],
+        ],
       ),
       'type=integer&enum[0]=1&enum[1]=2' => new StorablePropShape(
         shape: new PropShape(['type' => 'integer', 'enum' => [1, 2]]),

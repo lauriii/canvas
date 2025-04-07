@@ -8,6 +8,14 @@ dependencies:
   # XB's "page template" functionality is an integral part of XB. To allow that to function, this (currently) needs >=1 main content, title and messages block plugins.
   # @see docs/config-management.md, section 3.2 `PageTemplate config entity`
   - drupal:block
+  # To support HTML prop shapes, and make them editable using CKEditor 5.
+  # @see \Drupal\text\Plugin\Field\FieldType\TextItem
+  # @see \Drupal\text\Plugin\Field\FieldType\TextLongItem
+  # @see \Drupal\experience_builder\JsonSchemaInterpreter\JsonSchemaStringFormat::computeStorablePropShape()
+  - drupal:editor
+  - drupal:ckeditor5
+  - drupal:filter
+  - drupal:text
   # To support datetime prop shapes.
   # @see https://json-schema.org/understanding-json-schema/reference/string#dates-and-times
   # @see \Drupal\datetime\Plugin\Field\FieldType\DateTimeItem

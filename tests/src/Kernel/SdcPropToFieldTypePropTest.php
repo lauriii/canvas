@@ -301,6 +301,33 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
           'adapter_matches_field_type' => [],
           'adapter_matches_instance' => [],
         ],
+        'REQUIRED, type=string&contentMediaType=text/html' => [
+          'SDC props' => [
+            '⿲sdc_test_all_props:all-props␟test_REQUIRED_string_html',
+          ],
+          'static prop source' => 'ℹ︎text_long␟value',
+          'instances' => [],
+          'adapter_matches_field_type' => [],
+          'adapter_matches_instance' => [],
+        ],
+        'REQUIRED, type=string&contentMediaType=text/html&x-formatting-context=block' => [
+          'SDC props' => [
+            '⿲sdc_test_all_props:all-props␟test_REQUIRED_string_html_block',
+          ],
+          'static prop source' => 'ℹ︎text_long␟value',
+          'instances' => [],
+          'adapter_matches_field_type' => [],
+          'adapter_matches_instance' => [],
+        ],
+        'REQUIRED, type=string&contentMediaType=text/html&x-formatting-context=inline' => [
+          'SDC props' => [
+            '⿲sdc_test_all_props:all-props␟test_REQUIRED_string_html_inline',
+          ],
+          'static prop source' => 'ℹ︎text␟value',
+          'instances' => [],
+          'adapter_matches_field_type' => [],
+          'adapter_matches_instance' => [],
+        ],
         'REQUIRED, type=string&enum[0]=default&enum[1]=primary&enum[2]=success&enum[3]=neutral&enum[4]=warning&enum[5]=danger&enum[6]=text' => [
           'SDC props' => [
             '⿲experience_builder:shoe_button␟variant',
@@ -712,6 +739,33 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
             'ℹ︎␜entity:xb_page␝image␞␟entity␜␜entity:media␝revision_log_message␞␟value',
             'ℹ︎␜entity:xb_page␝revision_log␞␟value',
           ],
+          'adapter_matches_field_type' => [],
+          'adapter_matches_instance' => [],
+        ],
+        'optional, type=string&contentMediaType=text/html' => [
+          'SDC props' => [
+            '⿲sdc_test_all_props:all-props␟test_string_html',
+          ],
+          'static prop source' => 'ℹ︎text_long␟value',
+          'instances' => [],
+          'adapter_matches_field_type' => [],
+          'adapter_matches_instance' => [],
+        ],
+        'optional, type=string&contentMediaType=text/html&x-formatting-context=block' => [
+          'SDC props' => [
+            '⿲sdc_test_all_props:all-props␟test_string_html_block',
+          ],
+          'static prop source' => 'ℹ︎text_long␟value',
+          'instances' => [],
+          'adapter_matches_field_type' => [],
+          'adapter_matches_instance' => [],
+        ],
+        'optional, type=string&contentMediaType=text/html&x-formatting-context=inline' => [
+          'SDC props' => [
+            '⿲sdc_test_all_props:all-props␟test_string_html_inline',
+          ],
+          'static prop source' => 'ℹ︎text␟value',
+          'instances' => [],
           'adapter_matches_field_type' => [],
           'adapter_matches_instance' => [],
         ],

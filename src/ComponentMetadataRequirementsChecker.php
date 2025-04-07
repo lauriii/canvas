@@ -53,6 +53,17 @@ final class ComponentMetadataRequirementsChecker {
       if ($prop_name === 'attributes') {
         continue;
       }
+
+      // Validation for the additional functionality overlaid on top of the SDC
+      // JSON Schema.
+      // @see docs/shape-matching-into-field-types.md#3.2
+      if (array_key_exists('contentMediaType', $prop) && $prop['contentMediaType'] === 'text/html' && isset($prop['x-formatting-context'])) {
+        if (!in_array($prop['x-formatting-context'], ['inline', 'block'], TRUE)) {
+          $messages[] = \sprintf('Invalid value "%s" for "x-formatting-context". Valid values are "inline" and "block".', $prop['x-formatting-context']);
+          continue;
+        }
+      }
+
       // Every prop must have a title.
       if (!isset($prop['title'])) {
         $messages[] = \sprintf('Prop "%s" must have title', $prop_name);

@@ -79,6 +79,10 @@ xb.transform.link:
   dependencies:
     - core/drupal
     - experience_builder/xb-ui
+xb.transform.richText:
+  dependencies:
+    - core/drupal
+    - experience_builder/xb-ui
 
 ajax.hyperscriptify:
   js:

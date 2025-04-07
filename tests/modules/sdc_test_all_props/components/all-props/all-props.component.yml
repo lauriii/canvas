@@ -4,6 +4,9 @@ props:
   type: object
   required:
     - test_REQUIRED_string
+    - test_REQUIRED_string_html_inline
+    - test_REQUIRED_string_html_block
+    - test_REQUIRED_string_html
   properties:
     test_bool:
       title: 'Bool'
@@ -29,7 +32,7 @@ props:
       examples:
         - "Hello,\nmultiline\nworld!"
     test_REQUIRED_string:
-      title: 'String'
+      title: 'String (required)'
       type: string
       examples:
         - Hello, required world!
@@ -218,6 +221,47 @@ props:
       # @todo Remove in https://www.drupal.org/project/drupal/issues/3352063 — should not be necessary, but removing this causes \Drupal\Core\Theme\Component\ComponentMetadata::parseSchemaInfo() to generate `type = ['', 'object'] 🐛
       type: object
 
-    #
+    # HTML props using `contentMediaType: text/html`
+    # @see docs/shape-matching-into-field-types.md#3.2.1
+    test_string_html_inline:
+      title: 'String with HTML formatting (inline)'
+      type: string
+      contentMediaType: text/html
+      x-formatting-context: inline
+      examples:
+        - 'This is <strong>bold</strong> and <em>italics</em> text with a <a href="https://example.com">link</a>'
+    test_string_html_block:
+      title: 'String with HTML formatting (block)'
+      type: string
+      contentMediaType: text/html
+      x-formatting-context: block
+      examples:
+        - '<p>This is a paragraph with <strong>bold</strong> text.</p><ul><li>List item 1</li><li>List item 2</li></ul>'
+    test_string_html:
+      title: 'String with HTML formatting (no formatting context, defaults to "block")'
+      type: string
+      contentMediaType: text/html
+      examples:
+        - '<p>This is a paragraph with <strong>bold</strong> text.</p><ul><li>List item 1</li><li>List item 2</li></ul>'
+    test_REQUIRED_string_html_inline:
+      title: 'String with HTML formatting (inline, required)'
+      type: string
+      contentMediaType: text/html
+      x-formatting-context: inline
+      examples:
+        - 'This is <strong>required</strong> with <em>inline</em> formatting and a <a href="https://example.com">link</a>'
+    test_REQUIRED_string_html_block:
+      title: 'String with HTML formatting (block, required)'
+      type: string
+      contentMediaType: text/html
+      x-formatting-context: block
+      examples:
+        - '<p>This is a <strong>required</strong> paragraph.</p><ul><li>Required list item 1</li><li>Required list item 2</li></ul>'
+    test_REQUIRED_string_html:
+      title: 'String with HTML formatting (no formatting context, defaults to "block", required)'
+      type: string
+      contentMediaType: text/html
+      examples:
+        - '<p>This is a <strong>required</strong> paragraph without formatting context.</p><ul><li>Another required list</li></ul>'
+
     # @todo finish adding all other types + formats supported by JSON schema
-    #

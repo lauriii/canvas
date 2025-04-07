@@ -7,7 +7,7 @@ namespace Drupal\experience_builder\Plugin\Field\FieldTypeOverride;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\experience_builder\Plugin\DataTypeOverride\TextProcessedOverride;
 use Drupal\experience_builder\Plugin\Validation\Constraint\StringSemanticsConstraint;
-use Drupal\text\Plugin\Field\FieldType\TextItem;
+use Drupal\text\Plugin\Field\FieldType\TextWithSummaryItem;
 
 /**
  * @todo Fix upstream.
@@ -15,19 +15,27 @@ use Drupal\text\Plugin\Field\FieldType\TextItem;
  * Adds StringSemantics constraint to the 'processed' property to handle rich
  * text content with proper semantic typing.
  */
-class TextItemOverride extends TextItem {
+class TextWithSummaryItemOverride extends TextWithSummaryItem {
 
   /**
    * {@inheritdoc}
    */
   public static function propertyDefinitions(FieldStorageDefinitionInterface $field_definition) {
     $properties = parent::propertyDefinitions($field_definition);
+
+    // Override the processed property with our extended version.
     $properties['processed']
       ->setClass(TextProcessedOverride::class)
       // It is computed from the required `value` property, so this value can be
       // considered required, too.
       ->setRequired(TRUE)
       ->addConstraint('StringSemantics', StringSemanticsConstraint::MARKUP);
+
+    // Also override the summary_processed property.
+    $properties['summary_processed']
+      ->setClass(TextProcessedOverride::class)
+      ->addConstraint('StringSemantics', StringSemanticsConstraint::MARKUP);
+
     return $properties;
   }
 

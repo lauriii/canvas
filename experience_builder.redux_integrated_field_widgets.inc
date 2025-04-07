@@ -158,6 +158,18 @@ function experience_builder_field_widget_info_alter(array &$info): void {
     'string_textfield' => [
       'mainProperty' => [],
     ],
+    'text_textfield' => [
+      'mainProperty' => ['name' => 'value'],
+      'richText' => [],
+    ],
+    'text_textarea' => [
+      'mainProperty' => ['name' => 'value'],
+      'richText' => [],
+    ],
+    'text_textarea_with_summary' => [
+      'mainProperty' => ['name' => 'value'],
+      'richText' => [],
+    ],
   ];
   foreach ($map as $widget_id => $transforms) {
     if (\array_key_exists($widget_id, $info)) {

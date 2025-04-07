@@ -205,3 +205,60 @@ Examples:
   - the second one being "alt", which can be retrieved directly from the "image" `field item`
 
 For more examples, see `\Drupal\Tests\experience_builder\Unit\PropExpressionTest`.
+
+### 3.2 Additional functionality overlaid on top of the SDC JSON Schema
+
+Experience Builder extends SDC JSON Schema to support additional prop shapes to complete the content editing experience.
+
+#### 3.2.1 HTML Content with CKEditor 5 Integration
+
+Experience Builder supports rich text editing for `prop shape`s through CKEditor 5 integration. This allows SDC
+developers to define props that can contain formatted HTML content.
+
+##### JSON Schema Extensions
+
+Two additional metadata properties are used to indicate HTML content — one is part of the JSON Schema standard, the
+other is a [custom annotation](https://json-schema.org/understanding-json-schema/reference/non_json_data#contentmediatype)
+(which can be recognized by the `x-` prefix).
+
+```yaml
+heading:
+  type: string
+  contentMediaType: text/html
+  x-formatting-context: inline
+```
+
+- `contentMediaType: text/html` - Indicates this is a prop expecting to receive HTML content
+- `x-formatting-context: inline|block` - Optionally specifies the formatting context (`block` is the default):
+  - `inline`: Only inline elements allowed (`<strong>`, `<em>`, `<u>`, `<a>`)
+  - `block`: Both inline and block elements allowed (adds `<p>`, `<br>`, `<ul>`, `<ol>`, `<li>`)
+
+##### Text Formats
+
+To allow populating such props, Experience Builder provides two predefined text formats:
+
+1. **XB HTML Inline Format**
+   - Allows only inline elements: `<strong>`, `<em>`, `<u>`, `<a href>`
+   - Appropriate for headings, labels, and other inline content
+
+2. **XB HTML Block Format**
+   - Allows both inline elements and block elements: `<p>`, `<br>`, `<ul>`, `<ol>`, `<li>`
+   - Appropriate for longer content blocks, descriptions, etc.
+
+##### Example Component with HTML Props
+
+```yaml
+props:
+  heading:
+    type: string
+    title: "Heading"
+    contentMediaType: text/html
+    x-formatting-context: inline
+
+  description:
+    type: string
+    title: "Description"
+    contentMediaType: text/html
+    # This is the default, so it can be omitted.
+    x-formatting-context: block
+```

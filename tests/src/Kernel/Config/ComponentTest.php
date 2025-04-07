@@ -54,6 +54,7 @@ class ComponentTest extends KernelTestBase {
     'link',
     'system',
     'user',
+    'text',
   ];
 
   /**
@@ -246,6 +247,13 @@ class ComponentTest extends KernelTestBase {
    * @dataProvider provider
    */
   public function testComponentAutoCreate(array $modules, array $components, array $classes): void {
+    if (in_array('sdc_test_all_props', $modules, TRUE)) {
+      // The `sdc_test_all_props` module includes props that use
+      // `contentMediaType: text/html` which enables the CKEditor 5 module which
+      // requires the default theme to be installed.
+      // @see \_ckeditor5_theme_css()
+      \Drupal::service('theme_installer')->install(['stark']);
+    }
     // Initial state: no Component config entities.
     $this->assertEmpty(Component::loadMultiple());
 
@@ -393,6 +401,10 @@ class ComponentTest extends KernelTestBase {
         'sdc.xb_test_sdc.image-optional-with-example-and-additional-prop' => [
           'compatible' => TRUE,
         ],
+        'sdc.xb_test_sdc.html-invalid-format' => [
+          'compatible' => FALSE,
+          'reasons' => ['Invalid value "invalid" for "x-formatting-context". Valid values are "inline" and "block".'],
+        ],
         'sdc.xb_test_sdc.props-no-slots' => [
           'compatible' => TRUE,
         ],
@@ -434,6 +446,10 @@ class ComponentTest extends KernelTestBase {
         ],
         'sdc.xb_test_sdc.image-optional-with-example-and-additional-prop' => [
           'compatible' => TRUE,
+        ],
+        'sdc.xb_test_sdc.html-invalid-format' => [
+          'compatible' => FALSE,
+          'reasons' => ['Invalid value "invalid" for "x-formatting-context". Valid values are "inline" and "block".'],
         ],
         'sdc.xb_test_sdc.props-no-slots' => [
           'compatible' => TRUE,

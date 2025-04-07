@@ -30,7 +30,6 @@ use Drupal\experience_builder\ShapeMatcher\DataTypeShapeRequirements;
  * @todo the `array` type — in particular arrays of tuples/objects, for example an array of "(image uri, alt)" pairs for an image gallery component, see https://stackoverflow.com/questions/40750340/how-to-define-json-schema-for-mapstring-integer
  * @todo `exclusiveMinimum` and `exclusiveMaximum` work differently in JSON schema draft 4 (which SDC uses) than other versions. This is a future BC nightmare.
  * @todo for `string` + `format=duration`, Drupal core has \Drupal\Core\TypedData\Plugin\DataType\DurationIso8601, but nothing uses it!
- * @todo strings with the StringSemanticsConstraint::MARKUP semantic should be usable in slots.
  *
  * KNOWN KNOWNS
  *
@@ -108,6 +107,16 @@ enum SdcPropJsonSchemaType : string {
       // - `pattern`: https://json-schema.org/understanding-json-schema/reference/string#regexp
       // - `format`: https://json-schema.org/understanding-json-schema/reference/string#format and https://json-schema.org/understanding-json-schema/reference/string#built-in-formats
       SdcPropJsonSchemaType::STRING => match (TRUE) {
+        // Custom: `contentMediaType: text/html` + `x-formatting-context`.
+        // @see docs/shape-matching-into-field-types.md#3.2.1
+        // @see \Drupal\experience_builder\Plugin\Validation\Constraint\StringSemanticsConstraint::MARKUP
+        array_key_exists('contentMediaType', $schema) && $schema['contentMediaType'] === 'text/html' => match(TRUE) {
+          !isset($schema['x-formatting-context']) || $schema['x-formatting-context'] === 'block' => new DataTypeShapeRequirement('StringSemantics', ['semantic' => StringSemanticsConstraint::MARKUP]),
+          // @todo Add support for `x-formatting-context: inline`. This is blocked on CKEditor 5 support: https://www.drupal.org/i/3467959#comment-16052121. Once CKEditor 5 support is viable, this will need to generate a datatype shape requirement that checks the allowed text formats allowed by a field instance to ensure it only allows the `xb_html_inline` text format, or a subset of what it allows.
+          $schema['x-formatting-context'] === 'inline' => new DataTypeShapeRequirement('NOT YET SUPPORTED', []),
+          // Other `x-formatting-context` values do not make sense.
+          default => throw new \LogicException('Invalid `x-formatting-context` value; this SDC should never have been eligible.'),
+        },
         array_key_exists('enum', $schema) => new DataTypeShapeRequirement('Choice', [
           'choices' => $schema['enum'],
         ], NULL),
@@ -198,6 +207,14 @@ enum SdcPropJsonSchemaType : string {
       // - `pattern`: https://json-schema.org/understanding-json-schema/reference/string#regexp
       // - `format`: https://json-schema.org/understanding-json-schema/reference/string#format and https://json-schema.org/understanding-json-schema/reference/string#built-in-formats
       SdcPropJsonSchemaType::STRING => match (TRUE) {
+        // Custom: `contentMediaType: text/html` + `x-formatting-context`.
+        // @see docs/shape-matching-into-field-types.md#3.2.1
+        array_key_exists('contentMediaType', $schema) && $schema['contentMediaType'] === 'text/html' => match(TRUE) {
+          !isset($schema['x-formatting-context']) || $schema['x-formatting-context'] === 'block' => new StorablePropShape(shape: $shape, fieldTypeProp: new FieldTypePropExpression('text_long', 'value'), fieldWidget: 'text_textarea', fieldInstanceSettings: ['allowed_formats' => ['xb_html_block']]),
+          $schema['x-formatting-context'] === 'inline' => new StorablePropShape(shape: $shape, fieldTypeProp: new FieldTypePropExpression('text', 'value'), fieldWidget: 'text_textfield', fieldInstanceSettings: ['allowed_formats' => ['xb_html_inline']]),
+          // Other `x-formatting-context` values do not make sense.
+          default => NULL,
+        },
         array_key_exists('$ref', $schema) => match ($schema['$ref']) {
           'json-schema-definitions://experience_builder.module/textarea' => new StorablePropShape(shape: $shape, fieldWidget: 'string_textarea', fieldTypeProp: new FieldTypePropExpression('string_long', 'value')),
           default => NULL,

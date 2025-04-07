@@ -48,12 +48,12 @@ final class FieldTypeSupportTest extends EcosystemSupportTestBase {
   /**
    * The known current % of supported field types.
    */
-  public const COMPLETION = 0.7419354838709677;
+  public const COMPLETION = 0.8387096774193549;
 
   /**
    * The known current % of supported field type props.
    */
-  public const COMPLETION_PROPS = 0.6274509803921569;
+  public const COMPLETION_PROPS = 0.7058823529411765;
 
   /**
    * Supported field types (keys), with explicitly unsupported props (values).
@@ -125,6 +125,21 @@ final class FieldTypeSupportTest extends EcosystemSupportTestBase {
     'timestamp' => [],
     'uri' => [],
     'uuid' => [],
+    // @todo For text fields does it make sense that we are matching these props
+    //   because we just matching 'processed'?
+    'text' => [
+      'format' => TRUE,
+      'value' => TRUE,
+    ],
+    'text_long' => [
+      'format' => TRUE,
+      'value' => TRUE,
+    ],
+    'text_with_summary' => [
+      'format' => TRUE,
+      'value' => TRUE,
+      'summary' => TRUE,
+    ],
   ];
 
   private const XB_TEST_FIELD_PREFIX = 'test_';

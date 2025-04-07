@@ -46,6 +46,11 @@ final class FieldTypeUninstallValidatorTest extends KernelTestBase {
     if (!isset($connection_info['default']['driver']) || $connection_info['default']['driver'] !== 'mysql') {
       $this->markTestSkipped('This test only runs for the MySQL database driver. See https://drupal.org/i/3452756');
     }
+    // The `sdc_test_all_props` module includes props that use
+    // `contentMediaType: text/html` which enables the CKEditor 5 module which
+    // requires the default theme to be installed.
+    // @see \_ckeditor5_theme_css()
+    \Drupal::service('theme_installer')->install(['stark']);
   }
 
   /**

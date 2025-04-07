@@ -91,6 +91,18 @@ class FieldForComponentSuggesterTest extends KernelTestBase {
       'bundle' => 'foo',
       'required' => TRUE,
     ])->save();
+    // Create a "wall of text" field on the "Foo" node type.
+    FieldStorageConfig::create([
+      'entity_type' => 'node',
+      'field_name' => 'field_wall_of_text',
+      'type' => 'text_long',
+    ])->save();
+    FieldConfig::create([
+      'entity_type' => 'node',
+      'field_name' => 'field_wall_of_text',
+      'bundle' => 'foo',
+      'required' => TRUE,
+    ])->save();
   }
 
   /**
@@ -395,6 +407,44 @@ class FieldForComponentSuggesterTest extends KernelTestBase {
           'required' => FALSE,
           'instances' => [
             "This Foo's field_event_duration" => 'ℹ︎␜entity:node:foo␝field_event_duration␞␟{from↠value,to↠end_value}',
+          ],
+          'adapters' => [],
+        ],
+        '⿲sdc_test_all_props:all-props␟test_string_html_inline' => [
+          'required' => FALSE,
+          'instances' => [],
+          'adapters' => [],
+        ],
+        '⿲sdc_test_all_props:all-props␟test_string_html_block' => [
+          'required' => FALSE,
+          'instances' => [
+            "Subset of this Foo's field_wall_of_text: processed (1 of 3 props — absent: value, format)" => 'ℹ︎␜entity:node:foo␝field_wall_of_text␞␟processed',
+          ],
+          'adapters' => [],
+        ],
+        '⿲sdc_test_all_props:all-props␟test_string_html' => [
+          'required' => FALSE,
+          'instances' => [
+            "Subset of this Foo's field_wall_of_text: processed (1 of 3 props — absent: value, format)" => 'ℹ︎␜entity:node:foo␝field_wall_of_text␞␟processed',
+          ],
+          'adapters' => [],
+        ],
+        '⿲sdc_test_all_props:all-props␟test_REQUIRED_string_html_inline' => [
+          'required' => TRUE,
+          'instances' => [],
+          'adapters' => [],
+        ],
+        '⿲sdc_test_all_props:all-props␟test_REQUIRED_string_html_block' => [
+          'required' => TRUE,
+          'instances' => [
+            "Subset of this Foo's field_wall_of_text: processed (1 of 3 props — absent: value, format)" => 'ℹ︎␜entity:node:foo␝field_wall_of_text␞␟processed',
+          ],
+          'adapters' => [],
+        ],
+        '⿲sdc_test_all_props:all-props␟test_REQUIRED_string_html' => [
+          'required' => TRUE,
+          'instances' => [
+            "Subset of this Foo's field_wall_of_text: processed (1 of 3 props — absent: value, format)" => 'ℹ︎␜entity:node:foo␝field_wall_of_text␞␟processed',
           ],
           'adapters' => [],
         ],

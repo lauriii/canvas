@@ -75,6 +75,7 @@ final class LibraryInfoAlterTest extends KernelTestBase {
       'experience_builder/xb.transform.mediaSelection',
       'experience_builder/xb.transform.cast',
       'experience_builder/xb.transform.link',
+      'experience_builder/xb.transform.richText',
       'xb_test_page/xb.transform.diaclone',
     ], array_values(array_filter(
       $attachments['library'],
