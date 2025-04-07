@@ -18,7 +18,7 @@ use Drupal\experience_builder\ClientSideRepresentation;
  *   label_singular = @Translation("code component"),
  *   label_plural = @Translation("code components"),
  *   label_collection = @Translation("Code components"),
- *   admin_permission = "administer code components",
+ *   admin_permission = \Drupal\experience_builder\Entity\JavaScriptComponent::ADMIN_PERMISSION,
  *   handlers = {
  *     "storage" = \Drupal\experience_builder\EntityHandlers\JavascriptComponentStorage::class,
  *     "access" = \Drupal\experience_builder\EntityHandlers\XbConfigEntityAccessControlHandler::class,
@@ -49,6 +49,7 @@ final class JavaScriptComponent extends ConfigEntityBase implements XbAssetInter
   use XbAssetLibraryTrait;
 
   public const string ENTITY_TYPE_ID = 'js_component';
+  public const string ADMIN_PERMISSION = 'administer code components';
   private const string ASSETS_DIRECTORY = 'assets://astro-island/';
 
   /**

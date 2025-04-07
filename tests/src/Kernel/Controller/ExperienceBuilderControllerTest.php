@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace Drupal\Tests\experience_builder\Kernel\Controller;
 
 use Drupal\Core\Url;
+use Drupal\experience_builder\Entity\JavaScriptComponent;
+use Drupal\experience_builder\Entity\PageRegion;
+use Drupal\experience_builder\Entity\Pattern;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\Tests\experience_builder\Kernel\Traits\PageTrait;
 use Drupal\Tests\experience_builder\Kernel\Traits\RequestTrait;
@@ -75,7 +78,18 @@ final class ExperienceBuilderControllerTest extends KernelTestBase {
       'entity' => $sut->id(),
     ])->toString();
     self::assertEquals("/xb/$entity_type/{$sut->id()}", $edit_url);
-    $this->request(Request::create($edit_url));
+
+    /** @var \Drupal\Core\Render\HtmlResponse $response */
+    $response = $this->request(Request::create($edit_url));
+
+    self::assertSame([
+      'user.permissions',
+      'languages:language_interface',
+      'theme',
+    ], $response->getCacheableMetadata()->getCacheContexts());
+    self::assertSame([
+      'http_response',
+    ], $response->getCacheableMetadata()->getCacheTags());
 
     $this->assertExperienceBuilderMount($entity_type, $sut);
   }
@@ -96,6 +110,92 @@ final class ExperienceBuilderControllerTest extends KernelTestBase {
         ['access administration pages'],
         [
           'name' => 'Test entity',
+        ],
+      ],
+    ];
+  }
+
+  /**
+   * Tests controller exposed permissions.
+   *
+   * @param array $permissions
+   *   The permissions.
+   * @param array $expectedPermissionFlags
+   *   The expected flags.
+   *
+   * @dataProvider permissionsData
+   */
+  public function testControllerExposedPermissions(array $permissions, array $expectedPermissionFlags): void {
+    $this->installEntitySchema('xb_page');
+
+    $this->setUpCurrentUser([], $permissions);
+
+    $add_url = Url::fromRoute('experience_builder.experience_builder', [
+      'entity_type' => 'xb_page',
+      'entity' => '',
+    ])->toString();
+    self::assertEquals("/xb/xb_page", $add_url);
+
+    /** @var \Drupal\Core\Render\HtmlResponse $response */
+    $response = $this->request(Request::create($add_url));
+
+    $this->assertEqualsCanonicalizing($expectedPermissionFlags, $this->drupalSettings['xb']['permissions']);
+    self::assertSame([
+      'user.permissions',
+      'languages:language_interface',
+      'theme',
+    ], $response->getCacheableMetadata()->getCacheContexts());
+    self::assertSame([
+      'http_response',
+    ], $response->getCacheableMetadata()->getCacheTags());
+  }
+
+  public static function permissionsData(): array {
+    return [
+      [
+        [
+          'administer xb_page',
+        ],
+        [
+          'globalRegion' => FALSE,
+          'sections' => FALSE,
+          'codeComponents' => FALSE,
+        ],
+      ],
+      [
+        [
+          'administer xb_page',
+          JavaScriptComponent::ADMIN_PERMISSION,
+        ],
+        [
+          'globalRegion' => FALSE,
+          'sections' => FALSE,
+          'codeComponents' => TRUE,
+        ],
+      ],
+      [
+        [
+          'administer xb_page',
+          Pattern::ADMIN_PERMISSION,
+          PageRegion::ADMIN_PERMISSION,
+        ],
+        [
+          'globalRegion' => TRUE,
+          'sections' => TRUE,
+          'codeComponents' => FALSE,
+        ],
+      ],
+      [
+        [
+          'administer xb_page',
+          Pattern::ADMIN_PERMISSION,
+          PageRegion::ADMIN_PERMISSION,
+          JavaScriptComponent::ADMIN_PERMISSION,
+        ],
+        [
+          'globalRegion' => TRUE,
+          'sections' => TRUE,
+          'codeComponents' => TRUE,
         ],
       ],
     ];

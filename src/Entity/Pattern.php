@@ -17,12 +17,12 @@ use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemInstantiat
 
 /**
  * @ConfigEntityType(
- *    id = "pattern",
+ *    id = \Drupal\experience_builder\Entity\Pattern::PLUGIN_ID,
  *    label = @Translation("Pattern"),
  *    label_singular = @Translation("pattern"),
  *    label_plural = @Translation("patterns"),
  *    label_collection = @Translation("Patterns"),
- *    admin_permission = "administer patterns",
+ *    admin_permission = \Drupal\experience_builder\Entity\Pattern::ADMIN_PERMISSION,
  *    handlers = {
  *      "access" = \Drupal\experience_builder\EntityHandlers\ContentCreatorVisibleXbConfigEntityAccessControlHandler::class
  *    },
@@ -38,6 +38,9 @@ use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemInstantiat
  *  )
  */
 final class Pattern extends ConfigEntityBase implements XbHttpApiEligibleConfigEntityInterface, ComponentTreeEntityInterface {
+
+  public const string PLUGIN_ID = 'pattern';
+  public const string ADMIN_PERMISSION = 'administer patterns';
 
   use ComponentTreeItemInstantiatorTrait;
   use ClientServerConversionTrait;

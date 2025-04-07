@@ -23,7 +23,7 @@ use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemInstantiat
  *    label_singular = @Translation("page region"),
  *    label_plural = @Translation("page region"),
  *    label_collection = @Translation("Page region"),
- *    admin_permission = "administer page template",
+ *    admin_permission = \Drupal\experience_builder\Entity\PageRegion::ADMIN_PERMISSION,
  *    handlers = {
  *      "access" = \Drupal\experience_builder\EntityHandlers\XbConfigEntityAccessControlHandler::class
  *    },
@@ -44,7 +44,8 @@ use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemInstantiat
  */
 final class PageRegion extends ConfigEntityBase implements ComponentTreeEntityInterface {
 
-  public const PLUGIN_ID = 'page_region';
+  public const string PLUGIN_ID = 'page_region';
+  public const string ADMIN_PERMISSION = 'administer page template';
   use ComponentTreeItemInstantiatorTrait;
   use ClientServerConversionTrait;
 

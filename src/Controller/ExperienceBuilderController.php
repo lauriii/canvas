@@ -13,10 +13,14 @@ use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Field\WidgetPluginManager;
 use Drupal\Core\Render\HtmlResponse;
 use Drupal\Core\Render\RendererInterface;
+use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Template\Attribute;
 use Drupal\Core\Theme\ThemeInitializationInterface;
 use Drupal\Core\Theme\ThemeManagerInterface;
 use Drupal\experience_builder\AssetRenderer;
+use Drupal\experience_builder\Entity\JavaScriptComponent;
+use Drupal\experience_builder\Entity\PageRegion;
+use Drupal\experience_builder\Entity\Pattern;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
 final class ExperienceBuilderController {
@@ -31,6 +35,7 @@ final class ExperienceBuilderController {
     private readonly LibraryDiscoveryInterface $libraryDiscovery,
     private readonly RendererInterface $renderer,
     private readonly ThemeInitializationInterface $themeInitialization,
+    private readonly AccountInterface $currentUser,
   ) {}
 
   private const HTML = <<<HTML
@@ -110,6 +115,11 @@ HTML;
             'jsFooter' => $this->assetRenderer->renderJsFooterAssets($preview_assets),
           ],
           'xbModulePath' => $xb_module_path,
+          'permissions' => [
+            'globalRegions' => $this->currentUser->hasPermission(PageRegion::ADMIN_PERMISSION),
+            'sections' => $this->currentUser->hasPermission(Pattern::ADMIN_PERMISSION),
+            'codeComponents' => $this->currentUser->hasPermission(JavaScriptComponent::ADMIN_PERMISSION),
+          ],
         ],
       ],
       // Note: the tokens here are under our control, and this accepts no user
