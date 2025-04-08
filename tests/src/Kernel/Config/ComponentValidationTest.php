@@ -4,22 +4,29 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\experience_builder\Kernel\Config;
 
+use Drupal\Core\Theme\ComponentPluginManager as CoreComponentPluginManager;
 use Drupal\experience_builder\Entity\Component;
 use Drupal\experience_builder\Entity\JavaScriptComponent;
+use Drupal\experience_builder\Plugin\ComponentPluginManager;
 use Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\BlockComponent;
 use Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\JsComponent;
 use Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\SingleDirectoryComponent;
 use Drupal\KernelTests\Core\Config\ConfigEntityValidationTestBase;
+use Drupal\Tests\experience_builder\Traits\ContribStrictConfigSchemaTestTrait;
+use Drupal\Tests\experience_builder\Traits\GenerateComponentConfigTrait;
 use Symfony\Component\Yaml\Yaml;
 
 /**
  * Tests validation of component entities.
  *
- * @todo Add `testStatus()` method in https://www.drupal.org/project/experience_builder/issues/3473289
- *
  * @group experience_builder
  */
 class ComponentValidationTest extends ConfigEntityValidationTestBase {
+
+  use ContribStrictConfigSchemaTestTrait;
+  use GenerateComponentConfigTrait;
+
+  protected CoreComponentPluginManager $componentPluginManager;
 
   /**
    * {@inheritdoc}
@@ -28,6 +35,7 @@ class ComponentValidationTest extends ConfigEntityValidationTestBase {
     'experience_builder',
     'sdc',
     'sdc_test',
+    'xb_test_sdc',
     // XB's dependencies (modules providing field types + widgets).
     'datetime',
     'file',
@@ -104,6 +112,7 @@ class ComponentValidationTest extends ConfigEntityValidationTestBase {
       'label' => 'Test',
     ]);
     $this->entity->save();
+    $this->componentPluginManager = $this->container->get(ComponentPluginManager::class);
   }
 
   /**
@@ -276,6 +285,10 @@ class ComponentValidationTest extends ConfigEntityValidationTestBase {
 
   public function testRequiredPropertyKeysMissing(?array $additional_expected_validation_errors_when_missing = NULL): void {
     $additional_expected_validation_errors_when_missing['settings']['id'] = 'This validation constraint is configured to inspect the properties <em class="placeholder">%parent.source, %parent.settings.plugin_id</em>, but some do not exist: <em class="placeholder">%parent.settings.plugin_id</em>.';
+    $additional_expected_validation_errors_when_missing['settings']['status'] = [
+      'The component \'<em class="placeholder">sdc.sdc_test.my-cta</em>\' cannot be enabled because it does not meet the requirements of Experience Builder.',
+      'Component has no valid source plugin_id value.',
+    ];
     parent::testRequiredPropertyKeysMissing($additional_expected_validation_errors_when_missing);
   }
 
@@ -291,6 +304,54 @@ class ComponentValidationTest extends ConfigEntityValidationTestBase {
     yield 'valid string' => ['foo', []];
     yield 'empty string' => ['', ['category' => 'This value should not be blank.']];
     yield 'null' => [NULL, ['category' => 'This value should not be null.']];
+  }
+
+  public function testStatusWithSdc(): void {
+    $component = Component::load('sdc.xb_test_sdc.image-required-without-example');
+    $this->assertNull($component);
+    $component = SingleDirectoryComponent::createConfigEntity($this->componentPluginManager->find('xb_test_sdc:image-required-without-example'));
+    $component->setStatus(FALSE);
+    $this->assertEquals(SAVED_NEW, $component->save());
+    $component->setStatus(TRUE);
+    $this->entity = $component;
+    $this->assertValidationErrors([
+      'status' => [
+        'The component \'<em class="placeholder">sdc.xb_test_sdc.image-required-without-example</em>\' cannot be enabled because it does not meet the requirements of Experience Builder.',
+        'Prop "image" is required, but does not have example value',
+      ],
+    ]);
+  }
+
+  public function testStatusWithBlock(): void {
+    $this->enableModules(['node', 'block']);
+    $this->generateComponentConfig();
+
+    $component = Component::create([
+      'id' => 'block.node_syndicate_block',
+      'status' => FALSE,
+      'label' => 'Test',
+      'category' => 'test',
+      'source' => BlockComponent::SOURCE_PLUGIN_ID,
+      'settings' => [
+        'plugin_id' => 'node_syndicate_block',
+        'default_settings' => [],
+      ],
+    ]);
+
+    $this->assertTrue($component instanceof Component);
+    $this->assertFalse($component->status());
+    $this->assertEquals(SAVED_NEW, $component->save());
+
+    $component->setStatus(TRUE);
+    $this->assertTrue($component->status());
+
+    $this->entity = $component;
+    $this->assertValidationErrors([
+      'status' => [
+        'The component \'<em class="placeholder">block.node_syndicate_block</em>\' cannot be enabled because it does not meet the requirements of Experience Builder.',
+        'Block plugin settings must be fully validatable',
+      ],
+    ]);
   }
 
 }

@@ -123,6 +123,9 @@ final class SingleDirectoryComponent extends GeneratedFieldExplicitInputUxCompon
    */
   protected function getComponentPlugin(): ComponentPlugin {
     // @todo this should probably use DefaultSingleLazyPluginCollection
+    if (is_null($this->configuration['plugin_id'])) {
+      throw new ComponentDoesNotMeetRequirementsException(['Component has no valid source plugin_id value.']);
+    }
     return $this->componentPluginManager->find($this->configuration['plugin_id']);
   }
 

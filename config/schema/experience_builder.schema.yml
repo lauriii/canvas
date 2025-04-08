@@ -7,10 +7,9 @@ experience_builder.component.*:
       type: required_label
       label: 'Label'
     status:
-      # Refine `type: config_entity`'s `status`: only allow `true` for SDCs/Blocks that meet the requirements.
-      constraints: {
-      # @todo Write validation constraint per above comment in https://www.drupal.org/project/experience_builder/issues/3473289
-      }
+      # Refine `type: config_entity`'s `status`: only allow `true` for SDCs that meet the requirements.
+      constraints:
+        ComponentStatusConstraint: []
     id:
       # This ID intentionally does not use `type: machine_name`, because it is a composite ID that is better validated
       # using the `StringParts` constraint than the `RegEx` constraint.

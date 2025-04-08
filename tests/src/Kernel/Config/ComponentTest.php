@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\experience_builder\Kernel\Config;
 
+use Drupal\Core\Config\Schema\SchemaIncompleteException;
 use Drupal\Core\Entity\EntityListBuilderInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Field\Plugin\Field\FieldWidget\OptionsSelectWidget;
@@ -565,7 +566,9 @@ class ComponentTest extends KernelTestBase {
     $this->assertSame($id, $component->id());
     $this->assertFalse($component->status());
     $component->enable();
-    $this->assertTrue($component->status());
+
+    $this->expectException(SchemaIncompleteException::class);
+    $this->expectExceptionMessage('Schema errors for experience_builder.component.sdc.experience_builder.obsolete with the following errors: 0 [status] The component &#039;&lt;em class=&quot;placeholder&quot;&gt;sdc.experience_builder.obsolete&lt;/em&gt;&#039; cannot be enabled because it does not meet the requirements of Experience Builder., 1 [status] Component has &quot;obsolete&quot; status');
     $component->save();
 
     // Trigger component update that will disable 'obsolete' component.
