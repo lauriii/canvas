@@ -171,7 +171,9 @@ function _experience_builder_render_js_component_from_block_element(array $block
   //   through an intermediary ephemeral Component entity?
   $source = JsComponent::createConfigEntity($js_component)->getComponentSource();
 
-  $build = $source->renderComponent(['props' => $props], $instance_uuid);
+  // @todo Determine if the component should be rendered in preview mode in
+  //   https://drupal.org/i/3513144.
+  $build = $source->renderComponent(['props' => $props], $instance_uuid, FALSE);
   assert($source instanceof JsComponent);
   $source->setSlots($build, $slots);
   return $build;

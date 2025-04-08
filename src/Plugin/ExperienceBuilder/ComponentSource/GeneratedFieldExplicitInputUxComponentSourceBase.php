@@ -573,7 +573,9 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
 
     return [
       'source' => (string) $this->getSourceLabel(),
-      'build' => $this->renderComponent([self::EXPLICIT_INPUT_NAME => $default_props_for_default_markup], $component->uuid()),
+      // @todo Determine if the component should be rendered in preview mode in
+      //   https://drupal.org/i/3516705.
+      'build' => $this->renderComponent([self::EXPLICIT_INPUT_NAME => $default_props_for_default_markup], $component->uuid(), FALSE),
       // Additional data only needed for SDCs.
       // @todo UI does not use any other metadata - should `slots` move to top level?
       'metadata' => ['slots' => $this->getSlotDefinitions()],

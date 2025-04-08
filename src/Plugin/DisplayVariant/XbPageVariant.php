@@ -6,6 +6,7 @@ use Drupal\Core\Block\MessagesBlockPluginInterface;
 use Drupal\Core\Block\TitleBlockPluginInterface;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Display\Attribute\PageDisplayVariant;
+use Drupal\Core\Display\ContextAwareVariantInterface;
 use Drupal\Core\Display\PageVariantInterface;
 use Drupal\Core\Display\VariantBase;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
@@ -29,6 +30,7 @@ use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
  *
  * @see \Drupal\system\Controller\SystemController::themesPage()
  * @see \Drupal\Core\Block\MainContentBlockPluginInterface
+ * @see \Drupal\experience_builder\EventSubscriber\RenderEventsSubscriber::onSelectPageDisplayVariant()
  * @see ::MAIN_CONTENT_REGION
  *
  * All MessagesBlockPluginInterface implementations use the global context; but
@@ -55,9 +57,16 @@ use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
   id: self::PLUGIN_ID,
   admin_label: new TranslatableMarkup('Page with Experience Builder Components')
 )]
-final class XbPageVariant extends VariantBase implements PageVariantInterface {
+final class XbPageVariant extends VariantBase implements PageVariantInterface, ContextAwareVariantInterface {
+
+  /**
+   * @var array<\Drupal\Component\Plugin\Context\ContextInterface>
+   */
+  private array $contexts = [];
 
   public const string PLUGIN_ID = 'experience_builder';
+
+  public const string XB_PREVIEW_CONTEXT = 'xb_preview';
 
   /**
    * The plugin configuration key whose value is the PageRegion config entities.
@@ -109,6 +118,8 @@ final class XbPageVariant extends VariantBase implements PageVariantInterface {
    * {@inheritdoc}
    */
   public function build() {
+    $contexts = $this->getContexts();
+    $is_preview = isset($contexts[self::XB_PREVIEW_CONTEXT]) ? $contexts[self::XB_PREVIEW_CONTEXT]->getContextValue() : FALSE;
     $regions = $this->configuration[static::REGION_CONFIG_ENTITIES_KEY] ?? NULL;
     if (empty($regions)) {
       throw new \LogicException('This page display variant needs Experience Builder PageRegion config entities.');
@@ -131,7 +142,7 @@ final class XbPageVariant extends VariantBase implements PageVariantInterface {
       // @see \Drupal\Core\Block\TitleBlockPluginInterface
       // @see \Drupal\experience_builder\ComponentSource\ComponentSourceInterface::renderComponent()
       // @see \Drupal\block\Plugin\DisplayVariant\BlockPageVariant::build()
-      $fiber = new \Fiber(fn() => $component_tree->toRenderable());
+      $fiber = new \Fiber(fn() => $component_tree->toRenderable($is_preview));
       $component_instance = $fiber->start();
       while ($fiber->isSuspended()) {
         $component_instance = match (TRUE) {
@@ -166,6 +177,15 @@ final class XbPageVariant extends VariantBase implements PageVariantInterface {
     }
 
     return $build;
+  }
+
+  public function getContexts(): array {
+    return $this->contexts;
+  }
+
+  public function setContexts(array $contexts): self {
+    $this->contexts = $contexts;
+    return $this;
   }
 
 }

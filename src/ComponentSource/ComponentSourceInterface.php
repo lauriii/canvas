@@ -74,7 +74,7 @@ interface ComponentSourceInterface extends PluginInspectionInterface, Derivative
    * @return array
    *   Render array.
    */
-  public function renderComponent(array $inputs, string $componentUuid, bool $isPreview = FALSE): array;
+  public function renderComponent(array $inputs, string $componentUuid, bool $isPreview): array;
 
   /**
    * Whether this component requires explicit input or not.

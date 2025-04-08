@@ -41,6 +41,7 @@ final class ApiLayoutControllerTest extends HttpApiTestBase {
       'administer url aliases',
       'administer code components',
       'administer xb_page',
+      'administer themes',
     ]);
     \assert($account instanceof UserInterface);
     $this->drupalLogin($account);
@@ -137,6 +138,7 @@ final class ApiLayoutControllerTest extends HttpApiTestBase {
         ],
       ],
     ];
+    $original_request_json = $json;
 
     $request_options = [
       RequestOptions::HEADERS => [
@@ -196,10 +198,43 @@ final class ApiLayoutControllerTest extends HttpApiTestBase {
     $this->assertMatchesRegularExpression(sprintf(self::UUID_IN_CONTENT_REGION, $uuid), $element->ancestors()->html());
 
     self::assertCount(1, $element);
-    self::assertJsonStringEqualsJsonString(Json::encode([
+    $updated_opts_json = Json::encode([
       'name' => 'Rodney',
       'value' => 'preact',
-    ]), $element->attr('opts') ?? '');
+    ]);
+    self::assertJsonStringEqualsJsonString($updated_opts_json, $element->attr('opts') ?? '');
+
+    // Enable Experience Builder for all regions on the Stark theme.
+    $this->drupalGet('/admin/appearance/settings/stark');
+    $this->assertSession()->pageTextContains('Experience Builder');
+    $this->assertSession()->fieldExists('use_xb');
+    $this->submitForm(['use_xb' => TRUE], 'Save configuration');
+    $this->assertSession()->pageTextContains('The configuration options have been saved.');
+
+    $json = $original_request_json;
+    // Move the component out of the Page content entity's component tree, into a PageRegion config entity.
+    $json['layout'][1] = [
+      'nodeType' => 'region',
+      'id' => 'sidebar_first',
+      'name' => 'Sidebar first',
+      'components' => $json['layout'][0]['components'],
+    ];
+    $json['layout'][0]['components'] = [];
+    $request_options[RequestOptions::BODY] = Json::encode($json);
+    $response = $this->makeApiRequest('POST', Url::fromRoute('experience_builder.api.layout.post', [
+      'entity_type' => 'xb_page',
+      'entity' => $page->id(),
+    ]), $request_options);
+
+    // Ensure the auto-saved version is also used in the sidebar.
+    $body = (string) $response->getBody();
+    $json = \json_decode($body, TRUE, JSON_THROW_ON_ERROR);
+    $crawler = new Crawler($json['html']);
+    $sidebar_first_region = $crawler->filter('.layout-sidebar-first');
+    self::assertCount(1, $sidebar_first_region);
+    $element = $sidebar_first_region->filter('astro-island');
+    self::assertCount(1, $element);
+    self::assertJsonStringEqualsJsonString($updated_opts_json, $element->attr('opts') ?? '');
   }
 
 }

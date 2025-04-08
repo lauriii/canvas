@@ -2,6 +2,8 @@
 
 namespace Drupal\experience_builder\EventSubscriber;
 
+use Drupal\Core\Plugin\Context\Context;
+use Drupal\Core\Plugin\Context\ContextDefinition;
 use Drupal\Core\Render\PageDisplayVariantSelectionEvent;
 use Drupal\Core\Render\RenderEvents;
 use Drupal\experience_builder\AutoSave\AutoSaveManager;
@@ -39,6 +41,13 @@ final class RenderEventsSubscriber implements EventSubscriberInterface {
     // If we're previewing a page, see if we have an auto-save version to use.
     $preview = $event->getRouteMatch()->getRouteObject()?->getOption('_xb_use_template_draft');
     if ($preview) {
+      $contexts = $event->getContexts();
+      // Instruct XbPageVariant to render a preview.
+      $contexts[XbPageVariant::XB_PREVIEW_CONTEXT] = new Context(
+        context_definition: new ContextDefinition(data_type: 'boolean', required: TRUE),
+        context_value: TRUE
+      );
+      $event->setContexts($contexts);
       foreach ($regions as &$region) {
         $autoSaveData = $this->autoSaveManager->getAutoSaveData($region)->data;
         if ($autoSaveData) {
