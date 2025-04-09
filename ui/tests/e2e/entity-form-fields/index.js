@@ -3,6 +3,7 @@ import * as field_xbt_language from './field_xbt_language.js';
 import * as field_xbt_options_buttons from './field_xbt_options_buttons.js';
 import * as field_xbt_telephone from './field_xbt_telephone.js';
 import * as field_xbt_textfield from './field_xbt_textfield.js';
+import * as field_xbt_textarea from './field_xbt_textarea.js';
 
 // Expand this to add additional coverage.
 // For each field to be tested, add a new file that exports two methods as
@@ -21,4 +22,5 @@ export default {
   field_xbt_options_buttons,
   field_xbt_telephone,
   field_xbt_textfield,
+  field_xbt_textarea,
 };

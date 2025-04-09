@@ -13,6 +13,7 @@ use Drupal\Core\Entity\Entity\EntityFormDisplay;
 use Drupal\Core\Language\LanguageInterface;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
+use Drupal\filter\Entity\FilterFormat;
 use Drupal\user\Entity\Role;
 
 /**
@@ -336,11 +337,36 @@ function xb_test_article_fields_install(): void {
   $form_display->removeComponent('comment');
   $form_display->save();
 
+  $formats = [
+    'restricted_html' => 'Restricted HTML',
+    'basic_html' => 'Basic HTML',
+  ];
+
+  // Add some filter formats so we can test the textarea widget.
+  foreach ($formats as $id => $name) {
+    FilterFormat::create([
+      'format' => $id,
+      'name' => $name,
+      'filters' => [
+        'filter_html' => [
+          'module' => 'filter',
+          'status' => TRUE,
+          'weight' => 10,
+          'settings' => [
+            'allowed_html' => '<p>',
+          ],
+        ],
+      ],
+    ])->save();
+  }
+
   // Grant some permissions.
   $role = Role::load('xb');
   if ($role !== NULL) {
     $role->grantPermission('administer comments');
     $role->grantPermission('post comments');
+    $role->grantPermission('use text format restricted_html');
+    $role->grantPermission('use text format basic_html');
     $role->save();
   }
 
