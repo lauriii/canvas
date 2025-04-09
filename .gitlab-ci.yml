@@ -163,7 +163,7 @@ phpcs-rules-match-drupal-11:
       if [ $DIFF_EXIT_CODE -ne 0 ]; then
         echo "🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥"
         echo "Error: core.phpcs.xml.dist not up to date with Drupal 11.x core/phpcs.xml.dist. Please create an issue to update this file."
-        echo "Issue template: https://www.drupal.org/node/add/project-issue/experience_builder?title=Update%20PHPCS%20config%20to%20match%20Drupal%2011&field_issue_parent=3511705&clone_body=1&categories=2&priorities=100&status=1&version=0.x-dev&component=Page%20builder&tags="
+        echo "Issue template: https://www.drupal.org/node/add/project-issue/experience_builder?title=Update%20PHPCS%20config%20to%20match%20Drupal%2011&field_issue_parent=3512890&clone_body=1&categories=2&priorities=100&status=1&version=0.x-dev&component=Code&assigned=0&tags="
       else
         echo "👍👍👍👍👍👍👍👍👍👍👍👍👍👍👍👍👍👍"
         echo "core.phpcs.xml.dist is up to date with Drupal 11.x core/phpcs.xml.dist"

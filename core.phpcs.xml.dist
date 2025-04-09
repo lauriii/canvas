@@ -57,7 +57,9 @@
       SpacingAfter, LongNotCapital, ShortFullStop, TagGroupSpacing, Empty,
       TagsNotGrouped, ParamGroup -->
     <exclude name="Drupal.Commenting.DocComment.LongFullStop"/>
-    <exclude name="Drupal.Commenting.DocComment.MissingShort"/>
+  </rule>
+  <rule  ref="Drupal.Commenting.DocComment.MissingShort">
+    <include-pattern>core/*/Unit/*</include-pattern>
   </rule>
   <rule ref="Drupal.Commenting.DocCommentAlignment"/>
   <rule ref="Drupal.Commenting.DocCommentLongArraySyntax"/>
@@ -69,16 +71,12 @@
     <include-pattern>*/Database/*</include-pattern>
     <include-pattern>*/FunctionalJavascript/*</include-pattern>
     <include-pattern>*/Kernel/*</include-pattern>
+    <include-pattern>*/KernelTests/*</include-pattern>
     <include-pattern>*/Functional/*</include-pattern>
     <include-pattern>*/Unit/*</include-pattern>
   </rule>
   <rule ref="Drupal.Commenting.FunctionComment.MissingParamType"/>
-  <rule ref="Drupal.Commenting.FunctionComment.MissingReturnComment">
-    <include-pattern>core/lib/Drupal/Core/*</include-pattern>
-    <include-pattern>core/lib/Drupal/Component/*</include-pattern>
-    <include-pattern>core/tests/*</include-pattern>
-    <include-pattern>core/*/tests/*</include-pattern>
-  </rule>
+  <rule ref="Drupal.Commenting.FunctionComment.MissingReturnComment"/>
   <rule ref="Drupal.Commenting.GenderNeutralComment"/>
   <rule ref="Drupal.Commenting.HookComment"/>
   <rule ref="Drupal.Commenting.InlineComment">
