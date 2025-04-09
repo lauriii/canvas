@@ -4,6 +4,7 @@ import webpackPreprocessor from '@cypress/webpack-preprocessor';
 import { fileURLToPath } from 'url';
 import * as fs from 'fs';
 import * as path from 'path';
+import glob from 'fast-glob';
 import dotenv from 'dotenv';
 import installLogsPrinter from 'cypress-terminal-report/src/installLogsPrinter';
 dotenv.config();
@@ -80,6 +81,9 @@ export default defineConfig({
           console.table(message);
 
           return null;
+        },
+        countFiles(pattern) {
+          return glob.sync(pattern).length;
         },
       });
 

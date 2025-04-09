@@ -1,5 +1,14 @@
+import fields from './entity-form-fields/index.js';
+
 describe('Entity form field types', () => {
   before(() => {
+    // We need to set the timezone in the running browser too.
+    Cypress.automation('remote:debugger:protocol', {
+      command: 'Emulation.setTimezoneOverride',
+      params: {
+        timezoneId: 'Australia/Sydney',
+      },
+    });
     cy.drupalXbInstall([
       // Adds the required fields.
       'xb_test_article_fields',
@@ -31,68 +40,11 @@ describe('Entity form field types', () => {
     // Make a record of the starting form build ID for the form
     cy.get('@entityForm').recordFormBuildId();
 
-    // Expand this to add additional coverage.
-    // For each field to be tested, add a new object with the field name and
-    // two methods as follows:
-    // - 'edit' - The edit method receives the current Cypress instance and
-    // should perform pre-condition checks (e.g. assert the default state), then
-    // make an edit to the field.
-    // - 'assertData' - The assertData method receives the JSON:API representation
-    // of the entity after the form has been submitted and the entity has been
-    // published. It should make use of expect to assert the value was correctly
-    // submitted.
-    // @see xb_test_article_fields_install for where the fields are created.
-    const fields = {
-      field_xbt_comment: {
-        edit: (cy) => {
-          cy.findByText('Comment settings').click();
-          cy.findByText('Comment settings')
-            .parents('[data-state="open"][data-drupal-selector]')
-            .as('commentFieldset');
-          cy.get('@commentFieldset')
-            .findByLabelText('Open', { exact: false })
-            .assertToggleState(false);
-          cy.get('@commentFieldset')
-            .findByText('Open', { exact: false })
-            .click();
-          cy.get('@commentFieldset')
-            .findByLabelText('Open', { exact: false })
-            .assertToggleState(true);
-        },
-        assertData: (response) => {
-          expect(response.attributes.field_xbt_comment.status).to.equal(2);
-        },
+    cy.task('countFiles', './tests/e2e/entity-form-fields/field_*.js').then(
+      (count) => {
+        expect(count).to.equal(Object.entries(fields).length);
       },
-      field_xbt_options_buttons: {
-        edit: (cy) => {
-          cy.findByLabelText('Option 2', { exact: false }).assertToggleState(
-            true,
-          );
-          cy.findByText('Option 3', { exact: false }).click();
-        },
-        assertData: (response) => {
-          expect(response.attributes.field_xbt_options_buttons).to.equal(
-            'option3',
-          );
-        },
-      },
-      field_xbt_language: {
-        edit: (cy) => {
-          cy.findByLabelText('XB Language')
-            .parent()
-            .find('select')
-            .as('languageSelect');
-          cy.get('@languageSelect').should('have.value', 'und');
-          // Radix renders this as a hidden element with a button to trigger, so
-          // we have to use force.
-          cy.get('@languageSelect').select('English', { force: true });
-          cy.get('@languageSelect').should('have.value', 'en');
-        },
-        assertData: (response) => {
-          expect(response.attributes.field_xbt_language).to.equal('en');
-        },
-      },
-    };
+    );
 
     // Perform field edits.
     Object.entries(fields).forEach(([key, value]) => {
