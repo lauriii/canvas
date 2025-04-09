@@ -35,6 +35,11 @@ final class ApiLayoutControllerTest extends HttpApiTestBase {
    */
   protected $defaultTheme = 'stark';
 
+  /**
+   * Note: drafts are loaded in the XB UI, not on the live site.
+   *
+   * @see \Drupal\Tests\experience_builder\Functional\XbPageVariantTest
+   */
   public function testWithDraftCodeComponent(): void {
     $account = $this->createUser([
       'access administration pages',

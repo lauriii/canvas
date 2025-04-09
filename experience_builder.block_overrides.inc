@@ -165,15 +165,14 @@ function template_preprocess_breadcrumb__as_js_component(array &$variables): voi
  */
 function _experience_builder_render_js_component_from_block_element(array $block_element, array $props, array $slots): array {
   $js_component = $block_element['#js_component'];
+  $is_preview = $block_element['#xb_preview'];
   $instance_uuid = $block_element['#id'];
 
   // @todo Would it be better to instantiate the source plugin without going
   //   through an intermediary ephemeral Component entity?
   $source = JsComponent::createConfigEntity($js_component)->getComponentSource();
 
-  // @todo Determine if the component should be rendered in preview mode in
-  //   https://drupal.org/i/3513144.
-  $build = $source->renderComponent(['props' => $props], $instance_uuid, FALSE);
+  $build = $source->renderComponent(['props' => $props], $instance_uuid, $is_preview);
   assert($source instanceof JsComponent);
   $source->setSlots($build, $slots);
   return $build;

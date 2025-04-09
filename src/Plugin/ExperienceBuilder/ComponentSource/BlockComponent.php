@@ -209,6 +209,7 @@ final class BlockComponent extends ComponentSourceBase implements ContainerFacto
       assert($js_component_for_block_base_plugin instanceof JavaScriptComponent);
       $build['#theme'] = 'block__' . strtr($build['#base_plugin_id'], '-', '_') . '__as_js_component';
       $build['#js_component'] = $js_component_for_block_base_plugin;
+      $build['#xb_preview'] = $isPreview;
       // Update cacheability.
       $build['#cache']['tags'] = $js_component_for_block_base_plugin->getCacheTags();
       $build['#cache']['contexts'] = $js_component_for_block_base_plugin->getCacheContexts();
