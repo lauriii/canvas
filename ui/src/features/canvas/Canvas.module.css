@@ -32,7 +32,7 @@
 }
 .previewsContainer {
   display: flex;
-  gap: 2em;
+  gap: 16em;
 }
 .modifierKeyPressed .canvas > *,
 .isPanning .canvas > * {

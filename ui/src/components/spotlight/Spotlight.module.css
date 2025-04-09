@@ -1,7 +1,7 @@
 .spotlight {
   position: absolute;
-  top: 0;
-  left: 0;
+  /* 1px because the preview iframe has a px border. */
+  inset: 1px;
   display: grid;
   grid-template-rows: auto auto 1fr;
   grid-template-columns: auto auto 1fr;
@@ -11,7 +11,7 @@
 
   > div {
     pointer-events: none;
-    background: rgba(0, 0, 0, 0.5);
+    background: rgba(0, 5, 29, 0.45);
   }
 
   &.blocking > div {

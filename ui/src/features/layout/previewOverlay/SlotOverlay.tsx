@@ -8,7 +8,7 @@ import {
   selectTargetSlot,
 } from '@/features/ui/uiSlice';
 import clsx from 'clsx';
-import NameTag from '@/features/layout/preview/NameTag';
+import { SlotNameTag } from '@/features/layout/preview/NameTag';
 import ComponentOverlay from '@/features/layout/previewOverlay/ComponentOverlay';
 import type {
   ComponentNode,
@@ -132,7 +132,7 @@ const SlotOverlay: React.FC<SlotOverlayProps> = (props) => {
     >
       {(targetSlot === slotId || isHovered) && (
         <div className={clsx(styles.xbNameTag, styles.xbNameTagSlot)}>
-          <NameTag
+          <SlotNameTag
             name={`${slotName} (${parentComponentName})`}
             id={slotId}
             nodeType={slot.nodeType}

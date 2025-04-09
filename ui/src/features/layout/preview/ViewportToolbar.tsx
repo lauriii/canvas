@@ -20,11 +20,10 @@ const ViewportToolbar: React.FC<ViewportToolbarProps> = (props) => {
   const IconComponent = iconMapping[size];
 
   return (
-    <Flex className={styles.toolbar} mb="2" p="3">
+    <Flex className={styles.toolbar} mb="4" py="2" px="4">
       <Flex className={styles.iconContainer} justify="center" align="center">
-        <IconComponent color="#fff" height="16" width="16" />
+        <IconComponent height="16" width="16" />
       </Flex>
-      &nbsp;
       <span title={`${width}px x ${height}px`}>{name}</span>
       <Button ml="auto" onClick={handleNonWorkingBtn}>
         <PlusIcon />

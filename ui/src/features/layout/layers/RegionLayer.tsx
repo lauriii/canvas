@@ -2,17 +2,28 @@ import { Box } from '@radix-ui/themes';
 import SidebarNode from '@/components/sidebar/SidebarNode';
 import type { RegionNode } from '@/features/layout/layoutModelSlice';
 import ComponentLayer from '@/features/layout/layers/ComponentLayer';
+import type React from 'react';
 import { useCallback } from 'react';
 import SortableContainer from '@/features/layout/layers/SortableContainer';
 import { useNavigationUtils } from '@/hooks/useNavigationUtils';
 import { useNavigate } from 'react-router-dom';
 import useXbParams from '@/hooks/useXbParams';
-import { DEFAULT_REGION } from '@/features/ui/uiSlice';
+import {
+  DEFAULT_REGION,
+  selectIsComponentHovered,
+  setHoveredComponent,
+  unsetHoveredComponent,
+} from '@/features/ui/uiSlice';
+import { useAppDispatch, useAppSelector } from '@/app/hooks';
 
 const RegionLayer: React.FC<{ region: RegionNode }> = ({ region }) => {
   const { regionId: focusedRegion = DEFAULT_REGION } = useXbParams();
   const { setSelectedRegion } = useNavigationUtils();
   const navigate = useNavigate();
+  const dispatch = useAppDispatch();
+  const isHovered = useAppSelector((state) => {
+    return selectIsComponentHovered(state, region.id);
+  });
 
   // Navigate to the clicked region, or back out to the content region if we are focused in the clicked region already
   const handleRegionClick = useCallback(() => {
@@ -30,14 +41,28 @@ const RegionLayer: React.FC<{ region: RegionNode }> = ({ region }) => {
     }
   }, []);
 
+  function handleMouseOver(event: React.MouseEvent<HTMLDivElement>) {
+    event.stopPropagation();
+    dispatch(setHoveredComponent(region.id));
+  }
+
+  function handleMouseOut(event: React.MouseEvent<HTMLDivElement>) {
+    event.stopPropagation();
+    dispatch(unsetHoveredComponent());
+  }
+
   return (
     <Box>
       <SidebarNode
         onDoubleClick={handleRegionClick}
         onMouseDown={handleMouseDown}
+        onMouseOver={handleMouseOver}
+        onMouseOut={handleMouseOut}
         title={region.name}
         variant="region"
         open={region.id === focusedRegion}
+        hovered={isHovered}
+        data-hovered={isHovered}
       />
 
       {region.id === focusedRegion && (

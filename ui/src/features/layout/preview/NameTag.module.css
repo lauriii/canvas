@@ -14,7 +14,7 @@
     background-color: var(--color-outline-slot);
   }
 
-  &.root {
+  &.region {
     background-color: var(--color-outline-root);
   }
 }

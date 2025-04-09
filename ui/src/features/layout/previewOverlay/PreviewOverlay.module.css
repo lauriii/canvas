@@ -28,16 +28,15 @@
 .regionOverlay {
   position: absolute;
   outline: 1px solid transparent;
+  inset: 0;
+  outline-offset: -1px;
 
+  &.hovered {
+    outline: 1px dashed var(--color-outline-root);
+  }
   &.dropTarget {
-    inset: 0;
     pointer-events: none;
     outline: 1px dashed var(--color-outline-root);
-    outline-offset: -1px;
-  }
-
-  &.dropTarget .xbNameTagSlot {
-    display: block;
   }
 }
 
@@ -78,19 +77,9 @@
     outline: 1px dashed var(--color-outline-slot);
     outline-offset: -1px;
   }
-  &.dropTarget > .xbNameTag {
-    display: block;
-  }
 
   &.hovered {
     outline: 1px solid var(--purple-9);
-  }
-
-  &.hovered:not(.dragging),
-  &:focus-visible:not(.dragging) {
-    > .xbNameTag {
-      display: block;
-    }
   }
 }
 

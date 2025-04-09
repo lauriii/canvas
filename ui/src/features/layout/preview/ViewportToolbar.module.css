@@ -1,8 +1,9 @@
 .toolbar {
   display: flex;
   align-items: center;
+  color: var(--gray-9);
   border-radius: 5px;
-  background-color: #cdced6;
+  background-color: #fff
 }
 
 .iconContainer {
@@ -13,5 +14,4 @@
   height: 24px;
   margin-right: 5px;
   border-radius: 4px;
-  background-color: #4d525d;
 }

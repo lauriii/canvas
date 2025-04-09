@@ -8,6 +8,7 @@ import useWindowResizeListener from '@/hooks/useWindowResizeListener';
 import useResizeObserver from '@/hooks/useResizeObserver';
 
 import {
+  DEFAULT_REGION,
   selectCanvasViewPortScale,
   selectZooming,
 } from '@/features/ui/uiSlice';
@@ -15,6 +16,8 @@ import RegionOverlay from '@/features/layout/previewOverlay/RegionOverlay';
 import clsx from 'clsx';
 import type { ViewPortSize } from '@/features/layout/preview/Viewport';
 import { selectLayout } from '@/features/layout/layoutModelSlice';
+import { useNavigate } from 'react-router-dom';
+import useXbParams from '@/hooks/useXbParams';
 
 interface ViewportOverlayProps {
   iframeRef: React.RefObject<HTMLIFrameElement>;
@@ -35,6 +38,12 @@ const ViewportOverlay: React.FC<ViewportOverlayProps> = (props) => {
   const layout = useAppSelector(selectLayout);
   const [rect, setRect] = useState<Rect | null>(null);
   const isZooming = useAppSelector(selectZooming);
+  const navigate = useNavigate();
+  const { regionId: focusedRegion = DEFAULT_REGION } = useXbParams();
+
+  let displayedRegions = layout.filter((region) => {
+    return region.components.length > 0 || region.id === DEFAULT_REGION;
+  });
 
   const updateRect = useCallback(() => {
     // The top and left must equal the distance from the parent (positionAnchor, which is always static) to the iFrame.
@@ -80,6 +89,14 @@ const ViewportOverlay: React.FC<ViewportOverlayProps> = (props) => {
     updateRect();
   }, [previewContainerRef, updateRect, canvasViewPortScale]);
 
+  // When double-clicking "outside" the focused region, set the focus back to the default region (by navigating to /editor).
+  function handleDoubleClick(event: React.MouseEvent<HTMLDivElement>) {
+    event.stopPropagation();
+    if (focusedRegion !== DEFAULT_REGION) {
+      navigate('/editor');
+    }
+  }
+
   if (!portalRoot || !rect) return null;
 
   // This overlay is portalled and rendered higher up the DOM tree to ensure that when the canvas is zoomed, the UI
@@ -90,6 +107,7 @@ const ViewportOverlay: React.FC<ViewportOverlayProps> = (props) => {
       className={clsx('xb--viewport-overlay', styles.viewportOverlay, {
         [styles.isZooming]: isZooming,
       })}
+      onDoubleClick={handleDoubleClick}
       data-xb-viewport-size={size}
       style={{
         top: `${rect.top}px`,
@@ -98,7 +116,7 @@ const ViewportOverlay: React.FC<ViewportOverlayProps> = (props) => {
         height: `${rect.height}px`,
       }}
     >
-      {layout.map((region) => (
+      {displayedRegions.map((region) => (
         <RegionOverlay
           iframeRef={iframeRef}
           region={region}

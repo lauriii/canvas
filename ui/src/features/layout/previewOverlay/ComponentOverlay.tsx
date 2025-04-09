@@ -12,7 +12,7 @@ import {
   unsetHoveredComponent,
 } from '@/features/ui/uiSlice';
 import clsx from 'clsx';
-import NameTag from '@/features/layout/preview/NameTag';
+import { ComponentNameTag } from '@/features/layout/preview/NameTag';
 import SlotOverlay from '@/features/layout/previewOverlay/SlotOverlay';
 import type {
   ComponentNode,
@@ -221,7 +221,7 @@ const ComponentOverlay: React.FC<ComponentOverlayProps> = (props) => {
       </ComponentContextMenu>
       {(isHovered || selectedComponent === component.uuid) && (
         <div className={clsx(styles.xbNameTag)}>
-          <NameTag
+          <ComponentNameTag
             name={name}
             id={component.uuid}
             nodeType={component.nodeType}

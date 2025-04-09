@@ -13,6 +13,51 @@ describe('Operate on components in global regions', () => {
     cy.drupalUninstall();
   });
 
+  it('Can hover global regions', () => {
+    cy.loadURLandWaitForXBLoaded();
+    cy.log(
+      'Can hover a region in the library and see the overlay in the preview (checking for the nameTag)',
+    );
+    cy.get('.primaryPanelContent')
+      .findByText('Content Above')
+      .trigger('mouseover');
+
+    cy.get('[data-xb-viewport-size="lg"] .xb--region-overlay__content_above')
+      .should('have.length', 1)
+      .and('be.visible');
+
+    cy.get('[data-xb-viewport-size="lg"]').within(() => {
+      cy.findByText('Content Above').should('be.visible');
+    });
+
+    cy.get('.primaryPanelContent')
+      .findByText('Breadcrumb')
+      .trigger('mouseover');
+
+    cy.get('[data-xb-viewport-size="lg"] .xb--region-overlay__breadcrumb')
+      .should('have.length', 1)
+      .and('be.visible');
+
+    cy.get('[data-xb-viewport-size="lg"]').within(() => {
+      cy.findByText('Breadcrumb').should('be.visible');
+    });
+    cy.log(
+      'Can hover a region in the preview and it is marked as hovered in the Library',
+    );
+
+    cy.get('[data-xb-viewport-size="lg"]').within(() => {
+      cy.get('.xb--region-overlay__header').trigger('mouseover');
+      cy.findByText('Header');
+    });
+    cy.get('.primaryPanelContent')
+      .findByText('Header')
+      .parents() // Traverse up to find all ancestors
+      .filter((index, element) => element.hasAttribute('data-hovered')) // Filter elements with the attribute
+      .should('have.attr', 'data-hovered', 'true')
+      .its('length')
+      .should('be.gte', 1); // Ensure at least one such element exists
+  });
+
   it('Can focus on global regions and see their child components', () => {
     cy.loadURLandWaitForXBLoaded();
     cy.focusRegion('Content Above');
@@ -26,10 +71,10 @@ describe('Operate on components in global regions', () => {
       .findByTestId('xb-region-spotlight-highlight')
       .should('have.css', 'pointer-events', 'none');
 
-    cy.log(
-      'The overlay for the content region should not be rendering any component overlays inside it!',
-    );
-    cy.get('.xb--region-overlay__content').first().should('be.empty');
+    cy.log('The overlay for the other regions should not be rendering');
+    cy.get(
+      '[data-xb-viewport-size="lg"] [class*="xb--region-overlay__"]',
+    ).should('have.length', 1);
   });
 
   it('Can move components between global regions', () => {

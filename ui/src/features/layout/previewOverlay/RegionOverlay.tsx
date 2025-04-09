@@ -1,6 +1,6 @@
 import type React from 'react';
 import { useEffect, useState } from 'react';
-import { useAppSelector } from '@/app/hooks';
+import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import type { RegionNode } from '@/features/layout/layoutModelSlice';
 import { selectLayoutForRegion } from '@/features/layout/layoutModelSlice';
 import ComponentOverlay from '@/features/layout/previewOverlay/ComponentOverlay';
@@ -8,15 +8,20 @@ import styles from './PreviewOverlay.module.css';
 import {
   DEFAULT_REGION,
   selectCanvasViewPortScale,
+  selectDragging,
+  selectIsComponentHovered,
   selectTargetSlot,
+  setHoveredComponent,
+  unsetHoveredComponent,
 } from '@/features/ui/uiSlice';
-import NameTag from '@/features/layout/preview/NameTag';
+import { RegionNameTag } from '@/features/layout/preview/NameTag';
 import clsx from 'clsx';
 import { useDataToHtmlMapValue } from '@/features/layout/preview/DataToHtmlMapContext';
 import useSyncPreviewElementSize from '@/hooks/useSyncPreviewElementSize';
 import useXbParams from '@/hooks/useXbParams';
 import RegionDropZone from '@/features/layout/previewOverlay/RegionDropZone';
 import EmptyRegionDropZone from '@/features/layout/previewOverlay/EmptyRegionDropZone';
+import { useNavigationUtils } from '@/hooks/useNavigationUtils';
 
 interface RegionOverlayProps {
   iframeRef: React.RefObject<HTMLIFrameElement>;
@@ -43,6 +48,14 @@ const RegionOverlay: React.FC<RegionOverlayProps> = ({
   const [overlayStyles, setOverlayStyles] = useState({});
   const targetSlot = useAppSelector(selectTargetSlot);
   const disableRegion = focusedRegion !== region.id;
+  const dispatch = useAppDispatch();
+  const { isDragging } = useAppSelector(selectDragging);
+  const isHovered = useAppSelector((state) => {
+    return selectIsComponentHovered(state, region.id);
+  });
+  const { setSelectedRegion } = useNavigationUtils();
+
+  const showHovered = isHovered && focusedRegion === DEFAULT_REGION;
 
   useEffect(() => {
     setOverlayStyles({
@@ -53,17 +66,46 @@ const RegionOverlay: React.FC<RegionOverlayProps> = ({
     });
   }, [elementRect, canvasViewPortScale, region.id, disableRegion, regionsMap]);
 
+  function handleItemMouseOver(event: React.MouseEvent<HTMLDivElement>) {
+    event.stopPropagation();
+    if (!isDragging) {
+      dispatch(setHoveredComponent(region.id));
+    }
+  }
+
+  function handleItemMouseOut(event: React.MouseEvent<HTMLDivElement>) {
+    event.stopPropagation();
+    dispatch(unsetHoveredComponent());
+  }
+
+  function handleRegionDblClick(event: React.MouseEvent<HTMLDivElement>) {
+    event.stopPropagation();
+    setSelectedRegion(region.id);
+  }
+
+  // If the DEFAULT_REGION is focused, then all regions should render otherwise only render if this is the focused region
+  if (focusedRegion !== DEFAULT_REGION && focusedRegion !== region.id) {
+    return null;
+  }
+
   return (
     <div
       className={clsx(
         styles.regionOverlay,
         {
           [styles.dropTarget]: region.id === targetSlot,
+          [styles.hovered]: showHovered,
         },
         `xb--region-overlay__${region.id}`,
       )}
       style={overlayStyles}
+      onMouseOver={handleItemMouseOver}
+      onMouseOut={handleItemMouseOut}
+      onDoubleClick={handleRegionDblClick}
     >
+      <div className={clsx(styles.xbNameTag)}>
+        <RegionNameTag name={region.name} id={region.id} nodeType={'region'} />
+      </div>
       {!disableRegion && (
         <>
           {layout.components.map((component, index) => (
@@ -76,13 +118,7 @@ const RegionOverlay: React.FC<RegionOverlayProps> = ({
               index={index}
             />
           ))}
-          <div className={clsx(styles.xbNameTag, styles.xbNameTagSlot)}>
-            <NameTag
-              name={`${region.name} region`}
-              id={region.id}
-              nodeType={'root'}
-            />
-          </div>
+
           {!region.components.length && (
             <EmptyRegionDropZone region={region} size={size} />
           )}
