@@ -196,7 +196,6 @@ experience_builder.page_region.*:
             absence:
               - dynamic
               - adapter
-              - url-preview
             presence: ~
           tree:
             absence: ~
@@ -382,7 +381,6 @@ field.value.component_tree:
         absence:
           - dynamic
           - adapter
-          - url-preview
         presence: ~
       tree:
         absence:
@@ -417,7 +415,6 @@ experience_builder.pattern.*:
             absence:
               - dynamic
               - adapter
-              - url-preview
             presence: ~
           tree:
             absence:

@@ -116,6 +116,12 @@ final class PropShape {
    */
   public static function normalizePropSchema(array $prop_schema): array {
     ksort($prop_schema);
+
+    // Normalization is not (yet) possible when `$ref`s are still present.
+    if (!array_key_exists('type', $prop_schema) && array_key_exists('$ref', $prop_schema)) {
+      return $prop_schema;
+    }
+
     // Ensure that `type` is always listed first.
     $normalized_prop_schema = ['type' => $prop_schema['type']] + $prop_schema;
 
@@ -133,6 +139,15 @@ final class PropShape {
     // @see \Drupal\sdc\Component\ComponentMetadata::parseSchemaInfo()
       is_array($prop_schema['type']) ? $prop_schema['type'][0] : $prop_schema['type']
     )->value;
+
+    // If this is a `type: object` with not a `$ref` but `properties`, normalize
+    // those too.
+    if ($normalized_prop_schema['type'] === SdcPropJsonSchemaType::OBJECT->value && array_key_exists('properties', $normalized_prop_schema)) {
+      $normalized_prop_schema['properties'] = array_map(
+        fn (array $prop_schema) => self::normalizePropSchema($prop_schema),
+        $normalized_prop_schema['properties'],
+      );
+    }
 
     return $normalized_prop_schema;
   }

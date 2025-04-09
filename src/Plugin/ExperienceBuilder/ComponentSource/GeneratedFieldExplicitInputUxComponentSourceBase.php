@@ -32,7 +32,7 @@ use Drupal\experience_builder\PropShape\PropShape;
 use Drupal\experience_builder\PropShape\StorablePropShape;
 use Drupal\experience_builder\PropSource\PropSource;
 use Drupal\experience_builder\PropSource\StaticPropSource;
-use Drupal\experience_builder\PropSource\UrlPreviewPropSource;
+use Drupal\experience_builder\PropSource\DefaultRelativeUrlPropSource;
 use Drupal\experience_builder\ShapeMatcher\FieldForComponentSuggester;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\Response;
@@ -394,7 +394,7 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
         // @todo Design is undefined for the DynamicPropSource UX. Related: https://www.drupal.org/project/experience_builder/issues/3459234
         // @todo Design is undefined for the AdaptedPropSource UX.
         // Fall back to the static version, disabled for now where the design is undefined.
-        $disabled = !$source instanceof UrlPreviewPropSource;
+        $disabled = !$source instanceof DefaultRelativeUrlPropSource;
         $source = $this->getDefaultStaticPropSource($sdc_prop_name)->withValue($prop_source_array['value'] ?? NULL);
       }
       // 1. If the given static prop source matches the *current* field type
@@ -663,8 +663,8 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
    * To avoid this pollution, we allow such SDC props to not specify a default
    * value for its StorablePropShape stored in the Component config entity.
    * To offer an equivalently smooth experience, with the specified example
-   * value, XB instead is able to generate valid values for rendering a preview
-   * of the SDC.
+   * value, XB instead is able to generate valid values for rendering the SDC
+   * using a transformed-at-runtime relative URL.
    *
    * Typical examples:
    * - an SDC prop accepting an image, i.e.
@@ -672,10 +672,12 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
    * - an SDC prop accepting a URL for a link, i.e.
    *   `type: string, format: uri-reference`
    *
-   * Currently, this has only been necessary for URLs. More may be needed in the
-   * future.
+   * This is only necessary for URL-shaped props, because URLs must be
+   * resolvable (by the browser), and for a relative URL to be resolvable it
+   * must be rewritten for the current site. By contrast, other prop shapes work
+   * in isolation.
    *
-   * @see \Drupal\experience_builder\PropSource\UrlPreviewPropSource
+   * @see \Drupal\experience_builder\PropSource\DefaultRelativeUrlPropSource
    * @see \Drupal\experience_builder\ComponentSource\UrlRewriteInterface
    */
   public static function exampleValueRequiresEntity(StorablePropShape $storable_prop_shape): bool {
@@ -723,13 +725,16 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
           (\array_key_exists('value', $prop_source) && $prop_source['value'] === $default_source_value)) &&
           !empty($prop_value)) {
           // Valueless prop, for the case where only a default is provided for
-          // the preview or the initial state of the component inputs form, but
-          // not for storing.
+          // the preview or the initial state of the component inputs form, and
+          // the content creator has not populated the StaticPropSource.
+          // This typically happens when the Content Creator instantiates a
+          // component with an optional image prop that has a default value, and
+          // they then immediately save the result.
           // @see ::exampleValueRequiresEntity()
           // @see ::getClientSideInfo()
           $client_side_info = $this->getClientSideInfo($component);
           \assert(isset($client_side_info['field_data'][$prop]['jsonSchema']));
-          $source = new UrlPreviewPropSource(
+          $source = new DefaultRelativeUrlPropSource(
             value: $prop_value,
             jsonSchema: $client_side_info['field_data'][$prop]['jsonSchema'],
             componentId: $component->id(),

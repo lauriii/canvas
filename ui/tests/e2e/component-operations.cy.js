@@ -428,8 +428,6 @@ describe('Perform CRUD operations on components', () => {
   });
 
   it('Can add an optional image component with a preview but empty input', () => {
-    cy.drupalInstallModule('sdc_test_all_props');
-    cy.drupalLogin('xbUser', 'xbUser');
     cy.loadURLandWaitForXBLoaded();
 
     // Delete the two existing image components.
@@ -448,5 +446,11 @@ describe('Perform CRUD operations on components', () => {
     cy.waitForElementInIframe(
       'img[src*="/experience_builder/tests/modules/xb_test_sdc/components/image-optional-with-example-and-additional-prop/gracie.jpg"]',
     );
+
+    cy.publishAllPendingChanges('XB Needs This For The Time Being');
+    cy.visit('/node/1');
+    cy.get(
+      'img[src*="/experience_builder/tests/modules/xb_test_sdc/components/image-optional-with-example-and-additional-prop/gracie.jpg"]',
+    ).should('exist');
   });
 });

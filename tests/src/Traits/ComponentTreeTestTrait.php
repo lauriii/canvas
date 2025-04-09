@@ -42,6 +42,51 @@ trait ComponentTreeTestTrait {
           'inputs' => '{}',
         ],
       ],
+      'valid value for optional explicit input using an URL prop shape, with default value' => [
+        [
+          'tree' => self::encodeXBData([
+            ComponentTreeStructure::ROOT_UUID => [
+              [
+                'uuid' => 'optional-url-with-default-value',
+                'component' => 'sdc.xb_test_sdc.image-optional-with-example-and-additional-prop',
+              ],
+            ],
+          ]),
+          'inputs' => self::encodeXBData([
+            'optional-url-with-default-value' => [
+              'heading' => [
+                'sourceType' => 'static:field_item:string',
+                'value' => 'Gracie says hi!',
+                'expression' => 'ℹ︎string␟value',
+              ],
+              'image' => [
+                'sourceType' => 'default-relative-url',
+                'value' => [
+                  'src' => 'gracie.jpg',
+                  'alt' => 'A good dog',
+                  'width' => 601,
+                  'height' => 402,
+                ],
+                'jsonSchema' => [
+                  'type' => 'object',
+                  'properties' => [
+                    'src' => [
+                      'type' => 'string',
+                      'format' => 'uri-reference',
+                      'pattern' => '^(/|https?://)?.*\.(png|gif|jpg|jpeg|webp)(\?.*)?(#.*)?$',
+                    ],
+                    'alt' => ['type' => 'string'],
+                    'width' => ['type' => 'integer'],
+                    'height' => ['type' => 'integer'],
+                  ],
+                  'required' => ['src'],
+                ],
+                'componentId' => 'sdc.xb_test_sdc.image-optional-with-example-and-additional-prop',
+              ],
+            ],
+          ]),
+        ],
+      ],
     ];
   }
 

@@ -8,18 +8,20 @@ use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\experience_builder\ComponentSource\UrlRewriteInterface;
 use Drupal\experience_builder\Entity\Component;
 use Drupal\experience_builder\JsonSchemaInterpreter\JsonSchemaStringFormat;
+use Drupal\experience_builder\PropShape\PropShape;
 
 /**
- * Prop source that is only used when previewing example URLs.
+ * Prop source that is used to reference default relative URLs.
  *
  * Example links and image URLs should refer to real resources, but the full
  * URL cannot be hardcoded. Component sources that implement UrlRewriteInterface
  * are capable of taking a relative URL and expanding it to an absolute URL
- * that can be displayed in a preview.
+ * that can be used as a default value.
  *
  * @see \Drupal\experience_builder\ComponentSource\UrlRewriteInterface
+ * @see \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase::exampleValueRequiresEntity()
  */
-final class UrlPreviewPropSource extends PropSourceBase {
+final class DefaultRelativeUrlPropSource extends PropSourceBase {
 
   private readonly UrlRewriteInterface $componentSource;
 
@@ -39,7 +41,7 @@ final class UrlPreviewPropSource extends PropSourceBase {
    * {@inheritdoc}
    */
   public static function getSourceTypePrefix(): string {
-    return 'url-preview';
+    return 'default-relative-url';
   }
 
   /**
@@ -56,7 +58,14 @@ final class UrlPreviewPropSource extends PropSourceBase {
     return [
       'sourceType' => $this->getSourceType(),
       'value' => $this->value,
-      'jsonSchema' => $this->jsonSchema,
+      // Store the:
+      // - resolved schema, to avoid $refs changing later having an effect
+      // - normalized schema, to minimize storage consumption
+      // @todo Make this far less clunky 🙈
+      'jsonSchema' => PropShape::normalize(
+        // First do basic normalization, and resolve.
+        PropShape::normalize($this->jsonSchema)->resolvedSchema
+      )->schema,
       'componentId' => $this->componentId,
     ];
   }
@@ -65,7 +74,7 @@ final class UrlPreviewPropSource extends PropSourceBase {
    * {@inheritdoc}
    */
   public static function parse(array $sdc_prop_source): static {
-    // `sourceType = url-preview` requires a value and schema to be specified.
+    // `sourceType = default-relative-url` requires a value and schema to be specified.
     $missing = array_diff(['value', 'jsonSchema', 'componentId'], array_keys($sdc_prop_source));
     if (!empty($missing)) {
       throw new \LogicException(sprintf('Missing the keys %s.', implode(',', $missing)));
@@ -73,6 +82,15 @@ final class UrlPreviewPropSource extends PropSourceBase {
     assert(array_key_exists('value', $sdc_prop_source));
     assert(array_key_exists('jsonSchema', $sdc_prop_source));
     assert(array_key_exists('componentId', $sdc_prop_source));
+
+    // @todo Make this far less clunky 🙈
+    $minimal = PropShape::normalize(
+    // First do basic normalization, and resolve.
+      PropShape::normalize($sdc_prop_source['jsonSchema'])->resolvedSchema
+    )->schema;
+    if ($sdc_prop_source['jsonSchema'] !== $minimal) {
+      throw new \LogicException(sprintf('Extraneous JSON Schema information detected: %s should have been just %s.', json_encode($sdc_prop_source['jsonSchema'], JSON_PRETTY_PRINT), json_encode($minimal, JSON_PRETTY_PRINT)));
+    }
 
     return new self(
       $sdc_prop_source['value'],

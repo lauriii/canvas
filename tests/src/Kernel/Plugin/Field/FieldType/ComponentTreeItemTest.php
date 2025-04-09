@@ -10,6 +10,7 @@ use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\node\Entity\Node;
+use Drupal\Tests\experience_builder\Kernel\Traits\CiModulePathTrait;
 use Drupal\Tests\experience_builder\Traits\ComponentTreeTestTrait;
 use Drupal\Tests\experience_builder\Traits\ConstraintViolationsTestTrait;
 use Drupal\Tests\experience_builder\Traits\ContribStrictConfigSchemaTestTrait;
@@ -26,6 +27,7 @@ class ComponentTreeItemTest extends KernelTestBase {
   use ConstraintViolationsTestTrait;
   use ContribStrictConfigSchemaTestTrait;
   use GenerateComponentConfigTrait;
+  use CiModulePathTrait;
   use TestDataUtilitiesTrait;
 
   /**
@@ -217,6 +219,17 @@ class ComponentTreeItemTest extends KernelTestBase {
     ];
     $test_cases['valid values for propless component'][] = [
       'propless-component-uuid' => [],
+    ];
+    $test_cases['valid value for optional explicit input using an URL prop shape, with default value'][] = [
+      'optional-url-with-default-value' => [
+        'heading' => 'Gracie says hi!',
+        'image' => [
+          'src' => self::getCiModulePath() . '/tests/modules/xb_test_sdc/components/image-optional-with-example-and-additional-prop/gracie.jpg',
+          'alt' => 'A good dog',
+          'width' => 601,
+          'height' => 402,
+        ],
+      ],
     ];
     return $test_cases;
   }

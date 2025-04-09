@@ -4,15 +4,19 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\experience_builder\Kernel;
 
+use Drupal\Core\Extension\ExtensionPathResolver;
 use Drupal\Core\Field\Plugin\Field\FieldWidget\StringTextfieldWidget;
+use Drupal\Core\Url;
 use Drupal\datetime\Plugin\Field\FieldType\DateTimeItem;
 use Drupal\datetime_range\Plugin\Field\FieldWidget\DateRangeDatelistWidget;
 use Drupal\datetime_range\Plugin\Field\FieldWidget\DateRangeDefaultWidget;
+use Drupal\experience_builder\Plugin\ComponentPluginManager;
 use Drupal\experience_builder\PropExpressions\StructuredData\FieldPropExpression;
 use Drupal\experience_builder\PropExpressions\StructuredData\FieldTypeObjectPropsExpression;
 use Drupal\experience_builder\PropExpressions\StructuredData\FieldTypePropExpression;
 use Drupal\experience_builder\PropExpressions\StructuredData\StructuredDataPropExpression;
 use Drupal\experience_builder\PropSource\AdaptedPropSource;
+use Drupal\experience_builder\PropSource\DefaultRelativeUrlPropSource;
 use Drupal\experience_builder\PropSource\DynamicPropSource;
 use Drupal\experience_builder\PropSource\PropSource;
 use Drupal\experience_builder\PropSource\StaticPropSource;
@@ -36,6 +40,7 @@ class PropSourceTest extends KernelTestBase {
     'user',
     'datetime',
     'datetime_range',
+    'system',
   ];
 
   /**
@@ -256,6 +261,85 @@ class PropSourceTest extends KernelTestBase {
     // Test the functionality of a DynamicPropSource:
     // - evaluate it to populate an SDC prop
     $this->assertSame(1546, $complex_example->evaluate(User::create(['name' => 'John Doe', 'created' => 694695600, 'access' => 1720602713])));
+  }
+
+  /**
+   * @coversClass \Drupal\experience_builder\PropSource\DefaultRelativeUrlPropSource
+   */
+  public function testDefaultRelativeUrlPropSource(): void {
+    $this->enableModules(['xb_test_sdc', 'link', 'image', 'file', 'options']);
+    // Force rebuilding of the definitions which will create the required
+    // component.
+    $plugin_manager = $this->container->get(ComponentPluginManager::class);
+    $plugin_manager->clearCachedDefinitions();
+    $plugin_manager->getDefinitions();
+    $source = new DefaultRelativeUrlPropSource(
+      value: [
+        'src' => 'gracie.jpg',
+        'alt' => 'A good dog',
+        'width' => 601,
+        'height' => 402,
+      ],
+      jsonSchema: [
+        'title' => 'image',
+        'type' => 'object',
+        'required' => ['src'],
+        'properties' => [
+          'src' => [
+            'type' => 'string',
+            'format' => 'uri-reference',
+            'pattern' => '^(/|https?://)?.*\.(png|gif|jpg|jpeg|webp)(\?.*)?(#.*)?$',
+            'title' => 'Image URL',
+          ],
+          'alt' => [
+            'type' => 'string',
+            'title' => 'Alternate text',
+          ],
+          'width' => [
+            'type' => 'integer',
+            'title' => 'Image width',
+          ],
+          'height' => [
+            'type' => 'integer',
+            'title' => 'Image height',
+          ],
+        ],
+      ],
+      componentId: 'sdc.xb_test_sdc.image-optional-with-example-and-additional-prop',
+    );
+    // First, get the string representation and parse it back, to prove
+    // serialization and deserialization works.
+    // Note: title of properties have been omitted; only essential data is kept.
+    $json_representation = (string) $source;
+    self::assertSame('{"sourceType":"default-relative-url","value":{"src":"gracie.jpg","alt":"A good dog","width":601,"height":402},"jsonSchema":{"type":"object","properties":{"src":{"type":"string","format":"uri-reference","pattern":"^(\/|https?:\/\/)?.*\\\.(png|gif|jpg|jpeg|webp)(\\\?.*)?(#.*)?$"},"alt":{"type":"string"},"width":{"type":"integer"},"height":{"type":"integer"}},"required":["src"]},"componentId":"sdc.xb_test_sdc.image-optional-with-example-and-additional-prop"}', $json_representation);
+    $source = PropSource::parse(json_decode($json_representation, TRUE));
+    self::assertInstanceOf(DefaultRelativeUrlPropSource::class, $source);
+    self::assertSame('default-relative-url', $source->getSourceType());
+    $path = $this->container->get(ExtensionPathResolver::class)->getPath('module', 'xb_test_sdc') . '/components/image-optional-with-example-and-additional-prop';
+    // Prove that using a `$ref` results in the same JSON representation.
+    $equivalent_source = new DefaultRelativeUrlPropSource(
+      value: [
+        'src' => 'gracie.jpg',
+        'alt' => 'A good dog',
+        'width' => 601,
+        'height' => 402,
+      ],
+      jsonSchema: [
+        '$ref' => 'json-schema-definitions://experience_builder.module/image',
+      ],
+      componentId: 'sdc.xb_test_sdc.image-optional-with-example-and-additional-prop',
+    );
+    self::assertSame((string) $equivalent_source, $json_representation);
+    // Test that the URL resolves on evaluation.
+    self::assertSame([
+      'src' => Url::fromUri(\sprintf('base:%s/gracie.jpg', $path))->toString(),
+      'alt' => 'A good dog',
+      'width' => 601,
+      'height' => 402,
+    ], $source->evaluate(NULL));
+    // This is never a choice presented to the end user; this is a purely internal prop source.
+    $this->expectException(\LogicException::class);
+    $source->asChoice();
   }
 
 }
