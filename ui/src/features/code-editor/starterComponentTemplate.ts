@@ -4,7 +4,8 @@ export default function getStarterComponentTemplate(componentName: string) {
   const camelCased = camelCase(componentName);
   const variableName = camelCased.charAt(0).toUpperCase() + camelCased.slice(1);
 
-  return `// Use Preact (https://preactjs.com) and Tailwind CSS 4 (https://tailwindcss.com).
+  return `// Use React/Preact (https://preactjs.com) and Tailwind CSS 4
+// (https://tailwindcss.com).
 // Global CSS is added to all pages with a @theme directive.
 // Tailwind theme variables must be added in Global CSS.
 // @see https://tailwindcss.com/docs/theme.

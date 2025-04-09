@@ -6,6 +6,7 @@
   jsx, jsxs, and Fragment functions, with names, from the corresponding module bundles, which
   can then be imported by the in-browser JS components. */
 
+const { ...preactCompat } = await import('preact/compat');
 const { ...preactHooks } = await import('preact/hooks');
 const { jsx, jsxs, Fragment } = await import('preact/jsx-runtime');
 const { default: clsx } = await import('clsx');
