@@ -250,6 +250,9 @@ function xb_test_article_fields_install(): void {
           'placeholder' => '',
         ],
       ],
+      'default_value' => [
+        ['value' => 'http://drupal.org'],
+      ],
     ],
     'field_xbt_unlimited_text' => [
       'type' => 'string',
