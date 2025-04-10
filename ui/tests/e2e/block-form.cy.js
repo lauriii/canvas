@@ -45,7 +45,7 @@ describe('Block form', () => {
     cy.get('@menuLevelDisclose').realClick({ scrollBehavior: false });
     cy.get('[data-testid="xb-contextual-panel"]')
       .findByLabelText('Initial visibility level')
-      .should('not.exist');
+      .should('not.be.visible');
   });
 
   it('Block settings form values are stored and the preview is updated', () => {

@@ -31,6 +31,10 @@
   --content-height: var(--radix-collapsible-content-height);
 }
 
+.detailsContent[data-state="closed"]  {
+  height: 0;
+}
+
 .chevron {
   transition: transform 300ms ease-in-out;
   color: var(--slate-12);

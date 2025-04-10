@@ -13,6 +13,9 @@ interface CustomAutocompleteEvent extends Event {
         value: string;
       };
     };
+    target: {
+      value: string;
+    };
   };
 }
 
@@ -54,7 +57,8 @@ const TextFieldAutocomplete = forwardRef(
         // Call the onChange listener so the Redux store is updated.
         if (attributes?.onChange) {
           const event = new Event('change');
-          inputRef.current.value = e.detail.ui.item.label;
+
+          inputRef.current.value = e.detail.target.value;
           Object.defineProperty(event, 'target', {
             writable: false,
             value: inputRef.current,

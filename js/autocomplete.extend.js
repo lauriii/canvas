@@ -40,6 +40,7 @@
             const selectToPlay = new CustomEvent('play', {
               detail: {
                 ui,
+                target: e.target,
               },
             });
 

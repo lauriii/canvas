@@ -35,6 +35,7 @@ const Details = ({
         </Collapsible.Trigger>
       </Flex>
       <Collapsible.Content
+        forceMount={true}
         className={clsx(styles.content, styles.detailsContent)}
       >
         <Box p="1">{children}</Box>
