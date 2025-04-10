@@ -217,13 +217,22 @@ function xb_test_article_fields_install(): void {
     'field_xbt_textarea_summary' => [
       'type' => 'text_with_summary',
       'label' => 'XB Text Area with Summary',
-      'settings' => [],
+      'settings' => [
+        'display_summary' => TRUE,
+      ],
       'widget' => [
         'type' => 'text_textarea_with_summary',
         'settings' => [
           'rows' => 9,
           'summary_rows' => 3,
           'placeholder' => '',
+        ],
+      ],
+      'default_value' => [
+        [
+          'format' => 'basic_html',
+          'value' => 'Melting in a pot of thieves',
+          'summary' => 'Wild card up my sleeve',
         ],
       ],
     ],
@@ -347,6 +356,10 @@ function xb_test_article_fields_install(): void {
 
   // Add some filter formats so we can test the textarea widget.
   foreach ($formats as $id => $name) {
+    // Allow enabling the module on the Standard install profile.
+    if (FilterFormat::load($id) !== NULL) {
+      continue;
+    }
     FilterFormat::create([
       'format' => $id,
       'name' => $name,

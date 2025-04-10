@@ -5,6 +5,7 @@ import * as field_xbt_telephone from './field_xbt_telephone.js';
 import * as field_xbt_textfield from './field_xbt_textfield.js';
 import * as field_xbt_textarea from './field_xbt_textarea.js';
 import * as field_xbt_uri from './field_xbt_uri.js';
+import * as field_xbt_textarea_summary from './field_xbt_textarea_summary.js';
 
 // Expand this to add additional coverage.
 // For each field to be tested, add a new file that exports two methods as
@@ -25,4 +26,5 @@ export default {
   field_xbt_textfield,
   field_xbt_textarea,
   field_xbt_uri,
+  field_xbt_textarea_summary,
 };
