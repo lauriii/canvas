@@ -245,9 +245,13 @@ When using a "section" (reusing a `Pattern config entity`), the `component tree`
 _absorbed_ into the place where it is being used in an `XB field`. Hence any changes to a `Pattern config entity` will
 only be visible in any subsequent uses of it. (Similar to how Drupal Recipes behave.)
 
+### 3.5 `ContentTemplate` config entity
+
+See:
+- `\Drupal\experience_builder\Entity\ContentTemplate`
+
+A `ContentTemplate` config entity can be created by Ambitious Site Builders to accelerate the work of Content Creators. It is tied to a specific content entity type, bundle, and view mode: for example, there can be a template for `blog` content items (nodes), in the `full` view mode. The template has a component tree stored with it.
+
 ⚠️ Still to be built:
-- a UI to create `Pattern config entities` [exists](https://www.drupal.org/project/experience_builder/issues/3459229) already, but it does not yet save to the server side, that is still to be implemented in <https://www.drupal.org/project/experience_builder/issues/3486203>
-
-### 3.5 Other configuration entities
-
-Nothing yet, this will change when support for [`content type template`s is added later](https://www.drupal.org/project/experience_builder/issues/3455629)
+- A UI to create content templates, and manage existing templates: https://www.drupal.org/i/3518248
+- A way to opt content entities into using XB templates for rendering: https://www.drupal.org/i/3518013

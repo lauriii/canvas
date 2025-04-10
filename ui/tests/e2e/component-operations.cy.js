@@ -394,10 +394,6 @@ describe('Perform CRUD operations on components', () => {
     });
   });
 
-  // @todo This is failing on CI only as of https://www.drupal.org/i/3517147.
-  //   Try to restore this test in https://www.drupal.org/i/3517102, which
-  //   appears to be related to whatever is breaking this test.
-
   it('Can add an image component with a preview but empty input', () => {
     cy.loadURLandWaitForXBLoaded();
 
@@ -425,6 +421,8 @@ describe('Perform CRUD operations on components', () => {
     // Check the default image src is set.
     cy.waitForElementInIframe(
       'img[src*="/experience_builder/components/image/600x400.png"]',
+      '[data-xb-preview="lg"][data-test-xb-content-initialized="true"][data-xb-swap-active="true"]',
+      10000,
     );
   });
 
@@ -446,6 +444,8 @@ describe('Perform CRUD operations on components', () => {
     // Check the default image src is set.
     cy.waitForElementInIframe(
       'img[src*="/experience_builder/tests/modules/xb_test_sdc/components/image-optional-with-example-and-additional-prop/gracie.jpg"]',
+      '[data-xb-preview="lg"][data-test-xb-content-initialized="true"][data-xb-swap-active="true"]',
+      10000,
     );
 
     cy.publishAllPendingChanges('XB Needs This For The Time Being');

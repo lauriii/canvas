@@ -10,3 +10,5 @@ administer xb_page:
   title: 'Administer pages'
 administer page template:
   title: 'Administer page template'
+administer content templates:
+  title: 'Administer content templates'

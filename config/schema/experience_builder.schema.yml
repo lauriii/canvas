@@ -481,3 +481,69 @@ field.value.language:
     value:
       type: string
       label: 'Value'
+
+experience_builder.content_template.*.*.*:
+  type: config_entity
+  constraints:
+    FullyValidatable: ~
+  mapping:
+    id:
+      # This ID doesn't use the `machine_name` data type because it's a composite
+      # ID and is therefore better validated using the `StringParts` constraint.
+      type: string
+      label: 'ID'
+      constraints:
+        StringParts:
+          separator: .
+          reservedCharacters: [':']
+          reservedCharactersSubstitute: .
+          parts:
+            - '%parent.content_entity_type_id'
+            - '%parent.content_entity_type_bundle'
+            - '%parent.content_entity_type_view_mode'
+        Length:
+          # @see \Drupal\Core\Config\Entity\ConfigEntityStorage::MAX_ID_LENGTH
+          max: 166
+    content_entity_type_id:
+      type: string
+      label: 'Target entity type'
+      constraints:
+        PluginExists:
+          manager: entity_type.manager
+          interface: Drupal\Core\Entity\ContentEntityInterface
+    content_entity_type_bundle:
+      type: string
+      label: 'Bundle'
+      constraints:
+        # @todo Also validate that the bundle actually fulfills XB's requirements.
+        # @see https://www.drupal.org/project/experience_builder/issues/3518272
+        EntityBundleExists: '%parent.content_entity_type_id'
+    content_entity_type_view_mode:
+      type: string
+      label: 'View mode machine name'
+      constraints:
+        # @todo Use `ConfigExists` once https://www.drupal.org/project/drupal/issues/3518273 is
+        #   fixed in core.
+        BetterConfigExists:
+          prefix: 'core.entity_view_mode.[%parent.content_entity_type_id].'
+    component_tree:
+      type: experience_builder.component_tree
+      label: 'Component tree'
+      constraints:
+        ComponentTreeMeetRequirements:
+          inputs:
+            absence:
+              - adapter
+            # This tree MUST contain at least one dynamic prop source, or it's not much of a template;
+            # it's just presenting static data.
+            presence:
+              - dynamic
+          tree:
+            absence:
+              # Components implementing either of these 2 interfaces are only allowed to live at
+              # the PageRegion level.
+              # @see \Drupal\experience_builder\Entity\PageRegion
+              # @see `type: experience_builder.page_region.*`
+              - Drupal\Core\Block\TitleBlockPluginInterface
+              - Drupal\Core\Block\MessagesBlockPluginInterface
+            presence: ~

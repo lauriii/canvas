@@ -142,6 +142,7 @@ class PageRegionValidationTest extends ConfigEntityValidationTestBase {
   public function testInvalidTheme(): void {
     $this->entity->set('theme', 'non_existent_theme');
     $this->assertValidationErrors([
+      '' => "The 'theme' property cannot be changed.",
       'theme' => "Theme 'non_existent_theme' is not installed.",
     ]);
   }
@@ -152,6 +153,7 @@ class PageRegionValidationTest extends ConfigEntityValidationTestBase {
   public function testInvalidRegion(): void {
     $this->entity->set('region', 'non_existent_region');
     $this->assertValidationErrors([
+      '' => "The 'region' property cannot be changed.",
       'region' => "Region 'non_existent_region' does not exist in theme 'stark'.",
     ]);
   }
@@ -163,42 +165,38 @@ class PageRegionValidationTest extends ConfigEntityValidationTestBase {
     $this->container->get(ThemeInstallerInterface::class)->install([
       'olivero',
     ]);
-    $this->entity->set('id', 'social');
-    // If we don't also change the `component_trees` and `editable` values here,
-    // we will get additional validation errors, because `theme` determines what
-    // key-value are expected. Given that this config entity type has only a
-    // single immutable property (`theme`), setting a valid corresponding values
-    // prevents that distraction.
-    // @see core/themes/olivero/olivero.info.yml
-    $this->entity->set('component_tree', [
-      'tree' => self::encodeXBData([
-        ComponentTreeStructure::ROOT_UUID => [
-          ['uuid' => 'uuid-title', 'component' => 'block.page_title_block'],
-          ['uuid' => 'uuid-messages', 'component' => 'block.system_messages_block'],
-        ],
-      ]),
-      'inputs' => self::encodeXBData([
-        'uuid-messages' => [
-          'label' => '',
-          'label_display' => FALSE,
-        ],
-        'uuid-title' => [
-          'label' => '',
-          'label_display' => FALSE,
-        ],
-      ]),
-    ]);
-    $this->entity->disable();
-    parent::testImmutableProperties([
+    $valid_values = [
       'theme' => 'olivero',
-    ]);
+      'region' => 'page_top',
+    ];
+    $additional_validation_errors = [
+      'id' => [],
+      'theme' => [
+        'region' => "Region 'sidebar_first' does not exist in theme 'olivero'.",
+      ],
+      'region' => [],
+    ];
+
+    // @todo Update parent method to accept a `$additional_validation_errors` parameter in addition to `$valid_values`, and uncomment the next line, remove all lines after it.
+    // parent::testImmutableProperties($valid_values);
+    $constraints = $this->entity->getEntityType()->getConstraints();
+    $this->assertNotEmpty($constraints['ImmutableProperties'], 'All config entities should have at least one immutable ID property.');
+
+    foreach ($constraints['ImmutableProperties'] as $property_name) {
+      $original_value = $this->entity->get($property_name);
+      $this->entity->set($property_name, $valid_values[$property_name] ?? $this->randomMachineName());
+      $this->assertValidationErrors([
+        '' => "The '$property_name' property cannot be changed.",
+      ] + $additional_validation_errors[$property_name]);
+      $this->entity->set($property_name, $original_value);
+    }
   }
 
   /**
    * @dataProvider providerInvalidComponentTree
    */
-  public function testInvalidComponentTree(array $component_trees, array $expected_messages): void {
-    $this->entity->set('component_tree', $component_trees);
+  public function testInvalidComponentTree(array $component_tree, array $expected_messages): void {
+    $this->entity->set('component_tree', $component_tree);
     $this->assertValidationErrors($expected_messages);
   }
 

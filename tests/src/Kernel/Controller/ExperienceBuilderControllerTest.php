@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\Tests\experience_builder\Kernel\Controller;
 
 use Drupal\Core\Url;
+use Drupal\experience_builder\Entity\ContentTemplate;
 use Drupal\experience_builder\Entity\JavaScriptComponent;
 use Drupal\experience_builder\Entity\PageRegion;
 use Drupal\experience_builder\Entity\Pattern;
@@ -160,6 +161,7 @@ final class ExperienceBuilderControllerTest extends KernelTestBase {
           'globalRegion' => FALSE,
           'sections' => FALSE,
           'codeComponents' => FALSE,
+          'contentTemplates' => FALSE,
         ],
       ],
       [
@@ -171,6 +173,7 @@ final class ExperienceBuilderControllerTest extends KernelTestBase {
           'globalRegion' => FALSE,
           'sections' => FALSE,
           'codeComponents' => TRUE,
+          'contentTemplates' => FALSE,
         ],
       ],
       [
@@ -183,6 +186,7 @@ final class ExperienceBuilderControllerTest extends KernelTestBase {
           'globalRegion' => TRUE,
           'sections' => TRUE,
           'codeComponents' => FALSE,
+          'contentTemplates' => FALSE,
         ],
       ],
       [
@@ -196,6 +200,22 @@ final class ExperienceBuilderControllerTest extends KernelTestBase {
           'globalRegion' => TRUE,
           'sections' => TRUE,
           'codeComponents' => TRUE,
+          'contentTemplates' => FALSE,
+        ],
+      ],
+      [
+        [
+          'administer xb_page',
+          Pattern::ADMIN_PERMISSION,
+          PageRegion::ADMIN_PERMISSION,
+          JavaScriptComponent::ADMIN_PERMISSION,
+          ContentTemplate::ADMIN_PERMISSION,
+        ],
+        [
+          'globalRegion' => TRUE,
+          'sections' => TRUE,
+          'codeComponents' => TRUE,
+          'contentTemplates' => TRUE,
         ],
       ],
     ];

@@ -39,7 +39,10 @@ use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemInstantiat
  *    },
  *    lookup_keys = {
  *      "theme",
- *    }
+ *    },
+ *     constraints = {
+ *      "ImmutableProperties" = {"id", "theme", "region"},
+ *    },
  *  )
  */
 final class PageRegion extends ConfigEntityBase implements ComponentTreeEntityInterface {

@@ -18,6 +18,7 @@ use Drupal\Core\Template\Attribute;
 use Drupal\Core\Theme\ThemeInitializationInterface;
 use Drupal\Core\Theme\ThemeManagerInterface;
 use Drupal\experience_builder\AssetRenderer;
+use Drupal\experience_builder\Entity\ContentTemplate;
 use Drupal\experience_builder\Entity\JavaScriptComponent;
 use Drupal\experience_builder\Entity\PageRegion;
 use Drupal\experience_builder\Entity\Pattern;
@@ -119,6 +120,7 @@ HTML;
             'globalRegions' => $this->currentUser->hasPermission(PageRegion::ADMIN_PERMISSION),
             'sections' => $this->currentUser->hasPermission(Pattern::ADMIN_PERMISSION),
             'codeComponents' => $this->currentUser->hasPermission(JavaScriptComponent::ADMIN_PERMISSION),
+            'contentTemplates' => $this->currentUser->hasPermission(ContentTemplate::ADMIN_PERMISSION),
           ],
         ],
       ],
