@@ -74,7 +74,6 @@ describe('Block form', () => {
 
     // Now move this component to the content region so it is stored in the node.
     cy.sendComponentToRegion('Site branding', 'Content');
-    cy.returnToContentRegion();
 
     // The component should now be in the content region.
     cy.getComponentInPreview('Site branding').should('exist');

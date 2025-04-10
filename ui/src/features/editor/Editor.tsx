@@ -8,8 +8,10 @@ import { setFirstLoadComplete } from '@/features/ui/uiSlice';
 import { useAppDispatch } from '@/app/hooks';
 import ExtensionDialog from '@/components/extensions/ExtensionDialog';
 import SectionDialogs from '@/features/section/SectionDialogs';
+import useLayoutWatcher from '@/hooks/useLayoutWatcher';
 const Editor = () => {
   const dispatch = useAppDispatch();
+  useLayoutWatcher();
 
   useEffect(() => {
     return () => {

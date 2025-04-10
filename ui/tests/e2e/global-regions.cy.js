@@ -82,11 +82,23 @@ describe('Operate on components in global regions', () => {
     cy.findByTestId('xb-primary-panel').as('layersTree');
 
     cy.focusRegion('Breadcrumb');
+    cy.findByTestId('xb-topbar')
+      .findByLabelText('Back to Content region')
+      .should('exist');
 
     cy.log('Move "Breadcrumbs" component UP into the Highlighted Region');
     cy.sendComponentToRegion('Breadcrumbs', 'Highlighted');
 
-    cy.returnToContentRegion();
+    cy.log(
+      'Because that was the only component in the region, the user should be navigated back up to the content region',
+    );
+    // spotlight isn't showing anymore
+    cy.get('.spotlight').should('not.exist');
+    // option to navigate back to content is gone.
+    cy.findByTestId('xb-topbar')
+      .findByLabelText('Back to Content region')
+      .should('not.exist');
+
     cy.focusRegion('Highlighted');
     cy.log(
       '"Breadcrumbs" component should now be the LAST child in the Highlighted region',
@@ -104,7 +116,6 @@ describe('Operate on components in global regions', () => {
     );
     cy.focusRegion('Secondary menu');
     cy.sendComponentToRegion('User account menu', 'Highlighted');
-    cy.returnToContentRegion();
 
     cy.focusRegion('Highlighted');
     cy.log(

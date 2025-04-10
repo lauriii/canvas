@@ -10,6 +10,7 @@ import type {
 import { moveNode } from '@/features/layout/layoutModelSlice';
 import { selectLayout } from '@/features/layout/layoutModelSlice';
 import { findParentRegion } from '@/features/layout/layoutUtils';
+import { useNavigationUtils } from '@/hooks/useNavigationUtils';
 
 interface CCMRProps {
   component: ComponentNode;
@@ -18,6 +19,7 @@ interface CCMRProps {
 const ComponentUnifiedMenuRegions: React.FC<CCMRProps> = (props) => {
   const { component } = props;
   const dispatch = useAppDispatch();
+  const { unsetSelectedComponent } = useNavigationUtils();
   const layout = useAppSelector(selectLayout);
 
   const parentRegion = useMemo(() => {
@@ -25,13 +27,18 @@ const ComponentUnifiedMenuRegions: React.FC<CCMRProps> = (props) => {
   }, [layout, component.uuid]);
 
   const handleMoveClick = useCallback(
-    (destinationRegionIndex: number, destinationRegion: RegionNode) => {
+    (
+      event: React.MouseEvent<HTMLElement>,
+      destinationRegionIndex: number,
+      destinationRegion: RegionNode,
+    ) => {
+      event.stopPropagation();
       const currentRegionIndex = layout.findIndex(
         (region) => region.id === parentRegion?.id,
       );
 
-      // When component is moved down/below (based on layers panel), it’s added to the beginning of the region
-      // When component is moved up/above (based on layers panel), it’s added to the end of the region
+      // When moving to a region below (based on layers panel), it’s added to the beginning of the region
+      // When moving to a region above (based on layers panel), it’s added to the end of the region
       let componentIndex = 0;
       if (currentRegionIndex > destinationRegionIndex) {
         componentIndex = destinationRegion.components.length;
@@ -42,8 +49,17 @@ const ComponentUnifiedMenuRegions: React.FC<CCMRProps> = (props) => {
           to: [destinationRegionIndex, componentIndex],
         }),
       );
+      // After sending something to another region, the URL is no longer valid because the selected :componentId is no
+      // longer in the focused :regionId so this removes :componentId from the URL
+      unsetSelectedComponent();
     },
-    [layout, dispatch, component.uuid, parentRegion?.id],
+    [
+      layout,
+      dispatch,
+      component.uuid,
+      unsetSelectedComponent,
+      parentRegion?.id,
+    ],
   );
 
   return (
@@ -53,7 +69,7 @@ const ComponentUnifiedMenuRegions: React.FC<CCMRProps> = (props) => {
         {layout.map((region, ix) => (
           <UnifiedMenu.Item
             key={region.id}
-            onClick={() => handleMoveClick(ix, region)}
+            onClick={(event) => handleMoveClick(event, ix, region)}
             disabled={region.id === parentRegion?.id}
           >
             {region.name}

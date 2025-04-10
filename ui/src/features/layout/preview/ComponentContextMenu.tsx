@@ -38,40 +38,60 @@ export const ComponentContextMenuContent: React.FC<
   const { setSelectedComponent, unsetSelectedComponent } = useNavigationUtils();
   const componentUuid = component.uuid;
 
-  const handleDeleteClick = useCallback(() => {
-    if (componentUuid) {
-      dispatch(deleteNode(componentUuid));
-      unsetSelectedComponent();
-    }
-    dispatch(unsetHoveredComponent());
-  }, [componentUuid, dispatch, unsetSelectedComponent]);
+  const handleDeleteClick = useCallback(
+    (ev: React.MouseEvent<HTMLElement>) => {
+      ev.stopPropagation();
+      if (componentUuid) {
+        dispatch(deleteNode(componentUuid));
+        unsetSelectedComponent();
+      }
+      dispatch(unsetHoveredComponent());
+    },
+    [componentUuid, dispatch, unsetSelectedComponent],
+  );
 
-  const handleSelectClick = useCallback(() => {
-    dispatch(unsetHoveredComponent());
-    if (componentUuid) {
-      setSelectedComponent(componentUuid);
-    }
-  }, [dispatch, componentUuid, setSelectedComponent]);
+  const handleSelectClick = useCallback(
+    (ev: React.MouseEvent<HTMLElement>) => {
+      ev.stopPropagation();
+      dispatch(unsetHoveredComponent());
+      if (componentUuid) {
+        setSelectedComponent(componentUuid);
+      }
+    },
+    [dispatch, componentUuid, setSelectedComponent],
+  );
 
-  const handleDuplicateClick = useCallback(() => {
-    dispatch(unsetHoveredComponent());
+  const handleDuplicateClick = useCallback(
+    (ev: React.MouseEvent<HTMLElement>) => {
+      ev.stopPropagation();
+      dispatch(unsetHoveredComponent());
 
-    if (componentUuid) {
-      dispatch(duplicateNode({ uuid: componentUuid }));
-    }
-  }, [dispatch, componentUuid]);
+      if (componentUuid) {
+        dispatch(duplicateNode({ uuid: componentUuid }));
+      }
+    },
+    [dispatch, componentUuid],
+  );
 
-  const handleMoveUpClick = useCallback(() => {
-    dispatch(unsetHoveredComponent());
+  const handleMoveUpClick = useCallback(
+    (ev: React.MouseEvent<HTMLElement>) => {
+      ev.stopPropagation();
+      dispatch(unsetHoveredComponent());
 
-    dispatch(shiftNode({ uuid: componentUuid, direction: 'up' }));
-  }, [dispatch, componentUuid]);
+      dispatch(shiftNode({ uuid: componentUuid, direction: 'up' }));
+    },
+    [dispatch, componentUuid],
+  );
 
-  const handleMoveDownClick = useCallback(() => {
-    dispatch(unsetHoveredComponent());
+  const handleMoveDownClick = useCallback(
+    (ev: React.MouseEvent<HTMLElement>) => {
+      ev.stopPropagation();
+      dispatch(unsetHoveredComponent());
 
-    dispatch(shiftNode({ uuid: componentUuid, direction: 'down' }));
-  }, [dispatch, componentUuid]);
+      dispatch(shiftNode({ uuid: componentUuid, direction: 'down' }));
+    },
+    [dispatch, componentUuid],
+  );
 
   const handleCreateSectionClick = useCallback(
     (e: React.MouseEvent<HTMLElement>) => {

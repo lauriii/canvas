@@ -299,6 +299,9 @@ Cypress.Commands.add('drupalRelativeURL', (pathname, callback) => {
 });
 
 Cypress.Commands.add('drupalUninstall', (callback) => {
+  // immediately leave XB - otherwise when running headed the auto-save poll can fire during/after the db wipe and leave
+  // the env in a weird state.
+  cy.visit('/');
   const prefix = Cypress.env('drupalDbPrefix');
 
   const dbOption = Cypress.env('dbUrl')
@@ -1045,6 +1048,7 @@ Cypress.Commands.add('returnToContentRegion', () => {
     .click();
 });
 Cypress.Commands.add('sendComponentToRegion', (componentName, regionName) => {
+  cy.findByTestId('xb-primary-panel').as('layersTree');
   cy.get('@layersTree').findByText(componentName).trigger('contextmenu');
   cy.findByText('Move to global region').click();
 
