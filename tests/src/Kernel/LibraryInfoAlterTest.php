@@ -55,7 +55,7 @@ final class LibraryInfoAlterTest extends KernelTestBase {
    * Tests that libraries with xb.transform prefix are dynamically added.
    */
   public function testTransformMounting(): void {
-    $this->setUpCurrentUser([], ['administer xb_page']);
+    $this->setUpCurrentUser([], [Page::CREATE_PERMISSION]);
     $page = Page::create([
       'title' => 'Test page',
       'description' => 'This is a test page.',

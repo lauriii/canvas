@@ -64,7 +64,7 @@ final class XbContentEntityHttpApiTest extends HttpApiTestBase {
     $request_options['headers']['X-CSRF-Token'] = $this->drupalGet('session/token');
     // Authenticated, authorized, with CSRF token: 201.
     // @phpstan-ignore-next-line
-    Role::load('authenticated')->grantPermission('administer xb_page')->save();
+    Role::load('authenticated')->grantPermission(Page::CREATE_PERMISSION)->save();
     $response = $this->makeApiRequest('POST', $url, $request_options);
     $this->assertSame(201, $response->getStatusCode());
     $this->assertSame(
@@ -79,7 +79,7 @@ final class XbContentEntityHttpApiTest extends HttpApiTestBase {
     $this->assertAuthenticationAndAuthorization($url, 'GET');
 
     // Authenticated, authorized: 200.
-    $user = $this->createUser(['administer xb_page'], 'administer_xb_page_user');
+    $user = $this->createUser([Page::EDIT_PERMISSION], 'administer_xb_page_user');
     assert($user instanceof UserInterface);
     $this->drupalLogin($user);
     $body = $this->assertExpectedResponse('GET', $url, [], 200, ['user.permissions'], [AutoSaveManager::CACHE_TAG, 'http_response', 'xb_page_list'], 'UNCACHEABLE (request policy)', 'MISS');
@@ -210,9 +210,14 @@ final class XbContentEntityHttpApiTest extends HttpApiTestBase {
     $this->assertAuthenticationAndAuthorization($url, 'DELETE');
 
     $request_options['headers']['X-CSRF-Token'] = $this->drupalGet('session/token');
+    // Authenticated, unauthorized, with CSRF token: 403.
+    $response = $this->makeApiRequest('DELETE', $url, $request_options);
+    $this->assertSame(403, $response->getStatusCode());
+    $this->assertSame(['errors' => ["The 'delete xb_page' permission is required."]], json_decode((string) $response->getBody(), TRUE));
+
     // Authenticated, authorized, with CSRF token: 204.
     // @phpstan-ignore-next-line
-    Role::load('authenticated')->grantPermission('administer xb_page')->save();
+    Role::load('authenticated')->grantPermission(Page::DELETE_PERMISSION)->save();
     $response = $this->makeApiRequest('DELETE', $url, $request_options);
     $this->assertSame(204, $response->getStatusCode());
     $this->assertNull(\Drupal::entityTypeManager()->getStorage('xb_page')->load(1));
@@ -242,8 +247,15 @@ final class XbContentEntityHttpApiTest extends HttpApiTestBase {
     $request_options['headers']['X-CSRF-Token'] = $this->drupalGet('session/token');
     $response = $this->makeApiRequest($method, $url, $request_options);
     $this->assertSame(403, $response->getStatusCode());
+
+    $error = match ($method) {
+      'POST' => "The 'create xb_page' permission is required.",
+      'DELETE' => "The 'delete xb_page' permission is required.",
+      // GET method
+      default => "The 'edit xb_page' permission is required.",
+    };
     $this->assertSame(
-      ['errors' => ["The 'administer xb_page' permission is required."]],
+      ['errors' => [$error]],
       json_decode((string) $response->getBody(), TRUE)
     );
   }

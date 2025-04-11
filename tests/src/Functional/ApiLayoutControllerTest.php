@@ -45,7 +45,6 @@ final class ApiLayoutControllerTest extends HttpApiTestBase {
       'access administration pages',
       'administer url aliases',
       'administer code components',
-      'administer xb_page',
       'administer themes',
     ]);
     \assert($account instanceof UserInterface);

@@ -193,8 +193,7 @@ experience_builder.api.content.list:
   defaults:
     _controller: 'Drupal\experience_builder\Controller\ApiContentControllers::list'
   requirements:
-    # @todo update in https://www.drupal.org/i/3502048
-    _permission: 'administer xb_page'
+    _permission: 'edit xb_page'
   methods: [GET]
 
 # Forms: component instance and content entity.

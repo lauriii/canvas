@@ -7,6 +7,7 @@ namespace Drupal\Tests\experience_builder\Kernel\Controller;
 use Drupal\Core\Url;
 use Drupal\experience_builder\Entity\ContentTemplate;
 use Drupal\experience_builder\Entity\JavaScriptComponent;
+use Drupal\experience_builder\Entity\Page;
 use Drupal\experience_builder\Entity\PageRegion;
 use Drupal\experience_builder\Entity\Pattern;
 use Drupal\KernelTests\KernelTestBase;
@@ -99,7 +100,7 @@ final class ExperienceBuilderControllerTest extends KernelTestBase {
     return [
       'page' => [
         'xb_page',
-        ['administer xb_page'],
+        [Page::CREATE_PERMISSION, Page::EDIT_PERMISSION],
         [
           'title' => 'Test page',
           'description' => 'This is a test page.',
@@ -152,10 +153,18 @@ final class ExperienceBuilderControllerTest extends KernelTestBase {
   }
 
   public static function permissionsData(): array {
+    // @see \Drupal\experience_builder\Entity\PageAccessControlHandler
+    $page_permissions = [
+      'access content',
+      Page::CREATE_PERMISSION,
+      Page::EDIT_PERMISSION,
+      Page::DELETE_PERMISSION,
+    ];
+
     return [
       [
         [
-          'administer xb_page',
+          ...$page_permissions,
         ],
         [
           'globalRegion' => FALSE,
@@ -166,7 +175,7 @@ final class ExperienceBuilderControllerTest extends KernelTestBase {
       ],
       [
         [
-          'administer xb_page',
+          ...$page_permissions,
           JavaScriptComponent::ADMIN_PERMISSION,
         ],
         [
@@ -178,7 +187,7 @@ final class ExperienceBuilderControllerTest extends KernelTestBase {
       ],
       [
         [
-          'administer xb_page',
+          ...$page_permissions,
           Pattern::ADMIN_PERMISSION,
           PageRegion::ADMIN_PERMISSION,
         ],
@@ -191,7 +200,7 @@ final class ExperienceBuilderControllerTest extends KernelTestBase {
       ],
       [
         [
-          'administer xb_page',
+          ...$page_permissions,
           Pattern::ADMIN_PERMISSION,
           PageRegion::ADMIN_PERMISSION,
           JavaScriptComponent::ADMIN_PERMISSION,
@@ -205,7 +214,7 @@ final class ExperienceBuilderControllerTest extends KernelTestBase {
       ],
       [
         [
-          'administer xb_page',
+          ...$page_permissions,
           Pattern::ADMIN_PERMISSION,
           PageRegion::ADMIN_PERMISSION,
           JavaScriptComponent::ADMIN_PERMISSION,

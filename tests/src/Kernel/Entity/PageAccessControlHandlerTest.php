@@ -48,34 +48,40 @@ final class PageAccessControlHandlerTest extends KernelTestBase {
       ->willReturnCallback(fn ($permission) => in_array($permission, $permissions, TRUE));
 
     if ($op === 'create') {
-      self::assertEquals(
-        $expected_result,
-        $access_handler->createAccess(NULL, $account)
-      );
+      $result = $access_handler->createAccess(NULL, $account);
     }
     else {
       $page = Page::create([]);
       $page->save();
-      self::assertEquals(
-        $expected_result,
-        $access_handler->access($page, $op, $account)
-      );
+      $result = $access_handler->access($page, $op, $account);
     }
+    self::assertEquals(
+      $expected_result,
+      $result
+    );
   }
 
   public static function accessCheckProvider(): array {
     return [
-      'create: with admin permission' => [['administer xb_page'], 'create', TRUE],
-      'create: without permission' => [['access content'], 'create', FALSE],
+      'create: with create permission' => [[Page::CREATE_PERMISSION], 'create', TRUE],
+      'create: with edit permission' => [[Page::EDIT_PERMISSION], 'create', FALSE],
+      'create: with delete permission' => [[Page::DELETE_PERMISSION], 'create', FALSE],
+      'create: without create permission' => [['access content'], 'create', FALSE],
 
-      'view: with admin permission' => [['administer xb_page'], 'view', TRUE],
+      'view: with create permission' => [[Page::CREATE_PERMISSION], 'view', TRUE],
+      'view: with edit permission' => [[Page::EDIT_PERMISSION], 'view', TRUE],
+      'view: with delete permission' => [[Page::DELETE_PERMISSION], 'view', TRUE],
       'view: with permission' => [['access content'], 'view', TRUE],
       'view: without any permissions' => [[], 'view', FALSE],
 
-      'update: with admin permission' => [['administer xb_page'], 'update', TRUE],
+      'update: with create permission' => [[Page::CREATE_PERMISSION], 'update', FALSE],
+      'update: with edit permission' => [[Page::EDIT_PERMISSION], 'update', TRUE],
+      'update: with delete permission' => [[Page::DELETE_PERMISSION], 'update', FALSE],
       'update: without permission' => [['access content'], 'update', FALSE],
 
-      'delete: with admin permission' => [['administer xb_page'], 'delete', TRUE],
+      'delete: with create permission' => [[Page::CREATE_PERMISSION], 'delete', FALSE],
+      'delete: with edit permission' => [[Page::EDIT_PERMISSION], 'delete', FALSE],
+      'delete: with delete permission' => [[Page::DELETE_PERMISSION], 'delete', TRUE],
       'delete: without permission' => [['access content'], 'delete', FALSE],
     ];
   }

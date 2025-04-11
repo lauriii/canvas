@@ -69,7 +69,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
 
   public function testApiAutoSaveControllerGet(): void {
     $this->installConfig(['test_user_config']);
-    $permissions = ['access administration pages'];
+    $permissions = [Page::EDIT_PERMISSION, 'access administration pages'];
     $emptyData = [
       'layout' => [
         [

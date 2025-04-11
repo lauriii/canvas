@@ -47,8 +47,7 @@ use Drupal\user\EntityOwnerTrait;
  *       "revision" = \Drupal\Core\Entity\Routing\RevisionHtmlRouteProvider::class,
  *     }
  *   },
- *   admin_permission = "administer xb_page",
- *   collection_permission = "administer xb_page",
+ *   collection_permission = "edit xb_page",
  *   base_table = "xb_page",
  *   revision_table = "xb_page_revision",
  *   data_table = "xb_page_field_data",
@@ -83,6 +82,9 @@ use Drupal\user\EntityOwnerTrait;
 final class Page extends EditorialContentEntityBase implements EntityOwnerInterface, ComponentTreeEntityInterface {
 
   use EntityOwnerTrait;
+  public const string CREATE_PERMISSION = 'create xb_page';
+  public const string EDIT_PERMISSION = 'edit xb_page';
+  public const string DELETE_PERMISSION = 'delete xb_page';
 
   /**
    * {@inheritdoc}

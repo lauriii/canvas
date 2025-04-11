@@ -6,9 +6,16 @@ administer code components:
   restrict access: true
 administer patterns:
   title: 'Administer sections'
-administer xb_page:
-  title: 'Administer pages'
 administer page template:
   title: 'Administer page template'
+create xb_page:
+  title: 'Create XB Page'
+  description: 'Create an Experience Builder page.'
+edit xb_page:
+  title: 'Edit XB Page'
+  description: 'Edit an Experience Builder page.'
+delete xb_page:
+  title: 'Delete XB Page'
+  description: 'Delete an Experience Builder page.'
 administer content templates:
   title: 'Administer content templates'

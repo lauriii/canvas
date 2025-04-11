@@ -322,7 +322,7 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
   }
 
   public function testStatusFlags(): void {
-    $this->setUpCurrentUser(permissions: ['access administration pages', 'administer xb_page']);
+    $this->setUpCurrentUser(permissions: ['access administration pages', Page::CREATE_PERMISSION]);
 
     $content = $this->parentRequest(Request::create('/xb/api/content/xb_page', method: 'POST'))->getContent();
     self::assertIsString($content);
