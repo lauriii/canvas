@@ -14,6 +14,7 @@ use Drupal\Core\Language\LanguageInterface;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\filter\Entity\FilterFormat;
+use Drupal\Tests\content_moderation\Traits\ContentModerationTestTrait;
 use Drupal\user\Entity\Role;
 
 /**
@@ -143,19 +144,15 @@ function xb_test_article_fields_install(): void {
         ['value' => LanguageInterface::LANGCODE_NOT_SPECIFIED],
       ],
     ],
-    'field_xbt_moderation_state' => [
-      'type' => 'string',
-      'label' => 'XB Moderation State',
-      'settings' => [],
-      'widget' => [
-        'type' => 'moderation_state_default',
-        'settings' => [],
-      ],
-    ],
     // Note that there is no oembed_textfield here because that widget can only
     // be used on Media entities. Once https://drupal.org/i/3498525 is resolved
     // we can add a test for using XB with a media entity and the oembed widget.
     // @see \Drupal\media\Plugin\Field\FieldWidget\OEmbedWidget::isApplicable
+
+    // Note that moderation_state_default cannot be used on a field other than
+    // the moderation state computed field added by content_moderation.
+    // We make use of ContentModerationTestTrait below to setup content
+    // moderation for the article content type.
     'field_xbt_options_buttons' => [
       'type' => 'list_string',
       'label' => 'XB Options (Buttons)',
@@ -270,6 +267,9 @@ function xb_test_article_fields_install(): void {
     ],
   ];
 
+  // Setup content moderation for article node type.
+  (new ContentModerationHelper())->enableForArticleNodes();
+
   $form_display = EntityFormDisplay::load('node.article.default');
   if (!$form_display) {
     $form_display = EntityFormDisplay::create([
@@ -375,6 +375,21 @@ function xb_test_article_fields_install(): void {
     $role->grantPermission('post comments');
     $role->grantPermission('use text format restricted_html');
     $role->grantPermission('use text format basic_html');
+    // Needed to make the Content Moderation widget visible on the node edit
+    // form. The user needs to be able to use at least two moderation states for
+    // the widget to be visible. The first transition allows them to move from
+    // Published (the current state) to Draft. The second transition lets them
+    // keep the content in the Published state.
+    $role->grantPermission('use editorial transition create_new_draft');
+    $role->grantPermission('use editorial transition publish');
+    // Needed to view the latest revision in JSON:API. JSON:API module checks the
+    // 'view all revisions' permission first and then if Content Moderation is
+    // enabled, defers to its revision access check which checks the 'view any
+    // unpublished content' permission and the 'view latest version'
+    // permissions.
+    $role->grantPermission('view all revisions');
+    $role->grantPermission('view any unpublished content');
+    $role->grantPermission('view latest version');
     $role->save();
   }
 
@@ -401,4 +416,20 @@ function xb_test_article_fields_uninstall(): void {
       $field_storage->delete();
     }
   }
+}
+
+// Ensure that the test trait can be autoloaded. This trait is in a test
+// namespace. We don't have autoloading of test namespaces in production code,
+// only in tests via bootstrap.php. This module is useful to install for working
+// on debugging widgets in the page data form so by including the file we ensure
+// this module can be installed in non-test environments.
+include_once sprintf('%s/core/modules/content_moderation/tests/src/Traits/ContentModerationTestTrait.php', \DRUPAL_ROOT);
+
+class ContentModerationHelper {
+  use ContentModerationTestTrait;
+
+  public function enableForArticleNodes(): void {
+    $this->addEntityTypeAndBundleToWorkflow($this->createEditorialWorkflow(), 'node', 'article');
+  }
+
 }

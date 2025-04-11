@@ -62,17 +62,26 @@ describe('Entity form field types', () => {
 
     cy.publishAllPendingChanges('I am an empty node');
 
-    // Request the node over jsonapi.
-    cy.request('/jsonapi/node/article').then((response) => {
-      expect(response.status).to.eq(200);
-      const data = response.body.data;
+    // Request all articles over JSON:API.
+    cy.request('/jsonapi/node/article').then((listResponse) => {
+      expect(listResponse.status).to.eq(200);
+      const data = listResponse.body.data;
+      // Filter down to just node 2 which we've been editing.
       const nodeData = data
         .filter((item) => item.attributes.drupal_internal__nid === 2)
         .shift();
-      // Perform validation.
-      Object.entries(fields).forEach(([key, value]) => {
-        cy.log(`Performing validation for ${key}`);
-        value.assertData(nodeData);
+      // Then request the latest working copy of this node using its UUID. We need to
+      // request it specifically because the content moderation widget test marks the
+      // edit as a draft. JSON:API collections do not support working copies.
+      cy.request(
+        `jsonapi/node/article/${nodeData.id}?resourceVersion=rel:working-copy`,
+      ).then((itemResponse) => {
+        expect(itemResponse.status).to.eq(200);
+        // Perform assertions on the draft entity.
+        Object.entries(fields).forEach(([key, value]) => {
+          cy.log(`Performing validation for ${key}`);
+          value.assertData(itemResponse.body.data);
+        });
       });
     });
   });

@@ -6,6 +6,7 @@ import * as field_xbt_textfield from './field_xbt_textfield.js';
 import * as field_xbt_textarea from './field_xbt_textarea.js';
 import * as field_xbt_uri from './field_xbt_uri.js';
 import * as field_xbt_textarea_summary from './field_xbt_textarea_summary.js';
+import * as field_xbt_moderation_state from './field_xbt_moderation_state.js';
 
 // Expand this to add additional coverage.
 // For each field to be tested, add a new file that exports two methods as
@@ -20,6 +21,7 @@ import * as field_xbt_textarea_summary from './field_xbt_textarea_summary.js';
 // @see xb_test_article_fields_install for where the fields are created.
 export default {
   field_xbt_comment,
+  field_xbt_moderation_state,
   field_xbt_language,
   field_xbt_options_buttons,
   field_xbt_telephone,
