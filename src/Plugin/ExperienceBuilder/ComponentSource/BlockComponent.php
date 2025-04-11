@@ -26,7 +26,6 @@ use Drupal\Core\Validation\Plugin\Validation\Constraint\FullyValidatableConstrai
 use Drupal\experience_builder\Attribute\ComponentSource;
 use Drupal\experience_builder\ComponentDoesNotMeetRequirementsException;
 use Drupal\experience_builder\ComponentSource\ComponentSourceBase;
-use Drupal\experience_builder\Entity\Component;
 use Drupal\experience_builder\Entity\Component as ComponentEntity;
 use Drupal\experience_builder\Entity\JavaScriptComponent;
 use Drupal\experience_builder\MissingComponentInputsException;
@@ -309,7 +308,7 @@ final class BlockComponent extends ComponentSourceBase implements ContainerFacto
   /**
    * {@inheritdoc}
    */
-  public function clientModelToInput(string $component_instance_uuid, Component $component, array $client_model, ?ConstraintViolationListInterface $violations = NULL): array {
+  public function clientModelToInput(string $component_instance_uuid, ComponentEntity $component, array $client_model, ?ConstraintViolationListInterface $violations = NULL): array {
     // @todo Remove this in https://www.drupal.org/project/experience_builder/issues/3500994#comment-15951774 — the client should send the right data.
     $defaults = $component->get('settings')['default_settings'];
     $input = $this->fixBooleansUsingConfigSchema($client_model['resolved'] ?? []);

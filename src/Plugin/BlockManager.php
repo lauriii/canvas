@@ -96,7 +96,7 @@ final class BlockManager extends CoreBlockManager {
         $component->save();
       }
       catch (ComponentDoesNotMeetRequirementsException $e) {
-        $this->reasonRepository->storeReasons($block->getPluginId(), $component_id, $e->getMessages());
+        $this->reasonRepository->storeReasons(BlockComponent::SOURCE_PLUGIN_ID, $component_id, $e->getMessages());
       }
     }
 

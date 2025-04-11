@@ -9,7 +9,7 @@ use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 /**
  * Any test using these test cases must install the `xb_test_sdc` module.
  */
-trait ComponentTreeTestTrait {
+trait SingleDirectoryComponentTreeTestTrait {
 
   use TestDataUtilitiesTrait;
 

@@ -10,7 +10,6 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Field\Plugin\Field\FieldWidget\OptionsSelectWidget;
 use Drupal\Core\Field\Plugin\Field\FieldWidget\StringTextfieldWidget;
 use Drupal\Core\Field\Plugin\Field\FieldWidget\UriWidget;
-use Drupal\Core\Menu\Plugin\Block\LocalActionsBlock;
 use Drupal\Core\Theme\ComponentPluginManager as CoreComponentPluginManager;
 use Drupal\experience_builder\ComponentIncompatibilityReasonRepository;
 use Drupal\experience_builder\Entity\ComponentInterface;
@@ -24,7 +23,6 @@ use Drupal\KernelTests\KernelTestBase;
 use Drupal\system\Plugin\Block\ClearCacheBlock;
 use Drupal\Tests\experience_builder\Traits\ContribStrictConfigSchemaTestTrait;
 use Drupal\Tests\experience_builder\Traits\GenerateComponentConfigTrait;
-use Drupal\user\Plugin\Block\UserLoginBlock;
 use Symfony\Component\Yaml\Yaml;
 
 class ComponentTest extends KernelTestBase {
@@ -136,6 +134,7 @@ class ComponentTest extends KernelTestBase {
 
   /**
    * @dataProvider providerComponentCreation
+   * @todo Remove in https://www.drupal.org/i/3518838
    */
   public function testComponentCreation(string $component_config_entity_id, string $source, ?string $provider, string $source_internal_id, array $expected_config_dependencies): void {
     if ($source === JsComponent::SOURCE_PLUGIN_ID) {
@@ -243,11 +242,11 @@ class ComponentTest extends KernelTestBase {
   /**
    * @param array<string> $modules
    * @param array<string, array{'compatible': bool, 'reason'?: bool}> $components
-   * @param array<string> $classes
    *
    * @dataProvider provider
+   * @todo Remove in https://www.drupal.org/i/3518835.
    */
-  public function testComponentAutoCreate(array $modules, array $components, array $classes): void {
+  public function testComponentAutoCreate(array $modules, array $components): void {
     if (in_array('sdc_test_all_props', $modules, TRUE)) {
       // The `sdc_test_all_props` module includes props that use
       // `contentMediaType: text/html` which enables the CKEditor 5 module which
@@ -290,10 +289,11 @@ class ComponentTest extends KernelTestBase {
         'system_main_block',
       ]));
     }
-
-    $this->assertEqualsCanonicalizing($classes, Component::getClasses(array_keys($components)));
   }
 
+  /**
+   * @todo Remove in https://www.drupal.org/i/3518835.
+   */
   public static function provider(): \Generator {
     $defaults = [
       'sdc.experience_builder.obsolete' => [
@@ -378,165 +378,6 @@ class ComponentTest extends KernelTestBase {
     yield 'initial set of components from experience_builder and sdc_test' => [
       'modules' => [],
       'components' => $defaults,
-      'classes' => [
-        'Drupal\Core\Plugin\Component',
-      ],
-    ];
-
-    yield 'installing xb_test_sdc creates props-no-slots and props-slots components' => [
-      'modules' => ['xb_test_sdc'],
-      'components' => $defaults + [
-        'sdc.xb_test_sdc.grid-container' => [
-          'compatible' => TRUE,
-        ],
-        'sdc.xb_test_sdc.image-optional-with-example' => [
-          'compatible' => TRUE,
-        ],
-        'sdc.xb_test_sdc.image-optional-without-example' => [
-          'compatible' => TRUE,
-        ],
-        'sdc.xb_test_sdc.image-required-with-example' => [
-          'compatible' => TRUE,
-        ],
-        'sdc.xb_test_sdc.image-required-without-example' => [
-          'compatible' => FALSE,
-          'reasons' => ['Prop "image" is required, but does not have example value'],
-        ],
-        'sdc.xb_test_sdc.image-optional-with-example-and-additional-prop' => [
-          'compatible' => TRUE,
-        ],
-        'sdc.xb_test_sdc.html-invalid-format' => [
-          'compatible' => FALSE,
-          'reasons' => ['Invalid value "invalid" for "x-formatting-context". Valid values are "inline" and "block".'],
-        ],
-        'sdc.xb_test_sdc.props-no-slots' => [
-          'compatible' => TRUE,
-        ],
-        'sdc.xb_test_sdc.props-slots' => [
-          'compatible' => TRUE,
-        ],
-        'sdc.xb_test_sdc.props-no-title' => [
-          'compatible' => FALSE,
-          'reasons' => ['Prop "heading" must have title'],
-        ],
-        'sdc.xb_test_sdc.props-no-examples' => [
-          'compatible' => FALSE,
-          'reasons' => ['Prop "heading" is required, but does not have example value'],
-        ],
-      ],
-      'classes' => [
-        'Drupal\Core\Plugin\Component',
-      ],
-    ];
-
-    yield 'installing sdc_test_all_props creates sdc_test_all_props:all-props creates component' => [
-      'modules' => ['xb_test_sdc', 'sdc_test_all_props'],
-      'components' => $defaults + [
-        'sdc.sdc_test_all_props.all-props' => [
-          'compatible' => TRUE,
-        ],
-        'sdc.xb_test_sdc.grid-container' => [
-          'compatible' => TRUE,
-        ],
-        'sdc.xb_test_sdc.image-optional-with-example' => [
-          'compatible' => TRUE,
-        ],
-        'sdc.xb_test_sdc.image-optional-without-example' => [
-          'compatible' => TRUE,
-        ],
-        'sdc.xb_test_sdc.image-required-with-example' => [
-          'compatible' => TRUE,
-        ],
-        'sdc.xb_test_sdc.image-required-without-example' => [
-          'compatible' => FALSE,
-          'reasons' => ['Prop "image" is required, but does not have example value'],
-        ],
-        'sdc.xb_test_sdc.image-optional-with-example-and-additional-prop' => [
-          'compatible' => TRUE,
-        ],
-        'sdc.xb_test_sdc.html-invalid-format' => [
-          'compatible' => FALSE,
-          'reasons' => ['Invalid value "invalid" for "x-formatting-context". Valid values are "inline" and "block".'],
-        ],
-        'sdc.xb_test_sdc.props-no-slots' => [
-          'compatible' => TRUE,
-        ],
-        'sdc.xb_test_sdc.props-slots' => [
-          'compatible' => TRUE,
-        ],
-        'sdc.xb_test_sdc.props-no-title' => [
-          'compatible' => FALSE,
-          'reasons' => ['Prop "heading" must have title'],
-        ],
-        'sdc.xb_test_sdc.props-no-examples' => [
-          'compatible' => FALSE,
-          'reasons' => ['Prop "heading" is required, but does not have example value'],
-        ],
-      ],
-      'classes' => [
-        'Drupal\Core\Plugin\Component',
-      ],
-    ];
-
-    yield 'installing block creates block components including menus' => [
-      // `system` and `user` are the two only required core modules.
-      'modules' => ['system', 'user', 'block'],
-      'components' => $defaults + [
-        'block.broken' => [
-          'compatible' => FALSE,
-        ],
-        'block.local_actions_block' => [
-          'compatible' => TRUE,
-        ],
-        'block.local_tasks_block' => [
-          'compatible' => TRUE,
-        ],
-        'block.page_title_block' => [
-          'compatible' => TRUE,
-        ],
-        'block.system_branding_block' => [
-          'compatible' => TRUE,
-        ],
-        'block.system_breadcrumb_block' => [
-          'compatible' => TRUE,
-        ],
-        'block.system_messages_block' => [
-          'compatible' => TRUE,
-        ],
-        'block.system_powered_by_block' => [
-          'compatible' => TRUE,
-        ],
-        'block.system_menu_block.account' => [
-          'compatible' => TRUE,
-        ],
-        'block.system_menu_block.admin' => [
-          'compatible' => TRUE,
-        ],
-        'block.system_menu_block.footer' => [
-          'compatible' => TRUE,
-        ],
-        'block.system_menu_block.main' => [
-          'compatible' => TRUE,
-        ],
-        'block.system_menu_block.tools' => [
-          'compatible' => TRUE,
-        ],
-        'block.user_login_block' => [
-          'compatible' => TRUE,
-        ],
-      ],
-      'classes' => array_filter([
-        'Drupal\Core\Plugin\Component',
-        'Drupal\Core\Block\Plugin\Block\PageTitleBlock',
-        LocalActionsBlock::class,
-        'Drupal\Core\Menu\Plugin\Block\LocalTasksBlock',
-        'Drupal\system\Plugin\Block\SystemBrandingBlock',
-        'Drupal\system\Plugin\Block\SystemBreadcrumbBlock',
-        'Drupal\system\Plugin\Block\SystemMessagesBlock',
-        'Drupal\system\Plugin\Block\SystemPoweredByBlock',
-        'Drupal\system\Plugin\Block\SystemMenuBlock',
-        UserLoginBlock::class,
-      ]),
     ];
   }
 
@@ -558,6 +399,9 @@ class ComponentTest extends KernelTestBase {
     $this->assertSame('entity_reference', $updated_component->getSettings()['prop_field_definitions']['image']['field_type']);
   }
 
+  /**
+   * @todo Remove in https://www.drupal.org/i/3518835.
+   */
   public function testObsoleteStatusHandling(): void {
     $this->componentPluginManager->getDefinitions();
     $id = 'sdc.experience_builder.obsolete';

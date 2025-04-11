@@ -46,6 +46,8 @@ are not yet finalized. That is likely to affect the requirements above.
 
 This uses the terms defined above.
 
+All `Component Source Plugin` should have kernel test coverage. See `ComponentSourceTestBase`.
+
 
 ### 3.1 `SDC` `component`s
 

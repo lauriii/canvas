@@ -1,0 +1,16 @@
+block.settings.xb_test_block_input_validatable:
+  type: block_settings
+  label: 'XB Test Block settings'
+  constraints:
+    FullyValidatable: ~
+  mapping:
+    name:
+      type: string
+      label: 'Name'
+block.settings.xb_test_block_input_unvalidatable:
+  type: block_settings
+  label: 'XB Test Block settings'
+  mapping:
+    name:
+      type: string
+      label: 'Name'

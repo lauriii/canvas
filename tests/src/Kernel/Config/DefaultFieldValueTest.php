@@ -7,13 +7,13 @@ namespace Drupal\Tests\experience_builder\Kernel\Config;
 use Drupal\Core\Config\Schema\SchemaIncompleteException;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\KernelTests\KernelTestBase;
-use Drupal\Tests\experience_builder\Traits\ComponentTreeTestTrait;
+use Drupal\Tests\experience_builder\Traits\SingleDirectoryComponentTreeTestTrait;
 use Drupal\Tests\experience_builder\Traits\ContribStrictConfigSchemaTestTrait;
 use Drupal\Tests\experience_builder\Traits\GenerateComponentConfigTrait;
 
 class DefaultFieldValueTest extends KernelTestBase {
 
-  use ComponentTreeTestTrait;
+  use SingleDirectoryComponentTreeTestTrait;
   use ContribStrictConfigSchemaTestTrait;
   use GenerateComponentConfigTrait;
 

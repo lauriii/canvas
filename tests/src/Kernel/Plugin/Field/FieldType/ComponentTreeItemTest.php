@@ -5,13 +5,12 @@ declare(strict_types=1);
 namespace Drupal\Tests\experience_builder\Kernel\Plugin\Field\FieldType;
 
 use Drupal\Core\Field\BaseFieldDefinition;
-use Drupal\experience_builder\Entity\Component;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\node\Entity\Node;
 use Drupal\Tests\experience_builder\Kernel\Traits\CiModulePathTrait;
-use Drupal\Tests\experience_builder\Traits\ComponentTreeTestTrait;
+use Drupal\Tests\experience_builder\Traits\SingleDirectoryComponentTreeTestTrait;
 use Drupal\Tests\experience_builder\Traits\ConstraintViolationsTestTrait;
 use Drupal\Tests\experience_builder\Traits\ContribStrictConfigSchemaTestTrait;
 use Drupal\Tests\experience_builder\Traits\GenerateComponentConfigTrait;
@@ -23,7 +22,7 @@ use Drupal\Tests\experience_builder\Traits\TestDataUtilitiesTrait;
  */
 class ComponentTreeItemTest extends KernelTestBase {
 
-  use ComponentTreeTestTrait;
+  use SingleDirectoryComponentTreeTestTrait;
   use ConstraintViolationsTestTrait;
   use ContribStrictConfigSchemaTestTrait;
   use GenerateComponentConfigTrait;
@@ -173,63 +172,6 @@ class ComponentTreeItemTest extends KernelTestBase {
     ];
     $test_cases['missing tree key'][] = [
       'field_xb_test.0' => 'The array must contain a "tree" key.',
-    ];
-    return $test_cases;
-  }
-
-  /**
-   * @covers \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\SingleDirectoryComponent::getExplicitInput()
-   * @dataProvider providerComponentResolving
-   * @todo Move this to unit test coverage for \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\SingleDirectoryComponent in https://www.drupal.org/i/3501290
-   */
-  public function testComponentResolving(array $component_item_value, array $expected_props_for_uuids): void {
-    $this->container->get('module_installer')->install(['xb_test_config_node_article']);
-    $node = Node::create([
-      'title' => 'Test node',
-      'type' => 'article',
-      'field_xb_test' => $component_item_value,
-    ]);
-    $xb_field_item = $node->field_xb_test[0];
-    $this->assertInstanceOf(ComponentTreeItem::class, $xb_field_item);
-    $actual_props = array_combine(
-      array_keys($expected_props_for_uuids),
-      array_map(
-        // @phpstan-ignore-next-line
-        fn (string $uuid) => Component::load($xb_field_item->get('tree')->getComponentId($uuid))
-          ->getComponentSource()
-          ->getExplicitInput($uuid, $xb_field_item)['resolved'],
-        array_keys($expected_props_for_uuids)
-      )
-    );
-    $this->assertSame($expected_props_for_uuids, $actual_props);
-  }
-
-  public static function providerComponentResolving(): array {
-    $test_cases = static::getValidTreeTestCases();
-    $invalid_test_cases = static::getInvalidTreeTestCases();
-    // Only 1 invalid case will allow to call
-    // \Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem::resolveComponentProps()
-    // without an exception.
-    $test_cases['invalid tree structure, uuid at top of data structure is not in the tree, also has empty slots'] = $invalid_test_cases['invalid tree structure, uuid at top of data structure is not in the tree, also has empty slots'];
-    $test_cases['invalid tree structure, uuid at top of data structure is not in the tree, also has empty slots'][] = [];
-    $test_cases['valid values using static inputs'][] = [
-      'dynamic-static-card2df' => [
-        'heading' => 'They say I am static, but I want to believe I can change!',
-      ],
-    ];
-    $test_cases['valid values for propless component'][] = [
-      'propless-component-uuid' => [],
-    ];
-    $test_cases['valid value for optional explicit input using an URL prop shape, with default value'][] = [
-      'optional-url-with-default-value' => [
-        'heading' => 'Gracie says hi!',
-        'image' => [
-          'src' => self::getCiModulePath() . '/tests/modules/xb_test_sdc/components/image-optional-with-example-and-additional-prop/gracie.jpg',
-          'alt' => 'A good dog',
-          'width' => 601,
-          'height' => 402,
-        ],
-      ],
     ];
     return $test_cases;
   }
