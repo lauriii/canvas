@@ -87,6 +87,12 @@ final class XBPreviewRenderer extends HtmlRenderer {
       if ($region === XbPageVariant::MAIN_CONTENT_REGION) {
         continue;
       }
+      // Empty regions don't need HTML comments to inform the XB UI; empty regions
+      // are not visible. They can only be reached by right-clicking in the UI
+      // and moving it to such a not yet visible region.
+      if ($page[$region] === []) {
+        continue;
+      }
       $page[$region]['#prefix'] = Markup::create("<!-- xb-region-start-$region -->");
       $page[$region]['#suffix'] = Markup::create("<!-- xb-region-end-$region -->");
       // @see experience_builder_preprocess_region()
