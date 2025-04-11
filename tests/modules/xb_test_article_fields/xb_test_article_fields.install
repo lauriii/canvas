@@ -152,18 +152,10 @@ function xb_test_article_fields_install(): void {
         'settings' => [],
       ],
     ],
-    'field_xbt_oembed' => [
-      'type' => 'string',
-      'label' => 'XB oEmbed',
-      'settings' => [],
-      'widget' => [
-        'type' => 'oembed_textfield',
-        'settings' => [
-          'size' => 60,
-          'placeholder' => '',
-        ],
-      ],
-    ],
+    // Note that there is no oembed_textfield here because that widget can only
+    // be used on Media entities. Once https://drupal.org/i/3498525 is resolved
+    // we can add a test for using XB with a media entity and the oembed widget.
+    // @see \Drupal\media\Plugin\Field\FieldWidget\OEmbedWidget::isApplicable
     'field_xbt_options_buttons' => [
       'type' => 'list_string',
       'label' => 'XB Options (Buttons)',
