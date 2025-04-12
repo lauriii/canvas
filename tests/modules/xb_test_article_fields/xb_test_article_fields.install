@@ -122,6 +122,9 @@ function xb_test_article_fields_install(): void {
           'placeholder' => '',
         ],
       ],
+      'default_value' => [
+        ['target_id' => 3],
+      ],
     ],
     'field_xbt_entity_ref_tags' => [
       'type' => 'entity_reference',
