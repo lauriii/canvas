@@ -11,9 +11,11 @@ declare(strict_types=1);
 
 use Drupal\Core\Entity\Entity\EntityFormDisplay;
 use Drupal\Core\Language\LanguageInterface;
+use Drupal\datetime\Plugin\Field\FieldType\DateTimeItemInterface;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\filter\Entity\FilterFormat;
+use Drupal\node\NodeInterface;
 use Drupal\Tests\content_moderation\Traits\ContentModerationTestTrait;
 use Drupal\user\Entity\Role;
 
@@ -21,6 +23,24 @@ use Drupal\user\Entity\Role;
  * Implements hook_install().
  */
 function xb_test_article_fields_install(): void {
+  // The time chosen here is during daylight savings for the timezone that core
+  // uses for testing (Australia/Sydney). This is by design so that we can test
+  // oddities like daylight savings. We also pick a time that is dramatically
+  // different between UTC and the test timezone. With an offset of +10, this
+  // date will be in a different month and on a different day in UTC to the
+  // reference timezone.
+  // @see bootstrap.php
+  $date = \DateTimeImmutable::createFromFormat('Y-m-d\TH:i:s', '2025-04-01T04:15:00');
+  \assert($date instanceof \DateTimeImmutable);
+  $date_range_default_value = [
+    [
+      'default_date_type' => 'relative',
+      'default_date' => $date->format(DateTimeItemInterface::DATETIME_STORAGE_FORMAT),
+      'default_end_date_type' => 'relative',
+      'default_end_date' => $date->modify('+2 hours')
+        ->format(DateTimeItemInterface::DATETIME_STORAGE_FORMAT),
+    ],
+  ];
   $fields = [
     'field_xbt_comment' => [
       'type' => 'comment',
@@ -58,6 +78,7 @@ function xb_test_article_fields_install(): void {
         'type' => 'daterange_default',
         'settings' => [],
       ],
+      'default_value' => $date_range_default_value,
     ],
     'field_xbt_datetime_datelist' => [
       'type' => 'datetime',
@@ -283,8 +304,6 @@ function xb_test_article_fields_install(): void {
   $do_not_add_to_form_yet = [
     // @todo Remove in https://www.drupal.org/project/experience_builder/issues/3516338
     'field_xbt_daterange_datelist',
-    // @todo Remove in https://www.drupal.org/project/experience_builder/issues/3516339
-    'field_xbt_daterange_default',
     // @todo Remove in https://www.drupal.org/project/experience_builder/issues/3516340
     'field_xbt_datetime_timestamp',
     // @todo Remove in https://www.drupal.org/project/experience_builder/issues/3516342
@@ -316,7 +335,7 @@ function xb_test_article_fields_install(): void {
       // Only add default_value if it's explicitly set
       if (isset($field_info['default_value'])) {
         $field_config['default_value'] = $field_info['default_value'];
-        $default_values_to_update[$field_name] = $field_info['default_value'];
+        $default_values_to_update[] = $field_name;
       }
 
       FieldConfig::create($field_config)->save();
@@ -395,7 +414,14 @@ function xb_test_article_fields_install(): void {
 
   // Update default values in already created nodes.
   foreach (\Drupal::entityTypeManager()->getStorage('node')->loadByProperties(['type' => 'article']) as $node) {
-    foreach ($default_values_to_update as $field_name => $default_value) {
+    \assert($node instanceof NodeInterface);
+    foreach ($default_values_to_update as $field_name) {
+      // Set the default value by calling ::getDefaultValue which takes care of
+      // processing.
+      $default_value = $node->getFieldDefinition($field_name)?->getDefaultValue($node);
+      if ($default_value === NULL) {
+        continue;
+      }
       $node->set($field_name, $default_value);
     }
     $node->save();
