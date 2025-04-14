@@ -105,6 +105,12 @@ function xb_test_article_fields_install(): void {
         'type' => 'datetime_timestamp',
         'settings' => [],
       ],
+      'default_value' => [
+        \array_intersect_key($date_range_default_value[0], \array_flip([
+          'default_date_type',
+          'default_date',
+        ])),
+      ],
     ],
     'field_xbt_entity_ref_auto' => [
       'type' => 'entity_reference',
@@ -307,8 +313,6 @@ function xb_test_article_fields_install(): void {
   $do_not_add_to_form_yet = [
     // @todo Remove in https://www.drupal.org/project/experience_builder/issues/3516338
     'field_xbt_daterange_datelist',
-    // @todo Remove in https://www.drupal.org/project/experience_builder/issues/3516340
-    'field_xbt_datetime_timestamp',
     // @todo Remove in https://www.drupal.org/project/experience_builder/issues/3516342
     'field_xbt_datetime_datelist',
   ];
