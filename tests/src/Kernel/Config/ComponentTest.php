@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\experience_builder\Kernel\Config;
 
-use Drupal\Core\Config\Schema\SchemaIncompleteException;
 use Drupal\Core\Entity\EntityListBuilderInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Field\Plugin\Field\FieldWidget\OptionsSelectWidget;
@@ -20,7 +19,6 @@ use Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\JsCompone
 use Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\SingleDirectoryComponent;
 use Drupal\experience_builder\PropSource\StaticPropSource;
 use Drupal\KernelTests\KernelTestBase;
-use Drupal\system\Plugin\Block\ClearCacheBlock;
 use Drupal\Tests\experience_builder\Traits\ContribStrictConfigSchemaTestTrait;
 use Drupal\Tests\experience_builder\Traits\GenerateComponentConfigTrait;
 use Symfony\Component\Yaml\Yaml;
@@ -240,148 +238,6 @@ class ComponentTest extends KernelTestBase {
   }
 
   /**
-   * @param array<string> $modules
-   * @param array<string, array{'compatible': bool, 'reason'?: bool}> $components
-   *
-   * @dataProvider provider
-   * @todo Remove in https://www.drupal.org/i/3518835.
-   */
-  public function testComponentAutoCreate(array $modules, array $components): void {
-    if (in_array('sdc_test_all_props', $modules, TRUE)) {
-      // The `sdc_test_all_props` module includes props that use
-      // `contentMediaType: text/html` which enables the CKEditor 5 module which
-      // requires the default theme to be installed.
-      // @see \_ckeditor5_theme_css()
-      \Drupal::service('theme_installer')->install(['stark']);
-    }
-    // Initial state: no Component config entities.
-    $this->assertEmpty(Component::loadMultiple());
-
-    $this->enableModules($modules);
-    if (in_array('block', $modules)) {
-      // system.module provides some default menus in config, installing that
-      // allows us to test menu block derivatives here.
-      $this->installConfig(['system']);
-    }
-    // Installing a module with SDCs should result in Component config entities
-    // being generated, but in kernel tests we have to explicitly trigger the
-    // hooks that would normally do this.
-    $this->generateComponentConfig();
-
-    $reasons = $this->repository->getReasons()[SingleDirectoryComponent::SOURCE_PLUGIN_ID] ?? [];
-    $expected_plugins = [];
-    foreach ($components as $component_id => $component_entity) {
-      [$type, $plugin_id] = explode('.', $component_id, 2);
-      $plugin_id = str_replace('.', ':', $plugin_id);
-      $expected_plugins[$type][] = $plugin_id;
-      $this->assertSame($component_entity['compatible'], Component::load($component_id) instanceof Component, $plugin_id . ' and modules: ' . implode(', ', $modules));
-      $this->assertSame($component_entity['reasons'] ?? NULL, isset($reasons[$component_id]) && !empty($reasons[$component_id]) ? $reasons[$component_id] : NULL, $plugin_id);
-    }
-
-    $this->assertEqualsCanonicalizing($expected_plugins['sdc'], array_keys($this->componentPluginManager->getDefinitions()));
-    if (in_array('block', $modules)) {
-      $all_installed_block_plugin_ids = array_keys($this->container->get('plugin.manager.block')->getDefinitions());
-      if (\class_exists(ClearCacheBlock::class)) {
-        $expected_plugins['block'][] = 'system_clear_cache_block';
-      }
-      $this->assertEqualsCanonicalizing($expected_plugins['block'], array_diff($all_installed_block_plugin_ids, [
-        // @see \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\BlockComponent::checkRequirements()
-        'system_main_block',
-      ]));
-    }
-  }
-
-  /**
-   * @todo Remove in https://www.drupal.org/i/3518835.
-   */
-  public static function provider(): \Generator {
-    $defaults = [
-      'sdc.experience_builder.obsolete' => [
-        'compatible' => FALSE,
-        'reasons' => ['Component has "obsolete" status'],
-      ],
-      'sdc.experience_builder.druplicon' => [
-        'compatible' => TRUE,
-      ],
-      'sdc.experience_builder.experimental' => [
-        'compatible' => TRUE,
-      ],
-      'sdc.experience_builder.deprecated' => [
-        'compatible' => TRUE,
-      ],
-      'sdc.experience_builder.image' => [
-        'compatible' => TRUE,
-      ],
-      'sdc.experience_builder.two_column' => [
-        'compatible' => TRUE,
-      ],
-      'sdc.experience_builder.one_column' => [
-        'compatible' => TRUE,
-      ],
-      'sdc.experience_builder.shoe_tab_group' => [
-        'compatible' => TRUE,
-      ],
-      'sdc.experience_builder.video' => [
-        'compatible' => FALSE,
-        'reasons' => ['Experience Builder does not know of a field type/widget to allow populating the <code>src</code> prop, with the shape <code>{"type":"string","format":"uri","pattern":"\\\.(mp4|webm)(\\\?.*)?(#.*)?$"}</code>.'],
-      ],
-      'sdc.experience_builder.shoe_tab_panel' => [
-        'compatible' => TRUE,
-      ],
-      'sdc.experience_builder.shoe_badge' => [
-        'compatible' => TRUE,
-      ],
-      'sdc.experience_builder.shoe_button' => [
-        'compatible' => FALSE,
-        'reasons' => ['Experience Builder does not know of a field type/widget to allow populating the <code>icon</code> prop, with the shape <code>{"type":"object","$ref":"json-schema-definitions://experience_builder.module/shoe-icon"}</code>.'],
-      ],
-      'sdc.experience_builder.shoe_icon' => [
-        'compatible' => TRUE,
-      ],
-      'sdc.experience_builder.shoe_tab' => [
-        'compatible' => TRUE,
-      ],
-      'sdc.experience_builder.heading' => [
-        'compatible' => TRUE,
-      ],
-      'sdc.experience_builder.shoe_details' => [
-        'compatible' => FALSE,
-        'reasons' => [
-          'Experience Builder does not know of a field type/widget to allow populating the <code>expand_icon</code> prop, with the shape <code>{"type":"object","$ref":"json-schema-definitions://experience_builder.module/shoe-icon"}</code>.',
-          'Experience Builder does not know of a field type/widget to allow populating the <code>collapse_icon</code> prop, with the shape <code>{"type":"object","$ref":"json-schema-definitions://experience_builder.module/shoe-icon"}</code>.',
-        ],
-      ],
-      'sdc.experience_builder.my-hero' => [
-        'compatible' => TRUE,
-      ],
-      'sdc.experience_builder.my-section' => [
-        'compatible' => TRUE,
-      ],
-      'sdc.sdc_test.array-to-object' => [
-        'compatible' => FALSE,
-        'reasons' => ['Experience Builder does not know of a field type/widget to allow populating the <code>testProp</code> prop, with the shape <code>{"type":"object"}</code>.'],
-      ],
-      'sdc.sdc_test.my-button' => [
-        'compatible' => TRUE,
-      ],
-      'sdc.sdc_test.my-cta' => [
-        'compatible' => TRUE,
-      ],
-      'sdc.sdc_test.no-props' => [
-        'compatible' => TRUE,
-      ],
-      'sdc.sdc_test.my-banner' => [
-        'compatible' => TRUE,
-      ],
-    ];
-
-    yield 'initial set of components from experience_builder and sdc_test' => [
-      'modules' => [],
-      'components' => $defaults,
-    ];
-  }
-
-  /**
    * @see media_library_storage_prop_shape_alter()
    * @see \Drupal\Tests\experience_builder\Kernel\MediaLibraryHookStoragePropAlterTest
    */
@@ -397,30 +253,6 @@ class ComponentTest extends KernelTestBase {
     $updated_component = Component::load('sdc.experience_builder.image');
     assert($updated_component instanceof Component);
     $this->assertSame('entity_reference', $updated_component->getSettings()['prop_field_definitions']['image']['field_type']);
-  }
-
-  /**
-   * @todo Remove in https://www.drupal.org/i/3518835.
-   */
-  public function testObsoleteStatusHandling(): void {
-    $this->componentPluginManager->getDefinitions();
-    $id = 'sdc.experience_builder.obsolete';
-    $this->assertNull(Component::load($id));
-    $component = SingleDirectoryComponent::createConfigEntity($this->componentPluginManager->find('experience_builder:obsolete'));
-    $this->assertSame($id, $component->id());
-    $this->assertFalse($component->status());
-    $component->enable();
-
-    $this->expectException(SchemaIncompleteException::class);
-    $this->expectExceptionMessage('Schema errors for experience_builder.component.sdc.experience_builder.obsolete with the following errors: 0 [status] The component &#039;&lt;em class=&quot;placeholder&quot;&gt;sdc.experience_builder.obsolete&lt;/em&gt;&#039; cannot be enabled because it does not meet the requirements of Experience Builder., 1 [status] Component has &quot;obsolete&quot; status');
-    $component->save();
-
-    // Trigger component update that will disable 'obsolete' component.
-    $this->generateComponentConfig();
-
-    $component = Component::load($component->id());
-    assert($component instanceof Component);
-    $this->assertFalse($component->status());
   }
 
   public function testOperations(): void {

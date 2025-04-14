@@ -62,6 +62,9 @@ final class SingleDirectoryComponentTest extends ComponentSourceTestBase {
       'sdc.xb_test_sdc.image-required-without-example' => [
         'Prop "image" is required, but does not have example value',
       ],
+      'sdc.xb_test_sdc.obsolete' => [
+        'Component has "obsolete" status',
+      ],
       'sdc.xb_test_sdc.props-no-examples' => [
         'Prop "heading" is required, but does not have example value',
       ],
@@ -71,6 +74,8 @@ final class SingleDirectoryComponentTest extends ComponentSourceTestBase {
     ], $this->findIneligibleComponents(SingleDirectoryComponent::SOURCE_PLUGIN_ID, 'xb_test_sdc'));
     $auto_created_components = $this->findCreatedComponentConfigEntities(SingleDirectoryComponent::SOURCE_PLUGIN_ID, 'xb_test_sdc');
     self::assertSame([
+      'sdc.xb_test_sdc.deprecated',
+      'sdc.xb_test_sdc.experimental',
       'sdc.xb_test_sdc.grid-container',
       'sdc.xb_test_sdc.image-optional-with-example',
       'sdc.xb_test_sdc.image-optional-with-example-and-additional-prop',
@@ -143,6 +148,26 @@ final class SingleDirectoryComponentTest extends ComponentSourceTestBase {
     $default_cacheability = (new CacheableMetadata())
       ->setCacheContexts($default_render_cache_contexts);
     $this->assertEquals([
+      'sdc.xb_test_sdc.deprecated' => [
+        'html' => <<<HTML
+<div  data-component-id="xb_test_sdc:deprecated">
+  <h1>Deprecated SDC component</h1>
+  <div><!-- xb-prop-start-some-uuid/text -->A text field<!-- xb-prop-end-some-uuid/text --></div>
+</div>
+
+HTML,
+        'cacheability' => $default_cacheability,
+      ],
+      'sdc.xb_test_sdc.experimental' => [
+        'html' => <<<HTML
+<div  data-component-id="xb_test_sdc:experimental">
+  <h1>Experimental SDC component</h1>
+  <div><!-- xb-prop-start-some-uuid/text -->A text field<!-- xb-prop-end-some-uuid/text --></div>
+</div>
+
+HTML,
+        'cacheability' => $default_cacheability,
+      ],
       'sdc.xb_test_sdc.grid-container' => [
         'html' => '
 <div  data-component-id="xb_test_sdc:grid-container" class="grid-container direction-horizontal">

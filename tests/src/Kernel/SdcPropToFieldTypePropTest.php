@@ -676,12 +676,9 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
         ],
         'optional, type=string' => [
           'SDC props' => [
-            '⿲experience_builder:deprecated␟text',
-            '⿲experience_builder:experimental␟text',
             '⿲experience_builder:my-hero␟subheading',
             '⿲experience_builder:my-hero␟cta1',
             '⿲experience_builder:my-hero␟cta2',
-            '⿲experience_builder:obsolete␟text',
             '⿲experience_builder:shoe_button␟label',
             '⿲experience_builder:shoe_button␟href',
             '⿲experience_builder:shoe_button␟rel',
