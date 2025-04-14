@@ -16,6 +16,10 @@ use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Language\LanguageInterface;
 use Drupal\Core\Session\AccountInterface;
+use Drupal\experience_builder\Entity\Component;
+use Drupal\experience_builder\Entity\JavaScriptComponent;
+use Drupal\experience_builder\Entity\PageRegion;
+use Drupal\experience_builder\Entity\Pattern;
 use Drupal\experience_builder\EntityHandlers\ContentCreatorVisibleXbConfigEntityAccessControlHandler;
 use Drupal\Tests\UnitTestCase;
 
@@ -56,9 +60,9 @@ final class ContentCreatorVisibleXbConfigEntityAccessControlHandlerTest extends 
 
   public static function viewPermissionProvider(): array {
     return [
-      ['component', 'component', 'administer components', AccessResultAllowed::class],
-      ['pattern', 'pattern', 'administer patterns', AccessResultAllowed::class],
-      ['page region', 'page region', 'administer page template', AccessResultAllowed::class],
+      [Component::ENTITY_TYPE_ID, 'component', Component::ADMIN_PERMISSION, AccessResultAllowed::class],
+      [Pattern::PLUGIN_ID, 'pattern', Pattern::ADMIN_PERMISSION, AccessResultAllowed::class],
+      [PageRegion::PLUGIN_ID, 'page region', PageRegion::ADMIN_PERMISSION, AccessResultAllowed::class],
     ];
   }
 
@@ -76,7 +80,7 @@ final class ContentCreatorVisibleXbConfigEntityAccessControlHandlerTest extends 
     $moduleHandler = $this->createMock(ModuleHandlerInterface::class);
     $moduleHandler->expects($this->any())->method('invokeAll')->willReturn([]);
     $entityType = $this->createMock(EntityTypeInterface::class);
-    $entityType->expects($this->once())->method('getAdminPermission')->willReturn('administer code components');
+    $entityType->expects($this->once())->method('getAdminPermission')->willReturn(JavaScriptComponent::ADMIN_PERMISSION);
     $entityType->expects($this->once())->method('getSingularLabel')->willReturn($entityTypeLabel);
     $entity = $this->createMock(ConfigEntityInterface::class);
     $entity->expects($this->once())->method('getConfigDependencyName')->willReturn("experience_builder.$entityTypeId.test");

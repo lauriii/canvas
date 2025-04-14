@@ -28,7 +28,7 @@ use Drupal\experience_builder\ComponentSource\ComponentSourceManager;
  *    label_singular = @Translation("component"),
  *    label_plural = @Translation("components"),
  *    label_collection = @Translation("Components"),
- *    admin_permission = "administer components",
+ *    admin_permission = \Drupal\experience_builder\Entity\Component::ADMIN_PERMISSION,
  *    handlers = {
  *      "access" = \Drupal\experience_builder\EntityHandlers\ContentCreatorVisibleXbConfigEntityAccessControlHandler::class,
  *      "list_builder" = "Drupal\experience_builder\Form\ComponentListBuilder",
@@ -63,7 +63,9 @@ use Drupal\experience_builder\ComponentSource\ComponentSourceManager;
  */
 final class Component extends ConfigEntityBase implements ComponentInterface, XbHttpApiEligibleConfigEntityInterface {
 
-  public const ENTITY_TYPE_ID = 'component';
+  public const string ADMIN_PERMISSION = 'administer components';
+
+  public const string ENTITY_TYPE_ID = 'component';
 
   /**
    * The component entity ID.

@@ -44,7 +44,7 @@ final class ApiLayoutControllerTest extends HttpApiTestBase {
     $account = $this->createUser([
       'access administration pages',
       'administer url aliases',
-      'administer code components',
+      JavaScriptComponent::ADMIN_PERMISSION,
       'administer themes',
     ]);
     \assert($account instanceof UserInterface);

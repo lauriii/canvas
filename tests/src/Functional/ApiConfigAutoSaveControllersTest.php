@@ -47,7 +47,7 @@ final class ApiConfigAutoSaveControllersTest extends HttpApiTestBase {
     parent::setUp();
     $user = $this->createUser([
       'access administration pages',
-      'administer code components',
+      JavaScriptComponent::ADMIN_PERMISSION,
     ]);
     assert($user instanceof UserInterface);
     $this->httpApiUser = $user;

@@ -8,6 +8,7 @@ use Drupal\experience_builder\AutoSave\AutoSaveManager;
 use Drupal\Core\Url;
 use Drupal\experience_builder\Entity\AssetLibrary;
 use Drupal\experience_builder\Entity\Component;
+use Drupal\experience_builder\Entity\JavaScriptComponent;
 use Drupal\experience_builder\Entity\Pattern;
 use Drupal\system\Entity\Menu;
 use Drupal\Tests\experience_builder\Traits\ContribStrictConfigSchemaTestTrait;
@@ -48,9 +49,9 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
     $user = $this->createUser([
       'access administration pages',
       'administer themes',
-      'administer components',
-      'administer code components',
-      'administer patterns',
+      Component::ADMIN_PERMISSION,
+      JavaScriptComponent::ADMIN_PERMISSION,
+      Pattern::ADMIN_PERMISSION,
     ]);
     assert($user instanceof UserInterface);
     $this->httpApiUser = $user;

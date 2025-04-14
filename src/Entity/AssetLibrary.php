@@ -18,7 +18,7 @@ use Drupal\experience_builder\ClientSideRepresentation;
  *    label_singular = @Translation("in-browser code library"),
  *    label_plural = @Translation("in-browser code libraries"),
  *    label_collection = @Translation("In-browser code libraries"),
- *    admin_permission = "administer code components",
+ *    admin_permission = \Drupal\experience_builder\Entity\JavasCriptComponent::ADMIN_PERMISSION,
  *    handlers = {
  *      "storage" = \Drupal\experience_builder\EntityHandlers\XbAssetStorage::class,
  *      "access" = \Drupal\experience_builder\EntityHandlers\XbConfigEntityAccessControlHandler::class,

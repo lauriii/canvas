@@ -16,6 +16,7 @@ use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Language\LanguageInterface;
 use Drupal\Core\Session\AccountInterface;
+use Drupal\experience_builder\Entity\JavaScriptComponent;
 use Drupal\experience_builder\EntityHandlers\XbConfigEntityAccessControlHandler;
 use Drupal\Tests\UnitTestCase;
 
@@ -39,7 +40,7 @@ final class XbConfigEntityAccessControlHandlerTest extends UnitTestCase {
     $moduleHandler = $this->createMock(ModuleHandlerInterface::class);
     $moduleHandler->expects($this->any())->method('invokeAll')->willReturn([]);
     $entityType = $this->createMock(EntityTypeInterface::class);
-    $entityType->expects($this->once())->method('getAdminPermission')->willReturn('administer code components');
+    $entityType->expects($this->once())->method('getAdminPermission')->willReturn(JavaScriptComponent::ADMIN_PERMISSION);
     $entityType->expects($this->once())->method('getSingularLabel')->willReturn($entityTypeLabel);
     $entity = $this->createMock(ConfigEntityInterface::class);
     $entity->expects($this->once())->method('getConfigDependencyName')->willReturn("experience_builder.$entityTypeId.test");

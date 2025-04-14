@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace Drupal\Tests\experience_builder\TestSite;
 
 use Drupal\Core\Extension\ModuleInstallerInterface;
+use Drupal\experience_builder\Entity\JavaScriptComponent;
 use Drupal\experience_builder\Entity\Page;
+use Drupal\experience_builder\Entity\Pattern;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
@@ -425,8 +427,8 @@ class XBTestSetup implements TestSetupInterface {
         Page::EDIT_PERMISSION,
         Page::DELETE_PERMISSION,
         'administer url aliases',
-        'administer code components',
-        'administer patterns',
+        JavaScriptComponent::ADMIN_PERMISSION,
+        Pattern::ADMIN_PERMISSION,
         'administer themes',
       ],
     ]);
