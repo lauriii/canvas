@@ -32,6 +32,7 @@ const getCoreDir = () => {
 
 export default defineConfig({
   chromeWebSecurity: false,
+  defaultBrowser: process.env.DRUPAL_TEST_DEFAULT_BROWSER || 'chrome',
   // watchForFileChanges: false,
   env: {
     baseUrl: process.env.BASE_URL,
@@ -52,7 +53,7 @@ export default defineConfig({
     setupNodeEvents(on, config) {
       installLogsPrinter(on);
       on('before:browser:launch', (browser, launchOptions) => {
-        if (browser.name === 'chrome' && browser.isHeadless) {
+        if (browser.family === 'chromium' && browser.isHeadless) {
           launchOptions.args.push(
             `--window-size=${viewportWidth},${viewportHeight}`,
           );
@@ -64,7 +65,7 @@ export default defineConfig({
           launchOptions.preferences.height = viewportHeight;
         }
 
-        if (browser.name === 'firefox' && browser.isHeadless) {
+        if (browser.family === 'firefox' && browser.isHeadless) {
           launchOptions.args.push(`--width=${viewportWidth}`);
           launchOptions.args.push(`--height=${viewportHeight}`);
         }
