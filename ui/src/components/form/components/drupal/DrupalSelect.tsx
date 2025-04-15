@@ -8,20 +8,22 @@ import clsx from 'clsx';
 import type { MutableRefObject } from 'react';
 import type { Attributes } from '@/types/DrupalAttribute';
 
-const DrupalSelect = ({
-  attributes = {},
-  options = [],
-}: {
+interface DrupalSelectProps {
   attributes?: Attributes & {
     onChange?: (e: React.ChangeEvent<HTMLSelectElement>) => void;
+    value?: string;
+    name?: string;
+    class?: string;
   };
-  options?: {
+  options?: Array<{
     value: string;
     label: string;
     selected: boolean;
     type: string;
-  }[];
-}) => {
+  }>;
+}
+
+const DrupalSelect = ({ attributes = {}, options = [] }: DrupalSelectProps) => {
   const selectRef: MutableRefObject<HTMLButtonElement | null> =
     useRef<HTMLButtonElement | null>(null);
   const className = clsx(attributes.class);
@@ -34,29 +36,70 @@ const DrupalSelect = ({
   // there, as Radix does not reliably provide the means to do this via props.
   // @see https://github.com/radix-ui/primitives/issues/3240
   useEffect(() => {
-    if (
-      className &&
-      selectRef?.current?.['className'] &&
-      className !== selectRef?.current?.['className']
-    ) {
-      selectRef.current['className'] += ` ${className}`;
+    if (!selectRef.current) {
+      return;
     }
-    // Ignore because this only needs to be run once to add the initial classes
-    // after the ref associated element is rendered.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+
+    // Add classes to the trigger button if they exist and aren't already applied
+    if (className && !selectRef.current.className.includes(className)) {
+      selectRef.current.className += ` ${className}`;
+    }
+
+    // Radix does not directly make the `<select>` element available for ref use.
+    // However, some JS functionality expects attributes to be set on this
+    // element. We access it by using the known ref as the basis of q query to
+    // get its corresponding hidden `<select>`.
+    setTimeout(() => {
+      if (!selectRef?.current) {
+        return;
+      }
+      const hiddenSelect =
+        selectRef.current.parentElement?.querySelector<HTMLSelectElement>(
+          'select[aria-hidden]',
+        );
+      if (hiddenSelect) {
+        Object.entries(attributes).forEach(([key, value]) => {
+          if (key.startsWith('data-') && typeof value === 'string') {
+            hiddenSelect.setAttribute(key, value);
+          }
+        });
+
+        // Set the value on the hidden select.
+        hiddenSelect.value = attributes.value ?? defaultValue;
+        if (hiddenSelect.parentElement) {
+          setTimeout(() => {
+            window.Drupal.attachBehaviors(
+              hiddenSelect.parentElement as HTMLElement,
+            );
+          });
+        }
+      }
+    });
+  }, [attributes, className, defaultValue]);
 
   return (
     <Select
-      value={String(attributes.value || defaultValue)}
-      onValueChange={(value: string) => {
-        const syntheticEvent = {
-          target: {
-            value,
-            name: attributes.name,
-          },
-        } as React.ChangeEvent<HTMLSelectElement>;
-        onChange?.(syntheticEvent);
+      value={attributes.value ?? defaultValue}
+      onValueChange={(newValue: string) => {
+        if (!selectRef.current?.parentElement) return;
+
+        const hiddenSelect =
+          selectRef.current.parentElement.querySelector<HTMLSelectElement>(
+            'select[aria-hidden]',
+          );
+        if (!hiddenSelect) return;
+
+        hiddenSelect.value = newValue;
+
+        if (onChange) {
+          const syntheticEvent = {
+            target: {
+              value: newValue,
+              name: attributes.name,
+            },
+          } as React.ChangeEvent<HTMLSelectElement>;
+          onChange(syntheticEvent);
+        }
       }}
       options={options.map((option) => ({
         value: option.value,

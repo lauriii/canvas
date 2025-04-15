@@ -38,5 +38,9 @@ declare global {
     ReactDom: typeof ReactDom;
     Redux: typeof ReactRedux;
     ReduxToolkit: typeof ReduxToolkit;
+    Drupal: {
+      attachBehaviors: (element: HTMLElement) => void;
+      CKEditor5Instances: Map;
+    };
   }
 }

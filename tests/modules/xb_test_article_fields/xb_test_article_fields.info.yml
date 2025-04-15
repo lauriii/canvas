@@ -15,5 +15,8 @@ dependencies:
   - drupal:path
   - drupal:taxonomy
   - drupal:telephone
+  - drupal:filter
+  - drupal:editor
+  - drupal:ckeditor5
   - drupal:text
   - drupal:taxonomy

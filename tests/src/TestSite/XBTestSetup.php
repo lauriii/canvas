@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\Tests\experience_builder\TestSite;
 
 use Drupal\Core\Extension\ModuleInstallerInterface;
+use Drupal\editor\Entity\Editor;
 use Drupal\experience_builder\Entity\JavaScriptComponent;
 use Drupal\experience_builder\Entity\Page;
 use Drupal\experience_builder\Entity\Pattern;
@@ -12,6 +13,7 @@ use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\file\Entity\File;
+use Drupal\filter\Entity\FilterFormat;
 use Drupal\image\Plugin\Field\FieldType\ImageItem;
 use Drupal\media\Entity\Media;
 use Drupal\node\Entity\Node;
@@ -25,6 +27,7 @@ use Drupal\Tests\TestFileCreationTrait;
 use Drupal\TestSite\TestSetupInterface;
 use Drupal\user\Entity\User;
 use Drupal\user\Entity\Role;
+use Drupal\user\RoleInterface;
 
 class XBTestSetup implements TestSetupInterface {
 
@@ -50,6 +53,7 @@ class XBTestSetup implements TestSetupInterface {
     $module_installer = \Drupal::service('module_installer');
     assert($module_installer instanceof ModuleInstallerInterface);
     $module_installer->install(['node', 'media', 'block', 'file']);
+
     $theme = 'stark';
     $admin_theme = "claro";
     \Drupal::service('theme_installer')->install([$theme, $admin_theme]);
@@ -430,6 +434,9 @@ class XBTestSetup implements TestSetupInterface {
         JavaScriptComponent::ADMIN_PERMISSION,
         Pattern::ADMIN_PERMISSION,
         'administer themes',
+        'administer comments',
+        'post comments',
+        'administer permissions',
       ],
     ]);
     $xb_role->save();
@@ -446,6 +453,52 @@ class XBTestSetup implements TestSetupInterface {
     if (getenv('XB_EXTRA_MODULES')) {
       $modules = \explode(',', getenv('XB_EXTRA_MODULES'));
       $module_installer->install($modules);
+      if (in_array('ckeditor5', $modules)) {
+        $name = 'minimal_html';
+        FilterFormat::create([
+          'format' => $name,
+          'roles' => [RoleInterface::AUTHENTICATED_ID],
+          'name' => $name,
+          'filters' => [
+            'filter_html' => [
+              'status' => TRUE,
+              'settings' => [
+                'allowed_html' => '<br> <p> <strong> <em>',
+              ],
+            ],
+          ],
+        ])->save();
+
+        Editor::create([
+          'editor' => 'ckeditor5',
+          'format' => $name,
+          'image_upload' => [
+            'status' => FALSE,
+          ],
+          'settings' => [
+            'toolbar' => [
+              'items' => ['bold', 'italic', 'sourceEditing'],
+            ],
+            'plugins' => [
+              'ckeditor5_sourceEditing' => [
+                'allowed_tags' => [],
+              ],
+            ],
+          ],
+        ])->save();
+      }
+
+      if (getenv('XB_EXTRA_PERMISSIONS')) {
+        $role = Role::load('xb');
+        if ($role) {
+          $permissions = \explode(',', getenv('XB_EXTRA_PERMISSIONS'));
+          foreach ($permissions as $permission) {
+            $role->grantPermission($permission);
+          }
+          $role->save();
+        }
+      }
+
       // Rebuild the container before the test starts making HTTP requests.
       $kernel = \Drupal::service('kernel');
       $kernel->invalidateContainer();

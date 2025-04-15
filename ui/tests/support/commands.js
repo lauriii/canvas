@@ -125,6 +125,7 @@ Cypress.Commands.add(
       installProfile = 'nightwatch_testing',
       langcode = '',
       extraModules = [],
+      extraPermissions = [],
     } = {},
     callback,
   ) => {
@@ -135,13 +136,16 @@ Cypress.Commands.add(
       extraModules = extraModules.length
         ? `XB_EXTRA_MODULES=${extraModules.join()}`
         : '';
+      extraPermissions = extraModules.length
+        ? `XB_EXTRA_PERMISSIONS=${extraPermissions.join()}`
+        : '';
       const langcodeOption = langcode ? `--langcode "${langcode}"` : '';
       const dbOption = Cypress.env('dbUrl')
         ? `--db-url ${Cypress.env('dbUrl')}`
         : '';
 
       const installCommand = commandAsWebserver(
-        `${extraModules} php ${Cypress.env('coreDir')}/scripts/test-site.php install ${setupFile} ${installProfile} ${langcodeOption} --base-url ${Cypress.env('baseUrl')} ${dbOption} --json`,
+        `${extraModules} ${extraPermissions} php ${Cypress.env('coreDir')}/scripts/test-site.php install ${setupFile} ${installProfile} ${langcodeOption} --base-url ${Cypress.env('baseUrl')} ${dbOption} --json`,
       );
       cy.exec(installCommand).then((install) => {
         const installData = JSON.parse(install.stdout);

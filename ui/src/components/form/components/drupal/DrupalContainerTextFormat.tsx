@@ -2,6 +2,7 @@ import { Box, Button, Flex, Popover } from '@radix-ui/themes';
 import { Pencil1Icon } from '@radix-ui/react-icons';
 import clsx from 'clsx';
 import { a2p } from '@/local_packages/utils.js';
+import { useState } from 'react';
 
 import type { Attributes } from '@/types/DrupalAttribute';
 
@@ -63,6 +64,7 @@ const DrupalContainerTextFormatFilterWrapper = ({
   renderChildren = null,
   hasParent = false,
 }: DrupalContainerTextFormatFilterProps) => {
+  const [open, setOpen] = useState(true);
   return (
     <Flex
       {...a2p(attributes, {
@@ -70,16 +72,27 @@ const DrupalContainerTextFormatFilterWrapper = ({
       })}
       justify="end"
     >
-      {/* The following is mostly for demo purposes. It is why it's not extracted to its own component. */}
-      {/* @todo Change this to a component that doesn't use a portal and simply hides/shows content. */}
-      <Popover.Root>
+      <Popover.Root onOpenChange={(isOpen) => setOpen(isOpen)}>
         <Popover.Trigger>
           <Button variant="soft" size="1">
             <Pencil1Icon width="12" height="12" />
             Text format
           </Button>
         </Popover.Trigger>
-        <Popover.Content size="2" width="360px">
+        <Popover.Content
+          hidden={!open}
+          size="2"
+          width="360px"
+          // The text format select must be in the DOM for editors to work.
+          forceMount={true}
+          // Change the container because Drupal's editor initialization
+          // assumes the format selector is inside the same widget as the
+          // textarea using the editor.
+          container={document.querySelector(
+            `div[data-drupal-selector="${attributes['data-drupal-selector']}"]`,
+          )}
+          style={{ zIndex: '1' }}
+        >
           <div
             className={styles.ContainerTextFormatFilterWrapperPopoverContent}
           >
