@@ -12,6 +12,7 @@ export interface CodeComponent {
   source_code_css: string;
   compiled_js: string;
   compiled_css: string;
+  imported_js_components: string[];
 }
 
 export interface CodeComponentSerialized

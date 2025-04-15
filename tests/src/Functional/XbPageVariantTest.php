@@ -255,7 +255,11 @@ class XbPageVariantTest extends FunctionalTestBase {
     $autoSaveManager = $this->container->get(AutoSaveManager::class);
     $autoSaveManager->save(
       entity: $branding_component,
-      data: ['name' => 'Site branding updated'] + $branding_component->normalizeForClientSide()->values,
+      // 'imported_js_components' is a value sent by the client that is used to
+      // determine Javascript Code component dependencies and is not saved
+      // directly on the backend.
+      // @see \Drupal\experience_builder\Entity\JavaScriptComponent::addJavaScriptComponentsDependencies().
+      data: ['name' => 'Site branding updated', 'imported_js_components' => []] + $branding_component->normalizeForClientSide()->values,
     );
     $this->assertSame('Site branding', $branding_component->label());
     $autoSaveData = $autoSaveManager->getAutoSaveData($branding_component)->data;

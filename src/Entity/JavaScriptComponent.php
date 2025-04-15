@@ -7,9 +7,13 @@ namespace Drupal\experience_builder\Entity;
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Cache\RefinableCacheableDependencyInterface;
 use Drupal\Core\Config\Entity\ConfigEntityBase;
+use Drupal\Core\Config\Entity\ConfigEntityTypeInterface;
 use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Entity\Query\QueryInterface;
 use Drupal\experience_builder\ClientSideRepresentation;
+use Drupal\experience_builder\Exception\ConstraintViolationException;
+use Symfony\Component\Validator\ConstraintViolation;
+use Symfony\Component\Validator\ConstraintViolationList;
 
 /**
  * @ConfigEntityType(
@@ -159,6 +163,22 @@ final class JavaScriptComponent extends ConfigEntityBase implements XbAssetInter
     }
 
     if (array_key_exists('source_code_js', $data) || array_key_exists('compiled_js', $data)) {
+      if (!array_key_exists('imported_js_components', $data)) {
+        $violation_list = new ConstraintViolationList();
+        $violation_list->add(new ConstraintViolation(
+          "The 'imported_js_components' field is required when 'source_code_js' or 'compiled_js' is provided",
+          "The 'imported_js_components' field is required when 'source_code_js' or 'compiled_js' is provided",
+          [],
+          NULL,
+          "imported_js_components",
+          NULL
+        ));
+        throw new ConstraintViolationException($violation_list);
+      }
+      // The client calculates imported JavaScript components dependencies. This
+      // value is never returned to the client as it will always recalculate it
+      // based off source_code_js.
+      $this->addJavaScriptComponentsDependencies($data['imported_js_components']);
       $this->set('js', [
         'original' => $data['source_code_js'] ?? '',
         'compiled' => $data['compiled_js'] ?? '',
@@ -302,6 +322,62 @@ final class JavaScriptComponent extends ConfigEntityBase implements XbAssetInter
     //    be recalculated.
     // @see \experience_builder_library_info_build()
     Cache::invalidateTags(['library_info']);
+  }
+
+  /**
+   * Add the imported Javascript components as enforced dependencies.
+   *
+   * Enforced dependencies are not reset during dependency calculation.
+   *
+   * @param array<string> $imported_js_components
+   *   The names of the JavaScript components to add as dependencies.
+   *
+   * @throws \Drupal\experience_builder\Exception\ConstraintViolationException
+   *   Thrown if any of the JavaScript components do not exist.
+   *
+   * @see \Drupal\Core\Config\Entity\ConfigEntityBase::calculateDependencies
+   */
+  protected function addJavaScriptComponentsDependencies(array $imported_js_components): void {
+    $violation_list = new ConstraintViolationList();
+    foreach ($imported_js_components as $key => $js_component_name) {
+      $js_component = JavaScriptComponent::load($js_component_name);
+      if (!$js_component) {
+        $violation_list->add(new ConstraintViolation(
+          "The JavaScript component with machine name '$js_component_name' does not exist.",
+          "The JavaScript component with machine name '$js_component_name' does not exist.",
+          [],
+          NULL,
+          "imported_js_components.$key",
+          $js_component_name
+        ));
+      }
+    }
+    if ($violation_list->count() > 0) {
+      throw new ConstraintViolationException($violation_list);
+    }
+    $imported_js_component_dependency_names = array_values(array_map(
+      fn(string $component_name) => $this->getConfigPrefix() . ".$component_name",
+      $imported_js_components
+    ));
+    $this->dependencies['enforced']['config'] ??= [];
+    // Remove all the current JavaScript component enforced dependencies.
+    $this->dependencies['enforced']['config'] = array_filter(
+      $this->dependencies['enforced']['config'],
+      fn(string $dependency) => !str_starts_with($dependency, $this->getConfigPrefix())
+    );
+    $this->dependencies['enforced']['config'] = array_unique(array_merge(
+      $this->dependencies['enforced']['config'],
+      $imported_js_component_dependency_names
+    ));
+    if (empty($this->dependencies['enforced']['config'])) {
+      unset($this->dependencies['enforced']['config']);
+    }
+  }
+
+  protected function getConfigPrefix(): string {
+    $entity_type = $this->getEntityType();
+    assert($entity_type instanceof ConfigEntityTypeInterface);
+    return $entity_type->getConfigPrefix();
   }
 
 }

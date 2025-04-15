@@ -103,7 +103,11 @@ final class JsComponentTest extends KernelTestBase {
       $this->container->get(AutoSaveManager::class)
         ->save(
           $source->getJavaScriptComponent(),
-          $source->getJavaScriptComponent()->normalizeForClientSide()->values
+          // 'imported_js_components' is a value sent by the client that is used to
+          // determine Javascript Code component dependencies and is not saved
+          // directly on the backend.
+          // @see \Drupal\experience_builder\Entity\JavaScriptComponent::addJavaScriptComponentsDependencies().
+          $source->getJavaScriptComponent()->normalizeForClientSide()->values + ['imported_js_components' => []],
         );
     }
 

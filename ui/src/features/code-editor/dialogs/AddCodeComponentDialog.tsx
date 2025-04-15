@@ -32,6 +32,7 @@ const AddCodeComponentDialog = () => {
       source_code_css: '',
       compiled_js: '',
       compiled_css: '',
+      imported_js_components: [],
     });
     dispatch(setName(componentName));
   };

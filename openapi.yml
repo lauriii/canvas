@@ -1245,7 +1245,18 @@ components:
             - name
             - machineName
             - status
+            - imported_js_components
         - $ref: '#/components/schemas/CodeComponent'
+        - properties:
+            # `imported_js_components` will be required if `source_code_js` or
+            # `compiled_js` is provided.
+            # @see \Drupal\experience_builder\Entity\JavaScriptComponent::updateFromClientSide()
+            # OpenAPI 3 does not support conditional requirements.
+            # @see https://github.com/OAI/OpenAPI-Specification/issues/256#issuecomment-1908868607
+            imported_js_components:
+              type: array
+              items:
+                type: string
     LayoutComponent:
       title: LayoutComponent
       type: object

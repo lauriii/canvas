@@ -481,6 +481,7 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
       'source_code_css' => NULL,
       'compiled_js' => NULL,
       'compiled_css' => NULL,
+      'imported_js_components' => [],
     ];
     $request_options[RequestOptions::BODY] = self::encodeXBData($code_component_to_send);
     $body = $this->assertExpectedResponse('POST', $list_url, $request_options, 500, NULL, NULL, NULL, NULL);
@@ -515,11 +516,21 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
       'source_code_css' => '',
       'compiled_js' => '',
       'compiled_css' => '',
+      'imported_js_components' => [],
     ];
     $request_options[RequestOptions::BODY] = self::encodeXBData($code_component_to_send);
     $body = $this->assertExpectedResponse('POST', $list_url, $request_options, 500, NULL, NULL, NULL, NULL);
     $this->assertSame([
       'message' => 'Body does not match schema for content-type "application/json" for Request [post /xb/api/config/js_component]. [Keyword validation failed: Required property \'title\' must be present in the object in slots->test-slot->title]',
+    ], $body, 'Fails with invalid shape.');
+
+    // Create a Code Component via the XB HTTP API, but forget 'imported_js_components': 500, courtesy of OpenAPI.
+    $code_component_to_send['slots']['test-slot']['title'] = 'Test';
+    unset($code_component_to_send['imported_js_components']);
+    $request_options[RequestOptions::BODY] = self::encodeXBData($code_component_to_send);
+    $body = $this->assertExpectedResponse('POST', $list_url, $request_options, 500, NULL, NULL, NULL, NULL);
+    $this->assertSame([
+      'message' => 'Body does not match schema for content-type "application/json" for Request [post /xb/api/config/js_component]. [Keyword validation failed: Required property \'imported_js_components\' must be present in the object in imported_js_components]',
     ], $body, 'Fails with invalid shape.');
 
     // Meet data shape requirements, but violate internal consistency for
@@ -539,6 +550,7 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
       'source_code_css' => '',
       'compiled_js' => '',
       'compiled_css' => '',
+      'imported_js_components' => [],
     ];
     $request_options[RequestOptions::BODY] = self::encodeXBData($code_component_to_send);
     $body = $this->assertExpectedResponse('POST', $list_url, $request_options, 422, NULL, NULL, NULL, NULL);
@@ -555,9 +567,60 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
       ],
     ], $body);
 
+    // Meet data shape requirements, but provide missing component as a
+    // dependency in `imported_js_components`: 422
+    // (i.e. validation constraint violation).
+    $code_component_to_send = [
+      'machineName' => 'test',
+      'name' => 'Test Code Component',
+      'status' => FALSE,
+      'required' => [],
+      'props' => [],
+      'slots' => [],
+      'source_code_js' => '',
+      'source_code_css' => '',
+      'compiled_js' => '',
+      'compiled_css' => '',
+      'imported_js_components' => ['missing'],
+    ];
+    $request_options[RequestOptions::BODY] = self::encodeXBData($code_component_to_send);
+    $body = $this->assertExpectedResponse('POST', $list_url, $request_options, 422, NULL, NULL, NULL, NULL);
+    $this->assertSame([
+      'errors' => [
+        [
+          'detail' => "The JavaScript component with machine name 'missing' does not exist.",
+          'source' => ['pointer' => 'imported_js_components.0'],
+        ],
+      ],
+    ], $body);
+
     // Re-retrieve list: 200, unchanged, but now is a Dynamic Page Cache hit.
     $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.permissions', 'user.roles:authenticated'], ['config:js_component_list', 'http_response'], 'UNCACHEABLE (request policy)', 'HIT');
     $this->assertSame([], $body);
+
+    $dependency_component = JavaScriptComponent::create([
+      'machineName' => 'another_component',
+      'name' => 'Test',
+      'status' => FALSE,
+      'props' => [],
+      'slots' => [],
+      'js' => [
+        'original' => 'console.log("Test")',
+        'compiled' => 'console.log("Test")',
+      ],
+      'css' => [
+        'original' => '.test { display: none; }',
+        'compiled' => '.test{display:none;}',
+      ],
+    ]);
+    $this->assertSame(SAVED_NEW, $dependency_component->save());
+    $expected_dependency_component = $dependency_component->normalizeForClientSide()->values +
+    [
+      'default_markup' => '@todo Make something 🆒 in https://www.drupal.org/project/experience_builder/issues/3498889',
+      'css' => '',
+      'js_header' => '',
+      'js_footer' => '',
+    ];
 
     // Create a Code Component via the XB HTTP API, correctly: 201.
     $code_component_to_send = [
@@ -607,6 +670,7 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
       'source_code_css' => '.test { display: none; }',
       'compiled_js' => 'console.log("Test")',
       'compiled_css' => '.test{display:none;}',
+      'imported_js_components' => ['another_component'],
     ];
     $request_options[RequestOptions::BODY] = self::encodeXBData($code_component_to_send);
     $body = $this->assertExpectedResponse('POST', $list_url, $request_options, 201, NULL, NULL, NULL, NULL, [
@@ -668,7 +732,7 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
       'js_footer' => '',
     ];
     $this->assertSame($expected_component, $body);
-    // Confirm that the code component IS NOT exposed.
+    // Confirm that the code components ARE NOT exposed.
     // @see docs/config-management.md#3.2.1
     $this->assertExposedCodeComponents([], 'MISS', $request_options);
     $this->assertExposedCodeComponents([], 'HIT', $request_options);
@@ -719,12 +783,40 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
       ],
     ], $body);
 
-    // Modify a Code Component correctly: 200.
+    // Fix the errors above.
     $code_component_to_send['name'] = 'Test, and test again';
     $code_component_to_send['props']['string']['title'] = $omitted_string_prop_title;
     $code_component_to_send['props']['integer']['examples'] = $omitted_required_prop_examples;
     $expected_component['name'] = $code_component_to_send['name'];
     unset($expected_component['props']['number']['examples']);
+
+    // Modify a Code Component incorrectly (consistency-wise): 422.
+    // Missing `imported_js_components` when `source_code_js` is provided.
+    unset($code_component_to_send['compiled_js']);
+    unset($code_component_to_send['imported_js_components']);
+    $request_options[RequestOptions::BODY] = self::encodeXBData($code_component_to_send);
+    $body = $this->assertExpectedResponse('PATCH', Url::fromUri('base:/xb/api/config/js_component/test'), $request_options, 422, NULL, NULL, NULL, NULL);
+    $missing_imported_js_components_error = [
+      'errors' => [
+        [
+          'detail' => "The 'imported_js_components' field is required when 'source_code_js' or 'compiled_js' is provided",
+          'source' => ['pointer' => 'imported_js_components'],
+        ],
+      ],
+    ];
+    $this->assertSame($missing_imported_js_components_error, $body);
+
+    // Modify a Code Component incorrectly (consistency-wise): 422.
+    // Missing `source_code_js` when `compiled_js` is provided.
+    $code_component_to_send['compiled_js'] = 'console.log("Test")';
+    unset($code_component_to_send['source_code_js']);
+    $request_options[RequestOptions::BODY] = self::encodeXBData($code_component_to_send);
+    $body = $this->assertExpectedResponse('PATCH', Url::fromUri('base:/xb/api/config/js_component/test'), $request_options, 422, NULL, NULL, NULL, NULL);
+    $this->assertSame($missing_imported_js_components_error, $body);
+
+    // Modify a Code Component correctly: 200.
+    $code_component_to_send['imported_js_components'] = ['another_component'];
+    $code_component_to_send['source_code_js'] = 'console.log("Test")';
     $request_options[RequestOptions::BODY] = self::encodeXBData($code_component_to_send);
     $body = $this->assertExpectedResponse('PATCH', Url::fromUri('base:/xb/api/config/js_component/test'), $request_options, 200, NULL, NULL, NULL, NULL);
     $this->assertSame($expected_component, $body);
@@ -749,7 +841,13 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
       'config:js_component_list',
       'http_response',
     ], 'UNCACHEABLE (request policy)', 'MISS');
-    $this->assertSame(['test' => $expected_component], $body);
+    $this->assertSame(
+      [
+        'another_component' => $expected_dependency_component,
+        'test' => $expected_component,
+      ],
+      $body
+    );
     // Confirm that the code component IS STILL NOT exposed, because `status` is
     // still `FALSE`.
     // @see docs/config-management.md#3.2.1
@@ -819,6 +917,7 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
       'http_response',
     ], 'UNCACHEABLE (request policy)', 'MISS');
     $this->assertSame([
+      'another_component' => $expected_dependency_component,
       'test' => $expected_component,
     ], $body);
 
@@ -837,6 +936,9 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
 
     // Delete the 'test' Code Component via the XB HTTP API: 204.
     $body = $this->assertExpectedResponse('DELETE', Url::fromUri('base:/xb/api/config/js_component/test'), [], 204, NULL, NULL, NULL, NULL);
+    $this->assertNull($body);
+    // Delete the 'another_component' Code Component via the XB HTTP API: 204.
+    $body = $this->assertExpectedResponse('DELETE', Url::fromUri('base:/xb/api/config/js_component/another_component'), [], 204, NULL, NULL, NULL, NULL);
     $this->assertNull($body);
 
     // Confirm that the code component IS NOT exposed, because it no longer

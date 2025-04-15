@@ -322,6 +322,7 @@ export const selectCodeComponentSerialized = createSelector(
     source_code_css: sourceCodeCss,
     compiled_js: compiledJs,
     compiled_css: compiledCss,
+    imported_js_components: [],
   }),
 );
 

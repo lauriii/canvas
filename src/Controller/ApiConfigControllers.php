@@ -127,9 +127,9 @@ final class ApiConfigControllers extends ApiControllerBase {
 
     // Create an in-memory config entity.
     $decoded = self::decode($request);
-    $xb_config_entity = $xb_config_entity_type->getClass()::createFromClientSide($decoded);
-    assert($xb_config_entity instanceof XbHttpApiEligibleConfigEntityInterface);
     try {
+      $xb_config_entity = $xb_config_entity_type->getClass()::createFromClientSide($decoded);
+      assert($xb_config_entity instanceof XbHttpApiEligibleConfigEntityInterface);
       $this->validate($xb_config_entity);
     }
     catch (ConstraintViolationException $e) {

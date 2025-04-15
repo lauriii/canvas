@@ -92,6 +92,7 @@ final class ApiConfigAutoSaveControllersTest extends HttpApiTestBase {
           'source_code_css' => '.test { display: none; }',
           'compiled_js' => 'console.log("Test")',
           'compiled_css' => '.test{display:none;}',
+          'imported_js_components' => [],
         ],
         ['compiled_js'],
         ['compiled_css'],

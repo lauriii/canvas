@@ -98,6 +98,11 @@ final class ApiLayoutControllerTest extends HttpApiTestBase {
     $saved_component_values['compiled_js'] = $saved_component_values['js']['compiled'];
     $saved_component_values['source_code_css'] = $saved_component_values['css']['original'];
     $saved_component_values['compiled_css'] = $saved_component_values['css']['compiled'];
+    // 'imported_js_components' is a value sent by the client that is used to
+    // determine Javascript Code component dependencies and is not saved
+    // directly on the backend.
+    // @see \Drupal\experience_builder\Entity\JavaScriptComponent::addJavaScriptComponentsDependencies().
+    $saved_component_values['imported_js_components'] = [];
     unset($saved_component_values['js'], $saved_component_values['css']);
     $autoSave->save($code_component, $saved_component_values);
 
