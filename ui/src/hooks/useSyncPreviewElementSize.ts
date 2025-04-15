@@ -48,10 +48,16 @@ function isElementObservable(element: HTMLElement) {
 }
 
 function getMaxOfArray(numArray: number[]) {
+  if (numArray.length === 0) {
+    return 0;
+  }
   return Math.max.apply(null, numArray);
 }
 
 function getMinOfArray(numArray: number[]) {
+  if (numArray.length === 0) {
+    return 0;
+  }
   return Math.min.apply(null, numArray);
 }
 
