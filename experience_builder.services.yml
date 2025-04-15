@@ -83,7 +83,7 @@ services:
     tags:
       # Set priority to 1001 so it is above AjaxBasePageNegotiator (1000).
       - { name: theme_negotiator, priority: 1001 }
-  Drupal\experience_builder\EventSubscriber\RenderEventsSubscriber: ~
+  Drupal\experience_builder\EventSubscriber\PageVariantSelectorSubscriber: ~
   Drupal\experience_builder\EventSubscriber\ApiExceptionSubscriber: ~
   Drupal\experience_builder\PathProcessor\ExperienceBuilderPathProcessor:
     tags:

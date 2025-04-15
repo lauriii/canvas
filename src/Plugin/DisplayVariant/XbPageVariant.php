@@ -6,11 +6,15 @@ use Drupal\Core\Block\MessagesBlockPluginInterface;
 use Drupal\Core\Block\TitleBlockPluginInterface;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Display\Attribute\PageDisplayVariant;
-use Drupal\Core\Display\ContextAwareVariantInterface;
 use Drupal\Core\Display\PageVariantInterface;
 use Drupal\Core\Display\VariantBase;
+use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
+use Drupal\experience_builder\AutoSave\AutoSaveManager;
+use Drupal\experience_builder\Entity\PageRegion;
+use Drupal\experience_builder\Exception\ConstraintViolationException;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * Provides a page display variant decorating the main content with components.
@@ -30,7 +34,7 @@ use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
  *
  * @see \Drupal\system\Controller\SystemController::themesPage()
  * @see \Drupal\Core\Block\MainContentBlockPluginInterface
- * @see \Drupal\experience_builder\EventSubscriber\RenderEventsSubscriber::onSelectPageDisplayVariant()
+ * @see \Drupal\experience_builder\EventSubscriber\PageVariantSelectorSubscriber::onSelectPageDisplayVariant()
  * @see ::MAIN_CONTENT_REGION
  *
  * All MessagesBlockPluginInterface implementations use the global context; but
@@ -57,23 +61,16 @@ use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
   id: self::PLUGIN_ID,
   admin_label: new TranslatableMarkup('Page with Experience Builder Components')
 )]
-final class XbPageVariant extends VariantBase implements PageVariantInterface, ContextAwareVariantInterface {
-
-  /**
-   * @var array<\Drupal\Component\Plugin\Context\ContextInterface>
-   */
-  private array $contexts = [];
+final class XbPageVariant extends VariantBase implements PageVariantInterface, ContainerFactoryPluginInterface {
 
   public const string PLUGIN_ID = 'experience_builder';
 
-  public const string XB_PREVIEW_CONTEXT = 'xb_preview';
-
   /**
-   * The plugin configuration key whose value is the PageRegion config entities.
+   * The plugin configuration key whose value is the preview value.
    *
    * @var string
    */
-  public const string REGION_CONFIG_ENTITIES_KEY = 'page_regions';
+  public const string PREVIEW_KEY = 'preview';
 
   /**
    * The (machine) name of the only theme region required to exist.
@@ -98,6 +95,19 @@ final class XbPageVariant extends VariantBase implements PageVariantInterface, C
    */
   private $title = '';
 
+  public function __construct(array $configuration, $plugin_id, $plugin_definition, private readonly AutoSaveManager $autoSaveManager) {
+    parent::__construct($configuration, $plugin_id, $plugin_definition);
+  }
+
+  public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition) {
+    return new static(
+      $configuration,
+      $plugin_id,
+      $plugin_definition,
+      $container->get(AutoSaveManager::class),
+    );
+  }
+
   /**
    * {@inheritdoc}
    */
@@ -118,12 +128,12 @@ final class XbPageVariant extends VariantBase implements PageVariantInterface, C
    * {@inheritdoc}
    */
   public function build() {
-    $contexts = $this->getContexts();
-    $is_preview = isset($contexts[self::XB_PREVIEW_CONTEXT]) ? $contexts[self::XB_PREVIEW_CONTEXT]->getContextValue() : FALSE;
-    $regions = $this->configuration[static::REGION_CONFIG_ENTITIES_KEY] ?? NULL;
+    $regions = PageRegion::loadForActiveTheme();
     if (empty($regions)) {
       throw new \LogicException('This page display variant needs Experience Builder PageRegion config entities.');
     }
+    assert(is_bool($this->configuration[self::PREVIEW_KEY]) || is_null($this->configuration[self::PREVIEW_KEY]));
+    $is_preview = $this->configuration[self::PREVIEW_KEY] === TRUE;
 
     assert(!empty($this->title));
     assert(!empty($this->mainContent));
@@ -132,6 +142,21 @@ final class XbPageVariant extends VariantBase implements PageVariantInterface, C
     $messages_block_displayed = FALSE;
 
     foreach ($regions as $region) {
+      // If we are in preview mode replace the region with the auto-saved
+      // version if any.
+      if ($is_preview) {
+        $autoSaveData = $this->autoSaveManager->getAutoSaveData($region)->data;
+        if ($autoSaveData) {
+          try {
+            $region = $region->forAutoSaveData($autoSaveData);
+          }
+          catch (ConstraintViolationException) {
+            // The auto-save entry is invalid, we don't use it and instead fallback
+            // to the saved version.
+          }
+        }
+      }
+
       $component_tree = $region->getComponentTree();
       assert($component_tree instanceof ComponentTreeItem);
 
@@ -177,15 +202,6 @@ final class XbPageVariant extends VariantBase implements PageVariantInterface, C
     }
 
     return $build;
-  }
-
-  public function getContexts(): array {
-    return $this->contexts;
-  }
-
-  public function setContexts(array $contexts): self {
-    $this->contexts = $contexts;
-    return $this;
   }
 
 }
