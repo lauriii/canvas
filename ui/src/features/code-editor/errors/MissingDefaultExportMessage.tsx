@@ -31,7 +31,7 @@ const MissingDefaultExportMessage = () => {
 
 export default MissingDefaultExportMessage;
 
-const TextBlock = ({ children }: { children: React.ReactNode }) => {
+export const TextBlock = ({ children }: { children: React.ReactNode }) => {
   return (
     <Text as="p" size="2" mt="2">
       {children}
@@ -39,7 +39,7 @@ const TextBlock = ({ children }: { children: React.ReactNode }) => {
   );
 };
 
-const CodeBlock = ({ children }: { children: React.ReactNode }) => {
+export const CodeBlock = ({ children }: { children: React.ReactNode }) => {
   return (
     <Code size="2" className={styles.code}>
       {children}

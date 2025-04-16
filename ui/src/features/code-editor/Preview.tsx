@@ -15,22 +15,29 @@ import {
   setCompiledCss,
   setCompiledJs,
   setHasCompletedFirstCompilation,
+  setImportedJsComponents,
 } from '@/features/code-editor/codeEditorSlice';
 import { parse } from '@babel/parser';
 import type { File } from '@babel/types';
 import buildCSS, { transformCss } from 'tailwindcss-in-browser';
 import styles from './Preview.module.css';
 import ErrorCard from '@/components/error/ErrorCard';
-import MissingDefaultExportMessage from './errors/MissingDefaultExportMessage';
-import { ScrollArea, Spinner } from '@radix-ui/themes';
+import MissingDefaultExportMessage, {
+  CodeBlock,
+  TextBlock,
+} from './errors/MissingDefaultExportMessage';
+import { Flex, ScrollArea, Spinner } from '@radix-ui/themes';
 import {
   getExamplePropValuesForOverridePreview,
   getExampleSlotNamesForOverridePreview,
+  getImportsFromAst,
   getJsForExampleSlotsOverridePreview,
   getJsForSlotsPreview,
   getPropValuesForPreview,
   getSlotNamesForPreview,
 } from '@/features/code-editor/utils';
+
+const { Drupal } = window as any;
 
 const XB_MODULE_UI_PATH = (() => {
   const { drupalSettings } = window;
@@ -79,6 +86,7 @@ const importMap = {
     'class-variance-authority': 'https://esm.sh/class-variance-authority',
     'tailwind-merge': 'https://esm.sh/tailwind-merge',
     '@/lib/utils': `${XB_MODULE_UI_PATH}/lib/astro-hydration/dist/utils.js`,
+    '@/components/': Drupal.url('xb/api/auto-saves/js/js_component/'),
   },
 };
 
@@ -103,6 +111,9 @@ const Preview = ({ isLoading = false }: { isLoading?: boolean }) => {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const parentRef = useRef<HTMLDivElement>(null);
   const [isCompileError, setIsCompileError] = useState(false);
+  const [isJsImportError, setIsJsImportError] = useState(false);
+  const [jsImportsCssForPreview, setJsImportsCssForPreview] = useState('');
+  const [jsImportNameWithError, setJsImportNameWithError] = useState('');
 
   const iframeSrcDoc = `
     <html>
@@ -111,6 +122,7 @@ const Preview = ({ isLoading = false }: { isLoading?: boolean }) => {
           ${JSON.stringify(importMap)}
         </script>
         <style>${compiledCss}</style>
+        <style>${jsImportsCssForPreview}</style>
         <script id="xb-code-editor-preview-data" type="application/json">
           ${previewData}
         </script>
@@ -147,6 +159,48 @@ const Preview = ({ isLoading = false }: { isLoading?: boolean }) => {
     return false;
   };
 
+  // Collects all the JS components imported in the component's JS code.
+  const collectImportedJsComponents = (ast: File) => {
+    // Returns an array of all the imports that start with '@/components/'.
+    // ex. [ 'my_button', 'my_heading']
+    const scope = '@/components/';
+    const imports = getImportsFromAst(ast, scope);
+    dispatch(setImportedJsComponents(imports));
+    setIsJsImportError(false);
+    if (imports.length > 0) {
+      const cssPath = Drupal.url('xb/api/auto-saves/css/js_component/');
+      // Fetch the (compiled) CSS for each import and combine them for the preview.
+      Promise.all(
+        imports.map(async (importName) => {
+          const url = `${cssPath}${importName}`;
+          const response = await fetch(url);
+          if (!response.ok) {
+            console.error(`Failed to fetch CSS for ${importName}:`, response);
+            // Because fetching the JS is handled by the browser via the import map, we can't explicitly catch errors so
+            // we check the CSS response instead.
+            //
+            // Set the JS import error flag to true if the fetch to its auto-saved CSS returns an invalid response.
+            // An existing component with no CSS should still return a valid response albeit empty.
+            // Examples of an invalid response would be a network error, or any kind of error thrown by the backend
+            // while serving the request from that controller or if the user tried to import a component with the
+            // wrong machine name in their import statement.
+            setIsJsImportError(true);
+            setJsImportNameWithError(importName);
+            return '';
+          }
+          return response.text();
+        }),
+      )
+        .then((cssContents) => {
+          const combinedCss = cssContents.join('\n');
+          setJsImportsCssForPreview(combinedCss);
+        })
+        .catch((error) => {
+          console.error('Error:', error);
+        });
+    }
+  };
+
   const compile = useCallback(
     async () => {
       if (!isSwcInitialized || !sourceCodeJs) {
@@ -167,6 +221,7 @@ const Preview = ({ isLoading = false }: { isLoading?: boolean }) => {
           sourceType: 'module',
           plugins: ['jsx'],
         });
+        collectImportedJsComponents(ast);
         if (hasDefaultExport(ast)) {
           setIsDefaultExportMissingError(false);
         } else {
@@ -307,24 +362,59 @@ const Preview = ({ isLoading = false }: { isLoading?: boolean }) => {
     </ErrorCard>
   );
 
+  const renderImportError = () => {
+    const title = `Error: Could not import JS component of id: ${jsImportNameWithError}`;
+    return (
+      <ErrorCard title={title} asChild={true}>
+        <Flex direction="column" gap="3">
+          <TextBlock>
+            An auto-saved version of this component doesn't exist yet or your
+            import statement is using the wrong component id.
+          </TextBlock>
+          <CodeBlock>import Heading from '@/components/component_id'</CodeBlock>
+          <TextBlock>
+            To find the correct id for the component you are trying to import,
+            open the code editor for that component, and it will be in your
+            browser's URL.
+          </TextBlock>
+        </Flex>
+      </ErrorCard>
+    );
+  };
+
   if (!hasCompletedFirstCompilation) {
     // If navigating from another code component's edit page, its preview would
     // be shown briefly before the new component's preview is compiled.
     return null;
   }
 
+  const errorComponents = {
+    isCompileError: renderCompileError(),
+    isDefaultExportMissingError: renderExportMissingError(),
+    isJsImportError: renderImportError(),
+  };
+
+  const activeErrors = Object.entries({
+    isCompileError,
+    isDefaultExportMissingError,
+    isJsImportError,
+  })
+    .filter(([_, hasError]) => hasError)
+    .map(([key]) => key);
+
   return (
     <Spinner loading={isLoading}>
       <div className={styles.iframeContainer} ref={parentRef}>
-        {(isCompileError || isDefaultExportMissingError) && (
+        {activeErrors.length > 0 && (
           <ScrollArea>
             <div className={styles.errorContainer}>
-              {isCompileError && renderCompileError()}
-              {isDefaultExportMissingError && renderExportMissingError()}
+              {activeErrors.map(
+                (key) => errorComponents[key as keyof typeof errorComponents],
+              )}
             </div>
           </ScrollArea>
         )}
-        {!isDefaultExportMissingError && !isCompileError && (
+        {activeErrors.length === 0 && (
           <iframe
             className={styles.iframe}
             title="XB Code Editor Preview"

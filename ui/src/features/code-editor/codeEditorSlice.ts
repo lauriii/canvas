@@ -29,6 +29,7 @@ interface CodeEditorState {
   props: CodeComponentProp[];
   slots: CodeComponentSlot[];
   required: string[];
+  importedJsComponents: string[];
 }
 
 const initialState: CodeEditorState = {
@@ -47,6 +48,7 @@ const initialState: CodeEditorState = {
   props: [],
   slots: [],
   required: [],
+  importedJsComponents: [],
 };
 
 export const codeEditorSlice = createSlice({
@@ -137,6 +139,12 @@ export const codeEditorSlice = createSlice({
       (state, action: PayloadAction<string>) => ({
         ...state,
         sourceCodeGlobalCss: action.payload,
+      }),
+    ),
+    setImportedJsComponents: create.reducer(
+      (state, action: PayloadAction<string[]>) => ({
+        ...state,
+        importedJsComponents: action.payload,
       }),
     ),
     addProp: (state) => {
@@ -283,6 +291,8 @@ export const selectBlockOverride = (state: RootState) =>
 export const selectProps = (state: RootState) => state.codeEditor.props;
 export const selectRequired = (state: RootState) => state.codeEditor.required;
 export const selectSlots = (state: RootState) => state.codeEditor.slots;
+export const selectImportedJsComponents = (state: RootState) =>
+  state.codeEditor.importedJsComponents;
 
 export const selectCodeComponentSerialized = createSelector(
   [
@@ -297,6 +307,7 @@ export const selectCodeComponentSerialized = createSelector(
     selectSourceCodeCss,
     selectCompiledJs,
     selectCompiledCss,
+    selectImportedJsComponents,
   ],
   (
     id,
@@ -310,6 +321,7 @@ export const selectCodeComponentSerialized = createSelector(
     sourceCodeCss,
     compiledJs,
     compiledCss,
+    importedJsComponents,
   ): CodeComponentSerialized => ({
     machineName: id,
     name,
@@ -322,7 +334,7 @@ export const selectCodeComponentSerialized = createSelector(
     source_code_css: sourceCodeCss,
     compiled_js: compiledJs,
     compiled_css: compiledCss,
-    imported_js_components: [],
+    imported_js_components: importedJsComponents,
   }),
 );
 
@@ -348,6 +360,7 @@ export const {
   updateSlot,
   removeSlot,
   reorderSlots,
+  setImportedJsComponents,
 } = codeEditorSlice.actions;
 
 export default codeEditorSlice;

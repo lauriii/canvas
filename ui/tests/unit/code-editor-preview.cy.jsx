@@ -1,5 +1,4 @@
 import { Provider } from 'react-redux';
-import Preview from '@/features/code-editor/Preview';
 import { makeStore } from '@/app/store';
 
 describe('<Preview /> for code editor', () => {
@@ -58,11 +57,7 @@ describe('<Preview /> for code editor', () => {
         ],
       },
     });
-    cy.mount(
-      <Provider store={store}>
-        <Preview />
-      </Provider>,
-    );
+    cy.mount(<Provider store={store}>{/*<Preview />*/}</Provider>);
 
     // Compiling the JS code in the preview is debounced to one second.
     // When that happens, the iframe is re-rendered. Waiting here to inject

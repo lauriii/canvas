@@ -7,6 +7,8 @@ import {
 } from '@/features/code-editor/utils';
 import fixtureProps from '../fixtures/code-component-props.json';
 import fixtureSlots from '../fixtures/code-component-slots.json';
+import { getImportsFromAst } from '@/features/code-editor/utils';
+import { parse } from '@babel/parser';
 
 const {
   deserialized: deserializedPropsFixture,
@@ -325,5 +327,53 @@ describe('Code editor preview utilities', () => {
   it('handles empty props when extracting values for preview', () => {
     const result = getPropValuesForPreview([]);
     expect(result).to.deep.equal({});
+  });
+});
+
+describe('getImportsFromAst', () => {
+  it('should return all imports when no scope is provided', () => {
+    const code = `
+      import React from 'react';
+      import { useState } from 'react';
+      import MyComponent from '@/components/MyComponent';
+      import { Theme } from "@radix-ui/themes";
+    `;
+    const ast = parse(code, { sourceType: 'module' });
+    const result = getImportsFromAst(ast);
+    expect(result).to.deep.equal([
+      'react',
+      'react',
+      '@/components/MyComponent',
+      '@radix-ui/themes',
+    ]);
+  });
+
+  it('should return imports filtered by scope', () => {
+    const code = `
+      import React from 'react';
+      import { useState } from 'react';
+      import MyComponent from '@/components/MyComponent';
+      import MyComponent2 from '@/components/MyComponent2';
+    `;
+    const ast = parse(code, { sourceType: 'module' });
+    const result = getImportsFromAst(ast, '@/components/');
+    expect(result).to.deep.equal(['MyComponent', 'MyComponent2']);
+  });
+
+  it('should return an empty array if no imports match the scope', () => {
+    const code = `
+      import React from 'react';
+      import { useState } from 'react';
+    `;
+    const ast = parse(code, { sourceType: 'module' });
+    const result = getImportsFromAst(ast, '@/components/');
+    expect(result).to.deep.equal([]);
+  });
+
+  it('should handle an empty AST gracefully', () => {
+    const ast = parse('', { sourceType: 'module' });
+    const result = getImportsFromAst(ast);
+
+    expect(result).to.deep.equal([]);
   });
 });

@@ -15,7 +15,10 @@ export default function getStarterComponentTemplate(componentName: string) {
 // import { clsx } from 'clsx'
 // import { cva } from 'class-variance-authority'
 // import { twMerge } from 'tailwind-merge'
-//
+
+// Import your other code components to use within this component:
+// import Heading from '@/components/my_heading'
+
 // Combine classes with the cn() utility function.
 // @see https://git.drupalcode.org/project/experience_builder/-/blob/0.x/ui/lib/astro-hydration/src/lib/utils.ts
 import { cn } from "@/lib/utils";

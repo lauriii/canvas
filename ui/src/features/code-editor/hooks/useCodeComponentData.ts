@@ -24,6 +24,7 @@ import {
   selectSourceCodeJs,
   selectStatus,
   setIsEditorReady,
+  selectImportedJsComponents,
 } from '@/features/code-editor/codeEditorSlice';
 import {
   serializeProps,
@@ -56,6 +57,7 @@ const useCodeComponentData = () => {
   const slots = useAppSelector(selectSlots);
   const required = useAppSelector(selectRequired);
   const [shouldLoad, setShouldLoad] = useState(false);
+  const importedJsComponents = useAppSelector(selectImportedJsComponents);
 
   // Get the auto-saved data of the code component if it exists.
   const {
@@ -104,6 +106,7 @@ const useCodeComponentData = () => {
           props: deserializeProps(data.props),
           slots: deserializeSlots(data.slots),
           required: data.required || [],
+          importedJsComponents: data.imported_js_components || [],
         }),
       );
     }
@@ -161,6 +164,7 @@ const useCodeComponentData = () => {
               props: serializeProps(props),
               slots: serializeSlots(slots),
               required,
+              imported_js_components: importedJsComponents,
             },
           });
         } else {
@@ -196,6 +200,7 @@ const useCodeComponentData = () => {
       sourceCodeGlobalCss,
       sourceCodeJs,
       status,
+      importedJsComponents,
     ],
   );
 
