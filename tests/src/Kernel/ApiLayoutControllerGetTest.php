@@ -18,6 +18,7 @@ use Drupal\Tests\experience_builder\TestSite\XBTestSetup;
 use Drupal\Tests\user\Traits\UserCreationTrait;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
 
 /**
  * @covers \Drupal\experience_builder\Controller\ApiLayoutController::get()
@@ -47,6 +48,27 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
     $this->setUpCurrentUser([], ['access administration pages']);
   }
 
+  public function testEmpty(): void {
+    $node = Node::create([
+      'type' => 'article',
+      'title' => $this->randomMachineName(),
+    ]);
+    $node->save();
+    // Enable global regions.
+    $regions = $this->enableGlobalRegions();
+    foreach ($regions as $region) {
+      // But let's make sure none of them have a component tree so we have an
+      // empty model.
+      $region->set('component_tree', [])->save();
+    }
+    $url = Url::fromRoute('experience_builder.api.layout.get', [
+      'entity' => $node->id(),
+      'entity_type' => 'node',
+    ]);
+    $response = $this->request(Request::create($url->toString()));
+    self::assertEquals(Response::HTTP_OK, $response->getStatusCode());
+  }
+
   public function test(): void {
     // By default, there is only the "content" region in the client-side
     // representation.
@@ -54,20 +76,7 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
     /** @var \Drupal\experience_builder\AutoSave\AutoSaveManager $autoSave */
     $autoSave = $this->container->get(AutoSaveManager::class);
     self::assertTrue($autoSave->getAutoSaveData($node)->isEmpty());
-
-    // Enable Stark and set it as the default theme.
-    $theme = 'stark';
-    $this->container->get('theme_installer')->install([$theme]);
-    $this->container->get('config.factory')->getEditable('system.theme')->set('default', $theme)->save();
-    $this->container->get('theme.manager')->resetActiveTheme();
-
-    $regions = PageRegion::createFromBlockLayout($theme);
-    // Check that all the theme regions get a corresponding PageRegion config
-    // entity (except the "content" region).
-    $this->assertCount(11, $regions);
-    foreach ($regions as $region) {
-      $region->save();
-    }
+    $regions = $this->enableGlobalRegions();
 
     // … but the corresponding client-side representation contains one more (the
     // "content" region).
@@ -362,6 +371,27 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
     $this->expectException(\LogicException::class);
     $this->expectExceptionMessage('For now XB only works if the entity is an xb_page or an article node! Other entity types and bundles must be tested before they are supported, to help see https://drupal.org/i/3493675.');
     $controller->get($node);
+  }
+
+  /**
+   * @return \Drupal\experience_builder\Entity\PageRegion[]
+   */
+  protected function enableGlobalRegions(string $theme = 'stark', int $expected_region_count = 11): array {
+    $this->container->get('theme_installer')->install([$theme]);
+    $this->container->get('config.factory')
+      ->getEditable('system.theme')
+      ->set('default', $theme)
+      ->save();
+    $this->container->get('theme.manager')->resetActiveTheme();
+
+    $regions = PageRegion::createFromBlockLayout($theme);
+    // Check that all the theme regions get a corresponding PageRegion config
+    // entity (except the "content" region).
+    self::assertCount($expected_region_count, $regions);
+    foreach ($regions as $region) {
+      $region->save();
+    }
+    return $regions;
   }
 
 }

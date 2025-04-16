@@ -341,7 +341,7 @@ final class ApiLayoutController {
         $page_region = $page_regions[$client_side_region_id];
         $this->autoSaveManager->save($page_region, [
           'layout' => $region_node['components'],
-          'model' => self::extractModelForSubtree($region_node, $model),
+          'model' => self::extractModelForSubtree($region_node, (array) $model),
         ]);
       }
     }
