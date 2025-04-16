@@ -312,7 +312,11 @@ class PropSourceTest extends KernelTestBase {
     // Note: title of properties have been omitted; only essential data is kept.
     $json_representation = (string) $source;
     self::assertSame('{"sourceType":"default-relative-url","value":{"src":"gracie.jpg","alt":"A good dog","width":601,"height":402},"jsonSchema":{"type":"object","properties":{"src":{"type":"string","format":"uri-reference","pattern":"^(\/|https?:\/\/)?.*\\\.(png|gif|jpg|jpeg|webp)(\\\?.*)?(#.*)?$"},"alt":{"type":"string"},"width":{"type":"integer"},"height":{"type":"integer"}},"required":["src"]},"componentId":"sdc.xb_test_sdc.image-optional-with-example-and-additional-prop"}', $json_representation);
-    $source = PropSource::parse(json_decode($json_representation, TRUE));
+    $decoded = json_decode($json_representation, TRUE);
+    // Ensure that DefaultRelativeUrlPropSource::parse() does not care about key
+    // order for the JSON Schema definition it contains.
+    $decoded['jsonSchema'] = array_reverse($decoded['jsonSchema']);
+    $source = PropSource::parse($decoded);
     self::assertInstanceOf(DefaultRelativeUrlPropSource::class, $source);
     self::assertSame('default-relative-url', $source->getSourceType());
     $path = $this->container->get(ExtensionPathResolver::class)->getPath('module', 'xb_test_sdc') . '/components/image-optional-with-example-and-additional-prop';

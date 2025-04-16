@@ -31,7 +31,7 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
   label: new TranslatableMarkup('Code Components'),
   supportsImplicitInputs: FALSE,
 )]
-final class JsComponent extends GeneratedFieldExplicitInputUxComponentSourceBase {
+final class JsComponent extends GeneratedFieldExplicitInputUxComponentSourceBase implements UrlRewriteInterface {
 
   public const SOURCE_PLUGIN_ID = 'js';
 
@@ -315,6 +315,18 @@ final class JsComponent extends GeneratedFieldExplicitInputUxComponentSourceBase
       $definition['id'],
       $definition,
     );
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function rewriteExampleUrl(string $url): string {
+    $parsed_url = parse_url($url);
+    \assert(\is_array($parsed_url));
+    if (array_intersect_key($parsed_url, array_flip(['scheme', 'host']))) {
+      return $url;
+    }
+    throw new \InvalidArgumentException('Default images for Javascript Components must be a fully-qualified URL with both scheme and host.');
   }
 
 }

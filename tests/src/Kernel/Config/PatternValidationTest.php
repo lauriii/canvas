@@ -8,12 +8,11 @@ namespace Drupal\Tests\experience_builder\Kernel\Config;
 
 use Drupal\experience_builder\Entity\Pattern;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
-use Drupal\KernelTests\Core\Config\ConfigEntityValidationTestBase;
 use Drupal\Tests\experience_builder\Traits\BetterConfigDependencyManagerTrait;
 use Drupal\Tests\experience_builder\Traits\GenerateComponentConfigTrait;
 use Drupal\Tests\experience_builder\Traits\TestDataUtilitiesTrait;
 
-class PatternValidationTest extends ConfigEntityValidationTestBase {
+class PatternValidationTest extends BetterConfigEntityValidationTestBase {
 
   use BetterConfigDependencyManagerTrait;
   use GenerateComponentConfigTrait;

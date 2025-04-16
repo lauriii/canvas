@@ -841,6 +841,9 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
       'config:js_component_list',
       'http_response',
     ], 'UNCACHEABLE (request policy)', 'MISS');
+    // Ensure the order matches.
+    \assert(\is_array($body));
+    \ksort($body);
     $this->assertSame(
       [
         'another_component' => $expected_dependency_component,

@@ -88,6 +88,8 @@ final class DefaultRelativeUrlPropSource extends PropSourceBase {
     // First do basic normalization, and resolve.
       PropShape::normalize($sdc_prop_source['jsonSchema'])->resolvedSchema
     )->schema;
+    ksort($sdc_prop_source['jsonSchema']);
+    ksort($minimal);
     if ($sdc_prop_source['jsonSchema'] !== $minimal) {
       throw new \LogicException(sprintf('Extraneous JSON Schema information detected: %s should have been just %s.', json_encode($sdc_prop_source['jsonSchema'], JSON_PRETTY_PRINT), json_encode($minimal, JSON_PRETTY_PRINT)));
     }

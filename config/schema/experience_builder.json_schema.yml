@@ -162,11 +162,7 @@ experience_builder.json_schema.prop.object:
   mapping:
     examples:
       sequence:
-        # ⚠️ JSON Schema's `object` corresponds to Config Schema's `mapping`. Except that a Config Schema mapping
-        # requires supported keys to be specified. For now, just require a non-empty value.
-        # @todo Infer the required keys from `%parent.$ref`, look it up in schema.json, and write a validation constraint similar to SequenceKeysMustMatchConstraintValidator.
-        # /schema.json. That'd take us quite far down the schema rabbit hole.
-        type: sequence
+        type: experience_builder.json_schema.object
         # Do not allow NULL.
         constraints:
           NotNull: ~
@@ -191,3 +187,10 @@ experience_builder.json_schema.prop.object:
         # @see \Drupal\experience_builder\JsonSchemaInterpreter\SdcPropJsonSchemaType::computeStorablePropShape()
         Choice:
           - 'json-schema-definitions://experience_builder.module/image'
+
+experience_builder.json_schema.object:
+  class: '\Drupal\experience_builder\Config\Schema\JsonSchemaObject'
+  label: JSON Schema object
+  type: mapping
+  constraints:
+    FullyValidatable: ~

@@ -7,14 +7,13 @@ namespace Drupal\Tests\experience_builder\Kernel\Config;
 use Drupal\Component\Utility\Crypt;
 use Drupal\Core\Site\Settings;
 use Drupal\experience_builder\Entity\AssetLibrary;
-use Drupal\KernelTests\Core\Config\ConfigEntityValidationTestBase;
 
 /**
  * Tests validation of Asset Library entities.
  *
  * @group experience_builder
  */
-class AssetLibraryValidationTest extends ConfigEntityValidationTestBase {
+class AssetLibraryValidationTest extends BetterConfigEntityValidationTestBase {
 
   /**
    * {@inheritdoc}

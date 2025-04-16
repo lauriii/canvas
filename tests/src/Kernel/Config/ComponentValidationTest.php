@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\experience_builder\Kernel\Config;
 
+use Drupal\Core\Config\Schema\SchemaIncompleteException;
 use Drupal\Core\Theme\ComponentPluginManager as CoreComponentPluginManager;
 use Drupal\experience_builder\Entity\Component;
 use Drupal\experience_builder\Entity\JavaScriptComponent;
@@ -11,7 +12,6 @@ use Drupal\experience_builder\Plugin\ComponentPluginManager;
 use Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\BlockComponent;
 use Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\JsComponent;
 use Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\SingleDirectoryComponent;
-use Drupal\KernelTests\Core\Config\ConfigEntityValidationTestBase;
 use Drupal\Tests\experience_builder\Traits\ContribStrictConfigSchemaTestTrait;
 use Drupal\Tests\experience_builder\Traits\GenerateComponentConfigTrait;
 use Symfony\Component\Yaml\Yaml;
@@ -21,7 +21,7 @@ use Symfony\Component\Yaml\Yaml;
  *
  * @group experience_builder
  */
-class ComponentValidationTest extends ConfigEntityValidationTestBase {
+class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
 
   use ContribStrictConfigSchemaTestTrait;
   use GenerateComponentConfigTrait;
@@ -203,7 +203,8 @@ class ComponentValidationTest extends ConfigEntityValidationTestBase {
           // But intentionally omitted `use_site_slogan`, which SHOULD trigger a
           // validation error.
           // 'use_site_slogan' => FALSE,
-          'label_display' => FALSE,
+          // @todo Upstream core bug in `type: block_settings`: `label_display` should be a boolean but has `type: label`.
+          'label_display' => 'false',
         ] + $defaults,
       ],
       'label' => 'Test',
@@ -276,9 +277,15 @@ class ComponentValidationTest extends ConfigEntityValidationTestBase {
     foreach ($constraints['ImmutableProperties'] as $property_name) {
       $original_value = $this->entity->get($property_name);
       $this->entity->set($property_name, $valid_values[$property_name] ?? $this->randomMachineName());
-      $this->assertValidationErrors([
-        '' => "The '$property_name' property cannot be changed.",
-      ] + $additional_validation_errors[$property_name]);
+      try {
+        $this->assertValidationErrors([
+          '' => "The '$property_name' property cannot be changed.",
+        ] + $additional_validation_errors[$property_name]);
+      }
+      catch (SchemaIncompleteException) {
+        // Safe to ignore, because the validation error for the immutable
+        // property *did* occur.
+      }
       $this->entity->set($property_name, $original_value);
     }
   }

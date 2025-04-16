@@ -7,7 +7,6 @@ namespace Drupal\Tests\experience_builder\Kernel\Config;
 use Drupal\Core\Entity\Entity\EntityViewMode;
 use Drupal\experience_builder\Entity\ContentTemplate;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
-use Drupal\KernelTests\Core\Config\ConfigEntityValidationTestBase;
 use Drupal\Tests\experience_builder\Traits\BetterConfigDependencyManagerTrait;
 use Drupal\Tests\experience_builder\Traits\CreateTestJsComponentTrait;
 use Drupal\Tests\experience_builder\Traits\GenerateComponentConfigTrait;
@@ -17,7 +16,7 @@ use Drupal\Tests\node\Traits\ContentTypeCreationTrait;
 /**
  * @group experience_builder
  */
-final class ContentTemplateValidationTest extends ConfigEntityValidationTestBase {
+final class ContentTemplateValidationTest extends BetterConfigEntityValidationTestBase {
 
   use BetterConfigDependencyManagerTrait;
   use ContentTypeCreationTrait;

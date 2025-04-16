@@ -8,13 +8,12 @@ use Drupal\Core\Extension\ThemeInstallerInterface;
 use Drupal\experience_builder\Entity\PageRegion;
 use Drupal\experience_builder\Exception\ConstraintViolationException;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
-use Drupal\KernelTests\Core\Config\ConfigEntityValidationTestBase;
 use Drupal\Tests\experience_builder\Traits\BetterConfigDependencyManagerTrait;
 use Drupal\Tests\experience_builder\Traits\ConstraintViolationsTestTrait;
 use Drupal\Tests\experience_builder\Traits\GenerateComponentConfigTrait;
 use Drupal\Tests\experience_builder\Traits\TestDataUtilitiesTrait;
 
-class PageRegionValidationTest extends ConfigEntityValidationTestBase {
+class PageRegionValidationTest extends BetterConfigEntityValidationTestBase {
 
   use BetterConfigDependencyManagerTrait;
   use GenerateComponentConfigTrait;

@@ -7,7 +7,6 @@ namespace Drupal\Tests\experience_builder\Kernel\Config;
 // cspell:ignore sofie
 
 use Drupal\experience_builder\Entity\JavaScriptComponent;
-use Drupal\KernelTests\Core\Config\ConfigEntityValidationTestBase;
 
 /**
  * Tests validation of JavaScriptComponent entities.
@@ -15,7 +14,7 @@ use Drupal\KernelTests\Core\Config\ConfigEntityValidationTestBase;
  * @group experience_builder
  * @group JavaScriptComponents
  */
-class JavaScriptComponentValidationTest extends ConfigEntityValidationTestBase {
+class JavaScriptComponentValidationTest extends BetterConfigEntityValidationTestBase {
 
   /**
    * {@inheritdoc}
@@ -200,14 +199,40 @@ class JavaScriptComponentValidationTest extends ConfigEntityValidationTestBase {
         '$ref' => 'json-schema-definitions://experience_builder.module/image',
         'title' => $this->randomString(),
         'enum' => [[], NULL],
-        'examples' => [[], NULL],
+        'examples' => [
+          [],
+          NULL,
+          [
+            'src' => 'https://placehold.co/1200x900@2x.png',
+            'width' => 1200,
+            'height' => 900,
+            'alt' => 'Example image placeholder',
+          ],
+          [
+            // Only required props.
+            'src' => 'https://placehold.co/1200x900@2x.png',
+          ],
+          [
+            // Invalid pattern.
+            'src' => 'hi mum, this is not a url',
+          ],
+          [
+            // Missing required 'src'.
+            'width' => 1200,
+          ],
+        ],
       ],
     ]);
     $this->assertValidationErrors([
       'props.some_object.enum.0' => 'This value should not be blank.',
       'props.some_object.enum.1' => 'This value should not be null.',
-      'props.some_object.examples.0' => 'This value should not be blank.',
+      'props.some_object.examples.0' => [
+        'This value should not be blank.',
+        "'src' is a required key.",
+      ],
       'props.some_object.examples.1' => 'This value should not be null.',
+      'props.some_object.examples.4.src' => '<em class="placeholder">&quot;hi mum, this is not a url&quot;</em> does not match the pattern <em class="placeholder">@^(/|https?://)?.*\.(png|gif|jpg|jpeg|webp)(\?.*)?(#.*)?$@</em>.',
+      'props.some_object.examples.5' => "'src' is a required key.",
     ]);
   }
 
@@ -558,11 +583,13 @@ class JavaScriptComponentValidationTest extends ConfigEntityValidationTestBase {
               'title' => 'Image title',
               'type' => 'object',
               'examples' => [
-                // @todo this is actually an invalid example, will be detected by https://www.drupal.org/i/3508725
-                'src' => 'https://example.com/image.png',
-                'alt' => 'Alternative text',
-                'width' => 800,
-                'height' => 600,
+                [
+                  // @todo this is actually an invalid example, will be detected by https://www.drupal.org/i/3508725
+                  'src' => 'https://example.com/image.png',
+                  'alt' => 'Alternative text',
+                  'width' => 800,
+                  'height' => 600,
+                ],
               ],
             ],
           ],
@@ -579,6 +606,10 @@ class JavaScriptComponentValidationTest extends ConfigEntityValidationTestBase {
         [
           '' => 'Experience Builder does not know of a field type/widget to allow populating the <code>image</code> prop, with the shape <code>{"type":"object"}</code>.',
           'props.image' => '\'$ref\' is a required key because props.image.type is object (see config schema type experience_builder.json_schema.prop.object).',
+          'props.image.examples.0.alt' => "'alt' is not a supported key.",
+          'props.image.examples.0.height' => "'height' is not a supported key.",
+          'props.image.examples.0.src' => "'src' is not a supported key.",
+          'props.image.examples.0.width' => "'width' is not a supported key.",
         ],
       ],
       'Invalid: image prop with incorrect $ref' => [
@@ -589,7 +620,7 @@ class JavaScriptComponentValidationTest extends ConfigEntityValidationTestBase {
             'image' => [
               'title' => 'Image title',
               'type' => 'object',
-              '$ref' => "json-schema-definitions://experience_builder.module/textarea",
+              '$ref' => "json-schema-definitions://experience_builder.module/heading",
               'examples' => [
                 [
                   'src' => 'https://example.com/image.png',
@@ -611,8 +642,16 @@ class JavaScriptComponentValidationTest extends ConfigEntityValidationTestBase {
           ],
         ],
         [
-          '' => 'Experience Builder does not know of a field type/widget to allow populating the <code>image</code> prop, with the shape <code>{"type":"object","$ref":"json-schema-definitions://experience_builder.module/textarea"}</code>.',
+          '' => 'Experience Builder does not know of a field type/widget to allow populating the <code>image</code> prop, with the shape <code>{"type":"object","$ref":"json-schema-definitions://experience_builder.module/heading"}</code>.',
           'props.image.$ref' => 'The value you selected is not a valid choice.',
+          'props.image.examples.0' => [
+            "'text' is a required key.",
+            "'element' is a required key.",
+          ],
+          'props.image.examples.0.alt' => "'alt' is not a supported key.",
+          'props.image.examples.0.height' => "'height' is not a supported key.",
+          'props.image.examples.0.src' => "'src' is not a supported key.",
+          'props.image.examples.0.width' => "'width' is not a supported key.",
         ],
       ],
       'Valid: textarea prop with $ref' => [
