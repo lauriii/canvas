@@ -254,6 +254,12 @@ See:
 
 A `ContentTemplate` config entity can be created by Ambitious Site Builders to accelerate the work of Content Creators. It is tied to a specific content entity type, bundle, and view mode: for example, there can be a template for `blog` content items (nodes), in the `full` view mode. The template has a component tree stored with it.
 
+When rendering content entities, a content template will be used to render the entity if, and _only_ if, two things are true:
+
+1. The entity is opted into Experience Builder, which means it has an `XB field`.
+2. There is a `ContentTemplate` for that content entity type and bundle, in the view mode that is being rendered.
+
+If a `ContentTemplate` is used for rendering a content entity, then `hook_entity_display_build_alter()` will NOT be invoked for that entity, because that hook (and all its implementations) assume field formatters are used to render (all or some) fields in sequence, which is not the case when using XB.
+
 ⚠️ Still to be built:
 - A UI to create content templates, and manage existing templates: https://www.drupal.org/i/3518248
-- A way to opt content entities into using XB templates for rendering: https://www.drupal.org/i/3518013

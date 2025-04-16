@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Drupal\experience_builder\Plugin\Field\FieldTypeOverride;
 
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
-use Drupal\experience_builder\Plugin\DataTypeOverride\TextProcessedOverride;
 use Drupal\experience_builder\Plugin\Validation\Constraint\StringSemanticsConstraint;
 use Drupal\text\Plugin\Field\FieldType\TextWithSummaryItem;
 
@@ -25,7 +24,6 @@ class TextWithSummaryItemOverride extends TextWithSummaryItem {
 
     // Override the processed property with our extended version.
     $properties['processed']
-      ->setClass(TextProcessedOverride::class)
       // It is computed from the required `value` property, so this value can be
       // considered required, too.
       ->setRequired(TRUE)
@@ -33,7 +31,6 @@ class TextWithSummaryItemOverride extends TextWithSummaryItem {
 
     // Also override the summary_processed property.
     $properties['summary_processed']
-      ->setClass(TextProcessedOverride::class)
       ->addConstraint('StringSemantics', StringSemanticsConstraint::MARKUP);
 
     return $properties;

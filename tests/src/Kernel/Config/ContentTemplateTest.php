@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\experience_builder\Kernel\Config;
 
+use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\experience_builder\Entity\ContentTemplate;
+use Drupal\experience_builder\EntityHandlers\ContentTemplateAwareViewBuilder;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\node\Entity\NodeType;
 use Drupal\Tests\experience_builder\Traits\ContribStrictConfigSchemaTestTrait;
@@ -57,6 +59,28 @@ final class ContentTemplateTest extends KernelTestBase {
       'content_entity_type_view_mode' => $view_mode,
     ]);
     $this->assertSame($expected_label, (string) $template->label());
+  }
+
+  /**
+   * @covers \experience_builder_entity_type_alter
+   */
+  public function testOnlyContentEntitiesCanUseTemplates(): void {
+    $manager = \Drupal::entityTypeManager();
+    $definition = $manager->getDefinition('node');
+    assert($definition instanceof EntityTypeInterface);
+    $this->assertTrue($definition->hasHandlerClass(ContentTemplateAwareViewBuilder::DECORATED_HANDLER_KEY));
+    $this->assertSame(ContentTemplateAwareViewBuilder::class, $definition->getViewBuilderClass());
+
+    // Config entities have no view builder and XB doesn't touch them.
+    $definition = $manager->getDefinition('user_role');
+    assert($definition instanceof EntityTypeInterface);
+    $this->assertFalse($definition->hasViewBuilderClass());
+    $this->assertFalse($definition->hasHandlerClass(ContentTemplateAwareViewBuilder::DECORATED_HANDLER_KEY));
+
+    // XB pages are left alone despite being content entities.
+    $definition = $manager->getDefinition('xb_page');
+    assert($definition instanceof EntityTypeInterface);
+    $this->assertFalse($definition->hasHandlerClass(ContentTemplateAwareViewBuilder::DECORATED_HANDLER_KEY));
   }
 
 }

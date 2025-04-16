@@ -34,6 +34,7 @@ use Drupal\experience_builder\PropExpressions\StructuredData\FieldPropExpression
 use Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldPropExpression;
 use Drupal\file\Plugin\Field\FieldType\FileItem;
 use Drupal\file\Plugin\Field\FieldType\FileUriItem;
+use Drupal\text\TextProcessed;
 use Symfony\Component\Validator\Constraint;
 
 // phpcs:disable Drupal.Arrays.Array.LongLineDeclaration
@@ -330,7 +331,9 @@ final class SdcPropToFieldTypePropMatcher {
               $property_definition = $transformed_property_data_definition;
             }
           }
-          assert(is_a($property_definition->getClass(), PrimitiveInterface::class, TRUE));
+          // TRICKY: treat TextProcessed as a primitive, because it must retain its FilteredMarkup encapsulation to avoid Twig escaping the processed text.
+          // @see \Drupal\filter\Render\FilteredMarkup
+          assert(is_a($property_definition->getClass(), PrimitiveInterface::class, TRUE) || is_a($property_definition->getClass(), TextProcessed::class, TRUE));
           $field_item = $this->typedDataManager->createInstance("field_item:" . $field_definition->getType(), [
             'name' => NULL,
             'parent' => NULL,
@@ -379,12 +382,13 @@ final class SdcPropToFieldTypePropMatcher {
     // Any data type that is more complex than a primitive is not accepted.
     // For example: `entity_reference`, `language_reference`, etc.
     // @see \Drupal\Core\Entity\Plugin\DataType\EntityReference
-    if (!is_a($data_type_class, PrimitiveInterface::class, TRUE)) {
+    if (!is_a($data_type_class, PrimitiveInterface::class, TRUE) && !is_a($data_type_class, TextProcessed::class, TRUE)) {
       throw new \LogicException();
     }
 
     $field_primitive_types = match (TRUE) {
       is_a($data_type_class, StringData::class, TRUE) => [SdcPropJsonSchemaType::STRING],
+      is_a($data_type_class, TextProcessed::class, TRUE) => [SdcPropJsonSchemaType::STRING],
       // TRICKY: a SDC prop that accepts number, can accept both an integer and a
       // float, but an SDC prop that accepts integer, can accept only integer.
       is_a($data_type_class, IntegerData::class, TRUE) => [SdcPropJsonSchemaType::INTEGER, SdcPropJsonSchemaType::NUMBER],
@@ -515,7 +519,7 @@ final class SdcPropToFieldTypePropMatcher {
     // Any data type that is more complex than a primitive is not accepted.
     // For example: `entity_reference`, `language_reference`, etc.
     // @see \Drupal\Core\Entity\Plugin\DataType\EntityReference
-    if (!is_a($property_data_definition->getClass(), PrimitiveInterface::class, TRUE)) {
+    if (!is_a($property_data_definition->getClass(), PrimitiveInterface::class, TRUE) && !is_a($property_data_definition->getClass(), TextProcessed::class, TRUE)) {
       throw new \LogicException();
     }
 
@@ -569,7 +573,7 @@ final class SdcPropToFieldTypePropMatcher {
       : $td_or_dd;
     return match(TRUE) {
       $dd instanceof DataReferenceDefinitionInterface => TRUE,
-      is_a($dd->getClass(), PrimitiveInterface::class, TRUE) => FALSE,
+      is_a($dd->getClass(), PrimitiveInterface::class, TRUE), is_a($dd->getClass(), TextProcessed::class, TRUE) => FALSE,
       // Anything else cannot be handled and merits logging.
       TRUE => (function ($td_or_dd) {
         match (TRUE) {

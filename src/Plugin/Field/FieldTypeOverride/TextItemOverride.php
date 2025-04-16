@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Drupal\experience_builder\Plugin\Field\FieldTypeOverride;
 
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
-use Drupal\experience_builder\Plugin\DataTypeOverride\TextProcessedOverride;
 use Drupal\experience_builder\Plugin\Validation\Constraint\StringSemanticsConstraint;
 use Drupal\text\Plugin\Field\FieldType\TextItem;
 
@@ -23,7 +22,6 @@ class TextItemOverride extends TextItem {
   public static function propertyDefinitions(FieldStorageDefinitionInterface $field_definition) {
     $properties = parent::propertyDefinitions($field_definition);
     $properties['processed']
-      ->setClass(TextProcessedOverride::class)
       // It is computed from the required `value` property, so this value can be
       // considered required, too.
       ->setRequired(TRUE)

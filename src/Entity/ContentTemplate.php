@@ -99,6 +99,27 @@ final class ContentTemplate extends ConfigEntityBase implements ComponentTreeEnt
   protected ?array $component_tree;
 
   /**
+   * Tries to load a template for a particular entity, in a specific view mode.
+   *
+   * @param \Drupal\Core\Entity\FieldableEntityInterface $entity
+   *   An entity, presumably the one being viewed.
+   * @param string $view_mode
+   *   The view mode in which we're viewing the entity.
+   *
+   * @return self|null
+   *   A template for the given entity in the given view mode, or NULL if one
+   *   does not exist.
+   */
+  public static function loadForEntity(FieldableEntityInterface $entity, string $view_mode): ?self {
+    $id = implode('.', [
+      $entity->getEntityTypeId(),
+      $entity->bundle(),
+      $view_mode,
+    ]);
+    return self::load($id);
+  }
+
+  /**
    * {@inheritdoc}
    */
   public function id(): string {
@@ -176,8 +197,8 @@ final class ContentTemplate extends ConfigEntityBase implements ComponentTreeEnt
   /**
    * {@inheritdoc}
    */
-  public function getComponentTree(): ComponentTreeItem {
-    $item = $this->createDanglingComponentTree();
+  public function getComponentTree(?FieldableEntityInterface $parent = NULL): ComponentTreeItem {
+    $item = $this->createDanglingComponentTree($parent);
     $item->setValue($this->component_tree);
     return $item;
   }
@@ -275,7 +296,7 @@ final class ContentTemplate extends ConfigEntityBase implements ComponentTreeEnt
    * {@inheritdoc}
    */
   public function build(FieldableEntityInterface $entity): array {
-    return $this->getComponentTree()->toRenderable();
+    return $this->getComponentTree($entity)->toRenderable();
   }
 
   /**

@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Drupal\Tests\experience_builder\Traits;
 
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
+use Drupal\field\Entity\FieldConfig;
+use Drupal\field\Entity\FieldStorageConfig;
 
 /**
  * Any test using these test cases must install the `xb_test_sdc` module.
@@ -12,6 +14,20 @@ use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 trait SingleDirectoryComponentTreeTestTrait {
 
   use TestDataUtilitiesTrait;
+
+  protected function createComponentTreeField(string $entity_type_id, string $bundle): void {
+    $field_storage = FieldStorageConfig::create([
+      'field_name' => 'field_component_tree',
+      'entity_type' => $entity_type_id,
+      'type' => 'component_tree',
+    ]);
+    $field_storage->save();
+
+    FieldConfig::create([
+      'field_storage' => $field_storage,
+      'bundle' => $bundle,
+    ])->save();
+  }
 
   protected static function getValidTreeTestCases(): array {
     return [

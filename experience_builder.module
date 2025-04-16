@@ -12,6 +12,7 @@ ini_set('assert.active', 1);
 
 use Drupal\Component\Serialization\Json;
 use Drupal\Core\Block\BlockManagerInterface;
+use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Entity\Display\EntityFormDisplayInterface;
 use Drupal\Core\Entity\EntityForm;
 use Drupal\Core\Entity\EntityPublishedInterface;
@@ -27,6 +28,7 @@ use Drupal\datetime\Plugin\Field\FieldType\DateTimeItem;
 use Drupal\experience_builder\Entity\AssetLibrary;
 use Drupal\experience_builder\Entity\JavaScriptComponent;
 use Drupal\experience_builder\Entity\PageRegion;
+use Drupal\experience_builder\EntityHandlers\ContentTemplateAwareViewBuilder;
 use Drupal\experience_builder\Form\FormIdPreRender;
 use Drupal\experience_builder\Plugin\ComponentPluginManager;
 use Drupal\experience_builder\Plugin\DisplayVariant\XbPageVariant;
@@ -786,5 +788,27 @@ function experience_builder_entity_form_display_alter(EntityFormDisplayInterface
     // Publishable entities are automatically published when publishing auto-saved changes.
     // @see \Drupal\experience_builder\Controller\ApiAutoSaveController::post()
     $form_display->removeComponent($published_key);
+  }
+}
+
+/**
+ * Implements hook_entity_type_alter().
+ */
+function experience_builder_entity_type_alter(array $definitions): void {
+  /** @var \Drupal\Core\Entity\EntityTypeInterface $entity_type */
+  foreach ($definitions as $entity_type) {
+    // XB pages don't have any structured data, and therefore don't support
+    // content templates (which require structured data anyway -- that is, they
+    // need to be using at least one dynamic prop source).
+    // @see docs/adr/0004-page-entity-type.md
+    if ($entity_type->id() === 'xb_page') {
+      continue;
+    }
+    // XB can only render fieldable content entities.
+    if ($entity_type->entityClassImplements(FieldableEntityInterface::class)) {
+      // @see \Drupal\experience_builder\EntityHandlers\ContentTemplateAwareViewBuilder::createInstance()
+      $entity_type->setHandlerClass(ContentTemplateAwareViewBuilder::DECORATED_HANDLER_KEY, $entity_type->getViewBuilderClass())
+        ->setViewBuilderClass(ContentTemplateAwareViewBuilder::class);
+    }
   }
 }
