@@ -197,6 +197,17 @@ final class PageRegion extends ConfigEntityBase implements ComponentTreeEntityIn
   }
 
   /**
+   * @return array<string, \Drupal\experience_builder\Entity\PageRegion>
+   */
+  public static function loadForActiveThemeByClientSideId(): array {
+    $regions = self::loadForActiveTheme();
+    return array_combine(
+      array_map(fn(PageRegion $r) => $r->get('region'), $regions),
+      $regions,
+    );
+  }
+
+  /**
    * {@inheritdoc}
    */
   public function id(): string {

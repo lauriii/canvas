@@ -9,6 +9,7 @@ use Drupal\Core\Url;
 use Drupal\experience_builder\AutoSave\AutoSaveManager;
 use Drupal\experience_builder\Entity\JavaScriptComponent;
 use Drupal\experience_builder\Entity\Page;
+use Drupal\experience_builder\Entity\PageRegion;
 use Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\JsComponent;
 use Drupal\user\UserInterface;
 use GuzzleHttp\RequestOptions;
@@ -46,6 +47,7 @@ final class ApiLayoutControllerTest extends HttpApiTestBase {
       'administer url aliases',
       JavaScriptComponent::ADMIN_PERMISSION,
       'administer themes',
+      PageRegion::ADMIN_PERMISSION,
     ]);
     \assert($account instanceof UserInterface);
     $this->drupalLogin($account);

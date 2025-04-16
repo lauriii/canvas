@@ -78,8 +78,14 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
     self::assertTrue($autoSave->getAutoSaveData($node)->isEmpty());
     $regions = $this->enableGlobalRegions();
 
-    // … but the corresponding client-side representation contains one more (the
-    // "content" region).
+    // … but the corresponding client-side representation contains only the
+    // "content" region unless it has permissions to edit the global regions.
+    $this->assertRegions(1);
+
+    $this->setUpCurrentUser([], ['access administration pages', PageRegion::ADMIN_PERMISSION]);
+
+    // … and the corresponding client-side representation contains all regions
+    // plus one more (the "content" region) once it has the required permission.
     $this->assertRegions(12);
 
     // Disable a PageRegion to make it non-editable, and check that only 11
@@ -209,7 +215,7 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
     $this->assertCount($count, $json['layout']);
     self::assertArrayHasKey('html', $json);
     $content = $this->getRegion('content');
-    $this->assertNotEmpty($content);
+    $this->assertNotNull($content);
 
     foreach ($json['layout'] as $region) {
       $this->assertArrayHasKey('nodeType', $region);

@@ -10,6 +10,9 @@ use Drupal\Tests\user\Traits\UserCreationTrait;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 
+/**
+ * @phpstan-import-type ComponentConfigEntityId from \Drupal\experience_builder\Entity\Component
+ */
 class ApiLayoutControllerTestBase extends KernelTestBase {
 
   const REGION_PATTERN = '/<!-- xb-region-start-%1$s -->([\n\s\S]*)<!-- xb-region-end-%1$s -->/';
@@ -49,9 +52,9 @@ class ApiLayoutControllerTestBase extends KernelTestBase {
    *
    * @param string $region
    *
-   * @return array
+   * @return ?string
    */
-  protected function getRegion(string $region): array {
+  protected function getRegion(string $region): ?string {
     $matches = [];
 
     $content = $this->getRawContent() ?: '';
@@ -62,7 +65,27 @@ class ApiLayoutControllerTestBase extends KernelTestBase {
     }
 
     \preg_match_all(sprintf(self::REGION_PATTERN, $region), $content, $matches);
-    return $matches[1];
+    return array_key_exists(0, $matches[1]) ? $matches[1][0] : NULL;
+  }
+
+  /**
+   * Uses regex to find component instances "wrapped" by inline HTML comments.
+   *
+   * @param ?string $html
+   *   The HTML to search; if none provided will use the current raw content.
+   *
+   * @return array
+   */
+  protected function getComponentInstances(?string $html): array {
+    $html ??= $this->getRawContent();
+    // Covers 'application/json' endpoint responses with 'html' property.
+    if (json_validate($html)) {
+      $decoded = \json_decode($html, TRUE);
+      $html = $decoded['html'] ?? $html;
+    }
+    $matches = [];
+    \preg_match_all('/(xb-start-)(.*?)[\/ \t](.*?)(-->)(.*?)/', $html, $matches);
+    return $matches[2];
   }
 
 }

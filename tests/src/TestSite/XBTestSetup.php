@@ -8,6 +8,7 @@ use Drupal\Core\Extension\ModuleInstallerInterface;
 use Drupal\editor\Entity\Editor;
 use Drupal\experience_builder\Entity\JavaScriptComponent;
 use Drupal\experience_builder\Entity\Page;
+use Drupal\experience_builder\Entity\PageRegion;
 use Drupal\experience_builder\Entity\Pattern;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 use Drupal\field\Entity\FieldConfig;
@@ -437,6 +438,7 @@ class XBTestSetup implements TestSetupInterface {
         'administer comments',
         'post comments',
         'administer permissions',
+        PageRegion::ADMIN_PERMISSION,
       ],
     ]);
     $xb_role->save();

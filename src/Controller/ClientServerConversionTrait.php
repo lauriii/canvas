@@ -16,6 +16,9 @@ use Symfony\Component\Validator\ConstraintViolationList;
 /**
  * @internal
  * @phpstan-import-type ComponentTreeStructureArray from \Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure
+ * @phpstan-import-type ComponentClientStructureArray from \Drupal\experience_builder\Controller\ApiLayoutController
+ * @phpstan-import-type RegionClientStructureArray from \Drupal\experience_builder\Controller\ApiLayoutController
+ * @phpstan-import-type LayoutClientStructureArray from \Drupal\experience_builder\Controller\ApiLayoutController
  */
 trait ClientServerConversionTrait {
 
@@ -23,7 +26,7 @@ trait ClientServerConversionTrait {
 
   /**
    * @todo Refactor/remove in https://www.drupal.org/project/experience_builder/issues/3467954.
-   *
+   * @param LayoutClientStructureArray $layout
    * @phpstan-return ComponentTreeStructureArray
    * @throws \Drupal\experience_builder\Exception\ConstraintViolationException
    *
@@ -56,6 +59,7 @@ trait ClientServerConversionTrait {
   }
 
   /**
+   * @param LayoutClientStructureArray $layout
    * @phpstan-return ComponentTreeStructureArray
    */
   private static function doClientSlotToServerTree(array $layout, array $tree, string $parent_uuid): array {
@@ -72,6 +76,7 @@ trait ClientServerConversionTrait {
   }
 
   /**
+   * @phpstan-param ComponentClientStructureArray $layout
    * @phpstan-return ComponentTreeStructureArray
    */
   private static function doClientComponentToServerTree(array $layout, array $tree, string $parent_uuid, ?string $parent_slot): array {
@@ -144,6 +149,7 @@ trait ClientServerConversionTrait {
   }
 
   /**
+   * @param LayoutClientStructureArray $layout
    * @return array{tree: string, inputs: string}
    * @throws \Drupal\experience_builder\Exception\ConstraintViolationException
    *

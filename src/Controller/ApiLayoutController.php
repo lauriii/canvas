@@ -24,9 +24,16 @@ use Drupal\experience_builder\Render\PreviewEnvelope;
 use Drupal\experience_builder\Storage\ComponentTreeLoader;
 use GuzzleHttp\Psr7\Query;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
+/**
+ * @phpstan-import-type ComponentConfigEntityId from \Drupal\experience_builder\Entity\Component
+ * @phpstan-type ComponentClientStructureArray array{nodeType: 'component', uuid: string, type: ComponentConfigEntityId, slots: array<int, mixed>}
+ * @phpstan-type RegionClientStructureArray array{nodeType: 'region', id: string, name: string, components: array<int, ComponentClientStructureArray>}
+ * @phpstan-type LayoutClientStructureArray array<int, RegionClientStructureArray>
+ */
 final class ApiLayoutController {
 
   use ClientServerConversionTrait;
@@ -229,11 +236,17 @@ final class ApiLayoutController {
     return Query::parse(\http_build_query(\array_intersect_key($values, $entity->toArray())));
   }
 
-  private function addGlobalRegions(array $regions, array &$model, array &$layout): void {
+  private function addGlobalRegions(array $regions, array &$model, array &$layout, bool $includeAllRegions = FALSE): void {
     // Only expose regions marked as editable in the `layout` for the client.
     foreach ($regions as $id => $region) {
       assert($region instanceof PageRegion);
       assert($region->status() === TRUE);
+      if (!$region->access('edit') && !$includeAllRegions) {
+        // If the user doesn't have access to a region, we don't need to include
+        // it.
+        continue;
+      }
+
       // Use auto-save data for each PageRegion config entity if available.
       if ($draft_region = $this->autoSaveManager->getAutoSaveData($region)->data) {
         $layout[] = [
@@ -273,26 +286,7 @@ final class ApiLayoutController {
       'model' => $model,
     ] = $body;
 
-    $data = $this->autoSaveManager->getAutoSaveData($entity)->data;
-    if ($data === NULL) {
-      // There are no changes (everything is published), read back the original
-      // model.
-      $data['model'] = [];
-      $data['entity_form_fields'] = $this->getEntityData($entity);
-      // Build the content region.
-      $tree = $this->componentTreeLoader->load($entity);
-      $data['layout'] = [$this->buildRegion(XbPageVariant::MAIN_CONTENT_REGION, $tree, $data['model'])];
-    }
-    $regions = PageRegion::loadForActiveTheme();
-    if (!empty($regions)) {
-      $this->addGlobalRegions($regions, $data['model'], $data['layout']);
-      $layout_keyed_by_region = array_combine(array_map(static fn($region) => $region['id'], $data['layout']), $data['layout']);
-      // Reorder the layout to match theme order.
-      $data['layout'] = array_values(array_replace(
-        array_intersect_key(array_flip($this->regionsClientSideIds), $layout_keyed_by_region),
-        $layout_keyed_by_region
-      ));
-    }
+    $data = $this->getLastStoredData($entity, includeAllRegions: TRUE);
     if (!\array_key_exists('model', $data)) {
       throw new NotFoundHttpException('Missing model');
     }
@@ -306,6 +300,16 @@ final class ApiLayoutController {
     }
     \assert($entity instanceof FieldableEntityInterface);
 
+    // Validate that we have access to the page region of this component.
+    $page_regions = PageRegion::loadForActiveThemeByClientSideId();
+    if (!empty($page_regions)) {
+      $regionForComponentId = $this->getRegionForComponentInstance($data['layout'], $componentInstanceUuid);
+      if ($regionForComponentId !== XbPageVariant::MAIN_CONTENT_REGION) {
+        if (!$page_regions[$regionForComponentId]->access('edit')) {
+          throw new AccessDeniedHttpException(sprintf('Access denied for region %s', $regionForComponentId));
+        }
+      }
+    }
     $data['model'][$componentInstanceUuid] = $model;
     return new PreviewEnvelope($this->buildPreviewRenderable($data, $entity, TRUE), $data);
   }
@@ -320,17 +324,25 @@ final class ApiLayoutController {
     \assert(\array_key_exists('model', $body));
     \assert(\array_key_exists('layout', $body));
     \assert(\array_key_exists('entity_form_fields', $body));
+
+    $regions = PageRegion::loadForActiveThemeByClientSideId();
+    if (!empty($regions)) {
+      foreach ($body['layout'] as $region) {
+        if ($region['id'] !== XbPageVariant::MAIN_CONTENT_REGION) {
+          // Check access to regions if any component was added or removed from them.
+          if (!$regions[$region['id']]->access('edit')) {
+            throw new AccessDeniedHttpException(sprintf('Access denied for region %s', $region['id']));
+          }
+        }
+      }
+    }
     return new PreviewEnvelope($this->buildPreviewRenderable($body, $entity, TRUE));
   }
 
   private function buildPreviewRenderable(array $body, EntityInterface $entity, bool $updateAutoSave): array {
     ['layout' => $layout, 'model' => $model] = $body;
 
-    $page_regions = PageRegion::loadForActiveTheme();
-    $page_regions = array_combine(
-      array_map(fn (PageRegion $r) => $r->get('region'), $page_regions),
-      $page_regions,
-    );
+    $page_regions = PageRegion::loadForActiveThemeByClientSideId();
     foreach ($layout as $region_node) {
       $client_side_region_id = $region_node['id'];
       if ($client_side_region_id === XbPageVariant::MAIN_CONTENT_REGION) {
@@ -411,6 +423,77 @@ final class ApiLayoutController {
       }
     }
     return $node_model;
+  }
+
+  /**
+   * Get last stored data, taking auto-saved data into account if any.
+   */
+  private function getLastStoredData(EntityInterface $entity, bool $includeAllRegions = FALSE): array {
+    assert($entity instanceof FieldableEntityInterface);
+    $data = NULL;
+    $autoSaveData = $this->autoSaveManager->getAutoSaveData($entity);
+    if ($autoSaveData->isEmpty()) {
+      // There are no changes (everything is published), read back the original
+      // model.
+      $data['model'] = [];
+      $data['entity_form_fields'] = $this->getEntityData($entity);
+      // Build the content region.
+      $tree = $this->componentTreeLoader->load($entity);
+      $data['layout'] = [$this->buildRegion(XbPageVariant::MAIN_CONTENT_REGION, $tree, $data['model'])];
+    }
+    else {
+      $data = $autoSaveData->data;
+    }
+    assert(is_array($data));
+    assert(is_array($data['model']) && is_array($data['entity_form_fields']) && is_array($data['layout']));
+
+    $regions = PageRegion::loadForActiveTheme();
+    if (!empty($regions)) {
+      $this->addGlobalRegions($regions, $data['model'], $data['layout'], $includeAllRegions);
+      $layout_keyed_by_region = array_combine(array_map(static fn($region) => $region['id'], $data['layout']), $data['layout']);
+      // Reorder the layout to match theme order.
+      $data['layout'] = array_values(array_replace(
+        array_intersect_key(array_flip($this->regionsClientSideIds), $layout_keyed_by_region),
+        $layout_keyed_by_region
+      ));
+    }
+    return $data;
+  }
+
+  /**
+   * @param LayoutClientStructureArray $layout
+   * @param string $componentInstanceUuid
+   * @return string|null
+   */
+  private function getRegionForComponentInstance(array $layout, string $componentInstanceUuid): ?string {
+    foreach ($layout as $layout_region) {
+      assert(count(array_intersect(['nodeType', 'id', 'name', 'components'], array_keys($layout_region))) === 4);
+      assert($layout_region['nodeType'] === 'region');
+      assert(is_array($layout_region['components']));
+    }
+
+    // Validate that we have access to the page region of this component.
+    $regions = PageRegion::loadForActiveTheme();
+    if (!empty($regions)) {
+      $layout_by_client_side_ids = array_combine(array_map(static fn($region) => $region['id'], $layout), $layout);
+      $regionForComponent = array_filter($layout_by_client_side_ids, function ($item) use ($componentInstanceUuid) {
+        foreach ($item['components'] as $componentData) {
+          if ($componentData['uuid'] === $componentInstanceUuid) {
+            return TRUE;
+          }
+          // Maybe it's not a component, but a slot inside a component.
+          foreach ($componentData['slots'] as $slotData) {
+            foreach ($slotData['components'] as $slotComponentData) {
+              if ($slotComponentData['uuid'] === $componentInstanceUuid) {
+                return TRUE;
+              }
+            }
+          }
+        }
+        return FALSE;
+      });
+    }
+    return (!empty($regions) && count($regionForComponent) === 1) ? (string) key($regionForComponent) : NULL;
   }
 
 }

@@ -17,6 +17,7 @@ use Drupal\Tests\experience_builder\TestSite\XBTestSetup;
 use Symfony\Component\DomCrawler\Crawler;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
@@ -36,7 +37,11 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
     $this->container->get('config.factory')->getEditable('system.theme')->set('default', 'stark')->save();
 
     (new XBTestSetup())->setup();
-    $this->setUpCurrentUser([], ['access administration pages', 'administer url aliases']);
+    $this->setUpCurrentUser([], [
+      'access administration pages',
+      'administer url aliases',
+      PageRegion::ADMIN_PERMISSION,
+    ]);
   }
 
   /**
@@ -182,23 +187,22 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
 
     // Check that each level is structured correctly.
     $content = $this->getRegion('content');
-    self::assertNotEmpty($content);
+    self::assertNotNull($content);
     $globalElements = [];
     if ($withGlobal) {
       $sidebar_first = $this->getRegion('sidebar_first');
-      self::assertNotEmpty($sidebar_first);
+      self::assertNotNull($sidebar_first);
+      $globalElements = $this->getComponentInstances($sidebar_first);
 
-      \preg_match_all('/(xb-start-)(.*?)[\/ \t](.*?)(-->)(.*?)/', $sidebar_first[0] ?: '', $comments);
-      $globalElements = $comments[2];
       $highlighted = $this->getRegion('highlighted');
-      self::assertNotEmpty($highlighted);
-      \preg_match_all('/(xb-start-)(.*?)[\/ \t](.*?)(-->)(.*?)/', $highlighted[0] ?: '', $comments);
-      $globalElements = [...$globalElements, ...$comments[2]];
+      self::assertNotNull($highlighted);
+      $highlightedElements = $this->getComponentInstances($highlighted);
+      $globalElements = [...$globalElements, ...$highlightedElements];
     }
-    \preg_match_all('/(xb-start-)(.*?)[\/ \t](.*?)(-->)(.*?)/', $content[0] ?: '', $comments);
-    self::assertCount($withGlobal ? 8 : 6, \array_merge($comments[2], $globalElements));
+    $contentElements = $this->getComponentInstances($content);
+    self::assertCount($withGlobal ? 8 : 6, \array_merge($contentElements, $globalElements));
     if ($withGlobal) {
-      self::assertSame(\array_keys($model), \array_merge($comments[2], $globalElements));
+      self::assertSame(\array_keys($model), \array_merge($contentElements, $globalElements));
     }
 
     // There should be two images, one should reference the media item direct
@@ -247,6 +251,52 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
     yield 'fresh state, global' => [FALSE, TRUE];
     yield 'existing auto-save, no global' => [TRUE, FALSE];
     yield 'existing auto-save, global' => [TRUE, TRUE];
+  }
+
+  public function testWithoutPageRegionPermission(): void {
+    $this->setUpCurrentUser([], [
+      'access administration pages',
+      'administer url aliases',
+    ]);
+
+    $autoSave = $this->container->get(AutoSaveManager::class);
+    \assert($autoSave instanceof AutoSaveManager);
+    $regions = PageRegion::createFromBlockLayout('stark');
+    foreach ($regions as $region) {
+      $region->save();
+    }
+    // Load the test data from the layout controller.
+    $this->request(Request::create('/xb/api/layout/node/1'))->getContent();
+
+    // Check that content region exist and is wrapped.
+    $contentRegion = $this->getRegion('content');
+    $this->assertNotNull($contentRegion);
+    // But not the highlighted region, as we don't have access to it.
+    $highlighted = $this->getRegion('highlighted');
+    self::assertNull($highlighted);
+
+    $new_label = $this->randomMachineName();
+    // Patch a component instance in a ("global") region.
+    // We need to use the APIs to get the UUID of a valid component instance in a region.
+    $component_tree_structure = $regions['stark.highlighted']->getComponentTree()->get('tree');
+    $globalComponentUuids = $component_tree_structure->getComponentInstanceUuids();
+    // There is only one block, the title, in the highlighted region.
+    $this->assertCount(1, $globalComponentUuids);
+    $globalComponentUuid = $globalComponentUuids[0];
+
+    $this->expectException(AccessDeniedHttpException::class);
+    $this->expectExceptionMessage('Access denied for region highlighted');
+
+    $this->request(Request::create('/xb/api/layout/node/1', method: 'PATCH', content: \json_encode([
+      'model' => [
+        'resolved' => [
+          'label' => $new_label,
+          'label_display' => '',
+        ],
+      ],
+      'componentType' => 'block.system_messages_block',
+      'componentInstanceUuid' => $globalComponentUuid,
+    ], JSON_THROW_ON_ERROR)));
   }
 
 }

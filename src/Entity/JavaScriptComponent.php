@@ -206,7 +206,7 @@ final class JavaScriptComponent extends ConfigEntityBase implements XbAssetInter
    * that the SDC's JSON schema does not actually validate: crucial parts are
    * validated only in PHP!
    *
-   * @return array{machineName: string, extension_type: string, id: string, provider: string, name: string, props: array, slots?: array, library: array, path: string, template: string}}
+   * @return array{machineName: string, extension_type: string, id: string, provider: string, name: string, props: array, slots?: array, library: array, path: string, template: string}
    *
    * @see core/assets/schemas/v1/metadata-full.schema.json
    * @see \Drupal\Core\Theme\Component\ComponentValidator::validateDefinition()

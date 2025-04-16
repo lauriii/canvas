@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\experience_builder\Render\MainContent;
 
 use Drupal\Component\Plugin\PluginManagerInterface;
+use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Controller\TitleResolverInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Render\AttachmentsInterface;
@@ -16,6 +17,7 @@ use Drupal\Core\Render\RenderCacheInterface;
 use Drupal\Core\Render\RendererInterface;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Theme\ThemeManagerInterface;
+use Drupal\experience_builder\Entity\PageRegion;
 use Drupal\experience_builder\Plugin\DisplayVariant\XbPageVariant;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -93,8 +95,17 @@ final class XBPreviewRenderer extends HtmlRenderer {
       if ($page[$region] === []) {
         continue;
       }
-      $page[$region]['#prefix'] = Markup::create("<!-- xb-region-start-$region -->");
-      $page[$region]['#suffix'] = Markup::create("<!-- xb-region-end-$region -->");
+      $page_regions = PageRegion::loadForActiveThemeByClientSideId();
+      if (!empty($page_regions)) {
+        $access = $page_regions[$region]->access('edit', return_as_object: TRUE);
+        if ($access->isAllowed()) {
+          $page[$region]['#prefix'] = Markup::create("<!-- xb-region-start-$region -->");
+          $page[$region]['#suffix'] = Markup::create("<!-- xb-region-end-$region -->");
+        }
+        $cacheableMetadata = CacheableMetadata::createFromRenderArray($page[$region]);
+        $cacheableMetadata->addCacheableDependency($access);
+        $cacheableMetadata->applyTo($page[$region]);
+      }
       // @see experience_builder_preprocess_region()
       $page[$region]['#xb_region_preview'] = TRUE;
     }

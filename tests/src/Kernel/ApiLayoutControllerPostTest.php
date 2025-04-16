@@ -19,6 +19,7 @@ use Drupal\node\NodeInterface;
 use Drupal\Tests\experience_builder\TestSite\XBTestSetup;
 use Symfony\Component\DomCrawler\Crawler;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
 /**
  * @covers \Drupal\experience_builder\Controller\ApiLayoutController::post()
@@ -39,6 +40,7 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
     $this->setUpCurrentUser([], [
       'access administration pages',
       'administer url aliases',
+      PageRegion::ADMIN_PERMISSION,
     ]);
   }
 
@@ -58,8 +60,8 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
 
     // Check that the root level is structured correctly.
     $root = $this->getRegion('content');
-    $this->assertNotEmpty($root);
-    $this->assertEquals('', $root[0]);
+    $this->assertNotNull($root);
+    $this->assertEquals('', $root);
   }
 
   public function testMissingSlot(): void {
@@ -126,11 +128,9 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
 
     // Check that the root level is structured correctly.
     $root = $this->getRegion('content');
-
-    $this->assertNotEmpty($root[0]);
-
-    \preg_match_all('/(xb-start-)(.*?)[\/ \t](.*?)(-->)(.*?)/', $root[0], $slot_and_component_comments);
-    $this->assertSame(['c4074d1f-149a-4662-aaf3-615151531cf6'], $slot_and_component_comments[2]);
+    $this->assertNotNull($root);
+    $slot_and_component_comments = $this->getComponentInstances($root);
+    $this->assertSame(['c4074d1f-149a-4662-aaf3-615151531cf6'], $slot_and_component_comments);
   }
 
   public function test(): void {
@@ -148,10 +148,10 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
 
     // Check that each level is structured correctly.
     $contentRegion = $this->getRegion('content');
-    $this->assertNotEmpty($contentRegion);
-    \preg_match_all('/(xb-start-)(.*?)[\/ \t](.*?)(-->)(.*?)/', $contentRegion[0], $slot_and_component_comments);
-    $this->assertCount(6, $slot_and_component_comments[2]);
-    $this->assertSame(array_keys($model), $slot_and_component_comments[2]);
+    $this->assertNotNull($contentRegion);
+    $slot_and_component_comments = $this->getComponentInstances($contentRegion);
+    $this->assertCount(6, $slot_and_component_comments);
+    $this->assertSame(array_keys($model), $slot_and_component_comments);
 
     // Add a new component to the content region.
     $uuid = '173c4899-a5f7-442a-b008-ea8c925735be';
@@ -201,9 +201,9 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
 
     // Check that regions exist and are wrapped.
     $contentRegion = $this->getRegion('content');
-    $this->assertNotEmpty($contentRegion);
+    $this->assertNotNull($contentRegion);
     $highlighted = $this->getRegion('highlighted');
-    $this->assertNotEmpty($highlighted);
+    $this->assertNotNull($highlighted);
 
     // Add a new component to a global region.
     $uuid = '173c4899-a5f7-442a-b008-ea8c925735be';
@@ -223,6 +223,62 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
       \assert($region instanceof PageRegion);
       self::assertEquals($region->get('region') !== 'highlighted', $autoSave->getAutoSaveData($region)->isEmpty());
     }
+  }
+
+  public function testWithoutPageRegionPermission(): void {
+    $this->setUpCurrentUser([], [
+      'access administration pages',
+      'administer url aliases',
+    ]);
+
+    $regions = PageRegion::createFromBlockLayout('stark');
+    foreach ($regions as $region) {
+      $region->save();
+    }
+
+    // Load the test data from the layout controller.
+    $content = $this->parentRequest(Request::create('/xb/api/layout/node/1'))->getContent();
+    $this->assertIsString($content);
+    $json = json_decode($content, TRUE);
+    $highlightedRegion = \array_filter($json['layout'], static fn (array $region) => ($region['id'] ?? NULL) === 'highlighted');
+    self::assertEmpty($highlightedRegion);
+    $this->request(Request::create('/xb/api/layout/node/1', method: 'POST', content: $this->filterLayoutForPost($content)));
+    $autoSave = $this->container->get(AutoSaveManager::class);
+    \assert($autoSave instanceof AutoSaveManager);
+    $node = Node::load(1);
+    \assert($node instanceof NodeInterface);
+    self::assertTrue($autoSave->getAutoSaveData($node)->isEmpty());
+    foreach ($regions as $region) {
+      self::assertTrue($autoSave->getAutoSaveData($region)->isEmpty());
+    }
+
+    // Check that content region exist and is wrapped.
+    $contentRegion = $this->getRegion('content');
+    $this->assertNotNull($contentRegion);
+    // But not the highlighted region, as we don't have access to it.
+    $highlighted = $this->getRegion('highlighted');
+    $this->assertNull($highlighted);
+
+    // Add a new component instance to a ("global") region.
+    $uuid = '173c4899-a5f7-442a-b008-ea8c925735be';
+    $json['model'][$uuid] = self::getNewHeadingComponentModel();
+    unset($json['isNew'], $json['isPublished'], $json['html']);
+    $json['layout'][1] = [
+      'nodeType' => 'region',
+      'id' => 'highlighted',
+      'name' => 'Highlighted',
+    ];
+    $json['layout'][1]['components'][] = [
+      'nodeType' => 'component',
+      'uuid' => $uuid,
+      'type' => 'sdc.experience_builder.heading',
+      'slots' => [],
+    ];
+
+    $this->expectException(AccessDeniedHttpException::class);
+    $this->expectExceptionMessage('Access denied for region highlighted');
+
+    $this->request(Request::create('/xb/api/layout/node/1', method: 'POST', content: \json_encode($json, JSON_THROW_ON_ERROR)));
   }
 
   public function testWithDraftCodeComponent(): void {
@@ -321,12 +377,12 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
     $this->request(Request::create('/xb/api/layout/node/1', method: 'POST', content: \json_encode($json, JSON_THROW_ON_ERROR)));
     // Check that regions exist and are wrapped.
     $content_region = $this->getRegion('content');
-    self::assertNotEmpty($content_region);
+    self::assertNotNull($content_region);
 
     $crawler = new Crawler($this->content);
     $element = $crawler->filter('astro-island');
-    self::assertNotFalse(str_contains($content_region[0], 'astro-island'));
-    self::assertNotFalse(str_contains($content_region[0], $uuid));
+    self::assertNotFalse(str_contains($content_region, 'astro-island'));
+    self::assertNotFalse(str_contains($content_region, $uuid));
     self::assertEquals($uuid, $element->attr('uid'));
 
     // Should see the new (draft) props.

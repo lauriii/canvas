@@ -889,7 +889,7 @@ paths:
         - $ref: '#/components/parameters/entityId'
       responses:
         '200':
-          description: The layout
+          description: "The layout that the current user is allowed to edit: regions not editable by the current user are omitted."
           content:
             application/json:
               examples:
@@ -999,6 +999,9 @@ paths:
                     # @see \Drupal\Core\Entity\EntityPublishedInterface
                     # @see https://www.drupal.org/project/experience_builder/issues/3505118#comment-15982801
                     description: Whether the edited content entity is marked as published.
+        '403':
+          description: Access denied response.
+          $ref: '#/components/responses/AuthenticationErrorResponse'
     patch:
       description: >
         Update a single component and return a preview as well
@@ -1038,7 +1041,9 @@ paths:
                   entity_form_fields:
                     type: object
                     description: The full entity data.
-
+        '403':
+          description: Access denied response.
+          $ref: '#/components/responses/AuthenticationErrorResponse'
     post:
       description: >
         Update the layout, model or entity field values
@@ -1063,6 +1068,9 @@ paths:
                   html:
                     type: string
                     description: The HTML preview.
+        '403':
+          description: Access denied response.
+          $ref: '#/components/responses/AuthenticationErrorResponse'
   /xb/api/log-error:
     description: TODO
     post:
