@@ -208,6 +208,7 @@ overrides the "Published" (saved) version on certain routes, thanks to a conditi
 See:
 - `\Drupal\experience_builder\Entity\PageRegion`
 - `\Drupal\experience_builder\Plugin\DisplayVariant\XbPageVariant`
+- `\Drupal\experience_builder\Controller\XbBlockListController`
 
 Multiple `PageRegion config entities` may be created per Drupal theme: one per region, except the `content` region. This allows using XB instead of the Block module's
 "Block Layout" functionality (at `/admin/structure/block`) to populate the `theme region`s of the Drupal theme's
@@ -225,7 +226,8 @@ XB's product requirements [`37. Revisionable templates`](https://docs.google.com
 and [`55. Workspaces`](https://docs.google.com/spreadsheets/d/1OpETAzprh6DWjpTsZG55LWgldWV_D8jNe9AM73jNaZo/edit?gid=1721130122#gid=1721130122&range=B62).
 
 Once a theme has >=1 XB _enabled_ `PageRegion config entity`, then the block layout (if any) is not used, and XB's
-`PageVariantInterface` implementation is used instead.
+`PageVariantInterface` implementation is used instead. The Ambitious Site Builder is informed about this on the block
+listing UI.
 
 That means that when this is used, the Block module is in principle unnecessary. However, Drupal admin themes typically
 rely on the Block module to provide the intended administrative User Experience, which makes that impractical.

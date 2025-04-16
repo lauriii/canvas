@@ -15,6 +15,7 @@ use Drupal\Tests\experience_builder\Traits\GenerateComponentConfigTrait;
  * @group experience_builder
  * @covers \experience_builder_form_system_theme_settings_alter()
  * @covers \experience_builder_form_system_theme_settings_submit()
+ * @covers \Drupal\experience_builder\Controller\XbBlockListController
  * @covers \Drupal\experience_builder\Entity\PageRegion::createFromBlockLayout()
  */
 class XbPageVariantEnableTest extends BrowserTestBase {
@@ -32,6 +33,8 @@ class XbPageVariantEnableTest extends BrowserTestBase {
   protected $defaultTheme = 'olivero';
 
   public function test(): void {
+    $assert = $this->assertSession();
+
     $this->drupalLogin($this->rootUser);
     $this->generateComponentConfig();
 
@@ -48,14 +51,22 @@ class XbPageVariantEnableTest extends BrowserTestBase {
     // We start with no templates.
     $this->assertEmpty(PageRegion::loadMultiple());
 
-    // No template is created if we do not enable XB.
+    // No template is created if we do not enable XB; no warning messages on
+    // block listing.
     $this->submitForm(['use_xb' => FALSE], 'Save configuration');
     $this->assertEmpty(PageRegion::loadMultiple());
+    $this->drupalGet('/admin/structure/block');
+    $assert->elementsCount('css', '[aria-label="Warning message"]', 0);
 
-    // Regions are created when we enable XB.
+    // Regions are created when we enable XB; warning message appears on block
+    // listing.
+    $this->drupalGet('/admin/appearance/settings/olivero');
     $this->submitForm(['use_xb' => TRUE], 'Save configuration');
     $regions = PageRegion::loadMultiple();
     $this->assertCount(12, $regions);
+    $this->drupalGet('/admin/structure/block');
+    $assert->elementsCount('css', '[aria-label="Warning message"]', 1);
+    $assert->elementTextContains('css', '[aria-label="Warning message"] .messages__content', 'configured to use Experience Builder for managing the block layout');
 
     // Check the regions are created correctly.
     $expected_page_region_ids = \array_filter([
