@@ -20,6 +20,7 @@ import useGetComponentName from '@/hooks/useGetComponentName';
 import ComponentContextMenuRegions from '@/features/layout/preview/ComponentContextMenuRegions';
 import { useNavigationUtils } from '@/hooks/useNavigationUtils';
 import useXbParams from '@/hooks/useXbParams';
+import useCopyPasteComponents from '@/hooks/useCopyPasteComponents';
 
 interface ComponentContextMenuProps {
   children: ReactNode;
@@ -37,6 +38,8 @@ export const ComponentContextMenuContent: React.FC<
   const { componentId: selectedComponent } = useXbParams();
   const { setSelectedComponent, unsetSelectedComponent } = useNavigationUtils();
   const componentUuid = component.uuid;
+  const { copySelectedComponent, pasteAfterSelectedComponent } =
+    useCopyPasteComponents();
 
   const handleDeleteClick = useCallback(
     (ev: React.MouseEvent<HTMLElement>) => {
@@ -71,6 +74,30 @@ export const ComponentContextMenuContent: React.FC<
       }
     },
     [dispatch, componentUuid],
+  );
+
+  const handleCopyClick = useCallback(
+    (ev: React.MouseEvent<HTMLElement>) => {
+      ev.stopPropagation();
+      dispatch(unsetHoveredComponent());
+
+      if (componentUuid) {
+        copySelectedComponent(componentUuid);
+      }
+    },
+    [dispatch, componentUuid, copySelectedComponent],
+  );
+
+  const handlePasteClick = useCallback(
+    (ev: React.MouseEvent<HTMLElement>) => {
+      ev.stopPropagation();
+      dispatch(unsetHoveredComponent());
+
+      if (componentUuid) {
+        pasteAfterSelectedComponent(componentUuid);
+      }
+    },
+    [dispatch, componentUuid, pasteAfterSelectedComponent],
   );
 
   const handleMoveUpClick = useCallback(
@@ -132,10 +159,10 @@ export const ComponentContextMenuContent: React.FC<
       <UnifiedMenu.Item onClick={handleDuplicateClick} shortcut="⌘ D">
         Duplicate
       </UnifiedMenu.Item>
-      <UnifiedMenu.Item onClick={handleDuplicateClick} shortcut="⌘ C">
+      <UnifiedMenu.Item onClick={handleCopyClick} shortcut="⌘ C">
         Copy
       </UnifiedMenu.Item>
-      <UnifiedMenu.Item onClick={handleDuplicateClick} shortcut="⌘ V">
+      <UnifiedMenu.Item onClick={handlePasteClick} shortcut="⌘ V">
         Paste
       </UnifiedMenu.Item>
       <UnifiedMenu.Separator />

@@ -18,8 +18,8 @@ import { useNavigationUtils } from '@/hooks/useNavigationUtils';
 import useXbParams from '@/hooks/useXbParams';
 
 interface CopyPasteFunctions {
-  copySelectedComponent: () => void;
-  pasteAfterSelectedComponent: () => void;
+  copySelectedComponent: (component?: string) => void;
+  pasteAfterSelectedComponent: (component?: string) => void;
 }
 function useCopyPasteComponents(): CopyPasteFunctions {
   const dispatch = useAppDispatch();
@@ -27,33 +27,36 @@ function useCopyPasteComponents(): CopyPasteFunctions {
   const model = useAppSelector(selectModel);
   const layout = useAppSelector(selectLayout);
   const { setSelectedComponent } = useNavigationUtils();
-  const copySelectedComponent = () => {
-    if (selectedComponent) {
-      const copiedComponent = findComponentByUuid(layout, selectedComponent);
-      if (!copiedComponent) {
-        return;
-      }
-      // Recursively get ALL the model data for not just the selected component but also all of its children.
-      const copiedModels = { [selectedComponent]: model[selectedComponent] };
-      recurseNodes(copiedComponent, (node: ComponentNode) => {
-        copiedModels[node.uuid] = model[node.uuid];
-      });
-
-      localStorage.setItem(
-        'copiedComponent',
-        JSON.stringify({
-          model: copiedModels,
-          layout: [copiedComponent],
-        } as LayoutModelPiece),
-      );
-    }
-  };
-
-  const pasteAfterSelectedComponent = () => {
-    if (!selectedComponent) {
+  const copySelectedComponent = (component?: string) => {
+    const targetComponent = component || selectedComponent;
+    if (!targetComponent) {
       return;
     }
-    const destinationUUID = selectedComponent;
+    const copiedComponent = findComponentByUuid(layout, targetComponent);
+    if (!copiedComponent) {
+      return;
+    }
+    // Recursively get ALL the model data for not just the selected component but also all of its children.
+    const copiedModels = { [targetComponent]: model[targetComponent] };
+    recurseNodes(copiedComponent, (node: ComponentNode) => {
+      copiedModels[node.uuid] = model[node.uuid];
+    });
+
+    localStorage.setItem(
+      'copiedComponent',
+      JSON.stringify({
+        model: copiedModels,
+        layout: [copiedComponent],
+      } as LayoutModelPiece),
+    );
+  };
+
+  const pasteAfterSelectedComponent = (component?: string) => {
+    const targetComponent = component || selectedComponent;
+    if (!targetComponent) {
+      return;
+    }
+    const destinationUUID = targetComponent;
     const serializedCopiedComponent = localStorage.getItem('copiedComponent');
     let componentFromClipboard;
 
