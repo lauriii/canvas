@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Drupal\Tests\experience_builder\TestSite;
 
 use Drupal\Core\Extension\ModuleInstallerInterface;
-use Drupal\editor\Entity\Editor;
 use Drupal\experience_builder\Entity\JavaScriptComponent;
 use Drupal\experience_builder\Entity\Page;
 use Drupal\experience_builder\Entity\PageRegion;
@@ -14,7 +13,6 @@ use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\file\Entity\File;
-use Drupal\filter\Entity\FilterFormat;
 use Drupal\image\Plugin\Field\FieldType\ImageItem;
 use Drupal\media\Entity\Media;
 use Drupal\node\Entity\Node;
@@ -26,9 +24,8 @@ use Drupal\Tests\media\Traits\MediaTypeCreationTrait;
 use Drupal\Tests\RandomGeneratorTrait;
 use Drupal\Tests\TestFileCreationTrait;
 use Drupal\TestSite\TestSetupInterface;
-use Drupal\user\Entity\User;
 use Drupal\user\Entity\Role;
-use Drupal\user\RoleInterface;
+use Drupal\user\Entity\User;
 
 class XBTestSetup implements TestSetupInterface {
 
@@ -455,41 +452,6 @@ class XBTestSetup implements TestSetupInterface {
     if (getenv('XB_EXTRA_MODULES')) {
       $modules = \explode(',', getenv('XB_EXTRA_MODULES'));
       $module_installer->install($modules);
-      if (in_array('ckeditor5', $modules)) {
-        $name = 'minimal_html';
-        FilterFormat::create([
-          'format' => $name,
-          'roles' => [RoleInterface::AUTHENTICATED_ID],
-          'name' => $name,
-          'filters' => [
-            'filter_html' => [
-              'status' => TRUE,
-              'settings' => [
-                'allowed_html' => '<br> <p> <strong> <em>',
-              ],
-            ],
-          ],
-        ])->save();
-
-        Editor::create([
-          'editor' => 'ckeditor5',
-          'format' => $name,
-          'image_upload' => [
-            'status' => FALSE,
-          ],
-          'settings' => [
-            'toolbar' => [
-              'items' => ['bold', 'italic', 'sourceEditing'],
-            ],
-            'plugins' => [
-              'ckeditor5_sourceEditing' => [
-                'allowed_tags' => [],
-              ],
-            ],
-          ],
-        ])->save();
-      }
-
       if (getenv('XB_EXTRA_PERMISSIONS')) {
         $role = Role::load('xb');
         if ($role) {

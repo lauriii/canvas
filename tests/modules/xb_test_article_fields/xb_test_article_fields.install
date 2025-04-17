@@ -12,12 +12,14 @@ declare(strict_types=1);
 use Drupal\Core\Entity\Entity\EntityFormDisplay;
 use Drupal\Core\Language\LanguageInterface;
 use Drupal\datetime\Plugin\Field\FieldType\DateTimeItemInterface;
+use Drupal\editor\Entity\Editor;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\filter\Entity\FilterFormat;
 use Drupal\node\NodeInterface;
 use Drupal\Tests\content_moderation\Traits\ContentModerationTestTrait;
 use Drupal\user\Entity\Role;
+use Drupal\user\RoleInterface;
 
 /**
  * Implements hook_install().
@@ -393,6 +395,38 @@ function xb_test_article_fields_install(): void {
       ],
     ])->save();
   }
+  $name = 'minimal_html';
+  FilterFormat::create([
+    'format' => $name,
+    'roles' => [RoleInterface::AUTHENTICATED_ID],
+    'name' => $name,
+    'filters' => [
+      'filter_html' => [
+        'status' => TRUE,
+        'settings' => [
+          'allowed_html' => '<br> <p> <strong> <em>',
+        ],
+      ],
+    ],
+  ])->save();
+
+  Editor::create([
+    'editor' => 'ckeditor5',
+    'format' => $name,
+    'image_upload' => [
+      'status' => FALSE,
+    ],
+    'settings' => [
+      'toolbar' => [
+        'items' => ['bold', 'italic', 'sourceEditing'],
+      ],
+      'plugins' => [
+        'ckeditor5_sourceEditing' => [
+          'allowed_tags' => [],
+        ],
+      ],
+    ],
+  ])->save();
 
   // Grant some permissions.
   $role = Role::load('xb');
@@ -401,6 +435,7 @@ function xb_test_article_fields_install(): void {
     $role->grantPermission('post comments');
     $role->grantPermission('use text format restricted_html');
     $role->grantPermission('use text format basic_html');
+    $role->grantPermission('use text format minimal_html');
     // Needed to make the Content Moderation widget visible on the node edit
     // form. The user needs to be able to use at least two moderation states for
     // the widget to be visible. The first transition allows them to move from

@@ -1,9 +1,6 @@
 describe('ckeditor 5', () => {
   before(() => {
-    cy.drupalXbInstall(
-      ['xb_test_article_fields', 'filter', 'editor', 'ckeditor5'],
-      ['administer filters', 'use text format minimal_html'],
-    );
+    cy.drupalXbInstall(['xb_test_article_fields']);
   });
 
   beforeEach(() => {
@@ -14,8 +11,7 @@ describe('ckeditor 5', () => {
     cy.drupalUninstall();
   });
   it('works with page data form', () => {
-    cy.drupalRelativeURL('admin/config/content/formats');
-    cy.loadURLandWaitForXBLoaded({ clearAutoSave: false });
+    cy.loadURLandWaitForXBLoaded();
 
     // Delete the two existing image components to avoid a violation from
     // ComponentTreeMeetsRequirementsConstraintValidator which disallows the
@@ -27,12 +23,7 @@ describe('ckeditor 5', () => {
     cy.realPress('{del}');
 
     cy.waitForComponentNotInPreview('Image');
-    cy.findByText('Review 1 change', { timeout: 20000 }).click();
-    cy.intercept('**/xb/api/auto-saves/publish').as('publishing');
-    cy.intercept('**/xb/api/auto-saves/pending').as('pending');
-    cy.intercept('**/xb/api/layout/node/1').as('layout');
-    cy.findByText('Publish all changes').click();
-    cy.wait('@publishing');
+    cy.publishAllPendingChanges();
 
     // Now that the violation-causing images are removed, CKEditor5 tests begin.
     cy.findByTestId('xb-contextual-panel--page-data').click({ force: true });
@@ -61,13 +52,7 @@ describe('ckeditor 5', () => {
       `${wrap} [data-cke-tooltip-text="Source"][aria-pressed="false"]`,
     ).should('exist');
 
-    // This wait is needed for this test to pass reliably. Unsure why.
-    // Waiting on form build id has been attempted.
-    // eslint-disable-next-line cypress/no-unnecessary-waiting
-    cy.wait(1000);
-    cy.findByText('Review 1 change', { timeout: 20000 }).click();
-    cy.findByText('Publish all changes').click();
-    cy.wait('@publishing');
+    cy.publishAllPendingChanges();
     cy.drupalRelativeURL('node/1/edit');
     cy.get('[data-drupal-selector="edit-field-xbt-textarea-0-value"]').should(
       'contain',

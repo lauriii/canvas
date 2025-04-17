@@ -23,7 +23,7 @@ const DrupalTextArea = ({
     if (!ref?.current) {
       return;
     }
-    setTimeout(() => {
+    const timeout = setTimeout(() => {
       if (!ref?.current) {
         return;
       }
@@ -101,6 +101,7 @@ const DrupalTextArea = ({
       if (observer instanceof MutationObserver) {
         observer.disconnect();
       }
+      clearTimeout(timeout);
     };
   }, [attributes, theEditorId]);
 

@@ -49,7 +49,7 @@ const DrupalSelect = ({ attributes = {}, options = [] }: DrupalSelectProps) => {
     // However, some JS functionality expects attributes to be set on this
     // element. We access it by using the known ref as the basis of q query to
     // get its corresponding hidden `<select>`.
-    setTimeout(() => {
+    const timeout = setTimeout(() => {
       if (!selectRef?.current) {
         return;
       }
@@ -75,6 +75,7 @@ const DrupalSelect = ({ attributes = {}, options = [] }: DrupalSelectProps) => {
         }
       }
     });
+    return () => clearTimeout(timeout);
   }, [attributes, className, defaultValue]);
 
   return (
