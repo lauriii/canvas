@@ -24,7 +24,7 @@ export const defaultValue = dayjs()
   .second(0);
 export const defaultEndValue = defaultValue.add(2, 'hours');
 
-// When cypress sets up the test environment, it makes use of core's test-site
+// When Cypress sets up the test environment, it makes use of core's test-site
 // application, which loads the same bootstrap.php as PHPUnit. In this bootstrap
 // file, the default timezone is set to Australia/Sydney. As this file is loaded
 // before the test site is installed, it results in the default timezone for

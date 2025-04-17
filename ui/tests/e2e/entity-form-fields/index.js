@@ -10,6 +10,7 @@ import * as field_xbt_daterange_default from './field_xbt_daterange_default.js';
 import * as field_xbt_textarea_summary from './field_xbt_textarea_summary.js';
 import * as field_xbt_moderation_state from './field_xbt_moderation_state.js';
 import * as field_xbt_datetime_timestamp from './field_xbt_datetime_timestamp.js';
+import * as field_xbt_daterange_datelist from './field_xbt_daterange_datelist.js';
 
 // Expand this to add additional coverage.
 // For each field to be tested, add a new file that exports two methods as
@@ -35,4 +36,5 @@ export default {
   field_xbt_daterange_default,
   field_xbt_textarea_summary,
   field_xbt_datetime_timestamp,
+  field_xbt_daterange_datelist,
 };
