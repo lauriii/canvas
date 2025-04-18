@@ -8,6 +8,15 @@ SCRIPT_DIR=`pwd`
 WORK_DIR=`mktemp -d`
 
 read -p "Tag to create release for: " TAG
+case $TAG in
+  "0."*) continue ;;
+  *)
+    read -p "☢️ Are you sure you want to use $TAG? Then write it again: " RETAG
+    case $RETAG in
+      $TAG) continue;;
+      *) echo "⛔ Nope."; exit 2;;
+    esac
+esac
 
 echo "${WHITE_ON_BLUE}[0/5] 💁‍♂️ Opening working directory $WORK_DIR …${NC}"
 open $WORK_DIR
