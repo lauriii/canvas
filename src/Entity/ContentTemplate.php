@@ -53,6 +53,7 @@ use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemInstantiat
     'content_entity_type_bundle',
     'content_entity_type_view_mode',
     'component_tree',
+    'exposed_slots',
   ],
 )]
 final class ContentTemplate extends ConfigEntityBase implements ComponentTreeEntityInterface, EntityViewDisplayInterface {
@@ -68,7 +69,7 @@ final class ContentTemplate extends ConfigEntityBase implements ComponentTreeEnt
    *
    * @see \Drupal\experience_builder\Plugin\Validation\Constraint\StringPartsConstraint
    */
-  protected string $id;
+  protected ?string $id;
 
   /**
    * Entity type to be displayed.
@@ -97,6 +98,13 @@ final class ContentTemplate extends ConfigEntityBase implements ComponentTreeEnt
    * @var ?array{'inputs': array, 'tree': array}
    */
   protected ?array $component_tree;
+
+  /**
+   * The exposed slots.
+   *
+   * @var ?array<string, array{'component_uuid': string, 'slot_name': string, 'label': string}>
+   */
+  protected ?array $exposed_slots = [];
 
   /**
    * Tries to load a template for a particular entity, in a specific view mode.

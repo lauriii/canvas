@@ -94,6 +94,8 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
             ['uuid' => 'sdc-dynamic-bundle-field', 'component' => 'sdc.xb_test_sdc.props-no-slots'],
             // A block component.
             ['uuid' => 'block', 'component' => 'block.system_branding_block'],
+            // An SDC with a slot that can be exposed.
+            ['uuid' => 'b4937e35-ddc2-4f36-8d4c-b1cc14aaefef', 'component' => 'sdc.xb_test_sdc.props-slots'],
           ],
         ]),
         'inputs' => self::encodeXBData([
@@ -123,6 +125,13 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
             'use_site_name' => TRUE,
             'use_site_slogan' => TRUE,
           ],
+          'b4937e35-ddc2-4f36-8d4c-b1cc14aaefef' => [
+            'heading' => [
+              'sourceType' => 'static:field_item:string',
+              'value' => 'There be a slot here',
+              'expression' => 'ℹ︎string␟value',
+            ],
+          ],
         ]),
       ],
     ]);
@@ -148,6 +157,7 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
           'experience_builder.component.js.my-cta',
           'experience_builder.component.sdc.sdc_test.my-cta',
           'experience_builder.component.sdc.xb_test_sdc.props-no-slots',
+          'experience_builder.component.sdc.xb_test_sdc.props-slots',
         ],
       ],
       $this->entity->getDependencies()
@@ -159,6 +169,7 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
         'experience_builder.component.js.my-cta',
         'experience_builder.component.sdc.sdc_test.my-cta',
         'experience_builder.component.sdc.xb_test_sdc.props-no-slots',
+        'experience_builder.component.sdc.xb_test_sdc.props-slots',
         'experience_builder.js_component.my-cta',
       ],
       'module' => [
@@ -354,6 +365,116 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
     $this->assertValidationErrors([
       '' => "The 'content_entity_type_view_mode' property cannot be changed.",
       'content_entity_type_view_mode' => "The 'core.entity_view_mode.node.nope' config does not exist.",
+    ]);
+  }
+
+  public function testExposedSlotMustBeEmpty(): void {
+    assert($this->entity instanceof ContentTemplate);
+
+    // Add a component in one of the open slots.
+    $item = $this->entity->getComponentTree();
+    $tree = json_decode($item->get('tree')->getValue(), TRUE);
+    $tree['b4937e35-ddc2-4f36-8d4c-b1cc14aaefef']['the_footer'][] = [
+      'uuid' => 'greeting',
+      'component' => 'sdc.xb_test_sdc.props-no-slots',
+    ];
+    $inputs = json_decode($item->get('inputs')->getValue(), TRUE);
+    $inputs['greeting']['heading'] = [
+      'sourceType' => 'dynamic',
+      'expression' => 'ℹ︎␜entity:node:alpha␝title␞␟value',
+    ];
+    $this->entity->set('component_tree', [
+      'tree' => self::encodeXBData($tree),
+      'inputs' => self::encodeXBData($inputs),
+    ]);
+
+    $this->entity->set('exposed_slots', [
+      'filled_footer' => [
+        'component_uuid' => 'b4937e35-ddc2-4f36-8d4c-b1cc14aaefef',
+        'slot_name' => 'the_footer',
+        'label' => "Something's already here!",
+      ],
+    ]);
+    $this->assertValidationErrors([
+      'exposed_slots.filled_footer' => 'The <em class="placeholder">the_footer</em> slot must be empty.',
+    ]);
+  }
+
+  public static function providerInvalidExposedSlot(): iterable {
+    yield 'root uuid is exposed' => [
+      [
+        'not_allowed' => [
+          'component_uuid' => ComponentTreeStructure::ROOT_UUID,
+          'slot_name' => 'not-a-thing',
+          'label' => "This won't work",
+        ],
+      ],
+      [
+        'exposed_slots.not_allowed' => 'Exposing the full component tree is not allowed.',
+      ],
+    ];
+
+    yield 'component exposing the slot does not exist in the tree' => [
+      [
+        'not_a_thing' => [
+          'component_uuid' => '6348ee20-cf62-49e3-bc86-cf62abc09c74',
+          'slot_name' => 'not-a-thing',
+          'label' => "Can't expose a slot in a component we don't have!",
+        ],
+      ],
+      [
+        'exposed_slots.not_a_thing' => 'The component <em class="placeholder">6348ee20-cf62-49e3-bc86-cf62abc09c74</em> does not exist in the tree.',
+      ],
+    ];
+
+    yield 'exposed slot is not defined by the component' => [
+      [
+        'filled_footer' => [
+          'component_uuid' => 'b4937e35-ddc2-4f36-8d4c-b1cc14aaefef',
+          'slot_name' => 'not_a_real_slot',
+          'label' => "Whither this slot you speak of?",
+        ],
+      ],
+      [
+        'exposed_slots.filled_footer' => 'The component <em class="placeholder">b4937e35-ddc2-4f36-8d4c-b1cc14aaefef</em> does not have a <em class="placeholder">not_a_real_slot</em> slot.',
+      ],
+    ];
+
+    yield 'exposed slot machine name is not valid' => [
+      [
+        'not a valid exposed slot name' => [
+          'component_uuid' => 'b4937e35-ddc2-4f36-8d4c-b1cc14aaefef',
+          'slot_name' => 'the_footer',
+          'label' => "I got your footer right here",
+        ],
+      ],
+      [
+        'exposed_slots' => 'The <em class="placeholder">&quot;not a valid exposed slot name&quot;</em> key is not a valid machine name.',
+      ],
+    ];
+  }
+
+  /**
+   * @dataProvider providerInvalidExposedSlot
+   */
+  public function testInvalidExposedSlot(array $exposed_slots, array $expected_errors): void {
+    $this->entity->set('exposed_slots', $exposed_slots);
+    $this->assertValidationErrors($expected_errors);
+  }
+
+  public function testExposedSlotsOnlyAllowedInFullViewMode(): void {
+    $this->entity = $this->entity->createDuplicate();
+    $this->entity->set('content_entity_type_view_mode', 'teaser');
+    $this->entity->set('id', 'node.alpha.teaser');
+    $this->entity->set('exposed_slots', [
+      'footer_for_you' => [
+        'component_uuid' => 'b4937e35-ddc2-4f36-8d4c-b1cc14aaefef',
+        'slot_name' => 'the_footer',
+        'label' => "I got your footer right here",
+      ],
+    ]);
+    $this->assertValidationErrors([
+      'exposed_slots.footer_for_you' => 'Exposed slots are only allowed in the <em class="placeholder">full</em> view mode.',
     ]);
   }
 

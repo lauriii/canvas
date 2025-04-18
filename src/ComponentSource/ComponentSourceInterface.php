@@ -31,11 +31,15 @@ use Symfony\Component\Validator\ConstraintViolationListInterface;
  * - a block plugin component source — which renders the a block and needs
  *   settings for the block plugin
  *
+ * Not all component sources support slots. A source that supports slots should
+ * implement \Drupal\experience_builder\ComponentSource\ComponentSourceWithSlotsInterface.
+ *
  * @phpstan-import-type PropSourceArray from \Drupal\experience_builder\PropSource\PropSourceBase
  *
  * @see \Drupal\experience_builder\Attribute\ComponentSource
  * @see \Drupal\experience_builder\ComponentSource\ComponentSourceBase
  * @see \Drupal\experience_builder\ComponentSource\ComponentSourceManager
+ * @see \Drupal\experience_builder\ComponentSource\ComponentSourceWithSlotsInterface
  */
 interface ComponentSourceInterface extends PluginInspectionInterface, DerivativeInspectionInterface, ConfigurableInterface, PluginFormInterface, DependentPluginInterface, ContextAwarePluginInterface {
 

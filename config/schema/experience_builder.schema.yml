@@ -524,6 +524,9 @@ experience_builder.content_template.*.*.*:
       constraints:
         # @todo Use `ConfigExists` once https://www.drupal.org/project/drupal/issues/3518273 is
         #   fixed in core.
+        # @todo Core entity types ship with a `full` view mode, but it's not guaranteed to
+        #   exist for every content entity type. Ensure XB creates it when opting a content
+        #   entity bundle into XB rendering in https://www.drupal.org/i/3518248.
         BetterConfigExists:
           prefix: 'core.entity_view_mode.[%parent.content_entity_type_id].'
     component_tree:
@@ -547,3 +550,51 @@ experience_builder.content_template.*.*.*:
               - Drupal\Core\Block\TitleBlockPluginInterface
               - Drupal\Core\Block\MessagesBlockPluginInterface
             presence: ~
+    exposed_slots:
+      type: sequence
+      # This is ordered by key because the keys are the machine names assigned to the
+      # exposed slots. These machine names are, essentially, "aliases" for a particular
+      # slot in a particular component in the component tree.
+      orderby: key
+      # If this sequence is empty, the site builder that crafted this template has not
+      # exposed any slots to content creators, which means there's nothing for content
+      # creators to do other than enter values for the content entity form (under the
+      # "Page Data" tab in the designs).
+      sequence:
+        type: mapping
+        constraints:
+          # Exposed slots are only supported by the "canonical" view mode, which is generally
+          # assumed to be `full` (see \Drupal\Core\Entity\Controller\EntityViewController::view()
+          # for where core makes this assumption). Example:
+          #
+          # exposed_slots:
+          #  profile_bio:
+          #    label: 'Profile Bio!'
+          #    component_uuid: 28bcab26-e434-4ad4-9eaf-0520bdb32fcc
+          #    slot_name: column_two
+          #  intro:
+          #    label: 'Intro'
+          #    component_uuid: 98bcab26-e434-4ad4-9eaf-0520bdb32fcc
+          #    slot_name: body
+          ValidExposedSlot: full
+        mapping:
+          # The UUID of the component that contains the slot being exposed. This CANNOT
+          # be the same as \Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure::ROOT_UUID,
+          # because that would mean the entire template could be overridden by an individual
+          # content entity, which is not an appropriate use of a content template (XB has
+          # the `Page` content entity type for that).
+          component_uuid:
+            type: uuid
+            label: 'UUID of the component instance that contains the exposed slot'
+          slot_name:
+            # @todo Add constraint in https://www.drupal.org/project/experience_builder/issues/3519891
+            type: string
+            label: 'The machine name of the component slot being exposed'
+          label:
+            type: required_label
+            label: 'A human-readable label for the exposed slot'
+      constraints:
+        SequenceKeysMatchRegex:
+          # Note: this is a subset of what slot names are allowed by SDCs: the machine names of XB's exposed content template slots must be simpler.
+          pattern: '/^[a-z0-9_]+$/'
+          message: "The %value key is not a valid machine name."
