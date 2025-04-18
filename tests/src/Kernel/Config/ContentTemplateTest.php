@@ -6,6 +6,7 @@ namespace Drupal\Tests\experience_builder\Kernel\Config;
 
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\experience_builder\Entity\ContentTemplate;
+use Drupal\experience_builder\Entity\Page;
 use Drupal\experience_builder\EntityHandlers\ContentTemplateAwareViewBuilder;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\node\Entity\NodeType;
@@ -78,7 +79,7 @@ final class ContentTemplateTest extends KernelTestBase {
     $this->assertFalse($definition->hasHandlerClass(ContentTemplateAwareViewBuilder::DECORATED_HANDLER_KEY));
 
     // XB pages are left alone despite being content entities.
-    $definition = $manager->getDefinition('xb_page');
+    $definition = $manager->getDefinition(Page::ENTITY_TYPE_ID);
     assert($definition instanceof EntityTypeInterface);
     $this->assertFalse($definition->hasHandlerClass(ContentTemplateAwareViewBuilder::DECORATED_HANDLER_KEY));
   }

@@ -6,48 +6,52 @@ namespace Drupal\experience_builder\Entity;
 
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Cache\RefinableCacheableDependencyInterface;
+use Drupal\Core\Entity\Attribute\ConfigEntityType;
 use Drupal\Core\Config\Entity\ConfigEntityBase;
 use Drupal\Core\Config\Entity\ConfigEntityTypeInterface;
 use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Entity\Query\QueryInterface;
 use Drupal\experience_builder\ClientSideRepresentation;
+use Drupal\Core\StringTranslation\TranslatableMarkup;
+use Drupal\experience_builder\EntityHandlers\JavascriptComponentStorage;
+use Drupal\experience_builder\EntityHandlers\XbConfigEntityAccessControlHandler;
 use Drupal\experience_builder\Exception\ConstraintViolationException;
 use Symfony\Component\Validator\ConstraintViolation;
 use Symfony\Component\Validator\ConstraintViolationList;
 
-/**
- * @ConfigEntityType(
- *   id = \Drupal\experience_builder\Entity\JavaScriptComponent::ENTITY_TYPE_ID,
- *   label = @Translation("Code component"),
- *   label_singular = @Translation("code component"),
- *   label_plural = @Translation("code components"),
- *   label_collection = @Translation("Code components"),
- *   admin_permission = \Drupal\experience_builder\Entity\JavaScriptComponent::ADMIN_PERMISSION,
- *   handlers = {
- *     "storage" = \Drupal\experience_builder\EntityHandlers\JavascriptComponentStorage::class,
- *     "access" = \Drupal\experience_builder\EntityHandlers\XbConfigEntityAccessControlHandler::class,
- *   },
- *   entity_keys = {
- *     "id" = "machineName",
- *     "label" = "name",
- *     "status" = "status",
- *   },
- *   config_export = {
- *     "machineName",
- *     "name",
- *     "block_override",
- *     "props",
- *     "required",
- *     "slots",
- *     "js",
- *     "css",
- *   },
- *   constraints = {
- *     "JsComponentHasValidAndSupportedSdcMetadata" = null,
- *   },
- *   xb_visible_when_disabled = TRUE
- * )
- */
+#[ConfigEntityType(
+  id: self::ENTITY_TYPE_ID,
+  label: new TranslatableMarkup('Code component'),
+  label_singular: new TranslatableMarkup('code component'),
+  label_plural: new TranslatableMarkup('code components'),
+  label_collection: new TranslatableMarkup('Code components'),
+  admin_permission: self::ADMIN_PERMISSION,
+  handlers: [
+    'storage' => JavascriptComponentStorage::class,
+    'access' => XbConfigEntityAccessControlHandler::class,
+  ],
+  entity_keys: [
+    'id' => 'machineName',
+    'label' => 'name',
+    'status' => 'status',
+  ],
+  config_export: [
+    'machineName',
+    'name',
+    'block_override',
+    'props',
+    'required',
+    'slots',
+    'js',
+    'css',
+  ],
+  constraints: [
+    'JsComponentHasValidAndSupportedSdcMetadata' => NULL,
+  ],
+  additional: [
+    'xb_visible_when_disabled' => TRUE,
+  ],
+)]
 final class JavaScriptComponent extends ConfigEntityBase implements XbAssetInterface {
 
   use XbAssetLibraryTrait;

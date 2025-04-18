@@ -44,7 +44,7 @@ final class XbHtmlRouteProviderTest extends KernelTestBase {
     $this->setUpCurrentUser([], [Page::CREATE_PERMISSION]);
     $url = Url::fromRoute('entity.xb_page.add_form')->toString();
     $this->request(Request::create($url));
-    $this->assertExperienceBuilderMount('xb_page');
+    $this->assertExperienceBuilderMount(Page::ENTITY_TYPE_ID);
   }
 
   public function testEditFormRoute(): void {
@@ -53,7 +53,7 @@ final class XbHtmlRouteProviderTest extends KernelTestBase {
     $page->save();
     $url = $page->toUrl('edit-form')->toString();
     $this->request(Request::create($url));
-    $this->assertExperienceBuilderMount('xb_page', $page);
+    $this->assertExperienceBuilderMount(Page::ENTITY_TYPE_ID, $page);
   }
 
 }

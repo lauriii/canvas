@@ -220,7 +220,7 @@ final class XbContentEntityHttpApiTest extends HttpApiTestBase {
     Role::load('authenticated')->grantPermission(Page::DELETE_PERMISSION)->save();
     $response = $this->makeApiRequest('DELETE', $url, $request_options);
     $this->assertSame(204, $response->getStatusCode());
-    $this->assertNull(\Drupal::entityTypeManager()->getStorage('xb_page')->load(1));
+    $this->assertNull(\Drupal::entityTypeManager()->getStorage(Page::ENTITY_TYPE_ID)->load(1));
   }
 
   private function assertAuthenticationAndAuthorization(Url $url, string $method): void {

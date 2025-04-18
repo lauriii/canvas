@@ -13,33 +13,36 @@ use Drupal\experience_builder\ClientSideRepresentation;
 use Drupal\experience_builder\Controller\ApiConfigControllers;
 use Drupal\experience_builder\Controller\ClientServerConversionTrait;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
+use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemInstantiatorTrait;
+use Drupal\Core\Entity\Attribute\ConfigEntityType;
+use Drupal\experience_builder\EntityHandlers\XbConfigEntityAccessControlHandler;
 
-/**
- * @ConfigEntityType(
- *    id = \Drupal\experience_builder\Entity\Pattern::PLUGIN_ID,
- *    label = @Translation("Pattern"),
- *    label_singular = @Translation("pattern"),
- *    label_plural = @Translation("patterns"),
- *    label_collection = @Translation("Patterns"),
- *    admin_permission = \Drupal\experience_builder\Entity\Pattern::ADMIN_PERMISSION,
- *    handlers = {
- *      "access" = \Drupal\experience_builder\EntityHandlers\ContentCreatorVisibleXbConfigEntityAccessControlHandler::class
- *    },
- *    entity_keys = {
- *      "id" = "id",
- *      "label" = "label",
- *    },
- *    config_export = {
- *      "id",
- *      "label",
- *      "component_tree",
- *    },
- *  )
- */
+#[ConfigEntityType(
+  id: self::ENTITY_TYPE_ID,
+  label: new TranslatableMarkup('Pattern'),
+  label_singular: new TranslatableMarkup('pattern'),
+  label_plural: new TranslatableMarkup('patterns'),
+  label_collection: new TranslatableMarkup('Patterns'),
+  admin_permission: self::ADMIN_PERMISSION,
+  handlers: [
+    'access' => XbConfigEntityAccessControlHandler::class,
+  ],
+  entity_keys: [
+    'id' => 'id',
+    'label' => 'label',
+    'status' => 'status',
+  ],
+  config_export: [
+    'id',
+    'label',
+    'component_tree',
+  ],
+)]
+
 final class Pattern extends ConfigEntityBase implements XbHttpApiEligibleConfigEntityInterface, ComponentTreeEntityInterface {
 
-  public const string PLUGIN_ID = 'pattern';
+  public const string ENTITY_TYPE_ID = 'pattern';
   public const string ADMIN_PERMISSION = 'administer patterns';
 
   use ComponentTreeItemInstantiatorTrait;

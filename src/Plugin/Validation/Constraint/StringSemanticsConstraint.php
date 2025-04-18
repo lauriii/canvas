@@ -4,16 +4,12 @@ declare(strict_types=1);
 
 namespace Drupal\experience_builder\Plugin\Validation\Constraint;
 
+use Drupal\Core\StringTranslation\TranslatableMarkup;
+use Drupal\Core\Validation\Attribute\Constraint;
 use Symfony\Component\Validator\Constraint as SymfonyConstraint;
 
 /**
  * No-op validation constraint to enable informed data connection suggestions.
- *
- * @Constraint(
- *   id = "StringSemantics",
- *   label = @Translation("Whether this string contains prose, (HTML) markup or a structured string.", context = "Validation"),
- *   type = {"string"},
- * )
  *
  * Note: the default string semantic is "structured", because this requires
  * additional validation constraints to be specified anyway. If the default were
@@ -28,6 +24,13 @@ use Symfony\Component\Validator\Constraint as SymfonyConstraint;
  * - therefore it must be defined as a validation constraint too.
  * There is precedent for in Drupal core: the `FullyValidatable` constraint.
  */
+#[Constraint(
+  id: 'StringSemantics',
+  label: new TranslatableMarkup('Whether this string contains prose, (HTML) markup or a structured string.', [], ['context' => 'Validation']),
+  type: [
+    'string',
+  ],
+)]
 final class StringSemanticsConstraint extends SymfonyConstraint {
 
   /**

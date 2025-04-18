@@ -61,8 +61,8 @@ final class ContentCreatorVisibleXbConfigEntityAccessControlHandlerTest extends 
   public static function viewPermissionProvider(): array {
     return [
       [Component::ENTITY_TYPE_ID, 'component', Component::ADMIN_PERMISSION, AccessResultAllowed::class],
-      [Pattern::PLUGIN_ID, 'pattern', Pattern::ADMIN_PERMISSION, AccessResultAllowed::class],
-      [PageRegion::PLUGIN_ID, 'page region', PageRegion::ADMIN_PERMISSION, AccessResultAllowed::class],
+      [Pattern::ENTITY_TYPE_ID, 'pattern', Pattern::ADMIN_PERMISSION, AccessResultAllowed::class],
+      [PageRegion::ENTITY_TYPE_ID, 'page region', PageRegion::ADMIN_PERMISSION, AccessResultAllowed::class],
     ];
   }
 

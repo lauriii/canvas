@@ -7,35 +7,37 @@ namespace Drupal\experience_builder\Entity;
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Cache\RefinableCacheableDependencyInterface;
 use Drupal\Core\Config\Entity\ConfigEntityBase;
+use Drupal\Core\Entity\Attribute\ConfigEntityType;
 use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Entity\Query\QueryInterface;
+use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\experience_builder\ClientSideRepresentation;
+use Drupal\experience_builder\EntityHandlers\XbAssetStorage;
+use Drupal\experience_builder\EntityHandlers\XbConfigEntityAccessControlHandler;
 
-/**
- * @ConfigEntityType(
- *    id = \Drupal\experience_builder\Entity\AssetLibrary::ENTITY_TYPE_ID,
- *    label = @Translation("In-browser code library"),
- *    label_singular = @Translation("in-browser code library"),
- *    label_plural = @Translation("in-browser code libraries"),
- *    label_collection = @Translation("In-browser code libraries"),
- *    admin_permission = \Drupal\experience_builder\Entity\JavaScriptComponent::ADMIN_PERMISSION,
- *    handlers = {
- *      "storage" = \Drupal\experience_builder\EntityHandlers\XbAssetStorage::class,
- *      "access" = \Drupal\experience_builder\EntityHandlers\XbConfigEntityAccessControlHandler::class,
- *    },
- *    entity_keys = {
- *      "id" = "id",
- *      "label" = "label",
- *    },
- *    links = {},
- *    config_export = {
- *      "id",
- *      "label",
- *      "css",
- *      "js",
- *    }
- *  )
- */
+#[ConfigEntityType(
+  id: self::ENTITY_TYPE_ID,
+  label: new TranslatableMarkup('In-browser code library'),
+  label_singular: new TranslatableMarkup('in-browser code library'),
+  label_plural: new TranslatableMarkup('in-browser code libraries'),
+  label_collection: new TranslatableMarkup('In-browser code libraries'),
+  admin_permission: JavaScriptComponent::ADMIN_PERMISSION,
+  handlers: [
+    'storage' => XbAssetStorage::class,
+    'access' => XbConfigEntityAccessControlHandler::class,
+  ],
+  entity_keys: [
+    'id' => 'id',
+    'label' => 'label',
+  ],
+  links: [],
+  config_export: [
+    'id',
+    'label',
+    'css',
+    'js',
+  ],
+)]
 final class AssetLibrary extends ConfigEntityBase implements XbAssetInterface {
 
   use XbAssetLibraryTrait;

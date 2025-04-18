@@ -46,7 +46,7 @@ final class LibraryInfoAlterTest extends KernelTestBase {
     $this->installEntitySchema('path_alias');
     $this->installEntitySchema('file');
     $this->installEntitySchema('media');
-    $this->installEntitySchema('xb_page');
+    $this->installEntitySchema(Page::ENTITY_TYPE_ID);
     $this->installConfig(['system']);
 
   }
@@ -65,7 +65,7 @@ final class LibraryInfoAlterTest extends KernelTestBase {
     $context = new RenderContext();
     $renderer = $this->container->get(RendererInterface::class);
     \assert($renderer instanceof RendererInterface);
-    $out = $renderer->executeInRenderContext($context, fn () => $this->container->get(ExperienceBuilderController::class)('xb_page', $page));
+    $out = $renderer->executeInRenderContext($context, fn () => $this->container->get(ExperienceBuilderController::class)(Page::ENTITY_TYPE_ID, $page));
     \assert($out instanceof HtmlResponse);
     $attachments = $out->getAttachments();
     self::assertEquals([

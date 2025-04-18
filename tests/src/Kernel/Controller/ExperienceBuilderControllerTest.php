@@ -99,7 +99,7 @@ final class ExperienceBuilderControllerTest extends KernelTestBase {
   public static function entityData(): array {
     return [
       'page' => [
-        'xb_page',
+        Page::ENTITY_TYPE_ID,
         [Page::CREATE_PERMISSION, Page::EDIT_PERMISSION],
         [
           'title' => 'Test page',
@@ -128,12 +128,12 @@ final class ExperienceBuilderControllerTest extends KernelTestBase {
    * @dataProvider permissionsData
    */
   public function testControllerExposedPermissions(array $permissions, array $expectedPermissionFlags): void {
-    $this->installEntitySchema('xb_page');
+    $this->installEntitySchema(Page::ENTITY_TYPE_ID);
 
     $this->setUpCurrentUser([], $permissions);
 
     $add_url = Url::fromRoute('experience_builder.experience_builder', [
-      'entity_type' => 'xb_page',
+      'entity_type' => Page::ENTITY_TYPE_ID,
       'entity' => '',
     ])->toString();
     self::assertEquals("/xb/xb_page", $add_url);

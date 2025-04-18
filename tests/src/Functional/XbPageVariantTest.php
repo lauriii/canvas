@@ -304,7 +304,7 @@ class XbPageVariantTest extends FunctionalTestBase {
     $xb_ui_session = $this->getSession('xb_ui');
     $page = Page::create(['title' => 'Test page']);
     $page->save();
-    $this->drupalGet(Url::fromRoute('experience_builder.api.layout.get', ['entity' => $page->id(), 'entity_type' => 'xb_page']));
+    $this->drupalGet(Url::fromRoute('experience_builder.api.layout.get', ['entity' => $page->id(), 'entity_type' => Page::ENTITY_TYPE_ID]));
     $this->assertSame('application/json', $xb_ui_session->getResponseHeader('Content-Type'));
     $layout_response_decoded = json_decode($xb_ui_session->getPage()->getContent(), TRUE);
     $this->assertArrayHasKey('html', $layout_response_decoded);

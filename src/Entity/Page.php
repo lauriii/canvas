@@ -4,13 +4,22 @@ declare(strict_types=1);
 
 namespace Drupal\experience_builder\Entity;
 
+use Drupal\Core\Entity\ContentEntityDeleteForm;
 use Drupal\Core\Entity\EditorialContentEntityBase;
 use Drupal\Core\Entity\EntityTypeInterface;
+use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\Field\BaseFieldDefinition;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\media\Entity\MediaType;
 use Drupal\user\EntityOwnerInterface;
 use Drupal\user\EntityOwnerTrait;
+use Drupal\Core\Entity\Attribute\ContentEntityType;
+use Drupal\Core\Entity\Sql\SqlContentEntityStorage;
+use Drupal\views\EntityViewsData;
+use Drupal\Core\Entity\Form\RevisionDeleteForm;
+use Drupal\Core\Entity\Form\RevisionRevertForm;
+use Drupal\experience_builder\Entity\Routing\XbHtmlRouteProvider;
+use Drupal\Core\Entity\Routing\RevisionHtmlRouteProvider;
 
 /**
  * Defines the page entity class.
@@ -20,68 +29,65 @@ use Drupal\user\EntityOwnerTrait;
  *    without them matching the URL path. If they don't routing in the UI is
  *    broken and the UI never renders. See `empty-canvas.cy.js`.
  *    Fix after https://www.drupal.org/project/experience_builder/issues/3489775
- *
- * @ContentEntityType(
- *   id = "xb_page",
- *   label = @Translation("Page"),
- *   label_collection = @Translation("Pages"),
- *   label_singular = @Translation("page"),
- *   label_plural = @Translation("pages"),
- *   label_count = @PluralTranslation(
- *     singular = "@count page",
- *     plural = "@count pages",
- *   ),
- *   handlers = {
- *     "storage" = "Drupal\Core\Entity\Sql\SqlContentEntityStorage",
- *     "access" = \Drupal\experience_builder\Entity\PageAccessControlHandler::class,
- *     "view_builder" = "Drupal\experience_builder\Entity\PageViewBuilder",
- *     "views_data" = "Drupal\views\EntityViewsData",
- *     "form" = {
- *       "default" = "Drupal\experience_builder\Entity\XbPageForm",
- *       "delete" = "Drupal\Core\Entity\ContentEntityDeleteForm",
- *       "revision-delete" = \Drupal\Core\Entity\Form\RevisionDeleteForm::class,
- *       "revision-revert" = \Drupal\Core\Entity\Form\RevisionRevertForm::class,
- *     },
- *     "route_provider" = {
- *       "html" = \Drupal\experience_builder\Entity\Routing\XbHtmlRouteProvider::class,
- *       "revision" = \Drupal\Core\Entity\Routing\RevisionHtmlRouteProvider::class,
- *     }
- *   },
- *   collection_permission = "edit xb_page",
- *   base_table = "xb_page",
- *   revision_table = "xb_page_revision",
- *   data_table = "xb_page_field_data",
- *   revision_data_table = "xb_page_field_revision",
- *   show_revision_ui = TRUE,
- *   links = {
- *     "canonical" = "/page/{xb_page}",
- *     "delete-form" = "/page/{xb_page}/delete",
- *     "edit-form" = "/xb/xb_page/{xb_page}",
- *     "add-form" = "/xb/xb_page",
- *     "revision-delete-form" = "/page/{xb_page}/revisions/{xb_page_revision}/delete",
- *     "revision-revert-form" = "/page/{xb_page}/revisions/{xb_page_revision}/revert",
- *     "version-history" = "/page/{xb_page}/revisions",
- *   },
- *   translatable = TRUE,
- *   entity_keys = {
- *     "id" = "id",
- *     "uuid" = "uuid",
- *     "revision" = "revision_id",
- *     "label" = "title",
- *     "langcode" = "langcode",
- *     "published" = "status",
- *     "owner" = "owner",
- *   },
- *   revision_metadata_keys = {
- *     "revision_user" = "revision_user",
- *     "revision_created" = "revision_created",
- *     "revision_log_message" = "revision_log"
- *   },
- * )
  */
+#[ContentEntityType(
+    id: self::ENTITY_TYPE_ID,
+    label: new TranslatableMarkup("Page"),
+    label_collection: new TranslatableMarkup("Pages"),
+    label_singular: new TranslatableMarkup("page"),
+    label_plural: new TranslatableMarkup("pages"),
+    label_count: ["@count page", "@count pages"],
+    handlers: [
+      "storage" => SqlContentEntityStorage::class,
+      "access" => PageAccessControlHandler::class,
+      "view_builder" => PageViewBuilder::class,
+      "views_data" => EntityViewsData::class,
+      "form" => [
+        "default" => XbPageForm::class,
+        "delete" => ContentEntityDeleteForm::class,
+        "revision-delete" => RevisionDeleteForm::class,
+        "revision-revert" => RevisionRevertForm::class,
+      ],
+      "route_provider" => [
+        "html" => XbHtmlRouteProvider::class,
+        "revision" => RevisionHtmlRouteProvider::class,
+      ],
+    ],
+    base_table: "xb_page",
+    revision_table: "xb_page_revision",
+    data_table: "xb_page_field_data",
+    revision_data_table: "xb_page_field_revision",
+    show_revision_ui: TRUE,
+    links: [
+      "canonical" => "/page/{xb_page}",
+      "delete-form" => "/page/{xb_page}/delete",
+      "edit-form" => "/xb/xb_page/{xb_page}",
+      "add-form" => "/xb/xb_page",
+      "revision-delete-form" => "/page/{xb_page}/revisions/{xb_page_revision}/delete",
+      "revision-revert-form" => "/page/{xb_page}/revisions/{xb_page_revision}/revert",
+      "version-history" => "/page/{xb_page}/revisions",
+    ],
+    translatable: TRUE,
+    entity_keys: [
+      "id" => "id",
+      "uuid" => "uuid",
+      "revision" => "revision_id",
+      "label" => "title",
+      "langcode" => "langcode",
+      "published" => "status",
+      "owner" => "owner",
+    ],
+    revision_metadata_keys: [
+      "revision_user" => "revision_user",
+      "revision_created" => "revision_created",
+      "revision_log_message" => "revision_log",
+    ],
+  )
+]
 final class Page extends EditorialContentEntityBase implements EntityOwnerInterface, ComponentTreeEntityInterface {
 
   use EntityOwnerTrait;
+  public const string ENTITY_TYPE_ID = 'xb_page';
   public const string CREATE_PERMISSION = 'create xb_page';
   public const string EDIT_PERMISSION = 'edit xb_page';
   public const string DELETE_PERMISSION = 'delete xb_page';

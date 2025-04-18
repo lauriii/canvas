@@ -4,12 +4,13 @@ declare(strict_types=1);
 
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Field\BaseFieldDefinition;
+use Drupal\experience_builder\Entity\Page;
 
 /**
  * Implements hook_entity_base_field_info().
  */
 function xb_test_page_entity_base_field_info(EntityTypeInterface $entity_type): array {
-  if ($entity_type->id() === 'xb_page') {
+  if ($entity_type->id() === Page::ENTITY_TYPE_ID) {
     $fields = [];
     $fields['xb_test_field'] = BaseFieldDefinition::create('string')
       ->setLabel(t('Test field'))

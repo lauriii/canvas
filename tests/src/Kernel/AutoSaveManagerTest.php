@@ -51,7 +51,7 @@ class AutoSaveManagerTest extends KernelTestBase {
     (new XBTestSetup())->setup();
     $this->setUpImages();
     $this->installEntitySchema('path_alias');
-    $this->installEntitySchema('xb_page');
+    $this->installEntitySchema(Page::ENTITY_TYPE_ID);
   }
 
   private function assertAutoSaveCreated(EntityInterface $entity, array $matching_client_data, array $updated_client_data): void {

@@ -15,39 +15,43 @@ use Drupal\experience_builder\Plugin\DisplayVariant\XbPageVariant;
 use Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\BlockComponent;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemInstantiatorTrait;
+use Drupal\Core\Entity\Attribute\ConfigEntityType;
+use Drupal\experience_builder\EntityHandlers\XbConfigEntityAccessControlHandler;
 
-/**
- * @ConfigEntityType(
- *    id = \Drupal\experience_builder\Entity\PageRegion::PLUGIN_ID,
- *    label = @Translation("Page region"),
- *    label_singular = @Translation("page region"),
- *    label_plural = @Translation("page region"),
- *    label_collection = @Translation("Page region"),
- *    admin_permission = \Drupal\experience_builder\Entity\PageRegion::ADMIN_PERMISSION,
- *    handlers = {
- *      "access" = \Drupal\experience_builder\EntityHandlers\XbConfigEntityAccessControlHandler::class
- *    },
- *    entity_keys = {
- *      "id" = "id",
- *      "status" = "status",
- *    },
- *    config_export = {
- *      "id",
- *      "theme",
- *      "region",
- *      "component_tree",
- *    },
- *    lookup_keys = {
- *      "theme",
- *    },
- *     constraints = {
- *      "ImmutableProperties" = {"id", "theme", "region"},
- *    },
- *  )
- */
+#[ConfigEntityType(
+  id: self::ENTITY_TYPE_ID,
+  label: new TranslatableMarkup("Page region"),
+  label_singular: new TranslatableMarkup("page region"),
+  label_plural: new TranslatableMarkup("page region"),
+  label_collection: new TranslatableMarkup("Page region"),
+  admin_permission: self::ADMIN_PERMISSION,
+  handlers: [
+    "access" => XbConfigEntityAccessControlHandler::class,
+  ],
+  entity_keys: [
+    "id" => "id",
+    "status" => "status",
+  ],
+  config_export: [
+    "id",
+    "theme",
+    "region",
+    "component_tree",
+  ],
+  lookup_keys: [
+    "theme",
+  ],
+  constraints: [
+    'ImmutableProperties' => [
+      'id',
+      'theme',
+      'region',
+    ],
+  ],
+)]
 final class PageRegion extends ConfigEntityBase implements ComponentTreeEntityInterface {
 
-  public const string PLUGIN_ID = 'page_region';
+  public const string ENTITY_TYPE_ID = 'page_region';
   public const string ADMIN_PERMISSION = 'administer page template';
   use ComponentTreeItemInstantiatorTrait;
   use ClientServerConversionTrait;
@@ -191,7 +195,7 @@ final class PageRegion extends ConfigEntityBase implements ComponentTreeEntityIn
     if (!$include_non_editable) {
       $properties['status'] = TRUE;
     }
-    $regions = \Drupal::service('entity_type.manager')->getStorage(PageRegion::PLUGIN_ID)->loadByProperties($properties);
+    $regions = \Drupal::service('entity_type.manager')->getStorage(self::ENTITY_TYPE_ID)->loadByProperties($properties);
 
     return $regions;
   }

@@ -27,6 +27,7 @@ use Drupal\Core\Render\Markup;
 use Drupal\datetime\Plugin\Field\FieldType\DateTimeItem;
 use Drupal\experience_builder\Entity\AssetLibrary;
 use Drupal\experience_builder\Entity\JavaScriptComponent;
+use Drupal\experience_builder\Entity\Page;
 use Drupal\experience_builder\Entity\PageRegion;
 use Drupal\experience_builder\EntityHandlers\ContentTemplateAwareViewBuilder;
 use Drupal\experience_builder\Form\FormIdPreRender;
@@ -255,7 +256,7 @@ function experience_builder_config_schema_info_alter(array &$definitions): void 
  */
 function experience_builder_entity_base_field_info(EntityTypeInterface $entity_type): array {
   $fields = [];
-  if ($entity_type->id() === 'xb_page') {
+  if ($entity_type->id() === Page::ENTITY_TYPE_ID) {
     // Modules providing an entity type cannot add dynamic base fields based on
     // other modules. The entity field manager determines if a field should be
     // installed based on its "provider", which is the module providing the

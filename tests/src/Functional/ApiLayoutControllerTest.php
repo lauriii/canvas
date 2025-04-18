@@ -159,7 +159,7 @@ final class ApiLayoutControllerTest extends HttpApiTestBase {
     ];
     $request_options['headers']['X-CSRF-Token'] = $this->drupalGet('session/token');
     $response = $this->makeApiRequest('POST', Url::fromRoute('experience_builder.api.layout.post', [
-      'entity_type' => 'xb_page',
+      'entity_type' => Page::ENTITY_TYPE_ID,
       'entity' => $page->id(),
     ]), $request_options);
 
@@ -196,7 +196,7 @@ final class ApiLayoutControllerTest extends HttpApiTestBase {
     $autoSave->save($code_component, $saved_component_values);
 
     $response = $this->makeApiRequest('POST', Url::fromRoute('experience_builder.api.layout.post', [
-      'entity_type' => 'xb_page',
+      'entity_type' => Page::ENTITY_TYPE_ID,
       'entity' => $page->id(),
     ]), $request_options);
 
@@ -233,7 +233,7 @@ final class ApiLayoutControllerTest extends HttpApiTestBase {
     $json['layout'][0]['components'] = [];
     $request_options[RequestOptions::BODY] = Json::encode($json);
     $response = $this->makeApiRequest('POST', Url::fromRoute('experience_builder.api.layout.post', [
-      'entity_type' => 'xb_page',
+      'entity_type' => Page::ENTITY_TYPE_ID,
       'entity' => $page->id(),
     ]), $request_options);
 

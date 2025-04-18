@@ -50,7 +50,7 @@ final class PageTest extends KernelTestBase {
 
   public function testDefinition(): void {
     $sut = $this->container->get('entity_type.manager')
-      ->getDefinition('xb_page');
+      ->getDefinition(Page::ENTITY_TYPE_ID);
     self::assertNotNull($sut);
     self::assertEquals(
       [
@@ -73,7 +73,7 @@ final class PageTest extends KernelTestBase {
     $this->createMediaType('file');
 
     $fields = $this->container->get('entity_field.manager')
-      ->getFieldDefinitions('xb_page', 'xb_page');
+      ->getFieldDefinitions(Page::ENTITY_TYPE_ID, Page::ENTITY_TYPE_ID);
     self::assertArrayHasKey('image', $fields);
     $field = $fields['image'];
     self::assertEquals([
@@ -94,7 +94,7 @@ final class PageTest extends KernelTestBase {
     // automatically updated.
     $second_image_media_type = $this->createMediaType('image');
     $fields = $this->container->get('entity_field.manager')
-      ->getFieldDefinitions('xb_page', 'xb_page');
+      ->getFieldDefinitions(Page::ENTITY_TYPE_ID, Page::ENTITY_TYPE_ID);
     self::assertArrayHasKey('image', $fields);
     $field = $fields['image'];
     self::assertEqualsCanonicalizing([

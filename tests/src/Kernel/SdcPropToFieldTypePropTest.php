@@ -6,6 +6,7 @@ namespace Drupal\Tests\experience_builder\Kernel;
 
 use Drupal\Core\Extension\ModuleInstallerInterface;
 use Drupal\Core\Plugin\Component;
+use Drupal\experience_builder\Entity\Page;
 use Drupal\experience_builder\JsonSchemaInterpreter\JsonSchemaStringFormat;
 use Drupal\experience_builder\PropExpressions\Component\ComponentPropExpression;
 use Drupal\experience_builder\PropExpressions\StructuredData\FieldObjectPropsExpression;
@@ -60,7 +61,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
     parent::setUp();
     // Necessary for uninstalling modules.
     $this->installSchema('user', ['users_data']);
-    $this->installEntitySchema('xb_page');
+    $this->installEntitySchema(Page::ENTITY_TYPE_ID);
     $this->installEntitySchema('media');
     $this->installEntitySchema('file');
   }

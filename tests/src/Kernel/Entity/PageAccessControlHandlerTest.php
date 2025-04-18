@@ -39,7 +39,7 @@ final class PageAccessControlHandlerTest extends KernelTestBase {
   public function testAccess(array $permissions, string $op, bool $expected_result): void {
     $this->installPageEntitySchema();
 
-    $access_handler = $this->container->get('entity_type.manager')->getAccessControlHandler('xb_page');
+    $access_handler = $this->container->get('entity_type.manager')->getAccessControlHandler(Page::ENTITY_TYPE_ID);
     self::assertNotNull($access_handler);
 
     $account = $this->createMock(AccountInterface::class);

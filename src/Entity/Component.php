@@ -6,61 +6,69 @@ namespace Drupal\experience_builder\Entity;
 
 use Drupal\Core\Cache\RefinableCacheableDependencyInterface;
 use Drupal\Core\Config\Entity\ConfigEntityBase;
+use Drupal\Core\Entity\Attribute\ConfigEntityType;
 use Drupal\Core\Entity\Query\QueryInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Extension\ThemeHandlerInterface;
 use Drupal\Core\Plugin\DefaultSingleLazyPluginCollection;
 use Drupal\Core\Render\Markup;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
+use Drupal\Core\Entity\Routing\AdminHtmlRouteProvider;
 use Drupal\experience_builder\ClientSideRepresentation;
 use Drupal\experience_builder\ComponentSource\ComponentSourceInterface;
 use Drupal\experience_builder\ComponentSource\ComponentSourceManager;
+use Drupal\experience_builder\EntityHandlers\ContentCreatorVisibleXbConfigEntityAccessControlHandler;
+use Drupal\experience_builder\Form\ComponentListBuilder;
 
 /**
- * @todo Update these docs in https://drupal.org/i/3454519 to reflect changes.
+ * A config entity that exposes a component to the Experience Builder UI.
  *
- * A config entity that exposes SDC components and blocks to the Experience Builder UI.
- * 1. There can be only one Component entity per component plugin.
+ * Each component provided by a ComponentSource plugin that meets that source's
+ * requirements gets a corresponding (enabled) Component config entity. Every
+ * enabled Component config entity is available to Site Builders and Content
+ * Creators to be placed in XB component trees.
  *
- * @ConfigEntityType(
- *    id = \Drupal\experience_builder\Entity\Component::ENTITY_TYPE_ID,
- *    label = @Translation("Component"),
- *    label_singular = @Translation("component"),
- *    label_plural = @Translation("components"),
- *    label_collection = @Translation("Components"),
- *    admin_permission = \Drupal\experience_builder\Entity\Component::ADMIN_PERMISSION,
- *    handlers = {
- *      "access" = \Drupal\experience_builder\EntityHandlers\ContentCreatorVisibleXbConfigEntityAccessControlHandler::class,
- *      "list_builder" = "Drupal\experience_builder\Form\ComponentListBuilder",
- *      "route_provider" = {
- *        "html" = "\Drupal\Core\Entity\Routing\AdminHtmlRouteProvider",
- *      }
- *    },
- *    entity_keys = {
- *      "id" = "id",
- *      "label" = "label",
- *      "status" = "status",
- *    },
- *    links = {
- *      "collection" = "/admin/appearance/component",
- *      "enable" = "/admin/appearance/component/{id}/enable",
- *      "disable" = "/admin/appearance/component/{id}/disable",
- *    },
- *    config_export = {
- *      "label",
- *      "id",
- *      "source",
- *      "provider",
- *      "category",
- *      "settings",
- *    },
-*     constraints = {
- *      "ImmutableProperties" = {"id", "source"},
- *    }
- *  )
+ * @see docs/components.md
+ * @see \Drupal\experience_builder\ComponentSource\ComponentSourceInterface
  *
  * @phpstan-type ComponentConfigEntityId string
  */
+#[ConfigEntityType(
+  id: self::ENTITY_TYPE_ID,
+  label: new TranslatableMarkup('Component'),
+  label_singular: new TranslatableMarkup('component'),
+  label_plural: new TranslatableMarkup('components'),
+  label_collection: new TranslatableMarkup('Components'),
+  admin_permission: self::ADMIN_PERMISSION,
+  handlers: [
+    'access' => ContentCreatorVisibleXbConfigEntityAccessControlHandler::class,
+    'list_builder' => ComponentListBuilder::class,
+    'route_provider' => [
+      'html' => AdminHtmlRouteProvider::class,
+    ],
+  ],
+  entity_keys: [
+    'id' => 'id',
+    'label' => 'label',
+    'status' => 'status',
+  ],
+  links: [
+    'collection' => '/admin/appearance/component',
+    'enable' => '/admin/appearance/component/{id}/enable',
+    'disable' => '/admin/appearance/component/{id}/disable',
+  ],
+  config_export: [
+    'label',
+    'id',
+    'source',
+    'provider',
+    'category',
+    'settings',
+  ],
+  constraints: [
+    'ImmutableProperties' => ['id', 'source'],
+  ],
+)]
 final class Component extends ConfigEntityBase implements ComponentInterface, XbHttpApiEligibleConfigEntityInterface {
 
   public const string ADMIN_PERMISSION = 'administer components';

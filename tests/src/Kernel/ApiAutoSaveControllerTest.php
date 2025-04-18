@@ -327,7 +327,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     $entity_type_manager = $this->container->get('entity_type.manager');
     $code_component_storage = $entity_type_manager->getStorage(JavaScriptComponent::ENTITY_TYPE_ID);
     $library_storage = $entity_type_manager->getStorage(AssetLibrary::ENTITY_TYPE_ID);
-    $page_storage = $entity_type_manager->getStorage('xb_page');
+    $page_storage = $entity_type_manager->getStorage(Page::ENTITY_TYPE_ID);
     /** @var \Drupal\experience_builder\AutoSave\AutoSaveManager $autoSave */
     $autoSave = \Drupal::service(AutoSaveManager::class);
     $this->setUpCurrentUser(permissions: [

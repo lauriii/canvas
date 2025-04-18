@@ -26,7 +26,7 @@ trait PageTrait {
 
   protected function installPageEntitySchema(): void {
     $this->installEntitySchema('path_alias');
-    $this->installEntitySchema('xb_page');
+    $this->installEntitySchema(Page::ENTITY_TYPE_ID);
   }
 
   /**

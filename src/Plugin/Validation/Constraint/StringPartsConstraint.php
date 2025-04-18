@@ -4,19 +4,20 @@ declare(strict_types = 1);
 
 namespace Drupal\experience_builder\Plugin\Validation\Constraint;
 
-use Symfony\Component\Validator\Constraint;
+use Drupal\Core\Validation\Attribute\Constraint;
+use Drupal\Core\StringTranslation\TranslatableMarkup;
+use Symfony\Component\Validator\Constraint as SymfonyConstraint;
 
 /**
  * Checks a string consists of specific parts found in the parent mapping.
  *
- * @Constraint(
- *   id = "StringParts",
- *   label = @Translation("String consists of specific parts", context = "Validation")
- * )
- *
  * @todo Remove this when https://www.drupal.org/i/3324140 lands.
  */
-class StringPartsConstraint extends Constraint {
+#[Constraint(
+  id: "StringParts",
+  label: new TranslatableMarkup("String consists of specific parts", [], ['context' => 'Validation'])
+)]
+class StringPartsConstraint extends SymfonyConstraint {
 
   /**
    * The error message if the string does not match.

@@ -56,16 +56,16 @@ final class PageMetatagIntegrationTest extends KernelTestBase {
     self::assertArrayNotHasKey(
       'metatags',
       $this->container->get('entity_field.manager')
-        ->getFieldDefinitions('xb_page', 'xb_page')
+        ->getFieldDefinitions(Page::ENTITY_TYPE_ID, Page::ENTITY_TYPE_ID)
     );
     $this->container->get('module_installer')->install(['metatag']);
     self::assertArrayHasKey(
       'metatags',
       $this->container->get('entity_field.manager')
-        ->getFieldDefinitions('xb_page', 'xb_page')
+        ->getFieldDefinitions(Page::ENTITY_TYPE_ID, Page::ENTITY_TYPE_ID)
     );
     $changes = $this->container->get('entity.definition_update_manager')->getChangeList();
-    self::assertArrayNotHasKey('xb_page', $changes);
+    self::assertArrayNotHasKey(Page::ENTITY_TYPE_ID, $changes);
 
     $media_type = $this->createMediaType('image');
     $image_file = File::create([
@@ -152,7 +152,7 @@ final class PageMetatagIntegrationTest extends KernelTestBase {
     ]);
     self::assertSaveWithoutViolations($page);
     $sut = new EntityFormController();
-    $form = $sut->form('xb_page', $page, 'default');
+    $form = $sut->form(Page::ENTITY_TYPE_ID, $page, 'default');
     self::assertArrayHasKey('image', $form['seo_settings']);
     self::assertArrayHasKey('description', $form['seo_settings']);
     self::assertEquals('seo_settings', $form['metatags']['widget'][0]['basic']['title']['#group']);

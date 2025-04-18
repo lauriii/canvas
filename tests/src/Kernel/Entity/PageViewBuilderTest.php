@@ -101,7 +101,7 @@ final class PageViewBuilderTest extends KernelTestBase {
       $sut->xb_test_field->value
     );
 
-    $view_builder = $this->container->get('entity_type.manager')->getViewBuilder('xb_page');
+    $view_builder = $this->container->get('entity_type.manager')->getViewBuilder(Page::ENTITY_TYPE_ID);
     self::assertInstanceOf(PageViewBuilder::class, $view_builder);
 
     // Verify `xb_test_field` is part of the display components, but then is not
@@ -110,7 +110,7 @@ final class PageViewBuilderTest extends KernelTestBase {
     $view_builder->buildComponents(
       $build,
       [$sut->id() => $sut],
-      ['xb_page' => EntityViewDisplay::collectRenderDisplay($sut, 'default')],
+      [Page::ENTITY_TYPE_ID => EntityViewDisplay::collectRenderDisplay($sut, 'default')],
       'default'
     );
     self::assertArrayHasKey('components', $build[$sut->id()]);
@@ -151,8 +151,8 @@ final class PageViewBuilderTest extends KernelTestBase {
     $this->expectExceptionMessage('Pages do not have configurable view displays. The view display is computed from base field definitions, to ensure there is never a need for an update path.');
 
     EntityViewDisplay::create([
-      'targetEntityType' => 'xb_page',
-      'bundle' => 'xb_page',
+      'targetEntityType' => Page::ENTITY_TYPE_ID,
+      'bundle' => Page::ENTITY_TYPE_ID,
       'mode' => 'default',
       'status' => TRUE,
     ])->save();
@@ -170,7 +170,7 @@ final class PageViewBuilderTest extends KernelTestBase {
     ]);
     self::assertSaveWithoutViolations($sut);
 
-    $view_builder = $this->container->get('entity_type.manager')->getViewBuilder('xb_page');
+    $view_builder = $this->container->get('entity_type.manager')->getViewBuilder(Page::ENTITY_TYPE_ID);
     $build = $view_builder->view($sut);
     $this->render($build);
   }

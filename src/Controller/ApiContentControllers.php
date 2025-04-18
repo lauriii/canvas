@@ -13,6 +13,7 @@ use Drupal\Core\Entity\Query\QueryInterface;
 use Drupal\Core\Render\RenderContext;
 use Drupal\Core\Render\RendererInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
+use Drupal\experience_builder\Entity\Page;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
 use Drupal\experience_builder\AutoSave\AutoSaveManager;
@@ -37,9 +38,9 @@ final class ApiContentControllers {
     // Note: this intentionally does not catch content entity type storage
     // handler exceptions: the generic XB API exception subscriber handles them.
     // @see \Drupal\experience_builder\EventSubscriber\ApiExceptionSubscriber
-    $entity_type = $this->entityTypeManager->getDefinition('xb_page');
+    $entity_type = $this->entityTypeManager->getDefinition(Page::ENTITY_TYPE_ID);
     assert($entity_type instanceof EntityTypeInterface);
-    $page = $this->entityTypeManager->getStorage('xb_page')->create([
+    $page = $this->entityTypeManager->getStorage(Page::ENTITY_TYPE_ID)->create([
       'title' => static::defaultTitle($entity_type),
       'status' => FALSE,
     ]);
@@ -79,7 +80,7 @@ final class ApiContentControllers {
    */
   public function list(): CacheableJsonResponse {
     // @todo introduce pagination in https://www.drupal.org/i/3502691
-    $storage = $this->entityTypeManager->getStorage('xb_page');
+    $storage = $this->entityTypeManager->getStorage(Page::ENTITY_TYPE_ID);
     $query_cacheability = (new CacheableMetadata())
       ->addCacheContexts($storage->getEntityType()->getListCacheContexts())
       ->addCacheTags($storage->getEntityType()->getListCacheTags());

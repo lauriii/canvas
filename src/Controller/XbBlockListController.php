@@ -78,7 +78,7 @@ final class XbBlockListController extends BlockListController implements EventSu
 
     // Load the editable page regions for the current default theme.
     $theme = $theme ?? $this->configFactory->get('system.theme')->get('default');
-    $regions = $this->entityTypeManager->getStorage(PageRegion::PLUGIN_ID)->loadByProperties(['theme' => $theme]);
+    $regions = $this->entityTypeManager->getStorage(PageRegion::ENTITY_TYPE_ID)->loadByProperties(['theme' => $theme]);
     if (!empty($regions)) {
       $theme_settings_url = Url::fromRoute('system.theme_settings_theme', ['theme' => $theme]);
       $link = Link::fromTextAndUrl($this->t('theme'), $theme_settings_url)->toString();

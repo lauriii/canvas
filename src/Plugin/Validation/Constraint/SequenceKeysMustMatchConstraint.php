@@ -4,18 +4,19 @@ declare(strict_types = 1);
 
 namespace Drupal\experience_builder\Plugin\Validation\Constraint;
 
-use Symfony\Component\Validator\Constraint;
+use Drupal\Core\Validation\Attribute\Constraint;
+use Drupal\Core\StringTranslation\TranslatableMarkup;
+use Symfony\Component\Validator\Constraint as SymfonyConstraint;
 
 /**
  * Checks the validated sequence contains the same keys as another sequence.
- *
- * @Constraint(
- *   id = "SequenceKeysMustMatch",
- *   label = @Translation("Sequence keys must match.", context = "Validation"),
- *   type = {"sequence"},
- * )
  */
-final class SequenceKeysMustMatchConstraint extends Constraint {
+#[Constraint(
+  id: "SequenceKeysMustMatch",
+  label: new TranslatableMarkup("Sequence keys must match.", [], ['context' => 'Validation']),
+  type: "sequence",
+)]
+final class SequenceKeysMustMatchConstraint extends SymfonyConstraint {
 
   /**
    * Optional prefix, to be specified when this contains a config entity ID.
