@@ -38,7 +38,7 @@ class JsonSchemaDefinitionsStreamwrapper extends LocalReadOnlyStream {
     try {
       [$extension_path, $definition_name] = self::parseUri($uri);
     }
-    catch (UnknownExtensionException | UnknownExtensionTypeException $e) {
+    catch (UnknownExtensionException | UnknownExtensionTypeException) {
       // @todo Re-throw with more precise exception message for better DX.
       return FALSE;
     }

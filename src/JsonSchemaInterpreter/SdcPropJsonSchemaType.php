@@ -5,13 +5,11 @@ declare(strict_types=1);
 namespace Drupal\experience_builder\JsonSchemaInterpreter;
 
 use Drupal\Core\Entity\TypedData\EntityDataDefinition;
-use Drupal\datetime\Plugin\Field\FieldType\DateTimeItem;
 use Drupal\experience_builder\Plugin\Validation\Constraint\StringSemanticsConstraint;
 use Drupal\experience_builder\PropExpressions\StructuredData\FieldPropExpression;
 use Drupal\experience_builder\PropExpressions\StructuredData\FieldTypeObjectPropsExpression;
 use Drupal\experience_builder\PropExpressions\StructuredData\FieldTypePropExpression;
 use Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldTypePropExpression;
-use Drupal\experience_builder\PropExpressions\StructuredData\StructuredDataPropExpression;
 use Drupal\experience_builder\PropShape\PropShape;
 use Drupal\experience_builder\PropShape\StorablePropShape;
 use Drupal\experience_builder\ShapeMatcher\DataTypeShapeRequirement;
@@ -47,7 +45,7 @@ use Drupal\experience_builder\ShapeMatcher\DataTypeShapeRequirements;
  *
  * @phpstan-type JsonSchema array<string, mixed>
  */
-enum SdcPropJsonSchemaType : string {
+enum SdcPropJsonSchemaType: string {
   case STRING = 'string';
   case NUMBER = 'number';
   case INTEGER = 'integer';
@@ -91,10 +89,10 @@ enum SdcPropJsonSchemaType : string {
    * dynamic prop source expressions that return a value that fits in this prop
    * shape.
    *
+   * @param JsonSchema $schema
+   *
    * @see \Drupal\experience_builder\PropSource\DynamicPropSource
    * @see \Drupal\experience_builder\SdcPropToFieldTypePropMatcher
-   *
-   * @param JsonSchema $schema
    */
   public function toDataTypeShapeRequirements(array $schema): DataTypeShapeRequirement|DataTypeShapeRequirements|false {
     return match ($this) {
@@ -132,7 +130,7 @@ enum SdcPropJsonSchemaType : string {
         // but `preg_match()` in PHP does.
         // @see https://json-schema.org/understanding-json-schema/reference/regular_expressions
         // @see \Symfony\Component\Validator\Constraints\Regex
-        array_key_exists('pattern', $schema) => new DataTypeShapeRequirement('Regex', ['pattern' => '/' . str_replace('/', '\/',$schema['pattern']) . '/']),
+        array_key_exists('pattern', $schema) => new DataTypeShapeRequirement('Regex', ['pattern' => '/' . str_replace('/', '\/', $schema['pattern']) . '/']),
         array_key_exists('format', $schema) => JsonSchemaStringFormat::from($schema['format'])->toDataTypeShapeRequirements(),
         // Otherwise, it's an unrestricted string. Simply surfacing all
         // structured data containing strings would be meaningless though. To

@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource;
 
-use Drupal\Core\Access\AccessResult;
-use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Config\Entity\ConfigEntityStorageInterface;
 use Drupal\Core\Extension\ExtensionPathResolver;
 use Drupal\Core\File\FileUrlGeneratorInterface;

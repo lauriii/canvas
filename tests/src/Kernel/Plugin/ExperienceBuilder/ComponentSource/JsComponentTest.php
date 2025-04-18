@@ -8,13 +8,10 @@ use Drupal\Component\Serialization\Json;
 use Drupal\Component\Utility\Crypt;
 use Drupal\Core\Asset\AssetResolverInterface;
 use Drupal\Core\Asset\AttachedAssets;
-use Drupal\Core\Render\BubbleableMetadata;
 use Drupal\Core\Site\Settings;
 use Drupal\Core\StreamWrapper\StreamWrapperInterface;
 use Drupal\Core\StreamWrapper\StreamWrapperManagerInterface;
-use Drupal\Core\Url;
 use Drupal\experience_builder\AutoSave\AutoSaveManager;
-use Drupal\experience_builder\Element\AstroIsland;
 use Drupal\experience_builder\Entity\Component;
 use Drupal\experience_builder\Entity\ComponentInterface;
 use Drupal\experience_builder\Entity\JavaScriptComponent;
@@ -24,7 +21,7 @@ use Drupal\Tests\experience_builder\Traits\CrawlerTrait;
 use Drupal\Tests\user\Traits\UserCreationTrait;
 
 /**
- * Tests JsComponent
+ * Tests JsComponent.
  *
  * @covers \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\JsComponent
  * @group experience_builder
@@ -36,7 +33,7 @@ final class JsComponentTest extends KernelTestBase {
   use CrawlerTrait;
 
   /**
-   * Test component
+   * Test component.
    */
   protected ComponentInterface $component;
 

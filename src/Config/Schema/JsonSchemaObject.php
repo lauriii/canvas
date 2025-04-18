@@ -57,7 +57,7 @@ final class JsonSchemaObject extends Mapping {
       if (\array_key_exists('pattern', $detail)) {
         $definition['mapping'][$property_name]['constraints']['Regex'] = [
           'pattern' => \sprintf('@%s@', $detail['pattern']),
-          'message' => '%value does not match the pattern %pattern.'
+          'message' => '%value does not match the pattern %pattern.',
         ];
       }
       if (\array_key_exists('enum', $detail)) {

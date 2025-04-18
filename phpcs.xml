@@ -8,9 +8,9 @@ core.phpcs.xml.dist -> /PATH/TO/DRUPAL/ROOT/core/phpcs.xml.dist
   <exclude-pattern>*/modules/same_page_preview/*</exclude-pattern>
   <exclude-pattern>*/modules/xb_vite/*</exclude-pattern>
   <!-- Drupal (core) uses stylelint: https://www.drupal.org/list-changes/drupal/published?keywords_description=stylelint-->
-  <exclude-pattern>*.css</exclude-pattern>
+  <exclude-pattern>*.css$</exclude-pattern>
   <!-- Drupal (core) uses eslint: https://www.drupal.org/list-changes/drupal/published?keywords_description=eslint-->
-  <exclude-pattern>*.js</exclude-pattern>
+  <exclude-pattern>*.js$</exclude-pattern>
 
   <!-- Use the Drupal coding standard, but … -->
   <rule ref="./core.phpcs.xml.dist">
@@ -27,6 +27,9 @@ core.phpcs.xml.dist -> /PATH/TO/DRUPAL/ROOT/core/phpcs.xml.dist
     <exclude name="Drupal.Commenting.ClassComment.Missing">
       <include-pattern>*/Functional/*</include-pattern>
       <include-pattern>*/tests/modules/*</include-pattern>
+    </exclude>
+    <exclude name="Drupal.Files.EndFileNewline">
+      <exclude-pattern>*/config/install/*.yml$</exclude-pattern>
     </exclude>
   </rule>
 </ruleset>

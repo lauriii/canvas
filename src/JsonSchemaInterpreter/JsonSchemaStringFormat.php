@@ -11,7 +11,6 @@ use Drupal\experience_builder\PropExpressions\StructuredData\FieldTypePropExpres
 use Drupal\experience_builder\PropShape\PropShape;
 use Drupal\experience_builder\PropShape\StorablePropShape;
 use Drupal\experience_builder\ShapeMatcher\DataTypeShapeRequirement;
-use Drupal\link\LinkItemInterface;
 use Symfony\Component\Validator\Constraints\Ip;
 
 // phpcs:disable Drupal.Files.LineLength.TooLong
@@ -157,8 +156,8 @@ enum JsonSchemaStringFormat: string {
       // Built-in formats: resource identifiers.
       // @see https://json-schema.org/understanding-json-schema/reference/string#resource-identifiers
       // ⚠️ This field type has no widget in Drupal core, otherwise it'd be
-      //     possible to support! But … would allowing the Content Creator to
-      //     enter a UUID really make sense?
+      // possible to support! But … would allowing the Content Creator to
+      // enter a UUID really make sense?
       // @see \Drupal\Core\Field\Plugin\Field\FieldType\UuidItem
       static::UUID => NULL,
       // TRICKY: Drupal core does not support RFC3987 aka IRIs, but it's a superset of RFC3986.

@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Drupal\Tests\experience_builder\Traits;
 
 use Drupal\experience_builder\Entity\JavaScriptComponent;
-use Drupal\Tests\migrate_drupal\Traits\CreateTestContentEntitiesTrait;
 use Symfony\Component\Yaml\Yaml;
 
 trait CreateTestJsComponentTrait {
@@ -36,4 +35,5 @@ trait CreateTestJsComponentTrait {
       'css' => ['original' => '', 'compiled' => ''],
     ])->save();
   }
+
 }

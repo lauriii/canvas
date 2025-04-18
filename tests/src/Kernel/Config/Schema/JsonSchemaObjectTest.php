@@ -32,6 +32,7 @@ final class JsonSchemaObjectTest extends KernelTestBase {
   }
 
   /**
+   * @phpcs:ignore Drupal.Commenting.FunctionComment.SeeAdditionalText
    * @see `type: experience_builder.json_schema.prop.object`
    */
   public function testSchemaDerivation(): void {
@@ -50,7 +51,7 @@ final class JsonSchemaObjectTest extends KernelTestBase {
     self::assertViolations([
       // We only allow image at this point, but we can still derive schema.
       '$ref' => 'The value you selected is not a valid choice.',
-      'examples.0.element' => 'The value you selected is not a valid choice.'
+      'examples.0.element' => 'The value you selected is not a valid choice.',
     ], $config->validate());
   }
 
