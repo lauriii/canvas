@@ -31,7 +31,6 @@ import { pageDataFormApi } from '@/services/pageDataForm';
 import { configurationSlice } from '@/features/configuration/configurationSlice';
 import { sectionApi } from '@/services/sections';
 import { extensionsSlice } from '@/features/extensions/extensionsSlice';
-import { extensionsApi } from '@/services/extensions';
 import { assetLibraryApi } from '@/services/assetLibrary';
 import { componentAndLayoutApi } from '@/services/componentAndLayout';
 import { formStateSlice } from '@/features/form/formStateSlice';
@@ -126,7 +125,6 @@ const rootReducer = combineSlices(
     ),
   },
   sectionApi,
-  extensionsApi,
   assetLibraryApi,
   componentAndLayoutApi,
   previewApi,
@@ -195,7 +193,6 @@ export const makeStore = (preloadedState?: Partial<RootState>) => {
     middleware: (getDefaultMiddleware) => {
       return getDefaultMiddleware().concat(
         sectionApi.middleware,
-        extensionsApi.middleware,
         assetLibraryApi.middleware,
         componentAndLayoutApi.middleware,
         previewApi.middleware,

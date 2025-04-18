@@ -59,6 +59,8 @@ use Drupal\experience_builder\PropShape\CandidateStorablePropShape;
  * XB Extensions makes additional functionalities and customization points
  * available for extending the Experience Builder module.
  *
+ * XB Extensions can only be defined in modules. Themes are not supported.
+ *
  * Any library with `drupalSettings.xbExtension` will be identified as an
  * Experience Builder extension and will be loaded with the UI. Be sure
  * to add `experience_builder/ui` as a dependency.
@@ -71,9 +73,14 @@ use Drupal\experience_builder\PropShape\CandidateStorablePropShape;
  *      attributes: { type: module }
  *  drupalSettings:
  *    xbExtension:
- *      testExtension: { id: 'experience-builder-test-extension', name: 'XB Test Extension' }
+ *      testExtension: {
+ *        id: 'experience-builder-test-extension',
+ *        name: 'XB Test Extension',
+ *        description: 'A test extension for Experience Builder.',
+ *        imgSrc: 'relative/path/from/your/module/optionalImage.png'
+ *      }
  *  dependencies:
- *    - experience_builder/ui
+ *    - experience_builder/xb-ui
  *
  * @see tests/modules/xb_test_extension/ui/index.jsx for how to wrap your
  * React Application so it has access to Experience Builder UI APIs

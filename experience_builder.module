@@ -22,7 +22,6 @@ use Drupal\Core\EventSubscriber\AjaxResponseSubscriber;
 use Drupal\Core\Field\BaseFieldDefinition;
 use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Form\FormStateInterface;
-use Drupal\Core\Plugin\Discovery\YamlDiscovery;
 use Drupal\Core\Render\Markup;
 use Drupal\datetime\Plugin\Field\FieldType\DateTimeItem;
 use Drupal\experience_builder\Entity\AssetLibrary;
@@ -53,6 +52,8 @@ require_once __DIR__ . '/experience_builder.auto_save.inc';
 require_once __DIR__ . '/experience_builder.force_render_with_twig.inc';
 // @see docs/components.md, section 3.3.3
 require_once __DIR__ . '/experience_builder.block_overrides.inc';
+// Experience Builder extensions support
+require_once __DIR__ . '/experience_builder.extensions.inc';
 
 /**
  * Implements hook_preprocess_HOOK() for regions.
@@ -546,33 +547,6 @@ function _experience_builder_base_library_build(array &$libraries, array $defaul
 }
 
 /**
- * Adds libraries that extend Experience Builder to a centralized library.
- *
- * @param array $libraries
- *   The libraries array.
- *
- * @return void
- */
-function _experience_builder_build_extension_libraries(array &$libraries): void {
-  $libraries_discovery = new YamlDiscovery('libraries', \Drupal::service('module_handler')->getModuleDirectories());
-
-  // Any library with a 'xbExtension' drupalSettings will be added.
-  $xb_extensions = array_reduce($libraries_discovery->getDefinitions(), function ($carry, $item) {
-    if (isset($item['drupalSettings']['xbExtension'])) {
-      $carry[] = $item['provider'] . '/' . $item['id'];
-    }
-    return $carry;
-  }, []);
-
-  // Add the libraries as dependencies of experience_builder/extensions.
-  if (!empty($xb_extensions)) {
-    $libraries['extensions'] = [
-      'dependencies' => $xb_extensions,
-    ];
-  }
-}
-
-/**
  * Customize core/drupal.dialog for Experience Builder.
  *
  * Creates a customized version of core/drupal.dialog that accounts for the
@@ -790,6 +764,14 @@ function experience_builder_entity_form_display_alter(EntityFormDisplayInterface
     // @see \Drupal\experience_builder\Controller\ApiAutoSaveController::post()
     $form_display->removeComponent($published_key);
   }
+}
+
+/**
+ * Implements hook_library_info_alter().
+ */
+function experience_builder_library_info_alter(array &$libraries, string $extension): void {
+  _experience_builder_process_transforms($libraries, $extension);
+  _experience_builder_process_extensions_paths($libraries, $extension);
 }
 
 /**

@@ -18,7 +18,7 @@ use Drupal\media_library\MediaLibraryState;
 /**
  * Implements hook_library_info_alter().
  */
-function experience_builder_library_info_alter(array &$libraries, string $extension): void {
+function _experience_builder_process_transforms(array &$libraries, string $extension): void {
   if ($extension === 'experience_builder') {
     // We need to dynamically create a 'transforms' library by compiling a list
     // of all module defined transforms - which are libraries prefixed with

@@ -1,43 +1,37 @@
-import { Flex, Heading, Link, Grid, Spinner } from '@radix-ui/themes';
+import { Flex, Heading, Link, Grid } from '@radix-ui/themes';
 import { ExternalLinkIcon } from '@radix-ui/react-icons';
 import ExtensionButton from '@/components/extensions/ExtensionButton';
 import { handleNonWorkingBtn } from '@/utils/function-utils';
 import type React from 'react';
-import { useGetExtensionsQuery } from '@/services/extensions';
-import ErrorCard from '@/components/error/ErrorCard';
 
 interface ExtensionsPopoverProps {}
 
-const ExtensionsList: React.FC<ExtensionsPopoverProps> = () => {
-  const {
-    data: extensions,
-    isError,
-    isLoading,
-    refetch,
-  } = useGetExtensionsQuery();
+const { drupalSettings } = window;
 
-  return (
-    <ExtensionsListDisplay
-      extensions={extensions || []}
-      isLoading={isLoading}
-      isError={isError}
-      refetch={refetch}
-    />
-  );
+const ExtensionsList: React.FC<ExtensionsPopoverProps> = () => {
+  let extensionsList = [];
+  if (drupalSettings && drupalSettings.xbExtension) {
+    extensionsList = Object.values(drupalSettings.xbExtension).map((value) => {
+      return {
+        ...value,
+        imgSrc:
+          value.imgSrc ||
+          `${drupalSettings.path.baseUrl}${drupalSettings.xb.xbModulePath}/ui/assets/icons/extension-default-abstract.svg`,
+        name: value.name,
+        description: value.description,
+      };
+    });
+  }
+
+  return <ExtensionsListDisplay extensions={extensionsList || []} />;
 };
 
 interface ExtensionsListDisplayProps {
   extensions: Array<any>;
-  isLoading: boolean;
-  isError: boolean;
-  refetch: () => void;
 }
 
 const ExtensionsListDisplay: React.FC<ExtensionsListDisplayProps> = ({
   extensions,
-  isLoading,
-  isError,
-  refetch,
 }) => {
   return (
     <>
@@ -60,25 +54,18 @@ const ExtensionsListDisplay: React.FC<ExtensionsListDisplayProps> = ({
           </Link>
         </Flex>
       </Flex>
-      {isError && (
-        <ErrorCard
-          error="Cannot display extensions, please try again."
-          resetErrorBoundary={refetch}
-          resetButtonText="Try again"
-          title="Error loading extensions"
-        />
-      )}
-      {isLoading && (
-        <Flex justify="center">
-          <Spinner />
-        </Flex>
-      )}
-      {!isError && extensions && (
+
+      {extensions.length > 0 && (
         <Grid columns="3" gap="3">
           {extensions.map((extension) => (
             <ExtensionButton extension={extension} key={extension.id} />
           ))}
         </Grid>
+      )}
+      {extensions?.length === 0 && (
+        <Flex justify="center">
+          <p>No extensions found</p>
+        </Flex>
       )}
     </>
   );

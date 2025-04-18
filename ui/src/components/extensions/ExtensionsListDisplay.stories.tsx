@@ -38,19 +38,10 @@ const meta: Meta<typeof ExtensionsListDisplay> = {
   component: ExtensionsListDisplay,
   args: {
     extensions: mockExtensions,
-    isLoading: false,
-    isError: false,
-    refetch: () => {},
   },
   argTypes: {
     extensions: {
       control: { type: 'object' },
-    },
-    isLoading: {
-      control: { type: 'boolean' },
-    },
-    isError: {
-      control: { type: 'boolean' },
     },
   },
   decorators: [
@@ -73,23 +64,8 @@ export default meta;
 type Story = StoryObj<typeof ExtensionsListDisplay>;
 
 export const Default: Story = {};
-
-export const Loading: Story = {
+export const Empty: Story = {
   args: {
     extensions: [],
-    isLoading: true,
-    isError: false,
-    refetch: () => {},
-  },
-};
-
-export const Error: Story = {
-  args: {
-    extensions: [],
-    isLoading: false,
-    isError: true,
-    refetch: () => {
-      alert('Dummy refetch');
-    },
   },
 };
