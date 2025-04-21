@@ -35,9 +35,6 @@ const RemoveFromComponentsDialog = () => {
     await updateCodeComponent({
       id: selectedComponent.machineName,
       changes: {
-        // @todo: Only send wanted changes in the PATCH request when
-        //   https://www.drupal.org/project/experience_builder/issues/3508140 is fixed.
-        ...selectedComponent,
         status: false,
       },
     });
