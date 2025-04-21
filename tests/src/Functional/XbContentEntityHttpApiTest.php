@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\experience_builder\Functional;
 
+use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Url;
 use Drupal\experience_builder\AutoSave\AutoSaveManager;
 use Drupal\experience_builder\Entity\Page;
@@ -57,14 +58,14 @@ final class XbContentEntityHttpApiTest extends HttpApiTestBase {
       RequestOptions::HEADERS => [
         'Content-Type' => 'application/json',
       ],
+      RequestOptions::BODY => json_encode([]),
     ];
 
     $this->assertAuthenticationAndAuthorization($url, 'POST');
 
     $request_options['headers']['X-CSRF-Token'] = $this->drupalGet('session/token');
     // Authenticated, authorized, with CSRF token: 201.
-    // @phpstan-ignore-next-line
-    Role::load('authenticated')->grantPermission(Page::CREATE_PERMISSION)->save();
+    Role::load('authenticated')?->grantPermission(Page::CREATE_PERMISSION)->save();
     $response = $this->makeApiRequest('POST', $url, $request_options);
     $this->assertSame(201, $response->getStatusCode());
     $this->assertSame(
@@ -216,11 +217,94 @@ final class XbContentEntityHttpApiTest extends HttpApiTestBase {
     $this->assertSame(['errors' => ["The 'delete xb_page' permission is required."]], json_decode((string) $response->getBody(), TRUE));
 
     // Authenticated, authorized, with CSRF token: 204.
-    // @phpstan-ignore-next-line
-    Role::load('authenticated')->grantPermission(Page::DELETE_PERMISSION)->save();
+    Role::load('authenticated')?->grantPermission(Page::DELETE_PERMISSION)->save();
     $response = $this->makeApiRequest('DELETE', $url, $request_options);
     $this->assertSame(204, $response->getStatusCode());
     $this->assertNull(\Drupal::entityTypeManager()->getStorage(Page::ENTITY_TYPE_ID)->load(1));
+  }
+
+  public function testDuplicate(): void {
+    $url = Url::fromUri('base:/xb/api/content/xb_page');
+    $request_options = [
+      RequestOptions::HEADERS => [
+        'Content-Type' => 'application/json',
+      ],
+      RequestOptions::BODY => json_encode(['entity_id' => '10']),
+    ];
+
+    $this->assertAuthenticationAndAuthorization($url, 'POST');
+    // Authenticated, authorized, with CSRF token: 204.
+    $request_options['headers']['X-CSRF-Token'] = $this->drupalGet('session/token');
+    Role::load('authenticated')?->grantPermission(Page::CREATE_PERMISSION)->save();
+
+    // Try to duplicate a non-existent entity.
+    $response = $this->makeApiRequest('POST', $url, $request_options);
+    $this->assertSame(404, $response->getStatusCode());
+    $this->assertSame(
+      '{"error":"Cannot find entity to duplicate."}',
+      (string) $response->getBody()
+    );
+
+    $request_options[RequestOptions::BODY] = json_encode(['entity_id' => '1']);
+
+    // Test module will return view access forbidden for xb_page id 1 instance.
+    $this->container->get('module_installer')->install(['xb_test_access']);
+
+    // Try to duplicate entity without view access.
+    $response = $this->makeApiRequest('POST', $url, $request_options);
+    $this->assertSame(404, $response->getStatusCode());
+    $this->assertSame(
+      '{"error":"Cannot find entity to duplicate."}',
+      (string) $response->getBody()
+    );
+
+    // Turn off module to have proper view access.
+    $this->container->get('module_installer')->uninstall(['xb_test_access']);
+    // Duplicate Page 1 entity.
+    $response = $this->makeApiRequest('POST', $url, $request_options);
+    $this->assertSame(201, $response->getStatusCode());
+    $this->assertSame(
+      '{"entity_type":"xb_page","entity_id":"4"}',
+      (string) $response->getBody()
+    );
+    $original = \Drupal::entityTypeManager()->getStorage('xb_page')->load(4);
+    assert($original instanceof EntityInterface);
+    $this->assertEquals('Page 1 (Copy)', $original->label());
+
+    // Add temp store data for Previous duplicate.
+    assert($original instanceof EntityInterface);
+    $auto_save_manager = \Drupal::service(AutoSaveManager::class);
+    $auto_save_manager->save($original, [
+      'layout' => [
+        0 => [
+          'nodeType' => 'region',
+          'id' => 'content',
+          'name' => 'Content',
+          'components' => [],
+        ],
+      ],
+      'model' => [],
+      'entity_form_fields' => [
+        'title[0][value]' => 'Title from temp store',
+      ],
+    ]);
+
+    $url = Url::fromUri('base:/xb/api/content/xb_page');
+    $request_options[RequestOptions::BODY] = json_encode(['entity_id' => '4']);
+    $response = $this->makeApiRequest('POST', $url, $request_options);
+    $this->assertSame(201, $response->getStatusCode());
+    $this->assertSame(
+      '{"entity_type":"xb_page","entity_id":"5"}',
+      (string) $response->getBody()
+    );
+
+    $duplicate = \Drupal::entityTypeManager()->getStorage('xb_page')->load(5);
+    assert($duplicate instanceof EntityInterface);
+    // Test that the data from the temp store is present.
+    $this->assertEquals('Title from temp store (Copy)', $duplicate->label());
+    $this->assertNotEmpty($auto_save_manager->getAutoSaveData($original));
+    // Autosaved data is empty on duplicate.
+    $this->assertEmpty($auto_save_manager->getAutoSaveData($duplicate)->data);
   }
 
   private function assertAuthenticationAndAuthorization(Url $url, string $method): void {

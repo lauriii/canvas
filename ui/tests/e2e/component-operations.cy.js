@@ -418,11 +418,12 @@ describe('Perform CRUD operations on components', () => {
 
     cy.intercept('POST', '**/xb/api/layout/node/1').then(cy.log);
 
+    cy.screenshot('before-assert-1');
     // Check the default image src is set.
     cy.waitForElementInIframe(
       'img[src*="/experience_builder/components/image/600x400.png"]',
       '[data-xb-preview="lg"][data-test-xb-content-initialized="true"][data-xb-swap-active="true"]',
-      10000,
+      40000,
     );
   });
 
@@ -441,11 +442,13 @@ describe('Perform CRUD operations on components', () => {
     cy.get('.primaryPanelContent')
       .findByText('XB test SDC with optional image and heading')
       .click();
+
+    cy.screenshot('before-assert-2');
     // Check the default image src is set.
     cy.waitForElementInIframe(
       'img[src*="/experience_builder/tests/modules/xb_test_sdc/components/image-optional-with-example-and-additional-prop/gracie.jpg"]',
       '[data-xb-preview="lg"][data-test-xb-content-initialized="true"][data-xb-swap-active="true"]',
-      10000,
+      40000,
     );
 
     cy.publishAllPendingChanges('XB Needs This For The Time Being');

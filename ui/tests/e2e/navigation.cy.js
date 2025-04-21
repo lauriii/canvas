@@ -102,6 +102,21 @@ describe('Navigation functionality', () => {
     cy.url().should('contain', '/xb/xb_page/1');
   });
 
+  it('Duplicate pages through navigation', () => {
+    cy.loadURLandWaitForXBLoaded({ url: 'xb/xb_page/1' });
+
+    cy.findByTestId(navigationButtonTestId).click();
+    cy.findByText('Empty Page').realHover();
+    cy.findByLabelText('Page options for Empty Page').click();
+    cy.findByRole('menuitem', { name: 'Duplicate page', exact: false }).click();
+
+    cy.loadURLandWaitForXBLoaded({ url: 'xb/xb_page/1' });
+    cy.findByTestId(navigationButtonTestId).click();
+    cy.findByTestId(navigationContentTestId)
+      .should('exist')
+      .and('contain.text', 'Empty Page (Copy)');
+  });
+
   it('Deleting pages through navigation', () => {
     cy.loadURLandWaitForXBLoaded({ url: 'xb/xb_page/1' });
 
@@ -114,7 +129,7 @@ describe('Navigation functionality', () => {
     cy.findByTestId(navigationButtonTestId).click();
     cy.findByText('Empty Page').realHover();
     cy.findByLabelText('Page options for Empty Page').click();
-    cy.contains('div.rt-BaseMenuItem', 'Delete page').click();
+    cy.findByRole('menuitem', { name: 'Delete page', exact: false }).click();
     cy.contains('button', 'Delete page').click();
 
     // Wait for the DELETE request to be made and assert it

@@ -6,6 +6,7 @@ namespace Drupal\experience_builder\Controller;
 
 use Drupal\Core\Cache\CacheableJsonResponse;
 use Drupal\Core\Cache\CacheableMetadata;
+use Drupal\Core\Entity\EntityPublishedInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
@@ -13,10 +14,12 @@ use Drupal\Core\Entity\Query\QueryInterface;
 use Drupal\Core\Render\RenderContext;
 use Drupal\Core\Render\RendererInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
-use Drupal\experience_builder\Entity\Page;
-use Symfony\Component\HttpFoundation\JsonResponse;
-use Symfony\Component\HttpFoundation\Response;
 use Drupal\experience_builder\AutoSave\AutoSaveManager;
+use Drupal\experience_builder\ClientDataToEntityConverter;
+use Drupal\experience_builder\Plugin\DisplayVariant\XbPageVariant;
+use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
 
 /**
  * HTTP API for interacting with XB-eligible Content entity types.
@@ -32,23 +35,42 @@ final class ApiContentControllers {
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly RendererInterface $renderer,
     private readonly AutoSaveManager $autoSaveManager,
+    private readonly ClientDataToEntityConverter $clientDataToEntityConverter,
   ) {}
 
-  public function post(): JsonResponse {
-    // Note: this intentionally does not catch content entity type storage
-    // handler exceptions: the generic XB API exception subscriber handles them.
-    // @see \Drupal\experience_builder\EventSubscriber\ApiExceptionSubscriber
-    $entity_type = $this->entityTypeManager->getDefinition(Page::ENTITY_TYPE_ID);
-    assert($entity_type instanceof EntityTypeInterface);
-    $page = $this->entityTypeManager->getStorage(Page::ENTITY_TYPE_ID)->create([
-      'title' => static::defaultTitle($entity_type),
-      'status' => FALSE,
-    ]);
-    $page->save();
+  public function post(Request $request, string $entity_type): JsonResponse {
+    // Get the request body content
+    $content = $request->getContent();
+    $body = json_decode($content, TRUE);
+    $entity = NULL;
+
+    // Try to load the entity instance.
+    if (isset($body['entity_id'])) {
+      $entity = $this->entityTypeManager->getStorage($entity_type)->load($body['entity_id']);
+      if (!$entity instanceof ContentEntityInterface || !$entity->access('view')) {
+        return new JsonResponse(['error' => 'Cannot find entity to duplicate.'], Response::HTTP_NOT_FOUND);
+      }
+    }
+
+    // If entity is provided, duplicate it, otherwise create a new entity.
+    if ($entity) {
+      $new = $this->duplicate($entity);
+    }
+    else {
+      // Note: this intentionally does not catch content entity type storage
+      // handler exceptions: the generic XB API exception subscriber handles them.
+      // @see \Drupal\experience_builder\EventSubscriber\ApiExceptionSubscriber
+      $entity_type_definition = $this->entityTypeManager->getDefinition($entity_type);
+      $new = $this->entityTypeManager->getStorage($entity_type)->create([
+        'title' => static::defaultTitle($entity_type_definition),
+        'status' => FALSE,
+      ]);
+      $new->save();
+    }
 
     return new JsonResponse([
-      'entity_type' => $entity_type->id(),
-      'entity_id' => $page->id(),
+      'entity_type' => $entity_type,
+      'entity_id' => $new->id(),
     ], RESPONSE::HTTP_CREATED);
   }
 
@@ -78,9 +100,9 @@ final class ApiContentControllers {
    *
    * @see https://www.drupal.org/project/experience_builder/issues/3500052#comment-15966496
    */
-  public function list(): CacheableJsonResponse {
+  public function list(string $entity_type): CacheableJsonResponse {
     // @todo introduce pagination in https://www.drupal.org/i/3502691
-    $storage = $this->entityTypeManager->getStorage(Page::ENTITY_TYPE_ID);
+    $storage = $this->entityTypeManager->getStorage($entity_type);
     $query_cacheability = (new CacheableMetadata())
       ->addCacheContexts($storage->getEntityType()->getListCacheContexts())
       ->addCacheTags($storage->getEntityType()->getListCacheTags());
@@ -132,6 +154,54 @@ final class ApiContentControllers {
       $json_response->addCacheableDependency($autoSaveData);
     }
     return $json_response;
+  }
+
+  /**
+   * Duplicates entity.
+   *
+   * @param \Drupal\Core\Entity\ContentEntityInterface $entity
+   *   The entity to duplicate.
+   *
+   * @return \Drupal\Core\Entity\ContentEntityInterface
+   *   Newly created entity.
+   *
+   * @throws \Drupal\Core\Entity\EntityStorageException
+   */
+  private function duplicate(ContentEntityInterface $entity): ContentEntityInterface {
+    $duplicate = $entity->createDuplicate();
+
+    // Get temp data of original entity.
+    if ($data = $this->autoSaveManager->getAutoSaveData($entity)->data) {
+      // Before merging temp data remove path value to avoid collision.
+      if (isset($data['entity_form_fields']['path[0][alias]'])) {
+        // @todo Remove hardcoded field name when https://www.drupal.org/project/experience_builder/issues/3503446 lands.
+        unset($data['entity_form_fields']['path[0][alias]']);
+        unset($data['entity_form_fields']['form_build_id]']);
+      }
+      // clientDataToEntityConverter->convert expects the entity to be saved.
+      $duplicate->save();
+      $content_region = \array_values(\array_filter($data['layout'], static fn(array $region) => $region['id'] === XbPageVariant::MAIN_CONTENT_REGION));
+      $this->clientDataToEntityConverter->convert([
+        'layout' => reset($content_region),
+        'model' => $data['model'],
+        'entity_form_fields' => $data['entity_form_fields'],
+      ], $duplicate);
+    }
+
+    // Update title and status.
+    $entity_type = $duplicate->getEntityType();
+    $entity_key = $entity_type->getKey('label') ?? 'title';
+    // @phpstan-ignore-next-line
+    $duplicate->set($entity_key, $duplicate->label() . ApiLayoutController::ENTITY_DUPLICATE_SUFFIX);
+    assert($duplicate instanceof EntityPublishedInterface);
+    $duplicate->setUnpublished();
+    $duplicate->save();
+
+    // Delete temp data for the duplicate, it should not have it at this point.
+    // Everything is saved.
+    $this->autoSaveManager->delete($duplicate);
+
+    return $duplicate;
   }
 
   /**

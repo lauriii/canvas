@@ -339,7 +339,9 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
   public function testStatusFlags(): void {
     $this->setUpCurrentUser(permissions: ['access administration pages', Page::CREATE_PERMISSION]);
 
-    $content = $this->parentRequest(Request::create('/xb/api/content/xb_page', method: 'POST'))->getContent();
+    $request = Request::create('/xb/api/content/xb_page', 'POST', [], [], [], ['CONTENT_TYPE' => 'application/json'], json_encode([], JSON_THROW_ON_ERROR));
+    $content = $this->parentRequest($request)->getContent();
+
     self::assertIsString($content);
     $entity_id = (int) json_decode($content, TRUE)['entity_id'];
     $entity = Page::load($entity_id);

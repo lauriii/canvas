@@ -11,6 +11,15 @@ export interface DeleteContentRequest {
   entityId: string;
 }
 
+export interface CreateContentResponse {
+  entity_id: string;
+  entity_type: string;
+}
+
+export interface CreateContentRequest {
+  entity_id?: string;
+  entity_type: string;
+}
 export const contentApi = createApi({
   reducerPath: 'contentApi',
   baseQuery,
@@ -30,7 +39,22 @@ export const contentApi = createApi({
       }),
       invalidatesTags: [{ type: 'Content', id: 'LIST' }],
     }),
+    createContent: builder.mutation<
+      CreateContentResponse,
+      CreateContentRequest
+    >({
+      query: ({ entity_type, entity_id }) => ({
+        url: `/xb/api/content/${entity_type}`,
+        method: 'POST',
+        body: entity_id ? { entity_id } : {},
+      }),
+      invalidatesTags: [{ type: 'Content', id: 'LIST' }],
+    }),
   }),
 });
 
-export const { useGetContentListQuery, useDeleteContentMutation } = contentApi;
+export const {
+  useGetContentListQuery,
+  useDeleteContentMutation,
+  useCreateContentMutation,
+} = contentApi;

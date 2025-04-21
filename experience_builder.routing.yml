@@ -169,7 +169,7 @@ experience_builder.api.config.post:
 
 # @todo https://www.drupal.org/i/3498525 should generalize this to all eligible content entity types by using a route callback
 experience_builder.api.content.create:
-  path: '/xb/api/content/xb_page'
+  path: '/xb/api/content/{entity_type}'
   defaults:
     _controller: 'Drupal\experience_builder\Controller\ApiContentControllers::post'
   requirements:
@@ -189,7 +189,7 @@ experience_builder.api.content.delete:
   methods: ['DELETE']
 # @todo https://www.drupal.org/i/3498525 should generalize this to all eligible content entity types by using a route callback
 experience_builder.api.content.list:
-  path: '/xb/api/content/xb_page'
+  path: '/xb/api/content/{entity_type}'
   defaults:
     _controller: 'Drupal\experience_builder\Controller\ApiContentControllers::list'
   requirements:

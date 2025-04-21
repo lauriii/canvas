@@ -39,6 +39,8 @@ final class ApiLayoutController {
   use ClientServerConversionTrait;
   use EntityFormTrait;
 
+  const ENTITY_DUPLICATE_SUFFIX = ' (Copy)';
+
   private array $regions;
   private array $regionsClientSideIds;
 
@@ -72,7 +74,7 @@ final class ApiLayoutController {
   }
 
   private function contentEntityIsConsideredNew(string $current_entity_label, EntityTypeInterface $entity_type): bool {
-    return $current_entity_label == ApiContentControllers::defaultTitle($entity_type);
+    return $current_entity_label == ApiContentControllers::defaultTitle($entity_type) || str_ends_with($current_entity_label, self::ENTITY_DUPLICATE_SUFFIX);
   }
 
   public function get(FieldableEntityInterface&EntityPublishedInterface $entity): PreviewEnvelope {

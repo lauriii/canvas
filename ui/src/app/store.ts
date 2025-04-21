@@ -13,7 +13,6 @@ import { primaryPanelSlice } from '@/features/ui/primaryPanelSlice';
 import { dialogSlice } from '@/features/ui/dialogSlice';
 import { codeComponentDialogSlice } from '@/features/ui/codeComponentDialogSlice';
 import { previewApi } from '@/services/preview';
-import { contentCreateApi } from '@/services/contentCreate';
 import undoable from 'redux-undo';
 import type { LayoutModelSliceState } from '@/features/layout/layoutModelSlice';
 import {
@@ -128,7 +127,6 @@ const rootReducer = combineSlices(
   assetLibraryApi,
   componentAndLayoutApi,
   previewApi,
-  contentCreateApi,
   dummyPropsFormApi,
   pageDataFormApi,
   configurationSlice,
@@ -196,7 +194,6 @@ export const makeStore = (preloadedState?: Partial<RootState>) => {
         assetLibraryApi.middleware,
         componentAndLayoutApi.middleware,
         previewApi.middleware,
-        contentCreateApi.middleware,
         dummyPropsFormApi.middleware,
         pageDataFormApi.middleware,
         undoRedoActionIdMiddleware,

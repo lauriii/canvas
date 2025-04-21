@@ -27,8 +27,8 @@ import { handleNonWorkingBtn } from '@/utils/function-utils';
 import {
   useDeleteContentMutation,
   useGetContentListQuery,
+  useCreateContentMutation,
 } from '@/services/content';
-import { useCreateContentMutation } from '@/services/contentCreate';
 import { useNavigationUtils } from '@/hooks/useNavigationUtils';
 import { useErrorBoundary } from 'react-error-boundary';
 import type { ContentStub } from '@/types/Content';
@@ -82,7 +82,7 @@ const PageInfo = () => {
 
   function handleNewPage() {
     createContent({
-      entityType: 'xb_page',
+      entity_type: 'xb_page',
     });
   }
 
@@ -93,6 +93,13 @@ const PageInfo = () => {
     deleteContent({
       entityType: 'xb_page',
       entityId: String(item.id),
+    });
+  }
+
+  function handleDuplication(item: ContentStub) {
+    createContent({
+      entity_type: 'xb_page',
+      entity_id: String(item.id),
     });
   }
 
@@ -162,7 +169,7 @@ const PageInfo = () => {
                 onSearch={handleNonWorkingBtn}
                 onSelect={handleOnSelect}
                 onRename={handleNonWorkingBtn}
-                onDuplicate={handleNonWorkingBtn}
+                onDuplicate={handleDuplication}
                 onSetHomepage={handleNonWorkingBtn}
                 onDelete={handleDeletePage}
               />

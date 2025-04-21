@@ -33,6 +33,8 @@ parameters:
         class: Drupal\experience_builder\Entity\PageRegion
       pattern:
         class: Drupal\experience_builder\Entity\Pattern
+  stubFiles:
+    - phpstan-stubs/EntityTypeManagerInterface.stub
   ignoreErrors:
     - identifier: missingType.iterableValue
     - identifier: missingType.generics

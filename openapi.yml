@@ -630,7 +630,16 @@ paths:
       responses:
         '204':
           description: Deleted individual Asset Library
-  '/xb/api/content/xb_page':
+  '/xb/api/content/xb_page/{entityId}':
+    description: Endpoint for deleting content entities.
+    delete:
+      description: Deletes a content entity.
+      parameters:
+        - $ref: '#/components/parameters/entityId'
+      responses:
+        '204':
+          description: Content deleted successfully
+  '/xb/api/content/{entity_type}':
     get:
       description: Provides api for page listing.
       responses:
@@ -688,17 +697,34 @@ paths:
                       autoSaveLabel: About who?
                       autoSavePath: /page/1
     post:
-      description: TODO
+      description: Create content for a specific entity type
+      parameters:
+        - name: entity_type
+          in: path
+          required: true
+          description: The entity type
+          schema:
+            type: string
+      requestBody:
+        description: Optional entity ID for duplication
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                entity_id:
+                  type: string
+                  description: The ID of the entity to duplicate (optional)
       responses:
         '201':
           description: Created entity successfully
           content:
             application/json:
               examples:
-                newXbPageContentEntity:
+                newContentEntity:
                   value:
                     entity_type: xb_page
-                    id: '123'
+                    id: 123
               schema:
                 type: object
                 required:
@@ -710,22 +736,21 @@ paths:
                     description: The entity type ID
                     examples:
                       - xb_page
-                      - node
                   entity_id:
                     type: string
-                    description: The ID of the created content entity
+                    description: The id of created content entity
                     examples:
                       - '42'
-                      - 'stringAreAlsoPossible'
-  '/xb/api/content/xb_page/{entityId}':
-    description: Endpoint for deleting content entities.
-    delete:
-      description: Deletes a content entity.
-      parameters:
-        - $ref: '#/components/parameters/entityId'
-      responses:
-        '204':
-          description: Content deleted successfully
+        '404':
+          description: Entity not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: Cannot find entity to duplicate.
   '/xb/api/form/component-instance/{entityTypeId}/{entityId}':
     description: TODO
     parameters:
