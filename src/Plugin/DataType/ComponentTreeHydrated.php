@@ -156,7 +156,7 @@ class ComponentTreeHydrated extends TypedData implements CacheableDependencyInte
             // Explicit slot value: renderify, just like the rest of the
             // component tree.
             else {
-              $slots += self::renderify([$slot => $slot_value]);
+              $slots += self::renderify([$slot => $slot_value], $isPreview);
             }
           }
 
