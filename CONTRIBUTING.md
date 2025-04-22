@@ -1,5 +1,41 @@
-# See it in action + recommended development environment
-1. Drupal 11 (preferably a clone for Git archeology: `git clone https://git.drupalcode.org/project/drupal.git` — 10.4 will work too).
+# Contributing
+
+For joining the development process of Experience Builder (XB for short) or trying the development process, we strongly recommend the use of [DDEV](https://ddev.com/get-started/) (version 1.24.0 or later), and the use of the [drupal-xb/ddev-drupal-xb-dev addon](https://github.com/drupal-xb/ddev-drupal-xb-dev).
+
+## Useful links
+1. [Issue queue](https://www.drupal.org/project/issues/experience_builder?categories=All)
+2. [Source code](https://git.drupalcode.org/project/experience_builder)
+
+## DDEV for your local environment
+
+```shell
+# Extracted from the ddev-drupal-xb-dev plugin
+mkdir ~/Sites/xb-dev
+cd ~/Sites/xb-dev
+ddev config --project-type=drupal --php-version=8.3 --docroot=web
+# XB requires Drupal >= 11.1.2
+ddev composer create drupal/recommended-project:11.x@dev --no-install
+ddev add-on get drupal-xb/ddev-drupal-xb-dev
+# This will clone the 'experience_builder' repo under web/modules/contrib
+ddev xb-setup
+ddev xb-dev-extras
+```
+Additionally, you should add  `$settings['extension_discovery_scan_tests'] = TRUE;` to the end of the `sites/default/settings.php` file (this allows the `xb_dev_standard` hidden module to be installed).
+
+### First experience
+After this process, you will get the `drush uli` to login into the admin area. You will see an article created. If you edit the article, you will see a new link "Experience Builder: Test" to edit this entity with the new XB UI.
+
+### Usage
+The most common commands in the development process are:
+1. `ddev xb-site-install`: This will reinstall the site and enable a couple of commands. Very useful when you update XB and what to have a fresh installation.
+2. `ddev xb-ui-build`: This will build the `experience_builder/ui` javascript application. Required whenever you update XB.
+3. Tests and linting: The commands `xb-eslint`, `xb-fix`, `xb-phpcs`, `xb-phpstan` and `xb-phpunit` must be used before any commit to ensure code looks good and pass tests.
+4. More commands with `ddev | grep xb-` and in the [ddev-drupal-xb-dev repo usage](https://github.com/drupal-xb/ddev-drupal-xb-dev#usage).
+
+Tip: Use `ddev help <command>` for additional information about the command and arguments available.
+
+## Setting up you local manually
+1. Clone Drupal 11 (preferably a clone for Git archeology: `git clone https://git.drupalcode.org/project/drupal.git` — >= Drupal 11.1.2 is required).
 2. `cd drupal && git clone git@git.drupal.org:project/experience_builder.git modules/contrib/experience_builder`
 4. `composer require drush/drush`
 5. `vendor/bin/drush si standard`
@@ -13,29 +49,19 @@
 10. If you're curious: look at the code, step through it with a debugger, and join us!
 11. If you want to run *all* tests locally: `composer require league/openapi-psr7-validator webflo/drupal-finder devizzent/cebe-php-openapi --dev`
 
-# During development
-The following commands assume the recommended development details outlined above, particularly the location of the `vendor` directory. If your `vendor` directory is not adjacent to your `index.php` — if you created your environment using [`drupal/recommended-project`](https://packagist.org/packages/drupal/recommended-project), for example — you will need to adjust the command path (i.e., `../vendor` instead of `vendor`). If you are using our DDEV add-on ([`TravisCarden/ddev-drupal-xb-dev`](https://github.com/TravisCarden/ddev-drupal-xb-dev)), convenience commands are provided.
+### During development
+The following commands assume the recommended development details outlined above, particularly the location of the `vendor` directory. If your `vendor` directory is not adjacent to your `index.php` — if you created your environment using [`drupal/recommended-project`](https://packagist.org/packages/drupal/recommended-project), for example — you will need to adjust the command path (i.e., `../vendor` instead of `vendor`).
 
-## `phpcs`
+### Usage of the commands
+#### `phpcs`
 Manually, from the Drupal project root (i.e. where `index.php` lives):
 ```shell
 vendor/bin/phpcs -s modules/contrib/experience_builder/ --standard=modules/contrib/experience_builder/phpcs.xml --basepath=modules/contrib/experience_builder
 ```
-
-Or using the DDEV add-on:
-```shell
-ddev xb-phpcs
-```
-
-## `phpstan`
+#### `phpstan`
 Manually, from the Drupal project root (i.e. where `index.php` lives):
 ```shell
 php vendor/bin/phpstan analyze modules/contrib/experience_builder --memory-limit=256M --configuration=modules/contrib/experience_builder/phpstan.neon
-```
-
-Or using the DDEV add-on:
-```shell
-ddev xb-phpstan
 ```
 
 # Architectural Decision Records
@@ -70,6 +96,11 @@ If you press and hold the `V` key, the React app will 'disappear' until you rele
 If you press & hold the `V` key and then click on the iFrame (focusing into it),  then the V key can be released and the UI will remain hidden. Once hidden, it becomes much easier to use the browser's developer tools to inspect elements inside the iFrame.
 
 You can then click (focus) outside the iFrame and tap the `V` key once more to return the UI.
+
+## 2. Always start from a fresh start
+1. Reinstall the site frequently (`ddev xb-site-install`).
+2. If you're working with sqlite, delete the database frequently (`rm web/sites/default/.ht.sqlite`).
+3. Build the UI frequently (`ddev xb-ui-build`).
 
 # Releases
 

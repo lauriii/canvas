@@ -10,6 +10,10 @@ content on any part of the page without relying on developers.
 
 This module requires the core Media and Media Library modules to support images.
 
+## Trying Experience Builder
+
+If you want to test Experience Builder (XB for short) you can try [phenaproxima/xb-demo](https://github.com/phenaproxima/xb-demo). This repository has a profile with everything ready to install. Follow the instructions there and you should be ready to test in a couple of steps.
+
 ## Installation
 
 See the [CONTRIBUTING.md](CONTRIBUTING.md) steps to install.
