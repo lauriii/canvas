@@ -1,7 +1,7 @@
 langcode: en
 status: true
 dependencies: {  }
-machineName: vanilla_image
+machineName: xb_test_code_components_vanilla_image
 name: Vanilla Image
 block_override: null
 required: {  }

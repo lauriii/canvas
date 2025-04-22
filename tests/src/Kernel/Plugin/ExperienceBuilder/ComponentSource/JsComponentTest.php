@@ -8,15 +8,15 @@ use Drupal\Component\Serialization\Json;
 use Drupal\Component\Utility\Crypt;
 use Drupal\Core\Asset\AssetResolverInterface;
 use Drupal\Core\Asset\AttachedAssets;
+use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Site\Settings;
 use Drupal\Core\StreamWrapper\StreamWrapperInterface;
 use Drupal\Core\StreamWrapper\StreamWrapperManagerInterface;
 use Drupal\experience_builder\AutoSave\AutoSaveManager;
 use Drupal\experience_builder\Entity\Component;
-use Drupal\experience_builder\Entity\ComponentInterface;
 use Drupal\experience_builder\Entity\JavaScriptComponent;
 use Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\JsComponent;
-use Drupal\KernelTests\KernelTestBase;
+use Drupal\experience_builder\PropSource\StaticPropSource;
 use Drupal\Tests\experience_builder\Traits\CrawlerTrait;
 use Drupal\Tests\user\Traits\UserCreationTrait;
 
@@ -26,74 +26,246 @@ use Drupal\Tests\user\Traits\UserCreationTrait;
  * @covers \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\JsComponent
  * @group experience_builder
  * @group JavaScriptComponents
+ *
+ * @phpstan-import-type ComponentConfigEntityId from \Drupal\experience_builder\Entity\Component
  */
-final class JsComponentTest extends KernelTestBase {
+final class JsComponentTest extends ComponentSourceTestBase {
 
   use UserCreationTrait;
   use CrawlerTrait;
 
-  /**
-   * Test component.
-   */
-  protected ComponentInterface $component;
-
+  protected readonly AssetResolverInterface $assetResolver;
   /**
    * {@inheritdoc}
    */
   protected static $modules = [
-    'experience_builder',
-    'user',
-    'system',
-    'media',
+    'xb_test_code_components',
   ];
 
   /**
    * {@inheritdoc}
    */
-  protected function setUp(): void {
+  public function setUp(): void {
     parent::setUp();
-    $this->installEntitySchema('user');
-    $this->installConfig(['system']);
+    $this->assetResolver = $this->container->get(AssetResolverInterface::class);
+  }
 
-    $js_component = JavaScriptComponent::create([
-      'machineName' => $this->randomMachineName(),
-      'name' => $this->getRandomGenerator()->sentences(5),
-      'status' => TRUE,
-      'props' => [
-        'title' => [
-          'type' => 'string',
-          'title' => 'Title',
-          'examples' => ['A title'],
-        ],
-      ],
-      'required' => ['title'],
-      'slots' => [],
-      'css' => [
-        'original' => '.test { display: none; }',
-        'compiled' => '.test{display:none;}',
-      ],
-      'js' => [
-        'original' => 'console.log( "hey" );',
-        'compiled' => 'console.log("hey");',
-      ],
-    ]);
-    $js_component->save();
-    $component = Component::load(JsComponent::componentIdFromJavascriptComponentId((string) $js_component->id()));
-    \assert($component instanceof ComponentInterface);
-    $this->component = $component;
+  protected function generateComponentConfig(): void {
+    parent::generateComponentConfig();
+    $this->container->get('config.installer')->installDefaultConfig('module', 'xb_test_code_components');
+  }
+
+  public function testDiscovery(): array {
+    self::assertSame([], $this->findCreatedComponentConfigEntities(JsComponent::SOURCE_PLUGIN_ID, 'xb_test_code_components'));
+
+    $this->generateComponentConfig();
+
+    // ⚠️ It is impossible to create ineligible JavaScriptComponent config entities!
+    // @see \Drupal\Tests\experience_builder\Kernel\Config\JavaScriptComponentValidationTest::providerTestEntityShapes()
+    self::assertSame([], $this->findIneligibleComponents(JsComponent::SOURCE_PLUGIN_ID, 'xb_test_code_components'));
+    $expected_js_component_ids = array_keys(self::getExpectedSettings());
+    $js_components = $this->findCreatedComponentConfigEntities(JsComponent::SOURCE_PLUGIN_ID, 'xb_test_code_components');
+
+    self::assertSame($expected_js_component_ids, $js_components);
+
+    return $js_components;
   }
 
   /**
+   * @param array<ComponentConfigEntityId> $component_ids
+   * @covers ::getReferencedPluginClass()
+   * @depends testDiscovery
+   */
+  public function testGetReferencedPluginClass(array $component_ids): void {
+    self::assertSame(
+      // Code components are not plugins, but config entities!
+      array_fill_keys($component_ids, NULL),
+      $this->getReferencedPluginClasses($component_ids)
+    );
+  }
+
+  /**
+   * Tests the shape-matched `prop_field_definitions` for all code components.
+   *
+   * @depends testDiscovery
+   */
+  public function testSettings(array $component_ids): void {
+    $settings = $this->getAllSettings($component_ids);
+    self::assertSame(self::getExpectedSettings(), $settings);
+
+    // Slightly more scrutiny for ComponentSources with a generated field-based
+    // input UX: verifying this results in working `StaticPropSource`s is
+    // sufficient, everything beyond that is covered by PropShapeRepositoryTest.
+    // @see \Drupal\Tests\experience_builder\Kernel\PropShapeRepositoryTest::testPropShapesYieldWorkingStaticPropSources()
+    // @see \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase
+    $components = $this->componentStorage->loadMultiple($component_ids);
+    foreach ($components as $component_id => $component) {
+      // Use reflection to test the private ::getDefaultStaticPropSource() method.
+      assert($component instanceof Component);
+      $source = $component->getComponentSource();
+      $private_method = new \ReflectionMethod($source, 'getDefaultStaticPropSource');
+      $private_method->setAccessible(TRUE);
+      foreach (array_keys($settings[$component_id]['prop_field_definitions']) as $prop) {
+        $static_prop_source = $private_method->invoke($source, $prop);
+        $this->assertInstanceOf(StaticPropSource::class, $static_prop_source);
+      }
+    }
+  }
+
+  public static function getExpectedSettings(): array {
+    return [
+      'js.xb_test_code_components_vanilla_image' => [
+        'plugin_id' => 'xb_test_code_components_vanilla_image',
+        'prop_field_definitions' => [
+          'image' => [
+            'field_type' => 'image',
+            'field_storage_settings' => [],
+            'field_instance_settings' => [],
+            'field_widget' => 'image_image',
+            // ⚠️ Empty default value.
+            // @see \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase::exampleValueRequiresEntity()
+            'default_value' => [],
+            'expression' => 'ℹ︎image␟{src↝entity␜␜entity:file␝uri␞␟url,alt↠alt,width↠width,height↠height}',
+          ],
+        ],
+      ],
+      'js.xb_test_code_components_with_no_props' => [
+        'plugin_id' => 'xb_test_code_components_with_no_props',
+        'prop_field_definitions' => [],
+      ],
+      'js.xb_test_code_components_with_props' => [
+        'plugin_id' => 'xb_test_code_components_with_props',
+        'prop_field_definitions' => [
+          'age' => [
+            'field_type' => 'integer',
+            'field_storage_settings' => [],
+            'field_instance_settings' => [],
+            'field_widget' => 'number',
+            'default_value' => ['value' => 40],
+            'expression' => 'ℹ︎integer␟value',
+          ],
+          'name' => [
+            'field_type' => 'string',
+            'field_storage_settings' => [],
+            'field_instance_settings' => [],
+            'field_widget' => 'string_textfield',
+            'default_value' => ['value' => 'XB'],
+            'expression' => 'ℹ︎string␟value',
+          ],
+        ],
+      ],
+    ];
+  }
+
+  /**
+   * @param array<ComponentConfigEntityId> $component_ids
+   * @covers ::renderComponent()
+   * @depends testDiscovery
+   */
+  public function testRenderComponentLive(array $component_ids): void {
+    $this->assertNotEmpty($component_ids);
+
+    $rendered = $this->renderComponentsLive(
+      $component_ids,
+      get_default_input: fn (Component $component) => [
+        JsComponent::EXPLICIT_INPUT_NAME => array_map(
+        // @see \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase::getDefaultStaticPropSource()
+          fn (array $prop_field_definition): mixed => match ($prop_field_definition['default_value']) {
+            // @see \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase::exampleValueRequiresEntity()
+            // @todo Refine later, to use DefaultRelativeUrlPropSource.
+            [] => [
+              'src' => 'cat.jpg',
+              'alt' => '',
+              'width' => 10,
+              'height' => 10,
+            ],
+            default => StaticPropSource::parse([
+              'sourceType' => 'static:field_item:' . $prop_field_definition['field_type'],
+              'value' => $prop_field_definition['default_value'],
+              'expression' => $prop_field_definition['expression'],
+              'sourceTypeSettings' => [
+                'storage' => $prop_field_definition['field_storage_settings'] ?? [],
+                'instance' => $prop_field_definition['field_instance_settings'] ?? [],
+              ],
+            ])
+              // Static prop sources can be evaluated without a host entity.
+              ->evaluate(NULL),
+          },
+          $component->getSettings()['prop_field_definitions']
+        ),
+      ],
+    );
+
+    // ⚠️ The `'html'` expectations are tested separately for this very complex
+    // rendering.
+    // @see ::testRenderComponent()
+    $rendered_without_html = array_map(
+      fn ($expectations) => array_diff_key($expectations, ['html' => NULL]),
+      $rendered,
+    );
+
+    $default_render_cache_contexts = [
+      'languages:language_interface',
+      'theme',
+      'user.permissions',
+    ];
+    $default_cacheability = (new CacheableMetadata())
+      ->setCacheContexts($default_render_cache_contexts);
+    $this->assertEquals([
+      'js.xb_test_code_components_vanilla_image' => [
+        'cacheability' => $default_cacheability,
+      ],
+      'js.xb_test_code_components_with_no_props' => [
+        'cacheability' => $default_cacheability,
+      ],
+      'js.xb_test_code_components_with_props' => [
+        'cacheability' => $default_cacheability,
+      ],
+    ], $rendered_without_html);
+  }
+
+  /**
+   * For JavaScript components, auto-saves create an extra testing dimension!
+   *
+   * @depends testDiscovery
    * @testWith [false, false, "live"]
    *           [false, true, "live"]
    *           [true, false, "live"]
    *           [true, true, "draft"]
    */
-  public function testRenderComponent(bool $preview_requested, bool $auto_save_exists, string $expected_result): void {
-    assert(in_array($expected_result, ['draft', 'live'], TRUE));
+  public function testRenderJsComponent(bool $preview_requested, bool $auto_save_exists, string $expected_result, array $component_ids): void {
+    $this->generateComponentConfig();
+    foreach ($this->componentStorage->loadMultiple($component_ids) as $component) {
+      assert($component instanceof Component);
+      $source = $component->getComponentSource();
+      \assert($source instanceof JsComponent);
+      $this->assertRenderedAstroIsland($component, $preview_requested, $auto_save_exists, $expected_result);
+    }
+  }
 
-    $source = $this->component->getComponentSource();
+  /**
+   * Helper function to render a component and assert the result.
+   *
+   * @param \Drupal\experience_builder\Entity\Component $component
+   * @param bool $preview_requested
+   * @param bool $auto_save_exists
+   * @param string $expected_result
+   *
+   * @return void
+   */
+  private function assertRenderedAstroIsland(
+    Component $component,
+    bool $preview_requested,
+    bool $auto_save_exists,
+    string $expected_result,
+  ): void {
+    $source = $component->getComponentSource();
     \assert($source instanceof JsComponent);
+    $js_component_id = $component->getSettings()['plugin_id'];
+    $js_component = $source->getJavaScriptComponent();
+    $expected_component_compiled_js = $js_component->getJs();
+    $expected_component_compiled_css = $js_component->getCss();
+    $expected_component_props = $js_component->getProps();
 
     // Create auto-save entry if that's expected by this test case.
     if ($auto_save_exists) {
@@ -108,10 +280,8 @@ final class JsComponentTest extends KernelTestBase {
         );
     }
 
-    $js_component_id = $this->component->getSettings()['plugin_id'];
-    $props = ['title' => 'Title'];
     $island = $source->renderComponent([
-      'props' => $props,
+      'props' => $expected_component_props,
     ], 'some-uuid', $preview_requested);
     $crawler = $this->crawlerForRenderArray($island);
 
@@ -120,43 +290,87 @@ final class JsComponentTest extends KernelTestBase {
 
     // Note that ::renderComponent adds both xb_uuid and xb_slot_ids props but
     // they should not be present as props in the astro-island element.
-    self::assertJsonStringEqualsJsonString(Json::encode(\array_map(static fn(mixed $value): array => [
-      'raw',
-      $value,
-    ], $props)), $element->attr('props') ?? '');
+    // Ternary because empty arrays are encoded as '[]' in Json::encode().
+    $json_expected = (empty($expected_component_props)) ? '{}' :
+      Json::encode(\array_map(static fn(mixed $value): array => [
+        'raw',
+        $value,
+      ], $expected_component_props));
+    self::assertJsonStringEqualsJsonString($json_expected, $element->attr('props') ?? '');
 
     // Assert rendered code component's JS.
     $asset_wrapper = $this->container->get(StreamWrapperManagerInterface::class)->getViaScheme('assets');
     \assert($asset_wrapper instanceof StreamWrapperInterface);
     \assert(\method_exists($asset_wrapper, 'getDirectoryPath'));
     $directory_path = $asset_wrapper->getDirectoryPath();
-    $js_hash = Crypt::hmacBase64('console.log("hey");', Settings::getHashSalt());
-    $js_filename = match ($expected_result) {
+    $js_hash = Crypt::hmacBase64($expected_component_compiled_js, Settings::getHashSalt());
+    // @phpstan-ignore-next-line
+    $expected_js_filename = match ($expected_result) {
       'live' => \sprintf('/%s/astro-island/%s.js', $directory_path, $js_hash),
       'draft' => \sprintf('/xb/api/auto-saves/js/%s/%s', JavaScriptComponent::ENTITY_TYPE_ID, $js_component_id),
     };
-    self::assertEquals($js_filename, $element->attr('component-url'));
-    $expected_asset_library = match ($expected_result) {
-      'live' => 'experience_builder/astro_island.%s',
-      'draft' => 'experience_builder/astro_island.%s.draft',
-    };
-    self::assertContains(\sprintf($expected_asset_library, $js_component_id), $island['#attached']['library']);
+    $element_js_script = $element->attr('component-url');
+    self::assertEquals($expected_js_filename, $element_js_script);
 
-    // Assert rendered code component's CSS.
-    $asset_resolver = \Drupal::service(AssetResolverInterface::class);
-    \assert($asset_resolver instanceof AssetResolverInterface);
-    $css_asset = $asset_resolver->getCssAssets(AttachedAssets::createFromRenderArray($island), FALSE);
-    $css_filename = match($expected_result) {
-      'live' => \sprintf(
-        'assets://astro-island/%s.css',
-        Crypt::hmacBase64('.test{display:none;}', Settings::getHashSalt()),
-      ),
-      'draft' => "xb/api/auto-saves/css/js_component/$js_component_id",
-    };
-    self::assertEquals($css_filename, reset($css_asset)['data']);
     $preloads = \array_column($island['#attached']['html_head_link'], 0);
     $hrefs = \array_column($preloads, 'href');
-    self::assertContains($js_filename, $hrefs);
+    self::assertContains($expected_js_filename, $hrefs);
+
+    // Assert rendered code component's CSS, if any.
+    if ($source->getJavaScriptComponent()->hasCss()) {
+      // @phpstan-ignore-next-line
+      $expected_css_asset_library = match ($expected_result) {
+        'live' => 'experience_builder/astro_island.%s',
+        'draft' => 'experience_builder/astro_island.%s.draft',
+      };
+      self::assertContains(\sprintf($expected_css_asset_library, $js_component_id), $island['#attached']['library']);
+
+      // Assert rendered code component's CSS.
+      $css_asset = $this->assetResolver->getCssAssets(AttachedAssets::createFromRenderArray($island), FALSE);
+      // @phpstan-ignore-next-line
+      $css_filename = match ($expected_result) {
+        'live' => \sprintf(
+          'assets://astro-island/%s.css',
+          Crypt::hmacBase64($expected_component_compiled_css, Settings::getHashSalt()),
+        ),
+        'draft' => "xb/api/auto-saves/css/js_component/$js_component_id",
+      };
+      self::assertEquals($css_filename, reset($css_asset)['data']);
+    }
+  }
+
+  /**
+   * @covers ::calculateDependencies()
+   * @depends testDiscovery
+   */
+  public function testCalculateDependencies(array $component_ids): void {
+    self::assertSame([
+      'js.xb_test_code_components_vanilla_image' => [
+        'module' => [
+          'image',
+          'image',
+        ],
+        'config' => [
+          'experience_builder.js_component.xb_test_code_components_vanilla_image',
+        ],
+      ],
+      'js.xb_test_code_components_with_no_props' => [
+        'config' => [
+          'experience_builder.js_component.xb_test_code_components_with_no_props',
+        ],
+      ],
+      'js.xb_test_code_components_with_props' => [
+        'module' => [
+          'core',
+          'core',
+          'core',
+          'core',
+        ],
+        'config' => [
+          'experience_builder.js_component.xb_test_code_components_with_props',
+        ],
+      ],
+    ], $this->getAllCalculatedDependencies($component_ids));
   }
 
 }

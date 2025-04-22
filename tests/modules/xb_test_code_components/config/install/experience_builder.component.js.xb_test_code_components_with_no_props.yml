@@ -1,0 +1,14 @@
+uuid: 6003b4ef-b034-45a8-a6d3-bbb6e40327f4
+langcode: en
+status: true
+dependencies:
+  config:
+    - experience_builder.js_component.xb_test_code_components_with_no_props
+label: 'With no props'
+id: js.xb_test_code_components_with_no_props
+provider: null
+source: js
+category: '@todo'
+settings:
+  plugin_id: xb_test_code_components_with_no_props
+  prop_field_definitions: {  }

@@ -28,12 +28,14 @@ use Drupal\Tests\experience_builder\Traits\TestDataUtilitiesTrait;
  *   restricting XB component trees
  * - rendering of component instances on the live site
  * - generating client-side info that powers the XB UI
+ * - the source-specific settings that were generated for the discovered
+ *   Component config entity
+ * - calculating of source-specific dependencies
  * - et cetera
  *
  * @phpstan-import-type ComponentConfigEntityId from \Drupal\experience_builder\Entity\Component
  *
  * @todo Move BlockComponentTest::testGetClientSideInfo() into this base class in https://www.drupal.org/i/3518832
- * @todo Test `js` ComponentSource plugin: https://www.drupal.org/i/3518833
  */
 abstract class ComponentSourceTestBase extends KernelTestBase {
 
@@ -79,15 +81,59 @@ abstract class ComponentSourceTestBase extends KernelTestBase {
   abstract public function testDiscovery(): array;
 
   /**
+   * @see ::renderComponentsLive()
+   */
+  abstract public function testRenderComponentLive(array $component_ids): void;
+
+  /**
    * @see ::getReferencedPluginClasses()
    * @see \Drupal\experience_builder\Plugin\Validation\Constraint\ComponentTreeMeetsRequirementsConstraint
    */
   abstract public function testGetReferencedPluginClass(array $component_ids): void;
 
   /**
-   * @see ::renderComponentsLive()
+   * @see ::getAllSettings()
    */
-  abstract public function testRenderComponentLive(array $component_ids): void;
+  abstract public function testSettings(array $component_ids): void;
+
+  /**
+   * @see ::getAllCalculatedDependencies()
+   */
+  abstract public function testCalculateDependencies(array $component_ids): void;
+
+  /**
+   * @param array<ComponentConfigEntityId> $component_ids
+   * @return array<ComponentConfigEntityId, array>
+   */
+  protected function getAllSettings(array $component_ids): array {
+    $this->assertCount(0, $this->componentStorage->loadMultiple());
+    $this->generateComponentConfig();
+    $components = $this->componentStorage->loadMultiple($component_ids);
+
+    $settings = [];
+    foreach ($components as $component_id => $component) {
+      assert($component instanceof Component);
+      $settings[$component_id] = $component->getSettings();
+    }
+    return $settings;
+  }
+
+  /**
+   * @param array<ComponentConfigEntityId> $component_ids
+   * @return array<ComponentConfigEntityId, array>
+   */
+  protected function getAllCalculatedDependencies(array $component_ids): array {
+    $this->assertCount(0, $this->componentStorage->loadMultiple());
+    $this->generateComponentConfig();
+    $components = $this->componentStorage->loadMultiple($component_ids);
+
+    $settings = [];
+    foreach ($components as $component_id => $component) {
+      assert($component instanceof Component);
+      $settings[$component_id] = $component->getComponentSource()->calculateDependencies();
+    }
+    return $settings;
+  }
 
   public function findCreatedComponentConfigEntities(string $component_source_plugin_id, string $test_module): array {
     // @phpstan-ignore-next-line

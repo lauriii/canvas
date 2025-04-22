@@ -60,6 +60,36 @@ final class BlockComponentTest extends ComponentSourceTestBase {
   }
 
   /**
+   * Tests the 'default_settings' generated for the eligible Block plugins.
+   *
+   * @depends testDiscovery
+   */
+  public function testSettings(array $component_ids): void {
+    self::assertSame([
+      'block.xb_test_block_input_none' => [
+        'plugin_id' => 'xb_test_block_input_none',
+        'default_settings' => [
+          'id' => 'xb_test_block_input_none',
+          'label' => 'Test block with no settings.',
+          'label_display' => '',
+          'provider' => 'xb_test_block',
+        ],
+      ],
+      'block.xb_test_block_input_validatable' => [
+        'plugin_id' => 'xb_test_block_input_validatable',
+        'default_settings' => [
+          'id' => 'xb_test_block_input_validatable',
+          'label' => 'Test Block with settings',
+          'label_display' => '',
+          'provider' => 'xb_test_block',
+          // This block has an editable field.
+          'name' => 'XB',
+        ],
+      ],
+    ], $this->getAllSettings($component_ids));
+  }
+
+  /**
    * @param array<ComponentConfigEntityId> $component_ids
    * @covers ::getReferencedPluginClass()
    * @depends testDiscovery
@@ -198,6 +228,19 @@ HTML,
     $componentSettingsOriginal = json_decode($componentItemValue['inputs'], TRUE)[$componentItemValue['uuid']];
 
     $this->assertSame($componentSettingsOriginal, $componentSettings);
+  }
+
+  /**
+   * @covers ::calculateDependencies()
+   * @depends testDiscovery
+   */
+  public function testCalculateDependencies(array $component_ids): void {
+    // Note: the module providing the Block plugin is depended upon directly.
+    // @see \Drupal\experience_builder\Entity\Component::$provider
+    self::assertSame([
+      'block.xb_test_block_input_none' => [],
+      'block.xb_test_block_input_validatable' => [],
+    ], $this->getAllCalculatedDependencies($component_ids));
   }
 
 }
