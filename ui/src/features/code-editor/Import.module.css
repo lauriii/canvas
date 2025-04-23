@@ -8,8 +8,8 @@
 }
 
 .code {
-  font-size: var(--font-size-1) !important;
+  width: 100% !important;
   padding: var(--space-3) !important;
   border-radius: var(--radius-4) !important;
-  width: 100% !important;
+  font-size: var(--font-size-1) !important;
 }
