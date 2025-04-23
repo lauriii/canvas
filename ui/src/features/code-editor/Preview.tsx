@@ -6,6 +6,7 @@ import {
   selectBlockOverride,
   selectCompiledCss,
   selectHasCompletedFirstCompilation,
+  selectId,
   selectName,
   selectProps,
   selectSlots,
@@ -36,6 +37,7 @@ import {
   getPropValuesForPreview,
   getSlotNamesForPreview,
 } from '@/features/code-editor/utils';
+import { useGetCodeComponentsQuery } from '@/services/componentAndLayout';
 
 const { Drupal } = window as any;
 
@@ -94,6 +96,7 @@ const Preview = ({ isLoading = false }: { isLoading?: boolean }) => {
   const dispatch = useAppDispatch();
   const lastInvocationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [isSwcInitialized, setIsSwcInitialized] = useState(false);
+  const componentId = useAppSelector(selectId);
   const componentName = useAppSelector(selectName);
   const blockOverride = useAppSelector(selectBlockOverride);
   const hasCompletedFirstCompilation = useAppSelector(
@@ -112,7 +115,9 @@ const Preview = ({ isLoading = false }: { isLoading?: boolean }) => {
   const parentRef = useRef<HTMLDivElement>(null);
   const [isCompileError, setIsCompileError] = useState(false);
   const [isJsImportError, setIsJsImportError] = useState(false);
-  const [jsImportsCssForPreview, setJsImportsCssForPreview] = useState('');
+  const { data: codeComponents } = useGetCodeComponentsQuery({
+    override: false,
+  });
   const [jsImportNameWithError, setJsImportNameWithError] = useState('');
 
   const iframeSrcDoc = `
@@ -122,7 +127,23 @@ const Preview = ({ isLoading = false }: { isLoading?: boolean }) => {
           ${JSON.stringify(importMap)}
         </script>
         <style>${compiledCss}</style>
-        <style>${jsImportsCssForPreview}</style>
+        ${
+          // Add CSS for all code components except the current one.
+          // @todo Make this more efficient by introducing better backend support.
+          // @see https://drupal.org/i/3520867
+          codeComponents
+            ? Object.keys(codeComponents)
+                .filter(
+                  (componentName) =>
+                    codeComponents[componentName].machineName !== componentId,
+                )
+                .map(
+                  (componentName) =>
+                    `<link rel="stylesheet" href="${Drupal.url(`xb/api/auto-saves/css/js_component/${componentName}`)}" />`,
+                )
+                .join('\n')
+            : ''
+        }
         <script id="xb-code-editor-preview-data" type="application/json">
           ${previewData}
         </script>
@@ -168,36 +189,12 @@ const Preview = ({ isLoading = false }: { isLoading?: boolean }) => {
     dispatch(setImportedJsComponents(imports));
     setIsJsImportError(false);
     if (imports.length > 0) {
-      const cssPath = Drupal.url('xb/api/auto-saves/css/js_component/');
-      // Fetch the (compiled) CSS for each import and combine them for the preview.
-      Promise.all(
-        imports.map(async (importName) => {
-          const url = `${cssPath}${importName}`;
-          const response = await fetch(url);
-          if (!response.ok) {
-            console.error(`Failed to fetch CSS for ${importName}:`, response);
-            // Because fetching the JS is handled by the browser via the import map, we can't explicitly catch errors so
-            // we check the CSS response instead.
-            //
-            // Set the JS import error flag to true if the fetch to its auto-saved CSS returns an invalid response.
-            // An existing component with no CSS should still return a valid response albeit empty.
-            // Examples of an invalid response would be a network error, or any kind of error thrown by the backend
-            // while serving the request from that controller or if the user tried to import a component with the
-            // wrong machine name in their import statement.
-            setIsJsImportError(true);
-            setJsImportNameWithError(importName);
-            return '';
-          }
-          return response.text();
-        }),
-      )
-        .then((cssContents) => {
-          const combinedCss = cssContents.join('\n');
-          setJsImportsCssForPreview(combinedCss);
-        })
-        .catch((error) => {
-          console.error('Error:', error);
-        });
+      imports.map((importName) => {
+        if (!codeComponents?.[importName]) {
+          setIsJsImportError(true);
+          setJsImportNameWithError(importName);
+        }
+      });
     }
   };
 
