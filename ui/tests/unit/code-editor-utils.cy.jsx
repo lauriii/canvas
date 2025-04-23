@@ -1,9 +1,11 @@
+/* cspell:ignore Mycomponentname HelloWorldexample */
 import {
   deserializeProps,
   serializeProps,
   serializeSlots,
   deserializeSlots,
   getPropValuesForPreview,
+  formatToValidImportName,
 } from '@/features/code-editor/utils';
 import fixtureProps from '../fixtures/code-component-props.json';
 import fixtureSlots from '../fixtures/code-component-slots.json';
@@ -375,5 +377,46 @@ describe('getImportsFromAst', () => {
     const result = getImportsFromAst(ast);
 
     expect(result).to.deep.equal([]);
+  });
+});
+
+describe('formatToValidImportName', () => {
+  it('should handle basic strings', () => {
+    expect(formatToValidImportName('hello world')).to.equal('HelloWorld');
+    expect(formatToValidImportName('my component')).to.equal('MyComponent');
+    expect(formatToValidImportName('mixedCase component')).to.equal(
+      'MixedCaseComponent',
+    );
+    expect(formatToValidImportName('CamelCase example')).to.equal(
+      'CamelCaseExample',
+    );
+  });
+
+  it('should handle special characters', () => {
+    expect(formatToValidImportName('hello-world!')).to.equal('Helloworld');
+    expect(formatToValidImportName('my@component*name')).to.equal(
+      'Mycomponentname',
+    );
+    expect(
+      formatToValidImportName('special_chars & symbols    & space'),
+    ).to.equal('SpecialCharsSymbolsSpace');
+    expect(formatToValidImportName('hello_world-example')).to.equal(
+      'HelloWorldexample',
+    );
+    expect(formatToValidImportName('\ttabbed\nwords')).to.equal('TabbedWords');
+  });
+
+  it('should handle numbers', () => {
+    expect(formatToValidImportName('foo123')).to.equal('Foo123');
+    expect(formatToValidImportName('hello 42 world')).to.equal('Hello42World');
+    // Starts with a number.
+    expect(formatToValidImportName('123test')).to.equal('Component123test');
+    expect(formatToValidImportName('42 foo')).to.equal('Component42Foo');
+  });
+
+  it('should handle empty or invalid inputs', () => {
+    expect(formatToValidImportName('')).to.equal('');
+    expect(formatToValidImportName(null)).to.equal('');
+    expect(formatToValidImportName('!@#$%^&*()')).to.equal('');
   });
 });

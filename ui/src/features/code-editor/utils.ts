@@ -270,3 +270,23 @@ export const getImportsFromAst = (ast: File, scope?: string) =>
       }
       return [...carry, scope ? source.slice(scope.length) : source];
     }, []);
+
+/**
+ * Formats a string into a valid JS identifier for imports.
+ * ex. import ${formatted} from '@/components/source'
+ */
+export function formatToValidImportName(name: string): string {
+  if (!name) return '';
+  // Remove special characters and spaces, keeping alphanumeric and underscore
+  let formatted = name.replace(/[^\w\s]/g, '');
+  // Convert to PascalCase (capitalize first letter of each word)
+  formatted = formatted
+    .split(/[\s_-]+/)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join('');
+  // Ensure it doesn't start with a number
+  if (/^\d/.test(formatted)) {
+    formatted = 'Component' + formatted;
+  }
+  return formatted;
+}

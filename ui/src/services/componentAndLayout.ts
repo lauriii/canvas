@@ -35,15 +35,21 @@ export const componentAndLayoutApi = createApi({
       transformResponse: (response: ComponentsList, meta, arg) => {
         if (!arg || !Array.isArray(arg.libraries)) {
           // If no filter is provided, return all components.
-          return response;
+          return Object.fromEntries(
+            Object.entries(response).sort(([, a], [, b]) =>
+              a.name.localeCompare(b.name),
+            ),
+          );
         }
 
         // Filter the response based on the include/exclude and the list of library types passed.
         return Object.fromEntries(
-          Object.entries(response).filter(([, value]) => {
-            const isIncluded = arg.libraries.includes(value.library);
-            return arg.mode === 'include' ? isIncluded : !isIncluded;
-          }),
+          Object.entries(response)
+            .filter(([, value]) => {
+              const isIncluded = arg.libraries.includes(value.library);
+              return arg.mode === 'include' ? isIncluded : !isIncluded;
+            })
+            .sort(([, a], [, b]) => a.name.localeCompare(b.name)),
         );
       },
     }),
@@ -78,7 +84,7 @@ export const componentAndLayoutApi = createApi({
           return response;
         }
 
-        const { status = false, override = false } = arg;
+        const { status, override = false } = arg;
 
         return Object.entries(response).reduce(
           (filtered, [key, component]) => {
@@ -87,8 +93,9 @@ export const componentAndLayoutApi = createApi({
               ? !!component.block_override // When override=true, keep components WITH block_override
               : !component.block_override; // When override=false, keep components WITHOUT block_override
 
-            // Filter components based on status (internal=false, exposed=true).
-            const statusMatch = component.status === status;
+            // Only filter by status if it's provided (internal=false, exposed=true)
+            const statusMatch =
+              status === undefined ? true : component.status === status;
 
             // Only include components that match both conditions
             if (overrideMatch && statusMatch) {

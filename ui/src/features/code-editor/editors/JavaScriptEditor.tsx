@@ -6,6 +6,7 @@ import {
   selectSourceCodeJs,
   setSourceCodeJs,
 } from '@/features/code-editor/codeEditorSlice';
+import ImportButton from '@/features/code-editor/ImportButton';
 
 const JavaScriptEditor = ({ isLoading }: { isLoading: boolean }) => {
   const dispatch = useAppDispatch();
@@ -18,13 +19,16 @@ const JavaScriptEditor = ({ isLoading }: { isLoading: boolean }) => {
     return null;
   }
   return (
-    <CodeMirror
-      className="xb-code-mirror-editor"
-      value={value}
-      onChange={onChangeHandler}
-      theme={githubLight}
-      extensions={[javascript({ jsx: true })]}
-    />
+    <>
+      <ImportButton />
+      <CodeMirror
+        className="xb-code-mirror-editor"
+        value={value}
+        onChange={onChangeHandler}
+        theme={githubLight}
+        extensions={[javascript({ jsx: true })]}
+      />
+    </>
   );
 };
 
