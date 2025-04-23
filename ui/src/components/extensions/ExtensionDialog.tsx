@@ -43,7 +43,6 @@ const ExtensionDialog: React.FC<ExtensionDialogProps> = () => {
       title={activeExtension.name}
       modal={false}
       footer={{ cancelText: 'Close' }}
-      description={activeExtension.description}
     >
       <Box
         id="extensionPortalContainer"
