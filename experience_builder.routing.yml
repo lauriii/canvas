@@ -268,7 +268,7 @@ experience_builder.api.layout.patch:
     # We need a title callback because we use the HTML renderer to generate the preview.
     _title_callback: 'Drupal\experience_builder\Controller\ApiLayoutController::getLabel'
   requirements:
-    _permission: 'access administration pages'
+    _entity_access: 'entity.update'
     _format: json
   options:
     _xb_use_template_draft: TRUE
@@ -283,7 +283,7 @@ experience_builder.api.layout.post:
     # We need a title callback because we use the HTML renderer to generate the preview.
     _title_callback: 'Drupal\experience_builder\Controller\ApiLayoutController::getLabel'
   requirements:
-    _permission: 'access administration pages'
+    _entity_access: 'entity.update'
   options:
     _xb_use_template_draft: TRUE
     parameters:

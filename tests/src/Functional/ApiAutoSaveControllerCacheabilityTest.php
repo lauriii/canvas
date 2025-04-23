@@ -56,7 +56,10 @@ final class ApiAutoSaveControllerCacheabilityTest extends FunctionalTestBase {
    * {@inheritdoc}
    */
   public function testCaching(): void {
-    $account1 = $this->createUser(['access administration pages']);
+    $account1 = $this->createUser([
+      'access administration pages',
+      'edit any article content',
+    ]);
     self::assertInstanceOf(AccountInterface::class, $account1);
     $this->drupalLogin($account1);
     /** @var \Drupal\experience_builder\AutoSave\AutoSaveManager $autoSave */

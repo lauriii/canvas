@@ -48,6 +48,7 @@ final class ApiLayoutControllerTest extends HttpApiTestBase {
       JavaScriptComponent::ADMIN_PERMISSION,
       'administer themes',
       PageRegion::ADMIN_PERMISSION,
+      Page::EDIT_PERMISSION,
     ]);
     \assert($account instanceof UserInterface);
     $this->drupalLogin($account);

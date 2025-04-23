@@ -41,7 +41,31 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
       'access administration pages',
       'administer url aliases',
       PageRegion::ADMIN_PERMISSION,
+      'edit any article content',
     ]);
+  }
+
+  public function testEntityAccessRequired(): void {
+    $this->setUpCurrentUser([], [
+      'access administration pages',
+      'administer url aliases',
+    ]);
+
+    $this->expectException(AccessDeniedHttpException::class);
+    $this->expectExceptionMessage("The 'edit any article content' permission is required.");
+
+    $this->request(Request::create('/xb/api/layout/node/1', method: 'POST', content: json_encode([
+      'layout' => [
+        [
+          'nodeType' => 'region',
+          'name' => 'Content',
+          'components' => [],
+          'id' => 'content',
+        ],
+      ],
+      'model' => [],
+      'entity_form_fields' => [],
+    ], JSON_THROW_ON_ERROR)));
   }
 
   public function testEmpty(): void {
@@ -229,6 +253,7 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
     $this->setUpCurrentUser([], [
       'access administration pages',
       'administer url aliases',
+      'edit any article content',
     ]);
 
     $regions = PageRegion::createFromBlockLayout('stark');
@@ -285,6 +310,7 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
     $this->setUpCurrentUser([], [
       'access administration pages',
       'administer url aliases',
+      'edit any article content',
     ]);
 
     // Create the saved (published) javascript component.

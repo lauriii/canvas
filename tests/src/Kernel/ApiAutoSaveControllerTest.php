@@ -331,8 +331,9 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     /** @var \Drupal\experience_builder\AutoSave\AutoSaveManager $autoSave */
     $autoSave = \Drupal::service(AutoSaveManager::class);
     $this->setUpCurrentUser(permissions: [
-      'access administration pages',
       PageRegion::ADMIN_PERMISSION,
+      'edit any article content',
+      Page::EDIT_PERMISSION,
     ]);
     $this->assertNoAutoSaveData();
     $node1 = Node::create([
