@@ -10,7 +10,6 @@ use Drupal\Core\File\FileUrlGeneratorInterface;
 use Drupal\Core\Plugin\Component as SdcPlugin;
 use Drupal\Core\Render\Component\Exception\InvalidComponentException;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
-use Drupal\Core\Url;
 use Drupal\experience_builder\Attribute\ComponentSource;
 use Drupal\experience_builder\AutoSave\AutoSaveManager;
 use Drupal\experience_builder\ComponentDoesNotMeetRequirementsException;
@@ -112,39 +111,43 @@ final class JsComponent extends GeneratedFieldExplicitInputUxComponentSourceBase
    */
   public function renderComponent(array $inputs, string $componentUuid, bool $isPreview = FALSE): array {
     $component = $this->getJavaScriptComponent();
-    if ($isPreview) {
-      $autoSave = $this->autoSaveManager->getAutoSaveData($component);
-      if ($autoSave->isEmpty()) {
-        // Do NOT consider this a preview if there's no auto-saved draft
-        // version.
-        $isPreview = FALSE;
-      }
-      else {
-        \assert($autoSave->data !== NULL);
-        $component = $component->forAutoSavePreview($autoSave->data);
-      }
-    }
 
-    $component_url = $this->fileUrlGenerator->generateString($component->getJsPath());
-
-    if ($isPreview) {
-      $component_url = Url::fromRoute('experience_builder.api.config.auto-save.get.js', [
-        'xb_config_entity_type_id' => JavaScriptComponent::ENTITY_TYPE_ID,
-        'xb_config_entity' => $component->id(),
-      ])->toString();
-    }
+    $autoSave = $this->autoSaveManager->getAutoSaveData($component);
+    $component_url = $component->getComponentUrl($this->fileUrlGenerator, $autoSave, $isPreview);
 
     $build = [];
     $base_path = \base_path();
-    $valid_props = $component->getProps() ?? [];
-    if ($component->hasCss()) {
-      $css_library = 'experience_builder/astro_island.' . $component->id();
-      if ($isPreview) {
-        $css_library .= '.draft';
-      }
+    $css_library = $component->getCssLibrary($autoSave, $isPreview);
+    if ($css_library) {
       $build['#attached']['library'][] = $css_library;
     }
+
     $xb_path = $this->extensionPathResolver->getPath('module', 'experience_builder');
+    // Build base import map
+    $import_maps = [
+      'preact' => \sprintf('%s%s/ui/lib/astro-hydration/dist/preact.module.js', $base_path, $xb_path),
+      'preact/hooks' => \sprintf('%s%s/ui/lib/astro-hydration/dist/hooks.module.js', $base_path, $xb_path),
+      'react/jsx-runtime' => \sprintf('%s%s/ui/lib/astro-hydration/dist/jsxRuntime.module.js', $base_path, $xb_path),
+      'react' => \sprintf('%s%s/ui/lib/astro-hydration/dist/compat.module.js', $base_path, $xb_path),
+      'react-dom' => \sprintf('%s%s/ui/lib/astro-hydration/dist/compat.module.js', $base_path, $xb_path),
+      'react-dom/client' => \sprintf('%s%s/ui/lib/astro-hydration/dist/compat.module.js', $base_path, $xb_path),
+      'clsx' => \sprintf('%s%s/ui/lib/astro-hydration/dist/clsx.js', $base_path, $xb_path),
+      'class-variance-authority' => \sprintf('%s%s/ui/lib/astro-hydration/dist/class-variance-authority.js', $base_path, $xb_path),
+      'tailwind-merge' => \sprintf('%s%s/ui/lib/astro-hydration/dist/tailwind-merge.js', $base_path, $xb_path),
+      '@/lib/utils' => \sprintf('%s%s/ui/lib/astro-hydration/dist/utils.js', $base_path, $xb_path),
+    ];
+
+    foreach ($component->getComponentDependencies($autoSave, $isPreview) as $js_component_name => $js_component_dependency) {
+      assert($js_component_dependency instanceof JavaScriptComponent);
+      $dependencyAutoSave = $this->autoSaveManager->getAutoSaveData($js_component_dependency);
+      // Attach CSS library for dependency component.
+      $dependency_library = $js_component_dependency->getCssLibrary($dependencyAutoSave, $isPreview);
+      if ($dependency_library) {
+        $build['#attached']['library'][] = $dependency_library;
+      }
+      $import_maps["@/components/{$js_component_name}"] = $js_component_dependency->getComponentUrl($this->fileUrlGenerator, $dependencyAutoSave, $isPreview);
+    }
+
     // Resource hints.
     $resource_hints = [
       'preact/signals' => \sprintf('%s%s/ui/lib/astro-hydration/dist/signals.module.js', $base_path, $xb_path),
@@ -159,26 +162,15 @@ final class JsComponent extends GeneratedFieldExplicitInputUxComponentSourceBase
         ],
       ];
     }
+    if ($isPreview && !$autoSave->isEmpty()) {
+      \assert($autoSave->data !== NULL);
+      $component = $component->forAutoSavePreview($autoSave->data);
+    }
+    $valid_props = $component->getProps() ?? [];
     return $build + [
       '#type' => 'astro_island',
       '#uuid' => $componentUuid,
-      '#import_maps' => [
-        // @todo Add any additional imports from the component itself - see
-        // https://www.drupal.org/project/experience_builder/issues/3500761 for
-        // proof of concept.
-        'preact' => \sprintf('%s%s/ui/lib/astro-hydration/dist/preact.module.js', $base_path, $xb_path),
-        'preact/hooks' => \sprintf('%s%s/ui/lib/astro-hydration/dist/hooks.module.js', $base_path, $xb_path),
-        'react/jsx-runtime' => \sprintf('%s%s/ui/lib/astro-hydration/dist/jsxRuntime.module.js', $base_path, $xb_path),
-        'react' => \sprintf('%s%s/ui/lib/astro-hydration/dist/compat.module.js', $base_path, $xb_path),
-        'react-dom' => \sprintf('%s%s/ui/lib/astro-hydration/dist/compat.module.js', $base_path, $xb_path),
-        'react-dom/client' => \sprintf('%s%s/ui/lib/astro-hydration/dist/compat.module.js', $base_path, $xb_path),
-        // @todo Remove this hard-coding and calculate it on a per component
-        // basis - see https://drupal.org/i/3500761.
-        'clsx' => \sprintf('%s%s/ui/lib/astro-hydration/dist/clsx.js', $base_path, $xb_path),
-        'class-variance-authority' => \sprintf('%s%s/ui/lib/astro-hydration/dist/class-variance-authority.js', $base_path, $xb_path),
-        'tailwind-merge' => \sprintf('%s%s/ui/lib/astro-hydration/dist/tailwind-merge.js', $base_path, $xb_path),
-        '@/lib/utils' => \sprintf('%s%s/ui/lib/astro-hydration/dist/utils.js', $base_path, $xb_path),
-      ],
+      '#import_maps' => $import_maps,
       '#name' => $component->label(),
       '#component_url' => $component_url,
       '#props' => (\array_intersect_key($inputs[self::EXPLICIT_INPUT_NAME] ?? [], $valid_props)) + [

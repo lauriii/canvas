@@ -11,6 +11,9 @@ use Drupal\Core\Config\Entity\ConfigEntityBase;
 use Drupal\Core\Config\Entity\ConfigEntityTypeInterface;
 use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Entity\Query\QueryInterface;
+use Drupal\Core\File\FileUrlGeneratorInterface;
+use Drupal\Core\Url;
+use Drupal\experience_builder\AutoSaveData;
 use Drupal\experience_builder\ClientSideRepresentation;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\experience_builder\EntityHandlers\JavascriptComponentStorage;
@@ -382,6 +385,48 @@ final class JavaScriptComponent extends ConfigEntityBase implements XbAssetInter
     $entity_type = $this->getEntityType();
     assert($entity_type instanceof ConfigEntityTypeInterface);
     return $entity_type->getConfigPrefix();
+  }
+
+  public function getComponentUrl(FileUrlGeneratorInterface $generator, AutoSaveData $autoSave, bool $isPreview): string {
+    if (!self::shouldLoadAssetFromAutoSave($autoSave, $isPreview)) {
+      return $generator->generateString($this->getJsPath());
+    }
+    \assert($autoSave->data !== NULL);
+    return Url::fromRoute('experience_builder.api.config.auto-save.get.js', [
+      'xb_config_entity_type_id' => self::ENTITY_TYPE_ID,
+      'xb_config_entity' => $this->id(),
+    ])->toString();
+  }
+
+  public function getCssLibrary(AutoSaveData $autoSave, bool $isPreview): ?string {
+    // @see experience_builder_library_info_build()
+    $css_library = 'experience_builder/astro_island.' . $this->id();
+    $has_css = $this->hasCss();
+    if (self::shouldLoadAssetFromAutoSave($autoSave, $isPreview)) {
+      $css_library .= '.draft';
+      \assert($autoSave->data !== NULL);
+      $has_css = self::forAutoSavePreview($autoSave->data)->hasCss();
+    }
+    return $has_css ? $css_library : NULL;
+  }
+
+  private static function shouldLoadAssetFromAutoSave(AutoSaveData $autoSave, bool $isPreview) : bool {
+    return $isPreview && !$autoSave->isEmpty();
+  }
+
+  public function getComponentDependencies(AutoSaveData $autoSave, bool $isPreview): array {
+    $instance = $this;
+    if (self::shouldLoadAssetFromAutoSave($autoSave, $isPreview)) {
+      \assert($autoSave->data !== NULL);
+      $instance = self::forAutoSavePreview($autoSave->data);
+    }
+
+    $js_dependencies = \array_filter(
+      $instance->getDependencies()['config'] ?? [],
+      static fn(string $dependency) => \str_starts_with($dependency, $instance->getConfigPrefix())
+    );
+    $js_component_ids = array_map(fn($dependency) => mb_substr($dependency, mb_strlen($this->getConfigPrefix()) + 1), $js_dependencies);
+    return self::loadMultiple($js_component_ids);
   }
 
 }

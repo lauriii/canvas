@@ -9,11 +9,13 @@ use Drupal\Component\Utility\Crypt;
 use Drupal\Core\Asset\AssetResolverInterface;
 use Drupal\Core\Asset\AttachedAssets;
 use Drupal\Core\Cache\CacheableMetadata;
+use Drupal\Core\File\FileUrlGeneratorInterface;
 use Drupal\Core\Site\Settings;
 use Drupal\Core\StreamWrapper\StreamWrapperInterface;
 use Drupal\Core\StreamWrapper\StreamWrapperManagerInterface;
 use Drupal\experience_builder\AutoSave\AutoSaveManager;
 use Drupal\experience_builder\Entity\Component;
+use Drupal\experience_builder\Entity\ComponentInterface;
 use Drupal\experience_builder\Entity\JavaScriptComponent;
 use Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\JsComponent;
 use Drupal\experience_builder\PropSource\StaticPropSource;
@@ -371,6 +373,160 @@ final class JsComponentTest extends ComponentSourceTestBase {
         ],
       ],
     ], $this->getAllCalculatedDependencies($component_ids));
+  }
+
+  /**
+   * Tests that component dependencies are properly added to import maps.
+   *
+   * @testWith [false, false, false, "live"]
+   *           [false, false, true, "live"]
+   *           [false, true, false, "live"]
+   *           [false, true, true, "live"]
+   *           [true, false, false, "live"]
+   *           [true, false, true, "draft"]
+   *           [true, true, false, "live"]
+   *           [true, true, true, "draft"]
+   */
+  public function testImportMaps(bool $preview, bool $create_auto_save, bool $create_dependency_auto_save, string $dependencies_expected_result): void {
+    assert(in_array($dependencies_expected_result, ['draft', 'live'], TRUE));
+    $file_generator = $this->container->get(FileUrlGeneratorInterface::class);
+    \assert($file_generator instanceof FileUrlGeneratorInterface);
+    // Create a dependency component first
+    $dependency_js_component = JavaScriptComponent::create([
+      'machineName' => 'dependency_component',
+      'name' => 'Dependency Component',
+      'status' => TRUE,
+      'props' => [],
+      'slots' => [],
+      'block_override' => NULL,
+      'css' => [
+        'original' => '.dependency { color: blue; }',
+        'compiled' => '.dependency{color:blue;}',
+      ],
+      'js' => [
+        'original' => 'console.log("dependency loaded");',
+        'compiled' => 'console.log("dependency loaded");',
+      ],
+    ]);
+    $dependency_js_component->save();
+
+    $dependency_js_component_without_css = JavaScriptComponent::create([
+      'machineName' => 'dependency_component_no_css',
+      'name' => 'Dependency Component No CSS',
+      'status' => TRUE,
+      'props' => [],
+      'slots' => [],
+      'block_override' => NULL,
+      'css' => [
+        'original' => '',
+        'compiled' => '',
+      ],
+      'js' => [
+        'original' => 'console.log("dependency loaded");',
+        'compiled' => 'console.log("dependency loaded");',
+      ],
+    ]);
+    $dependency_js_component_without_css->save();
+
+    // Create the main component that depends on the dependency component.
+    $js_component = JavaScriptComponent::create([
+      'machineName' => $this->randomMachineName(),
+      'name' => $this->getRandomGenerator()->sentences(5),
+      'status' => TRUE,
+      'props' => [
+        'title' => [
+          'type' => 'string',
+          'title' => 'Title',
+          'examples' => ['A title'],
+        ],
+      ],
+      'required' => ['title'],
+      'slots' => [],
+      'block_override' => NULL,
+      'css' => [
+        'original' => '.test { display: none; }',
+        'compiled' => '.test{display:none;}',
+      ],
+      'js' => [
+        'original' => 'console.log( "hey" );',
+        'compiled' => 'console.log("hey");',
+      ],
+    ]);
+    // Add the dependency through client API.
+    $js_component_data = $js_component->normalizeForClientSide()->values;
+    $js_component_data['imported_js_components'] = ['dependency_component', 'dependency_component_no_css'];
+    $js_component->updateFromClientSide($js_component_data);
+    $js_component->save();
+
+    $autoSave = $this->container->get(AutoSaveManager::class);
+    if ($create_auto_save) {
+      $autoSave->save(
+        $js_component,
+        $js_component->normalizeForClientSide()->values +
+        [
+          'imported_js_components' => ['dependency_component', 'dependency_component_no_css'],
+        ]
+      );
+    }
+    if ($create_dependency_auto_save) {
+      $autoSave->save(
+        $dependency_js_component,
+        $dependency_js_component->normalizeForClientSide()->values + ['imported_js_components' => []],
+      );
+      $autoSave->save(
+        $dependency_js_component_without_css,
+        $dependency_js_component_without_css->normalizeForClientSide()->values + ['imported_js_components' => []],
+      );
+    }
+
+    $component = Component::load(JsComponent::componentIdFromJavascriptComponentId((string) $js_component->id()));
+    \assert($component instanceof ComponentInterface);
+    $source = $component->getComponentSource();
+    $rendered_component = $source->renderComponent([], 'test-uuid', $preview);
+    self::assertArrayHasKey('#import_maps', $rendered_component);
+    $dependency_import_key = '@/components/dependency_component';
+    $dependency_without_css_import_key = '@/components/dependency_component_no_css';
+    self::assertArrayHasKey($dependency_import_key, $rendered_component['#import_maps']);
+    self::assertNotEmpty($rendered_component['#attached']['library']);
+    $attached_libraries = $rendered_component['#attached']['library'];
+    // The dependency without CSS should not have its library attached.
+    self::assertNotContains('experience_builder/astro_island.dependency_component_no_css.draft', $attached_libraries);
+    self::assertNotContains('experience_builder/astro_island.dependency_component_no_css', $attached_libraries);
+    if ($dependencies_expected_result === 'draft') {
+      $dependency_js_path = base_path() . 'xb/api/auto-saves/js/js_component/dependency_component';
+      $dependency_without_css_js_path = base_path() . 'xb/api/auto-saves/js/js_component/dependency_component_no_css';
+      self::assertContains('experience_builder/astro_island.dependency_component.draft', $attached_libraries);
+      self::assertNotContains('experience_builder/astro_island.dependency_component', $attached_libraries);
+    }
+    else {
+      $dependency_js_path = $file_generator->generateString($dependency_js_component->getJsPath());
+      $dependency_without_css_js_path = $file_generator->generateString($dependency_js_component_without_css->getJsPath());
+      self::assertContains('experience_builder/astro_island.dependency_component', $attached_libraries);
+      self::assertNotContains('experience_builder/astro_island.dependency_component.draft', $attached_libraries);
+    }
+    self::assertEquals($dependency_js_path, $rendered_component['#import_maps'][$dependency_import_key]);
+    self::assertEquals($dependency_without_css_js_path, $rendered_component['#import_maps'][$dependency_without_css_import_key]);
+
+    // If we created an auto-save entry for the main component, and we are in
+    // preview ensure that if the dependencies are changed in the auto-save
+    // entry it is reflected in the import map and attached libraries.
+    if ($create_auto_save && $preview) {
+      $autoSave->save(
+        $js_component,
+        // Remove both dependencies from the auto-save entry.
+        $js_component->normalizeForClientSide()->values + ['imported_js_components' => []],
+      );
+      $rendered_component = $source->renderComponent([], 'test-uuid', $preview);
+      self::assertArrayHasKey('#import_maps', $rendered_component);
+      // Ensure the dependencies are no longer in the import map.
+      self::assertArrayNotHasKey($dependency_import_key, $rendered_component['#import_maps']);
+      self::assertArrayNotHasKey($dependency_without_css_import_key, $rendered_component['#import_maps']);
+      self::assertNotEmpty($rendered_component['#attached']['library']);
+      self::assertEmpty(array_filter(
+        $rendered_component['#attached']['library'],
+        static fn($library) => str_contains($library, 'dependency_component')
+      ));
+    }
   }
 
 }
