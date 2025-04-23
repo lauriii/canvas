@@ -1,0 +1,39 @@
+<?php
+
+/**
+ * @file
+ * Contains xb_test_invalid_field.module.
+ */
+
+declare(strict_types=1);
+
+use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Entity\EntityTypeInterface;
+
+/**
+ * Implements hook_entity_bundle_field_info_alter().
+ */
+function xb_test_invalid_field_entity_bundle_field_info_alter(array &$fields, EntityTypeInterface $entity_type, string $bundle): void {
+  if ($entity_type->id() === 'node' && $bundle === 'article' && isset($fields['field_xbt_textfield'])) {
+    $fields['field_xbt_textfield']->addConstraint('XbTestInvalidFieldConstraint', []);
+  }
+}
+
+/**
+ * Implements hook_form_alter().
+ */
+function xb_test_invalid_field_form_alter(array &$form, FormStateInterface $form_state, string $form_id): void {
+  if ($form_id === 'node_article_form') {
+    $form['#validate'][] = 'xb_test_invalid_field_validate_textfield';
+  }
+}
+
+/**
+ * Custom validation for field_xbt_textfield.
+ */
+function xb_test_invalid_field_validate_textfield(array &$form, FormStateInterface $form_state): void {
+  $value = $form_state->getValue(['field_xbt_textfield', 0, 'value']);
+  if ($value === 'invalid value') {
+    $form_state->setErrorByName('field_xbt_textfield', t('The value "invalid value" is not allowed in this field.'));
+  }
+}
