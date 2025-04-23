@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\experience_builder\Kernel\Plugin\ExperienceBuilder\ComponentSource;
 
+// cspell:ignore Druplicons
+
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Entity\EntityStorageInterface;
@@ -12,9 +14,16 @@ use Drupal\Core\Render\RendererInterface;
 use Drupal\experience_builder\ComponentIncompatibilityReasonRepository;
 use Drupal\experience_builder\Entity\Component;
 use Drupal\experience_builder\Entity\ComponentInterface;
+use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
+use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
+use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemInstantiatorTrait;
+use Drupal\experience_builder\PropExpressions\StructuredData\FieldTypePropExpression;
+use Drupal\experience_builder\PropSource\StaticPropSource;
 use Drupal\experience_builder\Storage\ComponentTreeLoader;
 use Drupal\KernelTests\KernelTestBase;
+use Drupal\Tests\experience_builder\Traits\ConstraintViolationsTestTrait;
 use Drupal\Tests\experience_builder\Traits\ContribStrictConfigSchemaTestTrait;
+use Drupal\Tests\experience_builder\Traits\CrawlerTrait;
 use Drupal\Tests\experience_builder\Traits\GenerateComponentConfigTrait;
 use Drupal\Tests\experience_builder\Traits\TestDataUtilitiesTrait;
 
@@ -26,6 +35,8 @@ use Drupal\Tests\experience_builder\Traits\TestDataUtilitiesTrait;
  * critical ComponentSource plugin functionality, such as:
  * - getting the plugin class (if any) for each component, critical for
  *   restricting XB component trees
+ * - a component instance that crashes during rendering due to logic or invalid
+ *   input does not result in complete failure
  * - rendering of component instances on the live site
  * - generating client-side info that powers the XB UI
  * - the source-specific settings that were generated for the discovered
@@ -39,6 +50,9 @@ use Drupal\Tests\experience_builder\Traits\TestDataUtilitiesTrait;
  */
 abstract class ComponentSourceTestBase extends KernelTestBase {
 
+  use CrawlerTrait;
+  use ComponentTreeItemInstantiatorTrait;
+  use ConstraintViolationsTestTrait;
   use ContribStrictConfigSchemaTestTrait;
   use GenerateComponentConfigTrait;
   use TestDataUtilitiesTrait;
@@ -210,5 +224,107 @@ abstract class ComponentSourceTestBase extends KernelTestBase {
     }
     return $rendered;
   }
+
+  /**
+   * Constructs the component tree to use for testing crash resistance.
+   *
+   * Renders the potentially crashing component:
+   * - nested (not in the root level), to be able to assert that a parent
+   *   component instance still renders
+   * - with a component instance in an adjacent slot
+   * - with a component instance both immediately before and after it
+   *
+   * The containing component is always the "two-column" SDC. All the other non-
+   * crash component instances are the "Druplicon" SDCs.
+   * The use of SDCs does not make this dummy component tree SDC-specific,
+   * because the crashing component instance will be provided by the tested
+   * ComponentSource plugin. Not every ComponentSource plugin supports slots.
+   *
+   * In other words: if there's 3 Druplicons detected, then all is good!
+   *
+   * @return \Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem
+   */
+  protected function generateCrashTestDummyComponentTree(string $component_id, array $inputs): ComponentTreeItem {
+    $this->assertCount(0, $this->componentStorage->loadMultiple());
+    $this->generateComponentConfig();
+
+    $field_item = $this->createDanglingComponentTree();
+    $field_item->setValue([
+      'tree' => self::encodeXBData([
+        ComponentTreeStructure::ROOT_UUID => [
+          [
+            'uuid' => 'container',
+            'component' => 'sdc.experience_builder.two_column',
+          ],
+        ],
+        'container' => [
+          'column_one' => [
+            [
+              'uuid' => 'component-before-crash',
+              'component' => 'sdc.experience_builder.druplicon',
+            ],
+            [
+              // @see https://en.wikipedia.org/wiki/Crash_test_dummy
+              'uuid' => 'crash-test-dummy',
+              'component' => $component_id,
+            ],
+            [
+              'uuid' => 'component-after-crash',
+              'component' => 'sdc.experience_builder.druplicon',
+            ],
+          ],
+          'column_two' => [
+            [
+              'uuid' => 'slot-adjacent-to-crash',
+              'component' => 'sdc.experience_builder.druplicon',
+            ],
+          ],
+        ],
+      ]),
+      'inputs' => self::encodeXBData([
+        // Pass the crash test dummy component instance inputs as-is.
+        'crash-test-dummy' => $inputs,
+        // The container has a single explicit input that it requires; this can
+        // be hardcoded.
+        'container' => [
+          'width' => StaticPropSource::generate(
+            new FieldTypePropExpression('integer', 'value'),
+          )->withValue(33)->toArray(),
+        ],
+      ]),
+    ]);
+    return $field_item;
+  }
+
+  /**
+   * @dataProvider providerRenderComponentFailure
+   * $expected_exception array{'class': string, 'message': string}|NULL
+   */
+  public function testRenderComponentFailure(string $component_id, array $inputs, array $expected_validation_errors, ?array $expected_exception, ?string $expected_output_selector): void {
+    $isPreview = FALSE;
+
+    $component_tree = $this->generateCrashTestDummyComponentTree($component_id, $inputs);
+
+    // Unless explicitly expected to be invalid, inputs should be valid.
+    $this->assertSame($expected_validation_errors, $this->violationsToArray($component_tree->validate()), 'Unrealistic test case encountered: it must still represent a valid component tree!');
+
+    if (is_array($expected_exception)) {
+      $this->expectException($expected_exception['class']);
+      $this->expectExceptionMessage($expected_exception['message']);
+    }
+
+    $build = $component_tree->toRenderable($isPreview);
+    $crawler = $this->crawlerForRenderArray($build);
+    if (is_array($expected_exception)) {
+      return;
+    }
+    self::assertNotNull($expected_output_selector);
+    self::assertGreaterThanOrEqual(1, $crawler->filter($expected_output_selector)->count());
+    // All 3 Druplicons surrounding Druplicons must also be present, as proof
+    // that any problem remains isolated!
+    self::assertCount(3, $crawler->filter('svg title:contains("Druplicon")'));
+  }
+
+  abstract public static function providerRenderComponentFailure(): \Generator;
 
 }

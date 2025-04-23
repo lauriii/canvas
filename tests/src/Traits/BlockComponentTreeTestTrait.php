@@ -13,7 +13,7 @@ trait BlockComponentTreeTestTrait {
 
   use TestDataUtilitiesTrait;
 
-  protected static function getValidTreeTestCases(): array {
+  public static function getValidTreeTestCases(): array {
     return [
       'block input none' => [
         [

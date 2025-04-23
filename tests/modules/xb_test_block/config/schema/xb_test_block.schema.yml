@@ -14,3 +14,15 @@ block.settings.xb_test_block_input_unvalidatable:
     name:
       type: string
       label: 'Name'
+block.settings.xb_test_block_input_validatable_crash:
+  type: block_settings
+  label: 'XB Test Block settings'
+  constraints:
+    FullyValidatable: ~
+  mapping:
+    name:
+      type: string
+      label: 'Name'
+    crash:
+      type: boolean
+      label: 'Crash'

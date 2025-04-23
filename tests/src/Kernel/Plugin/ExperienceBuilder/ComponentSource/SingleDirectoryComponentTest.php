@@ -11,12 +11,17 @@ use Drupal\experience_builder\Entity\Component;
 use Drupal\Core\Plugin\Component as SdcPlugin;
 use Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\SingleDirectoryComponent;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
+use Drupal\experience_builder\PropExpressions\StructuredData\FieldTypePropExpression;
 use Drupal\experience_builder\PropSource\StaticPropSource;
 use Drupal\node\Entity\Node;
 use Drupal\Tests\experience_builder\Kernel\Traits\CiModulePathTrait;
+use Drupal\Tests\experience_builder\Traits\ConstraintViolationsTestTrait;
 use Drupal\Tests\experience_builder\Traits\SingleDirectoryComponentTreeTestTrait;
 use Drupal\Tests\experience_builder\Traits\ContribStrictConfigSchemaTestTrait;
 use Drupal\Tests\experience_builder\Traits\GenerateComponentConfigTrait;
+use Drupal\Tests\experience_builder\Traits\CrawlerTrait;
+use Twig\Error\Error;
+use Twig\Error\RuntimeError;
 
 /**
  * @coversDefaultClass \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\SingleDirectoryComponent
@@ -25,10 +30,12 @@ use Drupal\Tests\experience_builder\Traits\GenerateComponentConfigTrait;
  */
 final class SingleDirectoryComponentTest extends ComponentSourceTestBase {
 
+  use ConstraintViolationsTestTrait;
   use ContribStrictConfigSchemaTestTrait;
   use SingleDirectoryComponentTreeTestTrait;
   use GenerateComponentConfigTrait;
   use CiModulePathTrait;
+  use CrawlerTrait;
 
   /**
    * {@inheritdoc}
@@ -74,6 +81,7 @@ final class SingleDirectoryComponentTest extends ComponentSourceTestBase {
     ], $this->findIneligibleComponents(SingleDirectoryComponent::SOURCE_PLUGIN_ID, 'xb_test_sdc'));
     $auto_created_components = $this->findCreatedComponentConfigEntities(SingleDirectoryComponent::SOURCE_PLUGIN_ID, 'xb_test_sdc');
     self::assertSame([
+      'sdc.xb_test_sdc.crash',
       'sdc.xb_test_sdc.deprecated',
       'sdc.xb_test_sdc.experimental',
       'sdc.xb_test_sdc.grid-container',
@@ -243,6 +251,12 @@ HTML,
 ',
         'cacheability' => $default_cacheability,
       ],
+      'sdc.xb_test_sdc.crash' => [
+        'html' => '<h1>test</h1>
+
+',
+        'cacheability' => $default_cacheability,
+      ],
     ], $rendered);
   }
 
@@ -330,8 +344,82 @@ HTML,
     return $test_cases;
   }
 
+  public static function providerRenderComponentFailure(): \Generator {
+    $generate_static_prop_source = function (string $field_type, mixed $value): array {
+      return [
+        'sourceType' => "static:field_item:$field_type",
+        'value' => $value,
+        'expression' => (string) new FieldTypePropExpression($field_type, 'value'),
+      ];
+    };
+
+    yield "SDC with valid props, without exception" => [
+      'component_id' => 'sdc.xb_test_sdc.crash',
+      'inputs' => [
+        'crash' => $generate_static_prop_source('boolean', FALSE),
+      ],
+      'expected_validation_errors' => [],
+      'expected_exception' => NULL,
+      'expected_output_selector' => 'h1:contains("test")',
+    ];
+
+    yield "SDC with valid props, with exception" => [
+      'component_id' => 'sdc.xb_test_sdc.crash',
+      'inputs' => [
+        'crash' => $generate_static_prop_source('boolean', TRUE),
+      ],
+      'expected_validation_errors' => [],
+      'expected_exception' => [
+        'class' => Error::class,
+        'message' => "Intentional test exception.",
+      ],
+      'expected_output_selector' => NULL,
+    ];
+
+    yield "SDC with invalid prop, with exception" => [
+      'component_id' => 'sdc.xb_test_sdc.crash',
+      'inputs' => [
+        'crash' => $generate_static_prop_source('string', 'this is an invalid value for the SDC prop'),
+      ],
+      'expected_validation_errors' => [
+        '.inputs.crash-test-dummy.crash' => 'String value found, but a boolean or an object is required. The provided value is: "this is an invalid value for the SDC prop".',
+      ],
+      'expected_exception' => [
+        'class' => RuntimeError::class,
+        'message' => 'An exception has been thrown during the rendering of a template ("[xb_test_sdc:crash/crash] String value found, but a boolean or an object is required. The provided value is: "this is an invalid value for the SDC prop".").',
+      ],
+      'expected_output_selector' => NULL,
+    ];
+
+    yield "SDC with missing prop, with exception" => [
+      'component_id' => 'sdc.xb_test_sdc.crash',
+      'inputs' => [],
+      'expected_validation_errors' => [
+        '.inputs.crash-test-dummy.crash' => 'The property crash is required.',
+      ],
+      'expected_exception' => [
+        'class' => RuntimeError::class,
+        'message' => 'An exception has been thrown during the rendering of a template ("[xb_test_sdc:crash/crash] The property crash is required.").',
+      ],
+      'expected_output_selector' => NULL,
+    ];
+  }
+
   public static function getExpectedSettings(): array {
     return [
+      'sdc.xb_test_sdc.crash' => [
+        'plugin_id' => 'xb_test_sdc:crash',
+        'prop_field_definitions' => [
+          'crash' => [
+            'field_type' => 'boolean',
+            'field_storage_settings' => [],
+            'field_instance_settings' => [],
+            'field_widget' => 'boolean_checkbox',
+            'default_value' => ['value' => 0],
+            'expression' => 'ℹ︎boolean␟value',
+          ],
+        ],
+      ],
       'sdc.xb_test_sdc.deprecated' => [
         'plugin_id' => 'xb_test_sdc:deprecated',
         'prop_field_definitions' => [
@@ -479,6 +567,13 @@ HTML,
    */
   public function testCalculateDependencies(array $component_ids): void {
     self::assertSame([
+      'sdc.xb_test_sdc.crash' => [
+        'module' => [
+          'core',
+          'core',
+          'xb_test_sdc',
+        ],
+      ],
       'sdc.xb_test_sdc.deprecated' => [
         'module' => [
           'core',

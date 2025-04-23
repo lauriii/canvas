@@ -10,8 +10,11 @@ use Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\BlockComp
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\node\Entity\Node;
 use Drupal\Tests\experience_builder\Traits\BlockComponentTreeTestTrait;
+use Drupal\Tests\experience_builder\Traits\ConstraintViolationsTestTrait;
+use Drupal\Tests\experience_builder\Traits\CrawlerTrait;
 use Drupal\xb_test_block\Plugin\Block\XbTestBlockInputNone;
 use Drupal\xb_test_block\Plugin\Block\XbTestBlockInputValidatable;
+use Drupal\xb_test_block\Plugin\Block\XbTestBlockInputValidatableCrash;
 
 /**
  * @coversDefaultClass \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\BlockComponent
@@ -21,6 +24,8 @@ use Drupal\xb_test_block\Plugin\Block\XbTestBlockInputValidatable;
 final class BlockComponentTest extends ComponentSourceTestBase {
 
   use BlockComponentTreeTestTrait;
+  use ConstraintViolationsTestTrait;
+  use CrawlerTrait;
 
   /**
    * {@inheritdoc}
@@ -54,6 +59,7 @@ final class BlockComponentTest extends ComponentSourceTestBase {
     self::assertSame([
       'block.xb_test_block_input_none',
       'block.xb_test_block_input_validatable',
+      'block.xb_test_block_input_validatable_crash',
     ], $auto_created_components);
 
     return $auto_created_components;
@@ -82,8 +88,20 @@ final class BlockComponentTest extends ComponentSourceTestBase {
           'label' => 'Test Block with settings',
           'label_display' => '',
           'provider' => 'xb_test_block',
-          // This block has an editable field.
+          // This block has a single setting.
           'name' => 'XB',
+        ],
+      ],
+      'block.xb_test_block_input_validatable_crash' => [
+        'plugin_id' => 'xb_test_block_input_validatable_crash',
+        'default_settings' => [
+          'id' => 'xb_test_block_input_validatable_crash',
+          'label' => "Test Block with settings, crashes when 'crash' setting is TRUE",
+          'label_display' => '',
+          'provider' => 'xb_test_block',
+          // This block has two settings.
+          'name' => 'XB',
+          'crash' => FALSE,
         ],
       ],
     ], $this->getAllSettings($component_ids));
@@ -98,6 +116,7 @@ final class BlockComponentTest extends ComponentSourceTestBase {
     self::assertSame([
       'block.xb_test_block_input_none' => XbTestBlockInputNone::class,
       'block.xb_test_block_input_validatable' => XbTestBlockInputValidatable::class,
+      'block.xb_test_block_input_validatable_crash' => XbTestBlockInputValidatableCrash::class,
     ], $this->getReferencedPluginClasses($component_ids));
   }
 
@@ -144,6 +163,17 @@ HTML,
       'block.xb_test_block_input_validatable' => [
         'html' => <<<HTML
 <div id="block-some-uuid--2">
+
+
+      <div>Hello, XB!</div>
+  </div>
+
+HTML,
+        'cacheability' => $default_cacheability,
+      ],
+      'block.xb_test_block_input_validatable_crash' => [
+        'html' => <<<HTML
+<div id="block-some-uuid--3">
 
 
       <div>Hello, XB!</div>
@@ -199,6 +229,16 @@ HTML,
 
 HTML,
       ],
+      'block.xb_test_block_input_validatable_crash' => [
+        'build' => <<<HTML
+<div id="block-::COMPONENT_CONFIG_ENTITY_UUID::">
+
+
+      <div>Hello, XB!</div>
+  </div>
+
+HTML,
+      ],
     ], $actual_client_side_info);
   }
 
@@ -230,6 +270,37 @@ HTML,
     $this->assertSame($componentSettingsOriginal, $componentSettings);
   }
 
+  public static function providerRenderComponentFailure(): \Generator {
+    $block_settings = [
+      'label' => 'crash dummy',
+      'label_display' => FALSE,
+      'name' => 'XB',
+    ];
+
+    yield "Block with valid props, without exception" => [
+      'component_id' => 'block.xb_test_block_input_validatable_crash',
+      'inputs' => [
+        'crash' => FALSE,
+      ] + $block_settings,
+      'expected_validation_errors' => [],
+      'expected_exception' => NULL,
+      'expected_output_selector' => '#block-crash-test-dummy--2:contains("Hello, XB!")',
+    ];
+
+    yield "Block with valid props, with exception" => [
+      'component_id' => 'block.xb_test_block_input_validatable_crash',
+      'inputs' => [
+        'crash' => TRUE,
+      ] + $block_settings,
+      'expected_validation_errors' => [],
+      'expected_exception' => [
+        'class' => \Exception::class,
+        'message' => "Intentional test exception.",
+      ],
+      'expected_output_selector' => NULL,
+    ];
+  }
+
   /**
    * @covers ::calculateDependencies()
    * @depends testDiscovery
@@ -240,6 +311,7 @@ HTML,
     self::assertSame([
       'block.xb_test_block_input_none' => [],
       'block.xb_test_block_input_validatable' => [],
+      'block.xb_test_block_input_validatable_crash' => [],
     ], $this->getAllCalculatedDependencies($component_ids));
   }
 

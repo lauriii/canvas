@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\experience_builder\Kernel\Plugin\ExperienceBuilder\ComponentSource;
 
+// cspell:ignore Tilly
+
 use Drupal\Component\Serialization\Json;
 use Drupal\Component\Utility\Crypt;
 use Drupal\Core\Asset\AssetResolverInterface;
@@ -18,9 +20,12 @@ use Drupal\experience_builder\Entity\Component;
 use Drupal\experience_builder\Entity\ComponentInterface;
 use Drupal\experience_builder\Entity\JavaScriptComponent;
 use Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\JsComponent;
+use Drupal\experience_builder\PropExpressions\StructuredData\FieldTypePropExpression;
 use Drupal\experience_builder\PropSource\StaticPropSource;
 use Drupal\Tests\experience_builder\Traits\CrawlerTrait;
 use Drupal\Tests\user\Traits\UserCreationTrait;
+use Drupal\xb_test_code_components\Hook\IslandCastaway;
+use Twig\Error\RuntimeError;
 
 /**
  * Tests JsComponent.
@@ -373,6 +378,70 @@ final class JsComponentTest extends ComponentSourceTestBase {
         ],
       ],
     ], $this->getAllCalculatedDependencies($component_ids));
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function providerRenderComponentFailure(): \Generator {
+    $generate_static_prop_source = function (string $field_type, mixed $value): array {
+      return [
+        'sourceType' => "static:field_item:$field_type",
+        'value' => $value,
+        'expression' => (string) new FieldTypePropExpression($field_type, 'value'),
+      ];
+    };
+
+    $component_id = JsComponent::componentIdFromJavascriptComponentId('xb_test_code_components_with_props');
+    yield "JS Component with valid props, without exception" => [
+      'component_id' => $component_id,
+      'inputs' => [
+        'age' => $generate_static_prop_source('integer', 19),
+        'name' => $generate_static_prop_source('string', 'Tilly'),
+      ],
+      'expected_validation_errors' => [],
+      'expected_exception' => NULL,
+      'expected_output_selector' => 'astro-island[uid="crash-test-dummy"][props*="Tilly"][props*="19"]',
+    ];
+
+    yield "JS Component with valid props, JSON encoding exception" => [
+      'component_id' => $component_id,
+      'inputs' => [
+        'age' => $generate_static_prop_source('integer', 19),
+        'name' => $generate_static_prop_source('string', IslandCastaway::WILSON),
+      ],
+      'expected_validation_errors' => [],
+      'expected_exception' => [
+        'class' => RuntimeError::class,
+        'message' => 'An exception has been thrown during the rendering of a template ("Wilson is a ball, not a person")',
+      ],
+      'expected_output_selector' => NULL,
+    ];
+
+    yield "JS Component with invalid props, validation error" => [
+      'component_id' => $component_id,
+      'inputs' => [
+        'age' => $generate_static_prop_source('string', "It's rude to ask"),
+        'name' => $generate_static_prop_source('string', 'Tilly'),
+      ],
+      'expected_validation_errors' => [
+        '.inputs.crash-test-dummy.age' => 'String value found, but an integer or an object is required. The provided value is: "It\'s rude to ask".',
+      ],
+      'expected_exception' => NULL,
+      // JsComponents can recover from invalid inputs.
+      'expected_output_selector' => 'astro-island[uid="crash-test-dummy"]',
+    ];
+
+    yield "JS Component with missing props, validation error" => [
+      'component_id' => $component_id,
+      'inputs' => [],
+      'expected_validation_errors' => [
+        '.inputs.crash-test-dummy.name' => 'The property name is required.',
+      ],
+      'expected_exception' => NULL,
+      // JsComponents can recover from invalid inputs.
+      'expected_output_selector' => 'astro-island[uid="crash-test-dummy"]',
+    ];
   }
 
   /**
