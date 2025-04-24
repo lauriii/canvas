@@ -15,6 +15,7 @@ use Drupal\Tests\node\Traits\ContentTypeCreationTrait;
 
 /**
  * @group experience_builder
+ * @group #slow
  */
 final class ContentTemplateValidationTest extends BetterConfigEntityValidationTestBase {
 

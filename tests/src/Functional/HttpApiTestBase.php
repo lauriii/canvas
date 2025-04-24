@@ -16,6 +16,8 @@ use GuzzleHttp\RequestOptions;
  * Base class for functional tests of XB's internal HTTP API.
  *
  * Provides helper methods for making API requests and asserting response cacheability.
+ *
+ * @group experience_builder
  */
 abstract class HttpApiTestBase extends FunctionalTestBase {
 

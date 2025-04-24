@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder\Tests\Unit\Entity\Routing;
+namespace Drupal\Tests\experience_builder\Unit\Entity\Routing;
 
 use Drupal\Core\Routing\RouteObjectInterface;
 use Drupal\experience_builder\Entity\Routing\XbHtmlRouteEnhancer;

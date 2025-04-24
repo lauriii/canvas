@@ -19,6 +19,7 @@ use Drupal\xb_test_block\Plugin\Block\XbTestBlockInputValidatableCrash;
 /**
  * @coversDefaultClass \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\BlockComponent
  * @group experience_builder
+ * @group #slow
  * @phpstan-import-type ComponentConfigEntityId from \Drupal\experience_builder\Entity\Component
  */
 final class BlockComponentTest extends ComponentSourceTestBase {

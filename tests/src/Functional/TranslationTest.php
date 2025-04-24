@@ -16,6 +16,7 @@ use Drupal\Tests\content_translation\Traits\ContentTranslationTestTrait;
  *   adding back `experience_builder_entity_prepare_view()` which was removed in
  *   https://www.drupal.org/i/3481720.
  * @see https://www.drupal.org/project/experience_builder/issues/3455629#comment-15831060
+ * @group experience_builder
  */
 class TranslationTest extends FunctionalTestBase {
 

@@ -12,6 +12,7 @@ use Drupal\experience_builder\Entity\AssetLibrary;
  * Tests validation of Asset Library entities.
  *
  * @group experience_builder
+ * @group #slow
  */
 class AssetLibraryValidationTest extends BetterConfigEntityValidationTestBase {
 

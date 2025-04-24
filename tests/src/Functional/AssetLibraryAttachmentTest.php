@@ -9,6 +9,8 @@ use Drupal\experience_builder\Entity\AssetLibrary;
 
 /**
  * Tests AssetLibrary config entities' generated assets load successfully.
+ *
+ * @group experience_builder
  */
 final class AssetLibraryAttachmentTest extends FunctionalTestBase {
 

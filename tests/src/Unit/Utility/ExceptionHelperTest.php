@@ -10,6 +10,7 @@ use Drupal\Tests\UnitTestCase;
 
 /**
  * @coversDefaultClass \Drupal\experience_builder\Utility\ExceptionHelper
+ * @group experience_builder
  */
 class ExceptionHelperTest extends UnitTestCase {
 

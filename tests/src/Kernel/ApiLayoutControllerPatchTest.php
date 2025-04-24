@@ -24,6 +24,7 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 /**
  * @covers \Drupal\experience_builder\Controller\ApiLayoutController::patch()
  * @group experience_builder
+ * @group #slow
  */
 final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
 

@@ -39,6 +39,7 @@ use Symfony\Component\HttpFoundation\Response;
 /**
  * @coversDefaultClass \Drupal\experience_builder\Controller\ApiAutoSaveController
  * @group experience_builder
+ * @group #slow
  */
 final class ApiAutoSaveControllerTest extends KernelTestBase {
 

@@ -11,6 +11,7 @@ use Drupal\Tests\UnitTestCase;
 
 /**
  * @coversDefaultClass \Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure
+ * @group experience_builder
  */
 class ComponentTreeStructureTest extends UnitTestCase {
 

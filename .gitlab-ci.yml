@@ -80,39 +80,45 @@ cspell:
 
 # @todo Remove when https://www.drupal.org/project/gitlab_templates/issues/3452183 lands.
 .php-files-change-rule: &php-files-change-rule
-  - changes:
+  - if: $_FOR_EVERY_MR_COMMIT == "true" || $_FOR_EVERY_MR_COMMIT == null
+    changes:
       - "**/*.{php,module,inc,install,theme,profile}"
     when: on_success
 
 # @todo Remove when https://www.drupal.org/project/gitlab_templates/issues/3452183 lands.
 .css-files-change-rule: &css-files-change-rule
-  - changes:
+  - if: $_FOR_EVERY_MR_COMMIT == "true" || $_FOR_EVERY_MR_COMMIT == null
+    changes:
       - "**/*.css"
     when: on_success
 
 # @todo Remove when https://www.drupal.org/project/gitlab_templates/issues/3452183 lands.
 .module-metadata-files-change-rule: &module-metadata-files-change-rule
-  - changes:
+  - if: $_FOR_EVERY_MR_COMMIT == "true" || $_FOR_EVERY_MR_COMMIT == null
+    changes:
       - "**/*.yml"
     when: on_success
 
 # @todo Remove when https://www.drupal.org/project/gitlab_templates/issues/3452183 lands.
 .module-config-files-change-rule: &module-config-files-change-rule
-  - changes:
+  - if: $_FOR_EVERY_MR_COMMIT == "true" || $_FOR_EVERY_MR_COMMIT == null
+    changes:
       # config schema and/or default config
       - config
     when: on_success
 
 # @todo Remove when https://www.drupal.org/project/gitlab_templates/issues/3452183 lands.
 .SDC-files-change-rule: &SDC-files-change-rule
-  - changes:
+  - if: $_FOR_EVERY_MR_COMMIT == "true" || $_FOR_EVERY_MR_COMMIT == null
+    changes:
       - components
       - schema.json
       - "**/*.twig"
     when: on_success
 
 .ui-fixture-files-change-rule: &UI-fixures-files-change-rule
-  - changes:
+  - if: $_FOR_EVERY_MR_COMMIT == "true" || $_FOR_EVERY_MR_COMMIT == null
+    changes:
       - ui/tests/fixtures/**/*
     when: on_success
 
@@ -203,6 +209,9 @@ stylelint:
     - *manual-rule
 
 phpunit:
+  variables:
+    # Note: XB uses `@group #slow` to start slow tests early. The threshold is (at the time of writing) ~100 seconds.
+    _PHPUNIT_CONCURRENT: 1
   needs:
     - composer
     - UI
@@ -213,13 +222,17 @@ phpunit:
         _TARGET_DB_VERSION: '3'
         # @see https://git.drupalcode.org/project/drupal/-/commit/10466dba9d7322ed55165dd9224edb2153c9b27a
         _TARGET_PHP: '8.3-ubuntu'
+        _FOR_EVERY_MR_COMMIT: 'true'
       - _TARGET_DB_TYPE: 'mariadb'
         _TARGET_DB_VERSION: '10.6'
+        _FOR_EVERY_MR_COMMIT: 'false'
       - _TARGET_DB_TYPE: 'mysql'
         # @todo Delete this when https://www.drupal.org/project/gitlab_templates/issues/3447105 lands.
         _TARGET_DB_VERSION: '8'
+        _FOR_EVERY_MR_COMMIT: 'false'
       - _TARGET_DB_TYPE: 'pgsql'
         _TARGET_DB_VERSION: '16'
+        _FOR_EVERY_MR_COMMIT: 'false'
   # @todo Delete this after https://www.drupal.org/project/gitlab_templates/issues/3447792 lands.
   # @see https://git.drupalcode.org/issue/gitlab_templates-3447792/-/compare/main...3447792-raise-sqlite-version?from_project_id=96292, when 984abb7b4781559a13078d58bb65f6959fe42179 was the last commit.
   image:
@@ -355,8 +368,9 @@ UI eslint:
 
 cypress E2E:
   extends: .cypress-base
+  parallel: 4
   script:
-    - CYPRESS_CACHE_FOLDER=./cycache node ./node_modules/.bin/cypress run --browser electron --reporter junit --reporter-options "mochaFile=junit-[hash].xml"
+    - CYPRESS_CACHE_FOLDER=./cycache node ./node_modules/.bin/cypress run --browser electron --reporter junit --reporter-options "mochaFile=junit-[hash].xml" --spec=`node ./tests/support/parallel.js`
 
 cypress unit:
   extends: .cypress-base

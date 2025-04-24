@@ -15,6 +15,7 @@ use GuzzleHttp\RequestOptions;
 /**
  * @covers \Drupal\experience_builder\Controller\ApiContentControllers
  * @group experience_builder
+ * @group #slow
  * @internal
  */
 final class XbContentEntityHttpApiTest extends HttpApiTestBase {

@@ -12,6 +12,7 @@ use Symfony\Component\Validator\ConstraintViolationListInterface;
 
 /**
  * @covers \Drupal\experience_builder\Config\Schema\JsonSchemaObject
+ * @group experience_builder
  */
 final class JsonSchemaObjectTest extends KernelTestBase {
 

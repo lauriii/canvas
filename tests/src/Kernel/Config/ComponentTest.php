@@ -15,6 +15,9 @@ use Drupal\KernelTests\KernelTestBase;
 use Drupal\Tests\experience_builder\Traits\ContribStrictConfigSchemaTestTrait;
 use Drupal\Tests\experience_builder\Traits\GenerateComponentConfigTrait;
 
+/**
+ * @group experience_builder
+ */
 class ComponentTest extends KernelTestBase {
 
   use ContribStrictConfigSchemaTestTrait;

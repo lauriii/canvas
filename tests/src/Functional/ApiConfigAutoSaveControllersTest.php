@@ -24,6 +24,8 @@ use GuzzleHttp\RequestOptions;
  * Tests the details of auto-saving config entities, NOT the "live" version.
  *
  * @covers \Drupal\experience_builder\Controller\ApiConfigAutoSaveControllers
+ * @group experience_builder
+ * @group #slow
  */
 final class ApiConfigAutoSaveControllersTest extends HttpApiTestBase {
 

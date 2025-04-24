@@ -14,6 +14,7 @@ use Drupal\Tests\UnitTestCase;
 
 /**
  * @coversDefaultClass \Drupal\experience_builder\Access\XbHttpApiEligibleConfigEntityAccessCheck
+ * @group experience_builder
  */
 class XbHttpApiEligibleConfigEntityAccessCheckTest extends UnitTestCase {
 

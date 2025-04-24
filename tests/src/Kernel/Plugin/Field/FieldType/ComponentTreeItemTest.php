@@ -19,6 +19,7 @@ use Drupal\Tests\experience_builder\Traits\TestDataUtilitiesTrait;
 /**
  * @coversDefaultClass \Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem
  * @group experience_builder
+ * @group #slow
  */
 class ComponentTreeItemTest extends KernelTestBase {
 

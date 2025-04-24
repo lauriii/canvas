@@ -20,6 +20,7 @@ use Symfony\Component\Yaml\Yaml;
  * Tests validation of component entities.
  *
  * @group experience_builder
+ * @group #slow
  */
 class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
 

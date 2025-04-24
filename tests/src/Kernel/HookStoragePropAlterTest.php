@@ -9,6 +9,7 @@ use Drupal\experience_builder\PropShape\StorablePropShape;
 
 /**
  * @covers \Drupal\experience_builder\PropShape\PropShape::getStorage()
+ * @group experience_builder
  */
 class HookStoragePropAlterTest extends PropShapeRepositoryTest {
 

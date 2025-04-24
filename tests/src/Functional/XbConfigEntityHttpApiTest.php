@@ -20,6 +20,7 @@ use GuzzleHttp\RequestOptions;
  * @covers \Drupal\experience_builder\Controller\ApiConfigControllers
  * @covers \Drupal\experience_builder\Controller\ApiConfigAutoSaveControllers
  * @group experience_builder
+ * @group #slow
  * @internal
  */
 class XbConfigEntityHttpApiTest extends HttpApiTestBase {

@@ -11,6 +11,9 @@ use Drupal\Tests\experience_builder\Traits\SingleDirectoryComponentTreeTestTrait
 use Drupal\Tests\experience_builder\Traits\ContribStrictConfigSchemaTestTrait;
 use Drupal\Tests\experience_builder\Traits\GenerateComponentConfigTrait;
 
+/**
+ * @group experience_builder
+ */
 class DefaultFieldValueTest extends KernelTestBase {
 
   use SingleDirectoryComponentTreeTestTrait;

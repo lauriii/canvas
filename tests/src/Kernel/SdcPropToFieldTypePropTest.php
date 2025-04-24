@@ -33,6 +33,7 @@ use Drupal\Tests\experience_builder\Traits\ContribStrictConfigSchemaTestTrait;
  *
  * @see docs/data-model.md
  * @see \Drupal\Tests\experience_builder\Kernel\PropShapeRepositoryTest
+ * @group experience_builder
  */
 class SdcPropToFieldTypePropTest extends KernelTestBase {
 

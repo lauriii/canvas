@@ -10,6 +10,7 @@ use Drupal\KernelTests\KernelTestBase;
 
 /**
  * @coversDefaultClass \Drupal\experience_builder\Entity\JavaScriptComponent
+ * @group experience_builder
  */
 class JavascriptComponentTest extends KernelTestBase {
 

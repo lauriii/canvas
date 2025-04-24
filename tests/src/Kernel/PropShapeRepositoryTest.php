@@ -24,6 +24,9 @@ use Drupal\user\Entity\User;
 use JsonSchema\Constraints\Constraint;
 use JsonSchema\Validator;
 
+/**
+ * @group experience_builder
+ */
 class PropShapeRepositoryTest extends KernelTestBase {
 
   use ContribStrictConfigSchemaTestTrait;

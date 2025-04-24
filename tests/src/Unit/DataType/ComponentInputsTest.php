@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Drupal\Tests\experience_builder\Unit\Plugin\DataType;
+namespace Drupal\Tests\experience_builder\Unit\DataType;
 
 use Drupal\Component\Serialization\Json;
 use Drupal\Core\TypedData\DataDefinitionInterface;
@@ -15,6 +15,7 @@ use Drupal\Tests\UnitTestCase;
 
 /**
  * @coversDefaultClass \Drupal\experience_builder\Plugin\DataType\ComponentInputs
+ * @group experience_builder
  */
 class ComponentInputsTest extends UnitTestCase {
 

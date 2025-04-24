@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Drupal\Tests\experience_builder\Element;
+namespace Drupal\Tests\experience_builder\Kernel\Element;
 
 use Drupal\Component\Serialization\Json;
 use Drupal\Component\Utility\Crypt;

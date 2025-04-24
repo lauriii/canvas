@@ -13,6 +13,7 @@ use Drupal\FunctionalTests\Installer\InstallerTestBase;
  * Tests the uninstalling module page is loaded.
  *
  * @group experience_builder
+ * @group #slow
  */
 class UninstallModulePageTest extends InstallerTestBase {
 

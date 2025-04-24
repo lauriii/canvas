@@ -10,6 +10,7 @@ use Symfony\Component\DomCrawler\Crawler;
 /**
  * @coversDefaultClass \Drupal\experience_builder\Controller\EntityFormController
  * @group experience_builder
+ * @group #slow
  */
 class EntityFormControllerTest extends FunctionalTestBase {
 

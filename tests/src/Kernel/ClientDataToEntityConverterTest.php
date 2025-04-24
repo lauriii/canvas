@@ -30,6 +30,9 @@ use Drupal\user\Entity\User;
 use GuzzleHttp\Psr7\Query;
 use Drupal\user\RoleInterface;
 
+/**
+ * @group experience_builder
+ */
 class ClientDataToEntityConverterTest extends KernelTestBase {
 
   use XBFieldTrait {

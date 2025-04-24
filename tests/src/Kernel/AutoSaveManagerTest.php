@@ -21,6 +21,7 @@ use Drupal\Tests\experience_builder\Traits\XBFieldTrait;
 /**
  * @coversDefaultClass \Drupal\experience_builder\AutoSave\AutoSaveManager
  * @group experience_builder.
+ * @group #slow
  */
 class AutoSaveManagerTest extends KernelTestBase {
 

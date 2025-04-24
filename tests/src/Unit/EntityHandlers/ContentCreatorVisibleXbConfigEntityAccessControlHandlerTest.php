@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder\Tests\Unit\Entity\Routing;
+namespace Drupal\Tests\experience_builder\Unit\EntityHandlers;
 
 use Drupal\Core\Access\AccessResultAllowed;
 use Drupal\Core\Access\AccessResultForbidden;

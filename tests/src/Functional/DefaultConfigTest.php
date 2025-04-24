@@ -11,6 +11,7 @@ use Drupal\KernelTests\AssertConfigTrait;
 
 /**
  * @group experience_builder
+ * @group #slow
  */
 class DefaultConfigTest extends FunctionalTestBase {
 

@@ -24,6 +24,7 @@ use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 /**
  * @covers \Drupal\experience_builder\Controller\ApiLayoutController::post()
  * @group experience_builder
+ * @group #slow
  */
 final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
 
