@@ -18,6 +18,8 @@ use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\filter\Entity\FilterFormat;
 use Drupal\node\NodeInterface;
 use Drupal\Tests\content_moderation\Traits\ContentModerationTestTrait;
+use Drupal\taxonomy\Entity\Term;
+use Drupal\taxonomy\Entity\Vocabulary;
 use Drupal\user\Entity\Role;
 use Drupal\user\RoleInterface;
 
@@ -43,6 +45,23 @@ function xb_test_article_fields_install(): void {
         ->format(DateTimeItemInterface::DATETIME_STORAGE_FORMAT),
     ],
   ];
+  $vocabulary = Vocabulary::create([
+    'vid' => 'artists',
+    'name' => 'Artists',
+  ]);
+  $vocabulary->save();
+  foreach ([
+    'Air-Sea Dolphin',
+    'The Apples in Stereo',
+    'Beulah',
+    'Black Swan Network',
+    'Chocolate USA',
+  ] as $artist) {
+    Term::create([
+      'vid' => 'artists',
+      'name' => $artist,
+    ])->save();
+  }
   $fields = [
     'field_xbt_comment' => [
       'type' => 'comment',
@@ -138,6 +157,7 @@ function xb_test_article_fields_install(): void {
     'field_xbt_entity_ref_tags' => [
       'type' => 'entity_reference',
       'label' => 'XB Entity Reference (Tags)',
+      'cardinality' => 3,
       'settings' => [
         'target_type' => 'taxonomy_term',
         'handler' => 'default',
@@ -150,6 +170,10 @@ function xb_test_article_fields_install(): void {
           'size' => 60,
           'placeholder' => '',
         ],
+      ],
+      'default_value' => [
+        ['target_id' => 1],
+        ['target_id' => 2],
       ],
     ],
     'field_xbt_file' => [
