@@ -12,12 +12,14 @@ use Drupal\Core\Render\Component\Exception\InvalidComponentException;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\experience_builder\Attribute\ComponentSource;
 use Drupal\experience_builder\AutoSave\AutoSaveManager;
+use Drupal\experience_builder\AutoSaveData;
 use Drupal\experience_builder\ComponentDoesNotMeetRequirementsException;
 use Drupal\experience_builder\ComponentMetadataRequirementsChecker;
 use Drupal\experience_builder\ComponentSource\UrlRewriteInterface;
 use Drupal\experience_builder\Entity\Component as ComponentEntity;
 use Drupal\experience_builder\Entity\ComponentInterface;
 use Drupal\experience_builder\Entity\JavaScriptComponent;
+use Drupal\experience_builder\Render\ImportMapResponseAttachmentsProcessor;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -124,7 +126,7 @@ final class JsComponent extends GeneratedFieldExplicitInputUxComponentSourceBase
 
     $xb_path = $this->extensionPathResolver->getPath('module', 'experience_builder');
     // Build base import map
-    $import_maps = [
+    $import_maps[ImportMapResponseAttachmentsProcessor::GLOBAL_IMPORTS] = [
       'preact' => \sprintf('%s%s/ui/lib/astro-hydration/dist/preact.module.js', $base_path, $xb_path),
       'preact/hooks' => \sprintf('%s%s/ui/lib/astro-hydration/dist/hooks.module.js', $base_path, $xb_path),
       'react/jsx-runtime' => \sprintf('%s%s/ui/lib/astro-hydration/dist/jsxRuntime.module.js', $base_path, $xb_path),
@@ -137,17 +139,15 @@ final class JsComponent extends GeneratedFieldExplicitInputUxComponentSourceBase
       '@/lib/utils' => \sprintf('%s%s/ui/lib/astro-hydration/dist/utils.js', $base_path, $xb_path),
     ];
 
-    foreach ($component->getComponentDependencies($autoSave, $isPreview) as $js_component_name => $js_component_dependency) {
-      assert($js_component_dependency instanceof JavaScriptComponent);
-      $dependencyAutoSave = $this->autoSaveManager->getAutoSaveData($js_component_dependency);
-      // Attach CSS library for dependency component.
-      $dependency_library = $js_component_dependency->getCssLibrary($dependencyAutoSave, $isPreview);
-      if ($dependency_library) {
-        $build['#attached']['library'][] = $dependency_library;
-      }
-      $import_maps["@/components/{$js_component_name}"] = $js_component_dependency->getComponentUrl($this->fileUrlGenerator, $dependencyAutoSave, $isPreview);
+    $scoped_map = $this->getScopedDependencies($component, $autoSave, $isPreview);
+    if (count($scoped_map) > 0) {
+      $import_maps[ImportMapResponseAttachmentsProcessor::SCOPED_IMPORTS] = $scoped_map;
     }
+    $build['#attached']['library'] = \array_merge($build['#attached']['library'] ?? [], $this->getDependencyLibraries($component, $autoSave, $isPreview));
 
+    if (\count($build['#attached']['library']) === 0) {
+      unset($build['#attached']['library']);
+    }
     // Resource hints.
     $resource_hints = [
       'preact/signals' => \sprintf('%s%s/ui/lib/astro-hydration/dist/signals.module.js', $base_path, $xb_path),
@@ -317,6 +317,47 @@ final class JsComponent extends GeneratedFieldExplicitInputUxComponentSourceBase
       return $url;
     }
     throw new \InvalidArgumentException('Default images for Javascript Components must be a fully-qualified URL with both scheme and host.');
+  }
+
+  private function getScopedDependencies(JavaScriptComponent $component, AutoSaveData $autoSave, bool $isPreview, array $seen = []): array {
+    $scoped_dependencies = [];
+    $component_url = $component->getComponentUrl($this->fileUrlGenerator, $autoSave, $isPreview);
+    foreach ($component->getComponentDependencies($autoSave, $isPreview) as $js_component_dependency_name => $js_component_dependency) {
+      if (\in_array($js_component_dependency_name, $seen, TRUE)) {
+        // Recursion or already processed by another dependency.
+        continue;
+      }
+      $seen[] = $js_component_dependency_name;
+      assert($js_component_dependency instanceof JavaScriptComponent);
+      $dependencyAutoSave = $this->autoSaveManager->getAutoSaveData($js_component_dependency);
+      $dependency_component_url = $js_component_dependency->getComponentUrl($this->fileUrlGenerator, $dependencyAutoSave, $isPreview);
+      $scoped_dependencies[$component_url]["@/components/{$js_component_dependency_name}"] = $js_component_dependency->getComponentUrl($this->fileUrlGenerator, $dependencyAutoSave, $isPreview);
+      $scoped_dependencies = array_merge($scoped_dependencies, $this->getScopedDependencies($js_component_dependency, $dependencyAutoSave, $isPreview, $seen));
+      if (isset($scoped_dependencies[$dependency_component_url])) {
+        // The dependencies of my dependencies are also my dependencies, so says the logic.
+        $scoped_dependencies[$component_url] = array_merge($scoped_dependencies[$component_url], $scoped_dependencies[$dependency_component_url]);
+      }
+    }
+    return $scoped_dependencies;
+  }
+
+  private function getDependencyLibraries(JavaScriptComponent $component, AutoSaveData $autoSave, bool $isPreview, array $seen = []): array {
+    $libraries = [];
+    foreach ($component->getComponentDependencies($autoSave, $isPreview) as $js_component_dependency_name => $js_component_dependency) {
+      if (\in_array($js_component_dependency_name, $seen, TRUE)) {
+        // Recursion or already processed by another dependency.
+        continue;
+      }
+      $seen[] = $js_component_dependency_name;
+      assert($js_component_dependency instanceof JavaScriptComponent);
+      $dependencyAutoSave = $this->autoSaveManager->getAutoSaveData($js_component_dependency);
+      $dependency_library = $js_component_dependency->getCssLibrary($dependencyAutoSave, $isPreview);
+      if ($dependency_library) {
+        $libraries[] = $dependency_library;
+      }
+      $libraries = array_merge($libraries, $this->getDependencyLibraries($js_component_dependency, $dependencyAutoSave, $isPreview, $seen));
+    }
+    return $libraries;
   }
 
 }

@@ -8,6 +8,7 @@ namespace Drupal\Tests\experience_builder\Kernel\Plugin\ExperienceBuilder\Compon
 
 use Drupal\Component\Serialization\Json;
 use Drupal\Component\Utility\Crypt;
+use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Asset\AssetResolverInterface;
 use Drupal\Core\Asset\AttachedAssets;
 use Drupal\Core\Cache\CacheableMetadata;
@@ -22,6 +23,7 @@ use Drupal\experience_builder\Entity\JavaScriptComponent;
 use Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\JsComponent;
 use Drupal\experience_builder\PropExpressions\StructuredData\FieldTypePropExpression;
 use Drupal\experience_builder\PropSource\StaticPropSource;
+use Drupal\experience_builder\Render\ImportMapResponseAttachmentsProcessor;
 use Drupal\Tests\experience_builder\Traits\CrawlerTrait;
 use Drupal\Tests\user\Traits\UserCreationTrait;
 use Drupal\xb_test_code_components\Hook\IslandCastaway;
@@ -323,6 +325,10 @@ final class JsComponentTest extends ComponentSourceTestBase {
     $hrefs = \array_column($preloads, 'href');
     self::assertContains($expected_js_filename, $hrefs);
 
+    // Assert import maps are attached.
+    $preact_import = NestedArray::getValue($island, ['#attached', 'import_maps', ImportMapResponseAttachmentsProcessor::GLOBAL_IMPORTS, 'preact']);
+    self::assertNotNull($preact_import);
+
     // Assert rendered code component's CSS, if any.
     if ($source->getJavaScriptComponent()->hasCss()) {
       // @phpstan-ignore-next-line
@@ -460,6 +466,24 @@ final class JsComponentTest extends ComponentSourceTestBase {
     assert(in_array($dependencies_expected_result, ['draft', 'live'], TRUE));
     $file_generator = $this->container->get(FileUrlGeneratorInterface::class);
     \assert($file_generator instanceof FileUrlGeneratorInterface);
+
+    $nested_dependency_js_component = JavaScriptComponent::create([
+      'machineName' => 'nested_dependency_component',
+      'name' => 'Nested Dependency Component',
+      'status' => TRUE,
+      'props' => [],
+      'slots' => [],
+      'block_override' => NULL,
+      'css' => [
+        'original' => '.dependency { color: blue; }',
+        'compiled' => '.dependency{color:blue;}',
+      ],
+      'js' => [
+        'original' => 'console.log("nested dependency loaded");',
+        'compiled' => 'console.log("nested dependency loaded");',
+      ],
+    ]);
+    $nested_dependency_js_component->save();
     // Create a dependency component first
     $dependency_js_component = JavaScriptComponent::create([
       'machineName' => 'dependency_component',
@@ -478,6 +502,10 @@ final class JsComponentTest extends ComponentSourceTestBase {
       ],
     ]);
     $dependency_js_component->save();
+    $js_component_data = $dependency_js_component->normalizeForClientSide()->values;
+    $js_component_data['imported_js_components'] = ['nested_dependency_component'];
+    $dependency_js_component->updateFromClientSide($js_component_data);
+    $dependency_js_component->save();
 
     $dependency_js_component_without_css = JavaScriptComponent::create([
       'machineName' => 'dependency_component_no_css',
@@ -491,8 +519,8 @@ final class JsComponentTest extends ComponentSourceTestBase {
         'compiled' => '',
       ],
       'js' => [
-        'original' => 'console.log("dependency loaded");',
-        'compiled' => 'console.log("dependency loaded");',
+        'original' => 'console.log("dependency with no css loaded");',
+        'compiled' => 'console.log("dependency with no css loaded");',
       ],
     ]);
     $dependency_js_component_without_css->save();
@@ -528,6 +556,7 @@ final class JsComponentTest extends ComponentSourceTestBase {
     $js_component->save();
 
     $autoSave = $this->container->get(AutoSaveManager::class);
+    assert($autoSave instanceof AutoSaveManager);
     if ($create_auto_save) {
       $autoSave->save(
         $js_component,
@@ -540,11 +569,15 @@ final class JsComponentTest extends ComponentSourceTestBase {
     if ($create_dependency_auto_save) {
       $autoSave->save(
         $dependency_js_component,
-        $dependency_js_component->normalizeForClientSide()->values + ['imported_js_components' => []],
+        $dependency_js_component->normalizeForClientSide()->values + ['imported_js_components' => ['nested_dependency_component']],
       );
       $autoSave->save(
         $dependency_js_component_without_css,
         $dependency_js_component_without_css->normalizeForClientSide()->values + ['imported_js_components' => []],
+      );
+      $autoSave->save(
+        $nested_dependency_js_component,
+        $nested_dependency_js_component->normalizeForClientSide()->values + ['imported_js_components' => []],
       );
     }
 
@@ -553,28 +586,31 @@ final class JsComponentTest extends ComponentSourceTestBase {
     $source = $component->getComponentSource();
     $rendered_component = $source->renderComponent([], 'test-uuid', $preview);
     self::assertArrayHasKey('#import_maps', $rendered_component);
-    $dependency_import_key = '@/components/dependency_component';
-    $dependency_without_css_import_key = '@/components/dependency_component_no_css';
-    self::assertArrayHasKey($dependency_import_key, $rendered_component['#import_maps']);
+    self::assertArrayHasKey('scopes', $rendered_component['#import_maps']);
+    $scoped_import_maps = $rendered_component['#import_maps']['scopes'];
+    $dependency_import_key = $dependency_js_component->getComponentUrl($file_generator, $autoSave->getAutoSaveData($dependency_js_component), $preview);
+    $nested_dependency_key = $nested_dependency_js_component->getComponentUrl($file_generator, $autoSave->getAutoSaveData($nested_dependency_js_component), $preview);
+    $dependency_without_css_import_key = $dependency_js_component_without_css->getComponentUrl($file_generator, $autoSave->getAutoSaveData($dependency_js_component_without_css), $preview);
+    self::assertArrayHasKey($dependency_import_key, $scoped_import_maps);
     self::assertNotEmpty($rendered_component['#attached']['library']);
     $attached_libraries = $rendered_component['#attached']['library'];
     // The dependency without CSS should not have its library attached.
     self::assertNotContains('experience_builder/astro_island.dependency_component_no_css.draft', $attached_libraries);
     self::assertNotContains('experience_builder/astro_island.dependency_component_no_css', $attached_libraries);
     if ($dependencies_expected_result === 'draft') {
-      $dependency_js_path = base_path() . 'xb/api/auto-saves/js/js_component/dependency_component';
-      $dependency_without_css_js_path = base_path() . 'xb/api/auto-saves/js/js_component/dependency_component_no_css';
+      $nested_dependency_js_path = base_path() . 'xb/api/auto-saves/js/js_component/nested_dependency_component';
       self::assertContains('experience_builder/astro_island.dependency_component.draft', $attached_libraries);
+      self::assertContains('experience_builder/astro_island.nested_dependency_component.draft', $attached_libraries);
       self::assertNotContains('experience_builder/astro_island.dependency_component', $attached_libraries);
     }
     else {
-      $dependency_js_path = $file_generator->generateString($dependency_js_component->getJsPath());
-      $dependency_without_css_js_path = $file_generator->generateString($dependency_js_component_without_css->getJsPath());
+      $nested_dependency_js_path = $file_generator->generateString($nested_dependency_js_component->getJsPath());
       self::assertContains('experience_builder/astro_island.dependency_component', $attached_libraries);
       self::assertNotContains('experience_builder/astro_island.dependency_component.draft', $attached_libraries);
     }
-    self::assertEquals($dependency_js_path, $rendered_component['#import_maps'][$dependency_import_key]);
-    self::assertEquals($dependency_without_css_js_path, $rendered_component['#import_maps'][$dependency_without_css_import_key]);
+    self::assertEquals(['@/components/nested_dependency_component' => $nested_dependency_js_path], $scoped_import_maps[$dependency_import_key]);
+    self::assertArrayNotHasKey($nested_dependency_key, $scoped_import_maps);
+    self::assertArrayNotHasKey($dependency_without_css_import_key, $scoped_import_maps);
 
     // If we created an auto-save entry for the main component, and we are in
     // preview ensure that if the dependencies are changed in the auto-save
@@ -587,9 +623,7 @@ final class JsComponentTest extends ComponentSourceTestBase {
       );
       $rendered_component = $source->renderComponent([], 'test-uuid', $preview);
       self::assertArrayHasKey('#import_maps', $rendered_component);
-      // Ensure the dependencies are no longer in the import map.
-      self::assertArrayNotHasKey($dependency_import_key, $rendered_component['#import_maps']);
-      self::assertArrayNotHasKey($dependency_without_css_import_key, $rendered_component['#import_maps']);
+      self::assertArrayNotHasKey('scopes', $rendered_component['#import_maps']);
       self::assertNotEmpty($rendered_component['#attached']['library']);
       self::assertEmpty(array_filter(
         $rendered_component['#attached']['library'],

@@ -13,6 +13,7 @@ use Drupal\Core\TypedData\TypedDataManagerInterface;
 use Drupal\experience_builder\Entity\Page;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
+use Drupal\experience_builder\Render\ImportMapResponseAttachmentsProcessor;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\Tests\experience_builder\Kernel\Traits\CiModulePathTrait;
 use Drupal\Tests\experience_builder\Traits\ConstraintViolationsTestTrait;
@@ -772,16 +773,18 @@ HTML,
                                 'max-age' => Cache::PERMANENT,
                               ],
                               '#import_maps' => [
-                                'preact' => \sprintf('%s/ui/lib/astro-hydration/dist/preact.module.js', $path),
-                                'preact/hooks' => \sprintf('%s/ui/lib/astro-hydration/dist/hooks.module.js', $path),
-                                'react/jsx-runtime' => \sprintf('%s/ui/lib/astro-hydration/dist/jsxRuntime.module.js', $path),
-                                'react' => \sprintf('%s/ui/lib/astro-hydration/dist/compat.module.js', $path),
-                                'react-dom' => \sprintf('%s/ui/lib/astro-hydration/dist/compat.module.js', $path),
-                                'react-dom/client' => \sprintf('%s/ui/lib/astro-hydration/dist/compat.module.js', $path),
-                                'clsx' => \sprintf('%s/ui/lib/astro-hydration/dist/clsx.js', $path),
-                                'class-variance-authority' => \sprintf('%s/ui/lib/astro-hydration/dist/class-variance-authority.js', $path),
-                                'tailwind-merge' => \sprintf('%s/ui/lib/astro-hydration/dist/tailwind-merge.js', $path),
-                                '@/lib/utils' => \sprintf('%s/ui/lib/astro-hydration/dist/utils.js', $path),
+                                ImportMapResponseAttachmentsProcessor::GLOBAL_IMPORTS => [
+                                  'preact' => \sprintf('%s/ui/lib/astro-hydration/dist/preact.module.js', $path),
+                                  'preact/hooks' => \sprintf('%s/ui/lib/astro-hydration/dist/hooks.module.js', $path),
+                                  'react/jsx-runtime' => \sprintf('%s/ui/lib/astro-hydration/dist/jsxRuntime.module.js', $path),
+                                  'react' => \sprintf('%s/ui/lib/astro-hydration/dist/compat.module.js', $path),
+                                  'react-dom' => \sprintf('%s/ui/lib/astro-hydration/dist/compat.module.js', $path),
+                                  'react-dom/client' => \sprintf('%s/ui/lib/astro-hydration/dist/compat.module.js', $path),
+                                  'clsx' => \sprintf('%s/ui/lib/astro-hydration/dist/clsx.js', $path),
+                                  'class-variance-authority' => \sprintf('%s/ui/lib/astro-hydration/dist/class-variance-authority.js', $path),
+                                  'tailwind-merge' => \sprintf('%s/ui/lib/astro-hydration/dist/tailwind-merge.js', $path),
+                                  '@/lib/utils' => \sprintf('%s/ui/lib/astro-hydration/dist/utils.js', $path),
+                                ],
                               ],
                               '#attached' => [
                                 'html_head_link' => [

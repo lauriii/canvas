@@ -13,6 +13,7 @@ use Drupal\Core\Extension\ExtensionPathResolver;
 use Drupal\Core\Site\Settings;
 use Drupal\experience_builder\Element\AstroIsland;
 use Drupal\experience_builder\Entity\JavaScriptComponent;
+use Drupal\experience_builder\Render\ImportMapResponseAttachmentsProcessor;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\Tests\experience_builder\Traits\CrawlerTrait;
 use Drupal\Tests\user\Traits\UserCreationTrait;
@@ -115,7 +116,9 @@ final class AstroIslandTest extends KernelTestBase {
       '#name' => $component->label(),
       '#props' => $props,
       '#import_maps' => [
-        'some' => 'import/map.js',
+        ImportMapResponseAttachmentsProcessor::SCOPED_IMPORTS => [
+          $component_url => ['some' => 'import/map.js'],
+        ],
       ],
       '#slots' => [
         'default' => ['#markup' => '<em>3 ponies won this week!</em>'],
@@ -128,7 +131,7 @@ final class AstroIslandTest extends KernelTestBase {
     $crawler = $this->crawlerForRenderArray($island);
     $element = $crawler->filter('astro-island');
     self::assertEquals([
-      [$component_url => ['some' => 'import/map.js']],
+      ImportMapResponseAttachmentsProcessor::SCOPED_IMPORTS => [$component_url => ['some' => 'import/map.js']],
     ], $island['#attached']['import_maps']);
     self::assertCount(1, $element);
 

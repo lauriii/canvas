@@ -144,8 +144,7 @@ final class AstroIsland extends RenderElementBase {
     if (\array_key_exists('#import_maps', $element)) {
       // Convert these to attachments that can be processed.
       // @see \Drupal\experience_builder\Render\ImportMapResponseAttachmentsProcessor::processAttachments
-      // This ensures that each component can use its own version of imports.
-      $element['#attached']['import_maps'][] = [$component_url => $element['#import_maps']];
+      $element['#attached']['import_maps'] = $element['#import_maps'];
     }
     $element['#attached']['html_head_link'][] = [
       [
