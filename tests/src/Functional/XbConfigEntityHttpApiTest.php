@@ -878,6 +878,7 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
     // changed to `TRUE`.
     // @see docs/config-management.md#3.2.1
     $this->assertNotNull(Component::load('js.test'));
+    $this->assertTrue(Component::load('js.test')->status());
     $this->assertExposedCodeComponents(['js.test'], 'MISS', $request_options);
     $this->assertExposedCodeComponents(['js.test'], 'HIT', $request_options);
     // Confirm that there is no auto-save anymore.
@@ -903,8 +904,9 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
     $request_options[RequestOptions::BODY] = self::encodeXBData($code_component_to_send);
     $body = $this->assertExpectedResponse('PATCH', Url::fromUri('base:/xb/api/config/js_component/test'), $request_options, 200, NULL, NULL, NULL, NULL);
     $this->assertSame($expected_component, $body);
-    // Confirm that the code component IS exposed, because `status` was just
-    // changed to `TRUE`.
+    // Confirm that the code component still IS exposed (a Component config
+    // entity still exists), but is disabled aka not available to be placed (the
+    // Component config entity's `status` was just changed to `FALSE`).
     // @see docs/config-management.md#3.2.1
     $this->assertNotNull(Component::load('js.test'));
     $this->assertFalse(Component::load('js.test')->status());
