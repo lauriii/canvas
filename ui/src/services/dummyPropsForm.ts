@@ -10,7 +10,12 @@ export const dummyPropsFormApi = createApi({
   endpoints: (builder) => ({
     getDummyPropsForm: builder.query<string, string>({
       query: (queryString) => {
-        const fullQueryString = addAjaxPageState(queryString);
+        // Add timestamp to prevent caching. Every request must be fresh
+        // to ensure the selectors match that of the AJAX config.
+        const timestamp = new Date().getTime();
+        const fullQueryString = addAjaxPageState(
+          `${queryString}&_nocache=${timestamp}`,
+        );
         return {
           url: `xb/api/form/component-instance/{entity_type}/{entity_id}`,
           // We use PATCH to keep this distinct from AJAX form submissions which
@@ -23,6 +28,7 @@ export const dummyPropsFormApi = createApi({
         };
       },
       transformResponse: processResponseAssets,
+      keepUnusedDataFor: 0,
     }),
   }),
 });
