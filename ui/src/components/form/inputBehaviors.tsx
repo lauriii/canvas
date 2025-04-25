@@ -418,6 +418,11 @@ const InputBehaviorsEntityForm = (
     selectFormValues(state, FORM_TYPES.ENTITY_FORM),
   );
 
+  // Determine if page data is actually available.
+  // Were we pulling this data *directly* from an API, doing this would be best
+  // accomplished by the isLoading property provided by RTK. This serves the
+  // same purpose without adding complexity to our reducers.
+  const pageDataExists = !!Object.keys(pageData).length;
   const { attributes } = props;
 
   const fieldName = attributes.name || attributes['data-xb-name'];
@@ -479,18 +484,21 @@ const InputBehaviorsEntityForm = (
     return { valid: true, errors: null };
   };
 
-  return (
-    <InputBehaviorsCommon
-      key={`${attributes?.name}-${latestUndoRedoActionId}`}
-      OriginalInput={OriginalInput}
-      props={props}
-      callbacks={{
-        commitFormState: formStateToStore,
-        parseNewValue,
-        validateNewValue,
-      }}
-    />
-  );
+  if (pageDataExists) {
+    return (
+      <InputBehaviorsCommon
+        key={`${attributes?.name}-${latestUndoRedoActionId}`}
+        OriginalInput={OriginalInput}
+        props={props}
+        callbacks={{
+          commitFormState: formStateToStore,
+          parseNewValue,
+          validateNewValue,
+        }}
+      />
+    );
+  }
+  return <></>;
 };
 
 // Provides a higher order component to wrap a form element that will map to
