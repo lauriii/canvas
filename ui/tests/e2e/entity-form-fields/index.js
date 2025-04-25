@@ -11,6 +11,7 @@ import * as field_xbt_textarea_summary from './field_xbt_textarea_summary.js';
 import * as field_xbt_moderation_state from './field_xbt_moderation_state.js';
 import * as field_xbt_datetime_timestamp from './field_xbt_datetime_timestamp.js';
 import * as field_xbt_daterange_datelist from './field_xbt_daterange_datelist.js';
+import * as field_xbt_datetime_datelist from './field_xbt_datetime_datelist.js';
 import * as field_xbt_entity_ref_tags from './field_xbt_entity_ref_tags.js';
 
 // Expand this to add additional coverage.
@@ -38,5 +39,6 @@ export default {
   field_xbt_textarea_summary,
   field_xbt_datetime_timestamp,
   field_xbt_daterange_datelist,
+  field_xbt_datetime_datelist,
   field_xbt_entity_ref_tags,
 };
