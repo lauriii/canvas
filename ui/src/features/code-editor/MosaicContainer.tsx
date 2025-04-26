@@ -1,5 +1,8 @@
 import type { MosaicNode } from 'react-mosaic-component';
-import { Mosaic, MosaicWindow } from 'react-mosaic-component';
+import {
+  MosaicWithoutDragDropContext,
+  MosaicWindow,
+} from 'react-mosaic-component';
 import './xb-react-mosaic-component.css';
 import { useState } from 'react';
 import JavaScriptEditor from '@/features/code-editor/editors/JavaScriptEditor';
@@ -102,7 +105,8 @@ const MosaicContainer = () => {
 
   return (
     <div id="xb-mosaic-container">
-      <Mosaic
+      {/* `DndProvider` is added in `ui/src/app/App.tsx` */}
+      <MosaicWithoutDragDropContext
         value={layout}
         mosaicId={''}
         onChange={(newNode) => {
