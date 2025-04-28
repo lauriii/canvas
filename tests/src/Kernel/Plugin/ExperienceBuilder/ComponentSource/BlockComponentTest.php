@@ -15,6 +15,7 @@ use Drupal\Tests\experience_builder\Traits\CrawlerTrait;
 use Drupal\xb_test_block\Plugin\Block\XbTestBlockInputNone;
 use Drupal\xb_test_block\Plugin\Block\XbTestBlockInputValidatable;
 use Drupal\xb_test_block\Plugin\Block\XbTestBlockInputValidatableCrash;
+use Drupal\xb_test_block\Plugin\Block\XbTestBlockOptionalContexts;
 
 /**
  * @coversDefaultClass \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\BlockComponent
@@ -55,12 +56,16 @@ final class BlockComponentTest extends ComponentSourceTestBase {
       'block.xb_test_block_input_unvalidatable' => [
         'Block plugin settings must be fully validatable',
       ],
+      'block.xb_test_block_requires_contexts' => [
+        'Block plugins that require context values are not supported.',
+      ],
     ], $this->findIneligibleComponents(BlockComponent::SOURCE_PLUGIN_ID, 'xb_test_block'));
     $auto_created_components = $this->findCreatedComponentConfigEntities(BlockComponent::SOURCE_PLUGIN_ID, 'xb_test_block');
     self::assertSame([
       'block.xb_test_block_input_none',
       'block.xb_test_block_input_validatable',
       'block.xb_test_block_input_validatable_crash',
+      'block.xb_test_block_optional_contexts',
     ], $auto_created_components);
 
     return $auto_created_components;
@@ -105,6 +110,15 @@ final class BlockComponentTest extends ComponentSourceTestBase {
           'crash' => FALSE,
         ],
       ],
+      'block.xb_test_block_optional_contexts' => [
+        'plugin_id' => 'xb_test_block_optional_contexts',
+        'default_settings' => [
+          'id' => 'xb_test_block_optional_contexts',
+          'label' => 'Test Block with optional contexts',
+          'label_display' => '',
+          'provider' => 'xb_test_block',
+        ],
+      ],
     ], $this->getAllSettings($component_ids));
   }
 
@@ -118,6 +132,7 @@ final class BlockComponentTest extends ComponentSourceTestBase {
       'block.xb_test_block_input_none' => XbTestBlockInputNone::class,
       'block.xb_test_block_input_validatable' => XbTestBlockInputValidatable::class,
       'block.xb_test_block_input_validatable_crash' => XbTestBlockInputValidatableCrash::class,
+      'block.xb_test_block_optional_contexts' => XbTestBlockOptionalContexts::class,
     ], $this->getReferencedPluginClasses($component_ids));
   }
 
@@ -183,6 +198,17 @@ HTML,
 HTML,
         'cacheability' => $default_cacheability,
       ],
+      'block.xb_test_block_optional_contexts' => [
+        'html' => <<<HTML
+<div id="block-some-uuid--4">
+
+
+      Test Block with optional context value: @todo in https://www.drupal.org/i/3485502
+  </div>
+
+HTML,
+        'cacheability' => $default_cacheability,
+      ],
     ], $rendered);
   }
 
@@ -236,6 +262,16 @@ HTML,
 
 
       <div>Hello, XB!</div>
+  </div>
+
+HTML,
+      ],
+      'block.xb_test_block_optional_contexts' => [
+        'build' => <<<HTML
+<div id="block-::COMPONENT_CONFIG_ENTITY_UUID::">
+
+
+      Test Block with optional context value: @todo in https://www.drupal.org/i/3485502
   </div>
 
 HTML,
@@ -313,6 +349,7 @@ HTML,
       'block.xb_test_block_input_none' => [],
       'block.xb_test_block_input_validatable' => [],
       'block.xb_test_block_input_validatable_crash' => [],
+      'block.xb_test_block_optional_contexts' => [],
     ], $this->getAllCalculatedDependencies($component_ids));
   }
 

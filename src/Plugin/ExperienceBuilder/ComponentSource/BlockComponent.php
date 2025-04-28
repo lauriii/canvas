@@ -16,6 +16,7 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
+use Drupal\Core\Plugin\Context\ContextDefinitionInterface;
 use Drupal\Core\Render\Element;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
@@ -384,8 +385,23 @@ final class BlockComponent extends ComponentSourceBase implements ContainerFacto
       }
     }
 
+    $reasons = [];
     if (!empty($settings) && !$fullyValidatable) {
-      throw new ComponentDoesNotMeetRequirementsException(['Block plugin settings must be fully validatable']);
+      $reasons[] = 'Block plugin settings must be fully validatable';
+    }
+
+    $plugin_definition = $block->getPluginDefinition();
+    assert(is_array($plugin_definition));
+    $required_contexts = array_filter(
+      $plugin_definition['context_definitions'],
+      fn (ContextDefinitionInterface $definition): bool => $definition->isRequired(),
+    );
+    if ($required_contexts) {
+      $reasons[] = 'Block plugins that require context values are not supported.';
+    }
+
+    if ($reasons) {
+      throw new ComponentDoesNotMeetRequirementsException($reasons);
     }
   }
 
