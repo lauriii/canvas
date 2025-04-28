@@ -156,6 +156,15 @@ class XBTestSetup implements TestSetupInterface {
             'uuid' => 'static-static-card1ab',
             'component' => 'sdc.experience_builder.my-hero',
           ],
+          // Test edge cases in representations:
+          // - server aims to minimize storage
+          // - client should be as simple as possible
+          // @see docs/data-model.md
+          // @see docs/adr/0005-Keep-the-front-end-simple.md
+          [
+            'uuid' => 'component-instance-with-all-slots-empty',
+            'component' => 'sdc.experience_builder.one_column',
+          ],
         ],
         'column_two' => [
           [
@@ -210,6 +219,35 @@ class XBTestSetup implements TestSetupInterface {
       ];
     }
     $inputs = [
+      'component-instance-with-all-slots-empty' => [
+        'width' => [
+          'sourceType' => 'static:field_item:list_string',
+          'value' => 'full',
+          'expression' => 'ℹ︎list_string␟value',
+          'sourceTypeSettings' => [
+            'storage' => [
+              'allowed_values' => [
+                [
+                  'value' => 'full',
+                  'label' => 'full',
+                ],
+                [
+                  'value' => 'wide',
+                  'label' => 'wide',
+                ],
+                [
+                  'value' => 'normal',
+                  'label' => 'normal',
+                ],
+                [
+                  'value' => 'narrow',
+                  'label' => 'narrow',
+                ],
+              ],
+            ],
+          ],
+        ],
+      ],
       'two-column-uuid' => [
         'width' => [
           'sourceType' => 'static:field_item:list_integer',

@@ -281,6 +281,19 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
                   'type' => 'sdc.experience_builder.my-hero',
                   'slots' => [],
                 ],
+                [
+                  'nodeType' => 'component',
+                  'uuid' => 'component-instance-with-all-slots-empty',
+                  'type' => 'sdc.experience_builder.one_column',
+                  'slots' => [
+                    [
+                      'nodeType' => 'slot',
+                      'id' => 'component-instance-with-all-slots-empty/content',
+                      'name' => 'content',
+                      'components' => [],
+                    ],
+                  ],
+                ],
               ],
             ],
             [

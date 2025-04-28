@@ -18,6 +18,7 @@ use Drupal\Core\Url;
 use Drupal\experience_builder\AssetRenderer;
 use Drupal\experience_builder\ClientSideRepresentation;
 use Drupal\experience_builder\ComponentSource\ComponentSourceInterface;
+use Drupal\experience_builder\ComponentSource\ComponentSourceWithSlotsInterface;
 use Drupal\experience_builder\Entity\XbHttpApiEligibleConfigEntityInterface;
 use Drupal\experience_builder\Exception\ConstraintViolationException;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
@@ -303,17 +304,28 @@ final class ApiConfigControllers extends ApiControllerBase {
         $model[$component_instance_uuid] = $source->inputToClientModel($source->getExplicitInput($component_instance_uuid, $item));
       }
 
-      if (isset($full_tree[$component_instance_uuid])) {
-        foreach ($full_tree[$component_instance_uuid] as $slot_name => $slot_children) {
-          $component_instance_slot = [
-            'id' => $component_instance_uuid . '/' . $slot_name,
-            'name' => $slot_name,
-            'nodeType' => 'slot',
-            'components' => [],
-          ];
-          self::buildLayoutAndModel($component_instance_slot['components'], $model, $item, $slot_children);
-          $component_instance['slots'][] = $component_instance_slot;
-        }
+      // TRICKY: the server-side implementation (for storage efficiency) forbids
+      // - empty component subtrees
+      // - empty slots
+      // @see \Drupal\experience_builder\Plugin\Validation\Constraint\ComponentTreeStructureConstraintValidator
+      // But the client expects all *available* slots to get a `slot node`: in
+      // every `component node` for every slot of that component, even the slot
+      // is empty.
+      // @see docs/data-model.md#3.4.1
+      $known_slot_names_for_component = match ($source instanceof ComponentSourceWithSlotsInterface) {
+        FALSE => [],
+        TRUE => array_keys($source->getSlotDefinitions()),
+      };
+      foreach ($known_slot_names_for_component as $slot_name) {
+        $slot_children = $full_tree[$component_instance_uuid][$slot_name] ?? [];
+        $component_instance_slot = [
+          'id' => $component_instance_uuid . '/' . $slot_name,
+          'name' => $slot_name,
+          'nodeType' => 'slot',
+          'components' => [],
+        ];
+        self::buildLayoutAndModel($component_instance_slot['components'], $model, $item, $slot_children);
+        $component_instance['slots'][] = $component_instance_slot;
       }
       $layout[] = $component_instance;
     }

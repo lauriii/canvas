@@ -307,7 +307,8 @@ will contain zero or more `component slot`s.
 `component node`s have the following keys
 - `uuid`: a unique identifier for the `component instance`.
 - `type`: a string containing a `Component config entity` ID that this instantiates
-- `slots`: an object of `slot node`s if any of the `component slot`s of this `component instance` are populated
+- `slots`: an object of `slot node`s representing each `component slot` of this `component instance` (including empty
+  slots)
 
 An example simple `component instance` of a `component` with no `component slot`s:
 ```json
@@ -316,6 +317,23 @@ An example simple `component instance` of a `component` with no `component slot`
   "id": "380aaa26-5678-4c86-9b32-12161ea34196",
   "type": "sdc.experience_builder.heading",
   "slots": []
+}
+```
+
+An example simple `component instance` of a `component` with a single `component slot` that is empty:
+```json
+{
+  "nodeType": "component",
+  "id": "177122af-1679-4ee4-b700-dcf5ab376c4a",
+  "type": "sdc.experience_builder.one_column",
+  "slots": [
+    {
+      "id": "177122af-1679-4ee4-b700-dcf5ab376c4a/content",
+      "name": "content",
+      "nodeType": "slot",
+      "components": []
+    }
+  ]
 }
 ```
 
