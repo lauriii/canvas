@@ -5,6 +5,7 @@ import { findNodePathByUuid } from '@/features/layout/layoutUtils';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import {
   addNewComponentToLayout,
+  addNewSectionToLayout,
   moveNode,
   selectLayout,
 } from '@/features/layout/layoutModelSlice';
@@ -17,6 +18,7 @@ import {
 } from '@/features/ui/uiSlice';
 import _ from 'lodash';
 import { useNavigationUtils } from '@/hooks/useNavigationUtils';
+import type { Section } from '@/types/Section';
 
 const DragEventsHandler: React.FC = () => {
   const layout = useAppSelector(selectLayout);
@@ -139,17 +141,29 @@ const DragEventsHandler: React.FC = () => {
           // The component we are dropping onto was not found. I don't think this can happen, but if it does, do nothing.
           return;
         }
-
-        // @todo We should optimistically insert newItem.default_markup into to the new location in the iFrames dom.
-        dispatch(
-          addNewComponentToLayout(
-            {
-              to: dropPath,
-              component: newItem,
-            },
-            setSelectedComponent,
-          ),
-        );
+        const type = event.active.data?.current?.type;
+        if (type === 'component') {
+          // @todo We should optimistically insert newItem.default_markup into to the new location in the iFrames dom.
+          dispatch(
+            addNewComponentToLayout(
+              {
+                to: dropPath,
+                component: newItem,
+              },
+              setSelectedComponent,
+            ),
+          );
+        } else if (type === 'section') {
+          dispatch(
+            addNewSectionToLayout(
+              {
+                to: dropPath,
+                layoutModel: (newItem as Section).layoutModel,
+              },
+              setSelectedComponent,
+            ),
+          );
+        }
       }
     },
     onDragCancel(event) {

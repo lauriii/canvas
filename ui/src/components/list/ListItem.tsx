@@ -42,6 +42,7 @@ const ListItem: React.FC<{
     id: item.id,
     data: {
       origin: 'library',
+      type,
       item: item,
       name: item.name,
     },
