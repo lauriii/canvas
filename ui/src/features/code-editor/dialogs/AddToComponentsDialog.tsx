@@ -25,9 +25,6 @@ const AddToComponentsDialog = () => {
     await updateCodeComponent({
       id: selectedComponent.machineName,
       changes: {
-        // @todo: Only send wanted changes in the PATCH request when
-        //   https://www.drupal.org/project/experience_builder/issues/3508140 is fixed.
-        ...selectedComponent,
         // Mark this code component as "exposed", to make it available to content creators.
         // @see docs/config-management.md, section 3.2.1
         // @see \Drupal\experience_builder\EntityHandlers\JavascriptComponentStorage::createOrUpdateComponentEntity()

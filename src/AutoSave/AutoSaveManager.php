@@ -3,19 +3,26 @@
 namespace Drupal\experience_builder\AutoSave;
 
 use Drupal\Core\Cache\CacheTagsInvalidatorInterface;
+use Drupal\Core\Config\ConfigCrudEvent;
+use Drupal\Core\Config\ConfigEvents;
+use Drupal\Core\Config\ConfigManagerInterface;
+use Drupal\Core\Config\Entity\ConfigEntityTypeInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\TranslatableInterface;
 use Drupal\experience_builder\AutoSaveData;
+use Drupal\experience_builder\Entity\XbHttpApiEligibleConfigEntityInterface;
+use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
 /**
  * Defines a class for storing and retrieving auto-save data.
  */
-class AutoSaveManager {
+class AutoSaveManager implements EventSubscriberInterface {
 
   public const CACHE_TAG = 'experience_builder__auto_save';
 
   public function __construct(
     private readonly AutoSaveTempStoreFactory $tempStoreFactory,
+    private readonly ConfigManagerInterface $configManager,
     private readonly CacheTagsInvalidatorInterface $cacheTagsInvalidator,
   ) {
   }
@@ -113,7 +120,7 @@ class AutoSaveManager {
   }
 
   /**
-   * @see \Drupal\experience_builder\Hook\AutoSaveHooks::entityUpdate()
+   * @see ::onXbConfigEntitySave()
    */
   public function delete(EntityInterface $entity, bool $resetHash = TRUE): void {
     $this->cacheTagsInvalidator->invalidateTags([self::CACHE_TAG]);
@@ -161,6 +168,69 @@ class AutoSaveManager {
         self::recursiveKsort($value);
       }
     }
+  }
+
+  public function onXbConfigEntitySave(ConfigCrudEvent $event): void {
+    [$module] = explode('.', $event->getConfig()->getName(), 2);
+    if ($module !== 'experience_builder') {
+      return;
+    }
+
+    $entity = $this->configManager->loadConfigEntityByName($event->getConfig()->getName());
+    if (!$entity) {
+      return;
+    }
+    // Auto-saves can only occur for XB config entities modified by the XB UI.
+    if (!$entity instanceof XbHttpApiEligibleConfigEntityInterface) {
+      return;
+    }
+
+    $autoSaveData = $this->getAutoSaveData($entity);
+    if ($autoSaveData->isEmpty()) {
+      return;
+    }
+    $data = $autoSaveData->data;
+    assert($data !== NULL);
+
+    // Update the `label` and `status` keys of the config entity, if they've
+    // changed.
+    // @todo Consider auto-updating the auto-save entries for other config entity properties, but that will need very careful evaluation.
+    $auto_save_update_needed = FALSE;
+    assert($entity->getEntityType() instanceof ConfigEntityTypeInterface);
+    $properties_to_assess = $entity->getEntityType()->getPropertiesToExport();
+    assert(is_array($properties_to_assess));
+    $auto_save_updatable_properties = \array_intersect_key($entity->getEntityType()->getKeys(), \array_flip(['status', 'label']));
+
+    // Ensure that no properties other than `status` and `label` were modified;
+    // otherwise the auto-save entry must be deleted.
+    $auto_save_not_updatable_properties = \array_diff_key($properties_to_assess, array_flip($auto_save_updatable_properties));
+    foreach ($auto_save_not_updatable_properties as $property) {
+      if ($event->isChanged($property)) {
+        $this->delete($entity);
+        return;
+      }
+    }
+
+    foreach ($auto_save_updatable_properties as $auto_save_updatable_property) {
+      if ($event->isChanged($auto_save_updatable_property) && array_key_exists($auto_save_updatable_property, $data)) {
+        $data[$auto_save_updatable_property] = $entity->get($auto_save_updatable_property);
+        $auto_save_update_needed = TRUE;
+      }
+    }
+
+    // Finally: the goal: to update rather than delete the auto-save entry when
+    // safe.
+    if ($auto_save_update_needed) {
+      $this->save($entity, $data);
+    }
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function getSubscribedEvents(): array {
+    $events[ConfigEvents::SAVE][] = ['onXbConfigEntitySave'];
+    return $events;
   }
 
 }

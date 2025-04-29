@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Drupal\experience_builder\Hook;
 
-use Drupal\Core\Config\Entity\ConfigEntityInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Hook\Attribute\Hook;
 use Drupal\experience_builder\AutoSave\AutoSaveManager;
@@ -20,20 +19,6 @@ class AutoSaveHooks {
   public function __construct(
     private readonly AutoSaveManager $autoSaveManager,
   ) {
-  }
-
-  /**
-   * Implements hook_entity_update().
-   */
-  #[Hook('entity_update')]
-  public function entityUpdate(EntityInterface $entity): void {
-    if ($entity instanceof ConfigEntityInterface) {
-      // Scope this to config entities only - to avoid potential data-loss for
-      // content entities where a user could update the entity via a regular edit
-      // form whilst a second user is editing the layout/model via XB.
-      // @todo Mitigate this in https://drupal.org/i/3492059
-      $this->autoSaveManager->delete($entity);
-    }
   }
 
   /**

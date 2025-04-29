@@ -10,6 +10,7 @@ use Drupal\experience_builder\Entity\AssetLibrary;
 use Drupal\experience_builder\Entity\JavaScriptComponent;
 use Drupal\experience_builder\Entity\Page;
 use Drupal\experience_builder\Entity\PageRegion;
+use Drupal\experience_builder\Entity\XbHttpApiEligibleConfigEntityInterface;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\node\Entity\Node;
@@ -81,6 +82,26 @@ class AutoSaveManagerTest extends KernelTestBase {
     $hashReversedData = $autoSaveEntry['data_hash'];
     self::assertNotEmpty($hashReversedData);
     self::assertSame($hashInitial, $hashReversedData);
+
+    if ($entity instanceof XbHttpApiEligibleConfigEntityInterface) {
+      // Modifying the (config) entity `status` key does NOT result in the
+      // auto-save being wiped, but in it being updated.
+      $status_key = $entity->getEntityType()->getKey('status');
+      if ($status_key) {
+        self::assertTrue($autoSave->getAllAutoSaveList()[$autoSaveKey]['data'][$status_key]);
+        $entity->disable()->save();
+        self::assertFalse($autoSave->getAllAutoSaveList()[$autoSaveKey]['data'][$status_key]);
+      }
+
+      // Modifying the (config) entity `label` key does NOT result in the
+      // auto-save being wiped, but in it being updated.
+      $label_key = $entity->getEntityType()->getKey('label');
+      if ($label_key) {
+        self::assertSame($updated_client_data[$label_key], $autoSave->getAllAutoSaveList()[$autoSaveKey]['data'][$label_key]);
+        $entity->set($label_key, 'magic 🪄')->save();
+        self::assertSame('magic 🪄', $autoSave->getAllAutoSaveList()[$autoSaveKey]['data'][$label_key]);
+      }
+    }
 
     // Resaving the initial state should delete the auto-save entry.
     $autoSave->save($entity, $matching_client_data);

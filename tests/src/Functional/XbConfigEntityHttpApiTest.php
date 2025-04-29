@@ -881,8 +881,9 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
     $this->assertTrue(Component::load('js.test')->status());
     $this->assertExposedCodeComponents(['js.test'], 'MISS', $request_options);
     $this->assertExposedCodeComponents(['js.test'], 'HIT', $request_options);
-    // Confirm that there is no auto-save anymore.
-    $this->assertCurrentAutoSave(204, NULL, 'js_component', 'test');
+    // Confirm that there STILL is an auto-save, and its `status` was updated!
+    $auto_save_data['status'] = TRUE;
+    $this->assertCurrentAutoSave(200, $auto_save_data, 'js_component', 'test');
 
     // Modify a Code Component correctly, to test the highly experimental block
     // override functionality: 200.
