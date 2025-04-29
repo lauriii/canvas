@@ -328,6 +328,36 @@ function xb_test_article_fields_install(): void {
         ],
       ],
     ],
+    'field_xbt_boolean_checkbox' => [
+      'type' => 'boolean',
+      'label' => 'XB Boolean Checkbox (default true)',
+      'settings' => [
+        'on_label' => 'Yes',
+        'off_label' => 'No',
+      ],
+      'widget' => [
+        'type' => 'boolean_checkbox',
+        'settings' => [],
+      ],
+      'default_value' => [
+        ['value' => TRUE],
+      ],
+    ],
+    'field_xbt_boolean_checkbox2' => [
+      'type' => 'boolean',
+      'label' => 'XB Boolean Checkbox (default false)',
+      'settings' => [
+        'on_label' => 'Yes',
+        'off_label' => 'No',
+      ],
+      'widget' => [
+        'type' => 'boolean_checkbox',
+        'settings' => [],
+      ],
+      'default_value' => [
+        ['value' => FALSE],
+      ],
+    ],
   ];
 
   // Setup content moderation for article node type.

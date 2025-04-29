@@ -170,7 +170,14 @@ class ClientDataToEntityConverter {
       }
     }
 
-    $entity_form_fields = \array_filter($entity_form_fields, static fn (array|string $value, string|int $key): bool => !\in_array($key, $boolean_fields, TRUE) || $value !== ['value' => '0'], ARRAY_FILTER_USE_BOTH);
+    $entity_form_fields = \array_combine(\array_keys($entity_form_fields), \array_map(static fn (string|int $key): array|string =>
+      // Unchecked boolean checkboxes are expected to be set with value NULL. For a normal
+      // form submission, this is done for us by the Form Builder. But for a
+      // programmatic form submission, this needs to be done manually.
+      // @see \Drupal\Core\Form\FormBuilder::handleInputElement
+      (!\in_array($key, $boolean_fields, TRUE) || $entity_form_fields[$key] !== ['value' => '0']) ? $entity_form_fields[$key] : ['value' => NULL],
+      \array_keys($entity_form_fields),
+    ));
     $form_object = $this->entityTypeManager->getFormObject($entity->getEntityTypeId(), 'default');
     $form_object->setEntity($entity);
     // Flag this as a programmatic build of the entity form - but do not flag
