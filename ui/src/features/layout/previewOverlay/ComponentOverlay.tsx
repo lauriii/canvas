@@ -27,7 +27,7 @@ import { useNavigationUtils } from '@/hooks/useNavigationUtils';
 import useXbParams from '@/hooks/useXbParams';
 import ComponentDropZone from '@/features/layout/previewOverlay/ComponentDropZone';
 import { useDraggable } from '@dnd-kit/core';
-import type { StackDirection } from '@/types/AnnotationMaps';
+import type { StackDirection } from '@/types/Annotations';
 
 export interface ComponentOverlayProps {
   component: ComponentNode;
@@ -110,8 +110,7 @@ const ComponentOverlay: React.FC<ComponentOverlayProps> = (props) => {
         const newOffsets = {
           ...getDistanceBetweenElements(
             parentElementInsideIframe,
-            // @todo Potential bug: an element amongst the elementsInsideIframe array other than the first could be further to the top/left than the first element.
-            elementsInsideIframe.current[0],
+            elementsInsideIframe.current,
           ),
         };
 

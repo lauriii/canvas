@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
+import { calculateBoundingRect, elemIsVisible } from '@/utils/function-utils';
 
 /**
  * This hook takes an HTML element or array of HTML elements and returns a state containing the elements' dimensions and position.
@@ -11,14 +12,6 @@ interface Rect {
   left: number;
   width: number;
   height: number;
-}
-
-function elemIsVisible(elem: HTMLElement) {
-  return !!(
-    elem.offsetWidth ||
-    elem.offsetHeight ||
-    elem.getClientRects().length
-  );
 }
 
 function findParentBody(element: HTMLElement) {
@@ -39,26 +32,12 @@ function findParentBody(element: HTMLElement) {
 function isElementObservable(element: HTMLElement) {
   const style = window.getComputedStyle(element);
 
-  // Check if the element is inline - inline elements to not fire resize events.
-  if (style.display === 'inline') {
+  // display: contents; elements (e.g. <astro-* />) do not fire resize events.
+  if (style.display === 'contents') {
     return false;
   }
 
   return elemIsVisible(element);
-}
-
-function getMaxOfArray(numArray: number[]) {
-  if (numArray.length === 0) {
-    return 0;
-  }
-  return Math.max.apply(null, numArray);
-}
-
-function getMinOfArray(numArray: number[]) {
-  if (numArray.length === 0) {
-    return 0;
-  }
-  return Math.min.apply(null, numArray);
 }
 
 function useSyncPreviewElementSize(input: HTMLElement[] | HTMLElement | null) {
@@ -82,40 +61,12 @@ function useSyncPreviewElementSize(input: HTMLElement[] | HTMLElement | null) {
   const elementsRef = useRef<HTMLElement[] | null>(null);
 
   const recalculateBorder = useCallback(() => {
-    const tops: number[] = [];
-    const lefts: number[] = [];
-    const rights: number[] = [];
-    const bottoms: number[] = [];
+    const elements = elementsRef.current;
+    const newRect = calculateBoundingRect(elements);
 
-    elementsRef.current?.forEach((el) => {
-      if (!el) {
-        return;
-      }
-      const rect = el.getBoundingClientRect();
-
-      // check the element is actually visible on the page - otherwise we end up incorrectly setting the minTop & minLeft to be 0 for hidden elements.
-      if (elemIsVisible(el)) {
-        tops.push(rect.top);
-        lefts.push(rect.left);
-        rights.push(rect.left + rect.width);
-        bottoms.push(rect.top + rect.height);
-      }
-    });
-
-    const minTop = getMinOfArray(tops);
-    const minLeft = getMinOfArray(lefts);
-    const newRect = {
-      top: minTop,
-      left: minLeft,
-      width: getMaxOfArray(rights) - minLeft,
-      height: getMaxOfArray(bottoms) - minTop,
-    };
-
-    if (elementsRef.current) {
+    if (newRect && elements) {
       requestAnimationFrame(() => {
         setElementRect((prevRect) => {
-          // Only update if the values have changed so the hook returns the same object preventing components that use
-          // it from re-rendering
           if (
             prevRect.top !== newRect.top ||
             prevRect.left !== newRect.left ||
@@ -165,7 +116,7 @@ function useSyncPreviewElementSize(input: HTMLElement[] | HTMLElement | null) {
 
     elementsRef.current?.forEach((element) => {
       /**
-       * <astro-island> elements (XB Code Components) are display: inline; and that means you can't observe them with
+       * <astro-island> elements (XB Code Components) are display: contents; and that means you can't observe them with
        * resizeObserver. Here, if the element we're syncing with can't be observed we traverse up the DOM to find the
        * first parent that can be and watch that instead
        */

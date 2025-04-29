@@ -1,11 +1,7 @@
 import type { ReactNode } from 'react';
 import { createContext, useContext, useState, useCallback } from 'react';
 
-import type {
-  ComponentsMap,
-  RegionsMap,
-  SlotsMap,
-} from '@/types/AnnotationMaps';
+import type { ComponentsMap, RegionsMap, SlotsMap } from '@/types/Annotations';
 
 interface ComponentHtmlMapProviderProps {
   children: ReactNode;

@@ -11,7 +11,9 @@ This directory is an Astro project and is defined as an [npm workspace](https://
 
 The build step `astro build` generates bundles for Preact (preact.module.js), hooks (hooks.module.js), etc. that the in-browser-editable components depend on.
 
-`client.js` and `hydration.js` are defined as libraries in `experience_builder.libraries.yml` to make them accessible to the JS component source plugin.
+`client.js`, `client.css`, and `hydration.js` are defined as libraries in `experience_builder.libraries.yml` to make them accessible to the JS component source plugin.
+
+The `client.css` file contains basic styling for Astro elements to ensure proper display using `display: contents`.
 
 ***The rest of the built files do not need to be defined as Drupal libraries because they are imported by `client.js`.**
 

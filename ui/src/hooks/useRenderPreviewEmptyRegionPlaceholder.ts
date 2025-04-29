@@ -1,7 +1,7 @@
 import { useEffect, useCallback } from 'react';
 import { useAppSelector } from '@/app/hooks';
 import { selectLayout } from '@/features/layout/layoutModelSlice';
-import type { RegionsMap } from '@/types/AnnotationMaps';
+import type { RegionsMap } from '@/types/Annotations';
 import { DEFAULT_REGION } from '@/features/ui/uiSlice';
 
 /**

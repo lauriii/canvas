@@ -4,7 +4,8 @@ import type {
   ComponentsMap,
   RegionsMap,
   StackDirection,
-} from '@/types/AnnotationMaps';
+  BoundingRect,
+} from '@/types/Annotations';
 import type { PendingChanges } from '@/services/pendingChangesApi';
 
 export function handleNonWorkingBtn(): void {
@@ -46,18 +47,25 @@ export function parseValue(
 }
 
 /**
- * Calculates the horizontal and vertical distance between two DOM elements.
+ * Calculates the horizontal and vertical distance between the first and second passed element||group of elements.
  *
- * @param el1 - The first DOM element.
- * @param el2 - The second DOM element.
+ * @param el1 - The first element or array of elements.
+ * @param el2 - The second element or array of elements.
  * @returns An object containing the horizontal and vertical distances between the elements.
  */
 export function getDistanceBetweenElements(
-  el1: Element,
-  el2: Element,
+  el1: HTMLElement | HTMLElement[],
+  el2: HTMLElement | HTMLElement[],
 ): { horizontalDistance: number; verticalDistance: number } {
-  const rect1 = el1.getBoundingClientRect();
-  const rect2 = el2.getBoundingClientRect();
+  const rect1 = calculateBoundingRect(el1);
+  const rect2 = calculateBoundingRect(el2);
+
+  if (rect1 === null || rect2 === null) {
+    return {
+      horizontalDistance: 0,
+      verticalDistance: 0,
+    };
+  }
 
   // Calculate the horizontal and vertical distances
   const dx = rect2.left - rect1.left;
@@ -67,6 +75,89 @@ export function getDistanceBetweenElements(
     horizontalDistance: dx,
     verticalDistance: dy,
   };
+}
+
+/**
+ * Calculates the bounding rectangle that encompasses all the provided elements.
+ *
+ * @param elements - A single DOM element or an array of DOM elements.
+ * @returns The bounding rectangle with properties: top, left, width, and height.
+ *          Returns null if elements are not provided or invalid.
+ */
+export function calculateBoundingRect(
+  elements: HTMLElement | HTMLElement[] | null,
+): BoundingRect | null {
+  if (!elements) {
+    return null;
+  }
+
+  const elementsArray = Array.isArray(elements) ? elements : [elements];
+  const expandedElements: HTMLElement[] = [];
+
+  elementsArray.forEach((el) => {
+    if (!el) {
+      return;
+    }
+
+    // elements that are display: contents; (e.g <astro-*> elements) take on the size of their children so in that case,
+    // we add the direct children to the array instead.
+    const style = window.getComputedStyle(el);
+    if (style.display === 'contents') {
+      expandedElements.push(
+        ...Array.from(el.children).filter(
+          (child): child is HTMLElement => child.nodeType === Node.ELEMENT_NODE,
+        ),
+      );
+    } else {
+      expandedElements.push(el);
+    }
+  });
+
+  const tops: number[] = [];
+  const lefts: number[] = [];
+  const rights: number[] = [];
+  const bottoms: number[] = [];
+
+  expandedElements.forEach((el) => {
+    const rect = el.getBoundingClientRect();
+    if (elemIsVisible(el)) {
+      tops.push(rect.top);
+      lefts.push(rect.left);
+      rights.push(rect.left + rect.width);
+      bottoms.push(rect.top + rect.height);
+    }
+  });
+
+  const minTop = getMinOfArray(tops);
+  const minLeft = getMinOfArray(lefts);
+  return {
+    top: minTop,
+    left: minLeft,
+    width: getMaxOfArray(rights) - minLeft,
+    height: getMaxOfArray(bottoms) - minTop,
+  };
+}
+
+export function elemIsVisible(elem: HTMLElement) {
+  return !!(
+    elem.offsetWidth ||
+    elem.offsetHeight ||
+    elem.getClientRects().length
+  );
+}
+
+export function getMaxOfArray(numArray: number[]) {
+  if (numArray.length === 0) {
+    return 0;
+  }
+  return Math.max.apply(null, numArray);
+}
+
+export function getMinOfArray(numArray: number[]) {
+  if (numArray.length === 0) {
+    return 0;
+  }
+  return Math.min.apply(null, numArray);
 }
 
 /**
@@ -397,7 +488,10 @@ export function findInChanges(
 }
 
 function getStackingDirection(container: HTMLElement): StackDirection {
-  const style = getComputedStyle(container);
+  let style = getComputedStyle(container);
+  if (style.display === 'contents' && container.parentElement) {
+    style = getComputedStyle(container.parentElement);
+  }
   const display = style.display;
 
   if (display.includes('flex')) {

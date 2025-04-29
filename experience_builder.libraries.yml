@@ -97,8 +97,12 @@ astro.client:
     gpl-compatible: true
 
 astro.hydration:
+  header: true
   js:
     ui/lib/astro-hydration/dist/hydration.js: {}
+  css:
+    theme:
+      ui/lib/astro-hydration/dist/styles/hydration.css: {}
   license:
     name: MIT
     url: https://raw.githubusercontent.com/withastro/astro/refs/heads/main/LICENSE

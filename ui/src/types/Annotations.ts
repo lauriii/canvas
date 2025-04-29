@@ -2,9 +2,17 @@ export interface RegionInfo {
   elements: HTMLElement[];
   regionId: string;
 }
+
 export interface ComponentInfo {
   elements: HTMLElement[];
   componentUuid: string;
+}
+
+export interface SlotInfo {
+  element: HTMLElement;
+  componentUuid: string;
+  slotName: string;
+  stackDirection: StackDirection;
 }
 
 export type StackDirection =
@@ -14,12 +22,12 @@ export type StackDirection =
   | 'horizontal-flex'
   | 'horizontal-grid';
 
-export interface SlotInfo {
-  element: HTMLElement;
-  componentUuid: string;
-  slotName: string;
-  stackDirection: StackDirection;
-}
+export type BoundingRect = {
+  top: number;
+  left: number;
+  width: number;
+  height: number;
+};
 
 export type RegionsMap = Record<string, RegionInfo>;
 export type ComponentsMap = Record<string, ComponentInfo>;

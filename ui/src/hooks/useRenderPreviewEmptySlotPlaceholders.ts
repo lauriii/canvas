@@ -2,7 +2,7 @@ import { useEffect, useCallback } from 'react';
 import { useAppSelector } from '@/app/hooks';
 import { selectLayout } from '@/features/layout/layoutModelSlice';
 import { findSlotById } from '@/features/layout/layoutUtils';
-import type { SlotsMap, SlotInfo } from '@/types/AnnotationMaps';
+import type { SlotsMap, SlotInfo } from '@/types/Annotations';
 
 /**
  * This hook renders a placeholder div in each empty component slot on the page in the preview iFrame.
