@@ -9,7 +9,7 @@ export const edit = (cy) => {
 
   // Trigger a new intercept for the main test to wait for.
   cy.intercept({
-    url: '**/xb/api/layout/node/2',
+    url: '**/xb/api/v0/layout/node/2',
     times: 1,
     method: 'POST',
   }).as('updatePreview');
