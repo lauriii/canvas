@@ -62,10 +62,7 @@ function useSyncIframeHeightToContent(
           const elements: NodeListOf<HTMLElement> =
             iframeHTML.querySelectorAll('*');
           elements.forEach((element) => {
-            if (
-              element instanceof HTMLElement &&
-              element.style.height.endsWith('vh')
-            ) {
+            if (element.style.height.endsWith('vh')) {
               const vhValue = parseFloat(element.style.height);
               const newHeight = (vhValue / 100) * height;
               element.style.maxHeight = newHeight + 'px';
