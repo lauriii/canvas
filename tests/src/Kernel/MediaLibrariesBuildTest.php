@@ -12,9 +12,7 @@ use Drupal\Core\Theme\ThemeInitializationInterface;
 use Drupal\KernelTests\KernelTestBase;
 
 /**
- * Tests \experience_builder_library_info_build().
- *
- * @covers \experience_builder_library_info_build
+ * @covers \Drupal\experience_builder\Hook\LibraryHooks::libraryInfoBuild()
  * @group experience_builder
  */
 final class MediaLibrariesBuildTest extends KernelTestBase {

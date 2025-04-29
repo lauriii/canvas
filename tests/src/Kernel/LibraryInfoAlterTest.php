@@ -13,10 +13,8 @@ use Drupal\KernelTests\KernelTestBase;
 use Drupal\Tests\user\Traits\UserCreationTrait;
 
 /**
- * Tests \experience_builder_library_info_alter.
- *
+ * @covers \Drupal\experience_builder\Hook\ReduxIntegratedFieldWidgetsHooks::transformsLibraryInfoAlter()
  * @group experience_builder
- * @covers \experience_builder_library_info_alter
  */
 final class LibraryInfoAlterTest extends KernelTestBase {
 

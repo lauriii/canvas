@@ -30,20 +30,21 @@
 
 # Issues: https://www.drupal.org/project/issues/experience_builder?component=Semi-Coupled+theme+engine
 [Semi-Coupled theme engine] @bnjmnm @hooroomoo @effulgentsia
+/src/Hook/SemiCoupledThemeEngineHooks.php
+/src/Hook/SemiCoupledThemeEngineForceTwigHooks.php
 /src/Theme/XBThemeNegotiator.php
 /themes/engines/semi_coupled/
 /ui/src/components/form/*.tsx
 /ui/src/components/form/twig-to-jsx-component-map.js
-# Hook implementations for this functionality.
-/experience_builder.semi_coupled_theme_engine.inc
 
 # Issues: https://www.drupal.org/project/issues/experience_builder?component=Redux-integrated+field+widgets
 [Redux-integrated field widgets] @bnjmnm @effulgentsia @balintbrews @larowlan
+/src/Hook/ReduxIntegratedFieldWidgetHooks.php
+/src/MediaLibraryXbPropOpener.php
 /ui/src/components/form/inputBehaviors.tsx
 /tests/src/Cypress/cypress/e2e/media-library.cy.js
 /tests/src/Cypress/cypress/e2e/prop-types.cy.js
-# Hook implementations for this functionality.
-/experience_builder.redux_integrated_field_widgets.inc
+/tests/src/Kernel/LibraryInfoAlterTest.php
 /templates/form/
 /ui/src/components/form/inputBehaviors.tsx
 
@@ -55,6 +56,12 @@
 [Page Builder back-end] @wimleers @f.mazeikis @tedbow @effulgentsia @larowlan
 /src/
 
+# Issues: https://www.drupal.org/project/issues/experience_builder?component=Component+sources
+[Component sources] @f.mazeikis @longwave @larowlan @wimleers
+/src/ComponentSource/
+/src/Hook/ComponentSourceHooks.php
+/tests/src/Kernel/Plugin/ExperienceBuilder/ComponentSource/
+
 # Issues: https://www.drupal.org/project/issues/experience_builder?component=Config+management
 [Config management] @f.mazeikis @wimleers @larowlan
 /docs/config-management.md
@@ -62,6 +69,8 @@
 /config/schema/
 # TRICKY: files for content entities should be explicitly listed in their own sections, see `[Page]` for an example.
 /src/Entity/
+/src/Hook/ContentTemplateHooks.php
+/src/Hook/PageRegionHooks.php
 /tests/src/Kernel/Config/
 
 # Issues: https://www.drupal.org/project/issues/experience_builder?component=Data+model
@@ -81,6 +90,7 @@
 /src/Entity/Page.php
 /src/Entity/PageAccessControlHandler.php
 /src/Entity/PageViewBuilder.php
+/src/Hook/PageHooks.php
 /tests/modules/xb_test_page/
 /tests/src/Kernel/Entity/
 /tests/src/Kernel/Traits/Page*
@@ -89,9 +99,8 @@
 [Auto-save] @tedbow @larowlan
 /src/AutoSaveData.php
 /src/AutoSave/
+/src/Hook/AutoSaveHooks.php
 /tests/**/*AutoSave*
-# Hook implementations for this functionality.
-/experience_builder.auto_save.inc
 
 # ⚠️
 # ⚠️ Highly experimental new concepts ⚠️
@@ -107,14 +116,13 @@
 # Issues: https://www.drupal.org/project/issues/experience_builder?component=Shape+matching
 # @see https://en.wikipedia.org/wiki/Schema_matching
 [Shape matching] @wimleers @tedbow
+/src/Hook/ShapeMatchingHooks.php
 /src/JsonSchemaInterpreter/
 /src/PropShape/
 /src/ShapeMatcher/
 /src/Plugin/DataTypeOverride/
 /src/Plugin/Field/FieldTypeOverride/
 /src/Plugin/Validation/Constraint/StringSemanticsConstraint.php
-# Hook implementations for this functionality.
-/experience_builder.shape_matching.inc
 
 
 #

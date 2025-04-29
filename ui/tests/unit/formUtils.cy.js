@@ -152,8 +152,8 @@ let inputAndUiData = {
 };
 // This metadata is defined in PHP and is duplicated here to improve testability.
 // ⚠️ This should be kept in sync! ⚠️
-// @see experience_builder_field_widget_info_alter()
-// @see media_library_field_widget_info_alter()
+// @see \Drupal\experience_builder\Hook\ReduxIntegratedFieldWidgetsHooks::fieldWidgetInfoAlter()
+// @see \Drupal\experience_builder\Hook\ReduxIntegratedFieldWidgetsHooks::mediaLibraryFieldWidgetInfoAlter()
 const transformConfig = {
   heading: { mainProperty: {} },
   subheading: { mainProperty: {} },

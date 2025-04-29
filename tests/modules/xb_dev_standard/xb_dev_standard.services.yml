@@ -1,0 +1,4 @@
+services:
+  Drupal\xb_dev_standard\Hook\XbDevStandardHooks:
+    class: Drupal\xb_dev_standard\Hook\XbDevStandardHooks
+    autowire: true

@@ -15,7 +15,7 @@ import {
 import { DrupalRadioGroup } from '@/components/form/components/drupal/DrupalRadio';
 
 // This is where we map the Drupal Twig templates to the corresponding JSX component.
-// @see experience_builder_theme_suggestions_alter()
+// @see \Drupal\experience_builder\Hook\SemiCoupledThemeEngineHooks::themeSuggestionsAlter()
 // @see docs/semi-coupled-theme-engine.md
 // @see themes/engines/semi_coupled/README.md
 // @see themes/xb_stark/templates/process_as_jsx/

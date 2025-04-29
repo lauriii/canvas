@@ -113,7 +113,7 @@ class AutoSaveManager {
   }
 
   /**
-   * @see \experience_builder_entity_update()
+   * @see \Drupal\experience_builder\Hook\AutoSaveHooks::entityUpdate()
    */
   public function delete(EntityInterface $entity, bool $resetHash = TRUE): void {
     $this->cacheTagsInvalidator->invalidateTags([self::CACHE_TAG]);

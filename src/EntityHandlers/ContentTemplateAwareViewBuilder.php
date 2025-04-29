@@ -17,6 +17,8 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * Decorates a view builder so it can take advantage of content templates.
+ *
+ * @see \Drupal\experience_builder\Hook\ContentTemplateHooks::entityTypeAlter()
  */
 final class ContentTemplateAwareViewBuilder extends EntityViewBuilder {
 

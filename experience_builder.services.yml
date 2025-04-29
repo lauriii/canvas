@@ -127,3 +127,16 @@ services:
     # processors
     decoration_priority: -100
     arguments: ['@.inner']
+
+  # Hooks
+  Drupal\experience_builder\Hook\AutoSaveHooks: {}
+  Drupal\experience_builder\Hook\ComponentSourceHooks: {}
+  Drupal\experience_builder\Hook\ContentTemplateHooks: {}
+  Drupal\experience_builder\Hook\ModuleHooks: {}
+  Drupal\experience_builder\Hook\LibraryHooks: {}
+  Drupal\experience_builder\Hook\PageHooks: {}
+  Drupal\experience_builder\Hook\PageRegionHooks: {}
+  Drupal\experience_builder\Hook\ReduxIntegratedFieldWidgetsHooks: {}
+  Drupal\experience_builder\Hook\SemiCoupledThemeEngineForceTwigHooks: {}
+  Drupal\experience_builder\Hook\SemiCoupledThemeEngineHooks: {}
+  Drupal\experience_builder\Hook\ShapeMatchingHooks: {}

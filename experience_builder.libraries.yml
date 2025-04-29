@@ -13,7 +13,7 @@ xb-ui:
     # The next three libraries are largely the same as the core libraries they
     # would be without the 'xb.' in their name, but they take into account theme
     # overrides.
-    # @see experience_builder_dialog_library_customize()
+    # @see \Drupal\experience_builder\Hook\LibraryHooks::customizeDialogLibrary()
     - experience_builder/xb.drupal.ajax
     - experience_builder/xb.drupal.dialog.ajax
     - core/drupal.states

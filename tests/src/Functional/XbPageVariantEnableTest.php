@@ -13,8 +13,8 @@ use Drupal\Tests\experience_builder\Traits\GenerateComponentConfigTrait;
 
 /**
  * @group experience_builder
- * @covers \experience_builder_form_system_theme_settings_alter()
- * @covers \experience_builder_form_system_theme_settings_submit()
+ * @covers \Drupal\experience_builder\Hook\PageRegionHooks::formSystemThemeSettingsAlter()
+ * @covers \Drupal\experience_builder\Hook\PageRegionHooks::formSystemThemeSettingsSubmit()
  * @covers \Drupal\experience_builder\Controller\XbBlockListController
  * @covers \Drupal\experience_builder\Entity\PageRegion::createFromBlockLayout()
  */

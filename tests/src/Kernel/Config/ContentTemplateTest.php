@@ -63,7 +63,7 @@ final class ContentTemplateTest extends KernelTestBase {
   }
 
   /**
-   * @covers \experience_builder_entity_type_alter
+   * @covers \Drupal\experience_builder\Hook\ContentTemplateHooks::entityTypeAlter()
    */
   public function testOnlyContentEntitiesCanUseTemplates(): void {
     $manager = \Drupal::entityTypeManager();

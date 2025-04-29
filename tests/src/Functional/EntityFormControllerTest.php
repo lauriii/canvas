@@ -31,7 +31,7 @@ class EntityFormControllerTest extends FunctionalTestBase {
 
   /**
    * @covers ::form
-   * @covers \experience_builder_entity_form_display_alter()
+   * @covers \Drupal\experience_builder\Hook\ContentTemplateHooks::entityFormDisplayAlter()
    */
   public function testForm(): void {
     $assert = $this->assertSession();

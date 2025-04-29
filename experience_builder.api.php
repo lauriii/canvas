@@ -146,7 +146,7 @@ function hook_storage_prop_shape_alter(CandidateStorablePropShape $storable_prop
  * - link
  *
  * @see docs/redux-integrated-field-widgets.md
- * @see experience_builder_field_widget_info_alter()
+ * @see \Drupal\experience_builder\Hook\ReduxIntegratedFieldWidgetsHooks::fieldWidgetInfoAlter()
  */
 function mymodule_field_widget_info_alter(array &$info): void {
   $info['options_buttons']['xb'] = [

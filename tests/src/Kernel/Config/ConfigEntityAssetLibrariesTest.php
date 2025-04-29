@@ -13,7 +13,7 @@ use Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\JsCompone
 use Drupal\KernelTests\KernelTestBase;
 
 /**
- * @covers \experience_builder_library_info_build()
+ * @covers \Drupal\experience_builder\Hook\LibraryHooks::libraryInfoBuild()
  * @group experience_builder
  */
 final class ConfigEntityAssetLibrariesTest extends KernelTestBase {

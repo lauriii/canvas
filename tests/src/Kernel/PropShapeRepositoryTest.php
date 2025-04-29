@@ -579,7 +579,7 @@ class PropShapeRepositoryTest extends KernelTestBase {
    * @depends testStorablePropShapes
    * @param \Drupal\experience_builder\PropShape\StorablePropShape[] $storable_prop_shapes
    *
-   * @covers \experience_builder_field_widget_info_alter
+   * @covers \Drupal\experience_builder\Hook\ReduxIntegratedFieldWidgetsHooks::fieldWidgetInfoAlter()
    */
   public function testAllWidgetsForPropShapesHaveTransforms(array $storable_prop_shapes): void {
     self::assertNotEmpty($storable_prop_shapes);

@@ -1,0 +1,4 @@
+services:
+  Drupal\xb_test_storage_prop_shape_alter\Hook\XbTestStoragePropShapeAlterHooks:
+    class: Drupal\xb_test_storage_prop_shape_alter\Hook\XbTestStoragePropShapeAlterHooks
+    autowire: true

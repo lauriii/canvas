@@ -10,7 +10,7 @@ use Drupal\experience_builder\Plugin\Validation\Constraint\StringSemanticsConstr
 
 /**
  * @todo Fix upstream.
- * @see experience_builder_entity_base_field_info_alter()
+ * @see \Drupal\experience_builder\Hook\ShapeMatchingHooks::entityBaseFieldInfoAlter()
  */
 class StringItemOverride extends StringItem {
 

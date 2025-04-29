@@ -399,7 +399,7 @@ final class JavaScriptComponent extends ConfigEntityBase implements XbAssetInter
   }
 
   public function getCssLibrary(AutoSaveData $autoSave, bool $isPreview): ?string {
-    // @see experience_builder_library_info_build()
+    // @see \Drupal\experience_builder\Hook\LibraryHooks::libraryInfoBuild()
     $css_library = 'experience_builder/astro_island.' . $this->id();
     $has_css = $this->hasCss();
     if (self::shouldLoadAssetFromAutoSave($autoSave, $isPreview)) {

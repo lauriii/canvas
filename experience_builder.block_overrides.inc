@@ -4,48 +4,15 @@
  * @file
  * Hook implementations that make "code component"-powered Block overrides work.
  *
+ * ⚠️ This is highly experimental and *will* be refactored.
+ *
+ * @todo Remove/refactor in https://www.drupal.org/project/experience_builder/issues/3519737
  * @see https://www.drupal.org/project/experience_builder/issues/3505993
  * @see docs/components.md, section 3.3.3
  */
 
-use Drupal\Core\Theme\ThemeCommonElements;
 use Drupal\Core\Url;
 use Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\JsComponent;
-
-/**
- * Implements hook_theme().
- */
-function experience_builder_theme(): array {
-  $common_elements = ThemeCommonElements::commonElements();
-  return [
-    'block__system_menu_block__as_js_component' => [
-      'base hook' => 'block',
-      'template' => 'just-children',
-    ],
-    'menu__as_js_component' => [
-      'base hook' => 'menu',
-      'template' => 'just-children',
-      'variables' => $common_elements['menu']['variables'] + [
-        'rendering_context' => NULL,
-      ],
-    ],
-    'block__system_branding_block__as_js_component' => [
-      'base hook' => 'block',
-      'template' => 'just-children',
-    ],
-    'block__system_breadcrumb_block__as_js_component' => [
-      'base hook' => 'block',
-      'template' => 'just-children',
-    ],
-    'breadcrumb__as_js_component' => [
-      'base hook' => 'breadcrumb',
-      'template' => 'just-children',
-      'variables' => $common_elements['breadcrumb']['variables'] + [
-        'rendering_context' => NULL,
-      ],
-    ],
-  ];
-}
 
 /**
  * Implements hook_preprocess_HOOK().

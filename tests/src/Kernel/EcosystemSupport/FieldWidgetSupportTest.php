@@ -7,7 +7,7 @@ namespace Drupal\Tests\experience_builder\Kernel\EcosystemSupport;
 /**
  * Checks that all core field widgets have XB client-side transforms metadata.
  *
- * @covers \experience_builder_field_widget_info_alter()
+ * @covers \Drupal\experience_builder\Hook\ReduxIntegratedFieldWidgetsHooks::fieldWidgetInfoAlter()
  * @see docs/redux-integrated-field-widgets.md#3.4
  * @group experience_builder
  */

@@ -1,9 +1,11 @@
 <?php
 
+use Drupal\Core\Cache\Cache;
+
 /**
  * Implements hook_install().
  */
 function xb_vite_install() {
   // xb_vite_library_info_alter() has no effect without this 🤷‍️.
-  \Drupal\Core\Cache\Cache::invalidateTags(['library_info']);
+  Cache::invalidateTags(['library_info']);
 }

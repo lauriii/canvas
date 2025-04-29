@@ -23,7 +23,7 @@ trait GenerateComponentConfigTrait {
     $componentPluginManager->clearCachedDefinitions();
 
     // 2. Simulate experience_builder_modules_installed() getting invoked.
-    // @see experience_builder_modules_installed()
+    // @see \Drupal\experience_builder\Hook\ComponentSourceHooks::modulesInstalled()
     $componentPluginManager->getDefinitions();
 
     // Repeat, but for block-based components.

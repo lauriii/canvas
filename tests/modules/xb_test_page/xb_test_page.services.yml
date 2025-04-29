@@ -1,0 +1,4 @@
+services:
+  Drupal\xb_test_page\Hook\XbTestPageHooks:
+    class: Drupal\xb_test_page\Hook\XbTestPageHooks
+    autowire: true

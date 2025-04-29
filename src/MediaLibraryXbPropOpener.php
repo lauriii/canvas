@@ -13,7 +13,7 @@ use Drupal\media_library\MediaLibraryState;
  * The media library opener for XB props.
  *
  * @see \Drupal\experience_builder\Form\ComponentInputsForm
- * @see experience_builder_field_widget_single_element_media_library_widget_form_alter()
+ * @see \Drupal\experience_builder\Hook\ReduxIntegratedFieldWidgetsHooks::fieldWidgetSingleElementMediaLibraryWidgetFormAlter()
  *
  * @internal
  *   This is an internal part of Media Library's Experience Builder integration.
@@ -37,7 +37,7 @@ final class MediaLibraryXbPropOpener extends MediaLibraryFieldWidgetOpener {
     // triggered this, plus MediaLibraryState::fromRequest() already validated
     // the hash.
     // @see \Drupal\media_library\MediaLibraryState::fromRequest()
-    // @see experience_builder_field_widget_single_element_media_library_widget_form_alter()
+    // @see \Drupal\experience_builder\Hook\ReduxIntegratedFieldWidgetsHooks::fieldWidgetSingleElementMediaLibraryWidgetFormAlter()
     assert($state->isValidHash($state->getHash()));
     // Still, in case this URL is shared, still require that the current session
     // is for a user that has sufficient permissions to use XB.

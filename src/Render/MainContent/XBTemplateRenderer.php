@@ -118,7 +118,7 @@ final class XBTemplateRenderer implements MainContentRendererInterface {
     // - the library is requested by `xb_stark` but should be rendered by the
     //   current admin theme, so we account for the admin theme's library extend
     //   and overrides.
-    // @see experience_builder_dialog_library_customize()
+    // @see \Drupal\experience_builder\Hook\LibraryHooks::customizeDialogLibrary()
     // This is performed here instead of library_info_alter() as this
     // information is cached per-theme and this distinction needs to be made
     // only in XB contexts.
