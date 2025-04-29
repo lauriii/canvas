@@ -12,7 +12,11 @@ const DrupalVerticalTabs = ({
 }) => {
   return (
     <AccordionRoot
-      attributes={a2p(attributes, { 'data-vertical-tabs-panes': true })}
+      attributes={a2p(
+        attributes,
+        {},
+        { skipAttributes: ['data-vertical-tabs-panes'] },
+      )}
     >
       {renderChildren}
     </AccordionRoot>

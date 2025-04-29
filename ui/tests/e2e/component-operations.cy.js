@@ -374,6 +374,10 @@ describe('Perform CRUD operations on components', () => {
 
   it('Can add a component with empty slots', () => {
     cy.loadURLandWaitForXBLoaded();
+
+    // The component begins with two content drop zones.
+    cy.findAllByTestId('xb-empty-slot-drop-zone').should('have.length', 2);
+
     // Assert there is an existing two column SDC on the page already.
     cy.findByTestId('xb-primary-panel').within(() => {
       cy.findAllByText('Two Column').should('have.length', 1);
@@ -383,9 +387,9 @@ describe('Perform CRUD operations on components', () => {
     // Click on Two Column inside menu.
     cy.get('.primaryPanelContent').findByText('Two Column').click();
     cy.log(
-      'There should be 4 drop zones - 2 columns in each preview overlay (desktop, mobile)',
+      'There should be 4 new drop zones - 2 added columns in each preview overlay (desktop, mobile)',
     );
-    cy.findAllByTestId('xb-empty-slot-drop-zone').should('have.length', 4);
+    cy.findAllByTestId('xb-empty-slot-drop-zone').should('have.length', 6);
 
     cy.openLayersPanel();
     // Assert that a second two column SDC has been added.
