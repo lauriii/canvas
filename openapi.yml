@@ -221,15 +221,6 @@ paths:
                       source: Module component
                       category: Buttons
                       library: extension_components
-                      transforms:
-                        text:
-                          extractMainPropertyName:
-                            mainPropertyName: value
-                        href:
-                          extractMainPropertyName:
-                            mainPropertyName: value
-                        target:
-                          passThrough: {  }
                       metadata:
                         path: >-
                           core/modules/system/tests/modules/sdc_test/components/my-cta
@@ -770,6 +761,7 @@ paths:
                   - css
                   - js
                   - settings
+                  - transforms
                 properties:
                   html:
                     type: string
@@ -789,6 +781,15 @@ paths:
                     description: >-
                       Stringified settings info structured for use by `settings`
                       AJAX command
+                  transforms:
+                    type: object
+                    description: Component transforms keyed by prop name.
+                    example:
+                      text:
+                        mainPropertyName: { }
+                      href:
+                        mainPropertyName:
+                          name: uri
     post:
       description: TODO
       parameters:
@@ -1185,9 +1186,6 @@ components:
             - dynamic_components
             # SDCs from the Active Theme + JavaScript Code Components
             - primary_components
-        transforms:
-          type: object
-          description: Transform configuration
         # @see \Drupal\Core\Theme\Component\ComponentMetadata
         metadata:
           type: object

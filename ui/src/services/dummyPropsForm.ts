@@ -3,12 +3,16 @@ import { createApi } from '@reduxjs/toolkit/query/react';
 import { baseQuery } from '@/services/baseQuery';
 import processResponseAssets from '@/services/processResponseAssets';
 import addAjaxPageState from '@/services/addAjaxPageState';
+import type { TransformConfig } from '@/utils/transforms';
 
 export const dummyPropsFormApi = createApi({
   reducerPath: 'dummyPropsFormApi',
   baseQuery,
   endpoints: (builder) => ({
-    getDummyPropsForm: builder.query<string, string>({
+    getDummyPropsForm: builder.query<
+      { html: string; transforms: TransformConfig },
+      string
+    >({
       query: (queryString) => {
         // Add timestamp to prevent caching. Every request must be fresh
         // to ensure the selectors match that of the AJAX config.
@@ -27,7 +31,7 @@ export const dummyPropsFormApi = createApi({
           },
         };
       },
-      transformResponse: processResponseAssets,
+      transformResponse: processResponseAssets(['html', 'transforms']),
       keepUnusedDataFor: 0,
     }),
   }),

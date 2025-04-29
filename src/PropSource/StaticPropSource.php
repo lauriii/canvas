@@ -286,7 +286,7 @@ final class StaticPropSource extends PropSourceBase {
     return $widget;
   }
 
-  public function formTemporaryRemoveThisExclamationExclamationExclamation(?string $field_widget_plugin_id, string $sdc_prop_name, string $sdc_prop_label, bool $is_required, ?FieldableEntityInterface $host_entity, array &$form, FormStateInterface $form_state): array {
+  public function formTemporaryRemoveThisExclamationExclamationExclamation(WidgetInterface $widget, string $sdc_prop_name, bool $is_required, ?FieldableEntityInterface $host_entity, array &$form, FormStateInterface $form_state): array {
     // TRICKY: create the field item list without a parent. Otherwise, the Typed
     // Data manager tries to be clever but in doing so fails: it generates a new
     // field item object using the full property path (which then includes the
@@ -309,9 +309,8 @@ final class StaticPropSource extends PropSourceBase {
     if ($host_entity) {
       $field->setContext(NULL, EntityAdapter::createFromEntity($host_entity));
     }
-    $widget = $this->getWidget($sdc_prop_name, $sdc_prop_label, $field_widget_plugin_id);
     $widget_form = $widget->form($field, $form, $form_state);
-    if ($field_widget_plugin_id === 'datetime_default' && !$this->fieldItem->isEmpty()) {
+    if ($widget->getPluginId() === 'datetime_default' && !$this->fieldItem->isEmpty()) {
       // The datetime widget needs a DrupalDateTime object as the value.
       // @todo Figure out why this is necessary — \DateTimeWidgetBase::createDefaultValue() *is* getting called, but somehow it does not result in the default value being populated unless we do this.
       // @see \Drupal\datetime\Plugin\Field\FieldWidget\DateTimeWidgetBase::createDefaultValue()

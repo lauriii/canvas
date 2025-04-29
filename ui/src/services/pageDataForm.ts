@@ -14,7 +14,7 @@ export const pageDataFormApi = createApi({
           url: `/xb/api/form/content-entity/{entity_type}/{entity_id}/default?${addAjaxPageState('')}`,
         };
       },
-      transformResponse: processResponseAssets,
+      transformResponse: processResponseAssets(),
     }),
   }),
 });

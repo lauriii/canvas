@@ -30,6 +30,58 @@ let inputAndUiData = {
   selectedComponent: 'all-props',
   selectedComponentType: 'sdc.sdc_test_all_props.all-props',
   layout: [],
+  model: {
+    'all-props': {
+      // Minimal source representation.
+      source: {
+        a_boolean: {},
+        unchecked_boolean: {},
+        number: {},
+        float: {},
+        datetime: {
+          sourceTypeSettings: {
+            instance: {},
+            storage: {
+              datetime_type: 'datetime',
+            },
+          },
+        },
+        date: {
+          sourceTypeSettings: {
+            instance: {},
+            storage: {
+              datetime_type: 'date',
+            },
+          },
+        },
+        cta1href: {
+          sourceTypeSettings: {
+            instance: {
+              // Simulate a title.
+              title: 1,
+            },
+            storage: {},
+          },
+        },
+        linkNoTitle: {
+          sourceTypeSettings: {
+            instance: {
+              title: 0,
+            },
+            storage: {},
+          },
+        },
+        linkNoTitleEmpty: {
+          sourceTypeSettings: {
+            instance: {
+              title: 0,
+            },
+            storage: {},
+          },
+        },
+      },
+    },
+  },
   components: {
     'sdc.sdc_test_all_props.all-props': {
       propSources: {
@@ -95,44 +147,45 @@ let inputAndUiData = {
           },
         },
       },
-      // This metadata is defined in PHP and is duplicated here to improve testability.
-      // ⚠️ This should be kept in sync! ⚠️
-      // @see experience_builder_field_widget_info_alter()
-      // @see media_library_field_widget_info_alter()
-      transforms: {
-        heading: { mainProperty: {} },
-        subheading: { mainProperty: {} },
-        cta1: { mainProperty: {} },
-        cta1href: { link: {} },
-        linkNoTitle: { link: {} },
-        linkNoTitleEmpty: { link: {} },
-        cta2: { mainProperty: {} },
-        textarea: { mainProperty: {} },
-        number: { mainProperty: {} },
-        float: { mainProperty: {} },
-        email: { mainProperty: {} },
-        a_boolean: {
-          mainProperty: { list: false },
-        },
-        unchecked_boolean: {
-          mainProperty: { list: false },
-        },
-        datetime: {
-          mainProperty: {},
-          dateTime: {},
-        },
-        date: {
-          mainProperty: {},
-          dateTime: {},
-        },
-        media: {
-          mediaSelection: {},
-          mainProperty: { name: 'target_id' },
-        },
-      },
     },
   },
 };
+// This metadata is defined in PHP and is duplicated here to improve testability.
+// ⚠️ This should be kept in sync! ⚠️
+// @see experience_builder_field_widget_info_alter()
+// @see media_library_field_widget_info_alter()
+const transformConfig = {
+  heading: { mainProperty: {} },
+  subheading: { mainProperty: {} },
+  cta1: { mainProperty: {} },
+  cta1href: { link: {} },
+  linkNoTitle: { link: {} },
+  linkNoTitleEmpty: { link: {} },
+  cta2: { mainProperty: {} },
+  textarea: { mainProperty: {} },
+  number: { mainProperty: {} },
+  float: { mainProperty: {} },
+  email: { mainProperty: {} },
+  a_boolean: {
+    mainProperty: { list: false },
+  },
+  unchecked_boolean: {
+    mainProperty: { list: false },
+  },
+  datetime: {
+    mainProperty: {},
+    dateTime: {},
+  },
+  date: {
+    mainProperty: {},
+    dateTime: {},
+  },
+  media: {
+    mediaSelection: {},
+    mainProperty: { name: 'target_id' },
+  },
+};
+
 describe('Form state to object', () => {
   it('Should transform flat structure into a nested object', () => {
     const asObject = formStateToObject(formState, 'all-props');
@@ -181,7 +234,11 @@ Value`,
 
 describe('Get prop values from form state', () => {
   it('Should transform values from form state', () => {
-    const { propsValues } = getPropsValues(formState, inputAndUiData);
+    const { propsValues } = getPropsValues(
+      formState,
+      inputAndUiData,
+      transformConfig,
+    );
     expect(propsValues).to.deep.equal({
       a_boolean: true,
       unchecked_boolean: false,

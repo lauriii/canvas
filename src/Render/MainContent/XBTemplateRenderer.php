@@ -2,6 +2,7 @@
 
 namespace Drupal\experience_builder\Render\MainContent;
 
+use Drupal\Component\Utility\NestedArray;
 use Drupal\Component\Utility\UrlHelper;
 use Drupal\Core\Asset\AssetCollectionRendererInterface;
 use Drupal\Core\Asset\AssetResolverInterface;
@@ -99,6 +100,7 @@ final class XBTemplateRenderer implements MainContentRendererInterface {
    */
   public function renderResponse(array $main_content, Request $request, RouteMatchInterface $route_match): Response {
     $html = $this->renderer->renderRoot($main_content);
+    $transforms = NestedArray::getValue($main_content, ['#attached', 'xb-transforms']) ?? [];
 
     // Wrap this in `<template hyperscriptify>`, which targets it (and its
     // children - JSX or Twig) for React rendering via `hyperscriptify()`).
@@ -195,12 +197,15 @@ final class XBTemplateRenderer implements MainContentRendererInterface {
     $js_for_ajax = array_filter($js_for_ajax, fn($item) => !empty($item['src']));
     $settings = $assets->getSettings();
 
-    return new JsonResponse([
+    $data = [
       'html' => "<template data-hyperscriptify>$html</template>",
       'css' => !empty($css_for_ajax) ? $css_for_ajax : [],
       'js' => !empty($js_for_ajax) ? $js_for_ajax : (object) $js_for_ajax,
       'settings' => $settings,
-    ]);
+    ];
+    $data['transforms'] = \count($transforms) > 0 ? $transforms : new \stdClass();
+
+    return new JsonResponse($data);
   }
 
 }

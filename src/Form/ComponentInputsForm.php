@@ -13,7 +13,6 @@ use Drupal\Core\Render\ElementInfoManagerInterface;
 use Drupal\experience_builder\Entity\Component;
 use Drupal\experience_builder\Storage\ComponentTreeLoader;
 use Symfony\Component\DependencyInjection\ContainerInterface;
-use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Validator\ConstraintViolationList;
 
 /**
@@ -62,14 +61,13 @@ final class ComponentInputsForm extends FormBase {
     }
     $this->componentTreeLoader->load($entity);
 
-    $tree = $this->getRequest()->get('form_xb_tree');
+    $request = $this->getRequest();
+    $tree = $request->get('form_xb_tree');
     $component_id = json_decode($tree, TRUE)['type'];
     $component = Component::load($component_id);
     assert($component !== NULL);
-    $component_instance_uuid = $this->getRequest()->get('form_xb_selected');
+    $component_instance_uuid = $request->get('form_xb_selected');
 
-    $request = $this->requestStack->getCurrentRequest();
-    \assert($request instanceof Request);
     $props = $request->get('form_xb_props');
     $client_model = json_decode($props, TRUE);
 
@@ -111,7 +109,7 @@ final class ComponentInputsForm extends FormBase {
       $parents
     );
     $form['#pre_render'][] = [FormIdPreRender::class, 'addFormId'];
-    if ($this->getRequest()->get(AjaxResponseSubscriber::AJAX_REQUEST_PARAMETER) !== NULL) {
+    if ($request->get(AjaxResponseSubscriber::AJAX_REQUEST_PARAMETER) !== NULL) {
       // Add the data-ajax flag and manually add the form ID as pre render
       // callbacks aren't fired during AJAX rendering because the whole form is
       // not rendered, just the returned elements.

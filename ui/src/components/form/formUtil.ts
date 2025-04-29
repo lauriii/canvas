@@ -1,13 +1,16 @@
 import type { FieldDataItem } from '@/types/Component';
 import { componentHasFieldData } from '@/types/Component';
 import type { InputUIData, PropsValues } from '@/types/Form';
-import type { ComponentModel } from '@/features/layout/layoutModelSlice';
+import type {
+  ComponentModel,
+  EvaluatedComponentModel,
+} from '@/features/layout/layoutModelSlice';
 import Ajv from 'ajv';
 import type { SchemaObject, ValidateFunction } from 'ajv';
 import type * as React from 'react';
 import addFormats from 'ajv-formats';
 import type { ParsedQs } from 'qs';
-import type { Transforms } from '@/utils/transforms';
+import type { TransformConfig, Transforms } from '@/utils/transforms';
 import transforms from '@/utils/transforms';
 import qs from 'qs';
 import addDraft2019 from 'ajv-formats-draft2019';
@@ -303,10 +306,12 @@ export const formStateToObject = (
  *     selected component.
  *   - selectedComponent {string}: the id of the selected component within the model.
  *   - model {ComponentModels|undefined}: the model of the selected component.
+ * @param {TransformConfig} transformConfig - Transforms to use
  */
 export function getPropsValues(
   formState: PropsValues,
   inputAndUiData: InputUIData,
+  transformConfig: TransformConfig = {},
 ) {
   const { selectedComponent, model, components, selectedComponentType } =
     inputAndUiData;
@@ -314,9 +319,6 @@ export function getPropsValues(
     ? { ...model[selectedComponent] }
     : ({} as ComponentModel);
   const component = components?.[selectedComponentType];
-  const transformConfig = componentHasFieldData(component)
-    ? component.transforms
-    : {};
   const fieldData = componentHasFieldData(component)
     ? component.propSources
     : {};
@@ -355,7 +357,7 @@ export function getPropsValues(
           return transformsList[transformer as keyof Transforms](
             transformed,
             config as any,
-            fieldData[key] as any,
+            (selectedModel as EvaluatedComponentModel).source[key] as any,
           );
         },
         value,

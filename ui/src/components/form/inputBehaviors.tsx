@@ -48,6 +48,7 @@ import { FORM_TYPES } from '@/features/form/constants';
 import { useUpdateComponentMutation } from '@/services/preview';
 import type { AjaxUpdateFormBuildIdEvent } from '@/types/Ajax';
 import { AJAX_UPDATE_FORM_BUILD_ID_EVENT } from '@/types/Ajax';
+import { useComponentTransforms } from '@/components/DummyPropsEditForm';
 
 const ajv = new Ajv();
 addDraft2019(ajv);
@@ -310,6 +311,7 @@ const InputBehaviorsComponentPropsForm = (
   const model = useAppSelector(selectModel);
   const { attributes } = props;
   const { data: components } = useGetComponentsQuery();
+  const transforms = useComponentTransforms();
   const layout = useAppSelector(selectLayout);
   const node = findComponentByUuid(layout, selectedComponent);
   const selectedComponentType = node ? (node.type as string) : 'noop';
@@ -332,6 +334,7 @@ const InputBehaviorsComponentPropsForm = (
     const { propsValues: values, selectedModel } = getPropsValues(
       newFormState,
       inputAndUiData,
+      transforms,
     );
 
     // And then send data to backend - this will:

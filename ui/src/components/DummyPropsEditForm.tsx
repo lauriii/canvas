@@ -1,4 +1,10 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
 import { useErrorBoundary } from 'react-error-boundary';
 import { Spinner, Text } from '@radix-ui/themes';
 import { useGetDummyPropsFormQuery } from '@/services/dummyPropsForm';
@@ -32,6 +38,13 @@ import {
 } from '@/services/preview';
 import { getPropsValues } from '@/components/form/formUtil';
 import { syncPropSourcesToResolvedValues } from '@/components/form/inputBehaviors';
+import type { TransformConfig } from '@/utils/transforms';
+
+const TransformsContext = createContext<TransformConfig | undefined>(undefined);
+
+export const useComponentTransforms = () => {
+  return useContext(TransformsContext);
+};
 
 interface DummyPropsEditFormRendererProps {
   dynamicStaticCardQueryString: string;
@@ -80,11 +93,13 @@ const DummyPropsEditFormRenderer: React.FC<DummyPropsEditFormRendererProps> = (
     }
   }, [error, showBoundary]);
 
+  const { html, transforms } = currentData || { html: false, transforms: {} };
+
   useEffect(() => {
-    if (!currentData) {
+    if (!html) {
       return;
     }
-    const template = parseHyperscriptifyTemplate(currentData as string);
+    const template = parseHyperscriptifyTemplate(html as string);
     if (!template) {
       return;
     }
@@ -123,7 +138,7 @@ const DummyPropsEditFormRenderer: React.FC<DummyPropsEditFormRendererProps> = (
         )}
       </div>,
     );
-  }, [currentData, originalArgs]);
+  }, [html, originalArgs]);
 
   // Listen for updates to form state from ajax.
   useEffect(() => {
@@ -137,6 +152,7 @@ const DummyPropsEditFormRenderer: React.FC<DummyPropsEditFormRendererProps> = (
         const { propsValues: values, selectedModel } = getPropsValues(
           updates,
           inputAndUiData,
+          currentData ? currentData.transforms : {},
         );
 
         if (Object.keys(values).length === 0) {
@@ -207,7 +223,9 @@ const DummyPropsEditFormRenderer: React.FC<DummyPropsEditFormRendererProps> = (
         }}
         ref={formRef}
       >
-        {jsxFormContent}
+        <TransformsContext.Provider value={transforms}>
+          {jsxFormContent}
+        </TransformsContext.Provider>
       </div>
     </Spinner>
   );

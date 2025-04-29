@@ -1,5 +1,6 @@
 import type { PropsValues } from '@/types/Form';
-import type { FieldDataItem } from '@/types/Component';
+import type { StaticPropSource } from '@/features/layout/layoutModelSlice';
+import type { PropSource } from '@/features/layout/layoutModelSlice';
 
 export interface TransformOptions {
   [key: string]: any;
@@ -19,11 +20,11 @@ type Transformer<
   TransformerOptions extends any,
   TransformerReturn extends unknown = any,
   TransformerInput extends unknown = PropsValuesOrArrayOfPropsValues,
-  FieldDataShape extends FieldDataItem = FieldDataItem,
+  FieldPropShape extends PropSource = StaticPropSource,
 > = (
   value: TransformerInput,
   options: TransformerOptions,
-  fieldData: FieldDataShape,
+  fieldPropShape: FieldPropShape,
 ) => TransformerReturn;
 
 const isList = (
@@ -59,7 +60,7 @@ const firstRecord: Transformer<void, null | PropsValues> = (value) => {
   return value.pop() as PropsValues;
 };
 
-interface LinkFieldData extends FieldDataItem {
+interface LinkPropShape extends StaticPropSource {
   sourceTypeSettings: {
     instance: {
       // @see DRUPAL_DISABLED
@@ -74,13 +75,13 @@ const link: Transformer<
   void,
   null | string | PropsValues,
   PropsValuesOrArrayOfPropsValues,
-  LinkFieldData
-> = (value, options, fieldData) => {
+  LinkPropShape
+> = (value, options, propSource) => {
   // `0` corresponds to `DRUPAL_DISABLED` on the server side.
-  if (fieldData.sourceTypeSettings.instance.title === 0) {
-    return mainProperty(value, { name: 'uri' }, fieldData);
+  if (propSource.sourceTypeSettings.instance.title === 0) {
+    return mainProperty(value, { name: 'uri' }, propSource);
   }
-  return firstRecord(value, undefined, fieldData);
+  return firstRecord(value, undefined, propSource);
 };
 
 const cast: Transformer<
@@ -104,7 +105,7 @@ const cast: Transformer<
   return Boolean(value);
 };
 
-interface DateFieldData extends FieldDataItem {
+interface DateFieldPropSource extends StaticPropSource {
   sourceTypeSettings: {
     storage: {
       // @see \Drupal\datetime\Plugin\Field\FieldType\DateTimeItem::DATETIME_TYPE_DATE
@@ -118,9 +119,9 @@ const dateTime: Transformer<
   { type: 'date' | 'datetime' },
   null | string,
   PropsValuesOrArrayOfPropsValues,
-  DateFieldData
-> = (value, options, fieldData) => {
-  const type = fieldData.sourceTypeSettings.storage.datetime_type;
+  DateFieldPropSource
+> = (value, options, propSource) => {
+  const type = propSource.sourceTypeSettings.storage.datetime_type;
   // @see \Drupal\Component\Datetime\DateTimePlus::setDefaultDateTime
   let timeString = '12:00:00';
   if (!('date' in value)) {

@@ -354,6 +354,7 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
     ?EntityInterface $entity = NULL,
     array $settings = [],
   ): array {
+    $transforms = [];
     assert($entity instanceof FieldableEntityInterface);
     $component_schema = $this->getSdcPlugin()->metadata->schema ?? [];
 
@@ -408,10 +409,25 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
       assert(isset($component_schema['properties'][$sdc_prop_name]['title']));
       $label = $component_schema['properties'][$sdc_prop_name]['title'];
       $is_required = isset($component_schema['required']) && in_array($sdc_prop_name, $component_schema['required'], TRUE);
-      $form[$sdc_prop_name] = $source->formTemporaryRemoveThisExclamationExclamationExclamation($field_widget_plugin_id, $sdc_prop_name, $label, $is_required, $entity, $form, $form_state);
+      $widget = $source->getWidget($sdc_prop_name, $label, $field_widget_plugin_id);
+      $form[$sdc_prop_name] = $source->formTemporaryRemoveThisExclamationExclamationExclamation($widget, $sdc_prop_name, $is_required, $entity, $form, $form_state);
       $form[$sdc_prop_name]['#disabled'] = $disabled;
-    }
 
+      $widget_definition = $this->fieldWidgetPluginManager->getDefinition($widget->getPluginId());
+      if (\array_key_exists('xb', $widget_definition) && \array_key_exists('transforms', $widget_definition['xb'])) {
+        $transforms[$sdc_prop_name] = $widget_definition['xb']['transforms'];
+      }
+      else {
+        throw new \LogicException(sprintf(
+          "Experience Builder determined the `%s` field widget plugin must be used to populate the `%s` prop on the `%s` component. However, no `xb.transforms` metadata is defined on the field widget plugin definition. This makes it impossible for this widget to work. Please define the missing metadata. See %s for guidance.",
+          $field_widget_plugin_id,
+          $component_plugin->getPluginId(),
+          $sdc_prop_name,
+          'https://git.drupalcode.org/project/experience_builder/-/raw/0.x/experience_builder.api.php?ref_type=heads',
+        ));
+      }
+    }
+    $form['#attached']['xb-transforms'] = $transforms;
     return $form;
   }
 
@@ -557,10 +573,7 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
         continue;
       }
       $widget_definition = $this->fieldWidgetPluginManager->getDefinition($field_widget_plugin_id);
-      if (\array_key_exists('xb', $widget_definition) && \array_key_exists('transforms', $widget_definition['xb'])) {
-        $transforms[$prop_name] = $widget_definition['xb']['transforms'];
-      }
-      else {
+      if (!\array_key_exists('xb', $widget_definition) && \array_key_exists('transforms', $widget_definition['xb'])) {
         throw new \LogicException(sprintf(
           "Experience Builder determined the `%s` field widget plugin must be used to populate the `%s` prop on the `%s` component. However, no `xb.transforms` metadata is defined on the field widget plugin definition. This makes it impossible for this widget to work. Please define the missing metadata. See %s for guidance.",
           $field_widget_plugin_id,

@@ -236,6 +236,10 @@ Built-in transforms include:
 
 ℹ️ The completeness of this is tested by `\Drupal\Tests\experience_builder\Kernel\EcosystemSupport\FieldWidgetSupportTest`.
 
+The transforms that apply to each prop are attached to the [ComponentInputsForm](../src/Form/ComponentInputsForm.php) by
+the [Generated UX source base plugin](../src/Plugin/ExperienceBuilder/ComponentSource/GeneratedFieldExplicitInputUxComponentSourceBase.php)
+which is used by both SDC and Code (JavaScript) components.
+
 * Example *
 Let's say you have a widget plugin with ID 'trousers' for a field named `zipper`. When the form is built, the widget's form
 element ends up with the following HTML input:
@@ -299,7 +303,7 @@ Create a new JS file and define your transform and then add it to the global `Dr
 ```javascript
 // my_module/js/noodles-or-pasta-transform.js
 ((Drupal) => {
-  const noodlesOrPastaTransform = (value, options, fieldData) => {
+  const noodlesOrPastaTransform = (value, options, propSource) => {
     // Options are as defined in widget plugin definitions (see below).
     const { useNoodles = false } = options;
     if (useNoodles && 'noodles' in value) {
@@ -310,7 +314,7 @@ Create a new JS file and define your transform and then add it to the global `Dr
     // field type, you can return a different value. For an example of this see
     // the dateTime transform in transforms.ts in the experience_builder
     // codebase.
-    if (fieldData.sourceTypeSettings.storage.type === 'spaghetti') {
+    if (propSource.sourceTypeSettings.storage.type === 'spaghetti') {
       return 'spaghetti';
     }
     if ('pasta' in value) {
