@@ -68,7 +68,7 @@ export function getPropSchemas(inputAndUiData: InputUIData) {
   const propSchemas: PropsValues = {};
   const component = components?.[selectedComponentType];
   if (componentHasFieldData(component)) {
-    Object.entries(component.field_data).forEach(
+    Object.entries(component.propSources).forEach(
       ([propName, fieldData]: [string, FieldDataItem]) => {
         propSchemas[propName] = fieldData.jsonSchema;
       },
@@ -218,7 +218,7 @@ export function propInputData(
   // to soothe Typescript.
   const component = components?.[selectedComponentType];
   if (componentHasFieldData(component)) {
-    Object.entries(component.field_data).forEach(
+    Object.entries(component.propSources).forEach(
       // @ts-ignore
       ([field_name, field]: [string, FieldDataItem]) => {
         if (field.jsonSchema?.properties) {
@@ -318,7 +318,7 @@ export function getPropsValues(
     ? component.transforms
     : {};
   const fieldData = componentHasFieldData(component)
-    ? component.field_data
+    ? component.propSources
     : {};
   // Iterate through every item in form state that corresponds to
   // a component input to create propsValues, which will ultimately be
@@ -376,7 +376,7 @@ export function getPropsValues(
   Object.entries(propsValues).forEach(([fieldName, value]) => {
     const fieldData: FieldDataItem | undefined =
       (componentHasFieldData(component)
-        ? component.field_data[fieldName]
+        ? component.propSources[fieldName]
         : undefined) || undefined;
 
     // @todo below is special-casing for enum fields but we will need to do

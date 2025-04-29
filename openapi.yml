@@ -1192,7 +1192,7 @@ components:
         metadata:
           type: object
           description: SDC metadata
-        field_data:
+        propSources:
           type: object
           description: the StaticPropSources to use for each SDC prop
           # Keys are props for this SDC. Only required SDC props are required here.

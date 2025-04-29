@@ -579,7 +579,7 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
       // Additional data only needed for SDCs.
       // @todo UI does not use any other metadata - should `slots` move to top level?
       'metadata' => ['slots' => $this->getSlotDefinitions()],
-      'field_data' => $field_data,
+      'propSources' => $field_data,
       'dynamic_prop_source_candidates' => $dynamic_prop_source_candidates,
       'transforms' => $transforms,
     ];
@@ -733,10 +733,10 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
           // @see ::exampleValueRequiresEntity()
           // @see ::getClientSideInfo()
           $client_side_info = $this->getClientSideInfo($component);
-          \assert(isset($client_side_info['field_data'][$prop]['jsonSchema']));
+          \assert(isset($client_side_info['propSources'][$prop]['jsonSchema']));
           $source = new DefaultRelativeUrlPropSource(
             value: $prop_value,
-            jsonSchema: $client_side_info['field_data'][$prop]['jsonSchema'],
+            jsonSchema: $client_side_info['propSources'][$prop]['jsonSchema'],
             componentId: $component->id(),
           );
           $props[$prop] = $source->toArray();

@@ -32,7 +32,7 @@ let inputAndUiData = {
   layout: [],
   components: {
     'sdc.sdc_test_all_props.all-props': {
-      field_data: {
+      propSources: {
         a_boolean: {
           jsonSchema: {
             type: 'boolean',

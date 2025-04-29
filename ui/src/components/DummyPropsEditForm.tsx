@@ -236,7 +236,7 @@ const DummyPropsEditForm: React.FC<DummyPropsEditFormProps> = () => {
     }
     // The prepared model combines prop values from the model and prop metadata
     // from the SDC definition.
-    const fieldData = component.field_data;
+    const fieldData = component.propSources;
     const missingProps = Object.keys(fieldData).filter(
       (key) => !(key in model.resolved),
     );
@@ -283,7 +283,7 @@ const DummyPropsEditForm: React.FC<DummyPropsEditFormProps> = () => {
     const selectedComponentFieldData: FieldData = componentHasFieldData(
       component,
     )
-      ? component.field_data
+      ? component.propSources
       : {};
 
     // Check if this component has any props or not.

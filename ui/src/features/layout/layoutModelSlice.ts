@@ -424,8 +424,8 @@ export const addNewComponentToLayout =
           resolved: {},
           source: {},
         };
-        Object.keys(component.field_data).forEach((propName) => {
-          const prop = component.field_data[propName];
+        Object.keys(component.propSources).forEach((propName) => {
+          const prop = component.propSources[propName];
           // These will be needed when we support client-side preview updates.
           initialData.resolved[propName] = prop.default_values?.resolved || [];
           // These are the values the server needs.

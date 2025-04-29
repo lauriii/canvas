@@ -134,7 +134,7 @@ interface ComponentSourceInterface extends PluginInspectionInterface, Derivative
    * @param \Drupal\experience_builder\Entity\Component $component
    *   A component config entity that uses this source.
    *
-   * @return array{'source'?: string, 'build': array<string, mixed>, field_data?: array<string, array>}
+   * @return array{'source'?: string, 'build': array<string, mixed>, propSources?: array<string, array>}
    *   Client side metadata including a build array for the default markup.
    *
    * @see \Drupal\experience_builder\Controller\ApiComponentsController

@@ -538,7 +538,7 @@ export const syncPropSourcesToResolvedValues = (
   if (!componentHasFieldData(component)) {
     return sources;
   }
-  const fieldData = component.field_data;
+  const fieldData = component.propSources;
 
   // We need to include a source entry for any props with a resolved value.
   // We don't store a source entry for empty values, so once the value is no

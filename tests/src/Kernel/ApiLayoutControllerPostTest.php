@@ -542,7 +542,7 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
         'heading' => 'Heading the right direction?',
         // Resolved will default to the default resolved values.
         // @see addNewComponentToLayout reducer in typescript code.
-        'image' => $client_side['field_data']['image']['default_values']['resolved'] ?? NULL,
+        'image' => $client_side['propSources']['image']['default_values']['resolved'] ?? NULL,
       ],
       'source' => [
         'heading' => [

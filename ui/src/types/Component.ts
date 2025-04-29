@@ -59,8 +59,7 @@ export interface JSComponent extends BaseComponent {
 // PropSourceComponent Interface
 export interface PropSourceComponent extends BaseComponent {
   library: 'elements' | 'extension_components';
-  // @todo rename this to propSources - https://www.drupal.org/project/experience_builder/issues/3504421
-  field_data: FieldData;
+  propSources: FieldData;
   metadata: {
     slots?: {
       [key: string]: {
@@ -95,5 +94,5 @@ export interface ComponentsList {
 export const componentHasFieldData = (
   component: XBComponent | undefined,
 ): component is PropSourceComponent => {
-  return component !== undefined && 'field_data' in component;
+  return component !== undefined && 'propSources' in component;
 };
