@@ -985,8 +985,8 @@ Cypress.Commands.add('editHeroComponent', () => {
   };
 
   // Monitor the endpoint that processes changed values in the prop edit form.
-  cy.intercept('POST', '**/xb/api/layout/node/1').as('getPreview');
-  cy.intercept('PATCH', '**/xb/api/layout/node/1').as('patchPreview');
+  cy.intercept('POST', '**/xb/api/v0/layout/node/1').as('getPreview');
+  cy.intercept('PATCH', '**/xb/api/v0/layout/node/1').as('patchPreview');
   expectedLabels.forEach((label) => {
     // Type a new value into a given input.
     cy.findByLabelText(label).focus();
@@ -1069,7 +1069,7 @@ Cypress.Commands.add('publishAllPendingChanges', (titles) => {
   // the button whilst it is loading.
   cy.get('@review').click();
   // Enable extended debug output from failed publishing.
-  cy.intercept('**/xb/api/auto-saves/publish');
+  cy.intercept('**/xb/api/v0/auto-saves/publish');
   cy.findByTestId('xb-publish-reviews-content')
     .as('publishReview')
     .should('exist');

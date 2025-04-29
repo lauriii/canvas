@@ -88,7 +88,7 @@ const importMap = {
     'class-variance-authority': 'https://esm.sh/class-variance-authority',
     'tailwind-merge': 'https://esm.sh/tailwind-merge',
     '@/lib/utils': `${XB_MODULE_UI_PATH}/lib/astro-hydration/dist/utils.js`,
-    '@/components/': Drupal.url('xb/api/auto-saves/js/js_component/'),
+    '@/components/': Drupal.url('xb/api/v0/auto-saves/js/js_component/'),
   },
 };
 

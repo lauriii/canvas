@@ -121,10 +121,10 @@ describe('Navigation functionality', () => {
     cy.loadURLandWaitForXBLoaded({ url: 'xb/xb_page/1' });
 
     // Intercept the DELETE request
-    cy.intercept('DELETE', '**/xb/api/content/xb_page/*').as('deletePage');
+    cy.intercept('DELETE', '**/xb/api/v0/content/xb_page/*').as('deletePage');
 
     // Intercept the GET request to the list endpoint
-    cy.intercept('GET', '**/xb/api/content/xb_page').as('getList');
+    cy.intercept('GET', '**/xb/api/v0/content/xb_page').as('getList');
 
     cy.findByTestId(navigationButtonTestId).click();
     cy.findByText('Empty Page').realHover();

@@ -35,7 +35,7 @@ export const previewApi = createApi({
       { layout: any; model: any; entity_form_fields: any }
     >({
       query: (body) => ({
-        url: 'xb/api/layout/{entity_type}/{entity_id}',
+        url: 'xb/api/v0/layout/{entity_type}/{entity_id}',
         method: 'POST',
         body,
       }),
@@ -61,7 +61,7 @@ export const previewApi = createApi({
       UpdateComponentQueryArg
     >({
       query: (body) => ({
-        url: 'xb/api/layout/{entity_type}/{entity_id}',
+        url: 'xb/api/v0/layout/{entity_type}/{entity_id}',
         method: 'PATCH',
         body,
       }),

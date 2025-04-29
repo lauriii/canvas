@@ -29,11 +29,11 @@ final class DxRouteConsistencyTest extends UnitTestCase {
     $this->assertSame($expected_routers_order, $actual_routes_order);
 
     // All XB API routes must:
-    // - have a `path` that starts with '/xb/api/'
+    // - have a `path` that starts with '/xb/api/v0/'
     // - specify `methods`
     $xb_api_routes = array_filter($routes, fn ($k) => str_starts_with($k, 'experience_builder.api.'), ARRAY_FILTER_USE_KEY);
     foreach ($xb_api_routes as $xb_api_route_name => $xb_api_route) {
-      $this->assertStringStartsWith('/xb/api/', $xb_api_route['path'], "`$xb_api_route_name` route path starts with '/xb/api/'." . print_r($xb_api_route, TRUE));
+      $this->assertStringStartsWith('/xb/api/v0/', $xb_api_route['path'], "`$xb_api_route_name` route path starts with '/xb/api/v0/'." . print_r($xb_api_route, TRUE));
       $this->assertArrayHasKey('methods', $xb_api_route, "`$xb_api_route_name` route definition specifies `methods`.");
     }
 
@@ -94,7 +94,7 @@ final class DxRouteConsistencyTest extends UnitTestCase {
       ));
 
       // No need to resolve: add the operations for the route.
-      if (empty($static_path_part_requirements) || str_starts_with($original_path, '/xb/api/config/auto-save')) {
+      if (empty($static_path_part_requirements) || str_starts_with($original_path, '/xb/api/v0/config/auto-save')) {
         $operations = [...$operations, ...$operations_for_route];
         continue;
       }

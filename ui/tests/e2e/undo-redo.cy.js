@@ -26,7 +26,7 @@ describe('Undo/Redo functionality', () => {
       },
     );
     cy.get('.primaryPanelContent').findByText('Two Column').click();
-    cy.intercept('POST', '**/xb/api/layout/node/1').as('getPreview');
+    cy.intercept('POST', '**/xb/api/v0/layout/node/1').as('getPreview');
     cy.openLibraryPanel();
 
     // Click on the menu item with data-xb-name="Hero" inside menu.

@@ -317,7 +317,7 @@ final class JsComponentTest extends ComponentSourceTestBase {
     // @phpstan-ignore-next-line
     $expected_js_filename = match ($expected_result) {
       'live' => \sprintf('/%s/astro-island/%s.js', $directory_path, $js_hash),
-      'draft' => \sprintf('/xb/api/auto-saves/js/%s/%s', JavaScriptComponent::ENTITY_TYPE_ID, $js_component_id),
+      'draft' => \sprintf('/xb/api/v0/auto-saves/js/%s/%s', JavaScriptComponent::ENTITY_TYPE_ID, $js_component_id),
     };
     $element_js_script = $element->attr('component-url');
     self::assertEquals($expected_js_filename, $element_js_script);
@@ -347,7 +347,7 @@ final class JsComponentTest extends ComponentSourceTestBase {
           'assets://astro-island/%s.css',
           Crypt::hmacBase64($expected_component_compiled_css, Settings::getHashSalt()),
         ),
-        'draft' => "xb/api/auto-saves/css/js_component/$js_component_id",
+        'draft' => "xb/api/v0/auto-saves/css/js_component/$js_component_id",
       };
       self::assertEquals($css_filename, reset($css_asset)['data']);
     }
@@ -599,7 +599,7 @@ final class JsComponentTest extends ComponentSourceTestBase {
     self::assertNotContains('experience_builder/astro_island.dependency_component_no_css.draft', $attached_libraries);
     self::assertNotContains('experience_builder/astro_island.dependency_component_no_css', $attached_libraries);
     if ($dependencies_expected_result === 'draft') {
-      $nested_dependency_js_path = base_path() . 'xb/api/auto-saves/js/js_component/nested_dependency_component';
+      $nested_dependency_js_path = base_path() . 'xb/api/v0/auto-saves/js/js_component/nested_dependency_component';
       self::assertContains('experience_builder/astro_island.dependency_component.draft', $attached_libraries);
       self::assertContains('experience_builder/astro_island.nested_dependency_component.draft', $attached_libraries);
       self::assertNotContains('experience_builder/astro_island.dependency_component', $attached_libraries);

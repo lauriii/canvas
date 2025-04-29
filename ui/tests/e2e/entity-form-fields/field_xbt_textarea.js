@@ -10,7 +10,7 @@ export const edit = (cy) => {
   // Trigger a new intercept for the format. This ensures the outer wait in the
   // main test waits for the second update.
   cy.intercept({
-    url: '**/xb/api/layout/node/2',
+    url: '**/xb/api/v0/layout/node/2',
     times: 1,
     method: 'POST',
   }).as('updatePreview');

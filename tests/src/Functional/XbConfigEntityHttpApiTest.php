@@ -68,13 +68,13 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
 
     // But accessing it results in a 404 HTML response: not a single clue that
     // this is *almost* an HTTP API route.
-    $response = $this->makeApiRequest('GET', Url::fromUri('base:/xb/api/config/menu'), []);
+    $response = $this->makeApiRequest('GET', Url::fromUri('base:/xb/api/v0/config/menu'), []);
     $this->assertSame(404, $response->getStatusCode());
     $this->assertSame('text/html; charset=UTF-8', $response->getHeader('Content-Type')[0]);
 
     // Even as a logged in user with correct permission.
     $this->drupalLogin($this->httpApiUser);
-    $response = $this->makeApiRequest('GET', Url::fromUri('base:/xb/api/config/menu'), []);
+    $response = $this->makeApiRequest('GET', Url::fromUri('base:/xb/api/v0/config/menu'), []);
     $this->assertSame(404, $response->getStatusCode());
     $this->assertSame('text/html; charset=UTF-8', $response->getHeader('Content-Type')[0]);
   }
@@ -87,7 +87,7 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
     $this->assertAuthenticationAndAuthorization('pattern');
 
     $base = rtrim(base_path(), '/');
-    $list_url = Url::fromUri("base:/xb/api/config/pattern");
+    $list_url = Url::fromUri("base:/xb/api/v0/config/pattern");
 
     $request_options = [
       RequestOptions::HEADERS => [
@@ -108,7 +108,7 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
     $request_options[RequestOptions::BODY] = self::encodeXBData($pattern_to_send);
     $body = $this->assertExpectedResponse('POST', $list_url, $request_options, 500, NULL, NULL, NULL, NULL);
     $this->assertSame([
-      'message' => 'Body does not match schema for content-type "application/json" for Request [post /xb/api/config/pattern]. [Keyword validation failed: Value cannot be null in layout]',
+      'message' => 'Body does not match schema for content-type "application/json" for Request [post /xb/api/v0/config/pattern]. [Keyword validation failed: Value cannot be null in layout]',
     ], $body, 'Fails with missing data.');
 
     // Add missing crucial data, but leave a required shape violation: 500,
@@ -130,7 +130,7 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
     $request_options[RequestOptions::BODY] = self::encodeXBData($pattern_to_send);
     $body = $this->assertExpectedResponse('POST', $list_url, $request_options, 500, NULL, NULL, NULL, NULL);
     $this->assertSame([
-      'message' => 'Body does not match schema for content-type "application/json" for Request [post /xb/api/config/pattern]. [Keyword validation failed: Value cannot be null in model]',
+      'message' => 'Body does not match schema for content-type "application/json" for Request [post /xb/api/v0/config/pattern]. [Keyword validation failed: Value cannot be null in model]',
     ], $body, 'Fails with invalid shape.');
 
     // Meet data shape requirements, but violate internal consistency for
@@ -206,7 +206,7 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
     $request_options[RequestOptions::BODY] = self::encodeXBData($pattern_to_send);
     $body = $this->assertExpectedResponse('POST', $list_url, $request_options, 201, NULL, NULL, NULL, NULL, [
       'Location' => [
-        "$base/xb/api/config/pattern/testpatternpleaseignore",
+        "$base/xb/api/v0/config/pattern/testpatternpleaseignore",
       ],
     ]);
     $expected_pattern_normalization = [
@@ -356,12 +356,12 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
     $request_options[RequestOptions::BODY] = self::encodeXBData($nested_components_pattern);
     $this->assertExpectedResponse('POST', $list_url, $request_options, 201, NULL, NULL, NULL, NULL, [
       'Location' => [
-        "$base/xb/api/config/pattern/nested",
+        "$base/xb/api/v0/config/pattern/nested",
       ],
     ]);
 
     // Delete the nested Pattern via the XB HTTP API: 204.
-    $this->assertExpectedResponse('DELETE', Url::fromUri('base:/xb/api/config/pattern/nested'), [], 204, NULL, NULL, NULL, NULL);
+    $this->assertExpectedResponse('DELETE', Url::fromUri('base:/xb/api/v0/config/pattern/nested'), [], 204, NULL, NULL, NULL, NULL);
 
     // Re-retrieve list: 200, non-empty list. Dynamic Page Cache miss.
     $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['languages:language_interface', 'user.permissions', 'user.roles:authenticated', 'theme'], ['config:pattern_list', 'http_response', 'config:experience_builder.component.sdc.xb_test_sdc.props-no-slots'], 'UNCACHEABLE (request policy)', 'MISS');
@@ -369,7 +369,7 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
       "testpatternpleaseignore" => $expected_pattern_normalization,
     ], $body);
     // Use the individual URL in the list response body.
-    $individual_body = $this->assertExpectedResponse('GET', Url::fromUri('base:/xb/api/config/pattern/testpatternpleaseignore'), [], 200, ['languages:language_interface', 'user.permissions', 'theme'], ['config:experience_builder.component.sdc.xb_test_sdc.props-no-slots', 'config:experience_builder.pattern.testpatternpleaseignore', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
+    $individual_body = $this->assertExpectedResponse('GET', Url::fromUri('base:/xb/api/v0/config/pattern/testpatternpleaseignore'), [], 200, ['languages:language_interface', 'user.permissions', 'theme'], ['config:experience_builder.component.sdc.xb_test_sdc.props-no-slots', 'config:experience_builder.pattern.testpatternpleaseignore', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
     $expected_individual_body_normalization = $expected_pattern_normalization;
     $expected_individual_body_normalization['js_footer'] = str_replace('xb\/api\/config\/pattern', 'xb\/api\/config\/pattern\/testpatternpleaseignore', $expected_pattern_normalization['js_footer']);
     $this->assertSame($expected_individual_body_normalization, $individual_body);
@@ -380,9 +380,9 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
       'layout' => $pattern_to_send['layout'],
       'model' => NULL,
     ]);
-    $body = $this->assertExpectedResponse('PATCH', Url::fromUri('base:/xb/api/config/pattern/testpatternpleaseignore'), $request_options, 500, NULL, NULL, NULL, NULL);
+    $body = $this->assertExpectedResponse('PATCH', Url::fromUri('base:/xb/api/v0/config/pattern/testpatternpleaseignore'), $request_options, 500, NULL, NULL, NULL, NULL);
     $this->assertSame([
-      'message' => 'Body does not match schema for content-type "application/json" for Request [patch /xb/api/config/pattern/{configEntityId}]. [Keyword validation failed: Value cannot be null in model]',
+      'message' => 'Body does not match schema for content-type "application/json" for Request [patch /xb/api/v0/config/pattern/{configEntityId}]. [Keyword validation failed: Value cannot be null in model]',
     ], $body, 'Fails with an invalid pattern.');
 
     // Modify a Pattern incorrectly (consistency-wise): 422.
@@ -391,7 +391,7 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
       'layout' => $pattern_to_send['layout'],
       'model' => array_slice($pattern_to_send['model'], 1),
     ]);
-    $body = $this->assertExpectedResponse('PATCH', Url::fromUri('base:/xb/api/config/pattern/testpatternpleaseignore'), $request_options, 422, NULL, NULL, NULL, NULL);
+    $body = $this->assertExpectedResponse('PATCH', Url::fromUri('base:/xb/api/v0/config/pattern/testpatternpleaseignore'), $request_options, 422, NULL, NULL, NULL, NULL);
     $this->assertSame([
       'errors' => [
         [
@@ -403,7 +403,7 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
 
     // Modify a Pattern correctly: 200.
     $request_options[RequestOptions::BODY] = self::encodeXBData($pattern_to_send);
-    $body = $this->assertExpectedResponse('PATCH', Url::fromUri('base:/xb/api/config/pattern/testpatternpleaseignore'), $request_options, 200, NULL, NULL, NULL, NULL);
+    $body = $this->assertExpectedResponse('PATCH', Url::fromUri('base:/xb/api/v0/config/pattern/testpatternpleaseignore'), $request_options, 200, NULL, NULL, NULL, NULL);
     $this->assertSame($expected_individual_body_normalization, $body);
 
     // Partially modify a Pattern: 200.
@@ -413,7 +413,7 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
     $request_options[RequestOptions::BODY] = self::encodeXBData([
       'name' => $pattern_to_send['name'],
     ]);
-    $body = $this->assertExpectedResponse('PATCH', Url::fromUri('base:/xb/api/config/pattern/testpatternpleaseignore'), $request_options, 200, NULL, NULL, NULL, NULL);
+    $body = $this->assertExpectedResponse('PATCH', Url::fromUri('base:/xb/api/v0/config/pattern/testpatternpleaseignore'), $request_options, 200, NULL, NULL, NULL, NULL);
     $this->assertSame($expected_individual_body_normalization, $body);
 
     // Re-retrieve list: 200, non-empty list. Dynamic Page Cache miss.
@@ -435,13 +435,13 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
     $this->assertSame([], $body);
 
     // Delete the sole remaining Pattern via the XB HTTP API: 204.
-    $body = $this->assertExpectedResponse('DELETE', Url::fromUri('base:/xb/api/config/pattern/testpatternpleaseignore'), [], 204, NULL, NULL, NULL, NULL);
+    $body = $this->assertExpectedResponse('DELETE', Url::fromUri('base:/xb/api/v0/config/pattern/testpatternpleaseignore'), [], 204, NULL, NULL, NULL, NULL);
     $this->assertNull($body);
 
     // Re-retrieve list: 200, empty list. Dynamic Page Cache miss.
     $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.permissions', 'user.roles:authenticated'], ['config:pattern_list', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
     $this->assertSame([], $body);
-    $individual_body = $this->assertExpectedResponse('GET', Url::fromUri('base:/xb/api/config/pattern/testpatternpleaseignore'), [], 404, NULL, NULL, 'UNCACHEABLE (request policy)', 'UNCACHEABLE (no cacheability)');
+    $individual_body = $this->assertExpectedResponse('GET', Url::fromUri('base:/xb/api/v0/config/pattern/testpatternpleaseignore'), [], 404, NULL, NULL, 'UNCACHEABLE (request policy)', 'UNCACHEABLE (no cacheability)');
     $this->assertSame([], $individual_body);
 
     // This was now tested full circle! ✅
@@ -454,8 +454,8 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
     $this->assertAuthenticationAndAuthorization('js_component');
 
     $base = rtrim(base_path(), '/');
-    $list_url = Url::fromUri('base:/xb/api/config/js_component');
-    $auto_save_url = Url::fromUri("base:/xb/api/config/auto-save/js_component/test");
+    $list_url = Url::fromUri('base:/xb/api/v0/config/js_component');
+    $auto_save_url = Url::fromUri("base:/xb/api/v0/config/auto-save/js_component/test");
 
     $request_options = [
       RequestOptions::HEADERS => [
@@ -468,7 +468,7 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
     $request_options[RequestOptions::BODY] = self::encodeXBData($code_component_to_send);
     $body = $this->assertExpectedResponse('POST', $list_url, $request_options, 500, NULL, NULL, NULL, NULL);
     $this->assertSame([
-      'message' => 'Body does not match schema for content-type "application/json" for Request [post /xb/api/config/js_component]. [Keyword validation failed: Required property \'name\' must be present in the object in name]',
+      'message' => 'Body does not match schema for content-type "application/json" for Request [post /xb/api/v0/config/js_component]. [Keyword validation failed: Required property \'name\' must be present in the object in name]',
     ], $body, 'Fails with missing data.');
 
     // Add most missing crucial data, but leave a required shape violation: 500,
@@ -487,13 +487,13 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
     $request_options[RequestOptions::BODY] = self::encodeXBData($code_component_to_send);
     $body = $this->assertExpectedResponse('POST', $list_url, $request_options, 500, NULL, NULL, NULL, NULL);
     $this->assertSame([
-      'message' => 'Body does not match schema for content-type "application/json" for Request [post /xb/api/config/js_component]. [Keyword validation failed: Required property \'status\' must be present in the object in status]',
+      'message' => 'Body does not match schema for content-type "application/json" for Request [post /xb/api/v0/config/js_component]. [Keyword validation failed: Required property \'status\' must be present in the object in status]',
     ], $body, 'Fails with invalid shape.');
     $code_component_to_send['status'] = FALSE;
     $request_options[RequestOptions::BODY] = self::encodeXBData($code_component_to_send);
     $body = $this->assertExpectedResponse('POST', $list_url, $request_options, 500, NULL, NULL, NULL, NULL);
     $this->assertSame([
-      'message' => 'Body does not match schema for content-type "application/json" for Request [post /xb/api/config/js_component]. [Keyword validation failed: Value cannot be null in source_code_js]',
+      'message' => 'Body does not match schema for content-type "application/json" for Request [post /xb/api/v0/config/js_component]. [Keyword validation failed: Value cannot be null in source_code_js]',
     ], $body, 'Fails with invalid shape.');
 
     $code_component_to_send = [
@@ -522,7 +522,7 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
     $request_options[RequestOptions::BODY] = self::encodeXBData($code_component_to_send);
     $body = $this->assertExpectedResponse('POST', $list_url, $request_options, 500, NULL, NULL, NULL, NULL);
     $this->assertSame([
-      'message' => 'Body does not match schema for content-type "application/json" for Request [post /xb/api/config/js_component]. [Keyword validation failed: Required property \'title\' must be present in the object in slots->test-slot->title]',
+      'message' => 'Body does not match schema for content-type "application/json" for Request [post /xb/api/v0/config/js_component]. [Keyword validation failed: Required property \'title\' must be present in the object in slots->test-slot->title]',
     ], $body, 'Fails with invalid shape.');
 
     // Create a Code Component via the XB HTTP API, but forget 'imported_js_components': 500, courtesy of OpenAPI.
@@ -531,7 +531,7 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
     $request_options[RequestOptions::BODY] = self::encodeXBData($code_component_to_send);
     $body = $this->assertExpectedResponse('POST', $list_url, $request_options, 500, NULL, NULL, NULL, NULL);
     $this->assertSame([
-      'message' => 'Body does not match schema for content-type "application/json" for Request [post /xb/api/config/js_component]. [Keyword validation failed: Required property \'imported_js_components\' must be present in the object in imported_js_components]',
+      'message' => 'Body does not match schema for content-type "application/json" for Request [post /xb/api/v0/config/js_component]. [Keyword validation failed: Required property \'imported_js_components\' must be present in the object in imported_js_components]',
     ], $body, 'Fails with invalid shape.');
 
     // Meet data shape requirements, but violate internal consistency for
@@ -676,7 +676,7 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
     $request_options[RequestOptions::BODY] = self::encodeXBData($code_component_to_send);
     $body = $this->assertExpectedResponse('POST', $list_url, $request_options, 201, NULL, NULL, NULL, NULL, [
       'Location' => [
-        "$base/xb/api/config/js_component/test",
+        "$base/xb/api/v0/config/js_component/test",
       ],
     ]);
     $expected_component = [
@@ -754,9 +754,9 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
     $request_options[RequestOptions::BODY] = self::encodeXBData([
       'machineName' => [$code_component_to_send['machineName']],
     ]);
-    $body = $this->assertExpectedResponse('PATCH', Url::fromUri('base:/xb/api/config/js_component/test'), $request_options, 500, NULL, NULL, NULL, NULL);
+    $body = $this->assertExpectedResponse('PATCH', Url::fromUri('base:/xb/api/v0/config/js_component/test'), $request_options, 500, NULL, NULL, NULL, NULL);
     $this->assertSame([
-      'message' => 'Body does not match schema for content-type "application/json" for Request [patch /xb/api/config/js_component/{configEntityId}]. [Value expected to be \'string\', but \'array\' given in machineName]',
+      'message' => 'Body does not match schema for content-type "application/json" for Request [patch /xb/api/v0/config/js_component/{configEntityId}]. [Value expected to be \'string\', but \'array\' given in machineName]',
     ], $body, 'Fails with an invalid code component.');
 
     // Modify a Code Component incorrectly (consistency-wise): 422.
@@ -766,7 +766,7 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
     unset($code_component_to_send['props']['integer']['examples']);
     unset($code_component_to_send['props']['number']['examples']);
     $request_options[RequestOptions::BODY] = self::encodeXBData($code_component_to_send);
-    $body = $this->assertExpectedResponse('PATCH', Url::fromUri('base:/xb/api/config/js_component/test'), $request_options, 422, NULL, NULL, NULL, NULL);
+    $body = $this->assertExpectedResponse('PATCH', Url::fromUri('base:/xb/api/v0/config/js_component/test'), $request_options, 422, NULL, NULL, NULL, NULL);
     $this->assertSame([
       'errors' => [
         [
@@ -796,7 +796,7 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
     unset($code_component_to_send['compiled_js']);
     unset($code_component_to_send['imported_js_components']);
     $request_options[RequestOptions::BODY] = self::encodeXBData($code_component_to_send);
-    $body = $this->assertExpectedResponse('PATCH', Url::fromUri('base:/xb/api/config/js_component/test'), $request_options, 422, NULL, NULL, NULL, NULL);
+    $body = $this->assertExpectedResponse('PATCH', Url::fromUri('base:/xb/api/v0/config/js_component/test'), $request_options, 422, NULL, NULL, NULL, NULL);
     $missing_imported_js_components_error = [
       'errors' => [
         [
@@ -812,14 +812,14 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
     $code_component_to_send['compiled_js'] = 'console.log("Test")';
     unset($code_component_to_send['source_code_js']);
     $request_options[RequestOptions::BODY] = self::encodeXBData($code_component_to_send);
-    $body = $this->assertExpectedResponse('PATCH', Url::fromUri('base:/xb/api/config/js_component/test'), $request_options, 422, NULL, NULL, NULL, NULL);
+    $body = $this->assertExpectedResponse('PATCH', Url::fromUri('base:/xb/api/v0/config/js_component/test'), $request_options, 422, NULL, NULL, NULL, NULL);
     $this->assertSame($missing_imported_js_components_error, $body);
 
     // Modify a Code Component correctly: 200.
     $code_component_to_send['imported_js_components'] = ['another_component'];
     $code_component_to_send['source_code_js'] = 'console.log("Test")';
     $request_options[RequestOptions::BODY] = self::encodeXBData($code_component_to_send);
-    $body = $this->assertExpectedResponse('PATCH', Url::fromUri('base:/xb/api/config/js_component/test'), $request_options, 200, NULL, NULL, NULL, NULL);
+    $body = $this->assertExpectedResponse('PATCH', Url::fromUri('base:/xb/api/v0/config/js_component/test'), $request_options, 200, NULL, NULL, NULL, NULL);
     $this->assertSame($expected_component, $body);
 
     // Partially modify a Code Component: 200
@@ -828,7 +828,7 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
     $request_options[RequestOptions::BODY] = self::encodeXBData([
       'name' => $code_component_to_send['name'],
     ]);
-    $body = $this->assertExpectedResponse('PATCH', Url::fromUri('base:/xb/api/config/js_component/test'), $request_options, 200, NULL, NULL, NULL, NULL);
+    $body = $this->assertExpectedResponse('PATCH', Url::fromUri('base:/xb/api/v0/config/js_component/test'), $request_options, 200, NULL, NULL, NULL, NULL);
     $this->assertSame($expected_component, $body);
 
     // Re-retrieve list: 200, non-empty list, despite `status` of entity being
@@ -872,7 +872,7 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
     $code_component_to_send['status'] = TRUE;
     $expected_component['status'] = TRUE;
     $request_options[RequestOptions::BODY] = self::encodeXBData($code_component_to_send);
-    $body = $this->assertExpectedResponse('PATCH', Url::fromUri('base:/xb/api/config/js_component/test'), $request_options, 200, NULL, NULL, NULL, NULL);
+    $body = $this->assertExpectedResponse('PATCH', Url::fromUri('base:/xb/api/v0/config/js_component/test'), $request_options, 200, NULL, NULL, NULL, NULL);
     $this->assertSame($expected_component, $body);
     // Confirm that the code component IS exposed, because `status` was just
     // changed to `TRUE`.
@@ -890,7 +890,7 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
     $code_component_to_send['block_override'] = 'system_branding_block';
     $expected_component['block_override'] = 'system_branding_block';
     $request_options[RequestOptions::BODY] = self::encodeXBData($code_component_to_send);
-    $body = $this->assertExpectedResponse('PATCH', Url::fromUri('base:/xb/api/config/js_component/test'), $request_options, 200, NULL, NULL, NULL, NULL);
+    $body = $this->assertExpectedResponse('PATCH', Url::fromUri('base:/xb/api/v0/config/js_component/test'), $request_options, 200, NULL, NULL, NULL, NULL);
     $this->assertSame($expected_component, $body);
 
     // Modify a Code Component correctly: 200.
@@ -902,7 +902,7 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
     $code_component_to_send['status'] = FALSE;
     $expected_component['status'] = FALSE;
     $request_options[RequestOptions::BODY] = self::encodeXBData($code_component_to_send);
-    $body = $this->assertExpectedResponse('PATCH', Url::fromUri('base:/xb/api/config/js_component/test'), $request_options, 200, NULL, NULL, NULL, NULL);
+    $body = $this->assertExpectedResponse('PATCH', Url::fromUri('base:/xb/api/v0/config/js_component/test'), $request_options, 200, NULL, NULL, NULL, NULL);
     $this->assertSame($expected_component, $body);
     // Confirm that the code component still IS exposed (a Component config
     // entity still exists), but is disabled aka not available to be placed (the
@@ -934,17 +934,17 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
 
     // We cannot delete the 'test' Code Component via the XB HTTP API: 403.
     // The reason is there is a Component depending on it.
-    $body = $this->assertExpectedResponse('DELETE', Url::fromUri('base:/xb/api/config/js_component/test'), [], 403, NULL, NULL, NULL, NULL);
+    $body = $this->assertExpectedResponse('DELETE', Url::fromUri('base:/xb/api/v0/config/js_component/test'), [], 403, NULL, NULL, NULL, NULL);
     $this->assertEquals(['errors' => ['There is other configuration depending on this code component.']], $body);
 
     // We delete the dependent component.
     Component::load('js.test')->delete();
 
     // Delete the 'test' Code Component via the XB HTTP API: 204.
-    $body = $this->assertExpectedResponse('DELETE', Url::fromUri('base:/xb/api/config/js_component/test'), [], 204, NULL, NULL, NULL, NULL);
+    $body = $this->assertExpectedResponse('DELETE', Url::fromUri('base:/xb/api/v0/config/js_component/test'), [], 204, NULL, NULL, NULL, NULL);
     $this->assertNull($body);
     // Delete the 'another_component' Code Component via the XB HTTP API: 204.
-    $body = $this->assertExpectedResponse('DELETE', Url::fromUri('base:/xb/api/config/js_component/another_component'), [], 204, NULL, NULL, NULL, NULL);
+    $body = $this->assertExpectedResponse('DELETE', Url::fromUri('base:/xb/api/v0/config/js_component/another_component'), [], 204, NULL, NULL, NULL, NULL);
     $this->assertNull($body);
 
     // Confirm that the code component IS NOT exposed, because it no longer
@@ -958,7 +958,7 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
     // Re-retrieve list: 200, empty list. Dynamic Page Cache miss.
     $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.permissions', 'user.roles:authenticated'], ['config:js_component_list', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
     $this->assertSame([], $body);
-    $individual_body = $this->assertExpectedResponse('GET', Url::fromUri('base:/xb/api/config/js_component/test'), [], 404, NULL, NULL, 'UNCACHEABLE (request policy)', 'UNCACHEABLE (no cacheability)');
+    $individual_body = $this->assertExpectedResponse('GET', Url::fromUri('base:/xb/api/v0/config/js_component/test'), [], 404, NULL, NULL, 'UNCACHEABLE (request policy)', 'UNCACHEABLE (no cacheability)');
     $this->assertSame([], $individual_body);
   }
 
@@ -970,8 +970,8 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
     $this->assertAuthenticationAndAuthorization('xb_asset_library');
 
     $base = rtrim(base_path(), '/');
-    $list_url = Url::fromUri("base:/xb/api/config/xb_asset_library");
-    $auto_save_url = Url::fromUri("base:/xb/api/config/auto-save/xb_asset_library/global");
+    $list_url = Url::fromUri("base:/xb/api/v0/config/xb_asset_library");
+    $auto_save_url = Url::fromUri("base:/xb/api/v0/config/auto-save/xb_asset_library/global");
 
     $request_options = [
       RequestOptions::HEADERS => [
@@ -990,7 +990,7 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
     $request_options[RequestOptions::BODY] = self::encodeXBData($asset_library_to_send);
     $body = $this->assertExpectedResponse('POST', $list_url, $request_options, 500, NULL, NULL, NULL, NULL);
     $this->assertSame([
-      'message' => 'Body does not match schema for content-type "application/json" for Request [post /xb/api/config/xb_asset_library]. [Keyword validation failed: Value cannot be null in label]',
+      'message' => 'Body does not match schema for content-type "application/json" for Request [post /xb/api/v0/config/xb_asset_library]. [Keyword validation failed: Value cannot be null in label]',
     ], $body, 'Fails with missing data.');
 
     // Add missing crucial data, but leave a required shape violation: 500,
@@ -1003,7 +1003,7 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
     $request_options[RequestOptions::BODY] = self::encodeXBData($asset_library_to_send);
     $body = $this->assertExpectedResponse('POST', $list_url, $request_options, 500, NULL, NULL, NULL, NULL);
     $this->assertSame([
-      'message' => 'Body does not match schema for content-type "application/json" for Request [post /xb/api/config/xb_asset_library]. [Keyword validation failed: Value cannot be null in css->compiled]',
+      'message' => 'Body does not match schema for content-type "application/json" for Request [post /xb/api/v0/config/xb_asset_library]. [Keyword validation failed: Value cannot be null in css->compiled]',
     ], $body, 'Fails with invalid shape.');
 
     // Meet data shape requirements, but violate internal consistency for
@@ -1026,7 +1026,7 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
     $request_options[RequestOptions::BODY] = self::encodeXBData($asset_library_to_send);
     $body = $this->assertExpectedResponse('POST', $list_url, $request_options, 201, NULL, NULL, NULL, NULL, [
       'Location' => [
-        "$base/xb/api/config/xb_asset_library/global",
+        "$base/xb/api/v0/config/xb_asset_library/global",
       ],
     ]);
     $this->assertSame($body, $asset_library_to_send);
@@ -1039,7 +1039,7 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
     $request_options[RequestOptions::BODY] = self::encodeXBData([
       'label' => $asset_library_to_send['label'],
     ]);
-    $body = $this->assertExpectedResponse('PATCH', Url::fromUri("base:/xb/api/config/xb_asset_library/global"), $request_options, 200, NULL, NULL, NULL, NULL);
+    $body = $this->assertExpectedResponse('PATCH', Url::fromUri("base:/xb/api/v0/config/xb_asset_library/global"), $request_options, 200, NULL, NULL, NULL, NULL);
     $this->assertSame($body, $asset_library_to_send);
 
     // @todo Test that creating an auto-save entry for the 'global' does not
@@ -1055,7 +1055,7 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
     ], $body);
 
     // Delete the Asset Library via the XB HTTP API: 204.
-    $body = $this->assertExpectedResponse('DELETE', Url::fromUri('base:/xb/api/config/xb_asset_library/global'), [], 204, NULL, NULL, NULL, NULL);
+    $body = $this->assertExpectedResponse('DELETE', Url::fromUri('base:/xb/api/v0/config/xb_asset_library/global'), [], 204, NULL, NULL, NULL, NULL);
     $this->assertNull($body);
 
     // Re-retrieve list: 200, empty list. Dynamic Page Cache miss.
@@ -1064,7 +1064,7 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
   }
 
   private function assertAuthenticationAndAuthorization(string $entity_type_id): void {
-    $list_url = Url::fromUri("base:/xb/api/config/$entity_type_id");
+    $list_url = Url::fromUri("base:/xb/api/v0/config/$entity_type_id");
 
     // Anonymously: 403.
     $body = $this->assertExpectedResponse('GET', $list_url, [], 403, ['user.permissions'], ['4xx-response', 'config:user.role.anonymous', 'http_response'], 'MISS', NULL);
@@ -1111,7 +1111,7 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
       // @see \Drupal\experience_builder\Controller\ApiComponentsController::getCacheableClientSideInfo()
       'user.roles:anonymous',
     ];
-    $body = $this->assertExpectedResponse('GET', Url::fromUri('base:/xb/api/config/component'), $request_options, 200, $expected_contexts, [
+    $body = $this->assertExpectedResponse('GET', Url::fromUri('base:/xb/api/v0/config/component'), $request_options, 200, $expected_contexts, [
       'CACHE_MISS_IF_UNCACHEABLE_HTTP_METHOD:form',
       'config:component_list',
       'config:core.extension',

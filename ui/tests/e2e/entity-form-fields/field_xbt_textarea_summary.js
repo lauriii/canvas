@@ -46,7 +46,7 @@ export const edit = (cy) => {
   // Trigger a new intercept for the summary change. This ensures the format
   // wait below captures its own update.
   cy.intercept({
-    url: '**/xb/api/layout/node/2',
+    url: '**/xb/api/v0/layout/node/2',
     times: 1,
     method: 'POST',
   }).as('updatePreview');
@@ -59,7 +59,7 @@ export const edit = (cy) => {
   // Trigger a new intercept for the format. This ensures the outer wait in the
   // main test waits for the third update.
   cy.intercept({
-    url: '**/xb/api/layout/node/2',
+    url: '**/xb/api/v0/layout/node/2',
     times: 1,
     method: 'POST',
   }).as('updatePreview');

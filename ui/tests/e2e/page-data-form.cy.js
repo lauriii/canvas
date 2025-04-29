@@ -46,7 +46,7 @@ describe('Page data form', () => {
     cy.get('@layersTree').findByText('Two Column').should('exist');
     cy.get('button[aria-label="Redo"]').should('be.enabled');
 
-    cy.intercept('PATCH', '**/xb/api/layout/node/1').as('patchPreview');
+    cy.intercept('PATCH', '**/xb/api/v0/layout/node/1').as('patchPreview');
     // Switch back to component inputs form.
     cy.clickComponentInPreview('Hero');
     cy.findByTestId('xb-contextual-panel--settings').click();

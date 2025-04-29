@@ -55,7 +55,7 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
     $this->expectException(AccessDeniedHttpException::class);
     $this->expectExceptionMessage("The 'edit any article content' permission is required.");
 
-    $this->request(Request::create('/xb/api/layout/node/1', method: 'POST', content: json_encode([
+    $this->request(Request::create('/xb/api/v0/layout/node/1', method: 'POST', content: json_encode([
       'layout' => [
         [
           'nodeType' => 'region',
@@ -70,7 +70,7 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
   }
 
   public function testEmpty(): void {
-    $this->request(Request::create('/xb/api/layout/node/1', method: 'POST', content: json_encode([
+    $this->request(Request::create('/xb/api/v0/layout/node/1', method: 'POST', content: json_encode([
       'layout' => [
         [
           'nodeType' => 'region',
@@ -90,7 +90,7 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
   }
 
   public function testMissingSlot(): void {
-    $this->request(Request::create('/xb/api/layout/node/1', method: 'POST', content: json_encode([
+    $this->request(Request::create('/xb/api/v0/layout/node/1', method: 'POST', content: json_encode([
       'layout' => [
         [
           'nodeType' => 'region',
@@ -160,11 +160,11 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
 
   public function test(): void {
     // Load the test data from the layout controller.
-    $content = $this->parentRequest(Request::create('/xb/api/layout/node/1'))->getContent();
+    $content = $this->parentRequest(Request::create('/xb/api/v0/layout/node/1'))->getContent();
     $this->assertIsString($content);
     $json = json_decode($content, TRUE);
     $model = $json['model'];
-    $this->request(Request::create('/xb/api/layout/node/1', method: 'POST', content: $this->filterLayoutForPost($content)));
+    $this->request(Request::create('/xb/api/v0/layout/node/1', method: 'POST', content: $this->filterLayoutForPost($content)));
     $autoSave = $this->container->get(AutoSaveManager::class);
     \assert($autoSave instanceof AutoSaveManager);
     $node = Node::load(1);
@@ -188,13 +188,13 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
       'type' => 'sdc.experience_builder.heading',
       'slots' => [],
     ];
-    $this->request(Request::create('/xb/api/layout/node/1', method: 'POST', content: \json_encode($json, JSON_THROW_ON_ERROR)));
+    $this->request(Request::create('/xb/api/v0/layout/node/1', method: 'POST', content: \json_encode($json, JSON_THROW_ON_ERROR)));
     \assert($autoSave instanceof AutoSaveManager);
     self::assertFalse($autoSave->getAutoSaveData($node)->isEmpty());
 
     // Now re-fetch the layout to confirm we don't update the hash if an auto-save
     // entry already exists.
-    $content = $this->parentRequest(Request::create('/xb/api/layout/node/1'))->getContent();
+    $content = $this->parentRequest(Request::create('/xb/api/v0/layout/node/1'))->getContent();
     self::assertIsString($content);
     $json = json_decode($content, TRUE);
     self::assertFalse($autoSave->getAutoSaveData($node)->isEmpty());
@@ -208,13 +208,13 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
     }
 
     // Load the test data from the layout controller.
-    $content = $this->parentRequest(Request::create('/xb/api/layout/node/1'))->getContent();
+    $content = $this->parentRequest(Request::create('/xb/api/v0/layout/node/1'))->getContent();
     $this->assertIsString($content);
     $json = json_decode($content, TRUE);
     $highlightedRegion = \array_filter($json['layout'], static fn (array $region) => ($region['id'] ?? NULL) === 'highlighted');
     self::assertCount(1, $highlightedRegion);
     self::assertGreaterThanOrEqual(1, \count(\reset($highlightedRegion)['components']));
-    $this->request(Request::create('/xb/api/layout/node/1', method: 'POST', content: $this->filterLayoutForPost($content)));
+    $this->request(Request::create('/xb/api/v0/layout/node/1', method: 'POST', content: $this->filterLayoutForPost($content)));
     $autoSave = $this->container->get(AutoSaveManager::class);
     \assert($autoSave instanceof AutoSaveManager);
     $node = Node::load(1);
@@ -240,7 +240,7 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
       'type' => 'sdc.experience_builder.heading',
       'slots' => [],
     ];
-    $this->request(Request::create('/xb/api/layout/node/1', method: 'POST', content: \json_encode($json, JSON_THROW_ON_ERROR)));
+    $this->request(Request::create('/xb/api/v0/layout/node/1', method: 'POST', content: \json_encode($json, JSON_THROW_ON_ERROR)));
     $autoSave = $this->container->get(AutoSaveManager::class);
     \assert($autoSave instanceof AutoSaveManager);
     self::assertTrue($autoSave->getAutoSaveData($node)->isEmpty());
@@ -263,12 +263,12 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
     }
 
     // Load the test data from the layout controller.
-    $content = $this->parentRequest(Request::create('/xb/api/layout/node/1'))->getContent();
+    $content = $this->parentRequest(Request::create('/xb/api/v0/layout/node/1'))->getContent();
     $this->assertIsString($content);
     $json = json_decode($content, TRUE);
     $highlightedRegion = \array_filter($json['layout'], static fn (array $region) => ($region['id'] ?? NULL) === 'highlighted');
     self::assertEmpty($highlightedRegion);
-    $this->request(Request::create('/xb/api/layout/node/1', method: 'POST', content: $this->filterLayoutForPost($content)));
+    $this->request(Request::create('/xb/api/v0/layout/node/1', method: 'POST', content: $this->filterLayoutForPost($content)));
     $autoSave = $this->container->get(AutoSaveManager::class);
     \assert($autoSave instanceof AutoSaveManager);
     $node = Node::load(1);
@@ -304,7 +304,7 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
     $this->expectException(AccessDeniedHttpException::class);
     $this->expectExceptionMessage('Access denied for region highlighted');
 
-    $this->request(Request::create('/xb/api/layout/node/1', method: 'POST', content: \json_encode($json, JSON_THROW_ON_ERROR)));
+    $this->request(Request::create('/xb/api/v0/layout/node/1', method: 'POST', content: \json_encode($json, JSON_THROW_ON_ERROR)));
   }
 
   public function testWithDraftCodeComponent(): void {
@@ -355,7 +355,7 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
     $autoSave->save($code_component, $saved_component_values);
 
     // Load the test data from the layout controller.
-    $content = $this->parentRequest(Request::create('/xb/api/layout/node/1'))->getContent() ?: '';
+    $content = $this->parentRequest(Request::create('/xb/api/v0/layout/node/1'))->getContent() ?: '';
     $this->assertJson($content);
     $json = json_decode($content, TRUE, JSON_THROW_ON_ERROR);
 
@@ -401,7 +401,7 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
     $this->container->get(ConfigFactoryInterface::class)->reset();
 
     unset($json['isNew'], $json['isPublished'], $json['html']);
-    $this->request(Request::create('/xb/api/layout/node/1', method: 'POST', content: \json_encode($json, JSON_THROW_ON_ERROR)));
+    $this->request(Request::create('/xb/api/v0/layout/node/1', method: 'POST', content: \json_encode($json, JSON_THROW_ON_ERROR)));
     // Check that regions exist and are wrapped.
     $content_region = $this->getRegion('content');
     self::assertNotNull($content_region);
@@ -510,7 +510,7 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
    * @see \Drupal\Tests\experience_builder\Kernel\Config\ComponentTest::testComponentAutoCreate()
    */
   public function testImageComponentPermutations(string $sdc, string $expected_preview_html): void {
-    $content = $this->parentRequest(Request::create('/xb/api/layout/node/1'))->getContent();
+    $content = $this->parentRequest(Request::create('/xb/api/v0/layout/node/1'))->getContent();
     $this->assertIsString($content);
     $json = json_decode($content, TRUE);
 
@@ -572,7 +572,7 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
     $expected_preview_html = str_replace('!!REFERENCED_MEDIA!!', $reference_media->field_media_image->entity->createFileUrl(), $expected_preview_html);
 
     unset($json['html'], $json['isPublished'], $json['isNew']);
-    $this->request(Request::create('/xb/api/layout/node/1', method: 'POST', content: json_encode($json, JSON_THROW_ON_ERROR)));
+    $this->request(Request::create('/xb/api/v0/layout/node/1', method: 'POST', content: json_encode($json, JSON_THROW_ON_ERROR)));
     // Ensure the component is rendered using the expected markup.
     $this->assertRaw('<!-- xb-start-166c9eee-35e9-4795-8c6f-24537728e95e -->' . $expected_preview_html . '<!-- xb-end-166c9eee-35e9-4795-8c6f-24537728e95e -->');
   }

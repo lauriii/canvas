@@ -54,7 +54,7 @@ final class XbContentEntityHttpApiTest extends HttpApiTestBase {
   }
 
   public function testPost(): void {
-    $url = Url::fromUri('base:/xb/api/content/xb_page');
+    $url = Url::fromUri('base:/xb/api/v0/content/xb_page');
     $request_options = [
       RequestOptions::HEADERS => [
         'Content-Type' => 'application/json',
@@ -76,7 +76,7 @@ final class XbContentEntityHttpApiTest extends HttpApiTestBase {
   }
 
   public function testList(): void {
-    $url = Url::fromUri('base:/xb/api/content/xb_page');
+    $url = Url::fromUri('base:/xb/api/v0/content/xb_page');
 
     $this->assertAuthenticationAndAuthorization($url, 'GET');
 
@@ -202,7 +202,7 @@ final class XbContentEntityHttpApiTest extends HttpApiTestBase {
   }
 
   public function testDelete(): void {
-    $url = Url::fromUri('base:/xb/api/content/xb_page/1');
+    $url = Url::fromUri('base:/xb/api/v0/content/xb_page/1');
     $request_options = [
       RequestOptions::HEADERS => [
         'Content-Type' => 'application/json',
@@ -225,7 +225,7 @@ final class XbContentEntityHttpApiTest extends HttpApiTestBase {
   }
 
   public function testDuplicate(): void {
-    $url = Url::fromUri('base:/xb/api/content/xb_page');
+    $url = Url::fromUri('base:/xb/api/v0/content/xb_page');
     $request_options = [
       RequestOptions::HEADERS => [
         'Content-Type' => 'application/json',
@@ -290,7 +290,7 @@ final class XbContentEntityHttpApiTest extends HttpApiTestBase {
       ],
     ]);
 
-    $url = Url::fromUri('base:/xb/api/content/xb_page');
+    $url = Url::fromUri('base:/xb/api/v0/content/xb_page');
     $request_options[RequestOptions::BODY] = json_encode(['entity_id' => '4']);
     $response = $this->makeApiRequest('POST', $url, $request_options);
     $this->assertSame(201, $response->getStatusCode());

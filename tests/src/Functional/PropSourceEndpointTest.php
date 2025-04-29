@@ -52,7 +52,7 @@ class PropSourceEndpointTest extends FunctionalTestBase {
     ]);
     $node->save();
     $this->drupalLogin($this->rootUser);
-    $this->drupalGet('xb/api/config/component');
+    $this->drupalGet('xb/api/v0/config/component');
 
     $expected_tags = [
       'CACHE_MISS_IF_UNCACHEABLE_HTTP_METHOD:form',
@@ -107,7 +107,7 @@ class PropSourceEndpointTest extends FunctionalTestBase {
     // available to anonymous users).
     $this->assertSession()->responseHeaderEquals('X-Drupal-Dynamic-Cache', 'MISS');
     $this->assertSession()->responseHeaderEquals('X-Drupal-Cache', 'UNCACHEABLE (request policy)');
-    $this->drupalGet('xb/api/config/component');
+    $this->drupalGet('xb/api/v0/config/component');
     $this->assertSession()->responseHeaderEquals('X-Drupal-Dynamic-Cache', 'HIT');
     $this->assertSession()->responseHeaderEquals('X-Drupal-Cache', 'UNCACHEABLE (request policy)');
 
@@ -157,7 +157,7 @@ class PropSourceEndpointTest extends FunctionalTestBase {
     // the list of Components returned.
     \Drupal::configFactory()->getEditable('system.theme')->set('default', 'olivero')->save();
     $this->rebuildAll();
-    $this->drupalGet('xb/api/config/component');
+    $this->drupalGet('xb/api/v0/config/component');
     $data = Json::decode($page->getText());
     $this->assertSession()->responseHeaderEquals('X-Drupal-Dynamic-Cache', 'MISS');
     $this->assertSession()->responseHeaderEquals('X-Drupal-Cache', 'UNCACHEABLE (request policy)');
@@ -165,7 +165,7 @@ class PropSourceEndpointTest extends FunctionalTestBase {
     $this->assertSame('olivero', $this->config('system.theme')->get('default'));
     $this->assertArrayHasKey('sdc.olivero.teaser', $data);
     // Repeated request is again a Dynamic Page Cache hit.
-    $this->drupalGet('xb/api/config/component');
+    $this->drupalGet('xb/api/v0/config/component');
     $this->assertSession()->responseHeaderEquals('X-Drupal-Dynamic-Cache', 'HIT');
     $this->assertSession()->responseHeaderEquals('X-Drupal-Cache', 'UNCACHEABLE (request policy)');
   }

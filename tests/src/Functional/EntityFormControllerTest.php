@@ -37,10 +37,10 @@ class EntityFormControllerTest extends FunctionalTestBase {
     $assert = $this->assertSession();
     $this->createTestNode();
 
-    $this->assertFormResponse('xb/api/form/content-entity/node/1/default', TRUE);
-    $this->assertFormResponse('xb/api/form/content-entity/node/1', TRUE);
+    $this->assertFormResponse('xb/api/v0/form/content-entity/node/1/default', TRUE);
+    $this->assertFormResponse('xb/api/v0/form/content-entity/node/1', TRUE);
 
-    $new_form_mode_path = 'xb/api/form/content-entity/node/1/mode2';
+    $new_form_mode_path = 'xb/api/v0/form/content-entity/node/1/mode2';
     // Try to retrieve the form using the new form mode before it is created.
     $this->drupalGet($new_form_mode_path);
     $assert->statusCodeEquals(500);

@@ -21,7 +21,7 @@ export const dummyPropsFormApi = createApi({
           `${queryString}&_nocache=${timestamp}`,
         );
         return {
-          url: `xb/api/form/component-instance/{entity_type}/{entity_id}`,
+          url: `xb/api/v0/form/component-instance/{entity_type}/{entity_id}`,
           // We use PATCH to keep this distinct from AJAX form submissions which
           // use POST.
           method: 'PATCH',

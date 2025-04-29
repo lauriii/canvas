@@ -146,7 +146,7 @@ describe('Operate on components in global regions', () => {
 
     cy.get('@layersTree').findAllByText('Hero').click();
 
-    cy.intercept('POST', '**/xb/api/layout/node/1').as('getPreview');
+    cy.intercept('POST', '**/xb/api/v0/layout/node/1').as('getPreview');
     cy.log(
       'Drag static hero component out of the content region into the highlighted region.',
     );

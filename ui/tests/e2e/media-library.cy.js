@@ -86,7 +86,7 @@ const testMediaLibraryInEntityForm = (cy, loadOptions = {}, title) => {
   );
   cy.findByTestId('xb-page-data-form').as('entityForm');
   // Log all ajax form requests to help with debugging.
-  cy.intercept('POST', '**/xb/api/form/content-entity/**');
+  cy.intercept('POST', '**/xb/api/v0/form/content-entity/**');
   // Make a record of the starting form build ID for the form
   cy.get('@entityForm').recordFormBuildId();
 
@@ -95,7 +95,7 @@ const testMediaLibraryInEntityForm = (cy, loadOptions = {}, title) => {
     cy.findByRole('dialog').should('not.exist');
     cy.get('@entityForm').findByRole(step.expectedAlt).should('not.exist');
     if (ix > 0) {
-      cy.intercept('POST', '**/xb/api/layout/**').as('updatePreview');
+      cy.intercept('POST', '**/xb/api/v0/layout/**').as('updatePreview');
       cy.get('@entityForm')
         .findByRole('button', { name: step.removeText })
         .should('exist')
@@ -114,7 +114,7 @@ const testMediaLibraryInEntityForm = (cy, loadOptions = {}, title) => {
     cy.findByRole('dialog', { timeout: 10000 }).as('dialog');
     cy.get('@entityForm').shouldHaveUpdatedFormBuildId();
     cy.get('@dialog').findByLabelText(step.selectNewText).check();
-    cy.intercept('POST', '**/xb/api/layout/**').as('updatePreview');
+    cy.intercept('POST', '**/xb/api/v0/layout/**').as('updatePreview');
     cy.get('@dialog')
       .findByRole('button', {
         name: 'Insert selected',

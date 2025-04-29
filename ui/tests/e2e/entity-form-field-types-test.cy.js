@@ -36,7 +36,7 @@ describe('Entity form field types', () => {
     );
     cy.findByTestId('xb-page-data-form').as('entityForm');
     // Log all ajax form requests to help with debugging.
-    cy.intercept('POST', '**/xb/api/form/content-entity/**');
+    cy.intercept('POST', '**/xb/api/v0/form/content-entity/**');
     // Make a record of the starting form build ID for the form
     cy.get('@entityForm').recordFormBuildId();
 
@@ -50,7 +50,7 @@ describe('Entity form field types', () => {
     Object.entries(fields).forEach(([key, value]) => {
       cy.log(`Performing edits for ${key}`);
       cy.intercept({
-        url: '**/xb/api/layout/node/2',
+        url: '**/xb/api/v0/layout/node/2',
         times: 1,
         method: 'POST',
       }).as('updatePreview');

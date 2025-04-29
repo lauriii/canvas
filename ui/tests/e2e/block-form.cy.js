@@ -80,7 +80,7 @@ describe('Block form', () => {
     cy.waitForElementContentNotInIframe('div.site-branding__inner', 'Drupal');
 
     // Publish the page with the new component.
-    cy.intercept('POST', '**/xb/api/auto-saves/publish').as('publish');
+    cy.intercept('POST', '**/xb/api/v0/auto-saves/publish').as('publish');
 
     // Extra long timeout here, because the poll to get changes is every 10 seconds.
     cy.debugPause('Manually check changes in the XB UI');

@@ -23,14 +23,14 @@ entity.component.enable:
     _csrf_token: 'TRUE'
 
 experience_builder.api.auto-save.get:
-  path: '/xb/api/auto-saves/pending'
+  path: '/xb/api/v0/auto-saves/pending'
   defaults:
     _controller: 'Drupal\experience_builder\Controller\ApiAutoSaveController::get'
   requirements:
     _permission: 'access administration pages'
   methods: ['GET']
 experience_builder.api.auto-save.post:
-  path: '/xb/api/auto-saves/publish'
+  path: '/xb/api/v0/auto-saves/publish'
   defaults:
     _controller: 'Drupal\experience_builder\Controller\ApiAutoSaveController::post'
   requirements:
@@ -38,7 +38,7 @@ experience_builder.api.auto-save.post:
   methods: [POST]
 
 experience_builder.api.config.auto-save.get:
-  path: '/xb/api/config/auto-save/{xb_config_entity_type_id}/{xb_config_entity}'
+  path: '/xb/api/v0/config/auto-save/{xb_config_entity_type_id}/{xb_config_entity}'
   defaults:
     _controller: 'Drupal\experience_builder\Controller\ApiConfigAutoSaveControllers::get'
   requirements:
@@ -53,7 +53,7 @@ experience_builder.api.config.auto-save.get:
         type: entity:{xb_config_entity_type_id}
   methods: [GET]
 experience_builder.api.config.auto-save.get.css:
-  path: '/xb/api/auto-saves/css/{xb_config_entity_type_id}/{xb_config_entity}'
+  path: '/xb/api/v0/auto-saves/css/{xb_config_entity_type_id}/{xb_config_entity}'
   defaults:
     _controller: 'Drupal\experience_builder\Controller\ApiConfigAutoSaveControllers::getCss'
   requirements:
@@ -67,7 +67,7 @@ experience_builder.api.config.auto-save.get.css:
       xb_config_entity:
         type: entity:{xb_config_entity_type_id}
 experience_builder.api.config.auto-save.get.js:
-  path: '/xb/api/auto-saves/js/{xb_config_entity_type_id}/{xb_config_entity}'
+  path: '/xb/api/v0/auto-saves/js/{xb_config_entity_type_id}/{xb_config_entity}'
   defaults:
     _controller: 'Drupal\experience_builder\Controller\ApiConfigAutoSaveControllers::getJs'
   requirements:
@@ -81,7 +81,7 @@ experience_builder.api.config.auto-save.get.js:
       xb_config_entity:
         type: entity:{xb_config_entity_type_id}
 experience_builder.api.config.auto-save.patch:
-  path: '/xb/api/config/auto-save/{xb_config_entity_type_id}/{xb_config_entity}'
+  path: '/xb/api/v0/config/auto-save/{xb_config_entity_type_id}/{xb_config_entity}'
   defaults:
     _controller: 'Drupal\experience_builder\Controller\ApiConfigAutoSaveControllers::patch'
   requirements:
@@ -97,7 +97,7 @@ experience_builder.api.config.auto-save.patch:
   methods: [PATCH]
 
 experience_builder.api.config.delete:
-  path: '/xb/api/config/{xb_config_entity_type_id}/{xb_config_entity}'
+  path: '/xb/api/v0/config/{xb_config_entity_type_id}/{xb_config_entity}'
   defaults:
     _controller: 'Drupal\experience_builder\Controller\ApiConfigControllers::delete'
   requirements:
@@ -112,7 +112,7 @@ experience_builder.api.config.delete:
         type: entity:{xb_config_entity_type_id}
   methods: [DELETE]
 experience_builder.api.config.get:
-  path: '/xb/api/config/{xb_config_entity_type_id}/{xb_config_entity}'
+  path: '/xb/api/v0/config/{xb_config_entity_type_id}/{xb_config_entity}'
   defaults:
     _controller: 'Drupal\experience_builder\Controller\ApiConfigControllers::get'
   requirements:
@@ -126,7 +126,7 @@ experience_builder.api.config.get:
         type: entity:{xb_config_entity_type_id}
   methods: [GET]
 experience_builder.api.config.list:
-  path: '/xb/api/config/{xb_config_entity_type_id}'
+  path: '/xb/api/v0/config/{xb_config_entity_type_id}'
   defaults:
     _controller: 'Drupal\experience_builder\Controller\ApiConfigControllers::list'
   requirements:
@@ -142,7 +142,7 @@ experience_builder.api.config.list:
     _user_is_logged_in: 'TRUE'
   methods: [GET]
 experience_builder.api.config.patch:
-  path: '/xb/api/config/{xb_config_entity_type_id}/{xb_config_entity}'
+  path: '/xb/api/v0/config/{xb_config_entity_type_id}/{xb_config_entity}'
   defaults:
     _controller: 'Drupal\experience_builder\Controller\ApiConfigControllers::patch'
   requirements:
@@ -156,7 +156,7 @@ experience_builder.api.config.patch:
         type: entity:{xb_config_entity_type_id}
   methods: [PATCH]
 experience_builder.api.config.post:
-  path: '/xb/api/config/{xb_config_entity_type_id}'
+  path: '/xb/api/v0/config/{xb_config_entity_type_id}'
   defaults:
     _controller: 'Drupal\experience_builder\Controller\ApiConfigControllers::post'
   requirements:
@@ -169,7 +169,7 @@ experience_builder.api.config.post:
 
 # @todo https://www.drupal.org/i/3498525 should generalize this to all eligible content entity types by using a route callback
 experience_builder.api.content.create:
-  path: '/xb/api/content/{entity_type}'
+  path: '/xb/api/v0/content/{entity_type}'
   defaults:
     _controller: 'Drupal\experience_builder\Controller\ApiContentControllers::post'
   requirements:
@@ -177,7 +177,7 @@ experience_builder.api.content.create:
   methods: ['POST']
 # @todo https://www.drupal.org/i/3498525 should generalize this to all eligible content entity types by using a route callback
 experience_builder.api.content.delete:
-  path: '/xb/api/content/xb_page/{xb_page}'
+  path: '/xb/api/v0/content/xb_page/{xb_page}'
   defaults:
     _controller: 'Drupal\experience_builder\Controller\ApiContentControllers::delete'
   requirements:
@@ -189,7 +189,7 @@ experience_builder.api.content.delete:
   methods: ['DELETE']
 # @todo https://www.drupal.org/i/3498525 should generalize this to all eligible content entity types by using a route callback
 experience_builder.api.content.list:
-  path: '/xb/api/content/{entity_type}'
+  path: '/xb/api/v0/content/{entity_type}'
   defaults:
     _controller: 'Drupal\experience_builder\Controller\ApiContentControllers::list'
   requirements:
@@ -199,7 +199,7 @@ experience_builder.api.content.list:
 # Forms: component instance and content entity.
 # @see \Drupal\experience_builder\Theme\XBThemeNegotiator::applies()
 experience_builder.api.form.component_inputs:
-  path: '/xb/api/form/component-instance/{entity_type}/{entity}'
+  path: '/xb/api/v0/form/component-instance/{entity_type}/{entity}'
   defaults:
     _form: 'Drupal\experience_builder\Form\ComponentInputsForm'
     _title: 'Component Inputs Form'
@@ -220,7 +220,7 @@ experience_builder.api.form.component_inputs:
     # Used by Drupal's AJAX system.
     - POST
 experience_builder.api.form.content_entity:
-  path: '/xb/api/form/content-entity/{entity_type}/{entity}/{entity_form_mode}'
+  path: '/xb/api/v0/form/content-entity/{entity_type}/{entity}/{entity_form_mode}'
   defaults:
     # It is not possible to use '_entity_form' as a default because form mode is not taken into account.
     # When '_entity_form' is used as a default with 2 parts, for example 'node.default', the 2nd part is the form
@@ -248,7 +248,7 @@ experience_builder.api.form.content_entity:
     - POST
 
 experience_builder.api.layout.get:
-  path: '/xb/api/layout/{entity_type}/{entity}'
+  path: '/xb/api/v0/layout/{entity_type}/{entity}'
   defaults:
     _controller: 'Drupal\experience_builder\Controller\ApiLayoutController::get'
     # We need a title callback because we use the HTML renderer to generate the preview.
@@ -262,7 +262,7 @@ experience_builder.api.layout.get:
         type: entity:{entity_type}
   methods: [GET]
 experience_builder.api.layout.patch:
-  path: '/xb/api/layout/{entity_type}/{entity}'
+  path: '/xb/api/v0/layout/{entity_type}/{entity}'
   defaults:
     _controller: 'Drupal\experience_builder\Controller\ApiLayoutController::patch'
     # We need a title callback because we use the HTML renderer to generate the preview.
@@ -277,7 +277,7 @@ experience_builder.api.layout.patch:
         type: entity:{entity_type}
   methods: [PATCH]
 experience_builder.api.layout.post:
-  path: '/xb/api/layout/{entity_type}/{entity}'
+  path: '/xb/api/v0/layout/{entity_type}/{entity}'
   defaults:
     _controller: 'Drupal\experience_builder\Controller\ApiLayoutController::post'
     # We need a title callback because we use the HTML renderer to generate the preview.
@@ -292,7 +292,7 @@ experience_builder.api.layout.post:
   methods: [POST]
 
 experience_builder.api.log_error:
-  path: '/xb/api/log-error'
+  path: '/xb/api/v0/log-error'
   defaults:
     _controller: 'Drupal\experience_builder\Controller\ApiLogController'
   requirements:

@@ -26,7 +26,7 @@ export const contentApi = createApi({
   tagTypes: ['Content'],
   endpoints: (builder) => ({
     getContentList: builder.query<ContentStub[], string>({
-      query: (entityType) => `/xb/api/content/${entityType}`,
+      query: (entityType) => `/xb/api/v0/content/${entityType}`,
       transformResponse: (response: ContentListResponse) => {
         return Object.values(response);
       },
@@ -34,7 +34,7 @@ export const contentApi = createApi({
     }),
     deleteContent: builder.mutation<void, DeleteContentRequest>({
       query: ({ entityType, entityId }) => ({
-        url: `/xb/api/content/${entityType}/${entityId}`,
+        url: `/xb/api/v0/content/${entityType}/${entityId}`,
         method: 'DELETE',
       }),
       invalidatesTags: [{ type: 'Content', id: 'LIST' }],
@@ -44,7 +44,7 @@ export const contentApi = createApi({
       CreateContentRequest
     >({
       query: ({ entity_type, entity_id }) => ({
-        url: `/xb/api/content/${entity_type}`,
+        url: `/xb/api/v0/content/${entity_type}`,
         method: 'POST',
         body: entity_id ? { entity_id } : {},
       }),

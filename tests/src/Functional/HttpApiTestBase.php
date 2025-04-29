@@ -80,7 +80,7 @@ abstract class HttpApiTestBase extends FunctionalTestBase {
         'Content-Type' => 'application/json',
       ],
     ];
-    $auto_save_url = Url::fromUri("base:/xb/api/config/auto-save/$entity_type_id/$entity_id");
+    $auto_save_url = Url::fromUri("base:/xb/api/v0/config/auto-save/$entity_type_id/$entity_id");
     $request_options[RequestOptions::JSON] = $data_to_auto_save;
     $patch_response = $this->assertExpectedResponse('PATCH', $auto_save_url, $request_options, 200, NULL, NULL, NULL, NULL);
     $this->assertSame([], $patch_response);
@@ -97,7 +97,7 @@ abstract class HttpApiTestBase extends FunctionalTestBase {
         'Content-Type' => 'application/json',
       ],
     ];
-    $auto_save_url = Url::fromUri("base:/xb/api/config/auto-save/$entity_type_id/$entity_id");
+    $auto_save_url = Url::fromUri("base:/xb/api/v0/config/auto-save/$entity_type_id/$entity_id");
 
     // First GET request: auto-save retrieved successfully?
     // - 200 if there is a current auto-save

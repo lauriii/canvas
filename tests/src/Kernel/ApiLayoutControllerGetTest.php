@@ -352,7 +352,7 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
   public function testStatusFlags(): void {
     $this->setUpCurrentUser(permissions: ['access administration pages', Page::CREATE_PERMISSION]);
 
-    $request = Request::create('/xb/api/content/xb_page', 'POST', [], [], [], ['CONTENT_TYPE' => 'application/json'], json_encode([], JSON_THROW_ON_ERROR));
+    $request = Request::create('/xb/api/v0/content/xb_page', 'POST', [], [], [], ['CONTENT_TYPE' => 'application/json'], json_encode([], JSON_THROW_ON_ERROR));
     $content = $this->parentRequest($request)->getContent();
 
     self::assertIsString($content);
@@ -369,7 +369,7 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
   }
 
   private function assertStatusFlags(int $entity_id, bool $isNew, bool $isPublished): void {
-    $content = $this->parentRequest(Request::create('/xb/api/layout/xb_page/' . $entity_id))->getContent();
+    $content = $this->parentRequest(Request::create('/xb/api/v0/layout/xb_page/' . $entity_id))->getContent();
     self::assertIsString($content);
     $json = json_decode($content, TRUE);
     self::assertSame($isNew, $json['isNew']);

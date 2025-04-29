@@ -30,7 +30,7 @@ export const componentAndLayoutApi = createApi({
       ComponentsList,
       getComponentsQueryOptions | void
     >({
-      query: () => `xb/api/config/component`,
+      query: () => `xb/api/v0/config/component`,
       providesTags: () => [{ type: 'Components', id: 'LIST' }],
       transformResponse: (response: ComponentsList, meta, arg) => {
         if (!arg || !Array.isArray(arg.libraries)) {
@@ -54,7 +54,7 @@ export const componentAndLayoutApi = createApi({
       },
     }),
     getLayoutById: builder.query<LayoutApiResponse, string>({
-      query: (nodeId) => `xb/api/layout/{entity_type}/${nodeId}`,
+      query: (nodeId) => `xb/api/v0/layout/{entity_type}/${nodeId}`,
       providesTags: () => [{ type: 'Layout' }],
       async onQueryStarted(id, { dispatch, queryFulfilled }) {
         try {
@@ -72,7 +72,7 @@ export const componentAndLayoutApi = createApi({
       Record<string, CodeComponentSerialized>,
       { status?: boolean; override?: boolean } | void
     >({
-      query: () => 'xb/api/config/js_component',
+      query: () => 'xb/api/v0/config/js_component',
       providesTags: () => [{ type: 'CodeComponents', id: 'LIST' }],
       transformResponse: (
         response: Record<string, CodeComponentSerialized>,
@@ -108,7 +108,7 @@ export const componentAndLayoutApi = createApi({
       },
     }),
     getCodeComponent: builder.query<CodeComponentSerialized, string>({
-      query: (id) => `xb/api/config/js_component/${id}`,
+      query: (id) => `xb/api/v0/config/js_component/${id}`,
       providesTags: (result, error, id) => [{ type: 'CodeComponents', id }],
     }),
     createCodeComponent: builder.mutation<
@@ -116,7 +116,7 @@ export const componentAndLayoutApi = createApi({
       Partial<CodeComponentSerialized>
     >({
       query: (body) => ({
-        url: 'xb/api/config/js_component',
+        url: 'xb/api/v0/config/js_component',
         method: 'POST',
         body,
       }),
@@ -127,7 +127,7 @@ export const componentAndLayoutApi = createApi({
       { id: string; changes: Partial<CodeComponentSerialized> }
     >({
       query: ({ id, changes }) => ({
-        url: `xb/api/config/js_component/${id}`,
+        url: `xb/api/v0/config/js_component/${id}`,
         method: 'PATCH',
         body: changes,
       }),
@@ -141,7 +141,7 @@ export const componentAndLayoutApi = createApi({
     }),
     deleteCodeComponent: builder.mutation<void, string>({
       query: (id) => ({
-        url: `xb/api/config/js_component/${id}`,
+        url: `xb/api/v0/config/js_component/${id}`,
         method: 'DELETE',
       }),
       // Manually delete the cache entry for the deleted component.
@@ -173,7 +173,7 @@ export const componentAndLayoutApi = createApi({
       ],
     }),
     getAutoSave: builder.query<CodeComponentSerialized, string>({
-      query: (id) => `xb/api/config/auto-save/js_component/${id}`,
+      query: (id) => `xb/api/v0/config/auto-save/js_component/${id}`,
       providesTags: (result, error, id) => [
         { type: 'CodeComponentAutoSave', id },
       ],
@@ -183,7 +183,7 @@ export const componentAndLayoutApi = createApi({
       { id: string; data: Partial<CodeComponentSerialized> }
     >({
       query: ({ id, data }) => ({
-        url: `xb/api/config/auto-save/js_component/${id}`,
+        url: `xb/api/v0/config/auto-save/js_component/${id}`,
         method: 'PATCH',
         body: data,
       }),

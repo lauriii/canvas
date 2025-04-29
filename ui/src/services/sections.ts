@@ -15,12 +15,12 @@ export const sectionApi = createApi({
   tagTypes: ['Sections'],
   endpoints: (builder) => ({
     getSections: builder.query<SectionsList, void>({
-      query: () => `/xb/api/config/pattern`,
+      query: () => `/xb/api/v0/config/pattern`,
       providesTags: () => [{ type: 'Sections', id: 'LIST' }],
     }),
     saveSection: builder.mutation<{ html: string }, SaveSectionData>({
       query: (body) => ({
-        url: '/xb/api/config/pattern',
+        url: '/xb/api/v0/config/pattern',
         method: 'POST',
         body,
       }),
@@ -28,7 +28,7 @@ export const sectionApi = createApi({
     }),
     deleteSection: builder.mutation<void, string>({
       query: (id) => ({
-        url: `/xb/api/config/pattern/${id}`,
+        url: `/xb/api/v0/config/pattern/${id}`,
         method: 'DELETE',
       }),
       invalidatesTags: () => [{ type: 'Sections', id: 'LIST' }],

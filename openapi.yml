@@ -30,7 +30,7 @@ info:
 # @see https://spec.openapis.org/oas/v3.1.0.html#paths-object
 # @see https://spec.openapis.org/oas/v3.1.0.html#path-item-object
 paths:
-  /xb/api/auto-saves/css/js_component/{configEntityId}:
+  /xb/api/v0/auto-saves/css/js_component/{configEntityId}:
     description: Get draft CSS for a given component
     get:
       description: Get draft CSS for a given component
@@ -44,7 +44,7 @@ paths:
           content:
             text/css:
               example: '.large {font-size: 3rem;}'
-  /xb/api/auto-saves/css/xb_asset_library/{configEntityId}:
+  /xb/api/v0/auto-saves/css/xb_asset_library/{configEntityId}:
     description: Get draft CSS for given asset library
     get:
       description: Get draft CSS for given asset library
@@ -58,7 +58,7 @@ paths:
           content:
             text/css:
               example: '.large {font-size: 3rem;}'
-  /xb/api/auto-saves/js/js_component/{configEntityId}:
+  /xb/api/v0/auto-saves/js/js_component/{configEntityId}:
     description: Get draft JS for a given component
     get:
       description: Get draft JS for a given component
@@ -72,7 +72,7 @@ paths:
           content:
             text/javascript:
               example: 'console.log("hey");'
-  /xb/api/auto-saves/js/xb_asset_library/{configEntityId}:
+  /xb/api/v0/auto-saves/js/xb_asset_library/{configEntityId}:
     description: Get draft JS for given asset library
     get:
       description: Get draft JS for given asset library
@@ -86,7 +86,7 @@ paths:
           content:
             text/javascript:
               example: 'console.log("hey");'
-  /xb/api/auto-saves/pending:
+  /xb/api/v0/auto-saves/pending:
     description: TODO
     get:
       description: TODO
@@ -137,7 +137,7 @@ paths:
 
               schema:
                 $ref: '#/components/schemas/AutoSaveCollection'
-  /xb/api/auto-saves/publish:
+  /xb/api/v0/auto-saves/publish:
     description: TODO
     post:
       description: TODO
@@ -173,7 +173,7 @@ paths:
                       - No items to publish
         '422':
           $ref: '#/components/responses/ClientErrorResponse'
-  /xb/api/config/auto-save/{entityTypeId}/{configEntityId}:
+  /xb/api/v0/config/auto-save/{entityTypeId}/{configEntityId}:
     description: Auto-save endpoints
     get:
       description: Gets an auto-save state
@@ -203,7 +203,7 @@ paths:
           description: Invalid auto-save state.
         '200':
           description: Auto-save state updated successfully.
-  /xb/api/config/component:
+  /xb/api/v0/config/component:
     description: TODO
     get:
       description: TODO
@@ -277,7 +277,7 @@ paths:
                 # @see \Drupal\Core\Plugin\Component::$machineName
                 additionalProperties:
                   $ref: '#/components/schemas/Component'
-  /xb/api/config/js_component:
+  /xb/api/v0/config/js_component:
     get:
       description: Collection of Code Components
       responses:
@@ -316,7 +316,7 @@ paths:
         '422':
           description: Validation errors exist
           $ref: '#/components/responses/ClientErrorResponse'
-  /xb/api/config/js_component/{configEntityId}:
+  /xb/api/v0/config/js_component/{configEntityId}:
     description: Code Component endpoints
     delete:
       description: Deletes Code Component
@@ -362,7 +362,7 @@ paths:
         '403':
           description: Access denied response.
           $ref: '#/components/responses/AuthenticationErrorResponse'
-  /xb/api/config/pattern:
+  /xb/api/v0/config/pattern:
     description: TODO
     get:
       description: TODO
@@ -438,7 +438,7 @@ paths:
         '422':
           description: Validation errors exist
           $ref: '#/components/responses/ClientErrorResponse'
-  '/xb/api/config/pattern/{configEntityId}':
+  '/xb/api/v0/config/pattern/{configEntityId}':
     description: TODO
     get:
       description: TODO
@@ -476,7 +476,7 @@ paths:
       responses:
         '204':
           description: Deleted individual Section/Pattern.
-  /xb/api/config/xb_asset_library:
+  /xb/api/v0/config/xb_asset_library:
     description: Endpoint for managing asset libraries.
     get:
       description: Retrieves all available asset libraries.
@@ -572,7 +572,7 @@ paths:
         '422':
           description: Validation errors exist
           $ref: '#/components/responses/ClientErrorResponse'
-  '/xb/api/config/xb_asset_library/{configEntityId}':
+  '/xb/api/v0/config/xb_asset_library/{configEntityId}':
     description: Endpoint for managing a specific asset library.
     get:
       description: Retrieves details of a specific asset library.
@@ -621,7 +621,7 @@ paths:
       responses:
         '204':
           description: Deleted individual Asset Library
-  '/xb/api/content/xb_page/{entityId}':
+  '/xb/api/v0/content/xb_page/{entityId}':
     description: Endpoint for deleting content entities.
     delete:
       description: Deletes a content entity.
@@ -630,7 +630,7 @@ paths:
       responses:
         '204':
           description: Content deleted successfully
-  '/xb/api/content/{entity_type}':
+  '/xb/api/v0/content/{entity_type}':
     get:
       description: Provides api for page listing.
       responses:
@@ -742,7 +742,7 @@ paths:
                   error:
                     type: string
                     example: Cannot find entity to duplicate.
-  '/xb/api/form/component-instance/{entityTypeId}/{entityId}':
+  '/xb/api/v0/form/component-instance/{entityTypeId}/{entityId}':
     description: TODO
     parameters:
       - $ref: '#/components/parameters/entityTypeId'
@@ -820,7 +820,7 @@ paths:
               schema:
                 type: object
                 description: A Drupal AJAX response.
-  '/xb/api/form/content-entity/{entityTypeId}/{entityId}':
+  '/xb/api/v0/form/content-entity/{entityTypeId}/{entityId}':
     description: TODO
     get:
       description: Fetches the entity form with the "default" form mode
@@ -860,7 +860,7 @@ paths:
               schema:
                 type: object
                 description: A Drupal AJAX response.
-  '/xb/api/form/content-entity/{entityTypeId}/{entityId}/{entityFormMode}':
+  '/xb/api/v0/form/content-entity/{entityTypeId}/{entityId}/{entityFormMode}':
     description: Fetches the entity form with the specified form mode
     get:
       parameters:
@@ -906,7 +906,7 @@ paths:
               schema:
                 type: object
                 description: A Drupal AJAX response.
-  '/xb/api/layout/{entityTypeId}/{entityId}':
+  '/xb/api/v0/layout/{entityTypeId}/{entityId}':
     description: TODO
     get:
       description: TODO
@@ -1097,7 +1097,7 @@ paths:
         '403':
           description: Access denied response.
           $ref: '#/components/responses/AuthenticationErrorResponse'
-  /xb/api/log-error:
+  /xb/api/v0/log-error:
     description: TODO
     post:
       description: TODO

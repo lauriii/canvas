@@ -84,12 +84,12 @@ final class LibraryHooks {
       if ($library->hasCss()) {
         $libraries[$library_name]['css']['theme'][$library->getCssPath()] = [];
       }
-      $draft_css_url = \sprintf('/xb/api/auto-saves/css/%s/%s', AssetLibrary::ENTITY_TYPE_ID, $library_id);
+      $draft_css_url = \sprintf('/xb/api/v0/auto-saves/css/%s/%s', AssetLibrary::ENTITY_TYPE_ID, $library_id);
       $libraries[$library_name . '.draft']['css']['theme'][$draft_css_url] = ['preprocess' => FALSE];
       if ($library->hasJs()) {
         $libraries[$library_name]['js'][$library->getJsPath()] = [];
       }
-      $draft_js_url = \sprintf('/xb/api/auto-saves/js/%s/%s', AssetLibrary::ENTITY_TYPE_ID, $library_id);
+      $draft_js_url = \sprintf('/xb/api/v0/auto-saves/js/%s/%s', AssetLibrary::ENTITY_TYPE_ID, $library_id);
       $libraries[$library_name . '.draft']['js'][$draft_js_url] = ['preprocess' => FALSE];
     }
     // @see \Drupal\experience_builder\EntityHandlers\XbAssetStorage::generateFiles()
@@ -98,7 +98,7 @@ final class LibraryHooks {
       if ($component->hasCss()) {
         $libraries[$library_name]['css']['component'][$component->getCssPath()] = [];
       }
-      $draft_css_url = \sprintf('/xb/api/auto-saves/css/%s/%s', JavaScriptComponent::ENTITY_TYPE_ID, $component_id);
+      $draft_css_url = \sprintf('/xb/api/v0/auto-saves/css/%s/%s', JavaScriptComponent::ENTITY_TYPE_ID, $component_id);
       $libraries[$library_name . '.draft']['css']['component'][$draft_css_url] = ['preprocess' => FALSE];
     }
     $theme_config = $this->configFactory->get('system.theme');

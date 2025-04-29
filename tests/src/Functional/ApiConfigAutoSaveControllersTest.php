@@ -144,8 +144,8 @@ final class ApiConfigAutoSaveControllersTest extends HttpApiTestBase {
     assert(!empty($initial_entity[$id_key]));
     $entity_id = $initial_entity[$id_key];
     $base = rtrim(base_path(), '/');
-    $post_url = Url::fromUri("base:/xb/api/config/$entity_type_id");
-    $auto_save_url = Url::fromUri("base:/xb/api/config/auto-save/$entity_type_id/$entity_id");
+    $post_url = Url::fromUri("base:/xb/api/v0/config/$entity_type_id");
+    $auto_save_url = Url::fromUri("base:/xb/api/v0/config/auto-save/$entity_type_id/$entity_id");
     $js_url = Url::fromRoute('experience_builder.api.config.auto-save.get.js', [
       'xb_config_entity_type_id' => $entity_type_id,
       'xb_config_entity' => $entity_id,
@@ -176,7 +176,7 @@ final class ApiConfigAutoSaveControllersTest extends HttpApiTestBase {
     $request_options[RequestOptions::BODY] = self::encodeXBData($initial_entity);
     $this->assertExpectedResponse('POST', $post_url, $request_options, 201, NULL, NULL, NULL, NULL, [
       'Location' => [
-        "$base/xb/api/config/$entity_type_id/{$entity_id}",
+        "$base/xb/api/v0/config/$entity_type_id/{$entity_id}",
       ],
     ]);
     $original_entity = $storage->load($entity_id);
@@ -278,7 +278,7 @@ final class ApiConfigAutoSaveControllersTest extends HttpApiTestBase {
         'label' => $entity->label(),
       ],
     ];
-    $body = $this->assertExpectedResponse('GET', Url::fromUri("base:/xb/api/auto-saves/pending"), $request_options, 200, ['user.permissions'], ['config:user.settings', AutoSaveManager::CACHE_TAG, 'http_response', 'user:2'], 'UNCACHEABLE (request policy)', 'MISS');
+    $body = $this->assertExpectedResponse('GET', Url::fromUri("base:/xb/api/v0/auto-saves/pending"), $request_options, 200, ['user.permissions'], ['config:user.settings', AutoSaveManager::CACHE_TAG, 'http_response', 'user:2'], 'UNCACHEABLE (request policy)', 'MISS');
     $id = array_keys($expected_list)[0];
     assert(isset($body[$id]['updated']));
     unset($body[$id]['updated']);

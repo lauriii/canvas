@@ -420,7 +420,7 @@ describe('Perform CRUD operations on components', () => {
     cy.get('.primaryPanelContent').findByText('Image').click();
     cy.screenshot('7-clicked-on-image');
 
-    cy.intercept('POST', '**/xb/api/layout/node/1').then(cy.log);
+    cy.intercept('POST', '**/xb/api/v0/layout/node/1').then(cy.log);
 
     cy.screenshot('before-assert-1');
     // Check the default image src is set.

@@ -54,7 +54,7 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
     $this->expectException(AccessDeniedHttpException::class);
     $this->expectExceptionMessage("The 'edit any article content' permission is required.");
 
-    $this->request(Request::create('/xb/api/layout/node/1', method: 'PATCH', content: json_encode([
+    $this->request(Request::create('/xb/api/v0/layout/node/1', method: 'PATCH', content: json_encode([
       'layout' => [
         [
           'nodeType' => 'region',
@@ -75,7 +75,7 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
   public function testInvalid(string $message, string $exception, array $content): void {
     $this->expectException($exception);
     $this->expectExceptionMessage($message);
-    $this->parentRequest(Request::create('/xb/api/layout/node/1', method: 'PATCH', server: [
+    $this->parentRequest(Request::create('/xb/api/v0/layout/node/1', method: 'PATCH', server: [
       'CONTENT_TYPE' => 'application/json',
       'HTTP_X_NO_OPENAPI_VALIDATION' => 'turned off because we want to validate the prod response here',
     ], content: \json_encode($content, JSON_FORCE_OBJECT | JSON_THROW_ON_ERROR)));
@@ -142,7 +142,7 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
       }
     }
     // Load the test data from the layout controller.
-    $content = $this->parentRequest(Request::create('/xb/api/layout/node/1'))->getContent();
+    $content = $this->parentRequest(Request::create('/xb/api/v0/layout/node/1'))->getContent();
     self::assertIsString($content);
     // Check that the client only receives field data they have access to.
     // @see ApiLayoutController::filterFormValues()
@@ -173,7 +173,7 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
       // Perform a POST first to trigger the auto-save manager being called.
       // This will not result in an auto-save entry because the content is the
       // same as the saved version.
-      $response = $this->request(Request::create('/xb/api/layout/node/1', method: 'POST', content: $this->filterLayoutForPost($content)));
+      $response = $this->request(Request::create('/xb/api/v0/layout/node/1', method: 'POST', content: $this->filterLayoutForPost($content)));
       self::assertEquals(Response::HTTP_OK, $response->getStatusCode());
       self::assertTrue($autoSave->getAutoSaveData($node)->isEmpty());
       foreach ($regions as $region) {
@@ -194,7 +194,7 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
     $new_model = $model['static-image-udf7d'];
     // Reference a new media entity.
     $new_model['source']['image']['value'] = $media->id();
-    $response = $this->request(Request::create('/xb/api/layout/node/1', method: 'PATCH', content: \json_encode([
+    $response = $this->request(Request::create('/xb/api/v0/layout/node/1', method: 'PATCH', content: \json_encode([
       'model' => $new_model,
       'componentType' => 'sdc.experience_builder.image',
       'componentInstanceUuid' => 'static-image-udf7d',
@@ -252,7 +252,7 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
       $new_label = $this->randomMachineName();
       // Patch a global component.
       $globalComponentUuid = reset($globalElements);
-      $response = $this->request(Request::create('/xb/api/layout/node/1', method: 'PATCH', content: \json_encode([
+      $response = $this->request(Request::create('/xb/api/v0/layout/node/1', method: 'PATCH', content: \json_encode([
         'model' => [
           'resolved' => [
             'label' => $new_label,
@@ -297,7 +297,7 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
       $region->save();
     }
     // Load the test data from the layout controller.
-    $this->request(Request::create('/xb/api/layout/node/1'))->getContent();
+    $this->request(Request::create('/xb/api/v0/layout/node/1'))->getContent();
 
     // Check that content region exist and is wrapped.
     $contentRegion = $this->getRegion('content');
@@ -318,7 +318,7 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
     $this->expectException(AccessDeniedHttpException::class);
     $this->expectExceptionMessage('Access denied for region highlighted');
 
-    $this->request(Request::create('/xb/api/layout/node/1', method: 'PATCH', content: \json_encode([
+    $this->request(Request::create('/xb/api/v0/layout/node/1', method: 'PATCH', content: \json_encode([
       'model' => [
         'resolved' => [
           'label' => $new_label,
