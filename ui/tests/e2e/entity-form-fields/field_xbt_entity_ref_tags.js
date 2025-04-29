@@ -19,6 +19,12 @@ export const edit = (cy) => {
   // Advance timers to trigger timeouts. TextFieldAutocomplete relies on a
   // timeout to trigger form/model updates.
   cy.tick(500);
+
+  // Once the timeout is triggered, disable the clock so other time based
+  // operations work as expected.
+  cy.clock().then((clock) => {
+    clock.restore();
+  });
 };
 export const assertData = (response) => {
   expect(
