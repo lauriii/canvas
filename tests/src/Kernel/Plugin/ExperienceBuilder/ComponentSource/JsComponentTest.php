@@ -384,7 +384,7 @@ final class JsComponentTest extends ComponentSourceTestBase {
           'experience_builder.js_component.xb_test_code_components_with_props',
         ],
       ],
-    ], $this->getAllCalculatedDependencies($component_ids));
+    ], $this->callSourceMethodForEach('calculateDependencies', $component_ids));
   }
 
   /**
@@ -631,6 +631,118 @@ final class JsComponentTest extends ComponentSourceTestBase {
         static fn($library) => str_contains($library, 'dependency_component')
       ));
     }
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function getExpectedClientSideInfo(): array {
+    return [
+      'js.xb_test_code_components_vanilla_image' => [
+        'expected_output_selectors' => [
+          'astro-island[opts*="Vanilla Image"][props*="placehold.co"]',
+          'script[blocking="render"][src*="experience_builder/ui/lib/astro-hydration/dist/client.js"]',
+        ],
+        'source' => 'Code component',
+        'metadata' => ['slots' => []],
+        'propSources' => [
+          'image' => [
+            'required' => FALSE,
+            'jsonSchema' => [
+              'title' => 'image',
+              'type' => 'object',
+              'required' => [
+                0 => 'src',
+              ],
+              'properties' => [
+                'src' => [
+                  'title' => 'Image URL',
+                  'type' => 'string',
+                  'format' => 'uri-reference',
+                  'pattern' => '^(/|https?://)?.*\\.(png|gif|jpg|jpeg|webp)(\\?.*)?(#.*)?$',
+                ],
+                'alt' => [
+                  'title' => 'Alternative text',
+                  'type' => 'string',
+                ],
+                'width' => [
+                  'title' => 'Image width',
+                  'type' => 'integer',
+                ],
+                'height' => [
+                  'title' => 'Image height',
+                  'type' => 'integer',
+                ],
+              ],
+            ],
+            'sourceType' => 'static:field_item:image',
+            'expression' => 'ℹ︎image␟{src↝entity␜␜entity:file␝uri␞␟url,alt↠alt,width↠width,height↠height}',
+            'default_values' => [
+              'source' => [],
+              'resolved' => [
+                'src' => 'https://placehold.co/1200x900@2x.png',
+                'width' => 1200,
+                'height' => 900,
+                'alt' => 'Example image placeholder',
+              ],
+            ],
+          ],
+        ],
+        'dynamic_prop_source_candidates' => [],
+        'transforms' => [],
+      ],
+      'js.xb_test_code_components_with_no_props' => [
+        'expected_output_selectors' => [
+          'astro-island[opts*="With no props"][props="{}"]',
+          'script[blocking="render"][src*="experience_builder/ui/lib/astro-hydration/dist/client.js"]',
+        ],
+        'source' => 'Code component',
+        'metadata' => ['slots' => []],
+        'propSources' => [],
+        'dynamic_prop_source_candidates' => [],
+        'transforms' => [],
+      ],
+      'js.xb_test_code_components_with_props' => [
+        'expected_output_selectors' => [
+          'astro-island[opts*="With props"][props*="name"][props*="XB"][props*="age"][props*="40"]',
+          'script[blocking="render"][src*="experience_builder/ui/lib/astro-hydration/dist/client.js"]',
+        ],
+        'source' => 'Code component',
+        'metadata' => ['slots' => []],
+        'propSources' => [
+          'name' => [
+            'required' => TRUE,
+            'jsonSchema' => [
+              'type' => 'string',
+            ],
+            'sourceType' => 'static:field_item:string',
+            'expression' => 'ℹ︎string␟value',
+            'default_values' => [
+              'source' => [
+                'value' => 'XB',
+              ],
+              'resolved' => 'XB',
+            ],
+          ],
+          'age' => [
+            'required' => FALSE,
+            'jsonSchema' => [
+              'type' => 'integer',
+            ],
+            'sourceType' => 'static:field_item:integer',
+            'expression' => 'ℹ︎integer␟value',
+            'default_values' => [
+              'source' => [
+                'value' => 40,
+              ],
+              'resolved' => 40,
+            ],
+          ],
+        ],
+        'dynamic_prop_source_candidates' => [],
+        'transforms' => [],
+      ],
+    ];
   }
 
 }

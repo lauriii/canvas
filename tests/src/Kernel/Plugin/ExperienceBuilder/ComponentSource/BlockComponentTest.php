@@ -213,70 +213,23 @@ HTML,
   }
 
   /**
-   * @covers ::getClientSideInfo()
-   * @depends testDiscovery
+   * {@inheritdoc}
    */
-  public function testGetClientSideInfo(array $component_ids): void {
-    $this->assertNotEmpty($component_ids);
-    $this->assertCount(0, $this->componentStorage->loadMultiple());
-    $this->generateComponentConfig();
-
-    $actual_client_side_info = [];
-    foreach ($this->componentStorage->loadMultiple($component_ids) as $component_id => $component) {
-      assert($component instanceof Component);
-      $client_side_info = $component->getComponentSource()
-        ->getClientSideInfo($component);
-      $client_side_info['build'] = (string) $this->renderer->renderInIsolation($client_side_info['build']);
-      // For the preview provided in the client-side info, XB always uses the
-      // Component config entity UUID as a fake component instance UUID. Make
-      // this easy to target in the expectations.
-      $client_side_info['build'] = str_replace($component->uuid(), '::COMPONENT_CONFIG_ENTITY_UUID::', $client_side_info['build']);
-      // Strip trailing whitespace to make heredocs easier to write.
-      $client_side_info['build'] = preg_replace('/ +$/m', '', $client_side_info['build']);
-      $actual_client_side_info[$component_id] = $client_side_info;
-    }
-    $this->assertEquals([
+  public static function getExpectedClientSideInfo(): array {
+    return [
       'block.xb_test_block_input_none' => [
-        'build' => <<<HTML
-<div id="block-::COMPONENT_CONFIG_ENTITY_UUID::">
-
-
-      <div>Hello, XB!</div>
-  </div>
-
-HTML,
+        'expected_output_selectors' => ['div:contains("Hello, XB!")'],
       ],
       'block.xb_test_block_input_validatable' => [
-        'build' => <<<HTML
-<div id="block-::COMPONENT_CONFIG_ENTITY_UUID::">
-
-
-      <div>Hello, XB!</div>
-  </div>
-
-HTML,
+        'expected_output_selectors' => ['div:contains("Hello, XB!")'],
       ],
       'block.xb_test_block_input_validatable_crash' => [
-        'build' => <<<HTML
-<div id="block-::COMPONENT_CONFIG_ENTITY_UUID::">
-
-
-      <div>Hello, XB!</div>
-  </div>
-
-HTML,
+        'expected_output_selectors' => ['div:contains("Hello, XB!")'],
       ],
       'block.xb_test_block_optional_contexts' => [
-        'build' => <<<HTML
-<div id="block-::COMPONENT_CONFIG_ENTITY_UUID::">
-
-
-      Test Block with optional context value: @todo in https://www.drupal.org/i/3485502
-  </div>
-
-HTML,
+        'expected_output_selectors' => ['div:contains("Test Block with optional context value: @todo in https://www.drupal.org/i/3485502")'],
       ],
-    ], $actual_client_side_info);
+    ];
   }
 
   /**
@@ -350,7 +303,7 @@ HTML,
       'block.xb_test_block_input_validatable' => [],
       'block.xb_test_block_input_validatable_crash' => [],
       'block.xb_test_block_optional_contexts' => [],
-    ], $this->getAllCalculatedDependencies($component_ids));
+    ], $this->callSourceMethodForEach('calculateDependencies', $component_ids));
   }
 
 }

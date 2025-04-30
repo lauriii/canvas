@@ -640,7 +640,450 @@ HTML,
           'xb_test_sdc',
         ],
       ],
-    ], $this->getAllCalculatedDependencies($component_ids));
+    ], $this->callSourceMethodForEach('calculateDependencies', $component_ids));
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function getExpectedClientSideInfo(): array {
+    return [
+      'sdc.xb_test_sdc.crash' => [
+        'expected_output_selectors' => [
+          'h1:contains("test")',
+        ],
+        'source' => 'Module component',
+        'metadata' => ['slots' => []],
+        'propSources' => [
+          'crash' => [
+            'required' => TRUE,
+            'jsonSchema' => [
+              'type' => 'boolean',
+            ],
+            'sourceType' => 'static:field_item:boolean',
+            'expression' => 'ℹ︎boolean␟value',
+            'default_values' => [
+              'source' => [
+                'value' => 0,
+              ],
+              'resolved' => FALSE,
+            ],
+          ],
+        ],
+        'dynamic_prop_source_candidates' => [
+          'crash' => [],
+        ],
+        'transforms' => [],
+      ],
+      'sdc.xb_test_sdc.deprecated' => [
+        'expected_output_selectors' => [
+          'h1:contains("Deprecated SDC component")',
+          'div[data-component-id="xb_test_sdc:deprecated"]',
+        ],
+        'source' => 'Module component',
+        'metadata' => ['slots' => []],
+        'propSources' => [
+          'text' => [
+            'required' => FALSE,
+            'jsonSchema' => [
+              'type' => 'string',
+            ],
+            'sourceType' => 'static:field_item:string',
+            'expression' => 'ℹ︎string␟value',
+            'default_values' => [
+              'source' => [
+                'value' => 'A text field',
+              ],
+              'resolved' => 'A text field',
+            ],
+          ],
+        ],
+        'dynamic_prop_source_candidates' => [
+          'text' => [],
+        ],
+        'transforms' => [],
+      ],
+      'sdc.xb_test_sdc.experimental' => [
+        'expected_output_selectors' => [
+          'h1:contains("Experimental SDC component")',
+          'div[data-component-id="xb_test_sdc:experimental"]',
+        ],
+        'source' => 'Module component',
+        'metadata' => ['slots' => []],
+        'propSources' => [
+          'text' => [
+            'required' => FALSE,
+            'jsonSchema' => [
+              'type' => 'string',
+            ],
+            'sourceType' => 'static:field_item:string',
+            'expression' => 'ℹ︎string␟value',
+            'default_values' => [
+              'source' => [
+                'value' => 'A text field',
+              ],
+              'resolved' => 'A text field',
+            ],
+          ],
+        ],
+        'dynamic_prop_source_candidates' => [
+          'text' => [],
+        ],
+        'transforms' => [],
+      ],
+      'sdc.xb_test_sdc.grid-container' => [
+        'expected_output_selectors' => [
+          'div[data-component-id="xb_test_sdc:grid-container"]',
+        ],
+        'source' => 'Module component',
+        'metadata' => [
+          'slots' => [
+            'content' => [
+              'title' => 'Content',
+              'description' => 'The contents of the grid container.',
+              'examples' => [
+                '<div class="empty-slot">Empty grid slot</div>',
+              ],
+            ],
+          ],
+        ],
+        'propSources' => [
+          'direction' => [
+            'required' => TRUE,
+            'jsonSchema' => [
+              'type' => 'string',
+              'enum' => [
+                0 => 'horizontal',
+                1 => 'vertical',
+              ],
+            ],
+            'sourceType' => 'static:field_item:list_string',
+            'expression' => 'ℹ︎list_string␟value',
+            'sourceTypeSettings' => [
+              'storage' => [
+                'allowed_values' => [
+                  [
+                    'value' => 'horizontal',
+                    'label' => 'horizontal',
+                  ],
+                  [
+                    'value' => 'vertical',
+                    'label' => 'vertical',
+                  ],
+                ],
+              ],
+            ],
+            'default_values' => [
+              'source' => [
+                'value' => 'horizontal',
+              ],
+              'resolved' => 'horizontal',
+            ],
+          ],
+        ],
+        'dynamic_prop_source_candidates' => [
+          'direction' => [],
+        ],
+        'transforms' => [],
+      ],
+      'sdc.xb_test_sdc.image-optional-with-example' => [
+        'expected_output_selectors' => [
+          'img[src="https://example.com/cat.jpg"]',
+        ],
+        'source' => 'Module component',
+        'metadata' => ['slots' => []],
+        'propSources' => [
+          'image' => [
+            'required' => FALSE,
+            'jsonSchema' => [
+              'title' => 'image',
+              'type' => 'object',
+              'required' => [
+                'src',
+              ],
+              'properties' => [
+                'src' => [
+                  'title' => 'Image URL',
+                  'type' => 'string',
+                  'format' => 'uri-reference',
+                  'pattern' => '^(/|https?://)?.*\\.(png|gif|jpg|jpeg|webp)(\\?.*)?(#.*)?$',
+                ],
+                'alt' => [
+                  'title' => 'Alternative text',
+                  'type' => 'string',
+                ],
+                'width' => [
+                  'title' => 'Image width',
+                  'type' => 'integer',
+                ],
+                'height' => [
+                  'title' => 'Image height',
+                  'type' => 'integer',
+                ],
+              ],
+            ],
+            'sourceType' => 'static:field_item:image',
+            'expression' => 'ℹ︎image␟{src↝entity␜␜entity:file␝uri␞␟url,alt↠alt,width↠width,height↠height}',
+            'default_values' => [
+              'source' => [],
+              'resolved' => [
+                'src' => 'https://example.com/cat.jpg',
+                'alt' => 'Boring placeholder',
+                'width' => 600,
+                'height' => 400,
+              ],
+            ],
+          ],
+        ],
+        'dynamic_prop_source_candidates' => [
+          'image' => [],
+        ],
+        'transforms' => [],
+      ],
+      'sdc.xb_test_sdc.image-optional-with-example-and-additional-prop' => [
+        'expected_output_selectors' => [
+          'img[src="gracie.jpg"]',
+        ],
+        'source' => 'Module component',
+        'metadata' => ['slots' => []],
+        'propSources' => [
+          'heading' => [
+            'required' => FALSE,
+            'jsonSchema' => [
+              'type' => 'string',
+            ],
+            'sourceType' => 'static:field_item:string',
+            'expression' => 'ℹ︎string␟value',
+          ],
+          'image' => [
+            'required' => FALSE,
+            'jsonSchema' => [
+              'title' => 'image',
+              'type' => 'object',
+              'required' => [
+                'src',
+              ],
+              'properties' => [
+                'src' => [
+                  'title' => 'Image URL',
+                  'type' => 'string',
+                  'format' => 'uri-reference',
+                  'pattern' => '^(/|https?://)?.*\\.(png|gif|jpg|jpeg|webp)(\\?.*)?(#.*)?$',
+                ],
+                'alt' => [
+                  'title' => 'Alternative text',
+                  'type' => 'string',
+                ],
+                'width' => [
+                  'title' => 'Image width',
+                  'type' => 'integer',
+                ],
+                'height' => [
+                  'title' => 'Image height',
+                  'type' => 'integer',
+                ],
+              ],
+            ],
+            'sourceType' => 'static:field_item:image',
+            'expression' => 'ℹ︎image␟{src↝entity␜␜entity:file␝uri␞␟url,alt↠alt,width↠width,height↠height}',
+            'default_values' => [
+              'source' => [],
+              'resolved' => [
+                'src' => 'gracie.jpg',
+                'alt' => 'A good dog',
+                'width' => 601,
+                'height' => 402,
+              ],
+            ],
+          ],
+        ],
+        'dynamic_prop_source_candidates' => [
+          'heading' => [],
+          'image' => [],
+        ],
+        'transforms' => [],
+      ],
+      'sdc.xb_test_sdc.image-optional-without-example' => [
+        'expected_output_selectors' => [],
+        'source' => 'Module component',
+        'metadata' => ['slots' => []],
+        'propSources' => [
+          'image' => [
+            'required' => FALSE,
+            'jsonSchema' => [
+              'title' => 'image',
+              'type' => 'object',
+              'required' => [
+                'src',
+              ],
+              'properties' => [
+                'src' => [
+                  'title' => 'Image URL',
+                  'type' => 'string',
+                  'format' => 'uri-reference',
+                  'pattern' => '^(/|https?://)?.*\\.(png|gif|jpg|jpeg|webp)(\\?.*)?(#.*)?$',
+                ],
+                'alt' => [
+                  'title' => 'Alternative text',
+                  'type' => 'string',
+                ],
+                'width' => [
+                  'title' => 'Image width',
+                  'type' => 'integer',
+                ],
+                'height' => [
+                  'title' => 'Image height',
+                  'type' => 'integer',
+                ],
+              ],
+            ],
+            'sourceType' => 'static:field_item:image',
+            'expression' => 'ℹ︎image␟{src↝entity␜␜entity:file␝uri␞␟url,alt↠alt,width↠width,height↠height}',
+          ],
+        ],
+        'dynamic_prop_source_candidates' => [
+          'image' => [],
+        ],
+        'transforms' => [],
+      ],
+      'sdc.xb_test_sdc.image-required-with-example' => [
+        'expected_output_selectors' => [
+          'img[src="https://example.com/cat.jpg"]',
+        ],
+        'source' => 'Module component',
+        'metadata' => ['slots' => []],
+        'propSources' => [
+          'image' => [
+            'required' => TRUE,
+            'jsonSchema' => [
+              'title' => 'image',
+              'type' => 'object',
+              'required' => [
+                'src',
+              ],
+              'properties' => [
+                'src' => [
+                  'title' => 'Image URL',
+                  'type' => 'string',
+                  'format' => 'uri-reference',
+                  'pattern' => '^(/|https?://)?.*\\.(png|gif|jpg|jpeg|webp)(\\?.*)?(#.*)?$',
+                ],
+                'alt' => [
+                  'title' => 'Alternative text',
+                  'type' => 'string',
+                ],
+                'width' => [
+                  'title' => 'Image width',
+                  'type' => 'integer',
+                ],
+                'height' => [
+                  'title' => 'Image height',
+                  'type' => 'integer',
+                ],
+              ],
+            ],
+            'sourceType' => 'static:field_item:image',
+            'expression' => 'ℹ︎image␟{src↝entity␜␜entity:file␝uri␞␟url,alt↠alt,width↠width,height↠height}',
+            'default_values' => [
+              'source' => [],
+              'resolved' => [
+                'src' => 'https://example.com/cat.jpg',
+                'alt' => 'Boring placeholder',
+                'width' => 600,
+                'height' => 400,
+              ],
+            ],
+          ],
+        ],
+        'dynamic_prop_source_candidates' => [
+          'image' => [],
+        ],
+        'transforms' => [],
+      ],
+      'sdc.xb_test_sdc.props-no-slots' => [
+        'expected_output_selectors' => [
+          'h1:contains("There goes my hero")',
+          'div[data-component-id="xb_test_sdc:props-no-slots"]',
+        ],
+        'source' => 'Module component',
+        'metadata' => ['slots' => []],
+        'propSources' => [
+          'heading' => [
+            'required' => TRUE,
+            'jsonSchema' => [
+              'type' => 'string',
+              'minLength' => 2,
+            ],
+            'sourceType' => 'static:field_item:string',
+            'expression' => 'ℹ︎string␟value',
+            'default_values' => [
+              'source' => [
+                'value' => 'There goes my hero',
+              ],
+              'resolved' => 'There goes my hero',
+            ],
+          ],
+        ],
+        'dynamic_prop_source_candidates' => [
+          'heading' => [],
+        ],
+        'transforms' => [],
+      ],
+      'sdc.xb_test_sdc.props-slots' => [
+        'expected_output_selectors' => [
+          'div[data-component-id="xb_test_sdc:props-slots"]',
+          'h1:contains("There goes my hero")',
+          'div.component--props-slots--body',
+          'div.component--props-slots--footer',
+          'div.component--props-slots--colophon',
+        ],
+        'source' => 'Module component',
+        'metadata' => [
+          'slots' => [
+            'the_body' => [
+              'title' => 'The Body',
+              'description' => 'The contents of the body.',
+              'examples' => [
+                '<p>Example value for <strong>the_body</strong> slot in <strong>prop-slots</strong> component.</p>',
+              ],
+            ],
+            'the_footer' => [
+              'title' => 'The Footer',
+              'description' => 'The contents of the footer.',
+              'examples' => [
+                'Example value for <strong>the_footer</strong>.',
+              ],
+            ],
+            'the_colophon' => [
+              'title' => 'The Colophon',
+              'description' => 'The contents of the colophon.',
+              'examples' => [],
+            ],
+          ],
+        ],
+        'propSources' => [
+          'heading' => [
+            'required' => TRUE,
+            'jsonSchema' => [
+              'type' => 'string',
+              'minLength' => 2,
+            ],
+            'sourceType' => 'static:field_item:string',
+            'expression' => 'ℹ︎string␟value',
+            'default_values' => [
+              'source' => [
+                'value' => 'There goes my hero',
+              ],
+              'resolved' => 'There goes my hero',
+            ],
+          ],
+        ],
+        'dynamic_prop_source_candidates' => [
+          'heading' => [],
+        ],
+        'transforms' => [],
+      ],
+    ];
   }
 
 }

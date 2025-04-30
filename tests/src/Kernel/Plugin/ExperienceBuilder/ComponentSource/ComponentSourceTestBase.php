@@ -45,8 +45,6 @@ use Drupal\Tests\experience_builder\Traits\TestDataUtilitiesTrait;
  * - et cetera
  *
  * @phpstan-import-type ComponentConfigEntityId from \Drupal\experience_builder\Entity\Component
- *
- * @todo Move BlockComponentTest::testGetClientSideInfo() into this base class in https://www.drupal.org/i/3518832
  */
 abstract class ComponentSourceTestBase extends KernelTestBase {
 
@@ -74,6 +72,7 @@ abstract class ComponentSourceTestBase extends KernelTestBase {
     'options',
     'system',
     'media',
+    'path',
   ];
 
   /**
@@ -120,6 +119,7 @@ abstract class ComponentSourceTestBase extends KernelTestBase {
    * @return array<ComponentConfigEntityId, array>
    */
   protected function getAllSettings(array $component_ids): array {
+    $this->assertNotEmpty($component_ids);
     $this->assertCount(0, $this->componentStorage->loadMultiple());
     $this->generateComponentConfig();
     $components = $this->componentStorage->loadMultiple($component_ids);
@@ -133,20 +133,25 @@ abstract class ComponentSourceTestBase extends KernelTestBase {
   }
 
   /**
+   * @param string $method_name
    * @param array<ComponentConfigEntityId> $component_ids
    * @return array<ComponentConfigEntityId, array>
    */
-  protected function getAllCalculatedDependencies(array $component_ids): array {
+  protected function callSourceMethodForEach(string $method_name, array $component_ids): array {
+    $this->assertNotEmpty($component_ids);
     $this->assertCount(0, $this->componentStorage->loadMultiple());
     $this->generateComponentConfig();
     $components = $this->componentStorage->loadMultiple($component_ids);
 
-    $settings = [];
+    $return_values = [];
     foreach ($components as $component_id => $component) {
       assert($component instanceof Component);
-      $settings[$component_id] = $component->getComponentSource()->calculateDependencies();
+      $return_values[$component_id] = match ($method_name) {
+        'getClientSideInfo' => $component->getComponentSource()->getClientSideInfo($component),
+        default => $component->getComponentSource()->$method_name(),
+      };
     }
-    return $settings;
+    return $return_values;
   }
 
   public function findCreatedComponentConfigEntities(string $component_source_plugin_id, string $test_module): array {
@@ -202,7 +207,7 @@ abstract class ComponentSourceTestBase extends KernelTestBase {
   /**
    * @param array<ComponentConfigEntityId> $component_ids
    */
-  protected function renderComponentsLive($component_ids, callable $get_default_input): array {
+  protected function renderComponentsLive(array $component_ids, callable $get_default_input): array {
     $this->assertCount(0, $this->componentStorage->loadMultiple());
     $this->generateComponentConfig();
 
@@ -314,17 +319,57 @@ abstract class ComponentSourceTestBase extends KernelTestBase {
     }
 
     $build = $component_tree->toRenderable($isPreview);
-    $crawler = $this->crawlerForRenderArray($build);
-    if (is_array($expected_exception)) {
-      return;
-    }
-    self::assertNotNull($expected_output_selector);
-    self::assertGreaterThanOrEqual(1, $crawler->filter($expected_output_selector)->count());
+
+    self::assertRenderArrayMatchesSelectors($build, [$expected_output_selector]);
     // All 3 Druplicons surrounding Druplicons must also be present, as proof
     // that any problem remains isolated!
-    self::assertCount(3, $crawler->filter('svg title:contains("Druplicon")'));
+    self::assertCount(3, $this->crawlerForRenderArray($build)->filter('svg title:contains("Druplicon")'));
+  }
+
+  protected function assertRenderArrayMatchesSelectors(array $build, array $selectors): void {
+    if ([] === $selectors) {
+      self::assertSame('', (string) $this->renderer->renderInIsolation($build));
+      return;
+    }
+    $crawler = $this->crawlerForRenderArray($build);
+    foreach ($selectors as $selector) {
+      self::assertGreaterThanOrEqual(
+        1,
+        $crawler->filter($selector)->count(),
+        "Failed finding selector '$selector'"
+      );
+    }
   }
 
   abstract public static function providerRenderComponentFailure(): \Generator;
+
+  /**
+   * @param array<ComponentConfigEntityId> $component_ids
+   *   The component IDs to test.
+   *
+   * @covers ::getClientSideInfo()
+   * @depends testDiscovery
+   */
+  public function testGetClientSideInfo(array $component_ids): void {
+    $expected_client_side_info = static::getExpectedClientSideInfo();
+    $actual_client_side_info = $this->callSourceMethodForEach('getClientSideInfo', $component_ids);
+
+    // Test `build` using `expected_output_selectors`.
+    foreach ($component_ids as $component_id) {
+      $expected_output_selectors = $expected_client_side_info[$component_id]['expected_output_selectors'];
+      unset($expected_client_side_info[$component_id]['expected_output_selectors']);
+      $build = $actual_client_side_info[$component_id]['build'];
+      unset($actual_client_side_info[$component_id]['build']);
+      $this->assertRenderArrayMatchesSelectors($build, $expected_output_selectors);
+    }
+
+    // Test all other expected client-side info.
+    self::assertSame($expected_client_side_info, $actual_client_side_info);
+  }
+
+  /**
+   * Return the associative array of the expected build on each component.
+   */
+  abstract public static function getExpectedClientSideInfo(): array;
 
 }
