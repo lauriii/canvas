@@ -13,7 +13,6 @@ use Drupal\Core\Render\ElementInfoManagerInterface;
 use Drupal\experience_builder\Entity\Component;
 use Drupal\experience_builder\Storage\ComponentTreeLoader;
 use Symfony\Component\DependencyInjection\ContainerInterface;
-use Symfony\Component\Validator\ConstraintViolationList;
 
 /**
  * Allows editing the prop sources for a component.
@@ -93,11 +92,7 @@ final class ComponentInputsForm extends FormBase {
     // @see https://developer.mozilla.org/en-US/docs/Web/HTML/Element/form#method
     $form['#method'] = 'dialog';
 
-    $violations = new ConstraintViolationList();
-    $inputs = $component->getComponentSource()->clientModelToInput($component_instance_uuid, $component, $client_model, $violations);
-    // Don't complain about invalid received values except to developers.
-    // @see https://en.wikipedia.org/wiki/Robustness_principle
-    assert($violations->count() === 0);
+    $inputs = $component->getComponentSource()->clientModelToInput($component_instance_uuid, $component, $client_model);
 
     $form['#component'] = $component;
     $form['#attributes']['data-form-id'] = 'component_inputs_form';

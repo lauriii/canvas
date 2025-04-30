@@ -35,8 +35,6 @@ use Drupal\experience_builder\PropSource\StaticPropSource;
 use Drupal\experience_builder\PropSource\DefaultRelativeUrlPropSource;
 use Drupal\experience_builder\ShapeMatcher\FieldForComponentSuggester;
 use Symfony\Component\DependencyInjection\ContainerInterface;
-use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\HttpKernel\Exception\HttpException;
 use Symfony\Component\Validator\ConstraintViolation;
 use Symfony\Component\Validator\ConstraintViolationList;
 use Symfony\Component\Validator\ConstraintViolationListInterface;
@@ -356,7 +354,8 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
   ): array {
     $transforms = [];
     assert($entity instanceof FieldableEntityInterface);
-    $component_schema = $this->getSdcPlugin()->metadata->schema ?? [];
+    $component_plugin = $this->getSdcPlugin();
+    $component_schema = $component_plugin->metadata->schema ?? [];
 
     // Allow form alterations specific to XB component inputs forms (currently
     // only "static prop sources").
@@ -364,14 +363,9 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
 
     $prop_field_definitions = $settings['prop_field_definitions'];
 
-    $component = $form['#component'];
-    \assert($component instanceof ComponentEntity);
     // To ensure the order of the fields always matches the order of the schema
     // we loop over the properties from the schema, but first we have to
     // exclude props that aren't storable.
-    $component_plugin = $this->getSdcPlugin();
-    $storable_props = [];
-
     foreach (PropShape::getComponentProps($component_plugin) as $component_prop_expression => $prop_shape) {
       $storable_prop_shape = $prop_shape->getStorage();
       // @todo Remove this once every SDC prop shape can be stored. See PropShapeRepositoryTest::getExpectedUnstorablePropShapes()
@@ -380,24 +374,31 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
         continue;
       }
       $component_prop = ComponentPropExpression::fromString($component_prop_expression);
-      $storable_props[] = $component_prop->propName;
-    }
-    foreach ($storable_props as $sdc_prop_name) {
+      $sdc_prop_name = $component_prop->propName;
+      $is_required = isset($component_schema['required']) && in_array($sdc_prop_name, $component_schema['required'], TRUE);
       $prop_source_array = $client_model[$sdc_prop_name] ?? NULL;
-      if ($prop_source_array === NULL) {
-        // The client didn't send this prop but should. This is an error OR the
-        // data has been tampered with.
-        throw HttpException::fromStatusCode(Response::HTTP_BAD_REQUEST);
-      }
-      $source = PropSource::parse($prop_source_array);
+
       $disabled = FALSE;
-      if (!$source instanceof StaticPropSource) {
-        // @todo Design is undefined for the DynamicPropSource UX. Related: https://www.drupal.org/project/experience_builder/issues/3459234
-        // @todo Design is undefined for the AdaptedPropSource UX.
-        // Fall back to the static version, disabled for now where the design is undefined.
-        $disabled = !$source instanceof DefaultRelativeUrlPropSource;
-        $source = $this->getDefaultStaticPropSource($sdc_prop_name)->withValue($prop_source_array['value'] ?? NULL);
+      if ($prop_source_array !== NULL) {
+        $source = PropSource::parse($prop_source_array);
+        if (!$source instanceof StaticPropSource) {
+          // @todo Design is undefined for the DynamicPropSource UX. Related: https://www.drupal.org/project/experience_builder/issues/3459234
+          // @todo Design is undefined for the AdaptedPropSource UX.
+          // Fall back to the static version, disabled for now where the design is undefined.
+          $disabled = !$source instanceof DefaultRelativeUrlPropSource;
+          $source = $this->getDefaultStaticPropSource($sdc_prop_name)->withValue($prop_source_array['value'] ?? NULL);
+        }
       }
+      elseif (!$is_required) {
+        // The client didn't send this prop, fall back to the default.
+        $source = $this->getDefaultStaticPropSource($sdc_prop_name)->withValue(NULL);
+      }
+      else {
+        // The client didn't send this prop, but should.
+        // @todo perhaps we just be more accepting here and fall back anyway?
+        throw new \LogicException(sprintf('Required prop "%s" is missing from the client model.', $sdc_prop_name));
+      }
+
       // 1. If the given static prop source matches the *current* field type
       // configuration, use the configured widget.
       // 2. Worst case: fall back to the default widget for this field type.
@@ -408,7 +409,6 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
       }
       assert(isset($component_schema['properties'][$sdc_prop_name]['title']));
       $label = $component_schema['properties'][$sdc_prop_name]['title'];
-      $is_required = isset($component_schema['required']) && in_array($sdc_prop_name, $component_schema['required'], TRUE);
       $widget = $source->getWidget($sdc_prop_name, $label, $field_widget_plugin_id);
       $form[$sdc_prop_name] = $source->formTemporaryRemoveThisExclamationExclamationExclamation($widget, $sdc_prop_name, $is_required, $entity, $form, $form_state);
       $form[$sdc_prop_name]['#disabled'] = $disabled;
