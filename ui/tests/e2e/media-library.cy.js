@@ -149,7 +149,6 @@ const testMediaLibraryInEntityForm = (cy, loadOptions = {}, title) => {
 describe('Media Library', () => {
   before(() => {
     cy.drupalXbInstall();
-    cy.drupalEnableTheme('claro', true);
   });
 
   beforeEach(() => {
