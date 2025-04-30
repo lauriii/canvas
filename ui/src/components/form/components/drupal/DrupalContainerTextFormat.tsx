@@ -2,7 +2,7 @@ import { Box, Button, Flex, Popover } from '@radix-ui/themes';
 import { Pencil1Icon } from '@radix-ui/react-icons';
 import clsx from 'clsx';
 import { a2p } from '@/local_packages/utils.js';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import type { Attributes } from '@/types/DrupalAttribute';
 
@@ -64,7 +64,21 @@ const DrupalContainerTextFormatFilterWrapper = ({
   renderChildren = null,
   hasParent = false,
 }: DrupalContainerTextFormatFilterProps) => {
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(false);
+  const drupalSelector = attributes['data-drupal-selector'];
+  const [hasContainer, setHasContainer] = useState<boolean>(
+    !!document.querySelector(`div[data-drupal-selector="${drupalSelector}"]`),
+  );
+
+  // Radix select elements need to be inside a form for there to be a ref
+  // available. This might not be available immediately, so we provide an empty
+  // dependency useEffect so the form is rendered and a reliable container for
+  // the popover can be found.
+  useEffect(() => {
+    setHasContainer(
+      !!document.querySelector(`div[data-drupal-selector="${drupalSelector}"]`),
+    );
+  }, [drupalSelector]);
   return (
     <Flex
       {...a2p(attributes, {
@@ -88,9 +102,13 @@ const DrupalContainerTextFormatFilterWrapper = ({
           // Change the container because Drupal's editor initialization
           // assumes the format selector is inside the same widget as the
           // textarea using the editor.
-          container={document.querySelector(
-            `div[data-drupal-selector="${attributes['data-drupal-selector']}"]`,
-          )}
+          container={
+            hasContainer
+              ? document.querySelector(
+                  `div[data-drupal-selector="${drupalSelector}"]`,
+                )
+              : document.body
+          }
           style={{ zIndex: '1' }}
         >
           <div
