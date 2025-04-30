@@ -16,6 +16,7 @@ use Drupal\node\NodeInterface;
 use Drupal\Tests\experience_builder\Kernel\Traits\RequestTrait;
 use Drupal\Tests\experience_builder\TestSite\XBTestSetup;
 use Drupal\Tests\user\Traits\UserCreationTrait;
+use Drupal\user\Entity\User;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -374,6 +375,68 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
     $json = json_decode($content, TRUE);
     self::assertSame($isNew, $json['isNew']);
     self::assertSame($isPublished, $json['isPublished']);
+  }
+
+  /**
+   * Tests that auto-save entries with inaccessible fields do not cause errors.
+   *
+   * @covers \Drupal\experience_builder\Controller\ApiLayoutController::buildPreviewRenderable
+   */
+  public function testInaccessibleFieldsInAutoSave(): void {
+    // Create a node to work with.
+    $node = Node::create([
+      'type' => 'article',
+      'title' => 'Test Node',
+    ]);
+    $node->save();
+
+    // Set up the current user without access to path field.
+    $authenticated_role = $this->createRole(['access administration pages']);
+    $limited_user = $this->createUser([], NULL, FALSE, ['roles' => [$authenticated_role]]);
+    assert($limited_user instanceof User);
+    $this->setCurrentUser($limited_user);
+
+    // Create an auto-save entry with a value for a field that the user doesn't have access to.
+    $autoSave = $this->container->get(AutoSaveManager::class);
+    assert($autoSave instanceof AutoSaveManager);
+
+    // Create test data with a field the user doesn't have access to (path field).
+    $data = [
+      'layout' => [
+        [
+          'nodeType' => 'region',
+          'id' => 'content',
+          'name' => 'Content',
+          'components' => [],
+        ],
+      ],
+      'model' => [],
+      'entity_form_fields' => [
+        'title[0][value]' => 'Test Node',
+        // Path field that user doesn't have access to
+        'path[0][alias]' => '/test-path',
+      ],
+    ];
+
+    $autoSave->save($node, $data);
+
+    $url = Url::fromRoute('experience_builder.api.layout.get', [
+      'entity' => $node->id(),
+      'entity_type' => 'node',
+    ]);
+
+    // This should not throw an exception even though the auto-save data
+    // contains a value for path field that the user doesn't have access to.
+    $response = $this->request(Request::create($url->toString()));
+
+    // Verify that the response is successful.
+    self::assertEquals(Response::HTTP_OK, $response->getStatusCode());
+
+    // Check that the response contains the correct title.
+    self::assertInstanceOf(JsonResponse::class, $response);
+    $json = json_decode($response->getContent() ?: '', TRUE);
+    self::assertArrayHasKey('entity_form_fields', $json);
+    self::assertEquals('Test Node', $json['entity_form_fields']['title[0][value]']);
   }
 
   public function testFieldException(): void {

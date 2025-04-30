@@ -37,7 +37,6 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
  */
 final class ApiLayoutController {
 
-  use ClientServerConversionTrait;
   use EntityFormTrait;
 
   const ENTITY_DUPLICATE_SUFFIX = ' (Copy)';
@@ -380,7 +379,12 @@ final class ApiLayoutController {
       // correctly json encoded. But we need to convert it to an array before
       // we can extract it.
       'model' => (array) $model,
-      'entity_form_fields' => $body['entity_form_fields'],
+      // If we are not auto-saving there is no reason to convert the
+      // 'entity_form_fields'. This can cause access issue for just viewing the
+      // preview. This runs the conversion as if the user had no access to edit
+      // the entity fields which is all the that is necessary when not
+      // auto-saving.
+      'entity_form_fields' => $updateAutoSave ? $body['entity_form_fields'] : [],
     ], $entity, validate: FALSE);
     // Store the auto-save entry.
     if ($updateAutoSave) {

@@ -60,7 +60,11 @@ class ClientDataToEntityConverter {
       throw new ConstraintViolationException(new EntityConstraintViolationList($entity, iterator_to_array($e->getConstraintViolationList())));
     }
 
-    $updated_entity_form_fields = $this->setEntityFields($entity, $entity_form_fields);
+    // The current user may not have access any other fields on the entity or
+    // this function may have been called to only update the layout.
+    $updated_entity_form_fields = \count($entity_form_fields) !== 0 ?
+      $this->setEntityFields($entity, $entity_form_fields) :
+      [];
     $original_entity_violations = $entity->validate();
     // Validation happens using the server-side representation, but the
     // error message should use the client-side representation received in
