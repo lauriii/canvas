@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
+import { useState, useCallback, useRef, useMemo, useLayoutEffect } from 'react';
 import { calculateBoundingRect, elemIsVisible } from '@/utils/function-utils';
 
 /**
@@ -67,11 +67,15 @@ function useSyncPreviewElementSize(input: HTMLElement[] | HTMLElement | null) {
     if (newRect && elements) {
       requestAnimationFrame(() => {
         setElementRect((prevRect) => {
+          // Only update if the values have changed so the hook returns the same object preventing components that use
+          // it from re-rendering. Don't update if the height/width is 0 to stop border flickering
           if (
-            prevRect.top !== newRect.top ||
-            prevRect.left !== newRect.left ||
-            prevRect.width !== newRect.width ||
-            prevRect.height !== newRect.height
+            (prevRect.top !== newRect.top ||
+              prevRect.left !== newRect.left ||
+              prevRect.width !== newRect.width ||
+              prevRect.height !== newRect.height) &&
+            newRect.width !== 0 &&
+            newRect.height !== 0
           ) {
             return newRect;
           }
@@ -81,7 +85,7 @@ function useSyncPreviewElementSize(input: HTMLElement[] | HTMLElement | null) {
     }
   }, []);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     elementsRef.current = elements;
     recalculateBorder();
   }, [elements, recalculateBorder]);
@@ -150,7 +154,7 @@ function useSyncPreviewElementSize(input: HTMLElement[] | HTMLElement | null) {
     });
   }, [recalculateBorder]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (elements?.length) {
       init();
     }

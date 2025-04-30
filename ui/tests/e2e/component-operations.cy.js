@@ -271,10 +271,16 @@ describe('Perform CRUD operations on components', () => {
     // Add the section that was created earlier in this test.
     cy.openLibraryPanel();
     cy.findByText('Sections').click();
+
+    // This and the other screenshot a few lines below are for debugging, but
+    // for some reason their presence also causes the test to pass on CI.
+    cy.screenshot('Add section - see available sections');
+
     cy.get('.primaryPanelContent').within(() => {
       cy.findByText(sectionName).should('exist');
       cy.findByText(sectionName).click(clickDefault);
     });
+    cy.screenshot('Add section - clicked section to add');
 
     // After adding the section, there should be four Hero components.
     cy.get(

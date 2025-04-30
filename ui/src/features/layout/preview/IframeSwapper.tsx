@@ -49,9 +49,11 @@ const IFrameSwapper = forwardRef<HTMLIFrameElement, IFrameSwapperProps>(
     const swapIFrames = useCallback(() => {
       setWhichActive((current) => (current ? 0 : 1));
       setTimeout(() => {
+        const { activeIFrame } = getIFrames();
+        activeIFrame.style.display = '';
         setIsReloading(false);
       }, 0);
-    }, [setIsReloading]);
+    }, [getIFrames, setIsReloading]);
 
     useEffect(() => {
       whichActiveRef.current = whichActive;
@@ -64,6 +66,7 @@ const IFrameSwapper = forwardRef<HTMLIFrameElement, IFrameSwapperProps>(
 
       // Initialize active iframe if not already initialized
       if (activeIFrame && !activeIFrame.srcdoc) {
+        activeIFrame.style.display = 'block';
         activeIFrame.srcdoc = srcDocument;
       }
 
@@ -75,6 +78,13 @@ const IFrameSwapper = forwardRef<HTMLIFrameElement, IFrameSwapperProps>(
       // Set up load event listener and update content for inactive iframe. Once loaded, it will be swapped in.
       if (inactiveIFrame) {
         inactiveIFrame.removeEventListener('load', swapIFrames);
+        // There is a flicker in Chrome when swapping in an iframe by changing the css display from none to block but the
+        // flicker does not occur when swapping opacity from 0 to 1.
+        // Here, we set the inactive iframe's display to block before updating its srcdoc (but the stylesheet still
+        // maintains opacity: 0, so the iframe remains hidden until it has finished loading)
+        // Once the iframe loads, its opacity changes to 1, making it visible while the newly inactive iframe becomes display: none.
+        // This means that when the swap occurs, both iframes are display: block; and we are just swapping the opacity from 0/1
+        inactiveIFrame.style.display = 'block';
         inactiveIFrame.addEventListener('load', swapIFrames);
         inactiveIFrame.srcdoc = srcDocument;
       }

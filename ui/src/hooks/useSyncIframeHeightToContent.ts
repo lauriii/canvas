@@ -1,5 +1,4 @@
-import { useCallback, useRef } from 'react';
-import { useEffect } from 'react';
+import { useCallback, useLayoutEffect, useRef } from 'react';
 
 /**
  * This hook takes preview iFrame and ensures that the height of the iFrame html element matches the height of the
@@ -21,9 +20,9 @@ function useSyncIframeHeightToContent(
       window.requestAnimationFrame(() => {
         if (previewContainer?.style) {
           // set the iFrame container height to the height of the content inside the iFrame.
-          previewContainer.style.height = iframeHTML?.offsetHeight
-            ? `${iframeHTML.offsetHeight}px`
-            : 'auto';
+          if (iframeHTML?.offsetHeight) {
+            previewContainer.style.height = `${iframeHTML.offsetHeight}px`;
+          }
           previewContainer.style.width = width + 'px';
           previewContainer.style.minHeight = height + 'px';
         }
@@ -37,7 +36,7 @@ function useSyncIframeHeightToContent(
     }
   }, [iframe, height, width, previewContainer]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (iframe) {
       const handleLoad = () => {
         const iframeContentDoc = iframe.contentDocument;
