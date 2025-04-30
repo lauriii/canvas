@@ -378,6 +378,7 @@ class XBTestSetup implements TestSetupInterface {
     $empty_node = Node::create([
       'type' => 'article',
       'title' => 'I am an empty node',
+      'path' => ['alias' => '/i-am-an-empty-node'],
       'field_hero' => $image_field_sample_value,
     ]);
     $empty_node->save();

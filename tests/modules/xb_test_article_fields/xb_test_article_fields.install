@@ -234,15 +234,10 @@ function xb_test_article_fields_install(): void {
         'settings' => [],
       ],
     ],
-    'field_xbt_path' => [
-      'type' => 'path',
-      'label' => 'XB Path',
-      'settings' => [],
-      'widget' => [
-        'type' => 'path',
-        'settings' => [],
-      ],
-    ],
+    // Note we don't have a path widget here because one of those is added
+    // by default as the 'URL alias' field and because PathItem is a computed
+    // field it only makes sense to have one path item field on an entity.
+    // @see \Drupal\path\Hook\PathHooks::entityBaseFieldInfo()
     'field_xbt_telephone' => [
       'type' => 'telephone',
       'label' => 'XB Telephone',
