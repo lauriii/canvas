@@ -12,9 +12,14 @@ enum ErrorCodesEnum: int {
 
   public function getMessage(): string {
     return match($this) {
-      self::UnexpectedItemInPublishRequest => 'This item is unexpected.',
-        self::MissingItemInPublishRequest => 'Expected item not present.',
-        self::UnmatchedItemInPublishRequest => 'Item did not match expected value.',
+      self::UnexpectedItemInPublishRequest =>
+        'An unexpected item was found in the publish request. Please refresh your page and try again.',
+
+      self::MissingItemInPublishRequest =>
+        'A required item is missing from the publish request. Please refresh your page and try again.',
+
+      self::UnmatchedItemInPublishRequest =>
+        'An item in the publish request did not match the expected format or value. Please refresh your page and try again.',
     };
   }
 
