@@ -107,7 +107,7 @@ final class SingleDirectoryComponent extends GeneratedFieldExplicitInputUxCompon
    */
   public function defaultConfiguration(): array {
     return parent::defaultConfiguration() + [
-      'plugin_id' => NULL,
+      'local_source_id' => NULL,
     ];
   }
 
@@ -115,7 +115,7 @@ final class SingleDirectoryComponent extends GeneratedFieldExplicitInputUxCompon
    * {@inheritdoc}
    */
   public function getReferencedPluginClass(): ?string {
-    return $this->componentPluginManager->getDefinition($this->configuration['plugin_id'])['class'];
+    return $this->componentPluginManager->getDefinition($this->configuration['local_source_id'])['class'];
   }
 
   /**
@@ -123,10 +123,10 @@ final class SingleDirectoryComponent extends GeneratedFieldExplicitInputUxCompon
    */
   protected function getComponentPlugin(): ComponentPlugin {
     // @todo this should probably use DefaultSingleLazyPluginCollection
-    if (is_null($this->configuration['plugin_id'])) {
+    if (is_null($this->configuration['local_source_id'])) {
       throw new ComponentDoesNotMeetRequirementsException(['Component has no valid source plugin_id value.']);
     }
-    return $this->componentPluginManager->find($this->configuration['plugin_id']);
+    return $this->componentPluginManager->find($this->configuration['local_source_id']);
   }
 
   /**
@@ -166,14 +166,14 @@ final class SingleDirectoryComponent extends GeneratedFieldExplicitInputUxCompon
   public function renderComponent(array $inputs, string $componentUuid, bool $isPreview = FALSE): array {
     return [
       '#type' => 'component',
-      '#component' => $this->configuration['plugin_id'],
+      '#component' => $this->configuration['local_source_id'],
       '#props' => ($inputs[self::EXPLICIT_INPUT_NAME] ?? []) + [
         'xb_uuid' => $componentUuid,
         'xb_slot_ids' => \array_keys($this->getSlotDefinitions()),
       ],
       '#attached' => [
         'library' => [
-          'core/components.' . str_replace(':', '--', $this->configuration['plugin_id']),
+          'core/components.' . str_replace(':', '--', $this->configuration['local_source_id']),
         ],
       ],
     ];
@@ -226,7 +226,7 @@ final class SingleDirectoryComponent extends GeneratedFieldExplicitInputUxCompon
       'source' => self::SOURCE_PLUGIN_ID,
       'provider' => $component_plugin->getPluginDefinition()['provider'],
       'settings' => [
-        'plugin_id' => $component_plugin->getPluginId(),
+        'local_source_id' => $component_plugin->getPluginId(),
         'prop_field_definitions' => $props,
       ],
       'status' => $status,

@@ -53,7 +53,7 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
    */
   protected static array $propertiesWithRequiredKeys = [
     'settings' => [
-      "'plugin_id' is a required key.",
+      "'local_source_id' is a required key.",
       "'prop_field_definitions' is a required key because source is sdc (see config schema type experience_builder.component_source_settings.sdc).",
     ],
   ];
@@ -76,7 +76,7 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
       'category' => 'Test',
       'source' => SingleDirectoryComponent::SOURCE_PLUGIN_ID,
       'settings' => [
-        'plugin_id' => 'sdc_test:my-cta',
+        'local_source_id' => 'sdc_test:my-cta',
         'prop_field_definitions' => [
           'text' => [
             // @see \Drupal\Core\Field\Plugin\Field\FieldType\StringItem
@@ -168,7 +168,7 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
       'category' => 'Test',
       'source' => JsComponent::SOURCE_PLUGIN_ID,
       'settings' => [
-        'plugin_id' => 'my-cta',
+        'local_source_id' => 'my-cta',
         'prop_field_definitions' => array_diff_key(
           $this->entity->getSettings()['prop_field_definitions'],
           array_flip(['target']),
@@ -190,7 +190,7 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
       'category' => 'Test',
       'source' => BlockComponent::SOURCE_PLUGIN_ID,
       'settings' => [
-        'plugin_id' => 'system_branding_block',
+        'local_source_id' => 'system_branding_block',
         'default_settings' => [
           // For `type: block_settings`.
           'id' => 'system_branding_block',
@@ -211,7 +211,7 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
       'label' => 'Test',
     ]);
     $this->assertValidationErrors([
-      'settings.default_settings' => "'use_site_slogan' is a required key because settings.plugin_id is system_branding_block (see config schema type block.settings.system_branding_block).",
+      'settings.default_settings' => "'use_site_slogan' is a required key because settings.local_source_id is system_branding_block (see config schema type block.settings.system_branding_block).",
     ]);
   }
 
@@ -249,7 +249,7 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
     $this->entity->set('id', 'invalid:name');
     $this->assertValidationErrors([
       '' => "The 'id' property cannot be changed.",
-      'id' => "Expected 'sdc.sdc_test.my-cta', not 'invalid:name'. Format: '&lt;%parent.source&gt;.&lt;%parent.settings.plugin_id&gt;'.",
+      'id' => "Expected 'sdc.sdc_test.my-cta', not 'invalid:name'. Format: '&lt;%parent.source&gt;.&lt;%parent.settings.local_source_id&gt;'.",
     ]);
   }
 
@@ -257,14 +257,14 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
     $valid_values = [
       'id' => 'sdc.sdc_test.no-props',
       'source' => 'test',
-      'plugin_id' => 'sdc_test:no-props',
+      'local_source_id' => 'sdc_test:no-props',
     ];
     $additional_validation_errors = [
       'id' => [
-        'id' => "Expected 'sdc.sdc_test.my-cta', not 'sdc.sdc_test.no-props'. Format: '&lt;%parent.source&gt;.&lt;%parent.settings.plugin_id&gt;'.",
+        'id' => "Expected 'sdc.sdc_test.my-cta', not 'sdc.sdc_test.no-props'. Format: '&lt;%parent.source&gt;.&lt;%parent.settings.local_source_id&gt;'.",
       ],
       'source' => [
-        'id' => "Expected 'test.sdc_test.my-cta', not 'sdc.sdc_test.my-cta'. Format: '&lt;%parent.source&gt;.&lt;%parent.settings.plugin_id&gt;'.",
+        'id' => "Expected 'test.sdc_test.my-cta', not 'sdc.sdc_test.my-cta'. Format: '&lt;%parent.source&gt;.&lt;%parent.settings.local_source_id&gt;'.",
         'settings' => "'prop_field_definitions' is an unknown key because source is test (see config schema type experience_builder.component_source_settings.*).",
         'source' => "The 'test' plugin does not exist.",
       ],
@@ -292,7 +292,7 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
   }
 
   public function testRequiredPropertyKeysMissing(?array $additional_expected_validation_errors_when_missing = NULL): void {
-    $additional_expected_validation_errors_when_missing['settings']['id'] = 'This validation constraint is configured to inspect the properties <em class="placeholder">%parent.source, %parent.settings.plugin_id</em>, but some do not exist: <em class="placeholder">%parent.settings.plugin_id</em>.';
+    $additional_expected_validation_errors_when_missing['settings']['id'] = 'This validation constraint is configured to inspect the properties <em class="placeholder">%parent.source, %parent.settings.local_source_id</em>, but some do not exist: <em class="placeholder">%parent.settings.local_source_id</em>.';
     $additional_expected_validation_errors_when_missing['settings']['status'] = [
       'The component \'<em class="placeholder">sdc.sdc_test.my-cta</em>\' cannot be enabled because it does not meet the requirements of Experience Builder.',
       'Component has no valid source plugin_id value.',
@@ -341,7 +341,7 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
       'category' => 'test',
       'source' => BlockComponent::SOURCE_PLUGIN_ID,
       'settings' => [
-        'plugin_id' => 'node_syndicate_block',
+        'local_source_id' => 'node_syndicate_block',
         'default_settings' => [],
       ],
     ]);

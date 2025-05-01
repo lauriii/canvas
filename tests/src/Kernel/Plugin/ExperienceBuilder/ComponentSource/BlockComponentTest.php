@@ -79,7 +79,7 @@ final class BlockComponentTest extends ComponentSourceTestBase {
   public function testSettings(array $component_ids): void {
     self::assertSame([
       'block.xb_test_block_input_none' => [
-        'plugin_id' => 'xb_test_block_input_none',
+        'local_source_id' => 'xb_test_block_input_none',
         'default_settings' => [
           'id' => 'xb_test_block_input_none',
           'label' => 'Test block with no settings.',
@@ -88,7 +88,7 @@ final class BlockComponentTest extends ComponentSourceTestBase {
         ],
       ],
       'block.xb_test_block_input_validatable' => [
-        'plugin_id' => 'xb_test_block_input_validatable',
+        'local_source_id' => 'xb_test_block_input_validatable',
         'default_settings' => [
           'id' => 'xb_test_block_input_validatable',
           'label' => 'Test Block with settings',
@@ -99,7 +99,7 @@ final class BlockComponentTest extends ComponentSourceTestBase {
         ],
       ],
       'block.xb_test_block_input_validatable_crash' => [
-        'plugin_id' => 'xb_test_block_input_validatable_crash',
+        'local_source_id' => 'xb_test_block_input_validatable_crash',
         'default_settings' => [
           'id' => 'xb_test_block_input_validatable_crash',
           'label' => "Test Block with settings, crashes when 'crash' setting is TRUE",
@@ -111,7 +111,7 @@ final class BlockComponentTest extends ComponentSourceTestBase {
         ],
       ],
       'block.xb_test_block_optional_contexts' => [
-        'plugin_id' => 'xb_test_block_optional_contexts',
+        'local_source_id' => 'xb_test_block_optional_contexts',
         'default_settings' => [
           'id' => 'xb_test_block_optional_contexts',
           'label' => 'Test Block with optional contexts',

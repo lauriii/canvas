@@ -113,7 +113,7 @@ final class BlockComponent extends ComponentSourceBase implements ContainerFacto
    * {@inheritdoc}
    */
   public function getReferencedPluginClass(): ?string {
-    return $this->blockManager->getDefinition($this->configuration['plugin_id'])['class'];
+    return $this->blockManager->getDefinition($this->configuration['local_source_id'])['class'];
   }
 
   /**
@@ -121,7 +121,7 @@ final class BlockComponent extends ComponentSourceBase implements ContainerFacto
    */
   protected function getBlockPlugin(): BlockPluginInterface {
     // @todo this should probably use DefaultSingleLazyPluginCollection
-    $block = $this->blockManager->createInstance($this->configuration['plugin_id'], $this->configuration);
+    $block = $this->blockManager->createInstance($this->configuration['local_source_id'], $this->configuration);
     assert($block instanceof BlockPluginInterface);
     return $block;
   }

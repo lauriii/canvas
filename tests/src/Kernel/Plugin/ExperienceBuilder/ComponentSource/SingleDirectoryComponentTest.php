@@ -409,7 +409,7 @@ HTML,
   public static function getExpectedSettings(): array {
     return [
       'sdc.xb_test_sdc.crash' => [
-        'plugin_id' => 'xb_test_sdc:crash',
+        'local_source_id' => 'xb_test_sdc:crash',
         'prop_field_definitions' => [
           'crash' => [
             'field_type' => 'boolean',
@@ -422,7 +422,7 @@ HTML,
         ],
       ],
       'sdc.xb_test_sdc.deprecated' => [
-        'plugin_id' => 'xb_test_sdc:deprecated',
+        'local_source_id' => 'xb_test_sdc:deprecated',
         'prop_field_definitions' => [
           'text' => [
             'field_type' => 'string',
@@ -435,7 +435,7 @@ HTML,
         ],
       ],
       'sdc.xb_test_sdc.experimental' => [
-        'plugin_id' => 'xb_test_sdc:experimental',
+        'local_source_id' => 'xb_test_sdc:experimental',
         'prop_field_definitions' => [
           'text' => [
             'field_type' => 'string',
@@ -448,7 +448,7 @@ HTML,
         ],
       ],
       'sdc.xb_test_sdc.grid-container' => [
-        'plugin_id' => 'xb_test_sdc:grid-container',
+        'local_source_id' => 'xb_test_sdc:grid-container',
         'prop_field_definitions' => [
           'direction' => [
             'field_type' => 'list_string',
@@ -466,7 +466,7 @@ HTML,
         ],
       ],
       'sdc.xb_test_sdc.image-optional-with-example' => [
-        'plugin_id' => 'xb_test_sdc:image-optional-with-example',
+        'local_source_id' => 'xb_test_sdc:image-optional-with-example',
         'prop_field_definitions' => [
           'image' => [
             'field_type' => 'image',
@@ -481,7 +481,7 @@ HTML,
         ],
       ],
       'sdc.xb_test_sdc.image-optional-with-example-and-additional-prop' => [
-        'plugin_id' => 'xb_test_sdc:image-optional-with-example-and-additional-prop',
+        'local_source_id' => 'xb_test_sdc:image-optional-with-example-and-additional-prop',
         'prop_field_definitions' => [
           'heading' => [
             'field_type' => 'string',
@@ -504,7 +504,7 @@ HTML,
         ],
       ],
       'sdc.xb_test_sdc.image-optional-without-example' => [
-        'plugin_id' => 'xb_test_sdc:image-optional-without-example',
+        'local_source_id' => 'xb_test_sdc:image-optional-without-example',
         'prop_field_definitions' => [
           'image' => [
             'field_type' => 'image',
@@ -519,7 +519,7 @@ HTML,
         ],
       ],
       'sdc.xb_test_sdc.image-required-with-example' => [
-        'plugin_id' => 'xb_test_sdc:image-required-with-example',
+        'local_source_id' => 'xb_test_sdc:image-required-with-example',
         'prop_field_definitions' => [
           'image' => [
             'field_type' => 'image',
@@ -534,7 +534,7 @@ HTML,
         ],
       ],
       'sdc.xb_test_sdc.props-no-slots' => [
-        'plugin_id' => 'xb_test_sdc:props-no-slots',
+        'local_source_id' => 'xb_test_sdc:props-no-slots',
         'prop_field_definitions' => [
           'heading' => [
             'field_type' => 'string',
@@ -547,7 +547,7 @@ HTML,
         ],
       ],
       'sdc.xb_test_sdc.props-slots' => [
-        'plugin_id' => 'xb_test_sdc:props-slots',
+        'local_source_id' => 'xb_test_sdc:props-slots',
         'prop_field_definitions' => [
           'heading' => [
             'field_type' => 'string',

@@ -10,5 +10,5 @@ provider: null
 source: js
 category: '@todo'
 settings:
-  plugin_id: xb_test_code_components_with_no_props
+  local_source_id: xb_test_code_components_with_no_props
   prop_field_definitions: {  }

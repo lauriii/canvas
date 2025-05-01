@@ -79,7 +79,7 @@ final class BlockManager extends CoreBlockManager {
         'source' => BlockComponent::SOURCE_PLUGIN_ID,
         'provider' => $definition['provider'],
         'settings' => [
-          'plugin_id' => $id,
+          'local_source_id' => $id,
           // We are using strict config schema validation, so we need to provide valid default settings for each block.
           'default_settings' => [
             // @todo if we need ID here can we merge settings with the parent and drop plugin_id?

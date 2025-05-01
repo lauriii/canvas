@@ -10,7 +10,7 @@ provider: null
 source: js
 category: '@todo'
 settings:
-  plugin_id: xb_test_code_components_with_props
+  local_source_id: xb_test_code_components_with_props
   prop_field_definitions:
     age:
       field_type: integer

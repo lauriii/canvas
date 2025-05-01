@@ -23,7 +23,7 @@ experience_builder.component.*:
           reservedCharactersSubstitute: .
           parts:
             - '%parent.source'
-            - '%parent.settings.plugin_id'
+            - '%parent.settings.local_source_id'
         Length:
           # @see \Drupal\Core\Config\Entity\ConfigEntityStorage::MAX_ID_LENGTH
           max: 166
@@ -234,7 +234,7 @@ experience_builder.component_source_settings.sdc:
   label: 'SDC component settings'
   mapping:
     # @see \Drupal\Core\Plugin\Component::$machineName
-    plugin_id:
+    local_source_id:
       type: string
       label: 'Component ID'
       constraints:
@@ -247,22 +247,21 @@ experience_builder.component_source_settings.sdc:
           interface: 'Drupal\Core\Plugin\PluginBase'
     prop_field_definitions:
       constraints:
-        KeyForEverySdcProp: "%parent.plugin_id"
+        KeyForEverySdcProp: "%parent.local_source_id"
 
 # The structure that all ComponentSource-specific per-Component config entity settings MUST adhere to. (Because
-# the `experience_builder.component_source_settings.*` type's `id` key-value pair assumes `settings.plugin_id` to exist
+# the `experience_builder.component_source_settings.*` type's `id` key-value pair assumes `settings.local_source_id` to exist
 # to guarantee the Component config entity ID is consistent.)
 # Each ComponentSource MUST provide a specific override that:
 # - MUST override both labels
-# - MUST add appropriate validation constraints to `plugin_id`
+# - MUST add appropriate validation constraints to `local_source_id`
 # - MAY add more key-value pairs to the mapping — and then add appropriate validation constraints for those
 # - MUST mark the entire subtype as being fully validatable
 experience_builder.component_source_settings.*:
   type: mapping
   label: 'Source-specific component settings'
   mapping:
-    # @todo Rename this to `source_local_id` or something like that in https://www.drupal.org/project/experience_builder/issues/3502982
-    plugin_id:
+    local_source_id:
       type: string
       label: 'The intra-source ID of this component in this source'
       constraints: {}
@@ -270,7 +269,7 @@ experience_builder.component_source_settings.*:
 # @see \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase
 # Each ComponentSource that extends GeneratedFieldExplicitInputUxComponentSourceBase MUST provide an override that:
 # - MUST override the top-level label
-# - MUST add appropriate validation constraints to `plugin_id`
+# - MUST add appropriate validation constraints to `local_source_id`
 # - MAY add more key-value pairs to the mapping — and then add appropriate validation constraints for those
 # - MUST mark the entire subtype as being fully validatable
 experience_builder.generated_field_explicit_input_ux:
@@ -332,10 +331,7 @@ experience_builder.component_source_settings.js:
   type: experience_builder.generated_field_explicit_input_ux
   label: 'Code component settings'
   mapping:
-    # This is actually not a plugin ID, but the ID of a JavaScriptComponent config entity. But as far as config schema
-    # validation is concerned, it may as well be. It is required to exist by `experience_builder.component.*:id`.
-    # @todo Rename this to `source_local_id` or something like that in https://www.drupal.org/project/experience_builder/issues/3502982
-    plugin_id:
+    local_source_id:
       label: 'JS Component ID'
       constraints:
         ConfigExists:
@@ -345,7 +341,7 @@ experience_builder.component_source_settings.js:
         # There must be a key for every `prop` in the corresponding \Drupal\experience_builder\Entity\JavaScriptComponent::$props.
         SequenceKeysMustMatch:
           configPrefix: experience_builder.js_component.
-          configName: '%parent.plugin_id'
+          configName: '%parent.local_source_id'
           propertyPathToSequence: props
 
 # This is similar to Block config entities, but different:
@@ -360,14 +356,14 @@ experience_builder.component_source_settings.block:
   type: experience_builder.component_source_settings.*
   label: 'Block component settings'
   mapping:
-    plugin_id:
+    local_source_id:
       label: 'Block plugin ID'
       constraints:
         PluginExists:
           manager: plugin.manager.block
           interface: Drupal\Core\Block\BlockPluginInterface
     default_settings:
-      type: block.settings.[%parent.plugin_id]
+      type: block.settings.[%parent.local_source_id]
 
 field.value.component_tree:
   type: experience_builder.component_tree

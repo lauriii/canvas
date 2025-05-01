@@ -58,8 +58,7 @@ final class JsComponent extends GeneratedFieldExplicitInputUxComponentSourceBase
    */
   public function defaultConfiguration(): array {
     return parent::defaultConfiguration() + [
-      // @todo Rename in https://www.drupal.org/project/experience_builder/issues/3502982
-      'plugin_id' => NULL,
+      'local_source_id' => NULL,
     ];
   }
 
@@ -77,8 +76,7 @@ final class JsComponent extends GeneratedFieldExplicitInputUxComponentSourceBase
   public function getJavaScriptComponent(): JavaScriptComponent {
     $js_component_storage = $this->entityTypeManager->getStorage('js_component');
     assert($js_component_storage instanceof ConfigEntityStorageInterface);
-    // @todo Rename plugin ID in https://www.drupal.org/project/experience_builder/issues/3502982
-    $js_component = $js_component_storage->load($this->configuration['plugin_id']);
+    $js_component = $js_component_storage->load($this->configuration['local_source_id']);
     assert($js_component instanceof JavaScriptComponent);
     return $js_component;
   }
@@ -225,8 +223,7 @@ final class JsComponent extends GeneratedFieldExplicitInputUxComponentSourceBase
       'provider' => NULL,
       'source' => self::SOURCE_PLUGIN_ID,
       'settings' => [
-        // @todo rename plugin_id in https://www.drupal.org/project/experience_builder/issues/3502982
-        'plugin_id' => $js_component->id(),
+        'local_source_id' => $js_component->id(),
         'prop_field_definitions' => $props,
       ],
       'status' => $js_component->status(),
