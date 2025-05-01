@@ -20,7 +20,6 @@ use Drupal\experience_builder\EntityHandlers\JavascriptComponentStorage;
 use Drupal\experience_builder\EntityHandlers\XbConfigEntityAccessControlHandler;
 use Drupal\experience_builder\Exception\ConstraintViolationException;
 use Symfony\Component\Validator\ConstraintViolation;
-use Symfony\Component\Validator\ConstraintViolationList;
 
 #[ConfigEntityType(
   id: self::ENTITY_TYPE_ID,
@@ -171,7 +170,7 @@ final class JavaScriptComponent extends ConfigEntityBase implements XbAssetInter
 
     if (array_key_exists('source_code_js', $data) || array_key_exists('compiled_js', $data)) {
       if (!array_key_exists('imported_js_components', $data)) {
-        $violation_list = new ConstraintViolationList();
+        $violation_list = new EntityConstraintViolationList($this);
         $violation_list->add(new ConstraintViolation(
           "The 'imported_js_components' field is required when 'source_code_js' or 'compiled_js' is provided",
           "The 'imported_js_components' field is required when 'source_code_js' or 'compiled_js' is provided",
@@ -345,7 +344,7 @@ final class JavaScriptComponent extends ConfigEntityBase implements XbAssetInter
    * @see \Drupal\Core\Config\Entity\ConfigEntityBase::calculateDependencies
    */
   protected function addJavaScriptComponentsDependencies(array $imported_js_components): void {
-    $violation_list = new ConstraintViolationList();
+    $violation_list = new EntityConstraintViolationList($this);
     foreach ($imported_js_components as $key => $js_component_name) {
       $js_component = JavaScriptComponent::load($js_component_name);
       if (!$js_component) {

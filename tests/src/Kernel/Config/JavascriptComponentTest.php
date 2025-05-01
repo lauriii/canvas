@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\experience_builder\Kernel\Config;
 
+use Drupal\experience_builder\Entity\EntityConstraintViolationList;
 use Drupal\experience_builder\Entity\JavaScriptComponent;
 use Drupal\experience_builder\Exception\ConstraintViolationException;
 use Drupal\KernelTests\KernelTestBase;
@@ -64,12 +65,32 @@ class JavascriptComponentTest extends KernelTestBase {
     $client_data['imported_js_components'] = [$js_component2->id(), 'missing'];
     try {
       $js_component->updateFromClientSide($client_data);
+      $this->fail('Expected ConstraintViolationException not thrown.');
     }
     catch (ConstraintViolationException $exception) {
-      $this->assertCount(1, $exception->getConstraintViolationList());
-      $violation = $exception->getConstraintViolationList()->get(0);
+      $violations = $exception->getConstraintViolationList();
+      $this->assertInstanceOf(EntityConstraintViolationList::class, $violations);
+      $this->assertSame($js_component->id(), $violations->entity->id());
+      $this->assertCount(1, $violations);
+      $violation = $violations->get(0);
       $this->assertSame('imported_js_components.1', $violation->getPropertyPath());
       $this->assertSame("The JavaScript component with machine name 'missing' does not exist.", $violation->getMessage());
+    }
+
+    // Ensure not sending `imported_js_components` will throw an error.
+    unset($client_data['imported_js_components']);
+    try {
+      $js_component->updateFromClientSide($client_data);
+      $this->fail('Expected ConstraintViolationException not thrown.');
+    }
+    catch (ConstraintViolationException $exception) {
+      $violations = $exception->getConstraintViolationList();
+      $this->assertInstanceOf(EntityConstraintViolationList::class, $violations);
+      $this->assertSame($js_component->id(), $violations->entity->id());
+      $this->assertCount(1, $violations);
+      $violation = $violations->get(0);
+      $this->assertSame('imported_js_components', $violation->getPropertyPath());
+      $this->assertSame("The 'imported_js_components' field is required when 'source_code_js' or 'compiled_js' is provided", $violation->getMessage());
     }
 
     // Resetting the imported components to an empty array should remove the
