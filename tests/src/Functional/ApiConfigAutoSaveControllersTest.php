@@ -5,11 +5,9 @@ declare(strict_types=1);
 namespace Drupal\Tests\experience_builder\Functional;
 
 use Drupal\experience_builder\AutoSave\AutoSaveManager;
-use Behat\Mink\Driver\BrowserKitDriver;
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
-use Drupal\Core\File\FileUrlGeneratorInterface;
 use Drupal\Core\Url;
 use Drupal\experience_builder\Entity\AssetLibrary;
 use Drupal\experience_builder\Entity\JavaScriptComponent;
@@ -146,11 +144,11 @@ final class ApiConfigAutoSaveControllersTest extends HttpApiTestBase {
     $base = rtrim(base_path(), '/');
     $post_url = Url::fromUri("base:/xb/api/v0/config/$entity_type_id");
     $auto_save_url = Url::fromUri("base:/xb/api/v0/config/auto-save/$entity_type_id/$entity_id");
-    $js_url = Url::fromRoute('experience_builder.api.config.auto-save.get.js', [
+    $js_auto_save_url = Url::fromRoute('experience_builder.api.config.auto-save.get.js', [
       'xb_config_entity_type_id' => $entity_type_id,
       'xb_config_entity' => $entity_id,
     ]);
-    $css_url = Url::fromRoute('experience_builder.api.config.auto-save.get.css', [
+    $css_auto_save_url = Url::fromRoute('experience_builder.api.config.auto-save.get.css', [
       'xb_config_entity_type_id' => $entity_type_id,
       'xb_config_entity' => $entity_id,
     ]);
@@ -168,9 +166,9 @@ final class ApiConfigAutoSaveControllersTest extends HttpApiTestBase {
     $this->assertSame([], $auto_save_data);
 
     // CSS and JS draft endpoints should be 404 as well.
-    $this->drupalGet($js_url);
+    $this->drupalGet($js_auto_save_url);
     $this->assertSession()->statusCodeEquals(404);
-    $this->drupalGet($css_url);
+    $this->drupalGet($css_auto_save_url);
     $this->assertSession()->statusCodeEquals(404);
 
     $request_options[RequestOptions::BODY] = self::encodeXBData($initial_entity);
@@ -185,23 +183,17 @@ final class ApiConfigAutoSaveControllersTest extends HttpApiTestBase {
     $original_entity_array = $original_entity->toArray();
     assert(is_array($original_entity_array));
 
-    // Now the entity exists, these should 307 to the non-draft version.
-    // Prevent redirects so we can test that we indeed receive a 307.
-    $this->maximumMetaRefreshCount = 0;
-    $url_generator = \Drupal::service(FileUrlGeneratorInterface::class);
-    \assert($url_generator instanceof FileUrlGeneratorInterface);
-    $driver = $this->getSession()->getDriver();
-    \assert($driver instanceof BrowserKitDriver);
-    $driver->getClient()->followRedirects(FALSE);
-    $this->drupalGet($js_url);
-    $this->assertSession()->statusCodeEquals(307);
-    $this->assertSession()->responseHeaderEquals('location', $url_generator->generateString($original_entity->getJsPath()));
-    $this->drupalGet($css_url);
-    $this->assertSession()->statusCodeEquals(307);
-    $this->assertSession()->responseHeaderEquals('location', $url_generator->generateString($original_entity->getCssPath()));
-    // Allow redirects again.
-    $driver->getClient()->followRedirects();
-    $this->maximumMetaRefreshCount = NULL;
+    // Now the entity exists, these should serve a 200 response containing the
+    // non-draft CSS/JS, and NOT redirect to the non-draft. Otherwise, a race
+    // condition occurs when a user loads a preview with draft code components,
+    // and at the same time another uses publishes the draft.
+    // @see https://www.drupal.org/project/experience_builder/issues/3508922#comment-16003426
+    $response = $this->drupalGet($js_auto_save_url);
+    $this->assertSession()->statusCodeEquals(200);
+    self::assertSame(NestedArray::getValue($initial_entity, $compiled_js_path_in_normalization), $response);
+    $response = $this->drupalGet($css_auto_save_url);
+    $this->assertSession()->statusCodeEquals(200);
+    self::assertSame(NestedArray::getValue($initial_entity, $compiled_css_path_in_normalization), $response);
 
     // Anonymously: 403.
     $this->drupalLogout();
@@ -226,18 +218,18 @@ final class ApiConfigAutoSaveControllersTest extends HttpApiTestBase {
     // Assert that draft endpoints can be fetched.
     // Draft CSS/JS should not be available to unprivileged users.
     $this->drupalLogout();
-    $this->drupalGet($js_url);
+    $this->drupalGet($js_auto_save_url);
     $this->assertSession()->statusCodeEquals(403);
-    $this->drupalGet($css_url);
+    $this->drupalGet($css_auto_save_url);
     $this->assertSession()->statusCodeEquals(403);
 
     $this->drupalLogin($this->httpApiUser);
-    $this->drupalGet($js_url);
+    $this->drupalGet($js_auto_save_url);
     $this->assertSession()->statusCodeEquals(200);
     $this->assertSession()->responseHeaderEquals('Content-Type', 'text/javascript; charset=utf-8');
     self::assertEquals(NestedArray::getValue($initial_entity, $compiled_js_path_in_normalization), $this->getSession()->getPage()->getContent());
 
-    $this->drupalGet($css_url);
+    $this->drupalGet($css_auto_save_url);
     $this->assertSession()->statusCodeEquals(200);
     $this->assertSession()->responseHeaderEquals('Content-Type', 'text/css; charset=utf-8');
     self::assertEquals(NestedArray::getValue($initial_entity, $compiled_css_path_in_normalization), $this->getSession()->getPage()->getContent());

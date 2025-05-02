@@ -5,12 +5,10 @@ declare(strict_types=1);
 namespace Drupal\experience_builder\Controller;
 
 use Drupal\Core\Cache\CacheableJsonResponse;
-use Drupal\Core\File\FileUrlGeneratorInterface;
 use Drupal\experience_builder\AutoSave\AutoSaveManager;
 use Drupal\experience_builder\Entity\XbAssetInterface;
 use Drupal\experience_builder\Entity\XbHttpApiEligibleConfigEntityInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
-use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -18,7 +16,6 @@ final class ApiConfigAutoSaveControllers extends ApiControllerBase {
 
   public function __construct(
     private readonly AutoSaveManager $autoSaveManager,
-    private readonly FileUrlGeneratorInterface $fileUrlGenerator,
   ) {}
 
   public function get(XbHttpApiEligibleConfigEntityInterface $xb_config_entity): CacheableJsonResponse {
@@ -31,12 +28,10 @@ final class ApiConfigAutoSaveControllers extends ApiControllerBase {
 
   public function getCss(XbAssetInterface $xb_config_entity): Response {
     $auto_save = $this->autoSaveManager->getAutoSaveData($xb_config_entity);
-    if ($auto_save->isEmpty()) {
-      return new RedirectResponse($this->fileUrlGenerator->generateString($xb_config_entity->getCssPath()), Response::HTTP_TEMPORARY_REDIRECT);
-    }
-    \assert($auto_save->data !== NULL);
-    $draft_entity = $xb_config_entity->forAutoSavePreview($auto_save->data);
-    $response = new Response($draft_entity->getCss(), Response::HTTP_OK, [
+    $entity = is_array($auto_save->data)
+      ? $xb_config_entity->forAutoSavePreview($auto_save->data)
+      : $xb_config_entity;
+    $response = new Response($entity->getCss(), Response::HTTP_OK, [
       'Content-Type' => 'text/css; charset=utf-8',
     ]);
     $response->setPrivate();
@@ -47,13 +42,10 @@ final class ApiConfigAutoSaveControllers extends ApiControllerBase {
 
   public function getJs(XbAssetInterface $xb_config_entity): Response {
     $auto_save = $this->autoSaveManager->getAutoSaveData($xb_config_entity);
-    if ($auto_save->isEmpty()) {
-      return new RedirectResponse($this->fileUrlGenerator->generateString($xb_config_entity->getJsPath()), Response::HTTP_TEMPORARY_REDIRECT);
-    }
-    \assert($auto_save->data !== NULL);
-    $draft_entity = $xb_config_entity->forAutoSavePreview($auto_save->data);
-
-    $response = new Response($draft_entity->getJs(), Response::HTTP_OK, [
+    $entity = is_array($auto_save->data)
+      ? $xb_config_entity->forAutoSavePreview($auto_save->data)
+      : $xb_config_entity;
+    $response = new Response($entity->getJs(), Response::HTTP_OK, [
       'Content-Type' => 'text/javascript; charset=utf-8',
     ]);
     $response->setPrivate();

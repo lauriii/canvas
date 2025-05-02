@@ -37,8 +37,6 @@ paths:
       parameters:
         - $ref: '#/components/parameters/configEntityId'
       responses:
-        '307':
-          description: Redirect to saved version when no draft exists.
         '200':
           description: Draft CSS for the component
           content:
@@ -51,8 +49,6 @@ paths:
       parameters:
         - $ref: '#/components/parameters/configEntityId'
       responses:
-        '307':
-          description: Redirect to saved version when no draft exists.
         '200':
           description: Draft CSS for the library
           content:
@@ -65,8 +61,6 @@ paths:
       parameters:
         - $ref: '#/components/parameters/configEntityId'
       responses:
-        '307':
-          description: Redirect to saved version when no draft exists.
         '200':
           description: Draft JS for the component
           content:
@@ -79,8 +73,6 @@ paths:
       parameters:
         - $ref: '#/components/parameters/configEntityId'
       responses:
-        '307':
-          description: Redirect to saved version when no draft exists.
         '200':
           description: Draft JS for the library
           content:
