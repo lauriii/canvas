@@ -304,7 +304,7 @@ final class ContentTemplate extends ConfigEntityBase implements ComponentTreeEnt
    * {@inheritdoc}
    */
   public function build(FieldableEntityInterface $entity): array {
-    return $this->getComponentTree($entity)->toRenderable();
+    return $this->getComponentTree($entity)->toRenderable($this);
   }
 
   /**

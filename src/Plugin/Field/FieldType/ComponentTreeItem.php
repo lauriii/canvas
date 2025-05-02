@@ -7,6 +7,7 @@ namespace Drupal\experience_builder\Plugin\Field\FieldType;
 use Drupal\Component\Serialization\Json;
 use Drupal\Core\Block\MessagesBlockPluginInterface;
 use Drupal\Core\Block\TitleBlockPluginInterface;
+use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Entity\TypedData\EntityDataDefinitionInterface;
 use Drupal\Core\Field\Attribute\FieldType;
 use Drupal\Core\Field\FieldDefinitionInterface;
@@ -16,6 +17,7 @@ use Drupal\Core\Render\RenderableInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\TypedData\DataDefinition;
 use Drupal\experience_builder\Entity\Component;
+use Drupal\experience_builder\Entity\ComponentTreeEntityInterface;
 use Drupal\experience_builder\Plugin\DataType\ComponentInputs;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 use Drupal\experience_builder\ShapeMatcher\FieldForComponentSuggester;
@@ -365,8 +367,11 @@ class ComponentTreeItem extends FieldItemBase implements RenderableInterface {
   /**
    * {@inheritdoc}
    */
-  public function toRenderable(bool $isPreview = FALSE): array {
-    return $this->get('hydrated')->toRenderable($isPreview);
+  public function toRenderable(ComponentTreeEntityInterface|FieldableEntityInterface|null $entity = NULL, bool $isPreview = FALSE): array {
+    // We have to allow NULL for the entity argument here for co-variance with
+    // the parent interface, but we don't support it.
+    \assert(!\is_null($entity));
+    return $this->get('hydrated')->toRenderable($entity, $isPreview);
   }
 
 }

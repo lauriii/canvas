@@ -167,7 +167,7 @@ final class XbPageVariant extends VariantBase implements PageVariantInterface, C
       // @see \Drupal\Core\Block\TitleBlockPluginInterface
       // @see \Drupal\experience_builder\ComponentSource\ComponentSourceInterface::renderComponent()
       // @see \Drupal\block\Plugin\DisplayVariant\BlockPageVariant::build()
-      $fiber = new \Fiber(fn() => $component_tree->toRenderable($is_preview));
+      $fiber = new \Fiber(fn() => $component_tree->toRenderable($region, $is_preview));
       $component_instance = $fiber->start();
       while ($fiber->isSuspended()) {
         $component_instance = match (TRUE) {

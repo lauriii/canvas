@@ -27,7 +27,6 @@ use Drupal\experience_builder\Render\ImportMapResponseAttachmentsProcessor;
 use Drupal\Tests\experience_builder\Traits\CrawlerTrait;
 use Drupal\Tests\user\Traits\UserCreationTrait;
 use Drupal\xb_test_code_components\Hook\IslandCastaway;
-use Twig\Error\RuntimeError;
 
 /**
  * Tests JsComponent.
@@ -419,8 +418,8 @@ final class JsComponentTest extends ComponentSourceTestBase {
       ],
       'expected_validation_errors' => [],
       'expected_exception' => [
-        'class' => RuntimeError::class,
-        'message' => 'An exception has been thrown during the rendering of a template ("Wilson is a ball, not a person")',
+        'class' => \Error::class,
+        'message' => 'Wilson is a ball, not a person',
       ],
       'expected_output_selector' => NULL,
     ];

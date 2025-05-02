@@ -6,14 +6,18 @@ namespace Drupal\Tests\experience_builder\Kernel\Plugin\ExperienceBuilder\Compon
 
 // cspell:ignore Druplicons
 
+use Drupal\Component\Utility\Html;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Logger\RfcLoggerTrait;
+use Drupal\Core\Logger\RfcLogLevel;
 use Drupal\Core\Render\RendererInterface;
 use Drupal\experience_builder\ComponentIncompatibilityReasonRepository;
 use Drupal\experience_builder\Entity\Component;
 use Drupal\experience_builder\Entity\ComponentInterface;
+use Drupal\experience_builder\Entity\Page;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemInstantiatorTrait;
@@ -26,6 +30,8 @@ use Drupal\Tests\experience_builder\Traits\ContribStrictConfigSchemaTestTrait;
 use Drupal\Tests\experience_builder\Traits\CrawlerTrait;
 use Drupal\Tests\experience_builder\Traits\GenerateComponentConfigTrait;
 use Drupal\Tests\experience_builder\Traits\TestDataUtilitiesTrait;
+use Psr\Log\LoggerInterface;
+use Symfony\Component\DomCrawler\Crawler;
 
 /**
  * Provides the basic infrastructure for consistently testing component sources.
@@ -46,7 +52,19 @@ use Drupal\Tests\experience_builder\Traits\TestDataUtilitiesTrait;
  *
  * @phpstan-import-type ComponentConfigEntityId from \Drupal\experience_builder\Entity\Component
  */
-abstract class ComponentSourceTestBase extends KernelTestBase {
+abstract class ComponentSourceTestBase extends KernelTestBase implements LoggerInterface {
+
+  use RfcLoggerTrait;
+  protected array $logMessages = [];
+
+  /**
+   * {@inheritdoc}
+   */
+  public function log($level, string|\Stringable $message, array $context = []): void {
+    if ($level <= RfcLogLevel::ERROR) {
+      $this->logMessages[] = $message;
+    }
+  }
 
   use CrawlerTrait;
   use ComponentTreeItemInstantiatorTrait;
@@ -73,6 +91,7 @@ abstract class ComponentSourceTestBase extends KernelTestBase {
     'system',
     'media',
     'path',
+    'user',
   ];
 
   /**
@@ -85,6 +104,7 @@ abstract class ComponentSourceTestBase extends KernelTestBase {
     $this->configFactory = $this->container->get(ConfigFactoryInterface::class);
     $this->componentTreeLoader = $this->container->get(ComponentTreeLoader::class);
     $this->renderer = $this->container->get(RendererInterface::class);
+    $this->installEntitySchema('user');
   }
 
   /**
@@ -306,30 +326,50 @@ abstract class ComponentSourceTestBase extends KernelTestBase {
    * $expected_exception array{'class': string, 'message': string}|NULL
    */
   public function testRenderComponentFailure(string $component_id, array $inputs, array $expected_validation_errors, ?array $expected_exception, ?string $expected_output_selector): void {
-    $isPreview = FALSE;
+    $this->container->get('logger.factory')->addLogger($this);
 
     $component_tree = $this->generateCrashTestDummyComponentTree($component_id, $inputs);
 
     // Unless explicitly expected to be invalid, inputs should be valid.
     $this->assertSame($expected_validation_errors, $this->violationsToArray($component_tree->validate()), 'Unrealistic test case encountered: it must still represent a valid component tree!');
-
-    if (is_array($expected_exception)) {
-      $this->expectException($expected_exception['class']);
-      $this->expectExceptionMessage($expected_exception['message']);
+    $page = Page::create([
+      'title' => 'A page',
+    ]);
+    $exception_output = [
+      // When preview is TRUE, should refer user to logs.
+      'Component failed to render, check logs for more detail.' => TRUE,
+      // When preview is FALSE, should show a more user-friendly message.
+      'Oops, something went wrong! Site admins have been notified.' => FALSE,
+    ];
+    foreach ($exception_output as $displayedMessage => $isPreview) {
+      $this->logMessages = [];
+      // Make sure we don't get incremented IDs when rendering blocks.
+      Html::resetSeenIds();
+      $build = $component_tree->toRenderable($page, $isPreview);
+      if (is_array($expected_exception)) {
+        $crawler = $this->crawlerForRenderArray($build);
+        self::assertCount(1, $this->logMessages, \implode(',', $this->logMessages));
+        $message = \reset($this->logMessages);
+        \assert(\is_string($message));
+        self::assertStringContainsString($expected_exception['message'], $message);
+        self::assertStringContainsString('Page A page (-)', $message);
+        self::assertStringContainsString($expected_exception['class'], $message);
+        self::assertCount(1, $crawler->filter(\sprintf('[data-component-uuid="crash-test-dummy"]:contains("%s")', $displayedMessage)));
+      }
+      else {
+        $crawler = self::assertRenderArrayMatchesSelectors($build, [$expected_output_selector]);
+        \assert(!\is_null($crawler));
+        // All 3 surrounding Druplicons must also be present, as proof
+        // that any problem remains isolated!
+        self::assertCount(3, $crawler->filter('svg title:contains("Druplicon")'));
+      }
     }
-
-    $build = $component_tree->toRenderable($isPreview);
-
-    self::assertRenderArrayMatchesSelectors($build, [$expected_output_selector]);
-    // All 3 Druplicons surrounding Druplicons must also be present, as proof
-    // that any problem remains isolated!
-    self::assertCount(3, $this->crawlerForRenderArray($build)->filter('svg title:contains("Druplicon")'));
   }
 
-  protected function assertRenderArrayMatchesSelectors(array $build, array $selectors): void {
+  protected function assertRenderArrayMatchesSelectors(array $build, array $selectors): ?Crawler {
     if ([] === $selectors) {
       self::assertSame('', (string) $this->renderer->renderInIsolation($build));
-      return;
+      return NULL;
     }
     $crawler = $this->crawlerForRenderArray($build);
     foreach ($selectors as $selector) {
@@ -339,6 +379,7 @@ abstract class ComponentSourceTestBase extends KernelTestBase {
         "Failed finding selector '$selector'"
       );
     }
+    return $crawler;
   }
 
   abstract public static function providerRenderComponentFailure(): \Generator;

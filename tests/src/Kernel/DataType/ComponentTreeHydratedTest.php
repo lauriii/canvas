@@ -10,6 +10,7 @@ use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Render\Markup;
 use Drupal\Core\Render\RendererInterface;
 use Drupal\Core\TypedData\TypedDataManagerInterface;
+use Drupal\experience_builder\Element\RenderSafeComponentContainer;
 use Drupal\experience_builder\Entity\Page;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
@@ -95,7 +96,10 @@ class ComponentTreeHydratedTest extends KernelTestBase {
     $hydrated = $component_tree_field_item->get('hydrated');
     $hydrated_value = $hydrated->getHydratedTree();
     $this->assertSame($expected_value, $hydrated_value->getTree());
-    $renderable = $hydrated->toRenderable();
+    $page = Page::create([
+      'title' => 'A page',
+    ]);
+    $renderable = $hydrated->toRenderable($page);
     $vfs_site_base_url = base_path() . $this->siteDirectory;
     \array_walk_recursive($renderable, function (mixed &$value) use ($vfs_site_base_url) {
       if (\is_string($value)) {
@@ -175,37 +179,43 @@ class ComponentTreeHydratedTest extends KernelTestBase {
       'expected_renderable' => [
         ComponentTreeStructure::ROOT_UUID => [
           'uuid-in-root' => [
-            '#type' => 'component',
-            '#cache' => [
-              'tags' => ['config:experience_builder.component.sdc.xb_test_sdc.props-slots'],
-              'contexts' => [],
-              'max-age' => Cache::PERMANENT,
-            ],
-            '#component' => 'xb_test_sdc:props-slots',
-            '#props' => [
-              'heading' => 'Hello, world!',
-              'xb_uuid' => 'uuid-in-root',
-              'xb_slot_ids' => ['the_body', 'the_footer', 'the_colophon'],
-            ],
-            '#slots' => [
-              'the_body' => [
-                // This string is the first example value for this slot.
-                '#markup' => '<p>Example value for <strong>the_body</strong> slot in <strong>prop-slots</strong> component.</p>',
+            '#type' => RenderSafeComponentContainer::PLUGIN_ID,
+            '#component_uuid' => 'uuid-in-root',
+            '#component_context' => 'Page A page (-)',
+            '#is_preview' => FALSE,
+            '#component' => [
+              '#type' => 'component',
+              '#cache' => [
+                'tags' => ['config:experience_builder.component.sdc.xb_test_sdc.props-slots'],
+                'contexts' => [],
+                'max-age' => Cache::PERMANENT,
               ],
-              'the_footer' => [
-                // This string is the first example value for this slot.
-                '#plain_text' => 'Example value for <strong>the_footer</strong>.',
+              '#component' => 'xb_test_sdc:props-slots',
+              '#props' => [
+                'heading' => 'Hello, world!',
+                'xb_uuid' => 'uuid-in-root',
+                'xb_slot_ids' => ['the_body', 'the_footer', 'the_colophon'],
               ],
-              'the_colophon' => [
-                // This slot has no example value defined.
-                '#plain_text' => '',
+              '#slots' => [
+                'the_body' => [
+                  // This string is the first example value for this slot.
+                  '#markup' => '<p>Example value for <strong>the_body</strong> slot in <strong>prop-slots</strong> component.</p>',
+                ],
+                'the_footer' => [
+                  // This string is the first example value for this slot.
+                  '#plain_text' => 'Example value for <strong>the_footer</strong>.',
+                ],
+                'the_colophon' => [
+                  // This slot has no example value defined.
+                  '#plain_text' => '',
+                ],
               ],
-            ],
-            '#prefix' => Markup::create('<!-- xb-start-uuid-in-root -->'),
-            '#suffix' => Markup::create('<!-- xb-end-uuid-in-root -->'),
-            '#attached' => [
-              'library' => [
-                'core/components.xb_test_sdc--props-slots',
+              '#prefix' => Markup::create('<!-- xb-start-uuid-in-root -->'),
+              '#suffix' => Markup::create('<!-- xb-end-uuid-in-root -->'),
+              '#attached' => [
+                'library' => [
+                  'core/components.xb_test_sdc--props-slots',
+                ],
               ],
             ],
           ],
@@ -263,54 +273,60 @@ HTML,
       'expected_renderable' => [
         ComponentTreeStructure::ROOT_UUID => [
           'uuid-in-root' => [
-            '#access' => new AccessResultAllowed(),
-            '#theme' => 'block',
-            '#configuration' => [
-              'id' => 'system_branding_block',
-              'label' => '',
-              'label_display' => FALSE,
-              'provider' => 'system',
-              'use_site_logo' => TRUE,
-              'use_site_name' => TRUE,
-              'use_site_slogan' => TRUE,
-              'local_source_id' => 'system_branding_block',
-              'default_settings' => [
+            '#type' => RenderSafeComponentContainer::PLUGIN_ID,
+            '#component_uuid' => 'uuid-in-root',
+            '#component_context' => 'Page A page (-)',
+            '#is_preview' => FALSE,
+            '#component' => [
+              '#access' => new AccessResultAllowed(),
+              '#theme' => 'block',
+              '#configuration' => [
                 'id' => 'system_branding_block',
-                'label' => 'Site branding',
-                'label_display' => '',
+                'label' => '',
+                'label_display' => FALSE,
                 'provider' => 'system',
                 'use_site_logo' => TRUE,
                 'use_site_name' => TRUE,
                 'use_site_slogan' => TRUE,
+                'local_source_id' => 'system_branding_block',
+                'default_settings' => [
+                  'id' => 'system_branding_block',
+                  'label' => 'Site branding',
+                  'label_display' => '',
+                  'provider' => 'system',
+                  'use_site_logo' => TRUE,
+                  'use_site_name' => TRUE,
+                  'use_site_slogan' => TRUE,
+                ],
               ],
+              '#plugin_id' => 'system_branding_block',
+              '#base_plugin_id' => 'system_branding_block',
+              '#derivative_plugin_id' => NULL,
+              '#id' => 'uuid-in-root',
+              'content' => [
+                'site_logo' => [
+                  '#theme' => "image",
+                  '#uri' => NULL,
+                  '#alt' => 'Home',
+                  '#access' => TRUE,
+                ],
+                'site_name' => [
+                  '#markup' => 'XB Test Site',
+                  '#access' => TRUE,
+                ],
+                'site_slogan' => [
+                  '#markup' => 'Experience Builder Test Site',
+                  '#access' => TRUE,
+                ],
+              ],
+              '#cache' => [
+                'tags' => ['config:experience_builder.component.block.system_branding_block'],
+                'contexts' => [],
+                'max-age' => Cache::PERMANENT,
+              ],
+              '#prefix' => '',
+              '#suffix' => '',
             ],
-            '#plugin_id' => 'system_branding_block',
-            '#base_plugin_id' => 'system_branding_block',
-            '#derivative_plugin_id' => NULL,
-            '#id' => 'uuid-in-root',
-            'content' => [
-              'site_logo' => [
-                '#theme' => "image",
-                '#uri' => NULL,
-                '#alt' => 'Home',
-                '#access' => TRUE,
-              ],
-              'site_name' => [
-                '#markup' => 'XB Test Site',
-                '#access' => TRUE,
-              ],
-              'site_slogan' => [
-                '#markup' => 'Experience Builder Test Site',
-                '#access' => TRUE,
-              ],
-            ],
-            '#cache' => [
-              'tags' => ['config:experience_builder.component.block.system_branding_block'],
-              'contexts' => [],
-              'max-age' => Cache::PERMANENT,
-            ],
-            '#prefix' => '',
-            '#suffix' => '',
           ],
         ],
       ],
@@ -358,44 +374,56 @@ HTML,
       'expected_renderable' => [
         ComponentTreeStructure::ROOT_UUID => [
           'uuid-in-root' => [
-            '#type' => 'component',
-            '#cache' => [
-              'tags' => ['config:experience_builder.component.sdc.xb_test_sdc.props-no-slots'],
-              'contexts' => [],
-              'max-age' => Cache::PERMANENT,
-            ],
-            '#component' => 'xb_test_sdc:props-no-slots',
-            '#props' => [
-              'heading' => 'Hello, world!',
-              'xb_uuid' => 'uuid-in-root',
-              'xb_slot_ids' => [],
-            ],
-            '#prefix' => Markup::create('<!-- xb-start-uuid-in-root -->'),
-            '#suffix' => Markup::create('<!-- xb-end-uuid-in-root -->'),
-            '#attached' => [
-              'library' => [
-                'core/components.xb_test_sdc--props-no-slots',
+            '#type' => RenderSafeComponentContainer::PLUGIN_ID,
+            '#component_uuid' => 'uuid-in-root',
+            '#component_context' => 'Page A page (-)',
+            '#is_preview' => FALSE,
+            '#component' => [
+              '#type' => 'component',
+              '#cache' => [
+                'tags' => ['config:experience_builder.component.sdc.xb_test_sdc.props-no-slots'],
+                'contexts' => [],
+                'max-age' => Cache::PERMANENT,
+              ],
+              '#component' => 'xb_test_sdc:props-no-slots',
+              '#props' => [
+                'heading' => 'Hello, world!',
+                'xb_uuid' => 'uuid-in-root',
+                'xb_slot_ids' => [],
+              ],
+              '#prefix' => Markup::create('<!-- xb-start-uuid-in-root -->'),
+              '#suffix' => Markup::create('<!-- xb-end-uuid-in-root -->'),
+              '#attached' => [
+                'library' => [
+                  'core/components.xb_test_sdc--props-no-slots',
+                ],
               ],
             ],
           ],
           'uuid-in-root-another' => [
-            '#type' => 'component',
-            '#cache' => [
-              'tags' => ['config:experience_builder.component.sdc.xb_test_sdc.props-no-slots'],
-              'contexts' => [],
-              'max-age' => Cache::PERMANENT,
-            ],
-            '#component' => 'xb_test_sdc:props-no-slots',
-            '#props' => [
-              'heading' => 'Hello, another world!',
-              'xb_uuid' => 'uuid-in-root-another',
-              'xb_slot_ids' => [],
-            ],
-            '#prefix' => Markup::create('<!-- xb-start-uuid-in-root-another -->'),
-            '#suffix' => Markup::create('<!-- xb-end-uuid-in-root-another -->'),
-            '#attached' => [
-              'library' => [
-                'core/components.xb_test_sdc--props-no-slots',
+            '#type' => RenderSafeComponentContainer::PLUGIN_ID,
+            '#component_uuid' => 'uuid-in-root-another',
+            '#component_context' => 'Page A page (-)',
+            '#is_preview' => FALSE,
+            '#component' => [
+              '#type' => 'component',
+              '#cache' => [
+                'tags' => ['config:experience_builder.component.sdc.xb_test_sdc.props-no-slots'],
+                'contexts' => [],
+                'max-age' => Cache::PERMANENT,
+              ],
+              '#component' => 'xb_test_sdc:props-no-slots',
+              '#props' => [
+                'heading' => 'Hello, another world!',
+                'xb_uuid' => 'uuid-in-root-another',
+                'xb_slot_ids' => [],
+              ],
+              '#prefix' => Markup::create('<!-- xb-start-uuid-in-root-another -->'),
+              '#suffix' => Markup::create('<!-- xb-end-uuid-in-root-another -->'),
+              '#attached' => [
+                'library' => [
+                  'core/components.xb_test_sdc--props-no-slots',
+                ],
               ],
             ],
           ],
@@ -455,52 +483,64 @@ HTML,
       'expected_renderable' => [
         ComponentTreeStructure::ROOT_UUID => [
           'uuid-in-root' => [
-            '#type' => 'component',
-            '#cache' => [
-              'tags' => ['config:experience_builder.component.sdc.xb_test_sdc.props-slots'],
-              'contexts' => [],
-              'max-age' => Cache::PERMANENT,
-            ],
-            '#component' => 'xb_test_sdc:props-slots',
-            '#props' => [
-              'heading' => 'Hello, world!',
-              'xb_uuid' => 'uuid-in-root',
-              'xb_slot_ids' => ['the_body', 'the_footer', 'the_colophon'],
-            ],
-            '#slots' => [
-              'the_footer' => [
-                '#plain_text' => 'Example value for <strong>the_footer</strong>.',
+            '#type' => RenderSafeComponentContainer::PLUGIN_ID,
+            '#component_uuid' => 'uuid-in-root',
+            '#component_context' => 'Page A page (-)',
+            '#is_preview' => FALSE,
+            '#component' => [
+              '#type' => 'component',
+              '#cache' => [
+                'tags' => ['config:experience_builder.component.sdc.xb_test_sdc.props-slots'],
+                'contexts' => [],
+                'max-age' => Cache::PERMANENT,
               ],
-              'the_colophon' => ['#plain_text' => ''],
-              'the_body' => [
-                'uuid-in-slot' => [
-                  '#type' => 'component',
-                  '#cache' => [
-                    'tags' => ['config:experience_builder.component.sdc.xb_test_sdc.props-no-slots'],
-                    'contexts' => [],
-                    'max-age' => Cache::PERMANENT,
-                  ],
-                  '#component' => 'xb_test_sdc:props-no-slots',
-                  '#props' => [
-                    'heading' => 'Hello, from a slot!',
-                    'xb_uuid' => 'uuid-in-slot',
-                    'xb_slot_ids' => [],
-                  ],
-                  '#prefix' => Markup::create('<!-- xb-start-uuid-in-slot -->'),
-                  '#suffix' => Markup::create('<!-- xb-end-uuid-in-slot -->'),
-                  '#attached' => [
-                    'library' => [
-                      'core/components.xb_test_sdc--props-no-slots',
+              '#component' => 'xb_test_sdc:props-slots',
+              '#props' => [
+                'heading' => 'Hello, world!',
+                'xb_uuid' => 'uuid-in-root',
+                'xb_slot_ids' => ['the_body', 'the_footer', 'the_colophon'],
+              ],
+              '#slots' => [
+                'the_footer' => [
+                  '#plain_text' => 'Example value for <strong>the_footer</strong>.',
+                ],
+                'the_colophon' => ['#plain_text' => ''],
+                'the_body' => [
+                  'uuid-in-slot' => [
+                    '#type' => RenderSafeComponentContainer::PLUGIN_ID,
+                    '#component_uuid' => 'uuid-in-slot',
+                    '#component_context' => 'Page A page (-)',
+                    '#is_preview' => FALSE,
+                    '#component' => [
+                      '#type' => 'component',
+                      '#cache' => [
+                        'tags' => ['config:experience_builder.component.sdc.xb_test_sdc.props-no-slots'],
+                        'contexts' => [],
+                        'max-age' => Cache::PERMANENT,
+                      ],
+                      '#component' => 'xb_test_sdc:props-no-slots',
+                      '#props' => [
+                        'heading' => 'Hello, from a slot!',
+                        'xb_uuid' => 'uuid-in-slot',
+                        'xb_slot_ids' => [],
+                      ],
+                      '#prefix' => Markup::create('<!-- xb-start-uuid-in-slot -->'),
+                      '#suffix' => Markup::create('<!-- xb-end-uuid-in-slot -->'),
+                      '#attached' => [
+                        'library' => [
+                          'core/components.xb_test_sdc--props-no-slots',
+                        ],
+                      ],
                     ],
                   ],
                 ],
               ],
-            ],
-            '#prefix' => Markup::create('<!-- xb-start-uuid-in-root -->'),
-            '#suffix' => Markup::create('<!-- xb-end-uuid-in-root -->'),
-            '#attached' => [
-              'library' => [
-                'core/components.xb_test_sdc--props-slots',
+              '#prefix' => Markup::create('<!-- xb-start-uuid-in-root -->'),
+              '#suffix' => Markup::create('<!-- xb-end-uuid-in-root -->'),
+              '#attached' => [
+                'library' => [
+                  'core/components.xb_test_sdc--props-slots',
+                ],
               ],
             ],
           ],
@@ -634,235 +674,277 @@ HTML,
         // Note how these are sequentially ordered.
         ComponentTreeStructure::ROOT_UUID => [
           'uuid-in-root' => [
-            '#type' => 'component',
-            '#cache' => [
-              'tags' => ['config:experience_builder.component.sdc.xb_test_sdc.props-slots'],
-              'contexts' => [],
-              'max-age' => Cache::PERMANENT,
-            ],
-            '#component' => 'xb_test_sdc:props-slots',
-            '#props' => [
-              'heading' => 'Hello, world!',
-              'xb_uuid' => 'uuid-in-root',
-              'xb_slot_ids' => ['the_body', 'the_footer', 'the_colophon'],
-            ],
-            '#slots' => [
-              'the_footer' => [
-                '#plain_text' => 'Example value for <strong>the_footer</strong>.',
+            '#type' => RenderSafeComponentContainer::PLUGIN_ID,
+            '#component_uuid' => 'uuid-in-root',
+            '#component_context' => 'Page A page (-)',
+            '#is_preview' => FALSE,
+            '#component' => [
+              '#type' => 'component',
+              '#cache' => [
+                'tags' => ['config:experience_builder.component.sdc.xb_test_sdc.props-slots'],
+                'contexts' => [],
+                'max-age' => Cache::PERMANENT,
               ],
-              'the_colophon' => ['#plain_text' => ''],
-              'the_body' => [
-                'uuid-level-1' => [
-                  '#type' => 'component',
-                  '#cache' => [
-                    'tags' => ['config:experience_builder.component.sdc.xb_test_sdc.props-slots'],
-                    'contexts' => [],
-                    'max-age' => Cache::PERMANENT,
-                  ],
-                  '#component' => 'xb_test_sdc:props-slots',
-                  '#props' => [
-                    'heading' => 'Hello, from slot level 1!',
-                    'xb_uuid' => 'uuid-level-1',
-                    'xb_slot_ids' => ['the_body', 'the_footer', 'the_colophon'],
-                  ],
-                  '#slots' => [
-                    'the_footer' => [
+              '#component' => 'xb_test_sdc:props-slots',
+              '#props' => [
+                'heading' => 'Hello, world!',
+                'xb_uuid' => 'uuid-in-root',
+                'xb_slot_ids' => ['the_body', 'the_footer', 'the_colophon'],
+              ],
+              '#slots' => [
+                'the_footer' => [
+                  '#plain_text' => 'Example value for <strong>the_footer</strong>.',
+                ],
+                'the_colophon' => ['#plain_text' => ''],
+                'the_body' => [
+                  'uuid-level-1' => [
+                    '#type' => RenderSafeComponentContainer::PLUGIN_ID,
+                    '#component_uuid' => 'uuid-level-1',
+                    '#component_context' => 'Page A page (-)',
+                    '#is_preview' => FALSE,
+                    '#component' => [
+                      '#type' => 'component',
+                      '#cache' => [
+                        'tags' => ['config:experience_builder.component.sdc.xb_test_sdc.props-slots'],
+                        'contexts' => [],
+                        'max-age' => Cache::PERMANENT,
+                      ],
+                      '#component' => 'xb_test_sdc:props-slots',
+                      '#props' => [
+                        'heading' => 'Hello, from slot level 1!',
+                        'xb_uuid' => 'uuid-level-1',
+                        'xb_slot_ids' => ['the_body', 'the_footer', 'the_colophon'],
+                      ],
+                      '#slots' => [
+                        'the_footer' => [
                       // This string is the first example value for this slot.
-                      '#plain_text' => 'Example value for <strong>the_footer</strong>.',
-                    ],
-                    'the_colophon' => [
-                      // This slot has no example value defined.
-                      '#plain_text' => '',
-                    ],
-                    'the_body' => [
-                      'uuid-level-2' => [
-                        '#type' => 'component',
-                        '#cache' => [
-                          'tags' => ['config:experience_builder.component.sdc.xb_test_sdc.props-slots'],
-                          'contexts' => [],
-                          'max-age' => Cache::PERMANENT,
+                          '#plain_text' => 'Example value for <strong>the_footer</strong>.',
                         ],
-                        '#component' => 'xb_test_sdc:props-slots',
-                        '#props' => [
-                          'heading' => 'Hello, from slot level 2!',
-                          'xb_uuid' => 'uuid-level-2',
-                          'xb_slot_ids' => ['the_body', 'the_footer', 'the_colophon'],
+                        'the_colophon' => [
+                        // This slot has no example value defined.
+                          '#plain_text' => '',
                         ],
-                        '#slots' => [
-                          'the_footer' => [
-                            '#plain_text' => 'Example value for <strong>the_footer</strong>.',
-                          ],
-                          'the_colophon' => ['#plain_text' => ''],
-                          'the_body' => [
-                            'uuid-level-3' => [
+                        'the_body' => [
+                          'uuid-level-2' => [
+                            '#type' => RenderSafeComponentContainer::PLUGIN_ID,
+                            '#component_uuid' => 'uuid-level-2',
+                            '#component_context' => 'Page A page (-)',
+                            '#is_preview' => FALSE,
+                            '#component' => [
                               '#type' => 'component',
                               '#cache' => [
-                                'tags' => ['config:experience_builder.component.sdc.xb_test_sdc.props-no-slots'],
+                                'tags' => ['config:experience_builder.component.sdc.xb_test_sdc.props-slots'],
                                 'contexts' => [],
                                 'max-age' => Cache::PERMANENT,
                               ],
-                              '#component' => 'xb_test_sdc:props-no-slots',
+                              '#component' => 'xb_test_sdc:props-slots',
                               '#props' => [
-                                'heading' => 'Hello, from slot level 3!',
-                                'xb_uuid' => 'uuid-level-3',
-                                'xb_slot_ids' => [],
+                                'heading' => 'Hello, from slot level 2!',
+                                'xb_uuid' => 'uuid-level-2',
+                                'xb_slot_ids' => ['the_body', 'the_footer', 'the_colophon'],
                               ],
-                              '#prefix' => Markup::create('<!-- xb-start-uuid-level-3 -->'),
-                              '#suffix' => Markup::create('<!-- xb-end-uuid-level-3 -->'),
-                              '#attached' => [
-                                'library' => [
-                                  'core/components.xb_test_sdc--props-no-slots',
+                              '#slots' => [
+                                'the_footer' => [
+                                  '#plain_text' => 'Example value for <strong>the_footer</strong>.',
                                 ],
-                              ],
-                            ],
-                            'uuid-block' => [
-                              '#access' => new AccessResultAllowed(),
-                              '#theme' => 'block',
-                              '#configuration' => [
-                                'id' => 'system_branding_block',
-                                'label' => '',
-                                'label_display' => FALSE,
-                                'provider' => 'system',
-                                'use_site_logo' => TRUE,
-                                'use_site_name' => TRUE,
-                                'use_site_slogan' => TRUE,
-                                'local_source_id' => 'system_branding_block',
-                                'default_settings' => [
-                                  'id' => 'system_branding_block',
-                                  'label' => 'Site branding',
-                                  'label_display' => '',
-                                  'provider' => 'system',
-                                  'use_site_logo' => TRUE,
-                                  'use_site_name' => TRUE,
-                                  'use_site_slogan' => TRUE,
-                                ],
-                              ],
-                              '#plugin_id' => 'system_branding_block',
-                              '#base_plugin_id' => 'system_branding_block',
-                              '#derivative_plugin_id' => NULL,
-                              '#id' => 'uuid-block',
-                              'content' => [
-                                'site_logo' => [
-                                  '#theme' => 'image',
-                                  '#uri' => NULL,
-                                  '#alt' => 'Home',
-                                  '#access' => TRUE,
-                                ],
-                                'site_name' => [
-                                  '#markup' => 'XB Test Site',
-                                  '#access' => TRUE,
-                                ],
-                                'site_slogan' => [
-                                  '#markup' => 'Experience Builder Test Site',
-                                  '#access' => TRUE,
-                                ],
-                              ],
-                              '#cache' => [
-                                'tags' => ['config:experience_builder.component.block.system_branding_block'],
-                                'contexts' => [],
-                                'max-age' => Cache::PERMANENT,
-                              ],
-                              '#prefix' => Markup::create('<!-- xb-start-uuid-block -->'),
-                              '#suffix' => Markup::create('<!-- xb-end-uuid-block -->'),
-                            ],
-                            'uuid-js-component' => [
-                              '#type' => 'astro_island',
-                              '#cache' => [
-                                'tags' => ['config:experience_builder.component.js.my-cta'],
-                                'contexts' => [],
-                                'max-age' => Cache::PERMANENT,
-                              ],
-                              '#import_maps' => [
-                                ImportMapResponseAttachmentsProcessor::GLOBAL_IMPORTS => [
-                                  'preact' => \sprintf('%s/ui/lib/astro-hydration/dist/preact.module.js', $path),
-                                  'preact/hooks' => \sprintf('%s/ui/lib/astro-hydration/dist/hooks.module.js', $path),
-                                  'react/jsx-runtime' => \sprintf('%s/ui/lib/astro-hydration/dist/jsxRuntime.module.js', $path),
-                                  'react' => \sprintf('%s/ui/lib/astro-hydration/dist/compat.module.js', $path),
-                                  'react-dom' => \sprintf('%s/ui/lib/astro-hydration/dist/compat.module.js', $path),
-                                  'react-dom/client' => \sprintf('%s/ui/lib/astro-hydration/dist/compat.module.js', $path),
-                                  'clsx' => \sprintf('%s/ui/lib/astro-hydration/dist/clsx.js', $path),
-                                  'class-variance-authority' => \sprintf('%s/ui/lib/astro-hydration/dist/class-variance-authority.js', $path),
-                                  'tailwind-merge' => \sprintf('%s/ui/lib/astro-hydration/dist/tailwind-merge.js', $path),
-                                  '@/lib/utils' => \sprintf('%s/ui/lib/astro-hydration/dist/utils.js', $path),
-                                ],
-                              ],
-                              '#attached' => [
-                                'html_head_link' => [
-                                  [
-                                    [
-                                      'rel' => 'modulepreload',
-                                      'fetchpriority' => 'high',
-                                      'href' => \sprintf('%s/ui/lib/astro-hydration/dist/signals.module.js', $path),
+                                'the_colophon' => ['#plain_text' => ''],
+                                'the_body' => [
+                                  'uuid-level-3' => [
+                                    '#type' => RenderSafeComponentContainer::PLUGIN_ID,
+                                    '#component_uuid' => 'uuid-level-3',
+                                    '#component_context' => 'Page A page (-)',
+                                    '#is_preview' => FALSE,
+                                    '#component' => [
+                                      '#type' => 'component',
+                                      '#cache' => [
+                                        'tags' => ['config:experience_builder.component.sdc.xb_test_sdc.props-no-slots'],
+                                        'contexts' => [],
+                                        'max-age' => Cache::PERMANENT,
+                                      ],
+                                      '#component' => 'xb_test_sdc:props-no-slots',
+                                      '#props' => [
+                                        'heading' => 'Hello, from slot level 3!',
+                                        'xb_uuid' => 'uuid-level-3',
+                                        'xb_slot_ids' => [],
+                                      ],
+                                      '#prefix' => Markup::create('<!-- xb-start-uuid-level-3 -->'),
+                                      '#suffix' => Markup::create('<!-- xb-end-uuid-level-3 -->'),
+                                      '#attached' => [
+                                        'library' => [
+                                          'core/components.xb_test_sdc--props-no-slots',
+                                        ],
+                                      ],
                                     ],
                                   ],
-                                  [
-                                    [
-                                      'rel' => 'modulepreload',
-                                      'fetchpriority' => 'high',
-                                      'href' => \sprintf('%s/ui/lib/astro-hydration/dist/preload-helper.js', $path),
+                                  'uuid-block' => [
+                                    '#type' => RenderSafeComponentContainer::PLUGIN_ID,
+                                    '#component_uuid' => 'uuid-block',
+                                    '#component_context' => 'Page A page (-)',
+                                    '#is_preview' => FALSE,
+                                    '#component' => [
+                                      '#access' => new AccessResultAllowed(),
+                                      '#theme' => 'block',
+                                      '#configuration' => [
+                                        'id' => 'system_branding_block',
+                                        'label' => '',
+                                        'label_display' => FALSE,
+                                        'provider' => 'system',
+                                        'use_site_logo' => TRUE,
+                                        'use_site_name' => TRUE,
+                                        'use_site_slogan' => TRUE,
+                                        'local_source_id' => 'system_branding_block',
+                                        'default_settings' => [
+                                          'id' => 'system_branding_block',
+                                          'label' => 'Site branding',
+                                          'label_display' => '',
+                                          'provider' => 'system',
+                                          'use_site_logo' => TRUE,
+                                          'use_site_name' => TRUE,
+                                          'use_site_slogan' => TRUE,
+                                        ],
+                                      ],
+                                      '#plugin_id' => 'system_branding_block',
+                                      '#base_plugin_id' => 'system_branding_block',
+                                      '#derivative_plugin_id' => NULL,
+                                      '#id' => 'uuid-block',
+                                      'content' => [
+                                        'site_logo' => [
+                                          '#theme' => 'image',
+                                          '#uri' => NULL,
+                                          '#alt' => 'Home',
+                                          '#access' => TRUE,
+                                        ],
+                                        'site_name' => [
+                                          '#markup' => 'XB Test Site',
+                                          '#access' => TRUE,
+                                        ],
+                                        'site_slogan' => [
+                                          '#markup' => 'Experience Builder Test Site',
+                                          '#access' => TRUE,
+                                        ],
+                                      ],
+                                      '#cache' => [
+                                        'tags' => ['config:experience_builder.component.block.system_branding_block'],
+                                        'contexts' => [],
+                                        'max-age' => Cache::PERMANENT,
+                                      ],
+                                      '#prefix' => Markup::create('<!-- xb-start-uuid-block -->'),
+                                      '#suffix' => Markup::create('<!-- xb-end-uuid-block -->'),
+                                    ],
+                                  ],
+                                  'uuid-js-component' => [
+                                    '#type' => RenderSafeComponentContainer::PLUGIN_ID,
+                                    '#component_uuid' => 'uuid-js-component',
+                                    '#component_context' => 'Page A page (-)',
+                                    '#is_preview' => FALSE,
+                                    '#component' => [
+                                      '#type' => 'astro_island',
+                                      '#cache' => [
+                                        'tags' => ['config:experience_builder.component.js.my-cta'],
+                                        'contexts' => [],
+                                        'max-age' => Cache::PERMANENT,
+                                      ],
+                                      '#import_maps' => [
+                                        ImportMapResponseAttachmentsProcessor::GLOBAL_IMPORTS => [
+                                          'preact' => \sprintf('%s/ui/lib/astro-hydration/dist/preact.module.js', $path),
+                                          'preact/hooks' => \sprintf('%s/ui/lib/astro-hydration/dist/hooks.module.js', $path),
+                                          'react/jsx-runtime' => \sprintf('%s/ui/lib/astro-hydration/dist/jsxRuntime.module.js', $path),
+                                          'react' => \sprintf('%s/ui/lib/astro-hydration/dist/compat.module.js', $path),
+                                          'react-dom' => \sprintf('%s/ui/lib/astro-hydration/dist/compat.module.js', $path),
+                                          'react-dom/client' => \sprintf('%s/ui/lib/astro-hydration/dist/compat.module.js', $path),
+                                          'clsx' => \sprintf('%s/ui/lib/astro-hydration/dist/clsx.js', $path),
+                                          'class-variance-authority' => \sprintf('%s/ui/lib/astro-hydration/dist/class-variance-authority.js', $path),
+                                          'tailwind-merge' => \sprintf('%s/ui/lib/astro-hydration/dist/tailwind-merge.js', $path),
+                                          '@/lib/utils' => \sprintf('%s/ui/lib/astro-hydration/dist/utils.js', $path),
+                                        ],
+                                      ],
+                                      '#attached' => [
+                                        'html_head_link' => [
+                                      [
+                                      [
+                                        'rel' => 'modulepreload',
+                                        'fetchpriority' => 'high',
+                                        'href' => \sprintf('%s/ui/lib/astro-hydration/dist/signals.module.js', $path),
+                                      ],
+                                      ],
+                                      [
+                                      [
+                                        'rel' => 'modulepreload',
+                                        'fetchpriority' => 'high',
+                                        'href' => \sprintf('%s/ui/lib/astro-hydration/dist/preload-helper.js', $path),
+                                      ],
+                                      ],
+                                        ],
+                                      ],
+                                      '#name' => 'My First Code Component',
+                                      '#component_url' => '::SITE_DIR_BASE_URL::/files/astro-island/STNRn46UCAs1xJCb2kgPiEOEZp0R24B5qjtHOsyYT-g.js',
+                                      '#props' => [
+                                        'text' => 'Hello, from a "code component"!',
+                                        'xb_uuid' => 'uuid-js-component',
+                                        'xb_slot_ids' => [],
+                                      ],
+                                      '#prefix' => Markup::create('<!-- xb-start-uuid-js-component -->'),
+                                      '#suffix' => Markup::create('<!-- xb-end-uuid-js-component -->'),
+                                      '#uuid' => 'uuid-js-component',
+                                    ],
+                                  ],
+                                  'uuid-last-in-tree' => [
+                                    '#type' => RenderSafeComponentContainer::PLUGIN_ID,
+                                    '#component_uuid' => 'uuid-last-in-tree',
+                                    '#component_context' => 'Page A page (-)',
+                                    '#is_preview' => FALSE,
+                                    '#component' => [
+                                      '#type' => 'component',
+                                      '#cache' => [
+                                        'tags' => ['config:experience_builder.component.sdc.xb_test_sdc.props-no-slots'],
+                                        'contexts' => [],
+                                        'max-age' => Cache::PERMANENT,
+                                      ],
+                                      '#component' => 'xb_test_sdc:props-no-slots',
+                                      '#props' => [
+                                        'heading' => 'Hello, from slot <LAST ONE>!',
+                                        'xb_uuid' => 'uuid-last-in-tree',
+                                        'xb_slot_ids' => [],
+                                      ],
+                                      '#prefix' => Markup::create('<!-- xb-start-last-in-tree -->'),
+                                      '#suffix' => Markup::create('<!-- xb-end-uuid-last-in-tree -->'),
+                                      '#attached' => [
+                                        'library' => [
+                                          'core/components.xb_test_sdc--props-no-slots',
+                                        ],
+                                      ],
                                     ],
                                   ],
                                 ],
                               ],
-                              '#name' => 'My First Code Component',
-                              '#component_url' => '::SITE_DIR_BASE_URL::/files/astro-island/STNRn46UCAs1xJCb2kgPiEOEZp0R24B5qjtHOsyYT-g.js',
-                              '#props' => [
-                                'text' => 'Hello, from a "code component"!',
-                                'xb_uuid' => 'uuid-js-component',
-                                'xb_slot_ids' => [],
-                              ],
-                              '#prefix' => Markup::create('<!-- xb-start-uuid-js-component -->'),
-                              '#suffix' => Markup::create('<!-- xb-end-uuid-js-component -->'),
-                              '#uuid' => 'uuid-js-component',
-                            ],
-                            'uuid-last-in-tree' => [
-                              '#type' => 'component',
-                              '#cache' => [
-                                'tags' => ['config:experience_builder.component.sdc.xb_test_sdc.props-no-slots'],
-                                'contexts' => [],
-                                'max-age' => Cache::PERMANENT,
-                              ],
-                              '#component' => 'xb_test_sdc:props-no-slots',
-                              '#props' => [
-                                'heading' => 'Hello, from slot <LAST ONE>!',
-                                'xb_uuid' => 'uuid-last-in-tree',
-                                'xb_slot_ids' => [],
-                              ],
-                              '#prefix' => Markup::create('<!-- xb-start-last-in-tree -->'),
-                              '#suffix' => Markup::create('<!-- xb-end-uuid-last-in-tree -->'),
+                              '#prefix' => Markup::create('<!-- xb-start-uuid-level-2 -->'),
+                              '#suffix' => Markup::create('<!-- xb-end-uuid-level-2 -->'),
                               '#attached' => [
                                 'library' => [
-                                  'core/components.xb_test_sdc--props-no-slots',
+                                  'core/components.xb_test_sdc--props-slots',
                                 ],
                               ],
                             ],
                           ],
                         ],
-                        '#prefix' => Markup::create('<!-- xb-start-uuid-level-2 -->'),
-                        '#suffix' => Markup::create('<!-- xb-end-uuid-level-2 -->'),
-                        '#attached' => [
-                          'library' => [
-                            'core/components.xb_test_sdc--props-slots',
-                          ],
+                      ],
+                      '#prefix' => Markup::create('<!-- xb-start-uuid-level-1 -->'),
+                      '#suffix' => Markup::create('<!-- xb-end-uuid-level-1 -->'),
+                      '#attached' => [
+                        'library' => [
+                          'core/components.xb_test_sdc--props-slots',
                         ],
                       ],
                     ],
                   ],
-                  '#prefix' => Markup::create('<!-- xb-start-uuid-level-1 -->'),
-                  '#suffix' => Markup::create('<!-- xb-end-uuid-level-1 -->'),
-                  '#attached' => [
-                    'library' => [
-                      'core/components.xb_test_sdc--props-slots',
-                    ],
-                  ],
                 ],
               ],
-            ],
-            '#prefix' => Markup::create('<!-- xb-start-uuid-in-root -->'),
-            '#suffix' => Markup::create('<!-- xb-end-uuid-in-root -->'),
-            '#attached' => [
-              'library' => [
-                'core/components.xb_test_sdc--props-slots',
+              '#prefix' => Markup::create('<!-- xb-start-uuid-in-root -->'),
+              '#suffix' => Markup::create('<!-- xb-end-uuid-in-root -->'),
+              '#attached' => [
+                'library' => [
+                  'core/components.xb_test_sdc--props-slots',
+                ],
               ],
             ],
           ],

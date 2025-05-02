@@ -46,11 +46,11 @@ class ComponentTreeHydratedWithBlockOverrideTest extends ComponentTreeHydratedTe
    * Loads entities, because PHPUnit data providers can't access those.
    */
   private static function loadEntitiesIntoRenderable(array &$renderable): void {
-    if (isset($renderable['#js_component'])) {
-      $renderable['#js_component'] = JavaScriptComponent::load($renderable['#js_component'][JavaScriptComponent::class]);
+    if (isset($renderable['#component']['#js_component'])) {
+      $renderable['#component']['#js_component'] = JavaScriptComponent::load($renderable['#component']['#js_component'][JavaScriptComponent::class]);
     }
-    if (isset($renderable['#slots'])) {
-      self::loadEntitiesIntoRenderable($renderable['#slots']);
+    if (isset($renderable['#component']['#slots'])) {
+      self::loadEntitiesIntoRenderable($renderable['#component']['#slots']);
     }
     foreach (Element::children($renderable) as $child) {
       self::loadEntitiesIntoRenderable($renderable[$child]);
@@ -67,15 +67,17 @@ class ComponentTreeHydratedWithBlockOverrideTest extends ComponentTreeHydratedTe
           'expected_renderable' => [
             ComponentTreeStructure::ROOT_UUID => [
               'uuid-in-root' => [
-                '#theme' => 'block__system_branding_block__as_js_component',
-                '#cache' => [
-                  'tags' => [
-                    'config:experience_builder.js_component.site_branding',
-                    'config:experience_builder.component.block.system_branding_block',
+                '#component' => [
+                  '#theme' => 'block__system_branding_block__as_js_component',
+                  '#cache' => [
+                    'tags' => [
+                      'config:experience_builder.js_component.site_branding',
+                      'config:experience_builder.component.block.system_branding_block',
+                    ],
                   ],
+                  '#js_component' => [JavaScriptComponent::class => 'site_branding'],
+                  '#xb_preview' => FALSE,
                 ],
-                '#js_component' => [JavaScriptComponent::class => 'site_branding'],
-                '#xb_preview' => FALSE,
               ],
             ],
           ],
@@ -98,27 +100,37 @@ HTML,
           'expected_renderable' => [
             ComponentTreeStructure::ROOT_UUID => [
               'uuid-in-root' => [
-                '#slots' => [
-                  'the_body' => [
-                    'uuid-level-1' => [
-                      '#slots' => [
-                        'the_body' => [
-                          'uuid-level-2' => [
-                            '#slots' => [
-                              'the_body' => [
-                                'uuid-block' => [
-                                  '#theme' => 'block__system_branding_block__as_js_component',
-                                  '#cache' => [
-                                    'tags' => [
-                                      'config:experience_builder.js_component.site_branding',
-                                      'config:experience_builder.component.block.system_branding_block',
+                '#component' => [
+                  '#slots' => [
+                    'the_body' => [
+                      'uuid-level-1' => [
+                        '#component' => [
+                          '#slots' => [
+                            'the_body' => [
+                              'uuid-level-2' => [
+                                '#component' => [
+                                  '#slots' => [
+                                    'the_body' => [
+                                      'uuid-block' => [
+                                        '#component' => [
+                                          '#theme' => 'block__system_branding_block__as_js_component',
+                                          '#cache' => [
+                                            'tags' => [
+                                              'config:experience_builder.js_component.site_branding',
+                                              'config:experience_builder.component.block.system_branding_block',
+                                            ],
+                                          ],
+                                          '#js_component' => [JavaScriptComponent::class => 'site_branding'],
+                                          '#xb_preview' => FALSE,
+                                        ],
+                                      ],
+                                      'uuid-js-component' => [
+                                        '#component' => [
+                                          '#component_url' => '::SITE_DIR_BASE_URL::/files/astro-island/SqNXISgeROx6gBR_DcET4VKD8ttxgkRL9NO-4C0fUSM.js',
+                                        ],
+                                      ],
                                     ],
                                   ],
-                                  '#js_component' => [JavaScriptComponent::class => 'site_branding'],
-                                  '#xb_preview' => FALSE,
-                                ],
-                                'uuid-js-component' => [
-                                  '#component_url' => '::SITE_DIR_BASE_URL::/files/astro-island/SqNXISgeROx6gBR_DcET4VKD8ttxgkRL9NO-4C0fUSM.js',
                                 ],
                               ],
                             ],

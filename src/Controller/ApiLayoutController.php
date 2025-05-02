@@ -404,7 +404,7 @@ final class ApiLayoutController {
         ]) + $body['entity_form_fields'],
       ]);
     }
-    $renderable = $this->componentTreeLoader->load($entity)->toRenderable(TRUE);
+    $renderable = $this->componentTreeLoader->load($entity)->toRenderable($entity, TRUE);
 
     if (isset($renderable[ComponentTreeStructure::ROOT_UUID])) {
       $build = $renderable[ComponentTreeStructure::ROOT_UUID];

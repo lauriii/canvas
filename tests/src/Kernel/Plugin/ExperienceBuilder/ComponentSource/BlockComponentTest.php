@@ -274,7 +274,7 @@ HTML,
       ] + $block_settings,
       'expected_validation_errors' => [],
       'expected_exception' => NULL,
-      'expected_output_selector' => '#block-crash-test-dummy--2:contains("Hello, XB!")',
+      'expected_output_selector' => '[id*="block-crash-test-dummy"]:contains("Hello, XB!")',
     ];
 
     yield "Block with valid props, with exception" => [
