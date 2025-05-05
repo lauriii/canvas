@@ -19,12 +19,6 @@ use Drupal\experience_builder\Plugin\ComponentPluginManager;
  */
 class ComponentSourceHooks {
 
-  public function __construct(
-    private readonly BlockManagerInterface $blockManager,
-    private readonly ComponentPluginManager $componentPluginManager,
-  ) {
-  }
-
   /**
    * Implements hook_rebuild().
    */
@@ -33,9 +27,11 @@ class ComponentSourceHooks {
     // The module installer cleared all plugin caches. Create/update Component
     // config entities for all XB Component source plugins.
     // @see \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\BlockComponent
-    $this->blockManager->getDefinitions();
+    // @phpstan-ignore-next-line
+    \Drupal::service(BlockManagerInterface::class)->getDefinitions();
     // @see \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\SingleDirectoryComponent
-    $this->componentPluginManager->getDefinitions();
+    // @phpstan-ignore-next-line
+    \Drupal::service(ComponentPluginManager::class)->getDefinitions();
   }
 
   /**
