@@ -842,7 +842,7 @@ HTML,
       ],
       'sdc.xb_test_sdc.image-optional-with-example-and-additional-prop' => [
         'expected_output_selectors' => [
-          'img[src="gracie.jpg"]',
+          'img[src="' . self::getCiModulePath() . '/tests/modules/xb_test_sdc/components/image-optional-with-example-and-additional-prop/gracie.jpg"]',
         ],
         'source' => 'Module component',
         'metadata' => ['slots' => []],
@@ -889,7 +889,7 @@ HTML,
             'default_values' => [
               'source' => [],
               'resolved' => [
-                'src' => 'gracie.jpg',
+                'src' => self::getCiModulePath() . '/tests/modules/xb_test_sdc/components/image-optional-with-example-and-additional-prop/gracie.jpg',
                 'alt' => 'A good dog',
                 'width' => 601,
                 'height' => 402,

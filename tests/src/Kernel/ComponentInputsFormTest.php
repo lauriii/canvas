@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\experience_builder\Kernel;
 
+use Drupal\Tests\experience_builder\Kernel\Traits\CiModulePathTrait;
 use Drupal\Tests\experience_builder\TestSite\XBTestSetup;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Component\HttpFoundation\Request;
@@ -14,6 +15,8 @@ use Symfony\Component\HttpFoundation\Request;
  * @group experience_builder
  */
 final class ComponentInputsFormTest extends ApiLayoutControllerTestBase {
+
+  use CiModulePathTrait;
 
   /**
    * {@inheritdoc}
@@ -109,7 +112,7 @@ final class ComponentInputsFormTest extends ApiLayoutControllerTestBase {
           'resolved' => [
             'heading' => [],
             'image' => [
-              'src' => 'gracie.jpg',
+              'src' => self::getCiModulePath() . '/tests/modules/xb_test_sdc/components/image-optional-with-example-and-additional-prop/gracie.jpg',
               'alt' => 'A good dog',
               'width' => 601,
               'height' => 402,
@@ -150,7 +153,7 @@ final class ComponentInputsFormTest extends ApiLayoutControllerTestBase {
           'resolved' => [
             'heading' => 'test',
             'image' => [
-              'src' => 'gracie.jpg',
+              'src' => self::getCiModulePath() . '/tests/modules/xb_test_sdc/components/image-optional-with-example-and-additional-prop/gracie.jpg',
               'alt' => 'A good dog',
               'width' => 601,
               'height' => 402,

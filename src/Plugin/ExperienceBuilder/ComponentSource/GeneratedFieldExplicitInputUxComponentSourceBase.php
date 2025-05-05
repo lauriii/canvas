@@ -562,6 +562,16 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
         $field_data[$prop_name]['default_values']['resolved'] = $default_resolved_value;
       }
 
+      // Now that the JSON schema is available, generate the final resolved
+      // example value (with relative URLs rewritten), if needed for this prop.
+      if (self::exampleValueRequiresEntity($storable_prop_shape) && $default_resolved_value !== NULL) {
+        $default_props_for_default_markup[$prop_name] = $field_data[$prop_name]['default_values']['resolved'] = (new DefaultRelativeUrlPropSource(
+          value: $default_resolved_value,
+          jsonSchema: $field_data[$prop_name]['jsonSchema'],
+          componentId: $component->id(),
+        ))->evaluate(NULL);
+      }
+
       // Build transforms from widget metadata.
       $field_widget_plugin_id = NULL;
       $static_prop_source = $storable_prop_shape->toStaticPropSource();
