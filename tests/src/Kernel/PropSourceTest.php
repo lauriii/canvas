@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\experience_builder\Kernel;
 
+use Drupal\Core\Field\FieldStorageDefinitionInterface;
+use Drupal\Core\Field\Plugin\Field\FieldWidget\NumberWidget;
 use Drupal\Core\Extension\ExtensionPathResolver;
 use Drupal\Core\Field\Plugin\Field\FieldWidget\StringTextfieldWidget;
 use Drupal\Core\Url;
@@ -22,6 +24,7 @@ use Drupal\experience_builder\PropSource\PropSource;
 use Drupal\experience_builder\PropSource\StaticPropSource;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\Tests\experience_builder\Traits\ContribStrictConfigSchemaTestTrait;
+use Drupal\user\Entity\Role;
 use Drupal\user\Entity\User;
 
 /**
@@ -57,7 +60,14 @@ class PropSourceTest extends KernelTestBase {
     // serialization and deserialization works.
     $json_representation = (string) $simple_example;
     $this->assertSame('{"sourceType":"static:field_item:string","value":"Hello, world!","expression":"ℹ︎string␟value"}', $json_representation);
-    $simple_example = PropSource::parse(json_decode($json_representation, TRUE));
+    $decoded_representation = json_decode($json_representation, TRUE);
+    try {
+      StaticPropSource::isMinimalRepresentation($decoded_representation);
+    }
+    catch (\LogicException) {
+      $this->fail("Not a minimal representation: $json_representation.");
+    }
+    $simple_example = PropSource::parse($decoded_representation);
     $this->assertInstanceOf(StaticPropSource::class, $simple_example);
     // The contained information read back out.
     $this->assertSame('static:field_item:string', $simple_example->getSourceType());
@@ -67,7 +77,7 @@ class PropSourceTest extends KernelTestBase {
     // - evaluate it to populate an SDC prop
     $this->assertSame('Hello, world!', $simple_example->evaluate(User::create([])));
     // - the field type's item's raw value is minimized if it is single-property
-    $this->assertSame('Hello, world!', $simple_example->minimizeValue(['value' => 'Hello, world!']));
+    $this->assertSame('Hello, world!', $simple_example->getValue());
     // - generate a widget to edit the stored value — using the default widget
     //   or a specified widget.
     // @see \Drupal\experience_builder\Entity\Component::$defaults
@@ -91,7 +101,14 @@ class PropSourceTest extends KernelTestBase {
     // serialization and deserialization works.
     $json_representation = (string) $complex_example;
     $this->assertSame('{"sourceType":"static:field_item:daterange","value":{"value":"2020-04-16T00:00","end_value":"2024-07-10T10:24"},"expression":"ℹ︎daterange␟{start↠value,stop↠end_value}"}', $json_representation);
-    $complex_example = PropSource::parse(json_decode($json_representation, TRUE));
+    $decoded_representation = json_decode($json_representation, TRUE);
+    try {
+      StaticPropSource::isMinimalRepresentation($decoded_representation);
+    }
+    catch (\LogicException) {
+      $this->fail("Not a minimal representation: $json_representation.");
+    }
+    $complex_example = PropSource::parse($decoded_representation);
     $this->assertInstanceOf(StaticPropSource::class, $complex_example);
     // The contained information read back out.
     $this->assertSame('static:field_item:daterange', $complex_example->getSourceType());
@@ -112,10 +129,7 @@ class PropSourceTest extends KernelTestBase {
         'value' => '2020-04-16T00:00',
         'end_value' => '2024-07-10T10:24',
       ],
-      $complex_example->minimizeValue([
-        'value' => '2020-04-16T00:00',
-        'end_value' => '2024-07-10T10:24',
-      ])
+      $complex_example->getValue()
     );
     // - generate a widget to edit the stored value — using the default widget
     //   or a specified widget.
@@ -123,6 +137,132 @@ class PropSourceTest extends KernelTestBase {
     $this->assertInstanceOf(DateRangeDefaultWidget::class, $complex_example->getWidget('irrelevant-for-test', $this->randomString(), NULL));
     $this->assertInstanceOf(DateRangeDefaultWidget::class, $complex_example->getWidget('irrelevant-for-test', $this->randomString(), 'daterange_default'));
     $this->assertInstanceOf(DateRangeDatelistWidget::class, $complex_example->getWidget('irrelevant-for-test', $this->randomString(), 'daterange_datelist'));
+
+    // A simple (expression targeting a simple prop) array example (with
+    // cardinality specified, rather than the default of `cardinality=1`).
+    $simple_array_example = StaticPropSource::parse([
+      'sourceType' => 'static:field_item:integer',
+      'sourceTypeSettings' => [
+        'cardinality' => 5,
+      ],
+      'value' => [
+        20,
+        06,
+        1,
+        88,
+        92,
+      ],
+      'expression' => 'ℹ︎integer␟value',
+    ]);
+    // First, get the string representation and parse it back, to prove
+    // serialization and deserialization works.
+    $json_representation = (string) $simple_array_example;
+    $this->assertSame('{"sourceType":"static:field_item:integer","value":[20,6,1,88,92],"expression":"ℹ︎integer␟value","sourceTypeSettings":{"cardinality":5}}', $json_representation);
+    $decoded_representation = json_decode($json_representation, TRUE);
+    try {
+      StaticPropSource::isMinimalRepresentation($decoded_representation);
+    }
+    catch (\LogicException) {
+      $this->fail("Not a minimal representation: $json_representation.");
+    }
+    $simple_array_example = PropSource::parse($decoded_representation);
+    $this->assertInstanceOf(StaticPropSource::class, $simple_array_example);
+    // The contained information read back out.
+    $this->assertSame('static:field_item:integer', $simple_array_example->getSourceType());
+    $this->assertInstanceOf(FieldTypePropExpression::class, StructuredDataPropExpression::fromString($simple_array_example->asChoice()));
+    $this->assertSame([20, 06, 1, 88, 92], $simple_array_example->getValue());
+    // Test the functionality of a StaticPropSource:
+    // - evaluate it to populate an SDC prop
+    $this->assertSame([20, 06, 1, 88, 92], $simple_array_example->evaluate(User::create([])));
+    // - the field type's item's raw value is minimized if it is single-property
+    $this->assertSame([20, 06, 1, 88, 92], $simple_array_example->getValue());
+    // - generate a widget to edit the stored value — using the default widget
+    //   or a specified widget.
+    // @see \Drupal\experience_builder\Entity\Component::$defaults
+    $this->assertInstanceOf(NumberWidget::class, $simple_array_example->getWidget('irrelevant-for-test', $this->randomString(), NULL));
+    $this->assertInstanceOf(NumberWidget::class, $simple_array_example->getWidget('irrelevant-for-test', $this->randomString(), 'number'));
+    // The widget plugin manager ignores any request for another widget type and
+    // falls back to the default widget if
+    // @see \Drupal\Core\Field\WidgetPluginManager::getInstance()
+    $this->assertInstanceOf(NumberWidget::class, $simple_array_example->getWidget('irrelevant-for-test', $this->randomString(), 'number'));
+
+    // A complex (expression targeting multiple props) array example (with
+    // cardinality specified, rather than the default of `cardinality=1`).
+    $complex_array_example = StaticPropSource::parse([
+      'sourceType' => 'static:field_item:daterange',
+      'sourceTypeSettings' => [
+        'cardinality' => FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED,
+      ],
+      'value' => [
+        [
+          'value' => '2020-04-16T00:00',
+          'end_value' => '2024-07-10T10:24',
+        ],
+        [
+          'value' => '2020-04-16T00:00',
+          'end_value' => '2024-09-26T11:31',
+        ],
+      ],
+      'expression' => 'ℹ︎daterange␟{start↠value,stop↠end_value}',
+    ]);
+    // First, get the string representation and parse it back, to prove
+    // serialization and deserialization works.
+    $json_representation = (string) $complex_array_example;
+    $this->assertSame('{"sourceType":"static:field_item:daterange","value":[{"value":"2020-04-16T00:00","end_value":"2024-07-10T10:24"},{"value":"2020-04-16T00:00","end_value":"2024-09-26T11:31"}],"expression":"ℹ︎daterange␟{start↠value,stop↠end_value}","sourceTypeSettings":{"cardinality":-1}}', $json_representation);
+    $decoded_representation = json_decode($json_representation, TRUE);
+    try {
+      StaticPropSource::isMinimalRepresentation($decoded_representation);
+    }
+    catch (\LogicException) {
+      $this->fail("Not a minimal representation: $json_representation.");
+    }
+    $complex_array_example = PropSource::parse($decoded_representation);
+    $this->assertInstanceOf(StaticPropSource::class, $complex_array_example);
+    // The contained information read back out.
+    $this->assertSame('static:field_item:daterange', $complex_array_example->getSourceType());
+    $this->assertInstanceOf(FieldTypeObjectPropsExpression::class, StructuredDataPropExpression::fromString($complex_array_example->asChoice()));
+    $this->assertSame([
+      [
+        'value' => '2020-04-16T00:00',
+        'end_value' => '2024-07-10T10:24',
+      ],
+      [
+        'value' => '2020-04-16T00:00',
+        'end_value' => '2024-09-26T11:31',
+      ],
+    ], $complex_array_example->getValue());
+    // Test the functionality of a StaticPropSource:
+    // - evaluate it to populate an SDC prop
+    $this->assertSame([
+      [
+        'start' => '2020-04-16T00:00',
+        'stop' => '2024-07-10T10:24',
+      ],
+      [
+        'start' => '2020-04-16T00:00',
+        'stop' => '2024-09-26T11:31',
+      ],
+    ], $complex_array_example->evaluate(User::create([])));
+    // - the field type's item's raw value is minimized if it is single-property
+    $this->assertSame(
+      [
+        [
+          'value' => '2020-04-16T00:00',
+          'end_value' => '2024-07-10T10:24',
+        ],
+        [
+          'value' => '2020-04-16T00:00',
+          'end_value' => '2024-09-26T11:31',
+        ],
+      ],
+      $complex_array_example->getValue()
+    );
+    // - generate a widget to edit the stored value — using the default widget
+    //   or a specified widget.
+    // @see \Drupal\experience_builder\Entity\Component::$defaults
+    $this->assertInstanceOf(DateRangeDefaultWidget::class, $complex_array_example->getWidget('irrelevant-for-test', $this->randomString(), NULL));
+    $this->assertInstanceOf(DateRangeDefaultWidget::class, $complex_array_example->getWidget('irrelevant-for-test', $this->randomString(), 'daterange_default'));
+    $this->assertInstanceOf(DateRangeDatelistWidget::class, $complex_array_example->getWidget('irrelevant-for-test', $this->randomString(), 'daterange_datelist'));
   }
 
   /**
@@ -146,6 +286,39 @@ class PropSourceTest extends KernelTestBase {
     // Test the functionality of a DynamicPropSource:
     // - evaluate it to populate an SDC prop
     $this->assertSame('John Doe', $simple_example->evaluate(User::create(['name' => 'John Doe'])));
+  }
+
+  /**
+   * @covers \Drupal\experience_builder\PropExpressions\StructuredData\Evaluator
+   * @testWith ["ℹ︎␜entity:user␝name␞␟value", null, "John Doe"]
+   *           ["ℹ︎␜entity:user␝name␞0␟value", null, "John Doe"]
+   *           ["ℹ︎␜entity:user␝name␞-1␟value", "Requested delta -1, but deltas must be positive integers.", "💩"]
+   *           ["ℹ︎␜entity:user␝name␞5␟value", "Requested delta 5 for single-cardinality field, must be either zero or omitted.", "💩"]
+   *           ["ℹ︎␜entity:user␝roles␞␟target_id", null, ["test_role_a", "test_role_b"]]
+   *           ["ℹ︎␜entity:user␝roles␞0␟target_id", null, "test_role_a"]
+   *           ["ℹ︎␜entity:user␝roles␞1␟target_id", null, "test_role_b"]
+   *           ["ℹ︎␜entity:user␝roles␞5␟target_id", null, null]
+   *           ["ℹ︎␜entity:user␝roles␞-1␟target_id", "Requested delta -1, but deltas must be positive integers.", "💩"]
+   */
+  public function testInvalidDynamicPropSourceFieldPropExpressionDueToDelta(string $expression, ?string $expected_message, mixed $expected_value): void {
+    Role::create(['id' => 'test_role_a', 'label' => 'Test role A'])->save();
+    Role::create(['id' => 'test_role_b', 'label' => 'Test role B'])->save();
+    $user = User::create([
+      'name' => 'John Doe',
+      'roles' => [
+        'test_role_a',
+        'test_role_b',
+      ],
+    ]);
+
+    $dynamic_prop_source_delta_test = new DynamicPropSource(StructuredDataPropExpression::fromString($expression));
+
+    if ($expected_message !== NULL) {
+      $this->expectException(\LogicException::class);
+      $this->expectExceptionMessage($expected_message);
+    }
+
+    self::assertSame($expected_value, $dynamic_prop_source_delta_test->evaluate($user));
   }
 
   /**

@@ -213,6 +213,28 @@ props:
           alt: 'Boring placeholder'
           width: 600
           height: 400
+    test_object_drupal_image_ARRAY:
+      title: 'Array of object, $ref=json-schema-definitions://experience_builder.module/image'
+      type: array
+      items:
+        $ref: json-schema-definitions://experience_builder.module/image
+        # @todo `type: object` should not be necessary, it's because \Drupal\sdc\Component\ComponentValidator::getClassProps() does not yet support $ref
+        type: object
+      maxItems: 2
+      examples:
+        - - src: https://example.com/cat.jpg
+            alt: 'A good cat'
+            width: 601
+            height: 402
+          - src: gracie.jpg
+            alt: 'Still a good cat'
+            width: 601
+            height: 402
+          # @todo This is an array with 3 items, even though `maxItems: 2` is specified. SDC should detect this, core bug: https://www.drupal.org/project/drupal/issues/3493086. SDC considers this valid, but then fails during rendering!
+          #- src: gracie.jpg
+          #  alt: 'The BEST cat!'
+          #  width: 601
+          #  height: 402
 
     # The "date-range" object format for this module.
     test_object_drupal_date_range:
@@ -221,6 +243,7 @@ props:
       # @todo Remove in https://www.drupal.org/project/drupal/issues/3352063 — should not be necessary, but removing this causes \Drupal\Core\Theme\Component\ComponentMetadata::parseSchemaInfo() to generate `type = ['', 'object'] 🐛
       type: object
 
+    #
     # HTML props using `contentMediaType: text/html`
     # @see docs/shape-matching-into-field-types.md#3.2.1
     test_string_html_inline:
@@ -263,5 +286,36 @@ props:
       contentMediaType: text/html
       examples:
         - '<p>This is a <strong>required</strong> paragraph without formatting context.</p><ul><li>Another required list</li></ul>'
+
+    test_array_integer:
+      title: 'Array, integers'
+      type: array
+      items:
+        type: integer
+    test_array_integer_minItems:
+      title: 'Array, integers, min 1'
+      type: array
+      items:
+        type: integer
+      minItems: 1
+    test_array_integer_maxItems:
+      title: 'Array, integers, max 2'
+      type: array
+      items:
+        type: integer
+      maxItems: 2
+    test_array_integer_minItemsMultiple:
+      title: 'Array, integers, min 2'
+      type: array
+      items:
+        type: integer
+      minItems: 2
+    test_array_integer_minMaxItems:
+      title: 'Array, integers, min 1, max 20'
+      type: array
+      items:
+        type: integer
+      minItems: 1
+      maxItems: 20
 
     # @todo finish adding all other types + formats supported by JSON schema

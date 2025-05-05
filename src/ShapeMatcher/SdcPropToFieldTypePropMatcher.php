@@ -14,6 +14,7 @@ use Drupal\Core\Entity\TypedData\EntityDataDefinitionInterface;
 use Drupal\Core\Field\BaseFieldDefinition;
 use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Field\FieldItemInterface;
+use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\Field\TypedData\FieldItemDataDefinitionInterface;
 use Drupal\Core\TypedData\DataDefinitionInterface;
 use Drupal\Core\TypedData\DataReferenceDefinitionInterface;
@@ -79,7 +80,7 @@ final class SdcPropToFieldTypePropMatcher {
   /**
    * @param JsonSchema $schema
    */
-  public function iterateJsonSchema(array $schema): \Generator {
+  public function iterateObjectJsonSchema(array $schema): \Generator {
     $schema = self::resolveSchemaReferences($schema);
     $primitive_type = SdcPropJsonSchemaType::from(
     // TRICKY: SDC always allowed `object` for Twig integration reasons.
@@ -87,22 +88,17 @@ final class SdcPropToFieldTypePropMatcher {
       is_array($schema['type']) ? $schema['type'][0] : $schema['type']
     );
 
-    if (!$primitive_type->isIterable()) {
-      throw new \LogicException('Can only iterate iterable JSON schema types: array or object.');
+    if ($primitive_type !== SdcPropJsonSchemaType::OBJECT) {
+      throw new \LogicException();
     }
 
-    if ($primitive_type === SdcPropJsonSchemaType::OBJECT) {
-      foreach ($schema['properties'] ?? [] as $prop_name => $prop_schema) {
-        yield $prop_name => [
-          // @see https://json-schema.org/understanding-json-schema/reference/object#required
-          // @see https://json-schema.org/learn/getting-started-step-by-step#required
-          'required' => in_array($prop_name, $schema['required'] ?? [], TRUE),
-          'schema' => self::resolveSchemaReferences($prop_schema),
-        ];
-      }
-    }
-    else {
-      throw new \LogicException('Support for "array" props is not yet implemented.');
+    foreach ($schema['properties'] ?? [] as $prop_name => $prop_schema) {
+      yield $prop_name => [
+        // @see https://json-schema.org/understanding-json-schema/reference/object#required
+        // @see https://json-schema.org/learn/getting-started-step-by-step#required
+        'required' => in_array($prop_name, $schema['required'] ?? [], TRUE),
+        'schema' => self::resolveSchemaReferences($prop_schema),
+      ];
     }
   }
 
@@ -128,33 +124,56 @@ final class SdcPropToFieldTypePropMatcher {
    * @return ($levels_to_recurse is positive-int ? array<int, \Drupal\experience_builder\PropExpressions\StructuredData\FieldPropExpression|\Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldPropExpression|\Drupal\experience_builder\PropExpressions\StructuredData\FieldObjectPropsExpression> : array<int, \Drupal\experience_builder\PropExpressions\StructuredData\FieldPropExpression|\Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldPropExpression>)
    */
   private function matchEntityProps(EntityDataDefinitionInterface $entity_data_definition, int $levels_to_recurse, SdcPropJsonSchemaType $primitive_type, bool $is_required_in_json_schema, ?array $schema): array {
-    if ($primitive_type->isScalar()) {
-      return $this->matchEntityPropsForScalar($entity_data_definition, $levels_to_recurse, $primitive_type, $is_required_in_json_schema, $schema);
+    if ($primitive_type === SdcPropJsonSchemaType::ARRAY) {
+      assert(is_array($schema));
+      // Drupal core's Field API only supports specifying "required or not",
+      // and required means ">=1 value". There's no (native) ability to
+      // configure a minimum number of values for a field. Plus, JSON schema
+      // allows declaring that an array must be non-empty (`minItems: 1`) even
+      // for an optional array (not listed in `required`). So, it is impossible
+      // to support `minItems`. And in fact, marking an SDC prop as required has
+      // the same effect as `minItems: 1`.
+      // @see https://www.drupal.org/project/unlimited_field_settings
+      // @see https://json-schema.org/draft/2020-12/draft-bhutton-json-schema-validation-00#rfc.section.6.4.2
+      // @see https://stackoverflow.com/a/49548055
+      if (!empty(array_diff(array_keys($schema), ['type', 'items', 'maxItems']))) {
+        return [];
+      }
+      $cardinality = $schema['maxItems'] ?? FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED;
+      assert(isset($schema['items']) && isset($schema['items']['type']));
+      $primitive_type = SdcPropJsonSchemaType::from($schema['items']['type']);
+      $schema = $schema['items'];
     }
     else {
-      assert(is_array($schema));
-      return $this->matchEntityPropsForIterable($entity_data_definition, $levels_to_recurse, $primitive_type, $is_required_in_json_schema, $schema);
+      $cardinality = 1;
+    }
+
+    if ($primitive_type->isScalar()) {
+      return $this->matchEntityPropsForScalar($entity_data_definition, $levels_to_recurse, $primitive_type, $is_required_in_json_schema, $schema, $cardinality);
+    }
+    else {
+      return $this->matchEntityPropsForObject($entity_data_definition, $levels_to_recurse, $is_required_in_json_schema, $schema, $cardinality);
     }
   }
 
   /**
    * @param JsonSchema $schema
-   * @return array<int, \Drupal\experience_builder\PropExpressions\StructuredData\FieldObjectPropsExpression>
+   * @param \Drupal\Core\Field\FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED|int<1, max> $cardinality_in_json_schema
+   * @return array<int, \Drupal\experience_builder\PropExpressions\StructuredData\FieldPropExpression|\Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldPropExpression|\Drupal\experience_builder\PropExpressions\StructuredData\FieldObjectPropsExpression>
    */
-  private function matchEntityPropsForIterable(EntityDataDefinitionInterface $entity_data_definition, int $levels_to_recurse, SdcPropJsonSchemaType $primitive_type, bool $is_required_in_json_schema, array $schema): array {
-    if (!$primitive_type->isIterable()) {
-      throw new \LogicException();
-    }
-
+  private function matchEntityPropsForObject(EntityDataDefinitionInterface $entity_data_definition, int $levels_to_recurse, bool $is_required_in_json_schema, array $schema, int $cardinality_in_json_schema): array {
     $required_object_props = [];
     $all_object_props = [];
     $object_prop_matches = [];
-    foreach ($this->iterateJsonSchema($schema) as $name => ['required' => $sub_required, 'schema' => $sub_schema]) {
+    foreach ($this->iterateObjectJsonSchema($schema) as $name => ['required' => $sub_required, 'schema' => $sub_schema]) {
       $all_object_props[] = $name;
       if ($sub_required) {
         $required_object_props[] = $name;
       }
-      $object_prop_matches[$name] = $this->matchEntityProps($entity_data_definition, $levels_to_recurse, SdcPropJsonSchemaType::from($sub_schema['type']), $sub_required, $sub_schema);
+      // ⚠️ This does not support nested objects, so it's okay to directly
+      // call ::matchEntityPropsForScalar(). If support for nested objects is
+      // ever needed, this will need to call ::matchEntityProps() instead.
+      $object_prop_matches[$name] = $this->matchEntityPropsForScalar($entity_data_definition, $levels_to_recurse, SdcPropJsonSchemaType::from($sub_schema['type']), $sub_required, $sub_schema, $cardinality_in_json_schema);
     }
 
     // Invert $object_prop_matches to determine different match types.
@@ -210,6 +229,7 @@ final class SdcPropToFieldTypePropMatcher {
     // Prefer complete matches: list complete matches before minimal matches.
     foreach ($matches_complete + $matches_minimal as $field_name => $mapping) {
       // @todo Support nested/recursive/chained FieldObjectPropsExpression?
+      // @see https://www.drupal.org/project/experience_builder/issues/3467890#comment-16036211
       /** @var array<string, \Drupal\experience_builder\PropExpressions\StructuredData\FieldPropExpression|\Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldPropExpression> $mapping */
       $matches[] = new FieldObjectPropsExpression($entity_data_definition, $field_name, NULL, $mapping);
     }
@@ -218,9 +238,10 @@ final class SdcPropToFieldTypePropMatcher {
 
   /**
    * @param JsonSchema $schema
+   * @param \Drupal\Core\Field\FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED|int<1, max> $cardinality_in_json_schema
    * @return array<int, \Drupal\experience_builder\PropExpressions\StructuredData\FieldPropExpression|\Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldPropExpression>
    */
-  private function matchEntityPropsForScalar(EntityDataDefinitionInterface $entity_data_definition, int $levels_to_recurse, SdcPropJsonSchemaType $primitive_type, bool $is_required_in_json_schema, ?array $schema): array {
+  private function matchEntityPropsForScalar(EntityDataDefinitionInterface $entity_data_definition, int $levels_to_recurse, SdcPropJsonSchemaType $primitive_type, bool $is_required_in_json_schema, ?array $schema, int $cardinality_in_json_schema): array {
     if (!$primitive_type->isScalar()) {
       throw new \LogicException();
     }
@@ -231,6 +252,24 @@ final class SdcPropToFieldTypePropMatcher {
       assert($field_definition instanceof FieldDefinitionInterface);
       if ($is_required_in_json_schema && !$field_definition->isRequired()) {
         continue;
+      }
+      $field_cardinality = match($field_definition instanceof FieldStorageDefinitionInterface) {
+        TRUE => $field_definition->getCardinality(),
+        FALSE => $field_definition->getFieldStorageDefinition()->getCardinality(),
+      };
+      if ($cardinality_in_json_schema !== $field_cardinality) {
+        // For finite cardinalities, we can still allow a lower cardinality (>1)
+        // field instance to be matched with a higher cardinality JSON schema.
+        // For example: a `maxItems: 20` SDC prop could be populated by a field
+        // instance with cardinality 5. But a single-cardinality field would not
+        // make sense, because it's no longer an array.
+        // All other cases would result in problematic UX.
+        // @todo consider allowing/supporting (but needs UX to be designed first to disambiguate the cardinality mismatch) in https://www.drupal.org/i/3522718:
+        // 1. JSON schema cardinality `unlimited`, field cardinality 1–N => would mean only partially populating an array
+        // 2. JSON schema cardinality `1-N`, field cardinality `unlimited` => would mean some structured data values would not be visible; the content author would need to either be informed only the first N would be visible, or they'd need to be able to pick specific values
+        if (!($field_cardinality > 1 && $cardinality_in_json_schema > $field_cardinality)) {
+          continue;
+        }
       }
       $properties = $this->recurseDataDefinitionInterface($field_definition);
       foreach ($properties as $property_name => $property_definition) {

@@ -7,12 +7,14 @@ namespace Drupal\experience_builder\PropExpressions\StructuredData;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Field\FieldItemInterface;
+use Drupal\Core\Field\FieldItemListInterface;
+use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\TypedData\PrimitiveInterface;
 use Drupal\datetime\Plugin\Field\FieldType\DateTimeItem;
 
 final class Evaluator {
 
-  public static function evaluate(null|EntityInterface|FieldItemInterface $entity_or_field, StructuredDataPropExpressionInterface $expr): mixed {
+  public static function evaluate(null|EntityInterface|FieldItemInterface|FieldItemListInterface $entity_or_field, StructuredDataPropExpressionInterface $expr): mixed {
     $result = self::doEvaluate($entity_or_field, $expr);
     // Compensate for DateTimeItemInterface::DATETIME_STORAGE_FORMAT not
     // including the trailing `Z`. In theory, this should always use an adapter.
@@ -34,7 +36,7 @@ final class Evaluator {
     return $result;
   }
 
-  private static function doEvaluate(null|EntityInterface|FieldItemInterface $entity_or_field, StructuredDataPropExpressionInterface $expr): mixed {
+  private static function doEvaluate(null|EntityInterface|FieldItemInterface|FieldItemListInterface $entity_or_field, StructuredDataPropExpressionInterface $expr): mixed {
     if ($entity_or_field === NULL) {
       // Entity is optional for reference fields: the reference may point to
       // something or not.
@@ -53,9 +55,17 @@ final class Evaluator {
       throw $e;
     }
 
-    if ($entity_or_field instanceof FieldItemInterface) {
+    // When a list of field items is given:
+    // - keep the deltas as keys
+    // - evaluate each FieldItemInterface inside the list individually
+    if ($entity_or_field instanceof FieldItemListInterface) {
+      return array_map(
+        fn (FieldItemInterface $item) => self::evaluate($item, $expr),
+        iterator_to_array($entity_or_field),
+      );
+    }
+    elseif ($entity_or_field instanceof FieldItemInterface) {
       $field = $entity_or_field;
-      assert($field instanceof FieldItemInterface);
       return match (get_class($expr)) {
         FieldTypePropExpression::class => (function () use ($field, $expr) {
           $prop = $field->get($expr->propName);
@@ -84,10 +94,36 @@ final class Evaluator {
       assert($entity instanceof FieldableEntityInterface);
       return match (get_class($expr)) {
         FieldPropExpression::class => (function () use ($entity, $expr) {
-          $prop = $entity->get($expr->fieldName)[$expr->delta ?? 0]?->get($expr->propName);
-          return $prop instanceof PrimitiveInterface
-            ? $prop->getCastedValue()
-            : $prop?->getValue();
+          $field_item_list = $entity->get($expr->fieldName);
+          assert($field_item_list instanceof FieldItemListInterface);
+          $field_definition = $field_item_list->getFieldDefinition();
+          $cardinality = $field_definition->getFieldStorageDefinition()->getCardinality();
+          // If a specific delta is requested, validate it.
+          if ($expr->delta !== NULL) {
+            if ($expr->delta < 0) {
+              throw new \LogicException(sprintf("Requested delta %d, but deltas must be positive integers.", $expr->delta));
+            }
+            elseif ($cardinality === 1 && $expr->delta !== 0) {
+              throw new \LogicException(sprintf("Requested delta %d for single-cardinality field, must be either zero or omitted.", $expr->delta));
+            }
+            elseif ($cardinality !== FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED && $expr->delta >= $cardinality) {
+              throw new \LogicException(sprintf("Requested delta %d for %d cardinality field, but must be in range [0, %d].", $expr->delta, $cardinality, $cardinality - 1));
+            }
+          }
+          $result = [];
+          foreach ($field_item_list as $delta => $field_item) {
+            if ($expr->delta === NULL || $expr->delta === $delta) {
+              $prop = $field_item->get($expr->propName);
+              $result[$delta] = $prop instanceof PrimitiveInterface
+                ? $prop->getCastedValue()
+                : $prop->getValue();
+            }
+          }
+          if ($cardinality === 1 || is_int($expr->delta)) {
+            // Non-existent deltas on multiple-cardinality fields return NULL.
+            return $result[$expr->delta ?? 0] ?? NULL;
+          }
+          return $result;
         })(),
         ReferenceFieldPropExpression::class => self::evaluate(
           self::evaluate($entity, $expr->referencer),

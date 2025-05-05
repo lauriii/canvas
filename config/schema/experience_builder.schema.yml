@@ -290,6 +290,22 @@ experience_builder.generated_field_explicit_input_ux:
               PluginExists:
                 manager: plugin.manager.field.field_type
                 interface: '\Drupal\Core\Field\FieldItemInterface'
+          # TRICKY: unfortunately, `field.storage_settings.*` does not store cardinality, but the FieldStorageConfig
+          # entity does (config schema: `field.storage.*.*`). Hence the need for an additional key-value pair.
+          cardinality:
+            type: integer
+            label: 'Maximum number of values accepted by this component prop'
+            # @todo Uncomment this once XB requires Drupal >=11.2
+            #constraints:
+            #  AtLeastOneOf:
+            #    constraints:
+            #      - Choice:
+            #          # @see \Drupal\Core\Field\FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED
+            #          - -1
+            #      - Range:
+            #          min: 2
+            # Optional *if* the default of cardinality = 1 should be used.
+            requiredKey: false
           field_storage_settings:
             type: field.storage_settings.[%parent.field_type]
             # Optional *if* the default storage settings should be used.
@@ -313,8 +329,11 @@ experience_builder.generated_field_explicit_input_ux:
           # @see \Drupal\experience_builder\PropSource\StaticPropSource::denormalizeValue()
           # @see \Drupal\experience_builder\PropSource\StaticPropSource::isMinimalRepresentation()
           default_value:
-            type: field.value.[%parent.field_type]
-            label: 'Default value'
+            # TRICKY: this MUST be a sequence, to allow for a multi-value default for `type: array` prop shapes.
+            type: sequence
+            label: 'Default values'
+            sequence:
+              type: field.value.[%parent.%parent.field_type]
             # @todo Add validation constraint because this is only *conditionally* nullable: if the SDC prop is optional
             nullable: true
           # The default value must be retrievable

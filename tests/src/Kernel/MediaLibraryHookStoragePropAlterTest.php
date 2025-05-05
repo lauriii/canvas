@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Drupal\Tests\experience_builder\Kernel;
 
 use Drupal\experience_builder\PropExpressions\StructuredData\StructuredDataPropExpression;
-use Drupal\experience_builder\PropShape\PropShape;
 use Drupal\experience_builder\PropShape\StorablePropShape;
 
 /**
@@ -60,23 +59,31 @@ class MediaLibraryHookStoragePropAlterTest extends PropShapeRepositoryTest {
    */
   public static function getExpectedStorablePropShapes(): array {
     $storable_prop_shapes = parent::getExpectedStorablePropShapes();
-    $storable_prop_shapes['type=object&$ref=json-schema-definitions://experience_builder.module/image'] = new StorablePropShape(
-      shape: new PropShape(['type' => 'object', '$ref' => 'json-schema-definitions://experience_builder.module/image']),
-      fieldWidget: 'media_library_widget',
-      // @phpstan-ignore-next-line
-      fieldTypeProp: StructuredDataPropExpression::fromString('ℹ︎entity_reference␟{src↝entity␜␜entity:media:image␝field_media_image␞␟entity␜␜entity:file␝uri␞␟url,alt↝entity␜␜entity:media:image␝field_media_image␞␟alt,width↝entity␜␜entity:media:image␝field_media_image␞␟width,height↝entity␜␜entity:media:image␝field_media_image␞␟height}'),
-      fieldStorageSettings: [
-        'target_type' => 'media',
-      ],
-      fieldInstanceSettings: [
-        'handler' => 'default:media',
-        'handler_settings' => [
-          'target_bundles' => [
-            'image' => 'image',
+    $image_shapes = array_filter(
+      $storable_prop_shapes,
+      fn ($k) => str_contains($k, 'json-schema-definitions://experience_builder.module/image'),
+      ARRAY_FILTER_USE_KEY
+    );
+    foreach ($image_shapes as $k => $image_shape) {
+      $storable_prop_shapes[$k] = new StorablePropShape(
+        shape: $image_shape->shape,
+        cardinality: $image_shape->cardinality,
+        fieldWidget: 'media_library_widget',
+        // @phpstan-ignore-next-line
+        fieldTypeProp: StructuredDataPropExpression::fromString('ℹ︎entity_reference␟{src↝entity␜␜entity:media:image␝field_media_image␞␟entity␜␜entity:file␝uri␞␟url,alt↝entity␜␜entity:media:image␝field_media_image␞␟alt,width↝entity␜␜entity:media:image␝field_media_image␞␟width,height↝entity␜␜entity:media:image␝field_media_image␞␟height}'),
+        fieldStorageSettings: [
+          'target_type' => 'media',
+        ],
+        fieldInstanceSettings: [
+          'handler' => 'default:media',
+          'handler_settings' => [
+            'target_bundles' => [
+              'image' => 'image',
+            ],
           ],
         ],
-      ],
-    );
+      );
+    }
     return $storable_prop_shapes;
   }
 

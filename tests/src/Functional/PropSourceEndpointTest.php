@@ -199,14 +199,12 @@ class PropSourceEndpointTest extends FunctionalTestBase {
           'subheading' => [
             "Subset of this Article's Image: alt (1 of 5 props — absent: entity, title, width, height)" => 'ℹ︎␜entity:node:article␝field_image␞␟alt',
             "Subset of this Article's Image: title (1 of 5 props — absent: entity, alt, width, height)" => 'ℹ︎␜entity:node:article␝field_image␞␟title',
-            "This Article's Tags" => 'ℹ︎␜entity:node:article␝field_tags␞␟entity␜␜entity:taxonomy_term␝revision_log_message␞␟value',
             "This Article's Revision log message" => 'ℹ︎␜entity:node:article␝revision_log␞␟value',
             "This Article's Title" => 'ℹ︎␜entity:node:article␝title␞␟value',
           ],
           'cta1' => [
             "Subset of this Article's Image: alt (1 of 5 props — absent: entity, title, width, height)" => 'ℹ︎␜entity:node:article␝field_image␞␟alt',
             "Subset of this Article's Image: title (1 of 5 props — absent: entity, alt, width, height)" => 'ℹ︎␜entity:node:article␝field_image␞␟title',
-            "This Article's Tags" => 'ℹ︎␜entity:node:article␝field_tags␞␟entity␜␜entity:taxonomy_term␝revision_log_message␞␟value',
             "This Article's Revision log message" => 'ℹ︎␜entity:node:article␝revision_log␞␟value',
             "This Article's Title" => 'ℹ︎␜entity:node:article␝title␞␟value',
           ],
@@ -214,7 +212,6 @@ class PropSourceEndpointTest extends FunctionalTestBase {
           'cta2' => [
             "Subset of this Article's Image: alt (1 of 5 props — absent: entity, title, width, height)" => 'ℹ︎␜entity:node:article␝field_image␞␟alt',
             "Subset of this Article's Image: title (1 of 5 props — absent: entity, alt, width, height)" => 'ℹ︎␜entity:node:article␝field_image␞␟title',
-            "This Article's Tags" => 'ℹ︎␜entity:node:article␝field_tags␞␟entity␜␜entity:taxonomy_term␝revision_log_message␞␟value',
             "This Article's Revision log message" => 'ℹ︎␜entity:node:article␝revision_log␞␟value',
             "This Article's Title" => 'ℹ︎␜entity:node:article␝title␞␟value',
           ],
@@ -226,7 +223,6 @@ class PropSourceEndpointTest extends FunctionalTestBase {
           'test_bool' => [
             "This Article's Default translation" => 'ℹ︎␜entity:node:article␝default_langcode␞␟value',
             "Subset of this Article's Image: entity (1 of 5 props — absent: alt, title, width, height)" => 'ℹ︎␜entity:node:article␝field_image␞␟entity␜␜entity:file␝status␞␟value',
-            "This Article's Tags" => 'ℹ︎␜entity:node:article␝field_tags␞␟entity␜␜entity:taxonomy_term␝status␞␟value',
             "This Article's Promoted to front page" => 'ℹ︎␜entity:node:article␝promote␞␟value',
             "This Article's Default revision" => 'ℹ︎␜entity:node:article␝revision_default␞␟value',
             "This Article's Revision user" => 'ℹ︎␜entity:node:article␝revision_uid␞␟entity␜␜entity:user␝status␞␟value',
@@ -237,12 +233,10 @@ class PropSourceEndpointTest extends FunctionalTestBase {
           'test_string' => [
             "Subset of this Article's Image: alt (1 of 5 props — absent: entity, title, width, height)" => 'ℹ︎␜entity:node:article␝field_image␞␟alt',
             "Subset of this Article's Image: title (1 of 5 props — absent: entity, alt, width, height)" => 'ℹ︎␜entity:node:article␝field_image␞␟title',
-            "This Article's Tags" => 'ℹ︎␜entity:node:article␝field_tags␞␟entity␜␜entity:taxonomy_term␝revision_log_message␞␟value',
             "This Article's Revision log message" => 'ℹ︎␜entity:node:article␝revision_log␞␟value',
             "This Article's Title" => 'ℹ︎␜entity:node:article␝title␞␟value',
           ],
           'test_string_multiline' => [
-            "This Article's Tags" => 'ℹ︎␜entity:node:article␝field_tags␞␟entity␜␜entity:taxonomy_term␝revision_log_message␞␟value',
             "This Article's Revision log message" => 'ℹ︎␜entity:node:article␝revision_log␞␟value',
           ],
           'test_REQUIRED_string' => [
@@ -283,7 +277,6 @@ class PropSourceEndpointTest extends FunctionalTestBase {
             "Subset of this Article's Image: entity (1 of 5 props — absent: alt, title, width, height)" => 'ℹ︎␜entity:node:article␝field_image␞␟entity␜␜entity:file␝filesize␞␟value',
             "Subset of this Article's Image: height (1 of 5 props — absent: entity, alt, title, width)" => 'ℹ︎␜entity:node:article␝field_image␞␟height',
             "Subset of this Article's Image: width (1 of 5 props — absent: entity, alt, title, height)" => 'ℹ︎␜entity:node:article␝field_image␞␟width',
-            "This Article's Tags" => 'ℹ︎␜entity:node:article␝field_tags␞␟entity␜␜entity:taxonomy_term␝weight␞␟value',
             "This Article's Revision create time" => 'ℹ︎␜entity:node:article␝revision_timestamp␞␟value',
             "This Article's Revision user" => 'ℹ︎␜entity:node:article␝revision_uid␞␟entity␜␜entity:user␝login␞␟value',
             "This Article's Authored by" => 'ℹ︎␜entity:node:article␝uid␞␟entity␜␜entity:user␝login␞␟value',
@@ -304,26 +297,28 @@ class PropSourceEndpointTest extends FunctionalTestBase {
             "Subset of this Article's Image: entity (1 of 5 props — absent: alt, title, width, height)" => 'ℹ︎␜entity:node:article␝field_image␞␟entity␜␜entity:file␝filesize␞␟value',
             "Subset of this Article's Image: height (1 of 5 props — absent: entity, alt, title, width)" => 'ℹ︎␜entity:node:article␝field_image␞␟height',
             "Subset of this Article's Image: width (1 of 5 props — absent: entity, alt, title, height)" => 'ℹ︎␜entity:node:article␝field_image␞␟width',
-            "This Article's Tags" => 'ℹ︎␜entity:node:article␝field_tags␞␟entity␜␜entity:taxonomy_term␝weight␞␟value',
             "This Article's Revision create time" => 'ℹ︎␜entity:node:article␝revision_timestamp␞␟value',
             "This Article's Revision user" => 'ℹ︎␜entity:node:article␝revision_uid␞␟entity␜␜entity:user␝login␞␟value',
             "This Article's Authored by" => 'ℹ︎␜entity:node:article␝uid␞␟entity␜␜entity:user␝login␞␟value',
           ],
           'test_object_drupal_image' => [],
+          'test_object_drupal_image_ARRAY' => [],
           'test_string_html_inline' => [],
           'test_string_html_block' => [
             "Subset of this Article's Body: processed (1 of 5 props — absent: value, format, summary, summary_processed)" => 'ℹ︎␜entity:node:article␝body␞␟processed',
             "Subset of this Article's Body: summary_processed (1 of 5 props — absent: value, format, processed, summary)" => 'ℹ︎␜entity:node:article␝body␞␟summary_processed',
-            "This Article's Tags" => 'ℹ︎␜entity:node:article␝field_tags␞␟entity␜␜entity:taxonomy_term␝description␞␟processed',
           ],
           'test_string_html' => [
             "Subset of this Article's Body: processed (1 of 5 props — absent: value, format, summary, summary_processed)" => 'ℹ︎␜entity:node:article␝body␞␟processed',
             "Subset of this Article's Body: summary_processed (1 of 5 props — absent: value, format, processed, summary)" => 'ℹ︎␜entity:node:article␝body␞␟summary_processed',
-            "This Article's Tags" => 'ℹ︎␜entity:node:article␝field_tags␞␟entity␜␜entity:taxonomy_term␝description␞␟processed',
           ],
           'test_REQUIRED_string_html_inline' => [],
           'test_REQUIRED_string_html_block' => [],
           'test_REQUIRED_string_html' => [],
+          'test_array_integer' => [
+            "This Article's Tags" => 'ℹ︎␜entity:node:article␝field_tags␞␟entity␜␜entity:taxonomy_term␝weight␞␟value',
+          ],
+          'test_array_integer_maxItems' => [],
         ],
       ],
     ];

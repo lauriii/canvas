@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\experience_builder\Kernel;
 
+use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Tests\experience_builder\Kernel\Traits\CiModulePathTrait;
 use Drupal\Tests\experience_builder\TestSite\XBTestSetup;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -177,6 +178,113 @@ final class ComponentInputsFormTest extends ApiLayoutControllerTestBase {
                     'target_bundles' => ['image' => 'image'],
                   ],
                 ],
+              ],
+            ],
+          ],
+        ],
+      ],
+      'image-gallery as in component list' => [
+        'sdc.xb_test_sdc.image-gallery',
+        [],
+        [
+          'resolved' => [
+            'caption' => [],
+            'images' => [
+              0 => [
+                'src' => self::getCiModulePath() . '/tests/modules/xb_test_sdc/components/image-gallery/gracie.jpg',
+                'alt' => 'A good dog',
+                'width' => 601,
+                'height' => 402,
+              ],
+              1 => [
+                'src' => self::getCiModulePath() . '/tests/modules/xb_test_sdc/components/image-gallery/gracie.jpg',
+                'alt' => 'Still a good dog',
+                'width' => 601,
+                'height' => 402,
+              ],
+              2 => [
+                'src' => self::getCiModulePath() . '/tests/modules/xb_test_sdc/components/image-gallery/gracie.jpg',
+                'alt' => 'The BEST dog!',
+                'width' => 601,
+                'height' => 402,
+              ],
+            ],
+          ],
+          'source' => [
+            'caption' => [
+              'value' => [],
+              'sourceType' => 'static:field_item:string',
+              'expression' => 'ℹ︎string␟value',
+            ],
+            'images' => [
+              'value' => [],
+              'sourceType' => 'static:field_item:entity_reference',
+              'expression' => 'ℹ︎entity_reference␟{src↝entity␜␜entity:media:image␝field_media_image␞␟entity␜␜entity:file␝uri␞␟url,alt↝entity␜␜entity:media:image␝field_media_image␞␟alt,width↝entity␜␜entity:media:image␝field_media_image␞␟width,height↝entity␜␜entity:media:image␝field_media_image␞␟height}',
+              'sourceTypeSettings' => [
+                'storage' => ['target_type' => 'media'],
+                'instance' => [
+                  'handler' => 'default:media',
+                  'handler_settings' => [
+                    'target_bundles' => ['image' => 'image'],
+                  ],
+                ],
+                'cardinality' => FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED,
+              ],
+            ],
+          ],
+        ],
+      ],
+      'image-gallery with caption set by user' => [
+        'sdc.xb_test_sdc.image-gallery',
+        [
+          'caption' => [
+            'resolved' => 'Delightful dogs!',
+            'source' => 'Delightful dogs!',
+          ],
+        ],
+        [
+          'resolved' => [
+            'caption' => 'Delightful dogs!',
+            'images' => [
+              0 => [
+                'src' => self::getCiModulePath() . '/tests/modules/xb_test_sdc/components/image-gallery/gracie.jpg',
+                'alt' => 'A good dog',
+                'width' => 601,
+                'height' => 402,
+              ],
+              1 => [
+                'src' => self::getCiModulePath() . '/tests/modules/xb_test_sdc/components/image-gallery/gracie.jpg',
+                'alt' => 'Still a good dog',
+                'width' => 601,
+                'height' => 402,
+              ],
+              2 => [
+                'src' => self::getCiModulePath() . '/tests/modules/xb_test_sdc/components/image-gallery/gracie.jpg',
+                'alt' => 'The BEST dog!',
+                'width' => 601,
+                'height' => 402,
+              ],
+            ],
+          ],
+          'source' => [
+            'caption' => [
+              'value' => 'Delightful dogs!',
+              'sourceType' => 'static:field_item:string',
+              'expression' => 'ℹ︎string␟value',
+            ],
+            'images' => [
+              'value' => [],
+              'sourceType' => 'static:field_item:entity_reference',
+              'expression' => 'ℹ︎entity_reference␟{src↝entity␜␜entity:media:image␝field_media_image␞␟entity␜␜entity:file␝uri␞␟url,alt↝entity␜␜entity:media:image␝field_media_image␞␟alt,width↝entity␜␜entity:media:image␝field_media_image␞␟width,height↝entity␜␜entity:media:image␝field_media_image␞␟height}',
+              'sourceTypeSettings' => [
+                'storage' => ['target_type' => 'media'],
+                'instance' => [
+                  'handler' => 'default:media',
+                  'handler_settings' => [
+                    'target_bundles' => ['image' => 'image'],
+                  ],
+                ],
+                'cardinality' => FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED,
               ],
             ],
           ],

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\experience_builder\JsonSchemaInterpreter;
 
 use Drupal\Core\Entity\TypedData\EntityDataDefinition;
+use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\experience_builder\Plugin\Validation\Constraint\StringSemanticsConstraint;
 use Drupal\experience_builder\PropExpressions\StructuredData\FieldPropExpression;
 use Drupal\experience_builder\PropExpressions\StructuredData\FieldTypeObjectPropsExpression;
@@ -195,6 +196,52 @@ enum SdcPropJsonSchemaType: string {
    */
   public function computeStorablePropShape(PropShape $shape): ?StorablePropShape {
     $schema = $shape->schema;
+
+    // Arrays containing items of a particular shape map beautifully onto multi-
+    // value fields:
+    // - `type: array` -> FieldItemListInterface object, with cardinality >1
+    // - `items: { type: … }` -> FieldItemInterface object of some field type
+    if ($this === SdcPropJsonSchemaType::ARRAY) {
+      // Drupal core's Field API only supports specifying "required or not",
+      // and required means ">=1 value". There's no (native) ability to
+      // configure a minimum number of values for a field. Plus, JSON schema
+      // allows declaring that an array must be non-empty (`minItems: 1`) even
+      // for an optional array (not listed in `required`). So, it is impossible
+      // to support `minItems`. And in fact, marking an SDC prop as required has
+      // the same effect as `minItems: 1`.
+      // @see https://www.drupal.org/project/unlimited_field_settings
+      // @see https://json-schema.org/draft/2020-12/draft-bhutton-json-schema-validation-00#rfc.section.6.4.2
+      // @see https://stackoverflow.com/a/49548055
+      if (!empty(array_diff(array_keys($schema), ['type', 'items', 'maxItems']))) {
+        return NULL;
+      }
+      assert($schema['type'] === 'array');
+      // @todo Remove this after https://www.drupal.org/project/drupal/issues/3493086, when SDC's JSON schema validation is better; a InvalidComponentException should have been triggered for `type: array, examples: [test]` long before reaching this point!
+      if (!array_key_exists('items', $schema)) {
+        return NULL;
+      }
+      $array_item_prop_shape = PropShape::normalize($schema['items']);
+
+      $item_storable_prop_shape = $array_item_prop_shape->getStorage();
+      if ($item_storable_prop_shape === NULL) {
+        return NULL;
+      }
+
+      if (array_key_exists('maxItems', $schema) && $schema['maxItems'] < 2) {
+        throw new \InvalidArgumentException('Nonsensical array size limit specified.');
+      }
+      return new StorablePropShape(
+        // The original shape, not the item shape.
+        $shape,
+        $item_storable_prop_shape->fieldTypeProp,
+        $item_storable_prop_shape->fieldWidget,
+        // Reflect the requested cardinality.
+        $schema['maxItems'] ?? FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED,
+        $item_storable_prop_shape->fieldStorageSettings,
+        $item_storable_prop_shape->fieldInstanceSettings
+      );
+    }
+
     return match ($this) {
       // @see \Drupal\Core\Field\Plugin\Field\FieldType\BooleanItem
       SdcPropJsonSchemaType::BOOLEAN => new StorablePropShape(shape: $shape, fieldTypeProp: new FieldTypePropExpression('boolean', 'value'), fieldWidget: 'boolean_checkbox'),
@@ -241,7 +288,7 @@ enum SdcPropJsonSchemaType: string {
           'allowed_values' => array_map(fn ($v) => ['value' => $v, 'label' => (string) $v], $schema['enum']),
         ]),
         // `min` and/or `max`
-        array_key_exists('minimum', $schema) || array_key_exists('maximum', $schema) => new StorablePropShape(shape: $shape, fieldTypeProp: new FieldTypePropExpression('integer', 'value'), fieldWidget: 'number', fieldStorageSettings: [
+        array_key_exists('minimum', $schema) || array_key_exists('maximum', $schema) => new StorablePropShape(shape: $shape, fieldTypeProp: new FieldTypePropExpression('integer', 'value'), fieldWidget: 'number', fieldInstanceSettings: [
           'min' => $schema['minimum'] ?? (array_key_exists('exclusiveMinimum', $schema) ? $schema['exclusiveMinimum'] + 1 : ''),
           'max' => $schema['maximum'] ?? (array_key_exists('exclusiveMaximum', $schema) ? $schema['exclusiveMaximum'] - 1 : ''),
         ]),
@@ -286,9 +333,6 @@ enum SdcPropJsonSchemaType: string {
         },
         default => NULL,
       },
-
-      // @todo Support this! ⚠️
-      SdcPropJsonSchemaType::ARRAY => NULL,
     };
   }
 

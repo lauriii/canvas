@@ -6,6 +6,7 @@ namespace Drupal\experience_builder\PropExpressions\StructuredData;
 
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Field\FieldItemInterface;
+use Drupal\Core\Field\FieldItemListInterface;
 
 final class ReferenceFieldPropExpression implements StructuredDataPropExpressionInterface {
 
@@ -38,7 +39,7 @@ final class ReferenceFieldPropExpression implements StructuredDataPropExpression
     return new static($referencer, $referenced);
   }
 
-  public function isSupported(EntityInterface|FieldItemInterface $entity): bool {
+  public function isSupported(EntityInterface|FieldItemInterface|FieldItemListInterface $entity): bool {
     assert($entity instanceof EntityInterface);
     $expected_entity_type_id = $this->referencer->entityType->getEntityTypeId();
     $expected_bundle = $this->referencer->entityType->getBundles()[0] ?? $expected_entity_type_id;

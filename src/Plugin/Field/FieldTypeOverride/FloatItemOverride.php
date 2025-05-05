@@ -19,7 +19,7 @@ class FloatItemOverride extends FloatItem {
     // Prevent confusing sample values that look like integers. Instead, return
     // a floating point number that *everyone* knows: pi.
     return [
-      'values' => 3.14,
+      'value' => 3.14,
     ];
   }
 

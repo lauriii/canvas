@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\Tests\experience_builder\Kernel;
 
 use Drupal\Core\Entity\TypedData\EntityDataDefinition;
+use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\experience_builder\ShapeMatcher\FieldForComponentSuggester;
 use Drupal\experience_builder\Plugin\Adapter\AdapterInterface;
 use Drupal\experience_builder\PropExpressions\StructuredData\StructuredDataPropExpressionInterface;
@@ -72,12 +73,37 @@ class FieldForComponentSuggesterTest extends KernelTestBase {
       'entity_type' => 'node',
       'field_name' => 'field_silly_image',
       'type' => 'image',
+      // This is the default, but being explicit is helpful in tests.
+      'cardinality' => 1,
     ])->save();
     FieldConfig::create([
       'entity_type' => 'node',
       'field_name' => 'field_silly_image',
       'bundle' => 'foo',
       'required' => TRUE,
+    ])->save();
+    FieldStorageConfig::create([
+      'entity_type' => 'node',
+      'field_name' => 'field_before_and_after',
+      'type' => 'image',
+      'cardinality' => 2,
+    ])->save();
+    FieldConfig::create([
+      'entity_type' => 'node',
+      'field_name' => 'field_before_and_after',
+      'bundle' => 'foo',
+      'required' => TRUE,
+    ])->save();
+    FieldStorageConfig::create([
+      'entity_type' => 'node',
+      'field_name' => 'field_screenshots',
+      'type' => 'image',
+      'cardinality' => FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED,
+    ])->save();
+    FieldConfig::create([
+      'entity_type' => 'node',
+      'field_name' => 'field_screenshots',
+      'bundle' => 'foo',
     ])->save();
     // Create a "event duration" field on the "Foo" node type.
     FieldStorageConfig::create([
@@ -403,6 +429,13 @@ class FieldForComponentSuggesterTest extends KernelTestBase {
             'Make relative image URL absolute' => 'image_url_rel_to_abs',
           ],
         ],
+        '⿲sdc_test_all_props:all-props␟test_object_drupal_image_ARRAY' => [
+          'required' => FALSE,
+          'instances' => [
+            "Subset of this Foo's field_before_and_after: entity, alt, width, height (4 of 5 props — absent: title)" => 'ℹ︎␜entity:node:foo␝field_before_and_after␞␟{src↝entity␜␜entity:file␝uri␞␟url,alt↠alt,width↠width,height↠height}',
+          ],
+          'adapters' => [],
+        ],
         '⿲sdc_test_all_props:all-props␟test_object_drupal_date_range' => [
           'required' => FALSE,
           'instances' => [
@@ -446,6 +479,40 @@ class FieldForComponentSuggesterTest extends KernelTestBase {
           'instances' => [
             "Subset of this Foo's field_wall_of_text: processed (1 of 3 props — absent: value, format)" => 'ℹ︎␜entity:node:foo␝field_wall_of_text␞␟processed',
           ],
+          'adapters' => [],
+        ],
+        '⿲sdc_test_all_props:all-props␟test_array_integer' => [
+          'required' => FALSE,
+          'instances' => [
+            "Subset of this Foo's field_screenshots: entity (1 of 5 props — absent: alt, title, width, height)" => 'ℹ︎␜entity:node:foo␝field_screenshots␞␟entity␜␜entity:file␝filesize␞␟value',
+            "Subset of this Foo's field_screenshots: height (1 of 5 props — absent: entity, alt, title, width)" => 'ℹ︎␜entity:node:foo␝field_screenshots␞␟height',
+            "Subset of this Foo's field_screenshots: width (1 of 5 props — absent: entity, alt, title, height)" => 'ℹ︎␜entity:node:foo␝field_screenshots␞␟width',
+          ],
+          'adapters' => [],
+        ],
+
+        '⿲sdc_test_all_props:all-props␟test_array_integer_minItems' => [
+          'required' => FALSE,
+          'instances' => [],
+          'adapters' => [],
+        ],
+        '⿲sdc_test_all_props:all-props␟test_array_integer_maxItems' => [
+          'required' => FALSE,
+          'instances' => [
+            "Subset of this Foo's field_before_and_after: entity (1 of 5 props — absent: alt, title, width, height)" => 'ℹ︎␜entity:node:foo␝field_before_and_after␞␟entity␜␜entity:file␝filesize␞␟value',
+            "Subset of this Foo's field_before_and_after: height (1 of 5 props — absent: entity, alt, title, width)" => 'ℹ︎␜entity:node:foo␝field_before_and_after␞␟height',
+            "Subset of this Foo's field_before_and_after: width (1 of 5 props — absent: entity, alt, title, height)" => 'ℹ︎␜entity:node:foo␝field_before_and_after␞␟width',
+          ],
+          'adapters' => [],
+        ],
+        '⿲sdc_test_all_props:all-props␟test_array_integer_minItemsMultiple' => [
+          'required' => FALSE,
+          'instances' => [],
+          'adapters' => [],
+        ],
+        '⿲sdc_test_all_props:all-props␟test_array_integer_minMaxItems' => [
+          'required' => FALSE,
+          'instances' => [],
           'adapters' => [],
         ],
       ],

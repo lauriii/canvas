@@ -6,6 +6,7 @@ namespace Drupal\experience_builder\PropExpressions\StructuredData;
 
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Field\FieldItemInterface;
+use Drupal\Core\Field\FieldItemListInterface;
 use Drupal\experience_builder\PropExpressions\PropExpressionInterface;
 
 interface StructuredDataPropExpressionInterface extends PropExpressionInterface {
@@ -25,6 +26,19 @@ interface StructuredDataPropExpressionInterface extends PropExpressionInterface 
   const SYMBOL_OBJECT_MAPPED_FOLLOW_REFERENCE = '↝';
   const SYMBOL_OBJECT_MAPPED_USE_PROP = '↠';
 
-  public function isSupported(EntityInterface|FieldItemInterface $entity_or_field): bool;
+  /**
+   * Assesses whether the given evaluation context is supported.
+   *
+   * @param \Drupal\Core\Entity\EntityInterface|\Drupal\Core\Field\FieldItemInterface|\Drupal\Core\Field\FieldItemListInterface $entity_or_field
+   *   Possibilities are:
+   *   - An entity when the expression starts in an entity.
+   *   - A field item list when the expression starts in a multiple-cardinality
+   *     field type.
+   *   - A field item when the expression starts in a single-cardinality field
+   *     type.
+   *
+   * @return bool
+   */
+  public function isSupported(EntityInterface|FieldItemInterface|FieldItemListInterface $entity_or_field): bool;
 
 }

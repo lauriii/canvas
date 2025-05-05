@@ -105,5 +105,23 @@
     </dd>
   </dl>
   <h2>Array shapes</h2>
-  <p>None yet.</p>
+  <dl>
+    <dt>test_array_integer</dt>
+    <dd>
+      <div>{{ test_array_integer|length }} of unlimited</div>
+      <ul>
+        {% for key,value in test_array_integer %}
+        <li id="test_array_integer--{{ key }}">{{ key }}: <code>{{ value }}</code>
+        {% endfor %}
+      </ul>
+    </dd>
+    <dt>test_array_integer_maxItems</dt>
+    <dd>
+      <div>{{ test_array_integer_maxItems|length }} of 2</div>
+      <ul>
+        <li id="test_array_integer_maxItems--0">0: <code>{{ test_array_integer_maxItems[0] }}</code>
+        <li id="test_array_integer_maxItems--1">1: <code>{{ test_array_integer_maxItems[1] }}</code>
+      </ul>
+    </dd>
+  </dl>
 </div>

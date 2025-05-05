@@ -59,6 +59,7 @@ scriptified
 scriptify
 sdcs
 semicoupled
+sparkline
 Starshot
 structurizr
 subcontent

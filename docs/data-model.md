@@ -85,7 +85,7 @@ Content Creator to place a `component instance` in the `component tree`, specify
 
 ### 3.1 Data Model: from Front-End Developer to an XB data model that empowers the Content Creator
 
-Moved to the [`XB Components` doc](components.md).
+Moved to the [`XB Shape Matching into Field Types` doc](shape-matching-into-field-types.md).
 
 
 ### 3.2 Data Model: storing a component tree

@@ -6,6 +6,7 @@ namespace Drupal\Tests\experience_builder\Kernel\Plugin\ExperienceBuilder\Compon
 
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Extension\ModuleExtensionList;
+use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\Theme\ComponentPluginManager;
 use Drupal\experience_builder\Entity\Component;
 use Drupal\Core\Plugin\Component as SdcPlugin;
@@ -45,6 +46,7 @@ final class SingleDirectoryComponentTest extends ComponentSourceTestBase {
     'xb_test_sdc',
     'media',
     'node',
+    'path',
     'user',
   ];
 
@@ -79,6 +81,13 @@ final class SingleDirectoryComponentTest extends ComponentSourceTestBase {
       'sdc.xb_test_sdc.props-no-title' => [
         'Prop "heading" must have title',
       ],
+      'sdc.xb_test_sdc.sparkline_min_2' => [
+        // Drupal core's Field API only supports specifying "required or not",
+        // and required means ">=1 value". There's no (native) ability to
+        // configure a minimum number of values for a field.
+        // @see https://www.drupal.org/project/unlimited_field_settings
+        'Experience Builder does not know of a field type/widget to allow populating the <code>data</code> prop, with the shape <code>{"type":"array","items":{"type":"integer","minimum":-100,"maximum":100},"maxItems":100,"minItems":2}</code>.',
+      ],
     ], $this->findIneligibleComponents(SingleDirectoryComponent::SOURCE_PLUGIN_ID, 'xb_test_sdc'));
     $auto_created_components = $this->findCreatedComponentConfigEntities(SingleDirectoryComponent::SOURCE_PLUGIN_ID, 'xb_test_sdc');
     self::assertSame([
@@ -86,15 +95,17 @@ final class SingleDirectoryComponentTest extends ComponentSourceTestBase {
       'sdc.xb_test_sdc.deprecated',
       'sdc.xb_test_sdc.experimental',
       'sdc.xb_test_sdc.grid-container',
+      'sdc.xb_test_sdc.image-gallery',
       'sdc.xb_test_sdc.image-optional-with-example',
       'sdc.xb_test_sdc.image-optional-with-example-and-additional-prop',
       'sdc.xb_test_sdc.image-optional-without-example',
       'sdc.xb_test_sdc.image-required-with-example',
       'sdc.xb_test_sdc.props-no-slots',
       'sdc.xb_test_sdc.props-slots',
+      'sdc.xb_test_sdc.sparkline',
     ], $auto_created_components);
 
-    return $auto_created_components;
+    return array_combine($auto_created_components, $auto_created_components);
   }
 
   /**
@@ -148,33 +159,7 @@ final class SingleDirectoryComponentTest extends ComponentSourceTestBase {
 
     $rendered = $this->renderComponentsLive(
       $component_ids,
-      get_default_input: fn (Component $component) => [
-        SingleDirectoryComponent::EXPLICIT_INPUT_NAME => array_map(
-          // @see \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase::getDefaultStaticPropSource()
-          fn (array $prop_field_definition): mixed => match ($prop_field_definition['default_value']) {
-            // @see \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase::exampleValueRequiresEntity()
-            // @todo Refine later, to use DefaultRelativeUrlPropSource.
-            [] => [
-              'src' => 'cat.jpg',
-              'alt' => '',
-              'width' => 10,
-              'height' => 10,
-            ],
-            default => StaticPropSource::parse([
-              'sourceType' => 'static:field_item:' . $prop_field_definition['field_type'],
-              'value' => $prop_field_definition['default_value'],
-              'expression' => $prop_field_definition['expression'],
-              'sourceTypeSettings' => [
-                'storage' => $prop_field_definition['field_storage_settings'] ?? [],
-                'instance' => $prop_field_definition['field_instance_settings'] ?? [],
-              ],
-            ])
-              // Static prop sources can be evaluated without a host entity.
-              ->evaluate(NULL),
-          },
-          $component->getSettings()['prop_field_definitions']
-        ),
-      ],
+      get_default_input: [__CLASS__, 'getDefaultInputForGeneratedInputUx'],
     );
 
     $default_render_cache_contexts = [
@@ -213,21 +198,29 @@ HTML,
 ',
         'cacheability' => $default_cacheability,
       ],
-      'sdc.xb_test_sdc.image-optional-with-example' => [
-        'html' => '<img src="cat.jpg" alt="" />',
-        'cacheability' => $default_cacheability,
-      ],
-      'sdc.xb_test_sdc.image-optional-with-example-and-additional-prop' => [
-        'html' => '<img src="cat.jpg" alt="" width="10" height="10"></img>',
-        'cacheability' => $default_cacheability,
-      ],
-      'sdc.xb_test_sdc.image-optional-without-example' => [
-        'html' => '  <img src="cat.jpg" alt="" />
+      'sdc.xb_test_sdc.image-gallery' => [
+        'html' => '<figure>
+      <img src="::XB_MODULE_PATH::/tests/modules/xb_test_sdc/components/image-gallery/gracie.jpg" alt="A good dog" />
+      <img src="::XB_MODULE_PATH::/tests/modules/xb_test_sdc/components/image-gallery/gracie.jpg" alt="Still a good dog" />
+      <img src="::XB_MODULE_PATH::/tests/modules/xb_test_sdc/components/image-gallery/gracie.jpg" alt="The BEST dog!" />
+    </figure>
 ',
         'cacheability' => $default_cacheability,
       ],
+      'sdc.xb_test_sdc.image-optional-with-example' => [
+        'html' => '<img src="https://example.com/cat.jpg" alt="Boring placeholder" />',
+        'cacheability' => $default_cacheability,
+      ],
+      'sdc.xb_test_sdc.image-optional-with-example-and-additional-prop' => [
+        'html' => '<img src="::XB_MODULE_PATH::/tests/modules/xb_test_sdc/components/image-optional-with-example-and-additional-prop/gracie.jpg" alt="A good dog" width="601" height="402"></img>',
+        'cacheability' => $default_cacheability,
+      ],
+      'sdc.xb_test_sdc.image-optional-without-example' => [
+        'html' => '',
+        'cacheability' => $default_cacheability,
+      ],
       'sdc.xb_test_sdc.image-required-with-example' => [
-        'html' => '<img src="cat.jpg" alt="" />',
+        'html' => '<img src="https://example.com/cat.jpg" alt="Boring placeholder" />',
         'cacheability' => $default_cacheability,
       ],
       'sdc.xb_test_sdc.props-no-slots' => [
@@ -255,6 +248,20 @@ HTML,
       'sdc.xb_test_sdc.crash' => [
         'html' => '<h1>test</h1>
 
+',
+        'cacheability' => $default_cacheability,
+      ],
+      'sdc.xb_test_sdc.sparkline' => [
+        'html' => '
+
+<div class="sparkline-container" style="width: 100px; height: 20px;">
+  <svg width="100" height="20" viewBox="0 0 100 20" preserveAspectRatio="none">
+
+            <polygon points="0,20 0,7.5 12.5,5 25,2.5 37.5,0 50,17.5 62.5,20 75,6.25 87.5,5.75 100,5.25 100,20" fill="rgba(26, 115, 232, 0.2)" />
+
+            <polyline points="0,7.5 12.5,5 25,2.5 37.5,0 50,17.5 62.5,20 75,6.25 87.5,5.75 100,5.25" fill="none" stroke="#1a73e8" stroke-width="1" />
+      </svg>
+</div>
 ',
         'cacheability' => $default_cacheability,
       ],
@@ -416,7 +423,7 @@ HTML,
             'field_storage_settings' => [],
             'field_instance_settings' => [],
             'field_widget' => 'boolean_checkbox',
-            'default_value' => ['value' => 0],
+            'default_value' => [0 => ['value' => 0]],
             'expression' => 'ℹ︎boolean␟value',
           ],
         ],
@@ -429,7 +436,7 @@ HTML,
             'field_storage_settings' => [],
             'field_instance_settings' => [],
             'field_widget' => 'string_textfield',
-            'default_value' => ['value' => 'A text field'],
+            'default_value' => [0 => ['value' => 'A text field']],
             'expression' => 'ℹ︎string␟value',
           ],
         ],
@@ -442,7 +449,7 @@ HTML,
             'field_storage_settings' => [],
             'field_instance_settings' => [],
             'field_widget' => 'string_textfield',
-            'default_value' => ['value' => 'A text field'],
+            'default_value' => [0 => ['value' => 'A text field']],
             'expression' => 'ℹ︎string␟value',
           ],
         ],
@@ -460,8 +467,32 @@ HTML,
             ],
             'field_instance_settings' => [],
             'field_widget' => 'options_select',
-            'default_value' => ['value' => 'horizontal'],
+            'default_value' => [0 => ['value' => 'horizontal']],
             'expression' => 'ℹ︎list_string␟value',
+          ],
+        ],
+      ],
+      'sdc.xb_test_sdc.image-gallery' => [
+        'local_source_id' => 'xb_test_sdc:image-gallery',
+        'prop_field_definitions' => [
+          'caption' => [
+            'field_type' => 'string',
+            'field_storage_settings' => [],
+            'field_instance_settings' => [],
+            'field_widget' => 'string_textfield',
+            'default_value' => NULL,
+            'expression' => 'ℹ︎string␟value',
+          ],
+          'images' => [
+            'field_type' => 'image',
+            'cardinality' => FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED,
+            'field_storage_settings' => [],
+            'field_instance_settings' => [],
+            'field_widget' => 'image_image',
+            // ⚠️ Empty default value.
+            // @see \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase::exampleValueRequiresEntity()
+            'default_value' => [],
+            'expression' => 'ℹ︎image␟{src↝entity␜␜entity:file␝uri␞␟url,alt↠alt,width↠width,height↠height}',
           ],
         ],
       ],
@@ -541,7 +572,7 @@ HTML,
             'field_storage_settings' => [],
             'field_instance_settings' => [],
             'field_widget' => 'string_textfield',
-            'default_value' => ['value' => 'There goes my hero'],
+            'default_value' => [0 => ['value' => 'There goes my hero']],
             'expression' => 'ℹ︎string␟value',
           ],
         ],
@@ -554,8 +585,35 @@ HTML,
             'field_storage_settings' => [],
             'field_instance_settings' => [],
             'field_widget' => 'string_textfield',
-            'default_value' => ['value' => 'There goes my hero'],
+            'default_value' => [0 => ['value' => 'There goes my hero']],
             'expression' => 'ℹ︎string␟value',
+          ],
+        ],
+      ],
+      'sdc.xb_test_sdc.sparkline' => [
+        'local_source_id' => 'xb_test_sdc:sparkline',
+        'prop_field_definitions' => [
+          'data' => [
+            'field_type' => 'integer',
+            'cardinality' => 100,
+            'field_storage_settings' => [],
+            'field_instance_settings' => [
+              'min' => -100,
+              'max' => 100,
+            ],
+            'field_widget' => 'number',
+            'default_value' => [
+              0 => ['value' => 0],
+              1 => ['value' => 10],
+              2 => ['value' => 20],
+              3 => ['value' => 30],
+              4 => ['value' => -40],
+              5 => ['value' => -50],
+              6 => ['value' => 5],
+              7 => ['value' => 7],
+              8 => ['value' => 9],
+            ],
+            'expression' => 'ℹ︎integer␟value',
           ],
         ],
       ],
@@ -593,6 +651,15 @@ HTML,
         'module' => [
           'options',
           'core',
+          'xb_test_sdc',
+        ],
+      ],
+      'sdc.xb_test_sdc.image-gallery' => [
+        'module' => [
+          'core',
+          'core',
+          'image',
+          'image',
           'xb_test_sdc',
         ],
       ],
@@ -640,6 +707,13 @@ HTML,
           'xb_test_sdc',
         ],
       ],
+      'sdc.xb_test_sdc.sparkline' => [
+        'module' => [
+          'core',
+          'core',
+          'xb_test_sdc',
+        ],
+      ],
     ], $this->callSourceMethodForEach('calculateDependencies', $component_ids));
   }
 
@@ -664,7 +738,7 @@ HTML,
             'expression' => 'ℹ︎boolean␟value',
             'default_values' => [
               'source' => [
-                'value' => 0,
+                0 => ['value' => 0],
               ],
               'resolved' => FALSE,
             ],
@@ -692,7 +766,7 @@ HTML,
             'expression' => 'ℹ︎string␟value',
             'default_values' => [
               'source' => [
-                'value' => 'A text field',
+                0 => ['value' => 'A text field'],
               ],
               'resolved' => 'A text field',
             ],
@@ -720,7 +794,7 @@ HTML,
             'expression' => 'ℹ︎string␟value',
             'default_values' => [
               'source' => [
-                'value' => 'A text field',
+                0 => ['value' => 'A text field'],
               ],
               'resolved' => 'A text field',
             ],
@@ -775,7 +849,7 @@ HTML,
             ],
             'default_values' => [
               'source' => [
-                'value' => 'horizontal',
+                0 => ['value' => 'horizontal'],
               ],
               'resolved' => 'horizontal',
             ],
@@ -783,6 +857,91 @@ HTML,
         ],
         'dynamic_prop_source_candidates' => [
           'direction' => [],
+        ],
+        'transforms' => [],
+      ],
+      'sdc.xb_test_sdc.image-gallery' => [
+        'expected_output_selectors' => [
+          'figure > img[src="' . self::getCiModulePath() . '/tests/modules/xb_test_sdc/components/image-gallery/gracie.jpg"][alt="A good dog"]',
+          'figure > img[src="' . self::getCiModulePath() . '/tests/modules/xb_test_sdc/components/image-gallery/gracie.jpg"][alt="Still a good dog"]',
+          'figure > img[src="' . self::getCiModulePath() . '/tests/modules/xb_test_sdc/components/image-gallery/gracie.jpg"][alt="The BEST dog!"]',
+        ],
+        'source' => 'Module component',
+        'metadata' => ['slots' => []],
+        'propSources' => [
+          'caption' => [
+            'required' => FALSE,
+            'jsonSchema' => [
+              'type' => 'string',
+            ],
+            'sourceType' => 'static:field_item:string',
+            'expression' => 'ℹ︎string␟value',
+          ],
+          'images' => [
+            'required' => TRUE,
+            'jsonSchema' => [
+              'type' => 'array',
+              'items' => [
+                'title' => 'image',
+                'type' => 'object',
+                'required' => [
+                  'src',
+                ],
+                'properties' => [
+                  'src' => [
+                    'title' => 'Image URL',
+                    'type' => 'string',
+                    'format' => 'uri-reference',
+                    'pattern' => '^(/|https?://)?.*\\.(png|gif|jpg|jpeg|webp)(\\?.*)?(#.*)?$',
+                  ],
+                  'alt' => [
+                    'title' => 'Alternative text',
+                    'type' => 'string',
+                  ],
+                  'width' => [
+                    'title' => 'Image width',
+                    'type' => 'integer',
+                  ],
+                  'height' => [
+                    'title' => 'Image height',
+                    'type' => 'integer',
+                  ],
+                ],
+              ],
+            ],
+            'sourceType' => 'static:field_item:image',
+            'expression' => 'ℹ︎image␟{src↝entity␜␜entity:file␝uri␞␟url,alt↠alt,width↠width,height↠height}',
+            'sourceTypeSettings' => [
+              'cardinality' => FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED,
+            ],
+            'default_values' => [
+              'source' => [],
+              'resolved' => [
+                0 => [
+                  'src' => self::getCiModulePath() . '/tests/modules/xb_test_sdc/components/image-gallery/gracie.jpg',
+                  'alt' => 'A good dog',
+                  'width' => 601,
+                  'height' => 402,
+                ],
+                1 => [
+                  'src' => self::getCiModulePath() . '/tests/modules/xb_test_sdc/components/image-gallery/gracie.jpg',
+                  'alt' => 'Still a good dog',
+                  'width' => 601,
+                  'height' => 402,
+                ],
+                2 => [
+                  'src' => self::getCiModulePath() . '/tests/modules/xb_test_sdc/components/image-gallery/gracie.jpg',
+                  'alt' => 'The BEST dog!',
+                  'width' => 601,
+                  'height' => 402,
+                ],
+              ],
+            ],
+          ],
+        ],
+        'dynamic_prop_source_candidates' => [
+          'caption' => [],
+          'images' => [],
         ],
         'transforms' => [],
       ],
@@ -1018,7 +1177,7 @@ HTML,
             'expression' => 'ℹ︎string␟value',
             'default_values' => [
               'source' => [
-                'value' => 'There goes my hero',
+                0 => ['value' => 'There goes my hero'],
               ],
               'resolved' => 'There goes my hero',
             ],
@@ -1072,7 +1231,7 @@ HTML,
             'expression' => 'ℹ︎string␟value',
             'default_values' => [
               'source' => [
-                'value' => 'There goes my hero',
+                0 => ['value' => 'There goes my hero'],
               ],
               'resolved' => 'There goes my hero',
             ],
@@ -1080,6 +1239,53 @@ HTML,
         ],
         'dynamic_prop_source_candidates' => [
           'heading' => [],
+        ],
+        'transforms' => [],
+      ],
+      'sdc.xb_test_sdc.sparkline' => [
+        'expected_output_selectors' => [
+          'div.sparkline-container > svg > polygon[points="0,20 0,7.5 12.5,5 25,2.5 37.5,0 50,17.5 62.5,20 75,6.25 87.5,5.75 100,5.25 100,20"]',
+        ],
+        'source' => 'Module component',
+        'metadata' => ['slots' => []],
+        'propSources' => [
+          'data' => [
+            'required' => TRUE,
+            'jsonSchema' => [
+              'type' => 'array',
+              'items' => [
+                'type' => 'integer',
+                'minimum' => -100,
+                'maximum' => 100,
+              ],
+              'maxItems' => 100,
+            ],
+            'sourceType' => 'static:field_item:integer',
+            'expression' => 'ℹ︎integer␟value',
+            'sourceTypeSettings' => [
+              'instance' => ['min' => -100, 'max' => 100],
+              'cardinality' => 100,
+            ],
+            'default_values' => [
+              'source' => [
+                0 => ['value' => 0],
+                1 => ['value' => 10],
+                2 => ['value' => 20],
+                3 => ['value' => 30],
+                4 => ['value' => -40],
+                5 => ['value' => -50],
+                6 => ['value' => 5],
+                7 => ['value' => 7],
+                8 => ['value' => 9],
+              ],
+              'resolved' => [
+                0, 10, 20, 30, -40, -50, 5, 7, 9,
+              ],
+            ],
+          ],
+        ],
+        'dynamic_prop_source_candidates' => [
+          'data' => [],
         ],
         'transforms' => [],
       ],

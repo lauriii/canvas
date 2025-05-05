@@ -83,7 +83,7 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
             'field_type' => 'string',
             // @see \Drupal\Core\Field\Plugin\Field\FieldWidget\StringTextfieldWidget
             'field_widget' => 'string_textfield',
-            'default_value' => ['value' => 'Hello, world!'],
+            'default_value' => [0 => ['value' => 'Hello, world!']],
             'expression' => 'ℹ︎string␟value',
           ],
           'href' => [
@@ -91,7 +91,7 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
             'field_type' => 'uri',
             // @see \Drupal\Core\Field\Plugin\Field\FieldWidget\UriWidget
             'field_widget' => 'uri',
-            'default_value' => ['value' => 'https://drupal.org'],
+            'default_value' => [0 => ['value' => 'https://drupal.org']],
             'expression' => 'ℹ︎uri␟value',
           ],
           'target' => [

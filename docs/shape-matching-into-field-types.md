@@ -183,10 +183,14 @@ key-value pairs must be assembled).
 
 To express that, `prop expression`s exist, which define:
 
-1. what context they need: a `field item` of a certain `field type`, or a `content entity` of a certain `content type`
-2. what `field prop`s they must retrieve in that context, possibly following entity references
-3. what the resulting shape is: either a single value (typically) or a list of key-value pairs — in the latter case the
-   expected keys are specified also
+1. what context they need:
+  - `field item` or `field item list` of a certain `field type`
+  - or a `content entity` of a certain `content type` (which then contains a `field
+2. optionally: specify a delta to determine which `field item` from a `field item list` to use. The absence of a delta
+   is interpreted as "everything please". For a `field item list` configured for single cardinality that would be a
+   single value, versus an array of values for multiple cardinality.
+3. what `field prop`s they must retrieve in that context, possibly following entity reference
+4. what the resulting shape is: either a single value (typically) or a list of key-value pairs — in the latter case the
 
 `prop expression`s have 2 representations:
 

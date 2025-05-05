@@ -30,8 +30,9 @@ final class PropShape {
     // The schema of the prop shape.
     public readonly array $schema,
   ) {
-    if ($schema !== self::normalizePropSchema($this->schema)) {
-      throw new \InvalidArgumentException();
+    $normalized = self::normalizePropSchema($this->schema);
+    if ($schema !== $normalized) {
+      throw new \InvalidArgumentException(sprintf("The passed in schema (%s) should be normalized (%s).", print_r($schema, TRUE), print_r($normalized, TRUE)));
     }
     $this->resolvedSchema = self::resolveSchemaReferences($schema);
   }

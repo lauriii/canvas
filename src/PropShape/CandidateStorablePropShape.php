@@ -22,6 +22,7 @@ final class CandidateStorablePropShape {
     public readonly PropShape $shape,
     public FieldTypePropExpression|FieldTypeObjectPropsExpression|null $fieldTypeProp = NULL,
     public string|null $fieldWidget = NULL,
+    public int|null $cardinality = NULL,
     public array|null $fieldStorageSettings = NULL,
     public array|null $fieldInstanceSettings = NULL,
   ) {}
@@ -31,6 +32,7 @@ final class CandidateStorablePropShape {
       $immutable->shape,
       $immutable->fieldTypeProp,
       $immutable->fieldWidget,
+      $immutable->cardinality,
       $immutable->fieldStorageSettings,
       $immutable->fieldInstanceSettings,
     );
@@ -44,7 +46,7 @@ final class CandidateStorablePropShape {
     // Note: this will result in a fatal PHP error if a
     // hook_storage_prop_shape_alter() implementation alters incorrectly.
     // @phpstan-ignore-next-line
-    return new StorablePropShape($this->shape, $this->fieldTypeProp, $this->fieldWidget, $this->fieldStorageSettings, $this->fieldInstanceSettings);
+    return new StorablePropShape($this->shape, $this->fieldTypeProp, $this->fieldWidget, $this->cardinality, $this->fieldStorageSettings, $this->fieldInstanceSettings);
   }
 
 }

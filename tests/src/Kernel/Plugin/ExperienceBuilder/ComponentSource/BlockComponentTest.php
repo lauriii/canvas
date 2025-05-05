@@ -68,7 +68,7 @@ final class BlockComponentTest extends ComponentSourceTestBase {
       'block.xb_test_block_optional_contexts',
     ], $auto_created_components);
 
-    return $auto_created_components;
+    return array_combine($auto_created_components, $auto_created_components);
   }
 
   /**

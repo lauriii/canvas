@@ -19,12 +19,15 @@ use Drupal\experience_builder\Entity\Component;
 use Drupal\experience_builder\Entity\ComponentInterface;
 use Drupal\experience_builder\Entity\Page;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
+use Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemInstantiatorTrait;
 use Drupal\experience_builder\PropExpressions\StructuredData\FieldTypePropExpression;
+use Drupal\experience_builder\PropSource\DefaultRelativeUrlPropSource;
 use Drupal\experience_builder\PropSource\StaticPropSource;
 use Drupal\experience_builder\Storage\ComponentTreeLoader;
 use Drupal\KernelTests\KernelTestBase;
+use Drupal\Tests\experience_builder\Kernel\Traits\CiModulePathTrait;
 use Drupal\Tests\experience_builder\Traits\ConstraintViolationsTestTrait;
 use Drupal\Tests\experience_builder\Traits\ContribStrictConfigSchemaTestTrait;
 use Drupal\Tests\experience_builder\Traits\CrawlerTrait;
@@ -66,6 +69,7 @@ abstract class ComponentSourceTestBase extends KernelTestBase implements LoggerI
     }
   }
 
+  use CiModulePathTrait;
   use CrawlerTrait;
   use ComponentTreeItemInstantiatorTrait;
   use ConstraintViolationsTestTrait;
@@ -241,13 +245,70 @@ abstract class ComponentSourceTestBase extends KernelTestBase implements LoggerI
         FALSE,
       );
       $html = (string) $this->renderer->renderInIsolation($build);
+      // Strip trailing whitespace to make heredocs easier to write.
+      $html = preg_replace('/ +$/m', '', $html);
+      assert(is_string($html));
+      // Make it easier to write expectations containing root-relative URLs
+      // pointing somewhere into the site-specific directory.
+      $html = str_replace(base_path() . $this->siteDirectory, '::SITE_DIR_BASE_URL::', $html);
+      $html = str_replace(self::getCiModulePath(), '::XB_MODULE_PATH::', $html);
       $rendered[$component_id] = [
-        // Strip trailing whitespace to make heredocs easier to write.
-        'html' => preg_replace('/ +$/m', '', $html),
+        'html' => $html,
         'cacheability' => CacheableMetadata::createFromRenderArray($build),
       ];
     }
     return $rendered;
+  }
+
+  /**
+   * For use with ::renderComponentsLive() for Sources with generated input UX.
+   *
+   * @see \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase::exampleValueRequiresEntity()
+   * @see \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase::getDefaultStaticPropSource()
+   */
+  protected static function getDefaultInputForGeneratedInputUx(Component $component): array {
+    assert($component->getComponentSource() instanceof GeneratedFieldExplicitInputUxComponentSourceBase);
+    $explicit_inputs = [];
+    foreach ($component->getSettings()['prop_field_definitions'] as $sdc_prop_name => $prop_field_definition) {
+      if ($prop_field_definition['default_value'] === NULL) {
+        continue;
+      }
+
+      // @see \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase::exampleValueRequiresEntity()
+      // @see \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase::getDefaultStaticPropSource()
+      if ($prop_field_definition['default_value'] === []) {
+        // @phpstan-ignore-next-line
+        $client_side_info_for_prop = $component->getComponentSource()
+          ->getClientSideInfo($component)['propSources'][$sdc_prop_name];
+
+        // The prop might be optional without a default value.
+        if (!array_key_exists('default_values', $client_side_info_for_prop)) {
+          continue;
+        }
+
+        $explicit_inputs[$sdc_prop_name] = (new DefaultRelativeUrlPropSource(
+          value: $client_side_info_for_prop['default_values']['resolved'],
+          jsonSchema: $client_side_info_for_prop['jsonSchema'],
+          componentId: $component->id(),
+        ))->evaluate(NULL);
+
+        continue;
+      }
+
+      $explicit_inputs[$sdc_prop_name] = StaticPropSource::parse([
+        'sourceType' => 'static:field_item:' . $prop_field_definition['field_type'],
+        'value' => $prop_field_definition['default_value'],
+        'expression' => $prop_field_definition['expression'],
+        'sourceTypeSettings' => [
+          'cardinality' => $prop_field_definition['cardinality'] ?? 1,
+          'storage' => $prop_field_definition['field_storage_settings'] ?? [],
+          'instance' => $prop_field_definition['field_instance_settings'] ?? [],
+        ],
+      ])
+        // Static prop sources can be evaluated without a host entity.
+        ->evaluate(NULL);
+    }
+    return [GeneratedFieldExplicitInputUxComponentSourceBase::EXPLICIT_INPUT_NAME => $explicit_inputs];
   }
 
   /**
@@ -313,7 +374,8 @@ abstract class ComponentSourceTestBase extends KernelTestBase implements LoggerI
         // be hardcoded.
         'container' => [
           'width' => StaticPropSource::generate(
-            new FieldTypePropExpression('integer', 'value'),
+            expression: new FieldTypePropExpression('integer', 'value'),
+            cardinality: 1,
           )->withValue(33)->toArray(),
         ],
       ]),
@@ -397,6 +459,9 @@ abstract class ComponentSourceTestBase extends KernelTestBase implements LoggerI
 
     // Test `build` using `expected_output_selectors`.
     foreach ($component_ids as $component_id) {
+      if (!array_key_exists($component_id, $expected_client_side_info)) {
+        throw new \OutOfRangeException(sprintf('Test expectations missing for %s.', $component_id));
+      }
       $expected_output_selectors = $expected_client_side_info[$component_id]['expected_output_selectors'];
       unset($expected_client_side_info[$component_id]['expected_output_selectors']);
       $build = $actual_client_side_info[$component_id]['build'];

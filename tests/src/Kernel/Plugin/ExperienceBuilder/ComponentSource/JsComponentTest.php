@@ -77,7 +77,7 @@ final class JsComponentTest extends ComponentSourceTestBase {
 
     self::assertSame($expected_js_component_ids, $js_components);
 
-    return $js_components;
+    return array_combine($js_components, $js_components);
   }
 
   /**
@@ -150,7 +150,7 @@ final class JsComponentTest extends ComponentSourceTestBase {
             'field_storage_settings' => [],
             'field_instance_settings' => [],
             'field_widget' => 'number',
-            'default_value' => ['value' => 40],
+            'default_value' => [0 => ['value' => 40]],
             'expression' => 'ℹ︎integer␟value',
           ],
           'name' => [
@@ -158,7 +158,7 @@ final class JsComponentTest extends ComponentSourceTestBase {
             'field_storage_settings' => [],
             'field_instance_settings' => [],
             'field_widget' => 'string_textfield',
-            'default_value' => ['value' => 'XB'],
+            'default_value' => [0 => ['value' => 'XB']],
             'expression' => 'ℹ︎string␟value',
           ],
         ],
@@ -176,33 +176,7 @@ final class JsComponentTest extends ComponentSourceTestBase {
 
     $rendered = $this->renderComponentsLive(
       $component_ids,
-      get_default_input: fn (Component $component) => [
-        JsComponent::EXPLICIT_INPUT_NAME => array_map(
-        // @see \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase::getDefaultStaticPropSource()
-          fn (array $prop_field_definition): mixed => match ($prop_field_definition['default_value']) {
-            // @see \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase::exampleValueRequiresEntity()
-            // @todo Refine later, to use DefaultRelativeUrlPropSource.
-            [] => [
-              'src' => 'cat.jpg',
-              'alt' => '',
-              'width' => 10,
-              'height' => 10,
-            ],
-            default => StaticPropSource::parse([
-              'sourceType' => 'static:field_item:' . $prop_field_definition['field_type'],
-              'value' => $prop_field_definition['default_value'],
-              'expression' => $prop_field_definition['expression'],
-              'sourceTypeSettings' => [
-                'storage' => $prop_field_definition['field_storage_settings'] ?? [],
-                'instance' => $prop_field_definition['field_instance_settings'] ?? [],
-              ],
-            ])
-              // Static prop sources can be evaluated without a host entity.
-              ->evaluate(NULL),
-          },
-          $component->getSettings()['prop_field_definitions']
-        ),
-      ],
+      get_default_input: [__CLASS__, 'getDefaultInputForGeneratedInputUx'],
     );
 
     // ⚠️ The `'html'` expectations are tested separately for this very complex
@@ -718,7 +692,7 @@ final class JsComponentTest extends ComponentSourceTestBase {
             'expression' => 'ℹ︎string␟value',
             'default_values' => [
               'source' => [
-                'value' => 'XB',
+                0 => ['value' => 'XB'],
               ],
               'resolved' => 'XB',
             ],
@@ -732,7 +706,7 @@ final class JsComponentTest extends ComponentSourceTestBase {
             'expression' => 'ℹ︎integer␟value',
             'default_values' => [
               'source' => [
-                'value' => 40,
+                0 => ['value' => 40],
               ],
               'resolved' => 40,
             ],

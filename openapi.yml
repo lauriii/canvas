@@ -1200,12 +1200,30 @@ components:
               required:
                 type: boolean
               default_values:
-                type:
-                  - string
-                  - integer
-                  - number
-                  - boolean
-                  - object
+                type: object
+                additionalProperties: false
+                required:
+                  - source
+                  - resolved
+                properties:
+                  # The (raw) values for this StaticPropSource. (A Drupal field type data structure.)
+                  # An array of `type: field.value.*` config schema-compliant objects.
+                  source:
+                    type: array
+                    items:
+                      type: object
+                      additionalProperties: true
+                  # The resolved values for this StaticPropSource, ready to be passed in to a component instance.
+                  # - When cardinality = 1, this will be a scalar or an object.
+                  # - When cardinality >1, this will be an array of scalars or objects.
+                  resolved:
+                    type:
+                      - array
+                      - string
+                      - integer
+                      - number
+                      - boolean
+                      - object
         default_markup:
           type: string
           description: "without providing user input, this is what Component's markup would look like — used to preview the Component prior to placing it"

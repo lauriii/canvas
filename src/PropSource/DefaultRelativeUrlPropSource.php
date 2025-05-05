@@ -110,18 +110,32 @@ final class DefaultRelativeUrlPropSource extends PropSourceBase {
       return $this->componentSource->rewriteExampleUrl($this->value);
     }
 
-    \assert($this->jsonSchema['type'] === 'object');
-    \assert(\is_array($this->value));
-    $evaluated = [];
-    foreach ($this->value as $property_name => $property_value) {
-      if (self::isUrlJsonSchema($this->jsonSchema['properties'][$property_name])) {
-        $evaluated[$property_name] = $this->componentSource->rewriteExampleUrl($property_value);
+    return self::recurse($this->jsonSchema, $this->value, $this->componentSource);
+  }
+
+  private static function recurse(array $json_schema, mixed $value, UrlRewriteInterface $component_source): mixed {
+    if ($json_schema['type'] === 'array') {
+      assert(array_is_list($value));
+      $evaluated = [];
+      foreach ($value as $k => $v) {
+        $evaluated[$k] = self::recurse($json_schema['items'], $v, $component_source);
       }
-      else {
-        $evaluated[$property_name] = $property_value;
-      }
+      return $evaluated;
     }
-    return $evaluated;
+    elseif ($json_schema['type'] === 'object') {
+      assert(!array_is_list($value));
+      $evaluated = [];
+      foreach ($value as $k => $v) {
+        $evaluated[$k] = self::recurse($json_schema['properties'][$k], $v, $component_source);
+      }
+      return $evaluated;
+    }
+    elseif (is_string($value) && self::isUrlJsonSchema($json_schema)) {
+      return $component_source->rewriteExampleUrl($value);
+    }
+    else {
+      return $value;
+    }
   }
 
   private static function isUrlJsonSchema(array $property_definition): bool {

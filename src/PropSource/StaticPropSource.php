@@ -7,14 +7,17 @@ namespace Drupal\experience_builder\PropSource;
 use Drupal\Core\Datetime\DrupalDateTime;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Entity\Plugin\DataType\EntityAdapter;
+use Drupal\Core\Field\EntityReferenceFieldItemListInterface;
 use Drupal\Core\Field\FieldItemInterface;
 use Drupal\Core\Field\FieldItemListInterface;
+use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\Field\Plugin\Field\FieldType\EntityReferenceItem;
 use Drupal\Core\Field\TypedData\FieldItemDataDefinitionInterface;
 use Drupal\Core\Field\WidgetInterface;
 use Drupal\Core\Field\WidgetPluginManager;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\TypedData\DataDefinition;
+use Drupal\Core\TypedData\DataDefinitionInterface;
 use Drupal\Core\TypedData\TypedDataManagerInterface;
 use Drupal\experience_builder\PropExpressions\StructuredData\Evaluator;
 use Drupal\experience_builder\PropExpressions\StructuredData\FieldTypeObjectPropsExpression;
@@ -25,15 +28,27 @@ use Drupal\experience_builder\PropExpressions\StructuredData\StructuredDataPropE
 
 /**
  * @todo Finalize name. "Fixed", "Local" and "Stored" all seem better. (Note: "Stored" would match nicely with StorablePropShape.)
+ *
+ * Always contains a FieldItemListInterface object (even if cardinality is 1),
+ * to remove the need for branched logic throughout this class. However, for
+ * single cardinality prop sources (i.e. those that are NOT intended to return
+ * a list of values), to a caller of StaticPropSource it will appear as if they
+ * interact with only a FieldItemInterface, not a FieldItemListInterface.
  */
 final class StaticPropSource extends PropSourceBase {
 
+  /**
+   * @param \Drupal\Core\Field\FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED|int<1, max>|null $cardinality
+   */
   public function __construct(
-    public readonly FieldItemInterface $fieldItem,
+    public readonly FieldItemListInterface $fieldItemList,
     private readonly StructuredDataPropExpressionInterface $expression,
+    // - which cardinality to use in case of a list (`type: array`)
+    // @see \Drupal\Core\Field\FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED
+    private readonly ?int $cardinality,
     // - (optionally) which storage settings to specify for an instance of this
-    //   field type — crucial for e.g. the `enum` use case. Note that in theory
-    //   is the same as $this->fieldItem->getFieldDefinition()->getSettings(),
+    //   field type — crucial for e.g. the `enum` use case. In theory this is
+    //   the same as $this->fieldItemList->getFieldDefinition()->getSettings(),
     //   but in practice that is unusable: it contains all default settings too.
     private readonly ?array $fieldStorageSettings = NULL,
     // - (optionally) which storage settings to specify for an instance of this
@@ -63,88 +78,129 @@ final class StaticPropSource extends PropSourceBase {
     if ($this->fieldInstanceSettings !== NULL && $this->fieldInstanceSettings !== []) {
       $array_representation['sourceTypeSettings']['instance'] = $this->fieldInstanceSettings;
     }
+    // Single-cardinality is the default.
+    // @see ::parse()
+    if ($this->cardinality !== NULL && $this->cardinality !== 1) {
+      $array_representation['sourceTypeSettings']['cardinality'] = $this->cardinality;
+    }
 
     return $array_representation;
   }
 
-  private static function conjureFieldItem(FieldTypePropExpression|FieldTypeObjectPropsExpression|ReferenceFieldTypePropExpression $expression, ?array $field_storage_settings, ?array $field_instance_settings): FieldItemInterface {
+  private static function conjureFieldItemList(FieldTypePropExpression|FieldTypeObjectPropsExpression|ReferenceFieldTypePropExpression $expression, ?int $cardinality, ?array $field_storage_settings, ?array $field_instance_settings): FieldItemListInterface {
     $typed_data_manager = \Drupal::service(TypedDataManagerInterface::class);
 
-    // First: conjure the expected FieldItem instance.
+    // First: determine field type.
     $field_type = $expression instanceof ReferenceFieldTypePropExpression
       ? $expression->referencer->fieldType
       : $expression->fieldType;
-    $data_type = "field_item:" . $field_type;
 
+    // Second: conjure a FieldStorageDefinitionInterface instance using the:
+    // - field type
+    // - cardinality
+    // @see \Drupal\Core\Field\FieldStorageDefinitionInterface
     // TRICKY: this does not work due to it using BaseFieldDefinition, and BaseFieldDefinition::getOptionsProvider() assuming it to exist on the host entity. Hence the use of XB's own \Drupal\experience_builder\PropSource\FieldStorageDefinition.
     // @see \Drupal\Core\Field\TypedData\FieldItemDataDefinition::createFromDataType()
     // @todo Refactor this after https://www.drupal.org/node/2280639 is fixed.
     // $field_item_definition = $typed_data_manager->createDataDefinition($data_type);
-    $field_item_definition = FieldStorageDefinition::create($field_type)->getItemDefinition();
+    $storage_definition = FieldStorageDefinition::create($field_type);
+    // @see \Drupal\Core\Field\BaseFieldDefinition::getCardinality()
+    if ($cardinality) {
+      $storage_definition->setCardinality($cardinality);
+    }
+    $field_item_definition = $storage_definition->getItemDefinition();
     assert($field_item_definition instanceof DataDefinition);
+
+    // Third: respect field type-specific storage and instance settings.
     if ($field_storage_settings) {
       $field_item_class = $field_item_definition->getClass();
-      $field_item_definition->setSettings($field_item_class::storageSettingsFromConfigData($field_storage_settings) + $field_item_definition->getSettings());
+      $storage_definition->setSettings($field_item_class::storageSettingsFromConfigData($field_storage_settings) + $field_item_definition->getSettings());
     }
     if ($field_instance_settings) {
       $field_item_class = $field_item_definition->getClass();
-      $field_item_definition->setSettings($field_item_class::fieldSettingsFromConfigData($field_instance_settings) +
-        $field_item_definition->getSettings());
+      $storage_definition->setSettings($field_item_class::fieldSettingsFromConfigData($field_instance_settings) + $storage_definition->getSettings());
     }
-    assert($field_item_definition instanceof FieldItemDataDefinitionInterface);
-    $field_item = $typed_data_manager->createInstance($data_type, [
-      'name' => NULL,
-      'parent' => NULL,
-      'data_definition' => $field_item_definition,
-    ]);
-    assert($field_item instanceof FieldItemInterface);
-    return $field_item;
+
+    // Fourth: instantiate a FieldItemList object using the storage definition.
+    // TRICKY: FieldTypePluginManager::createFieldItemList() cannot be used
+    // because it assumes a parent Typed Data object (an entity). For the same
+    // reason, TypedDataManager::getPropertyInstance() is also unusable. So use
+    // the lower API, and pass fewer parameters: TypedDataManager::create().
+    // @see \Drupal\Core\Field\FieldTypePluginManager::createFieldItemList()
+    // @see \Drupal\Core\TypedData\TypedDataManagerInterface::getPropertyInstance()
+    $field_item_list = $typed_data_manager->create($storage_definition);
+    assert($field_item_list instanceof FieldItemListInterface);
+    return $field_item_list;
   }
 
   /**
    * Generates a new (empty) prop source.
+   *
+   * @param \Drupal\Core\Field\FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED|int<1, max>|null $cardinality
    */
-  public static function generate(FieldTypePropExpression|FieldTypeObjectPropsExpression|ReferenceFieldTypePropExpression $expression, ?array $field_storage_settings = NULL, ?array $field_instance_settings = NULL): static {
-    return new StaticPropSource(self::conjureFieldItem($expression, $field_storage_settings, $field_instance_settings), $expression, $field_storage_settings, $field_instance_settings);
+  public static function generate(FieldTypePropExpression|FieldTypeObjectPropsExpression|ReferenceFieldTypePropExpression $expression, ?int $cardinality, ?array $field_storage_settings = NULL, ?array $field_instance_settings = NULL): static {
+    return new StaticPropSource(self::conjureFieldItemList($expression, $cardinality, $field_storage_settings, $field_instance_settings), $expression, $cardinality, $field_storage_settings, $field_instance_settings);
+  }
+
+  /**
+   * @return \Drupal\Core\Field\FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED|int<1, max>
+   */
+  private function getCardinality() : int {
+    // TRICKY: unfortunately, `field.storage_settings.*` does not store
+    // cardinality, but the FieldStorageConfig entity does (config schema:
+    // `field.storage.*.*`). Hence the need for an additional key-value pair.
+    return $this->cardinality ?? 1;
   }
 
   /**
    * @return \Drupal\experience_builder\PropSource\StaticPropSource
    *
-   * @see \Drupal\Core\Field\FieldItemList::generateSampleItems()
-   *
    * @internal
    *   This is currently only intended to be used by Experience Builder's tests.
    */
   public function randomizeValue(): static {
-    $field_item = clone $this->fieldItem;
-    $field_type_class = $field_item->getDataDefinition()->getClass();
-    $field_item->setValue($field_type_class::generateSampleValue($field_item->getFieldDefinition()));
-    if ($field_item instanceof EntityReferenceItem) {
-      // TRICKY: the target_id MUST be set for this StaticPropSource
-      // serialize and then restore. But Drupal core (sensibly!) does not save
-      // sample entities. However, for this
-      // @see \Drupal\Core\Field\Plugin\Field\FieldType\EntityReferenceItem::onChange()
-      // @see \Drupal\Core\Entity\Plugin\DataType\EntityReference::isTargetNew()
-      if ($field_item->get('target_id')->getValue() === NULL && $field_item->get('entity')->getValue()->isNew()) {
-        $target_id = $field_item->get('entity')->getValue()->save();
-        $field_item->get('target_id')->setValue($target_id);
+    // Determine how many values to generate.
+    $shape_cardinality = $this->getCardinality();
+    $value_cardinality = $shape_cardinality !== FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED
+      ? $shape_cardinality
+      // Randomly generate between 2 and 5 values for this array.
+      : mt_rand(2, 5);
+
+    // Clone (avoid modifying this StaticPropSource object) and randomize.
+    $field_item_list = clone $this->fieldItemList;
+    $field_item_list->generateSampleItems($value_cardinality);
+
+    if ($field_item_list instanceof EntityReferenceFieldItemListInterface) {
+      for ($i = 0; $i < $field_item_list->count(); $i++) {
+        // TRICKY: the target_id MUST be set for this StaticPropSource
+        // serialize and then restore. But Drupal core (sensibly!) does not save
+        // sample entities. However, for this
+        // @see \Drupal\Core\Field\Plugin\Field\FieldType\EntityReferenceItem::onChange()
+        // @see \Drupal\Core\Entity\Plugin\DataType\EntityReference::isTargetNew()
+        $field_item = $field_item_list[$i];
+        assert($field_item instanceof EntityReferenceItem);
+        if ($field_item->get('target_id')->getValue() === NULL && $field_item->get('entity')->getValue()->isNew()) {
+          $target_id = $field_item->get('entity')->getValue()->save();
+          $field_item->get('target_id')->setValue($target_id);
+        }
       }
     }
     return new StaticPropSource(
-      $field_item,
+      $field_item_list,
       $this->expression,
+      $this->cardinality,
       $this->fieldStorageSettings,
       $this->fieldInstanceSettings,
     );
   }
 
   public function withValue(mixed $value): static {
-    $field_item = clone $this->fieldItem;
-    $field_item->setValue($value);
+    $field_item_list = clone $this->fieldItemList;
+    $field_item_list->setValue($value);
     return new StaticPropSource(
-      $field_item,
+      $field_item_list,
       $this->expression,
+      $this->cardinality,
       $this->fieldStorageSettings,
       $this->fieldInstanceSettings,
     );
@@ -167,17 +223,18 @@ final class StaticPropSource extends PropSourceBase {
     assert($expression instanceof FieldTypePropExpression || $expression instanceof FieldTypeObjectPropsExpression || $expression instanceof ReferenceFieldTypePropExpression);
 
     // Second: retrieve the field storage settings, if any.
+    $cardinality = $sdc_prop_source['sourceTypeSettings']['cardinality'] ?? 1;
     $field_storage_settings = $sdc_prop_source['sourceTypeSettings']['storage'] ?? NULL;
     $field_instance_settings = $sdc_prop_source['sourceTypeSettings']['instance'] ?? NULL;
 
-    // Third: conjure the expected FieldItem instance.
-    $field_item = self::conjureFieldItem($expression, $field_storage_settings, $field_instance_settings);
+    // Third: conjure the expected FieldItemList instance.
+    $field_item_list = self::conjureFieldItemList($expression, $cardinality, $field_storage_settings, $field_instance_settings);
     // TRICKY: Setting `[]` is the equivalent of emptying a field. 🤷 (NULL
     // causes *some* field widgets (e.g. image) to fail.)
     // @see \Drupal\Core\Entity\ContentEntityBase::__unset()
-    $field_item->setValue($sdc_prop_source['value'] ?? []);
+    $field_item_list->setValue($sdc_prop_source['value'] ?? []);
 
-    return new StaticPropSource($field_item, $expression, $field_storage_settings, $field_instance_settings);
+    return new StaticPropSource($field_item_list, $expression, $cardinality, $field_storage_settings, $field_instance_settings);
   }
 
   /**
@@ -197,26 +254,57 @@ final class StaticPropSource extends PropSourceBase {
   public static function isMinimalRepresentation(array $sdc_prop_source): void {
     $expression = StructuredDataPropExpression::fromString($sdc_prop_source['expression']);
     assert($expression instanceof FieldTypePropExpression || $expression instanceof FieldTypeObjectPropsExpression || $expression instanceof ReferenceFieldTypePropExpression);
+    $cardinality = $sdc_prop_source['sourceTypeSettings']['cardinality'] ?? NULL;
     $field_storage_settings = $sdc_prop_source['sourceTypeSettings']['storage'] ?? NULL;
     $field_instance_settings = $sdc_prop_source['sourceTypeSettings']['instance'] ?? NULL;
-    $field_item = self::conjureFieldItem($expression, $field_storage_settings, $field_instance_settings);
-    $field_item->setValue($sdc_prop_source['value']);
+    $field_item_list = self::conjureFieldItemList($expression, $cardinality, $field_storage_settings, $field_instance_settings);
 
-    // @todo This won't work for fields whose props are objects (ComplexData)/lists (ListInterface), but core does not use that AFAIK, so fine for now.
+    $stored_value = $sdc_prop_source['value'];
+    $field_item_list->setValue($stored_value);
+
+    // Single-cardinality StaticPropSources MUST store only a single value, in
+    // minimal representation.
+    $storage_definition = $field_item_list->getFieldDefinition();
+    assert($storage_definition instanceof FieldStorageDefinitionInterface);
+    if ($cardinality === NULL) {
+      assert($field_item_list->count() === 1);
+      $sole_field_item = $field_item_list->first();
+      assert($sole_field_item instanceof FieldItemInterface);
+      static::isMinimalFieldItemRepresentation($stored_value, $sole_field_item);
+    }
+    // Multiple-cardinality StaticPropSources MUST store a list of minimal
+    // representations.
+    else {
+      if (!is_array($stored_value) || !array_is_list($stored_value)) {
+        throw new \LogicException('Multiple-cardinality prop source expects a list of values.');
+      }
+      // The deltas can be assumed to be 0-based and sequential.
+      // @see \Drupal\Core\Field\FieldItemList::setValue()
+      foreach ($field_item_list as $delta => $field_item) {
+        static::isMinimalFieldItemRepresentation($stored_value[$delta], $field_item);
+      }
+    }
+  }
+
+  private static function isMinimalFieldItemRepresentation(mixed $stored_value, FieldItemInterface $field_item): void {
     $expected_to_be_stored = $field_item->toArray();
-    match (count($field_item->getDataDefinition()->getPropertyDefinitions())) {
-      1 => (function () use ($expected_to_be_stored, $sdc_prop_source, $field_item) {
-        if ($expected_to_be_stored[$field_item::mainPropertyName()] !== $sdc_prop_source['value']) {
-          throw new \LogicException(sprintf('Unexpected static prop value: %s should be %s', json_encode($sdc_prop_source['value']), json_encode($expected_to_be_stored[$field_item::mainPropertyName()])));
+
+    $item_definition = $field_item->getDataDefinition();
+    assert($item_definition instanceof FieldItemDataDefinitionInterface);
+
+    match (count($item_definition->getPropertyDefinitions())) {
+      1 => (function () use ($expected_to_be_stored, $stored_value, $field_item) {
+        if ($expected_to_be_stored[$field_item::mainPropertyName()] !== $stored_value) {
+          throw new \LogicException(sprintf('Unexpected static prop value: %s should be %s', json_encode($stored_value), json_encode($expected_to_be_stored[$field_item::mainPropertyName()])));
         }
       })(),
-      default => (function () use ($expected_to_be_stored, $sdc_prop_source, $field_item) {
-        if ($expected_to_be_stored != $sdc_prop_source['value']) {
+      default => (function () use ($expected_to_be_stored, $stored_value, $field_item) {
+        if ($expected_to_be_stored != $stored_value) {
           $optional_field_properties = array_filter($field_item->getDataDefinition()->getPropertyDefinitions(), fn ($def) => !$def->isRequired());
-          $missing_expected_properties = array_diff_key($expected_to_be_stored, $sdc_prop_source['value']);
+          $missing_expected_properties = array_diff_key($expected_to_be_stored, $stored_value);
           $missing_required_expected_properties = array_diff_key($missing_expected_properties, $optional_field_properties);
           if (!empty($missing_required_expected_properties)) {
-            throw new \LogicException(sprintf('Unexpected static prop value: %s should be %s — %s properties are missing', json_encode($sdc_prop_source['value']), json_encode($expected_to_be_stored), implode(', ', $missing_required_expected_properties)));
+            throw new \LogicException(sprintf('Unexpected static prop value: %s should be %s — %s properties are missing', json_encode($stored_value), json_encode($expected_to_be_stored), implode(', ', $missing_required_expected_properties)));
           }
         }
       })(),
@@ -227,7 +315,11 @@ final class StaticPropSource extends PropSourceBase {
    * {@inheritdoc}
    */
   public function evaluate(?FieldableEntityInterface $host_entity): mixed {
-    return Evaluator::evaluate($this->fieldItem, $this->expression);
+    return match ($this->getCardinality()) {
+      // @phpstan-ignore-next-line
+      1 => Evaluator::evaluate($this->fieldItemList->first(), $this->expression),
+      default => Evaluator::evaluate($this->fieldItemList->isEmpty() ? NULL : $this->fieldItemList, $this->expression)
+    };
   }
 
   public function asChoice(): string {
@@ -235,11 +327,27 @@ final class StaticPropSource extends PropSourceBase {
   }
 
   public function getSourceType(): string {
-    return self::getSourceTypePrefix() . self::SOURCE_TYPE_PREFIX_SEPARATOR . $this->fieldItem->getDataDefinition()->getDataType();
+    return self::getSourceTypePrefix() . self::SOURCE_TYPE_PREFIX_SEPARATOR . $this->fieldItemList->getItemDefinition()->getDataType();
   }
 
   public function getValue(): mixed {
-    return $this->denormalizeValue($this->fieldItem->getValue());
+    // ⚠️ TRICKY: we cannot use `::isEmpty()`, only `::count()`.
+    // @see https://www.drupal.org/project/experience_builder/issues/3467870#comment-15792177
+    if ($this->fieldItemList->count() === 0) {
+      return match ($this->getCardinality()) {
+        1 => NULL,
+        default => [],
+      };
+    }
+
+    $denormalized_values = array_map(
+      fn (FieldItemInterface $item) => $this->denormalizeValue($item->getValue()),
+      iterator_to_array($this->fieldItemList),
+    );
+    return match ($this->getCardinality()) {
+      1 => reset($denormalized_values),
+      default => $denormalized_values,
+    };
   }
 
   /**
@@ -259,8 +367,8 @@ final class StaticPropSource extends PropSourceBase {
    *  @see \Drupal\Core\Field\FieldInputValueNormalizerTrait::normalizeValue()
    */
   private function denormalizeValue(array $field_item_value): mixed {
-    return match (count($this->fieldItem->getDataDefinition()->getPropertyDefinitions())) {
-      1 => $field_item_value[$this->fieldItem::mainPropertyName()] ?? NULL,
+    return match (count($this->getFieldItemDefinition()->getPropertyDefinitions())) {
+      1 => $field_item_value[$this->getFieldItemDefinition()->getMainPropertyName()] ?? NULL,
       default => $field_item_value,
     };
   }
@@ -273,7 +381,7 @@ final class StaticPropSource extends PropSourceBase {
     if ($field_widget_plugin_id) {
       $configuration['type'] = $field_widget_plugin_id;
     }
-    $field_storage_definition = $this->fieldItem->getFieldDefinition();
+    $field_storage_definition = $this->fieldItemList->getFieldDefinition();
     assert($field_storage_definition instanceof FieldStorageDefinition);
     $widget = $field_widget_plugin_manager->getInstance([
       'field_definition' => $field_storage_definition
@@ -287,34 +395,31 @@ final class StaticPropSource extends PropSourceBase {
   }
 
   public function formTemporaryRemoveThisExclamationExclamationExclamation(WidgetInterface $widget, string $sdc_prop_name, bool $is_required, ?FieldableEntityInterface $host_entity, array &$form, FormStateInterface $form_state): array {
-    // TRICKY: create the field item list without a parent. Otherwise, the Typed
-    // Data manager tries to be clever but in doing so fails: it generates a new
-    // field item object using the full property path (which then includes the
-    // host entity type + bundle), fails to find a field definition, and falls
-    // back to a pseudo-random default.
-    // @see \Drupal\Core\Field\FieldTypePluginManager::createFieldItem()
-    // @see \Drupal\Core\TypedData\TypedDataManagerInterface::getPropertyInstance()
-    $field_definition = $this->fieldItem->getFieldDefinition();
+    $field_definition = $this->fieldItemList->getFieldDefinition();
     assert($field_definition instanceof FieldStorageDefinition);
-    $list_class = $field_definition->getClass();
     $field_definition->setRequired($is_required);
-    $field = (new $list_class($field_definition, $sdc_prop_name, NULL));
-    assert($field instanceof FieldItemListInterface);
-    $field->set(0, $this->fieldItem);
-    // Only *after* the field item list has had its conjured field item set as
-    // the sole value, it becomes safe to specify the host entity. Most widgets
-    // do not need an entity context, but some do:
+
+    // A field widget needs a FieldItemListInterface object. Use cloning to
+    // prevent the field widget plugin from being able to modify this
+    // StaticPropSource's field item list by reference.
+    $field = clone $this->fieldItemList;
+    // Widgets assume there is at least one field item present for editing.
+    $field->appendItem();
+    // Most widgets do not need an entity context, but some do:
     // @see \Drupal\file\Plugin\Field\FieldWidget\FileWidget
     // @see \Drupal\image\Plugin\Field\FieldWidget\ImageWidget
     if ($host_entity) {
       $field->setContext(NULL, EntityAdapter::createFromEntity($host_entity));
     }
     $widget_form = $widget->form($field, $form, $form_state);
-    if ($widget->getPluginId() === 'datetime_default' && !$this->fieldItem->isEmpty()) {
+    if ($widget->getPluginId() === 'datetime_default' && !$this->fieldItemList->isEmpty()) {
       // The datetime widget needs a DrupalDateTime object as the value.
       // @todo Figure out why this is necessary — \DateTimeWidgetBase::createDefaultValue() *is* getting called, but somehow it does not result in the default value being populated unless we do this.
       // @see \Drupal\datetime\Plugin\Field\FieldWidget\DateTimeWidgetBase::createDefaultValue()
-      $widget_form['widget'][0]['value']['#default_value'] = new DrupalDateTime($this->fieldItem->value);
+      for ($i = 0; $i < $this->fieldItemList->count(); $i++) {
+        assert($this->fieldItemList[$i] !== NULL);
+        $widget_form['widget'][$i]['value']['#default_value'] = new DrupalDateTime($this->fieldItemList[$i]->value);
+      }
     }
 
     return $widget_form;
@@ -331,36 +436,35 @@ final class StaticPropSource extends PropSourceBase {
     $massaged_values = $this->getWidget($sdc_prop_name, $sdc_prop_label, $field_widget_plugin_id)
       ->massageFormValues($values, $form, $form_state);
 
-    // 2. Keep only the first value — only single cardinality is supported ATM.
-    $massaged_values = $massaged_values[0] ?? [];
+    // Work on a clone of the stored field item list to avoid side effects.
+    $field_item_list = clone $this->fieldItemList;
 
-    // Work on a clone of the stored field item to avoid side effects.
-    $item = clone $this->fieldItem;
-
-    // 2. Apply the field item's transformation.
+    // 2. Apply the field type's transformation.
     // @see \Drupal\link\Plugin\Field\FieldType\LinkItem::setValue()
-    $item->setValue($massaged_values);
+    $field_item_list->setValue($massaged_values);
     // @see \Drupal\image\Plugin\Field\FieldType\ImageItem::preSave()
     // @see \Drupal\experience_builder\Plugin\Field\FieldTypeOverride\ListIntegerItemOverride::preSave()
-    $item->preSave();
-    $actual_values = $item->getValue();
+    $field_item_list->preSave();
+    $actual_values = $field_item_list->getValue();
 
     // 3. XB only needs to store non-computed values.
-    $stored_values = array_intersect_key($actual_values, $item->getProperties(FALSE));
+    $item_definition = $this->fieldItemList->getItemDefinition();
+    assert($item_definition instanceof FieldItemDataDefinitionInterface);
+    $non_computed_properties = array_filter(
+      $item_definition->getPropertyDefinitions(),
+      fn (DataDefinitionInterface $def): bool => !$def->isComputed(),
+    );
+    $stored_values = array_map(
+      fn (mixed $field_item_value): mixed => array_intersect_key($actual_values, $non_computed_properties),
+      $actual_values
+    );
 
     return $stored_values;
   }
 
-  /**
-   * @param array<string, mixed> $field_item_value
-   *
-   * @return mixed|array<string, mixed>
-   */
-  public function minimizeValue(array $field_item_value): mixed {
-    if (count($this->fieldItem->getDataDefinition()->getPropertyDefinitions()) === 1) {
-      return reset($field_item_value);
-    }
-    return $field_item_value;
+  private function getFieldItemDefinition(): FieldItemDataDefinitionInterface {
+    // @phpstan-ignore-next-line
+    return $this->fieldItemList->getItemDefinition();
   }
 
 }

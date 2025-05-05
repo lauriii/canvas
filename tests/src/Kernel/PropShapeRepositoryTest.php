@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\Tests\experience_builder\Kernel;
 
 use Drupal\Core\Entity\TypedData\EntityDataDefinition;
+use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\Field\WidgetInterface;
 use Drupal\Core\Field\WidgetPluginManager;
 use Drupal\Core\Form\FormState;
@@ -94,6 +95,12 @@ class PropShapeRepositoryTest extends KernelTestBase {
     ksort($unique_prop_shapes);
     $unique_prop_shapes = array_values($unique_prop_shapes);
     $this->assertEquals([
+      new PropShape(['type' => 'array', 'items' => ['type' => 'object', '$ref' => 'json-schema-definitions://experience_builder.module/image'], 'maxItems' => 2]),
+      new PropShape(['type' => 'array', 'items' => ['type' => 'integer']]),
+      new PropShape(['type' => 'array', 'items' => ['type' => 'integer'], 'maxItems' => 2]),
+      new PropShape(['type' => 'array', 'items' => ['type' => 'integer'], 'maxItems' => 20, 'minItems' => 1]),
+      new PropShape(['type' => 'array', 'items' => ['type' => 'integer'], 'minItems' => 1]),
+      new PropShape(['type' => 'array', 'items' => ['type' => 'integer'], 'minItems' => 2]),
       new PropShape(['type' => 'boolean']),
       new PropShape(['type' => 'integer']),
       new PropShape(['type' => 'integer', '$ref' => 'json-schema-definitions://experience_builder.module/column-width']),
@@ -190,13 +197,13 @@ class PropShapeRepositoryTest extends KernelTestBase {
         shape: new PropShape(['type' => 'integer', 'maximum' => 2147483648, 'minimum' => -2147483648]),
         fieldTypeProp: new FieldTypePropExpression('integer', 'value'),
         fieldWidget: 'number',
-        fieldStorageSettings: ['min' => -2147483648, 'max' => 2147483648],
+        fieldInstanceSettings: ['min' => -2147483648, 'max' => 2147483648],
       ),
       'type=integer&minimum=0' => new StorablePropShape(
         shape: new PropShape(['type' => 'integer', 'minimum' => 0]),
         fieldTypeProp: new FieldTypePropExpression('integer', 'value'),
         fieldWidget: 'number',
-        fieldStorageSettings: ['min' => 0, 'max' => ''],
+        fieldInstanceSettings: ['min' => 0, 'max' => ''],
       ),
       'type=number' => new StorablePropShape(
         shape: new PropShape(['type' => 'number']),
@@ -460,6 +467,32 @@ class PropShapeRepositoryTest extends KernelTestBase {
           ],
         ],
       ),
+      'type=array&items[type]=integer' => new StorablePropShape(
+        shape: new PropShape(['type' => 'array', 'items' => ['type' => 'integer']]),
+        fieldTypeProp: new FieldTypePropExpression('integer', 'value'),
+        cardinality: FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED,
+        fieldWidget: 'number',
+      ),
+      'type=array&items[type]=integer&maxItems=2' => new StorablePropShape(
+        shape: new PropShape(['type' => 'array', 'items' => ['type' => 'integer'], 'maxItems' => 2]),
+        fieldTypeProp: new FieldTypePropExpression('integer', 'value'),
+        cardinality: 2,
+        fieldWidget: 'number',
+      ),
+      'type=array&items[$ref]=json-schema-definitions://experience_builder.module/image&items[type]=object&maxItems=2' => new StorablePropShape(
+        shape: new PropShape(['type' => 'array', 'items' => ['type' => 'object', '$ref' => 'json-schema-definitions://experience_builder.module/image'], 'maxItems' => 2]),
+        fieldTypeProp: new FieldTypeObjectPropsExpression('image', [
+          'src' => new ReferenceFieldTypePropExpression(
+            new FieldTypePropExpression('image', 'entity'),
+            new FieldPropExpression(EntityDataDefinition::create('file'), 'uri', NULL, 'url'),
+          ),
+          'alt' => new FieldTypePropExpression('image', 'alt'),
+          'width' => new FieldTypePropExpression('image', 'width'),
+          'height' => new FieldTypePropExpression('image', 'height'),
+        ]),
+        cardinality: 2,
+        fieldWidget: 'image_image',
+      ),
     ];
   }
 
@@ -468,6 +501,9 @@ class PropShapeRepositoryTest extends KernelTestBase {
    */
   public static function getExpectedUnstorablePropShapes(): array {
     return [
+      'type=array&items[type]=integer&maxItems=20&minItems=1' => new PropShape(['type' => 'array', 'items' => ['type' => 'integer'], 'maxItems' => 20, 'minItems' => 1]),
+      'type=array&items[type]=integer&minItems=1' => new PropShape(['type' => 'array', 'items' => ['type' => 'integer'], 'minItems' => 1]),
+      'type=array&items[type]=integer&minItems=2' => new PropShape(['type' => 'array', 'items' => ['type' => 'integer'], 'minItems' => 2]),
       'type=object&$ref=json-schema-definitions://sdc_test_all_props.module/date-range' => new PropShape(['type' => 'object', '$ref' => 'json-schema-definitions://sdc_test_all_props.module/date-range']),
       'type=string&$ref=json-schema-definitions://experience_builder.module/image-uri' => new PropShape(['type' => 'string', '$ref' => 'json-schema-definitions://experience_builder.module/image-uri']),
       'type=object&$ref=json-schema-definitions://experience_builder.module/shoe-icon' => new PropShape(['type' => 'object', '$ref' => 'json-schema-definitions://experience_builder.module/shoe-icon']),

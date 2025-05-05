@@ -403,6 +403,66 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
           'adapter_matches_field_type' => [],
           'adapter_matches_instance' => [],
         ],
+        'optional, type=array&items[$ref]=json-schema-definitions://experience_builder.module/image&items[type]=object&maxItems=2' => [
+          'SDC props' => [
+            '⿲sdc_test_all_props:all-props␟test_object_drupal_image_ARRAY',
+          ],
+          'static prop source' => 'ℹ︎image␟{src↝entity␜␜entity:file␝uri␞␟url,alt↠alt,width↠width,height↠height}',
+          'instances' => [],
+          'adapter_matches_field_type' => [],
+          'adapter_matches_instance' => [],
+        ],
+        'optional, type=array&items[type]=integer' => [
+          'SDC props' => [
+            '⿲sdc_test_all_props:all-props␟test_array_integer',
+          ],
+          'static prop source' => 'ℹ︎integer␟value',
+          'instances' => [],
+          'adapter_matches_field_type' => [],
+          'adapter_matches_instance' => [],
+        ],
+        'optional, type=array&items[type]=integer&maxItems=2' => [
+          'SDC props' => [
+            '⿲sdc_test_all_props:all-props␟test_array_integer_maxItems',
+          ],
+          'static prop source' => 'ℹ︎integer␟value',
+          'instances' => [],
+          'adapter_matches_field_type' => [],
+          'adapter_matches_instance' => [],
+        ],
+        // ⚠️ This (unsupported!) SDC prop appears here because it's in the `all-props` test-only SDC.
+        // @see \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\SingleDirectoryComponent::componentMeetsRequirements()
+        'optional, type=array&items[type]=integer&maxItems=20&minItems=1' => [
+          'SDC props' => [
+            '⿲sdc_test_all_props:all-props␟test_array_integer_minMaxItems',
+          ],
+          'static prop source' => NULL,
+          'instances' => [],
+          'adapter_matches_field_type' => [],
+          'adapter_matches_instance' => [],
+        ],
+        // ⚠️ This (unsupported!) SDC prop appears here because it's in the `all-props` test-only SDC.
+        // @see \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\SingleDirectoryComponent::componentMeetsRequirements()
+        'optional, type=array&items[type]=integer&minItems=1' => [
+          'SDC props' => [
+            '⿲sdc_test_all_props:all-props␟test_array_integer_minItems',
+          ],
+          'static prop source' => NULL,
+          'instances' => [],
+          'adapter_matches_field_type' => [],
+          'adapter_matches_instance' => [],
+        ],
+        // ⚠️ This (unsupported!) SDC prop appears here because it's in the `all-props` test-only SDC.
+        // @see \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\SingleDirectoryComponent::componentMeetsRequirements()
+        'optional, type=array&items[type]=integer&minItems=2' => [
+          'SDC props' => [
+            '⿲sdc_test_all_props:all-props␟test_array_integer_minItemsMultiple',
+          ],
+          'static prop source' => NULL,
+          'instances' => [],
+          'adapter_matches_field_type' => [],
+          'adapter_matches_instance' => [],
+        ],
         'optional, type=boolean' => [
           'SDC props' => [
             '⿲experience_builder:shoe_badge␟pill',

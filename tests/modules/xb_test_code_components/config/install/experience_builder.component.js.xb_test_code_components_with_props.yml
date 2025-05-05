@@ -18,7 +18,7 @@ settings:
       field_instance_settings: {  }
       field_widget: number
       default_value:
-        value: 40
+        - value: 40
       expression: ℹ︎integer␟value
     name:
       field_type: string
@@ -26,5 +26,5 @@ settings:
       field_instance_settings: {  }
       field_widget: string_textfield
       default_value:
-        value: XB
+        - value: XB
       expression: ℹ︎string␟value

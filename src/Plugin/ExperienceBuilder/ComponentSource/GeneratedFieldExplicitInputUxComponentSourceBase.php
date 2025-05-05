@@ -16,6 +16,7 @@ use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\Core\Render\Component\Exception\ComponentNotFoundException;
 use Drupal\Core\Render\Component\Exception\InvalidComponentException;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
+use Drupal\Core\Theme\Component\ComponentMetadata;
 use Drupal\Core\Theme\Component\ComponentValidator;
 use Drupal\experience_builder\ComponentSource\ComponentSourceBase;
 use Drupal\experience_builder\ComponentSource\ComponentSourceWithSlotsInterface;
@@ -152,6 +153,9 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
     }
     if (array_key_exists('field_instance_settings', $this->configuration['prop_field_definitions'][$prop_name])) {
       $sdc_prop_source['sourceTypeSettings']['instance'] = $this->configuration['prop_field_definitions'][$prop_name]['field_instance_settings'];
+    }
+    if (array_key_exists('cardinality', $this->configuration['prop_field_definitions'][$prop_name])) {
+      $sdc_prop_source['sourceTypeSettings']['cardinality'] = $this->configuration['prop_field_definitions'][$prop_name]['cardinality'];
     }
 
     return StaticPropSource::parse($sdc_prop_source);
@@ -630,45 +634,65 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
     foreach (PropShape::getComponentProps($component_plugin) as $cpe_string => $prop_shape) {
       $cpe = ComponentPropExpression::fromString($cpe_string);
 
-      assert(is_array($component_plugin->metadata->schema));
-      // @see https://json-schema.org/understanding-json-schema/reference/object#required
-      // @see https://json-schema.org/learn/getting-started-step-by-step#required
-      $is_required = in_array($cpe->propName, $component_plugin->metadata->schema['required'] ?? [], TRUE);
-
       $storable_prop_shape = $prop_shape->getStorage();
       if (is_null($storable_prop_shape)) {
         continue;
       }
-      $static_prop_source = $storable_prop_shape->toStaticPropSource();
 
-      // @see `type: experience_builder.component.*`
-      assert(array_key_exists('properties', $component_plugin->metadata->schema));
       $props[$cpe->propName] = [
         'field_type' => $storable_prop_shape->fieldTypeProp->fieldType,
         'field_widget' => $storable_prop_shape->fieldWidget,
         'expression' => (string) $storable_prop_shape->fieldTypeProp,
-        // TRICKY: need to transform to the array structure that depends on the
-        // field type. Do not store a default value for field types that
-        // reference entities, because that would require those entities to be
-        // created.
-        // @see `type: field.storage_settings.*`
-        'default_value' => self::exampleValueRequiresEntity($storable_prop_shape) ? [] : $static_prop_source->withValue(
-          $is_required
-            // Example guaranteed to exist if a required prop.
-            ? $component_plugin->metadata->schema['properties'][$cpe->propName]['examples'][0]
-            // Example may exist if an optional prop.
-            : (
-          array_key_exists('examples', $component_plugin->metadata->schema['properties'][$cpe->propName]) && array_key_exists(0, $component_plugin->metadata->schema['properties'][$cpe->propName]['examples'])
-            ? $component_plugin->metadata->schema['properties'][$cpe->propName]['examples'][0]
-            : NULL
-          )
-        )->fieldItem->getValue(),
+        'default_value' => self::computeDefaultFieldValue($storable_prop_shape, $component_plugin->metadata, $cpe->propName),
         'field_storage_settings' => $storable_prop_shape->fieldStorageSettings ?? [],
         'field_instance_settings' => $storable_prop_shape->fieldInstanceSettings ?? [],
       ];
+      if ($storable_prop_shape->cardinality !== NULL) {
+        $props[$cpe->propName]['cardinality'] = $storable_prop_shape->cardinality;
+      }
     }
 
     return $props;
+  }
+
+  private static function computeDefaultFieldValue(StorablePropShape $storable_prop_shape, ComponentMetadata $sdc_metadata, string $sdc_prop_name): mixed {
+    // Special case.
+    // TRICKY: Do not store a default value for field types that reference
+    // entities, because that would require those entities to be created.
+    // @see ::getClientSideInfo()
+    if (self::exampleValueRequiresEntity($storable_prop_shape)) {
+      return [];
+    }
+
+    assert(is_array($sdc_metadata->schema));
+    // @see https://json-schema.org/understanding-json-schema/reference/object#required
+    // @see https://json-schema.org/learn/getting-started-step-by-step#required
+    $is_required = in_array($sdc_prop_name, $sdc_metadata->schema['required'] ?? [], TRUE);
+
+    // @see `type: experience_builder.component.*`
+    assert(array_key_exists('properties', $sdc_metadata->schema));
+
+    // TRICKY: need to transform to the array structure that depends on the
+    // field type.
+    // @see `type: field.storage_settings.*`
+    $static_prop_source = $storable_prop_shape->toStaticPropSource();
+    $example_assigned_to_field_item_list = $static_prop_source->withValue(
+      $is_required
+        // Example guaranteed to exist if a required prop.
+        ? $sdc_metadata->schema['properties'][$sdc_prop_name]['examples'][0]
+        // Example may exist if an optional prop.
+        : (
+          array_key_exists('examples', $sdc_metadata->schema['properties'][$sdc_prop_name]) && array_key_exists(0, $sdc_metadata->schema['properties'][$sdc_prop_name]['examples'])
+            ? $sdc_metadata->schema['properties'][$sdc_prop_name]['examples'][0]
+            : NULL
+        )
+    )->fieldItemList;
+
+    return !$example_assigned_to_field_item_list->isEmpty()
+      // The actual value in the field if there is one.
+      ? $example_assigned_to_field_item_list->getValue()
+      // If empty: do not store anything in the Component config entity.
+      : NULL;
   }
 
   /**

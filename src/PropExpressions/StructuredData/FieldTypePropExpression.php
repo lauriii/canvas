@@ -6,6 +6,7 @@ namespace Drupal\experience_builder\PropExpressions\StructuredData;
 
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Field\FieldItemInterface;
+use Drupal\Core\Field\FieldItemListInterface;
 
 /**
  * For pointing to a prop in a field type (not considering any delta).
@@ -28,11 +29,11 @@ final class FieldTypePropExpression implements StructuredDataPropExpressionInter
     return new FieldTypePropExpression(...$parts);
   }
 
-  public function isSupported(EntityInterface|FieldItemInterface $field_item): bool {
-    assert($field_item instanceof FieldItemInterface);
-    $actual_field_type = $field_item->getFieldDefinition()->getType();
+  public function isSupported(EntityInterface|FieldItemInterface|FieldItemListInterface $field): bool {
+    assert($field instanceof FieldItemInterface || $field instanceof FieldItemListInterface);
+    $actual_field_type = $field->getFieldDefinition()->getType();
     if ($actual_field_type !== $this->fieldType) {
-      throw new \DomainException(sprintf("`%s` is an expression for field type `%s`, but the provided field item is of type `%s`.", (string) $this, $this->fieldType, $actual_field_type));
+      throw new \DomainException(sprintf("`%s` is an expression for field type `%s`, but the provided field item (list) is of type `%s`.", (string) $this, $this->fieldType, $actual_field_type));
     }
     return TRUE;
   }

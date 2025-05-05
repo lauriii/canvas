@@ -9,6 +9,7 @@ use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\TypedData\EntityDataDefinition;
 use Drupal\Core\Entity\TypedData\EntityDataDefinitionInterface;
 use Drupal\Core\Field\FieldItemInterface;
+use Drupal\Core\Field\FieldItemListInterface;
 
 final class FieldObjectPropsExpression implements StructuredDataPropExpressionInterface {
 
@@ -121,7 +122,7 @@ final class FieldObjectPropsExpression implements StructuredDataPropExpressionIn
     );
   }
 
-  public function isSupported(EntityInterface|FieldItemInterface $entity): bool {
+  public function isSupported(EntityInterface|FieldItemInterface|FieldItemListInterface $entity): bool {
     assert($entity instanceof EntityInterface);
     $expected_entity_type_id = $this->entityType->getEntityTypeId();
     $expected_bundle = $this->entityType->getBundles()[0] ?? $expected_entity_type_id;
