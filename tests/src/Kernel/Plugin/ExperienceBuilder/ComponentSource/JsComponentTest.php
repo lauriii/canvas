@@ -614,7 +614,7 @@ final class JsComponentTest extends ComponentSourceTestBase {
       'js.xb_test_code_components_vanilla_image' => [
         'expected_output_selectors' => [
           'astro-island[opts*="Vanilla Image"][props*="placehold.co"]',
-          'script[blocking="render"][src*="experience_builder/ui/lib/astro-hydration/dist/client.js"]',
+          'script[blocking="render"][src*="/ui/lib/astro-hydration/dist/client.js"]',
         ],
         'source' => 'Code component',
         'metadata' => ['slots' => []],
@@ -716,6 +716,39 @@ final class JsComponentTest extends ComponentSourceTestBase {
         'transforms' => [],
       ],
     ];
+  }
+
+  /**
+   * @param array<ComponentConfigEntityId> $component_ids
+   *   The component IDs to test.
+   *
+   * @covers ::getClientSideInfo()
+   * @depends testDiscovery
+   */
+  public function testGetClientSideInfo(array $component_ids): void {
+    parent::testGetClientSideInfo($component_ids);
+
+    // Grab one of the test components.
+    $component = Component::load(JsComponent::componentIdFromJavascriptComponentId("xb_test_code_components_with_props"));
+    assert($component instanceof ComponentInterface);
+    $source = $component->getComponentSource();
+    assert($source instanceof JsComponent);
+    $js_component = $source->getJavaScriptComponent();
+    // Create an auto-save entry for this test code component.
+    $client_side_data = $js_component->normalizeForClientSide()->values;
+    $client_side_data['name'] = 'With props - Draft';
+    $autoSave = $this->container->get(AutoSaveManager::class);
+    $autoSave->save(
+      $js_component,
+      // Add updated values the auto-save entry.
+      $client_side_data +
+      [
+        'imported_js_components' => [],
+      ]
+    );
+
+    $client_side_info_when_auto_save_exists = $source->getClientSideInfo($component);
+    $this->assertRenderArrayMatchesSelectors($client_side_info_when_auto_save_exists['build'], ['astro-island[opts*="With props - Draft"][props*="name"][props*="XB"][props*="age"][props*="40"]']);
   }
 
 }

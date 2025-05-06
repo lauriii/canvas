@@ -303,7 +303,7 @@ final class BlockComponent extends ComponentSourceBase implements ContainerFacto
       return ['build' => []];
     }
 
-    return ['build' => $this->renderComponent([], $component->uuid())];
+    return ['build' => $this->renderComponent([], $component->uuid(), TRUE)];
   }
 
   /**
