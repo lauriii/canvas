@@ -207,10 +207,9 @@ class ComponentTreeItem extends FieldItemBase implements RenderableInterface {
     foreach (['config', 'content', 'module', 'theme', 'plugin'] as $type) {
       $deps['columns']["deps_$type"] = [
         'description' => "The calculated $type dependencies",
-        'type' => 'varchar',
-        'length' => 255,
+        'type' => 'text',
+        'size' => 'big',
         'not null' => TRUE,
-        'default' => '',
       ];
     }
 
