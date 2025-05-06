@@ -9,12 +9,14 @@ use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\node\Entity\Node;
+use Drupal\node\Entity\NodeType;
 use Drupal\Tests\experience_builder\Kernel\Traits\CiModulePathTrait;
 use Drupal\Tests\experience_builder\Traits\SingleDirectoryComponentTreeTestTrait;
 use Drupal\Tests\experience_builder\Traits\ConstraintViolationsTestTrait;
 use Drupal\Tests\experience_builder\Traits\ContribStrictConfigSchemaTestTrait;
 use Drupal\Tests\experience_builder\Traits\GenerateComponentConfigTrait;
 use Drupal\Tests\experience_builder\Traits\TestDataUtilitiesTrait;
+use Drupal\Tests\image\Kernel\ImageFieldCreationTrait;
 
 /**
  * @coversDefaultClass \Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem
@@ -29,6 +31,7 @@ class ComponentTreeItemTest extends KernelTestBase {
   use GenerateComponentConfigTrait;
   use CiModulePathTrait;
   use TestDataUtilitiesTrait;
+  use ImageFieldCreationTrait;
 
   /**
    * {@inheritdoc}
@@ -38,6 +41,10 @@ class ComponentTreeItemTest extends KernelTestBase {
     'sdc',
     'sdc_test',
     'xb_test_sdc',
+    // Dependencies must actually exist.
+    'field',
+    'user',
+    'node',
     // Modules providing field types + widgets for the SDC Components'
     // `prop_field_definitions`.
     'file',
@@ -53,17 +60,41 @@ class ComponentTreeItemTest extends KernelTestBase {
    */
   protected function setUp(): void {
     parent::setUp();
+
     $this->generateComponentConfig();
+    $this->installEntitySchema('user');
+    $this->installEntitySchema('node_type');
+    $this->installEntitySchema('node');
   }
 
   public function testCalculateDependencies(): void {
+    $type = NodeType::create([
+      'type' => 'article',
+      'name' => 'Article',
+    ]);
+    $type->save();
+    $this->createImageField('field_hero', 'node', 'article', storage_settings: [
+      // @todo Remove once https://drupal.org/i/3513317 is fixed.
+      // We cannot rely on the override because experience_builder module is not
+      // yet installed so need to manually specify it here for testing sake.
+      // @see \Drupal\experience_builder\Plugin\Field\FieldTypeOverride\ImageItemOverride::defaultStorageSettings
+      'display_default' => TRUE,
+    ]);
+
     $this->assertSame([], ComponentTreeItem::calculateDependencies(BaseFieldDefinition::create('component_tree')));
     $this->assertSame(
       [
         'config' => [
           'experience_builder.component.sdc.experience_builder.image',
           'experience_builder.component.sdc.sdc_test.my-cta',
+          'field.field.node.article.field_hero',
+          'node.type.article',
         ],
+        'content' => [],
+        'module' => [
+          'node',
+        ],
+        'theme' => [],
       ],
       ComponentTreeItem::calculateDependencies(BaseFieldDefinition::create('component_tree')->setDefaultValue(
         [

@@ -1,3 +1,10 @@
+entity.component.audit:
+  path: '/admin/appearance/component/{component}/audit'
+  defaults:
+    _controller: 'Drupal\experience_builder\Controller\ComponentAuditController::audit'
+    _title_callback: 'Drupal\experience_builder\Controller\ComponentAuditController::auditTitle'
+  requirements:
+    _entity_access: 'component.audit'
 entity.component.delete_form:
   path: '/admin/appearance/component/delete/{component}'
   defaults:

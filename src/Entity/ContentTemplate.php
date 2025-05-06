@@ -187,13 +187,7 @@ final class ContentTemplate extends ConfigEntityBase implements ComponentTreeEnt
   public function calculateDependencies(): static {
     parent::calculateDependencies();
 
-    // TRICKY: Ideally, dependencies would also be calculated for the `inputs`
-    // property. But it can only contain static prop sources at the moment, and
-    // those are tracked by the Component config entities that appear in the
-    // tree.
-    // @todo Ensure that we also add dependencies on field config entities that
-    //   are used by dynamic prop sources in https://www.drupal.org/i/3518336.
-    $this->addDependencies($this->getComponentTree()->get('tree')->getDependencies());
+    $this->addDependencies($this->getComponentTree()->calculateFieldItemValueDependencies(FALSE));
 
     // Ensure we depend on the associated view mode.
     $view_mode = $this->getViewMode();

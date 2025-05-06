@@ -13,7 +13,7 @@ use Drupal\Core\Entity\FieldableEntityInterface;
  * @phpstan-type AdaptedPropSourceArray array{sourceType: string, adapterInputs: array<string, mixed>}
  * @phpstan-type DefaultRelativeUrlPropSourceArray array{sourceType: string, value: mixed, jsonSchema: array, componentId: string}
  */
-abstract class PropSourceBase implements \Stringable {
+abstract class PropSourceBase implements \Stringable, ContentAwareDependentInterface {
 
   const SOURCE_TYPE_PREFIX_SEPARATOR = ':';
 

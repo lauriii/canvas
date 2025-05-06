@@ -56,6 +56,7 @@ use Drupal\experience_builder\Form\ComponentListBuilder;
     'collection' => '/admin/appearance/component',
     'enable' => '/admin/appearance/component/{id}/enable',
     'disable' => '/admin/appearance/component/{id}/disable',
+    'audit' => '/admin/appearance/component/{id}/audit',
   ],
   config_export: [
     'label',

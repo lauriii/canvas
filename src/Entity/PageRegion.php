@@ -167,13 +167,7 @@ final class PageRegion extends ConfigEntityBase implements ComponentTreeEntityIn
   public function calculateDependencies() {
     parent::calculateDependencies();
     $this->addDependency('theme', $this->theme);
-    $this->addDependencies($this->getComponentTree()->get('tree')->getDependencies());
-    // TRICKY: in theory, dependencies must also be calculated for the `inputs`
-    // field prop. But, currently it can only contain StaticPropSources, and the
-    // the dependencies for those are tracked in the Component config entity.
-    // @see \Drupal\experience_builder\Entity\Component::calculateDependencies()
-    // @todo Revisit this when allowing more complex values in `inputs`, that are not dictated by/captured in the Component config entity.
-    // @todo Revisit this in https://www.drupal.org/project/experience_builder/issues/3484666, where the above MIGHT change.
+    $this->addDependencies($this->getComponentTree()->calculateFieldItemValueDependencies(FALSE));
     return $this;
   }
 

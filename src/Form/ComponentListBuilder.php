@@ -6,6 +6,7 @@ namespace Drupal\experience_builder\Form;
 
 use Drupal\Core\Config\Entity\ConfigEntityListBuilder;
 use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Url;
 use Drupal\experience_builder\Entity\Component;
 
 /**
@@ -37,6 +38,16 @@ final class ComponentListBuilder extends ConfigEntityListBuilder {
     $row['component_label'] = $source->getComponentDescription();
 
     return $row + parent::buildRow($entity);
+  }
+
+  public function getOperations(EntityInterface $entity): array {
+    return [
+      'audit' => [
+        'title' => $this->t('Audit'),
+        'weight' => 10,
+        'url' => Url::fromRoute('entity.component.audit', ['component' => $entity->id()]),
+      ],
+    ] + parent::getOperations($entity);
   }
 
 }

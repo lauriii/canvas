@@ -8,8 +8,9 @@ use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Field\FieldItemInterface;
 use Drupal\Core\Field\FieldItemListInterface;
 use Drupal\experience_builder\PropExpressions\PropExpressionInterface;
+use Drupal\experience_builder\PropSource\ContentAwareDependentInterface;
 
-interface StructuredDataPropExpressionInterface extends PropExpressionInterface {
+interface StructuredDataPropExpressionInterface extends PropExpressionInterface, ContentAwareDependentInterface {
 
   // Structured data contains information, hence a prefix that conveys that..
   const PREFIX = 'ℹ︎';

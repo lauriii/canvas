@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\experience_builder\PropExpressions\StructuredData;
 
 use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Field\FieldItemInterface;
 use Drupal\Core\Field\FieldItemListInterface;
 
@@ -22,6 +23,33 @@ final class ReferenceFieldPropExpression implements StructuredDataPropExpression
       . self::withoutPrefix((string) $this->referencer)
       . self::PREFIX_ENTITY_LEVEL
       . self::withoutPrefix((string) $this->referenced);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function calculateDependencies(FieldableEntityInterface|FieldItemListInterface|null $host_entity = NULL): array {
+    assert($host_entity === NULL || $host_entity instanceof FieldableEntityInterface);
+    $dependencies = $this->referencer->calculateDependencies();
+    if ($host_entity !== NULL) {
+      $referenced_content_entities = Evaluator::evaluate($host_entity, $this->referencer);
+      $referenced_content_entities = match (gettype($referenced_content_entities)) {
+        // Reference field containing nothing.
+        'null' => [],
+        // Reference field containing multiple references.
+        'array' => $referenced_content_entities,
+        // Reference field containing a single reference.
+        default => [$referenced_content_entities],
+      };
+      $dependencies['content'] = [
+        ...$dependencies['content'] ?? [],
+        ...array_map(
+          fn (FieldableEntityInterface $entity) => $entity->getConfigDependencyName(),
+          $referenced_content_entities,
+        ),
+      ];
+    }
+    return $dependencies;
   }
 
   public function withDelta(int $delta): static {

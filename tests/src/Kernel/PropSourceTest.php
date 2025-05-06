@@ -13,9 +13,11 @@ use Drupal\datetime\Plugin\Field\FieldType\DateTimeItem;
 use Drupal\datetime_range\Plugin\Field\FieldWidget\DateRangeDatelistWidget;
 use Drupal\datetime_range\Plugin\Field\FieldWidget\DateRangeDefaultWidget;
 use Drupal\experience_builder\Plugin\ComponentPluginManager;
+use Drupal\experience_builder\PropExpressions\StructuredData\FieldObjectPropsExpression;
 use Drupal\experience_builder\PropExpressions\StructuredData\FieldPropExpression;
 use Drupal\experience_builder\PropExpressions\StructuredData\FieldTypeObjectPropsExpression;
 use Drupal\experience_builder\PropExpressions\StructuredData\FieldTypePropExpression;
+use Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldPropExpression;
 use Drupal\experience_builder\PropExpressions\StructuredData\StructuredDataPropExpression;
 use Drupal\experience_builder\PropSource\AdaptedPropSource;
 use Drupal\experience_builder\PropSource\DefaultRelativeUrlPropSource;
@@ -23,7 +25,9 @@ use Drupal\experience_builder\PropSource\DynamicPropSource;
 use Drupal\experience_builder\PropSource\PropSource;
 use Drupal\experience_builder\PropSource\StaticPropSource;
 use Drupal\KernelTests\KernelTestBase;
+use Drupal\node\Entity\NodeType;
 use Drupal\Tests\experience_builder\Traits\ContribStrictConfigSchemaTestTrait;
+use Drupal\Tests\node\Traits\NodeCreationTrait;
 use Drupal\user\Entity\Role;
 use Drupal\user\Entity\User;
 
@@ -34,12 +38,14 @@ use Drupal\user\Entity\User;
 class PropSourceTest extends KernelTestBase {
 
   use ContribStrictConfigSchemaTestTrait;
+  use NodeCreationTrait;
 
   /**
    * {@inheritdoc}
    */
   protected static $modules = [
     'experience_builder',
+    'node',
     'user',
     'datetime',
     'datetime_range',
@@ -87,6 +93,11 @@ class PropSourceTest extends KernelTestBase {
     // falls back to the default widget if
     // @see \Drupal\Core\Field\WidgetPluginManager::getInstance()
     $this->assertInstanceOf(StringTextfieldWidget::class, $simple_example->getWidget('irrelevant-for-test', $this->randomString(), 'string_textarea'));
+    self::assertSame([
+      'plugin' => [
+        'field_type:string',
+      ],
+    ], $simple_example->calculateDependencies());
 
     // A complex example.
     $complex_example = StaticPropSource::parse([
@@ -137,6 +148,16 @@ class PropSourceTest extends KernelTestBase {
     $this->assertInstanceOf(DateRangeDefaultWidget::class, $complex_example->getWidget('irrelevant-for-test', $this->randomString(), NULL));
     $this->assertInstanceOf(DateRangeDefaultWidget::class, $complex_example->getWidget('irrelevant-for-test', $this->randomString(), 'daterange_default'));
     $this->assertInstanceOf(DateRangeDatelistWidget::class, $complex_example->getWidget('irrelevant-for-test', $this->randomString(), 'daterange_datelist'));
+    self::assertSame([
+      'module' => [
+        'datetime_range',
+        'datetime_range',
+      ],
+      'plugin' => [
+        'field_type:daterange',
+        'field_type:daterange',
+      ],
+    ], $complex_example->calculateDependencies());
 
     // A simple (expression targeting a simple prop) array example (with
     // cardinality specified, rather than the default of `cardinality=1`).
@@ -269,7 +290,11 @@ class PropSourceTest extends KernelTestBase {
    * @coversClass \Drupal\experience_builder\PropSource\DynamicPropSource
    */
   public function testDynamicPropSource(): void {
-    // A simple example.
+    $this->installEntitySchema('user');
+    $user = User::create(['name' => 'John Doe']);
+    $user->save();
+
+    // A simple example: FieldPropExpression.
     $simple_example = DynamicPropSource::parse([
       'sourceType' => 'dynamic',
       'expression' => 'ℹ︎␜entity:user␝name␞␟value',
@@ -285,7 +310,96 @@ class PropSourceTest extends KernelTestBase {
     $this->assertInstanceOf(FieldPropExpression::class, StructuredDataPropExpression::fromString($simple_example->asChoice()));
     // Test the functionality of a DynamicPropSource:
     // - evaluate it to populate an SDC prop
-    $this->assertSame('John Doe', $simple_example->evaluate(User::create(['name' => 'John Doe'])));
+    $this->assertSame('John Doe', $simple_example->evaluate($user));
+    // - calculate its dependencies
+    $this->assertSame([
+      'module' => [
+        'user',
+      ],
+      'plugin' => [
+        'entity_type:user',
+      ],
+    ], $simple_example->calculateDependencies($user));
+
+    // A reference example: ReferenceFieldPropExpression.
+    $this->installEntitySchema('node');
+    NodeType::create(['type' => 'page', 'name' => 'page'])->save();
+    $node = $this->createNode(['uid' => $user->id()]);
+    $object_example = DynamicPropSource::parse([
+      'sourceType' => 'dynamic',
+      'expression' => 'ℹ︎␜entity:node:page␝uid␞␟entity␜␜entity:user␝name␞␟value',
+    ]);
+    // First, get the string representation and parse it back, to prove
+    // serialization and deserialization works.
+    $json_representation = (string) $object_example;
+    $this->assertSame('{"sourceType":"dynamic","expression":"ℹ︎␜entity:node:page␝uid␞␟entity␜␜entity:user␝name␞␟value"}', $json_representation);
+    $simple_example = PropSource::parse(json_decode($json_representation, TRUE));
+    $this->assertInstanceOf(DynamicPropSource::class, $simple_example);
+    // The contained information read back out.
+    $this->assertSame('dynamic', $simple_example->getSourceType());
+    $this->assertInstanceOf(ReferenceFieldPropExpression::class, StructuredDataPropExpression::fromString($object_example->asChoice()));
+    // Test the functionality of a DynamicPropSource:
+    // - evaluate it to populate an SDC prop
+    try {
+      $simple_example->evaluate($user);
+      self::fail('Should throw an exception.');
+    }
+    catch (\DomainException $e) {
+      self::assertSame('`ℹ︎␜entity:node:page␝uid␞␟entity␜␜entity:user␝name␞␟value` is an expression for entity type `node`, but the provided entity is of type `user`.', $e->getMessage());
+    }
+    $this->assertSame('John Doe', $simple_example->evaluate($node));
+    // - calculate its dependencies
+    $this->assertSame([
+      'module' => ['node'],
+      'plugin' => ['entity_type:node'],
+      'config' => ['node.type.page'],
+      'content' => ['user:user:' . $user->uuid()],
+    ], $simple_example->calculateDependencies($node));
+
+    // A complex object example: FieldObjectPropsExpression containing a
+    // ReferenceFieldPropExpression.
+    $object_example = DynamicPropSource::parse([
+      'sourceType' => 'dynamic',
+      'expression' => 'ℹ︎␜entity:node:page␝uid␞␟{human_id↝entity␜␜entity:user␝name␞␟value,machine_id↠target_id}',
+    ]);
+    // First, get the string representation and parse it back, to prove
+    // serialization and deserialization works.
+    $json_representation = (string) $object_example;
+    $this->assertSame('{"sourceType":"dynamic","expression":"ℹ︎␜entity:node:page␝uid␞␟{human_id↝entity␜␜entity:user␝name␞␟value,machine_id↠target_id}"}', $json_representation);
+    $simple_example = PropSource::parse(json_decode($json_representation, TRUE));
+    $this->assertInstanceOf(DynamicPropSource::class, $simple_example);
+    // The contained information read back out.
+    $this->assertSame('dynamic', $simple_example->getSourceType());
+    $this->assertInstanceOf(FieldObjectPropsExpression::class, StructuredDataPropExpression::fromString($object_example->asChoice()));
+    // Test the functionality of a DynamicPropSource:
+    // - evaluate it to populate an SDC prop
+    try {
+      $simple_example->evaluate($user);
+      self::fail('Should throw an exception.');
+    }
+    catch (\DomainException $e) {
+      self::assertSame('`ℹ︎␜entity:node:page␝uid␞␟{human_id↝entity␜␜entity:user␝name␞␟value,machine_id↠target_id}` is an expression for entity type `node`, but the provided entity is of type `user`.', $e->getMessage());
+    }
+    $this->assertSame([
+      'human_id' => 'John Doe',
+      'machine_id' => 1,
+    ], $simple_example->evaluate($node));
+    // - calculate its dependencies
+    $this->assertSame([
+      'module' => [
+        'node',
+        'node',
+      ],
+      'plugin' => [
+        'entity_type:node',
+        'entity_type:node',
+      ],
+      'config' => [
+        'node.type.page',
+        'node.type.page',
+      ],
+      'content' => ['user:user:' . $user->uuid()],
+    ], $simple_example->calculateDependencies($node));
   }
 
   /**
@@ -361,6 +475,18 @@ class PropSourceTest extends KernelTestBase {
     // Test the functionality of a DynamicPropSource:
     // - evaluate it to populate an SDC prop
     $this->assertSame(1663, $simple_static_example->evaluate(User::create(['name' => 'John Doe', 'created' => 694695600, 'access' => 1720602713])));
+    self::assertSame([
+      'module' => [
+        'experience_builder',
+        'datetime_range',
+        'datetime_range',
+      ],
+      'plugin' => [
+        'adapter:day_count',
+        'field_type:daterange',
+        'field_type:daterange',
+      ],
+    ], $simple_static_example->calculateDependencies());
 
     // A simple dynamic example.
     $simple_dynamic_example = AdaptedPropSource::parse([
@@ -396,7 +522,24 @@ class PropSourceTest extends KernelTestBase {
     $this->assertSame('adapter:day_count', $simple_dynamic_example->getSourceType());
     // Test the functionality of a DynamicPropSource:
     // - evaluate it to populate an SDC prop
-    $this->assertSame(11874, $simple_dynamic_example->evaluate(User::create(['name' => 'John Doe', 'created' => 694695600, 'access' => 1720602713])));
+    $user = User::create(['name' => 'John Doe', 'created' => 694695600, 'access' => 1720602713]);
+    $this->assertSame(11874, $simple_dynamic_example->evaluate($user));
+    self::assertSame([
+      'module' => [
+        'experience_builder',
+        'experience_builder',
+        'user',
+        'experience_builder',
+        'user',
+      ],
+      'plugin' => [
+        'adapter:day_count',
+        'adapter:unix_to_date',
+        'entity_type:user',
+        'adapter:unix_to_date',
+        'entity_type:user',
+      ],
+    ], $simple_dynamic_example->calculateDependencies($user));
 
     // A complex example.
     $complex_example = AdaptedPropSource::parse([
@@ -434,6 +577,20 @@ class PropSourceTest extends KernelTestBase {
     // Test the functionality of a DynamicPropSource:
     // - evaluate it to populate an SDC prop
     $this->assertSame(1546, $complex_example->evaluate(User::create(['name' => 'John Doe', 'created' => 694695600, 'access' => 1720602713])));
+    self::assertSame([
+      'module' => [
+        'experience_builder',
+        'datetime',
+        'experience_builder',
+        'user',
+      ],
+      'plugin' => [
+        'adapter:day_count',
+        'field_type:datetime',
+        'adapter:unix_to_date',
+        'entity_type:user',
+      ],
+    ], $complex_example->calculateDependencies($user));
   }
 
   /**
@@ -514,6 +671,9 @@ class PropSourceTest extends KernelTestBase {
       'width' => 601,
       'height' => 402,
     ], $source->evaluate(NULL));
+    self::assertSame([
+      'config' => ['experience_builder.component.sdc.xb_test_sdc.image-optional-with-example-and-additional-prop'],
+    ], $source->calculateDependencies());
     // This is never a choice presented to the end user; this is a purely internal prop source.
     $this->expectException(\LogicException::class);
     $source->asChoice();

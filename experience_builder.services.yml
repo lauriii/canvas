@@ -2,6 +2,8 @@ services:
   _defaults:
     autoconfigure: true
     autowire: true
+  Drupal\experience_builder\Audit\ComponentAudit:
+    public: true
   Drupal\experience_builder\ShapeMatcher\SdcPropToFieldTypePropMatcher:
     public: true
     arguments:
@@ -116,6 +118,7 @@ services:
   Drupal\experience_builder\Controller\ApiContentUpdateForDemoController: {}
   Drupal\experience_builder\Controller\ApiContentControllers: {}
   Drupal\experience_builder\Controller\ComponentStatusController: {}
+  Drupal\experience_builder\Controller\ComponentAuditController: {}
   Drupal\experience_builder\Controller\ExperienceBuilderController: {}
   Drupal\experience_builder\Controller\ApiAutoSaveController: {}
 

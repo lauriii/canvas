@@ -116,6 +116,9 @@ class PatternValidationTest extends BetterConfigEntityValidationTestBase {
           'experience_builder.component.sdc.experience_builder.heading',
           'experience_builder.component.sdc.xb_test_sdc.props-no-slots',
         ],
+        'module' => [
+          'options',
+        ],
       ],
       $this->entity->getDependencies()
     );
@@ -126,8 +129,8 @@ class PatternValidationTest extends BetterConfigEntityValidationTestBase {
         'experience_builder.component.sdc.xb_test_sdc.props-no-slots',
       ],
       'module' => [
-        'experience_builder',
         'options',
+        'experience_builder',
         'xb_test_sdc',
       ],
     ], $this->getAllDependencies($this->entity));

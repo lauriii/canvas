@@ -5,8 +5,11 @@ declare(strict_types=1);
 namespace Drupal\Tests\experience_builder\Kernel\Config;
 
 use Drupal\Core\Entity\Entity\EntityViewMode;
+use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\experience_builder\Entity\ContentTemplate;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
+use Drupal\field\Entity\FieldConfig;
+use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\Tests\experience_builder\Traits\BetterConfigDependencyManagerTrait;
 use Drupal\Tests\experience_builder\Traits\CreateTestJsComponentTrait;
 use Drupal\Tests\experience_builder\Traits\GenerateComponentConfigTrait;
@@ -77,6 +80,18 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
 
     $this->installConfig('node');
     $this->createContentType(['type' => 'alpha']);
+    FieldStorageConfig::create([
+      'field_name' => 'field_test',
+      'type' => 'text',
+      'entity_type' => 'node',
+      'cardinality' => FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED,
+    ])->save();
+    FieldConfig::create([
+      'field_name' => 'field_test',
+      'entity_type' => 'node',
+      'bundle' => 'alpha',
+      'label' => 'Test field',
+    ])->save();
     $this->generateComponentConfig();
     $this->createMyCtaComponentFromSdc();
 
@@ -148,8 +163,6 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
     $this->assertSame('node.alpha.full', $this->entity->id());
 
     // Also validate config dependencies are computed correctly.
-    // @todo Ensure that field_config entities related to dynamic prop sources
-    //   appear in the config dependencies in https://www.drupal.org/i/3518336.
     $this->assertSame(
       [
         'config' => [
@@ -159,6 +172,11 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
           'experience_builder.component.sdc.sdc_test.my-cta',
           'experience_builder.component.sdc.xb_test_sdc.props-no-slots',
           'experience_builder.component.sdc.xb_test_sdc.props-slots',
+          'field.field.node.alpha.field_test',
+          'node.type.alpha',
+        ],
+        'module' => [
+          'node',
         ],
       ],
       $this->entity->getDependencies()
@@ -171,16 +189,21 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
         'experience_builder.component.sdc.sdc_test.my-cta',
         'experience_builder.component.sdc.xb_test_sdc.props-no-slots',
         'experience_builder.component.sdc.xb_test_sdc.props-slots',
+        'field.field.node.alpha.field_test',
+        'node.type.alpha',
         'experience_builder.js_component.my-cta',
+        'field.storage.node.field_test',
       ],
       'module' => [
-        'experience_builder',
         'node',
+        'experience_builder',
         'core',
         'link',
         'options',
         'sdc_test',
         'xb_test_sdc',
+        'text',
+        'field',
       ],
     ], $this->getAllDependencies($this->entity));
   }
@@ -188,8 +211,8 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
   /**
    * @dataProvider providerInvalidComponentTree
    */
-  public function testInvalidComponentTree(array $component_trees, array $expected_messages): void {
-    $this->entity->set('component_tree', $component_trees);
+  public function testInvalidComponentTree(array $component_tree, array $expected_messages): void {
+    $this->entity->set('component_tree', $component_tree);
     $this->assertValidationErrors($expected_messages);
   }
 

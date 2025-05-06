@@ -4,13 +4,17 @@ declare(strict_types=1);
 
 namespace Drupal\experience_builder\Plugin\DataType;
 
+use Drupal\Component\Plugin\DependentPluginInterface;
 use Drupal\Component\Serialization\Json;
+use Drupal\Component\Utility\NestedArray;
+use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\TypedData\Attribute\DataType;
 use Drupal\Core\TypedData\TypedData;
 use Drupal\experience_builder\ComponentSource\ComponentSourceInterface;
 use Drupal\experience_builder\MissingComponentInputsException;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
+use Drupal\experience_builder\PropSource\PropSource;
 
 /**
  * @todo Implement ListInterface because it conceptually fits, but … what does it get us?
@@ -20,7 +24,7 @@ use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
   label: new TranslatableMarkup("Component inputs"),
   description: new TranslatableMarkup("The input values for the components in a component tree: without structure"),
 )]
-class ComponentInputs extends TypedData implements \Stringable {
+class ComponentInputs extends TypedData implements \Stringable, DependentPluginInterface {
 
   /**
    * The data value.
@@ -37,6 +41,17 @@ class ComponentInputs extends TypedData implements \Stringable {
    * @var array<string, array<string, array{'sourceType': string, 'value': array<mixed>, 'expression': string}>>
    */
   protected array $inputs = [];
+
+  /**
+   * {@inheritdoc}
+   */
+  public function calculateDependencies(?FieldableEntityInterface $host_entity = NULL) : array {
+    $dependencies = [];
+    foreach ($this->getPropSources() as $prop_source) {
+      $dependencies = NestedArray::mergeDeep($dependencies, $prop_source->calculateDependencies($host_entity));
+    }
+    return $dependencies;
+  }
 
   /**
    * {@inheritdoc}
@@ -101,18 +116,33 @@ class ComponentInputs extends TypedData implements \Stringable {
    */
   public function getPropSourceTypePrefixList(): array {
     $source_type_prefixes = [];
+    foreach ($this->getPropSources() as $propSource) {
+      $source_type_prefixes[] = explode(':', $propSource->getSourceType())[0];
+    }
+    return array_unique($source_type_prefixes);
+  }
+
+  /**
+   * @return \Generator<\Drupal\experience_builder\PropSource\PropSourceBase>
+   */
+  private function getPropSources(): \Generator {
     foreach ($this->inputs as $raw_prop_sources) {
       foreach ($raw_prop_sources as $raw_prop_source) {
         if (!\is_array($raw_prop_source) || !\array_key_exists('sourceType', $raw_prop_source)) {
-          // This isn't an SDC component.
-          // @todo Move this logic into SDC component source.
+          // This isn't a component source using \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase.
+          // @todo Move this logic into \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase.
           // @see https://www.drupal.org/project/experience_builder/issues/3467954
           continue;
         }
-        $source_type_prefixes[] = explode(':', $raw_prop_source['sourceType'])[0];
+        try {
+          yield PropSource::parse($raw_prop_source);
+        }
+        catch (\LogicException) {
+          // @see https://en.wikipedia.org/wiki/Robustness_principle
+          continue;
+        }
       }
     }
-    return array_unique($source_type_prefixes);
   }
 
   /**

@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace Drupal\experience_builder\PropExpressions\StructuredData;
 
 use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Field\FieldItemInterface;
+use Drupal\Core\Field\FieldTypePluginManagerInterface;
 use Drupal\Core\Field\FieldItemListInterface;
 
 /**
@@ -27,6 +29,27 @@ final class FieldTypePropExpression implements StructuredDataPropExpressionInter
   public static function fromString(string $representation): static {
     $parts = explode('␟', mb_substr($representation, 2));
     return new FieldTypePropExpression(...$parts);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function calculateDependencies(FieldableEntityInterface|FieldItemListInterface|null $field_item_list = NULL): array {
+    assert($field_item_list === NULL || $field_item_list instanceof FieldItemListInterface);
+    // @phpstan-ignore-next-line
+    $field_type_manager = \Drupal::service(FieldTypePluginManagerInterface::class);
+    assert($field_type_manager instanceof FieldTypePluginManagerInterface);
+    $provider = $field_type_manager->getDefinition($this->fieldType)['provider'] ?? NULL;
+
+    $dependencies = [];
+    // Core-provided field types need no modules to be installed.
+    if (!in_array($provider, [NULL, 'core'], TRUE)) {
+      $dependencies['module'][] = $provider;
+    }
+    // @todo Consider removing this in https://www.drupal.org/i/3477428.
+    $dependencies['plugin'][] = "field_type:$this->fieldType";
+
+    return $dependencies;
   }
 
   public function isSupported(EntityInterface|FieldItemInterface|FieldItemListInterface $field): bool {

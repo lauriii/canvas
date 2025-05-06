@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Drupal\experience_builder\Plugin\Field\FieldType;
 
+use Drupal\Component\Plugin\DependentPluginInterface;
 use Drupal\Component\Serialization\Json;
+use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Block\MessagesBlockPluginInterface;
 use Drupal\Core\Block\TitleBlockPluginInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
@@ -16,10 +18,9 @@ use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\Render\RenderableInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\TypedData\DataDefinition;
-use Drupal\experience_builder\Entity\Component;
 use Drupal\experience_builder\Entity\ComponentTreeEntityInterface;
 use Drupal\experience_builder\Plugin\DataType\ComponentInputs;
-use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
+use Drupal\experience_builder\PropSource\ContentAwareDependentInterface;
 use Drupal\experience_builder\ShapeMatcher\FieldForComponentSuggester;
 use Symfony\Component\Validator\ConstraintViolation;
 use Symfony\Component\Validator\ConstraintViolationInterface;
@@ -33,12 +34,17 @@ use Symfony\Component\Validator\ConstraintViolationList;
  * @see https://git.drupalcode.org/project/metatag/-/blob/2.0.x/src/Plugin/Field/FieldType/MetatagFieldItem.php
  *
  * @phpstan-import-type ComponentConfigEntityId from \Drupal\experience_builder\Entity\Component
- * @phpstan-type ComponentTreeItemPropName 'tree'|'inputs'|'hydrated'
+ * @phpstan-type ComponentTreeItemPropName 'tree'|'inputs'|'hydrated'|'deps_config'|'deps_content'|'deps_module'|'deps_theme'|'deps_plugin'
  *
  * @property \Drupal\experience_builder\HydratedTree $hydrated
+ * @property string $deps_config
+ * @property string $deps_content
+ * @property string $deps_module
+ * @property string $deps_theme
+ * @property string $deps_plugin
  */
 #[FieldType(
-  id: "component_tree",
+  id: self::PLUGIN_ID,
   label: new TranslatableMarkup("Experience Builder"),
   description: new TranslatableMarkup("Field to use Experience Builder for presenting these entities"),
   default_formatter: "experience_builder_naive_render_sdc_tree",
@@ -89,6 +95,10 @@ use Symfony\Component\Validator\ConstraintViolationList;
 )]
 class ComponentTreeItem extends FieldItemBase implements RenderableInterface {
 
+  public const string PLUGIN_ID = 'component_tree';
+
+  use ComponentTreeItemInstantiatorTrait;
+
   // phpcs:disable Drupal.Commenting.DataTypeNamespace.DataTypeNamespace
   /**
    * {@inheritdoc}
@@ -104,6 +114,66 @@ class ComponentTreeItem extends FieldItemBase implements RenderableInterface {
   }
 
   /**
+   * Calculates all dependencies of the field item (all field props).
+   *
+   * @return array ($with_plugin_dependencies ? array{'config': string[], 'content': string[], 'module': string[], 'theme': string[], 'plugin': string[]} : array{'config': string[], 'content': string[], 'module': string[], 'theme': string[]})
+   *
+   * @see \Drupal\Component\Plugin\DependentPluginInterface
+   */
+  public function calculateFieldItemValueDependencies(bool $with_plugin_dependencies, ?FieldableEntityInterface $host_entity = NULL): array {
+    // Every field property that has dependencies on config or extensions must
+    // implement DependentPluginInterface to ensure accurate dependency (i.e.
+    // usage) tracking.
+    $dependencies = [];
+    foreach ($this->getProperties() as $property) {
+      if ($property instanceof DependentPluginInterface) {
+        $dependencies = NestedArray::mergeDeep($dependencies, $property->calculateDependencies());
+      }
+      elseif ($property instanceof ContentAwareDependentInterface) {
+        $dependencies = NestedArray::mergeDeep($dependencies, $property->calculateDependencies($host_entity));
+      }
+    }
+
+    $dependency_types = ['config', 'content', 'module', 'theme'];
+    // Config entities do not support plugin dependencies. (Plugin dependency
+    // information is only necessary for component trees in content entities.
+    // Because:
+    // - Component config entities always exist in a single state
+    // - content entity revisions contain component instances created based on
+    //   the state at the time of creating the revision
+    // This means that the Component config entity would prevent the
+    // uninstallation of a module that provides a field type that is CURRENTLY
+    // used for creating component instances, but that doesn't mean it
+    // sufficiently protects HISTORICALLY created component instances!
+    // @todo Consider removing this in https://www.drupal.org/i/3477428.
+    if ($with_plugin_dependencies) {
+      $dependency_types[] = 'plugin';
+    }
+    else {
+      unset($dependencies['plugin']);
+    }
+
+    // Normalize.
+    ksort($dependencies);
+    $normalized_dependencies = [];
+    foreach ($dependency_types as $type) {
+      $deps_for_type = array_unique($dependencies[$type] ?? []);
+      if ($type === 'module') {
+        $deps_for_type = array_diff($deps_for_type, [
+          // `core` is always present.
+          'core',
+          // This very field type is provided by Experience Builder, so
+          // obviously this module is also always present.
+          'experience_builder',
+        ]);
+      }
+      sort($deps_for_type);
+      $normalized_dependencies[$type] = $deps_for_type;
+    }
+    return $normalized_dependencies;
+  }
+
+  /**
    * {@inheritdoc}
    */
   public static function calculateDependencies(FieldDefinitionInterface $field_definition) {
@@ -114,26 +184,37 @@ class ComponentTreeItem extends FieldItemBase implements RenderableInterface {
     }
 
     $default_value = $field_definition->getDefaultValueLiteral()[0];
-    $tree = ComponentTreeStructure::createInstance(DataDefinition::create('component_tree_structure'));
     // The default should always have a "tree" key but this runs before validation.
     if (!isset($default_value['tree'])) {
       return [];
     }
-    $tree->setValue($default_value['tree']);
-
-    foreach (Component::loadMultiple($tree->getComponentIdList()) as $component_entity) {
-      assert($component_entity instanceof Component);
-      $dependencies[$component_entity->getConfigDependencyKey()][] = $component_entity->getConfigDependencyName();
-    }
-
-    return $dependencies;
+    $component_tree_field_item = self::staticallyCreateDanglingComponentTree(\Drupal::typedDataManager());
+    $component_tree_field_item->setValue($default_value);
+    return NestedArray::mergeDeep(
+      $dependencies,
+      // `type: config_dependencies_base` config schema doesn't allow `plugin`.
+      $component_tree_field_item->calculateFieldItemValueDependencies(FALSE, NULL),
+    );
   }
 
   /**
    * {@inheritdoc}
    */
   public static function schema(FieldStorageDefinitionInterface $field_definition) {
-    return [
+    $deps = [
+      'columns' => [],
+    ];
+    foreach (['config', 'content', 'module', 'theme', 'plugin'] as $type) {
+      $deps['columns']["deps_$type"] = [
+        'description' => "The calculated $type dependencies",
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+      ];
+    }
+
+    return NestedArray::mergeDeep([
       'columns' => [
         'tree' => [
           'description' => 'The component tree structure.',
@@ -158,7 +239,7 @@ class ComponentTreeItem extends FieldItemBase implements RenderableInterface {
       'foreign keys' => [
         // @todo Add the "hash" part the proposal at https://www.drupal.org/project/drupal/issues/3440578
       ],
-    ];
+    ], $deps);
   }
 
   /**
@@ -179,6 +260,12 @@ class ComponentTreeItem extends FieldItemBase implements RenderableInterface {
       ->setInternal(FALSE)
       ->setReadOnly(TRUE)
       ->setRequired(TRUE);
+
+    foreach (['config', 'content', 'module', 'theme', 'plugin'] as $type) {
+      $properties["deps_$type"] = DataDefinition::create('string')
+        ->setInternal(TRUE)
+        ->setReadOnly(TRUE);
+    }
 
     return $properties;
   }
@@ -311,6 +398,18 @@ class ComponentTreeItem extends FieldItemBase implements RenderableInterface {
     $input_required_uuids = array_filter($tree->getComponentInstanceUuids(), static fn(string $uuid) => $tree->getComponentSource($uuid)?->requiresExplicitInput() === TRUE);
     if (array_intersect($input_required_uuids, $inputs->getComponentInstanceUuids()) !== $input_required_uuids) {
       throw new \LogicException(sprintf('The component UUIDs in the tree and inputs values do not match! Put a breakpoint here and figure out why.'));
+    }
+
+    // Compute and store the dependencies of the *actual* value, i.e. the `tree`
+    // and `inputs` being saved.
+    // TRICKY: this is confusingly NOT the same as ::calculateDependencies(),
+    // which inspects the *default*, not the *actual* value
+    // @see ::calculateDependencies
+    $dependencies = $this->calculateFieldItemValueDependencies(TRUE, $this->getEntity());
+    foreach ($dependencies as $type => $deps_for_type) {
+      // The trailing space is necessary to allow for `LIKE '%string %', because
+      // `LIKE '%string %' would also match `foo string_list bar`.
+      $this->set("deps_$type", implode(' ', $deps_for_type) . ' ', FALSE);
     }
 
     // @todo Omit defaults that are stored at the content type template level, e.g. in core.entity_view_display.node.article.default.yml

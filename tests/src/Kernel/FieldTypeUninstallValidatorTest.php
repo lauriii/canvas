@@ -5,12 +5,14 @@ declare(strict_types=1);
 namespace Drupal\Tests\experience_builder\Kernel;
 
 use Drupal\Core\Database\Database;
+use Drupal\Core\Entity\ContentEntityInterface;
+use Drupal\Core\Entity\RevisionableStorageInterface;
 use Drupal\Core\Extension\ModuleUninstallValidatorException;
+use Drupal\experience_builder\Entity\Page;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\KernelTests\KernelTestBase;
-use Drupal\node\Entity\Node;
 use Drupal\taxonomy\Entity\Term;
 use Drupal\taxonomy\Entity\Vocabulary;
 use Drupal\Tests\experience_builder\Traits\ContribStrictConfigSchemaTestTrait;
@@ -20,10 +22,6 @@ use Drupal\Tests\node\Traits\NodeCreationTrait;
 /**
  * @coversDefaultClass \Drupal\experience_builder\FieldTypeUninstallValidator
  * @group experience_builder
- *
- * @todo Add extra test cases
- *   - Default value stores the expression unescaped(is that possible?).
- *   - Test with field that does not use dedicated storage.
  */
 final class FieldTypeUninstallValidatorTest extends KernelTestBase {
 
@@ -43,9 +41,6 @@ final class FieldTypeUninstallValidatorTest extends KernelTestBase {
         $connection_info[$target]['prefix'] = $this->databasePrefix;
       }
     }
-    if (!isset($connection_info['default']['driver']) || $connection_info['default']['driver'] !== 'mysql') {
-      $this->markTestSkipped('This test only runs for the MySQL database driver. See https://drupal.org/i/3452756');
-    }
     // The `sdc_test_all_props` module includes props that use
     // `contentMediaType: text/html` which enables the CKEditor 5 module which
     // requires the default theme to be installed.
@@ -55,37 +50,58 @@ final class FieldTypeUninstallValidatorTest extends KernelTestBase {
 
   /**
    * Tests the FieldUninstallValidator.
+   *
+   * @dataProvider uninstallDataProvider
    */
-  public function testUninstall(): void {
+  public function testUninstall(string $entity_type_id, string $bundle, string $field_name): void {
     $this->container->get('module_installer')->install(['experience_builder', 'xb_test_config_node_article', 'sdc_test']);
-    $node = $this->createNode([
-      'title' => 'Test node',
-      'type' => 'article',
-      'field_xb_test' => $this->getComponentTreeItemValue(TRUE),
+    $entity_storage = $this->container->get('entity_type.manager')->getStorage($entity_type_id);
+    $entity = $entity_storage->create([
+      'title' => 'Test content',
+      'type' => $bundle,
+      $field_name => $this->getComponentTreeItemValue(TRUE),
     ]);
-    $this->assertInstanceOf(Node::class, $node);
+    assert($entity instanceof ContentEntityInterface);
+    $entity->save();
 
     $this->assertUninstallFailureReasons([
-      'Provides a field type, <em class="placeholder">link</em>, that is in use in the content of the following entities: <em class="placeholder">node</em> id=<em class="placeholder">1</em> revision=<em class="placeholder">1</em>',
+      'Provides a field type, <em class="placeholder">link</em>, that is in use in the content of the following entities: <em class="placeholder">' . $entity->getEntityTypeId() . '</em> id=<em class="placeholder">1</em> revision=<em class="placeholder">1</em>',
       'Provides a field type, <em class="placeholder">link</em>, that is in use in the default value of the following fields: <em class="placeholder">field_xb_test</em>',
     ]);
 
     // Save a new revision that does not use the 'link' field.
-    $node->set('field_xb_test', $this->getComponentTreeItemValue(FALSE))->setNewRevision();
-    $node->save();
+    $entity->set($field_name, $this->getComponentTreeItemValue(FALSE))->setNewRevision();
+    $entity->save();
     $this->assertUninstallFailureReasons([
-      'Provides a field type, <em class="placeholder">link</em>, that is in use in the content of the following entities: <em class="placeholder">node</em> id=<em class="placeholder">1</em> revision=<em class="placeholder">1</em>',
+      'Provides a field type, <em class="placeholder">link</em>, that is in use in the content of the following entities: <em class="placeholder">' . $entity->getEntityTypeId() . '</em> id=<em class="placeholder">1</em> revision=<em class="placeholder">1</em>',
       'Provides a field type, <em class="placeholder">link</em>, that is in use in the default value of the following fields: <em class="placeholder">field_xb_test</em>',
     ]);
 
     // Delete the previous revision that used the 'link' field.
-    $storage = \Drupal::entityTypeManager()->getStorage('node');
+    $storage = \Drupal::entityTypeManager()->getStorage($entity_type_id);
+    assert($storage instanceof RevisionableStorageInterface);
     $storage->deleteRevision(1);
+
     $this->assertUninstallFailureReasons([
       'Provides a field type, <em class="placeholder">link</em>, that is in use in the default value of the following fields: <em class="placeholder">field_xb_test</em>',
     ]);
 
+    // We catch usages in base field definition default value.
+    $this->updateFieldDefaultValue(Page::ENTITY_TYPE_ID, PAGE::ENTITY_TYPE_ID, 'components', $this->getComponentTreeItemValue(TRUE));
+    $this->container->get('module_installer')->install(['xb_test_page']);
+    $this->assertUninstallFailureReasons([
+      'Provides a field type, <em class="placeholder">link</em>, that is in use in the default value of the following fields: <em class="placeholder">components, field_xb_test</em>',
+    ]);
+
+    // Clear field definitions default values.
     $this->updateFieldDefaultValue('node', 'article', 'field_xb_test', $this->getComponentTreeItemValue(FALSE));
+    $this->updateFieldDefaultValue(Page::ENTITY_TYPE_ID, PAGE::ENTITY_TYPE_ID, 'components', $this->getComponentTreeItemValue(FALSE));
+    $this->container->get('module_installer')->uninstall(['xb_test_page']);
+
+    if ($entity->getEntityTypeId() === Page::ENTITY_TYPE_ID) {
+      $entity->delete();
+    }
+
     // We should now be able to uninstall the 'link' module but because 'link'
     // is dependency for 'experience_builder' we should get an error because
     // of the XB fields.
@@ -94,6 +110,14 @@ final class FieldTypeUninstallValidatorTest extends KernelTestBase {
       // Ensure 'link' is not in the error message.
       'link'
     );
+  }
+
+  /**
+   * @return \Generator<int, array{string, string, string}>
+   */
+  public static function uninstallDataProvider(): \Generator {
+    yield [Page::ENTITY_TYPE_ID, Page::ENTITY_TYPE_ID, 'components'];
+    yield ['node', 'article', 'field_xb_test'];
   }
 
   /**
@@ -145,6 +169,7 @@ final class FieldTypeUninstallValidatorTest extends KernelTestBase {
 
     // Delete the previous revision that used the 'link' field.
     $storage = \Drupal::entityTypeManager()->getStorage('taxonomy_term');
+    assert($storage instanceof RevisionableStorageInterface);
     $storage->deleteRevision(1);
     $this->updateFieldDefaultValue('taxonomy_term', 'tags', 'field_tag_test', $this->getComponentTreeItemValue(FALSE));
     $this->assertUninstallFailureReasons([
@@ -163,10 +188,16 @@ final class FieldTypeUninstallValidatorTest extends KernelTestBase {
   }
 
   private function updateFieldDefaultValue(string $entity_type, string $bundle, string $field_name, array $default_value): void {
-    $field_config = FieldConfig::loadByName($entity_type, $bundle, $field_name);
-    $this->assertInstanceOf(FieldConfig::class, $field_config);
-    $field_config->setDefaultValue($default_value);
-    $field_config->save();
+    if ($entity_type === Page::ENTITY_TYPE_ID) {
+      \Drupal::state()->set('xb_test_page.components_default_value', $default_value);
+      \Drupal::entityTypeManager()->clearCachedDefinitions();
+    }
+    else {
+      $field_config = FieldConfig::loadByName($entity_type, $bundle, $field_name);
+      $this->assertInstanceOf(FieldConfig::class, $field_config);
+      $field_config->setDefaultValue($default_value);
+      $field_config->save();
+    }
   }
 
   private function assertUninstallFailureReasons(array $reasons, string|null $not_contains = NULL): void {

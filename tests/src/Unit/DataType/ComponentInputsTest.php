@@ -15,6 +15,7 @@ use Drupal\Tests\UnitTestCase;
 
 /**
  * @coversDefaultClass \Drupal\experience_builder\Plugin\DataType\ComponentInputs
+ * @see \Drupal\Tests\experience_builder\Kernel\DataType\ComponentInputsDependenciesTest
  * @group experience_builder
  */
 class ComponentInputsTest extends UnitTestCase {

@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Drupal\experience_builder\PropSource;
 
+use Drupal\Core\Config\Entity\ConfigEntityTypeInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
+use Drupal\Core\Field\FieldItemListInterface;
 use Drupal\experience_builder\ComponentSource\UrlRewriteInterface;
 use Drupal\experience_builder\Entity\Component;
 use Drupal\experience_builder\JsonSchemaInterpreter\JsonSchemaStringFormat;
@@ -152,6 +154,18 @@ final class DefaultRelativeUrlPropSource extends PropSourceBase {
 
   public function asChoice(): string {
     throw new \LogicException();
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function calculateDependencies(FieldableEntityInterface|FieldItemListInterface|null $host_entity = NULL): array {
+    assert($host_entity === NULL || $host_entity instanceof FieldableEntityInterface);
+    // @phpstan-ignore-next-line
+    $component_definition = \Drupal::entityTypeManager()->getDefinition(Component::ENTITY_TYPE_ID);
+    assert($component_definition instanceof ConfigEntityTypeInterface);
+    $component_prefix = $component_definition->getConfigPrefix();
+    return ['config' => ["$component_prefix.$this->componentId"]];
   }
 
 }

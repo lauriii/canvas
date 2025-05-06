@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace Drupal\experience_builder\Plugin\DataType;
 
 use Drupal\Component\Graph\Graph;
+use Drupal\Component\Plugin\DependentPluginInterface;
 use Drupal\Component\Serialization\Json;
 use Drupal\Component\Utility\SortArray;
+use Drupal\Core\Config\Entity\ConfigEntityTypeInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\TypedData\Attribute\DataType;
 use Drupal\Core\TypedData\TypedData;
@@ -71,7 +73,7 @@ use Drupal\experience_builder\Entity\Component;
     "ComponentTreeStructure" => [],
   ]
 )]
-class ComponentTreeStructure extends TypedData {
+class ComponentTreeStructure extends TypedData implements DependentPluginInterface {
 
   const ROOT_UUID = 'a548b48d-58a8-4077-aa04-da9405a6f418';
 
@@ -98,6 +100,23 @@ class ComponentTreeStructure extends TypedData {
    * @var null|array<string, array{'edges': array<string, TRUE>}>
    */
   protected ?array $graph = NULL;
+
+  /**
+   * {@inheritdoc}
+   */
+  public function calculateDependencies() : array {
+    // Dependencies for the `tree` field prop are always *only* `Component`
+    // config entities.
+    $component_definition = \Drupal::entityTypeManager()->getDefinition(Component::ENTITY_TYPE_ID);
+    assert($component_definition instanceof ConfigEntityTypeInterface);
+    $component_prefix = $component_definition->getConfigPrefix();
+    return [
+      'config' => array_map(
+        fn (string $component_config_entity_id): string => "$component_prefix.$component_config_entity_id",
+        $this->getComponentIdList(),
+      ),
+    ];
+  }
 
   /**
    * {@inheritdoc}

@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace Drupal\experience_builder\PropSource;
 
+use Drupal\Component\Plugin\Definition\PluginDefinitionInterface;
+use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Entity\FieldableEntityInterface;
+use Drupal\Core\Field\FieldItemListInterface;
 use Drupal\experience_builder\Plugin\AdapterManager;
 use Drupal\experience_builder\Plugin\Adapter\AdapterInterface;
 
@@ -93,6 +96,24 @@ final class AdaptedPropSource extends PropSourceBase {
 
   public function getInputPropSource(string $input_name) : PropSourceBase {
     return PropSource::parse($this->adapter_inputs[$input_name]);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function calculateDependencies(FieldableEntityInterface|FieldItemListInterface|null $host_entity = NULL): array {
+    $dependencies = [];
+    $plugin_definition = $this->adapter_instance->getPluginDefinition();
+    $dependencies['module'][] = match (TRUE) {
+      $plugin_definition instanceof PluginDefinitionInterface => $plugin_definition->getProvider(),
+      is_array($plugin_definition) => $plugin_definition['provider'],
+      default => NULL,
+    };
+    $dependencies['plugin'][] = 'adapter:' . $this->adapter_instance->getPluginId();
+    foreach ($this->adapter_inputs as $input_name => $input) {
+      $dependencies = NestedArray::mergeDeep($dependencies, $this->getInputPropSource($input_name)->calculateDependencies($host_entity));
+    }
+    return $dependencies;
   }
 
 }

@@ -32,6 +32,16 @@ class XbTestPageHooks {
     return [];
   }
 
+  #[Hook('entity_base_field_info_alter')]
+  public function entityBaseFieldInfoAlter(array &$base_field_definitions, EntityTypeInterface $entity_type): void {
+    // @phpstan-ignore-next-line
+    $default_value = \Drupal::state()->get('xb_test_page.components_default_value', []);
+    if ($entity_type->id() === Page::ENTITY_TYPE_ID && !empty($default_value)) {
+      /** @var \Drupal\Core\Field\BaseFieldDefinition[] $base_field_definitions */
+      $base_field_definitions['components']->setDefaultValue($default_value);
+    }
+  }
+
   /**
    * Implements hook_ENTITY_TYPE_view().
    */

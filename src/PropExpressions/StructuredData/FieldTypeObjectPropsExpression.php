@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace Drupal\experience_builder\PropExpressions\StructuredData;
 
 use Drupal\Component\Assertion\Inspector;
+use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Field\FieldItemInterface;
 use Drupal\Core\Field\FieldItemListInterface;
 
@@ -52,6 +54,18 @@ final class FieldTypeObjectPropsExpression implements StructuredDataPropExpressi
         array_values($this->objectPropsToFieldTypeProps),
       ))
       . static::SUFFIX_OBJECT;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function calculateDependencies(FieldableEntityInterface|FieldItemListInterface|null $field_item_list = NULL): array {
+    assert($field_item_list === NULL || $field_item_list instanceof FieldItemListInterface);
+    $dependencies = [];
+    foreach ($this->objectPropsToFieldTypeProps as $expr) {
+      $dependencies = NestedArray::mergeDeep($dependencies, $expr->calculateDependencies($field_item_list));
+    }
+    return $dependencies;
   }
 
   public static function fromString(string $representation): static {

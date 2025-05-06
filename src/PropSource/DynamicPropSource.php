@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\experience_builder\PropSource;
 
 use Drupal\Core\Entity\FieldableEntityInterface;
+use Drupal\Core\Field\FieldItemListInterface;
 use Drupal\experience_builder\MissingHostEntityException;
 use Drupal\experience_builder\PropExpressions\StructuredData\Evaluator;
 use Drupal\experience_builder\PropExpressions\StructuredData\StructuredDataPropExpression;
@@ -66,6 +67,19 @@ final class DynamicPropSource extends PropSourceBase {
 
   public function asChoice(): string {
     return (string) $this->expression;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function calculateDependencies(FieldableEntityInterface|FieldItemListInterface|null $host_entity = NULL): array {
+    assert($host_entity === NULL || $host_entity instanceof FieldableEntityInterface);
+    // The only dependencies are those of the used expression. If a host entity
+    // is given, then `content` dependencies may appear as well; otherwise the
+    // calculated dependencies will be limited to the entity types, bundle (if
+    // any) and fields (if any) that this expression depends on.
+    // @see \Drupal\Tests\experience_builder\Kernel\PropExpressionDependenciesTest
+    return $this->expression->calculateDependencies($host_entity);
   }
 
 }

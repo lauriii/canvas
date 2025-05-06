@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\experience_builder\Unit;
 
+use Drupal\Component\Plugin\Exception\PluginNotFoundException;
 use Drupal\Core\DependencyInjection\ContainerBuilder;
 use Drupal\Core\Entity\TypedData\EntityDataDefinition;
 use Drupal\Core\TypedData\TypedDataManagerInterface;
@@ -26,7 +27,10 @@ use Prophecy\Prophet;
  * @coversClass \Drupal\experience_builder\PropExpressions\StructuredData\FieldTypePropExpression
  * @coversClass \Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldTypePropExpression
  * @coversClass \Drupal\experience_builder\PropExpressions\StructuredData\FieldTypeObjectPropsExpression
+ * @see \Drupal\Tests\experience_builder\Kernel\PropExpressionDependenciesTest
  * @group experience_builder
+ *
+ * @phpstan-import-type ContentAwareDependencies from \Drupal\experience_builder\PropSource\ContentAwareDependentInterface
  */
 class PropExpressionTest extends UnitTestCase {
 
@@ -59,9 +63,12 @@ class PropExpressionTest extends UnitTestCase {
   /**
    * Combines the cases of all individual data providers, assigns clear labels.
    *
-   * @return array<array{0: string, 1: FieldPropExpression|ReferenceFieldPropExpression}>
+   * @return array<array{0: string, 1: FieldPropExpression|ReferenceFieldPropExpression|FieldObjectPropsExpression|FieldTypePropExpression|ReferenceFieldTypePropExpression|FieldTypeObjectPropsExpression, 2: ContentAwareDependencies|\Exception}>
    */
   public static function provider(): array {
+    // Allow this provider to be called by a kernel test, too.
+    $original_container = \Drupal::hasContainer() ? \Drupal::getContainer() : FALSE;
+
     $container = new ContainerBuilder();
     $prophet = new Prophet();
     $container->set('typed_data_manager', $prophet->prophesize(TypedDataManagerInterface::class)->reveal());
@@ -69,9 +76,13 @@ class PropExpressionTest extends UnitTestCase {
     $generate_meaningful_case_label = function (string $prefix, array $cases) : array {
       return array_combine(
         array_map(fn (int|string $key) => sprintf("$prefix - %s", is_string($key) ? $key : "#$key"), array_keys($cases)),
-        $cases
+        $cases,
       );
     };
+
+    if ($original_container) {
+      \Drupal::setContainer($original_container);
+    }
 
     return $generate_meaningful_case_label('FieldPropExpression', self::providerFieldPropExpression())
       + $generate_meaningful_case_label('FieldReferencePropExpression', self::providerReferenceFieldPropExpression())
@@ -82,60 +93,159 @@ class PropExpressionTest extends UnitTestCase {
   }
 
   /**
-   * @return array<array{0: string, 1: FieldPropExpression}>
+   * @return array<array{0: string, 1: FieldPropExpression, 2: ContentAwareDependencies|\Exception}>
    */
   public static function providerFieldPropExpression(): array {
     return [
       // Context: entity type, base field.
-      ['ℹ︎␜entity:node␝title␞␟value', new FieldPropExpression(EntityDataDefinition::create('node'), 'title', NULL, 'value')],
-      ['ℹ︎␜entity:node␝title␞0␟value', new FieldPropExpression(EntityDataDefinition::create('node'), 'title', 0, 'value')],
-      ['ℹ︎␜entity:node␝title␞99␟value', new FieldPropExpression(EntityDataDefinition::create('node'), 'title', 99, 'value')],
+      ['ℹ︎␜entity:node␝title␞␟value', new FieldPropExpression(EntityDataDefinition::create('node'), 'title', NULL, 'value'),
+        [
+          'module' => ['node'],
+          'plugin' => ['entity_type:node'],
+        ],
+      ],
+      ['ℹ︎␜entity:node␝title␞0␟value', new FieldPropExpression(EntityDataDefinition::create('node'), 'title', 0, 'value'),
+        [
+          'module' => ['node'],
+          'plugin' => ['entity_type:node'],
+        ],
+      ],
+      ['ℹ︎␜entity:node␝title␞99␟value', new FieldPropExpression(EntityDataDefinition::create('node'), 'title', 99, 'value'),
+        [
+          'module' => ['node'],
+          'plugin' => ['entity_type:node'],
+        ],
+      ],
 
       // Context: bundle of entity type, base field.
-      ['ℹ︎␜entity:node:article␝title␞␟value', new FieldPropExpression(EntityDataDefinition::create('node', 'article'), 'title', NULL, 'value')],
-      ['ℹ︎␜entity:node:article␝title␞0␟value', new FieldPropExpression(EntityDataDefinition::create('node', 'article'), 'title', 0, 'value')],
-      ['ℹ︎␜entity:node:article␝title␞99␟value', new FieldPropExpression(EntityDataDefinition::create('node', 'article'), 'title', 99, 'value')],
+      ['ℹ︎␜entity:node:article␝title␞␟value', new FieldPropExpression(EntityDataDefinition::create('node', 'article'), 'title', NULL, 'value'),
+        [
+          'module' => ['node'],
+          'plugin' => ['entity_type:node'],
+          'config' => ['node.type.article'],
+        ],
+      ],
+      ['ℹ︎␜entity:node:article␝title␞0␟value', new FieldPropExpression(EntityDataDefinition::create('node', 'article'), 'title', 0, 'value'),
+        [
+          'module' => ['node'],
+          'plugin' => ['entity_type:node'],
+          'config' => ['node.type.article'],
+        ],
+      ],
+      ['ℹ︎␜entity:node:article␝title␞99␟value', new FieldPropExpression(EntityDataDefinition::create('node', 'article'), 'title', 99, 'value'),
+        [
+          'module' => ['node'],
+          'plugin' => ['entity_type:node'],
+          'config' => ['node.type.article'],
+        ],
+      ],
 
       // Context: bundle of entity type, configurable field.
-      ['ℹ︎␜entity:node:article␝field_image␞␟value', new FieldPropExpression(EntityDataDefinition::create('node', 'article'), 'field_image', NULL, 'value')],
-      ['ℹ︎␜entity:node:article␝field_image␞0␟value', new FieldPropExpression(EntityDataDefinition::create('node', 'article'), 'field_image', 0, 'value')],
-      ['ℹ︎␜entity:node:article␝field_image␞99␟value', new FieldPropExpression(EntityDataDefinition::create('node', 'article'), 'field_image', 99, 'value')],
+      ['ℹ︎␜entity:node:article␝field_image␞␟value', new FieldPropExpression(EntityDataDefinition::create('node', 'article'), 'field_image', NULL, 'value'),
+        [
+          'module' => ['node'],
+          'plugin' => ['entity_type:node', 'field_type:image'],
+          'config' => ['node.type.article', 'field.field.node.article.field_image'],
+        ],
+      ],
+      ['ℹ︎␜entity:node:article␝field_image␞0␟value', new FieldPropExpression(EntityDataDefinition::create('node', 'article'), 'field_image', 0, 'value'),
+        [
+          'module' => ['node'],
+          'plugin' => ['entity_type:node', 'field_type:image'],
+          'config' => ['node.type.article', 'field.field.node.article.field_image'],
+        ],
+      ],
+      ['ℹ︎␜entity:node:article␝field_image␞99␟value', new FieldPropExpression(EntityDataDefinition::create('node', 'article'), 'field_image', 99, 'value'),
+        [
+          'module' => ['node'],
+          'plugin' => ['entity_type:node', 'field_type:image'],
+          'config' => ['node.type.article', 'field.field.node.article.field_image'],
+        ],
+      ],
 
       // Structured data expressions do NOT introspect the data model, they are
       // just stand-alone expressions with a string representation and a PHP
       // object representation. Hence nonsensical values are accepted for all
       // aspects:
-      'invalid entity type' => ['ℹ︎␜entity:non_existent␝title␞␟value', new FieldPropExpression(EntityDataDefinition::create('non_existent'), 'title', NULL, 'value')],
-      'invalid delta' => ['ℹ︎␜entity:node:article␝title␞-1␟value', new FieldPropExpression(EntityDataDefinition::create('node', 'article'), 'title', -1, 'value')],
-      'invalid prop name' => ['ℹ︎␜entity:node:article␝title␞␟non_existent', new FieldPropExpression(EntityDataDefinition::create('node', 'article'), 'title', NULL, 'non_existent')],
+      'invalid entity type' => ['ℹ︎␜entity:non_existent␝title␞␟value', new FieldPropExpression(EntityDataDefinition::create('non_existent'), 'title', NULL, 'value'), new PluginNotFoundException('non_existent', 'The "non_existent" entity type does not exist.')],
+      'invalid delta' => ['ℹ︎␜entity:node:article␝title␞-1␟value', new FieldPropExpression(EntityDataDefinition::create('node', 'article'), 'title', -1, 'value'),
+        [
+          'module' => ['node'],
+          'plugin' => ['entity_type:node'],
+          'config' => ['node.type.article'],
+        ],
+      ],
+      'invalid prop name' => ['ℹ︎␜entity:node:article␝title␞␟non_existent', new FieldPropExpression(EntityDataDefinition::create('node', 'article'), 'title', NULL, 'non_existent'),
+        [
+          'module' => ['node'],
+          'plugin' => ['entity_type:node'],
+          'config' => ['node.type.article'],
+        ],
+      ],
     ];
   }
 
   /**
-   * @return array<array{0: string, 1: ReferenceFieldPropExpression}>
+   * @return array<array{0: string, 1: ReferenceFieldPropExpression, 2: ContentAwareDependencies|\Exception}>
    */
   public static function providerReferenceFieldPropExpression(): array {
-    $referencer_delta_null = new FieldPropExpression(EntityDataDefinition::create('node'), 'owner', NULL, 'value');
-    $referencer_delta_zero = new FieldPropExpression(EntityDataDefinition::create('node'), 'owner', 0, 'value');
-    $referencer_delta_high = new FieldPropExpression(EntityDataDefinition::create('node'), 'owner', 123, 'value');
+    $referencer_delta_null = new FieldPropExpression(EntityDataDefinition::create('node'), 'uid', NULL, 'entity');
+    $referencer_delta_zero = new FieldPropExpression(EntityDataDefinition::create('node'), 'uid', 0, 'entity');
+    $referencer_delta_high = new FieldPropExpression(EntityDataDefinition::create('node'), 'uid', 123, 'entity');
 
     return [
-      ['ℹ︎␜entity:node␝owner␞␟value␜␜entity:user␝name␞␟value', new ReferenceFieldPropExpression($referencer_delta_null, new FieldPropExpression(EntityDataDefinition::create('user'), 'name', NULL, 'value'))],
-      ['ℹ︎␜entity:node␝owner␞␟value␜␜entity:user␝name␞0␟value', new ReferenceFieldPropExpression($referencer_delta_null, new FieldPropExpression(EntityDataDefinition::create('user'), 'name', 0, 'value'))],
-      ['ℹ︎␜entity:node␝owner␞␟value␜␜entity:user␝name␞99␟value', new ReferenceFieldPropExpression($referencer_delta_null, new FieldPropExpression(EntityDataDefinition::create('user'), 'name', 99, 'value'))],
+      ['ℹ︎␜entity:node␝uid␞␟entity␜␜entity:user␝name␞␟value', new ReferenceFieldPropExpression($referencer_delta_null, new FieldPropExpression(EntityDataDefinition::create('user'), 'name', NULL, 'value')),
+        [
+          'module' => ['node'],
+          'plugin' => ['entity_type:node'],
+          'content' => ['user:user:some-user-uuid'],
+        ],
+      ],
+      ['ℹ︎␜entity:node␝uid␞␟entity␜␜entity:user␝name␞0␟value', new ReferenceFieldPropExpression($referencer_delta_null, new FieldPropExpression(EntityDataDefinition::create('user'), 'name', 0, 'value')),
+        [
+          'module' => ['node'],
+          'plugin' => ['entity_type:node'],
+          'content' => ['user:user:some-user-uuid'],
+        ],
+      ],
+      ['ℹ︎␜entity:node␝uid␞␟entity␜␜entity:user␝name␞99␟value', new ReferenceFieldPropExpression($referencer_delta_null, new FieldPropExpression(EntityDataDefinition::create('user'), 'name', 99, 'value')),
+        [
+          'module' => ['node'],
+          'plugin' => ['entity_type:node'],
+          'content' => ['user:user:some-user-uuid'],
+        ],
+      ],
 
-      ['ℹ︎␜entity:node␝owner␞0␟value␜␜entity:user␝name␞␟value', new ReferenceFieldPropExpression($referencer_delta_zero, new FieldPropExpression(EntityDataDefinition::create('user'), 'name', NULL, 'value'))],
-      ['ℹ︎␜entity:node␝owner␞0␟value␜␜entity:user␝name␞0␟value', new ReferenceFieldPropExpression($referencer_delta_zero, new FieldPropExpression(EntityDataDefinition::create('user'), 'name', 0, 'value'))],
-      ['ℹ︎␜entity:node␝owner␞0␟value␜␜entity:user␝name␞99␟value', new ReferenceFieldPropExpression($referencer_delta_zero, new FieldPropExpression(EntityDataDefinition::create('user'), 'name', 99, 'value'))],
+      ['ℹ︎␜entity:node␝uid␞0␟entity␜␜entity:user␝name␞␟value', new ReferenceFieldPropExpression($referencer_delta_zero, new FieldPropExpression(EntityDataDefinition::create('user'), 'name', NULL, 'value')),
+        [
+          'module' => ['node'],
+          'plugin' => ['entity_type:node'],
+          'content' => ['user:user:some-user-uuid'],
+        ],
+      ],
+      ['ℹ︎␜entity:node␝uid␞0␟entity␜␜entity:user␝name␞0␟value', new ReferenceFieldPropExpression($referencer_delta_zero, new FieldPropExpression(EntityDataDefinition::create('user'), 'name', 0, 'value')),
+        [
+          'module' => ['node'],
+          'plugin' => ['entity_type:node'],
+          'content' => ['user:user:some-user-uuid'],
+        ],
+      ],
+      ['ℹ︎␜entity:node␝uid␞0␟entity␜␜entity:user␝name␞99␟value', new ReferenceFieldPropExpression($referencer_delta_zero, new FieldPropExpression(EntityDataDefinition::create('user'), 'name', 99, 'value')),
+        [
+          'module' => ['node'],
+          'plugin' => ['entity_type:node'],
+          'content' => ['user:user:some-user-uuid'],
+        ],
+      ],
 
-      ['ℹ︎␜entity:node␝owner␞123␟value␜␜entity:user␝name␞␟value', new ReferenceFieldPropExpression($referencer_delta_high, new FieldPropExpression(EntityDataDefinition::create('user'), 'name', NULL, 'value'))],
-      ['ℹ︎␜entity:node␝owner␞123␟value␜␜entity:user␝name␞0␟value', new ReferenceFieldPropExpression($referencer_delta_high, new FieldPropExpression(EntityDataDefinition::create('user'), 'name', 0, 'value'))],
-      ['ℹ︎␜entity:node␝owner␞123␟value␜␜entity:user␝name␞99␟value', new ReferenceFieldPropExpression($referencer_delta_high, new FieldPropExpression(EntityDataDefinition::create('user'), 'name', 99, 'value'))],
+      ['ℹ︎␜entity:node␝uid␞123␟entity␜␜entity:user␝name␞␟value', new ReferenceFieldPropExpression($referencer_delta_high, new FieldPropExpression(EntityDataDefinition::create('user'), 'name', NULL, 'value')), new \LogicException('Requested delta 123 for single-cardinality field, must be either zero or omitted.')],
+      ['ℹ︎␜entity:node␝uid␞123␟entity␜␜entity:user␝name␞0␟value', new ReferenceFieldPropExpression($referencer_delta_high, new FieldPropExpression(EntityDataDefinition::create('user'), 'name', 0, 'value')), new \LogicException('Requested delta 123 for single-cardinality field, must be either zero or omitted.')],
+      ['ℹ︎␜entity:node␝uid␞123␟entity␜␜entity:user␝name␞99␟value', new ReferenceFieldPropExpression($referencer_delta_high, new FieldPropExpression(EntityDataDefinition::create('user'), 'name', 99, 'value')), new \LogicException('Requested delta 123 for single-cardinality field, must be either zero or omitted.')],
     ];
   }
 
   /**
-   * @return array<array{0: string, 1: FieldObjectPropsExpression}>
+   * @return array<array{0: string, 1: FieldObjectPropsExpression, 2: ContentAwareDependencies|\Exception}>
    */
   public static function providerFieldObjectPropsExpression(): array {
     return [
@@ -146,6 +256,10 @@ class PropExpressionTest extends UnitTestCase {
           // SDC prop accepting an object, with a single mapped key-value pair.
           'label' => new FieldPropExpression(EntityDataDefinition::create('node'), 'title', 0, 'value'),
         ]),
+        [
+          'module' => ['node'],
+          'plugin' => ['entity_type:node'],
+        ],
       ],
       [
         'ℹ︎␜entity:node␝title␞␟{label↠value}',
@@ -153,6 +267,10 @@ class PropExpressionTest extends UnitTestCase {
           // SDC prop accepting an object, with a single mapped key-value pair.
           'label' => new FieldPropExpression(EntityDataDefinition::create('node'), 'title', NULL, 'value'),
         ]),
+        [
+          'module' => ['node'],
+          'plugin' => ['entity_type:node'],
+        ],
       ],
 
       // Context: bundle of entity type, configurable field.
@@ -168,33 +286,57 @@ class PropExpressionTest extends UnitTestCase {
           // 2. one (leaf) field property
           'width' => new FieldPropExpression(EntityDataDefinition::create('node', 'article'), 'field_image', NULL, 'width'),
         ]),
+        [
+          'module' => ['node', 'node'],
+          'plugin' => ['entity_type:node', 'field_type:image', 'entity_type:node', 'field_type:image'],
+          'config' => ['node.type.article', 'field.field.node.article.field_image', 'node.type.article', 'field.field.node.article.field_image'],
+          'content' => ['file:file:some-image-uuid'],
+        ],
       ],
     ];
   }
 
   /**
-   * @return array<array{0: string, 1: FieldTypePropExpression}>
+   * @return array<array{0: string, 1: FieldTypePropExpression, 2: ContentAwareDependencies|\Exception}>
    */
   public static function providerFieldTypePropExpression(): array {
     return [
       // Field type with single property.
       // @see \Drupal\Core\Field\Plugin\Field\FieldType\StringItem
-      ['ℹ︎string␟value', new FieldTypePropExpression('string', 'value')],
+      ['ℹ︎string␟value', new FieldTypePropExpression('string', 'value'),
+        [
+          'plugin' => ['field_type:string'],
+        ],
+      ],
 
       // Field type with >1 properties.
       // @see \Drupal\image\Plugin\Field\FieldType\ImageItem
-      ['ℹ︎image␟width', new FieldTypePropExpression('image', 'width')],
-      ['ℹ︎image␟src', new FieldTypePropExpression('image', 'src')],
+      ['ℹ︎image␟width', new FieldTypePropExpression('image', 'width'),
+        [
+          'module' => ['image'],
+          'plugin' => ['field_type:image'],
+        ],
+      ],
+      ['ℹ︎image␟src', new FieldTypePropExpression('image', 'src'),
+        [
+          'module' => ['image'],
+          'plugin' => ['field_type:image'],
+        ],
+      ],
 
       // Structured data expressions do NOT introspect the data model, they are
       // just stand-alone expressions with a string representation and a PHP
       // object representation. Hence nonsensical values are accepted:
-      'invalid prop name' => ['ℹ︎string␟non_existent', new FieldTypePropExpression('string', 'non_existent')],
+      'invalid prop name' => ['ℹ︎string␟non_existent', new FieldTypePropExpression('string', 'non_existent'),
+        [
+          'plugin' => ['field_type:string'],
+        ],
+      ],
     ];
   }
 
   /**
-   * @return array<array{0: string, 1: ReferenceFieldTypePropExpression}>
+   * @return array<array{0: string, 1: ReferenceFieldTypePropExpression, 2: ContentAwareDependencies|\Exception}>
    */
   public static function providerReferenceFieldTypePropExpression(): array {
     return [
@@ -211,6 +353,11 @@ class PropExpressionTest extends UnitTestCase {
           'value'
           )
         ),
+        [
+          'module' => ['image'],
+          'plugin' => ['field_type:image'],
+          'content' => ['file:file:some-image-uuid'],
+        ],
       ],
 
       // Field type with >1 properties.
@@ -239,12 +386,17 @@ class PropExpressionTest extends UnitTestCase {
             ]
           ),
         ),
+        [
+          'module' => ['image'],
+          'plugin' => ['field_type:image'],
+          'content' => ['file:file:some-image-uuid'],
+        ],
       ],
     ];
   }
 
   /**
-   * @return array<array{0: string, 1: FieldTypeObjectPropsExpression}>
+   * @return array<array{0: string, 1: FieldTypeObjectPropsExpression, 2: ContentAwareDependencies|\Exception}>
    */
   public static function providerFieldTypeObjectPropsExpression(): array {
     return [
@@ -255,6 +407,9 @@ class PropExpressionTest extends UnitTestCase {
           // SDC prop accepting an object, with a single mapped key-value pair.
           'label' => new FieldTypePropExpression('string', 'value'),
         ]),
+        [
+          'plugin' => ['field_type:string'],
+        ],
       ],
 
       // Context: bundle of entity type, configurable field.
@@ -270,6 +425,11 @@ class PropExpressionTest extends UnitTestCase {
           // 2. one (leaf) field property
           'width' => new FieldTypePropExpression('image', 'width'),
         ]),
+        [
+          'module' => ['image', 'image'],
+          'plugin' => ['field_type:image', 'field_type:image'],
+          'content' => ['file:file:some-image-uuid'],
+        ],
       ],
     ];
   }

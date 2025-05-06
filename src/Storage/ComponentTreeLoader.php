@@ -59,7 +59,7 @@ final class ComponentTreeLoader {
       throw new \LogicException('For now XB only works if the entity is an xb_page or an article node! Other entity types and bundles must be tested before they are supported, to help see https://drupal.org/i/3493675.');
     }
 
-    $map = $this->entityFieldManager->getFieldMapByFieldType('component_tree');
+    $map = $this->entityFieldManager->getFieldMapByFieldType(ComponentTreeItem::PLUGIN_ID);
 
     foreach ($map[$entity->getEntityTypeId()] ?? [] as $field_name => $info) {
       if (in_array($entity->bundle(), $info['bundles'], TRUE)) {

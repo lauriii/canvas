@@ -180,6 +180,15 @@ final class PageTest extends KernelTestBase {
       ],
       $components->hydrated
     );
+    // See \Drupal\Tests\experience_builder\Kernel\Plugin\Field\FieldType\ComponentTreeItemTest and
+    // \Drupal\Tests\experience_builder\Unit\PropExpressionTest for extended test coverage,
+    // which combined with \Drupal\Tests\experience_builder\Kernel\PropSourceTest::testDynamicPropSource,
+    // does already prove that this will work correctly for EVERYTHING.
+    $this->assertSame('experience_builder.component.block.system_branding_block experience_builder.component.sdc.xb_test_sdc.props-slots ', $components->deps_config);
+    $this->assertSame(' ', $components->deps_content);
+    $this->assertSame(' ', $components->deps_module);
+    $this->assertSame(' ', $components->deps_theme);
+    $this->assertSame('field_type:string ', $components->deps_plugin);
   }
 
 }
