@@ -67,6 +67,7 @@ const ContentGroup = ({
               pr="2"
               className={styles.item}
               key={item.id}
+              data-xb-page-id={item.id}
             >
               <Flex
                 className={styles.pageLink}

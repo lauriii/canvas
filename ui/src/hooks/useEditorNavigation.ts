@@ -1,8 +1,7 @@
 import { useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAppSelector } from '@/app/hooks';
-import { selectBaseUrl } from '@/features/configuration/configurationSlice';
 import { DEFAULT_REGION } from '@/features/ui/uiSlice';
+import { getBaseUrl } from '@/utils/drupal-globals';
 
 const { drupalSettings } = window;
 
@@ -12,7 +11,7 @@ const { drupalSettings } = window;
  */
 export function useEditorNavigation() {
   const navigate = useNavigate();
-  const baseUrl = useAppSelector(selectBaseUrl);
+  const baseUrl = getBaseUrl();
 
   const setSelectedRegion = useCallback(
     (regionId: string) => {
@@ -26,10 +25,15 @@ export function useEditorNavigation() {
     [navigate],
   );
 
-  // @todo revisit approach (like using routing) in https://www.drupal.org/i/3502887
+  // @todo revisit approach (like using routing) and see if timeout can be removed in https://www.drupal.org/i/3502887
   const setEditorEntity = useCallback(
     (entityType: string, entityId: string) => {
-      window.location.href = `${baseUrl}xb/${entityType}/${entityId}`;
+      // Use a timeout to ensure that RTK query cleans up its subscriptions first before navigating away.
+      // Without this timeout, RTK throws an error because it tries to make a request following cache invalidation while
+      // the window.location.href is in progress.
+      setTimeout(() => {
+        window.location.href = `${baseUrl}xb/${entityType}/${entityId}`;
+      }, 100);
     },
     [baseUrl],
   );

@@ -36,6 +36,11 @@ import PageStatus from '@/components/pageStatus/PageStatus';
 import clsx from 'clsx';
 import styles from '@/components/topbar/menu/TopbarPopover.module.css';
 import Panel from '@/components/Panel';
+import {
+  selectEntityId,
+  selectEntityType,
+} from '@/features/configuration/configurationSlice';
+import { getBaseUrl } from '@/utils/drupal-globals';
 
 interface PageType {
   [key: string]: ReactElement;
@@ -70,7 +75,9 @@ const PageInfo = () => {
     isLoading: isPageItemsLoading,
     error: pageItemsError,
   } = useGetContentListQuery('xb_page');
-
+  const entityId = useAppSelector(selectEntityId);
+  const entityType = useAppSelector(selectEntityType);
+  const baseUrl = getBaseUrl();
   const [
     createContent,
     {
@@ -89,11 +96,29 @@ const PageInfo = () => {
   const [deleteContent, { error: deleteContentError }] =
     useDeleteContentMutation();
 
-  function handleDeletePage(item: ContentStub) {
-    deleteContent({
+  async function handleDeletePage(item: ContentStub) {
+    // Find another page to redirect to (filtering out the page being deleted)
+    const remainingPages =
+      pageItems?.filter((page) => page.id !== item.id) || [];
+    const pageToDeleteId = String(item.id);
+    await deleteContent({
       entityType: 'xb_page',
-      entityId: String(item.id),
+      entityId: pageToDeleteId,
     });
+    // If the current page is the one being deleted, redirect to first available page.
+    // @todo: Change this to redirect to the homepage in XB in https://www.drupal.org/i/3503412.
+    if (entityType === 'xb_page' && entityId === pageToDeleteId) {
+      if (remainingPages.length > 0) {
+        setEditorEntity('xb_page', String(remainingPages[0].id));
+      } else {
+        // If there are no more pages, redirect out of XB.
+        // @todo: Remove this in https://www.drupal.org/i/3506434
+        //   since deleting the homepage in XB should be disallowed in that issue so remaining pages should never be 0.
+        setTimeout(() => {
+          window.location.href = baseUrl;
+        }, 100);
+      }
+    }
   }
 
   function handleDuplication(item: ContentStub) {
