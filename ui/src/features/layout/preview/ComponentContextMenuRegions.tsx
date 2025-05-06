@@ -10,7 +10,7 @@ import type {
 import { moveNode } from '@/features/layout/layoutModelSlice';
 import { selectLayout } from '@/features/layout/layoutModelSlice';
 import { findParentRegion } from '@/features/layout/layoutUtils';
-import { useNavigationUtils } from '@/hooks/useNavigationUtils';
+import useComponentSelection from '@/hooks/useComponentSelection';
 
 interface CCMRProps {
   component: ComponentNode;
@@ -19,7 +19,7 @@ interface CCMRProps {
 const ComponentUnifiedMenuRegions: React.FC<CCMRProps> = (props) => {
   const { component } = props;
   const dispatch = useAppDispatch();
-  const { unsetSelectedComponent } = useNavigationUtils();
+  const { unsetSelectedComponent } = useComponentSelection();
   const layout = useAppSelector(selectLayout);
 
   const parentRegion = useMemo(() => {

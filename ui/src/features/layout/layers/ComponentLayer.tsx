@@ -6,6 +6,7 @@ import SidebarNode from '@/components/sidebar/SidebarNode';
 import { customSortableDragImage } from '@/features/sortable/sortableUtils';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import {
+  selectComponentIsSelected,
   selectHoveredComponent,
   setHoveredComponent,
   unsetHoveredComponent,
@@ -22,8 +23,7 @@ import ComponentContextMenu, {
 import useGetComponentName from '@/hooks/useGetComponentName';
 import * as Collapsible from '@radix-ui/react-collapsible';
 import SlotLayer from '@/features/layout/layers/SlotLayer';
-import { useNavigationUtils } from '@/hooks/useNavigationUtils';
-import useXbParams from '@/hooks/useXbParams';
+import useComponentSelection from '@/hooks/useComponentSelection';
 import styles from './ComponentLayer.module.css';
 import clsx from 'clsx';
 
@@ -39,17 +39,19 @@ const ComponentLayer: React.FC<ComponentLayerProps> = ({
   indent,
 }) => {
   const dispatch = useAppDispatch();
-  const { componentId: selectedComponent } = useXbParams();
   const hoveredComponent = useAppSelector(selectHoveredComponent);
   const [open, setOpen] = useState(false);
-  const { setSelectedComponent } = useNavigationUtils();
+  const { handleComponentSelection } = useComponentSelection();
 
   const componentId = component.uuid;
   const nodeName = useGetComponentName(component);
+  const isSelected = useAppSelector((state) =>
+    selectComponentIsSelected(state, componentId),
+  );
 
   function handleItemClick(event: React.MouseEvent<HTMLDivElement>) {
     event.stopPropagation();
-    setSelectedComponent(componentId);
+    handleComponentSelection(componentId, event.metaKey);
   }
 
   function handleItemMouseEnter(event: React.MouseEvent<HTMLDivElement>) {
@@ -77,7 +79,7 @@ const ComponentLayer: React.FC<ComponentLayerProps> = ({
     <Box
       data-xb-uuid={componentId}
       data-xb-type={component.nodeType}
-      data-xb-selected={selectedComponent === componentId}
+      data-xb-selected={isSelected}
       onClick={handleItemClick}
       onDragStart={handleItemDragStart}
       onContextMenu={handleContextMenu}
@@ -98,7 +100,7 @@ const ComponentLayer: React.FC<ComponentLayerProps> = ({
             title={nodeName}
             variant="component"
             hovered={hoveredComponent === componentId}
-            selected={selectedComponent === componentId}
+            selected={isSelected}
             open={open}
             dropdownMenuContent={
               <ComponentContextMenuContent
@@ -134,10 +136,7 @@ const ComponentLayer: React.FC<ComponentLayerProps> = ({
           />
           {component.slots.length > 0 && (
             <CollapsibleContent
-              className={clsx(
-                selectedComponent === componentId &&
-                  styles.componentChildrenSelected,
-              )}
+              className={clsx(isSelected && styles.componentChildrenSelected)}
             >
               {component.slots.map((slot) => (
                 <SlotLayer

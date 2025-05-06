@@ -29,7 +29,7 @@ import {
   useGetContentListQuery,
   useCreateContentMutation,
 } from '@/services/content';
-import { useNavigationUtils } from '@/hooks/useNavigationUtils';
+import useEditorNavigation from '@/hooks/useEditorNavigation';
 import { useErrorBoundary } from 'react-error-boundary';
 import type { ContentStub } from '@/types/Content';
 import PageStatus from '@/components/pageStatus/PageStatus';
@@ -52,7 +52,7 @@ const { drupalSettings } = window;
 
 const PageInfo = () => {
   const { showBoundary } = useErrorBoundary();
-  const { setEditorEntity } = useNavigationUtils();
+  const { setEditorEntity } = useEditorNavigation();
   const { regionId: focusedRegion = DEFAULT_REGION } = useXbParams();
   const codeComponentName = useAppSelector(selectName);
 

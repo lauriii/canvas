@@ -12,13 +12,12 @@ const ConceptProver = () => {
 
   // Get the available components list from the redux store.
   const availableComponents = useSelector((state) => {
-    return state?.componentAndLayoutApi?.queries['getComponents(undefined)']?.data;
+    return state?.componentAndLayoutApi?.queries['getComponents(undefined)']
+      ?.data;
   });
 
   // Get the uuid of the selected component from the Redux store.
-  const selectedComponent = useSelector(
-    (state) => state.ui.readOnlySelectedComponent,
-  );
+  const selectedComponent = useSelector((state) => state.ui.selection.items[0]);
   const itemsInLayout = [];
 
   const flatComponentsList = (components) => {
@@ -30,8 +29,6 @@ const ConceptProver = () => {
   theLayout.forEach((region) => {
     flatComponentsList(region.components || []);
   });
-
-
 
   // Create a dropdown with every available component as options.
   const componentsSelect = () => {
@@ -119,7 +116,7 @@ const ConceptProver = () => {
             onClick={() => {
               // Dispatch based on action name.
               // Update redux store so the layout item chosen is selected in the UI.
-              drupalSettings.xb.navUtils.setSelectedComponent(
+              drupalSettings.xb.componentSelectionUtils.setSelectedComponent(
                 selectedLayoutItem,
               );
             }}

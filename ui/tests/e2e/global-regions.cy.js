@@ -13,6 +13,15 @@ describe('Operate on components in global regions', () => {
     cy.drupalUninstall();
   });
 
+  it('Visits a global region URL directly', () => {
+    cy.drupalRelativeURL(`xb/node/1/editor/region/breadcrumb`);
+    cy.previewReady();
+
+    cy.url().should('contain', `/xb/node/1/editor/region/breadcrumb`);
+    // We should be in a region and so there should be an option to go back to the content region.
+    cy.findByTestId('xb-topbar').findByLabelText('Back to Content region');
+  });
+
   it('Can hover global regions', () => {
     cy.loadURLandWaitForXBLoaded();
     cy.log(

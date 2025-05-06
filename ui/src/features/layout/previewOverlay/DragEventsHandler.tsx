@@ -17,14 +17,14 @@ import {
   unsetTargetSlot,
 } from '@/features/ui/uiSlice';
 import _ from 'lodash';
-import { useNavigationUtils } from '@/hooks/useNavigationUtils';
+import useComponentSelection from '@/hooks/useComponentSelection';
 import type { Section } from '@/types/Section';
 
 const DragEventsHandler: React.FC = () => {
   const layout = useAppSelector(selectLayout);
   const dispatch = useAppDispatch();
   const [componentName, setComponentName] = useState('...');
-  const { setSelectedComponent } = useNavigationUtils();
+  const { setSelectedComponent } = useComponentSelection();
 
   const afterDrag = (elements: HTMLElement[] = [], successful?: boolean) => {
     elements.forEach((el) => {

@@ -6,6 +6,7 @@ import useSyncPreviewElementSize from '@/hooks/useSyncPreviewElementSize';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import {
   selectCanvasViewPortScale,
+  selectComponentIsSelected,
   selectDragging,
   selectIsComponentHovered,
   setHoveredComponent,
@@ -23,8 +24,7 @@ import ComponentContextMenu from '@/features/layout/preview/ComponentContextMenu
 import { getDistanceBetweenElements } from '@/utils/function-utils';
 import useGetComponentName from '@/hooks/useGetComponentName';
 import { useDataToHtmlMapValue } from '@/features/layout/preview/DataToHtmlMapContext';
-import { useNavigationUtils } from '@/hooks/useNavigationUtils';
-import useXbParams from '@/hooks/useXbParams';
+import useComponentSelection from '@/hooks/useComponentSelection';
 import ComponentDropZone from '@/features/layout/previewOverlay/ComponentDropZone';
 import { useDraggable } from '@dnd-kit/core';
 import type { StackDirection } from '@/types/Annotations';
@@ -64,13 +64,13 @@ const ComponentOverlay: React.FC<ComponentOverlayProps> = (props) => {
     verticalDistance: undefined,
   });
   const [initialized, setInitialized] = useState(false);
-  const { componentId: selectedComponent } = useXbParams();
   const isHovered = useAppSelector((state) => {
     return selectIsComponentHovered(state, component.uuid);
   });
   const canvasViewPortScale = useAppSelector(selectCanvasViewPortScale);
   const dispatch = useAppDispatch();
-  const { setSelectedComponent } = useNavigationUtils();
+  const { setSelectedComponent, handleComponentSelection } =
+    useComponentSelection();
   const { isDragging } = useAppSelector(selectDragging);
   const elementsInsideIframe = useRef<HTMLElement[] | []>([]);
   const name = useGetComponentName(component);
@@ -88,6 +88,10 @@ const ComponentOverlay: React.FC<ComponentOverlayProps> = (props) => {
       elementsInsideIframe: elementsInsideIframe.current,
     },
   });
+
+  const isSelected = useAppSelector((state) =>
+    selectComponentIsSelected(state, component.uuid),
+  );
 
   useEffect(() => {
     const iframeDocument = iframeRef.current?.contentDocument;
@@ -147,7 +151,7 @@ const ComponentOverlay: React.FC<ComponentOverlayProps> = (props) => {
 
   function handleComponentClick(event: React.MouseEvent<HTMLElement>) {
     event.stopPropagation();
-    setSelectedComponent(component.uuid);
+    handleComponentSelection(component.uuid, event.metaKey);
   }
 
   function handleItemMouseOver(event: React.MouseEvent<HTMLDivElement>) {
@@ -194,9 +198,9 @@ const ComponentOverlay: React.FC<ComponentOverlayProps> = (props) => {
       onMouseOut={handleItemMouseOut}
       onClick={handleComponentClick}
       onKeyDown={handleKeyDown}
-      data-xb-selected={component.uuid === selectedComponent}
+      data-xb-selected={isSelected}
       className={clsx('componentOverlay', styles.componentOverlay, {
-        [styles.selected]: component.uuid === selectedComponent,
+        [styles.selected]: isSelected,
         [styles.hovered]: isHovered,
       })}
       style={style}
@@ -218,7 +222,7 @@ const ComponentOverlay: React.FC<ComponentOverlayProps> = (props) => {
           data-xb-overlay="true"
         />
       </ComponentContextMenu>
-      {(isHovered || selectedComponent === component.uuid) && (
+      {(isHovered || isSelected) && (
         <div className={clsx(styles.xbNameTag)}>
           <ComponentNameTag
             name={name}

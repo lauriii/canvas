@@ -17,6 +17,22 @@ export const preventHover = (event: any) => {
   e.preventDefault();
 };
 
+/**
+ * Checks if an array of numbers contains consecutive values (each value is exactly one more than the previous).
+ * For example, [1,2,3,4] are consecutive but [1,2,4,5] are not.
+ *
+ * @param sortedIndexes - Array of numbers in ascending order to check for consecutiveness
+ * @returns True if all values are consecutive, or if the array has 0-1 elements. False otherwise.
+ */
+export function isConsecutive(sortedIndexes: number[]): boolean {
+  for (let i = 1; i < sortedIndexes.length; i++) {
+    if (sortedIndexes[i] !== sortedIndexes[i - 1] + 1) {
+      return false;
+    }
+  }
+  return true;
+}
+
 // Radix select items do not accept an empty string as a value prop. This is
 // a placeholder that is used instead, and parseValue() will convert it back
 // to an empty string if the item is selected.

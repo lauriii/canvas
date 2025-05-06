@@ -5,7 +5,7 @@ import ComponentLayer from '@/features/layout/layers/ComponentLayer';
 import type React from 'react';
 import { useCallback } from 'react';
 import SortableContainer from '@/features/layout/layers/SortableContainer';
-import { useNavigationUtils } from '@/hooks/useNavigationUtils';
+import useEditorNavigation from '@/hooks/useEditorNavigation';
 import { useNavigate } from 'react-router-dom';
 import useXbParams from '@/hooks/useXbParams';
 import {
@@ -18,7 +18,7 @@ import { useAppDispatch, useAppSelector } from '@/app/hooks';
 
 const RegionLayer: React.FC<{ region: RegionNode }> = ({ region }) => {
   const { regionId: focusedRegion = DEFAULT_REGION } = useXbParams();
-  const { setSelectedRegion } = useNavigationUtils();
+  const { setSelectedRegion } = useEditorNavigation();
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const isHovered = useAppSelector((state) => {

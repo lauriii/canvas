@@ -16,8 +16,8 @@ import Viewport from '@/features/layout/preview/Viewport';
 import ComponentHtmlMapProvider from '@/features/layout/preview/DataToHtmlMapContext';
 import { selectPageData } from '@/features/pageData/pageDataSlice';
 import { selectPreviewHtml } from '@/features/pagePreview/previewSlice';
-import { useParams } from 'react-router-dom';
 import { contentApi } from '@/services/content';
+import { selectSelectedComponentUuid } from '@/features/ui/uiSlice';
 
 interface PreviewProps {}
 
@@ -41,7 +41,7 @@ const Preview: React.FC<PreviewProps> = () => {
   const layout = useAppSelector(selectLayout);
   const updatePreview = useAppSelector(selectUpdatePreview);
   const model = useAppSelector(selectModel);
-  const { componentId: selectedComponent } = useParams();
+  const selectedComponent = useAppSelector(selectSelectedComponentUuid);
   const selectedComponentId = selectedComponent || 'noop';
   const entity_form_fields = useAppSelector(selectPageData);
   const [postPreview, { isLoading: isFetching }] = usePostPreviewMutation();

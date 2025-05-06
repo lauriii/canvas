@@ -1,9 +1,11 @@
 // cspell:ignore idontexist
 import {
+  areConsecutiveSiblings,
+  componentExistsInLayout,
+  findParentInfo,
+  findParentRegion,
   isChildNode,
   replaceUUIDsAndUpdateModel,
-  findParentRegion,
-  componentExistsInLayout,
 } from '@/features/layout/layoutUtils';
 import layoutFixture from '../fixtures/layout-default.json';
 import regionsLayoutFixture from '../fixtures/layout-regions.json';
@@ -256,6 +258,119 @@ describe('replaceUUIDsAndUpdateModel', () => {
         },
       ];
       const result = componentExistsInLayout(layout, 'js.counter');
+      expect(result).to.be.true;
+    });
+  });
+
+  describe('findParentInfo', () => {
+    it('should find parent info for a component in a region', () => {
+      // Component in header region
+      const regionComponent = findParentInfo(
+        regionsLayout.layout,
+        '13ea974f-cf74-406a-9171-dad5f96e805f',
+      );
+
+      expect(regionComponent).to.not.be.null;
+      expect(regionComponent.parentId).to.equal('header');
+      expect(regionComponent.parentType).to.equal('region');
+      expect(regionComponent.childIndex).to.equal(0);
+    });
+
+    it('should find parent info for a component in a slot', () => {
+      // Component in a slot
+      const slotComponent = findParentInfo(
+        regionsLayout.layout,
+        '8afbb203-ae72-4155-8319-8c7b1915787a',
+      );
+
+      expect(slotComponent).to.not.be.null;
+      expect(slotComponent.parentId).to.equal(
+        'ad3eff8e-2180-4be1-a60f-df3f2c5ac393/column_one',
+      );
+      expect(slotComponent.parentType).to.equal('slot');
+      expect(slotComponent.childIndex).to.equal(1); // It's the second component in the slot
+    });
+
+    it('should return null for non-existent component', () => {
+      const nonExistentComponent = findParentInfo(
+        regionsLayout.layout,
+        'non-existent-uuid',
+      );
+
+      expect(nonExistentComponent).to.be.null;
+    });
+  });
+
+  describe('areConsecutiveSiblings', () => {
+    it('should return true for a single component', () => {
+      const result = areConsecutiveSiblings(regionsLayout.layout, [
+        '13ea974f-cf74-406a-9171-dad5f96e805f',
+      ]);
+
+      expect(result).to.be.true;
+    });
+
+    it('should return true for consecutive siblings in a region', () => {
+      // Components in the highlighted region
+      const result = areConsecutiveSiblings(regionsLayout.layout, [
+        '70812c33-8706-4754-b0d4-3467a869bd69', // First component
+        'cb3078d3-7295-401a-8623-a838b3ae3350', // Second component
+      ]);
+
+      expect(result).to.be.true;
+    });
+
+    it('should return true for consecutive siblings in a slot', () => {
+      // Components in the column_one slot
+      const result = areConsecutiveSiblings(regionsLayout.layout, [
+        '9bee944d-a92d-42b9-a0ae-abae0080cdfa', // First component in slot
+        '8afbb203-ae72-4155-8319-8c7b1915787a', // Second component in slot
+      ]);
+
+      expect(result).to.be.true;
+    });
+
+    it('should return false for non-consecutive siblings in a region', () => {
+      // First and third components in highlighted region
+      const result = areConsecutiveSiblings(regionsLayout.layout, [
+        '70812c33-8706-4754-b0d4-3467a869bd69', // First component
+        '167aa265-2bb0-45f7-91bb-dedb64dabb3b', // Third component
+      ]);
+
+      expect(result).to.be.false;
+    });
+
+    it('should return false for components in different regions', () => {
+      // Component from header and component from highlighted
+      const result = areConsecutiveSiblings(regionsLayout.layout, [
+        '13ea974f-cf74-406a-9171-dad5f96e805f', // In header region
+        '70812c33-8706-4754-b0d4-3467a869bd69', // In highlighted region
+      ]);
+
+      expect(result).to.be.false;
+    });
+
+    it('should return false for components in different slots', () => {
+      // Component from one slot and component from region
+      const result = areConsecutiveSiblings(regionsLayout.layout, [
+        '8afbb203-ae72-4155-8319-8c7b1915787a', // In column_one slot
+        '13ea974f-cf74-406a-9171-dad5f96e805f', // In header region
+      ]);
+
+      expect(result).to.be.false;
+    });
+
+    it('should return false if any component does not exist', () => {
+      const result = areConsecutiveSiblings(regionsLayout.layout, [
+        '13ea974f-cf74-406a-9171-dad5f96e805f', // Existing component
+        'non-existent-uuid', // Non-existent component
+      ]);
+
+      expect(result).to.be.false;
+    });
+
+    it('should return true for empty array of UUIDs', () => {
+      const result = areConsecutiveSiblings(regionsLayout.layout, []);
       expect(result).to.be.true;
     });
   });

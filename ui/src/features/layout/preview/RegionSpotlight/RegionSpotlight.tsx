@@ -1,18 +1,27 @@
 import { useEffect, useState } from 'react';
 import { useDataToHtmlMapValue } from '@/features/layout/preview/DataToHtmlMapContext';
-import { DEFAULT_REGION, selectDragging } from '@/features/ui/uiSlice';
+import {
+  clearSelection,
+  DEFAULT_REGION,
+  selectDragging,
+} from '@/features/ui/uiSlice';
 import { Spotlight } from '@/components/spotlight/Spotlight';
 import useXbParams from '@/hooks/useXbParams';
-import { useAppSelector } from '@/app/hooks';
+import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import useSyncPreviewElementSize from '@/hooks/useSyncPreviewElementSize';
-type Props = {};
 
-export const RegionSpotlight = (props: Props) => {
+export const RegionSpotlight = () => {
   const { regionsMap } = useDataToHtmlMapValue();
   const { regionId: focusedRegion = DEFAULT_REGION } = useXbParams();
   const [spotlight, setSpotlight] = useState(false);
   const rect = useSyncPreviewElementSize(regionsMap[focusedRegion]?.elements);
   const { isDragging } = useAppSelector(selectDragging);
+  const dispatch = useAppDispatch();
+
+  useEffect(() => {
+    // When focusing into a different region, clear the multi selection
+    dispatch(clearSelection());
+  }, [dispatch, focusedRegion]);
 
   useEffect(() => {
     if (focusedRegion && regionsMap) {

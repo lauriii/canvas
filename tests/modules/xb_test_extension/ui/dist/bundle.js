@@ -2112,7 +2112,7 @@
 
     // Get the uuid of the selected component from the Redux store.
     var selectedComponent = useSelector(function (state) {
-      return state.ui.readOnlySelectedComponent;
+      return state.ui.selection.items[0];
     });
     var itemsInLayout = [];
     var _flatComponentsList = function flatComponentsList(components) {
@@ -2198,7 +2198,7 @@
           onClick: function onClick() {
             // Dispatch based on action name.
             // Update redux store so the layout item chosen is selected in the UI.
-            drupalSettings.xb.navUtils.setSelectedComponent(selectedLayoutItem);
+            drupalSettings.xb.componentSelectionUtils.setSelectedComponent(selectedLayoutItem);
           },
           children: "focus"
         }), selectedLayoutItem && /*#__PURE__*/jsxRuntimeExports.jsx(Button, {

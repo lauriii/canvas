@@ -1,5 +1,6 @@
 import { createAppSlice } from '@/app/createAppSlice';
 import type { PayloadAction } from '@reduxjs/toolkit';
+import { createSelector } from '@reduxjs/toolkit';
 
 export interface DraggingStatus {
   isDragging: boolean;
@@ -12,6 +13,11 @@ export interface CanvasViewPort {
   x: number;
   y: number;
   scale: number;
+}
+
+export interface Selection {
+  consecutive: boolean;
+  items: string[];
 }
 
 export const DEFAULT_REGION = 'content' as const;
@@ -28,8 +34,8 @@ export interface uiSliceState {
   zooming: boolean;
   dragging: DraggingStatus;
   panning: boolean;
-  readOnlySelectedComponent: string | undefined;
   hoveredComponent: string | undefined; //uuid of component
+  selection: Selection;
   targetSlot: string | undefined; //uuid of slot being hovered when dragging
   canvasViewport: CanvasViewPort;
   latestUndoRedoActionId: string;
@@ -55,7 +61,6 @@ export const initialState: uiSliceState = {
     previewDragging: false,
   },
   panning: false,
-  readOnlySelectedComponent: undefined,
   hoveredComponent: undefined,
   targetSlot: undefined,
   canvasViewport: {
@@ -68,6 +73,10 @@ export const initialState: uiSliceState = {
   latestUndoRedoActionId: '',
   firstLoadComplete: false,
   canvasMode: CanvasMode.EDIT,
+  selection: {
+    consecutive: false,
+    items: [],
+  },
 };
 
 interface ScaleValue {
@@ -168,14 +177,6 @@ export const uiSlice = createAppSlice({
       state.dragging.isDragging = action.payload;
       state.dragging.listDragging = action.payload;
     }),
-    _setReadOnlySelectedComponent: create.reducer(
-      (state, action: PayloadAction<string | undefined>) => {
-        // Store the selected component ID (readOnlySelectedComponent) in Redux to allow Hyperscriptify
-        // and extensions to access the value from the store (they are unable to access the value from the Router).
-        // Updated when the URL params are changed but setting it from elsewhere will NOT update the URL!
-        state.readOnlySelectedComponent = action.payload;
-      },
-    ),
     setIsPanning: create.reducer((state, action: PayloadAction<boolean>) => {
       state.panning = action.payload;
     }),
@@ -239,12 +240,29 @@ export const uiSlice = createAppSlice({
         state.firstLoadComplete = action.payload;
       },
     ),
-    setCanvasModeEditing: create.reducer((state, action) => {
+    setCanvasModeEditing: create.reducer((state) => {
       state.canvasMode = CanvasMode.EDIT;
     }),
-    setCanvasModeInteractive: create.reducer((state, action) => {
+    setCanvasModeInteractive: create.reducer((state) => {
       state.canvasMode = CanvasMode.INTERACTIVE;
     }),
+    clearSelection: create.reducer((state) => {
+      state.selection.items.length = 0;
+    }),
+    setSelection: create.reducer(
+      (
+        state,
+        action: PayloadAction<{ items: string[]; consecutive?: boolean }>,
+      ) => {
+        state.selection.items = [...action.payload.items];
+        if (action.payload.items.length <= 1) {
+          // if there is only one (or no) items selected, then consecutive is always true.
+          state.selection.consecutive = true;
+        } else {
+          state.selection.consecutive = action.payload.consecutive || false;
+        }
+      },
+    ),
   }),
   // You can define your selectors here. These selectors receive the slice
   // state as their first argument.
@@ -289,6 +307,24 @@ export const uiSlice = createAppSlice({
     selectCanvasMode: (ui): CanvasMode => {
       return ui.canvasMode;
     },
+    selectSelection: (ui): Selection => {
+      return ui.selection;
+    },
+    selectIsMultiSelect: (ui): boolean => {
+      // True when there are multiple components selected
+      return ui.selection.items.length > 1;
+    },
+    selectIsSingleSelect: (ui): boolean => {
+      // True when there's exactly one component selected
+      return ui.selection.items.length === 1;
+    },
+    selectSelectedComponentUuid: (ui): string | undefined => {
+      // Returns the selected component ID when in single-select mode
+      // Returns undefined when in multi-select mode
+      return ui.selection.items.length === 1
+        ? ui.selection.items[0]
+        : undefined;
+    },
   },
 });
 
@@ -300,7 +336,6 @@ export const {
   setListDragging,
   setIsPanning,
   setIsZooming,
-  _setReadOnlySelectedComponent,
   setHoveredComponent,
   setTargetSlot,
   unsetHoveredComponent,
@@ -315,15 +350,15 @@ export const {
   setCanvasModeInteractive,
   pushUndo,
   performUndoOrRedo,
+  clearSelection,
+  setSelection,
 } = uiSlice.actions;
 
-// Selectors returned by `slice.selectors` take the root state as their first argument.
 export const {
   selectDragging,
   selectPanning,
   selectZooming,
   selectHoveredComponent,
-  selectIsComponentHovered,
   selectNoComponentIsHovered,
   selectTargetSlot,
   selectCanvasViewPort,
@@ -333,7 +368,53 @@ export const {
   selectCanvasMode,
   selectUndoType,
   selectRedoType,
+  selectSelection,
+  selectIsMultiSelect,
 } = uiSlice.selectors;
+
+// Memoized selectors using createSelector for better performance
+// These selectors only recompute when their inputs change
+
+/**
+ * Checks if a component is selected
+ * @param state Redux state
+ * @param componentId ID of the component to check
+ * @returns boolean indicating if the component is selected
+ */
+export const selectComponentIsSelected = createSelector(
+  [
+    (state: { ui: uiSliceState }) => state.ui.selection.items,
+    (_: any, componentId: string) => componentId,
+  ],
+  (items: string[], componentId: string): boolean =>
+    items.includes(componentId),
+);
+
+/**
+ * Checks if a component is currently hovered
+ * @param state Redux state
+ * @param uuid ID of the component to check
+ * @returns boolean indicating if the component is hovered
+ */
+export const selectIsComponentHovered = createSelector(
+  [
+    (state: { ui: uiSliceState }) => state.ui.hoveredComponent,
+    (_: any, uuid: string) => uuid,
+  ],
+  (hoveredComponent: string | undefined, uuid: string): boolean =>
+    hoveredComponent === uuid,
+);
+
+/**
+ * Gets the UUID of the selected component when in single-select mode
+ * @param state Redux state
+ * @returns The UUID of the selected component or undefined if none or multiple selected
+ */
+export const selectSelectedComponentUuid = createSelector(
+  [(state: { ui: uiSliceState }) => state.ui.selection.items],
+  (items: string[]): string | undefined =>
+    items.length === 1 ? items[0] : undefined,
+);
 
 export const uiSliceReducer = uiSlice.reducer;
 

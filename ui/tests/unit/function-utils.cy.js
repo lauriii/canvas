@@ -1,9 +1,10 @@
 import {
+  getElementsByIdInHTMLComment,
+  getSlotParentElementByIdInHTMLComment,
+  getSlotParentsByHTMLComments,
+  isConsecutive,
   mapComponents,
   mapSlots,
-  getElementsByIdInHTMLComment,
-  getSlotParentsByHTMLComments,
-  getSlotParentElementByIdInHTMLComment,
 } from '@/utils/function-utils.ts';
 
 const pageHTML = `<!DOCTYPE html>
@@ -245,5 +246,46 @@ describe('getSlotParentElementByIdInHTMLComment', () => {
       doc,
     );
     expect(slotParentForNonExistent).to.be.null;
+  });
+});
+
+describe('isConsecutive', () => {
+  it('should return true for empty array', () => {
+    expect(isConsecutive([])).to.be.true;
+  });
+
+  it('should return true for array with single element', () => {
+    expect(isConsecutive([5])).to.be.true;
+  });
+
+  it('should return true for consecutive numbers in order', () => {
+    expect(isConsecutive([1, 2, 3, 4, 5])).to.be.true;
+    expect(isConsecutive([10, 11, 12])).to.be.true;
+    expect(isConsecutive([-3, -2, -1, 0])).to.be.true;
+  });
+
+  it('should return false for non-consecutive numbers', () => {
+    expect(isConsecutive([1, 2, 4, 5])).to.be.false;
+    expect(isConsecutive([1, 3, 5, 7])).to.be.false;
+    expect(isConsecutive([5, 4, 3, 2, 1])).to.be.false; // Reverse order
+  });
+
+  it('should return false for numbers with gaps', () => {
+    expect(isConsecutive([1, 2, 5])).to.be.false;
+    expect(isConsecutive([0, 2, 4])).to.be.false;
+    expect(isConsecutive([10, 12, 14])).to.be.false;
+  });
+
+  it('should return true for consecutive numbers with any starting point', () => {
+    expect(isConsecutive([100, 101, 102, 103])).to.be.true;
+    expect(isConsecutive([-10, -9, -8])).to.be.true;
+    expect(isConsecutive([0, 1, 2])).to.be.true;
+  });
+
+  it('should handle arrays that need to be sorted', () => {
+    // Note: The function expects a pre-sorted array, so unsorted arrays
+    // are not guaranteed to work properly
+    expect(isConsecutive([3, 1, 2])).to.be.false; // Unsorted not guaranteed to work
+    expect(isConsecutive([1, 2, 3])).to.be.true; // Sorted works correctly
   });
 });

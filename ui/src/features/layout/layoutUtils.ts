@@ -9,6 +9,7 @@ import type {
 import { NodeType } from './layoutModelSlice';
 import { v4 as uuidv4 } from 'uuid';
 import { setXbDrupalSetting } from '@/features/drupal/drupalUtil';
+import { isConsecutive } from '@/utils/function-utils';
 
 type NodeFunction = (
   node: ComponentNode,
@@ -122,6 +123,114 @@ function findByIdentifier(
     }
   }
   return null;
+}
+
+/**
+ * Finds the parent information and index of a component
+ * @param roots - The root region nodes to search in
+ * @param uuid - UUID of the component to find the parent for
+ * @returns Object with parentId, parentType, and childIndex, or null if not found
+ */
+export function findParentInfo(
+  roots: Array<RegionNode>,
+  uuid: string,
+): { parentId: string; parentType: string; childIndex: number } | null {
+  // Check if component is directly in a region
+  for (const region of roots) {
+    for (let i = 0; i < region.components.length; i++) {
+      if (region.components[i].uuid === uuid) {
+        return {
+          parentId: region.id,
+          parentType: 'region',
+          childIndex: i,
+        };
+      }
+    }
+  }
+
+  // Track the parent as we recurse through the tree
+  let result: {
+    parentId: string;
+    parentType: string;
+    childIndex: number;
+  } | null = null;
+
+  // Use recurseNodes to search for the component in the tree
+  const findParent = (node: ComponentNode) => {
+    // For each slot in this component
+    for (const slot of node.slots) {
+      // Check if the component is a direct child of this slot
+      for (let i = 0; i < slot.components.length; i++) {
+        if (slot.components[i].uuid === uuid) {
+          result = {
+            parentId: slot.id,
+            parentType: 'slot',
+            childIndex: i,
+          };
+          return;
+        }
+      }
+    }
+  };
+
+  // Apply the function to all nodes in the tree
+  for (const region of roots) {
+    recurseNodes(region, findParent);
+    if (result) break;
+  }
+
+  return result;
+}
+
+/**
+ * Checks if all the components with the given UUIDs are consecutive siblings
+ * (share the same parent slot or region AND are consecutive in order)
+ * @param roots - The root region nodes to search in
+ * @param uuids - Array of component UUIDs to check
+ * @returns True if all components are consecutive siblings, false otherwise
+ */
+export function areConsecutiveSiblings(
+  roots: Array<RegionNode>,
+  uuids: string[],
+): boolean {
+  // If there are no UUIDs or only one, they're considered siblings by default
+  if (uuids.length <= 1) {
+    return true;
+  }
+
+  // Map each UUID to its parent info (which includes child index)
+  const parentInfos = uuids
+    .map((uuid) => findParentInfo(roots, uuid))
+    .filter((info) => info !== null) as Array<{
+    parentId: string;
+    parentType: string;
+    childIndex: number;
+  }>;
+
+  // If any component wasn't found, return false
+  if (parentInfos.length !== uuids.length) {
+    return false;
+  }
+
+  // First check if all components have the same parent
+  const firstParent = parentInfos[0];
+
+  const allSameParent = parentInfos.every(
+    (info) =>
+      info.parentId === firstParent.parentId &&
+      info.parentType === firstParent.parentType,
+  );
+
+  if (!allSameParent) {
+    return false;
+  }
+
+  // Sort the entries by child index
+  const sortedIndexes = parentInfos
+    .map((info) => info.childIndex)
+    .sort((a, b) => a - b);
+
+  return isConsecutive(sortedIndexes);
 }
 
 /**
@@ -484,6 +593,35 @@ export function componentExistsInLayout(
   return exists;
 }
 
+/**
+ * Checks if a component is a parent of another component by recursively traversing the layout tree
+ * @param possibleParent - The component to check if it's a parent
+ * @param childUuid - UUID of the potential child component
+ * @returns true if possibleParent is a parent (or ancestor) of the component with childUuid
+ */
+export function isParentOf(
+  possibleParent: ComponentNode,
+  childUuid: string,
+): boolean {
+  // Check direct child components in each slot
+  for (const slot of possibleParent.slots) {
+    for (const component of slot.components) {
+      // If this component is the one we're looking for, we found a match
+      if (component.uuid === childUuid) {
+        return true;
+      }
+
+      // Recursively check if any of this component's children match
+      if (isParentOf(component, childUuid)) {
+        return true;
+      }
+    }
+  }
+
+  // No matches found
+  return false;
+}
+
 // Add the utils provided here to drupalSettings, so extensions have access to
 // them.
 const layoutUtils = {
@@ -501,5 +639,8 @@ const layoutUtils = {
   replaceUUIDsAndUpdateModel,
   findParentRegion,
   componentExistsInLayout,
+  isParentOf,
+  findParentInfo,
+  areConsecutiveSiblings,
 };
 setXbDrupalSetting('layoutUtils', layoutUtils);

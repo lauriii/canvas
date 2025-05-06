@@ -9,6 +9,7 @@ import {
   selectNoComponentIsHovered,
   selectTargetSlot,
 } from '@/features/ui/uiSlice';
+import { selectSelectedComponentUuid } from '@/features/ui/uiSlice';
 import useXbParams from '@/hooks/useXbParams';
 
 const VARIANTS = {
@@ -89,7 +90,7 @@ export const RegionNameTag: React.FC<NameTagProps> = (props) => {
 
 export const ComponentNameTag: React.FC<NameTagProps> = (props) => {
   const { name, id } = props;
-  const { componentId: selectedComponent } = useXbParams();
+  const selectedComponent = useAppSelector(selectSelectedComponentUuid);
   const { isDragging } = useAppSelector(selectDragging);
   const isSelected = id === selectedComponent;
   const isHovered = useAppSelector((state) => {

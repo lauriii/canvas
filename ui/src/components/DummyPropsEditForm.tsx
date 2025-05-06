@@ -20,11 +20,13 @@ import type {
 } from '@/features/layout/layoutModelSlice';
 import { isEvaluatedComponentModel } from '@/features/layout/layoutModelSlice';
 import { selectModel, selectLayout } from '@/features/layout/layoutModelSlice';
-import { selectLatestUndoRedoActionId } from '@/features/ui/uiSlice';
+import {
+  selectLatestUndoRedoActionId,
+  selectSelectedComponentUuid,
+} from '@/features/ui/uiSlice';
 import { useGetComponentsQuery } from '@/services/componentAndLayout';
 import { findComponentByUuid } from '@/features/layout/layoutUtils';
 import { useDrupalBehaviors } from '@/hooks/useDrupalBehaviors';
-import useXbParams from '@/hooks/useXbParams';
 import { clearFieldValues } from '@/features/form/formStateSlice';
 import type { FieldData } from '@/types/Component';
 import type { XBComponent } from '@/types/Component';
@@ -55,8 +57,8 @@ const DummyPropsEditFormRenderer: React.FC<DummyPropsEditFormRendererProps> = (
   props,
 ) => {
   const { dynamicStaticCardQueryString } = props;
-  const { componentId: selectedComponent } = useXbParams();
   const { showBoundary } = useErrorBoundary();
+  const selectedComponent = useAppSelector(selectSelectedComponentUuid);
 
   const [jsxFormContent, setJsxFormContent] =
     useState<React.ReactElement | null>(null);
@@ -237,7 +239,7 @@ const DummyPropsEditForm: React.FC<DummyPropsEditFormProps> = () => {
   const layout = useAppSelector(selectLayout);
   const { data: components, error } = useGetComponentsQuery();
   const { showBoundary } = useErrorBoundary();
-  const { componentId: selectedComponent } = useXbParams();
+  const selectedComponent = useAppSelector(selectSelectedComponentUuid);
   const latestUndoRedoActionId = useAppSelector(selectLatestUndoRedoActionId);
 
   const [dynamicStaticCardQueryString, setDynamicStaticCardQueryString] =

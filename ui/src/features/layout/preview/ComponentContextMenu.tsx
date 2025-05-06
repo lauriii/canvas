@@ -18,8 +18,8 @@ import {
 import { setDialogOpen } from '@/features/ui/dialogSlice';
 import useGetComponentName from '@/hooks/useGetComponentName';
 import ComponentContextMenuRegions from '@/features/layout/preview/ComponentContextMenuRegions';
-import { useNavigationUtils } from '@/hooks/useNavigationUtils';
-import useXbParams from '@/hooks/useXbParams';
+import useComponentSelection from '@/hooks/useComponentSelection';
+import { selectSelectedComponentUuid } from '@/features/ui/uiSlice';
 import useCopyPasteComponents from '@/hooks/useCopyPasteComponents';
 
 interface ComponentContextMenuProps {
@@ -35,8 +35,9 @@ export const ComponentContextMenuContent: React.FC<
   const dispatch = useAppDispatch();
   const componentName = useGetComponentName(component);
   const canvasViewPort = useAppSelector(selectCanvasViewPort);
-  const { componentId: selectedComponent } = useXbParams();
-  const { setSelectedComponent, unsetSelectedComponent } = useNavigationUtils();
+  const selectedComponent = useAppSelector(selectSelectedComponentUuid);
+  const { setSelectedComponent, unsetSelectedComponent } =
+    useComponentSelection();
   const componentUuid = component.uuid;
   const { copySelectedComponent, pasteAfterSelectedComponent } =
     useCopyPasteComponents();

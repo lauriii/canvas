@@ -24,6 +24,7 @@ export const PrimaryPanel = () => {
   return (
     <Panel
       className={clsx(styles.primaryPanel, ...offLeftClasses)}
+      pt="3"
       data-testid="xb-primary-panel"
     >
       <Flex direction="column" height="100%">
@@ -33,7 +34,7 @@ export const PrimaryPanel = () => {
           value={activePanel}
           className={clsx(styles.tabRoot)}
         >
-          <Tabs.List justify="center" mx="4">
+          <Tabs.List justify="start" mx="4" size="1">
             <Tabs.Trigger value="layers" data-testid="xb-primary-panel--layers">
               Layers
             </Tabs.Trigger>

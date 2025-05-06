@@ -1,17 +1,9 @@
 import { useParams } from 'react-router-dom';
-import { _setReadOnlySelectedComponent } from '@/features/ui/uiSlice';
-import { useAppDispatch } from '@/app/hooks';
-import { useEffect } from 'react';
 
+// TODO this can be refactored away in a later MR, but don't want to pollute my MR with changing all the places
+// useXbParams is called. https://www.drupal.org/i/3522387
 function useXbParams() {
-  const dispatch = useAppDispatch();
-  const params = useParams();
-
-  useEffect(() => {
-    dispatch(_setReadOnlySelectedComponent(params?.componentId));
-  }, [dispatch, params]);
-
-  return params;
+  return useParams();
 }
 
 export default useXbParams;

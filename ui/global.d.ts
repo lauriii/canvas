@@ -20,6 +20,7 @@ interface DrupalSettings {
       jsFooter: string;
     };
     layoutUtils: PropsValues;
+    componentSelectionUtils: PropsValues;
     navUtils: PropsValues;
     xbModulePath: string;
     selectedComponent: string;

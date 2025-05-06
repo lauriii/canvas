@@ -21,7 +21,7 @@ import useSyncPreviewElementSize from '@/hooks/useSyncPreviewElementSize';
 import useXbParams from '@/hooks/useXbParams';
 import RegionDropZone from '@/features/layout/previewOverlay/RegionDropZone';
 import EmptyRegionDropZone from '@/features/layout/previewOverlay/EmptyRegionDropZone';
-import { useNavigationUtils } from '@/hooks/useNavigationUtils';
+import useEditorNavigation from '@/hooks/useEditorNavigation';
 
 interface RegionOverlayProps {
   iframeRef: React.RefObject<HTMLIFrameElement>;
@@ -53,7 +53,7 @@ const RegionOverlay: React.FC<RegionOverlayProps> = ({
   const isHovered = useAppSelector((state) => {
     return selectIsComponentHovered(state, region.id);
   });
-  const { setSelectedRegion } = useNavigationUtils();
+  const { setSelectedRegion } = useEditorNavigation();
 
   const showHovered = isHovered && focusedRegion === DEFAULT_REGION;
 

@@ -9,9 +9,11 @@ import { useAppDispatch } from '@/app/hooks';
 import ExtensionDialog from '@/components/extensions/ExtensionDialog';
 import SectionDialogs from '@/features/section/SectionDialogs';
 import useLayoutWatcher from '@/hooks/useLayoutWatcher';
+import useSyncParamsToState from '@/hooks/useSyncParamsToState';
 const Editor = () => {
   const dispatch = useAppDispatch();
   useLayoutWatcher();
+  useSyncParamsToState();
 
   useEffect(() => {
     return () => {
