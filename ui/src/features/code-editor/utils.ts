@@ -10,6 +10,8 @@ import type {
   CodeComponentSlot,
   CodeComponentSlotSerialized,
   CodeComponentPropImageExample,
+  CodeComponent,
+  CodeComponentSerialized,
 } from '@/types/CodeComponent';
 import type { File } from '@babel/types';
 
@@ -254,11 +256,23 @@ export function deserializeSlots(
 }
 
 /**
+ * Deserializes a code component.
+ */
+export function deserializeCodeComponent(
+  codeComponent: CodeComponentSerialized,
+): CodeComponent {
+  return {
+    ...codeComponent,
+    props: deserializeProps(codeComponent.props),
+    slots: deserializeSlots(codeComponent.slots),
+  };
+}
+
+/**
  * Extracts import statements from an AST.
  *
  * @param ast - ast object.
  * @param scope - An optional string to filter imports by a specific scope. If provided, only imports starting with this scope are included.
- * @returns An array of import paths. If a scope is provided, the paths are trimmed to exclude the scope prefix.
  */
 export const getImportsFromAst = (ast: File, scope?: string) =>
   ast.program.body

@@ -18,6 +18,7 @@
     "build:astro": "npm run build -w lib/astro-hydration",
     "preview": "vite preview",
     "test": "vitest run",
+    "test:watch": "vitest watch",
     "prettier:fix": "prettier .. --write --config ../.prettierrc.json --ignore-path ../.prettierignore",
     "prettier:check": "prettier .. --check --config ../.prettierrc.json --ignore-path ../.prettierignore",
     "lint:eslint": "eslint . --max-warnings=0",
@@ -93,10 +94,9 @@
     "@storybook/react-vite": "^8.4.2",
     "@storybook/test": "^8.4.2",
     "@testing-library/cypress": "^10.0.2",
-    "@testing-library/dom": "^9.3.4",
-    "@testing-library/jest-dom": "^6.2.0",
-    "@testing-library/react": "^14.1.2",
-    "@testing-library/user-event": "^14.5.2",
+    "@testing-library/dom": "^10.4.0",
+    "@testing-library/react": "^16.3.0",
+    "@testing-library/user-event": "^14.6.1",
     "@types/babylon": "^6.16.9",
     "@types/lodash": "^4.17.0",
     "@types/qs": "^6.9.18",
@@ -121,7 +121,7 @@
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-storybook": "^0.11.0",
     "globals": "^16.0.0",
-    "jsdom": "^23.2.0",
+    "jsdom": "^26.1.0",
     "prettier": "^3.2.1",
     "storybook": "^8.4.2",
     "style-loader": "^4.0.0",
@@ -130,6 +130,6 @@
     "typescript-eslint": "^8.31.1",
     "vite": "^5.0.11",
     "vite-plugin-svgr": "^4.3.0",
-    "vitest": "^1.2.0"
+    "vitest": "^3.1.2"
   }
 }

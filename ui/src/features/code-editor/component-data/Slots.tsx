@@ -5,8 +5,7 @@ import {
   addSlot,
   removeSlot,
   reorderSlots,
-  selectSlots,
-  selectStatus,
+  selectCodeComponentProperty,
   updateSlot,
 } from '@/features/code-editor/codeEditorSlice';
 import FormPropTypeSlot from '@/features/code-editor/component-data/forms/FormPropTypeSlot';
@@ -19,8 +18,8 @@ import type { CodeComponentSlot } from '@/types/CodeComponent';
 
 export default function Slots() {
   const dispatch = useAppDispatch();
-  const slots = useAppSelector(selectSlots);
-  const componentStatus = useAppSelector(selectStatus);
+  const slots = useAppSelector(selectCodeComponentProperty('slots'));
+  const componentStatus = useAppSelector(selectCodeComponentProperty('status'));
 
   const handleAddSlot = () => {
     dispatch(addSlot());

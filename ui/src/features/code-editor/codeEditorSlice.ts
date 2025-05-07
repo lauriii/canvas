@@ -8,147 +8,153 @@ import {
   serializeSlots,
 } from '@/features/code-editor/utils';
 import type {
+  AssetLibrary,
+  CodeComponent,
   CodeComponentProp,
-  CodeComponentSlot,
   CodeComponentSerialized,
+  CodeComponentSlot,
 } from '@/types/CodeComponent';
 
 interface CodeEditorState {
-  isEditorReady: boolean;
-  isGlobalCssEditorReady: boolean;
-  hasCompletedFirstCompilation: boolean;
-  id: string;
-  status: boolean;
-  name: string;
-  sourceCodeCss: string;
-  compiledCss: string;
-  sourceCodeJs: string;
-  compiledJs: string;
-  sourceCodeGlobalCss: string;
-  blockOverride: string | null;
-  props: CodeComponentProp[];
-  slots: CodeComponentSlot[];
-  required: string[];
-  importedJsComponents: string[];
+  status: CodeEditorStatusOptions;
+  codeComponent: CodeComponent;
+  globalAssetLibrary: AssetLibrary;
+  previewCompiledJsForSlots: string;
 }
 
-const initialState: CodeEditorState = {
-  isEditorReady: false,
-  isGlobalCssEditorReady: false,
-  hasCompletedFirstCompilation: false,
-  id: '',
-  status: false,
-  name: '',
-  sourceCodeJs: '',
-  compiledJs: '',
-  sourceCodeCss: '',
-  compiledCss: '',
-  sourceCodeGlobalCss: '',
-  blockOverride: null,
-  props: [],
-  slots: [],
-  required: [],
-  importedJsComponents: [],
+interface CodeEditorStatusOptions {
+  needsAutoSave: boolean;
+  needsAutoSaveOnFirstCompilation: boolean;
+  compilationError: boolean;
+  isCompiling: boolean;
+  isSaving: boolean;
+}
+
+export const initialState: CodeEditorState = {
+  status: {
+    needsAutoSave: false,
+    needsAutoSaveOnFirstCompilation: false,
+    compilationError: false,
+    isCompiling: false,
+    isSaving: false,
+  },
+  codeComponent: {
+    machineName: '',
+    name: '',
+    status: false,
+    block_override: null,
+    props: [],
+    required: [],
+    slots: [],
+    source_code_js: '',
+    source_code_css: '',
+    compiled_js: '',
+    compiled_css: '',
+    imported_js_components: [],
+  },
+  globalAssetLibrary: {
+    id: 'global',
+    label: 'Global',
+    css: {
+      original: '',
+      compiled: '',
+    },
+    js: {
+      original: '',
+      compiled: '',
+    },
+  },
+  previewCompiledJsForSlots: '',
 };
 
 export const codeEditorSlice = createSlice({
   name: 'codeEditor',
   initialState,
+
   reducers: (create) => ({
     initializeCodeEditor: create.reducer(
       (
         state,
+        action: PayloadAction<{
+          codeComponent: CodeComponent;
+          globalAssetLibrary: AssetLibrary;
+          status?: Partial<CodeEditorStatusOptions>;
+        }>,
+      ) => ({
+        // Note that we're starting from the initial state, has `needsAutoSave`
+        // set to false.
+        // The `setCodeComponent` and `setGlobalAssetLibrary` actions will set
+        // `needsAutoSave` to true by default.
+        ...initialState,
+        codeComponent: {
+          ...initialState.codeComponent,
+          ...action.payload.codeComponent,
+          // Do not use previously compiled code. It will be re-compiled.
+          compiled_css: '',
+          compiled_js: '',
+        },
+        globalAssetLibrary: {
+          ...initialState.globalAssetLibrary,
+          ...action.payload.globalAssetLibrary,
+          css: {
+            ...initialState.globalAssetLibrary.css,
+            ...action.payload.globalAssetLibrary.css,
+            // Do not use previously compiled CSS. It will be re-compiled.
+            compiled: '',
+          },
+        },
+        status: {
+          ...initialState.status,
+          ...action.payload.status,
+        },
+      }),
+    ),
+
+    resetCodeEditor: create.reducer(() => initialState),
+
+    setStatus: create.reducer(
+      (state, action: PayloadAction<Partial<CodeEditorStatusOptions>>) => ({
+        ...state,
+        status: { ...state.status, ...action.payload },
+      }),
+    ),
+
+    /**
+     * Sets a property of the code component and sets the `needsAutoSave` status
+     * to true by default.
+     *
+     * @param [0] - The property to set.
+     * @param [1] - The value to set.
+     * @param [2] - (optional) A partial status object to override the existing status.
+     *   By default, auto-save will be set to true.
+     */
+    setCodeComponentProperty: create.reducer(
+      (
+        state,
         action: PayloadAction<
-          Omit<
-            CodeEditorState,
-            | 'sourceCodeGlobalCss'
-            | 'isEditorReady'
-            | 'isGlobalCssEditorReady'
-            | 'hasCompletedFirstCompilation'
-            | 'compiledJs'
-            | 'compiledCss'
-          >
+          | [keyof CodeComponent, CodeComponent[keyof CodeComponent]]
+          | [
+              keyof CodeComponent,
+              CodeComponent[keyof CodeComponent],
+              Partial<CodeEditorStatusOptions>,
+            ]
         >,
-      ) => {
-        state.isEditorReady = false;
-        state.hasCompletedFirstCompilation = false;
-        state.id = action.payload.id;
-        state.status = action.payload.status;
-        state.name = action.payload.name;
-        state.sourceCodeJs = action.payload.sourceCodeJs;
-        state.sourceCodeCss = action.payload.sourceCodeCss;
-        // @todo Set sourceCodeGlobalCss
-        state.blockOverride = action.payload.blockOverride;
-        state.props = action.payload.props;
-        state.slots = action.payload.slots;
-        state.required = action.payload.required;
-      },
-    ),
-    setIsEditorReady: create.reducer(
-      (state, action: PayloadAction<boolean>) => ({
+      ) => ({
         ...state,
-        isEditorReady: action.payload,
+        codeComponent: {
+          ...state.codeComponent,
+          [action.payload[0]]: action.payload[1],
+        },
+        status: {
+          ...state.status, // Use the existing status.
+          needsAutoSave: true, // Override auto-save to true.
+          ...(action.payload[2] && action.payload[2]), // Override with the new status if provided.
+        },
       }),
     ),
-    setIsGlobalCssEditorReady: create.reducer(
-      (state, action: PayloadAction<boolean>) => ({
-        ...state,
-        isGlobalCssEditorReady: action.payload,
-      }),
-    ),
-    setHasCompletedFirstCompilation: create.reducer(
-      (state, action: PayloadAction<boolean>) => ({
-        ...state,
-        hasCompletedFirstCompilation: action.payload,
-      }),
-    ),
-    resetCodeEditor: create.reducer((state) => {
-      return initialState;
-    }),
-    setId: create.reducer((state, action: PayloadAction<string>) => ({
-      ...state,
-      id: action.payload,
-    })),
-    setStatus: create.reducer((state, action: PayloadAction<boolean>) => ({
-      ...state,
-      status: action.payload,
-    })),
-    setName: create.reducer((state, action: PayloadAction<string>) => ({
-      ...state,
-      name: action.payload,
-    })),
-    setSourceCodeCss: create.reducer(
-      (state, action: PayloadAction<string>) => ({
-        ...state,
-        sourceCodeCss: action.payload,
-      }),
-    ),
-    setCompiledCss: create.reducer((state, action: PayloadAction<string>) => ({
-      ...state,
-      compiledCss: action.payload,
-    })),
-    setSourceCodeJs: create.reducer((state, action: PayloadAction<string>) => ({
-      ...state,
-      sourceCodeJs: action.payload,
-    })),
-    setCompiledJs: create.reducer((state, action: PayloadAction<string>) => ({
-      ...state,
-      compiledJs: action.payload,
-    })),
-    setSourceCodeGlobalCss: create.reducer(
-      (state, action: PayloadAction<string>) => ({
-        ...state,
-        sourceCodeGlobalCss: action.payload,
-      }),
-    ),
-    setImportedJsComponents: create.reducer(
-      (state, action: PayloadAction<string[]>) => ({
-        ...state,
-        importedJsComponents: action.payload,
-      }),
-    ),
+
     addProp: (state) => {
-      state.props.push({
+      state.codeComponent.props.push({
         id: uuidv4(),
         name: '',
         type: 'string',
@@ -158,6 +164,7 @@ export const codeEditorSlice = createSlice({
         derivedType: 'text',
       });
     },
+
     updateProp: (
       state,
       action: PayloadAction<{
@@ -166,15 +173,16 @@ export const codeEditorSlice = createSlice({
       }>,
     ) => {
       const { id, updates } = action.payload;
-      const propIndex = state.props.findIndex((p) => p.id === id);
+      const propIndex = state.codeComponent.props.findIndex((p) => p.id === id);
       if (propIndex !== -1) {
-        const currentProp = state.props[propIndex];
-        state.props[propIndex] = {
+        const currentProp = state.codeComponent.props[propIndex];
+        state.codeComponent.props[propIndex] = {
           ...currentProp,
           ...updates,
         } as CodeComponentProp;
       }
     },
+
     removeProp: (
       state,
       action: PayloadAction<{
@@ -182,14 +190,19 @@ export const codeEditorSlice = createSlice({
       }>,
     ) => {
       const { propId } = action.payload;
-      const propToRemove = state.props.find((prop) => prop.id === propId);
-      state.props = state.props.filter((prop) => prop.id !== propId);
+      const propToRemove = state.codeComponent.props.find(
+        (prop) => prop.id === propId,
+      );
+      state.codeComponent.props = state.codeComponent.props.filter(
+        (prop) => prop.id !== propId,
+      );
       if (propToRemove) {
-        state.required = state.required.filter(
+        state.codeComponent.required = state.codeComponent.required.filter(
           (name) => name !== getPropMachineName(propToRemove.name),
         );
       }
     },
+
     reorderProps: (
       state,
       action: PayloadAction<{
@@ -198,10 +211,11 @@ export const codeEditorSlice = createSlice({
       }>,
     ) => {
       const { oldIndex, newIndex } = action.payload;
-      const props = state.props;
+      const props = state.codeComponent.props;
       const [removed] = props.splice(oldIndex, 1);
       props.splice(newIndex, 0, removed);
     },
+
     toggleRequired: (
       state,
       action: PayloadAction<{
@@ -209,23 +223,27 @@ export const codeEditorSlice = createSlice({
       }>,
     ) => {
       const { propId } = action.payload;
-      const prop = state.props.find((p) => p.id === propId);
+      const prop = state.codeComponent.props.find((p) => p.id === propId);
       if (!prop) return;
 
       const propName = getPropMachineName(prop.name);
-      if (state.required.includes(propName)) {
-        state.required = state.required.filter((name) => name !== propName);
+      if (state.codeComponent.required.includes(propName)) {
+        state.codeComponent.required = state.codeComponent.required.filter(
+          (name) => name !== propName,
+        );
       } else {
-        state.required.push(propName);
+        state.codeComponent.required.push(propName);
       }
     },
+
     addSlot: (state) => {
-      state.slots.push({
+      state.codeComponent.slots.push({
         id: uuidv4(),
         name: '',
         example: '',
       });
     },
+
     updateSlot: (
       state,
       action: PayloadAction<{
@@ -234,15 +252,16 @@ export const codeEditorSlice = createSlice({
       }>,
     ) => {
       const { id, updates } = action.payload;
-      const slotIndex = state.slots.findIndex((s) => s.id === id);
+      const slotIndex = state.codeComponent.slots.findIndex((s) => s.id === id);
       if (slotIndex !== -1) {
-        const currentSlot = state.slots[slotIndex];
-        state.slots[slotIndex] = {
+        const currentSlot = state.codeComponent.slots[slotIndex];
+        state.codeComponent.slots[slotIndex] = {
           ...currentSlot,
           ...updates,
         } as CodeComponentSlot;
       }
     },
+
     removeSlot: (
       state,
       action: PayloadAction<{
@@ -250,8 +269,11 @@ export const codeEditorSlice = createSlice({
       }>,
     ) => {
       const { slotId } = action.payload;
-      state.slots = state.slots.filter((slot) => slot.id !== slotId);
+      state.codeComponent.slots = state.codeComponent.slots.filter(
+        (slot) => slot.id !== slotId,
+      );
     },
+
     reorderSlots: (
       state,
       action: PayloadAction<{
@@ -260,97 +282,143 @@ export const codeEditorSlice = createSlice({
       }>,
     ) => {
       const { oldIndex, newIndex } = action.payload;
-      const slots = state.slots;
+      const slots = state.codeComponent.slots;
       const [removed] = slots.splice(oldIndex, 1);
       slots.splice(newIndex, 0, removed);
     },
+
+    /**
+     * Sets a property of the global asset library and sets the `needsAutoSave`
+     * status to true by default.
+     *
+     * @param [0] - The type of asset to set: 'css' or 'js'.
+     * @param [1] - The property to set: 'original' or 'compiled'.
+     * @param [2] - The value to set.
+     * @param [3] - (optional) A partial status object to override the existing status.
+     *   By default, auto-save will be set to true.
+     */
+    setGlobalAssetLibraryProperty: create.reducer(
+      (
+        state,
+        action: PayloadAction<
+          | [
+              keyof Pick<AssetLibrary, 'css' | 'js'>,
+              keyof AssetLibrary['css'] | keyof AssetLibrary['js'],
+              string,
+            ]
+          | [
+              keyof Pick<AssetLibrary, 'css' | 'js'>,
+              keyof AssetLibrary['css'] | keyof AssetLibrary['js'],
+              string,
+              Partial<CodeEditorStatusOptions>,
+            ]
+        >,
+      ) => ({
+        ...state,
+        globalAssetLibrary: {
+          ...state.globalAssetLibrary,
+          [action.payload[0]]: {
+            ...state.globalAssetLibrary[action.payload[0]],
+            [action.payload[1]]: action.payload[2],
+          },
+        },
+        status: {
+          ...state.status, // Use the existing status.
+          needsAutoSave: true, // Override auto-save to true.
+          ...(action.payload[3] && action.payload[3]), // Override with the new status if provided.
+        },
+      }),
+    ),
+
+    setPreviewCompiledJsForSlots: create.reducer(
+      (state, action: PayloadAction<string>) => ({
+        ...state,
+        previewCompiledJsForSlots: action.payload,
+      }),
+    ),
   }),
 });
 
-export const selectIsEditorReady = (state: RootState) =>
-  state.codeEditor.isEditorReady;
-export const selectIsGlobalCssEditorReady = (state: RootState) =>
-  state.codeEditor.isGlobalCssEditorReady;
-export const selectHasCompletedFirstCompilation = (state: RootState) =>
-  state.codeEditor.hasCompletedFirstCompilation;
-export const selectId = (state: RootState) => state.codeEditor.id;
 export const selectStatus = (state: RootState) => state.codeEditor.status;
-export const selectName = (state: RootState) => state.codeEditor.name;
-export const selectSourceCodeCss = (state: RootState) =>
-  state.codeEditor.sourceCodeCss;
-export const selectCompiledCss = (state: RootState) =>
-  state.codeEditor.compiledCss;
-export const selectSourceCodeGlobalCss = (state: RootState) =>
-  state.codeEditor.sourceCodeGlobalCss;
-export const selectSourceCodeJs = (state: RootState) =>
-  state.codeEditor.sourceCodeJs;
-export const selectCompiledJs = (state: RootState) =>
-  state.codeEditor.compiledJs;
-export const selectBlockOverride = (state: RootState) =>
-  state.codeEditor.blockOverride;
-export const selectProps = (state: RootState) => state.codeEditor.props;
-export const selectRequired = (state: RootState) => state.codeEditor.required;
-export const selectSlots = (state: RootState) => state.codeEditor.slots;
-export const selectImportedJsComponents = (state: RootState) =>
-  state.codeEditor.importedJsComponents;
+
+// Select the entire code component (deserialized), or a specific property.
+export const selectCodeComponent = <
+  K extends keyof CodeComponent | undefined = undefined,
+>(
+  state: RootState,
+  property?: K,
+): K extends keyof CodeComponent ? CodeComponent[K] : CodeComponent => {
+  if (property) {
+    return state.codeEditor.codeComponent[
+      property
+    ] as K extends keyof CodeComponent ? CodeComponent[K] : CodeComponent;
+  }
+  return state.codeEditor.codeComponent as K extends keyof CodeComponent
+    ? CodeComponent[K]
+    : CodeComponent;
+};
+
+// Curried selector to select a specific property of the code component.
+export const selectCodeComponentProperty =
+  <K extends keyof CodeComponent>(property: K) =>
+  (state: RootState) =>
+    selectCodeComponent(state, property);
 
 export const selectCodeComponentSerialized = createSelector(
-  [
-    selectId,
-    selectName,
-    selectStatus,
-    selectBlockOverride,
-    selectProps,
-    selectRequired,
-    selectSlots,
-    selectSourceCodeJs,
-    selectSourceCodeCss,
-    selectCompiledJs,
-    selectCompiledCss,
-    selectImportedJsComponents,
-  ],
-  (
-    id,
-    name,
-    status,
-    blockOverride,
-    props,
-    required,
-    slots,
-    sourceCodeJs,
-    sourceCodeCss,
-    compiledJs,
-    compiledCss,
-    importedJsComponents,
-  ): CodeComponentSerialized => ({
-    machineName: id,
-    name,
-    status,
-    block_override: blockOverride,
-    props: serializeProps(props),
-    required,
-    slots: serializeSlots(slots),
-    source_code_js: sourceCodeJs,
-    source_code_css: sourceCodeCss,
-    compiled_js: compiledJs,
-    compiled_css: compiledCss,
-    imported_js_components: importedJsComponents,
+  [(state: RootState) => selectCodeComponent(state)],
+  (codeComponent): CodeComponentSerialized => ({
+    machineName: codeComponent.machineName,
+    name: codeComponent.name,
+    status: codeComponent.status,
+    block_override: codeComponent.block_override,
+    props: serializeProps(codeComponent.props),
+    required: codeComponent.required,
+    slots: serializeSlots(codeComponent.slots),
+    source_code_js: codeComponent.source_code_js,
+    source_code_css: codeComponent.source_code_css,
+    compiled_js: codeComponent.compiled_js,
+    compiled_css: codeComponent.compiled_css,
+    imported_js_components: codeComponent.imported_js_components,
   }),
 );
 
+// Select the entire global asset library, or a specific property.
+export const selectGlobalAssetLibrary = <T = AssetLibrary>(
+  state: RootState,
+  properties?: ['css' | 'js', 'original' | 'compiled'] | 'css' | 'js',
+): T => {
+  if (!properties) {
+    return state.codeEditor.globalAssetLibrary as T;
+  }
+
+  if (typeof properties === 'string') {
+    return state.codeEditor.globalAssetLibrary[properties] as T;
+  }
+  if (state.codeEditor.globalAssetLibrary[properties[0]] === null) {
+    return '' as T;
+  }
+
+  return (state.codeEditor.globalAssetLibrary[properties[0]][properties[1]] ??
+    '') as T;
+};
+
+// Curried selector to select a specific CSS or JS property of the global asset
+// library.
+export const selectGlobalAssetLibraryProperty =
+  (properties: ['css' | 'js', 'original' | 'compiled']) => (state: RootState) =>
+    selectGlobalAssetLibrary<
+      AssetLibrary[(typeof properties)[0]][(typeof properties)[1]]
+    >(state, properties);
+
+export const selectPreviewCompiledJsForSlots = (state: RootState) =>
+  state.codeEditor.previewCompiledJsForSlots;
+
 export const {
   initializeCodeEditor,
-  setIsEditorReady,
-  setIsGlobalCssEditorReady,
-  setHasCompletedFirstCompilation,
   resetCodeEditor,
   setStatus,
-  setName,
-  setSourceCodeCss,
-  setCompiledCss,
-  setSourceCodeJs,
-  setCompiledJs,
-  setSourceCodeGlobalCss,
+  setCodeComponentProperty,
+  setGlobalAssetLibraryProperty,
   addProp,
   updateProp,
   removeProp,
@@ -360,7 +428,7 @@ export const {
   updateSlot,
   removeSlot,
   reorderSlots,
-  setImportedJsComponents,
+  setPreviewCompiledJsForSlots,
 } = codeEditorSlice.actions;
 
 export default codeEditorSlice;

@@ -3,6 +3,7 @@ import react from '@vitejs/plugin-react';
 import svgr from 'vite-plugin-svgr';
 import path from 'path';
 import fs from 'fs';
+
 // https://vitejs.dev/config/
 
 export default defineConfig(({ command, mode }) => {
@@ -47,12 +48,6 @@ export default defineConfig(({ command, mode }) => {
         'Referrer-Policy': '*',
       },
     },
-    test: {
-      globals: true,
-      environment: 'jsdom',
-      setupFiles: 'src/setupTests',
-      mockReset: true,
-    },
     build: {
       rollupOptions: {
         // external: ['react', 'react-dom', "redux", "@reduxjs/toolkit"],
@@ -68,6 +63,7 @@ export default defineConfig(({ command, mode }) => {
         '@': path.resolve(__dirname, './src'),
         '@assets': path.resolve(__dirname, './assets'),
         '@experimental': path.resolve(__dirname, '../experimental'),
+        '@tests': path.resolve(__dirname, './tests'),
       },
     },
     optimizeDeps: {

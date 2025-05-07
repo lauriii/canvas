@@ -8,7 +8,7 @@ import {
   selectDialogStates,
 } from '@/features/ui/codeComponentDialogSlice';
 import Dialog, { DialogFieldLabel } from '@/components/Dialog';
-import { setName } from '@/features/code-editor/codeEditorSlice';
+import { setCodeComponentProperty } from '@/features/code-editor/codeEditorSlice';
 import getStarterComponentTemplate from '@/features/code-editor/starterComponentTemplate';
 
 const AddCodeComponentDialog = () => {
@@ -34,7 +34,7 @@ const AddCodeComponentDialog = () => {
       compiled_css: '',
       imported_js_components: [],
     });
-    dispatch(setName(componentName));
+    dispatch(setCodeComponentProperty(['name', componentName]));
   };
 
   const handleOpenChange = (open: boolean) => {

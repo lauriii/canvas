@@ -34,11 +34,17 @@ try {
   throw new Error('Failed to parse code editor preview data: ' + e.message);
 }
 
-const { compiledJsUrl, propValues, slotNames } = data;
+const { compiledJsUrl, compiledJsForSlotsUrl, propValues, slotNames } = data;
 
 if (!compiledJsUrl) {
   throw new Error(
     'Missing required property in code editor preview data: compiledJsUrl',
+  );
+}
+
+if (!compiledJsForSlotsUrl) {
+  throw new Error(
+    'Missing required property in code editor preview data: compiledJsForSlotsUrl',
   );
 }
 
@@ -54,24 +60,27 @@ if (!slotNames) {
   );
 }
 
-// Import the compiled JavaScript module and render the component.
-import(compiledJsUrl).then((module) => {
-  // Revoke the URL to free up resources.
-  URL.revokeObjectURL(compiledJsUrl);
+// Import the compiled JavaScript modules and render the component.
+Promise.all([import(compiledJsUrl), import(compiledJsForSlotsUrl)]).then(
+  ([mainModule, slotsModule]) => {
+    // Revoke the URLs to free up resources.
+    URL.revokeObjectURL(compiledJsUrl);
+    URL.revokeObjectURL(compiledJsForSlotsUrl);
 
-  // Create a new object with the props and slots.
-  const propsAndSlots = {
-    ...propValues,
-    ...slotNames.reduce((acc, name) => {
-      // The example slot values are compiled as Preact components.
-      acc[name] = h(module[name]);
-      return acc;
-    }, {}),
-  };
+    // Create a new object with the props and slots.
+    const propsAndSlots = {
+      ...propValues,
+      ...slotNames.reduce((acc, name) => {
+        // The example slot values are compiled as Preact components.
+        acc[name] = h(slotsModule[name]);
+        return acc;
+      }, {}),
+    };
 
-  // Render the component.
-  render(
-    h(module.default, propsAndSlots),
-    document.getElementById('xb-code-editor-preview-root'),
-  );
-});
+    // Render the component.
+    render(
+      h(mainModule.default, propsAndSlots),
+      document.getElementById('xb-code-editor-preview-root'),
+    );
+  },
+);

@@ -6,7 +6,7 @@ import {
 import './xb-react-mosaic-component.css';
 import { useState } from 'react';
 import JavaScriptEditor from '@/features/code-editor/editors/JavaScriptEditor';
-import { Box, Button, ScrollArea, Tabs } from '@radix-ui/themes';
+import { Box, Button, Flex, ScrollArea, Spinner, Tabs } from '@radix-ui/themes';
 import { LayoutIcon } from '@radix-ui/react-icons';
 import GlobalCssEditor from '@/features/code-editor/editors/GlobalCssEditor';
 import CssEditor from '@/features/code-editor/editors/CssEditor';
@@ -14,13 +14,12 @@ import styles from './MosaicContainer.module.css';
 import './xb-code-mirror.css';
 import Preview from '@/features/code-editor/Preview';
 import ComponentData from '@/features/code-editor/component-data/ComponentData';
-import useCodeComponentData from '@/features/code-editor/hooks/useCodeComponentData';
-import useAssetLibraryData from '@/features/code-editor/hooks/useAssetLibraryData';
+import useCodeEditor from '@/features/code-editor/hooks/useCodeEditor';
 import { openAddToComponentsDialog } from '@/features/ui/codeComponentDialogSlice';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import {
+  selectCodeComponentProperty,
   selectCodeComponentSerialized,
-  selectBlockOverride,
   selectStatus,
 } from '@/features/code-editor/codeEditorSlice';
 
@@ -53,11 +52,13 @@ const MosaicContainer = () => {
   const [activeTab, setActiveTab] = useState('js');
   const dispatch = useAppDispatch();
   const selectedComponent = useAppSelector(selectCodeComponentSerialized);
-  const componentStatus = useAppSelector(selectStatus);
-  const blockOverride = useAppSelector(selectBlockOverride);
+  const componentStatus = useAppSelector(selectCodeComponentProperty('status'));
+  const { isCompiling, isSaving } = useAppSelector(selectStatus);
+  const blockOverride = useAppSelector(
+    selectCodeComponentProperty('block_override'),
+  );
 
-  const { isLoading: isLoadingCodeComponent } = useCodeComponentData();
-  const { isLoading: isLoadingGlobalCss } = useAssetLibraryData();
+  const { isLoading } = useCodeEditor();
 
   const TabGroup = () => {
     function tabChangeHandler(selectedTab: string) {
@@ -104,7 +105,7 @@ const MosaicContainer = () => {
   };
 
   return (
-    <div id="xb-mosaic-container">
+    <div id="xb-mosaic-container" data-testid="xb-mosaic-container">
       {/* `DndProvider` is added in `ui/src/app/App.tsx` */}
       <MosaicWithoutDragDropContext
         value={layout}
@@ -134,13 +135,11 @@ const MosaicContainer = () => {
                 >
                   <ScrollArea className={styles.scrollArea}>
                     {activeTab === 'js' && (
-                      <JavaScriptEditor isLoading={isLoadingCodeComponent} />
+                      <JavaScriptEditor isLoading={isLoading} />
                     )}
-                    {activeTab === 'css' && (
-                      <CssEditor isLoading={isLoadingCodeComponent} />
-                    )}
+                    {activeTab === 'css' && <CssEditor isLoading={isLoading} />}
                     {activeTab === 'global-css' && (
-                      <GlobalCssEditor isLoading={isLoadingGlobalCss} />
+                      <GlobalCssEditor isLoading={isLoading} />
                     )}
                   </ScrollArea>
                 </MosaicWindow>
@@ -173,12 +172,20 @@ const MosaicContainer = () => {
                               </Box>
                             </Box>
                           )}
-                        <div className="mosaic-window-title">{title}</div>
+                        <div className="mosaic-window-title">
+                          <Flex align="center" gap="3">
+                            <span>{title}</span>
+                            <Spinner
+                              size="1"
+                              loading={isCompiling || isSaving}
+                            />
+                          </Flex>
+                        </div>
                       </Box>
                     );
                   }}
                 >
-                  <Preview isLoading={isLoadingCodeComponent} />
+                  <Preview isLoading={isLoading} />
                 </MosaicWindow>
               );
             case 'Component data':
@@ -191,7 +198,7 @@ const MosaicContainer = () => {
                   }
                   draggable={false}
                 >
-                  <ComponentData isLoading={isLoadingCodeComponent} />
+                  <ComponentData isLoading={isLoading} />
                 </MosaicWindow>
               );
             default:

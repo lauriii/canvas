@@ -8,8 +8,8 @@ import {
   selectSelectedCodeComponent,
 } from '@/features/ui/codeComponentDialogSlice';
 import {
-  selectId as selectCodeEditorId,
-  setStatus,
+  selectCodeComponentProperty,
+  setCodeComponentProperty,
 } from '@/features/code-editor/codeEditorSlice';
 import {
   LayoutItemType,
@@ -22,7 +22,9 @@ import Dialog from '@/components/Dialog';
 const RemoveFromComponentsDialog = () => {
   const navigate = useNavigate();
   const selectedComponent = useAppSelector(selectSelectedCodeComponent);
-  const isCodeEditorOpen = !!useAppSelector(selectCodeEditorId);
+  const isCodeEditorOpen = !!useAppSelector(
+    selectCodeComponentProperty('machineName'),
+  );
   const [updateCodeComponent, { isLoading, isSuccess, isError, error, reset }] =
     useUpdateCodeComponentMutation();
   const dispatch = useAppDispatch();
@@ -44,7 +46,7 @@ const RemoveFromComponentsDialog = () => {
       // also set the status in the codeEditorSlice to internal. While the
       // `updateCodeComponent` mutation invalidates cache of the code component
       // data, the code editor won't refetch while it's open.
-      dispatch(setStatus(false));
+      dispatch(setCodeComponentProperty(['status', false]));
       // Navigate to the code editor route that handles internal code components.
       navigate(`/code-editor/code/${selectedComponent.machineName}`);
       // Open the "Code" accordion in the primary panel.

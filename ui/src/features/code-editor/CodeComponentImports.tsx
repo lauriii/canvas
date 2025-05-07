@@ -21,16 +21,17 @@ import {
 } from '@radix-ui/react-icons';
 import { useGetCodeComponentsQuery } from '@/services/componentAndLayout';
 import {
-  selectSourceCodeJs,
-  setSourceCodeJs,
-  selectId,
+  selectCodeComponentProperty,
+  setCodeComponentProperty,
 } from '@/features/code-editor/codeEditorSlice';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { useErrorBoundary } from 'react-error-boundary';
 import { formatToValidImportName } from '@/features/code-editor/utils';
 
 const CodeComponentImports = () => {
-  const currentComponentId = useAppSelector(selectId);
+  const currentComponentId = useAppSelector(
+    selectCodeComponentProperty('machineName'),
+  );
   const { data: codeComponents, error } = useGetCodeComponentsQuery({
     override: false,
   });
@@ -114,7 +115,9 @@ const CodeComponentImports = () => {
 const InsertableCodeBlock = ({ children }: { children: React.ReactNode }) => {
   const [inserted, setInserted] = useState(false);
   const dispatch = useAppDispatch();
-  const sourceCodeJs = useAppSelector(selectSourceCodeJs);
+  const sourceCodeJs = useAppSelector(
+    selectCodeComponentProperty('source_code_js'),
+  );
   const iconResetDelay = 1500;
 
   /**
@@ -125,7 +128,9 @@ const InsertableCodeBlock = ({ children }: { children: React.ReactNode }) => {
     if (!sourceCodeJs.includes(importStatement)) {
       const isEmpty = sourceCodeJs.trim() === '';
       if (isEmpty) {
-        dispatch(setSourceCodeJs(importStatement + '\n'));
+        dispatch(
+          setCodeComponentProperty(['source_code_js', importStatement + '\n']),
+        );
       } else {
         // Find last import statement
         const lines = sourceCodeJs.split('\n');
@@ -142,10 +147,17 @@ const InsertableCodeBlock = ({ children }: { children: React.ReactNode }) => {
         if (lastImportIndex >= 0) {
           // Insert after existing imports
           lines.splice(lastImportIndex + 1, 0, importStatement);
-          dispatch(setSourceCodeJs(lines.join('\n')));
+          dispatch(
+            setCodeComponentProperty(['source_code_js', lines.join('\n')]),
+          );
         } else {
           // Add at beginning with an extra line between the import and the component.
-          dispatch(setSourceCodeJs(`${importStatement}\n\n${sourceCodeJs}`));
+          dispatch(
+            setCodeComponentProperty([
+              'source_code_js',
+              `${importStatement}\n\n${sourceCodeJs}`,
+            ]),
+          );
         }
       }
     }

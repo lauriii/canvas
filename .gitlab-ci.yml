@@ -116,7 +116,7 @@ cspell:
       - "**/*.twig"
     when: on_success
 
-.ui-fixture-files-change-rule: &UI-fixures-files-change-rule
+.ui-fixture-files-change-rule: &UI-fixtures-files-change-rule
   - if: $_FOR_EVERY_MR_COMMIT == "true" || $_FOR_EVERY_MR_COMMIT == null
     changes:
       - ui/tests/fixtures/**/*
@@ -244,7 +244,7 @@ phpunit:
     - *module-metadata-files-change-rule
     - *module-config-files-change-rule
     - *SDC-files-change-rule
-    - *UI-fixures-files-change-rule
+    - *UI-fixtures-files-change-rule
     - *manual-rule
 
 eslint:
@@ -301,11 +301,36 @@ UI eslint:
     - *manual-rule
   script:
     - cd ui
-    - npm ci
-    # First, generate the `junit.xml` for code quality. Violations will not cause this to fail.
-    - node_modules/.bin/eslint . --format=junit --output-file=$CI_PROJECT_DIR/junit.xml
-    # Second, explicitly pass/fail this job.
-    - npm run lint
+    - node_modules/.bin/eslint . --format=junit --output-file=$CI_PROJECT_DIR/junit.xml --max-warnings=0
+  artifacts:
+    expose_as: junit
+    expire_in: 6 mos
+    when: always
+    name: artifacts-$CI_PIPELINE_ID-$CI_JOB_NAME_SLUG
+    paths:
+      - junit.xml
+    reports:
+      junit: junit.xml
+
+vitest:
+  stage: test
+  image: node:20-alpine
+  allow_failure: false
+  needs:
+    - UI
+  rules:
+    - *is-push-rule
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes:
+        - ui/src/**/*
+        - ui/tsconfig.json
+        - ui/tsconfig.node.json
+        - ui/tests/vitest/**/*
+    - *UI-fixtures-files-change-rule
+    - *manual-rule
+  script:
+    - cd ui
+    - npm test -- --reporter=junit --outputFile=$CI_PROJECT_DIR/junit.xml
   artifacts:
     expose_as: junit
     expire_in: 6 mos
@@ -384,7 +409,7 @@ cypress unit:
         - ui/tsconfig.json
         - ui/tsconfig.node.json
         - ui/tests/unit/**/*
-    - *UI-fixures-files-change-rule
+    - *UI-fixtures-files-change-rule
     - *manual-rule
 
 🗺️ C4 model diagrams:

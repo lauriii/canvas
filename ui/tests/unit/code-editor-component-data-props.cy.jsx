@@ -3,8 +3,7 @@ import { getPropMachineName } from '@/features/code-editor/utils';
 import { makeStore } from '@/app/store';
 import {
   addProp,
-  selectProps,
-  selectRequired,
+  selectCodeComponentProperty,
   toggleRequired,
   updateProp,
 } from '@/features/code-editor/codeEditorSlice';
@@ -45,7 +44,7 @@ describe('Component data / props in code editor', () => {
 
     cy.log('Checking first prop in store with default values');
     cy.wrap(store).then((store) => {
-      const props = selectProps(store.getState());
+      const props = selectCodeComponentProperty('props')(store.getState());
       expect(props).to.have.length(
         1,
         'Should have exactly one prop after clicking new prop button',
@@ -68,7 +67,7 @@ describe('Component data / props in code editor', () => {
 
     cy.log('Checking updated prop');
     cy.wrap(store).then((store) => {
-      const props = selectProps(store.getState());
+      const props = selectCodeComponentProperty('props')(store.getState());
       expect(props).to.have.length(1, 'Should have exactly one prop');
       expect(props[0]).to.deep.include(
         {
@@ -115,7 +114,7 @@ describe('Component data / props in code editor', () => {
 
     // Check that the props are in the store.
     cy.wrap(store).then((store) => {
-      const props = selectProps(store.getState());
+      const props = selectCodeComponentProperty('props')(store.getState());
       expect(props).to.have.length(3, 'Should have exactly three props');
       expect(props[0]).to.deep.include({
         name: 'Title',
@@ -150,7 +149,7 @@ describe('Component data / props in code editor', () => {
       .realDnd('[data-testid="prop-2"]');
     // Check that the props in the store are in the new order.
     cy.wrap(store).then((store) => {
-      const props = selectProps(store.getState());
+      const props = selectCodeComponentProperty('props')(store.getState());
       expect(props[0].name).to.equal('Variant');
       expect(props[1].name).to.equal('Featured');
       expect(props[2].name).to.equal('Title');
@@ -162,7 +161,7 @@ describe('Component data / props in code editor', () => {
       .realDnd('[data-testid="prop-1"]');
     // Check that the props in the store are in the new order.
     cy.wrap(store).then((store) => {
-      const props = selectProps(store.getState());
+      const props = selectCodeComponentProperty('props')(store.getState());
       expect(props[0].name).to.equal('Featured');
       expect(props[1].name).to.equal('Variant');
       expect(props[2].name).to.equal('Title');
@@ -172,7 +171,7 @@ describe('Component data / props in code editor', () => {
     cy.findAllByLabelText('Remove prop').first().click();
     // Check that the props in the store are in the new order.
     cy.wrap(store).then((store) => {
-      const props = selectProps(store.getState());
+      const props = selectCodeComponentProperty('props')(store.getState());
       expect(props).to.have.length(2, 'Should have exactly two props');
       expect(props[0].name).to.equal('Variant');
       expect(props[1].name).to.equal('Title');
@@ -182,7 +181,7 @@ describe('Component data / props in code editor', () => {
     cy.findAllByLabelText('Remove prop').last().click();
     // Check that the props in the store are in the new order.
     cy.wrap(store).then((store) => {
-      const props = selectProps(store.getState());
+      const props = selectCodeComponentProperty('props')(store.getState());
       expect(props).to.have.length(1, 'Should have exactly one prop');
       expect(props[0].name).to.equal('Variant');
     });
@@ -190,7 +189,7 @@ describe('Component data / props in code editor', () => {
     // Remove the one remaining prop.
     cy.findByLabelText('Remove prop').click();
     cy.wrap(store).then((store) => {
-      const props = selectProps(store.getState());
+      const props = selectCodeComponentProperty('props')(store.getState());
       expect(props).to.have.length(0, 'Should have no props');
     });
   });
@@ -203,8 +202,11 @@ describe('Component data / props in code editor', () => {
     // Check that the prop is now required.
     cy.log('Checking updated prop');
     cy.wrap(store).then((store) => {
-      const propName = selectProps(store.getState())[0].name;
-      const required = selectRequired(store.getState());
+      const propName = selectCodeComponentProperty('props')(store.getState())[0]
+        .name;
+      const required = selectCodeComponentProperty('required')(
+        store.getState(),
+      );
       expect(required[0]).to.equal(
         getPropMachineName(propName),
         'Should have the prop as required',
@@ -216,7 +218,9 @@ describe('Component data / props in code editor', () => {
 
     // Check that the prop is no longer required.
     cy.wrap(store).then((store) => {
-      const required = selectRequired(store.getState());
+      const required = selectCodeComponentProperty('required')(
+        store.getState(),
+      );
       expect(required).to.have.length(0, 'Should have no required props');
     });
 
@@ -226,7 +230,9 @@ describe('Component data / props in code editor', () => {
 
     // Check that the prop is no longer required.
     cy.wrap(store).then((store) => {
-      const required = selectRequired(store.getState());
+      const required = selectCodeComponentProperty('required')(
+        store.getState(),
+      );
       expect(required).to.have.length(0, 'Should have no required props');
     });
   });
@@ -235,7 +241,7 @@ describe('Component data / props in code editor', () => {
     // Add a new prop directly to the store, update it, and toggle it as required.
     cy.wrap(store).then((store) => {
       store.dispatch(addProp());
-      const newProp = selectProps(store.getState())[0];
+      const newProp = selectCodeComponentProperty('props')(store.getState())[0];
       cy.log(
         `Added new prop directly to the store: ${JSON.stringify(newProp)}`,
       );
@@ -245,7 +251,9 @@ describe('Component data / props in code editor', () => {
           updates: { name: 'Title', example: 'Your title goes here' },
         }),
       );
-      const updatedProp = selectProps(store.getState())[0];
+      const updatedProp = selectCodeComponentProperty('props')(
+        store.getState(),
+      )[0];
       cy.log(
         `Updated prop directly in the store: ${JSON.stringify(updatedProp)}`,
       );
@@ -281,7 +289,7 @@ describe('Component data / props in code editor', () => {
     );
 
     cy.wrap(store).then((store) => {
-      const prop = selectProps(store.getState())[0];
+      const prop = selectCodeComponentProperty('props')(store.getState())[0];
       expect(prop).to.deep.include(
         {
           name: 'Title',
@@ -315,7 +323,7 @@ describe('Component data / props in code editor', () => {
     cy.findByLabelText('Example value').should('have.value', '922');
 
     cy.wrap(store).then((store) => {
-      const prop = selectProps(store.getState())[0];
+      const prop = selectCodeComponentProperty('props')(store.getState())[0];
       expect(prop).to.deep.include(
         {
           name: 'Count',
@@ -348,7 +356,7 @@ describe('Component data / props in code editor', () => {
     cy.findByLabelText('Example value').should('have.value', '9.22');
 
     cy.wrap(store).then((store) => {
-      const prop = selectProps(store.getState())[0];
+      const prop = selectCodeComponentProperty('props')(store.getState())[0];
       expect(prop).to.deep.include(
         {
           name: 'Percentage',
@@ -371,7 +379,7 @@ describe('Component data / props in code editor', () => {
     cy.findByLabelText('Example value').assertToggleState(false);
 
     cy.wrap(store).then((store) => {
-      const prop = selectProps(store.getState())[0];
+      const prop = selectCodeComponentProperty('props')(store.getState())[0];
       expect(prop).to.deep.include(
         {
           name: 'Is featured',
@@ -388,7 +396,7 @@ describe('Component data / props in code editor', () => {
     cy.findByLabelText('Example value').assertToggleState(true);
 
     cy.wrap(store).then((store) => {
-      const prop = selectProps(store.getState())[0];
+      const prop = selectCodeComponentProperty('props')(store.getState())[0];
       expect(prop).to.deep.include(
         {
           name: 'Is featured',
@@ -404,7 +412,8 @@ describe('Component data / props in code editor', () => {
     cy.findByText('Add').click();
 
     cy.wrap(store).then((store) => {
-      const propId = selectProps(store.getState())[0].id;
+      const propId = selectCodeComponentProperty('props')(store.getState())[0]
+        .id;
       cy.wrap(propId).as('propId');
     });
 
@@ -414,7 +423,9 @@ describe('Component data / props in code editor', () => {
     cy.findByLabelText('Default value').should('not.exist');
 
     cy.wrap(store).then((store) => {
-      expect(selectProps(store.getState())[0]).to.deep.include(
+      expect(
+        selectCodeComponentProperty('props')(store.getState())[0],
+      ).to.deep.include(
         {
           name: 'Tags',
           type: 'string',
@@ -436,20 +447,18 @@ describe('Component data / props in code editor', () => {
       cy.findByTestId(`xb-prop-enum-value-${propId}-0`).type('Alpha');
       cy.findByLabelText('Default value').should('exist');
       cy.wrap(store).then((store) => {
-        expect(selectProps(store.getState())[0].enum).to.deep.equal(
-          ['Alpha'],
-          'Should have the appropriate enum values',
-        );
+        expect(
+          selectCodeComponentProperty('props')(store.getState())[0].enum,
+        ).to.deep.equal(['Alpha'], 'Should have the appropriate enum values');
       });
 
       // Clear the value, make sure "Default value" is not shown.
       cy.findByTestId(`xb-prop-enum-value-${propId}-0`).clear();
       cy.findByLabelText('Default value').should('not.exist');
       cy.wrap(store).then((store) => {
-        expect(selectProps(store.getState())[0].enum).to.deep.equal(
-          [''],
-          'Should have the following enum values: ""',
-        );
+        expect(
+          selectCodeComponentProperty('props')(store.getState())[0].enum,
+        ).to.deep.equal([''], 'Should have the following enum values: ""');
       });
 
       // Type a value, then add two more values.
@@ -459,7 +468,9 @@ describe('Component data / props in code editor', () => {
       cy.findByText('Add value').click();
       cy.findByTestId(`xb-prop-enum-value-${propId}-2`).type('Charlie');
       cy.wrap(store).then((store) => {
-        expect(selectProps(store.getState())[0].enum).to.deep.equal(
+        expect(
+          selectCodeComponentProperty('props')(store.getState())[0].enum,
+        ).to.deep.equal(
           ['Alpha', 'Bravo', 'Charlie'],
           'Should have the appropriate enum values',
         );
@@ -470,7 +481,9 @@ describe('Component data / props in code editor', () => {
       cy.findByLabelText('Required').toggleToggle();
       cy.findByLabelText('Default value').should('have.text', 'Alpha');
       cy.wrap(store).then((store) => {
-        expect(selectProps(store.getState())[0]).to.deep.include(
+        expect(
+          selectCodeComponentProperty('props')(store.getState())[0],
+        ).to.deep.include(
           {
             enum: ['Alpha', 'Bravo', 'Charlie'],
             example: 'Alpha',
@@ -485,7 +498,9 @@ describe('Component data / props in code editor', () => {
       // dropdown has the remaining values.
       cy.findByLabelText('Default value').should('have.text', 'Bravo');
       cy.wrap(store).then((store) => {
-        expect(selectProps(store.getState())[0]).to.deep.include(
+        expect(
+          selectCodeComponentProperty('props')(store.getState())[0],
+        ).to.deep.include(
           {
             enum: ['', 'Bravo', 'Charlie'],
             example: 'Bravo',
@@ -501,7 +516,9 @@ describe('Component data / props in code editor', () => {
       // Select the third value as default while the dropdown is open.
       cy.findByText('Charlie').click();
       cy.wrap(store).then((store) => {
-        expect(selectProps(store.getState())[0]).to.deep.include(
+        expect(
+          selectCodeComponentProperty('props')(store.getState())[0],
+        ).to.deep.include(
           {
             enum: ['', 'Bravo', 'Charlie'],
             example: 'Charlie',
@@ -516,7 +533,9 @@ describe('Component data / props in code editor', () => {
       // second) after the previous default value was modified.
       cy.findByLabelText('Default value').should('have.text', 'Bravo');
       cy.wrap(store).then((store) => {
-        expect(selectProps(store.getState())[0]).to.deep.include(
+        expect(
+          selectCodeComponentProperty('props')(store.getState())[0],
+        ).to.deep.include(
           {
             enum: ['', 'Bravo', 'CharlieZulu'],
             example: 'Bravo',
@@ -531,7 +550,9 @@ describe('Component data / props in code editor', () => {
       // happens to be the first valid value.
       cy.findByLabelText('Default value').should('have.text', 'BravoYankee');
       cy.wrap(store).then((store) => {
-        expect(selectProps(store.getState())[0]).to.deep.include(
+        expect(
+          selectCodeComponentProperty('props')(store.getState())[0],
+        ).to.deep.include(
           {
             enum: ['', 'BravoYankee', 'CharlieZulu'],
             example: 'BravoYankee',
@@ -552,7 +573,9 @@ describe('Component data / props in code editor', () => {
         'CharlieZulu',
       );
       cy.wrap(store).then((store) => {
-        expect(selectProps(store.getState())[0]).to.deep.include(
+        expect(
+          selectCodeComponentProperty('props')(store.getState())[0],
+        ).to.deep.include(
           {
             enum: ['BravoYankee', 'CharlieZulu'],
             example: 'BravoYankee',
@@ -567,7 +590,9 @@ describe('Component data / props in code editor', () => {
       cy.findByTestId(`xb-prop-enum-value-delete-${propId}-0`).click();
       cy.findByLabelText('Default value').should('have.text', 'CharlieZulu');
       cy.wrap(store).then((store) => {
-        expect(selectProps(store.getState())[0]).to.deep.include(
+        expect(
+          selectCodeComponentProperty('props')(store.getState())[0],
+        ).to.deep.include(
           {
             enum: ['CharlieZulu'],
             example: 'CharlieZulu',
@@ -583,7 +608,9 @@ describe('Component data / props in code editor', () => {
         'CharlieZuluXRay',
       );
       cy.wrap(store).then((store) => {
-        expect(selectProps(store.getState())[0]).to.deep.include(
+        expect(
+          selectCodeComponentProperty('props')(store.getState())[0],
+        ).to.deep.include(
           {
             enum: ['CharlieZuluXRay'],
             example: 'CharlieZuluXRay',
@@ -599,7 +626,9 @@ describe('Component data / props in code editor', () => {
       cy.findByTestId(`xb-prop-enum-value-${propId}-0`).type('Whiskey');
       cy.findByLabelText('Default value').should('have.text', '- None -');
       cy.wrap(store).then((store) => {
-        expect(selectProps(store.getState())[0]).to.deep.include(
+        expect(
+          selectCodeComponentProperty('props')(store.getState())[0],
+        ).to.deep.include(
           {
             enum: ['CharlieZuluXRayWhiskey'],
             example: '',
@@ -616,7 +645,9 @@ describe('Component data / props in code editor', () => {
         'CharlieZuluXRayWhiskey',
       );
       cy.wrap(store).then((store) => {
-        expect(selectProps(store.getState())[0]).to.deep.include(
+        expect(
+          selectCodeComponentProperty('props')(store.getState())[0],
+        ).to.deep.include(
           {
             enum: ['CharlieZuluXRayWhiskey'],
             example: 'CharlieZuluXRayWhiskey',
@@ -630,7 +661,9 @@ describe('Component data / props in code editor', () => {
       cy.findByTestId(`xb-prop-enum-value-delete-${propId}-0`).click();
       cy.findByLabelText('Default value').should('not.exist');
       cy.wrap(store).then((store) => {
-        expect(selectProps(store.getState())[0]).to.deep.include(
+        expect(
+          selectCodeComponentProperty('props')(store.getState())[0],
+        ).to.deep.include(
           {
             enum: [],
             example: '',
@@ -650,7 +683,8 @@ describe('Component data / props in code editor', () => {
     cy.findByText('Add').click();
 
     cy.wrap(store).then((store) => {
-      const propId = selectProps(store.getState())[0].id;
+      const propId = selectCodeComponentProperty('props')(store.getState())[0]
+        .id;
       cy.wrap(propId).as('propId');
     });
 
@@ -678,7 +712,9 @@ describe('Component data / props in code editor', () => {
       cy.findByTestId(`xb-prop-enum-value-${propId}-0`).type('1');
       cy.findByLabelText('Default value').should('exist');
       cy.wrap(store).then((store) => {
-        expect(selectProps(store.getState())[0]).to.deep.include(
+        expect(
+          selectCodeComponentProperty('props')(store.getState())[0],
+        ).to.deep.include(
           {
             enum: ['1'],
             example: '',
@@ -692,7 +728,9 @@ describe('Component data / props in code editor', () => {
       cy.findByLabelText('Required').toggleToggle();
       cy.findByLabelText('Default value').should('have.text', '1');
       cy.wrap(store).then((store) => {
-        expect(selectProps(store.getState())[0]).to.deep.include(
+        expect(
+          selectCodeComponentProperty('props')(store.getState())[0],
+        ).to.deep.include(
           {
             enum: ['1'],
             example: '1',
@@ -705,7 +743,9 @@ describe('Component data / props in code editor', () => {
       cy.findByText('Add value').click();
       cy.findByTestId(`xb-prop-enum-value-${propId}-1`).type('2');
       cy.wrap(store).then((store) => {
-        expect(selectProps(store.getState())[0]).to.deep.include(
+        expect(
+          selectCodeComponentProperty('props')(store.getState())[0],
+        ).to.deep.include(
           {
             enum: ['1', '2'],
             example: '1',
@@ -718,7 +758,9 @@ describe('Component data / props in code editor', () => {
       cy.findByLabelText('Default value').click();
       cy.findByText('2').click();
       cy.wrap(store).then((store) => {
-        expect(selectProps(store.getState())[0]).to.deep.include(
+        expect(
+          selectCodeComponentProperty('props')(store.getState())[0],
+        ).to.deep.include(
           {
             enum: ['1', '2'],
             example: '2',
@@ -732,7 +774,9 @@ describe('Component data / props in code editor', () => {
       // The default value should now be the first value.
       cy.findByLabelText('Default value').should('have.text', '1');
       cy.wrap(store).then((store) => {
-        expect(selectProps(store.getState())[0]).to.deep.include(
+        expect(
+          selectCodeComponentProperty('props')(store.getState())[0],
+        ).to.deep.include(
           {
             enum: ['1'],
             example: '1',
@@ -752,7 +796,9 @@ describe('Component data / props in code editor', () => {
     cy.findByText('Add value').click();
     cy.findByTestId(/xb-prop-enum-value-[0-9a-f-]+-0/).type('Alpha');
     cy.wrap(store).then((store) => {
-      expect(selectProps(store.getState())[0].enum).to.deep.equal(['Alpha']);
+      expect(
+        selectCodeComponentProperty('props')(store.getState())[0].enum,
+      ).to.deep.equal(['Alpha']);
     });
 
     // Change the type to List: integer. The enum value should be removed.
@@ -760,13 +806,17 @@ describe('Component data / props in code editor', () => {
     cy.findByText('List: integer').click();
     cy.findByTestId(/xb-prop-enum-value-[0-9a-f-]+-0/).should('not.exist');
     cy.wrap(store).then((store) => {
-      expect(selectProps(store.getState())[0].enum).to.deep.equal([]);
+      expect(
+        selectCodeComponentProperty('props')(store.getState())[0].enum,
+      ).to.deep.equal([]);
     });
     // Add an enum value.
     cy.findByText('Add value').click();
     cy.findByTestId(/xb-prop-enum-value-[0-9a-f-]+-0/).type('922');
     cy.wrap(store).then((store) => {
-      expect(selectProps(store.getState())[0].enum).to.deep.equal(['922']);
+      expect(
+        selectCodeComponentProperty('props')(store.getState())[0].enum,
+      ).to.deep.equal(['922']);
     });
 
     // Change the type to List: number. The enum value should be removed.
@@ -774,13 +824,17 @@ describe('Component data / props in code editor', () => {
     cy.findByText('List: number').click();
     cy.findByTestId(/xb-prop-enum-value-[0-9a-f-]+-0/).should('not.exist');
     cy.wrap(store).then((store) => {
-      expect(selectProps(store.getState())[0].enum).to.deep.equal([]);
+      expect(
+        selectCodeComponentProperty('props')(store.getState())[0].enum,
+      ).to.deep.equal([]);
     });
     // Add an enum value.
     cy.findByText('Add value').click();
     cy.findByTestId(/xb-prop-enum-value-[0-9a-f-]+-0/).type('9.22');
     cy.wrap(store).then((store) => {
-      expect(selectProps(store.getState())[0].enum).to.deep.equal(['9.22']);
+      expect(
+        selectCodeComponentProperty('props')(store.getState())[0].enum,
+      ).to.deep.equal(['9.22']);
     });
 
     // Change the type to List: text. The enum value should be removed.
@@ -788,7 +842,9 @@ describe('Component data / props in code editor', () => {
     cy.findByText('List: text').click();
     cy.findByTestId(/xb-prop-enum-value-[0-9a-f-]+-0/).should('not.exist');
     cy.wrap(store).then((store) => {
-      expect(selectProps(store.getState())[0].enum).to.deep.equal([]);
+      expect(
+        selectCodeComponentProperty('props')(store.getState())[0].enum,
+      ).to.deep.equal([]);
     });
   });
 
@@ -798,7 +854,9 @@ describe('Component data / props in code editor', () => {
     // Add an example value for a text prop.
     cy.findByText('Example value').type('Alpha');
     cy.wrap(store).then((store) => {
-      expect(selectProps(store.getState())[0].example).to.equal('Alpha');
+      expect(
+        selectCodeComponentProperty('props')(store.getState())[0].example,
+      ).to.equal('Alpha');
     });
 
     // Change the type to Integer. The example value should be removed.
@@ -806,12 +864,16 @@ describe('Component data / props in code editor', () => {
     cy.findByText('Integer').click();
     cy.findByLabelText('Example value').should('have.value', '');
     cy.wrap(store).then((store) => {
-      expect(selectProps(store.getState())[0].example).to.equal('');
+      expect(
+        selectCodeComponentProperty('props')(store.getState())[0].example,
+      ).to.equal('');
     });
     // Add an example value.
     cy.findByLabelText('Example value').type('922');
     cy.wrap(store).then((store) => {
-      expect(selectProps(store.getState())[0].example).to.equal('922');
+      expect(
+        selectCodeComponentProperty('props')(store.getState())[0].example,
+      ).to.equal('922');
     });
 
     // Change the type to Number. The example value should be removed.
@@ -819,12 +881,16 @@ describe('Component data / props in code editor', () => {
     cy.findByText('Number').click();
     cy.findByLabelText('Example value').should('have.value', '');
     cy.wrap(store).then((store) => {
-      expect(selectProps(store.getState())[0].example).to.equal('');
+      expect(
+        selectCodeComponentProperty('props')(store.getState())[0].example,
+      ).to.equal('');
     });
     // Add an example value.
     cy.findByLabelText('Example value').type('9.22');
     cy.wrap(store).then((store) => {
-      expect(selectProps(store.getState())[0].example).to.equal('9.22');
+      expect(
+        selectCodeComponentProperty('props')(store.getState())[0].example,
+      ).to.equal('9.22');
     });
 
     // Change the type to Text. The example value should be removed.
@@ -832,7 +898,9 @@ describe('Component data / props in code editor', () => {
     cy.findByText('Text').click();
     cy.findByLabelText('Example value').should('have.value', '');
     cy.wrap(store).then((store) => {
-      expect(selectProps(store.getState())[0].example).to.equal('');
+      expect(
+        selectCodeComponentProperty('props')(store.getState())[0].example,
+      ).to.equal('');
     });
 
     // Change the type to Text area. The example value should be removed.
@@ -840,7 +908,9 @@ describe('Component data / props in code editor', () => {
     cy.findByText('Text area').click();
     cy.findByLabelText('Example value').should('have.value', '');
     cy.wrap(store).then((store) => {
-      expect(selectProps(store.getState())[0].example).to.equal('');
+      expect(
+        selectCodeComponentProperty('props')(store.getState())[0].example,
+      ).to.equal('');
     });
 
     // Change type to Image. The example value should be removed.
@@ -851,7 +921,9 @@ describe('Component data / props in code editor', () => {
       '4:3 (Standard)',
     );
     cy.wrap(store).then((store) => {
-      expect(selectProps(store.getState())[0].example).to.deep.equal({
+      expect(
+        selectCodeComponentProperty('props')(store.getState())[0].example,
+      ).to.deep.equal({
         src: 'https://placehold.co/1200x900@2x.png',
         width: 1200,
         height: 900,
@@ -864,7 +936,9 @@ describe('Component data / props in code editor', () => {
     cy.findByText('Link').click();
     cy.findByLabelText('Example value').should('have.value', '');
     cy.wrap(store).then((store) => {
-      expect(selectProps(store.getState())[0].example).to.equal('');
+      expect(
+        selectCodeComponentProperty('props')(store.getState())[0].example,
+      ).to.equal('');
     });
   });
 
@@ -886,7 +960,7 @@ describe('Component data / props in code editor', () => {
     );
 
     cy.wrap(store).then((store) => {
-      const prop = selectProps(store.getState())[0];
+      const prop = selectCodeComponentProperty('props')(store.getState())[0];
       expect(prop).to.deep.include(
         {
           name: 'Description',
@@ -917,7 +991,9 @@ describe('Component data / props in code editor', () => {
     );
 
     cy.wrap(store).then((store) => {
-      expect(selectProps(store.getState())[0]).to.deep.include(
+      expect(
+        selectCodeComponentProperty('props')(store.getState())[0],
+      ).to.deep.include(
         {
           type: 'object',
           example: {
@@ -939,7 +1015,9 @@ describe('Component data / props in code editor', () => {
     // The pixel density should now be hidden.
     cy.findByLabelText('Pixel density').should('not.exist');
     cy.wrap(store).then((store) => {
-      expect(selectProps(store.getState())[0]).to.deep.include(
+      expect(
+        selectCodeComponentProperty('props')(store.getState())[0],
+      ).to.deep.include(
         {
           type: 'object',
           example: '',
@@ -962,7 +1040,9 @@ describe('Component data / props in code editor', () => {
       '2x (High density)',
     );
     cy.wrap(store).then((store) => {
-      expect(selectProps(store.getState())[0]).to.deep.include(
+      expect(
+        selectCodeComponentProperty('props')(store.getState())[0],
+      ).to.deep.include(
         {
           type: 'object',
           example: {
@@ -993,7 +1073,9 @@ describe('Component data / props in code editor', () => {
       '3x (Ultra-high density)',
     );
     cy.wrap(store).then((store) => {
-      expect(selectProps(store.getState())[0]).to.deep.include(
+      expect(
+        selectCodeComponentProperty('props')(store.getState())[0],
+      ).to.deep.include(
         {
           type: 'object',
           example: {
@@ -1022,7 +1104,9 @@ describe('Component data / props in code editor', () => {
       '3x (Ultra-high density)',
     );
     cy.wrap(store).then((store) => {
-      expect(selectProps(store.getState())[0]).to.deep.include(
+      expect(
+        selectCodeComponentProperty('props')(store.getState())[0],
+      ).to.deep.include(
         {
           type: 'object',
           example: {
@@ -1055,7 +1139,7 @@ describe('Component data / props in code editor', () => {
     cy.findByLabelText('Example value').type('gerbeaud');
     // Verify the prop metadata.
     cy.wrap(store).then((store) => {
-      const prop = selectProps(store.getState())[0];
+      const prop = selectCodeComponentProperty('props')(store.getState())[0];
       expect(prop).to.deep.include(
         {
           name: 'Link',
@@ -1080,7 +1164,7 @@ describe('Component data / props in code editor', () => {
     cy.findByLabelText('Example value').type('https://example.com');
     // Verify the prop metadata.
     cy.wrap(store).then((store) => {
-      const prop = selectProps(store.getState())[0];
+      const prop = selectCodeComponentProperty('props')(store.getState())[0];
       expect(prop).to.deep.include(
         {
           name: 'Link',
@@ -1105,7 +1189,7 @@ describe('Component data / props in code editor', () => {
     cy.findByLabelText('Example value').type('hazelnut');
     // Verify the prop metadata.
     cy.wrap(store).then((store) => {
-      const prop = selectProps(store.getState())[0];
+      const prop = selectCodeComponentProperty('props')(store.getState())[0];
       expect(prop).to.deep.include(
         {
           name: 'Link',

@@ -1,0 +1,221 @@
+/**
+ * @file
+ *
+ * Compiles source code of a code component and global asset library.
+ *
+ * @see docs/react-codebase/code-editor.md
+ *
+ * Responsibilities:
+ * - Extract class name candidates from the component's JS code.
+ * - Add them to the global asset library's JS comment to serve as an index
+ *   for the Tailwind CSS class name candidates.
+ * - Build the global CSS with Tailwind CSS using the class name candidates.
+ * - Compile the component's JS code.
+ * - Compile the component's JS code for previewing slot examples in the
+ *   code editor's preview.
+ * - Compile the component's own CSS.
+ * - Save everything to the Redux store.
+ */
+
+import { useEffect, useRef, useState } from 'react';
+import { useAppDispatch, useAppSelector } from '@/app/hooks';
+import useCompileCss from '@/features/code-editor/hooks/useCompileCss';
+import useCompileJavaScript from '@/features/code-editor/hooks/useCompileJavaScript';
+import { upsertClassNameCandidatesInComment } from '@/features/code-editor/utils/classNameCandidates';
+import {
+  getJsForExampleSlotsOverridePreview,
+  getJsForSlotsPreview,
+} from '@/features/code-editor/utils';
+import {
+  selectCodeComponentProperty,
+  selectGlobalAssetLibraryProperty,
+  selectStatus,
+  setCodeComponentProperty,
+  setGlobalAssetLibraryProperty,
+  setPreviewCompiledJsForSlots,
+  setStatus,
+} from '@/features/code-editor/codeEditorSlice';
+
+const useSourceCode = (requestedComponentId: string): void => {
+  const dispatch = useAppDispatch();
+  const lastInvocationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const globalSourceCodeJSRef = useRef<string>('');
+  const hasCompiledOnceRef = useRef(false);
+  const needsAutoSaveOnFirstCompilationRef = useRef(false);
+
+  const { needsAutoSaveOnFirstCompilation } = useAppSelector(selectStatus);
+
+  const {
+    extractClassNameCandidates,
+    buildTailwindCssFromClassNameCandidates,
+    transformCss,
+  } = useCompileCss();
+  const { isJavaScriptCompilerReady, compileJavaScript } =
+    useCompileJavaScript();
+
+  const componentId = useAppSelector(
+    selectCodeComponentProperty('machineName'),
+  );
+
+  const sourceCodeJS = useAppSelector(
+    selectCodeComponentProperty('source_code_js'),
+  );
+  const sourceCodeCSS = useAppSelector(
+    selectCodeComponentProperty('source_code_css'),
+  );
+  const blockOverride = useAppSelector(
+    selectCodeComponentProperty('block_override'),
+  );
+  const slots = useAppSelector(selectCodeComponentProperty('slots'));
+  const globalSourceCodeCSS = useAppSelector(
+    selectGlobalAssetLibraryProperty(['css', 'original']),
+  );
+  const globalSourceCodeJS = useAppSelector(
+    selectGlobalAssetLibraryProperty(['js', 'original']),
+  );
+
+  // Keep track of values in refs which we need in the effect that compiles the
+  // source code, and which we also update in the same effect. Adding them as
+  // dependencies would re-trigger the effect once they're updated.
+  useEffect(() => {
+    needsAutoSaveOnFirstCompilationRef.current =
+      needsAutoSaveOnFirstCompilation;
+  }, [needsAutoSaveOnFirstCompilation]);
+  useEffect(() => {
+    globalSourceCodeJSRef.current = globalSourceCodeJS;
+  }, [globalSourceCodeJS]);
+
+  const [hasCompiledOnce, setHasCompiledOnce] = useState(false);
+  useEffect(() => {
+    hasCompiledOnceRef.current = hasCompiledOnce;
+  }, [hasCompiledOnce]);
+
+  useEffect(() => {
+    if (
+      requestedComponentId !== componentId ||
+      !componentId ||
+      !isJavaScriptCompilerReady
+    ) {
+      setHasCompiledOnce(false);
+      return;
+    }
+
+    const compile = async () => {
+      // Extract class name candidates from the component's JS code.
+      const classNameCandidates = extractClassNameCandidates(sourceCodeJS);
+      // Add it to our globally tracked index of class name candidates, which
+      // are extracted from all code components. They're stored as a JS comment
+      // in the global asset library.
+      // @see ui/src/features/code-editor/utils/classNameCandidates.ts
+      const { nextSource: globalJSClassNameIndex, nextClassNameCandidates } =
+        upsertClassNameCandidatesInComment(
+          globalSourceCodeJSRef.current,
+          componentId,
+          classNameCandidates,
+        );
+      // Build Tailwind CSS from the class name candidates. This will be our
+      // global CSS. The global CSS source is the Tailwind CSS configuration, but
+      // it can also contain arbitrary CSS.
+      const globalCompiledCss = await buildTailwindCssFromClassNameCandidates(
+        nextClassNameCandidates,
+        globalSourceCodeCSS,
+      );
+      // Compile the component's JS code.
+      const { code: compiledJs, error: compiledJsError } = compileJavaScript(
+        sourceCodeJS,
+        `The component ${componentId} failed to compile.`,
+      );
+      // Compile the component's JS code for previewing slot examples in the
+      // code editor's preview.
+      const { code: compiledJsForSlots, error: compiledJsForSlotsError } =
+        compileJavaScript(
+          !blockOverride
+            ? getJsForSlotsPreview(slots)
+            : getJsForExampleSlotsOverridePreview(blockOverride),
+        );
+      // Compile the component's own CSS.
+      const compiledCss = await transformCss(sourceCodeCSS);
+
+      // Save everything to the Redux store.
+      // (These updates are automatically batched since React 18+.)
+
+      // Set the code editor needing to auto-save if it's already set to
+      // auto-save or if it's not the first compilation.
+      const needsAutoSave =
+        needsAutoSaveOnFirstCompilationRef.current ||
+        hasCompiledOnceRef.current;
+      setHasCompiledOnce(true);
+
+      dispatch(
+        setGlobalAssetLibraryProperty([
+          'css',
+          'compiled',
+          globalCompiledCss,
+          { needsAutoSave },
+        ]),
+      );
+      dispatch(
+        setGlobalAssetLibraryProperty([
+          'js',
+          'original',
+          globalJSClassNameIndex,
+          { needsAutoSave },
+        ]),
+      );
+      dispatch(
+        setCodeComponentProperty([
+          'compiled_css',
+          compiledCss,
+          { needsAutoSave },
+        ]),
+      );
+      dispatch(
+        setCodeComponentProperty([
+          'compiled_js',
+          compiledJs,
+          { needsAutoSave },
+        ]),
+      );
+      dispatch(setPreviewCompiledJsForSlots(compiledJsForSlots));
+      dispatch(
+        setStatus({
+          compilationError: !!compiledJsError || !!compiledJsForSlotsError,
+          isCompiling: false,
+        }),
+      );
+    };
+
+    if (lastInvocationTimeoutRef.current) {
+      clearTimeout(lastInvocationTimeoutRef.current);
+    }
+    lastInvocationTimeoutRef.current = setTimeout(
+      () => {
+        dispatch(setStatus({ isCompiling: true }));
+        void compile();
+      },
+      hasCompiledOnceRef.current ? 1000 : 0,
+    );
+
+    return () => {
+      if (lastInvocationTimeoutRef.current) {
+        clearTimeout(lastInvocationTimeoutRef.current);
+      }
+    };
+  }, [
+    blockOverride,
+    buildTailwindCssFromClassNameCandidates,
+    compileJavaScript,
+    componentId,
+    dispatch,
+    extractClassNameCandidates,
+    globalSourceCodeCSS,
+    isJavaScriptCompilerReady,
+    requestedComponentId,
+    slots,
+    sourceCodeCSS,
+    sourceCodeJS,
+    transformCss,
+  ]);
+};
+
+export default useSourceCode;

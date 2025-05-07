@@ -11,9 +11,7 @@ import {
   addProp,
   removeProp,
   reorderProps,
-  selectProps,
-  selectRequired,
-  selectStatus,
+  selectCodeComponentProperty,
   toggleRequired,
   updateProp,
 } from '@/features/code-editor/codeEditorSlice';
@@ -39,9 +37,9 @@ import derivedPropTypes from '@/features/code-editor/component-data/derivedPropT
 
 export default function Props() {
   const dispatch = useAppDispatch();
-  const props = useAppSelector(selectProps);
-  const required = useAppSelector(selectRequired);
-  const componentStatus = useAppSelector(selectStatus);
+  const props = useAppSelector(selectCodeComponentProperty('props'));
+  const required = useAppSelector(selectCodeComponentProperty('required'));
+  const componentStatus = useAppSelector(selectCodeComponentProperty('status'));
 
   const handleAddProp = () => {
     dispatch(addProp());

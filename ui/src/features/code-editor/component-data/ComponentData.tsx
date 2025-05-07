@@ -1,5 +1,5 @@
 import { Box, Flex, ScrollArea, Spinner, Tabs } from '@radix-ui/themes';
-import { selectBlockOverride } from '@/features/code-editor/codeEditorSlice';
+import { selectCodeComponentProperty } from '@/features/code-editor/codeEditorSlice';
 import { useAppSelector } from '@/app/hooks';
 import Props from '@/features/code-editor/component-data/Props';
 import Slots from '@/features/code-editor/component-data/Slots';
@@ -12,7 +12,9 @@ export default function ComponentData({
 }: {
   isLoading?: boolean;
 }) {
-  const blockOverride = useAppSelector(selectBlockOverride);
+  const blockOverride = useAppSelector(
+    selectCodeComponentProperty('block_override'),
+  );
 
   return (
     <Spinner loading={isLoading}>

@@ -2,17 +2,19 @@ import CodeMirror from '@uiw/react-codemirror';
 import { githubLight } from '@uiw/codemirror-theme-github';
 import { css } from '@codemirror/lang-css';
 import {
-  selectSourceCodeGlobalCss,
-  setSourceCodeGlobalCss,
+  selectGlobalAssetLibraryProperty,
+  setGlobalAssetLibraryProperty,
 } from '@/features/code-editor/codeEditorSlice';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 
 const GlobalCssEditor = ({ isLoading }: { isLoading: boolean }) => {
   const dispatch = useAppDispatch();
-  const value = useAppSelector(selectSourceCodeGlobalCss);
+  const value = useAppSelector(
+    selectGlobalAssetLibraryProperty(['css', 'original']),
+  );
 
   function onChangeHandler(value: string) {
-    dispatch(setSourceCodeGlobalCss(value));
+    dispatch(setGlobalAssetLibraryProperty(['css', 'original', value]));
   }
   if (isLoading) {
     return null;

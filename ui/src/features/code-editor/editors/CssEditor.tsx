@@ -3,16 +3,16 @@ import { githubLight } from '@uiw/codemirror-theme-github';
 import { css } from '@codemirror/lang-css';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import {
-  selectSourceCodeCss,
-  setSourceCodeCss,
+  selectCodeComponentProperty,
+  setCodeComponentProperty,
 } from '@/features/code-editor/codeEditorSlice';
 
 const CssEditor = ({ isLoading }: { isLoading: boolean }) => {
   const dispatch = useAppDispatch();
-  const value = useAppSelector(selectSourceCodeCss);
+  const value = useAppSelector(selectCodeComponentProperty('source_code_css'));
 
   function onChangeHandler(value: string) {
-    dispatch(setSourceCodeCss(value));
+    dispatch(setCodeComponentProperty(['source_code_css', value]));
   }
   if (isLoading) {
     return null;

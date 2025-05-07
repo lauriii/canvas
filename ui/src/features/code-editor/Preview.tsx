@@ -1,26 +1,14 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
-import initSwc, { transformSync } from '@swc/wasm-web';
-import type { Options } from '@swc/wasm-web';
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import {
-  selectBlockOverride,
-  selectCompiledCss,
-  selectHasCompletedFirstCompilation,
-  selectId,
-  selectName,
-  selectProps,
-  selectSlots,
-  selectSourceCodeCss,
-  selectSourceCodeGlobalCss,
-  selectSourceCodeJs,
-  setCompiledCss,
-  setCompiledJs,
-  setHasCompletedFirstCompilation,
-  setImportedJsComponents,
+  selectCodeComponentProperty,
+  selectGlobalAssetLibraryProperty,
+  selectPreviewCompiledJsForSlots,
+  selectStatus,
+  setCodeComponentProperty,
 } from '@/features/code-editor/codeEditorSlice';
 import { parse } from '@babel/parser';
 import type { File } from '@babel/types';
-import buildCSS, { transformCss } from 'tailwindcss-in-browser';
 import styles from './Preview.module.css';
 import ErrorCard from '@/components/error/ErrorCard';
 import MissingDefaultExportMessage, {
@@ -32,101 +20,89 @@ import {
   getExamplePropValuesForOverridePreview,
   getExampleSlotNamesForOverridePreview,
   getImportsFromAst,
-  getJsForExampleSlotsOverridePreview,
-  getJsForSlotsPreview,
   getPropValuesForPreview,
   getSlotNamesForPreview,
 } from '@/features/code-editor/utils';
 import { useGetCodeComponentsQuery } from '@/services/componentAndLayout';
+import { getDrupal, getXbSettings, getBaseUrl } from '@/utils/drupal-globals';
 
-const { Drupal } = window as any;
-
-const XB_MODULE_UI_PATH = (() => {
-  const { drupalSettings } = window;
-  if (!drupalSettings) {
-    return '';
-  }
-  const { xbModulePath } = drupalSettings.xb;
-  const { baseUrl } = drupalSettings.path;
-  return `${baseUrl}${xbModulePath}/ui` as const;
-})();
-
+const Drupal = getDrupal();
+const XB_MODULE_UI_PATH =
+  `${getBaseUrl()}${getXbSettings().xbModulePath}/ui` as const;
 const PREVIEW_LIB_PATH = 'dist/assets/code-editor-preview.js' as const;
-
-const swcConfig: Options = {
-  jsc: {
-    parser: {
-      syntax: 'ecmascript' as const,
-      jsx: true,
-    },
-    target: 'es2015',
-    transform: {
-      react: {
-        pragma: 'h',
-        pragmaFrag: 'Fragment',
-        throwIfNamespace: true,
-        development: false,
-        runtime: 'automatic',
-      },
-    },
-  },
-  module: {
-    type: 'es6',
-  },
-};
-
-const importMap = {
-  imports: {
-    preact: 'https://esm.sh/preact',
-    'preact/': 'https://esm.sh/preact/',
-    react: 'https://esm.sh/preact/compat',
-    'react/': 'https://esm.sh/preact/compat/',
-    'react-dom': 'https://esm.sh/preact/compat',
-    'react-dom/': 'https://esm.sh/preact/compat/',
-    // @todo Remove hardcoding and allow components to nominate their own?
-    clsx: 'https://esm.sh/clsx',
-    'class-variance-authority': 'https://esm.sh/class-variance-authority',
-    'tailwind-merge': 'https://esm.sh/tailwind-merge',
-    '@/lib/utils': `${XB_MODULE_UI_PATH}/lib/astro-hydration/dist/utils.js`,
-    '@/components/': Drupal.url('xb/api/v0/auto-saves/js/js_component/'),
-  },
-};
 
 const Preview = ({ isLoading = false }: { isLoading?: boolean }) => {
   const dispatch = useAppDispatch();
-  const lastInvocationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const [isSwcInitialized, setIsSwcInitialized] = useState(false);
-  const componentId = useAppSelector(selectId);
-  const componentName = useAppSelector(selectName);
-  const blockOverride = useAppSelector(selectBlockOverride);
-  const hasCompletedFirstCompilation = useAppSelector(
-    selectHasCompletedFirstCompilation,
+  const componentId = useAppSelector(
+    selectCodeComponentProperty('machineName'),
   );
-  const sourceCodeJs = useAppSelector(selectSourceCodeJs);
-  const sourceCodeCss = useAppSelector(selectSourceCodeCss);
-  const compiledCss = useAppSelector(selectCompiledCss);
-  const sourceCodeGlobalCss = useAppSelector(selectSourceCodeGlobalCss);
-  const props = useAppSelector(selectProps);
-  const slots = useAppSelector(selectSlots);
-  const [previewData, setPreviewData] = useState<string>('');
+  const blockOverride = useAppSelector(
+    selectCodeComponentProperty('block_override'),
+  );
+  const sourceCodeJs = useAppSelector(
+    selectCodeComponentProperty('source_code_js'),
+  );
+  const compiledJs = useAppSelector(selectCodeComponentProperty('compiled_js'));
+  const compiledCss = useAppSelector(
+    selectCodeComponentProperty('compiled_css'),
+  );
+  const compiledGlobalCss = useAppSelector(
+    selectGlobalAssetLibraryProperty(['css', 'compiled']),
+  );
+  const previewCompiledJsForSlots = useAppSelector(
+    selectPreviewCompiledJsForSlots,
+  );
+  const { compilationError } = useAppSelector(selectStatus);
+  const props = useAppSelector(selectCodeComponentProperty('props'));
+  const slots = useAppSelector(selectCodeComponentProperty('slots'));
   const [isDefaultExportMissingError, setIsDefaultExportMissingError] =
     useState(false);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const parentRef = useRef<HTMLDivElement>(null);
-  const [isCompileError, setIsCompileError] = useState(false);
   const [isJsImportError, setIsJsImportError] = useState(false);
   const { data: codeComponents } = useGetCodeComponentsQuery({
     override: false,
   });
   const [jsImportNameWithError, setJsImportNameWithError] = useState('');
 
-  const iframeSrcDoc = `
+  const [iframeSrcDoc, setIframeSrcDoc] = useState('');
+
+  const importMap = useMemo(
+    () => ({
+      imports: {
+        preact: 'https://esm.sh/preact',
+        'preact/': 'https://esm.sh/preact/',
+        react: 'https://esm.sh/preact/compat',
+        'react/': 'https://esm.sh/preact/compat/',
+        'react-dom': 'https://esm.sh/preact/compat',
+        'react-dom/': 'https://esm.sh/preact/compat/',
+        // @todo Remove hardcoding and allow components to nominate their own?
+        clsx: 'https://esm.sh/clsx',
+        'class-variance-authority': 'https://esm.sh/class-variance-authority',
+        'tailwind-merge': 'https://esm.sh/tailwind-merge',
+        '@/lib/utils': `${XB_MODULE_UI_PATH}/lib/astro-hydration/dist/utils.js`,
+        '@/components/': Drupal.url('xb/api/v0/auto-saves/js/js_component/'),
+      },
+    }),
+    [],
+  );
+
+  const getIframeSrc = useCallback(
+    ({
+      previewGlobalCss,
+      previewCss,
+      previewJsData,
+    }: {
+      previewCss: string;
+      previewGlobalCss: string;
+      previewJsData: string;
+    }) => `
     <html>
       <head>
         <script type="importmap">
           ${JSON.stringify(importMap)}
         </script>
-        <style>${compiledCss}</style>
+        <style>${previewGlobalCss}</style>
         ${
           // Add CSS for all code components except the current one.
           // @todo Make this more efficient by introducing better backend support.
@@ -144,25 +120,18 @@ const Preview = ({ isLoading = false }: { isLoading?: boolean }) => {
                 .join('\n')
             : ''
         }
+        <style>${previewCss}</style>
         <script id="xb-code-editor-preview-data" type="application/json">
-          ${previewData}
+          ${previewJsData}
         </script>
         <script type="module" src="${XB_MODULE_UI_PATH}/${PREVIEW_LIB_PATH}"></script>
       </head>
       <body>
         <div id="xb-code-editor-preview-root"></div>
       </body>
-    </html>`;
-
-  const fallbackCompiledJs = `
-    import { jsx as _jsx } from "react/jsx-runtime";
-    export default function() {
-      return /*#__PURE__*/ _jsx("div", {
-          dangerouslySetInnerHTML: {
-              __html: '<!-- The component ${componentName} failed to compile. -->'
-          }
-      });
-    }`;
+    </html>`,
+    [codeComponents, componentId, importMap],
+  );
 
   // Verifies that the component's JS code has a default export.
   const hasDefaultExport = (ast: File) => {
@@ -181,142 +150,92 @@ const Preview = ({ isLoading = false }: { isLoading?: boolean }) => {
   };
 
   // Collects all the JS components imported in the component's JS code.
-  const collectImportedJsComponents = (ast: File) => {
-    // Returns an array of all the imports that start with '@/components/'.
-    // ex. [ 'my_button', 'my_heading']
-    const scope = '@/components/';
-    const imports = getImportsFromAst(ast, scope);
-    dispatch(setImportedJsComponents(imports));
-    setIsJsImportError(false);
-    if (imports.length > 0) {
-      imports.map((importName) => {
-        if (!codeComponents?.[importName]) {
-          setIsJsImportError(true);
-          setJsImportNameWithError(importName);
-        }
-      });
-    }
-  };
-
-  const compile = useCallback(
-    async () => {
-      if (!isSwcInitialized || !sourceCodeJs) {
-        return;
-      }
-      try {
-        const jsForSlots = !blockOverride
-          ? getJsForSlotsPreview(slots)
-          : getJsForExampleSlotsOverridePreview(blockOverride);
-        const result = transformSync(
-          `${sourceCodeJs}\n${jsForSlots}`,
-          swcConfig,
-        );
-        const twCssResult = await buildCSS(sourceCodeJs, sourceCodeGlobalCss);
-        const cssResult = await transformCss(sourceCodeCss);
-        dispatch(setCompiledCss(twCssResult + cssResult));
-        const ast = parse(sourceCodeJs, {
-          sourceType: 'module',
-          plugins: ['jsx'],
+  const collectImportedJsComponents = useCallback(
+    (ast: File) => {
+      // Returns an array of all the imports that start with '@/components/'.
+      // ex. [ 'my_button', 'my_heading']
+      const scope = '@/components/';
+      const imports = getImportsFromAst(ast, scope);
+      dispatch(setCodeComponentProperty(['imported_js_components', imports]));
+      setIsJsImportError(false);
+      if (imports.length > 0) {
+        imports.map((importName) => {
+          if (!codeComponents?.[importName]) {
+            setIsJsImportError(true);
+            setJsImportNameWithError(importName);
+          }
         });
-        collectImportedJsComponents(ast);
-        if (hasDefaultExport(ast)) {
-          setIsDefaultExportMissingError(false);
-        } else {
-          setIsDefaultExportMissingError(true);
-        }
-        // The following data is going to be embedded in the iframe as a JSON
-        // object. It is used by a script that we load inside the iframe to
-        // render the component. The script is loaded via an `src` attribute
-        // instead of being added to the iframe inline because of Content
-        // Security Policy (CSP) restrictions.
-        // @see ui/lib/code-editor-preview.js
-        const propValues = !blockOverride
-          ? getPropValuesForPreview(props)
-          : getExamplePropValuesForOverridePreview(blockOverride);
-        const slotNames = !blockOverride
-          ? getSlotNamesForPreview(slots)
-          : getExampleSlotNamesForOverridePreview(blockOverride);
-        setPreviewData(
-          JSON.stringify({
-            compiledJsUrl: URL.createObjectURL(
-              new Blob([result.code], { type: 'text/javascript' }),
-            ),
-            propValues,
-            slotNames,
-          }),
-        );
-        dispatch(setCompiledJs(result.code));
-        setIsCompileError(false);
-        if (!hasCompletedFirstCompilation) {
-          dispatch(setHasCompletedFirstCompilation(true));
-        }
-      } catch (error: any) {
-        // Saving a fallback compiled JS in case of compilation error. Not doing
-        // this would simply keep the previous compiled JS.
-        dispatch(setCompiledJs(fallbackCompiledJs));
-        setIsCompileError(true);
-        if (!hasCompletedFirstCompilation) {
-          dispatch(setHasCompletedFirstCompilation(true));
-        }
-        console.error('Compilation error:', error);
       }
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [
-      // Intentionally left out: hasCompletedFirstCompilation,
-      dispatch,
-      fallbackCompiledJs,
-      isSwcInitialized,
-      props,
-      slots,
-      sourceCodeCss,
-      sourceCodeGlobalCss,
-      sourceCodeJs,
-    ],
+    [codeComponents, dispatch],
   );
 
   useEffect(() => {
-    const importAndRunSwcOnMount = async () => {
-      try {
-        // When served in production, the wasm asset URLs need to be relative to the Drupal web root, so
-        // we pass that in to the initSwc function.
-        if (import.meta.env.MODE === 'production') {
-          await initSwc(`${XB_MODULE_UI_PATH}/dist/assets/wasm_bg.wasm`);
-        } else {
-          await initSwc();
-        }
-        setIsSwcInitialized(true);
-      } catch (error) {
-        console.error('Failed to initialize SWC:', error);
+    if (!sourceCodeJs) {
+      return;
+    }
+    try {
+      const ast = parse(sourceCodeJs, {
+        sourceType: 'module',
+        plugins: ['jsx'],
+      });
+      collectImportedJsComponents(ast);
+      if (hasDefaultExport(ast)) {
+        setIsDefaultExportMissingError(false);
+      } else {
+        setIsDefaultExportMissingError(true);
       }
-    };
-    importAndRunSwcOnMount();
-  }, []);
+    } catch (error) {
+      // This error will also be caught by the JavaScript compiler, and
+      // `previewCompilationError` will be set to true in the code editor
+      // Redux slice.
+      console.error('Error parsing source code:', error);
+    }
+  }, [sourceCodeJs, collectImportedJsComponents]);
 
-  useEffect(
-    () => {
-      if (lastInvocationTimeoutRef.current) {
-        clearTimeout(lastInvocationTimeoutRef.current);
-      }
-      lastInvocationTimeoutRef.current = setTimeout(
-        () => {
-          void compile();
-        },
-        // No delay if the component hasn't been compiled yet, which is the case
-        // when the user navigates to a code component's edit page.
-        hasCompletedFirstCompilation ? 1000 : 0,
-      );
-
-      return () => {
-        if (lastInvocationTimeoutRef.current) {
-          clearTimeout(lastInvocationTimeoutRef.current);
-        }
-      };
-    },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [compile, isSwcInitialized, sourceCodeJs],
-    // Intentionally left out: hasCompletedFirstCompilation
-  );
+  useEffect(() => {
+    if (!compiledJs) {
+      return;
+    }
+    // The following data is going to be embedded in the iframe as a JSON
+    // object. It is used by a script that we load inside the iframe to render
+    // the component. The script is loaded via an `src` attribute instead of
+    // being added to the iframe inline because of Content Security Policy (CSP)
+    // restrictions.
+    // @see ui/lib/code-editor-preview.js
+    const propValues = !blockOverride
+      ? getPropValuesForPreview(props)
+      : getExamplePropValuesForOverridePreview(blockOverride);
+    const slotNames = !blockOverride
+      ? getSlotNamesForPreview(slots)
+      : getExampleSlotNamesForOverridePreview(blockOverride);
+    const previewJsData = JSON.stringify({
+      compiledJsUrl: URL.createObjectURL(
+        new Blob([compiledJs], { type: 'text/javascript' }),
+      ),
+      compiledJsForSlotsUrl: URL.createObjectURL(
+        new Blob([previewCompiledJsForSlots], { type: 'text/javascript' }),
+      ),
+      propValues,
+      slotNames,
+    });
+    setIframeSrcDoc(
+      getIframeSrc({
+        previewCss: compiledCss,
+        previewGlobalCss: compiledGlobalCss,
+        previewJsData,
+      }),
+    );
+  }, [
+    blockOverride,
+    compiledCss,
+    compiledGlobalCss,
+    compiledJs,
+    getIframeSrc,
+    previewCompiledJsForSlots,
+    props,
+    slots,
+  ]);
 
   // Add an invisible overlay to the iframe when the Mosaic window is being resized.
   // This prevents the iframe from intercepting mouse events from the parent Mosaic window.
@@ -379,12 +298,6 @@ const Preview = ({ isLoading = false }: { isLoading?: boolean }) => {
     );
   };
 
-  if (!hasCompletedFirstCompilation) {
-    // If navigating from another code component's edit page, its preview would
-    // be shown briefly before the new component's preview is compiled.
-    return null;
-  }
-
   const errorComponents = {
     isCompileError: renderCompileError(),
     isDefaultExportMissingError: renderExportMissingError(),
@@ -392,7 +305,7 @@ const Preview = ({ isLoading = false }: { isLoading?: boolean }) => {
   };
 
   const activeErrors = Object.entries({
-    isCompileError,
+    isCompileError: compilationError,
     isDefaultExportMissingError,
     isJsImportError,
   })

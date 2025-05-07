@@ -8,14 +8,16 @@ import {
   selectSelectedCodeComponent,
 } from '@/features/ui/codeComponentDialogSlice';
 import {
-  selectId as selectCodeEditorId,
-  setName as setCodeEditorName,
+  selectCodeComponentProperty,
+  setCodeComponentProperty,
 } from '@/features/code-editor/codeEditorSlice';
 import Dialog, { DialogFieldLabel } from '@/components/Dialog';
 
 const RenameCodeComponentDialog = () => {
   const selectedComponent = useAppSelector(selectSelectedCodeComponent);
-  const codeEditorId = useAppSelector(selectCodeEditorId);
+  const codeEditorId = useAppSelector(
+    selectCodeComponentProperty('machineName'),
+  );
   const [componentName, setComponentName] = useState('');
   const [updateCodeComponent, { isLoading, isSuccess, isError, error, reset }] =
     useUpdateCodeComponentMutation();
@@ -38,7 +40,7 @@ const RenameCodeComponentDialog = () => {
       },
     });
     if (codeEditorId === selectedComponent.machineName) {
-      dispatch(setCodeEditorName(componentName));
+      dispatch(setCodeComponentProperty(['name', componentName]));
     }
   };
 

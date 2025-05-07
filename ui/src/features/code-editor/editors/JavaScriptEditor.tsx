@@ -3,17 +3,17 @@ import { javascript } from '@codemirror/lang-javascript';
 import { githubLight } from '@uiw/codemirror-theme-github';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import {
-  selectSourceCodeJs,
-  setSourceCodeJs,
+  selectCodeComponentProperty,
+  setCodeComponentProperty,
 } from '@/features/code-editor/codeEditorSlice';
 import ImportButton from '@/features/code-editor/ImportButton';
 
 const JavaScriptEditor = ({ isLoading }: { isLoading: boolean }) => {
   const dispatch = useAppDispatch();
-  const value = useAppSelector(selectSourceCodeJs);
+  const value = useAppSelector(selectCodeComponentProperty('source_code_js'));
 
   function onChangeHandler(value: string) {
-    dispatch(setSourceCodeJs(value));
+    dispatch(setCodeComponentProperty(['source_code_js', value]));
   }
   if (isLoading) {
     return null;

@@ -2,7 +2,7 @@ import { Provider } from 'react-redux';
 import { makeStore } from '@/app/store';
 import {
   addSlot,
-  selectSlots,
+  selectCodeComponentProperty,
   updateSlot,
 } from '@/features/code-editor/codeEditorSlice';
 import { Theme } from '@radix-ui/themes';
@@ -41,7 +41,7 @@ describe('Component data / slots in code editor', () => {
 
     cy.log('Checking first slot in store with default values');
     cy.wrap(store).then((store) => {
-      const slots = selectSlots(store.getState());
+      const slots = selectCodeComponentProperty('slots')(store.getState());
       expect(slots).to.have.length(
         1,
         'Should have exactly one slot after clicking new slot button',
@@ -61,7 +61,7 @@ describe('Component data / slots in code editor', () => {
 
     cy.log('Checking updated slot');
     cy.wrap(store).then((store) => {
-      const slots = selectSlots(store.getState());
+      const slots = selectCodeComponentProperty('slots')(store.getState());
       expect(slots).to.have.length(1, 'Should have exactly one slot');
       expect(slots[0]).to.deep.include(
         {
@@ -92,7 +92,7 @@ describe('Component data / slots in code editor', () => {
 
     // Check that the slots are in the store.
     cy.wrap(store).then((store) => {
-      const slots = selectSlots(store.getState());
+      const slots = selectCodeComponentProperty('slots')(store.getState());
       expect(slots).to.have.length(3, 'Should have exactly three slots');
       expect(slots[0]).to.deep.include({
         name: 'Alpha',
@@ -116,7 +116,7 @@ describe('Component data / slots in code editor', () => {
       });
     // Check that the slots in the store are in the new order.
     cy.wrap(store).then((store) => {
-      const slots = selectSlots(store.getState());
+      const slots = selectCodeComponentProperty('slots')(store.getState());
       expect(slots[0].name).to.equal('Bravo');
       expect(slots[1].name).to.equal('Charlie');
       expect(slots[2].name).to.equal('Alpha');
@@ -130,7 +130,7 @@ describe('Component data / slots in code editor', () => {
       });
     // Check that the slots in the store are in the new order.
     cy.wrap(store).then((store) => {
-      const slots = selectSlots(store.getState());
+      const slots = selectCodeComponentProperty('slots')(store.getState());
       expect(slots[0].name).to.equal('Charlie');
       expect(slots[1].name).to.equal('Bravo');
       expect(slots[2].name).to.equal('Alpha');
@@ -140,7 +140,7 @@ describe('Component data / slots in code editor', () => {
     cy.findAllByLabelText('Remove slot').first().click();
     // Check that the slots in the store are in the new order.
     cy.wrap(store).then((store) => {
-      const slots = selectSlots(store.getState());
+      const slots = selectCodeComponentProperty('slots')(store.getState());
       expect(slots).to.have.length(2, 'Should have exactly two slots');
       expect(slots[0].name).to.equal('Bravo');
       expect(slots[1].name).to.equal('Alpha');
@@ -150,7 +150,7 @@ describe('Component data / slots in code editor', () => {
     cy.findAllByLabelText('Remove slot').last().click();
     // Check that the slots in the store are in the new order.
     cy.wrap(store).then((store) => {
-      const slots = selectSlots(store.getState());
+      const slots = selectCodeComponentProperty('slots')(store.getState());
       expect(slots).to.have.length(1, 'Should have exactly one slot');
       expect(slots[0].name).to.equal('Bravo');
     });
@@ -158,7 +158,7 @@ describe('Component data / slots in code editor', () => {
     // Remove the one remaining slot.
     cy.findByLabelText('Remove slot').click();
     cy.wrap(store).then((store) => {
-      const slots = selectSlots(store.getState());
+      const slots = selectCodeComponentProperty('slots')(store.getState());
       expect(slots).to.have.length(0, 'Should have no slots');
     });
   });
@@ -167,7 +167,7 @@ describe('Component data / slots in code editor', () => {
     // Add a new slot directly to the store, update it, and toggle it as required.
     cy.wrap(store).then((store) => {
       store.dispatch(addSlot());
-      const newSlot = selectSlots(store.getState())[0];
+      const newSlot = selectCodeComponentProperty('slots')(store.getState())[0];
       cy.log(
         `Added new slot directly to the store: ${JSON.stringify(newSlot)}`,
       );
@@ -177,7 +177,9 @@ describe('Component data / slots in code editor', () => {
           updates: { name: 'Alpha', example: 'A slot' },
         }),
       );
-      const updatedSlot = selectSlots(store.getState())[0];
+      const updatedSlot = selectCodeComponentProperty('slots')(
+        store.getState(),
+      )[0];
       cy.log(
         `Updated slot directly in the store: ${JSON.stringify(updatedSlot)}`,
       );

@@ -9,4 +9,6 @@ label: 'Global CSS'
 css:
   original: ''
   compiled: ''
-js: ~
+js:
+  original: ''
+  compiled: ''

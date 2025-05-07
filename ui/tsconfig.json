@@ -18,7 +18,8 @@
     "paths": {
       "@/*": ["src/*"],
       "@assets/*": ["assets/*"],
-      "@experimental/*": ["../experimental/*"]
+      "@experimental/*": ["../experimental/*"],
+      "@tests/*": ["tests/*"]
     },
     "sourceMap": false,
     "inlineSourceMap": true,

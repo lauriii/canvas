@@ -21,7 +21,7 @@ import { DEFAULT_REGION } from '@/features/ui/uiSlice';
 import { Link } from 'react-router-dom';
 import useXbParams from '@/hooks/useXbParams';
 import { selectLayout } from '@/features/layout/layoutModelSlice';
-import { selectName } from '@/features/code-editor/codeEditorSlice';
+import { selectCodeComponentProperty } from '@/features/code-editor/codeEditorSlice';
 import Navigation from '@/components/navigation/Navigation';
 import { handleNonWorkingBtn } from '@/utils/function-utils';
 import {
@@ -59,7 +59,7 @@ const PageInfo = () => {
   const { showBoundary } = useErrorBoundary();
   const { setEditorEntity } = useEditorNavigation();
   const { regionId: focusedRegion = DEFAULT_REGION } = useXbParams();
-  const codeComponentName = useAppSelector(selectName);
+  const codeComponentName = useAppSelector(selectCodeComponentProperty('name'));
 
   const isCodeEditor = codeComponentName !== '';
   const layout = useAppSelector(selectLayout);
