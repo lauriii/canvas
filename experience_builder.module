@@ -68,3 +68,13 @@ function experience_builder_preprocess_form_element(array &$variables): void {
     $variables['label']['#form_id'] = $variables['element']['#form_id'];
   }
 }
+
+/**
+ * Implements hook_preprocess_HOOK() for html.
+ */
+function experience_builder_preprocess_html(array &$variables): void {
+  $current_route = \Drupal::routeMatch()->getRouteName();
+  if ($current_route === 'entity.xb_page.canonical') {
+    $variables['attributes']['class'][] = 'xb-page';
+  }
+}

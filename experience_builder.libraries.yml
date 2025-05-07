@@ -133,3 +133,8 @@ shoelace:
 track_navigation:
   js:
     js/track_navigation.js: {}
+
+navigation.xb.override:
+  css:
+    theme:
+      css/navigation-override.css: {}

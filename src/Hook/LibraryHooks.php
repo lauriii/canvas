@@ -70,6 +70,13 @@ final class LibraryHooks {
         }
       }
     }
+
+    // Add the library to the list of dependencies for the navigation to allow
+    // overriding its CSS.
+    if ($extension === 'navigation') {
+      $libraries['internal.navigation']['dependencies'][] = 'experience_builder/navigation.xb.override';
+    }
+
   }
 
   /**
