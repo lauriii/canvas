@@ -8,6 +8,7 @@ use Drupal\Core\Theme\Component\ComponentMetadata;
 use Drupal\experience_builder\PropExpressions\Component\ComponentPropExpression;
 use Drupal\experience_builder\PropShape\PropShape;
 use Drupal\experience_builder\PropShape\StorablePropShape;
+use JsonSchema\Validator;
 
 /**
  * Defines a class for checking if component metadata meets requirements.
@@ -40,18 +41,34 @@ final class ComponentMetadataRequirementsChecker {
       $messages[] = 'Component uses the reserved "Elements" category';
     }
 
-    $missing_examples = \array_filter(
-      \array_intersect_key($metadata->schema['properties'] ?? [], \array_flip($required_props)),
-      static fn (array $property) => empty($property['examples'])
-    );
-    if (\count($missing_examples) > 0) {
-      $messages += \array_map(static fn(string $prop) => \sprintf('Prop "%s" is required, but does not have example value', $prop), \array_keys($missing_examples));
-    }
-
     $props_for_metadata = PropShape::getComponentPropsForMetadata($component_id, $metadata);
+    $validator = new Validator();
     foreach ($metadata->schema['properties'] as $prop_name => $prop) {
       if ($prop_name === 'attributes') {
         continue;
+      }
+
+      // Required props must have examples.
+      if (in_array($prop_name, $required_props, TRUE) && !isset($prop['examples'][0])) {
+        $messages[] = \sprintf('Prop "%s" is required, but does not have example value', $prop_name);
+      }
+
+      // JSON Schema does not require that examples must be valid, but we do
+      // require the first one to be, as we use it as the default value for
+      // the prop.
+      if (isset($prop['examples'][0])) {
+        $example = $prop['examples'][0];
+        if (is_array($example)) {
+          $example = (object) $example;
+        }
+        $validator->reset();
+        $validator->validate($example, $prop);
+        if (!$validator->isValid()) {
+          $messages[] = \sprintf('Prop "%s" has invalid example value: %s', $prop_name, implode("\n", array_map(
+            static fn(array $error): string => sprintf("[%s] %s", $error['property'], $error['message']),
+            $validator->getErrors()
+          )));
+        }
       }
 
       // Validation for the additional functionality overlaid on top of the SDC

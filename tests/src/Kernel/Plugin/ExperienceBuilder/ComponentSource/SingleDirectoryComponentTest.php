@@ -69,6 +69,9 @@ final class SingleDirectoryComponentTest extends ComponentSourceTestBase {
       'sdc.xb_test_sdc.html-invalid-format' => [
         'Invalid value "invalid" for "x-formatting-context". Valid values are "inline" and "block".',
       ],
+      'sdc.xb_test_sdc.image-required-with-invalid-example' => [
+        'Prop "image" has invalid example value: [src] The property src is required',
+      ],
       'sdc.xb_test_sdc.image-required-without-example' => [
         'Prop "image" is required, but does not have example value',
       ],

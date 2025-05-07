@@ -770,11 +770,11 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
     $this->assertSame([
       'errors' => [
         [
-          'detail' => 'Prop "integer" is required, but does not have example value',
+          'detail' => 'Prop "string" must have title',
           'source' => ['pointer' => ''],
         ],
         [
-          'detail' => 'Prop "string" must have title',
+          'detail' => 'Prop "integer" is required, but does not have example value',
           'source' => ['pointer' => ''],
         ],
         [
