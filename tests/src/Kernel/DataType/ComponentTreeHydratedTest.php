@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\experience_builder\Kernel\DataType;
 
+use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Access\AccessResultAllowed;
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Cache\CacheableMetadata;
@@ -65,12 +66,13 @@ class ComponentTreeHydratedTest extends KernelTestBase {
       ->save();
     $this->generateComponentConfig();
     $this->createMyCtaComponentFromSdc();
+    $this->createMyCtaAutoSaveComponentFromSdc();
   }
 
   /**
    * @dataProvider provider
    */
-  public function test(array $tree, array $inputs, array $expected_value, array $expected_renderable, string $expected_html, array $expected_cache_tags): void {
+  public function test(array $tree, array $inputs, array $expected_value, array $expected_renderable, string $expected_html, array $expected_cache_tags, bool $isPreview): void {
     $typed_data_manager = $this->container->get(TypedDataManagerInterface::class);
     $field_item_definition = $typed_data_manager->createDataDefinition('field_item:component_tree');
     $component_tree_field_item = $typed_data_manager->createInstance('field_item:component_tree', [
@@ -99,7 +101,7 @@ class ComponentTreeHydratedTest extends KernelTestBase {
     $page = Page::create([
       'title' => 'A page',
     ]);
-    $renderable = $hydrated->toRenderable($page);
+    $renderable = $hydrated->toRenderable($page, $isPreview);
     $vfs_site_base_url = base_path() . $this->siteDirectory;
     \array_walk_recursive($renderable, function (mixed &$value) use ($vfs_site_base_url) {
       if (\is_string($value)) {
@@ -107,6 +109,7 @@ class ComponentTreeHydratedTest extends KernelTestBase {
       }
     });
     $this->assertEquals($expected_renderable, $renderable);
+
     $html = (string) $this->container->get(RendererInterface::class)->renderInIsolation($renderable);
     // Strip trailing whitespace to make heredocs easier to write.
     $html = preg_replace('/ +$/m', '', $html);
@@ -122,6 +125,22 @@ class ComponentTreeHydratedTest extends KernelTestBase {
     $this->assertSame($expected_cache_tags, array_values(CacheableMetadata::createFromRenderArray($renderable)->getCacheTags()));
   }
 
+  public static function setIsPreviewPropertyRecursively(array $expectation, bool $is_preview): array {
+    \array_walk_recursive($expectation['expected_renderable'], function (mixed &$value, mixed $key) use ($is_preview) {
+      if ($key === '#is_preview') {
+        $value = $is_preview;
+      }
+    });
+    return $expectation;
+  }
+
+  public static function overwriteRenderableExpectations(array $expectation, array $overwrites): array {
+    foreach ($overwrites as ['parents' => $parents, 'value' => $value]) {
+      NestedArray::setValue($expectation['expected_renderable'], $parents, $value);
+    }
+    return $expectation;
+  }
+
   public static function provider(): \Generator {
     $generate_static_prop_source = function (string $label): array {
       return [
@@ -131,7 +150,7 @@ class ComponentTreeHydratedTest extends KernelTestBase {
       ];
     };
 
-    yield 'empty component tree' => [
+    $empty_component_tree = [
       'tree' => [
         ComponentTreeStructure::ROOT_UUID => [],
       ],
@@ -143,8 +162,10 @@ class ComponentTreeHydratedTest extends KernelTestBase {
       'expected_html' => '',
       'expected_cache_tags' => [],
     ];
+    yield 'empty component tree' => [...$empty_component_tree, 'isPreview' => FALSE];
+    yield 'empty component tree in preview' => [...$empty_component_tree, 'isPreview' => TRUE];
 
-    yield 'component tree with a single component that has unpopulated slots with default values' => [
+    $component_tree_with_single_component_with_unpopulated_slots = [
       'tree' => [
         ComponentTreeStructure::ROOT_UUID => [
           ['uuid' => 'uuid-in-root', 'component' => 'sdc.xb_test_sdc.props-slots'],
@@ -241,7 +262,10 @@ HTML,
       ],
     ];
 
-    yield 'component tree with a single block component' => [
+    yield 'component tree with a single component that has unpopulated slots with default values' => [...$component_tree_with_single_component_with_unpopulated_slots, 'isPreview' => FALSE];
+    yield 'component tree with a single component that has unpopulated slots with default values in preview' => [...self::setIsPreviewPropertyRecursively($component_tree_with_single_component_with_unpopulated_slots, TRUE), 'isPreview' => TRUE];
+
+    $component_tree_with_single_block_component = [
       'tree' => [
         ComponentTreeStructure::ROOT_UUID => [
           ['uuid' => 'uuid-in-root', 'component' => 'block.system_branding_block'],
@@ -343,8 +367,10 @@ HTML,
         'config:experience_builder.component.block.system_branding_block',
       ],
     ];
+    yield 'component tree with a single block component' => [...$component_tree_with_single_block_component, 'isPreview' => FALSE];
+    yield 'component tree with a single block component in preview' => [...self::setIsPreviewPropertyRecursively($component_tree_with_single_block_component, TRUE), 'isPreview' => TRUE];
 
-    yield 'simplest component tree without nesting' => [
+    $simplest_component_tree_without_nesting = [
       'tree' => [
         ComponentTreeStructure::ROOT_UUID => [
           ['uuid' => 'uuid-in-root', 'component' => 'sdc.xb_test_sdc.props-no-slots'],
@@ -442,8 +468,10 @@ HTML,
         'config:experience_builder.component.sdc.xb_test_sdc.props-no-slots',
       ],
     ];
+    yield 'simplest component tree without nesting' => [...$simplest_component_tree_without_nesting, 'isPreview' => FALSE];
+    yield 'simplest component tree without nesting in preview' => [...self::setIsPreviewPropertyRecursively($simplest_component_tree_without_nesting, TRUE), 'isPreview' => TRUE];
 
-    yield 'simplest component tree with nesting' => [
+    $simplest_component_tree_with_nesting = [
       'tree' => [
         ComponentTreeStructure::ROOT_UUID => [
           ['uuid' => 'uuid-in-root', 'component' => 'sdc.xb_test_sdc.props-slots'],
@@ -569,8 +597,11 @@ HTML,
         'config:experience_builder.component.sdc.xb_test_sdc.props-no-slots',
       ],
     ];
+    yield 'simplest component tree with nesting' => [...$simplest_component_tree_with_nesting, 'isPreview' => FALSE];
+    yield 'simplest component tree with nesting in preview' => [...self::setIsPreviewPropertyRecursively($simplest_component_tree_with_nesting, TRUE), 'isPreview' => TRUE];
+
     $path = self::getCiModulePath();
-    yield 'component tree with complex nesting' => [
+    $component_tree_with_complex_nesting = [
       'tree' => [
         // Note how these are NOT sequentially ordered.
         'uuid-in-root' => [
@@ -583,6 +614,7 @@ HTML,
             ['uuid' => 'uuid-level-3', 'component' => 'sdc.xb_test_sdc.props-no-slots'],
             ['uuid' => 'uuid-block', 'component' => 'block.system_branding_block'],
             ['uuid' => 'uuid-js-component', 'component' => 'js.my-cta'],
+            ['uuid' => 'uuid-js-component-auto-save', 'component' => 'js.my-cta-with-auto-save'],
             ['uuid' => 'uuid-last-in-tree', 'component' => 'sdc.xb_test_sdc.props-no-slots'],
           ],
         ],
@@ -612,6 +644,7 @@ HTML,
           'use_site_slogan' => TRUE,
         ],
         'uuid-js-component' => ['text' => $generate_static_prop_source('from a "code component"')],
+        'uuid-js-component-auto-save' => ['text' => $generate_static_prop_source('from a "auto-save code component"')],
       ],
       'expected_value' => [
         // Note how these are sequentially ordered.
@@ -654,6 +687,10 @@ HTML,
                             'uuid-js-component' => [
                               'component' => 'js.my-cta',
                               'props' => ['text' => 'Hello, from a "code component"!'],
+                            ],
+                            'uuid-js-component-auto-save' => [
+                              'component' => 'js.my-cta-with-auto-save',
+                              'props' => ['text' => 'Hello, from a "auto-save code component"!'],
                             ],
                             'uuid-last-in-tree' => [
                               'component' => 'sdc.xb_test_sdc.props-no-slots',
@@ -860,20 +897,20 @@ HTML,
                                       ],
                                       '#attached' => [
                                         'html_head_link' => [
-                                      [
-                                      [
-                                        'rel' => 'modulepreload',
-                                        'fetchpriority' => 'high',
-                                        'href' => \sprintf('%s/ui/lib/astro-hydration/dist/signals.module.js', $path),
-                                      ],
-                                      ],
-                                      [
-                                      [
-                                        'rel' => 'modulepreload',
-                                        'fetchpriority' => 'high',
-                                        'href' => \sprintf('%s/ui/lib/astro-hydration/dist/preload-helper.js', $path),
-                                      ],
-                                      ],
+                                          [
+                                            [
+                                              'rel' => 'modulepreload',
+                                              'fetchpriority' => 'high',
+                                              'href' => \sprintf('%s/ui/lib/astro-hydration/dist/signals.module.js', $path),
+                                            ],
+                                          ],
+                                          [
+                                            [
+                                              'rel' => 'modulepreload',
+                                              'fetchpriority' => 'high',
+                                              'href' => \sprintf('%s/ui/lib/astro-hydration/dist/preload-helper.js', $path),
+                                            ],
+                                          ],
                                         ],
                                       ],
                                       '#name' => 'My First Code Component',
@@ -886,6 +923,62 @@ HTML,
                                       '#prefix' => Markup::create('<!-- xb-start-uuid-js-component -->'),
                                       '#suffix' => Markup::create('<!-- xb-end-uuid-js-component -->'),
                                       '#uuid' => 'uuid-js-component',
+                                    ],
+                                  ],
+                                  'uuid-js-component-auto-save' => [
+                                    '#type' => RenderSafeComponentContainer::PLUGIN_ID,
+                                    '#component_uuid' => 'uuid-js-component-auto-save',
+                                    '#component_context' => 'Page A page (-)',
+                                    '#is_preview' => FALSE,
+                                    '#component' => [
+                                      '#type' => 'astro_island',
+                                      '#cache' => [
+                                        'tags' => ['config:experience_builder.component.js.my-cta-with-auto-save'],
+                                        'contexts' => [],
+                                        'max-age' => Cache::PERMANENT,
+                                      ],
+                                      '#import_maps' => [
+                                        ImportMapResponseAttachmentsProcessor::GLOBAL_IMPORTS => [
+                                          'preact' => \sprintf('%s/ui/lib/astro-hydration/dist/preact.module.js', $path),
+                                          'preact/hooks' => \sprintf('%s/ui/lib/astro-hydration/dist/hooks.module.js', $path),
+                                          'react/jsx-runtime' => \sprintf('%s/ui/lib/astro-hydration/dist/jsxRuntime.module.js', $path),
+                                          'react' => \sprintf('%s/ui/lib/astro-hydration/dist/compat.module.js', $path),
+                                          'react-dom' => \sprintf('%s/ui/lib/astro-hydration/dist/compat.module.js', $path),
+                                          'react-dom/client' => \sprintf('%s/ui/lib/astro-hydration/dist/compat.module.js', $path),
+                                          'clsx' => \sprintf('%s/ui/lib/astro-hydration/dist/clsx.js', $path),
+                                          'class-variance-authority' => \sprintf('%s/ui/lib/astro-hydration/dist/class-variance-authority.js', $path),
+                                          'tailwind-merge' => \sprintf('%s/ui/lib/astro-hydration/dist/tailwind-merge.js', $path),
+                                          '@/lib/utils' => \sprintf('%s/ui/lib/astro-hydration/dist/utils.js', $path),
+                                        ],
+                                      ],
+                                      '#attached' => [
+                                        'html_head_link' => [
+                                          [
+                                            [
+                                              'rel' => 'modulepreload',
+                                              'fetchpriority' => 'high',
+                                              'href' => \sprintf('%s/ui/lib/astro-hydration/dist/signals.module.js', $path),
+                                            ],
+                                          ],
+                                          [
+                                            [
+                                              'rel' => 'modulepreload',
+                                              'fetchpriority' => 'high',
+                                              'href' => \sprintf('%s/ui/lib/astro-hydration/dist/preload-helper.js', $path),
+                                            ],
+                                          ],
+                                        ],
+                                      ],
+                                      '#name' => 'My Code Component with Auto-Save',
+                                      '#component_url' => '::SITE_DIR_BASE_URL::/files/astro-island/STNRn46UCAs1xJCb2kgPiEOEZp0R24B5qjtHOsyYT-g.js',
+                                      '#props' => [
+                                        'text' => 'Hello, from a "auto-save code component"!',
+                                        'xb_uuid' => 'uuid-js-component-auto-save',
+                                        'xb_slot_ids' => [],
+                                      ],
+                                      '#prefix' => Markup::create('<!-- xb-start-uuid-js-component-auto-save -->'),
+                                      '#suffix' => Markup::create('<!-- xb-end-uuid-js-component-auto-save -->'),
+                                      '#uuid' => 'uuid-js-component-auto-save',
                                     ],
                                   ],
                                   'uuid-last-in-tree' => [
@@ -975,7 +1068,13 @@ HTML,
         renderer-url="::XB_DIR_BASE_URL::/ui/lib/astro-hydration/dist/client.js"
         props="{&quot;text&quot;:[&quot;raw&quot;,&quot;Hello, from a \&quot;code component\&quot;!&quot;]}"
         ssr="" client="only"
-        opts="{&quot;name&quot;:&quot;My First Code Component&quot;,&quot;value&quot;:&quot;preact&quot;}"><script type="module" src="::XB_DIR_BASE_URL::/ui/lib/astro-hydration/dist/client.js" blocking="render"></script><script type="module" src="::SITE_DIR_BASE_URL::/files/astro-island/STNRn46UCAs1xJCb2kgPiEOEZp0R24B5qjtHOsyYT-g.js" blocking="render"></script></astro-island><!-- xb-end-uuid-js-component --><!-- xb-start-uuid-last-in-tree --><div  data-component-id="xb_test_sdc:props-no-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
+        opts="{&quot;name&quot;:&quot;My First Code Component&quot;,&quot;value&quot;:&quot;preact&quot;}"><script type="module" src="::XB_DIR_BASE_URL::/ui/lib/astro-hydration/dist/client.js" blocking="render"></script><script type="module" src="::SITE_DIR_BASE_URL::/files/astro-island/STNRn46UCAs1xJCb2kgPiEOEZp0R24B5qjtHOsyYT-g.js" blocking="render"></script></astro-island><!-- xb-end-uuid-js-component --><!-- xb-start-uuid-js-component-auto-save --><astro-island uid="uuid-js-component-auto-save"
+        component-url="::SITE_DIR_BASE_URL::/files/astro-island/STNRn46UCAs1xJCb2kgPiEOEZp0R24B5qjtHOsyYT-g.js"
+        component-export="default"
+        renderer-url="::XB_DIR_BASE_URL::/ui/lib/astro-hydration/dist/client.js"
+        props="{&quot;text&quot;:[&quot;raw&quot;,&quot;Hello, from a \&quot;auto-save code component\&quot;!&quot;]}"
+        ssr="" client="only"
+        opts="{&quot;name&quot;:&quot;My Code Component with Auto-Save&quot;,&quot;value&quot;:&quot;preact&quot;}"><script type="module" src="::XB_DIR_BASE_URL::/ui/lib/astro-hydration/dist/client.js" blocking="render"></script><script type="module" src="::SITE_DIR_BASE_URL::/files/astro-island/STNRn46UCAs1xJCb2kgPiEOEZp0R24B5qjtHOsyYT-g.js" blocking="render"></script></astro-island><!-- xb-end-uuid-js-component-auto-save --><!-- xb-start-uuid-last-in-tree --><div  data-component-id="xb_test_sdc:props-no-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
   <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;"><!-- xb-prop-start-uuid-last-in-tree/heading -->Hello, from slot &lt;LAST ONE&gt;!<!-- xb-prop-end-uuid-last-in-tree/heading --></h1>
 </div>
 <!-- xb-end-uuid-last-in-tree --><!-- xb-slot-end-uuid-level-2/the_body -->
@@ -1010,9 +1109,95 @@ HTML,
       'expected_cache_tags' => [
         'config:experience_builder.component.sdc.xb_test_sdc.props-slots',
         'config:experience_builder.component.sdc.xb_test_sdc.props-no-slots',
+        'config:experience_builder.component.js.my-cta-with-auto-save',
         'config:experience_builder.component.js.my-cta',
         'config:experience_builder.component.block.system_branding_block',
       ],
+    ];
+    yield 'component tree with complex nesting' => [...$component_tree_with_complex_nesting, 'isPreview' => FALSE];
+    $path_to_auto_saved_js_component = [
+      ComponentTreeStructure::ROOT_UUID,
+      'uuid-in-root',
+      '#component', '#slots', 'the_body',
+      'uuid-level-1',
+      '#component', '#slots', 'the_body',
+      'uuid-level-2',
+      '#component', '#slots', 'the_body',
+      'uuid-js-component-auto-save',
+      '#component',
+    ];
+    yield 'component tree with complex nesting in preview' => [
+      ...self::overwriteRenderableExpectations(
+        self::setIsPreviewPropertyRecursively($component_tree_with_complex_nesting, TRUE),
+        [
+          ['parents' => [...$path_to_auto_saved_js_component, '#name'], 'value' => 'My Code Component with Auto-Save - Draft'],
+          ['parents' => [...$path_to_auto_saved_js_component, '#component_url'], 'value' => '/xb/api/v0/auto-saves/js/js_component/my-cta-with-auto-save'],
+        ],
+      ),
+      'expected_html' => <<<HTML
+<!-- xb-start-uuid-in-root --><div  data-component-id="xb_test_sdc:props-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
+  <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;"><!-- xb-prop-start-uuid-in-root/heading -->Hello, world!<!-- xb-prop-end-uuid-in-root/heading --></h1>
+  <div class="component--props-slots--body">
+        <!-- xb-slot-start-uuid-in-root/the_body --><!-- xb-start-uuid-level-1 --><div  data-component-id="xb_test_sdc:props-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
+  <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;"><!-- xb-prop-start-uuid-level-1/heading -->Hello, from slot level 1!<!-- xb-prop-end-uuid-level-1/heading --></h1>
+  <div class="component--props-slots--body">
+        <!-- xb-slot-start-uuid-level-1/the_body --><!-- xb-start-uuid-level-2 --><div  data-component-id="xb_test_sdc:props-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
+  <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;"><!-- xb-prop-start-uuid-level-2/heading -->Hello, from slot level 2!<!-- xb-prop-end-uuid-level-2/heading --></h1>
+  <div class="component--props-slots--body">
+        <!-- xb-slot-start-uuid-level-2/the_body --><!-- xb-start-uuid-level-3 --><div  data-component-id="xb_test_sdc:props-no-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
+  <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;"><!-- xb-prop-start-uuid-level-3/heading -->Hello, from slot level 3!<!-- xb-prop-end-uuid-level-3/heading --></h1>
+</div>
+<!-- xb-end-uuid-level-3 --><!-- xb-start-uuid-block --><div id="block-uuid-block">
+
+
+          <a href="/" rel="home">XB Test Site</a>
+    Experience Builder Test Site
+</div>
+<!-- xb-end-uuid-block --><!-- xb-start-uuid-js-component --><astro-island uid="uuid-js-component"
+        component-url="::SITE_DIR_BASE_URL::/files/astro-island/STNRn46UCAs1xJCb2kgPiEOEZp0R24B5qjtHOsyYT-g.js"
+        component-export="default"
+        renderer-url="::XB_DIR_BASE_URL::/ui/lib/astro-hydration/dist/client.js"
+        props="{&quot;text&quot;:[&quot;raw&quot;,&quot;Hello, from a \&quot;code component\&quot;!&quot;]}"
+        ssr="" client="only"
+        opts="{&quot;name&quot;:&quot;My First Code Component&quot;,&quot;value&quot;:&quot;preact&quot;}"><script type="module" src="::XB_DIR_BASE_URL::/ui/lib/astro-hydration/dist/client.js" blocking="render"></script><script type="module" src="::SITE_DIR_BASE_URL::/files/astro-island/STNRn46UCAs1xJCb2kgPiEOEZp0R24B5qjtHOsyYT-g.js" blocking="render"></script></astro-island><!-- xb-end-uuid-js-component --><!-- xb-start-uuid-js-component-auto-save --><astro-island uid="uuid-js-component-auto-save"
+        component-url="/xb/api/v0/auto-saves/js/js_component/my-cta-with-auto-save"
+        component-export="default"
+        renderer-url="::XB_DIR_BASE_URL::/ui/lib/astro-hydration/dist/client.js"
+        props="{&quot;text&quot;:[&quot;raw&quot;,&quot;Hello, from a \&quot;auto-save code component\&quot;!&quot;]}"
+        ssr="" client="only"
+        opts="{&quot;name&quot;:&quot;My Code Component with Auto-Save - Draft&quot;,&quot;value&quot;:&quot;preact&quot;}"><script type="module" src="::XB_DIR_BASE_URL::/ui/lib/astro-hydration/dist/client.js" blocking="render"></script><script type="module" src="/xb/api/v0/auto-saves/js/js_component/my-cta-with-auto-save" blocking="render"></script></astro-island><!-- xb-end-uuid-js-component-auto-save --><!-- xb-start-uuid-last-in-tree --><div  data-component-id="xb_test_sdc:props-no-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
+  <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;"><!-- xb-prop-start-uuid-last-in-tree/heading -->Hello, from slot &lt;LAST ONE&gt;!<!-- xb-prop-end-uuid-last-in-tree/heading --></h1>
+</div>
+<!-- xb-end-uuid-last-in-tree --><!-- xb-slot-end-uuid-level-2/the_body -->
+    </div>
+  <div class="component--props-slots--footer">
+        <!-- xb-slot-start-uuid-level-2/the_footer -->Example value for &lt;strong&gt;the_footer&lt;/strong&gt;.<!-- xb-slot-end-uuid-level-2/the_footer -->
+    </div>
+  <div class="component--props-slots--colophon">
+        <!-- xb-slot-start-uuid-level-2/the_colophon --><!-- xb-slot-end-uuid-level-2/the_colophon -->
+    </div>
+</div>
+<!-- xb-end-uuid-level-2 --><!-- xb-slot-end-uuid-level-1/the_body -->
+    </div>
+  <div class="component--props-slots--footer">
+        <!-- xb-slot-start-uuid-level-1/the_footer -->Example value for &lt;strong&gt;the_footer&lt;/strong&gt;.<!-- xb-slot-end-uuid-level-1/the_footer -->
+    </div>
+  <div class="component--props-slots--colophon">
+        <!-- xb-slot-start-uuid-level-1/the_colophon --><!-- xb-slot-end-uuid-level-1/the_colophon -->
+    </div>
+</div>
+<!-- xb-end-uuid-level-1 --><!-- xb-slot-end-uuid-in-root/the_body -->
+    </div>
+  <div class="component--props-slots--footer">
+        <!-- xb-slot-start-uuid-in-root/the_footer -->Example value for &lt;strong&gt;the_footer&lt;/strong&gt;.<!-- xb-slot-end-uuid-in-root/the_footer -->
+    </div>
+  <div class="component--props-slots--colophon">
+        <!-- xb-slot-start-uuid-in-root/the_colophon --><!-- xb-slot-end-uuid-in-root/the_colophon -->
+    </div>
+</div>
+<!-- xb-end-uuid-in-root -->
+HTML,
+      'isPreview' => TRUE,
     ];
   }
 

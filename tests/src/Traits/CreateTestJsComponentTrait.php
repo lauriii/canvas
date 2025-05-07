@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\experience_builder\Traits;
 
+use Drupal\experience_builder\AutoSave\AutoSaveManager;
 use Drupal\experience_builder\Entity\JavaScriptComponent;
 use Symfony\Component\Yaml\Yaml;
 
@@ -34,6 +35,32 @@ trait CreateTestJsComponentTrait {
       'js' => ['original' => '', 'compiled' => ''],
       'css' => ['original' => '', 'compiled' => ''],
     ])->save();
+  }
+
+  private function createMyCtaAutoSaveComponentFromSdc(): void {
+    $my_cta = JavaScriptComponent::load('my-cta');
+    if (!$my_cta) {
+      throw new \LogicException();
+    }
+    $my_cta_with_auto_save = JavaScriptComponent::create([
+      'machineName' => 'my-cta-with-auto-save',
+      'name' => 'My Code Component with Auto-Save',
+    ] + array_diff_key($my_cta->toArray(), array_flip(['uuid'])));
+    $my_cta_with_auto_save->save();
+
+    // Now also create an auto-save entry for it.
+    $client_side_data = $my_cta_with_auto_save->normalizeForClientSide()->values;
+    $client_side_data['name'] .= ' - Draft';
+    // @phpstan-ignore-next-line
+    $autoSave = $this->container->get(AutoSaveManager::class);
+    $autoSave->save(
+      $my_cta_with_auto_save,
+      // Add updated values the auto-save entry.
+      $client_side_data +
+      [
+        'imported_js_components' => [],
+      ]
+    );
   }
 
 }
