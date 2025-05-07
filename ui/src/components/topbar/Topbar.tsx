@@ -21,16 +21,20 @@ import ExtensionsList from '@/components/extensions/ExtensionsList';
 import TopbarPopover from '@/components/topbar/menu/TopbarPopover';
 import topBarStyles from '@/components/topbar/Topbar.module.css';
 import DynamicComponents from '@/components/dynamicComponents/DynamicComponents';
-import { useAppSelector } from '@/app/hooks';
-import { selectDevMode } from '@/features/configuration/configurationSlice';
 
 const PREVIOUS_URL_STORAGE_KEY = 'XBPreviousURL';
+
+const { drupalSettings } = window;
 
 const Topbar = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const isDevMode = useAppSelector(selectDevMode);
   const isPreview = location.pathname.includes('/preview');
+
+  let hasExtensions = false;
+  if (drupalSettings && drupalSettings.xbExtension) {
+    hasExtensions = Object.values(drupalSettings.xbExtension).length > 0;
+  }
 
   function handleChangeModeClick() {
     if (isPreview) {
@@ -79,7 +83,7 @@ const Topbar = () => {
               </Button>
             </Tooltip>
             <div className={clsx(styles.verticalDivider)}></div>
-            {isDevMode && (
+            {hasExtensions && (
               <TopbarPopover
                 tooltip="Extensions"
                 trigger={
