@@ -5,7 +5,7 @@
 #
 # @see \Drupal\experience_builder\Entity\JavaScriptComponent
 # @see \Drupal\experience_builder\Entity\JavaScriptComponent::toSdcDefinition()
-# @see \Drupal\experience_builder\JsonSchemaInterpreter\SdcPropJsonSchemaType::computeStorablePropShape()
+# @see \Drupal\experience_builder\JsonSchemaInterpreter\JsonSchemaType::computeStorablePropShape()
 #
 # Caveats:
 # 1. XB does not (yet) have a field type+widget for every possible JSON Schema (string) format. So `format` is an
@@ -91,7 +91,7 @@ experience_builder.json_schema.prop.string:
       requiredKey: false
       type: string
       constraints:
-        # @see \Drupal\experience_builder\JsonSchemaInterpreter\SdcPropJsonSchemaType::computeStorablePropShape()
+        # @see \Drupal\experience_builder\JsonSchemaInterpreter\JsonSchemaType::computeStorablePropShape()
         Choice:
           - 'json-schema-definitions://experience_builder.module/textarea'
 
@@ -184,7 +184,7 @@ experience_builder.json_schema.prop.object:
       # `$ref` is actually REQUIRED for such props!
       type: string
       constraints:
-        # @see \Drupal\experience_builder\JsonSchemaInterpreter\SdcPropJsonSchemaType::computeStorablePropShape()
+        # @see \Drupal\experience_builder\JsonSchemaInterpreter\JsonSchemaType::computeStorablePropShape()
         Choice:
           - 'json-schema-definitions://experience_builder.module/image'
 

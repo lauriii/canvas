@@ -27,6 +27,8 @@ use Drupal\experience_builder\PropExpressions\StructuredData\StructuredDataPropE
 use Drupal\experience_builder\PropExpressions\StructuredData\StructuredDataPropExpressionInterface;
 
 /**
+ * Contains unstructured data for 1 explicit input of a component instance.
+ *
  * @todo Finalize name. "Fixed", "Local" and "Stored" all seem better. (Note: "Stored" would match nicely with StorablePropShape.)
  *
  * Always contains a FieldItemListInterface object (even if cardinality is 1),
@@ -34,6 +36,8 @@ use Drupal\experience_builder\PropExpressions\StructuredData\StructuredDataPropE
  * single cardinality prop sources (i.e. those that are NOT intended to return
  * a list of values), to a caller of StaticPropSource it will appear as if they
  * interact with only a FieldItemInterface, not a FieldItemListInterface.
+ *
+ * @internal
  */
 final class StaticPropSource extends PropSourceBase {
 

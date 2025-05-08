@@ -11,6 +11,12 @@ use Drupal\experience_builder\PropExpressions\StructuredData\Evaluator;
 use Drupal\experience_builder\PropExpressions\StructuredData\StructuredDataPropExpression;
 use Drupal\experience_builder\PropExpressions\StructuredData\StructuredDataPropExpressionInterface;
 
+/**
+ * Describes structured data to map to 1 explicit input of a component instance.
+ *
+ * @see \Drupal\experience_builder\ShapeMatcher\JsonSchemaFieldInstanceMatcher
+ * @internal
+ */
 final class DynamicPropSource extends PropSourceBase {
 
   public function __construct(

@@ -13,6 +13,7 @@ use Drupal\experience_builder\Plugin\Adapter\AdapterInterface;
 
 /**
  * @phpstan-import-type AdaptedPropSourceArray from PropSource
+ * @internal
  */
 final class AdaptedPropSource extends PropSourceBase {
 

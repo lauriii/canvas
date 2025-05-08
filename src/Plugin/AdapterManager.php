@@ -11,7 +11,7 @@ use Drupal\experience_builder\Plugin\Adapter\Adapter;
 use Drupal\experience_builder\Plugin\Adapter\AdapterInterface;
 
 /**
- * @phpstan-import-type JsonSchema from \Drupal\experience_builder\JsonSchemaInterpreter\SdcPropJsonSchemaType
+ * @phpstan-import-type JsonSchema from \Drupal\experience_builder\JsonSchemaInterpreter\JsonSchemaType
  */
 final class AdapterManager extends DefaultPluginManager {
 

@@ -281,7 +281,6 @@ experience_builder.generated_field_explicit_input_ux:
       orderby: key
       sequence:
         type: mapping
-        # For each SDC prop, first a field type must be picked from the list of possible choices provided by \Drupal\experience_builder\ShapeMatcher\FieldForComponentSuggester
         mapping:
           field_type:
             type: string

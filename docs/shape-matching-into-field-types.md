@@ -109,8 +109,8 @@ ask. Because:
 ##### 3.1.2.a `structured data` → matching `field instance`s ⇒ `dynamic prop source`
 
 See:
-- `\Drupal\experience_builder\ShapeMatcher\SdcPropToFieldTypePropMatcher`
-- `\Drupal\experience_builder\JsonSchemaInterpreter\SdcPropJsonSchemaType::toDataTypeShapeRequirements()`
+- `\Drupal\experience_builder\ShapeMatcher\JsonSchemaFieldInstanceMatcher`
+- `\Drupal\experience_builder\JsonSchemaInterpreter\JsonSchemaType::toDataTypeShapeRequirements()`
 
 All `structured data` in every `content entity` in Drupal is found in `base field`s and `bundle field`s. These already
 have field settings defined. Hence `XB` must **match** a `field instance` for a given `prop shape`.
@@ -120,7 +120,7 @@ precise shapes of values that are allowed … exactly like a `prop shape` (i.e. 
 
 Hence the matching works like this:
 1. transform the JSON schema of a `prop shape` to the equivalent primitive `data type` + validation constraints (see
-   `SdcPropJsonSchemaType::toDataTypeShapeRequirements()`)
+   `JsonSchemaType::toDataTypeShapeRequirements()`)
 2. iterate over all `field instance`s in the site, and compare the previous step's `data type` + validation constraints
    to find a match
 
@@ -143,12 +143,12 @@ will choose one.
 ##### 3.1.2.b `unstructured data` → generating `conjured field`s ⇒ `static prop source`
 
 See:
-- `\Drupal\experience_builder\JsonSchemaInterpreter\SdcPropJsonSchemaType::computeStorablePropShape()`
+- `\Drupal\experience_builder\JsonSchemaInterpreter\JsonSchemaType::computeStorablePropShape()`
 - `\Drupal\experience_builder\PropShape\StorablePropShape`
 - `hook_storage_prop_shape_alter()`
 
 For any `unstructured data`, no field settings exist yet, so the appropriate settings for a `prop shape` must be
-generated. `SdcPropJsonSchemaType::computeStorablePropShape()` contains logic to that relies only on `field type`s
+generated. `JsonSchemaType::computeStorablePropShape()` contains logic to that relies only on `field type`s
 available in Drupal core. Unlike for `structured data`, no additional complexity is necessary for required versus
 optional `component input`s.
 

@@ -8,7 +8,7 @@ use JsonSchema\Constraints\Constraint;
 use JsonSchema\Validator;
 
 /**
- * @phpstan-import-type JsonSchema from \Drupal\experience_builder\JsonSchemaInterpreter\SdcPropJsonSchemaType
+ * @phpstan-import-type JsonSchema from \Drupal\experience_builder\JsonSchemaInterpreter\JsonSchemaType
  */
 abstract class AdapterBase extends PluginBase implements AdapterInterface {
 
@@ -84,7 +84,7 @@ abstract class AdapterBase extends PluginBase implements AdapterInterface {
    * @param JsonSchema $schema
    * @return JsonSchema
    *
-   * @see \Drupal\experience_builder\SdcPropToFieldTypePropMatcher::resolveSchemaReferences
+   * @see \Drupal\experience_builder\JsonSchemaFieldInstanceMatcher::resolveSchemaReferences
    */
   private static function resolveSchemaReferences(array $schema): array {
     if (isset($schema['$ref'])) {

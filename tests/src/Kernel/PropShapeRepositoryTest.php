@@ -18,7 +18,7 @@ use Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldTypeP
 use Drupal\experience_builder\PropShape\PropShape;
 use Drupal\experience_builder\PropShape\StorablePropShape;
 use Drupal\experience_builder\PropSource\StaticPropSource;
-use Drupal\experience_builder\ShapeMatcher\SdcPropToFieldTypePropMatcher;
+use Drupal\experience_builder\ShapeMatcher\JsonSchemaFieldInstanceMatcher;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\Tests\experience_builder\Traits\ContribStrictConfigSchemaTestTrait;
 use Drupal\user\Entity\User;
@@ -74,8 +74,8 @@ class PropShapeRepositoryTest extends KernelTestBase {
    */
   public function testUniquePropSchemaDiscovery(): array {
     $sdc_manager = \Drupal::service('plugin.manager.sdc');
-    $matcher = \Drupal::service(SdcPropToFieldTypePropMatcher::class);
-    assert($matcher instanceof SdcPropToFieldTypePropMatcher);
+    $matcher = \Drupal::service(JsonSchemaFieldInstanceMatcher::class);
+    assert($matcher instanceof JsonSchemaFieldInstanceMatcher);
 
     $components = $sdc_manager->getAllComponents();
     $unique_prop_shapes = [];

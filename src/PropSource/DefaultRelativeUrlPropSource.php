@@ -22,6 +22,7 @@ use Drupal\experience_builder\PropShape\PropShape;
  *
  * @see \Drupal\experience_builder\ComponentSource\UrlRewriteInterface
  * @see \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase::exampleValueRequiresEntity()
+ * @internal
  */
 final class DefaultRelativeUrlPropSource extends PropSourceBase {
 

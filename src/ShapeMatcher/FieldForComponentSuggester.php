@@ -13,7 +13,7 @@ use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\Theme\ComponentPluginManager;
 use Drupal\Core\TypedData\DataDefinitionInterface;
 use Drupal\Core\TypedData\DataReferenceTargetDefinition;
-use Drupal\experience_builder\JsonSchemaInterpreter\SdcPropJsonSchemaType;
+use Drupal\experience_builder\JsonSchemaInterpreter\JsonSchemaType;
 use Drupal\experience_builder\Plugin\Adapter\AdapterInterface;
 use Drupal\experience_builder\PropExpressions\Component\ComponentPropExpression;
 use Drupal\experience_builder\PropExpressions\StructuredData\FieldObjectPropsExpression;
@@ -22,14 +22,14 @@ use Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldPropE
 use Drupal\experience_builder\PropShape\PropShape;
 
 /**
- * @todo Rename things for clarity: this handles all props for an SDC simultaneously, SdcPropToFieldTypePropMatcher handles a single prop at a time
+ * @todo Rename things for clarity: this handles all props for an SDC simultaneously, JsonSchemaFieldInstanceMatcher handles a single prop at a time
  */
 final class FieldForComponentSuggester {
 
   use StringTranslationTrait;
 
   public function __construct(
-    private readonly SdcPropToFieldTypePropMatcher $propMatcher,
+    private readonly JsonSchemaFieldInstanceMatcher $propMatcher,
     private readonly ComponentPluginManager $componentPluginManager,
     private readonly EntityFieldManagerInterface $entityFieldManager,
     private readonly EntityTypeBundleInfoInterface $entityTypeBundleInfo,
@@ -106,7 +106,7 @@ final class FieldForComponentSuggester {
               //   with explicit (developer-friendly, user-overwhelming) info on
               //   which field props are present vs absent.
               // To correctly represent this, this must take into account what
-              // SdcPropToFieldTypePropMatcher may or may not match. It will
+              // JsonSchemaFieldInstanceMatcher may or may not match. It will
               // never match:
               // - DataReferenceTargetDefinition field props: it considers these
               //   irrelevant; it's only the twin DataReferenceDefinition that
@@ -179,7 +179,7 @@ final class FieldForComponentSuggester {
       $is_required = in_array($cpe->propName, $component->metadata->schema['required'] ?? [], TRUE);
       $schema = $prop_shape->resolvedSchema;
 
-      $primitive_type = SdcPropJsonSchemaType::from($schema['type']);
+      $primitive_type = JsonSchemaType::from($schema['type']);
 
       $instance_candidates = $this->propMatcher->findFieldInstanceFormatMatches($primitive_type, $is_required, $schema);
       $adapter_candidates = $this->propMatcher->findAdaptersByMatchingOutput($schema);

@@ -7,7 +7,7 @@ namespace Drupal\experience_builder\Plugin\Adapter;
 use Drupal\Component\Plugin\PluginInspectionInterface;
 
 /**
- * @phpstan-import-type JsonSchema from \Drupal\experience_builder\JsonSchemaInterpreter\SdcPropJsonSchemaType
+ * @phpstan-import-type JsonSchema from \Drupal\experience_builder\JsonSchemaInterpreter\JsonSchemaType
  */
 interface AdapterInterface extends PluginInspectionInterface {
 

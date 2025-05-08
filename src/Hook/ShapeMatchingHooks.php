@@ -247,7 +247,7 @@ class ShapeMatchingHooks {
    * the intended authoring experience, XB depends on the Media Library module
    * since https://www.drupal.org/i/3474226.
    *
-   * @see \Drupal\experience_builder\JsonSchemaInterpreter\SdcPropJsonSchemaType::computeStorablePropShape()
+   * @see \Drupal\experience_builder\JsonSchemaInterpreter\JsonSchemaType::computeStorablePropShape()
    * @todo Move to Media Library module, eventually.
    */
   #[Hook('storage_prop_shape_alter', module: 'media_library')]
@@ -287,7 +287,7 @@ class ShapeMatchingHooks {
    *
    * (On behalf of the Date Range module.)
    *
-   * @see \Drupal\experience_builder\JsonSchemaInterpreter\SdcPropJsonSchemaType::computeStorablePropShape()
+   * @see \Drupal\experience_builder\JsonSchemaInterpreter\JsonSchemaType::computeStorablePropShape()
    * @see \Drupal\datetime_range\Plugin\Field\FieldType\DateRangeItem
    */
   #[Hook('storage_prop_shape_alter', module: 'datetime_range')]

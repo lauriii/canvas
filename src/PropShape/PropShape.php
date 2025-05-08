@@ -8,16 +8,17 @@ use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Plugin\Component;
 use Drupal\Core\Template\Attribute;
 use Drupal\Core\Theme\Component\ComponentMetadata;
-use Drupal\experience_builder\JsonSchemaInterpreter\SdcPropJsonSchemaType;
+use Drupal\experience_builder\JsonSchemaInterpreter\JsonSchemaType;
 use Drupal\experience_builder\PropExpressions\Component\ComponentPropExpression;
 
 /**
- * A prop shape: a normalized SDC prop schema.
+ * A prop shape: a normalized component prop's JSON schema.
  *
  * Pass a `Component` plugin instance to `PropShape::getComponentProps()` and
  * receive an array of PropShape objects.
  *
  * @phpstan-type JsonSchema array<string, mixed>
+ * @internal
  */
 final class PropShape {
 
@@ -135,7 +136,7 @@ final class PropShape {
     // @see https://json-schema.org/draft/2020-12/draft-bhutton-json-schema-validation-00#rfc.section.9.2
     unset($normalized_prop_schema['default']);
 
-    $normalized_prop_schema['type'] = SdcPropJsonSchemaType::from(
+    $normalized_prop_schema['type'] = JsonSchemaType::from(
     // TRICKY: SDC always allowed `object` for Twig integration reasons.
     // @see \Drupal\sdc\Component\ComponentMetadata::parseSchemaInfo()
       is_array($prop_schema['type']) ? $prop_schema['type'][0] : $prop_schema['type']
@@ -143,7 +144,7 @@ final class PropShape {
 
     // If this is a `type: object` with not a `$ref` but `properties`, normalize
     // those too.
-    if ($normalized_prop_schema['type'] === SdcPropJsonSchemaType::OBJECT->value && array_key_exists('properties', $normalized_prop_schema)) {
+    if ($normalized_prop_schema['type'] === JsonSchemaType::OBJECT->value && array_key_exists('properties', $normalized_prop_schema)) {
       $normalized_prop_schema['properties'] = array_map(
         fn (array $prop_schema) => self::normalizePropSchema($prop_schema),
         $normalized_prop_schema['properties'],
@@ -161,8 +162,8 @@ final class PropShape {
     // If that finds no field type storage, resolve `$ref`, which removes `$ref`
     // altogether. Try to find a field type storage again, but then the decision
     // relies solely on the final (fully resolved) JSON schema.
-    $json_schema_type = SdcPropJsonSchemaType::from($this->schema['type']);
-    $storable_prop_shape = SdcPropJsonSchemaType::from($this->schema['type'])->computeStorablePropShape($this);
+    $json_schema_type = JsonSchemaType::from($this->schema['type']);
+    $storable_prop_shape = JsonSchemaType::from($this->schema['type'])->computeStorablePropShape($this);
     if ($storable_prop_shape === NULL) {
       $resolved_prop_shape = PropShape::normalize($this->resolvedSchema);
       $storable_prop_shape = $json_schema_type->computeStorablePropShape($resolved_prop_shape);

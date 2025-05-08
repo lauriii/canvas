@@ -16,9 +16,17 @@ use Drupal\experience_builder\PropShape\StorablePropShape;
 use Drupal\experience_builder\ShapeMatcher\DataTypeShapeRequirement;
 use Drupal\experience_builder\ShapeMatcher\DataTypeShapeRequirements;
 
-// phpcs:disable Drupal.Files.LineLength.TooLong
-
 /**
+ * Interprets JSON schema types (with type-specific constraints) to Typed Data.
+ *
+ * Is able to bridge the gap from JSON schema to:
+ * - Drupal field types thanks to hardcoded knowledge (with facilities for
+ *   altering default choices): `::computeStorablePropShape()` and
+ *   `hook_storage_prop_shape_alter()`
+ * - Drupal field instances' props thanks to hardcoded knowledge about Drupal
+ *   validation constraint equivalents: `::toDataTypeShapeRequirements()`, used
+ *   by \Drupal\experience_builder\ShapeMatcher\JsonSchemaFieldInstanceMatcher
+ *
  * KNOWN UNKNOWNS.
  *
  * ⚠️ CONFIDENCE UNDERMINING, HIGHEST IMPACT FIRST ⚠️
@@ -45,8 +53,9 @@ use Drupal\experience_builder\ShapeMatcher\DataTypeShapeRequirements;
  * @todo Use `justinrainbow/json-schema`'s \JsonSchema\Constraints\FormatConstraint to ensure data flowing from Drupal entity is guaranteed to match with JSON schema constraint; log errors in production, throw errors in dev?
  *
  * @phpstan-type JsonSchema array<string, mixed>
+ * @internal
  */
-enum SdcPropJsonSchemaType: string {
+enum JsonSchemaType: string {
   case STRING = 'string';
   case NUMBER = 'number';
   case INTEGER = 'integer';
@@ -93,19 +102,19 @@ enum SdcPropJsonSchemaType: string {
    * @param JsonSchema $schema
    *
    * @see \Drupal\experience_builder\PropSource\DynamicPropSource
-   * @see \Drupal\experience_builder\SdcPropToFieldTypePropMatcher
+   * @see \Drupal\experience_builder\JsonSchemaFieldInstanceMatcher
    */
   public function toDataTypeShapeRequirements(array $schema): DataTypeShapeRequirement|DataTypeShapeRequirements|false {
     return match ($this) {
       // There cannot possibly be any additional validation for booleans.
-      SdcPropJsonSchemaType::BOOLEAN => FALSE,
+      JsonSchemaType::BOOLEAN => FALSE,
 
       // The `string` JSON schema type
       // - `enum`: https://json-schema.org/understanding-json-schema/reference/enum
       // - `minLength` and `maxLength`: https://json-schema.org/understanding-json-schema/reference/string#length
       // - `pattern`: https://json-schema.org/understanding-json-schema/reference/string#regexp
       // - `format`: https://json-schema.org/understanding-json-schema/reference/string#format and https://json-schema.org/understanding-json-schema/reference/string#built-in-formats
-      SdcPropJsonSchemaType::STRING => match (TRUE) {
+      JsonSchemaType::STRING => match (TRUE) {
         // Custom: `contentMediaType: text/html` + `x-formatting-context`.
         // @see docs/shape-matching-into-field-types.md#3.2.1
         // @see \Drupal\experience_builder\Plugin\Validation\Constraint\StringSemanticsConstraint::MARKUP
@@ -114,7 +123,7 @@ enum SdcPropJsonSchemaType: string {
           // @todo Add support for `x-formatting-context: inline`. This is blocked on CKEditor 5 support: https://www.drupal.org/i/3467959#comment-16052121. Once CKEditor 5 support is viable, this will need to generate a datatype shape requirement that checks the allowed text formats allowed by a field instance to ensure it only allows the `xb_html_inline` text format, or a subset of what it allows.
           $schema['x-formatting-context'] === 'inline' => new DataTypeShapeRequirement('NOT YET SUPPORTED', []),
           // Other `x-formatting-context` values do not make sense.
-          default => throw new \LogicException('Invalid `x-formatting-context` value; this SDC should never have been eligible.'),
+          default => throw new \LogicException('Invalid `x-formatting-context` value; this component should never have been eligible.'),
         },
         array_key_exists('enum', $schema) => new DataTypeShapeRequirement('Choice', [
           'choices' => $schema['enum'],
@@ -146,7 +155,7 @@ enum SdcPropJsonSchemaType: string {
       // - `multipleOf`: https://json-schema.org/understanding-json-schema/reference/numeric#multiples
       // - `minimum`, `exclusiveMinimum`, `maximum` and `exclusiveMaximum`: https://json-schema.org/understanding-json-schema/reference/numeric#range
       // phpcs:enable
-      SdcPropJsonSchemaType::INTEGER, SdcPropJsonSchemaType::NUMBER => match (TRUE) {
+      JsonSchemaType::INTEGER, JsonSchemaType::NUMBER => match (TRUE) {
         array_key_exists('enum', $schema) => new DataTypeShapeRequirement('Choice', [
           'choices' => $schema['enum'],
         ], NULL),
@@ -163,20 +172,11 @@ enum SdcPropJsonSchemaType: string {
         TRUE => FALSE,
       },
 
-      SdcPropJsonSchemaType::OBJECT, SdcPropJsonSchemaType::ARRAY => (function () {
+      JsonSchemaType::OBJECT, JsonSchemaType::ARRAY => (function () {
         throw new \LogicException('@see ::computeStorablePropShape() and ::recurseJsonSchema()');
       })(),
     };
   }
-
-  /**
-   * Maps the given schema to a StorablePropShape, if possible.
-   *
-   * Used for generating a StaticPropSource, for storing a value that fits in
-   * this prop shape.
-   *
-   * @see \Drupal\experience_builder\PropSource\StaticPropSource
-   */
 
   /**
    * Finds the recommended UX (storage + widget) for a prop shape.
@@ -201,7 +201,7 @@ enum SdcPropJsonSchemaType: string {
     // value fields:
     // - `type: array` -> FieldItemListInterface object, with cardinality >1
     // - `items: { type: … }` -> FieldItemInterface object of some field type
-    if ($this === SdcPropJsonSchemaType::ARRAY) {
+    if ($this === JsonSchemaType::ARRAY) {
       // Drupal core's Field API only supports specifying "required or not",
       // and required means ">=1 value". There's no (native) ability to
       // configure a minimum number of values for a field. Plus, JSON schema
@@ -244,14 +244,14 @@ enum SdcPropJsonSchemaType: string {
 
     return match ($this) {
       // @see \Drupal\Core\Field\Plugin\Field\FieldType\BooleanItem
-      SdcPropJsonSchemaType::BOOLEAN => new StorablePropShape(shape: $shape, fieldTypeProp: new FieldTypePropExpression('boolean', 'value'), fieldWidget: 'boolean_checkbox'),
+      JsonSchemaType::BOOLEAN => new StorablePropShape(shape: $shape, fieldTypeProp: new FieldTypePropExpression('boolean', 'value'), fieldWidget: 'boolean_checkbox'),
 
       // The `string` JSON schema type
       // - `enum`: https://json-schema.org/understanding-json-schema/reference/enum
       // - `minLength` and `maxLength`: https://json-schema.org/understanding-json-schema/reference/string#length
       // - `pattern`: https://json-schema.org/understanding-json-schema/reference/string#regexp
       // - `format`: https://json-schema.org/understanding-json-schema/reference/string#format and https://json-schema.org/understanding-json-schema/reference/string#built-in-formats
-      SdcPropJsonSchemaType::STRING => match (TRUE) {
+      JsonSchemaType::STRING => match (TRUE) {
         // Custom: `contentMediaType: text/html` + `x-formatting-context`.
         // @see docs/shape-matching-into-field-types.md#3.2.1
         array_key_exists('contentMediaType', $schema) && $schema['contentMediaType'] === 'text/html' => match(TRUE) {
@@ -282,7 +282,7 @@ enum SdcPropJsonSchemaType: string {
       // - `enum`: https://json-schema.org/understanding-json-schema/reference/enum
       // - `multipleOf`: https://json-schema.org/understanding-json-schema/reference/numeric#multiples
       // - `minimum`, `exclusiveMinimum`, `maximum` and `exclusiveMaximum`: https://json-schema.org/understanding-json-schema/reference/numeric#range
-      SdcPropJsonSchemaType::INTEGER => match (TRUE) {
+      JsonSchemaType::INTEGER => match (TRUE) {
         array_key_exists('$ref', $schema) => NULL,
         array_key_exists('enum', $schema) => new StorablePropShape(shape: $shape, fieldWidget: 'options_select', fieldTypeProp: new FieldTypePropExpression('list_integer', 'value'), fieldStorageSettings: [
           'allowed_values' => array_map(fn ($v) => ['value' => $v, 'label' => (string) $v], $schema['enum']),
@@ -301,7 +301,7 @@ enum SdcPropJsonSchemaType: string {
       // - `enum`: https://json-schema.org/understanding-json-schema/reference/enum
       // - `multipleOf`: https://json-schema.org/understanding-json-schema/reference/numeric#multiples
       // - `minimum`, `exclusiveMinimum`, `maximum` and `exclusiveMaximum`: https://json-schema.org/understanding-json-schema/reference/numeric#range
-      SdcPropJsonSchemaType::NUMBER => match (TRUE) {
+      JsonSchemaType::NUMBER => match (TRUE) {
         array_key_exists('$ref', $schema) => NULL,
         array_key_exists('enum', $schema) => new StorablePropShape(shape: $shape, fieldWidget: 'options_select', fieldTypeProp: new FieldTypePropExpression('list_float', 'value'), fieldStorageSettings: [
           'allowed_values' => array_map(fn ($v) => ['value' => $v, 'label' => (string) $v], $schema['enum']),
@@ -316,7 +316,7 @@ enum SdcPropJsonSchemaType: string {
         TRUE => new StorablePropShape(shape: $shape, fieldTypeProp: new FieldTypePropExpression('float', 'value'), fieldWidget: 'number'),
       },
 
-      SdcPropJsonSchemaType::OBJECT => match (TRUE) {
+      JsonSchemaType::OBJECT => match (TRUE) {
         array_key_exists('$ref', $schema) => match ($schema['$ref']) {
           // @see \Drupal\image\Plugin\Field\FieldType\ImageItem
           // @see media_library_storage_prop_shape_alter()

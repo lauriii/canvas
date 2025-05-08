@@ -4,13 +4,19 @@ declare(strict_types=1);
 
 namespace Drupal\experience_builder\PropShape;
 
-use Drupal\experience_builder\JsonSchemaInterpreter\SdcPropJsonSchemaType;
+use Drupal\experience_builder\JsonSchemaInterpreter\JsonSchemaType;
 use Drupal\experience_builder\PropExpressions\StructuredData\FieldTypeObjectPropsExpression;
 use Drupal\experience_builder\PropExpressions\StructuredData\FieldTypePropExpression;
 use Drupal\experience_builder\PropSource\StaticPropSource;
 
 /**
  * A storable prop shape: a prop shape with corresponding field type + widget.
+ *
+ * @see \Drupal\experience_builder\PropExpressions\StructuredData\FieldTypePropExpression
+ * @see \Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldTypePropExpression
+ * @see \Drupal\experience_builder\PropExpressions\StructuredData\FieldTypeObjectPropsExpression
+ * @see \Drupal\experience_builder\JsonSchemaInterpreter\JsonSchemaType::computeStorablePropShape()
+ * @internal
  */
 final class StorablePropShape {
 
@@ -34,7 +40,7 @@ final class StorablePropShape {
     //   field type — necessary for the `entity_reference` field type
     public readonly ?array $fieldInstanceSettings = NULL,
   ) {
-    if ($this->shape->resolvedSchema['type'] === SdcPropJsonSchemaType::ARRAY->value) {
+    if ($this->shape->resolvedSchema['type'] === JsonSchemaType::ARRAY->value) {
       match ($this->cardinality) {
         NULL => throw new \LogicException('Array prop shapes MUST have a cardinality.'),
         0 => throw new \OutOfRangeException('Nonsensical cardinality of zero for an array prop shape.'),

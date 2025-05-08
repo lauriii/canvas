@@ -49,7 +49,7 @@ use Symfony\Component\Validator\ConstraintViolationListInterface;
  * are stored in dangling field instances, by mapping schema to field types.
  *
  * @see \Drupal\Core\Theme\Component\ComponentMetadata
- * @see \Drupal\experience_builder\ShapeMatcher\SdcPropToFieldTypePropMatcher
+ * @see \Drupal\experience_builder\ShapeMatcher\JsonSchemaFieldInstanceMatcher
  *
  * Component Source plugins included in the Experience Builder module using it:
  * - "SDC"

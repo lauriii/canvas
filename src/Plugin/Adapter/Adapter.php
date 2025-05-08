@@ -16,7 +16,7 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
  * @see \Drupal\experience_builder\Plugin\AdapterManager
  * @see plugin_api
  *
- * @phpstan-import-type JsonSchema from \Drupal\experience_builder\JsonSchemaInterpreter\SdcPropJsonSchemaType
+ * @phpstan-import-type JsonSchema from \Drupal\experience_builder\JsonSchemaInterpreter\JsonSchemaType
  */
 #[\Attribute(\Attribute::TARGET_CLASS)]
 class Adapter extends Plugin {

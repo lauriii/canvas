@@ -23,7 +23,7 @@ dependencies:
   - drupal:datetime
   # To support the json-schema-definitions://experience_builder.module/image prop shape.
   # @see \Drupal\image\Plugin\Field\FieldType\ImageItem
-  # @see \Drupal\experience_builder\JsonSchemaInterpreter\SdcPropJsonSchemaType::computeStorablePropShape()
+  # @see \Drupal\experience_builder\JsonSchemaInterpreter\JsonSchemaType::computeStorablePropShape()
   - drupal:image
   # Needed for overrides that provide a widget that supports relative URIs.
   # @see xb_test_storage_prop_shape_alter_storage_prop_shape_alter
@@ -35,7 +35,7 @@ dependencies:
   # @see \Drupal\options\Plugin\Field\FieldType\ListFloatItem
   # @see \Drupal\options\Plugin\Field\FieldType\ListIntegerItem
   # @see \Drupal\options\Plugin\Field\FieldType\ListStringItem
-  # @see \Drupal\experience_builder\JsonSchemaInterpreter\SdcPropJsonSchemaType::computeStorablePropShape()
+  # @see \Drupal\experience_builder\JsonSchemaInterpreter\JsonSchemaType::computeStorablePropShape()
   - drupal:options
   # To support URI reference prop shapes and page paths.
   # @see https://json-schema.org/understanding-json-schema/reference/string#resource-identifiers

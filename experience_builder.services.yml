@@ -4,7 +4,7 @@ services:
     autowire: true
   Drupal\experience_builder\Audit\ComponentAudit:
     public: true
-  Drupal\experience_builder\ShapeMatcher\SdcPropToFieldTypePropMatcher:
+  Drupal\experience_builder\ShapeMatcher\JsonSchemaFieldInstanceMatcher:
     public: true
     arguments:
       $constraintManager: '@validation.constraint'

@@ -65,7 +65,7 @@ class ComponentPluginManager extends CoreComponentPluginManager implements Categ
       return $definitions;
     }
 
-    // TRICKY: Component::save() calls SdcPropKeysConstraintValidator, which
+    // TRICKY: Component::save() calls PropKeysConstraintValidator, which
     // will also call this plugin manager! Avoid recursively creating Component
     // config entities.
     if (self::$isRecursing) {

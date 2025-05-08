@@ -13,8 +13,8 @@ use Drupal\experience_builder\PropExpressions\StructuredData\FieldObjectPropsExp
 use Drupal\experience_builder\PropExpressions\StructuredData\FieldPropExpression;
 use Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldPropExpression;
 use Drupal\experience_builder\PropShape\PropShape;
-use Drupal\experience_builder\JsonSchemaInterpreter\SdcPropJsonSchemaType;
-use Drupal\experience_builder\ShapeMatcher\SdcPropToFieldTypePropMatcher;
+use Drupal\experience_builder\JsonSchemaInterpreter\JsonSchemaType;
+use Drupal\experience_builder\ShapeMatcher\JsonSchemaFieldInstanceMatcher;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\KernelTests\KernelTestBase;
@@ -35,7 +35,7 @@ use Drupal\Tests\experience_builder\Traits\ContribStrictConfigSchemaTestTrait;
  * @see \Drupal\Tests\experience_builder\Kernel\PropShapeRepositoryTest
  * @group experience_builder
  */
-class SdcPropToFieldTypePropTest extends KernelTestBase {
+class PropShapeToFieldInstanceTest extends KernelTestBase {
 
   use ContribStrictConfigSchemaTestTrait;
 
@@ -122,8 +122,8 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
     }
 
     $sdc_manager = \Drupal::service('plugin.manager.sdc');
-    $matcher = \Drupal::service(SdcPropToFieldTypePropMatcher::class);
-    assert($matcher instanceof SdcPropToFieldTypePropMatcher);
+    $matcher = \Drupal::service(JsonSchemaFieldInstanceMatcher::class);
+    assert($matcher instanceof JsonSchemaFieldInstanceMatcher);
 
     $matches = [];
     $components = $sdc_manager->getAllComponents();
@@ -162,7 +162,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
         // @see \Drupal\experience_builder\PropShape\StorablePropShape::toStaticPropSource()
         // @see \Drupal\experience_builder\PropSource\StaticPropSource()
         $storable_prop_shape = $prop_shape->getStorage();
-        $primitive_type = SdcPropJsonSchemaType::from($schema['type']);
+        $primitive_type = JsonSchemaType::from($schema['type']);
         // 2. find matching field instances
         // @see \Drupal\experience_builder\PropSource\DynamicPropSource
         $instance_candidates = $matcher->findFieldInstanceFormatMatches($primitive_type, $is_required, $schema);
@@ -176,7 +176,7 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
             $storable_prop_shape_for_adapter_input = PropShape::normalize($input_schema_ref)->getStorage();
 
             $input_schema = $match->getInputSchema($input_name);
-            $input_primitive_type = SdcPropJsonSchemaType::from(
+            $input_primitive_type = JsonSchemaType::from(
               is_array($input_schema['type']) ? $input_schema['type'][0] : $input_schema['type']
             );
 
@@ -1155,12 +1155,12 @@ class SdcPropToFieldTypePropTest extends KernelTestBase {
     ];
 
     // The Media Library module being installed does not affect the results of
-    // the SdcPropToFieldTypePropMatcher; it only affects
+    // the JsonSchemaFieldInstanceMatcher; it only affects
     // PropShape::getStorage().
     // @see media_library_storage_prop_shape_alter()
     // @see \Drupal\experience_builder\PropShape\PropShape::getStorage()
-    // @see \Drupal\experience_builder\ShapeMatcher\SdcPropToFieldTypePropMatcher
-    // @todo Remove the field type matching functionality from SdcPropToFieldTypePropMatcher in https://www.drupal.org/project/experience_builder/issues/3450496
+    // @see \Drupal\experience_builder\ShapeMatcher\JsonSchemaFieldInstanceMatcher
+    // @todo Remove the field type matching functionality from JsonSchemaFieldInstanceMatcher in https://www.drupal.org/project/experience_builder/issues/3450496
     $cases['XB example SDCs + all-props SDC, using ALL core-provided field types + media library'] = $cases['XB example SDCs + all-props SDC, using ALL core-provided field types'];
     $cases['XB example SDCs + all-props SDC, using ALL core-provided field types + media library']['modules'][] = 'media_library';
 

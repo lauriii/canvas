@@ -28,7 +28,7 @@ use Drupal\Core\TypedData\TypedDataInterface;
 use Drupal\Core\TypedData\TypedDataManagerInterface;
 use Drupal\Core\Validation\ConstraintManager;
 use Drupal\Core\Validation\Plugin\Validation\Constraint\ComplexDataConstraint;
-use Drupal\experience_builder\JsonSchemaInterpreter\SdcPropJsonSchemaType;
+use Drupal\experience_builder\JsonSchemaInterpreter\JsonSchemaType;
 use Drupal\experience_builder\Plugin\AdapterManager;
 use Drupal\experience_builder\PropExpressions\StructuredData\FieldObjectPropsExpression;
 use Drupal\experience_builder\PropExpressions\StructuredData\FieldPropExpression;
@@ -38,17 +38,38 @@ use Drupal\file\Plugin\Field\FieldType\FileUriItem;
 use Drupal\text\TextProcessed;
 use Symfony\Component\Validator\Constraint;
 
-// phpcs:disable Drupal.Arrays.Array.LongLineDeclaration
-// phpcs:disable Drupal.Commenting.ClassComment.Missing
-// phpcs:disable Drupal.Commenting.DocComment.MissingShort
-// phpcs:disable Drupal.Commenting.FunctionComment.Missing
-// phpcs:disable Drupal.Commenting.FunctionComment.MissingParamComment
-// phpcs:disable Drupal.Files.LineLength.TooLong
-// phpcs:disable Drupal.Semantics.FunctionTriggerError.TriggerErrorTextLayoutRelaxed
 /**
- * @phpstan-import-type JsonSchema from \Drupal\experience_builder\JsonSchemaInterpreter\SdcPropJsonSchemaType
+ * Matches JSON schema type (+ constraints) with field instances.
+ *
+ * Starts from a JSON schema type and finds equivalent Drupal validation
+ * constraints.
+ *
+ * @see \Drupal\experience_builder\ShapeMatcher\DataTypeShapeRequirement
+ * @see \Drupal\experience_builder\ShapeMatcher\DataTypeShapeRequirements
+ * @see \Drupal\experience_builder\JsonSchemaInterpreter\JsonSchemaType::toDataTypeShapeRequirements()
+ *
+ * Then traverses all (base, bundle, configurable) field instances on all entity
+ * types (and bundles), to find a match. Matches are described using structured
+ * data prop expressions.
+ *
+ * @see \Drupal\experience_builder\PropExpressions\StructuredData\StructuredDataPropExpressionInterface
+ * @see \Drupal\experience_builder\PropExpressions\StructuredData\FieldPropExpression
+ * @see \Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldPropExpression
+ * @see \Drupal\experience_builder\PropExpressions\StructuredData\FieldObjectPropsExpression
+ *
+ * These are then used in "dynamic prop sources".
+ *
+ * @see \Drupal\experience_builder\PropSource\DynamicPropSource
+ *
+ * For "static prop sources", the equivalents are:
+ *
+ * @see \Drupal\experience_builder\JsonSchemaInterpreter\JsonSchemaType::computeStorablePropShape()
+ * @see \Drupal\experience_builder\PropShape\StorablePropShape
+ * @see \Drupal\experience_builder\PropSource\StaticPropSource
+ *
+ * @phpstan-import-type JsonSchema from \Drupal\experience_builder\JsonSchemaInterpreter\JsonSchemaType
  */
-final class SdcPropToFieldTypePropMatcher {
+final class JsonSchemaFieldInstanceMatcher {
 
   public function __construct(
     private readonly TypedDataManagerInterface $typedDataManager,
@@ -82,13 +103,13 @@ final class SdcPropToFieldTypePropMatcher {
    */
   public function iterateObjectJsonSchema(array $schema): \Generator {
     $schema = self::resolveSchemaReferences($schema);
-    $primitive_type = SdcPropJsonSchemaType::from(
+    $primitive_type = JsonSchemaType::from(
     // TRICKY: SDC always allowed `object` for Twig integration reasons.
     // @see \Drupal\sdc\Component\ComponentMetadata::parseSchemaInfo()
       is_array($schema['type']) ? $schema['type'][0] : $schema['type']
     );
 
-    if ($primitive_type !== SdcPropJsonSchemaType::OBJECT) {
+    if ($primitive_type !== JsonSchemaType::OBJECT) {
       throw new \LogicException();
     }
 
@@ -123,16 +144,16 @@ final class SdcPropToFieldTypePropMatcher {
    * @param JsonSchema $schema
    * @return ($levels_to_recurse is positive-int ? array<int, \Drupal\experience_builder\PropExpressions\StructuredData\FieldPropExpression|\Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldPropExpression|\Drupal\experience_builder\PropExpressions\StructuredData\FieldObjectPropsExpression> : array<int, \Drupal\experience_builder\PropExpressions\StructuredData\FieldPropExpression|\Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldPropExpression>)
    */
-  private function matchEntityProps(EntityDataDefinitionInterface $entity_data_definition, int $levels_to_recurse, SdcPropJsonSchemaType $primitive_type, bool $is_required_in_json_schema, ?array $schema): array {
-    if ($primitive_type === SdcPropJsonSchemaType::ARRAY) {
+  private function matchEntityProps(EntityDataDefinitionInterface $entity_data_definition, int $levels_to_recurse, JsonSchemaType $primitive_type, bool $is_required_in_json_schema, ?array $schema): array {
+    if ($primitive_type === JsonSchemaType::ARRAY) {
       assert(is_array($schema));
       // Drupal core's Field API only supports specifying "required or not",
       // and required means ">=1 value". There's no (native) ability to
       // configure a minimum number of values for a field. Plus, JSON schema
       // allows declaring that an array must be non-empty (`minItems: 1`) even
       // for an optional array (not listed in `required`). So, it is impossible
-      // to support `minItems`. And in fact, marking an SDC prop as required has
-      // the same effect as `minItems: 1`.
+      // to support `minItems`. And in fact, marking an component prop as
+      // required has the same effect as `minItems: 1`.
       // @see https://www.drupal.org/project/unlimited_field_settings
       // @see https://json-schema.org/draft/2020-12/draft-bhutton-json-schema-validation-00#rfc.section.6.4.2
       // @see https://stackoverflow.com/a/49548055
@@ -141,7 +162,7 @@ final class SdcPropToFieldTypePropMatcher {
       }
       $cardinality = $schema['maxItems'] ?? FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED;
       assert(isset($schema['items']) && isset($schema['items']['type']));
-      $primitive_type = SdcPropJsonSchemaType::from($schema['items']['type']);
+      $primitive_type = JsonSchemaType::from($schema['items']['type']);
       $schema = $schema['items'];
     }
     else {
@@ -173,7 +194,7 @@ final class SdcPropToFieldTypePropMatcher {
       // ⚠️ This does not support nested objects, so it's okay to directly
       // call ::matchEntityPropsForScalar(). If support for nested objects is
       // ever needed, this will need to call ::matchEntityProps() instead.
-      $object_prop_matches[$name] = $this->matchEntityPropsForScalar($entity_data_definition, $levels_to_recurse, SdcPropJsonSchemaType::from($sub_schema['type']), $sub_required, $sub_schema, $cardinality_in_json_schema);
+      $object_prop_matches[$name] = $this->matchEntityPropsForScalar($entity_data_definition, $levels_to_recurse, JsonSchemaType::from($sub_schema['type']), $sub_required, $sub_schema, $cardinality_in_json_schema);
     }
 
     // Invert $object_prop_matches to determine different match types.
@@ -196,7 +217,7 @@ final class SdcPropToFieldTypePropMatcher {
           if ($inverted[$field_name][$object_prop_name] instanceof ReferenceFieldPropExpression && $field_prop_expr instanceof FieldPropExpression) {
             $inverted[$field_name][$object_prop_name] = $field_prop_expr;
           }
-          // 2. prefer a precise match between the SDC object prop name and the
+          // 2. prefer a precise match between the component prop name and the
           //    the field prop name
           elseif ($field_prop_expr instanceof FieldPropExpression && $object_prop_name === $field_prop_expr->propName) {
             $inverted[$field_name][$object_prop_name] = $field_prop_expr;
@@ -241,7 +262,7 @@ final class SdcPropToFieldTypePropMatcher {
    * @param \Drupal\Core\Field\FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED|int<1, max> $cardinality_in_json_schema
    * @return array<int, \Drupal\experience_builder\PropExpressions\StructuredData\FieldPropExpression|\Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldPropExpression>
    */
-  private function matchEntityPropsForScalar(EntityDataDefinitionInterface $entity_data_definition, int $levels_to_recurse, SdcPropJsonSchemaType $primitive_type, bool $is_required_in_json_schema, ?array $schema, int $cardinality_in_json_schema): array {
+  private function matchEntityPropsForScalar(EntityDataDefinitionInterface $entity_data_definition, int $levels_to_recurse, JsonSchemaType $primitive_type, bool $is_required_in_json_schema, ?array $schema, int $cardinality_in_json_schema): array {
     if (!$primitive_type->isScalar()) {
       throw new \LogicException();
     }
@@ -260,9 +281,9 @@ final class SdcPropToFieldTypePropMatcher {
       if ($cardinality_in_json_schema !== $field_cardinality) {
         // For finite cardinalities, we can still allow a lower cardinality (>1)
         // field instance to be matched with a higher cardinality JSON schema.
-        // For example: a `maxItems: 20` SDC prop could be populated by a field
-        // instance with cardinality 5. But a single-cardinality field would not
-        // make sense, because it's no longer an array.
+        // For example: a `maxItems: 20` component prop could be populated by a
+        // field instance with cardinality 5. But a single-cardinality field
+        // would not make sense, because it's no longer an array.
         // All other cases would result in problematic UX.
         // @todo consider allowing/supporting (but needs UX to be designed first to disambiguate the cardinality mismatch) in https://www.drupal.org/i/3522718:
         // 1. JSON schema cardinality `unlimited`, field cardinality 1–N => would mean only partially populating an array
@@ -282,7 +303,7 @@ final class SdcPropToFieldTypePropMatcher {
         // 3. on read-only non-computed base fields: these store non-user data such as the
         //    monotonically increasing integer entity ID, bundle name, entity
         //    UUID and so on.
-        //    For now, the "uuid" field, to allow testing that SDC prop shape.
+        //    For now, the "uuid" field, to allow testing that prop shape.
         // @phpstan-ignore-next-line
         if ($property_definition instanceof DataReferenceTargetDefinition || $property_definition['internal'] === TRUE) {
           continue;
@@ -397,7 +418,7 @@ final class SdcPropToFieldTypePropMatcher {
    * @param JsonSchema $schema
    * @return array<int, \Drupal\experience_builder\PropExpressions\StructuredData\FieldPropExpression|\Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldPropExpression|\Drupal\experience_builder\PropExpressions\StructuredData\FieldObjectPropsExpression>
    */
-  public function findFieldInstanceFormatMatches(SdcPropJsonSchemaType $primitive_type, bool $is_required_in_json_schema, array $schema): array {
+  public function findFieldInstanceFormatMatches(JsonSchemaType $primitive_type, bool $is_required_in_json_schema, array $schema): array {
     $entity_type_bundles = $this->entityTypeBundleInfo->getAllBundleInfo();
     $matches = [];
     foreach ($entity_type_bundles as $entity_type_id => $bundles) {
@@ -415,7 +436,7 @@ final class SdcPropToFieldTypePropMatcher {
     return array_values($keyed_by_string);
   }
 
-  private function dataDefinitionMatchesPrimitiveType(DataDefinitionInterface $data_definition, SdcPropJsonSchemaType $json_schema_primitive_type, bool $is_required_in_json_schema): bool {
+  private function dataDefinitionMatchesPrimitiveType(DataDefinitionInterface $data_definition, JsonSchemaType $json_schema_primitive_type, bool $is_required_in_json_schema): bool {
     $data_type_class = $data_definition->getClass();
 
     // Any data type that is more complex than a primitive is not accepted.
@@ -426,13 +447,13 @@ final class SdcPropToFieldTypePropMatcher {
     }
 
     $field_primitive_types = match (TRUE) {
-      is_a($data_type_class, StringData::class, TRUE) => [SdcPropJsonSchemaType::STRING],
-      is_a($data_type_class, TextProcessed::class, TRUE) => [SdcPropJsonSchemaType::STRING],
-      // TRICKY: a SDC prop that accepts number, can accept both an integer and a
-      // float, but an SDC prop that accepts integer, can accept only integer.
-      is_a($data_type_class, IntegerData::class, TRUE) => [SdcPropJsonSchemaType::INTEGER, SdcPropJsonSchemaType::NUMBER],
-      is_a($data_type_class, FloatData::class, TRUE) => [SdcPropJsonSchemaType::NUMBER],
-      is_a($data_type_class, BooleanData::class, TRUE) => [SdcPropJsonSchemaType::BOOLEAN],
+      is_a($data_type_class, StringData::class, TRUE) => [JsonSchemaType::STRING],
+      is_a($data_type_class, TextProcessed::class, TRUE) => [JsonSchemaType::STRING],
+      // TRICKY: JSON Schema's `type: number` accepts both integers and floats,
+      // but `type: `integer` accepts only integers.
+      is_a($data_type_class, IntegerData::class, TRUE) => [JsonSchemaType::INTEGER, JsonSchemaType::NUMBER],
+      is_a($data_type_class, FloatData::class, TRUE) => [JsonSchemaType::NUMBER],
+      is_a($data_type_class, BooleanData::class, TRUE) => [JsonSchemaType::BOOLEAN],
       // @todo object + array
       // - for object: initially support only a single level of nesting, then we can expect HERE a ComplexDataInterface with only primitives underneath (hence all leaves)
       // - for array: ListDefinitionInterface
@@ -444,8 +465,8 @@ final class SdcPropToFieldTypePropMatcher {
       return FALSE;
     }
 
-    // If it is required in SDC's JSON schema, it must be required in Drupal's
-    // Typed Data too; otherwise there is a risk of violating SDC's schema.
+    // If required in component's JSON schema, it must be required in Drupal's
+    // Typed Data too.
     if ($is_required_in_json_schema && !$data_definition->isRequired()) {
       return FALSE;
     }
@@ -456,7 +477,7 @@ final class SdcPropToFieldTypePropMatcher {
   /**
    * @param JsonSchema $schema
    */
-  private function dataLeafMatchesFormat(TypedDataInterface $data, SdcPropJsonSchemaType $json_schema_primitive_type, bool $is_required_in_json_schema, ?array $schema): bool {
+  private function dataLeafMatchesFormat(TypedDataInterface $data, JsonSchemaType $json_schema_primitive_type, bool $is_required_in_json_schema, ?array $schema): bool {
     if (!$data->getParent()) {
       throw new \LogicException('must be a property with a field item as context for format checking');
     }
@@ -473,7 +494,7 @@ final class SdcPropToFieldTypePropMatcher {
 
     $required_shape = $json_schema_primitive_type->toDataTypeShapeRequirements($schema);
 
-    // One of SdcPropJsonSchemaType, with no additional requirements.
+    // One of JsonSchemaType, with no additional requirements.
     if ($required_shape === FALSE) {
       return TRUE;
     }
@@ -530,6 +551,7 @@ final class SdcPropToFieldTypePropMatcher {
 
     if ($required_shape instanceof DataTypeShapeRequirement) {
       if ($required_shape->constraint === 'NOT YET SUPPORTED') {
+        // @phpcs:ignore Drupal.Semantics.FunctionTriggerError.TriggerErrorTextLayoutRelaxed
         @trigger_error(sprintf("NOT YET SUPPORTED: a `%s` Drupal field data type that matches the JSON schema %s.", $json_schema_primitive_type->value, json_encode($schema)), E_USER_DEPRECATED);
         return FALSE;
       }
@@ -541,6 +563,7 @@ final class SdcPropToFieldTypePropMatcher {
       foreach ($required_shape->requirements as $r) {
         if (!$this->dataTypeShapeRequirementMatchesFinalConstraintSet($r, $property_data_definition, $constraints)) {
           if ($r->constraint === 'NOT YET SUPPORTED') {
+            // @phpcs:ignore Drupal.Semantics.FunctionTriggerError.TriggerErrorTextLayoutRelaxed
             @trigger_error(sprintf("NOT YET SUPPORTED: a `%s` Drupal field data type that matches the JSON schema %s.", $json_schema_primitive_type->value, json_encode($schema)), E_USER_DEPRECATED);
             return FALSE;
           }
@@ -619,9 +642,11 @@ final class SdcPropToFieldTypePropMatcher {
           // PHPStan does not like this because getParent()->getDataDefinition()
           // only has a less specific type guarantee. But … this is just for
           // logging unhandled cases. This is sufficient as-is.
+          // @phpcs:disable Drupal.Semantics.FunctionTriggerError.TriggerErrorTextLayoutRelaxed
           // @phpstan-ignore-next-line
           $td_or_dd instanceof TypedDataInterface => @trigger_error(sprintf("Unhandled data type class: `%s` Drupal field type `%s` property uses `%s` data type class that is not yet supported", $td_or_dd->getParent()->getDataDefinition()->getFieldDefinition()->getType(), $td_or_dd->getName(), $td_or_dd->getDataDefinition()->getClass()), E_USER_DEPRECATED),
           $td_or_dd instanceof DataDefinitionInterface => @trigger_error(sprintf("Unhandled data type class: `%s` data type class that is not yet supported", $td_or_dd->getClass()), E_USER_DEPRECATED),
+          // @phpcs:enable
         };
         return NULL;
       })($td_or_dd),
