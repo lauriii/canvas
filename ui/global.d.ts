@@ -32,6 +32,13 @@ interface DrupalSettings {
   };
 }
 
+interface CKEditor5Types {
+  editorClassic: {
+    ClassicEditor: any;
+  };
+  [key: string]: any;
+}
+
 declare global {
   interface Window {
     drupalSettings: DrupalSettings;
@@ -43,5 +50,6 @@ declare global {
       attachBehaviors: (element: HTMLElement) => void;
       CKEditor5Instances: Map;
     };
+    CKEditor5: CKEditor5Types;
   }
 }

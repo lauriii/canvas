@@ -19,6 +19,8 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  */
 final class ComponentInputsForm extends FormBase {
 
+  public const FORM_ID = 'component_inputs_form';
+
   public function __construct(
     private ElementInfoManagerInterface $elementInfoManager,
     // This must be protected so that DependencySerializationTrait, which is
@@ -43,7 +45,7 @@ final class ComponentInputsForm extends FormBase {
    * {@inheritdoc}
    */
   public function getFormId(): string {
-    return 'component_inputs_form';
+    return self::FORM_ID;
   }
 
   /**

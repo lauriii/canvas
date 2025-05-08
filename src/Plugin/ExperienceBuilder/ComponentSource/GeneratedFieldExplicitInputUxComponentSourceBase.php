@@ -587,7 +587,7 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
         continue;
       }
       $widget_definition = $this->fieldWidgetPluginManager->getDefinition($field_widget_plugin_id);
-      if (!\array_key_exists('xb', $widget_definition) && \array_key_exists('transforms', $widget_definition['xb'])) {
+      if (!(\array_key_exists('xb', $widget_definition) && \array_key_exists('transforms', $widget_definition['xb']))) {
         throw new \LogicException(sprintf(
           "Experience Builder determined the `%s` field widget plugin must be used to populate the `%s` prop on the `%s` component. However, no `xb.transforms` metadata is defined on the field widget plugin definition. This makes it impossible for this widget to work. Please define the missing metadata. See %s for guidance.",
           $field_widget_plugin_id,

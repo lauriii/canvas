@@ -145,16 +145,6 @@ const mediaSelection: Transformer<void, null | PropsValues> = (value) => {
   return null;
 };
 
-/**
- * No-op transform for rich text fields with CKEditor 5 integration.
- * Simply passes through the value without transformation.
- *
- * @todo Add actual logic in https://www.drupal.org/i/3512867
- */
-const richText: Transformer<void, any> = (value) => {
-  return value;
-};
-
 const transforms = {
   mainProperty,
   firstRecord,
@@ -162,7 +152,6 @@ const transforms = {
   mediaSelection,
   cast,
   link,
-  richText,
 };
 
 export type Transforms = typeof transforms;

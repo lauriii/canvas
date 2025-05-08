@@ -15,13 +15,22 @@ export const edit = (cy) => {
     method: 'POST',
   }).as('updatePreview');
   cy.get('@textarea-wrapper')
-    .findByRole('button', { name: 'Text format', exact: false })
-    .click();
-  cy.findByRole('dialog')
-    .findByRole('combobox', { name: 'Text format', exact: false })
-    .click();
-  cy.findByRole('option', { name: 'Basic HTML', selected: true, exact: false });
-  cy.findByRole('option', { name: 'Restricted HTML', exact: false }).click();
+    .findByTestId('text-format-select')
+    .should(($select) => {
+      const options = Object.values(
+        $select.find('option').map((_, option) => option.value),
+      );
+      expect(options).to.include('basic_html');
+      expect(options).to.include('restricted_html');
+      expect(options).to.include('minimal_html');
+      // Confirm text formats exclusive to the component instance form are not
+      // present here.
+      expect(options).to.not.include('xb_html_block');
+      expect(options).to.not.include('xb_html_inline');
+    });
+  cy.get('@textarea-wrapper')
+    .findByTestId('text-format-select')
+    .select('restricted_html');
 };
 export const assertData = (response) => {
   expect(response.attributes.field_xbt_textarea.format).to.eq(

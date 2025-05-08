@@ -10,7 +10,6 @@ import DrupalVerticalTabs from '@/components/form/components/drupal/DrupalVertic
 import {
   DrupalContainerTextFormatFilterGuidelines,
   DrupalContainerTextFormatFilterHelp,
-  DrupalContainerTextFormatFilterWrapper,
 } from '@/components/form/components/drupal/DrupalContainerTextFormat';
 import { DrupalRadioGroup } from '@/components/form/components/drupal/DrupalRadio';
 
@@ -25,8 +24,6 @@ const twigToJSXComponentMap = {
     DrupalContainerTextFormatFilterGuidelines,
   'drupal-container--text-format-filter-help':
     DrupalContainerTextFormatFilterHelp,
-  'drupal-container--text-format-filter-wrapper':
-    DrupalContainerTextFormatFilterWrapper,
   'drupal-details': DrupalDetails,
   'drupal-form': DrupalForm,
   'drupal-form-element': DrupalFormElement,

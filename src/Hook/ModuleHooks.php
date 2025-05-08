@@ -14,6 +14,8 @@ use Symfony\Component\HttpFoundation\RequestStack;
 
 class ModuleHooks {
 
+  const PAGE_DATA_FORM_ID = 'page_data_form';
+
   public function __construct(
     private readonly RouteMatchInterface $routeMatch,
     private readonly RequestStack $requestStack,
@@ -45,13 +47,13 @@ class ModuleHooks {
       $form['actions']['#access'] = \FALSE;
       // Add form ID to elements.
       $form['#pre_render'][] = [FormIdPreRender::class, 'addFormId'];
-      $form['#attributes']['data-form-id'] = 'page_data_form';
+      $form['#attributes']['data-form-id'] = self::PAGE_DATA_FORM_ID;
       if ($this->requestStack->getCurrentRequest()
           ?->get(AjaxResponseSubscriber::AJAX_REQUEST_PARAMETER) !== \NULL) {
         // Add the data-ajax flag and manually add the form ID as pre render
         // callbacks aren't fired during AJAX rendering because the whole form is
         // not rendered, just the returned elements.
-        FormIdPreRender::addAjaxAttribute($form, 'page_data_form');
+        FormIdPreRender::addAjaxAttribute($form, self::PAGE_DATA_FORM_ID);
       }
     }
   }

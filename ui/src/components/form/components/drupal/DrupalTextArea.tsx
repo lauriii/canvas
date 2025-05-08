@@ -1,10 +1,12 @@
 import { a2p } from '@/local_packages/utils.js';
 import TextArea from '@/components/form/components/TextArea';
 import InputBehaviors from '@/components/form/inputBehaviors';
-import { useRef, useEffect, useState } from 'react';
+import { useRef, useState } from 'react';
+import { Flex } from '@radix-ui/themes';
 import type { Attributes } from '@/types/DrupalAttribute';
+import DrupalFormattedTextArea from './DrupalFormattedTextArea';
+const { drupalSettings } = window as any;
 
-const { Drupal } = window as any;
 const DrupalTextArea = ({
   attributes = {},
   wrapperAttributes = {},
@@ -12,108 +14,134 @@ const DrupalTextArea = ({
   attributes?: Attributes;
   wrapperAttributes?: Attributes;
 }) => {
-  // This state exists solely to be a useEffect dependency so the effect is
-  // triggered once an editor initializes.
-  const [theEditorId, setTheEditorId] = useState<string | undefined>(undefined);
+  const defaultFormatName =
+    (attributes?.['data-xb-text-format'] as string) || '';
+  const [format, setFormat] = useState<FormatType>(
+    (defaultFormatName && drupalSettings.editor.formats[defaultFormatName]) || {
+      format: defaultFormatName,
+    },
+  );
+
   const ref = useRef<HTMLTextAreaElement | null>(null);
+  const availableFormats =
+    (attributes?.['data-xb-available-formats'] &&
+      JSON.parse(attributes['data-xb-available-formats'] as string)) ||
+    null;
 
-  useEffect(() => {
-    // Create the observer variable here so it can be accessed by clean up.
-    let observer: boolean | MutationObserver = false;
-    if (!ref?.current) {
-      return;
-    }
-    const timeout = setTimeout(() => {
-      if (!ref?.current) {
-        return;
-      }
-
-      /**
-       * Conveys CKEditor5 changes to the inputBehaviors change callback.
-       *
-       * @param {string} editorId
-       *   The editor instance id.
-       */
-      const integrateCKEditor5 = (editorId: string) => {
-        const theEditor = Drupal.CKEditor5Instances.get(editorId);
-        if (!theEditor) {
-          console.log(
-            `no editor found for ${editorId}`,
-            Drupal.CKEditor5Instances,
-          );
-          return;
-        }
-
-        // Listen to changes made within the editor.
-        theEditor.model.document.on('change:data', () => {
-          if (!ref?.current) {
-            return;
-          }
-
-          // Create a synthetic change
-          const event = new Event('change');
-          ref.current.value = theEditor.getData();
-          Object.defineProperty(event, 'target', {
-            writable: false,
-            value: ref.current,
-          });
-          if (typeof attributes?.onChange === 'function') {
-            attributes.onChange(event);
-          }
-        });
-      };
-
-      if (ref.current.hasAttribute('data-ckeditor5-id')) {
-        const editorId = ref.current.getAttribute('data-ckeditor5-id');
-        if (editorId) {
-          integrateCKEditor5(editorId);
-        }
-      } else {
-        // There are scenarios where this component has rendered before the
-        // editor has initialized, so this observer is added to identify
-        // post-render initializations.
-        observer = new MutationObserver((mutations) => {
-          mutations.forEach((mutation) => {
-            if (
-              mutation.type === 'attributes' &&
-              mutation.attributeName === 'data-ckeditor5-id'
-            ) {
-              const newEditorId = (mutation.target as HTMLElement).getAttribute(
-                'data-ckeditor5-id',
-              );
-              if (newEditorId) {
-                // Set the editorID state to trigger a new render, which will
-                // identify a CKEditor5 ready input and call
-                // integrateCKEditor5 ().
-                setTheEditorId(newEditorId);
-              }
-            }
-          });
-        });
-
-        observer.observe(ref.current, {
-          attributes: true,
-          attributeFilter: ['data-ckeditor5-id'],
-        });
-      }
-    });
-    return () => {
-      if (observer instanceof MutationObserver) {
-        observer.disconnect();
-      }
-      clearTimeout(timeout);
-    };
-  }, [attributes, theEditorId]);
+  const selectAttributes =
+    (attributes?.['data-xb-format-select-attributes'] &&
+      JSON.parse(`${attributes['data-xb-format-select-attributes']}`)) ||
+    {};
 
   return (
-    <div {...a2p(wrapperAttributes)}>
-      <TextArea
-        value={attributes.value?.toString() ?? ''}
-        attributes={a2p(attributes, {}, { skipAttributes: ['value'] })}
-        ref={ref}
-      />
-    </div>
+    <>
+      {format?.editor === 'ckeditor5' && format.editorSettings && (
+        <DrupalFormattedTextArea
+          attributes={attributes}
+          format={{
+            editorSettings: format.editorSettings,
+          }}
+          ref={ref}
+        />
+      )}
+      {format?.editor !== 'ckeditor5' && (
+        <div {...a2p(wrapperAttributes)}>
+          <TextArea
+            value={attributes.value?.toString() ?? ''}
+            attributes={a2p(attributes, {}, { skipAttributes: ['value'] })}
+            ref={ref}
+          />
+        </div>
+      )}
+      {availableFormats && format?.format && (
+        <WrappedFormatSelect
+          attributes={{ ...attributes, ...selectAttributes }}
+          selectAttributes={selectAttributes}
+          format={format}
+          defaultFormatName={defaultFormatName}
+          availableFormats={availableFormats}
+          setFormat={setFormat}
+        />
+      )}
+    </>
   );
 };
+
+interface FormatType {
+  format: string;
+  editor?: string;
+  editorSettings?: {
+    toolbar: any[];
+    plugins: string[];
+    config: {
+      [key: string]: any;
+    };
+    language: Record<string, any>;
+  };
+  [key: string]: any;
+}
+
+interface FormatSelectProps {
+  attributes: Attributes;
+  selectAttributes: Record<string, any>;
+  format: FormatType;
+  defaultFormatName: string;
+  availableFormats: Record<string, string>;
+  setFormat: (format: FormatType) => void;
+}
+
+// The select element used to choose the text format.
+const FormatSelect = ({
+  attributes,
+  selectAttributes,
+  format,
+  defaultFormatName,
+  availableFormats,
+  setFormat,
+}: FormatSelectProps) => {
+  return (
+    <Flex gap="1" align="center" my="2">
+      <label htmlFor={(attributes.id as string) || ''}>Text format</label>
+      {/* Using a native select instead of Radix requires less plumbing. */}
+      <select
+        {...a2p(attributes, {}, { skipAttributes: ['value'] })}
+        {...a2p(selectAttributes)}
+        defaultValue={format.format || defaultFormatName}
+        data-testid="text-format-select"
+        onChange={(e) => {
+          const formatName = e.target.value;
+          const newFormat = drupalSettings.editor.formats[formatName] || {
+            format: formatName,
+          };
+          setFormat(newFormat);
+          if (typeof attributes?.onChange === 'function') {
+            const changeEvent = new Event('change');
+            Object.defineProperty(changeEvent, 'target', {
+              writable: false,
+              value: e.target,
+            });
+            attributes.onChange(changeEvent);
+          }
+        }}
+      >
+        {Object.entries(availableFormats).map(([key, value], index) => (
+          <option key={index} value={key}>
+            {value as string}
+          </option>
+        ))}
+      </select>
+    </Flex>
+  );
+};
+
+// We need to create a wrapper for FormatSelect that can be processed by InputBehaviors
+// InputBehaviors expects a component that can accept any props, but we have specific prop requirements
+const FormatSelectWrapper = (props: any) => {
+  // Ensure we're using the right props
+  return <FormatSelect {...(props as FormatSelectProps)} />;
+};
+
+// Now InputBehaviors can process our component correctly
+const WrappedFormatSelect = InputBehaviors(FormatSelectWrapper);
 
 export default InputBehaviors(DrupalTextArea);

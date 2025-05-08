@@ -28,13 +28,7 @@ describe('ckeditor 5', () => {
     // Now that the violation-causing images are removed, CKEditor5 tests begin.
     cy.findByTestId('xb-contextual-panel--page-data').click({ force: true });
     const wrap = '[data-drupal-selector="edit-field-xbt-textarea-wrapper"]';
-    cy.get(wrap)
-      .findByRole('button', { name: 'Text format', exact: false })
-      .click();
-    cy.findByRole('dialog')
-      .findByRole('combobox', { name: 'Text format', exact: false })
-      .click();
-    cy.findByRole('option', { name: 'minimal_html', exact: false }).click();
+    cy.get(wrap).findByTestId('text-format-select').select('minimal_html');
 
     cy.get(
       `${wrap} [data-cke-tooltip-text="Source"][aria-pressed="false"]`,

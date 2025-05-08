@@ -504,83 +504,80 @@ onlyOn('headed', () => {
       cy.waitForElementContentInIframe(iframeSelector, valuePost);
     });
 
-    // @todo Uncomment this test in https://www.drupal.org/i/3512867 and refactor as needed.
-    /*
-    it('HTML inline formatting field uses CKEditor with appropriate configuration', () => {
-      const iframeSelector = '#test-string-html-inline';
-      const initialHtml = 'This is <strong>bold</strong> and <em>italics</em> text with a <a href="https://example.com">link</a>';
+    it('HTML block formatting field uses CKEditor with appropriate configuration', () => {
+      cy.loadURLandWaitForXBLoaded();
+      cy.loadURLandWaitForXBLoaded({ url: 'xb/node/2' });
+
+      cy.openLibraryPanel();
+      cy.get('.primaryPanelContent').findByText('All props').click();
+      cy.findByLabelText('String with HTML formatting (block)').should('exist');
+
+      const selector = '#test-string-html-block';
+      const initialHtml =
+        '<p>This is a paragraph with <strong>bold</strong> text.</p><ul><li>List item 1</li><li>List item 2</li></ul>';
+      const id = '[id$="test-string-html-block-wrapper"]';
 
       // Verify the content is showing up correctly in preview
-      cy.waitForElementContentInIframe(iframeSelector, initialHtml);
+      cy.waitForElementHTMLInIframe(selector, initialHtml);
 
       // Open the field and verify CKEditor is loaded
-      cy.findByLabelText('String with HTML formatting (inline)').click();
-
-      // Check that CKEditor 5 is loaded
-      cy.get('.ck-editor__editable').should('exist');
-      cy.get('.ck-toolbar').should('exist');
-
-      // Verify toolbar has inline formatting buttons
-      cy.get('.ck-toolbar__items button[data-ckeditor5-button-name="bold"]').should('exist');
-      cy.get('.ck-toolbar__items button[data-ckeditor5-button-name="italic"]').should('exist');
-      cy.get('.ck-toolbar__items button[data-ckeditor5-button-name="underline"]').should('exist');
-      cy.get('.ck-toolbar__items button[data-ckeditor5-button-name="link"]').should('exist');
-
-      // Verify that block formatting buttons are NOT present
-      cy.get('.ck-toolbar__items button[data-ckeditor5-button-name="bulletedList"]').should('not.exist');
-
-      // Verify text format configuration
-      cy.window().then((win) => {
-        const editorConfig = win.drupalSettings?.ckeditor5?.editorConfig?.xb_html_inline;
-        expect(editorConfig).to.exist;
-        expect(editorConfig.toolbar.items).to.include('bold', 'italic', 'underline', 'link');
-        expect(editorConfig.toolbar.items).to.not.include('bulletedList', 'numberedList');
+      cy.findByLabelText('String with HTML formatting (block)').click({
+        force: true,
       });
 
-      // Add some content and verify it updates in preview
-      cy.get('.ck-editor__editable').clear().type('Updated inline {enter}content');
-      cy.get('body').click(); // Blur the editor
-
-      cy.waitForElementContentInIframe(iframeSelector, 'Updated inline content');
-    });
-
-    it('HTML block formatting field uses CKEditor with appropriate configuration', () => {
-      const iframeSelector = '#test-string-html-block';
-      const initialHtml = '<p>This is a paragraph with <strong>bold</strong> text.</p><ul><li>List item 1</li><li>List item 2</li></ul>';
-
-      // Verify the content is showing up correctly in preview
-      cy.waitForElementContentInIframe(iframeSelector, initialHtml);
-
-      // Open the field and verify CKEditor is loaded
-      cy.findByLabelText('String with HTML formatting (block)').click();
-
       // Check that CKEditor 5 is loaded
-      cy.get('.ck-editor__editable').should('exist');
-      cy.get('.ck-toolbar').should('exist');
+      cy.get(`${id} .ck-editor__editable`).should('exist');
+      cy.get(`${id} .ck-toolbar`).should('exist');
 
       // Verify toolbar has both inline and block formatting buttons
-      cy.get('.ck-toolbar__items button[data-ckeditor5-button-name="bold"]').should('exist');
-      cy.get('.ck-toolbar__items button[data-ckeditor5-button-name="italic"]').should('exist');
-      cy.get('.ck-toolbar__items button[data-ckeditor5-button-name="underline"]').should('exist');
-      cy.get('.ck-toolbar__items button[data-ckeditor5-button-name="link"]').should('exist');
-      cy.get('.ck-toolbar__items button[data-ckeditor5-button-name="bulletedList"]').should('exist');
-      cy.get('.ck-toolbar__items button[data-ckeditor5-button-name="numberedList"]').should('exist');
+      cy.get(
+        `${id} .ck-toolbar__items button[data-cke-tooltip-text="Bold (⌘B)"]`,
+      ).should('exist');
+      cy.get(
+        `${id} .ck-toolbar__items button[data-cke-tooltip-text="Italic (⌘I)"]`,
+      ).should('exist');
+      cy.get(
+        `${id} .ck-toolbar__items button[data-cke-tooltip-text="Underline (⌘U)"]`,
+      ).should('exist');
+      cy.get(
+        `${id} .ck-toolbar__items button[data-cke-tooltip-text="Link (⌘K)"]`,
+      ).should('exist');
+      cy.get(
+        `${id} .ck-toolbar__items button[data-cke-tooltip-text="Bulleted List"]`,
+      ).should('exist');
+      cy.get(
+        `${id} .ck-toolbar__items button[data-cke-tooltip-text="Numbered List"]`,
+      ).should('exist');
 
       // Verify text format configuration
       cy.window().then((win) => {
-        const editorConfig = win.drupalSettings?.ckeditor5?.editorConfig?.xb_html_block;
+        const editorConfig =
+          win.drupalSettings?.editor.formats.xb_html_block.editorSettings;
         expect(editorConfig).to.exist;
-        expect(editorConfig.toolbar.items).to.include('bold', 'italic', 'underline', 'link', 'bulletedList', 'numberedList');
+        expect(editorConfig.toolbar.items).to.include(
+          'bold',
+          'italic',
+          'underline',
+          'link',
+          'bulletedList',
+          'numberedList',
+        );
       });
 
       // Add some content and verify it updates in preview
-      cy.get('.ck-editor__editable').clear().type('A paragraph{enter}');
-      cy.get('.ck-toolbar__items button[data-ckeditor5-button-name="bulletedList"]').click();
-      cy.get('.ck-editor__editable').type('A list item');
-      cy.get('body').click(); // Blur the editor
-
-      cy.waitForElementContentInIframe(iframeSelector, '<p>A paragraph</p><ul><li>A list item</li></ul>');
+      cy.get(`${id} .ck-editor__editable`).clear({ force: true });
+      cy.get(`${id} .ck-editor__editable`).realType('A paragraph{enter}');
+      cy.get(
+        `${id} .ck-toolbar__items button[data-cke-tooltip-text="Bulleted List"]`,
+      ).click();
+      cy.get(`${id} .ck-editor__editable`).realType('A list item');
+      cy.log('type all done');
+      cy.get('label').first().click({ force: true }); // Blur the editor
+      cy.log('blurred the editor');
+      cy.waitForElementHTMLInIframe(
+        selector,
+        '<p>A paragraph</p><ul><li>A list item</li></ul>',
+      );
     });
-    */
   });
 });

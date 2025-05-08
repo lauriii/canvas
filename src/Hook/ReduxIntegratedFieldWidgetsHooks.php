@@ -7,11 +7,13 @@ namespace Drupal\experience_builder\Hook;
 use Drupal\Component\Serialization\Json;
 use Drupal\Core\Asset\LibraryDiscoveryInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
+use Drupal\Core\Security\TrustedCallbackInterface;
 use Drupal\Core\Url;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Hook\Attribute\Hook;
 use Drupal\Core\Routing\CurrentRouteMatch;
 use Drupal\Core\Theme\ThemeManagerInterface;
+use Drupal\experience_builder\Form\ComponentInputsForm;
 use Drupal\media_library\MediaLibraryState;
 use Symfony\Component\HttpFoundation\RequestStack;
 
@@ -22,7 +24,7 @@ use Symfony\Component\HttpFoundation\RequestStack;
  * @see https://www.drupal.org/project/issues/experience_builder?component=Redux-integrated+field+widgets
  * @see docs/redux-integrated-field-widgets.md
  */
-class ReduxIntegratedFieldWidgetsHooks {
+class ReduxIntegratedFieldWidgetsHooks implements TrustedCallbackInterface {
 
   public function __construct(
     private readonly ModuleHandlerInterface $moduleHandler,
@@ -147,15 +149,12 @@ class ReduxIntegratedFieldWidgetsHooks {
       'string_textfield' => ['mainProperty' => []],
       'text_textfield' => [
         'mainProperty' => ['name' => 'value'],
-        'richText' => [],
       ],
       'text_textarea' => [
         'mainProperty' => ['name' => 'value'],
-        'richText' => [],
       ],
       'text_textarea_with_summary' => [
         'mainProperty' => ['name' => 'value'],
-        'richText' => [],
       ],
     ];
     foreach ($map as $widget_id => $transforms) {
@@ -176,6 +175,83 @@ class ReduxIntegratedFieldWidgetsHooks {
         'mainProperty' => ['name' => 'target_id'],
       ],
     ];
+  }
+
+  #[Hook('element_info_alter')]
+  public function elementInfoAlter(array &$info): void {
+    if (isset($info['text_format'])) {
+      $info['text_format']['#process'][] = [ReduxIntegratedFieldWidgetsHooks::class, 'processTextFormat'];
+      $info['text_format']['#pre_render'][] = [ReduxIntegratedFieldWidgetsHooks::class, 'preRenderTextFormat'];
+    }
+  }
+
+  /**
+   * Further processes a text format element (after TextFormat::processFormat()).
+   *
+   * @see \Drupal\filter\Element\TextFormat::processFormat()
+   */
+  public static function processTextFormat(array $element, FormStateInterface $form_state, array &$form): array {
+    $form_id = $form['form_id']['#value'] ?? NULL;
+
+    // If we aren't in the component instance form, remove text formats that are
+    // exclusive to that form.
+    // @see \Drupal\experience_builder\Hook\ShapeMatchingHooks::filterFormatAccess()
+    if ($form_id !== ComponentInputsForm::FORM_ID) {
+      // @see config/install/filter.format.xb_html_block.yml
+      unset($element['format']['format']['#options']['xb_html_block']);
+      // @see config/install/filter.format.xb_html_inline.yml
+      unset($element['format']['format']['#options']['xb_html_inline']);
+    }
+    return $element;
+  }
+
+  public static function preRenderTextFormat(array $element): array {
+    // Only proceed if this is an XB page data or component instance form.
+    // This restructures the render array to simplify integration of the
+    // CKEditor5 React component.
+    if (isset($element['#attributes']['data-form-id']) && in_array($element['#attributes']['data-form-id'], [ComponentInputsForm::FORM_ID, ModuleHooks::PAGE_DATA_FORM_ID])) {
+      $element['value']['#attributes']['data-form-id'] = $element['#attributes']['data-form-id'];
+      // The data-editor-for attribute triggers a vanilla JS initialization of
+      // CKEditor5. Rename the attribute so we can instead use a React-specific
+      // version.
+      if (isset($element['format']['editor']['#attributes']['data-editor-for'])) {
+        // Rename data-editor-for for instances where one format is available.
+        $element['format']['editor']['#attributes']['data-xb-editor-for'] = $element['format']['editor']['#attributes']['data-editor-for'];
+        unset($element['format']['editor']['#attributes']['data-editor-for']);
+      }
+
+      if (isset($element['format']['format']['#attributes']['data-editor-for'])) {
+        // Rename data-editor-for for instances where multiple formats are
+        // available.
+        $element['format']['format']['#attributes']['data-xb-editor-for'] = $element['format']['format']['#attributes']['data-editor-for'];
+        unset($element['format']['format']['#attributes']['data-editor-for']);
+        // If multiple formats are available, there will be a select element.
+        // Serialize the select attributes so they can be applied in React as
+        // part of a Formatted Text component and not an isolated select.
+        // Include the #name and #id render array properties as name and id
+        // attributes.
+        $element['value']['#attributes']['data-xb-format-select-attributes'] = Json::encode([...$element['format']['format']['#attributes'], 'name' => $element['format']['format']['#name'], 'id' => $element['format']['format']['#id']]);
+        if (isset($element['format']['format']['#options'])) {
+          // Serialize the list of available text formats to pass via attribute.
+          $element['value']['#attributes']['data-xb-available-formats'] = Json::encode($element['format']['format']['#options']);
+        }
+      }
+
+      // Remove the format selector render array. The necessary information is
+      // passed via attributes and handled centrally in the
+      // DrupalFormattedTextArea component.
+      unset($element['format']['format']);
+
+      if (isset($element['#format'])) {
+        // Make the currently selected format known to the textarea.
+        $element['value']['#attributes']['data-xb-text-format'] = $element['#format'];
+      }
+    }
+    return $element;
+  }
+
+  public static function trustedCallbacks() {
+    return ['preRenderTextFormat'];
   }
 
 }

@@ -12,8 +12,8 @@ import * as field_xbt_moderation_state from './field_xbt_moderation_state.js';
 import * as field_xbt_datetime_timestamp from './field_xbt_datetime_timestamp.js';
 import * as field_xbt_daterange_datelist from './field_xbt_daterange_datelist.js';
 import * as field_xbt_datetime_datelist from './field_xbt_datetime_datelist.js';
-import * as field_xbt_entity_ref_tags from './field_xbt_entity_ref_tags.js';
 import * as field_xbt_boolean_checkbox from './field_xbt_boolean_checkbox.js';
+import * as field_xbt_entity_ref_tags from './field_xbt_entity_ref_tags.js';
 
 // Expand this to add additional coverage.
 // For each field to be tested, add a new file that exports two methods as

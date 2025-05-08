@@ -168,8 +168,15 @@ class ShapeMatchingHooks {
       'xb_html_block',
     ];
     if (in_array($format->id(), $protected_formats, TRUE)) {
-      return AccessResult::forbidden('Experience Builder text formats cannot be modified.')
-        ->addCacheableDependency($format);
+      return match($operation) {
+        // It is guaranteed that these text formats/editors are available only for
+        // XB's component inputs form.
+        // @see \Drupal\filter\Element\TextFormat::processFormats()
+        // @see \Drupal\experience_builder\Hook\ReduxIntegratedFieldWidgetsHooks::processTextFormat()
+        'use' => AccessResult::allowed()->addCacheableDependency($format),
+        default => AccessResult::forbidden('Experience Builder text formats cannot be modified.')
+          ->addCacheableDependency($format)
+      };
     }
 
     // No opinion on other formats.
@@ -294,6 +301,7 @@ class ShapeMatchingHooks {
         'to' => new FieldTypePropExpression('daterange', 'value'),
       ]);
       $storable_prop_shape->fieldStorageSettings = ['datetime_type' => DateTimeItem::DATETIME_TYPE_DATE];
+      // @todo Make this actually work in component instance forms in https://www.drupal.org/project/experience_builder/issues/3523379
       $storable_prop_shape->fieldWidget = 'daterange_default';
     }
   }

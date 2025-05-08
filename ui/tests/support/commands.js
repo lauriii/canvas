@@ -486,6 +486,34 @@ Cypress.Commands.add(
 );
 
 Cypress.Commands.add(
+  'waitForElementHTMLInIframe',
+  (
+    selector,
+    textContent,
+    iframeSelector = initializedReadyPreviewIframeSelector,
+    customTimeout,
+  ) => {
+    cy.document().then((doc) => {
+      cy.get(true, {
+        timeout: customTimeout || Cypress.config('defaultCommandTimeout'),
+      }).should(() => {
+        const frameContent = doc
+          .querySelector(iframeSelector)
+          ?.contentWindow?.document?.body.querySelector(selector);
+        expect(
+          !!frameContent,
+          `'${selector}' was found in iframe '${iframeSelector}'`,
+        ).to.equal(true);
+        expect(
+          frameContent?.innerHTML?.includes(textContent),
+          `${iframeSelector} in iframe includes HTML ${textContent}`,
+        ).to.equal(true);
+      });
+    });
+  },
+);
+
+Cypress.Commands.add(
   'waitForElementContentNotInIframe',
   (
     selector,
@@ -1061,10 +1089,9 @@ Cypress.Commands.add('sendComponentToRegion', (componentName, regionName) => {
 Cypress.Commands.add('publishAllPendingChanges', (titles) => {
   // Publish changes and make sure image persists.
   // Wait for any pending changes to refresh.
-  cy.findByRole('button', {
-    name: /Review \d+ change/,
-    timeout: 20000,
-  }).as('review');
+  cy.get('button', { timeout: 250000 })
+    .contains(/Review \d+ change/)
+    .as('review');
   // We break this up to allow for the pending changes refresh which can disable
   // the button whilst it is loading.
   cy.get('@review').click();

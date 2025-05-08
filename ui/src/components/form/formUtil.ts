@@ -50,7 +50,20 @@ export function jsonSchemaValidate(
       return [true, null];
     }
   }
-  const validate = ajv.compile(schema);
+
+  // Properties prefixed with `x-`, however useful are not part of the JSON
+  // Schema spec and should be filtered before validation.
+  const filteredSchema = Object.entries(schema).reduce<Record<string, any>>(
+    (carry, [key, value]) => {
+      if (!key.match(/^x-/)) {
+        carry[key] = value;
+      }
+      return carry;
+    },
+    {},
+  );
+
+  const validate = ajv.compile(filteredSchema);
   const valid = validate(data);
   return [valid, validate];
 }

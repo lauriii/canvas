@@ -26,12 +26,13 @@ export const edit = (cy) => {
     .findByRole('button', { name: 'Hide summary', exact: false })
     .click();
   // The summary input should no longer exist.
-  cy.findByRole('textbox', { name: 'XB Text Area with Summary(Edit summary)' })
+  cy.get('[data-drupal-selector="edit-field-xbt-textarea-summary-0-value"]')
     .parents('.js-text-format-wrapper')
-    .findByRole('textbox', { name: 'Summary(Hide summary)' })
+    .findByRole('button', { name: 'Hide summary' })
     .should('not.exist');
+
   // Now click 'Edit summary' to show it again.
-  cy.findByRole('textbox', { name: 'XB Text Area with Summary(Edit summary)' })
+  cy.get('[data-drupal-selector="edit-field-xbt-textarea-summary-0-value"]')
     .parents('.js-text-format-wrapper')
     .findByRole('button', { name: 'Edit summary', exact: false })
     .click();
@@ -65,17 +66,13 @@ export const edit = (cy) => {
   }).as('updatePreview');
   // Change the input format.
   cy.get('@textarea-summary-wrapper')
-    .findByRole('button', { name: 'Text format', exact: false })
-    .click();
-  cy.findByRole('dialog')
-    .findByRole('combobox', { name: 'Text format', exact: false })
-    .click();
-  cy.findByRole('option', {
-    name: 'Basic HTML',
-    selected: true,
-    exact: false,
-  });
-  cy.findByRole('option', { name: 'Restricted HTML', exact: false }).click();
+    .findByTestId('text-format-select')
+    .should(($select) => {
+      expect($select).to.have.value('basic_html');
+    });
+  cy.get('@textarea-summary-wrapper')
+    .findByTestId('text-format-select')
+    .select('restricted_html');
 };
 export const assertData = (response) => {
   expect(response.attributes.field_xbt_textarea_summary.format).to.eq(
