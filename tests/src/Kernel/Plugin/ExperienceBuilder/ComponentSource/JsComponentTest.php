@@ -667,7 +667,7 @@ final class JsComponentTest extends ComponentSourceTestBase {
       'js.xb_test_code_components_with_no_props' => [
         'expected_output_selectors' => [
           'astro-island[opts*="With no props"][props="{}"]',
-          'script[blocking="render"][src*="experience_builder/ui/lib/astro-hydration/dist/client.js"]',
+          'script[blocking="render"][src*="/ui/lib/astro-hydration/dist/client.js"]',
         ],
         'source' => 'Code component',
         'metadata' => ['slots' => []],
@@ -678,7 +678,7 @@ final class JsComponentTest extends ComponentSourceTestBase {
       'js.xb_test_code_components_with_props' => [
         'expected_output_selectors' => [
           'astro-island[opts*="With props"][props*="name"][props*="XB"][props*="age"][props*="40"]',
-          'script[blocking="render"][src*="experience_builder/ui/lib/astro-hydration/dist/client.js"]',
+          'script[blocking="render"][src*="/ui/lib/astro-hydration/dist/client.js"]',
         ],
         'source' => 'Code component',
         'metadata' => ['slots' => []],
