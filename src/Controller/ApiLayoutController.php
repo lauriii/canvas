@@ -422,6 +422,15 @@ final class ApiLayoutController {
    * @return string
    */
   public function getLabel(EntityInterface $entity): string {
+    // Get title from auto saved data if available.
+    $autoSaveData = $this->autoSaveManager->getAutoSaveData($entity);
+    if (!$autoSaveData->isEmpty()) {
+      $data = $autoSaveData->data;
+      $label_field_input_name = sprintf("%s[0][value]", $entity->getEntityType()->getKey('label'));
+      if (isset($data['entity_form_fields'][$label_field_input_name])) {
+        return $data['entity_form_fields'][$label_field_input_name];
+      }
+    }
     return (string) $entity->label();
   }
 

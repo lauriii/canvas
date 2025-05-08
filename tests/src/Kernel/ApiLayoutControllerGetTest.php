@@ -13,7 +13,6 @@ use Drupal\experience_builder\Plugin\DisplayVariant\XbPageVariant;
 use Drupal\node\Entity\Node;
 use Drupal\node\Entity\NodeType;
 use Drupal\node\NodeInterface;
-use Drupal\Tests\experience_builder\Kernel\Traits\RequestTrait;
 use Drupal\Tests\experience_builder\TestSite\XBTestSetup;
 use Drupal\Tests\user\Traits\UserCreationTrait;
 use Drupal\user\Entity\User;
@@ -27,7 +26,6 @@ use Symfony\Component\HttpFoundation\Response;
  */
 class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
 
-  use RequestTrait;
   use UserCreationTrait;
 
   /**
@@ -124,6 +122,7 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
     // Draft of highlighted region in global template should be returned even if
     // there is no auto-save data for the node.
     $response = $this->request(Request::create($url->toString()));
+    $this->assertTitle($node1->label() . ' | Drupal');
     self::assertInstanceOf(JsonResponse::class, $response);
     $json = \json_decode($response->getContent() ?: '', TRUE);
     self::assertArrayHasKey('layout', $json);
@@ -157,6 +156,7 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
     \assert($node1 instanceof NodeInterface);
     $autoSave->save($node1, $data);
     $response = $this->request(Request::create($url->toString()));
+    $this->assertTitle("$new_title | Drupal");
 
     self::assertInstanceOf(JsonResponse::class, $response);
     $json = \json_decode($response->getContent() ?: '', TRUE);
