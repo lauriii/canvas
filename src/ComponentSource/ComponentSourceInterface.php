@@ -35,6 +35,7 @@ use Symfony\Component\Validator\ConstraintViolationListInterface;
  * implement \Drupal\experience_builder\ComponentSource\ComponentSourceWithSlotsInterface.
  *
  * @phpstan-import-type PropSourceArray from \Drupal\experience_builder\PropSource\PropSourceBase
+ * @phpstan-import-type SingleComponentInputArray from \Drupal\experience_builder\Plugin\DataType\ComponentInputs
  *
  * @see \Drupal\experience_builder\Attribute\ComponentSource
  * @see \Drupal\experience_builder\ComponentSource\ComponentSourceBase
@@ -175,13 +176,14 @@ interface ComponentSourceInterface extends PluginInspectionInterface, Derivative
    *   Component instance UUID.
    * @param \Drupal\experience_builder\Entity\Component $component
    *   Component for this instance.
-   * @param array{source: array<string, PropSourceArray>, resolved: array<string, mixed>} $client_model
+   * @param array{source: SingleComponentInputArray, resolved: array<string, mixed>} $client_model
    *   Client model for this component.
    * @param \Symfony\Component\Validator\ConstraintViolationListInterface|null $violations
    *   If validation should be performed, a violation constraint list, or NULL
    *   otherwise. Use ::addViolation to add violations detected during conversion.
    *
-   * @return array<string, \Drupal\experience_builder\PropSource\PropSourceBase|mixed>
+   * @phpcs:ignore
+   * @return SingleComponentInputArray
    * @todo Refactor to use the Symfony denormalizer infrastructure?
    * @see ::inputToClientModel()
    */

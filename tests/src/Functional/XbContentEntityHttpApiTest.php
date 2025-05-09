@@ -59,7 +59,7 @@ final class XbContentEntityHttpApiTest extends HttpApiTestBase {
       RequestOptions::HEADERS => [
         'Content-Type' => 'application/json',
       ],
-      RequestOptions::BODY => json_encode([]),
+      RequestOptions::JSON => [],
     ];
 
     $this->assertAuthenticationAndAuthorization($url, 'POST');
@@ -230,7 +230,7 @@ final class XbContentEntityHttpApiTest extends HttpApiTestBase {
       RequestOptions::HEADERS => [
         'Content-Type' => 'application/json',
       ],
-      RequestOptions::BODY => json_encode(['entity_id' => '10']),
+      RequestOptions::JSON => ['entity_id' => '10'],
     ];
 
     $this->assertAuthenticationAndAuthorization($url, 'POST');
@@ -246,7 +246,7 @@ final class XbContentEntityHttpApiTest extends HttpApiTestBase {
       (string) $response->getBody()
     );
 
-    $request_options[RequestOptions::BODY] = json_encode(['entity_id' => '1']);
+    $request_options[RequestOptions::JSON] = ['entity_id' => '1'];
 
     // Test module will return view access forbidden for xb_page id 1 instance.
     $this->container->get('module_installer')->install(['xb_test_access']);
@@ -291,7 +291,7 @@ final class XbContentEntityHttpApiTest extends HttpApiTestBase {
     ]);
 
     $url = Url::fromUri('base:/xb/api/v0/content/xb_page');
-    $request_options[RequestOptions::BODY] = json_encode(['entity_id' => '4']);
+    $request_options[RequestOptions::JSON] = ['entity_id' => '4'];
     $response = $this->makeApiRequest('POST', $url, $request_options);
     $this->assertSame(201, $response->getStatusCode());
     $this->assertSame(

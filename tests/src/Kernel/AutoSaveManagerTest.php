@@ -16,7 +16,6 @@ use Drupal\KernelTests\KernelTestBase;
 use Drupal\node\Entity\Node;
 use Drupal\Tests\experience_builder\TestSite\XBTestSetup;
 use Drupal\Tests\experience_builder\Traits\ContribStrictConfigSchemaTestTrait;
-use Drupal\Tests\experience_builder\Traits\TestDataUtilitiesTrait;
 use Drupal\Tests\experience_builder\Traits\XBFieldTrait;
 
 /**
@@ -26,7 +25,6 @@ use Drupal\Tests\experience_builder\Traits\XBFieldTrait;
  */
 class AutoSaveManagerTest extends KernelTestBase {
 
-  use TestDataUtilitiesTrait;
   use XBFieldTrait;
   use ContribStrictConfigSchemaTestTrait;
 
@@ -112,10 +110,10 @@ class AutoSaveManagerTest extends KernelTestBase {
     $xb_page = Page::create([
       'title' => '5 amazing uses for old toothbrushes',
       'components' => [
-        'tree' => self::encodeXBData([
+        'tree' => [
           ComponentTreeStructure::ROOT_UUID => [],
-        ]),
-        'inputs' => '{}',
+        ],
+        'inputs' => [],
       ],
     ]);
     self::assertCount(0, iterator_to_array($xb_page->validate()));
@@ -163,16 +161,16 @@ class AutoSaveManagerTest extends KernelTestBase {
       'theme' => 'stark',
       'region' => 'sidebar_first',
       'component_tree' => [
-        'tree' => self::encodeXBData([
+        'tree' => [
           ComponentTreeStructure::ROOT_UUID => [
             ['uuid' => 'uuid-in-root', 'component' => 'sdc.xb_test_sdc.props-no-slots'],
           ],
-        ]),
-        'inputs' => self::encodeXBData([
+        ],
+        'inputs' => [
           'uuid-in-root' => [
             'heading' => $generate_static_prop_source('world'),
           ],
-        ]),
+        ],
       ],
     ]);
     $this->assertSame(SAVED_NEW, $page_region->save());
@@ -250,10 +248,10 @@ class AutoSaveManagerTest extends KernelTestBase {
       'status' => FALSE,
       'field_hero' => $this->referencedImage,
       'field_xb_demo' => [
-        'tree' => json_encode([
+        'tree' => [
           ComponentTreeStructure::ROOT_UUID => [],
-        ]),
-        'inputs' => '{}',
+        ],
+        'inputs' => [],
       ],
     ]);
     self::assertCount(0, iterator_to_array($node->validate()));

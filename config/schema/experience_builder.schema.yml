@@ -215,16 +215,29 @@ experience_builder.component_tree:
     ValidComponentTree: ~
     FullyValidatable: ~
   # @see \Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem::propertyDefinitions()
+  # The `tree` and `inputs` elements are both sequences in practice, but each item in the
+  # sequence can take a different form, depending on certain things:
+  #
+  # - The `tree` sequence is either a sequence of mappings (for the root of the tree), or a
+  #   sequence of sequences of mappings (for the children of the tree).
+  # - The `inputs` sequence is a sequence of inputs for the components in the tree, each of
+  #   which could take a different form depending on the type of component. For example, in
+  #   an SDC component , each item in the sequence would be a sequence of mappings...but
+  #   for block components, each item would be a plain mapping, and there would be no easy
+  #   way to refer to other config schema types for further validation.
+  #
+  # Since the entire tree, and its inputs, are all validated by the `ValidComponentTree`
+  # constraint anyway, so it's okay to use the `ignore` data type for both elements.
   mapping:
     # @see \Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure
     tree:
-      type: label
+      type: ignore
       label: 'A component tree without props values.'
       constraints:
         ComponentTreeStructure: []
     # @see \Drupal\experience_builder\Plugin\DataType\ComponentInputs
     inputs:
-      type: string
+      type: ignore
       label: 'Input values for each component in the component tree'
 
 experience_builder.component_source_settings.sdc:

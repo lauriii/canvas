@@ -10,7 +10,6 @@ use Drupal\experience_builder\Entity\Pattern;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 use Drupal\Tests\experience_builder\Traits\BetterConfigDependencyManagerTrait;
 use Drupal\Tests\experience_builder\Traits\GenerateComponentConfigTrait;
-use Drupal\Tests\experience_builder\Traits\TestDataUtilitiesTrait;
 
 /**
  * @group experience_builder
@@ -20,7 +19,6 @@ class PatternValidationTest extends BetterConfigEntityValidationTestBase {
 
   use BetterConfigDependencyManagerTrait;
   use GenerateComponentConfigTrait;
-  use TestDataUtilitiesTrait;
 
   /**
    * {@inheritdoc}
@@ -67,15 +65,15 @@ class PatternValidationTest extends BetterConfigEntityValidationTestBase {
       'id' => 'test_pattern',
       'label' => 'Test pattern',
       'component_tree' => [
-        'tree' => self::encodeXBData([
+        'tree' => [
           ComponentTreeStructure::ROOT_UUID => [
             ['uuid' => 'uuid-in-root', 'component' => 'sdc.xb_test_sdc.props-no-slots'],
             ['uuid' => 'uuid-in-root-another', 'component' => 'sdc.xb_test_sdc.props-no-slots'],
             ['uuid' => 'uuid-in-root-another-again', 'component' => 'sdc.experience_builder.heading'],
             ['uuid' => 'local_tasks', 'component' => 'block.local_tasks_block'],
           ],
-        ]),
-        'inputs' => self::encodeXBData([
+        ],
+        'inputs' => [
           'local_tasks' => [
             'label_display' => FALSE,
             'primary' => TRUE,
@@ -96,7 +94,7 @@ class PatternValidationTest extends BetterConfigEntityValidationTestBase {
               'expression' => 'ℹ︎list_string␟value',
             ],
           ],
-        ]),
+        ],
       ],
     ]);
     $this->entity->save();
@@ -204,19 +202,19 @@ class PatternValidationTest extends BetterConfigEntityValidationTestBase {
 
     yield "using DynamicPropSource" => [
       'component_tree' => [
-        'tree' => self::encodeXBData([
+        'tree' => [
           ComponentTreeStructure::ROOT_UUID => [
             ['uuid' => 'uuid-in-root', 'component' => 'sdc.xb_test_sdc.props-no-slots'],
           ],
-        ]),
-        'inputs' => self::encodeXBData([
+        ],
+        'inputs' => [
           'uuid-in-root' => [
             'heading' => [
               'sourceType' => 'dynamic',
               'expression' => 'ℹ︎␜entity:node:article␝title␞␟value',
             ],
           ],
-        ]),
+        ],
       ],
       'expected_messages' => [
         'component_tree' => 'The \'dynamic\' prop source type must be absent.',
@@ -225,14 +223,14 @@ class PatternValidationTest extends BetterConfigEntityValidationTestBase {
 
     yield "using a disallowed Block-sourced Component" => [
       'component_tree' => [
-        'tree' => self::encodeXBData([
+        'tree' => [
           ComponentTreeStructure::ROOT_UUID => [
             ['uuid' => 'sdc-valid', 'component' => 'sdc.experience_builder.druplicon'],
             ['uuid' => 'block-valid', 'component' => 'block.system_branding_block'],
             ['uuid' => 'block-invalid', 'component' => 'block.page_title_block'],
           ],
-        ]),
-        'inputs' => self::encodeXBData([
+        ],
+        'inputs' => [
           'block-valid' => [
             'use_site_logo' => TRUE,
             'use_site_name' => TRUE,
@@ -241,7 +239,7 @@ class PatternValidationTest extends BetterConfigEntityValidationTestBase {
             'label_display' => FALSE,
           ],
           'block-invalid' => [],
-        ]),
+        ],
       ],
       'expected_messages' => [
         'component_tree' => 'The \'Drupal\Core\Block\TitleBlockPluginInterface\' component interface must be absent.',

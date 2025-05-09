@@ -325,10 +325,10 @@ class ClientDataToEntityConverterTest extends KernelTestBase {
       'type' => 'article',
       'title' => 'The original title.',
       'field_xb_demo' => [
-        'tree' => json_encode([
+        'tree' => [
           ComponentTreeStructure::ROOT_UUID => [],
-        ]),
-        'inputs' => '{}',
+        ],
+        'inputs' => [],
       ],
       'revision_log' => [
         [

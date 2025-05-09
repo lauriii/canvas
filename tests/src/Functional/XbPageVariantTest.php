@@ -24,7 +24,6 @@ use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 use Drupal\experience_builder\Plugin\DisplayVariant\XbPageVariant;
 use Drupal\Tests\experience_builder\Traits\ContribStrictConfigSchemaTestTrait;
 use Drupal\Tests\experience_builder\Traits\GenerateComponentConfigTrait;
-use Drupal\Tests\experience_builder\Traits\TestDataUtilitiesTrait;
 use Drupal\Tests\system\Functional\Cache\AssertPageCacheContextsAndTagsTrait;
 use Drupal\user\Entity\Role;
 use Symfony\Component\DomCrawler\Crawler;
@@ -38,7 +37,6 @@ class XbPageVariantTest extends FunctionalTestBase {
   use AssertPageCacheContextsAndTagsTrait;
   use ContribStrictConfigSchemaTestTrait;
   use GenerateComponentConfigTrait;
-  use TestDataUtilitiesTrait;
 
   /**
    * {@inheritdoc}
@@ -132,7 +130,7 @@ class XbPageVariantTest extends FunctionalTestBase {
       'theme' => $this->defaultTheme,
       'region' => 'sidebar_first',
       'component_tree' => [
-        'tree' => self::encodeXBData([
+        'tree' => [
           ComponentTreeStructure::ROOT_UUID => [
             [
               'uuid' => 'uuid-in-root',
@@ -151,8 +149,8 @@ class XbPageVariantTest extends FunctionalTestBase {
               'component' => 'sdc.xb_test_sdc.props-no-slots',
             ],
           ],
-        ]),
-        'inputs' => self::encodeXBData([
+        ],
+        'inputs' => [
           'uuid-in-root' => [
             'heading' => $generate_static_prop_source('world'),
           ],
@@ -181,7 +179,7 @@ class XbPageVariantTest extends FunctionalTestBase {
             'label' => '',
             'label_display' => FALSE,
           ],
-        ]),
+        ],
       ],
     ]);
     $pageRegion->save();

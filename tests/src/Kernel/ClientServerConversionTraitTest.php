@@ -13,7 +13,6 @@ use Drupal\node\Entity\Node;
 use Drupal\Tests\experience_builder\TestSite\XBTestSetup;
 use Drupal\Tests\experience_builder\Traits\ConstraintViolationsTestTrait;
 use Drupal\Tests\experience_builder\Traits\ContribStrictConfigSchemaTestTrait;
-use Drupal\Tests\experience_builder\Traits\TestDataUtilitiesTrait;
 use Drupal\Tests\experience_builder\Traits\XBFieldTrait;
 
 /**
@@ -32,7 +31,6 @@ class ClientServerConversionTraitTest extends KernelTestBase {
   }
 
   use ClientServerConversionTrait;
-  use TestDataUtilitiesTrait;
   use ContribStrictConfigSchemaTestTrait;
   use ConstraintViolationsTestTrait;
 
@@ -133,7 +131,7 @@ class ClientServerConversionTraitTest extends KernelTestBase {
     ['layout' => $layout, 'model' => $model] = $this->getValidClientJson(FALSE);
     $converted_item = $this->convertClientToServer($layout, $model);
     $expected_inputs = $this->getValidConvertedInputs(FALSE);
-    self::assertEqualsCanonicalizing($expected_inputs, json_decode($converted_item['inputs'], TRUE));
+    self::assertEqualsCanonicalizing($expected_inputs, $converted_item['inputs']);
     $this->assertSame([
       ComponentTreeStructure::ROOT_UUID => [
         [
@@ -161,7 +159,7 @@ class ClientServerConversionTraitTest extends KernelTestBase {
           ],
         ],
       ],
-    ], json_decode($converted_item['tree'], TRUE));
+    ], $converted_item['tree']);
 
     $node1 = Node::create([
       'type' => 'article',
@@ -185,7 +183,7 @@ class ClientServerConversionTraitTest extends KernelTestBase {
 
     ['layout' => $layout, 'model' => $model] = $this->getValidPatternJson();
     $converted_item = $this->convertClientToServer($layout, $model);
-    self::assertEqualsCanonicalizing($this->traitGetValidConvertedInputs(FALSE), json_decode($converted_item['inputs'], TRUE));
+    self::assertEqualsCanonicalizing($this->traitGetValidConvertedInputs(FALSE), $converted_item['inputs']);
     $this->assertSame([
       ComponentTreeStructure::ROOT_UUID => [
         [
@@ -201,7 +199,7 @@ class ClientServerConversionTraitTest extends KernelTestBase {
           'component' => 'block.system_branding_block',
         ],
       ],
-    ], json_decode($converted_item['tree'], TRUE));
+    ], $converted_item['tree']);
 
     Pattern::create([
       'id' => 'test_pattern',

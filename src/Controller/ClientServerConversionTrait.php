@@ -16,6 +16,7 @@ use Symfony\Component\Validator\ConstraintViolationList;
 /**
  * @internal
  * @phpstan-import-type ComponentTreeStructureArray from \Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure
+ * @phpstan-import-type ComponentInputsArray from \Drupal\experience_builder\Plugin\DataType\ComponentInputs
  * @phpstan-import-type ComponentClientStructureArray from \Drupal\experience_builder\Controller\ApiLayoutController
  * @phpstan-import-type RegionClientStructureArray from \Drupal\experience_builder\Controller\ApiLayoutController
  * @phpstan-import-type LayoutClientStructureArray from \Drupal\experience_builder\Controller\ApiLayoutController
@@ -49,7 +50,7 @@ trait ClientServerConversionTrait {
     // Validate it.
     $definition = DataDefinition::create('component_tree_structure');
     $component_tree_structure = new ComponentTreeStructure($definition, 'component_tree_structure');
-    $component_tree_structure->setValue(json_encode($tree, JSON_UNESCAPED_UNICODE));
+    $component_tree_structure->setValue($tree);
     $violations = $component_tree_structure->validate();
     if ($violations->count()) {
       throw new ConstraintViolationException($violations);
@@ -105,13 +106,14 @@ trait ClientServerConversionTrait {
   }
 
   /**
-   * @return array<string, array<string, \Drupal\experience_builder\PropSource\PropSourceBase>>
+   * @phpcs:ignore
+   * @return ComponentInputsArray
    * @throws \Drupal\experience_builder\Exception\ConstraintViolationException
    */
   private static function clientModelToInput(array $tree, array $full_model, ?FieldableEntityInterface $entity = NULL, bool $validate = TRUE): array {
     $definition = DataDefinition::create('component_tree_structure');
     $component_tree_structure = new ComponentTreeStructure($definition, 'component_tree_structure');
-    $component_tree_structure->setValue(json_encode($tree, JSON_UNESCAPED_UNICODE));
+    $component_tree_structure->setValue($tree);
 
     // Remove irrelevant model data (e.g. from page regions).
     $model = \array_intersect_key($full_model, \array_flip($component_tree_structure->getComponentInstanceUuids()));
@@ -150,7 +152,7 @@ trait ClientServerConversionTrait {
 
   /**
    * @param LayoutClientStructureArray $layout
-   * @return array{tree: string, inputs: string}
+   * @return array{tree: ComponentTreeStructureArray, inputs: ComponentInputsArray}
    * @throws \Drupal\experience_builder\Exception\ConstraintViolationException
    *
    * @todo remove the validate flag in https://www.drupal.org/i/3505018.
@@ -185,8 +187,8 @@ trait ClientServerConversionTrait {
     // @see \Drupal\experience_builder\Plugin\Validation\Constraint\ValidComponentTreeConstraintValidator
     // @see \Drupal\experience_builder\Plugin\Validation\Constraint\ComponentTreeMeetsRequirementsConstraintValidator
     return [
-      'tree' => json_encode($tree, JSON_UNESCAPED_UNICODE | JSON_FORCE_OBJECT | JSON_THROW_ON_ERROR),
-      'inputs' => json_encode($inputs, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR | JSON_FORCE_OBJECT),
+      'tree' => $tree,
+      'inputs' => $inputs,
     ];
   }
 

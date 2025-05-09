@@ -10,7 +10,6 @@ use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\Tests\experience_builder\Kernel\Traits\PageTrait;
 use Drupal\Tests\experience_builder\Traits\GenerateComponentConfigTrait;
-use Drupal\Tests\experience_builder\Traits\TestDataUtilitiesTrait;
 use Drupal\Tests\media\Traits\MediaTypeCreationTrait;
 
 /**
@@ -21,7 +20,6 @@ final class PageTest extends KernelTestBase {
   use GenerateComponentConfigTrait;
   use MediaTypeCreationTrait;
   use PageTrait;
-  use TestDataUtilitiesTrait;
 
   /**
    * {@inheritdoc}
@@ -115,7 +113,7 @@ final class PageTest extends KernelTestBase {
       'description' => 'This is a test page.',
       'path' => ['alias' => '/test-page'],
       'components' => [
-        'tree' => self::encodeXBData([
+        'tree' => [
           ComponentTreeStructure::ROOT_UUID => [
             [
               'uuid' => 'component-sdc',
@@ -126,8 +124,8 @@ final class PageTest extends KernelTestBase {
               'component' => 'block.system_branding_block',
             ],
           ],
-        ]),
-        'inputs' => self::encodeXBData([
+        ],
+        'inputs' => [
           'component-sdc' => [
             'heading' => [
               'sourceType' => 'static:field_item:string',
@@ -142,7 +140,7 @@ final class PageTest extends KernelTestBase {
             'label_display' => FALSE,
             'label' => '',
           ],
-        ]),
+        ],
       ],
     ]);
     self::assertSaveWithoutViolations($sut);

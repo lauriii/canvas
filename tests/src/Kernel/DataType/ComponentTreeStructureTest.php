@@ -53,10 +53,9 @@ class ComponentTreeStructureTest extends KernelTestBase {
    * @dataProvider providerValidation
    */
   public function testValidation(array $tree, array $expected_violations): void {
-    $json = json_encode($tree);
     $data = DataDefinition::create('component_tree_structure');
     $component_tree_structure = new ComponentTreeStructure($data, 'component_tree_structure', NULL);
-    $component_tree_structure->setValue($json);
+    $component_tree_structure->setValue($tree);
     $violations = $component_tree_structure->validate();
     $this->assertSame($expected_violations, self::violationsToArray($violations));
   }

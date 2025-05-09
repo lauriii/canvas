@@ -175,7 +175,7 @@ trait XBFieldTrait {
     self::assertEqualsCanonicalizing($expected_component_ids, $tree->getComponentIdList());
     $inputs = $item->get('inputs');
     $this->assertInstanceOf(ComponentInputs::class, $inputs);
-    $inputs = json_decode((string) $inputs, TRUE);
+    $inputs = json_decode($inputs->getValue(), TRUE);
     // @todo Replace with a single call to
     //   `\PHPUnit\Framework\Assert::assertEqualsCanonicalizing` in
     //  https://drupal.org/i/3486414. Currently that does not work in all

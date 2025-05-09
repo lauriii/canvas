@@ -32,7 +32,6 @@ use Drupal\Tests\experience_builder\Traits\ConstraintViolationsTestTrait;
 use Drupal\Tests\experience_builder\Traits\ContribStrictConfigSchemaTestTrait;
 use Drupal\Tests\experience_builder\Traits\CrawlerTrait;
 use Drupal\Tests\experience_builder\Traits\GenerateComponentConfigTrait;
-use Drupal\Tests\experience_builder\Traits\TestDataUtilitiesTrait;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DomCrawler\Crawler;
 
@@ -75,7 +74,6 @@ abstract class ComponentSourceTestBase extends KernelTestBase implements LoggerI
   use ConstraintViolationsTestTrait;
   use ContribStrictConfigSchemaTestTrait;
   use GenerateComponentConfigTrait;
-  use TestDataUtilitiesTrait;
 
   protected readonly EntityStorageInterface $componentStorage;
   protected readonly ComponentIncompatibilityReasonRepository $componentReasonRepository;
@@ -336,7 +334,7 @@ abstract class ComponentSourceTestBase extends KernelTestBase implements LoggerI
 
     $field_item = $this->createDanglingComponentTree();
     $field_item->setValue([
-      'tree' => self::encodeXBData([
+      'tree' => [
         ComponentTreeStructure::ROOT_UUID => [
           [
             'uuid' => 'container',
@@ -366,8 +364,8 @@ abstract class ComponentSourceTestBase extends KernelTestBase implements LoggerI
             ],
           ],
         ],
-      ]),
-      'inputs' => self::encodeXBData([
+      ],
+      'inputs' => [
         // Pass the crash test dummy component instance inputs as-is.
         'crash-test-dummy' => $inputs,
         // The container has a single explicit input that it requires; this can
@@ -378,7 +376,7 @@ abstract class ComponentSourceTestBase extends KernelTestBase implements LoggerI
             cardinality: 1,
           )->withValue(33)->toArray(),
         ],
-      ]),
+      ],
     ]);
     return $field_item;
   }

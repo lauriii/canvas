@@ -16,7 +16,7 @@ use Drupal\KernelTests\KernelTestBase;
 use Drupal\media\Entity\Media;
 use Drupal\node\Entity\Node;
 use Drupal\node\Entity\NodeType;
-use Drupal\Tests\experience_builder\Traits\TestDataUtilitiesTrait;
+use Drupal\Tests\experience_builder\Traits\ContribStrictConfigSchemaTestTrait;
 use Drupal\Tests\image\Kernel\ImageFieldCreationTrait;
 use Drupal\Tests\media\Traits\MediaTypeCreationTrait;
 
@@ -27,7 +27,7 @@ use Drupal\Tests\media\Traits\MediaTypeCreationTrait;
  */
 class ComponentInputsDependenciesTest extends KernelTestBase {
 
-  use TestDataUtilitiesTrait;
+  use ContribStrictConfigSchemaTestTrait;
   use ImageFieldCreationTrait;
   use MediaTypeCreationTrait;
 

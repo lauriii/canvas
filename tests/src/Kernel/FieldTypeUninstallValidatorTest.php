@@ -16,7 +16,6 @@ use Drupal\KernelTests\KernelTestBase;
 use Drupal\taxonomy\Entity\Term;
 use Drupal\taxonomy\Entity\Vocabulary;
 use Drupal\Tests\experience_builder\Traits\ContribStrictConfigSchemaTestTrait;
-use Drupal\Tests\experience_builder\Traits\TestDataUtilitiesTrait;
 use Drupal\Tests\node\Traits\NodeCreationTrait;
 
 /**
@@ -27,10 +26,19 @@ final class FieldTypeUninstallValidatorTest extends KernelTestBase {
 
   use ContribStrictConfigSchemaTestTrait;
   use NodeCreationTrait;
-  use TestDataUtilitiesTrait;
+
+  /**
+   * {@inheritdoc}
+   */
+  protected static $modules = [
+    'system',
+    'user',
+  ];
 
   protected function setUp(): void {
     parent::setUp();
+    $this->installSchema('user', ['users_data']);
+    $this->installEntitySchema('user');
     // Clone the current connection and replace the current prefix.
     $connection_info = Database::getConnectionInfo('default');
     if (!empty($connection_info)) {
@@ -222,14 +230,14 @@ final class FieldTypeUninstallValidatorTest extends KernelTestBase {
 
   private function getComponentTreeItemValue(bool $include_link): array {
     $component_tree_item = [
-      'tree' => self::encodeXBData([
+      'tree' => [
         ComponentTreeStructure::ROOT_UUID => [
           [
             'uuid' => 'dynamic-static-card2df',
             'component' => 'sdc.sdc_test.my-cta',
           ],
         ],
-      ]),
+      ],
     ];
     $inputs = [
       'dynamic-static-card2df' => [
@@ -251,7 +259,7 @@ final class FieldTypeUninstallValidatorTest extends KernelTestBase {
         'expression' => 'ℹ︎link␟uri',
       ];
     }
-    $component_tree_item['inputs'] = self::encodeXBData($inputs);
+    $component_tree_item['inputs'] = $inputs;
     return $component_tree_item;
   }
 

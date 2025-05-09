@@ -141,9 +141,16 @@ class ComponentTreeStructure extends TypedData implements DependentPluginInterfa
    * {@inheritdoc}
    */
   public function setValue($value, $notify = TRUE): void {
-    // @todo Delete next line; update this code to ONLY do the JSON-to-PHP-object parsing after https://www.drupal.org/project/drupal/issues/2232427 lands — that will allow specifying the "json" serialization strategy rather than only PHP's serialize().
-    $this->value = $value;
-    $this->tree = Json::decode($value);
+    if (is_string($value)) {
+      // @todo Delete next line; update this code to ONLY do the JSON-to-PHP-object parsing after https://www.drupal.org/project/drupal/issues/2232427 lands — that will allow specifying the "json" serialization strategy rather than only PHP's serialize().
+      $this->value = $value;
+      $this->tree = Json::decode($value);
+    }
+    else {
+      assert(is_array($value));
+      $this->tree = $value;
+      $this->value = Json::encode($value);
+    }
 
     // Keep the graph representation in sync: force it to be recomputed.
     $this->graph = NULL;
@@ -152,13 +159,6 @@ class ComponentTreeStructure extends TypedData implements DependentPluginInterfa
     if ($notify && isset($this->parent)) {
       $this->parent->onChange($this->name);
     }
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function __toString(): string {
-    return Json::encode($this->tree);
   }
 
   /**

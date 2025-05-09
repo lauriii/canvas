@@ -369,8 +369,8 @@ class XBTestSetup implements TestSetupInterface {
       // @todo Add E2E test coverage for starting with an empty canvas in
       //   https://drupal.org/i/3474257.
       'field_xb_demo' => [
-        'tree' => json_encode($tree),
-        'inputs' => json_encode($inputs),
+        'tree' => $tree,
+        'inputs' => $inputs,
       ],
     ]);
 
@@ -402,8 +402,8 @@ class XBTestSetup implements TestSetupInterface {
       // @todo Add E2E test coverage for starting with an empty canvas in
       //   https://drupal.org/i/3474257.
       'field_xb_demo' => [
-        'tree' => json_encode($tree),
-        'inputs' => json_encode($inputs),
+        'tree' => $tree,
+        'inputs' => $inputs,
       ],
     ]);
     $node->save();
@@ -413,7 +413,7 @@ class XBTestSetup implements TestSetupInterface {
       'description' => 'This is the homepage',
       'path' => ['alias' => '/homepage'],
       'components' => [
-        'tree' => \json_encode([
+        'tree' => [
           ComponentTreeStructure::ROOT_UUID => [
             [
               'uuid' => 'component-sdc',
@@ -424,8 +424,8 @@ class XBTestSetup implements TestSetupInterface {
               'component' => 'block.system_branding_block',
             ],
           ],
-        ]),
-        'inputs' => \json_encode([
+        ],
+        'inputs' => [
           'component-sdc' => [
             'heading' => [
               'sourceType' => 'static:field_item:string',
@@ -440,7 +440,7 @@ class XBTestSetup implements TestSetupInterface {
             'use_site_name' => TRUE,
             'use_site_slogan' => TRUE,
           ],
-        ]),
+        ],
       ],
     ]);
     $page->save();

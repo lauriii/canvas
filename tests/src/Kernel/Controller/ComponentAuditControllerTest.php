@@ -15,8 +15,8 @@ use Drupal\KernelTests\KernelTestBase;
 use Drupal\node\NodeInterface;
 use Drupal\Tests\experience_builder\Kernel\Traits\PageTrait;
 use Drupal\Tests\experience_builder\Kernel\Traits\RequestTrait;
+use Drupal\Tests\experience_builder\Traits\ContribStrictConfigSchemaTestTrait;
 use Drupal\Tests\experience_builder\Traits\GenerateComponentConfigTrait;
-use Drupal\Tests\experience_builder\Traits\TestDataUtilitiesTrait;
 use Drupal\Tests\node\Traits\ContentTypeCreationTrait;
 use Drupal\Tests\user\Traits\UserCreationTrait;
 use Symfony\Component\HttpFoundation\Request;
@@ -28,11 +28,11 @@ use Symfony\Component\HttpFoundation\Request;
  */
 final class ComponentAuditControllerTest extends KernelTestBase {
 
+  use ContribStrictConfigSchemaTestTrait;
   use PageTrait;
   use RequestTrait;
   use UserCreationTrait;
   use GenerateComponentConfigTrait;
-  use TestDataUtilitiesTrait;
   use ContentTypeCreationTrait;
 
   /**
@@ -84,15 +84,15 @@ final class ComponentAuditControllerTest extends KernelTestBase {
       'label' => 'XB Test Field',
       'required' => TRUE,
     ])->setDefaultValue([
-      'tree' => self::encodeXBData([
+      'tree' => [
         ComponentTreeStructure::ROOT_UUID => [
           [
             'uuid' => 'sdc-druplicon',
             'component' => 'sdc.experience_builder.druplicon',
           ],
         ],
-      ]),
-      'inputs' => self::encodeXBData([]),
+      ],
+      'inputs' => [],
     ])->save();
   }
 
@@ -125,15 +125,15 @@ final class ComponentAuditControllerTest extends KernelTestBase {
     $page1 = $storages[Page::ENTITY_TYPE_ID]->load(1);
     assert($page1 instanceof Page);
     $page1->get('components')->first()?->setValue([
-      'tree' => self::encodeXBData([
+      'tree' => [
         ComponentTreeStructure::ROOT_UUID => [
           [
             'uuid' => 'component-sdc',
             'component' => 'sdc.experience_builder.druplicon',
           ],
         ],
-      ]),
-      'inputs' => self::encodeXBData([]),
+      ],
+      'inputs' => [],
     ]);
     $page1->setUnpublished()
       ->setNewRevision(TRUE);
@@ -142,15 +142,15 @@ final class ComponentAuditControllerTest extends KernelTestBase {
     $node1 = $storages['node']->load(1);
     assert($node1 instanceof NodeInterface);
     $node1->get('field_xb_test')->first()?->setValue([
-      'tree' => self::encodeXBData([
+      'tree' => [
         ComponentTreeStructure::ROOT_UUID => [
           [
             'uuid' => 'component-sdc',
             'component' => 'sdc.experience_builder.druplicon',
           ],
         ],
-      ]),
-      'inputs' => self::encodeXBData([]),
+      ],
+      'inputs' => [],
     ]);
     $node1->setNewRevision(TRUE);
     $node1->save();
@@ -245,15 +245,15 @@ final class ComponentAuditControllerTest extends KernelTestBase {
             'description' => 'This is a test page.',
             'status' => TRUE,
             'components' => [
-              'tree' => self::encodeXBData([
+              'tree' => [
                 ComponentTreeStructure::ROOT_UUID => [
                   [
                     'uuid' => 'component-sdc',
                     'component' => 'sdc.xb_test_sdc.props-slots',
                   ],
                 ],
-              ]),
-              'inputs' => self::encodeXBData([
+              ],
+              'inputs' => [
                 'component-sdc' => [
                   'heading' => [
                     'sourceType' => 'static:field_item:string',
@@ -261,7 +261,7 @@ final class ComponentAuditControllerTest extends KernelTestBase {
                     'expression' => 'ℹ︎string␟value',
                   ],
                 ],
-              ]),
+              ],
             ],
           ],
           [
@@ -269,15 +269,15 @@ final class ComponentAuditControllerTest extends KernelTestBase {
             'description' => 'This is another test page.',
             'status' => TRUE,
             'components' => [
-              'tree' => self::encodeXBData([
+              'tree' => [
                 ComponentTreeStructure::ROOT_UUID => [
                   [
                     'uuid' => 'component-sdc',
                     'component' => 'sdc.xb_test_sdc.props-slots',
                   ],
                 ],
-              ]),
-              'inputs' => self::encodeXBData([
+              ],
+              'inputs' => [
                 'component-sdc' => [
                   'heading' => [
                     'sourceType' => 'static:field_item:string',
@@ -285,7 +285,7 @@ final class ComponentAuditControllerTest extends KernelTestBase {
                     'expression' => 'ℹ︎string␟value',
                   ],
                 ],
-              ]),
+              ],
             ],
           ],
         ],
@@ -297,15 +297,15 @@ final class ComponentAuditControllerTest extends KernelTestBase {
             'status' => TRUE,
             'type' => 'article',
             'field_xb_test' => [
-              'tree' => self::encodeXBData([
+              'tree' => [
                 ComponentTreeStructure::ROOT_UUID => [
                   [
                     'uuid' => 'component-sdc',
                     'component' => 'sdc.xb_test_sdc.props-slots',
                   ],
                 ],
-              ]),
-              'inputs' => self::encodeXBData([
+              ],
+              'inputs' => [
                 'component-sdc' => [
                   'heading' => [
                     'sourceType' => 'static:field_item:string',
@@ -313,7 +313,7 @@ final class ComponentAuditControllerTest extends KernelTestBase {
                     'expression' => 'ℹ︎string␟value',
                   ],
                 ],
-              ]),
+              ],
             ],
           ],
         ],

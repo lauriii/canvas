@@ -13,8 +13,6 @@ use Drupal\field\Entity\FieldStorageConfig;
  */
 trait SingleDirectoryComponentTreeTestTrait {
 
-  use TestDataUtilitiesTrait;
-
   protected function createComponentTreeField(string $entity_type_id, string $bundle): void {
     $field_storage = FieldStorageConfig::create([
       'field_name' => 'field_component_tree',
@@ -33,15 +31,15 @@ trait SingleDirectoryComponentTreeTestTrait {
     return [
       'valid values using static inputs' => [
         [
-          'tree' => self::encodeXBData([
+          'tree' => [
             ComponentTreeStructure::ROOT_UUID => [
               [
                 'uuid' => 'dynamic-static-card2df',
                 'component' => 'sdc.xb_test_sdc.props-slots',
               ],
             ],
-          ]),
-          'inputs' => self::encodeXBData([
+          ],
+          'inputs' => [
             'dynamic-static-card2df' => [
               'heading' => [
                 'sourceType' => 'static:field_item:string',
@@ -49,26 +47,33 @@ trait SingleDirectoryComponentTreeTestTrait {
                 'expression' => 'ℹ︎string␟value',
               ],
             ],
-          ]),
+          ],
         ],
       ],
       'valid values for propless component' => [
         [
-          'tree' => '{"a548b48d-58a8-4077-aa04-da9405a6f418": [{"uuid":"propless-component-uuid","component":"sdc.experience_builder.druplicon"}]}',
-          'inputs' => '{}',
+          'tree' => [
+            "a548b48d-58a8-4077-aa04-da9405a6f418" => [
+              [
+                "uuid" => "propless-component-uuid",
+                "component" => "sdc.experience_builder.druplicon",
+              ],
+            ],
+          ],
+          'inputs' => [],
         ],
       ],
       'valid value for optional explicit input using an URL prop shape, with default value' => [
         [
-          'tree' => self::encodeXBData([
+          'tree' => [
             ComponentTreeStructure::ROOT_UUID => [
               [
                 'uuid' => 'optional-url-with-default-value',
                 'component' => 'sdc.xb_test_sdc.image-optional-with-example-and-additional-prop',
               ],
             ],
-          ]),
-          'inputs' => self::encodeXBData([
+          ],
+          'inputs' => [
             'optional-url-with-default-value' => [
               'heading' => [
                 'sourceType' => 'static:field_item:string',
@@ -100,7 +105,7 @@ trait SingleDirectoryComponentTreeTestTrait {
                 'componentId' => 'sdc.xb_test_sdc.image-optional-with-example-and-additional-prop',
               ],
             ],
-          ]),
+          ],
         ],
       ],
     ];
@@ -110,27 +115,27 @@ trait SingleDirectoryComponentTreeTestTrait {
     return [
       'invalid values using dynamic inputs' => [
         [
-          'tree' => self::encodeXBData([
+          'tree' => [
             ComponentTreeStructure::ROOT_UUID => [
               [
                 'uuid' => 'dynamic-dynamic-card2df',
                 'component' => 'sdc.xb_test_sdc.props-slots',
               ],
             ],
-          ]),
-          'inputs' => self::encodeXBData([
+          ],
+          'inputs' => [
             'dynamic-dynamic-card2df' => [
               'heading' => [
                 'sourceType' => 'dynamic',
                 'expression' => 'ℹ︎␜entity:node:article␝title␞␟value',
               ],
             ],
-          ]),
+          ],
         ],
       ],
       'invalid tree structure, uuid at top of data structure is not in the tree, also has empty slots' => [
         [
-          'tree' => self::encodeXBData([
+          'tree' => [
             ComponentTreeStructure::ROOT_UUID => [
               [
                 'uuid' => 'dynamic-static-card2df',
@@ -138,8 +143,8 @@ trait SingleDirectoryComponentTreeTestTrait {
               ],
             ],
             'other-uuid' => [],
-          ]),
-          'inputs' => self::encodeXBData([
+          ],
+          'inputs' => [
             'dynamic-static-card2df' => [
               'heading' => [
                 'sourceType' => 'static:field_item:string',
@@ -147,19 +152,19 @@ trait SingleDirectoryComponentTreeTestTrait {
                 'expression' => 'ℹ︎string␟value',
               ],
             ],
-          ]),
+          ],
         ],
       ],
       'missing components, using dynamic inputs' => [
         [
-          'tree' => self::encodeXBData([
+          'tree' => [
             ComponentTreeStructure::ROOT_UUID => [
               ['uuid' => 'dynamic-static-card2df', 'component' => 'sdc.sdc_test.missing'],
               ['uuid' => 'dynamic-static-card3', 'component' => 'sdc.sdc_test.missing-also'],
               ['uuid' => 'dynamic-static-card4', 'component' => 'sdc.xb_test_sdc.props-slots'],
             ],
-          ]),
-          'inputs' => self::encodeXBData([
+          ],
+          'inputs' => [
             'dynamic-static-card2df' => [
               'heading' => [
                 'sourceType' => 'dynamic',
@@ -178,17 +183,17 @@ trait SingleDirectoryComponentTreeTestTrait {
                 'expression' => 'ℹ︎␜entity:node:article␝title␞␟value',
               ],
             ],
-          ]),
+          ],
         ],
       ],
       'missing components, using only static inputs' => [
         [
-          'tree' => self::encodeXBData([
+          'tree' => [
             ComponentTreeStructure::ROOT_UUID => [
               ['uuid' => 'static-card2df', 'component' => 'sdc.sdc_test.missing'],
             ],
-          ]),
-          'inputs' => self::encodeXBData([
+          ],
+          'inputs' => [
             'static-card2df' => [
               'text' => [
                 'sourceType' => 'static:field_item:link',
@@ -200,19 +205,19 @@ trait SingleDirectoryComponentTreeTestTrait {
                 'expression' => 'ℹ︎link␟uri',
               ],
             ],
-          ]),
+          ],
         ],
       ],
       'inputs invalid, using dynamic inputs' => [
         [
-          'tree' => self::encodeXBData([
+          'tree' => [
             ComponentTreeStructure::ROOT_UUID => [
               ['uuid' => 'dynamic-static-card2df', 'component' => 'sdc.xb_test_sdc.props-slots'],
               ['uuid' => 'dynamic-static-card3', 'component' => 'sdc.xb_test_sdc.props-slots'],
               ['uuid' => 'dynamic-static-card4', 'component' => 'sdc.xb_test_sdc.props-slots'],
             ],
-          ]),
-          'inputs' => self::encodeXBData([
+          ],
+          'inputs' => [
             'dynamic-static-card2df' => [
               'heading-2' => [
                 'sourceType' => 'dynamic',
@@ -231,17 +236,17 @@ trait SingleDirectoryComponentTreeTestTrait {
                 'expression' => 'ℹ︎␜entity:node:article␝title␞␟value',
               ],
             ],
-          ]),
+          ],
         ],
       ],
       'inputs invalid, using only static inputs' => [
         [
-          'tree' => self::encodeXBData([
+          'tree' => [
             ComponentTreeStructure::ROOT_UUID => [
               ['uuid' => 'static-card2df', 'component' => 'sdc.xb_test_sdc.props-no-slots'],
             ],
-          ]),
-          'inputs' => self::encodeXBData([
+          ],
+          'inputs' => [
             'static-card2df' => [
               'heading-x' => [
                 'sourceType' => 'static:field_item:link',
@@ -253,23 +258,23 @@ trait SingleDirectoryComponentTreeTestTrait {
                 'expression' => 'ℹ︎link␟uri',
               ],
             ],
-          ]),
+          ],
         ],
       ],
       'missing inputs key' => [
         [
-          'tree' => self::encodeXBData([
+          'tree' => [
             ComponentTreeStructure::ROOT_UUID => [
               ['uuid' => 'dynamic-static-card2df', 'component' => 'sdc.xb_test_sdc.props-slots'],
               ['uuid' => 'dynamic-static-card3', 'component' => 'sdc.xb_test_sdc.props-slots'],
               ['uuid' => 'dynamic-static-card4', 'component' => 'sdc.xb_test_sdc.props-slots'],
             ],
-          ]),
+          ],
         ],
       ],
       'missing tree key' => [
         [
-          'inputs' => self::encodeXBData([
+          'inputs' => [
             'dynamic-static-card2df' => [
               'text' => [
                 'sourceType' => 'static:field_item:string',
@@ -286,7 +291,7 @@ trait SingleDirectoryComponentTreeTestTrait {
                 'expression' => 'ℹ︎link␟uri',
               ],
             ],
-          ]),
+          ],
         ],
       ],
     ];

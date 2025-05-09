@@ -50,11 +50,11 @@ final class ComponentTreeStructureConstraintValidator extends ConstraintValidato
    * {@inheritdoc}
    */
   public function validate(mixed $value, Constraint $constraint): void {
-    if (!is_string($value)) {
-      throw new \UnexpectedValueException(sprintf('The value must be a string, found %s.', gettype($value)));
+    $tree = $value;
+    if (is_string($tree)) {
+      $tree = json_decode($value, TRUE);
     }
-    $tree = json_decode($value, TRUE);
-    if ($tree === NULL) {
+    if (!is_array($tree)) {
       throw new \UnexpectedValueException(sprintf('The value must be a valid JSON string, found %s.', $value));
     }
     $this->validateTree($tree);

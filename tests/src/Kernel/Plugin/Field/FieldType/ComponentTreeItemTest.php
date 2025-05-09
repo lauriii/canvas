@@ -15,7 +15,6 @@ use Drupal\Tests\experience_builder\Traits\SingleDirectoryComponentTreeTestTrait
 use Drupal\Tests\experience_builder\Traits\ConstraintViolationsTestTrait;
 use Drupal\Tests\experience_builder\Traits\ContribStrictConfigSchemaTestTrait;
 use Drupal\Tests\experience_builder\Traits\GenerateComponentConfigTrait;
-use Drupal\Tests\experience_builder\Traits\TestDataUtilitiesTrait;
 use Drupal\Tests\image\Kernel\ImageFieldCreationTrait;
 
 /**
@@ -30,7 +29,6 @@ class ComponentTreeItemTest extends KernelTestBase {
   use ContribStrictConfigSchemaTestTrait;
   use GenerateComponentConfigTrait;
   use CiModulePathTrait;
-  use TestDataUtilitiesTrait;
   use ImageFieldCreationTrait;
 
   /**
@@ -98,7 +96,7 @@ class ComponentTreeItemTest extends KernelTestBase {
       ],
       ComponentTreeItem::calculateDependencies(BaseFieldDefinition::create('component_tree')->setDefaultValue(
         [
-          'tree' => self::encodeXBData([
+          'tree' => [
             ComponentTreeStructure::ROOT_UUID => [
               ['uuid' => 'dynamic-image-udf7d', 'component' => 'sdc.experience_builder.image'],
               ['uuid' => 'static-static-card1ab', 'component' => 'sdc.sdc_test.my-cta'],
@@ -106,8 +104,8 @@ class ComponentTreeItemTest extends KernelTestBase {
               ['uuid' => 'dynamic-dynamic-card3rr', 'component' => 'sdc.sdc_test.my-cta'],
               ['uuid' => 'dynamic-image-static-imageStyle-something7d', 'component' => 'sdc.experience_builder.image'],
             ],
-          ]),
-          'inputs' => json_encode([
+          ],
+          'inputs' => [
             'dynamic-static-card2df' => [
               'text' => [
                 'sourceType' => 'dynamic',
@@ -163,7 +161,7 @@ class ComponentTreeItemTest extends KernelTestBase {
                 ],
               ],
             ],
-          ]),
+          ],
         ]
       ))
     );

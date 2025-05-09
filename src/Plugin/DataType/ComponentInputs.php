@@ -18,13 +18,18 @@ use Drupal\experience_builder\PropSource\PropSource;
 
 /**
  * @todo Implement ListInterface because it conceptually fits, but … what does it get us?
+ * @phpstan-import-type PropSourceArray from \Drupal\experience_builder\PropSource\PropSourceBase
+ * @phpstan-import-type AdaptedPropSourceArray from \Drupal\experience_builder\PropSource\PropSourceBase
+ * @phpstan-import-type DefaultRelativeUrlPropSourceArray from \Drupal\experience_builder\PropSource\PropSourceBase
+ * @phpstan-type SingleComponentInputArray array<string, PropSourceArray|AdaptedPropSourceArray|DefaultRelativeUrlPropSourceArray>
+ * @phpstan-type ComponentInputsArray array<string, SingleComponentInputArray>
  */
 #[DataType(
   id: "component_inputs",
   label: new TranslatableMarkup("Component inputs"),
   description: new TranslatableMarkup("The input values for the components in a component tree: without structure"),
 )]
-class ComponentInputs extends TypedData implements \Stringable, DependentPluginInterface {
+class ComponentInputs extends TypedData implements DependentPluginInterface {
 
   /**
    * The data value.
@@ -38,7 +43,7 @@ class ComponentInputs extends TypedData implements \Stringable, DependentPluginI
   /**
    * The parsed data value.
    *
-   * @var array<string, array<string, array{'sourceType': string, 'value': array<mixed>, 'expression': string}>>
+   * @var ComponentInputsArray
    */
   protected array $inputs = [];
 
@@ -77,22 +82,23 @@ class ComponentInputs extends TypedData implements \Stringable, DependentPluginI
    * {@inheritdoc}
    */
   public function setValue($value, $notify = TRUE): void {
-    assert(str_starts_with($value, '{'));
-    // @todo Delete next line; update this code to ONLY do the JSON-to-PHP-object parsing after https://www.drupal.org/project/drupal/issues/2232427 lands — that will allow specifying the "json" serialization strategy rather than only PHP's serialize().
-    $this->value = $value;
-    $this->inputs = Json::decode($value);
+    if (is_string($value)) {
+      // If there are no inputs, an empty array is a valid value.
+      assert(str_starts_with($value, '{') || $value === '[]');
+      // @todo Delete next line; update this code to ONLY do the JSON-to-PHP-object parsing after https://www.drupal.org/project/drupal/issues/2232427 lands — that will allow specifying the "json" serialization strategy rather than only PHP's serialize().
+      $this->value = $value;
+      $this->inputs = Json::decode($value);
+    }
+    else {
+      assert(is_array($value));
+      $this->inputs = $value;
+      $this->value = Json::encode($value);
+    }
 
     // Notify the parent of any changes.
     if ($notify && isset($this->parent)) {
       $this->parent->onChange($this->name);
     }
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function __toString(): string {
-    return Json::encode($this->inputs);
   }
 
   /**

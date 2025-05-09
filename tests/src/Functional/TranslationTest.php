@@ -214,7 +214,7 @@ class TranslationTest extends FunctionalTestBase {
     // change both the original and the translation.
     $this->assertSame('static-heading-some-uuid', $tree_decoded['two-column-uuid']['column_two'][2]['uuid']);
     unset($tree_decoded['two-column-uuid']['column_two'][2]);
-    $node->get('field_xb_test')[0]->set('tree', json_encode($tree_decoded));
+    $node->get('field_xb_test')[0]->set('tree', $tree_decoded);
     $node->save();
     return $node;
   }

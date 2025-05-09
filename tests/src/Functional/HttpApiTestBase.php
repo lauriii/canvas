@@ -9,7 +9,6 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Url;
 use Drupal\experience_builder\AutoSave\AutoSaveManager;
 use Drupal\Tests\ApiRequestTrait;
-use Drupal\Tests\experience_builder\Traits\TestDataUtilitiesTrait;
 use GuzzleHttp\RequestOptions;
 
 /**
@@ -22,7 +21,6 @@ use GuzzleHttp\RequestOptions;
 abstract class HttpApiTestBase extends FunctionalTestBase {
 
   use ApiRequestTrait;
-  use TestDataUtilitiesTrait;
 
   /**
    * @return ?array

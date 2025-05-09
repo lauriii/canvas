@@ -12,7 +12,6 @@ use Drupal\KernelTests\KernelTestBase;
 use Drupal\Tests\experience_builder\Kernel\Traits\PageTrait;
 use Drupal\Tests\experience_builder\Kernel\Traits\RequestTrait;
 use Drupal\Tests\experience_builder\Traits\GenerateComponentConfigTrait;
-use Drupal\Tests\experience_builder\Traits\TestDataUtilitiesTrait;
 
 /**
  * @group experience_builder
@@ -22,7 +21,6 @@ final class PageViewBuilderTest extends KernelTestBase {
   use GenerateComponentConfigTrait;
   use PageTrait;
   use RequestTrait;
-  use TestDataUtilitiesTrait;
 
   /**
    * {@inheritdoc}
@@ -64,7 +62,7 @@ final class PageViewBuilderTest extends KernelTestBase {
       'description' => 'This is a test page.',
       'path' => ['alias' => '/test-page'],
       'components' => [
-        'tree' => self::encodeXBData([
+        'tree' => [
           ComponentTreeStructure::ROOT_UUID => [
             [
               'uuid' => 'component-sdc',
@@ -75,8 +73,8 @@ final class PageViewBuilderTest extends KernelTestBase {
               'component' => 'block.system_branding_block',
             ],
           ],
-        ]),
-        'inputs' => self::encodeXBData([
+        ],
+        'inputs' => [
           'component-sdc' => [
             'heading' => [
               'sourceType' => 'static:field_item:string',
@@ -91,7 +89,7 @@ final class PageViewBuilderTest extends KernelTestBase {
             'label_display' => FALSE,
             'label' => '',
           ],
-        ]),
+        ],
       ],
       'xb_test_field' => '3rd party based field should not be displayed!',
     ]);
@@ -162,10 +160,10 @@ final class PageViewBuilderTest extends KernelTestBase {
       'description' => 'This is a test page.',
       'path' => ['alias' => '/test-page'],
       'components' => [
-        'tree' => self::encodeXBData([
+        'tree' => [
           ComponentTreeStructure::ROOT_UUID => [],
-        ]),
-        'inputs' => self::encodeXBData([]),
+        ],
+        'inputs' => [],
       ],
     ]);
     self::assertSaveWithoutViolations($sut);

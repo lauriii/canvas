@@ -14,7 +14,6 @@ use Drupal\experience_builder\Entity\JavaScriptComponent;
 use Drupal\experience_builder\Entity\XbAssetInterface;
 use Drupal\Tests\experience_builder\Traits\AutoSaveManagerTestTrait;
 use Drupal\Tests\experience_builder\Traits\ContribStrictConfigSchemaTestTrait;
-use Drupal\Tests\experience_builder\Traits\TestDataUtilitiesTrait;
 use Drupal\user\UserInterface;
 use GuzzleHttp\RequestOptions;
 
@@ -27,7 +26,6 @@ use GuzzleHttp\RequestOptions;
  */
 final class ApiConfigAutoSaveControllersTest extends HttpApiTestBase {
 
-  use TestDataUtilitiesTrait;
   use ContribStrictConfigSchemaTestTrait;
   use AutoSaveManagerTestTrait;
 
@@ -171,7 +169,7 @@ final class ApiConfigAutoSaveControllersTest extends HttpApiTestBase {
     $this->drupalGet($css_auto_save_url);
     $this->assertSession()->statusCodeEquals(404);
 
-    $request_options[RequestOptions::BODY] = self::encodeXBData($initial_entity);
+    $request_options[RequestOptions::JSON] = $initial_entity;
     $this->assertExpectedResponse('POST', $post_url, $request_options, 201, NULL, NULL, NULL, NULL, [
       'Location' => [
         "$base/xb/api/v0/config/$entity_type_id/{$entity_id}",

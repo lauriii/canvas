@@ -255,7 +255,7 @@ HTML,
 
     $explicit = $component->getComponentSource()->getExplicitInput($componentItemValue['uuid'], $xb_field_item);
     $componentSettings = $explicit;
-    $componentSettingsOriginal = json_decode($componentItemValue['inputs'], TRUE)[$componentItemValue['uuid']];
+    $componentSettingsOriginal = $componentItemValue['inputs'][$componentItemValue['uuid']];
 
     $this->assertSame($componentSettingsOriginal, $componentSettings);
   }

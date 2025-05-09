@@ -82,8 +82,8 @@ class ComponentTreeHydratedTest extends KernelTestBase {
     ]);
     assert($component_tree_field_item instanceof ComponentTreeItem);
     $component_tree_field_item->setValue([
-      'tree' => json_encode($tree, JSON_UNESCAPED_UNICODE | JSON_FORCE_OBJECT),
-      'inputs' => json_encode($inputs, JSON_UNESCAPED_UNICODE | JSON_FORCE_OBJECT),
+      'tree' => $tree,
+      'inputs' => $inputs,
     ]);
 
     // Every test case must be valid.

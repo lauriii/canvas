@@ -6,7 +6,6 @@ namespace Drupal\Tests\experience_builder\Unit\DataType;
 
 use Drupal\Core\TypedData\DataDefinition;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
-use Drupal\Tests\experience_builder\Traits\TestDataUtilitiesTrait;
 use Drupal\Tests\UnitTestCase;
 
 /**
@@ -14,8 +13,6 @@ use Drupal\Tests\UnitTestCase;
  * @group experience_builder
  */
 class ComponentTreeStructureTest extends UnitTestCase {
-
-  use TestDataUtilitiesTrait;
 
   /**
    * @covers ::getValue
@@ -111,11 +108,10 @@ class ComponentTreeStructureTest extends UnitTestCase {
       ],
     ];
 
-    $test_json = self::encodeXBData($tree);
     $definition = DataDefinition::create('component_tree_structure');
     $component_tree_structure = new ComponentTreeStructure($definition,
       'component_tree_structure');
-    $component_tree_structure->setValue($test_json);
+    $component_tree_structure->setValue($tree);
     return $component_tree_structure;
   }
 

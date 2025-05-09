@@ -11,7 +11,6 @@ use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 use Drupal\Tests\experience_builder\Traits\BetterConfigDependencyManagerTrait;
 use Drupal\Tests\experience_builder\Traits\ConstraintViolationsTestTrait;
 use Drupal\Tests\experience_builder\Traits\GenerateComponentConfigTrait;
-use Drupal\Tests\experience_builder\Traits\TestDataUtilitiesTrait;
 
 /**
  * @group experience_builder
@@ -21,7 +20,6 @@ class PageRegionValidationTest extends BetterConfigEntityValidationTestBase {
 
   use BetterConfigDependencyManagerTrait;
   use GenerateComponentConfigTrait;
-  use TestDataUtilitiesTrait;
   use ConstraintViolationsTestTrait;
 
   /**
@@ -76,15 +74,15 @@ class PageRegionValidationTest extends BetterConfigEntityValidationTestBase {
       'theme' => 'stark',
       'region' => 'sidebar_first',
       'component_tree' => [
-        'tree' => self::encodeXBData([
+        'tree' => [
           ComponentTreeStructure::ROOT_UUID => [
             ['uuid' => 'uuid-in-root', 'component' => 'sdc.xb_test_sdc.props-no-slots'],
             ['uuid' => 'uuid-in-root-another', 'component' => 'sdc.xb_test_sdc.props-no-slots'],
             ['uuid' => 'uuid-title', 'component' => 'block.page_title_block'],
             ['uuid' => 'uuid-messages', 'component' => 'block.system_messages_block'],
           ],
-        ]),
-        'inputs' => self::encodeXBData([
+        ],
+        'inputs' => [
           'uuid-in-root' => [
             'heading' => $generate_static_prop_source('world'),
           ],
@@ -99,7 +97,7 @@ class PageRegionValidationTest extends BetterConfigEntityValidationTestBase {
             'label' => '',
             'label_display' => FALSE,
           ],
-        ]),
+        ],
       ],
     ]);
     $this->entity->save();
@@ -206,19 +204,19 @@ class PageRegionValidationTest extends BetterConfigEntityValidationTestBase {
   public static function providerInvalidComponentTree(): \Generator {
     yield "using DynamicPropSource" => [
       'component_tree' => [
-        'tree' => self::encodeXBData([
+        'tree' => [
           ComponentTreeStructure::ROOT_UUID => [
             ['uuid' => 'uuid-in-root', 'component' => 'sdc.xb_test_sdc.props-no-slots'],
           ],
-        ]),
-        'inputs' => self::encodeXBData([
+        ],
+        'inputs' => [
           'uuid-in-root' => [
             'heading' => [
               'sourceType' => 'dynamic',
               'expression' => 'ℹ︎␜entity:node:article␝title␞␟value',
             ],
           ],
-        ]),
+        ],
       ],
       'expected_messages' => [
         'component_tree' => "The 'dynamic' prop source type must be absent.",

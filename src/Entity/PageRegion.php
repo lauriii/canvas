@@ -131,13 +131,13 @@ final class PageRegion extends ConfigEntityBase implements ComponentTreeEntityIn
     // have the same code in several places.
     $definition = DataDefinition::create('component_tree_structure');
     $component_tree_structure = new ComponentTreeStructure($definition, 'component_tree_structure');
-    $component_tree_structure->setValue(json_encode($tree, JSON_UNESCAPED_UNICODE));
+    $component_tree_structure->setValue($tree);
     $inputs = $this->clientModelToInput($tree, \array_intersect_key($autoSaveData['model'], \array_flip($component_tree_structure->getComponentInstanceUuids())));
 
     $auto_saved_page_region = static::create([
       'component_tree' => [
-        'tree' => \json_encode($tree, JSON_UNESCAPED_UNICODE | JSON_FORCE_OBJECT | JSON_THROW_ON_ERROR),
-        'inputs' => \json_encode($inputs, JSON_UNESCAPED_UNICODE | JSON_FORCE_OBJECT | JSON_THROW_ON_ERROR),
+        'tree' => $tree,
+        'inputs' => $inputs,
       ],
     ] + $this->toArray());
     $violations = $auto_saved_page_region->getTypedData()->validate();
@@ -297,8 +297,8 @@ final class PageRegion extends ConfigEntityBase implements ComponentTreeEntityIn
         'theme' => $theme,
         'region' => $region_name,
         'component_tree' => [
-          'tree' => \json_encode($tree, JSON_UNESCAPED_UNICODE | JSON_FORCE_OBJECT | JSON_THROW_ON_ERROR),
-          'inputs' => \json_encode($inputs, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR | JSON_FORCE_OBJECT),
+          'tree' => $tree,
+          'inputs' => $inputs,
         ],
       ]);
       assert([] === iterator_to_array($page_region->getTypedData()->validate()));

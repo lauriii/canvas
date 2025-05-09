@@ -85,7 +85,7 @@ final class NodeTemplatesTest extends KernelTestBase {
       'content_entity_type_bundle' => 'article',
       'content_entity_type_view_mode' => 'full',
       'component_tree' => [
-        'tree' => self::encodeXBData([
+        'tree' => [
           ComponentTreeStructure::ROOT_UUID => [
             // A static marker so we can easily tell if we're rendering with XB.
             ['uuid' => 'xb-marker', 'component' => 'sdc.xb_test_sdc.props-no-slots'],
@@ -94,8 +94,8 @@ final class NodeTemplatesTest extends KernelTestBase {
             // source.
             ['uuid' => 'node-body', 'component' => 'sdc.xb_test_sdc.props-no-slots'],
           ],
-        ]),
-        'inputs' => self::encodeXBData([
+        ],
+        'inputs' => [
           'xb-marker' => [
             'heading' => [
               'sourceType' => 'static:field_item:string',
@@ -109,7 +109,7 @@ final class NodeTemplatesTest extends KernelTestBase {
               'expression' => 'ℹ︎␜entity:node:article␝body␞␟processed',
             ],
           ],
-        ]),
+        ],
       ],
     ])->save();
     $body = <<<HTML

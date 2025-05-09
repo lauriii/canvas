@@ -27,8 +27,8 @@ use Drupal\Tests\block\Traits\BlockCreationTrait;
 use Drupal\Tests\experience_builder\Kernel\Traits\RequestTrait;
 use Drupal\Tests\experience_builder\TestSite\XBTestSetup;
 use Drupal\Tests\experience_builder\Traits\AutoSaveManagerTestTrait;
+use Drupal\Tests\experience_builder\Traits\ContribStrictConfigSchemaTestTrait;
 use Drupal\Tests\experience_builder\Traits\OpenApiSpecTrait;
-use Drupal\Tests\experience_builder\Traits\TestDataUtilitiesTrait;
 use Drupal\Tests\experience_builder\Traits\XBFieldTrait;
 use Drupal\Tests\user\Traits\UserCreationTrait;
 use Drupal\user\Entity\User;
@@ -43,13 +43,13 @@ use Symfony\Component\HttpFoundation\Response;
  */
 final class ApiAutoSaveControllerTest extends KernelTestBase {
 
+  use ContribStrictConfigSchemaTestTrait;
   use AutoSaveManagerTestTrait;
   use UserCreationTrait;
   use OpenApiSpecTrait;
   use BlockCreationTrait;
   use RequestTrait;
   use XBFieldTrait;
-  use TestDataUtilitiesTrait;
 
   /**
    * {@inheritdoc}
@@ -343,10 +343,10 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
       'status' => FALSE,
       'field_hero' => $this->referencedImage,
       'field_xb_demo' => [
-        'tree' => json_encode([
+        'tree' => [
           ComponentTreeStructure::ROOT_UUID => [],
-        ]),
-        'props' => '{}',
+        ],
+        'props' => [],
       ],
     ]);
     $node1_original_title = (string) $node1->getTitle();
@@ -359,10 +359,10 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
       'type' => 'article',
       'title' => 'Are leg-warmers due for a comeback? These young designers are betting on it',
       'field_xb_demo' => [
-        'tree' => json_encode([
+        'tree' => [
           ComponentTreeStructure::ROOT_UUID => [],
-        ]),
-        'props' => '{}',
+        ],
+        'props' => [],
       ],
     ]);
     self::assertSame(SAVED_NEW, $node2->save());
@@ -563,8 +563,8 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
       $page_region = PageRegion::load('stark.header');
       self::assertInstanceOf(PageRegion::class, $page_region);
       self::assertSame([
-        'tree' => self::encodeXBData([ComponentTreeStructure::ROOT_UUID => []]),
-        'inputs' => self::encodeXBData([]),
+        'tree' => json_encode([ComponentTreeStructure::ROOT_UUID => []]),
+        'inputs' => '[]',
       ], $page_region->getComponentTree()->toArray());
     }
 

@@ -13,7 +13,6 @@ use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\Tests\experience_builder\Traits\BetterConfigDependencyManagerTrait;
 use Drupal\Tests\experience_builder\Traits\CreateTestJsComponentTrait;
 use Drupal\Tests\experience_builder\Traits\GenerateComponentConfigTrait;
-use Drupal\Tests\experience_builder\Traits\TestDataUtilitiesTrait;
 use Drupal\Tests\node\Traits\ContentTypeCreationTrait;
 
 /**
@@ -26,7 +25,6 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
   use ContentTypeCreationTrait;
   use CreateTestJsComponentTrait;
   use GenerateComponentConfigTrait;
-  use TestDataUtilitiesTrait;
 
   /**
    * {@inheritdoc}
@@ -100,7 +98,7 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
       'content_entity_type_bundle' => 'alpha',
       'content_entity_type_view_mode' => 'full',
       'component_tree' => [
-        'tree' => self::encodeXBData([
+        'tree' => [
           ComponentTreeStructure::ROOT_UUID => [
             // An SDC populated by static prop sources.
             ['uuid' => 'sdc-static', 'component' => 'sdc.sdc_test.my-cta'],
@@ -113,8 +111,8 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
             // An SDC with a slot that can be exposed.
             ['uuid' => 'b4937e35-ddc2-4f36-8d4c-b1cc14aaefef', 'component' => 'sdc.xb_test_sdc.props-slots'],
           ],
-        ]),
-        'inputs' => self::encodeXBData([
+        ],
+        'inputs' => [
           'sdc-static' => [
             'text' => [
               'sourceType' => 'static:field_item:string',
@@ -148,7 +146,7 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
               'expression' => 'ℹ︎string␟value',
             ],
           ],
-        ]),
+        ],
       ],
     ]);
     $this->entity->save();
@@ -232,12 +230,12 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
 
     yield "no DynamicPropSource, so no structured data from the content entity" => [
       'component_tree' => [
-        'tree' => self::encodeXBData([
+        'tree' => [
           ComponentTreeStructure::ROOT_UUID => [
             ['uuid' => 'sdc-valid', 'component' => 'sdc.experience_builder.druplicon'],
           ],
-        ]),
-        'inputs' => self::encodeXBData([]),
+        ],
+        'inputs' => [],
       ],
       'expected_messages' => [
         'component_tree' => "The 'dynamic' prop source type must be present.",
@@ -246,15 +244,15 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
 
     yield "using disallowed Block-sourced Components" => [
       'component_tree' => [
-        'tree' => self::encodeXBData([
+        'tree' => [
           ComponentTreeStructure::ROOT_UUID => [
             ['uuid' => 'uuid-in-root', 'component' => 'sdc.xb_test_sdc.props-no-slots'],
             ['uuid' => 'block-valid', 'component' => 'block.system_branding_block'],
             ['uuid' => 'block-invalid', 'component' => 'block.page_title_block'],
             ['uuid' => 'block-invalid-messages', 'component' => 'block.system_messages_block'],
           ],
-        ]),
-        'inputs' => self::encodeXBData([
+        ],
+        'inputs' => [
           'uuid-in-root' => [
             'heading' => [
               'sourceType' => 'dynamic',
@@ -276,7 +274,7 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
             'label' => '',
             'label_display' => FALSE,
           ],
-        ]),
+        ],
       ],
       'expected_messages' => [
         'component_tree' => [
@@ -288,13 +286,13 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
 
     yield "using AdaptedPropSource" => [
       'component_tree' => [
-        'tree' => self::encodeXBData([
+        'tree' => [
           ComponentTreeStructure::ROOT_UUID => [
             ['uuid' => 'uuid-in-root', 'component' => 'sdc.xb_test_sdc.props-no-slots'],
             ['uuid' => 'dynamic-image-static-imageStyle-something7d', 'component' => 'sdc.experience_builder.image'],
           ],
-        ]),
-        'inputs' => self::encodeXBData([
+        ],
+        'inputs' => [
           'uuid-in-root' => [
             'heading' => [
               'sourceType' => 'dynamic',
@@ -317,7 +315,7 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
               ],
             ],
           ],
-        ]),
+        ],
       ],
       'expected_messages' => [
         'component_tree' => "The 'adapter' prop source type must be absent.",
@@ -408,8 +406,8 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
       'expression' => 'ℹ︎␜entity:node:alpha␝title␞␟value',
     ];
     $this->entity->set('component_tree', [
-      'tree' => self::encodeXBData($tree),
-      'inputs' => self::encodeXBData($inputs),
+      'tree' => $tree,
+      'inputs' => $inputs,
     ]);
 
     $this->entity->set('exposed_slots', [
