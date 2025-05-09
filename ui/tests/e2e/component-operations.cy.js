@@ -181,11 +181,6 @@ describe('Perform CRUD operations on components', () => {
   });
 
   it('Can create and add section', () => {
-    const clickDefault = {
-      force: true,
-      scrollBehavior: false,
-    };
-
     cy.viewport(2000, 1320);
     cy.loadURLandWaitForXBLoaded();
     cy.get('[data-xb-viewport-size="lg"]')
@@ -202,47 +197,42 @@ describe('Perform CRUD operations on components', () => {
       '[data-xb-viewport-size="lg"] [data-xb-component-id="sdc.experience_builder.image"]',
     )
       .first()
-      .trigger('contextmenu', clickDefault);
-    cy.findByText('Delete').click({
-      force: true,
-      scrollBehavior: false,
-    });
+      .trigger('contextmenu');
+    cy.findByText('Delete').click();
     cy.get(
       '[data-xb-viewport-size="lg"] [data-xb-component-id="sdc.experience_builder.image"]',
     )
       .first()
-      .trigger('contextmenu', clickDefault);
-    cy.findByText('Delete').click({
-      force: true,
-      scrollBehavior: false,
-    });
+      .trigger('contextmenu');
+    cy.findByText('Delete').click();
     cy.waitForComponentNotInPreview('Image');
 
     cy.get('[data-xb-viewport-size="lg"]')
       .findByLabelText('Two Column')
       .rightclick({ position: 'bottomLeft' });
-    cy.findByText('Create section').click(clickDefault); // Section name
+    cy.findByText('Create section').click(); // Section name
 
     // Typing into the section name input does not work instantly, so attempt
     // changing the section name until the input value properly updates.
     // This delay is short enough that no end user could possibly encounter it,
     // but it can occur within these tests.
     const sectionName = 'The Entire Node 1';
-    cy.findByLabelText('Section name').should(($sectionInput) => {
-      cy.devices.keyboard.type({
-        $el: $sectionInput,
-        chars: `{selectall}${sectionName}`,
-      });
-      expect($sectionInput).to.have.value(sectionName);
-    });
+    cy.findByLabelText('Section name').should(
+      'have.value',
+      'Two Column section',
+    );
 
-    cy.findByText('Add to library').click({ scrollBehavior: false });
+    cy.findByLabelText('Section name').clear();
+    cy.findByLabelText('Section name').type(sectionName);
+    cy.findByLabelText('Section name').should('have.value', sectionName);
+
+    cy.findByText('Add to library').click();
     // The dialog should close
     cy.findByLabelText('Section name').should('not.exist');
 
     cy.openLibraryPanel();
     cy.get('.primaryPanelContent').within(() => {
-      cy.findByText('Sections').click(clickDefault);
+      cy.findByText('Sections').click();
       cy.findByText(sectionName).should('exist');
     });
     cy.get('.primaryPanelContent')
@@ -272,15 +262,10 @@ describe('Perform CRUD operations on components', () => {
     cy.openLibraryPanel();
     cy.findByText('Sections').click();
 
-    // This and the other screenshot a few lines below are for debugging, but
-    // for some reason their presence also causes the test to pass on CI.
-    cy.screenshot('Add section - see available sections');
-
     cy.get('.primaryPanelContent').within(() => {
       cy.findByText(sectionName).should('exist');
-      cy.findByText(sectionName).click(clickDefault);
+      cy.findByText(sectionName).click();
     });
-    cy.screenshot('Add section - clicked section to add');
 
     // After adding the section, there should be four Hero components.
     cy.get(

@@ -17,6 +17,7 @@
   transition: opacity 0.1s ease-in-out;
   pointer-events: all;
   opacity: 1;
+
   &.isZooming {
     transition: none;
     pointer-events: none;
@@ -34,6 +35,7 @@
   &.hovered {
     outline: 1px dashed var(--color-outline-root);
   }
+
   &.dropTarget {
     pointer-events: none;
     outline: 1px dashed var(--color-outline-root);
@@ -42,7 +44,7 @@
 
 .componentOverlay {
   position: absolute;
-  transition: opacity 0.1s ease-in-out;
+  transition: opacity 0.1s ease-in-out, backdrop-filter 0.2s ease-in-out;
   pointer-events: all;
   opacity: 0;
   outline: 1px solid transparent;
@@ -66,6 +68,25 @@
 
   &.hovered {
     outline: 1px solid var(--color-outline-component);
+  }
+
+  &.dragging {
+    backdrop-filter: grayscale(80%) opacity(40%);
+    background: #fff;
+    mix-blend-mode: color;
+  }
+
+  &.updating {
+    animation: 1.5s shine linear infinite;
+    border-radius: 5px;
+    background: linear-gradient(110deg, rgba(255,255,255,0.2) 8%, rgba(255,255,255,0.8) 18%, rgba(255,255,255,0.2) 33%);
+    background-size: 200% 200%;
+    backdrop-filter: grayscale(100%)  opacity(40%);
+  }
+}
+@keyframes shine {
+  to {
+    background-position-x: -200%;
   }
 }
 
@@ -115,11 +136,13 @@
   pointer-events: none;
   background: none;
 }
+
 .emptySlotContainer {
   color: var(--purple-9);
   border: 1px solid var(--purple-9);
 
 }
+
 .emptyRegionContainer {
   color: var(--green-9);
   border: 1px solid var(--green-9);
@@ -136,11 +159,12 @@
   width: calc(100% - 8px);
   height: calc(100% - 8px);
   pointer-events: none;
-  background: rgba(255,255,255, 0.3);
+  background: rgba(255, 255, 255, 0.3);
   font-size: 12px;
   gap: var(--space-1);
   inset: 4px;
   backdrop-filter: blur(30px);
+
   > div {
     white-space: nowrap;
   }
@@ -150,20 +174,25 @@
     background: var(--green-8);
   }
 }
+
 .emptyRegionDropZone {
   flex-direction: column;
   gap: 0;
   border: 1px dashed var(--green-9);
+
   &.isOver {
     color: #fff;
     background: var(--green-8);
   }
+
   .regionMessage {
     color: var(--green-7);
   }
 }
+
 .emptySlotDropZone {
   border: 1px dashed var(--purple-9);
+
   &.isOver {
     color: #fff;
     background: var(--purple-8);

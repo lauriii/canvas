@@ -14,6 +14,7 @@ import {
   setListDragging,
   setPreviewDragging,
   setTargetSlot,
+  setUpdatingComponent,
   unsetTargetSlot,
 } from '@/features/ui/uiSlice';
 import _ from 'lodash';
@@ -26,13 +27,14 @@ const DragEventsHandler: React.FC = () => {
   const [componentName, setComponentName] = useState('...');
   const { setSelectedComponent } = useComponentSelection();
 
-  const afterDrag = (elements: HTMLElement[] = [], successful?: boolean) => {
-    elements.forEach((el) => {
-      el.classList.remove('xb--item-dragging');
-      if (successful) {
-        el.classList.add('xb--item-updating');
-      }
-    });
+  const afterDrag = (
+    elements: HTMLElement[] = [],
+    successful?: boolean,
+    componentUuid?: string,
+  ) => {
+    if (successful && componentUuid) {
+      dispatch(setUpdatingComponent(componentUuid));
+    }
   };
 
   // There is an edge case where if an item is dragged into the space immediately after itself,
@@ -62,13 +64,6 @@ const DragEventsHandler: React.FC = () => {
       setComponentName(event.active.data?.current?.name);
       if (getOrigin(event) === 'overlay') {
         dispatch(setPreviewDragging(true));
-        const elementsInsideIframe =
-          event.active.data?.current?.elementsInsideIframe;
-        if (elementsInsideIframe) {
-          elementsInsideIframe.forEach((el: HTMLElement) => {
-            el.classList.add('xb--item-dragging');
-          });
-        }
       } else if (getOrigin(event) === 'library') {
         dispatch(setListDragging(true));
       }
@@ -93,7 +88,7 @@ const DragEventsHandler: React.FC = () => {
 
       if (!event.over) {
         // If the dragged item wasn't dropped into a dropZone, do nothing.
-        afterDrag(elementsInsideIframe);
+        afterDrag(elementsInsideIframe, false);
         return;
       }
 
@@ -104,7 +99,7 @@ const DragEventsHandler: React.FC = () => {
         const dropPath = event.over.data?.current?.path;
         if (!dropPath) {
           // The component we are dropping onto was not found. I don't think this can happen, but if it does, do nothing.
-          afterDrag(elementsInsideIframe);
+          afterDrag(elementsInsideIframe, false);
           return;
         }
         const currentPath = findNodePathByUuid(layout, activeUuid);
@@ -119,14 +114,14 @@ const DragEventsHandler: React.FC = () => {
           isLastElementIncremented(currentPath, dropPath)
         ) {
           // The dragged item was dropped back where it came from. Do nothing.
-          afterDrag(elementsInsideIframe);
+          afterDrag(elementsInsideIframe, false);
           return;
         }
 
         // if we got this far, then we have a valid location to move the dragged component to!
         // @todo We should optimistically move the elementsInsideIframe to the new location in the iFrames dom.
         // for now, we pass true here which will put the elementsInsideIframe into a 'pending move' state.
-        afterDrag(elementsInsideIframe, true);
+        afterDrag(elementsInsideIframe, true, activeUuid);
 
         dispatch(
           moveNode({
@@ -166,16 +161,10 @@ const DragEventsHandler: React.FC = () => {
         }
       }
     },
-    onDragCancel(event) {
+    onDragCancel() {
       dispatch(setPreviewDragging(false));
       dispatch(setListDragging(false));
       dispatch(unsetTargetSlot());
-      const elementsInsideIframe =
-        event.active.data?.current?.elementsInsideIframe || [];
-
-      elementsInsideIframe.forEach((el: HTMLElement) => {
-        el.classList.remove('xb--item-dragging');
-      });
     },
   });
 

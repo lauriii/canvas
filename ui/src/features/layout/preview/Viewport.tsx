@@ -7,6 +7,7 @@ import {
   CanvasMode,
   selectCanvasMode,
   setFirstLoadComplete,
+  unsetUpdatingComponent,
 } from '@/features/ui/uiSlice';
 import useSyncIframeHeightToContent from '@/hooks/useSyncIframeHeightToContent';
 import ViewportToolbar from '@/features/layout/preview/ViewportToolbar';
@@ -62,13 +63,14 @@ const Viewport: React.FC<ViewportProps> = (props) => {
         clearTimeout(progressTimerRef.current);
       }
       setShowProgressIndicator(false);
+      dispatch(unsetUpdatingComponent());
     }
     return () => {
       if (progressTimerRef.current) {
         clearTimeout(progressTimerRef.current);
       }
     };
-  }, [isFetching, isReloading]);
+  }, [dispatch, isFetching, isReloading]);
 
   useEffect(() => {
     const iframe = iframeRef.current;

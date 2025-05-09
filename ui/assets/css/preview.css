@@ -9,13 +9,6 @@ This file is included as an attached Drupal library and as such is subject to CS
  */
 
 :root {
-  /* Copied from the design tokens provided by Radix Themes and/or `ui/styles/tokens`.
-    We can't use those tokens directly because this CSS is loaded in an iFrame. */
-  --xb--space-2: 8px;
-  --xb--radius-1: 3px;
-  --xb--radius-2: 4px;
-  --xb--purple-9: #8e4ec6;
-  --xb--blue-slot-bg: #CCEDF9;
   --xb--sortable-empty-slot-height: 40px;
   --xb--sortable-empty-region-height: 320px;
 }
@@ -29,31 +22,4 @@ This file is included as an attached Drupal library and as such is subject to CS
 
 .xb--region-empty-placeholder {
   min-height: var(--xb--sortable-empty-region-height);
-}
-
-.xb--item-dragging {
-  transition: opacity 0.5s ease-in-out, filter 0.5s ease-in-out;
-  opacity: 0.3;
-  filter: grayscale(80%);
-}
-
-.xb--item-dragging:has(> .xb--slot-empty-placeholder),
-.xb--item-dragging:has(> .xb--region-empty-placeholder) {
-  opacity: 0.8;
-}
-
-.xb--item-updating {
-  animation: pulse 2s infinite ease-in-out;
-}
-
-@keyframes pulse {
-  0% {
-    opacity: 0.2;
-  }
-  50% {
-    opacity: 0.8;
-  }
-  100% {
-    opacity: 0.2;
-  }
 }

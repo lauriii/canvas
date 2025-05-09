@@ -35,6 +35,7 @@ export interface uiSliceState {
   dragging: DraggingStatus;
   panning: boolean;
   hoveredComponent: string | undefined; //uuid of component
+  updatingComponent: string | undefined; //uuid of component
   selection: Selection;
   targetSlot: string | undefined; //uuid of slot being hovered when dragging
   canvasViewport: CanvasViewPort;
@@ -62,6 +63,7 @@ export const initialState: uiSliceState = {
   },
   panning: false,
   hoveredComponent: undefined,
+  updatingComponent: undefined,
   targetSlot: undefined,
   canvasViewport: {
     x: 0,
@@ -188,11 +190,19 @@ export const uiSlice = createAppSlice({
         state.hoveredComponent = action.payload;
       },
     ),
+    setUpdatingComponent: create.reducer(
+      (state, action: PayloadAction<string>) => {
+        state.updatingComponent = action.payload;
+      },
+    ),
     setTargetSlot: create.reducer((state, action: PayloadAction<string>) => {
       state.targetSlot = action.payload;
     }),
     unsetHoveredComponent: create.reducer((state) => {
       state.hoveredComponent = undefined;
+    }),
+    unsetUpdatingComponent: create.reducer((state) => {
+      state.updatingComponent = undefined;
     }),
     unsetTargetSlot: create.reducer((state) => {
       state.targetSlot = undefined;
@@ -337,8 +347,10 @@ export const {
   setIsPanning,
   setIsZooming,
   setHoveredComponent,
+  setUpdatingComponent,
   setTargetSlot,
   unsetHoveredComponent,
+  unsetUpdatingComponent,
   unsetTargetSlot,
   setCanvasViewPort,
   canvasViewPortZoomIn,
@@ -403,6 +415,21 @@ export const selectIsComponentHovered = createSelector(
   ],
   (hoveredComponent: string | undefined, uuid: string): boolean =>
     hoveredComponent === uuid,
+);
+
+/**
+ * Checks if a component is currently updating
+ * @param state Redux state
+ * @param uuid ID of the component to check
+ * @returns boolean indicating if the component is hovered
+ */
+export const selectIsComponentUpdating = createSelector(
+  [
+    (state: { ui: uiSliceState }) => state.ui.updatingComponent,
+    (_: any, uuid: string) => uuid,
+  ],
+  (updatingComponent: string | undefined, uuid: string): boolean =>
+    updatingComponent === uuid,
 );
 
 /**

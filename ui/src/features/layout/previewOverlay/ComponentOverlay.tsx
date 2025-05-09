@@ -9,6 +9,7 @@ import {
   selectComponentIsSelected,
   selectDragging,
   selectIsComponentHovered,
+  selectIsComponentUpdating,
   setHoveredComponent,
   unsetHoveredComponent,
 } from '@/features/ui/uiSlice';
@@ -66,6 +67,9 @@ const ComponentOverlay: React.FC<ComponentOverlayProps> = (props) => {
   const [initialized, setInitialized] = useState(false);
   const isHovered = useAppSelector((state) => {
     return selectIsComponentHovered(state, component.uuid);
+  });
+  const isUpdating = useAppSelector((state) => {
+    return selectIsComponentUpdating(state, component.uuid);
   });
   const canvasViewPortScale = useAppSelector(selectCanvasViewPortScale);
   const dispatch = useAppDispatch();
@@ -202,6 +206,8 @@ const ComponentOverlay: React.FC<ComponentOverlayProps> = (props) => {
       className={clsx('componentOverlay', styles.componentOverlay, {
         [styles.selected]: isSelected,
         [styles.hovered]: isHovered,
+        [styles.dragging]: isComponentDragged,
+        [styles.updating]: isUpdating,
       })}
       style={style}
     >
@@ -242,7 +248,7 @@ const ComponentOverlay: React.FC<ComponentOverlayProps> = (props) => {
         />
       ))}
 
-      {!isComponentDragged && !disableDrop && (
+      {!isComponentDragged && !disableDrop && !isUpdating && (
         <>
           {index === 0 && (
             <ComponentDropZone
