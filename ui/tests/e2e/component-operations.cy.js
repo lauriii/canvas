@@ -12,6 +12,62 @@ describe('Perform CRUD operations on components', () => {
     cy.drupalUninstall();
   });
 
+  it('Should be able to blur autocomplete without problems. See #3519734', () => {
+    cy.intercept('POST', '**/xb/api/v0/layout/**').as('updatePreview');
+    cy.loadURLandWaitForXBLoaded({ url: 'xb/node/2' });
+    cy.get('#edit-title-0-value').should('exist');
+    cy.waitForElementContentNotInIframe('div', 'There goes my hero');
+    cy.openLibraryPanel();
+
+    cy.get('[data-xb-component-id="sdc.experience_builder.my-hero"]').should(
+      'exist',
+    );
+
+    cy.get(
+      '[data-xb-component-id="sdc.experience_builder.my-hero"]',
+    ).realClick();
+    cy.waitForElementContentInIframe('div', 'There goes my hero');
+    const headType = 'Head is different';
+    const subType = 'Sub also experienced change';
+    cy.findByLabelText('Heading').type(`{selectall}{del}${headType}`);
+    cy.findByLabelText('Sub-heading').type(`{selectall}{del}${subType}`);
+    cy.findByLabelText('Heading').should('have.value', headType);
+    cy.findByLabelText('Sub-heading').should('have.value', subType);
+    cy.waitForElementContentInIframe(
+      '[data-component-id="experience_builder:my-hero"] h1',
+      headType,
+    );
+    cy.waitForElementContentInIframe(
+      '[data-component-id="experience_builder:my-hero"] p',
+      subType,
+    );
+
+    // Click the autocomplete field.
+    cy.findByLabelText('CTA 1 link').type('com');
+    // Click another field to blur the autocomplete field, which in #3519734
+    // would revert the preview to earlier values.
+    cy.findByLabelText('CTA 2 text').click();
+
+    // To make this a test that will fail without the fix present, but pass with
+    // the fix in place, we need a fixed value wait here so there's enough time
+    // for the problem to appear in the preview, without waiting for specific
+    // preview contents. Those contents will be asserted after this.
+    // eslint-disable-next-line cypress/no-unnecessary-waiting
+    cy.wait(1000);
+
+    cy.waitForElementContentInIframe(
+      '[data-component-id="experience_builder:my-hero"] h1',
+      headType,
+    );
+    cy.waitForElementContentInIframe(
+      '[data-component-id="experience_builder:my-hero"] p',
+      subType,
+    );
+
+    cy.findByLabelText('Heading').should('have.value', headType);
+    cy.findByLabelText('Sub-heading').should('have.value', subType);
+  });
+
   it('Created a node 1 with type article on install', () => {
     cy.drupalRelativeURL('node/1');
     cy.get('h1').should(($h1) => {

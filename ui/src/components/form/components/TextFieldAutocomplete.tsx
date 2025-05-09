@@ -1,6 +1,6 @@
 import clsx from 'clsx';
 import { TextField as RadixThemesTextField } from '@radix-ui/themes';
-import { forwardRef, useEffect, useImperativeHandle } from 'react';
+import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react';
 import type { MutableRefObject } from 'react';
 import type { Attributes } from '@/types/DrupalAttribute';
 import styles from './TextField.module.css';
@@ -40,6 +40,9 @@ const TextFieldAutocomplete = forwardRef(
     attributes['data-xb-no-update'] = '';
 
     const inputRef = ref as MutableRefObject<HTMLInputElement>;
+    const onChangeRef = useRef(attributes.onChange);
+    // This ref is always the current onChange callback.
+    onChangeRef.current = attributes.onChange;
 
     // Create a version of the ref that will appease Typescript.
     useImperativeHandle(ref, () => inputRef.current as HTMLInputElement);
@@ -55,7 +58,7 @@ const TextFieldAutocomplete = forwardRef(
       inputRef.current.removeAttribute('data-xb-no-update');
       setTimeout(() => {
         // Call the onChange listener so the Redux store is updated.
-        if (attributes?.onChange) {
+        if (onChangeRef.current) {
           const event = new Event('change');
 
           inputRef.current.value = e.detail.target.value;
@@ -63,8 +66,8 @@ const TextFieldAutocomplete = forwardRef(
             writable: false,
             value: inputRef.current,
           });
-          if (typeof attributes?.onChange === 'function') {
-            attributes.onChange(event);
+          if (typeof onChangeRef.current === 'function') {
+            onChangeRef.current(event);
           }
         }
       });
@@ -106,8 +109,8 @@ const TextFieldAutocomplete = forwardRef(
               writable: false,
               value: inputRef.current,
             });
-            if (typeof attributes?.onChange === 'function') {
-              attributes.onChange(event);
+            if (typeof onChangeRef.current === 'function') {
+              onChangeRef.current(event);
             }
           }
         };
