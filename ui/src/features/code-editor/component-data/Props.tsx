@@ -19,7 +19,7 @@ import FormPropTypeBoolean from '@/features/code-editor/component-data/forms/For
 import FormPropTypeEnum from '@/features/code-editor/component-data/forms/FormPropTypeEnum';
 import FormPropTypeTextField from '@/features/code-editor/component-data/forms/FormPropTypeTextField';
 import FormPropTypeLink from '@/features/code-editor/component-data/forms/FormPropTypeLink';
-import FormPropTypeTextArea from '@/features/code-editor/component-data/forms/FormPropTypeTextArea';
+import FormPropTypeFormattedText from '@/features/code-editor/component-data/forms/FormPropTypeFormattedText';
 import FormPropTypeImage from '@/features/code-editor/component-data/forms/FormPropTypeImage';
 import SortableList from '@/features/code-editor/component-data/SortableList';
 import {
@@ -150,9 +150,9 @@ export default function Props() {
                   isDisabled={componentStatus}
                 />
               );
-            case 'textArea':
+            case 'formattedText':
               return (
-                <FormPropTypeTextArea
+                <FormPropTypeFormattedText
                   id={prop.id}
                   example={prop.example}
                   isDisabled={componentStatus}

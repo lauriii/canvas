@@ -30,6 +30,8 @@ export interface CodeComponentProp {
   $ref?: string;
   format?: string;
   derivedType: (typeof derivedPropTypes)[number]['type'] | null;
+  contentMediaType?: string;
+  'x-formatting-context'?: string;
 }
 
 export interface CodeComponentPropImageExample {
@@ -46,6 +48,8 @@ export interface CodeComponentPropSerialized {
   examples?: (string | number | CodeComponentPropImageExample)[];
   $ref?: string;
   format?: string;
+  contentMediaType?: string;
+  'x-formatting-context'?: string;
 }
 
 export interface CodeComponentSlot {

@@ -165,15 +165,15 @@ describe('Code editor utilities', () => {
         'numberListWithExampleValue',
       ]);
     });
-    it('of type text area', () => {
+    it('of type formatted text', () => {
       expect(
         serializeProps([
           deserializedPropsFixture[14],
           deserializedPropsFixture[15],
         ]),
       ).to.matchSerializedProps([
-        'textAreaWithNoExampleValue',
-        'textAreaWithExampleValue',
+        'formattedTextWithNoExampleValue',
+        'formattedTextWithExampleValue',
       ]);
     });
   });
@@ -241,11 +241,11 @@ describe('Code editor utilities', () => {
       ).to.matchDeserializedProps([12, 13]);
     });
 
-    it('of type text area', () => {
+    it('of type formatted text', () => {
       expect(
         deserializeProps([
-          serializedPropsFixture.textAreaWithNoExampleValue,
-          serializedPropsFixture.textAreaWithExampleValue,
+          serializedPropsFixture.formattedTextWithNoExampleValue,
+          serializedPropsFixture.formattedTextWithExampleValue,
         ]),
       ).to.matchDeserializedProps([14, 15]);
     });
@@ -268,6 +268,17 @@ describe('Code editor utilities', () => {
           serializedPropsFixture.fullUrlLinkWithExampleValue,
         ]),
       ).to.matchDeserializedProps([18, 19, 20, 21]);
+    });
+
+    // Backwards compatibility
+    // @see https://www.drupal.org/i/3520843
+    it('of type deprecated text area - backwards compatibility', () => {
+      expect(
+        deserializeProps([
+          serializedPropsFixture.deprecatedTextAreaWithNoExampleValue,
+          serializedPropsFixture.deprecatedTextAreaWithExampleValue,
+        ]),
+      ).to.matchDeserializedProps([22, 23]);
     });
   });
 
@@ -309,8 +320,8 @@ describe('Code editor preview utilities', () => {
       integerListWithExampleValue: 2,
       numberListWithNoExampleValue: 0,
       numberListWithExampleValue: 2.2,
-      textAreaWithNoExampleValue: '',
-      textAreaWithExampleValue:
+      formattedTextWithNoExampleValue: '',
+      formattedTextWithExampleValue:
         "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged.",
       imageWithNoExampleValue: '',
       imageWithExampleValue: {
@@ -323,6 +334,11 @@ describe('Code editor preview utilities', () => {
       relativePathLinkWithExampleValue: 'gerbeaud',
       fullUrlLinkWithNoExampleValue: '',
       fullUrlLinkWithExampleValue: 'https://hazelnut.com',
+      // Backwards compatibility
+      // @see https://www.drupal.org/i/3520843
+      deprecatedTextAreaWithNoExampleValue: '',
+      deprecatedTextAreaWithExampleValue:
+        "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged.",
     });
   });
 

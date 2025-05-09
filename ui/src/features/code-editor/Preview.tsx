@@ -80,6 +80,7 @@ const Preview = ({ isLoading = false }: { isLoading?: boolean }) => {
         clsx: 'https://esm.sh/clsx',
         'class-variance-authority': 'https://esm.sh/class-variance-authority',
         'tailwind-merge': 'https://esm.sh/tailwind-merge',
+        '@/lib/FormattedText': `${XB_MODULE_UI_PATH}/lib/astro-hydration/dist/FormattedText.js`,
         '@/lib/utils': `${XB_MODULE_UI_PATH}/lib/astro-hydration/dist/utils.js`,
         '@/components/': Drupal.url('xb/api/v0/auto-saves/js/js_component/'),
       },

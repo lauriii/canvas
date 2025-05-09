@@ -754,11 +754,11 @@ HTML,
                       ],
                       '#slots' => [
                         'the_footer' => [
-                      // This string is the first example value for this slot.
+                          // This string is the first example value for this slot.
                           '#plain_text' => 'Example value for <strong>the_footer</strong>.',
                         ],
                         'the_colophon' => [
-                        // This slot has no example value defined.
+                          // This slot has no example value defined.
                           '#plain_text' => '',
                         ],
                         'the_body' => [
@@ -892,6 +892,7 @@ HTML,
                                           'clsx' => \sprintf('%s/ui/lib/astro-hydration/dist/clsx.js', $path),
                                           'class-variance-authority' => \sprintf('%s/ui/lib/astro-hydration/dist/class-variance-authority.js', $path),
                                           'tailwind-merge' => \sprintf('%s/ui/lib/astro-hydration/dist/tailwind-merge.js', $path),
+                                          '@/lib/FormattedText' => \sprintf('%s/ui/lib/astro-hydration/dist/FormattedText.js', $path),
                                           '@/lib/utils' => \sprintf('%s/ui/lib/astro-hydration/dist/utils.js', $path),
                                         ],
                                       ],
@@ -948,6 +949,7 @@ HTML,
                                           'clsx' => \sprintf('%s/ui/lib/astro-hydration/dist/clsx.js', $path),
                                           'class-variance-authority' => \sprintf('%s/ui/lib/astro-hydration/dist/class-variance-authority.js', $path),
                                           'tailwind-merge' => \sprintf('%s/ui/lib/astro-hydration/dist/tailwind-merge.js', $path),
+                                          '@/lib/FormattedText' => \sprintf('%s/ui/lib/astro-hydration/dist/FormattedText.js', $path),
                                           '@/lib/utils' => \sprintf('%s/ui/lib/astro-hydration/dist/utils.js', $path),
                                         ],
                                       ],

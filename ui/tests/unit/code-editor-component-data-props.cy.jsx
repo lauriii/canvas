@@ -903,9 +903,9 @@ describe('Component data / props in code editor', () => {
       ).to.equal('');
     });
 
-    // Change the type to Text area. The example value should be removed.
+    // Change the type to Formatted text. The example value should be removed.
     cy.findByLabelText('Type').click();
-    cy.findByText('Text area').click();
+    cy.findByText('Formatted text').click();
     cy.findByLabelText('Example value').should('have.value', '');
     cy.wrap(store).then((store) => {
       expect(
@@ -942,12 +942,12 @@ describe('Component data / props in code editor', () => {
     });
   });
 
-  it('creates a new text area prop', () => {
+  it('creates a new formatted text prop', () => {
     cy.findByText('Add').click();
 
     cy.findByLabelText('Prop name').type('Description');
     cy.findByLabelText('Type').click();
-    cy.findByText('Text area').click();
+    cy.findByText('Formatted text').click();
     cy.findByLabelText('Example value').should(
       'have.attr',
       'placeholder',
@@ -967,7 +967,8 @@ describe('Component data / props in code editor', () => {
           type: 'string',
           example: 'Your description goes here',
           format: undefined,
-          $ref: 'json-schema-definitions://experience_builder.module/textarea',
+          contentMediaType: 'text/html',
+          'x-formatting-context': 'block',
         },
         'Should have the correct prop metadata',
       );

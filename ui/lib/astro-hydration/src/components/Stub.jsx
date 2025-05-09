@@ -12,6 +12,7 @@ const { jsx, jsxs, Fragment } = await import('preact/jsx-runtime');
 const { default: clsx } = await import('clsx');
 const { ...tailwindMerge } = await import('tailwind-merge');
 const { cva } = await import('class-variance-authority');
+const FormattedText = await import('@/lib/FormattedText');
 const { cn } = await import('@/lib/utils');
 
 export default function () {}

@@ -94,6 +94,23 @@ experience_builder.json_schema.prop.string:
         # @see \Drupal\experience_builder\JsonSchemaInterpreter\JsonSchemaType::computeStorablePropShape()
         Choice:
           - 'json-schema-definitions://experience_builder.module/textarea'
+    contentMediaType:
+      requiredKey: false
+      type: string
+      label: 'Content media type'
+      constraints:
+        Choice:
+          - 'text/html'
+    # @see docs/shape-matching-into-field-types.md#3.2
+    'x-formatting-context':
+      requiredKey: false
+      type: string
+      label: 'Formatting context'
+      constraints:
+        Choice:
+          - 'block'
+          # @todo Uncomment this in https://www.drupal.org/i/3517735
+          # - 'inline'
 
 # @see https://json-schema.org/understanding-json-schema/reference/numeric#integer
 experience_builder.json_schema.prop.integer:

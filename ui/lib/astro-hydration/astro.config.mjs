@@ -28,6 +28,7 @@ export default defineConfig({
               clsx: 'clsx.js',
               'class-variance-authority': 'class-variance-authority.js',
               'tailwind-merge': 'tailwind-merge.js',
+              'lib/astro-hydration/src/lib/FormattedText.tsx': 'FormattedText.js',
               'lib/astro-hydration/src/lib/utils.ts': 'util.js',
             };
             return Object.entries(matches).reduce((carry, [key, value]) => {

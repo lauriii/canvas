@@ -30,19 +30,27 @@ const derivedPropTypes = [
       prop.type === 'string' &&
       !prop.$ref &&
       !prop.format &&
+      !prop.contentMediaType &&
+      !prop['x-formatting-context'] &&
       (!prop.enum || prop.enum.length === 0),
     init: {
       type: 'string',
     },
   },
   {
-    type: 'textArea' as const,
-    displayName: 'Text area',
+    type: 'formattedText' as const,
+    displayName: 'Formatted text',
     derive: (prop: CodeComponentPropSerialized) =>
-      prop.type === 'string' && prop.$ref?.includes('textarea'),
+      prop.type === 'string' &&
+      ((prop.contentMediaType === 'text/html' &&
+        prop['x-formatting-context'] === 'block') ||
+        // Backwards compatibility
+        // @see https://www.drupal.org/i/3520843
+        prop.$ref?.includes('textarea')),
     init: {
       type: 'string',
-      $ref: 'json-schema-definitions://experience_builder.module/textarea',
+      contentMediaType: 'text/html',
+      'x-formatting-context': 'block',
     },
   },
   {

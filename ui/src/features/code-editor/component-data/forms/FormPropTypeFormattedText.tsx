@@ -8,7 +8,7 @@ import { useAppDispatch } from '@/app/hooks';
 import { updateProp } from '@/features/code-editor/codeEditorSlice';
 import type { CodeComponentProp } from '@/types/CodeComponent';
 
-export default function FormPropTypeTextArea({
+export default function FormPropTypeFormattedText({
   id,
   example,
   isDisabled = false,

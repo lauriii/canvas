@@ -19,7 +19,13 @@ export default function getStarterComponentTemplate(componentName: string) {
 // Import your other code components to use within this component:
 // import Heading from '@/components/my_heading'
 
-// Combine classes with the cn() utility function.
+// Use the built-in FormattedText component to render text with trusted HTML.
+// @see https://git.drupalcode.org/project/experience_builder/-/blob/0.x/ui/lib/astro-hydration/src/lib/FormattedText.tsx
+// @see https://react.dev/reference/react-dom/components/common#dangerously-setting-the-inner-html
+// The content is safe when processed through Drupal's filter system that is correctly configured.
+// @see https://www.drupal.org/docs/administering-a-drupal-site/security-in-drupal/configuring-text-formats-aka-input-formats-for-security
+import FormattedText from "@/lib/FormattedText";
+// Combine classes with the built-in cn() utility function.
 // @see https://git.drupalcode.org/project/experience_builder/-/blob/0.x/ui/lib/astro-hydration/src/lib/utils.ts
 import { cn } from "@/lib/utils";
 
@@ -28,12 +34,12 @@ const ${variableName} = ({
   // under "Component data".
   // The camelCased prop/slot name must match the argument name here
   // (eg. "Card variant" → "cardVariant").
-  title = "${componentName}",
+  title = "<h3>${componentName}</h3>",
 }) => {
   return (
-    <div className="max-w-sm min-h-36 p-2 font-bold rounded-lg text-2xl relative mx-auto flex items-center justify-center bg-[#ffc423] text-[#12285f]">
+    <div className="max-w-sm min-h-36 p-2 font-bold rounded-lg text-2xl gap-4 relative mx-auto flex w-full flex-col items-center justify-center bg-[#ffc423] text-[#12285f]">
       <ControlDots className="top-4 left-4 stroke-white absolute" />
-      {title}
+      <FormattedText>{title}</FormattedText>
     </div>
   );
 };

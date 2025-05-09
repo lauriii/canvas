@@ -153,7 +153,16 @@ export function getJsForExampleSlotsOverridePreview(block: string) {
 export function serializeProps(props: CodeComponentProp[]) {
   return props.reduce(
     (acc, prop) => {
-      const { name, type, example, enum: enumValues, $ref, format } = prop;
+      const {
+        name,
+        type,
+        example,
+        enum: enumValues,
+        $ref,
+        format,
+        contentMediaType,
+        'x-formatting-context': xFormattingContext,
+      } = prop;
       const isNumberType = ['integer', 'number'].includes(type);
       const processed: CodeComponentPropSerialized = {
         title: name,
@@ -166,6 +175,10 @@ export function serializeProps(props: CodeComponentProp[]) {
         }),
         ...($ref && { $ref }),
         ...(format && { format }),
+        ...(contentMediaType && { contentMediaType }),
+        ...(xFormattingContext && {
+          'x-formatting-context': xFormattingContext,
+        }),
       };
       return { ...acc, [getPropMachineName(name)]: processed };
     },
@@ -189,7 +202,16 @@ export function deserializeProps(
     return [];
   }
   return Object.entries(props).map(([key, prop]) => {
-    const { title, type, examples, enum: enumValues, $ref, format } = prop;
+    const {
+      title,
+      type,
+      examples,
+      enum: enumValues,
+      $ref,
+      format,
+      contentMediaType,
+      'x-formatting-context': xFormattingContext,
+    } = prop;
     let example: CodeComponentProp['example'] = '';
     if (examples?.length) {
       example =
@@ -201,7 +223,7 @@ export function deserializeProps(
     const derivedType =
       derivedPropTypes.find((type) => type.derive(prop))?.type ?? null;
 
-    return {
+    const deserializedProp = {
       id: uuidv4(),
       name: title,
       type,
@@ -209,8 +231,20 @@ export function deserializeProps(
       ...(enumValues && { enum: enumValues.map(String) }),
       ...($ref && { $ref }),
       ...(format && { format }),
+      ...(contentMediaType && { contentMediaType }),
+      ...(xFormattingContext && { 'x-formatting-context': xFormattingContext }),
       derivedType,
     };
+
+    // Backwards compatibility
+    // @see https://www.drupal.org/i/3520843
+    if (derivedType === 'formattedText' && prop.$ref?.includes('textarea')) {
+      deserializedProp.contentMediaType = 'text/html';
+      deserializedProp['x-formatting-context'] = 'block';
+      delete deserializedProp.$ref;
+    }
+
+    return deserializedProp;
   });
 }
 
