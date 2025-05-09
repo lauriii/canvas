@@ -484,35 +484,29 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
           'instances' => [
             'ℹ︎␜entity:file␝status␞␟value',
             'ℹ︎␜entity:file␝uid␞␟entity␜␜entity:user␝default_langcode␞␟value',
-            'ℹ︎␜entity:file␝uid␞␟entity␜␜entity:user␝pass␞␟pre_hashed',
             'ℹ︎␜entity:file␝uid␞␟entity␜␜entity:user␝status␞␟value',
             'ℹ︎␜entity:node:foo␝default_langcode␞␟value',
             'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝status␞␟value',
             'ℹ︎␜entity:node:foo␝promote␞␟value',
             'ℹ︎␜entity:node:foo␝revision_default␞␟value',
             'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝default_langcode␞␟value',
-            'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝pass␞␟pre_hashed',
             'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝status␞␟value',
             'ℹ︎␜entity:node:foo␝status␞␟value',
             'ℹ︎␜entity:node:foo␝sticky␞␟value',
             'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝default_langcode␞␟value',
-            'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝pass␞␟pre_hashed',
             'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝status␞␟value',
             'ℹ︎␜entity:path_alias␝revision_default␞␟value',
             'ℹ︎␜entity:path_alias␝status␞␟value',
             'ℹ︎␜entity:user␝default_langcode␞␟value',
-            'ℹ︎␜entity:user␝pass␞␟pre_hashed',
             'ℹ︎␜entity:user␝status␞␟value',
             'ℹ︎␜entity:xb_page␝default_langcode␞␟value',
             'ℹ︎␜entity:xb_page␝image␞␟entity␜␜entity:media␝default_langcode␞␟value',
             'ℹ︎␜entity:xb_page␝image␞␟entity␜␜entity:media␝revision_default␞␟value',
             'ℹ︎␜entity:xb_page␝image␞␟entity␜␜entity:media␝status␞␟value',
             'ℹ︎␜entity:xb_page␝owner␞␟entity␜␜entity:user␝default_langcode␞␟value',
-            'ℹ︎␜entity:xb_page␝owner␞␟entity␜␜entity:user␝pass␞␟pre_hashed',
             'ℹ︎␜entity:xb_page␝owner␞␟entity␜␜entity:user␝status␞␟value',
             'ℹ︎␜entity:xb_page␝revision_default␞␟value',
             'ℹ︎␜entity:xb_page␝revision_user␞␟entity␜␜entity:user␝default_langcode␞␟value',
-            'ℹ︎␜entity:xb_page␝revision_user␞␟entity␜␜entity:user␝pass␞␟pre_hashed',
             'ℹ︎␜entity:xb_page␝revision_user␞␟entity␜␜entity:user␝status␞␟value',
             'ℹ︎␜entity:xb_page␝status␞␟value',
           ],
@@ -1160,7 +1154,6 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
     // @see media_library_storage_prop_shape_alter()
     // @see \Drupal\experience_builder\PropShape\PropShape::getStorage()
     // @see \Drupal\experience_builder\ShapeMatcher\JsonSchemaFieldInstanceMatcher
-    // @todo Remove the field type matching functionality from JsonSchemaFieldInstanceMatcher in https://www.drupal.org/project/experience_builder/issues/3450496
     $cases['XB example SDCs + all-props SDC, using ALL core-provided field types + media library'] = $cases['XB example SDCs + all-props SDC, using ALL core-provided field types'];
     $cases['XB example SDCs + all-props SDC, using ALL core-provided field types + media library']['modules'][] = 'media_library';
 

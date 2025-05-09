@@ -91,47 +91,26 @@ class ShapeMatchingHooks {
    */
   #[Hook('field_info_alter')]
   public function fieldInfoAlter(array &$info): void {
-    if (!empty($info['daterange'])) {
-      $info['daterange']['class'] = DateRangeItemOverride::class;
-    }
-    if (!empty($info['file'])) {
-      $info['file']['class'] = FileItemOverride::class;
-    }
-    if (!empty($info['file_uri'])) {
-      $info['file_uri']['class'] = FileUriItemOverride::class;
-    }
-    if (!empty($info['float'])) {
-      $info['float']['class'] = FloatItemOverride::class;
-    }
-    if (!empty($info['image'])) {
-      $info['image']['class'] = ImageItemOverride::class;
-    }
-    if (!empty($info['link'])) {
-      $info['link']['class'] = LinkItemOverride::class;
-    }
-    if (!empty($info['list_integer'])) {
-      $info['list_integer']['class'] = ListIntegerItemOverride::class;
-    }
-    if (!empty($info['string'])) {
-      $info['string']['class'] = StringItemOverride::class;
-    }
-    if (!empty($info['string_long'])) {
-      $info['string_long']['class'] = StringLongItemOverride::class;
-    }
-    if (!empty($info['text'])) {
-      $info['text']['class'] = TextItemOverride::class;
-    }
-    if (!empty($info['uuid'])) {
-      $info['uuid']['class'] = UuidItemOverride::class;
-    }
-    if (!empty($info['uri'])) {
-      $info['uri']['class'] = UriItemOverride::class;
-    }
-    if (!empty($info['text_long'])) {
-      $info['text_long']['class'] = TextLongItemOverride::class;
-    }
-    if (!empty($info['text_with_summary'])) {
-      $info['text_with_summary']['class'] = TextWithSummaryItemOverride::class;
+    $overrides = [
+      'daterange' => DateRangeItemOverride::class,
+      'file' => FileItemOverride::class,
+      'file_uri' => FileUriItemOverride::class,
+      'float' => FloatItemOverride::class,
+      'image' => ImageItemOverride::class,
+      'link' => LinkItemOverride::class,
+      'list_integer' => ListIntegerItemOverride::class,
+      'string' => StringItemOverride::class,
+      'string_long' => StringLongItemOverride::class,
+      'text' => TextItemOverride::class,
+      'text_long' => TextLongItemOverride::class,
+      'text_with_summary' => TextWithSummaryItemOverride::class,
+      'uuid' => UuidItemOverride::class,
+      'uri' => UriItemOverride::class,
+    ];
+    foreach ($overrides as $plugin_id => $class) {
+      if (\array_key_exists($plugin_id, $info)) {
+        $info[$plugin_id]['class'] = $class;
+      }
     }
   }
 

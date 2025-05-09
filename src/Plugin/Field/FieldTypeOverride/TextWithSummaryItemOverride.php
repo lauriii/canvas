@@ -33,6 +33,12 @@ class TextWithSummaryItemOverride extends TextWithSummaryItem {
     $properties['summary_processed']
       ->addConstraint('StringSemantics', StringSemanticsConstraint::MARKUP);
 
+    // Convey to schema-matching systems like Experience Builder to deduce that
+    // only `processed` contains actually relevant information for humans.
+    $properties['format']->setSetting('is source for', 'processed');
+    $properties['value']->setSetting('is source for', 'processed');
+    $properties['summary']->setSetting('is source for', 'summary_processed');
+
     return $properties;
   }
 

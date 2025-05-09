@@ -15,6 +15,8 @@ use Drupal\Core\Field\BaseFieldDefinition;
 use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Field\FieldItemInterface;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
+use Drupal\Core\Field\Plugin\Field\FieldType\MapItem;
+use Drupal\Core\Field\Plugin\Field\FieldType\PasswordItem;
 use Drupal\Core\Field\TypedData\FieldItemDataDefinitionInterface;
 use Drupal\Core\TypedData\DataDefinitionInterface;
 use Drupal\Core\TypedData\DataReferenceDefinitionInterface;
@@ -35,6 +37,9 @@ use Drupal\experience_builder\PropExpressions\StructuredData\FieldPropExpression
 use Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldPropExpression;
 use Drupal\file\Plugin\Field\FieldType\FileItem;
 use Drupal\file\Plugin\Field\FieldType\FileUriItem;
+use Drupal\options\Plugin\Field\FieldType\ListFloatItem;
+use Drupal\options\Plugin\Field\FieldType\ListIntegerItem;
+use Drupal\options\Plugin\Field\FieldType\ListStringItem;
 use Drupal\text\TextProcessed;
 use Symfony\Component\Validator\Constraint;
 
@@ -70,6 +75,30 @@ use Symfony\Component\Validator\Constraint;
  * @phpstan-import-type JsonSchema from \Drupal\experience_builder\JsonSchemaInterpreter\JsonSchemaType
  */
 final class JsonSchemaFieldInstanceMatcher {
+
+  /**
+   * @var array<lowercase-string, class-string>
+   */
+  public const IGNORE_FIELD_TYPES = [
+    // The `list` field types allows each field instance to define its own set
+    // of possible values. The probability of this exactly matching the explicit
+    // inputs for a component is astronomical.
+    // If we ever decide to allow this, then the `Choice` constraint must be
+    // correctly specified on it. Otherwise, `::toDataTypeShapeRequirement()`
+    // does not find any constraints and matches every such field instance
+    // against every integer/float.
+    'list_float' => ListFloatItem::class,
+    'list_integer' => ListIntegerItem::class,
+    'list_string' => ListStringItem::class,
+    // The `map` field type has no widget, is broken, and is hidden in the UI.
+    // @see https://www.drupal.org/node/2563843
+    // @see \Drupal\Core\Field\Plugin\Field\FieldType\MapItem
+    'map' => MapItem::class,
+    // The `password` field type can never contain data that could be reasonably
+    // displayed in a component instance.
+    // @see \Drupal\Core\Field\Plugin\Field\FieldType\PasswordItem
+    'password' => PasswordItem::class,
+  ];
 
   public function __construct(
     private readonly TypedDataManagerInterface $typedDataManager,
@@ -271,6 +300,11 @@ final class JsonSchemaFieldInstanceMatcher {
     $field_definitions = $this->recurseDataDefinitionInterface($entity_data_definition);
     foreach ($field_definitions as $field_definition) {
       assert($field_definition instanceof FieldDefinitionInterface);
+      foreach (self::IGNORE_FIELD_TYPES as $field_type_class) {
+        if (is_a($field_definition->getItemDefinition()->getClass(), $field_type_class, TRUE)) {
+          continue 2;
+        }
+      }
       if ($is_required_in_json_schema && !$field_definition->isRequired()) {
         continue;
       }
@@ -300,12 +334,26 @@ final class JsonSchemaFieldInstanceMatcher {
         //    twin DataReferenceDefinitionInterface (typically named `entity`)
         // 2. explicitly marked as internal (which means ::isInternal() cannot
         //    be used, due to its fallback to ::isComputed())
-        // 3. on read-only non-computed base fields: these store non-user data such as the
+        // 3. sources for a computed property, even if they're not internal.
+        // 4. on read-only non-computed base fields: these store non-user data such as the
         //    monotonically increasing integer entity ID, bundle name, entity
         //    UUID and so on.
         //    For now, the "uuid" field, to allow testing that prop shape.
         // @phpstan-ignore-next-line
         if ($property_definition instanceof DataReferenceTargetDefinition || $property_definition['internal'] === TRUE) {
+          continue;
+        }
+        $field_property_is_source_for = $property_definition->getSetting('is source for');
+        if ($field_property_is_source_for !== NULL) {
+          if (!array_key_exists($field_property_is_source_for, $properties)) {
+            throw new \LogicException("The property `$property_name` is a source for a non-existent other property.");
+          }
+          if (!$properties[$field_property_is_source_for]->isComputed()) {
+            throw new \LogicException("The property `$property_name` is a source for another property, but that property is not computed.");
+          }
+          if ($properties[$field_property_is_source_for]->getSetting('is source for') !== NULL) {
+            throw new \LogicException("Nested `is source for` situation detected; only single level allowed.");
+          }
           continue;
         }
         if ($field_definition instanceof BaseFieldDefinition && $field_definition->getName() !== 'uuid' && $field_definition->isReadOnly() && !$property_definition->isComputed()) {
@@ -634,22 +682,29 @@ final class JsonSchemaFieldInstanceMatcher {
       ? $td_or_dd->getDataDefinition()
       : $td_or_dd;
     return match(TRUE) {
+      // Reference.
       $dd instanceof DataReferenceDefinitionInterface => TRUE,
-      is_a($dd->getClass(), PrimitiveInterface::class, TRUE), is_a($dd->getClass(), TextProcessed::class, TRUE) => FALSE,
-      // Anything else cannot be handled and merits logging.
+      // Primitive.
+      is_a($dd->getClass(), PrimitiveInterface::class, TRUE) => FALSE,
+      // ⚠️ Exception: treat processed text as a primitive.
+      is_a($dd->getClass(), TextProcessed::class, TRUE) => FALSE,
+      // Everything else. Most commonly:
+      // - computed field properties
+      // - \Drupal\Core\TypedData\Plugin\DataType\Map
+      // 💁‍♂️️ Debugging tip: comment this line, uncomment the alternative.
+      TRUE => NULL,
+      // @phpcs:disable
+      /*
       TRUE => (function ($td_or_dd) {
         match (TRUE) {
-          // PHPStan does not like this because getParent()->getDataDefinition()
-          // only has a less specific type guarantee. But … this is just for
-          // logging unhandled cases. This is sufficient as-is.
-          // @phpcs:disable Drupal.Semantics.FunctionTriggerError.TriggerErrorTextLayoutRelaxed
-          // @phpstan-ignore-next-line
           $td_or_dd instanceof TypedDataInterface => @trigger_error(sprintf("Unhandled data type class: `%s` Drupal field type `%s` property uses `%s` data type class that is not yet supported", $td_or_dd->getParent()->getDataDefinition()->getFieldDefinition()->getType(), $td_or_dd->getName(), $td_or_dd->getDataDefinition()->getClass()), E_USER_DEPRECATED),
           $td_or_dd instanceof DataDefinitionInterface => @trigger_error(sprintf("Unhandled data type class: `%s` data type class that is not yet supported", $td_or_dd->getClass()), E_USER_DEPRECATED),
-          // @phpcs:enable
+
         };
         return NULL;
       })($td_or_dd),
+      */
+      // @phpcs:enable
     };
   }
 

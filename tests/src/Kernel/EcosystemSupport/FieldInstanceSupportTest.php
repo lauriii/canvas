@@ -14,11 +14,12 @@ use Drupal\experience_builder\PropExpressions\StructuredData\FieldPropExpression
 use Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldPropExpression;
 use Drupal\experience_builder\PropExpressions\StructuredData\StructuredDataPropExpressionInterface;
 use Drupal\experience_builder\ShapeMatcher\FieldForComponentSuggester;
+use Drupal\experience_builder\ShapeMatcher\JsonSchemaFieldInstanceMatcher;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
 
 /**
- * Checks that all field types (and their props) can be mapped to an SDC prop.
+ * Checks that instances of all field types can be mapped to SDC props.
  *
  * TRICKY: all of the shape matching infrastructure is aimed at finding field
  * props that fit into a given set of SDC props. But here we actually need to
@@ -40,20 +41,22 @@ use Drupal\field\Entity\FieldStorageConfig;
  *
  * @covers \Drupal\experience_builder\ShapeMatcher\FieldForComponentSuggester
  * @see \Drupal\Tests\experience_builder\Kernel\FieldForComponentSuggesterTest
+ * @covers \Drupal\experience_builder\ShapeMatcher\JsonSchemaFieldInstanceMatcher
+ * @see \Drupal\Tests\experience_builder\Kernel\PropShapeToFieldInstanceTest
  * @see docs/shape-matching-into-field-types.md#3.1.2.a
  * @group experience_builder
  */
-final class FieldTypeSupportTest extends EcosystemSupportTestBase {
+final class FieldInstanceSupportTest extends EcosystemSupportTestBase {
 
   /**
-   * The known current % of supported field types.
+   * The current % of supported field types whose instances can be matched.
    */
-  public const COMPLETION = 0.8387096774193549;
+  public const COMPLETION = 0.8846153846153846;
 
   /**
-   * The known current % of supported field type props.
+   * The current % of supported field type props.
    */
-  public const COMPLETION_PROPS = 0.7058823529411765;
+  public const COMPLETION_PROPS = 0.8918918918918919;
 
   /**
    * Supported field types (keys), with explicitly unsupported props (values).
@@ -68,12 +71,18 @@ final class FieldTypeSupportTest extends EcosystemSupportTestBase {
     'changed' => [],
     'comment' =>
       [
-        // 🐛 Core bug: `cid` should be a DataReferenceTargetDefinition.
+        // 🐛 Core bug: these are computed properties that are read at entity
+        // load time from the comment_entity_statistics table.
+        // @see \Drupal\comment\Hook\CommentHooks::entityStorageLoad
         'cid' => FALSE,
-        // 🐛 Core bug: `last_comment_uid` should be a DataReferenceTargetDefinition.
+        // 🐛 Core bug: these are computed properties that are read at entity
+        // load time from the comment_entity_statistics table.
+        // @see \Drupal\comment\Hook\CommentHooks::entityStorageLoad
         'last_comment_uid' => FALSE,
-        // @todo Figure out why XB won't match the `test_string` prop in https://www.drupal.org/project/experience_builder/issues/3512854
-        'last_comment_name' => TRUE,
+        // 🐛 Core bug: these are computed properties that are read at entity
+        // load time from the comment_entity_statistics table.
+        // @see \Drupal\comment\Hook\CommentHooks::entityStorageLoad
+        'last_comment_name' => FALSE,
       ],
     'created' => [],
     'daterange' => [
@@ -104,20 +113,17 @@ final class FieldTypeSupportTest extends EcosystemSupportTestBase {
       // @todo Decide in https://www.drupal.org/project/experience_builder/issues/3512849 whether this is okay or not; if it is: document rationale here.
       'options' => FALSE,
     ],
-    'list_integer' => [],
-    'list_float' => [],
-    'password' => [
-      // @todo Figure out why XB won't match the `test_string` prop in https://www.drupal.org/project/experience_builder/issues/3512854
-      'value' => TRUE,
-      // @todo Figure out why XB won't match the `test_string` prop in https://www.drupal.org/project/experience_builder/issues/3512854
-      'existing' => TRUE,
-    ],
+    // Note that 'password' is deliberately not here (unsupported) as we don't
+    // want any of its properties to be associated with a dynamic prop source.
     'path' => [
-      // 🐛 Core bug: `alias` should be a \Drupal\Core\TypedData\Plugin\DataType\Uri.
+      // 🐛 Core bug: PathFieldItemList is entirely computed so the individual
+      // properties are therefore also computed.
       'alias' => FALSE,
-      // 🐛 Core bug: `pid` should be a DataReferenceTargetDefinition.
+      // 🐛 Core bug: PathFieldItemList is entirely computed so the individual
+      // properties are therefore also computed.
       'pid' => FALSE,
-      // 🐛 Core bug: `langcode` should be a DataReferenceTargetDefinition.
+      // 🐛 Core bug: PathFieldItemList is entirely computed so the individual
+      // properties are therefore also computed.
       'langcode' => FALSE,
     ],
     'string' => [],
@@ -125,22 +131,17 @@ final class FieldTypeSupportTest extends EcosystemSupportTestBase {
     'timestamp' => [],
     'uri' => [],
     'uuid' => [],
-    // @todo For text fields does it make sense that we are matching these props
-    //   because we just matching 'processed'?
-    'text' => [
-      'format' => TRUE,
-      'value' => TRUE,
-    ],
-    'text_long' => [
-      'format' => TRUE,
-      'value' => TRUE,
-    ],
-    'text_with_summary' => [
-      'format' => TRUE,
-      'value' => TRUE,
-      'summary' => TRUE,
-    ],
+    'text' => [],
+    'text_long' => [],
+    'text_with_summary' => [],
   ];
+
+  /**
+   * Intentionally unsupported field type instances.
+   *
+   * @var string[]
+   */
+  public const INTENTIONALLY_UNSUPPORTED = JsonSchemaFieldInstanceMatcher::IGNORE_FIELD_TYPES;
 
   private const XB_TEST_FIELD_PREFIX = 'test_';
 
@@ -148,10 +149,10 @@ final class FieldTypeSupportTest extends EcosystemSupportTestBase {
    * {@inheritdoc}
    */
   protected static $configSchemaCheckerExclusions = [
-    // @todo Core bug: this is missing config schema: ``type: field.storage_settings.uri` does not exist! This is being fixed in https://www.drupal.org/project/drupal/issues/3324140.
+    // @todo Core bug: this is missing config schema: `type: field.storage_settings.uri` does not exist! This is being fixed in https://www.drupal.org/project/drupal/issues/3324140.
     'field.storage.entity_test.test_required__file_uri',
     'field.storage.entity_test.test_optional__file_uri',
-    // @todo Core bug: this is missing config schema: ``type: field.storage_settings.uuid` does not exist! This is being fixed in https://www.drupal.org/project/drupal/issues/3324140.
+    // @todo Core bug: this is missing config schema: `type: field.storage_settings.uuid` does not exist! This is being fixed in https://www.drupal.org/project/drupal/issues/3324140.
     'field.storage.entity_test.test_required__uuid',
     'field.storage.entity_test.test_optional__uuid',
   ];
@@ -203,6 +204,7 @@ final class FieldTypeSupportTest extends EcosystemSupportTestBase {
     $expected_field_props = [];
     $all_field_props = [];
     $expected_supported_fields = [];
+    $expected_unsupported_fields = [];
     $expected_supported_field_props = [];
     foreach ($entity_data->getPropertyDefinitions() as $field_name => $field_definition) {
       assert($field_definition instanceof FieldDefinitionInterface);
@@ -210,8 +212,16 @@ final class FieldTypeSupportTest extends EcosystemSupportTestBase {
         continue;
       }
       $expected_fields[] = $field_name;
-      if (array_key_exists($field_definition->getType(), self::SUPPORTED)) {
+      $field_type = $field_definition->getType();
+      if (array_key_exists($field_type, self::SUPPORTED)) {
         $expected_supported_fields[] = $field_name;
+      }
+      if (\array_key_exists($field_type, self::INTENTIONALLY_UNSUPPORTED)) {
+        $expected_unsupported_fields[] = $field_name;
+        // Remove from expected fields.
+        $expected_fields = \array_diff($expected_fields, [$field_name]);
+        // Don't consider the properties of unsupported fields.
+        continue;
       }
       assert($field_definition->getItemDefinition() instanceof FieldItemDataDefinitionInterface);
       foreach ($field_definition->getItemDefinition()->getPropertyDefinitions() as $field_prop_name => $field_prop_definition) {
@@ -221,16 +231,21 @@ final class FieldTypeSupportTest extends EcosystemSupportTestBase {
         if ($field_prop_definition instanceof DataReferenceTargetDefinition) {
           continue;
         }
+        // Similarly, it makes no sense to expect matches for the field
+        // properties that are the source for generating another field property.
+        if ($field_prop_definition->getSetting('is source for') !== NULL) {
+          continue;
+        }
         $all_field_props[] = "$field_name.$field_prop_name";
         // All field props are expected to be supported by XB, except the ones
         // that are for known core bugs.
-        if (!array_key_exists($field_definition->getType(), self::SUPPORTED) || (self::SUPPORTED[$field_definition->getType()][$field_prop_name] ?? TRUE) === TRUE) {
+        if (!array_key_exists($field_type, self::SUPPORTED) || (self::SUPPORTED[$field_type][$field_prop_name] ?? TRUE) === TRUE) {
           $expected_field_props[] = "$field_name.$field_prop_name";
         }
         // All known-to-be-supported field types are expected to have all props
         // supported, except the ones known to not yet work, either due to a
         // core bug, or due to an XB bug.
-        if (array_key_exists($field_definition->getType(), self::SUPPORTED) && !array_key_exists($field_prop_name, self::SUPPORTED[$field_definition->getType()])) {
+        if (array_key_exists($field_type, self::SUPPORTED) && !array_key_exists($field_prop_name, self::SUPPORTED[$field_type])) {
           $expected_supported_field_props[] = "$field_name.$field_prop_name";
         }
       }
@@ -244,7 +259,10 @@ final class FieldTypeSupportTest extends EcosystemSupportTestBase {
     // Ensure the Typed Data representation is in sync with the fields that were
     // created. This assertion is technically unnecessary, but helps ensure this
     // test itself is accurate.
-    $this->assertEqualsCanonicalizing($expected_fields, $created_fields);
+    $this->assertEqualsCanonicalizing([
+      ...$expected_fields,
+      ...$expected_unsupported_fields,
+    ], $created_fields);
 
     // Perform the actual shape matching: find suggestions for every prop in the
     // test-only `all-props` SDC, which contains EVERY possible SDC prop shape.
@@ -289,6 +307,7 @@ final class FieldTypeSupportTest extends EcosystemSupportTestBase {
     // is for.
     // 💁‍♂️️ Debugging tip: put a breakpoint here and inspect $compatible_sdc_prop_shapes_per_field and $expected_supported_field_props.
     $this->assertSame([], array_values(array_diff($expected_supported_fields, array_keys($compatible_sdc_prop_shapes_per_field))), 'The known supported field types are actually supported.');
+    self::assertCount(0, \array_intersect(\array_keys($compatible_sdc_prop_shapes_per_field), $expected_unsupported_fields), 'The known supported field types are actually supported.');
     $actually_supported_fields = array_intersect($expected_fields, array_keys($compatible_sdc_prop_shapes_per_field));
     $missing_fields = array_diff($expected_fields, array_keys($compatible_sdc_prop_shapes_per_field));
     $this->assertSame([], array_values(array_diff($expected_supported_fields, $actually_supported_fields)), 'Field types that were expected to be supported are NOT.');
@@ -296,8 +315,10 @@ final class FieldTypeSupportTest extends EcosystemSupportTestBase {
     $this->assertSame(
       self::COMPLETION,
       count($actually_supported_fields) / count($expected_fields),
-      sprintf('Not yet supported: %s', implode(', ', $missing_fields))
+      sprintf('Not yet supported: a JSON schema (prop shape) for the following fields: %s', implode(', ', $missing_fields))
     );
+    // @phpcs:ignore Drupal.Semantics.FunctionTriggerError.TriggerErrorTextLayoutRelaxed
+    @trigger_error(sprintf('Not yet supported: a JSON schema (prop shape) for the following fields: %s', implode(', ', $missing_fields)), E_USER_DEPRECATED);
 
     // Verify that also at the field type props level, all expectations are met.
     $this->assertSame([], array_values(array_diff($expected_supported_field_props, array_keys($compatible_sdc_prop_shapes_per_field_prop))), 'The known supported field types are actually supported, for all their field props.');
@@ -308,8 +329,10 @@ final class FieldTypeSupportTest extends EcosystemSupportTestBase {
     $this->assertSame(
       self::COMPLETION_PROPS,
       count($actually_supported_field_props) / count($expected_field_props),
-      sprintf('Not yet supported: %s', implode(', ', $missing_field_props))
+      sprintf('Not yet supported: a JSON schema (prop shape) for the following field properties: %s', implode(', ', $missing_field_props))
     );
+    // @phpcs:ignore Drupal.Semantics.FunctionTriggerError.TriggerErrorTextLayoutRelaxed
+    @trigger_error(sprintf('Not yet supported: a JSON schema (prop shape) for the following field properties: %s', implode(', ', $missing_field_props)), E_USER_DEPRECATED);
   }
 
   private function createFieldsForAllFieldTypes(): array {

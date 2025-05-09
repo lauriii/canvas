@@ -26,6 +26,10 @@ class TextItemOverride extends TextItem {
       // considered required, too.
       ->setRequired(TRUE)
       ->addConstraint('StringSemantics', StringSemanticsConstraint::MARKUP);
+    // Convey to schema-matching systems like Experience Builder to deduce that
+    // only `processed` contains actually relevant information for humans.
+    $properties['format']->setSetting('is source for', 'processed');
+    $properties['value']->setSetting('is source for', 'processed');
     return $properties;
   }
 
