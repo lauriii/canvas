@@ -16,7 +16,11 @@ export async function realDnd(subject, destination, options = {}) {
 
   const startCoords = getCypressElementCoordinates(subject, options.position);
   const endCoords = isJQuery(destination)
-    ? getCypressElementCoordinates(destination, options.position)
+    ? getCypressElementCoordinates(
+        destination,
+        options.position,
+        options.scrollBehavior,
+      )
     : destination;
 
   const log = Cypress.log({
@@ -28,7 +32,9 @@ export async function realDnd(subject, destination, options = {}) {
       End: endCoords,
     }),
   });
-  await new Promise((resolve) => setTimeout(resolve, 200));
+  await new Promise((resolve) =>
+    setTimeout(resolve, options?.preClickWait || 200),
+  );
 
   log.snapshot('before');
   await fireCdpCommand('Input.dispatchMouseEvent', {
@@ -39,7 +45,9 @@ export async function realDnd(subject, destination, options = {}) {
     pointerType: options.pointer ?? 'mouse',
     button: 'left',
   });
-  await new Promise((resolve) => setTimeout(resolve, 200));
+  await new Promise((resolve) =>
+    setTimeout(resolve, options?.preMoveWait || 200),
+  );
 
   console.log(endCoords);
   await fireCdpCommand('Input.dispatchMouseEvent', {
@@ -48,7 +56,10 @@ export async function realDnd(subject, destination, options = {}) {
     button: 'left',
     pointerType: options.pointer ?? 'mouse',
   });
-  await new Promise((resolve) => setTimeout(resolve, 200));
+
+  await new Promise((resolve) =>
+    setTimeout(resolve, options?.preReleaseWait || 200),
+  );
 
   await fireCdpCommand('Input.dispatchMouseEvent', {
     type: 'mouseReleased',

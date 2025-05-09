@@ -95,11 +95,14 @@ describe('Drag and drop functionality in the Layers menu', () => {
     cy.log('Drag image component out of the slot and to the root level.');
     cy.get('.primaryPanelContent span').contains('Image').should('exist');
     cy.get('@layersTree').within(() => {
-      cy.findByLabelText('Image').realDnd('[data-xb-slot-id="content"]', {
-        position: 'top',
-      });
+      cy.get('#layer-static-image-udf7d-name span').realDnd(
+        '[data-xb-slot-id="content"]',
+        {
+          position: 'top',
+          preReleaseWait: 500,
+        },
+      );
     });
-
     assertPageStateAfterFirstDrag();
     // This is the "Image" inside the layers tree
     cy.get(
@@ -149,9 +152,13 @@ describe('Drag and drop functionality in the Layers menu', () => {
 
     cy.log('Drag image component out of the slot and to the root level.');
     cy.get('@layersTree').within(() => {
-      cy.findByLabelText('Image').realDnd('[data-xb-slot-id="content"]', {
-        position: 'top',
-      });
+      cy.get('#layer-static-image-udf7d-name span').realDnd(
+        '[data-xb-slot-id="content"]',
+        {
+          position: 'top',
+          preReleaseWait: 900,
+        },
+      );
     });
     assertPageStateAfterFirstDrag();
 

@@ -54,6 +54,7 @@ const attachBehaviorsAfterAjaxing = (
   theContext: HTMLElement,
   theSettings: { doNotReinvoke?: boolean },
 ) => {
+  document.body.dataset.xbAjaxBehaviors = 'true';
   const attachTheBehaviors = () => {
     setTimeout(() => {
       Drupal.attachBehaviors(theContext, {
@@ -67,6 +68,7 @@ const attachBehaviorsAfterAjaxing = (
   // the end of the stack.
   if (!isAjaxing()) {
     attachTheBehaviors();
+    document.body.dataset.xbAjaxBehaviors = 'false';
   } else {
     // If AJAX operations are occurring, set up an interval that will run
     // until AJAX operations have stopped, after which behaviors are
@@ -74,6 +76,7 @@ const attachBehaviorsAfterAjaxing = (
     const interval = setInterval(() => {
       if (!isAjaxing()) {
         attachTheBehaviors();
+        document.body.dataset.xbAjaxBehaviors = 'false';
         clearInterval(interval);
       }
     });

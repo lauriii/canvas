@@ -3,6 +3,7 @@ import * as field_xbt_language from './field_xbt_language.js';
 import * as field_xbt_options_buttons from './field_xbt_options_buttons.js';
 import * as field_xbt_telephone from './field_xbt_telephone.js';
 import * as field_xbt_textfield from './field_xbt_textfield.js';
+import * as field_xbt_textfield_multi from './field_xbt_textfield_multi.js';
 import * as field_xbt_textarea from './field_xbt_textarea.js';
 import * as field_xbt_uri from './field_xbt_uri.js';
 import * as field_xbt_entity_autocomplete from './field_xbt_entity_autocomplete.js';
@@ -43,4 +44,5 @@ export default {
   field_xbt_datetime_datelist,
   field_xbt_entity_ref_tags,
   field_xbt_boolean_checkbox,
+  field_xbt_textfield_multi,
 };

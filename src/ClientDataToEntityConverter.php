@@ -199,28 +199,72 @@ class ClientDataToEntityConverter {
       // With the values provided from the front-end.
       ->setUserInput($entity_form_fields);
     $ajax_form_build_id = $ajax_submitted_form = NULL;
+    $was_programmed = TRUE;
+    $was_bypassing_programmed_access_checks = FALSE;
+    $was_processing_input = TRUE;
     if (\array_key_exists('form_build_id', $entity_form_fields) && \is_string($entity_form_fields['form_build_id'])) {
+      // If an AJAX form submission has modified the form state, and we've
+      // recorded the form_build_id in entity form fields, load the cached form
+      // state and form. Widgets like Media Library keep track of the selected
+      // items in form state so we need to make sure we're using the updated
+      // form state.
       $ajax_submitted_form = $this->formBuilder->getCache($entity_form_fields['form_build_id'], $form_state);
+      // We've retrieved a form state from the cache, but it might now no longer
+      // be programmed - despite us flagging it as so above. When we call
+      // ::buildForm below, it will attempt to load the form state from the
+      // cache. In doing so, it will load the version that might not be flagged
+      // as programmed. We have to ensure that our call to ::buildForm doesn't
+      // reload the cached form-state with this non-programmed status. When a
+      // non-programmed form submission occurs, the form builder looks for a
+      // triggering element. This involves looking for the 'op' form state value
+      // and if that is not present it falls back to the first button on the
+      // form. If the first button on the form has #limit_validation_errors set,
+      // this will prevent validation callbacks being executed for the whole
+      // form. Some widgets make use of validate callbacks to update the
+      // submitted form values, so if these aren't executed - the form values
+      // can be in an invalid state. We prevent this occurring by rewriting the
+      // form state cache with the programmed flag set before we call
+      // ::buildForm. When we're finished submitting the form to build the
+      // entity, we will put back the cache entry the way it was.
       $ajax_form_build_id = $entity_form_fields['form_build_id'];
+      if (!$form_state->isProgrammed()) {
+        // Make note of the cached values so we can reinstate them after
+        // submitting the form.
+        $was_programmed = $form_state->isProgrammed();
+        $was_bypassing_programmed_access_checks = $form_state->isBypassingProgrammedAccessChecks();
+        $was_processing_input = $form_state->isProcessingInput();
+        // A cached un-programmed form state exists, we have to prevent the form
+        // builder from loading the cached form state as it will not be a
+        // programmatic submission.
+        // @see \Drupal\Core\Form\FormBuilder::buildForm
+        // @see \Drupal\Core\Field\Plugin\Field\FieldWidget\OptionsWidgetBase::validateElement
+        $form_state->setProcessInput()
+          ->setProgrammed()
+          ->setProgrammedBypassAccessCheck(FALSE);
+        // Update the form state cache so that the Form Builder picks up the
+        // programmed version during ::buildForm.
+        $this->formBuilder->setCache($ajax_form_build_id, $ajax_submitted_form, $form_state);
+      }
     }
-
     $form = $this->formBuilder->buildForm($form_object, $form_state);
     // Now trigger the form level submit handler.
     $form_object->submitForm($form, $form_state);
-    if (\array_key_exists('#build_id', $form) &&
-      $ajax_form_build_id !== NULL &&
-      $ajax_submitted_form !== NULL &&
-      $form['#build_id'] !== $ajax_form_build_id) {
-      // This conversion has changed the form state cache and generated a new
-      // form_build_id. The AJAX form in the page however still has a hidden
-      // form field pointing to the old form build ID. This means any further
+    if ($ajax_form_build_id !== NULL && $ajax_submitted_form !== NULL) {
+      // This conversion submitted the form and didn't trigger a form rebuild.
+      // That means that the form cache entry will be deleted. The AJAX form in
+      // the page however still has a hidden form field pointing to the old form
+      // build ID and corresponding form cache entry. This means any further
       // AJAX interactions in the page data form will send this build ID but the
       // form cache won't find the corresponding entry because the building and
-      // submission we performed above has created a new form build ID and
-      // removed the form cache entries for the old one. As we're only making
-      // use of form submissions to utilize widgets - we don't want to clear the
-      // form cache for the form_build_id the actual form in the browser is
-      // making use of. So we make sure to re-instate the old form cache entry.
+      // submission we performed above has removed the form cache. As we're only
+      // making use of form submissions to utilize widgets - we don't want to
+      // clear the form cache for the form_build_id the actual form in the
+      // browser is making use of. So we make sure to re-instate the old form
+      // and form state cache entries.
+      // @see \Drupal\Core\Form\FormBuilder::processForm
+      $form_state->setProgrammedBypassAccessCheck($was_bypassing_programmed_access_checks)
+        ->setProcessInput($was_processing_input)
+        ->setProgrammed($was_programmed);
       $this->formBuilder->setCache($ajax_form_build_id, $ajax_submitted_form, $form_state);
     }
     // And retrieve the updated entity.

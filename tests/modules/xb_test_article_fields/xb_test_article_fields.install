@@ -317,10 +317,17 @@ function xb_test_article_fields_install(): void {
       'cardinality' => -1,
       'widget' => [
         'type' => 'text_textfield',
+        // Ensure this is at the top of the form to increase drag and drop reliability in e2e test.
+        'weight' => -1000,
         'settings' => [
+          // For drag and drop to work in e2e tests this can't require scrolling
+          // the page data pane.
           'size' => 60,
           'placeholder' => '',
         ],
+      ],
+      'default_value' => [
+        ['value' => 'Marshmallow Coast'],
       ],
     ],
     'field_xbt_boolean_checkbox' => [
@@ -402,7 +409,7 @@ function xb_test_article_fields_install(): void {
     $form_display->setComponent($field_name, [
       'type' => $field_info['widget']['type'],
       'settings' => $field_info['widget']['settings'],
-      'weight' => 0,
+      'weight' => $field_info['widget']['weight'] ?? 0,
     ]);
   }
 

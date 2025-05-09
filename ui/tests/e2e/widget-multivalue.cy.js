@@ -1,186 +1,183 @@
-import { onlyOn } from '@cypress/skip-test';
+describe('Multivalue widget drag and drop', () => {
+  // Note that more extensive add/remove item testing is covered by
+  // entity-form-field-types-test.cy.js and this test is only about drag and
+  // drop support.
+  before(() => {
+    cy.drupalXbInstall(['xb_test_article_fields']);
+  });
 
-onlyOn('headed', () => {
-  describe('multivalue widget', () => {
-    before(() => {
-      cy.drupalXbInstall();
-      cy.drupalInstallModule('xb_test_article_fields', true);
-    });
+  beforeEach(() => {
+    cy.drupalSession();
+    cy.drupalLogin('xbUser', 'xbUser');
+  });
+  after(() => {
+    cy.drupalUninstall();
+  });
 
-    beforeEach(() => {
-      cy.drupalSession();
-      cy.drupalLogin('xbUser', 'xbUser');
-    });
-    after(() => {
-      cy.drupalUninstall();
-    });
+  it('can use a multivalue widget in the page data form', () => {
+    cy.loadURLandWaitForXBLoaded();
+    cy.findByTestId('xb-page-data-form').as('entityForm');
+    cy.get('@entityForm').recordFormBuildId();
+    cy.findByRole('heading', { name: 'XB Unlimited Text' })
+      .parents('.js-form-wrapper')
+      .as('unlimited-text');
 
-    it('can use a multivalue widget in the page data form', () => {
-      cy.loadURLandWaitForXBLoaded();
-      cy.findByTestId('xb-page-data-form').as('entityForm');
-
-      // Confirms the count and visibility of the weight select dropdowns.
-      // This is run many times during the test as these elements being visible
-      // when they shouldn't be is a useful canary for identifying AJAX problems.
-      const confirmWeightSelectCount = (count, visible = false) => {
-        cy.get(
-          '[data-drupal-selector="edit-field-xbt-unlimited-text"] .delta-order button',
-        ).should(($buttons) => {
+    // Confirms the count and visibility of the weight select dropdowns.
+    // This is run many times during the test as these elements being visible
+    // when they shouldn't be is a useful canary for identifying AJAX problems.
+    const confirmWeightSelectCount = (count, visible = false) => {
+      cy.get('@unlimited-text')
+        .get('.delta-order button')
+        .should(($buttons) => {
           expect($buttons).to.have.length(count);
           $buttons.each((index, button) => {
-            if (visible) {
-              expect(Cypress.$(button).is(':visible')).to.be.true;
-            } else {
-              expect(Cypress.$(button).is(':visible')).to.be.false;
-            }
+            expect(Cypress.$(button).is(':visible')).to.equal(visible);
           });
         });
-      };
+    };
 
-      // Confirms the contents of every text input in the table.
-      const confirmTextInputs = (inputContent) => {
-        cy.get('[data-drupal-selector="edit-field-xbt-unlimited-text"]').should(
-          ($table) => {
-            const textInputs = $table.find('input[type="text"]');
-            expect(textInputs).to.have.length(inputContent.length);
-            textInputs.each((itemIndex, el) => {
-              expect(el.value).to.equal(inputContent[itemIndex]);
-            });
-          },
-        );
-      };
+    // Confirms the contents of every text input in the table.
+    const confirmTextInputs = (inputContent) => {
+      cy.get('@unlimited-text')
+        .findAllByRole('textbox')
+        .then(($items) => {
+          const items = [];
+          $items.each((ix, el) => {
+            items.push(el.value);
+          });
+          expect(items).to.deep.equal(inputContent);
+        });
+    };
+    cy.get('@unlimited-text').findAllByRole('textbox').should('have.length', 2);
+    confirmTextInputs(['Marshmallow Coast', '']);
+    // Populate the empty second item.
+    cy.get('@unlimited-text')
+      .findAllByRole('textbox')
+      .eq(1)
+      .type('Neutral Milk Hotel');
+    confirmTextInputs(['Marshmallow Coast', 'Neutral Milk Hotel']);
 
-      const items = [
-        'item one',
-        'item two',
-        'item three',
-        'item four',
-        'item five',
-      ];
-      items.forEach((item, index) => {
-        cy.get(
-          '[data-drupal-selector="edit-field-xbt-unlimited-text"] input[type="text"]',
-        ).should('have.length', index + 1);
-        cy.get(
-          '[data-drupal-selector="edit-field-xbt-unlimited-text"] input[type="text"]',
-        )
-          .eq(index)
-          .type(item);
-        if (index === items.length - 1) {
-          cy.get('@entityForm').recordFormBuildId();
-        }
-        cy.get('[value="Add another item"]').click({ force: true });
-        cy.get(
-          '[data-drupal-selector="edit-field-xbt-unlimited-text"] input[type="text"]',
-        ).should('have.length', index + 2);
-        cy.get('[data-drupal-selector="edit-field-xbt-unlimited-text"]').should(
-          ($table) => {
-            $table.find('input[type="text"]').each((itemIndex, el) => {
-              if (itemIndex <= index) {
-                expect(
-                  el.value,
-                  `Input ${itemIndex} should equal ${items}`,
-                ).to.equal(items[itemIndex]);
-              } else {
-                expect(
-                  el.value,
-                  `The final item, ${itemIndex}, should be empty`,
-                ).to.equal('');
-              }
-            });
-          },
-        );
-        confirmWeightSelectCount(index + 2);
-      });
+    // Adding another item puts the focus on the last added item. Blurring this
+    // item will trigger an update to the layout. Do this before we click the
+    // add another button so we can intercept and wait for the blur POST before
+    // we click the button. If the button is clicked while the blur POST is
+    // running we could have a race scenario where the form state is missing
+    // whilst the AJAX call is running.
+    // @todo Remove in https://drupal.org/i/3521641
+    const waitForPreview = () => {
+      cy.intercept({
+        url: '**/xb/api/v0/layout/node/1',
+        times: 1,
+        method: 'POST',
+      }).as('updatePreview');
+      // Trigger a blur.
+      cy.get(document.activeElement).blur();
+      cy.wait('@updatePreview');
+    };
 
-      cy.get('@entityForm').shouldHaveUpdatedFormBuildId(10000);
+    // Add another item.
+    waitForPreview();
+    cy.get('@unlimited-text')
+      .findByRole('button', { name: 'Add another item' })
+      .click();
+    cy.get('@entityForm').shouldHaveUpdatedFormBuildId();
+    // Wait for ajax behaviors to finish.
+    cy.get('body[data-xb-ajax-behaviors="true"]').should('not.exist');
+    cy.get('@unlimited-text').findAllByRole('textbox').should('have.length', 3);
 
-      cy.log('Remove "item three"');
-      cy.get(
-        '[data-drupal-selector="edit-field-xbt-unlimited-text"] [value="Remove"]',
-      )
-        .eq(2)
-        .click();
-      cy.get(
-        '[data-drupal-selector="edit-field-xbt-unlimited-text"] input[type="text"]',
-      ).should('have.length', 5);
-      confirmWeightSelectCount(5);
+    // Populate the new item.
+    cy.get('@unlimited-text')
+      .findAllByRole('textbox')
+      .eq(2)
+      .type('The Olivia Tremor Control');
+    confirmWeightSelectCount(3);
+    waitForPreview();
 
-      confirmTextInputs(['item one', 'item two', 'item four', 'item five', '']);
+    confirmTextInputs([
+      'Marshmallow Coast',
+      'Neutral Milk Hotel',
+      'The Olivia Tremor Control',
+    ]);
 
-      cy.get('[name="field_xbt_unlimited_text[3][value]"]').click();
+    cy.log('Move "item 3" to position 2');
+    // Ensure the drop target is in the viewport.
+    cy.get('@unlimited-text').findAllByRole('textbox').eq(0).scrollIntoView();
 
-      cy.log('Move "item 5" to the top');
-      cy.get(
-        '[data-drupal-selector="edit-field-xbt-unlimited-text"] tr.draggable:nth-child(4) .handle',
-      ).realDnd(
-        '[data-drupal-selector="edit-field-xbt-unlimited-text"] tr.draggable:nth-child(1) [title="Change order"]',
-        {
-          position: 'top',
-          force: true,
-        },
-      );
-      cy.get(
-        '[data-drupal-selector="edit-field-xbt-unlimited-text"] input[type="text"]',
-      )
-        .first()
-        .should('have.value', 'item five');
-      confirmTextInputs(['item five', 'item one', 'item two', 'item four', '']);
-      confirmWeightSelectCount(5);
+    const dndDefaults = {
+      position: 'topLeft',
+      // Passing false here prevents scrolling the item into view before
+      // calculating the element position. The default scroll behavior is 'top'
+      // so scrolling each of the items into view before calculating their
+      // position means they end up with the identical position. This is a
+      // shortcoming in getCypressElementCoordinates. The only way to prevent
+      // this is to pass false as scroll behavior. Playwright has native
+      // support for drag and drop so hopefully this becomes irrelevant when we
+      // move to it from Cypress.
+      scrollBehavior: false,
+    };
+    cy.get(
+      '[data-drupal-selector="edit-field-xbt-unlimited-text"] tr.draggable:nth-child(3) [title="Change order"]',
+    ).realDnd('input[value="Neutral Milk Hotel"]', dndDefaults);
 
-      cy.log(
-        'Move an item that has been entered but "Add new item" is not clicked yet',
-      );
+    confirmTextInputs([
+      'Marshmallow Coast',
+      'The Olivia Tremor Control',
+      'Neutral Milk Hotel',
+    ]);
+    confirmWeightSelectCount(3);
+    cy.get('@unlimited-text')
+      .findByRole('button', { name: 'Add another item' })
+      .click();
+    cy.get('@entityForm').shouldHaveUpdatedFormBuildId();
+    // Wait for ajax behaviors to finish.
+    cy.get('body[data-xb-ajax-behaviors="true"]').should('not.exist');
+    cy.get('@unlimited-text').findAllByRole('textbox').should('have.length', 4);
 
-      cy.get(
-        '[data-drupal-selector="edit-field-xbt-unlimited-text"] input[type="text"]',
-      )
-        .eq(4)
-        .type('Put me at the start!');
-      confirmTextInputs([
-        'item five',
-        'item one',
-        'item two',
-        'item four',
-        'Put me at the start!',
-      ]);
-      confirmWeightSelectCount(5);
+    cy.log(
+      'Move an item that has been entered but "Add new item" is not clicked yet',
+    );
 
-      cy.get(
-        '[data-drupal-selector="edit-field-xbt-unlimited-text"] tr.draggable:nth-child(5) .handle',
-      ).realDnd(
-        '[data-drupal-selector="edit-field-xbt-unlimited-text"] tr.draggable:nth-child(1) [title="Change order"]',
-        {
-          position: 'top',
-          force: true,
-        },
-      );
-      cy.get(
-        '[data-drupal-selector="edit-field-xbt-unlimited-text"] input[type="text"]',
-      )
-        .first()
-        .should('have.value', 'Put me at the start!');
+    cy.get('@unlimited-text')
+      .findAllByRole('textbox')
+      .eq(3)
+      .type('The Music Tapes');
+    waitForPreview();
+    confirmTextInputs([
+      'Marshmallow Coast',
+      'The Olivia Tremor Control',
+      'Neutral Milk Hotel',
+      'The Music Tapes',
+    ]);
+    confirmWeightSelectCount(4);
 
-      confirmTextInputs([
-        'Put me at the start!',
-        'item five',
-        'item one',
-        'item two',
-        'item four',
-      ]);
-      confirmWeightSelectCount(5);
+    // Ensure the drop target is in the viewport.
+    cy.get('@unlimited-text').findAllByRole('textbox').eq(0).scrollIntoView();
+    cy.get(
+      '[data-drupal-selector="edit-field-xbt-unlimited-text"] tr.draggable:nth-child(4) [title="Change order"]',
+    ).realDnd('input[value="Neutral Milk Hotel"]', dndDefaults);
+    cy.get('@unlimited-text')
+      .findAllByRole('textbox')
+      .eq(2)
+      .should('have.value', 'The Music Tapes');
 
-      cy.findByText('Hide row weights').should('not.exist');
-      cy.findByText('Show row weights').click();
-      cy.findByText('Hide row weights').should('exist');
+    confirmTextInputs([
+      'Marshmallow Coast',
+      'The Olivia Tremor Control',
+      'The Music Tapes',
+      'Neutral Milk Hotel',
+    ]);
+    confirmWeightSelectCount(4);
 
-      //
-      confirmWeightSelectCount(5, true);
+    cy.findByText('Hide row weights').should('not.exist');
+    cy.findByText('Show row weights').click();
+    cy.findByText('Hide row weights').should('exist');
 
-      cy.get(
-        '[data-drupal-selector="edit-field-xbt-unlimited-text"] .handle',
-      ).should(($handles) => {
-        expect($handles).to.have.length(5);
+    confirmWeightSelectCount(4, true);
+
+    cy.get('@unlimited-text')
+      .get('[title="Change order"]')
+      .should(($handles) => {
+        expect($handles).to.have.length(4);
         $handles.each((index, handle) => {
           expect(
             Cypress.$(handle).is(':visible'),
@@ -188,6 +185,5 @@ onlyOn('headed', () => {
           ).to.be.false;
         });
       });
-    });
   });
 });
