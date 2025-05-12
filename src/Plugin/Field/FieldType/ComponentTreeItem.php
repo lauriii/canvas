@@ -34,14 +34,9 @@ use Symfony\Component\Validator\ConstraintViolationList;
  * @see https://git.drupalcode.org/project/metatag/-/blob/2.0.x/src/Plugin/Field/FieldType/MetatagFieldItem.php
  *
  * @phpstan-import-type ComponentConfigEntityId from \Drupal\experience_builder\Entity\Component
- * @phpstan-type ComponentTreeItemPropName 'tree'|'inputs'|'hydrated'|'deps_config'|'deps_content'|'deps_module'|'deps_theme'|'deps_plugin'
+ * @phpstan-type ComponentTreeItemPropName 'tree'|'inputs'|'hydrated'
  *
  * @property \Drupal\experience_builder\HydratedTree $hydrated
- * @property string $deps_config
- * @property string $deps_content
- * @property string $deps_module
- * @property string $deps_theme
- * @property string $deps_plugin
  */
 #[FieldType(
   id: self::PLUGIN_ID,
@@ -119,6 +114,7 @@ class ComponentTreeItem extends FieldItemBase implements RenderableInterface {
    * @return array ($with_plugin_dependencies ? array{'config': string[], 'content': string[], 'module': string[], 'theme': string[], 'plugin': string[]} : array{'config': string[], 'content': string[], 'module': string[], 'theme': string[]})
    *
    * @see \Drupal\Component\Plugin\DependentPluginInterface
+   * @see \Drupal\experience_builder\Audit\ComponentTreeDependencyRepository
    */
   public function calculateFieldItemValueDependencies(bool $with_plugin_dependencies, ?FieldableEntityInterface $host_entity = NULL): array {
     // Every field property that has dependencies on config or extensions must
@@ -201,19 +197,7 @@ class ComponentTreeItem extends FieldItemBase implements RenderableInterface {
    * {@inheritdoc}
    */
   public static function schema(FieldStorageDefinitionInterface $field_definition) {
-    $deps = [
-      'columns' => [],
-    ];
-    foreach (['config', 'content', 'module', 'theme', 'plugin'] as $type) {
-      $deps['columns']["deps_$type"] = [
-        'description' => "The calculated $type dependencies",
-        'type' => 'text',
-        'size' => 'big',
-        'not null' => TRUE,
-      ];
-    }
-
-    return NestedArray::mergeDeep([
+    return [
       'columns' => [
         'tree' => [
           'description' => 'The component tree structure.',
@@ -238,7 +222,7 @@ class ComponentTreeItem extends FieldItemBase implements RenderableInterface {
       'foreign keys' => [
         // @todo Add the "hash" part the proposal at https://www.drupal.org/project/drupal/issues/3440578
       ],
-    ], $deps);
+    ];
   }
 
   /**
@@ -259,12 +243,6 @@ class ComponentTreeItem extends FieldItemBase implements RenderableInterface {
       ->setInternal(FALSE)
       ->setReadOnly(TRUE)
       ->setRequired(TRUE);
-
-    foreach (['config', 'content', 'module', 'theme', 'plugin'] as $type) {
-      $properties["deps_$type"] = DataDefinition::create('string')
-        ->setInternal(TRUE)
-        ->setReadOnly(TRUE);
-    }
 
     return $properties;
   }
@@ -397,18 +375,6 @@ class ComponentTreeItem extends FieldItemBase implements RenderableInterface {
     $input_required_uuids = array_filter($tree->getComponentInstanceUuids(), static fn(string $uuid) => $tree->getComponentSource($uuid)?->requiresExplicitInput() === TRUE);
     if (array_intersect($input_required_uuids, $inputs->getComponentInstanceUuids()) !== $input_required_uuids) {
       throw new \LogicException(sprintf('The component UUIDs in the tree and inputs values do not match! Put a breakpoint here and figure out why.'));
-    }
-
-    // Compute and store the dependencies of the *actual* value, i.e. the `tree`
-    // and `inputs` being saved.
-    // TRICKY: this is confusingly NOT the same as ::calculateDependencies(),
-    // which inspects the *default*, not the *actual* value
-    // @see ::calculateDependencies
-    $dependencies = $this->calculateFieldItemValueDependencies(TRUE, $this->getEntity());
-    foreach ($dependencies as $type => $deps_for_type) {
-      // The trailing space is necessary to allow for `LIKE '%string %', because
-      // `LIKE '%string %' would also match `foo string_list bar`.
-      $this->set("deps_$type", implode(' ', $deps_for_type) . ' ', FALSE);
     }
 
     // @todo Omit defaults that are stored at the content type template level, e.g. in core.entity_view_display.node.article.default.yml

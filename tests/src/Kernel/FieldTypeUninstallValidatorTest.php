@@ -62,7 +62,9 @@ final class FieldTypeUninstallValidatorTest extends KernelTestBase {
    * @dataProvider uninstallDataProvider
    */
   public function testUninstall(string $entity_type_id, string $bundle, string $field_name): void {
-    $this->container->get('module_installer')->install(['experience_builder', 'xb_test_config_node_article', 'sdc_test']);
+    $installer = $this->container->get('module_installer');
+    $installer->install(['experience_builder']);
+    $installer->install(['xb_test_config_node_article', 'sdc_test']);
     $entity_storage = $this->container->get('entity_type.manager')->getStorage($entity_type_id);
     $entity = $entity_storage->create([
       'title' => 'Test content',
@@ -96,7 +98,7 @@ final class FieldTypeUninstallValidatorTest extends KernelTestBase {
 
     // We catch usages in base field definition default value.
     $this->updateFieldDefaultValue(Page::ENTITY_TYPE_ID, PAGE::ENTITY_TYPE_ID, 'components', $this->getComponentTreeItemValue(TRUE));
-    $this->container->get('module_installer')->install(['xb_test_page']);
+    $installer->install(['xb_test_page']);
     $this->assertUninstallFailureReasons([
       'Provides a field type, <em class="placeholder">link</em>, that is in use in the default value of the following fields: <em class="placeholder">components, field_xb_test</em>',
     ]);
@@ -104,7 +106,7 @@ final class FieldTypeUninstallValidatorTest extends KernelTestBase {
     // Clear field definitions default values.
     $this->updateFieldDefaultValue('node', 'article', 'field_xb_test', $this->getComponentTreeItemValue(FALSE));
     $this->updateFieldDefaultValue(Page::ENTITY_TYPE_ID, PAGE::ENTITY_TYPE_ID, 'components', $this->getComponentTreeItemValue(FALSE));
-    $this->container->get('module_installer')->uninstall(['xb_test_page']);
+    $installer->uninstall(['xb_test_page']);
 
     if ($entity->getEntityTypeId() === Page::ENTITY_TYPE_ID) {
       $entity->delete();
@@ -132,7 +134,9 @@ final class FieldTypeUninstallValidatorTest extends KernelTestBase {
    * Test if the field is used in multiple entities of different types.
    */
   public function testUninstallXbFieldMultipleEntityTypes(): void {
-    $this->container->get('module_installer')->install(['experience_builder', 'xb_test_config_node_article', 'field', 'sdc_test', 'taxonomy']);
+    $installer = $this->container->get('module_installer');
+    $installer->install(['experience_builder']);
+    $installer->install(['xb_test_config_node_article', 'field', 'sdc_test', 'taxonomy']);
     $vocabulary = Vocabulary::create([
       'vid' => 'tags',
       'description' => 'Tags vocabulary',

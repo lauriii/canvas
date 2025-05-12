@@ -40,6 +40,7 @@ services:
   Drupal\experience_builder\ComponentSource\ComponentSourceManager:
     parent: default_plugin_manager
     public: true
+  Drupal\experience_builder\Audit\ComponentTreeDependencyRepository: {}
   # Utilities.
   Drupal\experience_builder\AssetRenderer: {}
   logger.channel.experience_builder:
@@ -131,15 +132,3 @@ services:
     decoration_priority: -100
     arguments: ['@.inner']
 
-  # Hooks
-  Drupal\experience_builder\Hook\AutoSaveHooks: {}
-  Drupal\experience_builder\Hook\ComponentSourceHooks: {}
-  Drupal\experience_builder\Hook\ContentTemplateHooks: {}
-  Drupal\experience_builder\Hook\ModuleHooks: {}
-  Drupal\experience_builder\Hook\LibraryHooks: {}
-  Drupal\experience_builder\Hook\PageHooks: {}
-  Drupal\experience_builder\Hook\PageRegionHooks: {}
-  Drupal\experience_builder\Hook\ReduxIntegratedFieldWidgetsHooks: {}
-  Drupal\experience_builder\Hook\SemiCoupledThemeEngineForceTwigHooks: {}
-  Drupal\experience_builder\Hook\SemiCoupledThemeEngineHooks: {}
-  Drupal\experience_builder\Hook\ShapeMatchingHooks: {}

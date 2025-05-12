@@ -52,6 +52,7 @@ class PropShapeRepositoryTest extends KernelTestBase {
     'file',
     'filter',
     'link',
+    'media',
     'options',
     'text',
   ];

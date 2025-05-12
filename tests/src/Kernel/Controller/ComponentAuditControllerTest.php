@@ -172,29 +172,29 @@ final class ComponentAuditControllerTest extends KernelTestBase {
 
     $this->assertTitle('Audit of XB test SDC with props and slots usages | ');
 
-    $this->assertTableCellContains('table-content', 1, 1, 'Test page');
-    $this->assertTableCellContains('table-content', 1, 2, 'Page');
-    $this->assertTableCellContains('table-content', 1, 3, 'Page');
+    $this->assertTableCellContains('table-content', 1, 1, 'Test entity');
+    $this->assertTableCellContains('table-content', 1, 2, 'Content');
+    $this->assertTableCellContains('table-content', 1, 3, 'Article');
     $this->assertTableCellContains('table-content', 1, 4, '1');
     $this->assertTableCellContains('table-content', 1, 5, '1');
     $this->assertTableCellContains('table-content', 1, 6, '❌');
     $this->assertTableCellContains('table-content', 1, 7, '❌');
 
-    $this->assertTableCellContains('table-content', 2, 1, 'Another test page');
+    $this->assertTableCellContains('table-content', 2, 1, 'Test page');
     $this->assertTableCellContains('table-content', 2, 2, 'Page');
     $this->assertTableCellContains('table-content', 2, 3, 'Page');
-    $this->assertTableCellContains('table-content', 2, 4, '2');
-    $this->assertTableCellContains('table-content', 2, 5, '2');
-    $this->assertTableCellContains('table-content', 2, 6, '✔');
-    $this->assertTableCellContains('table-content', 2, 7, '✔');
+    $this->assertTableCellContains('table-content', 2, 4, '1');
+    $this->assertTableCellContains('table-content', 2, 5, '1');
+    $this->assertTableCellContains('table-content', 2, 6, '❌');
+    $this->assertTableCellContains('table-content', 2, 7, '❌');
 
-    $this->assertTableCellContains('table-content', 3, 1, 'Test entity');
-    $this->assertTableCellContains('table-content', 3, 2, 'Content');
-    $this->assertTableCellContains('table-content', 3, 3, 'Article');
-    $this->assertTableCellContains('table-content', 3, 4, '1');
-    $this->assertTableCellContains('table-content', 3, 5, '1');
-    $this->assertTableCellContains('table-content', 3, 6, '❌');
-    $this->assertTableCellContains('table-content', 3, 7, '❌');
+    $this->assertTableCellContains('table-content', 3, 1, 'Another test page');
+    $this->assertTableCellContains('table-content', 3, 2, 'Page');
+    $this->assertTableCellContains('table-content', 3, 3, 'Page');
+    $this->assertTableCellContains('table-content', 3, 4, '2');
+    $this->assertTableCellContains('table-content', 3, 5, '2');
+    $this->assertTableCellContains('table-content', 3, 6, '✔');
+    $this->assertTableCellContains('table-content', 3, 7, '✔');
 
     $audit_url = Url::fromRoute('entity.component.audit', ['component' => 'sdc.experience_builder.druplicon'])->toString();
     $response = $this->request(Request::create($audit_url));
@@ -213,19 +213,19 @@ final class ComponentAuditControllerTest extends KernelTestBase {
 
     $this->assertTitle('Audit of Druplicon usages | ');
 
-    $this->assertTableCellContains('table-content', 1, 1, 'Test page');
-    $this->assertTableCellContains('table-content', 1, 2, 'Page');
-    $this->assertTableCellContains('table-content', 1, 3, 'Page');
+    $this->assertTableCellContains('table-content', 1, 1, 'Test entity');
+    $this->assertTableCellContains('table-content', 1, 2, 'Content');
+    $this->assertTableCellContains('table-content', 1, 3, 'Article');
     $this->assertTableCellContains('table-content', 1, 4, '1');
-    $this->assertTableCellContains('table-content', 1, 5, '3');
+    $this->assertTableCellContains('table-content', 1, 5, '2');
     $this->assertTableCellContains('table-content', 1, 6, '✔');
     $this->assertTableCellContains('table-content', 1, 7, '✔');
 
-    $this->assertTableCellContains('table-content', 2, 1, 'Test entity');
-    $this->assertTableCellContains('table-content', 2, 2, 'Content');
-    $this->assertTableCellContains('table-content', 2, 3, 'Article');
+    $this->assertTableCellContains('table-content', 2, 1, 'Test page');
+    $this->assertTableCellContains('table-content', 2, 2, 'Page');
+    $this->assertTableCellContains('table-content', 2, 3, 'Page');
     $this->assertTableCellContains('table-content', 2, 4, '1');
-    $this->assertTableCellContains('table-content', 2, 5, '2');
+    $this->assertTableCellContains('table-content', 2, 5, '3');
     $this->assertTableCellContains('table-content', 2, 6, '✔');
     $this->assertTableCellContains('table-content', 2, 7, '✔');
   }

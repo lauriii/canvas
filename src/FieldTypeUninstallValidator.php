@@ -5,16 +5,15 @@ declare(strict_types=1);
 namespace Drupal\experience_builder;
 
 use Drupal\Component\Assertion\Inspector;
-use Drupal\Core\Database\Connection;
 use Drupal\Core\Entity\EntityFieldManagerInterface;
-use Drupal\Core\Entity\EntityTypeManagerInterface;
-use Drupal\Core\Entity\Sql\SqlEntityStorageInterface;
 use Drupal\Core\Extension\ModuleUninstallValidatorInterface;
 use Drupal\Core\Field\BaseFieldDefinition;
 use Drupal\Core\Field\FieldTypePluginManagerInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
+use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\StringTranslation\TranslationInterface;
 use Drupal\Core\TypedData\TypedDataManagerInterface;
+use Drupal\experience_builder\Audit\ComponentTreeDependencyRepository;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemInstantiatorTrait;
 use Drupal\field\FieldConfigInterface;
@@ -31,9 +30,8 @@ final class FieldTypeUninstallValidator implements ModuleUninstallValidatorInter
     TranslationInterface $string_translation,
     private readonly FieldTypePluginManagerInterface $fieldTypePluginManager,
     private readonly EntityFieldManagerInterface $fieldManager,
-    private readonly EntityTypeManagerInterface $entityTypeManager,
-    private readonly Connection $database,
     TypedDataManagerInterface $typedDataManager,
+    private readonly ComponentTreeDependencyRepository $dependencyRepository,
   ) {
     $this->stringTranslation = $string_translation;
     $this->setTypedDataManager($typedDataManager);
@@ -61,7 +59,7 @@ final class FieldTypeUninstallValidator implements ModuleUninstallValidatorInter
     foreach ($field_type_definitions as $field_type_definition) {
       $reasons = array_merge(
         $reasons,
-        $this->checkContentEntityUses($field_type_definition, $component_field_storages),
+        $this->checkContentEntityUses($field_type_definition),
         $this->checkDefaultValueUses($field_type_definition)
       );
     }
@@ -155,67 +153,14 @@ final class FieldTypeUninstallValidator implements ModuleUninstallValidatorInter
    * Checks if a field is used in any XB fields on content entities.
    *
    * @param array<mixed> $field_definition
-   * @param array<\Drupal\Core\Field\FieldStorageDefinitionInterface> $component_field_storages
    *
    * @return array<\Drupal\Core\StringTranslation\TranslatableMarkup>
    */
-  private function checkContentEntityUses(array $field_definition, array $component_field_storages): array {
-    $reasons = [];
-
-    foreach ($component_field_storages as $component_field_storage) {
-      $entity_type_id = $component_field_storage->getTargetEntityTypeId();
-      $entity_storage = $this->entityTypeManager
-        ->getStorage($entity_type_id);
-      $id_key = $this->entityTypeManager->getDefinition($entity_type_id)->getKey('id');
-      $revision_key = $this->entityTypeManager->getDefinition($entity_type_id)->getKey('revision');
-      $field_name = $component_field_storage->getName();
-
-      // @todo Decide if having a SqlEntityStorageInterface storage should be
-      //   a required XB characteristic. See https://www.drupal.org/i/3498525.
-      if (!$entity_storage instanceof SqlEntityStorageInterface) {
-        throw new \LogicException('@todo not yet supported!');
-      }
-      /** @var \Drupal\Core\Entity\Sql\DefaultTableMapping $table_mapping */
-      $table_mapping = $entity_storage
-        ->getTableMapping();
-      // Check whether the field has dedicated storage.
-      if ($table_mapping->requiresDedicatedTableStorage($component_field_storage)) {
-        $base_table = $table_mapping->getDedicatedDataTableName($component_field_storage);
-        $revision_table = $table_mapping->getDedicatedRevisionTableName($component_field_storage);
-        $id_key = 'entity_id';
-        $revision_key = 'revision_id';
-      }
-      else {
-        $base_table = $table_mapping->getDataTable();
-        $revision_table = $table_mapping->getRevisionDataTable();
-      }
-      $table = $revision_table ?? $base_table;
-      $column_name = $table_mapping->getFieldColumnName($component_field_storage, 'deps_plugin');
-      if ($component_field_storage instanceof BaseFieldDefinition) {
-        $column_names = $table_mapping->getColumnNames($field_name);
-        $column_name = $column_names['deps_plugin'];
-      }
-      assert(\is_string($table));
-      $select = $this->database->select($table);
-      $select->fields($table, [$id_key, $revision_key]);
-
-      // @todo Potentially optimize this in https://www.drupal.org/i/3521202.
-      $select->where("$column_name LIKE '%field_type:{$field_definition['id']} %'");
-
-      // @todo Determine how a site user would be able to find all entities that use a field.
-      /** @var object $row */
-      if ($row = $select->execute()?->fetchObject()) {
-        // @todo These messages should be more user friendly.
-        $reasons[] = $this->t('Provides a field type, %used_field, that is in use in the content of the following entities: %entity_type id=%entity_id revision=%revision_id',
-          [
-            '%used_field' => $field_definition['id'],
-            '%entity_type' => $entity_type_id,
-            '%entity_id' => $row->{$id_key},
-            '%revision_id' => $row->{$revision_key},
-          ]);
-      }
-    }
-    return $reasons;
+  private function checkContentEntityUses(array $field_definition): array {
+    return \array_map(static fn(array $dependent): TranslatableMarkup => new TranslatableMarkup('Provides a field type, %used_field, that is in use in the content of the following entities: %entity_type id=%entity_id revision=%revision_id',
+    [
+      '%used_field' => $field_definition['id'],
+    ] + $dependent), $this->dependencyRepository->getPluginDependents('field_type:' . $field_definition['id']));
   }
 
 }

@@ -50,6 +50,7 @@ class PropSourceTest extends KernelTestBase {
     'datetime',
     'datetime_range',
     'system',
+    'media',
   ];
 
   /**
