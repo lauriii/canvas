@@ -284,6 +284,12 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
                 ],
                 [
                   'nodeType' => 'component',
+                  'uuid' => 'test-code-component-uuid',
+                  'type' => 'js.test-code-component',
+                  'slots' => [],
+                ],
+                [
+                  'nodeType' => 'component',
                   'uuid' => 'component-instance-with-all-slots-empty',
                   'type' => 'sdc.experience_builder.one_column',
                   'slots' => [

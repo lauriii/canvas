@@ -128,6 +128,7 @@ class XBTestSetup implements TestSetupInterface {
     ]);
 
     $this->createMyCtaComponentFromSdc();
+    $this->createTestCodeComponent();
 
     $field_definitions = \Drupal::service('entity_field.manager')->getFieldDefinitions('node', 'article');
     $image_field_sample_value = ImageItem::generateSampleValue($field_definitions['field_hero']);
@@ -155,6 +156,10 @@ class XBTestSetup implements TestSetupInterface {
           [
             'uuid' => 'static-static-card1ab',
             'component' => 'sdc.experience_builder.my-hero',
+          ],
+          [
+            'uuid' => 'test-code-component-uuid',
+            'component' => 'js.test-code-component',
           ],
           // Test edge cases in representations:
           // - server aims to minimize storage
@@ -219,6 +224,18 @@ class XBTestSetup implements TestSetupInterface {
       ];
     }
     $inputs = [
+      'test-code-component-uuid' => [
+        'heading' => [
+          'sourceType' => 'static:field_item:string',
+          'value' => 'Test Code Component Heading',
+          'expression' => 'ℹ︎string␟value',
+        ],
+        'content' => [
+          'sourceType' => 'static:field_item:string',
+          'value' => 'This is a test code component for testing the Edit component action',
+          'expression' => 'ℹ︎string␟value',
+        ],
+      ],
       'component-instance-with-all-slots-empty' => [
         'width' => [
           'sourceType' => 'static:field_item:list_string',

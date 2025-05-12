@@ -175,7 +175,7 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
     $contentRegion = $this->getRegion('content');
     $this->assertNotNull($contentRegion);
     $slot_and_component_comments = $this->getComponentInstances($contentRegion);
-    $this->assertCount(7, $slot_and_component_comments);
+    $this->assertCount(8, $slot_and_component_comments);
     $this->assertSame(array_keys($model), $slot_and_component_comments);
 
     // Add a new component to the content region.
@@ -407,7 +407,7 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
     self::assertNotNull($content_region);
 
     $crawler = new Crawler($this->content);
-    $element = $crawler->filter('astro-island');
+    $element = $crawler->filter('astro-island')->eq(1);
     self::assertNotFalse(str_contains($content_region, 'astro-island'));
     self::assertNotFalse(str_contains($content_region, $uuid));
     self::assertEquals($uuid, $element->attr('uid'));

@@ -24,7 +24,7 @@ describe('Contextual panel', () => {
       .and('be.visible');
     // Assert that each menu item is inside the DropdownMenu.Content component
     cy.findByLabelText('Context menu for Hero').within(() => {
-      cy.findByText('Edit').should('be.visible');
+      cy.findByText('Edit code').should('not.exist');
       cy.findByText('Duplicate').should('be.visible');
       cy.findByText('Move').should('be.visible');
       cy.findByText('Delete').click();
@@ -47,7 +47,6 @@ describe('Contextual panel', () => {
 
     // Assert that each menu item is inside the DropdownMenu.Content component
     cy.findByLabelText('Context menu for Two Column').within(() => {
-      cy.findByText('Edit').should('be.visible');
       cy.findByText('Duplicate').should('be.visible');
       cy.findByText('Move').should('be.visible');
       cy.findByText('Delete').click();
@@ -294,5 +293,29 @@ describe('Contextual panel', () => {
       .find('input[required]')
       .type('{enter}');
     cy.getIframeBody().findByText('A heading element').should('exist');
+  });
+
+  it('should show "Edit code" option for code components in context menu', () => {
+    cy.loadURLandWaitForXBLoaded();
+    // Wait for the preview iframe to load
+    cy.get('iframe[data-xb-preview]').should('exist');
+
+    // Right-click on the element in the preview should trigger the context menu.
+    cy.getComponentInPreview('Test Code Component').trigger('contextmenu');
+
+    // Verify the context menu opened with component name.
+    cy.findByLabelText('Context menu for Test Code Component')
+      .should('exist')
+      .and('be.visible');
+
+    // Verify it contains the "Edit code" option for code components and
+    // click it to open the code editor.
+    cy.findByLabelText('Context menu for Test Code Component').within(() => {
+      cy.findByText('Edit code').should('be.visible');
+      cy.findByText('Edit code').click();
+    });
+
+    // Verify we are redirected to the code editor page for this component
+    cy.url().should('include', '/code-editor/component/test-code-component');
   });
 });

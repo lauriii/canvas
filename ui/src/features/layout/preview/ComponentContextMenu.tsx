@@ -21,6 +21,8 @@ import ComponentContextMenuRegions from '@/features/layout/preview/ComponentCont
 import useComponentSelection from '@/hooks/useComponentSelection';
 import { selectSelectedComponentUuid } from '@/features/ui/uiSlice';
 import useCopyPasteComponents from '@/hooks/useCopyPasteComponents';
+import { useGetComponentsQuery } from '@/services/componentAndLayout';
+import { useNavigate } from 'react-router-dom';
 
 interface ComponentContextMenuProps {
   children: ReactNode;
@@ -33,6 +35,8 @@ export const ComponentContextMenuContent: React.FC<
   }
 > = ({ component, menuType = 'context' }) => {
   const dispatch = useAppDispatch();
+  const navigate = useNavigate();
+  const { data: components } = useGetComponentsQuery();
   const componentName = useGetComponentName(component);
   const canvasViewPort = useAppSelector(selectCanvasViewPort);
   const selectedComponent = useAppSelector(selectSelectedComponentUuid);
@@ -41,6 +45,12 @@ export const ComponentContextMenuContent: React.FC<
   const componentUuid = component.uuid;
   const { copySelectedComponent, pasteAfterSelectedComponent } =
     useCopyPasteComponents();
+
+  // Check if this is a code component
+  const isCodeComponent =
+    component.type &&
+    components &&
+    components[component.type]?.source === 'Code component';
 
   const handleDeleteClick = useCallback(
     (ev: React.MouseEvent<HTMLElement>) => {
@@ -52,17 +62,6 @@ export const ComponentContextMenuContent: React.FC<
       dispatch(unsetHoveredComponent());
     },
     [componentUuid, dispatch, unsetSelectedComponent],
-  );
-
-  const handleSelectClick = useCallback(
-    (ev: React.MouseEvent<HTMLElement>) => {
-      ev.stopPropagation();
-      dispatch(unsetHoveredComponent());
-      if (componentUuid) {
-        setSelectedComponent(componentUuid);
-      }
-    },
-    [dispatch, componentUuid, setSelectedComponent],
   );
 
   const handleDuplicateClick = useCallback(
@@ -132,6 +131,17 @@ export const ComponentContextMenuContent: React.FC<
     [componentUuid, dispatch, selectedComponent, setSelectedComponent],
   );
 
+  const handleEditCodeClick = useCallback(
+    (ev: React.MouseEvent<HTMLElement>) => {
+      ev.stopPropagation();
+      if (component.type && component.type.startsWith('js.')) {
+        const machineName = component.type.substring(3);
+        navigate(`/code-editor/component/${machineName}`);
+      }
+    },
+    [navigate, component.type],
+  );
+
   const closeContextMenu = () => {
     // @todo https://www.drupal.org/i/3506657: There has to be a better way to close the context menu than firing an esc key press.
     const escapeEvent = new KeyboardEvent('keydown', {
@@ -156,7 +166,13 @@ export const ComponentContextMenuContent: React.FC<
       side="right"
     >
       <UnifiedMenu.Label>{componentName}</UnifiedMenu.Label>
-      <UnifiedMenu.Item onClick={handleSelectClick}>Edit</UnifiedMenu.Item>
+      {isCodeComponent && (
+        <UnifiedMenu.Item onClick={handleEditCodeClick}>
+          Edit code
+        </UnifiedMenu.Item>
+      )}
+      <UnifiedMenu.Separator />
+
       <UnifiedMenu.Item onClick={handleDuplicateClick} shortcut="⌘ D">
         Duplicate
       </UnifiedMenu.Item>

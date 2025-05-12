@@ -63,4 +63,54 @@ trait CreateTestJsComponentTrait {
     );
   }
 
+  private function createTestCodeComponent(): void {
+    // Create a simple test code component for testing the "Edit component" action
+    JavaScriptComponent::create([
+      'machineName' => 'test-code-component',
+      'name' => 'Test Code Component',
+      'status' => TRUE,
+      'props' => [
+        'heading' => [
+          'title' => 'Heading',
+          'type' => 'string',
+          'examples' => ['Example Heading'],
+        ],
+        'content' => [
+          'title' => 'Content',
+          'type' => 'string',
+          'examples' => ['Example Content'],
+        ],
+      ],
+      'required' => [],
+      'js' => [
+        'original' => <<<JSX
+export default function TestCodeComponent({ heading, content }) {
+  return (
+    <div>
+      <h2>{heading}</h2>
+      <p>{content}</p>
+    </div>
+  );
+}
+JSX,
+        'compiled' => <<<JSX
+import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
+export default function TestCodeComponent({ heading, content }) {
+    return /*#__PURE__*/ _jsxs("div", {
+        children: [
+            /*#__PURE__*/ _jsx("h2", {
+                children: heading
+            }),
+            /*#__PURE__*/ _jsx("p", {
+                children: content
+            })
+        ]
+    });
+}
+JSX
+      ],
+      'css' => ['original' => '', 'compiled' => ''],
+    ])->save();
+  }
+
 }

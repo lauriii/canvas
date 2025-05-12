@@ -230,7 +230,7 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
       $globalElements = [...$globalElements, ...$highlightedElements];
     }
     $contentElements = $this->getComponentInstances($content);
-    self::assertCount($withGlobal ? 9 : 7, \array_merge($contentElements, $globalElements));
+    self::assertCount($withGlobal ? 10 : 8, \array_merge($contentElements, $globalElements));
     if ($withGlobal) {
       self::assertSame(\array_keys($model), \array_merge($contentElements, $globalElements));
     }
