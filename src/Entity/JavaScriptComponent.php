@@ -239,7 +239,15 @@ final class JavaScriptComponent extends ConfigEntityBase implements XbAssetInter
     // Slots are optional. Setting the `slots` key to an empty array is invalid.
     // @see \Drupal\experience_builder\Plugin\Validation\Constraint\JsComponentHasValidAndSupportedSdcMetadataConstraintValidator
     if ($this->slots) {
-      $definition['slots'] = $this->slots;
+      foreach ($this->slots as $slot_name => $slot) {
+        // Force empty slots to be an object; ComponentValidator casts non-
+        // empty arrays to objects, but empty arrays trigger a false positive
+        // validation error: "Array value found, but an object is required".
+        if ($slot === []) {
+          $slot = new \stdClass();
+        }
+        $definition['slots'][$slot_name] = $slot;
+      }
     }
     // Required properties are optional. Setting the `props.required` key to an
     // empty array is invalid.
