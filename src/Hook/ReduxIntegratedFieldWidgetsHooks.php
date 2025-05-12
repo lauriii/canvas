@@ -246,6 +246,10 @@ class ReduxIntegratedFieldWidgetsHooks implements TrustedCallbackInterface {
         // Make the currently selected format known to the textarea.
         $element['value']['#attributes']['data-xb-text-format'] = $element['#format'];
       }
+
+      // Remove the help text container when in Experience Builder.
+      // @todo Remove after https://www.drupal.org/i/3505370 has landed.
+      unset($element['format']['help']);
     }
     return $element;
   }
