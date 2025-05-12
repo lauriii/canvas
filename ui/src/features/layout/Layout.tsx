@@ -2,11 +2,12 @@ import { useEffect } from 'react';
 import { useErrorBoundary } from 'react-error-boundary';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { useGetLayoutByIdQuery } from '@/services/componentAndLayout';
-import { setInitialLayoutModel } from './layoutModelSlice';
+import { selectIsInitialized, setInitialLayoutModel } from './layoutModelSlice';
 import { selectEntityId } from '@/features/configuration/configurationSlice';
 
 const Layout = () => {
   const dispatch = useAppDispatch();
+  const isInitialized = useAppSelector(selectIsInitialized);
   const entityId = useAppSelector(selectEntityId);
   const {
     data: fetchedLayout,
@@ -15,6 +16,8 @@ const Layout = () => {
     isFetching,
   } = useGetLayoutByIdQuery(entityId);
   const { showBoundary, resetBoundary } = useErrorBoundary();
+
+  const { layout, model } = fetchedLayout || {};
 
   useEffect(() => {
     if (isError && error && !isFetching) {
@@ -26,11 +29,12 @@ const Layout = () => {
     // result it will require two clicks of the reset button in the alert to
     // allow the page to render.
     resetBoundary();
-    if (fetchedLayout) {
+
+    if (layout && model && !isInitialized) {
       dispatch(
         setInitialLayoutModel({
-          layout: fetchedLayout.layout,
-          model: fetchedLayout.model,
+          layout,
+          model,
           // We don't need to update the preview here - it is done in the layout
           // api's onQueryStarted method - @see componentAndLayout.ts
           updatePreview: false,
@@ -38,7 +42,9 @@ const Layout = () => {
       );
     }
   }, [
-    fetchedLayout,
+    layout,
+    model,
+    isInitialized,
     error,
     showBoundary,
     dispatch,

@@ -63,6 +63,7 @@ export type ComponentModels = Record<string, ComponentModel>;
 
 export interface LayoutModelSliceState extends RootLayoutModel {
   updatePreview: boolean;
+  isInitialized?: boolean;
 }
 
 export const initialState: LayoutModelSliceState = {
@@ -76,6 +77,7 @@ export const initialState: LayoutModelSliceState = {
   ],
   model: {},
   updatePreview: false,
+  isInitialized: false,
 };
 
 // This wrapper is necessary because when using slices with redux-undo,
@@ -403,10 +405,16 @@ export const layoutModelSlice = createSlice({
     // doesn't trigger an undo/redo action.
     setInitialLayoutModel: create.reducer(
       (state, action: PayloadAction<LayoutModelSliceState>) => {
-        const { layout, model, updatePreview } = action.payload;
+        const {
+          layout,
+          model,
+          updatePreview,
+          isInitialized = true,
+        } = action.payload;
         state.layout = layout;
         state.model = model;
         state.updatePreview = updatePreview;
+        state.isInitialized = isInitialized;
       },
     ),
   }),
@@ -542,6 +550,8 @@ export const selectLayoutHistory = (state: StateWithHistoryWrapper) =>
   state.layoutModel;
 export const selectUpdatePreview = (state: StateWithHistoryWrapper) =>
   state.layoutModel.present.updatePreview;
+export const selectIsInitialized = (state: StateWithHistoryWrapper) =>
+  state.layoutModel.present.isInitialized;
 const selectRegion = (state: RootState, regionName: string) => regionName;
 
 export const selectLayoutForRegion = createSelector(

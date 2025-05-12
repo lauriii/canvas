@@ -116,7 +116,7 @@ const Preview = ({ isLoading = false }: { isLoading?: boolean }) => {
                 )
                 .map(
                   (componentName) =>
-                    `<link rel="stylesheet" href="${Drupal.url(`xb/api/auto-saves/css/js_component/${componentName}`)}" />`,
+                    `<link rel="stylesheet" href="${Drupal.url(`xb/api/v0/auto-saves/css/js_component/${componentName}`)}" />`,
                 )
                 .join('\n')
             : ''
