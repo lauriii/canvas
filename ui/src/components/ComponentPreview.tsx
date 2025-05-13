@@ -2,7 +2,6 @@ import type React from 'react';
 import { useEffect } from 'react';
 import styles from './ComponentPreview.module.css';
 import clsx from 'clsx';
-import Panel from '@/components/Panel';
 import type { XBComponent } from '@/types/Component';
 import type { Section } from '@/types/Section';
 
@@ -33,7 +32,7 @@ const ComponentPreview: React.FC<ComponentPreviewProps> = ({
   const html = `
 <html>
 	<head>
-	    <base href=${base_url} />
+    <base href=${base_url} />
 		<meta charset="utf-8">
 		${css}
 		${js_header}
@@ -43,26 +42,20 @@ const ComponentPreview: React.FC<ComponentPreviewProps> = ({
 				min-height: 100%;
 			}
 			body {
-			    background-color: #FFF;
-			    background-image: none;
+        background-color: #FFF;
+        background-image: none;
 			}
 			#component-wrapper {
-			    padding: 20px;
-			    overflow: hidden;
-			    display: inline-block;
-			    min-width: 120px;
-
-			    &.empty {
-                  min-height: 100px;
-                  background-color: #DDD;
-			    }
+        overflow: hidden;
+        display: inline-block;
+        min-width: 120px;
 			}
 		</style>
 	</head>
 	<body>
-	    <div id="component-wrapper">
-            ${markup}
-        </div>
+    <div id="component-wrapper">
+      ${markup}
+    </div>
 		${js_footer}
 	</body>
 </html>`;
@@ -80,6 +73,12 @@ const ComponentPreview: React.FC<ComponentPreviewProps> = ({
     const iframe = window.document.querySelector(
       'iframe[data-preview-component-id]',
     ) as HTMLIFrameElement;
+    const tooltipElement = document.querySelector(
+      '.xb-previewTooltip',
+    ) as HTMLDivElement;
+    const scalingElement = document.querySelector(
+      '.xb-scaled',
+    ) as HTMLDivElement;
 
     if (iframe) {
       const componentWrapper =
@@ -88,15 +87,8 @@ const ComponentPreview: React.FC<ComponentPreviewProps> = ({
       const offsetWidth = componentWrapper!.scrollWidth;
       let offsetHeight = componentWrapper!.scrollHeight;
 
-      // since the component wrapper has padding 20px for top and bottom,
-      // so if the height is less than 45, this component is almost rendered empty.
-      if (offsetHeight < 45) {
-        componentWrapper!.classList.add('empty');
-        offsetHeight = componentWrapper!.scrollHeight;
-      }
-
-      iframe.parentElement!.style.width = `${offsetWidth}px`;
-      iframe.parentElement!.style.height = `${offsetHeight}px`;
+      scalingElement.style.width = `${offsetWidth}px`;
+      scalingElement.style.height = `${offsetHeight}px`;
       if (
         offsetWidth > defaultPreviewWidth ||
         offsetHeight > defaultPreviewHeight
@@ -106,24 +98,34 @@ const ComponentPreview: React.FC<ComponentPreviewProps> = ({
         // how much each dimension exceeds their maximum.
         const widthScale = defaultPreviewWidth / offsetWidth;
         const heightScale = defaultPreviewHeight / offsetHeight;
-        iframe.parentElement!.style.transform = `scale(${Math.min(widthScale, heightScale)})`;
+
+        const scale = Math.min(widthScale, heightScale);
+
+        scalingElement.style.transform = `scale(${scale})`;
+
+        tooltipElement.style.position = 'relative';
+        tooltipElement.style.width = `${offsetWidth * scale}px`;
+        tooltipElement.style.height = `${offsetHeight * scale}px`;
       }
-      iframe.parentElement!.style.visibility = 'visible';
+
+      tooltipElement.style.visibility = 'visible';
     }
   };
 
   return (
-    <Panel className={clsx(styles.Wrapper, 'xb-app')}>
-      <iframe
-        title={component.name}
-        width={defaultIframeWidth}
-        height={defaultIframeHeight}
-        data-preview-component-id={component.id}
-        src={blobSrc}
-        className={clsx('IFrame', styles.IFrame)}
-        onLoad={iframeOnLoadHandler}
-      />
-    </Panel>
+    <div className={clsx(styles.wrapper, 'xb-app', 'xb-previewTooltip')}>
+      <div className={clsx('xb-scaled', styles.scaled)}>
+        <iframe
+          title={component.name}
+          width={defaultIframeWidth}
+          height={defaultIframeHeight}
+          data-preview-component-id={component.id}
+          src={blobSrc}
+          className={clsx(styles.iframe)}
+          onLoad={iframeOnLoadHandler}
+        />
+      </div>
+    </div>
   );
 };
 
