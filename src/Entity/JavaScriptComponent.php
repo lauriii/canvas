@@ -243,6 +243,7 @@ final class JavaScriptComponent extends ConfigEntityBase implements XbAssetInter
         // Force empty slots to be an object; ComponentValidator casts non-
         // empty arrays to objects, but empty arrays trigger a false positive
         // validation error: "Array value found, but an object is required".
+        // @todo Remove this after https://www.drupal.org/project/drupal/issues/3524163 is fixed in core.
         if ($slot === []) {
           $slot = new \stdClass();
         }
