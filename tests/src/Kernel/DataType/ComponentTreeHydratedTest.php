@@ -344,7 +344,10 @@ HTML,
                 ],
               ],
               '#cache' => [
-                'tags' => ['config:experience_builder.component.block.system_branding_block'],
+                'tags' => [
+                  'config:system.site',
+                  'config:experience_builder.component.block.system_branding_block',
+                ],
                 'contexts' => [],
                 'max-age' => Cache::PERMANENT,
               ],
@@ -364,6 +367,7 @@ HTML,
 <!-- xb-end-uuid-in-root -->
 HTML,
       'expected_cache_tags' => [
+        'config:system.site',
         'config:experience_builder.component.block.system_branding_block',
       ],
     ];
@@ -861,7 +865,10 @@ HTML,
                                         ],
                                       ],
                                       '#cache' => [
-                                        'tags' => ['config:experience_builder.component.block.system_branding_block'],
+                                        'tags' => [
+                                          'config:system.site',
+                                          'config:experience_builder.component.block.system_branding_block',
+                                        ],
                                         'contexts' => [],
                                         'max-age' => Cache::PERMANENT,
                                       ],
@@ -1113,6 +1120,7 @@ HTML,
         'config:experience_builder.component.sdc.xb_test_sdc.props-no-slots',
         'config:experience_builder.component.js.my-cta-with-auto-save',
         'config:experience_builder.component.js.my-cta',
+        'config:system.site',
         'config:experience_builder.component.block.system_branding_block',
       ],
     ];

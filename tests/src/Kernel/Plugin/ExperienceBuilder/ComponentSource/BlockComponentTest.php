@@ -12,6 +12,8 @@ use Drupal\node\Entity\Node;
 use Drupal\Tests\experience_builder\Traits\BlockComponentTreeTestTrait;
 use Drupal\Tests\experience_builder\Traits\ConstraintViolationsTestTrait;
 use Drupal\Tests\experience_builder\Traits\CrawlerTrait;
+use Drupal\Tests\user\Traits\UserCreationTrait;
+use Drupal\user\Entity\User;
 use Drupal\xb_test_block\Plugin\Block\XbTestBlockInputNone;
 use Drupal\xb_test_block\Plugin\Block\XbTestBlockInputValidatable;
 use Drupal\xb_test_block\Plugin\Block\XbTestBlockInputValidatableCrash;
@@ -28,6 +30,7 @@ final class BlockComponentTest extends ComponentSourceTestBase {
   use BlockComponentTreeTestTrait;
   use ConstraintViolationsTestTrait;
   use CrawlerTrait;
+  use UserCreationTrait;
 
   /**
    * {@inheritdoc}
@@ -36,6 +39,15 @@ final class BlockComponentTest extends ComponentSourceTestBase {
     'block',
     'xb_test_block',
   ];
+
+  /**
+   * {@inheritdoc}
+   */
+  public function setUp(): void {
+    parent::setUp();
+    // Set up a test user "bob"
+    $this->setUpCurrentUser(['name' => 'bob', 'uid' => 2]);
+  }
 
   /**
    * All test module blocks must either have a Component or a reason why not.
@@ -170,11 +182,19 @@ final class BlockComponentTest extends ComponentSourceTestBase {
 <div id="block-some-uuid">
 
 
-      <div>Hello, XB!</div>
+      <div>Hello bob, from XB!</div>
   </div>
 
 HTML,
-        'cacheability' => $default_cacheability,
+        'cacheability' => (clone $default_cacheability)
+          // @phpstan-ignore-next-line
+          ->addCacheableDependency(User::load(2))
+          ->setCacheContexts([
+            'languages:language_interface',
+            'theme',
+            'user',
+            'user.permissions',
+          ]),
       ],
       'block.xb_test_block_input_validatable' => [
         'html' => <<<HTML
@@ -218,7 +238,7 @@ HTML,
   public static function getExpectedClientSideInfo(): array {
     return [
       'block.xb_test_block_input_none' => [
-        'expected_output_selectors' => ['div:contains("Hello, XB!")'],
+        'expected_output_selectors' => ['div:contains("Hello bob, from XB!")'],
       ],
       'block.xb_test_block_input_validatable' => [
         'expected_output_selectors' => ['div:contains("Hello, XB!")'],

@@ -250,6 +250,10 @@ abstract class ComponentSourceTestBase extends KernelTestBase implements LoggerI
       // pointing somewhere into the site-specific directory.
       $html = str_replace(base_path() . $this->siteDirectory, '::SITE_DIR_BASE_URL::', $html);
       $html = str_replace(self::getCiModulePath(), '::XB_MODULE_PATH::', $html);
+      // Ensure predictable order of cache contexts & tags.
+      // @see https://www.drupal.org/node/3230171
+      sort($build['#cache']['contexts']);
+      sort($build['#cache']['tags']);
       $rendered[$component_id] = [
         'html' => $html,
         'cacheability' => CacheableMetadata::createFromRenderArray($build),

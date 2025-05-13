@@ -10,6 +10,7 @@ use Drupal\Core\Block\BlockPluginInterface;
 use Drupal\Core\Block\MainContentBlockPluginInterface;
 use Drupal\Core\Block\MessagesBlockPluginInterface;
 use Drupal\Core\Block\TitleBlockPluginInterface;
+use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Config\TypedConfigManagerInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
@@ -164,29 +165,31 @@ final class BlockComponent extends ComponentSourceBase implements ContainerFacto
 
     // @todo preview fallback handling (in case of no access or emptiness) in https://drupal.org/i/3497990
     // @see \Drupal\layout_builder\EventSubscriber\BlockComponentRenderArray::onBuildRender()
-    $access = $block->access($this->currentUser, TRUE);
-    assert($access instanceof AccessResultInterface);
-    if (!$access->isAllowed()) {
-      return ['#access' => $access];
+    $build = [
+      '#access' => $block->access($this->currentUser, TRUE),
+    ];
+    $cacheable_metadata = CacheableMetadata::createFromObject($block);
+    $cacheable_metadata->applyTo($build);
+
+    assert($build['#access'] instanceof AccessResultInterface);
+    if (!$build['#access']->isAllowed()) {
+      return $build;
     }
 
-    $content = $block->build();
-    if (Element::isEmpty($content)) {
-      $content['#access'] = $access;
-      return $content;
+    $build['content'] = $block->build();
+    if (Element::isEmpty($build['content'])) {
+      return $build;
     }
 
     // @todo This render array might be refactored in https://www.drupal.org/node/2931040
     // @see \Drupal\block\BlockViewBuilder::buildPreRenderableBlock
-    $build = [
-      '#access' => $access,
+    $build += [
       '#theme' => 'block',
       '#configuration' => $block->getConfiguration(),
       '#plugin_id' => $block->getPluginId(),
       '#base_plugin_id' => $block->getBaseId(),
       '#derivative_plugin_id' => $block->getDerivativeId(),
       '#id' => $componentUuid,
-      'content' => $content,
     ];
 
     // ⚠️ Highly experimental: allow a Block plugin's Twig template to be
@@ -211,9 +214,9 @@ final class BlockComponent extends ComponentSourceBase implements ContainerFacto
       $build['#js_component'] = $js_component_for_block_base_plugin;
       $build['#xb_preview'] = $isPreview;
       // Update cacheability.
-      $build['#cache']['tags'] = $js_component_for_block_base_plugin->getCacheTags();
-      $build['#cache']['contexts'] = $js_component_for_block_base_plugin->getCacheContexts();
-      $build['#cache']['max-age'] = $js_component_for_block_base_plugin->getCacheMaxAge();
+      CacheableMetadata::createFromObject($js_component_for_block_base_plugin)
+        ->merge($cacheable_metadata)
+        ->applyTo($build);
     }
 
     return $build;

@@ -82,6 +82,7 @@ class ComponentTreeHydratedWithBlockOverrideTest extends ComponentTreeHydratedTe
                   '#cache' => [
                     'tags' => [
                       'config:experience_builder.js_component.site_branding',
+                      'config:system.site',
                       'config:experience_builder.component.block.system_branding_block',
                     ],
                   ],
@@ -102,6 +103,7 @@ class ComponentTreeHydratedWithBlockOverrideTest extends ComponentTreeHydratedTe
 HTML,
           'expected_cache_tags' => [
             'config:experience_builder.js_component.site_branding',
+            'config:system.site',
             'config:experience_builder.component.block.system_branding_block',
           ],
         ] + $original_test_case,
@@ -115,6 +117,7 @@ HTML,
                   '#cache' => [
                     'tags' => [
                       'config:experience_builder.js_component.site_branding',
+                      'config:system.site',
                       'config:experience_builder.component.block.system_branding_block',
                     ],
                   ],
@@ -135,6 +138,7 @@ HTML,
 HTML,
           'expected_cache_tags' => [
             'config:experience_builder.js_component.site_branding',
+            'config:system.site',
             'config:experience_builder.component.block.system_branding_block',
           ],
         ] + $original_test_case,
@@ -151,6 +155,7 @@ HTML,
                   '#cache' => [
                     'tags' => [
                       'config:experience_builder.js_component.site_branding',
+                      'config:system.site',
                       'config:experience_builder.component.block.system_branding_block',
                     ],
                   ],
@@ -239,6 +244,7 @@ HTML,
             'config:experience_builder.component.js.my-cta-with-auto-save',
             'config:experience_builder.component.js.my-cta',
             'config:experience_builder.js_component.site_branding',
+            'config:system.site',
             'config:experience_builder.component.block.system_branding_block',
           ],
         ],
@@ -255,6 +261,7 @@ HTML,
                   '#cache' => [
                     'tags' => [
                       'config:experience_builder.js_component.site_branding',
+                      'config:system.site',
                       'config:experience_builder.component.block.system_branding_block',
                     ],
                   ],
@@ -343,6 +350,7 @@ HTML,
             'config:experience_builder.component.js.my-cta-with-auto-save',
             'config:experience_builder.component.js.my-cta',
             'config:experience_builder.js_component.site_branding',
+            'config:system.site',
             'config:experience_builder.component.block.system_branding_block',
           ],
         ],
