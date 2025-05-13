@@ -1,3 +1,34 @@
+describe('Perform CRUD operations on components that require disabled CSS aggregation', () => {
+  before(() => {
+    cy.drupalXbInstall([], { disableAggregation: true });
+  });
+
+  beforeEach(() => {
+    cy.drupalSession();
+    cy.drupalLogin('xbUser', 'xbUser');
+  });
+
+  after(() => {
+    cy.drupalUninstall();
+  });
+
+  it('The iframe loads the SDC CSS', () => {
+    cy.loadURLandWaitForXBLoaded();
+    cy.getIframe(
+      '[data-xb-preview="lg"][data-test-xb-content-initialized="true"][data-xb-swap-active="true"]',
+    )
+      .its('head')
+      .should('not.be.undefined')
+      .then((head) => {
+        expect(
+          head.querySelector(
+            'link[rel="stylesheet"][href*="components/my-hero/my-hero.css"]',
+          ),
+          `Tried to find [href*="components/my-hero/my-hero.css"] in <head> ${head.innerHTML}`,
+        ).to.exist;
+      });
+  });
+});
 describe('Perform CRUD operations on components', () => {
   before(() => {
     cy.drupalXbInstall();
@@ -116,21 +147,6 @@ describe('Perform CRUD operations on components', () => {
       },
       '[data-xb-preview="sm"][data-test-xb-content-initialized="true"][data-xb-swap-active="true"]',
     );
-
-    // Confirm that the iframe loads the SDC CSS.
-    cy.getIframe(
-      '[data-xb-preview="lg"][data-test-xb-content-initialized="true"][data-xb-swap-active="true"]',
-    )
-      .its('head')
-      .should('not.be.undefined')
-      .then((head) => {
-        expect(
-          head.querySelector(
-            'link[rel="stylesheet"][href*="components/my-hero/my-hero.css"]',
-          ),
-          `Tried to find [href*="components/my-hero/my-hero.css"] in <head> ${head.innerHTML}`,
-        ).to.exist;
-      });
 
     cy.openLibraryPanel();
     // Confirm the Library panel is open by checking if a component is visible.

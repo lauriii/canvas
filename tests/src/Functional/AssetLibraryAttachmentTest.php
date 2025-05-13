@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\experience_builder\Functional;
 
+use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\File\FileUrlGeneratorInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\experience_builder\AutoSave\AutoSaveManager;
@@ -32,6 +33,12 @@ final class AssetLibraryAttachmentTest extends FunctionalTestBase {
    * @covers \Drupal\experience_builder\Hook\ComponentSourceHooks::pageAttachments
    */
   public function test(): void {
+    // We need to disable CSS/JS aggregation to test the raw assets.
+    $config = $this->container->get(ConfigFactoryInterface::class)->getEditable('system.performance');
+    $config->set('js.preprocess', FALSE);
+    $config->set('css.preprocess', FALSE);
+    $config->save();
+
     $regular_user = $this->drupalCreateUser(['access content']);
     $this->assertInstanceOf(AccountInterface::class, $regular_user);
     $this->drupalLogin($regular_user);

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\experience_builder\Functional;
 
+use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\image\Entity\ImageStyle;
 use Drupal\node\Entity\Node;
 use Drupal\Tests\BrowserTestBase;
@@ -22,6 +23,10 @@ abstract class FunctionalTestBase extends BrowserTestBase {
 
   protected function setUp(): void {
     parent::setUp();
+    $config = $this->container->get(ConfigFactoryInterface::class)->getEditable('system.performance');
+    $config->set('js.preprocess', TRUE);
+    $config->set('css.preprocess', TRUE);
+    $config->save();
     if ($this->container->get('module_handler')->moduleExists('experience_builder')) {
       $response_validator = $this->container->get('experience_builder.openapi.http_response_validator.subscriber');
       $request_validator = $this->container->get('experience_builder.openapi.http_request_validator.subscriber');

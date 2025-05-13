@@ -108,12 +108,13 @@ Cypress.Commands.add('drupalEnableThemeForXb', (themeMachineName) => {
   });
 });
 
-Cypress.Commands.add('drupalXbInstall', (extraModules = []) => {
+Cypress.Commands.add('drupalXbInstall', (extraModules = [], options = {}) => {
   cy.task('log', `The setup file ${Cypress.env('setupFile')}`);
   cy.task('log', `Extra modules ${extraModules}`);
   cy.drupalInstall({
     setupFile: Cypress.env('setupFile'),
     extraModules,
+    options,
   });
 });
 
@@ -125,7 +126,7 @@ Cypress.Commands.add(
       installProfile = 'nightwatch_testing',
       langcode = '',
       extraModules = [],
-      extraPermissions = [],
+      options = {},
     } = {},
     callback,
   ) => {
@@ -136,16 +137,19 @@ Cypress.Commands.add(
       extraModules = extraModules.length
         ? `XB_EXTRA_MODULES=${extraModules.join()}`
         : '';
-      extraPermissions = extraModules.length
-        ? `XB_EXTRA_PERMISSIONS=${extraPermissions.join()}`
-        : '';
+      const disableAggregationEnv =
+        Object.prototype.hasOwnProperty.call(options, 'disableAggregation') &&
+        options.disableAggregation
+          ? 'XB_DISABLE_AGGREGATION=true'
+          : '';
+
       const langcodeOption = langcode ? `--langcode "${langcode}"` : '';
       const dbOption = Cypress.env('dbUrl')
         ? `--db-url ${Cypress.env('dbUrl')}`
         : '';
 
       const installCommand = commandAsWebserver(
-        `${extraModules} ${extraPermissions} php ${Cypress.env('coreDir')}/scripts/test-site.php install ${setupFile} ${installProfile} ${langcodeOption} --base-url ${Cypress.env('baseUrl')} ${dbOption} --json`,
+        `${extraModules} ${disableAggregationEnv} php ${Cypress.env('coreDir')}/scripts/test-site.php install ${setupFile} ${installProfile} ${langcodeOption} --base-url ${Cypress.env('baseUrl')} ${dbOption} --json`,
       );
       cy.exec(installCommand).then((install) => {
         const installData = JSON.parse(install.stdout);

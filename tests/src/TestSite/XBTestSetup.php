@@ -44,9 +44,12 @@ class XBTestSetup implements TestSetupInterface {
     $config->set('error_level', ERROR_REPORTING_DISPLAY_VERBOSE);
     $config->save(TRUE);
 
-    $config = \Drupal::service('config.factory')->getEditable('system.performance');
-    $config->set('js.preprocess', FALSE);
-    $config->save();
+    if (getenv('XB_DISABLE_AGGREGATION') !== 'true') {
+      $config = \Drupal::service('config.factory')->getEditable('system.performance');
+      $config->set('js.preprocess', TRUE);
+      $config->set('css.preprocess', TRUE);
+      $config->save();
+    }
 
     $module_installer = \Drupal::service('module_installer');
     assert($module_installer instanceof ModuleInstallerInterface);
@@ -508,16 +511,6 @@ class XBTestSetup implements TestSetupInterface {
     if (getenv('XB_EXTRA_MODULES')) {
       $modules = \explode(',', getenv('XB_EXTRA_MODULES'));
       $module_installer->install($modules);
-      if (getenv('XB_EXTRA_PERMISSIONS')) {
-        $role = Role::load('xb');
-        if ($role) {
-          $permissions = \explode(',', getenv('XB_EXTRA_PERMISSIONS'));
-          foreach ($permissions as $permission) {
-            $role->grantPermission($permission);
-          }
-          $role->save();
-        }
-      }
 
       // Rebuild the container before the test starts making HTTP requests.
       $kernel = \Drupal::service('kernel');
