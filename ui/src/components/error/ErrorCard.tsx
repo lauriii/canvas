@@ -7,7 +7,7 @@ const DEFAULT_RESET_BUTTON_TEXT = 'Try again';
 
 const ErrorCard: React.FC<{
   title?: string;
-  error?: string;
+  error?: string | React.ReactNode;
   resetErrorBoundary?: () => void;
   resetButtonText?: string;
   asChild?: boolean;

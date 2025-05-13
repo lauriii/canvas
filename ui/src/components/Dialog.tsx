@@ -13,7 +13,7 @@ export interface DialogProps {
   children?: React.ReactNode;
   error?: {
     title: string;
-    message: string;
+    message: string | React.ReactNode;
     resetButtonText?: string;
     onReset?: () => void;
   };
