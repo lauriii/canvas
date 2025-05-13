@@ -223,6 +223,13 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
         unset($model['source'][$prop_name], $model['resolved'][$prop_name]);
         continue;
       }
+      // Undo what ::clientModelToInput() did: restore the prop source of
+      // valueless props.
+      if ($model['source'][$prop_name]['sourceType'] === DefaultRelativeUrlPropSource::getSourceTypePrefix()) {
+        $model['source'][$prop_name] = $this->getDefaultStaticPropSource($prop_name)
+          ->withValue($model['source'][$prop_name]['value'])
+          ->toArray();
+      }
       // Don't duplicate value if the resolved value matches the static value.
       // TRICKY: it's thanks to the condition in this if-branch NOT being met
       // that it's possible for the preview ('resolved') to not match the input

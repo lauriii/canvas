@@ -10,9 +10,11 @@ use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\Theme\ComponentPluginManager;
 use Drupal\experience_builder\Entity\Component;
 use Drupal\Core\Plugin\Component as SdcPlugin;
+use Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase;
 use Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\SingleDirectoryComponent;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\experience_builder\PropExpressions\StructuredData\FieldTypePropExpression;
+use Drupal\experience_builder\PropSource\PropSource;
 use Drupal\experience_builder\PropSource\StaticPropSource;
 use Drupal\node\Entity\Node;
 use Drupal\Tests\experience_builder\Kernel\Traits\CiModulePathTrait;
@@ -1291,6 +1293,95 @@ HTML,
           'data' => [],
         ],
         'transforms' => [],
+      ],
+    ];
+  }
+
+  /**
+   * @covers ::inputToClientModel()
+   * @dataProvider explicitsInputsProvider
+   */
+  public function testInputToClientModel(string $component_id, array $explicit_input, array $expected_client_model):void {
+    $this->generateComponentConfig();
+
+    // Ensure the explicit input is valid; helps catch incorrect test cases that
+    // could lead to misleading test results.
+    foreach ($explicit_input['source'] as $prop_name => $prop_source_array) {
+      $resolved_source = PropSource::parse($prop_source_array)->evaluate(NULL);
+      self::assertSame($resolved_source, $explicit_input['resolved'][$prop_name]);
+    }
+
+    $component = Component::load($component_id);
+    \assert($component instanceof Component);
+    $component_source = $component->getComponentSource();
+    // It can only be Code components or SDC.
+    \assert($component_source instanceof GeneratedFieldExplicitInputUxComponentSourceBase);
+    $actual_model_client = $component_source->inputToClientModel($explicit_input);
+    $this->assertEquals($expected_client_model, $actual_model_client);
+  }
+
+  public static function explicitsInputsProvider(): \Generator {
+    yield 'image' => [
+      'sdc.experience_builder.image',
+      [
+        'source' => [
+          'image' => [
+            'sourceType' => 'default-relative-url',
+            'value' => [
+              'src' => '/modules/contrib/experience_builder/components/image/600x400.png',
+              'alt' => 'Boring placeholder',
+              'width' => 600,
+              'height' => 400,
+            ],
+            'jsonSchema' => [
+              'type' => 'object',
+              'properties' => [
+                'src' => [
+                  'type' => 'string',
+                  'format' => 'uri-reference',
+                  'pattern' => '^(/|https?://)?.*\\.(png|gif|jpg|jpeg|webp)(\\?.*)?(#.*)?$',
+                ],
+                'alt' => [
+                  'type' => 'string',
+                ],
+                'width' => [
+                  'type' => 'integer',
+                ],
+                'height' => [
+                  'type' => 'integer',
+                ],
+              ],
+              'required' => [
+                'src',
+              ],
+            ],
+            'componentId' => 'sdc.experience_builder.image',
+          ],
+        ],
+        'resolved' => [
+          'image' => [
+            'src' => '/modules/contrib/experience_builder/components/image/600x400.png',
+            'alt' => 'Boring placeholder',
+            'width' => 600,
+            'height' => 400,
+          ],
+        ],
+      ],
+      [
+        'source' => [
+          'image' => [
+            'sourceType' => 'static:field_item:image',
+            'expression' => 'ℹ︎image␟{src↝entity␜␜entity:file␝uri␞␟url,alt↠alt,width↠width,height↠height}',
+          ],
+        ],
+        'resolved' => [
+          'image' => [
+            'src' => '/modules/contrib/experience_builder/components/image/600x400.png',
+            'alt' => 'Boring placeholder',
+            'width' => 600,
+            'height' => 400,
+          ],
+        ],
       ],
     ];
   }
