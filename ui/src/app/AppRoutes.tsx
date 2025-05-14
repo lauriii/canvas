@@ -11,7 +11,7 @@ import DummyPropsEditForm from '@/components/DummyPropsEditForm';
 import type React from 'react';
 import MosaicContainer from '@/features/code-editor/MosaicContainer';
 import CodeComponentDialogs from '@/features/code-editor/dialogs/CodeComponentDialogs';
-import PrimaryPanel from '@/components/sidebar/PrimaryPanel';
+import PrimaryPanel from '@/components/sidePanel/PrimaryPanel';
 
 interface AppRoutesInterface {
   basePath: string;

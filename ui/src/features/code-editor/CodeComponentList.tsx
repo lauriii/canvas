@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import useXbParams from '@/hooks/useXbParams';
 import { useErrorBoundary } from 'react-error-boundary';
 import { ContextMenu, Flex, Spinner } from '@radix-ui/themes';
-import SidebarNode from '@/components/sidebar/SidebarNode';
+import SidebarNode from '@/components/sidePanel/SidebarNode';
 import UnifiedMenu from '@/components/UnifiedMenu';
 import { useGetCodeComponentsQuery } from '@/services/componentAndLayout';
 import {

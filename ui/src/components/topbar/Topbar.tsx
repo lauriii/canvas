@@ -6,8 +6,8 @@ import {
   Grid,
   SegmentedControl,
   Tooltip,
+  Box,
 } from '@radix-ui/themes';
-import Panel from '@/components/Panel';
 import UndoRedo from '@/components/UndoRedo';
 import DropIcon from '@assets/icons/drop.svg?react';
 import CMSIcon from '@assets/icons/cms.svg?react';
@@ -53,36 +53,32 @@ const Topbar = () => {
 
   return (
     <Menubar.Root data-testid="xb-topbar" asChild>
-      <Panel
-        className={clsx(styles.root, {
+      <Box
+        className={clsx(styles.root, styles.topBar, {
           [styles.inPreview]: isPreview,
         })}
-        px="4"
+        pr="4"
       >
-        <Grid columns="3" gap="3" width="auto" height="100%">
+        <Grid columns="3" gap="0" width="auto" height="100%">
           <Flex align="center" justify="start" gap="2">
             <Tooltip content="Exit Experience Builder">
-              <Button
-                asChild={true}
-                variant="ghost"
-                color="gray"
-                size="2"
-                className={clsx(styles.topBarButton)}
-                data-testid="xb-back-button"
+              <a
+                href={backHref}
+                aria-labelledby="back-to-previous-label"
+                className={clsx(styles.topBarButton, styles.exitButton)}
               >
-                <a href={backHref} aria-labelledby="back-to-previous-label">
-                  <span className="visually-hidden" id="back-to-previous-label">
-                    Exit Experience Builder
-                  </span>
-                  <DropIcon
-                    className={styles.drupalLogo}
-                    height="24"
-                    width="auto"
-                  />
-                </a>
-              </Button>
+                <span className="visually-hidden" id="back-to-previous-label">
+                  Exit Experience Builder
+                </span>
+                <DropIcon
+                  className={styles.drupalLogo}
+                  height="24"
+                  width="auto"
+                />
+              </a>
             </Tooltip>
             <div className={clsx(styles.verticalDivider)}></div>
+            {!isPreview && <UndoRedo />}
             {hasExtensions && (
               <TopbarPopover
                 tooltip="Extensions"
@@ -122,7 +118,6 @@ const Topbar = () => {
             <PageInfo />
           </Flex>
           <Flex align="center" justify="end" gap="2">
-            {!isPreview && <UndoRedo />}
             {isPreview && (
               <>
                 <SegmentedControl.Root
@@ -160,7 +155,7 @@ const Topbar = () => {
             <UnpublishedChanges />
           </Flex>
         </Grid>
-      </Panel>
+      </Box>
     </Menubar.Root>
   );
 };

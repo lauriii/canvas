@@ -14,7 +14,7 @@ import {
 } from '@/features/layout/layoutModelSlice';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import ComponentPreview from '@/components/ComponentPreview';
-import SidebarNode from '@/components/sidebar/SidebarNode';
+import SidebarNode from '@/components/sidePanel/SidebarNode';
 import useComponentSelection from '@/hooks/useComponentSelection';
 import ExposedJsComponent from '@/components/list/ExposedJsComponent';
 import useXbParams from '@/hooks/useXbParams';

@@ -1,10 +1,7 @@
 .contextualPanel {
-  position: fixed;
-  top: calc(var(--topbar-height) + var(--topbar-space-below));
-  right: var(--sidebar-space-side);
+  flex-shrink: 0;
   width: var(--sidebar-right-width);
-  height: var(--sidebar-height);
-  padding: var(--space-4) 0;
+  background: #fff;
 }
 
 .segmentedControlRoot {

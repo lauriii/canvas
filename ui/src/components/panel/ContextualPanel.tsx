@@ -11,7 +11,6 @@ import styles from './ContextualPanel.module.css';
 import type React from 'react';
 import { useEffect } from 'react';
 import { useState } from 'react';
-import Panel from '@/components/Panel';
 import ErrorBoundary from '@/components/error/ErrorBoundary';
 import PageDataForm from '@/components/PageDataForm';
 import clsx from 'clsx';
@@ -54,7 +53,7 @@ const ContextualPanel: React.FC<ContextualPanelProps> = () => {
   }, [dispatch, selectedComponent, isMultiSelect]);
 
   return (
-    <Panel
+    <Box
       data-testid="xb-contextual-panel"
       pt="3"
       className={clsx(styles.contextualPanel, ...offRightClasses)}
@@ -158,7 +157,7 @@ const ContextualPanel: React.FC<ContextualPanelProps> = () => {
           </Tabs.Root>
         </ErrorBoundary>
       </Flex>
-    </Panel>
+    </Box>
   );
 };
 export default ContextualPanel;

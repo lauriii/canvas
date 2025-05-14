@@ -4,36 +4,17 @@
   --resize-offset: 3px;
 }
 
-/* The var(--resize--offset) on the top, left and right is to account for the 3px border on the mosaic-root that
- * seems to be needed to resize the windows. */
 #xb-mosaic-container {
-  position: fixed;
-  top: calc(var(--topbar-height) + var(--topbar-space-above) + var(--topbar-space-below) - var(--resize-offset));
-  right: calc(var(--sidebar-space-side) - var(--resize-offset));
-  left: calc(var(--sidebar-left-width) + (var(--sidebar-space-side) * 2) - var(--resize-offset));
-  height: var(--sidebar-height);
-  margin-left: 10px;
-  padding: 30px;
-}
+  flex-grow: 1;
+  height: 100%;
 
-.xb-mosaic-window-editor {
-  border-radius: var(--panel-border-radius);
-}
-
-.xb-mosaic-window-preview {
-  border-radius: var(--panel-border-radius) var(--panel-border-radius) 0 0;
-}
-
-.xb-mosaic-window-component-data {
-  border-radius: 0 0 var(--panel-border-radius) var(--panel-border-radius);
+  > div {
+    height: 100%;
+  }
 }
 
 .mosaic-root {
-  position: absolute;
-  top: var(--resize-offset);
-  right: var(--resize-offset);
-  bottom: var(--resize-offset);
-  left: var(--resize-offset);
+  position: relative;
   height: 100%;
 }
 
@@ -81,7 +62,7 @@
 }
 
 .mosaic-tile:nth-of-type(1) {
-  padding-right: 20px;
+  border-right: 1px solid var(--gray-5);
 }
 
 .mosaic-tile > * {
@@ -95,7 +76,6 @@
   display: flex;
   overflow: hidden;
   flex-direction: column;
-  box-shadow: var(--shadow-4);
 }
 
 .mosaic-window .mosaic-window-toolbar,

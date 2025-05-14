@@ -26,7 +26,10 @@ import { MultiBackend } from 'react-dnd-multi-backend';
 import Topbar from '@/components/topbar/Topbar';
 import Layout from '@/features/layout/Layout';
 import { snapCenterToCursor } from '@dnd-kit/modifiers';
-import DragEventsHandler from '@/features/layout/previewOverlay/DragEventsHandler'; // This uses the suggested composition here https://docs.dndkit.com/api-documentation/context-provider/collision-detection-algorithms#composition-of-existing-algorithms
+import DragEventsHandler from '@/features/layout/previewOverlay/DragEventsHandler';
+import styles from '@/features/editor/Editor.module.css';
+import { Flex } from '@radix-ui/themes';
+// import SideMenu from '@/components/sideMenu/SideMenu'; not yet!
 
 // This uses the suggested composition here https://docs.dndkit.com/api-documentation/context-provider/collision-detection-algorithms#composition-of-existing-algorithms
 // the collision will use the mouse cursor's position, but if the mouse cursor is not in a valid dropzone it will fallback
@@ -67,9 +70,12 @@ const App: React.FC = () => {
         >
           <DndProvider backend={MultiBackend} options={HTML5toTouch}>
             <Layout />
-            <ErrorBoundary variant="page">
-              <Outlet />
-            </ErrorBoundary>
+            <Flex className={styles.xbContainer} gap="0">
+              {/*<SideMenu /> not yet!*/}
+              <ErrorBoundary variant="page">
+                <Outlet />
+              </ErrorBoundary>
+            </Flex>
             <Topbar />
             <DragEventsHandler />
           </DndProvider>

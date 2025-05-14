@@ -1,4 +1,4 @@
-import SidebarNode from '@/components/sidebar/SidebarNode';
+import SidebarNode from '@/components/sidePanel/SidebarNode';
 import type React from 'react';
 import UnifiedMenu from '@/components/UnifiedMenu';
 import { ContextMenu } from '@radix-ui/themes';

@@ -1,12 +1,8 @@
 .xb-app {
-  --topbar-height: 60px;
+  --topbar-height: 48px;
   --topbar-space-above: 0px;
   --topbar-space-below: 16px;
-  --sidebar-space-side: 16px;
-  --sidebar-height: calc(100vh - var(--topbar-height) - var(--topbar-space-above) - var(--topbar-space-below) * 2);
   --sidebar-left-width: 296px;
   --sidebar-right-width: 296px;
-  --component-insert-menu-width: 262px;
-  --extension-menu-width: 373px;
   --panel-border-radius: var(--radius-6);
 }

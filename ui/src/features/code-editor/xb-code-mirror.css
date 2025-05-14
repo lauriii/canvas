@@ -1,7 +1,6 @@
 /* Style overrides for code mirror in XB. */
 
 .xb-code-mirror-editor {
-  padding-top: var(--space-2);
   padding-bottom: var(--space-2);
   font-size: var(--font-size-1);
 }

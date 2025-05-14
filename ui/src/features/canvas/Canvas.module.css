@@ -1,7 +1,7 @@
 .canvasPane {
-  position: fixed;
-  inset: var(--topbar-height) 0 0 0;
   overflow: scroll;
+  flex-grow: 1;
+  box-sizing: content-box;
   background: var(--gray-8);
 }
 .canvas {

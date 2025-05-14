@@ -1,9 +1,8 @@
 import clsx from 'clsx';
-import styles from '@/components/sidebar/PrimaryPanel.module.css';
+import styles from '@/components/sidePanel/PrimaryPanel.module.css';
 import { Box, Flex, ScrollArea, Tabs } from '@radix-ui/themes';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
-import Panel from '../Panel';
-import Library from '@/components/sidebar/Library';
+import Library from '@/components/sidePanel/Library';
 import {
   selectActivePanel,
   setActivePanel,
@@ -22,7 +21,7 @@ export const PrimaryPanel = () => {
   };
 
   return (
-    <Panel
+    <Box
       className={clsx(styles.primaryPanel, ...offLeftClasses)}
       pt="3"
       data-testid="xb-primary-panel"
@@ -69,7 +68,7 @@ export const PrimaryPanel = () => {
           </ScrollArea>
         </Tabs.Root>
       </Flex>
-    </Panel>
+    </Box>
   );
 };
 

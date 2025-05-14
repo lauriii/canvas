@@ -2,7 +2,7 @@ import type React from 'react';
 import { useState } from 'react';
 import { Box, Flex } from '@radix-ui/themes';
 import { TriangleDownIcon, TriangleRightIcon } from '@radix-ui/react-icons';
-import SidebarNode from '@/components/sidebar/SidebarNode';
+import SidebarNode from '@/components/sidePanel/SidebarNode';
 import { customSortableDragImage } from '@/features/sortable/sortableUtils';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import {

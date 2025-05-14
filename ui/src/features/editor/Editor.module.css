@@ -1,0 +1,7 @@
+.xbContainer {
+  position: fixed;
+  inset: var(--topbar-height) 0 0 0;
+}
+.absoluteContainer {
+  position: absolute;
+}

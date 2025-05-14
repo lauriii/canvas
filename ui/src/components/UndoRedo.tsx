@@ -34,25 +34,25 @@ const UndoRedo = () => {
       <Button
         variant="ghost"
         color="gray"
-        size="2"
+        size="1"
         className={styles.topBarButton}
         onClick={() => dispatchUndo()}
         disabled={!isUndoable}
         aria-label="Undo"
       >
-        <ResetIcon height="24" width="auto" />
+        <ResetIcon height="16" width="auto" />
       </Button>
       <Button
         variant="ghost"
         color="gray"
-        size="2"
+        size="1"
         className={styles.topBarButton}
         onClick={() => dispatchRedo()}
         disabled={!isRedoable}
         aria-label="Redo"
       >
         <ResetIcon
-          height="24"
+          height="16"
           width="auto"
           style={{ transform: 'scaleX(-1)' }}
         />

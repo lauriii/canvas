@@ -5,7 +5,7 @@ import {
 } from '@/components/form/components/Accordion';
 import ErrorBoundary from '@/components/error/ErrorBoundary';
 import { setOpenLayoutItem } from '@/features/ui/primaryPanelSlice';
-import styles from '@/components/sidebar/Library.module.css';
+import styles from '@/components/sidePanel/Library.module.css';
 import { useState } from 'react';
 import List from '@/components/list/List';
 import type { ComponentsList } from '@/types/Component';

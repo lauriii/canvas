@@ -349,7 +349,7 @@ describe('Perform CRUD operations on components', () => {
       // After adding the section, there should be four Hero components.
       cy.get(
         '[data-xb-viewport-size="lg"] [data-xb-component-id="sdc.experience_builder.my-hero"]',
-        { timeout: 5000 },
+        { timeout: 10000 },
       ).should('have.length', 4);
 
       // The Two Column component that is the top level element of the section

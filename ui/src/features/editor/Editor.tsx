@@ -1,5 +1,5 @@
 import Canvas from '@/features/canvas/Canvas';
-import PrimaryPanel from '@/components/sidebar/PrimaryPanel';
+import PrimaryPanel from '@/components/sidePanel/PrimaryPanel';
 import ZoomControl from '@/components/zoom/ZoomControl';
 import CodeComponentDialogs from '@/features/code-editor/dialogs/CodeComponentDialogs';
 import ContextualPanel from '@/components/panel/ContextualPanel';
@@ -10,6 +10,7 @@ import ExtensionDialog from '@/components/extensions/ExtensionDialog';
 import SectionDialogs from '@/features/section/SectionDialogs';
 import useLayoutWatcher from '@/hooks/useLayoutWatcher';
 import useSyncParamsToState from '@/hooks/useSyncParamsToState';
+import styles from './Editor.module.css';
 const Editor = () => {
   const dispatch = useAppDispatch();
   useLayoutWatcher();
@@ -23,13 +24,15 @@ const Editor = () => {
 
   return (
     <>
-      <Canvas />
       <PrimaryPanel />
+      <Canvas />
       <ContextualPanel />
-      <ZoomControl />
-      <SectionDialogs />
-      <CodeComponentDialogs />
-      <ExtensionDialog />
+      <div className={styles.absoluteContainer}>
+        <ZoomControl />
+        <SectionDialogs />
+        <CodeComponentDialogs />
+        <ExtensionDialog />
+      </div>
     </>
   );
 };

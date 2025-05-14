@@ -1,10 +1,8 @@
 .primaryPanel {
-  position: fixed;
-  top: calc(var(--topbar-height) + var(--topbar-space-above) + var(--topbar-space-below));
-  left: var(--sidebar-space-side);
+  flex-shrink: 0;
   width: var(--sidebar-left-width);
-  height: var(--sidebar-height);
-  padding: var(--space-4) 0;
+  border-right: 1px solid var(--gray-5);
+  background: #fff;
 }
 
 .segmentedControlRoot {

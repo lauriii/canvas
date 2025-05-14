@@ -1,5 +1,5 @@
 import { Box } from '@radix-ui/themes';
-import SidebarNode from '@/components/sidebar/SidebarNode';
+import SidebarNode from '@/components/sidePanel/SidebarNode';
 import type { RegionNode } from '@/features/layout/layoutModelSlice';
 import ComponentLayer from '@/features/layout/layers/ComponentLayer';
 import type React from 'react';

@@ -1,7 +1,7 @@
 import type React from 'react';
 import { useState } from 'react';
 import { Flex, Box } from '@radix-ui/themes';
-import SidebarNode from '@/components/sidebar/SidebarNode';
+import SidebarNode from '@/components/sidePanel/SidebarNode';
 import { TriangleDownIcon, TriangleRightIcon } from '@radix-ui/react-icons';
 
 import type {
