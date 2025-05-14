@@ -22,7 +22,9 @@ final class ComponentInputsForm extends FormBase {
   public const FORM_ID = 'component_inputs_form';
 
   public function __construct(
-    private ElementInfoManagerInterface $elementInfoManager,
+    // This must be protected so that DependencySerializationTrait, which is
+    // used by the parent class, can access it.
+    protected ElementInfoManagerInterface $elementInfoManager,
     // This must be protected so that DependencySerializationTrait, which is
     // used by the parent class, can access it.
     protected ComponentTreeLoader $componentTreeLoader,
