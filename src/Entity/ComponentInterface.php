@@ -46,4 +46,34 @@ interface ComponentInterface extends ConfigEntityInterface, EntityWithPluginColl
    */
   public function setSettings(array $settings): self;
 
+  /**
+   * Sets the component source plugin.
+   *
+   * Changing the source plugin involves both changing the `source` key and
+   * resetting the plugin collection which may contain an instantiated instance
+   * of the previous source. Use this method to safely change the source plugin,
+   * using the generic ::set() method is not sufficient.
+   *
+   * The only appropriate times to call this are:
+   * - XB itself calls it to set the special `fallback` source when a dependency
+   *   of this Component was removed and instances of this Component exist
+   * - a source plugin uses it to switch from the `fallback` back to itself,
+   *   when the affected component has been reintroduced and is rediscovered by
+   *   the source plugin
+   *
+   * Note: if a reintroduced component no longer has the same schema/shape for
+   * its explicit input, a meaningful error message will inform the user that
+   * the stored explicit input is not valid explicit input.
+   *
+   * @param string $source
+   *   Component source plugin ID.
+   *
+   * @return self
+   *
+   * @see \Drupal\experience_builder\Entity\Component::onDependencyRemoval()
+   * @see \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\Fallback
+   * @see \Drupal\experience_builder\Element\RenderSafeComponentContainer
+   */
+  public function setSource(string $source): self;
+
 }

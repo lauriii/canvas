@@ -247,10 +247,11 @@ final class SingleDirectoryComponent extends GeneratedFieldExplicitInputUxCompon
     assert($component instanceof ComponentEntity);
     assert(is_array($component_plugin->metadata->schema));
 
-    $settings = $component->getSettings();
-    $settings['prop_field_definitions'] = self::getPropsForComponentPlugin($component_plugin);
-    $component->setSettings($settings);
-
+    $settings = [
+      'prop_field_definitions' => self::getPropsForComponentPlugin($component_plugin),
+      'local_source_id' => $component_plugin->getPluginId(),
+    ];
+    $component->setSource(self::SOURCE_PLUGIN_ID)->setSettings($settings)->enable();
     return $component;
   }
 
@@ -327,6 +328,14 @@ final class SingleDirectoryComponent extends GeneratedFieldExplicitInputUxCompon
     //   reasonable preview, even though there is unlikely to be a page on the
     //   site with the `adapt-a-llama` path.
     return \base_path() . $path;
+  }
+
+  public function onDependencyRemoval(array $dependencies): bool {
+    $plugin = $this->getSdcPlugin();
+    \assert(\is_array($plugin->getPluginDefinition()));
+    $provider = $plugin->getPluginDefinition()['provider'];
+    $providers = \array_merge($dependencies['module'] ?? [], $dependencies['theme'] ?? []);
+    return \in_array($provider, $providers, TRUE);
   }
 
 }

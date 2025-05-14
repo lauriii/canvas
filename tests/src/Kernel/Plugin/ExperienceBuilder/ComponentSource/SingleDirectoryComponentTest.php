@@ -7,10 +7,12 @@ namespace Drupal\Tests\experience_builder\Kernel\Plugin\ExperienceBuilder\Compon
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Extension\ModuleExtensionList;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
+use Drupal\Core\Extension\ModuleInstallerInterface;
 use Drupal\Core\Theme\ComponentPluginManager;
 use Drupal\experience_builder\Entity\Component;
 use Drupal\Core\Plugin\Component as SdcPlugin;
 use Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase;
+use Drupal\experience_builder\Entity\ComponentInterface;
 use Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\SingleDirectoryComponent;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\experience_builder\PropExpressions\StructuredData\FieldTypePropExpression;
@@ -1384,6 +1386,35 @@ HTML,
         ],
       ],
     ];
+  }
+
+  protected function createAndSaveInUseComponentForFallbackTesting(): ComponentInterface {
+    /** @var \Drupal\experience_builder\Entity\ComponentInterface */
+    return Component::load('sdc.xb_test_sdc.props-slots');
+  }
+
+  protected function createAndSaveUnusedComponentForFallbackTesting(): ComponentInterface {
+    /** @var \Drupal\experience_builder\Entity\ComponentInterface */
+    return Component::load('sdc.xb_test_sdc.sparkline');
+  }
+
+  protected function forceComponentFallback(ComponentInterface $used_component, ComponentInterface $unused_component): void {
+    \Drupal::service(ModuleInstallerInterface::class)->uninstall(['xb_test_sdc']);
+  }
+
+  protected static function getPropsForComponentFallbackTesting(): array {
+    return [
+      'heading' => [
+        'sourceType' => 'static:field_item:string',
+        'value' => 'This is a component',
+        'expression' => 'ℹ︎string␟value',
+      ],
+    ];
+  }
+
+  protected function recoverComponentFallback(ComponentInterface $component): void {
+    \Drupal::service(ModuleInstallerInterface::class)->install(['xb_test_sdc']);
+    $this->generateComponentConfig();
   }
 
 }

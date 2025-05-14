@@ -161,11 +161,29 @@ preprocess function is suffixed with "__as_js_component" and this is called afte
 The data output by each block plugin must currently be mapped on an individual basis. This feature is highly experimental
 and subject to change.
 
-### 3.4 Other `component type`s
+### 3.4 Fallback
+
+When one of a `Component` config entity's dependencies is removed, Drupal's config dependency API will call its `::onDependencyRemoval()`
+method. This gives the `Component` config entity a chance to modify itself in reaction to the dependency removal to prevent it
+from also being deleted via cascade delete.
+
+The `Component` config entity will consult the component audit service to ascertain if the `component` is in use (used in a
+component tree on a content or configuration entity).
+
+If it is in use, the `Component` config entity will then call the `Component Source Plugin`'s `::onDependencyRemoval()` method
+passing dependencies that are being removed. This gives the plugin the chance to change its settings and perform any
+related operations. The plugin should return TRUE from this method if the `Component` config entity should prevent itself from
+being deleted. If the source plugin returns TRUE from this method, the `Component` config entity will transition from the
+previously configured source plugin to [a special-purpose `fallback` plugin](../src/Plugin/ExperienceBuilder/ComponentSource/Fallback.php).
+
+The `fallback` `Component Source Plugin` will retain the stored explicit input to avoid data loss in case the `component` is reintroduced. Slots that contain `component subtrees`
+will not lose those subtrees; they will simply only be visible in the "Layers" panel in the XB UI. (Because it is impossible to approximate how the containing slots were shaped.)
+
+### 3.5 Other `component type`s
 
 Nothing yet, this will change when we [support other `component type`s later](https://www.drupal.org/project/experience_builder/issues/3454519).
 
-### 3.5 Categorization
+### 3.6 Categorization
 
 Each `component` can be categorized in order to group them in the UI. Some `component type`s have shared categories, as follows:
 

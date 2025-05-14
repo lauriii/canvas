@@ -18,6 +18,7 @@ use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\Core\Plugin\Context\ContextDefinitionInterface;
+use Drupal\Core\Plugin\PluginDependencyTrait;
 use Drupal\Core\Render\Element;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
@@ -51,6 +52,7 @@ use Symfony\Component\Validator\ConstraintViolationListInterface;
 )]
 final class BlockComponent extends ComponentSourceBase implements ContainerFactoryPluginInterface {
 
+  use PluginDependencyTrait;
   use ConstraintPropertyPathTranslatorTrait;
 
   public const SOURCE_PLUGIN_ID = 'block';
@@ -131,7 +133,7 @@ final class BlockComponent extends ComponentSourceBase implements ContainerFacto
    * {@inheritdoc}
    */
   public function calculateDependencies(): array {
-    return $this->getBlockPlugin()->calculateDependencies() ?? [];
+    return $this->getPluginDependencies($this->getBlockPlugin());
   }
 
   /**
@@ -413,6 +415,13 @@ final class BlockComponent extends ComponentSourceBase implements ContainerFacto
     if ($reasons) {
       throw new ComponentDoesNotMeetRequirementsException($reasons);
     }
+  }
+
+  public function onDependencyRemoval(array $dependencies): bool {
+    $plugin = $this->getBlockPlugin();
+    \assert(\is_array($plugin->getPluginDefinition()));
+    $provider = $plugin->getPluginDefinition()['provider'];
+    return \in_array($provider, $dependencies['module'] ?? [], TRUE);
   }
 
 }

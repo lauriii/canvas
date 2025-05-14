@@ -10,9 +10,12 @@ use Drupal\Core\Access\AccessResultReasonInterface;
 use Drupal\Core\Cache\Context\CacheContextsManager;
 use Drupal\Core\Config\ConfigManagerInterface;
 use Drupal\Core\Config\Entity\ConfigDependencyManager;
+use Drupal\Core\Config\Entity\ConfigEntityDependency;
 use Drupal\Core\Config\Entity\ConfigEntityInterface;
+use Drupal\Core\Config\Entity\ConfigEntityType;
 use Drupal\Core\DependencyInjection\ContainerBuilder;
 use Drupal\Core\Entity\EntityTypeInterface;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Language\LanguageInterface;
 use Drupal\Core\Session\AccountInterface;
@@ -52,7 +55,7 @@ final class ContentCreatorVisibleXbConfigEntityAccessControlHandlerTest extends 
     $language->expects($this->any())->method('getId')->willReturn('en');
     $entity->expects($this->any())->method('language')->willReturn($language);
 
-    $sut = new ContentCreatorVisibleXbConfigEntityAccessControlHandler($entityType, $configManager);
+    $sut = new ContentCreatorVisibleXbConfigEntityAccessControlHandler($entityType, $configManager, $this->prophesize(EntityTypeManagerInterface::class)->reveal());
     $sut->setModuleHandler($moduleHandler);
     $result = $sut->access($entity, 'view', $account, TRUE);
     $this->assertTrue($result::class == $expectedAccessResult);
@@ -81,7 +84,12 @@ final class ContentCreatorVisibleXbConfigEntityAccessControlHandlerTest extends 
     $moduleHandler->expects($this->any())->method('invokeAll')->willReturn([]);
     $entityType = $this->createMock(EntityTypeInterface::class);
     $entityType->expects($this->once())->method('getAdminPermission')->willReturn(JavaScriptComponent::ADMIN_PERMISSION);
-    $entityType->expects($this->once())->method('getSingularLabel')->willReturn($entityTypeLabel);
+    if ($hasDependents) {
+      $entityType->expects($this->once())
+        ->method('getSingularLabel')
+        ->willReturn($entityTypeLabel);
+    }
+
     $entity = $this->createMock(ConfigEntityInterface::class);
     $entity->expects($this->once())->method('getConfigDependencyName')->willReturn("experience_builder.$entityTypeId.test");
     $configManager = $this->createMock(ConfigManagerInterface::class);
@@ -96,9 +104,15 @@ final class ContentCreatorVisibleXbConfigEntityAccessControlHandlerTest extends 
 
     $configDependencyManager->expects($this->any())->method('getDependentEntities')
       ->with('config', "experience_builder.$entityTypeId.test")
-      ->willReturn($hasDependents ? ['one_dependent'] : []);
+      ->willReturn($hasDependents ? [new ConfigEntityDependency('one_dependent', [])] : []);
 
-    $sut = new ContentCreatorVisibleXbConfigEntityAccessControlHandler($entityType, $configManager);
+    $entityTypeManager = $this->prophesize(EntityTypeManagerInterface::class);
+    $entityTypeManager->getDefinition(Component::ENTITY_TYPE_ID)->willReturn(new ConfigEntityType([
+      'id' => Component::ENTITY_TYPE_ID,
+      'provider' => 'experience_builder',
+      'config_prefix' => 'component',
+    ]));
+    $sut = new ContentCreatorVisibleXbConfigEntityAccessControlHandler($entityType, $configManager, $entityTypeManager->reveal());
     $sut->setModuleHandler($moduleHandler);
     $result = $sut->access($entity, 'delete', $account, TRUE);
     $this->assertTrue($result::class == $expectedAccessResult);

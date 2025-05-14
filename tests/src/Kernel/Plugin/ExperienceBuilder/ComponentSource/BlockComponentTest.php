@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace Drupal\Tests\experience_builder\Kernel\Plugin\ExperienceBuilder\ComponentSource;
 
 use Drupal\Core\Cache\CacheableMetadata;
+use Drupal\Core\Extension\ModuleInstallerInterface;
 use Drupal\experience_builder\Entity\Component;
+use Drupal\experience_builder\Entity\ComponentInterface;
 use Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\BlockComponent;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\node\Entity\Node;
@@ -318,12 +320,33 @@ HTML,
   public function testCalculateDependencies(array $component_ids): void {
     // Note: the module providing the Block plugin is depended upon directly.
     // @see \Drupal\experience_builder\Entity\Component::$provider
+    $dependencies = ['module' => ['xb_test_block']];
     self::assertSame([
-      'block.xb_test_block_input_none' => [],
-      'block.xb_test_block_input_validatable' => [],
-      'block.xb_test_block_input_validatable_crash' => [],
-      'block.xb_test_block_optional_contexts' => [],
+      'block.xb_test_block_input_none' => $dependencies,
+      'block.xb_test_block_input_validatable' => $dependencies,
+      'block.xb_test_block_input_validatable_crash' => $dependencies,
+      'block.xb_test_block_optional_contexts' => $dependencies,
     ], $this->callSourceMethodForEach('calculateDependencies', $component_ids));
+  }
+
+  protected function createAndSaveInUseComponentForFallbackTesting(): ComponentInterface {
+    $this->generateComponentConfig();
+    /** @var \Drupal\experience_builder\Entity\ComponentInterface */
+    return Component::load('block.xb_test_block_input_none');
+  }
+
+  protected function createAndSaveUnusedComponentForFallbackTesting(): ComponentInterface {
+    /** @var \Drupal\experience_builder\Entity\ComponentInterface */
+    return Component::load('block.xb_test_block_input_validatable');
+  }
+
+  protected function forceComponentFallback(ComponentInterface $used_component, ComponentInterface $unused_component): void {
+    \Drupal::service(ModuleInstallerInterface::class)->uninstall(['xb_test_block']);
+  }
+
+  protected function recoverComponentFallback(ComponentInterface $component): void {
+    \Drupal::service(ModuleInstallerInterface::class)->install(['xb_test_block']);
+    $this->generateComponentConfig();
   }
 
 }

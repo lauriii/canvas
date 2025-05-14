@@ -15,10 +15,10 @@ use Drupal\experience_builder\AutoSave\AutoSaveManager;
 use Drupal\experience_builder\AutoSaveData;
 use Drupal\experience_builder\ComponentDoesNotMeetRequirementsException;
 use Drupal\experience_builder\ComponentMetadataRequirementsChecker;
-use Drupal\experience_builder\ComponentSource\UrlRewriteInterface;
 use Drupal\experience_builder\Entity\Component as ComponentEntity;
 use Drupal\experience_builder\Entity\ComponentInterface;
 use Drupal\experience_builder\Entity\JavaScriptComponent;
+use Drupal\experience_builder\ComponentSource\UrlRewriteInterface;
 use Drupal\experience_builder\Render\ImportMapResponseAttachmentsProcessor;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -244,7 +244,6 @@ final class JsComponent extends GeneratedFieldExplicitInputUxComponentSourceBase
    *    When the component does not meet requirements.
    */
   public static function updateConfigEntity(JavaScriptComponent $js_component, ComponentInterface $component): ComponentInterface {
-    $settings = $component->getSettings();
     $label_key = $component->getEntityType()->getKey('label');
     assert(is_string($label_key));
     $component->set($label_key, $js_component->label());
@@ -256,8 +255,11 @@ final class JsComponent extends GeneratedFieldExplicitInputUxComponentSourceBase
       throw new ComponentDoesNotMeetRequirementsException([$e->getMessage()]);
     }
     ComponentMetadataRequirementsChecker::check((string) $js_component->id(), $ephemeral_sdc_component->metadata, $js_component->getRequiredProps());
-    $settings['prop_field_definitions'] = self::getPropsForComponentPlugin($ephemeral_sdc_component);
-    $component->setSettings($settings);
+    $settings = [
+      'prop_field_definitions' => self::getPropsForComponentPlugin($ephemeral_sdc_component),
+      'local_source_id' => $js_component->id(),
+    ];
+    $component->setSource(self::SOURCE_PLUGIN_ID)->setSettings($settings);
     return $component;
   }
 
@@ -356,6 +358,10 @@ final class JsComponent extends GeneratedFieldExplicitInputUxComponentSourceBase
       $libraries = array_merge($libraries, $this->getDependencyLibraries($js_component_dependency, $dependencyAutoSave, $isPreview, $seen));
     }
     return $libraries;
+  }
+
+  public function onDependencyRemoval(array $dependencies): bool {
+    return \in_array($this->getJavaScriptComponent()->getConfigDependencyName(), \array_keys($dependencies['config'] ?? [], TRUE));
   }
 
 }

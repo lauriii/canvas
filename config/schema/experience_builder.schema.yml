@@ -12,11 +12,13 @@ experience_builder.component.*:
         ComponentStatusConstraint: []
     id:
       # This ID intentionally does not use `type: machine_name`, because it is a composite ID that is better validated
-      # using the `StringParts` constraint than the `RegEx` constraint.
+      # using the `ComponentIdParts` constraint than the `RegEx` constraint.
       type: string
       label: 'Component'
       constraints:
-        StringParts:
+        ComponentIdParts:
+          ignoreSources:
+            - fallback
           separator: .
           reservedCharacters:
             - ':'
@@ -51,6 +53,15 @@ experience_builder.component.*:
       label: 'Category'
     settings:
       type: experience_builder.component_source_settings.[%parent.source]
+    fallback_metadata:
+      type: mapping
+      label: 'Fallback metadata'
+      mapping:
+        # Fallback slot definitions to allow generating a fallback if the source disappears.
+        slot_definitions:
+          type: sequence
+          sequence:
+            type: experience_builder.slot_definition
 
 # The \Drupal\experience_builder\Entity\JavaScriptComponent config aims to provide metadata compatible with SDC.
 # Hence the data it contains consists of two parts:
@@ -122,20 +133,7 @@ experience_builder.js_component.*:
       type: sequence
       sequence:
         # See core/assets/schemas/v1/metadata-full.schema.json#$defs.slotDefinition
-        type: mapping
-        mapping:
-          title:
-            type: string
-            label: Title
-          description:
-            requiredKey: false
-            type: string
-            label: Description
-          examples:
-            requiredKey: false
-            type: sequence
-            sequence:
-              type: string
+        type: experience_builder.slot_definition
     js:
       type: experience_builder.compilable_code
       label: 'JS'
@@ -239,6 +237,27 @@ experience_builder.component_tree:
     inputs:
       type: ignore
       label: 'Input values for each component in the component tree'
+
+# Based on core/assets/schemas/v1/metadata-full.schema.json#$defs.slotDefinition
+# @todo Tighten & add validation in https://www.drupal.org/project/experience_builder/issues/3519891
+experience_builder.slot_definition:
+  type: mapping
+  label: 'A component slot definition'
+  mapping:
+    title:
+      type: required_label
+      label: 'Slot title'
+    description:
+      type: required_label
+      label: 'Slot description'
+      requiredKey: false
+    examples:
+      type: sequence
+      label: 'Examples'
+      requiredKey: false
+      sequence:
+        type: string
+        label: 'Example for slot'
 
 experience_builder.component_source_settings.sdc:
   constraints:
@@ -395,6 +414,21 @@ experience_builder.component_source_settings.block:
           interface: Drupal\Core\Block\BlockPluginInterface
     default_settings:
       type: block.settings.[%parent.local_source_id]
+
+experience_builder.component_source_settings.fallback:
+  constraints:
+    FullyValidatable: ~
+  type: experience_builder.component_source_settings.*
+  label: 'Fallback component settings'
+  mapping:
+    local_source_id:
+      # This is redundant here, so is not required.
+      # @see `type: experience_builder.component.*`'s `ComponentIdParts` constraint.
+      requiredKey: false
+    slots:
+      type: sequence
+      sequence:
+        type: experience_builder.slot_definition
 
 field.value.component_tree:
   type: experience_builder.component_tree

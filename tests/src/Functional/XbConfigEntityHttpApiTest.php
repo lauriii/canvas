@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\experience_builder\Functional;
 
+use Drupal\experience_builder\Audit\ComponentAudit;
 use Drupal\experience_builder\AutoSave\AutoSaveManager;
 use Drupal\Core\Url;
 use Drupal\experience_builder\Entity\AssetLibrary;
 use Drupal\experience_builder\Entity\Component;
+use Drupal\experience_builder\Entity\ComponentInterface;
 use Drupal\experience_builder\Entity\JavaScriptComponent;
 use Drupal\experience_builder\Entity\Pattern;
 use Drupal\system\Entity\Menu;
@@ -443,7 +445,7 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
    * @see \Drupal\experience_builder\Entity\JavaScriptComponent
    */
   public function testJavaScriptComponent(): void {
-    $this->assertAuthenticationAndAuthorization('js_component');
+    $this->assertAuthenticationAndAuthorization(JavaScriptComponent::ENTITY_TYPE_ID);
 
     $base = rtrim(base_path(), '/');
     $list_url = Url::fromUri('base:/xb/api/v0/config/js_component');
@@ -854,7 +856,7 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
     // it.
     $auto_save_data = $code_component_to_send;
     $auto_save_data['name'] = 'Auto-save title, should not affect GET requests';
-    $this->performAutoSave($auto_save_data, 'js_component', 'test');
+    $this->performAutoSave($auto_save_data, JavaScriptComponent::ENTITY_TYPE_ID, 'test');
 
     // Modify a Code Component correctly: 200.
     // ⚠️This is changing it from `internal` → `exposed`, for the first time,
@@ -875,7 +877,7 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
     $this->assertExposedCodeComponents(['js.test'], 'HIT', $request_options);
     // Confirm that there STILL is an auto-save, and its `status` was updated!
     $auto_save_data['status'] = TRUE;
-    $this->assertCurrentAutoSave(200, $auto_save_data, 'js_component', 'test');
+    $this->assertCurrentAutoSave(200, $auto_save_data, JavaScriptComponent::ENTITY_TYPE_ID, 'test');
 
     // Modify a Code Component correctly, to test the highly experimental block
     // override functionality: 200.
@@ -901,8 +903,9 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
     // entity still exists), but is disabled aka not available to be placed (the
     // Component config entity's `status` was just changed to `FALSE`).
     // @see docs/config-management.md#3.2.1
-    $this->assertNotNull(Component::load('js.test'));
-    $this->assertFalse(Component::load('js.test')->status());
+    $component = Component::load('js.test');
+    $this->assertNotNull($component);
+    $this->assertFalse($component->status());
     $this->assertExposedCodeComponents([], 'MISS', $request_options);
     $this->assertExposedCodeComponents([], 'HIT', $request_options);
 
@@ -923,19 +926,19 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
     // Create a new auto-save entry.
     $auto_save_data = $code_component_to_send;
     $auto_save_data['name'] = 'Auto-save title, should not affect GET requests';
-    $this->performAutoSave($auto_save_data, 'js_component', 'test');
+    $this->performAutoSave($auto_save_data, JavaScriptComponent::ENTITY_TYPE_ID, 'test');
 
-    // We cannot delete the 'test' Code Component via the XB HTTP API: 403.
-    // The reason is there is a Component depending on it.
-    $body = $this->assertExpectedResponse('DELETE', Url::fromUri('base:/xb/api/v0/config/js_component/test'), [], 403, NULL, NULL, NULL, NULL);
-    $this->assertEquals(['errors' => ['There is other configuration depending on this code component.']], $body);
-
-    // We delete the dependent component.
-    Component::load('js.test')->delete();
-
-    // Delete the 'test' Code Component via the XB HTTP API: 204.
+    // We can delete the 'test' Code Component via the XB HTTP API. As it isn't
+    // in use it will cascade delete the component as well.
+    $component_storage = \Drupal::entityTypeManager()->getStorage(Component::ENTITY_TYPE_ID);
+    $component = $component_storage->loadUnchanged('js.test');
+    \assert($component instanceof ComponentInterface);
+    self::assertFalse(\Drupal::service(ComponentAudit::class)->hasUsages($component));
     $body = $this->assertExpectedResponse('DELETE', Url::fromUri('base:/xb/api/v0/config/js_component/test'), [], 204, NULL, NULL, NULL, NULL);
     $this->assertNull($body);
+    $component = $component_storage->loadUnchanged('js.test');
+    self::assertNull($component);
+
     // Delete the 'another_component' Code Component via the XB HTTP API: 204.
     $body = $this->assertExpectedResponse('DELETE', Url::fromUri('base:/xb/api/v0/config/js_component/another_component'), [], 204, NULL, NULL, NULL, NULL);
     $this->assertNull($body);
@@ -946,7 +949,7 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
     $this->assertExposedCodeComponents([], 'MISS', $request_options);
     $this->assertExposedCodeComponents([], 'HIT', $request_options);
     // Confirm that there is no auto-save anymore.
-    $this->assertCurrentAutoSave(404, NULL, 'js_component', 'test');
+    $this->assertCurrentAutoSave(404, NULL, JavaScriptComponent::ENTITY_TYPE_ID, 'test');
 
     // Re-retrieve list: 200, empty list. Dynamic Page Cache miss.
     $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.permissions', 'user.roles:authenticated'], ['config:js_component_list', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');

@@ -751,4 +751,103 @@ final class JsComponentTest extends ComponentSourceTestBase {
     $this->assertRenderArrayMatchesSelectors($client_side_info_when_auto_save_exists['build'], ['astro-island[opts*="With props - Draft"][props*="name"][props*="XB"][props*="age"][props*="40"]']);
   }
 
+  protected function createAndSaveInUseComponentForFallbackTesting(): ComponentInterface {
+    $js_component_id = $this->randomMachineName();
+    $js_component = JavaScriptComponent::create([
+      'machineName' => $js_component_id,
+      'name' => $this->getRandomGenerator()->sentences(5),
+      'status' => FALSE,
+      'props' => [],
+      'required' => [],
+      'slots' => [
+        'slot1' => [
+          'title' => 'Slot 1',
+          'description' => 'Slot 1 innit.',
+        ],
+        'slot2' => [
+          'title' => 'Slot 2',
+          'description' => 'This is slot 2.',
+        ],
+      ],
+      'js' => [
+        'original' => 'console.log("hey");',
+        'compiled' => 'console.log("hey");',
+      ],
+      'css' => [
+        'original' => '.test { display: none; }',
+        'compiled' => '.test { display: none; }',
+      ],
+    ]);
+    $js_component->enable()->save();
+    $component_id = JsComponent::componentIdFromJavascriptComponentId($js_component_id);
+    /** @var \Drupal\experience_builder\Entity\ComponentInterface */
+    return Component::load($component_id);
+  }
+
+  protected function createAndSaveUnusedComponentForFallbackTesting(): ComponentInterface {
+    $js_component_id = $this->randomMachineName();
+    $js_component = JavaScriptComponent::create([
+      'machineName' => $js_component_id,
+      'name' => $this->getRandomGenerator()->sentences(5),
+      'status' => FALSE,
+      'props' => [],
+      'required' => [],
+      'slots' => [],
+      'js' => [
+        'original' => 'console.log("hey");',
+        'compiled' => 'console.log("hey");',
+      ],
+      'css' => [
+        'original' => '.test { display: none; }',
+        'compiled' => '.test { display: none; }',
+      ],
+    ]);
+    $js_component->enable()->save();
+    $component_id = JsComponent::componentIdFromJavascriptComponentId($js_component_id);
+    /** @var \Drupal\experience_builder\Entity\ComponentInterface */
+    return Component::load($component_id);
+  }
+
+  protected function forceComponentFallback(ComponentInterface $used_component, ComponentInterface $unused_component): void {
+    $source = $used_component->getComponentSource();
+    \assert($source instanceof JsComponent);
+    $source->getJavaScriptComponent()->delete();
+    $source = $unused_component->getComponentSource();
+    \assert($source instanceof JsComponent);
+    $source->getJavaScriptComponent()->delete();
+  }
+
+  protected function recoverComponentFallback(ComponentInterface $component): void {
+    $component_id = $component->id();
+    \assert(\is_string($component_id));
+    // @see \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\JsComponent::componentIdFromJavascriptComponentId()
+    [, $js_component_id] = \explode('.', $component_id, 2);
+    $js_component = JavaScriptComponent::create([
+      'machineName' => $js_component_id,
+      'name' => $this->getRandomGenerator()->sentences(5),
+      'status' => FALSE,
+      'props' => [],
+      'required' => [],
+      'slots' => [
+        'slot1' => [
+          'title' => 'Slot 1',
+          'description' => 'Slot 1 innit.',
+        ],
+        'slot2' => [
+          'title' => 'Slot 2',
+          'description' => 'This is slot 2.',
+        ],
+      ],
+      'js' => [
+        'original' => 'console.log("hey");',
+        'compiled' => 'console.log("hey");',
+      ],
+      'css' => [
+        'original' => '.test { display: none; }',
+        'compiled' => '.test { display: none; }',
+      ],
+    ]);
+    $js_component->enable()->save();
+  }
+
 }

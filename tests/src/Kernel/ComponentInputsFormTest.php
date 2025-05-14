@@ -79,7 +79,7 @@ final class ComponentInputsFormTest extends ApiLayoutControllerTestBase {
     ]));
   }
 
-  public function providerOptionalImages(): array {
+  public static function providerOptionalImages(): array {
     return [
       'sdc.xb_test_sdc.image-optional-without-example as in component list' => [
         'sdc.xb_test_sdc.image-optional-without-example',

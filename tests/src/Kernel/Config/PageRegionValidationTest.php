@@ -131,6 +131,7 @@ class PageRegionValidationTest extends BetterConfigEntityValidationTestBase {
       ],
       'module' => [
         'experience_builder',
+        'system',
         'xb_test_sdc',
       ],
       'theme' => ['stark'],

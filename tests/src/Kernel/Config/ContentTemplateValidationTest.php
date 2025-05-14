@@ -196,6 +196,7 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
         'node',
         'experience_builder',
         'core',
+        'system',
         'link',
         'options',
         'sdc_test',

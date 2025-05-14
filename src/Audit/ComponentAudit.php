@@ -10,8 +10,10 @@ use Drupal\Core\Config\Entity\ConfigEntityDependency;
 use Drupal\Core\Config\Entity\ConfigEntityInterface;
 use Drupal\Core\Config\Entity\ConfigEntityTypeInterface;
 use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
-use Drupal\experience_builder\Entity\Component;
+use Drupal\experience_builder\Entity\ComponentInterface;
+use Drupal\experience_builder\Entity\ComponentTreeEntityInterface;
 
 /**
  * @todo Improve in https://www.drupal.org/project/experience_builder/issues/3522953.
@@ -27,14 +29,14 @@ final class ComponentAudit {
   /**
    * @return \Drupal\Core\Entity\ContentEntityInterface[]
    */
-  public function getContentRevisionsUsingComponent(Component $component): array {
+  public function getContentRevisionsUsingComponent(ComponentInterface $component): array {
     return $this->dependencyRepository->getConfigurationDependents($component->getConfigDependencyName());
   }
 
   /**
    * @return array<\Drupal\Core\Config\Entity\ConfigEntityInterface>
    */
-  public function getConfigEntityDependenciesUsingComponent(Component $component, string $config_entity_type_id): array {
+  public function getConfigEntityDependenciesUsingComponent(ComponentInterface $component, string $config_entity_type_id): array {
     $config_entity_definition = $this->entityTypeManager->getDefinition($config_entity_type_id);
     assert($config_entity_definition instanceof ConfigEntityTypeInterface);
     $config_prefix = $config_entity_definition->getConfigPrefix() . '.';
@@ -45,9 +47,28 @@ final class ComponentAudit {
     return $dependencies;
   }
 
-  public function getConfigEntityUsageCount(Component $component): int {
+  public function getConfigEntityUsageCount(ComponentInterface $component): int {
     // @todo Add static caching in https://www.drupal.org/i/3522953 — config cannot change mid-request
     return count($this->configManager->getConfigDependencyManager()->getDependentEntities('config', $component->getConfigDependencyName()));
+  }
+
+  public function hasUsages(ComponentInterface $component): bool {
+    // @todo Field config default values
+    // @todo Base field definition default values
+    // @todo What if there are asymmetric content translations, or the translated
+    //   config provide different defaults? Verify and test in
+    //   https://www.drupal.org/i/3522198
+    $entity_types = \array_keys(\array_filter($this->entityTypeManager->getDefinitions(), static fn (EntityTypeInterface $type): bool => $type instanceof ConfigEntityTypeInterface && $type->entityClassImplements(ComponentTreeEntityInterface::class)));
+    \assert(\count($entity_types) > 0);
+    // Check config entities first as the calculation is less expensive.
+    foreach ($entity_types as $entity_type_id) {
+      $usages = $this->getConfigEntityDependenciesUsingComponent($component, $entity_type_id);
+      if (\count($usages) > 0) {
+        return TRUE;
+      }
+    }
+    $usages = $this->getContentRevisionsUsingComponent($component);
+    return \count($usages) > 0;
   }
 
 }

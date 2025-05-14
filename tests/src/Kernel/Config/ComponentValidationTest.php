@@ -297,6 +297,14 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
       'The component \'<em class="placeholder">sdc.sdc_test.my-cta</em>\' cannot be enabled because it does not meet the requirements of Experience Builder.',
       'Component has no valid source plugin_id value.',
     ];
+    $additional_expected_validation_errors_when_missing['fallback_metadata'] = [
+      'fallback_metadata' => "'slot_definitions' is a required key.",
+      // The entity remains invalid from the previous mapping property.
+      'status' => [
+        'The component \'<em class="placeholder">sdc.sdc_test.my-cta</em>\' cannot be enabled because it does not meet the requirements of Experience Builder.',
+        'Component has no valid source plugin_id value.',
+      ],
+    ];
     parent::testRequiredPropertyKeysMissing($additional_expected_validation_errors_when_missing);
   }
 

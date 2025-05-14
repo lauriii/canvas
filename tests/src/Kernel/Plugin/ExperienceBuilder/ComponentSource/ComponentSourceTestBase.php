@@ -15,6 +15,7 @@ use Drupal\Core\Logger\RfcLoggerTrait;
 use Drupal\Core\Logger\RfcLogLevel;
 use Drupal\Core\Render\RendererInterface;
 use Drupal\experience_builder\ComponentIncompatibilityReasonRepository;
+use Drupal\experience_builder\ComponentSource\ComponentSourceWithSlotsInterface;
 use Drupal\experience_builder\Entity\Component;
 use Drupal\experience_builder\Entity\ComponentInterface;
 use Drupal\experience_builder\Entity\Page;
@@ -93,6 +94,9 @@ abstract class ComponentSourceTestBase extends KernelTestBase implements LoggerI
     'system',
     'media',
     'path',
+    'xb_test_sdc',
+    'block',
+    'datetime',
     'user',
   ];
 
@@ -107,6 +111,7 @@ abstract class ComponentSourceTestBase extends KernelTestBase implements LoggerI
     $this->componentTreeLoader = $this->container->get(ComponentTreeLoader::class);
     $this->renderer = $this->container->get(RendererInterface::class);
     $this->installEntitySchema('user');
+    $this->installSchema('user', 'users_data');
   }
 
   /**
@@ -479,5 +484,156 @@ abstract class ComponentSourceTestBase extends KernelTestBase implements LoggerI
    * Return the associative array of the expected build on each component.
    */
   abstract public static function getExpectedClientSideInfo(): array;
+
+  /**
+   * Build and save a component that can be used for testing fallback behavior.
+   *
+   * @return \Drupal\experience_builder\Entity\ComponentInterface
+   */
+  abstract protected function createAndSaveInUseComponentForFallbackTesting(): ComponentInterface;
+
+  /**
+   * Build and save a component that is not in use for testing fallback behavior.
+   *
+   * @return \Drupal\experience_builder\Entity\ComponentInterface
+   */
+  abstract protected function createAndSaveUnusedComponentForFallbackTesting(): ComponentInterface;
+
+  /**
+   * Perform an action that will cause a fallback for the given components.
+   */
+  abstract protected function forceComponentFallback(ComponentInterface $used_component, ComponentInterface $unused_component): void;
+
+  /**
+   * Perform an action that will cause a component to recover from the fallback.
+   *
+   * @param \Drupal\experience_builder\Entity\ComponentInterface $component
+   */
+  abstract protected function recoverComponentFallback(ComponentInterface $component): void;
+
+  protected static function getPropsForComponentFallbackTesting(): array {
+    return [];
+  }
+
+  public function testFallback(): void {
+    $this->installEntitySchema(Page::ENTITY_TYPE_ID);
+    $this->generateComponentConfig();
+    $used_component = $this->createAndSaveInUseComponentForFallbackTesting();
+    $unused_component = $this->createAndSaveUnusedComponentForFallbackTesting();
+    $component_label = $used_component->label();
+    $source = $used_component->getComponentSource();
+    $slots = [];
+    if ($source instanceof ComponentSourceWithSlotsInterface) {
+      $slots = \array_keys($source->getSlotDefinitions());
+    }
+
+    $entity = Page::create([
+      'title' => $this->randomMachineName(),
+      'components' => self::generateFallbackComponentTree($used_component, $slots),
+    ]);
+    // Save this so the usage can be queried.
+    $entity->save();
+    $hydrated = $entity->getComponentTree()->get('hydrated');
+    $renderable = $hydrated->toRenderable($entity);
+    $out = $this->crawlerForRenderArray($renderable);
+    // Should be no fallback container.
+    self::assertCount(0, $out->filter('[data-fallback]'));
+    foreach ($slots as $slot) {
+      // Children should render in the slots.
+      self::assertCount(1, $out->filter(\sprintf('h1:contains("This is %s")', $slot)));
+    }
+
+    // Trigger an action that causes the components to perform
+    // ::onDependencyRemoval and update its source plugin to use the fallback.
+    $this->forceComponentFallback($used_component, $unused_component);
+    $component_storage = $this->container->get(EntityTypeManagerInterface::class)->getStorage(Component::ENTITY_TYPE_ID);
+    $used_component = $component_storage->loadUnchanged($used_component->id());
+    \assert($used_component instanceof ComponentInterface);
+    // Assert that the component has the same label, despite being dropped back
+    // to a fallback.
+    self::assertEquals($component_label, $used_component->label());
+    self::assertFalse($used_component->status());
+    // Assert that the component without any usage was cascade-deleted.
+    self::assertNull($component_storage->loadUnchanged($unused_component->id()));
+    // Assert that we can still render the fallback component and any children
+    // in its slots.
+    $hydrated = $entity->getComponentTree()->get('hydrated');
+    $renderable = $hydrated->toRenderable($entity);
+    $out = $this->crawlerForRenderArray($renderable);
+    // Should be a fallback container.
+    self::assertGreaterThanOrEqual(1, $out->filter('[data-fallback]')->count());
+    foreach ($slots as $slot) {
+      // Children should still render in the slots even though it is a fallback.
+      self::assertCount(1, $out->filter(\sprintf('h1:contains("This is %s")', $slot)));
+    }
+    // We should also have the HTML comments that allow overlays to work.
+    $html = \trim(\preg_replace('/\s+/', ' ', $out->html()) ?: '');
+    foreach ($slots as $slot_name) {
+      self::assertMatchesRegularExpression(sprintf('/<!-- xb-slot-start-uuid-in-root\/%s -->/', $slot_name), $html);
+      self::assertMatchesRegularExpression(sprintf('/xb-slot-end-(.*)\/%s -->/', $slot_name), $html);
+    }
+
+    if (static::class === BlockComponentTest::class) {
+      // @todo Update Component entities with BlockComponent source plugin: https://drupal.org/i/3484682
+      $this->markTestIncomplete('Block components do not yet update component config entities');
+    }
+    // Now perform an action that causes the component to recover from the
+    // fallback.
+    $this->recoverComponentFallback($used_component);
+    $hydrated = $entity->getComponentTree()->get('hydrated');
+    $renderable = $hydrated->toRenderable($entity);
+    $out = $this->crawlerForRenderArray($renderable);
+    // Should be no fallback container.
+    self::assertCount(0, $out->filter('[data-fallback]'));
+    foreach ($slots as $slot) {
+      // Children should still render in the slots.
+      self::assertCount(1, $out->filter(\sprintf('h1:contains("This is %s")', $slot)));
+    }
+  }
+
+  private static function generateFallbackComponentTree(ComponentInterface $component, array $slots): array {
+    $tree = [
+      ComponentTreeStructure::ROOT_UUID => [
+        // Place the component that will become a fallback in the root of the
+        // tree.
+        ['uuid' => 'uuid-in-root', 'component' => $component->id()],
+      ],
+    ];
+    $inputs = [
+      // Populate any input as appropriate.
+      'uuid-in-root' => static::getPropsForComponentFallbackTesting(),
+    ];
+    // Ensure we have something in each slot. When we trigger the conditions
+    // that result in the component switching to use the 'fallback' plugin, we
+    // want to ensure that any components placed in slots as children continue
+    // to render.
+    foreach ($slots as $slot) {
+      // Generate a unique ID for each child component.
+      $uuid = \sprintf('uuid-in-%s', $slot);
+      // And place it inside the parent slot.
+      $tree['uuid-in-root'][$slot] = [
+        ['uuid' => $uuid, 'component' => 'sdc.experience_builder.heading'],
+      ];
+      // Give it some inputs we can assert still exist when the fallback
+      // conditions are triggered.
+      $inputs[$uuid] = [
+        'text' => [
+          'sourceType' => 'static:field_item:string',
+          'value' => \sprintf('This is %s', $slot),
+          'expression' => 'ℹ︎string␟value',
+        ],
+        'element' => [
+          'sourceType' => 'static:field_item:list_string',
+          'value' => 'h1',
+          'expression' => 'ℹ︎list_string␟value',
+        ],
+      ];
+    }
+    // Return component values.
+    return [
+      'tree' => $tree,
+      'inputs' => $inputs,
+    ];
+  }
 
 }

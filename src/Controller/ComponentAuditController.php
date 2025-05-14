@@ -191,19 +191,20 @@ final class ComponentAuditController {
       });
   }
 
-  public function createConfigTable(Component $component, string $config_id, \Stringable $sectionTitle, \Stringable $emptyMessage, array $headers, callable $rowCallback): array {
+  public function createConfigTable(Component $component, string $config_entity_type_id, \Stringable $sectionTitle, \Stringable $emptyMessage, array $headers, callable $rowCallback): array {
     $rows = [];
-    $dependents = $this->componentAudit->getConfigEntityDependenciesUsingComponent($component, $config_id);
+    $dependents = $this->componentAudit->getConfigEntityDependenciesUsingComponent($component, $config_entity_type_id);
     /** @var \Drupal\experience_builder\Entity\PageRegion $region */
     foreach ($dependents as $region) {
       $row = $rowCallback($region);
       $rows[] = $row;
     }
+    $class = Html::getClass($config_entity_type_id);
     return [
       'title' => [
         '#type' => 'html_tag',
         '#tag' => 'h2',
-        '#attributes' => ['name' => Html::getClass($config_id)],
+        '#attributes' => ['name' => $class],
         '#value' => $sectionTitle,
       ],
       'table' => [
@@ -211,7 +212,7 @@ final class ComponentAuditController {
         '#header' => $headers,
         '#rows' => $rows,
         '#empty' => $emptyMessage,
-        '#attributes' => ['name' => 'table-' . Html::getClass($config_id)],
+        '#attributes' => ['name' => 'table-' . $class],
       ],
     ];
   }

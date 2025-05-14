@@ -10,12 +10,16 @@ use Drupal\Core\Access\AccessResultReasonInterface;
 use Drupal\Core\Cache\Context\CacheContextsManager;
 use Drupal\Core\Config\ConfigManagerInterface;
 use Drupal\Core\Config\Entity\ConfigDependencyManager;
+use Drupal\Core\Config\Entity\ConfigEntityDependency;
 use Drupal\Core\Config\Entity\ConfigEntityInterface;
+use Drupal\Core\Config\Entity\ConfigEntityType;
 use Drupal\Core\DependencyInjection\ContainerBuilder;
 use Drupal\Core\Entity\EntityTypeInterface;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Language\LanguageInterface;
 use Drupal\Core\Session\AccountInterface;
+use Drupal\experience_builder\Entity\Component;
 use Drupal\experience_builder\Entity\JavaScriptComponent;
 use Drupal\experience_builder\EntityHandlers\XbConfigEntityAccessControlHandler;
 use Drupal\Tests\UnitTestCase;
@@ -41,7 +45,11 @@ final class XbConfigEntityAccessControlHandlerTest extends UnitTestCase {
     $moduleHandler->expects($this->any())->method('invokeAll')->willReturn([]);
     $entityType = $this->createMock(EntityTypeInterface::class);
     $entityType->expects($this->once())->method('getAdminPermission')->willReturn(JavaScriptComponent::ADMIN_PERMISSION);
-    $entityType->expects($this->once())->method('getSingularLabel')->willReturn($entityTypeLabel);
+    if ($hasDependents) {
+      $entityType->expects($this->once())
+        ->method('getSingularLabel')
+        ->willReturn($entityTypeLabel);
+    }
     $entity = $this->createMock(ConfigEntityInterface::class);
     $entity->expects($this->once())->method('getConfigDependencyName')->willReturn("experience_builder.$entityTypeId.test");
     $configManager = $this->createMock(ConfigManagerInterface::class);
@@ -56,9 +64,16 @@ final class XbConfigEntityAccessControlHandlerTest extends UnitTestCase {
 
     $configDependencyManager->expects($this->any())->method('getDependentEntities')
       ->with('config', "experience_builder.$entityTypeId.test")
-      ->willReturn($hasDependents ? ['one_dependent'] : []);
+      // Ensure there is a dependent other than a Component config entity.
+      ->willReturn($hasDependents ? [new ConfigEntityDependency('one_dependent', [])] : []);
 
-    $sut = new XbConfigEntityAccessControlHandler($entityType, $configManager);
+    $entityTypeManager = $this->prophesize(EntityTypeManagerInterface::class);
+    $entityTypeManager->getDefinition(Component::ENTITY_TYPE_ID)->willReturn(new ConfigEntityType([
+      'id' => Component::ENTITY_TYPE_ID,
+      'provider' => 'experience_builder',
+      'config_prefix' => 'component',
+    ]));
+    $sut = new XbConfigEntityAccessControlHandler($entityType, $configManager, $entityTypeManager->reveal());
     $sut->setModuleHandler($moduleHandler);
     $result = $sut->access($entity, 'delete', $account, TRUE);
     $this->assertTrue($result::class == $expectedAccessResult);
@@ -70,6 +85,8 @@ final class XbConfigEntityAccessControlHandlerTest extends UnitTestCase {
   public static function dependentsProvider(): array {
     return [
       ['js_component', 'code component', TRUE, AccessResultForbidden::class, 'There is other configuration depending on this code component.'],
+      // Note that deletion is allowed if the sole dependent config is a Component config entity.
+      // @see \Drupal\Tests\experience_builder\Kernel\Entity\JavascriptComponentAccessTest
       ['js_component', 'code component', FALSE, AccessResultAllowed::class, NULL],
       ['xb_asset_library', 'in-browser code library', TRUE, AccessResultForbidden::class, 'There is other configuration depending on this in-browser code library.'],
       ['xb_asset_library', 'in-browser code library', FALSE, AccessResultAllowed::class, NULL],

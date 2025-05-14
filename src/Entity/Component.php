@@ -7,6 +7,7 @@ namespace Drupal\experience_builder\Entity;
 use Drupal\Core\Cache\RefinableCacheableDependencyInterface;
 use Drupal\Core\Config\Entity\ConfigEntityBase;
 use Drupal\Core\Entity\Attribute\ConfigEntityType;
+use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Entity\Query\QueryInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Extension\ThemeHandlerInterface;
@@ -14,11 +15,14 @@ use Drupal\Core\Plugin\DefaultSingleLazyPluginCollection;
 use Drupal\Core\Render\Markup;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\Entity\Routing\AdminHtmlRouteProvider;
+use Drupal\experience_builder\Audit\ComponentAudit;
 use Drupal\experience_builder\ClientSideRepresentation;
 use Drupal\experience_builder\ComponentSource\ComponentSourceInterface;
 use Drupal\experience_builder\ComponentSource\ComponentSourceManager;
 use Drupal\experience_builder\EntityHandlers\ContentCreatorVisibleXbConfigEntityAccessControlHandler;
 use Drupal\experience_builder\Form\ComponentListBuilder;
+use Drupal\experience_builder\ComponentSource\ComponentSourceWithSlotsInterface;
+use Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\Fallback;
 
 /**
  * A config entity that exposes a component to the Experience Builder UI.
@@ -65,6 +69,7 @@ use Drupal\experience_builder\Form\ComponentListBuilder;
     'provider',
     'category',
     'settings',
+    'fallback_metadata',
   ],
   constraints: [
     'ImmutableProperties' => ['id', 'source'],
@@ -90,6 +95,13 @@ final class Component extends ConfigEntityBase implements ComponentInterface, Xb
    * The source plugin ID.
    */
   protected string $source;
+
+  /**
+   * Fallback metadata.
+   *
+   * @var null|array{slot_definitions: array<string, array{title: string, description?: string, examples: string[]}>}
+   */
+  protected ?array $fallback_metadata = ['slot_definitions' => []];
 
   /**
    * The provider of this component: a valid module or theme name, or NULL.
@@ -354,8 +366,81 @@ final class Component extends ConfigEntityBase implements ComponentInterface, Xb
   public function setSettings(array $settings): self {
     $this->settings = $settings;
     // Reset the source plugin collection.
-    $this->sourcePluginCollection?->setConfiguration($this->settings);
+    $this->sourcePluginCollection = NULL;
     return $this;
+  }
+
+  /**
+   * {@inheritdoc}
+   *
+   * @see \Drupal\experience_builder\EntityHandlers\XbConfigEntityAccessControlHandler
+   */
+  public function onDependencyRemoval(array $dependencies): bool {
+    $source = $this->getComponentSource();
+
+    // If this Component is NOT affected by a dependency being removed (e.g. a
+    // module providing this component being uninstalled, or a config entity
+    // being deleted), there's nothing to do.
+    if (!$source->onDependencyRemoval($dependencies)) {
+      return parent::onDependencyRemoval($dependencies);
+    }
+
+    // When it is affected, then if there's 0 component instances using it, still
+    // there is nothing to do, because none of Experience Builder's config
+    // entities are affected, nor are any XB fields on content entities.
+    if (!\Drupal::service(ComponentAudit::class)->hasUsages($this)) {
+      return parent::onDependencyRemoval($dependencies);
+    }
+
+    // However, if there's >=1 component instance for it, make this Component
+    // use the `fallback` component source plugin to avoid deleting dependent XB
+    // config entities and breaking XB component trees in content entities.
+    $this->setSource(Fallback::PLUGIN_ID)
+      ->setSettings([
+        'slots' => $this->fallback_metadata['slot_definitions'] ?? [],
+      ])
+      // Disable this Component: prevent more instances getting created.
+      ->disable();
+    parent::onDependencyRemoval($dependencies);
+    return TRUE;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function setSource(string $source): self {
+    $this->source = $source;
+    $this->sourcePluginCollection = NULL;
+    return $this;
+  }
+
+  public function preSave(EntityStorageInterface $storage): void {
+    $source = $this->getComponentSource();
+    if ($source instanceof ComponentSourceWithSlotsInterface) {
+      $this->fallback_metadata['slot_definitions'] = \array_map(self::cleanSlotDefinition(...), $source->getSlotDefinitions());
+    }
+    parent::preSave($storage);
+  }
+
+  /**
+   * Clean slot definitions to remove unsupported keys.
+   *
+   * @param array $definition
+   *
+   * @return array{title: string, description?: string, examples: string[]}
+   *   Clean definitions.
+   */
+  private static function cleanSlotDefinition(array $definition): array {
+    // Some SDC have additional keys in their slot definitions. Remove those
+    // that aren't specified in the SDC metadata schema and in our config
+    // schema.
+    // @todo Remove when core enforces this - https://www.drupal.org/i/3522623
+    /** @var array{title: string, description?: string, examples: string[]} */
+    return \array_intersect_key($definition, array_flip([
+      'title',
+      'description',
+      'examples',
+    ]));
   }
 
 }

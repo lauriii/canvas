@@ -118,6 +118,10 @@ The `Component` config entity contains:
   new content must use the most current Site Builder-curated list of `Component`s.
 - which `field type` and `field widget` must be used to populate it with `unstructured data` — for algorithmic details,
  see [`XB Data model`, section 3.1: "from Front-End Developer to an XB data model that empowers the Content Creator](./data-model.md#3.1)
+- the `fallback_metadata`: when the `Component Source Plugin` can no longer find the `component` because a dependency is
+  removed (e.g. the module providing an SDC is uninstalled or a `JavaScriptComponent` config entity is deleted), this
+  metadata (currently only slot definitions) will be used to fall back to the special `fallback` source to ensure
+  existing `component tree`s continue to work (see [`XB Components` doc, section 3.4](components.md#3.4))
 - `config entity dependencies` on the modules providing the `field type` and `field widget`
 
 These config entities are therefore the foundations that enable XB to work reliably, and allow:
