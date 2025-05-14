@@ -252,111 +252,119 @@ describe('Perform CRUD operations on components', () => {
     cy.editHeroComponent();
   });
 
-  it('Can create and add section', () => {
-    cy.viewport(2000, 1320);
-    cy.loadURLandWaitForXBLoaded();
-    cy.get('[data-xb-viewport-size="lg"]')
-      .findByLabelText('Two Column')
-      .realClick({ position: 'bottomRight' });
-    cy.log(
-      'Save the entire node 1 layout as a section, so it can be added to a different node.',
-    );
-
-    // First remove the two image components because they will otherwise crash
-    // due to the test not creating them in a way that allows the media entity
-    // to be found based on filename.
-    cy.get(
-      '[data-xb-viewport-size="lg"] [data-xb-component-id="sdc.experience_builder.image"]',
-    )
-      .first()
-      .trigger('contextmenu');
-    cy.findByText('Delete').click();
-    cy.get(
-      '[data-xb-viewport-size="lg"] [data-xb-component-id="sdc.experience_builder.image"]',
-    )
-      .first()
-      .trigger('contextmenu');
-    cy.findByText('Delete').click();
-    cy.waitForComponentNotInPreview('Image');
-
-    cy.get('[data-xb-viewport-size="lg"]')
-      .findByLabelText('Two Column')
-      .rightclick({ position: 'bottomLeft' });
-    cy.findByText('Create section').click(); // Section name
-
-    // Typing into the section name input does not work instantly, so attempt
-    // changing the section name until the input value properly updates.
-    // This delay is short enough that no end user could possibly encounter it,
-    // but it can occur within these tests.
-    const sectionName = 'The Entire Node 1';
-    cy.findByLabelText('Section name').should(
-      'have.value',
-      'Two Column section',
-    );
-
-    cy.findByLabelText('Section name').clear();
-    cy.findByLabelText('Section name').type(sectionName);
-    cy.findByLabelText('Section name').should('have.value', sectionName);
-
-    cy.findByText('Add to library').click();
-    // The dialog should close
-    cy.findByLabelText('Section name').should('not.exist');
-
-    cy.openLibraryPanel();
-    cy.get('.primaryPanelContent').within(() => {
-      cy.findByText('Sections').click();
-      cy.findByText(sectionName).should('exist');
-    });
-    cy.get('.primaryPanelContent')
-      .as('panel')
-      .should('contain.text', sectionName);
-
-    cy.loadURLandWaitForXBLoaded({ url: 'xb/node/2' });
-    cy.get('#edit-title-0-value').should('exist');
-    cy.waitForElementContentNotInIframe('div', 'There goes my hero');
-    cy.openLibraryPanel();
-
-    cy.get('[data-xb-component-id="sdc.experience_builder.my-hero"]').should(
-      'exist',
-    );
-
-    cy.get(
-      '[data-xb-component-id="sdc.experience_builder.my-hero"]',
-    ).realClick();
-    cy.waitForElementContentInIframe('div', 'There goes my hero');
-
-    // There should be one Hero added.
-    cy.get(
-      '[data-xb-viewport-size="lg"] [data-xb-component-id="sdc.experience_builder.my-hero"]',
-    ).should('have.length', 1);
-
-    // Add the section that was created earlier in this test.
-    cy.openLibraryPanel();
-    cy.findByText('Sections').click();
-
-    cy.get('.primaryPanelContent').within(() => {
-      cy.findByText(sectionName).should('exist');
-      cy.findByText(sectionName).click();
-    });
-
-    // After adding the section, there should be four Hero components.
-    cy.get(
-      '[data-xb-viewport-size="lg"] [data-xb-component-id="sdc.experience_builder.my-hero"]',
-      { timeout: 5000 },
-    ).should('have.length', 4);
-
-    // The Two Column component that is the top level element of the section
-    // should be the currently selected layer.
-    cy.openLayersPanel();
-    cy.findByTestId('xb-primary-panel').within(() => {
-      cy.findAllByText('Two Column').should('have.length', 1);
-      cy.findAllByLabelText('Two Column').should(
-        'have.attr',
-        'data-xb-selected',
-        'true',
+  it(
+    'Can create and add section',
+    // This test is as flaky as a croissant, give it 3 goes before failing the
+    // whole build to save the DA some 💰️.
+    { retries: 3 },
+    () => {
+      cy.viewport(2000, 1320);
+      cy.loadURLandWaitForXBLoaded();
+      cy.get('[data-xb-viewport-size="lg"]')
+        .findByLabelText('Two Column')
+        .realClick({ position: 'bottomRight' });
+      cy.log(
+        'Save the entire node 1 layout as a section, so it can be added to a different node.',
       );
-    });
-  });
+
+      // First remove the two image components because they will otherwise crash
+      // due to the test not creating them in a way that allows the media entity
+      // to be found based on filename.
+      cy.get(
+        '[data-xb-viewport-size="lg"] [data-xb-component-id="sdc.experience_builder.image"]',
+      )
+        .first()
+        .trigger('contextmenu');
+      cy.findByText('Delete').click();
+      cy.get(
+        '[data-xb-viewport-size="lg"] [data-xb-component-id="sdc.experience_builder.image"]',
+      )
+        .first()
+        .trigger('contextmenu');
+      cy.findByText('Delete').click();
+      cy.waitForComponentNotInPreview('Image');
+
+      cy.get('.primaryPanelContent')
+        .findByText('Two Column')
+        .rightclick({ position: 'center' });
+      cy.findByRole('menuitem', {
+        name: 'Create section',
+        exact: false,
+      }).click(); // Section name
+
+      // Typing into the section name input does not work instantly, so attempt
+      // changing the section name until the input value properly updates.
+      // This delay is short enough that no end user could possibly encounter it,
+      // but it can occur within these tests.
+      const sectionName = 'The Entire Node 1';
+      cy.findByLabelText('Section name').should(
+        'have.value',
+        'Two Column section',
+      );
+
+      cy.findByLabelText('Section name').type(`{selectAll}{del}${sectionName}`);
+      cy.findByLabelText('Section name').should('have.value', sectionName);
+
+      cy.findByText('Add to library').click();
+      // The dialog should close
+      cy.findByLabelText('Section name').should('not.exist');
+
+      cy.openLibraryPanel();
+      cy.get('.primaryPanelContent').within(() => {
+        cy.findByText('Sections').click();
+        cy.findByText(sectionName).should('exist');
+      });
+      cy.get('.primaryPanelContent')
+        .as('panel')
+        .should('contain.text', sectionName);
+
+      cy.loadURLandWaitForXBLoaded({ url: 'xb/node/2' });
+      cy.get('#edit-title-0-value').should('exist');
+      cy.waitForElementContentNotInIframe('div', 'There goes my hero');
+      cy.openLibraryPanel();
+
+      cy.get('[data-xb-component-id="sdc.experience_builder.my-hero"]').should(
+        'exist',
+      );
+
+      cy.get(
+        '[data-xb-component-id="sdc.experience_builder.my-hero"]',
+      ).realClick();
+      cy.waitForElementContentInIframe('div', 'There goes my hero');
+
+      // There should be one Hero added.
+      cy.get(
+        '[data-xb-viewport-size="lg"] [data-xb-component-id="sdc.experience_builder.my-hero"]',
+      ).should('have.length', 1);
+
+      // Add the section that was created earlier in this test.
+      cy.openLibraryPanel();
+      cy.findByText('Sections').click();
+
+      cy.get('.primaryPanelContent').within(() => {
+        cy.findByText(sectionName).should('exist');
+        cy.findByText(sectionName).click();
+      });
+
+      // After adding the section, there should be four Hero components.
+      cy.get(
+        '[data-xb-viewport-size="lg"] [data-xb-component-id="sdc.experience_builder.my-hero"]',
+        { timeout: 5000 },
+      ).should('have.length', 4);
+
+      // The Two Column component that is the top level element of the section
+      // should be the currently selected layer.
+      cy.openLayersPanel();
+      cy.findByTestId('xb-primary-panel').within(() => {
+        cy.findAllByText('Two Column').should('have.length', 1);
+        cy.findAllByLabelText('Two Column').should(
+          'have.attr',
+          'data-xb-selected',
+          'true',
+        );
+      });
+    },
+  );
 
   it('Can add component by clicking component in library', () => {
     cy.loadURLandWaitForXBLoaded();

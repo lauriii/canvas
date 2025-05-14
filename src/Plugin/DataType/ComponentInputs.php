@@ -129,11 +129,34 @@ class ComponentInputs extends TypedData implements DependentPluginInterface {
   }
 
   /**
-   * @return \Generator<\Drupal\experience_builder\PropSource\PropSourceBase>
+   * Gets all prop sources that have a particular dependency.
+   *
+   * @param string $type
+   *   The dependency type (e.g., `config`, `module`, `theme`, or `content`).
+   * @param string $name
+   *   The dependency name (for example, the full name of a config entity).
+   * @param \Drupal\Core\Entity\FieldableEntityInterface|null $host_entity
+   *   (optional) The host entity of this set of inputs, if applicable.
+   *
+   * @return iterable<string, \Drupal\experience_builder\PropSource\PropSourceBase>
+   *   An array of prop sources that have a dependency of the given type and
+   *   name. The keys will be strings in the form of "INSTANCE_UUID:PROP_NAME".
+   */
+  public function getPropSourcesWithDependency(string $type, string $name, ?FieldableEntityInterface $host_entity = NULL): iterable {
+    foreach ($this->getPropSources() as $key => $prop_source) {
+      $dependencies = $prop_source->calculateDependencies($host_entity);
+      if (in_array($name, $dependencies[$type] ?? [], TRUE)) {
+        yield $key => $prop_source;
+      }
+    }
+  }
+
+  /**
+   * @return \Generator<string, \Drupal\experience_builder\PropSource\PropSourceBase>
    */
   private function getPropSources(): \Generator {
-    foreach ($this->inputs as $raw_prop_sources) {
-      foreach ($raw_prop_sources as $raw_prop_source) {
+    foreach ($this->inputs as $instance_uuid => $raw_prop_sources) {
+      foreach ($raw_prop_sources as $name => $raw_prop_source) {
         if (!\is_array($raw_prop_source) || !\array_key_exists('sourceType', $raw_prop_source)) {
           // This isn't a component source using \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase.
           // @todo Move this logic into \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase.
@@ -141,7 +164,7 @@ class ComponentInputs extends TypedData implements DependentPluginInterface {
           continue;
         }
         try {
-          yield PropSource::parse($raw_prop_source);
+          yield "$instance_uuid:$name" => PropSource::parse($raw_prop_source);
         }
         catch (\LogicException) {
           // @see https://en.wikipedia.org/wiki/Robustness_principle

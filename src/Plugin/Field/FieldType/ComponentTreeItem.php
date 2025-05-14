@@ -438,4 +438,32 @@ class ComponentTreeItem extends FieldItemBase implements RenderableInterface {
     return $this->get('hydrated')->toRenderable($entity, $isPreview);
   }
 
+  public function updatePropSourcesOnDependencyRemoval(string $dependency_type, string $dependency_name, ?FieldableEntityInterface $host_entity = NULL): bool {
+    $prop_sources_to_update = $this->get('inputs')
+      ->getPropSourcesWithDependency($dependency_type, $dependency_name, $host_entity);
+
+    $changed = FALSE;
+    $inputs = Json::decode($this->get('inputs')->getValue());
+
+    foreach ($prop_sources_to_update as $key => $prop_source) {
+      [$instance_uuid, $name] = explode(':', $key, 2);
+      // Remove this prop source; it depends on the removed config.
+      unset($inputs[$instance_uuid][$name]);
+
+      $component_source = $this->get('tree')->getComponentSource($instance_uuid);
+
+      // If the component source requires explicit input, replace the removed
+      // prop source with a static prop source. If we don't have a component
+      // source for this component instance, there's nothing else we can do;
+      // end users will probably see an error message, but that's not our fault.
+      $default_inputs = $component_source?->getDefaultExplicitInput() ?? [];
+      if ($component_source?->requiresExplicitInput() && isset($default_inputs[$name])) {
+        $inputs[$instance_uuid][$name] = $default_inputs[$name];
+      }
+      $changed = TRUE;
+    }
+    $this->get('inputs')->setValue($inputs);
+    return $changed;
+  }
+
 }

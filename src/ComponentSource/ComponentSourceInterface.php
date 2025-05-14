@@ -36,6 +36,7 @@ use Symfony\Component\Validator\ConstraintViolationListInterface;
  *
  * @phpstan-import-type PropSourceArray from \Drupal\experience_builder\PropSource\PropSourceBase
  * @phpstan-import-type SingleComponentInputArray from \Drupal\experience_builder\Plugin\DataType\ComponentInputs
+ * @phpstan-import-type ComponentInputsArray from \Drupal\experience_builder\Plugin\DataType\ComponentInputs
  *
  * @see \Drupal\experience_builder\Attribute\ComponentSource
  * @see \Drupal\experience_builder\ComponentSource\ComponentSourceBase
@@ -85,6 +86,16 @@ interface ComponentSourceInterface extends PluginInspectionInterface, Derivative
    * Whether this component requires explicit input or not.
    */
   public function requiresExplicitInput(): bool;
+
+  /**
+   * Returns the default explicit input (prop sources) for this component.
+   *
+   * @phpcs:ignore
+   * @return ComponentInputsArray
+   *   An array of prop sources to use for the inputs of this component, keyed
+   *   by input name.
+   */
+  public function getDefaultExplicitInput(): array;
 
   /**
    * Retrieves the component instance's explicit (possibly empty) input.

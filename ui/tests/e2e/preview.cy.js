@@ -45,6 +45,7 @@ describe('Preview a page', () => {
 
     cy.clickComponentInPreview('Hero', 0);
 
+    cy.findByLabelText('CTA 1 text').clear();
     cy.findByLabelText('CTA 1 text').type('Link to Drupal');
     cy.findByLabelText('CTA 1 text').blur();
 

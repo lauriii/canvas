@@ -244,6 +244,7 @@ describe('Contextual panel', () => {
       })
       .type('https://www.example.com/');
     // Also update the value of the "CTA 1 text" prop's <input>.
+    cy.get('@componentFormCTA1Text').clear();
     cy.get('@componentFormCTA1Text').type('Example link');
     // Ensure the new value shows in the preview.
     cy.waitForElementContentInIframe(

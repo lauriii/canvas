@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\experience_builder\Entity;
 
 use Drupal\Core\Config\Entity\ConfigEntityBase;
+use Drupal\Core\Config\Entity\ConfigEntityInterface;
 use Drupal\Core\Entity\Attribute\ConfigEntityType;
 use Drupal\Core\Entity\Display\EntityViewDisplayInterface;
 use Drupal\Core\Entity\EntityStorageInterface;
@@ -25,6 +26,9 @@ use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemInstantiat
  * provide a smooth upgrade path from LB, thanks to
  * `\Drupal\layout_builder\Hook\LayoutBuilderHooks::entityTypeAlter()` -- only
  * one module can do that!
+ *
+ * @phpstan-import-type ComponentTreeStructureArray from \Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure
+ * @phpstan-import-type ComponentInputsArray from \Drupal\experience_builder\Plugin\DataType\ComponentInputs
  */
 #[ConfigEntityType(
   id: self::ENTITY_TYPE_ID,
@@ -95,7 +99,7 @@ final class ContentTemplate extends ConfigEntityBase implements ComponentTreeEnt
   /**
    * The component tree.
    *
-   * @var ?array{'inputs': array, 'tree': array}
+   * @var ?array{tree: ComponentTreeStructureArray, inputs: ComponentInputsArray}
    */
   protected ?array $component_tree;
 
@@ -315,6 +319,29 @@ final class ContentTemplate extends ConfigEntityBase implements ComponentTreeEnt
     // Normally, this would be a collection of field formatter instances, but
     // that doesn't make sense when using XB.
     return [];
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function onDependencyRemoval(array $dependencies): bool {
+    $changed = FALSE;
+    $tree = $this->getComponentTree();
+
+    foreach ($dependencies as $type => $dependencies_of_type) {
+      foreach ($dependencies_of_type as $dependency) {
+        if ($dependency instanceof ConfigEntityInterface) {
+          $dependency = $dependency->getConfigDependencyName();
+        }
+        $changed |= $tree->updatePropSourcesOnDependencyRemoval($type, $dependency);
+      }
+    }
+    if ($changed) {
+      $this->set('component_tree', $tree->getValue());
+    }
+
+    $changed |= parent::onDependencyRemoval($dependencies);
+    return (bool) $changed;
   }
 
 }

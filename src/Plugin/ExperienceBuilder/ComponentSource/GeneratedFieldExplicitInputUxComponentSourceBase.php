@@ -253,6 +253,18 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
   /**
    * {@inheritdoc}
    */
+  public function getDefaultExplicitInput(): array {
+    $inputs = [];
+    foreach (array_keys($this->configuration['prop_field_definitions']) as $prop_name) {
+      assert(is_string($prop_name));
+      $inputs[$prop_name] = $this->getDefaultStaticPropSource($prop_name)->toArray();
+    }
+    return $inputs;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function validateComponentInput(array $inputValues, string $component_instance_uuid, ?FieldableEntityInterface $entity): ConstraintViolationListInterface {
     $violations = new ConstraintViolationList();
     foreach ($inputValues as $component_prop_name => $raw_prop_source) {
@@ -373,6 +385,7 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
     $form_state->set('is_xb_static_prop_source', TRUE);
 
     $prop_field_definitions = $settings['prop_field_definitions'];
+    $default_prop_sources = $this->getDefaultExplicitInput();
 
     // To ensure the order of the fields always matches the order of the schema
     // we loop over the properties from the schema, but first we have to
@@ -384,30 +397,18 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
       if (!$storable_prop_shape) {
         continue;
       }
+
       $component_prop = ComponentPropExpression::fromString($component_prop_expression);
       $sdc_prop_name = $component_prop->propName;
-      $is_required = isset($component_schema['required']) && in_array($sdc_prop_name, $component_schema['required'], TRUE);
-      $prop_source_array = $client_model[$sdc_prop_name] ?? NULL;
-
+      $prop_source_array = $client_model[$sdc_prop_name] ?? $default_prop_sources[$sdc_prop_name];
       $disabled = FALSE;
-      if ($prop_source_array !== NULL) {
-        $source = PropSource::parse($prop_source_array);
-        if (!$source instanceof StaticPropSource) {
-          // @todo Design is undefined for the DynamicPropSource UX. Related: https://www.drupal.org/project/experience_builder/issues/3459234
-          // @todo Design is undefined for the AdaptedPropSource UX.
-          // Fall back to the static version, disabled for now where the design is undefined.
-          $disabled = !$source instanceof DefaultRelativeUrlPropSource;
-          $source = $this->getDefaultStaticPropSource($sdc_prop_name)->withValue($prop_source_array['value'] ?? NULL);
-        }
-      }
-      elseif (!$is_required) {
-        // The client didn't send this prop, fall back to the default.
-        $source = $this->getDefaultStaticPropSource($sdc_prop_name)->withValue(NULL);
-      }
-      else {
-        // The client didn't send this prop, but should.
-        // @todo perhaps we just be more accepting here and fall back anyway?
-        throw new \LogicException(sprintf('Required prop "%s" is missing from the client model.', $sdc_prop_name));
+      $source = PropSource::parse($prop_source_array);
+      if (!$source instanceof StaticPropSource) {
+        // @todo Design is undefined for the DynamicPropSource UX. Related: https://www.drupal.org/project/experience_builder/issues/3459234
+        // @todo Design is undefined for the AdaptedPropSource UX.
+        // Fall back to the static version, disabled for now where the design is undefined.
+        $disabled = !$source instanceof DefaultRelativeUrlPropSource;
+        $source = $this->getDefaultStaticPropSource($sdc_prop_name)->withValue($prop_source_array['value'] ?? NULL);
       }
 
       // 1. If the given static prop source matches the *current* field type
@@ -421,6 +422,7 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
       assert(isset($component_schema['properties'][$sdc_prop_name]['title']));
       $label = $component_schema['properties'][$sdc_prop_name]['title'];
       $widget = $source->getWidget($sdc_prop_name, $label, $field_widget_plugin_id);
+      $is_required = isset($component_schema['required']) && in_array($sdc_prop_name, $component_schema['required'], TRUE);
       $form[$sdc_prop_name] = $source->formTemporaryRemoveThisExclamationExclamationExclamation($widget, $sdc_prop_name, $is_required, $entity, $form, $form_state);
       $form[$sdc_prop_name]['#disabled'] = $disabled;
 
@@ -631,7 +633,7 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
    * @param \Drupal\Core\Plugin\Component $component_plugin
    *   The SDC component.
    *
-   * @return array
+   * @return array<string, array{field_type: string, field_widget: string, expression: string, default_value: mixed, field_storage_settings: array<string, mixed>, field_instance_settings: array<string, mixed>, cardinality?: int}>
    *   The prop settings.
    */
   public static function getPropsForComponentPlugin(SdcPlugin $component_plugin): array {
@@ -763,6 +765,8 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
         // @see EvaluatedComponentModel type-script definition.
         // Undo what ::inputToClientModel() did: restore the omitted `'value'`
         // in cases where it is the same as the source value.
+        // TRICKY: this is always set, *except* in the case of an auto-saved
+        // code component that just gained a new prop.
         $default_source_value = $this->configuration['prop_field_definitions'][$prop]['default_value'] ?? NULL;
         if (!\array_key_exists('value', $prop_source)) {
           $prop_source['value'] = $prop_value;

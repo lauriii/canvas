@@ -226,7 +226,14 @@ final class BlockComponent extends ComponentSourceBase implements ContainerFacto
    * {@inheritdoc}
    */
   public function requiresExplicitInput(): bool {
-    return !empty($this->getBlockPlugin()->defaultConfiguration());
+    return !empty($this->getDefaultExplicitInput());
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getDefaultExplicitInput(): array {
+    return $this->getBlockPlugin()->defaultConfiguration();
   }
 
   /**
