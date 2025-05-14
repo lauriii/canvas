@@ -2,7 +2,7 @@
   "name": "roll-react",
   "version": "1.0.0",
   "main": "index.js",
-  "license": "MIT",
+  "license": "GPL-2.0-or-later",
   "scripts": {
     "build": "NODE_ENV=production rollup -c rollup.config.js",
     "start": "rollup -c rollup.config.js --watch"
