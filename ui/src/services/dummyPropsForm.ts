@@ -14,12 +14,7 @@ export const dummyPropsFormApi = createApi({
       string
     >({
       query: (queryString) => {
-        // Add timestamp to prevent caching. Every request must be fresh
-        // to ensure the selectors match that of the AJAX config.
-        const timestamp = new Date().getTime();
-        const fullQueryString = addAjaxPageState(
-          `${queryString}&_nocache=${timestamp}`,
-        );
+        const fullQueryString = addAjaxPageState(queryString);
         return {
           url: `xb/api/v0/form/component-instance/{entity_type}/{entity_id}`,
           // We use PATCH to keep this distinct from AJAX form submissions which
@@ -31,8 +26,12 @@ export const dummyPropsFormApi = createApi({
           },
         };
       },
+      forceRefetch: ({ currentArg, previousArg, endpointState }) => {
+        // This will fetch new data on every request, but will use cached data
+        // until the new data is available.
+        return true;
+      },
       transformResponse: processResponseAssets(['html', 'transforms']),
-      keepUnusedDataFor: 0,
     }),
   }),
 });
