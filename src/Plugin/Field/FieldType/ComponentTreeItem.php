@@ -10,7 +10,6 @@ use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Block\MessagesBlockPluginInterface;
 use Drupal\Core\Block\TitleBlockPluginInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
-use Drupal\Core\Entity\TypedData\EntityDataDefinitionInterface;
 use Drupal\Core\Field\Attribute\FieldType;
 use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Field\FieldItemBase;
@@ -21,7 +20,6 @@ use Drupal\Core\TypedData\DataDefinition;
 use Drupal\experience_builder\Entity\ComponentTreeEntityInterface;
 use Drupal\experience_builder\Plugin\DataType\ComponentInputs;
 use Drupal\experience_builder\PropSource\ContentAwareDependentInterface;
-use Drupal\experience_builder\ShapeMatcher\FieldForComponentSuggester;
 use Symfony\Component\Validator\ConstraintViolation;
 use Symfony\Component\Validator\ConstraintViolationInterface;
 use Symfony\Component\Validator\ConstraintViolationList;
@@ -402,30 +400,6 @@ class ComponentTreeItem extends FieldItemBase implements RenderableInterface {
     // @see \Drupal\experience_builder\Plugin\Validation\Constraint\ValidComponentTreeConstraintValidator::validate()
     $this->validate();
     return FALSE;
-  }
-
-  /**
-   * @return array<string, array<string, array{instances: array<string, \Drupal\experience_builder\PropExpressions\StructuredData\FieldPropExpression|\Drupal\experience_builder\PropExpressions\StructuredData\FieldObjectPropsExpression|\Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldPropExpression>}>>
-   */
-  public function getAvailablePropSourceChoices(): mixed {
-    $prop_source_suggester = \Drupal::service(FieldForComponentSuggester::class);
-    assert($prop_source_suggester instanceof FieldForComponentSuggester);
-
-    $tree = $this->get('tree');
-    $host_entity_type = $this->getEntity()->getTypedData()->getDataDefinition();
-    assert($host_entity_type instanceof EntityDataDefinitionInterface);
-
-    $choices = [];
-    foreach ($tree->getComponentInstanceUuids() as $uuid) {
-      $component_plugin_id = $tree->getComponentId($uuid);
-      if (array_key_exists($component_plugin_id, $choices)) {
-        // The same component plugin may be instantiated multiple times — no
-        // need to find prop source suggestions for each instance.
-        continue;
-      }
-      $choices[$component_plugin_id] = $prop_source_suggester->suggest($component_plugin_id, $host_entity_type);
-    }
-    return $choices;
   }
 
   /**
