@@ -301,20 +301,6 @@ class ComponentTreeStructure extends TypedData implements DependentPluginInterfa
   }
 
   /**
-   * All unique components used in the tree are dependencies.
-   */
-  public function getDependencies(): array {
-    $dependencies = [];
-    $component_ids = $this->getComponentIdList();
-
-    foreach ($component_ids as $component_id) {
-      // @see \Drupal\Core\Config\Entity\ConfigEntityTypeInterface::getConfigPrefix()
-      $dependencies['config'][] = 'experience_builder.component.' . $component_id;
-    }
-    return $dependencies;
-  }
-
-  /**
    * Gets component source for given instance UUID.
    *
    * @param string $component_instance_uuid
