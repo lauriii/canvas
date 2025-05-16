@@ -5,6 +5,13 @@
   background: #fff;
 }
 
+.header {
+  height: 40px;
+  border-bottom: 1px solid var(--gray-5);
+}
+.scrollArea {
+  height: calc(100% - 41px);
+}
 .segmentedControlRoot {
   margin-bottom: 24px;
   margin-inline-start: 31px;

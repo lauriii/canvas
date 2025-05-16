@@ -1,74 +1,57 @@
 import clsx from 'clsx';
 import styles from '@/components/sidePanel/PrimaryPanel.module.css';
-import { Box, Flex, ScrollArea, Tabs } from '@radix-ui/themes';
-import { useAppDispatch, useAppSelector } from '@/app/hooks';
+import { Box, Flex, Heading, ScrollArea } from '@radix-ui/themes';
+import { useAppSelector } from '@/app/hooks';
 import Library from '@/components/sidePanel/Library';
-import {
-  selectActivePanel,
-  setActivePanel,
-} from '@/features/ui/primaryPanelSlice';
+import { selectActivePanel } from '@/features/ui/primaryPanelSlice';
 import useHidePanelClasses from '@/hooks/useHidePanelClasses';
 import ErrorBoundary from '@/components/error/ErrorBoundary';
 import Layers from '@/features/layout/layers/Layers';
+import ExtensionsList from '@/components/extensions/ExtensionsList';
 
 export const PrimaryPanel = () => {
   const activePanel = useAppSelector(selectActivePanel);
-  const dispatch = useAppDispatch();
   const offLeftClasses = useHidePanelClasses('left');
 
-  const onValueChange = (selectedPanel: string) => {
-    dispatch(setActivePanel(selectedPanel));
+  const panelMap: Record<string, string> = {
+    library: 'Library',
+    layers: 'Layers',
+    extensions: 'Extensions',
   };
 
   return (
-    <Box
+    <Flex
       className={clsx(styles.primaryPanel, ...offLeftClasses)}
-      pt="3"
       data-testid="xb-primary-panel"
+      direction="column"
     >
-      <Flex direction="column" height="100%">
-        <Tabs.Root
-          defaultValue={'layers'}
-          onValueChange={onValueChange}
-          value={activePanel}
-          className={clsx(styles.tabRoot)}
-        >
-          <Tabs.List justify="start" mx="4" size="1">
-            <Tabs.Trigger value="layers" data-testid="xb-primary-panel--layers">
-              Layers
-            </Tabs.Trigger>
-            <Tabs.Trigger
-              value="library"
-              data-testid="xb-primary-panel--library"
-            >
-              Library
-            </Tabs.Trigger>
-          </Tabs.List>
-          <ScrollArea scrollbars="both" className={styles.scrollArea}>
-            <Box
-              px="4"
-              pt="4"
-              className={clsx(
-                'primaryPanelContent',
-                styles.primaryPanelContent,
-              )}
-            >
-              <Tabs.Content
-                value={'layers'}
-                className={styles.layersTabContent}
-              >
-                <ErrorBoundary>
-                  <Layers />
-                </ErrorBoundary>
-              </Tabs.Content>
-              <Tabs.Content value={'library'}>
-                <Library />
-              </Tabs.Content>
-            </Box>
-          </ScrollArea>
-        </Tabs.Root>
+      <Flex className={styles.header} px="4" align="center" flexShrink="0">
+        <Heading as="h4" size="2" trim="both">
+          {panelMap[activePanel]}
+        </Heading>
       </Flex>
-    </Box>
+      <Box flexGrow="1" className={styles.scrollArea}>
+        <ScrollArea scrollbars="both">
+          <Box p="4" className="primaryPanelContent">
+            {activePanel === 'layers' && (
+              <ErrorBoundary>
+                <Layers />
+              </ErrorBoundary>
+            )}
+            {activePanel === 'library' && (
+              <ErrorBoundary>
+                <Library />
+              </ErrorBoundary>
+            )}
+            {activePanel === 'extensions' && (
+              <ErrorBoundary>
+                <ExtensionsList />
+              </ErrorBoundary>
+            )}
+          </Box>
+        </ScrollArea>
+      </Box>
+    </Flex>
   );
 };
 

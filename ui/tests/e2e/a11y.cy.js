@@ -72,9 +72,6 @@ describe('UI a11y Scan', () => {
     cy.drupalLogin('xbUser', 'xbUser');
     cy.loadURLandWaitForXBLoaded();
     cy.get('.primaryPanelContent').should('exist');
-    // Radix component has two of each button in the segmented control that it flips between.
-    cy.findAllByText('Layers').should('have.length', 2);
-    cy.findAllByText('Library').should('have.length', 2);
 
     cy.injectAxe();
     // @todo there are several a11y rules not being checked in order for the
@@ -114,9 +111,6 @@ describe('UI a11y Scan', () => {
       'data-state',
       'active',
     );
-    // It's gross but the Radix component has two of each button in the segmented control that it flips between.
-    cy.findAllByText('Settings').should('have.length', 2);
-    cy.findAllByText('Page data').should('have.length', 2);
 
     cy.injectAxe();
     // @todo there are several a11y rules not being checked in order for the

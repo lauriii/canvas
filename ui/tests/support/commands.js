@@ -583,11 +583,11 @@ Cypress.Commands.add(
 );
 
 Cypress.Commands.add('openLibraryPanel', () => {
-  cy.findByTestId('xb-primary-panel--library').click();
+  cy.findByTestId('xb-side-menu').findByLabelText('Add').click();
 });
 
 Cypress.Commands.add('openLayersPanel', () => {
-  cy.findByTestId('xb-primary-panel--layers').click();
+  cy.findByTestId('xb-side-menu').findByLabelText('Layers').click();
 });
 
 /**

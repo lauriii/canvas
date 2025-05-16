@@ -11,31 +11,20 @@ import {
 import UndoRedo from '@/components/UndoRedo';
 import DropIcon from '@assets/icons/drop.svg?react';
 import CMSIcon from '@assets/icons/cms.svg?react';
-import ExtensionIcon from '@assets/icons/extension.svg?react';
 import { EyeNoneIcon, EyeOpenIcon } from '@radix-ui/react-icons';
 import { useLocation, useNavigate } from 'react-router-dom';
 import clsx from 'clsx';
 import UnpublishedChanges from '@/components/review/UnpublishedChanges';
 import PageInfo from '../pageInfo/PageInfo';
-import ExtensionsList from '@/components/extensions/ExtensionsList';
 import TopbarPopover from '@/components/topbar/menu/TopbarPopover';
-import topBarStyles from '@/components/topbar/Topbar.module.css';
 import DynamicComponents from '@/components/dynamicComponents/DynamicComponents';
-import { getDrupalSettings } from '@/utils/drupal-globals';
 
 const PREVIOUS_URL_STORAGE_KEY = 'XBPreviousURL';
-
-const drupalSettings = getDrupalSettings();
 
 const Topbar = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const isPreview = location.pathname.includes('/preview');
-
-  let hasExtensions = false;
-  if (drupalSettings && drupalSettings.xbExtension) {
-    hasExtensions = Object.values(drupalSettings.xbExtension).length > 0;
-  }
 
   function handleChangeModeClick() {
     if (isPreview) {
@@ -80,24 +69,6 @@ const Topbar = () => {
             </Tooltip>
             <div className={clsx(styles.verticalDivider)}></div>
             {!isPreview && <UndoRedo />}
-            {hasExtensions && (
-              <TopbarPopover
-                tooltip="Extensions"
-                trigger={
-                  <Button
-                    variant="ghost"
-                    color="gray"
-                    size="2"
-                    className={clsx(topBarStyles.topBarButton)}
-                    aria-label="Extensions"
-                  >
-                    <ExtensionIcon height="24" width="auto" />
-                  </Button>
-                }
-              >
-                <ExtensionsList />
-              </TopbarPopover>
-            )}
             <TopbarPopover
               tooltip="Dynamic components"
               trigger={
@@ -108,7 +79,7 @@ const Topbar = () => {
                   className={clsx(styles.topBarButton)}
                   aria-label="Dynamic components"
                 >
-                  <CMSIcon height="24" width="auto" />
+                  <CMSIcon height="18" width="auto" />
                 </Button>
               }
             >

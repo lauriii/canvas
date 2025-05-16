@@ -1,4 +1,4 @@
-import { Flex, Heading, Link, Grid } from '@radix-ui/themes';
+import { Flex, Link, Grid } from '@radix-ui/themes';
 import { ExternalLinkIcon } from '@radix-ui/react-icons';
 import ExtensionButton from '@/components/extensions/ExtensionButton';
 import { handleNonWorkingBtn } from '@/utils/function-utils';
@@ -42,28 +42,22 @@ const ExtensionsListDisplay: React.FC<ExtensionsListDisplayProps> = ({
 }) => {
   return (
     <>
-      <Flex justify="between">
-        <Heading as="h3" size="3" mb="4">
-          Extensions
-        </Heading>
-
-        <Flex justify="end" asChild>
-          <Link
-            size="1"
-            href=""
-            target="_blank"
-            onClick={(e: React.MouseEvent<HTMLAnchorElement>) => {
-              e.preventDefault();
-              handleNonWorkingBtn();
-            }}
-          >
-            Browse extensions&nbsp; <ExternalLinkIcon />
-          </Link>
-        </Flex>
+      <Flex justify="end" asChild pb="2">
+        <Link
+          size="1"
+          href=""
+          target="_blank"
+          onClick={(e: React.MouseEvent<HTMLAnchorElement>) => {
+            e.preventDefault();
+            handleNonWorkingBtn();
+          }}
+        >
+          Browse extensions&nbsp; <ExternalLinkIcon />
+        </Link>
       </Flex>
 
       {extensions.length > 0 && (
-        <Grid columns="3" gap="3">
+        <Grid columns="2" gap="3">
           {extensions.map((extension) => (
             <ExtensionButton extension={extension} key={extension.id} />
           ))}
