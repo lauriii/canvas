@@ -14,6 +14,7 @@ import type { TransformConfig, Transforms } from '@/utils/transforms';
 import transforms from '@/utils/transforms';
 import qs from 'qs';
 import addDraft2019 from 'ajv-formats-draft2019';
+import { getDrupal } from '@/utils/drupal-globals';
 const ajv = new Ajv();
 addFormats(ajv);
 addDraft2019(ajv);
@@ -338,7 +339,7 @@ export function getPropsValues(
   // Iterate through every item in form state that corresponds to
   // a component input to create propsValues, which will ultimately be
   // used to update this component's model.
-  const { Drupal } = (window as any) || {
+  const Drupal = getDrupal() || {
     Drupal: { xbTransforms: transforms },
   };
   const transformsList: Transforms = Drupal?.xbTransforms || transforms;

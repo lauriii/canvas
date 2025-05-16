@@ -1,4 +1,6 @@
-const { drupalSettings } = window as any;
+import { getDrupalSettings } from '@/utils/drupal-globals';
+
+const drupalSettings = getDrupalSettings();
 
 const addAjaxPageState = (query: string) => {
   // Drupal's AJAX API automatically adds ajaxPageState as a parameter, but

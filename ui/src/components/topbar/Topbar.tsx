@@ -21,10 +21,11 @@ import ExtensionsList from '@/components/extensions/ExtensionsList';
 import TopbarPopover from '@/components/topbar/menu/TopbarPopover';
 import topBarStyles from '@/components/topbar/Topbar.module.css';
 import DynamicComponents from '@/components/dynamicComponents/DynamicComponents';
+import { getDrupalSettings } from '@/utils/drupal-globals';
 
 const PREVIOUS_URL_STORAGE_KEY = 'XBPreviousURL';
 
-const { drupalSettings } = window;
+const drupalSettings = getDrupalSettings();
 
 const Topbar = () => {
   const navigate = useNavigate();

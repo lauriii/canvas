@@ -1,5 +1,12 @@
 import { vi } from 'vitest';
 
+const mockDrupalSettings = {
+  path: {
+    baseUrl: '/',
+  },
+  xb: {},
+};
+
 vi.stubGlobal('URL', {
   createObjectURL: vi.fn().mockImplementation((blob) => {
     return `mock-object-url/${blob.name}`;
@@ -10,14 +17,17 @@ vi.mock('@/utils/drupal-globals', () => ({
   getDrupal: () => ({
     url: (path) => `http://mock-drupal-url/${path}`,
   }),
-  getDrupalSettings: () => ({
-    path: {
-      baseUrl: '/',
-    },
-    xb: {},
-  }),
-  getXbSettings: () => ({}),
-  getBasePath: () => '/',
+  getDrupalSettings: () => mockDrupalSettings,
+  getXbSettings: () => mockDrupalSettings.xb,
+  getBasePath: () => mockDrupalSettings.path.baseUrl,
+  setXbDrupalSetting: (property, value) => {
+    if (mockDrupalSettings?.xb?.[property]) {
+      mockDrupalSettings.xb[property] = {
+        ...mockDrupalSettings.xb[property],
+        ...value,
+      };
+    }
+  },
 }));
 
 vi.mock('@swc/wasm-web', () => ({

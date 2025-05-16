@@ -40,7 +40,7 @@ import {
   selectEntityId,
   selectEntityType,
 } from '@/features/configuration/configurationSlice';
-import { getBaseUrl } from '@/utils/drupal-globals';
+import { getBaseUrl, getXbSettings } from '@/utils/drupal-globals';
 
 interface PageType {
   [key: string]: ReactElement;
@@ -53,7 +53,7 @@ const iconMap: PageType = {
   GlobalSectionName: <SectionIcon />,
 };
 
-const { drupalSettings } = window;
+const xbSettings = getXbSettings();
 
 const PageInfo = () => {
   const { showBoundary } = useErrorBoundary();
@@ -68,7 +68,7 @@ const PageInfo = () => {
   )?.name;
   const entity_form_fields = useAppSelector(selectPageData);
   const title =
-    entity_form_fields[`${drupalSettings.xb.entityTypeKeys.label}[0][value]`];
+    entity_form_fields[`${xbSettings.entityTypeKeys.label}[0][value]`];
 
   const {
     data: pageItems,

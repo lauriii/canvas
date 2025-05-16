@@ -1,7 +1,8 @@
 import { useEffect } from 'react';
 import type { RefObject } from 'react';
+import { getDrupal } from '@/utils/drupal-globals';
 
-const { Drupal } = window as any;
+const Drupal = getDrupal();
 
 export function useDrupalBehaviors(
   ref: RefObject<HTMLElement>,

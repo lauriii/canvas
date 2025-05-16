@@ -1,9 +1,9 @@
 import { useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { DEFAULT_REGION } from '@/features/ui/uiSlice';
-import { getBaseUrl } from '@/utils/drupal-globals';
+import { getBaseUrl, getXbSettings } from '@/utils/drupal-globals';
 
-const { drupalSettings } = window;
+const xbSettings = getXbSettings();
 
 /**
  * Hook for editor navigation functions
@@ -43,7 +43,7 @@ export function useEditorNavigation() {
     setEditorEntity,
   };
 
-  drupalSettings.xb.navUtils = editorNavUtils;
+  xbSettings.navUtils = editorNavUtils;
 
   return editorNavUtils;
 }

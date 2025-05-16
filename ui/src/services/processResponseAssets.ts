@@ -1,6 +1,7 @@
 import type { PropsValues } from '@/types/Form';
+import { getDrupal } from '@/utils/drupal-globals';
 
-const { Drupal } = window as any;
+const Drupal = getDrupal();
 
 /**
  * Takes a response rendered by XBTemplateRenderer, identifies any attached

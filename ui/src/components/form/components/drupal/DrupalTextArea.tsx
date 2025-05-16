@@ -5,7 +5,9 @@ import { useRef, useState } from 'react';
 import { Flex } from '@radix-ui/themes';
 import type { Attributes } from '@/types/DrupalAttribute';
 import DrupalFormattedTextArea from './DrupalFormattedTextArea';
-const { drupalSettings } = window as any;
+import { getDrupalSettings } from '@/utils/drupal-globals';
+import type { FormatType } from '@/types/FormatType';
+const drupalSettings = getDrupalSettings();
 
 const DrupalTextArea = ({
   attributes = {},
@@ -66,20 +68,6 @@ const DrupalTextArea = ({
     </>
   );
 };
-
-interface FormatType {
-  format: string;
-  editor?: string;
-  editorSettings?: {
-    toolbar: any[];
-    plugins: string[];
-    config: {
-      [key: string]: any;
-    };
-    language: Record<string, any>;
-  };
-  [key: string]: any;
-}
 
 interface FormatSelectProps {
   attributes: Attributes;

@@ -17,8 +17,9 @@ import {
 import type { RegionNode } from '@/features/layout/layoutModelSlice';
 import { selectLayout } from '@/features/layout/layoutModelSlice';
 import { selectDevMode } from '@/features/configuration/configurationSlice';
+import { getXbSettings } from '@/utils/drupal-globals';
 
-const { drupalSettings } = window;
+const xbSettings = getXbSettings();
 
 /**
  * Filters out any components that are parents or children of components in the selection
@@ -263,7 +264,7 @@ export function useComponentSelection() {
   };
 
   // Add to Drupal settings for external access by extensions etc
-  drupalSettings.xb.componentSelectionUtils = componentSelectionUtils;
+  xbSettings.componentSelectionUtils = componentSelectionUtils;
 
   return componentSelectionUtils;
 }

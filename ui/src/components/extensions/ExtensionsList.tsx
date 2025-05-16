@@ -3,10 +3,17 @@ import { ExternalLinkIcon } from '@radix-ui/react-icons';
 import ExtensionButton from '@/components/extensions/ExtensionButton';
 import { handleNonWorkingBtn } from '@/utils/function-utils';
 import type React from 'react';
+import {
+  getBaseUrl,
+  getDrupalSettings,
+  getXbSettings,
+} from '@/utils/drupal-globals';
 
 interface ExtensionsPopoverProps {}
 
-const { drupalSettings } = window;
+const drupalSettings = getDrupalSettings();
+const baseUrl = getBaseUrl();
+const xbSettings = getXbSettings();
 
 const ExtensionsList: React.FC<ExtensionsPopoverProps> = () => {
   let extensionsList = [];
@@ -16,7 +23,7 @@ const ExtensionsList: React.FC<ExtensionsPopoverProps> = () => {
         ...value,
         imgSrc:
           value.imgSrc ||
-          `${drupalSettings.path.baseUrl}${drupalSettings.xb.xbModulePath}/ui/assets/icons/extension-default-abstract.svg`,
+          `${baseUrl}${xbSettings.xbModulePath}/ui/assets/icons/extension-default-abstract.svg`,
         name: value.name,
         description: value.description,
       };

@@ -8,7 +8,7 @@ import { createSelector } from '@reduxjs/toolkit';
 import { createSlice } from '@reduxjs/toolkit';
 import type { StateWithHistory } from 'redux-undo';
 import { v4 as uuidv4 } from 'uuid';
-import { setXbDrupalSetting } from '@/features/drupal/drupalUtil';
+import { setXbDrupalSetting } from '@/utils/drupal-globals';
 import {
   findComponentByUuid,
   findNodePathByUuid,

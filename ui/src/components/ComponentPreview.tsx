@@ -4,12 +4,14 @@ import styles from './ComponentPreview.module.css';
 import clsx from 'clsx';
 import type { XBComponent } from '@/types/Component';
 import type { Section } from '@/types/Section';
+import { getBaseUrl, getDrupalSettings } from '@/utils/drupal-globals';
 
 interface ComponentPreviewProps {
   componentListItem: XBComponent | Section;
 }
 
-const { drupalSettings } = window;
+const drupalSettings = getDrupalSettings();
+const baseUrl = getBaseUrl();
 
 const ComponentPreview: React.FC<ComponentPreviewProps> = ({
   componentListItem,
@@ -27,7 +29,7 @@ const ComponentPreview: React.FC<ComponentPreviewProps> = ({
     drupalSettings?.xb.globalAssets.jsHeader + component.js_header;
 
   const markup = component.default_markup;
-  const base_url = window.location.origin + drupalSettings?.path.baseUrl;
+  const base_url = window.location.origin + baseUrl;
 
   const html = `
 <html>

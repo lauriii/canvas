@@ -8,7 +8,7 @@ import type {
 } from './layoutModelSlice';
 import { NodeType } from './layoutModelSlice';
 import { v4 as uuidv4 } from 'uuid';
-import { setXbDrupalSetting } from '@/features/drupal/drupalUtil';
+import { setXbDrupalSetting } from '@/utils/drupal-globals';
 import { isConsecutive } from '@/utils/function-utils';
 
 type NodeFunction = (

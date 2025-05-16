@@ -18,6 +18,7 @@ import { selectPageData } from '@/features/pageData/pageDataSlice';
 import { selectPreviewHtml } from '@/features/pagePreview/previewSlice';
 import { contentApi } from '@/services/content';
 import { selectSelectedComponentUuid } from '@/features/ui/uiSlice';
+import { getXbSettings } from '@/utils/drupal-globals';
 
 interface PreviewProps {}
 
@@ -33,9 +34,9 @@ const previewSizes = {
     name: 'Mobile',
   },
 };
-const { drupalSettings } = window;
+const xbSettings = getXbSettings();
 type PreviewSizeKey = keyof typeof previewSizes;
-const labelFormKey = `${drupalSettings.xb.entityTypeKeys.label}[0][value]`;
+const labelFormKey = `${xbSettings.entityTypeKeys.label}[0][value]`;
 
 const Preview: React.FC<PreviewProps> = () => {
   const layout = useAppSelector(selectLayout);

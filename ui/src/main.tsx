@@ -20,6 +20,7 @@ import transforms from '@/utils/transforms';
 import '@/styles/radix-themes';
 import '@/styles/index.css';
 import { AJAX_UPDATE_FORM_STATE_EVENT } from '@/types/Ajax';
+import { getBaseUrl, getDrupal, getXbSettings } from '@/utils/drupal-globals';
 
 // Provide these dependencies as globals so extensions do not have redundant and
 // potentially conflicting dependencies.
@@ -32,17 +33,18 @@ interface ProviderComponentProps {
   store: EnhancedStore;
 }
 
-const { drupalSettings } = window;
-const { Drupal } = window as any;
+const Drupal = getDrupal();
+const xbSettings = getXbSettings();
+const baseUrl = getBaseUrl();
 
 const container = document.getElementById('experience-builder');
 
 const appConfiguration: AppConfiguration = {
   ...initialState,
-  baseUrl: drupalSettings?.path?.baseUrl || import.meta.env.BASE_URL,
-  entityType: drupalSettings?.xb?.entityType || 'node',
-  entity: drupalSettings?.xb?.entity || '1',
-  devMode: drupalSettings?.xb?.devMode || false,
+  baseUrl: baseUrl || import.meta.env.BASE_URL,
+  entityType: xbSettings.entityType || 'node',
+  entity: xbSettings.entity || '1',
+  devMode: xbSettings.devMode || false,
 };
 
 const isAjaxing = () =>
@@ -88,13 +90,13 @@ Drupal.attachBehaviorsAfterAjaxing = attachBehaviorsAfterAjaxing;
 if (container) {
   const root = createRoot(container);
   let routerRoot = appConfiguration.baseUrl;
-  if (drupalSettings?.xb?.base) {
-    routerRoot = `${routerRoot}${drupalSettings.xb.base}`;
+  if (xbSettings.base) {
+    routerRoot = `${routerRoot}${xbSettings.base}`;
   }
   const store = makeStore({ configuration: appConfiguration });
 
   // Make the store available to extensions.
-  (drupalSettings as any).xb.store = store;
+  xbSettings.store = store;
 
   root.render(
     <React.StrictMode>
