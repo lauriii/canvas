@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\Tests\experience_builder\Functional;
 
 use Drupal\Component\Serialization\Json;
+use Drupal\experience_builder\AutoSave\AutoSaveManager;
 use Drupal\experience_builder\Entity\Component;
 use Drupal\node\Entity\Node;
 use Drupal\Tests\system\Functional\Cache\AssertPageCacheContextsAndTagsTrait;
@@ -60,6 +61,7 @@ class PropSourceEndpointTest extends FunctionalTestBase {
       'comment_list',
       'config:component_list',
       'config:core.extension',
+      'config:experience_builder.js_component.my-cta',
       'config:search.settings',
       'config:system.menu.account',
       'config:system.menu.admin',
@@ -77,6 +79,7 @@ class PropSourceEndpointTest extends FunctionalTestBase {
       'user:0',
       'user:1',
       'user_list',
+      AutoSaveManager::CACHE_TAG,
     ];
 
     $expected_contexts = [

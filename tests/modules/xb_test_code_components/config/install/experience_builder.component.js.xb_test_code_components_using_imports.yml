@@ -1,0 +1,14 @@
+uuid: dd1e8922-118a-4ff7-b83c-bc8543efdc5a
+langcode: en
+status: true
+dependencies:
+  config:
+    - experience_builder.js_component.xb_test_code_components_using_imports
+label: 'Component using imports'
+id: js.xb_test_code_components_using_imports
+provider: null
+source: js
+category: '@todo'
+settings:
+  local_source_id: xb_test_code_components_using_imports
+  prop_field_definitions: {  }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource;
 
+use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Config\Entity\ConfigEntityStorageInterface;
 use Drupal\Core\Extension\ExtensionPathResolver;
 use Drupal\Core\File\FileUrlGeneratorInterface;
@@ -165,7 +166,16 @@ final class JsComponent extends GeneratedFieldExplicitInputUxComponentSourceBase
       \assert($autoSave->data !== NULL);
       $component = $component->forAutoSavePreview($autoSave->data);
     }
+    if ($isPreview) {
+      $build['#cache']['tags'][] = AutoSaveManager::CACHE_TAG;
+    }
+
     $valid_props = $component->getProps() ?? [];
+
+    CacheableMetadata::createFromRenderArray($build)
+      ->addCacheableDependency($component)
+      ->applyTo($build);
+
     return $build + [
       '#type' => 'astro_island',
       '#uuid' => $componentUuid,

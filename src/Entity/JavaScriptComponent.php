@@ -168,9 +168,9 @@ final class JavaScriptComponent extends ConfigEntityBase implements XbAssetInter
       ]);
     }
 
+    $violation_list = new EntityConstraintViolationList($this);
     if (array_key_exists('source_code_js', $data) || array_key_exists('compiled_js', $data)) {
       if (!array_key_exists('imported_js_components', $data)) {
-        $violation_list = new EntityConstraintViolationList($this);
         $violation_list->add(new ConstraintViolation(
           "The 'imported_js_components' field is required when 'source_code_js' or 'compiled_js' is provided",
           "The 'imported_js_components' field is required when 'source_code_js' or 'compiled_js' is provided",
@@ -179,6 +179,22 @@ final class JavaScriptComponent extends ConfigEntityBase implements XbAssetInter
           "imported_js_components",
           NULL
         ));
+        throw new ConstraintViolationException($violation_list);
+      }
+      foreach ($data['imported_js_components'] as $key => $js_component_name) {
+        // Test that the imported_js_components are valid names.
+        if (!preg_match('/^[a-z0-9_-]+$/', $js_component_name)) {
+          $violation_list->add(new ConstraintViolation(
+            "The 'imported_js_components' contains an invalid component name.",
+            "The 'imported_js_components' contains an invalid component name.",
+            [],
+            NULL,
+            "imported_js_components",
+            NULL
+          ));
+        }
+      }
+      if ($violation_list->count() > 0) {
         throw new ConstraintViolationException($violation_list);
       }
       // The client calculates imported JavaScript components dependencies. This
@@ -358,8 +374,8 @@ final class JavaScriptComponent extends ConfigEntityBase implements XbAssetInter
       $js_component = JavaScriptComponent::load($js_component_name);
       if (!$js_component) {
         $violation_list->add(new ConstraintViolation(
-          "The JavaScript component with machine name '$js_component_name' does not exist.",
-          "The JavaScript component with machine name '$js_component_name' does not exist.",
+          "The JavaScript component with the machine name '$js_component_name' does not exist.",
+          "The JavaScript component with the machine name '$js_component_name' does not exist.",
           [],
           NULL,
           "imported_js_components.$key",
@@ -435,6 +451,14 @@ final class JavaScriptComponent extends ConfigEntityBase implements XbAssetInter
     );
     $js_component_ids = array_map(fn($dependency) => mb_substr($dependency, mb_strlen($this->getConfigPrefix()) + 1), $js_dependencies);
     return self::loadMultiple($js_component_ids);
+  }
+
+  public function getCacheTags() {
+    $cache_tags = parent::getCacheTags();
+    if ($dependencies = $this->getDependencies()) {
+      $cache_tags = array_merge($cache_tags, array_map(fn($dependency) => "config:$dependency", $dependencies['config'] ?? []));
+    }
+    return $cache_tags;
   }
 
 }

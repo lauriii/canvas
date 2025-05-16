@@ -7,6 +7,7 @@ namespace Drupal\Tests\experience_builder\Kernel\DataType;
 // cspell:ignore ttxgk xpzur
 
 use Drupal\Core\Render\Element;
+use Drupal\experience_builder\AutoSave\AutoSaveManager;
 use Drupal\experience_builder\Entity\JavaScriptComponent;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 use Drupal\Component\Utility\NestedArray;
@@ -140,6 +141,7 @@ HTML,
             'config:experience_builder.js_component.site_branding',
             'config:system.site',
             'config:experience_builder.component.block.system_branding_block',
+            AutoSaveManager::CACHE_TAG,
           ],
         ] + $original_test_case,
 
@@ -241,7 +243,9 @@ HTML,
           'expected_cache_tags' => [
             'config:experience_builder.component.sdc.xb_test_sdc.props-slots',
             'config:experience_builder.component.sdc.xb_test_sdc.props-no-slots',
+            'config:experience_builder.js_component.my-cta-with-auto-save',
             'config:experience_builder.component.js.my-cta-with-auto-save',
+            'config:experience_builder.js_component.my-cta',
             'config:experience_builder.component.js.my-cta',
             'config:experience_builder.js_component.site_branding',
             'config:system.site',
@@ -347,7 +351,10 @@ HTML,
           'expected_cache_tags' => [
             'config:experience_builder.component.sdc.xb_test_sdc.props-slots',
             'config:experience_builder.component.sdc.xb_test_sdc.props-no-slots',
+            AutoSaveManager::CACHE_TAG,
+            'config:experience_builder.js_component.my-cta-with-auto-save',
             'config:experience_builder.component.js.my-cta-with-auto-save',
+            'config:experience_builder.js_component.my-cta',
             'config:experience_builder.component.js.my-cta',
             'config:experience_builder.js_component.site_branding',
             'config:system.site',

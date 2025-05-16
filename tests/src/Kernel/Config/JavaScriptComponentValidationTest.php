@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\experience_builder\Kernel\Config;
 
-// cspell:ignore sofie
+// cspell:ignore sofie componente extraño
 
 use Drupal\experience_builder\Entity\JavaScriptComponent;
+use Drupal\experience_builder\Exception\ConstraintViolationException;
+use Drupal\Tests\experience_builder\Traits\BetterConfigDependencyManagerTrait;
 
 /**
  * Tests validation of JavaScriptComponent entities.
@@ -16,6 +18,8 @@ use Drupal\experience_builder\Entity\JavaScriptComponent;
  * @group #slow
  */
 class JavaScriptComponentValidationTest extends BetterConfigEntityValidationTestBase {
+
+  use BetterConfigDependencyManagerTrait;
 
   /**
    * {@inheritdoc}
@@ -56,9 +60,7 @@ class JavaScriptComponentValidationTest extends BetterConfigEntityValidationTest
    */
   protected function setUp(): void {
     parent::setUp();
-
-    $this->entity = JavaScriptComponent::create([
-      'machineName' => 'test',
+    $javascript_component_base = [
       'name' => 'Test',
       'status' => TRUE,
       'props' => [
@@ -86,8 +88,46 @@ class JavaScriptComponentValidationTest extends BetterConfigEntityValidationTest
         'original' => '.test { display: none; }',
         'compiled' => '.test{display:none;}',
       ],
+    ];
+    JavaScriptComponent::create([...$javascript_component_base, 'machineName' => 'other'])->save();
+    $this->entity = JavaScriptComponent::create([
+      ...$javascript_component_base,
+      'machineName' => 'test',
+      'dependencies' => [
+        'enforced' => [
+          'config' => [
+            // @phpstan-ignore-next-line
+            JavaScriptComponent::load('other')->getConfigDependencyName(),
+          ],
+        ],
+      ],
     ]);
     $this->entity->save();
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function testEntityIsValid(): void {
+    parent::testEntityIsValid();
+
+    // Beyond validity, validate config dependencies are computed correctly.
+    $this->assertSame(
+      [
+        'config' => [
+          'experience_builder.js_component.other',
+        ],
+      ],
+      $this->entity->getDependencies()
+    );
+    $this->assertSame([
+      'config' => [
+        'experience_builder.js_component.other',
+      ],
+      'module' => [
+        'experience_builder',
+      ],
+    ], $this->getAllDependencies($this->entity));
   }
 
   /**
@@ -162,6 +202,24 @@ class JavaScriptComponentValidationTest extends BetterConfigEntityValidationTest
       $expected_validation_errors["props.tested_enum_prop.examples.$index"] = $validation_error;
     }
     $this->assertValidationErrors($expected_validation_errors);
+  }
+
+  /**
+   * @testWith ["missing", "The JavaScript component with the machine name 'missing' does not exist."]
+   *           ["", "The 'imported_js_components' contains an invalid component name."]
+   *           ["🚀", "The 'imported_js_components' contains an invalid component name."]
+   *           ["componente_extraño", "The 'imported_js_components' contains an invalid component name."]
+   *           [";", "The 'imported_js_components' contains an invalid component name."]
+   */
+  public function testNonExistingJsDependencies(string $component_id, string $expected_exception_message): void {
+    \assert($this->entity instanceof JavaScriptComponent);
+    $this->expectException(ConstraintViolationException::class);
+    $this->expectExceptionMessage($expected_exception_message);
+
+    \assert($this->entity instanceof JavaScriptComponent);
+    $client_values = $this->entity->normalizeForClientSide()->values;
+    $client_values['imported_js_components'] = [$component_id];
+    $this->entity->updateFromClientSide($client_values);
   }
 
   public static function providerInvalidEnumsAndExamples(): array {

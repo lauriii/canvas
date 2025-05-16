@@ -11,6 +11,7 @@ use Drupal\Component\Utility\Crypt;
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Asset\AssetResolverInterface;
 use Drupal\Core\Asset\AttachedAssets;
+use Drupal\Core\Cache\CacheableDependencyInterface;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\File\FileUrlGeneratorInterface;
 use Drupal\Core\Site\Settings;
@@ -123,6 +124,10 @@ final class JsComponentTest extends ComponentSourceTestBase {
 
   public static function getExpectedSettings(): array {
     return [
+      'js.xb_test_code_components_using_imports' => [
+        'local_source_id' => 'xb_test_code_components_using_imports',
+        'prop_field_definitions' => [],
+      ],
       'js.xb_test_code_components_vanilla_image' => [
         'local_source_id' => 'xb_test_code_components_vanilla_image',
         'prop_field_definitions' => [
@@ -183,7 +188,7 @@ final class JsComponentTest extends ComponentSourceTestBase {
     // rendering.
     // @see ::testRenderComponent()
     $rendered_without_html = array_map(
-      fn ($expectations) => array_diff_key($expectations, ['html' => NULL]),
+      fn($expectations) => array_diff_key($expectations, ['html' => NULL]),
       $rendered,
     );
 
@@ -192,17 +197,30 @@ final class JsComponentTest extends ComponentSourceTestBase {
       'theme',
       'user.permissions',
     ];
+
     $default_cacheability = (new CacheableMetadata())
       ->setCacheContexts($default_render_cache_contexts);
+
     $this->assertEquals([
+      'js.xb_test_code_components_using_imports' => [
+        'cacheability' => (clone $default_cacheability)
+          ->setCacheTags([
+            'config:experience_builder.js_component.xb_test_code_components_using_imports',
+            'config:experience_builder.js_component.xb_test_code_components_with_no_props',
+            'config:experience_builder.js_component.xb_test_code_components_with_props',
+          ]),
+      ],
       'js.xb_test_code_components_vanilla_image' => [
-        'cacheability' => $default_cacheability,
+        'cacheability' => (clone $default_cacheability)
+          ->setCacheTags(['config:experience_builder.js_component.xb_test_code_components_vanilla_image']),
       ],
       'js.xb_test_code_components_with_no_props' => [
-        'cacheability' => $default_cacheability,
+        'cacheability' => (clone $default_cacheability)
+          ->setCacheTags(['config:experience_builder.js_component.xb_test_code_components_with_no_props']),
       ],
       'js.xb_test_code_components_with_props' => [
-        'cacheability' => $default_cacheability,
+        'cacheability' => (clone $default_cacheability)
+          ->setCacheTags(['config:experience_builder.js_component.xb_test_code_components_with_props']),
       ],
     ], $rendered_without_html);
   }
@@ -211,18 +229,21 @@ final class JsComponentTest extends ComponentSourceTestBase {
    * For JavaScript components, auto-saves create an extra testing dimension!
    *
    * @depends testDiscovery
-   * @testWith [false, false, "live"]
-   *           [false, true, "live"]
-   *           [true, false, "live"]
-   *           [true, true, "draft"]
+   * @testWith [false, false, "live", []]
+   *           [false, true, "live", []]
+   *           [true, false, "live", ["experience_builder__auto_save"]]
+   *           [true, true, "draft", ["experience_builder__auto_save"]]
    */
-  public function testRenderJsComponent(bool $preview_requested, bool $auto_save_exists, string $expected_result, array $component_ids): void {
+  public function testRenderJsComponent(bool $preview_requested, bool $auto_save_exists, string $expected_result, array $additional_expected_cache_tags, array $component_ids): void {
     $this->generateComponentConfig();
     foreach ($this->componentStorage->loadMultiple($component_ids) as $component) {
       assert($component instanceof Component);
       $source = $component->getComponentSource();
       \assert($source instanceof JsComponent);
-      $this->assertRenderedAstroIsland($component, $preview_requested, $auto_save_exists, $expected_result);
+      $expected_cacheability = (new CacheableMetadata())
+        ->addCacheTags($additional_expected_cache_tags)
+        ->addCacheableDependency($source->getJavaScriptComponent());
+      $this->assertRenderedAstroIsland($component, $preview_requested, $auto_save_exists, $expected_result, $expected_cacheability);
     }
   }
 
@@ -241,6 +262,7 @@ final class JsComponentTest extends ComponentSourceTestBase {
     bool $preview_requested,
     bool $auto_save_exists,
     string $expected_result,
+    CacheableDependencyInterface $expected_cacheability,
   ): void {
     $source = $component->getComponentSource();
     \assert($source instanceof JsComponent);
@@ -254,18 +276,28 @@ final class JsComponentTest extends ComponentSourceTestBase {
     if ($auto_save_exists) {
       $this->container->get(AutoSaveManager::class)
         ->save(
-          $source->getJavaScriptComponent(),
+          $js_component,
           // 'imported_js_components' is a value sent by the client that is used to
           // determine Javascript Code component dependencies and is not saved
           // directly on the backend.
+          // Ensure that the current set of imported JS components continues to
+          // be respected.
           // @see \Drupal\experience_builder\Entity\JavaScriptComponent::addJavaScriptComponentsDependencies().
-          $source->getJavaScriptComponent()->normalizeForClientSide()->values + ['imported_js_components' => []],
+          $js_component->normalizeForClientSide()->values + [
+            'imported_js_components' => array_map(
+              fn (string $config_name): string => str_replace('experience_builder.js_component.', '', $config_name),
+              $js_component->toArray()['dependencies']['enforced']['config'] ?? []
+            ),
+          ],
         );
     }
 
     $island = $source->renderComponent([
       'props' => $expected_component_props,
     ], 'some-uuid', $preview_requested);
+
+    $this->assertEquals($expected_cacheability, CacheableMetadata::createFromRenderArray($island));
+
     $crawler = $this->crawlerForRenderArray($island);
 
     $element = $crawler->filter('astro-island');
@@ -332,6 +364,11 @@ final class JsComponentTest extends ComponentSourceTestBase {
    */
   public function testCalculateDependencies(array $component_ids): void {
     self::assertSame([
+      'js.xb_test_code_components_using_imports' => [
+        'config' => [
+          'experience_builder.js_component.xb_test_code_components_using_imports',
+        ],
+      ],
       'js.xb_test_code_components_vanilla_image' => [
         'module' => [
           'image',
@@ -611,6 +648,17 @@ final class JsComponentTest extends ComponentSourceTestBase {
    */
   public static function getExpectedClientSideInfo(): array {
     return [
+      'js.xb_test_code_components_using_imports' => [
+        'expected_output_selectors' => [
+          'astro-island[opts*="using imports"]',
+          'script[blocking="render"][src*="/ui/lib/astro-hydration/dist/client.js"]',
+        ],
+        'source' => 'Code component',
+        'metadata' => ['slots' => []],
+        'propSources' => [],
+        'dynamic_prop_source_candidates' => [],
+        'transforms' => [],
+      ],
       'js.xb_test_code_components_vanilla_image' => [
         'expected_output_selectors' => [
           'astro-island[opts*="Vanilla Image"][props*="placehold.co"]',

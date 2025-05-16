@@ -40,6 +40,9 @@ class JavascriptComponentTest extends KernelTestBase {
     $js_component = JavaScriptComponent::createFromClientSide($client_data);
     $this->assertSame(SAVED_NEW, $js_component->save());
     $this->assertCount(0, $js_component->getDependencies());
+    $this->assertSame([
+      'config:experience_builder.js_component.test',
+    ], $js_component->getCacheTags());
 
     // Create another component that will be imported by the first one.
     $client_data_2 = $client_data;
@@ -48,6 +51,9 @@ class JavascriptComponentTest extends KernelTestBase {
     $js_component2 = JavaScriptComponent::createFromClientSide($client_data_2);
     $this->assertSame(SAVED_NEW, $js_component2->save());
     $this->assertCount(0, $js_component2->getDependencies());
+    $this->assertSame([
+      'config:experience_builder.js_component.test2',
+    ], $js_component2->getCacheTags());
 
     // Adding a component to `imported_js_components` should add this component
     // to the dependencies.
@@ -60,6 +66,10 @@ class JavascriptComponentTest extends KernelTestBase {
       ],
       $js_component->getDependencies()
     );
+    $this->assertSame([
+      'config:experience_builder.js_component.test',
+      'config:experience_builder.js_component.test2',
+    ], $js_component->getCacheTags());
 
     // Ensure missing components are will throw a validation error.
     $client_data['imported_js_components'] = [$js_component2->id(), 'missing'];
@@ -74,7 +84,7 @@ class JavascriptComponentTest extends KernelTestBase {
       $this->assertCount(1, $violations);
       $violation = $violations->get(0);
       $this->assertSame('imported_js_components.1', $violation->getPropertyPath());
-      $this->assertSame("The JavaScript component with machine name 'missing' does not exist.", $violation->getMessage());
+      $this->assertSame("The JavaScript component with the machine name 'missing' does not exist.", $violation->getMessage());
     }
 
     // Ensure not sending `imported_js_components` will throw an error.
@@ -99,6 +109,9 @@ class JavascriptComponentTest extends KernelTestBase {
     $js_component->updateFromClientSide($client_data);
     $this->assertSame(SAVED_UPDATED, $js_component->save());
     $this->assertSame([], $js_component->getDependencies());
+    $this->assertSame([
+      'config:experience_builder.js_component.test',
+    ], $js_component->getCacheTags());
   }
 
 }

@@ -11,6 +11,7 @@ use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Render\Markup;
 use Drupal\Core\Render\RendererInterface;
 use Drupal\Core\TypedData\TypedDataManagerInterface;
+use Drupal\experience_builder\AutoSave\AutoSaveManager;
 use Drupal\experience_builder\Element\RenderSafeComponentContainer;
 use Drupal\experience_builder\Entity\Page;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
@@ -884,7 +885,10 @@ HTML,
                                     '#component' => [
                                       '#type' => 'astro_island',
                                       '#cache' => [
-                                        'tags' => ['config:experience_builder.component.js.my-cta'],
+                                        'tags' => [
+                                          'config:experience_builder.js_component.my-cta',
+                                          'config:experience_builder.component.js.my-cta',
+                                        ],
                                         'contexts' => [],
                                         'max-age' => Cache::PERMANENT,
                                       ],
@@ -941,7 +945,10 @@ HTML,
                                     '#component' => [
                                       '#type' => 'astro_island',
                                       '#cache' => [
-                                        'tags' => ['config:experience_builder.component.js.my-cta-with-auto-save'],
+                                        'tags' => [
+                                          'config:experience_builder.js_component.my-cta-with-auto-save',
+                                          'config:experience_builder.component.js.my-cta-with-auto-save',
+                                        ],
                                         'contexts' => [],
                                         'max-age' => Cache::PERMANENT,
                                       ],
@@ -1118,13 +1125,16 @@ HTML,
       'expected_cache_tags' => [
         'config:experience_builder.component.sdc.xb_test_sdc.props-slots',
         'config:experience_builder.component.sdc.xb_test_sdc.props-no-slots',
+        'config:experience_builder.js_component.my-cta-with-auto-save',
         'config:experience_builder.component.js.my-cta-with-auto-save',
+        'config:experience_builder.js_component.my-cta',
         'config:experience_builder.component.js.my-cta',
         'config:system.site',
         'config:experience_builder.component.block.system_branding_block',
       ],
     ];
     yield 'component tree with complex nesting' => [...$component_tree_with_complex_nesting, 'isPreview' => FALSE];
+
     $path_to_auto_saved_js_component = [
       ComponentTreeStructure::ROOT_UUID,
       'uuid-in-root',
@@ -1136,12 +1146,53 @@ HTML,
       'uuid-js-component-auto-save',
       '#component',
     ];
+    $path_to_js_component = [
+      ComponentTreeStructure::ROOT_UUID,
+      'uuid-in-root',
+      '#component', '#slots', 'the_body',
+      'uuid-level-1',
+      '#component', '#slots', 'the_body',
+      'uuid-level-2',
+      '#component', '#slots', 'the_body',
+      'uuid-js-component',
+      '#component',
+    ];
     yield 'component tree with complex nesting in preview' => [
       ...self::overwriteRenderableExpectations(
         self::setIsPreviewPropertyRecursively($component_tree_with_complex_nesting, TRUE),
         [
-          ['parents' => [...$path_to_auto_saved_js_component, '#name'], 'value' => 'My Code Component with Auto-Save - Draft'],
-          ['parents' => [...$path_to_auto_saved_js_component, '#component_url'], 'value' => '/xb/api/v0/auto-saves/js/js_component/my-cta-with-auto-save'],
+          [
+            'parents' => [...$path_to_auto_saved_js_component, '#name'],
+            'value' => 'My Code Component with Auto-Save - Draft',
+          ],
+          [
+            'parents' => [...$path_to_auto_saved_js_component, '#component_url'],
+            'value' => '/xb/api/v0/auto-saves/js/js_component/my-cta-with-auto-save',
+          ],
+          [
+            'parents' => [...$path_to_auto_saved_js_component, '#cache'],
+            'value' => [
+              'tags' => [
+                AutoSaveManager::CACHE_TAG,
+                'config:experience_builder.js_component.my-cta-with-auto-save',
+                'config:experience_builder.component.js.my-cta-with-auto-save',
+              ],
+              'contexts' => [],
+              'max-age' => Cache::PERMANENT,
+            ],
+          ],
+          [
+            'parents' => [...$path_to_js_component, '#cache'],
+            'value' => [
+              'tags' => [
+                AutoSaveManager::CACHE_TAG,
+                'config:experience_builder.js_component.my-cta',
+                'config:experience_builder.component.js.my-cta',
+              ],
+              'contexts' => [],
+              'max-age' => Cache::PERMANENT,
+            ],
+          ],
         ],
       ),
       'expected_html' => <<<HTML
@@ -1208,7 +1259,19 @@ HTML,
 <!-- xb-end-uuid-in-root -->
 HTML,
       'isPreview' => TRUE,
+      'expected_cache_tags' => [
+        'config:experience_builder.component.sdc.xb_test_sdc.props-slots',
+        'config:experience_builder.component.sdc.xb_test_sdc.props-no-slots',
+        AutoSaveManager::CACHE_TAG,
+        'config:experience_builder.js_component.my-cta-with-auto-save',
+        'config:experience_builder.component.js.my-cta-with-auto-save',
+        'config:experience_builder.js_component.my-cta',
+        'config:experience_builder.component.js.my-cta',
+        'config:system.site',
+        'config:experience_builder.component.block.system_branding_block',
+      ],
     ];
+
   }
 
   /**

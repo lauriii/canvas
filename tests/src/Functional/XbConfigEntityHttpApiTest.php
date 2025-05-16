@@ -4,9 +4,10 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\experience_builder\Functional;
 
+use Drupal\Core\Cache\Cache;
+use Drupal\Core\Url;
 use Drupal\experience_builder\Audit\ComponentAudit;
 use Drupal\experience_builder\AutoSave\AutoSaveManager;
-use Drupal\Core\Url;
 use Drupal\experience_builder\Entity\AssetLibrary;
 use Drupal\experience_builder\Entity\Component;
 use Drupal\experience_builder\Entity\ComponentInterface;
@@ -583,7 +584,7 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
     $this->assertSame([
       'errors' => [
         [
-          'detail' => "The JavaScript component with machine name 'missing' does not exist.",
+          'detail' => "The JavaScript component with the machine name 'missing' does not exist.",
           'source' => ['pointer' => 'imported_js_components.0'],
         ],
       ],
@@ -873,8 +874,16 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
     // @see docs/config-management.md#3.2.1
     $this->assertNotNull(Component::load('js.test'));
     $this->assertTrue(Component::load('js.test')->status());
-    $this->assertExposedCodeComponents(['js.test'], 'MISS', $request_options);
-    $this->assertExposedCodeComponents(['js.test'], 'HIT', $request_options);
+    $this->assertExposedCodeComponents(['js.test'], 'MISS', $request_options, [
+      AutoSaveManager::CACHE_TAG,
+      'config:experience_builder.js_component.another_component',
+      'config:experience_builder.js_component.test',
+    ]);
+    $this->assertExposedCodeComponents(['js.test'], 'HIT', $request_options, [
+      AutoSaveManager::CACHE_TAG,
+      'config:experience_builder.js_component.another_component',
+      'config:experience_builder.js_component.test',
+    ]);
     // Confirm that there STILL is an auto-save, and its `status` was updated!
     $auto_save_data['status'] = TRUE;
     $this->assertCurrentAutoSave(200, $auto_save_data, JavaScriptComponent::ENTITY_TYPE_ID, 'test');
@@ -1090,7 +1099,7 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
     ], json_decode((string) $response->getBody(), TRUE));
   }
 
-  private function assertExposedCodeComponents(array $expected, string $expected_dynamic_page_cache, array $request_options): void {
+  private function assertExposedCodeComponents(array $expected, string $expected_dynamic_page_cache, array $request_options, array $additional_expected_cache_tags = []): void {
     assert(in_array($expected_dynamic_page_cache, ['HIT', 'MISS'], TRUE));
     $expected_contexts = [
       'languages:language_content',
@@ -1107,7 +1116,7 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
       // @see \Drupal\experience_builder\Controller\ApiComponentsController::getCacheableClientSideInfo()
       'user.roles:anonymous',
     ];
-    $body = $this->assertExpectedResponse('GET', Url::fromUri('base:/xb/api/v0/config/component'), $request_options, 200, $expected_contexts, [
+    $expected_cache_tags = [
       'CACHE_MISS_IF_UNCACHEABLE_HTTP_METHOD:form',
       'config:component_list',
       'config:core.extension',
@@ -1127,7 +1136,11 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
       'user:1',
       'user:2',
       'user_list',
-    ], 'UNCACHEABLE (request policy)', $expected_dynamic_page_cache);
+    ];
+    // If expected adds new components, those components add additional cache tags. If those cache tags are not
+    // present, the test will fail. This array is used to add those additional expected cache tags.
+    $expected_cache_tags = Cache::mergeTags($expected_cache_tags, $additional_expected_cache_tags);
+    $body = $this->assertExpectedResponse('GET', Url::fromUri('base:/xb/api/v0/config/component'), $request_options, 200, $expected_contexts, $expected_cache_tags, 'UNCACHEABLE (request policy)', $expected_dynamic_page_cache);
     self:self::assertNotNull($body);
     $component_config_entity_ids = array_keys($body);
     self::assertSame(
