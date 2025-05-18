@@ -8,14 +8,13 @@ import {
   selectActivePanel,
   setActivePanel,
 } from '@/features/ui/primaryPanelSlice';
-import { handleNonWorkingBtn } from '@/utils/function-utils';
 
 interface SideMenuButton {
   type: 'button';
   id: string;
   icon: React.ReactNode;
   label: string;
-  onClick: () => void;
+  onClick?: () => void;
 }
 interface SideMenuSeparator {
   type: 'separator';
@@ -41,10 +40,6 @@ export const SideMenu: React.FC<SideMenuProps> = () => {
     dispatch(setActivePanel('layers'));
   }, [dispatch]);
 
-  const handleTemplatesClick = useCallback(() => {
-    handleNonWorkingBtn();
-  }, []);
-
   const handleExtensionsClick = useCallback(() => {
     dispatch(setActivePanel('extensions'));
   }, [dispatch]);
@@ -69,8 +64,7 @@ export const SideMenu: React.FC<SideMenuProps> = () => {
       type: 'button',
       id: 'templates',
       icon: <FileTextIcon />,
-      label: 'Templates',
-      onClick: handleTemplatesClick,
+      label: 'Templates are coming soon',
     },
   ];
 
@@ -95,7 +89,8 @@ export const SideMenu: React.FC<SideMenuProps> = () => {
             <Button
               variant="ghost"
               color="gray"
-              className={`${styles.menuItem} ${activePanel === item.id ? styles.active : ''}`}
+              disabled={!item.onClick}
+              className={`${styles.menuItem} ${item.onClick ? '' : styles.disabled} ${activePanel === item.id ? styles.active : ''}`}
               onClick={item.onClick}
               aria-label={item.label}
             >

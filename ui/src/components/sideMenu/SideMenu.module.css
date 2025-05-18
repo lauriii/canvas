@@ -32,3 +32,6 @@
   border: none;
   border-bottom: 1px solid var(--gray-5);
 }
+.menuItem.disabled {
+  cursor: default;
+}
