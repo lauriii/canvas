@@ -1,6 +1,20 @@
-import { useRef, useEffect } from 'react';
 import clsx from 'clsx';
-import Sortable from 'sortablejs';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core';
+import type { DragEndEvent } from '@dnd-kit/core';
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { Button, Flex } from '@radix-ui/themes';
 import {
   DragHandleDots2Icon,
@@ -34,67 +48,66 @@ export default function SortableList<T>({
   removeAriaLabel = 'Remove item',
   isDisabled = false,
 }: SortableListProps<T>) {
-  const sortableRef = useRef<HTMLDivElement>(null);
-  const sortableInstance = useRef<Sortable | null>(null);
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    }),
+  );
 
-  useEffect(() => {
-    if (sortableRef?.current) {
-      sortableInstance.current = Sortable.create(sortableRef.current, {
-        animation: 150,
-        handle: `.${styles.moveControl}`,
-        ghostClass: styles.sortableGhost,
-        onEnd: (evt) => {
-          const { oldIndex, newIndex } = evt;
-          if (oldIndex === undefined || newIndex === undefined) return;
-          onReorder(oldIndex, newIndex);
-        },
-        sort: !isDisabled,
-      });
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (over && active.id !== over.id) {
+      const oldIndex = items.findIndex((item) => getItemId(item) === active.id);
+      const newIndex = items.findIndex((item) => getItemId(item) === over.id);
+
+      onReorder(oldIndex, newIndex);
     }
-
-    return () => {
-      if (sortableInstance.current) {
-        sortableInstance.current.destroy();
-      }
-    };
-  }, [isDisabled, onReorder]);
+  };
 
   return (
-    <Flex
-      ref={sortableRef}
-      direction="column"
-      gap="4"
-      py="4"
-      mx="auto"
-      maxWidth="500px"
+    <DndContext
+      sensors={sensors}
+      collisionDetection={closestCenter}
+      onDragEnd={handleDragEnd}
     >
-      {items.map((item, index) => (
-        <SortablePanel
-          key={getItemId(item)}
-          onRemove={() => onRemove(getItemId(item))}
-          data-testid={dataTestId ? `${dataTestId}-${index}` : undefined}
-          moveAriaLabel={moveAriaLabel}
-          removeAriaLabel={removeAriaLabel}
-          isDisabled={isDisabled}
-        >
-          {renderContent(item)}
-        </SortablePanel>
-      ))}
-      <Button
-        size="1"
-        variant="soft"
-        mb="4"
-        onClick={onAdd}
-        disabled={isDisabled}
+      <SortableContext
+        items={items.map(getItemId)}
+        strategy={verticalListSortingStrategy}
       >
-        <PlusIcon />
-        Add
-      </Button>
-    </Flex>
+        <Flex direction="column" gap="4" py="4" mx="auto" maxWidth="500px">
+          {items.map((item, index) => (
+            <SortablePanel
+              key={getItemId(item)}
+              id={getItemId(item)}
+              onRemove={() => onRemove(getItemId(item))}
+              data-testid={dataTestId ? `${dataTestId}-${index}` : undefined}
+              moveAriaLabel={moveAriaLabel}
+              removeAriaLabel={removeAriaLabel}
+              isDisabled={isDisabled}
+            >
+              {renderContent(item)}
+            </SortablePanel>
+          ))}
+          <Button
+            size="1"
+            variant="soft"
+            mb="4"
+            onClick={onAdd}
+            disabled={isDisabled}
+          >
+            <PlusIcon />
+            Add
+          </Button>
+        </Flex>
+      </SortableContext>
+    </DndContext>
   );
 }
 
 interface SortablePanelProps {
+  id: string;
   children: React.ReactNode;
   onRemove: () => void;
   'data-testid'?: string;
@@ -104,6 +117,7 @@ interface SortablePanelProps {
 }
 
 function SortablePanel({
+  id,
   children,
   onRemove,
   'data-testid': dataTestId,
@@ -111,12 +125,31 @@ function SortablePanel({
   removeAriaLabel,
   isDisabled = false,
 }: SortablePanelProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id, disabled: isDisabled });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
   return (
     <Flex
+      ref={setNodeRef}
       p="4"
       pl="2"
       gap="4"
-      className={styles.panel}
+      className={clsx(styles.panel, {
+        [styles.dragging]: isDragging,
+      })}
+      style={style}
       data-testid={dataTestId}
     >
       <Flex
@@ -127,6 +160,8 @@ function SortablePanel({
         flexShrink="0"
       >
         <Button
+          {...attributes}
+          {...listeners}
           aria-label={moveAriaLabel}
           variant="ghost"
           color="gray"

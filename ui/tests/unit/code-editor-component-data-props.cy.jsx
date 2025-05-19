@@ -158,7 +158,9 @@ describe('Component data / props in code editor', () => {
     // Reorder the props again. Move the first prop to the second position.
     cy.findAllByLabelText('Move prop')
       .first()
-      .realDnd('[data-testid="prop-1"]');
+      .realDnd('[data-testid="prop-1"]', {
+        position: 'top',
+      });
     // Check that the props in the store are in the new order.
     cy.wrap(store).then((store) => {
       const props = selectCodeComponentProperty('props')(store.getState());

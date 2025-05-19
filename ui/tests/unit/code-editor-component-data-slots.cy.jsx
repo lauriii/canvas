@@ -126,7 +126,7 @@ describe('Component data / slots in code editor', () => {
     cy.findAllByLabelText('Move slot')
       .first()
       .realDnd('[data-testid="slot-1"]', {
-        position: 'bottom',
+        position: 'top',
       });
     // Check that the slots in the store are in the new order.
     cy.wrap(store).then((store) => {
