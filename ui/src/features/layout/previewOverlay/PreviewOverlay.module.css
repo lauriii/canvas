@@ -26,19 +26,35 @@
 }
 
 
-.regionOverlay {
+.regionOverlay,
+.pageOverlay {
   position: absolute;
   outline: 1px solid transparent;
   inset: 0;
   outline-offset: -1px;
 
+  &.dropTarget {
+    pointer-events: none;
+  }
+}
+
+.regionOverlay {
   &.hovered {
     outline: 1px dashed var(--color-outline-root);
   }
 
   &.dropTarget {
-    pointer-events: none;
     outline: 1px dashed var(--color-outline-root);
+  }
+}
+
+.pageOverlay {
+  &.hovered {
+    outline: 1px dashed var(--color-outline-page);
+  }
+
+  &.dropTarget {
+    outline: 1px dashed var(--color-outline-page);
   }
 }
 
@@ -126,7 +142,8 @@
 /* } */
 
 .emptySlotContainer,
-.emptyRegionContainer {
+.emptyRegionContainer,
+.emptyPageContainer {
   position: absolute;
   display: flex;
   align-items: center;
@@ -148,8 +165,14 @@
   border: 1px solid var(--green-9);
 }
 
+.emptyPageContainer {
+  color: var(--blue-9);
+  border: 1px solid var(--blue-9);
+}
+
 .emptyRegionDropZone,
-.emptySlotDropZone {
+.emptySlotDropZone,
+.emptyPageDropZone {
   position: absolute;
   display: flex;
   overflow: hidden;
@@ -187,6 +210,17 @@
 
   .regionMessage {
     color: var(--green-7);
+  }
+}
+
+.emptyPageDropZone {
+  flex-direction: column;
+  gap: 0;
+  border: 1px dashed var(--blue-9);
+
+  &.isOver {
+    color: #fff;
+    background: var(--blue-8);
   }
 }
 

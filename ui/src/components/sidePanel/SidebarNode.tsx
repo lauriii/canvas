@@ -8,6 +8,7 @@ import {
   ComponentBooleanIcon,
   CubeIcon,
   DotsHorizontalIcon,
+  FileIcon,
   SectionIcon,
 } from '@radix-ui/react-icons';
 import { DropdownMenu, Flex, Text } from '@radix-ui/themes';
@@ -23,6 +24,7 @@ const VARIANTS = {
   slot: { icon: <BoxModelIcon /> },
   code: { icon: <CodeIcon /> },
   region: { icon: <CubeIcon /> },
+  page: { icon: <FileIcon /> },
 } as const;
 
 export type SideBarNodeVariant = keyof typeof VARIANTS;

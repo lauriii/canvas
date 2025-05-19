@@ -17,4 +17,8 @@
   &.region {
     background-color: var(--color-outline-root);
   }
+
+  &.page {
+    background-color: var(--color-outline-page);
+  }
 }

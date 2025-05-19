@@ -6,7 +6,7 @@ import clsx from 'clsx';
 import styles from '@/features/layout/previewOverlay/PreviewOverlay.module.css';
 import { useDroppable } from '@dnd-kit/core';
 import { useAppSelector } from '@/app/hooks';
-import { CubeIcon } from '@radix-ui/react-icons';
+import { FileIcon } from '@radix-ui/react-icons';
 import { Text } from '@radix-ui/themes';
 
 export interface EmptyRegionDropZoneProps {
@@ -43,9 +43,9 @@ const EmptyRegionDropZone: React.FC<EmptyRegionDropZoneProps> = (props) => {
   }, [active, isOver]);
 
   return (
-    <div className={styles.emptyRegionContainer}>
+    <div className={styles.emptyPageContainer}>
       <div
-        className={clsx(styles.emptyRegionDropZone, {
+        className={clsx(styles.emptyPageDropZone, {
           [styles.isOver]: isOver,
         })}
         ref={setDropRef}
@@ -54,9 +54,9 @@ const EmptyRegionDropZone: React.FC<EmptyRegionDropZoneProps> = (props) => {
           activeName
         ) : (
           <>
-            <CubeIcon />
+            <FileIcon />
             <Text weight={'medium'} mt="2" trim="start">
-              Content region
+              Page content
             </Text>
             <div className={styles.regionMessage}>Place items here</div>
           </>

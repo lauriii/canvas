@@ -105,3 +105,12 @@
 
   composes: default;
 }
+
+.pageVariant {
+  --bg-hover: var(--blue-3);
+  --bg-selected: var(--blue-9);
+  --bg-hover-dots: var(--blue-5);
+  --bg-selected-dots-hover: var(--blue-11);
+
+  composes: default;
+}

@@ -16,7 +16,10 @@ import {
 } from '@/features/ui/uiSlice';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 
-const RegionLayer: React.FC<{ region: RegionNode }> = ({ region }) => {
+const RegionLayer: React.FC<{ region: RegionNode; isPage?: boolean }> = ({
+  region,
+  isPage = false,
+}) => {
   const { regionId: focusedRegion = DEFAULT_REGION } = useXbParams();
   const { setSelectedRegion } = useEditorNavigation();
   const navigate = useNavigate();
@@ -59,7 +62,7 @@ const RegionLayer: React.FC<{ region: RegionNode }> = ({ region }) => {
         onMouseOver={handleMouseOver}
         onMouseOut={handleMouseOut}
         title={region.name}
-        variant="region"
+        variant={isPage ? 'page' : 'region'}
         open={region.id === focusedRegion}
         hovered={isHovered}
         data-hovered={isHovered}

@@ -88,10 +88,12 @@ const RegionOverlay: React.FC<RegionOverlayProps> = ({
     return null;
   }
 
+  const isPage = region.id === DEFAULT_REGION;
+
   return (
     <div
       className={clsx(
-        styles.regionOverlay,
+        [isPage && styles.pageOverlay, !isPage && styles.regionOverlay],
         {
           [styles.dropTarget]: region.id === targetSlot,
           [styles.hovered]: showHovered,
@@ -104,7 +106,11 @@ const RegionOverlay: React.FC<RegionOverlayProps> = ({
       onDoubleClick={handleRegionDblClick}
     >
       <div className={clsx(styles.xbNameTag)}>
-        <RegionNameTag name={region.name} id={region.id} nodeType={'region'} />
+        <RegionNameTag
+          name={region.name}
+          id={region.id}
+          nodeType={isPage ? 'page' : 'region'}
+        />
       </div>
       {!disableRegion && (
         <>

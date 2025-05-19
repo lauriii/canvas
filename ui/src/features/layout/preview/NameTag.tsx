@@ -1,6 +1,11 @@
 import styles from './NameTag.module.css';
 import clsx from 'clsx';
-import { BoxModelIcon, Component1Icon, CubeIcon } from '@radix-ui/react-icons';
+import {
+  BoxModelIcon,
+  Component1Icon,
+  CubeIcon,
+  FileIcon,
+} from '@radix-ui/react-icons';
 import { useAppSelector } from '@/app/hooks';
 import {
   DEFAULT_REGION,
@@ -16,6 +21,7 @@ const VARIANTS = {
   component: <Component1Icon width={10} height={10} />,
   region: <CubeIcon width={10} height={10} />,
   slot: <BoxModelIcon width={10} height={10} />,
+  page: <FileIcon width={10} height={10} />,
 };
 
 interface NameTagProps {
@@ -33,6 +39,7 @@ const NameTag: React.FC<NameTagProps> = (props) => {
       className={clsx(styles.nameTag, {
         [styles.slot]: nodeType === 'slot',
         [styles.region]: nodeType === 'region',
+        [styles.page]: nodeType === 'page',
       })}
     >
       {VARIANTS[nodeType as keyof typeof VARIANTS]}
@@ -85,7 +92,7 @@ export const RegionNameTag: React.FC<NameTagProps> = (props) => {
     return null;
   }
 
-  return <NameTag name={name} id={id} nodeType="region" />;
+  return <NameTag name={name} id={id} nodeType={props.nodeType} />;
 };
 
 export const ComponentNameTag: React.FC<NameTagProps> = (props) => {
