@@ -359,3 +359,28 @@ function hook_field_widget_info_alter(array &$info): void {
   ];
 }
 ```
+### 3.5 Limitations / Tradeoffs
+We've already established this system makes it possible to render Drupal render arrays with React. This makes it possible to use existing Drupal core functionality as if it were rendered by Twig. As powerful as this is, this isn't a 100% seamless solution. There are some limitations to be aware of:
+#### 3.5.1 Radix
+Radix in the field widget React components might be the largest contributor to the complexity of this system. Radix components are structured differently than Drupal's default Twig templates. Some examples of this added complexity: 
+- A Radix text input component has no way to directly apply attributes to a native `<input>` element. Props are only added to input's wrapping div. This means Drupal JS might be looking for `input[attribute]` selectors that don't exist.  To get around this, we assign a ref to the Radix component and use Vanilla JS to transfer the attributes to the input element after the component renders. This transferring of attributes occurs in a `useEffect` callback as the element associated with the ref must be rendered before the attributes can be accessed. Thus `useEffect` use is theoretically unnecessary if the ref is assigned as a function (ex: `ref={(node) => etc...}`), but because there are scenarios where the ref must be passed to multiple components such as adding additional event callbacks for autocomplete, the refs must be created as passable variables with `useRef`, which in turn require the processing within `useEffect`.  This is all additional complexity solely due to the Radix-related deviation from Drupal's default twig templates.
+- For elements such as select, the native `<select>` is not even available to assign a ref to. The user-facing `<button>` that ultimately controls the `<select>` accepts a ref, which we can then use to access the native `<select>` via Vanilla JS `parentElement.querySelector('select')`. Similar to the above, were it approached more like a Drupal twig template like `<select {...attributes} />`, this additional logic would not be needed.
+- Even with the ref approach for `<select>` a preprocess hook (`xb_stark_preprocess_field_multiple_value_form` in `xb_stark.theme`) was required to get tabledrag working properly with multivalue fields as the attributes updated via Drupal AJAX are not in the shape expected by Radix.
+#### 3.5.2 CKEditor 5 (and perhaps anything with existing support for use in React.)
+CKSource maintains a  [CKEditor 5 React component](https://www.npmjs.com/package/@ckeditor/ckeditor5-react). While it is _possible_ to leverage Drupal core's Vanilla JS implementation of CKEditor 5, we have opted to use the version explicitly built to work in React. To accomplish this without considerable front end complexity, some theme-level extensibility was sacrificed. Most notably, the `text_format` _render element_ never makes it to the Experience Builder UI. The information necessary to render the text format `<select>` is instead passed to (and rendered by) the text area itself. 
+
+In other words, we surrender a bit of render array purity to take advantage of some well maintained open source software specifically created for use in this context. It also eliminates the need for complex workarounds to get the core approach working with Radix.
+
+When React optimized alternatives to core functionality are available, the tradeoffs of using them will be evaluated on a case by case basis. The CKEditor 5 example is a good one because it is a well maintained open source project that is already built to work in React. The CKEditor 5 example above may or may not be representative of how similar situations will be approached in the future. 
+
+#### 3.5.3 Vanilla JS that causes reflows or has perceptible load times
+As to be expected with React, there is a great deal of re-rendering happening, much of the time occurring invisible. At minimum, a React-controlled form element will re-render any time its value changes, and in the case of XB managed forms, these elements rerender when *any* element in the form has a value change.
+
+Although it's not typically an issue, these re-renders mean that elements using Drupal Behaviors have the behaviors re-applied after each render. This additional overhead is, in most cases, imperceptible - functionality such as autocomplete simply works as expected even though it's being added multiple times.
+
+However, if there is Vanilla JS that impacts the layout of elements within the form, (such as adding elements to the form markup) there might be flickering as the JS-altered layout reverts and is reintroduced. Similarly, if there is a Vanilla JS process that takes considerable time to initialize, there could be issues with this long process being run repeatedly. There are no current examples of this, but it's worth noting this is a potential issue.
+
+#### 3.5.4 Auto-save and real time preview considerations
+Some of the complexity introduced by Experience Builder based component + entity forms is not due to them being rendered in React, but instead because of the need to accommodate auto-save and real time preview updates. Reshaping of data that would occur on form submission is instead done in real time, which necessitates some extra plumbing such as the [3.4 Transforms](#34-transforms) covered earlier in this document.
+
+One example is additional logic required for autocomplete. Although the form element is rerendering to display the autocomplete suggestions, additional logic is required to ensure the autocomplete suggestion process is not triggering a preview update until a selection is made.
