@@ -104,7 +104,7 @@ final class AstroIsland extends RenderElementBase {
       'raw',
       $prop_value,
     ],
-      \array_diff_key($element['#props'], \array_flip(['xb_uuid', 'xb_slot_ids']))
+      \array_diff_key($element['#props'], \array_flip(['xb_uuid', 'xb_slot_ids', 'xb_is_preview']))
     );
     $element['#attached']['library'][] = 'experience_builder/astro.hydration';
     if (\count($mapped_props) === 0) {
@@ -135,7 +135,7 @@ final class AstroIsland extends RenderElementBase {
           // wrapped by XbWrapperNode and any passed meta props to enable
         // XbWrapperNode to wrap slots with HTML comments.
       ] + \array_map(static fn(array|string $slot) => \is_array($slot) ? $slot : ['#plain_text' => $slot], $element['#slots'] ?? []) +
-      \array_intersect_key($element['#props'] ?? [], \array_flip(['xb_uuid', 'xb_slot_ids'])),
+      \array_intersect_key($element['#props'] ?? [], \array_flip(['xb_uuid', 'xb_slot_ids', 'xb_is_preview'])),
     ];
     // Return this as a new child element so that process callbacks are executed
     // for the new render array.

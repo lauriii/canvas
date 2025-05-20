@@ -534,7 +534,7 @@ abstract class ComponentSourceTestBase extends KernelTestBase implements LoggerI
     // Save this so the usage can be queried.
     $entity->save();
     $hydrated = $entity->getComponentTree()->get('hydrated');
-    $renderable = $hydrated->toRenderable($entity);
+    $renderable = $hydrated->toRenderable($entity, TRUE);
     $out = $this->crawlerForRenderArray($renderable);
     // Should be no fallback container.
     self::assertCount(0, $out->filter('[data-fallback]'));
@@ -558,7 +558,7 @@ abstract class ComponentSourceTestBase extends KernelTestBase implements LoggerI
     // Assert that we can still render the fallback component and any children
     // in its slots.
     $hydrated = $entity->getComponentTree()->get('hydrated');
-    $renderable = $hydrated->toRenderable($entity);
+    $renderable = $hydrated->toRenderable($entity, TRUE);
     $out = $this->crawlerForRenderArray($renderable);
     // Should be a fallback container.
     self::assertGreaterThanOrEqual(1, $out->filter('[data-fallback]')->count());
@@ -581,7 +581,7 @@ abstract class ComponentSourceTestBase extends KernelTestBase implements LoggerI
     // fallback.
     $this->recoverComponentFallback($used_component);
     $hydrated = $entity->getComponentTree()->get('hydrated');
-    $renderable = $hydrated->toRenderable($entity);
+    $renderable = $hydrated->toRenderable($entity, TRUE);
     $out = $this->crawlerForRenderArray($renderable);
     // Should be no fallback container.
     self::assertCount(0, $out->filter('[data-fallback]'));

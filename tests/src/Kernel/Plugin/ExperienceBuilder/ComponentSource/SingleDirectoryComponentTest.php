@@ -181,7 +181,7 @@ final class SingleDirectoryComponentTest extends ComponentSourceTestBase {
         'html' => <<<HTML
 <div  data-component-id="xb_test_sdc:deprecated">
   <h1>Deprecated SDC component</h1>
-  <div><!-- xb-prop-start-some-uuid/text -->A text field<!-- xb-prop-end-some-uuid/text --></div>
+  <div>A text field</div>
 </div>
 
 HTML,
@@ -191,7 +191,7 @@ HTML,
         'html' => <<<HTML
 <div  data-component-id="xb_test_sdc:experimental">
   <h1>Experimental SDC component</h1>
-  <div><!-- xb-prop-start-some-uuid/text -->A text field<!-- xb-prop-end-some-uuid/text --></div>
+  <div>A text field</div>
 </div>
 
 HTML,
@@ -233,7 +233,7 @@ HTML,
       'sdc.xb_test_sdc.props-no-slots' => [
         'html' => <<<HTML
 <div  data-component-id="xb_test_sdc:props-no-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
-  <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;"><!-- xb-prop-start-some-uuid/heading -->There goes my hero<!-- xb-prop-end-some-uuid/heading --></h1>
+  <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;">There goes my hero</h1>
 </div>
 
 HTML,
@@ -241,7 +241,7 @@ HTML,
       ],
       'sdc.xb_test_sdc.props-slots' => [
         'html' => '<div  data-component-id="xb_test_sdc:props-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
-  <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;"><!-- xb-prop-start-some-uuid/heading -->There goes my hero<!-- xb-prop-end-some-uuid/heading --></h1>
+  <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;">There goes my hero</h1>
   <div class="component--props-slots--body">
           </div>
   <div class="component--props-slots--footer">

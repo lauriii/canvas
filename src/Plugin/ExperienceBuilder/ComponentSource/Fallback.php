@@ -51,6 +51,7 @@ final class Fallback extends ComponentSourceBase implements ComponentSourceWithS
         // @see \Drupal\experience_builder\Extension\XbWrapperNode
         // @see \Drupal\experience_builder\Extension\XbPropVisitor::enterNode
         'xb_uuid' => $componentUuid,
+        'xb_is_preview' => $isPreview,
       ],
     ];
   }

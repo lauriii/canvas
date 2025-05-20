@@ -28,7 +28,11 @@ final class XbWrapperNode extends Node {
     $compiler->addDebugInfo($this);
     $type = $this->getAttribute('isStart') ? 'start' : 'end';
     $compiler->write('if (')
-      ->raw('array_key_exists(')
+      ->raw('(isset($context[')
+      ->string('xb_is_preview')
+      ->raw(']) && $context[')
+      ->string('xb_is_preview')
+      ->raw(']) && array_key_exists(')
       ->string('xb_uuid')
       ->raw(', $context)')
       ->raw(") {\n")

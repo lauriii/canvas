@@ -53,6 +53,7 @@ final class XbTwigExtensionTest extends KernelTestBase {
     bool $props_handled_by_twig,
     string $slot_selector,
     array $render_array_additions = [],
+    bool $is_preview = FALSE,
   ): void {
     $heading = $this->randomMachineName();
     $uuid = $this->container->get(UuidInterface::class)->generate();
@@ -90,6 +91,7 @@ final class XbTwigExtensionTest extends KernelTestBase {
         'heading' => $heading,
         'xb_uuid' => $uuid,
         'xb_slot_ids' => ['the_body'],
+        'xb_is_preview' => $is_preview,
       ],
       '#slots' => [
         'the_body' => [
@@ -103,8 +105,15 @@ final class XbTwigExtensionTest extends KernelTestBase {
       $h1 = $crawler->filter(\sprintf('h1:contains("%s")', $heading));
       self::assertCount(1, $h1);
       $h1Text = $h1->html();
-      self::assertMatchesRegularExpression('/^<!-- xb-prop-start-(.*)\/heading -->/', $h1Text);
-      self::assertMatchesRegularExpression('/xb-prop-end-(.*)\/heading -->$/', $h1Text);
+
+      if ($is_preview) {
+        self::assertMatchesRegularExpression('/^<!-- xb-prop-start-(.*)\/heading -->/', $h1Text);
+        self::assertMatchesRegularExpression('/xb-prop-end-(.*)\/heading -->$/', $h1Text);
+      }
+      else {
+        self::assertDoesNotMatchRegularExpression('/^<!-- xb-prop-start-(.*)\/heading -->/', $h1Text);
+        self::assertDoesNotMatchRegularExpression('/xb-prop-end-(.*)\/heading -->$/', $h1Text);
+      }
     }
 
     $bodySlot = $crawler->filter($slot_selector);
@@ -112,24 +121,40 @@ final class XbTwigExtensionTest extends KernelTestBase {
     // Normalize whitespace.
     $bodyHtml = \trim(\preg_replace('/\s+/', ' ', $bodySlot->html()) ?: '');
     self::assertStringContainsString($body, $bodyHtml);
-    self::assertMatchesRegularExpression('/^<!-- xb-slot-start-(.*)\/the_body -->/', $bodyHtml);
-    self::assertMatchesRegularExpression('/xb-slot-end-(.*)\/the_body -->$/', $bodyHtml);
+
+    if ($is_preview) {
+      self::assertMatchesRegularExpression('/^<!-- xb-slot-start-(.*)\/the_body -->/', $bodyHtml);
+      self::assertMatchesRegularExpression('/xb-slot-end-(.*)\/the_body -->$/', $bodyHtml);
+    }
+    else {
+      self::assertDoesNotMatchRegularExpression('/^<!-- xb-slot-start-(.*)\/the_body -->/', $bodyHtml);
+      self::assertDoesNotMatchRegularExpression('/xb-slot-end-(.*)\/the_body -->$/', $bodyHtml);
+    }
   }
 
   public static function providerComponents(): iterable {
-    yield 'SDC' => [
+
+    $sdc = [
       'component',
       'xb_test_sdc:props-slots',
       TRUE,
       '.component--props-slots--body',
+      [],
     ];
-    yield 'JS Component' => [
+
+    yield 'SDC, preview' => [...$sdc, TRUE];
+    yield 'SDC, live' => [...$sdc, FALSE];
+
+    $js_component = [
       AstroIsland::PLUGIN_ID,
       'trousers',
       FALSE,
       'template[data-astro-template="the_body"]',
       ['#name' => 'trousers', '#component_url' => 'the/wrong/trousers.js'],
     ];
+
+    yield 'JS Component, preview' => [...$js_component, TRUE];
+    yield 'JS Component, live' => [...$js_component, FALSE];
   }
 
 }

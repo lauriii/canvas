@@ -131,11 +131,12 @@ class ComponentTreeHydrated extends TypedData implements CacheableDependencyInte
           $source = $component->getComponentSource();
           $element = $source->renderComponent($component_instance, $component_instance_uuid, $isPreview);
 
-          // Wrap each rendered component instance in HTML comments that allow the
-          // client side to identify it.
-          $element['#prefix'] = Markup::create("<!-- xb-start-$component_instance_uuid -->");
-          $element['#suffix'] = Markup::create("<!-- xb-end-$component_instance_uuid -->");
-
+          if ($isPreview) {
+            // Wrap each rendered component instance in HTML comments that allow the
+            // client side to identify it.
+            $element['#prefix'] = Markup::create("<!-- xb-start-$component_instance_uuid -->");
+            $element['#suffix'] = Markup::create("<!-- xb-end-$component_instance_uuid -->");
+          }
           // Associate the `Component` config entity cache tag with every rendered
           // component instance — remove the need for each `ComponentSource`
           // plugin to do this in an awkward way in their `::renderComponent()`.

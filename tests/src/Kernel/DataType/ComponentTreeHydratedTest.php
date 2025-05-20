@@ -128,7 +128,7 @@ class ComponentTreeHydratedTest extends KernelTestBase {
 
   public static function setIsPreviewPropertyRecursively(array $expectation, bool $is_preview): array {
     \array_walk_recursive($expectation['expected_renderable'], function (mixed &$value, mixed $key) use ($is_preview) {
-      if ($key === '#is_preview') {
+      if ($key === '#is_preview' || $key === 'xb_is_preview') {
         $value = $is_preview;
       }
     });
@@ -139,6 +139,34 @@ class ComponentTreeHydratedTest extends KernelTestBase {
     foreach ($overwrites as ['parents' => $parents, 'value' => $value]) {
       NestedArray::setValue($expectation['expected_renderable'], $parents, $value);
     }
+    return $expectation;
+  }
+
+  public static function removePrefixSuffixKeysRecursive(mixed $expected_renderable): array {
+    $expectation = [];
+
+    foreach ($expected_renderable as $key => $value) {
+      if ($key === '#prefix' || $key === '#suffix') {
+        continue;
+      }
+
+      if (is_array($value)) {
+        $value = self::removePrefixSuffixKeysRecursive($value);
+      }
+      $expectation[$key] = $value;
+    }
+
+    return $expectation;
+  }
+
+  public static function removePrefixSuffix(array $expectation): array {
+    // Remove the prefix and suffix from the expected renderable array.
+    $expectation['expected_renderable'] = self::removePrefixSuffixKeysRecursive($expectation['expected_renderable']);
+    // Remove all html comments from expected html.
+    $expectation['expected_html'] = preg_replace('/<!--(.*?)-->/', '', $expectation['expected_html']);
+    // Remove extra tabbing so expectation matches actual output.
+    $expectation['expected_html'] = preg_replace('/[ \t]+\n/', "\n", $expectation['expected_html']);
+
     return $expectation;
   }
 
@@ -217,6 +245,7 @@ class ComponentTreeHydratedTest extends KernelTestBase {
                 'heading' => 'Hello, world!',
                 'xb_uuid' => 'uuid-in-root',
                 'xb_slot_ids' => ['the_body', 'the_footer', 'the_colophon'],
+                'xb_is_preview' => FALSE,
               ],
               '#slots' => [
                 'the_body' => [
@@ -263,7 +292,7 @@ HTML,
       ],
     ];
 
-    yield 'component tree with a single component that has unpopulated slots with default values' => [...$component_tree_with_single_component_with_unpopulated_slots, 'isPreview' => FALSE];
+    yield 'component tree with a single component that has unpopulated slots with default values' => [...self::removePrefixSuffix($component_tree_with_single_component_with_unpopulated_slots), 'isPreview' => FALSE];
     yield 'component tree with a single component that has unpopulated slots with default values in preview' => [...self::setIsPreviewPropertyRecursively($component_tree_with_single_component_with_unpopulated_slots, TRUE), 'isPreview' => TRUE];
 
     $component_tree_with_single_block_component = [
@@ -372,7 +401,7 @@ HTML,
         'config:experience_builder.component.block.system_branding_block',
       ],
     ];
-    yield 'component tree with a single block component' => [...$component_tree_with_single_block_component, 'isPreview' => FALSE];
+    yield 'component tree with a single block component' => [...self::removePrefixSuffix($component_tree_with_single_block_component), 'isPreview' => FALSE];
     yield 'component tree with a single block component in preview' => [...self::setIsPreviewPropertyRecursively($component_tree_with_single_block_component, TRUE), 'isPreview' => TRUE];
 
     $simplest_component_tree_without_nesting = [
@@ -421,6 +450,7 @@ HTML,
                 'heading' => 'Hello, world!',
                 'xb_uuid' => 'uuid-in-root',
                 'xb_slot_ids' => [],
+                'xb_is_preview' => FALSE,
               ],
               '#prefix' => Markup::create('<!-- xb-start-uuid-in-root -->'),
               '#suffix' => Markup::create('<!-- xb-end-uuid-in-root -->'),
@@ -448,6 +478,7 @@ HTML,
                 'heading' => 'Hello, another world!',
                 'xb_uuid' => 'uuid-in-root-another',
                 'xb_slot_ids' => [],
+                'xb_is_preview' => FALSE,
               ],
               '#prefix' => Markup::create('<!-- xb-start-uuid-in-root-another -->'),
               '#suffix' => Markup::create('<!-- xb-end-uuid-in-root-another -->'),
@@ -473,7 +504,7 @@ HTML,
         'config:experience_builder.component.sdc.xb_test_sdc.props-no-slots',
       ],
     ];
-    yield 'simplest component tree without nesting' => [...$simplest_component_tree_without_nesting, 'isPreview' => FALSE];
+    yield 'simplest component tree without nesting' => [...self::removePrefixSuffix($simplest_component_tree_without_nesting), 'isPreview' => FALSE];
     yield 'simplest component tree without nesting in preview' => [...self::setIsPreviewPropertyRecursively($simplest_component_tree_without_nesting, TRUE), 'isPreview' => TRUE];
 
     $simplest_component_tree_with_nesting = [
@@ -532,6 +563,7 @@ HTML,
                 'heading' => 'Hello, world!',
                 'xb_uuid' => 'uuid-in-root',
                 'xb_slot_ids' => ['the_body', 'the_footer', 'the_colophon'],
+                'xb_is_preview' => FALSE,
               ],
               '#slots' => [
                 'the_footer' => [
@@ -556,6 +588,7 @@ HTML,
                         'heading' => 'Hello, from a slot!',
                         'xb_uuid' => 'uuid-in-slot',
                         'xb_slot_ids' => [],
+                        'xb_is_preview' => FALSE,
                       ],
                       '#prefix' => Markup::create('<!-- xb-start-uuid-in-slot -->'),
                       '#suffix' => Markup::create('<!-- xb-end-uuid-in-slot -->'),
@@ -602,7 +635,7 @@ HTML,
         'config:experience_builder.component.sdc.xb_test_sdc.props-no-slots',
       ],
     ];
-    yield 'simplest component tree with nesting' => [...$simplest_component_tree_with_nesting, 'isPreview' => FALSE];
+    yield 'simplest component tree with nesting' => [...self::removePrefixSuffix($simplest_component_tree_with_nesting), 'isPreview' => FALSE];
     yield 'simplest component tree with nesting in preview' => [...self::setIsPreviewPropertyRecursively($simplest_component_tree_with_nesting, TRUE), 'isPreview' => TRUE];
 
     $path = self::getCiModulePath();
@@ -732,6 +765,7 @@ HTML,
                 'heading' => 'Hello, world!',
                 'xb_uuid' => 'uuid-in-root',
                 'xb_slot_ids' => ['the_body', 'the_footer', 'the_colophon'],
+                'xb_is_preview' => FALSE,
               ],
               '#slots' => [
                 'the_footer' => [
@@ -756,6 +790,7 @@ HTML,
                         'heading' => 'Hello, from slot level 1!',
                         'xb_uuid' => 'uuid-level-1',
                         'xb_slot_ids' => ['the_body', 'the_footer', 'the_colophon'],
+                        'xb_is_preview' => FALSE,
                       ],
                       '#slots' => [
                         'the_footer' => [
@@ -784,6 +819,7 @@ HTML,
                                 'heading' => 'Hello, from slot level 2!',
                                 'xb_uuid' => 'uuid-level-2',
                                 'xb_slot_ids' => ['the_body', 'the_footer', 'the_colophon'],
+                                'xb_is_preview' => FALSE,
                               ],
                               '#slots' => [
                                 'the_footer' => [
@@ -808,6 +844,7 @@ HTML,
                                         'heading' => 'Hello, from slot level 3!',
                                         'xb_uuid' => 'uuid-level-3',
                                         'xb_slot_ids' => [],
+                                        'xb_is_preview' => FALSE,
                                       ],
                                       '#prefix' => Markup::create('<!-- xb-start-uuid-level-3 -->'),
                                       '#suffix' => Markup::create('<!-- xb-end-uuid-level-3 -->'),
@@ -931,6 +968,7 @@ HTML,
                                         'text' => 'Hello, from a "code component"!',
                                         'xb_uuid' => 'uuid-js-component',
                                         'xb_slot_ids' => [],
+                                        'xb_is_preview' => FALSE,
                                       ],
                                       '#prefix' => Markup::create('<!-- xb-start-uuid-js-component -->'),
                                       '#suffix' => Markup::create('<!-- xb-end-uuid-js-component -->'),
@@ -991,6 +1029,7 @@ HTML,
                                         'text' => 'Hello, from a "auto-save code component"!',
                                         'xb_uuid' => 'uuid-js-component-auto-save',
                                         'xb_slot_ids' => [],
+                                        'xb_is_preview' => FALSE,
                                       ],
                                       '#prefix' => Markup::create('<!-- xb-start-uuid-js-component-auto-save -->'),
                                       '#suffix' => Markup::create('<!-- xb-end-uuid-js-component-auto-save -->'),
@@ -1014,6 +1053,7 @@ HTML,
                                         'heading' => 'Hello, from slot <LAST ONE>!',
                                         'xb_uuid' => 'uuid-last-in-tree',
                                         'xb_slot_ids' => [],
+                                        'xb_is_preview' => FALSE,
                                       ],
                                       '#prefix' => Markup::create('<!-- xb-start-last-in-tree -->'),
                                       '#suffix' => Markup::create('<!-- xb-end-uuid-last-in-tree -->'),
@@ -1133,7 +1173,6 @@ HTML,
         'config:experience_builder.component.block.system_branding_block',
       ],
     ];
-    yield 'component tree with complex nesting' => [...$component_tree_with_complex_nesting, 'isPreview' => FALSE];
 
     $path_to_auto_saved_js_component = [
       ComponentTreeStructure::ROOT_UUID,
@@ -1157,6 +1196,8 @@ HTML,
       'uuid-js-component',
       '#component',
     ];
+
+    yield 'component tree with complex nesting' => [...self::removePrefixSuffix($component_tree_with_complex_nesting), 'isPreview' => FALSE];
     yield 'component tree with complex nesting in preview' => [
       ...self::overwriteRenderableExpectations(
         self::setIsPreviewPropertyRecursively($component_tree_with_complex_nesting, TRUE),

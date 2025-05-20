@@ -170,6 +170,7 @@ final class SingleDirectoryComponent extends GeneratedFieldExplicitInputUxCompon
       '#props' => ($inputs[self::EXPLICIT_INPUT_NAME] ?? []) + [
         'xb_uuid' => $componentUuid,
         'xb_slot_ids' => \array_keys($this->getSlotDefinitions()),
+        'xb_is_preview' => $isPreview,
       ],
       '#attached' => [
         'library' => [

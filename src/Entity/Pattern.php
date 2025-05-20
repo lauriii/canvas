@@ -133,7 +133,7 @@ final class Pattern extends ConfigEntityBase implements XbHttpApiEligibleConfigE
         'name' => $this->label(),
         'id' => $this->id(),
       ],
-      preview: $item->toRenderable($this),
+      preview: $item->toRenderable($this, TRUE),
     )->addCacheableDependency($this);
   }
 
