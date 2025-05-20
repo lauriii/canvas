@@ -56,7 +56,7 @@ const PageStatus = () => {
   const entityId = useAppSelector(selectEntityId);
   const entityType = useAppSelector(selectEntityType);
   const [hasAutoSave, setHasAutoSave] = useState(false);
-  const { data: fetchedLayout } = useGetLayoutByIdQuery(entityId);
+  const { data: fetchedLayout, isError } = useGetLayoutByIdQuery(entityId);
 
   useEffect(() => {
     if (changes) {
@@ -65,7 +65,7 @@ const PageStatus = () => {
     }
   }, [changes, fetchedLayout, entityId, entityType]);
 
-  if (fetchedLayout) {
+  if (fetchedLayout && !isError) {
     const { isNew, isPublished } = fetchedLayout;
 
     return (

@@ -24,7 +24,6 @@ import { DndProvider } from 'react-dnd';
 import { HTML5toTouch } from 'rdndmb-html5-to-touch';
 import { MultiBackend } from 'react-dnd-multi-backend';
 import Topbar from '@/components/topbar/Topbar';
-import Layout from '@/features/layout/Layout';
 import { snapCenterToCursor } from '@dnd-kit/modifiers';
 import DragEventsHandler from '@/features/layout/previewOverlay/DragEventsHandler';
 import styles from '@/features/editor/Editor.module.css';
@@ -61,7 +60,7 @@ const App: React.FC = () => {
     <div className="xb-app">
       <ErrorBoundary
         variant="alert"
-        title="An unexpected error has occurred while fetching layouts."
+        title="Experience Builder has encountered an unexpected error."
       >
         <DndContext
           sensors={sensors}
@@ -69,7 +68,6 @@ const App: React.FC = () => {
           collisionDetection={customCollisionDetectionAlgorithm}
         >
           <DndProvider backend={MultiBackend} options={HTML5toTouch}>
-            <Layout />
             <Flex className={styles.xbContainer} gap="0">
               <SideMenu />
               <ErrorBoundary variant="page">

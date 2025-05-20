@@ -32,15 +32,15 @@ import {
 import useEditorNavigation from '@/hooks/useEditorNavigation';
 import { useErrorBoundary } from 'react-error-boundary';
 import type { ContentStub } from '@/types/Content';
+import ErrorCard from '@/components/error/ErrorCard';
 import PageStatus from '@/components/pageStatus/PageStatus';
-import clsx from 'clsx';
-import styles from '@/components/topbar/menu/TopbarPopover.module.css';
 import Panel from '@/components/Panel';
 import {
   selectEntityId,
   selectEntityType,
 } from '@/features/configuration/configurationSlice';
 import { getBaseUrl, getXbSettings } from '@/utils/drupal-globals';
+import { getQueryErrorMessage } from '@/utils/error-handling';
 
 interface PageType {
   [key: string]: ReactElement;
@@ -143,12 +143,6 @@ const PageInfo = () => {
   }, [isCreateContentSuccess, createContentData, setEditorEntity]);
 
   useEffect(() => {
-    if (pageItemsError) {
-      showBoundary(pageItemsError);
-    }
-  }, [pageItemsError, showBoundary]);
-
-  useEffect(() => {
     if (createContentError) {
       showBoundary(createContentError);
     }
@@ -185,19 +179,26 @@ const PageInfo = () => {
             asChild
             align="center"
           >
-            <Panel className={clsx(styles.content, 'xb-app')}>
-              {/* @todo load data in https://www.drupal.org/i/3502820 */}
-              <Navigation
-                loading={isPageItemsLoading}
-                items={pageItems || []}
-                onNewPage={handleNewPage}
-                onSearch={handleNonWorkingBtn}
-                onSelect={handleOnSelect}
-                onRename={handleNonWorkingBtn}
-                onDuplicate={handleDuplication}
-                onSetHomepage={handleNonWorkingBtn}
-                onDelete={handleDeletePage}
-              />
+            <Panel className="xb-app" mt="4">
+              {!pageItemsError && (
+                <Navigation
+                  loading={isPageItemsLoading}
+                  items={pageItems || []}
+                  onNewPage={handleNewPage}
+                  onSearch={handleNonWorkingBtn}
+                  onSelect={handleOnSelect}
+                  onRename={handleNonWorkingBtn}
+                  onDuplicate={handleDuplication}
+                  onSetHomepage={handleNonWorkingBtn}
+                  onDelete={handleDeletePage}
+                />
+              )}
+              {pageItemsError && (
+                <ErrorCard
+                  title="An unexpected error has occurred while loading pages."
+                  error={getQueryErrorMessage(pageItemsError)}
+                />
+              )}
             </Panel>
           </Popover.Content>
         </Popover.Root>
