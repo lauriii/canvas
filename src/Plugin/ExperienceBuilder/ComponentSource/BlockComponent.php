@@ -418,10 +418,7 @@ final class BlockComponent extends ComponentSourceBase implements ContainerFacto
   }
 
   public function onDependencyRemoval(array $dependencies): bool {
-    $plugin = $this->getBlockPlugin();
-    \assert(\is_array($plugin->getPluginDefinition()));
-    $provider = $plugin->getPluginDefinition()['provider'];
-    return \in_array($provider, $dependencies['module'] ?? [], TRUE);
+    return !empty($this->getPluginRemovedDependencies($this->getPluginDependencies($this), $dependencies));
   }
 
 }

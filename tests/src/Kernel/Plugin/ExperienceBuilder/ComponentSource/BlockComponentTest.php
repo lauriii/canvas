@@ -8,9 +8,13 @@ use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Extension\ModuleInstallerInterface;
 use Drupal\experience_builder\Entity\Component;
 use Drupal\experience_builder\Entity\ComponentInterface;
+use Drupal\experience_builder\Entity\Pattern;
+use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 use Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\BlockComponent;
+use Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\Fallback;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\node\Entity\Node;
+use Drupal\system\Entity\Menu;
 use Drupal\Tests\experience_builder\Traits\BlockComponentTreeTestTrait;
 use Drupal\Tests\experience_builder\Traits\ConstraintViolationsTestTrait;
 use Drupal\Tests\experience_builder\Traits\CrawlerTrait;
@@ -347,6 +351,129 @@ HTML,
   protected function recoverComponentFallback(ComponentInterface $component): void {
     \Drupal::service(ModuleInstallerInterface::class)->install(['xb_test_block']);
     $this->generateComponentConfig();
+  }
+
+  /**
+   * @covers ::onDependencyRemoval()
+   */
+  public function testConfigDependencyDelete(): void {
+    // Install the default menus provided by system.module.
+    $this->installConfig(['system']);
+    $this->generateComponentConfig();
+
+    $this->assertContains('block.system_menu_block.footer', $this->findCreatedComponentConfigEntities(BlockComponent::SOURCE_PLUGIN_ID, 'system'));
+
+    $menu = $this->config('experience_builder.component.block.system_menu_block.footer');
+    $this->assertSame([
+      'config' => ['system.menu.footer'],
+      'module' => ['system'],
+    ], $menu->get('dependencies'));
+
+    $menu = Menu::load('footer');
+    assert($menu instanceof Menu);
+
+    // Deleting dependency of unused Component results in deletion of Component.
+    $menu->delete();
+    $this->assertNotContains('block.system_menu_block.footer', $this->findCreatedComponentConfigEntities(BlockComponent::SOURCE_PLUGIN_ID, 'system'));
+
+    $this->assertContains('block.system_menu_block.main', $this->findCreatedComponentConfigEntities(BlockComponent::SOURCE_PLUGIN_ID, 'system'));
+    $menu = $this->config('experience_builder.component.block.system_menu_block.main');
+    $this->assertSame([
+      'config' => ['system.menu.main'],
+      'module' => ['system'],
+    ], $menu->get('dependencies'));
+    Pattern::create([
+      'id' => 'test_pattern',
+      'label' => 'Test pattern',
+      'component_tree' => [
+        'tree' => [
+          ComponentTreeStructure::ROOT_UUID => [
+            ['uuid' => 'main_block', 'component' => 'block.system_menu_block.main'],
+          ],
+        ],
+        'inputs' => [
+          'main_block' => [
+            'label' => 'Main navigation',
+            'label_display' => '',
+            'level' => 1,
+            'depth' => 0,
+            'expand_all_items' => TRUE,
+          ],
+        ],
+      ],
+    ])->save();
+
+    $menu = Menu::load('main');
+    assert($menu instanceof Menu);
+
+    // Deleting dependency of used Component results in "fallback" Component.
+    $menu->delete();
+    $this->assertContains('block.system_menu_block.main', $this->findCreatedComponentConfigEntities(BlockComponent::SOURCE_PLUGIN_ID, 'system'));
+    $component = Component::load('block.system_menu_block.main');
+    assert($component instanceof Component);
+    $this->assertFalse($component->status());
+    $this->assertTrue($component->getComponentSource() instanceof Fallback);
+  }
+
+  /**
+   * @covers ::onDependencyRemoval()
+   */
+  public function testPluginDependencyUninstall(): void {
+    $this->generateComponentConfig();
+
+    // Component entity based on block, unused.
+    $this->assertContains('block.xb_test_block_input_none', $this->findCreatedComponentConfigEntities(BlockComponent::SOURCE_PLUGIN_ID, 'xb_test_block'));
+
+    // Component entity based on block, used in Pattern.
+    $this->assertContains('block.xb_test_block_input_validatable', $this->findCreatedComponentConfigEntities(BlockComponent::SOURCE_PLUGIN_ID, 'xb_test_block'));
+    Pattern::create([
+      'id' => 'test_pattern',
+      'label' => 'Test pattern',
+      'component_tree' => [
+        'tree' => [
+          ComponentTreeStructure::ROOT_UUID => [
+            ['uuid' => 'xb_test_block_input_validatable', 'component' => 'block.xb_test_block_input_validatable'],
+          ],
+        ],
+        'inputs' => [
+          'xb_test_block_input_validatable' => [
+            'name' => 'test',
+            'label' => 'test',
+            'label_display' => '',
+          ],
+        ],
+      ],
+    ])->save();
+
+    $this->container->get('module_installer')->uninstall(['xb_test_block']);
+
+    $this->assertNotContains('block.xb_test_block_input_none', $this->findCreatedComponentConfigEntities(BlockComponent::SOURCE_PLUGIN_ID, 'xb_test_block'));
+    $this->assertContains('block.xb_test_block_input_validatable', $this->findCreatedComponentConfigEntities(BlockComponent::SOURCE_PLUGIN_ID, 'xb_test_block'));
+    $component = Component::load('block.xb_test_block_input_validatable');
+    assert($component instanceof Component);
+    $this->assertFalse($component->status());
+    $this->assertTrue($component->getComponentSource() instanceof Fallback);
+  }
+
+  /**
+   * @covers \Drupal\experience_builder\Plugin\BlockManager::setCachedDefinitions()
+   */
+  public function testDependencyUpdate(): void {
+    // Install the default menus provided by system.module.
+    $this->installConfig(['system']);
+    $this->generateComponentConfig();
+
+    $config = 'experience_builder.component.block.system_menu_block.footer';
+    $this->assertSame('Footer', $this->config($config)->get('label'));
+
+    $menu = Menu::load('footer');
+    assert($menu instanceof Menu);
+    $label = 'Old footer menu';
+    $menu->set('label', $label)->save();
+
+    $this->generateComponentConfig();
+
+    $this->assertSame($label, $this->config($config)->get('label'));
   }
 
 }
