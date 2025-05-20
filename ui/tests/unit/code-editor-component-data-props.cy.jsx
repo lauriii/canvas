@@ -136,7 +136,7 @@ describe('Component data / props in code editor', () => {
       expect(props[2]).to.deep.include({
         name: 'Featured',
         type: 'boolean',
-        example: 'true',
+        example: true,
         format: undefined,
         $ref: undefined,
         derivedType: 'boolean',
@@ -386,7 +386,7 @@ describe('Component data / props in code editor', () => {
         {
           name: 'Is featured',
           type: 'boolean',
-          example: 'false',
+          example: false,
           format: undefined,
           $ref: undefined,
         },
@@ -403,7 +403,7 @@ describe('Component data / props in code editor', () => {
         {
           name: 'Is featured',
           type: 'boolean',
-          example: 'true',
+          example: true,
         },
         'Should have the correct prop metadata',
       );

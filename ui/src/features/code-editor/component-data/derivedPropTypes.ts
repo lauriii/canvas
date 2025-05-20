@@ -80,7 +80,7 @@ const derivedPropTypes = [
     derive: (prop: CodeComponentPropSerialized) => prop.type === 'boolean',
     init: {
       type: 'boolean',
-      example: 'false',
+      example: false,
     },
   },
   {

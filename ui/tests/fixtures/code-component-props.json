@@ -45,14 +45,14 @@
     {
       "name": "Boolean with example value (true)",
       "type": "boolean",
-      "example": "true",
+      "example": true,
       "id": "5398f61d-5b99-4142-a438-f0e2cec6c567",
       "derivedType": "boolean"
     },
     {
       "name": "Boolean with example value (false)",
       "type": "boolean",
-      "example": "false",
+      "example": false,
       "id": "c717e5e3-be92-4786-94be-75f231b97c96",
       "derivedType": "boolean"
     },
@@ -226,12 +226,12 @@
     "booleanWithExampleValueTrue": {
       "title": "Boolean with example value (true)",
       "type": "boolean",
-      "examples": ["true"]
+      "examples": [true]
     },
     "booleanWithExampleValueFalse": {
       "title": "Boolean with example value (false)",
       "type": "boolean",
-      "examples": ["false"]
+      "examples": [false]
     },
     "textListWithNoExampleValue": {
       "title": "Text list with no example value",

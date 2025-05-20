@@ -167,7 +167,9 @@ export function serializeProps(props: CodeComponentProp[]) {
       const processed: CodeComponentPropSerialized = {
         title: name,
         type,
-        ...(example && {
+        // The example is taken from the prop if it's a truthy value, or a
+        // boolean false value (which could be an example of a boolean prop).
+        ...((example || example === false) && {
           examples: [isNumberType ? Number(example) : example],
         }),
         ...(enumValues && {
@@ -214,10 +216,13 @@ export function deserializeProps(
     } = prop;
     let example: CodeComponentProp['example'] = '';
     if (examples?.length) {
-      example =
-        type === 'object'
-          ? (examples[0] as unknown as CodeComponentPropImageExample)
-          : String(examples[0]);
+      if (type === 'object') {
+        example = examples[0] as unknown as CodeComponentPropImageExample;
+      } else if (type === 'boolean') {
+        example = examples[0] as unknown as boolean;
+      } else {
+        example = String(examples[0]);
+      }
     }
 
     const derivedType =

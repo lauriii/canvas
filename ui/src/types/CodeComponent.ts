@@ -26,7 +26,7 @@ export interface CodeComponentProp {
   name: string;
   type: 'string' | 'integer' | 'number' | 'boolean' | 'object';
   enum?: string[];
-  example?: string | CodeComponentPropImageExample;
+  example?: string | boolean | CodeComponentPropImageExample;
   $ref?: string;
   format?: string;
   derivedType: (typeof derivedPropTypes)[number]['type'] | null;
@@ -45,7 +45,7 @@ export interface CodeComponentPropSerialized {
   title: string;
   type: 'string' | 'integer' | 'number' | 'boolean' | 'object';
   enum?: (string | number)[];
-  examples?: (string | number | CodeComponentPropImageExample)[];
+  examples?: (string | number | boolean | CodeComponentPropImageExample)[];
   $ref?: string;
   format?: string;
   contentMediaType?: string;

@@ -24,11 +24,9 @@ export default function FormPropTypeBoolean({
         <Label htmlFor={`prop-example-${id}`}>Example value</Label>
         <Switch
           id={`prop-example-${id}`}
-          checked={example === 'true'}
+          checked={example === true}
           onCheckedChange={(checked) =>
-            dispatch(
-              updateProp({ id, updates: { example: checked.toString() } }),
-            )
+            dispatch(updateProp({ id, updates: { example: checked } }))
           }
           size="1"
           disabled={isDisabled}
