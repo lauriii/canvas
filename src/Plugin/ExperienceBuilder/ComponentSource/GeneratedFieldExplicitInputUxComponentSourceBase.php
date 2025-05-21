@@ -123,7 +123,12 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
       $dependencies['module'][] = $field_widget_definition['provider'];
     }
 
-    return $dependencies;
+    ksort($dependencies);
+    return array_map(static function ($values) {
+      $values = array_unique($values);
+      sort($values);
+      return $values;
+    }, $dependencies);
   }
 
   /**

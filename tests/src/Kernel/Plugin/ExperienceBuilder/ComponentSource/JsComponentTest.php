@@ -483,7 +483,6 @@ final class JsComponentTest extends ComponentSourceTestBase {
       'js.xb_test_code_components_vanilla_image' => [
         'module' => [
           'image',
-          'image',
         ],
         'config' => [
           'experience_builder.js_component.xb_test_code_components_vanilla_image',
@@ -496,9 +495,6 @@ final class JsComponentTest extends ComponentSourceTestBase {
       ],
       'js.xb_test_code_components_with_props' => [
         'module' => [
-          'core',
-          'core',
-          'core',
           'core',
         ],
         'config' => [

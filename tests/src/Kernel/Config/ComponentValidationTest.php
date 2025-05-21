@@ -12,6 +12,7 @@ use Drupal\experience_builder\Plugin\ComponentPluginManager;
 use Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\BlockComponent;
 use Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\JsComponent;
 use Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\SingleDirectoryComponent;
+use Drupal\Tests\experience_builder\Traits\BetterConfigDependencyManagerTrait;
 use Drupal\Tests\experience_builder\Traits\ContribStrictConfigSchemaTestTrait;
 use Drupal\Tests\experience_builder\Traits\GenerateComponentConfigTrait;
 use Symfony\Component\Yaml\Yaml;
@@ -24,6 +25,7 @@ use Symfony\Component\Yaml\Yaml;
  */
 class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
 
+  use BetterConfigDependencyManagerTrait;
   use ContribStrictConfigSchemaTestTrait;
   use GenerateComponentConfigTrait;
 
@@ -44,6 +46,12 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
     'options',
     'path',
     'link',
+    'field',
+    'media',
+    'media_library',
+    'views',
+    'user',
+    'filter',
   ];
 
   /**
@@ -70,6 +78,12 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
    */
   protected function setUp(): void {
     parent::setUp();
+    $this->installEntitySchema('media');
+    $this->installEntitySchema('user');
+    $this->setInstallProfile('standard');
+    $this->installConfig(['media']);
+    $this->installSchema('file', ['file_usage']);
+    $this->installEntitySchema('filter_format');
 
     $this->entity = Component::create([
       'id' => 'sdc.sdc_test.my-cta',
@@ -108,12 +122,59 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
             'default_value' => NULL,
             'expression' => 'ℹ︎list_string␟value',
           ],
+          // @todo This will start failing validation in https://www.drupal.org/i/3525759.
+          'image' => [
+            'field_type' => 'image',
+            'field_storage_settings' => [
+              'target_type' => 'media',
+            ],
+            'field_instance_settings' => [
+              'handler' => 'default:media',
+              'handler_settings' => [
+                'target_bundles' => [
+                  'image' => 'image',
+                ],
+              ],
+            ],
+            'field_widget' => 'media_library_widget',
+            'default_value' => [],
+            'expression' => 'ℹ︎image␟{src↝entity␜␜entity:file␝uri␞␟url,alt↠alt,width↠width,height↠height}',
+          ],
         ],
       ],
       'label' => 'Test',
     ]);
     $this->entity->save();
     $this->componentPluginManager = $this->container->get(ComponentPluginManager::class);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function testEntityIsValid(): void {
+    parent::testEntityIsValid();
+
+    // Beyond validity, validate config dependencies are computed correctly.
+    $this->assertSame(
+      [
+        'module' => [
+          'image',
+          'media_library',
+          'options',
+          'sdc_test',
+        ],
+      ],
+      $this->entity->getDependencies()
+    );
+    $this->assertSame([
+      'module' => [
+        'image',
+        'media_library',
+        'options',
+        'sdc_test',
+        'experience_builder',
+      ],
+    ], $this->getAllDependencies($this->entity));
   }
 
   /**
@@ -171,7 +232,11 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
         'local_source_id' => 'my-cta',
         'prop_field_definitions' => array_diff_key(
           $this->entity->getSettings()['prop_field_definitions'],
-          array_flip(['target']),
+          // Remove the 'target' key to trigger a validation error.
+          // Remove the 'image' because the property is not in the JS component
+          // created above.
+          // @todo Remove "image" from this in https://www.drupal.org/i/3525759.
+          array_flip(['target', 'image']),
         ),
       ],
       'label' => 'Test',

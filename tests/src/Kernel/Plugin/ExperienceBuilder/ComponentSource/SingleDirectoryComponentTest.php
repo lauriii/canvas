@@ -708,13 +708,11 @@ HTML,
       'sdc.xb_test_sdc.crash' => [
         'module' => [
           'core',
-          'core',
           'xb_test_sdc',
         ],
       ],
       'sdc.xb_test_sdc.deprecated' => [
         'module' => [
-          'core',
           'core',
           'xb_test_sdc',
         ],
@@ -722,22 +720,19 @@ HTML,
       'sdc.xb_test_sdc.experimental' => [
         'module' => [
           'core',
-          'core',
           'xb_test_sdc',
         ],
       ],
       'sdc.xb_test_sdc.grid-container' => [
         'module' => [
-          'options',
           'core',
+          'options',
           'xb_test_sdc',
         ],
       ],
       'sdc.xb_test_sdc.image-gallery' => [
         'module' => [
           'core',
-          'core',
-          'image',
           'image',
           'xb_test_sdc',
         ],
@@ -745,15 +740,12 @@ HTML,
       'sdc.xb_test_sdc.image-optional-with-example' => [
         'module' => [
           'image',
-          'image',
           'xb_test_sdc',
         ],
       ],
       'sdc.xb_test_sdc.image-optional-with-example-and-additional-prop' => [
         'module' => [
           'core',
-          'core',
-          'image',
           'image',
           'xb_test_sdc',
         ],
@@ -761,13 +753,11 @@ HTML,
       'sdc.xb_test_sdc.image-optional-without-example' => [
         'module' => [
           'image',
-          'image',
           'xb_test_sdc',
         ],
       ],
       'sdc.xb_test_sdc.image-required-with-example' => [
         'module' => [
-          'image',
           'image',
           'xb_test_sdc',
         ],
@@ -775,20 +765,17 @@ HTML,
       'sdc.xb_test_sdc.props-no-slots' => [
         'module' => [
           'core',
-          'core',
           'xb_test_sdc',
         ],
       ],
       'sdc.xb_test_sdc.props-slots' => [
         'module' => [
           'core',
-          'core',
           'xb_test_sdc',
         ],
       ],
       'sdc.xb_test_sdc.sparkline' => [
         'module' => [
-          'core',
           'core',
           'xb_test_sdc',
         ],

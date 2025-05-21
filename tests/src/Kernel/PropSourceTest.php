@@ -4,10 +4,14 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\experience_builder\Kernel;
 
-use Drupal\Core\Field\FieldStorageDefinitionInterface;
-use Drupal\Core\Field\Plugin\Field\FieldWidget\NumberWidget;
+use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Extension\ExtensionPathResolver;
+use Drupal\Core\Field\FieldStorageDefinitionInterface;
+use Drupal\Core\Field\Plugin\Field\FieldWidget\BooleanCheckboxWidget;
+use Drupal\Core\Field\Plugin\Field\FieldWidget\EntityReferenceAutocompleteWidget;
+use Drupal\Core\Field\Plugin\Field\FieldWidget\NumberWidget;
 use Drupal\Core\Field\Plugin\Field\FieldWidget\StringTextfieldWidget;
+use Drupal\Core\Field\Plugin\Field\FieldWidget\UriWidget;
 use Drupal\Core\Url;
 use Drupal\datetime\Plugin\Field\FieldType\DateTimeItem;
 use Drupal\datetime_range\Plugin\Field\FieldWidget\DateRangeDatelistWidget;
@@ -25,6 +29,7 @@ use Drupal\experience_builder\PropSource\DynamicPropSource;
 use Drupal\experience_builder\PropSource\PropSource;
 use Drupal\experience_builder\PropSource\StaticPropSource;
 use Drupal\KernelTests\KernelTestBase;
+use Drupal\media\Entity\MediaType;
 use Drupal\node\Entity\NodeType;
 use Drupal\Tests\experience_builder\Traits\ContribStrictConfigSchemaTestTrait;
 use Drupal\Tests\node\Traits\NodeCreationTrait;
@@ -45,124 +50,170 @@ class PropSourceTest extends KernelTestBase {
    */
   protected static $modules = [
     'experience_builder',
+    'field',
+    'file',
     'node',
     'user',
     'datetime',
     'datetime_range',
+    'media',
+    'media_library',
     'system',
     'media',
+    'views',
   ];
 
   /**
-   * @coversClass \Drupal\experience_builder\PropSource\StaticPropSource
+   * {@inheritdoc}
    */
-  public function testStaticPropSource(): void {
-    // A simple example.
-    $simple_example = StaticPropSource::parse([
+  protected function setUp(): void {
+    parent::setUp();
+    $this->installEntitySchema('field_storage_config');
+    $this->installEntitySchema('field_config');
+    $media_type = MediaType::create([
+      'id' => 'image',
+      'label' => 'Image',
+      'source' => 'file',
+    ]);
+    $media_type->save();
+    // Create the source field.
+    $source_field = $media_type->getSource()->createSourceField($media_type);
+    $field_storage_definition = $source_field->getFieldStorageDefinition();
+    assert($field_storage_definition instanceof EntityInterface);
+    $field_storage_definition->save();
+
+    $source_field->save();
+    $media_type
+      ->set('source_configuration', [
+        'source_field' => $source_field->getName(),
+      ])
+      ->save();
+  }
+
+  /**
+   * @coversClass \Drupal\experience_builder\PropSource\StaticPropSource
+   * @dataProvider providerStaticPropSource
+   */
+  public function testStaticPropSource(
+    string $source_type,
+    array|null $source_type_settings,
+    mixed $value,
+    string $expression,
+    string $expected_json_representation,
+    array|null $field_widgets,
+    mixed $expected_user_value,
+    string $expected_prop_expression_class,
+    array $expected_dependencies,
+  ): void {
+    // @phpstan-ignore-next-line
+    $prop_source_example = StaticPropSource::parse([
+      'sourceType' => $source_type,
+      'value' => $value,
+      'expression' => $expression,
+      'sourceTypeSettings' => $source_type_settings,
+    ]);
+    // First, get the string representation and parse it back, to prove
+    // serialization and deserialization works.
+    $json_representation = (string) $prop_source_example;
+    $this->assertSame($expected_json_representation, $json_representation);
+    $decoded_representation = json_decode($json_representation, TRUE);
+    $prop_source_example = PropSource::parse($decoded_representation);
+    $this->assertInstanceOf(StaticPropSource::class, $prop_source_example);
+    // The contained information read back out.
+    $this->assertSame($source_type, $prop_source_example->getSourceType());
+    /** @var class-string $expected_prop_expression_class */
+    $this->assertInstanceOf($expected_prop_expression_class, StructuredDataPropExpression::fromString($prop_source_example->asChoice()));
+    self::assertSame($expected_dependencies, $prop_source_example->calculateDependencies());
+    // - generate a widget to edit the stored value — using the default widget
+    //   or a specified widget.
+    // @see \Drupal\experience_builder\Entity\Component::$defaults
+    \assert(is_array($field_widgets));
+    // Ensure we always test the default widget.
+    \assert(isset($field_widgets[NULL]));
+    // Ensure an unknown widget type is handled gracefully.
+    $field_widgets['not_real'] = $field_widgets[NULL];
+    foreach ($field_widgets as $widget_type => $expected_widget_class) {
+      $this->assertInstanceOf($expected_widget_class, $prop_source_example->getWidget('irrelevant-for-test', $this->randomString(), $widget_type));
+    }
+    if (NULL === $value) {
+      $this->assertNull($expected_user_value);
+      // Do not continue testing if there is no values.
+      return;
+    }
+
+    try {
+      StaticPropSource::isMinimalRepresentation($decoded_representation);
+    }
+    catch (\LogicException) {
+      $this->fail("Not a minimal representation: $json_representation.");
+    }
+    $this->assertSame($value, $prop_source_example->getValue());
+    // Test the functionality of a StaticPropSource:
+    // - evaluate it to populate an SDC prop
+    $this->assertSame($expected_user_value, $prop_source_example->evaluate(User::create([])));
+    // - the field type's item's raw value is minimized if it is single-property
+    $this->assertSame($value, $prop_source_example->getValue());
+  }
+
+  public static function providerStaticPropSource(): \Generator {
+    yield "scalar shape, field type=string, cardinality=1" => [
       'sourceType' => 'static:field_item:string',
+      'sourceTypeSettings' => NULL,
       'value' => 'Hello, world!',
       'expression' => 'ℹ︎string␟value',
-    ]);
-    // First, get the string representation and parse it back, to prove
-    // serialization and deserialization works.
-    $json_representation = (string) $simple_example;
-    $this->assertSame('{"sourceType":"static:field_item:string","value":"Hello, world!","expression":"ℹ︎string␟value"}', $json_representation);
-    $decoded_representation = json_decode($json_representation, TRUE);
-    try {
-      StaticPropSource::isMinimalRepresentation($decoded_representation);
-    }
-    catch (\LogicException) {
-      $this->fail("Not a minimal representation: $json_representation.");
-    }
-    $simple_example = PropSource::parse($decoded_representation);
-    $this->assertInstanceOf(StaticPropSource::class, $simple_example);
-    // The contained information read back out.
-    $this->assertSame('static:field_item:string', $simple_example->getSourceType());
-    $this->assertInstanceOf(FieldTypePropExpression::class, StructuredDataPropExpression::fromString($simple_example->asChoice()));
-    $this->assertSame('Hello, world!', $simple_example->getValue());
-    // Test the functionality of a StaticPropSource:
-    // - evaluate it to populate an SDC prop
-    $this->assertSame('Hello, world!', $simple_example->evaluate(User::create([])));
-    // - the field type's item's raw value is minimized if it is single-property
-    $this->assertSame('Hello, world!', $simple_example->getValue());
-    // - generate a widget to edit the stored value — using the default widget
-    //   or a specified widget.
-    // @see \Drupal\experience_builder\Entity\Component::$defaults
-    $this->assertInstanceOf(StringTextfieldWidget::class, $simple_example->getWidget('irrelevant-for-test', $this->randomString(), NULL));
-    $this->assertInstanceOf(StringTextfieldWidget::class, $simple_example->getWidget('irrelevant-for-test', $this->randomString(), 'string_textfield'));
-    // The widget plugin manager ignores any request for another widget type and
-    // falls back to the default widget if
-    // @see \Drupal\Core\Field\WidgetPluginManager::getInstance()
-    $this->assertInstanceOf(StringTextfieldWidget::class, $simple_example->getWidget('irrelevant-for-test', $this->randomString(), 'string_textarea'));
-    self::assertSame([
-      'plugin' => [
-        'field_type:string',
+      'expected_json_representation' => '{"sourceType":"static:field_item:string","value":"Hello, world!","expression":"ℹ︎string␟value"}',
+      'field_widgets' => [
+        NULL => StringTextfieldWidget::class,
+        'string_textfield' => StringTextfieldWidget::class,
+        'string_textarea' => StringTextfieldWidget::class,
       ],
-    ], $simple_example->calculateDependencies());
-
-    // A complex example.
-    $complex_example = StaticPropSource::parse([
-      'sourceType' => 'static:field_item:daterange',
-      'value' => [
-        'value' => '2020-04-16T00:00',
-        'end_value' => '2024-07-10T10:24',
+      'expected_user_value' => 'Hello, world!',
+      'expected_prop_expression' => FieldTypePropExpression::class,
+      'expected_dependencies' => [
+        'plugin' => [
+          'field_type:string',
+        ],
       ],
-      'expression' => 'ℹ︎daterange␟{start↠value,stop↠end_value}',
-    ]);
-    // First, get the string representation and parse it back, to prove
-    // serialization and deserialization works.
-    $json_representation = (string) $complex_example;
-    $this->assertSame('{"sourceType":"static:field_item:daterange","value":{"value":"2020-04-16T00:00","end_value":"2024-07-10T10:24"},"expression":"ℹ︎daterange␟{start↠value,stop↠end_value}"}', $json_representation);
-    $decoded_representation = json_decode($json_representation, TRUE);
-    try {
-      StaticPropSource::isMinimalRepresentation($decoded_representation);
-    }
-    catch (\LogicException) {
-      $this->fail("Not a minimal representation: $json_representation.");
-    }
-    $complex_example = PropSource::parse($decoded_representation);
-    $this->assertInstanceOf(StaticPropSource::class, $complex_example);
-    // The contained information read back out.
-    $this->assertSame('static:field_item:daterange', $complex_example->getSourceType());
-    $this->assertInstanceOf(FieldTypeObjectPropsExpression::class, StructuredDataPropExpression::fromString($complex_example->asChoice()));
-    $this->assertSame([
-      'value' => '2020-04-16T00:00',
-      'end_value' => '2024-07-10T10:24',
-    ], $complex_example->getValue());
-    // Test the functionality of a StaticPropSource:
-    // - evaluate it to populate an SDC prop
-    $this->assertSame([
-      'start' => '2020-04-16T00:00',
-      'stop' => '2024-07-10T10:24',
-    ], $complex_example->evaluate(User::create([])));
-    // - the field type's item's raw value is minimized if it is single-property
-    $this->assertSame(
-      [
-        'value' => '2020-04-16T00:00',
-        'end_value' => '2024-07-10T10:24',
+    ];
+    yield "scalar shape, field type=uri, cardinality=1" => [
+      'sourceType' => 'static:field_item:uri',
+      'sourceTypeSettings' => NULL,
+      'value' => 'https://drupal.org',
+      'expression' => 'ℹ︎uri␟value',
+      'expected_json_representation' => '{"sourceType":"static:field_item:uri","value":"https:\/\/drupal.org","expression":"ℹ︎uri␟value"}',
+      'field_widgets' => [
+        NULL => UriWidget::class,
+        'uri' => UriWidget::class,
       ],
-      $complex_example->getValue()
-    );
-    // - generate a widget to edit the stored value — using the default widget
-    //   or a specified widget.
-    // @see \Drupal\experience_builder\Entity\Component::$defaults
-    $this->assertInstanceOf(DateRangeDefaultWidget::class, $complex_example->getWidget('irrelevant-for-test', $this->randomString(), NULL));
-    $this->assertInstanceOf(DateRangeDefaultWidget::class, $complex_example->getWidget('irrelevant-for-test', $this->randomString(), 'daterange_default'));
-    $this->assertInstanceOf(DateRangeDatelistWidget::class, $complex_example->getWidget('irrelevant-for-test', $this->randomString(), 'daterange_datelist'));
-    self::assertSame([
-      'module' => [
-        'datetime_range',
-        'datetime_range',
+      'expected_user_value' => 'https://drupal.org',
+      'expected_prop_expression' => FieldTypePropExpression::class,
+      'expected_dependencies' => [
+        'plugin' => [
+          'field_type:uri',
+        ],
       ],
-      'plugin' => [
-        'field_type:daterange',
-        'field_type:daterange',
+    ];
+    yield "scalar shape, field type=boolean, cardinality=1" => [
+      'sourceType' => 'static:field_item:boolean',
+      'sourceTypeSettings' => NULL,
+      'value' => TRUE,
+      'expression' => 'ℹ︎boolean␟value',
+      'expected_json_representation' => '{"sourceType":"static:field_item:boolean","value":true,"expression":"ℹ︎boolean␟value"}',
+      'field_widgets' => [
+        NULL => BooleanCheckboxWidget::class,
+        'boolean_checkbox' => BooleanCheckboxWidget::class,
       ],
-    ], $complex_example->calculateDependencies());
-
+      'expected_user_value' => TRUE,
+      'expected_prop_expression' => FieldTypePropExpression::class,
+      'expected_dependencies' => [
+        'plugin' => [
+          'field_type:boolean',
+        ],
+      ],
+    ];
     // A simple (expression targeting a simple prop) array example (with
     // cardinality specified, rather than the default of `cardinality=1`).
-    $simple_array_example = StaticPropSource::parse([
+    yield "scalar shape, field type=integer, cardinality=5" => [
       'sourceType' => 'static:field_item:integer',
       'sourceTypeSettings' => [
         'cardinality' => 5,
@@ -175,42 +226,56 @@ class PropSourceTest extends KernelTestBase {
         92,
       ],
       'expression' => 'ℹ︎integer␟value',
-    ]);
-    // First, get the string representation and parse it back, to prove
-    // serialization and deserialization works.
-    $json_representation = (string) $simple_array_example;
-    $this->assertSame('{"sourceType":"static:field_item:integer","value":[20,6,1,88,92],"expression":"ℹ︎integer␟value","sourceTypeSettings":{"cardinality":5}}', $json_representation);
-    $decoded_representation = json_decode($json_representation, TRUE);
-    try {
-      StaticPropSource::isMinimalRepresentation($decoded_representation);
-    }
-    catch (\LogicException) {
-      $this->fail("Not a minimal representation: $json_representation.");
-    }
-    $simple_array_example = PropSource::parse($decoded_representation);
-    $this->assertInstanceOf(StaticPropSource::class, $simple_array_example);
-    // The contained information read back out.
-    $this->assertSame('static:field_item:integer', $simple_array_example->getSourceType());
-    $this->assertInstanceOf(FieldTypePropExpression::class, StructuredDataPropExpression::fromString($simple_array_example->asChoice()));
-    $this->assertSame([20, 06, 1, 88, 92], $simple_array_example->getValue());
-    // Test the functionality of a StaticPropSource:
-    // - evaluate it to populate an SDC prop
-    $this->assertSame([20, 06, 1, 88, 92], $simple_array_example->evaluate(User::create([])));
-    // - the field type's item's raw value is minimized if it is single-property
-    $this->assertSame([20, 06, 1, 88, 92], $simple_array_example->getValue());
-    // - generate a widget to edit the stored value — using the default widget
-    //   or a specified widget.
-    // @see \Drupal\experience_builder\Entity\Component::$defaults
-    $this->assertInstanceOf(NumberWidget::class, $simple_array_example->getWidget('irrelevant-for-test', $this->randomString(), NULL));
-    $this->assertInstanceOf(NumberWidget::class, $simple_array_example->getWidget('irrelevant-for-test', $this->randomString(), 'number'));
-    // The widget plugin manager ignores any request for another widget type and
-    // falls back to the default widget if
-    // @see \Drupal\Core\Field\WidgetPluginManager::getInstance()
-    $this->assertInstanceOf(NumberWidget::class, $simple_array_example->getWidget('irrelevant-for-test', $this->randomString(), 'number'));
-
+      'expected_json_representation' => '{"sourceType":"static:field_item:integer","value":[20,6,1,88,92],"expression":"ℹ︎integer␟value","sourceTypeSettings":{"cardinality":5}}',
+      'field_widgets' => [
+        NULL => NumberWidget::class,
+        'number' => NumberWidget::class,
+      ],
+      'expected_user_value' => [
+        20,
+        06,
+        1,
+        88,
+        92,
+      ],
+      'expected_prop_expression' => FieldTypePropExpression::class,
+      'expected_dependencies' => [
+        'plugin' => [
+          'field_type:integer',
+        ],
+      ],
+    ];
+    yield "object shape, daterange field, cardinality=1" => [
+      'sourceType' => 'static:field_item:daterange',
+      'sourceTypeSettings' => NULL,
+      'value' => [
+        'value' => '2020-04-16T00:00',
+        'end_value' => '2024-07-10T10:24',
+      ],
+      'expression' => 'ℹ︎daterange␟{start↠value,stop↠end_value}',
+      'expected_json_representation' => '{"sourceType":"static:field_item:daterange","value":{"value":"2020-04-16T00:00","end_value":"2024-07-10T10:24"},"expression":"ℹ︎daterange␟{start↠value,stop↠end_value}"}',
+      'field_widgets' => [
+        NULL => DateRangeDefaultWidget::class,
+        'daterange_default' => DateRangeDefaultWidget::class,
+        'daterange_datelist' => DateRangeDatelistWidget::class,
+      ],
+      'expected_user_value' => [
+        'start' => '2020-04-16T00:00',
+        'stop' => '2024-07-10T10:24',
+      ],
+      'expected_prop_expression' => FieldTypeObjectPropsExpression::class,
+      'expected_dependencies' => [
+        'module' => [
+          'datetime_range',
+        ],
+        'plugin' => [
+          'field_type:daterange',
+        ],
+      ],
+    ];
     // A complex (expression targeting multiple props) array example (with
     // cardinality specified, rather than the default of `cardinality=1`).
-    $complex_array_example = StaticPropSource::parse([
+    yield "object shape, daterange field, cardinality=UNLIMITED" => [
       'sourceType' => 'static:field_item:daterange',
       'sourceTypeSettings' => [
         'cardinality' => FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED,
@@ -226,65 +291,66 @@ class PropSourceTest extends KernelTestBase {
         ],
       ],
       'expression' => 'ℹ︎daterange␟{start↠value,stop↠end_value}',
-    ]);
-    // First, get the string representation and parse it back, to prove
-    // serialization and deserialization works.
-    $json_representation = (string) $complex_array_example;
-    $this->assertSame('{"sourceType":"static:field_item:daterange","value":[{"value":"2020-04-16T00:00","end_value":"2024-07-10T10:24"},{"value":"2020-04-16T00:00","end_value":"2024-09-26T11:31"}],"expression":"ℹ︎daterange␟{start↠value,stop↠end_value}","sourceTypeSettings":{"cardinality":-1}}', $json_representation);
-    $decoded_representation = json_decode($json_representation, TRUE);
-    try {
-      StaticPropSource::isMinimalRepresentation($decoded_representation);
-    }
-    catch (\LogicException) {
-      $this->fail("Not a minimal representation: $json_representation.");
-    }
-    $complex_array_example = PropSource::parse($decoded_representation);
-    $this->assertInstanceOf(StaticPropSource::class, $complex_array_example);
-    // The contained information read back out.
-    $this->assertSame('static:field_item:daterange', $complex_array_example->getSourceType());
-    $this->assertInstanceOf(FieldTypeObjectPropsExpression::class, StructuredDataPropExpression::fromString($complex_array_example->asChoice()));
-    $this->assertSame([
-      [
-        'value' => '2020-04-16T00:00',
-        'end_value' => '2024-07-10T10:24',
+      'expected_json_representation' => '{"sourceType":"static:field_item:daterange","value":[{"value":"2020-04-16T00:00","end_value":"2024-07-10T10:24"},{"value":"2020-04-16T00:00","end_value":"2024-09-26T11:31"}],"expression":"ℹ︎daterange␟{start↠value,stop↠end_value}","sourceTypeSettings":{"cardinality":-1}}',
+      'field_widgets' => [
+        NULL => DateRangeDefaultWidget::class,
+        'daterange_default' => DateRangeDefaultWidget::class,
+        'daterange_datelist' => DateRangeDatelistWidget::class,
       ],
-      [
-        'value' => '2020-04-16T00:00',
-        'end_value' => '2024-09-26T11:31',
-      ],
-    ], $complex_array_example->getValue());
-    // Test the functionality of a StaticPropSource:
-    // - evaluate it to populate an SDC prop
-    $this->assertSame([
-      [
-        'start' => '2020-04-16T00:00',
-        'stop' => '2024-07-10T10:24',
-      ],
-      [
-        'start' => '2020-04-16T00:00',
-        'stop' => '2024-09-26T11:31',
-      ],
-    ], $complex_array_example->evaluate(User::create([])));
-    // - the field type's item's raw value is minimized if it is single-property
-    $this->assertSame(
-      [
+      'expected_user_value' => [
         [
-          'value' => '2020-04-16T00:00',
-          'end_value' => '2024-07-10T10:24',
+          'start' => '2020-04-16T00:00',
+          'stop' => '2024-07-10T10:24',
         ],
         [
-          'value' => '2020-04-16T00:00',
-          'end_value' => '2024-09-26T11:31',
+          'start' => '2020-04-16T00:00',
+          'stop' => '2024-09-26T11:31',
         ],
       ],
-      $complex_array_example->getValue()
-    );
-    // - generate a widget to edit the stored value — using the default widget
-    //   or a specified widget.
-    // @see \Drupal\experience_builder\Entity\Component::$defaults
-    $this->assertInstanceOf(DateRangeDefaultWidget::class, $complex_array_example->getWidget('irrelevant-for-test', $this->randomString(), NULL));
-    $this->assertInstanceOf(DateRangeDefaultWidget::class, $complex_array_example->getWidget('irrelevant-for-test', $this->randomString(), 'daterange_default'));
-    $this->assertInstanceOf(DateRangeDatelistWidget::class, $complex_array_example->getWidget('irrelevant-for-test', $this->randomString(), 'daterange_datelist'));
+      'expected_prop_expression' => FieldTypeObjectPropsExpression::class,
+      'expected_dependencies' => [
+        'module' => [
+          'datetime_range',
+        ],
+        'plugin' => [
+          'field_type:daterange',
+        ],
+      ],
+    ];
+    yield "complex empty example with entity_reference" => [
+      'sourceType' => 'static:field_item:entity_reference',
+      'sourceTypeSettings' => [
+        'storage' => ['target_type' => 'media'],
+        'instance' => [
+          'handler' => 'default:media',
+          'handler_settings' => [
+            'target_bundles' => ['image' => 'image'],
+          ],
+        ],
+      ],
+      'value' => NULL,
+      'expression' => 'ℹ︎entity_reference␟{src↝entity␜␜entity:media:image␝field_media_image␞␟entity␜␜entity:file␝uri␞␟url,alt↝entity␜␜entity:media:image␝field_media_image␞␟alt,width↝entity␜␜entity:media:image␝field_media_image␞␟width,height↝entity␜␜entity:media:image␝field_media_image␞␟height}',
+      'expected_json_representation' => '{"sourceType":"static:field_item:entity_reference","value":null,"expression":"ℹ︎entity_reference␟{src↝entity␜␜entity:media:image␝field_media_image␞␟entity␜␜entity:file␝uri␞␟url,alt↝entity␜␜entity:media:image␝field_media_image␞␟alt,width↝entity␜␜entity:media:image␝field_media_image␞␟width,height↝entity␜␜entity:media:image␝field_media_image␞␟height}","sourceTypeSettings":{"storage":{"target_type":"media"},"instance":{"handler":"default:media","handler_settings":{"target_bundles":{"image":"image"}}}}}',
+      'field_widgets' => [
+        NULL => EntityReferenceAutocompleteWidget::class,
+        'entity_reference_autocomplete' => EntityReferenceAutocompleteWidget::class,
+        'daterange_datelist' => EntityReferenceAutocompleteWidget::class,
+      ],
+      'expected_user_value' => NULL,
+      'expected_prop_expression' => FieldTypeObjectPropsExpression::class,
+      'expected_dependencies' => [
+        'config' => [
+          'media.type.image',
+        ],
+        'content' => [],
+        'module' => [
+          'media',
+        ],
+        'plugin' => [
+          'field_type:entity_reference',
+        ],
+      ],
+    ];
   }
 
   /**
@@ -598,7 +664,7 @@ class PropSourceTest extends KernelTestBase {
    * @coversClass \Drupal\experience_builder\PropSource\DefaultRelativeUrlPropSource
    */
   public function testDefaultRelativeUrlPropSource(): void {
-    $this->enableModules(['xb_test_sdc', 'link', 'image', 'file', 'options']);
+    $this->enableModules(['xb_test_sdc', 'link', 'image', 'options']);
     // Force rebuilding of the definitions which will create the required
     // component.
     $plugin_manager = $this->container->get(ComponentPluginManager::class);

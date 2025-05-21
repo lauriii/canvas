@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\experience_builder\PropSource;
 
+use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Datetime\DrupalDateTime;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Entity\Plugin\DataType\EntityAdapter;
@@ -481,7 +482,26 @@ final class StaticPropSource extends PropSourceBase {
     // calculated dependencies will be limited to the entity types, bundle (if
     // any) and fields (if any) that this expression depends on.
     // @see \Drupal\Tests\experience_builder\Kernel\PropExpressionDependenciesTest
-    return $this->expression->calculateDependencies($this->fieldItemList);
+    $expression_deps = $this->expression->calculateDependencies($this->fieldItemList);
+
+    // Let the field type plugin specify its own dependencies, based on storage
+    // settings and instance settings.
+    $field_item_class = $this->fieldItemList->getItemDefinition()->getClass();
+    assert(is_subclass_of($field_item_class, FieldItemInterface::class));
+    $instance_deps = $field_item_class::calculateDependencies($this->fieldItemList->getFieldDefinition());
+    $storage_deps = $field_item_class::calculateStorageDependencies($this->fieldItemList->getFieldDefinition()->getFieldStorageDefinition());
+
+    $dependencies = NestedArray::mergeDeep(
+      $expression_deps,
+      $instance_deps,
+      $storage_deps,
+    );
+    ksort($dependencies);
+    return array_map(static function ($values) {
+      $values = array_unique($values);
+      sort($values);
+      return $values;
+    }, $dependencies);
   }
 
 }
