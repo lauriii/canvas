@@ -22,20 +22,7 @@ import { getXbSettings } from '@/utils/drupal-globals';
 
 interface PreviewProps {}
 
-const previewSizes = {
-  lg: {
-    height: 768,
-    width: 1024,
-    name: 'Desktop',
-  },
-  sm: {
-    height: 768,
-    width: 400,
-    name: 'Mobile',
-  },
-};
 const xbSettings = getXbSettings();
-type PreviewSizeKey = keyof typeof previewSizes;
 const labelFormKey = `${xbSettings.entityTypeKeys.label}[0][value]`;
 
 const Preview: React.FC<PreviewProps> = () => {
@@ -99,23 +86,12 @@ const Preview: React.FC<PreviewProps> = () => {
   ]);
 
   return (
-    <>
-      {Object.keys(previewSizes).map((size) => {
-        const key = size as PreviewSizeKey;
-        return (
-          <ComponentHtmlMapProvider key={key}>
-            <Viewport
-              size={key}
-              name={previewSizes[key].name}
-              height={previewSizes[key].height}
-              width={previewSizes[key].width}
-              frameSrcDoc={frameSrcDoc}
-              isFetching={isFetching || isPatching}
-            />
-          </ComponentHtmlMapProvider>
-        );
-      })}
-    </>
+    <ComponentHtmlMapProvider>
+      <Viewport
+        frameSrcDoc={frameSrcDoc}
+        isFetching={isFetching || isPatching}
+      />
+    </ComponentHtmlMapProvider>
   );
 };
 export default Preview;

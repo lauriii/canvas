@@ -55,7 +55,7 @@ const ContextualPanel: React.FC<ContextualPanelProps> = () => {
   return (
     <Box
       data-testid="xb-contextual-panel"
-      pt="3"
+      pt="2"
       className={clsx(styles.contextualPanel, ...offRightClasses)}
     >
       <Flex

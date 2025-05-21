@@ -12,6 +12,8 @@ import useXbParams from '@/hooks/useXbParams';
 import { AlertDialog, Button, Flex } from '@radix-ui/themes';
 import { selectPageData } from '@/features/pageData/pageDataSlice';
 import { selectPreviewHtml } from '@/features/pagePreview/previewSlice';
+import { viewportSizes } from '@/types/Preview';
+
 const PagePreview = () => {
   const layout = useAppSelector(selectLayout);
   const updatePreview = useAppSelector(selectUpdatePreview);
@@ -51,13 +53,13 @@ const PagePreview = () => {
   useEffect(() => {
     if (width === 'full') {
       setWidthVal('100%');
-    }
-    if (width === 'desktop') {
-      setWidthVal('1024px');
-    }
-
-    if (width === 'mobile') {
-      setWidthVal('360px');
+    } else {
+      viewportSizes.find((vs) => {
+        if (width === vs.id) {
+          setWidthVal(`${vs.width}px`);
+          return true;
+        }
+      });
     }
   }, [width]);
 

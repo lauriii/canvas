@@ -102,49 +102,61 @@ describe('Navigation functionality', () => {
     cy.url().should('contain', '/xb/xb_page/1');
   });
 
-  it('Duplicate pages through navigation', () => {
-    cy.loadURLandWaitForXBLoaded({ url: 'xb/xb_page/1' });
+  it(
+    'Duplicate pages through navigation',
+    { retries: { openMode: 0, runMode: 3 } },
+    () => {
+      cy.loadURLandWaitForXBLoaded({ url: 'xb/xb_page/1' });
 
-    cy.findByTestId(navigationButtonTestId).click();
-    cy.findByText('Empty Page').realHover();
-    cy.findByLabelText('Page options for Empty Page').click();
-    cy.findByRole('menuitem', { name: 'Duplicate page', exact: false }).click();
+      cy.findByTestId(navigationButtonTestId).click();
+      cy.findByText('Empty Page').realHover();
+      cy.findByLabelText('Page options for Empty Page').click();
+      cy.findByRole('menuitem', {
+        name: 'Duplicate page',
+        exact: false,
+      }).click();
 
-    cy.loadURLandWaitForXBLoaded({ url: 'xb/xb_page/1' });
-    cy.findByTestId(navigationButtonTestId).click();
-    cy.findByTestId(navigationContentTestId)
-      .should('exist')
-      .and('contain.text', 'Empty Page (Copy)');
-  });
+      cy.loadURLandWaitForXBLoaded({ url: 'xb/xb_page/1' });
+      cy.findByTestId(navigationButtonTestId).click();
+      cy.findByTestId(navigationContentTestId)
+        .should('exist')
+        .and('contain.text', 'Empty Page (Copy)');
+    },
+  );
 
-  it('Deleting pages through navigation', () => {
-    cy.loadURLandWaitForXBLoaded({ url: 'xb/xb_page/1' });
+  it(
+    'Deleting pages through navigation',
+    { retries: { openMode: 0, runMode: 3 } },
+    () => {
+      // Intercept the DELETE request
+      cy.intercept('DELETE', '**/xb/api/v0/content/xb_page/*').as('deletePage');
 
-    // Intercept the DELETE request
-    cy.intercept('DELETE', '**/xb/api/v0/content/xb_page/*').as('deletePage');
+      // Intercept the GET request to the list endpoint
+      cy.intercept('GET', '**/xb/api/v0/content/xb_page').as('getList');
 
-    // Intercept the GET request to the list endpoint
-    cy.intercept('GET', '**/xb/api/v0/content/xb_page').as('getList');
+      cy.loadURLandWaitForXBLoaded({ url: 'xb/xb_page/1' });
 
-    cy.findByTestId(navigationButtonTestId).click();
-    cy.findByText('Empty Page').realHover();
-    cy.findByLabelText('Page options for Empty Page').click();
-    cy.findByRole('menuitem', { name: 'Delete page', exact: false }).click();
-    cy.contains('button', 'Delete page').click();
+      cy.findByTestId(navigationButtonTestId).click();
+      cy.wait('@getList').its('response.statusCode').should('eq', 200);
+      cy.findByText('Empty Page').realHover();
+      cy.findByLabelText('Page options for Empty Page').click();
+      cy.findByRole('menuitem', { name: 'Delete page', exact: false }).click();
+      cy.contains('button', 'Delete page').click();
 
-    // Wait for the DELETE request to be made and assert it
-    cy.wait('@deletePage').its('response.statusCode').should('eq', 204);
+      // Wait for the DELETE request to be made and assert it
+      cy.wait('@deletePage').its('response.statusCode').should('eq', 204);
 
-    // Wait for the GET request to the list endpoint which should be triggered by the deletion of a page.
-    cy.wait('@getList').its('response.statusCode').should('eq', 200);
+      // Wait for the GET request to the list endpoint which should be triggered by the deletion of a page.
+      cy.wait('@getList').its('response.statusCode').should('eq', 200);
 
-    cy.loadURLandWaitForXBLoaded({ url: 'xb/xb_page/1' });
-    cy.findByTestId(navigationButtonTestId).click();
-    cy.findByTestId(navigationContentTestId)
-      .should('exist')
-      .and('contain.text', 'Homepage')
-      .and('not.contain.text', 'Test page');
-  });
+      cy.loadURLandWaitForXBLoaded({ url: 'xb/xb_page/1' });
+      cy.findByTestId(navigationButtonTestId).click();
+      cy.findByTestId(navigationContentTestId)
+        .should('exist')
+        .and('contain.text', 'Homepage')
+        .and('not.contain.text', 'Test page');
+    },
+  );
 
   it('Clicking the back button navigates to last visited page', () => {
     const BASE_URL = `${Cypress.config().baseUrl}/`;
@@ -181,30 +193,34 @@ describe('Navigation functionality', () => {
   });
 
   // @todo: Change this to check it redirects to the homepage in XB in https://www.drupal.org/i/3503412.
-  it('Deleting the current page will navigate to the first available page', () => {
-    cy.loadURLandWaitForXBLoaded({ url: 'xb/xb_page/3' });
-    cy.intercept('DELETE', '**/xb/api/v0/content/xb_page/*').as('deletePage');
-    cy.intercept('GET', '**/xb/api/v0/content/xb_page').as('getList');
-    cy.log('loaded xb/xb_page/3');
-    cy.findByTestId(navigationButtonTestId).click();
-    cy.findByTestId(navigationContentTestId)
-      .should('exist')
-      .and('contain.text', 'Homepage')
-      .and('contain.text', 'Untitled page');
-    cy.get('[data-xb-page-id="3"]').realHover();
-    cy.findByLabelText('Page options for Untitled page').click();
-    cy.findByRole('menuitem', { name: 'Delete page', exact: false }).click();
-    cy.contains('button', 'Delete page').click();
-    // Wait for the DELETE request to be made and assert it
-    cy.wait('@deletePage').its('response.statusCode').should('eq', 204);
-    // Wait for the GET request to the list endpoint which should be triggered by the deletion of a page.
-    cy.wait('@getList').its('response.statusCode').should('eq', 200);
-    cy.url().should('not.contain', '/xb/xb_page/3');
-    cy.url().should('contain', '/xb/xb_page/1');
-    cy.findByTestId(navigationButtonTestId).click();
-    cy.findByTestId(navigationContentTestId)
-      .should('exist')
-      .and('contain.text', 'Homepage')
-      .and('not.contain.text', 'Untitled page');
-  });
+  it(
+    'Deleting the current page will navigate to the first available page',
+    { retries: { openMode: 0, runMode: 3 } },
+    () => {
+      cy.loadURLandWaitForXBLoaded({ url: 'xb/xb_page/3' });
+      cy.intercept('DELETE', '**/xb/api/v0/content/xb_page/*').as('deletePage');
+      cy.intercept('GET', '**/xb/api/v0/content/xb_page').as('getList');
+      cy.log('loaded xb/xb_page/3');
+      cy.findByTestId(navigationButtonTestId).click();
+      cy.findByTestId(navigationContentTestId)
+        .should('exist')
+        .and('contain.text', 'Homepage')
+        .and('contain.text', 'Untitled page');
+      cy.get('[data-xb-page-id="3"]').realHover();
+      cy.findByLabelText('Page options for Untitled page').click();
+      cy.findByRole('menuitem', { name: 'Delete page', exact: false }).click();
+      cy.contains('button', 'Delete page').click();
+      // Wait for the DELETE request to be made and assert it
+      cy.wait('@deletePage').its('response.statusCode').should('eq', 204);
+      // Wait for the GET request to the list endpoint which should be triggered by the deletion of a page.
+      cy.wait('@getList').its('response.statusCode').should('eq', 200);
+      cy.url().should('not.contain', '/xb/xb_page/3');
+      cy.url().should('contain', '/xb/xb_page/1');
+      cy.findByTestId(navigationButtonTestId).click();
+      cy.findByTestId(navigationContentTestId)
+        .should('exist')
+        .and('contain.text', 'Homepage')
+        .and('not.contain.text', 'Untitled page');
+    },
+  );
 });

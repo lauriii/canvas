@@ -1,16 +1,16 @@
 import styles from './Preview.module.css';
-import type React from 'react';
 import { useRef, useEffect, useState } from 'react';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { Progress } from '@radix-ui/themes';
 import {
   CanvasMode,
   selectCanvasMode,
+  selectViewportMinHeight,
+  selectViewportWidth,
   setFirstLoadComplete,
   unsetUpdatingComponent,
 } from '@/features/ui/uiSlice';
 import useSyncIframeHeightToContent from '@/hooks/useSyncIframeHeightToContent';
-import ViewportToolbar from '@/features/layout/preview/ViewportToolbar';
 import IframeSwapper from '@/features/layout/preview/IframeSwapper';
 import useRenderPreviewEmptySlotPlaceholders from '@/hooks/useRenderPreviewEmptySlotPlaceholders';
 import ViewportOverlay from '@/features/layout/previewOverlay/ViewportOverlay';
@@ -19,18 +19,13 @@ import { useDataToHtmlMapValue } from '@/features/layout/preview/DataToHtmlMapCo
 import { RegionSpotlight } from '@/features/layout/preview/RegionSpotlight/RegionSpotlight';
 import useRenderPreviewEmptyRegionPlaceholder from '@/hooks/useRenderPreviewEmptyRegionPlaceholder';
 
-export type ViewPortSize = 'lg' | 'sm';
 export interface ViewportProps {
-  size: ViewPortSize;
-  name: string;
-  height: number;
-  width: number;
   isFetching: boolean;
   frameSrcDoc: string; // HTML as a string to be rendered in the iFrame
 }
 
 const Viewport: React.FC<ViewportProps> = (props) => {
-  const { name, height, width, frameSrcDoc, isFetching, size } = props;
+  const { frameSrcDoc, isFetching } = props;
   const [isReloading, setIsReloading] = useState(true);
   const [showProgressIndicator, setShowProgressIndicator] = useState(false);
   const progressTimerRef = useRef<number | null>();
@@ -38,6 +33,8 @@ const Viewport: React.FC<ViewportProps> = (props) => {
   const previewContainerRef = useRef<HTMLDivElement>(null);
   const dispatch = useAppDispatch();
   const canvasMode = useAppSelector(selectCanvasMode);
+  const viewportWidth = useAppSelector(selectViewportWidth);
+  const viewportMinHeight = useAppSelector(selectViewportMinHeight);
   useComponentHtmlMap(iframeRef.current);
 
   const { slotsMap, regionsMap } = useDataToHtmlMapValue();
@@ -48,8 +45,7 @@ const Viewport: React.FC<ViewportProps> = (props) => {
   useSyncIframeHeightToContent(
     iframeRef.current,
     previewContainerRef.current,
-    height,
-    width,
+    viewportMinHeight,
   );
 
   useEffect(() => {
@@ -82,37 +78,41 @@ const Viewport: React.FC<ViewportProps> = (props) => {
     dispatch(setFirstLoadComplete(true));
   }, [dispatch, isReloading]);
 
+  const containerStyles = {
+    width: `${viewportWidth}px`,
+    minHeight: `${viewportMinHeight}px`,
+  };
+
   return (
-    <div>
-      <ViewportToolbar size={size} name={name} width={width} height={height} />
-      <div className={styles.previewContainer} ref={previewContainerRef}>
-        {showProgressIndicator && (
-          <>
-            <Progress
-              aria-label="Loading Preview"
-              className={styles.progress}
-              duration="1s"
-            />
-          </>
-        )}
-        <IframeSwapper
-          ref={iframeRef}
-          srcDocument={frameSrcDoc}
-          size={size}
-          setIsReloading={setIsReloading}
-          interactive={canvasMode === CanvasMode.INTERACTIVE}
-        />
-        {canvasMode === CanvasMode.EDIT && (
-          <>
-            <ViewportOverlay
-              iframeRef={iframeRef}
-              previewContainerRef={previewContainerRef}
-              size={size}
-            />
-            <RegionSpotlight />
-          </>
-        )}
-      </div>
+    <div
+      className={styles.previewContainer}
+      ref={previewContainerRef}
+      style={containerStyles}
+    >
+      {showProgressIndicator && (
+        <>
+          <Progress
+            aria-label="Loading Preview"
+            className={styles.progress}
+            duration="1s"
+          />
+        </>
+      )}
+      <IframeSwapper
+        ref={iframeRef}
+        srcDocument={frameSrcDoc}
+        setIsReloading={setIsReloading}
+        interactive={canvasMode === CanvasMode.INTERACTIVE}
+      />
+      {canvasMode === CanvasMode.EDIT && (
+        <>
+          <ViewportOverlay
+            iframeRef={iframeRef}
+            previewContainerRef={previewContainerRef}
+          />
+          <RegionSpotlight />
+        </>
+      )}
     </div>
   );
 };

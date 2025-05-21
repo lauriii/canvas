@@ -13,7 +13,7 @@ describe('Experience Builder canvas controls/navigation', () => {
 
   const roundValue = (value) => Math.round(value);
 
-  it('Can zoom the canvas with the Zoom Controls', () => {
+  it('Can zoom the canvas with the Zoom Controls and keyboard', () => {
     cy.loadURLandWaitForXBLoaded();
     // Confirm that no component has a hover outline initially.
     cy.get('[data-xb-component-outline]').should('not.exist');
@@ -43,8 +43,9 @@ describe('Experience Builder canvas controls/navigation', () => {
       });
     });
 
-    cy.log('Zoom by clicking the buttons');
-    cy.findByLabelText('Zoom in').click();
+    cy.log('Zoom by pressing the + key');
+    cy.get('html').realType('+');
+
     cy.findByTestId('xb-canvas-scaling').should(
       'have.css',
       'transform',
@@ -86,14 +87,14 @@ describe('Experience Builder canvas controls/navigation', () => {
       });
     });
 
-    cy.findByLabelText('Zoom in').click();
+    cy.get('html').realType('+');
     cy.findByTestId('xb-canvas-scaling').should(
       'have.css',
       'transform',
       'matrix(1.25, 0, 0, 1.25, 0, 0)',
     );
     cy.findByText('125%');
-    cy.findByLabelText('Zoom out').click();
+    cy.get('html').realType('-');
 
     // Re-hover over the component again after zoom-out.
     cy.getIframeBody()
@@ -145,7 +146,7 @@ describe('Experience Builder canvas controls/navigation', () => {
     Array(4)
       .fill()
       .forEach(() => {
-        cy.findByLabelText('Zoom out').click();
+        cy.get('html').realType('-');
       });
     cy.findByTestId('xb-canvas-scaling').should(
       'have.css',
@@ -153,99 +154,17 @@ describe('Experience Builder canvas controls/navigation', () => {
       'matrix(0.75, 0, 0, 0.75, 0, 0)',
     );
     cy.findByText('75%');
-
-    cy.log('Zoom by adjusting the slider');
-    cy.findByLabelText('Canvas zoom level').setRangeValue('200');
-    cy.findByTestId('xb-canvas-scaling').should(
-      'have.css',
-      'transform',
-      'matrix(2, 0, 0, 2, 0, 0)',
-    );
-    cy.findByText('200%');
-
-    cy.findByLabelText('Canvas zoom level').setRangeValue('100');
-    cy.findByTestId('xb-canvas-scaling').should(
-      'have.css',
-      'transform',
-      'matrix(1, 0, 0, 1, 0, 0)',
-    );
-    cy.findByText('100%');
-
-    cy.log(
-      "The selected value in the drop down should match the zoom level if it's one of the available steps",
-    );
-    cy.findByLabelText('Select zoom level').click();
-    cy.findByTestId('zoom-select-menu')
-      .get('[role="option"][aria-selected="true"]')
-      .should('have.text', '100%');
-    cy.get('html').click(); // close the select menu
-
-    cy.log(
-      'Zoom to non-step zoom level and ensure nothing is selected in the drop down.',
-    );
-    cy.findByLabelText('Canvas zoom level').setRangeValue('101');
-    cy.findByTestId('xb-canvas-scaling').should(
-      'have.css',
-      'transform',
-      'matrix(1.01, 0, 0, 1.01, 0, 0)',
-    );
-    cy.findByText('101%');
-    cy.findByLabelText('Select zoom level').click();
-    cy.findByTestId('zoom-select-menu')
-      .get('[role="option"][aria-selected="true"]')
-      .should('not.exist');
-    cy.get('html').click(); // close the select menu
-  });
-
-  it('Can zoom the canvas with the keyboard', () => {
-    cy.loadURLandWaitForXBLoaded();
-
-    cy.log('Zoom in by pressing + key');
-    cy.get('html').realType('+');
-    cy.findByTestId('xb-canvas-scaling').should(
-      'have.css',
-      'transform',
-      'matrix(1.1, 0, 0, 1.1, 0, 0)',
-    );
-    cy.findByText('110%');
-
-    cy.log(
-      "The selected value in the drop down should match the zoom level if it's one of the available steps",
-    );
-    cy.findByLabelText('Select zoom level').click();
-    cy.findByTestId('zoom-select-menu')
-      .get('[role="option"][aria-selected="true"]')
-      .should('have.text', '110%');
-    cy.get('html').click(); // close the select menu
-
-    cy.log('Zoom out by pressing - key (4 times)');
-    cy.get('html').realType('----');
-    cy.findByTestId('xb-canvas-scaling').should(
-      'have.css',
-      'transform',
-      'matrix(0.75, 0, 0, 0.75, 0, 0)',
-    );
-    cy.findByText('75%');
-
-    cy.log(
-      "The selected value in the drop down should match the zoom level if it's one of the available steps",
-    );
-    cy.findByLabelText('Select zoom level').click();
-    cy.findByTestId('zoom-select-menu')
-      .get('[role="option"][aria-selected="true"]')
-      .should('have.text', '75%');
-    cy.get('html').click(); // close the select menu
   });
 
   it('Can zoom the canvas with the mouse', () => {
     cy.loadURLandWaitForXBLoaded();
 
     cy.log(
-      'Zoom out by holding ctrl and using the mousewheel (or pinch on track pad)',
+      'Zoom in by holding ctrl and using the mousewheel (or pinch on track pad)',
     );
 
-    cy.findByTestId('xb-canvas').click({ force: true }); // Hold down the Control key
-    cy.findByTestId('xb-canvas').triggerMouseWheelWithCtrl(-10); // Simulate mouse wheel roll
+    cy.findByTestId('xb-canvas').click({ force: true });
+    cy.findByTestId('xb-canvas').triggerMouseWheelWithCtrl(-20); // Simulate mouse wheel roll with ctrl.
 
     cy.findByTestId('xb-canvas-scaling').should(
       'have.css',
@@ -255,11 +174,20 @@ describe('Experience Builder canvas controls/navigation', () => {
     cy.findByText('110%');
 
     cy.log(
-      'Zoom in by holding ctrl and using the mousewheel (or pinch on track pad)',
+      'Zoom out (twice) by holding ctrl and using the mousewheel (or pinch on track pad)',
     );
 
-    cy.findByTestId('xb-canvas').click({ force: true }); // Hold down the Control key
-    cy.findByTestId('xb-canvas').triggerMouseWheelWithCtrl(20); // Simulate mouse wheel roll
+    cy.findByTestId('xb-canvas').click({ force: true });
+    // Zoom once, back to 100%.
+    cy.findByTestId('xb-canvas').triggerMouseWheelWithCtrl(20); // Simulate mouse wheel roll with ctrl.
+
+    // wait here because the scroll event is throttled to 50ms. Waiting 200ms just to give some extra headroom.
+    // See handleWheel and wheelEventBufferTimeMs in Canvas.ts.
+    // eslint-disable-next-line cypress/no-unnecessary-waiting
+    cy.wait(200);
+
+    // Zoom out second time, to 90%.
+    cy.findByTestId('xb-canvas').triggerMouseWheelWithCtrl(20); // Simulate mouse wheel roll with ctrl.
 
     cy.findByTestId('xb-canvas-scaling').should(
       'have.css',

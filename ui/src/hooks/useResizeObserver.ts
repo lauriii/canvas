@@ -13,7 +13,9 @@ function useResizeObserver(
 ): void {
   useEffect(() => {
     const element = ref.current;
-    if (!element) return;
+    if (!element) {
+      return;
+    }
 
     const observer = new ResizeObserver(() => {
       callback();

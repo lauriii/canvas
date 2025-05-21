@@ -15,12 +15,11 @@ import { BoxModelIcon } from '@radix-ui/react-icons';
 
 export interface EmptySlotDropZoneProps {
   slot: SlotNode;
-  size: string;
   slotName: string;
   parentComponent: ComponentNode;
 }
 const EmptySlotDropZone: React.FC<EmptySlotDropZoneProps> = (props) => {
-  const { slot, size, slotName, parentComponent } = props;
+  const { slot, slotName, parentComponent } = props;
   const layout = useAppSelector(selectLayout);
   const [activeName, setActiveName] = useState('');
 
@@ -36,7 +35,7 @@ const EmptySlotDropZone: React.FC<EmptySlotDropZoneProps> = (props) => {
     isOver,
     active,
   } = useDroppable({
-    id: `${slot.id}_${size}`,
+    id: `${slot.id}`,
     data: {
       component: parentComponent,
       parentSlot: slot,

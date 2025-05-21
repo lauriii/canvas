@@ -33,6 +33,9 @@ export const primaryPanelSlice = createAppSlice({
     setActivePanel: create.reducer((state, action: PayloadAction<string>) => {
       state.activePanel = action.payload;
     }),
+    unsetActivePanel: create.reducer((state) => {
+      state.activePanel = '';
+    }),
     setOpenLayoutItem: create.reducer(
       (state, action: PayloadAction<string>) => {
         state.openLayoutItems = [...state.openLayoutItems, action.payload];
@@ -65,6 +68,7 @@ export const primaryPanelSlice = createAppSlice({
 // Action creators are generated for each case reducer function.
 export const {
   setActivePanel,
+  unsetActivePanel,
   setOpenLayoutItem,
   setCloseLayoutItem,
   setUniqueListId,

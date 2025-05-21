@@ -11,10 +11,9 @@ import { Text } from '@radix-ui/themes';
 
 export interface EmptyRegionDropZoneProps {
   region: RegionNode;
-  size: string;
 }
 const EmptyRegionDropZone: React.FC<EmptyRegionDropZoneProps> = (props) => {
-  const { region, size } = props;
+  const { region } = props;
   const layout = useAppSelector(selectLayout);
   const [activeName, setActiveName] = useState('');
 
@@ -26,7 +25,7 @@ const EmptyRegionDropZone: React.FC<EmptyRegionDropZoneProps> = (props) => {
     isOver,
     active,
   } = useDroppable({
-    id: `${region.id}_${size}`,
+    id: region.id,
     data: {
       region: region,
       parentRegion: region,

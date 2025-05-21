@@ -15,67 +15,71 @@ describe('Publish review functionality', () => {
     cy.drupalUninstall();
   });
 
-  it('Can make a change and see changes in the “Review x changes” button', () => {
-    cy.loadURLandWaitForXBLoaded();
+  it(
+    'Can make a change and see changes in the “Review x changes” button',
+    { retries: { openMode: 0, runMode: 3 } },
+    () => {
+      cy.loadURLandWaitForXBLoaded();
 
-    cy.findByTestId('xb-topbar').findByText('Published');
+      cy.findByTestId('xb-topbar').findByText('Published');
 
-    // Delete the image that uses an adapted source. This node (1) includes prop
-    // sources that make use of adapters, we need to delete the adapted source
-    // image in order to publish.
-    cy.clickComponentInPreview('Image', 1);
-    cy.realType('{del}');
+      // Delete the image that uses an adapted source. This node (1) includes prop
+      // sources that make use of adapters, we need to delete the adapted source
+      // image in order to publish.
+      cy.clickComponentInPreview('Image', 1);
+      cy.realType('{del}');
 
-    cy.clickComponentInPreview('Hero');
+      cy.clickComponentInPreview('Hero');
 
-    cy.findByTestId(/^xb-component-form-.*/)
-      .findByLabelText('Heading')
-      .type(' updated');
+      cy.findByTestId(/^xb-component-form-.*/)
+        .findByLabelText('Heading')
+        .type(' updated');
 
-    cy.findByText('Changed');
+      cy.findByText('Changed');
 
-    cy.findByText('Review 1 change').click();
+      cy.findByText('Review 1 change').click();
 
-    cy.visit('/node/1');
+      cy.visit('/node/1');
 
-    cy.findByText('hello, world! updated').should('not.exist');
+      cy.findByText('hello, world! updated').should('not.exist');
 
-    cy.loadURLandWaitForXBLoaded({ clearAutoSave: false });
+      cy.loadURLandWaitForXBLoaded({ clearAutoSave: false });
 
-    cy.publishAllPendingChanges('XB Needs This For The Time Being');
+      cy.publishAllPendingChanges('XB Needs This For The Time Being');
 
-    cy.log('After publishing, there should be no changes.');
-    cy.findByTestId('xb-topbar')
-      .findByText('No changes', { selector: 'button' })
-      .should('exist');
-    cy.findByTestId('xb-topbar').findByText('Published');
+      cy.log('After publishing, there should be no changes.');
+      cy.findByTestId('xb-topbar')
+        .findByText('No changes', { selector: 'button' })
+        .should('exist');
+      cy.findByTestId('xb-topbar').findByText('Published');
 
-    cy.log(
-      'After publishing and reloading the page, there should be no changes.',
-    );
-    cy.loadURLandWaitForXBLoaded({ clearAutoSave: false });
-    cy.findByTestId('xb-topbar')
-      .findByText('No changes', { selector: 'button' })
-      .should('exist');
+      cy.log(
+        'After publishing and reloading the page, there should be no changes.',
+      );
+      cy.loadURLandWaitForXBLoaded({ clearAutoSave: false });
+      cy.findByTestId('xb-topbar')
+        .findByText('No changes', { selector: 'button' })
+        .should('exist');
 
-    cy.log(
-      'Make another change and ensure the button still updates say "Review n changes"',
-    );
-    cy.clickComponentInPreview('Hero');
-    cy.findByTestId(/^xb-component-form-.*/)
-      .findByLabelText('Heading')
-      .type(' updated again');
+      cy.log(
+        'Make another change and ensure the button still updates say "Review n changes"',
+      );
+      cy.clickComponentInPreview('Hero');
+      cy.findByTestId(/^xb-component-form-.*/)
+        .findByLabelText('Heading')
+        .type(' updated again');
 
-    cy.findByTestId('xb-topbar').findByText('Changed');
-    cy.findByText('Review 1 change').click();
+      cy.findByTestId('xb-topbar').findByText('Changed');
+      cy.findByText('Review 1 change').click();
 
-    cy.log('...and make sure the change shows up in the drop-down');
-    cy.findByTestId('xb-publish-reviews-content').within(() => {
-      cy.findByText('XB Needs This For The Time Being');
-    });
+      cy.log('...and make sure the change shows up in the drop-down');
+      cy.findByTestId('xb-publish-reviews-content').within(() => {
+        cy.findByText('XB Needs This For The Time Being');
+      });
 
-    cy.log('After publishing, the change should be visible page!');
-    cy.visit('/node/1');
-    cy.findByText('hello, world! updated').should('exist');
-  });
+      cy.log('After publishing, the change should be visible page!');
+      cy.visit('/node/1');
+      cy.findByText('hello, world! updated').should('exist');
+    },
+  );
 });

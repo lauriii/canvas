@@ -71,6 +71,7 @@ const ComponentUnifiedMenuRegions: React.FC<CCMRProps> = (props) => {
             key={region.id}
             onClick={(event) => handleMoveClick(event, ix, region)}
             disabled={region.id === parentRegion?.id}
+            data-region-name={region.name}
           >
             {region.name}
           </UnifiedMenu.Item>

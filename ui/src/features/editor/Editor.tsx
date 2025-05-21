@@ -1,6 +1,5 @@
 import Canvas from '@/features/canvas/Canvas';
 import PrimaryPanel from '@/components/sidePanel/PrimaryPanel';
-import ZoomControl from '@/components/zoom/ZoomControl';
 import CodeComponentDialogs from '@/features/code-editor/dialogs/CodeComponentDialogs';
 import ContextualPanel from '@/components/panel/ContextualPanel';
 import Layout from '@/features/layout/Layout';
@@ -40,7 +39,6 @@ const Editor = () => {
       <Canvas />
       <ContextualPanel />
       <div className={styles.absoluteContainer}>
-        <ZoomControl />
         <SectionDialogs />
         <CodeComponentDialogs />
         <ExtensionDialog />

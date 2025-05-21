@@ -26,12 +26,11 @@ export interface SlotOverlayProps {
   slot: SlotNode;
   iframeRef: React.RefObject<HTMLIFrameElement>;
   parentComponent: ComponentNode;
-  size: string;
   disableDrop: boolean;
 }
 
 const SlotOverlay: React.FC<SlotOverlayProps> = (props) => {
-  const { slot, parentComponent, iframeRef, size, disableDrop } = props;
+  const { slot, parentComponent, iframeRef, disableDrop } = props;
   const { componentsMap, slotsMap } = useDataToHtmlMapValue();
   const slotId = slot.id;
   const slotElementArray = useMemo(() => {
@@ -143,7 +142,6 @@ const SlotOverlay: React.FC<SlotOverlayProps> = (props) => {
         <EmptySlotDropZone
           slot={slot}
           slotName={slotName}
-          size={size}
           parentComponent={parentComponent}
         />
       )}
@@ -154,7 +152,6 @@ const SlotOverlay: React.FC<SlotOverlayProps> = (props) => {
           iframeRef={iframeRef}
           parentSlot={slot}
           component={childComponent}
-          size={size}
           index={index}
           disableDrop={disableDrop}
         />

@@ -1,4 +1,5 @@
 import type React from 'react';
+import { useLayoutEffect } from 'react';
 import { useEffect, useRef, useState, useCallback } from 'react';
 import styles from './Canvas.module.css';
 import clsx from 'clsx';
@@ -10,7 +11,6 @@ import {
   selectCanvasViewPort,
   canvasViewPortZoomIn,
   canvasViewPortZoomOut,
-  canvasViewPortZoomDelta,
   setCanvasViewPort,
   setIsPanning,
   selectFirstLoadComplete,
@@ -25,13 +25,16 @@ import useCopyPasteComponents from '@/hooks/useCopyPasteComponents';
 import useComponentSelection from '@/hooks/useComponentSelection';
 import useXbParams from '@/hooks/useXbParams';
 import { useUndoRedo } from '@/hooks/useUndoRedo';
+import ViewportToolbar from '@/features/layout/preview/ViewportToolbar';
+import { useDebouncedCallback } from 'use-debounce';
+import { getHalfwayScrollPosition } from '@/utils/function-utils';
 
 const Canvas = () => {
   const dispatch = useAppDispatch();
   const canvasRef = useRef<HTMLDivElement | null>(null);
   const canvasPaneRef = useRef<HTMLDivElement | null>(null);
   const animFrameIdRef = useRef<number | null>(null);
-  const previewsContainerRef = useRef<HTMLDivElement | null>(null);
+  const scalingContainerRef = useRef<HTMLDivElement | null>(null);
   const [startPos, setStartPos] = useState({ x: 0, y: 0 });
   const canvasViewPort = useAppSelector(selectCanvasViewPort);
   const firstLoadComplete = useAppSelector(selectFirstLoadComplete);
@@ -42,7 +45,6 @@ const Canvas = () => {
   const modifierKeyPressedRef = useRef(false);
   const { componentId: selectedComponent } = useXbParams();
   const { unsetSelectedComponent } = useComponentSelection();
-  const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const middleMouseDownRef = useRef(middleMouseDown);
   const { copySelectedComponent, pasteAfterSelectedComponent } =
     useCopyPasteComponents();
@@ -84,6 +86,22 @@ const Canvas = () => {
     pasteAfterSelectedComponent();
   });
 
+  const debouncedScrollPosUpdate = useDebouncedCallback(() => {
+    dispatch(
+      setCanvasViewPort({
+        x: canvasPaneRef.current?.scrollLeft,
+        y: canvasPaneRef.current?.scrollTop,
+      }),
+    );
+  }, 250);
+
+  const debouncedIsPanningUpdate = useDebouncedCallback(() => {
+    dispatch(setIsPanning(false));
+  }, 250);
+  const debouncedIsZoomingUpdate = useDebouncedCallback(() => {
+    dispatch(setIsZooming(false));
+  }, 250);
+
   useEffect(() => {
     middleMouseDownRef.current = middleMouseDown;
   }, [middleMouseDown]);
@@ -94,16 +112,21 @@ const Canvas = () => {
 
   useEffect(() => {
     if (!firstLoadComplete) {
-      dispatch(setCanvasViewPort({ x: 0, y: 0 }));
       return;
     }
-    if (previewsContainerRef.current && canvasRef.current) {
-      // @todo Temporary/hardcoded values of 400/160 to account for the width/height
-      // of the UI (top bar/layers panel) - replace with calculated values.
-      const x = previewsContainerRef.current.getBoundingClientRect().left - 400;
-      const y = previewsContainerRef.current.getBoundingClientRect().top - 160;
+    if (scalingContainerRef.current && canvasPaneRef.current) {
+      // hardcoded value of 68 to account for the height of the UI (top bar 48px) + 20px gap.
+      const previewHeight =
+        scalingContainerRef.current.getBoundingClientRect().height;
 
-      // Dispatch the action with the calculated adjusted position
+      // Calculate the center offset inside the canvas.
+      const canvasHeight = canvasPaneRef.current.scrollHeight;
+      const centerOffset = (canvasHeight - previewHeight) / 2;
+
+      const y = centerOffset - 50;
+      const x = getHalfwayScrollPosition(canvasPaneRef.current);
+
+      // Scroll the preview to the middle top.
       dispatch(setCanvasViewPort({ x: x, y: y }));
       setIsVisible(true);
     }
@@ -113,16 +136,11 @@ const Canvas = () => {
     (event: React.UIEvent<HTMLDivElement>) => {
       if (event.currentTarget) {
         dispatch(setIsPanning(true));
-        // debounce the setIsPanning(false) so that elements hidden when panning don't flicker.
-        if (scrollTimeoutRef.current) {
-          clearTimeout(scrollTimeoutRef.current);
-        }
-        scrollTimeoutRef.current = setTimeout(() => {
-          dispatch(setIsPanning(false));
-        }, 140);
+        debouncedScrollPosUpdate();
+        debouncedIsPanningUpdate();
       }
     },
-    [dispatch],
+    [debouncedIsPanningUpdate, debouncedScrollPosUpdate, dispatch],
   );
 
   const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -157,39 +175,49 @@ const Canvas = () => {
       }
 
       animFrameIdRef.current = requestAnimationFrame(() => {
-        if (previewsContainerRef.current) {
-          previewsContainerRef.current.style.transform = `scale(${canvasViewPort.scale})`;
+        if (scalingContainerRef.current) {
+          scalingContainerRef.current.style.transform = `scale(${canvasViewPort.scale})`;
         }
         if (canvasPaneRef.current) {
           canvasPaneRef.current.scrollLeft = translationX;
           canvasPaneRef.current.scrollTop = translationY;
         }
+        debouncedScrollPosUpdate();
       });
     }
   };
 
   const handleMouseUp = useCallback(() => {
     setMiddleMouseDown(false);
-    dispatch(setIsPanning(false));
-  }, [dispatch]);
+    debouncedIsPanningUpdate();
+  }, [debouncedIsPanningUpdate]);
+
+  // Track the last time we processed a wheel event.
+  const lastWheelEventTimeRef = useRef<number>(0);
+  const wheelEventBufferTimeMs = 50; // Only process wheel events every 50ms.
 
   const handleWheel = useCallback(
     (e: WheelEvent) => {
-      if (e.ctrlKey) {
+      if (e.ctrlKey || e.metaKey) {
         e.preventDefault();
-        dispatch(canvasViewPortZoomDelta(e.deltaY));
-        dispatch(setIsZooming(true));
 
-        // debounce the setIsZooming(false) so that elements hidden when zooming don't flicker.
-        if (scrollTimeoutRef.current) {
-          clearTimeout(scrollTimeoutRef.current);
+        // Throttle wheel events to avoid too rapid scaling.
+        const now = Date.now();
+        if (now - lastWheelEventTimeRef.current > wheelEventBufferTimeMs) {
+          dispatch(setIsZooming(true));
+          lastWheelEventTimeRef.current = now;
+          // Only care about the direction, not the magnitude.
+          if (e.deltaY > 0) {
+            dispatch(canvasViewPortZoomOut());
+          } else {
+            dispatch(canvasViewPortZoomIn());
+          }
+
+          debouncedIsZoomingUpdate();
         }
-        scrollTimeoutRef.current = setTimeout(() => {
-          dispatch(setIsZooming(false));
-        }, 140);
       }
     },
-    [dispatch],
+    [debouncedIsZoomingUpdate, dispatch],
   );
 
   useEffect(() => {
@@ -211,8 +239,8 @@ const Canvas = () => {
     }
 
     animFrameIdRef.current = requestAnimationFrame(() => {
-      if (previewsContainerRef.current) {
-        previewsContainerRef.current.style.transform = `scale(${canvasViewPort.scale})`;
+      if (scalingContainerRef.current) {
+        scalingContainerRef.current.style.transform = `scale(${canvasViewPort.scale})`;
       }
     });
   }, [canvasViewPort.scale]);
@@ -227,8 +255,18 @@ const Canvas = () => {
     };
   }, [handleWheel, handleMouseUp]);
 
+  useLayoutEffect(() => {
+    if (!scalingContainerRef.current || !canvasRef.current) {
+      return;
+    }
+    // Increase the total width/height of the canvas to accommodate the scaled xbCanvasScalingContainer.
+    const rect = scalingContainerRef.current?.getBoundingClientRect();
+    canvasRef.current.style.width = `${rect.width}px`;
+    canvasRef.current.style.height = `${rect.height}px`;
+  }, [canvasViewPort.scale]);
+
   return (
-    <>
+    <div className={styles.canvasContainer}>
       <div
         className={clsx(styles.canvasPane, {
           [styles.modifierKeyPressed]: modifierKeyPressed,
@@ -245,17 +283,22 @@ const Canvas = () => {
           className={clsx(styles.canvas, {
             [styles.visible]: isVisible,
           })}
+          // @ts-ignore
+          style={{ '--canvas-scale': canvasViewPort.scale }}
           ref={canvasRef}
           data-testid="xb-canvas"
         >
           <div style={{ position: 'relative' }} id="positionAnchor">
             <div
-              className={clsx('previewsContainer', styles.previewsContainer)}
+              className={clsx(
+                'xbCanvasScalingContainer',
+                styles.xbCanvasScalingContainer,
+              )}
               data-testid="xb-canvas-scaling"
               style={{
                 transform: `scale(${canvasViewPort.scale})`,
               }}
-              ref={previewsContainerRef}
+              ref={scalingContainerRef}
             >
               <ErrorBoundary
                 title="An unexpected error has occurred while rendering preview."
@@ -271,7 +314,11 @@ const Canvas = () => {
           </div>
         </div>
       </div>
-    </>
+      <ViewportToolbar
+        canvasPaneRef={canvasPaneRef}
+        scalingContainerRef={scalingContainerRef}
+      />
+    </div>
   );
 };
 

@@ -45,10 +45,10 @@ describe('Empty canvas', () => {
 
     cy.log('The hero component is now in the iframe');
 
-    // The two overlays now have one component.
+    // The overlay now has a component.
     cy.get('.xb--viewport-overlay [data-xb-component-id]').should(
       'have.length',
-      2,
+      1,
     );
     cy.waitForElementContentInIframe('div', 'There goes my hero');
     cy.getIframeBody().within(() => {
@@ -95,10 +95,10 @@ describe('Empty canvas', () => {
 
     cy.log('The hero component is now in the iframe');
 
-    // The two overlays now have one component.
+    // The overlay now has a component.
     cy.get('.xb--viewport-overlay [data-xb-component-id]').should(
       'have.length',
-      2,
+      1,
     );
     cy.waitForElementContentInIframe('div', 'There goes my hero');
     cy.getIframeBody().within(() => {

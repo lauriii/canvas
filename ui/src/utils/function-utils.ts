@@ -63,6 +63,20 @@ export function parseValue(
 }
 
 /**
+ * Returns the scroll position to center the scroll exactly half way horizontally.
+ * @param parent
+ */
+export function getHalfwayScrollPosition(parent: HTMLElement | null) {
+  if (parent) {
+    // Calculate the maximum possible scrollLeft value (total scrollable width).
+    const maxScrollLeft = parent.scrollWidth - parent.clientWidth;
+    // Return the halfway scroll position.
+    return maxScrollLeft / 2;
+  }
+  return 0;
+}
+
+/**
  * Calculates the horizontal and vertical distance between the first and second passed element||group of elements.
  *
  * @param el1 - The first element or array of elements.

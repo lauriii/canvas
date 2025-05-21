@@ -28,7 +28,7 @@ onlyOn('headed', () => {
         // to be found based on filename.
         if (path === 'xb/node/1') {
           cy.get(
-            '[data-xb-viewport-size="lg"] [data-xb-component-id="sdc.experience_builder.image"]',
+            '.xb--viewport-overlay [data-xb-component-id="sdc.experience_builder.image"]',
           )
             .first()
             .trigger('contextmenu', {
@@ -40,7 +40,7 @@ onlyOn('headed', () => {
             scrollBehavior: false,
           });
           cy.get(
-            '[data-xb-viewport-size="lg"] [data-xb-component-id="sdc.experience_builder.image"]',
+            '.xb--viewport-overlay [data-xb-component-id="sdc.experience_builder.image"]',
           )
             .first()
             .trigger('contextmenu', {

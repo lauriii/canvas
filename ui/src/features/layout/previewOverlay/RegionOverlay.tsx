@@ -28,14 +28,9 @@ interface RegionOverlayProps {
   regionId: string;
   regionName: string;
   region: RegionNode;
-  size: string;
 }
 
-const RegionOverlay: React.FC<RegionOverlayProps> = ({
-  iframeRef,
-  size,
-  region,
-}) => {
+const RegionOverlay: React.FC<RegionOverlayProps> = ({ iframeRef, region }) => {
   const layout = useAppSelector((state) =>
     selectLayoutForRegion(state, region.id),
   );
@@ -120,18 +115,15 @@ const RegionOverlay: React.FC<RegionOverlayProps> = ({
               iframeRef={iframeRef}
               component={component}
               parentRegion={layout}
-              size={size}
               index={index}
             />
           ))}
 
-          {!region.components.length && (
-            <EmptyRegionDropZone region={region} size={size} />
-          )}
+          {!region.components.length && <EmptyRegionDropZone region={region} />}
           {!!region.components.length && (
             <>
-              <RegionDropZone region={region} position="before" size={size} />
-              <RegionDropZone region={region} position="after" size={size} />
+              <RegionDropZone region={region} position="before" />
+              <RegionDropZone region={region} position="after" />
             </>
           )}
         </>

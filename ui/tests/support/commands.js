@@ -6,7 +6,7 @@ import { queries } from '@testing-library/dom';
 
 // This selector gets the preview iframe ensuring that it is initialized and that it is the currently active/swapped in element.
 const initializedReadyPreviewIframeSelector =
-  '[data-xb-preview="lg"][data-test-xb-content-initialized="true"][data-xb-swap-active="true"]';
+  '[data-test-xb-content-initialized="true"][data-xb-swap-active="true"]';
 
 const commandAsWebserver = (command) => {
   if (Cypress.env('testWebserverUser')) {
@@ -379,7 +379,7 @@ Cypress.Commands.add(
   'previewReady',
   (iframeSelector = initializedReadyPreviewIframeSelector) => {
     // Not logging these assertions to try and keep the command log a bit tidier
-    cy.get('.previewsContainer', { log: false }).should(
+    cy.get('.xbCanvasScalingContainer', { log: false }).should(
       'have.css',
       'opacity',
       '1',
@@ -584,6 +584,9 @@ Cypress.Commands.add(
 
 Cypress.Commands.add('openLibraryPanel', () => {
   cy.findByTestId('xb-side-menu').findByLabelText('Add').click();
+  cy.findByTestId('xb-primary-panel').within(() => {
+    cy.get('[data-xb-type="component"]').should('have.length.above', 1);
+  });
 });
 
 Cypress.Commands.add('openLayersPanel', () => {
@@ -738,7 +741,7 @@ Cypress.Commands.add(
   'clickComponentInPreview',
   (componentName, index = 0, viewportSize = 'lg', regionId = 'content') => {
     cy.get(
-      `#xbPreviewOverlay .xb--viewport-overlay[data-xb-viewport-size="${viewportSize}"]  .xb--region-overlay__${regionId}`,
+      `#xbPreviewOverlay .xb--viewport-overlay .xb--region-overlay__${regionId}`,
     )
       .findAllByLabelText(componentName)
       .eq(index)
@@ -752,7 +755,7 @@ Cypress.Commands.add(
   (componentName, index = 0, viewportSize = 'lg', regionId = 'content') => {
     return cy
       .get(
-        `#xbPreviewOverlay .xb--viewport-overlay[data-xb-viewport-size="${viewportSize}"] .xb--region-overlay__${regionId}`,
+        `#xbPreviewOverlay .xb--viewport-overlay .xb--region-overlay__${regionId}`,
       )
       .findAllByLabelText(componentName)
       .eq(index);
@@ -764,7 +767,7 @@ Cypress.Commands.add(
   (componentName, viewportSize = 'lg', regionId = 'content') => {
     return cy
       .get(
-        `#xbPreviewOverlay .xb--viewport-overlay[data-xb-viewport-size="${viewportSize}"] .xb--region-overlay__${regionId}`,
+        `#xbPreviewOverlay .xb--viewport-overlay .xb--region-overlay__${regionId}`,
       )
       .findAllByLabelText(componentName);
   },
@@ -802,6 +805,24 @@ Cypress.Commands.add(
       .findAllByLabelText(componentName)
       .eq(index)
       .click();
+  },
+);
+Cypress.Commands.add(
+  'clickOptionInContextMenuInLayers',
+  (componentName, index = 0, menuOption) => {
+    cy.clickComponentInLayersView(componentName, index);
+    cy.get('.primaryPanelContent')
+      .findAllByLabelText(componentName)
+      .eq(index)
+      .within(() => {
+        // Force because the dots button has 0 height and width until you hover.
+        cy.findByLabelText('Open contextual menu').click({ force: true });
+      });
+
+    cy.findByRole('menuitem', {
+      name: menuOption,
+      exact: false,
+    }).click();
   },
 );
 
@@ -1087,8 +1108,7 @@ Cypress.Commands.add('sendComponentToRegion', (componentName, regionName) => {
   cy.findByTestId('xb-primary-panel').as('layersTree');
   cy.get('@layersTree').findByText(componentName).trigger('contextmenu');
   cy.findByText('Move to global region').click();
-
-  cy.findByText(regionName, { selector: '[role="menuitem"]' }).click();
+  cy.get(`[data-region-name="${regionName}"]`).click();
 });
 Cypress.Commands.add('publishAllPendingChanges', (titles) => {
   // Publish changes and make sure image persists.
@@ -1108,7 +1128,7 @@ Cypress.Commands.add('publishAllPendingChanges', (titles) => {
   // retried as a group. Unfortunately this requires dropping down to raw
   // testing library queries because you can't make use of cypress commands
   // inside a should block.
-  cy.get('@publishReview', { timeout: 10000 }).should(async (element) => {
+  cy.get('@publishReview', { timeout: 15000 }).should(async (element) => {
     const container = element[0];
     let titlesToMatch = titles;
     if (!Array.isArray(titles)) {

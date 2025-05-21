@@ -8,7 +8,6 @@ function useSyncIframeHeightToContent(
   iframe: HTMLIFrameElement | null,
   previewContainer: HTMLDivElement | null,
   height: number,
-  width: number,
 ) {
   const mutationObserverRef = useRef<MutationObserver | null>(null);
   const resizeObserverRef = useRef<ResizeObserver | null>(null);
@@ -23,8 +22,6 @@ function useSyncIframeHeightToContent(
           if (iframeHTML?.offsetHeight) {
             previewContainer.style.height = `${iframeHTML.offsetHeight}px`;
           }
-          previewContainer.style.width = width + 'px';
-          previewContainer.style.minHeight = height + 'px';
         }
         if (iframeHTML?.style) {
           iframeHTML.style.minHeight = height + 'px';
@@ -34,7 +31,7 @@ function useSyncIframeHeightToContent(
         }
       });
     }
-  }, [iframe, height, width, previewContainer]);
+  }, [iframe, height, previewContainer]);
 
   useLayoutEffect(() => {
     if (iframe) {

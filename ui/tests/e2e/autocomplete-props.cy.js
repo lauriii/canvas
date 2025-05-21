@@ -15,7 +15,7 @@ describe('Prop with autocomplete', () => {
     cy.loadURLandWaitForXBLoaded();
     cy.get('iframe[data-xb-preview]').should('exist');
     cy.get(
-      `#xbPreviewOverlay .xb--viewport-overlay[data-xb-viewport-size="lg"]  .xb--region-overlay__content`,
+      `#xbPreviewOverlay .xb--viewport-overlay .xb--region-overlay__content`,
     )
       .findAllByLabelText('Hero')
       .eq(0)

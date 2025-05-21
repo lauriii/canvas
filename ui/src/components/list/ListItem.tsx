@@ -126,6 +126,7 @@ const ListItem: React.FC<{
       key={item.id}
       {...attributes}
       {...listeners}
+      role="listitem"
       ref={setNodeRef}
       data-xb-component-id={item.id}
       data-xb-name={item.name}
@@ -136,8 +137,8 @@ const ListItem: React.FC<{
     >
       <Tooltip.Provider>
         <Tooltip.Root delayDuration={0}>
-          <Tooltip.Trigger style={{ width: '100%' }}>
-            {renderItem()}
+          <Tooltip.Trigger asChild={true} style={{ width: '100%' }}>
+            <div>{renderItem()}</div>
           </Tooltip.Trigger>
           <Tooltip.Portal>
             <Tooltip.Content

@@ -35,7 +35,6 @@ export interface ComponentOverlayProps {
   iframeRef: React.RefObject<HTMLIFrameElement>;
   parentSlot?: SlotNode;
   parentRegion?: RegionNode;
-  size: string;
   index: number;
   disableDrop?: boolean;
 }
@@ -51,7 +50,6 @@ const ComponentOverlay: React.FC<ComponentOverlayProps> = (props) => {
     parentSlot,
     parentRegion,
     iframeRef,
-    size,
     index,
     disableDrop = false,
   } = props;
@@ -84,7 +82,7 @@ const ComponentOverlay: React.FC<ComponentOverlayProps> = (props) => {
     setNodeRef,
     isDragging: isComponentDragged,
   } = useDraggable({
-    id: `${component.uuid}_${size}`,
+    id: `${component.uuid}`,
     data: {
       origin: 'overlay',
       component: component,
@@ -243,7 +241,6 @@ const ComponentOverlay: React.FC<ComponentOverlayProps> = (props) => {
           iframeRef={iframeRef}
           parentComponent={component}
           slot={slot}
-          size={size}
           disableDrop={disableDrop || isComponentDragged}
         />
       ))}
@@ -254,7 +251,6 @@ const ComponentOverlay: React.FC<ComponentOverlayProps> = (props) => {
             <ComponentDropZone
               component={component}
               position={stackDirection.startsWith('v') ? 'top' : 'left'}
-              size={size}
               parentSlot={parentSlot}
               parentRegion={parentRegion}
             />
@@ -262,7 +258,6 @@ const ComponentOverlay: React.FC<ComponentOverlayProps> = (props) => {
           <ComponentDropZone
             component={component}
             position={stackDirection.startsWith('v') ? 'bottom' : 'right'}
-            size={size}
             parentSlot={parentSlot}
             parentRegion={parentRegion}
           />

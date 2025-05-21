@@ -15,12 +15,11 @@ import { findNodePathByUuid } from '@/features/layout/layoutUtils';
 export interface ComponentDropZoneProps {
   component: ComponentNode;
   position: 'top' | 'bottom' | 'left' | 'right';
-  size: string;
   parentSlot?: SlotNode;
   parentRegion?: RegionNode;
 }
 const ComponentDropZone: React.FC<ComponentDropZoneProps> = (props) => {
-  const { component, position, size, parentSlot, parentRegion } = props;
+  const { component, position, parentSlot, parentRegion } = props;
   const layout = useAppSelector(selectLayout);
   const [draggedItem, setDraggedItem] = useState('');
 
@@ -41,8 +40,8 @@ const ComponentDropZone: React.FC<ComponentDropZoneProps> = (props) => {
     isOver,
     active,
   } = useDroppable({
-    id: `${component.uuid}_${position}_${size}`,
-    disabled: draggedItem === `${component.uuid}_${size}`,
+    id: `${component.uuid}_${position}`,
+    disabled: draggedItem === `${component.uuid}`,
     data: {
       component: component,
       parentSlot: parentSlot,

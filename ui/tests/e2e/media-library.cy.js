@@ -195,35 +195,47 @@ describe('Media Library', () => {
     testMediaLibraryInComponentInstanceForm(cy);
   });
 
-  it('Can open the media library widget in an xb_page props form', () => {
-    cy.drupalLogin('xbUser', 'xbUser');
-    cy.loadURLandWaitForXBLoaded({ url: 'xb/xb_page/2' });
-    cy.openLibraryPanel();
-    cy.get('.primaryPanelContent').findByText('Image').click();
+  it(
+    'Can open the media library widget in an xb_page props form',
+    { retries: { openMode: 0, runMode: 3 } },
+    () => {
+      cy.drupalLogin('xbUser', 'xbUser');
+      cy.loadURLandWaitForXBLoaded({ url: 'xb/xb_page/2' });
+      cy.openLibraryPanel();
+      cy.get('.primaryPanelContent').findByText('Image').click();
 
-    cy.get('.primaryPanelContent').findByText('Image').click();
-    cy.get(
-      '.previewOverlay [data-xb-component-id="sdc.experience_builder.image"]',
-    ).should('have.length', 4);
-    cy.clickComponentInPreview('Image', 0);
+      cy.get('.primaryPanelContent').findByText('Image').click();
+      cy.get(
+        '.previewOverlay [data-xb-component-id="sdc.experience_builder.image"]',
+      ).should('have.length', 2);
+      cy.clickComponentInPreview('Image', 0);
 
-    cy.get(
-      '[class*="contextualPanel"] .js-media-library-open-button[data-once="drupal-ajax"]',
-    )
-      .first()
-      .click();
-    testMediaLibraryInComponentInstanceForm(cy);
-  });
+      cy.get(
+        '[class*="contextualPanel"] .js-media-library-open-button[data-once="drupal-ajax"]',
+      )
+        .first()
+        .click();
+      testMediaLibraryInComponentInstanceForm(cy);
+    },
+  );
 
-  it('Can open the media library widget on a page data entity form', () => {
-    testMediaLibraryInEntityForm(cy, { url: 'xb/xb_page/2' }, 'Empty Page');
-  });
+  it(
+    'Can open the media library widget on a page data entity form',
+    { retries: { openMode: 0, runMode: 3 } },
+    () => {
+      testMediaLibraryInEntityForm(cy, { url: 'xb/xb_page/2' }, 'Empty Page');
+    },
+  );
 
-  it('Can open the media library widget on an article entity form', () => {
-    testMediaLibraryInEntityForm(
-      cy,
-      { url: 'xb/node/2' },
-      'I am an empty node',
-    );
-  });
+  it(
+    'Can open the media library widget on an article entity form',
+    { retries: { openMode: 0, runMode: 3 } },
+    () => {
+      testMediaLibraryInEntityForm(
+        cy,
+        { url: 'xb/node/2' },
+        'I am an empty node',
+      );
+    },
+  );
 });

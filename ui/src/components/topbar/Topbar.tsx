@@ -1,13 +1,6 @@
 import * as Menubar from '@radix-ui/react-menubar';
 import styles from './Topbar.module.css';
-import {
-  Button,
-  Flex,
-  Grid,
-  SegmentedControl,
-  Tooltip,
-  Box,
-} from '@radix-ui/themes';
+import { Button, Flex, Grid, Tooltip, Box } from '@radix-ui/themes';
 import UndoRedo from '@/components/UndoRedo';
 import DropIcon from '@assets/icons/drop.svg?react';
 import CMSIcon from '@assets/icons/cms.svg?react';
@@ -18,6 +11,7 @@ import UnpublishedChanges from '@/components/review/UnpublishedChanges';
 import PageInfo from '../pageInfo/PageInfo';
 import TopbarPopover from '@/components/topbar/menu/TopbarPopover';
 import DynamicComponents from '@/components/dynamicComponents/DynamicComponents';
+import PreviewWidthSelector from '@/features/pagePreview/PreviewWidthSelector';
 
 const PREVIOUS_URL_STORAGE_KEY = 'XBPreviousURL';
 
@@ -34,10 +28,6 @@ const Topbar = () => {
     }
   }
 
-  function handlePreviewWidthChange(val: 'full' | 'desktop' | 'mobile') {
-    navigate(`/preview/${val}`);
-  }
-
   const backHref =
     window.sessionStorage.getItem(PREVIOUS_URL_STORAGE_KEY) ?? '/';
 
@@ -50,7 +40,7 @@ const Topbar = () => {
         pr="4"
       >
         <Grid columns="3" gap="0" width="auto" height="100%">
-          <Flex align="center" justify="start" gap="2">
+          <Flex align="center" gap="2">
             <Tooltip content="Exit Experience Builder">
               <a
                 href={backHref}
@@ -68,23 +58,27 @@ const Topbar = () => {
               </a>
             </Tooltip>
             <div className={clsx(styles.verticalDivider)}></div>
-            {!isPreview && <UndoRedo />}
-            <TopbarPopover
-              tooltip="Dynamic components"
-              trigger={
-                <Button
-                  variant="ghost"
-                  color="gray"
-                  size="2"
-                  className={clsx(styles.topBarButton)}
-                  aria-label="Dynamic components"
+            {!isPreview && (
+              <>
+                <UndoRedo />
+                <TopbarPopover
+                  tooltip="Dynamic components"
+                  trigger={
+                    <Button
+                      variant="ghost"
+                      color="gray"
+                      size="2"
+                      className={clsx(styles.topBarButton)}
+                      aria-label="Dynamic components"
+                    >
+                      <CMSIcon height="18" width="auto" />
+                    </Button>
+                  }
                 >
-                  <CMSIcon height="18" width="auto" />
-                </Button>
-              }
-            >
-              <DynamicComponents />
-            </TopbarPopover>
+                  <DynamicComponents />
+                </TopbarPopover>
+              </>
+            )}
           </Flex>
           <Flex align="center" justify="center" gap="2">
             <PageInfo />
@@ -92,20 +86,7 @@ const Topbar = () => {
           <Flex align="center" justify="end" gap="2">
             {isPreview && (
               <>
-                <SegmentedControl.Root
-                  defaultValue="full"
-                  onValueChange={handlePreviewWidthChange}
-                >
-                  <SegmentedControl.Item value="full">
-                    Full
-                  </SegmentedControl.Item>
-                  <SegmentedControl.Item value="desktop">
-                    Desktop
-                  </SegmentedControl.Item>
-                  <SegmentedControl.Item value="mobile">
-                    Mobile
-                  </SegmentedControl.Item>
-                </SegmentedControl.Root>
+                <PreviewWidthSelector />
                 <Button
                   variant="outline"
                   color="blue"

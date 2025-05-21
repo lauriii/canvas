@@ -4,20 +4,18 @@ import { useEffect, useImperativeHandle, useRef, useState } from 'react';
 import { forwardRef } from 'react';
 import styles from '@/features/layout/preview/Preview.module.css';
 import clsx from 'clsx';
-import type { ViewPortSize } from '@/features/layout/preview/Viewport';
 import { useAppSelector } from '@/app/hooks';
 import { selectDragging } from '@/features/ui/uiSlice';
 
 interface IFrameSwapperProps {
   srcDocument: string;
-  size: ViewPortSize;
   setIsReloading: Dispatch<SetStateAction<boolean>>;
   interactive: boolean;
 }
 
 const IFrameSwapper = forwardRef<HTMLIFrameElement, IFrameSwapperProps>(
   (
-    { size, srcDocument, setIsReloading, interactive },
+    { srcDocument, setIsReloading, interactive },
     ref: Ref<HTMLIFrameElement>,
   ) => {
     const iFrameRefs = useRef<(HTMLIFrameElement | null)[]>([]);
@@ -99,7 +97,7 @@ const IFrameSwapper = forwardRef<HTMLIFrameElement, IFrameSwapperProps>(
       className: clsx(styles.preview, {
         [styles.interactable]: isDragging || interactive,
       }),
-      'data-xb-preview': size,
+      'data-xb-preview': 'true',
       'data-test-xb-content-initialized': 'false',
     };
 

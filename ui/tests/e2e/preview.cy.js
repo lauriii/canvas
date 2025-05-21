@@ -26,9 +26,9 @@ describe('Preview a page', () => {
         cy.get('.my-hero__heading').should('exist');
       });
 
-    cy.findAllByText('Desktop').filter(':visible').click();
+    cy.findAllByText('Tablet').filter(':visible').click();
 
-    cy.url().should('contain', `/xb/node/1/preview/desktop`);
+    cy.url().should('contain', `/xb/node/1/preview/tablet`);
 
     cy.get('iframe[title="Page preview"]').should(
       'have.css',

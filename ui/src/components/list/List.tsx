@@ -34,7 +34,7 @@ const List: React.FC<ListProps> = (props) => {
     <div className={clsx('listContainer', styles.listContainer)}>
       <Box className={isDragging ? 'list-dragging' : ''}>
         <Spinner loading={isLoading}>
-          <Flex direction="column" width="100%" ref={listElRef}>
+          <Flex direction="column" width="100%" ref={listElRef} role="list">
             {sortedItems &&
               sortedItems.map(([id, item]) => (
                 <ListItem item={item} key={id} type={type} />

@@ -14,15 +14,14 @@ import {
 } from '@/features/ui/uiSlice';
 import RegionOverlay from '@/features/layout/previewOverlay/RegionOverlay';
 import clsx from 'clsx';
-import type { ViewPortSize } from '@/features/layout/preview/Viewport';
 import { selectLayout } from '@/features/layout/layoutModelSlice';
 import { useNavigate } from 'react-router-dom';
 import useXbParams from '@/hooks/useXbParams';
+import useTransitionEndListener from '@/hooks/useTransitionEndListener';
 
 interface ViewportOverlayProps {
   iframeRef: React.RefObject<HTMLIFrameElement>;
   previewContainerRef: React.RefObject<HTMLDivElement>;
-  size: ViewPortSize;
 }
 interface Rect {
   left: Number;
@@ -31,7 +30,7 @@ interface Rect {
   height: Number;
 }
 const ViewportOverlay: React.FC<ViewportOverlayProps> = (props) => {
-  const { iframeRef, previewContainerRef, size } = props;
+  const { iframeRef, previewContainerRef } = props;
   const [portalRoot, setPortalRoot] = useState<HTMLElement | null>(null);
   const positionDivRef = useRef(null);
   const canvasViewPortScale = useAppSelector(selectCanvasViewPortScale);
@@ -81,6 +80,13 @@ const ViewportOverlay: React.FC<ViewportOverlayProps> = (props) => {
   useWindowResizeListener(updateRect);
   useResizeObserver(previewContainerRef, updateRect);
 
+  useTransitionEndListener(
+    previewContainerRef.current
+      ? previewContainerRef.current.closest('.xbCanvasScalingContainer')
+      : null,
+    updateRect,
+  );
+
   useEffect(() => {
     const targetDiv = document.getElementById('xbPreviewOverlay');
     if (targetDiv) {
@@ -108,7 +114,6 @@ const ViewportOverlay: React.FC<ViewportOverlayProps> = (props) => {
         [styles.isZooming]: isZooming,
       })}
       onDoubleClick={handleDoubleClick}
-      data-xb-viewport-size={size}
       style={{
         top: `${rect.top}px`,
         left: `${rect.left}px`,
@@ -123,7 +128,6 @@ const ViewportOverlay: React.FC<ViewportOverlayProps> = (props) => {
           regionId={region.id}
           key={region.id}
           regionName={region.name}
-          size={size}
         />
       ))}
     </div>,

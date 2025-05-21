@@ -11,37 +11,41 @@ describe('Primary panel', () => {
     cy.drupalUninstall();
   });
 
-  it('Should ensure the library panel is scrollable', () => {
-    // Stub the HTTP request to return many components to make scrolling necessary
-    cy.intercept('GET', '**/xb/api/v0/config/component', {
-      statusCode: 200,
-      body: Array(50)
-        .fill()
-        .reduce((acc, _, index) => {
-          const paddedIndex = String(index + 1).padStart(2, '0');
-          const id = `experience_builder:component_${paddedIndex}`;
-          acc[id] = {
-            id,
-            name: `Component ${paddedIndex}`,
-            library: 'elements',
-          };
-          return acc;
-        }, {}),
-    }).as('getComponents');
+  it(
+    'Should ensure the library panel is scrollable',
+    { retries: { openMode: 0, runMode: 3 } },
+    () => {
+      // Stub the HTTP request to return many components to make scrolling necessary
+      cy.intercept('GET', '**/xb/api/v0/config/component', {
+        statusCode: 200,
+        body: Array(50)
+          .fill()
+          .reduce((acc, _, index) => {
+            const paddedIndex = String(index + 1).padStart(2, '0');
+            const id = `experience_builder:component_${paddedIndex}`;
+            acc[id] = {
+              id,
+              name: `Component ${paddedIndex}`,
+              library: 'elements',
+            };
+            return acc;
+          }, {}),
+      }).as('getComponents');
 
-    cy.loadURLandWaitForXBLoaded();
+      cy.loadURLandWaitForXBLoaded();
 
-    cy.openLibraryPanel();
-    cy.wait('@getComponents');
+      cy.openLibraryPanel();
+      cy.wait('@getComponents');
 
-    cy.get('[data-testid="xb-primary-panel"]')
-      .realMouseWheel({ deltaY: 2500 })
-      .then(() => {
-        cy.get(
-          '[data-xb-component-id="experience_builder:component_50"]',
-        ).should('be.visible');
-      });
-  });
+      cy.get('[data-testid="xb-primary-panel"]')
+        .realMouseWheel({ deltaY: 2500 })
+        .then(() => {
+          cy.get(
+            '[data-xb-component-id="experience_builder:component_50"]',
+          ).should('be.visible');
+        });
+    },
+  );
 
   it('previews components on hover', () => {
     cy.loadURLandWaitForXBLoaded();

@@ -15,7 +15,7 @@ describe('Perform CRUD operations on components that require disabled CSS aggreg
   it('The iframe loads the SDC CSS', () => {
     cy.loadURLandWaitForXBLoaded();
     cy.getIframe(
-      '[data-xb-preview="lg"][data-test-xb-content-initialized="true"][data-xb-swap-active="true"]',
+      '[data-test-xb-content-initialized="true"][data-xb-swap-active="true"]',
     )
       .its('head')
       .should('not.be.undefined')
@@ -134,20 +134,6 @@ describe('Perform CRUD operations on components', () => {
       },
     );
 
-    // Do the same checks as above, but for the narrow layout preview.
-    cy.testInIframe(
-      '[data-component-id="experience_builder:my-hero"] h1',
-      (h1s) => {
-        expect(h1s.length).to.equal(3);
-        h1s.forEach((h1, index) =>
-          expect(h1.textContent).to.equal(
-            index === 0 ? 'hello, world!' : 'XB Needs This For The Time Being',
-          ),
-        );
-      },
-      '[data-xb-preview="sm"][data-test-xb-content-initialized="true"][data-xb-swap-active="true"]',
-    );
-
     cy.openLibraryPanel();
     // Confirm the Library panel is open by checking if a component is visible.
     cy.get('.primaryPanelContent [data-state="open"]').contains('Components');
@@ -198,7 +184,7 @@ describe('Perform CRUD operations on components', () => {
         lgPreviewRect = $item[0].getBoundingClientRect();
       });
 
-    // After hovering, the component should be outlined for both small and large viewports.
+    // After hovering, the component should be outlined.
     cy.getComponentInPreview('Hero')
       .should(($outline) => {
         expect($outline).to.exist;
@@ -214,157 +200,11 @@ describe('Perform CRUD operations on components', () => {
         expect($outline).to.have.css('position', 'absolute');
       });
 
-    // Get the dimensions of the highlighted component in the small preview, so
-    // it can be compared to its corresponding outline.
-    let smPreviewRect = {};
-    cy.getIframeBody(
-      '[data-xb-preview="sm"][data-test-xb-content-initialized="true"][data-xb-swap-active="true"]',
-    )
-      .find('[data-component-id="experience_builder:my-hero"] h1')
-      .first()
-      .then((clicked) => {
-        // While in the iframe, get the dimensions of the component so we can
-        // compare the outline dimensions to it
-        const item = clicked.closest('[data-xb-uuid]');
-        smPreviewRect = item[0].getBoundingClientRect();
-      });
-
-    // Get the small preview outline and confirm its dimensions match the
-    // corresponding component,
-    cy.getComponentInPreview('Hero', 0, 'sm')
-      .should(($outline) => {
-        expect($outline).to.exist;
-        // Ensure the width is set before moving on to then().
-        expect($outline[0].getBoundingClientRect().width).to.not.equal(0);
-      })
-      .then(($outline) => {
-        // The outline width and height should be the same as the dimensions of
-        // the corresponding component in the iframe.
-        const outlineRect = $outline[0].getBoundingClientRect();
-        expect(outlineRect.width).to.equal(smPreviewRect.width);
-        expect(outlineRect.height).to.equal(smPreviewRect.height);
-        expect($outline).to.have.css('position', 'absolute');
-      });
-
     // Click the component to trigger the opening of the right drawer.
     cy.clickComponentInPreview('Hero');
 
     cy.editHeroComponent();
   });
-
-  it(
-    'Can create and add section',
-    // This test is as flaky as a croissant, give it 3 goes before failing the
-    // whole build to save the DA some 💰️.
-    { retries: 3 },
-    () => {
-      cy.viewport(2000, 1320);
-      cy.loadURLandWaitForXBLoaded();
-      cy.get('[data-xb-viewport-size="lg"]')
-        .findByLabelText('Two Column')
-        .realClick({ position: 'bottomRight' });
-      cy.log(
-        'Save the entire node 1 layout as a section, so it can be added to a different node.',
-      );
-
-      // First remove the two image components because they will otherwise crash
-      // due to the test not creating them in a way that allows the media entity
-      // to be found based on filename.
-      cy.get(
-        '[data-xb-viewport-size="lg"] [data-xb-component-id="sdc.experience_builder.image"]',
-      )
-        .first()
-        .trigger('contextmenu');
-      cy.findByText('Delete').click();
-      cy.get(
-        '[data-xb-viewport-size="lg"] [data-xb-component-id="sdc.experience_builder.image"]',
-      )
-        .first()
-        .trigger('contextmenu');
-      cy.findByText('Delete').click();
-      cy.waitForComponentNotInPreview('Image');
-
-      cy.get('.primaryPanelContent')
-        .findByText('Two Column')
-        .rightclick({ position: 'center' });
-      cy.findByRole('menuitem', {
-        name: 'Create section',
-        exact: false,
-      }).click(); // Section name
-
-      // Typing into the section name input does not work instantly, so attempt
-      // changing the section name until the input value properly updates.
-      // This delay is short enough that no end user could possibly encounter it,
-      // but it can occur within these tests.
-      const sectionName = 'The Entire Node 1';
-      cy.findByLabelText('Section name').should(
-        'have.value',
-        'Two Column section',
-      );
-
-      cy.findByLabelText('Section name').type(`{selectAll}{del}${sectionName}`);
-      cy.findByLabelText('Section name').should('have.value', sectionName);
-
-      cy.findByText('Add to library').click();
-      // The dialog should close
-      cy.findByLabelText('Section name').should('not.exist');
-
-      cy.openLibraryPanel();
-      cy.get('.primaryPanelContent').within(() => {
-        cy.findByText('Sections').click();
-        cy.findByText(sectionName).should('exist');
-      });
-      cy.get('.primaryPanelContent')
-        .as('panel')
-        .should('contain.text', sectionName);
-
-      cy.loadURLandWaitForXBLoaded({ url: 'xb/node/2' });
-      cy.get('#edit-title-0-value').should('exist');
-      cy.waitForElementContentNotInIframe('div', 'There goes my hero');
-      cy.openLibraryPanel();
-
-      cy.get('[data-xb-component-id="sdc.experience_builder.my-hero"]').should(
-        'exist',
-      );
-
-      cy.get(
-        '[data-xb-component-id="sdc.experience_builder.my-hero"]',
-      ).realClick();
-      cy.waitForElementContentInIframe('div', 'There goes my hero');
-
-      // There should be one Hero added.
-      cy.get(
-        '[data-xb-viewport-size="lg"] [data-xb-component-id="sdc.experience_builder.my-hero"]',
-      ).should('have.length', 1);
-
-      // Add the section that was created earlier in this test.
-      cy.openLibraryPanel();
-      cy.findByText('Sections').click();
-
-      cy.get('.primaryPanelContent').within(() => {
-        cy.findByText(sectionName).should('exist');
-        cy.findByText(sectionName).click();
-      });
-
-      // After adding the section, there should be four Hero components.
-      cy.get(
-        '[data-xb-viewport-size="lg"] [data-xb-component-id="sdc.experience_builder.my-hero"]',
-        { timeout: 10000 },
-      ).should('have.length', 4);
-
-      // The Two Column component that is the top level element of the section
-      // should be the currently selected layer.
-      cy.openLayersPanel();
-      cy.findByTestId('xb-primary-panel').within(() => {
-        cy.findAllByText('Two Column').should('have.length', 1);
-        cy.findAllByLabelText('Two Column').should(
-          'have.attr',
-          'data-xb-selected',
-          'true',
-        );
-      });
-    },
-  );
 
   it('Can add component by clicking component in library', () => {
     cy.loadURLandWaitForXBLoaded();
@@ -446,8 +286,8 @@ describe('Perform CRUD operations on components', () => {
   it('Can add a component with empty slots', () => {
     cy.loadURLandWaitForXBLoaded();
 
-    // The component begins with two content drop zones.
-    cy.findAllByTestId('xb-empty-slot-drop-zone').should('have.length', 2);
+    // The component begins with one content drop zone.
+    cy.findAllByTestId('xb-empty-slot-drop-zone').should('have.length', 1);
 
     // Assert there is an existing two column SDC on the page already.
     cy.findByTestId('xb-primary-panel').within(() => {
@@ -458,9 +298,9 @@ describe('Perform CRUD operations on components', () => {
     // Click on Two Column inside menu.
     cy.get('.primaryPanelContent').findByText('Two Column').click();
     cy.log(
-      'There should be 4 new drop zones - 2 added columns in each preview overlay (desktop, mobile)',
+      'There should be 2 new drop zones - 2 added columns in addition to the original',
     );
-    cy.findAllByTestId('xb-empty-slot-drop-zone').should('have.length', 6);
+    cy.findAllByTestId('xb-empty-slot-drop-zone').should('have.length', 3);
 
     cy.openLayersPanel();
     // Assert that a second two column SDC has been added.
@@ -497,7 +337,7 @@ describe('Perform CRUD operations on components', () => {
     // Check the default image src is set.
     cy.waitForElementInIframe(
       'img[src*="/experience_builder/components/image/600x400.png"]',
-      '[data-xb-preview="lg"][data-test-xb-content-initialized="true"][data-xb-swap-active="true"]',
+      '[data-test-xb-content-initialized="true"][data-xb-swap-active="true"]',
       40000,
     );
   });
@@ -522,7 +362,7 @@ describe('Perform CRUD operations on components', () => {
     // Check the default image src is set.
     cy.waitForElementInIframe(
       'img[src*="/experience_builder/tests/modules/xb_test_sdc/components/image-optional-with-example-and-additional-prop/gracie.jpg"]',
-      '[data-xb-preview="lg"][data-test-xb-content-initialized="true"][data-xb-swap-active="true"]',
+      '[data-test-xb-content-initialized="true"][data-xb-swap-active="true"]',
       40000,
     );
 

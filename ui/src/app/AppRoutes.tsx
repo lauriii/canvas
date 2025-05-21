@@ -12,6 +12,7 @@ import type React from 'react';
 import MosaicContainer from '@/features/code-editor/MosaicContainer';
 import CodeComponentDialogs from '@/features/code-editor/dialogs/CodeComponentDialogs';
 import PrimaryPanel from '@/components/sidePanel/PrimaryPanel';
+import SideMenu from '@/components/sideMenu/SideMenu';
 
 interface AppRoutesInterface {
   basePath: string;
@@ -30,7 +31,12 @@ const AppRoutes: React.FC<AppRoutesInterface> = ({ basePath }) => {
           },
           {
             path: '/editor/',
-            element: <Editor />,
+            element: (
+              <>
+                <SideMenu />
+                <Editor />
+              </>
+            ),
             children: [
               {
                 path: '/editor/region/:regionId/component/:componentId',
@@ -59,6 +65,7 @@ const AppRoutes: React.FC<AppRoutesInterface> = ({ basePath }) => {
             path: '/code-editor/code/:codeComponentId',
             element: (
               <>
+                <SideMenu />
                 <PrimaryPanel />
                 <MosaicContainer />
                 <CodeComponentDialogs />
@@ -70,6 +77,7 @@ const AppRoutes: React.FC<AppRoutesInterface> = ({ basePath }) => {
             path: '/code-editor/component/:codeComponentId',
             element: (
               <>
+                <SideMenu />
                 <PrimaryPanel />
                 <MosaicContainer />
                 <CodeComponentDialogs />

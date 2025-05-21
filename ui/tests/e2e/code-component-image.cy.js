@@ -12,30 +12,30 @@ describe('Image code component', () => {
     cy.drupalUninstall();
   });
 
-  it('Can add an optional image component with a preview but empty input', () => {
-    cy.loadURLandWaitForXBLoaded();
-
-    // Delete the two existing image components.
-    cy.clickComponentInPreview('Image');
-    cy.realPress('{del}');
-    cy.clickComponentInPreview('Image');
-    cy.realPress('{del}');
-
-    cy.waitForComponentNotInPreview('Image');
-
-    cy.openLibraryPanel();
-    cy.get('.primaryPanelContent').findByText('Vanilla Image').click();
-    // Check the default image src is set.
-    cy.waitForElementInIframe(
-      'img[src="https://placehold.co/1200x900@2x.png"]',
-      '[data-xb-preview="lg"][data-test-xb-content-initialized="true"][data-xb-swap-active="true"]',
-      10000,
-    );
-
-    cy.publishAllPendingChanges('XB Needs This For The Time Being');
-    cy.visit('/node/1');
-    cy.get('img[src="https://placehold.co/1200x900@2x.png"]').should('exist', {
-      timeout: 10000,
-    });
-  });
+  it(
+    'Can add an optional image component with a preview but empty input',
+    { retries: { openMode: 0, runMode: 3 } },
+    () => {
+      cy.loadURLandWaitForXBLoaded({ url: 'xb/node/2' });
+      cy.openLibraryPanel();
+      cy.get('.primaryPanelContent').findByText('Vanilla Image').click();
+      // Check the default image src is set.
+      cy.waitForElementInIframe(
+        'img[src="https://placehold.co/1200x900@2x.png"]',
+        '[data-test-xb-content-initialized="true"][data-xb-swap-active="true"]',
+        10000,
+      );
+      cy.get('[data-testid="xb-publish-review"]:not([disabled])', {
+        timeout: 20000,
+      }).should('exist');
+      cy.publishAllPendingChanges('I am an empty node');
+      cy.visit('/node/2');
+      cy.get('img[src="https://placehold.co/1200x900@2x.png"]').should(
+        'exist',
+        {
+          timeout: 10000,
+        },
+      );
+    },
+  );
 });

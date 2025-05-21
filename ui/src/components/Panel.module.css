@@ -10,7 +10,8 @@
 .animateOff {
   transition:
     transform 0.2s cubic-bezier(0.4, 0, 0.6, 1),
-    opacity 0.2s ease-in;
+    opacity 0.2s ease-in,
+    width 0.2s cubic-bezier(0.4, 0, 0.6, 1);
 }
 
 .offLeft,
@@ -20,11 +21,15 @@
 }
 
 .offLeft {
-  transform: translateX(-110%) scale(0.8);
+  overflow: hidden;
+  width: 0 !important;
+  transform: translateX(-110%) scaleX(0.8);
   transform-origin: left center;
 }
 
 .offRight {
-  transform: translateX(110%) scale(0.8);
+  overflow: hidden;
+  width: 0 !important;
+  transform: translateX(110%) scaleX(0.8);
   transform-origin: right center;
 }

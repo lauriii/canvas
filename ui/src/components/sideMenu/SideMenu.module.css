@@ -1,4 +1,5 @@
 .sideMenu {
+  z-index: 1; /* must be higher than primary panel so that it can slide underneath */
   display: flex;
   flex-direction: column;
   flex-shrink: 0;

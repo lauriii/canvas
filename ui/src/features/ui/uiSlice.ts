@@ -38,6 +38,8 @@ export interface uiSliceState {
   updatingComponent: string | undefined; //uuid of component
   selection: Selection;
   targetSlot: string | undefined; //uuid of slot being hovered when dragging
+  viewportWidth: number;
+  viewportMinHeight: number;
   canvasViewport: CanvasViewPort;
   latestUndoRedoActionId: string;
   firstLoadComplete: boolean;
@@ -65,6 +67,8 @@ export const initialState: uiSliceState = {
   hoveredComponent: undefined,
   updatingComponent: undefined,
   targetSlot: undefined,
+  viewportWidth: 0,
+  viewportMinHeight: 0,
   canvasViewport: {
     x: 0,
     y: 0,
@@ -81,7 +85,7 @@ export const initialState: uiSliceState = {
   },
 };
 
-interface ScaleValue {
+export interface ScaleValue {
   scale: number;
   percent: string;
 }
@@ -219,17 +223,6 @@ export const uiSlice = createAppSlice({
           action.payload.scale || state.canvasViewport.scale;
       },
     ),
-    canvasViewPortZoomDelta: create.reducer(
-      (state, action: PayloadAction<number>) => {
-        if (action.payload) {
-          state.canvasViewport.scale = Math.max(
-            Math.min(state.canvasViewport.scale - action.payload / 100, 5),
-            0.25,
-          );
-          return;
-        }
-      },
-    ),
     canvasViewPortZoomIn: create.reducer((state, action) => {
       const currentScale = state.canvasViewport.scale;
       const newIndex = getNewScaleIndex(currentScale, 'increment');
@@ -240,6 +233,14 @@ export const uiSlice = createAppSlice({
       const newIndex = getNewScaleIndex(currentScale, 'decrement');
       state.canvasViewport.scale = scaleValues[newIndex].scale;
     }),
+    setViewportWidth: create.reducer((state, action: PayloadAction<number>) => {
+      state.viewportWidth = action.payload;
+    }),
+    setViewportMinHeight: create.reducer(
+      (state, action: PayloadAction<number>) => {
+        state.viewportMinHeight = action.payload;
+      },
+    ),
     setLatestUndoRedoActionId: create.reducer(
       (state, action: PayloadAction<string>) => {
         state.latestUndoRedoActionId = action.payload;
@@ -308,6 +309,12 @@ export const uiSlice = createAppSlice({
     selectCanvasViewPortScale: (ui): number => {
       return ui.canvasViewport.scale;
     },
+    selectViewportWidth: (ui): number => {
+      return ui.viewportWidth;
+    },
+    selectViewportMinHeight: (ui): number => {
+      return ui.viewportMinHeight;
+    },
     selectLatestUndoRedoActionId: (ui): string => {
       return ui.latestUndoRedoActionId;
     },
@@ -355,7 +362,8 @@ export const {
   setCanvasViewPort,
   canvasViewPortZoomIn,
   canvasViewPortZoomOut,
-  canvasViewPortZoomDelta,
+  setViewportWidth,
+  setViewportMinHeight,
   setLatestUndoRedoActionId,
   setFirstLoadComplete,
   setCanvasModeEditing,
@@ -375,6 +383,8 @@ export const {
   selectTargetSlot,
   selectCanvasViewPort,
   selectCanvasViewPortScale,
+  selectViewportWidth,
+  selectViewportMinHeight,
   selectLatestUndoRedoActionId,
   selectFirstLoadComplete,
   selectCanvasMode,
