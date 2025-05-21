@@ -17,10 +17,10 @@ import ComponentPreview from '@/components/ComponentPreview';
 import SidebarNode from '@/components/sidePanel/SidebarNode';
 import useComponentSelection from '@/hooks/useComponentSelection';
 import ExposedJsComponent from '@/components/list/ExposedJsComponent';
-import useXbParams from '@/hooks/useXbParams';
 import { DEFAULT_REGION } from '@/features/ui/uiSlice';
 import { useDraggable } from '@dnd-kit/core';
 import SectionNode from '@/components/list/SectionNode';
+import { useParams } from 'react-router';
 
 const ListItem: React.FC<{
   item: XBComponent | Section;
@@ -36,7 +36,7 @@ const ListItem: React.FC<{
   const {
     componentId: selectedComponent,
     regionId: focusedRegion = DEFAULT_REGION,
-  } = useXbParams();
+  } = useParams();
   const { setSelectedComponent } = useComponentSelection();
   const { attributes, listeners, setNodeRef } = useDraggable({
     id: item.id,

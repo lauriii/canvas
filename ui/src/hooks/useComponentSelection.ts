@@ -1,4 +1,3 @@
-// No longer need useXbParams
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
@@ -77,7 +76,6 @@ function filterParentChildRelationships(
  * Also exposes functions to drupalSettings.xb.componentSelectionUtils for extensions to use.
  */
 export function useComponentSelection() {
-  // We don't need useXbParams anymore since we're using location directly
   const layout = useAppSelector(selectLayout);
   const navigate = useNavigate();
   const location = useLocation();

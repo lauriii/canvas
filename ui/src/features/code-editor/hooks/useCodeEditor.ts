@@ -11,7 +11,6 @@
  */
 
 import { useEffect } from 'react';
-import useXbParams from '@/hooks/useXbParams';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import {
   initializeCodeEditor,
@@ -26,6 +25,7 @@ import type {
   AssetLibrary,
   CodeComponentSerialized,
 } from '@/types/CodeComponent';
+import { useParams } from 'react-router';
 
 const useCodeEditor: () => {
   isLoading: boolean;
@@ -33,7 +33,7 @@ const useCodeEditor: () => {
   const dispatch = useAppDispatch();
 
   // Get the currently edited code component's ID from the URL.
-  const { codeComponentId: requestedComponentId } = useXbParams();
+  const { codeComponentId: requestedComponentId } = useParams();
 
   // Get the ID of the code component that has been loaded into the code editor.
   const loadedComponentId = useAppSelector(

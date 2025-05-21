@@ -15,8 +15,7 @@ import {
 import RegionOverlay from '@/features/layout/previewOverlay/RegionOverlay';
 import clsx from 'clsx';
 import { selectLayout } from '@/features/layout/layoutModelSlice';
-import { useNavigate } from 'react-router-dom';
-import useXbParams from '@/hooks/useXbParams';
+import { useNavigate, useParams } from 'react-router-dom';
 import useTransitionEndListener from '@/hooks/useTransitionEndListener';
 
 interface ViewportOverlayProps {
@@ -38,7 +37,7 @@ const ViewportOverlay: React.FC<ViewportOverlayProps> = (props) => {
   const [rect, setRect] = useState<Rect | null>(null);
   const isZooming = useAppSelector(selectZooming);
   const navigate = useNavigate();
-  const { regionId: focusedRegion = DEFAULT_REGION } = useXbParams();
+  const { regionId: focusedRegion = DEFAULT_REGION } = useParams();
 
   let displayedRegions = layout.filter((region) => {
     return region.components.length > 0 || region.id === DEFAULT_REGION;

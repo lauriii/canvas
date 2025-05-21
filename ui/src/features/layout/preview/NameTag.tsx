@@ -15,7 +15,7 @@ import {
   selectTargetSlot,
 } from '@/features/ui/uiSlice';
 import { selectSelectedComponentUuid } from '@/features/ui/uiSlice';
-import useXbParams from '@/hooks/useXbParams';
+import { useParams } from 'react-router';
 
 const VARIANTS = {
   component: <Component1Icon width={10} height={10} />,
@@ -76,7 +76,7 @@ export const RegionNameTag: React.FC<NameTagProps> = (props) => {
   });
   const targetSlot = useAppSelector(selectTargetSlot);
   const isTarget = targetSlot === id;
-  const { regionId: focusedRegion = DEFAULT_REGION } = useXbParams();
+  const { regionId: focusedRegion = DEFAULT_REGION } = useParams();
 
   // Show the name of the region when either the region is hovered or when it's the target of drag and drop.
   // Desired result is that only one NameTag is shown at a time:

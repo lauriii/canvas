@@ -8,11 +8,11 @@ import {
 } from '@/features/layout/layoutModelSlice';
 import { useCallback, useEffect, useState } from 'react';
 import { useErrorBoundary } from 'react-error-boundary';
-import useXbParams from '@/hooks/useXbParams';
 import { AlertDialog, Button, Flex } from '@radix-ui/themes';
 import { selectPageData } from '@/features/pageData/pageDataSlice';
 import { selectPreviewHtml } from '@/features/pagePreview/previewSlice';
 import { viewportSizes } from '@/types/Preview';
+import { useParams } from 'react-router';
 
 const PagePreview = () => {
   const layout = useAppSelector(selectLayout);
@@ -23,7 +23,7 @@ const PagePreview = () => {
   const [postPreview] = usePostPreviewMutation();
   const { showBoundary } = useErrorBoundary();
   const [widthVal, setWidthVal] = useState('100%');
-  const { width } = useXbParams();
+  const { width } = useParams();
   const [linkIntercepted, setLinkIntercepted] = useState('');
 
   useEffect(() => {

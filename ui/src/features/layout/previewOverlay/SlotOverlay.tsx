@@ -18,8 +18,8 @@ import { getDistanceBetweenElements } from '@/utils/function-utils';
 import useGetComponentName from '@/hooks/useGetComponentName';
 import useSyncPreviewElementSize from '@/hooks/useSyncPreviewElementSize';
 import { useDataToHtmlMapValue } from '@/features/layout/preview/DataToHtmlMapContext';
-import useXbParams from '@/hooks/useXbParams';
 import EmptySlotDropZone from '@/features/layout/previewOverlay/EmptySlotDropZone';
+import { useParams } from 'react-router';
 // import SlotDropZone from '@/features/layout/previewOverlay/SlotDropZone';
 
 export interface SlotOverlayProps {
@@ -44,7 +44,7 @@ const SlotOverlay: React.FC<SlotOverlayProps> = (props) => {
     paddingTop: '0px',
     paddingBottom: '0px',
   });
-  const { componentId: selectedComponent } = useXbParams();
+  const { componentId: selectedComponent } = useParams();
   const isHovered = useAppSelector((state) => {
     return selectIsComponentHovered(state, slotId);
   });

@@ -23,11 +23,11 @@ import PreviewOverlay from '@/features/layout/previewOverlay/PreviewOverlay';
 import { deleteNode } from '../layout/layoutModelSlice';
 import useCopyPasteComponents from '@/hooks/useCopyPasteComponents';
 import useComponentSelection from '@/hooks/useComponentSelection';
-import useXbParams from '@/hooks/useXbParams';
 import { useUndoRedo } from '@/hooks/useUndoRedo';
 import ViewportToolbar from '@/features/layout/preview/ViewportToolbar';
 import { useDebouncedCallback } from 'use-debounce';
 import { getHalfwayScrollPosition } from '@/utils/function-utils';
+import { useParams } from 'react-router';
 
 const Canvas = () => {
   const dispatch = useAppDispatch();
@@ -43,7 +43,7 @@ const Canvas = () => {
   const isPanning = useAppSelector(selectPanning);
   const [modifierKeyPressed, setModifierKeyPressed] = useState(false);
   const modifierKeyPressedRef = useRef(false);
-  const { componentId: selectedComponent } = useXbParams();
+  const { componentId: selectedComponent } = useParams();
   const { unsetSelectedComponent } = useComponentSelection();
   const middleMouseDownRef = useRef(middleMouseDown);
   const { copySelectedComponent, pasteAfterSelectedComponent } =

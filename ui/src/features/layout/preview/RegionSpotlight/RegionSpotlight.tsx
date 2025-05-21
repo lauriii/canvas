@@ -6,13 +6,13 @@ import {
   selectDragging,
 } from '@/features/ui/uiSlice';
 import { Spotlight } from '@/components/spotlight/Spotlight';
-import useXbParams from '@/hooks/useXbParams';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import useSyncPreviewElementSize from '@/hooks/useSyncPreviewElementSize';
+import { useParams } from 'react-router';
 
 export const RegionSpotlight = () => {
   const { regionsMap } = useDataToHtmlMapValue();
-  const { regionId: focusedRegion = DEFAULT_REGION } = useXbParams();
+  const { regionId: focusedRegion = DEFAULT_REGION } = useParams();
   const [spotlight, setSpotlight] = useState(false);
   const rect = useSyncPreviewElementSize(regionsMap[focusedRegion]?.elements);
   const { isDragging } = useAppSelector(selectDragging);

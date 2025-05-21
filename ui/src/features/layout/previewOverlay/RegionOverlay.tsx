@@ -18,10 +18,10 @@ import { RegionNameTag } from '@/features/layout/preview/NameTag';
 import clsx from 'clsx';
 import { useDataToHtmlMapValue } from '@/features/layout/preview/DataToHtmlMapContext';
 import useSyncPreviewElementSize from '@/hooks/useSyncPreviewElementSize';
-import useXbParams from '@/hooks/useXbParams';
 import RegionDropZone from '@/features/layout/previewOverlay/RegionDropZone';
 import EmptyRegionDropZone from '@/features/layout/previewOverlay/EmptyRegionDropZone';
 import useEditorNavigation from '@/hooks/useEditorNavigation';
+import { useParams } from 'react-router';
 
 interface RegionOverlayProps {
   iframeRef: React.RefObject<HTMLIFrameElement>;
@@ -35,7 +35,7 @@ const RegionOverlay: React.FC<RegionOverlayProps> = ({ iframeRef, region }) => {
     selectLayoutForRegion(state, region.id),
   );
   const { regionsMap } = useDataToHtmlMapValue();
-  const { regionId: focusedRegion = DEFAULT_REGION } = useXbParams();
+  const { regionId: focusedRegion = DEFAULT_REGION } = useParams();
   const elementRect = useSyncPreviewElementSize(
     regionsMap[region.id]?.elements,
   );

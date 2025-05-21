@@ -18,8 +18,7 @@ import { selectPageData } from '@/features/pageData/pageDataSlice';
 import type { ReactElement } from 'react';
 import { useEffect } from 'react';
 import { DEFAULT_REGION } from '@/features/ui/uiSlice';
-import { Link } from 'react-router-dom';
-import useXbParams from '@/hooks/useXbParams';
+import { Link, useParams } from 'react-router-dom';
 import { selectLayout } from '@/features/layout/layoutModelSlice';
 import { selectCodeComponentProperty } from '@/features/code-editor/codeEditorSlice';
 import Navigation from '@/components/navigation/Navigation';
@@ -58,7 +57,7 @@ const xbSettings = getXbSettings();
 const PageInfo = () => {
   const { showBoundary } = useErrorBoundary();
   const { setEditorEntity } = useEditorNavigation();
-  const { regionId: focusedRegion = DEFAULT_REGION } = useXbParams();
+  const { regionId: focusedRegion = DEFAULT_REGION } = useParams();
   const codeComponentName = useAppSelector(selectCodeComponentProperty('name'));
 
   const isCodeEditor = codeComponentName !== '';

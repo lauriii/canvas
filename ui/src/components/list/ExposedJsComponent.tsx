@@ -17,8 +17,7 @@ import { selectLayout } from '@/features/layout/layoutModelSlice';
 import { componentExistsInLayout } from '@/features/layout/layoutUtils';
 import { useErrorBoundary } from 'react-error-boundary';
 import type { JSComponent } from '@/types/Component';
-import { useNavigate } from 'react-router-dom';
-import useXbParams from '@/hooks/useXbParams';
+import { useNavigate, useParams } from 'react-router-dom';
 
 function removeJsPrefix(input: string): string {
   if (input.startsWith('js.')) {
@@ -39,7 +38,7 @@ const ExposedJsComponent: React.FC<{
   const isComponentInLayout = componentExistsInLayout(layout, component.id);
   const { showBoundary } = useErrorBoundary();
   const navigate = useNavigate();
-  const { codeComponentId: selectedComponent } = useXbParams();
+  const { codeComponentId: selectedComponent } = useParams();
 
   useEffect(() => {
     if (error) {

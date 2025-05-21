@@ -1,6 +1,5 @@
 import { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import useXbParams from '@/hooks/useXbParams';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useErrorBoundary } from 'react-error-boundary';
 import { ContextMenu, Flex, Spinner } from '@radix-ui/themes';
 import SidebarNode from '@/components/sidePanel/SidebarNode';
@@ -35,7 +34,7 @@ const CodeComponentList = ({
   const dispatch = useAppDispatch();
   const { showBoundary } = useErrorBoundary();
   const navigate = useNavigate();
-  const { codeComponentId: componentId } = useXbParams();
+  const { codeComponentId: componentId } = useParams();
 
   useEffect(() => {
     if (error) {

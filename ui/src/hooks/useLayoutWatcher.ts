@@ -1,8 +1,7 @@
 import { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useAppSelector } from '@/app/hooks';
 import { selectLayoutForRegion } from '@/features/layout/layoutModelSlice';
-import useXbParams from '@/hooks/useXbParams';
 import { DEFAULT_REGION, selectFirstLoadComplete } from '@/features/ui/uiSlice';
 
 /**
@@ -11,7 +10,7 @@ import { DEFAULT_REGION, selectFirstLoadComplete } from '@/features/ui/uiSlice';
  */
 const useLayoutWatcher = () => {
   const navigate = useNavigate();
-  const { regionId } = useXbParams();
+  const { regionId } = useParams();
   const currentRegion = regionId || DEFAULT_REGION;
   const regionLayout = useAppSelector((state) =>
     selectLayoutForRegion(state, currentRegion),

@@ -6,8 +6,7 @@ import type React from 'react';
 import { useCallback } from 'react';
 import SortableContainer from '@/features/layout/layers/SortableContainer';
 import useEditorNavigation from '@/hooks/useEditorNavigation';
-import { useNavigate } from 'react-router-dom';
-import useXbParams from '@/hooks/useXbParams';
+import { useNavigate, useParams } from 'react-router-dom';
 import {
   DEFAULT_REGION,
   selectIsComponentHovered,
@@ -20,7 +19,7 @@ const RegionLayer: React.FC<{ region: RegionNode; isPage?: boolean }> = ({
   region,
   isPage = false,
 }) => {
-  const { regionId: focusedRegion = DEFAULT_REGION } = useXbParams();
+  const { regionId: focusedRegion = DEFAULT_REGION } = useParams();
   const { setSelectedRegion } = useEditorNavigation();
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
