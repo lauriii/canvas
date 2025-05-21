@@ -201,6 +201,7 @@ HTML,
             'user',
             'user.permissions',
           ]),
+        'attachments' => [],
       ],
       'block.xb_test_block_input_validatable' => [
         'html' => <<<HTML
@@ -212,6 +213,7 @@ HTML,
 
 HTML,
         'cacheability' => $default_cacheability,
+        'attachments' => [],
       ],
       'block.xb_test_block_input_validatable_crash' => [
         'html' => <<<HTML
@@ -223,6 +225,7 @@ HTML,
 
 HTML,
         'cacheability' => $default_cacheability,
+        'attachments' => [],
       ],
       'block.xb_test_block_optional_contexts' => [
         'html' => <<<HTML
@@ -234,6 +237,7 @@ HTML,
 
 HTML,
         'cacheability' => $default_cacheability,
+        'attachments' => [],
       ],
     ], $rendered);
   }

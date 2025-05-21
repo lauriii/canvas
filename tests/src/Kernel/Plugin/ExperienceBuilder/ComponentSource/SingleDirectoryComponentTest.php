@@ -186,6 +186,12 @@ final class SingleDirectoryComponentTest extends ComponentSourceTestBase {
 
 HTML,
         'cacheability' => $default_cacheability,
+        'attachments' => [
+          'library' => [
+            'core/components.xb_test_sdc--deprecated',
+            'core/components.xb_test_sdc--deprecated',
+          ],
+        ],
       ],
       'sdc.xb_test_sdc.experimental' => [
         'html' => <<<HTML
@@ -196,6 +202,12 @@ HTML,
 
 HTML,
         'cacheability' => $default_cacheability,
+        'attachments' => [
+          'library' => [
+            'core/components.xb_test_sdc--experimental',
+            'core/components.xb_test_sdc--experimental',
+          ],
+        ],
       ],
       'sdc.xb_test_sdc.grid-container' => [
         'html' => '
@@ -204,6 +216,12 @@ HTML,
   </div>
 ',
         'cacheability' => $default_cacheability,
+        'attachments' => [
+          'library' => [
+            'core/components.xb_test_sdc--grid-container',
+            'core/components.xb_test_sdc--grid-container',
+          ],
+        ],
       ],
       'sdc.xb_test_sdc.image-gallery' => [
         'html' => '<figure>
@@ -213,22 +231,52 @@ HTML,
     </figure>
 ',
         'cacheability' => $default_cacheability,
+        'attachments' => [
+          'library' => [
+            'core/components.xb_test_sdc--image-gallery',
+            'core/components.xb_test_sdc--image-gallery',
+          ],
+        ],
       ],
       'sdc.xb_test_sdc.image-optional-with-example' => [
         'html' => '<img src="https://example.com/cat.jpg" alt="Boring placeholder" />',
         'cacheability' => $default_cacheability,
+        'attachments' => [
+          'library' => [
+            'core/components.xb_test_sdc--image-optional-with-example',
+            'core/components.xb_test_sdc--image-optional-with-example',
+          ],
+        ],
       ],
       'sdc.xb_test_sdc.image-optional-with-example-and-additional-prop' => [
         'html' => '<img src="::XB_MODULE_PATH::/tests/modules/xb_test_sdc/components/image-optional-with-example-and-additional-prop/gracie.jpg" alt="A good dog" width="601" height="402"></img>',
         'cacheability' => $default_cacheability,
+        'attachments' => [
+          'library' => [
+            'core/components.xb_test_sdc--image-optional-with-example-and-additional-prop',
+            'core/components.xb_test_sdc--image-optional-with-example-and-additional-prop',
+          ],
+        ],
       ],
       'sdc.xb_test_sdc.image-optional-without-example' => [
         'html' => '',
         'cacheability' => $default_cacheability,
+        'attachments' => [
+          'library' => [
+            'core/components.xb_test_sdc--image-optional-without-example',
+            'core/components.xb_test_sdc--image-optional-without-example',
+          ],
+        ],
       ],
       'sdc.xb_test_sdc.image-required-with-example' => [
         'html' => '<img src="https://example.com/cat.jpg" alt="Boring placeholder" />',
         'cacheability' => $default_cacheability,
+        'attachments' => [
+          'library' => [
+            'core/components.xb_test_sdc--image-required-with-example',
+            'core/components.xb_test_sdc--image-required-with-example',
+          ],
+        ],
       ],
       'sdc.xb_test_sdc.props-no-slots' => [
         'html' => <<<HTML
@@ -238,6 +286,12 @@ HTML,
 
 HTML,
         'cacheability' => $default_cacheability,
+        'attachments' => [
+          'library' => [
+            'core/components.xb_test_sdc--props-no-slots',
+            'core/components.xb_test_sdc--props-no-slots',
+          ],
+        ],
       ],
       'sdc.xb_test_sdc.props-slots' => [
         'html' => '<div  data-component-id="xb_test_sdc:props-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
@@ -251,12 +305,24 @@ HTML,
 </div>
 ',
         'cacheability' => $default_cacheability,
+        'attachments' => [
+          'library' => [
+            'core/components.xb_test_sdc--props-slots',
+            'core/components.xb_test_sdc--props-slots',
+          ],
+        ],
       ],
       'sdc.xb_test_sdc.crash' => [
         'html' => '<h1>test</h1>
 
 ',
         'cacheability' => $default_cacheability,
+        'attachments' => [
+          'library' => [
+            'core/components.xb_test_sdc--crash',
+            'core/components.xb_test_sdc--crash',
+          ],
+        ],
       ],
       'sdc.xb_test_sdc.sparkline' => [
         'html' => '
@@ -271,6 +337,12 @@ HTML,
 </div>
 ',
         'cacheability' => $default_cacheability,
+        'attachments' => [
+          'library' => [
+            'core/components.xb_test_sdc--sparkline',
+            'core/components.xb_test_sdc--sparkline',
+          ],
+        ],
       ],
     ], $rendered);
   }

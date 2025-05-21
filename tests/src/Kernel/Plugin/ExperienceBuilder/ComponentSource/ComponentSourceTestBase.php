@@ -13,6 +13,7 @@ use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Logger\RfcLoggerTrait;
 use Drupal\Core\Logger\RfcLogLevel;
+use Drupal\Core\Render\BubbleableMetadata;
 use Drupal\Core\Render\RendererInterface;
 use Drupal\experience_builder\ComponentIncompatibilityReasonRepository;
 use Drupal\experience_builder\ComponentSource\ComponentSourceWithSlotsInterface;
@@ -262,6 +263,7 @@ abstract class ComponentSourceTestBase extends KernelTestBase implements LoggerI
       $rendered[$component_id] = [
         'html' => $html,
         'cacheability' => CacheableMetadata::createFromRenderArray($build),
+        'attachments' => BubbleableMetadata::createFromRenderArray($build)->getAttachments(),
       ];
     }
     return $rendered;

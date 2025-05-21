@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\experience_builder\Kernel\Plugin\ExperienceBuilder\ComponentSource;
 
-// cspell:ignore Tilly
+// cspell:ignore Tilly Umso Dzyawdvr Mafgg
 
 use Drupal\Component\Serialization\Json;
 use Drupal\Component\Utility\Crypt;
@@ -18,6 +18,7 @@ use Drupal\Core\Site\Settings;
 use Drupal\Core\StreamWrapper\StreamWrapperInterface;
 use Drupal\Core\StreamWrapper\StreamWrapperManagerInterface;
 use Drupal\experience_builder\AutoSave\AutoSaveManager;
+use Drupal\experience_builder\Entity\AssetLibrary;
 use Drupal\experience_builder\Entity\Component;
 use Drupal\experience_builder\Entity\ComponentInterface;
 use Drupal\experience_builder\Entity\JavaScriptComponent;
@@ -25,6 +26,7 @@ use Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\JsCompone
 use Drupal\experience_builder\PropExpressions\StructuredData\FieldTypePropExpression;
 use Drupal\experience_builder\PropSource\StaticPropSource;
 use Drupal\experience_builder\Render\ImportMapResponseAttachmentsProcessor;
+use Drupal\Tests\experience_builder\Kernel\Traits\CiModulePathTrait;
 use Drupal\Tests\experience_builder\Traits\CrawlerTrait;
 use Drupal\Tests\user\Traits\UserCreationTrait;
 use Drupal\xb_test_code_components\Hook\IslandCastaway;
@@ -41,6 +43,7 @@ use Drupal\xb_test_code_components\Hook\IslandCastaway;
  */
 final class JsComponentTest extends ComponentSourceTestBase {
 
+  use CiModulePathTrait;
   use UserCreationTrait;
   use CrawlerTrait;
 
@@ -200,6 +203,43 @@ final class JsComponentTest extends ComponentSourceTestBase {
 
     $default_cacheability = (new CacheableMetadata())
       ->setCacheContexts($default_render_cache_contexts);
+    $module_path = self::getCiModulePath();
+    $site_path = $this->siteDirectory;
+    $default_libraries = [
+      'experience_builder/asset_library.' . AssetLibrary::GLOBAL_ID,
+      'experience_builder/astro.hydration',
+    ];
+    $default_html_head_links = [
+      [
+        [
+          'rel' => 'modulepreload',
+          'fetchpriority' => 'high',
+          'href' => \sprintf('%s/ui/lib/astro-hydration/dist/signals.module.js', $module_path),
+        ],
+      ],
+      [
+        [
+          'rel' => 'modulepreload',
+          'fetchpriority' => 'high',
+          'href' => \sprintf('%s/ui/lib/astro-hydration/dist/preload-helper.js', $module_path),
+        ],
+      ],
+    ];
+    $default_imports = [
+      ImportMapResponseAttachmentsProcessor::GLOBAL_IMPORTS => [
+        'preact' => \sprintf('%s/ui/lib/astro-hydration/dist/preact.module.js', $module_path),
+        'preact/hooks' => \sprintf('%s/ui/lib/astro-hydration/dist/hooks.module.js', $module_path),
+        'react/jsx-runtime' => \sprintf('%s/ui/lib/astro-hydration/dist/jsxRuntime.module.js', $module_path),
+        'react' => \sprintf('%s/ui/lib/astro-hydration/dist/compat.module.js', $module_path),
+        'react-dom' => \sprintf('%s/ui/lib/astro-hydration/dist/compat.module.js', $module_path),
+        'react-dom/client' => \sprintf('%s/ui/lib/astro-hydration/dist/compat.module.js', $module_path),
+        'clsx' => \sprintf('%s/ui/lib/astro-hydration/dist/clsx.js', $module_path),
+        'class-variance-authority' => \sprintf('%s/ui/lib/astro-hydration/dist/class-variance-authority.js', $module_path),
+        'tailwind-merge' => \sprintf('%s/ui/lib/astro-hydration/dist/tailwind-merge.js', $module_path),
+        '@/lib/FormattedText' => \sprintf('%s/ui/lib/astro-hydration/dist/FormattedText.js', $module_path),
+        '@/lib/utils' => \sprintf('%s/ui/lib/astro-hydration/dist/utils.js', $module_path),
+      ],
+    ];
 
     $this->assertEquals([
       'js.xb_test_code_components_using_imports' => [
@@ -209,18 +249,89 @@ final class JsComponentTest extends ComponentSourceTestBase {
             'config:experience_builder.js_component.xb_test_code_components_with_no_props',
             'config:experience_builder.js_component.xb_test_code_components_with_props',
           ]),
+        'attachments' => [
+          'library' => [
+            'experience_builder/astro_island.xb_test_code_components_with_props',
+            ...$default_libraries,
+          ],
+          'html_head_link' => [
+            ...$default_html_head_links,
+            [
+              [
+                'rel' => 'modulepreload',
+                'fetchpriority' => 'high',
+                'href' => \sprintf('/%s/files/astro-island/CiwA6RtUpaykMTcpxFHhMnJFCGcbFW98vMZYXTqv9hY.js', $site_path),
+              ],
+            ],
+          ],
+          'import_maps' => $default_imports + [
+            ImportMapResponseAttachmentsProcessor::SCOPED_IMPORTS => [
+              \sprintf('/%s/files/astro-island/CiwA6RtUpaykMTcpxFHhMnJFCGcbFW98vMZYXTqv9hY.js', $site_path) => [
+
+                '@/components/xb_test_code_components_with_no_props' => \sprintf('/%s/files/astro-island/DIVuf4g3b3u8n5-VUmsoKODzyawdvr_IN1g-mj0nshQ.js', $site_path),
+                '@/components/xb_test_code_components_with_props' => \sprintf('/%s/files/astro-island/2jV89MNP0iZ-LKQfZcMafgg380hSb1XsUhk6YAp_6nc.js', $site_path),
+              ],
+            ],
+          ],
+        ],
       ],
       'js.xb_test_code_components_vanilla_image' => [
         'cacheability' => (clone $default_cacheability)
           ->setCacheTags(['config:experience_builder.js_component.xb_test_code_components_vanilla_image']),
+        'attachments' => [
+          'library' => $default_libraries,
+          'html_head_link' => [
+            ...$default_html_head_links,
+            [
+              [
+                'rel' => 'modulepreload',
+                'fetchpriority' => 'high',
+                'href' => \sprintf('/%s/files/astro-island/AWzvjuD0F9PeMDLpE7JOz6gNduz6leBzCpSxl1aSjBE.js', $site_path),
+              ],
+            ],
+          ],
+          'import_maps' => $default_imports,
+        ],
       ],
       'js.xb_test_code_components_with_no_props' => [
         'cacheability' => (clone $default_cacheability)
           ->setCacheTags(['config:experience_builder.js_component.xb_test_code_components_with_no_props']),
+        'attachments' => [
+          'library' => $default_libraries,
+          'html_head_link' => [
+            ...$default_html_head_links,
+            [
+              [
+                'rel' => 'modulepreload',
+                'fetchpriority' => 'high',
+                'href' => \sprintf('/%s/files/astro-island/DIVuf4g3b3u8n5-VUmsoKODzyawdvr_IN1g-mj0nshQ.js', $site_path),
+              ],
+            ],
+          ],
+          'import_maps' => $default_imports,
+        ],
       ],
       'js.xb_test_code_components_with_props' => [
         'cacheability' => (clone $default_cacheability)
           ->setCacheTags(['config:experience_builder.js_component.xb_test_code_components_with_props']),
+        'attachments' => [
+          'library' => [
+            // This code component has CSS, and hence an asset library for that.
+            'experience_builder/astro_island.xb_test_code_components_with_props',
+            ...$default_libraries,
+          ],
+          'html_head_link' => [
+            ...$default_html_head_links,
+            [
+              [
+                'rel' => 'modulepreload',
+                'fetchpriority' => 'high',
+                'href' => \sprintf('/%s/files/astro-island/2jV89MNP0iZ-LKQfZcMafgg380hSb1XsUhk6YAp_6nc.js', $site_path),
+              ],
+            ],
+          ],
+          'import_maps' => $default_imports,
+        ],
       ],
     ], $rendered_without_html);
   }

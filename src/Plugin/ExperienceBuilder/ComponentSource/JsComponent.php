@@ -16,6 +16,7 @@ use Drupal\experience_builder\AutoSave\AutoSaveManager;
 use Drupal\experience_builder\AutoSaveData;
 use Drupal\experience_builder\ComponentDoesNotMeetRequirementsException;
 use Drupal\experience_builder\ComponentMetadataRequirementsChecker;
+use Drupal\experience_builder\Entity\AssetLibrary;
 use Drupal\experience_builder\Entity\Component as ComponentEntity;
 use Drupal\experience_builder\Entity\ComponentInterface;
 use Drupal\experience_builder\Entity\JavaScriptComponent;
@@ -168,6 +169,13 @@ final class JsComponent extends GeneratedFieldExplicitInputUxComponentSourceBase
     }
     if ($isPreview) {
       $build['#cache']['tags'][] = AutoSaveManager::CACHE_TAG;
+      // Always attach the draft asset library when loading the preview: avoid
+      // race conditions; let the controller handle it for us.
+      // @see \Drupal\experience_builder\Controller\ApiConfigAutoSaveControllers::getCss()
+      $build['#attached']['library'][] = 'experience_builder/asset_library.' . AssetLibrary::GLOBAL_ID . '.draft';
+    }
+    else {
+      $build['#attached']['library'][] = 'experience_builder/asset_library.' . AssetLibrary::GLOBAL_ID;
     }
 
     $valid_props = $component->getProps() ?? [];

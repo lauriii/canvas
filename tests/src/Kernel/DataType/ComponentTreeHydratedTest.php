@@ -13,6 +13,7 @@ use Drupal\Core\Render\RendererInterface;
 use Drupal\Core\TypedData\TypedDataManagerInterface;
 use Drupal\experience_builder\AutoSave\AutoSaveManager;
 use Drupal\experience_builder\Element\RenderSafeComponentContainer;
+use Drupal\experience_builder\Entity\AssetLibrary;
 use Drupal\experience_builder\Entity\Page;
 use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
@@ -126,10 +127,13 @@ class ComponentTreeHydratedTest extends KernelTestBase {
     $this->assertSame($expected_cache_tags, array_values(CacheableMetadata::createFromRenderArray($renderable)->getCacheTags()));
   }
 
-  public static function setIsPreviewPropertyRecursively(array $expectation, bool $is_preview): array {
+  public static function modifyExpectationFromLiveToPreview(array $expectation, bool $is_preview): array {
     \array_walk_recursive($expectation['expected_renderable'], function (mixed &$value, mixed $key) use ($is_preview) {
       if ($key === '#is_preview' || $key === 'xb_is_preview') {
         $value = $is_preview;
+      }
+      if ($value === 'experience_builder/asset_library.' . AssetLibrary::GLOBAL_ID) {
+        $value .= '.draft';
       }
     });
     return $expectation;
@@ -293,7 +297,7 @@ HTML,
     ];
 
     yield 'component tree with a single component that has unpopulated slots with default values' => [...self::removePrefixSuffix($component_tree_with_single_component_with_unpopulated_slots), 'isPreview' => FALSE];
-    yield 'component tree with a single component that has unpopulated slots with default values in preview' => [...self::setIsPreviewPropertyRecursively($component_tree_with_single_component_with_unpopulated_slots, TRUE), 'isPreview' => TRUE];
+    yield 'component tree with a single component that has unpopulated slots with default values in preview' => [...self::modifyExpectationFromLiveToPreview($component_tree_with_single_component_with_unpopulated_slots, TRUE), 'isPreview' => TRUE];
 
     $component_tree_with_single_block_component = [
       'tree' => [
@@ -402,7 +406,7 @@ HTML,
       ],
     ];
     yield 'component tree with a single block component' => [...self::removePrefixSuffix($component_tree_with_single_block_component), 'isPreview' => FALSE];
-    yield 'component tree with a single block component in preview' => [...self::setIsPreviewPropertyRecursively($component_tree_with_single_block_component, TRUE), 'isPreview' => TRUE];
+    yield 'component tree with a single block component in preview' => [...self::modifyExpectationFromLiveToPreview($component_tree_with_single_block_component, TRUE), 'isPreview' => TRUE];
 
     $simplest_component_tree_without_nesting = [
       'tree' => [
@@ -505,7 +509,7 @@ HTML,
       ],
     ];
     yield 'simplest component tree without nesting' => [...self::removePrefixSuffix($simplest_component_tree_without_nesting), 'isPreview' => FALSE];
-    yield 'simplest component tree without nesting in preview' => [...self::setIsPreviewPropertyRecursively($simplest_component_tree_without_nesting, TRUE), 'isPreview' => TRUE];
+    yield 'simplest component tree without nesting in preview' => [...self::modifyExpectationFromLiveToPreview($simplest_component_tree_without_nesting, TRUE), 'isPreview' => TRUE];
 
     $simplest_component_tree_with_nesting = [
       'tree' => [
@@ -636,7 +640,7 @@ HTML,
       ],
     ];
     yield 'simplest component tree with nesting' => [...self::removePrefixSuffix($simplest_component_tree_with_nesting), 'isPreview' => FALSE];
-    yield 'simplest component tree with nesting in preview' => [...self::setIsPreviewPropertyRecursively($simplest_component_tree_with_nesting, TRUE), 'isPreview' => TRUE];
+    yield 'simplest component tree with nesting in preview' => [...self::modifyExpectationFromLiveToPreview($simplest_component_tree_with_nesting, TRUE), 'isPreview' => TRUE];
 
     $path = self::getCiModulePath();
     $component_tree_with_complex_nesting = [
@@ -961,6 +965,9 @@ HTML,
                                             ],
                                           ],
                                         ],
+                                        'library' => [
+                                          'experience_builder/asset_library.' . AssetLibrary::GLOBAL_ID,
+                                        ],
                                       ],
                                       '#name' => 'My First Code Component',
                                       '#component_url' => '::SITE_DIR_BASE_URL::/files/astro-island/STNRn46UCAs1xJCb2kgPiEOEZp0R24B5qjtHOsyYT-g.js',
@@ -1021,6 +1028,9 @@ HTML,
                                               'href' => \sprintf('%s/ui/lib/astro-hydration/dist/preload-helper.js', $path),
                                             ],
                                           ],
+                                        ],
+                                        'library' => [
+                                          'experience_builder/asset_library.' . AssetLibrary::GLOBAL_ID,
                                         ],
                                       ],
                                       '#name' => 'My Code Component with Auto-Save',
@@ -1200,7 +1210,7 @@ HTML,
     yield 'component tree with complex nesting' => [...self::removePrefixSuffix($component_tree_with_complex_nesting), 'isPreview' => FALSE];
     yield 'component tree with complex nesting in preview' => [
       ...self::overwriteRenderableExpectations(
-        self::setIsPreviewPropertyRecursively($component_tree_with_complex_nesting, TRUE),
+        self::modifyExpectationFromLiveToPreview($component_tree_with_complex_nesting, TRUE),
         [
           [
             'parents' => [...$path_to_auto_saved_js_component, '#name'],
