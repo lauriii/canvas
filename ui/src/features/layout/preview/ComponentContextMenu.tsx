@@ -5,7 +5,7 @@ import { ContextMenu } from '@radix-ui/themes';
 import { UnifiedMenu } from '@/components/UnifiedMenu';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import {
-  selectCanvasViewPort,
+  selectCanvasViewPortScale,
   unsetHoveredComponent,
 } from '@/features/ui/uiSlice';
 import type { UnifiedMenuType } from '@/components/UnifiedMenu';
@@ -38,7 +38,7 @@ export const ComponentContextMenuContent: React.FC<
   const navigate = useNavigate();
   const { data: components } = useGetComponentsQuery();
   const componentName = useGetComponentName(component);
-  const canvasViewPort = useAppSelector(selectCanvasViewPort);
+  const canvasViewPortScale = useAppSelector(selectCanvasViewPortScale);
   const selectedComponent = useAppSelector(selectSelectedComponentUuid);
   const { setSelectedComponent, unsetSelectedComponent } =
     useComponentSelection();
@@ -154,9 +154,10 @@ export const ComponentContextMenuContent: React.FC<
   };
 
   useEffect(() => {
-    // if the user zooms or pans, close the context menu.
+    // If the user zooms, close the context menu. Panning is no problem as the context menu prevents scrolling with the
+    // mouse wheel, and it is closed automatically when panning via clicking the mouse.
     closeContextMenu();
-  }, [canvasViewPort]);
+  }, [canvasViewPortScale]);
 
   return (
     <UnifiedMenu.Content
