@@ -27,12 +27,27 @@ const useAutoSave = (requestedComponentId: string): void => {
     { isLoading: isUpdatingGlobalAssetLibrary },
   ] = updateGlobalAssetLibraryMutation();
 
+  // Track previous loading state to detect when saving completes
+  const prevIsUpdatingCodeComponentRef = useRef(false);
+  const prevIsUpdatingGlobalAssetLibraryRef = useRef(false);
+
   useEffect(() => {
+    const isSaving = isUpdatingCodeComponent || isUpdatingGlobalAssetLibrary;
     dispatch(
       setStatus({
-        isSaving: isUpdatingCodeComponent || isUpdatingGlobalAssetLibrary,
+        isSaving,
       }),
     );
+    const wasSaving =
+      prevIsUpdatingCodeComponentRef.current ||
+      prevIsUpdatingGlobalAssetLibraryRef.current;
+    // Only reset the hasUnsavedChanges flag after a save operation completes and is currently not saving.
+    if (wasSaving && !isSaving) {
+      dispatch(setStatus({ hasUnsavedChanges: false }));
+    }
+    // Update previous state references
+    prevIsUpdatingCodeComponentRef.current = isUpdatingCodeComponent;
+    prevIsUpdatingGlobalAssetLibraryRef.current = isUpdatingGlobalAssetLibrary;
   }, [isUpdatingCodeComponent, isUpdatingGlobalAssetLibrary, dispatch]);
 
   const componentId = useAppSelector(
@@ -184,6 +199,13 @@ const useAutoSave = (requestedComponentId: string): void => {
     requestedComponentId,
     updateGlobalAssetLibrary,
   ]);
+
+  // Reset the hasUnsavedChanges flag when auto-save is not needed.
+  useEffect(() => {
+    if (!needsAutoSave) {
+      dispatch(setStatus({ hasUnsavedChanges: false }));
+    }
+  }, [dispatch, needsAutoSave]);
 };
 
 export default useAutoSave;

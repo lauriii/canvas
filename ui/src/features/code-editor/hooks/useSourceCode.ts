@@ -90,6 +90,42 @@ const useSourceCode = (requestedComponentId: string): void => {
     hasCompiledOnceRef.current = hasCompiledOnce;
   }, [hasCompiledOnce]);
 
+  // Track the last source code values to detect changes
+  const lastSourceCodeJSRef = useRef<string>('');
+  const lastSourceCodeCSSRef = useRef<string>('');
+  const lastGlobalSourceCodeCSSRef = useRef<string>('');
+  const lastGlobalSourceCodeJSRef = useRef<string>('');
+
+  // Set hasUnsavedChanges flag whenever source code changes
+  useEffect(() => {
+    // @todo: Also check for props and slots changes in https://www.drupal.org/i/3525907.
+    const sourceCodeChanged =
+      sourceCodeJS !== lastSourceCodeJSRef.current ||
+      sourceCodeCSS !== lastSourceCodeCSSRef.current ||
+      globalSourceCodeCSS !== lastGlobalSourceCodeCSSRef.current ||
+      globalSourceCodeJS !== lastGlobalSourceCodeJSRef.current;
+    if (
+      requestedComponentId === componentId &&
+      componentId &&
+      sourceCodeChanged
+    ) {
+      dispatch(setStatus({ hasUnsavedChanges: true }));
+      // Update the reference values
+      lastSourceCodeJSRef.current = sourceCodeJS;
+      lastSourceCodeCSSRef.current = sourceCodeCSS;
+      lastGlobalSourceCodeCSSRef.current = globalSourceCodeCSS;
+      lastGlobalSourceCodeJSRef.current = globalSourceCodeJS;
+    }
+  }, [
+    sourceCodeJS,
+    sourceCodeCSS,
+    componentId,
+    requestedComponentId,
+    dispatch,
+    globalSourceCodeCSS,
+    globalSourceCodeJS,
+  ]);
+
   useEffect(() => {
     if (
       requestedComponentId !== componentId ||

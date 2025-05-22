@@ -28,6 +28,7 @@ interface CodeEditorStatusOptions {
   compilationError: boolean;
   isCompiling: boolean;
   isSaving: boolean;
+  hasUnsavedChanges: boolean;
 }
 
 export const initialState: CodeEditorState = {
@@ -37,6 +38,7 @@ export const initialState: CodeEditorState = {
     compilationError: false,
     isCompiling: false,
     isSaving: false,
+    hasUnsavedChanges: false,
   },
   codeComponent: {
     machineName: '',

@@ -6,7 +6,7 @@ import {
 import './xb-react-mosaic-component.css';
 import { useState } from 'react';
 import JavaScriptEditor from '@/features/code-editor/editors/JavaScriptEditor';
-import { Box, Button, Flex, ScrollArea, Spinner, Tabs } from '@radix-ui/themes';
+import { Box, Button, ScrollArea, Tabs } from '@radix-ui/themes';
 import { LayoutIcon } from '@radix-ui/react-icons';
 import GlobalCssEditor from '@/features/code-editor/editors/GlobalCssEditor';
 import CssEditor from '@/features/code-editor/editors/CssEditor';
@@ -20,7 +20,6 @@ import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import {
   selectCodeComponentProperty,
   selectCodeComponentSerialized,
-  selectStatus,
 } from '@/features/code-editor/codeEditorSlice';
 
 const defaultLayout: MosaicNode<string> = {
@@ -53,7 +52,6 @@ const MosaicContainer = () => {
   const dispatch = useAppDispatch();
   const selectedComponent = useAppSelector(selectCodeComponentSerialized);
   const componentStatus = useAppSelector(selectCodeComponentProperty('status'));
-  const { isCompiling, isSaving } = useAppSelector(selectStatus);
   const blockOverride = useAppSelector(
     selectCodeComponentProperty('block_override'),
   );
@@ -173,13 +171,7 @@ const MosaicContainer = () => {
                             </Box>
                           )}
                         <div className="mosaic-window-title">
-                          <Flex align="center" gap="3">
-                            <span>{title}</span>
-                            <Spinner
-                              size="1"
-                              loading={isCompiling || isSaving}
-                            />
-                          </Flex>
+                          <span>{title}</span>
                         </div>
                       </Box>
                     );

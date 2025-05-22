@@ -59,6 +59,7 @@ scriptified
 scriptify
 sdcs
 semicoupled
+sonner
 sparkline
 Starshot
 structurizr
