@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\experience_builder\Traits;
 
-use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
+use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemList;
 
 /**
  * Any test using these test cases must install the `xb_test_block` module.
@@ -15,17 +15,10 @@ trait BlockComponentTreeTestTrait {
     return [
       'block input none' => [
         [
-          'uuid' => 'block-input-none',
-          'tree' => [
-            ComponentTreeStructure::ROOT_UUID => [
-              [
-                'uuid' => 'block-input-none',
-                'component' => 'block.xb_test_block_input_none',
-              ],
-            ],
-          ],
-          'inputs' => [
-            'block-input-none' => [
+          [
+            'uuid' => 'block-input-none',
+            'component_id' => 'block.xb_test_block_input_none',
+            'inputs' => [
               'label' => 'Test block with no settings.',
               'label_display' => '',
             ],
@@ -35,17 +28,10 @@ trait BlockComponentTreeTestTrait {
 
       'block input validatable' => [
         [
-          'uuid' => 'block-input-validatable',
-          'tree' => [
-            ComponentTreeStructure::ROOT_UUID => [
-              [
-                'uuid' => 'block-input-validatable',
-                'component' => 'block.xb_test_block_input_validatable',
-              ],
-            ],
-          ],
-          'inputs' => [
-            'block-input-validatable' => [
+          [
+            'uuid' => 'block-input-validatable',
+            'component_id' => 'block.xb_test_block_input_validatable',
+            'inputs' => [
               'label' => 'Test Block for testing.',
               'label_display' => '',
               'name' => 'Component',
@@ -61,7 +47,7 @@ trait BlockComponentTreeTestTrait {
       'invalid values using dynamic inputs' => [
         [
           'tree' => [
-            ComponentTreeStructure::ROOT_UUID => [
+            ComponentTreeItemList::ROOT_UUID => [
               [
                 'uuid' => 'dynamic-dynamic-card2df',
                 'component' => 'sdc.xb_test_sdc.props-slots',
@@ -78,32 +64,15 @@ trait BlockComponentTreeTestTrait {
           ],
         ],
       ],
-      'invalid tree structure, uuid at top of data structure is not in the tree, also has empty slots' => [
+      'invalid UUID, missing component_id key' => [
         [
-          'tree' => [
-            ComponentTreeStructure::ROOT_UUID => [
-              [
-                'uuid' => 'dynamic-static-card2df',
-                'component' => 'sdc.xb_test_sdc.props-slots',
-              ],
-            ],
-            'other-uuid' => [],
-          ],
-          'inputs' => [
-            'dynamic-static-card2df' => [
-              'heading' => [
-                'sourceType' => 'static:field_item:string',
-                'value' => 'Do not cause no static!',
-                'expression' => 'ℹ︎string␟value',
-              ],
-            ],
-          ],
+          ['uuid' => 'other-uuid'],
         ],
       ],
       'missing components, using dynamic inputs' => [
         [
           'tree' => [
-            ComponentTreeStructure::ROOT_UUID => [
+            ComponentTreeItemList::ROOT_UUID => [
               ['uuid' => 'dynamic-static-card2df', 'component' => 'sdc.sdc_test.missing'],
               ['uuid' => 'dynamic-static-card3', 'component' => 'sdc.sdc_test.missing-also'],
               ['uuid' => 'dynamic-static-card4', 'component' => 'sdc.xb_test_sdc.props-slots'],
@@ -134,7 +103,7 @@ trait BlockComponentTreeTestTrait {
       'missing components, using only static inputs' => [
         [
           'tree' => [
-            ComponentTreeStructure::ROOT_UUID => [
+            ComponentTreeItemList::ROOT_UUID => [
               ['uuid' => 'static-card2df', 'component' => 'sdc.sdc_test.missing'],
             ],
           ],
@@ -156,7 +125,7 @@ trait BlockComponentTreeTestTrait {
       'inputs invalid, using dynamic inputs' => [
         [
           'tree' => [
-            ComponentTreeStructure::ROOT_UUID => [
+            ComponentTreeItemList::ROOT_UUID => [
               ['uuid' => 'dynamic-static-card2df', 'component' => 'sdc.xb_test_sdc.props-slots'],
               ['uuid' => 'dynamic-static-card3', 'component' => 'sdc.xb_test_sdc.props-slots'],
               ['uuid' => 'dynamic-static-card4', 'component' => 'sdc.xb_test_sdc.props-slots'],
@@ -187,7 +156,7 @@ trait BlockComponentTreeTestTrait {
       'inputs invalid, using only static inputs' => [
         [
           'tree' => [
-            ComponentTreeStructure::ROOT_UUID => [
+            ComponentTreeItemList::ROOT_UUID => [
               ['uuid' => 'static-card2df', 'component' => 'sdc.xb_test_sdc.props-no-slots'],
             ],
           ],
@@ -209,7 +178,7 @@ trait BlockComponentTreeTestTrait {
       'missing inputs key' => [
         [
           'tree' => [
-            ComponentTreeStructure::ROOT_UUID => [
+            ComponentTreeItemList::ROOT_UUID => [
               ['uuid' => 'dynamic-static-card2df', 'component' => 'sdc.xb_test_sdc.props-slots'],
               ['uuid' => 'dynamic-static-card3', 'component' => 'sdc.xb_test_sdc.props-slots'],
               ['uuid' => 'dynamic-static-card4', 'component' => 'sdc.xb_test_sdc.props-slots'],

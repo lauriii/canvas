@@ -115,7 +115,7 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
       'No such component: garry_sensible_jeans',
       NotFoundHttpException::class,
       [
-        'componentInstanceUuid' => 'static-image-udf7d',
+        'componentInstanceUuid' => XbTestSetup::UUID_STATIC_IMAGE,
         'componentType' => 'garry_sensible_jeans',
         'model' => [],
       ],
@@ -188,16 +188,16 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
     \assert($media instanceof MediaInterface);
 
     // Make sure the current value isn't the same media ID.
-    self::assertNotEquals($media->id(), $model['static-image-udf7d']['resolved']['image']);
+    self::assertNotEquals($media->id(), $model[XbTestSetup::UUID_STATIC_IMAGE]['resolved']['image']);
 
     // Now patch the layout.
-    $new_model = $model['static-image-udf7d'];
+    $new_model = $model[XbTestSetup::UUID_STATIC_IMAGE];
     // Reference a new media entity.
     $new_model['source']['image']['value'] = $media->id();
     $response = $this->request(Request::create('/xb/api/v0/layout/node/1', method: 'PATCH', content: \json_encode([
       'model' => $new_model,
       'componentType' => 'sdc.experience_builder.image',
-      'componentInstanceUuid' => 'static-image-udf7d',
+      'componentInstanceUuid' => XbTestSetup::UUID_STATIC_IMAGE,
     ], JSON_THROW_ON_ERROR)));
 
     // The new model should contain the updated value.
@@ -208,7 +208,7 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
     $fileUri = $file->getFileUri();
     \assert(is_string($fileUri));
     $image_url = $this->container->get(FileUrlGeneratorInterface::class)->generateString($fileUri);
-    self::assertEquals($image_url, $data['model']['static-image-udf7d']['resolved']['image']['src']);
+    self::assertEquals($image_url, $data['model'][XbTestSetup::UUID_STATIC_IMAGE]['resolved']['image']['src']);
 
     self::assertFalse($autoSave->getAutoSaveData($node)->isEmpty());
     foreach ($regions as $region) {
@@ -309,8 +309,8 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
     $new_label = $this->randomMachineName();
     // Patch a component instance in a ("global") region.
     // We need to use the APIs to get the UUID of a valid component instance in a region.
-    $component_tree_structure = $regions['stark.highlighted']->getComponentTree()->get('tree');
-    $globalComponentUuids = $component_tree_structure->getComponentInstanceUuids();
+    $component_tree_values = $regions['stark.highlighted']->getComponentTree()->getValue();
+    $globalComponentUuids = \array_column($component_tree_values, 'uuid');
     // There is only one block, the title, in the highlighted region.
     $this->assertCount(1, $globalComponentUuids);
     $globalComponentUuid = $globalComponentUuids[0];

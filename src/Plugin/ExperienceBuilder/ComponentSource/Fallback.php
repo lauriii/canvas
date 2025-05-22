@@ -68,7 +68,7 @@ final class Fallback extends ComponentSourceBase implements ComponentSourceWithS
   }
 
   public function getExplicitInput(string $uuid, ComponentTreeItem $item): array {
-    return $item->get('inputs')->getValues($uuid);
+    return $item->getInputs() ?? [];
   }
 
   public function hydrateComponent(array $explicit_input): array {

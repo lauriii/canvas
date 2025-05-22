@@ -12,9 +12,12 @@ use Symfony\Component\Validator\Constraint as SymfonyConstraint;
  * Validates a component tree structure.
  */
 #[Constraint(
-  id: 'ComponentTreeStructure',
+  id: self::PLUGIN_ID,
   label: new TranslatableMarkup('Validates the component tree structure', [], ['context' => 'Validation']),
 )]
 class ComponentTreeStructureConstraint extends SymfonyConstraint {
+
+  public const string PLUGIN_ID = 'ComponentTreeStructure';
+  public string $basePropertyPath = '';
 
 }

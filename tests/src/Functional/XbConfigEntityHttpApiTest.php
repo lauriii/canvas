@@ -112,13 +112,13 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
     // courtesy of OpenAPI.
     $pattern_to_send['layout'] = [
       [
-        'uuid' => 'uuid-in-root',
+        'uuid' => 'a3ade070-dc70-4989-b078-85cfd8fc741e',
         'nodeType' => 'component',
         'type' => 'sdc.xb_test_sdc.props-no-slots',
         'slots' => [],
       ],
       [
-        'uuid' => 'uuid-in-root-another',
+        'uuid' => '67d6b081-a62f-463c-a5d8-42a145ec7243',
         'nodeType' => 'component',
         'type' => 'sdc.xb_test_sdc.props-no-slots',
         'slots' => [],
@@ -139,12 +139,12 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
     $this->assertSame([
       'errors' => [
         [
-          'detail' => 'The required properties are missing.',
-          'source' => ['pointer' => 'model.uuid-in-root'],
+          'detail' => 'The property heading is required.',
+          'source' => ['pointer' => 'model.a3ade070-dc70-4989-b078-85cfd8fc741e.heading'],
         ],
         [
-          'detail' => 'The required properties are missing.',
-          'source' => ['pointer' => 'model.uuid-in-root-another'],
+          'detail' => 'The property heading is required.',
+          'source' => ['pointer' => 'model.67d6b081-a62f-463c-a5d8-42a145ec7243.heading'],
         ],
       ],
     ], $body);
@@ -160,7 +160,7 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
       ];
     };
     $pattern_to_send['model'] = [
-      'uuid-in-root' => [
+      'a3ade070-dc70-4989-b078-85cfd8fc741e' => [
         'resolved' => [
           'heading' => $generate_static_prop_source('world')['value'],
         ],
@@ -168,7 +168,7 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
           'heading' => $generate_static_prop_source('world'),
         ],
       ],
-      'uuid-in-root-another' => [
+      '67d6b081-a62f-463c-a5d8-42a145ec7243' => [
         'resolved' => [
           'heading' => $generate_static_prop_source('another world')['value'],
         ],
@@ -178,7 +178,7 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
       ],
     ];
     $pattern_to_send['layout'][] = [
-      'uuid' => 'uuid-main',
+      'uuid' => 'f01b9dc4-9a25-4ff0-ac79-c336f4f5b1cb',
       'nodeType' => 'component',
       'type' => 'block.system_main_block',
       'slots' => [],
@@ -188,8 +188,8 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
     $this->assertSame([
       'errors' => [
         [
-          'detail' => 'The component <em class="placeholder">block.system_main_block</em> does not exist.',
-          'source' => ['pointer' => 'layout.children[2]'],
+          'detail' => "The 'experience_builder.component.block.system_main_block' config does not exist.",
+          'source' => ['pointer' => 'layout.children.2.component_id'],
         ],
       ],
     ], $body);
@@ -210,20 +210,20 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
       'layoutModel' => [
         'layout' => [
           [
-            'uuid' => 'uuid-in-root',
+            'uuid' => 'a3ade070-dc70-4989-b078-85cfd8fc741e',
             'nodeType' => 'component',
             'type' => 'sdc.xb_test_sdc.props-no-slots',
             'slots' => [],
           ],
           [
-            'uuid' => 'uuid-in-root-another',
+            'uuid' => '67d6b081-a62f-463c-a5d8-42a145ec7243',
             'nodeType' => 'component',
             'type' => 'sdc.xb_test_sdc.props-no-slots',
             'slots' => [],
           ],
         ],
         'model' => [
-          'uuid-in-root' => [
+          'a3ade070-dc70-4989-b078-85cfd8fc741e' => [
             'source' => [
               'heading' => [
                 'sourceType' => 'static:field_item:string',
@@ -234,7 +234,7 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
               'heading' => 'Hello, world!',
             ],
           ],
-          'uuid-in-root-another' => [
+          '67d6b081-a62f-463c-a5d8-42a145ec7243' => [
             'source' => [
               'heading' => [
                 'sourceType' => 'static:field_item:string',
@@ -249,13 +249,13 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
       ],
       'name' => 'Test pattern, please ignore',
       'id' => 'testpatternpleaseignore',
-      'default_markup' => '<!-- xb-start-uuid-in-root --><div  data-component-id="xb_test_sdc:props-no-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
-  <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;"><!-- xb-prop-start-uuid-in-root/heading -->Hello, world!<!-- xb-prop-end-uuid-in-root/heading --></h1>
+      'default_markup' => '<!-- xb-start-a3ade070-dc70-4989-b078-85cfd8fc741e --><div  data-component-id="xb_test_sdc:props-no-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
+  <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;"><!-- xb-prop-start-a3ade070-dc70-4989-b078-85cfd8fc741e/heading -->Hello, world!<!-- xb-prop-end-a3ade070-dc70-4989-b078-85cfd8fc741e/heading --></h1>
 </div>
-<!-- xb-end-uuid-in-root --><!-- xb-start-uuid-in-root-another --><div  data-component-id="xb_test_sdc:props-no-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
-  <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;"><!-- xb-prop-start-uuid-in-root-another/heading -->Hello, another world!<!-- xb-prop-end-uuid-in-root-another/heading --></h1>
+<!-- xb-end-a3ade070-dc70-4989-b078-85cfd8fc741e --><!-- xb-start-67d6b081-a62f-463c-a5d8-42a145ec7243 --><div  data-component-id="xb_test_sdc:props-no-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
+  <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;"><!-- xb-prop-start-67d6b081-a62f-463c-a5d8-42a145ec7243/heading -->Hello, another world!<!-- xb-prop-end-67d6b081-a62f-463c-a5d8-42a145ec7243/heading --></h1>
 </div>
-<!-- xb-end-uuid-in-root-another -->',
+<!-- xb-end-67d6b081-a62f-463c-a5d8-42a145ec7243 -->',
       'css' => '',
       'js_header' => '',
       'js_footer' => '',
@@ -282,13 +282,13 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
           [
             'components' => [
               [
-                'uuid' => 'uuid-in-root',
+                'uuid' => 'a3ade070-dc70-4989-b078-85cfd8fc741e',
                 'nodeType' => 'component',
                 'type' => 'sdc.xb_test_sdc.props-no-slots',
                 'slots' => [],
               ],
               [
-                'uuid' => 'uuid-in-root-another',
+                'uuid' => '67d6b081-a62f-463c-a5d8-42a145ec7243',
                 'nodeType' => 'component',
                 'type' => 'sdc.xb_test_sdc.props-no-slots',
                 'slots' => [],
@@ -308,8 +308,8 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
     $this->assertSame([
       'errors' => [
         [
-          'detail' => 'The required properties are missing.',
-          'source' => ['pointer' => 'model.c4074d1f-149a-4662-aaf3-615151531cf6'],
+          'detail' => 'The property width is required.',
+          'source' => ['pointer' => 'model.c4074d1f-149a-4662-aaf3-615151531cf6.width'],
         ],
       ],
     ], $body);
@@ -390,8 +390,8 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
     $this->assertSame([
       'errors' => [
         [
-          'detail' => 'The required properties are missing.',
-          'source' => ['pointer' => 'model.uuid-in-root'],
+          'detail' => 'The property heading is required.',
+          'source' => ['pointer' => 'model.a3ade070-dc70-4989-b078-85cfd8fc741e.heading'],
         ],
       ],
     ], $body);

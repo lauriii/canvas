@@ -7,7 +7,6 @@ namespace Drupal\Tests\experience_builder\Kernel\Config;
 use Drupal\Core\Entity\Entity\EntityViewMode;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\experience_builder\Entity\ContentTemplate;
-use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\Tests\experience_builder\Traits\BetterConfigDependencyManagerTrait;
@@ -63,10 +62,6 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
   protected static array $propertiesWithRequiredKeys = [
     'component_tree' => [
       "The 'dynamic' prop source type must be present.",
-      "'tree' is a required key.",
-      "'inputs' is a required key.",
-      "The array must contain a \"tree\" key.",
-      "The array must contain an \"inputs\" key.",
     ],
   ];
 
@@ -98,48 +93,56 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
       'content_entity_type_bundle' => 'alpha',
       'content_entity_type_view_mode' => 'full',
       'component_tree' => [
-        'tree' => [
-          ComponentTreeStructure::ROOT_UUID => [
-            // An SDC populated by static prop sources.
-            ['uuid' => 'sdc-static', 'component' => 'sdc.sdc_test.my-cta'],
-            // A code component populated by an entity base field.
-            ['uuid' => 'code-dynamic-base-field', 'component' => 'js.my-cta'],
-            // An SDC populated by a normal entity field.
-            ['uuid' => 'sdc-dynamic-bundle-field', 'component' => 'sdc.xb_test_sdc.props-no-slots'],
-            // A block component.
-            ['uuid' => 'block', 'component' => 'block.system_branding_block'],
-            // An SDC with a slot that can be exposed.
-            ['uuid' => 'b4937e35-ddc2-4f36-8d4c-b1cc14aaefef', 'component' => 'sdc.xb_test_sdc.props-slots'],
-          ],
-        ],
-        'inputs' => [
-          'sdc-static' => [
+        [
+          'uuid' => '435d1d20-a697-4d36-9892-9d61c825c99c',
+          'component_id' => 'sdc.sdc_test.my-cta',
+          'inputs' => [
             'text' => [
               'sourceType' => 'static:field_item:string',
               'value' => 'This is really tricky for a first-timer',
               'expression' => 'ℹ︎string␟value',
             ],
           ],
-          'code-dynamic-base-field' => [
+        ],
+        // A code component populated by an entity base field.
+        [
+          'uuid' => '57afe4ed-c593-4457-a741-2ac5053be928',
+          'component_id' => 'js.my-cta',
+          'inputs' => [
             'text' => [
               'sourceType' => 'dynamic',
               'expression' => 'ℹ︎␜entity:node:alpha␝title␞␟value',
             ],
           ],
-          'sdc-dynamic-bundle-field' => [
+        ],
+        // An SDC populated by a normal entity field.
+        [
+          'uuid' => '2d06782a-0f24-43ae-963c-b5aff807dd95',
+          'component_id' => 'sdc.xb_test_sdc.props-no-slots',
+          'inputs' => [
             'heading' => [
               'sourceType' => 'dynamic',
               'expression' => 'ℹ︎␜entity:node:alpha␝field_test␞␟value',
             ],
           ],
-          'block' => [
+        ],
+        // A block component.
+        [
+          'uuid' => 'b7f36452-ecd9-4c7c-a73c-492b81538512',
+          'component_id' => 'block.system_branding_block',
+          'inputs' => [
             'label' => '',
             'label_display' => FALSE,
             'use_site_logo' => FALSE,
             'use_site_name' => TRUE,
             'use_site_slogan' => TRUE,
           ],
-          'b4937e35-ddc2-4f36-8d4c-b1cc14aaefef' => [
+        ],
+        // An SDC with a slot that can be exposed.
+        [
+          'uuid' => 'b4937e35-ddc2-4f36-8d4c-b1cc14aaefef',
+          'component_id' => 'sdc.xb_test_sdc.props-slots',
+          'inputs' => [
             'heading' => [
               'sourceType' => 'static:field_item:string',
               'value' => 'There be a slot here',
@@ -219,24 +222,13 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
     yield "missing `component_tree` property" => [
       'component_tree' => [],
       'expected_messages' => [
-        'component_tree' => [
-          'The \'dynamic\' prop source type must be present.',
-          '\'tree\' is a required key.',
-          '\'inputs\' is a required key.',
-          'The array must contain a "tree" key.',
-          'The array must contain an "inputs" key.',
-        ],
+        'component_tree' => 'The \'dynamic\' prop source type must be present.',
       ],
     ];
 
     yield "no DynamicPropSource, so no structured data from the content entity" => [
       'component_tree' => [
-        'tree' => [
-          ComponentTreeStructure::ROOT_UUID => [
-            ['uuid' => 'sdc-valid', 'component' => 'sdc.experience_builder.druplicon'],
-          ],
-        ],
-        'inputs' => [],
+        ['uuid' => '19ff9a18-54a2-422a-bf68-49d65a5d53ac', 'component_id' => 'sdc.experience_builder.druplicon', 'inputs' => []],
       ],
       'expected_messages' => [
         'component_tree' => "The 'dynamic' prop source type must be present.",
@@ -245,33 +237,39 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
 
     yield "using disallowed Block-sourced Components" => [
       'component_tree' => [
-        'tree' => [
-          ComponentTreeStructure::ROOT_UUID => [
-            ['uuid' => 'uuid-in-root', 'component' => 'sdc.xb_test_sdc.props-no-slots'],
-            ['uuid' => 'block-valid', 'component' => 'block.system_branding_block'],
-            ['uuid' => 'block-invalid', 'component' => 'block.page_title_block'],
-            ['uuid' => 'block-invalid-messages', 'component' => 'block.system_messages_block'],
-          ],
-        ],
-        'inputs' => [
-          'uuid-in-root' => [
+        [
+          'uuid' => '19ff9a18-54a2-422a-bf68-49d65a5d53ac',
+          'component_id' => 'sdc.xb_test_sdc.props-no-slots',
+          'inputs' => [
             'heading' => [
               'sourceType' => 'dynamic',
               'expression' => 'ℹ︎␜entity:node:article␝title␞␟value',
             ],
           ],
-          'block-valid' => [
+        ],
+        [
+          'uuid' => '08a60f2c-4737-47d3-9c34-956f33d5627e',
+          'component_id' => 'block.system_branding_block',
+          'inputs' => [
             'use_site_logo' => TRUE,
             'use_site_name' => TRUE,
             'use_site_slogan' => TRUE,
             'label' => '',
             'label_display' => FALSE,
           ],
-          'block-invalid' => [
+        ],
+        [
+          'uuid' => 'ea2459e3-248d-4a0a-bdbc-1d982f729959',
+          'component_id' => 'block.page_title_block',
+          'inputs' => [
             'label' => '',
             'label_display' => FALSE,
           ],
-          'block-invalid-messages' => [
+        ],
+        [
+          'uuid' => '90804335-d16d-4799-9e80-ddb11692530a',
+          'component_id' => 'block.system_messages_block',
+          'inputs' => [
             'label' => '',
             'label_display' => FALSE,
           ],
@@ -279,28 +277,28 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
       ],
       'expected_messages' => [
         'component_tree' => [
-          'The \'Drupal\Core\Block\MessagesBlockPluginInterface\' component interface must be absent.',
           'The \'Drupal\Core\Block\TitleBlockPluginInterface\' component interface must be absent.',
+          'The \'Drupal\Core\Block\MessagesBlockPluginInterface\' component interface must be absent.',
         ],
       ],
     ];
 
     yield "using AdaptedPropSource" => [
       'component_tree' => [
-        'tree' => [
-          ComponentTreeStructure::ROOT_UUID => [
-            ['uuid' => 'uuid-in-root', 'component' => 'sdc.xb_test_sdc.props-no-slots'],
-            ['uuid' => 'dynamic-image-static-imageStyle-something7d', 'component' => 'sdc.experience_builder.image'],
-          ],
-        ],
-        'inputs' => [
-          'uuid-in-root' => [
+        [
+          'uuid' => '90804335-d16d-4799-9e80-ddb11692530a',
+          'component_id' => 'sdc.xb_test_sdc.props-no-slots',
+          'inputs' => [
             'heading' => [
               'sourceType' => 'dynamic',
               'expression' => 'ℹ︎␜entity:node:article␝title␞␟value',
             ],
           ],
-          'dynamic-image-static-imageStyle-something7d' => [
+        ],
+        [
+          'uuid' => '7240f848-ea70-4ad2-a9d6-3ab60cba4d78',
+          'component_id' => 'sdc.experience_builder.image',
+          'inputs' => [
             'image' => [
               'sourceType' => 'adapter:image_apply_style',
               'adapterInputs' => [
@@ -320,6 +318,121 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
       ],
       'expected_messages' => [
         'component_tree' => "The 'adapter' prop source type must be absent.",
+      ],
+    ];
+    yield "duplicate uuid" => [
+      'component_tree' => [
+        [
+          'uuid' => 'fa9ff0a8-e23a-492a-ab14-5460611fa2c1',
+          'component_id' => 'sdc.xb_test_sdc.props-slots',
+          'inputs' => [
+            'heading' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:article␝title␞␟value',
+            ],
+          ],
+        ],
+        [
+          'uuid' => 'fa9ff0a8-e23a-492a-ab14-5460611fa2c1',
+          'component_id' => 'sdc.xb_test_sdc.props-slots',
+          'inputs' => [
+            'heading' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:article␝title␞␟value',
+            ],
+          ],
+        ],
+      ],
+      'expected_messages' => [
+        'component_tree' => 'The UUID should be unique.',
+      ],
+    ];
+
+    yield "not a uuid" => [
+      'component_tree' => [
+        [
+          'uuid' => 'garry-sensible-jeans',
+          'component_id' => 'sdc.xb_test_sdc.props-slots',
+          'inputs' => [
+            'heading' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:article␝title␞␟value',
+            ],
+          ],
+        ],
+        [
+          'uuid' => 'fa9ff0a8-e23a-492a-ab14-5460611fa2c1',
+          'component_id' => 'sdc.xb_test_sdc.props-slots',
+          'inputs' => [
+            'heading' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:article␝title␞␟value',
+            ],
+          ],
+        ],
+      ],
+      'expected_messages' => [
+        'component_tree.0.uuid' => 'This is not a valid UUID.',
+      ],
+    ];
+
+    yield "invalid parent" => [
+      'component_tree' => [
+        [
+          'uuid' => 'fa9ff0a8-e23a-492a-ab14-5460611fa2c1',
+          'component_id' => 'sdc.xb_test_sdc.props-slots',
+          'inputs' => [
+            'heading' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:article␝title␞␟value',
+            ],
+          ],
+        ],
+        [
+          'uuid' => 'e303dd88-9409-4dc7-8a8b-a31602884a94',
+          'slot' => 'the_body',
+          'parent_uuid' => '6381352f-5b0a-4ca1-960d-a5505b37b27c',
+          'component_id' => 'sdc.xb_test_sdc.props-slots',
+          'inputs' => [
+            'heading' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:article␝title␞␟value',
+            ],
+          ],
+        ],
+      ],
+      'expected_messages' => [
+        'component_tree.1.parent_uuid' => 'Invalid component tree item with UUID <em class="placeholder">e303dd88-9409-4dc7-8a8b-a31602884a94</em> references an invalid parent <em class="placeholder">6381352f-5b0a-4ca1-960d-a5505b37b27c</em>.',
+      ],
+    ];
+
+    yield "invalid slot" => [
+      'component_tree' => [
+        [
+          'uuid' => 'fa9ff0a8-e23a-492a-ab14-5460611fa2c1',
+          'component_id' => 'sdc.xb_test_sdc.props-slots',
+          'inputs' => [
+            'heading' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:article␝title␞␟value',
+            ],
+          ],
+        ],
+        [
+          'uuid' => 'e303dd88-9409-4dc7-8a8b-a31602884a94',
+          'slot' => 'banana',
+          'parent_uuid' => 'fa9ff0a8-e23a-492a-ab14-5460611fa2c1',
+          'component_id' => 'sdc.xb_test_sdc.props-slots',
+          'inputs' => [
+            'heading' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:article␝title␞␟value',
+            ],
+          ],
+        ],
+      ],
+      'expected_messages' => [
+        'component_tree.1.slot' => 'Invalid component subtree. This component subtree contains an invalid slot name for component <em class="placeholder">sdc.xb_test_sdc.props-slots</em>: <em class="placeholder">banana</em>. Valid slot names are: <em class="placeholder">the_body, the_footer, the_colophon</em>.',
       ],
     ];
   }
@@ -395,21 +508,20 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
     assert($this->entity instanceof ContentTemplate);
 
     // Add a component in one of the open slots.
-    $item = $this->entity->getComponentTree();
-    $tree = json_decode($item->get('tree')->getValue(), TRUE);
-    $tree['b4937e35-ddc2-4f36-8d4c-b1cc14aaefef']['the_footer'][] = [
-      'uuid' => 'greeting',
-      'component' => 'sdc.xb_test_sdc.props-no-slots',
-    ];
-    $inputs = json_decode($item->get('inputs')->getValue(), TRUE);
-    $inputs['greeting']['heading'] = [
-      'sourceType' => 'dynamic',
-      'expression' => 'ℹ︎␜entity:node:alpha␝title␞␟value',
-    ];
-    $this->entity->set('component_tree', [
-      'tree' => $tree,
-      'inputs' => $inputs,
+    $items = $this->entity->getComponentTree();
+    $items->appendItem([
+      'uuid' => '91f6e215-49f4-47c1-a1ac-dcc151876842',
+      'parent_uuid' => 'b4937e35-ddc2-4f36-8d4c-b1cc14aaefef',
+      'slot' => 'the_footer',
+      'component_id' => 'sdc.xb_test_sdc.props-no-slots',
+      'inputs' => [
+        'heading' => [
+          'sourceType' => 'dynamic',
+          'expression' => 'ℹ︎␜entity:node:alpha␝title␞␟value',
+        ],
+      ],
     ]);
+    $this->entity->set('component_tree', $items->getValue());
 
     $this->entity->set('exposed_slots', [
       'filled_footer' => [
@@ -424,19 +536,6 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
   }
 
   public static function providerInvalidExposedSlot(): iterable {
-    yield 'root uuid is exposed' => [
-      [
-        'not_allowed' => [
-          'component_uuid' => ComponentTreeStructure::ROOT_UUID,
-          'slot_name' => 'not-a-thing',
-          'label' => "This won't work",
-        ],
-      ],
-      [
-        'exposed_slots.not_allowed' => 'Exposing the full component tree is not allowed.',
-      ],
-    ];
-
     yield 'component exposing the slot does not exist in the tree' => [
       [
         'not_a_thing' => [

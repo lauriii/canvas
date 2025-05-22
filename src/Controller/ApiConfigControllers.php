@@ -17,13 +17,9 @@ use Drupal\Core\Session\AnonymousUserSession;
 use Drupal\Core\Url;
 use Drupal\experience_builder\AssetRenderer;
 use Drupal\experience_builder\ClientSideRepresentation;
-use Drupal\experience_builder\ComponentSource\ComponentSourceInterface;
-use Drupal\experience_builder\ComponentSource\ComponentSourceWithSlotsInterface;
 use Drupal\experience_builder\Entity\XbHttpApiEligibleConfigEntityInterface;
 use Drupal\experience_builder\Exception\ConstraintViolationException;
-use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
-use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
-use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemInstantiatorTrait;
+use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemListInstantiatorTrait;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -40,7 +36,7 @@ use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
  */
 final class ApiConfigControllers extends ApiControllerBase {
 
-  use ComponentTreeItemInstantiatorTrait;
+  use ComponentTreeItemListInstantiatorTrait;
 
   public function __construct(
     private readonly EntityTypeManagerInterface $entityTypeManager,
@@ -255,80 +251,6 @@ final class ApiConfigControllers extends ApiControllerBase {
     }
 
     return $representation;
-  }
-
-  /**
-   * Converts server side data shape into client side data shape.
-   *
-   * @param \Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem $item
-   *
-   * @return array{'layout': array{'uuid': string, 'nodeType': 'component', 'type': 'string', 'slots': array}, 'model': array<string, array>}
-   *
-   * @todo Follow up issue to extract this logic into a trait: https://www.drupal.org/project/experience_builder/issues/3499632
-   */
-  public static function convertComponentTreeItemToLayoutModel(ComponentTreeItem $item): array {
-    $layout = [];
-    $model = [];
-    $decoded_tree = json_decode($item->get('tree')->getValue(), TRUE);
-
-    self::buildLayoutAndModel($layout, $model, $item, $decoded_tree[ComponentTreeStructure::ROOT_UUID]);
-
-    return [
-      'layout' => $layout,
-      'model' => $model,
-    ];
-  }
-
-  private static function buildLayoutAndModel(array &$layout, array &$model, ComponentTreeItem $item, array $tree_tier): void {
-    $tree = $item->get('tree');
-    $full_tree = json_decode($tree->getValue(), TRUE);
-    foreach ($tree_tier as ['uuid' => $component_instance_uuid, 'component' => $component_type]) {
-      $component_instance = [
-        'uuid' => $component_instance_uuid,
-        'nodeType' => 'component',
-        'type' => $component_type,
-        'slots' => [],
-      ];
-
-      // Use ComponentSourceInterface::inputToClientModel() to map the server-
-      // stored `inputs` data to the client-side `model`.
-      // @see \Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem::propertyDefinitions()
-      // @see \Drupal\experience_builder\Plugin\DataType\ComponentInputs
-      // @see SimpleComponent type-script definition.
-      // @see ComponentModel type-script definition.
-      // @see PropSourceComponent type-script definition.
-      // @see EvaluatedComponentModel type-script definition.
-      $source = $tree->getComponentSource($component_instance_uuid);
-      \assert($source instanceof ComponentSourceInterface);
-      if ($source->requiresExplicitInput()) {
-        $model[$component_instance_uuid] = $source->inputToClientModel($source->getExplicitInput($component_instance_uuid, $item));
-      }
-
-      // TRICKY: the server-side implementation (for storage efficiency) forbids
-      // - empty component subtrees
-      // - empty slots
-      // @see \Drupal\experience_builder\Plugin\Validation\Constraint\ComponentTreeStructureConstraintValidator
-      // But the client expects all *available* slots to get a `slot node`: in
-      // every `component node` for every slot of that component, even the slot
-      // is empty.
-      // @see docs/data-model.md#3.4.1
-      $known_slot_names_for_component = match ($source instanceof ComponentSourceWithSlotsInterface) {
-        FALSE => [],
-        TRUE => array_keys($source->getSlotDefinitions()),
-      };
-      foreach ($known_slot_names_for_component as $slot_name) {
-        $slot_children = $full_tree[$component_instance_uuid][$slot_name] ?? [];
-        $component_instance_slot = [
-          'id' => $component_instance_uuid . '/' . $slot_name,
-          'name' => $slot_name,
-          'nodeType' => 'slot',
-          'components' => [],
-        ];
-        self::buildLayoutAndModel($component_instance_slot['components'], $model, $item, $slot_children);
-        $component_instance['slots'][] = $component_instance_slot;
-      }
-      $layout[] = $component_instance;
-    }
   }
 
 }

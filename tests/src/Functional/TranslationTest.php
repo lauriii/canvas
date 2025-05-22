@@ -4,9 +4,8 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\experience_builder\Functional;
 
-use Drupal\experience_builder\Plugin\DataType\ComponentInputs;
-use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
+use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemList;
 use Drupal\node\Entity\Node;
 use Drupal\Tests\content_translation\Traits\ContentTranslationTestTrait;
 
@@ -134,7 +133,7 @@ class TranslationTest extends FunctionalTestBase {
     $this->drupalGet($original_node->toUrl());
     $hero_component = $assert_session->elementExists('css', 'article [data-component-id="experience_builder:my-hero"]');
 
-    // Confirm the translated property is no on the page anywhere.
+    // Confirm the translated property is not on the page anywhere.
     $assert_session->pageTextNotContains('bonjour');
     // Confirm the first hero component does not use the translated properties
     // because it uses a StaticPropSource.
@@ -177,6 +176,11 @@ class TranslationTest extends FunctionalTestBase {
    */
   protected function createXbNodeWithTranslation(): Node {
     $node = $this->createTestNode();
+    $list = $node->get('field_xb_test');
+    assert($list instanceof ComponentTreeItemList);
+    // There are five items in the default values for this field.
+    self::assertEquals(5, $list->count());
+
     // Create a translation from the original English node.
     $translation = $node->addTranslation('fr');
     $this->assertInstanceOf(Node::class, $translation);
@@ -185,36 +189,36 @@ class TranslationTest extends FunctionalTestBase {
     $translation->title = 'The French title';
     $translation->save();
     $translation = $node->getTranslation('fr');
-    assert($node->get('field_xb_test')[0] instanceof ComponentTreeItem);
-    $inputs = $node->get('field_xb_test')[0]->get('inputs');
-    $this->assertInstanceOf(ComponentInputs::class, $inputs);
-    $original_inputs_value = $inputs->getValue();
+    $updated_item = $list->getComponentTreeItemByUuid('208452de-10d6-4fb8-89a1-10e340b3744c');
+    assert($updated_item instanceof ComponentTreeItem);
+    $updated_item_inputs = $updated_item->getInputs();
 
     // In both the Symmetric and Asymmetric translation cases, the `inputs` property
     // is translatable and this should only change the translation.
-    $french_prop = str_replace('hello, world!', 'bonjour, monde!', $original_inputs_value);
-    assert($translation->get('field_xb_test')[0] instanceof ComponentTreeItem);
-    $translation->get('field_xb_test')[0]->set('inputs', $french_prop);
+    $french_inputs = $updated_item_inputs;
+    $french_inputs['heading']['value'] = 'bonjour, monde!';
+    $french_list = $translation->get('field_xb_test');
+    assert($french_list instanceof ComponentTreeItemList);
+    $french_item = $french_list->getComponentTreeItemByUuid('208452de-10d6-4fb8-89a1-10e340b3744c');
+    assert($french_item instanceof ComponentTreeItem);
+    $french_item->setInput($french_inputs);
     $translation->save();
 
-    $updated_inputs_value = str_replace('hello, world!', 'hello, new world!', $original_inputs_value);
+    // Update the English version.
+    $updated_item_inputs['heading']['value'] = 'hello, new world!';
     // In both the Symmetric and Asymmetric cases, the `inputs` property is
     // translatable and this should only change the original. If the field is
     // not translatable, this should change both the original and the
     // translation.
-    $node->get('field_xb_test')[0]->set('inputs', $updated_inputs_value);
-    $tree = $node->get('field_xb_test')[0]->get('tree');
-    $this->assertInstanceOf(ComponentTreeStructure::class, $tree);
-    $tree_value = $tree->getValue();
-    $tree_decoded = json_decode($tree_value, TRUE);
+    $updated_item->setInput($updated_item_inputs);
     // Remove the heading from the tree.
     // In the asymmetric case, where 'tree' is translatable, this should only
     // affect the untranslated node.
     // In the symmetric case, where 'tree' is not translatable, this should
     // change both the original and the translation.
-    $this->assertSame('static-heading-some-uuid', $tree_decoded['two-column-uuid']['column_two'][2]['uuid']);
-    unset($tree_decoded['two-column-uuid']['column_two'][2]);
-    $node->get('field_xb_test')[0]->set('tree', $tree_decoded);
+    $delta_to_remove = $list->getComponentTreeDeltaByUuid('e660e407-0901-4639-9726-9f99bc250c4c');
+    \assert(\is_int($delta_to_remove));
+    $list->removeItem($delta_to_remove);
     $node->save();
     return $node;
   }

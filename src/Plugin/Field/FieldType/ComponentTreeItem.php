@@ -5,34 +5,36 @@ declare(strict_types=1);
 namespace Drupal\experience_builder\Plugin\Field\FieldType;
 
 use Drupal\Component\Plugin\DependentPluginInterface;
-use Drupal\Component\Serialization\Json;
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Block\MessagesBlockPluginInterface;
 use Drupal\Core\Block\TitleBlockPluginInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
+use Drupal\Core\Entity\TypedData\EntityDataDefinition;
 use Drupal\Core\Field\Attribute\FieldType;
 use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Field\FieldItemBase;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
-use Drupal\Core\Render\RenderableInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\TypedData\DataDefinition;
-use Drupal\experience_builder\Entity\ComponentTreeEntityInterface;
-use Drupal\experience_builder\Plugin\DataType\ComponentInputs;
+use Drupal\Core\TypedData\DataReferenceDefinition;
+use Drupal\Core\TypedData\DataReferenceInterface;
+use Drupal\Core\TypedData\DataReferenceTargetDefinition;
+use Drupal\experience_builder\Entity\Component;
+use Drupal\experience_builder\Entity\ComponentInterface;
 use Drupal\experience_builder\PropSource\ContentAwareDependentInterface;
 use Symfony\Component\Validator\ConstraintViolation;
 use Symfony\Component\Validator\ConstraintViolationInterface;
 use Symfony\Component\Validator\ConstraintViolationList;
 
 /**
- * Plugin implementation of the 'component_tree' field type.
+ * A component instance in a component tree.
  *
  * @todo Implement PreconfiguredFieldUiOptionsInterface?
  * @todo How to achieve https://www.previousnext.com.au/blog/pitchburgh-diaries-decoupled-layout-builder-sprint-1-2?
  * @see https://git.drupalcode.org/project/metatag/-/blob/2.0.x/src/Plugin/Field/FieldType/MetatagFieldItem.php
  *
  * @phpstan-import-type ComponentConfigEntityId from \Drupal\experience_builder\Entity\Component
- * @phpstan-type ComponentTreeItemPropName 'tree'|'inputs'|'hydrated'
+ * @phpstan-type ComponentTreeItemPropName 'uuid'|'inputs'|'component_id'|'component'|'parent'|'slot'|'parent_uuid'
  *
  * @property \Drupal\experience_builder\HydratedTree $hydrated
  */
@@ -41,9 +43,15 @@ use Symfony\Component\Validator\ConstraintViolationList;
   label: new TranslatableMarkup("Experience Builder"),
   description: new TranslatableMarkup("Field to use Experience Builder for presenting these entities"),
   default_formatter: "experience_builder_naive_render_sdc_tree",
-  // list_class: ComponentItemList::class,
+  // @todo Revisit this prior to 1.0.
+  // @see https://www.drupal.org/project/experience_builder/issues/3497926
+  no_ui: TRUE,
+  list_class: ComponentTreeItemList::class,
+  // This only makes sense in a multi-value context: each item is a node in the
+  // component tree.
+  cardinality: FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED,
   constraints: [
-    'ValidComponentTree' => [],
+    'ValidComponentTreeItem' => [],
     'ComponentTreeMeetRequirements' => [
       // Only StaticPropSources may be used, because using DynamicPropSources is
       // a decision that should be made at the Content Type Template level by a
@@ -70,7 +78,7 @@ use Symfony\Component\Validator\ConstraintViolationList;
     ],
   ],
   // @see docs/data-model.md
-  // @see content_translation_field_info_alter()
+  // @see \Drupal\content_translation\Hook\ContentTranslationHooks::fieldInfoAlter()
   column_groups: [
     'inputs' => [
       'label' => new TranslatableMarkup('Component input values'),
@@ -79,18 +87,22 @@ use Symfony\Component\Validator\ConstraintViolationList;
     'tree' => [
       'label' => new TranslatableMarkup('Component tree'),
       'translatable' => TRUE,
+      // If the tree is translated, then the inputs also need to be.
+      'require_all_groups_for_translation' => TRUE,
+      'columns' => [
+        'parent_uuid',
+        'slot',
+        'uuid',
+        'component_id',
+      ],
     ],
   ],
-  cardinality: 1,
-  // @todo Revisit this prior to 1.0.
-  // @see https://www.drupal.org/project/experience_builder/issues/3497926
-  no_ui: TRUE,
 )]
-class ComponentTreeItem extends FieldItemBase implements RenderableInterface {
+class ComponentTreeItem extends FieldItemBase {
 
   public const string PLUGIN_ID = 'component_tree';
 
-  use ComponentTreeItemInstantiatorTrait;
+  use ComponentTreeItemListInstantiatorTrait;
 
   // phpcs:disable Drupal.Commenting.DataTypeNamespace.DataTypeNamespace
   /**
@@ -98,7 +110,7 @@ class ComponentTreeItem extends FieldItemBase implements RenderableInterface {
    *
    * @param ComponentTreeItemPropName $name
    *
-   * @return ($name is 'tree' ? \Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure : ($name is 'inputs' ? \Drupal\experience_builder\Plugin\DataType\ComponentInputs : \Drupal\experience_builder\Plugin\DataType\ComponentTreeHydrated))
+   * @return ($name is 'parent' ? \Drupal\experience_builder\Plugin\DataType\ParentComponentReference : ($name is 'inputs' ? \Drupal\experience_builder\Plugin\DataType\ComponentInputs : ($name is 'component' ? \Drupal\Core\Entity\Plugin\DataType\EntityReference : \Drupal\Core\TypedData\Plugin\DataType\StringData)))
    */
   // phpcs:enable Drupal.Commenting.DataTypeNamespace.DataTypeNamespace
   public function get($name) {
@@ -119,6 +131,10 @@ class ComponentTreeItem extends FieldItemBase implements RenderableInterface {
     // implement DependentPluginInterface to ensure accurate dependency (i.e.
     // usage) tracking.
     $dependencies = [];
+    $component = $this->getComponent();
+    if ($component !== NULL) {
+      $dependencies['config'] = [$component->getConfigDependencyName()];
+    }
     foreach ($this->getProperties() as $property) {
       if ($property instanceof DependentPluginInterface) {
         $dependencies = NestedArray::mergeDeep($dependencies, $property->calculateDependencies());
@@ -170,25 +186,31 @@ class ComponentTreeItem extends FieldItemBase implements RenderableInterface {
   /**
    * {@inheritdoc}
    */
-  public static function calculateDependencies(FieldDefinitionInterface $field_definition) {
+  public static function calculateDependencies(FieldDefinitionInterface $field_definition): array {
     $dependencies = parent::calculateDependencies($field_definition);
 
     if (empty($field_definition->getDefaultValueLiteral())) {
       return $dependencies;
     }
 
-    $default_value = $field_definition->getDefaultValueLiteral()[0];
-    // The default should always have a "tree" key but this runs before validation.
-    if (!isset($default_value['tree'])) {
-      return [];
+    $default_value = $field_definition->getDefaultValueLiteral();
+    $list = self::staticallyCreateDanglingComponentTreeItemList(\Drupal::typedDataManager());
+    $list->setValue($default_value);
+
+    $dependencies = NestedArray::mergeDeep($dependencies, $list->calculateDependencies());
+    foreach ($list as $item) {
+      \assert($item instanceof ComponentTreeItem);
+      $dependencies = NestedArray::mergeDeep(
+        $dependencies,
+        // `type: config_dependencies_base` config schema doesn't allow `plugin`.
+        $item->calculateFieldItemValueDependencies(FALSE, NULL),
+      );
     }
-    $component_tree_field_item = self::staticallyCreateDanglingComponentTree(\Drupal::typedDataManager());
-    $component_tree_field_item->setValue($default_value);
-    return NestedArray::mergeDeep(
-      $dependencies,
-      // `type: config_dependencies_base` config schema doesn't allow `plugin`.
-      $component_tree_field_item->calculateFieldItemValueDependencies(FALSE, NULL),
-    );
+    // Remove duplicates and sort into a reliable order.
+    return \array_map(function (array $dependencies): array {
+      sort($dependencies);
+      return \array_values(\array_unique($dependencies));
+    }, $dependencies);
   }
 
   /**
@@ -197,17 +219,45 @@ class ComponentTreeItem extends FieldItemBase implements RenderableInterface {
   public static function schema(FieldStorageDefinitionInterface $field_definition) {
     return [
       'columns' => [
-        'tree' => [
-          'description' => 'The component tree structure.',
-          'type' => 'json',
-          'pgsql_type' => 'jsonb',
-          'mysql_type' => 'json',
-          // @todo Change back to 'json' once https://www.drupal.org/i/3487533 is resolved.
-          'sqlite_type' => 'text',
+        'parent_uuid' => [
+          'description' => 'UUID of the parent component instance',
+          'type' => 'varchar_ascii',
+          // These are case-insensitive.
+          'binary' => FALSE,
+          // These are UUIDs
+          'length' => 36,
+          // NULL represents either:
+          // - the root of the tree
+          // - or the root of a bonsai tree (a tree in a content template's exposed slot)
+          // In the latter case, `slot` must match an exposed slot of the associated `ContentTemplate`.
+          // @see \Drupal\experience_builder\Plugin\Validation\Constraint\ValidParentAndSlotConstraintValidator
           'not null' => FALSE,
         ],
+        'slot' => [
+          'description' => 'Machine name of the slot in the parent component instance',
+          'type' => 'varchar_ascii',
+          // These are arbitrary machine names with no enforced length.
+          'length' => 255,
+          // NULL represents the root of the tree.
+          'not null' => FALSE,
+        ],
+        'uuid' => [
+          'description' => 'UUID of the component instance',
+          'type' => 'varchar_ascii',
+          // These are case-insensitive.
+          'binary' => FALSE,
+          // These are UUIDs
+          'length' => 36,
+          'not null' => TRUE,
+        ],
+        'component_id' => [
+          'description' => 'The Component config entity ID.',
+          'type' => 'varchar_ascii',
+          'length' => 255,
+          'not null' => TRUE,
+        ],
         'inputs' => [
-          'description' => 'The inputs for each component in the component tree.',
+          'description' => 'The input for this component instance in the component tree.',
           'type' => 'json',
           'pgsql_type' => 'jsonb',
           'mysql_type' => 'json',
@@ -216,7 +266,12 @@ class ComponentTreeItem extends FieldItemBase implements RenderableInterface {
           'not null' => FALSE,
         ],
       ],
-      'indexes' => [],
+      'indexes' => [
+        'component_id' => ['component_id'],
+        'parent_slot' => ['parent_uuid', 'slot'],
+        'slot' => ['slot'],
+        'uuid' => ['uuid'],
+      ],
       'foreign keys' => [
         // @todo Add the "hash" part the proposal at https://www.drupal.org/project/drupal/issues/3440578
       ],
@@ -227,19 +282,55 @@ class ComponentTreeItem extends FieldItemBase implements RenderableInterface {
    * {@inheritdoc}
    */
   public static function propertyDefinitions(FieldStorageDefinitionInterface $field_definition) {
-    $properties['tree'] = DataDefinition::create('component_tree_structure')
-      ->setLabel(new TranslatableMarkup('A component tree without input values.'))
+    $properties['parent_uuid'] = DataDefinition::create('string')
+      ->setLabel(new TranslatableMarkup('Parent component instance UUID'))
+      ->setSetting('case_sensitive', FALSE)
+      ->setSetting('max_length', 36)
+      // Note we don't add a UUID constraint here as that is validated by the
+      // ComponentTreeStructure constraint on the item list.
+      // @see \Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemList::getConstraints
+      ->setRequired(FALSE);
+
+    $properties['parent'] = DataReferenceDefinition::create(\sprintf('field_item:%s', self::PLUGIN_ID))
+      ->setLabel('Parent component instance')
+      ->setDescription(t('The referenced parent component instance'))
+      // The parent object is computed out of the parent UUID.
+      ->setComputed(TRUE)
+      ->setReadOnly(FALSE);
+
+    $properties['slot'] = DataDefinition::create('string')
+      ->setLabel(new TranslatableMarkup('Parent slot machine name'))
+      ->setSetting('case_sensitive', FALSE)
+      ->setSetting('max_length', 255)
+      ->addConstraint('Length', ['max' => 255])
+      ->setRequired(FALSE);
+
+    $properties['uuid'] = DataDefinition::create('string')
+      ->setLabel(new TranslatableMarkup('Component instance UUID'))
+      ->setSetting('case_sensitive', FALSE)
+      ->setSetting('max_length', 36)
+      // Note we don't add a UUID constraint here as that is validated by the
+      // ComponentTreeStructure constraint on the item list.
+      // @see \Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemList::getConstraints
       ->setRequired(TRUE);
+
+    $properties['component_id'] = DataReferenceTargetDefinition::create('string')
+      // Note we don't add a ConfigExists constraint here as that is validated by
+      // ComponentTreeStructure constraint on the item list.
+      // @see \Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemList::getConstraints
+      ->setLabel(new TranslatableMarkup('Component ID'))
+      ->setRequired(TRUE);
+
+    $properties['component'] = DataReferenceDefinition::create('entity')
+      ->setLabel('Component')
+      ->setDescription(new TranslatableMarkup('The referenced component entity'))
+      ->setComputed(TRUE)
+      ->setReadOnly(FALSE)
+      ->setTargetDefinition(EntityDataDefinition::create(Component::ENTITY_TYPE_ID))
+      ->addConstraint('EntityType', ['type' => Component::ENTITY_TYPE_ID]);
 
     $properties['inputs'] = DataDefinition::create('component_inputs')
       ->setLabel(new TranslatableMarkup('Input values for each component in the component tree'))
-      ->setRequired(TRUE);
-
-    $properties['hydrated'] = DataDefinition::create('component_tree_hydrated')
-      ->setLabel(new TranslatableMarkup('The hydrated component tree: structure + inputs combined — provides render tree for client side or render array for server side.'))
-      ->setComputed(TRUE)
-      ->setInternal(FALSE)
-      ->setReadOnly(TRUE)
       ->setRequired(TRUE);
 
     return $properties;
@@ -249,35 +340,33 @@ class ComponentTreeItem extends FieldItemBase implements RenderableInterface {
    * {@inheritdoc}
    */
   public function isEmpty() {
-    // If either `tree` or `inputs` is not set, consider this not empty, because
-    // it is not empty in a *valid* way. If considered empty, the
-    // NotNullConstraintValidator would apply some magic that prevents detailed
-    // validation.
-    // @see \Drupal\Core\Validation\Plugin\Validation\Constraint\NotNullConstraintValidator::validate()
-    if ($this->get('tree')->getValue() === NULL || $this->get('inputs')->getValue() === NULL) {
-      return FALSE;
-    }
-
-    $tree = $this->get('tree')->getValue();
-    return $tree === '' || $tree === Json::encode([]);
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function toArray() {
-    // Return the raw property values, avoid the magic of parent Map::toArray().
-    // This is necessary to allow validating a component tree in detail.
-    // @see \Drupal\experience_builder\Plugin\Validation\Constraint\ValidComponentTreeConstraintValidator::validate()
-    return $this->values;
+    // If either `uuid` or `inputs` is set, consider this not empty
+    return $this->get('uuid')->getValue() === NULL || $this->get('inputs')->getValue() === NULL;
   }
 
   /**
    * {@inheritdoc}
    */
   public function onChange(mixed $property_name, $notify = TRUE): void {
-    if ($property_name === 'tree' || $property_name === 'inputs') {
+    if ($property_name === 'inputs') {
       $this->values[$property_name] = $this->get($property_name)->getValue();
+    }
+    $pairs = [
+      ['component_id', 'component'],
+      ['parent_uuid', 'parent'],
+    ];
+    foreach ($pairs as $pair) {
+      // Make sure that the linked properties stay in sync.
+      [$property1, $property2] = $pair;
+      if ($property_name === $property2) {
+        $property = $this->get($property2);
+        \assert($property instanceof DataReferenceInterface);
+        $this->writePropertyValue($property1, $property->getTargetIdentifier());
+        continue;
+      }
+      if ($property_name === $property1) {
+        $this->writePropertyValue($property2, $this->get($property1)->getValue());
+      }
     }
     parent::onChange($property_name, $notify);
   }
@@ -286,75 +375,128 @@ class ComponentTreeItem extends FieldItemBase implements RenderableInterface {
    * {@inheritdoc}
    */
   public function setValue($values, $notify = TRUE): void {
-    // This field type does not want either:
-    // - the parent FieldItemBase::setValue()'s behavior, which assigns $values
-    //   to the first property if $values is not an array.
-    // - the grandparent Map::setValue() removes key-value pairs from
-    //   $this->values that are assigned to a n on-computed property.
-    // Both of those behaviors prevent strict validation. Instead, perform *no*
-    // magic transformations, just respect the `tree` and `inputs` key-value
-    // pairs, if they are provided.
     if (is_array($values)) {
-      // Store the exact values passed in to be assigned to the contained
-      // properties.
-      $this->values = $values;
-      // Assign the values to the contained properties.
-      if (array_key_exists('tree', $values)) {
-        $this->set('tree', $values['tree'], FALSE);
-      }
-      if (array_key_exists('inputs', $values)) {
-        $this->set('inputs', $values['inputs'], FALSE);
+      parent::setValue($values, FALSE);
+      $pairs = [
+        ['component_id', 'component'],
+        ['parent_uuid', 'parent'],
+      ];
+      foreach ($pairs as $pair) {
+        [$property1, $property2] = $pair;
+        if (is_array($values) && array_key_exists($property1, $values) && !isset($values[$property2])) {
+          $this->onChange($property1, FALSE);
+        }
+        if (is_array($values) && !array_key_exists($property1, $values) && isset($values[$property2])) {
+          $this->onChange($property2, FALSE);
+        }
+        if (is_array($values) && array_key_exists($property1, $values) && isset($values[$property2])) {
+          // If both properties are passed, verify the passed values match.
+          $reference = $this->get($property2);
+          \assert($reference instanceof DataReferenceInterface);
+          $identifier = $reference->getTargetIdentifier();
+          if ($values[$property1] !== NULL && ($identifier != $values[$property1])) {
+            throw new \InvalidArgumentException(\sprintf('The %s id and %s passed do not match.', $property2, $property2));
+          }
+        }
       }
     }
 
-    // If they are missing, fall back to the default value of the non-computed
-    // properties `tree` and `inputs`. This avoids a *repeated* validation error:
+    // If inputs are missing, fall back to the default value of the non-computed
+    // properties. This avoids a *repeated* validation error:
     // if there already is a validation error for a missing key, another
     // validation error for an invalid value is not helpful.
-    // @see \Drupal\experience_builder\Plugin\Validation\Constraint\ValidComponentTreeConstraintValidator
-    foreach ($this->getProperties(FALSE) as $property_name => $property) {
-      if (!is_array($values) || !array_key_exists($property_name, $values)) {
-        $property->applyDefaultValue(FALSE);
-      }
+    // @see \Drupal\experience_builder\Plugin\Validation\Constraint\ValidComponentTreeItemConstraintValidator
+    if (!is_array($values) || !array_key_exists('inputs', $values)) {
+      $this->getProperties()['inputs']->applyDefaultValue(FALSE);
     }
+
+    // Notify the parent if necessary.
+    if ($notify && $this->parent) {
+      $this->parent->onChange($this->getName());
+    }
+  }
+
+  public function getParentUuid(): ?string {
+    return $this->get('parent_uuid')->getValue();
+  }
+
+  public function getParentComponentTreeItem(): ?ComponentTreeItem {
+    return $this->get('parent')->getTarget();
+  }
+
+  public function getSlot(): ?string {
+    return $this->get('slot')->getValue();
+  }
+
+  public function getComponent(): ?ComponentInterface {
+    return $this->get('component')->getTarget()?->getValue();
+  }
+
+  public function getComponentId(): string {
+    $component_id = $this->get('component_id')->getValue();
+    if ($component_id === NULL) {
+      throw new \InvalidArgumentException('Component ID is required.');
+    }
+    return $component_id;
+  }
+
+  public function getUuid(): string {
+    return $this->get('uuid')->getValue();
+  }
+
+  public function getInputs(): ?array {
+    return $this->get('inputs')->getValues();
+  }
+
+  public function getInput(): ?string {
+    return $this->get('inputs')->getValue();
+  }
+
+  public function setInput(string|array $input): self {
+    return $this->set('inputs', $input);
+  }
+
+  /**
+   * @todo This belongs in a normalizer */
+  public function getClientSideRepresentation(): array {
+    return [
+      'uuid' => $this->getUuid(),
+      'nodeType' => 'component',
+      'type' => $this->getComponentId(),
+      'slots' => [],
+    ];
   }
 
   /**
    * {@inheritdoc}
    */
   public function preSave(): void {
-    $tree = $this->get('tree');
-    $inputs = $this->get('inputs');
-    assert($inputs instanceof ComponentInputs);
-
-    $component_instance_uuids = $tree->getComponentInstanceUuids();
     $entity = $this->getRoot() === $this ? NULL : $this->getEntity();
     $violations = new ConstraintViolationList();
-    foreach ($component_instance_uuids as $component_instance_uuid) {
-      $component_id = $tree->getComponentId($component_instance_uuid);
-      $source = $tree->getComponentSource($component_instance_uuid);
-      if ($source === NULL) {
-        $violations->add(new ConstraintViolation(
-          \sprintf('Unable to load component plugin with ID "%s".', $component_id),
-          NULL,
-          [],
-          NULL,
-          "inputs.$component_instance_uuid",
-          NULL,
-        ));
-        continue;
-      }
-      // Ensure that only ever valid inputs for component instances in an XB
-      // field are saved. When a field is saved that somehow was not validated,
-      // this will catch that.
-      // @see \Drupal\experience_builder\Plugin\Validation\Constraint\ValidComponentTreeConstraintValidator
-      $component_violations = $source->validateComponentInput($inputs->getValues($component_instance_uuid), $component_instance_uuid, $entity);
-      if ($component_violations->count() > 0) {
-        // @todo Remove the foreach and use ::addAll once
-        // https://www.drupal.org/project/drupal/issues/3490588 has been resolved.
-        foreach ($component_violations as $violation) {
-          $violations->add($violation);
-        }
+    $source = $this->getComponent()?->getComponentSource();
+    $component_instance_uuid = $this->getUuid();
+    if ($source === NULL) {
+      $violations->add(new ConstraintViolation(
+        \sprintf('Unable to load component with ID "%s".', $this->getComponentId()),
+        NULL,
+        [],
+        NULL,
+        "inputs." . $component_instance_uuid,
+        NULL,
+      ));
+      return;
+    }
+    // Ensure that only ever valid inputs for component instances in an XB
+    // field are saved. When a field is saved that somehow was not validated,
+    // this will catch that.
+    // @see \Drupal\experience_builder\Plugin\Validation\Constraint\ValidComponentTreeItemConstraintValidator
+    $input_values = $this->getInputs();
+    $component_violations = $source->validateComponentInput($input_values ?? [], $component_instance_uuid, $entity);
+    if ($component_violations->count() > 0) {
+      // @todo Remove the foreach and use ::addAll once
+      // https://www.drupal.org/project/drupal/issues/3490588 has been resolved.
+      foreach ($component_violations as $violation) {
+        $violations->add($violation);
       }
     }
     if ($violations->count() > 0) {
@@ -370,9 +512,8 @@ class ComponentTreeItem extends FieldItemBase implements RenderableInterface {
     // This *internal-only* validation does not need to happen using validation
     // constraints because it does not validate user input: it only helps ensure
     // that the logic of this field type is correct.
-    $input_required_uuids = array_filter($tree->getComponentInstanceUuids(), static fn(string $uuid) => $tree->getComponentSource($uuid)?->requiresExplicitInput() === TRUE);
-    if (array_intersect($input_required_uuids, $inputs->getComponentInstanceUuids()) !== $input_required_uuids) {
-      throw new \LogicException(sprintf('The component UUIDs in the tree and inputs values do not match! Put a breakpoint here and figure out why.'));
+    if ($input_values === NULL && $source->requiresExplicitInput()) {
+      throw new \LogicException(sprintf('Missing input for component instance with UUID %s', $component_instance_uuid));
     }
 
     // @todo Omit defaults that are stored at the content type template level, e.g. in core.entity_view_display.node.article.default.yml
@@ -384,7 +525,7 @@ class ComponentTreeItem extends FieldItemBase implements RenderableInterface {
    * {@inheritdoc}
    */
   public function postSave($update) {
-    // @todo Remove this method once Drupal allows validating some constraints after some other constraints (i.e. ValidComponentTreeConstraintValidator must run after all other fields on an entity have been validated).
+    // @todo Remove this method once Drupal allows validating some constraints after some other constraints (i.e. ValidComponentTreeItemConstraintValidator must run after all other fields on an entity have been validated).
 
     // Re-run the validation logic now that fields that are required on this
     // entity are guaranteed to exist (i.e. the entity is no longer new, because
@@ -397,19 +538,9 @@ class ComponentTreeItem extends FieldItemBase implements RenderableInterface {
     // This should NEVER occur, but until Experience Builder is stable and/or
     // https://www.drupal.org/project/drupal/issues/2820364 is unresolved, this
     // ensures Experience Builder developers are informed early.
-    // @see \Drupal\experience_builder\Plugin\Validation\Constraint\ValidComponentTreeConstraintValidator::validate()
+    // @see \Drupal\experience_builder\Plugin\Validation\Constraint\ValidComponentTreeItemConstraintValidator::validate()
     $this->validate();
     return FALSE;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function toRenderable(ComponentTreeEntityInterface|FieldableEntityInterface|null $entity = NULL, bool $isPreview = FALSE): array {
-    // We have to allow NULL for the entity argument here for co-variance with
-    // the parent interface, but we don't support it.
-    \assert(!\is_null($entity));
-    return $this->get('hydrated')->toRenderable($entity, $isPreview);
   }
 
   public function updatePropSourcesOnDependencyRemoval(string $dependency_type, string $dependency_name, ?FieldableEntityInterface $host_entity = NULL): bool {
@@ -417,14 +548,13 @@ class ComponentTreeItem extends FieldItemBase implements RenderableInterface {
       ->getPropSourcesWithDependency($dependency_type, $dependency_name, $host_entity);
 
     $changed = FALSE;
-    $inputs = Json::decode($this->get('inputs')->getValue());
+    $inputs = $this->getInputs();
 
-    foreach ($prop_sources_to_update as $key => $prop_source) {
-      [$instance_uuid, $name] = explode(':', $key, 2);
+    foreach ($prop_sources_to_update as $name => $prop_source) {
       // Remove this prop source; it depends on the removed config.
-      unset($inputs[$instance_uuid][$name]);
+      unset($inputs[$name]);
 
-      $component_source = $this->get('tree')->getComponentSource($instance_uuid);
+      $component_source = $this->getComponent()?->getComponentSource();
 
       // If the component source requires explicit input, replace the removed
       // prop source with a static prop source. If we don't have a component
@@ -432,11 +562,11 @@ class ComponentTreeItem extends FieldItemBase implements RenderableInterface {
       // end users will probably see an error message, but that's not our fault.
       $default_inputs = $component_source?->getDefaultExplicitInput() ?? [];
       if ($component_source?->requiresExplicitInput() && isset($default_inputs[$name])) {
-        $inputs[$instance_uuid][$name] = $default_inputs[$name];
+        $inputs[$name] = $default_inputs[$name];
       }
       $changed = TRUE;
     }
-    $this->get('inputs')->setValue($inputs);
+    $this->setInput($inputs ?? []);
     return $changed;
   }
 

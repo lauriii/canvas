@@ -7,7 +7,6 @@ namespace Drupal\Tests\experience_builder\Kernel\Entity;
 use Drupal\Core\Entity\Entity\EntityViewDisplay;
 use Drupal\experience_builder\Entity\Page;
 use Drupal\experience_builder\Entity\PageViewBuilder;
-use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\Tests\experience_builder\Kernel\Traits\PageTrait;
 use Drupal\Tests\experience_builder\Kernel\Traits\RequestTrait;
@@ -62,27 +61,21 @@ final class PageViewBuilderTest extends KernelTestBase {
       'description' => 'This is a test page.',
       'path' => ['alias' => '/test-page'],
       'components' => [
-        'tree' => [
-          ComponentTreeStructure::ROOT_UUID => [
-            [
-              'uuid' => 'component-sdc',
-              'component' => 'sdc.xb_test_sdc.props-slots',
-            ],
-            [
-              'uuid' => 'component-block',
-              'component' => 'block.system_branding_block',
-            ],
-          ],
-        ],
-        'inputs' => [
-          'component-sdc' => [
+        [
+          'uuid' => '66e4c177-8e29-42a6-8373-b82eee2841c0',
+          'component_id' => 'sdc.xb_test_sdc.props-slots',
+          'inputs' => [
             'heading' => [
               'sourceType' => 'static:field_item:string',
               'value' => $test_heading_text,
               'expression' => 'ℹ︎string␟value',
             ],
           ],
-          'component-block' => [
+        ],
+        [
+          'uuid' => 'b1eba8d5-be93-4b11-9757-4493e685252c',
+          'component_id' => 'block.system_branding_block',
+          'inputs' => [
             'use_site_logo' => TRUE,
             'use_site_name' => TRUE,
             'use_site_slogan' => TRUE,
@@ -90,6 +83,7 @@ final class PageViewBuilderTest extends KernelTestBase {
             'label' => '',
           ],
         ],
+
       ],
       'xb_test_field' => '3rd party based field should not be displayed!',
     ]);
@@ -159,12 +153,7 @@ final class PageViewBuilderTest extends KernelTestBase {
       'title' => 'Test page',
       'description' => 'This is a test page.',
       'path' => ['alias' => '/test-page'],
-      'components' => [
-        'tree' => [
-          ComponentTreeStructure::ROOT_UUID => [],
-        ],
-        'inputs' => [],
-      ],
+      'components' => [],
     ]);
     self::assertSaveWithoutViolations($sut);
 

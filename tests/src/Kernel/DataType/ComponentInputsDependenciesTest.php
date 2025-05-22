@@ -108,24 +108,20 @@ class ComponentInputsDependenciesTest extends KernelTestBase {
     ]);
     $node->save();
 
-    $existing_component_uuid = 'test-component-uuid';
-
     // Create test data.
     $test_inputs = [
-      $existing_component_uuid => [
-        'title' => [
-          'sourceType' => 'static:field_item:string',
-          'value' => 'Test Title',
-          'expression' => 'ℹ︎string␟value',
-        ],
-        'body' => [
-          'sourceType' => 'dynamic',
-          'expression' => 'ℹ︎␜entity:node:alpha␝body␞␟value',
-        ],
-        'dynamic-image-udf7d' => [
-          'sourceType' => 'dynamic',
-          'expression' => 'ℹ︎␜entity:node:alpha␝field_hero␞␟{src↝entity␜␜entity:file␝uri␞␟value,alt↠alt,width↠width,height↠height}',
-        ],
+      $this->randomMachineName() => [
+        'sourceType' => 'static:field_item:string',
+        'value' => 'Test Title',
+        'expression' => 'ℹ︎string␟value',
+      ],
+      $this->randomMachineName() => [
+        'sourceType' => 'dynamic',
+        'expression' => 'ℹ︎␜entity:node:alpha␝body␞␟value',
+      ],
+      $this->randomMachineName() => [
+        'sourceType' => 'dynamic',
+        'expression' => 'ℹ︎␜entity:node:alpha␝field_hero␞␟{src↝entity␜␜entity:file␝uri␞␟value,alt↠alt,width↠width,height↠height}',
       ],
     ];
     $component_inputs = new ComponentInputs(

@@ -244,7 +244,7 @@ final class BlockComponent extends ComponentSourceBase implements ContainerFacto
   public function getExplicitInput(string $uuid, ComponentTreeItem $item): array {
 
     try {
-      return $item->get('inputs')->getValues($uuid);
+      return $item->getInputs() ?? [];
     }
     catch (MissingComponentInputsException) {
       // There is no input for this component. That should only be the case for

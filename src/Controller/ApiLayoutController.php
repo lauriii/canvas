@@ -14,13 +14,10 @@ use Drupal\Core\Render\Markup;
 use Drupal\Core\Theme\ThemeManagerInterface;
 use Drupal\experience_builder\AutoSave\AutoSaveManager;
 use Drupal\experience_builder\ClientDataToEntityConverter;
-use Drupal\experience_builder\ComponentSource\ComponentSourceInterface;
-use Drupal\experience_builder\ComponentSource\ComponentSourceWithSlotsInterface;
 use Drupal\experience_builder\Entity\Component;
 use Drupal\experience_builder\Entity\PageRegion;
-use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 use Drupal\experience_builder\Plugin\DisplayVariant\XbPageVariant;
-use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
+use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemList;
 use Drupal\experience_builder\Render\PreviewEnvelope;
 use Drupal\experience_builder\Storage\ComponentTreeLoader;
 use GuzzleHttp\Psr7\Query;
@@ -152,13 +149,11 @@ final class ApiLayoutController {
     return new PreviewEnvelope($this->buildPreviewRenderable($data, $entity, FALSE), $data);
   }
 
-  /**
-   * @todo Follow up issue to extract this logic into a trait: https://www.drupal.org/project/experience_builder/issues/3499632
-   */
-  private function buildRegion(string $id, ?ComponentTreeItem $item = NULL, ?array &$model = NULL): array {
-    if ($item) {
-      $decoded_tree = json_decode($item->get('tree')->getValue(), TRUE);
-      $components = $this->buildLayout($model, $item, $decoded_tree[ComponentTreeStructure::ROOT_UUID]);
+  private function buildRegion(string $id, ?ComponentTreeItemList $items = NULL, ?array &$model = NULL): array {
+    if ($items) {
+      $built = $items->getClientSideRepresentation();
+      $model += $built['model'];
+      $components = $built['layout'];
     }
     else {
       $components = [];
@@ -170,61 +165,6 @@ final class ApiLayoutController {
       'name' => $this->regions[$id],
       'components' => $components,
     ];
-  }
-
-  /**
-   * @todo Follow up issue to extract this logic into a trait: https://www.drupal.org/project/experience_builder/issues /3499632
-   */
-  private function buildLayout(array &$model, ComponentTreeItem $item, array $tree_tier): array {
-    $layout = [];
-    $tree = $item->get('tree');
-    $full_tree = json_decode($tree->getValue(), TRUE);
-    foreach ($tree_tier as ['uuid' => $component_instance_uuid, 'component' => $component_type]) {
-      $component_instance = [
-        'nodeType' => 'component',
-        'uuid' => $component_instance_uuid,
-        'type' => $component_type,
-        'slots' => [],
-      ];
-
-      // Use ComponentSourceInterface::inputToClientModel() to map the server-
-      // stored `inputs` data to the client-side `model`.
-      // @see \Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem::propertyDefinitions()
-      // @see \Drupal\experience_builder\Plugin\DataType\ComponentInputs
-      // @see SimpleComponent type-script definition.
-      // @see ComponentModel type-script definition.
-      // @see PropSourceComponent type-script definition.
-      // @see EvaluatedComponentModel type-script definition.
-      $source = $tree->getComponentSource($component_instance_uuid);
-      \assert($source instanceof ComponentSourceInterface);
-      if ($source->requiresExplicitInput()) {
-        $model[$component_instance_uuid] = $source->inputToClientModel($source->getExplicitInput($component_instance_uuid, $item));
-      }
-
-      // TRICKY: the server-side implementation (for storage efficiency) forbids
-      // - empty component subtrees
-      // - empty slots
-      // @see \Drupal\experience_builder\Plugin\Validation\Constraint\ComponentTreeStructureConstraintValidator
-      // But the client expects all *available* slots to get a `slot node`: in
-      // every `component node` for every slot of that component, even the slot
-      // is empty.
-      // @see docs/data-model.md#3.4.1
-      $known_slot_names_for_component = match ($source instanceof ComponentSourceWithSlotsInterface) {
-        FALSE => [],
-        TRUE => array_keys($source->getSlotDefinitions()),
-      };
-      foreach ($known_slot_names_for_component as $slot_name) {
-        $slot_children = $full_tree[$component_instance_uuid][$slot_name] ?? [];
-        $component_instance['slots'][] = [
-          'nodeType' => 'slot',
-          'id' => $component_instance_uuid . '/' . $slot_name,
-          'name' => $slot_name,
-          'components' => $this->buildLayout($model, $item, $slot_children),
-        ];
-      }
-      $layout[] = $component_instance;
-    }
-    return $layout;
   }
 
   private function getEntityData(FieldableEntityInterface $entity): array {
@@ -406,8 +346,8 @@ final class ApiLayoutController {
     }
     $renderable = $this->componentTreeLoader->load($entity)->toRenderable($entity, TRUE);
 
-    if (isset($renderable[ComponentTreeStructure::ROOT_UUID])) {
-      $build = $renderable[ComponentTreeStructure::ROOT_UUID];
+    if (isset($renderable[ComponentTreeItemList::ROOT_UUID])) {
+      $build = $renderable[ComponentTreeItemList::ROOT_UUID];
     }
 
     $build['#prefix'] = Markup::create('<!-- xb-region-start-content -->');

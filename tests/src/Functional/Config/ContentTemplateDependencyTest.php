@@ -7,7 +7,6 @@ namespace Drupal\Tests\experience_builder\Functional\Config;
 use Drupal\Component\Serialization\Json;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\experience_builder\Entity\ContentTemplate;
-use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\Tests\experience_builder\Functional\FunctionalTestBase;
@@ -99,20 +98,20 @@ final class ContentTemplateDependencyTest extends FunctionalTestBase {
       'content_entity_type_bundle' => 'article',
       'content_entity_type_view_mode' => 'full',
       'component_tree' => [
-        'tree' => [
-          ComponentTreeStructure::ROOT_UUID => [
-            ['uuid' => '02b766f7-0edc-4359-98bb-3f489e878330', 'component' => 'sdc.xb_test_sdc.props-no-slots'],
-            ['uuid' => '4ca2cb2e-f9ac-40e5-83be-0f2d08b455b3', 'component' => 'sdc.sdc_test.my-cta'],
-          ],
-        ],
-        'inputs' => [
-          '02b766f7-0edc-4359-98bb-3f489e878330' => [
+        [
+          'uuid' => '02b766f7-0edc-4359-98bb-3f489e878330',
+          'component_id' => 'sdc.xb_test_sdc.props-no-slots',
+          'inputs' => [
             'heading' => [
               'sourceType' => 'dynamic',
               'expression' => 'ℹ︎␜entity:node:article␝field_motto␞␟value',
             ],
           ],
-          '4ca2cb2e-f9ac-40e5-83be-0f2d08b455b3' => [
+        ],
+        [
+          'uuid' => '4ca2cb2e-f9ac-40e5-83be-0f2d08b455b3',
+          'component_id' => 'sdc.sdc_test.my-cta',
+          'inputs' => [
             'text' => [
               'sourceType' => 'dynamic',
               'expression' => 'ℹ︎␜entity:node:article␝field_slogan␞␟value',
@@ -185,21 +184,21 @@ final class ContentTemplateDependencyTest extends FunctionalTestBase {
     // source.
     $tree = ContentTemplate::load('node.article.full')?->get('component_tree');
     $this->assertIsArray($tree);
-    $inputs = Json::decode($tree['inputs']);
+    $input = Json::decode($tree[1]['inputs']);
     $this->assertSame([
       'sourceType' => 'static:field_item:string',
       // The stored value is the default specified in the component's metadata.
       // @see core/modules/system/tests/modules/sdc_test/components/my-cta/my-cta.component.yml
       'value' => 'Press',
       'expression' => 'ℹ︎string␟value',
-    ], $inputs['4ca2cb2e-f9ac-40e5-83be-0f2d08b455b3']['text']);
+    ], $input['text']);
   }
 
   public function testRemoveFieldTypeProviderModule(): void {
     $template = ContentTemplate::load('node.article.full');
     assert($template instanceof ContentTemplate);
     $tree = $template->get('component_tree');
-    $tree['inputs']['4ca2cb2e-f9ac-40e5-83be-0f2d08b455b3']['text'] = [
+    $tree[1]['inputs']['text'] = [
       'sourceType' => 'static:field_item:shape',
       'value' => 'Trapezoid',
       'expression' => 'ℹ︎shape␟shape',
@@ -255,13 +254,13 @@ final class ContentTemplateDependencyTest extends FunctionalTestBase {
     // SDC's example value.
     // @see core/modules/system/tests/modules/sdc_test/components/my-cta/my-cta.component.yml
     $tree = $template->get('component_tree');
-    $inputs = Json::decode($tree['inputs']);
+    $input = Json::decode($tree[1]['inputs']);
     $this->assertSame([
       'sourceType' => 'static:field_item:string',
       // The stored value is the default specified in the component's metadata.
       'value' => 'Press',
       'expression' => 'ℹ︎string␟value',
-    ], $inputs['4ca2cb2e-f9ac-40e5-83be-0f2d08b455b3']['text']);
+    ], $input['text']);
 
     $this->drupalGet($node->toUrl());
     $assert_session->pageTextContains('Press');

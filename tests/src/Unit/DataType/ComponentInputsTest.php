@@ -7,9 +7,9 @@ namespace Drupal\Tests\experience_builder\Unit\DataType;
 use Drupal\Component\Serialization\Json;
 use Drupal\Core\TypedData\DataDefinitionInterface;
 use Drupal\experience_builder\ComponentSource\ComponentSourceInterface;
+use Drupal\experience_builder\Entity\ComponentInterface;
 use Drupal\experience_builder\MissingComponentInputsException;
 use Drupal\experience_builder\Plugin\DataType\ComponentInputs;
-use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\Tests\UnitTestCase;
 
@@ -24,32 +24,28 @@ class ComponentInputsTest extends UnitTestCase {
    * @covers ::getValues
    */
   public function testGetValues(): void {
-    $existing_component_uuid = 'test-component-uuid';
-
     // Create test data.
     $test_inputs = [
-      $existing_component_uuid => [
-        'title' => [
-          'sourceType' => 'static:text',
-          'value' => 'Test Title',
-          'expression' => '',
-        ],
-        'body' => [
-          'sourceType' => 'static:text',
-          'value' => 'Test Body',
-          'expression' => '',
-        ],
+      'title' => [
+        'sourceType' => 'static:text',
+        'value' => 'Test Title',
+        'expression' => '',
+      ],
+      'body' => [
+        'sourceType' => 'static:text',
+        'value' => 'Test Body',
+        'expression' => '',
       ],
     ];
     $component_source = $this->prophesize(ComponentSourceInterface::class);
-
-    $tree = $this->prophesize(ComponentTreeStructure::class);
-    $tree->getComponentId($existing_component_uuid)->willReturn('test-component-id');
-    $tree->getComponentSource($existing_component_uuid)->willReturn($component_source->reveal());
+    $component_source->requiresExplicitInput()->willReturn(FALSE);
+    $component = $this->prophesize(ComponentInterface::class);
+    $component->getComponentSource()->willReturn($component_source->reveal());
 
     $item = $this->prophesize(ComponentTreeItem::class);
-    $item->get('tree')->willReturn($tree->reveal());
-    $item->onChange(NULL)->shouldBeCalledTimes(1);
+    $item->onChange(NULL)->shouldBeCalled();
+    $item->getComponent()->willReturn($component->reveal());
+    $item->getUuid()->willReturn('abcd-1234');
 
     $component_inputs = new ComponentInputs(
       $this->prophesize(DataDefinitionInterface::class)->reveal(),
@@ -60,22 +56,19 @@ class ComponentInputsTest extends UnitTestCase {
 
     // Test getting values for a existing UUID.
     $this->assertEquals(
-      $test_inputs[$existing_component_uuid],
-      $component_inputs->getValues($existing_component_uuid)
+      $test_inputs,
+      $component_inputs->getValues()
     );
 
-    // Test getting values for a non-existing UUID that doesn't require explicit input.
-    $non_existing_uuid = 'non-existing-uuid';
-    $tree->getComponentSource($non_existing_uuid)->willReturn($component_source->reveal());
-    $component_source->requiresExplicitInput()->willReturn(FALSE);
-
-    $values = $component_inputs->getValues($non_existing_uuid);
+    // Test getting empty values without requiring explicit input.
+    $component_inputs->setValue('{}');
+    $values = $component_inputs->getValues();
     $this->assertEquals([], $values);
 
-    // Test getting values for a non-existing UUID that requires explicit input.
+    // Test getting values when explicit input is required.
     $component_source->requiresExplicitInput()->willReturn(TRUE);
     $this->expectException(MissingComponentInputsException::class);
-    $component_inputs->getValues($non_existing_uuid);
+    $component_inputs->getValues();
   }
 
 }

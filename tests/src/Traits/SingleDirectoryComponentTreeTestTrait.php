@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\experience_builder\Traits;
 
-use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
 
@@ -12,6 +11,10 @@ use Drupal\field\Entity\FieldStorageConfig;
  * Any test using these test cases must install the `xb_test_sdc` module.
  */
 trait SingleDirectoryComponentTreeTestTrait {
+
+  public const string UUID_DYNAMIC_STATIC_CARD_2 = '9145b0da-85a1-4ee7-ad1d-b1b63614aed6';
+  public const string UUID_DYNAMIC_STATIC_CARD_3 = 'dab1145b-c5d5-4779-9be8-0a41c2d8ed29';
+  public const string UUID_DYNAMIC_STATIC_CARD_4 = '09de669f-b85b-40ef-9c01-b27f1b089020';
 
   protected function createComponentTreeField(string $entity_type_id, string $bundle): void {
     $field_storage = FieldStorageConfig::create([
@@ -31,16 +34,10 @@ trait SingleDirectoryComponentTreeTestTrait {
     return [
       'valid values using static inputs' => [
         [
-          'tree' => [
-            ComponentTreeStructure::ROOT_UUID => [
-              [
-                'uuid' => 'dynamic-static-card2df',
-                'component' => 'sdc.xb_test_sdc.props-slots',
-              ],
-            ],
-          ],
-          'inputs' => [
-            'dynamic-static-card2df' => [
+          [
+            'uuid' => self::UUID_DYNAMIC_STATIC_CARD_2,
+            'component_id' => 'sdc.xb_test_sdc.props-slots',
+            'inputs' => [
               'heading' => [
                 'sourceType' => 'static:field_item:string',
                 'value' => 'They say I am static, but I want to believe I can change!',
@@ -52,29 +49,20 @@ trait SingleDirectoryComponentTreeTestTrait {
       ],
       'valid values for propless component' => [
         [
-          'tree' => [
-            "a548b48d-58a8-4077-aa04-da9405a6f418" => [
-              [
-                "uuid" => "propless-component-uuid",
-                "component" => "sdc.experience_builder.druplicon",
-              ],
-            ],
+          [
+            "uuid" => 'd0fb26bf-bc83-428c-a4bb-bea5ea43ffe7',
+            "component_id" => "sdc.experience_builder.druplicon",
+            'inputs' => [],
           ],
-          'inputs' => [],
         ],
+
       ],
       'valid value for optional explicit input using an URL prop shape, with default value' => [
         [
-          'tree' => [
-            ComponentTreeStructure::ROOT_UUID => [
-              [
-                'uuid' => 'optional-url-with-default-value',
-                'component' => 'sdc.xb_test_sdc.image-optional-with-example-and-additional-prop',
-              ],
-            ],
-          ],
-          'inputs' => [
-            'optional-url-with-default-value' => [
+          [
+            'uuid' => '993cf84a-df55-41c6-bda9-a8bb616a48d0',
+            'component_id' => 'sdc.xb_test_sdc.image-optional-with-example-and-additional-prop',
+            'inputs' => [
               'heading' => [
                 'sourceType' => 'static:field_item:string',
                 'value' => 'Gracie says hi!',
@@ -115,16 +103,10 @@ trait SingleDirectoryComponentTreeTestTrait {
     return [
       'invalid values using dynamic inputs' => [
         [
-          'tree' => [
-            ComponentTreeStructure::ROOT_UUID => [
-              [
-                'uuid' => 'dynamic-dynamic-card2df',
-                'component' => 'sdc.xb_test_sdc.props-slots',
-              ],
-            ],
-          ],
-          'inputs' => [
-            'dynamic-dynamic-card2df' => [
+          [
+            'uuid' => 'd0aee529-89d9-4a47-8d59-7deb1817f952',
+            'component_id' => 'sdc.xb_test_sdc.props-slots',
+            'inputs' => [
               'heading' => [
                 'sourceType' => 'dynamic',
                 'expression' => 'ℹ︎␜entity:node:article␝title␞␟value',
@@ -133,51 +115,37 @@ trait SingleDirectoryComponentTreeTestTrait {
           ],
         ],
       ],
-      'invalid tree structure, uuid at top of data structure is not in the tree, also has empty slots' => [
+      'invalid UUID, missing component_id key' => [
         [
-          'tree' => [
-            ComponentTreeStructure::ROOT_UUID => [
-              [
-                'uuid' => 'dynamic-static-card2df',
-                'component' => 'sdc.xb_test_sdc.props-slots',
-              ],
-            ],
-            'other-uuid' => [],
-          ],
-          'inputs' => [
-            'dynamic-static-card2df' => [
-              'heading' => [
-                'sourceType' => 'static:field_item:string',
-                'value' => 'Do not cause no static!',
-                'expression' => 'ℹ︎string␟value',
-              ],
-            ],
-          ],
+          ['uuid' => 'other-uuid'],
         ],
       ],
       'missing components, using dynamic inputs' => [
         [
-          'tree' => [
-            ComponentTreeStructure::ROOT_UUID => [
-              ['uuid' => 'dynamic-static-card2df', 'component' => 'sdc.sdc_test.missing'],
-              ['uuid' => 'dynamic-static-card3', 'component' => 'sdc.sdc_test.missing-also'],
-              ['uuid' => 'dynamic-static-card4', 'component' => 'sdc.xb_test_sdc.props-slots'],
+          [
+            'uuid' => self::UUID_DYNAMIC_STATIC_CARD_2,
+            'component_id' => 'sdc.sdc_test.missing',
+            'inputs' => [
+              'heading' => [
+                'sourceType' => 'dynamic',
+                'expression' => 'ℹ︎␜entity:node:article␝title␞␟value',
+              ],
             ],
           ],
-          'inputs' => [
-            'dynamic-static-card2df' => [
+          [
+            'uuid' => self::UUID_DYNAMIC_STATIC_CARD_3,
+            'component_id' => 'sdc.sdc_test.missing-also',
+            'inputs' => [
               'heading' => [
                 'sourceType' => 'dynamic',
                 'expression' => 'ℹ︎␜entity:node:article␝title␞␟value',
               ],
             ],
-            'dynamic-static-card3' => [
-              'heading' => [
-                'sourceType' => 'dynamic',
-                'expression' => 'ℹ︎␜entity:node:article␝title␞␟value',
-              ],
-            ],
-            'dynamic-static-card4' => [
+          ],
+          [
+            'uuid' => self::UUID_DYNAMIC_STATIC_CARD_4,
+            'component_id' => 'sdc.xb_test_sdc.props-slots',
+            'inputs' => [
               'heading' => [
                 'sourceType' => 'dynamic',
                 'expression' => 'ℹ︎␜entity:node:article␝title␞␟value',
@@ -188,13 +156,10 @@ trait SingleDirectoryComponentTreeTestTrait {
       ],
       'missing components, using only static inputs' => [
         [
-          'tree' => [
-            ComponentTreeStructure::ROOT_UUID => [
-              ['uuid' => 'static-card2df', 'component' => 'sdc.sdc_test.missing'],
-            ],
-          ],
-          'inputs' => [
-            'static-card2df' => [
+          [
+            'uuid' => '6f0df1b5-cb78-4bfc-b403-400d24c4d655',
+            'component_id' => 'sdc.sdc_test.missing',
+            'inputs' => [
               'text' => [
                 'sourceType' => 'static:field_item:link',
                 'value' => [
@@ -210,27 +175,30 @@ trait SingleDirectoryComponentTreeTestTrait {
       ],
       'inputs invalid, using dynamic inputs' => [
         [
-          'tree' => [
-            ComponentTreeStructure::ROOT_UUID => [
-              ['uuid' => 'dynamic-static-card2df', 'component' => 'sdc.xb_test_sdc.props-slots'],
-              ['uuid' => 'dynamic-static-card3', 'component' => 'sdc.xb_test_sdc.props-slots'],
-              ['uuid' => 'dynamic-static-card4', 'component' => 'sdc.xb_test_sdc.props-slots'],
-            ],
-          ],
-          'inputs' => [
-            'dynamic-static-card2df' => [
+          [
+            'uuid' => self::UUID_DYNAMIC_STATIC_CARD_2,
+            'component_id' => 'sdc.xb_test_sdc.props-slots',
+            'inputs' => [
               'heading-2' => [
                 'sourceType' => 'dynamic',
                 'expression' => 'ℹ︎␜entity:node:article␝title␞␟value',
               ],
             ],
-            'dynamic-static-card3' => [
+          ],
+          [
+            'uuid' => self::UUID_DYNAMIC_STATIC_CARD_3,
+            'component_id' => 'sdc.xb_test_sdc.props-slots',
+            'inputs' => [
               'heading-1' => [
                 'sourceType' => 'dynamic',
                 'expression' => 'ℹ︎␜entity:node:article␝title␞␟value',
               ],
             ],
-            'dynamic-static-card4' => [
+          ],
+          [
+            'uuid' => self::UUID_DYNAMIC_STATIC_CARD_4,
+            'component_id' => 'sdc.xb_test_sdc.props-slots',
+            'inputs' => [
               'heading' => [
                 'sourceType' => 'dynamic',
                 'expression' => 'ℹ︎␜entity:node:article␝title␞␟value',
@@ -241,13 +209,10 @@ trait SingleDirectoryComponentTreeTestTrait {
       ],
       'inputs invalid, using only static inputs' => [
         [
-          'tree' => [
-            ComponentTreeStructure::ROOT_UUID => [
-              ['uuid' => 'static-card2df', 'component' => 'sdc.xb_test_sdc.props-no-slots'],
-            ],
-          ],
-          'inputs' => [
-            'static-card2df' => [
+          [
+            'uuid' => self::UUID_DYNAMIC_STATIC_CARD_2,
+            'component_id' => 'sdc.xb_test_sdc.props-no-slots',
+            'inputs' => [
               'heading-x' => [
                 'sourceType' => 'static:field_item:link',
                 'value' => [
@@ -263,32 +228,97 @@ trait SingleDirectoryComponentTreeTestTrait {
       ],
       'missing inputs key' => [
         [
-          'tree' => [
-            ComponentTreeStructure::ROOT_UUID => [
-              ['uuid' => 'dynamic-static-card2df', 'component' => 'sdc.xb_test_sdc.props-slots'],
-              ['uuid' => 'dynamic-static-card3', 'component' => 'sdc.xb_test_sdc.props-slots'],
-              ['uuid' => 'dynamic-static-card4', 'component' => 'sdc.xb_test_sdc.props-slots'],
+          [
+            'uuid' => self::UUID_DYNAMIC_STATIC_CARD_2,
+            'component_id' => 'sdc.xb_test_sdc.props-slots',
+          ],
+          [
+            'uuid' => self::UUID_DYNAMIC_STATIC_CARD_3,
+            'component_id' => 'sdc.xb_test_sdc.props-slots',
+          ],
+          [
+            'uuid' => self::UUID_DYNAMIC_STATIC_CARD_4,
+            'component_id' => 'sdc.xb_test_sdc.props-slots',
+          ],
+        ],
+      ],
+      'non unique uuids' => [
+        [
+          [
+            'uuid' => self::UUID_DYNAMIC_STATIC_CARD_4,
+            'component_id' => 'sdc.xb_test_sdc.props-slots',
+            'inputs' => [
+              'heading' => [
+                'sourceType' => 'static:field_item:string',
+                'value' => 'Shake dreams from your hair, my pretty child',
+                'expression' => 'ℹ︎string␟value',
+              ],
+            ],
+          ],
+          [
+            'uuid' => self::UUID_DYNAMIC_STATIC_CARD_4,
+            'component_id' => 'sdc.xb_test_sdc.props-slots',
+            'inputs' => [
+              'heading' => [
+                'sourceType' => 'static:field_item:string',
+                'value' => 'A vast radiant beach and cooled jewelled moon',
+                'expression' => 'ℹ︎string␟value',
+              ],
             ],
           ],
         ],
       ],
-      'missing tree key' => [
+      'invalid parent' => [
         [
-          'inputs' => [
-            'dynamic-static-card2df' => [
-              'text' => [
+          [
+            'uuid' => 'fa9ff0a8-e23a-492a-ab14-5460611fa2c1',
+            'component_id' => 'sdc.xb_test_sdc.props-slots',
+            'inputs' => [
+              'heading' => [
                 'sourceType' => 'static:field_item:string',
-                'value' => 'Static like electricity? No like unchanging',
+                'value' => 'And we laugh like soft, mad children',
                 'expression' => 'ℹ︎string␟value',
               ],
-              'href' => [
-                'sourceType' => 'static:field_item:link',
-                'value' => [
-                  'uri' => 'https://drupal.org',
-                  'title' => NULL,
-                  'options' => [],
-                ],
-                'expression' => 'ℹ︎link␟uri',
+            ],
+          ],
+          [
+            'uuid' => 'e303dd88-9409-4dc7-8a8b-a31602884a94',
+            'slot' => 'the_body',
+            'parent_uuid' => '6381352f-5b0a-4ca1-960d-a5505b37b27c',
+            'component_id' => 'sdc.xb_test_sdc.props-slots',
+            'inputs' => [
+              'heading' => [
+                'sourceType' => 'static:field_item:string',
+                'value' => ' Smug in the wooly cotton brains of infancy',
+                'expression' => 'ℹ︎string␟value',
+              ],
+            ],
+          ],
+        ],
+      ],
+      'invalid slot' => [
+        [
+          [
+            'uuid' => 'fa9ff0a8-e23a-492a-ab14-5460611fa2c1',
+            'component_id' => 'sdc.xb_test_sdc.props-slots',
+            'inputs' => [
+              'heading' => [
+                'sourceType' => 'static:field_item:string',
+                'value' => 'And we laugh like soft, mad children',
+                'expression' => 'ℹ︎string␟value',
+              ],
+            ],
+          ],
+          [
+            'uuid' => 'e303dd88-9409-4dc7-8a8b-a31602884a94',
+            'slot' => 'banana',
+            'parent_uuid' => 'fa9ff0a8-e23a-492a-ab14-5460611fa2c1',
+            'component_id' => 'sdc.xb_test_sdc.props-slots',
+            'inputs' => [
+              'heading' => [
+                'sourceType' => 'static:field_item:string',
+                'value' => ' Smug in the wooly cotton brains of infancy',
+                'expression' => 'ℹ︎string␟value',
               ],
             ],
           ],

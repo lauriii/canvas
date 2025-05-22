@@ -2,22 +2,21 @@
 
 declare(strict_types=1);
 
-namespace Drupal\Tests\experience_builder\Kernel\DataType;
+namespace Drupal\Tests\experience_builder\Kernel\Plugin\Field\FieldType;
 
-// cspell:ignore ttxgk xpzur
-
+// cspell:ignore DILNF Vaxx AEDM
 use Drupal\Core\Render\Element;
 use Drupal\experience_builder\AutoSave\AutoSaveManager;
 use Drupal\experience_builder\Entity\JavaScriptComponent;
-use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 use Drupal\Component\Utility\NestedArray;
+use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemList;
 
 /**
- * @coversDefaultClass \Drupal\experience_builder\Plugin\DataType\ComponentTreeHydrated
+ * @coversDefaultClass \Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemList
  * @covers \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\BlockComponent::renderComponent()
  * @group experience_builder
  */
-class ComponentTreeHydratedWithBlockOverrideTest extends ComponentTreeHydratedTest {
+class ComponentTreeItemListWithBlockOverrideTest extends ComponentTreeItemListTest {
 
   /**
    * {@inheritdoc}
@@ -36,11 +35,13 @@ class ComponentTreeHydratedWithBlockOverrideTest extends ComponentTreeHydratedTe
   }
 
   /**
+   * @covers ::getHydratedTree()
+   * @covers ::toRenderable()
    * @dataProvider provider
    */
-  public function test(array $tree, array $inputs, array $expected_value, array $expected_renderable, string $expected_html, array $expected_cache_tags, bool $isPreview): void {
+  public function testHydrationAndRendering(array $value, array $expected_value, array $expected_renderable, string $expected_html, array $expected_cache_tags, bool $isPreview): void {
     self::loadEntitiesIntoRenderable($expected_renderable);
-    parent::test($tree, $inputs, $expected_value, $expected_renderable, $expected_html, $expected_cache_tags, $isPreview);
+    parent::testHydrationAndRendering($value, $expected_value, $expected_renderable, $expected_html, $expected_cache_tags, $isPreview);
   }
 
   /**
@@ -63,12 +64,12 @@ class ComponentTreeHydratedWithBlockOverrideTest extends ComponentTreeHydratedTe
    */
   public static function provider(): \Generator {
     $path_to_deepest_level = [
-      ComponentTreeStructure::ROOT_UUID,
-      'uuid-in-root',
+      ComponentTreeItemList::ROOT_UUID,
+      '41595148-e5c1-4873-b373-be3ae6e21340',
       '#component', '#slots', 'the_body',
-      'uuid-level-1',
+      'dfd2e899-6d88-46f8-b6aa-98929d1586dd',
       '#component', '#slots', 'the_body',
-      'uuid-level-2',
+      'e0b92f23-c177-4196-8fa4-3e837f99a357',
       '#component', '#slots', 'the_body',
     ];
 
@@ -76,8 +77,8 @@ class ComponentTreeHydratedWithBlockOverrideTest extends ComponentTreeHydratedTe
       $expected_changes_vs_original = match ($case_label) {
         "component tree with a single block component" => [
           'expected_renderable' => [
-            ComponentTreeStructure::ROOT_UUID => [
-              'uuid-in-root' => [
+            ComponentTreeItemList::ROOT_UUID => [
+              '41595148-e5c1-4873-b373-be3ae6e21340' => [
                 '#component' => [
                   '#theme' => 'block__system_branding_block__as_js_component',
                   '#cache' => [
@@ -94,13 +95,13 @@ class ComponentTreeHydratedWithBlockOverrideTest extends ComponentTreeHydratedTe
             ],
           ],
           'expected_html' => <<<HTML
-<astro-island uid="uuid-in-root"
-        component-url="::SITE_DIR_BASE_URL::/files/astro-island/K8cqmr0kCDhtaBupQXmdi2_0mbGKNbJW1Rs3GzW0bV0.js"
+<astro-island uid="41595148-e5c1-4873-b373-be3ae6e21340"
+        component-url="::SITE_DIR_BASE_URL::/files/astro-island/5XdTAI4-WnaGx3DILNF0UUqh3wMJVmVaxxWHs5tg9QU.js"
         component-export="default"
         renderer-url="::XB_DIR_BASE_URL::/ui/lib/astro-hydration/dist/client.js"
         props="{&quot;homeUrl&quot;:[&quot;raw&quot;,&quot;\/&quot;],&quot;logo&quot;:[&quot;raw&quot;,&quot;&quot;],&quot;siteName&quot;:[&quot;raw&quot;,&quot;XB Test Site&quot;]}"
         ssr="" client="only"
-        opts="{&quot;name&quot;:&quot;Site branding&quot;,&quot;value&quot;:&quot;preact&quot;}"><script type="module" src="::XB_DIR_BASE_URL::/ui/lib/astro-hydration/dist/client.js" blocking="render"></script><script type="module" src="::SITE_DIR_BASE_URL::/files/astro-island/K8cqmr0kCDhtaBupQXmdi2_0mbGKNbJW1Rs3GzW0bV0.js" blocking="render"></script><template data-astro-template="siteSlogan">Experience Builder Test Site</template></astro-island>
+        opts="{&quot;name&quot;:&quot;Site branding&quot;,&quot;value&quot;:&quot;preact&quot;}"><script type="module" src="::XB_DIR_BASE_URL::/ui/lib/astro-hydration/dist/client.js" blocking="render"></script><script type="module" src="::SITE_DIR_BASE_URL::/files/astro-island/5XdTAI4-WnaGx3DILNF0UUqh3wMJVmVaxxWHs5tg9QU.js" blocking="render"></script><template data-astro-template="siteSlogan">Experience Builder Test Site</template></astro-island>
 HTML,
           'expected_cache_tags' => [
             'config:experience_builder.js_component.site_branding',
@@ -111,8 +112,8 @@ HTML,
 
         "component tree with a single block component in preview" => [
           'expected_renderable' => [
-            ComponentTreeStructure::ROOT_UUID => [
-              'uuid-in-root' => [
+            ComponentTreeItemList::ROOT_UUID => [
+              '41595148-e5c1-4873-b373-be3ae6e21340' => [
                 '#component' => [
                   '#theme' => 'block__system_branding_block__as_js_component',
                   '#cache' => [
@@ -129,13 +130,13 @@ HTML,
             ],
           ],
           'expected_html' => <<<HTML
-<!-- xb-start-uuid-in-root --><astro-island uid="uuid-in-root"
-        component-url="::SITE_DIR_BASE_URL::/files/astro-island/K8cqmr0kCDhtaBupQXmdi2_0mbGKNbJW1Rs3GzW0bV0.js"
+<!-- xb-start-41595148-e5c1-4873-b373-be3ae6e21340 --><astro-island uid="41595148-e5c1-4873-b373-be3ae6e21340"
+        component-url="::SITE_DIR_BASE_URL::/files/astro-island/5XdTAI4-WnaGx3DILNF0UUqh3wMJVmVaxxWHs5tg9QU.js"
         component-export="default"
         renderer-url="::XB_DIR_BASE_URL::/ui/lib/astro-hydration/dist/client.js"
         props="{&quot;homeUrl&quot;:[&quot;raw&quot;,&quot;\/&quot;],&quot;logo&quot;:[&quot;raw&quot;,&quot;&quot;],&quot;siteName&quot;:[&quot;raw&quot;,&quot;XB Test Site&quot;]}"
         ssr="" client="only"
-        opts="{&quot;name&quot;:&quot;Site branding&quot;,&quot;value&quot;:&quot;preact&quot;}"><script type="module" src="::XB_DIR_BASE_URL::/ui/lib/astro-hydration/dist/client.js" blocking="render"></script><script type="module" src="::SITE_DIR_BASE_URL::/files/astro-island/K8cqmr0kCDhtaBupQXmdi2_0mbGKNbJW1Rs3GzW0bV0.js" blocking="render"></script><template data-astro-template="siteSlogan"><!-- xb-prop-start-uuid-in-root/siteSlogan -->Experience Builder Test Site<!-- xb-prop-end-uuid-in-root/siteSlogan --></template></astro-island><!-- xb-end-uuid-in-root -->
+        opts="{&quot;name&quot;:&quot;Site branding&quot;,&quot;value&quot;:&quot;preact&quot;}"><script type="module" src="::XB_DIR_BASE_URL::/ui/lib/astro-hydration/dist/client.js" blocking="render"></script><script type="module" src="::SITE_DIR_BASE_URL::/files/astro-island/5XdTAI4-WnaGx3DILNF0UUqh3wMJVmVaxxWHs5tg9QU.js" blocking="render"></script><template data-astro-template="siteSlogan"><!-- xb-prop-start-41595148-e5c1-4873-b373-be3ae6e21340/siteSlogan -->Experience Builder Test Site<!-- xb-prop-end-41595148-e5c1-4873-b373-be3ae6e21340/siteSlogan --></template></astro-island><!-- xb-end-41595148-e5c1-4873-b373-be3ae6e21340 -->
 HTML,
           'expected_cache_tags' => [
             'config:experience_builder.js_component.site_branding',
@@ -151,7 +152,7 @@ HTML,
             [
               // The block component instance becomes a "block override" component instance.
               0 => [
-                'parents' => [...$path_to_deepest_level, 'uuid-block', '#component'],
+                'parents' => [...$path_to_deepest_level, '68167e4a-9245-41be-b564-f1e1dcad1dec', '#component'],
                 'value' => [
                   '#theme' => 'block__system_branding_block__as_js_component',
                   '#cache' => [
@@ -167,13 +168,13 @@ HTML,
               ],
               // The first code component gets a different component URL.
               1 => [
-                'parents' => [...$path_to_deepest_level, 'uuid-js-component', '#component', '#component_url'],
-                'value' => '::SITE_DIR_BASE_URL::/files/astro-island/SqNXISgeROx6gBR_DcET4VKD8ttxgkRL9NO-4C0fUSM.js',
+                'parents' => [...$path_to_deepest_level, '2f57ba57-f32a-4a7b-9896-9d1104b446f1', '#component', '#component_url'],
+                'value' => '::SITE_DIR_BASE_URL::/files/astro-island/AEDMYeB1j39xcv3HMf-I_1dg7C1ZTcATXfNDFQw9V1I.js',
               ],
               // The second code component gets a different component URL.
               2 => [
-                'parents' => [...$path_to_deepest_level, 'uuid-js-component-auto-save', '#component', '#component_url'],
-                'value' => '::SITE_DIR_BASE_URL::/files/astro-island/SqNXISgeROx6gBR_DcET4VKD8ttxgkRL9NO-4C0fUSM.js',
+                'parents' => [...$path_to_deepest_level, 'b4bc6c8f-66f7-458a-99a9-41c29b2801e7', '#component', '#component_url'],
+                'value' => '::SITE_DIR_BASE_URL::/files/astro-island/AEDMYeB1j39xcv3HMf-I_1dg7C1ZTcATXfNDFQw9V1I.js',
               ],
             ],
           ),
@@ -190,25 +191,25 @@ HTML,
         <div  data-component-id="xb_test_sdc:props-no-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
   <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;">Hello, from slot level 3!</h1>
 </div>
-<astro-island uid="uuid-block"
-        component-url="::SITE_DIR_BASE_URL::/files/astro-island/K8cqmr0kCDhtaBupQXmdi2_0mbGKNbJW1Rs3GzW0bV0.js"
+<astro-island uid="68167e4a-9245-41be-b564-f1e1dcad1dec"
+        component-url="::SITE_DIR_BASE_URL::/files/astro-island/5XdTAI4-WnaGx3DILNF0UUqh3wMJVmVaxxWHs5tg9QU.js"
         component-export="default"
         renderer-url="::XB_DIR_BASE_URL::/ui/lib/astro-hydration/dist/client.js"
         props="{&quot;homeUrl&quot;:[&quot;raw&quot;,&quot;\/&quot;],&quot;logo&quot;:[&quot;raw&quot;,&quot;&quot;],&quot;siteName&quot;:[&quot;raw&quot;,&quot;XB Test Site&quot;]}"
         ssr="" client="only"
-        opts="{&quot;name&quot;:&quot;Site branding&quot;,&quot;value&quot;:&quot;preact&quot;}"><script type="module" src="::XB_DIR_BASE_URL::/ui/lib/astro-hydration/dist/client.js" blocking="render"></script><script type="module" src="::SITE_DIR_BASE_URL::/files/astro-island/K8cqmr0kCDhtaBupQXmdi2_0mbGKNbJW1Rs3GzW0bV0.js" blocking="render"></script><template data-astro-template="siteSlogan">Experience Builder Test Site</template></astro-island><astro-island uid="uuid-js-component"
-        component-url="::SITE_DIR_BASE_URL::/files/astro-island/SqNXISgeROx6gBR_DcET4VKD8ttxgkRL9NO-4C0fUSM.js"
+        opts="{&quot;name&quot;:&quot;Site branding&quot;,&quot;value&quot;:&quot;preact&quot;}"><script type="module" src="::XB_DIR_BASE_URL::/ui/lib/astro-hydration/dist/client.js" blocking="render"></script><script type="module" src="::SITE_DIR_BASE_URL::/files/astro-island/5XdTAI4-WnaGx3DILNF0UUqh3wMJVmVaxxWHs5tg9QU.js" blocking="render"></script><template data-astro-template="siteSlogan">Experience Builder Test Site</template></astro-island><astro-island uid="2f57ba57-f32a-4a7b-9896-9d1104b446f1"
+        component-url="::SITE_DIR_BASE_URL::/files/astro-island/AEDMYeB1j39xcv3HMf-I_1dg7C1ZTcATXfNDFQw9V1I.js"
         component-export="default"
         renderer-url="::XB_DIR_BASE_URL::/ui/lib/astro-hydration/dist/client.js"
         props="{&quot;text&quot;:[&quot;raw&quot;,&quot;Hello, from a \&quot;code component\&quot;!&quot;]}"
         ssr="" client="only"
-        opts="{&quot;name&quot;:&quot;My First Code Component&quot;,&quot;value&quot;:&quot;preact&quot;}"><script type="module" src="::XB_DIR_BASE_URL::/ui/lib/astro-hydration/dist/client.js" blocking="render"></script><script type="module" src="::SITE_DIR_BASE_URL::/files/astro-island/SqNXISgeROx6gBR_DcET4VKD8ttxgkRL9NO-4C0fUSM.js" blocking="render"></script></astro-island><astro-island uid="uuid-js-component-auto-save"
-        component-url="::SITE_DIR_BASE_URL::/files/astro-island/SqNXISgeROx6gBR_DcET4VKD8ttxgkRL9NO-4C0fUSM.js"
+        opts="{&quot;name&quot;:&quot;My First Code Component&quot;,&quot;value&quot;:&quot;preact&quot;}"><script type="module" src="::XB_DIR_BASE_URL::/ui/lib/astro-hydration/dist/client.js" blocking="render"></script><script type="module" src="::SITE_DIR_BASE_URL::/files/astro-island/AEDMYeB1j39xcv3HMf-I_1dg7C1ZTcATXfNDFQw9V1I.js" blocking="render"></script></astro-island><astro-island uid="b4bc6c8f-66f7-458a-99a9-41c29b2801e7"
+        component-url="::SITE_DIR_BASE_URL::/files/astro-island/AEDMYeB1j39xcv3HMf-I_1dg7C1ZTcATXfNDFQw9V1I.js"
         component-export="default"
         renderer-url="::XB_DIR_BASE_URL::/ui/lib/astro-hydration/dist/client.js"
         props="{&quot;text&quot;:[&quot;raw&quot;,&quot;Hello, from a \&quot;auto-save code component\&quot;!&quot;]}"
         ssr="" client="only"
-        opts="{&quot;name&quot;:&quot;My Code Component with Auto-Save&quot;,&quot;value&quot;:&quot;preact&quot;}"><script type="module" src="::XB_DIR_BASE_URL::/ui/lib/astro-hydration/dist/client.js" blocking="render"></script><script type="module" src="::SITE_DIR_BASE_URL::/files/astro-island/SqNXISgeROx6gBR_DcET4VKD8ttxgkRL9NO-4C0fUSM.js" blocking="render"></script></astro-island><div  data-component-id="xb_test_sdc:props-no-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
+        opts="{&quot;name&quot;:&quot;My Code Component with Auto-Save&quot;,&quot;value&quot;:&quot;preact&quot;}"><script type="module" src="::XB_DIR_BASE_URL::/ui/lib/astro-hydration/dist/client.js" blocking="render"></script><script type="module" src="::SITE_DIR_BASE_URL::/files/astro-island/AEDMYeB1j39xcv3HMf-I_1dg7C1ZTcATXfNDFQw9V1I.js" blocking="render"></script></astro-island><div  data-component-id="xb_test_sdc:props-no-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
   <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;">Hello, from slot &lt;LAST ONE&gt;!</h1>
 </div>
 
@@ -259,7 +260,7 @@ HTML,
             [
               // The block component instance becomes a "block override" component instance.
               0 => [
-                'parents' => [...$path_to_deepest_level, 'uuid-block', '#component'],
+                'parents' => [...$path_to_deepest_level, '68167e4a-9245-41be-b564-f1e1dcad1dec', '#component'],
                 'value' => [
                   '#theme' => 'block__system_branding_block__as_js_component',
                   '#cache' => [
@@ -275,78 +276,78 @@ HTML,
               ],
               // The first code component gets a different component URL.
               1 => [
-                'parents' => [...$path_to_deepest_level, 'uuid-js-component', '#component', '#component_url'],
-                'value' => '::SITE_DIR_BASE_URL::/files/astro-island/SqNXISgeROx6gBR_DcET4VKD8ttxgkRL9NO-4C0fUSM.js',
+                'parents' => [...$path_to_deepest_level, '2f57ba57-f32a-4a7b-9896-9d1104b446f1', '#component', '#component_url'],
+                'value' => '::SITE_DIR_BASE_URL::/files/astro-island/AEDMYeB1j39xcv3HMf-I_1dg7C1ZTcATXfNDFQw9V1I.js',
               ],
               // ⚠️ The second code component gets the auto-saved component URL!
               2 => [
-                'parents' => [...$path_to_deepest_level, 'uuid-js-component-auto-save', '#component', '#component_url'],
+                'parents' => [...$path_to_deepest_level, 'b4bc6c8f-66f7-458a-99a9-41c29b2801e7', '#component', '#component_url'],
                 'value' => '/xb/api/v0/auto-saves/js/js_component/my-cta-with-auto-save',
               ],
             ],
           ),
           'expected_html' => <<<HTML
-<!-- xb-start-uuid-in-root --><div  data-component-id="xb_test_sdc:props-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
-  <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;"><!-- xb-prop-start-uuid-in-root/heading -->Hello, world!<!-- xb-prop-end-uuid-in-root/heading --></h1>
+<!-- xb-start-41595148-e5c1-4873-b373-be3ae6e21340 --><div  data-component-id="xb_test_sdc:props-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
+  <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;"><!-- xb-prop-start-41595148-e5c1-4873-b373-be3ae6e21340/heading -->Hello, world!<!-- xb-prop-end-41595148-e5c1-4873-b373-be3ae6e21340/heading --></h1>
   <div class="component--props-slots--body">
-        <!-- xb-slot-start-uuid-in-root/the_body --><!-- xb-start-uuid-level-1 --><div  data-component-id="xb_test_sdc:props-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
-  <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;"><!-- xb-prop-start-uuid-level-1/heading -->Hello, from slot level 1!<!-- xb-prop-end-uuid-level-1/heading --></h1>
+        <!-- xb-slot-start-41595148-e5c1-4873-b373-be3ae6e21340/the_body --><!-- xb-start-dfd2e899-6d88-46f8-b6aa-98929d1586dd --><div  data-component-id="xb_test_sdc:props-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
+  <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;"><!-- xb-prop-start-dfd2e899-6d88-46f8-b6aa-98929d1586dd/heading -->Hello, from slot level 1!<!-- xb-prop-end-dfd2e899-6d88-46f8-b6aa-98929d1586dd/heading --></h1>
   <div class="component--props-slots--body">
-        <!-- xb-slot-start-uuid-level-1/the_body --><!-- xb-start-uuid-level-2 --><div  data-component-id="xb_test_sdc:props-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
-  <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;"><!-- xb-prop-start-uuid-level-2/heading -->Hello, from slot level 2!<!-- xb-prop-end-uuid-level-2/heading --></h1>
+        <!-- xb-slot-start-dfd2e899-6d88-46f8-b6aa-98929d1586dd/the_body --><!-- xb-start-e0b92f23-c177-4196-8fa4-3e837f99a357 --><div  data-component-id="xb_test_sdc:props-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
+  <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;"><!-- xb-prop-start-e0b92f23-c177-4196-8fa4-3e837f99a357/heading -->Hello, from slot level 2!<!-- xb-prop-end-e0b92f23-c177-4196-8fa4-3e837f99a357/heading --></h1>
   <div class="component--props-slots--body">
-        <!-- xb-slot-start-uuid-level-2/the_body --><!-- xb-start-uuid-level-3 --><div  data-component-id="xb_test_sdc:props-no-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
-  <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;"><!-- xb-prop-start-uuid-level-3/heading -->Hello, from slot level 3!<!-- xb-prop-end-uuid-level-3/heading --></h1>
+        <!-- xb-slot-start-e0b92f23-c177-4196-8fa4-3e837f99a357/the_body --><!-- xb-start-81c63cac-187d-4f05-8acc-1c38fb2489d3 --><div  data-component-id="xb_test_sdc:props-no-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
+  <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;"><!-- xb-prop-start-81c63cac-187d-4f05-8acc-1c38fb2489d3/heading -->Hello, from slot level 3!<!-- xb-prop-end-81c63cac-187d-4f05-8acc-1c38fb2489d3/heading --></h1>
 </div>
-<!-- xb-end-uuid-level-3 --><!-- xb-start-uuid-block --><astro-island uid="uuid-block"
-        component-url="::SITE_DIR_BASE_URL::/files/astro-island/K8cqmr0kCDhtaBupQXmdi2_0mbGKNbJW1Rs3GzW0bV0.js"
+<!-- xb-end-81c63cac-187d-4f05-8acc-1c38fb2489d3 --><!-- xb-start-68167e4a-9245-41be-b564-f1e1dcad1dec --><astro-island uid="68167e4a-9245-41be-b564-f1e1dcad1dec"
+        component-url="::SITE_DIR_BASE_URL::/files/astro-island/5XdTAI4-WnaGx3DILNF0UUqh3wMJVmVaxxWHs5tg9QU.js"
         component-export="default"
         renderer-url="::XB_DIR_BASE_URL::/ui/lib/astro-hydration/dist/client.js"
         props="{&quot;homeUrl&quot;:[&quot;raw&quot;,&quot;\/&quot;],&quot;logo&quot;:[&quot;raw&quot;,&quot;&quot;],&quot;siteName&quot;:[&quot;raw&quot;,&quot;XB Test Site&quot;]}"
         ssr="" client="only"
-        opts="{&quot;name&quot;:&quot;Site branding&quot;,&quot;value&quot;:&quot;preact&quot;}"><script type="module" src="::XB_DIR_BASE_URL::/ui/lib/astro-hydration/dist/client.js" blocking="render"></script><script type="module" src="::SITE_DIR_BASE_URL::/files/astro-island/K8cqmr0kCDhtaBupQXmdi2_0mbGKNbJW1Rs3GzW0bV0.js" blocking="render"></script><template data-astro-template="siteSlogan"><!-- xb-prop-start-uuid-block/siteSlogan -->Experience Builder Test Site<!-- xb-prop-end-uuid-block/siteSlogan --></template></astro-island><!-- xb-end-uuid-block --><!-- xb-start-uuid-js-component --><astro-island uid="uuid-js-component"
-        component-url="::SITE_DIR_BASE_URL::/files/astro-island/SqNXISgeROx6gBR_DcET4VKD8ttxgkRL9NO-4C0fUSM.js"
+        opts="{&quot;name&quot;:&quot;Site branding&quot;,&quot;value&quot;:&quot;preact&quot;}"><script type="module" src="::XB_DIR_BASE_URL::/ui/lib/astro-hydration/dist/client.js" blocking="render"></script><script type="module" src="::SITE_DIR_BASE_URL::/files/astro-island/5XdTAI4-WnaGx3DILNF0UUqh3wMJVmVaxxWHs5tg9QU.js" blocking="render"></script><template data-astro-template="siteSlogan"><!-- xb-prop-start-68167e4a-9245-41be-b564-f1e1dcad1dec/siteSlogan -->Experience Builder Test Site<!-- xb-prop-end-68167e4a-9245-41be-b564-f1e1dcad1dec/siteSlogan --></template></astro-island><!-- xb-end-68167e4a-9245-41be-b564-f1e1dcad1dec --><!-- xb-start-2f57ba57-f32a-4a7b-9896-9d1104b446f1 --><astro-island uid="2f57ba57-f32a-4a7b-9896-9d1104b446f1"
+        component-url="::SITE_DIR_BASE_URL::/files/astro-island/AEDMYeB1j39xcv3HMf-I_1dg7C1ZTcATXfNDFQw9V1I.js"
         component-export="default"
         renderer-url="::XB_DIR_BASE_URL::/ui/lib/astro-hydration/dist/client.js"
         props="{&quot;text&quot;:[&quot;raw&quot;,&quot;Hello, from a \&quot;code component\&quot;!&quot;]}"
         ssr="" client="only"
-        opts="{&quot;name&quot;:&quot;My First Code Component&quot;,&quot;value&quot;:&quot;preact&quot;}"><script type="module" src="::XB_DIR_BASE_URL::/ui/lib/astro-hydration/dist/client.js" blocking="render"></script><script type="module" src="::SITE_DIR_BASE_URL::/files/astro-island/SqNXISgeROx6gBR_DcET4VKD8ttxgkRL9NO-4C0fUSM.js" blocking="render"></script></astro-island><!-- xb-end-uuid-js-component --><!-- xb-start-uuid-js-component-auto-save --><astro-island uid="uuid-js-component-auto-save"
+        opts="{&quot;name&quot;:&quot;My First Code Component&quot;,&quot;value&quot;:&quot;preact&quot;}"><script type="module" src="::XB_DIR_BASE_URL::/ui/lib/astro-hydration/dist/client.js" blocking="render"></script><script type="module" src="::SITE_DIR_BASE_URL::/files/astro-island/AEDMYeB1j39xcv3HMf-I_1dg7C1ZTcATXfNDFQw9V1I.js" blocking="render"></script></astro-island><!-- xb-end-2f57ba57-f32a-4a7b-9896-9d1104b446f1 --><!-- xb-start-b4bc6c8f-66f7-458a-99a9-41c29b2801e7 --><astro-island uid="b4bc6c8f-66f7-458a-99a9-41c29b2801e7"
         component-url="/xb/api/v0/auto-saves/js/js_component/my-cta-with-auto-save"
         component-export="default"
         renderer-url="::XB_DIR_BASE_URL::/ui/lib/astro-hydration/dist/client.js"
         props="{&quot;text&quot;:[&quot;raw&quot;,&quot;Hello, from a \&quot;auto-save code component\&quot;!&quot;]}"
         ssr="" client="only"
-        opts="{&quot;name&quot;:&quot;My Code Component with Auto-Save - Draft&quot;,&quot;value&quot;:&quot;preact&quot;}"><script type="module" src="::XB_DIR_BASE_URL::/ui/lib/astro-hydration/dist/client.js" blocking="render"></script><script type="module" src="/xb/api/v0/auto-saves/js/js_component/my-cta-with-auto-save" blocking="render"></script></astro-island><!-- xb-end-uuid-js-component-auto-save --><!-- xb-start-uuid-last-in-tree --><div  data-component-id="xb_test_sdc:props-no-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
-  <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;"><!-- xb-prop-start-uuid-last-in-tree/heading -->Hello, from slot &lt;LAST ONE&gt;!<!-- xb-prop-end-uuid-last-in-tree/heading --></h1>
+        opts="{&quot;name&quot;:&quot;My Code Component with Auto-Save - Draft&quot;,&quot;value&quot;:&quot;preact&quot;}"><script type="module" src="::XB_DIR_BASE_URL::/ui/lib/astro-hydration/dist/client.js" blocking="render"></script><script type="module" src="/xb/api/v0/auto-saves/js/js_component/my-cta-with-auto-save" blocking="render"></script></astro-island><!-- xb-end-b4bc6c8f-66f7-458a-99a9-41c29b2801e7 --><!-- xb-start-9f09ecd8-ec65-408c-b5c8-ef036e6aeb97 --><div  data-component-id="xb_test_sdc:props-no-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
+  <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;"><!-- xb-prop-start-9f09ecd8-ec65-408c-b5c8-ef036e6aeb97/heading -->Hello, from slot &lt;LAST ONE&gt;!<!-- xb-prop-end-9f09ecd8-ec65-408c-b5c8-ef036e6aeb97/heading --></h1>
 </div>
-<!-- xb-end-uuid-last-in-tree --><!-- xb-slot-end-uuid-level-2/the_body -->
+<!-- xb-end-9f09ecd8-ec65-408c-b5c8-ef036e6aeb97 --><!-- xb-slot-end-e0b92f23-c177-4196-8fa4-3e837f99a357/the_body -->
     </div>
   <div class="component--props-slots--footer">
-        <!-- xb-slot-start-uuid-level-2/the_footer -->Example value for &lt;strong&gt;the_footer&lt;/strong&gt;.<!-- xb-slot-end-uuid-level-2/the_footer -->
+        <!-- xb-slot-start-e0b92f23-c177-4196-8fa4-3e837f99a357/the_footer -->Example value for &lt;strong&gt;the_footer&lt;/strong&gt;.<!-- xb-slot-end-e0b92f23-c177-4196-8fa4-3e837f99a357/the_footer -->
     </div>
   <div class="component--props-slots--colophon">
-        <!-- xb-slot-start-uuid-level-2/the_colophon --><!-- xb-slot-end-uuid-level-2/the_colophon -->
+        <!-- xb-slot-start-e0b92f23-c177-4196-8fa4-3e837f99a357/the_colophon --><!-- xb-slot-end-e0b92f23-c177-4196-8fa4-3e837f99a357/the_colophon -->
     </div>
 </div>
-<!-- xb-end-uuid-level-2 --><!-- xb-slot-end-uuid-level-1/the_body -->
+<!-- xb-end-e0b92f23-c177-4196-8fa4-3e837f99a357 --><!-- xb-slot-end-dfd2e899-6d88-46f8-b6aa-98929d1586dd/the_body -->
     </div>
   <div class="component--props-slots--footer">
-        <!-- xb-slot-start-uuid-level-1/the_footer -->Example value for &lt;strong&gt;the_footer&lt;/strong&gt;.<!-- xb-slot-end-uuid-level-1/the_footer -->
+        <!-- xb-slot-start-dfd2e899-6d88-46f8-b6aa-98929d1586dd/the_footer -->Example value for &lt;strong&gt;the_footer&lt;/strong&gt;.<!-- xb-slot-end-dfd2e899-6d88-46f8-b6aa-98929d1586dd/the_footer -->
     </div>
   <div class="component--props-slots--colophon">
-        <!-- xb-slot-start-uuid-level-1/the_colophon --><!-- xb-slot-end-uuid-level-1/the_colophon -->
+        <!-- xb-slot-start-dfd2e899-6d88-46f8-b6aa-98929d1586dd/the_colophon --><!-- xb-slot-end-dfd2e899-6d88-46f8-b6aa-98929d1586dd/the_colophon -->
     </div>
 </div>
-<!-- xb-end-uuid-level-1 --><!-- xb-slot-end-uuid-in-root/the_body -->
+<!-- xb-end-dfd2e899-6d88-46f8-b6aa-98929d1586dd --><!-- xb-slot-end-41595148-e5c1-4873-b373-be3ae6e21340/the_body -->
     </div>
   <div class="component--props-slots--footer">
-        <!-- xb-slot-start-uuid-in-root/the_footer -->Example value for &lt;strong&gt;the_footer&lt;/strong&gt;.<!-- xb-slot-end-uuid-in-root/the_footer -->
+        <!-- xb-slot-start-41595148-e5c1-4873-b373-be3ae6e21340/the_footer -->Example value for &lt;strong&gt;the_footer&lt;/strong&gt;.<!-- xb-slot-end-41595148-e5c1-4873-b373-be3ae6e21340/the_footer -->
     </div>
   <div class="component--props-slots--colophon">
-        <!-- xb-slot-start-uuid-in-root/the_colophon --><!-- xb-slot-end-uuid-in-root/the_colophon -->
+        <!-- xb-slot-start-41595148-e5c1-4873-b373-be3ae6e21340/the_colophon --><!-- xb-slot-end-41595148-e5c1-4873-b373-be3ae6e21340/the_colophon -->
     </div>
 </div>
-<!-- xb-end-uuid-in-root -->
+<!-- xb-end-41595148-e5c1-4873-b373-be3ae6e21340 -->
 HTML,
           'expected_cache_tags' => [
             'config:experience_builder.component.sdc.xb_test_sdc.props-slots',

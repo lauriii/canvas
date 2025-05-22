@@ -10,7 +10,6 @@ use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Drupal\experience_builder\Entity\ContentTemplate;
 use Drupal\experience_builder\EntityHandlers\ContentTemplateAwareViewBuilder;
 use Drupal\experience_builder\Plugin\ComponentPluginManager;
-use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 use Drupal\filter\Entity\FilterFormat;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\node\NodeInterface;
@@ -85,25 +84,25 @@ final class NodeTemplatesTest extends KernelTestBase {
       'content_entity_type_bundle' => 'article',
       'content_entity_type_view_mode' => 'full',
       'component_tree' => [
-        'tree' => [
-          ComponentTreeStructure::ROOT_UUID => [
-            // A static marker so we can easily tell if we're rendering with XB.
-            ['uuid' => 'xb-marker', 'component' => 'sdc.xb_test_sdc.props-no-slots'],
-            // The node body, which needs to be using a dynamic prop source
-            // because all content templates require at least one dynamic prop
-            // source.
-            ['uuid' => 'node-body', 'component' => 'sdc.xb_test_sdc.props-no-slots'],
-          ],
-        ],
-        'inputs' => [
-          'xb-marker' => [
+        // A static marker so we can easily tell if we're rendering with XB.
+        [
+          'uuid' => 'e1f6fbca-e331-4506-9dba-5734194c1e59',
+          'component_id' => 'sdc.xb_test_sdc.props-no-slots',
+          'inputs' => [
             'heading' => [
               'sourceType' => 'static:field_item:string',
               'value' => 'XB is large and in charge!',
               'expression' => 'ℹ︎string␟value',
             ],
           ],
-          'node-body' => [
+        ],
+        // The node body, which needs to be using a dynamic prop source
+        // because all content templates require at least one dynamic prop
+        // source.
+        [
+          'uuid' => '6cf8297a-fc60-4019-be81-c336fd828c39',
+          'component_id' => 'sdc.xb_test_sdc.props-no-slots',
+          'inputs' => [
             'heading' => [
               'sourceType' => 'dynamic',
               'expression' => 'ℹ︎␜entity:node:article␝body␞␟processed',

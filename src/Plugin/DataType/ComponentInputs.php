@@ -17,19 +17,17 @@ use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\experience_builder\PropSource\PropSource;
 
 /**
- * @todo Implement ListInterface because it conceptually fits, but … what does it get us?
  * @phpstan-import-type PropSourceArray from \Drupal\experience_builder\PropSource\PropSourceBase
  * @phpstan-import-type AdaptedPropSourceArray from \Drupal\experience_builder\PropSource\PropSourceBase
  * @phpstan-import-type DefaultRelativeUrlPropSourceArray from \Drupal\experience_builder\PropSource\PropSourceBase
  * @phpstan-type SingleComponentInputArray array<string, PropSourceArray|AdaptedPropSourceArray|DefaultRelativeUrlPropSourceArray>
- * @phpstan-type ComponentInputsArray array<string, SingleComponentInputArray>
  */
 #[DataType(
   id: "component_inputs",
   label: new TranslatableMarkup("Component inputs"),
   description: new TranslatableMarkup("The input values for the components in a component tree: without structure"),
 )]
-class ComponentInputs extends TypedData implements DependentPluginInterface {
+final class ComponentInputs extends TypedData implements DependentPluginInterface {
 
   /**
    * The data value.
@@ -43,7 +41,7 @@ class ComponentInputs extends TypedData implements DependentPluginInterface {
   /**
    * The parsed data value.
    *
-   * @var ComponentInputsArray
+   * @var SingleComponentInputArray
    */
   protected array $inputs = [];
 
@@ -65,7 +63,7 @@ class ComponentInputs extends TypedData implements DependentPluginInterface {
     // @todo Uncomment next line and delete last line after https://www.drupal.org/project/drupal/issues/2232427
     // return $this->inputs;
     // Fall back to NULL if not yet initialized, to allow validation.
-    // @see \Drupal\experience_builder\Plugin\Validation\Constraint\ValidComponentTreeConstraintValidator
+    // @see \Drupal\experience_builder\Plugin\Validation\Constraint\ValidComponentTreeItemConstraintValidator
     return $this->value ?? NULL;
   }
 
@@ -102,19 +100,7 @@ class ComponentInputs extends TypedData implements DependentPluginInterface {
   }
 
   /**
-   * @return string[]
-   *   Component instance UUIDs.
-   */
-  public function getComponentInstanceUuids(): array {
-    return array_keys($this->inputs);
-  }
-
-  /**
    * Retrieves the list of unique types of prop sources used.
-   *
-   * Sibling method on ComponentTreeStructure:
-   *
-   * @see \Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure::getComponentIdList()
    *
    * @return string[]
    *   A list of all unique PropSourceBase::getSourceTypePrefix() return values
@@ -155,21 +141,19 @@ class ComponentInputs extends TypedData implements DependentPluginInterface {
    * @return \Generator<string, \Drupal\experience_builder\PropSource\PropSourceBase>
    */
   private function getPropSources(): \Generator {
-    foreach ($this->inputs as $instance_uuid => $raw_prop_sources) {
-      foreach ($raw_prop_sources as $name => $raw_prop_source) {
-        if (!\is_array($raw_prop_source) || !\array_key_exists('sourceType', $raw_prop_source)) {
-          // This isn't a component source using \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase.
-          // @todo Move this logic into \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase.
-          // @see https://www.drupal.org/project/experience_builder/issues/3467954
-          continue;
-        }
-        try {
-          yield "$instance_uuid:$name" => PropSource::parse($raw_prop_source);
-        }
-        catch (\LogicException) {
-          // @see https://en.wikipedia.org/wiki/Robustness_principle
-          continue;
-        }
+    foreach ($this->inputs as $name => $raw_prop_source) {
+      if (!\is_array($raw_prop_source) || !\array_key_exists('sourceType', $raw_prop_source)) {
+        // This isn't a component source using \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase.
+        // @todo Move this logic into \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase.
+        // @see https://www.drupal.org/project/experience_builder/issues/3467954
+        continue;
+      }
+      try {
+        yield "$name" => PropSource::parse($raw_prop_source);
+      }
+      catch (\LogicException) {
+        // @see https://en.wikipedia.org/wiki/Robustness_principle
+        continue;
       }
     }
   }
@@ -177,29 +161,27 @@ class ComponentInputs extends TypedData implements DependentPluginInterface {
   /**
    * Gets the values for a given component instance.
    *
-   * @param string $component_instance_uuid
-   *   Component instance UUID.
-   *
    * @return array<string, array<string, array|string>>
    *
    * @throws \Drupal\Core\TypedData\Exception\MissingDataException
    * @throws \Drupal\experience_builder\MissingComponentInputsException
    */
-  public function getValues(string $component_instance_uuid): array {
-    $item = $this->parent;
+  public function getValues(): array {
+    $item = $this->getParent();
     assert($item instanceof ComponentTreeItem);
-    $tree = $item->get('tree');
-    assert($tree instanceof ComponentTreeStructure);
-    $source = $tree->getComponentSource($component_instance_uuid);
+    $component_instance_uuid = $item->getUuid();
+    $source = $item->getComponent()?->getComponentSource();
     \assert($source instanceof ComponentSourceInterface);
-    if (!array_key_exists($component_instance_uuid, $this->inputs)) {
+    // Still in default value state.
+    // @see ::applyDefaultValue()
+    if ($this->value === '{}') {
       if ($source->requiresExplicitInput()) {
         throw new MissingComponentInputsException($component_instance_uuid);
       }
       return [];
     }
 
-    return $this->inputs[$component_instance_uuid];
+    return $this->inputs;
   }
 
 }

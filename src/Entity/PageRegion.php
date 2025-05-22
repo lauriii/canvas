@@ -7,16 +7,14 @@ namespace Drupal\experience_builder\Entity;
 use Drupal\Core\Config\Entity\ConfigEntityBase;
 use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
-use Drupal\Core\TypedData\DataDefinition;
 use Drupal\experience_builder\Controller\ClientServerConversionTrait;
 use Drupal\experience_builder\Exception\ConstraintViolationException;
-use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 use Drupal\experience_builder\Plugin\DisplayVariant\XbPageVariant;
 use Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\BlockComponent;
-use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
-use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemInstantiatorTrait;
+use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemListInstantiatorTrait;
 use Drupal\Core\Entity\Attribute\ConfigEntityType;
 use Drupal\experience_builder\EntityHandlers\XbConfigEntityAccessControlHandler;
+use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemList;
 
 #[ConfigEntityType(
   id: self::ENTITY_TYPE_ID,
@@ -53,7 +51,7 @@ final class PageRegion extends ConfigEntityBase implements ComponentTreeEntityIn
 
   public const string ENTITY_TYPE_ID = 'page_region';
   public const string ADMIN_PERMISSION = 'administer page template';
-  use ComponentTreeItemInstantiatorTrait;
+  use ComponentTreeItemListInstantiatorTrait;
   use ClientServerConversionTrait;
 
   /**
@@ -126,19 +124,10 @@ final class PageRegion extends ConfigEntityBase implements ComponentTreeEntityIn
       return static::create($this->toArray());
     }
 
-    $tree = self::clientLayoutToServerTree($autoSaveData['layout']);
-    // @todo This probably should be a method on ComponentTreeStructure, we
-    // have the same code in several places.
-    $definition = DataDefinition::create('component_tree_structure');
-    $component_tree_structure = new ComponentTreeStructure($definition, 'component_tree_structure');
-    $component_tree_structure->setValue($tree);
-    $inputs = $this->clientModelToInput($tree, \array_intersect_key($autoSaveData['model'], \array_flip($component_tree_structure->getComponentInstanceUuids())));
+    $items = self::clientToServerTree($autoSaveData['layout'], $autoSaveData['model'], NULL);
 
     $auto_saved_page_region = static::create([
-      'component_tree' => [
-        'tree' => $tree,
-        'inputs' => $inputs,
-      ],
+      'component_tree' => $items,
     ] + $this->toArray());
     $violations = $auto_saved_page_region->getTypedData()->validate();
     if ($violations->count()) {
@@ -150,15 +139,13 @@ final class PageRegion extends ConfigEntityBase implements ComponentTreeEntityIn
   /**
    * {@inheritdoc}
    */
-  public function getComponentTree(): ComponentTreeItem {
+  public function getComponentTree(): ComponentTreeItemList {
     assert(is_array($this->component_tree));
 
-    // Instantiate a single (dangling) XB component tree field item object this
-    // component tree.
-    $field_item = $this->createDanglingComponentTree();
-    $field_item->setValue($this->component_tree);
+    $field_items = $this->createDanglingComponentTreeItemList();
+    $field_items->setValue($this->component_tree);
 
-    return $field_item;
+    return $field_items;
   }
 
   /**
@@ -167,7 +154,7 @@ final class PageRegion extends ConfigEntityBase implements ComponentTreeEntityIn
   public function calculateDependencies() {
     parent::calculateDependencies();
     $this->addDependency('theme', $this->theme);
-    $this->addDependencies($this->getComponentTree()->calculateFieldItemValueDependencies(FALSE));
+    $this->addDependencies($this->getComponentTree()->calculateDependencies());
     return $this;
   }
 
@@ -259,11 +246,9 @@ final class PageRegion extends ConfigEntityBase implements ComponentTreeEntityIn
         // Use the original region.
         default => $block->getRegion(),
       };
-      // We can't key these by component ID because you can place the same
-      // block twice with different settings.
       $regions[$region_name][] = [
-        'component' => $component_id,
-        'settings' => \array_diff_key($block->get('settings'), \array_flip([
+        'component_id' => $component_id,
+        'inputs' => \array_diff_key($block->get('settings'), \array_flip([
           // Remove these as they can be calculated and hence need not be
           // stored.
           'id',
@@ -275,31 +260,21 @@ final class PageRegion extends ConfigEntityBase implements ComponentTreeEntityIn
 
     $region_instances = [];
     foreach ($region_names as $region_name) {
-      $tree = [ComponentTreeStructure::ROOT_UUID => []];
-      $inputs = [];
+      $items = [];
       if (isset($regions[$region_name])) {
-        $tree[ComponentTreeStructure::ROOT_UUID] = array_map(
+        $items = array_map(
           static fn(array $block) => \array_intersect_key($block, \array_flip([
-            'component',
+            'component_id',
             'uuid',
+            'inputs',
           ])),
           $regions[$region_name],
-        );
-        $inputs = \array_reduce(
-          $regions[$region_name],
-          static fn(array $carry, array $block) => $carry + [
-            $block['uuid'] => $block['settings'],
-          ],
-          []
         );
       }
       $page_region = static::create([
         'theme' => $theme,
         'region' => $region_name,
-        'component_tree' => [
-          'tree' => $tree,
-          'inputs' => $inputs,
-        ],
+        'component_tree' => $items,
       ]);
       assert([] === iterator_to_array($page_region->getTypedData()->validate()));
       $region_instances[$page_region->id()] = $page_region;

@@ -525,7 +525,7 @@ final class JsComponentTest extends ComponentSourceTestBase {
       ],
       'expected_validation_errors' => [],
       'expected_exception' => NULL,
-      'expected_output_selector' => 'astro-island[uid="crash-test-dummy"][props*="Tilly"][props*="19"]',
+      'expected_output_selector' => \sprintf('astro-island[uid="%s"][props*="Tilly"][props*="19"]', self::UUID_CRASH_TEST_DUMMY),
     ];
 
     yield "JS Component with valid props, JSON encoding exception" => [
@@ -549,22 +549,22 @@ final class JsComponentTest extends ComponentSourceTestBase {
         'name' => $generate_static_prop_source('string', 'Tilly'),
       ],
       'expected_validation_errors' => [
-        '.inputs.crash-test-dummy.age' => 'String value found, but an integer or an object is required. The provided value is: "It\'s rude to ask".',
+        \sprintf('2.inputs.%s.age', self::UUID_CRASH_TEST_DUMMY) => 'String value found, but an integer or an object is required. The provided value is: "It\'s rude to ask".',
       ],
       'expected_exception' => NULL,
       // JsComponents can recover from invalid inputs.
-      'expected_output_selector' => 'astro-island[uid="crash-test-dummy"]',
+      'expected_output_selector' => \sprintf('astro-island[uid="%s"]', self::UUID_CRASH_TEST_DUMMY),
     ];
 
     yield "JS Component with missing props, validation error" => [
       'component_id' => $component_id,
       'inputs' => [],
       'expected_validation_errors' => [
-        '.inputs.crash-test-dummy.name' => 'The property name is required.',
+        \sprintf('2.inputs.%s.name', self::UUID_CRASH_TEST_DUMMY) => 'The property name is required.',
       ],
       'expected_exception' => NULL,
       // JsComponents can recover from invalid inputs.
-      'expected_output_selector' => 'astro-island[uid="crash-test-dummy"]',
+      'expected_output_selector' => \sprintf('astro-island[uid="%s"]', self::UUID_CRASH_TEST_DUMMY),
     ];
   }
 

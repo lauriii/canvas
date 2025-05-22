@@ -193,7 +193,8 @@ describe('Operate on components in global regions', () => {
     let lgPreviewRect = {};
     // Enter the iframe to find an element in the preview iframe and hover over it.
     cy.getIframeBody()
-      .find('[data-xb-uuid="static-static-card1ab"] h1')
+      // @see \Drupal\Tests\experience_builder\TestSite\XBTestSetup
+      .find('[data-xb-uuid="208452de-10d6-4fb8-89a1-10e340b3744c"] h1')
       .first()
       .then(($h1) => {
         // While in the iframe, get the dimensions of the component so we can

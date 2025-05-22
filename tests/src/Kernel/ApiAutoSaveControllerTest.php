@@ -17,7 +17,6 @@ use Drupal\experience_builder\Entity\AssetLibrary;
 use Drupal\experience_builder\Entity\JavaScriptComponent;
 use Drupal\experience_builder\Entity\Page;
 use Drupal\experience_builder\Entity\PageRegion;
-use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 use Drupal\file\Entity\File;
 use Drupal\image\ImageStyleInterface;
 use Drupal\KernelTests\KernelTestBase;
@@ -342,12 +341,6 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
       'title' => '5 amazing uses for old toothbrushes',
       'status' => FALSE,
       'field_hero' => $this->referencedImage,
-      'field_xb_demo' => [
-        'tree' => [
-          ComponentTreeStructure::ROOT_UUID => [],
-        ],
-        'props' => [],
-      ],
     ]);
     $node1_original_title = (string) $node1->getTitle();
     self::assertSame(SAVED_NEW, $node1->save());
@@ -358,12 +351,6 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     $node2 = Node::create([
       'type' => 'article',
       'title' => 'Are leg-warmers due for a comeback? These young designers are betting on it',
-      'field_xb_demo' => [
-        'tree' => [
-          ComponentTreeStructure::ROOT_UUID => [],
-        ],
-        'props' => [],
-      ],
     ]);
     self::assertSame(SAVED_NEW, $node2->save());
     $node2_original_title = (string) $node2->getTitle();
@@ -562,10 +549,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
       // @see \Drupal\experience_builder\Entity\PageRegion::forAutoSaveData()
       $page_region = PageRegion::load('stark.header');
       self::assertInstanceOf(PageRegion::class, $page_region);
-      self::assertSame([
-        'tree' => json_encode([ComponentTreeStructure::ROOT_UUID => []]),
-        'inputs' => '[]',
-      ], $page_region->getComponentTree()->toArray());
+      self::assertSame([], $page_region->getComponentTree()->getValue());
     }
 
     // Fix the errors.
@@ -685,9 +669,9 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     if ($withGlobal) {
       $page_region = PageRegion::load('stark.header');
       self::assertInstanceOf(PageRegion::class, $page_region);
-      $tree = $page_region->getComponentTree()->get('tree');
-      self::assertSame(['block.page_title_block'], $tree->getComponentIdList());
-      self::assertSame(['c3f3c22c-c22e-4bb6-ad16-635f069148e4'], $tree->getComponentInstanceUuids());
+      $tree = $page_region->getComponentTree()->getValue();
+      self::assertSame(['block.page_title_block'], \array_column($tree, 'component_id'));
+      self::assertSame(['c3f3c22c-c22e-4bb6-ad16-635f069148e4'], \array_column($tree, 'uuid'));
     }
 
     // Ensure that after the nodes have been published their auto-save data is

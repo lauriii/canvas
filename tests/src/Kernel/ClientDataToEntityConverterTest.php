@@ -17,7 +17,7 @@ use Drupal\Core\Session\AccountInterface;
 use Drupal\experience_builder\ClientDataToEntityConverter;
 use Drupal\experience_builder\Exception\ConstraintViolationException;
 use Drupal\experience_builder\Controller\EntityFormTrait;
-use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
+use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemList;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\node\Entity\Node;
 use Drupal\Tests\content_moderation\Traits\ContentModerationTestTrait;
@@ -160,8 +160,13 @@ class ClientDataToEntityConverterTest extends KernelTestBase {
     unset($invalid_missing_heading_props_client_json['model'][self::TEST_HEADING_UUID]);
     $this->assertConvert(
       $invalid_missing_heading_props_client_json,
-      ['model.' . self::TEST_HEADING_UUID => 'The required properties are missing.'],
-      'The updated title.',
+      [
+        'model.' . self::TEST_HEADING_UUID . '.text' => 'The property text is required.',
+        'model.' . self::TEST_HEADING_UUID . '.element' => 'The property element is required.',
+      ],
+      // The error above happens in `\Drupal\experience_builder\Controller\ClientServerConversionTrait::convertClientToServer()`
+      // therefore the title, as well as other entity fields will not be updated.
+      'The original title.',
     );
 
     // If the client tries to update a field the user does not have access to edit, the field should remain unchanged.
@@ -326,7 +331,7 @@ class ClientDataToEntityConverterTest extends KernelTestBase {
       'title' => 'The original title.',
       'field_xb_demo' => [
         'tree' => [
-          ComponentTreeStructure::ROOT_UUID => [],
+          ComponentTreeItemList::ROOT_UUID => [],
         ],
         'inputs' => [],
       ],

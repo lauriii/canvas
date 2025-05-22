@@ -4,9 +4,6 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\experience_builder\Traits;
 
-use Drupal\experience_builder\Plugin\DataType\ComponentInputs;
-use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
-use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\file\Entity\File;
 use Drupal\media\Entity\Media;
 use Drupal\node\Entity\Node;
@@ -168,14 +165,13 @@ trait XBFieldTrait {
     foreach ($expected_field_values as $field_name => $value) {
       $this->assertSame($value, $node->get($field_name)->value);
     }
-    $item = $node->get('field_xb_demo')[0];
-    $this->assertInstanceOf(ComponentTreeItem::class, $item);
-    $tree = $item->get('tree');
-    $this->assertInstanceOf(ComponentTreeStructure::class, $tree);
-    self::assertEqualsCanonicalizing($expected_component_ids, $tree->getComponentIdList());
-    $inputs = $item->get('inputs');
-    $this->assertInstanceOf(ComponentInputs::class, $inputs);
-    $inputs = json_decode($inputs->getValue(), TRUE);
+    $item = $node->get('field_xb_demo');
+    $values = $item->getValue();
+    self::assertEqualsCanonicalizing($expected_component_ids, \array_unique(\array_column($values, 'component_id')));
+    $inputs = \array_combine(
+      \array_column($values, 'uuid'),
+      \array_map(static fn (string $input): array => \json_decode($input, TRUE, \JSON_THROW_ON_ERROR), \array_column($values, 'inputs')),
+    );
     // @todo Replace with a single call to
     //   `\PHPUnit\Framework\Assert::assertEqualsCanonicalizing` in
     //  https://drupal.org/i/3486414. Currently that does not work in all

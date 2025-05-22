@@ -9,7 +9,6 @@ use Drupal\experience_builder\Entity\JavaScriptComponent;
 use Drupal\experience_builder\Entity\Page;
 use Drupal\experience_builder\Entity\PageRegion;
 use Drupal\experience_builder\Entity\Pattern;
-use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\file\Entity\File;
@@ -28,6 +27,19 @@ use Drupal\user\Entity\Role;
 use Drupal\user\Entity\User;
 
 class XBTestSetup implements TestSetupInterface {
+
+  // Fixed IDs for testing sake
+  public const string UUID_EMPTY_COMPONENT = 'cea4c5b3-7921-4c6f-b388-da921bd1496d';
+  public const string UUID_TWO_COLUMN_UUID = '16176e0b-8197-40e3-ad49-48f1b6e9a7f9';
+  public const string UUID_STATIC_IMAGE = '8f6780cd-7b64-499e-9545-321a14951a0d';
+  public const string UUID_STATIC_CARD1 = '208452de-10d6-4fb8-89a1-10e340b3744c';
+  public const string UUID_CODE_COMPONENT = '5fc4de04-f59c-4f56-b576-4673433381a4';
+  public const string UUID_ALL_SLOTS_EMPTY = 'b8fd639d-f1df-413a-8926-8d2c7a3d6493';
+  public const string UUID_STATIC_CARD2 = '4d866c38-7261-45c6-9b1e-0b94096d51e8';
+  public const string UUID_STATIC_CARD3 = '5944ef12-4a3d-4f3a-8e67-086661be9ffc';
+  public const string UUID_ADAPTED_IMAGE = 'd8afcb97-c2ba-426e-b2da-94600afd484b';
+  public const string UUID_COMPONENT_SDC = '2c6e91ae-23ac-433d-9bb8-687144464b34';
+  public const string UUID_COMPONENT_BLOCK = '78c73c1d-4988-4f9b-ad17-f7e337d40c29';
 
   use MediaTypeCreationTrait;
   use RandomGeneratorTrait;
@@ -143,53 +155,6 @@ class XBTestSetup implements TestSetupInterface {
     ]);
     $hero_reference->save();
     // @todo Add a component without props in https://drupal.org/i/3511447.
-    $tree = [
-      ComponentTreeStructure::ROOT_UUID => [
-        [
-          'uuid' => 'two-column-uuid',
-          'component' => 'sdc.experience_builder.two_column',
-        ],
-      ],
-      'two-column-uuid' => [
-        'column_one' => [
-          [
-            'uuid' => 'static-image-udf7d',
-            'component' => 'sdc.experience_builder.image',
-          ],
-          [
-            'uuid' => 'static-static-card1ab',
-            'component' => 'sdc.experience_builder.my-hero',
-          ],
-          [
-            'uuid' => 'test-code-component-uuid',
-            'component' => 'js.test-code-component',
-          ],
-          // Test edge cases in representations:
-          // - server aims to minimize storage
-          // - client should be as simple as possible
-          // @see docs/data-model.md
-          // @see docs/adr/0005-Keep-the-front-end-simple.md
-          [
-            'uuid' => 'component-instance-with-all-slots-empty',
-            'component' => 'sdc.experience_builder.one_column',
-          ],
-        ],
-        'column_two' => [
-          [
-            'uuid' => 'static-static-card2df',
-            'component' => 'sdc.experience_builder.my-hero',
-          ],
-          [
-            'uuid' => 'static-static-card3rr',
-            'component' => 'sdc.experience_builder.my-hero',
-          ],
-          [
-            'uuid' => 'static-image-static-imageStyle-something7d',
-            'component' => 'sdc.experience_builder.image',
-          ],
-        ],
-      ],
-    ];
 
     // @phpstan-ignore-next-line
     $fileUrl = File::load($image_field_sample_value['target_id'])->createFileUrl(FALSE);
@@ -226,129 +191,178 @@ class XBTestSetup implements TestSetupInterface {
         'expression' => 'ℹ︎link␟uri',
       ];
     }
-    $inputs = [
-      'test-code-component-uuid' => [
-        'heading' => [
-          'sourceType' => 'static:field_item:string',
-          'value' => 'Test Code Component Heading',
-          'expression' => 'ℹ︎string␟value',
-        ],
-        'content' => [
-          'sourceType' => 'static:field_item:string',
-          'value' => 'This is a test code component for testing the Edit component action',
-          'expression' => 'ℹ︎string␟value',
-        ],
-      ],
-      'component-instance-with-all-slots-empty' => [
-        'width' => [
-          'sourceType' => 'static:field_item:list_string',
-          'value' => 'full',
-          'expression' => 'ℹ︎list_string␟value',
-          'sourceTypeSettings' => [
-            'storage' => [
-              'allowed_values' => [
-                [
-                  'value' => 'full',
-                  'label' => 'full',
-                ],
-                [
-                  'value' => 'wide',
-                  'label' => 'wide',
-                ],
-                [
-                  'value' => 'normal',
-                  'label' => 'normal',
-                ],
-                [
-                  'value' => 'narrow',
-                  'label' => 'narrow',
+    $items = [
+      [
+        'component_id' => 'sdc.experience_builder.two_column',
+        'uuid' => self::UUID_TWO_COLUMN_UUID,
+        'inputs' => [
+          'width' => [
+            'sourceType' => 'static:field_item:list_integer',
+            'value' => 50,
+            'expression' => 'ℹ︎list_integer␟value',
+            'sourceTypeSettings' => [
+              'storage' => [
+                'allowed_values' => [
+                  [
+                    'value' => 25,
+                    'label' => '25',
+                  ],
+                  [
+                    'value' => 33,
+                    'label' => '33',
+                  ],
+                  [
+                    'value' => 50,
+                    'label' => '50',
+                  ],
+                  [
+                    'value' => 66,
+                    'label' => '66',
+                  ],
+                  [
+                    'value' => 75,
+                    'label' => '75',
+                  ],
                 ],
               ],
             ],
           ],
         ],
       ],
-      'two-column-uuid' => [
-        'width' => [
-          'sourceType' => 'static:field_item:list_integer',
-          'value' => 50,
-          'expression' => 'ℹ︎list_integer␟value',
-          'sourceTypeSettings' => [
-            'storage' => [
-              'allowed_values' => [
-                [
-                  'value' => 25,
-                  'label' => '25',
-                ],
-                [
-                  'value' => 33,
-                  'label' => '33',
-                ],
-                [
-                  'value' => 50,
-                  'label' => '50',
-                ],
-                [
-                  'value' => 66,
-                  'label' => '66',
-                ],
-                [
-                  'value' => 75,
-                  'label' => '75',
+      [
+        'parent_uuid' => self::UUID_TWO_COLUMN_UUID,
+        'slot' => 'column_one',
+        'component_id' => 'sdc.experience_builder.image',
+        'uuid' => self::UUID_STATIC_IMAGE,
+        'inputs' => [
+          'image' => $static_image_prop_source,
+        ],
+      ],
+      [
+        'parent_uuid' => self::UUID_TWO_COLUMN_UUID,
+        'slot' => 'column_one',
+        'component_id' => 'sdc.experience_builder.my-hero',
+        'uuid' => self::UUID_STATIC_CARD1,
+        'inputs' => [
+          'heading' => [
+            'sourceType' => 'static:field_item:string',
+            'value' => 'hello, world!',
+            'expression' => 'ℹ︎string␟value',
+          ],
+          'cta1href' => $cta1href,
+        ],
+      ],
+      [
+        'parent_uuid' => self::UUID_TWO_COLUMN_UUID,
+        'slot' => 'column_one',
+        'component_id' => 'js.test-code-component',
+        'uuid' => self::UUID_CODE_COMPONENT,
+        'inputs' => [
+          'heading' => [
+            'sourceType' => 'static:field_item:string',
+            'value' => 'Test Code Component Heading',
+            'expression' => 'ℹ︎string␟value',
+          ],
+          'content' => [
+            'sourceType' => 'static:field_item:string',
+            'value' => 'This is a test code component for testing the Edit component action',
+            'expression' => 'ℹ︎string␟value',
+          ],
+        ],
+      ],
+      // Test edge cases in representations:
+      // - server aims to minimize storage
+      // - client should be as simple as possible
+      // @see docs/data-model.md
+      // @see docs/adr/0005-Keep-the-front-end-simple.md
+      [
+        'parent_uuid' => self::UUID_TWO_COLUMN_UUID,
+        'slot' => 'column_one',
+        'uuid' => self::UUID_ALL_SLOTS_EMPTY,
+        'component_id' => 'sdc.experience_builder.one_column',
+        'inputs' => [
+          'width' => [
+            'sourceType' => 'static:field_item:list_string',
+            'value' => 'full',
+            'expression' => 'ℹ︎list_string␟value',
+            'sourceTypeSettings' => [
+              'storage' => [
+                'allowed_values' => [
+                  [
+                    'value' => 'full',
+                    'label' => 'full',
+                  ],
+                  [
+                    'value' => 'wide',
+                    'label' => 'wide',
+                  ],
+                  [
+                    'value' => 'normal',
+                    'label' => 'normal',
+                  ],
+                  [
+                    'value' => 'narrow',
+                    'label' => 'narrow',
+                  ],
                 ],
               ],
             ],
           ],
         ],
       ],
-      'static-static-card2df' => [
-        'heading' => [
-          'sourceType' => 'static:field_item:string',
-          'value' => 'XB Needs This For The Time Being',
-          'expression' => 'ℹ︎string␟value',
+      [
+        'parent_uuid' => self::UUID_TWO_COLUMN_UUID,
+        'slot' => 'column_two',
+        'uuid' => self::UUID_STATIC_CARD2,
+        'component_id' => 'sdc.experience_builder.my-hero',
+        'inputs' => [
+          'heading' => [
+            'sourceType' => 'static:field_item:string',
+            'value' => 'XB Needs This For The Time Being',
+            'expression' => 'ℹ︎string␟value',
+          ],
+          'cta1href' => $cta1href,
         ],
-        'cta1href' => $cta1href,
       ],
-      'static-static-card1ab' => [
-        'heading' => [
-          'sourceType' => 'static:field_item:string',
-          'value' => 'hello, world!',
-          'expression' => 'ℹ︎string␟value',
+      [
+        'parent_uuid' => self::UUID_TWO_COLUMN_UUID,
+        'slot' => 'column_two',
+        'uuid' => self::UUID_STATIC_CARD3,
+        'component_id' => 'sdc.experience_builder.my-hero',
+        'inputs' => [
+          'heading' => [
+            'sourceType' => 'static:field_item:string',
+            'value' => 'XB Needs This For The Time Being',
+            'expression' => 'ℹ︎string␟value',
+          ],
+          'cta1href' => [
+            'value' => $use_uri ? $fileUrl : ['uri' => $fileUrl],
+          ] + $cta1href,
         ],
-        'cta1href' => $cta1href,
       ],
-      'static-static-card3rr' => [
-        'heading' => [
-          'sourceType' => 'static:field_item:string',
-          'value' => 'XB Needs This For The Time Being',
-          'expression' => 'ℹ︎string␟value',
-        ],
-        'cta1href' => [
-          'value' => $use_uri ? $fileUrl : ['uri' => $fileUrl],
-        ] + $cta1href,
-      ],
-      'static-image-udf7d' => [
-        'image' => $static_image_prop_source,
-      ],
-      'static-image-static-imageStyle-something7d' => [
-        'image' => [
-          'sourceType' => 'adapter:image_apply_style',
-          'adapterInputs' => [
-            // This expression resolves `src` to the image's stream wrapper URI.
-            'image' => [
-              'expression' => 'ℹ︎entity_reference␟{src↝entity␜␜entity:media:image␝field_media_image␞␟entity␜␜entity:file␝uri␞␟value,alt↝entity␜␜entity:media:image␝field_media_image␞␟alt,width↝entity␜␜entity:media:image␝field_media_image␞␟width,height↝entity␜␜entity:media:image␝field_media_image␞␟height}',
-            ] + $static_image_prop_source,
-            'imageStyle' => [
-              'sourceType' => 'static:field_item:string',
-              'value' => 'thumbnail',
-              'expression' => 'ℹ︎string␟value',
+      [
+        'parent_uuid' => self::UUID_TWO_COLUMN_UUID,
+        'slot' => 'column_two',
+        'uuid' => self::UUID_ADAPTED_IMAGE,
+        'component_id' => 'sdc.experience_builder.image',
+        'inputs' => [
+          'image' => [
+            'sourceType' => 'adapter:image_apply_style',
+            'adapterInputs' => [
+              // This expression resolves `src` to the image's stream wrapper URI.
+              'image' => [
+                'expression' => 'ℹ︎entity_reference␟{src↝entity␜␜entity:media:image␝field_media_image␞␟entity␜␜entity:file␝uri␞␟value,alt↝entity␜␜entity:media:image␝field_media_image␞␟alt,width↝entity␜␜entity:media:image␝field_media_image␞␟width,height↝entity␜␜entity:media:image␝field_media_image␞␟height}',
+              ] + $static_image_prop_source,
+              'imageStyle' => [
+                'sourceType' => 'static:field_item:string',
+                'value' => 'thumbnail',
+                'expression' => 'ℹ︎string␟value',
+              ],
             ],
           ],
         ],
       ],
-      'cea4c5b3-7921-4c6f-b388-da921bd1496d' => [],
     ];
-
     // Add a Media Library field to the article content type so we can
     // confirm it works in both page data and context forms.
     FieldStorageConfig::create([
@@ -388,10 +402,7 @@ class XBTestSetup implements TestSetupInterface {
       'field_hero' => $image_field_sample_value,
       // @todo Add E2E test coverage for starting with an empty canvas in
       //   https://drupal.org/i/3474257.
-      'field_xb_demo' => [
-        'tree' => $tree,
-        'inputs' => $inputs,
-      ],
+      'field_xb_demo' => $items,
     ]);
 
     $node->save();
@@ -402,17 +413,18 @@ class XBTestSetup implements TestSetupInterface {
       'field_hero' => $image_field_sample_value,
     ]);
     $empty_node->save();
-
-    $tree['two-column-uuid']['column_one'][] = [
-      'uuid' => 'cea4c5b3-7921-4c6f-b388-da921bd1496d',
-      'component' => 'block.system_menu_block.admin',
-    ];
-    $inputs['cea4c5b3-7921-4c6f-b388-da921bd1496d'] = [
-      'label' => 'Administration',
-      'label_display' => FALSE,
-      'level' => 1,
-      'depth' => 0,
-      'expand_all_items' => FALSE,
+    $items[] = [
+      'parent_uuid' => self::UUID_TWO_COLUMN_UUID,
+      'slot' => 'column_one',
+      'component_id' => 'block.system_menu_block.admin',
+      'uuid' => self::UUID_EMPTY_COMPONENT,
+      'inputs' => [
+        'label' => 'Administration',
+        'label_display' => FALSE,
+        'level' => 1,
+        'depth' => 0,
+        'expand_all_items' => FALSE,
+      ],
     ];
     $node = Node::create([
       'type' => 'article',
@@ -421,10 +433,7 @@ class XBTestSetup implements TestSetupInterface {
       'field_hero' => $image_field_sample_value,
       // @todo Add E2E test coverage for starting with an empty canvas in
       //   https://drupal.org/i/3474257.
-      'field_xb_demo' => [
-        'tree' => $tree,
-        'inputs' => $inputs,
-      ],
+      'field_xb_demo' => $items,
     ]);
     $node->save();
 
@@ -433,27 +442,21 @@ class XBTestSetup implements TestSetupInterface {
       'description' => 'This is the homepage',
       'path' => ['alias' => '/homepage'],
       'components' => [
-        'tree' => [
-          ComponentTreeStructure::ROOT_UUID => [
-            [
-              'uuid' => 'component-sdc',
-              'component' => 'sdc.xb_test_sdc.props-slots',
-            ],
-            [
-              'uuid' => 'component-block',
-              'component' => 'block.system_branding_block',
-            ],
-          ],
-        ],
-        'inputs' => [
-          'component-sdc' => [
+        [
+          'uuid' => self::UUID_COMPONENT_SDC,
+          'component_id' => 'sdc.xb_test_sdc.props-slots',
+          'inputs' => [
             'heading' => [
               'sourceType' => 'static:field_item:string',
               'value' => 'Welcome to the site!',
               'expression' => 'ℹ︎string␟value',
             ],
           ],
-          'component-block' => [
+        ],
+        [
+          'uuid' => self::UUID_COMPONENT_BLOCK,
+          'component_id' => 'block.system_branding_block',
+          'inputs' => [
             'label' => '',
             'label_display' => FALSE,
             'use_site_logo' => TRUE,

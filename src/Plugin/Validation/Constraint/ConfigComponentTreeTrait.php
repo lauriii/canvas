@@ -10,7 +10,7 @@ use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
 trait ConfigComponentTreeTrait {
 
   /**
-   * @param array{tree: string, inputs: string} $value
+   * @param array{uuid: string, inputs: string|array, component_id: string, parent_uuid?: string, slot?: string} $value
    *
    * @return \Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem
    */

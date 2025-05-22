@@ -8,13 +8,14 @@ use Drupal\Core\Database\Database;
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\RevisionableStorageInterface;
 use Drupal\Core\Extension\ModuleUninstallValidatorException;
+use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\experience_builder\Entity\Page;
-use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\taxonomy\Entity\Term;
 use Drupal\taxonomy\Entity\Vocabulary;
+use Drupal\Tests\experience_builder\TestSite\XBTestSetup;
 use Drupal\Tests\experience_builder\Traits\ContribStrictConfigSchemaTestTrait;
 use Drupal\Tests\node\Traits\NodeCreationTrait;
 
@@ -148,6 +149,7 @@ final class FieldTypeUninstallValidatorTest extends KernelTestBase {
       'entity_type' => 'taxonomy_term',
       'field_name' => 'field_tag_test',
       'type' => 'component_tree',
+      'cardinality' => FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED,
     ])->save();
 
     FieldConfig::create([
@@ -234,26 +236,20 @@ final class FieldTypeUninstallValidatorTest extends KernelTestBase {
 
   private function getComponentTreeItemValue(bool $include_link): array {
     $component_tree_item = [
-      'tree' => [
-        ComponentTreeStructure::ROOT_UUID => [
-          [
-            'uuid' => 'dynamic-static-card2df',
-            'component' => 'sdc.sdc_test.my-cta',
+      [
+        'uuid' => XBTestSetup::UUID_STATIC_CARD1,
+        'component_id' => 'sdc.sdc_test.my-cta',
+        'inputs' => [
+          'text' => [
+            'sourceType' => 'static:field_item:string',
+            'value' => 'hello, world!',
+            'expression' => 'ℹ︎string␟value',
           ],
         ],
       ],
     ];
-    $inputs = [
-      'dynamic-static-card2df' => [
-        'text' => [
-          'sourceType' => 'static:field_item:string',
-          'value' => 'hello, world!',
-          'expression' => 'ℹ︎string␟value',
-        ],
-      ],
-    ];
     if ($include_link) {
-      $inputs['dynamic-static-card2df']['href'] = [
+      $component_tree_item[0]['inputs']['href'] = [
         'sourceType' => 'static:field_item:link',
         'value' => [
           'uri' => 'https://drupal.org',
@@ -263,7 +259,6 @@ final class FieldTypeUninstallValidatorTest extends KernelTestBase {
         'expression' => 'ℹ︎link␟uri',
       ];
     }
-    $component_tree_item['inputs'] = $inputs;
     return $component_tree_item;
   }
 

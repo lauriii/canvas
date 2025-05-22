@@ -8,17 +8,21 @@ use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
 use Drupal\Core\TypedData\TypedDataManagerInterface;
 use Drupal\experience_builder\Entity\Component;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
+use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemListInstantiatorTrait;
+use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemList;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\Validator\Constraint;
 use Symfony\Component\Validator\ConstraintValidator;
 
 final class ComponentTreeMeetsRequirementsConstraintValidator extends ConstraintValidator implements ContainerInjectionInterface {
 
-  use ConfigComponentTreeTrait;
+  use ComponentTreeItemListInstantiatorTrait;
 
   public function __construct(
-    private readonly TypedDataManagerInterface $typedDataManager,
-  ) {}
+    TypedDataManagerInterface $typedDataManager,
+  ) {
+    $this->setTypedDataManager($typedDataManager);
+  }
 
   /**
    * {@inheritdoc}
@@ -37,21 +41,39 @@ final class ComponentTreeMeetsRequirementsConstraintValidator extends Constraint
     if ($value === NULL) {
       return;
     }
-    // Regardless of how many component trees the requirements span, always
-    // generate an array of ComponentTreeItem objects, to simplify validation.
-    $component_tree = match (TRUE) {
+    // Regardless of whether we're passed a single array, an array of arrays
+    // a component tree item list or a single component tree item, generate a
+    // ComponentTreeItemList object, to simplify validation.
+    $component_tree_item_list_factory = match (TRUE) {
       // A single content-defined component tree.
-      $value instanceof ComponentTreeItem => $value,
+      $value instanceof ComponentTreeItemList => static fn ($value): ComponentTreeItemList => $value,
+      // A single content-defined component tree item.
+      $value instanceof ComponentTreeItem => function ($value): ComponentTreeItemList {
+        $list = $this->createDanglingComponentTreeItemList();
+        $list->setValue([$value->toArray()]);
+        return $list;
+      },
+      // A multi-value config-defined component tree.
+      is_array($value) && \array_is_list($value) => function ($value): ComponentTreeItemList {
+        $list = $this->createDanglingComponentTreeItemList();
+        $list->setValue($value);
+        return $list;
+      },
       // A single config-defined component tree.
-      // @phpstan-ignore-next-line
-      is_array($value) => $this->conjureFieldItemObject($value),
+      is_array($value) => function ($value): ComponentTreeItemList {
+        $list = $this->createDanglingComponentTreeItemList();
+        $list->setValue([$value]);
+        return $list;
+      },
       default => throw new \UnexpectedValueException(sprintf('The value must be a ComponentTreeItem object, an array representing a single component tree, found %s.', gettype($value)))
     };
-    assert($component_tree instanceof ComponentTreeItem);
+    \assert(\is_callable($component_tree_item_list_factory));
+    $component_tree_item_list = $component_tree_item_list_factory($value);
+    assert($component_tree_item_list instanceof ComponentTreeItemList);
 
     // Perform the necessary detections to check against what the constraint
     // options specify.
-    $detected_component_ids = $component_tree->get('tree')->getComponentIdList();
+    $detected_component_ids = \array_unique(\array_filter(\array_column($component_tree_item_list->getValue(), 'component_id')));
     sort($detected_component_ids);
     $detected_component_classes = Component::getClasses($detected_component_ids);
     $detected_component_interfaces = [];
@@ -59,9 +81,8 @@ final class ComponentTreeMeetsRequirementsConstraintValidator extends Constraint
       // @phpstan-ignore arrayUnpacking.nonIterable
       $detected_component_interfaces = [...$detected_component_interfaces, ...class_implements($fqcn)];
     }
-    $detected_component_interfaces = array_unique($detected_component_interfaces);
-    sort($detected_component_interfaces);
-    $detected_prop_source_prefixes = $component_tree->get('inputs')->getPropSourceTypePrefixList();
+    $detected_component_interfaces = \array_unique($detected_component_interfaces);
+    $detected_prop_source_prefixes = $component_tree_item_list->getPropSourceTypePrefixList();
     sort($detected_prop_source_prefixes);
 
     foreach (['tree:component_ids', 'tree:component_interfaces', 'inputs:prop_sources'] as $aspect_to_check) {

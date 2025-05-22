@@ -109,24 +109,30 @@ describe.skip('Drag and drop functionality in the Layers menu', () => {
     assertPageStateAfterFirstDrag();
     // This is the "Image" inside the layers tree
     cy.get(
-      '.primaryPanelContent [data-xb-uuid="static-image-udf7d"][data-state]',
+      // @see \Drupal\Tests\experience_builder\TestSite\XBTestSetup
+      '.primaryPanelContent [data-xb-uuid="8f6780cd-7b64-499e-9545-321a14951a0d"][data-state]',
     ).should('exist');
     cy.get(
-      '.primaryPanelContent [data-xb-uuid="two-column-uuid/column_two"] [aria-label="Expand slot"]',
+      // @see \Drupal\Tests\experience_builder\TestSite\XBTestSetup
+      '.primaryPanelContent [data-xb-uuid="16176e0b-8197-40e3-ad49-48f1b6e9a7f9/column_two"] [aria-label="Expand slot"]',
     ).should('exist');
     cy.get(
-      '.primaryPanelContent [data-xb-uuid="two-column-uuid/column_two"] [aria-label="Expand slot"]',
+      // @see \Drupal\Tests\experience_builder\TestSite\XBTestSetup
+      '.primaryPanelContent [data-xb-uuid="16176e0b-8197-40e3-ad49-48f1b6e9a7f9/column_two"] [aria-label="Expand slot"]',
     ).click();
     // This confirms the slot is expanded.
     cy.get(
-      '.primaryPanelContent [data-xb-uuid="static-static-card2df"]',
+      // @see \Drupal\Tests\experience_builder\TestSite\XBTestSetup
+      '.primaryPanelContent [data-xb-uuid="4d866c38-7261-45c6-9b1e-0b94096d51e8"]',
     ).should('exist');
 
     // Next, drag the image component from the root level to column two's slot.
     cy.get(
-      '.primaryPanelContent [data-xb-uuid="static-image-udf7d"][data-state]',
+      // @see \Drupal\Tests\experience_builder\TestSite\XBTestSetup
+      '.primaryPanelContent [data-xb-uuid="8f6780cd-7b64-499e-9545-321a14951a0d"][data-state]',
     ).realDnd(
-      '.primaryPanelContent [data-xb-uuid="two-column-uuid/column_two"][data-xb-type="slot"]',
+      // @see \Drupal\Tests\experience_builder\TestSite\XBTestSetup
+      '.primaryPanelContent [data-xb-uuid="16176e0b-8197-40e3-ad49-48f1b6e9a7f9/column_two"][data-xb-type="slot"]',
       {
         position: 'center',
         scrollBehavior: false,
@@ -137,7 +143,8 @@ describe.skip('Drag and drop functionality in the Layers menu', () => {
     // After dragging, check that the image is now in column two's slot in the layers menu and preview.
     cy.log('Image component exists in the second slot in the layers panel');
     cy.get(
-      '.primaryPanelContent [data-xb-slot-id="two-column-uuid/column_two"] span',
+      // @see \Drupal\Tests\experience_builder\TestSite\XBTestSetup
+      '.primaryPanelContent [data-xb-slot-id="16176e0b-8197-40e3-ad49-48f1b6e9a7f9/column_two"] span',
     )
       .contains('Image')
       .should('have.length', 1);

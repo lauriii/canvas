@@ -7,7 +7,6 @@ namespace Drupal\Tests\experience_builder\Kernel\Config;
 use Drupal\Core\Extension\ThemeInstallerInterface;
 use Drupal\experience_builder\Entity\PageRegion;
 use Drupal\experience_builder\Exception\ConstraintViolationException;
-use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 use Drupal\Tests\experience_builder\Traits\BetterConfigDependencyManagerTrait;
 use Drupal\Tests\experience_builder\Traits\ConstraintViolationsTestTrait;
 use Drupal\Tests\experience_builder\Traits\GenerateComponentConfigTrait;
@@ -44,18 +43,11 @@ class PageRegionValidationTest extends BetterConfigEntityValidationTestBase {
   ];
 
   /**
-   * {@inheritdoc}
+   * An empty tree is allowed.
    *
-   * @phpstan-ignore property.defaultValue
+   * @var array|string[]
    */
-  protected static array $propertiesWithRequiredKeys = [
-    'component_tree' => [
-      "'tree' is a required key.",
-      "'inputs' is a required key.",
-      "The array must contain a \"tree\" key.",
-      "The array must contain an \"inputs\" key.",
-    ],
-  ];
+  protected static array $propertiesWithOptionalValues = ['component_tree'];
 
   /**
    * {@inheritdoc}
@@ -74,26 +66,32 @@ class PageRegionValidationTest extends BetterConfigEntityValidationTestBase {
       'theme' => 'stark',
       'region' => 'sidebar_first',
       'component_tree' => [
-        'tree' => [
-          ComponentTreeStructure::ROOT_UUID => [
-            ['uuid' => 'uuid-in-root', 'component' => 'sdc.xb_test_sdc.props-no-slots'],
-            ['uuid' => 'uuid-in-root-another', 'component' => 'sdc.xb_test_sdc.props-no-slots'],
-            ['uuid' => 'uuid-title', 'component' => 'block.page_title_block'],
-            ['uuid' => 'uuid-messages', 'component' => 'block.system_messages_block'],
-          ],
-        ],
-        'inputs' => [
-          'uuid-in-root' => [
+        [
+          'uuid' => '4f785025-9bd9-4752-9dd6-068b957b03ee',
+          'component_id' => 'sdc.xb_test_sdc.props-no-slots',
+          'inputs' => [
             'heading' => $generate_static_prop_source('world'),
           ],
-          'uuid-in-root-another' => [
+        ],
+        [
+          'uuid' => '3a76bf4f-9306-43e6-ba8f-cb4b5b6459df',
+          'component_id' => 'sdc.xb_test_sdc.props-no-slots',
+          'inputs' => [
             'heading' => $generate_static_prop_source('another world'),
           ],
-          'uuid-messages' => [
+        ],
+        [
+          'uuid' => '93af433a-8ab0-4dd9-912a-73a99c882347',
+          'component_id' => 'block.page_title_block',
+          'inputs' => [
             'label' => '',
             'label_display' => FALSE,
           ],
-          'uuid-title' => [
+        ],
+        [
+          'uuid' => '5f1c5361-5658-467e-9c53-b0015d57945d',
+          'component_id' => 'block.system_messages_block',
+          'inputs' => [
             'label' => '',
             'label_display' => FALSE,
           ],
@@ -205,13 +203,10 @@ class PageRegionValidationTest extends BetterConfigEntityValidationTestBase {
   public static function providerInvalidComponentTree(): \Generator {
     yield "using DynamicPropSource" => [
       'component_tree' => [
-        'tree' => [
-          ComponentTreeStructure::ROOT_UUID => [
-            ['uuid' => 'uuid-in-root', 'component' => 'sdc.xb_test_sdc.props-no-slots'],
-          ],
-        ],
-        'inputs' => [
-          'uuid-in-root' => [
+        [
+          'uuid' => '4f785025-9bd9-4752-9dd6-068b957b03ee',
+          'component_id' => 'sdc.xb_test_sdc.props-no-slots',
+          'inputs' => [
             'heading' => [
               'sourceType' => 'dynamic',
               'expression' => 'ℹ︎␜entity:node:article␝title␞␟value',
@@ -221,6 +216,130 @@ class PageRegionValidationTest extends BetterConfigEntityValidationTestBase {
       ],
       'expected_messages' => [
         'component_tree' => "The 'dynamic' prop source type must be absent.",
+      ],
+    ];
+
+    yield "duplicate uuid" => [
+      'component_tree' => [
+        [
+          'uuid' => 'fa9ff0a8-e23a-492a-ab14-5460611fa2c1',
+          'component_id' => 'sdc.xb_test_sdc.props-slots',
+          'inputs' => [
+            'heading' => [
+              'sourceType' => 'static:field_item:string',
+              'value' => "Ghosts crowd the young child's",
+              'expression' => 'ℹ︎string␟value',
+            ],
+          ],
+        ],
+        [
+          'uuid' => 'fa9ff0a8-e23a-492a-ab14-5460611fa2c1',
+          'component_id' => 'sdc.xb_test_sdc.props-slots',
+          'inputs' => [
+            'heading' => [
+              'sourceType' => 'static:field_item:string',
+              'value' => 'Fragile eggshell mind',
+              'expression' => 'ℹ︎string␟value',
+            ],
+          ],
+        ],
+      ],
+      'expected_messages' => [
+        'component_tree' => 'The UUID should be unique.',
+      ],
+    ];
+
+    yield "not a uuid" => [
+      'component_tree' => [
+        [
+          'uuid' => 'you-are-a-wizard-harry',
+          'component_id' => 'sdc.xb_test_sdc.props-slots',
+          'inputs' => [
+            'heading' => [
+              'sourceType' => 'static:field_item:string',
+              'value' => "Ghosts crowd the young child's",
+              'expression' => 'ℹ︎string␟value',
+            ],
+          ],
+        ],
+        [
+          'uuid' => 'fa9ff0a8-e23a-492a-ab14-5460611fa2c1',
+          'component_id' => 'sdc.xb_test_sdc.props-slots',
+          'inputs' => [
+            'heading' => [
+              'sourceType' => 'static:field_item:string',
+              'value' => 'Fragile eggshell mind',
+              'expression' => 'ℹ︎string␟value',
+            ],
+          ],
+        ],
+      ],
+      'expected_messages' => [
+        'component_tree.0.uuid' => 'This is not a valid UUID.',
+      ],
+    ];
+
+    yield "invalid parent" => [
+      'component_tree' => [
+        [
+          'uuid' => 'fa9ff0a8-e23a-492a-ab14-5460611fa2c1',
+          'component_id' => 'sdc.xb_test_sdc.props-slots',
+          'inputs' => [
+            'heading' => [
+              'sourceType' => 'static:field_item:string',
+              'value' => 'And we laugh like soft, mad children',
+              'expression' => 'ℹ︎string␟value',
+            ],
+          ],
+        ],
+        [
+          'uuid' => 'e303dd88-9409-4dc7-8a8b-a31602884a94',
+          'slot' => 'the_body',
+          'parent_uuid' => '6381352f-5b0a-4ca1-960d-a5505b37b27c',
+          'component_id' => 'sdc.xb_test_sdc.props-slots',
+          'inputs' => [
+            'heading' => [
+              'sourceType' => 'static:field_item:string',
+              'value' => ' Smug in the wooly cotton brains of infancy',
+              'expression' => 'ℹ︎string␟value',
+            ],
+          ],
+        ],
+      ],
+      'expected_messages' => [
+        'component_tree.1.parent_uuid' => 'Invalid component tree item with UUID <em class="placeholder">e303dd88-9409-4dc7-8a8b-a31602884a94</em> references an invalid parent <em class="placeholder">6381352f-5b0a-4ca1-960d-a5505b37b27c</em>.',
+      ],
+    ];
+
+    yield "invalid slot" => [
+      'component_tree' => [
+        [
+          'uuid' => 'fa9ff0a8-e23a-492a-ab14-5460611fa2c1',
+          'component_id' => 'sdc.xb_test_sdc.props-slots',
+          'inputs' => [
+            'heading' => [
+              'sourceType' => 'static:field_item:string',
+              'value' => 'And we laugh like soft, mad children',
+              'expression' => 'ℹ︎string␟value',
+            ],
+          ],
+        ],
+        [
+          'uuid' => 'e303dd88-9409-4dc7-8a8b-a31602884a94',
+          'slot' => 'banana',
+          'parent_uuid' => 'fa9ff0a8-e23a-492a-ab14-5460611fa2c1',
+          'component_id' => 'sdc.xb_test_sdc.props-slots',
+          'inputs' => [
+            'heading' => [
+              'sourceType' => 'static:field_item:string',
+              'value' => ' Smug in the wooly cotton brains of infancy',
+              'expression' => 'ℹ︎string␟value',
+            ],
+          ],
+        ],
+      ],
+      'expected_messages' => [
+        'component_tree.1.slot' => 'Invalid component subtree. This component subtree contains an invalid slot name for component <em class="placeholder">sdc.xb_test_sdc.props-slots</em>: <em class="placeholder">banana</em>. Valid slot names are: <em class="placeholder">the_body, the_footer, the_colophon</em>.',
       ],
     ];
   }
@@ -267,7 +386,7 @@ class PageRegionValidationTest extends BetterConfigEntityValidationTestBase {
         'model' => [],
       ],
       [
-        '[a548b48d-58a8-4077-aa04-da9405a6f418][0][component]' => 'This field is missing.',
+        'layout.children.0.component_id' => 'This value should not be blank.',
       ],
     ];
     yield 'INVALID: missing component' => [
@@ -282,7 +401,7 @@ class PageRegionValidationTest extends BetterConfigEntityValidationTestBase {
         'model' => [],
       ],
       [
-        '[a548b48d-58a8-4077-aa04-da9405a6f418][0][uuid]' => 'This field is missing.',
+        'layout.children.0.uuid' => 'This value should not be blank.',
       ],
     ];
     yield 'VALID: single valid region node; other regions missing — these are restored automatically from the stored Page Regions' => [

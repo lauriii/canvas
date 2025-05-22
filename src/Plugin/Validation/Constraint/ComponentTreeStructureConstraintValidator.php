@@ -5,23 +5,28 @@ declare(strict_types=1);
 namespace Drupal\experience_builder\Plugin\Validation\Constraint;
 
 use Drupal\Core\Config\Entity\ConfigEntityStorageInterface;
+use Drupal\Core\Config\Plugin\Validation\Constraint\ConfigExistsConstraint;
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\TypedData\TypedDataInterface;
 use Drupal\Core\Validation\BasicRecursiveValidatorFactory;
 use Drupal\experience_builder\ComponentSource\ComponentSourceWithSlotsInterface;
 use Drupal\experience_builder\Entity\Component;
-use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
+use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemList;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\Validator\Constraint;
 use Symfony\Component\Validator\Constraints\All;
 use Symfony\Component\Validator\Constraints\Callback;
 use Symfony\Component\Validator\Constraints\Collection;
-use Symfony\Component\Validator\Constraints\Count;
 use Symfony\Component\Validator\Constraints\NotBlank;
+use Symfony\Component\Validator\Constraints\Optional;
 use Symfony\Component\Validator\Constraints\Required;
 use Symfony\Component\Validator\Constraints\Sequentially;
 use Symfony\Component\Validator\Constraints\Type;
+use Symfony\Component\Validator\Constraints\Unique;
+use Symfony\Component\Validator\Constraints\Uuid;
 use Symfony\Component\Validator\ConstraintValidator;
+use Symfony\Component\Validator\ConstraintViolation;
 use Symfony\Component\Validator\Context\ExecutionContextInterface;
 
 final class ComponentTreeStructureConstraintValidator extends ConstraintValidator implements ContainerInjectionInterface {
@@ -50,53 +55,43 @@ final class ComponentTreeStructureConstraintValidator extends ConstraintValidato
    * {@inheritdoc}
    */
   public function validate(mixed $value, Constraint $constraint): void {
-    $tree = $value;
-    if (is_string($tree)) {
-      $tree = json_decode($value, TRUE);
+    if ($value === NULL) {
+      return;
     }
-    if (!is_array($tree)) {
-      throw new \UnexpectedValueException(sprintf('The value must be a valid JSON string, found %s.', $value));
+    if ($value instanceof ComponentTreeItemList) {
+      $value = $value->getValue();
     }
-    $this->validateTree($tree);
-    foreach (array_keys($tree) as $uuid) {
-      assert(is_string($uuid));
-      if ($uuid === ComponentTreeStructure::ROOT_UUID) {
-        continue;
-      }
-      if (!self::isUuidInTree($tree, $uuid)) {
-        $this->context->buildViolation("Dangling component subtree. This component subtree claims to be for a component instance with UUID %uuid, but no such component instance can be found.")
-          ->setParameter('%uuid', $uuid)
-          ->atPath("[$uuid]")
-          ->addViolation();
-      }
+    \assert($constraint instanceof ComponentTreeStructureConstraint);
+    $base_property_path = $constraint->basePropertyPath;
+    if ($base_property_path === '') {
+      $base_property_path = $this->context->getPropertyPath();
     }
-  }
-
-  private static function isUuidInTree(array $tree, string $uuid): bool {
-    foreach ($tree as $top_level_uuid => $component_subtree) {
-      if ($top_level_uuid === $uuid) {
-        // Do not search for the UUID in its own component subtree.
-        continue;
-      }
-      if ($top_level_uuid === ComponentTreeStructure::ROOT_UUID) {
-        // The root subtree contains "uuid-component" tuples directly.
-        if (in_array($uuid, array_column($component_subtree, 'uuid'), TRUE)) {
-          return TRUE;
-        }
-      }
-      else {
-        // Non-root subtrees contain slots and "uuid,component" tuples in each slot.
-        foreach ($component_subtree as $slots) {
-          if (in_array($uuid, array_column($slots, 'uuid'), TRUE)) {
-            return TRUE;
-          }
-        }
+    $delta = NULL;
+    $parent_property_name = '';
+    $object = $this->context->getObject();
+    if (\is_array($value) && !\array_is_list($value) && $object instanceof TypedDataInterface) {
+      $type = $object->getDataDefinition()->getDataType();
+      if ($type === 'field.value.component_tree' && ($parent = $object->getParent()) !== NULL) {
+        $root_property_path_length = \strlen($object->getRoot()->getPropertyPath()) + 1;
+        $delta = \substr($object->getPropertyPath(), $root_property_path_length);
+        $parent_property_name = \substr($object->getParent()->getPropertyPath(), $root_property_path_length);
+        // We can only validate a single field value item in the case of a
+        // default value for a field. So we need to traverse to the parent to
+        // get the complete values for validation-sake. This is because the
+        // 'field_config_base' data-type defines the 'default_value' as a
+        // sequence of 'field.value.[%parent.%parent.field_type]' items and
+        // therefore a field-type cannot control the sequence, only the
+        // individual items in the sequence. We instead validate the parent
+        // value so we have access to all the default values instead of a single
+        // one.
+        // @see core.data_types.schema.yml
+        $value = $parent->getValue();
       }
     }
-    return FALSE;
-  }
-
-  private function validateTree(array $tree): void {
+    if (!is_array($value)) {
+      throw new \UnexpectedValueException(sprintf('The value must be a valid array, found %s.', \gettype($value)));
+    }
+    \assert($constraint instanceof ComponentTreeStructureConstraint);
     // TRICKY: The existing validator and execution context cannot be reused
     // because Drupal expects everything to be TypedData, whereas here it is a
     // plain array-based data structure.
@@ -104,63 +99,99 @@ final class ComponentTreeStructureConstraintValidator extends ConstraintValidato
     $non_typed_data_validator = $this->validatorFactory->createValidator();
 
     // Constraint to validate each component instance, which is represented in
-    // the tree by a "uuid,component" tuple.
+    // the value by a "uuid,component" tuple.
     $component_instance_constraint = new Sequentially(
       [
         new Collection([
           'uuid' => new Required([
             new Type('string'),
-            // @todo Validate that the string is a valid UUID. *And* that it is unique in the tree.
             new NotBlank(),
+            new Uuid(),
           ]),
-          'component' => new Required([
+          'component_id' => new Required([
             new Type('string'),
             new NotBlank(),
+            new ConfigExistsConstraint(['prefix' => 'experience_builder.component.']),
           ]),
-        ]),
+          'parent_uuid' => new Optional([
+            new Uuid(),
+          ]),
+          'slot' => new Optional([
+            new Type('string'),
+          ]),
+        ], allowExtraFields: TRUE),
         new Callback(
           callback: self::validateComponentInstance(...),
           payload: [
             'component_storage' => $this->componentStorage,
+            'parent_property_path' => $parent_property_name,
           ]
         ),
       ]
     );
-    // Since the root UUID has a different expected structure than other UUIDs
-    // at the top of the data structure we validate it first to avoid complicated
-    // constraints.
-    $root_constraints = new Collection(
-      [
-        ComponentTreeStructure::ROOT_UUID => new Required([
-          new Type('array'),
-          new All([$component_instance_constraint]),
-        ],
-        ),
-      ],
-      missingFieldsMessage: 'The root UUID is missing.'
-    );
-    $root_constraints->allowExtraFields = TRUE;
-    $violations = $non_typed_data_validator->validate($tree, $root_constraints);
 
-    // Finally, validate all other component subtrees.
-    unset($tree[ComponentTreeStructure::ROOT_UUID]);
-    $other_subtrees_constraints = new All([
-      new Count(['min' => 1], minMessage: 'Empty component subtree. A component subtree must contain >=1 populated slot (with >=1 component instance). Empty component subtrees must be omitted.'),
-      new All([
-        new Sequentially([
-          new Type('array'),
-          new Count(['min' => 1], minMessage: 'Empty slot. Slots without component instances must be omitted.'),
-          new All([$component_instance_constraint]),
-        ]),
+    $violations = $non_typed_data_validator->validate($value, [
+      // Use sequentially because if the data is not an array, or is so mangled
+      // that we can't continue, we don't want to attempt subsequent validation.
+      new Sequentially([
+        new Type('array'),
+        new All([$component_instance_constraint]),
+        new Unique(fields: ['uuid'], message: 'The UUID should be unique.'),
       ]),
     ]);
-    $violations->addAll($non_typed_data_validator->validate($tree, $other_subtrees_constraints));
 
     foreach ($violations as $violation) {
-      $this->context->buildViolation((string) $violation->getMessage())
-        ->atPath($violation->getPropertyPath())
-        ->addViolation();
+      // When we're validating a default field value, we are effectively
+      // performing the tree validation for the whole tree for each delta,
+      // because core doesn't afford us the opportunity to validate it in
+      // aggregate. In this scenario, we have a store delta and only want to
+      // bubble violations that match the delta we're checking. Without this
+      // check, violations in sibling deltas are repeated for each delta.
+      // @see core.data_types.schema.yml
+      $property_path = $violation->getPropertyPath();
+      if ($delta === NULL || $property_path === '' || \str_starts_with($property_path, $delta)) {
+        // We make use of ::add instead of using ::buildViolation and casting
+        // the previous violation message to a string because the violation may
+        // make use of placeholders and if we cast the message to a string, we
+        // may end up with double escaping of placeholder that make use of <em>
+        // tags.
+        $new_path = self::translatePropertyPath($base_property_path, $property_path, $this->context->getPropertyPath());
+        $this->context->getViolations()->add(new ConstraintViolation(
+          $violation->getMessage(),
+          $violation->getMessageTemplate(),
+          $violation->getParameters(),
+          // Use the original root.
+          $this->context->getRoot(),
+          // And the translated path.
+          $new_path,
+          $violation->getInvalidValue(),
+          $violation->getPlural(),
+          $violation->getCode(),
+          $violation->getConstraint(),
+          $violation->getCause(),
+        ));
+      }
     }
+  }
+
+  private static function translatePropertyPath(string $base_path, string $property_path, string $context_path = ''): string {
+    // Ensure we retain Drupal's dot based property paths instead of Symfony's
+    // [] based notation.
+    $new_path = \str_replace(
+      ['][', '[', ']'],
+      ['.', '', ''],
+      \trim($base_path . '.' . $property_path, '.'),
+    );
+    if ($context_path !== '' &&
+      \str_starts_with($new_path, $context_path) &&
+      \substr_count($new_path, $context_path) > 1) {
+      // Don't duplicate the context path.
+      // Because we're mixing both the typed-data and non typed-data validators
+      // here, we need to extra work to make sure the property paths are
+      // accurate and consistent.
+      return \trim(\substr($new_path, \strlen($context_path)), '.');
+    }
+    return $new_path;
   }
 
   private static function validateComponentInstance(array $component_instance, ExecutionContextInterface $context, array $payload): void {
@@ -169,16 +200,9 @@ final class ComponentTreeStructureConstraintValidator extends ConstraintValidato
     assert($component_storage->getEntityTypeId() === 'component');
     $tree = $context->getRoot();
 
-    if (!isset($component_instance['component'])) {
-      // The \Symfony\Component\Validator\Constraints\Collection constraint
-      // will add the violations for the unset key.
-      return;
-    }
-    $component_config_entity = $component_storage->load($component_instance['component']);
-    if ($component_config_entity === NULL) {
-      $context->addViolation('The component %component does not exist.', ['%component' => $component_instance['component']]);
-      return;
-    }
+    /** @var string $parent_property_path */
+    $parent_property_path = $payload['parent_property_path'];
+
     if (!isset($component_instance['uuid'])) {
       // The \Symfony\Component\Validator\Constraints\Collection constraint
       // will add the violations for the unset key.
@@ -191,38 +215,78 @@ final class ComponentTreeStructureConstraintValidator extends ConstraintValidato
       $context->getValue(),
       $context->getObject(),
       $context->getMetadata(),
-      '',
+      self::translatePropertyPath($parent_property_path, $original_property_path)
     );
 
-    $component_entity = Component::load($component_instance['component']);
-    assert($component_entity instanceof Component);
-    $component_source = $component_entity->getComponentSource();
-    if ($component_source instanceof ComponentSourceWithSlotsInterface) {
-      $slots = $component_source->getSlotDefinitions();
-      if (empty($slots)) {
-        if (isset($tree[$component_instance['uuid']])) {
-          $context->buildViolation('Invalid component subtree. A component subtree must only exist for components with >=1 slot, but the component %component has no slots, yet a subtree exists for the instance with UUID %uuid.', [
-            '%component' => $component_instance['component'],
-            '%uuid' => $component_instance['component'],
-          ])
-            ->atPath('[' . $component_instance['uuid'] . ']')
-            ->addViolation();
-        }
-      }
-      elseif (isset($tree[$component_instance['uuid']])) {
-        $tree_slot_info = $tree[$component_instance['uuid']];
-        $actual_slot_names = array_keys($slots);
-        $unknown_slot_names = array_diff(array_keys($tree_slot_info), $actual_slot_names);
-        foreach ($unknown_slot_names as $unknown_slot_name) {
-          $context->buildViolation('Invalid component subtree. This component subtree contains an invalid slot name for component %component: %invalid_slot_name. Valid slot names are: %valid_slot_names.', [
-            '%component' => $component_instance['component'],
-            '%invalid_slot_name' => $unknown_slot_name,
-            '%valid_slot_names' => implode(', ', $actual_slot_names),
-          ])
-            ->atPath('[' . $component_instance['uuid'] . '][' . $unknown_slot_name . ']')
-            ->addViolation();
-        }
-      }
+    if (empty($component_instance['parent_uuid'])) {
+      return;
+    }
+
+    if ($component_instance['parent_uuid'] === $component_instance['uuid']) {
+      $context->buildViolation('Invalid component tree item with UUID %uuid claims to be parent of itself.', [
+        '%uuid' => $component_instance['uuid'],
+      ])
+        ->atPath('parent_uuid')
+        ->addViolation();
+    }
+
+    if (empty($component_instance['slot'])) {
+      $context->buildViolation('Invalid component tree item with UUID %uuid. A slot name must be present if a parent uuid is provided.', [
+        '%uuid' => $component_instance['uuid'],
+      ])
+        ->atPath('slot')
+        ->addViolation();
+      return;
+    }
+
+    $parent = \array_filter($tree, static fn (array $item) => $item['uuid'] === $component_instance['parent_uuid']);
+    // @todo For 'bonsai' trees, the parent may not be in the corresponding
+    //   parent list but in a ContentTemplate for the parent entity. Add UUIDs
+    //   from any relevant ContentTemplates for this entity -
+    //   https://drupal.org/i/3519352
+    if (\count($parent) === 0) {
+      $context->buildViolation('Invalid component tree item with UUID %uuid references an invalid parent %parent_uuid.', [
+        '%uuid' => $component_instance['uuid'],
+        '%parent_uuid' => $component_instance['parent_uuid'],
+      ])
+        ->atPath('parent_uuid')
+        ->addViolation();
+      return;
+    }
+
+    $parent_instance = \reset($parent);
+    $parent_config_entity = $component_storage->load($parent_instance['component_id']);
+    if ($parent_config_entity === NULL) {
+      $context->buildViolation('Invalid component tree item with UUID %uuid references an invalid parent %parent_uuid component %component.', [
+        '%uuid' => $component_instance['uuid'],
+        '%parent_uuid' => $component_instance['parent_uuid'],
+        '%component' => $parent_instance['component_id'],
+      ])
+        ->atPath('parent_uuid')
+        ->addViolation();
+      return;
+    }
+
+    assert($parent_config_entity instanceof Component);
+    $component_source = $parent_config_entity->getComponentSource();
+    $slots = $component_source instanceof ComponentSourceWithSlotsInterface ? $component_source->getSlotDefinitions() : [];
+    if (\count($slots) === 0) {
+      $context->buildViolation('Invalid component subtree. A component subtree must only exist for components with >=1 slot, but the component %component has no slots, yet a subtree exists for the instance with UUID %uuid.', [
+        '%component' => $parent_instance['component_id'],
+        '%uuid' => $parent_instance['uuid'],
+      ])
+        ->atPath('parent_uuid')
+        ->addViolation();
+      return;
+    }
+    if (!\array_key_exists($component_instance['slot'], $slots)) {
+      $context->buildViolation('Invalid component subtree. This component subtree contains an invalid slot name for component %component: %invalid_slot_name. Valid slot names are: %valid_slot_names.', [
+        '%component' => $component_instance['component_id'],
+        '%invalid_slot_name' => $component_instance['slot'],
+        '%valid_slot_names' => implode(', ', \array_keys($slots)),
+      ])
+        ->atPath('slot')
+        ->addViolation();
     }
 
     // Restore property path.

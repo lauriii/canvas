@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\experience_builder;
 
 use Drupal\Component\Assertion\Inspector;
+use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Entity\EntityFieldManagerInterface;
 use Drupal\Core\Extension\ModuleUninstallValidatorInterface;
 use Drupal\Core\Field\BaseFieldDefinition;
@@ -15,7 +16,7 @@ use Drupal\Core\StringTranslation\TranslationInterface;
 use Drupal\Core\TypedData\TypedDataManagerInterface;
 use Drupal\experience_builder\Audit\ComponentTreeDependencyRepository;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
-use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemInstantiatorTrait;
+use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemListInstantiatorTrait;
 use Drupal\field\FieldConfigInterface;
 
 /**
@@ -24,7 +25,7 @@ use Drupal\field\FieldConfigInterface;
 final class FieldTypeUninstallValidator implements ModuleUninstallValidatorInterface {
 
   use StringTranslationTrait;
-  use ComponentTreeItemInstantiatorTrait;
+  use ComponentTreeItemListInstantiatorTrait;
 
   public function __construct(
     TranslationInterface $string_translation,
@@ -136,10 +137,13 @@ final class FieldTypeUninstallValidator implements ModuleUninstallValidatorInter
       if (empty($default)) {
         continue;
       }
-      $component_tree = $this->createDanglingComponentTree();
-      assert($component_tree instanceof ComponentTreeItem);
-      $component_tree->setValue($default[0]);
-      $default_inputs_deps = $component_tree->calculateFieldItemValueDependencies(TRUE);
+      $component_tree = $this->createDanglingComponentTreeItemList();
+      $component_tree->setValue($default);
+      $default_inputs_deps = [];
+      foreach ($component_tree as $item) {
+        \assert($item instanceof ComponentTreeItem);
+        $default_inputs_deps = NestedArray::mergeDeep($default_inputs_deps, $item->calculateFieldItemValueDependencies(TRUE));
+      }
       if (in_array('field_type:' . $field_type_definition['id'], $default_inputs_deps['plugin'], TRUE)) {
         $fields_using_provided_field[] = $component_field->getName();
       }

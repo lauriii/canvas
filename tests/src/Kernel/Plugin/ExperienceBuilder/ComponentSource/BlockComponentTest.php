@@ -9,7 +9,6 @@ use Drupal\Core\Extension\ModuleInstallerInterface;
 use Drupal\experience_builder\Entity\Component;
 use Drupal\experience_builder\Entity\ComponentInterface;
 use Drupal\experience_builder\Entity\Pattern;
-use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 use Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\BlockComponent;
 use Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\Fallback;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
@@ -278,14 +277,13 @@ HTML,
     $node->save();
     $xb_field_item = $node->field_xb_test[0];
     $this->assertInstanceOf(ComponentTreeItem::class, $xb_field_item);
-    $componentId = $xb_field_item->get('tree')->getComponentId($componentItemValue['uuid']);
 
-    $component = Component::load($componentId);
+    $component = $xb_field_item->getComponent();
     assert($component instanceof Component);
 
-    $explicit = $component->getComponentSource()->getExplicitInput($componentItemValue['uuid'], $xb_field_item);
+    $explicit = $component->getComponentSource()->getExplicitInput($xb_field_item->getUuid(), $xb_field_item);
     $componentSettings = $explicit;
-    $componentSettingsOriginal = $componentItemValue['inputs'][$componentItemValue['uuid']];
+    $componentSettingsOriginal = $componentItemValue[0]['inputs'];
 
     $this->assertSame($componentSettingsOriginal, $componentSettings);
   }
@@ -304,7 +302,7 @@ HTML,
       ] + $block_settings,
       'expected_validation_errors' => [],
       'expected_exception' => NULL,
-      'expected_output_selector' => '[id*="block-crash-test-dummy"]:contains("Hello, XB!")',
+      'expected_output_selector' => \sprintf('[id*="block-%s"]:contains("Hello, XB!")', static::UUID_CRASH_TEST_DUMMY),
     ];
 
     yield "Block with valid props, with exception" => [
@@ -390,13 +388,10 @@ HTML,
       'id' => 'test_pattern',
       'label' => 'Test pattern',
       'component_tree' => [
-        'tree' => [
-          ComponentTreeStructure::ROOT_UUID => [
-            ['uuid' => 'main_block', 'component' => 'block.system_menu_block.main'],
-          ],
-        ],
-        'inputs' => [
-          'main_block' => [
+        [
+          'uuid' => '75144f9b-1bfc-4874-b848-b5889f066217',
+          'component_id' => 'block.system_menu_block.main',
+          'inputs' => [
             'label' => 'Main navigation',
             'label_display' => '',
             'level' => 1,
@@ -434,13 +429,10 @@ HTML,
       'id' => 'test_pattern',
       'label' => 'Test pattern',
       'component_tree' => [
-        'tree' => [
-          ComponentTreeStructure::ROOT_UUID => [
-            ['uuid' => 'xb_test_block_input_validatable', 'component' => 'block.xb_test_block_input_validatable'],
-          ],
-        ],
-        'inputs' => [
-          'xb_test_block_input_validatable' => [
+        [
+          'uuid' => '4b26c295-c8cc-4b2d-a38a-235c6cfa1ffa',
+          'component_id' => 'block.xb_test_block_input_validatable',
+          'inputs' => [
             'name' => 'test',
             'label' => 'test',
             'label_display' => '',

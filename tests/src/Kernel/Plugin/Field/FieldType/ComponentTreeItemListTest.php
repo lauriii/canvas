@@ -2,12 +2,14 @@
 
 declare(strict_types=1);
 
-namespace Drupal\Tests\experience_builder\Kernel\DataType;
+// cspell:ignore Ipfg PKCQ
+namespace Drupal\Tests\experience_builder\Kernel\Plugin\Field\FieldType;
 
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Access\AccessResultAllowed;
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Cache\CacheableMetadata;
+use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\Render\Markup;
 use Drupal\Core\Render\RendererInterface;
 use Drupal\Core\TypedData\TypedDataManagerInterface;
@@ -15,8 +17,7 @@ use Drupal\experience_builder\AutoSave\AutoSaveManager;
 use Drupal\experience_builder\Element\RenderSafeComponentContainer;
 use Drupal\experience_builder\Entity\AssetLibrary;
 use Drupal\experience_builder\Entity\Page;
-use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
-use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
+use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemList;
 use Drupal\experience_builder\Render\ImportMapResponseAttachmentsProcessor;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\Tests\experience_builder\Kernel\Traits\CiModulePathTrait;
@@ -26,10 +27,10 @@ use Drupal\Tests\experience_builder\Traits\GenerateComponentConfigTrait;
 use Drupal\Tests\user\Traits\UserCreationTrait;
 
 /**
- * @coversDefaultClass \Drupal\experience_builder\Plugin\DataType\ComponentTreeHydrated
+ * @coversDefaultClass \Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemList
  * @group experience_builder
  */
-class ComponentTreeHydratedTest extends KernelTestBase {
+class ComponentTreeItemListTest extends KernelTestBase {
 
   use ConstraintViolationsTestTrait;
   use CreateTestJsComponentTrait;
@@ -72,24 +73,25 @@ class ComponentTreeHydratedTest extends KernelTestBase {
   }
 
   /**
+   * @covers ::getHydratedTree()
+   * @covers ::toRenderable()
    * @dataProvider provider
    */
-  public function test(array $tree, array $inputs, array $expected_value, array $expected_renderable, string $expected_html, array $expected_cache_tags, bool $isPreview): void {
+  public function testHydrationAndRendering(array $value, array $expected_value, array $expected_renderable, string $expected_html, array $expected_cache_tags, bool $isPreview): void {
     $typed_data_manager = $this->container->get(TypedDataManagerInterface::class);
-    $field_item_definition = $typed_data_manager->createDataDefinition('field_item:component_tree');
-    $component_tree_field_item = $typed_data_manager->createInstance('field_item:component_tree', [
+    $list_definition = $typed_data_manager->createListDataDefinition('field_item:component_tree');
+    \assert(\method_exists($list_definition, 'setCardinality'));
+    $list_definition->setCardinality(FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED);
+    $item_list = $typed_data_manager->createInstance('list', [
       'name' => NULL,
       'parent' => NULL,
-      'data_definition' => $field_item_definition,
+      'data_definition' => $list_definition,
     ]);
-    assert($component_tree_field_item instanceof ComponentTreeItem);
-    $component_tree_field_item->setValue([
-      'tree' => $tree,
-      'inputs' => $inputs,
-    ]);
+    assert($item_list instanceof ComponentTreeItemList);
+    $item_list->setValue($value);
 
     // Every test case must be valid.
-    $violations = $component_tree_field_item->validate();
+    $violations = $item_list->validate();
     $this->assertSame([], self::violationsToArray($violations));
 
     // Assert that the corresponding hydrated component tree is valid, in both
@@ -97,13 +99,14 @@ class ComponentTreeHydratedTest extends KernelTestBase {
     // 1. raw (`::getValue()`)
     // 2. Drupal renderable (`::toRenderable()`)
     // 3. the resulting HTML markup.assert($node->field_xb_test[0] instanceof ComponentTreeItem);
-    $hydrated = $component_tree_field_item->get('hydrated');
-    $hydrated_value = $hydrated->getHydratedTree();
+    $hydrated_value = \Closure::bind(function () {
+      return $this->getHydratedTree();
+    }, $item_list, $item_list)();
     $this->assertSame($expected_value, $hydrated_value->getTree());
     $page = Page::create([
       'title' => 'A page',
     ]);
-    $renderable = $hydrated->toRenderable($page, $isPreview);
+    $renderable = $item_list->toRenderable($page, $isPreview);
     $vfs_site_base_url = base_path() . $this->siteDirectory;
     \array_walk_recursive($renderable, function (mixed &$value) use ($vfs_site_base_url) {
       if (\is_string($value)) {
@@ -184,12 +187,9 @@ class ComponentTreeHydratedTest extends KernelTestBase {
     };
 
     $empty_component_tree = [
-      'tree' => [
-        ComponentTreeStructure::ROOT_UUID => [],
-      ],
-      'inputs' => [],
+      'value' => [],
       'expected_value' => [
-        ComponentTreeStructure::ROOT_UUID => [],
+        ComponentTreeItemList::ROOT_UUID => [],
       ],
       'expected_renderable' => [],
       'expected_html' => '',
@@ -199,19 +199,18 @@ class ComponentTreeHydratedTest extends KernelTestBase {
     yield 'empty component tree in preview' => [...$empty_component_tree, 'isPreview' => TRUE];
 
     $component_tree_with_single_component_with_unpopulated_slots = [
-      'tree' => [
-        ComponentTreeStructure::ROOT_UUID => [
-          ['uuid' => 'uuid-in-root', 'component' => 'sdc.xb_test_sdc.props-slots'],
-        ],
-      ],
-      'inputs' => [
-        'uuid-in-root' => [
-          'heading' => $generate_static_prop_source('world'),
+      'value' => [
+        [
+          'uuid' => '41595148-e5c1-4873-b373-be3ae6e21340',
+          'component_id' => 'sdc.xb_test_sdc.props-slots',
+          'inputs' => [
+            'heading' => $generate_static_prop_source('world'),
+          ],
         ],
       ],
       'expected_value' => [
-        ComponentTreeStructure::ROOT_UUID => [
-          'uuid-in-root' => [
+        ComponentTreeItemList::ROOT_UUID => [
+          '41595148-e5c1-4873-b373-be3ae6e21340' => [
             'component' => 'sdc.xb_test_sdc.props-slots',
             'props' => ['heading' => 'Hello, world!'],
             'slots' => [
@@ -231,10 +230,10 @@ class ComponentTreeHydratedTest extends KernelTestBase {
         ],
       ],
       'expected_renderable' => [
-        ComponentTreeStructure::ROOT_UUID => [
-          'uuid-in-root' => [
+        ComponentTreeItemList::ROOT_UUID => [
+          '41595148-e5c1-4873-b373-be3ae6e21340' => [
             '#type' => RenderSafeComponentContainer::PLUGIN_ID,
-            '#component_uuid' => 'uuid-in-root',
+            '#component_uuid' => '41595148-e5c1-4873-b373-be3ae6e21340',
             '#component_context' => 'Page A page (-)',
             '#is_preview' => FALSE,
             '#component' => [
@@ -247,7 +246,7 @@ class ComponentTreeHydratedTest extends KernelTestBase {
               '#component' => 'xb_test_sdc:props-slots',
               '#props' => [
                 'heading' => 'Hello, world!',
-                'xb_uuid' => 'uuid-in-root',
+                'xb_uuid' => '41595148-e5c1-4873-b373-be3ae6e21340',
                 'xb_slot_ids' => ['the_body', 'the_footer', 'the_colophon'],
                 'xb_is_preview' => FALSE,
               ],
@@ -265,8 +264,8 @@ class ComponentTreeHydratedTest extends KernelTestBase {
                   '#plain_text' => '',
                 ],
               ],
-              '#prefix' => Markup::create('<!-- xb-start-uuid-in-root -->'),
-              '#suffix' => Markup::create('<!-- xb-end-uuid-in-root -->'),
+              '#prefix' => Markup::create('<!-- xb-start-41595148-e5c1-4873-b373-be3ae6e21340 -->'),
+              '#suffix' => Markup::create('<!-- xb-end-41595148-e5c1-4873-b373-be3ae6e21340 -->'),
               '#attached' => [
                 'library' => [
                   'core/components.xb_test_sdc--props-slots',
@@ -277,19 +276,19 @@ class ComponentTreeHydratedTest extends KernelTestBase {
         ],
       ],
       'expected_html' => <<<HTML
-<!-- xb-start-uuid-in-root --><div  data-component-id="xb_test_sdc:props-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
-  <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;"><!-- xb-prop-start-uuid-in-root/heading -->Hello, world!<!-- xb-prop-end-uuid-in-root/heading --></h1>
+<!-- xb-start-41595148-e5c1-4873-b373-be3ae6e21340 --><div  data-component-id="xb_test_sdc:props-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
+  <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;"><!-- xb-prop-start-41595148-e5c1-4873-b373-be3ae6e21340/heading -->Hello, world!<!-- xb-prop-end-41595148-e5c1-4873-b373-be3ae6e21340/heading --></h1>
   <div class="component--props-slots--body">
-        <!-- xb-slot-start-uuid-in-root/the_body --><p>Example value for <strong>the_body</strong> slot in <strong>prop-slots</strong> component.</p><!-- xb-slot-end-uuid-in-root/the_body -->
+        <!-- xb-slot-start-41595148-e5c1-4873-b373-be3ae6e21340/the_body --><p>Example value for <strong>the_body</strong> slot in <strong>prop-slots</strong> component.</p><!-- xb-slot-end-41595148-e5c1-4873-b373-be3ae6e21340/the_body -->
     </div>
   <div class="component--props-slots--footer">
-        <!-- xb-slot-start-uuid-in-root/the_footer -->Example value for &lt;strong&gt;the_footer&lt;/strong&gt;.<!-- xb-slot-end-uuid-in-root/the_footer -->
+        <!-- xb-slot-start-41595148-e5c1-4873-b373-be3ae6e21340/the_footer -->Example value for &lt;strong&gt;the_footer&lt;/strong&gt;.<!-- xb-slot-end-41595148-e5c1-4873-b373-be3ae6e21340/the_footer -->
     </div>
   <div class="component--props-slots--colophon">
-        <!-- xb-slot-start-uuid-in-root/the_colophon --><!-- xb-slot-end-uuid-in-root/the_colophon -->
+        <!-- xb-slot-start-41595148-e5c1-4873-b373-be3ae6e21340/the_colophon --><!-- xb-slot-end-41595148-e5c1-4873-b373-be3ae6e21340/the_colophon -->
     </div>
 </div>
-<!-- xb-end-uuid-in-root -->
+<!-- xb-end-41595148-e5c1-4873-b373-be3ae6e21340 -->
 HTML,
       'expected_cache_tags' => [
         'config:experience_builder.component.sdc.xb_test_sdc.props-slots',
@@ -300,23 +299,22 @@ HTML,
     yield 'component tree with a single component that has unpopulated slots with default values in preview' => [...self::modifyExpectationFromLiveToPreview($component_tree_with_single_component_with_unpopulated_slots, TRUE), 'isPreview' => TRUE];
 
     $component_tree_with_single_block_component = [
-      'tree' => [
-        ComponentTreeStructure::ROOT_UUID => [
-          ['uuid' => 'uuid-in-root', 'component' => 'block.system_branding_block'],
-        ],
-      ],
-      'inputs' => [
-        'uuid-in-root' => [
-          'label' => '',
-          'label_display' => FALSE,
-          'use_site_logo' => TRUE,
-          'use_site_name' => TRUE,
-          'use_site_slogan' => TRUE,
+      'value' => [
+        [
+          'uuid' => '41595148-e5c1-4873-b373-be3ae6e21340',
+          'component_id' => 'block.system_branding_block',
+          'inputs' => [
+            'label' => '',
+            'label_display' => FALSE,
+            'use_site_logo' => TRUE,
+            'use_site_name' => TRUE,
+            'use_site_slogan' => TRUE,
+          ],
         ],
       ],
       'expected_value' => [
-        ComponentTreeStructure::ROOT_UUID => [
-          'uuid-in-root' => [
+        ComponentTreeItemList::ROOT_UUID => [
+          '41595148-e5c1-4873-b373-be3ae6e21340' => [
             'component' => 'block.system_branding_block',
             'settings' => [
               'label' => '',
@@ -329,10 +327,10 @@ HTML,
         ],
       ],
       'expected_renderable' => [
-        ComponentTreeStructure::ROOT_UUID => [
-          'uuid-in-root' => [
+        ComponentTreeItemList::ROOT_UUID => [
+          '41595148-e5c1-4873-b373-be3ae6e21340' => [
             '#type' => RenderSafeComponentContainer::PLUGIN_ID,
-            '#component_uuid' => 'uuid-in-root',
+            '#component_uuid' => '41595148-e5c1-4873-b373-be3ae6e21340',
             '#component_context' => 'Page A page (-)',
             '#is_preview' => FALSE,
             '#component' => [
@@ -360,7 +358,7 @@ HTML,
               '#plugin_id' => 'system_branding_block',
               '#base_plugin_id' => 'system_branding_block',
               '#derivative_plugin_id' => NULL,
-              '#id' => 'uuid-in-root',
+              '#id' => '41595148-e5c1-4873-b373-be3ae6e21340',
               'content' => [
                 'site_logo' => [
                   '#theme' => "image",
@@ -392,13 +390,13 @@ HTML,
         ],
       ],
       'expected_html' => <<<HTML
-<!-- xb-start-uuid-in-root --><div id="block-uuid-in-root">
+<!-- xb-start-41595148-e5c1-4873-b373-be3ae6e21340 --><div id="block-41595148-e5c1-4873-b373-be3ae6e21340">
 
 
           <a href="/" rel="home">XB Test Site</a>
     Experience Builder Test Site
 </div>
-<!-- xb-end-uuid-in-root -->
+<!-- xb-end-41595148-e5c1-4873-b373-be3ae6e21340 -->
 HTML,
       'expected_cache_tags' => [
         'config:system.site',
@@ -409,37 +407,39 @@ HTML,
     yield 'component tree with a single block component in preview' => [...self::modifyExpectationFromLiveToPreview($component_tree_with_single_block_component, TRUE), 'isPreview' => TRUE];
 
     $simplest_component_tree_without_nesting = [
-      'tree' => [
-        ComponentTreeStructure::ROOT_UUID => [
-          ['uuid' => 'uuid-in-root', 'component' => 'sdc.xb_test_sdc.props-no-slots'],
-          ['uuid' => 'uuid-in-root-another', 'component' => 'sdc.xb_test_sdc.props-no-slots'],
+      'value' => [
+        [
+          'uuid' => '41595148-e5c1-4873-b373-be3ae6e21340',
+          'component_id' => 'sdc.xb_test_sdc.props-no-slots',
+          'inputs' => [
+            'heading' => $generate_static_prop_source('world'),
+          ],
         ],
-      ],
-      'inputs' => [
-        'uuid-in-root' => [
-          'heading' => $generate_static_prop_source('world'),
-        ],
-        'uuid-in-root-another' => [
-          'heading' => $generate_static_prop_source('another world'),
+        [
+          'uuid' => 'fcf67861-87da-45e5-916b-31f5b74be747',
+          'component_id' => 'sdc.xb_test_sdc.props-no-slots',
+          'inputs' => [
+            'heading' => $generate_static_prop_source('another world'),
+          ],
         ],
       ],
       'expected_value' => [
-        ComponentTreeStructure::ROOT_UUID => [
-          'uuid-in-root' => [
+        ComponentTreeItemList::ROOT_UUID => [
+          '41595148-e5c1-4873-b373-be3ae6e21340' => [
             'component' => 'sdc.xb_test_sdc.props-no-slots',
             'props' => ['heading' => 'Hello, world!'],
           ],
-          'uuid-in-root-another' => [
+          'fcf67861-87da-45e5-916b-31f5b74be747' => [
             'component' => 'sdc.xb_test_sdc.props-no-slots',
             'props' => ['heading' => 'Hello, another world!'],
           ],
         ],
       ],
       'expected_renderable' => [
-        ComponentTreeStructure::ROOT_UUID => [
-          'uuid-in-root' => [
+        ComponentTreeItemList::ROOT_UUID => [
+          '41595148-e5c1-4873-b373-be3ae6e21340' => [
             '#type' => RenderSafeComponentContainer::PLUGIN_ID,
-            '#component_uuid' => 'uuid-in-root',
+            '#component_uuid' => '41595148-e5c1-4873-b373-be3ae6e21340',
             '#component_context' => 'Page A page (-)',
             '#is_preview' => FALSE,
             '#component' => [
@@ -452,12 +452,12 @@ HTML,
               '#component' => 'xb_test_sdc:props-no-slots',
               '#props' => [
                 'heading' => 'Hello, world!',
-                'xb_uuid' => 'uuid-in-root',
+                'xb_uuid' => '41595148-e5c1-4873-b373-be3ae6e21340',
                 'xb_slot_ids' => [],
                 'xb_is_preview' => FALSE,
               ],
-              '#prefix' => Markup::create('<!-- xb-start-uuid-in-root -->'),
-              '#suffix' => Markup::create('<!-- xb-end-uuid-in-root -->'),
+              '#prefix' => Markup::create('<!-- xb-start-41595148-e5c1-4873-b373-be3ae6e21340 -->'),
+              '#suffix' => Markup::create('<!-- xb-end-41595148-e5c1-4873-b373-be3ae6e21340 -->'),
               '#attached' => [
                 'library' => [
                   'core/components.xb_test_sdc--props-no-slots',
@@ -465,9 +465,9 @@ HTML,
               ],
             ],
           ],
-          'uuid-in-root-another' => [
+          'fcf67861-87da-45e5-916b-31f5b74be747' => [
             '#type' => RenderSafeComponentContainer::PLUGIN_ID,
-            '#component_uuid' => 'uuid-in-root-another',
+            '#component_uuid' => 'fcf67861-87da-45e5-916b-31f5b74be747',
             '#component_context' => 'Page A page (-)',
             '#is_preview' => FALSE,
             '#component' => [
@@ -480,12 +480,12 @@ HTML,
               '#component' => 'xb_test_sdc:props-no-slots',
               '#props' => [
                 'heading' => 'Hello, another world!',
-                'xb_uuid' => 'uuid-in-root-another',
+                'xb_uuid' => 'fcf67861-87da-45e5-916b-31f5b74be747',
                 'xb_slot_ids' => [],
                 'xb_is_preview' => FALSE,
               ],
-              '#prefix' => Markup::create('<!-- xb-start-uuid-in-root-another -->'),
-              '#suffix' => Markup::create('<!-- xb-end-uuid-in-root-another -->'),
+              '#prefix' => Markup::create('<!-- xb-start-fcf67861-87da-45e5-916b-31f5b74be747 -->'),
+              '#suffix' => Markup::create('<!-- xb-end-fcf67861-87da-45e5-916b-31f5b74be747 -->'),
               '#attached' => [
                 'library' => [
                   'core/components.xb_test_sdc--props-no-slots',
@@ -496,13 +496,13 @@ HTML,
         ],
       ],
       'expected_html' => <<<HTML
-<!-- xb-start-uuid-in-root --><div  data-component-id="xb_test_sdc:props-no-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
-  <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;"><!-- xb-prop-start-uuid-in-root/heading -->Hello, world!<!-- xb-prop-end-uuid-in-root/heading --></h1>
+<!-- xb-start-41595148-e5c1-4873-b373-be3ae6e21340 --><div  data-component-id="xb_test_sdc:props-no-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
+  <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;"><!-- xb-prop-start-41595148-e5c1-4873-b373-be3ae6e21340/heading -->Hello, world!<!-- xb-prop-end-41595148-e5c1-4873-b373-be3ae6e21340/heading --></h1>
 </div>
-<!-- xb-end-uuid-in-root --><!-- xb-start-uuid-in-root-another --><div  data-component-id="xb_test_sdc:props-no-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
-  <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;"><!-- xb-prop-start-uuid-in-root-another/heading -->Hello, another world!<!-- xb-prop-end-uuid-in-root-another/heading --></h1>
+<!-- xb-end-41595148-e5c1-4873-b373-be3ae6e21340 --><!-- xb-start-fcf67861-87da-45e5-916b-31f5b74be747 --><div  data-component-id="xb_test_sdc:props-no-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
+  <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;"><!-- xb-prop-start-fcf67861-87da-45e5-916b-31f5b74be747/heading -->Hello, another world!<!-- xb-prop-end-fcf67861-87da-45e5-916b-31f5b74be747/heading --></h1>
 </div>
-<!-- xb-end-uuid-in-root-another -->
+<!-- xb-end-fcf67861-87da-45e5-916b-31f5b74be747 -->
 HTML,
       'expected_cache_tags' => [
         'config:experience_builder.component.sdc.xb_test_sdc.props-no-slots',
@@ -512,34 +512,34 @@ HTML,
     yield 'simplest component tree without nesting in preview' => [...self::modifyExpectationFromLiveToPreview($simplest_component_tree_without_nesting, TRUE), 'isPreview' => TRUE];
 
     $simplest_component_tree_with_nesting = [
-      'tree' => [
-        ComponentTreeStructure::ROOT_UUID => [
-          ['uuid' => 'uuid-in-root', 'component' => 'sdc.xb_test_sdc.props-slots'],
+      'value' => [
+        [
+          'uuid' => '41595148-e5c1-4873-b373-be3ae6e21340',
+          'component_id' => 'sdc.xb_test_sdc.props-slots',
+          'inputs' => [
+            'heading' => $generate_static_prop_source('world'),
+          ],
         ],
-        'uuid-in-root' => [
-          'the_body' => [
-            ['uuid' => 'uuid-in-slot', 'component' => 'sdc.xb_test_sdc.props-no-slots'],
+        [
+          'uuid' => '3b305d86-86a7-4684-8664-7ef1fc2be070',
+          'component_id' => 'sdc.xb_test_sdc.props-no-slots',
+          'parent_uuid' => '41595148-e5c1-4873-b373-be3ae6e21340',
+          'slot' => 'the_body',
+          'inputs' => [
+            'heading' => $generate_static_prop_source('from a slot'),
           ],
         ],
       ],
-      'inputs' => [
-        'uuid-in-root' => [
-          'heading' => $generate_static_prop_source('world'),
-        ],
-        'uuid-in-slot' => [
-          'heading' => $generate_static_prop_source('from a slot'),
-        ],
-      ],
       'expected_value' => [
-        ComponentTreeStructure::ROOT_UUID => [
-          'uuid-in-root' => [
+        ComponentTreeItemList::ROOT_UUID => [
+          '41595148-e5c1-4873-b373-be3ae6e21340' => [
             'component' => 'sdc.xb_test_sdc.props-slots',
             'props' => ['heading' => 'Hello, world!'],
             'slots' => [
               'the_footer' => 'Example value for <strong>the_footer</strong>.',
               'the_colophon' => '',
               'the_body' => [
-                'uuid-in-slot' => [
+                '3b305d86-86a7-4684-8664-7ef1fc2be070' => [
                   'component' => 'sdc.xb_test_sdc.props-no-slots',
                   'props' => ['heading' => 'Hello, from a slot!'],
                 ],
@@ -549,10 +549,10 @@ HTML,
         ],
       ],
       'expected_renderable' => [
-        ComponentTreeStructure::ROOT_UUID => [
-          'uuid-in-root' => [
+        ComponentTreeItemList::ROOT_UUID => [
+          '41595148-e5c1-4873-b373-be3ae6e21340' => [
             '#type' => RenderSafeComponentContainer::PLUGIN_ID,
-            '#component_uuid' => 'uuid-in-root',
+            '#component_uuid' => '41595148-e5c1-4873-b373-be3ae6e21340',
             '#component_context' => 'Page A page (-)',
             '#is_preview' => FALSE,
             '#component' => [
@@ -565,7 +565,7 @@ HTML,
               '#component' => 'xb_test_sdc:props-slots',
               '#props' => [
                 'heading' => 'Hello, world!',
-                'xb_uuid' => 'uuid-in-root',
+                'xb_uuid' => '41595148-e5c1-4873-b373-be3ae6e21340',
                 'xb_slot_ids' => ['the_body', 'the_footer', 'the_colophon'],
                 'xb_is_preview' => FALSE,
               ],
@@ -575,9 +575,9 @@ HTML,
                 ],
                 'the_colophon' => ['#plain_text' => ''],
                 'the_body' => [
-                  'uuid-in-slot' => [
+                  '3b305d86-86a7-4684-8664-7ef1fc2be070' => [
                     '#type' => RenderSafeComponentContainer::PLUGIN_ID,
-                    '#component_uuid' => 'uuid-in-slot',
+                    '#component_uuid' => '3b305d86-86a7-4684-8664-7ef1fc2be070',
                     '#component_context' => 'Page A page (-)',
                     '#is_preview' => FALSE,
                     '#component' => [
@@ -590,12 +590,12 @@ HTML,
                       '#component' => 'xb_test_sdc:props-no-slots',
                       '#props' => [
                         'heading' => 'Hello, from a slot!',
-                        'xb_uuid' => 'uuid-in-slot',
+                        'xb_uuid' => '3b305d86-86a7-4684-8664-7ef1fc2be070',
                         'xb_slot_ids' => [],
                         'xb_is_preview' => FALSE,
                       ],
-                      '#prefix' => Markup::create('<!-- xb-start-uuid-in-slot -->'),
-                      '#suffix' => Markup::create('<!-- xb-end-uuid-in-slot -->'),
+                      '#prefix' => Markup::create('<!-- xb-start-3b305d86-86a7-4684-8664-7ef1fc2be070 -->'),
+                      '#suffix' => Markup::create('<!-- xb-end-3b305d86-86a7-4684-8664-7ef1fc2be070 -->'),
                       '#attached' => [
                         'library' => [
                           'core/components.xb_test_sdc--props-no-slots',
@@ -605,8 +605,8 @@ HTML,
                   ],
                 ],
               ],
-              '#prefix' => Markup::create('<!-- xb-start-uuid-in-root -->'),
-              '#suffix' => Markup::create('<!-- xb-end-uuid-in-root -->'),
+              '#prefix' => Markup::create('<!-- xb-start-41595148-e5c1-4873-b373-be3ae6e21340 -->'),
+              '#suffix' => Markup::create('<!-- xb-end-41595148-e5c1-4873-b373-be3ae6e21340 -->'),
               '#attached' => [
                 'library' => [
                   'core/components.xb_test_sdc--props-slots',
@@ -617,22 +617,22 @@ HTML,
         ],
       ],
       'expected_html' => <<<HTML
-<!-- xb-start-uuid-in-root --><div  data-component-id="xb_test_sdc:props-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
-  <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;"><!-- xb-prop-start-uuid-in-root/heading -->Hello, world!<!-- xb-prop-end-uuid-in-root/heading --></h1>
+<!-- xb-start-41595148-e5c1-4873-b373-be3ae6e21340 --><div  data-component-id="xb_test_sdc:props-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
+  <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;"><!-- xb-prop-start-41595148-e5c1-4873-b373-be3ae6e21340/heading -->Hello, world!<!-- xb-prop-end-41595148-e5c1-4873-b373-be3ae6e21340/heading --></h1>
   <div class="component--props-slots--body">
-        <!-- xb-slot-start-uuid-in-root/the_body --><!-- xb-start-uuid-in-slot --><div  data-component-id="xb_test_sdc:props-no-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
-  <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;"><!-- xb-prop-start-uuid-in-slot/heading -->Hello, from a slot!<!-- xb-prop-end-uuid-in-slot/heading --></h1>
+        <!-- xb-slot-start-41595148-e5c1-4873-b373-be3ae6e21340/the_body --><!-- xb-start-3b305d86-86a7-4684-8664-7ef1fc2be070 --><div  data-component-id="xb_test_sdc:props-no-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
+  <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;"><!-- xb-prop-start-3b305d86-86a7-4684-8664-7ef1fc2be070/heading -->Hello, from a slot!<!-- xb-prop-end-3b305d86-86a7-4684-8664-7ef1fc2be070/heading --></h1>
 </div>
-<!-- xb-end-uuid-in-slot --><!-- xb-slot-end-uuid-in-root/the_body -->
+<!-- xb-end-3b305d86-86a7-4684-8664-7ef1fc2be070 --><!-- xb-slot-end-41595148-e5c1-4873-b373-be3ae6e21340/the_body -->
     </div>
   <div class="component--props-slots--footer">
-        <!-- xb-slot-start-uuid-in-root/the_footer -->Example value for &lt;strong&gt;the_footer&lt;/strong&gt;.<!-- xb-slot-end-uuid-in-root/the_footer -->
+        <!-- xb-slot-start-41595148-e5c1-4873-b373-be3ae6e21340/the_footer -->Example value for &lt;strong&gt;the_footer&lt;/strong&gt;.<!-- xb-slot-end-41595148-e5c1-4873-b373-be3ae6e21340/the_footer -->
     </div>
   <div class="component--props-slots--colophon">
-        <!-- xb-slot-start-uuid-in-root/the_colophon --><!-- xb-slot-end-uuid-in-root/the_colophon -->
+        <!-- xb-slot-start-41595148-e5c1-4873-b373-be3ae6e21340/the_colophon --><!-- xb-slot-end-41595148-e5c1-4873-b373-be3ae6e21340/the_colophon -->
     </div>
 </div>
-<!-- xb-end-uuid-in-root -->
+<!-- xb-end-41595148-e5c1-4873-b373-be3ae6e21340 -->
 HTML,
       'expected_cache_tags' => [
         'config:experience_builder.component.sdc.xb_test_sdc.props-slots',
@@ -644,79 +644,100 @@ HTML,
 
     $path = self::getCiModulePath();
     $component_tree_with_complex_nesting = [
-      'tree' => [
+      'value' => [
         // Note how these are NOT sequentially ordered.
-        'uuid-in-root' => [
-          'the_body' => [
-            ['uuid' => 'uuid-level-1', 'component' => 'sdc.xb_test_sdc.props-slots'],
+        [
+          'uuid' => 'dfd2e899-6d88-46f8-b6aa-98929d1586dd',
+          'component_id' => 'sdc.xb_test_sdc.props-slots',
+          'parent_uuid' => '41595148-e5c1-4873-b373-be3ae6e21340',
+          'slot' => 'the_body',
+          'inputs' => ['heading' => $generate_static_prop_source('from slot level 1')],
+        ],
+        [
+          'uuid' => '81c63cac-187d-4f05-8acc-1c38fb2489d3',
+          'component_id' => 'sdc.xb_test_sdc.props-no-slots',
+          'parent_uuid' => 'e0b92f23-c177-4196-8fa4-3e837f99a357',
+          'slot' => 'the_body',
+          'inputs' => ['heading' => $generate_static_prop_source('from slot level 3')],
+        ],
+        [
+          'uuid' => '68167e4a-9245-41be-b564-f1e1dcad1dec',
+          'component_id' => 'block.system_branding_block',
+          'parent_uuid' => 'e0b92f23-c177-4196-8fa4-3e837f99a357',
+          'slot' => 'the_body',
+          'inputs' => [
+            'label' => '',
+            'label_display' => FALSE,
+            'use_site_logo' => TRUE,
+            'use_site_name' => TRUE,
+            'use_site_slogan' => TRUE,
           ],
         ],
-        'uuid-level-2' => [
-          'the_body' => [
-            ['uuid' => 'uuid-level-3', 'component' => 'sdc.xb_test_sdc.props-no-slots'],
-            ['uuid' => 'uuid-block', 'component' => 'block.system_branding_block'],
-            ['uuid' => 'uuid-js-component', 'component' => 'js.my-cta'],
-            ['uuid' => 'uuid-js-component-auto-save', 'component' => 'js.my-cta-with-auto-save'],
-            ['uuid' => 'uuid-last-in-tree', 'component' => 'sdc.xb_test_sdc.props-no-slots'],
+        [
+          'uuid' => '2f57ba57-f32a-4a7b-9896-9d1104b446f1',
+          'component_id' => 'js.my-cta',
+          'parent_uuid' => 'e0b92f23-c177-4196-8fa4-3e837f99a357',
+          'slot' => 'the_body',
+          'inputs' => ['text' => $generate_static_prop_source('from a "code component"')],
+        ],
+        [
+          'uuid' => 'b4bc6c8f-66f7-458a-99a9-41c29b2801e7',
+          'component_id' => 'js.my-cta-with-auto-save',
+          'parent_uuid' => 'e0b92f23-c177-4196-8fa4-3e837f99a357',
+          'slot' => 'the_body',
+          'inputs' => ['text' => $generate_static_prop_source('from a "auto-save code component"')],
+        ],
+        [
+          'uuid' => '9f09ecd8-ec65-408c-b5c8-ef036e6aeb97',
+          'component_id' => 'sdc.xb_test_sdc.props-no-slots',
+          'parent_uuid' => 'e0b92f23-c177-4196-8fa4-3e837f99a357',
+          'slot' => 'the_body',
+          'inputs' => ['heading' => $generate_static_prop_source('from slot <LAST ONE>')],
+        ],
+        [
+          'uuid' => 'e0b92f23-c177-4196-8fa4-3e837f99a357',
+          'component_id' => 'sdc.xb_test_sdc.props-slots',
+          'parent_uuid' => 'dfd2e899-6d88-46f8-b6aa-98929d1586dd',
+          'slot' => 'the_body',
+          'inputs' => ['heading' => $generate_static_prop_source('from slot level 2')],
+        ],
+        [
+          'uuid' => '41595148-e5c1-4873-b373-be3ae6e21340',
+          'component_id' => 'sdc.xb_test_sdc.props-slots',
+          'inputs' => [
+            'heading' => $generate_static_prop_source('world'),
           ],
         ],
-        'uuid-level-1' => [
-          'the_body' => [
-            ['uuid' => 'uuid-level-2', 'component' => 'sdc.xb_test_sdc.props-slots'],
-          ],
-        ],
-        ComponentTreeStructure::ROOT_UUID => [
-          ['uuid' => 'uuid-in-root', 'component' => 'sdc.xb_test_sdc.props-slots'],
-        ],
-      ],
-      'inputs' => [
-        // Note how these are NOT sequentially ordered, but in a different way.
-        'uuid-in-root' => [
-          'heading' => $generate_static_prop_source('world'),
-        ],
-        'uuid-level-3' => ['heading' => $generate_static_prop_source('from slot level 3')],
-        'uuid-level-1' => ['heading' => $generate_static_prop_source('from slot level 1')],
-        'uuid-last-in-tree' => ['heading' => $generate_static_prop_source('from slot <LAST ONE>')],
-        'uuid-level-2' => ['heading' => $generate_static_prop_source('from slot level 2')],
-        'uuid-block' => [
-          'label' => '',
-          'label_display' => FALSE,
-          'use_site_logo' => TRUE,
-          'use_site_name' => TRUE,
-          'use_site_slogan' => TRUE,
-        ],
-        'uuid-js-component' => ['text' => $generate_static_prop_source('from a "code component"')],
-        'uuid-js-component-auto-save' => ['text' => $generate_static_prop_source('from a "auto-save code component"')],
       ],
       'expected_value' => [
         // Note how these are sequentially ordered.
-        ComponentTreeStructure::ROOT_UUID => [
-          'uuid-in-root' => [
+        ComponentTreeItemList::ROOT_UUID => [
+          '41595148-e5c1-4873-b373-be3ae6e21340' => [
             'component' => 'sdc.xb_test_sdc.props-slots',
             'props' => ['heading' => 'Hello, world!'],
             'slots' => [
               'the_footer' => 'Example value for <strong>the_footer</strong>.',
               'the_colophon' => '',
               'the_body' => [
-                'uuid-level-1' => [
+                'dfd2e899-6d88-46f8-b6aa-98929d1586dd' => [
                   'component' => 'sdc.xb_test_sdc.props-slots',
                   'props' => ['heading' => 'Hello, from slot level 1!'],
                   'slots' => [
                     'the_footer' => 'Example value for <strong>the_footer</strong>.',
                     'the_colophon' => '',
                     'the_body' => [
-                      'uuid-level-2' => [
+                      'e0b92f23-c177-4196-8fa4-3e837f99a357' => [
                         'component' => 'sdc.xb_test_sdc.props-slots',
                         'props' => ['heading' => 'Hello, from slot level 2!'],
                         'slots' => [
                           'the_footer' => 'Example value for <strong>the_footer</strong>.',
                           'the_colophon' => '',
                           'the_body' => [
-                            'uuid-level-3' => [
+                            '81c63cac-187d-4f05-8acc-1c38fb2489d3' => [
                               'component' => 'sdc.xb_test_sdc.props-no-slots',
                               'props' => ['heading' => 'Hello, from slot level 3!'],
                             ],
-                            'uuid-block' => [
+                            '68167e4a-9245-41be-b564-f1e1dcad1dec' => [
                               'component' => 'block.system_branding_block',
                               'settings' => [
                                 'label' => '',
@@ -726,15 +747,15 @@ HTML,
                                 'use_site_slogan' => TRUE,
                               ],
                             ],
-                            'uuid-js-component' => [
+                            '2f57ba57-f32a-4a7b-9896-9d1104b446f1' => [
                               'component' => 'js.my-cta',
                               'props' => ['text' => 'Hello, from a "code component"!'],
                             ],
-                            'uuid-js-component-auto-save' => [
+                            'b4bc6c8f-66f7-458a-99a9-41c29b2801e7' => [
                               'component' => 'js.my-cta-with-auto-save',
                               'props' => ['text' => 'Hello, from a "auto-save code component"!'],
                             ],
-                            'uuid-last-in-tree' => [
+                            '9f09ecd8-ec65-408c-b5c8-ef036e6aeb97' => [
                               'component' => 'sdc.xb_test_sdc.props-no-slots',
                               'props' => ['heading' => 'Hello, from slot <LAST ONE>!'],
                             ],
@@ -751,10 +772,10 @@ HTML,
       ],
       'expected_renderable' => [
         // Note how these are sequentially ordered.
-        ComponentTreeStructure::ROOT_UUID => [
-          'uuid-in-root' => [
+        ComponentTreeItemList::ROOT_UUID => [
+          '41595148-e5c1-4873-b373-be3ae6e21340' => [
             '#type' => RenderSafeComponentContainer::PLUGIN_ID,
-            '#component_uuid' => 'uuid-in-root',
+            '#component_uuid' => '41595148-e5c1-4873-b373-be3ae6e21340',
             '#component_context' => 'Page A page (-)',
             '#is_preview' => FALSE,
             '#component' => [
@@ -767,7 +788,7 @@ HTML,
               '#component' => 'xb_test_sdc:props-slots',
               '#props' => [
                 'heading' => 'Hello, world!',
-                'xb_uuid' => 'uuid-in-root',
+                'xb_uuid' => '41595148-e5c1-4873-b373-be3ae6e21340',
                 'xb_slot_ids' => ['the_body', 'the_footer', 'the_colophon'],
                 'xb_is_preview' => FALSE,
               ],
@@ -777,9 +798,9 @@ HTML,
                 ],
                 'the_colophon' => ['#plain_text' => ''],
                 'the_body' => [
-                  'uuid-level-1' => [
+                  'dfd2e899-6d88-46f8-b6aa-98929d1586dd' => [
                     '#type' => RenderSafeComponentContainer::PLUGIN_ID,
-                    '#component_uuid' => 'uuid-level-1',
+                    '#component_uuid' => 'dfd2e899-6d88-46f8-b6aa-98929d1586dd',
                     '#component_context' => 'Page A page (-)',
                     '#is_preview' => FALSE,
                     '#component' => [
@@ -792,7 +813,7 @@ HTML,
                       '#component' => 'xb_test_sdc:props-slots',
                       '#props' => [
                         'heading' => 'Hello, from slot level 1!',
-                        'xb_uuid' => 'uuid-level-1',
+                        'xb_uuid' => 'dfd2e899-6d88-46f8-b6aa-98929d1586dd',
                         'xb_slot_ids' => ['the_body', 'the_footer', 'the_colophon'],
                         'xb_is_preview' => FALSE,
                       ],
@@ -806,9 +827,9 @@ HTML,
                           '#plain_text' => '',
                         ],
                         'the_body' => [
-                          'uuid-level-2' => [
+                          'e0b92f23-c177-4196-8fa4-3e837f99a357' => [
                             '#type' => RenderSafeComponentContainer::PLUGIN_ID,
-                            '#component_uuid' => 'uuid-level-2',
+                            '#component_uuid' => 'e0b92f23-c177-4196-8fa4-3e837f99a357',
                             '#component_context' => 'Page A page (-)',
                             '#is_preview' => FALSE,
                             '#component' => [
@@ -821,7 +842,7 @@ HTML,
                               '#component' => 'xb_test_sdc:props-slots',
                               '#props' => [
                                 'heading' => 'Hello, from slot level 2!',
-                                'xb_uuid' => 'uuid-level-2',
+                                'xb_uuid' => 'e0b92f23-c177-4196-8fa4-3e837f99a357',
                                 'xb_slot_ids' => ['the_body', 'the_footer', 'the_colophon'],
                                 'xb_is_preview' => FALSE,
                               ],
@@ -831,9 +852,9 @@ HTML,
                                 ],
                                 'the_colophon' => ['#plain_text' => ''],
                                 'the_body' => [
-                                  'uuid-level-3' => [
+                                  '81c63cac-187d-4f05-8acc-1c38fb2489d3' => [
                                     '#type' => RenderSafeComponentContainer::PLUGIN_ID,
-                                    '#component_uuid' => 'uuid-level-3',
+                                    '#component_uuid' => '81c63cac-187d-4f05-8acc-1c38fb2489d3',
                                     '#component_context' => 'Page A page (-)',
                                     '#is_preview' => FALSE,
                                     '#component' => [
@@ -846,12 +867,12 @@ HTML,
                                       '#component' => 'xb_test_sdc:props-no-slots',
                                       '#props' => [
                                         'heading' => 'Hello, from slot level 3!',
-                                        'xb_uuid' => 'uuid-level-3',
+                                        'xb_uuid' => '81c63cac-187d-4f05-8acc-1c38fb2489d3',
                                         'xb_slot_ids' => [],
                                         'xb_is_preview' => FALSE,
                                       ],
-                                      '#prefix' => Markup::create('<!-- xb-start-uuid-level-3 -->'),
-                                      '#suffix' => Markup::create('<!-- xb-end-uuid-level-3 -->'),
+                                      '#prefix' => Markup::create('<!-- xb-start-81c63cac-187d-4f05-8acc-1c38fb2489d3 -->'),
+                                      '#suffix' => Markup::create('<!-- xb-end-81c63cac-187d-4f05-8acc-1c38fb2489d3 -->'),
                                       '#attached' => [
                                         'library' => [
                                           'core/components.xb_test_sdc--props-no-slots',
@@ -859,9 +880,9 @@ HTML,
                                       ],
                                     ],
                                   ],
-                                  'uuid-block' => [
+                                  '68167e4a-9245-41be-b564-f1e1dcad1dec' => [
                                     '#type' => RenderSafeComponentContainer::PLUGIN_ID,
-                                    '#component_uuid' => 'uuid-block',
+                                    '#component_uuid' => '68167e4a-9245-41be-b564-f1e1dcad1dec',
                                     '#component_context' => 'Page A page (-)',
                                     '#is_preview' => FALSE,
                                     '#component' => [
@@ -889,7 +910,7 @@ HTML,
                                       '#plugin_id' => 'system_branding_block',
                                       '#base_plugin_id' => 'system_branding_block',
                                       '#derivative_plugin_id' => NULL,
-                                      '#id' => 'uuid-block',
+                                      '#id' => '68167e4a-9245-41be-b564-f1e1dcad1dec',
                                       'content' => [
                                         'site_logo' => [
                                           '#theme' => 'image',
@@ -914,13 +935,13 @@ HTML,
                                         'contexts' => [],
                                         'max-age' => Cache::PERMANENT,
                                       ],
-                                      '#prefix' => Markup::create('<!-- xb-start-uuid-block -->'),
-                                      '#suffix' => Markup::create('<!-- xb-end-uuid-block -->'),
+                                      '#prefix' => Markup::create('<!-- xb-start-68167e4a-9245-41be-b564-f1e1dcad1dec -->'),
+                                      '#suffix' => Markup::create('<!-- xb-end-68167e4a-9245-41be-b564-f1e1dcad1dec -->'),
                                     ],
                                   ],
-                                  'uuid-js-component' => [
+                                  '2f57ba57-f32a-4a7b-9896-9d1104b446f1' => [
                                     '#type' => RenderSafeComponentContainer::PLUGIN_ID,
-                                    '#component_uuid' => 'uuid-js-component',
+                                    '#component_uuid' => '2f57ba57-f32a-4a7b-9896-9d1104b446f1',
                                     '#component_context' => 'Page A page (-)',
                                     '#is_preview' => FALSE,
                                     '#component' => [
@@ -970,21 +991,21 @@ HTML,
                                         ],
                                       ],
                                       '#name' => 'My First Code Component',
-                                      '#component_url' => '::SITE_DIR_BASE_URL::/files/astro-island/STNRn46UCAs1xJCb2kgPiEOEZp0R24B5qjtHOsyYT-g.js',
+                                      '#component_url' => '::SITE_DIR_BASE_URL::/files/astro-island/WhwuTvDNGirmDnel19I8ZwBVuHF7FUafQWPOo7le6QQ.js',
                                       '#props' => [
                                         'text' => 'Hello, from a "code component"!',
-                                        'xb_uuid' => 'uuid-js-component',
+                                        'xb_uuid' => '2f57ba57-f32a-4a7b-9896-9d1104b446f1',
                                         'xb_slot_ids' => [],
                                         'xb_is_preview' => FALSE,
                                       ],
-                                      '#prefix' => Markup::create('<!-- xb-start-uuid-js-component -->'),
-                                      '#suffix' => Markup::create('<!-- xb-end-uuid-js-component -->'),
-                                      '#uuid' => 'uuid-js-component',
+                                      '#prefix' => Markup::create('<!-- xb-start-2f57ba57-f32a-4a7b-9896-9d1104b446f1 -->'),
+                                      '#suffix' => Markup::create('<!-- xb-end-2f57ba57-f32a-4a7b-9896-9d1104b446f1 -->'),
+                                      '#uuid' => '2f57ba57-f32a-4a7b-9896-9d1104b446f1',
                                     ],
                                   ],
-                                  'uuid-js-component-auto-save' => [
+                                  'b4bc6c8f-66f7-458a-99a9-41c29b2801e7' => [
                                     '#type' => RenderSafeComponentContainer::PLUGIN_ID,
-                                    '#component_uuid' => 'uuid-js-component-auto-save',
+                                    '#component_uuid' => 'b4bc6c8f-66f7-458a-99a9-41c29b2801e7',
                                     '#component_context' => 'Page A page (-)',
                                     '#is_preview' => FALSE,
                                     '#component' => [
@@ -1034,21 +1055,21 @@ HTML,
                                         ],
                                       ],
                                       '#name' => 'My Code Component with Auto-Save',
-                                      '#component_url' => '::SITE_DIR_BASE_URL::/files/astro-island/STNRn46UCAs1xJCb2kgPiEOEZp0R24B5qjtHOsyYT-g.js',
+                                      '#component_url' => '::SITE_DIR_BASE_URL::/files/astro-island/WhwuTvDNGirmDnel19I8ZwBVuHF7FUafQWPOo7le6QQ.js',
                                       '#props' => [
                                         'text' => 'Hello, from a "auto-save code component"!',
-                                        'xb_uuid' => 'uuid-js-component-auto-save',
+                                        'xb_uuid' => 'b4bc6c8f-66f7-458a-99a9-41c29b2801e7',
                                         'xb_slot_ids' => [],
                                         'xb_is_preview' => FALSE,
                                       ],
-                                      '#prefix' => Markup::create('<!-- xb-start-uuid-js-component-auto-save -->'),
-                                      '#suffix' => Markup::create('<!-- xb-end-uuid-js-component-auto-save -->'),
-                                      '#uuid' => 'uuid-js-component-auto-save',
+                                      '#prefix' => Markup::create('<!-- xb-start-b4bc6c8f-66f7-458a-99a9-41c29b2801e7 -->'),
+                                      '#suffix' => Markup::create('<!-- xb-end-b4bc6c8f-66f7-458a-99a9-41c29b2801e7 -->'),
+                                      '#uuid' => 'b4bc6c8f-66f7-458a-99a9-41c29b2801e7',
                                     ],
                                   ],
-                                  'uuid-last-in-tree' => [
+                                  '9f09ecd8-ec65-408c-b5c8-ef036e6aeb97' => [
                                     '#type' => RenderSafeComponentContainer::PLUGIN_ID,
-                                    '#component_uuid' => 'uuid-last-in-tree',
+                                    '#component_uuid' => '9f09ecd8-ec65-408c-b5c8-ef036e6aeb97',
                                     '#component_context' => 'Page A page (-)',
                                     '#is_preview' => FALSE,
                                     '#component' => [
@@ -1061,12 +1082,12 @@ HTML,
                                       '#component' => 'xb_test_sdc:props-no-slots',
                                       '#props' => [
                                         'heading' => 'Hello, from slot <LAST ONE>!',
-                                        'xb_uuid' => 'uuid-last-in-tree',
+                                        'xb_uuid' => '9f09ecd8-ec65-408c-b5c8-ef036e6aeb97',
                                         'xb_slot_ids' => [],
                                         'xb_is_preview' => FALSE,
                                       ],
                                       '#prefix' => Markup::create('<!-- xb-start-last-in-tree -->'),
-                                      '#suffix' => Markup::create('<!-- xb-end-uuid-last-in-tree -->'),
+                                      '#suffix' => Markup::create('<!-- xb-end-9f09ecd8-ec65-408c-b5c8-ef036e6aeb97 -->'),
                                       '#attached' => [
                                         'library' => [
                                           'core/components.xb_test_sdc--props-no-slots',
@@ -1076,8 +1097,8 @@ HTML,
                                   ],
                                 ],
                               ],
-                              '#prefix' => Markup::create('<!-- xb-start-uuid-level-2 -->'),
-                              '#suffix' => Markup::create('<!-- xb-end-uuid-level-2 -->'),
+                              '#prefix' => Markup::create('<!-- xb-start-e0b92f23-c177-4196-8fa4-3e837f99a357 -->'),
+                              '#suffix' => Markup::create('<!-- xb-end-e0b92f23-c177-4196-8fa4-3e837f99a357 -->'),
                               '#attached' => [
                                 'library' => [
                                   'core/components.xb_test_sdc--props-slots',
@@ -1087,8 +1108,8 @@ HTML,
                           ],
                         ],
                       ],
-                      '#prefix' => Markup::create('<!-- xb-start-uuid-level-1 -->'),
-                      '#suffix' => Markup::create('<!-- xb-end-uuid-level-1 -->'),
+                      '#prefix' => Markup::create('<!-- xb-start-dfd2e899-6d88-46f8-b6aa-98929d1586dd -->'),
+                      '#suffix' => Markup::create('<!-- xb-end-dfd2e899-6d88-46f8-b6aa-98929d1586dd -->'),
                       '#attached' => [
                         'library' => [
                           'core/components.xb_test_sdc--props-slots',
@@ -1098,8 +1119,8 @@ HTML,
                   ],
                 ],
               ],
-              '#prefix' => Markup::create('<!-- xb-start-uuid-in-root -->'),
-              '#suffix' => Markup::create('<!-- xb-end-uuid-in-root -->'),
+              '#prefix' => Markup::create('<!-- xb-start-41595148-e5c1-4873-b373-be3ae6e21340 -->'),
+              '#suffix' => Markup::create('<!-- xb-end-41595148-e5c1-4873-b373-be3ae6e21340 -->'),
               '#attached' => [
                 'library' => [
                   'core/components.xb_test_sdc--props-slots',
@@ -1110,67 +1131,67 @@ HTML,
         ],
       ],
       'expected_html' => <<<HTML
-<!-- xb-start-uuid-in-root --><div  data-component-id="xb_test_sdc:props-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
-  <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;"><!-- xb-prop-start-uuid-in-root/heading -->Hello, world!<!-- xb-prop-end-uuid-in-root/heading --></h1>
+<!-- xb-start-41595148-e5c1-4873-b373-be3ae6e21340 --><div  data-component-id="xb_test_sdc:props-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
+  <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;"><!-- xb-prop-start-41595148-e5c1-4873-b373-be3ae6e21340/heading -->Hello, world!<!-- xb-prop-end-41595148-e5c1-4873-b373-be3ae6e21340/heading --></h1>
   <div class="component--props-slots--body">
-        <!-- xb-slot-start-uuid-in-root/the_body --><!-- xb-start-uuid-level-1 --><div  data-component-id="xb_test_sdc:props-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
-  <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;"><!-- xb-prop-start-uuid-level-1/heading -->Hello, from slot level 1!<!-- xb-prop-end-uuid-level-1/heading --></h1>
+        <!-- xb-slot-start-41595148-e5c1-4873-b373-be3ae6e21340/the_body --><!-- xb-start-dfd2e899-6d88-46f8-b6aa-98929d1586dd --><div  data-component-id="xb_test_sdc:props-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
+  <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;"><!-- xb-prop-start-dfd2e899-6d88-46f8-b6aa-98929d1586dd/heading -->Hello, from slot level 1!<!-- xb-prop-end-dfd2e899-6d88-46f8-b6aa-98929d1586dd/heading --></h1>
   <div class="component--props-slots--body">
-        <!-- xb-slot-start-uuid-level-1/the_body --><!-- xb-start-uuid-level-2 --><div  data-component-id="xb_test_sdc:props-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
-  <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;"><!-- xb-prop-start-uuid-level-2/heading -->Hello, from slot level 2!<!-- xb-prop-end-uuid-level-2/heading --></h1>
+        <!-- xb-slot-start-dfd2e899-6d88-46f8-b6aa-98929d1586dd/the_body --><!-- xb-start-e0b92f23-c177-4196-8fa4-3e837f99a357 --><div  data-component-id="xb_test_sdc:props-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
+  <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;"><!-- xb-prop-start-e0b92f23-c177-4196-8fa4-3e837f99a357/heading -->Hello, from slot level 2!<!-- xb-prop-end-e0b92f23-c177-4196-8fa4-3e837f99a357/heading --></h1>
   <div class="component--props-slots--body">
-        <!-- xb-slot-start-uuid-level-2/the_body --><!-- xb-start-uuid-level-3 --><div  data-component-id="xb_test_sdc:props-no-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
-  <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;"><!-- xb-prop-start-uuid-level-3/heading -->Hello, from slot level 3!<!-- xb-prop-end-uuid-level-3/heading --></h1>
+        <!-- xb-slot-start-e0b92f23-c177-4196-8fa4-3e837f99a357/the_body --><!-- xb-start-81c63cac-187d-4f05-8acc-1c38fb2489d3 --><div  data-component-id="xb_test_sdc:props-no-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
+  <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;"><!-- xb-prop-start-81c63cac-187d-4f05-8acc-1c38fb2489d3/heading -->Hello, from slot level 3!<!-- xb-prop-end-81c63cac-187d-4f05-8acc-1c38fb2489d3/heading --></h1>
 </div>
-<!-- xb-end-uuid-level-3 --><!-- xb-start-uuid-block --><div id="block-uuid-block">
+<!-- xb-end-81c63cac-187d-4f05-8acc-1c38fb2489d3 --><!-- xb-start-68167e4a-9245-41be-b564-f1e1dcad1dec --><div id="block-68167e4a-9245-41be-b564-f1e1dcad1dec">
 
 
           <a href="/" rel="home">XB Test Site</a>
     Experience Builder Test Site
 </div>
-<!-- xb-end-uuid-block --><!-- xb-start-uuid-js-component --><astro-island uid="uuid-js-component"
-        component-url="::SITE_DIR_BASE_URL::/files/astro-island/STNRn46UCAs1xJCb2kgPiEOEZp0R24B5qjtHOsyYT-g.js"
+<!-- xb-end-68167e4a-9245-41be-b564-f1e1dcad1dec --><!-- xb-start-2f57ba57-f32a-4a7b-9896-9d1104b446f1 --><astro-island uid="2f57ba57-f32a-4a7b-9896-9d1104b446f1"
+        component-url="::SITE_DIR_BASE_URL::/files/astro-island/WhwuTvDNGirmDnel19I8ZwBVuHF7FUafQWPOo7le6QQ.js"
         component-export="default"
         renderer-url="::XB_DIR_BASE_URL::/ui/lib/astro-hydration/dist/client.js"
         props="{&quot;text&quot;:[&quot;raw&quot;,&quot;Hello, from a \&quot;code component\&quot;!&quot;]}"
         ssr="" client="only"
-        opts="{&quot;name&quot;:&quot;My First Code Component&quot;,&quot;value&quot;:&quot;preact&quot;}"><script type="module" src="::XB_DIR_BASE_URL::/ui/lib/astro-hydration/dist/client.js" blocking="render"></script><script type="module" src="::SITE_DIR_BASE_URL::/files/astro-island/STNRn46UCAs1xJCb2kgPiEOEZp0R24B5qjtHOsyYT-g.js" blocking="render"></script></astro-island><!-- xb-end-uuid-js-component --><!-- xb-start-uuid-js-component-auto-save --><astro-island uid="uuid-js-component-auto-save"
-        component-url="::SITE_DIR_BASE_URL::/files/astro-island/STNRn46UCAs1xJCb2kgPiEOEZp0R24B5qjtHOsyYT-g.js"
+        opts="{&quot;name&quot;:&quot;My First Code Component&quot;,&quot;value&quot;:&quot;preact&quot;}"><script type="module" src="::XB_DIR_BASE_URL::/ui/lib/astro-hydration/dist/client.js" blocking="render"></script><script type="module" src="::SITE_DIR_BASE_URL::/files/astro-island/WhwuTvDNGirmDnel19I8ZwBVuHF7FUafQWPOo7le6QQ.js" blocking="render"></script></astro-island><!-- xb-end-2f57ba57-f32a-4a7b-9896-9d1104b446f1 --><!-- xb-start-b4bc6c8f-66f7-458a-99a9-41c29b2801e7 --><astro-island uid="b4bc6c8f-66f7-458a-99a9-41c29b2801e7"
+        component-url="::SITE_DIR_BASE_URL::/files/astro-island/WhwuTvDNGirmDnel19I8ZwBVuHF7FUafQWPOo7le6QQ.js"
         component-export="default"
         renderer-url="::XB_DIR_BASE_URL::/ui/lib/astro-hydration/dist/client.js"
         props="{&quot;text&quot;:[&quot;raw&quot;,&quot;Hello, from a \&quot;auto-save code component\&quot;!&quot;]}"
         ssr="" client="only"
-        opts="{&quot;name&quot;:&quot;My Code Component with Auto-Save&quot;,&quot;value&quot;:&quot;preact&quot;}"><script type="module" src="::XB_DIR_BASE_URL::/ui/lib/astro-hydration/dist/client.js" blocking="render"></script><script type="module" src="::SITE_DIR_BASE_URL::/files/astro-island/STNRn46UCAs1xJCb2kgPiEOEZp0R24B5qjtHOsyYT-g.js" blocking="render"></script></astro-island><!-- xb-end-uuid-js-component-auto-save --><!-- xb-start-uuid-last-in-tree --><div  data-component-id="xb_test_sdc:props-no-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
-  <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;"><!-- xb-prop-start-uuid-last-in-tree/heading -->Hello, from slot &lt;LAST ONE&gt;!<!-- xb-prop-end-uuid-last-in-tree/heading --></h1>
+        opts="{&quot;name&quot;:&quot;My Code Component with Auto-Save&quot;,&quot;value&quot;:&quot;preact&quot;}"><script type="module" src="::XB_DIR_BASE_URL::/ui/lib/astro-hydration/dist/client.js" blocking="render"></script><script type="module" src="::SITE_DIR_BASE_URL::/files/astro-island/WhwuTvDNGirmDnel19I8ZwBVuHF7FUafQWPOo7le6QQ.js" blocking="render"></script></astro-island><!-- xb-end-b4bc6c8f-66f7-458a-99a9-41c29b2801e7 --><!-- xb-start-9f09ecd8-ec65-408c-b5c8-ef036e6aeb97 --><div  data-component-id="xb_test_sdc:props-no-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
+  <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;"><!-- xb-prop-start-9f09ecd8-ec65-408c-b5c8-ef036e6aeb97/heading -->Hello, from slot &lt;LAST ONE&gt;!<!-- xb-prop-end-9f09ecd8-ec65-408c-b5c8-ef036e6aeb97/heading --></h1>
 </div>
-<!-- xb-end-uuid-last-in-tree --><!-- xb-slot-end-uuid-level-2/the_body -->
+<!-- xb-end-9f09ecd8-ec65-408c-b5c8-ef036e6aeb97 --><!-- xb-slot-end-e0b92f23-c177-4196-8fa4-3e837f99a357/the_body -->
     </div>
   <div class="component--props-slots--footer">
-        <!-- xb-slot-start-uuid-level-2/the_footer -->Example value for &lt;strong&gt;the_footer&lt;/strong&gt;.<!-- xb-slot-end-uuid-level-2/the_footer -->
+        <!-- xb-slot-start-e0b92f23-c177-4196-8fa4-3e837f99a357/the_footer -->Example value for &lt;strong&gt;the_footer&lt;/strong&gt;.<!-- xb-slot-end-e0b92f23-c177-4196-8fa4-3e837f99a357/the_footer -->
     </div>
   <div class="component--props-slots--colophon">
-        <!-- xb-slot-start-uuid-level-2/the_colophon --><!-- xb-slot-end-uuid-level-2/the_colophon -->
+        <!-- xb-slot-start-e0b92f23-c177-4196-8fa4-3e837f99a357/the_colophon --><!-- xb-slot-end-e0b92f23-c177-4196-8fa4-3e837f99a357/the_colophon -->
     </div>
 </div>
-<!-- xb-end-uuid-level-2 --><!-- xb-slot-end-uuid-level-1/the_body -->
+<!-- xb-end-e0b92f23-c177-4196-8fa4-3e837f99a357 --><!-- xb-slot-end-dfd2e899-6d88-46f8-b6aa-98929d1586dd/the_body -->
     </div>
   <div class="component--props-slots--footer">
-        <!-- xb-slot-start-uuid-level-1/the_footer -->Example value for &lt;strong&gt;the_footer&lt;/strong&gt;.<!-- xb-slot-end-uuid-level-1/the_footer -->
+        <!-- xb-slot-start-dfd2e899-6d88-46f8-b6aa-98929d1586dd/the_footer -->Example value for &lt;strong&gt;the_footer&lt;/strong&gt;.<!-- xb-slot-end-dfd2e899-6d88-46f8-b6aa-98929d1586dd/the_footer -->
     </div>
   <div class="component--props-slots--colophon">
-        <!-- xb-slot-start-uuid-level-1/the_colophon --><!-- xb-slot-end-uuid-level-1/the_colophon -->
+        <!-- xb-slot-start-dfd2e899-6d88-46f8-b6aa-98929d1586dd/the_colophon --><!-- xb-slot-end-dfd2e899-6d88-46f8-b6aa-98929d1586dd/the_colophon -->
     </div>
 </div>
-<!-- xb-end-uuid-level-1 --><!-- xb-slot-end-uuid-in-root/the_body -->
+<!-- xb-end-dfd2e899-6d88-46f8-b6aa-98929d1586dd --><!-- xb-slot-end-41595148-e5c1-4873-b373-be3ae6e21340/the_body -->
     </div>
   <div class="component--props-slots--footer">
-        <!-- xb-slot-start-uuid-in-root/the_footer -->Example value for &lt;strong&gt;the_footer&lt;/strong&gt;.<!-- xb-slot-end-uuid-in-root/the_footer -->
+        <!-- xb-slot-start-41595148-e5c1-4873-b373-be3ae6e21340/the_footer -->Example value for &lt;strong&gt;the_footer&lt;/strong&gt;.<!-- xb-slot-end-41595148-e5c1-4873-b373-be3ae6e21340/the_footer -->
     </div>
   <div class="component--props-slots--colophon">
-        <!-- xb-slot-start-uuid-in-root/the_colophon --><!-- xb-slot-end-uuid-in-root/the_colophon -->
+        <!-- xb-slot-start-41595148-e5c1-4873-b373-be3ae6e21340/the_colophon --><!-- xb-slot-end-41595148-e5c1-4873-b373-be3ae6e21340/the_colophon -->
     </div>
 </div>
-<!-- xb-end-uuid-in-root -->
+<!-- xb-end-41595148-e5c1-4873-b373-be3ae6e21340 -->
 HTML,
       'expected_cache_tags' => [
         'config:experience_builder.component.sdc.xb_test_sdc.props-slots',
@@ -1185,25 +1206,25 @@ HTML,
     ];
 
     $path_to_auto_saved_js_component = [
-      ComponentTreeStructure::ROOT_UUID,
-      'uuid-in-root',
+      ComponentTreeItemList::ROOT_UUID,
+      '41595148-e5c1-4873-b373-be3ae6e21340',
       '#component', '#slots', 'the_body',
-      'uuid-level-1',
+      'dfd2e899-6d88-46f8-b6aa-98929d1586dd',
       '#component', '#slots', 'the_body',
-      'uuid-level-2',
+      'e0b92f23-c177-4196-8fa4-3e837f99a357',
       '#component', '#slots', 'the_body',
-      'uuid-js-component-auto-save',
+      'b4bc6c8f-66f7-458a-99a9-41c29b2801e7',
       '#component',
     ];
     $path_to_js_component = [
-      ComponentTreeStructure::ROOT_UUID,
-      'uuid-in-root',
+      ComponentTreeItemList::ROOT_UUID,
+      '41595148-e5c1-4873-b373-be3ae6e21340',
       '#component', '#slots', 'the_body',
-      'uuid-level-1',
+      'dfd2e899-6d88-46f8-b6aa-98929d1586dd',
       '#component', '#slots', 'the_body',
-      'uuid-level-2',
+      'e0b92f23-c177-4196-8fa4-3e837f99a357',
       '#component', '#slots', 'the_body',
-      'uuid-js-component',
+      '2f57ba57-f32a-4a7b-9896-9d1104b446f1',
       '#component',
     ];
 
@@ -1247,67 +1268,67 @@ HTML,
         ],
       ),
       'expected_html' => <<<HTML
-<!-- xb-start-uuid-in-root --><div  data-component-id="xb_test_sdc:props-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
-  <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;"><!-- xb-prop-start-uuid-in-root/heading -->Hello, world!<!-- xb-prop-end-uuid-in-root/heading --></h1>
+<!-- xb-start-41595148-e5c1-4873-b373-be3ae6e21340 --><div  data-component-id="xb_test_sdc:props-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
+  <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;"><!-- xb-prop-start-41595148-e5c1-4873-b373-be3ae6e21340/heading -->Hello, world!<!-- xb-prop-end-41595148-e5c1-4873-b373-be3ae6e21340/heading --></h1>
   <div class="component--props-slots--body">
-        <!-- xb-slot-start-uuid-in-root/the_body --><!-- xb-start-uuid-level-1 --><div  data-component-id="xb_test_sdc:props-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
-  <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;"><!-- xb-prop-start-uuid-level-1/heading -->Hello, from slot level 1!<!-- xb-prop-end-uuid-level-1/heading --></h1>
+        <!-- xb-slot-start-41595148-e5c1-4873-b373-be3ae6e21340/the_body --><!-- xb-start-dfd2e899-6d88-46f8-b6aa-98929d1586dd --><div  data-component-id="xb_test_sdc:props-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
+  <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;"><!-- xb-prop-start-dfd2e899-6d88-46f8-b6aa-98929d1586dd/heading -->Hello, from slot level 1!<!-- xb-prop-end-dfd2e899-6d88-46f8-b6aa-98929d1586dd/heading --></h1>
   <div class="component--props-slots--body">
-        <!-- xb-slot-start-uuid-level-1/the_body --><!-- xb-start-uuid-level-2 --><div  data-component-id="xb_test_sdc:props-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
-  <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;"><!-- xb-prop-start-uuid-level-2/heading -->Hello, from slot level 2!<!-- xb-prop-end-uuid-level-2/heading --></h1>
+        <!-- xb-slot-start-dfd2e899-6d88-46f8-b6aa-98929d1586dd/the_body --><!-- xb-start-e0b92f23-c177-4196-8fa4-3e837f99a357 --><div  data-component-id="xb_test_sdc:props-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
+  <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;"><!-- xb-prop-start-e0b92f23-c177-4196-8fa4-3e837f99a357/heading -->Hello, from slot level 2!<!-- xb-prop-end-e0b92f23-c177-4196-8fa4-3e837f99a357/heading --></h1>
   <div class="component--props-slots--body">
-        <!-- xb-slot-start-uuid-level-2/the_body --><!-- xb-start-uuid-level-3 --><div  data-component-id="xb_test_sdc:props-no-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
-  <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;"><!-- xb-prop-start-uuid-level-3/heading -->Hello, from slot level 3!<!-- xb-prop-end-uuid-level-3/heading --></h1>
+        <!-- xb-slot-start-e0b92f23-c177-4196-8fa4-3e837f99a357/the_body --><!-- xb-start-81c63cac-187d-4f05-8acc-1c38fb2489d3 --><div  data-component-id="xb_test_sdc:props-no-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
+  <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;"><!-- xb-prop-start-81c63cac-187d-4f05-8acc-1c38fb2489d3/heading -->Hello, from slot level 3!<!-- xb-prop-end-81c63cac-187d-4f05-8acc-1c38fb2489d3/heading --></h1>
 </div>
-<!-- xb-end-uuid-level-3 --><!-- xb-start-uuid-block --><div id="block-uuid-block">
+<!-- xb-end-81c63cac-187d-4f05-8acc-1c38fb2489d3 --><!-- xb-start-68167e4a-9245-41be-b564-f1e1dcad1dec --><div id="block-68167e4a-9245-41be-b564-f1e1dcad1dec">
 
 
           <a href="/" rel="home">XB Test Site</a>
     Experience Builder Test Site
 </div>
-<!-- xb-end-uuid-block --><!-- xb-start-uuid-js-component --><astro-island uid="uuid-js-component"
-        component-url="::SITE_DIR_BASE_URL::/files/astro-island/STNRn46UCAs1xJCb2kgPiEOEZp0R24B5qjtHOsyYT-g.js"
+<!-- xb-end-68167e4a-9245-41be-b564-f1e1dcad1dec --><!-- xb-start-2f57ba57-f32a-4a7b-9896-9d1104b446f1 --><astro-island uid="2f57ba57-f32a-4a7b-9896-9d1104b446f1"
+        component-url="::SITE_DIR_BASE_URL::/files/astro-island/WhwuTvDNGirmDnel19I8ZwBVuHF7FUafQWPOo7le6QQ.js"
         component-export="default"
         renderer-url="::XB_DIR_BASE_URL::/ui/lib/astro-hydration/dist/client.js"
         props="{&quot;text&quot;:[&quot;raw&quot;,&quot;Hello, from a \&quot;code component\&quot;!&quot;]}"
         ssr="" client="only"
-        opts="{&quot;name&quot;:&quot;My First Code Component&quot;,&quot;value&quot;:&quot;preact&quot;}"><script type="module" src="::XB_DIR_BASE_URL::/ui/lib/astro-hydration/dist/client.js" blocking="render"></script><script type="module" src="::SITE_DIR_BASE_URL::/files/astro-island/STNRn46UCAs1xJCb2kgPiEOEZp0R24B5qjtHOsyYT-g.js" blocking="render"></script></astro-island><!-- xb-end-uuid-js-component --><!-- xb-start-uuid-js-component-auto-save --><astro-island uid="uuid-js-component-auto-save"
+        opts="{&quot;name&quot;:&quot;My First Code Component&quot;,&quot;value&quot;:&quot;preact&quot;}"><script type="module" src="::XB_DIR_BASE_URL::/ui/lib/astro-hydration/dist/client.js" blocking="render"></script><script type="module" src="::SITE_DIR_BASE_URL::/files/astro-island/WhwuTvDNGirmDnel19I8ZwBVuHF7FUafQWPOo7le6QQ.js" blocking="render"></script></astro-island><!-- xb-end-2f57ba57-f32a-4a7b-9896-9d1104b446f1 --><!-- xb-start-b4bc6c8f-66f7-458a-99a9-41c29b2801e7 --><astro-island uid="b4bc6c8f-66f7-458a-99a9-41c29b2801e7"
         component-url="/xb/api/v0/auto-saves/js/js_component/my-cta-with-auto-save"
         component-export="default"
         renderer-url="::XB_DIR_BASE_URL::/ui/lib/astro-hydration/dist/client.js"
         props="{&quot;text&quot;:[&quot;raw&quot;,&quot;Hello, from a \&quot;auto-save code component\&quot;!&quot;]}"
         ssr="" client="only"
-        opts="{&quot;name&quot;:&quot;My Code Component with Auto-Save - Draft&quot;,&quot;value&quot;:&quot;preact&quot;}"><script type="module" src="::XB_DIR_BASE_URL::/ui/lib/astro-hydration/dist/client.js" blocking="render"></script><script type="module" src="/xb/api/v0/auto-saves/js/js_component/my-cta-with-auto-save" blocking="render"></script></astro-island><!-- xb-end-uuid-js-component-auto-save --><!-- xb-start-uuid-last-in-tree --><div  data-component-id="xb_test_sdc:props-no-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
-  <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;"><!-- xb-prop-start-uuid-last-in-tree/heading -->Hello, from slot &lt;LAST ONE&gt;!<!-- xb-prop-end-uuid-last-in-tree/heading --></h1>
+        opts="{&quot;name&quot;:&quot;My Code Component with Auto-Save - Draft&quot;,&quot;value&quot;:&quot;preact&quot;}"><script type="module" src="::XB_DIR_BASE_URL::/ui/lib/astro-hydration/dist/client.js" blocking="render"></script><script type="module" src="/xb/api/v0/auto-saves/js/js_component/my-cta-with-auto-save" blocking="render"></script></astro-island><!-- xb-end-b4bc6c8f-66f7-458a-99a9-41c29b2801e7 --><!-- xb-start-9f09ecd8-ec65-408c-b5c8-ef036e6aeb97 --><div  data-component-id="xb_test_sdc:props-no-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
+  <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;"><!-- xb-prop-start-9f09ecd8-ec65-408c-b5c8-ef036e6aeb97/heading -->Hello, from slot &lt;LAST ONE&gt;!<!-- xb-prop-end-9f09ecd8-ec65-408c-b5c8-ef036e6aeb97/heading --></h1>
 </div>
-<!-- xb-end-uuid-last-in-tree --><!-- xb-slot-end-uuid-level-2/the_body -->
+<!-- xb-end-9f09ecd8-ec65-408c-b5c8-ef036e6aeb97 --><!-- xb-slot-end-e0b92f23-c177-4196-8fa4-3e837f99a357/the_body -->
     </div>
   <div class="component--props-slots--footer">
-        <!-- xb-slot-start-uuid-level-2/the_footer -->Example value for &lt;strong&gt;the_footer&lt;/strong&gt;.<!-- xb-slot-end-uuid-level-2/the_footer -->
+        <!-- xb-slot-start-e0b92f23-c177-4196-8fa4-3e837f99a357/the_footer -->Example value for &lt;strong&gt;the_footer&lt;/strong&gt;.<!-- xb-slot-end-e0b92f23-c177-4196-8fa4-3e837f99a357/the_footer -->
     </div>
   <div class="component--props-slots--colophon">
-        <!-- xb-slot-start-uuid-level-2/the_colophon --><!-- xb-slot-end-uuid-level-2/the_colophon -->
+        <!-- xb-slot-start-e0b92f23-c177-4196-8fa4-3e837f99a357/the_colophon --><!-- xb-slot-end-e0b92f23-c177-4196-8fa4-3e837f99a357/the_colophon -->
     </div>
 </div>
-<!-- xb-end-uuid-level-2 --><!-- xb-slot-end-uuid-level-1/the_body -->
+<!-- xb-end-e0b92f23-c177-4196-8fa4-3e837f99a357 --><!-- xb-slot-end-dfd2e899-6d88-46f8-b6aa-98929d1586dd/the_body -->
     </div>
   <div class="component--props-slots--footer">
-        <!-- xb-slot-start-uuid-level-1/the_footer -->Example value for &lt;strong&gt;the_footer&lt;/strong&gt;.<!-- xb-slot-end-uuid-level-1/the_footer -->
+        <!-- xb-slot-start-dfd2e899-6d88-46f8-b6aa-98929d1586dd/the_footer -->Example value for &lt;strong&gt;the_footer&lt;/strong&gt;.<!-- xb-slot-end-dfd2e899-6d88-46f8-b6aa-98929d1586dd/the_footer -->
     </div>
   <div class="component--props-slots--colophon">
-        <!-- xb-slot-start-uuid-level-1/the_colophon --><!-- xb-slot-end-uuid-level-1/the_colophon -->
+        <!-- xb-slot-start-dfd2e899-6d88-46f8-b6aa-98929d1586dd/the_colophon --><!-- xb-slot-end-dfd2e899-6d88-46f8-b6aa-98929d1586dd/the_colophon -->
     </div>
 </div>
-<!-- xb-end-uuid-level-1 --><!-- xb-slot-end-uuid-in-root/the_body -->
+<!-- xb-end-dfd2e899-6d88-46f8-b6aa-98929d1586dd --><!-- xb-slot-end-41595148-e5c1-4873-b373-be3ae6e21340/the_body -->
     </div>
   <div class="component--props-slots--footer">
-        <!-- xb-slot-start-uuid-in-root/the_footer -->Example value for &lt;strong&gt;the_footer&lt;/strong&gt;.<!-- xb-slot-end-uuid-in-root/the_footer -->
+        <!-- xb-slot-start-41595148-e5c1-4873-b373-be3ae6e21340/the_footer -->Example value for &lt;strong&gt;the_footer&lt;/strong&gt;.<!-- xb-slot-end-41595148-e5c1-4873-b373-be3ae6e21340/the_footer -->
     </div>
   <div class="component--props-slots--colophon">
-        <!-- xb-slot-start-uuid-in-root/the_colophon --><!-- xb-slot-end-uuid-in-root/the_colophon -->
+        <!-- xb-slot-start-41595148-e5c1-4873-b373-be3ae6e21340/the_colophon --><!-- xb-slot-end-41595148-e5c1-4873-b373-be3ae6e21340/the_colophon -->
     </div>
 </div>
-<!-- xb-end-uuid-in-root -->
+<!-- xb-end-41595148-e5c1-4873-b373-be3ae6e21340 -->
 HTML,
       'isPreview' => TRUE,
       'expected_cache_tags' => [

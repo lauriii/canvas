@@ -23,8 +23,6 @@ final class ValidExposedSlotConstraint extends SymfonyConstraint {
    */
   public string $viewMode = 'full';
 
-  public string $rootExposedMessage = 'Exposing the full component tree is not allowed.';
-
   public string $unknownComponentMessage = 'The component %id does not exist in the tree.';
 
   public string $slotNotEmptyMessage = 'The %slot slot must be empty.';

@@ -7,6 +7,7 @@ namespace Drupal\Tests\experience_builder\Kernel\Plugin\ExperienceBuilder\Compon
 // cspell:ignore Druplicons
 
 use Drupal\Component\Utility\Html;
+use Drupal\Component\Uuid\UuidInterface;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Entity\EntityStorageInterface;
@@ -20,10 +21,9 @@ use Drupal\experience_builder\ComponentSource\ComponentSourceWithSlotsInterface;
 use Drupal\experience_builder\Entity\Component;
 use Drupal\experience_builder\Entity\ComponentInterface;
 use Drupal\experience_builder\Entity\Page;
-use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 use Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase;
-use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
-use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemInstantiatorTrait;
+use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemListInstantiatorTrait;
+use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemList;
 use Drupal\experience_builder\PropExpressions\StructuredData\FieldTypePropExpression;
 use Drupal\experience_builder\PropSource\DefaultRelativeUrlPropSource;
 use Drupal\experience_builder\PropSource\StaticPropSource;
@@ -59,6 +59,11 @@ use Symfony\Component\DomCrawler\Crawler;
 abstract class ComponentSourceTestBase extends KernelTestBase implements LoggerInterface {
 
   use RfcLoggerTrait;
+
+  protected const string UUID_CRASH_TEST_DUMMY = '3204a711-a1bd-401d-9ce0-895665487eaa';
+
+  private const string UUID_FALLBACK_ROOT = 'd61651f3-e46b-45fa-aff1-beb95c64a886';
+
   protected array $logMessages = [];
 
   /**
@@ -72,7 +77,7 @@ abstract class ComponentSourceTestBase extends KernelTestBase implements LoggerI
 
   use CiModulePathTrait;
   use CrawlerTrait;
-  use ComponentTreeItemInstantiatorTrait;
+  use ComponentTreeItemListInstantiatorTrait;
   use ConstraintViolationsTestTrait;
   use ContribStrictConfigSchemaTestTrait;
   use GenerateComponentConfigTrait;
@@ -337,56 +342,53 @@ abstract class ComponentSourceTestBase extends KernelTestBase implements LoggerI
    *
    * In other words: if there's 3 Druplicons detected, then all is good!
    *
-   * @return \Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem
+   * @return \Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemList
    */
-  protected function generateCrashTestDummyComponentTree(string $component_id, array $inputs): ComponentTreeItem {
+  protected function generateCrashTestDummyComponentTree(string $component_id, array $inputs): ComponentTreeItemList {
     $this->assertCount(0, $this->componentStorage->loadMultiple());
     $this->generateComponentConfig();
 
-    $field_item = $this->createDanglingComponentTree();
+    $field_item = $this->createDanglingComponentTreeItemList();
     $field_item->setValue([
-      'tree' => [
-        ComponentTreeStructure::ROOT_UUID => [
-          [
-            'uuid' => 'container',
-            'component' => 'sdc.experience_builder.two_column',
-          ],
-        ],
-        'container' => [
-          'column_one' => [
-            [
-              'uuid' => 'component-before-crash',
-              'component' => 'sdc.experience_builder.druplicon',
-            ],
-            [
-              // @see https://en.wikipedia.org/wiki/Crash_test_dummy
-              'uuid' => 'crash-test-dummy',
-              'component' => $component_id,
-            ],
-            [
-              'uuid' => 'component-after-crash',
-              'component' => 'sdc.experience_builder.druplicon',
-            ],
-          ],
-          'column_two' => [
-            [
-              'uuid' => 'slot-adjacent-to-crash',
-              'component' => 'sdc.experience_builder.druplicon',
-            ],
-          ],
-        ],
-      ],
-      'inputs' => [
-        // Pass the crash test dummy component instance inputs as-is.
-        'crash-test-dummy' => $inputs,
-        // The container has a single explicit input that it requires; this can
-        // be hardcoded.
-        'container' => [
+      [
+        'uuid' => '38b79bf8-53d0-4307-b9ef-221c6a63023a',
+        'component_id' => 'sdc.experience_builder.two_column',
+        'inputs' => [
           'width' => StaticPropSource::generate(
             expression: new FieldTypePropExpression('integer', 'value'),
             cardinality: 1,
           )->withValue(33)->toArray(),
         ],
+      ],
+      [
+        // Before crash component.
+        'uuid' => 'ab72924b-a1f6-4b07-a0e7-6a3d3b03d8f7',
+        'component_id' => 'sdc.experience_builder.druplicon',
+        'inputs' => [],
+        'parent_uuid' => '38b79bf8-53d0-4307-b9ef-221c6a63023a',
+        'slot' => 'column_one',
+      ],
+      [
+        // @see https://en.wikipedia.org/wiki/Crash_test_dummy
+        'uuid' => self::UUID_CRASH_TEST_DUMMY,
+        'component_id' => $component_id,
+        'inputs' => $inputs,
+        'parent_uuid' => '38b79bf8-53d0-4307-b9ef-221c6a63023a',
+        'slot' => 'column_one',
+      ],
+      [
+        'uuid' => 'c3a4f459-7a8d-4dcd-88f7-ea353c9ec99a',
+        'component_id' => 'sdc.experience_builder.druplicon',
+        'inputs' => [],
+        'parent_uuid' => '38b79bf8-53d0-4307-b9ef-221c6a63023a',
+        'slot' => 'column_one',
+      ],
+      [
+        'uuid' => 'c16945de-c27b-463c-89a9-0b79af684c0a',
+        'component_id' => 'sdc.experience_builder.druplicon',
+        'inputs' => [],
+        'parent_uuid' => '38b79bf8-53d0-4307-b9ef-221c6a63023a',
+        'slot' => 'column_two',
       ],
     ]);
     return $field_item;
@@ -425,7 +427,7 @@ abstract class ComponentSourceTestBase extends KernelTestBase implements LoggerI
         self::assertStringContainsString($expected_exception['message'], $message);
         self::assertStringContainsString('Page A page (-)', $message);
         self::assertStringContainsString($expected_exception['class'], $message);
-        self::assertCount(1, $crawler->filter(\sprintf('[data-component-uuid="crash-test-dummy"]:contains("%s")', $displayedMessage)));
+        self::assertCount(1, $crawler->filter(\sprintf('[data-component-uuid="%s"]:contains("%s")', self::UUID_CRASH_TEST_DUMMY, $displayedMessage)));
       }
       else {
         $crawler = self::assertRenderArrayMatchesSelectors($build, [$expected_output_selector]);
@@ -535,8 +537,7 @@ abstract class ComponentSourceTestBase extends KernelTestBase implements LoggerI
     ]);
     // Save this so the usage can be queried.
     $entity->save();
-    $hydrated = $entity->getComponentTree()->get('hydrated');
-    $renderable = $hydrated->toRenderable($entity, TRUE);
+    $renderable = $entity->getComponentTree()->toRenderable($entity, TRUE);
     $out = $this->crawlerForRenderArray($renderable);
     // Should be no fallback container.
     self::assertCount(0, $out->filter('[data-fallback]'));
@@ -559,8 +560,7 @@ abstract class ComponentSourceTestBase extends KernelTestBase implements LoggerI
     self::assertNull($component_storage->loadUnchanged($unused_component->id()));
     // Assert that we can still render the fallback component and any children
     // in its slots.
-    $hydrated = $entity->getComponentTree()->get('hydrated');
-    $renderable = $hydrated->toRenderable($entity, TRUE);
+    $renderable = $entity->getComponentTree()->toRenderable($entity, TRUE);
     $out = $this->crawlerForRenderArray($renderable);
     // Should be a fallback container.
     self::assertGreaterThanOrEqual(1, $out->filter('[data-fallback]')->count());
@@ -571,7 +571,7 @@ abstract class ComponentSourceTestBase extends KernelTestBase implements LoggerI
     // We should also have the HTML comments that allow overlays to work.
     $html = \trim(\preg_replace('/\s+/', ' ', $out->html()) ?: '');
     foreach ($slots as $slot_name) {
-      self::assertMatchesRegularExpression(sprintf('/<!-- xb-slot-start-uuid-in-root\/%s -->/', $slot_name), $html);
+      self::assertMatchesRegularExpression(sprintf('/<!-- xb-slot-start-%s\/%s -->/', self::UUID_FALLBACK_ROOT, $slot_name), $html);
       self::assertMatchesRegularExpression(sprintf('/xb-slot-end-(.*)\/%s -->/', $slot_name), $html);
     }
 
@@ -582,8 +582,7 @@ abstract class ComponentSourceTestBase extends KernelTestBase implements LoggerI
     // Now perform an action that causes the component to recover from the
     // fallback.
     $this->recoverComponentFallback($used_component);
-    $hydrated = $entity->getComponentTree()->get('hydrated');
-    $renderable = $hydrated->toRenderable($entity, TRUE);
+    $renderable = $entity->getComponentTree()->toRenderable($entity, TRUE);
     $out = $this->crawlerForRenderArray($renderable);
     // Should be no fallback container.
     self::assertCount(0, $out->filter('[data-fallback]'));
@@ -594,16 +593,13 @@ abstract class ComponentSourceTestBase extends KernelTestBase implements LoggerI
   }
 
   private static function generateFallbackComponentTree(ComponentInterface $component, array $slots): array {
-    $tree = [
-      ComponentTreeStructure::ROOT_UUID => [
-        // Place the component that will become a fallback in the root of the
-        // tree.
-        ['uuid' => 'uuid-in-root', 'component' => $component->id()],
+    $items = [
+      // Place the component that will become a fallback in the items.
+      [
+        'uuid' => self::UUID_FALLBACK_ROOT,
+        'component_id' => $component->id(),
+        'inputs' => static::getPropsForComponentFallbackTesting(),
       ],
-    ];
-    $inputs = [
-      // Populate any input as appropriate.
-      'uuid-in-root' => static::getPropsForComponentFallbackTesting(),
     ];
     // Ensure we have something in each slot. When we trigger the conditions
     // that result in the component switching to use the 'fallback' plugin, we
@@ -611,31 +607,31 @@ abstract class ComponentSourceTestBase extends KernelTestBase implements LoggerI
     // to render.
     foreach ($slots as $slot) {
       // Generate a unique ID for each child component.
-      $uuid = \sprintf('uuid-in-%s', $slot);
+      $uuid = \Drupal::service(UuidInterface::class)->generate();
       // And place it inside the parent slot.
-      $tree['uuid-in-root'][$slot] = [
-        ['uuid' => $uuid, 'component' => 'sdc.experience_builder.heading'],
-      ];
-      // Give it some inputs we can assert still exist when the fallback
-      // conditions are triggered.
-      $inputs[$uuid] = [
-        'text' => [
-          'sourceType' => 'static:field_item:string',
-          'value' => \sprintf('This is %s', $slot),
-          'expression' => 'ℹ︎string␟value',
-        ],
-        'element' => [
-          'sourceType' => 'static:field_item:list_string',
-          'value' => 'h1',
-          'expression' => 'ℹ︎list_string␟value',
+      $items[] = [
+        'parent_uuid' => self::UUID_FALLBACK_ROOT,
+        'uuid' => $uuid,
+        'slot' => $slot,
+        'component' => 'sdc.experience_builder.heading',
+        'inputs' => [
+          // Give it some inputs we can assert still exist when the fallback
+          // conditions are triggered.
+          'text' => [
+            'sourceType' => 'static:field_item:string',
+            'value' => \sprintf('This is %s', $slot),
+            'expression' => 'ℹ︎string␟value',
+          ],
+          'element' => [
+            'sourceType' => 'static:field_item:list_string',
+            'value' => 'h1',
+            'expression' => 'ℹ︎list_string␟value',
+          ],
         ],
       ];
     }
     // Return component values.
-    return [
-      'tree' => $tree,
-      'inputs' => $inputs,
-    ];
+    return $items;
   }
 
 }

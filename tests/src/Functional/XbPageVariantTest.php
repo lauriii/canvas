@@ -20,7 +20,6 @@ use Drupal\experience_builder\Entity\Component;
 use Drupal\experience_builder\Entity\JavaScriptComponent;
 use Drupal\experience_builder\Entity\Page;
 use Drupal\experience_builder\Entity\PageRegion;
-use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 use Drupal\experience_builder\Plugin\DisplayVariant\XbPageVariant;
 use Drupal\Tests\experience_builder\Traits\ContribStrictConfigSchemaTestTrait;
 use Drupal\Tests\experience_builder\Traits\GenerateComponentConfigTrait;
@@ -37,6 +36,14 @@ class XbPageVariantTest extends FunctionalTestBase {
   use AssertPageCacheContextsAndTagsTrait;
   use ContribStrictConfigSchemaTestTrait;
   use GenerateComponentConfigTrait;
+
+  private const string UUID_IN_ROOT = '16176e0b-8197-40e3-ad49-48f1b6e9a7f9';
+  private const string UUID_LOCAL_ACTIONS = '8f6780cd-7b64-499e-9545-321a14951a0d';
+  private const string UUID_INACCESSIBLE = '208452de-10d6-4fb8-89a1-10e340b3744c';
+  private const string UUID_TITLE = '5fc4de04-f59c-4f56-b576-4673433381a4';
+  private const string UUID_BRANDING = 'b8fd639d-f1df-413a-8926-8d2c7a3d6493';
+  private const string UUID_MESSAGES = '4d866c38-7261-45c6-9b1e-0b94096d51e8';
+  private const string UUID_IN_ROOT_ANOTHER = '5944ef12-4a3d-4f3a-8e67-086661be9ffc';
 
   /**
    * {@inheritdoc}
@@ -130,54 +137,61 @@ class XbPageVariantTest extends FunctionalTestBase {
       'theme' => $this->defaultTheme,
       'region' => 'sidebar_first',
       'component_tree' => [
-        'tree' => [
-          ComponentTreeStructure::ROOT_UUID => [
-            [
-              'uuid' => 'uuid-in-root',
-              'component' => 'sdc.xb_test_sdc.props-no-slots',
-            ],
-            ['uuid' => 'uuid-local-actions', 'component' => 'block.local_actions_block'],
-            ['uuid' => 'uuid-inaccessible', 'component' => 'block.user_login_block'],
-            ['uuid' => 'uuid-title', 'component' => 'block.page_title_block'],
-            ['uuid' => 'uuid-branding', 'component' => 'block.system_branding_block'],
-            [
-              'uuid' => 'uuid-messages',
-              'component' => 'block.system_messages_block',
-            ],
-            [
-              'uuid' => 'uuid-in-root-another',
-              'component' => 'sdc.xb_test_sdc.props-no-slots',
-            ],
-          ],
-        ],
-        'inputs' => [
-          'uuid-in-root' => [
+        [
+          'uuid' => self::UUID_IN_ROOT,
+          'component_id' => 'sdc.xb_test_sdc.props-no-slots',
+          'inputs' => [
             'heading' => $generate_static_prop_source('world'),
           ],
-          'uuid-in-root-another' => [
-            'heading' => $generate_static_prop_source('another world'),
+        ],
+        [
+          'uuid' => self::UUID_LOCAL_ACTIONS,
+          'component_id' => 'block.local_actions_block',
+          'inputs' => [
+            'label' => '',
+            'label_display' => FALSE,
           ],
+        ],
+        [
+          'uuid' => self::UUID_INACCESSIBLE,
+          'component_id' => 'block.user_login_block',
           // Note how there is no input for the user login block, the main
           // content block, but there is for all others.
           // @see \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\BlockComponent::getExplicitInput()
-          'uuid-local-actions' => [
+          'inputs' => [],
+        ],
+        [
+          'uuid' => self::UUID_TITLE,
+          'component_id' => 'block.page_title_block',
+          'inputs' => [
             'label' => '',
             'label_display' => FALSE,
           ],
-          'uuid-title' => [
-            'label' => '',
-            'label_display' => FALSE,
-          ],
-          'uuid-branding' => [
+        ],
+        [
+          'uuid' => self::UUID_BRANDING,
+          'component_id' => 'block.system_branding_block',
+          'inputs' => [
             'label' => '',
             'label_display' => FALSE,
             'use_site_logo' => FALSE,
             'use_site_name' => TRUE,
             'use_site_slogan' => TRUE,
           ],
-          'uuid-messages' => [
+        ],
+        [
+          'uuid' => self::UUID_MESSAGES,
+          'component_id' => 'block.system_messages_block',
+          'inputs' => [
             'label' => '',
             'label_display' => FALSE,
+          ],
+        ],
+        [
+          'uuid' => self::UUID_IN_ROOT_ANOTHER,
+          'component_id' => 'sdc.xb_test_sdc.props-no-slots',
+          'inputs' => [
+            'heading' => $generate_static_prop_source('another world'),
           ],
         ],
       ],
@@ -201,7 +215,7 @@ class XbPageVariantTest extends FunctionalTestBase {
     ]), [], ['route']);
     // The branding block is rendered using Twig, no Astro island found.
     $this->assertSame([
-      'blocks' => ['uuid-title', 'uuid-branding'],
+      'blocks' => [self::UUID_TITLE, self::UUID_BRANDING],
       'js_components' => [],
     ], $this->getRenderedComponentInstances());
     $assert_session->responseContains('rel="home">Drupal</a>');
@@ -235,13 +249,13 @@ class XbPageVariantTest extends FunctionalTestBase {
     // using the branding Block component instance UUID.
     // @see \Drupal\experience_builder\Element\AstroIsland
     $this->assertSame([
-      'blocks' => ['uuid-title'],
-      'js_components' => ['uuid-branding'],
+      'blocks' => [self::UUID_TITLE],
+      'js_components' => [self::UUID_BRANDING],
     ], $this->getRenderedComponentInstances());
     $assert_session->responseNotContains('rel="home">Drupal</a>');
     $this->assertRenderedJavaScriptComponent(
       html: $this->getSession()->getPage()->getHtml(),
-      uid: 'uuid-branding',
+      uid: self::UUID_BRANDING,
       expected_opts: ['name' => $branding_component->label(), 'value' => 'preact'],
       expected_slots: ['siteSlogan' => $slogan],
     );
@@ -286,7 +300,7 @@ class XbPageVariantTest extends FunctionalTestBase {
     // Ensure the auto-saved component is NOT rendered on the front page.
     $this->assertRenderedJavaScriptComponent(
       html: $this->getSession()->getPage()->getHtml(),
-      uid: 'uuid-branding',
+      uid: self::UUID_BRANDING,
       expected_opts: ['name' => $branding_component->label(), 'value' => 'preact'],
       expected_slots: ['siteSlogan' => $slogan],
     );
@@ -308,7 +322,7 @@ class XbPageVariantTest extends FunctionalTestBase {
     $this->assertArrayHasKey('html', $layout_response_decoded);
     $this->assertRenderedJavaScriptComponent(
       html: $layout_response_decoded['html'],
-      uid: 'uuid-branding',
+      uid: self::UUID_BRANDING,
       expected_opts: ['name' => $branding_component_auto_saved->label(), 'value' => 'preact'],
       expected_slots: ['siteSlogan' => $slogan],
     );
@@ -320,7 +334,7 @@ class XbPageVariantTest extends FunctionalTestBase {
     $layout_response_decoded = json_decode($xb_ui_session->getPage()->getContent(), TRUE);
     $this->assertRenderedJavaScriptComponent(
       html: $layout_response_decoded['html'],
-      uid: 'uuid-branding',
+      uid: self::UUID_BRANDING,
       expected_opts: ['name' => $branding_component->label(), 'value' => 'preact'],
       expected_slots: ['siteSlogan' => $slogan],
     );

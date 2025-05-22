@@ -9,17 +9,17 @@ use Drupal\Core\Validation\Attribute\Constraint;
 use Symfony\Component\Validator\Constraint as SymfonyConstraint;
 
 /**
- * Validates a component tree.
+ * Validates a component tree item.
  */
 #[Constraint(
-  id: 'ValidComponentTree',
+  id: 'ValidComponentTreeItem',
   label: new TranslatableMarkup('Validates a component tree', [], ['context' => 'Validation']),
   type: [
     // @see \Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem
     'field_item:component_tree',
-    // @see `type: experience_builder.component_tree`
-    'experience_builder.component_tree',
+    // @see `type: experience_builder.component_tree_node`
+    'experience_builder.component_tree_node',
   ],
 )]
-final class ValidComponentTreeConstraint extends SymfonyConstraint {
+final class ValidComponentTreeItemConstraint extends SymfonyConstraint {
 }

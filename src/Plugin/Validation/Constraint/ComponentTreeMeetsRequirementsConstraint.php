@@ -26,7 +26,7 @@ use Symfony\Component\Validator\Exception\MissingOptionsException;
  *
  * Assumes valid component trees.
  *
- * @see \Drupal\experience_builder\Plugin\Validation\Constraint\ValidComponentTreeConstraint
+ * @see \Drupal\experience_builder\Plugin\Validation\Constraint\ValidComponentTreeItemConstraint
  * @phpstan-import-type PropSourceTypePrefix from \Drupal\experience_builder\PropSource\PropSourceBase
  * @phpstan-import-type ComponentConfigEntityId from \Drupal\experience_builder\Entity\Component
  */

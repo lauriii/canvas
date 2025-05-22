@@ -391,10 +391,7 @@ HTML,
     $actual_props = array_combine(
       array_keys($expected_props_for_uuids),
       array_map(
-        // @phpstan-ignore-next-line
-        fn (string $uuid) => Component::load($xb_field_item->get('tree')->getComponentId($uuid))
-          ->getComponentSource()
-          ->getExplicitInput($uuid, $xb_field_item)['resolved'],
+        fn (string $uuid) => $xb_field_item->getComponent()?->getComponentSource()->getExplicitInput($uuid, $xb_field_item)['resolved'],
         array_keys($expected_props_for_uuids)
       )
     );
@@ -407,8 +404,8 @@ HTML,
     // Only 1 invalid case will allow to call
     // \Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem::resolveComponentProps()
     // without an exception.
-    $test_cases['invalid tree structure, uuid at top of data structure is not in the tree, also has empty slots'] = $invalid_test_cases['invalid tree structure, uuid at top of data structure is not in the tree, also has empty slots'];
-    $test_cases['invalid tree structure, uuid at top of data structure is not in the tree, also has empty slots'][] = [];
+    $test_cases['invalid UUID, missing component_id key'] = $invalid_test_cases['invalid UUID, missing component_id key'];
+    $test_cases['invalid UUID, missing component_id key'][] = [];
     $test_cases['valid values using static inputs'][] = [
       'dynamic-static-card2df' => [
         'heading' => 'They say I am static, but I want to believe I can change!',
@@ -469,7 +466,7 @@ HTML,
         'crash' => $generate_static_prop_source('string', 'this is an invalid value for the SDC prop'),
       ],
       'expected_validation_errors' => [
-        '.inputs.crash-test-dummy.crash' => 'String value found, but a boolean or an object is required. The provided value is: "this is an invalid value for the SDC prop".',
+        \sprintf('2.inputs.%s.crash', self::UUID_CRASH_TEST_DUMMY) => 'String value found, but a boolean or an object is required. The provided value is: "this is an invalid value for the SDC prop".',
       ],
       'expected_exception' => [
         'class' => RuntimeError::class,
@@ -482,7 +479,7 @@ HTML,
       'component_id' => 'sdc.xb_test_sdc.crash',
       'inputs' => [],
       'expected_validation_errors' => [
-        '.inputs.crash-test-dummy.crash' => 'The property crash is required.',
+        \sprintf('2.inputs.%s.crash', self::UUID_CRASH_TEST_DUMMY) => 'The property crash is required.',
       ],
       'expected_exception' => [
         'class' => RuntimeError::class,

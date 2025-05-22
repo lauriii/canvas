@@ -90,65 +90,63 @@ Moved to the [`XB Shape Matching into Field Types` doc](shape-matching-into-fiel
 
 ### 3.2 Data Model: storing a component tree
 
+The `component tree` is represented by a `\Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemList`, which
+contains one field value for each `component instance` in the tree.
+Each `component instance` is represented by a `\Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem`, which
+each allow accessing the `Component config entity` and `Component Source Plugin` that represents the `component`.
+
 See `\Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem` + its validation constraint.
 
-XB defines a new `XB field type` with two `field prop`s, that each have their own `data type`:
-- _tree_ — see 3.2.1
+XB defines a new `XB field type` with the following `field prop`s:
+- _uuid_ — A unique ID for this `component instance`
+- _component_id_ — This is the ID of the `Component config entity` this `component instance` references
+- _parent_uuid_ — If this `component instance` is placed inside another `component instance` in the tree, the UUID of the parent `component instance`
+- _slot_ — If this `component instance` is placed inside another `component instance` in the tree, the machine name of the `component slot` in which it is placed. This slot must exist in the parent `component instance`.
 - _inputs_ — see 3.2.2
 
-Storing this as two separate `field prop`s simplifies supporting both symmetric and asymmetric translations:
-- the _inputs_ `field prop` SHOULD always be translatable
-- the _tree_ `field prop` can be either:
+When _parent_uuid_ and _slot_ are empty, the `component instance` is at the root of the `component tree`.
+
+Additionally there are two computed `field prop`s:
+- _component_ - this is an entity reference to the `Component config entity` the `component instance` uses. Any methods on the `Component config entity` can be chained. E.g. `$item->get('component')?->getComponentSource()`.
+- _parent_ - this is a data reference to the sibling `\Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem` in the tree that represents the `component instance`'s parent `component instance` in the `component tree`. If the `component instance` has no parent, this will be NULL. Any methods on the parent `component instance` can be chained, e.g. `$item->get('parent')->getComponent()?->getComponentSource()?->getSlotDefinitions()`
+
+Additionally, convenience methods for accessing/setting values on the `ComponentTreeItem` exist including:
+- `getParentUuid(): ?string` - gets the value of _parent_uuid_ if it exists
+- `getParentComponentTreeItem(): ?ComponentTreeItem` - gets the parent `component instance` if it exists
+- `getSlot(): ?string` - gets the `component slot` machine name if it exists
+- `getComponent(): ComponentInterface` - gets the `Component config entity`
+- `getComponentId(): string` - gets the ID of the `Component config entity`
+- `getUuid(): string` - gets the UUID of the `component instance`
+- `getInputs(): ?array` - gets the explicit inputs of the `component instance` as an array (JSON decoded)
+- `getInput(): ?string` - gets the explicit inputs of the `component instance` as a string (JSON encoded)
+- `setInput(array|string $input): static` - sets the inputs, can be passed as either a string (JSON encoded) or an array
+
+Storing these as separate `field prop`s simplifies supporting both symmetric and asymmetric translations:
+- the _inputs_ column group (just the `inputs` column) group SHOULD always be translatable
+- the _tree_ column group (comprising `uuid`, `component_id`, `parent_uuid` and `slot`) can be either:
   1. marked translatable for _asymmetric translations_ (a different `component tree` per `content entity` translation)
   2. marked untranslatable for _symmetric translations_ (same `component tree` for all `content entity` translations)
 
 (Drupal's Content Translation module natively supports configuring this.)
 
-#### 3.2.1 The `field prop` storing the tree structure
+#### 3.2.1 The columns (`field prop`s) storing the tree structure
+
+The `uuid`, `component_id`, `parent_uuid` and `slot` columns model the tree structure.
 
 See `\Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure` + its validation constraint.
 
-The `component tree`'s _tree_ `field prop` has a representation that minimizes nesting, which simplifies both validation
-as well as changes to `component input`s (simpler JSON querying).
-
-The _tree_ `field prop` is stored as a JSON blob, and always meets the following requirements:
-1. every `component instance` is represented by a "uuid, component" pair, with the value for "component" being the ID of
+These columns always meet the following requirements
+1. every `component instance` is represented by a "uuid, component_id" pair, with the value for "component_id" being the ID of
    a `Component config entity` (NOT that of the underlying `component`), and the "uuid" being a randomly generated UUID
-2. the root UUID is present, and represents the root of the `component tree`
-3. any top-level UUID appears as a UUID in a _parent branch/tree_ (except its own branch), _if_ the `Component config
-   entity` is for a `component` that has >=1 `component slot`s
-4. `component slot`s of every `component instance`: the stored slot names (`firstColumn` and `secondColumn` in the
-   example below) MUST be existing slot names for this particular `Component config entity`/`component`
-5. the ordering in each array (the component instances under the root UUID and under each slot name) is meaningful,
-   because the `component instance`s are positioned in a particular order
+2. Any top-level items have NULL for both the `parent_uuid` and `slot`.
+3. Nested components must have a value for both the `parent_uuid` and `slot`.
+    1. The `parent_uuid` must exist in a sibling field item in the `ComponentTreeItemList`.
+    2. The `slot` must be present in the parent `component`'s slot definitions
+    3. The `parent_uuid` must not be the same as the `uuid` - you cannot reference yourself as a parent
+4. Each `uuid` must be unique in the list of items
+5. The `delta` of each field item represents the order that components in the same level of the tree appear in.
 
-Example:
-```json
-{
-  "ROOT_UUID": [
-    {"uuid": "uuid-root-1", "component": "sdc.provider.two-col"},
-    {"uuid": "uuid-root-2", "component": "sdc.provider.marquee"},
-    {"uuid": "uuid-root-3", "component": "sdc.provider.marquee"}
-  ],
-  "uuid-root-1": {
-    "firstColumn": [
-      {"uuid": "uuid4-author1", "component": "sdc.provider.person-card"},
-      {"uuid": "uuid2-submitted", "component": "sdc.provider.elegant-date"}
-    ],
-    "secondColumn": [
-      {"uuid": "uuid5-author2", "component": "sdc.provider.person-card"},
-      {"uuid": "uuid6-block", "component": "block.system_branding_block"}
-    ]
-  },
-  "uuid-root-2": {
-    "content": [
-      {"uuid": "uuid4-author3", "component": "sdc.provider.person-card"}
-    ]
-  }
-}
-```
-
-#### 3.2.2 The `field prop` storing the `component input` values
+#### 3.2.2 The column (`field prop`) storing the `component input` values
 
 See
 - `\Drupal\experience_builder\Plugin\DataType\ComponentInputs`
@@ -159,69 +157,71 @@ _This uses 3.1._
 
 The `component tree`'s _inputs_ `field prop` has a trivial representation that could easily change. It is stored as a
 JSON blob, and meets the following requirements:
-1. it contains a list of key-value pairs, with keys corresponding to `component instance`s and values containing opaque
-   arrays that are validated by that source's `::validateComponentInput()` and are decodable using that source's
+1. it contains opaque arrays that are validated by that source's `::validateComponentInput()` and are decodable using that source's
    `::getExplicitInput()`
-2. order is irrelevant everywhere — meaning moving a `component instance` to a different location in the
-   `component tree` requires only changes to _tree_, not to _inputs_
+2. the `inputs` for a given component live in the same field-item as its corresponding `uuid`, `component_id`, `parent_uuid` and `slot`
 
 Note: this simplifies different (symmetric) translation strategies: it's trivial to either reuse another translation's
 _inputs_ `field prop` (to show what to translate from) or not reuse anything at all — that needs only array intersection.
 
 Note: a welcome bonus is that when real-time collaborative editing is eventually added, one user can move a
 `component instance` while another edits the _inputs_ of that same `component instance`, without causing a conflict.
+This is because editing will be specific to a `component instance`, which is modeled as a single delta.
 
 No validation is necessary for this `field prop`, because it is more easily validated at the `field item` level of the
 `XB field type`, not at the `field prop` level — there, the aforementioned `::validateComponentInput()` method is called
 for every `component instance` encountered in the stored `component tree`. If the `Component Source Plugin` complains, a
 validation error occurs.
 
-Example, that populates only the two "marquee" `SDC` `component instance`s in the _tree_ example above. It uses one
-`static prop source` and one `dynamic prop source`.
-```json
-{
-  "uuid-root-2": {
-    "text": {
-      "sourceType": "dynamic",
-      "expression": "ℹ︎␜entity:node:article␝title␞␟value"
-    }
-  },
-  "uuid-root-3": {
-    "text": {
-      "sourceType": "static:field_item:string",
-      "value": "Hello, world!",
-      "expression": "ℹ︎string␟value"
-    }
-  }
-}
-```
-
-(Note that here the string representation of a `prop expression` is used, which allows more compact storage; when logic
-interacts with these, it will transform them to the typed PHP object representation first.)
-
-Example, that populates only the `Block` `component instance` in the _tree_ example above. Note how much simpler the
-stored information is, because it uses the Block system's native input UX:
-```json
-{
-  "uuid6-block": {
-    "label": "",
-    "label_display": false,
-    "use_site_logo": true,
-    "use_site_name": true,
-    "use_site_slogan": false,
-  },
-}
+Example: A simple tree showing a root item (`41595148-e5c1-4873-b373-be3ae6e21340`) with a child (`3b305d86-86a7-4684-8664-7ef1fc2be070`) in the `body` slot, plus another root item (`41595148-e5c1-4873-b373-be3ae6e21340`).
+```php
+[
+  'uuid' => '41595148-e5c1-4873-b373-be3ae6e21340',
+  'component_id' => 'sdc.xb_test_sdc.props-slots',
+  'inputs' => [
+    'heading' => [
+      'sourceType' => 'static:field_item:string',
+      'value' => "Hello, world!",
+      'expression' => 'ℹ︎string␟value',
+    ],
+  ],
+],
+[
+  'uuid' => '3b305d86-86a7-4684-8664-7ef1fc2be070',
+  'component_id' => 'sdc.xb_test_sdc.props-no-slots',
+  'parent_uuid' => '41595148-e5c1-4873-b373-be3ae6e21340',
+  'slot' => 'the_body',
+  'inputs' => [
+    'heading' => [
+      'sourceType' => 'static:field_item:string',
+      'value' => "It's me!",
+      'expression' => 'ℹ︎string␟value',
+    ],
+  ],
+  [
+    'uuid' => '41595148-e5c1-4873-b373-be3ae6e21340',
+    'component_id' => 'block.system_branding_block',
+    // Example, that populates a Block component instance.
+    // Note how much simpler the stored information is, because it uses the Block system's native input UX:
+    'inputs' => [
+      'label' => '',
+      'label_display' => FALSE,
+      'use_site_logo' => TRUE,
+      'use_site_name' => TRUE,
+      'use_site_slogan' => TRUE,
+    ],
+  ],
+],
 ```
 
 #### 3.2.3 Validation
 
-Assuming the _tree_ `field prop` has already been validated, a `component tree` described in an `XB field` then is valid
+Assuming the _tree_ column groups (`uuid`, `component_id`, `parent_uuid` and `slot`) has already been validated, a `component tree` described in an `XB field` then is valid
 when: for each `component instance` in the _tree_ `field prop`:
-1. a counterpart in the _inputs_ `field prop` exists (the `component instance`'s UUID is an existing key)
-2. getting the explicit input using `ComponentSourceInterface::getExplicitInput()` (which for `Block` requires no extra
+1. getting the explicit input using `ComponentSourceInterface::getExplicitInput()` (which for `Block` requires no extra
    work but for `SDC` involves resolving the stored `prop source`s, resulting in values to be passed to the
    corresponding `component input`s)
-3. calling `ComponentSourceInterface::validateComponentInput()` (which for `Block` uses config schema validation and for
+2. calling `ComponentSourceInterface::validateComponentInput()` (which for `Block` uses config schema validation and for
   `SDC` checking if `\Drupal\Core\Theme\Component\ComponentValidator::validateProps()` does not throw an exception)
 
 #### 3.2.4 Facilitating `component input`s changes
@@ -232,12 +232,12 @@ other words: an upgrade path is necessary if a Front-End Developer makes certain
 - changing the schema of a `component input`
 - adding a new _required_ `component input`
 
-Here too, storing the _tree_ and _inputs_ as separate `field props` is helpful. An upgrade path for a `component` would
+Here too, storing the _inputs_ as separate `field props` is helpful. An upgrade path for a `component` would
 require logic somewhat like this:
 
-1. SQL query to search the _tree_ JSON blob for uses of this `component`, capture the UUIDs. If 0 matches: break.
+1. SQL query to search the `component_id` column for uses of this `component`, capture the UUIDs. If 0 matches: break.
 2. If >0 matches, PHP logic computes the necessary changes.
-3. Insert the updated _inputs_ JSON blob.
+3. Insert the updated _inputs_ JSON blob into that specific delta.
 
 The above sequence assumes doing this per-entity. But this can actually be done _per entity-type_, or more precisely:
 per `XB field`. So if the `XB field type` is only used for one entity type but is used in many bundles (i.e. many
@@ -247,7 +247,7 @@ efficiently find all uses of a `component`.
 
 ### 3.3 Data Model: rendering a stored `component tree`
 
-See `\Drupal\experience_builder\Plugin\DataType\ComponentTreeHydrated`.
+See `\Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemList`.
 
 _This uses 3.2.1, 3.2.2 and 3.2.3._
 

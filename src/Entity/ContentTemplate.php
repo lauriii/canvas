@@ -16,7 +16,8 @@ use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\experience_builder\EntityHandlers\ContentCreatorVisibleXbConfigEntityAccessControlHandler;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
-use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemInstantiatorTrait;
+use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemListInstantiatorTrait;
+use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemList;
 
 /**
  * Defines a template for content entities in a particular view mode.
@@ -27,8 +28,7 @@ use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemInstantiat
  * `\Drupal\layout_builder\Hook\LayoutBuilderHooks::entityTypeAlter()` -- only
  * one module can do that!
  *
- * @phpstan-import-type ComponentTreeStructureArray from \Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure
- * @phpstan-import-type ComponentInputsArray from \Drupal\experience_builder\Plugin\DataType\ComponentInputs
+ * @phpstan-import-type ComponentTreeItemListArray from \Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemList
  */
 #[ConfigEntityType(
   id: self::ENTITY_TYPE_ID,
@@ -62,7 +62,7 @@ use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemInstantiat
 )]
 final class ContentTemplate extends ConfigEntityBase implements ComponentTreeEntityInterface, EntityViewDisplayInterface {
 
-  use ComponentTreeItemInstantiatorTrait;
+  use ComponentTreeItemListInstantiatorTrait;
 
   public const string ENTITY_TYPE_ID = 'content_template';
 
@@ -99,7 +99,7 @@ final class ContentTemplate extends ConfigEntityBase implements ComponentTreeEnt
   /**
    * The component tree.
    *
-   * @var ?array{tree: ComponentTreeStructureArray, inputs: ComponentInputsArray}
+   * @var ?ComponentTreeItemListArray
    */
   protected ?array $component_tree;
 
@@ -191,7 +191,7 @@ final class ContentTemplate extends ConfigEntityBase implements ComponentTreeEnt
   public function calculateDependencies(): static {
     parent::calculateDependencies();
 
-    $this->addDependencies($this->getComponentTree()->calculateFieldItemValueDependencies(FALSE));
+    $this->addDependencies($this->getComponentTree()->calculateDependencies());
 
     // Ensure we depend on the associated view mode.
     $view_mode = $this->getViewMode();
@@ -203,8 +203,8 @@ final class ContentTemplate extends ConfigEntityBase implements ComponentTreeEnt
   /**
    * {@inheritdoc}
    */
-  public function getComponentTree(?FieldableEntityInterface $parent = NULL): ComponentTreeItem {
-    $item = $this->createDanglingComponentTree($parent);
+  public function getComponentTree(?FieldableEntityInterface $parent = NULL): ComponentTreeItemList {
+    $item = $this->createDanglingComponentTreeItemList($parent);
     $item->setValue($this->component_tree);
     return $item;
   }
@@ -333,7 +333,10 @@ final class ContentTemplate extends ConfigEntityBase implements ComponentTreeEnt
         if ($dependency instanceof ConfigEntityInterface) {
           $dependency = $dependency->getConfigDependencyName();
         }
-        $changed |= $tree->updatePropSourcesOnDependencyRemoval($type, $dependency);
+        foreach ($tree as $item) {
+          \assert($item instanceof ComponentTreeItem);
+          $changed |= $item->updatePropSourcesOnDependencyRemoval($type, $dependency);
+        }
       }
     }
     if ($changed) {

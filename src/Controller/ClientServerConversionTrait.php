@@ -4,19 +4,20 @@ declare(strict_types=1);
 
 namespace Drupal\experience_builder\Controller;
 
+use Drupal\Core\Validation\BasicRecursiveValidatorFactory;
 use Drupal\experience_builder\Entity\EntityConstraintViolationList;
 use Drupal\Core\Entity\FieldableEntityInterface;
-use Drupal\Core\TypedData\DataDefinition;
 use Drupal\experience_builder\Entity\Component;
 use Drupal\experience_builder\Exception\ConstraintViolationException;
-use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
+use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemListInstantiatorTrait;
+use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemList;
+use Drupal\experience_builder\Plugin\Validation\Constraint\ComponentTreeStructureConstraint;
 use Drupal\experience_builder\Validation\ConstraintPropertyPathTranslatorTrait;
 use Symfony\Component\Validator\ConstraintViolationList;
 
 /**
  * @internal
- * @phpstan-import-type ComponentTreeStructureArray from \Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure
- * @phpstan-import-type ComponentInputsArray from \Drupal\experience_builder\Plugin\DataType\ComponentInputs
+ * @phpstan-import-type ComponentTreeItemListArray from \Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemList
  * @phpstan-import-type ComponentClientStructureArray from \Drupal\experience_builder\Controller\ApiLayoutController
  * @phpstan-import-type RegionClientStructureArray from \Drupal\experience_builder\Controller\ApiLayoutController
  * @phpstan-import-type LayoutClientStructureArray from \Drupal\experience_builder\Controller\ApiLayoutController
@@ -24,116 +25,111 @@ use Symfony\Component\Validator\ConstraintViolationList;
 trait ClientServerConversionTrait {
 
   use ConstraintPropertyPathTranslatorTrait;
+  use ComponentTreeItemListInstantiatorTrait;
 
   /**
    * @todo Refactor/remove in https://www.drupal.org/project/experience_builder/issues/3467954.
    * @param LayoutClientStructureArray $layout
-   * @phpstan-return ComponentTreeStructureArray
+   * @phpstan-return ComponentTreeItemListArray
    * @throws \Drupal\experience_builder\Exception\ConstraintViolationException
    *
    * @todo remove the validate flag in https://www.drupal.org/i/3505018.
    */
-  private static function clientLayoutToServerTree(array $layout, bool $validate = TRUE): array {
+  private static function clientToServerTree(array $layout, array $model, ?FieldableEntityInterface $entity, bool $validate = TRUE): array {
     // Transform client-side representation to server-side representation.
-    $tree = [
-      ComponentTreeStructure::ROOT_UUID => [],
-    ];
+    $items = [];
     foreach ($layout as $component) {
       assert($component['nodeType'] === 'component');
-      $tree = self::doClientComponentToServerTree($component, $tree, ComponentTreeStructure::ROOT_UUID, NULL);
+      $items = \array_merge($items, self::doClientComponentToServerTree($component, $model, ComponentTreeItemList::ROOT_UUID, NULL));
     }
-
-    if (!$validate) {
-      return $tree;
+    if ($validate) {
+      // Validate the items represent a valid tree.
+      /** @var \Symfony\Component\Validator\Validator\RecursiveValidator $validator */
+      $validator = \Drupal::service(BasicRecursiveValidatorFactory::class)->createValidator();
+      $violations = $validator->validate($items, new ComponentTreeStructureConstraint(['basePropertyPath' => 'layout.children']));
+      if ($violations->count() > 0) {
+        throw new ConstraintViolationException($violations);
+      }
     }
-
-    // Validate it.
-    $definition = DataDefinition::create('component_tree_structure');
-    $component_tree_structure = new ComponentTreeStructure($definition, 'component_tree_structure');
-    $component_tree_structure->setValue($tree);
-    $violations = $component_tree_structure->validate();
-    if ($violations->count()) {
-      throw new ConstraintViolationException($violations);
-    }
-
-    return $tree;
+    return self::clientModelToInput($items, $entity, $validate);
   }
 
   /**
    * @param LayoutClientStructureArray $layout
-   * @phpstan-return ComponentTreeStructureArray
+   * @phpstan-return ComponentTreeItemListArray
    */
-  private static function doClientSlotToServerTree(array $layout, array $tree, string $parent_uuid): array {
+  private static function doClientSlotToServerTree(array $layout, array $model, string $parent_uuid): array {
     assert(isset($layout['nodeType']));
 
     // Regions have no name.
     $name = $layout['nodeType'] === 'slot' ? $layout['name'] : NULL;
 
+    $items = [];
     foreach ($layout['components'] as $component) {
-      $tree = self::doClientComponentToServerTree($component, $tree, $parent_uuid, $name);
+      $items = \array_merge($items, self::doClientComponentToServerTree($component, $model, $parent_uuid, $name));
     }
 
-    return $tree;
+    return $items;
   }
 
   /**
    * @phpstan-param ComponentClientStructureArray $layout
-   * @phpstan-return ComponentTreeStructureArray
+   * @phpstan-return ComponentTreeItemListArray
    */
-  private static function doClientComponentToServerTree(array $layout, array $tree, string $parent_uuid, ?string $parent_slot): array {
-    assert(isset($layout['nodeType']));
-    assert($layout['nodeType'] === 'component');
+  private static function doClientComponentToServerTree(array $layout, array $model, string $parent_uuid, ?string $parent_slot): array {
+    \assert(\array_key_exists('nodeType', $layout));
+    \assert($layout['nodeType'] === 'component');
 
-    $component = \array_filter([
+    $uuid = $layout['uuid'] ?? NULL;
+    $component = [
       'uuid' => $layout['uuid'] ?? NULL,
-      'component' => $layout['type'] ?? NULL,
-    ]);
+      'component_id' => $layout['type'] ?? NULL,
+      'inputs' => [],
+    ];
+    if ($uuid !== NULL) {
+      $component['inputs'] = $model[$uuid] ?? [];
+    }
 
-    // Root level.
-    if (!isset($parent_slot)) {
-      $tree[$parent_uuid][] = $component;
+    if ($parent_slot !== NULL) {
+      $component['slot'] = $parent_slot;
+      $component['parent_uuid'] = $parent_uuid;
     }
-    // All other levels.
-    else {
-      $tree[$parent_uuid][$parent_slot][] = $component;
-    }
+    $items = [$component];
 
     foreach ($layout['slots'] as $slot) {
-      $tree = self::doClientSlotToServerTree($slot, $tree, $layout['uuid']);
+      $items = \array_merge($items, self::doClientSlotToServerTree($slot, $model, $layout['uuid']));
     }
 
-    return $tree;
+    return $items;
   }
 
   /**
    * @phpcs:ignore
-   * @return ComponentInputsArray
+   * @return ComponentTreeItemListArray
    * @throws \Drupal\experience_builder\Exception\ConstraintViolationException
    */
-  private static function clientModelToInput(array $tree, array $full_model, ?FieldableEntityInterface $entity = NULL, bool $validate = TRUE): array {
-    $definition = DataDefinition::create('component_tree_structure');
-    $component_tree_structure = new ComponentTreeStructure($definition, 'component_tree_structure');
-    $component_tree_structure->setValue($tree);
+  private static function clientModelToInput(array $items, ?FieldableEntityInterface $entity = NULL, bool $validate = TRUE): array {
+    $component_ids = \array_column($items, 'component_id');
+    $components = Component::loadMultiple($component_ids);
 
-    // Remove irrelevant model data (e.g. from page regions).
-    $model = \array_intersect_key($full_model, \array_flip($component_tree_structure->getComponentInstanceUuids()));
-    $inputs = [];
     $violation_list = NULL;
     if ($validate) {
       $violation_list = $entity ? new EntityConstraintViolationList($entity) : new ConstraintViolationList();
     }
-    foreach ($model as $uuid => $client_model) {
-      $component = Component::load($component_tree_structure->getComponentId($uuid));
+    foreach ($items as $delta => ['uuid' => $uuid, 'component_id' => $component_id, 'inputs' => $inputs]) {
+      $component = $components[$component_id];
+      // This has already been validated in ::clientToServerTree
+      // @see \Drupal\experience_builder\Plugin\Validation\Constraint\ComponentTreeStructureConstraint
       assert($component instanceof Component);
       $source = $component->getComponentSource();
       // First we transform the incoming client model into input values using
       // the source plugin.
-      $inputs[$uuid] = $source->clientModelToInput($uuid, $component, $client_model, $violation_list);
-      if ($validate) {
+      $items[$delta]['inputs'] = $source->clientModelToInput($uuid, $component, $inputs, $violation_list);
+      if ($violation_list !== NULL) {
         // Then we ensure the input values are valid using the source plugin.
         $component_violations = self::translateConstraintPropertyPathsAndRoot(
           ['inputs.' => 'model.'],
-          $source->validateComponentInput($inputs[$uuid], $uuid, $entity)
+          $source->validateComponentInput($items[$delta]['inputs'], $uuid, $entity)
         );
         if ($component_violations->count() > 0) {
           // @todo Remove the foreach and use ::addAll once
@@ -144,15 +140,15 @@ trait ClientServerConversionTrait {
         }
       }
     }
-    if ($validate && $violation_list->count()) {
+    if ($violation_list !== NULL && $violation_list->count()) {
       throw new ConstraintViolationException($violation_list);
     }
-    return $inputs;
+    return $items;
   }
 
   /**
    * @param LayoutClientStructureArray $layout
-   * @return array{tree: ComponentTreeStructureArray, inputs: ComponentInputsArray}
+   * @phpstan-return ComponentTreeItemListArray
    * @throws \Drupal\experience_builder\Exception\ConstraintViolationException
    *
    * @todo remove the validate flag in https://www.drupal.org/i/3505018.
@@ -164,32 +160,11 @@ trait ClientServerConversionTrait {
     // @see \Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure
     // @see \Drupal\experience_builder\Plugin\Validation\Constraint\ComponentTreeStructureConstraintValidator
     try {
-      $tree = self::clientLayoutToServerTree($layout, $validate);
+      return self::clientToServerTree($layout, $model, $entity, $validate);
     }
     catch (ConstraintViolationException $e) {
-      throw $e->renamePropertyPaths(["[" . ComponentTreeStructure::ROOT_UUID . "]" => 'layout.children']);
+      throw $e->renamePropertyPaths(["[" . ComponentTreeItemList::ROOT_UUID . "]" => 'layout.children']);
     }
-
-    // Denormalize the `model` the client sent into a value that the server-side
-    // ComponentInputs expects, and abort early if it is invalid.
-    // (This is the value for the `inputs` field prop on the XB field type.)
-    // @see \Drupal\experience_builder\Plugin\DataType\ComponentInputs
-    // ⚠️ TRICKY: in order to denormalize `model`, `layout` must already been
-    // been denormalized to `tree`, because only those values in `model` that
-    // are for actually existing XB components can be denormalized.
-    $inputs = self::clientModelToInput($tree, $model, $entity, $validate);
-
-    // Update the entity, validate and save.
-    // Note: constructing ComponentTreeStructure from `layout` and
-    // ComponentInputs from `model` also included validation. But that
-    // included only structural validation, not semantical validation.
-    // @see \Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem
-    // @see \Drupal\experience_builder\Plugin\Validation\Constraint\ValidComponentTreeConstraintValidator
-    // @see \Drupal\experience_builder\Plugin\Validation\Constraint\ComponentTreeMeetsRequirementsConstraintValidator
-    return [
-      'tree' => $tree,
-      'inputs' => $inputs,
-    ];
   }
 
 }

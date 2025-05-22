@@ -9,6 +9,7 @@ use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\experience_builder\Entity\ComponentTreeEntityInterface;
 use Drupal\experience_builder\Entity\Page;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
+use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemList;
 
 /**
  * Handles loading a component tree from entities.
@@ -27,16 +28,15 @@ final class ComponentTreeLoader {
    *   implement ComponentTreeEntityInterface, then it is expected to be a
    *   fieldable entity with at least one field that stores a component tree.
    *
-   * @return \Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem
-   *   The first item of the entity field that stores the component tree.
+   * @return \Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemList
    */
-  public function load(ComponentTreeEntityInterface|FieldableEntityInterface $entity): ComponentTreeItem {
+  public function load(ComponentTreeEntityInterface|FieldableEntityInterface $entity): ComponentTreeItemList {
     if ($entity instanceof ComponentTreeEntityInterface) {
       return $entity->getComponentTree();
     }
     $field_name = $this->getXbFieldName($entity);
-    $item = $entity->get($field_name)->first();
-    assert($item instanceof ComponentTreeItem);
+    $item = $entity->get($field_name);
+    assert($item instanceof ComponentTreeItemList);
     return $item;
   }
 

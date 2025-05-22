@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\experience_builder\Kernel\Controller;
 
+use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\Render\HtmlResponse;
 use Drupal\Core\Url;
 use Drupal\experience_builder\Entity\Component;
 use Drupal\experience_builder\Entity\Page;
-use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\KernelTests\KernelTestBase;
@@ -75,6 +75,7 @@ final class ComponentAuditControllerTest extends KernelTestBase {
       'entity_type' => 'node',
       'field_name' => 'field_xb_test',
       'type' => 'component_tree',
+      'cardinality' => FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED,
     ])->save();
 
     FieldConfig::create([
@@ -84,15 +85,11 @@ final class ComponentAuditControllerTest extends KernelTestBase {
       'label' => 'XB Test Field',
       'required' => TRUE,
     ])->setDefaultValue([
-      'tree' => [
-        ComponentTreeStructure::ROOT_UUID => [
-          [
-            'uuid' => 'sdc-druplicon',
-            'component' => 'sdc.experience_builder.druplicon',
-          ],
-        ],
+      [
+        'uuid' => 'bd4ae317-3f4d-4b82-a3ca-452d916ae715',
+        'component_id' => 'sdc.experience_builder.druplicon',
+        'inputs' => [],
       ],
-      'inputs' => [],
     ])->save();
   }
 
@@ -124,16 +121,12 @@ final class ComponentAuditControllerTest extends KernelTestBase {
     }
     $page1 = $storages[Page::ENTITY_TYPE_ID]->load(1);
     assert($page1 instanceof Page);
-    $page1->get('components')->first()?->setValue([
-      'tree' => [
-        ComponentTreeStructure::ROOT_UUID => [
-          [
-            'uuid' => 'component-sdc',
-            'component' => 'sdc.experience_builder.druplicon',
-          ],
-        ],
+    $page1->get('components')->setValue([
+      [
+        'uuid' => 'component-sdc',
+        'component_id' => 'sdc.experience_builder.druplicon',
+        'inputs' => [],
       ],
-      'inputs' => [],
     ]);
     $page1->setUnpublished()
       ->setNewRevision(TRUE);
@@ -141,16 +134,12 @@ final class ComponentAuditControllerTest extends KernelTestBase {
 
     $node1 = $storages['node']->load(1);
     assert($node1 instanceof NodeInterface);
-    $node1->get('field_xb_test')->first()?->setValue([
-      'tree' => [
-        ComponentTreeStructure::ROOT_UUID => [
-          [
-            'uuid' => 'component-sdc',
-            'component' => 'sdc.experience_builder.druplicon',
-          ],
-        ],
+    $node1->get('field_xb_test')->setValue([
+      [
+        'uuid' => 'component-sdc',
+        'component_id' => 'sdc.experience_builder.druplicon',
+        'inputs' => [],
       ],
-      'inputs' => [],
     ]);
     $node1->setNewRevision(TRUE);
     $node1->save();
@@ -245,16 +234,10 @@ final class ComponentAuditControllerTest extends KernelTestBase {
             'description' => 'This is a test page.',
             'status' => TRUE,
             'components' => [
-              'tree' => [
-                ComponentTreeStructure::ROOT_UUID => [
-                  [
-                    'uuid' => 'component-sdc',
-                    'component' => 'sdc.xb_test_sdc.props-slots',
-                  ],
-                ],
-              ],
-              'inputs' => [
-                'component-sdc' => [
+              [
+                'uuid' => 'component-sdc',
+                'component_id' => 'sdc.xb_test_sdc.props-slots',
+                'inputs' => [
                   'heading' => [
                     'sourceType' => 'static:field_item:string',
                     'value' => 'This is my header',
@@ -269,16 +252,10 @@ final class ComponentAuditControllerTest extends KernelTestBase {
             'description' => 'This is another test page.',
             'status' => TRUE,
             'components' => [
-              'tree' => [
-                ComponentTreeStructure::ROOT_UUID => [
-                  [
-                    'uuid' => 'component-sdc',
-                    'component' => 'sdc.xb_test_sdc.props-slots',
-                  ],
-                ],
-              ],
-              'inputs' => [
-                'component-sdc' => [
+              [
+                'uuid' => 'component-sdc',
+                'component_id' => 'sdc.xb_test_sdc.props-slots',
+                'inputs' => [
                   'heading' => [
                     'sourceType' => 'static:field_item:string',
                     'value' => 'This is my header',
@@ -297,16 +274,10 @@ final class ComponentAuditControllerTest extends KernelTestBase {
             'status' => TRUE,
             'type' => 'article',
             'field_xb_test' => [
-              'tree' => [
-                ComponentTreeStructure::ROOT_UUID => [
-                  [
-                    'uuid' => 'component-sdc',
-                    'component' => 'sdc.xb_test_sdc.props-slots',
-                  ],
-                ],
-              ],
-              'inputs' => [
-                'component-sdc' => [
+              [
+                'uuid' => 'component-sdc',
+                'component_id' => 'sdc.xb_test_sdc.props-slots',
+                'inputs' => [
                   'heading' => [
                     'sourceType' => 'static:field_item:string',
                     'value' => 'This is my header',

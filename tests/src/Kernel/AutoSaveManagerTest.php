@@ -11,7 +11,6 @@ use Drupal\experience_builder\Entity\JavaScriptComponent;
 use Drupal\experience_builder\Entity\Page;
 use Drupal\experience_builder\Entity\PageRegion;
 use Drupal\experience_builder\Entity\XbHttpApiEligibleConfigEntityInterface;
-use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\node\Entity\Node;
 use Drupal\Tests\experience_builder\TestSite\XBTestSetup;
@@ -27,6 +26,8 @@ class AutoSaveManagerTest extends KernelTestBase {
 
   use XBFieldTrait;
   use ContribStrictConfigSchemaTestTrait;
+
+  private const string UUID_IN_ROOT = '78c73c1d-4988-4f9b-ad17-f7e337d40c29';
 
   protected static $modules = ['xb_test_sdc'];
 
@@ -109,12 +110,7 @@ class AutoSaveManagerTest extends KernelTestBase {
   public function testXbPage(): void {
     $xb_page = Page::create([
       'title' => '5 amazing uses for old toothbrushes',
-      'components' => [
-        'tree' => [
-          ComponentTreeStructure::ROOT_UUID => [],
-        ],
-        'inputs' => [],
-      ],
+      'components' => [],
     ]);
     self::assertCount(0, iterator_to_array($xb_page->validate()));
     self::assertSame(SAVED_NEW, $xb_page->save());
@@ -161,13 +157,10 @@ class AutoSaveManagerTest extends KernelTestBase {
       'theme' => 'stark',
       'region' => 'sidebar_first',
       'component_tree' => [
-        'tree' => [
-          ComponentTreeStructure::ROOT_UUID => [
-            ['uuid' => 'uuid-in-root', 'component' => 'sdc.xb_test_sdc.props-no-slots'],
-          ],
-        ],
-        'inputs' => [
-          'uuid-in-root' => [
+        [
+          'uuid' => self::UUID_IN_ROOT,
+          'component_id' => 'sdc.xb_test_sdc.props-no-slots',
+          'inputs' => [
             'heading' => $generate_static_prop_source('world'),
           ],
         ],
@@ -178,13 +171,13 @@ class AutoSaveManagerTest extends KernelTestBase {
       'layout' => [
         [
           'nodeType' => 'component',
-          'uuid' => 'uuid-in-root',
+          'uuid' => self::UUID_IN_ROOT,
           'type' => 'sdc.xb_test_sdc.props-no-slots',
           'slots' => [],
         ],
       ],
       'model' => [
-        'uuid-in-root' => [
+        self::UUID_IN_ROOT => [
           'resolved' => ['heading' => 'This is a random heading.'],
         ],
       ],
@@ -247,14 +240,9 @@ class AutoSaveManagerTest extends KernelTestBase {
       'title' => '5 amazing uses for old toothbrushes',
       'status' => FALSE,
       'field_hero' => $this->referencedImage,
-      'field_xb_demo' => [
-        'tree' => [
-          ComponentTreeStructure::ROOT_UUID => [],
-        ],
-        'inputs' => [],
-      ],
+      'field_xb_demo' => [],
     ]);
-    self::assertCount(0, iterator_to_array($node->validate()));
+    self::assertCount(0, $node->validate());
     $this->assertSame(SAVED_NEW, $node->save());
 
     $matching_client_data = [

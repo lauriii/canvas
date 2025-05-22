@@ -5,8 +5,7 @@ declare(strict_types=1);
 namespace Drupal\Tests\experience_builder\Kernel\Entity;
 
 use Drupal\experience_builder\Entity\Page;
-use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
-use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
+use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemList;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\Tests\experience_builder\Kernel\Traits\PageTrait;
 use Drupal\Tests\experience_builder\Traits\GenerateComponentConfigTrait;
@@ -113,27 +112,21 @@ final class PageTest extends KernelTestBase {
       'description' => 'This is a test page.',
       'path' => ['alias' => '/test-page'],
       'components' => [
-        'tree' => [
-          ComponentTreeStructure::ROOT_UUID => [
-            [
-              'uuid' => 'component-sdc',
-              'component' => 'sdc.xb_test_sdc.props-slots',
-            ],
-            [
-              'uuid' => 'component-block',
-              'component' => 'block.system_branding_block',
-            ],
-          ],
-        ],
-        'inputs' => [
-          'component-sdc' => [
+        [
+          'uuid' => '09365c2d-1ee1-47fd-b5a3-7e4f34866186',
+          'component_id' => 'sdc.xb_test_sdc.props-slots',
+          'inputs' => [
             'heading' => [
               'sourceType' => 'static:field_item:string',
               'value' => $test_heading_text,
               'expression' => 'ℹ︎string␟value',
             ],
           ],
-          'component-block' => [
+        ],
+        [
+          'uuid' => 'af5fc5ab-1457-4258-880f-541a69c0110b',
+          'component_id' => 'block.system_branding_block',
+          'inputs' => [
             'use_site_logo' => TRUE,
             'use_site_name' => TRUE,
             'use_site_slogan' => TRUE,
@@ -148,12 +141,15 @@ final class PageTest extends KernelTestBase {
     self::assertEquals('This is a test page.', $sut->description->value);
     self::assertEquals('/test-page', $sut->get('path')->first()?->getValue()['alias']);
 
-    $components = $sut->components->first();
-    $this->assertInstanceOf(ComponentTreeItem::class, $components);
+    $components = $sut->get('components');
+    $this->assertInstanceOf(ComponentTreeItemList::class, $components);
+    $hydrated_value = \Closure::bind(function () {
+      return $this->getHydratedTree();
+    }, $components, $components)();
     self::assertEquals(
       [
-        ComponentTreeStructure::ROOT_UUID => [
-          'component-sdc' => [
+        ComponentTreeItemList::ROOT_UUID => [
+          '09365c2d-1ee1-47fd-b5a3-7e4f34866186' => [
             'component' => 'sdc.xb_test_sdc.props-slots',
             'props' => [
               'heading' => $test_heading_text,
@@ -164,7 +160,7 @@ final class PageTest extends KernelTestBase {
               'the_colophon' => '',
             ],
           ],
-          'component-block' => [
+          'af5fc5ab-1457-4258-880f-541a69c0110b' => [
             'component' => 'block.system_branding_block',
             'settings' => [
               'use_site_logo' => TRUE,
@@ -176,16 +172,16 @@ final class PageTest extends KernelTestBase {
           ],
         ],
       ],
-      $components->hydrated
+      $hydrated_value->getTree(),
     );
     // See \Drupal\Tests\experience_builder\Kernel\Plugin\Field\FieldType\ComponentTreeItemTest and
     // \Drupal\Tests\experience_builder\Unit\PropExpressionTest for extended test coverage,
     // which combined with \Drupal\Tests\experience_builder\Kernel\PropSourceTest::testDynamicPropSource,
     // does already prove that this will work correctly for EVERYTHING.
-    $dependencies = $components->calculateFieldItemValueDependencies(TRUE, $sut);
+    $dependencies = $components->calculateDependencies(TRUE);
     $this->assertSame([
-      'experience_builder.component.block.system_branding_block',
       'experience_builder.component.sdc.xb_test_sdc.props-slots',
+      'experience_builder.component.block.system_branding_block',
     ], $dependencies['config']);
     $this->assertSame([], $dependencies['content']);
     $this->assertSame([], $dependencies['module']);

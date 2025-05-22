@@ -17,7 +17,6 @@ use Drupal\experience_builder\Entity\Component;
 use Drupal\experience_builder\Entity\ComponentInterface;
 use Drupal\experience_builder\Entity\Page;
 use Drupal\experience_builder\Plugin\BlockManager;
-use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\experience_builder\PropExpressions\StructuredData\FieldTypePropExpression;
 use Drupal\experience_builder\PropSource\StaticPropSource;
@@ -100,6 +99,7 @@ class ComponentTreeDependencyRepositoryTest extends ComponentAuditTestBase {
     foreach ($records as &$dependencies) {
       foreach ($dependencies as &$deps) {
         sort($deps);
+        $deps = \array_unique($deps);
       }
     }
     self::assertEquals($expected, $records);
@@ -199,31 +199,25 @@ class ComponentTreeDependencyRepositoryTest extends ComponentAuditTestBase {
     if ($entity->getEntityType()->isTranslatable()) {
       $french = $entity->addTranslation('fr');
       $french->set('field_xb_field', [
-        'tree' => [
-          ComponentTreeStructure::ROOT_UUID => [
-            [
-              'uuid' => 'my-component',
-              'component' => 'sdc.xb_test_sdc.props-slots',
-            ],
-            [
-              'uuid' => 'second-component',
-              'component' => 'block.xb_test_block_input_none',
-            ],
-            [
-              'uuid' => 'third-component',
-              'component' => 'sdc.xb_test_sdc.props-no-slots',
-            ],
-          ],
-        ],
-        'inputs' => [
-          'my-component' => [
+        [
+          'uuid' => 'my-component',
+          'component_id' => 'sdc.xb_test_sdc.props-slots',
+          'inputs' => [
             'heading' => StaticPropSource::generate(
               expression: new FieldTypePropExpression('string', 'value'),
               cardinality: 1,
             )->withValue('Hey there')->toArray(),
           ],
-          'second-component' => [],
-          'third-component' => [
+        ],
+        [
+          'uuid' => 'second-component',
+          'component_id' => 'block.xb_test_block_input_none',
+          'inputs' => [],
+        ],
+        [
+          'uuid' => 'third-component',
+          'component_id' => 'sdc.xb_test_sdc.props-no-slots',
+          'inputs' => [
             'heading' => StaticPropSource::generate(
               expression: new FieldTypePropExpression('string', 'value'),
               cardinality: 1,
@@ -253,26 +247,20 @@ class ComponentTreeDependencyRepositoryTest extends ComponentAuditTestBase {
     }
     $this->setNewRevision($entity);
     $entity->set('field_xb_field', [
-      'tree' => [
-        ComponentTreeStructure::ROOT_UUID => [
-          [
-            'uuid' => 'my-component',
-            'component' => 'sdc.xb_test_sdc.props-slots',
-          ],
-          [
-            'uuid' => 'second-component',
-            'component' => 'block.xb_test_block_input_none',
-          ],
-        ],
-      ],
-      'inputs' => [
-        'my-component' => [
+      [
+        'uuid' => 'my-component',
+        'component_id' => 'sdc.xb_test_sdc.props-slots',
+        'inputs' => [
           'heading' => StaticPropSource::generate(
             expression: new FieldTypePropExpression('string', 'value'),
             cardinality: 1,
           )->withValue('Hey there')->toArray(),
         ],
-        'second-component' => [],
+      ],
+      [
+        'uuid' => 'second-component',
+        'component_id' => 'block.xb_test_block_input_none',
+        'inputs' => [],
       ],
     ])->save();
     $entity->save();

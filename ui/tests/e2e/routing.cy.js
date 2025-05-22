@@ -15,7 +15,8 @@ describe('Routing', () => {
     // Ideally the UUID would get its value dynamically, but that value can
     // only be accessed reliably in a command callback, and visiting a url
     // can't happen in that scope.
-    const uuid = 'static-static-card3rr';
+    // @see \Drupal\Tests\experience_builder\TestSite\XBTestSetup
+    const uuid = '5944ef12-4a3d-4f3a-8e67-086661be9ffc';
     cy.intercept('GET', '**/xb/api/v0/layout/node/1').as('getLayout');
     cy.intercept('PATCH', '**/xb/api/v0/form/component-instance/node/1').as(
       'getPropsForm',

@@ -7,7 +7,6 @@ namespace Drupal\Tests\experience_builder\Kernel;
 use Drupal\experience_builder\Controller\ClientServerConversionTrait;
 use Drupal\experience_builder\Entity\Pattern;
 use Drupal\experience_builder\Exception\ConstraintViolationException;
-use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\node\Entity\Node;
 use Drupal\Tests\experience_builder\TestSite\XBTestSetup;
@@ -129,42 +128,38 @@ class ClientServerConversionTraitTest extends KernelTestBase {
 
   public function testConvertClientToServer(): void {
     ['layout' => $layout, 'model' => $model] = $this->getValidClientJson(FALSE);
-    $converted_item = $this->convertClientToServer($layout, $model);
+    $converted_items = $this->convertClientToServer($layout, $model);
     $expected_inputs = $this->getValidConvertedInputs(FALSE);
-    self::assertEqualsCanonicalizing($expected_inputs, $converted_item['inputs']);
+    self::assertEqualsCanonicalizing($expected_inputs, \array_combine(\array_column($converted_items, 'uuid'), \array_column($converted_items, 'inputs')));
     $this->assertSame([
-      ComponentTreeStructure::ROOT_UUID => [
-        [
-          'uuid' => self::TEST_HEADING_UUID,
-          'component' => 'sdc.experience_builder.heading',
-        ],
-        [
-          'uuid' => self::TEST_IMAGE_UUID,
-          'component' => 'sdc.experience_builder.image',
-        ],
-        [
-          'uuid' => self::TEST_BLOCK,
-          'component' => 'block.system_branding_block',
-        ],
-        [
-          'uuid' => self::TOP_LEVEL_SLOT_COMPONENT_UUID,
-          'component' => 'sdc.xb_test_sdc.props-slots',
-        ],
+      [
+        'uuid' => self::TEST_HEADING_UUID,
+        'component_id' => 'sdc.experience_builder.heading',
       ],
-      self::TOP_LEVEL_SLOT_COMPONENT_UUID => [
-        'the_body' => [
-          [
-            'uuid' => self::NESTED_SLOT_COMPONENT_UUID,
-            'component' => 'sdc.xb_test_sdc.props-slots',
-          ],
-        ],
+      [
+        'uuid' => self::TEST_IMAGE_UUID,
+        'component_id' => 'sdc.experience_builder.image',
       ],
-    ], $converted_item['tree']);
+      [
+        'uuid' => self::TEST_BLOCK,
+        'component_id' => 'block.system_branding_block',
+      ],
+      [
+        'uuid' => self::TOP_LEVEL_SLOT_COMPONENT_UUID,
+        'component_id' => 'sdc.xb_test_sdc.props-slots',
+      ],
+      [
+        'uuid' => self::NESTED_SLOT_COMPONENT_UUID,
+        'component_id' => 'sdc.xb_test_sdc.props-slots',
+        'slot' => 'the_body',
+        'parent_uuid' => self::TOP_LEVEL_SLOT_COMPONENT_UUID,
+      ],
+    ], \array_map(static fn (array $item) => \array_filter(\array_diff_key($item, \array_flip(['inputs']))), $converted_items));
 
     $node1 = Node::create([
       'type' => 'article',
       'title' => '5 amazing uses for old toothbrushes',
-      'field_xb_demo' => $converted_item,
+      'field_xb_demo' => $converted_items,
     ]);
     $node1->validate();
     $node1->save();
@@ -182,29 +177,27 @@ class ClientServerConversionTraitTest extends KernelTestBase {
     );
 
     ['layout' => $layout, 'model' => $model] = $this->getValidPatternJson();
-    $converted_item = $this->convertClientToServer($layout, $model);
-    self::assertEqualsCanonicalizing($this->traitGetValidConvertedInputs(FALSE), $converted_item['inputs']);
+    $converted_items = $this->convertClientToServer($layout, $model);
+    self::assertEqualsCanonicalizing($this->traitGetValidConvertedInputs(FALSE), \array_combine(\array_column($converted_items, 'uuid'), \array_column($converted_items, 'inputs')));
     $this->assertSame([
-      ComponentTreeStructure::ROOT_UUID => [
-        [
-          'uuid' => self::TEST_HEADING_UUID,
-          'component' => 'sdc.experience_builder.heading',
-        ],
-        [
-          'uuid' => self::TEST_IMAGE_UUID,
-          'component' => 'sdc.experience_builder.image',
-        ],
-        [
-          'uuid' => self::TEST_BLOCK,
-          'component' => 'block.system_branding_block',
-        ],
+      [
+        'uuid' => self::TEST_HEADING_UUID,
+        'component_id' => 'sdc.experience_builder.heading',
       ],
-    ], $converted_item['tree']);
+      [
+        'uuid' => self::TEST_IMAGE_UUID,
+        'component_id' => 'sdc.experience_builder.image',
+      ],
+      [
+        'uuid' => self::TEST_BLOCK,
+        'component_id' => 'block.system_branding_block',
+      ],
+    ], \array_map(static fn (array $item) => \array_filter(\array_diff_key($item, \array_flip(['inputs']))), $converted_items));
 
     Pattern::create([
       'id' => 'test_pattern',
       'label' => 'Test Pattern',
-      'component_tree' => $converted_item,
+      'component_tree' => $converted_items,
     ])->save();
 
   }
@@ -229,7 +222,7 @@ class ClientServerConversionTraitTest extends KernelTestBase {
     $invalid_tree_client_json['layout'][1]['type'] = 'sdc.experience_builder.missing_component';
     $this->assertConversionErrors(
       $invalid_tree_client_json,
-      ['layout.children[1]' => 'The component <em class="placeholder">sdc.experience_builder.missing_component</em> does not exist.']
+      ['layout.children.1.component_id' => "The 'experience_builder.component.sdc.experience_builder.missing_component' config does not exist."]
     );
 
     $invalid_block_settings = $valid_client_json;
@@ -242,7 +235,7 @@ class ClientServerConversionTraitTest extends KernelTestBase {
 
   private function assertConversionErrors(array $client_json, array $errors): void {
     try {
-      $this->convertClientToServer($client_json['layout'], $client_json['model']);
+      self::convertClientToServer($client_json['layout'], $client_json['model']);
       $this->fail();
     }
     catch (ConstraintViolationException $e) {

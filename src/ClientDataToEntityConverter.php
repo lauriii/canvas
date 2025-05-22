@@ -2,6 +2,7 @@
 
 namespace Drupal\experience_builder;
 
+use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemList;
 use Drupal\Component\Utility\Crypt;
 use Drupal\Core\Access\AccessException;
 use Drupal\Core\Access\CsrfTokenGenerator;
@@ -17,7 +18,6 @@ use Drupal\Core\Form\FormState;
 use Drupal\Core\TypedData\Plugin\DataType\Timestamp;
 use Drupal\experience_builder\Controller\ClientServerConversionTrait;
 use Drupal\experience_builder\Exception\ConstraintViolationException;
-use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 use Drupal\experience_builder\Storage\ComponentTreeLoader;
 use Drupal\file\Plugin\Field\FieldType\FileItem;
 use GuzzleHttp\Psr7\Query;
@@ -47,13 +47,13 @@ class ClientDataToEntityConverter {
     }
     ['layout' => $layout, 'model' => $model, 'entity_form_fields' => $entity_form_fields] = $client_data;
 
-    $item = $this->componentTreeLoader->load($entity);
+    $item_list = $this->componentTreeLoader->load($entity);
     try {
       assert(count(array_intersect(['nodeType', 'id', 'name', 'components'], array_keys($layout))) === 4);
       assert($layout['nodeType'] === 'region');
       assert($layout['id'] === 'content');
       assert(is_array($layout['components']));
-      $item->setValue($this->convertClientToServer($layout['components'], $model, $entity, $validate));
+      $item_list->setValue(self::convertClientToServer($layout['components'], $model, $entity, $validate));
     }
     catch (ConstraintViolationException $e) {
       // @todo Remove iterator_to_array() after https://www.drupal.org/project/drupal/issues/3497677
@@ -71,10 +71,10 @@ class ClientDataToEntityConverter {
     // the request body.
     // @see ::convertClientToServer()
     if ($original_entity_violations->count() && $validate) {
-      $field_name = $item->getFieldDefinition()->getName();
+      $field_name = $item_list->getFieldDefinition()->getName();
       // @todo Remove iterator_to_array() after https://www.drupal.org/project/drupal/issues/3497677
       throw (new ConstraintViolationException(new EntityConstraintViolationList($entity, iterator_to_array($original_entity_violations))))->renamePropertyPaths([
-        "$field_name.0.tree[" . ComponentTreeStructure::ROOT_UUID . "]" => 'layout.children',
+        "$field_name.0.tree[" . ComponentTreeItemList::ROOT_UUID . "]" => 'layout.children',
         "$field_name.0.tree" => 'layout',
         "$field_name.0.inputs" => 'model',
       ]);

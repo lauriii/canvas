@@ -13,7 +13,6 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\experience_builder\AutoSave\AutoSaveManager;
 use Drupal\experience_builder\Entity\PageRegion;
 use Drupal\experience_builder\Exception\ConstraintViolationException;
-use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -158,7 +157,6 @@ final class XbPageVariant extends VariantBase implements PageVariantInterface, C
       }
 
       $component_tree = $region->getComponentTree();
-      assert($component_tree instanceof ComponentTreeItem);
 
       // Render the component tree in a PHP fiber to allow injecting page-level
       // information (title, which originates from the matched route's

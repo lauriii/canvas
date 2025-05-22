@@ -11,7 +11,6 @@ use Drupal\experience_builder\Entity\Component;
 use Drupal\experience_builder\Entity\ComponentInterface;
 use Drupal\experience_builder\Entity\Page;
 use Drupal\experience_builder\Plugin\ComponentPluginManager;
-use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 use Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\Fallback;
 use Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\SingleDirectoryComponent;
 use Drupal\Tests\experience_builder\Kernel\ApiLayoutControllerTestBase;
@@ -100,22 +99,24 @@ final class FallbackInputTest extends ApiLayoutControllerTestBase {
     \assert($component_to_edit instanceof ComponentInterface);
     // Create a tree containing two components, one that will be forced to a
     // fallback and then be recovered. One that we will edit.
+    $component_to_recover_uuid = '5821b0f4-162b-4a39-88b6-157b39b9b4f6';
+    $component_to_edit_uuid = '20de2945-f515-49b6-b986-407d973860b9';
     $tree = [
-      ComponentTreeStructure::ROOT_UUID => [
-        ['uuid' => 'recover-me-plz', 'component' => $component_to_recover->id()],
-        ['uuid' => 'i-can-haz-edits', 'component' => $component_to_edit->id()],
-      ],
-    ];
-    $inputs = [
-      'recover-me-plz' => [
-        'heading' => [
-          'sourceType' => 'static:field_item:string',
-          'value' => 'This is a component',
-          'expression' => 'ℹ︎string␟value',
+      [
+        'uuid' => $component_to_recover_uuid,
+        'component_id' => $component_to_recover->id(),
+        'inputs' => [
+          'heading' => [
+            'sourceType' => 'static:field_item:string',
+            'value' => 'This is a component',
+            'expression' => 'ℹ︎string␟value',
+          ],
         ],
       ],
-      'i-can-haz-edits' =>
-        [
+      [
+        'uuid' => $component_to_edit_uuid,
+        'component_id' => $component_to_edit->id(),
+        'inputs' => [
           'text' => [
             'sourceType' => 'static:field_item:string',
             'expression' => 'ℹ︎string␟value',
@@ -180,15 +181,12 @@ final class FallbackInputTest extends ApiLayoutControllerTestBase {
             ],
           ],
         ],
-
+      ],
     ];
     // Create a test entity.
     $page = Page::create([
       'title' => $this->randomMachineName(),
-      'components' => [
-        'tree' => $tree,
-        'inputs' => $inputs,
-      ],
+      'components' => $tree,
     ]);
     $page->save();
     $api_endpoint_uri = \sprintf('/xb/api/v0/layout/%s/%d', Page::ENTITY_TYPE_ID, $page->id());
@@ -227,12 +225,12 @@ final class FallbackInputTest extends ApiLayoutControllerTestBase {
     self::assertCount(0, $crawler->filter('h1:contains("This is a component")'));
 
     // Now perform a patch update to the non fallback component.
-    $new_model = $data['model']['i-can-haz-edits'];
+    $new_model = $data['model'][$component_to_edit_uuid];
     $new_model['source']['text']['value'] = 'New heading text';
     $response = $this->request(Request::create($api_endpoint_uri, method: 'PATCH', content: \json_encode([
       'model' => $new_model,
       'componentType' => 'sdc.experience_builder.heading',
-      'componentInstanceUuid' => 'i-can-haz-edits',
+      'componentInstanceUuid' => $component_to_edit_uuid,
     ], JSON_THROW_ON_ERROR)));
     self::assertEquals(Response::HTTP_OK, $response->getStatusCode());
     $data = self::decodeResponse($response);

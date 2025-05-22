@@ -7,9 +7,10 @@ namespace Drupal\experience_builder\Entity;
 use Drupal\Core\Entity\ContentEntityDeleteForm;
 use Drupal\Core\Entity\EditorialContentEntityBase;
 use Drupal\Core\Entity\EntityTypeInterface;
+use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\Field\BaseFieldDefinition;
-use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
+use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemList;
 use Drupal\media\Entity\MediaType;
 use Drupal\user\EntityOwnerInterface;
 use Drupal\user\EntityOwnerTrait;
@@ -95,9 +96,9 @@ final class Page extends EditorialContentEntityBase implements EntityOwnerInterf
   /**
    * {@inheritdoc}
    */
-  public function getComponentTree(): ComponentTreeItem {
-    $item = $this->get('components')->first();
-    assert($item instanceof ComponentTreeItem);
+  public function getComponentTree(): ComponentTreeItemList {
+    $item = $this->get('components');
+    assert($item instanceof ComponentTreeItemList);
     return $item;
   }
 
@@ -131,6 +132,7 @@ final class Page extends EditorialContentEntityBase implements EntityOwnerInterf
       ->setLabel(t('Components'))
       ->setTranslatable(TRUE)
       ->setRevisionable(TRUE)
+      ->setCardinality(FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED)
       ->setDisplayOptions('form', [
         'type' => 'component_tree',
       ])

@@ -7,7 +7,6 @@ namespace Drupal\Tests\experience_builder\Functional;
 use Drupal\Component\Uuid\Uuid;
 use Drupal\Core\Url;
 use Drupal\experience_builder\Entity\PageRegion;
-use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 use Drupal\Tests\BrowserTestBase;
 use Drupal\Tests\experience_builder\Traits\GenerateComponentConfigTrait;
 
@@ -85,19 +84,14 @@ class XbPageVariantEnableTest extends BrowserTestBase {
     ]);
     $regions_with_component_tree = [];
     foreach ($regions as $region) {
-      if ($data = $region->getComponentTree()->toArray()) {
-        $regions_with_component_tree[$region->id()] = $data;
-      }
+      $regions_with_component_tree[$region->id()] = $region->getComponentTree()->getValue();
     }
     $this->assertSame(\array_values($expected_page_region_ids), array_keys($regions_with_component_tree));
 
     foreach ($regions_with_component_tree as $tree) {
-      $this->assertJson($tree['tree']);
-      $tree = json_decode($tree['tree'], TRUE);
-      $this->assertArrayHasKey(ComponentTreeStructure::ROOT_UUID, $tree);
-      foreach ($tree[ComponentTreeStructure::ROOT_UUID] as $component) {
+      foreach ($tree as $component) {
         $this->assertTrue(Uuid::isValid($component['uuid']));
-        $this->assertStringStartsWith('block.', $component['component']);
+        $this->assertStringStartsWith('block.', $component['component_id']);
       }
     }
     $front = Url::fromRoute('<front>');

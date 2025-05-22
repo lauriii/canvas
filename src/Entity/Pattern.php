@@ -10,13 +10,12 @@ use Drupal\Core\Config\Entity\ConfigEntityBase;
 use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Entity\Query\QueryInterface;
 use Drupal\experience_builder\ClientSideRepresentation;
-use Drupal\experience_builder\Controller\ApiConfigControllers;
 use Drupal\experience_builder\Controller\ClientServerConversionTrait;
-use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
-use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemInstantiatorTrait;
+use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemListInstantiatorTrait;
 use Drupal\Core\Entity\Attribute\ConfigEntityType;
 use Drupal\experience_builder\EntityHandlers\XbConfigEntityAccessControlHandler;
+use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemList;
 
 #[ConfigEntityType(
   id: self::ENTITY_TYPE_ID,
@@ -45,7 +44,7 @@ final class Pattern extends ConfigEntityBase implements XbHttpApiEligibleConfigE
   public const string ENTITY_TYPE_ID = 'pattern';
   public const string ADMIN_PERMISSION = 'administer patterns';
 
-  use ComponentTreeItemInstantiatorTrait;
+  use ComponentTreeItemListInstantiatorTrait;
   use ClientServerConversionTrait;
 
   /**
@@ -68,10 +67,10 @@ final class Pattern extends ConfigEntityBase implements XbHttpApiEligibleConfigE
   /**
    * {@inheritdoc}
    */
-  public function getComponentTree(): ComponentTreeItem {
-    $component_tree_item = $this->createDanglingComponentTree();
-    $component_tree_item->setValue($this->component_tree);
-    return $component_tree_item;
+  public function getComponentTree(): ComponentTreeItemList {
+    $component_tree = $this->createDanglingComponentTreeItemList();
+    $component_tree->setValue($this->component_tree);
+    return $component_tree;
   }
 
   /**
@@ -79,7 +78,7 @@ final class Pattern extends ConfigEntityBase implements XbHttpApiEligibleConfigE
    */
   public function calculateDependencies() {
     parent::calculateDependencies();
-    $this->addDependencies($this->getComponentTree()->calculateFieldItemValueDependencies(FALSE));
+    $this->addDependencies($this->getComponentTree()->calculateDependencies());
     return $this;
   }
 
@@ -126,14 +125,14 @@ final class Pattern extends ConfigEntityBase implements XbHttpApiEligibleConfigE
    * @see docs/adr/0005-Keep-the-front-end-simple.md
    */
   public function normalizeForClientSide(): ClientSideRepresentation {
-    $item = $this->getComponentTree();
+    $items = $this->getComponentTree();
     return ClientSideRepresentation::create(
       values: [
-        'layoutModel' => ApiConfigControllers::convertComponentTreeItemToLayoutModel($item),
+        'layoutModel' => $items->getClientSideRepresentation(),
         'name' => $this->label(),
         'id' => $this->id(),
       ],
-      preview: $item->toRenderable($this, TRUE),
+      preview: $items->toRenderable($this, TRUE),
     )->addCacheableDependency($this);
   }
 

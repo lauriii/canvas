@@ -57,7 +57,8 @@ describe('extending experience builder', () => {
       'Confirm that an extension can select an item in the layout, focus it, then delete it',
     );
     cy.waitForElementContentInIframe('div', 'hello, world!');
-    const heroUuid = 'static-static-card1ab';
+    // @see \Drupal\Tests\experience_builder\TestSite\XBTestSetup
+    const heroUuid = '208452de-10d6-4fb8-89a1-10e340b3744c';
     cy.findByTestId('ex-select-in-layout').select(heroUuid);
     cy.findByTestId('ex-selected-element').should('be.empty');
     cy.findByTestId('ex-focus').click();

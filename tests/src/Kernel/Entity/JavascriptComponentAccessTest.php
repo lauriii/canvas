@@ -8,7 +8,6 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\experience_builder\Entity\Component;
 use Drupal\experience_builder\Entity\JavaScriptComponent;
 use Drupal\experience_builder\Entity\Pattern;
-use Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure;
 use Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\JsComponent;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\Tests\user\Traits\UserCreationTrait;
@@ -95,12 +94,7 @@ final class JavascriptComponentAccessTest extends KernelTestBase {
     Pattern::create([
       'label' => $this->randomMachineName(),
       'component_tree' => [
-        'tree' => [
-          ComponentTreeStructure::ROOT_UUID => [
-            ['uuid' => 'uuid-in-root', 'component' => $component_id],
-          ],
-        ],
-        'inputs' => [],
+        ['uuid' => 'uuid-in-root', 'component_id' => $component_id, 'inputs' => []],
       ],
     ])->save();
     // And reset the access cache.

@@ -180,8 +180,8 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
         'source' => [],
       ];
     }
-    $entity = $item->getRoot() === $item ? NULL : $item->getEntity();
-    $values = $item->get('inputs')->getValues($uuid);
+    $entity = $item->getRoot() === $item->getParent() ? NULL : $item->getEntity();
+    $values = $item->getInputs() ?? [];
     return [
       'source' => $values,
       'resolved' => array_map(
