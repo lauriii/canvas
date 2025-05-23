@@ -694,7 +694,7 @@ class JavaScriptComponentValidationTest extends BetterConfigEntityValidationTest
           ],
         ],
         [
-          '' => 'Experience Builder does not know of a field type/widget to allow populating the <code>image</code> prop, with the shape <code>{"type":"object"}</code>.',
+          '' => 'Prop "image" is of type "object" without a $ref, which is not supported',
           'props.image' => '\'$ref\' is a required key because props.image.type is object (see config schema type experience_builder.json_schema.prop.object).',
           'props.image.examples.0.alt' => "'alt' is not a supported key.",
           'props.image.examples.0.height' => "'height' is not a supported key.",

@@ -48,6 +48,12 @@ final class ComponentMetadataRequirementsChecker {
         continue;
       }
 
+      // A prop may not be of type "object" unless it has a $ref defined.
+      if ($prop['type'][0] === 'object' && !isset($prop['$ref'])) {
+        $messages[] = \sprintf('Prop "%s" is of type "object" without a $ref, which is not supported', $prop_name);
+        continue;
+      }
+
       // Required props must have examples.
       if (in_array($prop_name, $required_props, TRUE) && !isset($prop['examples'][0])) {
         $messages[] = \sprintf('Prop "%s" is required, but does not have example value', $prop_name);

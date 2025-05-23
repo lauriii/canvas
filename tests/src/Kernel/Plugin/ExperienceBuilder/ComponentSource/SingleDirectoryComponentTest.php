@@ -82,6 +82,9 @@ final class SingleDirectoryComponentTest extends ComponentSourceTestBase {
       'sdc.xb_test_sdc.obsolete' => [
         'Component has "obsolete" status',
       ],
+      'sdc.xb_test_sdc.props-invalid-shapes' => [
+        'Prop "invalid_shape" is of type "object" without a $ref, which is not supported',
+      ],
       'sdc.xb_test_sdc.props-no-examples' => [
         'Prop "heading" is required, but does not have example value',
       ],
