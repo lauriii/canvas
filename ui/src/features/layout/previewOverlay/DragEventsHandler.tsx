@@ -1,12 +1,11 @@
 import type React from 'react';
 import { useState } from 'react';
-import {
+import type {
   DragEndEvent,
   DragOverEvent,
-  DragOverlay,
   DragStartEvent,
-  useDndMonitor,
 } from '@dnd-kit/core';
+import { DragOverlay, useDndMonitor } from '@dnd-kit/core';
 import {
   restrictToFirstScrollableAncestor,
   restrictToWindowEdges,
