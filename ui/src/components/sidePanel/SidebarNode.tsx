@@ -36,7 +36,9 @@ const SidebarNode = React.forwardRef<
     variant: SideBarNodeVariant;
     leadingContent?: React.ReactNode;
     hovered?: boolean;
+    draggable?: boolean;
     selected?: boolean;
+    disabled?: boolean;
     dropdownMenuContent?: React.ReactNode;
     open?: boolean;
     className?: string;
@@ -50,6 +52,8 @@ const SidebarNode = React.forwardRef<
       leadingContent,
       hovered = false,
       selected = false,
+      draggable = true,
+      disabled = false,
       dropdownMenuContent = null,
       open = false,
       className,
@@ -62,12 +66,16 @@ const SidebarNode = React.forwardRef<
       <Flex
         ref={ref}
         align="center"
-        px="2"
+        pr="2"
         className={clsx(
           styles[`${variant}Variant`],
-          hovered && styles.hovered,
-          selected && styles.selected,
-          open && styles.open,
+          {
+            [styles.hovered]: hovered,
+            [styles.selected]: selected,
+            [styles.disabled]: disabled,
+            [styles.draggable]: draggable,
+            [styles.open]: open,
+          },
           className,
         )}
         {...props}

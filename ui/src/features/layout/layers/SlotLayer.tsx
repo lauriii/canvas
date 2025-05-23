@@ -1,5 +1,5 @@
 import type React from 'react';
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { Flex, Box } from '@radix-ui/themes';
 import SidebarNode from '@/components/sidePanel/SidebarNode';
 import { TriangleDownIcon, TriangleRightIcon } from '@radix-ui/react-icons';
@@ -18,36 +18,49 @@ import {
   unsetHoveredComponent,
 } from '@/features/ui/uiSlice';
 import { useAppDispatch } from '@/app/hooks';
-import SortableContainer from '@/features/layout/layers/SortableContainer';
+import LayersDropZone from '@/features/layout/layers/LayersDropZone';
 
 interface SlotLayerProps {
   slot: SlotNode;
   children?: false | React.ReactElement<CollapsibleTriggerProps>;
   indent: number;
   parentNode?: ComponentNode;
+  disableDrop?: boolean;
 }
 
-const SlotLayer: React.FC<SlotLayerProps> = ({ slot, indent, parentNode }) => {
+const SlotLayer: React.FC<SlotLayerProps> = ({
+  slot,
+  indent,
+  parentNode,
+  disableDrop = false,
+}) => {
   const dispatch = useAppDispatch();
   const slotName = useGetComponentName(slot, parentNode);
   const [open, setOpen] = useState(false);
   const slotId = slot.id;
 
-  function handleItemMouseEnter(event: React.MouseEvent<HTMLDivElement>) {
-    event.stopPropagation();
-    dispatch(setHoveredComponent(slotId));
-  }
+  const handleItemMouseEnter = useCallback(
+    (event: React.MouseEvent<HTMLDivElement>) => {
+      event.stopPropagation();
+      dispatch(setHoveredComponent(slotId));
+    },
+    [dispatch, slotId],
+  );
 
-  function handleItemMouseLeave(event: React.MouseEvent<HTMLDivElement>) {
-    event.stopPropagation();
-    dispatch(unsetHoveredComponent());
-  }
+  const handleItemMouseLeave = useCallback(
+    (event: React.MouseEvent<HTMLDivElement>) => {
+      event.stopPropagation();
+      dispatch(unsetHoveredComponent());
+    },
+    [dispatch],
+  );
 
   return (
     <Box
       data-xb-uuid={slotId}
       data-xb-type={slot.nodeType}
       aria-labelledby={`layer-${slotId}-name`}
+      position="relative"
     >
       <Collapsible.Root
         className="xb--collapsible-root"
@@ -60,8 +73,10 @@ const SlotLayer: React.FC<SlotLayerProps> = ({ slot, indent, parentNode }) => {
           onMouseEnter={handleItemMouseEnter}
           onMouseLeave={handleItemMouseLeave}
           title={slotName}
+          draggable={false}
           variant="slot"
           open={open}
+          disabled={disableDrop}
           leadingContent={
             <Flex>
               <Box
@@ -87,21 +102,26 @@ const SlotLayer: React.FC<SlotLayerProps> = ({ slot, indent, parentNode }) => {
           }
         />
 
-        {slot.components.length > 0 ? (
+        {slot.components.length > 0 && (
           <CollapsibleContent>
-            <SortableContainer slotId={slotId} indent={indent + 1}>
-              {slot.components.map((component) => (
-                <ComponentLayer
-                  key={component.uuid}
-                  component={component}
-                  indent={indent + 1}
-                  parentNode={slot}
-                />
-              ))}
-            </SortableContainer>
+            {slot.components.map((component, index) => (
+              <ComponentLayer
+                key={component.uuid}
+                index={index}
+                component={component}
+                indent={indent + 1}
+                parentNode={slot}
+                disableDrop={disableDrop}
+              />
+            ))}
           </CollapsibleContent>
-        ) : (
-          <SortableContainer slotId={slotId} indent={indent + 1} />
+        )}
+        {!slot.components.length && !disableDrop && (
+          <LayersDropZone
+            layer={slot}
+            position={'bottom'}
+            indent={indent + 1}
+          />
         )}
       </Collapsible.Root>
     </Box>

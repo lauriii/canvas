@@ -14,12 +14,11 @@ import { findNodePathByUuid } from '@/features/layout/layoutUtils';
 export interface SlotDropZoneProps {
   slot: SlotNode;
   position: 'before' | 'after';
-  size: string;
   parentComponent?: ComponentNode;
   parentRegion?: RegionNode;
 }
 const SlotDropZone: React.FC<SlotDropZoneProps> = (props) => {
-  const { slot, position, size, parentRegion, parentComponent } = props;
+  const { slot, position, parentRegion, parentComponent } = props;
   const layout = useAppSelector(selectLayout);
 
   const slotPath = findNodePathByUuid(layout, slot.id);
@@ -30,7 +29,7 @@ const SlotDropZone: React.FC<SlotDropZoneProps> = (props) => {
   slotPath.push(0);
 
   const { setNodeRef: setDropRef, isOver } = useDroppable({
-    id: `${slot.id}_${position}_${size}`,
+    id: `${slot.id}_${position}`,
     data: {
       slot: slot,
       component: parentComponent,

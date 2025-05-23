@@ -2,7 +2,6 @@ import SidebarNode from '@/components/sidePanel/SidebarNode';
 import type React from 'react';
 import UnifiedMenu from '@/components/UnifiedMenu';
 import { ContextMenu } from '@radix-ui/themes';
-import styles from '@/features/code-editor/CodeComponentList.module.css';
 import { useAppDispatch } from '@/app/hooks';
 import { setDialogWithDataOpen } from '@/features/ui/dialogSlice';
 import type { Section } from '@/types/Section';
@@ -10,8 +9,9 @@ import type { Section } from '@/types/Section';
 const SectionNode: React.FC<{
   section: Section;
   onMenuOpenChange: (open: boolean) => void;
+  disabled: boolean;
 }> = (props) => {
-  const { section, onMenuOpenChange } = props;
+  const { section, onMenuOpenChange, disabled } = props;
   const dispatch = useAppDispatch();
 
   const handleDeleteClick = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -36,7 +36,7 @@ const SectionNode: React.FC<{
         <SidebarNode
           title={section.name}
           variant="section"
-          className={styles.listItem}
+          disabled={disabled}
           dropdownMenuContent={
             <UnifiedMenu.Content menuType="dropdown">
               {menuItems}

@@ -3,7 +3,7 @@ import { useRef, useMemo } from 'react';
 import styles from './List.module.css';
 import { selectDragging } from '@/features/ui/uiSlice';
 import { useAppSelector } from '@/app/hooks';
-import { Box, Flex, Spinner } from '@radix-ui/themes';
+import { Box, Flex, Skeleton } from '@radix-ui/themes';
 import clsx from 'clsx';
 import ListItem from '@/components/list/ListItem';
 import type { ComponentsList } from '@/types/Component';
@@ -33,14 +33,22 @@ const List: React.FC<ListProps> = (props) => {
   return (
     <div className={clsx('listContainer', styles.listContainer)}>
       <Box className={isDragging ? 'list-dragging' : ''}>
-        <Spinner loading={isLoading}>
+        <Skeleton
+          data-testid="xb-components-library-loading"
+          loading={isLoading}
+          height="1.2rem"
+          width="100%"
+          my="3"
+        >
           <Flex direction="column" width="100%" ref={listElRef} role="list">
             {sortedItems &&
               sortedItems.map(([id, item]) => (
                 <ListItem item={item} key={id} type={type} />
               ))}
           </Flex>
-        </Spinner>
+        </Skeleton>
+        <Skeleton loading={isLoading} height="1.2rem" width="100%" my="3" />
+        <Skeleton loading={isLoading} height="1.2rem" width="100%" my="3" />
       </Box>
     </div>
   );

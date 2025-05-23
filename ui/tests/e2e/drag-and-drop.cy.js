@@ -99,7 +99,7 @@ describe.skip('Drag and drop functionality in the Layers menu', () => {
     cy.get('.primaryPanelContent span').contains('Image').should('exist');
     cy.get('@layersTree').within(() => {
       cy.get('#layer-static-image-udf7d-name span').realDnd(
-        '[data-xb-slot-id="content"]',
+        '[data-xb-uuid="two-column-uuid"]',
         {
           position: 'top',
           preReleaseWait: 500,

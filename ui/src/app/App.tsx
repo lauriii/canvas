@@ -24,7 +24,6 @@ import { DndProvider } from 'react-dnd';
 import { HTML5toTouch } from 'rdndmb-html5-to-touch';
 import { MultiBackend } from 'react-dnd-multi-backend';
 import Topbar from '@/components/topbar/Topbar';
-import { snapCenterToCursor } from '@dnd-kit/modifiers';
 import DragEventsHandler from '@/features/layout/previewOverlay/DragEventsHandler';
 import styles from '@/features/editor/Editor.module.css';
 import { Flex } from '@radix-ui/themes';
@@ -37,6 +36,11 @@ import Toast from '@/components/Toast';
 function customCollisionDetectionAlgorithm(
   args: Parameters<CollisionDetection>[0],
 ): ReturnType<CollisionDetection> {
+  // When dragging in the layers, use the rectIntersection as it works best.
+  if (args.active.data.current?.origin === 'layers') {
+    return rectIntersection(args);
+  }
+
   // First, let's see if there are any collisions with the pointer
   const pointerCollisions = pointerWithin(args);
 
@@ -65,7 +69,6 @@ const App: React.FC = () => {
       >
         <DndContext
           sensors={sensors}
-          modifiers={[snapCenterToCursor]}
           collisionDetection={customCollisionDetectionAlgorithm}
         >
           <DndProvider backend={MultiBackend} options={HTML5toTouch}>

@@ -112,6 +112,7 @@ const CodeComponentList = ({
                   <SidebarNode
                     title={component.name}
                     variant="code"
+                    draggable={false}
                     onClick={() => handleComponentClick(component.machineName)}
                     className={styles.listItem}
                     selected={component.machineName === componentId}

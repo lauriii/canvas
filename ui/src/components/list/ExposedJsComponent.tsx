@@ -3,7 +3,6 @@ import type React from 'react';
 import { useEffect } from 'react';
 import UnifiedMenu from '@/components/UnifiedMenu';
 import { ContextMenu } from '@radix-ui/themes';
-import styles from '@/features/code-editor/CodeComponentList.module.css';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import {
   openDeleteDialog,
@@ -29,9 +28,10 @@ function removeJsPrefix(input: string): string {
 const ExposedJsComponent: React.FC<{
   component: JSComponent;
   onMenuOpenChange: (open: boolean) => void;
+  disabled: boolean;
 }> = (props) => {
   const dispatch = useAppDispatch();
-  const { component, onMenuOpenChange } = props;
+  const { component, onMenuOpenChange, disabled } = props;
   const machineName = removeJsPrefix(component.id);
   const { data: jsComponent, error } = useGetCodeComponentQuery(machineName);
   const layout = useAppSelector(selectLayout);
@@ -97,7 +97,7 @@ const ExposedJsComponent: React.FC<{
         <SidebarNode
           title={component.name}
           variant="component"
-          className={styles.listItem}
+          disabled={disabled}
           dropdownMenuContent={
             <UnifiedMenu.Content menuType="dropdown">
               {menuItems}

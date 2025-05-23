@@ -2,3 +2,9 @@
   border-radius: 0 0 var(--radius-4) var(--radius-4);
   background-color: var(--purple-3);
 }
+
+.componentChildrenDisabled {
+  pointer-events: none;
+  filter: grayscale(100%);
+  backdrop-filter: grayscale(100%);
+}

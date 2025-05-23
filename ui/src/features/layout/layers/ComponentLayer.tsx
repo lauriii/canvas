@@ -1,13 +1,12 @@
 import type React from 'react';
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { Box, Flex } from '@radix-ui/themes';
 import { TriangleDownIcon, TriangleRightIcon } from '@radix-ui/react-icons';
 import SidebarNode from '@/components/sidePanel/SidebarNode';
-import { customSortableDragImage } from '@/features/sortable/sortableUtils';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import {
   selectComponentIsSelected,
-  selectHoveredComponent,
+  selectIsComponentHovered,
   setHoveredComponent,
   unsetHoveredComponent,
 } from '@/features/ui/uiSlice';
@@ -26,20 +25,28 @@ import SlotLayer from '@/features/layout/layers/SlotLayer';
 import useComponentSelection from '@/hooks/useComponentSelection';
 import styles from './ComponentLayer.module.css';
 import clsx from 'clsx';
+import { useDraggable } from '@dnd-kit/core';
+import LayersDropZone from '@/features/layout/layers/LayersDropZone';
 
 interface ComponentLayerProps {
   component: ComponentNode;
   children?: false | React.ReactElement<CollapsibleTriggerProps>;
   indent: number;
   parentNode?: LayoutNode;
+  index: number;
+  disableDrop?: boolean;
 }
 
 const ComponentLayer: React.FC<ComponentLayerProps> = ({
   component,
   indent,
+  index,
+  disableDrop = false,
 }) => {
   const dispatch = useAppDispatch();
-  const hoveredComponent = useAppSelector(selectHoveredComponent);
+  const isHovered = useAppSelector((state) => {
+    return selectIsComponentHovered(state, component.uuid);
+  });
   const [open, setOpen] = useState(false);
   const { handleComponentSelection } = useComponentSelection();
 
@@ -48,35 +55,64 @@ const ComponentLayer: React.FC<ComponentLayerProps> = ({
   const isSelected = useAppSelector((state) =>
     selectComponentIsSelected(state, componentId),
   );
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+    id: `${component.uuid}_layers`,
+    data: {
+      origin: 'layers',
+      component: component,
+      name: nodeName,
+    },
+  });
 
-  function handleItemClick(event: React.MouseEvent<HTMLDivElement>) {
-    event.stopPropagation();
-    handleComponentSelection(componentId, event.metaKey);
-  }
+  const handleItemClick = useCallback(
+    (event: React.MouseEvent<HTMLDivElement>) => {
+      event.stopPropagation();
+      handleComponentSelection(componentId, event.metaKey);
+    },
+    [handleComponentSelection, componentId],
+  );
 
-  function handleItemMouseEnter(event: React.MouseEvent<HTMLDivElement>) {
-    event.stopPropagation();
-    dispatch(setHoveredComponent(componentId));
-  }
+  const handleItemMouseEnter = useCallback(
+    (event: React.MouseEvent<HTMLDivElement>) => {
+      event.stopPropagation();
+      if (!isDragging) {
+        dispatch(setHoveredComponent(componentId));
+      }
+    },
+    [dispatch, componentId, isDragging],
+  );
 
-  function handleItemMouseLeave(event: React.MouseEvent<HTMLDivElement>) {
-    event.stopPropagation();
-    dispatch(unsetHoveredComponent());
-  }
+  const handleItemMouseLeave = useCallback(
+    (event: React.MouseEvent<HTMLDivElement>) => {
+      event.stopPropagation();
+      dispatch(unsetHoveredComponent());
+    },
+    [dispatch],
+  );
 
-  function handleItemDragStart(event: React.DragEvent<HTMLDivElement>) {
-    event.stopPropagation();
-    dispatch(unsetHoveredComponent());
-    customSortableDragImage(event, window.document, nodeName);
-  }
+  const handleItemDragStart = useCallback(
+    (event: React.DragEvent<HTMLDivElement>) => {
+      event.stopPropagation();
+      dispatch(unsetHoveredComponent());
+    },
+    [dispatch],
+  );
 
-  function handleContextMenu(event: React.MouseEvent<HTMLDivElement>) {
-    event.preventDefault();
-    event.stopPropagation();
-  }
+  const handleContextMenu = useCallback(
+    (event: React.MouseEvent<HTMLDivElement>) => {
+      event.preventDefault();
+      event.stopPropagation();
+    },
+    [],
+  );
 
   return (
     <Box
+      {...listeners}
+      {...attributes}
+      ref={setNodeRef}
+      role="treeitem"
+      aria-roledescription="Draggable component"
       data-xb-uuid={componentId}
       data-xb-type={component.nodeType}
       data-xb-selected={isSelected}
@@ -84,6 +120,7 @@ const ComponentLayer: React.FC<ComponentLayerProps> = ({
       onDragStart={handleItemDragStart}
       onContextMenu={handleContextMenu}
       aria-labelledby={`layer-${componentId}-name`}
+      position="relative"
     >
       <ComponentContextMenu component={component}>
         <Collapsible.Root
@@ -99,9 +136,10 @@ const ComponentLayer: React.FC<ComponentLayerProps> = ({
             className="xb-drag-handle"
             title={nodeName}
             variant="component"
-            hovered={hoveredComponent === componentId}
+            hovered={isHovered}
             selected={isSelected}
-            open={open}
+            disabled={disableDrop || isDragging}
+            open={component.slots.length ? open : false}
             dropdownMenuContent={
               <ComponentContextMenuContent
                 component={component}
@@ -136,7 +174,10 @@ const ComponentLayer: React.FC<ComponentLayerProps> = ({
           />
           {component.slots.length > 0 && (
             <CollapsibleContent
-              className={clsx(isSelected && styles.componentChildrenSelected)}
+              className={clsx({
+                [styles.componentChildrenSelected]: isSelected,
+                [styles.componentChildrenDisabled]: disableDrop || isDragging,
+              })}
             >
               {component.slots.map((slot) => (
                 <SlotLayer
@@ -144,12 +185,29 @@ const ComponentLayer: React.FC<ComponentLayerProps> = ({
                   slot={slot}
                   indent={indent + 1}
                   parentNode={component}
+                  disableDrop={disableDrop || isDragging}
                 />
               ))}
             </CollapsibleContent>
           )}
         </Collapsible.Root>
       </ComponentContextMenu>
+      {!isDragging && !disableDrop && (
+        <>
+          {index === 0 && (
+            <LayersDropZone
+              layer={component}
+              position={'top'}
+              indent={indent}
+            />
+          )}
+          <LayersDropZone
+            layer={component}
+            position={'bottom'}
+            indent={indent}
+          />
+        </>
+      )}
     </Box>
   );
 };

@@ -40,7 +40,6 @@
 }
 
 .isPanning .canvas {
-  cursor: grabbing;
   user-select: none;
 }
 

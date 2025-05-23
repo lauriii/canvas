@@ -51,7 +51,7 @@ const ComponentDropZone: React.FC<ComponentDropZoneProps> = (props) => {
   });
 
   useEffect(() => {
-    // use the id of the dragged to disable it's dropzone so you can drop it inside itself.
+    // use the id of the dragged to disable it's dropzone so you can't drop it inside itself.
     setDraggedItem((active?.id as string) || '');
   }, [active]);
 

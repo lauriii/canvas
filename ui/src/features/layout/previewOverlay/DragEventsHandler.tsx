@@ -1,6 +1,21 @@
 import type React from 'react';
 import { useState } from 'react';
-import { DragOverlay, useDndMonitor } from '@dnd-kit/core';
+import {
+  DragEndEvent,
+  DragOverEvent,
+  DragOverlay,
+  DragStartEvent,
+  useDndMonitor,
+} from '@dnd-kit/core';
+import {
+  restrictToFirstScrollableAncestor,
+  restrictToWindowEdges,
+} from '@dnd-kit/modifiers';
+import {
+  snapRightToCursor,
+  cleanupMouseTracking,
+  initMouseTracking,
+} from './snapRightToCursor';
 import { findNodePathByUuid } from '@/features/layout/layoutUtils';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import {
@@ -9,22 +24,25 @@ import {
   moveNode,
   selectLayout,
 } from '@/features/layout/layoutModelSlice';
-import styles from './PreviewOverlay.module.css';
+import styles from './DragOverlay.module.css';
 import {
   setListDragging,
   setPreviewDragging,
   setTargetSlot,
+  setTreeDragging,
   setUpdatingComponent,
   unsetTargetSlot,
 } from '@/features/ui/uiSlice';
 import _ from 'lodash';
 import useComponentSelection from '@/hooks/useComponentSelection';
 import type { Section } from '@/types/Section';
+import clsx from 'clsx';
 
 const DragEventsHandler: React.FC = () => {
   const layout = useAppSelector(selectLayout);
   const dispatch = useAppDispatch();
   const [componentName, setComponentName] = useState('...');
+  const [dragOrigin, setDragOrigin] = useState('');
   const { setSelectedComponent } = useComponentSelection();
 
   const afterDrag = (
@@ -51,7 +69,9 @@ const DragEventsHandler: React.FC = () => {
     );
   };
 
-  const getOrigin = (event: any): 'library' | 'overlay' | 'unknown' => {
+  const getOrigin = (
+    event: any,
+  ): 'library' | 'overlay' | 'layers' | 'unknown' => {
     if (event.active?.data?.current?.origin) {
       return event.active.data.current.origin;
     } else {
@@ -59,117 +79,149 @@ const DragEventsHandler: React.FC = () => {
     }
   };
 
-  useDndMonitor({
-    onDragStart(event) {
-      setComponentName(event.active.data?.current?.name);
-      if (getOrigin(event) === 'overlay') {
-        dispatch(setPreviewDragging(true));
-      } else if (getOrigin(event) === 'library') {
-        dispatch(setListDragging(true));
+  const modifiers =
+    dragOrigin === 'layers'
+      ? [snapRightToCursor, restrictToFirstScrollableAncestor]
+      : [snapRightToCursor, restrictToWindowEdges];
+
+  function handleDragStart(event: DragStartEvent) {
+    initMouseTracking();
+    setComponentName(event.active.data?.current?.name);
+    window.document.body.classList.add(styles.dragging);
+    setDragOrigin(getOrigin(event));
+    if (getOrigin(event) === 'overlay') {
+      dispatch(setPreviewDragging(true));
+    } else if (getOrigin(event) === 'library') {
+      dispatch(setListDragging(true));
+    } else if (getOrigin(event) === 'layers') {
+      dispatch(setTreeDragging(true));
+    }
+  }
+
+  function handleDragOver(event: DragOverEvent) {
+    const parentSlot = event.over?.data?.current?.parentSlot;
+    const parentRegion = event.over?.data?.current?.parentRegion;
+
+    if (parentRegion) {
+      dispatch(setTargetSlot(parentRegion.id));
+    } else if (parentSlot) {
+      dispatch(setTargetSlot(parentSlot.id));
+    }
+  }
+
+  function handleDragEnd(event: DragEndEvent) {
+    dispatch(setPreviewDragging(false));
+    dispatch(setListDragging(false));
+    dispatch(setTreeDragging(false));
+    dispatch(unsetTargetSlot());
+    window.document.body.classList.remove(styles.dragging);
+
+    // Ensure the mouse tracking is cleaned up
+    cleanupMouseTracking();
+
+    const elementsInsideIframe =
+      event.active.data?.current?.elementsInsideIframe || [];
+
+    if (!event.over) {
+      // If the dragged item wasn't dropped into a dropZone, do nothing.
+      afterDrag(elementsInsideIframe, false);
+      return;
+    }
+
+    if (
+      getOrigin(event) === 'overlay' ||
+      event.over.data.current?.destination === 'layers'
+    ) {
+      const activeComponent = event.active.data?.current?.component;
+      const activeUuid = activeComponent.uuid;
+
+      const dropPath = event.over.data?.current?.path;
+      if (!dropPath) {
+        // The component we are dropping onto was not found. I don't think this can happen, but if it does, do nothing.
+        afterDrag(elementsInsideIframe, false);
+        return;
       }
-    },
-    onDragOver(event) {
-      const parentSlot = event.over?.data?.current?.parentSlot;
-      const parentRegion = event.over?.data?.current?.parentRegion;
-
-      if (parentRegion) {
-        dispatch(setTargetSlot(parentRegion.id));
-      } else if (parentSlot) {
-        dispatch(setTargetSlot(parentSlot.id));
+      const currentPath = findNodePathByUuid(layout, activeUuid);
+      if (!currentPath) {
+        throw new Error(`Unable to ascertain current path of dragged element.`);
       }
-    },
-    onDragEnd: function (event) {
-      dispatch(setPreviewDragging(false));
-      dispatch(setListDragging(false));
-      dispatch(unsetTargetSlot());
 
-      const elementsInsideIframe =
-        event.active.data?.current?.elementsInsideIframe || [];
-
-      if (!event.over) {
-        // If the dragged item wasn't dropped into a dropZone, do nothing.
+      if (
+        _.isEqual(currentPath, dropPath) ||
+        isLastElementIncremented(currentPath, dropPath)
+      ) {
+        // The dragged item was dropped back where it came from. Do nothing.
         afterDrag(elementsInsideIframe, false);
         return;
       }
 
-      if (getOrigin(event) === 'overlay') {
-        const activeComponent = event.active.data?.current?.component;
-        const activeUuid = activeComponent.uuid;
+      // if we got this far, then we have a valid location to move the dragged component to!
+      // @todo We should optimistically move the elementsInsideIframe to the new location in the iFrames dom.
+      // for now, we pass true here which will put the elementsInsideIframe into a 'pending move' state.
+      afterDrag(elementsInsideIframe, true, activeUuid);
 
-        const dropPath = event.over.data?.current?.path;
-        if (!dropPath) {
-          // The component we are dropping onto was not found. I don't think this can happen, but if it does, do nothing.
-          afterDrag(elementsInsideIframe, false);
-          return;
-        }
-        const currentPath = findNodePathByUuid(layout, activeUuid);
-        if (!currentPath) {
-          throw new Error(
-            `Unable to ascertain current path of dragged element.`,
-          );
-        }
-
-        if (
-          _.isEqual(currentPath, dropPath) ||
-          isLastElementIncremented(currentPath, dropPath)
-        ) {
-          // The dragged item was dropped back where it came from. Do nothing.
-          afterDrag(elementsInsideIframe, false);
-          return;
-        }
-
-        // if we got this far, then we have a valid location to move the dragged component to!
-        // @todo We should optimistically move the elementsInsideIframe to the new location in the iFrames dom.
-        // for now, we pass true here which will put the elementsInsideIframe into a 'pending move' state.
-        afterDrag(elementsInsideIframe, true, activeUuid);
-
-        dispatch(
-          moveNode({
-            uuid: activeUuid,
-            to: dropPath,
-          }),
-        );
-      } else if (getOrigin(event) === 'library') {
-        const newItem = event.active.data?.current?.item;
-        const dropPath = event.over.data?.current?.path;
-        if (!dropPath) {
-          // The component we are dropping onto was not found. I don't think this can happen, but if it does, do nothing.
-          return;
-        }
-        const type = event.active.data?.current?.type;
-        if (type === 'component') {
-          // @todo We should optimistically insert newItem.default_markup into to the new location in the iFrames dom.
-          dispatch(
-            addNewComponentToLayout(
-              {
-                to: dropPath,
-                component: newItem,
-              },
-              setSelectedComponent,
-            ),
-          );
-        } else if (type === 'section') {
-          dispatch(
-            addNewSectionToLayout(
-              {
-                to: dropPath,
-                layoutModel: (newItem as Section).layoutModel,
-              },
-              setSelectedComponent,
-            ),
-          );
-        }
+      dispatch(
+        moveNode({
+          uuid: activeUuid,
+          to: dropPath,
+        }),
+      );
+    } else if (getOrigin(event) === 'library') {
+      const newItem = event.active.data?.current?.item;
+      const dropPath = event.over.data?.current?.path;
+      if (!dropPath) {
+        // The component we are dropping onto was not found. I don't think this can happen, but if it does, do nothing.
+        return;
       }
-    },
-    onDragCancel() {
-      dispatch(setPreviewDragging(false));
-      dispatch(setListDragging(false));
-      dispatch(unsetTargetSlot());
-    },
+      const type = event.active.data?.current?.type;
+      if (type === 'component') {
+        // @todo We should optimistically insert newItem.default_markup into to the new location in the iFrames dom.
+        dispatch(
+          addNewComponentToLayout(
+            {
+              to: dropPath,
+              component: newItem,
+            },
+            setSelectedComponent,
+          ),
+        );
+      } else if (type === 'section') {
+        dispatch(
+          addNewSectionToLayout(
+            {
+              to: dropPath,
+              layoutModel: (newItem as Section).layoutModel,
+            },
+            setSelectedComponent,
+          ),
+        );
+      }
+    }
+  }
+
+  function handleDragCancel() {
+    dispatch(setPreviewDragging(false));
+    dispatch(setListDragging(false));
+    dispatch(unsetTargetSlot());
+    window.document.body.classList.remove(styles.dragging);
+
+    // Ensure the mouse tracking is cleaned up
+    cleanupMouseTracking();
+  }
+
+  useDndMonitor({
+    onDragStart: handleDragStart,
+    onDragOver: handleDragOver,
+    onDragEnd: handleDragEnd,
+    onDragCancel: handleDragCancel,
   });
 
   return (
-    <DragOverlay className={styles.dragOverlay} dropAnimation={null}>
+    <DragOverlay
+      modifiers={modifiers}
+      className={clsx(styles.dragOverlay)}
+      dropAnimation={null}
+    >
       <div>{componentName}</div>
     </DragOverlay>
   );

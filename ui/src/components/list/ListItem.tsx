@@ -38,7 +38,7 @@ const ListItem: React.FC<{
     regionId: focusedRegion = DEFAULT_REGION,
   } = useParams();
   const { setSelectedComponent } = useComponentSelection();
-  const { attributes, listeners, setNodeRef } = useDraggable({
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: item.id,
     data: {
       origin: 'library',
@@ -95,6 +95,7 @@ const ListItem: React.FC<{
         <SectionNode
           section={item as Section}
           onMenuOpenChange={setIsMenuOpen}
+          disabled={isDragging}
         />
       );
     }
@@ -106,12 +107,14 @@ const ListItem: React.FC<{
         <ExposedJsComponent
           component={item as JSComponent}
           onMenuOpenChange={setIsMenuOpen}
+          disabled={isDragging}
         />
       );
     }
     return (
       <SidebarNode
         title={item.name}
+        disabled={isDragging}
         variant={
           type === 'component' && (item as XBComponent).source === 'Blocks'
             ? 'blockComponent'
@@ -147,6 +150,7 @@ const ListItem: React.FC<{
               align="start"
               className={styles.componentPreviewTooltipContent}
               onClick={(e) => e.stopPropagation()}
+              style={{ pointerEvents: 'none' }}
             >
               <Theme>
                 {previewingComponent && !isMenuOpen && (

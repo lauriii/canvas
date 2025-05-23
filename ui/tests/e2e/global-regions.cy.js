@@ -148,7 +148,6 @@ describe('Operate on components in global regions', () => {
       );
       cy.get('@layersTree')
         .findByLabelText('User account menu')
-        .parent()
         .then(($div) => {
           // Assert that the div is the first child of its new parent region.
           expect($div.is(':first-child')).to.be.true;

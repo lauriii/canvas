@@ -396,22 +396,3 @@
   height: 100%;
   cursor: grab;
 }
-
-.dragOverlay {
-  pointer-events: none;
-}
-
-.dragOverlay div {
-  display: flex;
-  align-items: center;
-  justify-content: start;
-  width: 200px;
-  height: 32px;
-  padding: 5px 16px;
-  color: #fff;
-  border-radius: 8px;
-  background-color: #8e4ec6;
-  font-family: var(--default-font-family);
-  font-size: 12px;
-  line-height: 12px;
-}

@@ -1,7 +1,6 @@
-import type React from 'react';
-import { Box } from '@radix-ui/themes';
+import React, { useMemo } from 'react';
+import { Box, Separator } from '@radix-ui/themes';
 import { useAppSelector } from '@/app/hooks';
-
 import { selectLayout } from '@/features/layout/layoutModelSlice';
 import RegionLayer from '@/features/layout/layers/RegionLayer';
 import { DEFAULT_REGION } from '@/features/ui/uiSlice';
@@ -13,24 +12,37 @@ const Layers: React.FC<LayersProps> = () => {
   const regions = useAppSelector(selectLayout);
   const { regionId: focusedRegion = DEFAULT_REGION } = useParams();
 
-  let displayedRegions = regions.filter((region) => {
-    return region.components.length > 0 || region.id === DEFAULT_REGION;
-  });
-
-  if (focusedRegion !== DEFAULT_REGION) {
-    displayedRegions = displayedRegions.filter((region) => {
-      return region.id === focusedRegion;
+  const displayedRegions = useMemo(() => {
+    let filteredRegions = regions.filter((region) => {
+      return region.components.length > 0 || region.id === DEFAULT_REGION;
     });
-  }
+
+    if (focusedRegion !== DEFAULT_REGION) {
+      filteredRegions = filteredRegions.filter((region) => {
+        return region.id === focusedRegion;
+      });
+    }
+
+    return filteredRegions;
+  }, [regions, focusedRegion]);
 
   return (
     <Box>
       {displayedRegions.map((region) => (
-        <RegionLayer
-          region={region}
-          key={region.id}
-          isPage={region.id === DEFAULT_REGION}
-        />
+        <React.Fragment key={region.id}>
+          {focusedRegion === region.id && region.id === DEFAULT_REGION ? (
+            <Box>
+              <Separator orientation="horizontal" size="4" my="2" />
+              <RegionLayer
+                region={region}
+                isPage={region.id === DEFAULT_REGION}
+              />
+              <Separator orientation="horizontal" size="4" my="2" />
+            </Box>
+          ) : (
+            <RegionLayer region={region} />
+          )}
+        </React.Fragment>
       ))}
     </Box>
   );

@@ -584,9 +584,7 @@ Cypress.Commands.add(
 
 Cypress.Commands.add('openLibraryPanel', () => {
   cy.findByTestId('xb-side-menu').findByLabelText('Add').click();
-  cy.findByTestId('xb-primary-panel').within(() => {
-    cy.get('[data-xb-type="component"]').should('have.length.above', 1);
-  });
+  cy.findByTestId('xb-components-library-loading').should('not.exist');
 });
 
 Cypress.Commands.add('openLayersPanel', () => {

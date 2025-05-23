@@ -10,6 +10,7 @@ import useResizeObserver from '@/hooks/useResizeObserver';
 import {
   DEFAULT_REGION,
   selectCanvasViewPortScale,
+  selectDragging,
   selectZooming,
 } from '@/features/ui/uiSlice';
 import RegionOverlay from '@/features/layout/previewOverlay/RegionOverlay';
@@ -35,6 +36,7 @@ const ViewportOverlay: React.FC<ViewportOverlayProps> = (props) => {
   const canvasViewPortScale = useAppSelector(selectCanvasViewPortScale);
   const layout = useAppSelector(selectLayout);
   const [rect, setRect] = useState<Rect | null>(null);
+  const { treeDragging } = useAppSelector(selectDragging);
   const isZooming = useAppSelector(selectZooming);
   const navigate = useNavigate();
   const { regionId: focusedRegion = DEFAULT_REGION } = useParams();
@@ -102,7 +104,7 @@ const ViewportOverlay: React.FC<ViewportOverlayProps> = (props) => {
     }
   }
 
-  if (!portalRoot || !rect) return null;
+  if (!portalRoot || !rect || treeDragging) return null;
 
   // This overlay is portalled and rendered higher up the DOM tree to ensure that when the canvas is zoomed, the UI
   // rendered inside the overlay does not also scale. We don't want tiny text in the UI when a user zooms out for instance.

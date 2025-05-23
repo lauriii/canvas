@@ -18,6 +18,7 @@ import {
   setCanvasModeInteractive,
   setIsZooming,
   selectPanning,
+  selectDragging,
 } from '@/features/ui/uiSlice';
 import PreviewOverlay from '@/features/layout/previewOverlay/PreviewOverlay';
 import { deleteNode } from '../layout/layoutModelSlice';
@@ -49,6 +50,7 @@ const Canvas = () => {
   const { copySelectedComponent, pasteAfterSelectedComponent } =
     useCopyPasteComponents();
   const { isUndoable, dispatchUndo } = useUndoRedo();
+  const { isDragging } = useAppSelector(selectDragging);
 
   useHotkeys(['NumpadAdd', 'Equal'], () => dispatch(canvasViewPortZoomIn()));
   useHotkeys(['Minus', 'NumpadSubtract'], () =>
@@ -87,17 +89,20 @@ const Canvas = () => {
   });
 
   const debouncedScrollPosUpdate = useDebouncedCallback(() => {
-    dispatch(
-      setCanvasViewPort({
-        x: canvasPaneRef.current?.scrollLeft,
-        y: canvasPaneRef.current?.scrollTop,
-      }),
-    );
+    if (!isDragging) {
+      dispatch(
+        setCanvasViewPort({
+          x: canvasPaneRef.current?.scrollLeft,
+          y: canvasPaneRef.current?.scrollTop,
+        }),
+      );
+    }
   }, 250);
 
   const debouncedIsPanningUpdate = useDebouncedCallback(() => {
     dispatch(setIsPanning(false));
   }, 250);
+
   const debouncedIsZoomingUpdate = useDebouncedCallback(() => {
     dispatch(setIsZooming(false));
   }, 250);
@@ -131,6 +136,14 @@ const Canvas = () => {
       setIsVisible(true);
     }
   }, [dispatch, firstLoadComplete]);
+
+  useEffect(() => {
+    // We can't update the scroll position while dragging is happening because DNDKit seems to cancel the drag operation
+    // as soon as we do. So, when isDragging becomes false, we update the scroll position to make sure it's updated after.
+    if (!isDragging) {
+      debouncedScrollPosUpdate();
+    }
+  }, [debouncedScrollPosUpdate, isDragging]);
 
   const handlePaneScroll = useCallback(
     (event: React.UIEvent<HTMLDivElement>) => {

@@ -73,7 +73,7 @@ const AccordionDetails = ({
     <Accordion.Content
       className={clsx(styles.content, styles.accordionContent)}
     >
-      <Box pl="2">{children}</Box>
+      <Box>{children}</Box>
     </Accordion.Content>
   </Accordion.Item>
 );

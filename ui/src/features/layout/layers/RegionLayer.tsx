@@ -4,7 +4,6 @@ import type { RegionNode } from '@/features/layout/layoutModelSlice';
 import ComponentLayer from '@/features/layout/layers/ComponentLayer';
 import type React from 'react';
 import { useCallback } from 'react';
-import SortableContainer from '@/features/layout/layers/SortableContainer';
 import useEditorNavigation from '@/hooks/useEditorNavigation';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
@@ -43,15 +42,21 @@ const RegionLayer: React.FC<{ region: RegionNode; isPage?: boolean }> = ({
     }
   }, []);
 
-  function handleMouseOver(event: React.MouseEvent<HTMLDivElement>) {
-    event.stopPropagation();
-    dispatch(setHoveredComponent(region.id));
-  }
+  const handleMouseOver = useCallback(
+    (event: React.MouseEvent<HTMLDivElement>) => {
+      event.stopPropagation();
+      dispatch(setHoveredComponent(region.id));
+    },
+    [dispatch, region.id],
+  );
 
-  function handleMouseOut(event: React.MouseEvent<HTMLDivElement>) {
-    event.stopPropagation();
-    dispatch(unsetHoveredComponent());
-  }
+  const handleMouseOut = useCallback(
+    (event: React.MouseEvent<HTMLDivElement>) => {
+      event.stopPropagation();
+      dispatch(unsetHoveredComponent());
+    },
+    [dispatch],
+  );
 
   return (
     <Box>
@@ -60,6 +65,7 @@ const RegionLayer: React.FC<{ region: RegionNode; isPage?: boolean }> = ({
         onMouseDown={handleMouseDown}
         onMouseOver={handleMouseOver}
         onMouseOut={handleMouseOut}
+        draggable={false}
         title={region.name}
         variant={isPage ? 'page' : 'region'}
         open={region.id === focusedRegion}
@@ -68,17 +74,16 @@ const RegionLayer: React.FC<{ region: RegionNode; isPage?: boolean }> = ({
       />
 
       {region.id === focusedRegion && (
-        <Box>
-          <SortableContainer slotId={region.id} indent={0}>
-            {region.components.map((component) => (
-              <ComponentLayer
-                key={component.uuid}
-                component={component}
-                parentNode={region}
-                indent={1}
-              />
-            ))}
-          </SortableContainer>
+        <Box role="tree">
+          {region.components.map((component, index) => (
+            <ComponentLayer
+              index={index}
+              key={component.uuid}
+              component={component}
+              parentNode={region}
+              indent={1}
+            />
+          ))}
         </Box>
       )}
     </Box>

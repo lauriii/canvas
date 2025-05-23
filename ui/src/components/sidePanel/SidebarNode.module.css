@@ -33,13 +33,13 @@
     }
   }
 
-  &.hovered {
-    background-color: var(--bg-hover);
-  }
-
+  /* .hovered className required for when hover is programmatically applied to layers when hovering them in the preview */
+  &.hovered,
   &:hover {
     background-color: var(--bg-hover);
-
+    &.open {
+      border-radius: var(--radius-4);
+    }
     .dots {
       display: flex;
     }
@@ -48,6 +48,9 @@
   &.selected {
     color: white;
     background-color: var(--bg-selected);
+    &.open {
+      border-radius: var(--radius-4) var(--radius-4) 0 0;
+    }
 
     .icon {
       color: white;
@@ -60,6 +63,16 @@
         color: white;
         background-color: var(--bg-selected-dots-hover);
       }
+    }
+  }
+  &.disabled {
+    pointer-events: none;
+    filter: grayscale(100%) opacity(50%);
+    backdrop-filter: grayscale(100%) opacity(50%);
+  }
+  &.draggable {
+    .icon, .title {
+      cursor: grab;
     }
   }
 }
