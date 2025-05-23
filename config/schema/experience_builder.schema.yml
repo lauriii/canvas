@@ -213,7 +213,7 @@ experience_builder.component_tree:
         presence: ~
     FullyValidatable: ~
   sequence:
-    # @todo Ensure the component instances appear in a predictable order in the exported YAML in https://www.drupal.org/i/3521137
+    # @todo Ensure the component instances appear in a predictable order in the exported YAML in https://www.drupal.org/i/3526127
     type: experience_builder.component_tree_node
 
 # The config equivalent of a ComponentTreeItem, validated by the same constraint.

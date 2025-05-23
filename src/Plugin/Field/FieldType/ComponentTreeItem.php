@@ -34,7 +34,7 @@ use Symfony\Component\Validator\ConstraintViolationList;
  * @see https://git.drupalcode.org/project/metatag/-/blob/2.0.x/src/Plugin/Field/FieldType/MetatagFieldItem.php
  *
  * @phpstan-import-type ComponentConfigEntityId from \Drupal\experience_builder\Entity\Component
- * @phpstan-type ComponentTreeItemPropName 'uuid'|'inputs'|'component_id'|'component'|'parent'|'slot'|'parent_uuid'
+ * @phpstan-type ComponentTreeItemPropName 'uuid'|'inputs'|'component_id'|'component'|'parent_item'|'slot'|'parent_uuid'
  *
  * @property \Drupal\experience_builder\HydratedTree $hydrated
  */
@@ -110,7 +110,7 @@ class ComponentTreeItem extends FieldItemBase {
    *
    * @param ComponentTreeItemPropName $name
    *
-   * @return ($name is 'parent' ? \Drupal\experience_builder\Plugin\DataType\ParentComponentReference : ($name is 'inputs' ? \Drupal\experience_builder\Plugin\DataType\ComponentInputs : ($name is 'component' ? \Drupal\Core\Entity\Plugin\DataType\EntityReference : \Drupal\Core\TypedData\Plugin\DataType\StringData)))
+   * @return ($name is 'parent_item' ? \Drupal\experience_builder\Plugin\DataType\ParentComponentReference : ($name is 'inputs' ? \Drupal\experience_builder\Plugin\DataType\ComponentInputs : ($name is 'component' ? \Drupal\Core\Entity\Plugin\DataType\EntityReference : \Drupal\Core\TypedData\Plugin\DataType\StringData)))
    */
   // phpcs:enable Drupal.Commenting.DataTypeNamespace.DataTypeNamespace
   public function get($name) {
@@ -291,8 +291,8 @@ class ComponentTreeItem extends FieldItemBase {
       // @see \Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemList::getConstraints
       ->setRequired(FALSE);
 
-    $properties['parent'] = DataReferenceDefinition::create(\sprintf('field_item:%s', self::PLUGIN_ID))
-      ->setLabel('Parent component instance')
+    $properties['parent_item'] = DataReferenceDefinition::create(\sprintf('field_item:%s', self::PLUGIN_ID))
+      ->setLabel('Parent component field item')
       ->setDescription(t('The referenced parent component instance'))
       // The parent object is computed out of the parent UUID.
       ->setComputed(TRUE)
@@ -353,7 +353,7 @@ class ComponentTreeItem extends FieldItemBase {
     }
     $pairs = [
       ['component_id', 'component'],
-      ['parent_uuid', 'parent'],
+      ['parent_uuid', 'parent_item'],
     ];
     foreach ($pairs as $pair) {
       // Make sure that the linked properties stay in sync.
@@ -379,7 +379,7 @@ class ComponentTreeItem extends FieldItemBase {
       parent::setValue($values, FALSE);
       $pairs = [
         ['component_id', 'component'],
-        ['parent_uuid', 'parent'],
+        ['parent_uuid', 'parent_item'],
       ];
       foreach ($pairs as $pair) {
         [$property1, $property2] = $pair;
@@ -421,7 +421,7 @@ class ComponentTreeItem extends FieldItemBase {
   }
 
   public function getParentComponentTreeItem(): ?ComponentTreeItem {
-    return $this->get('parent')->getTarget();
+    return $this->get('parent_item')->getTarget();
   }
 
   public function getSlot(): ?string {

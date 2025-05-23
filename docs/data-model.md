@@ -108,7 +108,7 @@ When _parent_uuid_ and _slot_ are empty, the `component instance` is at the root
 
 Additionally there are two computed `field prop`s:
 - _component_ - this is an entity reference to the `Component config entity` the `component instance` uses. Any methods on the `Component config entity` can be chained. E.g. `$item->get('component')?->getComponentSource()`.
-- _parent_ - this is a data reference to the sibling `\Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem` in the tree that represents the `component instance`'s parent `component instance` in the `component tree`. If the `component instance` has no parent, this will be NULL. Any methods on the parent `component instance` can be chained, e.g. `$item->get('parent')->getComponent()?->getComponentSource()?->getSlotDefinitions()`
+- _parent_item_ - this is a data reference to the sibling `\Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem` in the tree that represents the `component instance`'s parent `component instance` in the `component tree`. If the `component instance` has no parent, this will be NULL. Any methods on the parent `component instance` can be chained, e.g. `$item->get('parent_item')->getComponent()?->getComponentSource()?->getSlotDefinitions()`
 
 Additionally, convenience methods for accessing/setting values on the `ComponentTreeItem` exist including:
 - `getParentUuid(): ?string` - gets the value of _parent_uuid_ if it exists
