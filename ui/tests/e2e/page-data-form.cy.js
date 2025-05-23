@@ -33,10 +33,21 @@ describe('Page data form', () => {
     cy.get('@titleField').focus();
     cy.get('@titleField').clear();
     cy.get('@titleField').type('This is a new title');
+    cy.intercept('POST', '**/xb/api/v0/layout/**').as('updatePreview');
     cy.get('@titleField').should('have.value', 'This is a new title');
+    cy.wait('@updatePreview');
+    // Wait until the alias has been generated and preview updated.
+    cy.intercept('POST', '**/xb/api/v0/layout/**').as('updatePreview');
     cy.get('@titleField').blur();
+    cy.wait('@updatePreview');
     cy.get('button[aria-label="Undo"]').should('be.enabled');
     cy.get('button[aria-label="Redo"]').should('be.disabled');
+    cy.intercept('POST', '**/xb/api/v0/layout/**').as('updatePreview');
+    cy.realPress(['Meta', 'Z']);
+    cy.wait('@updatePreview');
+
+    // Undo twice to first revert the page alias and then to revert the page title.
+    // @todo find a way to bundle the two undo actions into one.
     cy.realPress(['Meta', 'Z']);
     cy.get('@titleField').should(
       'have.value',
@@ -77,7 +88,6 @@ describe('Page data form', () => {
     cy.get('@heroTitle').should('have.value', 'This is a new hero title');
     cy.get('button[aria-label="Undo"]').should('be.enabled');
     cy.get('button[aria-label="Redo"]').should('be.disabled');
-
     cy.realPress(['Meta', 'Z']);
     cy.get('@heroTitle').should('have.value', 'hello, world!');
     cy.get('button[aria-label="Redo"]').should('be.enabled');

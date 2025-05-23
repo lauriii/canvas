@@ -475,6 +475,12 @@ class XBTestSetup implements TestSetupInterface {
     ]);
     $empty_page->save();
 
+    $page_without_path = Page::create([
+      'title' => 'Page without a path',
+      'description' => 'This is a page without a path',
+    ]);
+    $page_without_path->save();
+
     $xb_role = Role::create([
       'id' => 'xb',
       'label' => 'xb',
@@ -491,6 +497,7 @@ class XBTestSetup implements TestSetupInterface {
         Page::EDIT_PERMISSION,
         Page::DELETE_PERMISSION,
         'administer url aliases',
+        'create url aliases',
         JavaScriptComponent::ADMIN_PERMISSION,
         Pattern::ADMIN_PERMISSION,
         'administer themes',

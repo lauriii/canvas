@@ -4,6 +4,7 @@ import type ReactDom from 'react-dom';
 import type * as ReactRedux from 'react-redux';
 import type * as ReduxToolkit from '@reduxjs/toolkit';
 import type { DrupalSettings } from '@/types/DrupalSettings';
+import type { transliterate as TransliterateType } from '@/types/transliterate';
 
 interface CKEditor5Types {
   editorClassic: {
@@ -15,6 +16,7 @@ interface CKEditor5Types {
 declare global {
   interface Window {
     drupalSettings: DrupalSettings;
+    transliterate: TransliterateType;
     React: typeof React;
     ReactDom: typeof ReactDom;
     Redux: typeof ReactRedux;

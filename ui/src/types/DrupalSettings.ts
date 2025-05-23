@@ -36,4 +36,10 @@ export interface DrupalSettings {
     theme: string;
     theme_token: string;
   };
+  langcode: string;
+  transliteration_language_overrides: {
+    [key: string]: {
+      [key: string]: string;
+    };
+  };
 }

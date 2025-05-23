@@ -22,6 +22,7 @@ xb-ui:
     - experience_builder/ajax.hyperscriptify
     - experience_builder/ajax.custom
     - experience_builder/autocomplete.extended
+    - core/transliteration
   drupalSettings:
     xb: { layoutUtils: [], navUtils: [] }
 

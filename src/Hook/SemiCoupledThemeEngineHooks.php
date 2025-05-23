@@ -30,6 +30,9 @@ class SemiCoupledThemeEngineHooks {
       $field_widget_complete_form["widget"]['#widget-type'] = $context['widget']->getPluginId();
       foreach (Element::children($field_widget_complete_form['widget']) as $key) {
         $field_widget_complete_form['widget'][$key]['#widget-type'] = $context['widget']->getPluginId();
+        foreach (Element::children($field_widget_complete_form['widget'][$key]) as $child_key) {
+          $field_widget_complete_form['widget'][$key][$child_key]['#widget-type'] = $context['widget']->getPluginId();
+        }
       }
     }
   }
