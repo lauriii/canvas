@@ -68,6 +68,75 @@ class ComponentTreeItemTest extends KernelTestBase {
   }
 
   /**
+   * @testWith ["not-a-uuid", {"0.parent_uuid": "This is not a valid UUID."}]
+   *           ["", {"0.parent_uuid": "This value should not be blank."}]
+   * @covers \Drupal\experience_builder\Plugin\Validation\Constraint\ComponentTreeStructureConstraintValidator
+   */
+  public function testInvalidParentUuid(string $parent_uuid, array $expected_violations): void {
+    $this->generateComponentConfig();
+    $item_list = $this->createDanglingComponentTreeItemList();
+    $item_list->setValue([
+      [
+        'parent_uuid' => $parent_uuid,
+        'uuid' => '947c196f-f108-43fd-a446-03a08100d579',
+        'component_id' => 'sdc.xb_test_sdc.props-slots',
+        'inputs' => [
+          'heading' => [
+            'sourceType' => 'static:field_item:string',
+            'value' => 'This is really tricky for a first-timer …',
+            'expression' => 'ℹ︎string␟value',
+          ],
+        ],
+      ],
+    ]);
+    $this->assertCount(1, $item_list);
+    $violations = $item_list->validate();
+    $this->assertSame($expected_violations, self::violationsToArray($violations));
+  }
+
+  /**
+   * @testWith ["not-a-slot", {"1.slot": "Invalid component subtree. This component subtree contains an invalid slot name for component <em class=\"placeholder\">sdc.xb_test_sdc.props-no-slots</em>: <em class=\"placeholder\">not-a-slot</em>. Valid slot names are: <em class=\"placeholder\">the_body, the_footer, the_colophon</em>."}]
+   *           ["", {"1.slot": "This value should not be blank."}]
+   * @covers \Drupal\experience_builder\Plugin\Validation\Constraint\ComponentTreeStructureConstraintValidator
+   */
+  public function testInvalidSlot(string $slot, array $expected_violations): void {
+    $root_uuid = '947c196f-f108-43fd-a446-03a08100d579';
+    $child_uuid = '8b6b47ec-1167-433b-975d-e2d97739f5a6';
+
+    $this->generateComponentConfig();
+    $item_list = $this->createDanglingComponentTreeItemList();
+    $item_list->setValue([
+      [
+        'uuid' => $root_uuid,
+        'component_id' => 'sdc.xb_test_sdc.props-slots',
+        'inputs' => [
+          'heading' => [
+            'sourceType' => 'static:field_item:string',
+            'value' => 'This is really tricky for a first-timer …',
+            'expression' => 'ℹ︎string␟value',
+          ],
+        ],
+      ],
+      [
+        'parent_uuid' => $root_uuid,
+        'slot' => $slot,
+        'uuid' => $child_uuid,
+        'component_id' => 'sdc.xb_test_sdc.props-no-slots',
+        'inputs' => [
+          'heading' => [
+            'sourceType' => 'static:field_item:string',
+            'value' => '… but eventually it all makes sense. Wished I RTFMd.',
+            'expression' => 'ℹ︎string␟value',
+          ],
+        ],
+      ],
+    ]);
+    $this->assertCount(2, $item_list);
+    $violations = $item_list->validate();
+    $this->assertSame($expected_violations, self::violationsToArray($violations));
+  }
+
+  /**
    * @covers ::getParentUuid()
    * @covers ::getParentComponentTreeItem()
    * @covers ::getSlot()

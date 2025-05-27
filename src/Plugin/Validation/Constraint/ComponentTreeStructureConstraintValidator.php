@@ -114,9 +114,11 @@ final class ComponentTreeStructureConstraintValidator extends ConstraintValidato
             new ConfigExistsConstraint(['prefix' => 'experience_builder.component.']),
           ]),
           'parent_uuid' => new Optional([
+            new NotBlank(allowNull: TRUE),
             new Uuid(),
           ]),
           'slot' => new Optional([
+            new NotBlank(allowNull: TRUE),
             new Type('string'),
           ]),
         ], allowExtraFields: TRUE),
