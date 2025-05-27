@@ -18,7 +18,7 @@
                 {
                   "nodeType": "component",
                   "uuid": "static-static-card1ab",
-                  "type": "sdc.sdc_test.my-cta",
+                  "type": "sdc.xb_test_sdc.my-cta",
                   "slots": []
                 },
                 {
@@ -34,13 +34,13 @@
         {
           "nodeType": "component",
           "uuid": "static-static-card2df",
-          "type": "sdc.sdc_test.my-cta",
+          "type": "sdc.xb_test_sdc.my-cta",
           "slots": []
         },
         {
           "nodeType": "component",
           "uuid": "static-static-card3rr",
-          "type": "sdc.sdc_test.my-cta",
+          "type": "sdc.xb_test_sdc.my-cta",
           "slots": []
         },
         {

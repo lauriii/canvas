@@ -48,6 +48,12 @@ final class ComponentMetadataRequirementsChecker {
         continue;
       }
 
+      // Enums must not have empty values.
+      if (array_key_exists('enum', $prop) && in_array('', $prop['enum'], TRUE)) {
+        $messages[] = \sprintf('Prop "%s" has an empty enum value.', $prop_name);
+        continue;
+      }
+
       // A prop may not be of type "object" unless it has a $ref defined.
       if ($prop['type'][0] === 'object' && !isset($prop['$ref'])) {
         $messages[] = \sprintf('Prop "%s" is of type "object" without a $ref, which is not supported', $prop_name);

@@ -166,7 +166,7 @@ class PropShapeRepositoryTest extends KernelTestBase {
     $generate_allowed_values_setting = function (array $allowed_values): array {
       return array_map(
         fn ($allowed_value) => ['value' => $allowed_value, 'label' => (string) $allowed_value],
-        $allowed_values
+        $allowed_values,
       );
     };
     return [
@@ -254,33 +254,6 @@ class PropShapeRepositoryTest extends KernelTestBase {
             ['value' => 'foo', 'label' => 'foo'],
             ['value' => 'bar', 'label' => 'bar'],
           ],
-        ],
-      ),
-      'type=string&enum[0]=&enum[1]=_blank' => new StorablePropShape(
-        shape: new PropShape(['type' => 'string', 'enum' => ['', '_blank']]),
-        fieldTypeProp: new FieldTypePropExpression('list_string', 'value'),
-        fieldWidget: 'options_select',
-        fieldStorageSettings: [
-          'allowed_values' => [
-            ['value' => '', 'label' => ''],
-            ['value' => '_blank', 'label' => '_blank'],
-          ],
-        ],
-      ),
-      'type=string&enum[0]=&enum[1]=base&enum[2]=l&enum[3]=s&enum[4]=xs&enum[5]=xxs' => new StorablePropShape(
-        shape: new PropShape(['type' => 'string', 'enum' => ['', 'base', 'l', 's', 'xs', 'xxs']]),
-        fieldTypeProp: new FieldTypePropExpression('list_string', 'value'),
-        fieldWidget: 'options_select',
-        fieldStorageSettings: [
-          'allowed_values' => $generate_allowed_values_setting(['', 'base', 'l', 's', 'xs', 'xxs']),
-        ],
-      ),
-      'type=string&enum[0]=&enum[1]=gray&enum[2]=primary&enum[3]=neutral-soft&enum[4]=neutral-medium&enum[5]=neutral-loud&enum[6]=primary-medium&enum[7]=primary-loud&enum[8]=black&enum[9]=white&enum[10]=red&enum[11]=gold&enum[12]=green' => new StorablePropShape(
-        shape: new PropShape(['type' => 'string', 'enum' => ['', 'gray', 'primary', 'neutral-soft', 'neutral-medium', 'neutral-loud', 'primary-medium', 'primary-loud', 'black', 'white', 'red', 'gold', 'green']]),
-        fieldTypeProp: new FieldTypePropExpression('list_string', 'value'),
-        fieldWidget: 'options_select',
-        fieldStorageSettings: [
-          'allowed_values' => $generate_allowed_values_setting(['', 'gray', 'primary', 'neutral-soft', 'neutral-medium', 'neutral-loud', 'primary-medium', 'primary-loud', 'black', 'white', 'red', 'gold', 'green']),
         ],
       ),
       'type=string&enum[0]=_blank&enum[1]=_parent&enum[2]=_self&enum[3]=_top' => new StorablePropShape(
@@ -520,6 +493,9 @@ class PropShapeRepositoryTest extends KernelTestBase {
       'type=string&format=uri&pattern=\.(mp4|webm)(\?.*)?(#.*)?$' => new PropShape(['type' => 'string', 'format' => JsonSchemaStringFormat::URI->value, 'pattern' => '\.(mp4|webm)(\?.*)?(#.*)?$']),
       'type=string&format=uri-template' => new PropShape(['type' => 'string', 'format' => JsonSchemaStringFormat::URI_TEMPLATE->value]),
       'type=string&format=uuid' => new PropShape(['type' => 'string', 'format' => JsonSchemaStringFormat::UUID->value]),
+      'type=string&enum[0]=&enum[1]=_blank' => new PropShape(['type' => 'string', 'enum' => ['', '_blank']]),
+      'type=string&enum[0]=&enum[1]=base&enum[2]=l&enum[3]=s&enum[4]=xs&enum[5]=xxs' => new PropShape(['type' => 'string', 'enum' => ['', 'base', 'l', 's', 'xs', 'xxs']]),
+      'type=string&enum[0]=&enum[1]=gray&enum[2]=primary&enum[3]=neutral-soft&enum[4]=neutral-medium&enum[5]=neutral-loud&enum[6]=primary-medium&enum[7]=primary-loud&enum[8]=black&enum[9]=white&enum[10]=red&enum[11]=gold&enum[12]=green' => new PropShape(['type' => 'string', 'enum' => ['', 'gray', 'primary', 'neutral-soft', 'neutral-medium', 'neutral-loud', 'primary-medium', 'primary-loud', 'black', 'white', 'red', 'gold', 'green']]),
     ];
   }
 

@@ -27,7 +27,6 @@ final class ContentTemplateDependencyTest extends FunctionalTestBase {
     'field_ui',
     'link',
     'node',
-    'sdc_test',
     'xb_test_sdc',
   ];
 
@@ -110,7 +109,7 @@ final class ContentTemplateDependencyTest extends FunctionalTestBase {
         ],
         [
           'uuid' => '4ca2cb2e-f9ac-40e5-83be-0f2d08b455b3',
-          'component_id' => 'sdc.sdc_test.my-cta',
+          'component_id' => 'sdc.xb_test_sdc.my-cta',
           'inputs' => [
             'text' => [
               'sourceType' => 'dynamic',
@@ -122,7 +121,7 @@ final class ContentTemplateDependencyTest extends FunctionalTestBase {
             ],
             'target' => [
               'sourceType' => 'static:field_item:string',
-              'value' => '',
+              'value' => '_blank',
               'expression' => 'ℹ︎string␟value',
             ],
           ],

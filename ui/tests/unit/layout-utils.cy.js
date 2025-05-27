@@ -99,11 +99,11 @@ describe('replaceUUIDsAndUpdateModel', () => {
       'sdc.experience_builder.two_column',
     );
     expect(updatedNode.slots[0].components[1].type).to.equal(
-      'sdc.sdc_test.my-cta',
+      'sdc.xb_test_sdc.my-cta',
     );
 
     expect(updatedNode.slots[0].components[2].type).to.equal(
-      'sdc.sdc_test.my-cta',
+      'sdc.xb_test_sdc.my-cta',
     );
     expect(updatedNode.slots[0].components[3].type).to.equal(
       'sdc.experience_builder.image',

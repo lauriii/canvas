@@ -264,9 +264,18 @@ enum JsonSchemaType: string {
           'json-schema-definitions://experience_builder.module/textarea' => new StorablePropShape(shape: $shape, fieldWidget: 'string_textarea', fieldTypeProp: new FieldTypePropExpression('string_long', 'value')),
           default => NULL,
         },
-        array_key_exists('enum', $schema) => new StorablePropShape(shape: $shape, fieldWidget: 'options_select', fieldTypeProp: new FieldTypePropExpression('list_string', 'value'), fieldStorageSettings: [
-          'allowed_values' => array_map(fn ($v) => ['value' => $v, 'label' => (string) $v], $schema['enum']),
-        ]),
+        array_key_exists('enum', $schema) => match(in_array('', $schema['enum'], TRUE)) {
+          // The empty string is not a sensible enum value. To indicate optionality, the prop should be made optional.
+          TRUE => NULL,
+          FALSE => new StorablePropShape(
+            shape: $shape,
+            fieldWidget: 'options_select',
+            fieldTypeProp: new FieldTypePropExpression('list_string', 'value'),
+            fieldStorageSettings: [
+              'allowed_values' => array_map(fn ($v) => ['value' => $v, 'label' => (string) $v], $schema['enum']),
+            ],
+          ),
+        },
         // @todo subclass \Drupal\Core\Field\Plugin\Field\FieldType\StringItem to allow for a "pattern" setting + create subclass of \Drupal\Core\Field\Plugin\Field\FieldWidget\StringTextfieldWidget to pass on that pattern setting  ⚠️
         array_key_exists('pattern', $schema) => NULL,
         array_key_exists('format', $schema) => JsonSchemaStringFormat::from($schema['format'])->computeStorablePropShape($shape),

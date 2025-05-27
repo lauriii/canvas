@@ -65,7 +65,7 @@ final class FieldTypeUninstallValidatorTest extends KernelTestBase {
   public function testUninstall(string $entity_type_id, string $bundle, string $field_name): void {
     $installer = $this->container->get('module_installer');
     $installer->install(['experience_builder']);
-    $installer->install(['xb_test_config_node_article', 'sdc_test']);
+    $installer->install(['xb_test_config_node_article', 'xb_test_sdc']);
     $entity_storage = $this->container->get('entity_type.manager')->getStorage($entity_type_id);
     $entity = $entity_storage->create([
       'title' => 'Test content',
@@ -137,7 +137,7 @@ final class FieldTypeUninstallValidatorTest extends KernelTestBase {
   public function testUninstallXbFieldMultipleEntityTypes(): void {
     $installer = $this->container->get('module_installer');
     $installer->install(['experience_builder']);
-    $installer->install(['xb_test_config_node_article', 'field', 'sdc_test', 'taxonomy']);
+    $installer->install(['xb_test_config_node_article', 'field', 'xb_test_sdc', 'taxonomy']);
     $vocabulary = Vocabulary::create([
       'vid' => 'tags',
       'description' => 'Tags vocabulary',
@@ -238,12 +238,17 @@ final class FieldTypeUninstallValidatorTest extends KernelTestBase {
     $component_tree_item = [
       [
         'uuid' => XBTestSetup::UUID_STATIC_CARD1,
-        'component_id' => 'sdc.sdc_test.my-cta',
+        'component_id' => 'sdc.xb_test_sdc.my-cta',
         'inputs' => [
           'text' => [
             'sourceType' => 'static:field_item:string',
             'value' => 'hello, world!',
             'expression' => 'ℹ︎string␟value',
+          ],
+          'href' => [
+            'sourceType' => 'static:field_item:uri',
+            'value' => 'https://drupal.org',
+            'expression' => 'ℹ︎uri␟value',
           ],
         ],
       ],

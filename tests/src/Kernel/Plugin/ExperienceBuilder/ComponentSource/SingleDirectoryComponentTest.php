@@ -70,6 +70,9 @@ final class SingleDirectoryComponentTest extends ComponentSourceTestBase {
     $this->generateComponentConfig();
 
     self::assertSame([
+      'sdc.xb_test_sdc.empty-enum' => [
+        'Prop "pets" has an empty enum value.',
+      ],
       'sdc.xb_test_sdc.html-invalid-format' => [
         'Invalid value "invalid" for "x-formatting-context". Valid values are "inline" and "block".',
       ],
@@ -110,6 +113,7 @@ final class SingleDirectoryComponentTest extends ComponentSourceTestBase {
       'sdc.xb_test_sdc.image-optional-with-example-and-additional-prop',
       'sdc.xb_test_sdc.image-optional-without-example',
       'sdc.xb_test_sdc.image-required-with-example',
+      'sdc.xb_test_sdc.my-cta',
       'sdc.xb_test_sdc.props-no-slots',
       'sdc.xb_test_sdc.props-slots',
       'sdc.xb_test_sdc.sparkline',
@@ -344,6 +348,19 @@ HTML,
           'library' => [
             'core/components.xb_test_sdc--sparkline',
             'core/components.xb_test_sdc--sparkline',
+          ],
+        ],
+      ],
+      'sdc.xb_test_sdc.my-cta' => [
+        'cacheability' => $default_cacheability,
+        'html' => '<a  data-component-id="xb_test_sdc:my-cta" href="https://www.drupal.org">
+  Press
+</a>
+',
+        'attachments' => [
+          'library' => [
+            'core/components.xb_test_sdc--my-cta',
+            'core/components.xb_test_sdc--my-cta',
           ],
         ],
       ],
@@ -643,6 +660,57 @@ HTML,
           ],
         ],
       ],
+      'sdc.xb_test_sdc.my-cta' => [
+        'local_source_id' => 'xb_test_sdc:my-cta',
+        'prop_field_definitions' => [
+          'href' => [
+            'field_type' => 'link',
+            'field_storage_settings' => [],
+            'field_instance_settings' => [
+              'title' => 0,
+            ],
+            'field_widget' => 'link_default',
+            'default_value' => [
+              0 => [
+                'uri' => 'https://www.drupal.org',
+                'options' => [],
+              ],
+            ],
+            'expression' => 'ℹ︎link␟uri',
+          ],
+          'target' => [
+            'field_type' => 'list_string',
+            'field_storage_settings' => [
+              'allowed_values' => [
+                0 => [
+                  'value' => '_self',
+                  'label' => '_self',
+                ],
+                1 => [
+                  'value' => '_blank',
+                  'label' => '_blank',
+                ],
+              ],
+            ],
+            'field_instance_settings' => [],
+            'field_widget' => 'options_select',
+            'default_value' => NULL,
+            'expression' => 'ℹ︎list_string␟value',
+          ],
+          'text' => [
+            'field_type' => 'string',
+            'field_storage_settings' => [],
+            'field_instance_settings' => [],
+            'field_widget' => 'string_textfield',
+            'default_value' => [
+              0 => [
+                'value' => 'Press',
+              ],
+            ],
+            'expression' => 'ℹ︎string␟value',
+          ],
+        ],
+      ],
       'sdc.xb_test_sdc.props-no-slots' => [
         'local_source_id' => 'xb_test_sdc:props-no-slots',
         'prop_field_definitions' => [
@@ -759,6 +827,14 @@ HTML,
       'sdc.xb_test_sdc.image-required-with-example' => [
         'module' => [
           'image',
+          'xb_test_sdc',
+        ],
+      ],
+      'sdc.xb_test_sdc.my-cta' => [
+        'module' => [
+          'core',
+          'link',
+          'options',
           'xb_test_sdc',
         ],
       ],
@@ -1222,6 +1298,89 @@ HTML,
         ],
         'dynamic_prop_source_candidates' => [
           'image' => [],
+        ],
+        'transforms' => [],
+      ],
+      'sdc.xb_test_sdc.my-cta' => [
+        'expected_output_selectors' => [
+          'a:contains("Press")',
+          'a[data-component-id="xb_test_sdc:my-cta"]',
+        ],
+        'source' => 'Module component',
+        'metadata' => [
+          'slots' => [],
+        ],
+        'propSources' => [
+          'text' => [
+            'required' => TRUE,
+            'jsonSchema' => [
+              'type' => 'string',
+            ],
+            'sourceType' => 'static:field_item:string',
+            'expression' => 'ℹ︎string␟value',
+            'default_values' => [
+              'source' => [
+                0 => [
+                  'value' => 'Press',
+                ],
+              ],
+              'resolved' => 'Press',
+            ],
+          ],
+          'href' => [
+            'required' => TRUE,
+            'jsonSchema' => [
+              'type' => 'string',
+              'format' => 'uri',
+            ],
+            'sourceType' => 'static:field_item:link',
+            'expression' => 'ℹ︎link␟uri',
+            'sourceTypeSettings' => [
+              'instance' => [
+                'title' => 0,
+              ],
+            ],
+            'default_values' => [
+              'source' => [
+                0 => [
+                  'uri' => 'https://www.drupal.org',
+                  'options' => [],
+                ],
+              ],
+              'resolved' => 'https://www.drupal.org',
+            ],
+          ],
+          'target' => [
+            'required' => FALSE,
+            'jsonSchema' => [
+              'type' => 'string',
+              'enum' => [
+                0 => '_self',
+                1 => '_blank',
+              ],
+            ],
+            'sourceType' => 'static:field_item:list_string',
+            'expression' => 'ℹ︎list_string␟value',
+            'sourceTypeSettings' => [
+              'storage' => [
+                'allowed_values' => [
+                  0 => [
+                    'value' => '_self',
+                    'label' => '_self',
+                  ],
+                  1 => [
+                    'value' => '_blank',
+                    'label' => '_blank',
+                  ],
+                ],
+              ],
+            ],
+          ],
+        ],
+        'dynamic_prop_source_candidates' => [
+          'text' => [],
+          'href' => [],
+          'target' => [],
         ],
         'transforms' => [],
       ],

@@ -41,7 +41,6 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
     'experience_builder',
     // Modules providing used Components (and their ComponentSource plugins).
     'block',
-    'sdc_test',
     'xb_test_sdc',
     // XB's dependencies (modules providing field types + widgets).
     'field',
@@ -95,12 +94,17 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
       'component_tree' => [
         [
           'uuid' => '435d1d20-a697-4d36-9892-9d61c825c99c',
-          'component_id' => 'sdc.sdc_test.my-cta',
+          'component_id' => 'sdc.xb_test_sdc.my-cta',
           'inputs' => [
             'text' => [
               'sourceType' => 'static:field_item:string',
               'value' => 'This is really tricky for a first-timer',
               'expression' => 'ℹ︎string␟value',
+            ],
+            'href' => [
+              'sourceType' => 'static:field_item:uri',
+              'value' => 'https://drupal.org',
+              'expression' => 'ℹ︎uri␟value',
             ],
           ],
         ],
@@ -170,7 +174,7 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
           'core.entity_view_mode.node.full',
           'experience_builder.component.block.system_branding_block',
           'experience_builder.component.js.my-cta',
-          'experience_builder.component.sdc.sdc_test.my-cta',
+          'experience_builder.component.sdc.xb_test_sdc.my-cta',
           'experience_builder.component.sdc.xb_test_sdc.props-no-slots',
           'experience_builder.component.sdc.xb_test_sdc.props-slots',
           'field.field.node.alpha.field_test',
@@ -187,7 +191,7 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
         'core.entity_view_mode.node.full',
         'experience_builder.component.block.system_branding_block',
         'experience_builder.component.js.my-cta',
-        'experience_builder.component.sdc.sdc_test.my-cta',
+        'experience_builder.component.sdc.xb_test_sdc.my-cta',
         'experience_builder.component.sdc.xb_test_sdc.props-no-slots',
         'experience_builder.component.sdc.xb_test_sdc.props-slots',
         'field.field.node.alpha.field_test',
@@ -202,7 +206,6 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
         'system',
         'link',
         'options',
-        'sdc_test',
         'xb_test_sdc',
         'text',
         'field',

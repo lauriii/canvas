@@ -826,7 +826,7 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
           'SDC props' => [
             '⿲experience_builder:shoe_icon␟size',
           ],
-          'static prop source' => 'ℹ︎list_string␟value',
+          'static prop source' => NULL,
           'instances' => [],
           'adapter_matches_field_type' => [],
           'adapter_matches_instance' => [],
@@ -835,7 +835,7 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
           'SDC props' => [
             '⿲experience_builder:shoe_icon␟color',
           ],
-          'static prop source' => 'ℹ︎list_string␟value',
+          'static prop source' => NULL,
           'instances' => [],
           'adapter_matches_field_type' => [],
           'adapter_matches_instance' => [],

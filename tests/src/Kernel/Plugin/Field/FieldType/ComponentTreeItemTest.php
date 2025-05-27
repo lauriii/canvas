@@ -153,7 +153,7 @@ class ComponentTreeItemTest extends KernelTestBase {
       [
         'config' => [
           'experience_builder.component.sdc.experience_builder.image',
-          'experience_builder.component.sdc.sdc_test.my-cta',
+          'experience_builder.component.sdc.xb_test_sdc.my-cta',
           'field.field.node.article.field_hero',
           'node.type.article',
         ],
@@ -178,7 +178,7 @@ class ComponentTreeItemTest extends KernelTestBase {
             ],
             [
               'uuid' => $uuid->generate(),
-              'component_id' => 'sdc.sdc_test.my-cta',
+              'component_id' => 'sdc.xb_test_sdc.my-cta',
               'inputs' => [
                 'text' => [
                   'sourceType' => 'static:field_item:string',
@@ -194,7 +194,7 @@ class ComponentTreeItemTest extends KernelTestBase {
             ],
             [
               'uuid' => $uuid->generate(),
-              'component_id' => 'sdc.sdc_test.my-cta',
+              'component_id' => 'sdc.xb_test_sdc.my-cta',
               'inputs' => [
                 'text' => [
                   'sourceType' => 'dynamic',
@@ -209,7 +209,7 @@ class ComponentTreeItemTest extends KernelTestBase {
             ],
             [
               'uuid' => $uuid->generate(),
-              'component_id' => 'sdc.sdc_test.my-cta',
+              'component_id' => 'sdc.xb_test_sdc.my-cta',
               'inputs' => [
                 'text' => [
                   'sourceType' => 'dynamic',

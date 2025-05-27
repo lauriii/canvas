@@ -12,6 +12,7 @@ use Drupal\experience_builder\Plugin\ComponentPluginManager;
 use Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\BlockComponent;
 use Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\JsComponent;
 use Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\SingleDirectoryComponent;
+use Drupal\Tests\experience_builder\Kernel\Traits\CiModulePathTrait;
 use Drupal\Tests\experience_builder\Traits\BetterConfigDependencyManagerTrait;
 use Drupal\Tests\experience_builder\Traits\ContribStrictConfigSchemaTestTrait;
 use Drupal\Tests\experience_builder\Traits\GenerateComponentConfigTrait;
@@ -28,6 +29,7 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
   use BetterConfigDependencyManagerTrait;
   use ContribStrictConfigSchemaTestTrait;
   use GenerateComponentConfigTrait;
+  use CiModulePathTrait;
 
   protected CoreComponentPluginManager $componentPluginManager;
 
@@ -37,7 +39,6 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
   protected static $modules = [
     'experience_builder',
     'sdc',
-    'sdc_test',
     'xb_test_sdc',
     // XB's dependencies (modules providing field types + widgets).
     'datetime',
@@ -86,11 +87,11 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
     $this->installEntitySchema('filter_format');
 
     $this->entity = Component::create([
-      'id' => 'sdc.sdc_test.my-cta',
+      'id' => 'sdc.xb_test_sdc.my-cta',
       'category' => 'Test',
       'source' => SingleDirectoryComponent::SOURCE_PLUGIN_ID,
       'settings' => [
-        'local_source_id' => 'sdc_test:my-cta',
+        'local_source_id' => 'xb_test_sdc:my-cta',
         'prop_field_definitions' => [
           'text' => [
             // @see \Drupal\Core\Field\Plugin\Field\FieldType\StringItem
@@ -161,7 +162,7 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
           'image',
           'media_library',
           'options',
-          'sdc_test',
+          'xb_test_sdc',
         ],
       ],
       $this->entity->getDependencies()
@@ -171,7 +172,7 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
         'image',
         'media_library',
         'options',
-        'sdc_test',
+        'xb_test_sdc',
         'experience_builder',
       ],
     ], $this->getAllDependencies($this->entity));
@@ -204,14 +205,14 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
 
     // @see \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\JsComponent
     // Create a "code component" that has the same explicit inputs as the
-    // `sdc_test:my-cta`.
-    $sdc_yaml = Yaml::parseFile($this->root . '/core/modules/system/tests/modules/sdc_test/components/my-cta/my-cta.component.yml');
+    // `xb_test_sdc:my-cta`.
+    $sdc_yaml = Yaml::parseFile($this->root . self::getCiModulePath() . '/tests/modules/xb_test_sdc/components/my-cta/my-cta.component.yml');
     $props = array_diff_key(
       $sdc_yaml['props']['properties'],
       // SDC has special infrastructure for a prop named "attributes".
       array_flip(['attributes']),
     );
-    // The `sdc_test:my-cta` SDC does not actually meet the requirements.
+    // The `xb_test_sdc:my-cta` SDC does not actually meet the requirements.
     $props['href']['examples'][] = 'https://example.com';
     $props['target']['examples'][] = '_blank';
     JavaScriptComponent::create([
@@ -314,7 +315,7 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
     $this->entity->set('id', 'invalid:name');
     $this->assertValidationErrors([
       '' => "The 'id' property cannot be changed.",
-      'id' => "Expected 'sdc.sdc_test.my-cta', not 'invalid:name'. Format: '&lt;%parent.source&gt;.&lt;%parent.settings.local_source_id&gt;'.",
+      'id' => "Expected 'sdc.xb_test_sdc.my-cta', not 'invalid:name'. Format: '&lt;%parent.source&gt;.&lt;%parent.settings.local_source_id&gt;'.",
     ]);
   }
 
@@ -326,10 +327,10 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
     ];
     $additional_validation_errors = [
       'id' => [
-        'id' => "Expected 'sdc.sdc_test.my-cta', not 'sdc.sdc_test.no-props'. Format: '&lt;%parent.source&gt;.&lt;%parent.settings.local_source_id&gt;'.",
+        'id' => "Expected 'sdc.xb_test_sdc.my-cta', not 'sdc.sdc_test.no-props'. Format: '&lt;%parent.source&gt;.&lt;%parent.settings.local_source_id&gt;'.",
       ],
       'source' => [
-        'id' => "Expected 'test.sdc_test.my-cta', not 'sdc.sdc_test.my-cta'. Format: '&lt;%parent.source&gt;.&lt;%parent.settings.local_source_id&gt;'.",
+        'id' => "Expected 'test.xb_test_sdc.my-cta', not 'sdc.xb_test_sdc.my-cta'. Format: '&lt;%parent.source&gt;.&lt;%parent.settings.local_source_id&gt;'.",
         'settings' => "'prop_field_definitions' is an unknown key because source is test (see config schema type experience_builder.component_source_settings.*).",
         'source' => "The 'test' plugin does not exist.",
       ],
@@ -359,14 +360,14 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
   public function testRequiredPropertyKeysMissing(?array $additional_expected_validation_errors_when_missing = NULL): void {
     $additional_expected_validation_errors_when_missing['settings']['id'] = 'This validation constraint is configured to inspect the properties <em class="placeholder">%parent.source, %parent.settings.local_source_id</em>, but some do not exist: <em class="placeholder">%parent.settings.local_source_id</em>.';
     $additional_expected_validation_errors_when_missing['settings']['status'] = [
-      'The component \'<em class="placeholder">sdc.sdc_test.my-cta</em>\' cannot be enabled because it does not meet the requirements of Experience Builder.',
+      'The component \'<em class="placeholder">sdc.xb_test_sdc.my-cta</em>\' cannot be enabled because it does not meet the requirements of Experience Builder.',
       'Component has no valid source plugin_id value.',
     ];
     $additional_expected_validation_errors_when_missing['fallback_metadata'] = [
       'fallback_metadata' => "'slot_definitions' is a required key.",
       // The entity remains invalid from the previous mapping property.
       'status' => [
-        'The component \'<em class="placeholder">sdc.sdc_test.my-cta</em>\' cannot be enabled because it does not meet the requirements of Experience Builder.',
+        'The component \'<em class="placeholder">sdc.xb_test_sdc.my-cta</em>\' cannot be enabled because it does not meet the requirements of Experience Builder.',
         'Component has no valid source plugin_id value.',
       ],
     ];
