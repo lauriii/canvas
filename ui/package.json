@@ -33,6 +33,7 @@
     "cy:run:record": "cypress run --record",
     "cy:open": "cypress open",
     "cy:component": "cypress run --component --browser electron",
+    "cy:headed-only": "cypress run --headed --browser electron --spec tests/e2e/prop-types.cy.js,tests/e2e/publish-validation.cy.js",
     "storybook": "storybook dev --port 6006",
     "build-storybook": "storybook build"
   },

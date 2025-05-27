@@ -1,18 +1,18 @@
-import { onlyOn } from '@cypress/skip-test';
+describe('Publish review functionality', () => {
+  beforeEach(() => {
+    cy.drupalXbInstall(['xb_test_article_fields', 'xb_test_invalid_field']);
+    cy.drupalSession();
+    cy.drupalLogin('xbUser', 'xbUser');
+  });
 
-onlyOn('headed', () => {
-  describe('Publish review functionality', () => {
-    beforeEach(() => {
-      cy.drupalXbInstall(['xb_test_article_fields', 'xb_test_invalid_field']);
-      cy.drupalSession();
-      cy.drupalLogin('xbUser', 'xbUser');
-    });
+  afterEach(() => {
+    cy.drupalUninstall();
+  });
 
-    afterEach(() => {
-      cy.drupalUninstall();
-    });
-
-    it('Publish will error when attempting to publish entity with failing validation constraint', () => {
+  it(
+    'Publish will error when attempting to publish entity with failing validation constraint',
+    { retries: { openMode: 0, runMode: 3 } },
+    () => {
       cy.clearAutoSave('node', 1);
       cy.clearAutoSave('node', 2);
 
@@ -56,6 +56,9 @@ onlyOn('headed', () => {
         }
 
         cy.findByLabelText('XB Text Field').type('invalid constraint');
+        cy.get('[data-testid="xb-publish-review"]:not([disabled])', {
+          timeout: 20000,
+        }).should('exist');
         cy.findByText(waitFor, { timeout: 20000 }).should('exist');
       });
 
@@ -79,12 +82,19 @@ onlyOn('headed', () => {
             );
           });
       });
-    });
+    },
+  );
 
-    it('Publish process does not currently notice form validation errors', () => {
+  it(
+    'Publish process does not currently notice form validation errors',
+    { retries: { openMode: 0, runMode: 3 } },
+    () => {
       cy.clearAutoSave('node', 2);
       cy.loadURLandWaitForXBLoaded({ url: 'xb/node/2' });
       cy.findByLabelText('XB Text Field').type('invalid value');
+      cy.get('[data-testid="xb-publish-review"]:not([disabled])', {
+        timeout: 20000,
+      }).should('exist');
       cy.publishAllPendingChanges('I am an empty node');
       cy.get('[data-testid="xb-publish-reviews-content"] p.rt-CalloutText')
         .contains('All changes published!')
@@ -93,6 +103,6 @@ onlyOn('headed', () => {
         'div[role="contentinfo"] div[role="alert"]',
         'The value "invalid value" is not allowed in this field.',
       );
-    });
-  });
+    },
+  );
 });

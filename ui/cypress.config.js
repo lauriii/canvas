@@ -6,7 +6,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import glob from 'fast-glob';
 import dotenv from 'dotenv';
-import installLogsPrinter from 'cypress-terminal-report/src/installLogsPrinter';
+import installLogsPrinter from 'cypress-terminal-report/src/installLogsPrinter.js';
 dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);

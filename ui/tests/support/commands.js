@@ -1111,8 +1111,9 @@ Cypress.Commands.add('sendComponentToRegion', (componentName, regionName) => {
 Cypress.Commands.add('publishAllPendingChanges', (titles) => {
   // Publish changes and make sure image persists.
   // Wait for any pending changes to refresh.
-  cy.get('button', { timeout: 250000 })
-    .contains(/Review \d+ change/)
+  cy.findByText(/Review \d+ change/, { timeout: 20000 }).should('exist');
+  cy.get('button', { timeout: 250_000 })
+    .contains(/Review \d+ change/, { timeout: 250_000 })
     .as('review');
   // We break this up to allow for the pending changes refresh which can disable
   // the button whilst it is loading.
