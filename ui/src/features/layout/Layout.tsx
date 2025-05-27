@@ -14,7 +14,11 @@ const Layout = () => {
     error,
     isError,
     isFetching,
-  } = useGetLayoutByIdQuery(entityId);
+  } = useGetLayoutByIdQuery(entityId, {
+    // Setting `refetchOnMountOrArgChange` instead of a cache invalidation
+    // prevents re-fetching due to the same query being used elsewhere in the app.
+    refetchOnMountOrArgChange: true,
+  });
   const { showBoundary, resetBoundary } = useErrorBoundary();
 
   const { layout, model } = fetchedLayout || {};

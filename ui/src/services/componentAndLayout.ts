@@ -189,6 +189,7 @@ export const componentAndLayoutApi = createApi({
       }),
       invalidatesTags: (result, error, { id }) => [
         { type: 'CodeComponentAutoSave', id },
+        { type: 'Components', id: 'LIST' }, // The component list contains markup for the preview thumbnails.
       ],
     }),
   }),
