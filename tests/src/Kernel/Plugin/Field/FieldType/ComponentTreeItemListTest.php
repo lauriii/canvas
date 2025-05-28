@@ -17,7 +17,9 @@ use Drupal\experience_builder\AutoSave\AutoSaveManager;
 use Drupal\experience_builder\Element\RenderSafeComponentContainer;
 use Drupal\experience_builder\Entity\AssetLibrary;
 use Drupal\experience_builder\Entity\Page;
+use Drupal\experience_builder\Exception\SubtreeInjectionException;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemList;
+use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemListInstantiatorTrait;
 use Drupal\experience_builder\Render\ImportMapResponseAttachmentsProcessor;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\Tests\experience_builder\Kernel\Traits\CiModulePathTrait;
@@ -37,6 +39,7 @@ class ComponentTreeItemListTest extends KernelTestBase {
   use GenerateComponentConfigTrait;
   use CiModulePathTrait;
   use UserCreationTrait;
+  use ComponentTreeItemListInstantiatorTrait;
 
   /**
    * {@inheritdoc}
@@ -1355,6 +1358,149 @@ HTML,
     $this->installEntitySchema('user');
     $page = Page::create();
     self::assertIsArray(\Drupal::service('serializer')->normalize($page));
+  }
+
+  public static function providerInjectSubTreeItemList(): iterable {
+    $initial_tree = [
+      [
+        'uuid' => '72eb7863-ea7f-4e31-8cfe-01f0d0471682',
+        'component_id' => 'sdc.xb_test_sdc.props-slots',
+        'parent_uuid' => NULL,
+        'inputs' => [
+          'heading' => [
+            'sourceType' => 'static:field_item:string',
+            'value' => 'Hello world',
+            'expression' => 'ℹ︎string␟value',
+          ],
+        ],
+      ],
+    ];
+    $valid_exposed_slots = [
+      'exposed' => [
+        'component_uuid' => '72eb7863-ea7f-4e31-8cfe-01f0d0471682',
+        'slot_name' => 'the_body',
+      ],
+    ];
+    $valid_subtree = [
+      [
+        'uuid' => 'caac2f59-6a47-41d5-8dc9-0fa99a7e6101',
+        'component_id' => 'sdc.xb_test_sdc.props-no-slots',
+        'parent_uuid' => '72eb7863-ea7f-4e31-8cfe-01f0d0471682',
+        'slot' => 'the_body',
+        'inputs' => [
+          'heading' => [
+            'sourceType' => 'static:field_item:string',
+            'value' => 'This is in an exposed slot',
+            'expression' => 'ℹ︎string␟value',
+          ],
+        ],
+      ],
+    ];
+
+    // The subtree is properly injected into the exposed slot and its inputs are
+    // merged into the main tree.
+    yield 'No error: everything merged properly' => [
+      $initial_tree,
+      $valid_exposed_slots,
+      $valid_subtree,
+      \array_merge($initial_tree, $valid_subtree),
+    ];
+
+    // The subtree targets a slot that isn't exposed, so it's just ignored.
+    $subtree_in_non_existent_slot = $valid_subtree;
+    $subtree_in_non_existent_slot[0]['slot'] = 'not_exposed';
+    yield 'No error: subtrees do not match any exposed slots' => [
+      $initial_tree,
+      $valid_exposed_slots,
+      [$subtree_in_non_existent_slot],
+      $initial_tree,
+    ];
+
+    $tree_with_non_empty_slot = $initial_tree;
+    $tree_with_non_empty_slot[] = [
+      'uuid' => '2b86e95d-ebc3-4cdb-a7af-b203f415f08e',
+      'component_id' => 'sdc.xb_test_sdc.props-no-slots',
+      'parent_uuid' => '72eb7863-ea7f-4e31-8cfe-01f0d0471682',
+      'slot' => 'the_body',
+      'inputs' => [
+        'heading' => [
+          'sourceType' => 'static:field_item:string',
+          'value' => 'This is and existing thing',
+          'expression' => 'ℹ︎string␟value',
+        ],
+      ],
+    ];
+    yield 'Error: target slot is not empty' => [
+      $tree_with_non_empty_slot,
+      $valid_exposed_slots,
+      $valid_subtree,
+      "Cannot inject subtree because the targeted slot is not empty.",
+    ];
+
+    $tree_with_conflicting_components = $initial_tree;
+    // Add a component to our tree which will conflict with one that is in the
+    // subtree.
+    $tree_with_conflicting_components[] = [
+      'uuid' => 'caac2f59-6a47-41d5-8dc9-0fa99a7e6101',
+      'component_id' => 'sdc.xb_test_sdc.props-no-slots',
+      'inputs' => [
+        'heading' => [
+          'sourceType' => 'static:field_item:string',
+          'value' => 'This is an existing thing in the root of the template',
+          'expression' => 'ℹ︎string␟value',
+        ],
+      ],
+    ];
+    yield 'Error: subtree component already exists in the main tree' => [
+      $tree_with_conflicting_components,
+      $valid_exposed_slots,
+      $valid_subtree,
+      "Cannot inject subtree because some of its components are already in the final tree.",
+    ];
+
+    yield 'Error: target component UUID is not set' => [
+      $initial_tree,
+      [
+        'exposed' => [
+          'slot_name' => 'the_body',
+        ],
+      ],
+      [$valid_subtree],
+      "Cannot inject subtree because we don't know the UUID of the component instance to target.",
+    ];
+
+    yield 'Error: target component slot name is not set' => [
+      $initial_tree,
+      [
+        'exposed' => [
+          'component_uuid' => '72eb7863-ea7f-4e31-8cfe-01f0d0471682',
+        ],
+      ],
+      [$valid_subtree],
+      "Cannot inject subtree because we don't know the name of the component slot to target.",
+    ];
+  }
+
+  /**
+   * @covers ::injectSubTreeItemList
+   *
+   * @dataProvider providerInjectSubTreeItemList
+   */
+  public function testInjectSubTreeItemList(array $initial_value, array $exposed_slot_info, array $subtrees, array|string $expected_tree_or_exception): void {
+    $target_tree = self::staticallyCreateDanglingComponentTreeItemList(\Drupal::typedDataManager());
+    $target_tree->setValue($initial_value);
+
+    $sub_tree = self::staticallyCreateDanglingComponentTreeItemList(\Drupal::typedDataManager());
+    $sub_tree->setValue($subtrees);
+
+    try {
+      $target_tree->injectSubTreeItemList($exposed_slot_info, $sub_tree);
+      $actual_value = $target_tree->getValue();
+      $this->assertSame($expected_tree_or_exception, $actual_value);
+    }
+    catch (SubtreeInjectionException $e) {
+      $this->assertSame($expected_tree_or_exception, $e->getMessage());
+    }
   }
 
 }

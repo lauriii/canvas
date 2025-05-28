@@ -95,7 +95,7 @@ class ComponentTreeItemTest extends KernelTestBase {
   }
 
   /**
-   * @testWith ["not-a-slot", {"1.slot": "Invalid component subtree. This component subtree contains an invalid slot name for component <em class=\"placeholder\">sdc.xb_test_sdc.props-no-slots</em>: <em class=\"placeholder\">not-a-slot</em>. Valid slot names are: <em class=\"placeholder\">the_body, the_footer, the_colophon</em>."}]
+   * @testWith ["not-a-slot", {"1.slot": "Invalid component subtree. This component subtree contains an invalid slot name for component <em class=\"placeholder\">sdc.xb_test_sdc.props-slots</em>: <em class=\"placeholder\">not-a-slot</em>. Valid slot names are: <em class=\"placeholder\">the_body, the_footer, the_colophon</em>."}]
    *           ["", {"1.slot": "This value should not be blank."}]
    * @covers \Drupal\experience_builder\Plugin\Validation\Constraint\ComponentTreeStructureConstraintValidator
    */

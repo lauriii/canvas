@@ -184,8 +184,8 @@ final class ComponentTreeStructureConstraintValidatorTest extends KernelTestBase
         ],
         [
           'layout.2.parent_uuid' => 'Invalid component tree item with UUID <em class="placeholder">5067ea49-f893-4d9a-8587-6586e459bd6c</em> references an invalid parent <em class="placeholder">50330afa-a840-4527-bc37-5921d99addf1</em>.',
-          'layout.3.slot' => 'Invalid component subtree. This component subtree contains an invalid slot name for component <em class="placeholder">sdc.xb_test_sdc.props-no-slots</em>: <em class="placeholder">slot1</em>. Valid slot names are: <em class="placeholder">the_body, the_footer, the_colophon</em>.',
-          'layout.4.slot' => 'Invalid component subtree. This component subtree contains an invalid slot name for component <em class="placeholder">sdc.xb_test_sdc.props-no-slots</em>: <em class="placeholder">slot2</em>. Valid slot names are: <em class="placeholder">the_body, the_footer, the_colophon</em>.',
+          'layout.3.slot' => 'Invalid component subtree. This component subtree contains an invalid slot name for component <em class="placeholder">sdc.xb_test_sdc.props-slots</em>: <em class="placeholder">slot1</em>. Valid slot names are: <em class="placeholder">the_body, the_footer, the_colophon</em>.',
+          'layout.4.slot' => 'Invalid component subtree. This component subtree contains an invalid slot name for component <em class="placeholder">sdc.xb_test_sdc.props-slots</em>: <em class="placeholder">slot2</em>. Valid slot names are: <em class="placeholder">the_body, the_footer, the_colophon</em>.',
           'layout.6.parent_uuid' => 'Invalid component subtree. A component subtree must only exist for components with >=1 slot, but the component <em class="placeholder">sdc.xb_test_sdc.props-no-slots</em> has no slots, yet a subtree exists for the instance with UUID <em class="placeholder">8bc0f436-1930-4a25-b891-632e55d07e27</em>.',
         ],
       ],

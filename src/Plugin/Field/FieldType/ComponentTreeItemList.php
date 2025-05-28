@@ -20,6 +20,7 @@ use Drupal\experience_builder\ComponentSource\ComponentSourceWithSlotsInterface;
 use Drupal\experience_builder\Element\RenderSafeComponentContainer;
 use Drupal\experience_builder\Entity\Component;
 use Drupal\experience_builder\Entity\ComponentTreeEntityInterface;
+use Drupal\experience_builder\Exception\SubtreeInjectionException;
 use Drupal\experience_builder\HydratedTree;
 use Drupal\experience_builder\Plugin\Validation\Constraint\ComponentTreeStructureConstraint;
 
@@ -28,6 +29,7 @@ use Drupal\experience_builder\Plugin\Validation\Constraint\ComponentTreeStructur
  *
  * @phpstan-type ComponentTreeItemListArray array<int, array{'uuid': string, 'component_id': string, 'parent_uuid'?: string, 'slot'?: string, inputs: SingleComponentInputArray}>
  * @phpstan-import-type SingleComponentInputArray from \Drupal\experience_builder\Plugin\DataType\ComponentInputs
+ * @phpstan-type ExposedSlotDefinitions array<string, array{'component_uuid': string, 'slot_name': string, 'label': string}>
  */
 final class ComponentTreeItemList extends FieldItemList implements RenderableInterface, CacheableDependencyInterface, DependentPluginInterface {
 
@@ -455,6 +457,37 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
       $source_type_prefixes = \array_merge($source_type_prefixes, $inputs->getPropSourceTypePrefixList());
     }
     return \array_unique($source_type_prefixes);
+  }
+
+  /**
+   * @param ExposedSlotDefinitions $exposed_slot_info
+   * @param \Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemList $subTreeItemList
+   * @return $this
+   */
+  public function injectSubTreeItemList(array $exposed_slot_info, ComponentTreeItemList $subTreeItemList): self {
+    foreach ($exposed_slot_info as $slot_detail) {
+      $parent_uuid = $slot_detail['component_uuid'] ?? NULL;
+      $slot = $slot_detail['slot_name'] ?? NULL;
+      if ($parent_uuid === NULL) {
+        throw new SubtreeInjectionException("Cannot inject subtree because we don't know the UUID of the component instance to target.");
+      }
+      if ($slot === NULL) {
+        throw new SubtreeInjectionException("Cannot inject subtree because we don't know the name of the component slot to target.");
+      }
+      $existing = \count(\iterator_to_array($this->componentTreeItemsIterator(self::isChildOfComponentTreeItemSlot($parent_uuid, $slot))));
+      // The target slot needs to be empty.
+      if ($existing !== 0) {
+        throw new SubtreeInjectionException("Cannot inject subtree because the targeted slot is not empty.");
+      }
+      foreach ($subTreeItemList->componentTreeItemsIterator(self::isChildOfComponentTreeItemSlot($parent_uuid, $slot)) as $item) {
+        \assert($item instanceof ComponentTreeItem);
+        if ($this->getComponentTreeItemByUuid($item->getUuid()) !== NULL) {
+          throw new SubtreeInjectionException("Cannot inject subtree because some of its components are already in the final tree.");
+        }
+        $this->appendItem($item->getValue());
+      }
+    }
+    return $this;
   }
 
 }

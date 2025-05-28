@@ -16,6 +16,7 @@ use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\experience_builder\EntityHandlers\ContentCreatorVisibleXbConfigEntityAccessControlHandler;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
+use Drupal\experience_builder\Storage\ComponentTreeLoader;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemListInstantiatorTrait;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemList;
 
@@ -29,6 +30,7 @@ use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemList;
  * one module can do that!
  *
  * @phpstan-import-type ComponentTreeItemListArray from \Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemList
+ * @phpstan-import-type ExposedSlotDefinitions from \Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemList
  */
 #[ConfigEntityType(
   id: self::ENTITY_TYPE_ID,
@@ -201,6 +203,15 @@ final class ContentTemplate extends ConfigEntityBase implements ComponentTreeEnt
   }
 
   /**
+   * Returns information about the slots exposed by this template.
+   *
+   * @return array<string, array{'component_uuid': string, 'slot_name': string, 'label': string}>
+   */
+  public function getExposedSlots(): array {
+    return $this->get('exposed_slots') ?? [];
+  }
+
+  /**
    * {@inheritdoc}
    */
   public function getComponentTree(?FieldableEntityInterface $parent = NULL): ComponentTreeItemList {
@@ -302,7 +313,23 @@ final class ContentTemplate extends ConfigEntityBase implements ComponentTreeEnt
    * {@inheritdoc}
    */
   public function build(FieldableEntityInterface $entity): array {
-    return $this->getComponentTree($entity)->toRenderable($this);
+    // The entity should not be able to expose its own full, independently
+    // renderable component tree -- if it can, why is it even using a template?
+    if ($entity instanceof ComponentTreeEntityInterface) {
+      throw new \LogicException('Content templates cannot be applied to entities that have their own component trees.');
+    }
+
+    // The entity is *expected* to have an XB field, or it's not considered
+    // opted in to XB. An entity that isn't opted into XB should never be passed
+    // to this method, so we don't need to catch the possible exception here.
+    $xb_field_name = \Drupal::service(ComponentTreeLoader::class)
+      ->getXbFieldName($entity);
+
+    $sub_tree_item_list = $entity->get($xb_field_name);
+    \assert($sub_tree_item_list instanceof ComponentTreeItemList);
+    return $this->getComponentTree($entity)
+      ->injectSubTreeItemList($this->getExposedSlots(), $sub_tree_item_list)
+      ->toRenderable($this);
   }
 
   /**

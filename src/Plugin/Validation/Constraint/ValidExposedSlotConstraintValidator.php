@@ -4,9 +4,12 @@ declare(strict_types=1);
 
 namespace Drupal\experience_builder\Plugin\Validation\Constraint;
 
+use Drupal\Core\Config\ConfigManagerInterface;
+use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
+use Drupal\Core\Entity\Plugin\DataType\EntityAdapter;
 use Drupal\experience_builder\ComponentSource\ComponentSourceWithSlotsInterface;
 use Drupal\experience_builder\Entity\ContentTemplate;
-use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemList;
 use Symfony\Component\Validator\Constraint;
 use Symfony\Component\Validator\ConstraintValidator;
@@ -15,7 +18,20 @@ use Symfony\Component\Validator\Exception\UnexpectedTypeException;
 /**
  * Validates the `ValidExposedSlot` constraint.
  */
-final class ValidExposedSlotConstraintValidator extends ConstraintValidator {
+final class ValidExposedSlotConstraintValidator extends ConstraintValidator implements ContainerInjectionInterface {
+
+  public function __construct(
+    private readonly ConfigManagerInterface $configManager,
+  ) {}
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function create(ContainerInterface $container): self {
+    return new self(
+      $container->get(ConfigManagerInterface::class),
+    );
+  }
 
   /**
    * {@inheritdoc}
@@ -24,11 +40,16 @@ final class ValidExposedSlotConstraintValidator extends ConstraintValidator {
     assert($constraint instanceof ValidExposedSlotConstraint);
 
     assert(is_array($value), new UnexpectedTypeException($value, 'array'));
+    $root = $this->context->getRoot();
+    if ($root instanceof EntityAdapter) {
+      $template = $root->getEntity();
+    }
+    else {
+      $template = $this->configManager->loadConfigEntityByName($root->getName());
+    }
+    assert($template instanceof ContentTemplate);
 
-    $root = $this->context->getRoot()->getEntity();
-    assert($root instanceof ContentTemplate);
-
-    $component_tree_item_list = $root->getComponentTree();
+    $component_tree_item_list = $template->getComponentTree();
     $item = $component_tree_item_list->getComponentTreeItemByUuid($value['component_uuid']);
     if ($item === NULL) {
       // The component that contains the exposed slot isn't in the tree at all,
@@ -38,7 +59,6 @@ final class ValidExposedSlotConstraintValidator extends ConstraintValidator {
       ]);
       return;
     }
-    \assert($item instanceof ComponentTreeItem);
     $slot_exists = FALSE;
     $source = $item->getComponent()?->getComponentSource();
     if ($source instanceof ComponentSourceWithSlotsInterface) {
@@ -62,7 +82,7 @@ final class ValidExposedSlotConstraintValidator extends ConstraintValidator {
       return;
     }
 
-    if ($root->getMode() !== $constraint->viewMode) {
+    if ($template->getMode() !== $constraint->viewMode) {
       $this->context->addViolation($constraint->viewModeMismatchMessage, [
         '%mode' => $constraint->viewMode,
       ]);

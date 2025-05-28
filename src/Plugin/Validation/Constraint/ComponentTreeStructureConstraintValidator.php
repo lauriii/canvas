@@ -4,14 +4,16 @@ declare(strict_types=1);
 
 namespace Drupal\experience_builder\Plugin\Validation\Constraint;
 
-use Drupal\Core\Config\Entity\ConfigEntityStorageInterface;
 use Drupal\Core\Config\Plugin\Validation\Constraint\ConfigExistsConstraint;
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
+use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Entity\Plugin\DataType\EntityAdapter;
 use Drupal\Core\TypedData\TypedDataInterface;
 use Drupal\Core\Validation\BasicRecursiveValidatorFactory;
 use Drupal\experience_builder\ComponentSource\ComponentSourceWithSlotsInterface;
 use Drupal\experience_builder\Entity\Component;
+use Drupal\experience_builder\Entity\ContentTemplate;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemList;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\Validator\Constraint;
@@ -32,21 +34,17 @@ use Symfony\Component\Validator\Context\ExecutionContextInterface;
 final class ComponentTreeStructureConstraintValidator extends ConstraintValidator implements ContainerInjectionInterface {
 
   public function __construct(
-    private readonly ConfigEntityStorageInterface $componentStorage,
+    private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly BasicRecursiveValidatorFactory $validatorFactory,
   ) {
-    // @see \Drupal\experience_builder\Entity\Component
-    assert($this->componentStorage->getEntityTypeId() === 'component');
   }
 
   /**
    * {@inheritdoc}
    */
   public static function create(ContainerInterface $container): self {
-    $component_storage = $container->get(EntityTypeManagerInterface::class)->getStorage('component');
-    assert($component_storage instanceof ConfigEntityStorageInterface);
     return new static(
-      $component_storage,
+      $container->get(EntityTypeManagerInterface::class),
       $container->get(BasicRecursiveValidatorFactory::class),
     );
   }
@@ -125,8 +123,9 @@ final class ComponentTreeStructureConstraintValidator extends ConstraintValidato
         new Callback(
           callback: self::validateComponentInstance(...),
           payload: [
-            'component_storage' => $this->componentStorage,
+            'entity_type_manager' => $this->entityTypeManager,
             'parent_property_path' => $parent_property_name,
+            'root' => $this->context->getRoot(),
           ]
         ),
       ]
@@ -197,9 +196,11 @@ final class ComponentTreeStructureConstraintValidator extends ConstraintValidato
   }
 
   private static function validateComponentInstance(array $component_instance, ExecutionContextInterface $context, array $payload): void {
+    $entity_type_manager = $payload['entity_type_manager'];
+    \assert($entity_type_manager instanceof EntityTypeManagerInterface);
     /** @var \Drupal\Core\Config\Entity\ConfigEntityStorageInterface $component_storage */
-    $component_storage = $payload['component_storage'];
-    assert($component_storage->getEntityTypeId() === 'component');
+    $component_storage = $entity_type_manager->getStorage(Component::ENTITY_TYPE_ID);
+    \assert($component_storage->getEntityTypeId() === 'component');
     $tree = $context->getRoot();
 
     /** @var string $parent_property_path */
@@ -210,6 +211,8 @@ final class ComponentTreeStructureConstraintValidator extends ConstraintValidato
       // will add the violations for the unset key.
       return;
     }
+
+    $root = $payload['root'];
 
     // Override property path, for more meaningful validation errors.
     $original_property_path = $context->getPropertyPath();
@@ -242,10 +245,27 @@ final class ComponentTreeStructureConstraintValidator extends ConstraintValidato
     }
 
     $parent = \array_filter($tree, static fn (array $item) => $item['uuid'] === $component_instance['parent_uuid']);
-    // @todo For 'bonsai' trees, the parent may not be in the corresponding
-    //   parent list but in a ContentTemplate for the parent entity. Add UUIDs
-    //   from any relevant ContentTemplates for this entity -
-    //   https://drupal.org/i/3519352
+
+    if ($root instanceof EntityAdapter) {
+      // We might have a subtree here that works with a content template.
+      // Attempt to fetch the template.
+      $entity = $root->getValue();
+      \assert($entity instanceof EntityInterface);
+      $content_template_storage = $entity_type_manager->getStorage(ContentTemplate::ENTITY_TYPE_ID);
+      $template_id = implode('.', [
+        $entity->getEntityTypeId(),
+        $entity->bundle(),
+        // Only the full view mode can expose slots.
+        // @see `type: experience_builder.content_template.*.*.*`'s
+        'full',
+      ]);
+      $template = $content_template_storage->load($template_id);
+      if ($template instanceof ContentTemplate) {
+        $template_tree = $template->getComponentTree();
+        $parent = \array_merge($parent, $template_tree->getValue());
+      }
+    }
+
     if (\count($parent) === 0) {
       $context->buildViolation('Invalid component tree item with UUID %uuid references an invalid parent %parent_uuid.', [
         '%uuid' => $component_instance['uuid'],
@@ -283,7 +303,7 @@ final class ComponentTreeStructureConstraintValidator extends ConstraintValidato
     }
     if (!\array_key_exists($component_instance['slot'], $slots)) {
       $context->buildViolation('Invalid component subtree. This component subtree contains an invalid slot name for component %component: %invalid_slot_name. Valid slot names are: %valid_slot_names.', [
-        '%component' => $component_instance['component_id'],
+        '%component' => $parent_instance['component_id'],
         '%invalid_slot_name' => $component_instance['slot'],
         '%valid_slot_names' => implode(', ', \array_keys($slots)),
       ])
