@@ -59,17 +59,18 @@ describe('Block form', () => {
     cy.waitForElementContentInIframe('div.site-branding__inner', 'Drupal');
 
     cy.findByLabelText('Site name').as('siteName');
-    cy.get('@siteName').assertToggleState(true);
-    cy.get('@siteName').toggleToggle();
-    cy.get('@siteName').assertToggleState(false);
+    cy.get('@siteName').should('be.checked');
+    cy.get('@siteName').realClick();
+    cy.get('@siteName').should('not.be.checked');
     cy.waitForElementContentNotInIframe('div.site-branding__inner', 'Drupal');
 
-    cy.get('@siteName').toggleToggle();
-    cy.get('@siteName').assertToggleState(true);
+    cy.get('@siteName').realClick();
+    cy.get('@siteName').should('be.checked');
     cy.waitForElementContentInIframe('div.site-branding__inner', 'Drupal');
 
     // Turn off the site name again.
-    cy.get('@siteName').toggleToggle();
+    cy.get('@siteName').realClick();
+    cy.get('@siteName').should('not.be.checked');
     cy.waitForElementContentNotInIframe('div.site-branding__inner', 'Drupal');
 
     // Now move this component to the content region so it is stored in the node.
@@ -104,6 +105,6 @@ describe('Block form', () => {
 
     // And it should have the saved configuration.
     cy.findByLabelText('Site name').as('siteName');
-    cy.get('@siteName').assertToggleState(false);
+    cy.get('@siteName').should('not.be.checked');
   });
 });

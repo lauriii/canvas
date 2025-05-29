@@ -1,0 +1,169 @@
+<?php
+
+declare(strict_types=1);
+
+use Drupal\Core\Form\FormStateInterface;
+
+/**
+ * Implements hook_form_alter().
+ */
+function xb_test_state_api_form_alter(array &$form, FormStateInterface $form_state, string $form_id): void {
+  if ($form_id === 'node_article_form' || $form_id === 'node_article_edit_form' || $form_id === 'component_inputs_form') {
+    $form['states_api_test'] = [
+      '#type' => 'container',
+      '#weight' => 99,
+    ];
+
+    // Checkboxes default unchecked.
+
+    // Checkbox controlling visibility.
+    $form['states_api_test']['show_extra_field'] = [
+      '#type' => 'checkbox',
+      '#title' => t('Checkbox A: Toggle conditionally visible field'),
+      '#default_value' => FALSE,
+    ];
+    $form['states_api_test']['conditional_visible_field'] = [
+      '#type' => 'textfield',
+      '#title' => t('Visible when Checkbox A is checked'),
+      '#states' => [
+        'visible' => [
+          ':input[name="show_extra_field"]' => ['checked' => TRUE],
+        ],
+      ],
+    ];
+
+    // Checkbox controlling enabled state.
+    $form['states_api_test']['enable_extra_field'] = [
+      '#type' => 'checkbox',
+      '#title' => t('Checkbox B: Toggle conditionally enabled field'),
+      '#default_value' => FALSE,
+    ];
+    $form['states_api_test']['conditional_enabled_field'] = [
+      '#type' => 'textfield',
+      '#title' => t('Enabled when Checkbox B is checked'),
+      '#states' => [
+        'disabled' => [
+          ':input[name="enable_extra_field"]' => ['checked' => FALSE],
+        ],
+      ],
+    ];
+
+    // Checkbox controlling another checkbox's visibility.
+    $form['states_api_test']['toggle_checkbox'] = [
+      '#type' => 'checkbox',
+      '#title' => t('Checkbox C: Toggle visibility of another checkbox'),
+      '#default_value' => FALSE,
+    ];
+    $form['states_api_test']['secondary_checkbox'] = [
+      '#type' => 'checkbox',
+      '#title' => t('Visible when Checkbox C is checked'),
+      '#default_value' => FALSE,
+      '#states' => [
+        'visible' => [
+          ':input[name="toggle_checkbox"]' => ['checked' => TRUE],
+        ],
+      ],
+    ];
+
+    // Checkbox controlling another checkbox's visibility.
+    $form['states_api_test']['toggle_checkbox_checked'] = [
+      '#type' => 'checkbox',
+      '#title' => t('Checkbox D: Toggle checked state of another checkbox'),
+      '#default_value' => FALSE,
+    ];
+    $form['states_api_test']['secondary_checkbox_checked'] = [
+      '#type' => 'checkbox',
+      '#title' => t('Checked when Checkbox D is checked'),
+      '#default_value' => FALSE,
+      '#states' => [
+        'checked' => [
+          ':input[name="toggle_checkbox_checked"]' => ['checked' => TRUE],
+        ],
+      ],
+    ];
+
+    // Checkboxes default checked.
+
+    // Checkbox controlling visibility.
+    $form['states_api_test']['rev_show_extra_field'] = [
+      '#type' => 'checkbox',
+      '#title' => t('[REV] Checkbox A: Toggle conditionally visible field'),
+      '#default_value' => TRUE,
+    ];
+    $form['states_api_test']['rev_conditional_visible_field'] = [
+      '#type' => 'textfield',
+      '#title' => t('[REV] Visible when Checkbox A is checked'),
+      '#states' => [
+        'visible' => [
+          ':input[name="rev_show_extra_field"]' => ['checked' => TRUE],
+        ],
+      ],
+    ];
+
+    // Checkbox controlling enabled state.
+    $form['states_api_test']['rev_enable_extra_field'] = [
+      '#type' => 'checkbox',
+      '#title' => t('[REV] Checkbox B: Toggle conditionally enabled field'),
+      '#default_value' => TRUE,
+    ];
+    $form['states_api_test']['rev_conditional_enabled_field'] = [
+      '#type' => 'textfield',
+      '#title' => t('[REV] Enabled when Checkbox B is checked'),
+      '#states' => [
+        'disabled' => [
+          ':input[name="rev_enable_extra_field"]' => ['checked' => FALSE],
+        ],
+      ],
+    ];
+
+    // Checkbox controlling another checkbox's visibility.
+    $form['states_api_test']['rev_toggle_checkbox'] = [
+      '#type' => 'checkbox',
+      '#title' => t('[REV] Checkbox C: Toggle visibility of another checkbox'),
+      '#default_value' => TRUE,
+    ];
+    $form['states_api_test']['rev_secondary_checkbox'] = [
+      '#type' => 'checkbox',
+      '#title' => t('[REV] Visible when Checkbox C is checked'),
+      '#default_value' => FALSE,
+      '#states' => [
+        'visible' => [
+          ':input[name="rev_toggle_checkbox"]' => ['checked' => TRUE],
+        ],
+      ],
+    ];
+
+    // Checkbox controlling another checkbox's visibility.
+    $form['states_api_test']['rev_toggle_checkbox_checked'] = [
+      '#type' => 'checkbox',
+      '#title' => t('[REV] Checkbox D: Toggle checked state of another checkbox'),
+      '#default_value' => TRUE,
+    ];
+    $form['states_api_test']['rev_secondary_checkbox_checked'] = [
+      '#type' => 'checkbox',
+      '#title' => t('[REV] Checked when Checkbox D is checked'),
+      '#default_value' => FALSE,
+      '#states' => [
+        'checked' => [
+          ':input[name="rev_toggle_checkbox_checked"]' => ['checked' => TRUE],
+        ],
+      ],
+    ];
+
+    // Text field controlling another field's visibility based on emptiness.
+    $form['states_api_test']['controlling_text'] = [
+      '#type' => 'textfield',
+      '#title' => t('Text A: Controls visibility of another text input'),
+      '#default_value' => '',
+    ];
+    $form['states_api_test']['dependent_text'] = [
+      '#type' => 'textfield',
+      '#title' => t('This appears when Text A is filled'),
+      '#states' => [
+        'visible' => [
+          ':input[name="controlling_text"]' => ['filled' => TRUE],
+        ],
+      ],
+    ];
+  }
+}
