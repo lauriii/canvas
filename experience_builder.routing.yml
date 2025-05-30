@@ -36,6 +36,9 @@ experience_builder.api.auto-save.get:
   requirements:
     _permission: 'access administration pages'
   methods: ['GET']
+  options:
+    _format: 'json'
+
 experience_builder.api.auto-save.post:
   path: '/xb/api/v0/auto-saves/publish'
   defaults:
@@ -43,6 +46,8 @@ experience_builder.api.auto-save.post:
   requirements:
     _permission: 'access administration pages'
   methods: [POST]
+  options:
+    _format: 'json'
 
 experience_builder.api.config.auto-save.get:
   path: '/xb/api/v0/config/auto-save/{xb_config_entity_type_id}/{xb_config_entity}'
@@ -58,7 +63,9 @@ experience_builder.api.config.auto-save.get:
     parameters:
       xb_config_entity:
         type: entity:{xb_config_entity_type_id}
+    _format: 'json'
   methods: [GET]
+
 experience_builder.api.config.auto-save.get.css:
   path: '/xb/api/v0/auto-saves/css/{xb_config_entity_type_id}/{xb_config_entity}'
   defaults:
@@ -73,6 +80,8 @@ experience_builder.api.config.auto-save.get.css:
     parameters:
       xb_config_entity:
         type: entity:{xb_config_entity_type_id}
+    _format: 'json'
+
 experience_builder.api.config.auto-save.get.js:
   path: '/xb/api/v0/auto-saves/js/{xb_config_entity_type_id}/{xb_config_entity}'
   defaults:
@@ -87,6 +96,8 @@ experience_builder.api.config.auto-save.get.js:
     parameters:
       xb_config_entity:
         type: entity:{xb_config_entity_type_id}
+    _format: 'json'
+
 experience_builder.api.config.auto-save.patch:
   path: '/xb/api/v0/config/auto-save/{xb_config_entity_type_id}/{xb_config_entity}'
   defaults:
@@ -101,6 +112,7 @@ experience_builder.api.config.auto-save.patch:
     parameters:
       xb_config_entity:
         type: entity:{xb_config_entity_type_id}
+    _format: 'json'
   methods: [PATCH]
 
 experience_builder.api.config.delete:
@@ -117,7 +129,9 @@ experience_builder.api.config.delete:
     parameters:
       xb_config_entity:
         type: entity:{xb_config_entity_type_id}
+    _format: 'json'
   methods: [DELETE]
+
 experience_builder.api.config.get:
   path: '/xb/api/v0/config/{xb_config_entity_type_id}/{xb_config_entity}'
   defaults:
@@ -131,7 +145,9 @@ experience_builder.api.config.get:
     parameters:
       xb_config_entity:
         type: entity:{xb_config_entity_type_id}
+    _format: 'json'
   methods: [GET]
+
 experience_builder.api.config.list:
   path: '/xb/api/v0/config/{xb_config_entity_type_id}'
   defaults:
@@ -161,7 +177,9 @@ experience_builder.api.config.patch:
     parameters:
       xb_config_entity:
         type: entity:{xb_config_entity_type_id}
+    _format: 'json'
   methods: [PATCH]
+
 experience_builder.api.config.post:
   path: '/xb/api/v0/config/{xb_config_entity_type_id}'
   defaults:
@@ -193,6 +211,7 @@ experience_builder.api.content.delete:
     parameters:
       xb_page:
         type: entity:xb_page
+    _format: 'json'
   methods: ['DELETE']
 # @todo https://www.drupal.org/i/3498525 should generalize this to all eligible content entity types by using a route callback
 experience_builder.api.content.list:
@@ -202,6 +221,8 @@ experience_builder.api.content.list:
   requirements:
     _permission: 'edit xb_page'
   methods: [GET]
+  options:
+    _format: 'json'
 
 # Forms: component instance and content entity.
 # @see \Drupal\experience_builder\Theme\XBThemeNegotiator::applies()
@@ -221,6 +242,7 @@ experience_builder.api.form.component_inputs:
     parameters:
       entity:
         type: entity:{entity_type}
+    _format: 'json'
   methods:
     # Used by XB UI to generate this form.
     - PATCH
@@ -248,6 +270,7 @@ experience_builder.api.form.content_entity:
     parameters:
       entity:
         type: entity:{entity_type}
+    _format: 'json'
   methods:
     # Used by XB UI to generate this form.
     - GET
@@ -267,7 +290,9 @@ experience_builder.api.layout.get:
     parameters:
       entity:
         type: entity:{entity_type}
+    _format: 'json'
   methods: [GET]
+
 experience_builder.api.layout.patch:
   path: '/xb/api/v0/layout/{entity_type}/{entity}'
   defaults:
@@ -282,7 +307,9 @@ experience_builder.api.layout.patch:
     parameters:
       entity:
         type: entity:{entity_type}
+    _format: 'json'
   methods: [PATCH]
+
 experience_builder.api.layout.post:
   path: '/xb/api/v0/layout/{entity_type}/{entity}'
   defaults:
@@ -296,6 +323,7 @@ experience_builder.api.layout.post:
     parameters:
       entity:
         type: entity:{entity_type}
+    _format: 'json'
   methods: [POST]
 
 experience_builder.api.log_error:
@@ -305,6 +333,8 @@ experience_builder.api.log_error:
   requirements:
     _permission: 'access administration pages'
   methods: ['POST']
+  options:
+    _format: 'json'
 
 experience_builder.component.status:
   path: '/admin/appearance/component/status'
@@ -326,3 +356,4 @@ experience_builder.experience_builder:
     parameters:
       entity:
         type: entity:{entity_type}
+    _format: 'json'
