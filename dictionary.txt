@@ -37,11 +37,13 @@ jsxs
 leftbar
 lightningcss
 Linkit
+Mautic
 metacharacter
 microlink
 mymodule
 Nygard
 Nygard's
+personalizable
 placehold
 phenaproxima
 Postel

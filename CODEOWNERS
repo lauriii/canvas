@@ -152,3 +152,7 @@
 /phpcs.xml
 /phpstan.neon
 /tests/src/Unit/DxRouteConsistencyTest.php
+
+[Personalization] @penyaskito @effulgentsia
+/modules/xb_personalization
+/docs/personalization.md
