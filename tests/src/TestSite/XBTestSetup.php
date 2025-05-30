@@ -361,6 +361,7 @@ class XBTestSetup implements TestSetupInterface {
             ],
           ],
         ],
+        'label' => 'Magnificent image!',
       ],
     ];
     // Add a Media Library field to the article content type so we can

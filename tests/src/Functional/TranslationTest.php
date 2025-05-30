@@ -2,11 +2,16 @@
 
 declare(strict_types=1);
 
+// cspell:ignore magnifique
+
 namespace Drupal\Tests\experience_builder\Functional;
 
+use Drupal\Core\Url;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemList;
 use Drupal\node\Entity\Node;
+use Drupal\node\NodeInterface;
+use Drupal\Tests\ApiRequestTrait;
 use Drupal\Tests\content_translation\Traits\ContentTranslationTestTrait;
 
 /**
@@ -19,6 +24,7 @@ use Drupal\Tests\content_translation\Traits\ContentTranslationTestTrait;
  */
 class TranslationTest extends FunctionalTestBase {
 
+  use ApiRequestTrait;
   use ContentTranslationTestTrait;
 
   /**
@@ -166,6 +172,28 @@ class TranslationTest extends FunctionalTestBase {
       'article [data-component-id="experience_builder:heading"]',
       $expect_component_removed_on_translation ? 0 : 1
     );
+
+    // Verify the `name` for a single component instance is only present on the
+    // original translation — both in the server-side storage, and in the
+    // information provided to the client for the UI.
+    $get_name = function (NodeInterface $node): ?string {
+      $component_tree = $node->get('field_xb_test');
+      assert($component_tree instanceof ComponentTreeItemList);
+      return $component_tree->getComponentTreeItemByUuid('208452de-10d6-4fb8-89a1-10e340b3744c')?->getLabel();
+    };
+    // If the field is not translatable updating inputs in the French
+    // translation should have also updated the default translation.
+    $expected_original_label = $field_is_translatable ? 'Starring … Drupal as the hero! 🤩' : "Drupal, c'est magnifique !";
+    self::assertSame($expected_original_label, $get_name($original_node));
+    self::assertSame("Drupal, c'est magnifique !", $get_name($translated_node));
+    $get_name_in_api_response = function (string $root_relative_url): ?string {
+      $response = $this->makeApiRequest('GET', Url::fromUri("base:$root_relative_url"), []);
+      self::assertSame(200, $response->getStatusCode());
+      $layout = json_decode((string) $response->getBody(), TRUE)['layout'];
+      return $layout[0]['components'][0]['slots'][0]['components'][0]['name'];
+    };
+    self::assertSame($expected_original_label, $get_name_in_api_response('/xb/api/v0/layout/node/1'));
+    self::assertSame("Drupal, c'est magnifique !", $get_name_in_api_response('/fr/xb/api/v0/layout/node/1'));
   }
 
   /**
@@ -193,15 +221,17 @@ class TranslationTest extends FunctionalTestBase {
     assert($updated_item instanceof ComponentTreeItem);
     $updated_item_inputs = $updated_item->getInputs();
 
-    // In both the Symmetric and Asymmetric translation cases, the `inputs` property
-    // is translatable and this should only change the translation.
+    // In both the Symmetric and Asymmetric translation cases, the `inputs` and
+    // `label` field properties are translatable and this should only change the
+    // translation.
     $french_inputs = $updated_item_inputs;
     $french_inputs['heading']['value'] = 'bonjour, monde!';
     $french_list = $translation->get('field_xb_test');
     assert($french_list instanceof ComponentTreeItemList);
     $french_item = $french_list->getComponentTreeItemByUuid('208452de-10d6-4fb8-89a1-10e340b3744c');
     assert($french_item instanceof ComponentTreeItem);
-    $french_item->setInput($french_inputs);
+    $french_item->setInput($french_inputs)
+      ->setLabel("Drupal, c'est magnifique !");
     $translation->save();
 
     // Update the English version.

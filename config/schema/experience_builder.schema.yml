@@ -264,6 +264,13 @@ experience_builder.component_tree_node:
     inputs:
       type: ignore
       label: 'Input values for each component in the component tree'
+    label:
+      # This is entirely optional; provides more context for content authors.
+      requiredKey: false
+      type: required_label
+      label: 'Label of the component instance'
+      # TRICKY: this does not specify any validation constraints because because the containing
+      # `experience_builder.component_tree`'s `ComponentTreeStructureConstraintValidator` also validates it.
 
 # Based on core/assets/schemas/v1/metadata-full.schema.json#$defs.slotDefinition
 # @todo Tighten & add validation in https://www.drupal.org/project/experience_builder/issues/3519891

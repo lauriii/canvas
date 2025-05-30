@@ -13,6 +13,7 @@ use Drupal\Tests\experience_builder\Traits\BetterConfigDependencyManagerTrait;
 use Drupal\Tests\experience_builder\Traits\CreateTestJsComponentTrait;
 use Drupal\Tests\experience_builder\Traits\GenerateComponentConfigTrait;
 use Drupal\Tests\node\Traits\ContentTypeCreationTrait;
+use Drupal\TestTools\Random;
 
 /**
  * @group experience_builder
@@ -107,6 +108,7 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
               'expression' => 'ℹ︎uri␟value',
             ],
           ],
+          'label' => Random::string(255),
         ],
         // A code component populated by an entity base field.
         [
@@ -436,6 +438,25 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
       ],
       'expected_messages' => [
         'component_tree.1.slot' => 'Invalid component subtree. This component subtree contains an invalid slot name for component <em class="placeholder">sdc.xb_test_sdc.props-slots</em>: <em class="placeholder">banana</em>. Valid slot names are: <em class="placeholder">the_body, the_footer, the_colophon</em>.',
+      ],
+    ];
+
+    yield "invalid label" => [
+      'component_tree' => [
+        [
+          'uuid' => 'e303dd88-9409-4dc7-8a8b-a31602884a94',
+          'component_id' => 'sdc.xb_test_sdc.props-slots',
+          'inputs' => [
+            'heading' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:article␝title␞␟value',
+            ],
+          ],
+          'label' => Random::string(256),
+        ],
+      ],
+      'expected_messages' => [
+        'component_tree.0.label' => 'This value is too long. It should have <em class="placeholder">255</em> characters or less.',
       ],
     ];
   }

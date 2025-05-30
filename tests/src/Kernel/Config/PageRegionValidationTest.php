@@ -10,6 +10,7 @@ use Drupal\experience_builder\Exception\ConstraintViolationException;
 use Drupal\Tests\experience_builder\Traits\BetterConfigDependencyManagerTrait;
 use Drupal\Tests\experience_builder\Traits\ConstraintViolationsTestTrait;
 use Drupal\Tests\experience_builder\Traits\GenerateComponentConfigTrait;
+use Drupal\TestTools\Random;
 
 /**
  * @group experience_builder
@@ -72,6 +73,7 @@ class PageRegionValidationTest extends BetterConfigEntityValidationTestBase {
           'inputs' => [
             'heading' => $generate_static_prop_source('world'),
           ],
+          'label' => Random::string(255),
         ],
         [
           'uuid' => '3a76bf4f-9306-43e6-ba8f-cb4b5b6459df',
@@ -340,6 +342,26 @@ class PageRegionValidationTest extends BetterConfigEntityValidationTestBase {
       ],
       'expected_messages' => [
         'component_tree.1.slot' => 'Invalid component subtree. This component subtree contains an invalid slot name for component <em class="placeholder">sdc.xb_test_sdc.props-slots</em>: <em class="placeholder">banana</em>. Valid slot names are: <em class="placeholder">the_body, the_footer, the_colophon</em>.',
+      ],
+    ];
+
+    yield "invalid label" => [
+      'component_tree' => [
+        [
+          'uuid' => 'e303dd88-9409-4dc7-8a8b-a31602884a94',
+          'component_id' => 'sdc.xb_test_sdc.props-slots',
+          'inputs' => [
+            'heading' => [
+              'sourceType' => 'static:field_item:string',
+              'value' => 'And we laugh like soft, mad children',
+              'expression' => 'ℹ︎string␟value',
+            ],
+          ],
+          'label' => Random::string(256),
+        ],
+      ],
+      'expected_messages' => [
+        'component_tree.0.label' => 'This value is too long. It should have <em class="placeholder">255</em> characters or less.',
       ],
     ];
   }

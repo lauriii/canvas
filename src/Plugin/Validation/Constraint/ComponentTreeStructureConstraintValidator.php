@@ -11,6 +11,7 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\Plugin\DataType\EntityAdapter;
 use Drupal\Core\TypedData\TypedDataInterface;
 use Drupal\Core\Validation\BasicRecursiveValidatorFactory;
+use Drupal\Core\Validation\Plugin\Validation\Constraint\LengthConstraint;
 use Drupal\experience_builder\ComponentSource\ComponentSourceWithSlotsInterface;
 use Drupal\experience_builder\Entity\Component;
 use Drupal\experience_builder\Entity\ContentTemplate;
@@ -118,6 +119,11 @@ final class ComponentTreeStructureConstraintValidator extends ConstraintValidato
           'slot' => new Optional([
             new NotBlank(allowNull: TRUE),
             new Type('string'),
+          ]),
+          'label' => new Optional([
+            new NotBlank(allowNull: TRUE),
+            new Type('string'),
+            new LengthConstraint(max: 255),
           ]),
         ], allowExtraFields: TRUE),
         new Callback(

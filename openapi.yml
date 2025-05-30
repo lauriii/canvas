@@ -922,7 +922,7 @@ paths:
                     entity_form_fields: {}
                     isNew: true
                     isPublished: false
-                componentTreeWithSingleComponent:
+                componentTreeWithRootLevelOnly:
                   value:
                     html: '<html>The preview would be here</html>'
                     layout:
@@ -933,8 +933,13 @@ paths:
                         name: content
                         components:
                           - nodeType: component
+                            uuid: f0f03e3b-08e6-4f57-9f06-8f68d347d98f
+                            type: 'experience_builder:druplicon'
+                            name: null
+                          - nodeType: component
                             uuid: bce8d97e-8d44-4609-adc3-5e1015342b49
                             type: 'sdc_test:my-cta'
+                            name: 'Content Creator-provided optional label for this component instance'
                     model:
                       bce8d97e-8d44-4609-adc3-5e1015342b49:
                         resolved:
@@ -1322,7 +1327,10 @@ components:
           pattern: "^(sdc|js|block)+\\.[^:]+$"
         name:
           type: string
-          description: The name of the component instance
+          # Either omit, or specify a non-empty string.
+          minLength: 1
+          nullable: true
+          description: The (optional) name of the component instance
         slots:
           type: array
           description: Array of slots

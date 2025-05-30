@@ -34,7 +34,7 @@ use Symfony\Component\Validator\ConstraintViolationList;
  * @see https://git.drupalcode.org/project/metatag/-/blob/2.0.x/src/Plugin/Field/FieldType/MetatagFieldItem.php
  *
  * @phpstan-import-type ComponentConfigEntityId from \Drupal\experience_builder\Entity\Component
- * @phpstan-type ComponentTreeItemPropName 'uuid'|'inputs'|'component_id'|'component'|'parent_item'|'slot'|'parent_uuid'
+ * @phpstan-type ComponentTreeItemPropName 'uuid'|'inputs'|'component_id'|'component'|'parent_item'|'slot'|'parent_uuid'|'label'
  *
  * @property \Drupal\experience_builder\HydratedTree $hydrated
  */
@@ -83,6 +83,12 @@ use Symfony\Component\Validator\ConstraintViolationList;
     'inputs' => [
       'label' => new TranslatableMarkup('Component input values'),
       'translatable' => TRUE,
+      'columns' => [
+        'inputs',
+        // Even when keeping the same component tree, content authors should
+        // be able to specify a translated label to provide context.
+        'label',
+      ],
     ],
     'tree' => [
       'label' => new TranslatableMarkup('Component tree'),
@@ -265,6 +271,15 @@ class ComponentTreeItem extends FieldItemBase {
           'sqlite_type' => 'text',
           'not null' => FALSE,
         ],
+        'label' => [
+          'description' => 'Optional label for the component instance to provide context for content authors',
+          'type' => 'varchar',
+          'length' => 255,
+          // NULL means no label, meaning the Component config entity label will
+          // be shown ("inherited") to the content author.
+          // @see \Drupal\experience_builder\Entity\Component::$label
+          'not null' => FALSE,
+        ],
       ],
       'indexes' => [
         'component_id' => ['component_id'],
@@ -332,6 +347,12 @@ class ComponentTreeItem extends FieldItemBase {
     $properties['inputs'] = DataDefinition::create('component_inputs')
       ->setLabel(new TranslatableMarkup('Input values for each component in the component tree'))
       ->setRequired(TRUE);
+
+    $properties['label'] = DataDefinition::create('string')
+      ->setLabel(new TranslatableMarkup('Optional label for the component instance to provide context for content authors. Not visible to end users.'))
+      ->setSetting('max_length', 255)
+      ->addConstraint('Length', ['max' => 255])
+      ->setRequired(FALSE);
 
     return $properties;
   }
@@ -456,6 +477,14 @@ class ComponentTreeItem extends FieldItemBase {
     return $this->set('inputs', $input);
   }
 
+  public function getLabel(): ?string {
+    return $this->get('label')->getValue();
+  }
+
+  public function setLabel(?string $label): self {
+    return $this->set('label', $label);
+  }
+
   /**
    * @todo This belongs in a normalizer */
   public function getClientSideRepresentation(): array {
@@ -463,6 +492,10 @@ class ComponentTreeItem extends FieldItemBase {
       'uuid' => $this->getUuid(),
       'nodeType' => 'component',
       'type' => $this->getComponentId(),
+      // TRICKY: the client-side representation uses `name`, the server-side
+      // representation uses `label`, due to TypedData limitations.
+      // @see \Drupal\Core\TypedData\TypedData::$name
+      'name' => $this->getLabel(),
       'slots' => [],
     ];
   }

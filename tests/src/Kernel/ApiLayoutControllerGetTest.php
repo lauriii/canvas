@@ -192,6 +192,7 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
         "nodeType" => "component",
         "slots" => [],
         "type" => "block.page_title_block",
+        'name' => NULL,
       ],
     ],
       // Filter out the UUID as that is added randomly by creating the block
@@ -230,6 +231,7 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
         $this->assertEquals([
           [
             "nodeType" => "component",
+            'name' => NULL,
             "slots" => [],
             "type" => "block.page_title_block",
           ],
@@ -246,6 +248,7 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
           [
             "nodeType" => "component",
             "type" => "block.system_messages_block",
+            'name' => NULL,
             "slots" => [],
           ],
         ],
@@ -264,6 +267,7 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
           'uuid' => XBTestSetup::UUID_TWO_COLUMN_UUID,
           'nodeType' => 'component',
           'type' => 'sdc.experience_builder.two_column',
+          'name' => NULL,
           'slots' => [
             [
               'id' => XBTestSetup::UUID_TWO_COLUMN_UUID . '/column_one',
@@ -274,24 +278,28 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
                   'uuid' => XBTestSetup::UUID_STATIC_IMAGE,
                   'nodeType' => 'component',
                   'type' => 'sdc.experience_builder.image',
+                  'name' => NULL,
                   'slots' => [],
                 ],
                 [
                   'uuid' => XBTestSetup::UUID_STATIC_CARD1,
                   'nodeType' => 'component',
                   'type' => 'sdc.experience_builder.my-hero',
+                  'name' => NULL,
                   'slots' => [],
                 ],
                 [
                   'uuid' => XbTestSetup::UUID_CODE_COMPONENT,
                   'nodeType' => 'component',
                   'type' => 'js.test-code-component',
+                  'name' => NULL,
                   'slots' => [],
                 ],
                 [
                   'uuid' => XBTestSetup::UUID_ALL_SLOTS_EMPTY,
                   'nodeType' => 'component',
                   'type' => 'sdc.experience_builder.one_column',
+                  'name' => NULL,
                   'slots' => [
                     [
                       'id' => XBTestSetup::UUID_ALL_SLOTS_EMPTY . '/content',
@@ -312,18 +320,21 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
                   'uuid' => XBTestSetup::UUID_STATIC_CARD2,
                   'nodeType' => 'component',
                   'type' => 'sdc.experience_builder.my-hero',
+                  'name' => NULL,
                   'slots' => [],
                 ],
                 [
                   'uuid' => XBTestSetup::UUID_STATIC_CARD3,
                   'nodeType' => 'component',
                   'type' => 'sdc.experience_builder.my-hero',
+                  'name' => NULL,
                   'slots' => [],
                 ],
                 [
                   'uuid' => XBTestSetup::UUID_ADAPTED_IMAGE,
                   'nodeType' => 'component',
                   'type' => 'sdc.experience_builder.image',
+                  'name' => 'Magnificent image!',
                   'slots' => [],
                 ],
               ],

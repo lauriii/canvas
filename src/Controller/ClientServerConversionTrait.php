@@ -86,6 +86,10 @@ trait ClientServerConversionTrait {
       'component_id' => $layout['type'] ?? NULL,
       'inputs' => [],
     ];
+    $name = $layout['name'] ?? NULL;
+    if ($name !== NULL) {
+      $component['label'] = $name;
+    }
     if ($uuid !== NULL) {
       $component['inputs'] = $model[$uuid] ?? [];
     }

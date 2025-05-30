@@ -120,6 +120,8 @@ Additionally, convenience methods for accessing/setting values on the `Component
 - `getInputs(): ?array` - gets the explicit inputs of the `component instance` as an array (JSON decoded)
 - `getInput(): ?string` - gets the explicit inputs of the `component instance` as a string (JSON encoded)
 - `setInput(array|string $input): static` - sets the inputs, can be passed as either a string (JSON encoded) or an array
+- `getLabel(): ?string` - gets the (optional) label for the `component instance` to provide context for content authors
+- `setLabel(?string $label): self` - sets the (optional) label for the `component instance` to provide context for content authors
 
 Storing these as separate `field prop`s simplifies supporting both symmetric and asymmetric translations:
 - the _inputs_ column group (just the `inputs` column) group SHOULD always be translatable
@@ -307,14 +309,18 @@ will contain zero or more `component slot`s.
 `component node`s have the following keys
 - `uuid`: a unique identifier for the `component instance`.
 - `type`: a string containing a `Component config entity` ID that this instantiates
+- `name`: a name assigned by a Content Creator, to for example distinguish this particular `component instance` of some
+  `component` among the 20 such in the current component tree
 - `slots`: an object of `slot node`s representing each `component slot` of this `component instance` (including empty
   slots)
 
-An example simple `component instance` of a `component` with no `component slot`s:
+An example simple `component instance` of a `component` with no `component slot`s, and with a name for the `component
+instance` specified by the Content Creator:
 ```json
 {
   "nodeType": "component",
   "id": "380aaa26-5678-4c86-9b32-12161ea34196",
+  "name": "Most Important Heading",
   "type": "sdc.experience_builder.heading",
   "slots": []
 }
