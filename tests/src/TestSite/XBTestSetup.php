@@ -527,6 +527,16 @@ class XBTestSetup implements TestSetupInterface {
       $kernel->invalidateContainer();
       $kernel->rebuildContainer();
     }
+    if (getenv('XB_EXTRA_PERMISSIONS')) {
+      $role = Role::load('xb');
+      if ($role) {
+        $permissions = \explode(',', getenv('XB_EXTRA_PERMISSIONS'));
+        foreach ($permissions as $permission) {
+          $role->grantPermission($permission);
+        }
+        $role->save();
+      }
+    }
   }
 
   /**

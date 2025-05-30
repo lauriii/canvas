@@ -340,7 +340,10 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
       'type' => 'article',
       'title' => '5 amazing uses for old toothbrushes',
       'status' => FALSE,
-      'field_hero' => $this->referencedImage,
+      'field_hero' => [
+        'target_id' => $this->referencedImage->id(),
+        'alt' => 'A man and a women high five each other in a creepy fashion after finding a use for an old toothbrush',
+      ],
     ]);
     $node1_original_title = (string) $node1->getTitle();
     self::assertSame(SAVED_NEW, $node1->save());

@@ -12,6 +12,7 @@ describe('ckeditor 5', () => {
   });
   it('works with page data form', () => {
     cy.loadURLandWaitForXBLoaded({ url: 'xb/node/2' });
+    cy.findByTestId('xb-contextual-panel--page-data').click({ force: true });
     const wrap = '[data-drupal-selector="edit-field-xbt-textarea-wrapper"]';
     cy.get(wrap).findByTestId('text-format-select').select('minimal_html');
 
@@ -31,7 +32,7 @@ describe('ckeditor 5', () => {
       `${wrap} [data-cke-tooltip-text="Source"][aria-pressed="false"]`,
     ).should('exist');
 
-    cy.publishAllPendingChanges();
+    cy.publishAllPendingChanges('I am an empty node');
     cy.drupalRelativeURL('node/2/edit');
     cy.get('[data-drupal-selector="edit-field-xbt-textarea-0-value"]').should(
       'contain',

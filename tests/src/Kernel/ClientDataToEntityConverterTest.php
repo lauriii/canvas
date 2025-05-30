@@ -237,6 +237,23 @@ class ClientDataToEntityConverterTest extends KernelTestBase {
     self::assertGreaterThan(0, $limited_user->id());
     self::assertEquals($limited_user_id, (int) $test_node->getOwnerId());
 
+    $test_node = $this->createTestNode();
+    self::assertEquals(3, (int) $test_node->getOwnerId());
+    self::assertNotEquals(3, $limited_user->id());
+    $invalid_form_callback_client_json = $valid_client_json;
+    // Test a form element that has a validate callback, the validation should
+    // bubble up from the form. Submit a value that doesn't pass validation.
+    // @see \Drupal\Core\Entity\Element\EntityAutocomplete::validateEntityAutocomplete
+    $invalid_form_callback_client_json['entity_form_fields']['uid[0][target_id]'] = 'Strikes and gutters, ups and downs';
+    $this->assertConvert(
+      $invalid_form_callback_client_json,
+      ['uid.0.target_id' => 'There are no users matching "Strikes and gutters, ups and downs".'],
+      'The original title.',
+      $test_node,
+    );
+    // Test owner wasn't updated.
+    self::assertEquals(3, (int) $test_node->getOwnerId());
+
     // Ensure that the entity values are passed through the widget.
     $modify_title_client_json = $valid_client_json;
     $modify_title_client_json['entity_form_fields']['title[0][value]'] = 'Hey widget, modify me!';

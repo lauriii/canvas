@@ -2,6 +2,7 @@
 
 namespace Drupal\experience_builder;
 
+use Drupal\Component\Render\PlainTextOutput;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemList;
 use Drupal\Component\Utility\Crypt;
 use Drupal\Core\Access\AccessException;
@@ -62,10 +63,18 @@ class ClientDataToEntityConverter {
 
     // The current user may not have access any other fields on the entity or
     // this function may have been called to only update the layout.
-    $updated_entity_form_fields = \count($entity_form_fields) !== 0 ?
-      $this->setEntityFields($entity, $entity_form_fields) :
-      [];
+    $form_validation = new EntityConstraintViolationList($entity);
+    try {
+      $updated_entity_form_fields = \count($entity_form_fields) !== 0 ?
+        $this->setEntityFields($entity, $entity_form_fields) :
+        [];
+    }
+    catch (ConstraintViolationException $e) {
+      $updated_entity_form_fields = [];
+      $form_validation->addAll($e->getConstraintViolationList());
+    }
     $original_entity_violations = $entity->validate();
+    $original_entity_violations->addAll($form_validation);
     // Validation happens using the server-side representation, but the
     // error message should use the client-side representation received in
     // the request body.
@@ -247,6 +256,27 @@ class ClientDataToEntityConverter {
       }
     }
     $form = $this->formBuilder->buildForm($form_object, $form_state);
+    $errors = $form_state->getErrors();
+    if (\count($errors) > 0) {
+      $violations_list = new EntityConstraintViolationList($entity);
+      foreach ($errors as $element_path => $error) {
+        // Reverse the property path to element path change made in
+        // ContentEntityForm.
+        // @see \Drupal\Core\Entity\ContentEntityForm::flagViolations
+        $property_path = str_replace('][', '.', $element_path);
+        $violations_list->add(new ConstraintViolation(
+          // Some errors may contain markup from the user of % placeholders in
+          // TranslatableMarkup. We just want the plain text version.
+          PlainTextOutput::renderFromHtml((string) $error),
+          NULL,
+          [],
+          NULL,
+          $property_path,
+          NULL,
+        ));
+      }
+      throw new ConstraintViolationException($violations_list);
+    }
     // Now trigger the form level submit handler.
     $form_object->submitForm($form, $form_state);
     if ($ajax_form_build_id !== NULL && $ajax_submitted_form !== NULL) {

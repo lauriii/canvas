@@ -1,3 +1,5 @@
+// cspell:ignore Duderino
+
 describe('Publish review functionality', () => {
   beforeEach(() => {
     cy.drupalXbInstall(['xb_test_article_fields', 'xb_test_invalid_field']);
@@ -66,14 +68,7 @@ describe('Publish review functionality', () => {
       cy.findByText('Publish all changes').click();
       cy.findByTestId('xb-review-publish-errors').should('exist');
       cy.findByTestId('xb-review-publish-errors').should(($errorsContainer) => {
-        expect($errorsContainer.find('h3')).to.include.text('2 Errors');
-        const expectedH4 = [
-          'XB Needs This For The Time Being',
-          'I am an empty node',
-        ];
-        $errorsContainer.find('h4').each((index, h4) => {
-          expect(h4).to.include.text(expectedH4[index]);
-        });
+        expect($errorsContainer.find('h3')).to.include.text('Errors');
         $errorsContainer
           .find('[data-testid="publish-error-detail"]')
           .each((index, errorDetail) => {
@@ -84,25 +79,63 @@ describe('Publish review functionality', () => {
       });
     },
   );
+});
 
-  it(
-    'Publish process does not currently notice form validation errors',
-    { retries: { openMode: 0, runMode: 3 } },
-    () => {
-      cy.clearAutoSave('node', 2);
-      cy.loadURLandWaitForXBLoaded({ url: 'xb/node/2' });
-      cy.findByLabelText('XB Text Field').type('invalid value');
-      cy.get('[data-testid="xb-publish-review"]:not([disabled])', {
-        timeout: 20000,
-      }).should('exist');
-      cy.publishAllPendingChanges('I am an empty node');
-      cy.get('[data-testid="xb-publish-reviews-content"] p.rt-CalloutText')
-        .contains('All changes published!')
-        .should('exist');
-      cy.waitForElementContentInIframe(
-        'div[role="contentinfo"] div[role="alert"]',
-        'The value "invalid value" is not allowed in this field.',
-      );
-    },
-  );
+describe('Form validation ✅', { retries: { openMode: 0, runMode: 3 } }, () => {
+  before(() => {
+    cy.drupalInstall({
+      setupFile: Cypress.env('setupFile'),
+      // Need this permission to view the author field.
+      extraPermissions: ['administer nodes'],
+    });
+  });
+
+  beforeEach(() => {
+    cy.drupalSession();
+    cy.drupalLogin('xbUser', 'xbUser');
+  });
+
+  after(() => {
+    cy.drupalUninstall();
+  });
+
+  it('Form validation errors prevent publishing', () => {
+    cy.loadURLandWaitForXBLoaded({ url: 'xb/node/2' });
+    cy.findByText('Authoring information').click();
+    cy.findByText('Authoring information')
+      .parents('[data-state="open"][data-drupal-selector]')
+      .as('authoringInformation');
+    cy.get('@authoringInformation')
+      .findByLabelText('Authored by', { exact: false })
+      .as('author');
+    cy.get('@author').clear();
+    cy.get('@author').type('El Duderino');
+    // Blur the autocomplete input to trigger an update.
+    cy.findByLabelText('Title').focus();
+
+    cy.get('[data-testid="xb-publish-review"]:not([disabled])', {
+      timeout: 20000,
+    }).should('exist');
+    cy.findByRole('button', {
+      name: /Review \d+ change/,
+      timeout: 20000,
+    }).as('review');
+    // We break this up to allow for the pending changes refresh which can disable
+    // the button whilst it is loading.
+    cy.get('@review').click();
+    // Enable extended debug output from failed publishing.
+    cy.intercept('**/xb/api/v0/auto-saves/publish');
+    cy.findByTestId('xb-publish-reviews-content')
+      .as('publishReview')
+      .should('exist');
+    cy.get('@publishReview')
+      .findByRole('button', { name: 'Publish all changes' })
+      .click();
+    cy.get('@publishReview')
+      .findByTestId('publish-error-detail')
+      .findByText('There are no users matching "El Duderino".', {
+        exact: false,
+      })
+      .should('exist');
+  });
 });

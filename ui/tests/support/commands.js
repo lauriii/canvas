@@ -126,6 +126,7 @@ Cypress.Commands.add(
       installProfile = 'nightwatch_testing',
       langcode = '',
       extraModules = [],
+      extraPermissions = [],
       options = {},
     } = {},
     callback,
@@ -137,11 +138,16 @@ Cypress.Commands.add(
       extraModules = extraModules.length
         ? `XB_EXTRA_MODULES=${extraModules.join()}`
         : '';
+
       const disableAggregationEnv =
         Object.prototype.hasOwnProperty.call(options, 'disableAggregation') &&
         options.disableAggregation
           ? 'XB_DISABLE_AGGREGATION=true'
           : '';
+
+      extraPermissions = extraPermissions.length
+        ? `XB_EXTRA_PERMISSIONS="${extraPermissions.join()}"`
+        : '';
 
       const langcodeOption = langcode ? `--langcode "${langcode}"` : '';
       const dbOption = Cypress.env('dbUrl')
@@ -149,7 +155,7 @@ Cypress.Commands.add(
         : '';
 
       const installCommand = commandAsWebserver(
-        `${extraModules} ${disableAggregationEnv} php ${Cypress.env('coreDir')}/scripts/test-site.php install ${setupFile} ${installProfile} ${langcodeOption} --base-url ${Cypress.env('baseUrl')} ${dbOption} --json`,
+        `${extraModules} ${disableAggregationEnv} ${extraPermissions} php ${Cypress.env('coreDir')}/scripts/test-site.php install ${setupFile} ${installProfile} ${langcodeOption} --base-url ${Cypress.env('baseUrl')} ${dbOption} --json`,
       );
       cy.exec(installCommand).then((install) => {
         const installData = JSON.parse(install.stdout);

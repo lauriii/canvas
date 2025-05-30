@@ -23,8 +23,15 @@ import {
   selectEntityType,
 } from '@/features/configuration/configurationSlice';
 import { findInChanges } from '@/utils/function-utils';
-import { selectLayout, selectModel } from '@/features/layout/layoutModelSlice';
-import { selectPageData } from '@/features/pageData/pageDataSlice';
+import {
+  selectLayout,
+  selectModel,
+  setUpdatePreview,
+} from '@/features/layout/layoutModelSlice';
+import {
+  selectPageData,
+  setInitialPageData,
+} from '@/features/pageData/pageDataSlice';
 import { contentApi } from '@/services/content';
 
 const REFETCH_INTERVAL_MS = 10000;
@@ -107,6 +114,19 @@ const UnpublishedChanges = () => {
             },
           ),
         );
+        // Avoid the "The content has either been modified by another user, or
+        // you have already submitted modifications. As a result, your changes
+        // cannot be saved" error.
+        if ('changed' in entity_form_fields) {
+          // Pause updating the preview/POSTing to Drupal for this action.
+          dispatch(setUpdatePreview(false));
+          dispatch(
+            setInitialPageData({
+              ...entity_form_fields,
+              changed: Math.floor(new Date().getTime() / 1000),
+            }),
+          );
+        }
       }
 
       // After publishing, the list of other pages might be out of date where the pages' title/alias has been updated.
