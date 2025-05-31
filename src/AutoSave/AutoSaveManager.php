@@ -7,9 +7,11 @@ use Drupal\Core\Config\ConfigCrudEvent;
 use Drupal\Core\Config\ConfigEvents;
 use Drupal\Core\Config\ConfigManagerInterface;
 use Drupal\Core\Config\Entity\ConfigEntityTypeInterface;
+use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\TranslatableInterface;
 use Drupal\experience_builder\AutoSaveData;
+use Drupal\experience_builder\Controller\ApiContentControllers;
 use Drupal\experience_builder\Entity\XbHttpApiEligibleConfigEntityInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
@@ -19,6 +21,8 @@ use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 class AutoSaveManager implements EventSubscriberInterface {
 
   public const CACHE_TAG = 'experience_builder__auto_save';
+
+  const ENTITY_DUPLICATE_SUFFIX = ' (Copy)';
 
   public function __construct(
     private readonly AutoSaveTempStoreFactory $tempStoreFactory,
@@ -231,6 +235,10 @@ class AutoSaveManager implements EventSubscriberInterface {
   public static function getSubscribedEvents(): array {
     $events[ConfigEvents::SAVE][] = ['onXbConfigEntitySave'];
     return $events;
+  }
+
+  public static function contentEntityIsConsideredNew(ContentEntityInterface $entity): bool {
+    return (string) $entity->label() == ApiContentControllers::defaultTitle($entity->getEntityType()) || str_ends_with((string) $entity->label(), self::ENTITY_DUPLICATE_SUFFIX);
   }
 
 }

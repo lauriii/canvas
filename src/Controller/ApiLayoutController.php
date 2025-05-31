@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Drupal\experience_builder\Controller;
 
+use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityPublishedInterface;
-use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Form\FormBuilderInterface;
@@ -35,9 +35,6 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 final class ApiLayoutController {
 
   use EntityFormTrait;
-
-  const ENTITY_DUPLICATE_SUFFIX = ' (Copy)';
-
   private array $regions;
   private array $regionsClientSideIds;
 
@@ -70,14 +67,9 @@ final class ApiLayoutController {
     assert(array_key_exists(XbPageVariant::MAIN_CONTENT_REGION, $this->regions));
   }
 
-  private function contentEntityIsConsideredNew(string $current_entity_label, EntityTypeInterface $entity_type): bool {
-    return $current_entity_label == ApiContentControllers::defaultTitle($entity_type) || str_ends_with($current_entity_label, self::ENTITY_DUPLICATE_SUFFIX);
-  }
-
-  public function get(FieldableEntityInterface&EntityPublishedInterface $entity): PreviewEnvelope {
+  public function get(ContentEntityInterface&EntityPublishedInterface $entity): PreviewEnvelope {
     $regions = PageRegion::loadForActiveTheme();
 
-    $content_entity_type = $entity->getEntityType();
     $is_published = $entity->isPublished();
 
     $autoSaveData = $this->autoSaveManager->getAutoSaveData($entity);
@@ -85,8 +77,7 @@ final class ApiLayoutController {
       $body = $autoSaveData->data;
       \assert(\is_array($body));
       ['layout' => $layout, 'model' => $model, 'entity_form_fields' => $entity_form_fields] = $body;
-      $label_field_input_name = sprintf("%s[0][value]", $content_entity_type->getKey('label'));
-      $is_new = $this->contentEntityIsConsideredNew($entity_form_fields[$label_field_input_name], $content_entity_type);
+      $is_new = AutoSaveManager::contentEntityIsConsideredNew($entity);
     }
     else {
       $model = [];
@@ -95,7 +86,7 @@ final class ApiLayoutController {
       $tree = $this->componentTreeLoader->load($entity);
       $content_layout = $this->buildRegion(XbPageVariant::MAIN_CONTENT_REGION, $tree, $model);
       $layout = [$content_layout];
-      $is_new = $this->contentEntityIsConsideredNew((string) $entity->label(), $content_entity_type);
+      $is_new = AutoSaveManager::contentEntityIsConsideredNew($entity);
       // Remember the initial client-side representation of this XB-enabled
       // content entity (prior to auto-saves existing), to allow detecting when
       // an auto-save request from the client should actually be stored (i.e.

@@ -8,9 +8,10 @@ use Drupal\Core\Cache\CacheableJsonResponse;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Config\TypedConfigManagerInterface;
+use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\EntityPublishedInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
-use Drupal\Core\Entity\FieldableEntityInterface;
+use Drupal\Core\Entity\RevisionableInterface;
 use Drupal\Core\File\FileUrlGeneratorInterface;
 use Drupal\Core\StringTranslation\PluralTranslatableMarkup;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
@@ -180,10 +181,18 @@ final class ApiAutoSaveController extends ApiControllerBase {
           }
         }
         else {
-          assert($entity instanceof FieldableEntityInterface);
+          assert($entity instanceof ContentEntityInterface);
+
+          $is_new = AutoSaveManager::contentEntityIsConsideredNew($entity);
 
           if ($entity instanceof EntityPublishedInterface) {
             $entity->setPublished();
+          }
+          if ($entity instanceof RevisionableInterface) {
+            // If the entity is new, the autosaved data is considered to be part
+            // of the first revision. Therefore, do not create a new revision
+            // for new entities.
+            $entity->setNewRevision(!$is_new);
           }
 
           // Pluck out only the content region.

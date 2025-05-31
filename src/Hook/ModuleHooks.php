@@ -55,6 +55,12 @@ class ModuleHooks {
         // not rendered, just the returned elements.
         FormIdPreRender::addAjaxAttribute($form, self::PAGE_DATA_FORM_ID);
       }
+
+      // Remove the revision related fields from the form. These will be handled
+      // in future outside of this form.
+      unset($form['revision_information']);
+      unset($form['revision_log']);
+      unset($form['revision']);
     }
   }
 

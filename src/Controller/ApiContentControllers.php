@@ -192,7 +192,7 @@ final class ApiContentControllers {
     $entity_type = $duplicate->getEntityType();
     $entity_key = $entity_type->getKey('label') ?? 'title';
     // @phpstan-ignore-next-line
-    $duplicate->set($entity_key, $duplicate->label() . ApiLayoutController::ENTITY_DUPLICATE_SUFFIX);
+    $duplicate->set($entity_key, $duplicate->label() . AutoSaveManager::ENTITY_DUPLICATE_SUFFIX);
     assert($duplicate instanceof EntityPublishedInterface);
     $duplicate->setUnpublished();
     $duplicate->save();
