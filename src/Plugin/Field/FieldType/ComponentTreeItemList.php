@@ -230,7 +230,7 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
             foreach ($component_instance['slots'] as $slot => $slot_value) {
               // Handle default slot value: convert to renderable using either
               // #plain_text or `#markup`.
-              if (is_string($slot_value)) {
+              if (!$isPreview && is_string($slot_value)) {
                 $slots[$slot] = !str_starts_with($slot_value, '<')
                   // Match how Drupal core handles string values for components.
                   // @see https://www.drupal.org/node/3398039
@@ -240,6 +240,11 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
                   // manager accepts this as a valid SDC definition, so XB has
                   // no choice but to support it.
                   : ['#markup' => $slot_value];
+              }
+              // When previewing and the slot value is a default: omit the
+              // default in favor of a placeholder div.
+              elseif ($isPreview && is_string($slot_value)) {
+                $slots[$slot] = ['#markup' => Markup::create('<div class="xb--slot-empty-placeholder"></div>')];
               }
               // Explicit slot value: renderify, just like the rest of the
               // component tree.

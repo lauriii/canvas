@@ -12,10 +12,8 @@ import {
 } from '@/features/ui/uiSlice';
 import useSyncIframeHeightToContent from '@/hooks/useSyncIframeHeightToContent';
 import IframeSwapper from '@/features/layout/preview/IframeSwapper';
-import useRenderPreviewEmptySlotPlaceholders from '@/hooks/useRenderPreviewEmptySlotPlaceholders';
 import ViewportOverlay from '@/features/layout/previewOverlay/ViewportOverlay';
 import { useComponentHtmlMap } from '@/hooks/useComponentHtmlMap';
-import { useDataToHtmlMapValue } from '@/features/layout/preview/DataToHtmlMapContext';
 import { RegionSpotlight } from '@/features/layout/preview/RegionSpotlight/RegionSpotlight';
 
 export interface ViewportProps {
@@ -35,10 +33,6 @@ const Viewport: React.FC<ViewportProps> = (props) => {
   const viewportWidth = useAppSelector(selectViewportWidth);
   const viewportMinHeight = useAppSelector(selectViewportMinHeight);
   useComponentHtmlMap(iframeRef.current);
-
-  const { slotsMap } = useDataToHtmlMapValue();
-
-  useRenderPreviewEmptySlotPlaceholders(iframeRef.current, slotsMap);
 
   useSyncIframeHeightToContent(
     iframeRef.current,

@@ -191,56 +191,6 @@ export function getMinOfArray(numArray: number[]) {
 }
 
 /**
- * Finds empty slots and inserts a placeholder div in between the xb-slot-start/xb-slot-end comments to show the user
- * where they can drop things.
- * @param listEl
- */
-export function insertPlaceholderIfMatchingComments(listEl: HTMLElement) {
-  const commentStartPattern = /^\s*xb-slot-start-([\w-]+)\/[\w-]*\s*$/;
-  const commentEndPattern = /^\s*xb-slot-end-([\w-]+)\/[\w-]*\s*$/;
-  let startCommentIndex = -1;
-  let endCommentIndex = -1;
-  let startUuid: string | null = null;
-
-  const childNodes = Array.from(listEl.childNodes);
-
-  // Iterate over child nodes to find the start and end comments with matching UUIDs
-  childNodes.some((node, i) => {
-    if (node.nodeType === Node.COMMENT_NODE) {
-      const startMatch = commentStartPattern.exec(node.nodeValue || '');
-      const endMatch = commentEndPattern.exec(node.nodeValue || '');
-
-      if (startMatch) {
-        startCommentIndex = i;
-        startUuid = startMatch[1];
-      } else if (endMatch && startUuid === endMatch[1]) {
-        endCommentIndex = i;
-        return true; // can stop once we find the matching pair
-      }
-    }
-    return false;
-  });
-
-  // Check if there are no elements between the start and end comments
-  if (startCommentIndex !== -1 && endCommentIndex !== -1) {
-    let hasElementsInBetween = false;
-    for (let i = startCommentIndex + 1; i < endCommentIndex; i++) {
-      if (childNodes[i].nodeType === Node.ELEMENT_NODE) {
-        hasElementsInBetween = true;
-        break;
-      }
-    }
-
-    // Insert placeholderDiv if there are no elements between the comments
-    if (!hasElementsInBetween) {
-      const placeholderDiv = document.createElement('div');
-      placeholderDiv.classList.add('xb--slot-empty-placeholder');
-      listEl.insertBefore(placeholderDiv, childNodes[endCommentIndex]);
-    }
-  }
-}
-
-/**
  * Returns a SlotsMap containing all the slots in the passed `document` keyed by the ID of the slot.
  * @param document
  */

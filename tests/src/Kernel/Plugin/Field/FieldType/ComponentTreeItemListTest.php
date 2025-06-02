@@ -142,12 +142,47 @@ class ComponentTreeItemListTest extends KernelTestBase {
         $value .= '.draft';
       }
     });
+
+    // Add slot placeholders to the expected renderable array.
+    $expectation['expected_renderable'] = self::addSlotPlaceholders($expectation['expected_renderable']);
+    // Update expected HTML to only show empty slot placeholder.
+    $expectation['expected_html'] = preg_replace('#(<div class="xb--slot-empty-placeholder">.*?</div>)(.*?)(?=<!--)#', '<div class="xb--slot-empty-placeholder"></div>', $expectation['expected_html']);
+
     return $expectation;
   }
 
   public static function overwriteRenderableExpectations(array $expectation, array $overwrites): array {
     foreach ($overwrites as ['parents' => $parents, 'value' => $value]) {
       NestedArray::setValue($expectation['expected_renderable'], $parents, $value);
+    }
+    return $expectation;
+  }
+
+  public static function addSlotPlaceholders(mixed $expected_renderable): array {
+    $expectation = [];
+
+    foreach ($expected_renderable as $key => $value) {
+      if (is_array($value)) {
+        $value = self::addSlotPlaceholders($value);
+      }
+
+      if ($key === '#slots') {
+        if (is_array($value)) {
+          foreach ($value as $slot_key => $slot_value) {
+            if (isset($slot_value["#plain_text"]) || isset($slot_value["#markup"])) {
+              $expectation[$key][$slot_key] = [
+                '#markup' => Markup::create('<div class="xb--slot-empty-placeholder"></div>'),
+              ];
+            }
+            else {
+              $expectation[$key][$slot_key] = $slot_value;
+            }
+          }
+        }
+      }
+      else {
+        $expectation[$key] = $value;
+      }
     }
     return $expectation;
   }
@@ -172,8 +207,8 @@ class ComponentTreeItemListTest extends KernelTestBase {
   public static function removePrefixSuffix(array $expectation): array {
     // Remove the prefix and suffix from the expected renderable array.
     $expectation['expected_renderable'] = self::removePrefixSuffixKeysRecursive($expectation['expected_renderable']);
-    // Remove all html comments from expected html.
-    $expectation['expected_html'] = preg_replace('/<!--(.*?)-->/', '', $expectation['expected_html']);
+    // Remove all html comments & empty slot placeholders from expected html.
+    $expectation['expected_html'] = preg_replace(['/<!--(.*?)-->/', '#<div class="xb--slot-empty-placeholder"></div>#'], '', $expectation['expected_html']);
     // Remove extra tabbing so expectation matches actual output.
     $expectation['expected_html'] = preg_replace('/[ \t]+\n/', "\n", $expectation['expected_html']);
 
@@ -282,13 +317,13 @@ class ComponentTreeItemListTest extends KernelTestBase {
 <!-- xb-start-41595148-e5c1-4873-b373-be3ae6e21340 --><div  data-component-id="xb_test_sdc:props-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
   <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;"><!-- xb-prop-start-41595148-e5c1-4873-b373-be3ae6e21340/heading -->Hello, world!<!-- xb-prop-end-41595148-e5c1-4873-b373-be3ae6e21340/heading --></h1>
   <div class="component--props-slots--body">
-        <!-- xb-slot-start-41595148-e5c1-4873-b373-be3ae6e21340/the_body --><p>Example value for <strong>the_body</strong> slot in <strong>prop-slots</strong> component.</p><!-- xb-slot-end-41595148-e5c1-4873-b373-be3ae6e21340/the_body -->
+        <!-- xb-slot-start-41595148-e5c1-4873-b373-be3ae6e21340/the_body --><div class="xb--slot-empty-placeholder"></div><p>Example value for <strong>the_body</strong> slot in <strong>prop-slots</strong> component.</p><!-- xb-slot-end-41595148-e5c1-4873-b373-be3ae6e21340/the_body -->
     </div>
   <div class="component--props-slots--footer">
-        <!-- xb-slot-start-41595148-e5c1-4873-b373-be3ae6e21340/the_footer -->Example value for &lt;strong&gt;the_footer&lt;/strong&gt;.<!-- xb-slot-end-41595148-e5c1-4873-b373-be3ae6e21340/the_footer -->
+        <!-- xb-slot-start-41595148-e5c1-4873-b373-be3ae6e21340/the_footer --><div class="xb--slot-empty-placeholder"></div>Example value for &lt;strong&gt;the_footer&lt;/strong&gt;.<!-- xb-slot-end-41595148-e5c1-4873-b373-be3ae6e21340/the_footer -->
     </div>
   <div class="component--props-slots--colophon">
-        <!-- xb-slot-start-41595148-e5c1-4873-b373-be3ae6e21340/the_colophon --><!-- xb-slot-end-41595148-e5c1-4873-b373-be3ae6e21340/the_colophon -->
+        <!-- xb-slot-start-41595148-e5c1-4873-b373-be3ae6e21340/the_colophon --><div class="xb--slot-empty-placeholder"></div><!-- xb-slot-end-41595148-e5c1-4873-b373-be3ae6e21340/the_colophon -->
     </div>
 </div>
 <!-- xb-end-41595148-e5c1-4873-b373-be3ae6e21340 -->
@@ -629,10 +664,10 @@ HTML,
 <!-- xb-end-3b305d86-86a7-4684-8664-7ef1fc2be070 --><!-- xb-slot-end-41595148-e5c1-4873-b373-be3ae6e21340/the_body -->
     </div>
   <div class="component--props-slots--footer">
-        <!-- xb-slot-start-41595148-e5c1-4873-b373-be3ae6e21340/the_footer -->Example value for &lt;strong&gt;the_footer&lt;/strong&gt;.<!-- xb-slot-end-41595148-e5c1-4873-b373-be3ae6e21340/the_footer -->
+        <!-- xb-slot-start-41595148-e5c1-4873-b373-be3ae6e21340/the_footer --><div class="xb--slot-empty-placeholder"></div>Example value for &lt;strong&gt;the_footer&lt;/strong&gt;.<!-- xb-slot-end-41595148-e5c1-4873-b373-be3ae6e21340/the_footer -->
     </div>
   <div class="component--props-slots--colophon">
-        <!-- xb-slot-start-41595148-e5c1-4873-b373-be3ae6e21340/the_colophon --><!-- xb-slot-end-41595148-e5c1-4873-b373-be3ae6e21340/the_colophon -->
+        <!-- xb-slot-start-41595148-e5c1-4873-b373-be3ae6e21340/the_colophon --><div class="xb--slot-empty-placeholder"></div><!-- xb-slot-end-41595148-e5c1-4873-b373-be3ae6e21340/the_colophon -->
     </div>
 </div>
 <!-- xb-end-41595148-e5c1-4873-b373-be3ae6e21340 -->
@@ -1170,28 +1205,28 @@ HTML,
 <!-- xb-end-9f09ecd8-ec65-408c-b5c8-ef036e6aeb97 --><!-- xb-slot-end-e0b92f23-c177-4196-8fa4-3e837f99a357/the_body -->
     </div>
   <div class="component--props-slots--footer">
-        <!-- xb-slot-start-e0b92f23-c177-4196-8fa4-3e837f99a357/the_footer -->Example value for &lt;strong&gt;the_footer&lt;/strong&gt;.<!-- xb-slot-end-e0b92f23-c177-4196-8fa4-3e837f99a357/the_footer -->
+        <!-- xb-slot-start-e0b92f23-c177-4196-8fa4-3e837f99a357/the_footer --><div class="xb--slot-empty-placeholder"></div>Example value for &lt;strong&gt;the_footer&lt;/strong&gt;.<!-- xb-slot-end-e0b92f23-c177-4196-8fa4-3e837f99a357/the_footer -->
     </div>
   <div class="component--props-slots--colophon">
-        <!-- xb-slot-start-e0b92f23-c177-4196-8fa4-3e837f99a357/the_colophon --><!-- xb-slot-end-e0b92f23-c177-4196-8fa4-3e837f99a357/the_colophon -->
+        <!-- xb-slot-start-e0b92f23-c177-4196-8fa4-3e837f99a357/the_colophon --><div class="xb--slot-empty-placeholder"></div><!-- xb-slot-end-e0b92f23-c177-4196-8fa4-3e837f99a357/the_colophon -->
     </div>
 </div>
 <!-- xb-end-e0b92f23-c177-4196-8fa4-3e837f99a357 --><!-- xb-slot-end-dfd2e899-6d88-46f8-b6aa-98929d1586dd/the_body -->
     </div>
   <div class="component--props-slots--footer">
-        <!-- xb-slot-start-dfd2e899-6d88-46f8-b6aa-98929d1586dd/the_footer -->Example value for &lt;strong&gt;the_footer&lt;/strong&gt;.<!-- xb-slot-end-dfd2e899-6d88-46f8-b6aa-98929d1586dd/the_footer -->
+        <!-- xb-slot-start-dfd2e899-6d88-46f8-b6aa-98929d1586dd/the_footer --><div class="xb--slot-empty-placeholder"></div>Example value for &lt;strong&gt;the_footer&lt;/strong&gt;.<!-- xb-slot-end-dfd2e899-6d88-46f8-b6aa-98929d1586dd/the_footer -->
     </div>
   <div class="component--props-slots--colophon">
-        <!-- xb-slot-start-dfd2e899-6d88-46f8-b6aa-98929d1586dd/the_colophon --><!-- xb-slot-end-dfd2e899-6d88-46f8-b6aa-98929d1586dd/the_colophon -->
+        <!-- xb-slot-start-dfd2e899-6d88-46f8-b6aa-98929d1586dd/the_colophon --><div class="xb--slot-empty-placeholder"></div><!-- xb-slot-end-dfd2e899-6d88-46f8-b6aa-98929d1586dd/the_colophon -->
     </div>
 </div>
 <!-- xb-end-dfd2e899-6d88-46f8-b6aa-98929d1586dd --><!-- xb-slot-end-41595148-e5c1-4873-b373-be3ae6e21340/the_body -->
     </div>
   <div class="component--props-slots--footer">
-        <!-- xb-slot-start-41595148-e5c1-4873-b373-be3ae6e21340/the_footer -->Example value for &lt;strong&gt;the_footer&lt;/strong&gt;.<!-- xb-slot-end-41595148-e5c1-4873-b373-be3ae6e21340/the_footer -->
+        <!-- xb-slot-start-41595148-e5c1-4873-b373-be3ae6e21340/the_footer --><div class="xb--slot-empty-placeholder"></div>Example value for &lt;strong&gt;the_footer&lt;/strong&gt;.<!-- xb-slot-end-41595148-e5c1-4873-b373-be3ae6e21340/the_footer -->
     </div>
   <div class="component--props-slots--colophon">
-        <!-- xb-slot-start-41595148-e5c1-4873-b373-be3ae6e21340/the_colophon --><!-- xb-slot-end-41595148-e5c1-4873-b373-be3ae6e21340/the_colophon -->
+        <!-- xb-slot-start-41595148-e5c1-4873-b373-be3ae6e21340/the_colophon --><div class="xb--slot-empty-placeholder"></div><!-- xb-slot-end-41595148-e5c1-4873-b373-be3ae6e21340/the_colophon -->
     </div>
 </div>
 <!-- xb-end-41595148-e5c1-4873-b373-be3ae6e21340 -->
@@ -1307,28 +1342,28 @@ HTML,
 <!-- xb-end-9f09ecd8-ec65-408c-b5c8-ef036e6aeb97 --><!-- xb-slot-end-e0b92f23-c177-4196-8fa4-3e837f99a357/the_body -->
     </div>
   <div class="component--props-slots--footer">
-        <!-- xb-slot-start-e0b92f23-c177-4196-8fa4-3e837f99a357/the_footer -->Example value for &lt;strong&gt;the_footer&lt;/strong&gt;.<!-- xb-slot-end-e0b92f23-c177-4196-8fa4-3e837f99a357/the_footer -->
+        <!-- xb-slot-start-e0b92f23-c177-4196-8fa4-3e837f99a357/the_footer --><div class="xb--slot-empty-placeholder"></div><!-- xb-slot-end-e0b92f23-c177-4196-8fa4-3e837f99a357/the_footer -->
     </div>
   <div class="component--props-slots--colophon">
-        <!-- xb-slot-start-e0b92f23-c177-4196-8fa4-3e837f99a357/the_colophon --><!-- xb-slot-end-e0b92f23-c177-4196-8fa4-3e837f99a357/the_colophon -->
+        <!-- xb-slot-start-e0b92f23-c177-4196-8fa4-3e837f99a357/the_colophon --><div class="xb--slot-empty-placeholder"></div><!-- xb-slot-end-e0b92f23-c177-4196-8fa4-3e837f99a357/the_colophon -->
     </div>
 </div>
 <!-- xb-end-e0b92f23-c177-4196-8fa4-3e837f99a357 --><!-- xb-slot-end-dfd2e899-6d88-46f8-b6aa-98929d1586dd/the_body -->
     </div>
   <div class="component--props-slots--footer">
-        <!-- xb-slot-start-dfd2e899-6d88-46f8-b6aa-98929d1586dd/the_footer -->Example value for &lt;strong&gt;the_footer&lt;/strong&gt;.<!-- xb-slot-end-dfd2e899-6d88-46f8-b6aa-98929d1586dd/the_footer -->
+        <!-- xb-slot-start-dfd2e899-6d88-46f8-b6aa-98929d1586dd/the_footer --><div class="xb--slot-empty-placeholder"></div><!-- xb-slot-end-dfd2e899-6d88-46f8-b6aa-98929d1586dd/the_footer -->
     </div>
   <div class="component--props-slots--colophon">
-        <!-- xb-slot-start-dfd2e899-6d88-46f8-b6aa-98929d1586dd/the_colophon --><!-- xb-slot-end-dfd2e899-6d88-46f8-b6aa-98929d1586dd/the_colophon -->
+        <!-- xb-slot-start-dfd2e899-6d88-46f8-b6aa-98929d1586dd/the_colophon --><div class="xb--slot-empty-placeholder"></div><!-- xb-slot-end-dfd2e899-6d88-46f8-b6aa-98929d1586dd/the_colophon -->
     </div>
 </div>
 <!-- xb-end-dfd2e899-6d88-46f8-b6aa-98929d1586dd --><!-- xb-slot-end-41595148-e5c1-4873-b373-be3ae6e21340/the_body -->
     </div>
   <div class="component--props-slots--footer">
-        <!-- xb-slot-start-41595148-e5c1-4873-b373-be3ae6e21340/the_footer -->Example value for &lt;strong&gt;the_footer&lt;/strong&gt;.<!-- xb-slot-end-41595148-e5c1-4873-b373-be3ae6e21340/the_footer -->
+        <!-- xb-slot-start-41595148-e5c1-4873-b373-be3ae6e21340/the_footer --><div class="xb--slot-empty-placeholder"></div><!-- xb-slot-end-41595148-e5c1-4873-b373-be3ae6e21340/the_footer -->
     </div>
   <div class="component--props-slots--colophon">
-        <!-- xb-slot-start-41595148-e5c1-4873-b373-be3ae6e21340/the_colophon --><!-- xb-slot-end-41595148-e5c1-4873-b373-be3ae6e21340/the_colophon -->
+        <!-- xb-slot-start-41595148-e5c1-4873-b373-be3ae6e21340/the_colophon --><div class="xb--slot-empty-placeholder"></div><!-- xb-slot-end-41595148-e5c1-4873-b373-be3ae6e21340/the_colophon -->
     </div>
 </div>
 <!-- xb-end-41595148-e5c1-4873-b373-be3ae6e21340 -->
