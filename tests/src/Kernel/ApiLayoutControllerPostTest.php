@@ -86,7 +86,7 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
     // Check that the root level is structured correctly.
     $root = $this->getRegion('content');
     $this->assertNotNull($root);
-    $this->assertEquals('', $root);
+    $this->assertEquals('<div class="xb--region-empty-placeholder"></div>', $root);
   }
 
   public function testMissingSlot(): void {

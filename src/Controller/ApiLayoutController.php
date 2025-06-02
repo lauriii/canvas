@@ -337,11 +337,14 @@ final class ApiLayoutController {
     }
     $renderable = $this->componentTreeLoader->load($entity)->toRenderable($entity, TRUE);
 
+    $build = [];
     if (isset($renderable[ComponentTreeItemList::ROOT_UUID])) {
       $build = $renderable[ComponentTreeItemList::ROOT_UUID];
     }
 
-    $build['#prefix'] = Markup::create('<!-- xb-region-start-content -->');
+    $build['#prefix'] = !empty($build)
+      ? Markup::create('<!-- xb-region-start-content -->')
+      : Markup::create('<!-- xb-region-start-content --><div class="xb--region-empty-placeholder"></div>');
     $build['#suffix'] = Markup::create('<!-- xb-region-end-content -->');
     $build['#attached']['library'][] = 'experience_builder/preview';
     return $build;

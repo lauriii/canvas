@@ -17,7 +17,6 @@ import ViewportOverlay from '@/features/layout/previewOverlay/ViewportOverlay';
 import { useComponentHtmlMap } from '@/hooks/useComponentHtmlMap';
 import { useDataToHtmlMapValue } from '@/features/layout/preview/DataToHtmlMapContext';
 import { RegionSpotlight } from '@/features/layout/preview/RegionSpotlight/RegionSpotlight';
-import useRenderPreviewEmptyRegionPlaceholder from '@/hooks/useRenderPreviewEmptyRegionPlaceholder';
 
 export interface ViewportProps {
   isFetching: boolean;
@@ -37,10 +36,9 @@ const Viewport: React.FC<ViewportProps> = (props) => {
   const viewportMinHeight = useAppSelector(selectViewportMinHeight);
   useComponentHtmlMap(iframeRef.current);
 
-  const { slotsMap, regionsMap } = useDataToHtmlMapValue();
+  const { slotsMap } = useDataToHtmlMapValue();
 
   useRenderPreviewEmptySlotPlaceholders(iframeRef.current, slotsMap);
-  useRenderPreviewEmptyRegionPlaceholder(iframeRef.current, regionsMap);
 
   useSyncIframeHeightToContent(
     iframeRef.current,
