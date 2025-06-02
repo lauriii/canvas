@@ -2,7 +2,6 @@ import {
   defaultValue,
   localDefaultValue,
   localDefaultEndValue,
-  datePartValueAsText,
 } from './default-date.js';
 
 export const edit = (cy) => {
@@ -14,123 +13,40 @@ export const edit = (cy) => {
   cy.get('@dateRangeDateList')
     .findAllByLabelText('Year')
     .eq(0)
-    .parent()
-    .find('select')
     .as('startDateYear');
   cy.get('@dateRangeDateList')
     .findAllByLabelText('Year')
-    .eq(0)
-    .parent()
-    .findByRole('combobox')
-    .as('startDateYearText');
-  cy.get('@dateRangeDateList')
-    .findAllByLabelText('Year')
     .eq(1)
-    .parent()
-    .find('select')
     .as('endDateYear');
-  cy.get('@dateRangeDateList')
-    .findAllByLabelText('Year')
-    .eq(1)
-    .parent()
-    .findByRole('combobox')
-    .as('endDateYearText');
   cy.get('@dateRangeDateList')
     .findAllByLabelText('Month')
     .eq(0)
-    .parent()
-    .find('select')
     .as('startDateMonth');
   cy.get('@dateRangeDateList')
     .findAllByLabelText('Month')
-    .eq(0)
-    .parent()
-    .findByRole('combobox')
-    .as('startDateMonthText');
-  cy.get('@dateRangeDateList')
-    .findAllByLabelText('Month')
     .eq(1)
-    .parent()
-    .find('select')
     .as('endDateMonth');
   cy.get('@dateRangeDateList')
-    .findAllByLabelText('Month')
-    .eq(1)
-    .parent()
-    .findByRole('combobox')
-    .as('endDateMonthText');
-  cy.get('@dateRangeDateList')
     .findAllByLabelText('Day')
     .eq(0)
-    .parent()
-    .find('select')
     .as('startDateDay');
-  cy.get('@dateRangeDateList')
-    .findAllByLabelText('Day')
-    .eq(0)
-    .parent()
-    .findByRole('combobox')
-    .as('startDateDayText');
-  cy.get('@dateRangeDateList')
-    .findAllByLabelText('Day')
-    .eq(1)
-    .parent()
-    .find('select')
-    .as('endDateDay');
-  cy.get('@dateRangeDateList')
-    .findAllByLabelText('Day')
-    .eq(1)
-    .parent()
-    .findByRole('combobox')
-    .as('endDateDayText');
+  cy.get('@dateRangeDateList').findAllByLabelText('Day').eq(1).as('endDateDay');
   cy.get('@dateRangeDateList')
     .findAllByLabelText('Hour')
     .eq(0)
-    .parent()
-    .find('select')
     .as('startDateHour');
   cy.get('@dateRangeDateList')
     .findAllByLabelText('Hour')
-    .eq(0)
-    .parent()
-    .findByRole('combobox')
-    .as('startDateHourText');
-  cy.get('@dateRangeDateList')
-    .findAllByLabelText('Hour')
     .eq(1)
-    .parent()
-    .find('select')
     .as('endDateHour');
-  cy.get('@dateRangeDateList')
-    .findAllByLabelText('Hour')
-    .eq(1)
-    .parent()
-    .findByRole('combobox')
-    .as('endDateHourText');
   cy.get('@dateRangeDateList')
     .findAllByLabelText('Minute')
     .eq(0)
-    .parent()
-    .find('select')
     .as('startDateMinute');
   cy.get('@dateRangeDateList')
     .findAllByLabelText('Minute')
-    .eq(0)
-    .parent()
-    .findByRole('combobox')
-    .as('startDateMinuteText');
-  cy.get('@dateRangeDateList')
-    .findAllByLabelText('Minute')
     .eq(1)
-    .parent()
-    .find('select')
     .as('endDateMinute');
-  cy.get('@dateRangeDateList')
-    .findAllByLabelText('Minute')
-    .eq(1)
-    .parent()
-    .findByRole('combobox')
-    .as('endDateMinuteText');
   const defaultValues = {
     startDateYear: 2025,
     startDateMonth: localDefaultValue.format('M'),
@@ -145,7 +61,6 @@ export const edit = (cy) => {
   };
   Object.entries(defaultValues).forEach(([key, value]) => {
     cy.get(`@${key}`).should('have.value', value);
-    cy.get(`@${key}Text`).should('have.text', datePartValueAsText(key, value));
   });
   // Check we can select the empty value without raising a 500 error.
   cy.get('@startDateMonth').select('Month', { force: true });
@@ -171,10 +86,8 @@ export const edit = (cy) => {
     endDateMinute: 30,
   };
   Object.entries(newValues).forEach(([key, value]) => {
-    // Radix renders these as a hidden element with a button to trigger, so
-    // we have to use force.
     cy.get(`@${key}`).select(String(value), { force: true });
-    cy.get(`@${key}Text`).should('have.text', datePartValueAsText(key, value));
+    cy.get(`@${key}`).should('have.value', String(value));
   });
 };
 export const assertData = (response) => {

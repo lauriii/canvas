@@ -27,11 +27,11 @@ describe('Multivalue widget drag and drop', () => {
     // when they shouldn't be is a useful canary for identifying AJAX problems.
     const confirmWeightSelectCount = (count, visible = false) => {
       cy.get('@unlimited-text')
-        .get('.delta-order button')
-        .should(($buttons) => {
-          expect($buttons).to.have.length(count);
-          $buttons.each((index, button) => {
-            expect(Cypress.$(button).is(':visible')).to.equal(visible);
+        .get('.delta-order select')
+        .should(($selects) => {
+          expect($selects).to.have.length(count);
+          $selects.each((index, weightSelect) => {
+            expect(Cypress.$(weightSelect).is(':visible')).to.equal(visible);
           });
         });
     };
@@ -93,6 +93,14 @@ describe('Multivalue widget drag and drop', () => {
     confirmWeightSelectCount(3);
     waitForPreview();
 
+    // Wait for all AJAX instances to finish.
+    cy.waitForWindowProcess(
+      (win) =>
+        !win.Drupal.ajax.instances.some(
+          (instance) => instance && instance.ajaxing === true,
+        ),
+    );
+
     confirmTextInputs([
       'Marshmallow Coast',
       'Neutral Milk Hotel',
@@ -142,6 +150,14 @@ describe('Multivalue widget drag and drop', () => {
       .eq(3)
       .type('The Music Tapes');
     waitForPreview();
+
+    // Wait for all AJAX instances to finish.
+    cy.waitForWindowProcess(
+      (win) =>
+        !win.Drupal.ajax.instances.some(
+          (instance) => instance && instance.ajaxing === true,
+        ),
+    );
     confirmTextInputs([
       'Marshmallow Coast',
       'The Olivia Tremor Control',

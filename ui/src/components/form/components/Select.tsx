@@ -1,53 +1,30 @@
-import type { Attributes } from '@/types/DrupalAttribute';
-import type { ForwardedRef } from 'react';
-
-import { forwardRef } from 'react';
-import { Select as SelectRadixThemes } from '@radix-ui/themes';
-import { SELECT_ITEM_EMPTY_STRING } from '@/utils/function-utils';
-
+import clsx from 'clsx';
 import styles from './Select.module.css';
+import { a2p } from '@/local_packages/utils';
+import type { Attributes } from '@/types/DrupalAttribute';
 
-const Select = forwardRef(function Select(
-  {
-    value,
-    onValueChange,
-    options,
-    attributes,
-  }: {
+interface SelectProps {
+  attributes?: Attributes;
+  options?: Array<{
     value: string;
-    onValueChange: (value: string) => void;
-    options: { value: string; label: string }[];
-    attributes: Attributes;
-  },
-  ref: ForwardedRef<HTMLButtonElement>,
-) {
-  const { id, ...remainingAttributes } = attributes;
+    label: string;
+    selected: boolean;
+    type: string;
+  }>;
+}
+const Select: React.FC<SelectProps> = ({ attributes = {}, options = [] }) => {
   return (
-    <SelectRadixThemes.Root
-      value={value}
-      {...remainingAttributes}
-      onValueChange={onValueChange}
+    <select
+      {...a2p(attributes)}
+      className={clsx(attributes.class || '', styles.select)}
     >
-      <SelectRadixThemes.Trigger
-        {...(id && { id: id as string })}
-        className={styles.trigger}
-        ref={ref}
-      />
-      <SelectRadixThemes.Content>
-        {options?.map((option, index) => (
-          // Radix select items can't accept empty strings in the value prop, so
-          // use a placeholder that the onChange callback will convert back to
-          // an empty string when selected.
-          <SelectRadixThemes.Item
-            key={index}
-            value={option.value || SELECT_ITEM_EMPTY_STRING}
-          >
-            {option.label}
-          </SelectRadixThemes.Item>
-        ))}
-      </SelectRadixThemes.Content>
-    </SelectRadixThemes.Root>
+      {options.map((option, index) => (
+        <option key={index} value={option.value}>
+          {option.label}
+        </option>
+      ))}
+    </select>
   );
-});
+};
 
 export default Select;

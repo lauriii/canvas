@@ -165,5 +165,136 @@ function xb_test_state_api_form_alter(array &$form, FormStateInterface $form_sta
         ],
       ],
     ];
+
+    $form['states_api_test']['select_states'] = [
+      '#type' => 'container',
+      '#title' => t('Select States'),
+      '#markup' => '<strong>Test the State API with a select element.</strong>',
+    ];
+
+    // Add select element with options
+    $form['states_api_test']['select_states']['state_control'] = [
+      '#type' => 'select',
+      '#title' => t('Select to change states'),
+      '#default_value' => '',
+      '#options' => [
+        '' => t('- Select -'),
+        'make_default_enabled_disabled' => t('Make default enabled disabled'),
+        'make_default_disabled_enabled' => t('Make default disabled enabled'),
+        'make_required_optional' => t('Make required optional'),
+        'make_optional_required' => t('Make optional required'),
+        'make_visible_invisible' => t('Make visible invisible'),
+        'make_invisible_visible' => t('Make invisible visible'),
+        'make_checked_unchecked' => t('Make checked unchecked'),
+        'make_unchecked_checked' => t('Make unchecked checked'),
+        'just_a_value' => t('A value that does nothing but be a value'),
+      ],
+    ];
+
+    // Enabled by default, becomes disabled
+    $form['states_api_test']['select_states']['default_enabled'] = [
+      '#type' => 'textfield',
+      '#title' => t('Select: Default enabled field'),
+      '#states' => [
+        'disabled' => [
+          ':input[name="state_control"]' => ['value' => 'make_default_enabled_disabled'],
+        ],
+      ],
+    ];
+
+    // Disabled by default, becomes enabled
+    $form['states_api_test']['select_states']['default_disabled'] = [
+      '#type' => 'textfield',
+      '#title' => t('Select: Default disabled field'),
+      '#disabled' => TRUE,
+      '#states' => [
+        'enabled' => [
+          ':input[name="state_control"]' => ['value' => 'make_default_disabled_enabled'],
+        ],
+      ],
+    ];
+
+    // Required by default, becomes optional
+    $form['states_api_test']['select_states']['default_required'] = [
+      '#type' => 'textfield',
+      '#title' => t('Select: Default required field'),
+      '#required' => TRUE,
+      '#states' => [
+        'optional' => [
+          ':input[name="state_control"]' => ['value' => 'make_required_optional'],
+        ],
+      ],
+    ];
+
+    // Optional by default, becomes required
+    $form['states_api_test']['select_states']['default_optional'] = [
+      '#type' => 'textfield',
+      '#title' => t('Select: Default optional field'),
+      '#states' => [
+        'required' => [
+          ':input[name="state_control"]' => ['value' => 'make_optional_required'],
+        ],
+      ],
+    ];
+
+    // Visible by default, becomes invisible
+    $form['states_api_test']['select_states']['default_visible'] = [
+      '#type' => 'textfield',
+      '#title' => t('Select: Default visible field'),
+      '#states' => [
+        'invisible' => [
+          ':input[name="state_control"]' => ['value' => 'make_visible_invisible'],
+        ],
+      ],
+    ];
+
+    // Invisible by default, becomes visible
+    $form['states_api_test']['select_states']['default_invisible'] = [
+      '#type' => 'textfield',
+      '#title' => t('Select: Default invisible field'),
+      '#states' => [
+        'visible' => [
+          ':input[name="state_control"]' => ['value' => 'make_invisible_visible'],
+        ],
+      ],
+    ];
+
+    // Checked by default, becomes unchecked
+    $form['states_api_test']['select_states']['default_checked'] = [
+      '#type' => 'checkbox',
+      '#title' => t('Select: Default checked checkbox'),
+      '#default_value' => TRUE,
+      '#states' => [
+        'unchecked' => [
+          ':input[name="state_control"]' => ['value' => 'make_checked_unchecked'],
+        ],
+      ],
+    ];
+
+    // Unchecked by default, becomes checked
+    $form['states_api_test']['select_states']['default_unchecked'] = [
+      '#type' => 'checkbox',
+      '#title' => t('Select: Default unchecked checkbox'),
+      '#default_value' => FALSE,
+      '#states' => [
+        'checked' => [
+          ':input[name="state_control"]' => ['value' => 'make_unchecked_checked'],
+        ],
+      ],
+    ];
+
+    // Container that appears when any option is selected
+    $form['states_api_test']['select_states']['hello_world'] = [
+      '#type' => 'container',
+      '#attributes' => ['data-when-not-empty' => 'true'],
+      'markup' => [
+        '#markup' => '<p>Hello world</p>',
+      ],
+      '#states' => [
+        'visible' => [
+          ':input[name="state_control"]' => ['filled' => TRUE],
+        ],
+      ],
+    ];
   }
 }

@@ -33,10 +33,6 @@ export function isConsecutive(sortedIndexes: number[]): boolean {
   return true;
 }
 
-// Radix select items do not accept an empty string as a value prop. This is
-// a placeholder that is used instead, and parseValue() will convert it back
-// to an empty string if the item is selected.
-export const SELECT_ITEM_EMPTY_STRING = '$%^&*AN_EMPTY_STRING';
 export function parseValue(
   value: any,
   element: HTMLInputElement | HTMLSelectElement,
@@ -54,9 +50,6 @@ export function parseValue(
   }
   if (value === '') {
     return value;
-  }
-  if (value === SELECT_ITEM_EMPTY_STRING) {
-    return '';
   }
   const parsed = Number(value);
   return isNaN(parsed) ? value : parsed;

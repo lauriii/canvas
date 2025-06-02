@@ -1,4 +1,4 @@
-describe('checkbox states', () => {
+describe('states', () => {
   before(() => {
     cy.drupalXbInstall(['xb_test_state_api']);
   });
@@ -122,5 +122,69 @@ describe('checkbox states', () => {
     cy.findByLabelText(controller).check();
     cy.findByLabelText(controller).should('be.checked');
     cy.findByLabelText(target).should('be.checked');
+  });
+
+  it('responds to select changes', () => {
+    cy.get('[data-when-not-empty]').should('not.be.visible');
+
+    const states = [
+      {
+        option: 'make_default_enabled_disabled',
+        target: 'Select: Default enabled field',
+        before: ['be.enabled'],
+        after: ['not.be.enabled'],
+      },
+      {
+        option: 'make_default_disabled_enabled',
+        target: 'Select: Default disabled field',
+        before: ['not.be.enabled'],
+        after: ['be.enabled'],
+      },
+      {
+        option: 'make_required_optional',
+        target: 'Select: Default required field',
+        before: ['have.attr', 'required'],
+        after: ['not.have.attr', 'required'],
+      },
+      {
+        option: 'make_optional_required',
+        target: 'Select: Default optional field',
+        before: ['not.have.attr', 'required'],
+        after: ['have.attr', 'required'],
+      },
+      {
+        option: 'make_visible_invisible',
+        target: 'Select: Default visible field',
+        before: ['be.visible'],
+        after: ['not.be.visible'],
+      },
+      {
+        option: 'make_invisible_visible',
+        target: 'Select: Default invisible field',
+        before: ['not.be.visible'],
+        after: ['be.visible'],
+      },
+      {
+        option: 'make_checked_unchecked',
+        target: 'Select: Default checked checkbox',
+        before: ['be.checked'],
+        after: ['not.be.checked'],
+      },
+      {
+        option: 'make_unchecked_checked',
+        target: 'Select: Default unchecked checkbox',
+        before: ['not.be.checked'],
+        after: ['be.checked'],
+      },
+    ];
+    states.forEach(({ option, target, before, after }) => {
+      cy.log(`Select state change: ${option}`);
+      cy.findByLabelText(target).should(...before);
+      cy.findByLabelText('Select to change states').select(option);
+      cy.findByLabelText(target).should(...after);
+      cy.findByLabelText('Select to change states').select('just_a_value');
+      cy.findByLabelText(target).should(...before);
+    });
+    cy.get('[data-when-not-empty]').should('be.visible');
   });
 });

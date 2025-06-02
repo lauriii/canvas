@@ -20,7 +20,7 @@ import {
   selectLayout,
   selectModel,
 } from '@/features/layout/layoutModelSlice';
-import { parseValue, SELECT_ITEM_EMPTY_STRING } from '@/utils/function-utils';
+import { parseValue } from '@/utils/function-utils';
 import { debounce } from 'lodash';
 import { useGetComponentsQuery } from '@/services/componentAndLayout';
 import { findComponentByUuid } from '@/features/layout/layoutUtils';
@@ -476,7 +476,7 @@ const InputBehaviorsEntityForm = (
     const target = e.target as HTMLInputElement;
     // If the target is an input element, return its value
     if (target.value !== undefined) {
-      return target.value === SELECT_ITEM_EMPTY_STRING ? '' : target.value;
+      return target.value;
     }
     // If the target is a checkbox or radio button, return its checked
     if ('checked' in target) {

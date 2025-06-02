@@ -4,14 +4,11 @@ export const edit = (cy) => {
     .parents('.js-form-wrapper')
     .as('moderation-state-wrapper');
   cy.get('@moderation-state-wrapper')
-    .findByRole('combobox', { name: 'Change to', exact: false })
-    .click();
-  cy.findByRole('option', { name: 'Published', selected: true, exact: false });
-  cy.findByRole('option', { name: 'Draft', exact: false }).click();
-  cy.get('@moderation-state')
-    .parent()
-    .find('select')
-    .should('have.value', 'draft');
+    .findByLabelText('Change to', { exact: false })
+    .as('changeTo');
+  cy.get('@changeTo').should('have.value', 'published');
+  cy.get('@changeTo').select('draft');
+  cy.get('@changeTo').should('have.value', 'draft');
 };
 export const assertData = (response) => {
   expect(response.attributes.moderation_state).to.equal('draft');

@@ -1159,6 +1159,19 @@ Cypress.Commands.add('publishAllPendingChanges', (titles) => {
   });
 });
 
+Cypress.Commands.add('waitForWindowProcess', (conditionFn, options = {}) => {
+  const defaultOptions = {
+    timeout: 10000,
+    interval: 100,
+  };
+
+  const finalOptions = { ...defaultOptions, ...options };
+
+  cy.window({ timeout: finalOptions.timeout }).should((win) => {
+    expect(conditionFn(win)).to.be.true;
+  });
+});
+
 /**
  * Wait for elements to stop being added to the DOM.
  *

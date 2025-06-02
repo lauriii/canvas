@@ -5,7 +5,6 @@
  * Functions to support theming in the XB Stark theme.
  */
 
-use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\xb_stark\PreRender;
 
@@ -30,16 +29,6 @@ function xb_stark_form_node_form_alter(array &$form, FormStateInterface $form_st
 
 function xb_stark_preprocess_field_multiple_value_form(array &$variables): void {
   $variables['attributes']['data-xb-multiple-values'] = 'true';
-  // The default tabledrag group/target is the {table_id}-order but Radix
-  // assigns this class to the trigger which is a button element. As a result
-  // tabledrag.js does not set the value on the select after a drag/drop event
-  // this causes the new order to be lost when the form is submitted. So we
-  // change the group (which is used as a selector to target the weight field)
-  // to select the adjacent select element.
-  // @see tabledrag.js
-  if (NestedArray::getValue($variables, ['table', '#tabledrag', 0, 'group'])) {
-    $variables['table']['#tabledrag'][0]['group'] .= ' + select';
-  }
 }
 
 /**

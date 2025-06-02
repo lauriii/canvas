@@ -34,13 +34,3 @@ export const defaultEndValue = defaultValue.add(2, 'hours');
 // @see core/tests/bootstrap.php
 export const localDefaultValue = defaultValue.tz(tz);
 export const localDefaultEndValue = defaultEndValue.tz(tz);
-
-// We only need to transform month in a short format way e.g. "Apr", and months
-// are starting by zero. We use the 15th to avoid any timezone issue.
-export const datePartValueAsText = (key, value) =>
-  new RegExp(/month/, 'i').test(key)
-    ? dayjs()
-        .date(15)
-        .month(value - 1)
-        .format('MMM')
-    : value;
