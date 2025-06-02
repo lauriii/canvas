@@ -114,6 +114,24 @@ final class LibraryHooks {
       $libraries += $this->customizeDialogLibrary($admin_theme_name);
     }
     $this->buildExtensionLibraries($libraries);
+
+    // Collect the CSS file paths from all of these XB-specific libraries so they
+    // can be made available in drupalSettings. This makes is possible to add
+    // dialog-scoped versions of this CSS on page load, so even dialogs that are
+    // not opened with AJAX can be styled correctly.
+    $css_files = [];
+    foreach ($libraries as $library_name => &$library) {
+      foreach ($libraries[$library_name]['css'] as $files) {
+        foreach ($files as $filename => $file_definition) {
+          if (!str_ends_with($filename, '.css')) {
+            continue;
+          }
+          $css_files[] = str_replace('/./', '/', $filename);
+        }
+      }
+    }
+    $libraries['xb.drupal.dialog']['drupalSettings']['xb']['dialogCss'] = $css_files;
+
     return $libraries;
   }
 

@@ -82,7 +82,9 @@ const DrupalSelect = ({ attributes = {}, options = [] }: DrupalSelectProps) => {
     <Select
       value={attributes.value ?? defaultValue}
       onValueChange={(newValue: string) => {
-        if (!selectRef.current?.parentElement) return;
+        if (!selectRef.current?.parentElement) {
+          return;
+        }
 
         const hiddenSelect =
           selectRef.current.parentElement.querySelector<HTMLSelectElement>(

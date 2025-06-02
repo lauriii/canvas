@@ -443,6 +443,7 @@ function xb_test_article_fields_install(): void {
       ],
     ])->save();
   }
+
   $name = 'minimal_html';
   FilterFormat::create([
     'format' => $name,
@@ -452,7 +453,17 @@ function xb_test_article_fields_install(): void {
       'filter_html' => [
         'status' => TRUE,
         'settings' => [
-          'allowed_html' => '<br> <p> <strong> <em>',
+          'allowed_html' => '<br> <p> <strong> <em> <drupal-media data-entity-type data-entity-uuid data-align data-caption alt>',
+        ],
+      ],
+      'media_embed' => [
+        'status' => TRUE,
+        'settings' => [
+          'default_view_mode' => 'default',
+          'allowed_view_modes' => [
+            'default' => 'default',
+          ],
+          'allowed_media_types' => [],
         ],
       ],
     ],
@@ -466,11 +477,22 @@ function xb_test_article_fields_install(): void {
     ],
     'settings' => [
       'toolbar' => [
-        'items' => ['bold', 'italic', 'sourceEditing'],
+        'items' => ['bold', 'italic', 'sourceEditing', 'drupalMedia'],
       ],
       'plugins' => [
         'ckeditor5_sourceEditing' => [
           'allowed_tags' => [],
+        ],
+        'ckeditor5_alignment' => [
+          'enabled_alignments' => [
+            'center',
+            'justify',
+            'left',
+            'right',
+          ],
+        ],
+        'media_media' => [
+          'allow_view_mode_override' => FALSE,
         ],
       ],
     ],

@@ -1,0 +1,6 @@
+test.dialog:
+  js:
+    js/xb-test-dialog.js: {}
+  dependencies:
+    - experience_builder/ui
+    - core/jquery

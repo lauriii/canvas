@@ -24,3 +24,10 @@ a.tabledrag-handle .handle.handle {
   margin: 0 0.5em 0;
   background-position: 0;
 }
+
+/* Dialogs triggered from CKEditor 5 have the `.ui-dialog--narrow` class
+ hard-coded, so the widths defined there are unset here. */
+.ui-dialog--narrow.ck-xb-dialog {
+  min-width: unset;
+  max-width: unset;
+}

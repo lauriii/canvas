@@ -128,7 +128,13 @@ describe('The Scope CSS utility', () => {
 
   it.only('Handles CSS variables and :root', () => {
     cy.loadURLandWaitForXBLoaded();
-    cy.get('[data-dialog-style-from]').should('not.exist');
+    cy.get('[data-dialog-style-from]').should('exist');
+    cy.waitForElementsToStabilize('[data-dialog-style-from]');
+    // Add a class to the AJAX added CSS on load to distinguish them from the
+    // stylesheets added below.
+    cy.get('[data-dialog-style-from]').then(($addedStyles) => {
+      $addedStyles.addClass('added-on-load');
+    });
 
     cy.window().then((win) => {
       win.Drupal.AjaxCommands.prototype.scope_css(
@@ -145,74 +151,76 @@ describe('The Scope CSS utility', () => {
       );
     });
 
-    cy.get('[data-dialog-style-from]').should(($addedStyles) => {
-      expect($addedStyles).to.have.length(2);
-      const varsStylesheet = new CSSStyleSheet();
-      const usesVarsStylesheet = new CSSStyleSheet();
-      varsStylesheet.replaceSync($addedStyles.eq(0).text());
-      usesVarsStylesheet.replaceSync($addedStyles.eq(1).text());
-      expect(varsStylesheet.cssRules.length).to.equal(1);
-      expect(usesVarsStylesheet.cssRules.length).to.equal(9);
-      expect(
-        varsStylesheet.cssRules[0].cssText,
-        ':root scope + CSS variables do not get prefixed',
-      ).to.equal(
-        ':root { --color-foo: #112233; --color-bar: #223344; --color-beep: #8899AA; --color-bop: #BBCCDD; }',
-      );
-      expect(
-        usesVarsStylesheet.cssRules[0].cssText,
-        'CSS variable with value keeps its value as it is not in shorthand declaration with adjacent conflicting longhand',
-      ).to.equal(
-        '@scope (.cool-scope) {\n  .variable-ordinary { color: var(--color-foo); }\n}',
-      );
-      expect(
-        usesVarsStylesheet.cssRules[1].cssText,
-        'non existent CSS variable remains in the style awaiting it someday existing',
-      ).to.equal(
-        '@scope (.cool-scope) {\n  .non-exist-variable-ordinary { color: var(--color-noop); }\n}',
-      );
-      expect(
-        usesVarsStylesheet.cssRules[2].cssText,
-        'shorthand with an existing variable has the variable call intact because there is no conflicting longhand for background',
-      ).to.equal(
-        '@scope (.cool-scope) {\n  .variable-shorthand { background: no-repeat var(--color-bar) 50% 50%; }\n}',
-      );
-      expect(
-        usesVarsStylesheet.cssRules[3].cssText,
-        'shorthand using a non-existing variable without a sibling non-shorthand will preserve the style',
-      ).to.equal(
-        '@scope (.cool-scope) {\n  .non-exist-variable-shorthand { background: no-repeat var(--color-noop) 50% 50%; }\n}',
-      );
-      expect(
-        usesVarsStylesheet.cssRules[4].cssText,
-        'The background shorthand remains intact because `scope_css()` swapped out the CSS variable with its value',
-      ).to.equal(
-        '@scope (.cool-scope) {\n  .variable-shorthand-with-non-shorthand-too { background: 50% 50% / 100% 100% no-repeat rgb(34, 51, 68); }\n}',
-      );
-      expect(
-        usesVarsStylesheet.cssRules[5].cssText,
-        'using CSS shorthand + a non-shorthand property with a non-existing variable demonstrates the bug. No background-color or other shorthand configured properties present.',
-      ).to.equal(
-        '@scope (.cool-scope) {\n  .non-exist-variable-shorthand-with-non-shorthand-too { background-size: 100% 100%; }\n}',
-      );
-      expect(
-        usesVarsStylesheet.cssRules[6].cssText,
-        'Variable replacement can handle whitespace',
-      ).to.equal(
-        '@scope (.cool-scope) {\n  .whitespace { background: 0% 0% / 100% 100% rgb(17, 34, 51); }\n}',
-      );
-      expect(
-        usesVarsStylesheet.cssRules[7].cssText,
-        'Variable placement can handle default values',
-      ).to.equal(
-        '@scope (.cool-scope) {\n  .default-values { background: 0% 0% / 100% 100% rgb(136, 153, 170); }\n}',
-      );
-      expect(
-        usesVarsStylesheet.cssRules[8].cssText,
-        'Variable replacement can handle default values many levels deep with random whitespace scattered throughout',
-      ).to.equal(
-        '@scope (.cool-scope) {\n  .nested-whitespace-and-default { background: 0% 0% / 100% 100% rgb(187, 204, 221); }\n}',
-      );
-    });
+    cy.get('[data-dialog-style-from]:not(.added-on-load)').should(
+      ($addedStyles) => {
+        expect($addedStyles).to.have.length(2);
+        const varsStylesheet = new CSSStyleSheet();
+        const usesVarsStylesheet = new CSSStyleSheet();
+        varsStylesheet.replaceSync($addedStyles.eq(0).text());
+        usesVarsStylesheet.replaceSync($addedStyles.eq(1).text());
+        expect(varsStylesheet.cssRules.length).to.equal(1);
+        expect(usesVarsStylesheet.cssRules.length).to.equal(9);
+        expect(
+          varsStylesheet.cssRules[0].cssText,
+          ':root scope + CSS variables do not get prefixed',
+        ).to.equal(
+          ':root { --color-foo: #112233; --color-bar: #223344; --color-beep: #8899AA; --color-bop: #BBCCDD; }',
+        );
+        expect(
+          usesVarsStylesheet.cssRules[0].cssText,
+          'CSS variable with value keeps its value as it is not in shorthand declaration with adjacent conflicting longhand',
+        ).to.equal(
+          '@scope (.cool-scope) {\n  .variable-ordinary { color: var(--color-foo); }\n}',
+        );
+        expect(
+          usesVarsStylesheet.cssRules[1].cssText,
+          'non existent CSS variable remains in the style awaiting it someday existing',
+        ).to.equal(
+          '@scope (.cool-scope) {\n  .non-exist-variable-ordinary { color: var(--color-noop); }\n}',
+        );
+        expect(
+          usesVarsStylesheet.cssRules[2].cssText,
+          'shorthand with an existing variable has the variable call intact because there is no conflicting longhand for background',
+        ).to.equal(
+          '@scope (.cool-scope) {\n  .variable-shorthand { background: no-repeat var(--color-bar) 50% 50%; }\n}',
+        );
+        expect(
+          usesVarsStylesheet.cssRules[3].cssText,
+          'shorthand using a non-existing variable without a sibling non-shorthand will preserve the style',
+        ).to.equal(
+          '@scope (.cool-scope) {\n  .non-exist-variable-shorthand { background: no-repeat var(--color-noop) 50% 50%; }\n}',
+        );
+        expect(
+          usesVarsStylesheet.cssRules[4].cssText,
+          'The background shorthand remains intact because `scope_css()` swapped out the CSS variable with its value',
+        ).to.equal(
+          '@scope (.cool-scope) {\n  .variable-shorthand-with-non-shorthand-too { background: 50% 50% / 100% 100% no-repeat rgb(34, 51, 68); }\n}',
+        );
+        expect(
+          usesVarsStylesheet.cssRules[5].cssText,
+          'using CSS shorthand + a non-shorthand property with a non-existing variable demonstrates the bug. No background-color or other shorthand configured properties present.',
+        ).to.equal(
+          '@scope (.cool-scope) {\n  .non-exist-variable-shorthand-with-non-shorthand-too { background-size: 100% 100%; }\n}',
+        );
+        expect(
+          usesVarsStylesheet.cssRules[6].cssText,
+          'Variable replacement can handle whitespace',
+        ).to.equal(
+          '@scope (.cool-scope) {\n  .whitespace { background: 0% 0% / 100% 100% rgb(17, 34, 51); }\n}',
+        );
+        expect(
+          usesVarsStylesheet.cssRules[7].cssText,
+          'Variable placement can handle default values',
+        ).to.equal(
+          '@scope (.cool-scope) {\n  .default-values { background: 0% 0% / 100% 100% rgb(136, 153, 170); }\n}',
+        );
+        expect(
+          usesVarsStylesheet.cssRules[8].cssText,
+          'Variable replacement can handle default values many levels deep with random whitespace scattered throughout',
+        ).to.equal(
+          '@scope (.cool-scope) {\n  .nested-whitespace-and-default { background: 0% 0% / 100% 100% rgb(187, 204, 221); }\n}',
+        );
+      },
+    );
   });
 });

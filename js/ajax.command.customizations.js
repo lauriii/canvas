@@ -4,7 +4,7 @@
  */
 
 /* global csstree */
-(function (Drupal, csstree) {
+(function (Drupal, csstree, drupalSettings) {
   // Keeps track of shorthand properties and their corresponding longhand
   // properties.
   const shorthands = {
@@ -56,8 +56,20 @@
       return;
     }
 
+    let fetchHref = styleSheetData.href;
+
+    // Check if the href is relative and needs the path processed.
+    if (!fetchHref.startsWith(window.location.protocol) && styleSheetData?.processPaths) {
+      // If it begins with a slash, remove so baseUrl can be used instead.
+      if (fetchHref.startsWith('/')) {
+        fetchHref = styleSheetData.href.substring(1);
+      }
+      // Make the URL absolute.
+      fetchHref = `${window.location.origin}${drupalSettings.path.baseUrl}${fetchHref}`;
+    }
+
     try {
-      const res = await fetch(styleSheetData.href)
+      const res = await fetch(fetchHref);
       css = await res.text();
     } catch(err) {
       console.warn(`Could not fetch ${styleSheetData.href}`, err)
@@ -346,7 +358,7 @@
 
         // If this is in an AJAX dialog and the dialog trigger specified
         // useAdminTheme, add the CSS assets differently.
-        if (ajax?.dialogType === 'ajax' && ajax?.useAdminTheme) {
+        if ((ajax?.dialogType === 'ajax' && ajax?.useAdminTheme) || ajax?.dialog?.useAdminTheme) {
           // The scope selector is what wraps the styles so they are only
           // applied within the dialog. `.ui-dialog` is the default class.
           // @see \Drupal\Core\Ajax\OpenDialogCommand::$dialogOptions
@@ -436,4 +448,4 @@
       };
     }
   }
-})(Drupal, csstree);
+})(Drupal, csstree, drupalSettings);

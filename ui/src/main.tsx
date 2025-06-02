@@ -20,7 +20,12 @@ import transforms from '@/utils/transforms';
 import '@/styles/radix-themes';
 import '@/styles/index.css';
 import { AJAX_UPDATE_FORM_STATE_EVENT } from '@/types/Ajax';
-import { getBaseUrl, getDrupal, getXbSettings } from '@/utils/drupal-globals';
+import {
+  getBaseUrl,
+  getDrupal,
+  getXbSettings,
+  getDrupalSettings,
+} from '@/utils/drupal-globals';
 
 // Provide these dependencies as globals so extensions do not have redundant and
 // potentially conflicting dependencies.
@@ -36,6 +41,7 @@ interface ProviderComponentProps {
 const Drupal = getDrupal();
 const xbSettings = getXbSettings();
 const baseUrl = getBaseUrl();
+const drupalSettings = getDrupalSettings();
 
 const container = document.getElementById('experience-builder');
 
@@ -86,6 +92,25 @@ const attachBehaviorsAfterAjaxing = (
 };
 
 Drupal.attachBehaviorsAfterAjaxing = attachBehaviorsAfterAjaxing;
+
+// Add dialog-scoped CSS to the page on load so even dialogs triggered without
+// AJAX have the correct CSS.
+const dialogCss = drupalSettings?.xb?.dialogCss || [];
+const asResponse = dialogCss.map((path: string) => ({
+  media: 'all',
+  href: path,
+  // Set this to let 'scopeCss' in ajax.command.customizations account for the
+  // paths not being resolved by the rendering process.
+  processPaths: true,
+}));
+
+// Timeout to ensure Drupal.AjaxCommands.prototype.add_css exists.
+setTimeout(() => {
+  Drupal.AjaxCommands.prototype.add_css(
+    { dialog: { useAdminTheme: true } },
+    { data: asResponse },
+  );
+});
 
 if (container) {
   const root = createRoot(container);

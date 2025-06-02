@@ -5,3 +5,7 @@ core_version_requirement: ^10.4 || ^11
 engine: semi_coupled
 base theme: false
 hidden: true
+
+libraries-extend:
+  ckeditor5/internal.drupal.ckeditor5:
+    - xb_stark/xb.internal.drupal.ckeditor5

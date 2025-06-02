@@ -1158,3 +1158,49 @@ Cypress.Commands.add('publishAllPendingChanges', (titles) => {
     expect(errors).not.to.exist;
   });
 });
+
+/**
+ * Wait for elements to stop being added to the DOM.
+ *
+ * @param {string} selector
+ *   CSS selector to check for stabilization.
+ * @param {number} timeout
+ *   Maximum time to wait in milliseconds.
+ * @param {number} checkInterval
+ *   How frequently to check in milliseconds.
+ * @param {number} stabilityThreshold
+ *   Number of consistent checks required to consider stable.
+ */
+Cypress.Commands.add(
+  'waitForElementsToStabilize',
+  (selector, timeout = 10000, checkInterval = 100, stabilityThreshold = 3) => {
+    return new Cypress.Promise((resolve) => {
+      let lastCount = null;
+      let stableCount = 0;
+      const startTime = Date.now();
+
+      const checkElements = () => {
+        const currentCount = Cypress.$(selector).length;
+
+        if (lastCount === currentCount) {
+          stableCount++;
+          if (stableCount >= stabilityThreshold) {
+            resolve(currentCount);
+            return;
+          }
+        } else {
+          lastCount = currentCount;
+          stableCount = 0;
+        }
+
+        if (Date.now() - startTime >= timeout) {
+          // If timeout is exceeded, resolve regardless of stability status.
+          resolve(currentCount);
+          return;
+        }
+        setTimeout(checkElements, checkInterval);
+      };
+      checkElements();
+    });
+  },
+);

@@ -21,6 +21,7 @@ export interface DrupalSettings {
     xbModulePath: string;
     selectedComponent: string;
     devMode: boolean;
+    dialogCss: string[];
   };
   xbExtension: object;
   path: {
