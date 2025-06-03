@@ -130,6 +130,7 @@ type AnyValue = string | boolean | [] | number | {} | null;
 // @see \Drupal\experience_builder\PropSource\PropSource::parse()
 interface BasePropSource {
   sourceType: string;
+  value?: any;
 }
 // @see \Drupal\experience_builder\PropSource\DynamicPropSource
 export interface DynamicPropSource extends BasePropSource {

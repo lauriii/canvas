@@ -33,6 +33,40 @@ export function isConsecutive(sortedIndexes: number[]): boolean {
   return true;
 }
 
+// Some prop shapes do not have a means of representing an empty value, so they
+// can't simply have their value replaced when removed. This special string
+// flags items for removal that can't be replaced with an empty value.
+export const VALUE_THAT_MEANS_REMOVE = '$%^&*JUST_REMOVE';
+
+/**
+ * Checks if a value is flagged for removal.
+ *
+ *  @param {any} value
+ *    The value to check.
+ */
+export function flaggedForRemoval(value: any): boolean {
+  // This will return true if any value within the structure equals
+  // VALUE_THAT_MEANS_REMOVE.
+
+  if (value === null || value === undefined) {
+    return false;
+  }
+
+  if (typeof value === 'string') {
+    return value === VALUE_THAT_MEANS_REMOVE;
+  }
+
+  if (Array.isArray(value)) {
+    return value.some((item) => flaggedForRemoval(item));
+  }
+
+  if (typeof value === 'object') {
+    return Object.values(value).some((item) => flaggedForRemoval(item));
+  }
+
+  return false;
+}
+
 export function parseValue(
   value: any,
   element: HTMLInputElement | HTMLSelectElement,

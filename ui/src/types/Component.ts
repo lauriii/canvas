@@ -35,6 +35,7 @@ interface BaseComponent {
   css: string;
   js_header: string;
   js_footer: string;
+  propSources: FieldData;
 }
 
 export type libraryTypes =

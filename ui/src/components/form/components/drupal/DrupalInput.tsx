@@ -5,6 +5,7 @@ import { a2p } from '@/local_packages/utils.js';
 import InputBehaviors from '@/components/form/inputBehaviors';
 import TextField from '@/components/form/components/TextField';
 import { DrupalRadioItem } from '@/components/form/components/drupal/DrupalRadio';
+import Hidden from '@/components/form/components/Hidden';
 import Checkbox from '@/components/form/components/Checkbox';
 import type { Attributes } from '@/types/DrupalAttribute';
 import TextFieldAutocomplete from '@/components/form/components/TextFieldAutocomplete';
@@ -60,6 +61,9 @@ const DrupalInput = ({
       return <DrupalRadioItem attributes={attributes} />;
     case 'hidden':
     case 'submit':
+      if (attributes['data-track-hidden-value']) {
+        return <Hidden attributes={attributes} />;
+      }
       // The a2p() process converts 'value to 'defaultValue', which is typically
       // what React wants. Explicitly set the value on submit inputs since that
       // is the text it displays.

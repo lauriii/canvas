@@ -111,6 +111,13 @@ class ReduxIntegratedFieldWidgetsHooks implements TrustedCallbackInterface {
         '.media-library-wrapper',
         '.ui-dialog',
       ]);
+
+      // Most hidden fields are read only. Add an attribute that allows it to be
+      // updated and tracked in Redux form state.
+      if (isset($form['selection'][0]['target_id'])) {
+        $form['selection'][0]['target_id']['#attributes']['data-track-hidden-value'] = 'true';
+      }
+
     }
     // Use an XB-specific media library opener, because the default opener assumes
     // the media library is opened for a field widget of a field instance on the

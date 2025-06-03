@@ -20,7 +20,7 @@ import {
   selectLayout,
   selectModel,
 } from '@/features/layout/layoutModelSlice';
-import { parseValue } from '@/utils/function-utils';
+import { parseValue, flaggedForRemoval } from '@/utils/function-utils';
 import { debounce } from 'lodash';
 import { useGetComponentsQuery } from '@/services/componentAndLayout';
 import { findComponentByUuid } from '@/features/layout/layoutUtils';
@@ -186,10 +186,12 @@ const InputBehaviorsCommon = ({
     [],
   );
 
-  // Don't track the value of hidden fields except for form_build_id.
+  // Don't track the value of hidden fields except for form_build_id or ones
+  // with the 'data-track-hidden-value' attribute set.
   if (
     ['hidden', 'submit'].includes(elementType as string) &&
-    fieldName !== 'form_build_id'
+    fieldName !== 'form_build_id' &&
+    !attributes['data-track-hidden-value']
   ) {
     attributes.readOnly = '';
   } else if (!attributes['data-drupal-uncontrolled']) {
@@ -343,6 +345,25 @@ const InputBehaviorsComponentPropsForm = (
     //    in onQueryStarted in preview.ts
     // @see \Drupal\Core\Field\WidgetInterface::massageFormValues()
     const resolved = { ...selectedModel.resolved, ...values };
+
+    // Check the object for any values that are flagged for removal. Note that
+    // removal flagging is not necessary for all prop types. It is used for
+    // props with complex prop shapes where the empty-indicating value is nested
+    // with the structure.
+    Object.keys(values).forEach((prop) => {
+      if (flaggedForRemoval(values[prop]) && component?.propSources?.[prop]) {
+        if (!component.propSources[prop]?.required) {
+          if (isEvaluatedComponentModel(selectedModel)) {
+            // The source value can also be updated to empty when permitted.
+            if (!Object.isFrozen(selectedModel.source[prop])) {
+              selectedModel.source[prop].value = [];
+            }
+          }
+        }
+        resolved[prop] = [];
+      }
+    });
+
     if (isEvaluatedComponentModel(selectedModel) && component) {
       patchComponent({
         componentInstanceUuid: selectedComponent,

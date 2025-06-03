@@ -34,7 +34,7 @@ export default defineConfig({
   chromeWebSecurity: false,
   defaultBrowser: process.env.DRUPAL_TEST_DEFAULT_BROWSER || 'chrome',
   watchForFileChanges: false,
-  retries: 0,
+  retries: { openMode: 0, runMode: 3 },
   env: {
     baseUrl: process.env.BASE_URL,
     dbUrl: process.env.DB_URL,

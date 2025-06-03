@@ -300,7 +300,9 @@ export const formStateToObject = (
   });
   const parsed = qs.parse(params.toString());
   if (isParsedQ(parsed.xb_component_props)) {
-    return parsed.xb_component_props[componentId] as PropsValues;
+    if (parsed.xb_component_props[componentId]) {
+      return parsed.xb_component_props[componentId] as PropsValues;
+    }
   }
   return {};
 };

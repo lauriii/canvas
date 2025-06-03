@@ -467,6 +467,40 @@ Cypress.Commands.add(
   },
 );
 
+/**
+ * Waits for element matching a selector to not be present in an iframe.
+ *
+ * @param {string} selector
+ *   The selector of what to wait on in the iframe.
+ * @param {string} iframeSelector
+ *   The selector of the iframe to check inside. Defaults to the first preview.
+ * @param {number|null} customTimeout
+ *   Optional: If the time to wait for the element should differ from the
+ *   Cypress retry default duration.
+ */
+Cypress.Commands.add(
+  'waitForElementNotInIframe',
+  (
+    selector,
+    iframeSelector = initializedReadyPreviewIframeSelector,
+    customTimeout,
+  ) => {
+    cy.document().then((doc) => {
+      cy.get(true, {
+        timeout: customTimeout || Cypress.config('defaultCommandTimeout'),
+      }).should(() => {
+        const frameContent = doc
+          .querySelector(iframeSelector)
+          ?.contentWindow?.document?.body.querySelector(selector);
+        expect(
+          !!frameContent,
+          `'${selector}' should not be in iframe '${iframeSelector}'`,
+        ).to.equal(false);
+      });
+    });
+  },
+);
+
 Cypress.Commands.add(
   'waitForElementContentInIframe',
   (
