@@ -126,6 +126,18 @@ paths:
                       data_hash: 4711efecf75d2d1b
                       entity_id: hero
                       label: Hero component
+                    segment:test_segment:
+                      owner:
+                        name: Mark Scout
+                        avatar: /sites/default/files/user-pictures/severed.jpg
+                        uri: /user/16
+                        id: 16
+                      updated: 1732763680
+                      entity_type: test_segment
+                      langcode: NULL
+                      data_hash: a95cf01fd2e9c59e
+                      entity_id: test_segment
+                      label: Test segment
 
               schema:
                 $ref: '#/components/schemas/AutoSaveCollection'
@@ -468,6 +480,157 @@ paths:
       responses:
         '204':
           description: Deleted individual Section/Pattern.
+  /xb/api/v0/config/segment:
+    description: Endpoint for managing Personalization Segments.
+    get:
+      description: Retrieves all available Personalization Segments.
+      responses:
+        '200':
+          description: All available Personalization Segments
+          content:
+            application/json:
+              schema:
+                type: object
+                minProperties: 0
+                # @todo Validate the property keys match the '^\\[a-zA-Z0-9_-]$'
+                #  pattern in https://drupal.org/i/3506543.
+                additionalProperties:
+                  $ref: '#/components/schemas/Segment'
+              examples:
+                default_segment:
+                  value:
+                    default_segment:
+                      id: "default_segment"
+                      label: "Default Segment"
+                      rules:
+                        utm_parameters:
+                          id: "utm_parameters"
+                          parameters:
+                            -
+                              "key": "utm_source"
+                              "value": "my-source-id"
+                              "matching": "exact"
+                            -
+                              "key": "utm_campaign"
+                              "value": "HALLOWEEN"
+                              "matching": "starts_with"
+                          negate: false
+                          all: true
+    post:
+      description: Creates a new Personalization Segment.
+      requestBody:
+        description: Creates a new Personalization Segment.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Segment'
+            examples:
+              new_segment:
+                id: "new_segment"
+                label: "My new Segment"
+                description: "<p>My new Segment description</p>"
+                rules:
+                  utm_parameters:
+                    id: "utm_parameters"
+                    parameters:
+                      -
+                        "key": "utm_source"
+                        "value": "my-source-id"
+                        "matching": "exact"
+                      -
+                        "key": "utm_campaign"
+                        "value": "HALLOWEEN"
+                        "matching": "starts_with"
+                    negate: false
+                    all: true
+      responses:
+        '201':
+          description: Created entity successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Segment'
+              examples:
+                new_segment:
+                  value:
+                    id: "new_segment"
+                    label: "My new Segment"
+                    rules:
+                      utm_parameters:
+                        id: "utm_parameters"
+                        parameters:
+                          -
+                            "key": "utm_source"
+                            "value": "my-source-id"
+                            "matching": "exact"
+                          -
+                            "key": "utm_campaign"
+                            "value": "HALLOWEEN"
+                            "matching": "starts_with"
+                        negate: false
+                        all: true
+        '409':
+          description: Personalization Segment with same ID already exists.
+          $ref: '#/components/responses/ClientErrorResponse'
+        '422':
+          description: Validation errors exist
+          $ref: '#/components/responses/ClientErrorResponse'
+  '/xb/api/v0/config/segment/{configEntityId}':
+    description: Endpoint for managing a specific Personalization Segment.
+    get:
+      description: Retrieves details of a specific Personalization Segment.
+      parameters:
+        - $ref: '#/components/parameters/configEntityId'
+      responses:
+        '200':
+          description: Individual Personalization Segment
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Segment'
+              examples:
+                example:
+                  id: "new_segment"
+                  label: "My new Segment"
+                  rules:
+                    utm_parameters:
+                      id: "utm_parameters"
+                      parameters:
+                        -
+                          "key": "utm_source"
+                          "value": "my-source-id"
+                          "matching": "exact"
+                        -
+                          "key": "utm_campaign"
+                          "value": "HALLOWEEN"
+                          "matching": "starts_with"
+                      negate: false
+                      all: true
+    patch:
+      description: Updates a specific Asset Library.
+      requestBody:
+        description: Update specific Asset Library.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Segment'
+      parameters:
+        - $ref: '#/components/parameters/configEntityId'
+      responses:
+        '200':
+          description: Individual Personalization Segment
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Segment'
+    delete:
+      description: Deletes a Personalization Segment.
+      parameters:
+        - $ref: '#/components/parameters/configEntityId'
+      responses:
+        '204':
+          description: Deleted individual Personalization Segment
   /xb/api/v0/config/xb_asset_library:
     description: Endpoint for managing asset libraries.
     get:
@@ -1529,6 +1692,49 @@ components:
             - id
             - label
         - $ref: '#/components/schemas/AssetLibrary'
+    SegmentationRule:
+      title: Segmentation Rule
+      type: object
+      # Each rule (condition plugin) may have additional settings; these are the minimum.
+      additionalProperties: true
+      required:
+        - id
+        - negate
+      properties:
+        id:
+          type: string
+          description: The Segmentation Rule plugin ID
+        negate:
+          type: boolean
+          description: Flag if the Segmentation Rule is negated.
+    Segment:
+      title: Segment
+      type: object
+      required:
+        # We only require id, as we want to allow partial updates with PATCH.
+        # Complete constraint-based validation will happen on entity validation.
+        - id
+      properties:
+        id:
+          type: string
+          description: Personalization Segment ID
+        label:
+          type: string
+          description: Human-readable label
+        description:
+          type: string
+          description: Human-readable description
+          nullable: true
+        status:
+          type: boolean
+        rules:
+          type: object
+          description: Segmentation Rules
+          nullable: false
+          additionalProperties:
+            type: object
+            allOf:
+              - $ref: '#/components/schemas/SegmentationRule'
     Error:
       type: object
       required:

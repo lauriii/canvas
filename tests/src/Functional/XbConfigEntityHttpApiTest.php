@@ -432,14 +432,7 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
     $this->assertSame([], $body);
 
     // Delete the sole remaining Pattern via the XB HTTP API: 204.
-    $body = $this->assertExpectedResponse('DELETE', Url::fromUri('base:/xb/api/v0/config/pattern/testpatternpleaseignore'), [], 204, NULL, NULL, NULL, NULL);
-    $this->assertNull($body);
-
-    // Re-retrieve list: 200, empty list. Dynamic Page Cache miss.
-    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.permissions', 'user.roles:authenticated'], ['config:pattern_list', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
-    $this->assertSame([], $body);
-    $individual_body = $this->assertExpectedResponse('GET', Url::fromUri('base:/xb/api/v0/config/pattern/testpatternpleaseignore'), [], 404, NULL, NULL, 'UNCACHEABLE (request policy)', 'UNCACHEABLE (no cacheability)');
-    $this->assertSame([], $individual_body);
+    $this->assertDeletionAndEmptyList(Url::fromUri('base:/xb/api/v0/config/pattern/testpatternpleaseignore'), $list_url, 'config:pattern_list');
 
     // This was now tested full circle! ✅
   }
@@ -1061,13 +1054,7 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
       ],
     ], $body);
 
-    // Delete the Asset Library via the XB HTTP API: 204.
-    $body = $this->assertExpectedResponse('DELETE', Url::fromUri('base:/xb/api/v0/config/xb_asset_library/global'), [], 204, NULL, NULL, NULL, NULL);
-    $this->assertNull($body);
-
-    // Re-retrieve list: 200, empty list. Dynamic Page Cache miss.
-    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.permissions', 'user.roles:authenticated'], ['config:xb_asset_library_list', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
-    $this->assertSame([], $body);
+    $this->assertDeletionAndEmptyList(Url::fromUri('base:/xb/api/v0/config/xb_asset_library/global'), $list_url, 'config:xb_asset_library_list');
   }
 
   private function assertAuthenticationAndAuthorization(string $entity_type_id): void {

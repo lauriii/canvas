@@ -4,9 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\experience_builder\Functional;
 
-use Drupal\experience_builder\AutoSave\AutoSaveManager;
 use Drupal\Component\Utility\NestedArray;
-use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Url;
 use Drupal\experience_builder\Entity\AssetLibrary;
@@ -244,35 +242,6 @@ final class ApiConfigAutoSaveControllersTest extends HttpApiTestBase {
     $this->assertSingleConfigAutoSaveList($original_entity, ['any_key' => ['any' => 'value']], $this->httpApiUser);
 
     $this->assertSame($original_entity_array, $storage->loadUnchanged($entity_id)?->toArray(), 'The original entity was not changed by the auto-save.');
-  }
-
-  private function assertSingleConfigAutoSaveList(EntityInterface $entity, array $auto_save_data, UserInterface $user): void {
-    $request_options = [
-      RequestOptions::HEADERS => [
-        'Content-Type' => 'application/json',
-      ],
-    ];
-    $expected_list = [
-      $entity->getEntityTypeId() . ':' . $entity->id() => [
-        'owner' => [
-          'name' => $user->getDisplayName(),
-          'avatar' => NULL,
-          'uri' => $user->toUrl()->toString(),
-          'id' => (int) $user->id(),
-        ],
-        'entity_type' => $entity->getEntityTypeId(),
-        'entity_id' => $entity->id(),
-
-        'data_hash' => self::generateAutoSaveHash($auto_save_data),
-        'langcode' => NULL,
-        'label' => $entity->label(),
-      ],
-    ];
-    $body = $this->assertExpectedResponse('GET', Url::fromUri("base:/xb/api/v0/auto-saves/pending"), $request_options, 200, ['user.permissions'], ['config:user.settings', AutoSaveManager::CACHE_TAG, 'http_response', 'user:2'], 'UNCACHEABLE (request policy)', 'MISS');
-    $id = array_keys($expected_list)[0];
-    assert(isset($body[$id]['updated']));
-    unset($body[$id]['updated']);
-    $this->assertSame($expected_list, $body);
   }
 
 }

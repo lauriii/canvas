@@ -48,6 +48,8 @@ final class DxRouteConsistencyTest extends UnitTestCase {
     // Map XB API route definitions keyed by route name to being keyed by path
     // and method, with the path resolved where possible.
     $route_defined_xb_api_operations = self::resolveRouteDefinitionsToOperations($xb_api_routes);
+    $route_defined_xb_api_operations = self::includeDynamicPersonalizationPaths($route_defined_xb_api_operations);
+
     $normalized_route_defined_xb_api_operations = self::ignoreDynamicPathPartNames($route_defined_xb_api_operations);
     // Note: while routes were already guaranteed to be alphabetically sorted,
     // after resolving static path parts that may no longer be true.
@@ -150,6 +152,25 @@ final class DxRouteConsistencyTest extends UnitTestCase {
       ),
       array_values($array_with_paths_as_keys)
     );
+  }
+
+  /**
+   * Adds personalization routes.
+   *
+   * For simplicity, we define personalization paths in openapi, but they are
+   * added in Drupal by using a route subscriber.
+   * So: statically add these here for now to avoid failures.
+   */
+  private static function includeDynamicPersonalizationPaths(array $array_with_paths_as_keys): array {
+    $routes = array_merge($array_with_paths_as_keys, [
+      '/xb/api/v0/config/segment GET' => ['methods' => ['GET']],
+      '/xb/api/v0/config/segment POST' => ['methods' => ['POST']],
+      '/xb/api/v0/config/segment/{segment} GET' => ['methods' => ['GET']],
+      '/xb/api/v0/config/segment/{segment} PATCH' => ['methods' => ['PATCH']],
+      '/xb/api/v0/config/segment/{segment} DELETE' => ['methods' => ['DELETE']],
+    ]);
+    ksort($routes);
+    return $routes;
   }
 
 }

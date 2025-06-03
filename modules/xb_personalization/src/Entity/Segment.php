@@ -5,14 +5,18 @@ declare(strict_types=1);
 namespace Drupal\xb_personalization\Entity;
 
 use Drupal\Component\Plugin\Exception\PluginNotFoundException;
+use Drupal\Core\Cache\RefinableCacheableDependencyInterface;
 use Drupal\Core\Condition\ConditionPluginCollection;
 use Drupal\Core\Config\Entity\ConfigEntityBase;
 use Drupal\Core\Entity\Attribute\ConfigEntityType;
 use Drupal\Core\Entity\EntityDeleteForm;
+use Drupal\Core\Entity\Query\QueryInterface;
 use Drupal\Core\Executable\ExecutableManagerInterface;
 use Drupal\Core\Plugin\FilteredPluginManagerInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
+use Drupal\experience_builder\ClientSideRepresentation;
+use Drupal\experience_builder\Entity\XbHttpApiEligibleConfigEntityInterface;
 use Drupal\xb_personalization\Form\SegmentForm;
 use Drupal\xb_personalization\Form\SegmentRuleForm;
 use Drupal\xb_personalization\SegmentListBuilder;
@@ -49,6 +53,9 @@ use Drupal\xb_personalization\SegmentListBuilder;
     "singular" => "@count personalization segment",
     "plural" => "@count personalization segments",
   ],
+  additional: [
+    'xb_visible_when_disabled' => TRUE,
+  ],
   config_export: [
     "id",
     "label",
@@ -56,7 +63,7 @@ use Drupal\xb_personalization\SegmentListBuilder;
     "rules",
   ],
 )]
-final class Segment extends ConfigEntityBase implements SegmentInterface {
+final class Segment extends ConfigEntityBase implements SegmentInterface, XbHttpApiEligibleConfigEntityInterface {
 
   use StringTranslationTrait;
 
@@ -159,6 +166,38 @@ final class Segment extends ConfigEntityBase implements SegmentInterface {
       $summary[] = $this->t('No personalization segment rules added yet');
     }
     return $summary;
+  }
+
+  public function normalizeForClientSide(): ClientSideRepresentation {
+    return ClientSideRepresentation::create(
+      values: [
+        'id' => $this->id,
+        'label' => $this->label,
+        'description' => $this->description,
+        'rules' => $this->rules,
+      ],
+      preview: NULL,
+    );
+  }
+
+  public static function createFromClientSide(array $data): static {
+    $entity = static::create(['id' => $data['id']]);
+    if (!isset($data['rules'])) {
+      $data['rules'] = [];
+    }
+    $entity->updateFromClientSide($data);
+    $entity->disable();
+    return $entity;
+  }
+
+  public function updateFromClientSide(array $data): void {
+    foreach ($data as $key => $value) {
+      $this->set($key, $value);
+    }
+  }
+
+  public static function refineListQuery(QueryInterface &$query, RefinableCacheableDependencyInterface $cacheability): void {
+    // Nothing to do.
   }
 
 }

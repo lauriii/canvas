@@ -9,6 +9,8 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Url;
 use Drupal\experience_builder\AutoSave\AutoSaveManager;
 use Drupal\Tests\ApiRequestTrait;
+use Drupal\Tests\experience_builder\Traits\AutoSaveManagerTestTrait;
+use Drupal\user\UserInterface;
 use GuzzleHttp\RequestOptions;
 
 /**
@@ -21,6 +23,7 @@ use GuzzleHttp\RequestOptions;
 abstract class HttpApiTestBase extends FunctionalTestBase {
 
   use ApiRequestTrait;
+  use AutoSaveManagerTestTrait;
 
   /**
    * @return ?array
@@ -134,6 +137,50 @@ abstract class HttpApiTestBase extends FunctionalTestBase {
     assert($entity instanceof EntityInterface);
     $data = $this->container->get(AutoSaveManager::class)->getAutoSaveData($entity)->data;
     $this->assertSame($expected_auto_save, $data);
+  }
+
+  /**
+   * Asserts we can delete a resource, and we get an empty list afterward.
+   */
+  protected function assertDeletionAndEmptyList(Url $resource_url, Url $list_url, string $list_cache_tag): void {
+    // Delete the sole remaining segment via the XB HTTP API: 204.
+    $body = $this->assertExpectedResponse('DELETE', $resource_url, [], 204, NULL, NULL, NULL, NULL);
+    $this->assertNull($body);
+
+    // Re-retrieve list: 200, empty list. Dynamic Page Cache miss.
+    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.permissions', 'user.roles:authenticated'], [$list_cache_tag, 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
+    $this->assertSame([], $body);
+    $individual_body = $this->assertExpectedResponse('GET', $resource_url, [], 404, NULL, NULL, 'UNCACHEABLE (request policy)', 'UNCACHEABLE (no cacheability)');
+    $this->assertSame([], $individual_body);
+  }
+
+  protected function assertSingleConfigAutoSaveList(EntityInterface $entity, array $auto_save_data, UserInterface $user): void {
+    $request_options = [
+      RequestOptions::HEADERS => [
+        'Content-Type' => 'application/json',
+      ],
+    ];
+    $expected_list = [
+      $entity->getEntityTypeId() . ':' . $entity->id() => [
+        'owner' => [
+          'name' => $user->getDisplayName(),
+          'avatar' => NULL,
+          'uri' => $user->toUrl()->toString(),
+          'id' => (int) $user->id(),
+        ],
+        'entity_type' => $entity->getEntityTypeId(),
+        'entity_id' => $entity->id(),
+
+        'data_hash' => self::generateAutoSaveHash($auto_save_data),
+        'langcode' => NULL,
+        'label' => $entity->label(),
+      ],
+    ];
+    $body = $this->assertExpectedResponse('GET', Url::fromUri("base:/xb/api/v0/auto-saves/pending"), $request_options, 200, ['user.permissions'], ['config:user.settings', AutoSaveManager::CACHE_TAG, 'http_response', 'user:2'], 'UNCACHEABLE (request policy)', 'MISS');
+    $id = array_keys($expected_list)[0];
+    assert(isset($body[$id]['updated']));
+    unset($body[$id]['updated']);
+    $this->assertSame($expected_list, $body);
   }
 
 }

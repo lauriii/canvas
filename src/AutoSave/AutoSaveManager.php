@@ -6,6 +6,7 @@ use Drupal\Core\Cache\CacheTagsInvalidatorInterface;
 use Drupal\Core\Config\ConfigCrudEvent;
 use Drupal\Core\Config\ConfigEvents;
 use Drupal\Core\Config\ConfigManagerInterface;
+use Drupal\Core\Config\Entity\ConfigEntityInterface;
 use Drupal\Core\Config\Entity\ConfigEntityTypeInterface;
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\EntityInterface;
@@ -71,7 +72,12 @@ class AutoSaveManager implements EventSubscriberInterface {
   }
 
   public static function getLabelToSave(EntityInterface $entity, array $data): string {
+    // The key for Drupal forms.
     $key = \sprintf("%s[0][value]", $entity->getEntityType()->getKey('label'));
+    // But for config entities we might set the value directly.
+    if ($entity instanceof ConfigEntityInterface && empty($data['entity_form_fields'])) {
+      return $data[$entity->getEntityType()->getKey('label')] ?? (string) $entity->label();
+    }
     return empty($data['entity_form_fields'][$key]) ?
       (string) $entity->label() :
       (string) $data['entity_form_fields'][$key];

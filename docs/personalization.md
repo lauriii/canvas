@@ -37,8 +37,6 @@ E.g. a SDC component named teaser with an image and some text might define “Im
 that performs a visual change, but it’s semantically tied together enough for not having two different SDC components,
 e.g. each of them differs on having a CSS class applied or not.
 
-`Component`: What we would refer to in technical terms as a `Component instance`.
-
 `A/B testing`: An experiment where two or more `Personalization Variants` are compared to see which one performs better
 based on specific goals.
 
@@ -121,13 +119,121 @@ Each rule has to provide their cacheability metadata. E.g. a **weather condition
 while a **UTM condition** varies per cache context ```url.query_args:utm_source```.
 
 
-#### 3.1.1. Client data-model
+#### 3.1.2. Client data-model
 
 We will use the standardized auto-save + ```ApiConfigControllers``` end-points.
 The UI should only need to deal with auto-save, as the ```ApiConfigController``` for publishing should be the same we
 already have and publish all the changes at once.
 
-TBD
+The segment object looks like:
+
+```json
+{
+  "id": "test",
+  "label": "Test",
+  "description": "Extended description",
+  "status": true,
+  "rules": {
+    "utm_parameters": {
+      "id": "utm_parameters",
+      "negate": false,
+      "all": true,
+      "parameters": [
+        {
+          "key": "utm_source",
+          "value": "my-source-id",
+          "matching": "exact"
+        },
+        {
+          "key": "utm_campaign",
+          "value": "HALLOWEEN",
+          "matching": "starts_with"
+        }
+      ]
+    }
+  }
+}
+```
+
+The flow would be like:
+
+```mermaid
+sequenceDiagram
+        actor Client
+        participant Auto-Save Storage
+        participant Live Storage
+        Client->>Live Storage: Create Segment entity (unpublished)
+        activate Live Storage
+        Live Storage->>Client: HTTP OK
+        deactivate Live Storage
+        loop UI Changes
+        Client-->>Auto-Save Storage: Make changes to auto-saved data
+        activate Auto-Save Storage
+        Auto-Save Storage-->>Client: HTTP OK
+        deactivate Auto-Save Storage
+        end
+        Client->>Auto-Save Storage: Publish changes
+        activate Auto-Save Storage
+        Auto-Save Storage->>Live Storage: Submit changes to Segment entity (published)
+        activate Live Storage
+        Live Storage->>Client: HTTP OK
+        deactivate Auto-Save Storage
+        deactivate Live Storage
+```
+
+So the flow will start with a POST to create the original entity.
+This new segment will be disabled by default.
+
+`POST /xb/api/v0/config/segment`
+```json
+{
+  "id": "my_first_segment",
+  "label": "My first segment",
+  "description": "Extended description",
+}
+```
+
+We will do the changes on auto-save as needed. Here we can set the published flag as, this won't take effect until the user publishes the changes.
+
+`PATCH /xb/api/v0/config/auto-save/segment/my_first_segment`
+```json
+{
+  "id": "my_first_segment",
+  "label": "My first segment",
+  "description": "Extended description",
+  "status": true,
+  "rules": {
+    "utm_parameters": {
+      "id": "utm_parameters",
+      "negate": false,
+      "all": true,
+      "parameters": [
+        {
+          "key": "utm_source",
+          "value": "my-source-id",
+          "matching": "exact"
+        }
+      ]
+    }
+  }
+}
+```
+
+When we are ready, the user will publish the changes.
+We don't need to make this call, as the user will in the UI, but for reference:
+
+`POST /xb/api/v0/auto-saves/publish`
+
+
+#### 3.1.3. Getting available segmentation rules
+
+WIP
+
+The segmentation rules are dynamic based on the installed modules. Those are defined by plugins (`condition`).
+
+For the moment we can hard-code the expected segmentation rules, but these will be dynamic. See https://www.drupal.org/i/3525610.
+
+
 
 ### 3.2. Personalization Variations
 

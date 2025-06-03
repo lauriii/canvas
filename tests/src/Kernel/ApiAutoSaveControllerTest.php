@@ -5,10 +5,7 @@ declare(strict_types=1);
 namespace Drupal\Tests\experience_builder\Kernel;
 
 use Drupal\Core\Cache\CacheableJsonResponse;
-use Drupal\Core\File\FileExists;
-use Drupal\Core\File\FileSystemInterface;
 use Drupal\Core\Session\AccountInterface;
-use Drupal\Core\StreamWrapper\PublicStream;
 use Drupal\Core\Url;
 use Drupal\experience_builder\AutoSave\AutoSaveManager;
 use Drupal\experience_builder\Controller\ApiAutoSaveController;
@@ -17,7 +14,6 @@ use Drupal\experience_builder\Entity\AssetLibrary;
 use Drupal\experience_builder\Entity\JavaScriptComponent;
 use Drupal\experience_builder\Entity\Page;
 use Drupal\experience_builder\Entity\PageRegion;
-use Drupal\file\Entity\File;
 use Drupal\image\ImageStyleInterface;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\node\Entity\Node;
@@ -31,7 +27,7 @@ use Drupal\Tests\experience_builder\Traits\OpenApiSpecTrait;
 use Drupal\Tests\experience_builder\Traits\XBFieldTrait;
 use Drupal\Tests\user\Traits\UserCreationTrait;
 use Drupal\user\Entity\User;
-use Symfony\Component\HttpFoundation\JsonResponse;
+use Drupal\user\UserInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -95,16 +91,9 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     $autoSave = $this->container->get(AutoSaveManager::class);
     $autoSave->save($anonAccountContent, $emptyData);
 
-    // Add user picture field.
-    $fileUri = 'public://image-2.jpg';
-    \Drupal::service(FileSystemInterface::class)->copy(\Drupal::root() . '/core/tests/fixtures/files/image-2.jpg', PublicStream::basePath(), FileExists::Replace);
-    $picture = File::create([
-      'uri' => $fileUri,
-      'status' => TRUE,
-    ]);
-
-    $account1 = $this->createUser($permissions, values: ['user_picture' => $picture]);
+    list($account1, $avatarUrl) = $this->setUserWithPictureField($permissions);
     self::assertInstanceOf(AccountInterface::class, $account1);
+    self::assertInstanceOf(UserInterface::class, $account1);
 
     $account2 = $this->createUser($permissions);
     self::assertInstanceOf(AccountInterface::class, $account2);
@@ -224,7 +213,6 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     self::assertArrayHasKey('updated', $content['xb_asset_library:global']);
     $imageStyle = \Drupal::entityTypeManager()->getStorage('image_style')->load(ApiAutoSaveController::AVATAR_IMAGE_STYLE);
     self::assertInstanceOf(ImageStyleInterface::class, $imageStyle);
-    $avatarUrl = $imageStyle->buildUrl($fileUri);
     // Smoke test this is of the expected format.
     self::assertStringContainsString(\sprintf('/styles/%s/public/image-2.jpg', ApiAutoSaveController::AVATAR_IMAGE_STYLE), $avatarUrl);
     self::assertEquals([
@@ -680,35 +668,6 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     // Ensure that after the nodes have been published their auto-save data is
     // removed.
     $this->assertNoAutoSaveData();
-  }
-
-  protected function assertNoAutoSaveData(): void {
-    $response = $this->makePublishAllRequest([]);
-    $json = json_decode($response->getContent() ?: '', TRUE);
-    self::assertEquals(Response::HTTP_NO_CONTENT, $response->getStatusCode());
-    self::assertEquals(['message' => 'No items to publish.'], $json);
-  }
-
-  protected function makePublishAllRequest(?array $data = NULL): JsonResponse {
-    if (is_null($data)) {
-      $data = $this->getAutoSaveStatesFromServer();
-    }
-    $controller = \Drupal::service(ApiAutoSaveController::class);
-    $request = Request::create(
-      Url::fromRoute('experience_builder.api.auto-save.post')->toString(),
-      content: (string) json_encode($data)
-    );
-    return $controller->post($request);
-  }
-
-  protected function getAutoSaveStatesFromServer(): array {
-    $auto_save_controller = \Drupal::service(ApiAutoSaveController::class);
-    $response = $auto_save_controller->get();
-    assert($response instanceof JsonResponse);
-    $content = $response->getContent();
-    assert(is_string($content));
-    $auto_saves = json_decode($content, TRUE);
-    return $auto_saves;
   }
 
 }
