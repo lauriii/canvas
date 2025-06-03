@@ -274,6 +274,7 @@ final class FallbackInputTest extends ApiLayoutControllerTestBase {
     $component_plugin_manager->getDefinitions();
     /** @var \Drupal\experience_builder\Entity\ComponentInterface $component_to_recover */
     $component_to_recover = Component::load($component_to_recover->id());
+    self::assertFalse($component_to_recover->status());
     self::assertEquals(SingleDirectoryComponent::SOURCE_PLUGIN_ID, $component_to_recover->getComponentSource()->getPluginId());
 
     // Fetch the data again.

@@ -252,7 +252,7 @@ final class SingleDirectoryComponent extends GeneratedFieldExplicitInputUxCompon
       'prop_field_definitions' => self::getPropsForComponentPlugin($component_plugin),
       'local_source_id' => $component_plugin->getPluginId(),
     ];
-    $component->setSource(self::SOURCE_PLUGIN_ID)->setSettings($settings)->enable();
+    $component->setSource(self::SOURCE_PLUGIN_ID)->setSettings($settings);
     return $component;
   }
 
