@@ -15,6 +15,7 @@ use Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\Generated
 use Drupal\experience_builder\Entity\ComponentInterface;
 use Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\SingleDirectoryComponent;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
+use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemList;
 use Drupal\experience_builder\PropExpressions\StructuredData\FieldTypePropExpression;
 use Drupal\experience_builder\PropSource\PropSource;
 use Drupal\experience_builder\PropSource\StaticPropSource;
@@ -27,6 +28,7 @@ use Drupal\Tests\experience_builder\Traits\GenerateComponentConfigTrait;
 use Drupal\Tests\experience_builder\Traits\CrawlerTrait;
 use Twig\Error\Error;
 use Twig\Error\RuntimeError;
+use Twig\Error\SyntaxError;
 
 /**
  * @coversDefaultClass \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\SingleDirectoryComponent
@@ -448,6 +450,19 @@ HTML,
     return $test_cases;
   }
 
+  protected function generateCrashTestDummyComponentTree(string $component_id, array $inputs, bool $assertCount = TRUE): ComponentTreeItemList {
+    if ($component_id === 'sdc.xb_broken_sdcs.invalid-filter') {
+      // This component needs an extra module.
+      $this->assertCount(0, $this->componentStorage->loadMultiple());
+      \Drupal::service(ModuleInstallerInterface::class)->install(['xb_broken_sdcs']);
+
+      // Now call the parent, but don't assert the count of components, as we've
+      // done it here, and installing a module will generate component config.
+      return parent::generateCrashTestDummyComponentTree($component_id, $inputs, assertCount: FALSE);
+    }
+    return parent::generateCrashTestDummyComponentTree($component_id, $inputs);
+  }
+
   public static function providerRenderComponentFailure(): \Generator {
     $generate_static_prop_source = function (string $field_type, mixed $value): array {
       return [
@@ -504,6 +519,19 @@ HTML,
       'expected_exception' => [
         'class' => RuntimeError::class,
         'message' => 'An exception has been thrown during the rendering of a template ("[xb_test_sdc:crash/crash] The property crash is required.").',
+      ],
+      'expected_output_selector' => NULL,
+    ];
+
+    yield "SDC with invalid Twig" => [
+      'component_id' => 'sdc.xb_broken_sdcs.invalid-filter',
+      'inputs' => [
+        'name' => $generate_static_prop_source('string', 'Gaia'),
+      ],
+      'expected_validation_errors' => [],
+      'expected_exception' => [
+        'class' => SyntaxError::class,
+        'message' => 'Unknown "invalidFilter" filter',
       ],
       'expected_output_selector' => NULL,
     ];

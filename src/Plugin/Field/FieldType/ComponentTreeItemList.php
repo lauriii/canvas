@@ -257,6 +257,7 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
           }
 
           // Wrap in a render-safe container.
+          // @todo Remove all the wrapping-in-RenderSafeComponentContainer complexity and make ComponentSourceInterface::renderComponent() for that instead in https://www.drupal.org/i/3521041
           $build[$component_subtree_uuid][$component_instance_uuid] = [
             '#type' => RenderSafeComponentContainer::PLUGIN_ID,
             '#component' => $element,
@@ -266,6 +267,7 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
           ];
         }
         catch (\Throwable $e) {
+          // @todo Remove all the wrapping-in-RenderSafeComponentContainer complexity and make ComponentSourceInterface::renderComponent() for that instead in https://www.drupal.org/i/3521041
           $build[$component_subtree_uuid][$component_instance_uuid] = RenderSafeComponentContainer::handleComponentException(
             $e,
             $componentRenderingContext,

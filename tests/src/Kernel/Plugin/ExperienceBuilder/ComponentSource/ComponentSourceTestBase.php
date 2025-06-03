@@ -344,9 +344,11 @@ abstract class ComponentSourceTestBase extends KernelTestBase implements LoggerI
    *
    * @return \Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemList
    */
-  protected function generateCrashTestDummyComponentTree(string $component_id, array $inputs): ComponentTreeItemList {
-    $this->assertCount(0, $this->componentStorage->loadMultiple());
-    $this->generateComponentConfig();
+  protected function generateCrashTestDummyComponentTree(string $component_id, array $inputs, bool $assertCount = TRUE): ComponentTreeItemList {
+    if ($assertCount) {
+      $this->assertCount(0, $this->componentStorage->loadMultiple());
+      $this->generateComponentConfig();
+    }
 
     $field_item = $this->createDanglingComponentTreeItemList();
     $field_item->setValue([
@@ -399,9 +401,11 @@ abstract class ComponentSourceTestBase extends KernelTestBase implements LoggerI
    * $expected_exception array{'class': string, 'message': string}|NULL
    */
   public function testRenderComponentFailure(string $component_id, array $inputs, array $expected_validation_errors, ?array $expected_exception, ?string $expected_output_selector): void {
-    $this->container->get('logger.factory')->addLogger($this);
-
     $component_tree = $this->generateCrashTestDummyComponentTree($component_id, $inputs);
+    // Child implementations of ::generateCrashTestDummyComponentTree may
+    // install additional modules, which will rebuild the container. So we add
+    // the logger afterward.
+    $this->container->get('logger.factory')->addLogger($this);
 
     // Unless explicitly expected to be invalid, inputs should be valid.
     $this->assertSame($expected_validation_errors, $this->violationsToArray($component_tree->validate()), 'Unrealistic test case encountered: it must still represent a valid component tree!');

@@ -19,6 +19,7 @@ use Drupal\experience_builder\Audit\ComponentAudit;
 use Drupal\experience_builder\ClientSideRepresentation;
 use Drupal\experience_builder\ComponentSource\ComponentSourceInterface;
 use Drupal\experience_builder\ComponentSource\ComponentSourceManager;
+use Drupal\experience_builder\Element\RenderSafeComponentContainer;
 use Drupal\experience_builder\EntityHandlers\ContentCreatorVisibleXbConfigEntityAccessControlHandler;
 use Drupal\experience_builder\Form\ComponentListBuilder;
 use Drupal\experience_builder\ComponentSource\ComponentSourceWithSlotsInterface;
@@ -245,12 +246,22 @@ final class Component extends ConfigEntityBase implements ComponentInterface, Xb
     $build = $info['build'];
     unset($info['build']);
 
-    // Wrap each rendered component instance in HTML comments that allow the
-    // client side to identify it.
-    // @see \Drupal\experience_builder\Plugin\DataType\ComponentTreeHydrated::renderify()
     $component_config_entity_uuid = $this->uuid();
-    $build['#prefix'] = Markup::create("<!-- xb-start-$component_config_entity_uuid -->");
-    $build['#suffix'] = Markup::create("<!-- xb-end-$component_config_entity_uuid -->");
+    // Wrap in a render-safe container.
+    // @todo Remove all the wrapping-in-RenderSafeComponentContainer complexity and make ComponentSourceInterface::renderComponent() for that instead in https://www.drupal.org/i/3521041
+    $build = [
+      '#type' => RenderSafeComponentContainer::PLUGIN_ID,
+      '#component' => $build + [
+        // Wrap each rendered component instance in HTML comments that allow the
+        // client side to identify it.
+        // @see \Drupal\experience_builder\Plugin\DataType\ComponentTreeHydrated::renderify()
+        '#prefix' => Markup::create("<!-- xb-start-$component_config_entity_uuid -->"),
+        '#suffix' => Markup::create("<!-- xb-end-$component_config_entity_uuid -->"),
+      ],
+      '#component_context' => \sprintf('Preview rendering component %s.', $this->label()),
+      '#component_uuid' => $component_config_entity_uuid,
+      '#is_preview' => TRUE,
+    ];
     return ClientSideRepresentation::create(
       values: $info + [
         'id' => $this->id(),

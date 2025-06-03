@@ -7,6 +7,7 @@ namespace Drupal\Tests\experience_builder\Functional;
 use Drupal\Component\Serialization\Json;
 use Drupal\experience_builder\AutoSave\AutoSaveManager;
 use Drupal\experience_builder\Entity\Component;
+use Drupal\experience_builder\Entity\ComponentInterface;
 use Drupal\node\Entity\Node;
 use Drupal\Tests\system\Functional\Cache\AssertPageCacheContextsAndTagsTrait;
 use Drupal\Tests\experience_builder\Traits\CreateTestJsComponentTrait;
@@ -30,6 +31,8 @@ class PropSourceEndpointTest extends FunctionalTestBase {
   protected static $modules = [
     'experience_builder',
     'sdc_test_all_props',
+    // Validate that a single invalid SDC doesn't break the component list.
+    'xb_broken_sdcs',
   ];
 
   /**
@@ -45,6 +48,8 @@ class PropSourceEndpointTest extends FunctionalTestBase {
   public function test(): void {
     $this->createMyCtaComponentFromSdc();
     $this->disableToolsMenuBlockComponent();
+    // Ensure that we have a busted SDC component.
+    self::assertInstanceOf(ComponentInterface::class, Component::load('sdc.xb_broken_sdcs.invalid-filter'));
 
     $page = $this->getSession()->getPage();
     $node = Node::create([
