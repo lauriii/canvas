@@ -1324,6 +1324,7 @@ components:
         - category
         - default_markup
         - library
+        - version
       properties:
         name:
           type: string
@@ -1331,6 +1332,9 @@ components:
         id:
           type: string
           description: The component id
+        version:
+          type: string
+          description: Active version ID
         category:
           type: string
           description: The component category

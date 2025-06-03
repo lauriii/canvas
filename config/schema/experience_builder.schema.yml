@@ -1,5 +1,5 @@
 experience_builder.component.*:
-  type: config_entity
+  type: versioned_config_entity
   constraints:
     FullyValidatable: ~
   mapping:
@@ -12,20 +12,18 @@ experience_builder.component.*:
         ComponentStatusConstraint: []
     id:
       # This ID intentionally does not use `type: machine_name`, because it is a composite ID that is better validated
-      # using the `ComponentIdParts` constraint than the `RegEx` constraint.
+      # using the `StringParts` constraint than the `RegEx` constraint.
       type: string
       label: 'Component'
       constraints:
-        ComponentIdParts:
-          ignoreSources:
-            - fallback
+        StringParts:
           separator: .
           reservedCharacters:
             - ':'
           reservedCharactersSubstitute: .
           parts:
             - '%parent.source'
-            - '%parent.settings.local_source_id'
+            - '%parent.source_local_id'
         Length:
           # @see \Drupal\Core\Config\Entity\ConfigEntityStorage::MAX_ID_LENGTH
           max: 166
@@ -48,11 +46,50 @@ experience_builder.component.*:
         PluginExists:
           manager: Drupal\experience_builder\ComponentSource\ComponentSourceManager
           interface: '\Drupal\experience_builder\ComponentSource\ComponentSourceInterface'
+        # @see \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\Fallback
+        # @see \Drupal\experience_builder\Entity\Component::getComponentSourcePluginId()
+        NotEqualTo:
+          value: 'fallback'
+          message: 'The "fallback" plugin does not provide any components; it only serves as a fallback.'
+    source_local_id:
+      type: experience_builder.component_source_local_id.[%parent.source]
     category:
       type: required_label
       label: 'Category'
+    versioned_properties:
+      sequence:
+        # There are 3 possible shapes for each sequence element:
+        # 1. the active version is the special `fallback` version: only `fallback` Component Source-specific settings → `type: experience_builder.component.versioned.active.fallback`
+        # 2. the active version is any other version other version is active: the Component Source-specific settings + the fallback metadata → `type: experience_builder.component.versioned.active.*`
+        # 3. any non-active version: Component Source-specific settings (not validatable because the implementation may have changed) + fallback metadata → `type: experience_builder.component.versioned.*.*`
+        type: experience_builder.component.versioned.[%key].[%parent.%parent.active_version]
+      # @todo For this to work we need the ability to perfectly consistently normalize the ComponentSource-specific settings first, do that in https://www.drupal.org/i/3528159
+      #constraints:
+      #  Callback: ['\Drupal\experience_builder\Entity\Component', validateVersions]
+
+# Special case: when the active version is the special `fallback` version: it uses the Fallback source plugin.
+# @see \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\Fallback
+# @see \Drupal\experience_builder\Entity\Component::onDependencyRemoval()
+experience_builder.component.versioned.active.fallback:
+  constraints:
+    FullyValidatable: ~
+  type: mapping
+  mapping:
     settings:
-      type: experience_builder.component_source_settings.[%parent.source]
+      type: experience_builder.component_source_settings.fallback
+    # Note: NO `fallback_metadata`!
+
+# All other cases: key-value pairs under `versioned_properties` MUST contain both:
+# 1. the Component Source-specific settings (⚠️ which MAY be invalid against the current implementation of the component)
+# 2. the fallback metadata
+# (because both may vary from one version to the next)
+experience_builder.component.versioned.*.*:
+  constraints:
+    FullyValidatable: ~
+  type: mapping
+  mapping:
+    settings:
+      type: ignore
     fallback_metadata:
       type: mapping
       label: 'Fallback metadata'
@@ -62,6 +99,22 @@ experience_builder.component.*:
           type: sequence
           sequence:
             type: experience_builder.slot_definition
+          # For components whose source does not implement `ComponentSourceWithSlotsInterface`.
+          # @see \Drupal\experience_builder\Entity\Component::preSave()
+          nullable: true
+
+# Special case: the `active` version: it uses a non-Fallback source plugin.
+# All other cases: key-value pairs under `versioned_properties` MUST contain both:
+# 1. the Component Source-specific settings (which MUST be *valid* against the current implementation of the component)
+# 2. the fallback metadata
+# (because both may vary from one version to the next)
+experience_builder.component.versioned.active.*:
+  constraints:
+    FullyValidatable: ~
+  type: experience_builder.component.versioned.*.*
+  mapping:
+    settings:
+      type: experience_builder.component_source_settings.[%parent.%parent.%parent.source]
 
 # The \Drupal\experience_builder\Entity\JavaScriptComponent config aims to provide metadata compatible with SDC.
 # Hence the data it contains consists of two parts:
@@ -257,9 +310,13 @@ experience_builder.component_tree_node:
     component_id:
       type: string
       label: 'Component config entity ID'
-      constraints:
-        ConfigExists:
-          prefix: experience_builder.component.
+      # Note constraints here are applied by ComponentTreeStructureConstraintValidator.
+      constraints: { }
+    version:
+      type: string
+      label: 'Component version'
+      # Note constraints here are applied by ComponentTreeStructureConstraintValidator.
+      constraints: { }
     # @see \Drupal\experience_builder\Plugin\DataType\ComponentInputs
     inputs:
       type: ignore
@@ -293,44 +350,54 @@ experience_builder.slot_definition:
         type: string
         label: 'Example for slot'
 
+experience_builder.component_source_local_id.sdc:
+  type: experience_builder.component_source_local_id.*
+  label: 'Component ID'
+  # @see \Drupal\Core\Plugin\Component::$machineName
+  constraints:
+    NotBlank: []
+    Regex:
+      pattern: '/^[a-z0-9_-]+:[a-z0-9_-]+$/'
+      message: 'The %value machine name is not valid.'
+    PluginExists:
+      manager: plugin.manager.sdc
+      interface: 'Drupal\Core\Plugin\PluginBase'
+    FullyValidatable: ~
 experience_builder.component_source_settings.sdc:
   constraints:
     FullyValidatable: ~
   type: experience_builder.generated_field_explicit_input_ux
   label: 'SDC component settings'
   mapping:
-    # @see \Drupal\Core\Plugin\Component::$machineName
-    local_source_id:
-      type: string
-      label: 'Component ID'
-      constraints:
-        NotBlank: []
-        Regex:
-          pattern: '/^[a-z0-9_-]+:[a-z0-9_-]+$/'
-          message: 'The %value machine name is not valid.'
-        PluginExists:
-          manager: plugin.manager.sdc
-          interface: 'Drupal\Core\Plugin\PluginBase'
     prop_field_definitions:
       constraints:
-        KeyForEverySdcProp: "%parent.local_source_id"
+        KeyForEverySdcProp: "%parent.%parent.%parent.%parent.source_local_id"
 
-# The structure that all ComponentSource-specific per-Component config entity settings MUST adhere to. (Because
-# the `experience_builder.component_source_settings.*` type's `id` key-value pair assumes `settings.local_source_id` to exist
-# to guarantee the Component config entity ID is consistent.)
-# Each ComponentSource MUST provide a specific override that:
-# - MUST override both labels
-# - MUST add appropriate validation constraints to `local_source_id`
-# - MAY add more key-value pairs to the mapping — and then add appropriate validation constraints for those
-# - MUST mark the entire subtype as being fully validatable
+# Every ComponentSource plugin MUST define two config schema types:
+# 1. One for the ComponentSource-specific per-Component config entity local/intra-source ID: typically a plugin ID or a
+#    config entity ID. This must extend `type: experience_builder.component_source_local_id.*`.
+#    This is used for the top-level `experience_builder.component.*:source_local_id` Component config entity property,
+#    is both not versioned and immutable, and is used to guarantee the Component config entity ID is consistent.
+#    It MUST:
+#    1. override the label
+#    2. specify the appropriate validation constraints
+#    3. mark the new subtype as fully validatable
+# 2. One for the ComponentSource-specific per-Component config entity settings, if any. This must extend
+#    `type: experience_builder.component_source_settings.*`.
+#    It:
+#    1. MUST override the label
+#    2. MAY add more key-value pairs to the mapping
+#    3. MUST specify the appropriate validation constraints
+#    4. MUST mark the new subtype as fully validatable
+experience_builder.component_source_local_id.*:
+  label: 'The intra-source ID of this component in this source'
+  type: string
+  constraints: {}
 experience_builder.component_source_settings.*:
   type: mapping
   label: 'Source-specific component settings'
-  mapping:
-    local_source_id:
-      type: string
-      label: 'The intra-source ID of this component in this source'
-      constraints: {}
+  # No settings by default.
+  mapping: {}
 
 # @see \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase
 # Each ComponentSource that extends GeneratedFieldExplicitInputUxComponentSourceBase MUST provide an override that:
@@ -409,23 +476,25 @@ experience_builder.generated_field_explicit_input_ux:
             # @todo Add `StructuredDataPropExpression` validation constraint that fails if StructuredDataPropExpression::fromString() fails
             # StructuredDataPropExpression: [field_type]
 
+experience_builder.component_source_local_id.js:
+  type: experience_builder.component_source_local_id.*
+  label: 'JS Component ID'
+  constraints:
+    ConfigExists:
+      prefix: experience_builder.js_component.
+    FullyValidatable: ~
 experience_builder.component_source_settings.js:
   constraints:
     FullyValidatable: ~
   type: experience_builder.generated_field_explicit_input_ux
   label: 'Code component settings'
   mapping:
-    local_source_id:
-      label: 'JS Component ID'
-      constraints:
-        ConfigExists:
-          prefix: experience_builder.js_component.
     prop_field_definitions:
       constraints:
         # There must be a key for every `prop` in the corresponding \Drupal\experience_builder\Entity\JavaScriptComponent::$props.
         SequenceKeysMustMatch:
           configPrefix: experience_builder.js_component.
-          configName: '%parent.local_source_id'
+          configName: '%parent.%parent.%parent.%parent.source_local_id'
           propertyPathToSequence: props
 
 # This is similar to Block config entities, but different:
@@ -434,35 +503,34 @@ experience_builder.component_source_settings.js:
 # ⚠️ The XB equivalent of "visibility conditions" will be added when product requirement `41. Conditional display of components` is implemented, and it will not happen at the `Component` config entity level, but at the use/placement/instantiation level: in a component tree.
 # @see https://docs.google.com/spreadsheets/d/1OpETAzprh6DWjpTsZG55LWgldWV_D8jNe9AM73jNaZo/edit?gid=1721130122#gid=1721130122&range=B53
 # @see `type: block.block.*` in core/modules/block/config/schema/block.schema.yml
+experience_builder.component_source_local_id.block:
+  type: experience_builder.component_source_local_id.*
+  label: 'Block plugin ID'
+  constraints:
+    PluginExists:
+      manager: plugin.manager.block
+      interface: Drupal\Core\Block\BlockPluginInterface
+    FullyValidatable: ~
 experience_builder.component_source_settings.block:
   constraints:
     FullyValidatable: ~
   type: experience_builder.component_source_settings.*
   label: 'Block component settings'
   mapping:
-    local_source_id:
-      label: 'Block plugin ID'
-      constraints:
-        PluginExists:
-          manager: plugin.manager.block
-          interface: Drupal\Core\Block\BlockPluginInterface
     default_settings:
-      type: block.settings.[%parent.local_source_id]
+      type: block.settings.[%parent.%parent.%parent.%parent.source_local_id]
 
+# The `fallback` plugin ID is the only one not required to specify a source-local ID.
 experience_builder.component_source_settings.fallback:
   constraints:
     FullyValidatable: ~
   type: experience_builder.component_source_settings.*
   label: 'Fallback component settings'
   mapping:
-    local_source_id:
-      # This is redundant here, so is not required.
-      # @see `type: experience_builder.component.*`'s `ComponentIdParts` constraint.
-      requiredKey: false
-    slots:
-      type: sequence
-      sequence:
-        type: experience_builder.slot_definition
+    # To retrieve the appropriate `fallback_metadata.slot_definitions`.
+    # @see `experience_builder.component.*:source`
+    last_active_version:
+      type: string
 
 field.value.component_tree:
   # TRICKY: `field_config_base:default_value` defines the default value as a sequence of field item values. Hence this

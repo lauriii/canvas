@@ -8,6 +8,8 @@ use Drupal\Core\Config\Schema\SchemaIncompleteException;
 use Drupal\Core\Theme\ComponentPluginManager as CoreComponentPluginManager;
 use Drupal\experience_builder\Entity\Component;
 use Drupal\experience_builder\Entity\JavaScriptComponent;
+use Drupal\experience_builder\Entity\VersionedConfigEntityBase;
+use Drupal\experience_builder\Entity\VersionedConfigEntityInterface;
 use Drupal\experience_builder\Plugin\ComponentPluginManager;
 use Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\BlockComponent;
 use Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\JsComponent;
@@ -57,18 +59,6 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
 
   /**
    * {@inheritdoc}
-   *
-   * @phpstan-ignore property.defaultValue
-   */
-  protected static array $propertiesWithRequiredKeys = [
-    'settings' => [
-      "'local_source_id' is a required key.",
-      "'prop_field_definitions' is a required key because source is sdc (see config schema type experience_builder.component_source_settings.sdc).",
-    ],
-  ];
-
-  /**
-   * {@inheritdoc}
    */
   protected static array $propertiesWithOptionalValues = [
     'provider',
@@ -90,56 +80,61 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
       'id' => 'sdc.xb_test_sdc.my-cta',
       'category' => 'Test',
       'source' => SingleDirectoryComponent::SOURCE_PLUGIN_ID,
-      'settings' => [
-        'local_source_id' => 'xb_test_sdc:my-cta',
-        'prop_field_definitions' => [
-          'text' => [
-            // @see \Drupal\Core\Field\Plugin\Field\FieldType\StringItem
-            'field_type' => 'string',
-            // @see \Drupal\Core\Field\Plugin\Field\FieldWidget\StringTextfieldWidget
-            'field_widget' => 'string_textfield',
-            'default_value' => [0 => ['value' => 'Hello, world!']],
-            'expression' => 'ℹ︎string␟value',
-          ],
-          'href' => [
-            // @see \Drupal\Core\Field\Plugin\Field\FieldType\UriItem
-            'field_type' => 'uri',
-            // @see \Drupal\Core\Field\Plugin\Field\FieldWidget\UriWidget
-            'field_widget' => 'uri',
-            'default_value' => [0 => ['value' => 'https://drupal.org']],
-            'expression' => 'ℹ︎uri␟value',
-          ],
-          'target' => [
-            // @see \Drupal\options\Plugin\Field\FieldType\ListStringItem
-            'field_type' => 'list_string',
-            'field_storage_settings' => [
-              'allowed_values' => [
-                ['value' => 'foo', 'label' => 'foo'],
-                ['value' => 'bar', 'label' => 'bar'],
+      'source_local_id' => 'xb_test_sdc:my-cta',
+      'active_version' => '8a0a11772d330d4c',
+      'versioned_properties' => [
+        VersionedConfigEntityBase::ACTIVE_VERSION => [
+          'settings' => [
+            'prop_field_definitions' => [
+              'text' => [
+                // @see \Drupal\Core\Field\Plugin\Field\FieldType\StringItem
+                'field_type' => 'string',
+                // @see \Drupal\Core\Field\Plugin\Field\FieldWidget\StringTextfieldWidget
+                'field_widget' => 'string_textfield',
+                'default_value' => [0 => ['value' => 'Hello, world!']],
+                'expression' => 'ℹ︎string␟value',
               ],
-            ],
-            // @see \Drupal\Core\Field\Plugin\Field\FieldWidget\OptionsSelectWidget
-            'field_widget' => 'options_select',
-            'default_value' => NULL,
-            'expression' => 'ℹ︎list_string␟value',
-          ],
-          // @todo This will start failing validation in https://www.drupal.org/i/3525759.
-          'image' => [
-            'field_type' => 'image',
-            'field_storage_settings' => [
-              'target_type' => 'media',
-            ],
-            'field_instance_settings' => [
-              'handler' => 'default:media',
-              'handler_settings' => [
-                'target_bundles' => [
-                  'image' => 'image',
+              'href' => [
+                // @see \Drupal\Core\Field\Plugin\Field\FieldType\UriItem
+                'field_type' => 'uri',
+                // @see \Drupal\Core\Field\Plugin\Field\FieldWidget\UriWidget
+                'field_widget' => 'uri',
+                'default_value' => [0 => ['value' => 'https://drupal.org']],
+                'expression' => 'ℹ︎uri␟value',
+              ],
+              'target' => [
+                // @see \Drupal\options\Plugin\Field\FieldType\ListStringItem
+                'field_type' => 'list_string',
+                'field_storage_settings' => [
+                  'allowed_values' => [
+                    ['value' => 'foo', 'label' => 'foo'],
+                    ['value' => 'bar', 'label' => 'bar'],
+                  ],
                 ],
+                // @see \Drupal\Core\Field\Plugin\Field\FieldWidget\OptionsSelectWidget
+                'field_widget' => 'options_select',
+                'default_value' => NULL,
+                'expression' => 'ℹ︎list_string␟value',
+              ],
+              // @todo This will start failing validation in https://www.drupal.org/i/3525759.
+              'image' => [
+                'field_type' => 'image',
+                'field_storage_settings' => [
+                  'target_type' => 'media',
+                ],
+                'field_instance_settings' => [
+                  'handler' => 'default:media',
+                  'handler_settings' => [
+                    'target_bundles' => [
+                      'image' => 'image',
+                    ],
+                  ],
+                ],
+                'field_widget' => 'media_library_widget',
+                'default_value' => [],
+                'expression' => 'ℹ︎image␟{src↝entity␜␜entity:file␝uri␞␟url,alt↠alt,width↠width,height↠height}',
               ],
             ],
-            'field_widget' => 'media_library_widget',
-            'default_value' => [],
-            'expression' => 'ℹ︎image␟{src↝entity␜␜entity:file␝uri␞␟url,alt↠alt,width↠width,height↠height}',
           ],
         ],
       ],
@@ -200,7 +195,7 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
     unset($invalid_settings_due_to_missing_prop_field_definition['prop_field_definitions']['target']);
     $this->entity->setSettings($invalid_settings_due_to_missing_prop_field_definition);
     $this->assertValidationErrors([
-      'settings.prop_field_definitions' => 'Configuration for the SDC prop "<em class="placeholder">Target</em>" (<em class="placeholder">target</em>) is missing.',
+      \sprintf('versioned_properties.%s.settings.prop_field_definitions', VersionedConfigEntityInterface::ACTIVE_VERSION) => 'Configuration for the SDC prop "<em class="placeholder">Target</em>" (<em class="placeholder">target</em>) is missing.',
     ]);
 
     // @see \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\JsComponent
@@ -229,21 +224,28 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
       'id' => 'js.my-cta',
       'category' => 'Test',
       'source' => JsComponent::SOURCE_PLUGIN_ID,
-      'settings' => [
-        'local_source_id' => 'my-cta',
-        'prop_field_definitions' => array_diff_key(
-          $this->entity->getSettings()['prop_field_definitions'],
-          // Remove the 'target' key to trigger a validation error.
-          // Remove the 'image' because the property is not in the JS component
-          // created above.
-          // @todo Remove "image" from this in https://www.drupal.org/i/3525759.
-          array_flip(['target', 'image']),
-        ),
+      'source_local_id' => 'my-cta',
+      'active_version' => '7cc95037796258ba',
+      'versioned_properties' => [
+        VersionedConfigEntityBase::ACTIVE_VERSION => [
+          'settings' => [
+            'prop_field_definitions' => array_diff_key(
+              $this->entity->getSettings()['prop_field_definitions'],
+              // Remove the 'target' key to trigger a validation error.
+              // Remove the 'image' because the property is not in the JS component
+              // created above.
+              // @todo Remove "image" from this in https://www.drupal.org/i/3525759.
+              array_flip(['target', 'image']),
+            ),
+          ],
+        ],
       ],
       'label' => 'Test',
     ]);
     $this->assertValidationErrors([
-      'settings.prop_field_definitions' => "'target' is a required key.",
+      \sprintf('versioned_properties.%s.settings.prop_field_definitions', VersionedConfigEntityInterface::ACTIVE_VERSION) => "'target' is a required key.",
+      // @see \Drupal\experience_builder\Entity\Component::preSave()
+      \sprintf('versioned_properties.%s', VersionedConfigEntityInterface::ACTIVE_VERSION) => "'fallback_metadata' is a required key because versioned_properties.%key is active (see config schema type experience_builder.component.versioned.active.*).",
     ]);
 
     // @see \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\BlockComponent
@@ -255,29 +257,36 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
       'id' => 'block.system_branding_block',
       'category' => 'Test',
       'source' => BlockComponent::SOURCE_PLUGIN_ID,
-      'settings' => [
-        'local_source_id' => 'system_branding_block',
-        'default_settings' => [
-          // For `type: block_settings`.
-          'id' => 'system_branding_block',
-          'provider' => 'system',
-          'label' => 'Site branding',
-          // For `type: block.settings.system_branding_block`, which extends the
-          // above.
-          // @see \Drupal\system\Plugin\Block\SystemBrandingBlock::defaultConfiguration()
-          'use_site_logo' => TRUE,
-          'use_site_name' => FALSE,
-          // But intentionally omitted `use_site_slogan`, which SHOULD trigger a
-          // validation error.
-          // 'use_site_slogan' => FALSE,
-          // @todo Upstream core bug in `type: block_settings`: `label_display` should be a boolean but has `type: label`.
-          'label_display' => 'false',
-        ] + $defaults,
+      'source_local_id' => 'system_branding_block',
+      'active_version' => '418f81761325b563',
+      'versioned_properties' => [
+        VersionedConfigEntityBase::ACTIVE_VERSION => [
+          'settings' => [
+            'default_settings' => [
+              // For `type: block_settings`.
+              'id' => 'system_branding_block',
+              'provider' => 'system',
+              'label' => 'Site branding',
+              // For `type: block.settings.system_branding_block`, which extends
+              // the above.
+              // @see \Drupal\system\Plugin\Block\SystemBrandingBlock::defaultConfiguration()
+              'use_site_logo' => TRUE,
+              'use_site_name' => FALSE,
+              // But intentionally omitted `use_site_slogan`, which SHOULD
+              // trigger a validation error.
+              // 'use_site_slogan' => FALSE,
+              // @todo Upstream core bug in `type: block_settings`: `label_display` should be a boolean but has `type: label`.
+              'label_display' => 'false',
+            ] + $defaults,
+          ],
+        ],
       ],
       'label' => 'Test',
     ]);
     $this->assertValidationErrors([
-      'settings.default_settings' => "'use_site_slogan' is a required key because settings.local_source_id is system_branding_block (see config schema type block.settings.system_branding_block).",
+      \sprintf('versioned_properties.%s.settings.default_settings', VersionedConfigEntityInterface::ACTIVE_VERSION) => "'use_site_slogan' is a required key because source_local_id is system_branding_block (see config schema type block.settings.system_branding_block).",
+      // @see \Drupal\experience_builder\Entity\Component::preSave()
+      \sprintf('versioned_properties.%s', VersionedConfigEntityInterface::ACTIVE_VERSION) => "'fallback_metadata' is a required key because versioned_properties.%key is active (see config schema type experience_builder.component.versioned.active.*).",
     ]);
   }
 
@@ -315,7 +324,7 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
     $this->entity->set('id', 'invalid:name');
     $this->assertValidationErrors([
       '' => "The 'id' property cannot be changed.",
-      'id' => "Expected 'sdc.xb_test_sdc.my-cta', not 'invalid:name'. Format: '&lt;%parent.source&gt;.&lt;%parent.settings.local_source_id&gt;'.",
+      'id' => "Expected 'sdc.xb_test_sdc.my-cta', not 'invalid:name'. Format: '&lt;%parent.source&gt;.&lt;%parent.source_local_id&gt;'.",
     ]);
   }
 
@@ -323,16 +332,20 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
     $valid_values = [
       'id' => 'sdc.sdc_test.no-props',
       'source' => 'test',
-      'local_source_id' => 'sdc_test:no-props',
+      'source_local_id' => 'sdc_test:no-props',
     ];
     $additional_validation_errors = [
       'id' => [
-        'id' => "Expected 'sdc.xb_test_sdc.my-cta', not 'sdc.sdc_test.no-props'. Format: '&lt;%parent.source&gt;.&lt;%parent.settings.local_source_id&gt;'.",
+        'id' => "Expected 'sdc.xb_test_sdc.my-cta', not 'sdc.sdc_test.no-props'. Format: '&lt;%parent.source&gt;.&lt;%parent.source_local_id&gt;'.",
       ],
       'source' => [
-        'id' => "Expected 'test.xb_test_sdc.my-cta', not 'sdc.xb_test_sdc.my-cta'. Format: '&lt;%parent.source&gt;.&lt;%parent.settings.local_source_id&gt;'.",
-        'settings' => "'prop_field_definitions' is an unknown key because source is test (see config schema type experience_builder.component_source_settings.*).",
+        'id' => "Expected 'test.xb_test_sdc.my-cta', not 'sdc.xb_test_sdc.my-cta'. Format: '&lt;%parent.source&gt;.&lt;%parent.source_local_id&gt;'.",
         'source' => "The 'test' plugin does not exist.",
+        \sprintf('versioned_properties.%s.settings', VersionedConfigEntityInterface::ACTIVE_VERSION) => "'prop_field_definitions' is an unknown key because source is test (see config schema type experience_builder.component_source_settings.*).",
+      ],
+      'source_local_id' => [
+        'id' => "Expected 'sdc.sdc_test.no-props', not 'sdc.xb_test_sdc.my-cta'. Format: '&lt;%parent.source&gt;.&lt;%parent.source_local_id&gt;'.",
+        'source_local_id' => "The 'sdc_test:no-props' plugin does not exist.",
       ],
     ];
 
@@ -347,7 +360,7 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
       try {
         $this->assertValidationErrors([
           '' => "The '$property_name' property cannot be changed.",
-        ] + $additional_validation_errors[$property_name]);
+        ] + ($additional_validation_errors[$property_name] ?? []));
       }
       catch (SchemaIncompleteException) {
         // Safe to ignore, because the validation error for the immutable
@@ -355,23 +368,6 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
       }
       $this->entity->set($property_name, $original_value);
     }
-  }
-
-  public function testRequiredPropertyKeysMissing(?array $additional_expected_validation_errors_when_missing = NULL): void {
-    $additional_expected_validation_errors_when_missing['settings']['id'] = 'This validation constraint is configured to inspect the properties <em class="placeholder">%parent.source, %parent.settings.local_source_id</em>, but some do not exist: <em class="placeholder">%parent.settings.local_source_id</em>.';
-    $additional_expected_validation_errors_when_missing['settings']['status'] = [
-      'The component \'<em class="placeholder">sdc.xb_test_sdc.my-cta</em>\' cannot be enabled because it does not meet the requirements of Experience Builder.',
-      'Component has no valid source plugin_id value.',
-    ];
-    $additional_expected_validation_errors_when_missing['fallback_metadata'] = [
-      'fallback_metadata' => "'slot_definitions' is a required key.",
-      // The entity remains invalid from the previous mapping property.
-      'status' => [
-        'The component \'<em class="placeholder">sdc.xb_test_sdc.my-cta</em>\' cannot be enabled because it does not meet the requirements of Experience Builder.',
-        'Component has no valid source plugin_id value.',
-      ],
-    ];
-    parent::testRequiredPropertyKeysMissing($additional_expected_validation_errors_when_missing);
   }
 
   /**
@@ -414,9 +410,14 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
       'label' => 'Test',
       'category' => 'test',
       'source' => BlockComponent::SOURCE_PLUGIN_ID,
-      'settings' => [
-        'local_source_id' => 'node_syndicate_block',
-        'default_settings' => [],
+      'source_local_id' => 'node_syndicate_block',
+      'active_version' => '54e54f03a9745665',
+      'versioned_properties' => [
+        VersionedConfigEntityBase::ACTIVE_VERSION => [
+          'settings' => [
+            'default_settings' => [],
+          ],
+        ],
       ],
     ]);
 

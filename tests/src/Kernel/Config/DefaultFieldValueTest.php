@@ -81,7 +81,7 @@ class DefaultFieldValueTest extends KernelTestBase {
     array_push(
       $test_cases['missing components, using dynamic inputs'],
       SchemaIncompleteException::class,
-      'Schema errors for field.field.node.article.field_xb_test with the following errors: 0 [default_value.0] The &#039;dynamic&#039; prop source type must be absent., 1 [default_value.0.component_id] The &#039;experience_builder.component.sdc.sdc_test.missing&#039; config does not exist., 2 [default_value.1] The &#039;dynamic&#039; prop source type must be absent., 3 [default_value.1.component_id] The &#039;experience_builder.component.sdc.sdc_test.missing-also&#039; config does not exist., 4 [default_value.2] The &#039;dynamic&#039; prop source type must be absent.'
+      'Schema errors for field.field.node.article.field_xb_test with the following errors: 0 [default_value.0.component_id] The &#039;experience_builder.component.sdc.sdc_test.missing&#039; config does not exist., 1 [default_value.0] The &#039;dynamic&#039; prop source type must be absent., 2 [default_value.1.component_id] The &#039;experience_builder.component.sdc.sdc_test.missing-also&#039; config does not exist., 3 [default_value.1] The &#039;dynamic&#039; prop source type must be absent., 4 [default_value.2] The &#039;dynamic&#039; prop source type must be absent.',
     );
     array_push(
       $test_cases['inputs invalid, using dynamic inputs'],
@@ -96,7 +96,7 @@ class DefaultFieldValueTest extends KernelTestBase {
     array_push(
       $test_cases['non unique uuids'],
       SchemaIncompleteException::class,
-      'Schema errors for field.field.node.article.field_xb_test with the following errors: 0 [default_value.0] The UUID should be unique., 1 [default_value.1] The UUID should be unique.'
+      'Schema errors for field.field.node.article.field_xb_test with the following errors: 0 [default_value] Not all component instance UUIDs in this component tree are unique.'
     );
     array_push(
       $test_cases['invalid parent'],

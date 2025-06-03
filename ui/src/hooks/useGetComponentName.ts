@@ -35,15 +35,17 @@ const useGetComponentName = (
     if (components) {
       if (node.nodeType === 'component') {
         if (node.type) {
-          name = components[node.type]?.name || 'Component';
+          const [nodeType] = node.type.split('@');
+          name = components[nodeType]?.name || 'Component';
         } else {
           name = 'Component';
         }
       } else {
         name = node.name || 'Slot';
         if (parentNode && 'type' in parentNode) {
+          const [parentType] = (parentNode.type ?? '').split('@');
           if (parentNode.type) {
-            const parentComponent = components?.[parentNode.type];
+            const parentComponent = components?.[parentType];
             name = findPresentationSlotName(node.name, parentComponent);
           }
         }

@@ -21,6 +21,7 @@ translatable: false
 default_value:
   - uuid: 16176e0b-8197-40e3-ad49-48f1b6e9a7f9
     component_id: sdc.experience_builder.two_column
+    version: 2c79df2c091d70d8
     inputs:
       width:
         sourceType: 'static:field_item:list_integer'
@@ -41,6 +42,7 @@ default_value:
                 label: '75'
   - uuid: 208452de-10d6-4fb8-89a1-10e340b3744c
     component_id: sdc.experience_builder.my-hero
+    version: 0dd3a9aba42423ee
     slot: column_one
     parent_uuid: 16176e0b-8197-40e3-ad49-48f1b6e9a7f9
     inputs:
@@ -55,6 +57,7 @@ default_value:
     label: 'Starring … Drupal as the hero! 🤩'
   - uuid: 4d866c38-7261-45c6-9b1e-0b94096d51e8
     component_id: sdc.experience_builder.my-hero
+    version: 0dd3a9aba42423ee
     slot: column_two
     parent_uuid: 16176e0b-8197-40e3-ad49-48f1b6e9a7f9
     inputs:
@@ -68,6 +71,7 @@ default_value:
         expression: ℹ︎uri␟value
   - uuid: 5944ef12-4a3d-4f3a-8e67-086661be9ffc
     component_id: sdc.experience_builder.my-hero
+    version: 0dd3a9aba42423ee
     slot: column_two
     parent_uuid: 16176e0b-8197-40e3-ad49-48f1b6e9a7f9
     inputs:
@@ -84,6 +88,7 @@ default_value:
         expression: ℹ︎link␟uri
   - uuid: e660e407-0901-4639-9726-9f99bc250c4c
     component_id: sdc.experience_builder.heading
+    version: 5700f78c83cd433f
     slot: column_two
     parent_uuid: 16176e0b-8197-40e3-ad49-48f1b6e9a7f9
     inputs:

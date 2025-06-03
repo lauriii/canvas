@@ -21,6 +21,7 @@ use Drupal\experience_builder\Entity\Component as ComponentEntity;
 use Drupal\experience_builder\Entity\ComponentInterface;
 use Drupal\experience_builder\Entity\JavaScriptComponent;
 use Drupal\experience_builder\ComponentSource\UrlRewriteInterface;
+use Drupal\experience_builder\Entity\VersionedConfigEntityBase;
 use Drupal\experience_builder\Render\ImportMapResponseAttachmentsProcessor;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -236,15 +237,18 @@ final class JsComponent extends GeneratedFieldExplicitInputUxComponentSourceBase
     }
     ComponentMetadataRequirementsChecker::check((string) $js_component->id(), $ephemeral_sdc_component->metadata, $js_component->getRequiredProps());
     $props = self::getPropsForComponentPlugin($ephemeral_sdc_component);
+    $settings = ['prop_field_definitions' => $props];
+    $version = ComponentEntity::generateVersionStringForData($settings, 'experience_builder.component_source_settings.js');
     return ComponentEntity::create([
       'id' => self::SOURCE_PLUGIN_ID . '.' . $js_component->id(),
       'label' => $js_component->label(),
       'category' => '@todo',
       'provider' => NULL,
       'source' => self::SOURCE_PLUGIN_ID,
-      'settings' => [
-        'local_source_id' => $js_component->id(),
-        'prop_field_definitions' => $props,
+      'source_local_id' => $js_component->id(),
+      'active_version' => $version,
+      'versioned_properties' => [
+        VersionedConfigEntityBase::ACTIVE_VERSION => ['settings' => $settings],
       ],
       'status' => $js_component->status(),
     ]);
@@ -276,9 +280,12 @@ final class JsComponent extends GeneratedFieldExplicitInputUxComponentSourceBase
     ComponentMetadataRequirementsChecker::check((string) $js_component->id(), $ephemeral_sdc_component->metadata, $js_component->getRequiredProps());
     $settings = [
       'prop_field_definitions' => self::getPropsForComponentPlugin($ephemeral_sdc_component),
-      'local_source_id' => $js_component->id(),
     ];
-    $component->setSource(self::SOURCE_PLUGIN_ID)->setSettings($settings);
+    $version = ComponentEntity::generateVersionStringForData($settings, 'experience_builder.component_source_settings.js');
+    $component
+      ->createVersion($version)
+      ->deleteVersionIfExists(ComponentInterface::FALLBACK_VERSION)
+      ->setSettings($settings);
     return $component;
   }
 

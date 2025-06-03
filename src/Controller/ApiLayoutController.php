@@ -226,7 +226,7 @@ final class ApiLayoutController {
     }
     [
       'componentInstanceUuid' => $componentInstanceUuid,
-      'componentType' => $componentType,
+      'componentType' => $componentTypeAndVersion,
       'model' => $model,
     ] = $body;
 
@@ -237,10 +237,20 @@ final class ApiLayoutController {
     if (!\array_key_exists($componentInstanceUuid, $data['model'])) {
       throw new NotFoundHttpException('No such component in model: ' . $componentInstanceUuid);
     }
+    if (!str_contains($componentTypeAndVersion, '@')) {
+      throw new NotFoundHttpException(\sprintf('Missing version for component %s', $componentTypeAndVersion));
+    }
+    [$componentType, $version] = \explode('@', $componentTypeAndVersion);
     $component = $this->entityTypeManager->getStorage(Component::ENTITY_TYPE_ID)->load($componentType);
     \assert($component instanceof Component || $component === NULL);
     if ($component === NULL) {
       throw new NotFoundHttpException('No such component: ' . $componentType);
+    }
+    try {
+      $component->loadVersion($version);
+    }
+    catch (\OutOfRangeException) {
+      throw new NotFoundHttpException(\sprintf('No such version %s for component %s', $version, $componentType));
     }
     \assert($entity instanceof FieldableEntityInterface);
 

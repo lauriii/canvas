@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Drupal\Tests\experience_builder\Kernel;
 
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
+use Drupal\experience_builder\Entity\Component;
+use Drupal\experience_builder\Entity\ComponentInterface;
 use Drupal\Tests\experience_builder\Kernel\Traits\CiModulePathTrait;
 use Drupal\Tests\experience_builder\TestSite\XBTestSetup;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -67,11 +69,13 @@ final class ComponentInputsFormTest extends ApiLayoutControllerTestBase {
     }
     self::assertSame($expected_form_xb_props, $actual_form_xb_props);
 
+    $component_entity = Component::load($component);
+    \assert($component_entity instanceof ComponentInterface);
     $this->request(Request::create('/xb/api/v0/form/component-instance/node/1', 'PATCH', [
       'form_xb_tree' => json_encode([
         'nodeType' => 'component',
         'slots' => [],
-        'type' => $component,
+        'type' => "$component@{$component_entity->getActiveVersion()}",
         'uuid' => '5f18db31-fa2f-4f4e-a377-dc0c6a0b7dc4',
       ], JSON_THROW_ON_ERROR),
       'form_xb_props' => json_encode($expected_form_xb_props, JSON_THROW_ON_ERROR),

@@ -316,13 +316,16 @@ const InputBehaviorsComponentPropsForm = (
   const transforms = useComponentTransforms();
   const layout = useAppSelector(selectLayout);
   const node = findComponentByUuid(layout, selectedComponent);
-  const selectedComponentType = node ? (node.type as string) : 'noop';
+  const [selectedComponentType, version] = (
+    node ? (node.type as string) : 'noop'
+  ).split('@');
   const inputAndUiData: InputUIData = {
     selectedComponent,
     components,
     selectedComponentType,
     layout,
     node,
+    version,
     model,
   };
   const component = components?.[selectedComponentType];
@@ -367,7 +370,7 @@ const InputBehaviorsComponentPropsForm = (
     if (isEvaluatedComponentModel(selectedModel) && component) {
       patchComponent({
         componentInstanceUuid: selectedComponent,
-        componentType: selectedComponentType,
+        componentType: `${selectedComponentType}@${version}`,
         model: {
           source: syncPropSourcesToResolvedValues(
             selectedModel.source,
@@ -381,7 +384,7 @@ const InputBehaviorsComponentPropsForm = (
     }
     patchComponent({
       componentInstanceUuid: selectedComponent,
-      componentType: selectedComponentType,
+      componentType: `${selectedComponentType}@${version}`,
       model: {
         ...selectedModel,
         resolved,

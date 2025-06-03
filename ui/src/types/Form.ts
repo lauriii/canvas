@@ -20,4 +20,5 @@ export interface InputUIData {
   layout: Array<LayoutNode>;
   model?: ComponentModels;
   node?: LayoutNode | null;
+  version: string;
 }

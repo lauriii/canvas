@@ -11,7 +11,6 @@ use Drupal\experience_builder\Entity\Component;
 use Drupal\experience_builder\Entity\ComponentInterface;
 use Drupal\experience_builder\Entity\Page;
 use Drupal\experience_builder\Plugin\ComponentPluginManager;
-use Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\Fallback;
 use Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\SingleDirectoryComponent;
 use Drupal\Tests\experience_builder\Kernel\ApiLayoutControllerTestBase;
 use Symfony\Component\DomCrawler\Crawler;
@@ -209,7 +208,7 @@ final class FallbackInputTest extends ApiLayoutControllerTestBase {
 
     /** @var \Drupal\experience_builder\Entity\ComponentInterface $component_to_recover */
     $component_to_recover = Component::load($component_to_recover->id());
-    self::assertEquals(Fallback::PLUGIN_ID, $component_to_recover->getComponentSource()->getPluginId());
+    self::assertEquals(ComponentInterface::FALLBACK_VERSION, $component_to_recover->getComponentSource()->getPluginId());
 
     // Load the fallback data.
     $response = $this->parentRequest(Request::create($api_endpoint_uri));
@@ -229,7 +228,7 @@ final class FallbackInputTest extends ApiLayoutControllerTestBase {
     $new_model['source']['text']['value'] = 'New heading text';
     $response = $this->request(Request::create($api_endpoint_uri, method: 'PATCH', content: \json_encode([
       'model' => $new_model,
-      'componentType' => 'sdc.experience_builder.heading',
+      'componentType' => 'sdc.experience_builder.heading@5700f78c83cd433f',
       'componentInstanceUuid' => $component_to_edit_uuid,
     ], JSON_THROW_ON_ERROR)));
     self::assertEquals(Response::HTTP_OK, $response->getStatusCode());

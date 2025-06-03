@@ -47,10 +47,11 @@ export const ComponentContextMenuContent: React.FC<
     useCopyPasteComponents();
 
   // Check if this is a code component
+  const [componentType] = (component.type || '').split('@');
   const isCodeComponent =
-    component.type &&
+    componentType &&
     components &&
-    components[component.type]?.source === 'Code component';
+    components[componentType]?.source === 'Code component';
 
   const handleDeleteClick = useCallback(
     (ev: React.MouseEvent<HTMLElement>) => {
@@ -135,7 +136,8 @@ export const ComponentContextMenuContent: React.FC<
     (ev: React.MouseEvent<HTMLElement>) => {
       ev.stopPropagation();
       if (component.type && component.type.startsWith('js.')) {
-        const machineName = component.type.substring(3);
+        const machineNameAndVersion = component.type.substring(3);
+        const [machineName] = machineNameAndVersion.split('@');
         navigate(`/code-editor/component/${machineName}`);
       }
     },

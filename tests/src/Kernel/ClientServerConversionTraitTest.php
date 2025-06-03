@@ -47,7 +47,7 @@ class ClientServerConversionTraitTest extends KernelTestBase {
     $createComponentWithSlots = fn(string $uuid, array $body_component = []) => [
       'nodeType' => 'component',
       'uuid' => $uuid,
-      'type' => 'sdc.xb_test_sdc.props-slots',
+      'type' => 'sdc.xb_test_sdc.props-slots@c8a016671696090c',
       'slots' => [
         [
           'id' => "$uuid/the_body",
@@ -106,16 +106,8 @@ class ClientServerConversionTraitTest extends KernelTestBase {
     $valid_inputs = $this->traitGetValidConvertedInputs($dynamic_image);
     // Add the input the for component with nested slots.
     // @see ::getValidClientJson()
-    $valid_inputs[self::TOP_LEVEL_SLOT_COMPONENT_UUID]['heading'] = [
-      'sourceType' => 'static:field_item:string',
-      'value' => 'Is anything really random?',
-      'expression' => 'ℹ︎string␟value',
-    ];
-    $valid_inputs[self::NESTED_SLOT_COMPONENT_UUID]['heading'] = [
-      'sourceType' => 'static:field_item:string',
-      'value' => 'Maybe?',
-      'expression' => 'ℹ︎string␟value',
-    ];
+    $valid_inputs[self::TOP_LEVEL_SLOT_COMPONENT_UUID]['heading'] = 'Is anything really random?';
+    $valid_inputs[self::NESTED_SLOT_COMPONENT_UUID]['heading'] = 'Maybe?';
     return $valid_inputs;
   }
 
@@ -135,22 +127,27 @@ class ClientServerConversionTraitTest extends KernelTestBase {
       [
         'uuid' => self::TEST_HEADING_UUID,
         'component_id' => 'sdc.experience_builder.heading',
+        'version' => '5700f78c83cd433f',
       ],
       [
         'uuid' => self::TEST_IMAGE_UUID,
         'component_id' => 'sdc.experience_builder.image',
+        'version' => 'f81037abea6701d7',
       ],
       [
         'uuid' => self::TEST_BLOCK,
         'component_id' => 'block.system_branding_block',
+        'version' => 'cc5b6644b21159f6',
       ],
       [
         'uuid' => self::TOP_LEVEL_SLOT_COMPONENT_UUID,
         'component_id' => 'sdc.xb_test_sdc.props-slots',
+        'version' => 'c8a016671696090c',
       ],
       [
         'uuid' => self::NESTED_SLOT_COMPONENT_UUID,
         'component_id' => 'sdc.xb_test_sdc.props-slots',
+        'version' => 'c8a016671696090c',
         'slot' => 'the_body',
         'parent_uuid' => self::TOP_LEVEL_SLOT_COMPONENT_UUID,
       ],
@@ -183,14 +180,17 @@ class ClientServerConversionTraitTest extends KernelTestBase {
       [
         'uuid' => self::TEST_HEADING_UUID,
         'component_id' => 'sdc.experience_builder.heading',
+        'version' => '5700f78c83cd433f',
       ],
       [
         'uuid' => self::TEST_IMAGE_UUID,
         'component_id' => 'sdc.experience_builder.image',
+        'version' => 'f81037abea6701d7',
       ],
       [
         'uuid' => self::TEST_BLOCK,
         'component_id' => 'block.system_branding_block',
+        'version' => 'cc5b6644b21159f6',
       ],
     ], \array_map(static fn (array $item) => \array_filter(\array_diff_key($item, \array_flip(['inputs']))), $converted_items));
 
@@ -219,7 +219,7 @@ class ClientServerConversionTraitTest extends KernelTestBase {
     );
 
     $invalid_tree_client_json = $valid_client_json;
-    $invalid_tree_client_json['layout'][1]['type'] = 'sdc.experience_builder.missing_component';
+    $invalid_tree_client_json['layout'][1]['type'] = 'sdc.experience_builder.missing_component@no_such_thing';
     $this->assertConversionErrors(
       $invalid_tree_client_json,
       ['layout.children.1.component_id' => "The 'experience_builder.component.sdc.experience_builder.missing_component' config does not exist."]
@@ -249,19 +249,19 @@ class ClientServerConversionTraitTest extends KernelTestBase {
         [
           'nodeType' => 'component',
           'uuid' => self::TEST_HEADING_UUID,
-          'type' => 'sdc.experience_builder.heading',
+          'type' => 'sdc.experience_builder.heading@5700f78c83cd433f',
           'slots' => [],
         ],
         [
           'nodeType' => 'component',
           'uuid' => self::TEST_IMAGE_UUID,
-          'type' => 'sdc.experience_builder.image',
+          'type' => 'sdc.experience_builder.image@f81037abea6701d7',
           'slots' => [],
         ],
         [
           'nodeType' => 'component',
           'uuid' => self::TEST_BLOCK,
-          'type' => 'block.system_branding_block',
+          'type' => 'block.system_branding_block@cc5b6644b21159f6',
           'slots' => [],
         ],
       ],

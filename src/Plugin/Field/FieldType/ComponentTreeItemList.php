@@ -41,6 +41,11 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
    */
   protected ?array $graph = NULL;
 
+  public function first() : ?ComponentTreeItem {
+    // @phpstan-ignore-next-line
+    return parent::first();
+  }
+
   /**
    * {@inheritdoc}
    */
@@ -158,7 +163,9 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
     $constraint_manger = $this->getTypedDataManager()
       ->getValidationConstraintManager();
     $constraints[] = $constraint_manger
-      ->create(ComponentTreeStructureConstraint::PLUGIN_ID, []);
+      ->create(ComponentTreeStructureConstraint::PLUGIN_ID, [
+        'basePropertyPath' => $this->getName() ?? '',
+      ]);
     return $constraints;
   }
 

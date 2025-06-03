@@ -11,6 +11,7 @@ use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Render\Element;
 use Drupal\Core\Render\ElementInfoManagerInterface;
 use Drupal\experience_builder\Entity\Component;
+use Drupal\experience_builder\Entity\ComponentInterface;
 use Drupal\experience_builder\Storage\ComponentTreeLoader;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -66,9 +67,17 @@ final class ComponentInputsForm extends FormBase {
 
     $request = $this->getRequest();
     $tree = $request->get('form_xb_tree');
-    $component_id = json_decode($tree, TRUE)['type'];
+    [$component_id, $version] = \explode('@', \json_decode($tree, TRUE)['type']);
+    if (empty($version)) {
+      throw new \UnexpectedValueException('No component version specified.');
+    }
     $component = Component::load($component_id);
-    assert($component !== NULL);
+    \assert($component instanceof ComponentInterface);
+    // Load the version of the Component that was instantiated. This is what
+    // allows older component instances to continue to use older/previous
+    // component-source specific settings, such as the field type/widget for a
+    // particular SDC or code component prop.
+    $component->loadVersion($version);
     $component_instance_uuid = $request->get('form_xb_selected');
 
     $props = $request->get('form_xb_props');

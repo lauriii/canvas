@@ -8,7 +8,7 @@
         {
           "nodeType": "component",
           "uuid": "a7470350-deb2-4d9f-982c-464d356403d4",
-          "type": "sdc.experience_builder.two_column",
+          "type": "sdc.experience_builder.two_column@2c79df2c091d70d8",
           "slots": [
             {
               "nodeType": "slot",
@@ -18,13 +18,13 @@
                 {
                   "nodeType": "component",
                   "uuid": "static-static-card1ab",
-                  "type": "sdc.xb_test_sdc.my-cta",
+                  "type": "sdc.xb_test_sdc.my-cta@2c79df2c091d70d8",
                   "slots": []
                 },
                 {
                   "nodeType": "component",
                   "uuid": "static-image-udf7d",
-                  "type": "sdc.experience_builder.image",
+                  "type": "sdc.experience_builder.image@f81037abea6701d7",
                   "slots": []
                 }
               ]
@@ -34,25 +34,25 @@
         {
           "nodeType": "component",
           "uuid": "static-static-card2df",
-          "type": "sdc.xb_test_sdc.my-cta",
+          "type": "sdc.xb_test_sdc.my-cta@2c79df2c091d70d8",
           "slots": []
         },
         {
           "nodeType": "component",
           "uuid": "static-static-card3rr",
-          "type": "sdc.xb_test_sdc.my-cta",
+          "type": "sdc.xb_test_sdc.my-cta@2c79df2c091d70d8",
           "slots": []
         },
         {
           "nodeType": "component",
           "uuid": "static-image-static-imageStyle-something7d",
-          "type": "sdc.experience_builder.image",
+          "type": "sdc.experience_builder.image@f81037abea6701d7",
           "slots": []
         },
         {
           "nodeType": "component",
           "uuid": "ee07d472-a754-4427-b6d4-acfc6f92bbdc",
-          "type": "sdc.experience_builder.two_column",
+          "type": "sdc.experience_builder.two_column@2c79df2c091d70d8",
           "slots": [
             {
               "nodeType": "slot",
@@ -61,7 +61,7 @@
               "components": [
                 {
                   "nodeType": "component",
-                  "type": "sdc.experience_builder.my-section",
+                  "type": "sdc.experience_builder.my-section@f81037abea6701d7",
                   "uuid": "6f3224e2-cb61-46e4-a9e4-35b4d18f0a82",
                   "slots": []
                 }
@@ -75,13 +75,13 @@
                 {
                   "nodeType": "component",
                   "uuid": "3b709ed2-99d3-4db2-869d-ca426f69fbb9",
-                  "type": "sdc.experience_builder.heading",
+                  "type": "sdc.experience_builder.heading@5700f78c83cd433f",
                   "slots": []
                 },
                 {
                   "nodeType": "component",
                   "uuid": "eaa37ee1-7d50-4041-b04c-c80bdbac3412",
-                  "type": "sdc.experience_builder.my-hero",
+                  "type": "sdc.experience_builder.my-hero@c6f8d13ec593c132",
                   "slots": []
                 }
               ]

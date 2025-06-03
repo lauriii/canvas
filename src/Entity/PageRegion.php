@@ -248,6 +248,7 @@ final class PageRegion extends ConfigEntityBase implements ComponentTreeEntityIn
       };
       $regions[$region_name][] = [
         'component_id' => $component_id,
+        'version' => Component::load($component_id)->getActiveVersion(),
         'inputs' => \array_diff_key($block->get('settings'), \array_flip([
           // Remove these as they can be calculated and hence need not be
           // stored.
@@ -265,6 +266,7 @@ final class PageRegion extends ConfigEntityBase implements ComponentTreeEntityIn
         $items = array_map(
           static fn(array $block) => \array_intersect_key($block, \array_flip([
             'component_id',
+            'version',
             'uuid',
             'inputs',
           ])),

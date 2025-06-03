@@ -76,7 +76,9 @@ const DummyPropsEditFormRenderer: React.FC<DummyPropsEditFormRendererProps> = (
   const { data: components } = useGetComponentsQuery();
   const layout = useAppSelector(selectLayout);
   const node = findComponentByUuid(layout, selectedComponentId);
-  const selectedComponentType = node ? (node.type as string) : 'noop';
+  const [selectedComponentType, version] = (
+    node ? (node.type as string) : 'noop'
+  ).split('@');
   const inputAndUiData: InputUIData = {
     selectedComponent: selectedComponentId,
     components,
@@ -84,6 +86,7 @@ const DummyPropsEditFormRenderer: React.FC<DummyPropsEditFormRendererProps> = (
     layout,
     node,
     model,
+    version,
   };
   const [patchComponent] = useUpdateComponentMutation({
     fixedCacheKey: selectedComponentId,
@@ -170,7 +173,7 @@ const DummyPropsEditFormRenderer: React.FC<DummyPropsEditFormRendererProps> = (
         if (isEvaluatedComponentModel(selectedModel) && component) {
           patchComponent({
             componentInstanceUuid: selectedComponentId,
-            componentType: selectedComponentType,
+            componentType: `${selectedComponentType}@${version}`,
             model: {
               source: syncPropSourcesToResolvedValues(
                 selectedModel.source,
@@ -184,7 +187,7 @@ const DummyPropsEditFormRenderer: React.FC<DummyPropsEditFormRendererProps> = (
         }
         patchComponent({
           componentInstanceUuid: selectedComponentId,
-          componentType: selectedComponentType,
+          componentType: `${selectedComponentType}@${version}`,
           model: {
             ...selectedModel,
             resolved,
@@ -295,7 +298,7 @@ const DummyPropsEditForm: React.FC<DummyPropsEditFormProps> = () => {
     if (!node) {
       return;
     }
-    const selectedComponentType = node.type;
+    const [selectedComponentType] = node.type.split('@');
 
     // This is metadata about the props of the SDC being edited. This is specific
     // to the SDC *type* but unconcerned with this SDC *instance*.

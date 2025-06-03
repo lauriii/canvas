@@ -5,16 +5,16 @@ declare(strict_types=1);
 namespace Drupal\experience_builder\Entity;
 
 use Drupal\Core\Cache\RefinableCacheableDependencyInterface;
-use Drupal\Core\Config\Entity\ConfigEntityBase;
+use Drupal\Core\Config\Schema\Mapping;
 use Drupal\Core\Entity\Attribute\ConfigEntityType;
 use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Entity\Query\QueryInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Extension\ThemeHandlerInterface;
-use Drupal\Core\Plugin\DefaultSingleLazyPluginCollection;
 use Drupal\Core\Render\Markup;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\Entity\Routing\AdminHtmlRouteProvider;
+use Drupal\Core\TypedData\TraversableTypedDataInterface;
 use Drupal\experience_builder\Audit\ComponentAudit;
 use Drupal\experience_builder\ClientSideRepresentation;
 use Drupal\experience_builder\ComponentSource\ComponentSourceInterface;
@@ -24,6 +24,8 @@ use Drupal\experience_builder\EntityHandlers\ContentCreatorVisibleXbConfigEntity
 use Drupal\experience_builder\Form\ComponentListBuilder;
 use Drupal\experience_builder\ComponentSource\ComponentSourceWithSlotsInterface;
 use Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\Fallback;
+use Drupal\experience_builder\Plugin\VersionedConfigurationSubsetSingleLazyPluginCollection;
+use Symfony\Component\Validator\Context\ExecutionContextInterface;
 
 /**
  * A config entity that exposes a component to the Experience Builder UI.
@@ -67,16 +69,17 @@ use Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\Fallback;
     'label',
     'id',
     'source',
+    'source_local_id',
     'provider',
     'category',
-    'settings',
-    'fallback_metadata',
+    'active_version',
+    'versioned_properties',
   ],
   constraints: [
-    'ImmutableProperties' => ['id', 'source'],
+    'ImmutableProperties' => ['id', 'source', 'source_local_id'],
   ],
 )]
-final class Component extends ConfigEntityBase implements ComponentInterface, XbHttpApiEligibleConfigEntityInterface {
+final class Component extends VersionedConfigEntityBase implements ComponentInterface, XbHttpApiEligibleConfigEntityInterface {
 
   public const string ADMIN_PERMISSION = 'administer components';
 
@@ -98,11 +101,9 @@ final class Component extends ConfigEntityBase implements ComponentInterface, Xb
   protected string $source;
 
   /**
-   * Fallback metadata.
-   *
-   * @var null|array{slot_definitions: array<string, array{title: string, description?: string, examples: string[]}>}
+   * The ID identifying the component within a source.
    */
-  protected ?array $fallback_metadata = ['slot_definitions' => []];
+  protected string $source_local_id;
 
   /**
    * The provider of this component: a valid module or theme name, or NULL.
@@ -120,14 +121,9 @@ final class Component extends ConfigEntityBase implements ComponentInterface, Xb
   protected string|TranslatableMarkup|null $category;
 
   /**
-   * The source plugin settings.
-   */
-  protected array $settings = [];
-
-  /**
    * Holds the plugin collection for the source plugin.
    */
-  protected ?DefaultSingleLazyPluginCollection $sourcePluginCollection = NULL;
+  protected ?VersionedConfigurationSubsetSingleLazyPluginCollection $sourcePluginCollection = NULL;
 
   /**
    * {@inheritdoc}
@@ -152,7 +148,27 @@ final class Component extends ConfigEntityBase implements ComponentInterface, Xb
    * {@inheritdoc}
    */
   public function getComponentSource(): ComponentSourceInterface {
-    return $this->sourcePluginCollection()->get($this->source);
+    return $this->sourcePluginCollection()->get($this->getComponentSourcePluginId());
+  }
+
+  /**
+   * Determines the Component Source plugin ID for the active version.
+   *
+   * The special `fallback` version automatically causes the `fallback`
+   * Component Source plugin to be used.
+   *
+   * Note: if a reintroduced component no longer has the same schema/shape for
+   * its explicit input, a meaningful error message will inform the user that
+   * the stored explicit input is not valid explicit input.
+   *
+   * @see \Drupal\experience_builder\Entity\Component::onDependencyRemoval()
+   * @see \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\Fallback
+   * @see \Drupal\experience_builder\Element\RenderSafeComponentContainer
+   */
+  private function getComponentSourcePluginId(): string {
+    return $this->active_version === ComponentInterface::FALLBACK_VERSION
+      ? ComponentInterface::FALLBACK_VERSION
+      : $this->source;
   }
 
   /**
@@ -190,9 +206,42 @@ final class Component extends ConfigEntityBase implements ComponentInterface, Xb
   /**
    * Returns the source plugin collection.
    */
-  private function sourcePluginCollection(): DefaultSingleLazyPluginCollection {
+  private function sourcePluginCollection(): VersionedConfigurationSubsetSingleLazyPluginCollection {
     if (is_null($this->sourcePluginCollection)) {
-      $this->sourcePluginCollection = new DefaultSingleLazyPluginCollection(\Drupal::service(ComponentSourceManager::class), $this->source, $this->settings);
+      $source_plugin_id = $this->getComponentSourcePluginId();
+      $source_plugin_configuration = match ($source_plugin_id) {
+        ComponentInterface::FALLBACK_VERSION => [
+          // Use the slot definitions from the fallback metadata from the last
+          // active version when the Fallback ComponentSource plugin was
+          // activated, to fall back to the version-specific slots, without
+          // duplicating them into the Fallback component source-specific
+          // settings.
+          // TRICKY: race condition: when creating the fallback version, the
+          // `last_active_version` setting won't exist yet.
+          // @see ::setSettings()
+          'slots' => array_key_exists('last_active_version', $this->getSettings())
+            ? $this->versioned_properties[$this->getSettings()['last_active_version']]['fallback_metadata']['slot_definitions']
+            : [],
+          ...$this->getSettings(),
+        ],
+        default => [
+          // The immutable plugin ID which is not part of the component source-
+          // specific settings.
+          'local_source_id' => $this->source_local_id,
+          // The mutable plugin settings.
+          ...$this->getSettings(),
+        ],
+      };
+      $plugin_key_to_not_write_to_config = match ($source_plugin_id) {
+        ComponentInterface::FALLBACK_VERSION => 'slots',
+        default => 'local_source_id',
+      };
+      $this->sourcePluginCollection = new VersionedConfigurationSubsetSingleLazyPluginCollection(
+        [$plugin_key_to_not_write_to_config],
+        \Drupal::service(ComponentSourceManager::class),
+        $source_plugin_id,
+        $source_plugin_configuration
+      );
     }
     return $this->sourcePluginCollection;
   }
@@ -269,6 +318,7 @@ final class Component extends ConfigEntityBase implements ComponentInterface, Xb
         'library' => $this->computeUiLibrary()->value,
         'category' => (string) $this->getCategory(),
         'source' => (string) $this->getComponentSource()->getPluginDefinition()['label'],
+        'version' => $this->getActiveVersion(),
       ],
       preview: $build,
     )->addCacheableDependency($this);
@@ -368,15 +418,14 @@ final class Component extends ConfigEntityBase implements ComponentInterface, Xb
    * {@inheritdoc}
    */
   public function getSettings(): array {
-    return $this->settings;
+    return $this->get('settings') ?? [];
   }
 
   /**
    * {@inheritdoc}
    */
   public function setSettings(array $settings): self {
-    $this->settings = $settings;
-    // Reset the source plugin collection.
+    $this->set('settings', $settings);
     $this->sourcePluginCollection = NULL;
     return $this;
   }
@@ -406,9 +455,10 @@ final class Component extends ConfigEntityBase implements ComponentInterface, Xb
     // However, if there's >=1 component instance for it, make this Component
     // use the `fallback` component source plugin to avoid deleting dependent XB
     // config entities and breaking XB component trees in content entities.
-    $this->setSource(Fallback::PLUGIN_ID)
+    $last_active_version = $this->getActiveVersion();
+    $this->createVersion(ComponentInterface::FALLBACK_VERSION)
       ->setSettings([
-        'slots' => $this->fallback_metadata['slot_definitions'] ?? [],
+        'last_active_version' => $last_active_version,
       ])
       // Disable this Component: prevent more instances getting created.
       ->disable();
@@ -416,21 +466,62 @@ final class Component extends ConfigEntityBase implements ComponentInterface, Xb
     return TRUE;
   }
 
-  /**
-   * {@inheritdoc}
-   */
-  public function setSource(string $source): self {
-    $this->source = $source;
-    $this->sourcePluginCollection = NULL;
-    return $this;
+  public function preSave(EntityStorageInterface $storage): void {
+    parent::preSave($storage);
+    assert($this->isLoadedVersionActiveVersion());
+    $source = $this->getComponentSource();
+    // Compute the appropriate `fallback_metadata` upon saving, except for the fallback plugin.
+    if ($source instanceof Fallback) {
+      return;
+    }
+    elseif ($source instanceof ComponentSourceWithSlotsInterface) {
+      $this->versioned_properties[VersionedConfigEntityBase::ACTIVE_VERSION]['fallback_metadata']['slot_definitions'] = \array_map(self::cleanSlotDefinition(...), $source->getSlotDefinitions());
+    }
+    else {
+      $this->versioned_properties[VersionedConfigEntityBase::ACTIVE_VERSION]['fallback_metadata']['slot_definitions'] = NULL;
+    }
   }
 
-  public function preSave(EntityStorageInterface $storage): void {
-    $source = $this->getComponentSource();
-    if ($source instanceof ComponentSourceWithSlotsInterface) {
-      $this->fallback_metadata['slot_definitions'] = \array_map(self::cleanSlotDefinition(...), $source->getSlotDefinitions());
+  /**
+   * Validates the versioned properties have the expected version string keys.
+   *
+   * To be used with the `Callback` constraint.
+   *
+   * @param array $versioned_properties
+   *   The Component's versioned properties to validate.
+   * @param \Symfony\Component\Validator\Context\ExecutionContextInterface $context
+   *   The validation execution context.
+   *
+   * @see \Symfony\Component\Validator\Constraints\CallbackValidator
+   */
+  public static function validateVersions(array $versioned_properties, ExecutionContextInterface $context): void {
+    foreach ($versioned_properties as $version => $versioned_property) {
+      if ($version === ComponentInterface::FALLBACK_VERSION) {
+        continue;
+      }
+
+      if ($version === VersionedConfigEntityInterface::ACTIVE_VERSION) {
+        // Look up the active version.
+        assert($context->getObject() instanceof TraversableTypedDataInterface);
+        $component = $context->getObject()->getParent();
+        assert($component instanceof Mapping);
+        assert($component->getDataDefinition()->getDataType() === 'experience_builder.component.*');
+        $version = $component->getValue()['active_version'];
+      }
+
+      // The version should be based on the source-specific settings for this
+      // version, not on anything else (certainly not the fallback metadata.)
+      $settings = $versioned_property['settings'];
+      $expected_version = self::generateVersionStringForData($settings, 'experience_builder.component_source_settings.' . $context->getRoot()->get('source')->getValue());
+      if ($expected_version !== $version) {
+        // @todo something like \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\BlockComponent::fixBooleansUsingConfigSchema
+        // @see https://www.drupal.org/node/3230199
+        $context->addViolation('The version @actual_version does not match the hash of the settings for this version, expected @expected_version.', [
+          '@actual_version' => $version,
+          '@expected_version' => $expected_version,
+        ]);
+      }
     }
-    parent::preSave($storage);
   }
 
   /**

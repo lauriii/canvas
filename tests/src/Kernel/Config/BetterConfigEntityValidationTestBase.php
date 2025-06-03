@@ -6,8 +6,10 @@ namespace Drupal\Tests\experience_builder\Kernel\Config;
 
 use Drupal\Component\Render\FormattableMarkup;
 use Drupal\Component\Utility\NestedArray;
+use Drupal\Core\Config\Entity\ConfigEntityTypeInterface;
 use Drupal\Core\Config\Schema\SchemaCheckTrait;
 use Drupal\Core\Config\Schema\SchemaIncompleteException;
+use Drupal\Core\Entity\EntityWithPluginCollectionInterface;
 use Drupal\KernelTests\Core\Config\ConfigEntityValidationTestBase;
 
 class BetterConfigEntityValidationTestBase extends ConfigEntityValidationTestBase {
@@ -101,6 +103,88 @@ class BetterConfigEntityValidationTestBase extends ConfigEntityValidationTestBas
       $text_errors[] = new FormattableMarkup('@key @error', ['@key' => $key, '@error' => $error]);
     }
     throw new SchemaIncompleteException("Schema errors for $name with the following errors: " . implode(', ', $text_errors));
+  }
+
+  /**
+   * Complete override of parent method to add a try/catch for TypeError.
+   *
+   * The parent method doesn't allow for typed properties. See 👉️👈️ markers for
+   * the changes made here (other than three extra asserts to meet phpstan level
+   * 6).
+   *
+   * @todo Remove when https://drupal.org/i/3526908 is fixed
+   */
+  public function testRequiredPropertyValuesMissing(?array $additional_expected_validation_errors_when_missing = NULL): void {
+    \assert($this->entity->getEntityType() instanceof ConfigEntityTypeInterface);
+    \assert(\is_array($this->entity->getEntityType()->getPropertiesToExport()));
+    $config_entity_properties = array_keys($this->entity->getEntityType()->getPropertiesToExport());
+
+    // Guide developers when $additional_expected_validation_errors_when_missing
+    // does not contain sensible values.
+    $non_existing_properties = array_diff(array_keys($additional_expected_validation_errors_when_missing ?? []), $config_entity_properties);
+    if ($non_existing_properties) {
+      throw new \LogicException(sprintf('The test %s lists `%s` in $additional_expected_validation_errors_when_missing but it is not a property of the `%s` config entity type.',
+        __METHOD__,
+        implode(', ', $non_existing_properties),
+        $this->entity->getEntityTypeId(),
+      ));
+    }
+    $properties_with_optional_values = $this->getPropertiesWithOptionalValues();
+
+    // Get the config entity properties that are immutable.
+    // @see ::testImmutableProperties()
+    $immutable_properties = $this->entity->getEntityType()->getConstraints()['ImmutableProperties'];
+
+    // Config entity properties containing plugin collections are special cases:
+    // setting them to NULL would cause them to get out of sync with the plugin
+    // collection.
+    // @see \Drupal\Core\Config\Entity\ConfigEntityBase::set()
+    // @see \Drupal\Core\Config\Entity\ConfigEntityBase::preSave()
+    $plugin_collection_properties = $this->entity instanceof EntityWithPluginCollectionInterface
+      ? array_keys($this->entity->getPluginCollections())
+      : [];
+
+    // To test properties with missing required values, $this->entity must be
+    // modified to be able to use ::assertValidationErrors(). To allow restoring
+    // $this->entity to its original value for each tested property, a clone of
+    // the original entity is needed.
+    $original_entity = clone $this->entity;
+    foreach ($config_entity_properties as $property) {
+      // Do not try to set immutable properties to NULL: their immutability is
+      // already tested.
+      // @see ::testImmutableProperties()
+      if (in_array($property, $immutable_properties, TRUE)) {
+        continue;
+      }
+
+      // Do not try to set plugin collection properties to NULL.
+      if (in_array($property, $plugin_collection_properties, TRUE)) {
+        continue;
+      }
+
+      $this->entity = clone $original_entity;
+      // 👉️ Start overrides of core.
+      try {
+        \assert(\is_string($property));
+        $this->entity->set($property, NULL);
+      }
+      catch (\TypeError) {
+        // Validation is provided at the language level.
+        continue;
+      }
+      // End overrides of core 👈️.
+      $expected_validation_errors = in_array($property, $properties_with_optional_values, TRUE)
+        ? []
+        : [$property => 'This value should not be null.'];
+
+      // @see `type: required_label`
+      // @see \Symfony\Component\Validator\Constraints\NotBlank
+      if (!$this->isFullyValidatable() && $this->entity->getEntityType()->getKey('label') == $property) {
+        $expected_validation_errors = [$property => 'This value should not be blank.'];
+      }
+
+      $this->assertValidationErrors(($additional_expected_validation_errors_when_missing[$property] ?? []) + $expected_validation_errors);
+    }
   }
 
 }

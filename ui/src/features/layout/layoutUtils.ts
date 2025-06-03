@@ -579,7 +579,8 @@ export function componentExistsInLayout(
 ): boolean {
   let exists = false;
   const checkComponent = (node: ComponentNode) => {
-    if (node.type === componentId) {
+    const [type] = node.type.split('@');
+    if (type === componentId) {
       exists = true;
     }
   };

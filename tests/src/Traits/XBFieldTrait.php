@@ -24,69 +24,9 @@ trait XBFieldTrait {
   protected function getValidConvertedInputs(bool $dynamic_image = TRUE): array {
     return [
       self::TEST_HEADING_UUID => [
-        'text' => [
-          'sourceType' => 'static:field_item:string',
-          'value' => 'This is a random heading.',
-          'expression' => 'ℹ︎string␟value',
-        ],
-        'style' => [
-          'sourceType' => 'static:field_item:list_string',
-          'value' => 'primary',
-          'expression' => 'ℹ︎list_string␟value',
-          'sourceTypeSettings' => [
-            'storage' => [
-              'allowed_values' => [
-                [
-                  'value' => 'primary',
-                  'label' => 'primary',
-                ],
-                [
-                  'value' => 'secondary',
-                  'label' => 'secondary',
-                ],
-              ],
-            ],
-          ],
-        ],
-        'element' => [
-          'sourceType' => 'static:field_item:list_string',
-          'value' => 'h1',
-          'expression' => 'ℹ︎list_string␟value',
-          'sourceTypeSettings' => [
-            'storage' => [
-              'allowed_values' => [
-                [
-                  'value' => 'div',
-                  'label' => 'div',
-                ],
-                [
-                  'value' => 'h1',
-                  'label' => 'h1',
-                ],
-                [
-                  'value' => 'h2',
-                  'label' => 'h2',
-                ],
-                [
-                  'value' => 'h3',
-                  'label' => 'h3',
-                ],
-                [
-                  'value' => 'h4',
-                  'label' => 'h4',
-                ],
-                [
-                  'value' => 'h5',
-                  'label' => 'h5',
-                ],
-                [
-                  'value' => 'h6',
-                  'label' => 'h6',
-                ],
-              ],
-            ],
-          ],
-        ],
+        'text' => 'This is a random heading.',
+        'style' => 'primary',
+        'element' => 'h1',
       ],
       self::TEST_IMAGE_UUID => $dynamic_image ? [
         'image' => [
@@ -95,20 +35,7 @@ trait XBFieldTrait {
         ],
       ] : [
         'image' => [
-          'sourceType' => 'static:field_item:entity_reference',
-          'expression' => 'ℹ︎entity_reference␟{src↝entity␜␜entity:media:image␝field_media_image␞␟entity␜␜entity:file␝uri␞␟url,alt↝entity␜␜entity:media:image␝field_media_image␞␟alt,width↝entity␜␜entity:media:image␝field_media_image␞␟width,height↝entity␜␜entity:media:image␝field_media_image␞␟height}',
-          'sourceTypeSettings' => [
-            'storage' => ['target_type' => 'media'],
-            'instance' => [
-              'handler' => 'default:media',
-              'handler_settings' => [
-                'target_bundles' => ['image' => 'image'],
-              ],
-            ],
-          ],
-          'value' => [
-            'target_id' => (int) $this->mediaEntity->id(),
-          ],
+          'target_id' => (int) $this->mediaEntity->id(),
         ],
       ],
       self::TEST_BLOCK => [
@@ -201,19 +128,19 @@ trait XBFieldTrait {
             [
               'nodeType' => 'component',
               'uuid' => self::TEST_HEADING_UUID,
-              'type' => 'sdc.experience_builder.heading',
+              'type' => 'sdc.experience_builder.heading@5700f78c83cd433f',
               'slots' => [],
             ],
             [
               'nodeType' => 'component',
               'uuid' => self::TEST_IMAGE_UUID,
-              'type' => 'sdc.experience_builder.image',
+              'type' => 'sdc.experience_builder.image@f81037abea6701d7',
               'slots' => [],
             ],
             [
               'nodeType' => 'component',
               'uuid' => self::TEST_BLOCK,
-              'type' => 'block.system_branding_block',
+              'type' => 'block.system_branding_block@cc5b6644b21159f6',
               'slots' => [],
             ],
           ],

@@ -106,7 +106,10 @@ The `Component` config entity contains:
 - the `component` ID, with the prefix (the first ID part) identifying the `Component Source Plugin`, and the
   remainder being used by that plugin (typically to allow a `Component Source Plugin` to provide >1 `component`)
 - the `source`: a `Component Source Plugin` ID.
-- the `settings`: each `Component Source Plugin` MAY need to store component settings, and each has different needs:
+- the `source_local_id`: The intra-source ID of this component in this source — can be a plugin ID (e.g. for `Block` and
+  `SDC`), a config entity ID (e.g. for `js`), or anything else, such as a URL to identify a remotely discoverable
+  `component` if such a `Component Source Plugin` existed
+- the (versioned) `settings`: each `Component Source Plugin` MAY need to store component settings, and each has different needs:
   - `SDC` component type: `prop_field_definitions`, to configure what field type, widget and so on to use to store and
      edit the SDC's props.
   - `Block` component type: `default_settings`, to store the default block plugin settings, if any. For example: hide
@@ -118,7 +121,7 @@ The `Component` config entity contains:
   new content must use the most current Site Builder-curated list of `Component`s.
 - which `field type` and `field widget` must be used to populate it with `unstructured data` — for algorithmic details,
  see [`XB Data model`, section 3.1: "from Front-End Developer to an XB data model that empowers the Content Creator](./data-model.md#3.1)
-- the `fallback_metadata`: when the `Component Source Plugin` can no longer find the `component` because a dependency is
+- the (versioned) `fallback_metadata`: when the `Component Source Plugin` can no longer find the `component` because a dependency is
   removed (e.g. the module providing an SDC is uninstalled or a `JavaScriptComponent` config entity is deleted), this
   metadata (currently only slot definitions) will be used to fall back to the special `fallback` source to ensure
   existing `component tree`s continue to work (see [`XB Components` doc, section 3.4](components.md#3.4))
@@ -126,7 +129,8 @@ The `Component` config entity contains:
 
 These config entities are therefore the foundations that enable XB to work reliably, and allow:
 - auditing (listing which components are available to XB and reasons why components are unavailable, tracking changes in
-  computed `field type` and `field widget` for a `component input` — see [`XB Data model`, section 3.1.2.b](./data-model#3.1.2.b))
+  computed `field type` and `field widget` for a `component input` thanks to those being stored in _versioned_
+  `settings` — see [`XB Data model`, section 3.1.2.b](./data-model#3.1.2.b))
 - dependency-checking (this config entity's dependencies on other modules, as well as other config entities depending on
   this config entity, but also ensuring the necessary code is present, such as `field type` and `field widget` plugins)
 - exporting, importing, synchronizing from one environment or site to another

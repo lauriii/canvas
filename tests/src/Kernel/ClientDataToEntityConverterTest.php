@@ -7,6 +7,7 @@ namespace Drupal\Tests\experience_builder\Kernel;
 use Drupal\Component\Datetime\Time;
 use Drupal\content_moderation\Permissions;
 use Drupal\Core\DependencyInjection\ContainerBuilder;
+use Drupal\experience_builder\Entity\Component;
 use Drupal\experience_builder\Entity\EntityConstraintViolationList;
 use Drupal\Core\Extension\ModuleInstallerInterface;
 use Drupal\Core\Field\FieldItemListInterface;
@@ -15,11 +16,14 @@ use Drupal\Core\Field\WidgetPluginManager;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\experience_builder\ClientDataToEntityConverter;
+use Drupal\experience_builder\Entity\VersionedConfigEntityInterface;
 use Drupal\experience_builder\Exception\ConstraintViolationException;
 use Drupal\experience_builder\Controller\EntityFormTrait;
+use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemList;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\node\Entity\Node;
+use Drupal\node\NodeInterface;
 use Drupal\Tests\content_moderation\Traits\ContentModerationTestTrait;
 use Drupal\Tests\experience_builder\TestSite\XBTestSetup;
 use Drupal\Tests\experience_builder\Traits\ConstraintViolationsTestTrait;
@@ -110,22 +114,32 @@ class ClientDataToEntityConverterTest extends KernelTestBase {
     );
 
     $single_propless_component_client_json = $valid_client_json;
+    $component = Component::load('sdc.experience_builder.druplicon');
+    $propless_uuid = '4ad36179-a9bd-4bc8-8a4a-241e73dbed25';
     $single_propless_component_client_json['layout']['components'] = [
       [
         'nodeType' => 'component',
-        'uuid' => '4ad36179-a9bd-4bc8-8a4a-241e73dbed25',
-        'type' => 'sdc.experience_builder.druplicon',
+        'uuid' => $propless_uuid,
+        'type' => 'sdc.experience_builder.druplicon@822ab01ec6b22b59',
         'slots' => [],
       ],
     ];
     $single_propless_component_client_json['model'] = [
-      '4ad36179-a9bd-4bc8-8a4a-241e73dbed25' => [],
+      $propless_uuid => [],
     ];
-    $this->assertConvert(
+    $node = $this->assertConvert(
       $single_propless_component_client_json,
       [],
       'The updated title.'
     );
+    $item_list = $node->get('field_xb_demo');
+    \assert($item_list instanceof ComponentTreeItemList);
+    $item = $item_list->getComponentTreeItemByUuid($propless_uuid);
+    \assert($item instanceof ComponentTreeItem);
+    // The converted item should store the active version ID at the time it was
+    // converted rather than 'active'.
+    self::assertNotEquals(VersionedConfigEntityInterface::ACTIVE_VERSION, $item->getComponentVersion());
+    self::assertEquals($component?->getActiveVersion(), $item->getComponentVersion());
 
     $unreferenced_file_client_json = $valid_client_json;
     $unreferenced_src = $this->getSrcPropertyFromFile($this->unreferencedImage);
@@ -273,7 +287,7 @@ class ClientDataToEntityConverterTest extends KernelTestBase {
     $this->assertTrue((!$test_node->access('edit')) && $test_node->get('title')->access('edit'));
   }
 
-  protected function assertConvert(array $client_json, array $expected_errors, string $expected_title, ?Node $node = NULL): void {
+  protected function assertConvert(array $client_json, array $expected_errors, string $expected_title, ?Node $node = NULL): NodeInterface {
     $node = $node ?? $this->createTestNode();
     // \Drupal\experience_builder\ClientDataToEntityConverter::convert() will
     // automatically update the `changed` field because it creates a form object
@@ -338,6 +352,7 @@ class ClientDataToEntityConverterTest extends KernelTestBase {
       }
       $this->assertTrue($cloned->get($field_name)->equals($node->get($field_name)), "The field '$field_name' was not updated.");
     }
+    return $node;
   }
 
   protected function createTestNode(): Node {

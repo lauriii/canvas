@@ -21,6 +21,8 @@ use Drupal\Core\TypedData\DataReferenceInterface;
 use Drupal\Core\TypedData\DataReferenceTargetDefinition;
 use Drupal\experience_builder\Entity\Component;
 use Drupal\experience_builder\Entity\ComponentInterface;
+use Drupal\experience_builder\Entity\VersionedConfigEntityBase;
+use Drupal\experience_builder\Plugin\DataType\ConfigEntityVersionAdapter;
 use Drupal\experience_builder\PropSource\ContentAwareDependentInterface;
 use Symfony\Component\Validator\ConstraintViolation;
 use Symfony\Component\Validator\ConstraintViolationInterface;
@@ -34,7 +36,7 @@ use Symfony\Component\Validator\ConstraintViolationList;
  * @see https://git.drupalcode.org/project/metatag/-/blob/2.0.x/src/Plugin/Field/FieldType/MetatagFieldItem.php
  *
  * @phpstan-import-type ComponentConfigEntityId from \Drupal\experience_builder\Entity\Component
- * @phpstan-type ComponentTreeItemPropName 'uuid'|'inputs'|'component_id'|'component'|'parent_item'|'slot'|'parent_uuid'|'label'
+ * @phpstan-type ComponentTreeItemPropName 'uuid'|'inputs'|'component_id'|'component'|'parent_item'|'slot'|'parent_uuid'|'label'|'version'
  *
  * @property \Drupal\experience_builder\HydratedTree $hydrated
  */
@@ -100,6 +102,7 @@ use Symfony\Component\Validator\ConstraintViolationList;
         'slot',
         'uuid',
         'component_id',
+        'version',
       ],
     ],
   ],
@@ -262,6 +265,13 @@ class ComponentTreeItem extends FieldItemBase {
           'length' => 255,
           'not null' => TRUE,
         ],
+        'version' => [
+          'description' => 'The Component config entity version identifier.',
+          'type' => 'varchar_ascii',
+          // These are xxh64 hashes.
+          'length' => 16,
+          'not null' => TRUE,
+        ],
         'inputs' => [
           'description' => 'The input for this component instance in the component tree.',
           'type' => 'json',
@@ -283,6 +293,7 @@ class ComponentTreeItem extends FieldItemBase {
       ],
       'indexes' => [
         'component_id' => ['component_id'],
+        'component_id_version' => ['component_id', 'version'],
         'parent_slot' => ['parent_uuid', 'slot'],
         'slot' => ['slot'],
         'uuid' => ['uuid'],
@@ -336,7 +347,15 @@ class ComponentTreeItem extends FieldItemBase {
       ->setLabel(new TranslatableMarkup('Component ID'))
       ->setRequired(TRUE);
 
-    $properties['component'] = DataReferenceDefinition::create('entity')
+    $properties['version'] = DataReferenceTargetDefinition::create('string')
+      ->setLabel(new TranslatableMarkup('Component version ID'))
+      // Note we don't add a ValidConfigEntityVersion or
+      // ValidConfigEntityVersionConstraint constraint here as they are both
+      // validated by ComponentTreeStructure constraint on the item list.
+      // @see \Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemList::getConstraints
+      ->setRequired(TRUE);
+
+    $properties['component'] = DataReferenceDefinition::create(ConfigEntityVersionAdapter::PLUGIN_ID)
       ->setLabel('Component')
       ->setDescription(new TranslatableMarkup('The referenced component entity'))
       ->setComputed(TRUE)
@@ -389,6 +408,15 @@ class ComponentTreeItem extends FieldItemBase {
         $this->writePropertyValue($property2, $this->get($property1)->getValue());
       }
     }
+    // DX: if no version is specified, set it automatically to the active
+    // version of the Component.
+    // TRICKY: do this *only* when no version is specified, otherwise this would
+    // unintentionally "upgrade" instances of older component versions to newer
+    // ones!
+    if (!array_key_exists('version', $this->values) && ($property_name === 'component_id' || $property_name === 'component')) {
+      // Set the version ID based on the loaded component.
+      $this->writePropertyValue('version', $this->getComponent()?->getLoadedVersion());
+    }
     parent::onChange($property_name, $notify);
   }
 
@@ -404,13 +432,13 @@ class ComponentTreeItem extends FieldItemBase {
       ];
       foreach ($pairs as $pair) {
         [$property1, $property2] = $pair;
-        if (is_array($values) && array_key_exists($property1, $values) && !isset($values[$property2])) {
+        if (array_key_exists($property1, $values) && !isset($values[$property2])) {
           $this->onChange($property1, FALSE);
         }
-        if (is_array($values) && !array_key_exists($property1, $values) && isset($values[$property2])) {
+        if (!array_key_exists($property1, $values) && isset($values[$property2])) {
           $this->onChange($property2, FALSE);
         }
-        if (is_array($values) && array_key_exists($property1, $values) && isset($values[$property2])) {
+        if (array_key_exists($property1, $values) && isset($values[$property2])) {
           // If both properties are passed, verify the passed values match.
           $reference = $this->get($property2);
           \assert($reference instanceof DataReferenceInterface);
@@ -419,6 +447,15 @@ class ComponentTreeItem extends FieldItemBase {
             throw new \InvalidArgumentException(\sprintf('The %s id and %s passed do not match.', $property2, $property2));
           }
         }
+      }
+      if (\array_key_exists('component_id', $values) || \array_key_exists('component', $values) && !\array_key_exists('version', $values)) {
+        $this->onChange('component_id', FALSE);
+      }
+      if (\array_key_exists('version', $values) && $values['version'] === VersionedConfigEntityBase::ACTIVE_VERSION && $component = $this->getComponent()) {
+        // Replace 'active' with the current active version. This allows passing
+        // 'active' as the version without needing to know the specific version
+        // ID.
+        $this->writePropertyValue('version', $component->getActiveVersion());
       }
     }
 
@@ -433,7 +470,9 @@ class ComponentTreeItem extends FieldItemBase {
 
     // Notify the parent if necessary.
     if ($notify && $this->parent) {
-      $this->parent->onChange($this->getName());
+      $name = $this->getName();
+      \assert(\is_string($name));
+      $this->parent->onChange($name);
     }
   }
 
@@ -451,6 +490,14 @@ class ComponentTreeItem extends FieldItemBase {
 
   public function getComponent(): ?ComponentInterface {
     return $this->get('component')->getTarget()?->getValue();
+  }
+
+  public function getComponentVersion(): string {
+    $version = $this->get('version')->getValue();
+    if ($version === NULL) {
+      throw new \InvalidArgumentException('Component version is required.');
+    }
+    return $version;
   }
 
   public function getComponentId(): string {
@@ -491,7 +538,7 @@ class ComponentTreeItem extends FieldItemBase {
     return [
       'uuid' => $this->getUuid(),
       'nodeType' => 'component',
-      'type' => $this->getComponentId(),
+      'type' => sprintf('%s@%s', $this->getComponentId(), $this->getComponentVersion()),
       // TRICKY: the client-side representation uses `name`, the server-side
       // representation uses `label`, due to TypedData limitations.
       // @see \Drupal\Core\TypedData\TypedData::$name

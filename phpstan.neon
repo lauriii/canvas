@@ -53,10 +53,6 @@ parameters:
         - src/Plugin/BlockManager.php
         - src/Plugin/ComponentPluginManager.php
     -
-      message: "#^Cannot assign offset 'id' to string\\.$#"
-      count: 1
-      path: tests/src/Kernel/Config/ComponentValidationTest.php
-    -
       message: "#^Method Drupal\\\\experience_builder\\\\Entity\\\\Pattern\\:\\:preCreate\\(\\) has no return type specified\\.$#"
       count: 1
       path: src/Entity/Pattern.php

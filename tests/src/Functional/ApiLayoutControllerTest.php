@@ -7,6 +7,7 @@ namespace Drupal\Tests\experience_builder\Functional;
 use Drupal\Component\Serialization\Json;
 use Drupal\Core\Url;
 use Drupal\experience_builder\AutoSave\AutoSaveManager;
+use Drupal\experience_builder\Entity\Component;
 use Drupal\experience_builder\Entity\JavaScriptComponent;
 use Drupal\experience_builder\Entity\Page;
 use Drupal\experience_builder\Entity\PageRegion;
@@ -118,10 +119,13 @@ final class ApiLayoutControllerTest extends HttpApiTestBase {
 
     // Add the code component into the layout.
     $uuid = 'ccf36def-3f87-4b7d-bc20-8f8594274818';
+    $component_id = JsComponent::componentIdFromJavascriptComponentId((string) $code_component->id());
+    $component = Component::load($component_id);
+    assert($component instanceof Component);
     $json['layout'][0]['components'][] = [
       'nodeType' => 'component',
       'uuid' => $uuid,
-      'type' => JsComponent::componentIdFromJavascriptComponentId((string) $code_component->id()),
+      'type' => $component_id . '@' . $component->getActiveVersion(),
       'slots' => [],
     ];
     $props = [

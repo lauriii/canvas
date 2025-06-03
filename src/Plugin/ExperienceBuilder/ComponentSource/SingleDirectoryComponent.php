@@ -19,6 +19,8 @@ use Drupal\experience_builder\ComponentDoesNotMeetRequirementsException;
 use Drupal\experience_builder\ComponentMetadataRequirementsChecker;
 use Drupal\experience_builder\ComponentSource\UrlRewriteInterface;
 use Drupal\experience_builder\Entity\Component as ComponentEntity;
+use Drupal\experience_builder\Entity\ComponentInterface;
+use Drupal\experience_builder\Entity\VersionedConfigEntityBase;
 use Drupal\experience_builder\ShapeMatcher\FieldForComponentSuggester;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\Filesystem\Path;
@@ -64,6 +66,7 @@ final class SingleDirectoryComponent extends GeneratedFieldExplicitInputUxCompon
     private readonly ModuleHandlerInterface $moduleHandler,
     private readonly ThemeHandlerInterface $themeHandler,
   ) {
+    assert(array_key_exists('local_source_id', $configuration));
     parent::__construct(
       $configuration,
       $plugin_id,
@@ -220,15 +223,18 @@ final class SingleDirectoryComponent extends GeneratedFieldExplicitInputUxCompon
     $props = self::getPropsForComponentPlugin($component_plugin);
     assert(is_array($component_plugin->getPluginDefinition()));
     $status = !(isset($component_plugin->metadata->status) && $component_plugin->metadata->status === 'obsolete');
+    $settings = ['prop_field_definitions' => $props];
+    $version = ComponentEntity::generateVersionStringForData($settings, 'experience_builder.component_source_settings.sdc');
     return ComponentEntity::create([
       'id' => self::convertMachineNameToId($component_plugin->getPluginId()),
       'label' => $component_plugin->getPluginDefinition()['name'] ?? $component_plugin->getPluginId(),
       'category' => $component_plugin->getPluginDefinition()['category'],
       'source' => self::SOURCE_PLUGIN_ID,
       'provider' => $component_plugin->getPluginDefinition()['provider'],
-      'settings' => [
-        'local_source_id' => $component_plugin->getPluginId(),
-        'prop_field_definitions' => $props,
+      'source_local_id' => $component_plugin->getPluginId(),
+      'active_version' => $version,
+      'versioned_properties' => [
+        VersionedConfigEntityBase::ACTIVE_VERSION => ['settings' => $settings],
       ],
       'status' => $status,
     ]);
@@ -250,9 +256,19 @@ final class SingleDirectoryComponent extends GeneratedFieldExplicitInputUxCompon
 
     $settings = [
       'prop_field_definitions' => self::getPropsForComponentPlugin($component_plugin),
-      'local_source_id' => $component_plugin->getPluginId(),
     ];
-    $component->setSource(self::SOURCE_PLUGIN_ID)->setSettings($settings);
+    $version = ComponentEntity::generateVersionStringForData($settings, 'experience_builder.component_source_settings.sdc');
+    $definition = $component_plugin->getPluginDefinition();
+    \assert(\is_array($definition));
+    $component
+      // These 3 can change over time:
+      // - label and category (unversioned)
+      // - settings (versioned)
+      ->set('label', $definition['name'] ?? $component_plugin->getPluginId())
+      ->set('category', $definition['category'])
+      ->createVersion($version)
+      ->deleteVersionIfExists(ComponentInterface::FALLBACK_VERSION)
+      ->setSettings($settings);
     return $component;
   }
 

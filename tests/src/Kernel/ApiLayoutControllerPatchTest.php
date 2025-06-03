@@ -99,7 +99,7 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
       BadRequestHttpException::class,
       [
         'componentInstanceUuid' => 'e8c95423-4f22-4210-8707-08bade75ff22',
-        'componentType' => 'sdc.experience_builder.image',
+        'componentType' => 'sdc.experience_builder.image@f81037abea6701d7',
       ],
     ];
     yield 'No such component in model' => [
@@ -107,7 +107,7 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
       NotFoundHttpException::class,
       [
         'componentInstanceUuid' => 'e8c95423-4f22-4210-8707-08bade75ff22',
-        'componentType' => 'sdc.experience_builder.image',
+        'componentType' => 'sdc.experience_builder.image@f81037abea6701d7',
         'model' => [],
       ],
     ];
@@ -116,7 +116,25 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
       NotFoundHttpException::class,
       [
         'componentInstanceUuid' => XbTestSetup::UUID_STATIC_IMAGE,
-        'componentType' => 'garry_sensible_jeans',
+        'componentType' => 'garry_sensible_jeans@jean_shorts',
+        'model' => [],
+      ],
+    ];
+    yield 'No version provided' => [
+      'Missing version for component sdc.experience_builder.image',
+      NotFoundHttpException::class,
+      [
+        'componentInstanceUuid' => XbTestSetup::UUID_STATIC_IMAGE,
+        'componentType' => 'sdc.experience_builder.image',
+        'model' => [],
+      ],
+    ];
+    yield 'Invalid version provided' => [
+      'No such version hamster for component sdc.experience_builder.image',
+      NotFoundHttpException::class,
+      [
+        'componentInstanceUuid' => XbTestSetup::UUID_STATIC_IMAGE,
+        'componentType' => 'sdc.experience_builder.image@hamster',
         'model' => [],
       ],
     ];
@@ -196,7 +214,7 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
     $new_model['source']['image']['value'] = $media->id();
     $response = $this->request(Request::create('/xb/api/v0/layout/node/1', method: 'PATCH', content: \json_encode([
       'model' => $new_model,
-      'componentType' => 'sdc.experience_builder.image',
+      'componentType' => 'sdc.experience_builder.image@f81037abea6701d7',
       'componentInstanceUuid' => XbTestSetup::UUID_STATIC_IMAGE,
     ], JSON_THROW_ON_ERROR)));
 
@@ -259,7 +277,7 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
             'label_display' => '',
           ],
         ],
-        'componentType' => 'block.system_messages_block',
+        'componentType' => 'block.system_messages_block@95494899663264b4',
         'componentInstanceUuid' => $globalComponentUuid,
       ], JSON_THROW_ON_ERROR)));
 
@@ -325,7 +343,7 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
           'label_display' => '',
         ],
       ],
-      'componentType' => 'block.system_messages_block',
+      'componentType' => 'block.system_messages_block@95494899663264b4',
       'componentInstanceUuid' => $globalComponentUuid,
     ], JSON_THROW_ON_ERROR)));
   }

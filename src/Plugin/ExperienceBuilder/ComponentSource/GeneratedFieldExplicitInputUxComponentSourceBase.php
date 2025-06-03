@@ -58,6 +58,8 @@ use Symfony\Component\Validator\ConstraintViolationListInterface;
  * @see \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\SingleDirectoryComponent
  * @see \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\JsComponent
  *
+ * @phpstan-import-type PropSourceArray from \Drupal\experience_builder\PropSource\PropSourceBase
+ *
  * @internal
  */
 abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends ComponentSourceBase implements ComponentSourceWithSlotsInterface, ContainerFactoryPluginInterface {
@@ -182,6 +184,10 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
     }
     $entity = $item->getRoot() === $item->getParent() ? NULL : $item->getEntity();
     $values = $item->getInputs() ?? [];
+    foreach ($values as $prop => $input) {
+      $values[$prop] = $this->rawInputValueToPropSourceArray($input, $prop);
+    }
+
     return [
       'source' => $values,
       'resolved' => array_map(
@@ -273,8 +279,14 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
   public function validateComponentInput(array $inputValues, string $component_instance_uuid, ?FieldableEntityInterface $entity): ConstraintViolationListInterface {
     $violations = new ConstraintViolationList();
     foreach ($inputValues as $component_prop_name => $raw_prop_source) {
+      $raw_prop_source = $this->rawInputValueToPropSourceArray($raw_prop_source, $component_prop_name);
+      // Store the expanded prop source with all the values populated from the
+      // composite field type.
+      $inputValues[$component_prop_name] = $raw_prop_source;
+
       if (str_starts_with($raw_prop_source['sourceType'], 'static:')) {
         try {
+          \assert(\array_key_exists('expression', $raw_prop_source) && \array_key_exists('value', $raw_prop_source) && \array_key_exists('sourceType', $raw_prop_source));
           StaticPropSource::isMinimalRepresentation($raw_prop_source);
         }
         catch (\LogicException $e) {
@@ -405,7 +417,7 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
 
       $component_prop = ComponentPropExpression::fromString($component_prop_expression);
       $sdc_prop_name = $component_prop->propName;
-      $prop_source_array = $client_model[$sdc_prop_name] ?? $default_prop_sources[$sdc_prop_name];
+      $prop_source_array = $this->rawInputValueToPropSourceArray($client_model[$sdc_prop_name] ?? $default_prop_sources[$sdc_prop_name], $sdc_prop_name);
       $disabled = FALSE;
       $source = PropSource::parse($prop_source_array);
       if (!$source instanceof StaticPropSource) {
@@ -813,9 +825,45 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
         $source = $this->getDefaultStaticPropSource($prop)->withValue([]);
       }
       $props[$prop] = $source->toArray();
+      if ($source instanceof StaticPropSource &&
+        \array_key_exists('expression', $props[$prop]) &&
+        \array_key_exists($prop, $this->configuration['prop_field_definitions']) &&
+        $props[$prop]['expression'] === $this->configuration['prop_field_definitions'][$prop]['expression'] &&
+        $props[$prop]['sourceType'] === \sprintf('static:field_item:%s', $this->configuration['prop_field_definitions'][$prop]['field_type'])
+      ) {
+        // The other keys are tracked in versioned properties of the component.
+        // We can collapse some of the values here if this is a static-prop as
+        // entity.
+        \assert(\array_key_exists('value', $props[$prop]));
+        $props[$prop] = $props[$prop]['value'];
+      }
+
     }
 
     return $props;
+  }
+
+  /**
+   * @phpstan-return PropSourceArray
+   */
+  private function rawInputValueToPropSourceArray(mixed $value, string $prop_name): array {
+    $static_defaults = $this->configuration['prop_field_definitions'];
+    if (!\is_array($value) || !\array_key_exists('sourceType', $value)) {
+      $value = [
+        'value' => $value,
+        'expression' => $static_defaults[$prop_name]['expression'] ?? throw new \UnexpectedValueException(\sprintf('Missing expression for prop %s.', $prop_name)),
+        'sourceType' => \sprintf('static:field_item:%s', $static_defaults[$prop_name]['field_type'] ?? throw new \UnexpectedValueException(\sprintf('Missing field type for prop %s.', $prop_name))),
+      ];
+      $value += \array_filter([
+        'sourceTypeSettings' => \array_filter([
+          'storage' => $static_defaults[$prop_name]['field_storage_settings'] ?? [],
+          'instance' => $static_defaults[$prop_name]['field_instance_settings'] ?? [],
+        ]),
+      ]);
+    }
+    // phpcs:ignore
+    /** @var PropSourceArray */
+    return $value;
   }
 
 }

@@ -83,6 +83,9 @@ final class ComponentSourceHooks implements ContainerInjectionInterface {
         $definitions[$type]['constraints']['FullyValidatable'] = \NULL;
       }
     }
+
+    // @todo Fix upstream.
+    $definitions['field.value.boolean']['mapping']['value']['type'] = 'boolean';
   }
 
   /**

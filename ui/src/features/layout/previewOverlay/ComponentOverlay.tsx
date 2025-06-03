@@ -192,6 +192,8 @@ const ComponentOverlay: React.FC<ComponentOverlayProps> = (props) => {
     stackDirection = slotsMap[parentSlot.id]?.stackDirection || 'vertical';
   }
 
+  const [componentType] = component.type.split('@');
+
   return (
     <div
       aria-label={`${name}`}
@@ -220,7 +222,7 @@ const ComponentOverlay: React.FC<ComponentOverlayProps> = (props) => {
           {...listeners}
           {...attributes}
           className={clsx('xb--sortable-item', styles.sortableItem)}
-          data-xb-component-id={component.type}
+          data-xb-component-id={componentType}
           data-xb-uuid={component.uuid}
           data-xb-type={component.nodeType}
           data-xb-overlay="true"

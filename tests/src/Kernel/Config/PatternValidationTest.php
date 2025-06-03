@@ -56,6 +56,7 @@ class PatternValidationTest extends BetterConfigEntityValidationTestBase {
         [
           'uuid' => '8c59b08a-59f7-4c33-b1b6-06af8f153e73',
           'component_id' => 'sdc.xb_test_sdc.props-no-slots',
+          'version' => 'c8a016671696090c',
           'inputs' => [
             'heading' => $generate_static_prop_source('world'),
           ],
@@ -64,6 +65,7 @@ class PatternValidationTest extends BetterConfigEntityValidationTestBase {
         [
           'uuid' => 'cdaf905d-4b07-4f3c-a691-4b9d07891124',
           'component_id' => 'sdc.xb_test_sdc.props-no-slots',
+          'version' => 'c8a016671696090c',
           'inputs' => [
             'heading' => $generate_static_prop_source('another world'),
           ],
@@ -71,6 +73,7 @@ class PatternValidationTest extends BetterConfigEntityValidationTestBase {
         [
           'uuid' => '02f06f2a-c3af-4f71-8920-5f74169a88a5',
           'component_id' => 'sdc.experience_builder.heading',
+          'version' => '5700f78c83cd433f',
           'inputs' => [
             'text' => $generate_static_prop_source('heading level three'),
             'element' => [
@@ -83,6 +86,7 @@ class PatternValidationTest extends BetterConfigEntityValidationTestBase {
         [
           'uuid' => '56031f0f-a073-471d-8298-4ecf757ff0e7',
           'component_id' => 'block.local_tasks_block',
+          'version' => '9e8d5313864c8430',
           'inputs' => [
             'label_display' => FALSE,
             'primary' => TRUE,
@@ -188,6 +192,7 @@ class PatternValidationTest extends BetterConfigEntityValidationTestBase {
         [
           'uuid' => '8c59b08a-59f7-4c33-b1b6-06af8f153e73',
           'component_id' => 'sdc.xb_test_sdc.props-no-slots',
+          'version' => 'c8a016671696090c',
           'inputs' => [
             'heading' => [
               'sourceType' => 'dynamic',
@@ -206,11 +211,13 @@ class PatternValidationTest extends BetterConfigEntityValidationTestBase {
         [
           'uuid' => '62602a53-de40-4e33-aad5-241a7cf74499',
           'component_id' => 'sdc.experience_builder.druplicon',
+          'version' => '822ab01ec6b22b59',
           'inputs' => [],
         ],
         [
           'uuid' => '7f91aa44-c672-454f-8ed0-417d0de76b14',
           'component_id' => 'block.system_branding_block',
+          'version' => 'cc5b6644b21159f6',
           'inputs' => [
             'use_site_logo' => TRUE,
             'use_site_name' => TRUE,
@@ -222,6 +229,7 @@ class PatternValidationTest extends BetterConfigEntityValidationTestBase {
         [
           'uuid' => 'block-invalid',
           'component_id' => 'block.page_title_block',
+          'version' => 'ed0a8cbdee7c1f61',
           'inputs' => [],
         ],
       ],
@@ -239,6 +247,7 @@ class PatternValidationTest extends BetterConfigEntityValidationTestBase {
         [
           'uuid' => 'fa9ff0a8-e23a-492a-ab14-5460611fa2c1',
           'component_id' => 'sdc.xb_test_sdc.props-slots',
+          'version' => 'c8a016671696090c',
           'inputs' => [
             'heading' => [
               'sourceType' => 'static:field_item:string',
@@ -250,6 +259,7 @@ class PatternValidationTest extends BetterConfigEntityValidationTestBase {
         [
           'uuid' => 'fa9ff0a8-e23a-492a-ab14-5460611fa2c1',
           'component_id' => 'sdc.xb_test_sdc.props-slots',
+          'version' => 'c8a016671696090c',
           'inputs' => [
             'heading' => [
               'sourceType' => 'static:field_item:string',
@@ -260,7 +270,7 @@ class PatternValidationTest extends BetterConfigEntityValidationTestBase {
         ],
       ],
       'expected_messages' => [
-        'component_tree' => 'The UUID should be unique.',
+        'component_tree' => 'Not all component instance UUIDs in this component tree are unique.',
       ],
     ];
     yield "invalid parent" => [
@@ -268,6 +278,7 @@ class PatternValidationTest extends BetterConfigEntityValidationTestBase {
         [
           'uuid' => 'fa9ff0a8-e23a-492a-ab14-5460611fa2c1',
           'component_id' => 'sdc.xb_test_sdc.props-slots',
+          'version' => 'c8a016671696090c',
           'inputs' => [
             'heading' => [
               'sourceType' => 'static:field_item:string',
@@ -281,6 +292,7 @@ class PatternValidationTest extends BetterConfigEntityValidationTestBase {
           'slot' => 'the_body',
           'parent_uuid' => '6381352f-5b0a-4ca1-960d-a5505b37b27c',
           'component_id' => 'sdc.xb_test_sdc.props-slots',
+          'version' => 'c8a016671696090c',
           'inputs' => [
             'heading' => [
               'sourceType' => 'static:field_item:string',
@@ -300,6 +312,7 @@ class PatternValidationTest extends BetterConfigEntityValidationTestBase {
         [
           'uuid' => 'fa9ff0a8-e23a-492a-ab14-5460611fa2c1',
           'component_id' => 'sdc.xb_test_sdc.props-slots',
+          'version' => 'c8a016671696090c',
           'inputs' => [
             'heading' => [
               'sourceType' => 'static:field_item:string',
@@ -313,6 +326,7 @@ class PatternValidationTest extends BetterConfigEntityValidationTestBase {
           'slot' => 'banana',
           'parent_uuid' => 'fa9ff0a8-e23a-492a-ab14-5460611fa2c1',
           'component_id' => 'sdc.xb_test_sdc.props-slots',
+          'version' => 'c8a016671696090c',
           'inputs' => [
             'heading' => [
               'sourceType' => 'static:field_item:string',
@@ -332,6 +346,7 @@ class PatternValidationTest extends BetterConfigEntityValidationTestBase {
         [
           'uuid' => 'e303dd88-9409-4dc7-8a8b-a31602884a94',
           'component_id' => 'sdc.xb_test_sdc.props-slots',
+          'version' => 'c8a016671696090c',
           'inputs' => [
             'heading' => [
               'sourceType' => 'static:field_item:string',
@@ -344,6 +359,26 @@ class PatternValidationTest extends BetterConfigEntityValidationTestBase {
       ],
       'expected_messages' => [
         'component_tree.0.label' => 'This value is too long. It should have <em class="placeholder">255</em> characters or less.',
+      ],
+    ];
+
+    yield "invalid version" => [
+      'component_tree' => [
+        [
+          'uuid' => 'fa9ff0a8-e23a-492a-ab14-5460611fa2c1',
+          'component_id' => 'sdc.xb_test_sdc.props-slots',
+          'version' => 'abc',
+          'inputs' => [
+            'heading' => [
+              'sourceType' => 'static:field_item:string',
+              'value' => 'And we laugh like soft, mad children',
+              'expression' => 'ℹ︎string␟value',
+            ],
+          ],
+        ],
+      ],
+      'expected_messages' => [
+        'component_tree.0.version' => "'abc' is not a version that exists on component config entity 'sdc.xb_test_sdc.props-slots'. Available versions: 'c8a016671696090c'.",
       ],
     ];
   }

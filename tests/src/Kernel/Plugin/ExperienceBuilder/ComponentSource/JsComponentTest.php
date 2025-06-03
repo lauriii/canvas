@@ -128,11 +128,9 @@ final class JsComponentTest extends ComponentSourceTestBase {
   public static function getExpectedSettings(): array {
     return [
       'js.xb_test_code_components_using_imports' => [
-        'local_source_id' => 'xb_test_code_components_using_imports',
         'prop_field_definitions' => [],
       ],
       'js.xb_test_code_components_vanilla_image' => [
-        'local_source_id' => 'xb_test_code_components_vanilla_image',
         'prop_field_definitions' => [
           'image' => [
             'field_type' => 'image',
@@ -147,11 +145,9 @@ final class JsComponentTest extends ComponentSourceTestBase {
         ],
       ],
       'js.xb_test_code_components_with_no_props' => [
-        'local_source_id' => 'xb_test_code_components_with_no_props',
         'prop_field_definitions' => [],
       ],
       'js.xb_test_code_components_with_props' => [
-        'local_source_id' => 'xb_test_code_components_with_props',
         'prop_field_definitions' => [
           'age' => [
             'field_type' => 'integer',
@@ -377,7 +373,7 @@ final class JsComponentTest extends ComponentSourceTestBase {
   ): void {
     $source = $component->getComponentSource();
     \assert($source instanceof JsComponent);
-    $js_component_id = $component->getSettings()['local_source_id'];
+    $js_component_id = $component->get('source_local_id');
     $js_component = $source->getJavaScriptComponent();
     $expected_component_compiled_js = $js_component->getJs();
     $expected_component_compiled_css = $js_component->getCss();

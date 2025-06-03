@@ -6,16 +6,18 @@ namespace Drupal\Tests\experience_builder\Kernel\Plugin\Field\FieldType;
 
 use Drupal\Core\Field\BaseFieldDefinition;
 use Drupal\experience_builder\Entity\Component;
+use Drupal\experience_builder\Entity\ComponentInterface;
+use Drupal\experience_builder\Entity\JavaScriptComponent;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemListInstantiatorTrait;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\node\Entity\Node;
 use Drupal\node\Entity\NodeType;
 use Drupal\Tests\experience_builder\Kernel\Traits\CiModulePathTrait;
-use Drupal\Tests\experience_builder\Traits\SingleDirectoryComponentTreeTestTrait;
 use Drupal\Tests\experience_builder\Traits\ConstraintViolationsTestTrait;
 use Drupal\Tests\experience_builder\Traits\ContribStrictConfigSchemaTestTrait;
 use Drupal\Tests\experience_builder\Traits\GenerateComponentConfigTrait;
+use Drupal\Tests\experience_builder\Traits\SingleDirectoryComponentTreeTestTrait;
 use Drupal\Tests\image\Kernel\ImageFieldCreationTrait;
 
 /**
@@ -53,6 +55,7 @@ class ComponentTreeItemTest extends KernelTestBase {
     'link',
     'system',
     'media',
+    'xb_test_code_components',
   ];
 
   /**
@@ -137,6 +140,51 @@ class ComponentTreeItemTest extends KernelTestBase {
   }
 
   /**
+   * @covers \Drupal\experience_builder\Plugin\Validation\Constraint\ValidConfigEntityVersionConstraintValidator
+   */
+  public function testInvalidVersion(): void {
+    $root_uuid = '947c196f-f108-43fd-a446-03a08100d579';
+    $child_uuid = '8b6b47ec-1167-433b-975d-e2d97739f5a6';
+
+    $this->generateComponentConfig();
+    $item_list = $this->createDanglingComponentTreeItemList();
+    $item_list->setValue([
+      [
+        'uuid' => $root_uuid,
+        'component_id' => 'sdc.xb_test_sdc.props-slots',
+        'version' => 'lol',
+        'inputs' => [
+          'heading' => [
+            'sourceType' => 'static:field_item:string',
+            'value' => 'This is really tricky for a first-timer …',
+            'expression' => 'ℹ︎string␟value',
+          ],
+        ],
+      ],
+      [
+        'parent_uuid' => $root_uuid,
+        'slot' => 'the_body',
+        'uuid' => $child_uuid,
+        'component_id' => 'sdc.xb_test_sdc.props-no-slots',
+        'version' => 'hah',
+        'inputs' => [
+          'heading' => [
+            'sourceType' => 'static:field_item:string',
+            'value' => '… but eventually it all makes sense. Wished I RTFMd.',
+            'expression' => 'ℹ︎string␟value',
+          ],
+        ],
+      ],
+    ]);
+    $this->assertCount(2, $item_list);
+    $violations = $item_list->validate();
+    $this->assertSame([
+      '0.version' => "'lol' is not a version that exists on component config entity 'sdc.xb_test_sdc.props-slots'. Available versions: 'c8a016671696090c'.",
+      '1.version' => "'hah' is not a version that exists on component config entity 'sdc.xb_test_sdc.props-no-slots'. Available versions: 'c8a016671696090c'.",
+    ], self::violationsToArray($violations));
+  }
+
+  /**
    * @covers ::getParentUuid()
    * @covers ::getParentComponentTreeItem()
    * @covers ::getSlot()
@@ -147,9 +195,18 @@ class ComponentTreeItemTest extends KernelTestBase {
   public function testConvenienceMethods(): void {
     $root_uuid = '947c196f-f108-43fd-a446-03a08100d579';
     $child_uuid = '8b6b47ec-1167-433b-975d-e2d97739f5a6';
+    $js_uuid = '0aaa0f58-287c-453d-be65-81ba0f4e6f1c';
 
     $this->generateComponentConfig();
+    $this->installConfig('xb_test_code_components');
+
     $item_list = $this->createDanglingComponentTreeItemList();
+    $js_component_id = 'js.xb_test_code_components_with_props';
+
+    $js_component = Component::load($js_component_id);
+    \assert($js_component instanceof ComponentInterface);
+    $original_js_component_version = $js_component->getActiveVersion();
+
     $item_list->setValue([
       [
         'uuid' => $root_uuid,
@@ -175,9 +232,25 @@ class ComponentTreeItemTest extends KernelTestBase {
           ],
         ],
       ],
+      [
+        'uuid' => $js_uuid,
+        'component_id' => $js_component_id,
+        'inputs' => [
+          'name' => [
+            'sourceType' => 'static:field_item:string',
+            'value' => 'Mad Dog Morgan',
+            'expression' => 'ℹ︎string␟value',
+          ],
+          'age' => [
+            'sourceType' => 'static:field_item:integer',
+            'value' => '35',
+            'expression' => 'ℹ︎integer␟value',
+          ],
+        ],
+      ],
     ]);
     $this->assertCount(0, $item_list->validate());
-    $this->assertCount(2, $item_list);
+    $this->assertCount(3, $item_list);
 
     // Call all convenience methods on the root component instance.
     $root = $item_list->get(0);
@@ -187,8 +260,10 @@ class ComponentTreeItemTest extends KernelTestBase {
     $this->assertNull($root->getSlot());
     $this->assertSame('sdc.xb_test_sdc.props-slots', $root->getComponentId());
     $this->assertInstanceOf(Component::class, $root->getComponent());
-    $this->assertSame(Component::load('sdc.xb_test_sdc.props-slots')?->toArray(), $root->getComponent()->toArray());
+    $component = Component::load('sdc.xb_test_sdc.props-slots');
+    $this->assertSame($component?->toArray(), $root->getComponent()->toArray());
     $this->assertSame($root_uuid, $root->getUuid());
+    self::assertEquals($component->getLoadedVersion(), $root->getComponentVersion());
 
     // Call all convenience methods on the child component instance.
     $child = $item_list->get(1);
@@ -200,6 +275,64 @@ class ComponentTreeItemTest extends KernelTestBase {
     $this->assertInstanceOf(Component::class, $child->getComponent());
     $this->assertSame(Component::load('sdc.xb_test_sdc.props-no-slots')?->toArray(), $child->getComponent()->toArray());
     $this->assertSame($child_uuid, $child->getUuid());
+
+    // Add a new prop to the JS component and assert that the loaded version for
+    // the saved item still uses the original version.
+    $js_component_entity = JavaScriptComponent::load('xb_test_code_components_with_props');
+    \assert($js_component_entity instanceof JavaScriptComponent);
+    $props = $js_component_entity->getProps();
+    $props['real_name'] = [
+      'type' => 'string',
+      'title' => 'Real Name',
+    ];
+    $js_component_entity->setProps($props);
+    $js_component_entity->save();
+    $old_version_item = $item_list->get(2);
+    \assert($old_version_item instanceof ComponentTreeItem);
+    $reference = $old_version_item->getComponent();
+    self::assertEquals($original_js_component_version, $reference?->getLoadedVersion());
+    self::assertEquals($original_js_component_version, $old_version_item->getComponentVersion());
+
+    $js_component = \Drupal::entityTypeManager()->getStorage(Component::ENTITY_TYPE_ID)->loadUnchanged($js_component_id);
+    \assert($js_component instanceof ComponentInterface);
+    self::assertNotEquals($js_component->getLoadedVersion(), $reference?->getLoadedVersion());
+
+    $item_list->appendItem([
+      'uuid' => '85fe2843-acac-4f17-b17b-0eeaa648ea2f',
+      'component_id' => $js_component_id,
+      'inputs' => [
+        'name' => [
+          'sourceType' => 'static:field_item:string',
+          'value' => 'Mad Dog Morgan',
+          'expression' => 'ℹ︎string␟value',
+        ],
+        'real_name' => [
+          'sourceType' => 'static:field_item:string',
+          'value' => 'John Owen',
+          'expression' => 'ℹ︎string␟value',
+        ],
+        'age' => [
+          'sourceType' => 'static:field_item:integer',
+          'value' => '35',
+          'expression' => 'ℹ︎integer␟value',
+        ],
+      ],
+    ]);
+
+    $new_version_item = $item_list->get(3);
+    \assert($new_version_item instanceof ComponentTreeItem);
+    $reference = $new_version_item->getComponent();
+    self::assertNotEquals($original_js_component_version, $reference?->getLoadedVersion());
+    self::assertNotEquals($original_js_component_version, $new_version_item->getComponentVersion());
+    $active_version = $js_component->getActiveVersion();
+    self::assertEquals($active_version, $reference?->getLoadedVersion());
+    self::assertEquals($active_version, $new_version_item->getComponentVersion());
+
+    // Finally, contrast the two for test clarity.
+    self::assertSame($old_version_item->getComponentId(), $new_version_item->getComponentId());
+    self::assertNotEquals($old_version_item->getComponentVersion(), $new_version_item->getComponentVersion());
+    self::assertNotEquals($old_version_item->getComponent(), $new_version_item->getComponent());
+
   }
 
   public function testCalculateDependencies(): void {
@@ -325,6 +458,7 @@ class ComponentTreeItemTest extends KernelTestBase {
     $test_cases['invalid UUID, missing component_id key'][] = [
       'field_xb_test.0.uuid' => 'This is not a valid UUID.',
       'field_xb_test.0.component_id' => 'This value should not be blank.',
+      'field_xb_test.0.version' => 'This value should not be blank.',
     ];
     $test_cases['missing components, using dynamic inputs'][] = [
       'field_xb_test.0.component_id' => "The 'experience_builder.component.sdc.sdc_test.missing' config does not exist.",
@@ -352,7 +486,7 @@ class ComponentTreeItemTest extends KernelTestBase {
       \sprintf('field_xb_test.2.inputs.%s', self::UUID_DYNAMIC_STATIC_CARD_4) => 'The required properties are missing.',
     ];
     $test_cases['non unique uuids'][] = [
-      'field_xb_test' => 'The UUID should be unique.',
+      'field_xb_test' => 'Not all component instance UUIDs in this component tree are unique.',
     ];
     $test_cases['invalid parent'][] = [
       'field_xb_test.1.parent_uuid' => 'Invalid component tree item with UUID <em class="placeholder">e303dd88-9409-4dc7-8a8b-a31602884a94</em> references an invalid parent <em class="placeholder">6381352f-5b0a-4ca1-960d-a5505b37b27c</em>.',

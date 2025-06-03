@@ -119,7 +119,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
             [
               "nodeType" => "component",
               "slots" => [],
-              "type" => "block.page_title_block",
+              "type" => "block.page_title_block@ed0a8cbdee7c1f61",
               "uuid" => "c3f3c22c-c22e-4bb6-ad16-635f069148e4",
             ],
           ],
@@ -395,7 +395,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
           [
             "nodeType" => "component",
             "slots" => [],
-            "type" => "block.page_title_block",
+            "type" => "block.page_title_block@ed0a8cbdee7c1f61",
             "uuid" => "c3f3c22c-c22e-4bb6-ad16-635f069148e4",
           ],
         ],

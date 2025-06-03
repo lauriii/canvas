@@ -13,6 +13,8 @@ use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\experience_builder\ComponentDoesNotMeetRequirementsException;
 use Drupal\experience_builder\ComponentIncompatibilityReasonRepository;
 use Drupal\experience_builder\Entity\Component;
+use Drupal\experience_builder\Entity\ComponentInterface;
+use Drupal\experience_builder\Entity\VersionedConfigEntityBase;
 use Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\BlockComponent;
 use Psr\Log\LoggerInterface;
 
@@ -64,34 +66,49 @@ final class BlockManager extends CoreBlockManager {
       if ($block instanceof MainContentBlockPluginInterface) {
         continue;
       }
+
       $component_id = BlockComponent::componentIdFromBlockPluginId($id);
       $component = Component::load($component_id);
+
+      $settings = [
+        // We are using strict config schema validation, so we need to provide
+        // valid default settings for each block.
+        'default_settings' => [
+            // The generic block plugin settings: all block plugins have at least
+            // this.
+            // @see `type: block_settings`
+            // @see `type: block.settings.*`
+            // @todo Simplify when core simplifies `type: block_settings` in
+            //   https://www.drupal.org/i/3426278
+          'id' => $id,
+          'label' => (string) $definition['admin_label'],
+          'label_display' => FALSE,
+          'provider' => $definition['provider'],
+        ] + $block->defaultConfiguration(),
+      ];
+      $version = Component::generateVersionStringForData($settings, 'experience_builder.component_source_settings.block');
       if (!$component instanceof Component) {
         $component = Component::create([
           'id' => $component_id,
           'provider' => $definition['provider'],
           'source' => BlockComponent::SOURCE_PLUGIN_ID,
           'status' => TRUE,
+          'versioned_properties' => [VersionedConfigEntityBase::ACTIVE_VERSION => ['settings' => $settings]],
+          'active_version' => $version,
+          'source_local_id' => $id,
         ]);
       }
-
-      $component->set('label', (string) $definition['admin_label'])
+      else {
+        $component->createVersion($version)
+          ->deleteVersionIfExists(ComponentInterface::FALLBACK_VERSION);
+      }
+      $component
+        // These 3 can change over time:
+        // - label and category (unversioned)
+        // - settings (versioned)
+        ->set('label', (string) $definition['admin_label'])
         ->set('category', (string) $definition['category'])
-        ->set('provider', $definition['provider'])
-        ->set('settings', [
-          'local_source_id' => $id,
-          // We are using strict config schema validation, so we need to provide valid default settings for each block.
-          'default_settings' => [
-            // The generic block plugin settings: all block plugins have at least this.
-            // @see `type: block_settings`
-            'id' => $id,
-            'label' => (string) $definition['admin_label'],
-            'label_display' => FALSE,
-            'provider' => $definition['provider'],
-          // The block plugin-specific settings.
-          // @see `type: block.settings.[%parent.plugin_id]`
-          ] + $block->defaultConfiguration(),
-        ]);
+        ->setSettings($settings);
 
       try {
         $component->getComponentSource()->checkRequirements();

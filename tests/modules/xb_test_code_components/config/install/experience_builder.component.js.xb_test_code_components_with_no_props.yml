@@ -8,7 +8,10 @@ label: 'With no props'
 id: js.xb_test_code_components_with_no_props
 provider: null
 source: js
+source_local_id: xb_test_code_components_with_no_props
 category: '@todo'
-settings:
-  local_source_id: xb_test_code_components_with_no_props
-  prop_field_definitions: {  }
+active_version: 822ab01ec6b22b59
+versioned_properties:
+  active:
+    settings:
+      prop_field_definitions: {  }

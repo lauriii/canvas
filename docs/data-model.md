@@ -43,7 +43,7 @@ to one of us! 😊 🙏
 
 - `component`: see [`XB Components` doc](components.md)
 - `Component config entity`: see [`XB Config Management` doc](config-management.md)
-- `component instance`: a UUID uniquely identifying this instance + component + values for each required `component input` (if any) + optionally values for its `component slot`s (if any)
+- `component instance`: a UUID uniquely identifying this instance + `component version` + values for each required `component input` (if any) + optionally values for its `component slot`s (if any)
 - `component node`: one of the node types in the UI data model, representing a `component instance` in the `component tree`
 - `component input`: see [`XB Components` doc](components.md)
 - `component slot`: see [`XB Components` doc](components.md)
@@ -52,6 +52,7 @@ to one of us! 😊 🙏
 - `component tree field type`: XB's field type that allows storing a `component tree` ⚠️ This is currently limited to the "default" `view mode`, and hence one component tree per `content entity`. ⚠️
 - `component tree root`: the root of the `component tree` is the special case: it does not exist in another `component`, but it behaves the same as any other `component slot`
 - `component type`: see [`XB Components` doc](components.md)
+- `component version`: a version (a deterministic hash) identifying the _version_ of a `Component config entity` either because the underlying `component` itself changed, or because the default `static prop source`s changed due to modified shape matching
 - `content type template`: see [`XB Config Management` doc](config-management.md).
 - `layout`: synonym of `component tree`
 - `prop expression`: see [`XB Shape Matching into Field Types` doc](shape-matching-into-field-types.md)
@@ -107,15 +108,16 @@ XB defines a new `XB field type` with the following `field prop`s:
 When _parent_uuid_ and _slot_ are empty, the `component instance` is at the root of the `component tree`.
 
 Additionally there are two computed `field prop`s:
-- _component_ - this is an entity reference to the `Component config entity` the `component instance` uses. Any methods on the `Component config entity` can be chained. E.g. `$item->get('component')?->getComponentSource()`.
+- _component_ - this is an entity reference to the `Component config entity` the `component instance` uses, meaning also the appropriate version will be loaded. Any methods on the `Component config entity` can be chained. E.g. `$item->get('component')?->getComponentSource()`.
 - _parent_item_ - this is a data reference to the sibling `\Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem` in the tree that represents the `component instance`'s parent `component instance` in the `component tree`. If the `component instance` has no parent, this will be NULL. Any methods on the parent `component instance` can be chained, e.g. `$item->get('parent_item')->getComponent()?->getComponentSource()?->getSlotDefinitions()`
 
 Additionally, convenience methods for accessing/setting values on the `ComponentTreeItem` exist including:
 - `getParentUuid(): ?string` - gets the value of _parent_uuid_ if it exists
 - `getParentComponentTreeItem(): ?ComponentTreeItem` - gets the parent `component instance` if it exists
 - `getSlot(): ?string` - gets the `component slot` machine name if it exists
-- `getComponent(): ComponentInterface` - gets the `Component config entity`
+- `getComponent(): ComponentInterface` - gets the `Component config entity` at the specified version
 - `getComponentId(): string` - gets the ID of the `Component config entity`
+- `getComponentVersion(): string` - gets the version of the `Component config entity` used for this instance
 - `getUuid(): string` - gets the UUID of the `component instance`
 - `getInputs(): ?array` - gets the explicit inputs of the `component instance` as an array (JSON decoded)
 - `getInput(): ?string` - gets the explicit inputs of the `component instance` as a string (JSON encoded)
@@ -125,7 +127,7 @@ Additionally, convenience methods for accessing/setting values on the `Component
 
 Storing these as separate `field prop`s simplifies supporting both symmetric and asymmetric translations:
 - the _inputs_ column group (just the `inputs` column) group SHOULD always be translatable
-- the _tree_ column group (comprising `uuid`, `component_id`, `parent_uuid` and `slot`) can be either:
+- the _tree_ column group (comprising `uuid`, `component_id`, `version`, `parent_uuid` and `slot`) can be either:
   1. marked translatable for _asymmetric translations_ (a different `component tree` per `content entity` translation)
   2. marked untranslatable for _symmetric translations_ (same `component tree` for all `content entity` translations)
 
@@ -133,13 +135,15 @@ Storing these as separate `field prop`s simplifies supporting both symmetric and
 
 #### 3.2.1 The columns (`field prop`s) storing the tree structure
 
-The `uuid`, `component_id`, `parent_uuid` and `slot` columns model the tree structure.
+The `uuid`, `component_id`, `version`, `parent_uuid` and `slot` columns model the tree structure.
 
 See `\Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure` + its validation constraint.
 
 These columns always meet the following requirements
-1. every `component instance` is represented by a "uuid, component_id" pair, with the value for "component_id" being the ID of
-   a `Component config entity` (NOT that of the underlying `component`), and the "uuid" being a randomly generated UUID
+1. every `component instance` is represented by a "uuid, component_id, version" triple, with:
+  - the value for "component_id" being the ID of a `Component config entity` (NOT that of the underlying `component`)
+  - the value for "version" being a version on the (versioned!) `Component config entity` (see `\Drupal\experience_builder\Entity\VersionedConfigEntityInterface::getVersions()`)
+  - the "uuid" being a randomly generated UUID
 2. Any top-level items have NULL for both the `parent_uuid` and `slot`.
 3. Nested components must have a value for both the `parent_uuid` and `slot`.
     1. The `parent_uuid` must exist in a sibling field item in the `ComponentTreeItemList`.
@@ -180,6 +184,7 @@ Example: A simple tree showing a root item (`41595148-e5c1-4873-b373-be3ae6e2134
 [
   'uuid' => '41595148-e5c1-4873-b373-be3ae6e21340',
   'component_id' => 'sdc.xb_test_sdc.props-slots',
+  'version' => 'c8a016671696090c',
   'inputs' => [
     'heading' => [
       'sourceType' => 'static:field_item:string',
@@ -191,6 +196,7 @@ Example: A simple tree showing a root item (`41595148-e5c1-4873-b373-be3ae6e2134
 [
   'uuid' => '3b305d86-86a7-4684-8664-7ef1fc2be070',
   'component_id' => 'sdc.xb_test_sdc.props-no-slots',
+  'version' => 'c8a016671696090c',
   'parent_uuid' => '41595148-e5c1-4873-b373-be3ae6e21340',
   'slot' => 'the_body',
   'inputs' => [
@@ -203,6 +209,7 @@ Example: A simple tree showing a root item (`41595148-e5c1-4873-b373-be3ae6e2134
   [
     'uuid' => '41595148-e5c1-4873-b373-be3ae6e21340',
     'component_id' => 'block.system_branding_block',
+    'version' => 'cc5b6644b21159f6',
     // Example, that populates a Block component instance.
     // Note how much simpler the stored information is, because it uses the Block system's native input UX:
     'inputs' => [
@@ -308,7 +315,7 @@ will contain zero or more `component slot`s.
 
 `component node`s have the following keys
 - `uuid`: a unique identifier for the `component instance`.
-- `type`: a string containing a `Component config entity` ID that this instantiates
+- `type`: an opaque string containing a `Component config entity` ID + version that this instantiates
 - `name`: a name assigned by a Content Creator, to for example distinguish this particular `component instance` of some
   `component` among the 20 such in the current component tree
 - `slots`: an object of `slot node`s representing each `component slot` of this `component instance` (including empty
@@ -321,7 +328,7 @@ instance` specified by the Content Creator:
   "nodeType": "component",
   "id": "380aaa26-5678-4c86-9b32-12161ea34196",
   "name": "Most Important Heading",
-  "type": "sdc.experience_builder.heading",
+  "type": "sdc.experience_builder.heading@5700f78c83cd433f",
   "slots": []
 }
 ```
@@ -331,7 +338,7 @@ An example simple `component instance` of a `component` with a single `component
 {
   "nodeType": "component",
   "id": "177122af-1679-4ee4-b700-dcf5ab376c4a",
-  "type": "sdc.experience_builder.one_column",
+  "type": "sdc.experience_builder.one_column@7e47a55169d2c7cd",
   "slots": [
     {
       "id": "177122af-1679-4ee4-b700-dcf5ab376c4a/content",
@@ -414,7 +421,7 @@ A complete example, with three `region node`s:
         {
           "nodeType": "component",
           "id": "a164fa84-0460-40b0-a428-bf332b4a792a",
-          "type": "block.system_branding_block",
+          "type": "block.system_branding_block@cc5b6644b21159f6",
           "slots": []
         }
       ]
@@ -427,7 +434,7 @@ A complete example, with three `region node`s:
         {
           "nodeType": "component",
           "id": "97fb7bb9-4c8e-4fdc-87a8-c39ac9e8e618",
-          "type": "sdc.experience_builder.two_column",
+          "type": "sdc.experience_builder.two_column@2c79df2c091d70d8",
           "slots": [
             {
               "nodeType": "slot",
@@ -436,13 +443,13 @@ A complete example, with three `region node`s:
                 {
                   "nodeType": "component",
                   "id": "e8ecc571-0221-40d8-9ab2-262389fabd58",
-                  "type": "sdc.experience_builder.heading",
+                  "type": "sdc.experience_builder.heading@5700f78c83cd433f",
                   "slots": []
                 },
                 {
                   "nodeType": "component",
                   "id": "baf231e8-b214-4e3e-93d3-5d3f03a1eae9",
-                  "type": "sdc.experience_builder.druplicon",
+                  "type": "sdc.experience_builder.druplicon@some-version-string",
                   "slots": []
                 }
               ]
@@ -454,7 +461,7 @@ A complete example, with three `region node`s:
                 {
                   "nodeType": "component",
                   "id": "39648574-b937-4a5a-b1b2-9db0f30ae315",
-                  "type": "sdc.experience_builder.one_column",
+                  "type": "sdc.experience_builder.one_column@7e47a55169d2c7cd",
                   "slots": [
                     {
                       "nodeType": "slot",

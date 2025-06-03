@@ -16,6 +16,8 @@ use Drupal\Core\TypedData\TypedDataManagerInterface;
 use Drupal\experience_builder\AutoSave\AutoSaveManager;
 use Drupal\experience_builder\Element\RenderSafeComponentContainer;
 use Drupal\experience_builder\Entity\AssetLibrary;
+use Drupal\experience_builder\Entity\Component;
+use Drupal\experience_builder\Entity\ComponentInterface;
 use Drupal\experience_builder\Entity\Page;
 use Drupal\experience_builder\Exception\SubtreeInjectionException;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemList;
@@ -216,12 +218,8 @@ class ComponentTreeItemListTest extends KernelTestBase {
   }
 
   public static function provider(): \Generator {
-    $generate_static_prop_source = function (string $label): array {
-      return [
-        'sourceType' => 'static:field_item:string',
-        'value' => "Hello, $label!",
-        'expression' => 'ℹ︎string␟value',
-      ];
+    $generate_static_prop_source = function (string $label): string {
+      return "Hello, $label!";
     };
 
     $empty_component_tree = [
@@ -1530,7 +1528,16 @@ HTML,
 
     try {
       $target_tree->injectSubTreeItemList($exposed_slot_info, $sub_tree);
+      if (\is_array($expected_tree_or_exception)) {
+        $expected_tree_or_exception = \array_map(static function (array $item) {
+          // Inject version IDs.
+          $component = Component::load($item['component_id']);
+          \assert($component instanceof ComponentInterface);
+          return $item + ['version' => $component->getActiveVersion()];
+        }, $expected_tree_or_exception);
+      }
       $actual_value = $target_tree->getValue();
+
       $this->assertSame($expected_tree_or_exception, $actual_value);
     }
     catch (SubtreeInjectionException $e) {

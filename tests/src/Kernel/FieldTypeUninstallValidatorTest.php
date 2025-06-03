@@ -239,6 +239,7 @@ final class FieldTypeUninstallValidatorTest extends KernelTestBase {
       [
         'uuid' => XBTestSetup::UUID_STATIC_CARD1,
         'component_id' => 'sdc.xb_test_sdc.my-cta',
+        'version' => 'd77d3282e5bcfff1',
         'inputs' => [
           'text' => [
             'sourceType' => 'static:field_item:string',

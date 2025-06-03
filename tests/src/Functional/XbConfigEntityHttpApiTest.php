@@ -114,13 +114,13 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
       [
         'uuid' => 'a3ade070-dc70-4989-b078-85cfd8fc741e',
         'nodeType' => 'component',
-        'type' => 'sdc.xb_test_sdc.props-no-slots',
+        'type' => 'sdc.xb_test_sdc.props-no-slots@c8a016671696090c',
         'slots' => [],
       ],
       [
         'uuid' => '67d6b081-a62f-463c-a5d8-42a145ec7243',
         'nodeType' => 'component',
-        'type' => 'sdc.xb_test_sdc.props-no-slots',
+        'type' => 'sdc.xb_test_sdc.props-no-slots@c8a016671696090c',
         'slots' => [],
       ],
     ];
@@ -180,7 +180,7 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
     $pattern_to_send['layout'][] = [
       'uuid' => 'f01b9dc4-9a25-4ff0-ac79-c336f4f5b1cb',
       'nodeType' => 'component',
-      'type' => 'block.system_main_block',
+      'type' => 'block.system_main_block@irrelevant',
       'slots' => [],
     ];
     $request_options[RequestOptions::JSON] = $pattern_to_send;
@@ -212,14 +212,14 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
           [
             'uuid' => 'a3ade070-dc70-4989-b078-85cfd8fc741e',
             'nodeType' => 'component',
-            'type' => 'sdc.xb_test_sdc.props-no-slots',
+            'type' => 'sdc.xb_test_sdc.props-no-slots@c8a016671696090c',
             'name' => NULL,
             'slots' => [],
           ],
           [
             'uuid' => '67d6b081-a62f-463c-a5d8-42a145ec7243',
             'nodeType' => 'component',
-            'type' => 'sdc.xb_test_sdc.props-no-slots',
+            'type' => 'sdc.xb_test_sdc.props-no-slots@c8a016671696090c',
             'name' => NULL,
             'slots' => [],
           ],
@@ -228,8 +228,8 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
           'a3ade070-dc70-4989-b078-85cfd8fc741e' => [
             'source' => [
               'heading' => [
-                'sourceType' => 'static:field_item:string',
                 'expression' => 'ℹ︎string␟value',
+                'sourceType' => 'static:field_item:string',
               ],
             ],
             'resolved' => [
@@ -239,8 +239,8 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
           '67d6b081-a62f-463c-a5d8-42a145ec7243' => [
             'source' => [
               'heading' => [
-                'sourceType' => 'static:field_item:string',
                 'expression' => 'ℹ︎string␟value',
+                'sourceType' => 'static:field_item:string',
               ],
             ],
             'resolved' => [
@@ -286,13 +286,13 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
               [
                 'uuid' => 'a3ade070-dc70-4989-b078-85cfd8fc741e',
                 'nodeType' => 'component',
-                'type' => 'sdc.xb_test_sdc.props-no-slots',
+                'type' => 'sdc.xb_test_sdc.props-no-slots@c8a016671696090c',
                 'slots' => [],
               ],
               [
                 'uuid' => '67d6b081-a62f-463c-a5d8-42a145ec7243',
                 'nodeType' => 'component',
-                'type' => 'sdc.xb_test_sdc.props-no-slots',
+                'type' => 'sdc.xb_test_sdc.props-no-slots@c8a016671696090c',
                 'slots' => [],
               ],
             ],
@@ -301,7 +301,7 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
             'nodeType' => 'slot',
           ],
         ],
-        'type' => 'sdc.experience_builder.one_column',
+        'type' => 'sdc.experience_builder.one_column@7e47a55169d2c7cd',
         'uuid' => 'c4074d1f-149a-4662-aaf3-615151531cf6',
       ],
     ];

@@ -96,7 +96,6 @@ final class BlockComponentTest extends ComponentSourceTestBase {
   public function testSettings(array $component_ids): void {
     self::assertSame([
       'block.xb_test_block_input_none' => [
-        'local_source_id' => 'xb_test_block_input_none',
         'default_settings' => [
           'id' => 'xb_test_block_input_none',
           'label' => 'Test block with no settings.',
@@ -105,7 +104,6 @@ final class BlockComponentTest extends ComponentSourceTestBase {
         ],
       ],
       'block.xb_test_block_input_validatable' => [
-        'local_source_id' => 'xb_test_block_input_validatable',
         'default_settings' => [
           'id' => 'xb_test_block_input_validatable',
           'label' => 'Test Block with settings',
@@ -116,7 +114,6 @@ final class BlockComponentTest extends ComponentSourceTestBase {
         ],
       ],
       'block.xb_test_block_input_validatable_crash' => [
-        'local_source_id' => 'xb_test_block_input_validatable_crash',
         'default_settings' => [
           'id' => 'xb_test_block_input_validatable_crash',
           'label' => "Test Block with settings, crashes when 'crash' setting is TRUE",
@@ -128,7 +125,6 @@ final class BlockComponentTest extends ComponentSourceTestBase {
         ],
       ],
       'block.xb_test_block_optional_contexts' => [
-        'local_source_id' => 'xb_test_block_optional_contexts',
         'default_settings' => [
           'id' => 'xb_test_block_optional_contexts',
           'label' => 'Test Block with optional contexts',
@@ -391,6 +387,7 @@ HTML,
         [
           'uuid' => '75144f9b-1bfc-4874-b848-b5889f066217',
           'component_id' => 'block.system_menu_block.main',
+          'version' => '921e932c13a5f313',
           'inputs' => [
             'label' => 'Main navigation',
             'label_display' => '',
@@ -432,6 +429,7 @@ HTML,
         [
           'uuid' => '4b26c295-c8cc-4b2d-a38a-235c6cfa1ffa',
           'component_id' => 'block.xb_test_block_input_validatable',
+          'version' => '22e779006330e136',
           'inputs' => [
             'name' => 'test',
             'label' => 'test',

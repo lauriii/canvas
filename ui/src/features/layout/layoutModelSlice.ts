@@ -161,7 +161,6 @@ export type PropSource =
 export type ResolvedValues = Record<string, AnyValue>;
 
 export interface ComponentModel {
-  name: string;
   // The props that are used to render previews and will be used for client-side
   // preview updates (when they're supported).
   resolved: ResolvedValues;
@@ -429,7 +428,6 @@ export const addNewComponentToLayout =
     const buildInitialData = (component: XBComponent): ComponentModel => {
       if (componentHasFieldData(component)) {
         const initialData: EvaluatedComponentModel = {
-          name: component.name,
           resolved: {},
           source: {},
         };
@@ -438,18 +436,18 @@ export const addNewComponentToLayout =
           // These will be needed when we support client-side preview updates.
           initialData.resolved[propName] = prop.default_values?.resolved || [];
           // These are the values the server needs.
+          // @todo Reduce the verbosity of this in https://drupal.org/i/3463996
+          //   and https://drupal.org/i/3528043 to send less data.
           initialData.source[propName] = {
             expression: prop.expression,
             sourceType: prop.sourceType,
             value: prop.default_values?.source || [],
-            // @todo Consider omitting this in https://www.drupal.org/i/3463996, to send less data.
             sourceTypeSettings: prop.sourceTypeSettings || undefined,
           };
         });
         return initialData;
       }
       return {
-        name: component.name,
         resolved: {},
       };
     };
@@ -475,7 +473,7 @@ export const addNewComponentToLayout =
         {
           slots,
           nodeType: NodeType.Component,
-          type: component.id,
+          type: `${component.id}@${component.version}`,
           uuid: uuid,
         },
       ],

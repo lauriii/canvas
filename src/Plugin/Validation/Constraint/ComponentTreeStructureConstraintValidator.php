@@ -73,6 +73,7 @@ final class ComponentTreeStructureConstraintValidator extends ConstraintValidato
       if ($type === 'field.value.component_tree' && ($parent = $object->getParent()) !== NULL) {
         $root_property_path_length = \strlen($object->getRoot()->getPropertyPath()) + 1;
         $delta = \substr($object->getPropertyPath(), $root_property_path_length);
+        $is_first_component_instance_in_default_field_value = array_search($value, $parent->getValue()) === array_keys($parent->getValue())[0];
         $parent_property_name = \substr($object->getParent()->getPropertyPath(), $root_property_path_length);
         // We can only validate a single field value item in the case of a
         // default value for a field. So we need to traverse to the parent to
@@ -112,6 +113,14 @@ final class ComponentTreeStructureConstraintValidator extends ConstraintValidato
             new NotBlank(),
             new ConfigExistsConstraint(['prefix' => 'experience_builder.component.']),
           ]),
+          'version' => new Required([
+            new Type('string'),
+            new NotBlank(),
+            new ValidConfigEntityVersionConstraint([
+              'configPrefix' => 'experience_builder.component.',
+              'configName' => '%parent.component_id',
+            ]),
+          ]),
           'parent_uuid' => new Optional([
             new NotBlank(allowNull: TRUE),
             new Uuid(),
@@ -130,7 +139,6 @@ final class ComponentTreeStructureConstraintValidator extends ConstraintValidato
           callback: self::validateComponentInstance(...),
           payload: [
             'entity_type_manager' => $this->entityTypeManager,
-            'parent_property_path' => $parent_property_name,
             'root' => $this->context->getRoot(),
           ]
         ),
@@ -143,41 +151,61 @@ final class ComponentTreeStructureConstraintValidator extends ConstraintValidato
       new Sequentially([
         new Type('array'),
         new All([$component_instance_constraint]),
-        new Unique(fields: ['uuid'], message: 'The UUID should be unique.'),
       ]),
     ]);
+    // Finally, ensure that each component instance UUID in the entire tree is
+    // unique. This must be done separately to avoid repeating the same
+    // duplication validation error for each item in the tree.
+    if ($violations->count() === 0) {
+      $violations->addAll($non_typed_data_validator->validate(
+        $value,
+        new Unique(fields: ['uuid'], message: 'Not all component instance UUIDs in this component tree are unique.'),
+      ));
+    }
 
     foreach ($violations as $violation) {
       // When we're validating a default field value, we are effectively
       // performing the tree validation for the whole tree for each delta,
       // because core doesn't afford us the opportunity to validate it in
-      // aggregate. In this scenario, we have a store delta and only want to
+      // aggregate. In this scenario, we have a stored delta and only want to
       // bubble violations that match the delta we're checking. Without this
       // check, violations in sibling deltas are repeated for each delta.
       // @see core.data_types.schema.yml
       $property_path = $violation->getPropertyPath();
-      if ($delta === NULL || $property_path === '' || \str_starts_with($property_path, $delta)) {
-        // We make use of ::add instead of using ::buildViolation and casting
-        // the previous violation message to a string because the violation may
-        // make use of placeholders and if we cast the message to a string, we
-        // may end up with double escaping of placeholder that make use of <em>
-        // tags.
-        $new_path = self::translatePropertyPath($base_property_path, $property_path, $this->context->getPropertyPath());
-        $this->context->getViolations()->add(new ConstraintViolation(
-          $violation->getMessage(),
-          $violation->getMessageTemplate(),
-          $violation->getParameters(),
-          // Use the original root.
-          $this->context->getRoot(),
-          // And the translated path.
-          $new_path,
-          $violation->getInvalidValue(),
-          $violation->getPlural(),
-          $violation->getCode(),
-          $violation->getConstraint(),
-          $violation->getCause(),
-        ));
+      if ($delta !== NULL) {
+        assert(isset($is_first_component_instance_in_default_field_value));
+        if (($property_path === '' && $is_first_component_instance_in_default_field_value) || \str_starts_with(self::translatePropertyPath($parent_property_name, $property_path), $delta)) {
+          $new_path = self::translatePropertyPath($parent_property_name, $property_path, $this->context->getPropertyPath());
+        }
+        else {
+          // Validation error for other delta, ignore this violation.
+          continue;
+        }
       }
+      // The non-default field value (`type: field.value.component_tree`) case.
+      else {
+        $new_path = self::translatePropertyPath($base_property_path, $property_path, $this->context->getPropertyPath());
+      }
+
+      // We make use of ::add instead of using ::buildViolation and casting
+      // the previous violation message to a string because the violation may
+      // make use of placeholders and if we cast the message to a string, we
+      // may end up with double escaping of placeholder that make use of <em>
+      // tags.
+      $this->context->getViolations()->add(new ConstraintViolation(
+        $violation->getMessage(),
+        $violation->getMessageTemplate(),
+        $violation->getParameters(),
+        // Use the original root.
+        $this->context->getRoot(),
+        // And the translated path.
+        $new_path,
+        $violation->getInvalidValue(),
+        $violation->getPlural(),
+        $violation->getCode(),
+        $violation->getConstraint(),
+        $violation->getCause(),
+      ));
     }
   }
 
@@ -209,9 +237,6 @@ final class ComponentTreeStructureConstraintValidator extends ConstraintValidato
     \assert($component_storage->getEntityTypeId() === 'component');
     $tree = $context->getRoot();
 
-    /** @var string $parent_property_path */
-    $parent_property_path = $payload['parent_property_path'];
-
     if (!isset($component_instance['uuid'])) {
       // The \Symfony\Component\Validator\Constraints\Collection constraint
       // will add the violations for the unset key.
@@ -219,15 +244,6 @@ final class ComponentTreeStructureConstraintValidator extends ConstraintValidato
     }
 
     $root = $payload['root'];
-
-    // Override property path, for more meaningful validation errors.
-    $original_property_path = $context->getPropertyPath();
-    $context->setNode(
-      $context->getValue(),
-      $context->getObject(),
-      $context->getMetadata(),
-      self::translatePropertyPath($parent_property_path, $original_property_path)
-    );
 
     if (empty($component_instance['parent_uuid'])) {
       return;
@@ -316,14 +332,6 @@ final class ComponentTreeStructureConstraintValidator extends ConstraintValidato
         ->atPath('slot')
         ->addViolation();
     }
-
-    // Restore property path.
-    $context->setNode(
-      $context->getValue(),
-      $context->getObject(),
-      $context->getMetadata(),
-      $original_property_path,
-    );
   }
 
 }

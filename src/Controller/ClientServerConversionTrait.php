@@ -81,9 +81,17 @@ trait ClientServerConversionTrait {
     \assert($layout['nodeType'] === 'component');
 
     $uuid = $layout['uuid'] ?? NULL;
+    $component_id = $layout['type'] ?? NULL;
+    $version = NULL;
+    // `type` SHOULD be of the form `<Component config entity ID>@<version>`.
+    // @see \Drupal\experience_builder\Entity\VersionedConfigEntityInterface::getVersions()
+    if ($component_id !== NULL && str_contains($component_id, '@')) {
+      [$component_id, $version] = explode('@', $component_id, 2);
+    }
     $component = [
       'uuid' => $layout['uuid'] ?? NULL,
-      'component_id' => $layout['type'] ?? NULL,
+      'component_id' => $component_id,
+      'version' => $version,
       'inputs' => [],
     ];
     $name = $layout['name'] ?? NULL;
