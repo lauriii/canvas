@@ -5,13 +5,13 @@ export const edit = (cy) => {
     'XB With a block in the layout (3)',
   );
   cy.get('@autocomplete').clear();
-  cy.get('@autocomplete').type('XB Needs This For');
+  cy.get('@autocomplete').realType('XB Needs This For');
   cy.get('ul.ui-autocomplete').should('exist');
-  cy.get('ul.ui-autocomplete li').should(
+  cy.get('ul.ui-autocomplete li a').should(
     'have.text',
     'XB Needs This For The Time Being',
   );
-  cy.get('ul.ui-autocomplete li').click();
+  cy.get('ul.ui-autocomplete li a').type('{enter}', { force: true });
   cy.get('@autocomplete').should(
     'have.value',
     'XB Needs This For The Time Being (1)',

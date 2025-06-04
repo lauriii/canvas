@@ -777,7 +777,7 @@ Cypress.Commands.add('getElementScaledDimensions', ($item) => {
 
 Cypress.Commands.add(
   'clickComponentInPreview',
-  (componentName, index = 0, viewportSize = 'lg', regionId = 'content') => {
+  (componentName, index = 0, regionId = 'content') => {
     cy.get(
       `#xbPreviewOverlay .xb--viewport-overlay .xb--region-overlay__${regionId}`,
     )
@@ -790,7 +790,7 @@ Cypress.Commands.add(
 
 Cypress.Commands.add(
   'getComponentInPreview',
-  (componentName, index = 0, viewportSize = 'lg', regionId = 'content') => {
+  (componentName, index = 0, regionId = 'content') => {
     return cy
       .get(
         `#xbPreviewOverlay .xb--viewport-overlay .xb--region-overlay__${regionId}`,
@@ -802,7 +802,7 @@ Cypress.Commands.add(
 
 Cypress.Commands.add(
   'getAllComponentsInPreview',
-  (componentName, viewportSize = 'lg', regionId = 'content') => {
+  (componentName, regionId = 'content') => {
     return cy
       .get(
         `#xbPreviewOverlay .xb--viewport-overlay .xb--region-overlay__${regionId}`,

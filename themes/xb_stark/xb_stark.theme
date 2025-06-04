@@ -8,6 +8,12 @@
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\xb_stark\PreRender;
 
+function xb_stark_library_info_alter(array &$libraries, string $extension): void {
+  if ($extension === 'core' && isset($libraries['drupal.autocomplete'])) {
+    $libraries['drupal.autocomplete']['dependencies'][] = 'experience_builder/autocomplete.extended';
+  }
+}
+
 function xb_stark_element_info_alter(array &$type): void {
   if (isset($type['vertical_tabs'])) {
     $type['vertical_tabs']['#pre_render'][] = [PreRender::class, 'verticalTabs'];

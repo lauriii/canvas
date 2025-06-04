@@ -21,7 +21,6 @@ xb-ui:
     - core/internal.jquery.form
     - experience_builder/ajax.hyperscriptify
     - experience_builder/ajax.custom
-    - experience_builder/autocomplete.extended
     - experience_builder/jquery.overrides
     - core/transliteration
   drupalSettings:

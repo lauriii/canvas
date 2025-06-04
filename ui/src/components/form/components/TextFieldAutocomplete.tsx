@@ -1,131 +1,131 @@
 import clsx from 'clsx';
-import { TextField as RadixThemesTextField } from '@radix-ui/themes';
-import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react';
-import type { MutableRefObject } from 'react';
+import { useRef } from 'react';
 import type { Attributes } from '@/types/DrupalAttribute';
 import styles from './TextField.module.css';
+import { a2p } from '@/local_packages/utils';
+import useMutationObserver from '@/hooks/useMutationObserver';
 
-interface CustomAutocompleteEvent extends Event {
-  detail: {
-    ui: {
-      item: {
-        label: string;
-        value: string;
-      };
-    };
-    target: {
-      value: string;
-    };
-  };
-}
+const { jQuery } = window;
 
-const TextFieldAutocomplete = forwardRef(
-  (
-    {
-      className = '',
-      attributes = {},
-    }: {
-      className?: string;
-      attributes?: Attributes;
-    },
-    ref,
-  ) => {
-    // This attribute prevents the input from updating the store on change.
-    // Without this, autocomplete search results will disappear moments after
-    // they appear due to the component rerendering on value change.
-    // The attribute is removed when a suggestion is picked, or the input is
-    // blurred.
-    // @see InputBehaviorsCommon in inputBehaviors.tsx where attributes.onChange
-    // is defined.
-    attributes['data-xb-no-update'] = '';
+const TextFieldAutocomplete = ({
+  className = '',
+  attributes = {},
+}: {
+  className?: string;
+  attributes?: Attributes;
+}) => {
+  // This attribute prevents the input from updating the store on change.
+  // Without this, autocomplete search results will disappear moments after
+  // they appear due to the component rerendering on value change.
+  // The attribute is removed when a suggestion is picked, or the input is
+  // blurred.
+  // @see InputBehaviorsCommon in inputBehaviors.tsx where attributes.onChange
+  // is defined.
+  attributes['data-xb-no-update'] = '';
 
-    const inputRef = ref as MutableRefObject<HTMLInputElement>;
-    const onChangeRef = useRef(attributes.onChange);
-    // This ref is always the current onChange callback.
-    onChangeRef.current = attributes.onChange;
+  const inputRef = useRef<HTMLInputElement>(null);
 
-    // Create a version of the ref that will appease Typescript.
-    useImperativeHandle(ref, () => inputRef.current as HTMLInputElement);
+  // This mutation observer responds to the addition of a
+  // 'data-xb-autocomplete-selected' attribute, which will have the value of the
+  // chosen autocomplete suggestion.
+  useMutationObserver(
+    inputRef,
+    (mutations) => {
+      mutations.forEach((record: MutationRecord) => {
+        if (record?.attributeName === 'data-xb-autocomplete-selected') {
+          if (
+            record.target instanceof HTMLInputElement &&
+            record.target.getAttribute('data-xb-autocomplete-selected')
+          ) {
+            const selection = record.target.getAttribute(
+              'data-xb-autocomplete-selected',
+            );
+            if (selection) {
+              record.target.value = selection;
+            }
 
-    // This handler is in a separate method to accommodate the necessary
-    // Typescript.
-    const handleOnPlay = (e: Event & CustomAutocompleteEvent) => {
-      if (!inputRef?.current) {
-        return;
-      }
-      // After an autocomplete selection is made, remove the attribute that
-      // prevents real time preview updates.
-      inputRef.current.removeAttribute('data-xb-no-update');
-      setTimeout(() => {
-        // Call the onChange listener so the Redux store is updated.
-        if (onChangeRef.current) {
-          const event = new Event('change');
+            // Remove the attribute to prevent multiple attempts to update the
+            // store with the same value.
+            record.target.removeAttribute('data-xb-autocomplete-selected');
+            const changeEvent = new Event('change');
+            Object.defineProperty(changeEvent, 'target', {
+              writable: false,
+              value: record.target,
+            });
 
-          inputRef.current.value = e.detail.target.value;
-          Object.defineProperty(event, 'target', {
-            writable: false,
-            value: inputRef.current,
-          });
-          if (typeof onChangeRef.current === 'function') {
-            onChangeRef.current(event);
+            if (typeof attributes.onChange === 'function') {
+              attributes.onChange(changeEvent);
+            }
           }
         }
       });
-    };
+    },
+    { attributes: true },
+  );
 
-    useEffect(() => {
-      if (inputRef.current) {
-        // When the jQuery autocompletesearch event occurs it is translated into a
-        // native 'pause' event that can be handled with an on* attributes.
-        // @see js/autocomplete.extend.js
-        inputRef.current.onpause = (e: Event) => {
-          if (inputRef?.current) {
-            return;
-          }
-          // Set the attribute that prevents real time preview from updating,
-          // which also prevents this component from re-rendering mid-search.
-          inputRef.current.setAttribute('data-xb-no-update', '');
-        };
-
-        // When the jQuery autocompleteselect event occurs it is translated into a
-        // native 'play' event that can be handled with an on* attributes.
-        // @see js/autocomplete.extend.js
-        inputRef.current.onplay = handleOnPlay as EventListener;
-
-        // When a blur event occurs in a jQuery autocomplete element, it is
-        // translated into a native 'ended' element so it can exist alongside
-        // the onBlur handler added in inputBehaviors.tsx.
-        // @see js/autocomplete.extend.js
-        inputRef.current.onended = (e: Event) => {
-          if (!inputRef?.current) {
-            return;
-          }
-          // If the input is blurred, remove the attribute that prevents real
-          // time preview updates.
-          inputRef.current.removeAttribute('data-xb-no-update');
-          if (attributes?.onChange) {
-            const event = new Event('change');
-            Object.defineProperty(event, 'target', {
-              writable: false,
-              value: inputRef.current,
-            });
-            if (typeof onChangeRef.current === 'function') {
-              onChangeRef.current(event);
-            }
-          }
-        };
-      }
-      // Ignore because this only needs to be run once to add the event listeners.
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
-    return (
-      <RadixThemesTextField.Root
-        {...attributes}
+  return (
+    <div className={styles.wrap}>
+      <input
+        {...a2p(attributes, {}, { skipAttributes: ['onBlur', 'onChange'] })}
         className={clsx(styles.root, className)}
-        ref={inputRef}
+        ref={(node) => {
+          if (node) {
+            // @ts-ignore
+            inputRef.current = node;
+          }
+        }}
+        onChange={(e) => {
+          // Default to setting the attribute that prevents preview and store
+          // updates.
+          if (inputRef.current) {
+            inputRef.current.setAttribute('data-xb-no-update', 'true');
+          }
+          // Call the onChange listener, which will update the UI but not the
+          // store or preview, due to the attribute set above.
+          if (typeof attributes.onChange === 'function') {
+            attributes.onChange(e);
+          }
+
+          const autocompleteDelay =
+            inputRef.current &&
+            !!jQuery.data(inputRef.current, 'ui-autocomplete')
+              ? jQuery(inputRef.current).autocomplete(
+                  'option',
+                  'autocompleteDelay',
+                )
+              : 400;
+          // Include a delayed change event that will fire after the event
+          // listeners in autocomplete.extend.js have had a chance to
+          // determine if suggestions are available and prevent store/preview
+          // updates or if they aren't it updates the store/preview with what
+          // has been typed.
+          setTimeout(() => {
+            if (
+              inputRef.current &&
+              !inputRef.current.hasAttribute('data-xb-no-update') &&
+              typeof attributes.onChange === 'function'
+            ) {
+              attributes.onChange(e);
+            }
+          }, autocompleteDelay * 3);
+        }}
+        onBlur={(e) => {
+          if (inputRef.current) {
+            inputRef.current.removeAttribute('data-xb-no-update');
+          }
+          // As an additional assurance the value is sent to the store, an
+          // additional onChange is triggered immediately after the store
+          // preventing attribute is removed.
+          if (typeof attributes.onChange === 'function') {
+            attributes.onChange(e);
+          }
+          if (typeof attributes.onBlur === 'function') {
+            attributes.onBlur(e);
+          }
+        }}
       />
-    );
-  },
-);
+    </div>
+  );
+};
 
 export default TextFieldAutocomplete;

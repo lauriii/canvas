@@ -150,18 +150,133 @@ function xb_test_state_api_form_alter(array &$form, FormStateInterface $form_sta
       ],
     ];
 
+    $form['states_api_test']['text_states'] = [
+      '#type' => 'container',
+      '#title' => t('Text Input States'),
+      '#markup' => '<strong>Test the State API with text inputs.</strong>',
+    ];
+
     // Text field controlling another field's visibility based on emptiness.
-    $form['states_api_test']['controlling_text'] = [
+    $form['states_api_test']['text_states']['controlling_text'] = [
       '#type' => 'textfield',
-      '#title' => t('Text A: Controls visibility of another text input'),
+      '#title' => t('Control Text Input'),
       '#default_value' => '',
     ];
-    $form['states_api_test']['dependent_text'] = [
+
+    // Enabled by default, becomes disabled
+    $form['states_api_test']['text_states']['default_enabled'] = [
       '#type' => 'textfield',
-      '#title' => t('This appears when Text A is filled'),
+      '#title' => t('Text Target: Default enabled field'),
+      '#states' => [
+        'disabled' => [
+          ':input[name="controlling_text"]' => ['value' => 'make default enabled disabled'],
+        ],
+      ],
+    ];
+
+    // Disabled by default, becomes enabled
+    $form['states_api_test']['text_states']['default_disabled'] = [
+      '#type' => 'textfield',
+      '#title' => t('Text Target: Default disabled field'),
+      '#disabled' => TRUE,
+      '#states' => [
+        'enabled' => [
+          ':input[name="controlling_text"]' => ['value' => 'make default disabled enabled'],
+        ],
+      ],
+    ];
+
+    // Required by default, becomes optional
+    $form['states_api_test']['text_states']['default_required'] = [
+      '#type' => 'textfield',
+      '#title' => t('Text Target: Default required field'),
+      '#required' => TRUE,
+      '#states' => [
+        'optional' => [
+          ':input[name="controlling_text"]' => ['value' => 'make required optional'],
+        ],
+      ],
+    ];
+
+    // Optional by default, becomes required
+    $form['states_api_test']['text_states']['default_optional'] = [
+      '#type' => 'textfield',
+      '#title' => t('Text Target: Default optional field'),
+      '#states' => [
+        'required' => [
+          ':input[name="controlling_text"]' => ['value' => 'make optional required'],
+        ],
+      ],
+    ];
+
+    // Visible by default, becomes invisible
+    $form['states_api_test']['text_states']['default_visible'] = [
+      '#type' => 'textfield',
+      '#title' => t('Text Target: Default visible field'),
+      '#states' => [
+        'invisible' => [
+          ':input[name="controlling_text"]' => ['value' => 'make visible invisible'],
+        ],
+      ],
+    ];
+
+    // Invisible by default, becomes visible
+    $form['states_api_test']['text_states']['default_invisible'] = [
+      '#type' => 'textfield',
+      '#title' => t('Text Target: Default invisible field'),
+      '#states' => [
+        'visible' => [
+          ':input[name="controlling_text"]' => ['value' => 'make invisible visible'],
+        ],
+      ],
+    ];
+
+    // Checked by default, becomes unchecked
+    $form['states_api_test']['text_states']['default_checked'] = [
+      '#type' => 'checkbox',
+      '#title' => t('Text Target: Default checked checkbox'),
+      '#default_value' => TRUE,
+      '#states' => [
+        'unchecked' => [
+          ':input[name="controlling_text"]' => ['value' => 'make checked unchecked'],
+        ],
+      ],
+    ];
+
+    // Unchecked by default, becomes checked
+    $form['states_api_test']['text_states']['default_unchecked'] = [
+      '#type' => 'checkbox',
+      '#title' => t('Text Target: Default unchecked checkbox'),
+      '#default_value' => FALSE,
+      '#states' => [
+        'checked' => [
+          ':input[name="controlling_text"]' => ['value' => 'make unchecked checked'],
+        ],
+      ],
+    ];
+
+    $form['states_api_test']['text_states']['hello_filled_world'] = [
+      '#type' => 'container',
+      '#attributes' => ['data-visible-when-text-not-empty' => 'true'],
+      'markup' => [
+        '#markup' => '<p>Hello world I am visible when text not empty</p>',
+      ],
       '#states' => [
         'visible' => [
           ':input[name="controlling_text"]' => ['filled' => TRUE],
+        ],
+      ],
+    ];
+
+    $form['states_api_test']['text_states']['hello_empty_world'] = [
+      '#type' => 'container',
+      '#attributes' => ['data-visible-when-text-only-empty' => 'true'],
+      'markup' => [
+        '#markup' => '<p>Hello world I am visible when text is empty</p>',
+      ],
+      '#states' => [
+        'visible' => [
+          ':input[name="controlling_text"]' => ['empty' => TRUE],
         ],
       ],
     ];

@@ -9,8 +9,6 @@ import Hidden from '@/components/form/components/Hidden';
 import Checkbox from '@/components/form/components/Checkbox';
 import type { Attributes } from '@/types/DrupalAttribute';
 import TextFieldAutocomplete from '@/components/form/components/TextFieldAutocomplete';
-import type { MutableRefObject } from 'react';
-import { useRef, useEffect } from 'react';
 
 const DrupalInput = ({
   attributes = {},
@@ -19,40 +17,6 @@ const DrupalInput = ({
     onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
   };
 }) => {
-  const inputRef: MutableRefObject<HTMLInputElement | null> =
-    useRef<HTMLInputElement | null>(null);
-  const className = clsx(attributes.class);
-
-  // The useEffect ensures the ref is now associated with a DOM element so we
-  // can ensure that classes meant to appear on the actual input actually appear
-  // there, as Radix does not reliably provide the means to do this via props.
-  // @see https://github.com/radix-ui/primitives/issues/3240
-  // @todo remove this once all DrupalInput components use native elements
-  //   directly instead of using Radix.
-  useEffect(() => {
-    if (
-      className &&
-      inputRef?.current?.['className'] &&
-      className !== inputRef?.current?.['className']
-    ) {
-      inputRef.current['className'] += ` ${className}`;
-    }
-    // This is currently needed for text fields to work with the state API.
-    // @todo remove in https://drupal.org/i/3526866
-    Object.entries(attributes).forEach(([key, value]) => {
-      if (
-        key.startsWith('data-') &&
-        typeof value === 'string' &&
-        inputRef.current
-      ) {
-        inputRef.current.setAttribute(key, value);
-      }
-    });
-    // Ignore because this only needs to be run once to add the initial classes
-    // after the ref associated element is rendered.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   switch (attributes?.type) {
     case 'checkbox': {
       return <Checkbox attributes={attributes} />;
@@ -77,7 +41,6 @@ const DrupalInput = ({
           <TextFieldAutocomplete
             className={clsx(attributes.class)}
             attributes={a2p(attributes, {}, { skipAttributes: ['class'] })}
-            ref={inputRef}
           />
         );
       }
@@ -85,7 +48,6 @@ const DrupalInput = ({
         <TextField
           className={clsx(attributes.class)}
           attributes={a2p(attributes, {}, { skipAttributes: ['class'] })}
-          ref={inputRef}
         />
       );
   }

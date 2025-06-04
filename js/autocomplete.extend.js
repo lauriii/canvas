@@ -2,6 +2,7 @@
  * @file
  * Extends autocomplete for use in Experience Builder.
  */
+
 (function ($, Drupal) {
   Drupal.behaviors.autocompleteXbExtend = {
     attach(context) {
@@ -10,52 +11,33 @@
       once('autocomplete-xb', 'input.form-autocomplete', context).forEach(
         (element) => {
           const $element = $(element);
-
-          // The logic below exists so we don't need to use jQuery or
-          // addEventListener directly inside an XB React component.
-          // The avoidance of jQuery inside is partially due to circumstantial
-          // but inconclusive evidence suggesting it reduced the stability of
-          // e2e tests. It is also done this way to make things more
-          // maintainable - familiarity with jQuery should not be necessary to
-          // work on XB React code.
-          //
-          // By listening to the jQuery-specific events here and converting them
-          // to events that can be received by on* attributes, the React input
-          // components are able to handle the autocomplete events the same way
-          // change and blur events are handled.
-          //
-          // To do this, we translate jQuery events to E6 ones. To receive them via
-          // on* attributes, we must use native JS events. The pause, play and
-          // ended events are used as they are listenable via on* events, but
-          // never actually used on text inputs, which ensures that native
-          // functionality is not disrupted.
-          $element.on('autocompletesearch.autocomplete', () => {
-            // The 'pause' event is used as the autocompletesearch event should
-            // pause real time preview updates on value change.
-            element.dispatchEvent(new Event('pause'));
-          });
-
           $element.on('autocompleteselect.autocomplete', function (e, ui) {
-            // Add the additional `ui` argument to the event detail.
-            const selectToPlay = new CustomEvent('play', {
-              detail: {
-                ui,
-                target: e.target,
-              },
-            });
+            // Remove the attribute that prevents updating the store and preview
+            // as we are now selecting the value we want, not entering a search
+            // string.
+            e.target.removeAttribute('data-xb-no-update');
 
-            // The 'play' event is used as the autocompleteselect event should
-            // result in real time previews being un-paused.
-            element.dispatchEvent(selectToPlay);
+            // Process the selection with Drupal core's logic.
+            Drupal.autocomplete.options.select(e, ui)
+
+            // Add the new Drupal-processed value to an attribute that is detected
+            // by a mutation observer in TextFieldAutocomplete.tsx.
+            e.target.setAttribute('data-xb-autocomplete-selected', e.target.value);
           });
 
-          // Although blur is not jQuery specific, XB React inputs already have
-          // onBlur listeners, so we add additional blur handling here by
-          // converting it to an 'ended' event.
-          $element.on('blur.autocomplete', (e) => {
-            // The 'ended' event is used since it occurs when focus has ended,
-            // making the association at least slightly intuitive.
-            element.dispatchEvent(new Event('ended'));
+          $element.on('autocompleteresponse.autocomplete', function (e, ui) {
+            if (ui.content && ui.content.length > 0) {
+              // If autocomplete suggestions are available, set an attribute
+              // that temporarily prevents updating the preview and store as the
+              // input is performing a search - not yet specifying the desired
+              // value.
+              e.target.setAttribute('data-xb-no-update', 'true');
+            } else {
+              // If no autocomplete suggestions are available, unset the
+              // attribute so it updates the preview and store like any text
+              // input would.
+              e.target.removeAttribute('data-xb-no-update');
+            }
           });
         },
       );

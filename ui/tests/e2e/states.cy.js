@@ -253,4 +253,70 @@ describe('states', () => {
     });
     cy.get('[data-when-any-radio]').should('be.visible');
   });
+
+  it('responds to text input changes', () => {
+    const states = [
+      {
+        typeThis: 'make default enabled disabled',
+        target: 'Text Target: Default enabled field',
+        before: ['be.enabled'],
+        after: ['not.be.enabled'],
+      },
+      {
+        typeThis: 'make default disabled enabled',
+        target: 'Text Target: Default disabled field',
+        before: ['not.be.enabled'],
+        after: ['be.enabled'],
+      },
+      {
+        typeThis: 'make required optional',
+        target: 'Text Target: Default required field',
+        before: ['have.attr', 'required'],
+        after: ['not.have.attr', 'required'],
+      },
+      {
+        typeThis: 'make optional required',
+        target: 'Text Target: Default optional field',
+        before: ['not.have.attr', 'required'],
+        after: ['have.attr', 'required'],
+      },
+      {
+        typeThis: 'make visible invisible',
+        target: 'Text Target: Default visible field',
+        before: ['be.visible'],
+        after: ['not.be.visible'],
+      },
+      {
+        typeThis: 'make invisible visible',
+        target: 'Text Target: Default invisible field',
+        before: ['not.be.visible'],
+        after: ['be.visible'],
+      },
+      {
+        typeThis: 'make checked unchecked',
+        target: 'Text Target: Default checked checkbox',
+        before: ['be.checked'],
+        after: ['not.be.checked'],
+      },
+      {
+        typeThis: 'make unchecked checked',
+        target: 'Text Target: Default unchecked checkbox',
+        before: ['not.be.checked'],
+        after: ['be.checked'],
+      },
+    ];
+
+    states.forEach(({ typeThis, target, before, after }) => {
+      cy.log(`Text input changes: ${target}`);
+      cy.findByLabelText(target).should(...before);
+      cy.findByLabelText('Control Text Input').type(typeThis);
+      cy.get('[data-visible-when-text-not-empty]').should('be.visible');
+      cy.get('[data-visible-when-text-only-empty]').should('not.be.visible');
+      cy.findByLabelText(target).should(...after);
+      cy.findByLabelText('Control Text Input').clear();
+      cy.findByLabelText(target).should(...before);
+      cy.get('[data-visible-when-text-not-empty]').should('not.be.visible');
+      cy.get('[data-visible-when-text-only-empty]').should('be.visible');
+    });
+  });
 });

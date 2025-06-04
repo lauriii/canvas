@@ -26,5 +26,6 @@ declare global {
       CKEditor5Instances: Map;
     };
     CKEditor5: CKEditor5Types;
+    jQuery: any;
   }
 }

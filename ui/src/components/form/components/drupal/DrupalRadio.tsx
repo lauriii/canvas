@@ -56,7 +56,6 @@ const DrupalRadioGroup = ({
       >
         {renderChildren}
       </RadioGroup>
-      ;
     </RadioContext.Provider>
   );
 };

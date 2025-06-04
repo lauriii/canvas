@@ -55,7 +55,7 @@ describe('Block form', () => {
 
     cy.focusRegion('Header');
 
-    cy.clickComponentInPreview('Site branding', 0, 'lg', 'header');
+    cy.clickComponentInPreview('Site branding', 0, 'header');
     cy.waitForElementContentInIframe('div.site-branding__inner', 'Drupal');
 
     cy.findByLabelText('Site name').as('siteName');
