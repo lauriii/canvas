@@ -329,10 +329,12 @@ experience_builder.component_tree_node:
       # `experience_builder.component_tree`'s `ComponentTreeStructureConstraintValidator` also validates it.
 
 # Based on core/assets/schemas/v1/metadata-full.schema.json#$defs.slotDefinition
-# @todo Tighten & add validation in https://www.drupal.org/project/experience_builder/issues/3519891
 experience_builder.slot_definition:
   type: mapping
   label: 'A component slot definition'
+  constraints:
+    ValidSlotName: []
+    FullyValidatable: ~
   mapping:
     title:
       type: required_label
@@ -346,7 +348,7 @@ experience_builder.slot_definition:
       label: 'Examples'
       requiredKey: false
       sequence:
-        type: string
+        type: text
         label: 'Example for slot'
 
 experience_builder.component_source_local_id.sdc:
@@ -757,14 +759,16 @@ experience_builder.content_template.*.*.*:
             type: uuid
             label: 'UUID of the component instance that contains the exposed slot'
           slot_name:
-            # @todo Add constraint in https://www.drupal.org/project/experience_builder/issues/3519891
             type: string
             label: 'The machine name of the component slot being exposed'
+            constraints:
+              ValidSlotName: []
           label:
             type: required_label
             label: 'A human-readable label for the exposed slot'
       constraints:
         SequenceKeysMatchRegex:
-          # Note: this is a subset of what slot names are allowed by SDCs: the machine names of XB's exposed content template slots must be simpler.
-          pattern: '/^[a-z0-9_]+$/'
-          message: "The %value key is not a valid machine name."
+          # Note: this is the lowercase-only subset of what slot names are allowed by XB: the machine names of XB's exposed content template slots must be simpler.
+          # @see \Drupal\experience_builder\Plugin\Validation\Constraint\ValidSlotNameConstraint::VALID_NAME
+          pattern: '/^[a-z0-9]+([a-z0-9_-]+)[a-z0-9]+$/'
+          message: "%value is not a valid exposed slot name."

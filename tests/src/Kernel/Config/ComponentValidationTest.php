@@ -67,6 +67,18 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
   /**
    * {@inheritdoc}
    */
+  protected static $configSchemaCheckerExclusions = [
+    // We need to create a JavaScriptComponent with invalid source-defined slot
+    // name in order to test that even Component config entity's fallback slot
+    // definitions are validated.
+    // @see ::testSlotNameValidation()
+    'experience_builder.' . JavaScriptComponent::ENTITY_TYPE_ID . '.invalid_slot',
+    'experience_builder.' . Component::ENTITY_TYPE_ID . '.' . JsComponent::SOURCE_PLUGIN_ID . '.invalid_slot',
+  ];
+
+  /**
+   * {@inheritdoc}
+   */
   protected function setUp(): void {
     parent::setUp();
     $this->installEntitySchema('media');
@@ -444,6 +456,107 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
         'Block plugin settings must be fully validatable',
       ],
     ]);
+  }
+
+  // cspell:ignore eird
+
+  /**
+   * @testWith ["valid", false]
+   *   ["even_more-valid", false]
+   *   ["-", true]
+   *   ["--", true]
+   *   ["_", true]
+   *   ["__", true]
+   *   ["-not_valid", true]
+   *   ["_not_valid", true]
+   *   ["not_valid-", true]
+   *   ["not_valid_", true]
+   *   ["a", true]
+   *   ["aa", true]
+   *   ["aaa", false]
+   *   ["n😈t_valid", true]
+   *   ["spaces aren't okay", true]
+   *   ["newline\nnot_allowed", true]
+   *   ["rm -rf /", true]
+   *   ["slot_\u03E2eird", true]
+   */
+  public function testSlotNameValidation(string $slot_name, bool $is_invalid): void {
+    // For every "code component" (JavaScriptComponent) with `status: true`, a
+    // corresponding Component config entity is auto-created. Use this to be
+    // able to test
+    $js_component_with_invalid_slot = JavaScriptComponent::create([
+      'machineName' => 'invalid_slot',
+      'name' => $this->getRandomGenerator()->sentences(5),
+      'status' => FALSE,
+      'props' => [],
+      'required' => [],
+      'slots' => [
+        $slot_name => [
+          'title' => 'Bad?',
+          'description' => "This slot might have an invalid name.",
+          'examples' => [],
+        ],
+      ],
+      'js' => [
+        'original' => 'console.log("hey");',
+        'compiled' => 'console.log("hey");',
+      ],
+      'css' => [
+        'original' => '.test { display: none; }',
+        'compiled' => '.test { display: none; }',
+      ],
+    ]);
+    $violations = $js_component_with_invalid_slot->getTypedData()->validate();
+    if ($is_invalid) {
+      self::assertCount(1, $violations);
+      self::assertSame(sprintf('<em class="placeholder">&quot;%s&quot;</em> is not a valid slot name.', htmlentities($slot_name)), (string) $js_component_with_invalid_slot->getTypedData()->validate()->get(0)->getMessage());
+    }
+    else {
+      self::assertCount(0, $violations);
+    }
+
+    // Save anyway, because the purpose of this test is to verify that even the
+    // slot names in the fallback metadata for a Component are validated.
+    $js_component_with_invalid_slot->enable()->save();
+    $corresponding_component = Component::load(JsComponent::SOURCE_PLUGIN_ID . '.invalid_slot');
+    assert($corresponding_component instanceof Component);
+
+    // Assert that the slot name indeed is present in the auto-generated
+    // fallback metadata.
+    // @see \Drupal\experience_builder\Entity\Component::preSave()
+    self::assertArrayHasKey($slot_name, $corresponding_component->get('fallback_metadata')['slot_definitions']);
+
+    // Make the corresponding Component the entity being tested and validate.
+    $this->entity = $corresponding_component;
+    self::assertSame(['822ab01ec6b22b59'], $this->entity->getVersions());
+    $expected_errors = [];
+    if ($is_invalid) {
+      $expected_errors["versioned_properties.active.fallback_metadata.slot_definitions.$slot_name"] = sprintf('<em class="placeholder">&quot;%s&quot;</em> is not a valid slot name.', htmlentities($slot_name));
+    }
+    $this->assertValidationErrors($expected_errors);
+
+    // Ensure that even when a change in the JavaScriptComponent causes a new
+    // version of the Component to be created *without* an invalid slot, that
+    // the same validation error is still thrown for the old version, but not
+    // for the new version.
+    $js_component_with_invalid_slot->set('slots', [])
+      // @todo Remove the ::setProps() call in https://www.drupal.org/project/experience_builder/issues/3528362
+      ->setProps([
+        'title' => [
+          'type' => 'string',
+          'title' => 'Title',
+        ],
+      ])
+      ->save();
+    $updated_corresponding_component = Component::load(JsComponent::SOURCE_PLUGIN_ID . '.invalid_slot');
+    assert($updated_corresponding_component instanceof Component);
+    $this->entity = $updated_corresponding_component;
+    self::assertSame(['3c1efabf35211787', '822ab01ec6b22b59'], $this->entity->getVersions());
+    $expected_errors = [];
+    if ($is_invalid) {
+      $expected_errors["versioned_properties.822ab01ec6b22b59.fallback_metadata.slot_definitions.$slot_name"] = sprintf('<em class="placeholder">&quot;%s&quot;</em> is not a valid slot name.', htmlentities($slot_name));
+    }
+    $this->assertValidationErrors($expected_errors);
   }
 
 }

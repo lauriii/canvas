@@ -100,9 +100,17 @@ class ComponentTreeItemTest extends KernelTestBase {
   /**
    * @testWith ["not-a-slot", {"1.slot": "Invalid component subtree. This component subtree contains an invalid slot name for component <em class=\"placeholder\">sdc.xb_test_sdc.props-slots</em>: <em class=\"placeholder\">not-a-slot</em>. Valid slot names are: <em class=\"placeholder\">the_body, the_footer, the_colophon</em>."}]
    *           ["", {"1.slot": "This value should not be blank."}]
+   *           ["_", {"1.slot": "<em class=\"placeholder\">&quot;_&quot;</em> is not a valid slot name."}]
+   *           ["-", {"1.slot": "<em class=\"placeholder\">&quot;-&quot;</em> is not a valid slot name."}]
+   *           ["_invalid", {"1.slot": "<em class=\"placeholder\">&quot;_invalid&quot;</em> is not a valid slot name."}]
+   *           ["-invalid", {"1.slot": "<em class=\"placeholder\">&quot;-invalid&quot;</em> is not a valid slot name."}]
+   *           ["invalid-", {"1.slot": "<em class=\"placeholder\">&quot;invalid-&quot;</em> is not a valid slot name."}]
+   *           ["invalid_", {"1.slot": "<em class=\"placeholder\">&quot;invalid_&quot;</em> is not a valid slot name."}]
+   *           [null, {"1.slot": "Invalid component tree item with UUID <em class=\"placeholder\">8b6b47ec-1167-433b-975d-e2d97739f5a6</em>. A slot name must be present if a parent uuid is provided."}]
+   *           ["the_body", {}]
    * @covers \Drupal\experience_builder\Plugin\Validation\Constraint\ComponentTreeStructureConstraintValidator
    */
-  public function testInvalidSlot(string $slot, array $expected_violations): void {
+  public function testInvalidSlot(?string $slot, array $expected_violations): void {
     $root_uuid = '947c196f-f108-43fd-a446-03a08100d579';
     $child_uuid = '8b6b47ec-1167-433b-975d-e2d97739f5a6';
 

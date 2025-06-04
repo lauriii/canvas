@@ -6,14 +6,17 @@ namespace Drupal\Tests\experience_builder\Kernel\Config;
 
 use Drupal\Core\Entity\Entity\EntityViewMode;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
+use Drupal\experience_builder\Entity\Component;
 use Drupal\experience_builder\Entity\ContentTemplate;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\Tests\experience_builder\Traits\BetterConfigDependencyManagerTrait;
+use Drupal\Tests\experience_builder\Traits\ContribStrictConfigSchemaTestTrait;
 use Drupal\Tests\experience_builder\Traits\CreateTestJsComponentTrait;
 use Drupal\Tests\experience_builder\Traits\GenerateComponentConfigTrait;
 use Drupal\Tests\node\Traits\ContentTypeCreationTrait;
 use Drupal\TestTools\Random;
+use Drupal\xb_test_validation\Plugin\ExperienceBuilder\ComponentSource\InvalidSlots;
 
 /**
  * @group experience_builder
@@ -23,6 +26,7 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
 
   use BetterConfigDependencyManagerTrait;
   use ContentTypeCreationTrait;
+  use ContribStrictConfigSchemaTestTrait;
   use CreateTestJsComponentTrait;
   use GenerateComponentConfigTrait;
 
@@ -63,6 +67,16 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
     'component_tree' => [
       "The 'dynamic' prop source type must be present.",
     ],
+  ];
+
+  /**
+   * {@inheritdoc}
+   */
+  protected static $configSchemaCheckerExclusions = [
+    // We need to create a component with invalid source-defined slot names in
+    // order to test that those slot names are validated in other contexts.
+    // @see ::testExposeInvalidSlotDefinedBySource()
+    'experience_builder.component.' . InvalidSlots::PLUGIN_ID . '.' . InvalidSlots::PLUGIN_ID,
   ];
 
   /**
@@ -642,7 +656,7 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
       ],
     ];
 
-    yield 'exposed slot machine name is not valid' => [
+    yield 'exposed slot machine name is not valid: spaces' => [
       [
         'not a valid exposed slot name' => [
           'component_uuid' => 'b4937e35-ddc2-4f36-8d4c-b1cc14aaefef',
@@ -651,7 +665,20 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
         ],
       ],
       [
-        'exposed_slots' => 'The <em class="placeholder">&quot;not a valid exposed slot name&quot;</em> key is not a valid machine name.',
+        'exposed_slots' => '<em class="placeholder">&quot;not a valid exposed slot name&quot;</em> is not a valid exposed slot name.',
+      ],
+    ];
+
+    yield 'exposed slot machine name is not valid: leading underscore' => [
+      [
+        '_neither' => [
+          'component_uuid' => 'b4937e35-ddc2-4f36-8d4c-b1cc14aaefef',
+          'slot_name' => 'the_footer',
+          'label' => "I got your footer right here",
+        ],
+      ],
+      [
+        'exposed_slots' => '<em class="placeholder">&quot;_neither&quot;</em> is not a valid exposed slot name.',
       ],
     ];
   }
@@ -662,6 +689,40 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
   public function testInvalidExposedSlot(array $exposed_slots, array $expected_errors): void {
     $this->entity->set('exposed_slots', $exposed_slots);
     $this->assertValidationErrors($expected_errors);
+  }
+
+  public function testExposeInvalidSlotDefinedBySource(): void {
+    self::assertTrue($this->container->get('module_installer')->install(['xb_test_validation']));
+    Component::create([
+      'id' => InvalidSlots::PLUGIN_ID . '.' . InvalidSlots::PLUGIN_ID,
+      'label' => 'Component with an invalid source-defined slot',
+      'source' => InvalidSlots::PLUGIN_ID,
+      'source_local_id' => InvalidSlots::PLUGIN_ID,
+      'category' => 'Test',
+      'active_version' => 'ccab0b28617f1f56',
+    ])->save();
+
+    $tree = $this->entity->get('component_tree');
+    assert(is_array($tree));
+    $tree[] = [
+      'uuid' => '1870f74a-2611-4864-8fc0-639f0d125d7f',
+      'component_id' => InvalidSlots::PLUGIN_ID . '.' . InvalidSlots::PLUGIN_ID,
+      'component_version' => 'ccab0b28617f1f56',
+      'inputs' => [],
+    ];
+    $this->entity->set('component_tree', $tree)
+      ->set('exposed_slots', [
+        'valid_alias' => [
+          'component_uuid' => '1870f74a-2611-4864-8fc0-639f0d125d7f',
+          // This slot name is defined by the component source, but isn't valid.
+          'slot_name' => 'invalid sl😈t',
+          'label' => "Not a legitimate slot name",
+        ],
+      ]);
+
+    $this->assertValidationErrors([
+      'exposed_slots.valid_alias.slot_name' => '<em class="placeholder">&quot;invalid sl😈t&quot;</em> is not a valid slot name.',
+    ]);
   }
 
   public function testExposedSlotsOnlyAllowedInFullViewMode(): void {

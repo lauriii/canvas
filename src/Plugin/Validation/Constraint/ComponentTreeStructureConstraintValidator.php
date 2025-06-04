@@ -134,6 +134,7 @@ final class ComponentTreeStructureConstraintValidator extends ConstraintValidato
           'slot' => new Optional([
             new NotBlank(allowNull: TRUE),
             new Type('string'),
+            new ValidSlotNameConstraint(),
           ]),
           'label' => new Optional([
             new NotBlank(allowNull: TRUE),
