@@ -86,7 +86,7 @@ class PatternValidationTest extends BetterConfigEntityValidationTestBase {
         [
           'uuid' => '56031f0f-a073-471d-8298-4ecf757ff0e7',
           'component_id' => 'block.local_tasks_block',
-          'component_version' => '9e8d5313864c8430',
+          'component_version' => 'f13e994a3a905880',
           'inputs' => [
             'label_display' => FALSE,
             'primary' => TRUE,
@@ -217,7 +217,7 @@ class PatternValidationTest extends BetterConfigEntityValidationTestBase {
         [
           'uuid' => '7f91aa44-c672-454f-8ed0-417d0de76b14',
           'component_id' => 'block.system_branding_block',
-          'component_version' => 'cc5b6644b21159f6',
+          'component_version' => '96dffcad653def0e',
           'inputs' => [
             'use_site_logo' => TRUE,
             'use_site_name' => TRUE,
@@ -229,7 +229,7 @@ class PatternValidationTest extends BetterConfigEntityValidationTestBase {
         [
           'uuid' => 'block-invalid',
           'component_id' => 'block.page_title_block',
-          'component_version' => 'ed0a8cbdee7c1f61',
+          'component_version' => '7c6a9c1fa71fa652',
           'inputs' => [],
         ],
       ],

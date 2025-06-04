@@ -300,7 +300,7 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
             'label_display' => '',
           ],
         ],
-        'componentType' => 'block.system_messages_block@95494899663264b4',
+        'componentType' => 'block.system_messages_block@6fb371adeea12bc7',
         'componentInstanceUuid' => $globalComponentUuid,
       ];
       $this->addClientAutoSaves($updateRegionClientData, [$node]);
@@ -387,7 +387,7 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
           'label_display' => '',
         ],
       ],
-      'componentType' => 'block.system_messages_block@95494899663264b4',
+      'componentType' => 'block.system_messages_block@6fb371adeea12bc7',
       'componentInstanceUuid' => $globalComponentUuid,
       'autoSaves' => [],
     ], JSON_THROW_ON_ERROR)));

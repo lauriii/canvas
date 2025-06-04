@@ -81,7 +81,7 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
       'category' => 'Test',
       'source' => SingleDirectoryComponent::SOURCE_PLUGIN_ID,
       'source_local_id' => 'xb_test_sdc:my-cta',
-      'active_version' => '8a0a11772d330d4c',
+      'active_version' => 'db8fd1116b3fa3dc',
       'versioned_properties' => [
         VersionedConfigEntityBase::ACTIVE_VERSION => [
           'settings' => [
@@ -195,6 +195,7 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
     unset($invalid_settings_due_to_missing_prop_field_definition['prop_field_definitions']['target']);
     $this->entity->setSettings($invalid_settings_due_to_missing_prop_field_definition);
     $this->assertValidationErrors([
+      'versioned_properties' => 'The version db8fd1116b3fa3dc does not match the hash of the settings for this version, expected 0675f5f03d6059a4.',
       \sprintf('versioned_properties.%s.settings.prop_field_definitions', VersionedConfigEntityInterface::ACTIVE_VERSION) => 'Configuration for the SDC prop "<em class="placeholder">Target</em>" (<em class="placeholder">target</em>) is missing.',
     ]);
 
@@ -225,7 +226,7 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
       'category' => 'Test',
       'source' => JsComponent::SOURCE_PLUGIN_ID,
       'source_local_id' => 'my-cta',
-      'active_version' => '7cc95037796258ba',
+      'active_version' => '34d253d05dc58be2',
       'versioned_properties' => [
         VersionedConfigEntityBase::ACTIVE_VERSION => [
           'settings' => [
@@ -258,7 +259,7 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
       'category' => 'Test',
       'source' => BlockComponent::SOURCE_PLUGIN_ID,
       'source_local_id' => 'system_branding_block',
-      'active_version' => '418f81761325b563',
+      'active_version' => '7a2bdba02d8b7911',
       'versioned_properties' => [
         VersionedConfigEntityBase::ACTIVE_VERSION => [
           'settings' => [
@@ -275,8 +276,8 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
               // But intentionally omitted `use_site_slogan`, which SHOULD
               // trigger a validation error.
               // 'use_site_slogan' => FALSE,
-              // @todo Upstream core bug in `type: block_settings`: `label_display` should be a boolean but has `type: label`.
-              'label_display' => 'false',
+              // @todo Upstream core bug in `type: block_settings`: `label_display` should be a boolean but has `type: label` — change to FALSE once https://www.drupal.org/i/2544708 is fixed
+              'label_display' => '0',
             ] + $defaults,
           ],
         ],
@@ -411,11 +412,19 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
       'category' => 'test',
       'source' => BlockComponent::SOURCE_PLUGIN_ID,
       'source_local_id' => 'node_syndicate_block',
-      'active_version' => '54e54f03a9745665',
+      'active_version' => 'f1de6f216b243742',
       'versioned_properties' => [
         VersionedConfigEntityBase::ACTIVE_VERSION => [
           'settings' => [
-            'default_settings' => [],
+            'default_settings' => [
+              'id' => 'node_syndicate_block',
+              'label' => 'Syndicate',
+              // @todo Change this to FALSE once https://drupal.org/i/2544708
+              //   is fixed.
+              'label_display' => '0',
+              'provider' => 'node',
+              'block_count' => 10,
+            ],
           ],
         ],
       ],

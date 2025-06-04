@@ -87,7 +87,7 @@ class PageRegionValidationTest extends BetterConfigEntityValidationTestBase {
         [
           'uuid' => '93af433a-8ab0-4dd9-912a-73a99c882347',
           'component_id' => 'block.page_title_block',
-          'component_version' => 'ed0a8cbdee7c1f61',
+          'component_version' => '7c6a9c1fa71fa652',
           'inputs' => [
             'label' => '',
             'label_display' => FALSE,
@@ -96,7 +96,7 @@ class PageRegionValidationTest extends BetterConfigEntityValidationTestBase {
         [
           'uuid' => '5f1c5361-5658-467e-9c53-b0015d57945d',
           'component_id' => 'block.system_messages_block',
-          'component_version' => '95494899663264b4',
+          'component_version' => '6fb371adeea12bc7',
           'inputs' => [
             'label' => '',
             'label_display' => FALSE,
@@ -468,7 +468,7 @@ class PageRegionValidationTest extends BetterConfigEntityValidationTestBase {
           [
             "nodeType" => "component",
             "slots" => [],
-            "type" => "block.page_title_block@ed0a8cbdee7c1f61",
+            "type" => "block.page_title_block@7c6a9c1fa71fa652",
             "uuid" => "c3f3c22c-c22e-4bb6-ad16-635f069148e4",
           ],
         ],

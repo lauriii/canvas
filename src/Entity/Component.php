@@ -496,10 +496,6 @@ final class Component extends VersionedConfigEntityBase implements ComponentInte
    */
   public static function validateVersions(array $versioned_properties, ExecutionContextInterface $context): void {
     foreach ($versioned_properties as $version => $versioned_property) {
-      if ($version === ComponentInterface::FALLBACK_VERSION) {
-        continue;
-      }
-
       if ($version === VersionedConfigEntityInterface::ACTIVE_VERSION) {
         // Look up the active version.
         assert($context->getObject() instanceof TraversableTypedDataInterface);
@@ -507,6 +503,10 @@ final class Component extends VersionedConfigEntityBase implements ComponentInte
         assert($component instanceof Mapping);
         assert($component->getDataDefinition()->getDataType() === 'experience_builder.component.*');
         $version = $component->getValue()['active_version'];
+      }
+
+      if ($version === ComponentInterface::FALLBACK_VERSION) {
+        continue;
       }
 
       // The version should be based on the source-specific settings for this

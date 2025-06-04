@@ -100,7 +100,7 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
         [
           "nodeType" => "component",
           "slots" => [],
-          "type" => "block.page_title_block@ed0a8cbdee7c1f61",
+          "type" => "block.page_title_block@7c6a9c1fa71fa652",
           "uuid" => "c3f3c22c-c22e-4bb6-ad16-635f069148e4",
         ],
       ],
@@ -137,7 +137,7 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
       [
         "nodeType" => "component",
         "slots" => [],
-        "type" => "block.page_title_block@ed0a8cbdee7c1f61",
+        "type" => "block.page_title_block@7c6a9c1fa71fa652",
         "uuid" => "c3f3c22c-c22e-4bb6-ad16-635f069148e4",
       ],
     ], reset($highlightedRegion)['components']);
@@ -173,7 +173,7 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
       [
         "nodeType" => "component",
         "slots" => [],
-        "type" => "block.page_title_block@ed0a8cbdee7c1f61",
+        "type" => "block.page_title_block@7c6a9c1fa71fa652",
         "uuid" => "c3f3c22c-c22e-4bb6-ad16-635f069148e4",
       ],
     ], reset($highlightedRegion)['components']);
@@ -195,7 +195,7 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
       [
         "nodeType" => "component",
         "slots" => [],
-        "type" => "block.page_title_block@ed0a8cbdee7c1f61",
+        "type" => "block.page_title_block@7c6a9c1fa71fa652",
         'name' => NULL,
       ],
     ],
@@ -237,7 +237,7 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
             "nodeType" => "component",
             'name' => NULL,
             "slots" => [],
-            "type" => "block.page_title_block@ed0a8cbdee7c1f61",
+            "type" => "block.page_title_block@7c6a9c1fa71fa652",
           ],
         ],
           // Filter out the UUID as that is added randomly by creating the block
@@ -251,7 +251,7 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
         $this->assertSame([
           [
             "nodeType" => "component",
-            "type" => "block.system_messages_block@95494899663264b4",
+            "type" => "block.system_messages_block@6fb371adeea12bc7",
             'name' => NULL,
             "slots" => [],
           ],

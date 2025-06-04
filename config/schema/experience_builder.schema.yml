@@ -63,9 +63,8 @@ experience_builder.component.*:
         # 2. the active version is any other version other version is active: the Component Source-specific settings + the fallback metadata → `type: experience_builder.component.versioned.active.*`
         # 3. any non-active version: Component Source-specific settings (not validatable because the implementation may have changed) + fallback metadata → `type: experience_builder.component.versioned.*.*`
         type: experience_builder.component.versioned.[%key].[%parent.%parent.active_version]
-      # @todo For this to work we need the ability to perfectly consistently normalize the ComponentSource-specific settings first, do that in https://www.drupal.org/i/3528159
-      #constraints:
-      #  Callback: ['\Drupal\experience_builder\Entity\Component', validateVersions]
+      constraints:
+        Callback: ['\Drupal\experience_builder\Entity\Component', validateVersions]
 
 # Special case: when the active version is the special `fallback` version: it uses the Fallback source plugin.
 # @see \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\Fallback

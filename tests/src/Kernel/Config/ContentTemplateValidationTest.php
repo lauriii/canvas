@@ -139,7 +139,7 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
         [
           'uuid' => 'b7f36452-ecd9-4c7c-a73c-492b81538512',
           'component_id' => 'block.system_branding_block',
-          'component_version' => 'cc5b6644b21159f6',
+          'component_version' => '96dffcad653def0e',
           'inputs' => [
             'label' => '',
             'label_display' => FALSE,
@@ -266,7 +266,7 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
         [
           'uuid' => '08a60f2c-4737-47d3-9c34-956f33d5627e',
           'component_id' => 'block.system_branding_block',
-          'component_version' => 'cc5b6644b21159f6',
+          'component_version' => '96dffcad653def0e',
           'inputs' => [
             'use_site_logo' => TRUE,
             'use_site_name' => TRUE,
@@ -278,7 +278,7 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
         [
           'uuid' => 'ea2459e3-248d-4a0a-bdbc-1d982f729959',
           'component_id' => 'block.page_title_block',
-          'component_version' => 'ed0a8cbdee7c1f61',
+          'component_version' => '7c6a9c1fa71fa652',
           'inputs' => [
             'label' => '',
             'label_display' => FALSE,
@@ -287,7 +287,7 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
         [
           'uuid' => '90804335-d16d-4799-9e80-ddb11692530a',
           'component_id' => 'block.system_messages_block',
-          'component_version' => '95494899663264b4',
+          'component_version' => '6fb371adeea12bc7',
           'inputs' => [
             'label' => '',
             'label_display' => FALSE,

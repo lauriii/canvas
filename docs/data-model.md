@@ -196,7 +196,7 @@ Example: A simple tree showing a root item (`41595148-e5c1-4873-b373-be3ae6e2134
 [
   'uuid' => '3b305d86-86a7-4684-8664-7ef1fc2be070',
   'component_id' => 'sdc.xb_test_sdc.props-no-slots',
-  'component_version' => 'c8a016671696090c',
+  'component_version' => '96dffcad653def0e',
   'parent_uuid' => '41595148-e5c1-4873-b373-be3ae6e21340',
   'slot' => 'the_body',
   'inputs' => [
@@ -209,7 +209,7 @@ Example: A simple tree showing a root item (`41595148-e5c1-4873-b373-be3ae6e2134
   [
     'uuid' => '41595148-e5c1-4873-b373-be3ae6e21340',
     'component_id' => 'block.system_branding_block',
-    'component_version' => 'cc5b6644b21159f6',
+    'component_version' => '96dffcad653def0e',
     // Example, that populates a Block component instance.
     // Note how much simpler the stored information is, because it uses the Block system's native input UX:
     'inputs' => [
@@ -421,7 +421,7 @@ A complete example, with three `region node`s:
         {
           "nodeType": "component",
           "id": "a164fa84-0460-40b0-a428-bf332b4a792a",
-          "type": "block.system_branding_block@cc5b6644b21159f6",
+          "type": "block.system_branding_block@96dffcad653def0e",
           "slots": []
         }
       ]

@@ -99,7 +99,7 @@ final class BlockComponentTest extends ComponentSourceTestBase {
         'default_settings' => [
           'id' => 'xb_test_block_input_none',
           'label' => 'Test block with no settings.',
-          'label_display' => '',
+          'label_display' => '0',
           'provider' => 'xb_test_block',
         ],
       ],
@@ -107,7 +107,7 @@ final class BlockComponentTest extends ComponentSourceTestBase {
         'default_settings' => [
           'id' => 'xb_test_block_input_validatable',
           'label' => 'Test Block with settings',
-          'label_display' => '',
+          'label_display' => '0',
           'provider' => 'xb_test_block',
           // This block has a single setting.
           'name' => 'XB',
@@ -117,7 +117,7 @@ final class BlockComponentTest extends ComponentSourceTestBase {
         'default_settings' => [
           'id' => 'xb_test_block_input_validatable_crash',
           'label' => "Test Block with settings, crashes when 'crash' setting is TRUE",
-          'label_display' => '',
+          'label_display' => '0',
           'provider' => 'xb_test_block',
           // This block has two settings.
           'name' => 'XB',
@@ -128,7 +128,7 @@ final class BlockComponentTest extends ComponentSourceTestBase {
         'default_settings' => [
           'id' => 'xb_test_block_optional_contexts',
           'label' => 'Test Block with optional contexts',
-          'label_display' => '',
+          'label_display' => '0',
           'provider' => 'xb_test_block',
         ],
       ],
@@ -387,7 +387,7 @@ HTML,
         [
           'uuid' => '75144f9b-1bfc-4874-b848-b5889f066217',
           'component_id' => 'block.system_menu_block.main',
-          'component_version' => '921e932c13a5f313',
+          'component_version' => '1890264ee53dc1f4',
           'inputs' => [
             'label' => 'Main navigation',
             'label_display' => '',
@@ -429,7 +429,7 @@ HTML,
         [
           'uuid' => '4b26c295-c8cc-4b2d-a38a-235c6cfa1ffa',
           'component_id' => 'block.xb_test_block_input_validatable',
-          'component_version' => '22e779006330e136',
+          'component_version' => '9bc2091e7da4816c',
           'inputs' => [
             'name' => 'test',
             'label' => 'test',

@@ -137,7 +137,7 @@ class ClientServerConversionTraitTest extends KernelTestBase {
       [
         'uuid' => self::TEST_BLOCK,
         'component_id' => 'block.system_branding_block',
-        'component_version' => 'cc5b6644b21159f6',
+        'component_version' => '96dffcad653def0e',
       ],
       [
         'uuid' => self::TOP_LEVEL_SLOT_COMPONENT_UUID,
@@ -190,7 +190,7 @@ class ClientServerConversionTraitTest extends KernelTestBase {
       [
         'uuid' => self::TEST_BLOCK,
         'component_id' => 'block.system_branding_block',
-        'component_version' => 'cc5b6644b21159f6',
+        'component_version' => '96dffcad653def0e',
       ],
     ], \array_map(static fn (array $item) => \array_filter(\array_diff_key($item, \array_flip(['inputs']))), $converted_items));
 
@@ -261,7 +261,7 @@ class ClientServerConversionTraitTest extends KernelTestBase {
         [
           'nodeType' => 'component',
           'uuid' => self::TEST_BLOCK,
-          'type' => 'block.system_branding_block@cc5b6644b21159f6',
+          'type' => 'block.system_branding_block@96dffcad653def0e',
           'slots' => [],
         ],
       ],

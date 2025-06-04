@@ -82,7 +82,9 @@ final class BlockManager extends CoreBlockManager {
             //   https://www.drupal.org/i/3426278
           'id' => $id,
           'label' => (string) $definition['admin_label'],
-          'label_display' => FALSE,
+          // @todo Change this to FALSE once https://drupal.org/i/2544708 is
+          //   fixed.
+          'label_display' => '0',
           'provider' => $definition['provider'],
         ] + $block->defaultConfiguration(),
       ];

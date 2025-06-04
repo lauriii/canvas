@@ -140,7 +140,7 @@ trait XBFieldTrait {
             [
               'nodeType' => 'component',
               'uuid' => self::TEST_BLOCK,
-              'type' => 'block.system_branding_block@cc5b6644b21159f6',
+              'type' => 'block.system_branding_block@96dffcad653def0e',
               'slots' => [],
             ],
           ],
