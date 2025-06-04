@@ -1211,6 +1211,7 @@ paths:
                   - entity_form_fields
                   - model
                   - layout
+                  - autoSaves
                 properties:
                   html:
                     type: string
@@ -1227,9 +1228,25 @@ paths:
                   entity_form_fields:
                     type: object
                     description: The full entity data.
+                  autoSaves:
+                    type: object
+                    description: Auto-saved entries with hash values for concurrency control
         '403':
           description: Access denied response.
           $ref: '#/components/responses/AuthenticationErrorResponse'
+        '409':
+          description: >
+            The layout could not be updated because the entity
+            was modified by another user since the last time
+            it was loaded.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: Error message indicating the conflict.
     post:
       description: >
         Update the layout, model or entity field values
@@ -1250,13 +1267,30 @@ paths:
                 type: object
                 required:
                   - html
+                  - autoSaves
                 properties:
                   html:
                     type: string
                     description: The HTML preview.
+                  autoSaves:
+                    type: object
+                    description: Auto-saved entries with hash values for concurrency control
         '403':
           description: Access denied response.
           $ref: '#/components/responses/AuthenticationErrorResponse'
+        '409':
+          description: >
+            The layout could not be updated because the entity
+            was modified by another user since the last time
+            it was loaded.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: Error message indicating the conflict.
   /xb/api/v0/log-error:
     description: TODO
     post:
@@ -1536,6 +1570,7 @@ components:
       required:
         - layout
         - model
+        # @todo Make 'autoSaves' required in https://drupal.org/i/3526907.
       additionalProperties: false
       properties:
         layout:
@@ -1547,6 +1582,9 @@ components:
               $ref: '#/components/schemas/LayoutSlot'
         model:
           $ref: '#/components/schemas/Model'
+        autoSaves:
+          type: object
+          description: Auto-saved entries with hash values for concurrency control
         entity_form_fields:
           type: object
         isNew:
@@ -1977,6 +2015,7 @@ components:
               - componentInstanceUuid
               - componentType
               - model
+              # @todo Make 'autoSaves' required in https://drupal.org/i/3526907.
             additionalProperties: false
             properties:
               model:
@@ -1999,3 +2038,6 @@ components:
               componentType:
                 type: string
                 description: The component type (Component config entity ID) of the updated component instance
+              autoSaves:
+                type: object
+                description: Auto-saved entries with hash values for concurrency control

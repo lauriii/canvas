@@ -230,6 +230,7 @@ final class FallbackInputTest extends ApiLayoutControllerTestBase {
       'model' => $new_model,
       'componentType' => 'sdc.experience_builder.heading@5700f78c83cd433f',
       'componentInstanceUuid' => $component_to_edit_uuid,
+      'autoSaves' => [],
     ], JSON_THROW_ON_ERROR)));
     self::assertEquals(Response::HTTP_OK, $response->getStatusCode());
     $data = self::decodeResponse($response);

@@ -12,7 +12,7 @@ final class AutoSaveData implements CacheableDependencyInterface {
 
   use CacheableDependencyTrait;
 
-  public function __construct(public readonly ?array $data) {
+  public function __construct(public readonly ?array $data, public readonly ?string $hash) {
     $this->cacheTags = [AutoSaveManager::CACHE_TAG];
   }
 

@@ -154,6 +154,7 @@ final class ApiLayoutControllerTest extends HttpApiTestBase {
         ],
       ],
     ];
+    $json['autoSaves'] = [];
     $original_request_json = $json;
 
     $request_options = [
@@ -200,6 +201,8 @@ final class ApiLayoutControllerTest extends HttpApiTestBase {
     $saved_component_values['name'] = 'Rodney';
     $autoSave->save($code_component, $saved_component_values);
 
+    $original_request_json['autoSaves'] = $json['autoSaves'];
+    $request_options[RequestOptions::BODY] = Json::encode($original_request_json);
     $response = $this->makeApiRequest('POST', Url::fromRoute('experience_builder.api.layout.post', [
       'entity_type' => Page::ENTITY_TYPE_ID,
       'entity' => $page->id(),

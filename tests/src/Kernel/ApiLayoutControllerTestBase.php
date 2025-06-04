@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\experience_builder\Kernel;
 
+use Drupal\experience_builder\AutoSave\AutoSaveManager;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\Tests\experience_builder\Kernel\Traits\RequestTrait;
 use Drupal\Tests\user\Traits\UserCreationTrait;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -23,6 +25,7 @@ class ApiLayoutControllerTestBase extends KernelTestBase {
   use UserCreationTrait;
 
   protected static function decodeResponse(Response $response): array {
+    self::assertInstanceOf(JsonResponse::class, $response);
     self::assertIsString($response->getContent());
     self::assertJson($response->getContent());
     return \json_decode($response->getContent(), TRUE);
@@ -86,6 +89,22 @@ class ApiLayoutControllerTestBase extends KernelTestBase {
     $matches = [];
     \preg_match_all('/(xb-start-)(.*?)[\/ \t](.*?)(-->)(.*?)/', $html, $matches);
     return $matches[2];
+  }
+
+  protected function assertResponseAutoSaves(Response $response, array $expectedEntities): void {
+    $data = self::decodeResponse($response);
+    self::assertArrayHasKey('autoSaves', $data);
+    self::assertIsArray($data['autoSaves']);
+    self::assertCount(\count($expectedEntities), $data['autoSaves']);
+    self::assertCount(\count($expectedEntities), array_filter($data['autoSaves']));
+    $autoSaveManager = $this->container->get(AutoSaveManager::class);
+    foreach ($expectedEntities as $entity) {
+      self::assertArrayHasKey(AutoSaveManager::getAutoSaveKey($entity), $data['autoSaves']);
+      $autoSaveData = $autoSaveManager->getAutoSaveData($entity);
+      // Ensure that the auto-saves are not empty are not returned.
+      self::assertNotNull($autoSaveData->hash);
+      self::assertSame($data['autoSaves'][AutoSaveManager::getAutoSaveKey($entity)], $autoSaveData->hash);
+    }
   }
 
 }

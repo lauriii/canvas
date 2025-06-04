@@ -20,6 +20,7 @@ use Drupal\Tests\experience_builder\TestSite\XBTestSetup;
 use Symfony\Component\DomCrawler\Crawler;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
+use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 
 /**
  * @covers \Drupal\experience_builder\Controller\ApiLayoutController::post()
@@ -70,7 +71,7 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
   }
 
   public function testEmpty(): void {
-    $this->request(Request::create('/xb/api/v0/layout/node/1', method: 'POST', content: json_encode([
+    $response = $this->request(Request::create('/xb/api/v0/layout/node/1', method: 'POST', content: json_encode([
       'layout' => [
         [
           'nodeType' => 'region',
@@ -81,7 +82,9 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
       ],
       'model' => [],
       'entity_form_fields' => [],
+      'autoSaves' => [],
     ], JSON_THROW_ON_ERROR)));
+    $this->assertResponseAutoSaves($response, [Node::load(1)]);
 
     // Check that the root level is structured correctly.
     $root = $this->getRegion('content');
@@ -149,6 +152,7 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
         ],
       ],
       'entity_form_fields' => [],
+      'autoSaves' => [],
     ], JSON_THROW_ON_ERROR)));
 
     // Check that the root level is structured correctly.
@@ -160,11 +164,14 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
 
   public function test(): void {
     // Load the test data from the layout controller.
-    $content = $this->parentRequest(Request::create('/xb/api/v0/layout/node/1'))->getContent();
-    $this->assertIsString($content);
-    $json = json_decode($content, TRUE);
+    $response = $this->parentRequest(Request::create('/xb/api/v0/layout/node/1'));
+    $this->assertResponseAutoSaves($response, []);
+    $json = self::decodeResponse($response);
     $model = $json['model'];
-    $this->request(Request::create('/xb/api/v0/layout/node/1', method: 'POST', content: $this->filterLayoutForPost($content)));
+    $original_content = $response->getContent();
+    self::assertIsString($original_content);
+    $response = $this->request(Request::create('/xb/api/v0/layout/node/1', method: 'POST', content: $this->filterLayoutForPost($original_content)));
+    $this->assertResponseAutoSaves($response, []);
     $autoSave = $this->container->get(AutoSaveManager::class);
     \assert($autoSave instanceof AutoSaveManager);
     $node = Node::load(1);
@@ -188,15 +195,25 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
       'type' => 'sdc.experience_builder.heading',
       'slots' => [],
     ];
-    $this->request(Request::create('/xb/api/v0/layout/node/1', method: 'POST', content: \json_encode($json, JSON_THROW_ON_ERROR)));
+    $response = $this->request(Request::create('/xb/api/v0/layout/node/1', method: 'POST', content: \json_encode($json, JSON_THROW_ON_ERROR)));
     \assert($autoSave instanceof AutoSaveManager);
+    $this->assertResponseAutoSaves($response, [$node]);
     self::assertFalse($autoSave->getAutoSaveData($node)->isEmpty());
+
+    try {
+      $this->request(Request::create('/xb/api/v0/layout/node/1', method: 'POST', content: $this->filterLayoutForPost($original_content)));
+      $this->fail('Expected exception');
+    }
+    catch (ConflictHttpException $exception) {
+      self::assertSame('You do not have the latest changes, please refresh your browser.', $exception->getMessage());
+    }
 
     // Now re-fetch the layout to confirm we don't update the hash if an auto-save
     // entry already exists.
     $content = $this->parentRequest(Request::create('/xb/api/v0/layout/node/1'))->getContent();
     self::assertIsString($content);
     $json = json_decode($content, TRUE);
+    $this->assertResponseAutoSaves($response, [$node]);
     self::assertFalse($autoSave->getAutoSaveData($node)->isEmpty());
     self::assertArrayHasKey($uuid, $json['model']);
   }

@@ -66,6 +66,7 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
     ]);
     $response = $this->request(Request::create($url->toString()));
     self::assertEquals(Response::HTTP_OK, $response->getStatusCode());
+    $this->assertResponseAutoSaves($response, []);
   }
 
   public function test(): void {
@@ -125,6 +126,7 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
     $this->assertTitle($node1->label() . ' | Drupal');
     self::assertInstanceOf(JsonResponse::class, $response);
     $json = \json_decode($response->getContent() ?: '', TRUE);
+    $this->assertResponseAutoSaves($response, [$regions['stark.highlighted']]);
     self::assertArrayHasKey('layout', $json);
     $highlightedRegion = \array_filter($json['layout'], static fn (array $region) => ($region['id'] ?? NULL) === 'highlighted');
     self::assertCount(1, $highlightedRegion);
@@ -156,6 +158,7 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
     \assert($node1 instanceof NodeInterface);
     $autoSave->save($node1, $data);
     $response = $this->request(Request::create($url->toString()));
+    $this->assertResponseAutoSaves($response, [$node1, $regions['stark.highlighted']]);
     $this->assertTitle("$new_title | Drupal");
 
     self::assertInstanceOf(JsonResponse::class, $response);
@@ -181,6 +184,7 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
     $autoSave->delete($regions['stark.highlighted']);
     // We should still see the global regions.
     $response = $this->request(Request::create($url->toString()));
+    $this->assertResponseAutoSaves($response, [$node1]);
     self::assertInstanceOf(JsonResponse::class, $response);
     $json = \json_decode($response->getContent() ?: '', TRUE);
     self::assertArrayHasKey('layout', $json);

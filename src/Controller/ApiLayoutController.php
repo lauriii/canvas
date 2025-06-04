@@ -24,6 +24,7 @@ use GuzzleHttp\Psr7\Query;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
+use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
@@ -136,6 +137,7 @@ final class ApiLayoutController {
       'entity_form_fields' => $entity_form_fields,
       'isNew' => $is_new,
       'isPublished' => $is_published,
+      'autoSaves' => $this->getAutoSaveHashes($entity),
     ];
     return new PreviewEnvelope($this->buildPreviewRenderable($data, $entity, FALSE), $data);
   }
@@ -230,6 +232,8 @@ final class ApiLayoutController {
       'model' => $model,
     ] = $body;
 
+    $this->validateAutoSaves($entity, $body);
+
     $data = $this->getLastStoredData($entity, includeAllRegions: TRUE);
     if (!\array_key_exists('model', $data)) {
       throw new NotFoundHttpException('Missing model');
@@ -265,7 +269,12 @@ final class ApiLayoutController {
       }
     }
     $data['model'][$componentInstanceUuid] = $model;
-    return new PreviewEnvelope($this->buildPreviewRenderable($data, $entity, TRUE), $data);
+    return new PreviewEnvelope($this->buildPreviewRenderable($data, $entity, TRUE), $data + [
+      // Add the auto-save hashes. We do this after building the preview
+      // render array, because the auto-save entry is written during building
+      // the preview.
+      'autoSaves' => $this->getAutoSaveHashes($entity),
+    ]);
   }
 
   /**
@@ -273,11 +282,13 @@ final class ApiLayoutController {
    *
    * @todo Remove this in https://drupal.org/i/3492065
    */
-  public function post(Request $request, EntityInterface $entity): PreviewEnvelope {
+  public function post(Request $request, FieldableEntityInterface $entity): PreviewEnvelope {
     $body = json_decode($request->getContent(), TRUE);
     \assert(\array_key_exists('model', $body));
     \assert(\array_key_exists('layout', $body));
     \assert(\array_key_exists('entity_form_fields', $body));
+
+    $this->validateAutoSaves($entity, $body);
 
     $regions = PageRegion::loadForActiveThemeByClientSideId();
     if (!empty($regions)) {
@@ -290,7 +301,9 @@ final class ApiLayoutController {
         }
       }
     }
-    return new PreviewEnvelope($this->buildPreviewRenderable($body, $entity, TRUE));
+    return new PreviewEnvelope($this->buildPreviewRenderable($body, $entity, TRUE), [
+      'autoSaves' => $this->getAutoSaveHashes($entity),
+    ]);
   }
 
   private function buildPreviewRenderable(array $body, EntityInterface $entity, bool $updateAutoSave): array {
@@ -465,6 +478,51 @@ final class ApiLayoutController {
       });
     }
     return (!empty($regions) && count($regionForComponent) === 1) ? (string) key($regionForComponent) : NULL;
+  }
+
+  private function validateAutoSaves(EntityInterface $entity, array $body): void {
+    // @todo Remove the special case for testing in https://drupal.org/i/3526907.
+    // @phpstan-ignore-next-line
+    if (!(drupal_valid_test_ua() && \Drupal::installProfile() !== 'nightwatch_testing')) {
+      return;
+    }
+    if (!\array_key_exists('autoSaves', $body)) {
+      throw new BadRequestHttpException('Missing autoSaves');
+    }
+    $autoSaves = $body['autoSaves'];
+    $expected_auto_saves = [];
+    $expected_auto_saves[AutoSaveManager::getAutoSaveKey($entity)] = $this->autoSaveManager->getAutoSaveData($entity)->hash;
+    $regions = PageRegion::loadForActiveTheme();
+    foreach ($regions as $region) {
+      assert($region instanceof PageRegion);
+      if ($region->access('edit') === FALSE) {
+        continue;
+      }
+      $expected_auto_saves[AutoSaveManager::getAutoSaveKey($region)] = $this->autoSaveManager->getAutoSaveData($region)->hash;
+    }
+    $expected_auto_saves = array_filter($expected_auto_saves);
+    ksort($expected_auto_saves);
+    ksort($autoSaves);
+    if ($expected_auto_saves !== $autoSaves) {
+      throw new ConflictHttpException('You do not have the latest changes, please refresh your browser.');
+    }
+  }
+
+  private function getAutoSaveHashes(FieldableEntityInterface $entity): array {
+    // Collect entities that need auto-save hashes.
+    $entities = [$entity];
+    // Add the regions the user has access to edit.
+    foreach (PageRegion::loadForActiveTheme() as $region) {
+      if ($region->access('edit') !== FALSE) {
+        $entities[] = $region;
+      }
+    }
+    $autoSaveHashes = [];
+    foreach ($entities as $entity) {
+      \assert($entity instanceof EntityInterface);
+      $autoSaveHashes[AutoSaveManager::getAutoSaveKey($entity)] = $this->autoSaveManager->getAutoSaveData($entity)->hash;
+    }
+    return array_filter($autoSaveHashes);
   }
 
 }

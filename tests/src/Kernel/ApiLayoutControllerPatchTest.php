@@ -14,11 +14,13 @@ use Drupal\media\MediaInterface;
 use Drupal\node\Entity\Node;
 use Drupal\node\NodeInterface;
 use Drupal\Tests\experience_builder\TestSite\XBTestSetup;
+use Drupal\Tests\experience_builder\Traits\AutoSaveManagerTestTrait;
 use Symfony\Component\DomCrawler\Crawler;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
+use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
@@ -27,6 +29,8 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
  * @group #slow
  */
 final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
+
+  use AutoSaveManagerTestTrait;
 
   /**
    * {@inheritdoc}
@@ -109,6 +113,7 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
         'componentInstanceUuid' => 'e8c95423-4f22-4210-8707-08bade75ff22',
         'componentType' => 'sdc.experience_builder.image@f81037abea6701d7',
         'model' => [],
+        'autoSaves' => [],
       ],
     ];
     yield 'No such component' => [
@@ -118,6 +123,7 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
         'componentInstanceUuid' => XbTestSetup::UUID_STATIC_IMAGE,
         'componentType' => 'garry_sensible_jeans@jean_shorts',
         'model' => [],
+        'autoSaves' => [],
       ],
     ];
     yield 'No version provided' => [
@@ -127,6 +133,7 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
         'componentInstanceUuid' => XbTestSetup::UUID_STATIC_IMAGE,
         'componentType' => 'sdc.experience_builder.image',
         'model' => [],
+        'autoSaves' => [],
       ],
     ];
     yield 'Invalid version provided' => [
@@ -136,6 +143,7 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
         'componentInstanceUuid' => XbTestSetup::UUID_STATIC_IMAGE,
         'componentType' => 'sdc.experience_builder.image@hamster',
         'model' => [],
+        'autoSaves' => [],
       ],
     ];
   }
@@ -160,8 +168,11 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
       }
     }
     // Load the test data from the layout controller.
-    $content = $this->parentRequest(Request::create('/xb/api/v0/layout/node/1'))->getContent();
+    $response = $this->parentRequest(Request::create('/xb/api/v0/layout/node/1'));
+    $this->assertResponseAutoSaves($response, []);
+    $content = $response->getContent();
     self::assertIsString($content);
+    $data = $this->decodeResponse($response);
     // Check that the client only receives field data they have access to.
     // @see ApiLayoutController::filterFormValues()
     $this->assertSame([
@@ -181,9 +192,9 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
       'title[0][value]',
       'langcode[0][value]',
       'revision_log[0][value]',
-    ], array_keys(json_decode($content, TRUE)['entity_form_fields']));
+    ], array_keys($data['entity_form_fields']));
 
-    $model = json_decode($content, TRUE)['model'];
+    $model = $data['model'];
 
     $node = Node::load(1);
     \assert($node instanceof NodeInterface);
@@ -192,6 +203,7 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
       // This will not result in an auto-save entry because the content is the
       // same as the saved version.
       $response = $this->request(Request::create('/xb/api/v0/layout/node/1', method: 'POST', content: $this->filterLayoutForPost($content)));
+      $this->assertResponseAutoSaves($response, []);
       self::assertEquals(Response::HTTP_OK, $response->getStatusCode());
       self::assertTrue($autoSave->getAutoSaveData($node)->isEmpty());
       foreach ($regions as $region) {
@@ -212,14 +224,17 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
     $new_model = $model[XbTestSetup::UUID_STATIC_IMAGE];
     // Reference a new media entity.
     $new_model['source']['image']['value'] = $media->id();
-    $response = $this->request(Request::create('/xb/api/v0/layout/node/1', method: 'PATCH', content: \json_encode([
+    $updateImageClientJson = \json_encode([
       'model' => $new_model,
       'componentType' => 'sdc.experience_builder.image@f81037abea6701d7',
       'componentInstanceUuid' => XbTestSetup::UUID_STATIC_IMAGE,
-    ], JSON_THROW_ON_ERROR)));
+      'autoSaves' => [],
+    ], JSON_THROW_ON_ERROR);
+    $response = $this->request(Request::create('/xb/api/v0/layout/node/1', method: 'PATCH', content: $updateImageClientJson));
 
     // The new model should contain the updated value.
     $data = self::decodeResponse($response);
+    $this->assertResponseAutoSaves($response, [$node]);
     // The updated preview should reference the new image.
     $file = $media->get('field_media_image')->entity;
     \assert($file instanceof FileInterface);
@@ -266,11 +281,19 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
       $thumbnail->buildUrl($fileUri),
     ], $images);
 
+    try {
+      $this->request(Request::create('/xb/api/v0/layout/node/1', method: 'PATCH', content: $updateImageClientJson));
+      $this->fail('Expected exception');
+    }
+    catch (ConflictHttpException $exception) {
+      self::assertSame('You do not have the latest changes, please refresh your browser.', $exception->getMessage());
+    }
+
     if ($withGlobal) {
       $new_label = $this->randomMachineName();
       // Patch a global component.
       $globalComponentUuid = reset($globalElements);
-      $response = $this->request(Request::create('/xb/api/v0/layout/node/1', method: 'PATCH', content: \json_encode([
+      $updateRegionClientData = [
         'model' => [
           'resolved' => [
             'label' => $new_label,
@@ -279,18 +302,39 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
         ],
         'componentType' => 'block.system_messages_block@95494899663264b4',
         'componentInstanceUuid' => $globalComponentUuid,
-      ], JSON_THROW_ON_ERROR)));
+      ];
+      $this->addClientAutoSaves($updateRegionClientData, [$node]);
+      $response = $this->request(Request::create('/xb/api/v0/layout/node/1', method: 'PATCH', content: \json_encode($updateRegionClientData, JSON_THROW_ON_ERROR)));
 
       // The new model should contain the updated value.
       $data = self::decodeResponse($response);
       self::assertEquals($new_label, $data['model'][$globalComponentUuid]['resolved']['label']);
 
       self::assertFalse($autoSave->getAutoSaveData($node)->isEmpty());
+      $sidebarFirstRegion = NULL;
       foreach ($regions as $region) {
         // The updated component is in sidebar_first and so auto-save should not
         // be empty.
         self::assertEquals($region->get('region') !== 'sidebar_first', $autoSave->getAutoSaveData($region)->isEmpty());
+        if ($region->get('region') === 'sidebar_first') {
+          $sidebarFirstRegion = $region;
+          $this->assertResponseAutoSaves($response, [$node, $sidebarFirstRegion]);
+        }
       }
+      $this->assertNotNull($sidebarFirstRegion);
+
+      try {
+        // Trying to post the same data again should throw a conflict exception
+        // because it does not contain the auto-save hash of the region.
+        $this->request(Request::create('/xb/api/v0/layout/node/1', method: 'PATCH', content: \json_encode($updateRegionClientData, JSON_THROW_ON_ERROR)));
+        $this->fail('Expected exception');
+      }
+      catch (ConflictHttpException $exception) {
+        self::assertSame('You do not have the latest changes, please refresh your browser.', $exception->getMessage());
+      }
+      $this->addClientAutoSaves($updateRegionClientData, [$sidebarFirstRegion]);
+      $response = $this->request(Request::create('/xb/api/v0/layout/node/1', method: 'PATCH', content: \json_encode($updateRegionClientData, JSON_THROW_ON_ERROR)));
+      $this->assertSame(200, $response->getStatusCode());
     }
   }
 
@@ -345,6 +389,7 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
       ],
       'componentType' => 'block.system_messages_block@95494899663264b4',
       'componentInstanceUuid' => $globalComponentUuid,
+      'autoSaves' => [],
     ], JSON_THROW_ON_ERROR)));
   }
 

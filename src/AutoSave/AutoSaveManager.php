@@ -104,13 +104,13 @@ class AutoSaveManager implements EventSubscriberInterface {
   public function getAutoSaveData(EntityInterface $entity): AutoSaveData {
     $auto_save_data = $this->getTempStore()->get($this->getAutoSaveKey($entity));
     if (\is_null($auto_save_data)) {
-      return new AutoSaveData(NULL);
+      return new AutoSaveData(NULL, NULL);
     }
 
     \assert(\is_array($auto_save_data));
     \assert(\array_key_exists('data', $auto_save_data));
     \assert(\is_array($auto_save_data['data']));
-    return new AutoSaveData($auto_save_data['data']);
+    return new AutoSaveData($auto_save_data['data'], $auto_save_data['data_hash']);
   }
 
   /**

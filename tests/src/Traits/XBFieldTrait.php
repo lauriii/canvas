@@ -273,6 +273,7 @@ trait XBFieldTrait {
       'entity_form_fields' => [
         'title[0][value]' => 'The updated title.',
       ],
+      'autoSaves' => [],
     ];
   }
 

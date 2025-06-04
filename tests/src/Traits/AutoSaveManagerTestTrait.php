@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\experience_builder\Traits;
 
+use Drupal\Core\Entity\EntityInterface;
+use Drupal\experience_builder\AutoSave\AutoSaveManager;
 use Drupal\Core\File\FileExists;
 use Drupal\Core\File\FileSystemInterface;
 use Drupal\Core\Session\AccountInterface;
@@ -26,6 +28,19 @@ trait AutoSaveManagerTestTrait {
     $hash = $generateHash->invokeArgs(NULL, [$data]);
     self::assertIsString($hash);
     return $hash;
+  }
+
+  protected function addClientAutoSaves(array &$clientData, array $entities): void {
+    $clientData['autoSaves'] ??= [];
+    $autoSaveManager = $this->container->get(AutoSaveManager::class);
+    assert($autoSaveManager instanceof AutoSaveManager);
+    foreach ($entities as $entity) {
+      assert($entity instanceof EntityInterface);
+      $autoSaveData = $autoSaveManager->getAutoSaveData($entity);
+      if ($autoSaveData->hash) {
+        $clientData['autoSaves'][AutoSaveManager::getAutoSaveKey($entity)] = $autoSaveData->hash;
+      }
+    }
   }
 
   protected function getAutoSaveStatesFromServer(): array {

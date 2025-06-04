@@ -412,6 +412,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
       ];
     }
 
+    $this->addClientAutoSaves($validClientJson, [$node1]);
     // Auto-save node 1.
     $response = $this->request(Request::create(Url::fromRoute('experience_builder.api.layout.post', [
       'entity_type' => 'node',
@@ -545,6 +546,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
 
     // Fix the errors.
     $validClientJson['model'][self::TEST_HEADING_UUID]['resolved']['style'] = 'primary';
+    $this->addClientAutoSaves($validClientJson, array_merge([$node2], $withGlobal ? [$page_region] : []));
     $response = $this->request(Request::create(Url::fromRoute('experience_builder.api.layout.post', [
       'entity_type' => 'node',
       'entity' => $node2->id(),
