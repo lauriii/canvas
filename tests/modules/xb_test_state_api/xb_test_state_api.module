@@ -296,5 +296,135 @@ function xb_test_state_api_form_alter(array &$form, FormStateInterface $form_sta
         ],
       ],
     ];
+
+    $form['states_api_test']['radio_states'] = [
+      '#type' => 'container',
+      '#title' => t('Radio States'),
+      '#markup' => '<strong>Test the State API with a radio element.</strong>',
+    ];
+
+    $radio_options = [
+      0 => t('Radio: Make default enabled disabled'),
+      1 => t('Radio: Make default disabled enabled'),
+      2 => t('Radio: Make required optional'),
+      3 => t('Radio: Make optional required'),
+      4 => t('Radio: Make visible invisible'),
+      5 => t('Radio: Make invisible visible'),
+      6 => t('Radio: Make checked unchecked'),
+      7 => t('Radio: Make unchecked checked'),
+      8 => t('Radio: A value that does nothing but be a value'),
+    ];
+
+    $form['states_api_test']['radio_states']['test_the_radio'] = [
+      '#type' => 'radios',
+      '#title' => t('Test the radio states'),
+      '#default_value' => 8,
+      '#options' => $radio_options,
+    ];
+
+    // Disabled by default, becomes enabled
+    $form['states_api_test']['radio_states']['default_enabled'] = [
+      '#type' => 'textfield',
+      '#title' => t('Radio: Default enabled field'),
+      '#states' => [
+        'disabled' => [
+          ':input[name="test_the_radio"]' => ['value' => 0],
+        ],
+      ],
+    ];
+
+    $form['states_api_test']['radio_states']['default_disabled'] = [
+      '#type' => 'textfield',
+      '#title' => t('Radio: Default disabled field'),
+      '#disabled' => TRUE,
+      '#states' => [
+        'enabled' => [
+          ':input[name="test_the_radio"]' => ['value' => 1],
+        ],
+      ],
+    ];
+
+    // Required by default, becomes optional
+    $form['states_api_test']['radio_states']['default_required'] = [
+      '#type' => 'textfield',
+      '#title' => t('Radio: Default required field'),
+      '#required' => TRUE,
+      '#states' => [
+        'optional' => [
+          ':input[name="test_the_radio"]' => ['value' => 2],
+        ],
+      ],
+    ];
+
+    // Optional by default, becomes required
+    $form['states_api_test']['radio_states']['default_optional'] = [
+      '#type' => 'textfield',
+      '#title' => t('Radio: Default optional field'),
+      '#states' => [
+        'required' => [
+          ':input[name="test_the_radio"]' => ['value' => 3],
+        ],
+      ],
+    ];
+
+    // Visible by default, becomes invisible
+    $form['states_api_test']['radio_states']['default_visible'] = [
+      '#type' => 'textfield',
+      '#title' => t('Radio: Default visible field'),
+      '#states' => [
+        'invisible' => [
+          ':input[name="test_the_radio"]' => ['value' => 4],
+        ],
+      ],
+    ];
+
+    // Invisible by default, becomes visible
+    $form['states_api_test']['radio_states']['default_invisible'] = [
+      '#type' => 'textfield',
+      '#title' => t('Radio: Default invisible field'),
+      '#states' => [
+        'visible' => [
+          ':input[name="test_the_radio"]' => ['value' => 5],
+        ],
+      ],
+    ];
+
+    // Checked by default, becomes unchecked
+    $form['states_api_test']['radio_states']['default_checked'] = [
+      '#type' => 'checkbox',
+      '#title' => t('Radio: Default checked checkbox'),
+      '#default_value' => TRUE,
+      '#states' => [
+        'unchecked' => [
+          ':input[name="test_the_radio"]' => ['value' => 6],
+        ],
+      ],
+    ];
+
+    // Unchecked by default, becomes checked
+    $form['states_api_test']['radio_states']['default_unchecked'] = [
+      '#type' => 'checkbox',
+      '#title' => t('Radio: Default unchecked checkbox'),
+      '#default_value' => FALSE,
+      '#states' => [
+        'checked' => [
+          ':input[name="test_the_radio"]' => ['value' => 7],
+        ],
+      ],
+    ];
+
+    // Container that appears when any radio option is selected
+    $form['states_api_test']['radio_states']['hello_world'] = [
+      '#type' => 'container',
+      '#attributes' => ['data-when-any-radio' => 'true'],
+      'markup' => [
+        '#markup' => '<p>Hello world</p>',
+      ],
+      '#states' => [
+        'visible' => [
+          ':input[name="test_the_radio"]' => ['filled' => TRUE],
+        ],
+      ],
+    ];
   }
 }

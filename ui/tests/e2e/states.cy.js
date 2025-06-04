@@ -187,4 +187,70 @@ describe('states', () => {
     });
     cy.get('[data-when-not-empty]').should('be.visible');
   });
+
+  it('responds to radio changes', () => {
+    cy.get('[data-when-any-radio]').should('not.be.visible');
+
+    const states = [
+      {
+        option: 'Radio: Make default enabled disabled',
+        target: 'Radio: Default enabled field',
+        before: ['be.enabled'],
+        after: ['not.be.enabled'],
+      },
+      {
+        option: 'Radio: Make default disabled enabled',
+        target: 'Radio: Default disabled field',
+        before: ['not.be.enabled'],
+        after: ['be.enabled'],
+      },
+      {
+        option: 'Radio: Make required optional',
+        target: 'Radio: Default required field',
+        before: ['have.attr', 'required'],
+        after: ['not.have.attr', 'required'],
+      },
+      {
+        option: 'Radio: Make optional required',
+        target: 'Radio: Default optional field',
+        before: ['not.have.attr', 'required'],
+        after: ['have.attr', 'required'],
+      },
+      {
+        option: 'Radio: Make visible invisible',
+        target: 'Radio: Default visible field',
+        before: ['be.visible'],
+        after: ['not.be.visible'],
+      },
+      {
+        option: 'Radio: Make invisible visible',
+        target: 'Radio: Default invisible field',
+        before: ['not.be.visible'],
+        after: ['be.visible'],
+      },
+      {
+        option: 'Radio: Make checked unchecked',
+        target: 'Radio: Default checked checkbox',
+        before: ['be.checked'],
+        after: ['not.be.checked'],
+      },
+      {
+        option: 'Radio: Make unchecked checked',
+        target: 'Radio: Default unchecked checkbox',
+        before: ['not.be.checked'],
+        after: ['be.checked'],
+      },
+    ];
+    states.forEach(({ option, target, before, after }) => {
+      cy.log(`Radio state change: ${option}`);
+      cy.findByLabelText(target).should(...before);
+      cy.findByLabelText(option).check();
+      cy.findByLabelText(target).should(...after);
+      cy.findByLabelText(
+        'Radio: A value that does nothing but be a value',
+      ).check();
+      cy.findByLabelText(target).should(...before);
+    });
+    cy.get('[data-when-any-radio]').should('be.visible');
+  });
 });

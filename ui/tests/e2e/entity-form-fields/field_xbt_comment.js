@@ -5,12 +5,28 @@ export const edit = (cy) => {
     .as('commentFieldset');
   cy.get('@commentFieldset')
     .findByLabelText('Open', { exact: false })
-    .assertToggleState(false);
-  cy.get('@commentFieldset').findByText('Open', { exact: false }).click();
+    .invoke('attr', 'data-drupal-xb-checked')
+    .should('equal', 'true');
+
+  cy.get('@commentFieldset')
+    .findByLabelText('Hidden', { exact: false })
+    .invoke('attr', 'data-drupal-xb-checked')
+    .should('equal', 'false');
+
+  cy.get('@commentFieldset')
+    .findByLabelText('Hidden', { exact: false })
+    .click();
+
   cy.get('@commentFieldset')
     .findByLabelText('Open', { exact: false })
-    .assertToggleState(true);
+    .invoke('attr', 'data-drupal-xb-checked')
+    .should('equal', 'false');
+
+  cy.get('@commentFieldset')
+    .findByLabelText('Hidden', { exact: false })
+    .invoke('attr', 'data-drupal-xb-checked')
+    .should('equal', 'true');
 };
 export const assertData = (response) => {
-  expect(response.attributes.field_xbt_comment.status).to.equal(2);
+  expect(response.attributes.field_xbt_comment.status).to.equal(0);
 };

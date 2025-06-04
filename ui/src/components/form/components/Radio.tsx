@@ -1,37 +1,33 @@
-import { RadioGroup as RadixThemesRadioGroup } from '@radix-ui/themes';
-
+import { a2p } from '@/local_packages/utils.js';
 import type { Attributes } from '@/types/DrupalAttribute';
+import clsx from 'clsx';
+import styles from './Radio.module.css';
 
 const RadioGroup = ({
-  value,
-  onValueChange,
   attributes = {},
   children,
 }: {
-  value: string;
-  onValueChange?: (value: string) => void;
   attributes?: Attributes;
   children?: React.ReactNode;
 }) => {
-  return (
-    <RadixThemesRadioGroup.Root
-      value={value}
-      onValueChange={onValueChange}
-      {...attributes}
-    >
-      {children}
-    </RadixThemesRadioGroup.Root>
-  );
+  return <div {...attributes}>{children}</div>;
 };
 
 const RadioItem = ({
-  value,
   attributes = {},
+  onChange,
 }: {
-  value: string;
   attributes?: Attributes;
+  onChange?: Function;
 }) => {
-  return <RadixThemesRadioGroup.Item value={value} {...attributes} />;
+  return (
+    <input
+      type="radio"
+      {...a2p(attributes, {}, { skipAttributes: ['class'] })}
+      className={clsx(attributes.class || '', styles.radio)}
+      onChange={onChange}
+    />
+  );
 };
 
 export { RadioItem, RadioGroup };

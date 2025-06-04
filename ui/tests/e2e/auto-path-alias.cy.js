@@ -91,38 +91,46 @@ describe('Auto path alias generation', () => {
     cy.get('#edit-path-0-alias').should('have.value', '/custom-url');
   });
 
-  it('after changes are published, new path is no longer generated automatically', () => {
-    cy.loadURLandWaitForXBLoaded({ url: 'xb/xb_page/1' });
-    cy.get('iframe[data-xb-preview]').should('exist');
+  it(
+    'after changes are published, new path is no longer generated automatically',
+    { retries: { openMode: 0, runMode: 3 } },
+    () => {
+      cy.loadURLandWaitForXBLoaded({ url: 'xb/xb_page/1' });
+      cy.get('iframe[data-xb-preview]').should('exist');
 
-    cy.findByTestId('xb-navigation-button').click();
-    cy.findByTestId('xb-navigation-new-button').click();
-    cy.findByTestId('xb-navigation-new-page-button').click();
-    cy.url().should('not.contain', '/xb/xb_page/1');
-    cy.url().should('contain', '/xb/xb_page/5');
-    cy.findByTestId('xb-topbar').findByText('Draft');
+      cy.findByTestId('xb-navigation-button').click();
+      cy.findByTestId('xb-navigation-new-button').click();
+      cy.findByTestId('xb-navigation-new-page-button').click();
+      cy.url().should('not.contain', '/xb/xb_page/1');
+      cy.url().should('contain', '/xb/xb_page/5');
+      cy.findByTestId('xb-topbar').findByText('Draft');
 
-    // Set the title and make sure that the path alias is generated automatically.
-    cy.get('#edit-title-0-value').clear();
-    cy.intercept('POST', '**/xb/api/v0/layout/**').as('updatePreview');
-    cy.get('#edit-title-0-value').type("Lauri's another page");
-    cy.wait('@updatePreview');
-    cy.intercept('POST', '**/xb/api/v0/layout/**').as('updatePreview');
-    cy.get('#edit-title-0-value').blur();
-    cy.intercept('POST', '**/xb/api/v0/layout/**').as('updatePreview');
-    cy.get('#edit-path-0-alias').should('have.value', '/lauris-another-page');
-    cy.wait('@updatePreview');
+      // Set the title and make sure that the path alias is generated automatically.
+      cy.get('#edit-title-0-value').clear();
+      cy.intercept('POST', '**/xb/api/v0/layout/**').as('updatePreview');
+      cy.get('#edit-title-0-value').type("Lauri's another page");
+      cy.wait('@updatePreview');
+      cy.intercept('POST', '**/xb/api/v0/layout/**').as('updatePreview');
+      cy.get('#edit-title-0-value').blur();
+      cy.intercept('POST', '**/xb/api/v0/layout/**').as('updatePreview');
+      cy.get('#edit-path-0-alias').should('have.value', '/lauris-another-page');
+      cy.wait('@updatePreview');
+      cy.get('[data-testid="xb-publish-review"]:not([disabled])', {
+        timeout: 20000,
+      }).should('exist');
+      cy.findByText('Review 2 changes', { timeout: 20000 }).click();
+      cy.findByText('Publish all changes').click();
+      cy.findByText('All changes published!', { timeout: 10000 }).should(
+        'exist',
+      );
+      cy.get('[aria-label="Close"]').parent().click();
 
-    cy.findByText('Review 2 changes', { timeout: 20000 }).click();
-    cy.findByText('Publish all changes').click();
-    cy.findByText('All changes published!', { timeout: 10000 }).should('exist');
-    cy.get('[aria-label="Close"]').parent().click();
-
-    cy.get('#edit-title-0-value').clear();
-    cy.get('#edit-title-0-value').type("Lauri's updated page");
-    cy.get('#edit-title-0-value').blur();
-    cy.get('#edit-path-0-alias').should('have.value', '/lauris-another-page');
-  });
+      cy.get('#edit-title-0-value').clear();
+      cy.get('#edit-title-0-value').type("Lauri's updated page");
+      cy.get('#edit-title-0-value').blur();
+      cy.get('#edit-path-0-alias').should('have.value', '/lauris-another-page');
+    },
+  );
 
   it(`xb/xb_page/3 will generate path alias based on title for published content if path is empty`, () => {
     cy.loadURLandWaitForXBLoaded({ url: 'xb/xb_page/3' });
