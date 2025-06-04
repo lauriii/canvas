@@ -12,7 +12,6 @@ use Drupal\experience_builder\Entity\ComponentInterface;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemListInstantiatorTrait;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\Tests\experience_builder\Kernel\Traits\CiModulePathTrait;
-use Drupal\Tests\experience_builder\Traits\ConstraintViolationsTestTrait;
 use Drupal\Tests\experience_builder\Traits\ContribStrictConfigSchemaTestTrait;
 use Drupal\Tests\experience_builder\Traits\CrawlerTrait;
 use Drupal\Tests\experience_builder\Traits\GenerateComponentConfigTrait;
@@ -26,7 +25,6 @@ use Drupal\Tests\experience_builder\Traits\SingleDirectoryComponentTreeTestTrait
  */
 final class ComponentInputsEvolutionTest extends KernelTestBase {
 
-  use ConstraintViolationsTestTrait;
   use ContribStrictConfigSchemaTestTrait;
   use SingleDirectoryComponentTreeTestTrait;
   use GenerateComponentConfigTrait;
@@ -100,7 +98,7 @@ final class ComponentInputsEvolutionTest extends KernelTestBase {
         ],
       ],
     ]);
-    self::assertSame([], self::violationsToArray($items->validate()));
+    self::assertCount(0, $items->validate());
 
     // Creating a component of this type should set the `component_version`
     // field property and column to the active version.
@@ -186,7 +184,7 @@ final class ComponentInputsEvolutionTest extends KernelTestBase {
         ],
       ],
     ]);
-    self::assertSame([], self::violationsToArray($new_items->validate()));
+    self::assertCount(0, $new_items->validate());
 
     // Creating a component of this type should set the `component_version`
     // field property and column to the active version.
@@ -233,7 +231,7 @@ final class ComponentInputsEvolutionTest extends KernelTestBase {
     // Create a new item list from this.
     $original_items = self::staticallyCreateDanglingComponentTreeItemList(\Drupal::typedDataManager());
     $original_items->setValue($component_tree_item_list_values);
-    self::assertSame([], self::violationsToArray($original_items->validate()));
+    self::assertCount(0, $original_items->validate());
     // Should still equal the original model, even though the field type is now
     // different for the cta1href prop for new component instances: existing
     // component instances remain unchanged.
@@ -271,7 +269,7 @@ final class ComponentInputsEvolutionTest extends KernelTestBase {
         ],
       ],
     ]);
-    self::assertSame([], self::violationsToArray($newest_items->validate()));
+    self::assertCount(0, $newest_items->validate());
 
     // Creating a component of this type should set the `component_version`
     // field property and column to the active version.

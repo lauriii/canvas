@@ -65,16 +65,10 @@ final class ComponentTreeStructureConstraintValidator extends ConstraintValidato
     if ($base_property_path === '') {
       $base_property_path = $this->context->getPropertyPath();
     }
-    $delta = NULL;
-    $parent_property_name = '';
     $object = $this->context->getObject();
     if (\is_array($value) && !\array_is_list($value) && $object instanceof TypedDataInterface) {
       $type = $object->getDataDefinition()->getDataType();
       if ($type === 'field.value.component_tree' && ($parent = $object->getParent()) !== NULL) {
-        $root_property_path_length = \strlen($object->getRoot()->getPropertyPath()) + 1;
-        $delta = \substr($object->getPropertyPath(), $root_property_path_length);
-        $is_first_component_instance_in_default_field_value = array_search($value, $parent->getValue()) === array_keys($parent->getValue())[0];
-        $parent_property_name = \substr($object->getParent()->getPropertyPath(), $root_property_path_length);
         // We can only validate a single field value item in the case of a
         // default value for a field. So we need to traverse to the parent to
         // get the complete values for validation-sake. This is because the
@@ -85,7 +79,19 @@ final class ComponentTreeStructureConstraintValidator extends ConstraintValidato
         // value so we have access to all the default values instead of a single
         // one.
         // @see core.data_types.schema.yml
+        $delta = (int) $object->getName();
+        if ($delta !== 0) {
+          // We're validating a field default value here, but we don't need to
+          // run it for any deltas other than zero, because we're reaching up
+          // to the parent value and getting the full sequence and validating
+          // that in a single pass.
+          return;
+        }
+        // Validate the parent value - which is the sequence of all default
+        // values for the field.
         $value = $parent->getValue();
+        // Adjust the base property path appropriately.
+        $base_property_path = (string) $parent->getName();
       }
     }
     if (!is_array($value)) {
@@ -151,42 +157,13 @@ final class ComponentTreeStructureConstraintValidator extends ConstraintValidato
       new Sequentially([
         new Type('array'),
         new All([$component_instance_constraint]),
+        new Unique(fields: ['uuid'], message: 'Not all component instance UUIDs in this component tree are unique.'),
       ]),
     ]);
-    // Finally, ensure that each component instance UUID in the entire tree is
-    // unique. This must be done separately to avoid repeating the same
-    // duplication validation error for each item in the tree.
-    if ($violations->count() === 0) {
-      $violations->addAll($non_typed_data_validator->validate(
-        $value,
-        new Unique(fields: ['uuid'], message: 'Not all component instance UUIDs in this component tree are unique.'),
-      ));
-    }
 
     foreach ($violations as $violation) {
-      // When we're validating a default field value, we are effectively
-      // performing the tree validation for the whole tree for each delta,
-      // because core doesn't afford us the opportunity to validate it in
-      // aggregate. In this scenario, we have a stored delta and only want to
-      // bubble violations that match the delta we're checking. Without this
-      // check, violations in sibling deltas are repeated for each delta.
-      // @see core.data_types.schema.yml
       $property_path = $violation->getPropertyPath();
-      if ($delta !== NULL) {
-        assert(isset($is_first_component_instance_in_default_field_value));
-        if (($property_path === '' && $is_first_component_instance_in_default_field_value) || \str_starts_with(self::translatePropertyPath($parent_property_name, $property_path), $delta)) {
-          $new_path = self::translatePropertyPath($parent_property_name, $property_path, $this->context->getPropertyPath());
-        }
-        else {
-          // Validation error for other delta, ignore this violation.
-          continue;
-        }
-      }
-      // The non-default field value (`type: field.value.component_tree`) case.
-      else {
-        $new_path = self::translatePropertyPath($base_property_path, $property_path, $this->context->getPropertyPath());
-      }
-
+      $new_path = self::translatePropertyPath($base_property_path, $property_path, $this->context->getPropertyPath());
       // We make use of ::add instead of using ::buildViolation and casting
       // the previous violation message to a string because the violation may
       // make use of placeholders and if we cast the message to a string, we
