@@ -113,7 +113,7 @@ final class ComponentTreeStructureConstraintValidator extends ConstraintValidato
             new NotBlank(),
             new ConfigExistsConstraint(['prefix' => 'experience_builder.component.']),
           ]),
-          'version' => new Required([
+          'component_version' => new Required([
             new Type('string'),
             new NotBlank(),
             new ValidConfigEntityVersionConstraint([

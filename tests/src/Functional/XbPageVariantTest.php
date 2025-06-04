@@ -140,7 +140,7 @@ class XbPageVariantTest extends FunctionalTestBase {
         [
           'uuid' => self::UUID_IN_ROOT,
           'component_id' => 'sdc.xb_test_sdc.props-no-slots',
-          'version' => 'c8a016671696090c',
+          'component_version' => 'c8a016671696090c',
           'inputs' => [
             'heading' => $generate_static_prop_source('world'),
           ],
@@ -148,7 +148,7 @@ class XbPageVariantTest extends FunctionalTestBase {
         [
           'uuid' => self::UUID_LOCAL_ACTIONS,
           'component_id' => 'block.local_actions_block',
-          'version' => 'd13c0e199912bb6b',
+          'component_version' => 'd13c0e199912bb6b',
           'inputs' => [
             'label' => '',
             'label_display' => FALSE,
@@ -157,7 +157,7 @@ class XbPageVariantTest extends FunctionalTestBase {
         [
           'uuid' => self::UUID_INACCESSIBLE,
           'component_id' => 'block.user_login_block',
-          'version' => '6bd8521e805b6065',
+          'component_version' => '6bd8521e805b6065',
           // Note how there is no input for the user login block, the main
           // content block, but there is for all others.
           // @see \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\BlockComponent::getExplicitInput()
@@ -166,7 +166,7 @@ class XbPageVariantTest extends FunctionalTestBase {
         [
           'uuid' => self::UUID_TITLE,
           'component_id' => 'block.page_title_block',
-          'version' => 'ed0a8cbdee7c1f61',
+          'component_version' => 'ed0a8cbdee7c1f61',
           'inputs' => [
             'label' => '',
             'label_display' => FALSE,
@@ -175,7 +175,7 @@ class XbPageVariantTest extends FunctionalTestBase {
         [
           'uuid' => self::UUID_BRANDING,
           'component_id' => 'block.system_branding_block',
-          'version' => 'cc5b6644b21159f6',
+          'component_version' => 'cc5b6644b21159f6',
           'inputs' => [
             'label' => '',
             'label_display' => FALSE,
@@ -187,7 +187,7 @@ class XbPageVariantTest extends FunctionalTestBase {
         [
           'uuid' => self::UUID_MESSAGES,
           'component_id' => 'block.system_messages_block',
-          'version' => '95494899663264b4',
+          'component_version' => '95494899663264b4',
           'inputs' => [
             'label' => '',
             'label_display' => FALSE,
@@ -196,7 +196,7 @@ class XbPageVariantTest extends FunctionalTestBase {
         [
           'uuid' => self::UUID_IN_ROOT_ANOTHER,
           'component_id' => 'sdc.xb_test_sdc.props-no-slots',
-          'version' => 'c8a016671696090c',
+          'component_version' => 'c8a016671696090c',
           'inputs' => [
             'heading' => $generate_static_prop_source('another world'),
           ],

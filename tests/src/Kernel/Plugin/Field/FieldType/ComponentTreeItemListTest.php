@@ -1533,7 +1533,7 @@ HTML,
           // Inject version IDs.
           $component = Component::load($item['component_id']);
           \assert($component instanceof ComponentInterface);
-          return $item + ['version' => $component->getActiveVersion()];
+          return $item + ['component_version' => $component->getActiveVersion()];
         }, $expected_tree_or_exception);
       }
       $actual_value = $target_tree->getValue();

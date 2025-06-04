@@ -102,10 +102,10 @@ final class ComponentInputsEvolutionTest extends KernelTestBase {
     ]);
     self::assertSame([], self::violationsToArray($items->validate()));
 
-    // Creating a component of this type should set the `version` field property
-    // and column to the active version.
+    // Creating a component of this type should set the `component_version`
+    // field property and column to the active version.
     self::assertSame($original_version, $items->first()?->getComponentVersion());
-    self::assertSame($original_version, $items->getValue()[0]['version']);
+    self::assertSame($original_version, $items->getValue()[0]['component_version']);
 
     // Converting to a client-side model should expand the plain inputs into
     // structured values.
@@ -188,10 +188,10 @@ final class ComponentInputsEvolutionTest extends KernelTestBase {
     ]);
     self::assertSame([], self::violationsToArray($new_items->validate()));
 
-    // Creating a component of this type should set the `version` field property
-    // and column to the active version.
+    // Creating a component of this type should set the `component_version`
+    // field property and column to the active version.
     self::assertSame($new_version, $new_items->first()?->getComponentVersion());
-    self::assertSame($new_version, $new_items->getValue()[0]['version']);
+    self::assertSame($new_version, $new_items->getValue()[0]['component_version']);
 
     $new_client_model = $new_items->getClientSideRepresentation();
 
@@ -228,8 +228,8 @@ final class ComponentInputsEvolutionTest extends KernelTestBase {
     // Converting the old client model should still retain the reference to the
     // old version.
     $component_tree_item_list_values = self::convertClientToServer($client_model['layout'], $client_model['model']);
-    \assert(\array_key_exists('version', $component_tree_item_list_values[0]));
-    self::assertSame($original_version, $component_tree_item_list_values[0]['version']);
+    \assert(\array_key_exists('component_version', $component_tree_item_list_values[0]));
+    self::assertSame($original_version, $component_tree_item_list_values[0]['component_version']);
     // Create a new item list from this.
     $original_items = self::staticallyCreateDanglingComponentTreeItemList(\Drupal::typedDataManager());
     $original_items->setValue($component_tree_item_list_values);
@@ -273,10 +273,10 @@ final class ComponentInputsEvolutionTest extends KernelTestBase {
     ]);
     self::assertSame([], self::violationsToArray($newest_items->validate()));
 
-    // Creating a component of this type should set the `version` field property
-    // and column to the active version.
+    // Creating a component of this type should set the `component_version`
+    // field property and column to the active version.
     self::assertSame($original_version, $newest_items->first()?->getComponentVersion());
-    self::assertSame($original_version, $newest_items->getValue()[0]['version']);
+    self::assertSame($original_version, $newest_items->getValue()[0]['component_version']);
   }
 
 }

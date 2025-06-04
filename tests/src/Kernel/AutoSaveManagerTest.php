@@ -160,7 +160,7 @@ class AutoSaveManagerTest extends KernelTestBase {
         [
           'uuid' => self::UUID_IN_ROOT,
           'component_id' => 'sdc.xb_test_sdc.props-no-slots',
-          'version' => 'c8a016671696090c',
+          'component_version' => 'c8a016671696090c',
           'inputs' => [
             'heading' => $generate_static_prop_source('world'),
           ],

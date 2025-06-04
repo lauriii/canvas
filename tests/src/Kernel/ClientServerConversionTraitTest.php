@@ -127,27 +127,27 @@ class ClientServerConversionTraitTest extends KernelTestBase {
       [
         'uuid' => self::TEST_HEADING_UUID,
         'component_id' => 'sdc.experience_builder.heading',
-        'version' => '5700f78c83cd433f',
+        'component_version' => '5700f78c83cd433f',
       ],
       [
         'uuid' => self::TEST_IMAGE_UUID,
         'component_id' => 'sdc.experience_builder.image',
-        'version' => 'f81037abea6701d7',
+        'component_version' => 'f81037abea6701d7',
       ],
       [
         'uuid' => self::TEST_BLOCK,
         'component_id' => 'block.system_branding_block',
-        'version' => 'cc5b6644b21159f6',
+        'component_version' => 'cc5b6644b21159f6',
       ],
       [
         'uuid' => self::TOP_LEVEL_SLOT_COMPONENT_UUID,
         'component_id' => 'sdc.xb_test_sdc.props-slots',
-        'version' => 'c8a016671696090c',
+        'component_version' => 'c8a016671696090c',
       ],
       [
         'uuid' => self::NESTED_SLOT_COMPONENT_UUID,
         'component_id' => 'sdc.xb_test_sdc.props-slots',
-        'version' => 'c8a016671696090c',
+        'component_version' => 'c8a016671696090c',
         'slot' => 'the_body',
         'parent_uuid' => self::TOP_LEVEL_SLOT_COMPONENT_UUID,
       ],
@@ -180,17 +180,17 @@ class ClientServerConversionTraitTest extends KernelTestBase {
       [
         'uuid' => self::TEST_HEADING_UUID,
         'component_id' => 'sdc.experience_builder.heading',
-        'version' => '5700f78c83cd433f',
+        'component_version' => '5700f78c83cd433f',
       ],
       [
         'uuid' => self::TEST_IMAGE_UUID,
         'component_id' => 'sdc.experience_builder.image',
-        'version' => 'f81037abea6701d7',
+        'component_version' => 'f81037abea6701d7',
       ],
       [
         'uuid' => self::TEST_BLOCK,
         'component_id' => 'block.system_branding_block',
-        'version' => 'cc5b6644b21159f6',
+        'component_version' => 'cc5b6644b21159f6',
       ],
     ], \array_map(static fn (array $item) => \array_filter(\array_diff_key($item, \array_flip(['inputs']))), $converted_items));
 

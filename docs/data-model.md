@@ -127,7 +127,7 @@ Additionally, convenience methods for accessing/setting values on the `Component
 
 Storing these as separate `field prop`s simplifies supporting both symmetric and asymmetric translations:
 - the _inputs_ column group (just the `inputs` column) group SHOULD always be translatable
-- the _tree_ column group (comprising `uuid`, `component_id`, `version`, `parent_uuid` and `slot`) can be either:
+- the _tree_ column group (comprising `uuid`, `component_id`, `component_version`, `parent_uuid` and `slot`) can be either:
   1. marked translatable for _asymmetric translations_ (a different `component tree` per `content entity` translation)
   2. marked untranslatable for _symmetric translations_ (same `component tree` for all `content entity` translations)
 
@@ -135,14 +135,14 @@ Storing these as separate `field prop`s simplifies supporting both symmetric and
 
 #### 3.2.1 The columns (`field prop`s) storing the tree structure
 
-The `uuid`, `component_id`, `version`, `parent_uuid` and `slot` columns model the tree structure.
+The `uuid`, `component_id`, `component_version`, `parent_uuid` and `slot` columns model the tree structure.
 
 See `\Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure` + its validation constraint.
 
 These columns always meet the following requirements
-1. every `component instance` is represented by a "uuid, component_id, version" triple, with:
+1. every `component instance` is represented by a "uuid, component_id, component_version" triple, with:
   - the value for "component_id" being the ID of a `Component config entity` (NOT that of the underlying `component`)
-  - the value for "version" being a version on the (versioned!) `Component config entity` (see `\Drupal\experience_builder\Entity\VersionedConfigEntityInterface::getVersions()`)
+  - the value for "component_version" being a version on the (versioned!) `Component config entity` (see `\Drupal\experience_builder\Entity\VersionedConfigEntityInterface::getVersions()`)
   - the "uuid" being a randomly generated UUID
 2. Any top-level items have NULL for both the `parent_uuid` and `slot`.
 3. Nested components must have a value for both the `parent_uuid` and `slot`.
@@ -184,7 +184,7 @@ Example: A simple tree showing a root item (`41595148-e5c1-4873-b373-be3ae6e2134
 [
   'uuid' => '41595148-e5c1-4873-b373-be3ae6e21340',
   'component_id' => 'sdc.xb_test_sdc.props-slots',
-  'version' => 'c8a016671696090c',
+  'component_version' => 'c8a016671696090c',
   'inputs' => [
     'heading' => [
       'sourceType' => 'static:field_item:string',
@@ -196,7 +196,7 @@ Example: A simple tree showing a root item (`41595148-e5c1-4873-b373-be3ae6e2134
 [
   'uuid' => '3b305d86-86a7-4684-8664-7ef1fc2be070',
   'component_id' => 'sdc.xb_test_sdc.props-no-slots',
-  'version' => 'c8a016671696090c',
+  'component_version' => 'c8a016671696090c',
   'parent_uuid' => '41595148-e5c1-4873-b373-be3ae6e21340',
   'slot' => 'the_body',
   'inputs' => [
@@ -209,7 +209,7 @@ Example: A simple tree showing a root item (`41595148-e5c1-4873-b373-be3ae6e2134
   [
     'uuid' => '41595148-e5c1-4873-b373-be3ae6e21340',
     'component_id' => 'block.system_branding_block',
-    'version' => 'cc5b6644b21159f6',
+    'component_version' => 'cc5b6644b21159f6',
     // Example, that populates a Block component instance.
     // Note how much simpler the stored information is, because it uses the Block system's native input UX:
     'inputs' => [

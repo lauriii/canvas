@@ -36,7 +36,7 @@ use Symfony\Component\Validator\ConstraintViolationList;
  * @see https://git.drupalcode.org/project/metatag/-/blob/2.0.x/src/Plugin/Field/FieldType/MetatagFieldItem.php
  *
  * @phpstan-import-type ComponentConfigEntityId from \Drupal\experience_builder\Entity\Component
- * @phpstan-type ComponentTreeItemPropName 'uuid'|'inputs'|'component_id'|'component'|'parent_item'|'slot'|'parent_uuid'|'label'|'version'
+ * @phpstan-type ComponentTreeItemPropName 'uuid'|'inputs'|'component_id'|'component'|'parent_item'|'slot'|'parent_uuid'|'label'|'component_version'
  *
  * @property \Drupal\experience_builder\HydratedTree $hydrated
  */
@@ -102,7 +102,7 @@ use Symfony\Component\Validator\ConstraintViolationList;
         'slot',
         'uuid',
         'component_id',
-        'version',
+        'component_version',
       ],
     ],
   ],
@@ -265,7 +265,7 @@ class ComponentTreeItem extends FieldItemBase {
           'length' => 255,
           'not null' => TRUE,
         ],
-        'version' => [
+        'component_version' => [
           'description' => 'The Component config entity version identifier.',
           'type' => 'varchar_ascii',
           // These are xxh64 hashes.
@@ -293,7 +293,7 @@ class ComponentTreeItem extends FieldItemBase {
       ],
       'indexes' => [
         'component_id' => ['component_id'],
-        'component_id_version' => ['component_id', 'version'],
+        'component_id_version' => ['component_id', 'component_version'],
         'parent_slot' => ['parent_uuid', 'slot'],
         'slot' => ['slot'],
         'uuid' => ['uuid'],
@@ -347,7 +347,7 @@ class ComponentTreeItem extends FieldItemBase {
       ->setLabel(new TranslatableMarkup('Component ID'))
       ->setRequired(TRUE);
 
-    $properties['version'] = DataReferenceTargetDefinition::create('string')
+    $properties['component_version'] = DataReferenceTargetDefinition::create('string')
       ->setLabel(new TranslatableMarkup('Component version ID'))
       // Note we don't add a ValidConfigEntityVersion or
       // ValidConfigEntityVersionConstraint constraint here as they are both
@@ -357,7 +357,7 @@ class ComponentTreeItem extends FieldItemBase {
 
     $properties['component'] = DataReferenceDefinition::create(ConfigEntityVersionAdapter::PLUGIN_ID)
       ->setLabel('Component')
-      ->setDescription(new TranslatableMarkup('The referenced component entity'))
+      ->setDescription(new TranslatableMarkup('The referenced component entity, for the given version'))
       ->setComputed(TRUE)
       ->setReadOnly(FALSE)
       ->setTargetDefinition(EntityDataDefinition::create(Component::ENTITY_TYPE_ID))
@@ -413,9 +413,9 @@ class ComponentTreeItem extends FieldItemBase {
     // TRICKY: do this *only* when no version is specified, otherwise this would
     // unintentionally "upgrade" instances of older component versions to newer
     // ones!
-    if (!array_key_exists('version', $this->values) && ($property_name === 'component_id' || $property_name === 'component')) {
+    if (!array_key_exists('component_version', $this->values) && ($property_name === 'component_id' || $property_name === 'component')) {
       // Set the version ID based on the loaded component.
-      $this->writePropertyValue('version', $this->getComponent()?->getLoadedVersion());
+      $this->writePropertyValue('component_version', $this->getComponent()?->getLoadedVersion());
     }
     parent::onChange($property_name, $notify);
   }
@@ -448,14 +448,14 @@ class ComponentTreeItem extends FieldItemBase {
           }
         }
       }
-      if (\array_key_exists('component_id', $values) || \array_key_exists('component', $values) && !\array_key_exists('version', $values)) {
+      if (\array_key_exists('component_id', $values) || \array_key_exists('component', $values) && !\array_key_exists('component_version', $values)) {
         $this->onChange('component_id', FALSE);
       }
-      if (\array_key_exists('version', $values) && $values['version'] === VersionedConfigEntityBase::ACTIVE_VERSION && $component = $this->getComponent()) {
+      if (\array_key_exists('component_version', $values) && $values['component_version'] === VersionedConfigEntityBase::ACTIVE_VERSION && $component = $this->getComponent()) {
         // Replace 'active' with the current active version. This allows passing
         // 'active' as the version without needing to know the specific version
         // ID.
-        $this->writePropertyValue('version', $component->getActiveVersion());
+        $this->writePropertyValue('component_version', $component->getActiveVersion());
       }
     }
 
@@ -493,7 +493,7 @@ class ComponentTreeItem extends FieldItemBase {
   }
 
   public function getComponentVersion(): string {
-    $version = $this->get('version')->getValue();
+    $version = $this->get('component_version')->getValue();
     if ($version === NULL) {
       throw new \InvalidArgumentException('Component version is required.');
     }

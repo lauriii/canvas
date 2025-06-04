@@ -152,7 +152,7 @@ class ComponentTreeItemTest extends KernelTestBase {
       [
         'uuid' => $root_uuid,
         'component_id' => 'sdc.xb_test_sdc.props-slots',
-        'version' => 'lol',
+        'component_version' => 'lol',
         'inputs' => [
           'heading' => [
             'sourceType' => 'static:field_item:string',
@@ -166,7 +166,7 @@ class ComponentTreeItemTest extends KernelTestBase {
         'slot' => 'the_body',
         'uuid' => $child_uuid,
         'component_id' => 'sdc.xb_test_sdc.props-no-slots',
-        'version' => 'hah',
+        'component_version' => 'hah',
         'inputs' => [
           'heading' => [
             'sourceType' => 'static:field_item:string',
@@ -179,8 +179,8 @@ class ComponentTreeItemTest extends KernelTestBase {
     $this->assertCount(2, $item_list);
     $violations = $item_list->validate();
     $this->assertSame([
-      '0.version' => "'lol' is not a version that exists on component config entity 'sdc.xb_test_sdc.props-slots'. Available versions: 'c8a016671696090c'.",
-      '1.version' => "'hah' is not a version that exists on component config entity 'sdc.xb_test_sdc.props-no-slots'. Available versions: 'c8a016671696090c'.",
+      '0.component_version' => "'lol' is not a version that exists on component config entity 'sdc.xb_test_sdc.props-slots'. Available versions: 'c8a016671696090c'.",
+      '1.component_version' => "'hah' is not a version that exists on component config entity 'sdc.xb_test_sdc.props-no-slots'. Available versions: 'c8a016671696090c'.",
     ], self::violationsToArray($violations));
   }
 
@@ -458,7 +458,7 @@ class ComponentTreeItemTest extends KernelTestBase {
     $test_cases['invalid UUID, missing component_id key'][] = [
       'field_xb_test.0.uuid' => 'This is not a valid UUID.',
       'field_xb_test.0.component_id' => 'This value should not be blank.',
-      'field_xb_test.0.version' => 'This value should not be blank.',
+      'field_xb_test.0.component_version' => 'This value should not be blank.',
     ];
     $test_cases['missing components, using dynamic inputs'][] = [
       'field_xb_test.0.component_id' => "The 'experience_builder.component.sdc.sdc_test.missing' config does not exist.",

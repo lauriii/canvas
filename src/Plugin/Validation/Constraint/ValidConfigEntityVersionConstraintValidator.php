@@ -68,8 +68,8 @@ final class ValidConfigEntityVersionConstraintValidator extends ConstraintValida
           throw new \LogicException('When using the ValidConfigEntityVersionConstraintValidator in a basic validation context, the configName constraint option can only use %parent in a dynamic type expression.');
         }
         // Convert the property path into a format NestedArray supports, for
-        // example a property path of [0][version] corresponds to parents of
-        // '0' and 'version'.
+        // example a property path of [0][component_version] corresponds to
+        // parents of '0' and 'component_version'.
         $path_parts = \explode('][', \trim($this->context->getPropertyPath(), '[]'));
         $expression = \explode('.', $constraint->configName);
         foreach ($expression as $part) {

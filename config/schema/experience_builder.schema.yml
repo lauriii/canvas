@@ -312,7 +312,7 @@ experience_builder.component_tree_node:
       label: 'Component config entity ID'
       # Note constraints here are applied by ComponentTreeStructureConstraintValidator.
       constraints: { }
-    version:
+    component_version:
       type: string
       label: 'Component version'
       # Note constraints here are applied by ComponentTreeStructureConstraintValidator.

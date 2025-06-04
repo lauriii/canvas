@@ -387,7 +387,7 @@ HTML,
         [
           'uuid' => '75144f9b-1bfc-4874-b848-b5889f066217',
           'component_id' => 'block.system_menu_block.main',
-          'version' => '921e932c13a5f313',
+          'component_version' => '921e932c13a5f313',
           'inputs' => [
             'label' => 'Main navigation',
             'label_display' => '',
@@ -429,7 +429,7 @@ HTML,
         [
           'uuid' => '4b26c295-c8cc-4b2d-a38a-235c6cfa1ffa',
           'component_id' => 'block.xb_test_block_input_validatable',
-          'version' => '22e779006330e136',
+          'component_version' => '22e779006330e136',
           'inputs' => [
             'name' => 'test',
             'label' => 'test',

@@ -91,7 +91,7 @@ trait ClientServerConversionTrait {
     $component = [
       'uuid' => $layout['uuid'] ?? NULL,
       'component_id' => $component_id,
-      'version' => $version,
+      'component_version' => $version,
       'inputs' => [],
     ];
     $name = $layout['name'] ?? NULL;

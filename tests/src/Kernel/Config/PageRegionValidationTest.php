@@ -70,7 +70,7 @@ class PageRegionValidationTest extends BetterConfigEntityValidationTestBase {
         [
           'uuid' => '4f785025-9bd9-4752-9dd6-068b957b03ee',
           'component_id' => 'sdc.xb_test_sdc.props-no-slots',
-          'version' => 'c8a016671696090c',
+          'component_version' => 'c8a016671696090c',
           'inputs' => [
             'heading' => $generate_static_prop_source('world'),
           ],
@@ -79,7 +79,7 @@ class PageRegionValidationTest extends BetterConfigEntityValidationTestBase {
         [
           'uuid' => '3a76bf4f-9306-43e6-ba8f-cb4b5b6459df',
           'component_id' => 'sdc.xb_test_sdc.props-no-slots',
-          'version' => 'c8a016671696090c',
+          'component_version' => 'c8a016671696090c',
           'inputs' => [
             'heading' => $generate_static_prop_source('another world'),
           ],
@@ -87,7 +87,7 @@ class PageRegionValidationTest extends BetterConfigEntityValidationTestBase {
         [
           'uuid' => '93af433a-8ab0-4dd9-912a-73a99c882347',
           'component_id' => 'block.page_title_block',
-          'version' => 'ed0a8cbdee7c1f61',
+          'component_version' => 'ed0a8cbdee7c1f61',
           'inputs' => [
             'label' => '',
             'label_display' => FALSE,
@@ -96,7 +96,7 @@ class PageRegionValidationTest extends BetterConfigEntityValidationTestBase {
         [
           'uuid' => '5f1c5361-5658-467e-9c53-b0015d57945d',
           'component_id' => 'block.system_messages_block',
-          'version' => '95494899663264b4',
+          'component_version' => '95494899663264b4',
           'inputs' => [
             'label' => '',
             'label_display' => FALSE,
@@ -212,7 +212,7 @@ class PageRegionValidationTest extends BetterConfigEntityValidationTestBase {
         [
           'uuid' => '4f785025-9bd9-4752-9dd6-068b957b03ee',
           'component_id' => 'sdc.xb_test_sdc.props-no-slots',
-          'version' => 'c8a016671696090c',
+          'component_version' => 'c8a016671696090c',
           'inputs' => [
             'heading' => [
               'sourceType' => 'dynamic',
@@ -231,7 +231,7 @@ class PageRegionValidationTest extends BetterConfigEntityValidationTestBase {
         [
           'uuid' => 'fa9ff0a8-e23a-492a-ab14-5460611fa2c1',
           'component_id' => 'sdc.xb_test_sdc.props-slots',
-          'version' => 'c8a016671696090c',
+          'component_version' => 'c8a016671696090c',
           'inputs' => [
             'heading' => [
               'sourceType' => 'static:field_item:string',
@@ -243,7 +243,7 @@ class PageRegionValidationTest extends BetterConfigEntityValidationTestBase {
         [
           'uuid' => 'fa9ff0a8-e23a-492a-ab14-5460611fa2c1',
           'component_id' => 'sdc.xb_test_sdc.props-slots',
-          'version' => 'c8a016671696090c',
+          'component_version' => 'c8a016671696090c',
           'inputs' => [
             'heading' => [
               'sourceType' => 'static:field_item:string',
@@ -263,7 +263,7 @@ class PageRegionValidationTest extends BetterConfigEntityValidationTestBase {
         [
           'uuid' => 'you-are-a-wizard-harry',
           'component_id' => 'sdc.xb_test_sdc.props-slots',
-          'version' => 'c8a016671696090c',
+          'component_version' => 'c8a016671696090c',
           'inputs' => [
             'heading' => [
               'sourceType' => 'static:field_item:string',
@@ -275,7 +275,7 @@ class PageRegionValidationTest extends BetterConfigEntityValidationTestBase {
         [
           'uuid' => 'fa9ff0a8-e23a-492a-ab14-5460611fa2c1',
           'component_id' => 'sdc.xb_test_sdc.props-slots',
-          'version' => 'c8a016671696090c',
+          'component_version' => 'c8a016671696090c',
           'inputs' => [
             'heading' => [
               'sourceType' => 'static:field_item:string',
@@ -295,7 +295,7 @@ class PageRegionValidationTest extends BetterConfigEntityValidationTestBase {
         [
           'uuid' => 'fa9ff0a8-e23a-492a-ab14-5460611fa2c1',
           'component_id' => 'sdc.xb_test_sdc.props-slots',
-          'version' => 'c8a016671696090c',
+          'component_version' => 'c8a016671696090c',
           'inputs' => [
             'heading' => [
               'sourceType' => 'static:field_item:string',
@@ -309,7 +309,7 @@ class PageRegionValidationTest extends BetterConfigEntityValidationTestBase {
           'slot' => 'the_body',
           'parent_uuid' => '6381352f-5b0a-4ca1-960d-a5505b37b27c',
           'component_id' => 'sdc.xb_test_sdc.props-slots',
-          'version' => 'c8a016671696090c',
+          'component_version' => 'c8a016671696090c',
           'inputs' => [
             'heading' => [
               'sourceType' => 'static:field_item:string',
@@ -329,7 +329,7 @@ class PageRegionValidationTest extends BetterConfigEntityValidationTestBase {
         [
           'uuid' => 'fa9ff0a8-e23a-492a-ab14-5460611fa2c1',
           'component_id' => 'sdc.xb_test_sdc.props-slots',
-          'version' => 'c8a016671696090c',
+          'component_version' => 'c8a016671696090c',
           'inputs' => [
             'heading' => [
               'sourceType' => 'static:field_item:string',
@@ -343,7 +343,7 @@ class PageRegionValidationTest extends BetterConfigEntityValidationTestBase {
           'slot' => 'banana',
           'parent_uuid' => 'fa9ff0a8-e23a-492a-ab14-5460611fa2c1',
           'component_id' => 'sdc.xb_test_sdc.props-slots',
-          'version' => 'c8a016671696090c',
+          'component_version' => 'c8a016671696090c',
           'inputs' => [
             'heading' => [
               'sourceType' => 'static:field_item:string',
@@ -363,7 +363,7 @@ class PageRegionValidationTest extends BetterConfigEntityValidationTestBase {
         [
           'uuid' => 'e303dd88-9409-4dc7-8a8b-a31602884a94',
           'component_id' => 'sdc.xb_test_sdc.props-slots',
-          'version' => 'c8a016671696090c',
+          'component_version' => 'c8a016671696090c',
           'inputs' => [
             'heading' => [
               'sourceType' => 'static:field_item:string',
@@ -384,7 +384,7 @@ class PageRegionValidationTest extends BetterConfigEntityValidationTestBase {
         [
           'uuid' => 'fa9ff0a8-e23a-492a-ab14-5460611fa2c1',
           'component_id' => 'sdc.xb_test_sdc.props-slots',
-          'version' => 'abc',
+          'component_version' => 'abc',
           'inputs' => [
             'heading' => [
               'sourceType' => 'static:field_item:string',
@@ -395,7 +395,7 @@ class PageRegionValidationTest extends BetterConfigEntityValidationTestBase {
         ],
       ],
       'expected_messages' => [
-        'component_tree.0.version' => "'abc' is not a version that exists on component config entity 'sdc.xb_test_sdc.props-slots'. Available versions: 'c8a016671696090c'.",
+        'component_tree.0.component_version' => "'abc' is not a version that exists on component config entity 'sdc.xb_test_sdc.props-slots'. Available versions: 'c8a016671696090c'.",
       ],
     ];
   }
@@ -443,7 +443,7 @@ class PageRegionValidationTest extends BetterConfigEntityValidationTestBase {
       ],
       [
         'layout.children.0.component_id' => 'This value should not be blank.',
-        'layout.children.0.version' => 'This value should not be blank.',
+        'layout.children.0.component_version' => 'This value should not be blank.',
       ],
     ];
     yield 'INVALID: missing component' => [
@@ -459,7 +459,7 @@ class PageRegionValidationTest extends BetterConfigEntityValidationTestBase {
       ],
       [
         'layout.children.0.uuid' => 'This value should not be blank.',
-        'layout.children.0.version' => 'This value should not be blank.',
+        'layout.children.0.component_version' => 'This value should not be blank.',
       ],
     ];
     yield 'VALID: single valid region node; other regions missing — these are restored automatically from the stored Page Regions' => [
