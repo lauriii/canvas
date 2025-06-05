@@ -4,6 +4,7 @@ import { Box, Flex, Text } from '@radix-ui/themes';
 import { ChevronRightIcon } from '@radix-ui/react-icons';
 
 import type { ReactNode } from 'react';
+import type { TextProps } from '@radix-ui/themes';
 import type { Attributes } from '@/types/DrupalAttribute';
 
 import styles from './AccordionAndDetails.module.css';
@@ -38,6 +39,7 @@ const AccordionDetails = ({
   onTriggerClick = () => {},
   className = '',
   triggerClassName = '',
+  size = '2',
 }: {
   value?: string;
   title: ReactNode;
@@ -47,6 +49,7 @@ const AccordionDetails = ({
   onTriggerClick?: () => void;
   className?: string;
   triggerClassName?: string;
+  size?: TextProps['size'];
 }) => (
   <Accordion.Item
     value={value || (attributes.id as string)}
@@ -59,7 +62,7 @@ const AccordionDetails = ({
         onClick={onTriggerClick}
       >
         {typeof title === 'string' ? (
-          <Text size="2" weight="medium" {...summaryAttributes}>
+          <Text size={size} weight="medium" {...summaryAttributes}>
             {title}
           </Text>
         ) : (

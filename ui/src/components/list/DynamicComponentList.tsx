@@ -1,21 +1,45 @@
-import type React from 'react';
-import {
-  AccordionRoot,
-  AccordionDetails,
-} from '@/components/form/components/Accordion';
-import ErrorBoundary from '@/components/error/ErrorBoundary';
-import { setOpenLayoutItem } from '@/features/ui/primaryPanelSlice';
-import styles from '@/components/sidePanel/Library.module.css';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useErrorBoundary } from 'react-error-boundary';
+import { useGetComponentsQuery } from '@/services/componentAndLayout';
 import List from '@/components/list/List';
-import type { ComponentsList } from '@/types/Component';
+import {
+  LayoutItemType,
+  setOpenLayoutItem,
+} from '@/features/ui/primaryPanelSlice';
+import {
+  AccordionDetails,
+  AccordionRoot,
+} from '@/components/form/components/Accordion';
+import styles from '@/components/sidePanel/Library.module.css';
+import ErrorBoundary from '@/components/error/ErrorBoundary';
+import clsx from 'clsx';
+import { Skeleton } from '@radix-ui/themes';
 
-interface LibraryProps {
-  dynamicComponents: ComponentsList;
-}
+const DynamicComponentList = () => {
+  const {
+    data: dynamicComponents,
+    isLoading,
+    error,
+  } = useGetComponentsQuery({
+    mode: 'include',
+    libraries: ['dynamic_components'],
+  });
+  const { showBoundary } = useErrorBoundary();
 
-const Library: React.FC<LibraryProps> = ({ dynamicComponents }) => {
   const [openCategories, setOpenCategories] = useState<string[]>([]);
+  useEffect(() => {
+    if (error) {
+      showBoundary(error);
+    }
+  }, [error, showBoundary]);
+
+  if (isLoading) {
+    return <Skeleton height="1.2rem" width="100%" my="3" />;
+  }
+
+  if (!dynamicComponents) {
+    return null;
+  }
 
   const categoriesSet = new Set<string>();
   Object.values(dynamicComponents).forEach((component) => {
@@ -51,8 +75,9 @@ const Library: React.FC<LibraryProps> = ({ dynamicComponents }) => {
             key={category.id}
             value={category.id}
             title={category.name}
+            size="1"
             onTriggerClick={() => onClickHandler(category.id)}
-            className={styles.accordionDetails}
+            className={clsx(styles.accordionDetails, styles.subCategory)}
             triggerClassName={styles.accordionDetailsTrigger}
             summaryAttributes={{
               'aria-label': `${category.name} dynamic components`,
@@ -68,9 +93,9 @@ const Library: React.FC<LibraryProps> = ({ dynamicComponents }) => {
                     ([key, component]) => component.category === category.id,
                   ),
                 )}
-                isLoading={false}
-                type="component"
-                label="Components"
+                isLoading={isLoading}
+                type={LayoutItemType.DYNAMIC}
+                label="Dynamic Components"
               />
             </ErrorBoundary>
           </AccordionDetails>
@@ -80,4 +105,4 @@ const Library: React.FC<LibraryProps> = ({ dynamicComponents }) => {
   );
 };
 
-export default Library;
+export default DynamicComponentList;

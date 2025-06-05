@@ -16,6 +16,7 @@ import {
 } from '@/features/ui/primaryPanelSlice';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import styles from './Library.module.css';
+import DynamicComponentList from '@/components/list/DynamicComponentList';
 
 const Library = () => {
   const openItems = useAppSelector(selectOpenLayoutItems);
@@ -67,6 +68,17 @@ const Library = () => {
         >
           <ErrorBoundary title="An unexpected error has occurred while fetching code components.">
             <CodeComponentList />
+          </ErrorBoundary>
+        </AccordionDetails>
+        <AccordionDetails
+          value={LayoutItemType.DYNAMIC}
+          title="Dynamic Components"
+          onTriggerClick={() => onClickHandler(LayoutItemType.DYNAMIC)}
+          className={styles.accordionDetails}
+          triggerClassName={styles.accordionDetailsTrigger}
+        >
+          <ErrorBoundary title="An unexpected error has occurred while fetching dynamic components.">
+            <DynamicComponentList />
           </ErrorBoundary>
         </AccordionDetails>
         <AccordionDetails

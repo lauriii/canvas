@@ -3,14 +3,11 @@ import styles from './Topbar.module.css';
 import { Button, Flex, Grid, Tooltip, Box } from '@radix-ui/themes';
 import UndoRedo from '@/components/UndoRedo';
 import DropIcon from '@assets/icons/drop.svg?react';
-import CMSIcon from '@assets/icons/cms.svg?react';
 import { EyeNoneIcon, EyeOpenIcon } from '@radix-ui/react-icons';
 import { useLocation, useNavigate } from 'react-router-dom';
 import clsx from 'clsx';
 import UnpublishedChanges from '@/components/review/UnpublishedChanges';
 import PageInfo from '../pageInfo/PageInfo';
-import TopbarPopover from '@/components/topbar/menu/TopbarPopover';
-import DynamicComponents from '@/components/dynamicComponents/DynamicComponents';
 import PreviewWidthSelector from '@/features/pagePreview/PreviewWidthSelector';
 
 const PREVIOUS_URL_STORAGE_KEY = 'XBPreviousURL';
@@ -61,22 +58,6 @@ const Topbar = () => {
             {!isPreview && (
               <>
                 <UndoRedo />
-                <TopbarPopover
-                  tooltip="Dynamic components"
-                  trigger={
-                    <Button
-                      variant="ghost"
-                      color="gray"
-                      size="2"
-                      className={clsx(styles.topBarButton)}
-                      aria-label="Dynamic components"
-                    >
-                      <CMSIcon height="18" width="auto" />
-                    </Button>
-                  }
-                >
-                  <DynamicComponents />
-                </TopbarPopover>
               </>
             )}
           </Flex>

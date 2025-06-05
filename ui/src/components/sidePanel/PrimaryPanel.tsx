@@ -48,7 +48,7 @@ export const PrimaryPanel = () => {
         </Box>
       </Flex>
       <Box flexGrow="1" className={styles.scrollArea}>
-        <ScrollArea scrollbars="both">
+        <ScrollArea scrollbars="vertical">
           <Box p="4" className="primaryPanelContent">
             {activePanel === 'layers' && (
               <ErrorBoundary>

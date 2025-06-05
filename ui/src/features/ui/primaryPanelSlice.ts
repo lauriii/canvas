@@ -11,6 +11,7 @@ export interface PrimaryPanelState {
 export enum LayoutItemType {
   SECTION = 'section',
   COMPONENT = 'component',
+  DYNAMIC = 'dynamicComponent',
   CODE = 'code',
   OVERRIDE = 'override',
   UNDEFINED = 'undefined',

@@ -19,6 +19,10 @@
     text-overflow: ellipsis;
   }
 
+  .contextualTrigger {
+    flex-shrink: 0;
+  }
+
   .dots {
     display: none;
     align-items: center;
@@ -35,6 +39,7 @@
 
   /* .hovered className required for when hover is programmatically applied to layers when hovering them in the preview */
   &.hovered,
+  &:has([data-state="open"]),
   &:hover {
     background-color: var(--bg-hover);
     &.open {
@@ -86,6 +91,10 @@
 }
 
 .codeComponentVariant {
+  composes: default;
+}
+
+.dynamicComponentVariant {
   composes: default;
 }
 

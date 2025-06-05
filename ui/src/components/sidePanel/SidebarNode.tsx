@@ -18,13 +18,13 @@ import styles from './SidebarNode.module.css';
 
 const VARIANTS = {
   component: { icon: <Component1Icon /> },
+  code: { icon: <CodeIcon /> },
   codeComponent: { icon: <Component2Icon /> },
-  blockComponent: { icon: <ComponentBooleanIcon /> },
+  dynamicComponent: { icon: <ComponentBooleanIcon /> },
+  page: { icon: <FileIcon /> },
+  region: { icon: <CubeIcon /> },
   section: { icon: <SectionIcon /> },
   slot: { icon: <BoxModelIcon /> },
-  code: { icon: <CodeIcon /> },
-  region: { icon: <CubeIcon /> },
-  page: { icon: <FileIcon /> },
 } as const;
 
 export type SideBarNodeVariant = keyof typeof VARIANTS;
@@ -67,6 +67,7 @@ const SidebarNode = React.forwardRef<
         ref={ref}
         align="center"
         pr="2"
+        maxWidth="100%"
         className={clsx(
           styles[`${variant}Variant`],
           {
@@ -104,7 +105,10 @@ const SidebarNode = React.forwardRef<
         {dropdownMenuContent && (
           <DropdownMenu.Root onOpenChange={onMenuOpenChange}>
             <DropdownMenu.Trigger>
-              <button aria-label="Open contextual menu">
+              <button
+                aria-label="Open contextual menu"
+                className={styles.contextualTrigger}
+              >
                 <span className={styles.dots}>
                   <DotsHorizontalIcon />
                 </span>

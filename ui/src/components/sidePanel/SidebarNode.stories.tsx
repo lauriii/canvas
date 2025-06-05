@@ -62,7 +62,7 @@ export const Default: Story = {
       />
       <SidebarNode
         title="Block component"
-        variant="blockComponent"
+        variant="dynamicComponent"
         dropdownMenuContent={dropdownMenuContent}
       />
       <SidebarNode
@@ -107,7 +107,7 @@ export const Hovered: Story = {
       />
       <SidebarNode
         title="Block component"
-        variant="blockComponent"
+        variant="dynamicComponent"
         hovered
         dropdownMenuContent={dropdownMenuContent}
       />
@@ -157,7 +157,7 @@ export const Selected: Story = {
       />
       <SidebarNode
         title="Block component"
-        variant="blockComponent"
+        variant="dynamicComponent"
         selected
         dropdownMenuContent={dropdownMenuContent}
       />
@@ -209,7 +209,7 @@ export const SelectedAndHovered: Story = {
       />
       <SidebarNode
         title="Block component"
-        variant="blockComponent"
+        variant="dynamicComponent"
         selected
         dropdownMenuContent={dropdownMenuContent}
       />

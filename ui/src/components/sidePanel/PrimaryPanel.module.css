@@ -11,6 +11,9 @@
 }
 .scrollArea {
   height: calc(100% - 41px);
+  * {
+    max-width: 100%;
+  }
 }
 .segmentedControlRoot {
   margin-bottom: 24px;

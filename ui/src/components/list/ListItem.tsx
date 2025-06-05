@@ -21,10 +21,14 @@ import { DEFAULT_REGION } from '@/features/ui/uiSlice';
 import { useDraggable } from '@dnd-kit/core';
 import SectionNode from '@/components/list/SectionNode';
 import { useParams } from 'react-router';
+import type { LayoutItemType } from '@/features/ui/primaryPanelSlice';
 
 const ListItem: React.FC<{
   item: XBComponent | Section;
-  type: 'component' | 'section';
+  type:
+    | LayoutItemType.COMPONENT
+    | LayoutItemType.SECTION
+    | LayoutItemType.DYNAMIC;
 }> = (props) => {
   const { item, type } = props;
   const dispatch = useAppDispatch();
@@ -117,7 +121,7 @@ const ListItem: React.FC<{
         disabled={isDragging}
         variant={
           type === 'component' && (item as XBComponent).source === 'Blocks'
-            ? 'blockComponent'
+            ? 'dynamicComponent'
             : type
         }
       />

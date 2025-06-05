@@ -3,7 +3,10 @@ import { useErrorBoundary } from 'react-error-boundary';
 import { useGetComponentsQuery } from '@/services/componentAndLayout';
 import List from '@/components/list/List';
 import { useAppSelector } from '@/app/hooks';
-import { selectUniqueListId } from '@/features/ui/primaryPanelSlice';
+import {
+  LayoutItemType,
+  selectUniqueListId,
+} from '@/features/ui/primaryPanelSlice';
 
 const ComponentList = () => {
   const {
@@ -27,7 +30,7 @@ const ComponentList = () => {
     <List
       items={components}
       isLoading={isLoading}
-      type="component"
+      type={LayoutItemType.COMPONENT}
       label="Components"
       key={id}
     />
