@@ -1,0 +1,48 @@
+name: 'Base'
+description: 'Provides a base site'
+type: 'Site'
+
+recipes:
+  - ./core/recipes/basic_block_type
+  - ./core/recipes/article_content_type
+  - ./core/recipes/page_content_type
+  - ./core/recipes/core_recommended_admin_theme
+  - ./core/recipes/image_media_type
+
+config:
+  strict: true
+  actions:
+    system.logging:
+      simpleConfigUpdate:
+        error_level: verbose
+    system.performance:
+      simpleConfigUpdate:
+        js.preprocess: false
+    system.theme:
+      simple_config_update:
+        admin: 'claro'
+        default: 'stark'
+    node.settings:
+      simpleConfigUpdate:
+        use_admin_theme: true
+    system.site:
+      simpleConfigUpdate:
+        page.front: /node
+    core.entity_form_display.node.article.default:
+      setComponents:
+        - name: field_media_image
+          options:
+            type: media_library_widget
+            weight: 1
+            region: content
+    core.entity_view_display.node.article.default:
+      setComponents:
+        - name: field_media_image
+          options:
+            type: entity_reference_entity_view
+            label: above
+            settings:
+              view_mode: default
+              link: false
+            weight: 1
+            region: content

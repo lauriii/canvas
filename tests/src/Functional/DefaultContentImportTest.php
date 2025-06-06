@@ -26,7 +26,7 @@ class DefaultContentImportTest extends FunctionalTestBase {
   protected $defaultTheme = 'stark';
 
   public function testImportDefaultContentWithXbData(): void {
-    $finder = new Finder(__DIR__ . '/../../fixtures');
+    $finder = new Finder(__DIR__ . '/../../fixtures/default_content_export');
     $this->container->get(Importer::class)->importContent($finder);
 
     // The imported page should have some XB data.

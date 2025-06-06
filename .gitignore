@@ -1,2 +1,17 @@
 .idea
 .DS_Store
+
+/.env
+
+/node_modules
+
+# Playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+
+# GitLab CI
+/.gitlab-ci-local/
+/_drupal/
+/logs/

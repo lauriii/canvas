@@ -19,7 +19,8 @@ const DrupalTextArea = ({
   const defaultFormatName =
     (attributes?.['data-xb-text-format'] as string) || '';
   const [format, setFormat] = useState<FormatType>(
-    (defaultFormatName && drupalSettings.editor.formats[defaultFormatName]) || {
+    (defaultFormatName &&
+      drupalSettings?.editor?.formats?.[defaultFormatName]) || {
       format: defaultFormatName,
     },
   );

@@ -65,6 +65,9 @@ stages:
 variables:
   # Show env variables always to help with debugging.
   _SHOW_ENVIRONMENT_VARIABLES: 1
+  # Needed to allow this to run locally.
+  # https://project.pages.drupalcode.org/gitlab_templates/info/test-locally/
+  DRUPALORG_CI_SERVER_URL: https://git.drupalcode.org
 
 # This module wants to strictly comply with Drupal core's word use standards.
 cspell:
@@ -121,6 +124,59 @@ cspell:
     changes:
       - ui/tests/fixtures/**/*
     when: on_success
+
+# Helper to setup a Drupal installation
+#
+# This should be quite fast with a warm cache, and is only used by one job
+# at the moment, so not currently worth the overhead of saving the output as
+# an artifact and starting a new job based on it.
+#
+# The drupal.org composer template creates a web/ directory and then
+# individually symlinks all the project files into module directory.
+# This causes some very strange behavior and node.js scripts will refuse to
+# run in a lot of cases, so this is an alternative job.
+.drupal: &drupal
+  # Move everything into a subdirectory
+  - mkdir tmp
+  - find . -maxdepth 1 -type f -not -path "./tmp*" -exec mv {} tmp/ \;
+  - find . -maxdepth 1 -type d -not -path "." -not -path "./tmp" -exec mv {} tmp/ \;
+  - mv tmp $CI_PROJECT_NAME
+  # Get Drupal
+  - composer create-project drupal/recommended-project _drupal
+  - cd _drupal
+  # Add core-dev, Experience Builder, and drush
+  - |
+    composer config repositories.exprience_builder --json '{"type": "path", "url": "../experience_builder", "options": { "symlink": false } }'
+  - composer config minimum-stability dev
+  - composer require drupal/core-dev "drupal/experience_builder @dev" drush/drush --with-all-dependencies
+  # Setup webserver root
+  - rm -rf /var/www/html
+  - ln -s $CI_PROJECT_DIR/_drupal/web /var/www/html
+  - chown -R www-data:www-data /var/www/html
+  - chown -R www-data:www-data $CI_PROJECT_DIR/_drupal
+  # Setup directories
+  - chmod 777 $CI_PROJECT_DIR/_drupal/web/sites
+  - mkdir -p $CI_PROJECT_DIR/_drupal/web/sites/simpletest
+  - chmod 777 $CI_PROJECT_DIR/_drupal/web/sites/simpletest
+  - mkdir -p $CI_PROJECT_DIR/_drupal/web/sites/default/files
+  - chmod 777 $CI_PROJECT_DIR/_drupal/web/sites/default/files
+  # Start the webserver
+  - service apache2 start
+  # Set simpletest environment variables
+  - !reference [ .simpletest-db ]
+  - !reference [ .show-environment-variables ]
+  # Install Drupal, this is only needed due to a bug when applying recipes with
+  # drush (hash salt errors).
+  - cd $CI_PROJECT_DIR/_drupal/web
+  - php core/scripts/drupal install minimal --no-interaction --quiet
+  # Change to the project directory
+  - cd $CI_PROJECT_DIR/_drupal/web/modules/contrib/$CI_PROJECT_NAME
+  # Install the UI
+  # @todo consolidate this with the UI job?
+  - cd ui
+  - npm ci
+  - npm run build
+  - cd ../
 
 # @todo Remove when https://www.drupal.org/project/gitlab_templates/issues/3452183 lands.
 composer-lint:
@@ -253,6 +309,7 @@ eslint:
   before_script:
     # 🤷‍.eslintignore already instructs eslint to ignore this, but it does not seem to work. This is validated by the `UI - eslint` job below.
     - rm -rf ui
+    - rm -rf tests/src/Playwright playwright.config.ts eslint.config.mjs
   # @todo Remove when https://www.drupal.org/project/gitlab_templates/issues/3452183 lands.
   rules:
     - *is-push-rule
@@ -440,3 +497,55 @@ cypress unit:
   artifacts:
     paths:
       - "docs/diagrams/*.md"
+
+playwright:
+  # Put this in the build stage otherwise the composer job is triggered first
+  # and we don't need it
+  # @todo fix this
+  stage: build
+  image: justafish/drupalci-environments-playwright:latest
+  # This doesn't actually work 🤦‍♀️
+  # https://www.drupal.org/project/infrastructure/issues/3387117
+  cache:
+    key: cache-$CI_JOB_NAME-$CI_COMMIT_REF_SLUG
+    fallback_keys:
+      - cache-$CI_JOB_NAME-$CI_DEFAULT_BRANCH
+      - cache-$CI_JOB_NAME-default
+    paths:
+      - /root/.composer/cache
+      - /root/.npm
+      - /root/.cache/ms-playwright/ms-playwright
+      - $CI_PROJECT_DIR/_drupal/web/modules/contrib/$CI_PROJECT_NAME/node_modules
+      - $CI_PROJECT_DIR/_drupal/web/modules/contrib/$CI_PROJECT_NAME/ui/node_modules
+  extends:
+    - .test-variables
+  variables:
+    GIT_DEPTH: 1
+    _TARGET_DB_TYPE: sqlite
+    DRUPAL_TEST_BASE_URL: http://localhost
+    DRUPAL_TEST_WEBSERVER_USER: www-data
+    DRUPAL_TEST_PLAYWRIGHT_SKIP_TEARDOWN: true
+  before_script:
+    - !reference [ .drupal ]
+  script:
+    - npm install
+    ## This is also running eslint and prettier, but it currently only applies
+    ## to the Playwright tests so we might as well run it here.
+    - npx npm-run-all --continue-on-error --parallel test:*
+  after_script:
+    - mkdir -p $CI_PROJECT_DIR/logs
+    - cp -R /var/log/apache2 $CI_PROJECT_DIR/logs/apache2
+    - cp -R /var/log/supervisor $CI_PROJECT_DIR/logs/supervisor
+    - cp -R _drupal/web/modules/contrib/$CI_PROJECT_NAME/test-results $CI_PROJECT_DIR/test-results
+    - cp -R _drupal/web/modules/contrib/$CI_PROJECT_NAME/playwright-report $CI_PROJECT_DIR/playwright-report
+  artifacts:
+    expose_as: 'Playwright Test Reports'
+    when: always
+    expire_in: 6 mos
+    paths:
+      - playwright-report/
+      - test-results/
+      - logs/
+    reports:
+      junit:
+        - test-results/playwright.xml

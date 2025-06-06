@@ -13,6 +13,7 @@
       "docs/diagrams/**",
       "ui/src/local_packages/**",
       "scripts/tag-release.sh",
+      "tests/fixtures/recipes/test_site/content/user/**",
       "tests/modules/xb_test_extension/ui/dist/**",
       "tests/modules/xb_test_semi_coupled/semicoupled_app/dist/**",
       "js/astro-bundles/**",

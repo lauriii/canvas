@@ -1,0 +1,35 @@
+{
+  "name": "experience_builder",
+  "version": "1.0.0",
+  "description": "The Drupal Experience Builder module will 1) enable site builders without Drupal experience to easily theme and build their entire website using only their browser, without the need to write code beyond basic HTML, CSS, and templating markup (e.g., Twig) AND 2) it will enable content creators to and compose content on any part of the page without relying on developers.",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs",
+    "test": "tests"
+  },
+  "scripts": {
+    "test:playwright": "playwright install && playwright test -x",
+    "test:eslint": "eslint tests/src/Playwright playwright.config.ts eslint.config.mjs",
+    "test:prettier": "prettier --ignore-path .gitignore tests/src/Playwright playwright.config.ts eslint.config.mjs --check",
+    "test": "npx npm-run-all --parallel --continue-on-error test:*"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@git.drupal.org:project/experience_builder.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@eslint/js": "^9.26.0",
+    "@playwright/test": "^1.51.1",
+    "@types/node": "^22.14.0",
+    "dotenv-defaults": "^5.0.2",
+    "eslint": "^9.26.0",
+    "eslint-config-prettier": "^10.1.5",
+    "globals": "^16.1.0",
+    "npm-run-all": "^4.1.5",
+    "prettier": "^3.5.3",
+    "typescript-eslint": "^8.32.0"
+  },
+  "packageManager": "pnpm@10.8.0+sha512.0e82714d1b5b43c74610193cb20734897c1d00de89d0e18420aebc5977fa13d780a9cb05734624e81ebd81cc876cd464794850641c48b9544326b5622ca29971"
+}
