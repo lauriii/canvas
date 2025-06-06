@@ -153,7 +153,6 @@ experience_builder.api.config.list:
   defaults:
     _controller: 'Drupal\experience_builder\Controller\ApiConfigControllers::list'
   requirements:
-    _permission: 'administer themes'
     # Any internal HTTP API-eligible XB config entity type.
     _xb_http_eligible_config_entity: 'TRUE'
     # But deter users from trying to access other config entities via this route: this ensures 404 responses rather than

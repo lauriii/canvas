@@ -44,7 +44,6 @@ class SegmentHttpApiTest extends HttpApiTestBase {
     parent::setUp();
     $user = $this->createUser([
       'access administration pages',
-      'administer themes',
       Segment::ADMIN_PERMISSION,
     ]);
     assert($user instanceof UserInterface);
@@ -116,7 +115,7 @@ class SegmentHttpApiTest extends HttpApiTestBase {
     ], $body);
 
     // Re-retrieve list: 200, unchanged, but now is a Dynamic Page Cache hit.
-    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.permissions', 'user.roles:authenticated'], ['config:segment_list', 'http_response'], 'UNCACHEABLE (request policy)', 'HIT');
+    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.roles:authenticated'], ['config:segment_list', 'http_response'], 'UNCACHEABLE (request policy)', 'HIT');
     $this->assertSame([], $body);
 
     // Create a segment via the XB HTTP API, correctly: 201.
@@ -245,7 +244,7 @@ class SegmentHttpApiTest extends HttpApiTestBase {
     $this->assertExpectedResponse('DELETE', Url::fromUri('base:/xb/api/v0/config/segment/complex_segment'), [], 204, NULL, NULL, NULL, NULL);
 
     // Re-retrieve list: 200, non-empty list. Dynamic Page Cache miss.
-    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.permissions', 'user.roles:authenticated'], ['config:segment_list', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
+    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.roles:authenticated'], ['config:segment_list', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
     $this->assertSame([
       "my_segment" => $expected_segment_normalization,
     ], $body);
@@ -319,7 +318,7 @@ class SegmentHttpApiTest extends HttpApiTestBase {
     $this->assertSame($expected_individual_body_normalization, $body);
 
     // Re-retrieve list: 200, non-empty list. Dynamic Page Cache miss.
-    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.permissions', 'user.roles:authenticated'], ['config:segment_list', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
+    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.roles:authenticated'], ['config:segment_list', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
     $this->assertSame([
       "my_segment" => $expected_segment_normalization,
     ], $body);
@@ -328,7 +327,6 @@ class SegmentHttpApiTest extends HttpApiTestBase {
     Segment::load('my_segment')?->disable()->save();
     // Assert that disabled segments are still showing in the list.
     $body = $this->assertExpectedResponse('GET', $list_url, [], 200, [
-      'user.permissions',
       'user.roles:authenticated',
     ], [
       'config:segment_list',
@@ -347,16 +345,16 @@ class SegmentHttpApiTest extends HttpApiTestBase {
     $list_url = Url::fromUri("base:/xb/api/v0/config/$entity_type_id");
 
     // Anonymously: 403.
-    $body = $this->assertExpectedResponse('GET', $list_url, [], 403, ['user.permissions'], ['4xx-response', 'config:user.role.anonymous', 'http_response'], 'MISS', NULL);
+    $body = $this->assertExpectedResponse('GET', $list_url, [], 403, ['user.roles:authenticated'], ['4xx-response', 'http_response'], 'MISS', NULL);
     $this->assertSame([
       'errors' => [
-        "The 'administer themes' permission is required.",
+        "This route can only be accessed by authenticated users.",
       ],
     ], $body);
 
     // Authenticated & authorized: 200, but empty list.
     $this->drupalLogin($this->httpApiUser);
-    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.permissions', 'user.roles:authenticated'], ["config:{$entity_type_id}_list", 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
+    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.roles:authenticated'], ["config:{$entity_type_id}_list", 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
     $this->assertSame([], $body);
 
     // Send a POST request without the CSRF token.
