@@ -9,7 +9,6 @@ import { useGetCodeComponentsQuery } from '@/services/componentAndLayout';
 import {
   openDeleteDialog,
   openRenameDialog,
-  openAddToComponentsDialog,
 } from '@/features/ui/codeComponentDialogSlice';
 import { useAppDispatch } from '@/app/hooks';
 import type { CodeComponentSerialized } from '@/types/CodeComponent';
@@ -56,10 +55,6 @@ const CodeComponentList = ({
     dispatch(openDeleteDialog(component));
   };
 
-  const handleAddToComponentsClick = (component: CodeComponentSerialized) => {
-    dispatch(openAddToComponentsDialog(component));
-  };
-
   if ((!codeComponents || !Object.keys(codeComponents).length) && !isLoading) {
     return (
       <Callout.Root size="1" variant="soft" color="gray" my="3">
@@ -102,14 +97,15 @@ const CodeComponentList = ({
                       >
                         Rename
                       </UnifiedMenu.Item>
-                      <UnifiedMenu.Item
-                        onClick={(e: React.MouseEvent<HTMLDivElement>) => {
-                          e.stopPropagation();
-                          handleAddToComponentsClick(component);
-                        }}
-                      >
-                        Add to components
-                      </UnifiedMenu.Item>
+                      {/* @todo: Add this item back in https://drupal.org/i/3524274.}
+                      {/*<UnifiedMenu.Item*/}
+                      {/*  onClick={(e: React.MouseEvent<HTMLDivElement>) => {*/}
+                      {/*    e.stopPropagation();*/}
+                      {/*    handleAddToComponentsClick(component);*/}
+                      {/*  }}*/}
+                      {/*>*/}
+                      {/*  Add to components*/}
+                      {/*</UnifiedMenu.Item>*/}
                       <UnifiedMenu.Separator />
                       <UnifiedMenu.Item
                         color="red"

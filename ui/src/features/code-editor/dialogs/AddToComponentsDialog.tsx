@@ -25,8 +25,8 @@ const AddToComponentsDialog = () => {
     await updateCodeComponent({
       id: selectedComponent.machineName,
       changes: {
-        // @todo: Only send wanted changes in the PATCH request when
-        //   https://drupal.org/i/3516390 is fixed.
+        // @todo: Remove "...selectedComponent" and only send wanted changes in the PATCH request in
+        //   https://drupal.org/i/3524274.
         ...selectedComponent,
         // Mark this code component as "exposed", to make it available to content creators.
         // @see docs/config-management.md, section 3.2.1
