@@ -17,7 +17,7 @@ use Drupal\experience_builder\AutoSaveData;
 use Drupal\experience_builder\ClientSideRepresentation;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\experience_builder\EntityHandlers\JavascriptComponentStorage;
-use Drupal\experience_builder\EntityHandlers\XbConfigEntityAccessControlHandler;
+use Drupal\experience_builder\EntityHandlers\VisibleWhenDisabledXbConfigEntityAccessControlHandler;
 use Drupal\experience_builder\Exception\ConstraintViolationException;
 use Symfony\Component\Validator\ConstraintViolation;
 
@@ -30,7 +30,7 @@ use Symfony\Component\Validator\ConstraintViolation;
   admin_permission: self::ADMIN_PERMISSION,
   handlers: [
     'storage' => JavascriptComponentStorage::class,
-    'access' => XbConfigEntityAccessControlHandler::class,
+    'access' => VisibleWhenDisabledXbConfigEntityAccessControlHandler::class,
   ],
   entity_keys: [
     'id' => 'machineName',
@@ -49,9 +49,6 @@ use Symfony\Component\Validator\ConstraintViolation;
   ],
   constraints: [
     'JsComponentHasValidAndSupportedSdcMetadata' => NULL,
-  ],
-  additional: [
-    'xb_visible_when_disabled' => TRUE,
   ],
 )]
 final class JavaScriptComponent extends ConfigEntityBase implements XbAssetInterface {

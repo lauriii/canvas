@@ -84,10 +84,6 @@ final class XbConfigEntityAccessControlHandlerTest extends UnitTestCase {
 
   public static function dependentsProvider(): array {
     return [
-      ['js_component', 'code component', TRUE, AccessResultForbidden::class, 'There is other configuration depending on this code component.'],
-      // Note that deletion is allowed if the sole dependent config is a Component config entity.
-      // @see \Drupal\Tests\experience_builder\Kernel\Entity\JavascriptComponentAccessTest
-      ['js_component', 'code component', FALSE, AccessResultAllowed::class, NULL],
       ['xb_asset_library', 'in-browser code library', TRUE, AccessResultForbidden::class, 'There is other configuration depending on this in-browser code library.'],
       ['xb_asset_library', 'in-browser code library', FALSE, AccessResultAllowed::class, NULL],
     ];

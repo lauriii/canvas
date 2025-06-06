@@ -18,6 +18,7 @@ use Drupal\Core\Url;
 use Drupal\experience_builder\AssetRenderer;
 use Drupal\experience_builder\ClientSideRepresentation;
 use Drupal\experience_builder\Entity\XbHttpApiEligibleConfigEntityInterface;
+use Drupal\experience_builder\EntityHandlers\VisibleWhenDisabledXbConfigEntityAccessControlHandler;
 use Drupal\experience_builder\Exception\ConstraintViolationException;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemListInstantiatorTrait;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
@@ -65,8 +66,10 @@ final class ApiConfigControllers extends ApiControllerBase {
     // Load the queried config entities: a list of all of them.
     $storage = $this->entityTypeManager->getStorage($xb_config_entity_type_id);
     $query = $storage->getQuery()->accessCheck(TRUE);
-    // Entity types can opt in to have disabled entities included in lists.
-    if (!$xb_config_entity_type->get('xb_visible_when_disabled')) {
+    // Load only enabled XB config entities if the XB config entity type:
+    // - specifies the `status` property as a lookup key
+    // - does not use the special "visible when disabled" access control handler
+    if (in_array('status', $xb_config_entity_type->getLookupKeys(), TRUE) && $xb_config_entity_type->getHandlerClass('access') !== VisibleWhenDisabledXbConfigEntityAccessControlHandler::class) {
       $query->condition('status', TRUE);
     }
 
@@ -78,7 +81,12 @@ final class ApiConfigControllers extends ApiControllerBase {
     $config_entities = $storage->loadMultiple($query->execute());
     // As config entities do not use sql-storage, we need explicit access check
     // per https://www.drupal.org/node/3201242.
-    $config_entities = array_filter($config_entities, fn(XbHttpApiEligibleConfigEntityInterface $config_entity) => $config_entity->access('view'));
+    $access_cacheability = new CacheableMetadata();
+    $config_entities = array_filter($config_entities, function (XbHttpApiEligibleConfigEntityInterface $config_entity) use ($access_cacheability): bool {
+      $access = $config_entity->access('view', return_as_object: TRUE);
+      $access_cacheability->addCacheableDependency($config_entity);
+      return $access->isAllowed();
+    });
 
     $normalizations = [];
     $normalizations_cacheability = new CacheableMetadata();
@@ -88,15 +96,6 @@ final class ApiConfigControllers extends ApiControllerBase {
       $normalizations_cacheability->addCacheableDependency($representation);
     }
 
-    // Ignore the cache tags for individual XB config entities, because this
-    // response lists them, so the list cache tag is sufficient and the rest is
-    // pointless noise.
-    // @see \Drupal\Core\Entity\EntityTypeInterface::getListCacheTags()
-    $normalizations_cacheability->setCacheTags(array_filter(
-      $normalizations_cacheability->getCacheTags(),
-      fn (string $tag): bool => !str_starts_with($tag, 'config:experience_builder.' . $xb_config_entity_type_id),
-    ));
-
     // Set a minimum cache time of one hour, because this is only a preview.
     // (Cache tag invalidations will still result in an immediate update.)
     $max_age = $normalizations_cacheability->getCacheMaxAge();
@@ -104,9 +103,25 @@ final class ApiConfigControllers extends ApiControllerBase {
       $normalizations_cacheability->setCacheMaxAge(max($max_age, 3600));
     }
 
-    return (new CacheableJsonResponse($normalizations))
+    // Ignore the cache tags for individual XB config entities, because this
+    // response lists them, so the list cache tag is sufficient and the rest is
+    // pointless noise.
+    // @see \Drupal\Core\Entity\EntityTypeInterface::getListCacheTags()
+    $total_cacheability = (new CacheableMetadata())
       ->addCacheableDependency($query_cacheability)
+      ->addCacheableDependency($access_cacheability)
       ->addCacheableDependency($normalizations_cacheability);
+    $total_cacheability->setCacheTags(array_filter(
+      $total_cacheability->getCacheTags(),
+      fn (string $tag): bool =>
+        // Support both XB config entity types provided by the main XB module…
+        !str_starts_with($tag, 'config:experience_builder.' . $xb_config_entity_type_id)
+        // … and by optional submodules.
+        && !str_starts_with($tag, 'config:xb_personalization.' . $xb_config_entity_type_id),
+    ));
+
+    return (new CacheableJsonResponse($normalizations))
+      ->addCacheableDependency($total_cacheability);
   }
 
   public function get(Request $request, XbHttpApiEligibleConfigEntityInterface $xb_config_entity): CacheableJsonResponse {

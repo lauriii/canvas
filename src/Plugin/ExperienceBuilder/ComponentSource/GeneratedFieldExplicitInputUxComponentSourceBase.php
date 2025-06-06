@@ -778,13 +778,13 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
       // corresponding source but may not.
       $prop_value = $client_model['resolved'][$prop] ?? NULL;
       try {
+        // TRICKY: this is always set, *except* in the case of an auto-saved
+        // code component that just gained a new prop.
+        $default_source_value = $this->configuration['prop_field_definitions'][$prop]['default_value'] ?? NULL;
         // @see PropSourceComponent type-script definition.
         // @see EvaluatedComponentModel type-script definition.
         // Undo what ::inputToClientModel() did: restore the omitted `'value'`
         // in cases where it is the same as the source value.
-        // TRICKY: this is always set, *except* in the case of an auto-saved
-        // code component that just gained a new prop.
-        $default_source_value = $this->configuration['prop_field_definitions'][$prop]['default_value'] ?? NULL;
         if (!\array_key_exists('value', $prop_source)) {
           $prop_source['value'] = $prop_value;
         }

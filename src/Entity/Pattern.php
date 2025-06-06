@@ -12,9 +12,9 @@ use Drupal\Core\Entity\Query\QueryInterface;
 use Drupal\experience_builder\ClientSideRepresentation;
 use Drupal\experience_builder\Controller\ClientServerConversionTrait;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
+use Drupal\experience_builder\EntityHandlers\ContentCreatorVisibleXbConfigEntityAccessControlHandler;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemListInstantiatorTrait;
 use Drupal\Core\Entity\Attribute\ConfigEntityType;
-use Drupal\experience_builder\EntityHandlers\XbConfigEntityAccessControlHandler;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemList;
 
 #[ConfigEntityType(
@@ -25,7 +25,7 @@ use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemList;
   label_collection: new TranslatableMarkup('Patterns'),
   admin_permission: self::ADMIN_PERMISSION,
   handlers: [
-    'access' => XbConfigEntityAccessControlHandler::class,
+    'access' => ContentCreatorVisibleXbConfigEntityAccessControlHandler::class,
   ],
   entity_keys: [
     'id' => 'id',

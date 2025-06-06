@@ -10,7 +10,7 @@ use Drupal\Core\Config\Entity\ConfigEntityInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Session\AccountInterface;
 
-final class ContentCreatorVisibleXbConfigEntityAccessControlHandler extends XbConfigEntityAccessControlHandler {
+final class VisibleWhenDisabledXbConfigEntityAccessControlHandler extends XbConfigEntityAccessControlHandler {
 
   /**
    * {@inheritdoc}
@@ -18,8 +18,8 @@ final class ContentCreatorVisibleXbConfigEntityAccessControlHandler extends XbCo
   protected function checkAccess(EntityInterface $entity, $operation, AccountInterface $account): AccessResultInterface {
     assert($entity instanceof ConfigEntityInterface);
     return match($operation) {
-      // We always allow viewing these entities, unless disabled.
-      'view' => AccessResult::allowedIf($entity->status())->addCacheableDependency($entity),
+      // We always allow viewing these entities, even if disabled.
+      'view' => AccessResult::allowed(),
       default => parent::checkAccess($entity, $operation, $account),
     };
   }
