@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Drupal\experience_builder\Entity;
 
 use Drupal\Component\Utility\Crypt;
-use Drupal\Core\Site\Settings;
 
 /**
  * @internal
@@ -43,12 +42,12 @@ trait XbAssetLibraryTrait {
   }
 
   public function getJsPath(): string {
-    $hash = Crypt::hmacBase64($this->getJs(), Settings::getHashSalt());
+    $hash = Crypt::hmacBase64($this->getJs(), $this->uuid());
     return self::ASSETS_DIRECTORY . $hash . '.js';
   }
 
   public function getCssPath(): string {
-    $hash = Crypt::hmacBase64($this->getCss(), Settings::getHashSalt());
+    $hash = Crypt::hmacBase64($this->getCss(), $this->uuid());
     return self::ASSETS_DIRECTORY . $hash . '.css';
   }
 

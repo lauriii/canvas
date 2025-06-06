@@ -27,6 +27,7 @@ trait CreateTestJsComponentTrait {
     assert($props['target']['enum'][0] === '');
     $props['target']['enum'][0] = '_self';
     JavaScriptComponent::create([
+      'uuid' => '83ba5c41-6d66-4e93-a55f-eb99702f5d5f',
       'machineName' => 'my-cta',
       'name' => 'My First Code Component',
       'status' => TRUE,
@@ -43,6 +44,7 @@ trait CreateTestJsComponentTrait {
       throw new \LogicException();
     }
     $my_cta_with_auto_save = JavaScriptComponent::create([
+      'uuid' => 'b4bc6c8f-66f7-458a-99a9-41c74b2801e7',
       'machineName' => 'my-cta-with-auto-save',
       'name' => 'My Code Component with Auto-Save',
     ] + array_diff_key($my_cta->toArray(), array_flip(['uuid'])));

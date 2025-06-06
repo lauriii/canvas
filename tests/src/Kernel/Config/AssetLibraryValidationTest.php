@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Drupal\Tests\experience_builder\Kernel\Config;
 
 use Drupal\Component\Utility\Crypt;
-use Drupal\Core\Site\Settings;
 use Drupal\experience_builder\Entity\AssetLibrary;
 
 /**
@@ -71,8 +70,8 @@ class AssetLibraryValidationTest extends BetterConfigEntityValidationTestBase {
   public function testEntityAssets(): void {
     $css = $this->entity->get('css')['compiled'];
     $js = $this->entity->get('js')['compiled'];
-    $css_hash = Crypt::hmacBase64($css, Settings::getHashSalt());
-    $js_hash = Crypt::hmacBase64($js, Settings::getHashSalt());
+    $css_hash = Crypt::hmacBase64($css, $this->entity->uuid());
+    $js_hash = Crypt::hmacBase64($js, $this->entity->uuid());
 
     self::assertStringEqualsFile('assets://xb/' . $css_hash . '.css', $css);
     self::assertStringEqualsFile('assets://xb/' . $js_hash . '.js', $js);

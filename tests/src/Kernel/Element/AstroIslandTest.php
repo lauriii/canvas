@@ -10,7 +10,6 @@ use Drupal\Component\Utility\DeprecationHelper;
 use Drupal\Core\Asset\LibraryDiscoveryInterface;
 use Drupal\Core\Cache\CacheCollectorInterface;
 use Drupal\Core\Extension\ExtensionPathResolver;
-use Drupal\Core\Site\Settings;
 use Drupal\experience_builder\Element\AstroIsland;
 use Drupal\experience_builder\Entity\JavaScriptComponent;
 use Drupal\experience_builder\Render\ImportMapResponseAttachmentsProcessor;
@@ -50,8 +49,6 @@ final class AstroIslandTest extends KernelTestBase {
   public function testAstroIsland(): void {
     $css = '.test{display:none;}';
     $js = 'console.log("Test")';
-    $css_hash = Crypt::hmacBase64($css, Settings::getHashSalt());
-    $js_hash = Crypt::hmacBase64($js, Settings::getHashSalt());
     $component = JavaScriptComponent::create([
       'machineName' => $this->randomMachineName(),
       'name' => $this->getRandomGenerator()->sentences(5),
@@ -97,6 +94,8 @@ final class AstroIslandTest extends KernelTestBase {
     ]);
     $component->save();
 
+    $css_hash = Crypt::hmacBase64($css, $component->uuid());
+    $js_hash = Crypt::hmacBase64($js, $component->uuid());
     $discovery = \Drupal::service(LibraryDiscoveryInterface::class);
     assert($discovery instanceof CacheCollectorInterface);
     self::assertArrayHasKey('astro_island.' . $component->id(), $discovery->get('experience_builder'));

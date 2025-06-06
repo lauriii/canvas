@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\experience_builder\Kernel\Plugin\ExperienceBuilder\ComponentSource;
 
-// cspell:ignore Tilly Umso Dzyawdvr Mafgg
+// cspell:ignore Tilly anzut nhsy sxnz
 
 use Drupal\Component\Serialization\Json;
 use Drupal\Component\Utility\Crypt;
@@ -14,7 +14,6 @@ use Drupal\Core\Asset\AttachedAssets;
 use Drupal\Core\Cache\CacheableDependencyInterface;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\File\FileUrlGeneratorInterface;
-use Drupal\Core\Site\Settings;
 use Drupal\Core\StreamWrapper\StreamWrapperInterface;
 use Drupal\Core\StreamWrapper\StreamWrapperManagerInterface;
 use Drupal\experience_builder\AutoSave\AutoSaveManager;
@@ -256,16 +255,16 @@ final class JsComponentTest extends ComponentSourceTestBase {
               [
                 'rel' => 'modulepreload',
                 'fetchpriority' => 'high',
-                'href' => \sprintf('/%s/files/astro-island/CiwA6RtUpaykMTcpxFHhMnJFCGcbFW98vMZYXTqv9hY.js', $site_path),
+                'href' => \sprintf('/%s/files/astro-island/1Dq8BIqr4CMOA9RWhpbDNM4mjbvezQDq0mKKzO7iEmw.js', $site_path),
               ],
             ],
           ],
           'import_maps' => $default_imports + [
             ImportMapResponseAttachmentsProcessor::SCOPED_IMPORTS => [
-              \sprintf('/%s/files/astro-island/CiwA6RtUpaykMTcpxFHhMnJFCGcbFW98vMZYXTqv9hY.js', $site_path) => [
+              \sprintf('/%s/files/astro-island/1Dq8BIqr4CMOA9RWhpbDNM4mjbvezQDq0mKKzO7iEmw.js', $site_path) => [
 
-                '@/components/xb_test_code_components_with_no_props' => \sprintf('/%s/files/astro-island/DIVuf4g3b3u8n5-VUmsoKODzyawdvr_IN1g-mj0nshQ.js', $site_path),
-                '@/components/xb_test_code_components_with_props' => \sprintf('/%s/files/astro-island/2jV89MNP0iZ-LKQfZcMafgg380hSb1XsUhk6YAp_6nc.js', $site_path),
+                '@/components/xb_test_code_components_with_no_props' => \sprintf('/%s/files/astro-island/axL0zkV0Jlcf3zuQfhx8HWxySMYQVoAZLwgGK-dxXWU.js', $site_path),
+                '@/components/xb_test_code_components_with_props' => \sprintf('/%s/files/astro-island/AFWyiY79ad8_Hbz1qqKz97PSpKgNHSYCcwBWz8QRChU.js', $site_path),
               ],
             ],
           ],
@@ -282,7 +281,7 @@ final class JsComponentTest extends ComponentSourceTestBase {
               [
                 'rel' => 'modulepreload',
                 'fetchpriority' => 'high',
-                'href' => \sprintf('/%s/files/astro-island/AWzvjuD0F9PeMDLpE7JOz6gNduz6leBzCpSxl1aSjBE.js', $site_path),
+                'href' => \sprintf('/%s/files/astro-island/Ej9H8EwYfANZUT_jL84bUAXkK8F_p9-yZyj4Sxnz7C8.js', $site_path),
               ],
             ],
           ],
@@ -300,7 +299,7 @@ final class JsComponentTest extends ComponentSourceTestBase {
               [
                 'rel' => 'modulepreload',
                 'fetchpriority' => 'high',
-                'href' => \sprintf('/%s/files/astro-island/DIVuf4g3b3u8n5-VUmsoKODzyawdvr_IN1g-mj0nshQ.js', $site_path),
+                'href' => \sprintf('/%s/files/astro-island/axL0zkV0Jlcf3zuQfhx8HWxySMYQVoAZLwgGK-dxXWU.js', $site_path),
               ],
             ],
           ],
@@ -322,7 +321,7 @@ final class JsComponentTest extends ComponentSourceTestBase {
               [
                 'rel' => 'modulepreload',
                 'fetchpriority' => 'high',
-                'href' => \sprintf('/%s/files/astro-island/2jV89MNP0iZ-LKQfZcMafgg380hSb1XsUhk6YAp_6nc.js', $site_path),
+                'href' => \sprintf('/%s/files/astro-island/AFWyiY79ad8_Hbz1qqKz97PSpKgNHSYCcwBWz8QRChU.js', $site_path),
               ],
             ],
           ],
@@ -425,7 +424,7 @@ final class JsComponentTest extends ComponentSourceTestBase {
     \assert($asset_wrapper instanceof StreamWrapperInterface);
     \assert(\method_exists($asset_wrapper, 'getDirectoryPath'));
     $directory_path = $asset_wrapper->getDirectoryPath();
-    $js_hash = Crypt::hmacBase64($expected_component_compiled_js, Settings::getHashSalt());
+    $js_hash = Crypt::hmacBase64($expected_component_compiled_js, $js_component->uuid());
     // @phpstan-ignore-next-line
     $expected_js_filename = match ($expected_result) {
       'live' => \sprintf('/%s/astro-island/%s.js', $directory_path, $js_hash),
@@ -457,7 +456,7 @@ final class JsComponentTest extends ComponentSourceTestBase {
       $css_filename = match ($expected_result) {
         'live' => \sprintf(
           'assets://astro-island/%s.css',
-          Crypt::hmacBase64($expected_component_compiled_css, Settings::getHashSalt()),
+          Crypt::hmacBase64($expected_component_compiled_css, $js_component->uuid()),
         ),
         'draft' => "xb/api/v0/auto-saves/css/js_component/$js_component_id",
       };
