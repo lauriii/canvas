@@ -28,16 +28,20 @@ const Layers: React.FC<LayersProps> = () => {
 
   return (
     <Box>
-      {displayedRegions.map((region) => (
+      {displayedRegions.map((region, index) => (
         <React.Fragment key={region.id}>
           {focusedRegion === region.id && region.id === DEFAULT_REGION ? (
             <Box>
-              <Separator orientation="horizontal" size="4" my="2" />
+              {index > 0 && (
+                <Separator orientation="horizontal" size="4" my="2" />
+              )}{' '}
               <RegionLayer
                 region={region}
                 isPage={region.id === DEFAULT_REGION}
               />
-              <Separator orientation="horizontal" size="4" my="2" />
+              {index < displayedRegions.length - 1 && (
+                <Separator orientation="horizontal" size="4" my="2" />
+              )}
             </Box>
           ) : (
             <RegionLayer region={region} />
