@@ -35,6 +35,7 @@ describe('Undo/redo', () => {
     cy.wrap(state.past).should('have.length', 0);
     cy.wrap(state.future).should('have.length', 1);
   });
+
   it('Should support redo when future state exists', () => {
     const store = makeStore({
       pageData: { present: pageData, past: [{}], future: [] },
@@ -55,6 +56,7 @@ describe('Undo/redo', () => {
     cy.wrap(state.past).should('have.length', 1);
     cy.wrap(state.future).should('have.length', 0);
   });
+
   it('Should not support undo of initial load', () => {
     const store = makeStore({
       pageData: { present: {}, past: [], future: [] },
@@ -71,6 +73,7 @@ describe('Undo/redo', () => {
     cy.wrap(state.past).should('have.length', 0);
     cy.wrap(state.future).should('have.length', 0);
   });
+
   it('Should prune future state if undo type changes', () => {
     const store = makeStore({
       pageData: { present: pageData, past: [], future: [] },

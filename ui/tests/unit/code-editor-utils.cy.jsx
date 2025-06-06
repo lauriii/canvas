@@ -165,6 +165,7 @@ describe('Code editor utilities', () => {
         'numberListWithExampleValue',
       ]);
     });
+
     it('of type formatted text', () => {
       expect(
         serializeProps([
@@ -214,6 +215,7 @@ describe('Code editor utilities', () => {
         ]),
       ).to.matchDeserializedProps([6, 7]);
     });
+
     it('of type text list', () => {
       expect(
         deserializeProps([

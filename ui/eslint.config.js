@@ -6,6 +6,7 @@ import reactHooks from 'eslint-plugin-react-hooks';
 import { fileURLToPath } from 'node:url';
 import js from '@eslint/js';
 import { FlatCompat } from '@eslint/eslintrc';
+import mochaPlugin from 'eslint-plugin-mocha';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -35,8 +36,8 @@ export default [
   {
     plugins: {
       '@typescript-eslint': typescriptEslint,
+      mocha: mochaPlugin,
     },
-
     languageOptions: {
       globals: {
         ...globals.browser,
@@ -63,6 +64,7 @@ export default [
     },
 
     rules: {
+      ...mochaPlugin.configs.recommended.rules,
       '@typescript-eslint/consistent-type-imports': [
         2,
         {
@@ -83,7 +85,10 @@ export default [
           ],
         },
       ],
-
+      'mocha/no-mocha-arrows': 'off',
+      'mocha/no-top-level-hooks': 'off',
+      'mocha/max-top-level-suites': 'off',
+      'mocha/no-exclusive-tests': 'error',
       'jsx-no-undef': 'off',
       'react/prop-types': 'off',
       'react/no-unescaped-entities': 'off',

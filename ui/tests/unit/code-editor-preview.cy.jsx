@@ -3,6 +3,7 @@ import { makeStore } from '@/app/store';
 
 describe('<Preview /> for code editor', () => {
   let previewScript;
+
   before(() => {
     // Load the preview script content.
     cy.readFile('lib/code-editor-preview.js').then((content) => {
@@ -14,6 +15,7 @@ describe('<Preview /> for code editor', () => {
   // The test fails on CI, probably because the iframe manipulation
   // is flaky. If we use an end-to-end test, we don't need to inline the otherwise
   // external preview script.
+  // eslint-disable-next-line mocha/no-pending-tests
   it.skip('renders simple JS and CSS in the preview iframe', () => {
     // Mock JavaScript and CSS in the Redux store
     const store = makeStore({

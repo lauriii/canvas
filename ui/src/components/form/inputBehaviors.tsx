@@ -355,6 +355,7 @@ const InputBehaviorsComponentPropsForm = (
     // with the structure.
     Object.keys(values).forEach((prop) => {
       if (flaggedForRemoval(values[prop]) && component?.propSources?.[prop]) {
+        // If the prop is optional, it can be removed.
         if (!component.propSources[prop]?.required) {
           if (isEvaluatedComponentModel(selectedModel)) {
             // The source value can also be updated to empty when permitted.
@@ -362,8 +363,11 @@ const InputBehaviorsComponentPropsForm = (
               selectedModel.source[prop].value = [];
             }
           }
+          resolved[prop] = [];
+        } else {
+          // If the prop is required, we need to set it back to the default.
+          resolved[prop] = component.propSources[prop].default_values.resolved;
         }
-        resolved[prop] = [];
       }
     });
 

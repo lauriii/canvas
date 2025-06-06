@@ -819,11 +819,6 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
         // subsequent validation to bubble up any errors.
         continue;
       }
-      catch (\LogicException) {
-        // Invalid client data has been passed - fallback to an empty default
-        // static prop source.
-        $source = $this->getDefaultStaticPropSource($prop)->withValue([]);
-      }
       $props[$prop] = $source->toArray();
       if ($source instanceof StaticPropSource &&
         \array_key_exists('expression', $props[$prop]) &&

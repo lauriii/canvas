@@ -12,6 +12,7 @@ describe('states', () => {
     cy.get('.primaryPanelContent').findByText('Heading').click();
     cy.waitForElementContentInIframe('div', 'A heading element');
   });
+
   after(() => {
     cy.drupalUninstall();
   });

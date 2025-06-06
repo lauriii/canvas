@@ -11,6 +11,7 @@ import layoutFixture from '../fixtures/layout-default.json';
 import regionsLayoutFixture from '../fixtures/layout-regions.json';
 
 let layout, regionsLayout;
+
 beforeEach(() => {
   layout = layoutFixture;
   regionsLayout = regionsLayoutFixture;

@@ -10,6 +10,7 @@ describe('Multivalue widget drag and drop', () => {
     cy.drupalSession();
     cy.drupalLogin('xbUser', 'xbUser');
   });
+
   after(() => {
     cy.drupalUninstall();
   });
@@ -92,14 +93,7 @@ describe('Multivalue widget drag and drop', () => {
       .type('The Olivia Tremor Control');
     confirmWeightSelectCount(3);
     waitForPreview();
-
-    // Wait for all AJAX instances to finish.
-    cy.waitForWindowProcess(
-      (win) =>
-        !win.Drupal.ajax.instances.some(
-          (instance) => instance && instance.ajaxing === true,
-        ),
-    );
+    cy.waitForAjax();
 
     confirmTextInputs([
       'Marshmallow Coast',
@@ -150,14 +144,8 @@ describe('Multivalue widget drag and drop', () => {
       .eq(3)
       .type('The Music Tapes');
     waitForPreview();
+    cy.waitForAjax();
 
-    // Wait for all AJAX instances to finish.
-    cy.waitForWindowProcess(
-      (win) =>
-        !win.Drupal.ajax.instances.some(
-          (instance) => instance && instance.ajaxing === true,
-        ),
-    );
     confirmTextInputs([
       'Marshmallow Coast',
       'The Olivia Tremor Control',

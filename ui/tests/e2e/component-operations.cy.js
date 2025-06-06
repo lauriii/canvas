@@ -29,6 +29,7 @@ describe('Perform CRUD operations on components that require disabled CSS aggreg
       });
   });
 });
+
 describe('Perform CRUD operations on components', () => {
   before(() => {
     cy.drupalXbInstall();

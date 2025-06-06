@@ -47,6 +47,7 @@ describe('UI a11y Scan', () => {
       terminalLog,
     );
   });
+
   it('a11y scan library panel', () => {
     cy.drupalLogin('xbUser', 'xbUser');
     cy.loadURLandWaitForXBLoaded();
@@ -68,6 +69,7 @@ describe('UI a11y Scan', () => {
       terminalLog,
     );
   });
+
   it('a11y scan primary panel', () => {
     cy.drupalLogin('xbUser', 'xbUser');
     cy.loadURLandWaitForXBLoaded();

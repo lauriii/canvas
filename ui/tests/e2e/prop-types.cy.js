@@ -52,10 +52,12 @@ describe('Prop types editing', () => {
       labelText: 'String, format=iri',
     },
   };
+
   before(() => {
     cy.drupalXbInstall(['sdc_test_all_props']);
     cy.drupalLogin('xbUser', 'xbUser');
   });
+
   beforeEach(() => {
     cy.drupalLogin('xbUser', 'xbUser');
     cy.loadURLandWaitForXBLoaded();
@@ -194,6 +196,7 @@ describe('Prop types editing', () => {
       '2017-06-28T07:21:35.000Z',
     );
   });
+
   it(
     'Individual date and time inputs',
     { retries: { openMode: 0, runMode: 3 } },
@@ -221,6 +224,7 @@ describe('Prop types editing', () => {
       );
     },
   );
+
   it('Integer', { retries: { openMode: 0, runMode: 3 } }, () => {
     cy.findByLabelText('Integer').should('have.value', -42);
     cy.waitForElementContentInIframe('#test-integer', '-42');
@@ -495,6 +499,7 @@ describe('Prop types editing', () => {
       cy.waitForElementContentInIframe(previewSelector, '/whatever');
     },
   );
+
   it(
     'can enter number into a text field',
     { retries: { openMode: 0, runMode: 3 } },
@@ -511,6 +516,7 @@ describe('Prop types editing', () => {
       cy.waitForElementContentInIframe(iframeSelector, valuePost);
     },
   );
+
   it('can enter just a space into a text field', () => {
     const iframeSelector = '#test-string';
     const labelText = 'String — single line';

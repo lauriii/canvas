@@ -30,14 +30,8 @@ export const edit = (cy) => {
       times: 1,
       method: 'POST',
     }).as('updatePreview');
+    cy.waitForAjax();
 
-    // Wait for all AJAX instances to finish.
-    cy.waitForWindowProcess(
-      (win) =>
-        !win.Drupal.ajax.instances.some(
-          (instance) => instance && instance.ajaxing === true,
-        ),
-    );
     // Despite waiting on the layout request and AJAX completion, this wait is
     // still necessary in order to prevent a specific problem where the first
     // only the first item in the loop makes it to the published version of the

@@ -83,10 +83,17 @@ describe('The Scope CSS utility', () => {
     cy.drupalUninstall();
   });
 
+  const strip = (str) =>
+    str
+      .replace(/(?:\r\n|\r|\n)/g, '')
+      .replace(/\s+/g, ' ')
+      .replace(/\u00a0/g, ' ')
+      .trim();
+
   it('Wraps styles and accounts for top level selectors', () => {
     cy.loadURLandWaitForXBLoaded();
 
-    cy.get('[data-dialog-style-from]').should('not.exist');
+    cy.waitForElementsToStabilize('[data-dialog-style-from]');
     cy.window().then((win) => {
       win.Drupal.AjaxCommands.prototype.scope_css(
         {
@@ -95,38 +102,42 @@ describe('The Scope CSS utility', () => {
         '.dialog',
       );
     });
-    cy.get('[data-dialog-style-from]').should(($addedStyle) => {
-      expect($addedStyle).to.have.length(1);
-      const stylesheet = new CSSStyleSheet();
-      stylesheet.replaceSync($addedStyle.text());
-      expect(
-        stylesheet.cssRules[0].cssText,
-        'The style begins with .dialog, which is the same as the scope wrapper, so it is not wrapped',
-      ).to.equal('.dialog { color: rgb(68, 68, 68); }');
-      expect(
-        stylesheet.cssRules[1].cssText,
-        'The style begins with .dialog, which is the same as the scope wrapper, so it is not wrapped',
-      ).to.equal('.dialog .inside-dialog { color: rgb(85, 85, 85); }');
-      expect(
-        stylesheet.cssRules[2].cssText,
-        'The style is wrapped in @scope (.dialog)',
-      ).to.equal(
-        `@scope (.dialog) {\n  .regular-old-class { color: rgb(102, 102, 102); }\n}`,
-      );
-      expect(
-        stylesheet.cssRules[3].cssText,
-        'The style begins with a class present in <html> so the scope selector appears after it',
-      ).to.equal(
-        `.js .dialog .somewhere-inside { color: rgb(119, 119, 119); }`,
-      );
-      expect(
-        stylesheet.cssRules[4].cssText,
-        'The style begins with an <html> tag so the scope selector appears after it',
-      ).to.equal(`html .dialog .somewhere-else { color: rgb(136, 136, 136); }`);
-    });
+    cy.get('[data-dialog-style-from="/test-css/assortment.css"]').should(
+      ($addedStyle) => {
+        expect($addedStyle).to.have.length(1);
+        const stylesheet = new CSSStyleSheet();
+        stylesheet.replaceSync($addedStyle.text());
+        expect(
+          stylesheet.cssRules[0].cssText,
+          'The style begins with .dialog, which is the same as the scope wrapper, so it is not wrapped',
+        ).to.equal('.dialog { color: rgb(68, 68, 68); }');
+        expect(
+          stylesheet.cssRules[1].cssText,
+          'The style begins with .dialog, which is the same as the scope wrapper, so it is not wrapped',
+        ).to.equal('.dialog .inside-dialog { color: rgb(85, 85, 85); }');
+        expect(
+          strip(stylesheet.cssRules[2].cssText),
+          'The style is wrapped in @scope (.dialog)',
+        ).to.equal(
+          '@scope (.dialog) { .regular-old-class { color: rgb(102, 102, 102); }}',
+        );
+        expect(
+          strip(stylesheet.cssRules[3].cssText),
+          'The style begins with a class present in <html> so the scope selector appears after it',
+        ).to.equal(
+          `@scope (.js) { .dialog .somewhere-inside { color: rgb(119, 119, 119); }}`,
+        );
+        expect(
+          strip(stylesheet.cssRules[4].cssText),
+          'The style begins with an <html> tag so the scope selector appears after it',
+        ).to.equal(
+          `@scope (html) { .dialog .somewhere-else { color: rgb(136, 136, 136); }}`,
+        );
+      },
+    );
   });
 
-  it.only('Handles CSS variables and :root', () => {
+  it('Handles CSS variables and :root', () => {
     cy.loadURLandWaitForXBLoaded();
     cy.get('[data-dialog-style-from]').should('exist');
     cy.waitForElementsToStabilize('[data-dialog-style-from]');

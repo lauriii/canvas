@@ -1251,3 +1251,12 @@ Cypress.Commands.add(
     });
   },
 );
+
+Cypress.Commands.add('waitForAjax', () => {
+  cy.waitForWindowProcess(
+    (win) =>
+      !win.Drupal.ajax.instances.some(
+        (instance) => instance && instance.ajaxing === true,
+      ),
+  );
+});

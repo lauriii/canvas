@@ -37,11 +37,13 @@ describe('ckeditor 5', () => {
     cy.drupalSession();
     cy.drupalLogin('xbUser', 'xbUser');
   });
+
   after(() => {
     cy.drupalUninstall();
   });
 
   // @todo: bring back with necessary refactors in https://www.drupal.org/i/3522998
+  // eslint-disable-next-line mocha/no-pending-tests
   it.skip('can change text formats', () => {
     cy.loadURLandWaitForXBLoaded();
     const wrap =

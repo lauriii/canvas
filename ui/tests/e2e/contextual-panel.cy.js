@@ -31,6 +31,7 @@ describe('Contextual panel', () => {
     });
     cy.waitForElementContentNotInIframe('h1', 'hello, world!');
   });
+
   it('should open the context menu on right-click in primary content menu', () => {
     cy.loadURLandWaitForXBLoaded();
     // Wait for the preview iframe to load and render something that confirms it is ready.

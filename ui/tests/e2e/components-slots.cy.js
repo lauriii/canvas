@@ -1,6 +1,7 @@
 // WARNING: describe.skip() is used to ignore this spec.
 // @todo Rewrite in Playwright! See #3473617: Write end-to-end test for dragging and dropping components
 // https://www.drupal.org/project/experience_builder/issues/3473617
+// eslint-disable-next-line mocha/no-pending-tests
 describe.skip('Component slots functionality', () => {
   before(() => {
     cy.drupalXbInstall();

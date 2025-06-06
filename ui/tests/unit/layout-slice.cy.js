@@ -19,6 +19,7 @@ import { setPageData } from '@/features/pageData/pageDataSlice';
 import layoutFixture from '../fixtures/layout-default.json';
 
 let layout;
+
 beforeEach(() => {
   layout = layoutFixture;
 });
@@ -224,6 +225,7 @@ describe('Undo/redo', () => {
     expect(state.past.length).to.eq(0);
     expect(state.future.length).to.eq(1);
   });
+
   it('Should support redo when future state exists', () => {
     const store = makeStore({
       layoutModel: { present: layout, past: [initialState], future: [] },
@@ -244,6 +246,7 @@ describe('Undo/redo', () => {
     expect(state.past.length).to.eq(1);
     expect(state.future.length).to.eq(0);
   });
+
   it('Should not support undo of initial load', () => {
     const store = makeStore({
       layoutModel: { present: initialState, past: [], future: [] },
@@ -263,6 +266,7 @@ describe('Undo/redo', () => {
     expect(state.past.length).to.eq(0);
     expect(state.future.length).to.eq(0);
   });
+
   it('Should prune future state if undo type changes', () => {
     const store = makeStore({
       layoutModel: { present: layout, past: [initialState], future: [] },
@@ -296,6 +300,7 @@ describe('Undo/redo', () => {
     expect(state.future.length).to.eq(0);
   });
 });
+
 describe('Duplicate node', () => {
   it('Should duplicate a node correctly with a new UUID and duplicate its children nodes', () => {
     // Initialize state with a layout

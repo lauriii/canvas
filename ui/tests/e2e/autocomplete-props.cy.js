@@ -7,6 +7,7 @@ describe('Prop with autocomplete', () => {
     cy.drupalSession();
     cy.drupalLogin('xbUser', 'xbUser');
   });
+
   after(() => {
     cy.drupalUninstall();
   });

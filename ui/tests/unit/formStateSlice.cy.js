@@ -12,6 +12,7 @@ import { makeStore } from '@/app/store';
 
 const formId = 'component_inputs_form';
 const fieldName = 'b741';
+
 describe('Form state slice 🔪', () => {
   it('Should set field value', () => {
     const state = formStateSlice.reducer(
