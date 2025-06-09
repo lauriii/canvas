@@ -569,30 +569,8 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     $node1_auto_save_key = 'node:' . $node1->id() . ':en';
     self::assertArrayHasKey($node1_auto_save_key, $auto_save_data);
 
-    // Make publish requests that have missing, extra, and out-dated auto-save
+    // Make publish requests that have extra, and out-dated auto-save
     // information.
-    $missing_auto_save_data = $auto_save_data;
-    unset($missing_auto_save_data[$node1_auto_save_key]);
-    $response = $this->makePublishAllRequest($missing_auto_save_data);
-    self::assertSame(Response::HTTP_CONFLICT, $response->getStatusCode());
-    self::assertEquals([
-      'errors' => [
-      [
-        'detail' => ErrorCodesEnum::MissingItemInPublishRequest->getMessage(),
-        'source' => [
-          'pointer' => $node1_auto_save_key,
-        ],
-        'code' => ErrorCodesEnum::MissingItemInPublishRequest->value,
-        'meta' => [
-          'entity_type' => 'node',
-          'entity_id' => $node1->id(),
-          'label' => $validClientJson['entity_form_fields']['title[0][value]'],
-          ApiAutoSaveController::AUTO_SAVE_KEY => $autoSave->getAutoSaveKey($node1),
-        ],
-      ],
-      ],
-    ], \json_decode($response->getContent() ?: '', TRUE, flags: JSON_THROW_ON_ERROR));
-
     $extra_auto_save_data = $auto_save_data;
     $extra_key = 'node:' . (((int) $node2->id()) + 1) . ':en';
     $extra_auto_save_data[$extra_key] = $auto_save_data[$node1_auto_save_key];
@@ -632,12 +610,29 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
       ],
     ], \json_decode($response->getContent() ?: '', TRUE, flags: JSON_THROW_ON_ERROR));
 
+    // Publish only node 1.
+    $auto_save_data = $this->getAutoSaveStatesFromServer();
+    $auto_save_count = \count($auto_save_data);
+    $node1_auto_save = [$node1_auto_save_key => $auto_save_data[$node1_auto_save_key]];
+    $response = $this->makePublishAllRequest($node1_auto_save);
+    $json = json_decode($response->getContent() ?: '', TRUE);
+    self::assertEquals(['message' => 'Successfully published 1 item.'], $json);
+    self::assertEquals(Response::HTTP_OK, $response->getStatusCode());
+    $this->assertValidJsonUpdateNode($node1, FALSE);
+    $auto_save_data = $this->getAutoSaveStatesFromServer();
+    self::assertArrayNotHasKey($node1_auto_save_key, $auto_save_data);
+    self::assertCount($auto_save_count - 1, $auto_save_data);
+    // Ensure none of other the entities were updated.
+    $this->assertNodeValues($node2, [], [], ['title' => $node2_original_title, 'status' => '1']);
+    $this->assertEquals('Original JavaScriptComponent name', $code_component_storage->loadUnchanged($code_component->id())?->label());
+    $this->assertEquals($originalGlobalLibraryName, $library_storage->loadUnchanged($library->id())?->label());
+    $this->assertSame('Test page', $page_storage->loadUnchanged($page->id())->label());
+
     $response = $this->makePublishAllRequest();
     $json = json_decode($response->getContent() ?: '', TRUE);
     self::assertEquals(Response::HTTP_OK, $response->getStatusCode());
-    self::assertEquals(['message' => \sprintf('Successfully published %d items.', $withGlobal ? 6 : 5)], $json);
+    self::assertEquals(['message' => \sprintf('Successfully published %d items.', $withGlobal ? 5 : 4)], $json);
 
-    $this->assertValidJsonUpdateNode($node1, FALSE);
     $this->assertNodeValues(
       $node2,
       [

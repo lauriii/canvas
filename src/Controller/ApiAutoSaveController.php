@@ -47,8 +47,7 @@ final class ApiAutoSaveController extends ApiControllerBase {
 
   private static function validateExpectedAutoSaves(array $expected_auto_saves, array $all_auto_saves): ?JsonResponse {
     $unexpected_keys = \array_diff_key($expected_auto_saves, $all_auto_saves);
-    $missing_keys = \array_diff_key($all_auto_saves, $expected_auto_saves);
-    if ($unexpected_keys || $missing_keys) {
+    if ($unexpected_keys) {
       $errors = [];
       foreach (\array_keys($unexpected_keys) as $key) {
         $errors[] = [
@@ -57,22 +56,6 @@ final class ApiAutoSaveController extends ApiControllerBase {
             'pointer' => $key,
           ],
           'code' => ErrorCodesEnum::UnexpectedItemInPublishRequest->value,
-        ];
-      }
-      foreach ($missing_keys as $key => $item) {
-        $errors[] = [
-          'detail' => ErrorCodesEnum::MissingItemInPublishRequest->getMessage(),
-          'source' => [
-            'pointer' => $key,
-          ],
-          'code' => ErrorCodesEnum::MissingItemInPublishRequest->value,
-          'meta' => \array_intersect_key($item, \array_flip([
-            'entity_type',
-            'entity_id',
-            'label',
-          ])) + [
-            self::AUTO_SAVE_KEY => $key,
-          ],
         ];
       }
       return new JsonResponse(data: ['errors' => $errors], status: Response::HTTP_CONFLICT);
@@ -147,11 +130,11 @@ final class ApiAutoSaveController extends ApiControllerBase {
    * Publishes the auto-saved changes.
    */
   public function post(Request $request): JsonResponse {
-    $expected_auto_saves = \json_decode($request->getContent(), TRUE);
-    \assert(\is_array($expected_auto_saves));
+    $client_auto_saves = \json_decode($request->getContent(), TRUE);
+    \assert(\is_array($client_auto_saves));
     $all_auto_saves = $this->autoSaveManager->getAllAutoSaveList();
-    if ($difference_response = self::validateExpectedAutoSaves($expected_auto_saves, $all_auto_saves)) {
-      return $difference_response;
+    if ($validation_response = self::validateExpectedAutoSaves($client_auto_saves, $all_auto_saves)) {
+      return $validation_response;
     }
 
     if (\count($all_auto_saves) === 0) {
@@ -162,7 +145,10 @@ final class ApiAutoSaveController extends ApiControllerBase {
     // ConstraintViolationList so we can keep violations grouped by each entity.
     $violationSets = [];
     $entities = [];
-    foreach ($all_auto_saves as $auto_save) {
+    // The client auto-saves do not contain the 'data' key, so we need to use
+    // the versions from the auto-save manager.
+    $publish_auto_saves = array_intersect_key($all_auto_saves, $client_auto_saves);
+    foreach ($publish_auto_saves as $auto_save) {
       $entity = $this->entityTypeManager->getStorage($auto_save['entity_type'])
         ->load($auto_save['entity_id']);
 
@@ -217,7 +203,7 @@ final class ApiAutoSaveController extends ApiControllerBase {
       $entity->save();
       $this->autoSaveManager->delete($entity);
     }
-    return new JsonResponse(data: ['message' => new PluralTranslatableMarkup(\count($all_auto_saves), 'Successfully published 1 item.', 'Successfully published @count items.')], status: 200);
+    return new JsonResponse(data: ['message' => new PluralTranslatableMarkup(\count($publish_auto_saves), 'Successfully published 1 item.', 'Successfully published @count items.')], status: 200);
   }
 
   /**

@@ -257,30 +257,8 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     $segment_auto_save_key = 'segment:' . $segment_id;
     self::assertArrayHasKey($segment_auto_save_key, $auto_save_data);
 
-    // Make publish requests that have missing, extra, and out-dated auto-save
+    // Make publish requests that have extra, and out-dated auto-save
     // information.
-    $missing_auto_save_data = $auto_save_data;
-    unset($missing_auto_save_data[$segment_auto_save_key]);
-    $response = $this->makePublishAllRequest($missing_auto_save_data);
-    self::assertSame(Response::HTTP_CONFLICT, $response->getStatusCode());
-    self::assertEquals([
-      'errors' => [
-      [
-        'detail' => ErrorCodesEnum::MissingItemInPublishRequest->getMessage(),
-        'source' => [
-          'pointer' => $segment_auto_save_key,
-        ],
-        'code' => ErrorCodesEnum::MissingItemInPublishRequest->value,
-        'meta' => [
-          'entity_type' => 'segment',
-          'entity_id' => $segment->id(),
-          'label' => $new_title,
-          ApiAutoSaveController::AUTO_SAVE_KEY => $autoSave->getAutoSaveKey($segment),
-        ],
-      ],
-      ],
-    ], \json_decode($response->getContent() ?: '', TRUE, flags: JSON_THROW_ON_ERROR));
-
     $extra_auto_save_data = $auto_save_data;
     $extra_key = 'segment:missing_segment';
     $extra_auto_save_data[$extra_key] = $auto_save_data[$segment_auto_save_key];
