@@ -369,6 +369,48 @@ UI eslint:
     reports:
       junit: junit.xml
 
+CLI:
+  stage: build
+  image: node:20-alpine
+  rules:
+    - *is-push-rule
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes:
+        - cli/package.json
+        - cli/**/*.js
+        - cli/**/*.ts
+        - cli/**/*.tsx
+        - cli/tsconfig.json
+    - *manual-rule
+  script:
+    - cd cli
+    - npm ci
+    - npm run build
+  artifacts:
+    paths:
+      - cli/node_modules
+
+CLI eslint type-check:
+  stage: validate
+  image: node:20-alpine
+  allow_failure: false
+  needs:
+    - CLI
+  rules:
+    - *is-push-rule
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes:
+        - cli/package.json
+        - cli/**/*.js
+        - cli/**/*.ts
+        - cli/**/*.tsx
+        - cli/tsconfig.json
+    - *manual-rule
+  script:
+    - cd cli
+    - npm run lint
+    - npm run type-check
+
 vitest:
   stage: test
   image: node:20-alpine

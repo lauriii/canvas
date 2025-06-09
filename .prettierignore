@@ -15,3 +15,9 @@ ui/dist
 !tests/src/Cypress/**/*.jsx
 !tests/src/Cypress/**/*.ts
 !tests/src/Cypress/**/*.tsx
+
+# Explicitly enable Prettier for CLI codebase.
+!cli/**/*.js
+!cli/**/*.jsx
+!cli/**/*.ts
+!cli/**/*.tsx

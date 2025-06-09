@@ -6,3 +6,5 @@ ui/**/*
 # Astro is an external library used for XB's Code Component functionality.
 js/astro-bundles/*
 js/assets/**/*
+# XB's CLI tool is in TypeScript and has its own linting.
+cli/**/*
