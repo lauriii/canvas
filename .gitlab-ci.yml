@@ -146,7 +146,7 @@ cspell:
   - cd _drupal
   # Add core-dev, Experience Builder, and drush
   - |
-    composer config repositories.exprience_builder --json '{"type": "path", "url": "../experience_builder", "options": { "symlink": false } }'
+    composer config repositories.experience_builder --json '{"type": "path", "url": "../experience_builder", "options": { "symlink": false } }'
   - composer config minimum-stability dev
   - composer require drupal/core-dev "drupal/experience_builder @dev" drush/drush --with-all-dependencies
   # Setup webserver root
