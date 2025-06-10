@@ -173,7 +173,7 @@ const DragEventsHandler: React.FC = () => {
         return;
       }
       const type = event.active.data?.current?.type;
-      if (type === 'component') {
+      if (type === 'component' || type === 'dynamicComponent') {
         // @todo We should optimistically insert newItem.default_markup into to the new location in the iFrames dom.
         dispatch(
           addNewComponentToLayout(

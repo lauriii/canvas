@@ -63,7 +63,7 @@ const ListItem: React.FC<{
       const newPath = [...path];
       newPath[newPath.length - 1] += 1;
 
-      if (type === 'component') {
+      if (type === 'component' || type === 'dynamicComponent') {
         dispatch(
           addNewComponentToLayout(
             {
