@@ -21,6 +21,7 @@ use Drupal\Tests\experience_builder\Traits\CrawlerTrait;
 use Drupal\Tests\user\Traits\UserCreationTrait;
 use Drupal\user\Entity\User;
 use Drupal\xb_test_block\Plugin\Block\XbTestBlockInputNone;
+use Drupal\xb_test_block\Plugin\Block\XbTestBlockInputSchemaChangePoc;
 use Drupal\xb_test_block\Plugin\Block\XbTestBlockInputValidatable;
 use Drupal\xb_test_block\Plugin\Block\XbTestBlockInputValidatableCrash;
 use Drupal\xb_test_block\Plugin\Block\XbTestBlockOptionalContexts;
@@ -81,6 +82,7 @@ final class BlockComponentTest extends ComponentSourceTestBase {
     $auto_created_components = $this->findCreatedComponentConfigEntities(BlockComponent::SOURCE_PLUGIN_ID, 'xb_test_block');
     self::assertSame([
       'block.xb_test_block_input_none',
+      'block.xb_test_block_input_schema_change_poc',
       'block.xb_test_block_input_validatable',
       'block.xb_test_block_input_validatable_crash',
       'block.xb_test_block_optional_contexts',
@@ -102,6 +104,15 @@ final class BlockComponentTest extends ComponentSourceTestBase {
           'label' => 'Test block with no settings.',
           'label_display' => '0',
           'provider' => 'xb_test_block',
+        ],
+      ],
+      'block.xb_test_block_input_schema_change_poc' => [
+        'default_settings' => [
+          'id' => 'xb_test_block_input_schema_change_poc',
+          'label' => 'Test block for Input Schema Change POC.',
+          'label_display' => '0',
+          'provider' => 'xb_test_block',
+          'foo' => 'bar',
         ],
       ],
       'block.xb_test_block_input_validatable' => [
@@ -144,6 +155,7 @@ final class BlockComponentTest extends ComponentSourceTestBase {
   public function testGetReferencedPluginClass(array $component_ids): void {
     self::assertSame([
       'block.xb_test_block_input_none' => XbTestBlockInputNone::class,
+      'block.xb_test_block_input_schema_change_poc' => XbTestBlockInputSchemaChangePoc::class,
       'block.xb_test_block_input_validatable' => XbTestBlockInputValidatable::class,
       'block.xb_test_block_input_validatable_crash' => XbTestBlockInputValidatableCrash::class,
       'block.xb_test_block_optional_contexts' => XbTestBlockOptionalContexts::class,
@@ -199,19 +211,19 @@ HTML,
           ]),
         'attachments' => [],
       ],
-      'block.xb_test_block_input_validatable' => [
+      'block.xb_test_block_input_schema_change_poc' => [
         'html' => <<<HTML
 <div id="block-some-uuid--2">
 
 
-      <div>Hello, XB!</div>
+      Current foo value: bar
   </div>
 
 HTML,
         'cacheability' => $default_cacheability,
         'attachments' => [],
       ],
-      'block.xb_test_block_input_validatable_crash' => [
+      'block.xb_test_block_input_validatable' => [
         'html' => <<<HTML
 <div id="block-some-uuid--3">
 
@@ -223,9 +235,21 @@ HTML,
         'cacheability' => $default_cacheability,
         'attachments' => [],
       ],
-      'block.xb_test_block_optional_contexts' => [
+      'block.xb_test_block_input_validatable_crash' => [
         'html' => <<<HTML
 <div id="block-some-uuid--4">
+
+
+      <div>Hello, XB!</div>
+  </div>
+
+HTML,
+        'cacheability' => $default_cacheability,
+        'attachments' => [],
+      ],
+      'block.xb_test_block_optional_contexts' => [
+        'html' => <<<HTML
+<div id="block-some-uuid--5">
 
 
       Test Block with optional context value: @todo in https://www.drupal.org/i/3485502
@@ -245,6 +269,9 @@ HTML,
     return [
       'block.xb_test_block_input_none' => [
         'expected_output_selectors' => ['div:contains("Hello bob, from XB!")'],
+      ],
+      'block.xb_test_block_input_schema_change_poc' => [
+        'expected_output_selectors' => ['div:contains("Current foo value: bar")'],
       ],
       'block.xb_test_block_input_validatable' => [
         'expected_output_selectors' => ['div:contains("Hello, XB!")'],
@@ -326,6 +353,7 @@ HTML,
     $dependencies = ['module' => ['xb_test_block']];
     self::assertSame([
       'block.xb_test_block_input_none' => $dependencies,
+      'block.xb_test_block_input_schema_change_poc' => $dependencies,
       'block.xb_test_block_input_validatable' => $dependencies,
       'block.xb_test_block_input_validatable_crash' => $dependencies,
       'block.xb_test_block_optional_contexts' => $dependencies,

@@ -26,3 +26,14 @@ block.settings.xb_test_block_input_validatable_crash:
     crash:
       type: boolean
       label: 'Crash'
+block.settings.xb_test_block_input_schema_change_poc:
+  type: block_settings
+  label: 'Input Schema Change POC settings'
+  constraints:
+    FullyValidatable: ~
+  mapping:
+    foo:
+      type: string
+      label: 'Foo'
+      constraints:
+        Choice: [bar, baz]

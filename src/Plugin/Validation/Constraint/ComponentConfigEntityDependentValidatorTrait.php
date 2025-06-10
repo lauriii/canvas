@@ -31,7 +31,7 @@ trait ComponentConfigEntityDependentValidatorTrait {
       assert($component instanceof Component);
       return $component;
     }
-    assert($root->getDataDefinition()->getDataType() === 'experience_builder.component.*');
+    assert($root->getDataDefinition()->getDataType() === 'experience_builder.component.*' || $root->getDataDefinition()->getDataType() === 'config_entity_version:component');
     return Component::create($root->toArray());
   }
 

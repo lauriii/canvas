@@ -393,6 +393,7 @@ class ComponentTreeItem extends FieldItemBase {
     }
     $pairs = [
       ['component_id', 'component'],
+      ['component_version', 'component'],
       ['parent_uuid', 'parent_item'],
     ];
     foreach ($pairs as $pair) {
