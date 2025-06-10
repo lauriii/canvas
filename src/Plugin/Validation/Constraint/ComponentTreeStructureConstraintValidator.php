@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\experience_builder\Plugin\Validation\Constraint;
 
 use Drupal\Core\Config\Plugin\Validation\Constraint\ConfigExistsConstraint;
+use Drupal\Core\Config\Schema\Sequence;
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
@@ -66,7 +67,11 @@ final class ComponentTreeStructureConstraintValidator extends ConstraintValidato
       $base_property_path = $this->context->getPropertyPath();
     }
     $object = $this->context->getObject();
-    if (\is_array($value) && !\array_is_list($value) && $object instanceof TypedDataInterface) {
+    if ($object instanceof Sequence) {
+      // Remove keys from config-based component trees.
+      $value = \array_values($value);
+    }
+    if (\is_array($value) && $object instanceof TypedDataInterface && !($object instanceof Sequence)) {
       $type = $object->getDataDefinition()->getDataType();
       if ($type === 'field.value.component_tree' && ($parent = $object->getParent()) !== NULL) {
         // We can only validate a single field value item in the case of a

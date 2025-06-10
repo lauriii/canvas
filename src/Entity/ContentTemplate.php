@@ -29,7 +29,7 @@ use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemList;
  * `\Drupal\layout_builder\Hook\LayoutBuilderHooks::entityTypeAlter()` -- only
  * one module can do that!
  *
- * @phpstan-import-type ComponentTreeItemListArray from \Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemList
+ * @phpstan-import-type ComponentTreeItemArray from \Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemList
  * @phpstan-import-type ExposedSlotDefinitions from \Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemList
  */
 #[ConfigEntityType(
@@ -101,7 +101,7 @@ final class ContentTemplate extends ConfigEntityBase implements ComponentTreeEnt
   /**
    * The component tree.
    *
-   * @var ?ComponentTreeItemListArray
+   * @var ?array<string, ComponentTreeItemArray>
    */
   protected ?array $component_tree;
 
@@ -216,7 +216,7 @@ final class ContentTemplate extends ConfigEntityBase implements ComponentTreeEnt
    */
   public function getComponentTree(?FieldableEntityInterface $parent = NULL): ComponentTreeItemList {
     $item = $this->createDanglingComponentTreeItemList($parent);
-    $item->setValue($this->component_tree);
+    $item->setValue(\array_values($this->component_tree ?? []));
     return $item;
   }
 
@@ -372,6 +372,17 @@ final class ContentTemplate extends ConfigEntityBase implements ComponentTreeEnt
 
     $changed |= parent::onDependencyRemoval($dependencies);
     return (bool) $changed;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function set($property_name, $value): self {
+    if ($property_name === 'component_tree') {
+      // Ensure predictable order of tree items.
+      $value = self::generateComponentTreeKeys($value);
+    }
+    return parent::set($property_name, $value);
   }
 
 }

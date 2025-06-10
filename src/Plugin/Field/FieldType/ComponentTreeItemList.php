@@ -27,7 +27,8 @@ use Drupal\experience_builder\Plugin\Validation\Constraint\ComponentTreeStructur
 /**
  * A component tree: a list item class for ComponentTreeItem.
  *
- * @phpstan-type ComponentTreeItemListArray array<int, array{'uuid': string, 'component_id': string, 'parent_uuid'?: string, 'slot'?: string, inputs: SingleComponentInputArray}>
+ * @phpstan-type ComponentTreeItemArray array{'uuid': string, 'component_id': string, 'parent_uuid'?: string, 'slot'?: string, inputs: SingleComponentInputArray}
+ * @phpstan-type ComponentTreeItemListArray array<int, ComponentTreeItemArray>
  * @phpstan-import-type SingleComponentInputArray from \Drupal\experience_builder\Plugin\DataType\ComponentInputs
  * @phpstan-type ExposedSlotDefinitions array<string, array{'component_uuid': string, 'slot_name': string, 'label': string}>
  */
@@ -369,7 +370,7 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
     $sorted_graph = (new Graph($graph))->searchAndSort();
 
     // Sort by weight, then reverse: this results in a depth-first sorted graph.
-    uasort($sorted_graph, [SortArray::class, 'sortByWeightElement']);
+    \uasort($sorted_graph, SortArray::sortByWeightElement(...));
     $reverse_sorted_graph = array_reverse($sorted_graph);
 
     return $reverse_sorted_graph;

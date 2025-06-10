@@ -4,49 +4,36 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\experience_builder\Kernel\Config;
 
-use Drupal\Core\Entity\EntityTypeInterface;
-use Drupal\experience_builder\Entity\ContentTemplate;
-use Drupal\experience_builder\Entity\Page;
-use Drupal\experience_builder\EntityHandlers\ContentTemplateAwareViewBuilder;
+use Drupal\experience_builder\Entity\Pattern;
 use Drupal\KernelTests\KernelTestBase;
-use Drupal\node\Entity\NodeType;
-use Drupal\Tests\experience_builder\Traits\ContribStrictConfigSchemaTestTrait;
 use Drupal\Tests\experience_builder\Traits\GenerateComponentConfigTrait;
-use Drupal\Tests\node\Traits\ContentTypeCreationTrait;
 use Symfony\Component\Validator\ConstraintViolationInterface;
 
 /**
- * @coversDefaultClass \Drupal\experience_builder\Entity\ContentTemplate
+ * Defines a class for testing Pattern config entity.
+ *
  * @group experience_builder
+ * @coversDefaultClass \Drupal\experience_builder\Entity\Pattern
  */
-final class ContentTemplateTest extends KernelTestBase {
+final class PatternTest extends KernelTestBase {
 
-  use ContribStrictConfigSchemaTestTrait;
-  use ContentTypeCreationTrait;
   use GenerateComponentConfigTrait;
 
   /**
    * {@inheritdoc}
    */
   protected static $modules = [
-    // The two only modules Drupal truly requires.
-    'system',
-    'user',
-    // The module being tested.
-    'experience_builder',
-    // The content entity type being tested plus bundle fields.
-    'node',
-    'field',
-    'text',
-    // Test components.
-    'xb_test_sdc',
     'block',
-    // Field types used by test components.
-    'media',
-    'image',
-    'link',
+    'experience_builder',
+    'xb_test_sdc',
+    // XB's dependencies (modules providing field types + widgets).
+    'datetime',
     'file',
+    'image',
     'options',
+    'path',
+    'link',
+    'system',
   ];
 
   /**
@@ -54,60 +41,15 @@ final class ContentTemplateTest extends KernelTestBase {
    */
   protected function setUp(): void {
     parent::setUp();
-    $this->installConfig(['node', 'user']);
-    NodeType::create(['type' => 'helpful', 'name' => 'Helpful'])->save();
-  }
-
-  /**
-   * @covers ::label
-   *
-   * @testWith ["node.helpful.full", "Helpful content items — Full content view"]
-   *           ["user.user.compact", "Users — Compact view"]
-   */
-  public function testLabel(string $id, string $expected_label): void {
-    [$entity_type_id, $bundle, $view_mode] = explode('.', $id, 3);
-
-    $template = ContentTemplate::create([
-      'id' => $id,
-      'content_entity_type_id' => $entity_type_id,
-      'content_entity_type_bundle' => $bundle,
-      'content_entity_type_view_mode' => $view_mode,
-    ]);
-    $this->assertSame($expected_label, (string) $template->label());
-  }
-
-  /**
-   * @covers \Drupal\experience_builder\Hook\ContentTemplateHooks::entityTypeAlter()
-   */
-  public function testOnlyContentEntitiesCanUseTemplates(): void {
-    $manager = \Drupal::entityTypeManager();
-    $definition = $manager->getDefinition('node');
-    assert($definition instanceof EntityTypeInterface);
-    $this->assertTrue($definition->hasHandlerClass(ContentTemplateAwareViewBuilder::DECORATED_HANDLER_KEY));
-    $this->assertSame(ContentTemplateAwareViewBuilder::class, $definition->getViewBuilderClass());
-
-    // Config entities have no view builder and XB doesn't touch them.
-    $definition = $manager->getDefinition('user_role');
-    assert($definition instanceof EntityTypeInterface);
-    $this->assertFalse($definition->hasViewBuilderClass());
-    $this->assertFalse($definition->hasHandlerClass(ContentTemplateAwareViewBuilder::DECORATED_HANDLER_KEY));
-
-    // XB pages are left alone despite being content entities.
-    $definition = $manager->getDefinition(Page::ENTITY_TYPE_ID);
-    assert($definition instanceof EntityTypeInterface);
-    $this->assertFalse($definition->hasHandlerClass(ContentTemplateAwareViewBuilder::DECORATED_HANDLER_KEY));
-  }
-
-  public function testTreeKeyOrdering(): void {
-    $this->installConfig('node');
-    $this->createContentType(['type' => 'alpha']);
     $this->generateComponentConfig();
-    $template = ContentTemplate::create([
-      'content_entity_type_id' => 'node',
-      'content_entity_type_bundle' => 'alpha',
-      'content_entity_type_view_mode' => 'full',
+  }
+
+  public function testComponentTreeKeyOrder(): void {
+    $pattern = Pattern::create([
+      'id' => 'test_pattern',
+      'label' => 'Test pattern',
     ]);
-    $template->set('component_tree', [
+    $pattern->set('component_tree', [
       [
         'uuid' => 'b7e2cf39-d62f-4ee8-99b2-27a89f1ac196',
         'component_id' => 'sdc.xb_test_sdc.props-no-slots',
@@ -152,10 +94,7 @@ final class ContentTemplateTest extends KernelTestBase {
         'component_id' => 'sdc.xb_test_sdc.props-no-slots',
         'component_version' => '95f4f1d5ee47663b',
         'inputs' => [
-          'heading' => [
-            'sourceType' => 'dynamic',
-            'expression' => 'ℹ︎␜entity:node:alpha␝title␞␟value',
-          ],
+          'heading' => 'two layers deep',
         ],
       ],
       [
@@ -233,16 +172,13 @@ final class ContentTemplateTest extends KernelTestBase {
           'component_id' => 'sdc.xb_test_sdc.props-no-slots',
           'component_version' => '95f4f1d5ee47663b',
           'inputs' => [
-            'heading' => [
-              'sourceType' => 'dynamic',
-              'expression' => 'ℹ︎␜entity:node:alpha␝title␞␟value',
-            ],
+            'heading' => 'two layers deep',
           ],
         ],
-      ], $template->get('component_tree'),
+      ], $pattern->get('component_tree'),
     );
-    // Sanity-check that the test template is valid.
-    $violations = $template->getTypedData()->validate();
+    // Sanity-check that the test pattern is valid.
+    $violations = $pattern->getTypedData()->validate();
     self::assertCount(0, $violations, \implode(', ', \array_map(static fn (ConstraintViolationInterface $violation) => $violation->getMessage(), \iterator_to_array($violations))));
   }
 

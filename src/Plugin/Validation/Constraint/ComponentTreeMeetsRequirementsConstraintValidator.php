@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\experience_builder\Plugin\Validation\Constraint;
 
+use Drupal\Core\Config\Schema\Sequence;
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
 use Drupal\Core\TypedData\TypedDataManagerInterface;
 use Drupal\experience_builder\Entity\Component;
@@ -54,7 +55,7 @@ final class ComponentTreeMeetsRequirementsConstraintValidator extends Constraint
         return $list;
       },
       // A multi-value config-defined component tree.
-      is_array($value) && \array_is_list($value) => function ($value): ComponentTreeItemList {
+      is_array($value) && $this->context->getObject() instanceof Sequence => function ($value): ComponentTreeItemList {
         $list = $this->createDanglingComponentTreeItemList();
         $list->setValue($value);
         return $list;

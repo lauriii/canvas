@@ -242,37 +242,7 @@ class PatternValidationTest extends BetterConfigEntityValidationTestBase {
         ],
       ],
     ];
-    yield "duplicate uuid" => [
-      'component_tree' => [
-        [
-          'uuid' => 'fa9ff0a8-e23a-492a-ab14-5460611fa2c1',
-          'component_id' => 'sdc.xb_test_sdc.props-slots',
-          'component_version' => 'ab4d3ddce315cf64',
-          'inputs' => [
-            'heading' => [
-              'sourceType' => 'static:field_item:string',
-              'value' => 'And we laugh like soft, mad children',
-              'expression' => 'ℹ︎string␟value',
-            ],
-          ],
-        ],
-        [
-          'uuid' => 'fa9ff0a8-e23a-492a-ab14-5460611fa2c1',
-          'component_id' => 'sdc.xb_test_sdc.props-slots',
-          'component_version' => 'ab4d3ddce315cf64',
-          'inputs' => [
-            'heading' => [
-              'sourceType' => 'static:field_item:string',
-              'value' => ' Smug in the wooly cotton brains of infancy',
-              'expression' => 'ℹ︎string␟value',
-            ],
-          ],
-        ],
-      ],
-      'expected_messages' => [
-        'component_tree' => 'Not all component instance UUIDs in this component tree are unique.',
-      ],
-    ];
+
     yield "invalid parent" => [
       'component_tree' => [
         [

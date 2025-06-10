@@ -257,6 +257,8 @@ experience_builder.page_region.*:
 experience_builder.component_tree:
   type: sequence
   label: 'Config-Defined Component Tree'
+  # @see \Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemListInstantiatorTrait::generateComponentTreeKeys()
+  orderby: key
   constraints:
     ComponentTreeStructure: []
     ComponentTreeMeetRequirements:

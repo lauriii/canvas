@@ -16,6 +16,9 @@ use Drupal\Core\Entity\Attribute\ConfigEntityType;
 use Drupal\experience_builder\EntityHandlers\XbConfigEntityAccessControlHandler;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemList;
 
+/**
+ * @phpstan-import-type ComponentTreeItemArray from \Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemList
+ */
 #[ConfigEntityType(
   id: self::ENTITY_TYPE_ID,
   label: new TranslatableMarkup("Page region"),
@@ -74,8 +77,7 @@ final class PageRegion extends ConfigEntityBase implements ComponentTreeEntityIn
   /**
    * Component tree for this theme region.
    *
-   * Values are `type: experience_builder.component_tree`, which consists of
-   *   a `tree` + `inputs` key-value pair.
+   * @var ?array<string, ComponentTreeItemArray>
    */
   protected ?array $component_tree;
 
@@ -143,7 +145,7 @@ final class PageRegion extends ConfigEntityBase implements ComponentTreeEntityIn
     assert(is_array($this->component_tree));
 
     $field_items = $this->createDanglingComponentTreeItemList();
-    $field_items->setValue($this->component_tree);
+    $field_items->setValue(\array_values($this->component_tree ?? []));
 
     return $field_items;
   }
@@ -283,6 +285,17 @@ final class PageRegion extends ConfigEntityBase implements ComponentTreeEntityIn
     }
 
     return $region_instances;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function set($property_name, $value): self {
+    if ($property_name === 'component_tree') {
+      // Ensure predictable order of tree items.
+      $value = self::generateComponentTreeKeys($value);
+    }
+    return parent::set($property_name, $value);
   }
 
 }

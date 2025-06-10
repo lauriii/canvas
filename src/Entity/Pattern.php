@@ -17,6 +17,9 @@ use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemListInstan
 use Drupal\Core\Entity\Attribute\ConfigEntityType;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemList;
 
+/**
+ * @phpstan-import-type ComponentTreeItemArray from \Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemList
+ */
 #[ConfigEntityType(
   id: self::ENTITY_TYPE_ID,
   label: new TranslatableMarkup('Pattern'),
@@ -60,7 +63,7 @@ final class Pattern extends ConfigEntityBase implements XbHttpApiEligibleConfigE
   /**
    * Component tree.
    *
-   * @var ?array{'inputs': array, 'tree': array}
+   * @var ?array<string, ComponentTreeItemArray>
    */
   protected ?array $component_tree;
 
@@ -69,7 +72,7 @@ final class Pattern extends ConfigEntityBase implements XbHttpApiEligibleConfigE
    */
   public function getComponentTree(): ComponentTreeItemList {
     $component_tree = $this->createDanglingComponentTreeItemList();
-    $component_tree->setValue($this->component_tree);
+    $component_tree->setValue(\array_values($this->component_tree ?? []));
     return $component_tree;
   }
 
@@ -181,6 +184,17 @@ final class Pattern extends ConfigEntityBase implements XbHttpApiEligibleConfigE
    */
   public static function refineListQuery(QueryInterface &$query, RefinableCacheableDependencyInterface $cacheability): void {
     // Nothing to do.
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function set($property_name, $value): self {
+    if ($property_name === 'component_tree') {
+      // Ensure predictable order of tree items.
+      $value = self::generateComponentTreeKeys($value);
+    }
+    return parent::set($property_name, $value);
   }
 
 }

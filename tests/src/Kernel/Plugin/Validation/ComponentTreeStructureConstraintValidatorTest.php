@@ -250,6 +250,23 @@ final class ComponentTreeStructureConstraintValidatorTest extends KernelTestBase
         ],
         [],
       ],
+      'INVALID: duplicate UUID' => [
+        [
+          [
+            'uuid' => '8d2e68e5-fd4a-47dc-a641-06062723525d',
+            'component_id' => 'sdc.xb_test_sdc.props-slots',
+            'component_version' => 'ab4d3ddce315cf64',
+          ],
+          [
+            'uuid' => '8d2e68e5-fd4a-47dc-a641-06062723525d',
+            'component_id' => 'sdc.xb_test_sdc.props-slots',
+            'component_version' => 'ab4d3ddce315cf64',
+          ],
+        ],
+        [
+          'layout' => 'Not all component instance UUIDs in this component tree are unique.',
+        ],
+      ],
       'INVALID: valid tree, with unknown parent' => [
         [
           [
