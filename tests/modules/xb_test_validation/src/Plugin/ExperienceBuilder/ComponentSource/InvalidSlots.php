@@ -49,6 +49,13 @@ final class InvalidSlots extends ComponentSourceBase implements ComponentSourceW
   /**
    * {@inheritdoc}
    */
+  protected function getExplicitInputDefinitions(): array {
+    return [];
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function requiresExplicitInput(): bool {
     return FALSE;
   }

@@ -63,7 +63,7 @@ final class ComponentInputsEvolutionTest extends KernelTestBase {
   /**
    * @see hook_storage_prop_shape_alter()
    * @covers \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\SingleDirectoryComponent::updateConfigEntity()
-   * @covers \Drupal\experience_builder\Entity\VersionedConfigEntityBase::generateVersionStringForData()
+   * @covers \Drupal\experience_builder\ComponentSource\ComponentSourceBase::generateVersionHash()
    */
   public function testStorablePropShapeChanges(): void {
     $component = Component::load('sdc.experience_builder.my-hero');

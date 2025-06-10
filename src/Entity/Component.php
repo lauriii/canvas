@@ -14,7 +14,6 @@ use Drupal\Core\Extension\ThemeHandlerInterface;
 use Drupal\Core\Render\Markup;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\Entity\Routing\AdminHtmlRouteProvider;
-use Drupal\Core\TypedData\TraversableTypedDataInterface;
 use Drupal\experience_builder\Audit\ComponentAudit;
 use Drupal\experience_builder\ClientSideRepresentation;
 use Drupal\experience_builder\ComponentSource\ComponentSourceInterface;
@@ -483,44 +482,49 @@ final class Component extends VersionedConfigEntityBase implements ComponentInte
   }
 
   /**
-   * Validates the versioned properties have the expected version string keys.
+   * Validates the active version.
    *
    * To be used with the `Callback` constraint.
    *
-   * @param array $versioned_properties
-   *   The Component's versioned properties to validate.
+   * @param string $active_version
+   *   The Component's active version to validate.
    * @param \Symfony\Component\Validator\Context\ExecutionContextInterface $context
    *   The validation execution context.
    *
    * @see \Symfony\Component\Validator\Constraints\CallbackValidator
    */
-  public static function validateVersions(array $versioned_properties, ExecutionContextInterface $context): void {
-    foreach ($versioned_properties as $version => $versioned_property) {
-      if ($version === VersionedConfigEntityInterface::ACTIVE_VERSION) {
-        // Look up the active version.
-        assert($context->getObject() instanceof TraversableTypedDataInterface);
-        $component = $context->getObject()->getParent();
-        assert($component instanceof Mapping);
-        assert($component->getDataDefinition()->getDataType() === 'experience_builder.component.*');
-        $version = $component->getValue()['active_version'];
-      }
+  public static function validateActiveVersion(string $active_version, ExecutionContextInterface $context): void {
+    if ($active_version === ComponentInterface::FALLBACK_VERSION) {
+      // No need to validate the fallback version.
+      return;
+    }
 
-      if ($version === ComponentInterface::FALLBACK_VERSION) {
-        continue;
-      }
-
-      // The version should be based on the source-specific settings for this
-      // version, not on anything else (certainly not the fallback metadata.)
-      $settings = $versioned_property['settings'];
-      $expected_version = self::generateVersionStringForData($settings, 'experience_builder.component_source_settings.' . $context->getRoot()->get('source')->getValue());
-      if ($expected_version !== $version) {
-        // @todo something like \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\BlockComponent::fixBooleansUsingConfigSchema
-        // @see https://www.drupal.org/node/3230199
-        $context->addViolation('The version @actual_version does not match the hash of the settings for this version, expected @expected_version.', [
-          '@actual_version' => $version,
-          '@expected_version' => $expected_version,
+    // @phpstan-ignore-next-line
+    $component = $context->getObject()->getParent();
+    assert($component instanceof Mapping);
+    assert($component->getDataDefinition()->getDataType() === 'experience_builder.component.*');
+    // The version should be based on the source-specific settings for this
+    // version, not on anything else (certainly not the fallback metadata.)
+    $raw = $component->getValue();
+    try {
+      $source = \Drupal::service(ComponentSourceManager::class)
+        ->createInstance($raw['source'], [
+          'local_source_id' => $raw['source_local_id'],
+          ...$raw['versioned_properties'][VersionedConfigEntityInterface::ACTIVE_VERSION]['settings'],
         ]);
-      }
+      assert($source instanceof ComponentSourceInterface);
+      $expected_version = $source->generateVersionHash();
+    }
+    catch (\Exception) {
+      // Something more serious is wrong with this component, let existing
+      // validation trap things like missing plugins or dependencies.
+      return;
+    }
+    if ($expected_version !== $active_version) {
+      $context->addViolation('The version @actual_version does not match the hash of the settings for this version, expected @expected_version.', [
+        '@actual_version' => $active_version,
+        '@expected_version' => $expected_version,
+      ]);
     }
   }
 

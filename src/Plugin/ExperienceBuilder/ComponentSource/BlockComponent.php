@@ -81,6 +81,7 @@ final class BlockComponent extends ComponentSourceBase implements ContainerFacto
     private readonly TypedConfigManagerInterface $typedConfigManager,
     private readonly EntityTypeManagerInterface $entityTypeManager,
   ) {
+    assert(array_key_exists('local_source_id', $configuration));
     parent::__construct($configuration, $plugin_id, $plugin_definition);
   }
 
@@ -222,6 +223,30 @@ final class BlockComponent extends ComponentSourceBase implements ContainerFacto
     }
 
     return $build;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  protected function getExplicitInputDefinitions(): array {
+    $block_plugin = $this->getBlockPlugin();
+    $plugin_id = $block_plugin->getPluginId();
+    $config_schema_type_definition = $this->typedConfigManager->getDefinition('block.settings.' . $plugin_id);
+    return self::removeConfigSchemaLabels($config_schema_type_definition);
+  }
+
+  private static function removeConfigSchemaLabels(array $config_schema): array {
+    $normalized = [];
+    foreach ($config_schema as $key => $value) {
+      if ($key === 'label') {
+        continue;
+      }
+      if (is_array($value)) {
+        $value = self::removeConfigSchemaLabels($value);
+      }
+      $normalized[$key] = $value;
+    }
+    return $normalized;
   }
 
   /**

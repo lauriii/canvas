@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Drupal\experience_builder\ComponentSource;
 
 use Drupal\Component\Utility\NestedArray;
+use Drupal\Core\Config\Schema\Mapping;
+use Drupal\Core\Config\TypedConfigManagerInterface;
 use Drupal\Core\Plugin\ContextAwarePluginAssignmentTrait;
 use Drupal\Core\Plugin\ContextAwarePluginTrait;
 use Drupal\Core\Plugin\PluginBase;
@@ -20,6 +22,63 @@ abstract class ComponentSourceBase extends PluginBase implements ComponentSource
 
   use ContextAwarePluginAssignmentTrait;
   use ContextAwarePluginTrait;
+
+  public function generateVersionHash(): string {
+    // @phpstan-ignore-next-line
+    $typed_source_specific_settings = \Drupal::service(TypedConfigManagerInterface::class)->createFromNameAndData(
+      'experience_builder.component_source_settings.' . $this->getPluginId(),
+      // TRICKY: the ComponentSource plugin instance always receives the local
+      // source ID that identifies the component within that source. But that
+      // plugin ID is not part of the config schema.
+      // @see `type: experience_builder.component_source_settings.*`
+      array_diff_key($this->configuration, array_flip(['local_source_id'])),
+    );
+    assert($typed_source_specific_settings instanceof Mapping);
+    $normalized_data = [
+      'settings' => $typed_source_specific_settings->toArray(),
+      'slot_definitions' => $this instanceof ComponentSourceWithSlotsInterface
+        ? self::normalizeSlotDefinitions($this->getSlotDefinitions())
+        : [],
+      'schema' => $this->getExplicitInputDefinitions(),
+    ];
+    // Intuitively, we'd want to rely on:
+    // - config export order (https://www.drupal.org/node/3230199)
+    // - slot definition order
+    // - explicit input schema order
+    // But that would lead to unnecessary new versions: the order of slots and
+    // explicit inputs (SDC: "props") does not impact existing component
+    // instances, other than their corresponding component instance form perhaps
+    // showing a different order. New versions of Component config entities are
+    // only warranted if there is a change in the data needing to be stored for
+    // a component instance.
+    self::recursiveKsort($normalized_data);
+    return \hash('xxh64', \json_encode($normalized_data, JSON_THROW_ON_ERROR));
+  }
+
+  private static function recursiveKsort(array &$array): void {
+    ksort($array);
+    foreach ($array as &$value) {
+      if (is_array($value)) {
+        self::recursiveKsort($value);
+      }
+    }
+  }
+
+  private static function normalizeSlotDefinitions(array $slot_definitions): array {
+    \array_walk($slot_definitions, function (&$slot_definition) {
+      \reset($slot_definition);
+    });
+    return \array_reduce(
+      \array_keys(\array_filter($slot_definitions, \is_array(...))),
+      static fn(array $carry, string $slot_name) => $carry + [
+        $slot_name => [
+          'title' => $slot_definitions[$slot_name]['title'],
+          'example' => \current($slot_definitions[$slot_name]['examples'] ?? []) ?: '',
+        ],
+      ],
+      []
+    );
+  }
 
   /**
    * {@inheritdoc}
@@ -94,5 +153,17 @@ abstract class ComponentSourceBase extends PluginBase implements ComponentSource
     }
     return $intersect;
   }
+
+  /**
+   * Gets information about the explicit inputs.
+   *
+   * @return array<string, mixed>
+   *   Keys are names of explicit inputs. Values are some normalized schema
+   *   representation, for example:
+   *   - JSON Schema (SDCs, code components)
+   *   - config schema (Block plugins)
+   *   - …
+   */
+  abstract protected function getExplicitInputDefinitions(): array;
 
 }

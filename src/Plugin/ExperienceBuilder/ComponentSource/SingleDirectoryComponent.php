@@ -17,6 +17,7 @@ use Drupal\Core\Theme\ExtensionType;
 use Drupal\experience_builder\Attribute\ComponentSource;
 use Drupal\experience_builder\ComponentDoesNotMeetRequirementsException;
 use Drupal\experience_builder\ComponentMetadataRequirementsChecker;
+use Drupal\experience_builder\ComponentSource\ComponentSourceManager;
 use Drupal\experience_builder\ComponentSource\UrlRewriteInterface;
 use Drupal\experience_builder\Entity\Component as ComponentEntity;
 use Drupal\experience_builder\Entity\ComponentInterface;
@@ -223,8 +224,15 @@ final class SingleDirectoryComponent extends GeneratedFieldExplicitInputUxCompon
     $props = self::getPropsForComponentPlugin($component_plugin);
     assert(is_array($component_plugin->getPluginDefinition()));
     $status = !(isset($component_plugin->metadata->status) && $component_plugin->metadata->status === 'obsolete');
-    $settings = ['prop_field_definitions' => $props];
-    $version = ComponentEntity::generateVersionStringForData($settings, 'experience_builder.component_source_settings.sdc');
+    $settings = [
+      'prop_field_definitions' => $props,
+    ];
+    $sdc_source = \Drupal::service(ComponentSourceManager::class)->createInstance(self::SOURCE_PLUGIN_ID, [
+      'local_source_id' => $component_plugin->getPluginId(),
+      ...$settings,
+    ]);
+    assert($sdc_source instanceof self);
+    $version = $sdc_source->generateVersionHash();
     return ComponentEntity::create([
       'id' => self::convertMachineNameToId($component_plugin->getPluginId()),
       'label' => $component_plugin->getPluginDefinition()['name'] ?? $component_plugin->getPluginId(),
@@ -257,7 +265,12 @@ final class SingleDirectoryComponent extends GeneratedFieldExplicitInputUxCompon
     $settings = [
       'prop_field_definitions' => self::getPropsForComponentPlugin($component_plugin),
     ];
-    $version = ComponentEntity::generateVersionStringForData($settings, 'experience_builder.component_source_settings.sdc');
+    $sdc_source = \Drupal::service(ComponentSourceManager::class)->createInstance(self::SOURCE_PLUGIN_ID, [
+      'local_source_id' => $component_plugin->getPluginId(),
+      ...$settings,
+    ]);
+    assert($sdc_source instanceof self);
+    $version = $sdc_source->generateVersionHash();
     $definition = $component_plugin->getPluginDefinition();
     \assert(\is_array($definition));
     $component

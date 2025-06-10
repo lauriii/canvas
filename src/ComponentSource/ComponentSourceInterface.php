@@ -81,6 +81,8 @@ interface ComponentSourceInterface extends PluginInspectionInterface, Derivative
    */
   public function renderComponent(array $inputs, string $componentUuid, bool $isPreview): array;
 
+  public function generateVersionHash(): string;
+
   /**
    * Whether this component requires explicit input or not.
    */

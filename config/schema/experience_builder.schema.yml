@@ -10,6 +10,19 @@ experience_builder.component.*:
       # Refine `type: config_entity`'s `status`: only allow `true` for SDCs that meet the requirements.
       constraints:
         ComponentStatusConstraint: []
+    active_version:
+      # Refine `type: versioned_config_entity`'s `active_version`: it must match.
+      # TRICKY: it is impossible to validate old versions (any version besides the active one) if they depend on data
+      # not contained within the config entity. Examples of such code-defined rather than config-defined information
+      # that affects the version (a deterministic hash):
+      # - config schema (Block plugins), requiring both the Block plugin and its config schema to still exist on disk
+      # - which properties are required (SDCs), requiring the SDC to still exist on disk
+      # This also means that a ComponentSource plugin can evolve what information is used to deterministically compute
+      # the hash, allowing old versions (hashes) to continue to work fine, rather than becoming invalid. This is in line
+      # with the source-specific settings for old (non-active) versions: those already use `type: ignore` because the
+      # config schema for older versions might have been different.
+      constraints:
+        Callback: ['\Drupal\experience_builder\Entity\Component', validateActiveVersion]
     id:
       # This ID intentionally does not use `type: machine_name`, because it is a composite ID that is better validated
       # using the `StringParts` constraint than the `RegEx` constraint.
@@ -63,8 +76,6 @@ experience_builder.component.*:
         # 2. the active version is any other version other version is active: the Component Source-specific settings + the fallback metadata → `type: experience_builder.component.versioned.active.*`
         # 3. any non-active version: Component Source-specific settings (not validatable because the implementation may have changed) + fallback metadata → `type: experience_builder.component.versioned.*.*`
         type: experience_builder.component.versioned.[%key].[%parent.%parent.active_version]
-      constraints:
-        Callback: ['\Drupal\experience_builder\Entity\Component', validateVersions]
 
 # Special case: when the active version is the special `fallback` version: it uses the Fallback source plugin.
 # @see \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\Fallback

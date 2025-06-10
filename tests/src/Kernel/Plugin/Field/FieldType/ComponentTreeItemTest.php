@@ -187,8 +187,8 @@ class ComponentTreeItemTest extends KernelTestBase {
     $this->assertCount(2, $item_list);
     $violations = $item_list->validate();
     $this->assertSame([
-      '0.component_version' => "'lol' is not a version that exists on component config entity 'sdc.xb_test_sdc.props-slots'. Available versions: 'c8a016671696090c'.",
-      '1.component_version' => "'hah' is not a version that exists on component config entity 'sdc.xb_test_sdc.props-no-slots'. Available versions: 'c8a016671696090c'.",
+      '0.component_version' => "'lol' is not a version that exists on component config entity 'sdc.xb_test_sdc.props-slots'. Available versions: 'ab4d3ddce315cf64'.",
+      '1.component_version' => "'hah' is not a version that exists on component config entity 'sdc.xb_test_sdc.props-no-slots'. Available versions: '95f4f1d5ee47663b'.",
     ], self::violationsToArray($violations));
   }
 

@@ -16,6 +16,7 @@ use Drupal\experience_builder\AutoSave\AutoSaveManager;
 use Drupal\experience_builder\AutoSaveData;
 use Drupal\experience_builder\ComponentDoesNotMeetRequirementsException;
 use Drupal\experience_builder\ComponentMetadataRequirementsChecker;
+use Drupal\experience_builder\ComponentSource\ComponentSourceManager;
 use Drupal\experience_builder\Entity\AssetLibrary;
 use Drupal\experience_builder\Entity\Component as ComponentEntity;
 use Drupal\experience_builder\Entity\ComponentInterface;
@@ -40,6 +41,7 @@ final class JsComponent extends GeneratedFieldExplicitInputUxComponentSourceBase
   protected ExtensionPathResolver $extensionPathResolver;
   protected AutoSaveManager $autoSaveManager;
   protected FileUrlGeneratorInterface $fileUrlGenerator;
+  protected ?JavaScriptComponent $jsComponent = NULL;
 
   public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition) {
     $instance = parent::create($container, $configuration, $plugin_id, $plugin_definition);
@@ -77,11 +79,14 @@ final class JsComponent extends GeneratedFieldExplicitInputUxComponentSourceBase
    * {@inheritdoc}
    */
   public function getJavaScriptComponent(): JavaScriptComponent {
-    $js_component_storage = $this->entityTypeManager->getStorage('js_component');
-    assert($js_component_storage instanceof ConfigEntityStorageInterface);
-    $js_component = $js_component_storage->load($this->configuration['local_source_id']);
-    assert($js_component instanceof JavaScriptComponent);
-    return $js_component;
+    if ($this->jsComponent === NULL) {
+      $js_component_storage = $this->entityTypeManager->getStorage('js_component');
+      assert($js_component_storage instanceof ConfigEntityStorageInterface);
+      $js_component = $js_component_storage->load($this->configuration['local_source_id']);
+      assert($js_component instanceof JavaScriptComponent);
+      $this->jsComponent = $js_component;
+    }
+    return $this->jsComponent;
   }
 
   /**
@@ -237,8 +242,18 @@ final class JsComponent extends GeneratedFieldExplicitInputUxComponentSourceBase
     }
     ComponentMetadataRequirementsChecker::check((string) $js_component->id(), $ephemeral_sdc_component->metadata, $js_component->getRequiredProps());
     $props = self::getPropsForComponentPlugin($ephemeral_sdc_component);
-    $settings = ['prop_field_definitions' => $props];
-    $version = ComponentEntity::generateVersionStringForData($settings, 'experience_builder.component_source_settings.js');
+    $settings = [
+      'prop_field_definitions' => $props,
+    ];
+    $js_source = \Drupal::service(ComponentSourceManager::class)->createInstance(self::SOURCE_PLUGIN_ID, [
+      'local_source_id' => (string) $js_component->id(),
+      ...$settings,
+    ]);
+    assert($js_source instanceof self);
+    // The JS Component config entity may not be saved yet. Set it on the source
+    // plugin so that it doesn't try to load it.
+    $js_source->setJavaScriptComponent($js_component);
+    $version = $js_source->generateVersionHash();
     return ComponentEntity::create([
       'id' => self::SOURCE_PLUGIN_ID . '.' . $js_component->id(),
       'label' => $js_component->label(),
@@ -281,7 +296,12 @@ final class JsComponent extends GeneratedFieldExplicitInputUxComponentSourceBase
     $settings = [
       'prop_field_definitions' => self::getPropsForComponentPlugin($ephemeral_sdc_component),
     ];
-    $version = ComponentEntity::generateVersionStringForData($settings, 'experience_builder.component_source_settings.js');
+    $js_source = \Drupal::service(ComponentSourceManager::class)->createInstance(self::SOURCE_PLUGIN_ID, [
+      'local_source_id' => (string) $js_component->id(),
+      ...$settings,
+    ]);
+    assert($js_source instanceof self);
+    $version = $js_source->generateVersionHash();
     $component
       ->createVersion($version)
       ->deleteVersionIfExists(ComponentInterface::FALLBACK_VERSION)
@@ -388,6 +408,11 @@ final class JsComponent extends GeneratedFieldExplicitInputUxComponentSourceBase
 
   public function onDependencyRemoval(array $dependencies): bool {
     return \in_array($this->getJavaScriptComponent()->getConfigDependencyName(), \array_keys($dependencies['config'] ?? [], TRUE));
+  }
+
+  public function setJavaScriptComponent(?JavaScriptComponent $jsComponent): static {
+    $this->jsComponent = $jsComponent;
+    return $this;
   }
 
 }

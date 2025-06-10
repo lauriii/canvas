@@ -103,7 +103,7 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
       BadRequestHttpException::class,
       [
         'componentInstanceUuid' => 'e8c95423-4f22-4210-8707-08bade75ff22',
-        'componentType' => 'sdc.experience_builder.image@f81037abea6701d7',
+        'componentType' => 'sdc.experience_builder.image@02ac4f958c84990f',
       ],
     ];
     yield 'No such component in model' => [
@@ -111,7 +111,7 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
       NotFoundHttpException::class,
       [
         'componentInstanceUuid' => 'e8c95423-4f22-4210-8707-08bade75ff22',
-        'componentType' => 'sdc.experience_builder.image@f81037abea6701d7',
+        'componentType' => 'sdc.experience_builder.image@02ac4f958c84990f',
         'model' => [],
         'autoSaves' => [],
       ],
@@ -226,7 +226,7 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
     $new_model['source']['image']['value'] = $media->id();
     $updateImageClientJson = \json_encode([
       'model' => $new_model,
-      'componentType' => 'sdc.experience_builder.image@f81037abea6701d7',
+      'componentType' => 'sdc.experience_builder.image@02ac4f958c84990f',
       'componentInstanceUuid' => XbTestSetup::UUID_STATIC_IMAGE,
       'autoSaves' => [],
     ], JSON_THROW_ON_ERROR);
@@ -300,7 +300,7 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
             'label_display' => '',
           ],
         ],
-        'componentType' => 'block.system_messages_block@6fb371adeea12bc7',
+        'componentType' => 'block.system_messages_block@b92f802cf68eb83e',
         'componentInstanceUuid' => $globalComponentUuid,
       ];
       $this->addClientAutoSaves($updateRegionClientData, [$node]);
@@ -387,7 +387,7 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
           'label_display' => '',
         ],
       ],
-      'componentType' => 'block.system_messages_block@6fb371adeea12bc7',
+      'componentType' => 'block.system_messages_block@b92f802cf68eb83e',
       'componentInstanceUuid' => $globalComponentUuid,
       'autoSaves' => [],
     ], JSON_THROW_ON_ERROR)));

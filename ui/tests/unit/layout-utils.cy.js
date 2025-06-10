@@ -97,17 +97,17 @@ describe('replaceUUIDsAndUpdateModel', () => {
     // Check if node types and component types are preserved
     expect(updatedNode.type).to.equal('sdc.foo-bar');
     expect(updatedNode.slots[0].components[0].type).to.equal(
-      'sdc.experience_builder.two_column@2c79df2c091d70d8',
+      'sdc.experience_builder.two_column@e5ef92acda2ee2d1',
     );
     expect(updatedNode.slots[0].components[1].type).to.equal(
-      'sdc.xb_test_sdc.my-cta@2c79df2c091d70d8',
+      'sdc.xb_test_sdc.my-cta@e5ef92acda2ee2d1',
     );
 
     expect(updatedNode.slots[0].components[2].type).to.equal(
-      'sdc.xb_test_sdc.my-cta@2c79df2c091d70d8',
+      'sdc.xb_test_sdc.my-cta@e5ef92acda2ee2d1',
     );
     expect(updatedNode.slots[0].components[3].type).to.equal(
-      'sdc.experience_builder.image@f81037abea6701d7',
+      'sdc.experience_builder.image@02ac4f958c84990f',
     );
 
     // Check if model data is preserved

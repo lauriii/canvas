@@ -104,7 +104,7 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
           [
             'uuid' => '75144f9b-1bfc-4874-b848-b5889f066217',
             'component_id' => 'sdc.experience_builder.druplicon',
-            'component_version' => '822ab01ec6b22b59',
+            'component_version' => '8fe3be948e0194e1',
             'inputs' => [],
           ],
       ],
@@ -134,13 +134,13 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
       [
         'uuid' => 'a3ade070-dc70-4989-b078-85cfd8fc741e',
         'nodeType' => 'component',
-        'type' => 'sdc.xb_test_sdc.props-no-slots@c8a016671696090c',
+        'type' => 'sdc.xb_test_sdc.props-no-slots@95f4f1d5ee47663b',
         'slots' => [],
       ],
       [
         'uuid' => '67d6b081-a62f-463c-a5d8-42a145ec7243',
         'nodeType' => 'component',
-        'type' => 'sdc.xb_test_sdc.props-no-slots@c8a016671696090c',
+        'type' => 'sdc.xb_test_sdc.props-no-slots@95f4f1d5ee47663b',
         'slots' => [],
       ],
     ];
@@ -236,14 +236,14 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
           [
             'uuid' => 'a3ade070-dc70-4989-b078-85cfd8fc741e',
             'nodeType' => 'component',
-            'type' => 'sdc.xb_test_sdc.props-no-slots@c8a016671696090c',
+            'type' => 'sdc.xb_test_sdc.props-no-slots@95f4f1d5ee47663b',
             'name' => NULL,
             'slots' => [],
           ],
           [
             'uuid' => '67d6b081-a62f-463c-a5d8-42a145ec7243',
             'nodeType' => 'component',
-            'type' => 'sdc.xb_test_sdc.props-no-slots@c8a016671696090c',
+            'type' => 'sdc.xb_test_sdc.props-no-slots@95f4f1d5ee47663b',
             'name' => NULL,
             'slots' => [],
           ],
@@ -310,13 +310,13 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
               [
                 'uuid' => 'a3ade070-dc70-4989-b078-85cfd8fc741e',
                 'nodeType' => 'component',
-                'type' => 'sdc.xb_test_sdc.props-no-slots@c8a016671696090c',
+                'type' => 'sdc.xb_test_sdc.props-no-slots@95f4f1d5ee47663b',
                 'slots' => [],
               ],
               [
                 'uuid' => '67d6b081-a62f-463c-a5d8-42a145ec7243',
                 'nodeType' => 'component',
-                'type' => 'sdc.xb_test_sdc.props-no-slots@c8a016671696090c',
+                'type' => 'sdc.xb_test_sdc.props-no-slots@95f4f1d5ee47663b',
                 'slots' => [],
               ],
             ],
@@ -325,7 +325,7 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
             'nodeType' => 'slot',
           ],
         ],
-        'type' => 'sdc.experience_builder.one_column@7e47a55169d2c7cd',
+        'type' => 'sdc.experience_builder.one_column@f6a3a392e98e8342',
         'uuid' => 'c4074d1f-149a-4662-aaf3-615151531cf6',
       ],
     ];

@@ -1000,4 +1000,126 @@ final class JsComponentTest extends ComponentSourceTestBase {
     $js_component->enable()->save();
   }
 
+  public function testVersionDeterminability(): void {
+    $js_component = JavaScriptComponent::create([
+      'machineName' => 'joy_is_everything',
+      'name' => $this->getRandomGenerator()->sentences(5),
+      'status' => FALSE,
+      'props' => [],
+      'required' => [],
+      'slots' => [
+        'joy' => [
+          'title' => 'Joy',
+          'description' => "I see eyes like sunken ships, falling slowly in the waters.",
+          'examples' => [
+            'Even the deepest anchor in the middle of the ocean will yield to times of slaughter',
+          ],
+        ],
+      ],
+      'js' => [
+        'original' => 'console.log("hey");',
+        'compiled' => 'console.log("hey");',
+      ],
+      'css' => [
+        'original' => '.test { display: none; }',
+        'compiled' => '.test { display: none; }',
+      ],
+    ]);
+    $violations = $js_component->getTypedData()->validate();
+    self::assertCount(0, $violations);
+
+    // Save and enable to create a component.
+    $js_component->enable()->save();
+    $corresponding_component = Component::load(JsComponent::SOURCE_PLUGIN_ID . '.joy_is_everything');
+    assert($corresponding_component instanceof Component);
+
+    $original_version = $corresponding_component->getActiveVersion();
+    $versions = [$original_version];
+    self::assertCount(1, array_unique($versions));
+
+    // Change the slot example.
+    $js_component->set('slots', [
+      'joy' => [
+        'title' => 'Joy',
+        'description' => "I see eyes like sunken ships, falling slowly in the waters.",
+        'examples' => [
+          'A pilot light of hope spins around, it illuminates the strobe',
+        ],
+      ],
+    ])->save();
+    $second_version_component = Component::load(JsComponent::SOURCE_PLUGIN_ID . '.joy_is_everything');
+    assert($second_version_component instanceof Component);
+
+    $second_version = $second_version_component->getActiveVersion();
+    self::assertNotEquals($original_version, $second_version);
+    $versions[] = $second_version;
+    self::assertCount(2, array_unique($versions));
+
+    // Add a slot.
+    $js_component->set('slots', [
+      'joy' => [
+        'title' => 'Joy',
+        'description' => "I see eyes like sunken ships, falling slowly in the waters.",
+        'examples' => [
+          'A pilot light of hope spins around, it illuminates the strobe',
+        ],
+      ],
+      'road' => [
+        'title' => 'Road ahead',
+        'description' => "Somewhere in space and time when I'm looking ahead",
+        'examples' => [
+          "There's a road that could change everything",
+        ],
+      ],
+    ])->save();
+
+    $third_version_component = Component::load(JsComponent::SOURCE_PLUGIN_ID . '.joy_is_everything');
+    assert($third_version_component instanceof Component);
+
+    $third_version = $third_version_component->getActiveVersion();
+    $versions[] = $third_version;
+    self::assertCount(3, array_unique($versions));
+
+    // Changing the slot description should not trigger a new version.
+    $js_component->set('slots', [
+      'joy' => [
+        'title' => 'Joy',
+        'description' => "I see eyes like sunken ships, falling slowly in the waters.",
+        'examples' => [
+          'A pilot light of hope spins around, it illuminates the strobe',
+        ],
+      ],
+      'road' => [
+        'title' => 'Road ahead',
+        'description' => "A woven maze that can even catch the spider within",
+        'examples' => [
+          "There's a road that could change everything",
+        ],
+      ],
+    ])->save();
+
+    $fourth_version_component = Component::load(JsComponent::SOURCE_PLUGIN_ID . '.joy_is_everything');
+    assert($fourth_version_component instanceof Component);
+
+    $fourth_version = $fourth_version_component->getActiveVersion();
+    self::assertEquals($fourth_version, $third_version);
+    $versions[] = $fourth_version;
+    self::assertCount(3, array_unique($versions));
+
+    // Add a prop.
+    $js_component->setProps([
+      'title' => [
+        'type' => 'string',
+        'title' => 'Title',
+      ],
+    ])->save();
+
+    $fifth_version_component = Component::load(JsComponent::SOURCE_PLUGIN_ID . '.joy_is_everything');
+    assert($fifth_version_component instanceof Component);
+
+    $fifth_version = $fifth_version_component->getActiveVersion();
+    $versions[] = $fifth_version;
+    self::assertCount(4, array_unique($versions));
+  }
+
 }

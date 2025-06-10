@@ -120,7 +120,7 @@ class ClientDataToEntityConverterTest extends KernelTestBase {
       [
         'nodeType' => 'component',
         'uuid' => $propless_uuid,
-        'type' => 'sdc.experience_builder.druplicon@822ab01ec6b22b59',
+        'type' => 'sdc.experience_builder.druplicon@8fe3be948e0194e1',
         'slots' => [],
       ],
     ];

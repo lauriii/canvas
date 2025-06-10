@@ -88,7 +88,7 @@ final class ComponentAuditControllerTest extends KernelTestBase {
       [
         'uuid' => 'bd4ae317-3f4d-4b82-a3ca-452d916ae715',
         'component_id' => 'sdc.experience_builder.druplicon',
-        'component_version' => '822ab01ec6b22b59',
+        'component_version' => '8fe3be948e0194e1',
         'inputs' => [],
       ],
     ])->save();

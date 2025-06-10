@@ -12,6 +12,7 @@ use Drupal\Core\Config\TypedConfigManagerInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\experience_builder\ComponentDoesNotMeetRequirementsException;
 use Drupal\experience_builder\ComponentIncompatibilityReasonRepository;
+use Drupal\experience_builder\ComponentSource\ComponentSourceManager;
 use Drupal\experience_builder\Entity\Component;
 use Drupal\experience_builder\Entity\ComponentInterface;
 use Drupal\experience_builder\Entity\VersionedConfigEntityBase;
@@ -36,6 +37,7 @@ final class BlockManager extends CoreBlockManager {
     LoggerInterface $logger,
     protected readonly TypedConfigManagerInterface $configTyped,
     private readonly ComponentIncompatibilityReasonRepository $reasonRepository,
+    private readonly ComponentSourceManager $componentSourceManager,
   ) {
     parent::__construct($namespaces, $cache_backend, $module_handler, $logger);
   }
@@ -69,7 +71,6 @@ final class BlockManager extends CoreBlockManager {
 
       $component_id = BlockComponent::componentIdFromBlockPluginId($id);
       $component = Component::load($component_id);
-
       $settings = [
         // We are using strict config schema validation, so we need to provide
         // valid default settings for each block.
@@ -88,7 +89,13 @@ final class BlockManager extends CoreBlockManager {
           'provider' => $definition['provider'],
         ] + $block->defaultConfiguration(),
       ];
-      $version = Component::generateVersionStringForData($settings, 'experience_builder.component_source_settings.block');
+
+      $block_source = $this->componentSourceManager->createInstance(BlockComponent::SOURCE_PLUGIN_ID, [
+        'local_source_id' => $id,
+        ...$settings,
+      ]);
+      assert($block_source instanceof BlockComponent);
+      $version = $block_source->generateVersionHash();
       if (!$component instanceof Component) {
         $component = Component::create([
           'id' => $component_id,

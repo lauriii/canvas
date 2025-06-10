@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\Tests\experience_builder\Kernel\Plugin\ExperienceBuilder\ComponentSource;
 
 use Drupal\Core\Cache\CacheableMetadata;
+use Drupal\Core\Config\TypedConfigManagerInterface;
 use Drupal\Core\Extension\ModuleInstallerInterface;
 use Drupal\experience_builder\Entity\Component;
 use Drupal\experience_builder\Entity\ComponentInterface;
@@ -387,7 +388,7 @@ HTML,
         [
           'uuid' => '75144f9b-1bfc-4874-b848-b5889f066217',
           'component_id' => 'block.system_menu_block.main',
-          'component_version' => '1890264ee53dc1f4',
+          'component_version' => '00446133ee3ee15f',
           'inputs' => [
             'label' => 'Main navigation',
             'label_display' => '',
@@ -429,7 +430,7 @@ HTML,
         [
           'uuid' => '4b26c295-c8cc-4b2d-a38a-235c6cfa1ffa',
           'component_id' => 'block.xb_test_block_input_validatable',
-          'component_version' => '9bc2091e7da4816c',
+          'component_version' => '644095e2b3c2fcde',
           'inputs' => [
             'name' => 'test',
             'label' => 'test',
@@ -468,6 +469,26 @@ HTML,
     $this->generateComponentConfig();
 
     $this->assertSame($label, $this->config($config)->get('label'));
+  }
+
+  public function testVersionDeterminability(): void {
+    $this->generateComponentConfig();
+    $original_component = Component::load('block.xb_test_block_input_validatable');
+    assert($original_component instanceof Component);
+    $original_version = $original_component->getActiveVersion();
+
+    // Trigger an alter to the schema which should result in a new version as
+    // validation may make previous versions no longer valid.
+    // @see \Drupal\xb_test_block\Hook\XbTestBlockHooks::configSchemaInfoAlter
+    \Drupal::keyValue('xb_test_block')->set('i_can_haz_alter?', TRUE);
+    \Drupal::service(TypedConfigManagerInterface::class)->clearCachedDefinitions();
+    $this->generateComponentConfig();
+
+    $new_component = Component::load('block.xb_test_block_input_validatable');
+    assert($new_component instanceof Component);
+
+    $new_version = $new_component->getActiveVersion();
+    self::assertNotEquals($new_version, $original_version);
   }
 
 }

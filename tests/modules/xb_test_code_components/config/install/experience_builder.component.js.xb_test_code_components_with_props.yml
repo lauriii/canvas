@@ -10,7 +10,7 @@ provider: null
 source: js
 source_local_id: xb_test_code_components_with_props
 category: '@todo'
-active_version: 64bee29269ba3c84
+active_version: 4e53ca9f3f06b418
 versioned_properties:
   active:
     settings:

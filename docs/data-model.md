@@ -184,7 +184,7 @@ Example: A simple tree showing a root item (`41595148-e5c1-4873-b373-be3ae6e2134
 [
   'uuid' => '41595148-e5c1-4873-b373-be3ae6e21340',
   'component_id' => 'sdc.xb_test_sdc.props-slots',
-  'component_version' => 'c8a016671696090c',
+  'component_version' => 'ab4d3ddce315cf64',
   'inputs' => [
     'heading' => [
       'sourceType' => 'static:field_item:string',
@@ -196,7 +196,7 @@ Example: A simple tree showing a root item (`41595148-e5c1-4873-b373-be3ae6e2134
 [
   'uuid' => '3b305d86-86a7-4684-8664-7ef1fc2be070',
   'component_id' => 'sdc.xb_test_sdc.props-no-slots',
-  'component_version' => '96dffcad653def0e',
+  'component_version' => '95f4f1d5ee47663b',
   'parent_uuid' => '41595148-e5c1-4873-b373-be3ae6e21340',
   'slot' => 'the_body',
   'inputs' => [
@@ -209,7 +209,7 @@ Example: A simple tree showing a root item (`41595148-e5c1-4873-b373-be3ae6e2134
   [
     'uuid' => '41595148-e5c1-4873-b373-be3ae6e21340',
     'component_id' => 'block.system_branding_block',
-    'component_version' => '96dffcad653def0e',
+    'component_version' => '247a23298360adb2',
     // Example, that populates a Block component instance.
     // Note how much simpler the stored information is, because it uses the Block system's native input UX:
     'inputs' => [
@@ -328,7 +328,7 @@ instance` specified by the Content Creator:
   "nodeType": "component",
   "id": "380aaa26-5678-4c86-9b32-12161ea34196",
   "name": "Most Important Heading",
-  "type": "sdc.experience_builder.heading@5700f78c83cd433f",
+  "type": "sdc.experience_builder.heading@1b4f8df7c94d7e3c",
   "slots": []
 }
 ```
@@ -338,7 +338,7 @@ An example simple `component instance` of a `component` with a single `component
 {
   "nodeType": "component",
   "id": "177122af-1679-4ee4-b700-dcf5ab376c4a",
-  "type": "sdc.experience_builder.one_column@7e47a55169d2c7cd",
+  "type": "sdc.experience_builder.one_column@f6a3a392e98e8342",
   "slots": [
     {
       "id": "177122af-1679-4ee4-b700-dcf5ab376c4a/content",
@@ -421,7 +421,7 @@ A complete example, with three `region node`s:
         {
           "nodeType": "component",
           "id": "a164fa84-0460-40b0-a428-bf332b4a792a",
-          "type": "block.system_branding_block@96dffcad653def0e",
+          "type": "block.system_branding_block@247a23298360adb2",
           "slots": []
         }
       ]
@@ -434,7 +434,7 @@ A complete example, with three `region node`s:
         {
           "nodeType": "component",
           "id": "97fb7bb9-4c8e-4fdc-87a8-c39ac9e8e618",
-          "type": "sdc.experience_builder.two_column@2c79df2c091d70d8",
+          "type": "sdc.experience_builder.two_column@e5ef92acda2ee2d1",
           "slots": [
             {
               "nodeType": "slot",
@@ -443,7 +443,7 @@ A complete example, with three `region node`s:
                 {
                   "nodeType": "component",
                   "id": "e8ecc571-0221-40d8-9ab2-262389fabd58",
-                  "type": "sdc.experience_builder.heading@5700f78c83cd433f",
+                  "type": "sdc.experience_builder.heading@1b4f8df7c94d7e3c",
                   "slots": []
                 },
                 {
@@ -461,7 +461,7 @@ A complete example, with three `region node`s:
                 {
                   "nodeType": "component",
                   "id": "39648574-b937-4a5a-b1b2-9db0f30ae315",
-                  "type": "sdc.experience_builder.one_column@7e47a55169d2c7cd",
+                  "type": "sdc.experience_builder.one_column@f6a3a392e98e8342",
                   "slots": [
                     {
                       "nodeType": "slot",

@@ -5,8 +5,6 @@ declare(strict_types=1);
 namespace Drupal\experience_builder\Entity;
 
 use Drupal\Core\Config\Entity\ConfigEntityBase;
-use Drupal\Core\Config\Schema\Mapping;
-use Drupal\Core\Config\TypedConfigManagerInterface;
 use Drupal\Core\Entity\EntityStorageException;
 use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Entity\EntityWithPluginCollectionInterface;
@@ -64,23 +62,6 @@ abstract class VersionedConfigEntityBase extends ConfigEntityBase implements Ver
       $this->loadedVersion = $version;
     }
     return $this;
-  }
-
-  public static function generateVersionStringForData(array $data, string $config_schema_type): string {
-    $typed_data = \Drupal::service(TypedConfigManagerInterface::class)->createFromNameAndData($config_schema_type, $data);
-    assert($typed_data instanceof Mapping);
-    $normalized_data = $typed_data->toArray();
-    self::recursiveKsort($normalized_data);
-    return \hash('xxh64', \json_encode($normalized_data, JSON_THROW_ON_ERROR));
-  }
-
-  private static function recursiveKsort(array &$array): void {
-    ksort($array);
-    foreach ($array as &$value) {
-      if (is_array($value)) {
-        self::recursiveKsort($value);
-      }
-    }
   }
 
   public function createVersion(string $version): static {

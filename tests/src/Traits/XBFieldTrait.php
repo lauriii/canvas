@@ -128,19 +128,19 @@ trait XBFieldTrait {
             [
               'nodeType' => 'component',
               'uuid' => self::TEST_HEADING_UUID,
-              'type' => 'sdc.experience_builder.heading@5700f78c83cd433f',
+              'type' => 'sdc.experience_builder.heading@1b4f8df7c94d7e3c',
               'slots' => [],
             ],
             [
               'nodeType' => 'component',
               'uuid' => self::TEST_IMAGE_UUID,
-              'type' => 'sdc.experience_builder.image@f81037abea6701d7',
+              'type' => 'sdc.experience_builder.image@02ac4f958c84990f',
               'slots' => [],
             ],
             [
               'nodeType' => 'component',
               'uuid' => self::TEST_BLOCK,
-              'type' => 'block.system_branding_block@96dffcad653def0e',
+              'type' => 'block.system_branding_block@247a23298360adb2',
               'slots' => [],
             ],
           ],

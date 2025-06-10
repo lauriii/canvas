@@ -160,7 +160,7 @@ class AutoSaveManagerTest extends KernelTestBase {
         [
           'uuid' => self::UUID_IN_ROOT,
           'component_id' => 'sdc.xb_test_sdc.props-no-slots',
-          'component_version' => 'c8a016671696090c',
+          'component_version' => '95f4f1d5ee47663b',
           'inputs' => [
             'heading' => $generate_static_prop_source('world'),
           ],
@@ -173,7 +173,7 @@ class AutoSaveManagerTest extends KernelTestBase {
         [
           'nodeType' => 'component',
           'uuid' => self::UUID_IN_ROOT,
-          'type' => 'sdc.xb_test_sdc.props-no-slots@c8a016671696090c',
+          'type' => 'sdc.xb_test_sdc.props-no-slots@95f4f1d5ee47663b',
           'slots' => [],
         ],
       ],

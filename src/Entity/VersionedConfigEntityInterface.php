@@ -18,8 +18,6 @@ interface VersionedConfigEntityInterface extends ConfigEntityInterface {
 
   public function loadVersion(string $version): static;
 
-  public static function generateVersionStringForData(array $data, string $config_schema_type): string;
-
   public function createVersion(string $version): static;
 
   public function deleteVersion(string $version): static;

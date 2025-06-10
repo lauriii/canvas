@@ -56,6 +56,13 @@ final class Fallback extends ComponentSourceBase implements ComponentSourceWithS
     ];
   }
 
+  /**
+   * {@inheritdoc}
+   */
+  protected function getExplicitInputDefinitions(): array {
+    return [];
+  }
+
   public function requiresExplicitInput(): bool {
     return TRUE;
   }

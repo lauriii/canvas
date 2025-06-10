@@ -37,7 +37,7 @@ trait SingleDirectoryComponentTreeTestTrait {
           [
             'uuid' => self::UUID_DYNAMIC_STATIC_CARD_2,
             'component_id' => 'sdc.xb_test_sdc.props-slots',
-            'component_version' => 'c8a016671696090c',
+            'component_version' => 'ab4d3ddce315cf64',
             'inputs' => [
               'heading' => [
                 'sourceType' => 'static:field_item:string',
@@ -53,7 +53,7 @@ trait SingleDirectoryComponentTreeTestTrait {
           [
             "uuid" => 'd0fb26bf-bc83-428c-a4bb-bea5ea43ffe7',
             "component_id" => "sdc.experience_builder.druplicon",
-            'component_version' => '822ab01ec6b22b59',
+            'component_version' => '8fe3be948e0194e1',
             'inputs' => [],
           ],
         ],
@@ -64,7 +64,7 @@ trait SingleDirectoryComponentTreeTestTrait {
           [
             'uuid' => '993cf84a-df55-41c6-bda9-a8bb616a48d0',
             'component_id' => 'sdc.xb_test_sdc.image-optional-with-example-and-additional-prop',
-            'component_version' => 'a9c6f983f2d8a209',
+            'component_version' => 'df7ce9414b21241b',
             'inputs' => [
               'heading' => [
                 'sourceType' => 'static:field_item:string',
@@ -109,7 +109,7 @@ trait SingleDirectoryComponentTreeTestTrait {
           [
             'uuid' => 'd0aee529-89d9-4a47-8d59-7deb1817f952',
             'component_id' => 'sdc.xb_test_sdc.props-slots',
-            'component_version' => 'c8a016671696090c',
+            'component_version' => 'ab4d3ddce315cf64',
             'inputs' => [
               'heading' => [
                 'sourceType' => 'dynamic',
@@ -151,7 +151,7 @@ trait SingleDirectoryComponentTreeTestTrait {
           [
             'uuid' => self::UUID_DYNAMIC_STATIC_CARD_4,
             'component_id' => 'sdc.xb_test_sdc.props-slots',
-            'component_version' => 'c8a016671696090c',
+            'component_version' => 'ab4d3ddce315cf64',
             'inputs' => [
               'heading' => [
                 'sourceType' => 'dynamic',
@@ -186,7 +186,7 @@ trait SingleDirectoryComponentTreeTestTrait {
           [
             'uuid' => self::UUID_DYNAMIC_STATIC_CARD_2,
             'component_id' => 'sdc.xb_test_sdc.props-slots',
-            'component_version' => 'c8a016671696090c',
+            'component_version' => 'ab4d3ddce315cf64',
             'inputs' => [
               'heading-2' => [
                 'sourceType' => 'dynamic',
@@ -197,7 +197,7 @@ trait SingleDirectoryComponentTreeTestTrait {
           [
             'uuid' => self::UUID_DYNAMIC_STATIC_CARD_3,
             'component_id' => 'sdc.xb_test_sdc.props-slots',
-            'component_version' => 'c8a016671696090c',
+            'component_version' => 'ab4d3ddce315cf64',
             'inputs' => [
               'heading-1' => [
                 'sourceType' => 'dynamic',
@@ -208,7 +208,7 @@ trait SingleDirectoryComponentTreeTestTrait {
           [
             'uuid' => self::UUID_DYNAMIC_STATIC_CARD_4,
             'component_id' => 'sdc.xb_test_sdc.props-slots',
-            'component_version' => 'c8a016671696090c',
+            'component_version' => 'ab4d3ddce315cf64',
             'inputs' => [
               'heading' => [
                 'sourceType' => 'dynamic',
@@ -223,7 +223,7 @@ trait SingleDirectoryComponentTreeTestTrait {
           [
             'uuid' => self::UUID_DYNAMIC_STATIC_CARD_2,
             'component_id' => 'sdc.xb_test_sdc.props-no-slots',
-            'component_version' => 'c8a016671696090c',
+            'component_version' => '95f4f1d5ee47663b',
             'inputs' => [
               'heading-x' => [
                 'sourceType' => 'static:field_item:link',
@@ -243,17 +243,17 @@ trait SingleDirectoryComponentTreeTestTrait {
           [
             'uuid' => self::UUID_DYNAMIC_STATIC_CARD_2,
             'component_id' => 'sdc.xb_test_sdc.props-slots',
-            'component_version' => 'c8a016671696090c',
+            'component_version' => 'ab4d3ddce315cf64',
           ],
           [
             'uuid' => self::UUID_DYNAMIC_STATIC_CARD_3,
             'component_id' => 'sdc.xb_test_sdc.props-slots',
-            'component_version' => 'c8a016671696090c',
+            'component_version' => 'ab4d3ddce315cf64',
           ],
           [
             'uuid' => self::UUID_DYNAMIC_STATIC_CARD_4,
             'component_id' => 'sdc.xb_test_sdc.props-slots',
-            'component_version' => 'c8a016671696090c',
+            'component_version' => 'ab4d3ddce315cf64',
           ],
         ],
       ],
@@ -262,7 +262,7 @@ trait SingleDirectoryComponentTreeTestTrait {
           [
             'uuid' => self::UUID_DYNAMIC_STATIC_CARD_4,
             'component_id' => 'sdc.xb_test_sdc.props-slots',
-            'component_version' => 'c8a016671696090c',
+            'component_version' => 'ab4d3ddce315cf64',
             'inputs' => [
               'heading' => [
                 'sourceType' => 'static:field_item:string',
@@ -274,7 +274,7 @@ trait SingleDirectoryComponentTreeTestTrait {
           [
             'uuid' => 'fa9ff0a8-e23a-492a-ab14-5460611fa2c1',
             'component_id' => 'sdc.xb_test_sdc.props-slots',
-            'component_version' => 'c8a016671696090c',
+            'component_version' => 'ab4d3ddce315cf64',
             'inputs' => [
               'heading' => [
                 'sourceType' => 'static:field_item:string',
@@ -286,7 +286,7 @@ trait SingleDirectoryComponentTreeTestTrait {
           [
             'uuid' => self::UUID_DYNAMIC_STATIC_CARD_4,
             'component_id' => 'sdc.xb_test_sdc.props-slots',
-            'component_version' => 'c8a016671696090c',
+            'component_version' => 'ab4d3ddce315cf64',
             'inputs' => [
               'heading' => [
                 'sourceType' => 'static:field_item:string',
@@ -302,7 +302,7 @@ trait SingleDirectoryComponentTreeTestTrait {
           [
             'uuid' => 'fa9ff0a8-e23a-492a-ab14-5460611fa2c1',
             'component_id' => 'sdc.xb_test_sdc.props-slots',
-            'component_version' => 'c8a016671696090c',
+            'component_version' => 'ab4d3ddce315cf64',
             'inputs' => [
               'heading' => [
                 'sourceType' => 'static:field_item:string',
@@ -316,7 +316,7 @@ trait SingleDirectoryComponentTreeTestTrait {
             'slot' => 'the_body',
             'parent_uuid' => '6381352f-5b0a-4ca1-960d-a5505b37b27c',
             'component_id' => 'sdc.xb_test_sdc.props-slots',
-            'component_version' => 'c8a016671696090c',
+            'component_version' => 'ab4d3ddce315cf64',
             'inputs' => [
               'heading' => [
                 'sourceType' => 'static:field_item:string',
@@ -332,7 +332,7 @@ trait SingleDirectoryComponentTreeTestTrait {
           [
             'uuid' => 'fa9ff0a8-e23a-492a-ab14-5460611fa2c1',
             'component_id' => 'sdc.xb_test_sdc.props-slots',
-            'component_version' => 'c8a016671696090c',
+            'component_version' => 'ab4d3ddce315cf64',
             'inputs' => [
               'heading' => [
                 'sourceType' => 'static:field_item:string',
@@ -345,7 +345,7 @@ trait SingleDirectoryComponentTreeTestTrait {
             'uuid' => 'e303dd88-9409-4dc7-8a8b-a31602884a94',
             'slot' => 'banana',
             'parent_uuid' => 'fa9ff0a8-e23a-492a-ab14-5460611fa2c1',
-            'component_version' => 'c8a016671696090c',
+            'component_version' => 'ab4d3ddce315cf64',
             'component_id' => 'sdc.xb_test_sdc.props-slots',
             'inputs' => [
               'heading' => [

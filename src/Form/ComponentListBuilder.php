@@ -46,7 +46,8 @@ final class ComponentListBuilder extends ConfigEntityListBuilder {
     $header['label'] = $this->t('Label');
     $header['component_source'] = $this->t('Component type');
     $header['component_label'] = $this->t('Component name');
-    $header['component_usage'] = $this->t('Usage');
+    $header['component_version'] = $this->t('Versions');
+    $header['component_usage'] = $this->t('Usage<br>(all&nbsp;versions)');
     return $header + parent::buildHeader();
   }
 
@@ -61,6 +62,11 @@ final class ComponentListBuilder extends ConfigEntityListBuilder {
     $source = $entity->getComponentSource();
     $row['component_source'] = $source->getPluginDefinition()['label'];
     $row['component_label'] = $source->getComponentDescription();
+    $row['component_version']['data'] = [
+      '#prefix' => sprintf('<code title="%s">', $entity->getActiveVersion()),
+      '#plain_text' => count($entity->getVersions()),
+      '#suffix' => '</code>',
+    ];
     $usage = $this->audit->getConfigEntityUsageCount($entity) +
       // @todo Stop triggering a DB query per row, instead perform a single DB query in ::load() in https://www.drupal.org/i/3522953
       count($this->audit->getContentRevisionsUsingComponent($entity));

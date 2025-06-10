@@ -93,7 +93,7 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
       'category' => 'Test',
       'source' => SingleDirectoryComponent::SOURCE_PLUGIN_ID,
       'source_local_id' => 'xb_test_sdc:my-cta',
-      'active_version' => 'db8fd1116b3fa3dc',
+      'active_version' => '6023d092b3a8fc7e',
       'versioned_properties' => [
         VersionedConfigEntityBase::ACTIVE_VERSION => [
           'settings' => [
@@ -204,12 +204,26 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
     // @see \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\SingleDirectoryComponent
     assert($this->entity instanceof Component);
     $invalid_settings_due_to_missing_prop_field_definition = $this->entity->getSettings();
+    $target = $invalid_settings_due_to_missing_prop_field_definition['prop_field_definitions']['target'];
     unset($invalid_settings_due_to_missing_prop_field_definition['prop_field_definitions']['target']);
-    $this->entity->setSettings($invalid_settings_due_to_missing_prop_field_definition);
-    $this->assertValidationErrors([
-      'versioned_properties' => 'The version db8fd1116b3fa3dc does not match the hash of the settings for this version, expected 0675f5f03d6059a4.',
-      \sprintf('versioned_properties.%s.settings.prop_field_definitions', VersionedConfigEntityInterface::ACTIVE_VERSION) => 'Configuration for the SDC prop "<em class="placeholder">Target</em>" (<em class="placeholder">target</em>) is missing.',
-    ]);
+    try {
+      $this->entity->createVersion('abcdef12343fa3dc')
+        ->setSettings($invalid_settings_due_to_missing_prop_field_definition)
+        ->save();
+    }
+    catch (SchemaIncompleteException $e) {
+      // We can't use ::assertValidationErrors here because we need to make use
+      // of ::save to set fallback metadata.
+      self::assertEquals('Schema errors for experience_builder.component.sdc.xb_test_sdc.my-cta with the following errors: 0 [active_version] The version abcdef12343fa3dc does not match the hash of the settings for this version, expected a073235ed2f39814., 1 [versioned_properties.active.settings.prop_field_definitions] Configuration for the SDC prop &quot;&lt;em class=&quot;placeholder&quot;&gt;Target&lt;/em&gt;&quot; (&lt;em class=&quot;placeholder&quot;&gt;target&lt;/em&gt;) is missing.', $e->getMessage());
+    }
+    // But an invalid version hash doesn't matter for old versions.
+    $invalid_settings_due_to_missing_prop_field_definition['prop_field_definitions']['target'] = $target;
+    $this->entity->createVersion(
+      '6023d092b3a8fc7e'
+    )->setSettings($invalid_settings_due_to_missing_prop_field_definition)->save();
+    // No validation errors even though the old 'abcdef12343fa3dc'
+    // version is invalid.
+    $this->assertValidationErrors([]);
 
     // @see \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\JsComponent
     // Create a "code component" that has the same explicit inputs as the
@@ -238,7 +252,7 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
       'category' => 'Test',
       'source' => JsComponent::SOURCE_PLUGIN_ID,
       'source_local_id' => 'my-cta',
-      'active_version' => '34d253d05dc58be2',
+      'active_version' => 'b906907408185f70',
       'versioned_properties' => [
         VersionedConfigEntityBase::ACTIVE_VERSION => [
           'settings' => [
@@ -297,6 +311,7 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
       'label' => 'Test',
     ]);
     $this->assertValidationErrors([
+      'active_version' => 'The version 7a2bdba02d8b7911 does not match the hash of the settings for this version, expected f80ad196f2c2cc64.',
       \sprintf('versioned_properties.%s.settings.default_settings', VersionedConfigEntityInterface::ACTIVE_VERSION) => "'use_site_slogan' is a required key because source_local_id is system_branding_block (see config schema type block.settings.system_branding_block).",
       // @see \Drupal\experience_builder\Entity\Component::preSave()
       \sprintf('versioned_properties.%s', VersionedConfigEntityInterface::ACTIVE_VERSION) => "'fallback_metadata' is a required key because versioned_properties.%key is active (see config schema type experience_builder.component.versioned.active.*).",
@@ -424,7 +439,7 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
       'category' => 'test',
       'source' => BlockComponent::SOURCE_PLUGIN_ID,
       'source_local_id' => 'node_syndicate_block',
-      'active_version' => 'f1de6f216b243742',
+      'active_version' => '8d6f197567cc882e',
       'versioned_properties' => [
         VersionedConfigEntityBase::ACTIVE_VERSION => [
           'settings' => [
@@ -461,26 +476,26 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
   // cspell:ignore eird
 
   /**
-   * @testWith ["valid", false]
-   *   ["even_more-valid", false]
-   *   ["-", true]
-   *   ["--", true]
-   *   ["_", true]
-   *   ["__", true]
-   *   ["-not_valid", true]
-   *   ["_not_valid", true]
-   *   ["not_valid-", true]
-   *   ["not_valid_", true]
-   *   ["a", true]
-   *   ["aa", true]
-   *   ["aaa", false]
-   *   ["n😈t_valid", true]
-   *   ["spaces aren't okay", true]
-   *   ["newline\nnot_allowed", true]
-   *   ["rm -rf /", true]
-   *   ["slot_\u03E2eird", true]
+   * @testWith ["valid", false, "102d161a6069b0bf"]
+   *   ["even_more-valid", false, "b89b9f874769d01e"]
+   *   ["-", true, "cd4019731175e414"]
+   *   ["--", true, "e6507bfbf8ab4de5"]
+   *   ["_", true, "d424855d70852377"]
+   *   ["__", true, "823c8d2eb2d05352"]
+   *   ["-not_valid", true, "67baf46859e91b91"]
+   *   ["_not_valid", true, "3972480bc11893e9"]
+   *   ["not_valid-", true, "2af87d83152ee878"]
+   *   ["not_valid_", true, "31cc78f610f8147a"]
+   *   ["a", true, "86e65a63d5c64c96"]
+   *   ["aa", true, "06841b5c562fd150"]
+   *   ["aaa", false, "45d801ed93ec2876"]
+   *   ["n😈t_valid", true, "95bb0e4d0d0c208b"]
+   *   ["spaces aren't okay", true, "b911692027992e7a"]
+   *   ["newline\nnot_allowed", true, "c413270ad235c44c"]
+   *   ["rm -rf /", true, "d4b25a8c7fa2617c"]
+   *   ["slot_\u03E2eird", true, "c33062b3a4641476"]
    */
-  public function testSlotNameValidation(string $slot_name, bool $is_invalid): void {
+  public function testSlotNameValidation(string $slot_name, bool $is_invalid, string $expected_version): void {
     // For every "code component" (JavaScriptComponent) with `status: true`, a
     // corresponding Component config entity is auto-created. Use this to be
     // able to test
@@ -528,7 +543,7 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
 
     // Make the corresponding Component the entity being tested and validate.
     $this->entity = $corresponding_component;
-    self::assertSame(['822ab01ec6b22b59'], $this->entity->getVersions());
+    self::assertSame([$expected_version], $this->entity->getVersions());
     $expected_errors = [];
     if ($is_invalid) {
       $expected_errors["versioned_properties.active.fallback_metadata.slot_definitions.$slot_name"] = sprintf('<em class="placeholder">&quot;%s&quot;</em> is not a valid slot name.', htmlentities($slot_name));
@@ -539,22 +554,14 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
     // version of the Component to be created *without* an invalid slot, that
     // the same validation error is still thrown for the old version, but not
     // for the new version.
-    $js_component_with_invalid_slot->set('slots', [])
-      // @todo Remove the ::setProps() call in https://www.drupal.org/project/experience_builder/issues/3528362
-      ->setProps([
-        'title' => [
-          'type' => 'string',
-          'title' => 'Title',
-        ],
-      ])
-      ->save();
+    $js_component_with_invalid_slot->set('slots', [])->save();
     $updated_corresponding_component = Component::load(JsComponent::SOURCE_PLUGIN_ID . '.invalid_slot');
     assert($updated_corresponding_component instanceof Component);
     $this->entity = $updated_corresponding_component;
-    self::assertSame(['3c1efabf35211787', '822ab01ec6b22b59'], $this->entity->getVersions());
+    self::assertSame(['8fe3be948e0194e1', $expected_version], $this->entity->getVersions());
     $expected_errors = [];
     if ($is_invalid) {
-      $expected_errors["versioned_properties.822ab01ec6b22b59.fallback_metadata.slot_definitions.$slot_name"] = sprintf('<em class="placeholder">&quot;%s&quot;</em> is not a valid slot name.', htmlentities($slot_name));
+      $expected_errors["versioned_properties.$expected_version.fallback_metadata.slot_definitions.$slot_name"] = sprintf('<em class="placeholder">&quot;%s&quot;</em> is not a valid slot name.', htmlentities($slot_name));
     }
     $this->assertValidationErrors($expected_errors);
   }

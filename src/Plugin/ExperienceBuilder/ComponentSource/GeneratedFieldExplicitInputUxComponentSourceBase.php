@@ -76,6 +76,7 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
     private readonly FieldForComponentSuggester $fieldForComponentSuggester,
     protected readonly EntityTypeManagerInterface $entityTypeManager,
   ) {
+    assert(array_key_exists('local_source_id', $configuration));
     parent::__construct($configuration, $plugin_id, $plugin_definition);
   }
 
@@ -170,6 +171,21 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
 
   public function getSlotDefinitions(): array {
     return $this->getSdcPlugin()->metadata->slots;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  protected function getExplicitInputDefinitions(): array {
+    $sdc_plugin = $this->getSdcPlugin();
+    $prop_shapes = PropShape::getComponentProps($this->getSdcPlugin());
+    return [
+      'required' => $sdc_plugin->metadata->schema['required'] ?? [],
+      'shapes' => array_combine(
+        array_map(fn (string $cpe) => ComponentPropExpression::fromString($cpe)->propName, array_keys($prop_shapes)),
+        array_map(fn (PropShape $shape) => $shape->schema, $prop_shapes),
+      ),
+    ];
   }
 
   /**
