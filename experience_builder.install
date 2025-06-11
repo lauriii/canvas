@@ -53,7 +53,16 @@ function experience_builder_module_preuninstall(string $module, bool $is_syncing
  */
 function experience_builder_requirements(string $phase): array {
   $requirements = [];
-  if ($phase === 'install'|| $phase == 'runtime') {
+  if ($phase === 'install' || $phase == 'runtime') {
+    $xb_stark_enabled = \Drupal::service('theme_handler')->themeExists('xb_stark');
+    if (!$xb_stark_enabled) {
+      $requirements['xb_stark'] = [
+        'title' => t('Experience Builder Theme'),
+        'description' => t('The required theme <code>xb_stark</code> is no longer installed due to manually modified changes to <code>core.extension</code>. The Experience Builder user interface will be broken without this theme. You can install it by running <code>drush theme:install xb_stark</code>.'),
+        'severity' => REQUIREMENT_WARNING,
+      ];
+    }
+
     // Check if JSON:API module is enabled.
     $json_api_enabled = \Drupal::moduleHandler()->moduleExists('jsonapi');
     if ($json_api_enabled) {
