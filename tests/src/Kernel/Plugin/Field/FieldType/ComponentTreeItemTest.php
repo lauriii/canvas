@@ -341,6 +341,10 @@ class ComponentTreeItemTest extends KernelTestBase {
     self::assertNotEquals($old_version_item->getComponentVersion(), $new_version_item->getComponentVersion());
     self::assertNotEquals($old_version_item->getComponent(), $new_version_item->getComponent());
 
+    // Test that setting the version updates the component loaded.
+    $old_version_item->set('component_version', $active_version);
+    self::assertEquals($active_version, $old_version_item->getComponentVersion());
+    self::assertEquals($active_version, $old_version_item->getComponent()?->getLoadedVersion());
   }
 
   public function testCalculateDependencies(): void {

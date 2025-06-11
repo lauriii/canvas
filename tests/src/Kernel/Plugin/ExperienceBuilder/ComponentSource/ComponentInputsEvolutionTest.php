@@ -522,6 +522,7 @@ final class ComponentInputsEvolutionTest extends KernelTestBase {
       // Not valid until the component version is updated, too.
       self::assertNotEmpty(self::violationsToArray($component_tree_item->validate()));
       $component_tree_item->set('component_version', '0b69de6df4584ecc');
+      self::assertEquals('0b69de6df4584ecc', $component_tree_item->getComponent()->getLoadedVersion());
       self::assertSame([], self::violationsToArray($component_tree_item->validate()));
     }
 

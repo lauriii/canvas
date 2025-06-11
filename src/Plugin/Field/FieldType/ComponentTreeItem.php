@@ -393,7 +393,6 @@ class ComponentTreeItem extends FieldItemBase {
     }
     $pairs = [
       ['component_id', 'component'],
-      ['component_version', 'component'],
       ['parent_uuid', 'parent_item'],
     ];
     foreach ($pairs as $pair) {
@@ -408,6 +407,13 @@ class ComponentTreeItem extends FieldItemBase {
       if ($property_name === $property1) {
         $this->writePropertyValue($property2, $this->get($property1)->getValue());
       }
+    }
+    if ($property_name === 'component_version') {
+      // Reset the component reference property.
+      $this->writePropertyValue('component', [
+        'target_id' => $this->get('component')->getTargetIdentifier(),
+        'version' => $this->get('component_version')->getValue(),
+      ]);
     }
     // DX: if no version is specified, set it automatically to the active
     // version of the Component.
