@@ -49,12 +49,6 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
     'options',
     'path',
     'link',
-    'field',
-    'media',
-    'media_library',
-    'views',
-    'user',
-    'filter',
   ];
 
   /**
@@ -81,19 +75,12 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
    */
   protected function setUp(): void {
     parent::setUp();
-    $this->installEntitySchema('media');
-    $this->installEntitySchema('user');
-    $this->setInstallProfile('standard');
-    $this->installConfig(['media']);
-    $this->installSchema('file', ['file_usage']);
-    $this->installEntitySchema('filter_format');
-
     $this->entity = Component::create([
       'id' => 'sdc.xb_test_sdc.my-cta',
       'category' => 'Test',
       'source' => SingleDirectoryComponent::SOURCE_PLUGIN_ID,
       'source_local_id' => 'xb_test_sdc:my-cta',
-      'active_version' => '6023d092b3a8fc7e',
+      'active_version' => '95f7ef6a63ef6102',
       'versioned_properties' => [
         VersionedConfigEntityBase::ACTIVE_VERSION => [
           'settings' => [
@@ -128,24 +115,6 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
                 'default_value' => NULL,
                 'expression' => 'ℹ︎list_string␟value',
               ],
-              // @todo This will start failing validation in https://www.drupal.org/i/3525759.
-              'image' => [
-                'field_type' => 'image',
-                'field_storage_settings' => [
-                  'target_type' => 'media',
-                ],
-                'field_instance_settings' => [
-                  'handler' => 'default:media',
-                  'handler_settings' => [
-                    'target_bundles' => [
-                      'image' => 'image',
-                    ],
-                  ],
-                ],
-                'field_widget' => 'media_library_widget',
-                'default_value' => [],
-                'expression' => 'ℹ︎image␟{src↝entity␜␜entity:file␝uri␞␟url,alt↠alt,width↠width,height↠height}',
-              ],
             ],
           ],
         ],
@@ -166,8 +135,6 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
     $this->assertSame(
       [
         'module' => [
-          'image',
-          'media_library',
           'options',
           'xb_test_sdc',
         ],
@@ -176,8 +143,6 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
     );
     $this->assertSame([
       'module' => [
-        'image',
-        'media_library',
         'options',
         'xb_test_sdc',
         'experience_builder',
@@ -198,12 +163,46 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
    *   `experience_builder.component_source_settings.*`
    * - The "block" one extends the fallback one.
    *
-   * This test method is aimed to test the ComponentSource-specific settings
+   * This test method is aimed to test the ComponentSource-specific settings.
+   *
+   * @covers \Drupal\experience_builder\Plugin\Validation\Constraint\SdcPropKeysConstraintValidator
    */
   public function testComponentSourceSpecificSettings(): void {
     // @see \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\SingleDirectoryComponent
     assert($this->entity instanceof Component);
-    $invalid_settings_due_to_missing_prop_field_definition = $this->entity->getSettings();
+    $invalid_settings_due_to_extraneous_prop_field_definition = $invalid_settings_due_to_missing_prop_field_definition = $this->entity->getSettings();
+
+    // Too much.
+    $this->enableModules(['media', 'media_library', 'views']);
+    $invalid_settings_due_to_extraneous_prop_field_definition['prop_field_definitions']['image'] = [
+      'field_type' => 'image',
+      'field_storage_settings' => [
+        'target_type' => 'media',
+      ],
+      'field_instance_settings' => [
+        'handler' => 'default:media',
+        'handler_settings' => [
+          'target_bundles' => [
+            'image' => 'image',
+          ],
+        ],
+      ],
+      'field_widget' => 'media_library_widget',
+      'default_value' => [],
+      'expression' => 'ℹ︎image␟{src↝entity␜␜entity:file␝uri␞␟url,alt↠alt,width↠width,height↠height}',
+    ];
+    try {
+      $this->entity->createVersion('abcdef12343fa3dc')
+        ->setSettings($invalid_settings_due_to_extraneous_prop_field_definition)
+        ->save();
+    }
+    catch (SchemaIncompleteException $e) {
+      // We can't use ::assertValidationErrors here because we need to make use
+      // of ::save to set fallback metadata.
+      self::assertEquals('Schema errors for experience_builder.component.sdc.xb_test_sdc.my-cta with the following errors: 0 [active_version] The version abcdef12343fa3dc does not match the hash of the settings for this version, expected 6023d092b3a8fc7e., 1 [versioned_properties.active.settings.prop_field_definitions] Configuration present for a non-existent SDC prop: &lt;em class=&quot;placeholder&quot;&gt;image&lt;/em&gt;.', $e->getMessage());
+    }
+
+    // Too little.
     $target = $invalid_settings_due_to_missing_prop_field_definition['prop_field_definitions']['target'];
     unset($invalid_settings_due_to_missing_prop_field_definition['prop_field_definitions']['target']);
     try {
@@ -214,12 +213,12 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
     catch (SchemaIncompleteException $e) {
       // We can't use ::assertValidationErrors here because we need to make use
       // of ::save to set fallback metadata.
-      self::assertEquals('Schema errors for experience_builder.component.sdc.xb_test_sdc.my-cta with the following errors: 0 [active_version] The version abcdef12343fa3dc does not match the hash of the settings for this version, expected a073235ed2f39814., 1 [versioned_properties.active.settings.prop_field_definitions] Configuration for the SDC prop &quot;&lt;em class=&quot;placeholder&quot;&gt;Target&lt;/em&gt;&quot; (&lt;em class=&quot;placeholder&quot;&gt;target&lt;/em&gt;) is missing.', $e->getMessage());
+      self::assertEquals('Schema errors for experience_builder.component.sdc.xb_test_sdc.my-cta with the following errors: 0 [active_version] The version abcdef12343fa3dc does not match the hash of the settings for this version, expected b906907408185f70., 1 [versioned_properties.active.settings.prop_field_definitions] Configuration for the SDC prop &quot;&lt;em class=&quot;placeholder&quot;&gt;Target&lt;/em&gt;&quot; (&lt;em class=&quot;placeholder&quot;&gt;target&lt;/em&gt;) is missing.', $e->getMessage());
     }
     // But an invalid version hash doesn't matter for old versions.
     $invalid_settings_due_to_missing_prop_field_definition['prop_field_definitions']['target'] = $target;
     $this->entity->createVersion(
-      '6023d092b3a8fc7e'
+      '95f7ef6a63ef6102'
     )->setSettings($invalid_settings_due_to_missing_prop_field_definition)->save();
     // No validation errors even though the old 'abcdef12343fa3dc'
     // version is invalid.
@@ -259,10 +258,7 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
             'prop_field_definitions' => array_diff_key(
               $this->entity->getSettings()['prop_field_definitions'],
               // Remove the 'target' key to trigger a validation error.
-              // Remove the 'image' because the property is not in the JS component
-              // created above.
-              // @todo Remove "image" from this in https://www.drupal.org/i/3525759.
-              array_flip(['target', 'image']),
+              array_flip(['target']),
             ),
           ],
         ],

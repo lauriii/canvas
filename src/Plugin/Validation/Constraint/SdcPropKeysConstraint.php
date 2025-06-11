@@ -28,6 +28,13 @@ class SdcPropKeysConstraint extends SymfonyConstraint {
   public $message = 'Configuration for the SDC prop "%prop_title" (%prop_machine_name) is missing.';
 
   /**
+   * The violation message when an extraneous prop key is present.
+   *
+   * @var string
+   */
+  public string $extraneousMessage = 'Configuration present for a non-existent SDC prop: %prop_machine_name.';
+
+  /**
    * The ID of the SDC whose props must be present as keys on a `type: mapping`.
    */
   public string $sdcPluginId;

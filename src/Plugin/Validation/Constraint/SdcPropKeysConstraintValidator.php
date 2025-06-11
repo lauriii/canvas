@@ -83,6 +83,13 @@ final class SdcPropKeysConstraintValidator extends ConstraintValidator implement
           ->addViolation();
       }
     }
+
+    $extraneous_keys = array_diff(array_keys($mapping), $expected_keys);
+    foreach ($extraneous_keys as $extra_key) {
+      $this->context->buildViolation($constraint->extraneousMessage)
+        ->setParameter('%prop_machine_name', $extra_key)
+        ->addViolation();
+    }
   }
 
 }
