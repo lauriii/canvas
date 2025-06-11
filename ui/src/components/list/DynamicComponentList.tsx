@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useErrorBoundary } from 'react-error-boundary';
-import { useGetComponentsQuery } from '@/services/componentAndLayout';
+import { useGetFilteredComponentsQuery } from '@/hooks/useGetFilteredComponentsQuery';
 import List from '@/components/list/List';
 import {
   LayoutItemType,
@@ -17,16 +17,16 @@ import { Skeleton } from '@radix-ui/themes';
 
 const DynamicComponentList = () => {
   const {
-    data: dynamicComponents,
+    filteredComponents: dynamicComponents,
     isLoading,
     error,
-  } = useGetComponentsQuery({
+  } = useGetFilteredComponentsQuery({
     mode: 'include',
     libraries: ['dynamic_components'],
   });
   const { showBoundary } = useErrorBoundary();
-
   const [openCategories, setOpenCategories] = useState<string[]>([]);
+
   useEffect(() => {
     if (error) {
       showBoundary(error);

@@ -32,24 +32,11 @@ export const componentAndLayoutApi = createApi({
     >({
       query: () => `xb/api/v0/config/component`,
       providesTags: () => [{ type: 'Components', id: 'LIST' }],
-      transformResponse: (response: ComponentsList, meta, arg) => {
-        if (!arg || !Array.isArray(arg.libraries)) {
-          // If no filter is provided, return all components.
-          return Object.fromEntries(
-            Object.entries(response).sort(([, a], [, b]) =>
-              a.name.localeCompare(b.name),
-            ),
-          );
-        }
-
-        // Filter the response based on the include/exclude and the list of library types passed.
+      transformResponse: (response: ComponentsList) => {
         return Object.fromEntries(
-          Object.entries(response)
-            .filter(([, value]) => {
-              const isIncluded = arg.libraries.includes(value.library);
-              return arg.mode === 'include' ? isIncluded : !isIncluded;
-            })
-            .sort(([, a], [, b]) => a.name.localeCompare(b.name)),
+          Object.entries(response).sort(([, a], [, b]) =>
+            a.name.localeCompare(b.name),
+          ),
         );
       },
     }),
