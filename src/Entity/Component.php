@@ -431,6 +431,14 @@ final class Component extends VersionedConfigEntityBase implements ComponentInte
 
   /**
    * {@inheritdoc}
+   */
+  public function loadVersion(string $version): static {
+    $this->sourcePluginCollection = NULL;
+    return parent::loadVersion($version);
+  }
+
+  /**
+   * {@inheritdoc}
    *
    * @see \Drupal\experience_builder\EntityHandlers\XbConfigEntityAccessControlHandler
    */

@@ -48,9 +48,9 @@ abstract class VersionedConfigEntityBase extends ConfigEntityBase implements Ver
   }
 
   public function loadVersion(string $version): static {
-    if ($version !== $this->active_version) {
+    if ($version !== $this->loadedVersion) {
       assert($this->versioned_properties !== NULL);
-      if (!array_key_exists($version, $this->versioned_properties)) {
+      if ($version !== $this->active_version && !array_key_exists($version, $this->versioned_properties)) {
         throw new \OutOfRangeException(sprintf('The requested version `%s` is not available. Available versions: %s.',
           (string) $version,
           implode(', ', array_map(

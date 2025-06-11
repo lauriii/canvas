@@ -11,6 +11,7 @@ use Drupal\Core\Database\StatementInterface;
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\RevisionableStorageInterface;
+use Drupal\Core\Extension\ModuleInstallerInterface;
 use Drupal\datetime\Plugin\Field\FieldType\DateTimeItem;
 use Drupal\experience_builder\Audit\ComponentTreeDependencyRepository;
 use Drupal\experience_builder\Entity\Component;
@@ -19,6 +20,7 @@ use Drupal\experience_builder\Entity\Page;
 use Drupal\experience_builder\Plugin\BlockManager;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\experience_builder\PropExpressions\StructuredData\FieldTypePropExpression;
+use Drupal\experience_builder\PropExpressions\StructuredData\StructuredDataPropExpression;
 use Drupal\experience_builder\PropSource\StaticPropSource;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
@@ -43,12 +45,15 @@ class ComponentTreeDependencyRepositoryTest extends ComponentAuditTestBase {
   protected ComponentInterface $component1;
   protected ComponentInterface $component2;
   protected ComponentInterface $component3;
+  protected ComponentInterface $component4;
 
   protected ComponentTreeDependencyRepository $dependencyRepository;
 
   protected function setUp(): void {
     parent::setUp();
     $this->installEntitySchema('path_alias');
+    // TRICKY: without this, LanguageHooks::modulesInstalled() fails.
+    $this->installConfig(['language']);
     $this->dependencyRepository = $this->container->get(ComponentTreeDependencyRepository::class);
     $this->container->get(BlockManager::class)->getDefinitions();
     $component1 = Component::load('sdc.xb_test_sdc.props-slots');
@@ -62,6 +67,10 @@ class ComponentTreeDependencyRepositoryTest extends ComponentAuditTestBase {
     $component3 = Component::load('sdc.xb_test_sdc.props-no-slots');
     \assert($component3 instanceof ComponentInterface);
     $this->component3 = $component3;
+
+    $component4 = Component::load('sdc.xb_test_sdc.my-cta');
+    \assert($component4 instanceof ComponentInterface);
+    $this->component4 = $component4;
 
     ConfigurableLanguage::createFromLangcode('fr')->save();
   }
@@ -262,10 +271,82 @@ class ComponentTreeDependencyRepositoryTest extends ComponentAuditTestBase {
         'component_id' => 'block.xb_test_block_input_none',
         'inputs' => [],
       ],
+      [
+        'uuid' => 'fourth-component',
+        'component_id' => 'sdc.xb_test_sdc.my-cta',
+        'inputs' => [
+          'text' => StaticPropSource::generate(
+            expression: new FieldTypePropExpression('string', 'value'),
+            cardinality: 1,
+          )->withValue('Clickbait')->toArray(),
+          'href' => StaticPropSource::generate(
+            // @phpstan-ignore-next-line
+            expression: StructuredDataPropExpression::fromString($this->component4->getSettings()['prop_field_definitions']['href']['expression']),
+            field_instance_settings: $this->component4->getSettings()['prop_field_definitions']['href']['field_instance_settings'],
+            cardinality: 1,
+          )->withValue('https://drupal.org/bait')->toArray(),
+        ],
+      ],
     ])->save();
     $entity->save();
-
     $second_revision = self::entityRevisionIdentifier($entity);
+
+    // Now enable the 'xb_test_storage_prop_shape_alter' module to change the
+    // field type used for populating the `href` prop.
+    // @see \Drupal\xb_test_storage_prop_shape_alter\Hook\XbTestStoragePropShapeAlterHooks::storagePropShapeAlter()
+    // @see \Drupal\Tests\experience_builder\Kernel\Plugin\ExperienceBuilder\ComponentSource\ComponentInputsEvolutionTest::testStorablePropShapeChanges()
+    self::assertSame(['6c057d67bf6d7f42'], $this->component4->getVersions());
+    self::assertSame('link', $this->component4->getSettings()['prop_field_definitions']['href']['field_type']);
+    \Drupal::service(ModuleInstallerInterface::class)
+      ->install(['xb_test_storage_prop_shape_alter']);
+    $updated_component4 = Component::load($this->component4->id());
+    assert($updated_component4 instanceof Component);
+    $this->component4 = $updated_component4;
+    self::assertSame(['535435951dbc2e3c', '6c057d67bf6d7f42'], $this->component4->getVersions());
+    self::assertSame('uri', $this->component4->getSettings()['prop_field_definitions']['href']['field_type']);
+
+    // Create a third revision, after the storable prop shape has changed, and
+    // simulate that the author was able to upgrade from the old field type to
+    // the new, which will eventually need to be supported.
+    // @todo https://www.drupal.org/project/experience_builder/issues/3463996
+    $this->setNewRevision($entity);
+    $entity->set('field_xb_field', [
+      [
+        'uuid' => 'my-component',
+        'component_id' => 'sdc.xb_test_sdc.props-slots',
+        'inputs' => [
+          'heading' => StaticPropSource::generate(
+            expression: new FieldTypePropExpression('string', 'value'),
+            cardinality: 1,
+          )->withValue('Hey there')->toArray(),
+        ],
+      ],
+      [
+        'uuid' => 'second-component',
+        'component_id' => 'block.xb_test_block_input_none',
+        'inputs' => [],
+      ],
+      [
+        'uuid' => 'fourth-component',
+        'component_id' => 'sdc.xb_test_sdc.my-cta',
+        'inputs' => [
+          'text' => StaticPropSource::generate(
+            expression: new FieldTypePropExpression('string', 'value'),
+            cardinality: 1,
+          )->withValue('Clickbait')->toArray(),
+          // ⚠️ This will use the `uri` field type, not the `link` field type.
+          'href' => StaticPropSource::generate(
+            // @phpstan-ignore-next-line
+            expression: StructuredDataPropExpression::fromString($this->component4->getSettings()['prop_field_definitions']['href']['expression']),
+            field_instance_settings: $this->component4->getSettings()['prop_field_definitions']['href']['field_instance_settings'],
+            cardinality: 1,
+          )->withValue('https://drupal.org/bait')->toArray(),
+        ],
+      ],
+    ])->save();
+    $entity->save();
+    $third_revision = self::entityRevisionIdentifier($entity);
+
     $expected_records = [
       $first_revision => [
         'config' => [$this->component1->getConfigDependencyName()],
@@ -274,9 +355,29 @@ class ComponentTreeDependencyRepositoryTest extends ComponentAuditTestBase {
       $second_revision => [
         'config' => [
           $this->component2->getConfigDependencyName(),
+          $this->component4->getConfigDependencyName(),
           $this->component1->getConfigDependencyName(),
         ],
-        'plugin' => ['field_type:string'],
+        'plugin' => [
+          // ⚠️ TRICKY: this content entity revision depends on the dependencies
+          // used by the "my-cta" SDC Component at version 6c057d67bf6d7f42.
+          'field_type:link',
+          'field_type:string',
+        ],
+        'module' => ['link'],
+      ],
+      $third_revision => [
+        'config' => [
+          $this->component2->getConfigDependencyName(),
+          $this->component4->getConfigDependencyName(),
+          $this->component1->getConfigDependencyName(),
+        ],
+        'plugin' => [
+          0 => 'field_type:string',
+          // ⚠️ TRICKY: this content entity revision depends on the dependencies
+          // used by the "my-cta" SDC Component at version 535435951dbc2e3c.
+          2 => 'field_type:uri',
+        ],
       ],
     ];
     if ($translation !== NULL) {
