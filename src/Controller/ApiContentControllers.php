@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace Drupal\experience_builder\Controller;
 
+use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Cache\CacheableJsonResponse;
 use Drupal\Core\Cache\CacheableMetadata;
+use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityPublishedInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Entity\ContentEntityInterface;
@@ -13,10 +15,16 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\Query\QueryInterface;
 use Drupal\Core\Render\RenderContext;
 use Drupal\Core\Render\RendererInterface;
+use Drupal\Core\Routing\RouteProviderInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
+use Drupal\Core\Url;
 use Drupal\experience_builder\AutoSave\AutoSaveManager;
 use Drupal\experience_builder\ClientDataToEntityConverter;
 use Drupal\experience_builder\Plugin\DisplayVariant\XbPageVariant;
+use Drupal\experience_builder\Resource\XbResourceLink;
+use Drupal\experience_builder\Resource\XbResourceLinkCollection;
+use Drupal\experience_builder\XbUriDefinitions;
+use http\Exception\InvalidArgumentException;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -36,6 +44,7 @@ final class ApiContentControllers {
     private readonly RendererInterface $renderer,
     private readonly AutoSaveManager $autoSaveManager,
     private readonly ClientDataToEntityConverter $clientDataToEntityConverter,
+    private readonly RouteProviderInterface $routeProvider,
   ) {}
 
   public function post(Request $request, string $entity_type): JsonResponse {
@@ -136,6 +145,9 @@ final class ApiContentControllers {
           assert(str_starts_with($autoSavePath, '/'));
         }
       }
+      // Expose available entity operations.
+      $linkCollection = $this->getEntityOperations($content_entity);
+
       $content_list[$id] = [
         'id' => $id,
         'title' => $content_entity->label(),
@@ -143,8 +155,11 @@ final class ApiContentControllers {
         'path' => $generated_url->getGeneratedUrl(),
         'autoSaveLabel' => is_null($autoSaveData->data) ? NULL : AutoSaveManager::getLabelToSave($content_entity, $autoSaveData->data),
         'autoSavePath' => $autoSavePath,
+        // @see https://jsonapi.org/format/#document-links
+        'links' => $linkCollection->asArray(),
       ];
-      $url_cacheability->addCacheableDependency($generated_url);
+      $url_cacheability->addCacheableDependency($generated_url)
+        ->addCacheableDependency($linkCollection);
     }
     $json_response = new CacheableJsonResponse($content_list);
     // @todo add cache contexts for query params when introducing pagination in https://www.drupal.org/i/3502691.
@@ -230,6 +245,57 @@ final class ApiContentControllers {
 
   public static function defaultTitle(EntityTypeInterface $entity_type): TranslatableMarkup {
     return new TranslatableMarkup('Untitled @singular_entity_type_label', ['@singular_entity_type_label' => $entity_type->getSingularLabel()]);
+  }
+
+  public function getEntityOperations(EntityPublishedInterface $content_entity): XbResourceLinkCollection {
+    $links = new XbResourceLinkCollection([]);
+    // Link relation type => route name.
+    $possible_operations = [
+      XbUriDefinitions::LINK_REL_DELETE => ['route_name' => 'experience_builder.api.content.delete', 'op' => 'delete'],
+      XbUriDefinitions::LINK_REL_EDIT => ['route_name' => 'experience_builder.experience_builder', 'op' => 'update'],
+      // @todo Fix when https://www.drupal.org/i/3503412 lands.
+      // XbUriDefinitions::LINK_REL_SET_AS_HOMEPAGE => ['route_name' => 'experience_builder.api.homepage.post', 'op' => 'update'],
+      XbUriDefinitions::LINK_REL_DUPLICATE => ['route_name' => 'experience_builder.api.content.create', 'op' => 'update'],
+    ];
+    foreach ($possible_operations as $link_rel => ['route_name' => $route_name, 'op' => $entity_operation]) {
+      $access = $content_entity->access(operation: $entity_operation, return_as_object: TRUE);
+      assert($access instanceof AccessResult);
+      if ($access->isAllowed()) {
+        $links = $links->withLink(
+          $link_rel,
+          new XbResourceLink($access, $this->getUrlFromRoute($content_entity, $route_name), $link_rel)
+        );
+      }
+      else {
+        $links->addCacheableDependency($access);
+      }
+    }
+    return $links;
+  }
+
+  /**
+   * Gets the url for an operation route given the content entity.
+   *
+   * Ideally, we would have standardized routes, and we wouldn't need a helper,
+   * nor to compile the routes.
+   * This might be achievable when we complete https://www.drupal.org/i/3498525.
+   */
+  private function getUrlFromRoute(EntityInterface $content_entity, string $route_name): Url {
+    // @todo https://www.drupal.org/i/3498525 should standardize the
+    //   route params. We need this helper for now.
+    $match = fn($param) => match($param) {
+      'entity_type' => $content_entity->getEntityTypeId(),
+      'entity' => $content_entity->id(),
+      $content_entity->getEntityTypeId() => $content_entity->id(),
+      default => throw new InvalidArgumentException('We cannot map this route parameter'),
+    };
+    $route = $this->routeProvider->getRouteByName($route_name);
+    $route_parameters = $route->compile()->getVariables();
+    $params = [];
+    foreach ($route_parameters as $param) {
+      $params[$param] = $match($param);
+    }
+    return Url::fromRoute($route_name, $params);
   }
 
 }

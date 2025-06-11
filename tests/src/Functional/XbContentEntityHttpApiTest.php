@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\experience_builder\Functional;
 
+use Drupal\Core\Cache\Cache;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Url;
 use Drupal\experience_builder\AutoSave\AutoSaveManager;
 use Drupal\experience_builder\Entity\Page;
+use Drupal\experience_builder\XbUriDefinitions;
 use Drupal\user\Entity\Role;
 use Drupal\user\UserInterface;
 use GuzzleHttp\RequestOptions;
@@ -94,6 +96,11 @@ final class XbContentEntityHttpApiTest extends HttpApiTestBase {
         'path' => base_path() . 'page-1',
         'autoSaveLabel' => NULL,
         'autoSavePath' => NULL,
+        'links' => [
+          // @todo https://www.drupal.org/i/3498525 should standardize arguments.
+          XbUriDefinitions::LINK_REL_EDIT => Url::fromUri('base:/xb/xb_page/1')->toString(),
+          XbUriDefinitions::LINK_REL_DUPLICATE => Url::fromUri('base:/xb/api/v0/content/xb_page')->toString(),
+        ],
       ],
       // Page 2 has no path alias.
       '2' => [
@@ -103,6 +110,11 @@ final class XbContentEntityHttpApiTest extends HttpApiTestBase {
         'path' => base_path() . 'page/2',
         'autoSaveLabel' => NULL,
         'autoSavePath' => NULL,
+        'links' => [
+          // @todo https://www.drupal.org/i/3498525 should standardize arguments.
+          XbUriDefinitions::LINK_REL_EDIT => Url::fromUri('base:/xb/xb_page/2')->toString(),
+          XbUriDefinitions::LINK_REL_DUPLICATE => Url::fromUri('base:/xb/api/v0/content/xb_page')->toString(),
+        ],
       ],
       '3' => [
         'id' => 3,
@@ -111,6 +123,11 @@ final class XbContentEntityHttpApiTest extends HttpApiTestBase {
         'path' => base_path() . 'page-3',
         'autoSaveLabel' => NULL,
         'autoSavePath' => NULL,
+        'links' => [
+          // @todo https://www.drupal.org/i/3498525 should standardize arguments.
+          XbUriDefinitions::LINK_REL_EDIT => Url::fromUri('base:/xb/xb_page/3')->toString(),
+          XbUriDefinitions::LINK_REL_DUPLICATE => Url::fromUri('base:/xb/api/v0/content/xb_page')->toString(),
+        ],
       ],
     ];
     $this->assertEquals(
@@ -199,6 +216,60 @@ final class XbContentEntityHttpApiTest extends HttpApiTestBase {
       $body
     );
     $this->assertExpectedResponse('GET', $url, [], 200, ['user.permissions'], [AutoSaveManager::CACHE_TAG, 'http_response', 'xb_page_list'], 'UNCACHEABLE (request policy)', 'HIT');
+  }
+
+  /**
+   * @dataProvider metaOperationsProvider
+   */
+  public function testListMetaOperations(array $permissions, array $expectedLinks, array $extraCacheContexts = [], array $extraCacheTags = []): void {
+    $url = Url::fromUri('base:/xb/api/v0/content/xb_page');
+    array_walk($expectedLinks, fn(&$value) => $value = Url::fromUri($value)->toString());
+    // Enable xb_test_access, which will disable view permission for page 1
+    // and add extra cache contexts and cache tags.
+    $this->container->get('module_installer')->install(['xb_test_access']);
+    \Drupal::keyValue('xb_test_access')->set('cache_contexts', $extraCacheContexts);
+    \Drupal::keyValue('xb_test_access')->set('cache_tags', $extraCacheTags);
+
+    $user = $this->createUser($permissions);
+    assert($user instanceof UserInterface);
+    $this->drupalLogin($user);
+
+    $body = $this->assertExpectedResponse('GET', $url, [], 200, Cache::mergeContexts(['user.permissions'], $extraCacheContexts), Cache::mergeTags([AutoSaveManager::CACHE_TAG, 'http_response', 'xb_page_list'], $extraCacheTags), 'UNCACHEABLE (request policy)', 'MISS');
+    assert(\is_array($body));
+    assert(\array_key_exists('1', $body) && \array_key_exists('links', $body['1']));
+    $this->assertEquals(
+      $expectedLinks,
+      $body['1']['links']
+    );
+  }
+
+  public static function metaOperationsProvider(): array {
+    return [
+      'can edit' => [
+        [Page::EDIT_PERMISSION],
+        [
+          XbUriDefinitions::LINK_REL_EDIT => 'base:/xb/xb_page/1',
+          XbUriDefinitions::LINK_REL_DUPLICATE => 'base:/xb/api/v0/content/xb_page',
+        ],
+      ],
+      'can edit and delete' => [
+        [Page::EDIT_PERMISSION, Page::DELETE_PERMISSION],
+        [
+          XbUriDefinitions::LINK_REL_EDIT => 'base:/xb/xb_page/1',
+          XbUriDefinitions::LINK_REL_DUPLICATE => 'base:/xb/api/v0/content/xb_page',
+          XbUriDefinitions::LINK_REL_DELETE => 'base:/xb/api/v0/content/xb_page/1',
+        ],
+      ],
+      'can edit and create' => [
+        [Page::EDIT_PERMISSION, Page::CREATE_PERMISSION],
+        [
+          XbUriDefinitions::LINK_REL_EDIT => 'base:/xb/xb_page/1',
+          XbUriDefinitions::LINK_REL_DUPLICATE => 'base:/xb/api/v0/content/xb_page',
+        ],
+        ['headers:X-Something'],
+        ['zzz'],
+      ],
+    ];
   }
 
   public function testDelete(): void {

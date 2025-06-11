@@ -807,6 +807,7 @@ paths:
                     - path
                     - autoSaveLabel
                     - autoSavePath
+                    - links
                   properties:
                     id:
                       type: integer
@@ -825,6 +826,13 @@ paths:
                       type: string
                       nullable: true
                       description: The auto-save path.
+                    links:
+                      type: object
+                      description: The operation links.
+                      additionalProperties:
+                        type: string
+                      examples:
+                        edit-form: /xb/xb_page/3
               examples:
                 pageList:
                   value:
@@ -835,6 +843,8 @@ paths:
                       path: /home
                       autoSaveLabel: Homer
                       autoSavePath: /updated-path
+                      links:
+                        edit-form: /xb/xb_page/1
                     '2':
                       id: 2
                       title: About
@@ -842,6 +852,8 @@ paths:
                       path: /about
                       autoSaveLabel: About who?
                       autoSavePath: /page/1
+                      links:
+                        edit-form: /xb/xb_page/2
     post:
       description: Create content for a specific entity type
       parameters:
