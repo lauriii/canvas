@@ -18,6 +18,7 @@ use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Link;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\Core\Plugin\Context\ContextDefinitionInterface;
 use Drupal\Core\Plugin\PluginDependencyTrait;
@@ -26,6 +27,7 @@ use Drupal\Core\Routing\RouteMatch;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Routing\RouteProviderInterface;
 use Drupal\Core\Session\AccountInterface;
+use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\TypedData\ComplexDataInterface;
 use Drupal\Core\TypedData\Plugin\DataType\BooleanData;
@@ -167,16 +169,19 @@ final class BlockComponent extends ComponentSourceBase implements ContainerFacto
         $block->getPluginId(),
         $block->getPluginDefinition(),
         new class() implements BreadcrumbBuilderInterface {
+          use StringTranslationTrait;
 
           public function applies(RouteMatchInterface $route_match) {
              return TRUE;
           }
 
           /**
-           * Matches PathBasedBreadcrumbBuilder::build()'s front page handling.
+           * In the preview, the breadcrumbs always points to the frontpage.
            */
           public function build(RouteMatchInterface $route_match) {
-            return new Breadcrumb();
+            $breadcrumb = new Breadcrumb();
+            $breadcrumb->addLink(Link::createFromRoute($this->t('Home'), '<front>'));
+            return $breadcrumb;
           }
 
         },
