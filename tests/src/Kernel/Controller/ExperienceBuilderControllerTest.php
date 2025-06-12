@@ -55,21 +55,25 @@ final class ExperienceBuilderControllerTest extends KernelTestBase {
    *   The permissions.
    * @param array $values
    *   The values.
+   * @param null|string $expected_logic_exception_message
+   *   Consider removing in https://www.drupal.org/i/3498525.
    *
    * @dataProvider entityData
    */
-  public function testController(string $entity_type, array $permissions, array $values): void {
+  public function testController(string $entity_type, array $permissions, array $values, ?string $expected_logic_exception_message = NULL): void {
     $this->installEntitySchema($entity_type);
 
     $this->setUpCurrentUser([], $permissions);
 
-    $add_url = Url::fromRoute('experience_builder.experience_builder', [
-      'entity_type' => $entity_type,
-      'entity' => '',
-    ])->toString();
-    self::assertEquals("/xb/$entity_type", $add_url);
-    $this->request(Request::create($add_url));
-    $this->assertExperienceBuilderMount($entity_type);
+    if ($entity_type === Page::ENTITY_TYPE_ID) {
+      $add_url = Url::fromRoute('experience_builder.experience_builder', [
+        'entity_type' => $entity_type,
+        'entity' => '',
+      ])->toString();
+      self::assertEquals("/xb/$entity_type", $add_url);
+      $this->request(Request::create($add_url));
+      $this->assertExperienceBuilderMount($entity_type);
+    }
 
     $storage = $this->container->get('entity_type.manager')->getStorage($entity_type);
     $sut = $storage->create($values);
@@ -80,6 +84,11 @@ final class ExperienceBuilderControllerTest extends KernelTestBase {
       'entity' => $sut->id(),
     ])->toString();
     self::assertEquals("/xb/$entity_type/{$sut->id()}", $edit_url);
+
+    if ($expected_logic_exception_message) {
+      $this->expectException(\LogicException::class);
+      $this->expectExceptionMessage($expected_logic_exception_message);
+    }
 
     /** @var \Drupal\Core\Render\HtmlResponse $response */
     $response = $this->request(Request::create($edit_url));
@@ -109,10 +118,12 @@ final class ExperienceBuilderControllerTest extends KernelTestBase {
       ],
       'entity_test' => [
         'entity_test',
-        ['access administration pages'],
+        ['administer entity_test content'],
         [
           'name' => 'Test entity',
         ],
+        // @todo Update in https://www.drupal.org/i/3498525.
+        'For now XB only works if the entity is an xb_page or an article node! Other entity types and bundles must be tested before they are supported, to help see https://drupal.org/i/3493675.',
       ],
     ];
   }

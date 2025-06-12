@@ -65,7 +65,14 @@ class XbPageVariantTest extends FunctionalTestBase {
     // XB UI, to allow testing that independently.
     $this->mink->registerSession('xb_ui', new Session($this->getDefaultDriverInstance()));
     $this->mink->setDefaultSessionName('xb_ui');
-    $admin_user = $this->createUser(['access administration pages']);
+    /** @var \Drupal\user\UserInterface $admin_user */
+    $admin_user = $this->createUser();
+    // cspell:ignore xbpageadmin
+    Role::create([
+      'id' => 'xbpageadmin',
+      'label' => 'XB page admin',
+    ])->save();
+    $admin_user->addRole('xbpageadmin')->save();
     assert($admin_user instanceof AccountInterface);
     $this->drupalLogin($admin_user);
     $this->assertSession('xb_ui');
@@ -114,6 +121,7 @@ class XbPageVariantTest extends FunctionalTestBase {
       // Install module that provides test SDCs.
       'xb_test_sdc',
     ]);
+    Role::load('xbpageadmin')?->grantPermission(Page::EDIT_PERMISSION)->save();
     $this->rebuildContainer();
     $this->generateComponentConfig();
     $this->assertPageDisplayVariant(BlockPageVariant::class, [$block]);

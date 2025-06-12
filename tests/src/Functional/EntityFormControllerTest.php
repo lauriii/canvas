@@ -50,7 +50,7 @@ class EntityFormControllerTest extends FunctionalTestBase {
     // We are logged in as user 1 so we should see the trace.
     $this->assertObjectHasProperty('trace', $json);
 
-    $user = $this->drupalCreateUser(['administer display modes', 'administer node form display', 'access administration pages']);
+    $user = $this->drupalCreateUser(['administer display modes', 'administer node form display', 'edit any article content']);
     $this->assertInstanceOf(User::class, $user);
     $this->drupalLogin($user);
     $this->drupalGet('admin/structure/display-modes/form/add/node');

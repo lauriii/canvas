@@ -31,7 +31,7 @@ final class ComponentInputsFormTest extends ApiLayoutControllerTestBase {
     $this->container->get('config.factory')->getEditable('system.theme')->set('default', 'stark')->save();
 
     (new XBTestSetup())->setup();
-    $this->setUpCurrentUser(permissions: ['access administration pages', 'administer themes']);
+    $this->setUpCurrentUser(permissions: ['edit any article content', 'administer themes']);
   }
 
   #[DataProvider('providerOptionalImages')]

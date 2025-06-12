@@ -10,6 +10,8 @@ use Drupal\Core\Block\BlockPluginInterface;
 use Drupal\Core\Block\MainContentBlockPluginInterface;
 use Drupal\Core\Block\MessagesBlockPluginInterface;
 use Drupal\Core\Block\TitleBlockPluginInterface;
+use Drupal\Core\Breadcrumb\Breadcrumb;
+use Drupal\Core\Breadcrumb\BreadcrumbBuilderInterface;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Config\TypedConfigManagerInterface;
 use Drupal\Core\Entity\EntityInterface;
@@ -20,6 +22,9 @@ use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\Core\Plugin\Context\ContextDefinitionInterface;
 use Drupal\Core\Plugin\PluginDependencyTrait;
 use Drupal\Core\Render\Element;
+use Drupal\Core\Routing\RouteMatch;
+use Drupal\Core\Routing\RouteMatchInterface;
+use Drupal\Core\Routing\RouteProviderInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\TypedData\ComplexDataInterface;
@@ -34,6 +39,7 @@ use Drupal\experience_builder\Entity\JavaScriptComponent;
 use Drupal\experience_builder\MissingComponentInputsException;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\experience_builder\Validation\ConstraintPropertyPathTranslatorTrait;
+use Drupal\system\Plugin\Block\SystemBreadcrumbBlock;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\Validator\ConstraintViolationList;
 use Symfony\Component\Validator\ConstraintViolationListInterface;
@@ -153,6 +159,33 @@ final class BlockComponent extends ComponentSourceBase implements ContainerFacto
    */
   public function renderComponent(array $inputs, string $componentUuid, bool $isPreview = FALSE): array {
     $block = $this->getBlockPlugin();
+
+    // @todo Refine to reflect the edited entity route in https://www.drupal.org/i/3509500
+    if ($isPreview && $block instanceof SystemBreadcrumbBlock) {
+      $block = new SystemBreadcrumbBlock(
+        $block->getConfiguration(),
+        $block->getPluginId(),
+        $block->getPluginDefinition(),
+        new class() implements BreadcrumbBuilderInterface {
+
+          public function applies(RouteMatchInterface $route_match) {
+             return TRUE;
+          }
+
+          /**
+           * Matches PathBasedBreadcrumbBuilder::build()'s front page handling.
+           */
+          public function build(RouteMatchInterface $route_match) {
+            return new Breadcrumb();
+          }
+
+        },
+        // @phpstan-ignore-next-line
+        new RouteMatch('<front>', \Drupal::service(RouteProviderInterface::class)->getRouteByName('<front>')),
+      );
+      assert($block instanceof SystemBreadcrumbBlock);
+    }
+
     foreach ($inputs[self::EXPLICIT_INPUT_NAME] ?? [] as $key => $value) {
       $block->setConfigurationValue($key, $value);
     }

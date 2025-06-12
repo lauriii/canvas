@@ -13,12 +13,14 @@ use Drupal\experience_builder\Plugin\DisplayVariant\XbPageVariant;
 use Drupal\node\Entity\Node;
 use Drupal\node\Entity\NodeType;
 use Drupal\node\NodeInterface;
+use Drupal\Tests\experience_builder\Kernel\Traits\RequestTrait;
 use Drupal\Tests\experience_builder\TestSite\XBTestSetup;
 use Drupal\Tests\user\Traits\UserCreationTrait;
 use Drupal\user\Entity\User;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
 /**
  * @covers \Drupal\experience_builder\Controller\ApiLayoutController::get()
@@ -27,6 +29,9 @@ use Symfony\Component\HttpFoundation\Response;
 class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
 
   use UserCreationTrait;
+  use RequestTrait {
+    request as parentRequest;
+  }
 
   /**
    * {@inheritdoc}
@@ -44,7 +49,7 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
     parent::setUp();
     $this->container->get('module_installer')->install(['system']);
     (new XBTestSetup())->setup();
-    $this->setUpCurrentUser([], ['access administration pages']);
+    $this->setUpCurrentUser([], ['edit any article content']);
   }
 
   public function testEmpty(): void {
@@ -82,7 +87,7 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
     // "content" region unless it has permissions to edit the global regions.
     $this->assertRegions(1);
 
-    $this->setUpCurrentUser([], ['access administration pages', PageRegion::ADMIN_PERMISSION]);
+    $this->setUpCurrentUser([], ['edit any article content', PageRegion::ADMIN_PERMISSION]);
 
     // … and the corresponding client-side representation contains all regions
     // plus one more (the "content" region) once it has the required permission.
@@ -123,9 +128,11 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
     // Draft of highlighted region in global template should be returned even if
     // there is no auto-save data for the node.
     $response = $this->request(Request::create($url->toString()));
-    $this->assertTitle($node1->label() . ' | Drupal');
     self::assertInstanceOf(JsonResponse::class, $response);
     $json = \json_decode($response->getContent() ?: '', TRUE);
+    self::assertArrayHasKey('html', $json);
+    $this->setRawContent($json['html']);
+    $this->assertTitle($node1->label() . ' | Drupal');
     $this->assertResponseAutoSaves($response, [$regions['stark.highlighted']]);
     self::assertArrayHasKey('layout', $json);
     $highlightedRegion = \array_filter($json['layout'], static fn (array $region) => ($region['id'] ?? NULL) === 'highlighted');
@@ -159,10 +166,14 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
     $autoSave->save($node1, $data);
     $response = $this->request(Request::create($url->toString()));
     $this->assertResponseAutoSaves($response, [$node1, $regions['stark.highlighted']]);
-    $this->assertTitle("$new_title | Drupal");
 
+    // Extract HTML from JSON response for title assertion
     self::assertInstanceOf(JsonResponse::class, $response);
     $json = \json_decode($response->getContent() ?: '', TRUE);
+    self::assertArrayHasKey('html', $json);
+    $this->setRawContent($json['html']);
+    $this->assertTitle("$new_title | Drupal");
+
     self::assertArrayHasKey('layout', $json);
     $highlightedRegion = \array_filter($json['layout'], static fn (array $region) => ($region['id'] ?? NULL) === 'highlighted');
     self::assertCount(1, $highlightedRegion);
@@ -372,7 +383,7 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
   }
 
   public function testStatusFlags(): void {
-    $this->setUpCurrentUser(permissions: ['access administration pages', Page::CREATE_PERMISSION]);
+    $this->setUpCurrentUser(permissions: [Page::CREATE_PERMISSION, Page::EDIT_PERMISSION]);
 
     $request = Request::create('/xb/api/v0/content/xb_page', 'POST', [], [], [], ['CONTENT_TYPE' => 'application/json'], json_encode([], JSON_THROW_ON_ERROR));
     $content = $this->parentRequest($request)->getContent();
@@ -412,7 +423,7 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
     $node->save();
 
     // Set up the current user without access to path field.
-    $authenticated_role = $this->createRole(['access administration pages']);
+    $authenticated_role = $this->createRole(['edit any article content']);
     $limited_user = $this->createUser([], NULL, FALSE, ['roles' => [$authenticated_role]]);
     assert($limited_user instanceof User);
     $this->setCurrentUser($limited_user);
@@ -497,6 +508,80 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
       $region->save();
     }
     return $regions;
+  }
+
+  /**
+   * Data provider for testFieldAccess.
+   *
+   * @return array[]
+   *   Test data with permissions and expected results.
+   */
+  public static function fieldAccessProvider(): array {
+    return [
+      'no_permissions' => [
+        'permissions' => ['access content'],
+        'exception_message' => "The 'edit xb_page' permission is required.",
+      ],
+      'entity_edit_only' => [
+        'permissions' => [Page::EDIT_PERMISSION],
+        'exception_message' => 'You do not have permission to edit this field.',
+      ],
+      'field_edit_only' => [
+        // @see \xb_test_field_access_entity_field_access()
+        'permissions' => ['edit xb page components'],
+        'exception_message' => "The 'edit xb_page' permission is required.",
+      ],
+      'both_permissions' => [
+        'permissions' => [Page::EDIT_PERMISSION, 'edit xb page components'],
+        'exception_message' => NULL,
+      ],
+    ];
+  }
+
+  /**
+   * Tests field access for the Experience Builder API layout.
+   *
+   * @dataProvider fieldAccessProvider
+   */
+  public function testFieldAccess(array $permissions, ?string $exception_message): void {
+    $this->container->get('module_installer')->install(['xb_test_field_access']);
+    $this->setUpCurrentUser([], $permissions);
+
+    // Test field access using URL/request approach rather than directly calling controller
+    // to ensure proper route resolution and access checking.
+    $page = Page::create([
+      'title' => 'Test page',
+      'description' => 'This is a test page.',
+      'components' => [
+        [
+          'uuid' => XBTestSetup::UUID_COMPONENT_SDC,
+          'component_id' => 'sdc.xb_test_sdc.props-slots',
+          'inputs' => [
+            'heading' => [
+              'sourceType' => 'static:field_item:string',
+              'value' => 'Welcome to the site!',
+              'expression' => 'ℹ︎string␟value',
+            ],
+          ],
+        ],
+      ],
+    ]);
+    $page->save();
+
+    $url = Url::fromRoute('experience_builder.api.layout.get', [
+      'entity' => $page->id(),
+      'entity_type' => Page::ENTITY_TYPE_ID,
+    ]);
+
+    if ($exception_message !== NULL) {
+      $this->expectException(AccessDeniedHttpException::class);
+      $this->expectExceptionMessage($exception_message);
+      $this->parentRequest(Request::create($url->toString()));
+    }
+    else {
+      $response = $this->parentRequest(Request::create($url->toString()));
+      $this->assertSame(Response::HTTP_OK, $response->getStatusCode());
+    }
   }
 
 }
